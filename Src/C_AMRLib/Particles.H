@@ -175,7 +175,10 @@ template <int N>
 void
 ParticleContainer<N>::Init (const std::string& file)
 {
+    BL_ASSERT(!file.empty());
+
     const int MyProc = ParallelDescriptor::MyProc();
+    const int NProcs = ParallelDescriptor::NProcs();
 
     std::ifstream ifs;
 
@@ -184,8 +187,7 @@ ParticleContainer<N>::Init (const std::string& file)
     if (!ifs.good())
         BoxLib::FileOpenFailed(file);
 
-    int id = 1;
-
+    int id  = 1;
     int cnt = 0;
 
     ifs >> cnt;
@@ -242,8 +244,6 @@ ParticleContainer<N>::Init (const std::string& file)
         }
     }
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
     for (int i = 0; i < NProcs; i++)
     {
         if (MyProc == i)
@@ -266,7 +266,9 @@ ParticleContainer<N>::Init (const std::string& file)
 
 template <int N>
 void
-ParticleContainer<N>::InitRandom (long icount, unsigned long iseed, Real particleMass)
+ParticleContainer<N>::InitRandom (long          icount,
+                                  unsigned long iseed,
+                                  Real          mass)
 {
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
@@ -315,10 +317,10 @@ ParticleContainer<N>::InitRandom (long icount, unsigned long iseed, Real particl
             BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
         }
 
-        p.m_data[0] = particleMass;
+        p.m_data[0] = mass;
         for (int i = 1; i < N; i++)
             //
-            // Just zero out the data for lack of a better value.
+            // Just zero out the rest of the data for lack of a better value.
             //
             p.m_data[i] = 0;
 
@@ -391,7 +393,8 @@ ParticleContainer<N>::MoveRandom ()
 
 template <int N>
 void
-ParticleContainer<N>::Increment (MultiFab& mf, int level) const
+ParticleContainer<N>::Increment (MultiFab& mf,
+                                 int       lev) const
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -401,7 +404,7 @@ ParticleContainer<N>::Increment (MultiFab& mf, int level) const
     {
         const ParticleType& p = *it;
 
-        if (p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
         {
             mf[p.m_grid](p.m_cell) += 1;
         }
@@ -410,7 +413,8 @@ ParticleContainer<N>::Increment (MultiFab& mf, int level) const
 
 template <int N>
 Real
-ParticleContainer<N>::estTimestep (const MultiFab& grav_vector, int level) const
+ParticleContainer<N>::estTimestep (const MultiFab& grav_vector,
+                                   int             lev) const
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
 
@@ -427,7 +431,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector, int level) const
     {
         const ParticleType& p = *it;
 
-        if (p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
         {
             D_TERM(mag_vel  = p.m_data[1] * p.m_data[1];,
                    mag_vel += p.m_data[2] * p.m_data[2];,
@@ -468,7 +472,8 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector, int level) const
 
 template <int N>
 Real
-ParticleContainer<N>::sumParticleMass (const MultiFab& mf, int level) const
+ParticleContainer<N>::sumParticleMass (const MultiFab& mf,
+                                       int             lev) const
 {
     BL_ASSERT(N >= 1);
 
@@ -482,7 +487,7 @@ ParticleContainer<N>::sumParticleMass (const MultiFab& mf, int level) const
     {
         const ParticleType& p = *it;
 
-        if (p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
         {
             massSum += p.m_data[0];
         }
@@ -503,7 +508,8 @@ ParticleContainer<N>::sumParticleMass (const MultiFab& mf, int level) const
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
+ParticleContainer<N>::AssignDensity (MultiFab& mf,
+                                     int       lev) const
 {
     BL_ASSERT(N >= 1);
 
@@ -511,7 +517,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
 
     const DistributionMapping& dm = mf.DistributionMap();
 
-    const Geometry& geom = m_amr->Geom(level);
+    const Geometry& geom = m_amr->Geom(lev);
 
     if (!geom.isAllPeriodic())
         BoxLib::Error("AssignDensity: Problem has to be periodic...");
@@ -540,7 +546,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
     {
         const ParticleType& p = *it;
 
-        if (p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
         {
             IntVect centralIntersection;
 
@@ -615,7 +621,9 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf, int level) const
 
 template <int N>
 void
-ParticleContainer<N>::movePredict(const MultiFab& grav_vector, int level, Real timestep)
+ParticleContainer<N>::movePredict (const MultiFab& grav_vector,
+                                   int             lev,
+                                   Real            dt)
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
 
@@ -627,20 +635,20 @@ ParticleContainer<N>::movePredict(const MultiFab& grav_vector, int level, Real t
     {
         ParticleType& p = *it;
 
-        if (p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
         {
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
             const FArrayBox& gfab = grav_vector[p.m_grid];
 
-            D_TERM(p.m_data[1] += timestep * gfab(p.m_cell,0);,
-                   p.m_data[2] += timestep * gfab(p.m_cell,1);,
-                   p.m_data[3] += timestep * gfab(p.m_cell,2););
+            D_TERM(p.m_data[1] += dt * gfab(p.m_cell,0);,
+                   p.m_data[2] += dt * gfab(p.m_cell,1);,
+                   p.m_data[3] += dt * gfab(p.m_cell,2););
 
-            D_TERM(p.m_pos[0]  += timestep * p.m_data[1];,
-                   p.m_pos[1]  += timestep * p.m_data[2];,
-                   p.m_pos[2]  += timestep * p.m_data[3];);
+            D_TERM(p.m_pos[0]  += dt * p.m_data[1];,
+                   p.m_pos[1]  += dt * p.m_data[2];,
+                   p.m_pos[2]  += dt * p.m_data[3];);
         }
 
         if (!ParticleBase::Where(p,m_amr,true))
@@ -667,7 +675,10 @@ ParticleContainer<N>::movePredict(const MultiFab& grav_vector, int level, Real t
 
 template <int N>
 void
-ParticleContainer<N>::moveCorrect(const MultiFab& grav_vector_old, const MultiFab& grav_vector, int level, Real timestep)
+ParticleContainer<N>::moveCorrect (const MultiFab& grav_vector_old,
+                                   const MultiFab& grav_vector,
+                                   int             lev,
+                                   Real            dt)
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
 
@@ -679,24 +690,24 @@ ParticleContainer<N>::moveCorrect(const MultiFab& grav_vector_old, const MultiFa
     {
         ParticleType& p = *it;
 
-        if (p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
         {
-            D_TERM(p.m_pos[0]  -= 0.5 * timestep * p.m_data[1];,
-                   p.m_pos[1]  -= 0.5 * timestep * p.m_data[2];,
-                   p.m_pos[2]  -= 0.5 * timestep * p.m_data[3];);
+            D_TERM(p.m_pos[0]  -= 0.5 * dt * p.m_data[1];,
+                   p.m_pos[1]  -= 0.5 * dt * p.m_data[2];,
+                   p.m_pos[2]  -= 0.5 * dt * p.m_data[3];);
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
             const FArrayBox& gfab     = grav_vector[p.m_grid];
             const FArrayBox& gfab_old = grav_vector_old[p.m_grid];
             
-            D_TERM(p.m_data[1] += 0.5 * timestep * ( gfab(p.m_cell,0) - gfab_old(p.m_cell,0) );, 
-                   p.m_data[2] += 0.5 * timestep * ( gfab(p.m_cell,1) - gfab_old(p.m_cell,1) );,
-                   p.m_data[3] += 0.5 * timestep * ( gfab(p.m_cell,2) - gfab_old(p.m_cell,2) ););
+            D_TERM(p.m_data[1] += 0.5 * dt * ( gfab(p.m_cell,0) - gfab_old(p.m_cell,0) );, 
+                   p.m_data[2] += 0.5 * dt * ( gfab(p.m_cell,1) - gfab_old(p.m_cell,1) );,
+                   p.m_data[3] += 0.5 * dt * ( gfab(p.m_cell,2) - gfab_old(p.m_cell,2) ););
 
-            D_TERM(p.m_pos[0]  += 0.5 * timestep * p.m_data[1];,
-                   p.m_pos[1]  += 0.5 * timestep * p.m_data[2];,
-                   p.m_pos[2]  += 0.5 * timestep * p.m_data[3];);
+            D_TERM(p.m_pos[0]  += 0.5 * dt * p.m_data[1];,
+                   p.m_pos[1]  += 0.5 * dt * p.m_data[2];,
+                   p.m_pos[2]  += 0.5 * dt * p.m_data[3];);
         }
 
         if (!ParticleBase::Where(p,m_amr,true))
@@ -723,7 +734,9 @@ ParticleContainer<N>::moveCorrect(const MultiFab& grav_vector_old, const MultiFa
 
 template <int N>
 void
-ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real timestep)
+ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
+                                     int             lev,
+                                     Real            dt)
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
 
@@ -735,20 +748,20 @@ ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real
     {
         ParticleType& p = *it;
 
-        if (p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
         {
             //
             // note: m_data[0] is mass, 1 is v_x, ...
             //
             const FArrayBox& gfab = grav_vector[p.m_grid];
 
-            D_TERM(p.m_data[1] += 0.5 * timestep * gfab(p.m_cell,0);,
-                   p.m_data[2] += 0.5 * timestep * gfab(p.m_cell,1);,
-                   p.m_data[3] += 0.5 * timestep * gfab(p.m_cell,2););
+            D_TERM(p.m_data[1] += 0.5 * dt * gfab(p.m_cell,0);,
+                   p.m_data[2] += 0.5 * dt * gfab(p.m_cell,1);,
+                   p.m_data[3] += 0.5 * dt * gfab(p.m_cell,2););
 
-            D_TERM(p.m_pos[0]  +=       timestep * p.m_data[1];,
-                   p.m_pos[1]  +=       timestep * p.m_data[2];,
-                   p.m_pos[2]  +=       timestep * p.m_data[3];);
+            D_TERM(p.m_pos[0]  +=       dt * p.m_data[1];,
+                   p.m_pos[1]  +=       dt * p.m_data[2];,
+                   p.m_pos[2]  +=       dt * p.m_data[3];);
         }
 
         if (!ParticleBase::Where(p,m_amr,true))
@@ -775,7 +788,9 @@ ParticleContainer<N>::moveKickDrift(const MultiFab& grav_vector, int level, Real
 
 template <int N>
 void
-ParticleContainer<N>::moveKick(const MultiFab& grav_vector, int level, Real timestep)
+ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
+                                int             lev,
+                                Real            dt)
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
 
@@ -787,16 +802,16 @@ ParticleContainer<N>::moveKick(const MultiFab& grav_vector, int level, Real time
     {
         ParticleType& p = *it;
 
-        if (p.m_lev == level && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
         {
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
             const FArrayBox& gfab = grav_vector[p.m_grid];
 
-            D_TERM(p.m_data[1] += 0.5 * timestep * gfab(p.m_cell,0);, //how do I use grav_vec correctly? this seems to be some kind of s...
-                   p.m_data[2] += 0.5 * timestep * gfab(p.m_cell,1);,
-                   p.m_data[3] += 0.5 * timestep * gfab(p.m_cell,2););
+            D_TERM(p.m_data[1] += 0.5 * dt * gfab(p.m_cell,0);, //how do I use grav_vec correctly? this seems to be some kind of s...
+                   p.m_data[2] += 0.5 * dt * gfab(p.m_cell,1);,
+                   p.m_data[3] += 0.5 * dt * gfab(p.m_cell,2););
         }
     }
     //
@@ -1136,7 +1151,8 @@ ParticleContainer<N>::OK () const
 
 template <int N>
 void
-ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& name) const
+ParticleContainer<N>::Checkpoint (const std::string& dir,
+                                  const std::string& name) const
 {
     BL_ASSERT(OK());
 
@@ -1216,7 +1232,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
     // We want to write the data in parallel.
     // We'll allow up to nOutFiles active writers at a time.
     //
-    int nOutFiles = std::min(64,NProcs);
+    const int nOutFiles = std::min(64,NProcs);
 
     for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
     {
@@ -1249,12 +1265,6 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
         Array<int>  which(state.size(),0);
         Array<long> where(state.size(),0);
 
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
-        std::ofstream ParticleFile;
-
-        ParticleFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
         const int FileNumber = MyProc % nOutFiles;
 
         sprintf(buf, "%04d", FileNumber);
@@ -1264,6 +1274,12 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
         FullFileName += '/';
         FullFileName += DataPrefix;
         FullFileName += buf;
+
+        std::ofstream ParticleFile;
+
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+        ParticleFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
         const int nSets = ((NProcs + (nOutFiles - 1)) / nOutFiles);
         const int mySet = (MyProc / nOutFiles);
@@ -1303,15 +1319,14 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
                 WriteParticles(lev, ParticleFile, FileNumber, which, where);
 
                 ParticleFile.flush();
+
 #ifdef BL_USECLOSE
                 ParticleFile.close();
 #endif
                 if (!ParticleFile.good())
                     BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing ParticleFile");
 
-                int iBuff     = 0;
-                int wakeUpPID = (MyProc + nOutFiles);
-                int tag       = (MyProc % nOutFiles);
+                int iBuff = 0, wakeUpPID = (MyProc + nOutFiles), tag = (MyProc % nOutFiles);
 
                 if (wakeUpPID < NProcs)
                 {
@@ -1324,15 +1339,13 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
                 //
                 // Next set waits.
                 //
-                int iBuff;
-                int waitForPID = (MyProc - nOutFiles);
-                int tag        = (MyProc % nOutFiles);
+                int iBuff, waitForPID = (MyProc - nOutFiles), tag = (MyProc % nOutFiles);
+
                 ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
             }
         }
 
-        ParallelDescriptor::ReduceIntSum(which.dataPtr(), which.size(), IOProc);
-
+        ParallelDescriptor::ReduceIntSum (which.dataPtr(), which.size(), IOProc);
         ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProc);
 
         if (ParallelDescriptor::IOProcessor())
@@ -1409,9 +1422,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
             //
             // First write out the integer data in binary.
             //
-            const int ChunkSize = 4+BL_SPACEDIM;
+            const int iChunkSize = 4+BL_SPACEDIM;
 
-            Array<int> istuff(cnt*ChunkSize);
+            Array<int> istuff(cnt*iChunkSize);
 
             int* iptr = istuff.dataPtr();
 
@@ -1429,7 +1442,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
                     for (int i = 0; i < BL_SPACEDIM; i++)
                         iptr[4+i] = p.m_cell[i];
 
-                    iptr += ChunkSize;
+                    iptr += iChunkSize;
                 }
             }
 
@@ -1440,9 +1453,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
             //
             // Then the Real data in binary.
             //
-            const int ChunkSize = BL_SPACEDIM+N;
+            const int rChunkSize = BL_SPACEDIM+N;
 
-            Array<Real> rstuff(cnt*ChunkSize);
+            Array<Real> rstuff(cnt*rChunkSize);
 
             Real* rptr = rstuff.dataPtr();
 
@@ -1458,7 +1471,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
                     for (int i = 0; i < N; i++)
                         rptr[BL_SPACEDIM+i] = p.m_data[i];
 
-                    rptr += ChunkSize;
+                    rptr += rChunkSize;
                 }
             }
 
@@ -1469,8 +1482,12 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
 template <int N>
 void
-ParticleContainer<N>::Restart (const std::string& dir,const std::string& file)
+ParticleContainer<N>::Restart (const std::string& dir,
+                               const std::string& file)
 {
+    BL_ASSERT(!dir.empty());
+    BL_ASSERT(!file.empty());
+
     const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = ParallelDescriptor::second();
 
@@ -1551,9 +1568,10 @@ ParticleContainer<N>::Restart (const std::string& dir,const std::string& file)
     //
     // One for each grid at each level from 0 -> finest_level.
     //
+    typedef std::pair< std::string, long > line;
+
     for (int lev = 0; lev <= finest_level; lev++)
     {
-        typedef std::pair< std::string, long > line;
         //
         // Read in the grid file/offset info for this level.
         //
@@ -1588,9 +1606,7 @@ ParticleContainer<N>::Restart (const std::string& dir,const std::string& file)
 
             ParticleFile.seekg(lines[grid].second, std::ios::beg);
             //
-            // First thing is an ASCII line of the form:
-            //
-            // cnt\n
+            // First thing is an ASCII line of the form:  cnt\n
             //
             int cnt;
 
@@ -1697,6 +1713,5 @@ ParticleContainer<N>::ReadParticles (int            cnt,
         m_particles.push_back(p);
     }
 }
-
 
 #endif /*_PARTICLES_H_*/
