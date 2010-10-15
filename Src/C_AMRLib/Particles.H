@@ -120,6 +120,8 @@ public:
 
     void Checkpoint (const std::string& dir, const std::string& name) const;
 
+    void Restart (const std::string& dir, const std::string& file);
+
     int Verbose () { return m_verbose; }
 
     void Verbose (int verbose) { m_verbose = verbose; }
@@ -133,6 +135,13 @@ protected:
                          int            fnum,
                          Array<int>&    which,
                          Array<long>&   where) const;
+    //
+    // Helper function for Restart().
+    //
+    void ReadParticles (int            cnt,
+                        int            grd,
+                        int            lev,
+                        std::ifstream& ifs);
     //
     // The data.
     //
@@ -1297,6 +1306,9 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
 #ifdef BL_USECLOSE
                 ParticleFile.close();
 #endif
+                if (!ParticleFile.good())
+                    BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing ParticleFile");
+
                 int iBuff     = 0;
                 int wakeUpPID = (MyProc + nOutFiles);
                 int tag       = (MyProc % nOutFiles);
@@ -1346,17 +1358,20 @@ ParticleContainer<N>::Checkpoint (const std::string& dir, const std::string& nam
         }
     }
 
-    HdrFile.flush();
-#ifdef BL_USECLOSE
-    HdrFile.close();
-#endif
-
     Real stoptime = ParallelDescriptor::second() - strttime;
 
     ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
     {
+        HdrFile.flush();
+
+#ifdef BL_USECLOSE
+        HdrFile.close();
+#endif
+        if (!HdrFile.good())
+            BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing HdrFile");
+
         std::cout << "\nParticleContainer<N>::Checkpoint() time: " << stoptime << "\n\n";
     }
 }
@@ -1449,6 +1464,237 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
             ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(Real));
         }
+    }
+}
+
+template <int N>
+void
+ParticleContainer<N>::Restart (const std::string& dir,const std::string& file)
+{
+    const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Real strttime = ParallelDescriptor::second();
+
+    std::string fullname = dir;
+
+    if (!fullname.empty() && fullname[fullname.size()-1] != '/')
+        fullname += '/';
+
+    fullname += file;
+    //
+    // The header contains the info we need to read back in the particles.
+    //
+    std::ifstream HdrFile;
+
+    std::string HdrFileName = fullname;
+
+    if (!HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/')
+        HdrFileName += '/';
+
+    HdrFileName += "Header";
+
+    HdrFile.open(HdrFileName.c_str(), std::ios::in);
+
+    if (!HdrFile.good())
+        BoxLib::FileOpenFailed(HdrFileName);
+    //
+    // First value should be BL_SPACEDIM;
+    //
+    int dm;
+        
+    HdrFile >> dm;
+
+    if (dm != BL_SPACEDIM)
+        BoxLib::Abort("ParticleContainer<N>::Restart(): dm != BL_SPACEDIM");
+    //
+    // Next value should be our "N".
+    //
+    int n;
+
+    HdrFile >> n;
+
+    if (n != N)
+        BoxLib::Abort("ParticleContainer<N>::Restart(): n != N");
+
+    long nparticles;
+    //
+    // The total number of particles.
+    //
+    HdrFile >> nparticles;
+
+    BL_ASSERT(nparticles >= 0);
+    //
+    // Then the finest level of the AMR hierarchy.
+    //
+    int finest_level;
+
+    HdrFile >> finest_level;
+
+    BL_ASSERT(finest_level >= 0);
+    //
+    // Then the number of grids at each level.
+    //
+    Array<int> ngrids(finest_level+1);
+
+    BL_ASSERT(finest_level == m_amr->finestLevel());
+
+    for (int lev = 0; lev <= finest_level; lev++)
+    {
+        HdrFile >> ngrids[lev];
+
+        BL_ASSERT(ngrids[lev] > 0);
+        BL_ASSERT(ngrids[lev] == m_amr->boxArray(lev).size());
+    }
+    //
+    // The rest of HdrFile consists of pairs of the form:
+    //
+    //   filename offset
+    //
+    // One for each grid at each level from 0 -> finest_level.
+    //
+    for (int lev = 0; lev <= finest_level; lev++)
+    {
+        typedef std::pair< std::string, long > line;
+        //
+        // Read in the grid file/offset info for this level.
+        //
+        Array<line> lines(ngrids[lev]);
+
+        for (int i = 0; i < ngrids[lev]; i++)
+        {
+            HdrFile >> lines[i].first >> lines[i].second;
+        }
+
+        const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
+
+        for (MFIter mfi(state); mfi.isValid(); ++mfi)
+        {
+            const int grid = mfi.index();
+            //
+            // The file names in the header file are relative.
+            //
+            std::string name = fullname;
+
+            if (!name.empty() && name[name.size()-1] != '/')
+                name += '/';
+
+            name += lines[grid].first;
+
+            std::ifstream ParticleFile;
+
+            ParticleFile.open(name.c_str(), std::ios::in);
+
+            if (!ParticleFile.good())
+                BoxLib::FileOpenFailed(name);
+
+            ParticleFile.seekg(lines[grid].second, std::ios::beg);
+            //
+            // First thing is an ASCII line of the form:
+            //
+            // cnt\n
+            //
+            int cnt;
+
+            ParticleFile >> cnt;
+            //
+            // Skip past the newline
+            //
+            int ignore = ParticleFile.get();
+
+            if (cnt > 0)
+            {
+                ReadParticles(cnt,grid,lev,ParticleFile);
+
+                if (!ParticleFile.good())
+                    BoxLib::Abort("ParticleContainer<N>::Restart(): problem reading particles");
+            }
+
+#ifdef BL_USECLOSE
+            ParticleFile.close();
+#endif
+        }
+    }
+
+    BL_ASSERT(OK());
+
+#ifndef NDEBUG
+    long sz = m_particles.size();
+
+    ParallelDescriptor::ReduceLongSum(sz,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        BL_ASSERT(sz == nparticles);
+#endif
+
+    Real stoptime = ParallelDescriptor::second() - strttime;
+
+    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "\nParticleContainer<N>::Restart() time: " << stoptime << "\n\n";
+    }
+}
+
+template <int N>
+void
+ParticleContainer<N>::ReadParticles (int            cnt,
+                                     int            grd,
+                                     int            lev,
+                                     std::ifstream& ifs)
+{
+    BL_ASSERT(cnt > 0);
+    BL_ASSERT(lev >= 0 && lev <= m_amr->finestLevel());
+    BL_ASSERT(grd >= 0 && grd < m_amr->boxArray(lev).size());
+
+    ParticleType p;
+
+    std::list<ParticleType> newparticles;
+    //
+    // First read in the integer data in binary.
+    //
+    const int iChunkSize = 4+BL_SPACEDIM;
+
+    Array<int> istuff(cnt*iChunkSize);
+
+    ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+    //
+    // Then the Real data in binary.
+    //
+    const int rChunkSize = BL_SPACEDIM+N;
+
+    Array<Real> rstuff(cnt*rChunkSize);
+
+    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(Real));
+    //
+    // Now reassemble the particles.
+    //
+    int*  iptr = istuff.dataPtr();
+    Real* rptr = rstuff.dataPtr();
+
+    for (int i = 0; i < cnt; i++)
+    {
+        p.m_id   = iptr[0];
+        p.m_cpu  = iptr[1];
+        p.m_lev  = iptr[2];
+        p.m_grid = iptr[3];
+
+        BL_ASSERT(p.m_lev  == lev);
+        BL_ASSERT(p.m_grid == grd);
+
+        for (int i = 0; i < BL_SPACEDIM; i++)
+            p.m_cell[i] = iptr[4+i];
+
+        iptr += iChunkSize;
+
+        for (int i = 0; i < BL_SPACEDIM; i++)
+            p.m_pos[i] = rptr[i];
+
+        for (int i = 0; i < N; i++)
+            p.m_data[i] = rptr[BL_SPACEDIM+i];
+
+        rptr += rChunkSize;
+
+        m_particles.push_back(p);
     }
 }
 
