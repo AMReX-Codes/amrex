@@ -36,6 +36,8 @@ struct ParticleBase
     static bool Where (ParticleBase& prt, const Amr* amr, bool update = false);
 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
+
+    static const std::string& DataPrefix ();
 };
 
 std::ostream& operator<< (std::ostream& os, const ParticleBase& p);
@@ -134,6 +136,7 @@ protected:
                          std::ofstream& ofs,
                          int            fnum,
                          Array<int>&    which,
+                         Array<int>&    count,
                          Array<long>&   where) const;
     //
     // Helper function for Restart().
@@ -1225,10 +1228,6 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         }
     }
     //
-    // The actual particle data is stored in files of the form: DATA_nnnn.
-    //
-    static const std::string DataPrefix = "DATA_";
-    //
     // We want to write the data in parallel.
     // We'll allow up to nOutFiles active writers at a time.
     //
@@ -1263,6 +1262,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         // into that file into which each grid of particles is written.
         //
         Array<int>  which(state.size(),0);
+        Array<int > count(state.size(),0);
         Array<long> where(state.size(),0);
 
         const int FileNumber = MyProc % nOutFiles;
@@ -1272,7 +1272,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         std::string FullFileName = LevelDir;
 
         FullFileName += '/';
-        FullFileName += DataPrefix;
+        FullFileName += ParticleBase::DataPrefix();
         FullFileName += buf;
 
         std::ofstream ParticleFile;
@@ -1292,13 +1292,11 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
                 // Write all the data at this level to the file.
                 //
                 if (iSet == 0)
-                {
                     //
                     // First set.
                     //
                     ParticleFile.open(FullFileName.c_str(),
                                       std::ios::out|std::ios::trunc|std::ios::binary);
-                }
                 else
                 {
                     ParticleFile.open(FullFileName.c_str(),
@@ -1316,7 +1314,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
                 // Do it grid block by grid block remembering the seek offset
                 // for the start of writing of each block of data.
                 //
-                WriteParticles(lev, ParticleFile, FileNumber, which, where);
+                WriteParticles(lev, ParticleFile, FileNumber, which, count, where);
 
                 ParticleFile.flush();
 
@@ -1346,27 +1344,20 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         }
 
         ParallelDescriptor::ReduceIntSum (which.dataPtr(), which.size(), IOProc);
+        ParallelDescriptor::ReduceIntSum (count.dataPtr(), count.size(), IOProc);
         ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
-            char buf[64];
-
             for (int j = 0; j < state.size(); j++)
             {
                 //
-                // We now write the file name & file offset into which
-                // the data for each grid was written to the header file.
-                // We only write the filename relative to the main
-                // directory containing the particles.
+                // We now write the file name, particle count & file offset
+                // into which  the data for each grid was written to the
+                // header file.  We only write the filename relative to the
+                // main directory containing the particles.
                 //
-                sprintf(buf,
-                        "Level_%d/%s%04d",
-                        lev,
-                        DataPrefix.c_str(),
-                        which[j]);
-
-                HdrFile << buf << ' ' << where[j] << '\n';
+                HdrFile << which[j] << ' ' << count[j] << ' ' << where[j] << '\n';
             }
         }
     }
@@ -1395,6 +1386,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
                                       std::ofstream& ofs,
                                       int            fnum,
                                       Array<int>&    which,
+                                      Array<int>&    count,
                                       Array<long>&   where) const
 {
     BL_ASSERT(m_amr->finestLevel() <= lev);
@@ -1405,16 +1397,15 @@ ParticleContainer<N>::WriteParticles (int            lev,
     {
         const int grid = mfi.index();
 
-        which[grid] = fnum;
-        where[grid] = VisMF::FileOffset(ofs);
-
         int cnt = 0;
 
         for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
             if (it->m_lev == lev && it->m_grid == grid)
                 cnt++;
-        
-        ofs << cnt << '\n';
+
+        which[grid] = fnum;
+        count[grid] = cnt;
+        where[grid] = VisMF::FileOffset(ofs);
 
         if (cnt == 0) continue;
 
@@ -1500,6 +1491,10 @@ ParticleContainer<N>::Restart (const std::string& dir,
     //
     // The header contains the info we need to read back in the particles.
     //
+    // Only the IO processor reads the header file.
+    //
+    // It'll then broadcast() stuff of interest to all CPUs.
+    //
     std::ifstream HdrFile;
 
     std::string HdrFileName = fullname;
@@ -1517,36 +1512,53 @@ ParticleContainer<N>::Restart (const std::string& dir,
     // First value should be BL_SPACEDIM;
     //
     int dm;
-        
-    HdrFile >> dm;
 
-    if (dm != BL_SPACEDIM)
-        BoxLib::Abort("ParticleContainer<N>::Restart(): dm != BL_SPACEDIM");
+    if (ParallelDescriptor::IOProcessor())
+    {
+        HdrFile >> dm;
+
+        if (dm != BL_SPACEDIM)
+            BoxLib::Abort("ParticleContainer<N>::Restart(): dm != BL_SPACEDIM");
+    }
+    ParallelDescriptor::Bcast(&dm, 1, IOProc);
     //
     // Next value should be our "N".
     //
     int n;
 
-    HdrFile >> n;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        HdrFile >> n;
 
-    if (n != N)
-        BoxLib::Abort("ParticleContainer<N>::Restart(): n != N");
+        if (n != N)
+            BoxLib::Abort("ParticleContainer<N>::Restart(): n != N");
+    }
+    ParallelDescriptor::Bcast(&n, 1, IOProc);
 
     long nparticles;
-    //
-    // The total number of particles.
-    //
-    HdrFile >> nparticles;
 
-    BL_ASSERT(nparticles >= 0);
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // The total number of particles.
+        //
+        HdrFile >> nparticles;
+
+        BL_ASSERT(nparticles >= 0);
+    }
+    ParallelDescriptor::Bcast(&nparticles, 1, IOProc);
     //
     // Then the finest level of the AMR hierarchy.
     //
     int finest_level;
 
-    HdrFile >> finest_level;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        HdrFile >> finest_level;
 
-    BL_ASSERT(finest_level >= 0);
+        BL_ASSERT(finest_level >= 0);
+    }
+    ParallelDescriptor::Bcast(&finest_level, 1, IOProc);
     //
     // Then the number of grids at each level.
     //
@@ -1554,39 +1566,53 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
     BL_ASSERT(finest_level == m_amr->finestLevel());
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    if (ParallelDescriptor::IOProcessor())
     {
-        HdrFile >> ngrids[lev];
+        for (int lev = 0; lev <= finest_level; lev++)
+        {
+            HdrFile >> ngrids[lev];
 
-        BL_ASSERT(ngrids[lev] > 0);
-        BL_ASSERT(ngrids[lev] == m_amr->boxArray(lev).size());
+            BL_ASSERT(ngrids[lev] > 0);
+            BL_ASSERT(ngrids[lev] == m_amr->boxArray(lev).size());
+        }
     }
+    ParallelDescriptor::Bcast(ngrids.dataPtr(), ngrids.size(), IOProc);
     //
-    // The rest of HdrFile consists of pairs of the form:
+    // The rest of HdrFile consists of triples of the form:
     //
-    //   filename offset
+    //   which count offset
     //
     // One for each grid at each level from 0 -> finest_level.
     //
-    typedef std::pair< std::string, long > line;
-
+    // We rebuild the filename from which and level.
+    //
     for (int lev = 0; lev <= finest_level; lev++)
     {
         //
-        // Read in the grid file/offset info for this level.
+        // Read in the which, count & offset info for this level.
         //
-        Array<line> lines(ngrids[lev]);
+        Array<int>  which (ngrids[lev]);
+        Array<int>  counts(ngrids[lev]);
+        Array<long> offset(ngrids[lev]);
 
-        for (int i = 0; i < ngrids[lev]; i++)
+        if (ParallelDescriptor::IOProcessor())
         {
-            HdrFile >> lines[i].first >> lines[i].second;
+            for (int i = 0; i < ngrids[lev]; i++)
+            {
+                HdrFile >> which[i] >> counts[i] >> offset[i];
+            }
         }
+        ParallelDescriptor::Bcast(which.dataPtr(),  which.size(),  IOProc);
+        ParallelDescriptor::Bcast(counts.dataPtr(), counts.size(), IOProc);
+        ParallelDescriptor::Bcast(offset.dataPtr(), offset.size(), IOProc);
 
         const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
 
         for (MFIter mfi(state); mfi.isValid(); ++mfi)
         {
             const int grid = mfi.index();
+
+            if (counts[grid] <= 0) continue;
             //
             // The file names in the header file are relative.
             //
@@ -1595,7 +1621,15 @@ ParticleContainer<N>::Restart (const std::string& dir,
             if (!name.empty() && name[name.size()-1] != '/')
                 name += '/';
 
-            name += lines[grid].first;
+            char buf[64];
+
+            sprintf(buf,
+                    "Level_%d/%s%04d",
+                    lev,
+                    ParticleBase::DataPrefix().c_str(),
+                    which[grid]);
+
+            name += buf;
 
             std::ifstream ParticleFile;
 
@@ -1604,29 +1638,15 @@ ParticleContainer<N>::Restart (const std::string& dir,
             if (!ParticleFile.good())
                 BoxLib::FileOpenFailed(name);
 
-            ParticleFile.seekg(lines[grid].second, std::ios::beg);
-            //
-            // First thing is an ASCII line of the form:  cnt\n
-            //
-            int cnt;
+            ParticleFile.seekg(offset[grid], std::ios::beg);
 
-            ParticleFile >> cnt;
-            //
-            // Skip past the newline
-            //
-            int ignore = ParticleFile.get();
-
-            if (cnt > 0)
-            {
-                ReadParticles(cnt,grid,lev,ParticleFile);
-
-                if (!ParticleFile.good())
-                    BoxLib::Abort("ParticleContainer<N>::Restart(): problem reading particles");
-            }
+            ReadParticles(counts[grid],grid,lev,ParticleFile);
 
 #ifdef BL_USECLOSE
             ParticleFile.close();
 #endif
+            if (!ParticleFile.good())
+                BoxLib::Abort("ParticleContainer<N>::Restart(): problem reading particles");
         }
     }
 
