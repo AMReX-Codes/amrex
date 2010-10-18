@@ -11,6 +11,17 @@ ParticleBase::DataPrefix ()
     return data;
 }
 
+const std::string&
+ParticleBase::Version ()
+{
+    //
+    // If we change the Checkpoint/Restart format we should increment this.
+    //
+    static const std::string version("Version_One_Dot_Zero");
+
+    return version;
+}
+
 IntVect
 ParticleBase::Index (const ParticleBase& p,
                      int                 lev,
