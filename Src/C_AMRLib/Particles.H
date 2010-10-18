@@ -1184,6 +1184,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
     ParallelDescriptor::Barrier();
     //
     // The header contains the info we need to read back in the particles.
+    //
     // Only the I/O processor writes to the header file.
     //
     std::ofstream HdrFile;
@@ -1228,7 +1229,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         }
     }
     //
-    // We want to write the data in parallel.
+    // We want to write the data out in parallel.
     // We'll allow up to nOutFiles active writers at a time.
     //
     const int nOutFiles = std::min(64,NProcs);
@@ -1352,8 +1353,8 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             for (int j = 0; j < state.size(); j++)
             {
                 //
-                // We now write the which file, the particle count & the
-                // file offset into which the data for each grid was written
+                // We now write the which file, the particle count, and the
+                // file offset into which the data for each grid was written,
                 // to the header file.
                 //
                 HdrFile << which[j] << ' ' << count[j] << ' ' << where[j] << '\n';
@@ -1366,12 +1367,12 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             for (int i = 0; i < count.size(); i++)
                 cnt[which[i]] += count[i];
 
-            char buf[32];
-
             for (int i = 0; i < cnt.size(); i++)
             {
                 if (cnt[i] == 0)
                 {
+                    char buf[32];
+
                     sprintf(buf, "%04d", i);
 
                     std::string FullFileName = LevelDir;
@@ -1626,7 +1627,7 @@ ParticleContainer<N>::Restart (const std::string& dir,
                 HdrFile >> which[i] >> counts[i] >> offset[i];
             }
         }
-        ParallelDescriptor::Bcast(which.dataPtr(),  which.size(),  IOProc);
+        ParallelDescriptor::Bcast( which.dataPtr(),  which.size(), IOProc);
         ParallelDescriptor::Bcast(counts.dataPtr(), counts.size(), IOProc);
         ParallelDescriptor::Bcast(offset.dataPtr(), offset.size(), IOProc);
 
