@@ -37,6 +37,8 @@ struct ParticleBase
 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
 
+    static const std::string& Version ();
+
     static const std::string& DataPrefix ();
 };
 
@@ -139,12 +141,15 @@ protected:
                          Array<int>&    count,
                          Array<long>&   where) const;
     //
-    // Helper function for Restart().
+    // Helper functions for Restart().
     //
-    void ReadParticles (int            cnt,
-                        int            grd,
-                        int            lev,
-                        std::ifstream& ifs);
+    void Restart_OneDotZero (const std::string& fullname,
+                             std::ifstream&     HdrFile);
+
+    void ReadParticles_OneDotZero (int            cnt,
+                                   int            grd,
+                                   int            lev,
+                                   std::ifstream& ifs);
     //
     // The data.
     //
@@ -1174,6 +1179,10 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         if (!HdrFile.good())
             BoxLib::FileOpenFailed(HdrFileName);
         //
+        // First thing written is our Checkpoint/Restart version string.
+        //
+        HdrFile << ParticleBase::Version() << '\n';
+        //
         // BL_SPACEDIM and N for sanity checking.
         //
         HdrFile << BL_SPACEDIM << '\n';
@@ -1197,6 +1206,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
     }
     //
     // We want to write the data out in parallel.
+    //
     // We'll allow up to nOutFiles active writers at a time.
     //
     const int nOutFiles = std::min(64,NProcs);
@@ -1501,7 +1511,59 @@ ParticleContainer<N>::Restart (const std::string& dir,
     if (!HdrFile.good())
         BoxLib::FileOpenFailed(HdrFileName);
     //
-    // First value should be BL_SPACEDIM;
+    // First value should be the version string.
+    //
+    Array<char> vbuf(128);
+
+    std::string version;
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        HdrFile >> version;
+
+        BL_ASSERT(!version.empty());
+        BL_ASSERT(vbuf.size() > version.size());
+
+        for (int i = 0; i < version.size(); i++)
+            vbuf[i] = version[i];
+
+        vbuf[version.size()] = '\0';
+    }
+    ParallelDescriptor::Bcast(vbuf.dataPtr(), vbuf.size(), IOProc);
+
+    version = vbuf.dataPtr();
+
+    if (version == ParticleBase::Version())
+    {
+        Restart_OneDotZero(fullname,HdrFile);
+    }
+    else
+    {
+        std::string msg("ParticleContainer<N>::Restart(): unknown version string: ");
+        msg += version;
+        BoxLib::Abort(msg.c_str());
+    }
+
+    Real stoptime = ParallelDescriptor::second() - strttime;
+
+    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "\nParticleContainer<N>::Restart() time: " << stoptime << "\n\n";
+    }
+}
+
+template <int N>
+void
+ParticleContainer<N>::Restart_OneDotZero (const std::string& fullname,
+                                          std::ifstream&     HdrFile)
+{
+    BL_ASSERT(!fullname.empty());
+
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    //
+    // Next value should be BL_SPACEDIM;
     //
     int dm;
 
@@ -1632,7 +1694,7 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
             ParticleFile.seekg(where[grid], std::ios::beg);
 
-            ReadParticles(count[grid],grid,lev,ParticleFile);
+            ReadParticles_OneDotZero(count[grid],grid,lev,ParticleFile);
 
 #ifdef BL_USECLOSE
             ParticleFile.close();
@@ -1643,32 +1705,14 @@ ParticleContainer<N>::Restart (const std::string& dir,
     }
 
     BL_ASSERT(OK());
-
-#ifndef NDEBUG
-    long sz = m_particles.size();
-
-    ParallelDescriptor::ReduceLongSum(sz,IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
-        BL_ASSERT(sz == nparticles);
-#endif
-
-    Real stoptime = ParallelDescriptor::second() - strttime;
-
-    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "\nParticleContainer<N>::Restart() time: " << stoptime << "\n\n";
-    }
 }
 
 template <int N>
 void
-ParticleContainer<N>::ReadParticles (int            cnt,
-                                     int            grd,
-                                     int            lev,
-                                     std::ifstream& ifs)
+ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
+                                                int            grd,
+                                                int            lev,
+                                                std::ifstream& ifs)
 {
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev >= 0 && lev <= m_amr->finestLevel());
