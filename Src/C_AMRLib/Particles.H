@@ -1352,12 +1352,36 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             for (int j = 0; j < state.size(); j++)
             {
                 //
-                // We now write the file name, particle count & file offset
-                // into which  the data for each grid was written to the
-                // header file.  We only write the filename relative to the
-                // main directory containing the particles.
+                // We now write the which file, the particle count & the
+                // file offset into which the data for each grid was written
+                // to the header file.
                 //
                 HdrFile << which[j] << ' ' << count[j] << ' ' << where[j] << '\n';
+            }
+            //
+            // Unlink any zero-length data files.
+            //
+            Array<long> cnt(nOutFiles,0);
+
+            for (int i = 0; i < count.size(); i++)
+                cnt[which[i]] += count[i];
+
+            char buf[32];
+
+            for (int i = 0; i < cnt.size(); i++)
+            {
+                if (cnt[i] == 0)
+                {
+                    sprintf(buf, "%04d", i);
+
+                    std::string FullFileName = LevelDir;
+
+                    FullFileName += '/';
+                    FullFileName += ParticleBase::DataPrefix();
+                    FullFileName += buf;
+
+                    BoxLib::UnlinkFile(FullFileName.c_str());
+                }
             }
         }
     }
@@ -1389,7 +1413,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
                                       Array<int>&    count,
                                       Array<long>&   where) const
 {
-    BL_ASSERT(m_amr->finestLevel() <= lev);
+    BL_ASSERT(m_amr->finestLevel() <= lev+1);
 
     const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
 
