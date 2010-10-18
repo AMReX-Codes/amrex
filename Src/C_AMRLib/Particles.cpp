@@ -1,5 +1,16 @@
 #include "Particles.H"
 
+const std::string&
+ParticleBase::DataPrefix ()
+{
+    //
+    // The actual particle data is stored in files of the form: DATA_nnnn.
+    //
+    static const std::string data("DATA_");
+
+    return data;
+}
+
 IntVect
 ParticleBase::Index (const ParticleBase& p,
                      int                 lev,
