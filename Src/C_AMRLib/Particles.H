@@ -280,7 +280,6 @@ ParticleContainer<N>::InitRandom (long          icount,
 
     const int  MyProc = ParallelDescriptor::MyProc();
     const int  NProcs = ParallelDescriptor::NProcs();
-    const int  IOProc = ParallelDescriptor::IOProcessorNumber();
     //
     // We'll generate the particles in parallel.
     //
@@ -351,14 +350,9 @@ ParticleContainer<N>::MoveRandom ()
 
     BL_ASSERT(m_amr != 0);
 
-    const int  MyProc = ParallelDescriptor::MyProc();
-    const int  NProcs = ParallelDescriptor::NProcs();
-
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
-
-        BL_ASSERT(p.m_id > 0);
 
         const Geometry& geom = m_amr->Geom(p.m_lev);
 
@@ -399,15 +393,13 @@ void
 ParticleContainer<N>::Increment (MultiFab& mf,
                                  int       lev) const
 {
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    const DistributionMapping& dm = mf.DistributionMap();
+    BL_ASSERT(OK());
 
     for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         const ParticleType& p = *it;
 
-        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev)
         {
             mf[p.m_grid](p.m_cell) += 1;
         }
@@ -421,11 +413,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector,
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    const DistributionMapping& dm = grav_vector.DistributionMap();
-
-    Real dt = 1e200, mag_vel, mag_grav, dt_part;
+    Real dt = 1e50, mag_vel, mag_grav, dt_part;
 
     const Geometry& geom = m_amr->Geom(0);
     const Real*     dx   = geom.CellSize();
@@ -434,7 +422,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector,
     {
         const ParticleType& p = *it;
 
-        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev)
         {
             D_TERM(mag_vel  = p.m_data[1] * p.m_data[1];,
                    mag_vel += p.m_data[2] * p.m_data[2];,
@@ -442,7 +430,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector,
 
             mag_vel = sqrt(mag_vel);
 
-            dt_part = 1e200;
+            dt_part = 1e50;
 
             if (mag_vel > 0)
                 dt_part = 0.1 * dx[0] / mag_vel;
@@ -480,19 +468,13 @@ ParticleContainer<N>::sumParticleMass (const MultiFab& mf,
 {
     BL_ASSERT(N >= 1);
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    const DistributionMapping& dm = mf.DistributionMap();
-
     Real massSum = 0.0;
 
     for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
-        const ParticleType& p = *it;
-
-        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
+        if (it->m_lev == lev)
         {
-            massSum += p.m_data[0];
+            massSum += it->m_data[0];
         }
     }
 
@@ -515,10 +497,6 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
                                      int       lev) const
 {
     BL_ASSERT(N >= 1);
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    const DistributionMapping& dm = mf.DistributionMap();
 
     const Geometry& geom = m_amr->Geom(lev);
 
@@ -549,7 +527,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
     {
         const ParticleType& p = *it;
 
-        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev)
         {
             IntVect centralIntersection;
 
@@ -628,17 +606,14 @@ ParticleContainer<N>::movePredict (const MultiFab& grav_vector,
                                    int             lev,
                                    Real            dt)
 {
+    BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    const DistributionMapping& dm = grav_vector.DistributionMap();
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
 
-        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev)
         {
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
@@ -683,28 +658,26 @@ ParticleContainer<N>::moveCorrect (const MultiFab& grav_vector_old,
                                    int             lev,
                                    Real            dt)
 {
+    BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    const DistributionMapping& dm = grav_vector.DistributionMap();
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
 
-        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev)
         {
-            D_TERM(p.m_pos[0]  -= 0.5 * dt * p.m_data[1];,
-                   p.m_pos[1]  -= 0.5 * dt * p.m_data[2];,
-                   p.m_pos[2]  -= 0.5 * dt * p.m_data[3];);
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
             const FArrayBox& gfab     = grav_vector[p.m_grid];
             const FArrayBox& gfab_old = grav_vector_old[p.m_grid];
+
+            D_TERM(p.m_pos[0]  -= 0.5 * dt * p.m_data[1];,
+                   p.m_pos[1]  -= 0.5 * dt * p.m_data[2];,
+                   p.m_pos[2]  -= 0.5 * dt * p.m_data[3];);
             
-            D_TERM(p.m_data[1] += 0.5 * dt * ( gfab(p.m_cell,0) - gfab_old(p.m_cell,0) );, 
+            D_TERM(p.m_data[1] += 0.5 * dt * ( gfab(p.m_cell,0) - gfab_old(p.m_cell,0) );,
                    p.m_data[2] += 0.5 * dt * ( gfab(p.m_cell,1) - gfab_old(p.m_cell,1) );,
                    p.m_data[3] += 0.5 * dt * ( gfab(p.m_cell,2) - gfab_old(p.m_cell,2) ););
 
@@ -741,17 +714,14 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
                                      int             lev,
                                      Real            dt)
 {
+    BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    const DistributionMapping& dm = grav_vector.DistributionMap();
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
 
-        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev)
         {
             //
             // note: m_data[0] is mass, 1 is v_x, ...
@@ -795,17 +765,14 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
                                 int             lev,
                                 Real            dt)
 {
+    BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    const DistributionMapping& dm = grav_vector.DistributionMap();
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
 
-        if (p.m_lev == lev && dm[p.m_grid] == MyProc)
+        if (p.m_lev == lev)
         {
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
@@ -1616,20 +1583,20 @@ ParticleContainer<N>::Restart (const std::string& dir,
         //
         // Read in the which, count & offset info for this level.
         //
-        Array<int>  which (ngrids[lev]);
-        Array<int>  counts(ngrids[lev]);
-        Array<long> offset(ngrids[lev]);
+        Array<int>  which(ngrids[lev]);
+        Array<int>  count(ngrids[lev]);
+        Array<long> where(ngrids[lev]);
 
         if (ParallelDescriptor::IOProcessor())
         {
             for (int i = 0; i < ngrids[lev]; i++)
             {
-                HdrFile >> which[i] >> counts[i] >> offset[i];
+                HdrFile >> which[i] >> count[i] >> where[i];
             }
         }
-        ParallelDescriptor::Bcast( which.dataPtr(),  which.size(), IOProc);
-        ParallelDescriptor::Bcast(counts.dataPtr(), counts.size(), IOProc);
-        ParallelDescriptor::Bcast(offset.dataPtr(), offset.size(), IOProc);
+        ParallelDescriptor::Bcast(which.dataPtr(), which.size(), IOProc);
+        ParallelDescriptor::Bcast(count.dataPtr(), count.size(), IOProc);
+        ParallelDescriptor::Bcast(where.dataPtr(), where.size(), IOProc);
 
         const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
 
@@ -1637,7 +1604,7 @@ ParticleContainer<N>::Restart (const std::string& dir,
         {
             const int grid = mfi.index();
 
-            if (counts[grid] <= 0) continue;
+            if (count[grid] <= 0) continue;
             //
             // The file names in the header file are relative.
             //
@@ -1663,9 +1630,9 @@ ParticleContainer<N>::Restart (const std::string& dir,
             if (!ParticleFile.good())
                 BoxLib::FileOpenFailed(name);
 
-            ParticleFile.seekg(offset[grid], std::ios::beg);
+            ParticleFile.seekg(where[grid], std::ios::beg);
 
-            ReadParticles(counts[grid],grid,lev,ParticleFile);
+            ReadParticles(count[grid],grid,lev,ParticleFile);
 
 #ifdef BL_USECLOSE
             ParticleFile.close();
