@@ -163,6 +163,19 @@ ifeq ($(findstring jaguar, $(HOST)), jaguar)
         F90 := ftn -target=linux
     endif
 endif
+ifeq ($(findstring kraken, $(UNAMEN)), kraken)
+    #
+    # kraken
+    #
+    ifdef MPI
+        CXX := CC -target=linux
+        FC  := ftn -target=linux
+        F90 := ftn -target=linux
+    endif
+endif
+
+
+
 ifeq ($(HOST),cfe3)
   mpi_libraries += -lmpi
 endif
