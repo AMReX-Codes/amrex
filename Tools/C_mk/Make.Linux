@@ -40,7 +40,8 @@ ifeq ($(COMP),PGI)
     ifeq ($(findstring jaguar, $(HOST)), jaguar)
       CXXOPTF += -O
     else
-      CXXOPTF += -O --no_exceptions
+      COPTF += -fast
+      CXXOPTF += -fast -Minline=levels:10 --no_exceptions
     endif
   endif
 
@@ -123,6 +124,7 @@ ifeq ($(FCOMP),Absoft)
   override XTRALIBS += -lfio -lf77math
   #override FORTLINK := LOWERCASE
 else
+
 ifeq ($(FCOMP),PGI)
   FC := pgf90
   fC := $(FC)
@@ -133,8 +135,8 @@ ifeq ($(FCOMP),PGI)
   else
     #FOPTF  += -fast
     #fOPTF  += -fast
-    FOPTF  += -O
-    fOPTF  += -O
+    FOPTF  += -fast -Minline
+    fOPTF  += -fast -Minline
   endif
 
   ifeq ($(USE_OMP),TRUE)
@@ -243,6 +245,18 @@ ifeq ($(WHICHLINUX), FRANKLIN)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
     CXX := CC -target=linux
+    CC  := cc -target=linux
+    FC  := ftn -target=linux
+    F90 := ftn -target=linux
+    fC  := ftn -target=linux
+  endif
+endif
+
+ifeq ($(WHICHLINUX), GRACE)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := CC -target=linux
+    CC  := cc -target=linux
     FC  := ftn -target=linux
     F90 := ftn -target=linux
     fC  := ftn -target=linux
@@ -270,6 +284,7 @@ ifeq ($(WHICHLINUX), FREEDOM)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
     CXX := CC -target=linux
+    CC  := cc -target=linux
     FC  := ftn -target=linux
     F90 := ftn -target=linux
     fC  := ftn -target=linux
@@ -280,6 +295,7 @@ ifeq ($(WHICHLINUX), HOPPER)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
     CXX := CC -target=linux
+    CC  := cc -target=linux
     FC  := ftn -target=linux
     F90 := ftn -target=linux
     fC  := ftn -target=linux
