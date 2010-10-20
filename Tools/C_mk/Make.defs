@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.156 2010-10-15 22:55:19 almgren Exp $
+# Make.defs $Id: Make.defs,v 1.157 2010-10-20 23:15:22 lijewski Exp $
 #
 
 #
@@ -160,6 +160,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring nid, $(UNAMEN)), nid)
     WHICHLINUX := FRANKLIN
+  endif
+  ifeq ($(findstring grace, $(UNAMEN)), grace)
+    WHICHLINUX := GRACE
   endif
   ifeq ($(findstring cvrsvc, $(UNAMEN)), cvrsvc)
     WHICHLINUX := CARVER
