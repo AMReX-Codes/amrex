@@ -89,6 +89,10 @@ ifeq ($(ARCH),Linux)
     include $(FPARALLEL)/mk/comps/Linux_catamount.mak
   endif
 
+  ifeq ($(COMP),Cray)
+    include $(FPARALLEL)/mk/comps/Linux_cray.mak
+  endif
+
   ifeq ($(COMP),xt4)
     include $(FPARALLEL)/mk/comps/Linux_xt4.mak
   endif
