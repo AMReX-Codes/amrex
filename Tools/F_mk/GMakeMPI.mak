@@ -139,6 +139,18 @@ ifeq ($(findstring nid, $(HOST)), nid)
     #
     ifdef MPI
         CXX := CC -target=linux
+        CC  := cc -target=linux
+        FC  := ftn -target=linux
+        F90 := ftn -target=linux
+    endif
+endif
+ifeq ($(findstring grace, $(HOST)), grace)
+    #
+    # grace.nersc.gov
+    #
+    ifdef MPI
+        CXX := CC -target=linux
+        CC  := cc -target=linux
         FC  := ftn -target=linux
         F90 := ftn -target=linux
     endif
@@ -149,6 +161,7 @@ ifeq ($(findstring hopper, $(HOST)), hopper)
     #
     ifdef MPI
         CXX := CC -target=linux
+        CC  := cc -target=linux
         FC  := ftn -target=linux
         F90 := ftn -target=linux
     endif
@@ -159,6 +172,7 @@ ifeq ($(findstring jaguar, $(HOST)), jaguar)
     #
     ifdef MPI
         CXX := CC -target=linux
+        CC  := cc -target=linux
         FC  := ftn -target=linux
         F90 := ftn -target=linux
     endif
