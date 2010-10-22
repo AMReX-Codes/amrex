@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.158 2010-10-22 20:31:36 ajnonaka Exp $
+# Make.defs $Id: Make.defs,v 1.159 2010-10-22 21:10:12 wqzhang Exp $
 #
 
 #
@@ -178,6 +178,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
     WHICHLINUX := GIMANTIS
+  endif
+  ifeq ($(findstring baragon, $(UNAMEN)), baragon)
+    WHICHLINUX := BARAGON
   endif
   ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     WHICHLINUX := INTREPID
