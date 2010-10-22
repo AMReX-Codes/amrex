@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.157 2010-10-20 23:15:22 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.158 2010-10-22 20:31:36 ajnonaka Exp $
 #
 
 #
@@ -803,6 +803,12 @@ else
     OMPSuffix	:=
 endif
 
+ifeq ($(USE_LEVELSET),TRUE)
+    LevelSetSuffix := .LevelSet
+else
+    LevelSetSuffix := 
+endif
+
 ifeq ($(USE_MAESTRO_INIT),TRUE)
     MAESTROSuffix := .MAESTRO
 else
@@ -887,7 +893,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MAESTROSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MAESTROSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib,					\
