@@ -569,14 +569,13 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
             cell[0] = centralIntersection[0] - 1;
             fab(cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]);
 #endif
- 
 
 #if (BL_SPACEDIM == 3)
             fab(centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1]  *    fracOfCell[2] ;
-    
+
             cell[0] = centralIntersection[0] - 1;
             fab(cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1]  *    fracOfCell[2] ;
-    
+
             cell = centralIntersection;
             cell[1] = centralIntersection[1] - 1;
             fab(cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]) *    fracOfCell[2] ;
@@ -584,13 +583,12 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
             cell[0] = centralIntersection[0] - 1;
             fab(cell)                += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]) *    fracOfCell[2] ;
 
-            
-            centralIntersection[3] = centralIntersection[3] - 1; //ugly hack - but this way I can "reuse" the code fr2m 2d...
+            centralIntersection[2] = centralIntersection[2] - 1; //ugly hack - but this way I can "reuse" the code fr2m 2d...
             fab(centralIntersection) += p.m_data[0] *    fracOfCell[0]  *    fracOfCell[1]  * (1-fracOfCell[2]);
     
             cell[0] = centralIntersection[0] - 1;
             fab(cell)                += p.m_data[0] * (1-fracOfCell[0]) *    fracOfCell[1]  * (1-fracOfCell[2]);
-    
+
             cell = centralIntersection;
             cell[1] = centralIntersection[1] - 1;
             fab(cell)                += p.m_data[0] *    fracOfCell[0]  * (1-fracOfCell[1]) * (1-fracOfCell[2]);
