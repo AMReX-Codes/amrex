@@ -13,8 +13,7 @@ ifeq ($(COMP),PathScale)
   ifeq ($(BL_NOFAST),TRUE)
     CXXOPTF += -O -OPT:Olimit=0:div_split=ON -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
   else
-    #CXXOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
-    CXXOPTF += -O -OPT:Olimit=0:div_split=ON -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
+    CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
   endif
 
   CXXDEBF += -O0 -fno-exceptions -g -Wno-deprecated
@@ -28,12 +27,7 @@ ifeq ($(COMP),Cray)
   CXX = crayc++
   CC  = craycc
 
-  ifeq ($(BL_NOFAST),TRUE)
-    CXXOPTF += 
-  else
-    CXXOPTF += 
-  endif
-
+  CXXOPTF += -O 2,ipa4
   CXXDEBF += -O0 -g
 
   ifneq ($(USE_OMP),TRUE)
@@ -105,10 +99,8 @@ ifeq ($(FCOMP),PathScale)
     FOPTF += -O -OPT:Olimit=0:div_split=ON -ffast-math -fno-math-errno
     fOPTF += -O -OPT:Olimit=0:div_split=ON -ffast-math -fno-math-errno
   else
-    #FOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno
-    #fOPTF += -O3 -OPT:Ofast -ffast-math -fno-math-errno
-    FOPTF += -O -OPT:Olimit=0:div_split=ON -ffast-math -fno-math-errno
-    fOPTF += -O -OPT:Olimit=0:div_split=ON -ffast-math -fno-math-errno
+    FOPTF += -Ofast
+    fOPTF += -Ofast
   endif
 
   ifeq ($(USE_OMP),TRUE)
@@ -128,8 +120,8 @@ ifeq ($(FCOMP),Cray)
   fC  = crayftn
   F90 = crayftn 
   FFLAGS +=
-  fFLAGS +=
-  F90FLAGS += -O 2,ipa4
+  fFLAGS += -N 132 -I$(objEXETempDir) -J $(objEXETempDir) -em
+  F90FLAGS +=
   FDEBF += -O0 -g
   fDEBF += -O0 -g
 
@@ -143,7 +135,6 @@ ifeq ($(FCOMP),Cray)
     fDEBF += -h noomp
   endif
 
-  fFLAGS += -I$(objEXETempDir) -J $(objEXETempDir) -em
   FORT_CPP := cpp -traditional
   override XTRALIBS += 
 #  LDFLAGS += -static
@@ -254,6 +245,7 @@ ifeq ($(FCOMP),xlf)
 
   override FORTLINK := LOWERCASE
   NEEDS_FLUSH_F := TRUE
+endif
 endif
 endif
 endif
