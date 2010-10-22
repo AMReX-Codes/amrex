@@ -27,7 +27,7 @@ ifeq ($(COMP),Cray)
   CXX = crayc++
   CC  = craycc
 
-  CXXOPTF += -O 2,ipa4
+  CXXOPTF += -O2 -hipa4
   CXXDEBF += -O0 -g
 
   ifneq ($(USE_OMP),TRUE)
@@ -167,10 +167,8 @@ ifeq ($(FCOMP),PGI)
     FOPTF  += -O
     fOPTF  += -O
   else
-    #FOPTF  += -fast
-    #fOPTF  += -fast
-    FOPTF  += -fast -Minline
-    fOPTF  += -fast -Minline
+    FOPTF  += -fast
+    fOPTF  += -fast
   endif
 
   ifeq ($(USE_OMP),TRUE)
