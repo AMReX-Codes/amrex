@@ -24,6 +24,23 @@ ifeq ($(COMP),PathScale)
     CXXDEBF += -mp
   endif
 else
+ifeq ($(COMP),Cray)
+  CXX = crayc++
+  CC  = craycc
+
+  ifeq ($(BL_NOFAST),TRUE)
+    CXXOPTF += 
+  else
+    CXXOPTF += 
+  endif
+
+  CXXDEBF += -O0 -g
+
+  ifneq ($(USE_OMP),TRUE)
+    CXXOPTF += -h noomp
+    CXXDEBF += -h noomp
+  endif
+else
 ifeq ($(COMP),KCC)
   CXX      = KCC
   CXXOPTF += -O1 +K1
@@ -67,6 +84,7 @@ endif
 endif
 endif
 endif
+endif
 #
 # Now Fortran stuff.
 #
@@ -103,6 +121,31 @@ ifeq ($(FCOMP),PathScale)
   fFLAGS += -extend-source -module $(objEXETempDir)
   FORT_CPP := cpp -traditional
   override XTRALIBS += -lpathfortran  -lmv
+#  LDFLAGS += -static
+else
+ifeq ($(FCOMP),Cray)
+  FC  = crayftn
+  fC  = crayftn
+  F90 = crayftn 
+  FFLAGS +=
+  fFLAGS +=
+  F90FLAGS += -O 2,ipa4
+  FDEBF += -O0 -g
+  fDEBF += -O0 -g
+
+  FOPTF += -O 2,ipa4
+  fOPTF += -O 2,ipa4
+
+  ifneq ($(USE_OMP),TRUE)
+    FOPTF += -h noomp
+    fOPTF += -h noomp
+    FDEBF += -h noomp
+    fDEBF += -h noomp
+  endif
+
+  fFLAGS += -I$(objEXETempDir) -J $(objEXETempDir) -em
+  FORT_CPP := cpp -traditional
+  override XTRALIBS += 
 #  LDFLAGS += -static
 else
 ifeq ($(FCOMP),Lahey)
