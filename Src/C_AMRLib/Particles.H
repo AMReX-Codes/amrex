@@ -418,6 +418,8 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector,
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
 
+    const Real strttime = ParallelDescriptor::second();
+
     Real dt = 1e50, mag_vel, mag_grav, dt_part;
 
     const Geometry& geom = m_amr->Geom(0);
@@ -458,6 +460,16 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector,
     }
 
     ParallelDescriptor::ReduceRealMin(dt);
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      stoptime = ParallelDescriptor::second() - strttime;
+
+    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "ParticleContainer<N>::estTimestep() Time: " << stoptime << "\n\n";
+    }
 
     return dt;
 }
@@ -502,6 +514,8 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
                                      int       lev) const
 {
     BL_ASSERT(N >= 1);
+
+    const Real strttime = ParallelDescriptor::second();
 
     const Geometry& geom = m_amr->Geom(lev);
 
@@ -598,9 +612,19 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 #endif
         }
     }
+
     mf.SumBoundary();
     geom.SumPeriodicBoundary(mf);
-    mf.mult(1./cell_vol);
+
+    mf.mult(1/cell_vol);
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      stoptime = ParallelDescriptor::second() - strttime;
+
+    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "ParticleContainer<N>::AssignDensity() time: " << stoptime << "\n\n";
+    }
 }
 
 template <int N>
@@ -611,6 +635,8 @@ ParticleContainer<N>::movePredict (const MultiFab& grav_vector,
 {
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
+
+    const Real strttime = ParallelDescriptor::second();
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
@@ -630,28 +656,33 @@ ParticleContainer<N>::movePredict (const MultiFab& grav_vector,
             D_TERM(p.m_pos[0]  += dt * p.m_data[1];,
                    p.m_pos[1]  += dt * p.m_data[2];,
                    p.m_pos[2]  += dt * p.m_data[3];);
-        }
 
-        if (!ParticleBase::Where(p,m_amr,true))
-        {
-            //
-            // Here's where we need to deal with boundary conditions.
-            //
-            // For the moment we assume all boundaries are periodic.
-            //
-            // Shift the particle back into the domain.
-            //
-            ParticleBase::PeriodicShift(p,m_amr);
-            //
-            // The particle should now be back in the problem domain.
-            //
+            if (!ParticleBase::Where(p,m_amr,true))
+            {
+                //
+                // Here's where we need to deal with boundary conditions.
+                //
+                // For the moment we assume all boundaries are periodic.
+                //
+                // Shift the particle back into the domain.
+                //
+                ParticleBase::PeriodicShift(p,m_amr);
+                //
+                // The particle should now be back in the problem domain.
+                //
+            }
         }
     }
 
-    if (m_verbose > 1 && ParallelDescriptor::IOProcessor())
-        std::cout << "Calling Redistribute() from ParticleContainer<N>::MovePredict () ...\n";
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      stoptime = ParallelDescriptor::second() - strttime;
 
-    Redistribute();
+    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "ParticleContainer<N>::movePredict() time: " << stoptime << "\n\n";
+    }
+
+    Redistribute(true);
 }
 
 template <int N>
@@ -663,6 +694,8 @@ ParticleContainer<N>::moveCorrect (const MultiFab& grav_vector_old,
 {
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
+
+    const Real strttime = ParallelDescriptor::second();
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
@@ -687,28 +720,33 @@ ParticleContainer<N>::moveCorrect (const MultiFab& grav_vector_old,
             D_TERM(p.m_pos[0]  += 0.5 * dt * p.m_data[1];,
                    p.m_pos[1]  += 0.5 * dt * p.m_data[2];,
                    p.m_pos[2]  += 0.5 * dt * p.m_data[3];);
-        }
 
-        if (!ParticleBase::Where(p,m_amr,true))
-        {
-            //
-            // Here's where we need to deal with boundary conditions.
-            //
-            // For the moment we assume all boundaries are periodic.
-            //
-            // Shift the particle back into the domain.
-            //
-            ParticleBase::PeriodicShift(p,m_amr);
-            //
-            // The particle should now be back in the problem domain.
-            //
+            if (!ParticleBase::Where(p,m_amr,true))
+            {
+                //
+                // Here's where we need to deal with boundary conditions.
+                //
+                // For the moment we assume all boundaries are periodic.
+                //
+                // Shift the particle back into the domain.
+                //
+                ParticleBase::PeriodicShift(p,m_amr);
+                //
+                // The particle should now be back in the problem domain.
+                //
+            }
         }
     }
 
-    if (m_verbose > 1 && ParallelDescriptor::IOProcessor())
-        std::cout << "Calling Redistribute() from ParticleContainer<N>::MoveCorrect () ...\n";
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      stoptime = ParallelDescriptor::second() - strttime;
 
-    Redistribute();
+    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "ParticleContainer<N>::moveCorrect() time: " << stoptime << "\n\n";
+    }
+
+    Redistribute(true);
 }
 
 template <int N>
@@ -719,6 +757,8 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
 {
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
+
+    const Real strttime = ParallelDescriptor::second();
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
@@ -738,28 +778,33 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             D_TERM(p.m_pos[0]  +=       dt * p.m_data[1];,
                    p.m_pos[1]  +=       dt * p.m_data[2];,
                    p.m_pos[2]  +=       dt * p.m_data[3];);
-        }
 
-        if (!ParticleBase::Where(p,m_amr,true))
-        {
-            //
-            // Here's where we need to deal with boundary conditions.
-            //
-            // For the moment we assume all boundaries are periodic.
-            //
-            // Shift the particle back into the domain.
-            //
-            ParticleBase::PeriodicShift(p,m_amr);
-            //
-            // Modulo any arithmetic funny business the particle should in the problem domain.
-            //
+            if (!ParticleBase::Where(p,m_amr,true))
+            {
+                //
+                // Here's where we need to deal with boundary conditions.
+                //
+                // For the moment we assume all boundaries are periodic.
+                //
+                // Shift the particle back into the domain.
+                //
+                ParticleBase::PeriodicShift(p,m_amr);
+                //
+                // Modulo any arithmetic funny business the particle should in the problem domain.
+                //
+            }
         }
     }
 
-    if (m_verbose > 1 && ParallelDescriptor::IOProcessor())
-        std::cout << "Calling Redistribute() from ParticleContainer<N>::moveKickDrift () ...\n";
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      stoptime = ParallelDescriptor::second() - strttime;
 
-    Redistribute();
+    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << "\n\n";
+    }
+
+    Redistribute(true);
 }
 
 template <int N>
@@ -770,6 +815,8 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
 {
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
+
+    const Real strttime = ParallelDescriptor::second();
 
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
@@ -787,8 +834,16 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
                    p.m_data[3] += 0.5 * dt * gfab(p.m_cell,2););
         }
     }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      stoptime = ParallelDescriptor::second() - strttime;
+
+    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << "\n\n";
+    }
     //
-    // No need for redistribution, we only change the velocity.
+    // No need for Redistribution(), we only change the velocity.
     //
 }
 
