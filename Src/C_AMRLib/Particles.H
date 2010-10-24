@@ -2,6 +2,7 @@
 #define _PARTICLES_H_ 
 
 #include <list>
+#include <vector>
 #include <fstream>
 #include <iostream>
 
@@ -732,10 +733,19 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
 
     const Real strttime = ParallelDescriptor::second();
 
+#ifdef BL_USE_OMP
+    std::vector<iterator> v(m_particles.size());
+    int idx = 0;
+    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it) v[idx++] = it;
+#pragma omp parallel for
+    for (int i = 0; i < v.size(); i++)
+    {
+        ParticleType& p = *v[i];
+#else
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
-
+#endif
         if (p.m_lev == lev)
         {
             //
@@ -790,10 +800,19 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
 
     const Real strttime = ParallelDescriptor::second();
 
+#ifdef BL_USE_OMP
+    std::vector<iterator> v(m_particles.size());
+    int idx = 0;
+    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it) v[idx++] = it;
+#pragma omp parallel for
+    for (int i = 0; i < v.size(); i++)
+    {
+        ParticleType& p = *v[i];
+#else
     for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         ParticleType& p = *it;
-
+#endif
         if (p.m_lev == lev)
         {
             //
