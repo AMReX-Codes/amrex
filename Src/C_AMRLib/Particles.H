@@ -154,8 +154,8 @@ protected:
     //
     // The data.
     //
-    int                     m_verbose;
-    Amr*                    m_amr;
+    int                      m_verbose;
+    Amr*                     m_amr;
     std::deque<ParticleType> m_particles;
 };
 
@@ -356,9 +356,9 @@ ParticleContainer<N>::MoveRandom ()
 
     BL_ASSERT(m_amr != 0);
 
-    for (int i = 0; i < m_particles.size(); i++)
+    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
-        ParticleType& p = m_particles[i];
+        ParticleType& p = *it;
 
         const Geometry& geom = m_amr->Geom(p.m_lev);
 
@@ -401,9 +401,9 @@ ParticleContainer<N>::Increment (MultiFab& mf,
 {
     BL_ASSERT(OK());
 
-    for (int i = 0; i < m_particles.size(); i++)
+    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
-        const ParticleType& p = m_particles[i];
+        const ParticleType& p = *it;
 
         if (p.m_lev == lev)
         {
@@ -475,15 +475,9 @@ ParticleContainer<N>::sumParticleMass (const MultiFab& mf,
 
     Real massSum = 0.0;
 
-    for (int i = 0; i < m_particles.size(); i++)
-    {
-        const ParticleType& p = m_particles[i];
-
-        if (p.m_lev == lev)
-        {
-            massSum += p.m_data[0];
-        }
-    }
+    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+        if (it->m_lev == lev)
+            massSum += it->m_data[0];
 
     ParallelDescriptor::ReduceRealSum(massSum);
 
@@ -521,13 +515,13 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
     //
     // This loop can NOT be OMP'd since multiple threads may want to write to the same cell.
     //
-    for (int i = 0; i < m_particles.size(); i++)
+    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
-        const ParticleType& p = m_particles[i];
+        const ParticleType& p = *it;
 
         if (p.m_lev == lev)
         {
-//FIXME: m_pos seems to be relative to geom.ProbLo?!?
+            //FIXME: m_pos seems to be relative to geom.ProbLo?!?
 
             IntVect csect(D_DECL(floor(p.m_pos[0]/dx[0] + 0.5), floor(p.m_pos[1]/dx[1] + 0.5), floor(p.m_pos[2]/dx[2] + 0.5)));
 
@@ -843,12 +837,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     const int  MyProc   = ParallelDescriptor::MyProc();
     const Real strttime = ParallelDescriptor::second();
 
-    std::vector<int> owner;
-    std::vector<int> index;
+    std::vector<int>      owner;
+    std::vector<iterator> index;
 
-    for (int i = 0; i < m_particles.size(); i++)
+    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
-        ParticleType& p = m_particles[i];
+        ParticleType& p = *it;
 
         BL_ASSERT(p.m_id > 0);
 
@@ -869,7 +863,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             //
             // We're not the rightful owner of this particle.
             //
-            index.push_back(i);
+            index.push_back(it);
             owner.push_back(who);
         }
     }
@@ -947,18 +941,18 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         // The int data.
         //
-        const int ChunkSize = BL_SPACEDIM+4;
+        const int iChunkSize = BL_SPACEDIM+4;
 
-        Array<int> recvdata (NumRcvs*ChunkSize);
-        Array<int> senddata (NumSnds*ChunkSize);
+        Array<int> recvdata (NumRcvs*iChunkSize);
+        Array<int> senddata (NumSnds*iChunkSize);
 
         Array<int> sendcnts(NProcs,0), sdispls(NProcs,0);
         Array<int> recvcnts(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
 
         for (int i = 0; i < NProcs; i++)
         {
-            recvcnts[i] = Rcvs[i] * ChunkSize;
-            sendcnts[i] = Snds[i] * ChunkSize;
+            recvcnts[i] = Rcvs[i] * iChunkSize;
+            sendcnts[i] = Snds[i] * iChunkSize;
         }
 
         for (int i = 1; i < NProcs; i++)
@@ -972,7 +966,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         {
             int idx = offset[owner[i]];
 
-            ParticleType& p = m_particles[index[i]];
+            ParticleType& p = *index[i];
 
             senddata[idx+0] = p.m_id;
             senddata[idx+1] = p.m_cpu;
@@ -985,7 +979,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                    senddata[idx+1]=p.m_cell[1];,
                    senddata[idx+2]=p.m_cell[2];);
 
-            offset[owner[i]] += ChunkSize;
+            offset[owner[i]] += iChunkSize;
         }
 
         BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
@@ -1025,18 +1019,18 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         // The Real data (m_pos & m_data).
         //
-        const int ChunkSize = BL_SPACEDIM+N;
+        const int rChunkSize = BL_SPACEDIM+N;
 
-        Array<Real> recvdata (NumRcvs*ChunkSize);
-        Array<Real> senddata (NumSnds*ChunkSize);
+        Array<Real> recvdata (NumRcvs*rChunkSize);
+        Array<Real> senddata (NumSnds*rChunkSize);
 
         Array<int> sendcnts(NProcs,0), sdispls(NProcs,0);
         Array<int> recvcnts(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
 
         for (int i = 0; i < NProcs; i++)
         {
-            recvcnts[i] = Rcvs[i] * ChunkSize;
-            sendcnts[i] = Snds[i] * ChunkSize;
+            recvcnts[i] = Rcvs[i] * rChunkSize;
+            sendcnts[i] = Snds[i] * rChunkSize;
         }
 
         for (int i = 1; i < NProcs; i++)
@@ -1050,7 +1044,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         {
             int idx = offset[owner[i]];
 
-            ParticleType& p = m_particles[index[i]];
+            ParticleType& p = *index[i];
 
             D_TERM(senddata[idx+0]=p.m_pos[0];,
                    senddata[idx+1]=p.m_pos[1];,
@@ -1061,7 +1055,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             for (int j = 0; j < N; j++)
                 senddata[idx+j] = p.m_data[j];
 
-            offset[owner[i]] += ChunkSize;
+            offset[owner[i]] += rChunkSize;
         }
 
         BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
@@ -1078,7 +1072,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         for (int i = 0; i < index.size(); i++)
         {
-            ParticleType& p = m_particles[index[i]];
+            ParticleType& p = *index[i];
 
             BL_ASSERT(p.m_id > 0);
 
@@ -1162,9 +1156,9 @@ ParticleContainer<N>::OK () const
     //
     // Check that the integer data in each valid particle is what it should be.
     //
-    for (int i = 0; i < m_particles.size(); i++)
+    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
-        ParticleType p = m_particles[i];
+        ParticleType p = *it;
 
         BL_ASSERT(p.m_id > 0);
 
@@ -1458,13 +1452,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
         int cnt = 0;
 
-        for (int i = 0; i < m_particles.size(); i++)
-        {
-            const ParticleType& p = m_particles[i];
-
-            if (p.m_lev == lev && p.m_grid == grid)
+        for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+            if (it->m_lev == lev && it->m_grid == grid)
                 cnt++;
-        }
 
         which[grid] = fnum;
         count[grid] = cnt;
@@ -1482,9 +1472,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
             int* iptr = istuff.dataPtr();
 
-            for (int i = 0; i < m_particles.size(); i++)
+            for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
             {
-                const ParticleType& p = m_particles[i];
+                const ParticleType& p = *it;
 
                 if (p.m_lev == lev && p.m_grid == grid)
                 {
@@ -1513,9 +1503,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
             Real* rptr = rstuff.dataPtr();
 
-            for (int i = 0; i < m_particles.size(); i++)
+            for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
             {
-                const ParticleType& p = m_particles[i];
+                const ParticleType& p = *it;
 
                 if (p.m_lev == lev && p.m_grid == grid)
                 {
