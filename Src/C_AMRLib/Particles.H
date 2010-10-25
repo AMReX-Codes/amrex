@@ -85,6 +85,7 @@ public:
     void InitRandom (long icount, unsigned long iseed, Real particleMass);
 
     Real sumParticleMass (const MultiFab& mf, int level) const;
+    Real sumParticleMomentum (const MultiFab& mf, int lev, int dim) const;
 
     void Increment (MultiFab& mf, int level) const;
 
@@ -97,6 +98,8 @@ public:
     bool OK () const;
 
     void ByteSpread () const;
+
+    Real getParticleGrav(const FArrayBox& grav, int lev, int dim, ParticleType& p);
 
     void MoveRandom ();
 
@@ -485,11 +488,114 @@ ParticleContainer<N>::sumParticleMass (const MultiFab& mf,
 }
 
 //
-// Some "pseudo" cic-scheme (as in enzo)
-// assumes grid has the size of 8x8 ;) -> here be dragons
+// Assumes mass is in m_data[0], vx in m_dat[1], ...!
+// dim defines the cartesian direction in which the momentum is summed, x is 0, y is 1, ...
+//
+
+template <int N>
+Real
+ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
+                                           int             lev,
+					   int             dim) const
+{
+    BL_ASSERT(N >= 1);
+
+    Real momSum = 0.0;
+
+    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    {
+        if (it->m_lev == lev)
+        {
+	   momSum += it->m_data[0] * it->m_data[dim+1];
+        }
+    }
+
+    ParallelDescriptor::ReduceRealSum(momSum);
+
+    return momSum;
+}
+template <int N>
+Real
+ParticleContainer<N>::getParticleGrav(const FArrayBox& gravBox, int lev, int dim, ParticleType& p)
+{
+
+   const Geometry& geom = m_amr->Geom(lev);
+   const Real* dx = geom.CellSize();
+  
+   Real fracOfCell[BL_SPACEDIM];
+
+   IntVect centralIntersection;
+
+//FIXME: m_pos seems to be relative to geom.ProbLo?!?
+   D_TERM(centralIntersection [0] = floor( p.m_pos[0]/dx[0] + 0.5);,
+          centralIntersection [1] = floor( p.m_pos[1]/dx[1] + 0.5);,
+          centralIntersection [2] = floor( p.m_pos[2]/dx[2] + 0.5););
+
+   IntVect cell = centralIntersection;
+   
+   D_TERM(fracOfCell[0] = -centralIntersection[0] + p.m_pos[0]/dx[0] + 0.5;,
+          fracOfCell[1] = -centralIntersection[1] + p.m_pos[1]/dx[1] + 0.5;,
+          fracOfCell[2] = -centralIntersection[2] + p.m_pos[2]/dx[2] + 0.5;);
+
+   Real grav=0;
+
+#if (BL_SPACEDIM == 1)
+   grav += gravBox(cell, dim) * fracOfCell[0];
+
+   cell[0] = centralIntersection[0] - 1;
+   grav += gravBox(cell, dim) * (1-fracOfCell[0]);
+#endif
+            
+#if (BL_SPACEDIM == 2)
+   grav += gravBox(cell, dim) *    fracOfCell[0]  *    fracOfCell[1] ;
+
+   cell[0] = centralIntersection[0] - 1;
+   grav += gravBox(cell, dim) * (1-fracOfCell[0]) *    fracOfCell[1] ;
+
+   cell = centralIntersection;
+   cell[1] = centralIntersection[1] - 1;
+   grav += gravBox(cell, dim) *    fracOfCell[0]  * (1-fracOfCell[1]);
+
+   cell[0] = centralIntersection[0] - 1;
+   grav += gravBox(cell, dim) * (1-fracOfCell[0]) * (1-fracOfCell[1]);
+#endif
+ 
+
+#if (BL_SPACEDIM == 3)
+   grav += gravBox(cell, dim) *    fracOfCell[0]  *    fracOfCell[1]  *    fracOfCell[2] ;
+   
+   cell[0] = centralIntersection[0] - 1;
+   grav += gravBox(cell, dim) * (1-fracOfCell[0]) *    fracOfCell[1]  *    fracOfCell[2] ;
+   
+   cell = centralIntersection;
+   cell[1] = centralIntersection[1] - 1;
+   grav += gravBox(cell, dim) *    fracOfCell[0]  * (1-fracOfCell[1]) *    fracOfCell[2] ;
+   
+   cell[0] = centralIntersection[0] - 1;
+   grav += gravBox(cell, dim) * (1-fracOfCell[0]) * (1-fracOfCell[1]) *    fracOfCell[2] ;
+
+   
+   centralIntersection[2] = centralIntersection[2] - 1; //ugly hack - but this way I can "reuse" the code fr2m 2d...
+   grav += gravBox(cell, dim) *    fracOfCell[0]  *    fracOfCell[1]  *    fracOfCell[2] ;
+   
+   cell = centralIntersection;
+   cell[0] = centralIntersection[0] - 1;
+   grav += gravBox(cell, dim) * (1-fracOfCell[0]) *    fracOfCell[1]  *    fracOfCell[2] ;
+   
+   cell = centralIntersection;
+   cell[1] = centralIntersection[1] - 1;
+   grav += gravBox(cell, dim) *    fracOfCell[0]  * (1-fracOfCell[1]) *    fracOfCell[2] ;
+   
+   cell[0] = centralIntersection[0] - 1;
+   grav += gravBox(cell, dim) * (1-fracOfCell[0]) * (1-fracOfCell[1]) *    fracOfCell[2] ;
+#endif
+
+   return grav;
+}
+
+//
+// Some cic-scheme
 // Will get ugly as soon as there is more than just the rootgrid
-// NOTE: does NOT return density but mass assigned in a proper way!
-// might once be ported to fortran.
 //
 
 template <int N>
@@ -751,9 +857,9 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
             //
             const FArrayBox& gfab = gv[p.m_grid];
 
-            D_TERM(p.m_data[1] += 0.5 * dt * gfab(p.m_cell,0);,
-                   p.m_data[2] += 0.5 * dt * gfab(p.m_cell,1);,
-                   p.m_data[3] += 0.5 * dt * gfab(p.m_cell,2););
+            D_TERM(p.m_data[1] += 0.5 * dt * getParticleGrav(gfab, lev, 0, p);,
+                   p.m_data[2] += 0.5 * dt * getParticleGrav(gfab, lev, 1, p);,
+                   p.m_data[3] += 0.5 * dt * getParticleGrav(gfab, lev, 2, p); );
 
             D_TERM(p.m_pos[0] += dt * p.m_data[1];,
                    p.m_pos[1] += dt * p.m_data[2];,
@@ -812,9 +918,9 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
             //
             const FArrayBox& gfab = gv[p.m_grid];
 
-            D_TERM(p.m_data[1] += 0.5 * dt * gfab(p.m_cell,0);,
-                   p.m_data[2] += 0.5 * dt * gfab(p.m_cell,1);,
-                   p.m_data[3] += 0.5 * dt * gfab(p.m_cell,2););
+            D_TERM(p.m_data[1] += 0.5 * dt * getParticleGrav(gfab, lev, 0, p);,
+                   p.m_data[2] += 0.5 * dt * getParticleGrav(gfab, lev, 1, p);,
+                   p.m_data[3] += 0.5 * dt * getParticleGrav(gfab, lev, 2, p); );
         }
     }
 
