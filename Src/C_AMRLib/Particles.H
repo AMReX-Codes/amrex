@@ -1,7 +1,7 @@
 #ifndef _PARTICLES_H_
 #define _PARTICLES_H_ 
 
-#include <list>
+#include <deque>
 #include <vector>
 #include <fstream>
 #include <iostream>
@@ -72,9 +72,9 @@ public:
     //
     // Types for iterating over the particles.
     //
-    typedef typename std::list<ParticleType>::iterator iterator;
+    typedef typename std::deque<ParticleType>::iterator iterator;
 
-    typedef typename std::list<ParticleType>::const_iterator const_iterator;
+    typedef typename std::deque<ParticleType>::const_iterator const_iterator;
 
     ParticleContainer (Amr* amr)
         :
@@ -156,7 +156,7 @@ protected:
     //
     int                     m_verbose;
     Amr*                    m_amr;
-    std::list<ParticleType> m_particles;
+    std::deque<ParticleType> m_particles;
 };
 
 template <int N>
@@ -356,9 +356,9 @@ ParticleContainer<N>::MoveRandom ()
 
     BL_ASSERT(m_amr != 0);
 
-    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        ParticleType& p = *it;
+        ParticleType& p = m_particles[i];
 
         const Geometry& geom = m_amr->Geom(p.m_lev);
 
@@ -401,9 +401,9 @@ ParticleContainer<N>::Increment (MultiFab& mf,
 {
     BL_ASSERT(OK());
 
-    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        const ParticleType& p = *it;
+        const ParticleType& p = m_particles[i];
 
         if (p.m_lev == lev)
         {
@@ -414,7 +414,7 @@ ParticleContainer<N>::Increment (MultiFab& mf,
 
 template <int N>
 Real
-ParticleContainer<N>::estTimestep (const MultiFab& grav_vector,
+ParticleContainer<N>::estTimestep (const MultiFab& gv,
                                    int             lev) const
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
@@ -424,9 +424,9 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector,
     const Real*     dx       = geom.CellSize();
     Real            dt       = 1e50;
 
-    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        const ParticleType& p = *it;
+        const ParticleType& p = m_particles[i];
 
         if (p.m_lev == lev)
         {
@@ -434,7 +434,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector,
 
             Real dt_part = (mag_vel > 0) ? 0.1 * dx[0] / mag_vel : 1e50;
 
-            const FArrayBox& gfab = grav_vector[p.m_grid];
+            const FArrayBox& gfab = gv[p.m_grid];
 
             const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
 
@@ -443,7 +443,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& grav_vector,
             if (mag_grav > 0)
                 dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
 
-            dt = std::min(dt_part, dt); 
+            dt = std::min(dt_part, dt);
         }
     }
 
@@ -475,11 +475,13 @@ ParticleContainer<N>::sumParticleMass (const MultiFab& mf,
 
     Real massSum = 0.0;
 
-    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        if (it->m_lev == lev)
+        const ParticleType& p = m_particles[i];
+
+        if (p.m_lev == lev)
         {
-            massSum += it->m_data[0];
+            massSum += p.m_data[0];
         }
     }
 
@@ -516,10 +518,12 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
     }
 
     const Real* dx = geom.CellSize();
-
-    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    //
+    // This loop can NOT be OMP'd since multiple threads may want to write to the same cell.
+    //
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        const ParticleType& p = *it;
+        const ParticleType& p = m_particles[i];
 
         if (p.m_lev == lev)
         {
@@ -602,7 +606,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
 template <int N>
 void
-ParticleContainer<N>::movePredict (const MultiFab& grav_vector,
+ParticleContainer<N>::movePredict (const MultiFab& gv,
                                    int             lev,
                                    Real            dt)
 {
@@ -611,16 +615,19 @@ ParticleContainer<N>::movePredict (const MultiFab& grav_vector,
 
     const Real strttime = ParallelDescriptor::second();
 
-    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+#ifdef BL_USE_OMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        ParticleType& p = *it;
+        ParticleType& p = m_particles[i];
 
         if (p.m_lev == lev)
         {
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
-            const FArrayBox& gfab = grav_vector[p.m_grid];
+            const FArrayBox& gfab = gv[p.m_grid];
 
             D_TERM(p.m_data[1] += dt * gfab(p.m_cell,0);,
                    p.m_data[2] += dt * gfab(p.m_cell,1);,
@@ -660,8 +667,8 @@ ParticleContainer<N>::movePredict (const MultiFab& grav_vector,
 
 template <int N>
 void
-ParticleContainer<N>::moveCorrect (const MultiFab& grav_vector_old,
-                                   const MultiFab& grav_vector,
+ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
+                                   const MultiFab& gv,
                                    int             lev,
                                    Real            dt)
 {
@@ -670,17 +677,20 @@ ParticleContainer<N>::moveCorrect (const MultiFab& grav_vector_old,
 
     const Real strttime = ParallelDescriptor::second();
 
-    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+#ifdef BL_USE_OMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        ParticleType& p = *it;
+        ParticleType& p = m_particles[i];
 
         if (p.m_lev == lev)
         {
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
-            const FArrayBox& gfab     = grav_vector[p.m_grid];
-            const FArrayBox& gfab_old = grav_vector_old[p.m_grid];
+            const FArrayBox& gfab     = gv[p.m_grid];
+            const FArrayBox& gfab_old = gv_old[p.m_grid];
 
             D_TERM(p.m_pos[0]  -= 0.5 * dt * p.m_data[1];,
                    p.m_pos[1]  -= 0.5 * dt * p.m_data[2];,
@@ -724,7 +734,7 @@ ParticleContainer<N>::moveCorrect (const MultiFab& grav_vector_old,
 
 template <int N>
 void
-ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
+ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
                                      int             lev,
                                      Real            dt)
 {
@@ -734,24 +744,18 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
     const Real strttime = ParallelDescriptor::second();
 
 #ifdef BL_USE_OMP
-    std::vector<iterator> v(m_particles.size());
-    int idx = 0;
-    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it) v[idx++] = it;
 #pragma omp parallel for
-    for (int i = 0; i < v.size(); i++)
-    {
-        ParticleType& p = *v[i];
-#else
-    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
-    {
-        ParticleType& p = *it;
 #endif
+    for (int i = 0; i < m_particles.size(); i++)
+    {
+        ParticleType& p = m_particles[i];
+
         if (p.m_lev == lev)
         {
             //
             // note: m_data[0] is mass, 1 is v_x, ...
             //
-            const FArrayBox& gfab = grav_vector[p.m_grid];
+            const FArrayBox& gfab = gv[p.m_grid];
 
             D_TERM(p.m_data[1] += 0.5 * dt * gfab(p.m_cell,0);,
                    p.m_data[2] += 0.5 * dt * gfab(p.m_cell,1);,
@@ -791,7 +795,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
 
 template <int N>
 void
-ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
+ParticleContainer<N>::moveKick (const MultiFab& gv,
                                 int             lev,
                                 Real            dt)
 {
@@ -801,24 +805,18 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
     const Real strttime = ParallelDescriptor::second();
 
 #ifdef BL_USE_OMP
-    std::vector<iterator> v(m_particles.size());
-    int idx = 0;
-    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it) v[idx++] = it;
 #pragma omp parallel for
-    for (int i = 0; i < v.size(); i++)
-    {
-        ParticleType& p = *v[i];
-#else
-    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
-    {
-        ParticleType& p = *it;
 #endif
+    for (int i = 0; i < m_particles.size(); i++)
+    {
+        ParticleType& p = m_particles[i];
+
         if (p.m_lev == lev)
         {
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
-            const FArrayBox& gfab = grav_vector[p.m_grid];
+            const FArrayBox& gfab = gv[p.m_grid];
 
             D_TERM(p.m_data[1] += 0.5 * dt * gfab(p.m_cell,0);,
                    p.m_data[2] += 0.5 * dt * gfab(p.m_cell,1);,
@@ -845,12 +843,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     const int  MyProc   = ParallelDescriptor::MyProc();
     const Real strttime = ParallelDescriptor::second();
 
-    std::vector<int>      owner;
-    std::vector<iterator> which;
+    std::vector<int> owner;
+    std::vector<int> index;
 
-    for (iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        ParticleType& p = *it;
+        ParticleType& p = m_particles[i];
 
         BL_ASSERT(p.m_id > 0);
 
@@ -871,7 +869,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             //
             // We're not the rightful owner of this particle.
             //
-            which.push_back(it);
+            index.push_back(i);
             owner.push_back(who);
         }
     }
@@ -880,7 +878,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     if (NProcs == 1)
     {
-        BL_ASSERT(which.empty());
+        BL_ASSERT(index.empty());
         BL_ASSERT(owner.empty());
 
         return;
@@ -970,11 +968,11 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             sdispls[i] = sdispls[i-1] + sendcnts[i-1];
         }
 
-        for (int i = 0; i < which.size(); i++)
+        for (int i = 0; i < index.size(); i++)
         {
             int idx = offset[owner[i]];
 
-            ParticleType& p = *which[i];
+            ParticleType& p = m_particles[index[i]];
 
             senddata[idx+0] = p.m_id;
             senddata[idx+1] = p.m_cpu;
@@ -1048,11 +1046,11 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             sdispls[i] = sdispls[i-1] + sendcnts[i-1];
         }
 
-        for (int i = 0; i < which.size(); i++)
+        for (int i = 0; i < index.size(); i++)
         {
             int idx = offset[owner[i]];
 
-            ParticleType& p = *which[i];
+            ParticleType& p = m_particles[index[i]];
 
             D_TERM(senddata[idx+0]=p.m_pos[0];,
                    senddata[idx+1]=p.m_pos[1];,
@@ -1078,10 +1076,25 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         // Remove particles we no longer own.
         //
-        for (int i = 0; i < which.size(); i++)
+        for (int i = 0; i < index.size(); i++)
         {
-            m_particles.erase(which[i]);
+            ParticleType& p = m_particles[index[i]];
+
+            BL_ASSERT(p.m_id > 0);
+
+            p.m_id = -p.m_id;
         }
+
+        std::deque<ParticleType> tmp;
+
+        while (!m_particles.empty())
+        {
+            if (m_particles.front().m_id > 0)
+                tmp.push_back(m_particles.front());
+            m_particles.pop_front();
+        }
+
+        m_particles.swap(tmp);
         //
         // Unpack data into the new particles.
         //
@@ -1149,9 +1162,9 @@ ParticleContainer<N>::OK () const
     //
     // Check that the integer data in each valid particle is what it should be.
     //
-    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    for (int i = 0; i < m_particles.size(); i++)
     {
-        ParticleType p = *it;
+        ParticleType p = m_particles[i];
 
         BL_ASSERT(p.m_id > 0);
 
@@ -1445,9 +1458,13 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
         int cnt = 0;
 
-        for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
-            if (it->m_lev == lev && it->m_grid == grid)
+        for (int i = 0; i < m_particles.size(); i++)
+        {
+            const ParticleType& p = m_particles[i];
+
+            if (p.m_lev == lev && p.m_grid == grid)
                 cnt++;
+        }
 
         which[grid] = fnum;
         count[grid] = cnt;
@@ -1465,9 +1482,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
             int* iptr = istuff.dataPtr();
 
-            for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+            for (int i = 0; i < m_particles.size(); i++)
             {
-                const ParticleType& p = *it;
+                const ParticleType& p = m_particles[i];
 
                 if (p.m_lev == lev && p.m_grid == grid)
                 {
@@ -1496,9 +1513,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
             Real* rptr = rstuff.dataPtr();
 
-            for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+            for (int i = 0; i < m_particles.size(); i++)
             {
-                const ParticleType& p = *it;
+                const ParticleType& p = m_particles[i];
 
                 if (p.m_lev == lev && p.m_grid == grid)
                 {
@@ -1763,8 +1780,6 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
     BL_ASSERT(grd >= 0 && grd < m_amr->boxArray(lev).size());
 
     ParticleType p;
-
-    std::list<ParticleType> newparticles;
     //
     // First read in the integer data in binary.
     //
