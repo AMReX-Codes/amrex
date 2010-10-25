@@ -552,57 +552,73 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
             IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
                                  floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
                                  floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
-            IntVect cell = csect;
 
             const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
-                                                          -csect[1] + p.m_pos[1]/dx[1] + 0.5,
-                                                          -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
+                                                    -csect[1] + p.m_pos[1]/dx[1] + 0.5,
+                                                    -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
             FArrayBox& fab = mf[p.m_grid];
 
+            IntVect cell = csect;
+
 #if (BL_SPACEDIM == 1)
-            fab(csect) += p.m_data[0] * frac[0];
-            cell[0]     = csect[0] - 1;
+            // High
+            fab(cell) += p.m_data[0] * frac[0];
+
+            // Low
+            cell[0]     = cell[0] - 1;
             fab(cell)  += p.m_data[0] * (1-frac[0]);
 #endif
             
 #if (BL_SPACEDIM == 2)
-            fab(csect) += p.m_data[0] * frac[0] * frac[1] ;
+            // HH
+            fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
     
-            cell[0]    = csect[0] - 1;
+            // LH
+            cell[0]    = cell[0] - 1;
             fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
     
-            cell       = csect;
-            cell[1]    = csect[1] - 1;
-            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
-    
-            cell[0]    = csect[0] - 1;
+            // LL
+            cell[1]    = cell[1] - 1;
             fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
+    
+            // HL
+            cell[0]    = cell[0] + 1;
+            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
 #endif
 
 #if (BL_SPACEDIM == 3)
-            fab(csect) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
 
-            cell[0]    = csect[0] - 1;
+            // HHH
+            fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
+
+            // LHH
+            cell[0]    = cell[0] - 1;
             fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
 
-            cell       = csect;
-            cell[1]    = csect[1] - 1;
+            // LLH
+            cell[1]    = cell[1] - 1;
             fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * frac[2] ;
     
-            cell[0]    = csect[0] - 1;
+            // HLH
+            cell[0]    = cell[0] + 1;
             fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
 
-            csect[2]    = csect[2] - 1;
-            fab(csect) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
+            cell     = csect;
+            cell[2]  = cell[2] - 1;
+
+            // HHL
+            fab(cell) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
     
-            cell[0]    = csect[0] - 1;
+            // LHL
+            cell[0]    = cell[0] - 1;
             fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
 
-            cell       = csect;
-            cell[1]    = csect[1] - 1;
+            // LLL
+            cell[1]    = cell[1] - 1;
             fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
     
-            cell[0]    = csect[0] - 1;
+            // HLL
+            cell[0]    = cell[0] + 1;
             fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
 #endif
         }
