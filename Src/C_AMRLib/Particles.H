@@ -41,6 +41,8 @@ struct ParticleBase
     static const std::string& Version ();
 
     static const std::string& DataPrefix ();
+
+    static void GetGravity (const FArrayBox& gfab, const Amr* amr, int lev, const ParticleBase& p, Real* grav);
 };
 
 std::ostream& operator<< (std::ostream& os, const ParticleBase& p);
@@ -99,8 +101,6 @@ public:
 
     void ByteSpread () const;
 
-    Real getParticleGrav(const FArrayBox& grav, int lev, int dim, ParticleType& p);
-
     void MoveRandom ();
 
     // **************************************************************************************************************** 
@@ -111,15 +111,15 @@ public:
     //
     // The following two functions form a PREDICTOR CORRECTOR scheme for integrating the motion of the particles
     //
-    void movePredict(const MultiFab& grav_vector, int level, Real timestep);
-    void moveCorrect(const MultiFab& grav_vector_old, const MultiFab& grav_vector, int level, Real timestep);
+    void movePredict (const MultiFab& grav_vector, int level, Real timestep);
+    void moveCorrect (const MultiFab& grav_vector_old, const MultiFab& grav_vector, int level, Real timestep);
     //
     // TODO: the methods should return a constraint on the timestep...
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles
     //
-    void moveKickDrift(const MultiFab& grav_vector, int level, Real timestep);
-    void moveKick     (const MultiFab& grav_vector, int level, Real timestep);
+    void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep);
+    void moveKick      (const MultiFab& grav_vector, int level, Real timestep);
     //
     // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
     // so this scheme should work in the overall algorithm...
@@ -514,84 +514,6 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
 
     return momSum;
 }
-template <int N>
-Real
-ParticleContainer<N>::getParticleGrav(const FArrayBox& gravBox, int lev, int dim, ParticleType& p)
-{
-
-   const Geometry& geom = m_amr->Geom(lev);
-   const Real* dx = geom.CellSize();
-  
-   Real fracOfCell[BL_SPACEDIM];
-
-   IntVect centralIntersection;
-
-//FIXME: m_pos seems to be relative to geom.ProbLo?!?
-   D_TERM(centralIntersection [0] = floor( p.m_pos[0]/dx[0] + 0.5);,
-          centralIntersection [1] = floor( p.m_pos[1]/dx[1] + 0.5);,
-          centralIntersection [2] = floor( p.m_pos[2]/dx[2] + 0.5););
-
-   IntVect cell = centralIntersection;
-   
-   D_TERM(fracOfCell[0] = -centralIntersection[0] + p.m_pos[0]/dx[0] + 0.5;,
-          fracOfCell[1] = -centralIntersection[1] + p.m_pos[1]/dx[1] + 0.5;,
-          fracOfCell[2] = -centralIntersection[2] + p.m_pos[2]/dx[2] + 0.5;);
-
-   Real grav=0;
-
-#if (BL_SPACEDIM == 1)
-   grav += gravBox(cell, dim) * fracOfCell[0];
-
-   cell[0] = centralIntersection[0] - 1;
-   grav += gravBox(cell, dim) * (1-fracOfCell[0]);
-#endif
-            
-#if (BL_SPACEDIM == 2)
-   grav += gravBox(cell, dim) *    fracOfCell[0]  *    fracOfCell[1] ;
-
-   cell[0] = centralIntersection[0] - 1;
-   grav += gravBox(cell, dim) * (1-fracOfCell[0]) *    fracOfCell[1] ;
-
-   cell = centralIntersection;
-   cell[1] = centralIntersection[1] - 1;
-   grav += gravBox(cell, dim) *    fracOfCell[0]  * (1-fracOfCell[1]);
-
-   cell[0] = centralIntersection[0] - 1;
-   grav += gravBox(cell, dim) * (1-fracOfCell[0]) * (1-fracOfCell[1]);
-#endif
- 
-
-#if (BL_SPACEDIM == 3)
-   grav += gravBox(cell, dim) *    fracOfCell[0]  *    fracOfCell[1]  *    fracOfCell[2] ;
-   
-   cell[0] = centralIntersection[0] - 1;
-   grav += gravBox(cell, dim) * (1-fracOfCell[0]) *    fracOfCell[1]  *    fracOfCell[2] ;
-   
-   cell = centralIntersection;
-   cell[1] = centralIntersection[1] - 1;
-   grav += gravBox(cell, dim) *    fracOfCell[0]  * (1-fracOfCell[1]) *    fracOfCell[2] ;
-   
-   cell[0] = centralIntersection[0] - 1;
-   grav += gravBox(cell, dim) * (1-fracOfCell[0]) * (1-fracOfCell[1]) *    fracOfCell[2] ;
-
-   
-   centralIntersection[2] = centralIntersection[2] - 1; //ugly hack - but this way I can "reuse" the code fr2m 2d...
-   grav += gravBox(cell, dim) *    fracOfCell[0]  *    fracOfCell[1]  *    fracOfCell[2] ;
-   
-   cell = centralIntersection;
-   cell[0] = centralIntersection[0] - 1;
-   grav += gravBox(cell, dim) * (1-fracOfCell[0]) *    fracOfCell[1]  *    fracOfCell[2] ;
-   
-   cell = centralIntersection;
-   cell[1] = centralIntersection[1] - 1;
-   grav += gravBox(cell, dim) *    fracOfCell[0]  * (1-fracOfCell[1]) *    fracOfCell[2] ;
-   
-   cell[0] = centralIntersection[0] - 1;
-   grav += gravBox(cell, dim) * (1-fracOfCell[0]) * (1-fracOfCell[1]) *    fracOfCell[2] ;
-#endif
-
-   return grav;
-}
 
 //
 // Some cic-scheme
@@ -627,63 +549,61 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
         if (p.m_lev == lev)
         {
-            //FIXME: m_pos seems to be relative to geom.ProbLo?!?
-
-            IntVect csect(D_DECL(floor(p.m_pos[0]/dx[0] + 0.5), floor(p.m_pos[1]/dx[1] + 0.5), floor(p.m_pos[2]/dx[2] + 0.5)));
-
+            IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
+                                 floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
+                                 floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
             IntVect cell = csect;
 
-            const Real fracOfCell[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
+            const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
                                                           -csect[1] + p.m_pos[1]/dx[1] + 0.5,
                                                           -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
-
             FArrayBox& fab = mf[p.m_grid];
 
 #if (BL_SPACEDIM == 1)
-            fab(csect) += p.m_data[0] * fracOfCell[0];
+            fab(csect) += p.m_data[0] * frac[0];
             cell[0]     = csect[0] - 1;
-            fab(cell)  += p.m_data[0] * (1-fracOfCell[0]);
+            fab(cell)  += p.m_data[0] * (1-frac[0]);
 #endif
             
 #if (BL_SPACEDIM == 2)
-            fab(csect) += p.m_data[0] * fracOfCell[0] * fracOfCell[1] ;
+            fab(csect) += p.m_data[0] * frac[0] * frac[1] ;
     
             cell[0]    = csect[0] - 1;
-            fab(cell) += p.m_data[0] * (1-fracOfCell[0]) * fracOfCell[1] ;
+            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
     
             cell       = csect;
             cell[1]    = csect[1] - 1;
-            fab(cell) += p.m_data[0] * fracOfCell[0] * (1-fracOfCell[1]);
+            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
     
             cell[0]    = csect[0] - 1;
-            fab(cell) += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]);
+            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
 #endif
 
 #if (BL_SPACEDIM == 3)
-            fab(csect) += p.m_data[0] * fracOfCell[0] * fracOfCell[1] * fracOfCell[2] ;
+            fab(csect) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
 
             cell[0]    = csect[0] - 1;
-            fab(cell) += p.m_data[0] * (1-fracOfCell[0]) * fracOfCell[1] * fracOfCell[2] ;
+            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
 
             cell       = csect;
             cell[1]    = csect[1] - 1;
-            fab(cell) += p.m_data[0] * fracOfCell[0] * (1-fracOfCell[1]) * fracOfCell[2] ;
+            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * frac[2] ;
     
             cell[0]    = csect[0] - 1;
-            fab(cell) += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]) *    fracOfCell[2] ;
+            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
 
             csect[2]    = csect[2] - 1;
-            fab(csect) += p.m_data[0] * fracOfCell[0] * fracOfCell[1] * (1-fracOfCell[2]);
+            fab(csect) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
     
             cell[0]    = csect[0] - 1;
-            fab(cell) += p.m_data[0] * (1-fracOfCell[0]) * fracOfCell[1] * (1-fracOfCell[2]);
+            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
 
             cell       = csect;
             cell[1]    = csect[1] - 1;
-            fab(cell) += p.m_data[0] * fracOfCell[0] * (1-fracOfCell[1]) * (1-fracOfCell[2]);
+            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
     
             cell[0]    = csect[0] - 1;
-            fab(cell) += p.m_data[0] * (1-fracOfCell[0]) * (1-fracOfCell[1]) * (1-fracOfCell[2]);
+            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
 #endif
         }
     }
@@ -857,9 +777,13 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
             //
             const FArrayBox& gfab = gv[p.m_grid];
 
-            D_TERM(p.m_data[1] += 0.5 * dt * getParticleGrav(gfab, lev, 0, p);,
-                   p.m_data[2] += 0.5 * dt * getParticleGrav(gfab, lev, 1, p);,
-                   p.m_data[3] += 0.5 * dt * getParticleGrav(gfab, lev, 2, p); );
+            Real grav[BL_SPACEDIM];
+
+            ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
+
+            D_TERM(p.m_data[1] += 0.5 * dt * grav[0];,
+                   p.m_data[2] += 0.5 * dt * grav[1];,
+                   p.m_data[3] += 0.5 * dt * grav[2];);
 
             D_TERM(p.m_pos[0] += dt * p.m_data[1];,
                    p.m_pos[1] += dt * p.m_data[2];,
@@ -918,9 +842,13 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
             //
             const FArrayBox& gfab = gv[p.m_grid];
 
-            D_TERM(p.m_data[1] += 0.5 * dt * getParticleGrav(gfab, lev, 0, p);,
-                   p.m_data[2] += 0.5 * dt * getParticleGrav(gfab, lev, 1, p);,
-                   p.m_data[3] += 0.5 * dt * getParticleGrav(gfab, lev, 2, p); );
+            Real grav[BL_SPACEDIM];
+
+            ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
+
+            D_TERM(p.m_data[1] += 0.5 * dt * grav[0];,
+                   p.m_data[2] += 0.5 * dt * grav[1];,
+                   p.m_data[3] += 0.5 * dt * grav[2];);
         }
     }
 

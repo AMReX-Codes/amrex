@@ -154,6 +154,85 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     }
 }
 
+void
+ParticleBase::GetGravity (const FArrayBox&    gfab,
+                          const Amr*          amr,
+                          int                 lev,
+                          const ParticleBase& p,
+                          Real*               grav)
+{
+    BL_ASSERT(amr  != 0);
+    BL_ASSERT(grav != 0);
+
+    const Geometry& geom = amr->Geom(lev);
+    const Real*     dx   = geom.CellSize();
+
+    IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
+                         floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
+                         floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
+    IntVect cell = csect;
+
+    const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
+                                            -csect[1] + p.m_pos[1]/dx[1] + 0.5,
+                                            -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
+
+    for (int dm = 0; dm < BL_SPACEDIM; dm++)
+    {
+        grav[dm] = 0;
+
+#if (BL_SPACEDIM == 1)
+        grav[dm] += gfab(cell, dm) * frac[0];
+
+        cell[0]   = csect[0] - 1;
+        grav[dm] += gfab(cell, dm) * (1-frac[0]);
+#endif
+            
+#if (BL_SPACEDIM == 2)
+        grav[dm] += gfab(cell, dm) *    frac[0]  *    frac[1] ;
+
+        cell[0]   = csect[0] - 1;
+        grav[dm] += gfab(cell, dm) * (1-frac[0]) *    frac[1] ;
+
+        cell      = csect;
+        cell[1]   = csect[1] - 1;
+        grav[dm] += gfab(cell, dm) *    frac[0]  * (1-frac[1]);
+
+        cell[0]   = csect[0] - 1;
+        grav[dm] += gfab(cell, dm) * (1-frac[0]) * (1-frac[1]);
+#endif
+ 
+
+#if (BL_SPACEDIM == 3)
+        grav[dm] += gfab(cell, dm) *    frac[0]  *    frac[1]  *    frac[2] ;
+   
+        cell[0]   = csect[0] - 1;
+        grav[dm] += gfab(cell, dm) * (1-frac[0]) *    frac[1]  *    frac[2] ;
+   
+        cell      = csect;
+        cell[1]   = csect[1] - 1;
+        grav[dm] += gfab(cell, dm) *    frac[0]  * (1-frac[1]) *    frac[2] ;
+   
+        cell[0]   = csect[0] - 1;
+        grav[dm] += gfab(cell, dm) * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
+
+   
+        csect[2]  = csect[2] - 1;
+        grav[dm] += gfab(cell, dm) *    frac[0]  *    frac[1]  *    frac[2] ;
+   
+        cell      = csect;
+        cell[0]   = csect[0] - 1;
+        grav[dm] += gfab(cell, dm) * (1-frac[0]) *    frac[1]  *    frac[2] ;
+   
+        cell      = csect;
+        cell[1]   = csect[1] - 1;
+        grav[dm] += gfab(cell, dm) *    frac[0]  * (1-frac[1]) *    frac[2] ;
+   
+        cell[0]   = csect[0] - 1;
+        grav[dm] += gfab(cell, dm) * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
+#endif
+    }
+}
+
 std::ostream&
 operator<< (std::ostream& os, const ParticleBase& p)
 {
