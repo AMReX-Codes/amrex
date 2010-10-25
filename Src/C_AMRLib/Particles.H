@@ -427,26 +427,45 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
     const Real*     dx       = geom.CellSize();
     Real            dt       = 1e50;
 
-    for (int i = 0; i < m_particles.size(); i++)
+    Real dt_local;
+
+#ifdef BL_USE_OMP
+#pragma omp parallel private(dt_local)
+#endif
     {
-        const ParticleType& p = m_particles[i];
+        dt_local = 1e50;
 
-        if (p.m_lev == lev)
+#ifdef BL_USE_OMP
+#pragma omp for
+#endif
+        for (int i = 0; i < m_particles.size(); i++)
         {
-            const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
+            const ParticleType& p = m_particles[i];
 
-            Real dt_part = (mag_vel > 0) ? 0.1 * dx[0] / mag_vel : 1e50;
+            if (p.m_lev == lev)
+            {
+                const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
 
-            const FArrayBox& gfab = gv[p.m_grid];
+                Real dt_part = (mag_vel > 0) ? 0.1 * dx[0] / mag_vel : 1e50;
 
-            const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
+                const FArrayBox& gfab = gv[p.m_grid];
 
-            const Real mag_grav = sqrt(D_TERM(gval[0]*gval[0], + gval[1]*gval[1], + gval[2]*gval[2]));
+                const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
 
-            if (mag_grav > 0)
-                dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
+                const Real mag_grav = sqrt(D_TERM(gval[0]*gval[0], + gval[1]*gval[1], + gval[2]*gval[2]));
 
-            dt = std::min(dt_part, dt);
+                if (mag_grav > 0)
+                    dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
+
+                dt_local = std::min(dt_part, dt_local);
+            }
+        }
+
+#ifdef BL_USE_OMP
+#pragma omp critical(estTimestep_lock)
+#endif
+        {
+            dt = std::min(dt, dt_local);
         }
     }
 
@@ -631,12 +650,17 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
     mf.mult(1/cell_vol);
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      stoptime = ParallelDescriptor::second() - strttime;
-
-    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        std::cout << "ParticleContainer<N>::AssignDensity() time: " << stoptime << "\n\n";
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::AssignDensity() time: " << stoptime << "\n\n";
+        }
     }
 }
 
@@ -690,12 +714,17 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
         }
     }
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      stoptime = ParallelDescriptor::second() - strttime;
-
-    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        std::cout << "ParticleContainer<N>::movePredict() time: " << stoptime << "\n\n";
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::movePredict() time: " << stoptime << "\n\n";
+        }
     }
 
     Redistribute(true);
@@ -757,12 +786,17 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
         }
     }
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      stoptime = ParallelDescriptor::second() - strttime;
-
-    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        std::cout << "ParticleContainer<N>::moveCorrect() time: " << stoptime << "\n\n";
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::moveCorrect() time: " << stoptime << "\n\n";
+        }
     }
 
     Redistribute(true);
@@ -822,12 +856,17 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
         }
     }
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      stoptime = ParallelDescriptor::second() - strttime;
-
-    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << "\n\n";
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << "\n\n";
+        }
     }
 
     Redistribute(true);
@@ -868,12 +907,17 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
         }
     }
 
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      stoptime = ParallelDescriptor::second() - strttime;
-
-    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << "\n\n";
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << "\n\n";
+        }
     }
     //
     // No need for Redistribution(), we only change the velocity.
@@ -1163,7 +1207,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     BL_ASSERT(OK());
 
-    if (m_verbose > 0 && NProcs > 1)
+    if (m_verbose > 0)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         Real      stoptime = ParallelDescriptor::second() - strttime;
