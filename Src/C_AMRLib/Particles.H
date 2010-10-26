@@ -425,9 +425,9 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_amr->Geom(0);
     const Real*     dx       = geom.CellSize();
+    const int       n        = m_particles.size();
     Real            dt       = 1e50;
-
-    Real dt_local;
+    Real            dt_local;
 
 #ifdef BL_USE_OMP
 #pragma omp parallel private(dt_local)
@@ -438,7 +438,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 #ifdef BL_USE_OMP
 #pragma omp for
 #endif
-        for (int i = 0; i < m_particles.size(); i++)
+        for (int i = 0; i < n; i++)
         {
             const ParticleType& p = m_particles[i];
 
@@ -675,10 +675,12 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
 
     const Real strttime = ParallelDescriptor::second();
 
+    const int n = m_particles.size();
+
 #ifdef BL_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < m_particles.size(); i++)
+    for (int i = 0; i < n; i++)
     {
         ParticleType& p = m_particles[i];
 
@@ -742,10 +744,12 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
 
     const Real strttime = ParallelDescriptor::second();
 
+    const int n = m_particles.size();
+
 #ifdef BL_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < m_particles.size(); i++)
+    for (int i = 0; i < n; i++)
     {
         ParticleType& p = m_particles[i];
 
@@ -813,10 +817,12 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
 
     const Real strttime = ParallelDescriptor::second();
 
+    const int n = m_particles.size();
+
 #ifdef BL_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < m_particles.size(); i++)
+    for (int i = 0; i < n; i++)
     {
         ParticleType& p = m_particles[i];
 
@@ -883,10 +889,12 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
 
     const Real strttime = ParallelDescriptor::second();
 
+    const int n = m_particles.size();
+
 #ifdef BL_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < m_particles.size(); i++)
+    for (int i = 0; i < n; i++)
     {
         ParticleType& p = m_particles[i];
 
