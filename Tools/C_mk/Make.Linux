@@ -11,7 +11,7 @@ ifeq ($(COMP),PathScale)
   endif
 
   ifeq ($(BL_NOFAST),TRUE)
-    CXXOPTF += -O -OPT:Olimit=0:div_split=ON -ffast-math -fno-math-errno -fno-exceptions -Wno-deprecated
+    CXXOPTF += -O -fno-exceptions -Wno-deprecated
   else
     CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
   endif
@@ -96,8 +96,8 @@ ifeq ($(FCOMP),PathScale)
   fDEBF += -O0 -g
 
   ifeq ($(BL_NOFAST),TRUE)
-    FOPTF += -O -OPT:Olimit=0:div_split=ON -ffast-math -fno-math-errno
-    fOPTF += -O -OPT:Olimit=0:div_split=ON -ffast-math -fno-math-errno
+    FOPTF += -O
+    fOPTF += -O
   else
     FOPTF += -Ofast
     fOPTF += -Ofast
