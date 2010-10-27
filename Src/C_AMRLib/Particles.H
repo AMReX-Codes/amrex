@@ -87,7 +87,7 @@ public:
     void InitRandom (long icount, unsigned long iseed, Real particleMass);
 
     Real sumParticleMass (const MultiFab& mf, int level) const;
-    Real sumParticleMomentum (const MultiFab& mf, int lev, int dim) const;
+    void sumParticleMomentum (const MultiFab& mf, int lev, Real* mom) const;
 
     void Increment (MultiFab& mf, int level) const;
 
@@ -512,26 +512,27 @@ ParticleContainer<N>::sumParticleMass (const MultiFab& mf,
 //
 
 template <int N>
-Real
+void
 ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
                                            int             lev,
-					   int             dim) const
+                                           Real*           mom) const
 {
-    BL_ASSERT(N >= 1);
+    BL_ASSERT(N >= BL_SPACEDIM+1);
 
-    Real momSum = 0.0;
+    D_TERM(mom[0] = 0;, mom[1] = 0;, mom[2] = 0;);
 
     for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
     {
         if (it->m_lev == lev)
         {
-	   momSum += it->m_data[0] * it->m_data[dim+1];
+            for (int i = 0; i < BL_SPACEDIM; i++)
+            {
+                mom[i] += it->m_data[0] * it->m_data[i+1];
+            }
         }
     }
 
-    ParallelDescriptor::ReduceRealSum(momSum);
-
-    return momSum;
+    ParallelDescriptor::ReduceRealSum(mom,BL_SPACEDIM);
 }
 
 //
