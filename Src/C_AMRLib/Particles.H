@@ -519,42 +519,26 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
 
-    Real mom_local[BL_SPACEDIM];
-
-    D_TERM(mom[0] = 0;, mom[1] = 0;, mom[2] = 0;);
+    Real D_DECL(mom_0, mom_1, mom_2);
 
     const int n = m_particles.size();
 
 #ifdef BL_USE_OMP
-#pragma omp parallel private(mom_local)
+#pragma omp parallel for reduction(+:D_DECL(mom_0, mom_1, mom_2))
 #endif
+    for (int i = 0; i < n; i++)
     {
-        D_TERM(mom_local[0] = 0;, mom_local[1] = 0;, mom_local[2] = 0;);
+        const ParticleType& p = m_particles[i];
 
-#ifdef BL_USE_OMP
-#pragma omp for
-#endif
-        for (int i = 0; i < n; i++)
+        if (p.m_lev == lev)
         {
-            const ParticleType& p = m_particles[i];
-
-            if (p.m_lev == lev)
-            {
-                D_TERM(mom_local[0] += p.m_data[0] * p.m_data[1];,
-                       mom_local[1] += p.m_data[0] * p.m_data[2];,
-                       mom_local[2] += p.m_data[0] * p.m_data[3];);
-            }
-        }
-
-#ifdef BL_USE_OMP
-#pragma omp critical(sumParticleMomentum_lock)
-#endif
-        {
-            D_TERM(mom[0] += mom_local[0];,
-                   mom[1] += mom_local[1];,
-                   mom[2] += mom_local[2];);
+            D_TERM(mom_0 += p.m_data[0] * p.m_data[1];,
+                   mom_1 += p.m_data[0] * p.m_data[2];,
+                   mom_2 += p.m_data[0] * p.m_data[3];);
         }
     }
+
+    D_TERM(mom[0] = mom_0;, mom[1] = mom_1;, mom[2] = mom_2;);
 
     ParallelDescriptor::ReduceRealSum(mom,BL_SPACEDIM);
 }
