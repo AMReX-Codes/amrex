@@ -519,16 +519,40 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
 
+    Real mom_local[BL_SPACEDIM];
+
     D_TERM(mom[0] = 0;, mom[1] = 0;, mom[2] = 0;);
 
-    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    const int n = m_particles.size();
+
+#ifdef BL_USE_OMP
+#pragma omp parallel private(mom_local)
+#endif
     {
-        if (it->m_lev == lev)
+        D_TERM(mom_local[0] = 0;, mom_local[1] = 0;, mom_local[2] = 0;);
+
+#ifdef BL_USE_OMP
+#pragma omp for
+#endif
+        for (int i = 0; i < n; i++)
         {
-            for (int i = 0; i < BL_SPACEDIM; i++)
+            const ParticleType& p = m_particles[i];
+
+            if (p.m_lev == lev)
             {
-                mom[i] += it->m_data[0] * it->m_data[i+1];
+                D_TERM(mom_local[0] += p.m_data[0] * p.m_data[1];,
+                       mom_local[1] += p.m_data[0] * p.m_data[2];,
+                       mom_local[2] += p.m_data[0] * p.m_data[3];);
             }
+        }
+
+#ifdef BL_USE_OMP
+#pragma omp critical(sumParticleMomentum_lock)
+#endif
+        {
+            D_TERM(mom[0] += mom_local[0];,
+                   mom[1] += mom_local[1];,
+                   mom[2] += mom_local[2];);
         }
     }
 
