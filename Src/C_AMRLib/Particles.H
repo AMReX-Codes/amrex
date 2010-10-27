@@ -519,12 +519,12 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
 
-    Real D_DECL(mom_0, mom_1, mom_2);
+    Real mom_0 = 0, mom_1 = 0, mom_2 = 0;
 
     const int n = m_particles.size();
 
 #ifdef BL_USE_OMP
-#pragma omp parallel for reduction(+:D_DECL(mom_0, mom_1, mom_2))
+#pragma omp parallel for reduction(+:mom_0, mom_1, mom_2)
 #endif
     for (int i = 0; i < n; i++)
     {
