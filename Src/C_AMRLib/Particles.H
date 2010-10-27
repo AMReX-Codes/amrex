@@ -536,7 +536,7 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
 }
 
 //
-// Some cic-scheme
+// Some cic-scheme.
 // Will get ugly as soon as there is more than just the rootgrid
 //
 
@@ -555,92 +555,105 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
         BoxLib::Error("AssignDensity: Problem has to be periodic...");
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
         mf[mfi].setVal(0);
-    }
 
     const Real* dx = geom.CellSize();
     //
-    // This loop can NOT be OMP'd since multiple threads may want to write to the same cell.
+    // This is the # of grids we own in the MultiFab.
     //
-    for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
+    const int n = mf.IndexMap().size();
+    //
+    // This is a little funky.  What in effect this'll do is force
+    // each thread to work on a single (separate) grid at a time.  That
+    // way no thread will step on any other.  If there's only one grid,
+    // then oh well ....
+    //
+#ifdef BL_USE_OMP
+#pragma omp parallel for schedule(dynamic,1) if (n>1)
+#endif
+    for (int i = 0; i < n; i++)
     {
-        const ParticleType& p = *it;
+        const int grid = mf.IndexMap()[i];
 
-        if (p.m_lev == lev)
+        for (const_iterator it = m_particles.begin(); it != m_particles.end(); ++it)
         {
-            IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
-                                 floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
-                                 floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
+            const ParticleType& p = *it;
 
-            const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
-                                                    -csect[1] + p.m_pos[1]/dx[1] + 0.5,
-                                                    -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
-            FArrayBox& fab = mf[p.m_grid];
+            if (p.m_grid == grid && p.m_lev == lev)
+            {
+                const IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
+                                           floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
+                                           floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
 
-            IntVect cell = csect;
+                const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
+                                                        -csect[1] + p.m_pos[1]/dx[1] + 0.5,
+                                                        -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
+                FArrayBox& fab = mf[p.m_grid];
+
+                IntVect cell = csect;
 
 #if (BL_SPACEDIM == 1)
-            // High
-            fab(cell) += p.m_data[0] * frac[0];
+                // High
+                fab(cell) += p.m_data[0] * frac[0];
 
-            // Low
-            cell[0]     = cell[0] - 1;
-            fab(cell)  += p.m_data[0] * (1-frac[0]);
+                // Low
+                cell[0]     = cell[0] - 1;
+                fab(cell)  += p.m_data[0] * (1-frac[0]);
 #endif
             
 #if (BL_SPACEDIM == 2)
-            // HH
-            fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
+                // HH
+                fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
     
-            // LH
-            cell[0]    = cell[0] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
+                // LH
+                cell[0]    = cell[0] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
     
-            // LL
-            cell[1]    = cell[1] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
+                // LL
+                cell[1]    = cell[1] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
     
-            // HL
-            cell[0]    = cell[0] + 1;
-            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
+                // HL
+                cell[0]    = cell[0] + 1;
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
 #endif
 
 #if (BL_SPACEDIM == 3)
 
-            // HHH
-            fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
+                // HHH
+                fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
 
-            // LHH
-            cell[0]    = cell[0] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
+                // LHH
+                cell[0]    = cell[0] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
 
-            // LLH
-            cell[1]    = cell[1] - 1;
-            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * frac[2] ;
+                // LLH
+                cell[1]    = cell[1] - 1;
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * frac[2] ;
     
-            // HLH
-            cell[0]    = cell[0] + 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
+                // HLH
+                cell[0]    = cell[0] + 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
 
-            cell     = csect;
-            cell[2]  = cell[2] - 1;
+                cell     = csect;
+                cell[2]  = cell[2] - 1;
 
-            // HHL
-            fab(cell) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
+                // HHL
+                fab(cell) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
     
-            // LHL
-            cell[0]    = cell[0] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
+                // LHL
+                cell[0]    = cell[0] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
 
-            // LLL
-            cell[1]    = cell[1] - 1;
-            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
+                // LLL
+                cell[1]    = cell[1] - 1;
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
     
-            // HLL
-            cell[0]    = cell[0] + 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
+                // HLL
+                cell[0]    = cell[0] + 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
 #endif
+            }
         }
     }
 
