@@ -637,11 +637,11 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
                 // LLH
                 cell[1]    = cell[1] - 1;
-                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * frac[2] ;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * frac[2] ;
     
                 // HLH
                 cell[0]    = cell[0] + 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) *    frac[2] ;
 
                 cell     = csect;
                 cell[2]  = cell[2] - 1;
@@ -655,11 +655,11 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
                 // LLL
                 cell[1]    = cell[1] - 1;
-                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
     
                 // HLL
                 cell[0]    = cell[0] + 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
 #endif
             }
         }
