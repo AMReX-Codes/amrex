@@ -4,6 +4,7 @@ module ml_cc_module
   use mg_module
   use ml_layout_module
   use bndry_reg_module
+! use mg_hypre_module
 
   implicit none
 
@@ -51,6 +52,7 @@ contains
 
     real(dp_t) :: Anorm, bnorm, abs_eps, ni_res
     real(dp_t) :: tres, tres0, max_norm
+    real(dp_t) :: rho
 
     type(bl_prof_timer), save :: bpt
 
@@ -173,6 +175,24 @@ contains
              fmt='("F90mg: Initial residual (resid0)    = ",g15.8)') tres0
     end if
 
+    ! Check the sum of the rhs (for solvability if its singular -- here we only check periodicity)
+    if (all(layout_get_pmask(mla%la(1)) .eqv. .true.) .and. .not. nodal_q(rh(1))) then
+
+      ! Just use res as scratch space here
+      call setval(res(1),ONE)
+
+      ! Sum the rhs over the domain at level 1
+      rho = dot(rh(1), res(1))
+
+      if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
+         write(unit=*, fmt='("F90mg: Sum of rhs                   = ",g15.8)') rho
+      end if
+
+      ! Set back to zero just in case
+      call setval(res(1),ZERO,all=.true.)
+
+    end if
+
     ! ************************************************************************
     !  Define norm to be used for convergence testing that is the maximum
     !    of bnorm (norm of rhs) and tres0 (norm of resid0)
@@ -186,7 +206,15 @@ contains
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
 
-    else
+!   else if (mgt%use_hypre .eq. 1) then
+
+!      if (nlevs .gt. 1) then
+!         call bl_error("ml_cc: can't use HYPRE with nlevs > 1")
+!      else
+!         call cc_hypre_solve(mgt, res, soln, eps)
+!      end if
+
+    else 
 
      do iter = 1, mgt(nlevs)%max_iter
 
