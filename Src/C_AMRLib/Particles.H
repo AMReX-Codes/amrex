@@ -84,7 +84,7 @@ public:
 
     void Init (const std::string& file);
 
-    void InitRandom (long icount, unsigned long iseed, Real particleMass);
+    void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
 
     Real sumParticleMass (const MultiFab& mf, int level) const;
     void sumParticleMomentum (const MultiFab& mf, int lev, Real* mom) const;
@@ -280,7 +280,8 @@ template <int N>
 void
 ParticleContainer<N>::InitRandom (long          icount,
                                   unsigned long iseed,
-                                  Real          mass)
+                                  Real          mass,
+                                  bool          serialize)
 {
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
@@ -289,63 +290,133 @@ ParticleContainer<N>::InitRandom (long          icount,
 
     const int  MyProc = ParallelDescriptor::MyProc();
     const int  NProcs = ParallelDescriptor::NProcs();
-    //
-    // We'll generate the particles in parallel.
-    //
-    // Each CPU will key off the given seed to get independent streams of random numbers.
-    //
-    BoxLib::InitRandom(iseed+MyProc);
-
-    long M = icount / NProcs;
-    //
-    // Processor 0 will get the slop.
-    //
-    if (MyProc == 0)
-        M += (icount % NProcs);
-
-    Real len[BL_SPACEDIM], r;
+    const int  IOProc = ParallelDescriptor::IOProcessorNumber();
 
     const Geometry& geom = m_amr->Geom(0);
+
+    Real len[BL_SPACEDIM], r;
 
     D_TERM(len[0]=geom.ProbLength(0);,
            len[1]=geom.ProbLength(1);,
            len[2]=geom.ProbLength(2););
 
-    for (long icnt = 0; icnt < M; icnt++)
+    BoxLib::InitRandom(iseed+MyProc);
+
+    if (serialize)
     {
-        ParticleType p;
+        //
+        // We'll let IOProc generate the particles so we get the same
+        // positions no matter how many CPUs we have.
+        //
+        //
+        Array<Real> pos(icount*BL_SPACEDIM);
 
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        if (MyProc == 0)
         {
-            do
+            for (long j = 0; j < icount; j++)
             {
-                r = BoxLib::Random();
+                for (int i = 0; i < BL_SPACEDIM; i++)
+                {
+                    do
+                    {
+                        r = BoxLib::Random();
+                    }
+                    while (r == 0 || r == 1);
+
+                    pos[j*BL_SPACEDIM + i] = r;
+                }
             }
-            while (r == 0 || r == 1);
-
-            p.m_pos[i] = geom.ProbLo(i) + (r * len[i]);
-
-            BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
         }
 
-        p.m_data[0] = mass;
-        for (int i = 1; i < N; i++)
-            //
-            // Just zero out the rest of the data for lack of a better value.
-            //
-            p.m_data[i] = 0;
+        ParallelDescriptor::Bcast(pos.dataPtr(), icount*BL_SPACEDIM, IOProc);
 
-        p.m_id  = icnt+1;
-        p.m_cpu = MyProc;
+        for (long j = 0; j < icount; j++)
+        {
+            ParticleType p;
 
-        m_particles.push_back(p);
+            for (int i = 0; i < BL_SPACEDIM; i++)
+            {
+                r = pos[j*BL_SPACEDIM + i];
 
-        BL_ASSERT(ParticleBase::Where(p,m_amr));
+                p.m_pos[i] = geom.ProbLo(i) + (r * len[i]);
+
+                BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
+            }
+
+            p.m_data[0] = mass;
+
+            for (int i = 1; i < N; i++)
+                //
+                // Just zero out the rest of the data for lack of a better value.
+                //
+                p.m_data[i] = 0;
+
+            p.m_id  = m_particles.size()+1;
+            p.m_cpu = MyProc;
+
+            ParticleBase::Where(p,m_amr);
+
+            const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
+
+            if (who == MyProc)
+            {
+                m_particles.push_back(p);
+            }
+        }
+
+        BL_ASSERT(OK());
     }
-    //
-    // Let Redistribute() sort out where the particles belong.
-    //
-    Redistribute();
+    else
+    {
+        //
+        // We'll generate the particles in parallel.
+        //
+        // Each CPU will key off the given seed to get independent streams of random numbers.
+        //
+        long M = icount / NProcs;
+        //
+        // Processor 0 will get the slop.
+        //
+        if (MyProc == 0)
+            M += (icount % NProcs);
+
+        for (long icnt = 0; icnt < M; icnt++)
+        {
+            ParticleType p;
+
+            for (int i = 0; i < BL_SPACEDIM; i++)
+            {
+                do
+                {
+                    r = BoxLib::Random();
+                }
+                while (r == 0 || r == 1);
+
+                p.m_pos[i] = geom.ProbLo(i) + (r * len[i]);
+
+                BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
+            }
+
+            p.m_data[0] = mass;
+
+            for (int i = 1; i < N; i++)
+                //
+                // Just zero out the rest of the data for lack of a better value.
+                //
+                p.m_data[i] = 0;
+
+            p.m_id  = icnt+1;
+            p.m_cpu = MyProc;
+
+            m_particles.push_back(p);
+
+            BL_ASSERT(ParticleBase::Where(p,m_amr));
+        }
+        //
+        // Let Redistribute() sort out where the particles belong.
+        //
+        Redistribute();
+    }
 }
 
 template <int N>
