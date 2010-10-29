@@ -188,8 +188,7 @@ contains
          write(unit=*, fmt='("F90mg: Sum of rhs                   = ",g15.8)') rho
       end if
 
-      ! Set back to zero just in case
-      call setval(res(1),ZERO,all=.true.)
+      call multifab_copy(res(1),rh(1),ng = nghost(rh(1)))
 
     end if
 
