@@ -43,6 +43,19 @@ struct ParticleBase
     static const std::string& DataPrefix ();
 
     static void GetGravity (const FArrayBox& gfab, const Amr* amr, int lev, const ParticleBase& p, Real* grav);
+    //
+    // How to sort ParticlesBases.
+    //
+    class Compare
+    {
+    public:
+        bool operator () (const ParticleBase& lhs,
+                          const ParticleBase& rhs) const
+        {
+            return (lhs.m_lev < rhs.m_lev) || (lhs.m_lev == rhs.m_lev && lhs.m_grid < rhs.m_grid);
+        }
+    };
+
 };
 
 std::ostream& operator<< (std::ostream& os, const ParticleBase& p);
@@ -1265,25 +1278,28 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         // Remove particles we no longer own.
         //
-        for (int i = 0; i < index.size(); i++)
         {
-            ParticleType& p = *index[i];
+            for (int i = 0; i < index.size(); i++)
+            {
+                ParticleType& p = *index[i];
 
-            BL_ASSERT(p.m_id > 0);
+                BL_ASSERT(p.m_id > 0);
 
-            p.m_id = -p.m_id;
+                p.m_id = -p.m_id;
+            }
+
+            std::deque<ParticleType> tmp;
+
+            while (m_particles.size() > 0)
+            {
+                const ParticleType& p = m_particles.front();
+                if (p.m_id > 0)
+                    tmp.push_back(p);
+                m_particles.pop_front();
+            }
+
+            m_particles.swap(tmp);
         }
-
-        std::deque<ParticleType> tmp;
-
-        while (!m_particles.empty())
-        {
-            if (m_particles.front().m_id > 0)
-                tmp.push_back(m_particles.front());
-            m_particles.pop_front();
-        }
-
-        m_particles.swap(tmp);
         //
         // Unpack data into the new particles.
         //
