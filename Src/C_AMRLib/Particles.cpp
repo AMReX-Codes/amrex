@@ -256,7 +256,9 @@ operator<< (std::ostream& os, const ParticleBase& p)
 
     for (int i = 0; i < BL_SPACEDIM; i++)
         os << p.m_pos[i] << ' ';
-os << '\n';
+
+    if (!os.good())
+        BoxLib::Error("operator<<(ostream&,ParticleBase&) failed");
 
     return os;
 }
