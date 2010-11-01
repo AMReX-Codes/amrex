@@ -314,11 +314,11 @@ ParticleContainer<N>::InitRandom (long          icount,
 
     BL_ASSERT(m_amr != 0);
 
-    const int  MyProc = ParallelDescriptor::MyProc();
-    const int  NProcs = ParallelDescriptor::NProcs();
-    const int  IOProc = ParallelDescriptor::IOProcessorNumber();
-
-    const Geometry& geom = m_amr->Geom(0);
+    const int       MyProc   = ParallelDescriptor::MyProc();
+    const int       NProcs   = ParallelDescriptor::NProcs();
+    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Real      strttime = ParallelDescriptor::second();
+    const Geometry& geom     = m_amr->Geom(0);
 
     Real len[BL_SPACEDIM], r;
 
@@ -386,9 +386,8 @@ ParticleContainer<N>::InitRandom (long          icount,
                 //
                 p.m_data[i] = 0;
 
-            bool valid = ParticleBase::Where(p,m_amr);
-
-            BL_ASSERT(valid);
+            if (!ParticleBase::Where(p,m_amr))
+                BoxLib::Abort("ParticleContainer<N>::InitRandom(): invalid particle");
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_amr->finestLevel());
 
@@ -454,9 +453,8 @@ ParticleContainer<N>::InitRandom (long          icount,
             p.m_id  = icnt+1;
             p.m_cpu = MyProc;
 
-            bool valid = ParticleBase::Where(p,m_amr);
-
-            BL_ASSERT(valid);
+            if (!ParticleBase::Where(p,m_amr))
+                BoxLib::Abort("ParticleContainer<N>::InitRandom(): invalid particle");
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_amr->finestLevel());
             //
@@ -468,6 +466,15 @@ ParticleContainer<N>::InitRandom (long          icount,
         // Let Redistribute() sort out where the particles belong.
         //
         Redistribute();
+    }
+
+    Real stoptime = ParallelDescriptor::second() - strttime;
+
+    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "ParticleContainer<N>::InitRandom() Time: " << stoptime << "\n\n";
     }
 }
 
@@ -1176,9 +1183,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
                 if (!where_already_called)
                 {
-                    bool valid = ParticleBase::Where(p,m_amr);
-
-                    BL_ASSERT(valid);
+                    if (!ParticleBase::Where(p,m_amr))
+                        BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle");                        
                 }
                 //
                 // The owner of the particle is the CPU owning the finest grid
@@ -1850,8 +1856,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
                 iptr[0] = p.m_id;
                 iptr[1] = p.m_cpu;
 
-                for (int i = 0; i < BL_SPACEDIM; i++)
-                    iptr[2+i] = p.m_cell[i];
+                D_TERM(iptr[2] = p.m_cell[0];,
+                       iptr[3] = p.m_cell[1];,
+                       iptr[4] = p.m_cell[2];);
 
                 iptr += iChunkSize;
             }
@@ -1873,8 +1880,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
             {
                 const ParticleType& p = *it;
 
-                for (int i = 0; i < BL_SPACEDIM; i++)
-                    rptr[i] = p.m_pos[i];
+                D_TERM(rptr[0] = p.m_pos[0];,
+                       rptr[1] = p.m_pos[1];,
+                       rptr[2] = p.m_pos[2];);
 
                 for (int i = 0; i < N; i++)
                     rptr[BL_SPACEDIM+i] = p.m_data[i];
@@ -2170,13 +2178,15 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
         BL_ASSERT(p.m_lev  == lev);
         BL_ASSERT(p.m_grid == grd);
 
-        for (int i = 0; i < BL_SPACEDIM; i++)
-            p.m_cell[i] = iptr[2+i];
+        D_TERM(p.m_cell[0] = iptr[2];,
+               p.m_cell[1] = iptr[3];,
+               p.m_cell[2] = iptr[4];);
 
         iptr += iChunkSize;
 
-        for (int i = 0; i < BL_SPACEDIM; i++)
-            p.m_pos[i] = rptr[i];
+        D_TERM(p.m_pos[0] = rptr[0];,
+               p.m_pos[1] = rptr[1];,
+               p.m_pos[2] = rptr[2];);
 
         for (int i = 0; i < N; i++)
             p.m_data[i] = rptr[BL_SPACEDIM+i];
