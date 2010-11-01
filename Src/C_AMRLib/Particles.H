@@ -541,13 +541,15 @@ ParticleContainer<N>::Increment (MultiFab& mf,
 
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
+        const int   grid = pmap_it->first;
         const PBox& pbox = pmap_it->second;
+        FArrayBox&  fab  = mf[grid];
 
         for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
         {
-            const ParticleType& p = *it;
+            BL_ASSERT(it->m_grid == grid);
 
-            mf[p.m_grid](p.m_cell) += 1;
+            fab(it->m_cell) += 1;
         }
     }
 }
@@ -564,14 +566,16 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
     const Geometry& geom     = m_amr->Geom(lev);
     const Real*     dx       = geom.CellSize();
     Real            dt       = 1e50;
-    Real            dt_local;
-
-    const PMap& pmap = m_particles[lev];
+    const PMap&     pmap     = m_particles[lev];
 
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
-        const PBox& pbox = pmap_it->second;
-        const int  n     = pbox.size();
+        const int        grid = pmap_it->first;
+        const PBox&      pbox = pmap_it->second;
+        const int        n    = pbox.size();
+        const FArrayBox& gfab = gv[grid];
+
+        Real dt_local;
 
 #ifdef BL_USE_OMP
 #pragma omp parallel private(dt_local)
@@ -586,11 +590,11 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
             {
                 const ParticleType& p = pbox[i];
 
+                BL_ASSERT(p.m_grid == grid);
+
                 const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
 
                 Real dt_part = (mag_vel > 0) ? 0.1 * dx[0] / mag_vel : 1e50;
-
-                const FArrayBox& gfab = gv[p.m_grid];
 
                 const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
 
@@ -732,12 +736,14 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
     const PMap& pmap = m_particles[lev];
     const int   n    = pmap.size();
 
-    Array<const PBox*> pb(n);
+    Array<int>         pgrd(n);
+    Array<const PBox*> pbxs(n);
 
     int j = 0;
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
-        pb[j++] = &(pmap_it->second);
+        pgrd[j]   =   pmap_it->first;
+        pbxs[j++] = &(pmap_it->second);
     }
 
 #ifdef BL_USE_OMP
@@ -745,7 +751,8 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 #endif
     for (int i = 0; i < n; i++)
     {
-        const PBox& pbox = *pb[i];
+        const PBox& pbox = *pbxs[i];
+        FArrayBox&  fab  = mf[pgrd[i]];
 
         for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
         {
@@ -758,8 +765,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
             const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
                                                     -csect[1] + p.m_pos[1]/dx[1] + 0.5,
                                                     -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
-            FArrayBox& fab  = mf[p.m_grid];
-            IntVect    cell = csect;
+            IntVect cell = csect;
 
 #if (BL_SPACEDIM == 1)
             // High
@@ -861,8 +867,10 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
-        PBox&     pbox = pmap_it->second;
-        const int n    = pbox.size();
+        const int        grid = pmap_it->first;
+        PBox&            pbox = pmap_it->second;
+        const int        n    = pbox.size();
+        const FArrayBox& gfab = gv[grid];
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
@@ -870,11 +878,11 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
         for (int i = 0; i < n; i++)
         {
             ParticleType& p = pbox[i];
+
+            BL_ASSERT(p.m_grid == grid);
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
-            const FArrayBox& gfab = gv[p.m_grid];
-
             D_TERM(p.m_data[1] += dt * gfab(p.m_cell,0);,
                    p.m_data[2] += dt * gfab(p.m_cell,1);,
                    p.m_data[3] += dt * gfab(p.m_cell,2););
@@ -933,8 +941,11 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
-        PBox&     pbox = pmap_it->second;
-        const int n    = pbox.size();
+        const int        grid     = pmap_it->first;
+        PBox&            pbox     = pmap_it->second;
+        const int        n        = pbox.size();
+        const FArrayBox& gfab     = gv[grid];
+        const FArrayBox& gfab_old = gv_old[grid];
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
@@ -942,12 +953,11 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
         for (int i = 0; i < n; i++)
         {
             ParticleType& p = pbox[i];
+
+            BL_ASSERT(p.m_grid == grid);
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
-            const FArrayBox& gfab     = gv[p.m_grid];
-            const FArrayBox& gfab_old = gv_old[p.m_grid];
-
             D_TERM(p.m_pos[0]  -= 0.5 * dt * p.m_data[1];,
                    p.m_pos[1]  -= 0.5 * dt * p.m_data[2];,
                    p.m_pos[2]  -= 0.5 * dt * p.m_data[3];);
@@ -1009,8 +1019,10 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
-        PBox&     pbox = pmap_it->second;
-        const int n    = pbox.size();
+        const int        grid = pmap_it->first;
+        PBox&            pbox = pmap_it->second;
+        const int        n    = pbox.size();
+        const FArrayBox& gfab = gv[grid];
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
@@ -1018,11 +1030,11 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
         for (int i = 0; i < n; i++)
         {
             ParticleType& p = pbox[i];
+
+            BL_ASSERT(p.m_grid == grid);
             //
             // note: m_data[0] is mass, 1 is v_x, ...
             //
-            const FArrayBox& gfab = gv[p.m_grid];
-
             Real grav[BL_SPACEDIM];
 
             ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
@@ -1084,8 +1096,10 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
-        PBox&     pbox = pmap_it->second;
-        const int n    = pbox.size();
+        const int        grid = pmap_it->first;
+        PBox&            pbox = pmap_it->second;
+        const int        n    = pbox.size();
+        const FArrayBox& gfab = gv[grid];
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
@@ -1093,11 +1107,11 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
         for (int i = 0; i < n; i++)
         {
             ParticleType& p = pbox[i];
+
+            BL_ASSERT(p.m_grid == grid);
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
             //
-            const FArrayBox& gfab = gv[p.m_grid];
-
             Real grav[BL_SPACEDIM];
 
             ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
