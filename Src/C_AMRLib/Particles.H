@@ -57,10 +57,12 @@ struct Particle
     // The amount of Real data we hold.
     //
     // In some cases this is:
+    //
     // 0 - particle mass
     // 1 - x-velocity
     // 2 - y-velocity
     // 3 - z-velocity
+    //
     Real m_data[N];
 };
 
@@ -1213,8 +1215,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         PMap tmp; pmap.swap(tmp);
     }
     //
-    // Make new_m_particles our new "m_particles.
-    // It contains all the previous particles that we still own put into their proper place in the hierarchy.
+    // Make new_m_particles our new "m_particles.  It contains all the
+    // previous particles that we still own put into their proper place
+    // in the hierarchy.
     //
     m_particles.swap(new_m_particles);
 
@@ -1231,6 +1234,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 #if BL_USE_MPI
     //
     // We may now have particles that are rightfully owned by another CPU.
+
     //
     Array<int> Snds(NProcs,0);
     Array<int> Rcvs(NProcs,0);
@@ -1289,9 +1293,16 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     {
         //
-        // The int data.
+        // The "int" data.
         //
-        const int iChunkSize = BL_SPACEDIM+4;
+        // We only transfer m_cpu and m_id.
+        //
+        // We do NOT transfer m_lev, m_grid or m_cell.  We choose to
+        // recalculate these on the CPU that receives them.  The idea
+        // is that CPUs are faster than networks.
+        //
+        //
+        const int iChunkSize = 2;
 
         Array<int> recvdata (NumRcvs*iChunkSize);
         Array<int> senddata (NumSnds*iChunkSize);
@@ -1314,20 +1325,11 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
         for (int i = 0; i < notowned.size(); i++)
         {
-            int idx = offset[owner[i]];
-
-            ParticleType& p = notowned[i];
+            const int     idx = offset[owner[i]];
+            ParticleType& p   = notowned[i];
 
             senddata[idx+0] = p.m_id;
             senddata[idx+1] = p.m_cpu;
-            senddata[idx+2] = p.m_lev;
-            senddata[idx+3] = p.m_grid;
-
-            idx += 4;
-
-            D_TERM(senddata[idx+0]=p.m_cell[0];,
-                   senddata[idx+1]=p.m_cell[1];,
-                   senddata[idx+2]=p.m_cell[2];);
 
             offset[owner[i]] += iChunkSize;
         }
@@ -1350,24 +1352,14 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
             p.m_id   = recvdata[idx+0];
             p.m_cpu  = recvdata[idx+1];
-            p.m_lev  = recvdata[idx+2];
-            p.m_grid = recvdata[idx+3];
 
-            idx += 4;
-
-            D_TERM(p.m_cell[0]=recvdata[idx+0];,
-                   p.m_cell[1]=recvdata[idx+1];,
-                   p.m_cell[2]=recvdata[idx+2];);
-
-            idx += BL_SPACEDIM;
-
-            BL_ASSERT(m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid] == MyProc);
+            idx += 2;
         }
     }
 
     {
         //
-        // The Real data (m_pos & m_data).
+        // The "Real" data (m_pos & m_data).
         //
         const int rChunkSize = BL_SPACEDIM+N;
 
@@ -1392,9 +1384,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
         for (int i = 0; i < notowned.size(); i++)
         {
-            int idx = offset[owner[i]];
-
-            ParticleType& p = notowned[i];
+            int           idx = offset[owner[i]];
+            ParticleType& p   = notowned[i];
 
             D_TERM(senddata[idx+0]=p.m_pos[0];,
                    senddata[idx+1]=p.m_pos[1];,
@@ -1441,6 +1432,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                 p.m_data[j] = recvdata[idx+j];
 
             idx += N;
+
+            if (!ParticleBase::Where(p,m_amr))
+                BoxLib::Abort("ParticleContainer<N>::Redistribute(): got a bad particle");
 
             m_particles[p.m_lev][p.m_grid].push_back(p);
         }
