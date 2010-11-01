@@ -1822,8 +1822,11 @@ ParticleContainer<N>::WriteParticles (int            lev,
         {
             //
             // First write out the integer data in binary.
+            // We do not need to write out the m_lev and m_grid
+            // info since it's implicit in how the particles
+            // are stored.  We can easily recreate them on restart.
             //
-            const int iChunkSize = 4+BL_SPACEDIM;
+            const int iChunkSize = 2+BL_SPACEDIM;
 
             Array<int> istuff(cnt*iChunkSize);
 
@@ -1838,11 +1841,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
                 iptr[0] = p.m_id;
                 iptr[1] = p.m_cpu;
-                iptr[2] = p.m_lev;
-                iptr[3] = p.m_grid;
 
                 for (int i = 0; i < BL_SPACEDIM; i++)
-                    iptr[4+i] = p.m_cell[i];
+                    iptr[2+i] = p.m_cell[i];
 
                 iptr += iChunkSize;
             }
@@ -2126,9 +2127,11 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
     BL_ASSERT(lev >= 0 && lev <= m_amr->finestLevel());
     BL_ASSERT(grd >= 0 && grd < m_amr->boxArray(lev).size());
     //
-    // First read in the integer data in binary.
+    // First read in the integer data in binary.  We do not store
+    // the m_lev and m_grid data on disk.  We can easily recreate
+    // that given the structure of the checkpoint file.
     //
-    const int iChunkSize = 4+BL_SPACEDIM;
+    const int iChunkSize = 2+BL_SPACEDIM;
 
     Array<int> istuff(cnt*iChunkSize);
 
@@ -2144,25 +2147,23 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
     //
     // Now reassemble the particles.
     //
-    int*  iptr = istuff.dataPtr();
-    Real* rptr = rstuff.dataPtr();
-
-    PBox& pbox = m_particles[lev][grd];
-
+    int*         iptr = istuff.dataPtr();
+    Real*        rptr = rstuff.dataPtr();
+    PBox&        pbox = m_particles[lev][grd];
     ParticleType p;
 
     for (int i = 0; i < cnt; i++)
     {
         p.m_id   = iptr[0];
         p.m_cpu  = iptr[1];
-        p.m_lev  = iptr[2];
-        p.m_grid = iptr[3];
+        p.m_lev  = lev;
+        p.m_grid = grd;
 
         BL_ASSERT(p.m_lev  == lev);
         BL_ASSERT(p.m_grid == grd);
 
         for (int i = 0; i < BL_SPACEDIM; i++)
-            p.m_cell[i] = iptr[4+i];
+            p.m_cell[i] = iptr[2+i];
 
         iptr += iChunkSize;
 
