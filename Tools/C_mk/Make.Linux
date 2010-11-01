@@ -27,7 +27,7 @@ ifeq ($(COMP),Cray)
   CXX = crayc++
   CC  = craycc
 
-  CXXOPTF += -O2 -h noexceptions
+  CXXOPTF += -O1 -h noexceptions
   CXXDEBF += -O0 -h noexceptions -g
 
   ifneq ($(USE_OMP),TRUE)
@@ -125,8 +125,8 @@ ifeq ($(FCOMP),Cray)
   FDEBF += -O0 -g
   fDEBF += -O0 -g
 
-  FOPTF += -O2
-  fOPTF += -O2
+  FOPTF += -O1
+  fOPTF += -O1
 
   ifneq ($(USE_OMP),TRUE)
     FOPTF += -h noomp
@@ -332,6 +332,9 @@ ifeq ($(WHICHLINUX), HOPPER)
     FC  := ftn -target=linux
     F90 := ftn -target=linux
     fC  := ftn -target=linux
+  endif
+  ifdef IPM
+    LIBRARIES+=$(IPM)
   endif
 endif
 
