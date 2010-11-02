@@ -60,7 +60,7 @@ contains
 
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
-    integer :: n, i, id
+    integer :: n, i, id, vol
     type(layout) :: la1, la2
     type(boxarray) :: ba
     logical :: nodal_flag
