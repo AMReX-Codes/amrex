@@ -65,7 +65,7 @@ contains
     type(boxarray) :: ba
     logical :: nodal_flag
     logical :: all_periodic
-    integer :: vol, vol_pd
+    real(kind=dp_t) :: dvol, dvol_pd
     type(bl_prof_timer), save :: bpt
 
     ! These are added to help build the bottom_mgt
@@ -241,11 +241,13 @@ contains
        if (domain_bc(id,1) .ne. BC_INT .or. domain_bc(id,2) .ne. BC_INT) all_periodic = .false.
     end do
 
+    ! Note that the volume is number of cells so it increments in units of 1, not dx*dy
+    ! Need these to be real, not int, so we can handle large numbers.
     if (all_periodic) then
        ba = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
-       vol = boxarray_volume(ba)
-       vol_pd= box_volume(pd)
-       if (vol .eq. vol_pd) mgt%bottom_singular = .true.
+       dvol    = boxarray_dvolume(ba)
+       dvol_pd = box_dvolume(pd)
+       if (abs(dvol-dvol_pd).lt.1.d-2) mgt%bottom_singular = .true.
     else
        do id = 1,mgt%dim
           do i = 1,mgt%nboxes
