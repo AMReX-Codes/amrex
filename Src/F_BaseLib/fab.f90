@@ -299,7 +299,7 @@ contains
        ilo = int(8*lo,ll_t)
        ihi = int(8*hi,ll_t)
        print*, ''
-       write(6,fmt='("FAB byte spread across CPUs: [",i10," ... ",i10, "]")') ilo, ihi
+       write(6,fmt='("FAB byte spread across MPI nodess: [",i10," ... ",i10, "]")') ilo, ihi
        print*, ''
     end if
     fab_high_water_mark = 0
