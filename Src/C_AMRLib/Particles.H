@@ -1227,20 +1227,20 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     //
     m_particles.swap(new_m_particles);
 
+    BL_ASSERT(owner.size() == notowned.size());
+
     const int NProcs = ParallelDescriptor::NProcs();
 
     if (NProcs == 1)
     {
         BL_ASSERT(owner.empty());
         BL_ASSERT(notowned.empty());
-
         return;
     }
 
 #if BL_USE_MPI
     //
     // We may now have particles that are rightfully owned by another CPU.
-
     //
     Array<int> Snds(NProcs,0);
     Array<int> Rcvs(NProcs,0);
@@ -1295,7 +1295,13 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         }
     }
 
-    Array<ParticleType> nparticles(NumRcvs);
+    BL_ASSERT(notowned.size() == NumSnds);
+
+//    Array<ParticleType> nparticles(NumRcvs);
+
+    Array<ParticleType> nparticles;
+
+    nparticles.reserve(NumRcvs);
 
     {
         //
@@ -1331,8 +1337,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
         for (int i = 0; i < notowned.size(); i++)
         {
-            const int     idx = offset[owner[i]];
-            ParticleType& p   = notowned[i];
+            const int           idx = offset[owner[i]];
+            const ParticleType& p   = notowned[i];
 
             senddata[idx+0] = p.m_id;
             senddata[idx+1] = p.m_cpu;
@@ -1352,16 +1358,18 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         // Unpack data into the new particles.
         //
-        for (int i = 0, idx = 0; i < NumRcvs; i++)
-        {
-            ParticleType& p = nparticles[i];
+        ParticleType p;
 
+        for (int i = 0, idx = 0; i < NumRcvs; i++, idx += 2)
+        {
             p.m_id   = recvdata[idx+0];
             p.m_cpu  = recvdata[idx+1];
 
-            idx += 2;
+            nparticles.push_back(p);
         }
     }
+
+    BL_ASSERT(nparticles.size() == NumRcvs);
 
     {
         //
@@ -1390,8 +1398,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
         for (int i = 0; i < notowned.size(); i++)
         {
-            int           idx = offset[owner[i]];
-            ParticleType& p   = notowned[i];
+            int                 idx = offset[owner[i]];
+            const ParticleType& p   = notowned[i];
 
             D_TERM(senddata[idx+0]=p.m_pos[0];,
                    senddata[idx+1]=p.m_pos[1];,
