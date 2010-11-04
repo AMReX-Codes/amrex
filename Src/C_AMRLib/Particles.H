@@ -299,7 +299,10 @@ ParticleContainer<N>::Init (const std::string& file)
 
     BL_ASSERT(OK());
 
-    ByteSpread();
+    if (m_verbose > 0)
+    {
+        ByteSpread();
+    }
 }
 
 template <int N>
@@ -468,13 +471,16 @@ ParticleContainer<N>::InitRandom (long          icount,
         Redistribute();
     }
 
-    Real stoptime = ParallelDescriptor::second() - strttime;
-
-    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        std::cout << "ParticleContainer<N>::InitRandom() Time: " << stoptime << "\n\n";
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::InitRandom() time: " << stoptime << "\n\n";
+        }
     }
 }
 
@@ -528,11 +534,6 @@ ParticleContainer<N>::MoveRandom ()
                 }
             }
         }
-    }
-
-    if (m_verbose > 1 && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "Calling Redistribute() from ParticleContainer<N>::MoveRandom () ...\n";
     }
 
     Redistribute(true);
@@ -624,16 +625,19 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
         }
     }
 
-    ParallelDescriptor::ReduceRealMin(dt);
-
-    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-    Real      stoptime = ParallelDescriptor::second() - strttime;
-
-    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        std::cout << "ParticleContainer<N>::estTimestep() Time: " << stoptime << "\n\n";
+        ParallelDescriptor::ReduceRealMin(dt);
+
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::estTimestep() time: " << stoptime << "\n\n";
+        }
     }
 
     return dt;
@@ -1297,8 +1301,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     BL_ASSERT(notowned.size() == NumSnds);
 
-//    Array<ParticleType> nparticles(NumRcvs);
-
     Array<ParticleType> nparticles;
 
     nparticles.reserve(NumRcvs);
@@ -1790,21 +1792,24 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         }
     }
 
-    Real stoptime = ParallelDescriptor::second() - strttime;
-
-    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        HdrFile.flush();
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            HdrFile.flush();
 
 #ifdef BL_USECLOSE
-        HdrFile.close();
+            HdrFile.close();
 #endif
-        if (!HdrFile.good())
-            BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing HdrFile");
+            if (!HdrFile.good())
+                BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing HdrFile");
 
-        std::cout << "\nParticleContainer<N>::Checkpoint() time: " << stoptime << "\n\n";
+            std::cout << "\nParticleContainer<N>::Checkpoint() time: " << stoptime << "\n\n";
+        }
     }
 }
 
@@ -1974,13 +1979,16 @@ ParticleContainer<N>::Restart (const std::string& dir,
         BoxLib::Abort(msg.c_str());
     }
 
-    Real stoptime = ParallelDescriptor::second() - strttime;
-
-    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
-
-    if (ParallelDescriptor::IOProcessor())
+    if (m_verbose > 0)
     {
-        std::cout << "\nParticleContainer<N>::Restart() time: " << stoptime << "\n\n";
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "\nParticleContainer<N>::Restart() time: " << stoptime << "\n\n";
+        }
     }
 }
 
