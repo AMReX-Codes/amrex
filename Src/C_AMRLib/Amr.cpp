@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.217 2010-09-10 22:34:42 lijewski Exp $
+// $Id: Amr.cpp,v 1.218 2010-11-05 21:22:19 vince Exp $
 //
 #include <winstd.H>
 
@@ -1060,11 +1060,16 @@ Amr::initialInit (Real strt_time,
       std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
     }
 #else
+    Real piStart, piEnd, piTotal;
+    piStart = ParallelDescriptor::second();
     FORT_PROBINIT(&init,
                   probin_file_name.dataPtr(),
                   &probin_file_length,
                   Geometry::ProbLo(),
                   Geometry::ProbHi());
+    piEnd = ParallelDescriptor::second();
+    piTotal = piEnd - piStart;
+    std::cout << "MFRead:::  PROBINIT time   = " << piTotal << std::endl;
 #endif
 
     if ((verbose > 0) && ParallelDescriptor::IOProcessor())
@@ -1152,7 +1157,7 @@ Amr::initialInit (Real strt_time,
     }
 
 #ifdef USE_STATIONDATA
-    station.init();
+    station.init(amr_level);
     station.findGrid(amr_level,geom);
 #endif
 }
@@ -1433,7 +1438,7 @@ Amr::restart (const std::string& filename)
     }
    
 #ifdef USE_STATIONDATA
-    station.init();
+    station.init(amr_level);
     station.findGrid(amr_level,geom);
 #endif
 
@@ -1849,7 +1854,13 @@ Amr::coarseTimeStep (Real stop_time)
       const int num_per_old = (cumtime-dt_level[0]) / plot_per;
       const int num_per_new = (cumtime            ) / plot_per;
 
+#ifdef BL_USEOLDPLOT_PER
       if (num_per_old != num_per_new)
+#else
+      Real rN(0.0);
+      Real rR = modf(cumtime/plot_per, &rN);
+      if (rR < (dt_level[0]*0.001))
+#endif
 	{
 	  plot_test = 1;
 	}

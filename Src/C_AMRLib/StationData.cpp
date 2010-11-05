@@ -1,5 +1,5 @@
 //
-// $Id: StationData.cpp,v 1.20 2009-03-11 16:44:17 lijewski Exp $
+// $Id: StationData.cpp,v 1.21 2010-11-05 21:22:19 vince Exp $
 //
 #include <winstd.H>
 
@@ -23,7 +23,7 @@ StationData::~StationData ()
 }
 
 void
-StationData::init ()
+StationData::init (const PArray<AmrLevel>& levels)
 {
     //
     // ParmParse variables:
@@ -82,14 +82,54 @@ StationData::init ()
         {
             pp.getktharr("coord", k, data, 0, BL_SPACEDIM);
 
-            D_TERM(m_stn[k].pos[0] = data[0];,
-                   m_stn[k].pos[1] = data[1];,
-                   m_stn[k].pos[2] = data[2];);
+            if(Geometry::ProbDomain().contains(data.dataPtr())) {
 
+              D_TERM(m_stn[k].pos[0] = data[0];,
+                     m_stn[k].pos[1] = data[1];,
+                     m_stn[k].pos[2] = data[2];);
+
+
+	    } else {
+	      RealBox rbPD(Geometry::ProbDomain());
+	      std::cout << "**** Error in StationData:  coord outside probdomain: "
+	                << " pd  coord = " << rbPD << "   ";
+                        for(int d(0); d < BL_SPACEDIM; ++d) {
+			  std::cout << data[d] << "  ";
+	                }
+	      std::cout << std::endl;
+	      std::cout << "     Moving point to the domain center." << std::endl;
+              D_TERM(m_stn[k].pos[0] = rbPD.lo(0) + (0.5 * rbPD.length(0));,
+                     m_stn[k].pos[1] = rbPD.lo(1) + (0.5 * rbPD.length(1));,
+                     m_stn[k].pos[2] = rbPD.lo(2) + (0.5 * rbPD.length(2));)
+	    }
             BL_ASSERT(Geometry::ProbDomain().contains(data.dataPtr()));
 
             m_stn[k].id = identifier++;
         }
+    }
+
+
+    // adjust the positions so they are not exactly on a grid line
+    const Real *fineDX = levels[levels.size()-1].Geom().CellSize();
+    for(int i(0); i < m_stn.size(); ++i) {
+      for(int d(0); d < BL_SPACEDIM; ++d) {
+        Real tempPos(m_stn[i].pos[d]), dx(fineDX[d]);
+        Real dxEps(0.1 * dx);
+	long nCells(fabs(tempPos/dx));
+	Real rR = fabs(fabs(tempPos) - (nCells * dx));
+	if(rR < dxEps) {
+	  tempPos += dxEps;
+	  if(tempPos > Geometry::ProbDomain().hi(d)) {
+	    tempPos -= 2.0 * dxEps;
+	  }
+	  std::cout << "***** Warning:  adjusting station coord from "
+	            << m_stn[i].pos[d] << "  to  " << tempPos << std::endl;
+	  m_stn[i].pos[d] = tempPos;
+	}
+      }
+      if(Geometry::ProbDomain().contains(m_stn[i].pos) == false) {
+        BoxLib::Abort("Bad Stations coord.");
+      }
     }
 
     if (m_vars.size() > 0)
