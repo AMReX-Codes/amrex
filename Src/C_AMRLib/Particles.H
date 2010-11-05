@@ -638,6 +638,8 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
         }
     }
 
+
+
     return dt;
 }
 
@@ -1360,10 +1362,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         ParticleType p;
 
-        int* rcvp = recvdata.dataPtr();
+        int* rcvp = NumRcvs == 0 ? 0 : recvdata.dataPtr();
 
         for (int i = 0; i < NumRcvs; i++)
         {
+            BL_ASSERT(rcvp != 0);
+
             p.m_id   = rcvp[0];
             p.m_cpu  = rcvp[1];
 
@@ -1441,10 +1445,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         // Unpack data into the new particles.
         //
-        Real* rcvp = recvdata.dataPtr();
+        Real* rcvp = NumRcvs == 0 ? 0 : recvdata.dataPtr();
 
         for (typename PBox::iterator it = nparticles.begin(), End = nparticles.end(); it != End; ++it)
         {
+            BL_ASSERT(rcvp != 0);
+
             D_TERM(it->m_pos[0] = rcvp[0];,
                    it->m_pos[1] = rcvp[1];,
                    it->m_pos[2] = rcvp[2];);
