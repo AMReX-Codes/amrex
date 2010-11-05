@@ -325,9 +325,9 @@ ParticleContainer<N>::InitRandom (long          icount,
 
     Real len[BL_SPACEDIM], r;
 
-    D_TERM(len[0]=geom.ProbLength(0);,
-           len[1]=geom.ProbLength(1);,
-           len[2]=geom.ProbLength(2););
+    D_TERM(len[0] = geom.ProbLength(0);,
+           len[1] = geom.ProbLength(1);,
+           len[2] = geom.ProbLength(2););
 
     BoxLib::InitRandom(iseed+MyProc);
 
@@ -506,8 +506,6 @@ ParticleContainer<N>::MoveRandom ()
 
             for (typename PBox::iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
             {
-                ParticleType& p = *it;
-
                 for (int i = 0; i < BL_SPACEDIM; i++)
                 {
                     int sgn = 1;
@@ -515,10 +513,10 @@ ParticleContainer<N>::MoveRandom ()
                     if (BoxLib::Random() >= 0.5)
                         sgn = -1;
 
-                    p.m_pos[i] +=  sgn * 0.25 * geom.CellSize(i) * BoxLib::Random();
+                    it->m_pos[i] +=  sgn * 0.25 * geom.CellSize(i) * BoxLib::Random();
                 }
 
-                if (!ParticleBase::Where(p,m_amr,true))
+                if (!ParticleBase::Where(*it,m_amr,true))
                 {
                     //
                     // Here's where we need to deal with boundary conditions.
@@ -527,7 +525,7 @@ ParticleContainer<N>::MoveRandom ()
                     //
                     // Shift the particle back into the domain.
                     //
-                    ParticleBase::PeriodicShift(p,m_amr);
+                    ParticleBase::PeriodicShift(*it,m_amr);
                     //
                     // The particle should now be back in the problem domain.
                     //
@@ -1168,10 +1166,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     // The particles that we don't own.
     //
     PBox notowned;
-    //
-    // Who owns the particles in "notowned".
-    //
-    std::vector<int> owner;
 
     for (int lev = 0; lev < m_particles.size(); lev++)
     {
@@ -1208,7 +1202,10 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                     //
                     // We're not the rightful owner of this particle.
                     //
-                    owner.push_back(who);
+                    // Since we don't send/recv m_lev, m_grid or m_cell
+                    // we can save the "who" in m_grid.
+                    //
+                    p.m_grid = who;
                     notowned.push_back(p);
                 }
 
@@ -1231,13 +1228,10 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     //
     m_particles.swap(new_m_particles);
 
-    BL_ASSERT(owner.size() == notowned.size());
-
     const int NProcs = ParallelDescriptor::NProcs();
 
     if (NProcs == 1)
     {
-        BL_ASSERT(owner.empty());
         BL_ASSERT(notowned.empty());
         return;
     }
@@ -1249,8 +1243,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     Array<int> Snds(NProcs,0);
     Array<int> Rcvs(NProcs,0);
 
-    for (int i = 0; i < owner.size(); i++)
-        Snds[owner[i]]++;
+    for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
+        Snds[it->m_grid]++;
 
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
@@ -1301,9 +1295,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     BL_ASSERT(notowned.size() == NumSnds);
 
-    Array<ParticleType> nparticles;
-
-    nparticles.reserve(NumRcvs);
+    PBox nparticles;
 
     {
         //
@@ -1337,15 +1329,21 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             sdispls[i] = sdispls[i-1] + sendcnts[i-1];
         }
 
-        for (int i = 0; i < notowned.size(); i++)
+        int i = 0;
+
+        for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
         {
-            const int           idx = offset[owner[i]];
-            const ParticleType& p   = notowned[i];
+            //
+            // We're overloaded m_grid to hold "who" the owner of the particle.
+            //
+            int& ioff = offset[it->m_grid];
 
-            senddata[idx+0] = p.m_id;
-            senddata[idx+1] = p.m_cpu;
+            senddata[ioff+0] = it->m_id;
+            senddata[ioff+1] = it->m_cpu;
 
-            offset[owner[i]] += iChunkSize;
+            ioff += iChunkSize;
+
+            i++;
         }
 
         BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
@@ -1362,12 +1360,16 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         ParticleType p;
 
-        for (int i = 0, idx = 0; i < NumRcvs; i++, idx += 2)
+        int* rcvp = recvdata.dataPtr();
+
+        for (int i = 0; i < NumRcvs; i++)
         {
-            p.m_id   = recvdata[idx+0];
-            p.m_cpu  = recvdata[idx+1];
+            p.m_id   = rcvp[0];
+            p.m_cpu  = rcvp[1];
 
             nparticles.push_back(p);
+
+            rcvp += 2;
         }
     }
 
@@ -1398,21 +1400,27 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             sdispls[i] = sdispls[i-1] + sendcnts[i-1];
         }
 
-        for (int i = 0; i < notowned.size(); i++)
+        int i = 0;
+
+        for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
         {
-            int                 idx = offset[owner[i]];
-            const ParticleType& p   = notowned[i];
+            //
+            // We're overloaded m_grid to hold "who" the owner of the particle.
+            //
+            int& ioff = offset[it->m_grid];
 
-            D_TERM(senddata[idx+0]=p.m_pos[0];,
-                   senddata[idx+1]=p.m_pos[1];,
-                   senddata[idx+2]=p.m_pos[2];);
+            D_TERM(senddata[ioff+0] = it->m_pos[0];,
+                   senddata[ioff+1] = it->m_pos[1];,
+                   senddata[ioff+2] = it->m_pos[2];);
 
-            idx += BL_SPACEDIM;
+            ioff += BL_SPACEDIM;
 
             for (int j = 0; j < N; j++)
-                senddata[idx+j] = p.m_data[j];
+                senddata[ioff+j] = it->m_data[j];
 
-            offset[owner[i]] += rChunkSize;
+            ioff += N;
+
+            i++;
         }
 
         BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
@@ -1425,34 +1433,33 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                                       ParallelDescriptor::Mpi_typemap<Real>::type(),
                                       ParallelDescriptor::Communicator()) );
         //
-        // Get rid of space held by "owner" and "notowned".
+        // Get rid of space held by "notowned".
         //
         {
-            PBox             tmpA; notowned.swap(tmpA);
-            std::vector<int> tmpB;    owner.swap(tmpB);
+            PBox tmpA; notowned.swap(tmpA);
         }
         //
         // Unpack data into the new particles.
         //
-        for (int i = 0, idx = 0; i < NumRcvs; i++)
+        Real* rcvp = recvdata.dataPtr();
+
+        for (typename PBox::iterator it = nparticles.begin(), End = nparticles.end(); it != End; ++it)
         {
-            ParticleType& p = nparticles[i];
+            D_TERM(it->m_pos[0] = rcvp[0];,
+                   it->m_pos[1] = rcvp[1];,
+                   it->m_pos[2] = rcvp[2];);
 
-            D_TERM(p.m_pos[0]=recvdata[idx+0];,
-                   p.m_pos[1]=recvdata[idx+1];,
-                   p.m_pos[2]=recvdata[idx+2];);
-
-            idx += BL_SPACEDIM;
+            rcvp += BL_SPACEDIM;
 
             for (int j = 0; j < N; j++)
-                p.m_data[j] = recvdata[idx+j];
+                it->m_data[j] = rcvp[j];
 
-            idx += N;
+            rcvp += N;
 
-            if (!ParticleBase::Where(p,m_amr))
+            if (!ParticleBase::Where(*it,m_amr))
                 BoxLib::Abort("ParticleContainer<N>::Redistribute(): got a bad particle");
 
-            m_particles[p.m_lev][p.m_grid].push_back(p);
+            m_particles[it->m_lev][it->m_grid].push_back(*it);
         }
     }
 
@@ -1861,17 +1868,15 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
             for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
             {
-                const ParticleType& p = *it;
+                BL_ASSERT(it->m_lev == lev);
+                BL_ASSERT(it->m_grid == grid);
 
-                BL_ASSERT(p.m_lev == lev);
-                BL_ASSERT(p.m_grid == grid);
+                iptr[0] = it->m_id;
+                iptr[1] = it->m_cpu;
 
-                iptr[0] = p.m_id;
-                iptr[1] = p.m_cpu;
-
-                D_TERM(iptr[2] = p.m_cell[0];,
-                       iptr[3] = p.m_cell[1];,
-                       iptr[4] = p.m_cell[2];);
+                D_TERM(iptr[2] = it->m_cell[0];,
+                       iptr[3] = it->m_cell[1];,
+                       iptr[4] = it->m_cell[2];);
 
                 iptr += iChunkSize;
             }
@@ -1891,14 +1896,12 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
             for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
             {
-                const ParticleType& p = *it;
-
-                D_TERM(rptr[0] = p.m_pos[0];,
-                       rptr[1] = p.m_pos[1];,
-                       rptr[2] = p.m_pos[2];);
+                D_TERM(rptr[0] = it->m_pos[0];,
+                       rptr[1] = it->m_pos[1];,
+                       rptr[2] = it->m_pos[2];);
 
                 for (int i = 0; i < N; i++)
-                    rptr[BL_SPACEDIM+i] = p.m_data[i];
+                    rptr[BL_SPACEDIM+i] = it->m_data[i];
 
                 rptr += rChunkSize;
             }
