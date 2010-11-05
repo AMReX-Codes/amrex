@@ -100,6 +100,11 @@ subroutine mgt_init ()
   end if
 end subroutine mgt_init
 
+subroutine mgt_use_alltoallv ()
+  use multifab_module
+  call multifab_set_alltoallv(.true.)
+end subroutine mgt_use_alltoallv
+
 subroutine mgt_alloc(dm, nlevel, nodal)
   use cpp_mg_module
   implicit none
