@@ -331,18 +331,35 @@ MGT_Solver::initialize(bool nodal)
 */
 
     {
-    ParmParse pp("cg");
-    pp.query("v"   , def_cg_verbose);
+        ParmParse pp("cg");
+        pp.query("v", def_cg_verbose);
     }
 
-    if (def_usecg == 1) {
-      if (def_cg_solver == 1) {
-        def_bottom_solver = 1;
-      } else if (def_cg_solver == 0) {
-        def_bottom_solver = 2;
-      }
-    } else {
-      def_bottom_solver = 3;
+    {
+        ParmParse pp("fabarray");
+        int doit = 0;
+        pp.query("do_alltoallv", doit);
+        if (doit)
+        {
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "Using Do_AllToAllV in fParallel code ...\n";
+            mgt_use_alltoallv();
+        }
+    }
+
+    if (def_usecg == 1)
+    {
+        if (def_cg_solver == 1)
+        {
+            def_bottom_solver = 1;
+        }
+        else if (def_cg_solver == 0)
+        {
+            def_bottom_solver = 2;
+        }
+    } else
+    {
+        def_bottom_solver = 3;
     }
 
     pp.query("bottom_solver", def_bottom_solver);
