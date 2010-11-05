@@ -117,12 +117,21 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     const Box&      dmn     = geom.Domain();
     IntVect         iv      = Index(p,0,amr);
     bool            shifted = false;
+    const Real      eps     = 1.e13;
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
         if (iv[i] > dmn.bigEnd(i))
         {
             shifted = true;
+
+            if (p.m_pos[i] == geom.ProbHi(i))
+                //
+                // Don't let particles lie exactly on the domain face.
+                // Force the particle to be outside the domain so the
+                // periodic shift will bring it back inside.
+                //
+                p.m_pos[i] += eps;
 
             p.m_pos[i] -= geom.ProbLength(i);
 
@@ -131,6 +140,14 @@ ParticleBase::PeriodicShift (ParticleBase& p,
         else if (iv[i] < dmn.smallEnd(i))
         {
             shifted = true;
+
+            if (p.m_pos[i] == geom.ProbLo(i))
+                //
+                // Don't let particles lie exactly on the domain face.
+                // Force the particle to be outside the domain so the
+                // periodic shift will bring it back inside.
+                //
+                p.m_pos[i] -= eps;
 
             p.m_pos[i] += geom.ProbLength(i);
 

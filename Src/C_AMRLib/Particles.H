@@ -256,7 +256,7 @@ ParticleContainer<N>::Init (const std::string& file)
         {
             if (ParallelDescriptor::IOProcessor())
             {
-                std::cout << "Ignoring particle @ pos:";
+                std::cout << "Ignoring particle @ position: ";
                 for (int i = 0; i < BL_SPACEDIM; i++)
                     std::cout << p.m_pos[i] << ' ';
                 std::cout << "-- not in domain !!!\n";
