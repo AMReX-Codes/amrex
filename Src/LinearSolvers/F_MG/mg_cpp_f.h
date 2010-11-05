@@ -3,6 +3,7 @@
 
 #if defined(BL_FORT_USE_UPPERCASE)
 #define mgt_init                  MGT_INIT
+#define mgt_use_alltoallv         MGT_USE_ALLTOALLV
 #define mgt_alloc                 MGT_ALLOC
 #define mgt_nodal_alloc           MGT_NODAL_ALLOC
 #define mgt_set_level             MGT_SET_LEVEL
@@ -106,6 +107,7 @@
 #elif defined(BL_FORT_USE_UNDERSCORE)
 
 #define mgt_init                  mgt_init_
+#define mgt_use_alltoallv         mgt_use_alltoallv_
 #define mgt_alloc                 mgt_alloc_
 #define mgt_nodal_alloc           mgt_nodal_alloc_
 #define mgt_set_level             mgt_set_level_
@@ -206,6 +208,7 @@
 
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
 #define mgt_init                  mgt_init__
+#define mgt_use_alltoallv         mgt_use_alltoallv__
 #define mgt_alloc                 mgt_alloc__
 #define mgt_nodal_alloc           mgt_nodal_alloc__
 #define mgt_set_level             mgt_set_level__
@@ -312,6 +315,8 @@ extern "C"
   const int MGT_BC_NEU =  2;	/* Neumann   */
 
   void mgt_init();
+
+  void mgt_use_alltoallv();
 
   void mgt_alloc(const int* dm, const int* nlevel, const int* nodal);
   void mgt_nodal_alloc(const int* dm, const int* nlevel, const int* nodal, const int* stencil_type);
