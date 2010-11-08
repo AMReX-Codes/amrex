@@ -1,5 +1,5 @@
 //
-// $Id: StationData.cpp,v 1.21 2010-11-05 21:22:19 vince Exp $
+// $Id: StationData.cpp,v 1.22 2010-11-08 20:19:22 vince Exp $
 //
 #include <winstd.H>
 
@@ -23,7 +23,7 @@ StationData::~StationData ()
 }
 
 void
-StationData::init (const PArray<AmrLevel>& levels)
+StationData::init (const PArray<AmrLevel>& levels, const int finestlevel)
 {
     //
     // ParmParse variables:
@@ -110,7 +110,8 @@ StationData::init (const PArray<AmrLevel>& levels)
 
 
     // adjust the positions so they are not exactly on a grid line
-    const Real *fineDX = levels[levels.size()-1].Geom().CellSize();
+    // cannot use [levels.size()-1] because of level capping
+    const Real *fineDX = levels[finestlevel].Geom().CellSize();
     for(int i(0); i < m_stn.size(); ++i) {
       for(int d(0); d < BL_SPACEDIM; ++d) {
         Real tempPos(m_stn[i].pos[d]), dx(fineDX[d]);

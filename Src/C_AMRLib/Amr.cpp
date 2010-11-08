@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.218 2010-11-05 21:22:19 vince Exp $
+// $Id: Amr.cpp,v 1.219 2010-11-08 20:19:22 vince Exp $
 //
 #include <winstd.H>
 
@@ -1157,7 +1157,7 @@ Amr::initialInit (Real strt_time,
     }
 
 #ifdef USE_STATIONDATA
-    station.init(amr_level);
+    station.init(amr_level, finestLevel());
     station.findGrid(amr_level,geom);
 #endif
 }
@@ -1438,7 +1438,7 @@ Amr::restart (const std::string& filename)
     }
    
 #ifdef USE_STATIONDATA
-    station.init(amr_level);
+    station.init(amr_level, finestLevel());
     station.findGrid(amr_level,geom);
 #endif
 

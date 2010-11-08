@@ -1,7 +1,7 @@
 #ifndef _StationData_H_
 #define _StationData_H_
 //
-// $Id: StationData.H,v 1.11 2010-11-05 21:22:19 vince Exp $
+// $Id: StationData.H,v 1.12 2010-11-08 20:19:22 vince Exp $
 //
 #include <iostream>
 #include <fstream>
@@ -45,7 +45,7 @@ public:
     //
     // Data files have the form: "Station/stn_CPU_NNNN"
     //
-    void init (const PArray<AmrLevel>& levels);
+    void init (const PArray<AmrLevel>& levels, const int finestlevel);
     //
     // Collect data for all station points at level and write to station file.
     //
