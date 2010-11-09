@@ -1,3 +1,45 @@
+subroutine t_gatherv
+
+  use parallel
+  implicit none
+  integer i,n
+  integer, allocatable :: rcvc(:), rcvd(:)
+  real(dp_t), allocatable :: snd(:), rcv(:)
+  !
+  ! Each CPU will send 3+parallel_nprocs() chunks of data to IOproc.
+  ! The data will be initialized to their respective parallel_myproc().
+  !
+  if (parallel_IOProcessor()) then
+
+     allocate(rcvc(0:parallel_nprocs()-1), rcvd(0:parallel_nprocs()-1))
+
+     rcvd(0) = 0
+     rcvc(0) = 3
+
+     do i = 1, parallel_nprocs()-1
+        rcvc(i) = 3 + i
+        rcvd(i) = rcvd(i-1) + rcvc(i-1)
+     end do
+
+     allocate(rcv(0:sum(rcvc)-1))
+  endif
+
+  n = parallel_myproc() + 3
+
+  allocate(snd(n))
+
+  snd = parallel_myproc()
+
+  call parallel_gather(snd,n,rcv,rcvc,rcvd)
+
+  if (parallel_IOProcessor()) then
+     do i = 0, parallel_nprocs()-1
+        print*, 'proc#', i, rcv(rcvd(i):rcvd(i)+rcvc(i)-1)
+     end do
+  end if
+
+end subroutine t_gatherv
+
 subroutine t_mt_random_numbers
   use mt19937_module
   implicit none
