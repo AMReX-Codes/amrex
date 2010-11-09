@@ -10,13 +10,13 @@ program main
 
   call bl_prof_initialize(on = .true.)
 
-! call t_box_read()
+! call t_box_read
 ! call t_plotfile
 ! call t_ba
 ! call t_bx
 ! call t_cluster
 ! call t_mf_fabio
- call t_mf
+! call t_mf
 ! call t_domain
 ! call t_box_chop
 ! call t_box_mod
@@ -27,10 +27,11 @@ program main
 ! call t_nodal_mf_fabio
 ! call t_timer
 ! call t_knap
-! call t_ml_mf_read()
-! call t_bl_prof()
+! call t_ml_mf_read
+! call t_bl_prof
 ! call t_ba_self_intersection
-!  call t_knapsack
+! call t_knapsack
+  call t_gatherv
 
  call layout_flush_copyassoc_cache ()
 
