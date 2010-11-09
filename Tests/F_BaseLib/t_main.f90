@@ -61,39 +61,6 @@ subroutine t_plotfile
 
 end subroutine t_plotfile
 
-subroutine t_fabio
-  use fabio_module
-  use fab_module
-  use multifab_module
-  implicit none
-  integer :: fd
-  type(fab) :: fb
-  type(box) :: bx
-  integer :: offset
-  integer :: sz, i, j
-  real(kind=dp_t), pointer :: fbp(:,:,:,:)
-
-  sz = 32
-  bx = refine(unit_box(2), sz)
-  call fab_build(fb, bx)
-  fbp => dataptr(fb)
-  do j = 0, sz-1
-     do i = 0, sz-1
-        fbp(i,j,1,1) = 1000*i + j
-     end do
-  end do
-
-  call fabio_mkdir("tdir")
-  call fabio_open(fd, "tdir/foo", FABIO_WRONLY)
-
-  call fabio_write(fd, offset, fb)
-
-  call destroy(fb)
-
-  print *, 'offset = ', offset
-  
-end subroutine t_fabio
-
 subroutine t_box_conn
   use ml_boxarray_module
   use box_util_module
@@ -125,22 +92,22 @@ contains
     integer :: un
     un = unit_new()
     open(un,file='conn', status = 'replace', action = 'write')
-    write(un,fmt='(1x,i10)') ba%nboxes
-    do i = 1, ba%nboxes
-       b1 = grow(ba%bxs(i),1)
+    write(un,fmt='(1x,i10)') nboxes(ba)
+    do i = 1, nboxes(ba)
+       b1 = grow(get_box(ba,i),1)
        cnt = 0
-       do j = 1, ba%nboxes
+       do j = 1, nboxes(ba)
           if ( i == j ) cycle
-          b2 = ba%bxs(j)
+          b2 = get_box(ba,j)
           if ( intersects(b1, b2) ) then
              cnt = cnt + 1
           end if
        end do
-       vol = box_dvolume(ba%bxs(i))
+       vol = box_dvolume(get_box(ba,i))
        write(un,fmt='(1x,i10,1x,i10,1x,i10)', advance='no') i, vol, cnt
-       do j = 1, ba%nboxes
+       do j = 1, nboxes(ba)
           if ( i == j ) cycle
-          b2 = ba%bxs(j)
+          b2 = get_box(ba,j)
           if ( intersects(b1, b2) ) then
              write(un,fmt='(1x,i5)',advance='no') j
           end if
@@ -160,8 +127,8 @@ contains
     r = 1
     rr = rrr
     do
-       do i = 1, size(ba%bxs)
-          bx = ba%bxs(i)
+       do i = 1, nboxes(ba)
+          bx = get_box(ba,i)
           bx1 = coarsen(bx, rr)
           if ( any(extent(bx1) < lmn) ) return
           if ( bx /= refine(bx1, rr) ) then
@@ -539,6 +506,7 @@ subroutine t_domain
   logical :: verbose
   logical :: lexist
   type(box) :: pd
+  type(box), dimension(:), pointer :: bxp
   type(boxarray) :: ba, bado
 
   namelist /probin/ verbose
@@ -693,14 +661,15 @@ subroutine t_domain
   call copy(ba, mba%bas(test_lev))
   pd = mba%pd(test_lev)
 
-
   call boxarray_simplify(ba)
 
   call boxarray_sort(ba)
 
 ! call print(ba,  "BA")
 
-  if ( .not. boxarray_clean(ba%bxs) ) then
+  bxp => dataptr(ba)
+
+  if ( .not. boxarray_clean(bxp) ) then
      print *, 'ba is not clean'
   end if
 
