@@ -1934,6 +1934,10 @@ contains
        call cpy_d(p1,p2)
     end do
 
+    np = parallel_nprocs()
+
+    if (np == 1) return
+
     allocate(g_snd_d(nc*bxasc%r_con%svol))
     allocate(g_rcv_d(nc*bxasc%r_con%rvol))
 
@@ -1943,7 +1947,6 @@ contains
     end do
 
     if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
        allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
        rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
        do i = 1, bxasc%r_con%nsp
@@ -2004,6 +2007,10 @@ contains
        call cpy_i(p1,p2)
     end do
 
+    np = parallel_nprocs()
+
+    if (np == 1) return
+
     allocate(g_snd_i(nc*bxasc%r_con%svol))
     allocate(g_rcv_i(nc*bxasc%r_con%rvol))
 
@@ -2013,7 +2020,6 @@ contains
     end do
 
     if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
        allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
        rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
        do i = 1, bxasc%r_con%nsp
@@ -2074,6 +2080,10 @@ contains
        call cpy_l(p1,p2)
     end do
 
+    np = parallel_nprocs()
+
+    if (np == 1) return
+
     allocate(g_snd_l(nc*bxasc%r_con%svol))
     allocate(g_rcv_l(nc*bxasc%r_con%rvol))
 
@@ -2083,7 +2093,6 @@ contains
     end do
 
     if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
        allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
        rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
        do i = 1, bxasc%r_con%nsp
@@ -2308,6 +2317,10 @@ contains
        call cpy_d(pdst, psrc, filter)
     end do
 
+    np = parallel_nprocs()
+
+    if (np == 1) return
+
     allocate(g_snd_d(nc*snasc%r_con%svol))
     allocate(g_rcv_d(nc*snasc%r_con%rvol))
 
@@ -2317,7 +2330,6 @@ contains
     end do
 
     if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
        allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
        rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
        do i = 1, snasc%r_con%nsp
@@ -2791,6 +2803,10 @@ contains
        call cpy_d(pdst, psrc, filter)
     end do
 
+    np = parallel_nprocs()
+
+    if (np == 1) return
+
     allocate(g_snd_d(nc*cpasc%r_con%svol))
     allocate(g_rcv_d(nc*cpasc%r_con%rvol))
 
@@ -2800,7 +2816,6 @@ contains
     end do
 
     if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
        allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
        rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
        do i = 1, cpasc%r_con%nsp
@@ -2871,6 +2886,10 @@ contains
        call cpy_i(pdst, psrc, filter)
     end do
 
+    np = parallel_nprocs()
+
+    if (np == 1) return
+
     allocate(g_snd_i(nc*cpasc%r_con%svol))
     allocate(g_rcv_i(nc*cpasc%r_con%rvol))
 
@@ -2880,7 +2899,6 @@ contains
     end do
 
     if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
        allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
        rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
        do i = 1, cpasc%r_con%nsp
@@ -2951,6 +2969,10 @@ contains
        call cpy_l(pdst, psrc, filter)
     end do
 
+    np = parallel_nprocs()
+
+    if (np == 1) return
+
     allocate(g_snd_l(nc*cpasc%r_con%svol))
     allocate(g_rcv_l(nc*cpasc%r_con%rvol))
 
@@ -2960,7 +2982,6 @@ contains
     end do
 
     if ( Do_AllToAllV ) then
-       np = parallel_nprocs()
        allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
        rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
        do i = 1, cpasc%r_con%nsp
@@ -3030,6 +3051,8 @@ contains
        psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
        call cpy_z(pdst, psrc, filter)
     end do
+
+    if (parallel_nprocs() == 1) return
 
     allocate(g_snd_z(nc*cpasc%r_con%svol))
     allocate(g_rcv_z(nc*cpasc%r_con%rvol))
