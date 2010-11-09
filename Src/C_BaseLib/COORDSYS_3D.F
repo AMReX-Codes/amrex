@@ -1,6 +1,3 @@
-c
-c $Id: COORDSYS_3D.F,v 1.11 2009-11-05 22:45:37 lijewski Exp $
-c
 
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT

@@ -1,10 +1,6 @@
 #ifndef _COORDSYS_F_H_
 #define _COORDSYS_F_H_
 
-/*
-** $Id: COORDSYS_F.H,v 1.9 2002-04-26 22:10:02 lijewski Exp $
-*/
-
 #ifdef BL_LANG_FORT
 #    define FORT_SETVOL      setvol
 #    define FORT_SETVOLPT      setvolpt
