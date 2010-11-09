@@ -11,14 +11,12 @@ program main
   call bl_prof_initialize(on = .true.)
 
 ! call t_box_read()
-! call t_pingpong
 ! call t_plotfile
 ! call t_ba
 ! call t_bx
- call t_cluster
+! call t_cluster
 ! call t_mf_fabio
-! call t_mf
-! call t_fabio
+ call t_mf
 ! call t_domain
 ! call t_box_chop
 ! call t_box_mod

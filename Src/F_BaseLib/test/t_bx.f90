@@ -66,7 +66,7 @@ subroutine t_ba_self_intersection
   ba = mba%bas(1)
   call build(la, ba, pd = mba%pd(1))
 
-  dm = ba%dim
+  dm = get_dim(ba)
 
   allocate(ext(dm), plo(dm), phi(dm), vsz(dm), crsn(dm), vrng(dm))
 
@@ -145,7 +145,6 @@ subroutine t_ba_self_intersection
      bx = grow(get_box(ba,i), ng)
      call self_intersection(bx, ba)
      call self_intersection_1(bx, ba)
-     call chk_box(bx)
      call la_chk_box(la, bx)
   end do
   call destroy(bpt_s)
@@ -185,31 +184,6 @@ contains
     call destroy(bpt_h1)
   end subroutine la_chk_box
 
-  subroutine chk_box(bx)
-    type(box), intent(in) :: bx
-    type(box) :: bx1
-    integer :: lo(bx%dim), hi(bx%dim)
-    integer :: i, j, k, n
-    type(bl_prof_timer), save :: bpt_h
-    call build(bpt_h, "ba_h")
-    bx1 = coarsen(bx,crsn)
-    lo = lwb(bx1)
-    hi = upb(bx1)
-    do k = max(lo(3)-vrng(3)-1,plo(3)), min(hi(3)+vrng(3), phi(3))
-       do j = max(lo(2)-vrng(2)-1,plo(2)), min(hi(2)+vrng(2), phi(2))
-          do i = max(lo(1)-vrng(1)-1,plo(1)), min(hi(1)+vrng(1), phi(1))
-             do n = 1, size(bins(i,j,k)%iv)
-                bx1 = intersection(bx, ba%bxs(bins(i,j,k)%iv(n)))
-                if ( empty(bx1) ) cycle
-                cnt2 = cnt2 + 1
-                vol2 = vol2 + volume(bx1)
-             end do
-          end do
-       end do
-    end do
-    call destroy(bpt_h)
-  end subroutine chk_box
-
   subroutine self_intersection(bx, ba)
     type(box), intent(in) :: bx
     type(boxarray), intent(in) :: ba
@@ -218,7 +192,7 @@ contains
     type(box) :: bx1
     call build(bpt_i, "ba_i")
     do i = 1, nboxes(ba)
-       bx1 = intersection(bx, ba%bxs(i))
+       bx1 = intersection(bx, get_box(ba,i))
        if ( empty(bx1) ) cycle
        cnt = cnt + 1
        vol = vol + volume(bx1)
@@ -232,10 +206,13 @@ contains
     type(boxarray), intent(in) :: ba
     integer :: i
     type(bl_prof_timer), save :: bpt_i
-    type(box) :: bx1(size(ba%bxs))
-    logical   :: is_empty(size(ba%bxs))
+    type(box) :: bx1(nboxes(ba)),bx2(nboxes(ba))
+    logical   :: is_empty(nboxes(ba))
     call build(bpt_i, "ba_i1")
-    call box_intersection_and_empty(bx1, is_empty, bx, ba%bxs)
+    do i = 1, nboxes(ba)
+       bx2(i) = get_box(ba,i)
+    end do
+    call box_intersection_and_empty(bx1, is_empty, bx, bx2)
     do i = 1, size(bx1)
        if ( is_empty(i) ) cycle
        vol1 = vol1 + volume(bx1(i))
