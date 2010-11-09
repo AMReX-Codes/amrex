@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.33 2010-07-28 01:21:08 almgren Exp $
+c $Id: INTERP_2D.F,v 1.34 2010-11-09 16:56:07 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -369,7 +369,7 @@ c ...     Prevent underflow for small crse values.
 c
           do j = cslopelo(2)-1,cslopehi(2)+1
              do i = cslopelo(1)-1, cslopehi(1)+1
-                crse(i,j,n) = cvmgt(crse(i,j,n),zero,abs(crse(i,j,n)).gt.1.0e-20)
+                crse(i,j,n) = cvmgt(crse(i,j,n),zero,abs(crse(i,j,n)).gt.1.0d-50)
              end do
           end do
 c
@@ -710,7 +710,7 @@ c
 
       do n = 1, nvar 
         do i = clo, chi 
-          crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0e-20)
+          crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0d-50)
         end do
       end do
 
@@ -1187,7 +1187,7 @@ c                remaining positiveness from the states to help the negative sta
                      print *,'FINE OLD NEW ',i,j,orig_fine(i-ilo,j-jlo),
      $                                       fine(i,j,n), fine_state(i,j,n),
      $                                       fvol
-                     if (abs(fvol) .lt. 1.e-20) then
+                     if (abs(fvol) .lt. 1.d-50) then
                        print *,'MAKING FVOL ',fvcx(i+1),fvcx(i),fvcy(j+1),fvcy(j)
                      endif
                   enddo
