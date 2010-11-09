@@ -509,6 +509,8 @@ contains
                mp(:,:,:,1), lomf, mcp(:,:,:,1), lomc, lo, hi, ir, side, lof, hif)
        end select
     end do
+
+    if (np == 1) return
     !
     ! Now send/recv the flux data
     !
@@ -517,9 +519,6 @@ contains
 
     do i = 1, fa%flux%r_con%nsnd
        fp => dataptr(flux, fa%flux%r_con%snd(i)%ns, fa%flux%r_con%snd(i)%sbx)
-       !vol(1) = volume(fa%flux%r_con%snd(i)%sbx)
-       !av = fa%flux%r_con%snd(i)%pv + vol(1)
-       !g_snd_d(1 + fa%flux%r_con%snd(i)%pv:av) = reshape(fp, vol)
        call reshape_d_4_1(g_snd_d, 1 + fa%flux%r_con%snd(i)%pv, fp)
     end do
 
@@ -546,9 +545,6 @@ contains
 
     do i = 1, fa%mask%r_con%nsnd
        mp => dataptr(mm_fine, fa%mask%r_con%snd(i)%ns, fa%mask%r_con%snd(i)%sbx)
-       !vol(1) = volume(fa%mask%r_con%snd(i)%sbx)
-       !av = fa%mask%r_con%snd(i)%pv + vol(1)
-       !g_snd_i(1 + fa%mask%r_con%snd(i)%pv:av) = reshape(mp, vol)
        call reshape_i_4_1(g_snd_i, 1 + fa%mask%r_con%snd(i)%pv, mp)
     end do
 
@@ -590,15 +586,12 @@ contains
        lod = 1;                     hid = 1
        lod(1:dm) = lwb(isect); hid(1:dm) = upb(isect)
        allocate(flxpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1))
-       !av = fa%flux%r_con%rcv(i)%pv + volume(isect)
-       !flxpt = reshape(g_rcv_d(1 + fa%flux%r_con%rcv(i)%pv:av), fsh)
        call reshape_d_1_4(flxpt, g_rcv_d, 1 + fa%flux%r_con%rcv(i)%pv, fsh)
 
        mbox = fa%mask%r_con%rcv(i)%sbx
        lod(1:dm) = lwb(mbox); hid(1:dm) = upb(mbox)
        allocate(mmfpt(lod(1):hid(1),lod(2):hid(2),lod(3):hid(3),1))
        av = fa%mask%r_con%rcv(i)%pv + volume(mbox)
-       !mmfpt = reshape(g_rcv_i(1 + fa%mask%r_con%rcv(i)%pv:av), msh)
        call reshape_i_1_4(mmfpt, g_rcv_i, 1 + fa%mask%r_con%rcv(i)%pv, msh)
 
        select case (dm)
