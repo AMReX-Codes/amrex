@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.42 2010-07-28 01:07:23 almgren Exp $
+c $Id: INTERP_3D.F,v 1.43 2010-11-09 16:56:07 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -344,7 +344,7 @@ c
           do k = cslopelo(3)-1,cslopehi(3)+1
             do j = cslopelo(2)-1,cslopehi(2)+1
               do i = cslopelo(1)-1, cslopehi(1)+1 
-                crse(i,j,k,n) = cvmgt(crse(i,j,k,n),zero,abs(crse(i,j,k,n)).gt.1.0D-20)
+                crse(i,j,k,n) = cvmgt(crse(i,j,k,n),zero,abs(crse(i,j,k,n)).gt.1.0d-50)
               end do
             end do
           end do

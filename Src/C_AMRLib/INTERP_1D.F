@@ -245,7 +245,7 @@ c ::: has filled at level 0.
 c ::: The "cslope" and "crse" arrays are this size.
 c ::: 
 c ::: In order to unroll the slope calculation we make these arrays look
-c ::: like 1-D arrays.  The mapping from 2-D to 1-D is as fillows:
+c ::: like 1-D arrays.  The mapping from 2-D to 1-D is as follows:
 c ::: 
 c ::: The point (cb_l(1),cb_l(2)) -> 1
 c ::: The point (cslo(1),cslo(2)) -> clo = 1 - 1 - ncsx = -6
@@ -464,7 +464,7 @@ c ::: local var
 c ::: ::::: added to prevent underflow for small crse values
       do n = 1, nvar 
         do i = clo, chi 
-          crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0D-20)
+          crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0d-50)
         enddo
       enddo
 
@@ -733,7 +733,7 @@ c
 c ...     Prevent underflow for small crse values.
 c
           do i = cslopelo(1)-1, cslopehi(1)+1
-             crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0e-20)
+             crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0d-50)
           end do
 c
 c ...     Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
