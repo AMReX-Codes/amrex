@@ -168,10 +168,23 @@ module parallel
   end interface parallel_scatter
 
   interface parallel_gather
+     !
+     ! Gather fixed size blocks to specified processor
+     !
+     module procedure parallel_gather_d
+     module procedure parallel_gather_r
+     module procedure parallel_gather_i
+     module procedure parallel_gather_l
+     module procedure parallel_gather_c
+     module procedure parallel_gather_z
+     !
+     ! Gather variable sized blocks to specified processor
+     !
      module procedure parallel_gather_dv
      module procedure parallel_gather_rv
      module procedure parallel_gather_iv
      module procedure parallel_gather_lv
+     module procedure parallel_gather_cv
      module procedure parallel_gather_zv
   end interface parallel_gather
 
@@ -1143,8 +1156,10 @@ contains
   end subroutine parallel_barrier
 
 
-
-  subroutine parallel_gather_dv(snd, rcv, n, root, comm)
+  !
+  ! Gather fixed size blocks to specified processor
+  !
+  subroutine parallel_gather_d(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     real(kind=dp_t), intent(in) :: snd(*)
     real(kind=dp_t), intent(out) :: rcv(*)
@@ -1156,8 +1171,8 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
     rcv(1:n) = snd(1:n)
-  end subroutine parallel_gather_dv
-  subroutine parallel_gather_rv(snd, rcv, n, root, comm)
+  end subroutine parallel_gather_d
+  subroutine parallel_gather_r(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     real(kind=sp_t), intent(in) :: snd(*)
     real(kind=sp_t), intent(out) :: rcv(*)
@@ -1169,8 +1184,8 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
     rcv(1:n) = snd(1:n)
-  end subroutine parallel_gather_rv
-  subroutine parallel_gather_iv(snd, rcv, n, root, comm)
+  end subroutine parallel_gather_r
+  subroutine parallel_gather_i(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     integer, intent(in) :: snd(*)
     integer, intent(out) :: rcv(*)
@@ -1182,8 +1197,8 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
     rcv(1:n) = snd(1:n)
-  end subroutine parallel_gather_iv
-  subroutine parallel_gather_lv(snd, rcv, n, root, comm)
+  end subroutine parallel_gather_i
+  subroutine parallel_gather_l(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     logical, intent(in) :: snd(*)
     logical, intent(out) :: rcv(*)
@@ -1195,14 +1210,114 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
     rcv(1:n) = snd(1:n)
-  end subroutine parallel_gather_lv
-  subroutine parallel_gather_zv(snd, rcv, n, root, comm)
+  end subroutine parallel_gather_l
+  subroutine parallel_gather_c(snd, rcv, n, root, comm)
+    integer, intent(in) :: n
+    complex(sp_t), intent(in) :: snd(*)
+    complex(sp_t), intent(out) :: rcv(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer :: l_root, l_comm
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_gather_c
+  subroutine parallel_gather_z(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     complex(dp_t), intent(in) :: snd(*)
     complex(dp_t), intent(out) :: rcv(*)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer :: l_root, l_comm
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_gather_z
+  !
+  ! Gather variable sized blocks to specified processor
+  !
+  subroutine parallel_gather_dv(snd, n, rcv, rcvc, rcvd, root, comm)
+    real(kind=dp_t), intent(in) :: snd(*)
+    integer, intent(in) :: n
+    real(kind=dp_t), intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_gather_dv
+  subroutine parallel_gather_rv(snd, n, rcv, rcvc, rcvd, root, comm)
+    real(kind=sp_t), intent(in) :: snd(*)
+    integer, intent(in) :: n
+    real(kind=sp_t), intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_gather_rv
+  subroutine parallel_gather_iv(snd, n, rcv, rcvc, rcvd, root, comm)
+    integer, intent(in) :: snd(*)
+    integer, intent(in) :: n
+    integer, intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_gather_iv
+  subroutine parallel_gather_lv(snd, n, rcv, rcvc, rcvd, root, comm)
+    logical, intent(in) :: snd(*)
+    integer, intent(in) :: n
+    logical, intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_gather_lv
+  subroutine parallel_gather_cv(snd, n, rcv, rcvc, rcvd, root, comm)
+    complex(sp_t), intent(in) :: snd(*)
+    integer, intent(in) :: n
+    complex(sp_t), intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_gather_cv
+  subroutine parallel_gather_zv(snd, n, rcv, rcvc, rcvd, root, comm)
+    complex(dp_t), intent(in) :: snd(*)
+    integer, intent(in) :: n
+    complex(dp_t), intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
     l_root = io_processor_node
     if ( present(root) ) l_root = root
     l_comm = m_comm

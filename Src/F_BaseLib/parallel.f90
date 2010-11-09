@@ -152,6 +152,18 @@ module parallel
   end interface parallel_scatter
 
   interface parallel_gather
+     !
+     ! Gather fixed size blocks to specified processor
+     !
+     module procedure parallel_gather_d
+     module procedure parallel_gather_r
+     module procedure parallel_gather_i
+     module procedure parallel_gather_l
+     module procedure parallel_gather_c
+     module procedure parallel_gather_z
+     !
+     ! Gather variable sized blocks to specified processor
+     !
      module procedure parallel_gather_dv
      module procedure parallel_gather_rv
      module procedure parallel_gather_iv
@@ -1317,8 +1329,10 @@ contains
   end subroutine parallel_barrier
 
 
-  ! Gather:
-  subroutine parallel_gather_dv(snd, rcv, n, root, comm)
+  !
+  ! Gather fixed size blocks to specified processor
+  !
+  subroutine parallel_gather_d(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     real(kind=dp_t), intent(in) :: snd(*)
     real(kind=dp_t), intent(out) :: rcv(*)
@@ -1333,8 +1347,8 @@ contains
     call MPI_Gather(snd, n, MPI_DOUBLE_PRECISION, &
          rcv, n, MPI_DOUBLE_PRECISION, &
          l_root, l_comm, ierr)
-  end subroutine parallel_gather_dv
-  subroutine parallel_gather_rv(snd, rcv, n, root, comm)
+  end subroutine parallel_gather_d
+  subroutine parallel_gather_r(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     real(kind=sp_t), intent(in) :: snd(*)
     real(kind=sp_t), intent(out) :: rcv(*)
@@ -1349,8 +1363,8 @@ contains
     call MPI_Gather(snd, n, MPI_REAL, &
          rcv, n, MPI_REAL, &
          l_root, l_comm, ierr)
-  end subroutine parallel_gather_rv
-  subroutine parallel_gather_iv(snd, rcv, n, root, comm)
+  end subroutine parallel_gather_r
+  subroutine parallel_gather_i(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     integer, intent(in) :: snd(*)
     integer, intent(out) :: rcv(*)
@@ -1365,8 +1379,8 @@ contains
     call MPI_Gather(snd, n, MPI_INTEGER, &
          rcv, n, MPI_INTEGER, &
          l_root, l_comm, ierr)
-  end subroutine parallel_gather_iv
-  subroutine parallel_gather_lv(snd, rcv, n, root, comm)
+  end subroutine parallel_gather_i
+  subroutine parallel_gather_l(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     logical, intent(in) :: snd(*)
     logical, intent(out) :: rcv(*)
@@ -1381,8 +1395,8 @@ contains
     call MPI_Gather(snd, n, MPI_LOGICAL, &
          rcv, n, MPI_LOGICAL, &
          l_root, l_comm, ierr)
-  end subroutine parallel_gather_lv
-  subroutine parallel_gather_cv(snd, rcv, n, root, comm)
+  end subroutine parallel_gather_l
+  subroutine parallel_gather_c(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     complex(kind=sp_t), intent(in) :: snd(*)
     complex(kind=sp_t), intent(out) :: rcv(*)
@@ -1397,8 +1411,8 @@ contains
     call MPI_Gather(snd, n, MPI_COMPLEX, &
          rcv, n, MPI_COMPLEX, &
          l_root, l_comm, ierr)
-  end subroutine parallel_gather_cv
-  subroutine parallel_gather_zv(snd, rcv, n, root, comm)
+  end subroutine parallel_gather_c
+  subroutine parallel_gather_z(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     complex(kind=dp_t), intent(in) :: snd(*)
     complex(kind=dp_t), intent(out) :: rcv(*)
@@ -1413,7 +1427,111 @@ contains
     call MPI_Gather(snd, n, MPI_DOUBLE_COMPLEX, &
          rcv, n, MPI_DOUBLE_COMPLEX, &
          l_root, l_comm, ierr)
+  end subroutine parallel_gather_z
+  !
+  ! Gather variable sized blocks to specified processor
+  !
+  subroutine parallel_gather_dv(snd, n, rcv, rcvc, rcvd, root, comm)
+    real(kind=dp_t), intent(in) :: snd(*)
+    integer, intent(in) :: n
+    real(kind=dp_t), intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    external MPI_Gatherv
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    call MPI_Gatherv(snd, n, MPI_DOUBLE_PRECISION, &
+         rcv, rcvc, rcvd, MPI_DOUBLE_PRECISION, &
+         l_root, l_comm, ierr)
+  end subroutine parallel_gather_dv
+  subroutine parallel_gather_rv(snd, n, rcv, rcvc, rcvd, root, comm)
+    real(kind=sp_t), intent(in) :: snd(*)
+    integer, intent(in) :: n
+    real(kind=sp_t), intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    external MPI_Gatherv
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    call MPI_Gatherv(snd, n, MPI_REAL, &
+         rcv, rcvc, rcvd, MPI_REAL, &
+         l_root, l_comm, ierr)
+  end subroutine parallel_gather_rv
+  subroutine parallel_gather_iv(snd, n, rcv, rcvc, rcvd, root, comm)
+    integer, intent(in) :: snd(*)
+    integer, intent(in) :: n
+    integer, intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    external MPI_Gatherv
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call MPI_Gatherv(snd, n, MPI_INTEGER, &
+         rcv, rcvc, rcvd, MPI_INTEGER, &
+         l_root, l_comm, ierr)
+  end subroutine parallel_gather_iv
+  subroutine parallel_gather_lv(snd, n, rcv, rcvc, rcvd, root, comm)
+    logical, intent(in) :: snd(*)
+    integer, intent(in) :: n
+    logical, intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    external MPI_Gatherv
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call MPI_Gatherv(snd, n, MPI_LOGICAL, &
+         rcv, rcvc, rcvd, MPI_LOGICAL, &
+         l_root, l_comm, ierr)
+  end subroutine parallel_gather_lv
+  subroutine parallel_gather_cv(snd, n, rcv, rcvc, rcvd, root, comm)
+    complex(sp_t), intent(in) :: snd(*)
+    integer, intent(in) :: n
+    complex(sp_t), intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    external MPI_Gatherv
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call MPI_Gatherv(snd, n, MPI_COMPLEX, &
+         rcv, rcvc, rcvd, MPI_COMPLEX, &
+         l_root, l_comm, ierr)
+  end subroutine parallel_gather_cv
+  subroutine parallel_gather_zv(snd, n, rcv, rcvc, rcvd, root, comm)
+    complex(dp_t), intent(in) :: snd(*)
+    integer, intent(in) :: n
+    complex(dp_t), intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    external MPI_Gatherv
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call MPI_Gatherv(snd, n, MPI_DOUBLE_COMPLEX, &
+         rcv, rcvc, rcvd, MPI_DOUBLE_COMPLEX, &
+         l_root, l_comm, ierr)
   end subroutine parallel_gather_zv
+
 
   ! Allgather:
   subroutine parallel_allgather_dv(snd, rcv, n, comm)
