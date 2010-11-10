@@ -1,5 +1,5 @@
 c
-c $Id: MAKESLICE_3D.F,v 1.8 2008-02-08 17:48:47 lijewski Exp $
+c $Id: MAKESLICE_3D.F,v 1.9 2010-11-10 23:46:09 lijewski Exp $
 c
 
 #undef  BL_LANG_CC         
@@ -33,6 +33,10 @@ c
       integer index,idx1,idx2,found,i,j,k,kval,kval1,kval2
       integer leftval,rightval
       REAL_T zval,tval,floatdata
+
+      kval     = 0
+      leftval  = 0
+      rightval = 0
 
       dlo1(1) = ARG_L1(data1)
       dlo1(2) = ARG_L2(data1)
@@ -136,6 +140,10 @@ c
 
       integer dlo1(SDIM),dhi1(SDIM)
       integer dlo2(SDIM),dhi2(SDIM)
+
+      kval     = 0
+      leftval  = 0
+      rightval = 0
 
       dlo1(1) = ARG_L1(data1)
       dlo1(2) = ARG_L2(data1)
