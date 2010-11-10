@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.219 2010-11-08 20:19:22 vince Exp $
+// $Id: Amr.cpp,v 1.220 2010-11-10 23:46:09 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1028,9 +1028,8 @@ Amr::initialInit (Real strt_time,
     int nProcs(ParallelDescriptor::NProcs());
     int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
     int mySet(myProc/nAtOnce);
-    Real piStart, piEnd, piTotal;
-    Real piStartAll, piEndAll, piTotalAll;
-    piStartAll = ParallelDescriptor::second();
+    Real piStart = 0, piEnd = 0;
+    Real piStartAll = ParallelDescriptor::second();
     for(int iSet(0); iSet < nSets; ++iSet) {
       if(mySet == iSet) {  // call the pesky probin reader
         piStart = ParallelDescriptor::second();
@@ -1050,9 +1049,9 @@ Amr::initialInit (Real strt_time,
         ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
       }
     }  // end for(iSet...)
-    piEndAll = ParallelDescriptor::second();
-    piTotal = piEnd - piStart;
-    piTotalAll = piEndAll - piStartAll;
+    Real piEndAll = ParallelDescriptor::second();
+    Real piTotal = piEnd - piStart;
+    Real piTotalAll = piEndAll - piStartAll;
     ParallelDescriptor::ReduceRealMax(piTotal);
     ParallelDescriptor::ReduceRealMax(piTotalAll);
     if(ParallelDescriptor::IOProcessor()) {
@@ -1205,9 +1204,8 @@ Amr::restart (const std::string& filename)
     int nProcs(ParallelDescriptor::NProcs());
     int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
     int mySet(myProc/nAtOnce);
-    Real piStart, piEnd, piTotal;
-    Real piStartAll, piEndAll, piTotalAll;
-    piStartAll = ParallelDescriptor::second();
+    Real piStart = 0, piEnd = 0;
+    Real piStartAll = ParallelDescriptor::second();
     for(int iSet(0); iSet < nSets; ++iSet) {
       if(mySet == iSet) {  // call the pesky probin reader
         piStart = ParallelDescriptor::second();
@@ -1227,9 +1225,9 @@ Amr::restart (const std::string& filename)
         ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
       }
     }  // end for(iSet...)
-    piEndAll = ParallelDescriptor::second();
-    piTotal = piEnd - piStart;
-    piTotalAll = piEndAll - piStartAll;
+    Real piEndAll = ParallelDescriptor::second();
+    Real piTotal = piEnd - piStart;
+    Real piTotalAll = piEndAll - piStartAll;
     ParallelDescriptor::ReduceRealMax(piTotal);
     ParallelDescriptor::ReduceRealMax(piTotalAll);
     if(ParallelDescriptor::IOProcessor()) {
@@ -1851,10 +1849,10 @@ Amr::coarseTimeStep (Real stop_time)
     int plot_test = 0;
     if (plot_per > 0.0)
     {
+#ifdef BL_USEOLDPLOT_PER
       const int num_per_old = (cumtime-dt_level[0]) / plot_per;
       const int num_per_new = (cumtime            ) / plot_per;
 
-#ifdef BL_USEOLDPLOT_PER
       if (num_per_old != num_per_new)
 #else
       Real rN(0.0);

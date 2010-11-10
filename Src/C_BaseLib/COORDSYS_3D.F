@@ -75,6 +75,8 @@ c ::
        
        integer    i, j, k
        REAL_T     fa
+
+       fa = 1.d0
        
        if (coord .eq. 0) then
           if (dir .eq. 0) then
