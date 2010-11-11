@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.220 2010-11-10 23:46:09 lijewski Exp $
+// $Id: Amr.cpp,v 1.221 2010-11-11 17:48:24 ajnonaka Exp $
 //
 #include <winstd.H>
 
@@ -1849,7 +1849,7 @@ Amr::coarseTimeStep (Real stop_time)
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-#ifdef BL_USEOLDPLOT_PER
+#ifdef BL_USE_OLDPLOTPER
       const int num_per_old = (cumtime-dt_level[0]) / plot_per;
       const int num_per_new = (cumtime            ) / plot_per;
 
