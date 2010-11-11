@@ -227,6 +227,13 @@ contains
     character(len=*), optional :: str
     external MPI_Abort
     integer :: ierr
+    if ( parallel_IOProcessor() ) then
+       if ( present(str) ) then
+          print*, 'parallel_abort(): ', str
+       else
+          print*, 'parallel_abort() !!!'
+       end if
+    end if
     call MPI_Abort(m_comm, -1, ierr)
   end subroutine parallel_abort
 
