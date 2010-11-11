@@ -235,9 +235,9 @@ contains
   subroutine parallel_abort(str)
     character(len=*), optional :: str
     if ( present(str) ) then
-       write(*,*) 'PARALLEL_ABORT: ', str
+       print*, 'parallel_abort(): ', str
     else
-       write(*,*) 'PARALLEL_ABORT'
+       print*, 'parallel_abort() !!!'
     end if
     call sys_abort()
   end subroutine parallel_abort
