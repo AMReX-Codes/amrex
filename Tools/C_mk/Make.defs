@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.161 2010-11-11 17:48:44 ajnonaka Exp $
+# Make.defs $Id: Make.defs,v 1.162 2010-11-11 17:54:39 ajnonaka Exp $
 #
 
 #
@@ -807,7 +807,7 @@ else
 endif
 
 ifeq ($(USE_OLDPLOTPER),TRUE)
-    CPPFLAGS    += -DBL_USEOLDPLOT_PER
+    CPPFLAGS    += -DBL_USE_OLDPLOTPER
 endif
 
 ifeq ($(USE_LEVELSET),TRUE)
