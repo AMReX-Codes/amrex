@@ -342,7 +342,9 @@ ParticleContainer<N>::InitRandom (long          icount,
     {
         //
         // We'll let IOProc generate the particles so we get the same
-        // positions no matter how many CPUs we have.
+        // positions no matter how many CPUs we have.  This is here
+        // mainly for debugging purposes.  It's not really useful for
+        // very large numbers of particles.
         //
         //
         Array<Real> pos(icount*BL_SPACEDIM);
@@ -468,7 +470,7 @@ ParticleContainer<N>::InitRandom (long          icount,
         //
         // Let Redistribute() sort out where the particles belong.
         //
-        Redistribute();
+        Redistribute(true);
     }
 
     if (m_verbose > 0)
