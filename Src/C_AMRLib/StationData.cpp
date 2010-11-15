@@ -1,5 +1,5 @@
 //
-// $Id: StationData.cpp,v 1.22 2010-11-08 20:19:22 vince Exp $
+// $Id: StationData.cpp,v 1.23 2010-11-15 19:13:37 vince Exp $
 //
 #include <winstd.H>
 
@@ -91,13 +91,15 @@ StationData::init (const PArray<AmrLevel>& levels, const int finestlevel)
 
 	    } else {
 	      RealBox rbPD(Geometry::ProbDomain());
-	      std::cout << "**** Error in StationData:  coord outside probdomain: "
-	                << " pd  coord = " << rbPD << "   ";
-                        for(int d(0); d < BL_SPACEDIM; ++d) {
-			  std::cout << data[d] << "  ";
-	                }
-	      std::cout << std::endl;
-	      std::cout << "     Moving point to the domain center." << std::endl;
+              if(ParallelDescriptor::IOProcessor()) {
+	        std::cout << "**** Error in StationData:  coord outside probdomain: "
+	                  << " pd  coord = " << rbPD << "   ";
+                          for(int d(0); d < BL_SPACEDIM; ++d) {
+			    std::cout << data[d] << "  ";
+	                  }
+	        std::cout << std::endl;
+	        std::cout << "     Moving point to the domain center." << std::endl;
+	      }
               D_TERM(m_stn[k].pos[0] = rbPD.lo(0) + (0.5 * rbPD.length(0));,
                      m_stn[k].pos[1] = rbPD.lo(1) + (0.5 * rbPD.length(1));,
                      m_stn[k].pos[2] = rbPD.lo(2) + (0.5 * rbPD.length(2));)
@@ -123,8 +125,10 @@ StationData::init (const PArray<AmrLevel>& levels, const int finestlevel)
 	  if(tempPos > Geometry::ProbDomain().hi(d)) {
 	    tempPos -= 2.0 * dxEps;
 	  }
-	  std::cout << "***** Warning:  adjusting station coord from "
-	            << m_stn[i].pos[d] << "  to  " << tempPos << std::endl;
+          if(ParallelDescriptor::IOProcessor()) {
+	    std::cout << "***** Warning:  adjusting station coord from "
+	              << m_stn[i].pos[d] << "  to  " << tempPos << std::endl;
+	  }
 	  m_stn[i].pos[d] = tempPos;
 	}
       }
