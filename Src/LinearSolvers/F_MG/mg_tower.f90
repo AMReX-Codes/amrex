@@ -51,7 +51,7 @@ module mg_tower_module
 
      ! let MG pick the maximum number of levels
      integer :: max_nlevel = 1024
-     integer :: max_bottom_nlevel = 1024
+     integer :: max_bottom_nlevel = 3
      integer :: min_width  = 2
 
      ! good for many problems
