@@ -71,6 +71,8 @@ subroutine t_boxassoc
   ba = mba%bas(1)
   pd = mba%pd(1)
 
+  dm = get_dim(ba)
+
   call build(la, ba, pd = pd, pmask = pmask(1:dm))
 
   call boxassoc_build(bxasc, la%lap, ng, nodal = nodal, cross = .false.)
