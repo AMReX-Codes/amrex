@@ -37,15 +37,19 @@ contains
     do i=1,nboxes(uedge(1))
        if ( multifab_remote(uedge(1),i) ) cycle
        utp => dataptr(uedge(1),i)
-       vtp => dataptr(uedge(2),i)
        lo =  lwb(get_box(uedge(1),i))
        hi =  upb(get_box(uedge(1),i))
        select case (dm)
+       case (1)
+          call setbc_edgevel_1d(utp(:,1,1,1), ng_ut, lo,hi, &
+                                the_bc_level%phys_bc_level_array(i,:,:))
        case (2)
+          vtp => dataptr(uedge(2),i)
           call setbc_edgevel_2d(utp(:,:,1,1), vtp(:,:,1,1), ng_ut, lo,hi, &
                                 the_bc_level%phys_bc_level_array(i,:,:))
        case (3)
-          wtp => dataptr(uedge(3), i)
+          vtp => dataptr(uedge(2),i)
+          wtp => dataptr(uedge(3),i)
           call setbc_edgevel_3d(utp(:,:,:,1), vtp(:,:,:,1), wtp(:,:,:,1), ng_ut, &
                                 lo, hi, the_bc_level%phys_bc_level_array(i,:,:))
        end select
@@ -54,6 +58,45 @@ contains
     call destroy(bpt)
 
   end subroutine multifab_physbc_edgevel
+
+  subroutine setbc_edgevel_1d(uedge,ng_ut,lo,hi,phys_bc)
+
+    use bc_module
+
+    integer,         intent(in   ) :: lo(:),hi(:),ng_ut
+    real(kind=dp_t), intent(inout) :: uedge(lo(1)-ng_ut:)
+    integer        , intent(in   ) :: phys_bc(:,:)
+    
+    ! Local variables
+    integer :: is,ie
+
+    is = lo(1)
+    ie = hi(1)
+    
+    ! impose lo i side bc's
+    select case(phys_bc(1,1))
+    case (OUTLET)
+       uedge(is-1) = uedge(is)
+    case (SYMMETRY)
+       uedge(is-1) = -uedge(is+1)
+    case (INTERIOR, PERIODIC, INLET, SLIP_WALL, NO_SLIP_WALL)
+    case  default 
+       call bl_error("setbc_edgevel_1d: invalid boundary type phys_bc(1,1)")
+    end select
+
+    ! impose hi i side bc's
+    select case(phys_bc(1,2))
+    case (OUTLET)
+       uedge(ie+2) = uedge(ie+1)
+    case (SYMMETRY)
+       uedge(ie+2) = -uedge(ie)
+    case (INTERIOR, PERIODIC, INLET, SLIP_WALL, NO_SLIP_WALL)
+    case  default
+       call bl_error("setbc_edgevel_1d: invalid boundary type phys_bc(1,2)")
+    end select
+
+  end subroutine setbc_edgevel_1d
+
 
   subroutine setbc_edgevel_2d(uedge,vedge,ng_ut,lo,hi,phys_bc)
 
@@ -133,6 +176,7 @@ contains
     end select
 
   end subroutine setbc_edgevel_2d
+
 
   subroutine setbc_edgevel_3d(uedge,vedge,wedge,ng_ut,lo,hi,phys_bc)
 
