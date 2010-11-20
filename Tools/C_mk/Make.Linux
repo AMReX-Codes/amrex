@@ -27,7 +27,7 @@ ifeq ($(COMP),Cray)
   CXX = crayc++
   CC  = craycc
 
-  CXXOPTF += -O2 -h ipa1 -h noexceptions
+  CXXOPTF += -O1 -h noexceptions
   CXXDEBF += -g -O0 -h noexceptions
 
   ifneq ($(USE_OMP),TRUE)
@@ -125,8 +125,8 @@ ifeq ($(FCOMP),Cray)
   FDEBF += -g -O0
   fDEBF += -g -O0
 
-  FOPTF += -O2
-  fOPTF += -O2
+  FOPTF += -O1
+  fOPTF += -O1
 
   ifneq ($(USE_OMP),TRUE)
     FOPTF += -h noomp
