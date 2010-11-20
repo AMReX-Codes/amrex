@@ -6,11 +6,13 @@
     F90FLAGS += -J $(mdir) -I $(mdir) -em
 
     ifdef NDEBUG
-      FFLAGS   += -O2
-      F90FLAGS += -O2
+      FFLAGS   += -O 1
+      F90FLAGS += -O 1
+      CFLAGS   += -O 1
     else
       FFLAGS   += -g -O0
       F90FLAGS += -g -O0
+      CFLAGS   += -g -O0
     endif
 
     ifndef OMP
