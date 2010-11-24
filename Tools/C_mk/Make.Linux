@@ -125,8 +125,8 @@ ifeq ($(FCOMP),Cray)
   FDEBF += -g -O0
   fDEBF += -g -O0
 
-  FOPTF += -O1
-  fOPTF += -O1
+  FOPTF += -O 1,vector0
+  fOPTF += -O 1,vector0
 
   ifneq ($(USE_OMP),TRUE)
     FOPTF += -h noomp
