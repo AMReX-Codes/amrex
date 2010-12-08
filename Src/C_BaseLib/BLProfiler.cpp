@@ -1,5 +1,6 @@
+
 //
-// $Id: BLProfiler.cpp,v 1.28 2004-11-05 19:11:16 car Exp $
+// $Id: BLProfiler.cpp,v 1.29 2010-12-08 23:07:06 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -507,8 +508,10 @@ grovel(const ThreadTimerNode* nodes, const std::string& str, timer_packet& t)
     }
 }
 
+#ifdef BL_PROFILING
 bool Profiler::profiling = true;
 int Profiler::Tag::next_itag = 0;
+#endif
 
 namespace
 {
@@ -521,6 +524,7 @@ namespace
     bool mma = false;
 }
 
+#ifdef BL_PROFILING
 Profiler::Tag::Tag(const std::string& tag_)
     : tag(tag_)
 {
@@ -660,6 +664,7 @@ Profiler::stop()
 
     started = false;
 }
+#endif
 
 namespace
 {
@@ -702,6 +707,7 @@ mma_dump()
 }
 }
 
+#ifdef BL_PROFILING
 void
 Profiler::glean()
 {
@@ -913,7 +919,7 @@ Profiler::off()
     Lock<Mutex> lock(profiling_mutex);
     profiling = false;
 }
-
+#endif
 
 namespace
 {

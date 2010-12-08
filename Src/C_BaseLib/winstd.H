@@ -1,3 +1,4 @@
+
 #ifndef _WINSTD_H_
 #define _WINSTD_H_
 
@@ -13,12 +14,14 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstddef>
-//#undef max
-//#undef min
-#undef abs
 
 typedef int mode_t;
 typedef int pid_t;
+
+#if defined(_MSC_VER) && (_MSC_VER <= 1200)
+//#undef max
+//#undef min
+#undef abs
 
 // Place some globals in the standard namespace, where they belong
 namespace std
@@ -57,6 +60,7 @@ using ::sprintf;
 
 using ::size_t;
 }
+#endif
 #endif
 
 #if defined( BL_SUPERUX)
