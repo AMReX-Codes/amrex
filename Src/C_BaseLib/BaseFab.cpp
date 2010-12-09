@@ -2,6 +2,7 @@
 #include <winstd.H>
 
 #include <cstring>
+#include <cstdlib>
 #include <BaseFab.H>
 #include <BArena.H>
 #include <CArena.H>
