@@ -1042,12 +1042,22 @@ def test(argv):
 	       
             
         elif (sourceTree == "fParallel"):
-            os.system("gmake -j 4 MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % (FCOMP, outputDir, test))
+
+            useMPI = getParam(test + ".useMPI")
+
+            if (useMPI):
+                os.system("gmake -j 4 MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % 
+                          (FCOMP, outputDir, test))
+            else:
+                os.system("gmake -j 4 MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % 
+                          (FCOMP, outputDir, test))
+
 
             # we need a better way to get the executable name here
             executable = getRecentFileName(sourceDir + buildDir,"main",".exe")
 
         
+
         compileTest = getParam(test + ".compileTest")
 
         if (compileTest):
@@ -1170,13 +1180,38 @@ def test(argv):
 
         elif (sourceTree == "fParallel"):
 
-            # keep around the checkpoint files only for the restart runs
-            if (restart):
-                os.system("./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" %
-                          (executable, inputsFile, test, test, test))
+            if (useMPI):
+	       numprocs = useMPI = getParam(test + ".numprocs")
+
+	       # create the MPI executable
+	       testRunCommand = MPIcommand
+	       testRunCommand = testRunCommand.replace("@host@", MPIhost)
+	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (numprocs))
+
+                # keep around the checkpoint files only for the restart runs
+	       if (restart):
+                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
+                       (executable, inputsFile, test, test, test)
+               else:
+                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
+                       (executable, inputsFile, test, test, test)
+
+	       testRunCommand = testRunCommand.replace("@command@", command)
+
+	       print testRunCommand
+	       
+               os.system(testRunCommand)
+
             else:
-                os.system("./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" %
-                          (executable, inputsFile, test, test, test))
+
+                # keep around the checkpoint files only for the restart runs
+                if (restart):
+                    os.system("./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" %
+                              (executable, inputsFile, test, test, test))
+                else:
+                    os.system("./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" %
+                              (executable, inputsFile, test, test, test))
+
 
 
         # if it is a restart test, then rename the final output file and
@@ -1689,8 +1724,8 @@ def reportTestFailure(message, testName, testDir, fullWebDir):
     """ generate a simple report for an error encountered while performing 
         the test """
     
-    print "    aborting test"
-    print message
+    testfail("    aborting test")
+    testfail(message)
 
     # get the current directory
     currentDir = os.getcwd()
@@ -1704,9 +1739,10 @@ def reportTestFailure(message, testName, testDir, fullWebDir):
     statusFile = "%s.status" % (testName)
     sf = open(statusFile, 'w')
     sf.write("FAILED\n")
-    print "    %s FAILED" % (testName)
-
     sf.close()
+
+    testfail("    %s FAILED" % (testName))
+    print "\n"
 
 
     #--------------------------------------------------------------------------
