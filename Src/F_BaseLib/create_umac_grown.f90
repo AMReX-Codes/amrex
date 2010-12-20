@@ -82,15 +82,15 @@ contains
 
     dm = get_dim(crse(1))
 
-    ! If we are filling ghost cells on level 2, we need to call multifab_fill_boundary
-    ! and impose_phys_bcs_on_edges on level 1.  We will call multifab_fill_boundary
-    ! and impose_phys_bcs_on_edges on finelev later in this subroutine
-    if (finelev .eq. 2) then
-       do i=1,dm
-          call multifab_fill_boundary(crse(i))
-       end do
-       call multifab_physbc_edgevel(crse,bc_crse)
-    end if
+    ! Call multifab_fill_boundary and impose_phys_bcs_on_edges on the coarse level.
+    ! We will call multifab_fill_boundary and impose_phys_bcs_on_edges on the fine level
+    ! later in this subroutine
+    ! this can be optimized by putting if (finelev .eq. nlevs) around these lines, but
+    ! nlevs isn't available in this subroutine yet
+    do i=1,dm
+       call multifab_fill_boundary(crse(i))
+    end do
+    call multifab_physbc_edgevel(crse,bc_crse)
 
     ! Grab the cached boxarray of all ghost cells not covered by valid region.
     fine_la = get_layout(fine(1))
