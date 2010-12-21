@@ -11,21 +11,26 @@ module tag_boxes_module
   use bl_IO_module
   use cluster_module
   use ml_layout_module
+  use bl_error_module, only: bl_error
 
   implicit none 
 
 contains
 
-  subroutine tag_boxes(mf,tagboxes,dx,lev)
+  subroutine tag_boxes(mf,tagboxes,dx,lev,aux_tag_mf)
 
-    type( multifab), intent(in   ) :: mf
-    type(lmultifab), intent(inout) :: tagboxes
-    real(dp_t)     , intent(in   ) :: dx
-    integer        , intent(in   ) :: lev
+    type( multifab)         , intent(in   ) :: mf
+    type(lmultifab)         , intent(inout) :: tagboxes
+    real(dp_t)              , intent(in   ) :: dx
+    integer                 , intent(in   ) :: lev
+    type(multifab), optional, intent(in   ) :: aux_tag_mf
 
     real(kind = dp_t), pointer :: sp(:,:,:,:)
     logical          , pointer :: tp(:,:,:,:)
     integer           :: i, lo(get_dim(mf)), hi(get_dim(mf)), ng
+
+    if (present(aux_tag_mf)) &
+         call bl_error("aux_tag_mf passed to tag_boxes without implementation")
 
     ng = nghost(mf)
 

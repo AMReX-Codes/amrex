@@ -16,22 +16,27 @@ module make_new_grids_module
   contains
 
     subroutine make_new_grids(new_grid_flag,la_crse,la_fine,mf,dx_crse,buf_wid,ref_ratio, &
-                              lev,max_grid_size)
+                              lev,max_grid_size,aux_tag_mf)
 
-       logical            , intent(  out) :: new_grid_flag
-       type(layout)       , intent(in   ) :: la_crse
-       type(layout)       , intent(inout) :: la_fine
-       type(multifab)     , intent(in   ) :: mf
-       real(dp_t)         , intent(in   ) :: dx_crse
-       integer            , intent(in   ) :: buf_wid
-       integer            , intent(in   ) :: max_grid_size
-       integer            , intent(in   ) :: ref_ratio
-       integer            , intent(in   ) :: lev
+       logical                 , intent(  out) :: new_grid_flag
+       type(layout)            , intent(in   ) :: la_crse
+       type(layout)            , intent(inout) :: la_fine
+       type(multifab)          , intent(in   ) :: mf
+       real(dp_t)              , intent(in   ) :: dx_crse
+       integer                 , intent(in   ) :: buf_wid
+       integer                 , intent(in   ) :: max_grid_size
+       integer                 , intent(in   ) :: ref_ratio
+       integer                 , intent(in   ) :: lev
+       type(multifab), optional, intent(in   ) :: aux_tag_mf
 
        type(box)         :: pd
        type(boxarray)    :: ba_new
 
-       call make_boxes(mf,ba_new,dx_crse,buf_wid,lev)
+       if (present(aux_tag_mf)) then
+          call make_boxes(mf,ba_new,dx_crse,buf_wid,lev,aux_tag_mf)
+       else
+          call make_boxes(mf,ba_new,dx_crse,buf_wid,lev)
+       endif
 
        if (empty(ba_new)) then 
 
@@ -58,15 +63,16 @@ module make_new_grids_module
 
     end subroutine make_new_grids
 
-    subroutine make_boxes(mf,ba_new,dx_crse,buf_wid,lev)
+    subroutine make_boxes(mf,ba_new,dx_crse,buf_wid,lev,aux_tag_mf)
 
       use tag_boxes_module
 
-      type(multifab)   , intent(in   ) :: mf
-      type(boxarray)   , intent(  out) :: ba_new
-      real(dp_t)       , intent(in   ) :: dx_crse
-      integer          , intent(in   ) :: buf_wid
-      integer, optional, intent(in   ) :: lev
+      type(multifab)          , intent(in   ) :: mf
+      type(boxarray)          , intent(  out) :: ba_new
+      real(dp_t)              , intent(in   ) :: dx_crse
+      integer                 , intent(in   ) :: buf_wid
+      integer       , optional, intent(in   ) :: lev
+      type(multifab), optional, intent(in   ) :: aux_tag_mf
 
       integer         :: llev
       type(lmultifab) :: tagboxes
@@ -76,7 +82,11 @@ module make_new_grids_module
       call lmultifab_build(tagboxes,get_layout(mf),1,0) 
       call setval(tagboxes, .false.)
 
-      call tag_boxes(mf,tagboxes,dx_crse,llev)
+      if (present(aux_tag_mf)) then
+         call tag_boxes(mf,tagboxes,dx_crse,llev,aux_tag_mf)
+      else
+         call tag_boxes(mf,tagboxes,dx_crse,llev)
+      endif
 
       if (lmultifab_count(tagboxes) == 0) then
 
