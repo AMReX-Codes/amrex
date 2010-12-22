@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.11 2010-08-12 00:12:50 gpau Exp $
+# $Id: GNUmakefile,v 1.12 2010-12-22 23:46:58 gpau Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -14,13 +14,13 @@ PROFILE       = FALSE
 DIM	      = 2
 COMP          = Intel
 FCOMP         = Intel
-USE_MPI       = FALSE
+USE_MPI       = TRUE
 
 #
 # Base name of the executable.
 #
-#EBASE = DiffUniform
-EBASE = PltFileNorm
+EBASE = DiffUniform
+#EBASE = PltFileNorm
 #EBASE = PltFileScalConvRate
 #EBASE = DiffFab
 #EBASE = DiffSameGrid
@@ -31,6 +31,7 @@ EBASE = PltFileNorm
 #EBASE = DiffSameGrid2
 #EBASE = DiffUniform
 #EBASE = DiffSameGridRefined
+
 #EBASE = DiffFab
 
 CEXE_sources += $(EBASE).cpp
