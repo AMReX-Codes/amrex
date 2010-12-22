@@ -1,5 +1,5 @@
 //
-// $Id: DiffUniform.cpp,v 1.13 2010-08-12 00:12:50 gpau Exp $
+// $Id: DiffUniform.cpp,v 1.14 2010-12-22 23:46:58 gpau Exp $
 //
 
 #include <new>
@@ -139,18 +139,20 @@ main (int   argc,
 	IntVect refine_ratio   = getRefRatio(domainC, domainF);
 	if (refine_ratio == IntVect())
 	    BoxLib::Error("Cannot find refinement ratio from data to exact");
-        std::cout << "Ratio for level " << iLevel << " is " << refine_ratio << std::endl;
+
+	if (ParallelDescriptor::IOProcessor())
+	  std::cout << "Ratio for level " << iLevel << " is " << refine_ratio << std::endl;
 
 	error[iLevel] = new MultiFab(crseBA, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
 	for (int iComp=0; iComp<nComp; ++iComp)
 	{
-//          MultiFab& exact = amrDataF.GetGrids(finestLevel,iComp);
             MultiFab& exact = amrDataF.GetGrids(exact_level,iComp);
             const BoxArray& exactBA = exact.boxArray();
             const BoxArray crseBA = ::BoxArray(exactBA).coarsen(refine_ratio);
             MultiFab aveExact(crseBA,1,0,Fab_allocate);
+	    std::cout << crseBA;
             int nc = exact.nComp();
             for (MFIter amfi(aveExact); amfi.isValid(); ++amfi)
             {
@@ -174,14 +176,22 @@ main (int   argc,
             MultiFab& data = amrDataC.GetGrids(iLevel,iComp);
             BL_ASSERT(data.boxArray() == error[iLevel]->boxArray());
 
+	    Real norm_before = (*error[iLevel]).norm2(iComp);
+
+	    if (ParallelDescriptor::IOProcessor())
+	    {
+	      std::cout << "DOING ICOMP " << iComp << std::endl;
+	      std::cout << "BEFORE: NORM OF ERROR " << norm_before << std::endl;
+	    }
 	    for (MFIter dmfi(data); dmfi.isValid(); ++dmfi)
             {
-		
-                std::cout << "DOING ICOMP " << iComp << std::endl;
-                std::cout << "BEFORE: NORM OF ERROR " << (*error[iLevel])[dmfi].norm(0,iComp,1) << std::endl;
 		(*error[iLevel])[dmfi].minus(data[dmfi],0,iComp,1);
-                std::cout << "AFTER: NORM OF ERROR " << (*error[iLevel])[dmfi].norm(0,iComp,1) << std::endl;
+                
             }
+	    Real norm_after = (*error[iLevel]).norm2(iComp);
+
+	    if (ParallelDescriptor::IOProcessor())
+	      std::cout << "AFTER: NORM OF ERROR " << norm_after << std::endl;
         }
     }
 
