@@ -1059,6 +1059,8 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
         const int        n    = pbox.size();
         const FArrayBox& gfab = gv[grid];
 
+        Real a_halfsq = a_half * a_half;
+
 #ifdef BL_USE_OMP
 #pragma omp parallel for
 #endif
@@ -1087,9 +1089,9 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
 
             // Divide the half-time velocity "u^{n+1/2}" by "a^{n+1/2} SQUARED"
             // "m_data" now holds u/a at time t^{n+1/2}
-            D_TERM(p.m_data[1] /= a_half**2;,
-                   p.m_data[2] /= a_half**2;,
-                   p.m_data[3] /= a_half**2;);
+            D_TERM(p.m_data[1] /= a_halfsq;,
+                   p.m_data[2] /= a_halfsq;,
+                   p.m_data[3] /= a_halfsq;);
 
             D_TERM(p.m_pos[0] += dt * p.m_data[1];,
                    p.m_pos[1] += dt * p.m_data[2];,
