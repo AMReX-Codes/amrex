@@ -1024,6 +1024,19 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
                                      int             lev,
                                      Real            dt)
 {
+    Real a_old  = 1.;
+    Real a_half = 1.;
+    moveKickDrift (gv,lev,dt,a_old,a_half);
+}
+
+template <int N>
+void
+ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
+                                     int             lev,
+                                     Real            dt,
+                                     Real            a_old,
+                                     Real            a_half) 
+{
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -1054,9 +1067,19 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
 
             ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
 
+            // Multiply the old-time velocity "u^n" by "a^n"
+            D_TERM(p.m_data[1] *= a_old;,
+                   p.m_data[2] *= a_old;,
+                   p.m_data[3] *= a_old;);
+
             D_TERM(p.m_data[1] += 0.5 * dt * grav[0];,
                    p.m_data[2] += 0.5 * dt * grav[1];,
                    p.m_data[3] += 0.5 * dt * grav[2];);
+
+            // Divide the half-time velocity "u^{n+1/2}" by "a^{n+1/2}"
+            D_TERM(p.m_data[1] /= a_half;,
+                   p.m_data[2] /= a_half;,
+                   p.m_data[3] /= a_half;);
 
             D_TERM(p.m_pos[0] += dt * p.m_data[1];,
                    p.m_pos[1] += dt * p.m_data[2];,
