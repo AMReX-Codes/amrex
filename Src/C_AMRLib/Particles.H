@@ -113,10 +113,17 @@ public:
     //
     // TODO: the methods should return a constraint on the timestep...
     //
-    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles
+    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
+    //   standard coordinates
     //
     void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep);
     void moveKick      (const MultiFab& grav_vector, int level, Real timestep);
+    //
+    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
+    //   comoving coordinates
+    //
+    void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep, Real a_old, Real a_half);
+    void moveKick      (const MultiFab& grav_vector, int level, Real timestep, Real a_new, Real a_half);
     //
     // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
     // so this scheme should work in the overall algorithm...
@@ -1068,22 +1075,31 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
             ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
 
             // Multiply the old-time velocity "u^n" by "a^n"
+            // "m_data" now holds a*u at time t^{n+1/2}
             D_TERM(p.m_data[1] *= a_old;,
                    p.m_data[2] *= a_old;,
                    p.m_data[3] *= a_old;);
 
+            // "m_data" now holds a*u at time t^{n+1/2}
             D_TERM(p.m_data[1] += 0.5 * dt * grav[0];,
                    p.m_data[2] += 0.5 * dt * grav[1];,
                    p.m_data[3] += 0.5 * dt * grav[2];);
 
-            // Divide the half-time velocity "u^{n+1/2}" by "a^{n+1/2}"
-            D_TERM(p.m_data[1] /= a_half;,
-                   p.m_data[2] /= a_half;,
-                   p.m_data[3] /= a_half;);
+            // Divide the half-time velocity "u^{n+1/2}" by "a^{n+1/2} SQUARED"
+            // "m_data" now holds u/a at time t^{n+1/2}
+            D_TERM(p.m_data[1] /= a_half**2;,
+                   p.m_data[2] /= a_half**2;,
+                   p.m_data[3] /= a_half**2;);
 
             D_TERM(p.m_pos[0] += dt * p.m_data[1];,
                    p.m_pos[1] += dt * p.m_data[2];,
                    p.m_pos[2] += dt * p.m_data[3];);
+
+            // Multiply the half-time velocity "u^{n+1/2}" by "a^{n+1/2}"
+            // "m_data" now holds u at time t^{n+1/2}
+            D_TERM(p.m_data[1] *= a_half;,
+                   p.m_data[2] *= a_half;,
+                   p.m_data[3] *= a_half;);
 
             if (!ParticleBase::Where(p,m_amr,true))
             {
@@ -1124,6 +1140,19 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
                                 int             lev,
                                 Real            dt)
 {
+    Real a_new  = 1.;
+    Real a_half = 1.;
+    moveKick (gv,lev,dt,a_new,a_half);
+}
+
+template <int N>
+void
+ParticleContainer<N>::moveKick (const MultiFab& gv,
+                                int             lev,
+                                Real            dt,
+                                Real            a_new,
+                                Real            a_half) 
+{
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -1154,9 +1183,21 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
 
             ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
 
+            // Multiply the half-time velocity "u^{n+1/2}" by "a^{n+1/2}"
+            // "m_data" now holds a*u at time t^{n+1/2}
+            D_TERM(p.m_data[1] *= a_half;,
+                   p.m_data[2] *= a_half;,
+                   p.m_data[3] *= a_half;);
+
             D_TERM(p.m_data[1] += 0.5 * dt * grav[0];,
                    p.m_data[2] += 0.5 * dt * grav[1];,
                    p.m_data[3] += 0.5 * dt * grav[2];);
+
+            // Divide the new-time velocity "u^{n+1}" by "a^{n+1}"
+            // "m_data" now holds u at time t^{n+1}
+            D_TERM(p.m_data[1] /= a_new;,
+                   p.m_data[2] /= a_new;,
+                   p.m_data[3] /= a_new;);
         }
     }
 
