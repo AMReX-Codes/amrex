@@ -82,6 +82,7 @@ public:
     void Init (const std::string& file);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
+    void InitCosmo (Real particleMass = -1);
 
     Real sumParticleMass (const MultiFab& mf, int level) const;
     void sumParticleMomentum (const MultiFab& mf, int lev, Real* mom) const;
@@ -310,6 +311,124 @@ ParticleContainer<N>::Init (const std::string& file)
     {
         ByteSpread();
     }
+}
+
+template <int N>
+void
+ParticleContainer<N>::InitCosmo (Real          mass)
+{
+    const int       MyProc   = ParallelDescriptor::MyProc();
+    const int       NProcs   = ParallelDescriptor::NProcs();
+    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Real      strttime = ParallelDescriptor::second();
+    const Geometry& geom     = m_amr->Geom(0);
+    const Real*     dx       = geom.CellSize();
+
+    long icnt = 1;
+
+    Real len[BL_SPACEDIM], r;
+
+    m_particles.resize(m_amr->finestLevel()+1);
+
+    for (int lev = 0; lev < m_particles.size(); lev++)
+    {
+        BL_ASSERT(m_particles[lev].empty());
+    }
+
+    //FIXME!
+    Real vel_fac = 1./1000.;
+    Real disp_fac = 1./100.;
+
+    D_TERM(len[0] = geom.ProbLength(0);,
+           len[1] = geom.ProbLength(1);,
+           len[2] = geom.ProbLength(2););
+
+    MultiFab mf; 
+    VisMF::Read(mf,"init/Level_0/Cell");
+    if(MyProc == IOProc){
+        std::cout << "done." << std::endl;
+    }
+
+    if(mass == -1){
+	    if(MyProc == IOProc){
+		    std::cout << "AAAAAAHHHHHHHHHHHH!!!1!11" << std::endl;
+	    }
+	    mass=1;
+    }
+
+
+    //(The grid should be initialized according to the ics...)
+
+    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        FArrayBox &myFab = mf[mfi];
+        const int  *fab_lo = mfi.validbox().loVect();
+        const int  *fab_hi = mfi.validbox().hiVect();
+        const int   fab_ix = fab_hi[0] - fab_lo[0] + 1;
+        const int   fab_jx = fab_hi[1] - fab_lo[1] + 1;
+        const int   fab_kx = fab_hi[2] - fab_lo[2] + 1;
+        for (int kx = 0; kx < fab_kx; kx++) {
+            for (int jx = 0; jx < fab_jx; jx++) {
+                for (int ix = 0; ix < fab_ix; ix++) {
+
+                    int mf_cell = (kx*fab_jx+jx)*fab_ix+ix;
+	            ParticleType p;
+            	    int indices[BL_SPACEDIM] = { D_DECL(kx, jx, ix) };
+		    Real disp[BL_SPACEDIM];
+	
+	            for (int i = 0; i < BL_SPACEDIM; i++)
+	            {
+			//equal distribution (for 1 p per cell in the center of the cell)
+	                p.m_pos[i]  = geom.ProbLo(i) + (indices[i]+fab_lo[i]+0.5)*dx[i];
+	            }
+		    //GetGravity essentiality maps quantities defined on grids to particles
+            	    ParticleBase::GetGravity(myFab, m_amr, 0, p, disp);
+	            for (int i = 0; i < BL_SPACEDIM; i++)
+	            {
+			//adding the displacements
+		        p.m_pos[i] += disp[i] * disp_fac;
+			//set the velocities
+	                p.m_data[i+1] = disp[i] * vel_fac;
+	            }
+
+
+		    //set the mass of the particle in accordance to $\rho_\text{dm}$
+	            p.m_data[0] = mass;
+	
+	
+	            p.m_id  = icnt++;
+	            p.m_cpu = MyProc;
+
+	
+	            if (!ParticleBase::Where(p,m_amr))
+      		        ParticleBase::PeriodicShift(p,m_amr);      		        
+	            if (!ParticleBase::Where(p,m_amr)){
+	                BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
+		    }
+
+	
+//		    std::cout << p << std::endl;
+	            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_amr->finestLevel());
+	            //
+	            // Add it to the appropriate PBox at the appropriate level.
+	            //
+	            m_particles[p.m_lev][p.m_grid].push_back(p);
+                }
+            }
+        }
+    } // MFI
+
+   //Delete the read data!
+   //But how?
+   
+   //
+   // Let Redistribute() sort out where the particles belong.
+   //
+   Redistribute(true);
+   Real runtime = ParallelDescriptor::second()-strttime;
+   ParallelDescriptor::ReduceRealMax(runtime, IOProc);
+   if(MyProc == IOProc){
+       std::cout << "InitCosmo() done time: " << runtime << std::endl;
+   }
 }
 
 template <int N>
