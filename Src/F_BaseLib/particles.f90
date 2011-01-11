@@ -25,17 +25,8 @@ module particle_module
   type particle_vector
      private
      integer :: size = 0
-     integer :: bump = 2
      type(particle), pointer :: d(:) => NULL()
   end type particle_vector
-
-  interface capacity
-    module procedure particle_vector_capacity
-  end interface capacity
-
-  interface size
-     module procedure particle_vector_size
-  end interface size
 
   interface build
      module procedure particle_vector_build
@@ -44,45 +35,56 @@ module particle_module
   interface destroy
      module procedure particle_vector_destroy
   end interface destroy
+  !
+  ! This includes both valid and invalid particles.
+  !
+  ! Valid particles are those for which "id" > 0.
+  !
+  ! Invalid are those for which "id" < 0.
+  !
+  ! We do not use the value zero for particle ids.
+  !
+  interface size
+     module procedure particle_vector_size
+  end interface size
 
   interface empty
      module procedure particle_vector_empty
   end interface empty
-
+  !
+  ! Returns copy of the i'th particle.  It may or may not be valid.
+  !
   interface at
      module procedure particle_vector_at
   end interface at
-  interface set_at
-     module procedure particle_vector_at_set
-  end interface set_at
+  !
+  ! This symbolically removes particles from the vector
+  ! by negating the "id" of the particle.  This will be
+  ! used by add() to cut down on memory allocation and copying.
+  !
+  interface remove
+     module procedure particle_vector_remove
+  end interface remove
+  !
+  ! This "usually" does a push_back on the space holding
+  ! the particles.  If however that space is at capacity,
+  ! it will try to add the particle by overwriting one that was
+  ! previously removed, if possible, before allocating more space.
+  ! 
+  interface add
+     module procedure particle_vector_add
+  end interface add
 
-  interface push_back
-     module procedure particle_vector_push_back
-  end interface push_back
-
-  interface pop_back
-     module procedure particle_vector_pop_back
-  end interface pop_back
-
-  interface erase
-     module procedure particle_vector_erase
-  end interface erase
-
-  interface back
-     module procedure particle_vector_back
-  end interface back
-
-  interface reserve
-    module procedure particle_vector_reserve
-  end interface reserve
-
-  interface clear
-     module procedure particle_vector_clear
-  end interface clear
+  interface capacity
+     module procedure particle_vector_capacity
+  end interface capacity
 
   interface print
      module procedure particle_vector_print
   end interface print
+
+  private :: particle_vector_clear
+  private :: particle_vector_reserve
 
 contains
 
@@ -106,7 +108,7 @@ contains
 
   subroutine particle_vector_destroy(d)
     type(particle_vector), intent(inout) :: d
-    call clear(d)
+    call particle_vector_clear(d)
   end subroutine particle_vector_destroy
 
   pure function particle_vector_empty(d) result(r)
@@ -134,13 +136,6 @@ contains
     r = d%d(i)
   end function particle_vector_at
 
-  subroutine particle_vector_at_set(d, i, v)
-    type(particle),        intent(in   ) :: v
-    integer,               intent(in   ) :: i
-    type(particle_vector), intent(inout) :: d
-    d%d(i) = v
-  end subroutine particle_vector_at_set
-
   subroutine particle_vector_reserve(d, size)
     type(particle_vector), intent(inout) :: d
     integer,               intent(in   ) :: size
@@ -154,33 +149,35 @@ contains
     d%d => np
   end subroutine particle_vector_reserve
 
-  subroutine particle_vector_push_back(d,v)
+  subroutine particle_vector_add(d,v)
     type(particle_vector), intent(inout) :: d
     type(particle),        intent(in   ) :: v
+    integer i
     if ( d%size >= particle_vector_capacity(d) ) then
-       call particle_vector_reserve(d,max(d%size+1,d%size*d%bump))
+       !
+       ! Before reserving more space try to overwrite an invalid particle.
+       ! Note that an overwrite does not change the size of the vector.
+       !
+       do i = 1, d%size
+          if (d%d(i)%id < 0) then
+             d%d(i) = v
+             return
+          end if
+       end do
+       call particle_vector_reserve(d,max(d%size+1,2*d%size))
+       d%size      = d%size + 1
+       d%d(d%size) = v
+    else
+       d%size      = d%size + 1
+       d%d(d%size) = v
     end if
-    d%size      = d%size + 1
-    d%d(d%size) = v
-  end subroutine particle_vector_push_back
+  end subroutine particle_vector_add
 
-  subroutine particle_vector_pop_back(d)
-    type(particle_vector), intent(inout) :: d
-    d%size = d%size - 1
-  end subroutine particle_vector_pop_back
-
-  pure function particle_vector_back(d) result(r)
-    type(particle_vector), intent(in) :: d
-    type(particle)                    :: r
-    r = d%d(d%size)
-  end function particle_vector_back
-
-  subroutine particle_vector_erase(d,i)
+  subroutine particle_vector_remove(d,i)
     type(particle_vector), intent(inout) :: d
     integer,               intent(in   ) :: i
-    d%d(i:d%size-1) = d%d(i+1:d%size)
-    d%size = d%size - 1
-  end subroutine particle_vector_erase
+    d%d(i)%id = -d%d(i)%id
+  end subroutine particle_vector_remove
 
   subroutine particle_vector_clear(d)
     type(particle_vector), intent(inout) :: d
@@ -190,16 +187,30 @@ contains
     end if
   end subroutine particle_vector_clear
 
-  subroutine particle_vector_print(d, str)
-    type(particle_vector), intent(in) :: d
-    character (len=*), intent(in), optional :: str
+  subroutine particle_vector_print(d, str, valid)
+    type(particle_vector), intent(in)           :: d
+    character (len=*),     intent(in), optional :: str
+    logical,               intent(in), optional :: valid
+
+    logical :: v
     integer :: i
+    !
+    ! If "valid" .eq. .true. only print valid particles.
+    !
+    v = .false. ; if ( present(valid) ) v = valid
+
     if ( present(str) ) print*, str
     if ( empty(d) ) then
        print*, '"Empty"'
     else
        do i = 1, d%size
-          call print(d%d(i))
+          if (v) then
+             if (d%d(i)%id > 0) then
+                call print(d%d(i))
+             end if
+          else
+             call print(d%d(i))
+          end if
        end do
     end if
   end subroutine particle_vector_print
