@@ -31,7 +31,8 @@ program main
 ! call t_bl_prof
 ! call t_ba_self_intersection
 ! call t_knapsack
-  call t_gatherv
+! call t_gatherv
+  call t_particle
 
  call layout_flush_copyassoc_cache ()
 
