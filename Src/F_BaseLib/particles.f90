@@ -18,6 +18,14 @@ module particle_module
 
   end type particle
 
+  interface index
+     module procedure particle_index
+  end interface index
+
+  interface where
+     module procedure particle_where
+  end interface where
+
   interface print
      module procedure particle_print
   end interface print
@@ -87,6 +95,119 @@ module particle_module
   private :: particle_vector_reserve
 
 contains
+
+  subroutine particle_index(p,lev,mlla,dx,problo,iv)
+
+    type(particle),   intent(in)    :: p
+    integer,          intent(in)    :: lev
+    type(ml_layout),  intent(in)    :: mlla
+    double precision, intent(in)    :: dx(:,:)
+    double precision, intent(in)    :: problo(:)
+    integer,          intent(inout) :: iv(:)
+    
+    integer i,dm
+
+    dm = mlla%dim
+
+    do i = 1, dm
+       iv(i) = floor((p.pos(i)-problo(i))/dx(lev,i)) + lwb(mlla%la(lev)%lap%pd,i)
+    end do
+
+  end subroutine particle_index
+  !
+  ! A return value of true means we found the particle in our grid hierarchy.
+  !
+  ! A value of false means it's moved outside our domain.
+  !
+  function particle_where(p,mlla,dx,problo,update) result(r)
+
+    use bl_error_module
+
+    type(particle),   intent(inout) :: p
+    type(ml_layout),  intent(inout) :: mlla
+    double precision, intent(in   ) :: dx(:,:)
+    double precision, intent(in   ) :: problo(:)
+
+    logical, intent(in), optional :: update
+
+    logical                         :: r, lupdate
+    integer                         :: lev, iv(MAX_SPACEDIM), dm
+    type(box_intersector), pointer  :: bi(:)
+    type(box)                       :: bx
+
+    lupdate = .false. ; if ( present(update) ) lupdate = update
+
+    dm = mlla%dim
+
+    if (lupdate) then
+       !
+       ! We have a valid particle whose position has changed slightly.
+       ! Try to update it smartly.
+       !
+       call bl_assert(p%id > 0, 'p%id must be > 0')
+       call bl_assert(p%grd > 1, 'p%grd must be > 1')
+       call bl_assert(lev >= 0, 'lev must be >= 0')
+       call bl_assert(lev <= size(mlla%la), 'lev out of bounds')
+       call bl_assert(p%grd <= nboxes(mlla%la(p%lev)%lap%bxa), 'p%grd out of bounds')
+
+       call particle_index(p,p%lev,mlla,dx,problo,iv)
+
+       if (all(p%cell(1:dm) == iv(1:dm))) then
+          !
+          ! The particle hasn't left its cell.
+          !
+          r = .true.
+
+          return
+       end if
+
+       if (p%lev == size(mlla%la)) then
+
+          p%cell(1:dm) = iv(1:dm)
+          
+          if (contains(get_box(mlla%la(p%lev)%lap%bxa,p%grd),iv)) then
+             !
+             ! It's left its cell but's still in the same grid.
+             !
+             r = .true.
+
+             return
+          end if
+       end if
+    end if
+
+    do lev = size(mlla%la), 1, -1
+
+       call particle_index(p,lev,mlla,dx,problo,iv)
+
+       call build(bx,iv(1:dm))
+
+       bi => layout_get_box_intersector(mlla%la(lev),bx)
+
+       if (size(bi) > 0) then
+
+          call bl_assert(size(bi) == 1, 'should only be one box intersector')
+
+          p%lev        = lev;
+          p%grd        = bi(1)%i
+          p%cell(1:dm) = iv(1:dm)
+
+          deallocate(bi)
+          !
+          ! Found where the particle belongs !!!
+          !
+          r = .true.
+
+          return
+       end if
+
+       deallocate(bi)
+
+    end do
+
+    r = .false.
+
+  end function particle_where
 
   subroutine particle_print(p)
 
