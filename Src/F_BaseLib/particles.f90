@@ -87,11 +87,20 @@ module particle_module
      module procedure particle_vector_capacity
   end interface capacity
 
+  interface clear
+     module procedure particle_vector_clear
+  end interface clear
+
   interface print
      module procedure particle_vector_print
   end interface print
+  !
+  ! This is useful for testing purposes.
+  !
+  interface init_random
+     module procedure particle_init_random
+  end interface init_random
 
-  private :: particle_vector_clear
   private :: particle_vector_reserve
 
 contains
@@ -117,7 +126,7 @@ contains
   !
   ! A return value of true means we found the particle in our grid hierarchy.
   !
-  ! A value of false means it's moved outside our domain.
+  ! A value of false means it's outside our domain.
   !
   function particle_where(p,mlla,dx,problo,update) result(r)
 
@@ -139,20 +148,20 @@ contains
 
     dm = mlla%dim
 
-    if (lupdate) then
+    if ( lupdate ) then
        !
        ! We have a valid particle whose position has changed slightly.
        ! Try to update it smartly.
        !
-       call bl_assert(p%id > 0, 'p%id must be > 0')
-       call bl_assert(p%grd > 1, 'p%grd must be > 1')
-       call bl_assert(lev >= 0, 'lev must be >= 0')
-       call bl_assert(lev <= size(mlla%la), 'lev out of bounds')
-       call bl_assert(p%grd <= nboxes(mlla%la(p%lev)%lap%bxa), 'p%grd out of bounds')
+       call bl_assert(p%id > 0, 'particle_where: p%id must be > 0')
+       call bl_assert(p%grd > 1, 'particle_where: p%grd must be > 1')
+       call bl_assert(lev >= 0, 'particle_where: lev must be >= 0')
+       call bl_assert(lev <= size(mlla%la), 'particle_where: lev out of bounds')
+       call bl_assert(p%grd <= nboxes(mlla%la(p%lev)%lap%bxa), 'particle_where: p%grd out of bounds')
 
        call particle_index(p,p%lev,mlla,dx,problo,iv)
 
-       if (all(p%cell(1:dm) == iv(1:dm))) then
+       if ( all(p%cell(1:dm) == iv(1:dm)) ) then
           !
           ! The particle hasn't left its cell.
           !
@@ -161,11 +170,11 @@ contains
           return
        end if
 
-       if (p%lev == size(mlla%la)) then
+       if ( p%lev == size(mlla%la) ) then
 
           p%cell(1:dm) = iv(1:dm)
           
-          if (contains(get_box(mlla%la(p%lev)%lap%bxa,p%grd),iv)) then
+          if ( contains(get_box(mlla%la(p%lev)%lap%bxa,p%grd),iv) ) then
              !
              ! It's left its cell but's still in the same grid.
              !
@@ -184,11 +193,11 @@ contains
 
        bi => layout_get_box_intersector(mlla%la(lev),bx)
 
-       if (size(bi) > 0) then
+       if ( size(bi) > 0 ) then
 
-          call bl_assert(size(bi) == 1, 'should only be one box intersector')
+          call bl_assert(size(bi) == 1, 'particle_where: should only be one box intersector')
 
-          p%lev        = lev;
+          p%lev        = lev
           p%grd        = bi(1)%i
           p%cell(1:dm) = iv(1:dm)
 
@@ -280,7 +289,7 @@ contains
        ! Note that an overwrite does not change the size of the vector.
        !
        do i = 1, d%size
-          if (d%d(i)%id < 0) then
+          if ( d%d(i)%id < 0 ) then
              d%d(i) = v
              return
           end if
@@ -313,20 +322,20 @@ contains
     character (len=*),     intent(in), optional :: str
     logical,               intent(in), optional :: valid
 
-    logical :: v
+    logical :: lvalid
     integer :: i
     !
     ! If "valid" .eq. .true. only print valid particles.
     !
-    v = .false. ; if ( present(valid) ) v = valid
+    lvalid = .false. ; if ( present(valid) ) lvalid = valid
 
     if ( present(str) ) print*, str
     if ( empty(d) ) then
        print*, '"Empty"'
     else
        do i = 1, d%size
-          if (v) then
-             if (d%d(i)%id > 0) then
+          if ( lvalid ) then
+             if ( d%d(i)%id > 0 ) then
                 call print(d%d(i))
              end if
           else
@@ -335,5 +344,77 @@ contains
        end do
     end if
   end subroutine particle_vector_print
+
+  subroutine particle_init_random(particles,icnt,iseed,mlla,dx,problo,probhi)
+
+    use parallel
+    use mt19937_module
+    use bl_error_module
+
+    type(particle_vector), intent(inout) :: particles
+    integer,               intent(in   ) :: icnt
+    integer,               intent(in   ) :: iseed
+    type(ml_layout),       intent(inout) :: mlla
+    double precision,      intent(in   ) :: dx(:,:)
+    double precision,      intent(in   ) :: problo(:)
+    double precision,      intent(in   ) :: probhi(:)
+
+    integer          :: i, j, id, dm
+    double precision :: rnd, len(MAX_SPACEDIM)
+    type(particle)   :: p
+    !
+    ! Start particle IDs from 1 ...
+    !
+    id = 1
+
+    dm = mlla%dim
+
+    call bl_assert(icnt  > 0, 'init_random: icnt must be > 0')
+    call bl_assert(iseed > 0, 'init_random: iseed must be > 0')
+    call bl_assert(empty(particles), 'init_random: particle vector should be empty')
+
+    do i = 1,dm
+       len(i) = probhi(i) - problo(i)
+    end do
+    !
+    ! All CPUs get the same random numbers.
+    !
+    ! Hence they all generate the same particles.
+    !
+    ! But only the CPU that "owns" the particle keeps it.
+    !
+    call init_genrand(iseed)
+
+    do i = 1,icnt
+       !
+       ! A random number in (0,1).
+       !
+       rnd = genrand_real3()
+
+       do j = 1, dm
+
+          p%pos(i) = problo(i) + (rnd * len(i))
+
+          call bl_assert(p%pos(i) < probhi(i), 'init_random: particle out of bounds')
+       end do
+
+       if ( .not. particle_where(p,mlla,dx,problo) ) then
+          call bl_error('init_random: invalid particle')
+       end if
+
+       if ( local(mlla%la(p%lev),p%grd) ) then
+          !
+          ! We own it.
+          !
+          p%id  = id
+          p%cpu = parallel_myproc()
+          id    = id + 1
+
+          call add(particles,p)
+       end if
+
+    end do
+
+  end subroutine particle_init_random
 
 end module particle_module
