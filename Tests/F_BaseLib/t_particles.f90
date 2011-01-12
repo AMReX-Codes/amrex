@@ -13,8 +13,11 @@ subroutine t_particle
   double precision  :: dx(1,MAX_SPACEDIM), dx2(2,MAX_SPACEDIM)
   double precision  :: problo(3)
   double precision  :: probhi(3)
+  logical           :: pmask(3)
 
   id = 1
+
+  pmask = .true.
 
   p%pos = (/ 1.d0, 2.d0, 3.d0 /)
   q%pos = (/ 1.d1, 2.d1, 3.d1 /)
@@ -93,21 +96,30 @@ subroutine t_particle
 
   call destroy(ba)
 
-  call build(mla, mba)
+  print*, 'pmask: ', pmask
+
+  call build(mla, mba, pmask)
 
   call destroy(mba)
 
-  call init_random(v,100,17971,mla,dx,problo,probhi)
+  call init_random(v,1000,17971,mla,dx,problo,probhi)
+
+  print*, ''
+  print*, 'size(v): ', size(v)
+  print*, ''
+
+!  call print(v, 'after init_random')
+
+  print*, ''
+  !
+  ! Let's move the particles a bit.
+  !
+  do i = 1,100
+     print*, i, 'Calling move_random(one-level mla) ...'
+     call move_random(v,mla,dx,problo,probhi)
+  end do
 
   call destroy(mla)
-
-  print*, '**************************************************'
-
-  print*, 'size(v): ', size(v)
-
-  call print(v, 'after init_random')
-
-  print*, '**************************************************'
   !
   ! Now let's try for a multi-level mla
   !
@@ -116,8 +128,6 @@ subroutine t_particle
   call build(v)
 
   call destroy(ba)
-
-  call destroy(mba)
 
   call build(mba,2,MAX_SPACEDIM)
 
@@ -158,19 +168,26 @@ subroutine t_particle
 
   call destroy(ba)
 
-  call build(mla, mba)
+  call build(mla, mba, pmask)
 
   call destroy(mba)
 
-  call init_random(v,100,987654,mla,dx2,problo,probhi)
+  call init_random(v,1000000,171717171,mla,dx2,problo,probhi)
 
-  print*, '**************************************************'
-
+  print*, ''
   print*, 'size(v): ', size(v)
+  print*, ''
 
-  call print(v, 'after init_random using 2-level mla')
+!  call print(v, 'after init_random using 2-level mla')
 
-  print*, '**************************************************'
+  print*, ''
+  !
+  ! Let's move the particles a bit.
+  !
+  do i = 1,100
+     print*, i, 'Calling move_random(two-level mla) ...'
+     call move_random(v,mla,dx2,problo,probhi)
+  end do
 
   call destroy(mla)
 
