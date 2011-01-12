@@ -6,6 +6,14 @@ subroutine t_particle
   type(particle) p, q
   type(particle_vector) v
 
+  type(box)         :: bx
+  type(ml_boxarray) :: mba
+  type(ml_layout)   :: mlla
+  type(boxarray)    :: ba
+  double precision  :: dx(1,3)
+  double precision  :: problo(3)
+  double precision  :: probhi(3)
+
   id = 1
 
   p%pos = (/ 1.d0, 2.d0, 3.d0 /)
@@ -59,6 +67,45 @@ subroutine t_particle
   call add(v,p); print*, 'size = ', size(v)
 
   call print(v, 'PV')
+
+  call clear(v)
+
+  call build(v)
+
+  problo = -1.0d0
+  probhi = +1.0d0
+
+  bx = make_box( (/0,0,0/), (/31,31,31/) )
+
+  call build(ba,bx)
+
+  call boxarray_maxsize(ba,16)
+
+  call print(ba)
+
+  do i = 1, 3
+     dx(1,i) = (probhi(i) - problo(i)) / extent(bx,i)
+  end do
+
+  call build(mba, ba, bx)
+
+  call destroy(ba)
+
+  call build(mlla, mba)
+
+  call destroy(mba)
+
+  call init_random(v,100,17971,mlla,dx,problo,probhi)
+
+  call destroy(mlla)
+
+  print*, '**************************************************'
+
+  print*, 'size(v): ', size(v)
+
+  call print(v, 'after init_random')
+
+  print*, '**************************************************'
 
   call destroy(v)
 
