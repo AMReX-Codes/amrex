@@ -26,6 +26,10 @@ module particle_module
      module procedure particle_where
   end interface where
 
+  interface periodic_shift
+     module procedure particle_periodic_shift
+  end interface periodic_shift
+
   interface print
      module procedure particle_print
   end interface print
@@ -95,11 +99,15 @@ module particle_module
      module procedure particle_vector_print
   end interface print
   !
-  ! This is useful for testing purposes.
+  ! These are useful for testing purposes.
   !
   interface init_random
-     module procedure particle_init_random
+     module procedure particle_vector_init_random
   end interface init_random
+
+  interface move_random
+     module procedure particle_vector_move_random
+  end interface move_random
 
   private :: particle_vector_reserve
 
@@ -113,12 +121,10 @@ contains
     double precision, intent(in)    :: dx(:,:)
     double precision, intent(in)    :: problo(:)
     integer,          intent(inout) :: iv(:)
-    
-    integer i,dm
 
-    dm = mla%dim
+    integer i
 
-    do i = 1, dm
+    do i = 1, mla%dim
        iv(i) = floor((p%pos(i)-problo(i))/dx(lev,i)) + lwb(mla%la(lev)%lap%pd,i)
     end do
 
@@ -151,12 +157,15 @@ contains
     if ( lupdate ) then
        !
        ! We have a valid particle whose position has changed slightly.
-       ! Try to update it smartly.
        !
-       call bl_assert(p%id > 0, 'particle_where: p%id must be > 0')
-       call bl_assert(p%grd > 1, 'particle_where: p%grd must be > 1')
-       call bl_assert(lev >= 0, 'particle_where: lev must be >= 0')
-       call bl_assert(lev <= size(mla%la), 'particle_where: lev out of bounds')
+       ! Try to update it smartly; i.e. less costly than the whole enchilada.
+       !
+       call bl_assert(p%id  > 0, 'particle_where: p%id must be  > 0')
+       call bl_assert(p%grd > 0, 'particle_where: p%grd must be > 0')
+       call bl_assert(p%lev > 0, 'particle_where: p%lev must be > 0')
+
+       call bl_assert(p%lev <= size(mla%la), 'particle_where: lev out of bounds')
+
        call bl_assert(p%grd <= nboxes(mla%la(p%lev)%lap%bxa), 'particle_where: p%grd out of bounds')
 
        call particle_index(p,p%lev,mla,dx,problo,iv)
@@ -217,6 +226,65 @@ contains
     r = .false.
 
   end function particle_where
+
+  subroutine particle_periodic_shift(p,mla,dx,problo,probhi)
+
+    use bl_error_module
+
+    type(particle),   intent(inout) :: p
+    type(ml_layout),  intent(in   ) :: mla
+    double precision, intent(in)    :: dx(:,:)
+    double precision, intent(in   ) :: problo(:)
+    double precision, intent(in   ) :: probhi(:)
+
+    integer                     :: i, dm, iv(MAX_SPACEDIM)
+    type(box)                   :: pd
+    double precision            :: plen
+    double precision, parameter :: eps = 1.0d-13
+
+    call bl_assert(p%id > 0, 'periodic_shift: not a valid particle')
+
+    dm = mla%dim
+
+    pd = mla%la(p%lev)%lap%pd
+    
+    call particle_index(p,p%lev,mla,dx,problo,iv)
+
+    do i = 1,dm
+       if ( .not. mla%pmask(i) ) cycle
+
+       plen = (probhi(i) - problo(i))
+
+       if ( iv(i) > upb(pd,i) ) then
+
+          if ( p%pos(i) == probhi(i) ) then
+             !
+             ! Don't let particles lie exactly on the domain face.
+             ! Force the particle to be outside the domain so the
+             ! periodic shift will bring it back inside.
+             !
+             p%pos(i) = p%pos(i) + eps;
+          end if
+
+          p%pos(i) = p%pos(i) - plen
+
+       else if ( iv(i) < lwb(pd,i) ) then
+
+          if ( p%pos(i) == problo(i) ) then
+             !
+             ! Don't let particles lie exactly on the domain face.
+             ! Force the particle to be outside the domain so the
+             ! periodic shift will bring it back inside.
+             !
+             p%pos(i) = p%pos(i) - eps;
+          end if
+
+          p%pos(i) = p%pos(i) + plen
+
+       end if
+    end do
+
+  end subroutine particle_periodic_shift
 
   subroutine particle_print(p)
 
@@ -345,9 +413,8 @@ contains
     end if
   end subroutine particle_vector_print
 
-  subroutine particle_init_random(particles,icnt,iseed,mla,dx,problo,probhi)
+  subroutine particle_vector_init_random(particles,icnt,iseed,mla,dx,problo,probhi)
 
-    use parallel
     use mt19937_module
     use bl_error_module
 
@@ -416,6 +483,68 @@ contains
 
     end do
 
-  end subroutine particle_init_random
+  end subroutine particle_vector_init_random
+
+  subroutine particle_vector_move_random(particles,mla,dx,problo,probhi)
+
+    use mt19937_module
+    use bl_error_module
+
+    type(particle_vector), intent(inout) :: particles
+    type(ml_layout),       intent(inout) :: mla
+    double precision,      intent(in   ) :: dx(:,:)
+    double precision,      intent(in   ) :: problo(:)
+    double precision,      intent(in   ) :: probhi(:)
+
+    integer          :: i, j, dm, sgn, lev
+    double precision :: pos
+
+    dm = mla%dim
+
+    do i = 1, size(particles)
+       !
+       ! Make sure to ignore invalid particles.
+       !
+       if ( particles%d(i)%id <= 0 ) cycle
+
+       lev = particles%d(i)%lev
+
+       do j = 1, dm
+          sgn = 1
+
+          if ( genrand_real3() >= 0.5d0 ) sgn = -1
+
+          pos = sgn * 0.25d0 * dx(lev,j) * genrand_real3()
+
+          particles%d(i)%pos(j) = particles%d(i)%pos(j) + pos
+       end do
+       !
+       ! The particle has moved.
+       !
+       ! Try to put it in the right place in the hierarchy.
+       !
+       if ( .not. particle_where(particles%d(i),mla,dx,problo,update=.true.) ) then
+          !
+          ! Try to shift particle back across any periodic boundary.
+          !
+          call particle_periodic_shift(particles%d(i),mla,dx,problo,probhi)
+
+          if ( .not. particle_where(particles%d(i),mla,dx,problo) ) then
+             !
+             ! TODO - deal with non-periodic boundary conditions !!!
+             !
+             print*, 'particle leaving the domain:'
+
+             call print(particles%d(i))
+
+             call particle_vector_remove(particles,i)
+          end if
+       end if
+    end do
+    !
+    ! TODO -- call redistribute() to give particles to the CPU that owns'm.
+    !
+
+  end subroutine particle_vector_move_random
 
 end module particle_module
