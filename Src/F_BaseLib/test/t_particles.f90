@@ -131,6 +131,8 @@ subroutine t_particle
 
   call build(mba,2,MAX_SPACEDIM)
 
+  mba%rr(1,:) = 2
+
   call build(ba,bx)
 
   call boxarray_maxsize(ba,16)
@@ -149,11 +151,7 @@ subroutine t_particle
 
   call destroy(ba)
 
-!  bx2 = make_box( (/16,16,16/), (/47,47,47/) )
-
-  bx2 = make_box( (/0,0,0/), (/31,31,31/) )
-
-!  bx2 = refine(bx,2)
+  bx2 = make_box( (/16,16,16/), (/47,47,47/) )
 
   call build(ba,bx2)
 
