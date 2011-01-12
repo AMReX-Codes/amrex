@@ -119,7 +119,7 @@ contains
     dm = mlla%dim
 
     do i = 1, dm
-       iv(i) = floor((p.pos(i)-problo(i))/dx(lev,i)) + lwb(mlla%la(lev)%lap%pd,i)
+       iv(i) = floor((p%pos(i)-problo(i))/dx(lev,i)) + lwb(mlla%la(lev)%lap%pd,i)
     end do
 
   end subroutine particle_index
@@ -371,6 +371,7 @@ contains
 
     call bl_assert(icnt  > 0, 'init_random: icnt must be > 0')
     call bl_assert(iseed > 0, 'init_random: iseed must be > 0')
+
     call bl_assert(empty(particles), 'init_random: particle vector should be empty')
 
     do i = 1,dm
