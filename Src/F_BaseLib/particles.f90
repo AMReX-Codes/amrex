@@ -386,16 +386,16 @@ contains
     call init_genrand(iseed)
 
     do i = 1,icnt
-       !
-       ! A random number in (0,1).
-       !
-       rnd = genrand_real3()
 
-       do j = 1, dm
+       do j = 1,dm
+          !
+          ! A random number in (0,1).
+          !
+          rnd = genrand_real3()
 
-          p%pos(i) = problo(i) + (rnd * len(i))
+          p%pos(j) = problo(j) + (rnd * len(j))
 
-          call bl_assert(p%pos(i) < probhi(i), 'init_random: particle out of bounds')
+          call bl_assert(p%pos(j) < probhi(j), 'init_random: particle out of bounds')
        end do
 
        if ( .not. particle_where(p,mlla,dx,problo) ) then
