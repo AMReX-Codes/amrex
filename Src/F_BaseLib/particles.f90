@@ -105,21 +105,21 @@ module particle_module
 
 contains
 
-  subroutine particle_index(p,lev,mlla,dx,problo,iv)
+  subroutine particle_index(p,lev,mla,dx,problo,iv)
 
     type(particle),   intent(in)    :: p
     integer,          intent(in)    :: lev
-    type(ml_layout),  intent(in)    :: mlla
+    type(ml_layout),  intent(in)    :: mla
     double precision, intent(in)    :: dx(:,:)
     double precision, intent(in)    :: problo(:)
     integer,          intent(inout) :: iv(:)
     
     integer i,dm
 
-    dm = mlla%dim
+    dm = mla%dim
 
     do i = 1, dm
-       iv(i) = floor((p%pos(i)-problo(i))/dx(lev,i)) + lwb(mlla%la(lev)%lap%pd,i)
+       iv(i) = floor((p%pos(i)-problo(i))/dx(lev,i)) + lwb(mla%la(lev)%lap%pd,i)
     end do
 
   end subroutine particle_index
@@ -128,12 +128,12 @@ contains
   !
   ! A value of false means it's outside our domain.
   !
-  function particle_where(p,mlla,dx,problo,update) result(r)
+  function particle_where(p,mla,dx,problo,update) result(r)
 
     use bl_error_module
 
     type(particle),   intent(inout) :: p
-    type(ml_layout),  intent(inout) :: mlla
+    type(ml_layout),  intent(inout) :: mla
     double precision, intent(in   ) :: dx(:,:)
     double precision, intent(in   ) :: problo(:)
 
@@ -146,7 +146,7 @@ contains
 
     lupdate = .false. ; if ( present(update) ) lupdate = update
 
-    dm = mlla%dim
+    dm = mla%dim
 
     if ( lupdate ) then
        !
@@ -156,10 +156,10 @@ contains
        call bl_assert(p%id > 0, 'particle_where: p%id must be > 0')
        call bl_assert(p%grd > 1, 'particle_where: p%grd must be > 1')
        call bl_assert(lev >= 0, 'particle_where: lev must be >= 0')
-       call bl_assert(lev <= size(mlla%la), 'particle_where: lev out of bounds')
-       call bl_assert(p%grd <= nboxes(mlla%la(p%lev)%lap%bxa), 'particle_where: p%grd out of bounds')
+       call bl_assert(lev <= size(mla%la), 'particle_where: lev out of bounds')
+       call bl_assert(p%grd <= nboxes(mla%la(p%lev)%lap%bxa), 'particle_where: p%grd out of bounds')
 
-       call particle_index(p,p%lev,mlla,dx,problo,iv)
+       call particle_index(p,p%lev,mla,dx,problo,iv)
 
        if ( all(p%cell(1:dm) == iv(1:dm)) ) then
           !
@@ -170,11 +170,11 @@ contains
           return
        end if
 
-       if ( p%lev == size(mlla%la) ) then
+       if ( p%lev == size(mla%la) ) then
 
           p%cell(1:dm) = iv(1:dm)
           
-          if ( contains(get_box(mlla%la(p%lev)%lap%bxa,p%grd),iv) ) then
+          if ( contains(get_box(mla%la(p%lev)%lap%bxa,p%grd),iv) ) then
              !
              ! It's left its cell but's still in the same grid.
              !
@@ -185,13 +185,13 @@ contains
        end if
     end if
 
-    do lev = size(mlla%la), 1, -1
+    do lev = size(mla%la), 1, -1
 
-       call particle_index(p,lev,mlla,dx,problo,iv)
+       call particle_index(p,lev,mla,dx,problo,iv)
 
        call build(bx,iv(1:dm))
 
-       bi => layout_get_box_intersector(mlla%la(lev),bx)
+       bi => layout_get_box_intersector(mla%la(lev),bx)
 
        if ( size(bi) > 0 ) then
 
@@ -345,7 +345,7 @@ contains
     end if
   end subroutine particle_vector_print
 
-  subroutine particle_init_random(particles,icnt,iseed,mlla,dx,problo,probhi)
+  subroutine particle_init_random(particles,icnt,iseed,mla,dx,problo,probhi)
 
     use parallel
     use mt19937_module
@@ -354,7 +354,7 @@ contains
     type(particle_vector), intent(inout) :: particles
     integer,               intent(in   ) :: icnt
     integer,               intent(in   ) :: iseed
-    type(ml_layout),       intent(inout) :: mlla
+    type(ml_layout),       intent(inout) :: mla
     double precision,      intent(in   ) :: dx(:,:)
     double precision,      intent(in   ) :: problo(:)
     double precision,      intent(in   ) :: probhi(:)
@@ -367,7 +367,7 @@ contains
     !
     id = 1
 
-    dm = mlla%dim
+    dm = mla%dim
 
     call bl_assert(icnt  > 0, 'init_random: icnt must be > 0')
     call bl_assert(iseed > 0, 'init_random: iseed must be > 0')
@@ -399,11 +399,11 @@ contains
           call bl_assert(p%pos(j) < probhi(j), 'init_random: particle out of bounds')
        end do
 
-       if ( .not. particle_where(p,mlla,dx,problo) ) then
+       if ( .not. particle_where(p,mla,dx,problo) ) then
           call bl_error('init_random: invalid particle')
        end if
 
-       if ( local(mlla%la(p%lev),p%grd) ) then
+       if ( local(mla%la(p%lev),p%grd) ) then
           !
           ! We own it.
           !
