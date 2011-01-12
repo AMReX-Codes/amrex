@@ -6,11 +6,11 @@ subroutine t_particle
   type(particle) p, q
   type(particle_vector) v
 
-  type(box)         :: bx
+  type(box)         :: bx,bx2
   type(ml_boxarray) :: mba
-  type(ml_layout)   :: mlla
+  type(ml_layout)   :: mla
   type(boxarray)    :: ba
-  double precision  :: dx(1,3)
+  double precision  :: dx(1,MAX_SPACEDIM), dx2(2,MAX_SPACEDIM)
   double precision  :: problo(3)
   double precision  :: probhi(3)
 
@@ -69,7 +69,9 @@ subroutine t_particle
   call print(v, 'PV')
 
   call clear(v)
-
+  !
+  ! Let's build a single level mla
+  !
   call build(v)
 
   problo = -1.0d0
@@ -91,13 +93,13 @@ subroutine t_particle
 
   call destroy(ba)
 
-  call build(mlla, mba)
+  call build(mla, mba)
 
   call destroy(mba)
 
-  call init_random(v,100,17971,mlla,dx,problo,probhi)
+  call init_random(v,100,17971,mla,dx,problo,probhi)
 
-  call destroy(mlla)
+  call destroy(mla)
 
   print*, '**************************************************'
 
@@ -106,6 +108,71 @@ subroutine t_particle
   call print(v, 'after init_random')
 
   print*, '**************************************************'
+  !
+  ! Now let's try for a multi-level mla
+  !
+  call clear(v)
+
+  call build(v)
+
+  call destroy(ba)
+
+  call destroy(mba)
+
+  call build(mba,2,MAX_SPACEDIM)
+
+  call build(ba,bx)
+
+  call boxarray_maxsize(ba,16)
+
+  call print(ba, 'level 1')
+
+  do i = 1, MAX_SPACEDIM
+     dx2(1,i) = (probhi(i) - problo(i)) / extent(bx,i)
+     dx2(2,i) = dx2(1,i) / 2.0d0
+  end do
+
+  call copy(mba%bas(1),ba)
+  mba%pd(1) = bx
+
+  call print(mba%pd(1), 'pd(1)')
+
+  call destroy(ba)
+
+!  bx2 = make_box( (/16,16,16/), (/47,47,47/) )
+
+  bx2 = make_box( (/0,0,0/), (/31,31,31/) )
+
+!  bx2 = refine(bx,2)
+
+  call build(ba,bx2)
+
+  call boxarray_maxsize(ba,16)
+
+  call print(ba, 'level 2')
+
+  call copy(mba%bas(2),ba)
+  mba%pd(2) = refine(mba%pd(1),2)
+
+  call print(mba%pd(2), 'pd(2)')
+
+  call destroy(ba)
+
+  call build(mla, mba)
+
+  call destroy(mba)
+
+  call init_random(v,100,987654,mla,dx2,problo,probhi)
+
+  print*, '**************************************************'
+
+  print*, 'size(v): ', size(v)
+
+  call print(v, 'after init_random using 2-level mla')
+
+  print*, '**************************************************'
+
+  call destroy(mla)
 
   call destroy(v)
 
