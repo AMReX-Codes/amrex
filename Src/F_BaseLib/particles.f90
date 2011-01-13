@@ -566,8 +566,9 @@ contains
     !
     logical, intent(in), optional :: where
 
-    integer :: i, dm, lev, myproc, nprocs, grd, proc, sCnt, rCnt, ioff, roff
-    logical :: lwhere
+    type(particle) :: p
+    integer        :: i, myproc, nprocs, proc, sCnt, rCnt, iN, rN, ioff, roff
+    logical        :: lwhere
 
     integer, allocatable, save :: nSnd(:), nRcv(:), nSndOff(:), nRcvOff(:)
     integer, allocatable, save :: indx(:), nSnd2(:), nRcv2(:)
@@ -575,23 +576,14 @@ contains
     double precision, allocatable, save :: SndDataR(:), RcvDataR(:)
     integer,          allocatable, save :: SndDataI(:), RcvDataI(:)
     integer,                       save :: sCntMax = 0, rCntMax = 0
-    !
-    ! The only integer data we'll transfer is "id" and "cpu".
-    !
-    ! We'll call particle_where() to set the other integer components.
-    !
-    integer, parameter :: iChunk = 2
-
-    dm = mla%dim
 
     lwhere = .false. ; if ( present(where) ) lwhere = where
 
     if ( .not. lwhere ) then
        do i = 1, size(particles)
-          if ( particles%d(i)%id > 0 ) then
-             if ( .not. particle_where(particles%d(i),mla,dx,problo) ) then
-                call bl_error('redistribute: invalid particle')
-             end if
+          if ( particles%d(i)%id <= 0 ) cycle
+          if ( .not. particle_where(particles%d(i),mla,dx,problo) ) then
+             call bl_error('redistribute: invalid particle in original vector')
           end if
        end do
     end if
@@ -601,8 +593,11 @@ contains
 
     if ( nprocs == 1 ) return
 
+    iN = 2       ! The count of integers in each particle sent/received.
+    rN = mla%dim ! The count of reals    in each particle sent/received.
+
     if ( .not. allocated(nSnd) ) then
-       allocate(indx   (0:nprocs-1))
+       allocate(indx   (0:nprocs-1)                    )
        allocate(nSnd   (0:nprocs-1),nRcv   (0:nprocs-1))
        allocate(nSnd2  (0:nprocs-1),nRcv2  (0:nprocs-1))
        allocate(nSndOff(0:nprocs-1),nRcvOff(0:nprocs-1))
@@ -612,17 +607,13 @@ contains
     nRcv = 0
 
     do i = 1, size(particles)
-       if ( particles%d(i)%id > 0 ) then
+       if ( particles%d(i)%id <= 0 ) cycle
 
-          lev = particles%d(i)%lev
-          grd = particles%d(i)%grd
+       proc = get_proc(mla%la(particles%d(i)%lev),particles%d(i)%grd)
 
-          if ( remote(mla%la(lev),grd) ) then
-             proc = get_proc(mla%la(lev),grd)
-             nSnd(proc) = nSnd(proc) + 1
-          end if
+       if ( proc == myproc ) cycle
 
-       end if
+       nSnd(proc) = nSnd(proc) + 1
     end do
 
     call bl_assert(nSnd(myproc) == 0, 'redistribute: no sending to oneself')
@@ -636,14 +627,6 @@ contains
     nSnd2 = nSnd
     nRcv2 = nRcv
 
-!     if ( myproc == 0 ) then
-!        print*, '0:nSnd: ', nSnd
-!        print*, '0:nRcv: ', nRcv
-!     else if ( myproc == 1 ) then
-!        print*, '1:nSnd: ', nSnd
-!        print*, '1:nRcv: ', nRcv
-!     end if
-
     sCnt = SUM(nSnd)
     rCnt = SUM(nRcv)
 
@@ -651,7 +634,7 @@ contains
        if ( allocated(SndDataI) ) then
           deallocate(SndDataI,SndDataR)
        end if
-       allocate( SndDataI (0:iChunk*sCnt-1), SndDataR (0:dm*sCnt-1) )
+       allocate( SndDataI (0:iN*sCnt-1), SndDataR (0:rN*sCnt-1) )
        sCntMax = sCnt
     end if
 
@@ -659,7 +642,7 @@ contains
        if ( allocated(RcvDataI) ) then
           deallocate(RcvDataI,RcvDataR)
        end if
-       allocate( RcvDataI (0:iChunk*rCnt-1), RcvDataR (0:dm*rCnt-1) )
+       allocate( RcvDataI (0:iN*rCnt-1), RcvDataR (0:rN*rCnt-1) )
        rCntMax = rCnt
     end if
     !
@@ -677,37 +660,33 @@ contains
     do i = 1, size(particles)
        if ( particles%d(i)%id <= 0 ) cycle
 
-       lev = particles%d(i)%lev
-       grd = particles%d(i)%grd
+       proc = get_proc(mla%la(particles%d(i)%lev),particles%d(i)%grd)
 
-       if ( local(mla%la(lev),grd) ) cycle
+       if ( proc == myproc ) cycle
 
-       proc = get_proc(mla%la(lev),grd)
+       ioff = iN * indx(proc)
+       roff = rN * indx(proc)
 
-       ioff = iChunk * indx(proc)
-       roff = dm     * indx(proc)
-
-       SndDataI(ioff  ) = particles%d(i)%id
-       SndDataI(ioff+1) = particles%d(i)%cpu
-
-       SndDataR(roff:roff+dm-1) = particles%d(i)%pos(1:dm)
+       SndDataI(ioff          ) = particles%d(i)%id
+       SndDataI(ioff+1        ) = particles%d(i)%cpu
+       SndDataR(roff:roff+rN-1) = particles%d(i)%pos(1:rN)
        
        indx(proc) = indx(proc) + 1
     end do
     !
-    ! First get the integer data in chunks of "iChunk".
+    ! First get the integer data in chunks of "iN".
     !
-    nSnd    = iChunk * nSnd2
-    nRcv    = iChunk * nRcv2
-    nSndOff = iChunk * nSndOff
-    nRcvOff = iChunk * nRcvOff
+    nSnd    = iN * nSnd2
+    nRcv    = iN * nRcv2
+    nSndOff = iN * nSndOff
+    nRcvOff = iN * nRcvOff
 
     call parallel_alltoall(RcvDataI, nRcv, nRcvOff, SndDataI, nSnd, nSndOff)
     !
-    ! Now the real data in chunks of "dm".
+    ! Now the real data in chunks of "rN".
     !
-    nSnd = dm * nSnd2
-    nRcv = dm * nRcv2
+    nSnd = rN * nSnd2
+    nRcv = rN * nRcv2
 
     nSndOff(0) = 0
     nRcvOff(0) = 0
@@ -718,15 +697,35 @@ contains
 
     call parallel_alltoall(RcvDataR, nRcv, nRcvOff, SndDataR, nSnd, nSndOff)
     !
-    ! Before add()ing the received particles lets remove() the ones sent.
+    ! Let's remove() sent particles to make space for received ones.
     !
+    do i = 1, size(particles)
+       if ( particles%d(i)%id <= 0 ) cycle
 
+       if ( local(mla%la(particles%d(i)%lev),particles%d(i)%grd) ) cycle
 
+       call remove(particles, i)
+    end do
 
+    do i = 0, rCnt-1
 
+       ioff = iN * i
+       roff = rN * i
 
-    
-    call parallel_barrier(); call flush(6); stop
+       p%id        = RcvDataI(ioff          )
+       p%cpu       = RcvDataI(ioff+1        )
+       p%pos(1:rN) = RcvDataR(roff:roff+rN-1)
+       !
+       ! Got to set the other members of the particle.
+       !
+       if ( .not. particle_where(p,mla,dx,problo) ) then
+          call bl_error('redistribute: invalid particle after particle transfer')
+       end if
+
+       call add(particles,p)
+    end do
+
+!    call parallel_barrier(); call flush(6); stop
 
 
   end subroutine particle_vector_redistribute
