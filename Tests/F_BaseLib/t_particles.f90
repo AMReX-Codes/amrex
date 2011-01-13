@@ -30,9 +30,10 @@ subroutine t_particle
 
   call build(v)
 
-  call print(v)
-
-  call print(v, 'PV')
+  if (parallel_IOProcessor()) then
+     call print(v)
+     call print(v, 'PV')
+  end if
 
   do i = 1, 10
      p%id = id; id = id + 1
@@ -41,12 +42,11 @@ subroutine t_particle
      call add(v,q)
   end do
 
-!  call print(v, 'PV')
-
-!  call print(v, 'PV', .true.)
-
-  print*, 'size = ', size(v)
-
+  if (parallel_IOProcessor()) then
+     call print(v, 'PV')
+     call print(v, 'PV', .true.)
+     print*, 'size = ', size(v)
+  end if
   !
   ! Now fill the vector to current capacity.
   !
@@ -56,20 +56,23 @@ subroutine t_particle
 
   p%id = 12345
 
-  call remove(v, 1); call add(v,p); print*, 'size = ', size(v)
+  call remove(v, 1); call add(v,p)
 
-  call remove(v, size(v)); call add(v,p); print*, 'size = ', size(v)
+  call remove(v, size(v)); call add(v,p)
 
-  call remove(v, size(v)/2); call add(v,p); print*, 'size = ', size(v)
+  call remove(v, size(v)/2); call add(v,p)
 
   call remove(v, 2)
   call remove(v, 3)
   call remove(v, 4)
-  call add(v,p); print*, 'size = ', size(v)
-  call add(v,p); print*, 'size = ', size(v)
-  call add(v,p); print*, 'size = ', size(v)
+  call add(v,p)
+  call add(v,p)
+  call add(v,p)
 
-  call print(v, 'PV')
+  if (parallel_IOProcessor()) then
+     call print(v, 'PV')
+     print*, 'size = ', size(v)
+  end if
 
   call clear(v)
   !
@@ -86,7 +89,7 @@ subroutine t_particle
 
   call boxarray_maxsize(ba,16)
 
-  call print(ba)
+  if (parallel_IOProcessor()) call print(ba)
 
   do i = 1, 3
      dx(1,i) = (probhi(i) - problo(i)) / extent(bx,i)
@@ -96,7 +99,7 @@ subroutine t_particle
 
   call destroy(ba)
 
-  print*, 'pmask: ', pmask
+  if (parallel_IOProcessor()) print*, 'pmask: ', pmask
 
   call build(mla, mba, pmask)
 
@@ -104,20 +107,34 @@ subroutine t_particle
 
   call init_random(v,1000,17971,mla,dx,problo,probhi)
 
-  print*, ''
-  print*, 'size(v): ', size(v)
-  print*, ''
+  if (parallel_IOProcessor()) then
+     print*, ''
+     print*, 'size(v): ', size(v)
+     print*, ''
+     call print(v, 'after init_random')
+     print*, ''
+  end if
 
-!  call print(v, 'after init_random')
-
-  print*, ''
+  call parallel_barrier()
   !
   ! Let's move the particles a bit.
   !
   do i = 1,100
-     print*, i, 'Calling move_random(one-level mla) ...'
+     if (parallel_IOProcessor()) print*, i, 'Calling move_random(one-level mla) ...'
      call move_random(v,mla,dx,problo,probhi)
   end do
+
+  if (parallel_IOProcessor()) then
+     print*, ''
+     print*, 'size(v): ', size(v)
+     print*, ''
+     call print(v, 'after move_random')
+     print*, ''
+     call flush(6)
+  end if
+
+  call parallel_barrier()
+  call bl_error('Got Here')
 
   call destroy(mla)
   !
@@ -137,7 +154,7 @@ subroutine t_particle
 
   call boxarray_maxsize(ba,16)
 
-  call print(ba, 'level 1')
+  if (parallel_IOProcessor()) call print(ba, 'level 1')
 
   do i = 1, MAX_SPACEDIM
      dx2(1,i) = (probhi(i) - problo(i)) / extent(bx,i)
@@ -147,7 +164,7 @@ subroutine t_particle
   call copy(mba%bas(1),ba)
   mba%pd(1) = bx
 
-  call print(mba%pd(1), 'pd(1)')
+  if (parallel_IOProcessor()) call print(mba%pd(1), 'pd(1)')
 
   call destroy(ba)
 
@@ -157,12 +174,12 @@ subroutine t_particle
 
   call boxarray_maxsize(ba,16)
 
-  call print(ba, 'level 2')
+  if (parallel_IOProcessor()) call print(ba, 'level 2')
 
   call copy(mba%bas(2),ba)
   mba%pd(2) = refine(mba%pd(1),2)
 
-  call print(mba%pd(2), 'pd(2)')
+  if (parallel_IOProcessor()) call print(mba%pd(2), 'pd(2)')
 
   call destroy(ba)
 
@@ -170,20 +187,20 @@ subroutine t_particle
 
   call destroy(mba)
 
-  call init_random(v,1000000,171717171,mla,dx2,problo,probhi)
+  call init_random(v,1000,171717171,mla,dx2,problo,probhi)
 
-  print*, ''
-  print*, 'size(v): ', size(v)
-  print*, ''
-
-!  call print(v, 'after init_random using 2-level mla')
-
-  print*, ''
+  if (parallel_IOProcessor()) then
+     print*, ''
+     print*, 'size(v): ', size(v)
+     print*, ''
+     call print(v, 'after init_random using 2-level mla')
+     print*, ''
+  end if
   !
   ! Let's move the particles a bit.
   !
   do i = 1,100
-     print*, i, 'Calling move_random(two-level mla) ...'
+     if (parallel_IOProcessor()) print*, i, 'Calling move_random(two-level mla) ...'
      call move_random(v,mla,dx2,problo,probhi)
   end do
 
