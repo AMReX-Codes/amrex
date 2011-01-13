@@ -105,13 +105,13 @@ subroutine t_particle
 
   call destroy(mba)
 
-  call init_random(v,1000,17971,mla,dx,problo,probhi)
+  call init_random(v,1000000,17971,mla,dx,problo,probhi)
 
   if (parallel_IOProcessor()) then
      print*, ''
      print*, 'size(v): ', size(v)
      print*, ''
-     call print(v, 'after init_random')
+!     call print(v, 'after init_random')
      print*, ''
   end if
 
@@ -119,7 +119,7 @@ subroutine t_particle
   !
   ! Let's move the particles a bit.
   !
-  do i = 1,100
+  do i = 1,25
      if (parallel_IOProcessor()) print*, i, 'Calling move_random(one-level mla) ...'
      call move_random(v,mla,dx,problo,probhi)
   end do
@@ -128,13 +128,13 @@ subroutine t_particle
      print*, ''
      print*, 'size(v): ', size(v)
      print*, ''
-     call print(v, 'after move_random')
+!     call print(v, 'after move_random')
      print*, ''
      call flush(6)
   end if
 
   call parallel_barrier()
-  call bl_error('Got Here')
+!  call bl_error('Got Here')
 
   call destroy(mla)
   !
@@ -187,19 +187,19 @@ subroutine t_particle
 
   call destroy(mba)
 
-  call init_random(v,1000,171717171,mla,dx2,problo,probhi)
+  call init_random(v,1000000,171717171,mla,dx2,problo,probhi)
 
   if (parallel_IOProcessor()) then
      print*, ''
      print*, 'size(v): ', size(v)
      print*, ''
-     call print(v, 'after init_random using 2-level mla')
+!     call print(v, 'after init_random using 2-level mla')
      print*, ''
   end if
   !
   ! Let's move the particles a bit.
   !
-  do i = 1,100
+  do i = 1,25
      if (parallel_IOProcessor()) print*, i, 'Calling move_random(two-level mla) ...'
      call move_random(v,mla,dx2,problo,probhi)
   end do
