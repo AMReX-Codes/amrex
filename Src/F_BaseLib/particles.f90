@@ -567,6 +567,7 @@ contains
     logical, intent(in), optional :: where
 
     type(particle) :: p
+    integer        :: maxSR, lmaxSR
     integer        :: i, myproc, nprocs, proc, sCnt, rCnt, iN, rN, ioff, roff
     logical        :: lwhere
 
@@ -576,6 +577,8 @@ contains
     double precision, allocatable, save :: SndDataR(:), RcvDataR(:)
     integer,          allocatable, save :: SndDataI(:), RcvDataI(:)
     integer,                       save :: sCntMax = 0, rCntMax = 0
+
+    logical, parameter :: verbose = .false.
 
     lwhere = .false. ; if ( present(where) ) lwhere = where
 
@@ -622,13 +625,29 @@ contains
 
     call bl_assert(nRcv(myproc) == 0, 'redistribute: no receiving from oneself')
     !
-    ! Save off copys of nSnd and nRcv
+    ! Save off copies of nSnd and nRcv
     !
     nSnd2 = nSnd
     nRcv2 = nRcv
 
     sCnt = SUM(nSnd)
     rCnt = SUM(nRcv)
+
+    if ( verbose ) then
+       lmaxSR = max(sCnt,rCnt)
+
+       call parallel_reduce(maxSR, lmaxSR, MPI_MAX)
+
+       if ( maxSR > 0 ) then
+          do i = 0, nprocs-1
+             if ( myproc == i ) then
+                write(6, '(A I4 A I6 A i6 A)') 'Processor ', i, ' : Rcvs: ', rCnt, ' Snds: ', sCnt, ' in redistribute()'
+                call flush(6)
+             end if
+             call parallel_barrier()
+          end do
+       end if
+    end if
 
     if ( ( sCnt > sCntMax ) .or. ( .not. allocated(SndDataI) ) ) then
        if ( allocated(SndDataI) ) then
@@ -716,7 +735,7 @@ contains
        p%cpu       = RcvDataI(ioff+1        )
        p%pos(1:rN) = RcvDataR(roff:roff+rN-1)
        !
-       ! Got to set the other members of the particle.
+       ! Got to set the members of the particle that we didn't transfer.
        !
        if ( .not. particle_where(p,mla,dx,problo) ) then
           call bl_error('redistribute: invalid particle after particle transfer')
@@ -724,9 +743,6 @@ contains
 
        call add(particles,p)
     end do
-
-!    call parallel_barrier(); call flush(6); stop
-
 
   end subroutine particle_vector_redistribute
 
