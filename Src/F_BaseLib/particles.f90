@@ -113,7 +113,13 @@ module particle_module
      module procedure particle_vector_redistribute
   end interface redistribute
 
+  interface checkpoint
+     module procedure particle_vector_checkpoint
+  end interface checkpoint
+
   private :: particle_vector_reserve
+
+  character(len=*), parameter, private :: Version = 'Version_One_Dot_Zero'
 
 contains
 
@@ -745,5 +751,143 @@ contains
     end do
 
   end subroutine particle_vector_redistribute
+
+  subroutine particle_vector_checkpoint(particles,dir,mla)
+
+    use parallel
+    use bl_IO_module, only: unit_new
+    use fabio_module, only: fabio_mkdir
+    use bl_error_module
+
+    type(particle_vector), intent(inout) :: particles
+    character(len=*),      intent(in   ) :: dir
+    type(ml_layout),       intent(inout) :: mla
+
+    character(len=*), parameter :: Hdr         = 'Header'
+    character(len=*), parameter :: TheData     = 'DATA'
+    character(len=*), parameter :: ParticleDir = 'Particles'
+
+    character(len=256) :: pdir
+
+    type(particle) :: p
+
+    integer :: i, j, nparticles, nparticles_max, ioproc, un, nprocs, iN, dN
+
+    integer, allocatable :: isnd(:), ircv(:), rcvc(:), rcvd(:)
+
+    call bl_assert(size(particles) == 0, 'particle_vector_checkpoint: vector must be empty')
+
+    call bl_assert(trim(dir) .ne. '' , 'particle_vector_checkpoint: dir must be non-empty')
+
+    pdir = trim(dir) // '/' // ParticleDir
+
+    if ( parallel_IOProcessor() ) then
+       call fabio_mkdir(pdir)
+    end if
+
+    call parallel_barrier()
+
+    iN         = 2       ! # of integers sent/rcvd for each particle.
+    dN         = mla%dim ! # of double precisions sent/rcvd for each particle.
+    nprocs     = parallel_nprocs()
+    ioproc     = parallel_IOProcessorNode()
+    nparticles = size(particles)
+
+    call parallel_reduce(nparticles_max, nparticles, MPI_MAX, proc = ioproc)
+
+    if ( parallel_IOProcessor() ) then
+
+       un = unit_new()
+
+       open(unit   = un,                             &
+            file   = trim(pdir) // '/' // trim(Hdr), &
+            form   = 'formatted',                    &
+            access = 'sequential',                   &
+            status = 'replace',                      &
+            action = 'write')
+       !
+       ! First thing written is our Checkpoint/Restart version string.
+       !
+       write(unit = un, fmt = '(A)') Version
+       !
+       ! Then dim for sanity checking.
+       !
+       write(unit = un, fmt = '(I1)') mla%dim
+       !
+       ! Then the total number of particles.
+       !
+       write(unit = un, fmt = '(I9)') nparticles_max
+
+       close(un)
+    end if
+
+    if ( nparticles_max == 0 ) return
+    !
+    ! Since the number of particles is expected to be small relative to the
+    ! amount of other data in the problem we'll write all the particle data
+    ! into a single file.  I'll send all the data to the IO processor. We'll
+    ! only write out the id and cpu of the integer data.  The rest can be
+    ! rebuilt on restart() via redistribute().
+    !
+    if ( parallel_IOProcessor() ) then
+       allocate(rcvc(0:nprocs-1), rcvd(0:nprocs-1))
+    end if
+    !
+    ! We add one to the allocation here to guarantee we have at least one element.
+    !
+    allocate(isnd(iN * nparticles + 1))
+
+    allocate(ircv(iN * nparticles_max))
+    !
+    ! Got to first send the counts of number of things to expect from each CPU.
+    !
+    isnd(1) = nparticles
+
+    call parallel_gather(isnd, rcvc, 1, root = ioproc)
+
+    if ( parallel_IOProcessor() ) then
+       rcvc = iN * rcvc
+       rcvd = 0
+       do i = 1,nprocs-1
+          rcvd(i) = rcvd(i-1) + rcvc(i-1)
+       end do
+    end if
+
+    do i = 1, nparticles
+       isnd(iN*i - 1) = particles%d(i)%id
+       isnd(iN*i    ) = particles%d(i)%cpu
+    end do
+
+    call parallel_gather(isnd, iN*nparticles, ircv, rcvc, rcvd, root = ioproc)
+
+    if ( parallel_IOProcessor() ) then
+
+       call reserve(particles, nparticles_max)
+
+       do i = 1, nparticles_max
+          p%id  = ircv(iN*i - 1)
+          p%cpu = ircv(iN*i    )
+          call add(particles,p)
+       end do
+
+       deallocate(ircv)
+    end if
+
+    deallocate(isnd)
+    !
+    ! Now the real data.
+    !
+    if ( parallel_IOProcessor() ) then
+       rcvc = dN * rcvc / iN
+       rcvd = 0
+       do i = 1,nprocs-1
+          rcvd(i) = rcvd(i-1) + rcvc(i-1)
+       end do
+    end if
+    
+
+
+  end subroutine particle_vector_checkpoint
+
 
 end module particle_module
