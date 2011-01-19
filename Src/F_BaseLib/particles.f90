@@ -759,7 +759,7 @@ contains
     use fabio_module, only: fabio_mkdir
     use bl_error_module
 
-    type(particle_vector), intent(inout) :: particles
+    type(particle_vector), intent(in   ) :: particles
     character(len=*),      intent(in   ) :: dir
     type(ml_layout),       intent(inout) :: mla
 
@@ -767,15 +767,11 @@ contains
     character(len=*), parameter :: TheData     = 'DATA'
     character(len=*), parameter :: ParticleDir = 'Particles'
 
-    character(len=256) :: pdir
-
-    type(particle) :: p
-
-    integer :: i, j, nparticles, nparticles_max, ioproc, un, nprocs, iN, dN
-
-    integer, allocatable :: isnd(:), ircv(:), rcvc(:), rcvd(:)
-
-    call bl_assert(size(particles) == 0, 'particle_vector_checkpoint: vector must be empty')
+    character(len=256)            :: pdir
+    integer                       :: i, j, k, nparticles, nparticles_max, ioproc
+    integer                       :: un, nprocs, iN, dN
+    integer, allocatable          :: isnd(:), ircv(:), rcvc(:), rcvd(:)
+    double precision, allocatable :: dsnd(:), drcv(:)
 
     call bl_assert(trim(dir) .ne. '' , 'particle_vector_checkpoint: dir must be non-empty')
 
@@ -787,8 +783,8 @@ contains
 
     call parallel_barrier()
 
-    iN         = 2       ! # of integers sent/rcvd for each particle.
-    dN         = mla%dim ! # of double precisions sent/rcvd for each particle.
+    iN         = 2       ! # of integers to snd/rcv for each particle.
+    dN         = mla%dim ! # of double precisions to snd/rcv for each particle.
     nprocs     = parallel_nprocs()
     ioproc     = parallel_IOProcessorNode()
     nparticles = size(particles)
@@ -830,21 +826,21 @@ contains
     ! rebuilt on restart() via redistribute().
     !
     if ( parallel_IOProcessor() ) then
-       allocate(rcvc(0:nprocs-1), rcvd(0:nprocs-1))
+       allocate(rcvc(0:nprocs-1), rcvd(0:nprocs-1), ircv(iN * nparticles_max))
     end if
     !
     ! We add one to the allocation here to guarantee we have at least one element.
     !
     allocate(isnd(iN * nparticles + 1))
-
-    allocate(ircv(iN * nparticles_max))
     !
     ! Got to first send the counts of number of things to expect from each CPU.
     !
     isnd(1) = nparticles
 
     call parallel_gather(isnd, rcvc, 1, root = ioproc)
-
+    !
+    ! First the integers.
+    !
     if ( parallel_IOProcessor() ) then
        rcvc = iN * rcvc
        rcvd = 0
@@ -854,38 +850,60 @@ contains
     end if
 
     do i = 1, nparticles
-       isnd(iN*i - 1) = particles%d(i)%id
-       isnd(iN*i    ) = particles%d(i)%cpu
+       j           = iN * (i-1) + 1
+       isnd(j    ) = particles%d(i)%id
+       isnd(j + 1) = particles%d(i)%cpu
     end do
 
     call parallel_gather(isnd, iN*nparticles, ircv, rcvc, rcvd, root = ioproc)
 
+    deallocate(isnd)
+
     if ( parallel_IOProcessor() ) then
-
-       call reserve(particles, nparticles_max)
-
-       do i = 1, nparticles_max
-          p%id  = ircv(iN*i - 1)
-          p%cpu = ircv(iN*i    )
-          call add(particles,p)
-       end do
+       !
+       ! TODO - write(ircv) to a file.
+       !
 
        deallocate(ircv)
     end if
-
-    deallocate(isnd)
     !
     ! Now the real data.
     !
     if ( parallel_IOProcessor() ) then
-       rcvc = dN * rcvc / iN
+       allocate(drcv(dN * nparticles_max))
+    end if
+    !
+    ! Add one to the allocation to guarantee we have at least one element.
+    !
+    allocate(dsnd(dN * nparticles + 1))
+
+    if ( parallel_IOProcessor() ) then
+       rcvc = dN * rcvc
+       rcvc =      rcvc / iN
        rcvd = 0
        do i = 1,nprocs-1
           rcvd(i) = rcvd(i-1) + rcvc(i-1)
        end do
     end if
-    
 
+    do i = 1, nparticles
+       j = dN * (i-1)
+       do k = 1, dN
+          dsnd(j + k) = particles%d(i)%pos(k)
+       end do
+    end do
+
+    call parallel_gather(dsnd, dN*nparticles, drcv, rcvc, rcvd, root = ioproc)
+
+    deallocate(dsnd)
+
+    if ( parallel_IOProcessor() ) then
+       !
+       ! TODO - append drcv to file.
+       !
+
+       deallocate(drcv)
+    end if
 
   end subroutine particle_vector_checkpoint
 
