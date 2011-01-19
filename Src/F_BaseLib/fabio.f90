@@ -54,6 +54,17 @@ module fabio_module
        real(kind=sp_t), intent(in) :: s(count)
        integer, intent(out) :: offset
      end subroutine fabio_write_raw_s
+     !
+     ! These are used by the particle code.
+     !
+     subroutine fabio_write_raw_array_i(fd, iv, count)
+       integer, intent(in) :: fd, count
+       integer, intent(in) :: iv(count)
+     end subroutine fabio_write_raw_array_i
+     subroutine fabio_write_raw_array_d(fd, rv, count)
+       integer, intent(in)          :: fd, count
+       double precision, intent(in) :: rv(count)
+     end subroutine fabio_write_raw_array_d
 
   end interface
 
