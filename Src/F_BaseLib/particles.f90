@@ -755,13 +755,27 @@ contains
   subroutine particle_vector_checkpoint(particles,dir,mla)
 
     use parallel
+    use fabio_module
     use bl_IO_module, only: unit_new
-    use fabio_module, only: fabio_mkdir
     use bl_error_module
 
     type(particle_vector), intent(in   ) :: particles
     character(len=*),      intent(in   ) :: dir
     type(ml_layout),       intent(inout) :: mla
+
+    interface
+       !
+       ! For the time begin these are implemented in fabio_c.c
+       !
+       subroutine fabio_write_raw_array_i(fd, iv, count)
+         integer, intent(in) :: fd, count
+         integer, intent(in) :: iv(count)
+       end subroutine fabio_write_raw_array_i
+       subroutine fabio_write_raw_array_d(fd, rv, count)
+         integer, intent(in)          :: fd, count
+         double precision, intent(in) :: rv(count)
+       end subroutine fabio_write_raw_array_d
+    end interface
 
     character(len=*), parameter :: Hdr         = 'Header'
     character(len=*), parameter :: TheData     = 'DATA'
@@ -769,7 +783,7 @@ contains
 
     character(len=256)            :: pdir
     integer                       :: i, j, k, nparticles, nparticles_max, ioproc
-    integer                       :: un, nprocs, iN, dN
+    integer                       :: un, nprocs, iN, dN, fd
     integer, allocatable          :: isnd(:), ircv(:), rcvc(:), rcvd(:)
     double precision, allocatable :: dsnd(:), drcv(:)
 
@@ -827,6 +841,10 @@ contains
     !
     if ( parallel_IOProcessor() ) then
        allocate(rcvc(0:nprocs-1), rcvd(0:nprocs-1), ircv(iN * nparticles_max))
+       !
+       ! Let's open the file into which we'll stuff the particle data.
+       !
+       call fabio_open(fd, trim(pdir) // '/' // trim(TheData), FABIO_WRONLY)
     end if
     !
     ! We add one to the allocation here to guarantee we have at least one element.
@@ -861,8 +879,9 @@ contains
 
     if ( parallel_IOProcessor() ) then
        !
-       ! TODO - write(ircv) to a file.
+       ! Append ircv to a file.
        !
+       call fabio_write_raw_array_i(fd, ircv, iN*nparticles)
 
        deallocate(ircv)
     end if
@@ -899,8 +918,9 @@ contains
 
     if ( parallel_IOProcessor() ) then
        !
-       ! TODO - append drcv to file.
+       ! Append drcv to file.
        !
+       call fabio_write_raw_array_d(fd, drcv, dN*nparticles)
 
        deallocate(drcv)
     end if
