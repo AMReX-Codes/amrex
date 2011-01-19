@@ -763,20 +763,6 @@ contains
     character(len=*),      intent(in   ) :: dir
     type(ml_layout),       intent(inout) :: mla
 
-    interface
-       !
-       ! For the time begin these are implemented in fabio_c.c
-       !
-       subroutine fabio_write_raw_array_i(fd, iv, count)
-         integer, intent(in) :: fd, count
-         integer, intent(in) :: iv(count)
-       end subroutine fabio_write_raw_array_i
-       subroutine fabio_write_raw_array_d(fd, rv, count)
-         integer, intent(in)          :: fd, count
-         double precision, intent(in) :: rv(count)
-       end subroutine fabio_write_raw_array_d
-    end interface
-
     character(len=*), parameter :: Hdr         = 'Header'
     character(len=*), parameter :: TheData     = 'DATA'
     character(len=*), parameter :: ParticleDir = 'Particles'
