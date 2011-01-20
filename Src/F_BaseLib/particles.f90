@@ -384,6 +384,7 @@ contains
   subroutine particle_vector_remove(d,i)
     type(particle_vector), intent(inout) :: d
     integer,               intent(in   ) :: i
+    d%size    =  d%size - 1
     d%d(i)%id = -d%d(i)%id
   end subroutine particle_vector_remove
 
@@ -436,7 +437,7 @@ contains
     double precision,      intent(in   ) :: problo(:)
     double precision,      intent(in   ) :: probhi(:)
 
-    integer          :: i, j, id, dm
+    integer          :: i, j, id, dm, nparticles, nparticles_tot
     double precision :: rnd, len(MAX_SPACEDIM)
     type(particle)   :: p
     !
@@ -492,6 +493,17 @@ contains
        end if
 
     end do
+
+    if ( .false. ) then
+       nparticles = size(particles)
+
+       call parallel_reduce(nparticles_tot, nparticles, MPI_SUM)
+
+       if ( parallel_IOProcessor() ) then
+          print*, 'nparticles_tot: ', nparticles_tot
+          call flush(6)
+       end if
+    end if
 
   end subroutine particle_vector_init_random
 
@@ -763,12 +775,12 @@ contains
     character(len=*),      intent(in   ) :: dir
     type(ml_layout),       intent(inout) :: mla
 
-    character(len=*), parameter :: Hdr         = 'Header'
+    character(len=*), parameter :: Hdr         = 'HDR'
     character(len=*), parameter :: TheData     = 'DATA'
     character(len=*), parameter :: ParticleDir = 'Particles'
 
     character(len=256)            :: pdir
-    integer                       :: i, j, k, nparticles, nparticles_max, ioproc
+    integer                       :: i, j, k, nparticles, nparticles_tot, ioproc
     integer                       :: un, nprocs, iN, dN, fd
     integer, allocatable          :: isnd(:), ircv(:), rcvc(:), rcvd(:)
     double precision, allocatable :: dsnd(:), drcv(:)
@@ -780,7 +792,9 @@ contains
     if ( parallel_IOProcessor() ) then
        call fabio_mkdir(pdir)
     end if
-
+    !
+    ! Gotta wait till the directory gets built.
+    !
     call parallel_barrier()
 
     iN         = 2       ! # of integers to snd/rcv for each particle.
@@ -789,7 +803,14 @@ contains
     ioproc     = parallel_IOProcessorNode()
     nparticles = size(particles)
 
-    call parallel_reduce(nparticles_max, nparticles, MPI_MAX, proc = ioproc)
+    call parallel_reduce(nparticles_tot, nparticles, MPI_SUM)
+
+
+    if ( parallel_IOProcessor() ) then
+       print*, 'nparticles_tot: ', nparticles_tot
+       call flush(6)
+    end if
+    
 
     if ( parallel_IOProcessor() ) then
 
@@ -812,12 +833,12 @@ contains
        !
        ! Then the total number of particles.
        !
-       write(unit = un, fmt = '(I9)') nparticles_max
+       write(unit = un, fmt = '(I9)') nparticles_tot
 
        close(un)
     end if
 
-    if ( nparticles_max == 0 ) return
+    if ( nparticles_tot == 0 ) return
     !
     ! Since the number of particles is expected to be small relative to the
     ! amount of other data in the problem we'll write all the particle data
@@ -826,7 +847,7 @@ contains
     ! rebuilt on restart() via redistribute().
     !
     if ( parallel_IOProcessor() ) then
-       allocate(rcvc(0:nprocs-1), rcvd(0:nprocs-1), ircv(iN * nparticles_max))
+       allocate(rcvc(0:nprocs-1), rcvd(0:nprocs-1), ircv(iN * nparticles_tot))
        !
        ! Let's open the file into which we'll stuff the particle data.
        !
@@ -875,7 +896,7 @@ contains
     ! Now the real data.
     !
     if ( parallel_IOProcessor() ) then
-       allocate(drcv(dN * nparticles_max))
+       allocate(drcv(dN * nparticles_tot))
     end if
     !
     ! Add one to the allocation to guarantee we have at least one element.
