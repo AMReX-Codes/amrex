@@ -119,6 +119,8 @@ module particle_module
 
   private :: particle_vector_reserve
 
+  logical, parameter, private :: pVerbose = .true.
+
   character(len=*), parameter, private :: Version = 'Version_One_Dot_Zero'
 
 contains
@@ -494,15 +496,12 @@ contains
 
     end do
 
-    if ( .false. ) then
-       nparticles = size(particles)
+    nparticles = size(particles)
 
-       call parallel_reduce(nparticles_tot, nparticles, MPI_SUM)
+    call parallel_reduce(nparticles_tot, nparticles, MPI_SUM)
 
-       if ( parallel_IOProcessor() ) then
-          print*, 'nparticles_tot: ', nparticles_tot
-          call flush(6)
-       end if
+    if ( parallel_IOProcessor() ) then
+       print*, 'particle_vector_init_random(): nparticles_tot: ', nparticles_tot
     end if
 
   end subroutine particle_vector_init_random
@@ -584,10 +583,11 @@ contains
     !
     logical, intent(in), optional :: where
 
-    type(particle) :: p
-    integer        :: maxSR, lmaxSR
-    integer        :: i, myproc, nprocs, proc, sCnt, rCnt, iN, rN, ioff, roff
-    logical        :: lwhere
+    type(particle)   :: p
+    integer          :: maxSR, lmaxSR
+    integer          :: i, myproc, nprocs, proc, sCnt, rCnt, iN, rN, ioff, roff
+    logical          :: lwhere
+    double precision :: rbeg, rend, rtime
 
     integer, allocatable, save :: nSnd(:), nRcv(:), nSndOff(:), nRcvOff(:)
     integer, allocatable, save :: indx(:), nSnd2(:), nRcv2(:)
@@ -597,6 +597,8 @@ contains
     integer,                       save :: sCntMax = 0, rCntMax = 0
 
     logical, parameter :: verbose = .false.
+
+    rbeg = parallel_wtime()
 
     lwhere = .false. ; if ( present(where) ) lwhere = where
 
@@ -762,12 +764,21 @@ contains
        call add(particles,p)
     end do
 
+    rend = parallel_wtime() - rbeg
+
+    call parallel_reduce(rtime, rend, MPI_MAX, proc = parallel_IOProcessorNode())
+
+    if ( parallel_IOProcessor() .and. pVerbose ) then
+       print*, '    particle_vector_redistribute(): time: ', rtime
+    end if
+
   end subroutine particle_vector_redistribute
 
   subroutine particle_vector_checkpoint(particles,dir,mla)
 
     use parallel
-    use fabio_module
+    use fabio_module, only: fabio_mkdir, fabio_open, fabio_close, FABIO_WRONLY, &
+                            fabio_write_raw_array_i, fabio_write_raw_array_d
     use bl_IO_module, only: unit_new
     use bl_error_module
 
@@ -782,8 +793,13 @@ contains
     character(len=256)            :: pdir
     integer                       :: i, j, k, nparticles, nparticles_tot, ioproc
     integer                       :: un, nprocs, iN, dN, fd
-    integer, allocatable          :: isnd(:), ircv(:), rcvc(:), rcvd(:)
+    double precision              :: rbeg, rend, rtime
+
+    integer,          allocatable :: isnd(:), ircv(:)
+    integer, save,    allocatable :: rcvc(:), rcvd(:)
     double precision, allocatable :: dsnd(:), drcv(:)
+
+    rbeg = parallel_wtime()
 
     call bl_assert(trim(dir) .ne. '' , 'particle_vector_checkpoint: dir must be non-empty')
 
@@ -804,13 +820,6 @@ contains
     nparticles = size(particles)
 
     call parallel_reduce(nparticles_tot, nparticles, MPI_SUM)
-
-
-    if ( parallel_IOProcessor() ) then
-       print*, 'nparticles_tot: ', nparticles_tot
-       call flush(6)
-    end if
-    
 
     if ( parallel_IOProcessor() ) then
 
@@ -839,6 +848,10 @@ contains
     end if
 
     if ( nparticles_tot == 0 ) return
+
+    if ( .not. allocated(rcvc) ) then
+       allocate(rcvc(0:nprocs-1), rcvd(0:nprocs-1))
+    end if
     !
     ! Since the number of particles is expected to be small relative to the
     ! amount of other data in the problem we'll write all the particle data
@@ -847,7 +860,8 @@ contains
     ! rebuilt on restart() via redistribute().
     !
     if ( parallel_IOProcessor() ) then
-       allocate(rcvc(0:nprocs-1), rcvd(0:nprocs-1), ircv(iN * nparticles_tot))
+
+       allocate(ircv(iN * nparticles_tot))
        !
        ! Let's open the file into which we'll stuff the particle data.
        !
@@ -888,14 +902,12 @@ contains
        !
        ! Append ircv to a file.
        !
-       call fabio_write_raw_array_i(fd, ircv, iN*nparticles)
+       call fabio_write_raw_array_i(fd, ircv, iN*nparticles_tot)
 
        deallocate(ircv)
-    end if
-    !
-    ! Now the real data.
-    !
-    if ( parallel_IOProcessor() ) then
+       !
+       ! Now the real data.
+       !
        allocate(drcv(dN * nparticles_tot))
     end if
     !
@@ -927,12 +939,21 @@ contains
        !
        ! Append drcv to file.
        !
-       call fabio_write_raw_array_d(fd, drcv, dN*nparticles)
+       call fabio_write_raw_array_d(fd, drcv, dN*nparticles_tot)
+
+       call fabio_close(fd)
 
        deallocate(drcv)
     end if
 
-  end subroutine particle_vector_checkpoint
+    rend = parallel_wtime() - rbeg
 
+    call parallel_reduce(rtime, rend, MPI_MAX, proc = ioproc)
+
+    if ( parallel_IOProcessor() .and. pVerbose ) then
+       print*, '    particle_vector_checkpoint(): time: ', rtime
+    end if
+
+  end subroutine particle_vector_checkpoint
 
 end module particle_module
