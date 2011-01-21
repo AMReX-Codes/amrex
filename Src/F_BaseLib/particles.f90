@@ -1,3 +1,11 @@
+!
+! The data structures in this code aren't particularly sophiticated.
+! It can handle some tens or hundreds of thousands of particles OK.
+! It's when you get into the millions of particles range when there
+! could start to be issues.  I'm thinking of how to beef up the data
+! structures.
+!
+
 module particle_module
 
   use bl_space
@@ -135,6 +143,8 @@ module particle_module
   private :: particle_vector_reserve, particle_vector_swap
 
   logical, parameter, private :: pVerbose = .true.
+
+  logical, parameter, private :: pDebugging = .true.
 
   character(len=*), parameter, private :: Version = 'Version_One_Dot_Zero'
 
@@ -344,8 +354,7 @@ contains
     r = (d%size == 0)
   end function particle_vector_empty
 
-!  pure function particle_vector_okay(d) result(r)
-   function particle_vector_okay(d) result(r)
+  pure function particle_vector_okay(d) result(r)
     logical :: r
     type(particle_vector), intent(in) :: d
     integer i, cnt
@@ -355,13 +364,6 @@ contains
        cnt = cnt + 1
     end do
     r = (d%size == cnt)
-
-    if ( .not. r) then
-       print*, 'okay: d%size, cnt: ', d%size, cnt
-!       call print(d, 'OK')
-       call flush(6)
-    end if
-
   end function particle_vector_okay
 
   pure function particle_vector_size(d) result(r)
@@ -424,10 +426,8 @@ contains
   end subroutine particle_vector_add
 
   subroutine particle_vector_remove(d,i)
-    use bl_error_module
     type(particle_vector), intent(inout) :: d
     integer,               intent(in   ) :: i
-    call bl_assert(d%d(i)%id > 0, 'remove: not a valid particle')
     d%size    =  d%size - 1
     d%d(i)%id = -d%d(i)%id
     call push_back(d%invalid,i)
@@ -565,7 +565,9 @@ contains
 
     dm = mla%dim
 
-    call bl_assert(ok(particles), 'init_random: not OK on entry')
+    if ( pDebugging ) then
+       call bl_assert(ok(particles), 'init_random: not OK on entry')
+    end if
 
     do i = 1, capacity(particles)
        !
@@ -612,7 +614,9 @@ contains
     !
     call particle_vector_redistribute(particles,mla,dx,problo,.true.)
 
-    call bl_assert(ok(particles), 'init_random: not OK on exit')
+    if ( pDebugging ) then
+       call bl_assert(ok(particles), 'init_random: not OK on exit')
+    end if
 
   end subroutine particle_vector_move_random
 
@@ -642,7 +646,9 @@ contains
     integer,          allocatable, save :: SndDataI(:), RcvDataI(:)
     integer,                       save :: sCntMax = 0, rCntMax = 0
 
-    call bl_assert(ok(particles), 'redistribute: not OK on entry')
+    if ( pDebugging ) then
+       call bl_assert(ok(particles), 'redistribute: not OK on entry')
+    end if
 
     rbeg = parallel_wtime()
 
@@ -802,7 +808,9 @@ contains
        print*, '    particle_vector_redistribute(): time: ', rtime
     end if
 
-    call bl_assert(ok(particles), 'redistribute: not OK on exit')
+    if ( pDebugging ) then
+       call bl_assert(ok(particles), 'redistribute: not OK on exit')
+    end if
 
   end subroutine particle_vector_redistribute
 
@@ -833,6 +841,10 @@ contains
 
     rbeg = parallel_wtime()
 
+    if ( pDebugging ) then
+       call bl_assert(ok(particles), 'checkpoint: not OK on entry')
+    end if
+
     call bl_assert(trim(dir) .ne. '' , 'particle_vector_checkpoint: dir must be non-empty')
 
     pdir = trim(dir) // '/' // ParticleDir
@@ -847,6 +859,7 @@ contains
 
     iN         = 2       ! # of integers to snd/rcv for each particle.
     dN         = mla%dim ! # of double precisions to snd/rcv for each particle.
+
     nprocs     = parallel_nprocs()
     ioproc     = parallel_IOProcessorNode()
     nparticles = size(particles)
@@ -934,15 +947,6 @@ contains
        call bl_assert(particles%d(i)%id > 0, 'particle_vector_checkpoint: got an invalid particle')
     end do
 
-
-
-    if (cnt .ne. nparticles) then
-       print*, 'cnt, nparticles: ', cnt, nparticles
-    end if
-    call parallel_barrier()
-
-
-
     call bl_assert(cnt == nparticles, 'particle_vector_checkpoint: particle count wrong 1')
 
     call parallel_gather(isnd, iN*nparticles, ircv, rcvc, rcvd, root = ioproc)
@@ -1013,6 +1017,10 @@ contains
        print*, '    particle_vector_checkpoint(): time: ', rtime
     end if
 
+    if ( pDebugging ) then
+       call bl_assert(ok(particles), 'checkpoint: not OK on exit')
+    end if
+
   end subroutine particle_vector_checkpoint
 
   subroutine particle_vector_restart(particles,dir,mla,dx,problo)
@@ -1045,6 +1053,10 @@ contains
 
     rbeg = parallel_wtime()
 
+    if ( pDebugging ) then
+       call bl_assert(ok(particles), 'restart: not OK on entry')
+    end if
+
     call bl_assert(empty(particles), 'particle_vector_restart: particle vector must be empty')
 
     call bl_assert(trim(dir) .ne. '' , 'particle_vector_restart: dir must be non-empty')
@@ -1053,6 +1065,7 @@ contains
 
     iN         = 2       ! # of integers to snd/rcv for each particle.
     dN         = mla%dim ! # of double precisions to snd/rcv for each particle.
+
     nprocs     = parallel_nprocs()
     ioproc     = parallel_IOProcessorNode()
 
@@ -1102,9 +1115,9 @@ contains
        !
        ! And read the data.
        !
-!       call fabio_read_raw_array_i(fd, ircv, iN*nparticles)
+       call fabio_read_raw_array_i(fd, ircv, iN*nparticles)
 
-!       call fabio_read_raw_array_d(fd, drcv, dN*nparticles)
+       call fabio_read_raw_array_d(fd, drcv, dN*nparticles)
 
        call fabio_close(fd)
        !
@@ -1121,7 +1134,7 @@ contains
 
           j = dN * (i-1)
           do k = 1, dN
-             p%pos(k) = ircv(j + k)
+             p%pos(k) = drcv(j + k)
           end do
 
           call add(particles,p)
@@ -1159,7 +1172,11 @@ contains
     call parallel_reduce(rtime, rend, MPI_MAX, proc = ioproc)
 
     if ( parallel_IOProcessor() .and. pVerbose ) then
-       print*, '    particle_vector_checkpoint(): time: ', rtime
+       print*, '    particle_vector_restart(): time: ', rtime
+    end if
+
+    if ( pDebugging ) then
+       call bl_assert(ok(particles), 'restart: not OK on exit')
     end if
 
   end subroutine particle_vector_restart
