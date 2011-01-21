@@ -1,9 +1,10 @@
 subroutine t_particle
 
+  use fabio_module
   use particle_module
 
   integer i, id
-  type(particle) p, q
+  type(particle) p
   type(particle_vector) v
 
   type(box)         :: bx,bx2
@@ -14,67 +15,12 @@ subroutine t_particle
   double precision  :: problo(3)
   double precision  :: probhi(3)
   logical           :: pmask(3)
+  character(len=256):: check_file_name
+  character(len=5)  :: check_index
 
   id = 1
 
   pmask = .true.
-
-  p%pos = (/ 1.d0, 2.d0, 3.d0 /)
-  q%pos = (/ 1.d1, 2.d1, 3.d1 /)
-
-  p%id = id; id = id + 1
-  q%id = id; id = id + 1
-
-  call print(p)
-  call print(q)
-
-  call build(v)
-
-  if (parallel_IOProcessor()) then
-     call print(v)
-     call print(v, 'PV')
-  end if
-
-  do i = 1, 10
-     p%id = id; id = id + 1
-     q%id = id; id = id + 1
-     call add(v,p)
-     call add(v,q)
-  end do
-
-  if (parallel_IOProcessor()) then
-     call print(v, 'PV')
-     call print(v, 'PV', .true.)
-     print*, 'size = ', size(v)
-  end if
-  !
-  ! Now fill the vector to current capacity.
-  !
-  do while (size(v) < capacity(v))
-     call add(v,p)
-  end do
-
-  p%id = 12345
-
-  call remove(v, 1); call add(v,p)
-
-  call remove(v, size(v)); call add(v,p)
-
-  call remove(v, size(v)/2); call add(v,p)
-
-  call remove(v, 2)
-  call remove(v, 3)
-  call remove(v, 4)
-  call add(v,p)
-  call add(v,p)
-  call add(v,p)
-
-  if (parallel_IOProcessor()) then
-     call print(v, 'PV')
-     print*, 'size = ', size(v)
-  end if
-
-  call clear(v)
   !
   ! Let's build a single level mla
   !
@@ -105,7 +51,7 @@ subroutine t_particle
 
   call destroy(mba)
 
-  call init_random(v,1000000,17971,mla,dx,problo,probhi)
+  call init_random(v,100000,17971,mla,dx,problo,probhi)
 
   if (parallel_IOProcessor()) then
      print*, ''
@@ -119,9 +65,26 @@ subroutine t_particle
   !
   ! Let's move the particles a bit.
   !
-  do i = 1,25
-     if (parallel_IOProcessor()) print*, i, 'Calling move_random(one-level mla) ...'
+  do i = 1,10
+     if (parallel_IOProcessor()) then
+        print*, i, 'Calling move_random(one-level mla) ...'
+        call flush(6)
+     end if
      call move_random(v,mla,dx,problo,probhi)
+
+      write(unit=check_index,fmt='(i5.5)') i
+      check_file_name = 'chk' // check_index
+
+      if ( parallel_IOProcessor() ) then
+         call fabio_mkdir(check_file_name)
+      end if
+      call parallel_barrier()
+
+      if (parallel_IOProcessor()) then
+         print*, 'check_file_name: ', check_file_name
+      end if
+
+!      call checkpoint(v,check_file_name,mla)
   end do
 
   if (parallel_IOProcessor()) then
@@ -134,7 +97,10 @@ subroutine t_particle
   end if
 
   call parallel_barrier()
-!  call bl_error('Got Here')
+
+
+  call bl_error('Got Here')
+
 
   call destroy(mla)
   !
@@ -187,7 +153,7 @@ subroutine t_particle
 
   call destroy(mba)
 
-  call init_random(v,1000000,171717171,mla,dx2,problo,probhi)
+  call init_random(v,100000,171717171,mla,dx2,problo,probhi)
 
   if (parallel_IOProcessor()) then
      print*, ''
@@ -195,12 +161,16 @@ subroutine t_particle
      print*, ''
 !     call print(v, 'after init_random using 2-level mla')
      print*, ''
+     call flush(6)
   end if
   !
   ! Let's move the particles a bit.
   !
-  do i = 1,25
-     if (parallel_IOProcessor()) print*, i, 'Calling move_random(two-level mla) ...'
+  do i = 1,100
+     if (parallel_IOProcessor()) then
+        print*, i, 'Calling move_random(two-level mla) ...'
+        call flush(6)
+     end if
      call move_random(v,mla,dx2,problo,probhi)
   end do
 
