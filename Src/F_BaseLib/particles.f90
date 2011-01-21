@@ -1,6 +1,7 @@
 module particle_module
 
   use bl_space
+  use vector_i_module
   use ml_layout_module
 
   implicit none
@@ -36,8 +37,9 @@ module particle_module
 
   type particle_vector
      private
-     integer :: size = 0
+     integer                 :: size = 0
      type(particle), pointer :: d(:) => NULL()
+     type(vector_i)          :: invalid
   end type particle_vector
 
   interface build
@@ -48,7 +50,7 @@ module particle_module
      module procedure particle_vector_destroy
   end interface destroy
   !
-  ! This includes both valid and invalid particles.
+  ! This is just the number of "valid" particles.
   !
   ! Valid particles are those for which "id" > 0.
   !
@@ -63,6 +65,14 @@ module particle_module
   interface empty
      module procedure particle_vector_empty
   end interface empty
+
+  interface ok
+     module procedure particle_vector_okay
+  end interface ok
+
+  interface swap
+     module procedure particle_vector_swap
+  end interface swap
   !
   ! Returns copy of the i'th particle.  It may or may not be valid.
   !
@@ -86,7 +96,9 @@ module particle_module
   interface add
      module procedure particle_vector_add
   end interface add
-
+  !
+  ! This is the total number of "valid" + "invalid" particles.
+  !
   interface capacity
      module procedure particle_vector_capacity
   end interface capacity
@@ -98,16 +110,6 @@ module particle_module
   interface print
      module procedure particle_vector_print
   end interface print
-  !
-  ! These are useful for testing purposes.
-  !
-  interface init_random
-     module procedure particle_vector_init_random
-  end interface init_random
-
-  interface move_random
-     module procedure particle_vector_move_random
-  end interface move_random
 
   interface redistribute
      module procedure particle_vector_redistribute
@@ -117,7 +119,20 @@ module particle_module
      module procedure particle_vector_checkpoint
   end interface checkpoint
 
-  private :: particle_vector_reserve
+  interface restart
+     module procedure particle_vector_restart
+  end interface restart
+  !
+  ! These two are useful for testing purposes.
+  !
+  interface init_random
+     module procedure particle_vector_init_random
+  end interface init_random
+  interface move_random
+     module procedure particle_vector_move_random
+  end interface move_random
+
+  private :: particle_vector_reserve, particle_vector_swap
 
   logical, parameter, private :: pVerbose = .true.
 
@@ -314,11 +329,13 @@ contains
   subroutine particle_vector_build(d)
     type(particle_vector), intent(out) :: d
     allocate(d%d(d%size))
+    call build(d%invalid)
   end subroutine particle_vector_build
 
   subroutine particle_vector_destroy(d)
     type(particle_vector), intent(inout) :: d
     call particle_vector_clear(d)
+    call vector_clear_i(d%invalid)
   end subroutine particle_vector_destroy
 
   pure function particle_vector_empty(d) result(r)
@@ -327,11 +344,39 @@ contains
     r = (d%size == 0)
   end function particle_vector_empty
 
+!  pure function particle_vector_okay(d) result(r)
+   function particle_vector_okay(d) result(r)
+    logical :: r
+    type(particle_vector), intent(in) :: d
+    integer i, cnt
+    cnt = 0
+    do i = 1, capacity(d)
+       if ( d%d(i)%id <= 0 ) cycle
+       cnt = cnt + 1
+    end do
+    r = (d%size == cnt)
+
+    if ( .not. r) then
+       print*, 'okay: d%size, cnt: ', d%size, cnt
+!       call print(d, 'OK')
+       call flush(6)
+    end if
+
+  end function particle_vector_okay
+
   pure function particle_vector_size(d) result(r)
     integer :: r
     type(particle_vector), intent(in) :: d
     r = d%size
   end function particle_vector_size
+  !
+  ! TODO - does this do the right thing with "invalid"?
+  !
+  subroutine particle_vector_swap(a,b)
+    type(particle_vector), intent(inout) :: a,b
+    type(particle_vector) :: t
+    t = a; a = b; b = t
+  end subroutine particle_vector_swap
 
   pure function particle_vector_capacity(d) result(r)
     integer :: r
@@ -352,8 +397,8 @@ contains
     type(particle), pointer :: np(:)
     if ( size <= particle_vector_capacity(d) ) return
     allocate(np(size))
-    np(1:d%size) = d%d(1:d%size)
     if ( associated(d%d) ) then
+       np(1:d%size) = d%d(1:d%size)
        deallocate(d%d)
     end if
     d%d => np
@@ -362,32 +407,30 @@ contains
   subroutine particle_vector_add(d,v)
     type(particle_vector), intent(inout) :: d
     type(particle),        intent(in   ) :: v
-    integer i
     if ( d%size >= particle_vector_capacity(d) ) then
-       !
-       ! Before reserving more space try to overwrite an invalid particle.
-       ! Note that an overwrite does not change the size of the vector.
-       !
-       do i = 1, d%size
-          if ( d%d(i)%id < 0 ) then
-             d%d(i) = v
-             return
-          end if
-       end do
        call particle_vector_reserve(d,max(d%size+1,2*d%size))
        d%size      = d%size + 1
        d%d(d%size) = v
     else
-       d%size      = d%size + 1
-       d%d(d%size) = v
+       if ( empty(d%invalid) ) then
+          d%size      = d%size + 1
+          d%d(d%size) = v
+       else
+          d%size               = d%size + 1
+          d%d(back(d%invalid)) = v
+          call pop_back(d%invalid)
+       end if
     end if
   end subroutine particle_vector_add
 
   subroutine particle_vector_remove(d,i)
+    use bl_error_module
     type(particle_vector), intent(inout) :: d
     integer,               intent(in   ) :: i
+    call bl_assert(d%d(i)%id > 0, 'remove: not a valid particle')
     d%size    =  d%size - 1
     d%d(i)%id = -d%d(i)%id
+    call push_back(d%invalid,i)
   end subroutine particle_vector_remove
 
   subroutine particle_vector_clear(d)
@@ -522,7 +565,9 @@ contains
 
     dm = mla%dim
 
-    do i = 1, size(particles)
+    call bl_assert(ok(particles), 'init_random: not OK on entry')
+
+    do i = 1, capacity(particles)
        !
        ! Make sure to ignore invalid particles.
        !
@@ -567,6 +612,8 @@ contains
     !
     call particle_vector_redistribute(particles,mla,dx,problo,.true.)
 
+    call bl_assert(ok(particles), 'init_random: not OK on exit')
+
   end subroutine particle_vector_move_random
 
   subroutine particle_vector_redistribute(particles,mla,dx,problo,where)
@@ -584,7 +631,6 @@ contains
     logical, intent(in), optional :: where
 
     type(particle)   :: p
-    integer          :: maxSR, lmaxSR
     integer          :: i, myproc, nprocs, proc, sCnt, rCnt, iN, rN, ioff, roff
     logical          :: lwhere
     double precision :: rbeg, rend, rtime
@@ -596,14 +642,14 @@ contains
     integer,          allocatable, save :: SndDataI(:), RcvDataI(:)
     integer,                       save :: sCntMax = 0, rCntMax = 0
 
-    logical, parameter :: verbose = .false.
+    call bl_assert(ok(particles), 'redistribute: not OK on entry')
 
     rbeg = parallel_wtime()
 
     lwhere = .false. ; if ( present(where) ) lwhere = where
 
     if ( .not. lwhere ) then
-       do i = 1, size(particles)
+       do i = 1, capacity(particles)
           if ( particles%d(i)%id <= 0 ) cycle
           if ( .not. particle_where(particles%d(i),mla,dx,problo) ) then
              call bl_error('redistribute: invalid particle in original vector')
@@ -629,7 +675,7 @@ contains
     nSnd = 0
     nRcv = 0
 
-    do i = 1, size(particles)
+    do i = 1, capacity(particles)
        if ( particles%d(i)%id <= 0 ) cycle
 
        proc = get_proc(mla%la(particles%d(i)%lev),particles%d(i)%grd)
@@ -652,22 +698,6 @@ contains
 
     sCnt = SUM(nSnd)
     rCnt = SUM(nRcv)
-
-    if ( verbose ) then
-       lmaxSR = max(sCnt,rCnt)
-
-       call parallel_reduce(maxSR, lmaxSR, MPI_MAX)
-
-       if ( maxSR > 0 ) then
-          do i = 0, nprocs-1
-             if ( myproc == i ) then
-                write(6, '(A I4 A I6 A i6 A)') 'Processor ', i, ' : Rcvs: ', rCnt, ' Snds: ', sCnt, ' in redistribute()'
-                call flush(6)
-             end if
-             call parallel_barrier()
-          end do
-       end if
-    end if
 
     if ( ( sCnt > sCntMax ) .or. ( .not. allocated(SndDataI) ) ) then
        if ( allocated(SndDataI) ) then
@@ -696,7 +726,7 @@ contains
 
     indx = nSndOff
 
-    do i = 1, size(particles)
+    do i = 1, capacity(particles)
        if ( particles%d(i)%id <= 0 ) cycle
 
        proc = get_proc(mla%la(particles%d(i)%lev),particles%d(i)%grd)
@@ -738,7 +768,7 @@ contains
     !
     ! Let's remove() sent particles to make space for received ones.
     !
-    do i = 1, size(particles)
+    do i = 1, capacity(particles)
        if ( particles%d(i)%id <= 0 ) cycle
 
        if ( local(mla%la(particles%d(i)%lev),particles%d(i)%grd) ) cycle
@@ -772,6 +802,8 @@ contains
        print*, '    particle_vector_redistribute(): time: ', rtime
     end if
 
+    call bl_assert(ok(particles), 'redistribute: not OK on exit')
+
   end subroutine particle_vector_redistribute
 
   subroutine particle_vector_checkpoint(particles,dir,mla)
@@ -792,7 +824,7 @@ contains
 
     character(len=256)            :: pdir
     integer                       :: i, j, k, nparticles, nparticles_tot, ioproc
-    integer                       :: un, nprocs, iN, dN, fd
+    integer                       :: un, nprocs, iN, dN, fd, cnt
     double precision              :: rbeg, rend, rtime
 
     integer,          allocatable :: isnd(:), ircv(:)
@@ -888,11 +920,30 @@ contains
        end do
     end if
 
-    do i = 1, nparticles
-       j           = iN * (i-1) + 1
+    cnt = 0
+
+    do i = 1, capacity(particles)
+       if ( particles%d(i)%id <= 0 ) cycle
+
+       j           = iN * cnt + 1
        isnd(j    ) = particles%d(i)%id
        isnd(j + 1) = particles%d(i)%cpu
+
+       cnt = cnt + 1
+
+       call bl_assert(particles%d(i)%id > 0, 'particle_vector_checkpoint: got an invalid particle')
     end do
+
+
+
+    if (cnt .ne. nparticles) then
+       print*, 'cnt, nparticles: ', cnt, nparticles
+    end if
+    call parallel_barrier()
+
+
+
+    call bl_assert(cnt == nparticles, 'particle_vector_checkpoint: particle count wrong 1')
 
     call parallel_gather(isnd, iN*nparticles, ircv, rcvc, rcvd, root = ioproc)
 
@@ -924,12 +975,20 @@ contains
        end do
     end if
 
-    do i = 1, nparticles
-       j = dN * (i-1)
+    cnt = 0
+
+    do i = 1, capacity(particles)
+       if ( particles%d(i)%id <= 0 ) cycle
+
+       j = dN * cnt
        do k = 1, dN
           dsnd(j + k) = particles%d(i)%pos(k)
        end do
+
+       cnt = cnt + 1
     end do
+
+    call bl_assert(cnt == nparticles, 'particle_vector_checkpoint: particle count wrong 2')
 
     call parallel_gather(dsnd, dN*nparticles, drcv, rcvc, rcvd, root = ioproc)
 
@@ -955,5 +1014,154 @@ contains
     end if
 
   end subroutine particle_vector_checkpoint
+
+  subroutine particle_vector_restart(particles,dir,mla,dx,problo)
+
+    use parallel
+    use fabio_module, only: fabio_open, fabio_close, FABIO_RDONLY, &
+                            fabio_write_raw_array_i, fabio_write_raw_array_d
+    use bl_IO_module, only: unit_new
+    use bl_error_module
+
+    type(particle_vector), intent(inout) :: particles
+    character(len=*),      intent(in   ) :: dir
+    type(ml_layout),       intent(inout) :: mla
+    double precision,      intent(in   ) :: dx(:,:)
+    double precision,      intent(in   ) :: problo(:)
+
+    character(len=*), parameter :: Hdr         = 'HDR'
+    character(len=*), parameter :: TheData     = 'DATA'
+    character(len=*), parameter :: ParticleDir = 'Particles'
+
+    type(particle)                :: p
+    type(particle_vector)         :: tparticles
+    character(len=256)            :: pdir, the_version_string
+    integer                       :: i, j, k, dm, nparticles, ioproc
+    integer                       :: un, nprocs, iN, dN, fd
+    double precision              :: rbeg, rend, rtime
+
+    integer,          allocatable :: ircv(:)
+    double precision, allocatable :: drcv(:)
+
+    rbeg = parallel_wtime()
+
+    call bl_assert(empty(particles), 'particle_vector_restart: particle vector must be empty')
+
+    call bl_assert(trim(dir) .ne. '' , 'particle_vector_restart: dir must be non-empty')
+
+    pdir = trim(dir) // '/' // ParticleDir
+
+    iN         = 2       ! # of integers to snd/rcv for each particle.
+    dN         = mla%dim ! # of double precisions to snd/rcv for each particle.
+    nprocs     = parallel_nprocs()
+    ioproc     = parallel_IOProcessorNode()
+
+    call build(particles)
+
+    if ( parallel_IOProcessor() ) then
+
+       un = unit_new()
+
+       open(unit   = un,                             &
+            file   = trim(pdir) // '/' // trim(Hdr), &
+            form   = 'formatted',                    &
+            access = 'sequential',                   &
+            status = 'old',                          &
+            action = 'read')
+       !
+       ! First thing read is our Checkpoint/Restart version string.
+       !
+       read(unit = un, fmt = '(A)') the_version_string
+       !
+       ! Then dim for sanity checking.
+       !
+       read(unit = un, fmt = '(I1)') dm
+       !
+       ! Then the total number of particles.
+       !
+       read(unit = un, fmt = '(I9)') nparticles
+
+       close(un)
+
+       call bl_assert(dm == dN, 'particle_vector_restart: dimension mis-match')
+
+       call bl_assert(nparticles >= 0, 'particle_vector_restart: nparticles must be >= 0')
+    end if
+
+    call parallel_bcast(nparticles, root = ioproc)
+
+    if ( nparticles == 0 ) return
+
+    if ( parallel_IOProcessor() ) then
+
+       allocate(ircv(iN * nparticles), drcv(dN * nparticles))
+       !
+       ! Let's open the file into which we stuffed the particle data.
+       !
+       call fabio_open(fd, trim(pdir) // '/' // trim(TheData), FABIO_RDONLY)
+       !
+       ! And read the data.
+       !
+!       call fabio_read_raw_array_i(fd, ircv, iN*nparticles)
+
+!       call fabio_read_raw_array_d(fd, drcv, dN*nparticles)
+
+       call fabio_close(fd)
+       !
+       ! Now assemble the particles.
+       !
+       call particle_vector_reserve(particles, nparticles)
+
+       do i = 1, nparticles
+          j     = iN * (i-1) + 1
+          p%id  = ircv(j    )
+          p%cpu = ircv(j + 1)
+
+          call bl_assert(p%id > 0, 'particle_vector_restart: read an invalid particle')
+
+          j = dN * (i-1)
+          do k = 1, dN
+             p%pos(k) = ircv(j + k)
+          end do
+
+          call add(particles,p)
+       end do
+
+       deallocate(ircv,drcv)
+    end if
+    !
+    ! Let redistribute() do its thing.
+    !
+    call redistribute(particles, mla, dx, problo)
+
+    if ( parallel_IOProcessor() ) then
+       !
+       ! Trim out all the unused space in particles.
+       !
+       call build(tparticles)
+
+       call particle_vector_reserve(tparticles, size(particles))
+
+       do i = 1, capacity(particles)
+          if ( particles%d(i)%id <= 0 ) cycle
+          call add(tparticles, particles%d(i))
+       end do
+
+       call bl_assert(size(tparticles) == size(particles), 'particle_vector_restart: Hmmmm')
+
+       call swap(particles,tparticles)
+
+       call destroy(tparticles)
+    end if
+
+    rend = parallel_wtime() - rbeg
+
+    call parallel_reduce(rtime, rend, MPI_MAX, proc = ioproc)
+
+    if ( parallel_IOProcessor() .and. pVerbose ) then
+       print*, '    particle_vector_checkpoint(): time: ', rtime
+    end if
+
+  end subroutine particle_vector_restart
 
 end module particle_module
