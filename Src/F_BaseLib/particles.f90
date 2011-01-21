@@ -62,9 +62,7 @@ module particle_module
   !
   ! Valid particles are those for which "id" > 0.
   !
-  ! Invalid are those for which "id" < 0.
-  !
-  ! We do not use the value zero for particle ids.
+  ! Invalid are those for which "id" <= 0.
   !
   interface size
      module procedure particle_vector_size
@@ -81,12 +79,6 @@ module particle_module
   interface swap
      module procedure particle_vector_swap
   end interface swap
-  !
-  ! Returns copy of the i'th particle.  It may or may not be valid.
-  !
-  interface at
-     module procedure particle_vector_at
-  end interface at
   !
   ! This symbolically removes particles from the vector
   ! by negating the "id" of the particle.  This will be
@@ -131,7 +123,8 @@ module particle_module
      module procedure particle_vector_restart
   end interface restart
   !
-  ! These two are useful for testing purposes.
+  ! These two are useful for testing purposes and/or as examples of how
+  ! to write init routines and move routines.
   !
   interface init_random
      module procedure particle_vector_init_random
@@ -141,12 +134,16 @@ module particle_module
   end interface move_random
 
   private :: particle_vector_reserve, particle_vector_swap
-
-  logical, parameter, private :: pVerbose = .true.
-
+  
+  logical, parameter, private :: pVerbose   = .true.
   logical, parameter, private :: pDebugging = .true.
-
-  character(len=*), parameter, private :: Version = 'Version_One_Dot_Zero'
+  !
+  ! Used by checkpoint/restart.
+  !
+  character(len=*), parameter, private :: Hdr         = 'HDR'
+  character(len=*), parameter, private :: TheData     = 'DATA'
+  character(len=*), parameter, private :: ParticleDir = 'Particles'
+  character(len=*), parameter, private :: Version     = 'Version_One_Dot_Zero'
 
 contains
 
@@ -371,9 +368,7 @@ contains
     type(particle_vector), intent(in) :: d
     r = d%size
   end function particle_vector_size
-  !
-  ! TODO - does this do the right thing with "invalid"?
-  !
+
   subroutine particle_vector_swap(a,b)
     type(particle_vector), intent(inout) :: a,b
     type(particle_vector) :: t
@@ -385,13 +380,6 @@ contains
     type(particle_vector), intent(in) :: d
     r = size(d%d)
   end function particle_vector_capacity
-
-  pure function particle_vector_at(d, i) result(r)
-    type(particle) :: r
-    integer, intent(in) :: i
-    type(particle_vector), intent(in) :: d
-    r = d%d(i)
-  end function particle_vector_at
 
   subroutine particle_vector_reserve(d, size)
     type(particle_vector), intent(inout) :: d
@@ -439,6 +427,7 @@ contains
     if ( associated(d%d) ) then
        deallocate(d%d)
     end if
+    call clear(d%invalid)
   end subroutine particle_vector_clear
 
   subroutine particle_vector_print(d, str, valid)
@@ -492,10 +481,10 @@ contains
 
     dm = mla%dim
 
-    call bl_assert(icnt  > 0, 'init_random: icnt must be > 0')
-    call bl_assert(iseed > 0, 'init_random: iseed must be > 0')
+    call bl_assert(icnt  > 0, 'particle_vector_init_random: icnt must be > 0')
+    call bl_assert(iseed > 0, 'particle_vector_init_random: iseed must be > 0')
 
-    call bl_assert(empty(particles), 'init_random: particle vector should be empty')
+    call bl_assert(empty(particles), 'particle_vector_init_random: particle vector should be empty')
 
     do i = 1,dm
        len(i) = probhi(i) - problo(i)
@@ -519,11 +508,11 @@ contains
 
           p%pos(j) = problo(j) + (rnd * len(j))
 
-          call bl_assert(p%pos(j) < probhi(j), 'init_random: particle out of bounds')
+          call bl_assert(p%pos(j) < probhi(j), 'particle_vector_init_random: particle out of bounds')
        end do
 
        if ( .not. particle_where(p,mla,dx,problo) ) then
-          call bl_error('init_random: invalid particle')
+          call bl_error('particle_vector_init_random: invalid particle')
        end if
 
        if ( local(mla%la(p%lev),p%grd) ) then
@@ -546,7 +535,10 @@ contains
     if ( parallel_IOProcessor() ) then
        print*, 'particle_vector_init_random(): nparticles_tot: ', nparticles_tot
     end if
-
+    !
+    ! Note that there is no need to call redistribute() here as we've
+    ! guaranteed the particles are owned by the correct CPU.
+    !
   end subroutine particle_vector_init_random
 
   subroutine particle_vector_move_random(particles,mla,dx,problo,probhi)
@@ -566,7 +558,7 @@ contains
     dm = mla%dim
 
     if ( pDebugging ) then
-       call bl_assert(ok(particles), 'init_random: not OK on entry')
+       call bl_assert(ok(particles), 'particle_vector_move_random: not OK on entry')
     end if
 
     do i = 1, capacity(particles)
@@ -615,7 +607,7 @@ contains
     call particle_vector_redistribute(particles,mla,dx,problo,.true.)
 
     if ( pDebugging ) then
-       call bl_assert(ok(particles), 'init_random: not OK on exit')
+       call bl_assert(ok(particles), 'particle_vector_move_random: not OK on exit')
     end if
 
   end subroutine particle_vector_move_random
@@ -647,7 +639,7 @@ contains
     integer,                       save :: sCntMax = 0, rCntMax = 0
 
     if ( pDebugging ) then
-       call bl_assert(ok(particles), 'redistribute: not OK on entry')
+       call bl_assert(ok(particles), 'particle_vector_redistribute: not OK on entry')
     end if
 
     rbeg = parallel_wtime()
@@ -658,7 +650,7 @@ contains
        do i = 1, capacity(particles)
           if ( particles%d(i)%id <= 0 ) cycle
           if ( .not. particle_where(particles%d(i),mla,dx,problo) ) then
-             call bl_error('redistribute: invalid particle in original vector')
+             call bl_error('particle_vector_redistribute: invalid particle in original vector')
           end if
        end do
     end if
@@ -691,11 +683,11 @@ contains
        nSnd(proc) = nSnd(proc) + 1
     end do
 
-    call bl_assert(nSnd(myproc) == 0, 'redistribute: no sending to oneself')
+    call bl_assert(nSnd(myproc) == 0, 'particle_vector_redistribute: no sending to oneself')
 
     call parallel_alltoall(nRcv, nSnd, 1)
 
-    call bl_assert(nRcv(myproc) == 0, 'redistribute: no receiving from oneself')
+    call bl_assert(nRcv(myproc) == 0, 'particle_vector_redistribute: no receiving from oneself')
     !
     ! Save off copies of nSnd and nRcv
     !
@@ -794,7 +786,7 @@ contains
        ! Got to set the members of the particle that we didn't transfer.
        !
        if ( .not. particle_where(p,mla,dx,problo) ) then
-          call bl_error('redistribute: invalid particle after particle transfer')
+          call bl_error('particle_vector_redistribute: invalid particle after particle transfer')
        end if
 
        call add(particles,p)
@@ -809,7 +801,7 @@ contains
     end if
 
     if ( pDebugging ) then
-       call bl_assert(ok(particles), 'redistribute: not OK on exit')
+       call bl_assert(ok(particles), 'particle_vector_redistribute: not OK on exit')
     end if
 
   end subroutine particle_vector_redistribute
@@ -826,10 +818,6 @@ contains
     character(len=*),      intent(in   ) :: dir
     type(ml_layout),       intent(inout) :: mla
 
-    character(len=*), parameter :: Hdr         = 'HDR'
-    character(len=*), parameter :: TheData     = 'DATA'
-    character(len=*), parameter :: ParticleDir = 'Particles'
-
     character(len=256)            :: pdir
     integer                       :: i, j, k, nparticles, nparticles_tot, ioproc
     integer                       :: un, nprocs, iN, dN, fd, cnt
@@ -842,7 +830,7 @@ contains
     rbeg = parallel_wtime()
 
     if ( pDebugging ) then
-       call bl_assert(ok(particles), 'checkpoint: not OK on entry')
+       call bl_assert(ok(particles), 'particle_vector_checkpoint: not OK on entry')
     end if
 
     call bl_assert(trim(dir) .ne. '' , 'particle_vector_checkpoint: dir must be non-empty')
@@ -1018,7 +1006,7 @@ contains
     end if
 
     if ( pDebugging ) then
-       call bl_assert(ok(particles), 'checkpoint: not OK on exit')
+       call bl_assert(ok(particles), 'particle_vector_checkpoint: not OK on exit')
     end if
 
   end subroutine particle_vector_checkpoint
@@ -1037,10 +1025,6 @@ contains
     double precision,      intent(in   ) :: dx(:,:)
     double precision,      intent(in   ) :: problo(:)
 
-    character(len=*), parameter :: Hdr         = 'HDR'
-    character(len=*), parameter :: TheData     = 'DATA'
-    character(len=*), parameter :: ParticleDir = 'Particles'
-
     type(particle)                :: p
     type(particle_vector)         :: tparticles
     character(len=256)            :: pdir, the_version_string
@@ -1054,7 +1038,7 @@ contains
     rbeg = parallel_wtime()
 
     if ( pDebugging ) then
-       call bl_assert(ok(particles), 'restart: not OK on entry')
+       call bl_assert(ok(particles), 'particle_vector_restart: not OK on entry')
     end if
 
     call bl_assert(empty(particles), 'particle_vector_restart: particle vector must be empty')
@@ -1176,7 +1160,7 @@ contains
     end if
 
     if ( pDebugging ) then
-       call bl_assert(ok(particles), 'restart: not OK on exit')
+       call bl_assert(ok(particles), 'particle_vector_restart: not OK on exit')
     end if
 
   end subroutine particle_vector_restart
