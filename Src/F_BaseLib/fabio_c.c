@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.14 2011-01-19 23:37:33 lijewski Exp $ 
+   $Id: fabio_c.c,v 1.15 2011-01-21 21:24:00 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
 #include <math.h>
@@ -35,6 +35,8 @@ typedef int mode_t;
 #define FABIO_READ_S      fabio_read_s_
 #define FABIO_WRITE_RAW_ARRAY_D fabio_write_raw_array_d_
 #define FABIO_WRITE_RAW_ARRAY_I fabio_write_raw_array_i_
+#define FABIO_READ_RAW_ARRAY_D fabio_read_raw_array_d_
+#define FABIO_READ_RAW_ARRAY_I fabio_read_raw_array_i_
 #define FABIO_WRITE_RAW_D fabio_write_raw_d_
 #define FABIO_WRITE_RAW_S fabio_write_raw_s_
 #define FABIO_READ_SKIP_D fabio_read_skip_d_
@@ -48,6 +50,8 @@ typedef int mode_t;
 #define FABIO_READ_S      fabio_read_s__
 #define FABIO_WRITE_RAW_ARRAY_D fabio_write_raw_array_d__
 #define FABIO_WRITE_RAW_ARRAY_I fabio_write_raw_array_i__
+#define FABIO_READ_RAW_ARRAY_D fabio_read_raw_array_d__
+#define FABIO_READ_RAW_ARRAY_I fabio_read_raw_array_i__
 #define FABIO_WRITE_RAW_D fabio_write_raw_d__
 #define FABIO_WRITE_RAW_S fabio_write_raw_s__
 #define FABIO_READ_SKIP_D fabio_read_skip_d__
@@ -61,6 +65,8 @@ typedef int mode_t;
 #define FABIO_READ_S      fabio_read_s
 #define FABIO_WRITE_RAW_ARRAY_D fabio_write_raw_array_d
 #define FABIO_WRITE_RAW_ARRAY_I fabio_write_raw_array_i
+#define FABIO_READ_RAW_ARRAY_D fabio_read_raw_array_d
+#define FABIO_READ_RAW_ARRAY_I fabio_read_raw_array_i
 #define FABIO_WRITE_RAW_D fabio_write_raw_d
 #define FABIO_WRITE_RAW_S fabio_write_raw_s
 #define FABIO_READ_SKIP_D fabio_read_skip_d
@@ -482,7 +488,7 @@ FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp,
 }
 
 /*
-** These two guys are used by the particle code.
+** These four guys are used by the particle code.
 */
 
 void
@@ -514,6 +520,36 @@ FABIO_WRITE_RAW_ARRAY_I(const int* fdp, const int* vp, const int* countp)
   if ( ilen != write(fd, vp, ilen) )
     {
       fprintf(stderr, "FABIO_WRITE_RAW_ARRAY_I: failed to write %d bytes: %s\n", 
+	      ilen, strerror(errno));
+      exit(1);
+    }
+}
+
+void
+FABIO_READ_RAW_ARRAY_D(const int* fdp, const double* vp, const int* countp)
+{
+  int    fd    = *fdp;
+  size_t count = *countp;
+  int    ilen  = sizeof(double) * count;
+
+  if ( ilen != read(fd, vp, ilen) )
+    {
+      fprintf(stderr, "FABIO_READ_RAW_ARRAY_D: failed to write %d bytes: %s\n", 
+	      ilen, strerror(errno));
+      exit(1);
+    }
+}
+
+void
+FABIO_READ_RAW_ARRAY_I(const int* fdp, const int* vp, const int* countp)
+{
+  int    fd    = *fdp;
+  size_t count = *countp;
+  int    ilen  = sizeof(int) * count;
+
+  if ( ilen != read(fd, vp, ilen) )
+    {
+      fprintf(stderr, "FABIO_READ_RAW_ARRAY_I: failed to write %d bytes: %s\n", 
 	      ilen, strerror(errno));
       exit(1);
     }
