@@ -64,7 +64,7 @@ subroutine t_particle
   !
   ! Let's move the particles a bit.
   !
-  do i = 1,100
+  do i = 1,10
      if (parallel_IOProcessor()) then
         print*, i, 'Calling move_random(one-level mla) ...'
         call flush(6)
@@ -106,7 +106,7 @@ subroutine t_particle
   call parallel_barrier()
 
 
-  call bl_error('Got Here')
+!  call bl_error('Got Here')
 
 
   call destroy(mla)
@@ -160,7 +160,7 @@ subroutine t_particle
 
   call destroy(mba)
 
-  call init_random(v,100000,171717171,mla,dx2,problo,probhi)
+  call init_random(v,1000000,171717171,mla,dx2,problo,probhi)
 
   if (parallel_IOProcessor()) then
      print*, ''
@@ -179,6 +179,28 @@ subroutine t_particle
         call flush(6)
      end if
      call move_random(v,mla,dx2,problo,probhi)
+
+      write(unit=check_index,fmt='(i5.5)') i
+      check_file_name = 'chk' // check_index
+
+      if ( parallel_IOProcessor() ) then
+         call fabio_mkdir(check_file_name)
+      end if
+      call parallel_barrier()
+
+      if (parallel_IOProcessor()) then
+         print*, 'check_file_name: ', check_file_name
+      end if
+
+      call checkpoint(v,check_file_name,mla)
+
+      call build(tv)
+
+      call restart(tv,check_file_name,mla,dx2,problo)
+
+      call bl_assert(size(tv) == size(v), 'v and tv are NOT the same size')
+
+      call destroy(tv)
   end do
 
   call destroy(mla)
