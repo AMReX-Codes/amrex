@@ -65,6 +65,14 @@ module fabio_module
        integer, intent(in)          :: fd, count
        double precision, intent(in) :: rv(count)
      end subroutine fabio_write_raw_array_d
+     subroutine fabio_read_raw_array_i(fd, iv, count)
+       integer, intent(in)    :: fd, count
+       integer, intent(inout) :: iv(count)
+     end subroutine fabio_read_raw_array_i
+     subroutine fabio_read_raw_array_d(fd, rv, count)
+       integer, intent(in)             :: fd, count
+       double precision, intent(inout) :: rv(count)
+     end subroutine fabio_read_raw_array_d
 
   end interface
 
