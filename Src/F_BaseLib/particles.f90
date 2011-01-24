@@ -1,5 +1,5 @@
 !
-! The data structures in this code aren't particularly sophiticated.
+! The data structures in this code aren't particularly sophisticated.
 ! It can handle some tens or hundreds of thousands of particles OK.
 ! It's when you get into the millions of particles range when there
 ! could start to be issues.  I'm thinking of how to beef up the data
@@ -10,7 +10,7 @@ module particle_module
 
   use bl_space
   use vector_i_module
-  use ml_layout_module
+  use ml_multifab_module
 
   implicit none
 
@@ -132,6 +132,10 @@ module particle_module
   interface move_random
      module procedure particle_vector_move_random
   end interface move_random
+
+  interface timestamp
+     module procedure particle_vector_timestamp
+  end interface timestamp
 
   private :: particle_vector_reserve, particle_vector_swap
   
@@ -1164,5 +1168,152 @@ contains
     end if
 
   end subroutine particle_vector_restart
+
+  subroutine particle_vector_timestamp(particles,basename,mmf,idx,time)
+
+    use parallel
+    use bl_IO_module, only: unit_new
+    use bl_error_module
+
+    type(particle_vector), intent(in) :: particles
+    character(len=*),      intent(in) :: basename
+    type(ml_multifab),     intent(in) :: mmf
+    integer,               intent(in) :: idx(:)
+    double precision,      intent(in) :: time
+
+    integer             :: un, iSet, nOutFiles, nSets, mySet, MyProc, NProcs
+    integer             :: i, j, dm, iBuff(1), wakeUpPID, waitForPID, tag
+    character(len=64)   :: filename
+    character(len=3)    :: index
+    character(len=64)   :: fmtstr
+    logical             :: itexists
+    type(particle)      :: p
+    real(dp_t), pointer :: r(:,:,:,:)
+
+    double precision, allocatable :: values(:)
+
+    integer, parameter :: MaxOpenFiles = 32
+
+    dm        = mmf%dim
+    NProcs    = parallel_nprocs()
+    MyProc    = parallel_myproc()
+    nOutFiles = min(MaxOpenFiles,parallel_nprocs())
+    nSets     = (NProcs + (nOutFiles - 1)) / nOutFiles
+    mySet     = MyProc / nOutFiles
+
+    allocate(values(size(idx)))
+    !
+    ! Make sure all values in "idx" make sense.
+    !
+    do i = 1, size(idx)
+       call bl_assert(idx(i) >= 1 .and. idx(i) <= mmf%nc, 'timestamp: invalid indices into mmf')
+    end do
+    !
+    ! We have to build up the format string we want to use.
+    !
+    ! We always output these per each particle we own:
+    !
+    !   id cpu pos(1:dm) time
+    !
+    ! These are then followed by size(idx) double precision values pulled
+    ! from index idx(i) from the mmf for each particle.
+    !
+    write(unit=index, fmt='(I3)') (size(idx) + dm + 1)
+
+    index = adjustl(index)
+
+    fmtstr = '2I ' // trim(index) // 'G17.10'
+
+    fmtstr = '(' // trim(fmtstr) // ')'
+
+    print*, 'fmtstr = ', fmtstr
+
+    do iSet = 0, nSets
+
+       if (mySet == iSet) then
+          !
+          ! Gotta build up the file name ...
+          !
+          write(unit=index, fmt='(i2.2)') iSet
+
+          filename = trim(basename) // '_' // index
+
+          print*, 'filename = ', filename
+          !
+          ! Fortran is somewhat braindead in the ways you're allowed to open
+          ! files.  There doesn't appear to be any way to open a file for
+          ! appending that will also create the file if it doesn't exist.
+          !
+          inquire(file=filename, exist=itexists)
+
+          un = unit_new()
+
+          if ( itexists ) then
+             open(unit     = un,             &
+                  file     = trim(filename), &
+                  form     = 'formatted',    &
+                  access   = 'sequential',   &
+                  status   = 'old',          &
+                  position = 'append',       &
+                  action   = 'write')
+          else
+             open(unit     = un,             &
+                  file     = trim(filename), &
+                  form     = 'formatted',    &
+                  access   = 'sequential',   &
+                  status   = 'new',          &
+                  action   = 'write')
+          end if
+
+          do i = 1, capacity(particles)
+             if ( particles%d(i)%id <= 0 ) cycle
+
+             p = particles%d(i)
+             !
+             ! Populate values
+             !
+             do j = 1, size(idx)
+                r => dataptr(mmf%mf(p%lev),p%grd)
+
+                select case (dm)
+                   case (1)
+                      values(j) = r(p%cell(1),1,1,idx(j))
+                   case (2)
+                      values(j) = r(p%cell(1),p%cell(2),1,idx(j))
+                   case (3)
+                      values(j) = r(p%cell(1),p%cell(2),p%cell(3),idx(j))
+                end select
+             end do
+             !
+             ! Write to the file.
+             !
+             write(unit=un, fmt=fmtstr) p%id, p%cpu, p%pos(1:dm), time, values
+          end do
+
+          close(un)
+          !
+          ! Wake up next writer.
+          !
+          iBuff(1)  = 0
+          wakeUpPID = (MyProc + nOutFiles)
+          tag       = mod(MyProc,nOutFiles)
+
+          if (wakeUpPID < NProcs) then
+             call parallel_send(iBuff, wakeUpPID, tag)
+          end if
+       end if
+
+       if (mySet == (iSet + 1)) then
+          !
+          ! Next set waits.
+          !
+          waitForPID = (MyProc - nOutFiles)
+          tag        = mod(MyProc,nOutFiles)
+
+          call parallel_recv(iBuff, waitForPID, tag)
+       end if
+    end do
+
+  end subroutine particle_vector_timestamp
 
 end module particle_module
