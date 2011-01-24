@@ -9,12 +9,13 @@ subroutine t_particle
   type(box)         :: bx,bx2
   type(ml_boxarray) :: mba
   type(ml_layout)   :: mla
+  type(ml_multifab) :: mmf
   type(boxarray)    :: ba
   double precision  :: dx(1,MAX_SPACEDIM), dx2(2,MAX_SPACEDIM)
   double precision  :: problo(3)
-  double precision  :: probhi(3)
+  double precision  :: probhi(3), time
   logical           :: pmask(3)
-  character(len=256):: check_file_name
+  character(len=256):: check_file_name, title
   character(len=5)  :: check_index
 
   id = 1
@@ -50,7 +51,9 @@ subroutine t_particle
 
   call destroy(mba)
 
-  call init_random(v,1000000,17971,mla,dx,problo,probhi)
+  call build(mmf, mla, 5, 1, 1)
+
+  call init_random(v,100000,17971,mla,dx,problo,probhi)
 
   if (parallel_IOProcessor()) then
      print*, ''
@@ -64,6 +67,8 @@ subroutine t_particle
   !
   ! Let's move the particles a bit.
   !
+  time = 1.0d0
+
   do i = 1,10
      if (parallel_IOProcessor()) then
         print*, i, 'Calling move_random(one-level mla) ...'
@@ -92,6 +97,12 @@ subroutine t_particle
       call bl_assert(size(tv) == size(v), 'v and tv are NOT the same size')
 
       call destroy(tv)
+
+      title = '   id   cpu   pos(0)   pos(1)   pos(2)   time   a  b  c'
+
+      call timestamp(v, 'timestamp_onelev', mmf, (/1,3,5/), time, title)
+
+      time = time + 0.1d0
   end do
 
   if (parallel_IOProcessor()) then
@@ -108,6 +119,7 @@ subroutine t_particle
 
 !  call bl_error('Got Here')
 
+  call destroy(mmf)
 
   call destroy(mla)
   !
@@ -160,7 +172,9 @@ subroutine t_particle
 
   call destroy(mba)
 
-  call init_random(v,1000000,171717171,mla,dx2,problo,probhi)
+  call build(mmf, mla, 6, 2, 2)
+
+  call init_random(v,100000,171717171,mla,dx2,problo,probhi)
 
   if (parallel_IOProcessor()) then
      print*, ''
@@ -173,7 +187,7 @@ subroutine t_particle
   !
   ! Let's move the particles a bit.
   !
-  do i = 1,100
+  do i = 1,10
      if (parallel_IOProcessor()) then
         print*, i, 'Calling move_random(two-level mla) ...'
         call flush(6)
@@ -201,7 +215,13 @@ subroutine t_particle
       call bl_assert(size(tv) == size(v), 'v and tv are NOT the same size')
 
       call destroy(tv)
+
+      call timestamp(v, 'timestamp_twolev', mmf, (/1,3,5,6/), time)
+
+      time = time + 0.1d0
   end do
+
+  call destroy(mmf)
 
   call destroy(mla)
 
