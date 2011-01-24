@@ -1222,11 +1222,7 @@ contains
 
     index = adjustl(index)
 
-    fmtstr = '2I ' // trim(index) // 'G17.10'
-
-    fmtstr = '(' // trim(fmtstr) // ')'
-
-    print*, 'fmtstr = ', fmtstr
+    fmtstr = '(I10, 1X, I10, ' // trim(index) // '(1X, G17.10))'
 
     do iSet = 0, nSets
 
@@ -1234,11 +1230,9 @@ contains
           !
           ! Gotta build up the file name ...
           !
-          write(unit=index, fmt='(i2.2)') iSet
+          write(unit=index, fmt='(i2.2)') mod(MyProc,nOutFiles)
 
           filename = trim(basename) // '_' // index
-
-          print*, 'filename = ', filename
           !
           ! Fortran is somewhat braindead in the ways you're allowed to open
           ! files.  There doesn't appear to be any way to open a file for
@@ -1287,7 +1281,7 @@ contains
              !
              ! Write to the file.
              !
-             write(unit=un, fmt=fmtstr) p%id, p%cpu, p%pos(1:dm), time, values
+             write(unit=un, fmt=trim(fmtstr)) p%id, p%cpu, p%pos(1:dm), time, values
           end do
 
           close(un)
