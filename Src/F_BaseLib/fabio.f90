@@ -145,6 +145,21 @@ contains
 
   end subroutine fabio_open
 
+  subroutine fabio_unlink_if_empty(filename)
+    use bl_string_module
+    character(len=*), intent(in):: filename
+    interface
+       subroutine fabio_unlink_if_empty_str(ifilename)
+         integer, intent(in) :: ifilename(*)
+       end subroutine fabio_unlink_if_empty_str
+    end interface
+    integer :: istr(128)
+
+    call str2int(istr, 128, filename)
+    call fabio_unlink_if_empty_str(istr)
+
+  end subroutine fabio_unlink_if_empty
+
   subroutine fabio_fab_write_d(fd, offset, fb, idx, nodal, all, prec)
     use bl_error_module
     integer, intent(in) :: fd, idx

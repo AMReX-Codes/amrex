@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.16 2011-01-24 21:06:56 lijewski Exp $ 
+   $Id: fabio_c.c,v 1.17 2011-01-24 23:56:00 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
 #include <math.h>
@@ -29,6 +29,7 @@ typedef int mode_t;
 #endif
 
 #if defined(BL_FORT_USE_UNDERSCORE)
+#define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str_
 #define FABIO_OPEN_STR    fabio_open_str_
 #define FABIO_MKDIR_STR   fabio_mkdir_str_
 #define FABIO_READ_D      fabio_read_d_
@@ -44,6 +45,7 @@ typedef int mode_t;
 #define FABIO_CLOSE       fabio_close_
 #define FAB_CONTAINS_NAN  fab_contains_nan_
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
+#define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str__
 #define FABIO_OPEN_STR    fabio_open_str__
 #define FABIO_MKDIR_STR   fabio_mkdir_str__
 #define FABIO_READ_D      fabio_read_d__
@@ -59,6 +61,7 @@ typedef int mode_t;
 #define FABIO_CLOSE       fabio_close__
 #define FAB_CONTAINS_NAN  fab_contains_nan__
 #elif defined(BL_FORT_USE_LOWERCASE)
+#define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str
 #define FABIO_OPEN_STR    fabio_open_str
 #define FABIO_MKDIR_STR   fabio_mkdir_str
 #define FABIO_READ_D      fabio_read_d
@@ -746,6 +749,43 @@ FABIO_MKDIR_STR(const int* idirname, int* statp)
 		  dirname, mode, strerror(errno));
 	  exit(1);
 	}
+    }
+}
+
+void
+FABIO_UNLINK_IF_EMPTY_STR(const int* ifilename)
+{
+  int fd;
+  char filename[128];
+  int lmode = FILE_MODE;
+  int pos;
+
+  int_2_str(filename, sizeof(filename), ifilename);
+
+  if ((fd = open(filename, O_RDONLY, lmode)) < 0)
+    {
+      fprintf(stderr, "FABIO_UNLINK_IF_EMPTY: open() failed: \"%s\": %s\n",
+	      filename, strerror(errno));
+      exit(1);
+    }
+
+  if ((pos = lseek(fd, 0, SEEK_END)) < 0)
+    {
+      fprintf(stderr, "FABIO_UNLINK_IF_EMPTY: lseek() failed: \"%s\": %s\n",
+	      filename, strerror(errno));
+      exit(1);
+    }
+
+  close(fd);
+
+  if (pos == 0)
+    {
+      if (unlink(filename) < 0)
+        {
+          fprintf(stderr, "FABIO_UNLINK_IF_EMPTY: unlink() failed: \"%s\": %s\n",
+                  filename, strerror(errno));
+          exit(1);
+        }
     }
 }
 
