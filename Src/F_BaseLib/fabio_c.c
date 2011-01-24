@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.15 2011-01-21 21:24:00 lijewski Exp $ 
+   $Id: fabio_c.c,v 1.16 2011-01-24 21:06:56 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
 #include <math.h>
@@ -526,7 +526,7 @@ FABIO_WRITE_RAW_ARRAY_I(const int* fdp, const int* vp, const int* countp)
 }
 
 void
-FABIO_READ_RAW_ARRAY_D(const int* fdp, const double* vp, const int* countp)
+FABIO_READ_RAW_ARRAY_D(const int* fdp, double* vp, const int* countp)
 {
   int    fd    = *fdp;
   size_t count = *countp;
@@ -541,7 +541,7 @@ FABIO_READ_RAW_ARRAY_D(const int* fdp, const double* vp, const int* countp)
 }
 
 void
-FABIO_READ_RAW_ARRAY_I(const int* fdp, const int* vp, const int* countp)
+FABIO_READ_RAW_ARRAY_I(const int* fdp, int* vp, const int* countp)
 {
   int    fd    = *fdp;
   size_t count = *countp;
