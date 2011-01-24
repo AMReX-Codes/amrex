@@ -1203,10 +1203,11 @@ contains
 
   end subroutine particle_vector_restart
 
-  subroutine particle_vector_timestamp(particles,basename,mmf,idx,time,title)
+  subroutine particle_vector_timestamp(particles,basename,mmf,idx,time)
 
     use parallel
     use bl_IO_module, only: unit_new
+    use fabio_module, only: fabio_unlink_if_empty
     use bl_error_module
 
     type(particle_vector), intent(in) :: particles
@@ -1214,8 +1215,6 @@ contains
     type(ml_multifab),     intent(in) :: mmf
     integer,               intent(in) :: idx(:)
     double precision,      intent(in) :: time
-
-    character(len=*), intent(in), optional :: title
 
     integer             :: un, iSet, nOutFiles, nSets, mySet, MyProc, NProcs
     integer             :: i, j, dm, iBuff(1), wakeUpPID, waitForPID, tag
@@ -1300,13 +1299,6 @@ contains
                   access   = 'sequential',   &
                   status   = 'new',          &
                   action   = 'write')
-
-             if ( present(title) ) then
-                !
-                ! Write out "title" to the timestamp file.
-                !
-                write(unit=un, fmt='(A)') title
-             end if
           end if
 
           do i = 1, capacity(particles)
@@ -1357,6 +1349,18 @@ contains
           call parallel_recv(iBuff, waitForPID, tag)
        end if
     end do
+
+    if ( parallel_IOProcessor() ) then
+       do i = 0, nOutFiles-1
+          !
+          ! We now want to remove any timestamp files that are empty.
+          ! An attempt to keep extraneous clutter to a minimum.
+          !
+          write(unit=index, fmt='(i2.2)') mod(i,nOutFiles)
+          filename = trim(basename) // '_' // trim(index)
+          call fabio_unlink_if_empty(filename)
+       end do
+    end if
 
     if ( verbose() ) then
        rend = parallel_wtime() - rbeg
