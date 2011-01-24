@@ -1169,7 +1169,7 @@ contains
 
   end subroutine particle_vector_restart
 
-  subroutine particle_vector_timestamp(particles,basename,mmf,idx,time)
+  subroutine particle_vector_timestamp(particles,basename,mmf,idx,time,title)
 
     use parallel
     use bl_IO_module, only: unit_new
@@ -1181,8 +1181,11 @@ contains
     integer,               intent(in) :: idx(:)
     double precision,      intent(in) :: time
 
+    character(len=*), intent(in), optional :: title
+
     integer             :: un, iSet, nOutFiles, nSets, mySet, MyProc, NProcs
     integer             :: i, j, dm, iBuff(1), wakeUpPID, waitForPID, tag
+    double precision    :: rbeg, rend, rtime
     character(len=64)   :: filename
     character(len=3)    :: index
     character(len=64)   :: fmtstr
@@ -1200,6 +1203,12 @@ contains
     nOutFiles = min(MaxOpenFiles,parallel_nprocs())
     nSets     = (NProcs + (nOutFiles - 1)) / nOutFiles
     mySet     = MyProc / nOutFiles
+
+    if ( pDebugging ) then
+       call bl_assert(ok(particles), 'particle_vector_timestamp: not OK on entry')
+    end if
+
+    rbeg = parallel_wtime()
 
     allocate(values(size(idx)))
     !
@@ -1232,7 +1241,7 @@ contains
           !
           write(unit=index, fmt='(i2.2)') mod(MyProc,nOutFiles)
 
-          filename = trim(basename) // '_' // index
+          filename = trim(basename) // '_' // trim(index)
           !
           ! Fortran is somewhat braindead in the ways you're allowed to open
           ! files.  There doesn't appear to be any way to open a file for
@@ -1257,6 +1266,13 @@ contains
                   access   = 'sequential',   &
                   status   = 'new',          &
                   action   = 'write')
+
+             if ( present(title) ) then
+                !
+                ! Write out "title" to the timestamp file.
+                !
+                write(unit=un, fmt='(A)') title
+             end if
           end if
 
           do i = 1, capacity(particles)
@@ -1307,6 +1323,18 @@ contains
           call parallel_recv(iBuff, waitForPID, tag)
        end if
     end do
+
+    rend = parallel_wtime() - rbeg
+
+    call parallel_reduce(rtime, rend, MPI_MAX, proc = parallel_IOProcessorNode())
+
+    if ( parallel_IOProcessor() .and. pVerbose ) then
+       print*, '    particle_vector_timestamp(): time: ', rtime
+    end if
+
+    if ( pDebugging ) then
+       call bl_assert(ok(particles), 'particle_vector_timestamp: not OK on exit')
+    end if
 
   end subroutine particle_vector_timestamp
 
