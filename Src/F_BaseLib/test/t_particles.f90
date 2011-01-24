@@ -15,7 +15,7 @@ subroutine t_particle
   double precision  :: problo(3)
   double precision  :: probhi(3), time
   logical           :: pmask(3)
-  character(len=256):: check_file_name, title
+  character(len=256):: check_file_name
   character(len=5)  :: check_index
 
   id = 1
@@ -56,7 +56,7 @@ subroutine t_particle
 
   call build(mmf, mla, 5, 1, 1)
 
-  call init_random(v,100000,17971,mla,dx,problo,probhi)
+  call init_random(v,1,17971,mla,dx,problo,probhi)
 
   if (parallel_IOProcessor()) then
      print*, ''
@@ -101,9 +101,7 @@ subroutine t_particle
 
       call destroy(tv)
 
-      title = '   id   cpu   pos(0)   pos(1)   pos(2)   time   a  b  c'
-
-      call timestamp(v, 'timestamp_onelev', mmf, (/1,3,5/), time, title)
+      call timestamp(v, 'timestamp_onelev', mmf, (/1,3,5/), time)
 
       time = time + 0.1d0
   end do
@@ -177,7 +175,7 @@ subroutine t_particle
 
   call build(mmf, mla, 6, 2, 2)
 
-  call init_random(v,100000,171717171,mla,dx2,problo,probhi)
+  call init_random(v,1,171717171,mla,dx2,problo,probhi)
 
   if (parallel_IOProcessor()) then
      print*, ''
