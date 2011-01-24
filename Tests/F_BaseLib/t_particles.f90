@@ -21,6 +21,9 @@ subroutine t_particle
   id = 1
 
   pmask = .true.
+
+  call particle_vector_setverbose(.true.)
+  call particle_vector_setdebugging(.true.)
   !
   ! Let's build a single level mla
   !
