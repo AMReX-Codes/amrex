@@ -589,7 +589,7 @@ contains
 
     dm = mla%dim
 
-    if ( debugging() ) then
+    if ( pDebuggingFlag ) then
        call bl_assert(ok(particles), 'particle_vector_move_random: not OK on entry')
     end if
 
@@ -638,7 +638,7 @@ contains
     !
     call particle_vector_redistribute(particles,mla,dx,problo,.true.)
 
-    if ( debugging() ) then
+    if ( pDebuggingFlag ) then
        call bl_assert(ok(particles), 'particle_vector_move_random: not OK on exit')
     end if
 
@@ -670,7 +670,7 @@ contains
     integer,          allocatable, save :: SndDataI(:), RcvDataI(:)
     integer,                       save :: sCntMax = 0, rCntMax = 0
 
-    if ( debugging() ) then
+    if ( pDebuggingFlag ) then
        call bl_assert(ok(particles), 'particle_vector_redistribute: not OK on entry')
     end if
 
@@ -824,7 +824,7 @@ contains
        call add(particles,p)
     end do
 
-    if ( verbose() ) then
+    if ( pVerboseFlag ) then
        rend = parallel_wtime() - rbeg
 
        call parallel_reduce(rtime, rend, MPI_MAX, proc = parallel_IOProcessorNode())
@@ -834,7 +834,7 @@ contains
        end if
     end if
 
-    if ( debugging() ) then
+    if ( pDebuggingFlag ) then
        call bl_assert(ok(particles), 'particle_vector_redistribute: not OK on exit')
     end if
 
@@ -863,7 +863,7 @@ contains
 
     rbeg = parallel_wtime()
 
-    if ( debugging() ) then
+    if ( pDebuggingFlag ) then
        call bl_assert(ok(particles), 'particle_vector_checkpoint: not OK on entry')
     end if
 
@@ -1031,7 +1031,7 @@ contains
        deallocate(drcv)
     end if
 
-    if ( verbose() ) then
+    if ( pVerboseFlag ) then
        rend = parallel_wtime() - rbeg
 
        call parallel_reduce(rtime, rend, MPI_MAX, proc = ioproc)
@@ -1041,7 +1041,7 @@ contains
        end if
     end if
 
-    if ( debugging() ) then
+    if ( pDebuggingFlag ) then
        call bl_assert(ok(particles), 'particle_vector_checkpoint: not OK on exit')
     end if
 
@@ -1073,7 +1073,7 @@ contains
 
     rbeg = parallel_wtime()
 
-    if ( debugging() ) then
+    if ( pDebuggingFlag ) then
        call bl_assert(ok(particles), 'particle_vector_restart: not OK on entry')
     end if
 
@@ -1187,7 +1187,7 @@ contains
        call destroy(tparticles)
     end if
 
-    if ( verbose() ) then
+    if ( pVerboseFlag ) then
        rend = parallel_wtime() - rbeg
 
        call parallel_reduce(rtime, rend, MPI_MAX, proc = ioproc)
@@ -1197,7 +1197,7 @@ contains
        end if
     end if
 
-    if ( debugging() ) then
+    if ( pDebuggingFlag ) then
        call bl_assert(ok(particles), 'particle_vector_restart: not OK on exit')
     end if
 
@@ -1237,7 +1237,7 @@ contains
     nSets     = (NProcs + (nOutFiles - 1)) / nOutFiles
     mySet     = MyProc / nOutFiles
 
-    if ( debugging() ) then
+    if ( pDebuggingFlag ) then
        call bl_assert(ok(particles), 'particle_vector_timestamp: not OK on entry')
     end if
 
@@ -1362,7 +1362,7 @@ contains
        end do
     end if
 
-    if ( verbose() ) then
+    if ( pVerboseFlag ) then
        rend = parallel_wtime() - rbeg
 
        call parallel_reduce(rtime, rend, MPI_MAX, proc = parallel_IOProcessorNode())
@@ -1372,7 +1372,7 @@ contains
        end if
     end if
 
-    if ( debugging() ) then
+    if ( pDebuggingFlag ) then
        call bl_assert(ok(particles), 'particle_vector_timestamp: not OK on exit')
     end if
 
