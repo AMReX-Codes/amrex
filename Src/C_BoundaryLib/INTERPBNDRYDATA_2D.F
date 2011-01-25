@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_2D.F,v 1.4 2007-07-02 23:00:36 lijewski Exp $
+c $Id: INTERPBNDRYDATA_2D.F,v 1.5 2011-01-25 23:50:22 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -43,10 +43,10 @@ c ---------------------------------------------------------------
 
       subroutine FORT_BDINTERPXLO (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives)
+     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
 
       implicit none
-      integer  nvar, ratios(2), not_covered
+      integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
       integer  DIMDEC(mask)
@@ -61,15 +61,31 @@ c ---------------------------------------------------------------
       integer  jclo, jchi, ratioy
 
 #ifndef USE_REORG_VERSION
-
       REAL_T   xx
-      
+#else
+      integer Norder, NN, m
+      parameter (Norder = 3)
+      REAL_T x(Norder), y(Norder), c(Norder), xInt
+#endif
       ratioy = ratios(2)
 
       jclo = ARG_L2(cb)
       jchi = ARG_H2(cb)
       ic   = ARG_L1(cb)-1
       i    = lo(1)-1
+
+      if (max_order.eq.1) then
+         do n = 1, nvar
+            do off = 0, ratioy - 1
+               do jc = jclo, jchi
+                  j = ratioy*jc + off
+                  bdry(i,j,n) = crse(ic,jc,n)
+               end do
+            end do
+         end do
+      else
+
+#ifndef USE_REORG_VERSION
 
       do n = 1, nvar
 c        ::::: define interp coefs
@@ -125,16 +141,7 @@ c        ::::: interpolate to fine grid
       end do
 
 #else
-      integer Norder, NN, m
-      parameter (Norder = 3)
-      REAL_T x(Norder), y(Norder), c(Norder), xInt
-      ratioy = ratios(2)
 
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      ic   = ARG_L1(cb)-1
-      i    = lo(1)-1
-      
       do n=1,nvar
          do jc=jclo,jchi
             j = ratioy*jc
@@ -178,7 +185,7 @@ c        ::::: interpolate to fine grid
       end do
       
 #endif
-      return
+      endif
       end
 
 c ---------------------------------------------------------------
@@ -204,9 +211,9 @@ c ---------------------------------------------------------------
 
       subroutine FORT_BDINTERPXHI (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives)
+     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
       implicit none
-      integer  nvar, ratios(2), not_covered
+      integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
       integer  DIMDEC(mask)
@@ -221,16 +228,32 @@ c ---------------------------------------------------------------
       integer  jclo, jchi, ratioy
 
 #ifndef USE_REORG_VERSION
-
       REAL_T   xx
-      
+#else
+      integer Norder, NN, m
+      parameter (Norder = 3)
+      REAL_T x(Norder), y(Norder), c(Norder), xInt
+#endif      
       ratioy = ratios(2)
 
       jclo = ARG_L2(cb)
       jchi = ARG_H2(cb)
       ic   = ARG_H1(cb)+1
       i    = hi(1)+1
-      
+
+      if (max_order.eq.1) then
+         do n = 1, nvar
+            do off = 0, ratioy - 1
+               do jc = jclo, jchi
+                  j = ratioy*jc + off
+                  bdry(i,j,n) = crse(ic,jc,n)
+               end do
+            end do
+         end do
+      else
+
+#ifndef USE_REORG_VERSION
+
       do n = 1, nvar
 c        ::::: define interp coefs
          do jc = jclo, jchi
@@ -286,15 +309,6 @@ c        ::::: interpolate to fine grid
       end do
 
 #else
-      integer Norder, NN, m
-      parameter (Norder = 3)
-      REAL_T x(Norder), y(Norder), c(Norder), xInt
-      ratioy = ratios(2)
-
-      jclo = ARG_L2(cb)
-      jchi = ARG_H2(cb)
-      ic   = ARG_H1(cb)+1
-      i    = hi(1)+1
       
       do n=1,nvar
          do jc=jclo,jchi
@@ -339,7 +353,7 @@ c        ::::: interpolate to fine grid
       end do
       
 #endif
-      return
+      endif
       end
 
 c ---------------------------------------------------------------
@@ -365,9 +379,9 @@ c ---------------------------------------------------------------
 
       subroutine FORT_BDINTERPYLO (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives)
+     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
       implicit none
-      integer  nvar, ratios(2), not_covered
+      integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
       integer  DIMDEC(mask)
@@ -382,15 +396,32 @@ c ---------------------------------------------------------------
       integer  iclo, ichi, ratiox
 
 #ifndef USE_REORG_VERSION
-
       REAL_T   xx
-      
+#else
+      integer Norder, NN, m
+      parameter (Norder = 3)
+      REAL_T x(Norder), y(Norder), c(Norder), xInt
+#endif
+
       ratiox = ratios(1)
 
       iclo = ARG_L1(cb)
       ichi = ARG_H1(cb)
       jc   = ARG_L2(cb)-1
       j    = lo(2)-1
+
+      if (max_order.eq.1) then
+      do n = 1, nvar
+         do off = 0, ratiox - 1
+            do ic = iclo, ichi
+               i = ratiox*ic + off
+               bdry(i,j,n) = crse(ic,jc,n)
+            end do
+         end do
+      end do
+      else
+
+#ifndef USE_REORG_VERSION
 
       do n = 1, nvar
 c        ::::: define interp coefs
@@ -446,15 +477,6 @@ c        ::::: interpolate to fine grid
       end do
 
 #else
-      integer Norder, NN, m
-      parameter (Norder = 3)
-      REAL_T x(Norder), y(Norder), c(Norder), xInt
-      ratiox = ratios(1)
-
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      jc   = ARG_L2(cb)-1
-      j    = lo(2)-1
       
       do n=1,nvar
          do ic=iclo,ichi
@@ -499,7 +521,7 @@ c        ::::: interpolate to fine grid
       end do
       
 #endif
-      return
+      endif
       end
 
 c ---------------------------------------------------------------
@@ -525,9 +547,9 @@ c ---------------------------------------------------------------
 
       subroutine FORT_BDINTERPYHI (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives)
+     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
       implicit none
-      integer  nvar, ratios(2), not_covered
+      integer  nvar, ratios(2), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
       integer  DIMDEC(mask)
@@ -542,8 +564,12 @@ c ---------------------------------------------------------------
       integer  iclo, ichi, ratiox
 
 #ifndef USE_REORG_VERSION
-
       REAL_T   xx
+#else
+      integer Norder, NN, m
+      parameter (Norder = 3)
+      REAL_T x(Norder), y(Norder), c(Norder), xInt
+#endif
       
       ratiox = ratios(1)
 
@@ -552,6 +578,18 @@ c ---------------------------------------------------------------
       jc   = ARG_H2(cb)+1
       j    = hi(2)+1
 
+      if (max_order.eq.1) then
+         do n = 1, nvar
+            do off = 0, ratiox - 1
+               do ic = iclo, ichi
+                  i = ratiox*ic + off
+                  bdry(i,j,n) = crse(ic,jc,n)
+               end do
+            end do
+         end do
+      else
+
+#ifndef USE_REORG_VERSION
       do n = 1, nvar
 c        ::::: define interp coefs
          do ic = iclo, ichi
@@ -606,15 +644,6 @@ c        ::::: interpolate to fine grid
       end do
 
 #else
-      integer Norder, NN, m
-      parameter (Norder = 3)
-      REAL_T x(Norder), y(Norder), c(Norder), xInt
-      ratiox = ratios(1)
-
-      iclo = ARG_L1(cb)
-      ichi = ARG_H1(cb)
-      jc   = ARG_H2(cb)+1
-      j    = hi(2)+1
       
       do n=1,nvar
          do ic=iclo,ichi
@@ -659,6 +688,6 @@ c        ::::: interpolate to fine grid
       end do
       
 #endif
-      return
+      endif
       end
 

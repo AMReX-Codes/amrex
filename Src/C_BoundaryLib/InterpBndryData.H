@@ -3,7 +3,7 @@
 #define _INTERPBNDRYDATA_H_
 
 //
-// $Id: InterpBndryData.H,v 1.10 2010-02-16 17:54:23 lijewski Exp $
+// $Id: InterpBndryData.H,v 1.11 2011-01-25 23:50:22 marc Exp $
 //
 
 #include <BoxArray.H>
@@ -81,33 +81,38 @@ public:
     //
     //@ManDoc: set bndry values at coarse level (non interpolation performed)
     //
-    void setBndryValues (const MultiFab& mf,
-                         int             mf_start,
-                         int             bnd_start,
-                         int             num_comp,
-                         const BCRec&    phys_bc);
+    virtual void setBndryValues (const MultiFab& mf,
+                                 int             mf_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 const BCRec&    phys_bc);
     //
     //@ManDoc: set bndry values at fine level, performing necessary interpolations
     //
-    void setBndryValues (::BndryRegister&  crse,
-                         int             c_start,
-                         const MultiFab& fine,
-                         int             f_start,
-                         int             bnd_start,
-                         int             num_comp,
-                         int             ratio, 
-                         const BCRec&    phys_bc);
+    virtual void setBndryValues (::BndryRegister&  crse,
+                                 int             c_start,
+                                 const MultiFab& fine,
+                                 int             f_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 int             ratio, 
+                                 const BCRec&    phys_bc,
+                                 int             max_order = IBD_max_order_DEF);    
     //
     //@ManDoc: set bndry values at fine level, performing necessary interpolations
     //
-    void setBndryValues (::BndryRegister&  crse,
-                         int             c_start,
-                         const MultiFab& fine,
-                         int             f_start,
-                         int             bnd_start,
-                         int             num_comp,
-                         IntVect&        ratio, 
-                         const BCRec&    phys_bc);
+    virtual void setBndryValues (::BndryRegister&  crse,
+                                 int             c_start,
+                                 const MultiFab& fine,
+                                 int             f_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 IntVect&        ratio, 
+                                 const BCRec&    phys_bc,
+                                 int             max_order = IBD_max_order_DEF);
+    
+    static int IBD_max_order_DEF;
+    static int maxOrderDEF() {return IBD_max_order_DEF;}
 };
 
 inline
@@ -119,10 +124,11 @@ InterpBndryData::setBndryValues (::BndryRegister&  crse,
                                  int             bnd_start,
                                  int             num_comp,
                                  int             ratio,
-                                 const BCRec&    bc)
+                                 const BCRec&    bc,
+                                 int             max_order)
 {
     IntVect ratio_vect = ratio * IntVect::TheUnitVector();
-    setBndryValues(crse,c_start,fine,f_start,bnd_start,num_comp,ratio_vect,bc);
+    setBndryValues(crse,c_start,fine,f_start,bnd_start,num_comp,ratio_vect,bc,max_order);
 }
 
 #endif /*_INTERPBNDRYDATA_H_*/
