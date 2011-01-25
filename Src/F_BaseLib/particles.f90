@@ -583,8 +583,9 @@ contains
     double precision,         intent(in   ) :: problo(:)
     double precision,         intent(in   ) :: probhi(:)
 
-    integer          :: i, j, dm, sgn, lev
-    double precision :: pos
+    integer                 :: i, j, dm, sgn
+    double precision        :: pos
+    type(particle), pointer :: p
 
     dm = mla%dim
 
@@ -598,35 +599,35 @@ contains
        !
        if ( particles%d(i)%id <= 0 ) cycle
 
-       lev = particles%d(i)%lev
+       p => particles%d(i)
 
        do j = 1, dm
           sgn = 1
 
           if ( genrand_real3() >= 0.5d0 ) sgn = -1
 
-          pos = sgn * 0.25d0 * dx(lev,j) * genrand_real3()
+          pos = sgn * 0.25d0 * dx(p%lev,j) * genrand_real3()
 
-          particles%d(i)%pos(j) = particles%d(i)%pos(j) + pos
+          p%pos(j) = p%pos(j) + pos
        end do
        !
        ! The particle has moved.
        !
        ! Try to put it in the right place in the hierarchy.
        !
-       if ( .not. particle_where(particles%d(i),mla,dx,problo,update=.true.) ) then
+       if ( .not. particle_where(p,mla,dx,problo,update=.true.) ) then
           !
           ! Try to shift particle back across any periodic boundary.
           !
-          call particle_periodic_shift(particles%d(i),mla,dx,problo,probhi)
+          call particle_periodic_shift(p,mla,dx,problo,probhi)
 
-          if ( .not. particle_where(particles%d(i),mla,dx,problo) ) then
+          if ( .not. particle_where(p,mla,dx,problo) ) then
              !
              ! TODO - deal with non-periodic boundary conditions !!!
              !
              print*, 'particle leaving the domain:'
 
-             call print(particles%d(i))
+             call print(p)
 
              call particle_container_remove(particles,i)
           end if
@@ -669,6 +670,8 @@ contains
     integer,          allocatable, save :: SndDataI(:), RcvDataI(:)
     integer,                       save :: sCntMax = 0, rCntMax = 0
 
+    type(particle), pointer :: pp
+
     if ( debugging() ) then
        call bl_assert(ok(particles), 'particle_container_redistribute: not OK on entry')
     end if
@@ -707,7 +710,9 @@ contains
     do i = 1, capacity(particles)
        if ( particles%d(i)%id <= 0 ) cycle
 
-       proc = get_proc(mla%la(particles%d(i)%lev),particles%d(i)%grd)
+       pp => particles%d(i)
+
+       proc = get_proc(mla%la(pp%lev),pp%grd)
 
        if ( proc == myproc ) cycle
 
@@ -758,16 +763,18 @@ contains
     do i = 1, capacity(particles)
        if ( particles%d(i)%id <= 0 ) cycle
 
-       proc = get_proc(mla%la(particles%d(i)%lev),particles%d(i)%grd)
+       pp => particles%d(i)
+
+       proc = get_proc(mla%la(pp%lev),pp%grd)
 
        if ( proc == myproc ) cycle
 
        ioff = iN * indx(proc)
        roff = rN * indx(proc)
 
-       SndDataI(ioff          ) = particles%d(i)%id
-       SndDataI(ioff+1        ) = particles%d(i)%cpu
-       SndDataR(roff:roff+rN-1) = particles%d(i)%pos(1:rN)
+       SndDataI(ioff          ) = pp%id
+       SndDataI(ioff+1        ) = pp%cpu
+       SndDataR(roff:roff+rN-1) = pp%pos(1:rN)
        
        indx(proc) = indx(proc) + 1
     end do
@@ -800,7 +807,9 @@ contains
     do i = 1, capacity(particles)
        if ( particles%d(i)%id <= 0 ) cycle
 
-       if ( local(mla%la(particles%d(i)%lev),particles%d(i)%grd) ) cycle
+       pp => particles%d(i)
+
+       if ( local(mla%la(pp%lev),pp%grd) ) cycle
 
        call remove(particles, i)
     end do
@@ -1221,8 +1230,9 @@ contains
     character(len=64)   :: filename
     character(len=2)    :: index
     logical             :: itexists
-    type(particle)      :: p
-    real(dp_t), pointer :: r(:,:,:,:)
+
+    type(particle), pointer :: p
+    real(dp_t),     pointer :: r(:,:,:,:)
 
     logical,                       save :: first = .true.
     character(len=64),             save :: fmtstr
@@ -1319,7 +1329,7 @@ contains
           do i = 1, capacity(particles)
              if ( particles%d(i)%id <= 0 ) cycle
 
-             p = particles%d(i)
+             p => particles%d(i)
              !
              ! Populate values
              !
