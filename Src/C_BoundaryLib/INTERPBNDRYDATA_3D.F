@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_3D.F,v 1.7 2009-09-28 18:09:11 lijewski Exp $
+c $Id: INTERPBNDRYDATA_3D.F,v 1.8 2011-01-25 23:50:22 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -43,9 +43,9 @@ c ---------------------------------------------------------------
 
       subroutine FORT_BDINTERPXLO (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives)
+     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
       implicit none
-      integer  nvar, ratios(3), not_covered
+      integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
       integer  DIMDEC(cb)
@@ -69,6 +69,30 @@ c ---------------------------------------------------------------
       jchi = ARG_H2(cb)
       ic   = ARG_L1(cb)-1
       i    = lo(1)-1
+
+      if (max_order.eq.1) then
+!$omp parallel private(n,kc,k,jc,j,joff,koff)
+      do n = 1, nvar
+c
+c        ::::: define interp coefs
+c
+         do koff = 0, ratioz - 1
+!$omp do
+            do kc = kclo,kchi
+               k = ratioz*kc + koff
+               do joff = 0, ratioy - 1
+                  do jc = jclo, jchi
+                     j = ratioy*jc + joff
+                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                  end do
+               end do
+            end do
+!$omp end do nowait
+         end do
+      end do
+!$omp end parallel
+
+      else
 
 !$omp parallel private(n,kc,k,jc,j,joff,koff,yy,xx)
       do n = 1, nvar
@@ -147,7 +171,7 @@ c
          end do
       end do
 !$omp end parallel
-
+      endif
       end
 
 c ---------------------------------------------------------------
@@ -173,9 +197,9 @@ c ---------------------------------------------------------------
 
       subroutine FORT_BDINTERPXHI (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives)
+     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
       implicit none
-      integer  nvar, ratios(3), not_covered
+      integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
       integer  DIMDEC(cb)
@@ -200,6 +224,29 @@ c ---------------------------------------------------------------
       ic   = ARG_H1(cb)+1
       i    = hi(1)+1
 
+      if (max_order.eq.1) then
+!$omp parallel private(n,kc,k,jc,j,joff,koff)
+      do n = 1, nvar
+c
+c        ::::: interpolate to fine grid
+c
+         do koff = 0, ratioz - 1
+!$omp do
+            do kc = kclo,kchi
+               k = ratioz*kc + koff
+               do joff = 0, ratioy - 1
+                  do jc = jclo, jchi
+                     j = ratioy*jc + joff
+                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                  end do
+               end do
+            end do
+!$omp end do nowait
+         end do
+      end do
+!$omp end parallel
+
+      else
 !$omp parallel private(n,kc,k,jc,j,joff,koff,yy,xx)
       do n = 1, nvar
 c
@@ -277,7 +324,7 @@ c
          end do
       end do
 !$omp end parallel
-
+      endif
       end
       
 c ---------------------------------------------------------------
@@ -303,9 +350,9 @@ c ---------------------------------------------------------------
 
       subroutine FORT_BDINTERPYLO (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives)
+     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
       implicit none
-      integer  nvar, ratios(3), not_covered
+      integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
       integer  DIMDEC(cb)
@@ -329,6 +376,30 @@ c ---------------------------------------------------------------
       ichi = ARG_H1(cb)
       jc   = ARG_L2(cb)-1
       j    = lo(2)-1
+
+      if (max_order.eq.1) then
+!$omp parallel private(kc,k,ic,i,ioff,koff)
+      do n = 1, nvar
+c
+c        ::::: interpolate to fine grid
+c
+         do koff = 0, ratioz - 1
+!$omp do
+            do kc = kclo,kchi
+               k = ratioz*kc + koff
+               do ioff = 0, ratiox - 1
+                  do ic = iclo, ichi
+                     i = ratiox*ic + ioff
+                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                  end do
+               end do
+            end do
+!$omp end do nowait
+         end do
+      end do
+!$omp end parallel
+
+      else
 
 !$omp parallel private(kc,k,ic,i,ioff,koff,yy,xx)
       do n = 1, nvar
@@ -407,7 +478,7 @@ c
          end do
       end do
 !$omp end parallel
-
+      endif
       end
 
 c ---------------------------------------------------------------
@@ -433,9 +504,9 @@ c ---------------------------------------------------------------
 
       subroutine FORT_BDINTERPYHI (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives)
+     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
       implicit none
-      integer  nvar, ratios(3), not_covered
+      integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
       integer  DIMDEC(cb)
@@ -459,6 +530,31 @@ c ---------------------------------------------------------------
       ichi = ARG_H1(cb)
       jc   = ARG_H2(cb)+1
       j    = hi(2)+1
+
+      if (max_order.eq.1) then
+
+!$omp parallel private(kc,k,ic,i,ioff,koff)
+      do n = 1, nvar
+c
+c        ::::: interpolate to fine grid
+c
+         do koff = 0, ratioz - 1
+!$omp do
+            do kc = kclo,kchi
+               k = ratioz*kc + koff
+               do ioff = 0, ratiox - 1
+                  do ic = iclo, ichi
+                     i = ratiox*ic + ioff
+                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                  end do
+               end do
+            end do
+!$omp end do nowait
+         end do
+      end do
+!$omp end parallel
+
+      else
 
 !$omp parallel private(kc,k,ic,i,ioff,koff,yy,xx)
       do n = 1, nvar
@@ -538,7 +634,7 @@ c
          end do
       end do
 !$omp end parallel
-
+      endif
       end
 
 c ---------------------------------------------------------------
@@ -564,9 +660,9 @@ c ---------------------------------------------------------------
 
       subroutine FORT_BDINTERPZLO (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives)
+     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
       implicit none
-      integer  nvar, ratios(3), not_covered
+      integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
       integer  DIMDEC(cb)
@@ -590,6 +686,31 @@ c ---------------------------------------------------------------
       ichi = ARG_H1(cb)
       kc   = ARG_L3(cb)-1
       k    = lo(3)-1
+
+      if (max_order.eq.1) then
+
+!$omp parallel private(jc,j,ic,i,ioff,joff)
+      do n = 1, nvar
+c         
+c     ::::: interpolate to fine grid
+c
+         do joff = 0, ratioy - 1
+!$omp do
+            do jc = jclo,jchi
+               j = ratioy*jc + joff
+               do ioff = 0, ratiox - 1
+                  do ic = iclo, ichi
+                     i = ratiox*ic + ioff
+                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                  end do
+               end do
+            end do
+!$omp end do nowait
+         end do
+      end do
+!$omp end parallel      
+
+      else
 
 !$omp parallel private(jc,j,ic,i,ioff,joff,yy,xx)
       do n = 1, nvar
@@ -668,7 +789,7 @@ c
          end do
       end do
 !$omp end parallel      
-
+      endif
       end
       
 c ---------------------------------------------------------------
@@ -694,9 +815,9 @@ c ---------------------------------------------------------------
 
       subroutine FORT_BDINTERPZHI (bdry,DIMS(bdry),
      &           lo,hi,DIMS(cb),nvar,ratios,not_covered,
-     &           mask,DIMS(mask),crse,DIMS(crse),derives)
+     &           mask,DIMS(mask),crse,DIMS(crse),derives,max_order)
       implicit none
-      integer  nvar, ratios(3), not_covered
+      integer  nvar, ratios(3), not_covered,max_order
       integer  lo(SDIM), hi(SDIM)
       integer  DIMDEC(bdry)
       integer  DIMDEC(cb)
@@ -720,6 +841,31 @@ c ---------------------------------------------------------------
       ichi = ARG_H1(cb)
       kc   = ARG_H3(cb)+1
       k    = hi(3)+1
+
+      if (max_order.eq.1) then
+
+!$omp parallel private(jc,j,ic,i,ioff,joff)
+      do n = 1, nvar
+c
+c        ::::: interpolate to fine grid
+c
+         do joff = 0, ratioy - 1
+!$omp do
+            do jc = jclo,jchi
+               j = ratioy*jc + joff
+               do ioff = 0, ratiox - 1
+                  do ic = iclo, ichi
+                     i = ratiox*ic + ioff
+                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                  end do
+               end do
+            end do
+!$omp end do nowait
+         end do
+      end do
+!$omp end parallel
+
+      else
 
 !$omp parallel private(jc,j,ic,i,ioff,joff,yy,xx)
       do n = 1, nvar
@@ -798,7 +944,7 @@ c
          end do
       end do
 !$omp end parallel
-
+      endif
       end
 
 #undef NUMDERIV

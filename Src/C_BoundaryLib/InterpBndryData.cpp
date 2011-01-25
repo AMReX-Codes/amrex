@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.22 2010-02-16 17:54:23 lijewski Exp $
+// $Id: InterpBndryData.cpp,v 1.23 2011-01-25 23:50:22 marc Exp $
 //
 #include <winstd.H>
 
@@ -9,6 +9,7 @@
 #include <INTERPBNDRYDATA_F.H>
 
 static BDInterpFunc* bdfunc[2*BL_SPACEDIM];
+int InterpBndryData::IBD_max_order_DEF = 3;  // For sliding parabolic interp in bdfuncs
 
 static int bdfunc_set = 0;
 
@@ -152,7 +153,8 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                                  int             bnd_start,
                                  int             num_comp,
                                  IntVect&        ratio,
-                                 const BCRec&    bc)
+                                 const BCRec&    bc,
+                                 int             max_order)
 {
     if (!bdfunc_set)
         bdfunc_init();
@@ -172,74 +174,86 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
     //
     // Mask turned off if covered by fine grid.
     //
-    Real* derives = 0;
-    int tmplen    = 0;
+    int tmplen    = 1;
+    Real* derives = new Real[tmplen*NUMDERIV];
 
-    for (MFIter fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)
+    if (max_order==3 || max_order==1)
     {
-        BL_ASSERT(grids[fine_mfi.index()] == fine_mfi.validbox());
-
-        const Box& fine_bx = fine_mfi.validbox();
-        Box crse_bx        = BoxLib::coarsen(fine_bx,ratio);
-        const int* cblo    = crse_bx.loVect();
-        const int* cbhi    = crse_bx.hiVect();
-        int mxlen          = crse_bx.longside() + 2;
-
-        if (D_TERM(1,*mxlen,*mxlen) > tmplen)
+        for (MFIter fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)
         {
-            delete [] derives;
-            tmplen  = D_TERM(1,*mxlen,*mxlen);
-            derives = new Real[tmplen*NUMDERIV];
-        }
-        const int* lo             = fine_bx.loVect();
-        const int* hi             = fine_bx.hiVect();
-        const FArrayBox &fine_grd = fine[fine_mfi];
+            BL_ASSERT(grids[fine_mfi.index()] == fine_mfi.validbox());
 
-        for (OrientationIter fi; fi; ++fi)
-        {
-            Orientation face(fi());
-            int dir = face.coordDir();
-            if (fine_bx[face] != fine_domain[face] || geom.isPeriodic(dir))
+            const Box& fine_bx = fine_mfi.validbox();
+            Box crse_bx        = BoxLib::coarsen(fine_bx,ratio);
+            const int* cblo    = crse_bx.loVect();
+            const int* cbhi    = crse_bx.hiVect();
+            int mxlen          = crse_bx.longside() + 2;
+            
+            if (max_order > 1)
             {
-                //
-                // Internal or periodic edge, interpolate from crse data.
-                //
-                const Mask& mask          = masks[face][fine_mfi.index()];
-                const int* mlo            = mask.loVect();
-                const int* mhi            = mask.hiVect();
-                const int* mdat           = mask.dataPtr();
-                const FArrayBox& crse_fab = crse[face][fine_mfi.index()];
-                const int* clo            = crse_fab.loVect();
-                const int* chi            = crse_fab.hiVect();
-                const Real* cdat          = crse_fab.dataPtr(c_start);
-                FArrayBox& bnd_fab        = bndry[face][fine_mfi.index()];
-                const int* blo            = bnd_fab.loVect();
-                const int* bhi            = bnd_fab.hiVect();
-                Real* bdat                = bnd_fab.dataPtr(bnd_start);
-                int is_not_covered        = BndryData::not_covered;
-
-                Box crsebnd = BoxLib::adjCell(crse_bx,face,1);
-                for (int k=0;k<BL_SPACEDIM;k++)
-                    if (k!=dir)
-                        crsebnd.grow(k,2);
-
-                BL_ASSERT(crse_fab.box().contains(crsebnd));
-
-                bdfunc[face](bdat,ARLIM(blo),ARLIM(bhi),
-                             lo,hi,ARLIM(cblo),ARLIM(cbhi),
-                             &num_comp,ratio.getVect(),&is_not_covered,
-                             mdat,ARLIM(mlo),ARLIM(mhi),
-                             cdat,ARLIM(clo),ARLIM(chi),derives);
+                if (D_TERM(1,*mxlen,*mxlen) > tmplen)
+                {
+                    delete [] derives;
+                    tmplen  = D_TERM(1,*mxlen,*mxlen);
+                    derives = new Real[tmplen*NUMDERIV];
+                }
             }
-            else
+            const int* lo             = fine_bx.loVect();
+            const int* hi             = fine_bx.hiVect();
+            const FArrayBox &fine_grd = fine[fine_mfi];
+
+            for (OrientationIter fi; fi; ++fi)
             {
-                //
-                // Physical bndry, copy from ghost region of corresponding grid
-                //
-                FArrayBox &bnd_fab = bndry[face][fine_mfi.index()];
-                bnd_fab.copy(fine_grd,f_start,bnd_start,num_comp);
+                Orientation face(fi());
+                int dir = face.coordDir();
+                if (fine_bx[face] != fine_domain[face] || geom.isPeriodic(dir))
+                {
+                    //
+                    // Internal or periodic edge, interpolate from crse data.
+                    //
+                    const Mask& mask          = masks[face][fine_mfi.index()];
+                    const int* mlo            = mask.loVect();
+                    const int* mhi            = mask.hiVect();
+                    const int* mdat           = mask.dataPtr();
+                    const FArrayBox& crse_fab = crse[face][fine_mfi.index()];
+                    const int* clo            = crse_fab.loVect();
+                    const int* chi            = crse_fab.hiVect();
+                    const Real* cdat          = crse_fab.dataPtr(c_start);
+                    FArrayBox& bnd_fab        = bndry[face][fine_mfi.index()];
+                    const int* blo            = bnd_fab.loVect();
+                    const int* bhi            = bnd_fab.hiVect();
+                    Real* bdat                = bnd_fab.dataPtr(bnd_start);
+                    int is_not_covered        = BndryData::not_covered;
+
+                    // The quadratic interp needs crse data in 2 grow cells tangential to face
+                    //  This checks to be sure the source data is large enough
+                    Box crsebnd = BoxLib::adjCell(crse_bx,face,1);
+                    if (max_order == 3) 
+                    {
+                        for (int k=0;k<BL_SPACEDIM;k++)
+                            if (k!=dir)
+                                crsebnd.grow(k,2);
+                        BL_ASSERT(crse_fab.box().contains(crsebnd));
+                    }
+
+                    bdfunc[face](bdat,ARLIM(blo),ARLIM(bhi),
+                                 lo,hi,ARLIM(cblo),ARLIM(cbhi),
+                                 &num_comp,ratio.getVect(),&is_not_covered,
+                                 mdat,ARLIM(mlo),ARLIM(mhi),
+                                 cdat,ARLIM(clo),ARLIM(chi),derives,&max_order);
+                }
+                else
+                {
+                    //
+                    // Physical bndry, copy from ghost region of corresponding grid
+                    //
+                    FArrayBox &bnd_fab = bndry[face][fine_mfi.index()];
+                    bnd_fab.copy(fine_grd,f_start,bnd_start,num_comp);
+                }
             }
         }
+        delete [] derives;
+    } else {
+        BoxLib::Abort("InterpBndryData::setBndryValues supports only max_order=1 or 3");
     }
-    delete [] derives;
 }

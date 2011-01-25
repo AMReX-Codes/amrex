@@ -2,7 +2,7 @@
 #define _INTERPBNDRY_F_H_
 
 /*
-** $Id: INTERPBNDRYDATA_F.H,v 1.3 2002-04-26 22:10:02 lijewski Exp $
+** $Id: INTERPBNDRYDATA_F.H,v 1.4 2011-01-25 23:50:22 marc Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -61,7 +61,7 @@ typedef void BDInterpFunc(Real* bndr, ARLIM_P(blo), ARLIM_P(bhi),
                           const int* not_covered,
                           const int* mask,  ARLIM_P(mlo), ARLIM_P(mhi),
                           const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
-                          Real* derives);
+                          Real* derives, int* max_order);
 extern "C"
 {
     BDInterpFunc FORT_BDINTERPXLO;
