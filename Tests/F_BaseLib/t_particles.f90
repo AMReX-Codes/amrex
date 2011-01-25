@@ -12,9 +12,9 @@ subroutine t_particle
   type(ml_multifab) :: mmf
   type(boxarray)    :: ba
   double precision  :: dx(1,MAX_SPACEDIM), dx2(2,MAX_SPACEDIM)
-  double precision  :: problo(3)
-  double precision  :: probhi(3), time
-  logical           :: pmask(3)
+  double precision  :: problo(MAX_SPACEDIM)
+  double precision  :: probhi(MAX_SPACEDIM), time
+  logical           :: pmask(MAX_SPACEDIM)
   character(len=256):: check_file_name
   character(len=5)  :: check_index
 
@@ -22,210 +22,249 @@ subroutine t_particle
 
   pmask = .true.
 
-  call particle_container_setverbose(.true.)
-  call particle_container_setdebugging(.true.)
-  !
-  ! Let's build a single level mla
-  !
-  call build(v)
-
   problo = -1.0d0
   probhi = +1.0d0
 
-  bx = make_box( (/0,0,0/), (/31,31,31/) )
-
-  call build(ba,bx)
-
-  call boxarray_maxsize(ba,16)
-
-  if (parallel_IOProcessor()) call print(ba)
-
-  do i = 1, 3
-     dx(1,i) = (probhi(i) - problo(i)) / extent(bx,i)
-  end do
-
-  call build(mba, ba, bx)
-
-  call destroy(ba)
-
-  if (parallel_IOProcessor()) print*, 'pmask: ', pmask
-
-  call build(mla, mba, pmask)
-
-  call destroy(mba)
-
-  call build(mmf, mla, 5, 1, 1)
-
-  call init_random(v,1,17971,mla,dx,problo,probhi)
-
-  if (parallel_IOProcessor()) then
-     print*, ''
-     print*, 'size(v): ', size(v)
-     print*, ''
-!     call print(v, 'after init_random')
-     print*, ''
-  end if
-
-  call parallel_barrier()
+  call particle_container_setverbose(.true.)
+  call particle_container_setdebugging(.true.)
   !
-  ! Let's move the particles a bit.
+  ! Uncomment one of the following lines.
   !
-  time = 1.0d0
-
-  do i = 1,10
-     if (parallel_IOProcessor()) then
-        print*, i, 'Calling move_random(one-level mla) ...'
-        call flush(6)
-     end if
-     call move_random(v,mla,dx,problo,probhi)
-
-      write(unit=check_index,fmt='(i5.5)') i
-      check_file_name = 'chk' // check_index
-
-      if ( parallel_IOProcessor() ) then
-         call fabio_mkdir(check_file_name)
-      end if
-      call parallel_barrier()
-
-      if (parallel_IOProcessor()) then
-         print*, 'check_file_name: ', check_file_name
-      end if
-
-      call checkpoint(v,check_file_name,mla)
-
-      call build(tv)
-
-      call restart(tv,check_file_name,mla,dx,problo)
-
-      call bl_assert(size(tv) == size(v), 'v and tv are NOT the same size')
-
-      call destroy(tv)
-
-      call timestamp(v, 'timestamp_onelev', mmf, (/1,3,5/), time)
-
-      time = time + 0.1d0
-  end do
-
-  if (parallel_IOProcessor()) then
-     print*, ''
-     print*, 'size(v): ', size(v)
-     print*, ''
-!     call print(v, 'after move_random')
-     print*, ''
-     call flush(6)
-  end if
-
-  call parallel_barrier()
-
-
-!  call bl_error('Got Here')
-
-  call destroy(mmf)
-
-  call destroy(mla)
+  ! Due to having some static storage in the particles code
+  ! you can only run 2D or 3D but not both in the same executable.
   !
-  ! Now let's try for a multi-level mla
-  !
-  call clear(v)
+!  call test(dm=2)
 
-  call build(v)
+  call test(dm=3)
 
-  call destroy(ba)
+contains
 
-  call build(mba,2,MAX_SPACEDIM)
+  subroutine test(dm)
 
-  mba%rr(1,:) = 2
+    integer, intent(in) :: dm
+    !
+    ! Let's build a single level mla
+    !
+    call bl_assert(dm == 2 .or. dm == 3, 'only 2 or 3-D supported')
 
-  call build(ba,bx)
+    if (parallel_IOProcessor()) then
+       print*, 'Entered test() with dm = ', dm
+    end if
 
-  call boxarray_maxsize(ba,16)
+    call build(v)
 
-  if (parallel_IOProcessor()) call print(ba, 'level 1')
+    if (dm == 2) then
+       bx = make_box( (/0,0/), (/63,63/) )
+       call build(ba,bx)
+       call boxarray_maxsize(ba,32)
+    else
+       bx = make_box( (/0,0,0/), (/31,31,31/) )
+       call build(ba,bx)
+       call boxarray_maxsize(ba,16)
+    end if
 
-  do i = 1, MAX_SPACEDIM
-     dx2(1,i) = (probhi(i) - problo(i)) / extent(bx,i)
-     dx2(2,i) = dx2(1,i) / 2.0d0
-  end do
+    if (parallel_IOProcessor()) call print(ba)
 
-  call copy(mba%bas(1),ba)
-  mba%pd(1) = bx
+    do i = 1, dm
+       dx(1,i) = (probhi(i) - problo(i)) / extent(bx,i)
+    end do
 
-  if (parallel_IOProcessor()) call print(mba%pd(1), 'pd(1)')
+    call build(mba, ba, bx)
 
-  call destroy(ba)
+    call destroy(ba)
 
-  bx2 = make_box( (/16,16,16/), (/47,47,47/) )
+    if (parallel_IOProcessor()) print*, 'pmask: ', pmask(1:dm)
 
-  call build(ba,bx2)
+    call build(mla, mba, pmask(1:dm))
 
-  call boxarray_maxsize(ba,16)
+    call destroy(mba)
 
-  if (parallel_IOProcessor()) call print(ba, 'level 2')
+    call build(mmf, mla, 5, 1, 1)
 
-  call copy(mba%bas(2),ba)
-  mba%pd(2) = refine(mba%pd(1),2)
+    call setval(mmf%mf(1), 1.0d0)
 
-  if (parallel_IOProcessor()) call print(mba%pd(2), 'pd(2)')
+    call init_random(v,1000,17971,mla,dx,problo,probhi)
 
-  call destroy(ba)
+    if (parallel_IOProcessor()) then
+       print*, ''
+       print*, 'size(v): ', size(v)
+       print*, ''
+       !     call print(v, 'after init_random')
+       print*, ''
+    end if
 
-  call build(mla, mba, pmask)
+    call parallel_barrier()
+    !
+    ! Let's move the particles a bit.
+    !
+    time = 1.0d0
 
-  call destroy(mba)
+    do i = 1,10
+       if (parallel_IOProcessor()) then
+          print*, i, 'Calling move_random(one-level mla) ...'
+          call flush(6)
+       end if
+       call move_random(v,mla,dx,problo,probhi)
 
-  call build(mmf, mla, 6, 2, 2)
+       write(unit=check_index,fmt='(i5.5)') i
+       check_file_name = 'chk' // check_index
 
-  call init_random(v,1,171717171,mla,dx2,problo,probhi)
+       if ( parallel_IOProcessor() ) then
+          call fabio_mkdir(check_file_name)
+       end if
+       call parallel_barrier()
 
-  if (parallel_IOProcessor()) then
-     print*, ''
-     print*, 'size(v): ', size(v)
-     print*, ''
-!     call print(v, 'after init_random using 2-level mla')
-     print*, ''
-     call flush(6)
-  end if
-  !
-  ! Let's move the particles a bit.
-  !
-  do i = 1,10
-     if (parallel_IOProcessor()) then
-        print*, i, 'Calling move_random(two-level mla) ...'
-        call flush(6)
-     end if
-     call move_random(v,mla,dx2,problo,probhi)
+       if (parallel_IOProcessor()) then
+          print*, 'check_file_name: ', check_file_name
+       end if
 
-      write(unit=check_index,fmt='(i5.5)') i
-      check_file_name = 'chk' // check_index
+       call checkpoint(v,check_file_name,mla)
 
-      if ( parallel_IOProcessor() ) then
-         call fabio_mkdir(check_file_name)
-      end if
-      call parallel_barrier()
+       call build(tv)
 
-      if (parallel_IOProcessor()) then
-         print*, 'check_file_name: ', check_file_name
-      end if
+       call restart(tv,check_file_name,mla,dx,problo)
 
-      call checkpoint(v,check_file_name,mla)
+       call bl_assert(size(tv) == size(v), 'v and tv are NOT the same size')
 
-      call build(tv)
+       call destroy(tv)
 
-      call restart(tv,check_file_name,mla,dx2,problo)
+       call timestamp(v, 'timestamp_onelev', mmf, (/1,3,5/), time)
 
-      call bl_assert(size(tv) == size(v), 'v and tv are NOT the same size')
+       time = time + 0.1d0
+    end do
 
-      call destroy(tv)
+    if (parallel_IOProcessor()) then
+       print*, ''
+       print*, 'size(v): ', size(v)
+       print*, ''
+       !     call print(v, 'after move_random')
+       print*, ''
+       call flush(6)
+    end if
 
-      call timestamp(v, 'timestamp_twolev', mmf, (/1,3,5/), time)
+    call parallel_barrier()
 
-      time = time + 0.1d0
-  end do
+!    call bl_error('Got Here')
 
-  call destroy(mmf)
+    call destroy(mmf)
 
-  call destroy(mla)
+    call destroy(mla)
+    !
+    ! Now let's try for a multi-level mla
+    !
+    call clear(v)
 
-  call destroy(v)
+    call build(v)
+
+    call destroy(ba)
+
+    call build(mba,2,dm)
+
+    mba%rr(1,1:dm) = 2
+
+    call build(ba,bx)
+
+    if (dm == 2) then
+       call boxarray_maxsize(ba,32)
+    else
+       call boxarray_maxsize(ba,16)
+    end if
+
+    if (parallel_IOProcessor()) call print(ba, 'level 1')
+
+    do i = 1, dm
+       dx2(1,i) = (probhi(i) - problo(i)) / extent(bx,i)
+       dx2(2,i) = dx2(1,i) / 2.0d0
+    end do
+
+    call copy(mba%bas(1),ba)
+    mba%pd(1) = bx
+
+    if (parallel_IOProcessor()) call print(mba%pd(1), 'pd(1)')
+
+    call destroy(ba)
+
+    if (dm == 2) then
+       bx2 = make_box( (/32,32/), (/95,95/) )
+       call build(ba,bx2)
+       call boxarray_maxsize(ba,32)
+    else
+       bx2 = make_box( (/16,16,16/), (/47,47,47/) )
+       call build(ba,bx2)
+       call boxarray_maxsize(ba,16)
+    end if
+
+    if (parallel_IOProcessor()) call print(ba, 'level 2')
+
+    call copy(mba%bas(2),ba)
+    mba%pd(2) = refine(mba%pd(1),2)
+
+    if (parallel_IOProcessor()) call print(mba%pd(2), 'pd(2)')
+
+    call destroy(ba)
+
+    call build(mla, mba, pmask(1:dm))
+
+    call destroy(mba)
+
+    call build(mmf, mla, 6, 2, 2)
+
+    call setval(mmf%mf(1), 1.0d0)
+    call setval(mmf%mf(2), 2.0d0)
+
+    call init_random(v,1000,171717171,mla,dx2,problo,probhi)
+
+    if (parallel_IOProcessor()) then
+       print*, ''
+       print*, 'size(v): ', size(v)
+       print*, ''
+       !     call print(v, 'after init_random using 2-level mla')
+       print*, ''
+       call flush(6)
+    end if
+    !
+    ! Let's move the particles a bit.
+    !
+    do i = 1,10
+       if (parallel_IOProcessor()) then
+          print*, i, 'Calling move_random(two-level mla) ...'
+          call flush(6)
+       end if
+       call move_random(v,mla,dx2,problo,probhi)
+
+       write(unit=check_index,fmt='(i5.5)') i
+       check_file_name = 'chk' // check_index
+
+       if ( parallel_IOProcessor() ) then
+          call fabio_mkdir(check_file_name)
+       end if
+       call parallel_barrier()
+
+       if (parallel_IOProcessor()) then
+          print*, 'check_file_name: ', check_file_name
+       end if
+
+       call checkpoint(v,check_file_name,mla)
+
+       call build(tv)
+
+       call restart(tv,check_file_name,mla,dx2,problo)
+
+       call bl_assert(size(tv) == size(v), 'v and tv are NOT the same size')
+
+       call destroy(tv)
+
+       call timestamp(v, 'timestamp_twolev', mmf, (/1,3,5/), time)
+
+       time = time + 0.1d0
+    end do
+
+    call destroy(mmf)
+
+    call destroy(mla)
+
+    call destroy(v)
+
+  end subroutine test
 
 end subroutine t_particle
