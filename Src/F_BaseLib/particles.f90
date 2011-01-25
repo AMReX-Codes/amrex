@@ -1294,64 +1294,67 @@ contains
     do iSet = 0, nSets
 
        if (mySet == iSet) then
-          !
-          ! Gotta build up the file name ...
-          !
-          write(unit=index, fmt='(i2.2)') mod(MyProc,nOutFiles)
 
-          filename = trim(basename) // '_' // index
-          !
-          ! Fortran is somewhat braindead in the ways you're allowed to open
-          ! files.  There doesn't appear to be any way to open a file for
-          ! appending that will also create the file if it doesn't exist.
-          !
-          inquire(file=filename, exist=itexists)
-
-          un = unit_new()
-
-          if ( itexists ) then
-             open(unit     = un,             &
-                  file     = trim(filename), &
-                  form     = 'formatted',    &
-                  access   = 'sequential',   &
-                  status   = 'old',          &
-                  position = 'append',       &
-                  action   = 'write')
-          else
-             open(unit     = un,             &
-                  file     = trim(filename), &
-                  form     = 'formatted',    &
-                  access   = 'sequential',   &
-                  status   = 'new',          &
-                  action   = 'write')
-          end if
-
-          do i = 1, capacity(particles)
-             if ( particles%d(i)%id <= 0 ) cycle
-
-             p => particles%d(i)
+          if ( size(particles) > 0 ) then
              !
-             ! Populate values
+             ! Gotta build up the file name ...
              !
-             do j = 1, size(idx)
-                r => dataptr(mmf%mf(p%lev),p%grd)
+             write(unit=index, fmt='(i2.2)') mod(MyProc,nOutFiles)
 
-                select case (dm)
+             filename = trim(basename) // '_' // index
+             !
+             ! Fortran is somewhat braindead in the ways you're allowed to open
+             ! files.  There doesn't appear to be any way to open a file for
+             ! appending that will also create the file if it doesn't exist.
+             !
+             inquire(file=filename, exist=itexists)
+
+             un = unit_new()
+
+             if ( itexists ) then
+                open(unit     = un,             &
+                     file     = trim(filename), &
+                     form     = 'formatted',    &
+                     access   = 'sequential',   &
+                     status   = 'old',          &
+                     position = 'append',       &
+                     action   = 'write')
+             else
+                open(unit     = un,             &
+                     file     = trim(filename), &
+                     form     = 'formatted',    &
+                     access   = 'sequential',   &
+                     status   = 'new',          &
+                     action   = 'write')
+             end if
+
+             do i = 1, capacity(particles)
+                if ( particles%d(i)%id <= 0 ) cycle
+
+                p => particles%d(i)
+                !
+                ! Populate values
+                !
+                do j = 1, size(idx)
+                   r => dataptr(mmf%mf(p%lev),p%grd)
+
+                   select case (dm)
                    case (1)
                       values(j) = r(p%cell(1),1,1,idx(j))
                    case (2)
                       values(j) = r(p%cell(1),p%cell(2),1,idx(j))
                    case (3)
                       values(j) = r(p%cell(1),p%cell(2),p%cell(3),idx(j))
-                end select
+                   end select
+                end do
+                !
+                ! Write to the file.
+                !
+                write(unit=un, fmt=trim(fmtstr)) p%id, p%cpu, p%pos(1:dm), time, values
              end do
-             !
-             ! Write to the file.
-             !
-             write(unit=un, fmt=trim(fmtstr)) p%id, p%cpu, p%pos(1:dm), time, values
-          end do
 
-          close(un)
+             close(un)
+          end if
           !
           ! Wake up next writer.
           !
@@ -1374,22 +1377,6 @@ contains
           call parallel_recv(iBuff, waitForPID, tag)
        end if
     end do
-
-    call parallel_barrier()
-
-    if ( parallel_IOProcessor() ) then
-       do i = 0, nOutFiles-1
-          !
-          ! We now want to remove any timestamp files that are empty.
-          ! An attempt to keep extraneous clutter to a minimum.
-          !
-          write(unit=index, fmt='(i2.2)') mod(i,nOutFiles)
-
-          filename = trim(basename) // '_' // trim(index)
-
-          call fabio_unlink_if_empty(filename)
-       end do
-    end if
 
     if ( verbose() ) then
        rend = parallel_wtime() - rbeg

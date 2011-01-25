@@ -33,22 +33,23 @@ subroutine t_particle
   ! Due to having some static storage in the particles code
   ! you can only run 2D or 3D but not both in the same executable.
   !
-!  call test(dm=2)
+!  call test(dm=2, npart=1000)
 
-  call test(dm=3)
+  call test(dm=3, npart=1)
 
 contains
 
-  subroutine test(dm)
+  subroutine test(dm,npart)
 
     integer, intent(in) :: dm
+    integer, intent(in) :: npart
     !
     ! Let's build a single level mla
     !
     call bl_assert(dm == 2 .or. dm == 3, 'only 2 or 3-D supported')
 
     if (parallel_IOProcessor()) then
-       print*, 'Entered test() with dm = ', dm
+       print*, 'Entered test() with dm = ', dm, ', npart = ', npart
     end if
 
     call build(v)
@@ -83,7 +84,7 @@ contains
 
     call setval(mmf%mf(1), 1.0d0)
 
-    call init_random(v,1000,17971,mla,dx,problo,probhi)
+    call init_random(v,npart,17971,mla,dx,problo,probhi)
 
     if (parallel_IOProcessor()) then
        print*, ''
@@ -212,7 +213,7 @@ contains
     call setval(mmf%mf(1), 1.0d0)
     call setval(mmf%mf(2), 2.0d0)
 
-    call init_random(v,1000,171717171,mla,dx2,problo,probhi)
+    call init_random(v,npart,171717171,mla,dx2,problo,probhi)
 
     if (parallel_IOProcessor()) then
        print*, ''
