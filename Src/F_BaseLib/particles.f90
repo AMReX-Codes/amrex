@@ -231,7 +231,7 @@ contains
 
           p%cell(1:dm) = iv(1:dm)
           
-          if ( contains(get_box(mla%la(p%lev)%lap%bxa,p%grd),iv) ) then
+          if ( contains(get_box(mla%la(p%lev)%lap%bxa,p%grd),iv(1:dm)) ) then
              !
              ! It's left its cell but's still in the same grid.
              !
@@ -1375,6 +1375,8 @@ contains
        end if
     end do
 
+    call parallel_barrier()
+
     if ( parallel_IOProcessor() ) then
        do i = 0, nOutFiles-1
           !
@@ -1382,7 +1384,9 @@ contains
           ! An attempt to keep extraneous clutter to a minimum.
           !
           write(unit=index, fmt='(i2.2)') mod(i,nOutFiles)
+
           filename = trim(basename) // '_' // trim(index)
+
           call fabio_unlink_if_empty(filename)
        end do
     end if
