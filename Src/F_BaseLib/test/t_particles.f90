@@ -4,7 +4,7 @@ subroutine t_particle
   use particle_module
 
   integer i, id
-  type(particle_vector) v, tv
+  type(particle_container) :: v, tv
 
   type(box)         :: bx,bx2
   type(ml_boxarray) :: mba
@@ -22,8 +22,8 @@ subroutine t_particle
 
   pmask = .true.
 
-  call particle_vector_setverbose(.true.)
-  call particle_vector_setdebugging(.true.)
+  call particle_container_setverbose(.true.)
+  call particle_container_setdebugging(.true.)
   !
   ! Let's build a single level mla
   !
@@ -217,7 +217,7 @@ subroutine t_particle
 
       call destroy(tv)
 
-      call timestamp(v, 'timestamp_twolev', mmf, (/1,3,5,6/), time)
+      call timestamp(v, 'timestamp_twolev', mmf, (/1,3,5/), time)
 
       time = time + 0.1d0
   end do
