@@ -1,10 +1,13 @@
 NDEBUG :=
-MPI    :=
+MPI    := t
 OMP    :=
 
-COMP := Lahey
-COMP := g95
 COMP := Intel
+COMP := gfortran
+
+MKVERBOSE := t
+
+PARTICLES := t
 
 FPARALLEL := ../..
 
