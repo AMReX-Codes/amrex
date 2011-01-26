@@ -110,6 +110,20 @@ module particle_module
   interface print
      module procedure particle_container_print
   end interface print
+  !
+  ! Gives direct access to the underlying vector of particles.
+  !
+  ! This includes both "valid" and "invalid" particles.
+  !
+  ! Do NOT try to "add" or "remove" particles using this interface.
+  !
+  ! You can change/update valid particles using this interface, but if that
+  ! causes any particles to be "owned" by another CPU you'll have to call
+  ! redistribute() as well.
+  !
+  interface dataptr
+    module procedure particle_container_dataptr
+  end interface dataptr
 
   interface redistribute
      module procedure particle_container_redistribute
@@ -471,6 +485,12 @@ contains
        end do
     end if
   end subroutine particle_container_print
+
+  function particle_container_dataptr(d) result(r)
+    type(particle), pointer :: r(:)
+    type(particle_container), intent(in) :: d
+    r => d%d
+  end function particle_container_dataptr
 
   pure function particle_container_verbose() result(r)
     logical :: r

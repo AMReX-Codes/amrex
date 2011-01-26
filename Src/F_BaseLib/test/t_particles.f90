@@ -27,15 +27,16 @@ subroutine t_particle
 
   call particle_container_setverbose(.true.)
   call particle_container_setdebugging(.true.)
+
   !
   ! Uncomment one of the following lines.
   !
   ! Due to having some static storage in the particles code
   ! you can only run 2D or 3D but not both in the same executable.
   !
-!  call test(dm=2, npart=1000)
+!  call test(dm=2, npart=10000)
 
-  call test(dm=3, npart=1)
+  call test(dm=3, npart=1000)
 
 contains
 
@@ -43,6 +44,8 @@ contains
 
     integer, intent(in) :: dm
     integer, intent(in) :: npart
+
+    type(particle), pointer :: pp(:)
     !
     ! Let's build a single level mla
     !
@@ -85,6 +88,12 @@ contains
     call setval(mmf%mf(1), 1.0d0)
 
     call init_random(v,npart,17971,mla,dx,problo,probhi)
+    !
+    ! A quick test of dataptr()
+    !
+    pp => dataptr(v)
+
+    call bl_assert(size(pp) == capacity(v), 'dataptr does not appear to be correct')
 
     if (parallel_IOProcessor()) then
        print*, ''
