@@ -48,7 +48,9 @@ f90sources += ppm_util.f90
 f90sources += make_new_grids.f90
 f90sources += tag_boxes.f90
 
-f90sources += particles.f90
+ifdef PARTICLES
+  f90sources += particles.f90
+endif
 
 ifndef MPI
   f90sources += parallel_stubs.f90
