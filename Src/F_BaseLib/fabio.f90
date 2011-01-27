@@ -495,7 +495,7 @@ contains
   end subroutine fabio_multifab_read_d
 
   subroutine fabio_ml_multifab_write_d(mfs, rrs, dirname, names, bounding_box, &
-       problo, probhi, time, dx, nOutFiles, lUsingNFiles, prec)
+       prob_lo, prob_hi, time, dx, nOutFiles, lUsingNFiles, prec)
     use parallel
     use bl_IO_module
     use bl_error_module
@@ -506,7 +506,7 @@ contains
     type(box), intent(in), optional :: bounding_box
     real(kind=dp_t), intent(in), optional :: time
     real(kind=dp_t), intent(in), optional :: dx(:)
-    real(kind=dp_t), intent(in), optional :: problo(:), probhi(:)
+    real(kind=dp_t), intent(in), optional :: prob_lo(:), prob_hi(:)
     integer,          intent(in), optional :: nOutFiles
     logical,          intent(in), optional :: lUsingNFiles
     integer,          intent(in), optional :: prec
@@ -556,13 +556,13 @@ contains
        ldx  = 1.0_dp_t/(maxval(hi-lo+1))
     end if
 
-    if ( present(problo) ) then
-       plo = problo(1:dm)
+    if ( present(prob_lo) ) then
+       plo = prob_lo(1:dm)
     else
        plo = lwb(lbbox)*ldx
     endif
-    if ( present(probhi) ) then
-       phi = probhi(1:dm)
+    if ( present(prob_hi) ) then
+       phi = prob_hi(1:dm)
     else
        phi = (upb(lbbox)+1)*ldx
     endif
