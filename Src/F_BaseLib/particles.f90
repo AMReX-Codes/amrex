@@ -49,6 +49,7 @@ module particle_module
      integer                 :: size = 0
      type(particle), pointer :: d(:) => NULL()
      type(vector_i)          :: invalid
+     logical                 :: built = .false.
   end type particle_container
 
   interface build
@@ -350,16 +351,23 @@ contains
   end subroutine particle_print
 
   subroutine particle_container_build(d)
-    use bl_error_module
     type(particle_container), intent(out) :: d
-    allocate(d%d(d%size))
-    call build(d%invalid)
+    if ( .not. d%built ) then
+       allocate(d%d(d%size))
+       call build(d%invalid)
+       d%built = .true.
+    end if
   end subroutine particle_container_build
 
   subroutine particle_container_destroy(d)
     type(particle_container), intent(inout) :: d
-    call particle_container_clear(d)
-    call vector_clear_i(d%invalid)
+    if ( d%built ) then
+       call particle_container_clear(d)
+       call vector_clear_i(d%invalid)
+       d%size  = 0
+       d%d     => Null()
+       d%built = .false.
+    end if
   end subroutine particle_container_destroy
 
   pure function particle_container_empty(d) result(r)
@@ -443,6 +451,7 @@ contains
     d%size = 0
     if ( associated(d%d) ) then
        deallocate(d%d)
+       d%d => Null()
     end if
     call clear(d%invalid)
   end subroutine particle_container_clear
