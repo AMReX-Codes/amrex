@@ -168,19 +168,19 @@ module particle_module
 
 contains
 
-  subroutine particle_index(p,lev,mla,dx,problo,iv)
+  subroutine particle_index(p,lev,mla,dx,prob_lo,iv)
 
     type(particle),   intent(in)    :: p
     integer,          intent(in)    :: lev
     type(ml_layout),  intent(in)    :: mla
     double precision, intent(in)    :: dx(:,:)
-    double precision, intent(in)    :: problo(:)
+    double precision, intent(in)    :: prob_lo(:)
     integer,          intent(inout) :: iv(:)
 
     integer i
 
     do i = 1, mla%dim
-       iv(i) = floor((p%pos(i)-problo(i))/dx(lev,i)) + lwb(mla%la(lev)%lap%pd,i)
+       iv(i) = floor((p%pos(i)-prob_lo(i))/dx(lev,i)) + lwb(mla%la(lev)%lap%pd,i)
     end do
 
   end subroutine particle_index
@@ -189,14 +189,14 @@ contains
   !
   ! A value of false means it's outside our domain.
   !
-  function particle_where(p,mla,dx,problo,update) result(r)
+  function particle_where(p,mla,dx,prob_lo,update) result(r)
 
     use bl_error_module
 
     type(particle),   intent(inout) :: p
     type(ml_layout),  intent(inout) :: mla
     double precision, intent(in   ) :: dx(:,:)
-    double precision, intent(in   ) :: problo(:)
+    double precision, intent(in   ) :: prob_lo(:)
 
     logical, intent(in), optional :: update
 
@@ -223,7 +223,7 @@ contains
 
        call bl_assert(p%grd <= nboxes(mla%la(p%lev)%lap%bxa), 'particle_where: p%grd out of bounds')
 
-       call particle_index(p,p%lev,mla,dx,problo,iv)
+       call particle_index(p,p%lev,mla,dx,prob_lo,iv)
 
        if ( all(p%cell(1:dm) == iv(1:dm)) ) then
           !
@@ -251,7 +251,7 @@ contains
 
     do lev = size(mla%la), 1, -1
 
-       call particle_index(p,lev,mla,dx,problo,iv)
+       call particle_index(p,lev,mla,dx,prob_lo,iv)
 
        call build(bx,iv(1:dm))
 
@@ -282,15 +282,15 @@ contains
 
   end function particle_where
 
-  subroutine particle_periodic_shift(p,mla,dx,problo,probhi)
+  subroutine particle_periodic_shift(p,mla,dx,prob_lo,prob_hi)
 
     use bl_error_module
 
     type(particle),   intent(inout) :: p
     type(ml_layout),  intent(in   ) :: mla
     double precision, intent(in)    :: dx(:,:)
-    double precision, intent(in   ) :: problo(:)
-    double precision, intent(in   ) :: probhi(:)
+    double precision, intent(in   ) :: prob_lo(:)
+    double precision, intent(in   ) :: prob_hi(:)
 
     integer                     :: i, dm, iv(MAX_SPACEDIM)
     type(box)                   :: pd
@@ -303,16 +303,16 @@ contains
 
     pd = mla%la(p%lev)%lap%pd
     
-    call particle_index(p,p%lev,mla,dx,problo,iv)
+    call particle_index(p,p%lev,mla,dx,prob_lo,iv)
 
     do i = 1,dm
        if ( .not. mla%pmask(i) ) cycle
 
-       plen = (probhi(i) - problo(i))
+       plen = (prob_hi(i) - prob_lo(i))
 
        if ( iv(i) > upb(pd,i) ) then
 
-          if ( p%pos(i) == probhi(i) ) then
+          if ( p%pos(i) == prob_hi(i) ) then
              !
              ! Don't let particles lie exactly on the domain face.
              ! Force the particle to be outside the domain so the
@@ -325,7 +325,7 @@ contains
 
        else if ( iv(i) < lwb(pd,i) ) then
 
-          if ( p%pos(i) == problo(i) ) then
+          if ( p%pos(i) == prob_lo(i) ) then
              !
              ! Don't let particles lie exactly on the domain face.
              ! Force the particle to be outside the domain so the
@@ -512,7 +512,7 @@ contains
     pDebuggingFlag = val
   end subroutine particle_container_setdebugging
 
-  subroutine particle_container_init_random(particles,icnt,iseed,mla,dx,problo,probhi)
+  subroutine particle_container_init_random(particles,icnt,iseed,mla,dx,prob_lo,prob_hi)
 
     use mt19937_module
     use bl_error_module
@@ -522,8 +522,8 @@ contains
     integer,                  intent(in   ) :: iseed
     type(ml_layout),          intent(inout) :: mla
     double precision,         intent(in   ) :: dx(:,:)
-    double precision,         intent(in   ) :: problo(:)
-    double precision,         intent(in   ) :: probhi(:)
+    double precision,         intent(in   ) :: prob_lo(:)
+    double precision,         intent(in   ) :: prob_hi(:)
 
     integer          :: i, j, id, dm, nparticles, nparticles_tot
     double precision :: rnd, len(MAX_SPACEDIM)
@@ -540,7 +540,7 @@ contains
     call bl_assert(empty(particles), 'particle_container_init_random: particle vector should be empty')
 
     do i = 1,dm
-       len(i) = probhi(i) - problo(i)
+       len(i) = prob_hi(i) - prob_lo(i)
     end do
     !
     ! All CPUs get the same random numbers.
@@ -559,12 +559,12 @@ contains
           !
           rnd = genrand_real3()
 
-          p%pos(j) = problo(j) + (rnd * len(j))
+          p%pos(j) = prob_lo(j) + (rnd * len(j))
 
-          call bl_assert(p%pos(j) < probhi(j), 'particle_container_init_random: particle out of bounds')
+          call bl_assert(p%pos(j) < prob_hi(j), 'particle_container_init_random: particle out of bounds')
        end do
 
-       if ( .not. particle_where(p,mla,dx,problo) ) then
+       if ( .not. particle_where(p,mla,dx,prob_lo) ) then
           call bl_error('particle_container_init_random: invalid particle')
        end if
 
@@ -594,7 +594,7 @@ contains
     !
   end subroutine particle_container_init_random
 
-  subroutine particle_container_move_random(particles,mla,dx,problo,probhi)
+  subroutine particle_container_move_random(particles,mla,dx,prob_lo,prob_hi)
 
     use mt19937_module
     use bl_error_module
@@ -602,8 +602,8 @@ contains
     type(particle_container), intent(inout) :: particles
     type(ml_layout),          intent(inout) :: mla
     double precision,         intent(in   ) :: dx(:,:)
-    double precision,         intent(in   ) :: problo(:)
-    double precision,         intent(in   ) :: probhi(:)
+    double precision,         intent(in   ) :: prob_lo(:)
+    double precision,         intent(in   ) :: prob_hi(:)
 
     integer                 :: i, j, dm, sgn
     double precision        :: pos
@@ -637,13 +637,13 @@ contains
        !
        ! Try to put it in the right place in the hierarchy.
        !
-       if ( .not. particle_where(p,mla,dx,problo,update=.true.) ) then
+       if ( .not. particle_where(p,mla,dx,prob_lo,update=.true.) ) then
           !
           ! Try to shift particle back across any periodic boundary.
           !
-          call particle_periodic_shift(p,mla,dx,problo,probhi)
+          call particle_periodic_shift(p,mla,dx,prob_lo,prob_hi)
 
-          if ( .not. particle_where(p,mla,dx,problo) ) then
+          if ( .not. particle_where(p,mla,dx,prob_lo) ) then
              !
              ! TODO - deal with non-periodic boundary conditions !!!
              !
@@ -658,7 +658,7 @@ contains
     !
     ! Call redistribute() to give particles to the CPU that owns'm.
     !
-    call particle_container_redistribute(particles,mla,dx,problo,.true.)
+    call particle_container_redistribute(particles,mla,dx,prob_lo,.true.)
 
     if ( debugging() ) then
        call bl_assert(ok(particles), 'particle_container_move_random: not OK on exit')
@@ -666,7 +666,7 @@ contains
 
   end subroutine particle_container_move_random
 
-  subroutine particle_container_move_advect(particles,mla,u,dx,dt,problo,probhi)
+  subroutine particle_container_move_advect(particles,mla,u,dx,dt,prob_lo,prob_hi)
 
     use bl_error_module
 
@@ -675,8 +675,8 @@ contains
     type(multifab),           intent(in   ) :: u(:)
     double precision,         intent(in   ) :: dx(:,:)
     double precision,         intent(in   ) :: dt
-    double precision,         intent(in   ) :: problo(:)
-    double precision,         intent(in   ) :: probhi(:)
+    double precision,         intent(in   ) :: prob_lo(:)
+    double precision,         intent(in   ) :: prob_hi(:)
 
     integer                 :: dm, d, p_id
     double precision        :: vel(mla%dim)
@@ -717,13 +717,13 @@ contains
        !
        ! Try to put it in the right place in the hierarchy.
        !
-       if ( .not. particle_where(p,mla,dx,problo,update=.true.) ) then
+       if ( .not. particle_where(p,mla,dx,prob_lo,update=.true.) ) then
           !
           ! Try to shift particle back across any periodic boundary.
           !
-          call particle_periodic_shift(p,mla,dx,problo,probhi)
+          call particle_periodic_shift(p,mla,dx,prob_lo,prob_hi)
 
-          if ( .not. particle_where(p,mla,dx,problo) ) then
+          if ( .not. particle_where(p,mla,dx,prob_lo) ) then
              !
              ! TODO - deal with non-periodic boundary conditions !!!
              !
@@ -738,7 +738,7 @@ contains
     !
     ! Call redistribute() to give particles to the CPU that owns'm.
     !
-    call particle_container_redistribute(particles,mla,dx,problo,.true.)
+    call particle_container_redistribute(particles,mla,dx,prob_lo,.true.)
 
     if ( debugging() ) then
        call bl_assert(ok(particles), 'particle_container_move_random: not OK on exit')
@@ -746,7 +746,7 @@ contains
 
   end subroutine particle_container_move_advect
 
-  subroutine particle_container_redistribute(particles,mla,dx,problo,where)
+  subroutine particle_container_redistribute(particles,mla,dx,prob_lo,where)
 
     use parallel
     use bl_error_module
@@ -754,7 +754,7 @@ contains
     type(particle_container), intent(inout) :: particles
     type(ml_layout),          intent(inout) :: mla
     double precision,         intent(in   ) :: dx(:,:)
-    double precision,         intent(in   ) :: problo(:)
+    double precision,         intent(in   ) :: prob_lo(:)
     !
     ! Has particle_where() been called on all the particles?
     !
@@ -785,7 +785,7 @@ contains
     if ( .not. lwhere ) then
        do i = 1, capacity(particles)
           if ( particles%d(i)%id <= 0 ) cycle
-          if ( .not. particle_where(particles%d(i),mla,dx,problo) ) then
+          if ( .not. particle_where(particles%d(i),mla,dx,prob_lo) ) then
              call bl_error('particle_container_redistribute: invalid particle in original vector')
           end if
        end do
@@ -927,7 +927,7 @@ contains
        !
        ! Got to set the members of the particle that we didn't transfer.
        !
-       if ( .not. particle_where(p,mla,dx,problo) ) then
+       if ( .not. particle_where(p,mla,dx,prob_lo) ) then
           call bl_error('particle_container_redistribute: invalid particle after particle transfer')
        end if
 
@@ -1157,7 +1157,7 @@ contains
 
   end subroutine particle_container_checkpoint
 
-  subroutine particle_container_restart(particles,dir,mla,dx,problo)
+  subroutine particle_container_restart(particles,dir,mla,dx,prob_lo)
 
     use parallel
     use fabio_module, only: fabio_open, fabio_close, FABIO_RDONLY, &
@@ -1169,7 +1169,7 @@ contains
     character(len=*),         intent(in   ) :: dir
     type(ml_layout),          intent(inout) :: mla
     double precision,         intent(in   ) :: dx(:,:)
-    double precision,         intent(in   ) :: problo(:)
+    double precision,         intent(in   ) :: prob_lo(:)
 
     type(particle)           :: p
     type(particle_container) :: tparticles
@@ -1275,7 +1275,7 @@ contains
     !
     ! Let redistribute() do its thing.
     !
-    call redistribute(particles, mla, dx, problo)
+    call redistribute(particles, mla, dx, prob_lo)
 
     if ( parallel_IOProcessor() ) then
        !
