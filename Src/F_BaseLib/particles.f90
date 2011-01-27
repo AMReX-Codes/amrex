@@ -10,7 +10,8 @@ module particle_module
 
   use bl_space
   use vector_i_module
-  use ml_multifab_module
+  use multifab_module
+  use ml_layout_module
 
   implicit none
 
@@ -128,14 +129,6 @@ module particle_module
   interface redistribute
      module procedure particle_container_redistribute
   end interface redistribute
-
-  interface checkpoint
-     module procedure particle_container_checkpoint
-  end interface checkpoint
-
-  interface restart
-     module procedure particle_container_restart
-  end interface restart
   !
   ! These two are useful for testing purposes and/or as examples of how
   ! to write init routines and move routines.
@@ -150,11 +143,6 @@ module particle_module
   interface timestamp
      module procedure particle_container_timestamp
   end interface timestamp
-
-  interface verbose
-     module procedure particle_container_verbose
-     module procedure particle_container_setverbose
-  end interface verbose
 
   interface debugging
      module procedure particle_container_debugging
@@ -362,6 +350,7 @@ contains
   end subroutine particle_print
 
   subroutine particle_container_build(d)
+    use bl_error_module
     type(particle_container), intent(out) :: d
     allocate(d%d(d%size))
     call build(d%invalid)
@@ -492,14 +481,14 @@ contains
     r => d%d
   end function particle_container_dataptr
 
-  pure function particle_container_verbose() result(r)
+  pure function particle_verbose() result(r)
     logical :: r
     r = pVerboseFlag
-  end function particle_container_verbose
-  subroutine particle_container_setverbose(val)
+  end function particle_verbose
+  subroutine particle_setverbose(val)
     logical :: val
     pVerboseFlag = val
-  end subroutine particle_container_setverbose
+  end subroutine particle_setverbose
 
   pure function particle_container_debugging() result(r)
     logical :: r
@@ -852,7 +841,7 @@ contains
        call add(particles,p)
     end do
 
-    if ( verbose() ) then
+    if ( particle_verbose() ) then
        rend = parallel_wtime() - rbeg
 
        call parallel_reduce(rtime, rend, MPI_MAX, proc = parallel_IOProcessorNode())
@@ -1059,7 +1048,7 @@ contains
        deallocate(drcv)
     end if
 
-    if ( verbose() ) then
+    if ( particle_verbose() ) then
        rend = parallel_wtime() - rbeg
 
        call parallel_reduce(rtime, rend, MPI_MAX, proc = ioproc)
@@ -1215,7 +1204,7 @@ contains
        call destroy(tparticles)
     end if
 
-    if ( verbose() ) then
+    if ( particle_verbose() ) then
        rend = parallel_wtime() - rbeg
 
        call parallel_reduce(rtime, rend, MPI_MAX, proc = ioproc)
@@ -1231,7 +1220,7 @@ contains
 
   end subroutine particle_container_restart
 
-  subroutine particle_container_timestamp(particles,basename,mmf,idx,time)
+  subroutine particle_container_timestamp(particles,basename,mf,idx,time)
 
     use parallel
     use bl_IO_module, only: unit_new
@@ -1240,7 +1229,7 @@ contains
 
     type(particle_container), intent(in) :: particles
     character(len=*),         intent(in) :: basename
-    type(ml_multifab),        intent(in) :: mmf
+    type(multifab),           intent(in) :: mf(:)
     integer,                  intent(in) :: idx(:)
     double precision,         intent(in) :: time
 
@@ -1260,7 +1249,7 @@ contains
 
     integer, parameter :: MaxOpenFiles = 32
 
-    dm        = mmf%dim
+    dm        = mf(1)%dim
     NProcs    = parallel_nprocs()
     MyProc    = parallel_myproc()
     nOutFiles = min(MaxOpenFiles,parallel_nprocs())
@@ -1289,7 +1278,7 @@ contains
        !   id cpu pos(1:dm) time
        !
        ! These are then followed by size(idx) double precision values pulled
-       ! from index idx(i) from the mmf for each particle.
+       ! from index idx(i) from the mf for each particle.
        !
        call bl_assert(size(idx) <= 99, 'timestamp: size(idx) too big')
 
@@ -1302,7 +1291,7 @@ contains
        allocate(values(size(idx)))
 
        do i = 1, size(idx)
-          call bl_assert(idx(i) >= 1 .and. idx(i) <= mmf%nc, 'timestamp: invalid indices into mmf')
+          call bl_assert(idx(i) >= 1 .and. idx(i) <= mf(1)%nc, 'timestamp: invalid indices into mf')
        end do
 
     end if
@@ -1356,7 +1345,7 @@ contains
                 ! Populate values
                 !
                 do j = 1, size(idx)
-                   r => dataptr(mmf%mf(p%lev),p%grd)
+                   r => dataptr(mf(p%lev),p%grd)
 
                    select case (dm)
                    case (1)
@@ -1398,7 +1387,7 @@ contains
        end if
     end do
 
-    if ( verbose() ) then
+    if ( particle_verbose() ) then
        rend = parallel_wtime() - rbeg
 
        call parallel_reduce(rtime, rend, MPI_MAX, proc = parallel_IOProcessorNode())
