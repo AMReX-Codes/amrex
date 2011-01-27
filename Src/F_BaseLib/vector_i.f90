@@ -8,6 +8,7 @@ module vector_i_module
      integer :: size = 0
      integer :: bump = 2
      integer, dimension(:), pointer :: d => NULL()
+     logical :: built = .false.
   end type vector_i
 
   interface capacity
@@ -110,10 +111,13 @@ contains
     type(vector_i), intent(out) :: d
     integer, intent(in), dimension(:) :: values
 
-    d%size = size(values)
-    allocate(d%d(d%size))
-    d%d = values
-    d%end  = size(values)
+    if ( .not. d%built  ) then
+       d%size = size(values)
+       allocate(d%d(d%size))
+       d%d     = values
+       d%end   = size(values)
+       d%built = .true.
+    end if
 
   end subroutine vector_build_v_i
 
@@ -124,20 +128,27 @@ contains
     integer, intent(in), optional :: bump
 
     integer :: v
-        v = 0
-    if ( present(value) ) v = value
-    if ( present(size) )  d%size = size
-    if ( present(bump) )  d%bump = bump
-    allocate(d%d(d%size))
-    d%d(1:d%size) = v
+
+    v = 0
+
+    if ( present(value) ) v      = value
+    if ( present(size)  ) d%size = size
+    if ( present(bump)  ) d%bump = bump
+
+    if ( .not. d%built  ) then
+       allocate(d%d(d%size))
+       d%d(1:d%size) = v
+       d%built = .true.
+    end if
 
   end subroutine vector_build_i
 
   subroutine vector_destroy_i(d)
     type(vector_i), intent(inout) :: d
-
-    call clear(d)
-    d%bump=2
+    if ( d%built ) then
+       call clear(d)
+       d%bump = 2
+    end if
 
   end subroutine vector_destroy_i
 
@@ -372,10 +383,12 @@ contains
   subroutine vector_clear_i(d)
     type(vector_i), intent(inout) :: d
 
-    d%size = 0
-    d%end =  0
-    if ( associated(d%d) ) then
+    if ( d%built ) then
+       d%size = 0
+       d%end  = 0
        deallocate(d%d)
+       d%d     => Null()
+       d%built = .false.
     end if
 
   end subroutine vector_clear_i
