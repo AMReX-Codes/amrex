@@ -2,6 +2,7 @@ subroutine t_particle
 
   use fabio_module
   use particle_module
+  use multifab_module
 
   integer i, id
   type(particle_container) :: v, tv
@@ -9,7 +10,6 @@ subroutine t_particle
   type(box)         :: bx,bx2
   type(ml_boxarray) :: mba
   type(ml_layout)   :: mla
-  type(ml_multifab) :: mmf
   type(boxarray)    :: ba
   double precision  :: dx(1,MAX_SPACEDIM), dx2(2,MAX_SPACEDIM)
   double precision  :: problo(MAX_SPACEDIM)
@@ -18,6 +18,8 @@ subroutine t_particle
   character(len=256):: check_file_name
   character(len=5)  :: check_index
 
+  type(multifab), allocatable :: mf(:)
+
   id = 1
 
   pmask = .true.
@@ -25,7 +27,8 @@ subroutine t_particle
   problo = -1.0d0
   probhi = +1.0d0
 
-  call particle_container_setverbose(.true.)
+  call particle_setverbose(.true.)
+
   call particle_container_setdebugging(.true.)
 
   !
@@ -83,9 +86,11 @@ contains
 
     call destroy(mba)
 
-    call build(mmf, mla, 5, 1, 1)
+    allocate(mf(1))
 
-    call setval(mmf%mf(1), 1.0d0)
+    call build(mf(1), mla%la(1), 5, 1)
+
+    call setval(mf(1), 1.0d0)
 
     call init_random(v,npart,17971,mla,dx,problo,probhi)
     !
@@ -128,17 +133,17 @@ contains
           print*, 'check_file_name: ', check_file_name
        end if
 
-       call checkpoint(v,check_file_name,mla)
+       call particle_container_checkpoint(v,check_file_name,mla)
 
        call build(tv)
 
-       call restart(tv,check_file_name,mla,dx,problo)
+       call particle_container_restart(tv,check_file_name,mla,dx,problo)
 
        call bl_assert(size(tv) == size(v), 'v and tv are NOT the same size')
 
        call destroy(tv)
 
-       call timestamp(v, 'timestamp_onelev', mmf, (/1,3,5/), time)
+       call timestamp(v, 'timestamp_onelev', mf, (/1,3,5/), time)
 
        time = time + 0.1d0
     end do
@@ -156,7 +161,9 @@ contains
 
 !    call bl_error('Got Here')
 
-    call destroy(mmf)
+    call destroy(mf(1))
+
+    deallocate(mf)
 
     call destroy(mla)
     !
@@ -217,10 +224,13 @@ contains
 
     call destroy(mba)
 
-    call build(mmf, mla, 6, 2, 2)
+    allocate(mf(2))
 
-    call setval(mmf%mf(1), 1.0d0)
-    call setval(mmf%mf(2), 2.0d0)
+    call build(mf(1), mla%la(1), 6, 2)
+    call build(mf(2), mla%la(2), 6, 2)
+
+    call setval(mf(1), 1.0d0)
+    call setval(mf(2), 2.0d0)
 
     call init_random(v,npart,171717171,mla,dx2,problo,probhi)
 
@@ -254,22 +264,25 @@ contains
           print*, 'check_file_name: ', check_file_name
        end if
 
-       call checkpoint(v,check_file_name,mla)
+       call particle_container_checkpoint(v,check_file_name,mla)
 
        call build(tv)
 
-       call restart(tv,check_file_name,mla,dx2,problo)
+       call particle_container_restart(tv,check_file_name,mla,dx2,problo)
 
        call bl_assert(size(tv) == size(v), 'v and tv are NOT the same size')
 
        call destroy(tv)
 
-       call timestamp(v, 'timestamp_twolev', mmf, (/1,3,5/), time)
+       call timestamp(v, 'timestamp_twolev', mf, (/1,3,5/), time)
 
        time = time + 0.1d0
     end do
 
-    call destroy(mmf)
+    call destroy(mf(1))
+    call destroy(mf(2))
+
+    deallocate(mf)
 
     call destroy(mla)
 
