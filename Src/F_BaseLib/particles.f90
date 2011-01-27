@@ -141,6 +141,10 @@ module particle_module
      module procedure particle_container_move_random
   end interface move_random
 
+  interface move_advect
+     module procedure particle_container_move_advect
+  end interface move_advect
+
   interface timestamp
      module procedure particle_container_timestamp
   end interface timestamp
@@ -661,6 +665,86 @@ contains
     end if
 
   end subroutine particle_container_move_random
+
+  subroutine particle_container_move_advect(particles,mla,u,dx,dt,problo,probhi)
+
+    use bl_error_module
+
+    type(particle_container), intent(inout) :: particles
+    type(ml_layout),          intent(inout) :: mla
+    type(multifab),           intent(in   ) :: u(:)
+    double precision,         intent(in   ) :: dx(:,:)
+    double precision,         intent(in   ) :: dt
+    double precision,         intent(in   ) :: problo(:)
+    double precision,         intent(in   ) :: probhi(:)
+
+    integer                 :: dm, d, p_id
+    double precision        :: vel(mla%dim)
+    type(particle), pointer :: p
+    real(kind=dp_t), pointer:: up(:,:,:,:)
+
+    dm = mla%dim
+
+    if ( debugging() ) then
+       call bl_assert(ok(particles), 'particle_container_move_advect: not OK on entry')
+    end if
+
+    do p_id = 1, capacity(particles)
+       !
+       ! Make sure to ignore invalid particles.
+       !
+       if ( particles%d(p_id)%id <= 0 ) cycle
+
+       p => particles%d(p_id)
+
+       up => dataptr(u(p%lev),p%grd)
+
+       select case (dm)
+       case (1)
+          vel(1) = up(p%cell(1),1,1,1)
+       case (2)
+          vel(1:2) = up(p%cell(1),p%cell(2),1,1:2)
+       case (3)
+          vel(1:3) = up(p%cell(1),p%cell(2),p%cell(3),1:3)
+       end select
+
+       do d=1,dm
+          p%pos(d) = p%pos(d) + dt*vel(d)
+       end do
+
+       !
+       ! The particle has moved.
+       !
+       ! Try to put it in the right place in the hierarchy.
+       !
+       if ( .not. particle_where(p,mla,dx,problo,update=.true.) ) then
+          !
+          ! Try to shift particle back across any periodic boundary.
+          !
+          call particle_periodic_shift(p,mla,dx,problo,probhi)
+
+          if ( .not. particle_where(p,mla,dx,problo) ) then
+             !
+             ! TODO - deal with non-periodic boundary conditions !!!
+             !
+             print*, 'particle leaving the domain:'
+
+             call print(p)
+
+             call particle_container_remove(particles,p_id)
+          end if
+       end if
+    end do
+    !
+    ! Call redistribute() to give particles to the CPU that owns'm.
+    !
+    call particle_container_redistribute(particles,mla,dx,problo,.true.)
+
+    if ( debugging() ) then
+       call bl_assert(ok(particles), 'particle_container_move_random: not OK on exit')
+    end if
+
+  end subroutine particle_container_move_advect
 
   subroutine particle_container_redistribute(particles,mla,dx,problo,where)
 
