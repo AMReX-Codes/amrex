@@ -158,6 +158,9 @@ module particle_module
   
   logical, save, private :: pVerboseFlag   = .false.
   logical, save, private :: pDebuggingFlag = .false.
+
+  integer, save :: particle_id = 1
+
   !
   ! Used by checkpoint/restart.
   !
@@ -512,6 +515,12 @@ contains
     pDebuggingFlag = val
   end subroutine particle_container_setdebugging
 
+  function get_particle_id() result(r)
+    integer :: r
+    r = particle_id
+    particle_id = particle_id + 1
+  end function get_particle_id
+
   subroutine particle_container_init_random(particles,icnt,iseed,mla,dx,prob_lo,prob_hi)
 
     use mt19937_module
@@ -528,10 +537,7 @@ contains
     integer          :: i, j, id, dm, nparticles, nparticles_tot
     double precision :: rnd, len(MAX_SPACEDIM)
     type(particle)   :: p
-    !
-    ! Start particle IDs from 1 ...
-    !
-    id = 1
+
     dm = mla%dim
 
     call bl_assert(icnt  > 0, 'particle_container_init_random: icnt must be > 0')
@@ -572,9 +578,9 @@ contains
           !
           ! We own it.
           !
-          p%id  = id
+          p%id  = particle_id
           p%cpu = parallel_myproc()
-          id    = id + 1
+          particle_id = particle_id + 1
 
           call add(particles,p)
        end if
