@@ -534,7 +534,7 @@ contains
     double precision,         intent(in   ) :: prob_lo(:)
     double precision,         intent(in   ) :: prob_hi(:)
 
-    integer          :: i, j, id, dm, nparticles, nparticles_tot
+    integer          :: i, j, dm, nparticles, nparticles_tot
     double precision :: rnd, len(MAX_SPACEDIM)
     type(particle)   :: p
 
@@ -690,7 +690,8 @@ contains
     real(kind=dp_t), pointer :: ump(:,:,:,:)
     real(kind=dp_t), pointer :: vmp(:,:,:,:)
     real(kind=dp_t), pointer :: wmp(:,:,:,:)
-    double precision         :: umac_hi, umac_lo, vmac_hi, vmac_lo, wmac_hi, wmac_lo
+    double precision         :: umac_lo(mla%dim), umac_hi(mla%dim)
+    double precision         :: slope, delta
 
     dm = mla%dim
 
@@ -711,39 +712,30 @@ contains
        select case (dm)
        case (1)
 
-          umac_lo = ump(p%cell(1)  ,1,1,1)
-          umac_hi = ump(p%cell(1)+1,1,1,1)
-          
-          vel(1) = (umac_lo + umac_hi) / 2.d0
-
        case (2)
           vmp => dataptr(umac(p%lev,2),p%grd)
 
-          umac_lo = ump(p%cell(1)  ,p%cell(2),1,1)
-          umac_hi = ump(p%cell(1)+1,p%cell(2),1,1)
+          umac_lo(1) = ump(p%cell(1)  ,p%cell(2),1,1)
+          umac_hi(1) = ump(p%cell(1)+1,p%cell(2),1,1)
 
-          vmac_lo = vmp(p%cell(1),p%cell(2)  ,1,1)
-          vmac_hi = vmp(p%cell(1),p%cell(2)+1,1,1)
+          umac_lo(2) = vmp(p%cell(1),p%cell(2)  ,1,1)
+          umac_hi(2) = vmp(p%cell(1),p%cell(2)+1,1,1)
 
-          vel(1) = (umac_lo + umac_hi) / 2.d0
-          vel(2) = (vmac_lo + vmac_hi) / 2.d0
+          do d=1,dm
+
+             slope = umac_hi(d) - umac_lo(d)
+
+             delta =  ( (p%pos(d) - prob_lo(d)) - &
+                  int((p%pos(d) - prob_lo(d)) / dx(p%lev,d)) * dx(p%lev,d) ) / dx(p%lev,d) &
+                  - 0.5d0
+            
+             vel(d) = (umac_lo(d) + umac_hi(d)) / 2.d0 + delta * slope
+
+          end do
 
        case (3)
           vmp => dataptr(umac(p%lev,2),p%grd)
           wmp => dataptr(umac(p%lev,3),p%grd)
-
-          umac_lo = ump(p%cell(1)  ,p%cell(2),p%cell(3),1)
-          umac_hi = ump(p%cell(1)+1,p%cell(2),p%cell(3),1)
-
-          vmac_lo = vmp(p%cell(1),p%cell(2)  ,p%cell(3),1)
-          vmac_hi = vmp(p%cell(1),p%cell(2)+1,p%cell(3),1)
-
-          wmac_lo = wmp(p%cell(1),p%cell(2),p%cell(3)  ,1)
-          wmac_hi = wmp(p%cell(1),p%cell(2),p%cell(3)+1,1)
-
-          vel(1) = (umac_lo + umac_hi) / 2.d0
-          vel(2) = (vmac_lo + vmac_hi) / 2.d0
-          vel(3) = (wmac_lo + wmac_hi) / 2.d0
 
        end select
 
