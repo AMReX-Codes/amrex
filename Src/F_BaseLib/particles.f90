@@ -685,13 +685,12 @@ contains
     double precision,         intent(in   ) :: prob_hi(:)
 
     integer                  :: dm, d, p_id
-    double precision         :: vel(mla%dim)
     type(particle), pointer  :: p
     real(kind=dp_t), pointer :: ump(:,:,:,:)
     real(kind=dp_t), pointer :: vmp(:,:,:,:)
     real(kind=dp_t), pointer :: wmp(:,:,:,:)
     double precision         :: umac_lo(mla%dim), umac_hi(mla%dim)
-    double precision         :: slope, delta
+    double precision         :: vel, slope, delta
 
     dm = mla%dim
 
@@ -711,36 +710,37 @@ contains
 
        select case (dm)
        case (1)
-
+          umac_lo(1) = ump(p%cell(1)  ,1,1,1)
+          umac_hi(1) = ump(p%cell(1)+1,1,1,1)
        case (2)
           vmp => dataptr(umac(p%lev,2),p%grd)
-
           umac_lo(1) = ump(p%cell(1)  ,p%cell(2),1,1)
           umac_hi(1) = ump(p%cell(1)+1,p%cell(2),1,1)
-
           umac_lo(2) = vmp(p%cell(1),p%cell(2)  ,1,1)
           umac_hi(2) = vmp(p%cell(1),p%cell(2)+1,1,1)
-
-          do d=1,dm
-
-             slope = umac_hi(d) - umac_lo(d)
-
-             delta =  ( (p%pos(d) - prob_lo(d)) - &
-                  int((p%pos(d) - prob_lo(d)) / dx(p%lev,d)) * dx(p%lev,d) ) / dx(p%lev,d) &
-                  - 0.5d0
-            
-             vel(d) = (umac_lo(d) + umac_hi(d)) / 2.d0 + delta * slope
-
-          end do
-
        case (3)
           vmp => dataptr(umac(p%lev,2),p%grd)
           wmp => dataptr(umac(p%lev,3),p%grd)
-
+          umac_lo(1) = ump(p%cell(1)  ,p%cell(2),p%cell(3),1)
+          umac_hi(1) = ump(p%cell(1)+1,p%cell(2),p%cell(3),1)
+          umac_lo(2) = vmp(p%cell(1),p%cell(2)  ,p%cell(3),1)
+          umac_hi(2) = vmp(p%cell(1),p%cell(2)+1,p%cell(3),1)
+          umac_lo(3) = wmp(p%cell(1),p%cell(2),p%cell(3)  ,1)
+          umac_hi(3) = wmp(p%cell(1),p%cell(2),p%cell(3)+1,1)
        end select
 
        do d=1,dm
-          p%pos(d) = p%pos(d) + dt*vel(d)
+
+          slope = umac_hi(d) - umac_lo(d)
+
+          ! delta is a number between [-0.5,0.5] that represents the position in the cell
+          delta =  ( (p%pos(d) - prob_lo(d)) - &
+                 int((p%pos(d) - prob_lo(d)) / dx(p%lev,d)) * dx(p%lev,d) ) / dx(p%lev,d) &
+               - 0.5d0
+            
+          vel = (umac_lo(d) + umac_hi(d)) / 2.d0 + delta * slope
+
+          p%pos(d) = p%pos(d) + dt*vel
        end do
 
        !
