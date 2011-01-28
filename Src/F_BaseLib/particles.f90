@@ -672,22 +672,25 @@ contains
 
   end subroutine particle_container_move_random
 
-  subroutine particle_container_move_advect(particles,mla,u,dx,dt,prob_lo,prob_hi)
+  subroutine particle_container_move_advect(particles,mla,umac,dx,dt,prob_lo,prob_hi)
 
     use bl_error_module
 
     type(particle_container), intent(inout) :: particles
     type(ml_layout),          intent(inout) :: mla
-    type(multifab),           intent(in   ) :: u(:)
+    type(multifab),           intent(in   ) :: umac(:,:)
     double precision,         intent(in   ) :: dx(:,:)
     double precision,         intent(in   ) :: dt
     double precision,         intent(in   ) :: prob_lo(:)
     double precision,         intent(in   ) :: prob_hi(:)
 
-    integer                 :: dm, d, p_id
-    double precision        :: vel(mla%dim)
-    type(particle), pointer :: p
-    real(kind=dp_t), pointer:: up(:,:,:,:)
+    integer                  :: dm, d, p_id
+    double precision         :: vel(mla%dim)
+    type(particle), pointer  :: p
+    real(kind=dp_t), pointer :: ump(:,:,:,:)
+    real(kind=dp_t), pointer :: vmp(:,:,:,:)
+    real(kind=dp_t), pointer :: wmp(:,:,:,:)
+    double precision         :: umac_hi, umac_lo, vmac_hi, vmac_lo, wmac_hi, wmac_lo
 
     dm = mla%dim
 
@@ -703,15 +706,45 @@ contains
 
        p => particles%d(p_id)
 
-       up => dataptr(u(p%lev),p%grd)
+       ump => dataptr(umac(p%lev,1),p%grd)
 
        select case (dm)
        case (1)
-          vel(1) = up(p%cell(1),1,1,1)
+
+          umac_lo = ump(p%cell(1)  ,1,1,1)
+          umac_hi = ump(p%cell(1)+1,1,1,1)
+          
+          vel(1) = (umac_lo + umac_hi) / 2.d0
+
        case (2)
-          vel(1:2) = up(p%cell(1),p%cell(2),1,1:2)
+          vmp => dataptr(umac(p%lev,2),p%grd)
+
+          umac_lo = ump(p%cell(1)  ,p%cell(2),1,1)
+          umac_hi = ump(p%cell(1)+1,p%cell(2),1,1)
+
+          vmac_lo = vmp(p%cell(1),p%cell(2)  ,1,1)
+          vmac_hi = vmp(p%cell(1),p%cell(2)+1,1,1)
+
+          vel(1) = (umac_lo + umac_hi) / 2.d0
+          vel(2) = (vmac_lo + vmac_hi) / 2.d0
+
        case (3)
-          vel(1:3) = up(p%cell(1),p%cell(2),p%cell(3),1:3)
+          vmp => dataptr(umac(p%lev,2),p%grd)
+          wmp => dataptr(umac(p%lev,3),p%grd)
+
+          umac_lo = ump(p%cell(1)  ,p%cell(2),p%cell(3),1)
+          umac_hi = ump(p%cell(1)+1,p%cell(2),p%cell(3),1)
+
+          vmac_lo = vmp(p%cell(1),p%cell(2)  ,p%cell(3),1)
+          vmac_hi = vmp(p%cell(1),p%cell(2)+1,p%cell(3),1)
+
+          wmac_lo = wmp(p%cell(1),p%cell(2),p%cell(3)  ,1)
+          wmac_hi = wmp(p%cell(1),p%cell(2),p%cell(3)+1,1)
+
+          vel(1) = (umac_lo + umac_hi) / 2.d0
+          vel(2) = (vmac_lo + vmac_hi) / 2.d0
+          vel(3) = (wmac_lo + wmac_hi) / 2.d0
+
        end select
 
        do d=1,dm
