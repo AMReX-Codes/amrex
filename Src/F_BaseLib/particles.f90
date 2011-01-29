@@ -97,6 +97,7 @@ module particle_module
   ! 
   interface add
      module procedure particle_container_add
+     module procedure particle_container_add_point
   end interface add
   !
   ! This is the total number of "valid" + "invalid" particles.
@@ -425,6 +426,38 @@ contains
     end if
     d%d => np
   end subroutine particle_container_reserve
+
+  subroutine particle_container_add_point(d,loc,mla,dx,prob_lo)
+    type(particle_container), intent(inout) :: d
+    real(kind=dp_t),          intent(in   ) :: loc(:)
+    type(ml_layout),          intent(inout) :: mla
+    double precision,         intent(in   ) :: dx(:,:)
+    double precision,         intent(in   ) :: prob_lo(:)
+
+    type(particle) :: p
+    integer        :: i,dm
+
+    dm = mla%dim
+
+    do i=1,dm
+       p%pos(i) = loc(i)
+    end do
+
+     if ( .not. particle_where(p,mla,dx,prob_lo) ) then
+        call bl_error('problem initializing particle')
+     end if
+
+     if ( local(mla%la(p%lev),p%grd) ) then
+        !
+        ! We own it.
+        !
+        p%id  = get_particle_id()
+        p%cpu = parallel_myproc()
+        
+        call add(d,p)
+     end if
+
+  end subroutine particle_container_add_point
 
   subroutine particle_container_add(d,v)
     type(particle_container), intent(inout) :: d
