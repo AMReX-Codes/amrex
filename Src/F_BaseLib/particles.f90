@@ -1377,7 +1377,7 @@ contains
 
   end subroutine particle_container_restart
 
-  subroutine particle_container_timestamp(particles,basename,mf,idx,time)
+  subroutine particle_container_timestamp(particles,basename,mf,idx,names,time)
 
     use parallel
     use bl_IO_module, only: unit_new
@@ -1388,20 +1388,23 @@ contains
     character(len=*),         intent(in) :: basename
     type(multifab),           intent(in) :: mf(:)
     integer,                  intent(in) :: idx(:)
+    character(len=*),         intent(in) :: names(:)
     double precision,         intent(in) :: time
 
     integer             :: un, iSet, nOutFiles, nSets, mySet, MyProc, NProcs
-    integer             :: i, j, dm, iBuff(1), wakeUpPID, waitForPID, tag
+    integer             :: i, j, n, dm, iBuff(1), wakeUpPID, waitForPID, tag
     double precision    :: rbeg, rend, rtime
     character(len=64)   :: filename
     character(len=2)    :: index
     logical             :: itexists
 
+    logical, save :: need_header = .true.
+
     type(particle), pointer :: p
     real(dp_t),     pointer :: r(:,:,:,:)
 
     logical,                       save :: first = .true.
-    character(len=64),             save :: fmtstr
+    character(len=64),             save :: dfmtstr, hfmtstr
     double precision, allocatable, save :: values(:)
 
     integer, parameter :: MaxOpenFiles = 32
@@ -1443,7 +1446,8 @@ contains
 
        index = adjustl(index)
 
-       fmtstr = '(I10, 1X, I10, ' // trim(index) // '(1X, G17.10))'
+       dfmtstr = '(2x, I10, 1X, I10, ' // trim(index) // '(1X, G17.10))'
+       hfmtstr = '(a2, a10, 1x, a10, ' // trim(index) // '(1x, a17))'
 
        allocate(values(size(idx)))
 
@@ -1494,6 +1498,26 @@ contains
                      action   = 'write')
              end if
 
+             ! write the header listing the column names
+             if (need_header) then
+                write (unit=un, fmt="(a1)") " "
+
+                select case (dm)
+                case (1)
+                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part ID", "origin CPU", "x", "time", &
+                        (names(n), n=1, size(idx))
+                case (2)
+                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part ID", "origin CPU", "x", "y", "time", &
+                        (names(n), n=1, size(idx))
+                case (3)
+                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part ID", "origin CPU", "x", "y", "z", "time", &
+                        (names(n), n=1, size(idx))                
+                end select
+                
+                need_header = .false.
+             endif
+
+
              do i = 1, capacity(particles)
                 if ( particles%d(i)%id <= 0 ) cycle
 
@@ -1516,7 +1540,7 @@ contains
                 !
                 ! Write to the file.
                 !
-                write(unit=un, fmt=trim(fmtstr)) p%id, p%cpu, p%pos(1:dm), time, values
+                write(unit=un, fmt=trim(dfmtstr)) p%id, p%cpu, p%pos(1:dm), time, values
              end do
 
              close(un)

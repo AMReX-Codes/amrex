@@ -142,7 +142,7 @@ contains
 
        call destroy(tv)
 
-       call timestamp(v, 'timestamp_onelev', mf, (/1,3,5/), time)
+       call timestamp(v, 'timestamp_onelev', mf, (/1,3,5/), (/"a", "b", "c"/), time)
 
        time = time + 0.1d0
     end do
@@ -273,7 +273,7 @@ contains
 
        call destroy(tv)
 
-       call timestamp(v, 'timestamp_twolev', mf, (/1,3,5/), time)
+       call timestamp(v, 'timestamp_twolev', mf, (/1,3,5/), (/"a", "b", "c"/), time)
 
        time = time + 0.1d0
     end do
