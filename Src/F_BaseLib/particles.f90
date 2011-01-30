@@ -1504,13 +1504,13 @@ contains
 
                 select case (dm)
                 case (1)
-                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part ID", "origin CPU", "x", "time", &
+                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "time", &
                         (names(n), n=1, size(idx))
                 case (2)
-                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part ID", "origin CPU", "x", "y", "time", &
+                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "y", "time", &
                         (names(n), n=1, size(idx))
                 case (3)
-                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part ID", "origin CPU", "x", "y", "z", "time", &
+                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "y", "z", "time", &
                         (names(n), n=1, size(idx))                
                 end select
                 
