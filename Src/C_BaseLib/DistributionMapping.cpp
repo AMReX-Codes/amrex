@@ -11,18 +11,15 @@
 #include <cstdlib>
 #include <list>
 #include <map>
-#include <set>
 #include <vector>
 #include <queue>
 #include <algorithm>
 #include <numeric>
 
-static int    swap_n_test_count          = 1;
-static int    verbose                    = 1;
-static int    sfc_threshold              = 4;
-static double max_efficiency             = 0.9;
-static bool   do_full_knapsack           = false;
-static bool   do_not_minimize_comm_costs = true;
+static int    verbose          = 1;
+static int    sfc_threshold    = 4;
+static double max_efficiency   = 0.9;
+static bool   do_full_knapsack = false;
 //
 // Everyone uses the same Strategy -- defaults to SFC.
 //
@@ -99,16 +96,9 @@ DistributionMapping::Initialize ()
 
     pp.query("efficiency", max_efficiency);
 
-    pp.query("do_not_minimize_comm_costs", do_not_minimize_comm_costs);
-
     pp.query("do_full_knapsack", do_full_knapsack);
 
-    pp.query("swap_n_test_count", swap_n_test_count);
-
     pp.query("sfc_threshold", sfc_threshold);
-
-    if (swap_n_test_count <= 0)
-        BoxLib::Abort("swap_n_test must be integer >= 1");
 
     std::string theStrategy;
 
@@ -628,213 +618,6 @@ top:
     return result;
 }
 
-static
-void
-SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
-             const std::vector< std::vector<int> >&                    nbrs,
-             std::vector<int>&                                         procmap,
-             std::vector<long>&                                        percpu)
-{
-    for (std::map< int,std::vector<int>,std::greater<int> >::const_iterator it = samesize.begin();
-         it != samesize.end();
-         ++it)
-    {
-        for (std::vector<int>::const_iterator lit1 = it->second.begin();
-             lit1 != it->second.end();
-             ++lit1)
-        {
-            std::vector<int>::const_iterator lit2 = lit1;
-
-            const int ilit1 = *lit1;
-
-            lit2++;
-
-            for ( ; lit2 != it->second.end(); ++lit2)
-            {
-                const int ilit2 = *lit2;
-
-                BL_ASSERT(ilit1 != ilit2);
-                //
-                // Don't consider Boxes on the same CPU.
-                //
-                if (procmap[ilit1] == procmap[ilit2]) continue;
-                //
-                // Will swapping these boxes decrease latency?
-                //
-                const long percpu_lit1 = percpu[procmap[ilit1]];
-                const long percpu_lit2 = percpu[procmap[ilit2]];
-                //
-                // Now change procmap & redo necessary calculations ...
-                //
-                std::swap(procmap[ilit1],procmap[ilit2]);
-
-                const int pmap1 = procmap[ilit1];
-                const int pmap2 = procmap[ilit2];
-                //
-                // Update percpu[] in place.
-                //
-                std::vector<int>::const_iterator end1 = nbrs[ilit1].end();
-
-                for (std::vector<int>::const_iterator it = nbrs[ilit1].begin(); it != end1; ++it)
-                {
-                    const int pmapstar = procmap[*it];
-
-                    if (pmapstar == pmap2)
-                    {
-                        percpu[pmap1]++;
-                        percpu[pmap2]++;
-                    }
-                    else if (pmapstar == pmap1)
-                    {
-                        percpu[pmap1]--;
-                        percpu[pmap2]--;
-                    }
-                    else
-                    {
-                        percpu[pmap2]--;
-                        percpu[pmap1]++;
-                    }
-                }
-
-                std::vector<int>::const_iterator end2 = nbrs[ilit2].end();
-
-                for (std::vector<int>::const_iterator it = nbrs[ilit2].begin(); it != end2; ++it)
-                {
-                    const int pmapstar = procmap[*it];
-
-                    if (pmapstar == pmap1)
-                    {
-                        percpu[pmap1]++;
-                        percpu[pmap2]++;
-                    }
-                    else if (pmapstar == pmap2)
-                    {
-                        percpu[pmap1]--;
-                        percpu[pmap2]--;
-                    }
-                    else
-                    {
-                        percpu[pmap1]--;
-                        percpu[pmap2]++;
-                    }
-                }
-
-                const long cost_old = percpu_lit1  + percpu_lit2;
-                const long cost_new = percpu[pmap1]+ percpu[pmap2];
-
-                if (cost_new >= cost_old)
-                {
-                    //
-                    // Undo our changes ...
-                    //
-                    std::swap(procmap[ilit1],procmap[ilit2]);
-
-                    percpu[procmap[ilit1]] = percpu_lit1;
-                    percpu[procmap[ilit2]] = percpu_lit2;
-                }
-            }
-        }
-    }
-}
-
-static
-std::vector< std::vector<int> >
-CalculateNeighbors (const BoxArray& ba)
-{
-    std::vector< std::vector<int> > nbrs(ba.size());
-    //
-    // Our "grow" factor; i.e. how far our tentacles grope for our neighbors.
-    //
-    const int Ngrow = 1;
-
-    BoxArray grown(ba.size());
-
-    for (int i = 0; i < ba.size(); i++)
-    {
-        grown.set(i, BoxLib::grow(ba[i],Ngrow));
-    }
-
-    for (int i = 0; i < grown.size(); i++)
-    {
-        std::vector< std::pair<int,Box> > isects = ba.intersections(grown[i]);
-
-        for (int j = 0, N = isects.size(); j < N; j++)
-            if (isects[j].first != i)
-                nbrs[i].push_back(isects[j].first);
-    }
-
-    return nbrs;
-}
-
-//
-// Try to "improve" the knapsack()d procmap ...
-//
-
-static
-void
-MinimizeCommCosts (std::vector<int>&        procmap,
-                   const BoxArray&          ba,
-                   const std::vector<long>& wgts,
-                   int                      nprocs)
-{
-    BL_PROFILE("MinimizeCommCosts()");
-
-    BL_ASSERT(ba.size() == wgts.size());
-    BL_ASSERT(procmap.size() >= ba.size());
-
-    if (nprocs < 2 || do_not_minimize_comm_costs) return;
-
-    const Real strttime = ParallelDescriptor::second();
-
-    std::vector< std::vector<int> > nbrs = CalculateNeighbors(ba);
-    //
-    // Want lists of box IDs having the same size.
-    //
-    std::map< int,std::vector<int>,std::greater<int> > samesize;
-
-    for (int i = 0; i < wgts.size(); i++)
-    {
-        samesize[wgts[i]].push_back(i);
-    }
-    //
-    // Build a data structure to maintain the latency count on a per-CPU basis.
-    //
-    std::vector<long> percpu(nprocs,0L);
-
-    for (int i = 0; i < nbrs.size(); i++)
-    {
-        for (std::vector<int>::const_iterator it = nbrs[i].begin(); it != nbrs[i].end(); ++it)
-        {
-            if (procmap[i] != procmap[*it])
-                percpu[procmap[*it]]++;
-        }
-    }
-
-    long initial_conn_count = 0;
-
-    if (verbose && ParallelDescriptor::IOProcessor())
-        for (int i = 0; i < percpu.size(); i++)
-            initial_conn_count += percpu[i];
-
-    for (int i = 0; i < swap_n_test_count; i++)
-        SwapAndTest(samesize,nbrs,procmap,percpu);
-
-    if (verbose)
-    {
-        if (ParallelDescriptor::IOProcessor())
-        {
-            long       final_conn_count = 0;
-            const Real stoptime         = ParallelDescriptor::second() - strttime;
-
-            for (int i = 0; i < percpu.size(); i++) final_conn_count += percpu[i];
-
-            std::cout << "MinimizeCommCosts() time: "           << stoptime
-                      << "\nInitial off-CPU connection count: " << initial_conn_count
-                      << "\nFinal   off-CPU connection count: " << final_conn_count << '\n';
-        }
-    }
-}
-
 void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
                                    int                      nprocs)
@@ -885,9 +668,6 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
     m_ref->m_pmap[wgts.size()] = ParallelDescriptor::MyProc();
 }
 
-//
-// This version does NOT call the MinimizeCommCosts() stuff.
-//
 void
 DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
                                            int                      nprocs)
@@ -909,9 +689,6 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
     }
 }
 
-//
-// This version calls the MinimizeCommCosts() stuff.
-//
 void
 DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
 					   int             nprocs)
@@ -933,8 +710,6 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
             wgts.push_back(boxes[i].numPts());
 
         KnapSackDoIt(wgts, nprocs);
-
-	MinimizeCommCosts(m_ref->m_pmap,boxes,wgts,nprocs);
     }
 }
 
