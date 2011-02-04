@@ -22,6 +22,23 @@ ParticleBase::Version ()
     return version;
 }
 
+int
+ParticleBase::NextID ()
+{
+    static int id = 1;
+
+    int nextid;
+
+#ifdef BL_USE_OMP
+#pragma omp critical(nextid_lock)
+#endif
+    {
+        nextid = id++;
+    }
+
+    return nextid;
+}
+
 IntVect
 ParticleBase::Index (const ParticleBase& p,
                      int                 lev,
