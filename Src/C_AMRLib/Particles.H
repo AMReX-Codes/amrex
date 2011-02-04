@@ -232,11 +232,6 @@ ParticleContainer<N>::Init (const std::string& file)
 
     m_particles.resize(m_amr->finestLevel()+1);
 
-    for (int lev = 0; lev < m_particles.size(); lev++)
-    {
-        BL_ASSERT(m_particles[lev].empty());
-    }
-
     std::ifstream ifs;
 
     ifs.open(file.c_str(), std::ios::in);
@@ -305,7 +300,7 @@ ParticleContainer<N>::Init (const std::string& file)
         {
             std::cout << "Processor "
                       << i
-                      << " has "
+                      << " added "
                       << howmany
                       << " particles in Init()" << std::endl;
         }
