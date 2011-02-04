@@ -22,21 +22,31 @@ ParticleBase::Version ()
     return version;
 }
 
+static int the_next_id = 1;
+
 int
 ParticleBase::NextID ()
 {
-    static int id = 1;
-
-    int nextid;
+    int next;
 
 #ifdef BL_USE_OMP
 #pragma omp critical(nextid_lock)
 #endif
     {
-        nextid = id++;
+        next = the_next_id++;
     }
 
-    return nextid;
+    return next;
+}
+
+void
+ParticleBase::NextID (int nextid)
+{
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "Restoring ParticleBase::NextID: " << nextid << std::endl;
+    }
+    the_next_id = nextid;
 }
 
 IntVect

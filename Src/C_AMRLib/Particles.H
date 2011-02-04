@@ -48,9 +48,15 @@ struct ParticleBase
     // Returns the next particle ID for this processor.
     // Particle IDs start at 1 and are never reused.
     // The pair, consisting of the ID and the CPU on which the particle is "born",
-    // is a globally unique identifier for a particle.
+    // is a globally unique identifier for a particle.  The maximum of this value
+    // across all processors must be checkpointed and then restored on restart
+    // so that we don't reuse particle IDs.
     //
     static int NextID ();
+    //
+    // Reset on restart.
+    //
+    static void NextID (int nextid);
 };
 
 std::ostream& operator<< (std::ostream& os, const ParticleBase& p);
@@ -1909,6 +1915,10 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
     ParallelDescriptor::ReduceLongSum(nparticles,IOProc);
 
+    int maxnextid = ParticleBase::NextID();
+
+    ParallelDescriptor::ReduceIntMax(maxnextid,IOProc);
+
     if (ParallelDescriptor::IOProcessor())
     {
         std::string HdrFileName = pdir;
@@ -1936,6 +1946,10 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         // The total number of particles.
         //
         HdrFile << nparticles << '\n';
+        //
+        // The value of nextid that we need to restore on restart.
+        //
+        HdrFile << maxnextid << '\n';
         //
         // Then the finest level of the AMR hierarchy.
         //
@@ -2367,6 +2381,23 @@ ParticleContainer<N>::Restart_OneDotZero (const std::string& fullname,
         BL_ASSERT(nparticles >= 0);
     }
     ParallelDescriptor::Bcast(&nparticles, 1, IOProc);
+
+    int maxnextid;
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // The value of nextid that we need to restore.
+        //
+        HdrFile >> maxnextid;
+
+        BL_ASSERT(maxnextid > 0);
+    }
+    ParallelDescriptor::Bcast(&maxnextid, 1, IOProc);
+    //
+    // Don't forget to restore it!!!
+    //
+    ParticleBase::NextID(maxnextid);
     //
     // Then the finest level of the AMR hierarchy.
     //
