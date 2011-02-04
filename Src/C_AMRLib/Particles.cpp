@@ -130,18 +130,17 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     //
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
     //
-    const Geometry& geom    = amr->Geom(0);
-    const Box&      dmn     = geom.Domain();
-    IntVect         iv      = Index(p,0,amr);
-    bool            shifted = false;
-    const Real      eps     = 1.e13;
+    const Geometry& geom = amr->Geom(0);
+    const Box&      dmn  = geom.Domain();
+    IntVect         iv   = Index(p,0,amr);
+    const Real      eps  = 1.e13;
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
+        if (!geom.isPeriodic(i)) continue;
+
         if (iv[i] > dmn.bigEnd(i))
         {
-            shifted = true;
-
             if (p.m_pos[i] == geom.ProbHi(i))
                 //
                 // Don't let particles lie exactly on the domain face.
@@ -156,8 +155,6 @@ ParticleBase::PeriodicShift (ParticleBase& p,
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
-            shifted = true;
-
             if (p.m_pos[i] == geom.ProbLo(i))
                 //
                 // Don't let particles lie exactly on the domain face.
@@ -171,21 +168,10 @@ ParticleBase::PeriodicShift (ParticleBase& p,
             BL_ASSERT(p.m_pos[i] <= geom.ProbHi(i));
         }
     }
-    BL_ASSERT(shifted);
     //
-    // Modulo any arithmetic funny business the particle should
-    // now be back in the problem domain.
+    // The particle may still be outside the domain in the case
+    // where we aren't periodic on the face out which it travelled.
     //
-    if (!ParticleBase::Where(p,amr))
-    {
-        std::cout.precision(16);
-
-        std::cout << "ParticleBase::PeriodicShift(): out-of-domain particle"
-                  << p
-                  << "\ngeom: "
-                  << geom << std::endl;
-        BoxLib::Abort();
-    }
 }
 
 void
