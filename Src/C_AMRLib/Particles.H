@@ -441,6 +441,8 @@ ParticleContainer<N>::InitRandom (long          icount,
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
 
+    BL_ASSERT(N > 0);
+
     BL_ASSERT(m_amr != 0);
 
     const int       MyProc   = ParallelDescriptor::MyProc();
