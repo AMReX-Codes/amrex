@@ -177,6 +177,10 @@ protected:
     Array<PMap> m_particles;
 };
 
+//
+// This includes both valid and invalid particles.
+//
+
 template <int N>
 void
 ParticleContainer<N>::ByteSpread () const
@@ -318,7 +322,6 @@ void
 ParticleContainer<N>::InitCosmo (Real          mass)
 {
     const int       MyProc   = ParallelDescriptor::MyProc();
-    const int       NProcs   = ParallelDescriptor::NProcs();
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_amr->Geom(0);
@@ -326,7 +329,7 @@ ParticleContainer<N>::InitCosmo (Real          mass)
 
     long icnt = 1;
 
-    Real len[BL_SPACEDIM], r;
+    Real len[BL_SPACEDIM];
 
     m_particles.resize(m_amr->finestLevel()+1);
 
@@ -336,41 +339,46 @@ ParticleContainer<N>::InitCosmo (Real          mass)
     }
 
     //FIXME!
-    Real vel_fac = 1./1000.;
+    Real vel_fac  = 1./1000.;
     Real disp_fac = 1./100.;
 
     D_TERM(len[0] = geom.ProbLength(0);,
            len[1] = geom.ProbLength(1);,
            len[2] = geom.ProbLength(2););
 
-    MultiFab mf; 
+    MultiFab mf;
     VisMF::Read(mf,"init/Level_0/Cell");
-    if(MyProc == IOProc){
+    if (MyProc == IOProc)
+    {
         std::cout << "done." << std::endl;
     }
 
-    if(mass == -1){
-	    if(MyProc == IOProc){
-		    std::cout << "AAAAAAHHHHHHHHHHHH!!!1!11" << std::endl;
-	    }
-	    mass=1;
+    if (mass == -1)
+    {
+        if(MyProc == IOProc)
+        {
+            std::cout << "AAAAAAHHHHHHHHHHHH!!!1!11" << std::endl;
+        }
+        mass=1;
     }
-
-
-    //(The grid should be initialized according to the ics...)
-
-    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-        FArrayBox &myFab = mf[mfi];
+    //
+    // The grid should be initialized according to the ics...
+    //
+    for(MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        FArrayBox&  myFab  = mf[mfi];
         const int  *fab_lo = mfi.validbox().loVect();
         const int  *fab_hi = mfi.validbox().hiVect();
         const int   fab_ix = fab_hi[0] - fab_lo[0] + 1;
         const int   fab_jx = fab_hi[1] - fab_lo[1] + 1;
         const int   fab_kx = fab_hi[2] - fab_lo[2] + 1;
-        for (int kx = 0; kx < fab_kx; kx++) {
-            for (int jx = 0; jx < fab_jx; jx++) {
-                for (int ix = 0; ix < fab_ix; ix++) {
 
-                    int mf_cell = (kx*fab_jx+jx)*fab_ix+ix;
+        for (int kx = 0; kx < fab_kx; kx++)
+        {
+            for (int jx = 0; jx < fab_jx; jx++)
+            {
+                for (int ix = 0; ix < fab_ix; ix++)
+                {
 	            ParticleType p;
             	    int indices[BL_SPACEDIM] = { D_DECL(kx, jx, ix) };
 		    Real disp[BL_SPACEDIM];
@@ -390,22 +398,19 @@ ParticleContainer<N>::InitCosmo (Real          mass)
 	                p.m_data[i+1] = disp[i] * vel_fac;
 	            }
 
-
 		    //set the mass of the particle in accordance to $\rho_\text{dm}$
 	            p.m_data[0] = mass;
 	
-	
 	            p.m_id  = icnt++;
 	            p.m_cpu = MyProc;
-
 	
 	            if (!ParticleBase::Where(p,m_amr))
-      		        ParticleBase::PeriodicShift(p,m_amr);      		        
+      		        ParticleBase::PeriodicShift(p,m_amr);
+
 	            if (!ParticleBase::Where(p,m_amr)){
 	                BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
 		    }
 
-	
 //		    std::cout << p << std::endl;
 	            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_amr->finestLevel());
 	            //
@@ -415,20 +420,23 @@ ParticleContainer<N>::InitCosmo (Real          mass)
                 }
             }
         }
-    } // MFI
+    }
+    //
+    // Let Redistribute() sort out where the particles belong.
+    //
+    Redistribute(true);
 
-   //Delete the read data!
-   //But how?
-   
-   //
-   // Let Redistribute() sort out where the particles belong.
-   //
-   Redistribute(true);
-   Real runtime = ParallelDescriptor::second()-strttime;
-   ParallelDescriptor::ReduceRealMax(runtime, IOProc);
-   if(MyProc == IOProc){
-       std::cout << "InitCosmo() done time: " << runtime << std::endl;
-   }
+    if (m_verbose > 0)
+    {
+        Real runtime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(runtime, IOProc);
+
+        if (MyProc == IOProc)
+        {
+            std::cout << "InitCosmo() done time: " << runtime << std::endl;
+        }
+    }
 }
 
 template <int N>
@@ -651,14 +659,20 @@ ParticleContainer<N>::MoveRandom ()
                     //
                     // Here's where we need to deal with boundary conditions.
                     //
-                    // For the moment we assume all boundaries are periodic.
-                    //
-                    // Shift the particle back into the domain.
+                    // Attempt to shift the particle back into the domain if it
+                    // crossed a periodic boundary.  Otherwise (for now) we
+                    // invalidate the particle.
                     //
                     ParticleBase::PeriodicShift(*it,m_amr);
-                    //
-                    // The particle should now be back in the problem domain.
-                    //
+
+                    if (!ParticleBase::Where(*it,m_amr,true))
+                    {
+                        std::cout << "Invalidating out-of-domain particle: " << *it << std::endl;
+
+                        BL_ASSERT(it->m_id > 0);
+
+                        it->m_id = -it->m_id;
+                    }
                 }
             }
         }
@@ -685,9 +699,12 @@ ParticleContainer<N>::Increment (MultiFab& mf,
 
         for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
         {
-            BL_ASSERT(it->m_grid == grid);
+            if (it->m_id > 0)
+            {
+                BL_ASSERT(it->m_grid == grid);
 
-            fab(it->m_cell) += 1;
+                fab(it->m_cell) += 1;
+            }
         }
     }
 }
@@ -728,6 +745,12 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
             for (int i = 0; i < n; i++)
             {
                 const ParticleType& p = pbox[i];
+
+                if (p.m_id <= 0)
+                    //
+                    // Skip invalid particles.
+                    //
+                    continue;
 
                 BL_ASSERT(p.m_grid == grid);
 
@@ -795,7 +818,10 @@ ParticleContainer<N>::sumParticleMass (const MultiFab& mf,
 
         for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
         {
-            msum += it->m_data[0];
+            if (it->m_id > 0)
+            {
+                msum += it->m_data[0];
+            }
         }
     }
 
@@ -836,6 +862,12 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
         {
             const ParticleType& p = pbox[i];
 
+            if (p.m_id <= 0)
+                //
+                // Skip invalid particles.
+                //
+                continue;
+
             D_TERM(mom_0 += p.m_data[0] * p.m_data[1];,
                    mom_1 += p.m_data[0] * p.m_data[2];,
                    mom_2 += p.m_data[0] * p.m_data[3];);
@@ -865,10 +897,14 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
     const Geometry& geom = m_amr->Geom(lev);
 
     if (!geom.isAllPeriodic())
+    {
         BoxLib::Error("AssignDensity: Problem has to be periodic...");
+    }
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
         mf[mfi].setVal(0);
+    }
 
     const Real* dx = geom.CellSize();
     //
@@ -902,75 +938,78 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
         {
             const ParticleType& p = *it;
 
-            const IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
-                                       floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
-                                       floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
+            if (p.m_id > 0)
+            {
+                const IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
+                                           floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
+                                           floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
 
-            const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
-                                                    -csect[1] + p.m_pos[1]/dx[1] + 0.5,
-                                                    -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
-            IntVect cell = csect;
+                const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
+                                                        -csect[1] + p.m_pos[1]/dx[1] + 0.5,
+                                                        -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
+                IntVect cell = csect;
 
 #if (BL_SPACEDIM == 1)
-            // High
-            fab(cell) += p.m_data[0] * frac[0];
+                // High
+                fab(cell) += p.m_data[0] * frac[0];
 
-            // Low
-            cell[0]     = cell[0] - 1;
-            fab(cell)  += p.m_data[0] * (1-frac[0]);
+                // Low
+                cell[0]     = cell[0] - 1;
+                fab(cell)  += p.m_data[0] * (1-frac[0]);
 #endif
             
 #if (BL_SPACEDIM == 2)
-            // HH
-            fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
+                // HH
+                fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
     
-            // LH
-            cell[0]    = cell[0] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
+                // LH
+                cell[0]    = cell[0] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
     
-            // LL
-            cell[1]    = cell[1] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
+                // LL
+                cell[1]    = cell[1] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
     
-            // HL
-            cell[0]    = cell[0] + 1;
-            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
+                // HL
+                cell[0]    = cell[0] + 1;
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
 #endif
 
 #if (BL_SPACEDIM == 3)
-            // HHH
-            fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
+                // HHH
+                fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
 
-            // LHH
-            cell[0]    = cell[0] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
+                // LHH
+                cell[0]    = cell[0] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
 
-            // LLH
-            cell[1]    = cell[1] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * frac[2] ;
+                // LLH
+                cell[1]    = cell[1] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * frac[2] ;
     
-            // HLH
-            cell[0]    = cell[0] + 1;
-            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) *    frac[2] ;
+                // HLH
+                cell[0]    = cell[0] + 1;
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) *    frac[2] ;
 
-            cell     = csect;
-            cell[2]  = cell[2] - 1;
+                cell     = csect;
+                cell[2]  = cell[2] - 1;
 
-            // HHL
-            fab(cell) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
+                // HHL
+                fab(cell) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
     
-            // LHL
-            cell[0]    = cell[0] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
+                // LHL
+                cell[0]    = cell[0] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
 
-            // LLL
-            cell[1]    = cell[1] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
+                // LLL
+                cell[1]    = cell[1] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
     
-            // HLL
-            cell[0]    = cell[0] + 1;
-            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
+                // HLL
+                cell[0]    = cell[0] + 1;
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
 #endif
+            }
         }
     }
 
@@ -1023,6 +1062,12 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
         {
             ParticleType& p = pbox[i];
 
+            if (p.m_id <= 0)
+                //
+                // Skip invalid particles.
+                //
+                continue;
+
             BL_ASSERT(p.m_grid == grid);
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
@@ -1040,14 +1085,20 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
                 //
                 // Here's where we need to deal with boundary conditions.
                 //
-                // For the moment we assume all boundaries are periodic.
-                //
-                // Shift the particle back into the domain.
+                // Attempt to shift the particle back into the domain if it
+                // crossed a periodic boundary.  Otherwise (for now) we
+                // invalidate the particle.
                 //
                 ParticleBase::PeriodicShift(p,m_amr);
-                //
-                // The particle should now be back in the problem domain.
-                //
+
+                if (!ParticleBase::Where(p,m_amr,true))
+                {
+                    std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
+
+                    BL_ASSERT(p.m_id > 0);
+
+                    p.m_id = -p.m_id;
+                }
             }
         }
     }
@@ -1098,6 +1149,12 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
         {
             ParticleType& p = pbox[i];
 
+            if (p.m_id <= 0)
+                //
+                // Skip invalid particles.
+                //
+                continue;
+
             BL_ASSERT(p.m_grid == grid);
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
@@ -1119,14 +1176,20 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
                 //
                 // Here's where we need to deal with boundary conditions.
                 //
-                // For the moment we assume all boundaries are periodic.
-                //
-                // Shift the particle back into the domain.
+                // Attempt to shift the particle back into the domain if it
+                // crossed a periodic boundary.  Otherwise (for now) we
+                // invalidate the particle.
                 //
                 ParticleBase::PeriodicShift(p,m_amr);
-                //
-                // The particle should now be back in the problem domain.
-                //
+
+                if (!ParticleBase::Where(p,m_amr,true))
+                {
+                    std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
+
+                    BL_ASSERT(p.m_id > 0);
+
+                    p.m_id = -p.m_id;
+                }
             }
         }
     }
@@ -1190,6 +1253,12 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
         {
             ParticleType& p = pbox[i];
 
+            if (p.m_id <= 0)
+                //
+                // Skip invalid particles.
+                //
+                continue;
+
             BL_ASSERT(p.m_grid == grid);
             //
             // note: m_data[0] is mass, 1 is v_x, ...
@@ -1230,14 +1299,20 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
                 //
                 // Here's where we need to deal with boundary conditions.
                 //
-                // For the moment we assume all boundaries are periodic.
-                //
-                // Shift the particle back into the domain.
+                // Attempt to shift the particle back into the domain if it
+                // crossed a periodic boundary.  Otherwise (for now) we
+                // invalidate the particle.
                 //
                 ParticleBase::PeriodicShift(p,m_amr);
-                //
-                // Modulo any arithmetic funny business the particle should in the problem domain.
-                //
+
+                if (!ParticleBase::Where(p,m_amr,true))
+                {
+                    std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
+
+                    BL_ASSERT(p.m_id > 0);
+
+                    p.m_id = -p.m_id;
+                }
             }
         }
     }
@@ -1299,6 +1374,12 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
         {
             ParticleType& p = pbox[i];
 
+            if (p.m_id <= 0)
+                //
+                // Skip invalid particles.
+                //
+                continue;
+
             BL_ASSERT(p.m_grid == grid);
             //
             // Note: m_data[0] is mass, 1 is v_x, ...
@@ -1342,6 +1423,10 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
     //
 }
 
+//
+// This redistribute valid particles and discard invalid ones.
+//
+
 template <int N>
 void
 ParticleContainer<N>::Redistribute (bool where_already_called)
@@ -1355,7 +1440,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     new_m_particles.resize(m_amr->finestLevel()+1);
     //
-    // The particles that we don't own.
+    // The valid particles that we don't own.
     //
     PBox notowned;
 
@@ -1371,37 +1456,40 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             {
                 ParticleType& p = pbox.front();
 
-                if (!where_already_called)
+                if (p.m_id > 0)
                 {
-                    if (!ParticleBase::Where(p,m_amr))
-                        BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle");                        
-                }
-                //
-                // The owner of the particle is the CPU owning the finest grid
-                // in state data that contains the particle.
-                //
-                const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
+                    if (!where_already_called)
+                    {
+                        if (!ParticleBase::Where(p,m_amr))
+                            BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle");                        
+                    }
+                    //
+                    // The owner of the particle is the CPU owning the finest grid
+                    // in state data that contains the particle.
+                    //
+                    const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
 
-                if (who == MyProc)
-                {
-                    //
-                    // We own the particle. Stick it where it belongs.
-                    //
-                    new_m_particles[p.m_lev][p.m_grid].push_back(p);
-                }
-                else
-                {
-                    //
-                    // We're not the rightful owner of this particle.
-                    //
-                    // Since we don't send/recv m_lev, m_grid or m_cell
-                    // we can save the "who" in m_grid.
-                    //
-                    p.m_grid = who;
-                    notowned.push_back(p);
-                }
+                    if (who == MyProc)
+                    {
+                        //
+                        // We own the particle. Stick it where it belongs.
+                        //
+                        new_m_particles[p.m_lev][p.m_grid].push_back(p);
+                    }
+                    else
+                    {
+                        //
+                        // We're not the rightful owner of this particle.
+                        //
+                        // Since we don't send/recv m_lev, m_grid or m_cell
+                        // we can save the "who" in m_grid.
+                        //
+                        p.m_grid = who;
+                        notowned.push_back(p);
+                    }
 
-                pbox.pop_front();
+                    pbox.pop_front();
+                }
             }
             //
             // Force the release of any remaining storage "pbox" may be holding.
@@ -1415,7 +1503,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     }
     //
     // Make new_m_particles our new "m_particles.  It contains all the
-    // previous particles that we still own put into their proper place
+    // valid particles that we still own put into their proper place
     // in the hierarchy.
     //
     m_particles.swap(new_m_particles);
@@ -1530,6 +1618,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             //
             int& ioff = offset[it->m_grid];
 
+            BL_ASSERT(it->m_id > 0);
+
             senddata[ioff+0] = it->m_id;
             senddata[ioff+1] = it->m_cpu;
 
@@ -1599,7 +1689,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
         {
             //
-            // We're overloaded m_grid to hold "who" the owner of the particle.
+            // We've overloaded m_grid to hold "who" (the owner of the particle).
             //
             int& ioff = offset[it->m_grid];
 
@@ -1729,17 +1819,18 @@ ParticleContainer<N>::OK () const
                 //
                 ParticleType p = *it;
 
-                BL_ASSERT(p.m_id > 0);
+                if (p.m_id > 0)
+                {
+                    const int     lev  = p.m_lev;
+                    const int     grid = p.m_grid;
+                    const IntVect cell = p.m_cell;
 
-                const int     lev  = p.m_lev;
-                const int     grid = p.m_grid;
-                const IntVect cell = p.m_cell;
+                    if (!ParticleBase::Where(p,m_amr))
+                        return false;
 
-                if (!ParticleBase::Where(p,m_amr))
-                    return false;
-
-                if (lev != p.m_lev || grid != p.m_grid || cell != p.m_cell)
-                    return false;
+                    if (lev != p.m_lev || grid != p.m_grid || cell != p.m_cell)
+                        return false;
+                }
             }
         }
     }
@@ -1788,9 +1879,20 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
     for (int lev = 0; lev < m_particles.size(); lev++)
     {
-        for (typename PMap::const_iterator it = m_particles[lev].begin(), End = m_particles[lev].end(); it != End; ++it)
+        for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(), End = m_particles[lev].end(); pmap_it != End; ++pmap_it)
         {
-            nparticles += it->second.size();
+            const PBox& pbox = pmap_it->second;
+
+            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+            {
+                if (it->m_id > 0)
+                {
+                    //
+                    // Only count (and checkpoint) valid particles.
+                    //
+                    nparticles++;
+                }
+            }
         }
     }
 
@@ -1919,7 +2021,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
                 if (!ParticleFile.good())
                     BoxLib::FileOpenFailed(FullFileName);
                 //
-                // Write out all the particles we own at the specified level.
+                // Write out all the valid particles we own at the specified level.
                 // Do it grid block by grid block remembering the seek offset
                 // for the start of writing of each block of data.
                 //
@@ -2033,13 +2135,23 @@ ParticleContainer<N>::WriteParticles (int            lev,
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
     {
         const int grid = mfi.index();
-
+        //
+        // Only write out valid particles.
+        //
         int cnt = 0;
 
         typename PMap::const_iterator pmap_it = pmap.find(grid);
 
         if (pmap_it != pmap.end())
-            cnt = pmap_it->second.size();
+        {
+            const PBox& pbox = pmap_it->second;
+
+            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+            {
+                if (it->m_id > 0)
+                    cnt++;
+            }
+        }
 
         which[grid] = fnum;
         count[grid] = cnt;
@@ -2064,17 +2176,20 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
             for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
             {
-                BL_ASSERT(it->m_lev == lev);
-                BL_ASSERT(it->m_grid == grid);
+                if (it->m_id > 0)
+                {
+                    BL_ASSERT(it->m_lev == lev);
+                    BL_ASSERT(it->m_grid == grid);
 
-                iptr[0] = it->m_id;
-                iptr[1] = it->m_cpu;
+                    iptr[0] = it->m_id;
+                    iptr[1] = it->m_cpu;
 
-                D_TERM(iptr[2] = it->m_cell[0];,
-                       iptr[3] = it->m_cell[1];,
-                       iptr[4] = it->m_cell[2];);
+                    D_TERM(iptr[2] = it->m_cell[0];,
+                           iptr[3] = it->m_cell[1];,
+                           iptr[4] = it->m_cell[2];);
 
-                iptr += iChunkSize;
+                    iptr += iChunkSize;
+                }
             }
 
             ofs.write((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
@@ -2092,14 +2207,17 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
             for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
             {
-                D_TERM(rptr[0] = it->m_pos[0];,
-                       rptr[1] = it->m_pos[1];,
-                       rptr[2] = it->m_pos[2];);
+                if (it->m_id > 0)
+                {
+                    D_TERM(rptr[0] = it->m_pos[0];,
+                           rptr[1] = it->m_pos[1];,
+                           rptr[2] = it->m_pos[2];);
 
-                for (int i = 0; i < N; i++)
-                    rptr[BL_SPACEDIM+i] = it->m_data[i];
+                    for (int i = 0; i < N; i++)
+                        rptr[BL_SPACEDIM+i] = it->m_data[i];
 
-                rptr += rChunkSize;
+                    rptr += rChunkSize;
+                }
             }
 
             ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(Real));
@@ -2389,6 +2507,8 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
         p.m_cpu  = iptr[1];
         p.m_lev  = lev;
         p.m_grid = grd;
+
+        BL_ASSERT(p.m_id > 0);
 
         BL_ASSERT(p.m_lev  == lev);
         BL_ASSERT(p.m_grid == grd);
