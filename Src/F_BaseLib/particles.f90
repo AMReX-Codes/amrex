@@ -554,6 +554,11 @@ contains
     particle_id = particle_id + 1
   end function get_particle_id
 
+  subroutine set_particle_id(r)
+    integer :: r
+    particle_id = r
+  end subroutine set_particle_id
+
   subroutine particle_container_init_random(particles,icnt,iseed,mla,dx,prob_lo,prob_hi)
 
     use mt19937_module
@@ -1028,7 +1033,7 @@ contains
 
     character(len=256) :: pdir
     integer            :: i, j, k, nparticles, nparticles_tot, ioproc
-    integer            :: un, nprocs, iN, dN, fd, cnt
+    integer            :: un, nprocs, iN, dN, fd, cnt, pid, maxpid
     double precision   :: rbeg, rend, rtime
 
     integer,          allocatable :: isnd(:), ircv(:)
@@ -1061,6 +1066,12 @@ contains
     nparticles = size(particles)
 
     call parallel_reduce(nparticles_tot, nparticles, MPI_SUM)
+    !
+    ! We have to save the maximum value of particle ID.
+    !
+    pid = get_particle_id()
+
+    call parallel_reduce(maxpid, pid, MPI_MAX)
 
     if ( parallel_IOProcessor() ) then
 
@@ -1084,6 +1095,10 @@ contains
        ! Then the total number of particles.
        !
        write(unit = un, fmt = '(I9)') nparticles_tot
+       !
+       ! Then the maximum particle ID that needs to be restored on restart.
+       !
+       write(unit = un, fmt = '(I9)') maxpid
 
        close(un)
     end if
@@ -1239,7 +1254,7 @@ contains
     type(particle_container) :: tparticles
     character(len=256)       :: pdir, the_version_string
     integer                  :: i, j, k, dm, nparticles, ioproc
-    integer                  :: un, nprocs, iN, dN, fd
+    integer                  :: un, nprocs, iN, dN, fd, maxpid
     double precision         :: rbeg, rend, rtime
 
     integer,          allocatable :: ircv(:)
@@ -1287,6 +1302,10 @@ contains
        ! Then the total number of particles.
        !
        read(unit = un, fmt = '(I9)') nparticles
+       !
+       ! Then the maximum particle ID that needs to be restored on restart.
+       !
+       read(unit = un, fmt = '(I9)') maxpid
 
        close(un)
 
@@ -1296,6 +1315,12 @@ contains
     end if
 
     call parallel_bcast(nparticles, root = ioproc)
+
+    call parallel_bcast(maxpid, root = ioproc)
+    !
+    ! Don't forget to restore particle_id.
+    !
+    call set_particle_id(maxpid)
 
     if ( nparticles == 0 ) return
 
