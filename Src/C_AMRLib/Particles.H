@@ -44,6 +44,13 @@ struct ParticleBase
     static const std::string& DataPrefix ();
 
     static void GetGravity (const FArrayBox& gfab, const Amr* amr, int lev, const ParticleBase& p, Real* grav);
+    //
+    // Returns the next particle ID for this processor.
+    // Particle IDs start at 1 and are never reused.
+    // The pair, consisting of the ID and the CPU on which the particle is "born",
+    // is a globally unique identifier for a particle.
+    //
+    static int NextID ();
 };
 
 std::ostream& operator<< (std::ostream& os, const ParticleBase& p);
@@ -237,8 +244,7 @@ ParticleContainer<N>::Init (const std::string& file)
     if (!ifs.good())
         BoxLib::FileOpenFailed(file);
 
-    int id  = 1;
-    int cnt = 0;
+    int cnt = 0, howmany = 0;
 
     ifs >> cnt;
 
@@ -283,13 +289,12 @@ ParticleContainer<N>::Init (const std::string& file)
 
             if (who == MyProc)
             {
-                //
-                // Note that m_id always starts at 1.
-                //
-                p.m_id  = id++;
+                p.m_id  = ParticleBase::NextID();
                 p.m_cpu = MyProc;
 
                 m_particles[p.m_lev][p.m_grid].push_back(p);
+
+                howmany++;
             }
         }
     }
@@ -301,7 +306,7 @@ ParticleContainer<N>::Init (const std::string& file)
             std::cout << "Processor "
                       << i
                       << " has "
-                      << (id-1)
+                      << howmany
                       << " particles in Init()" << std::endl;
         }
         ParallelDescriptor::Barrier();
@@ -326,8 +331,6 @@ ParticleContainer<N>::InitCosmo (Real          mass)
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_amr->Geom(0);
     const Real*     dx       = geom.CellSize();
-
-    long icnt = 1;
 
     Real len[BL_SPACEDIM];
 
@@ -401,7 +404,7 @@ ParticleContainer<N>::InitCosmo (Real          mass)
 		    //set the mass of the particle in accordance to $\rho_\text{dm}$
 	            p.m_data[0] = mass;
 	
-	            p.m_id  = icnt++;
+	            p.m_id  = ParticleBase::NextID();
 	            p.m_cpu = MyProc;
 	
 	            if (!ParticleBase::Where(p,m_amr))
@@ -539,7 +542,7 @@ ParticleContainer<N>::InitRandom (long          icount,
                 //
                 // We own it. Add it to the appropriate PBox at the appropriate level.
                 //
-                p.m_id  = cnt+1;
+                p.m_id  = ParticleBase::NextID();
                 p.m_cpu = MyProc;
 
                 m_particles[p.m_lev][p.m_grid].push_back(p);
@@ -591,7 +594,7 @@ ParticleContainer<N>::InitRandom (long          icount,
                 //
                 p.m_data[i] = 0;
 
-            p.m_id  = icnt+1;
+            p.m_id  = ParticleBase::NextID();
             p.m_cpu = MyProc;
 
             if (!ParticleBase::Where(p,m_amr))
