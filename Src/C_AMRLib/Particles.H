@@ -452,8 +452,6 @@ ParticleContainer<N>::InitRandom (long          icount,
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
 
-    BL_ASSERT(N > 0);
-
     BL_ASSERT(m_amr != 0);
 
     const int       MyProc   = ParallelDescriptor::MyProc();
@@ -522,13 +520,16 @@ ParticleContainer<N>::InitRandom (long          icount,
                 BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
             }
 
-            p.m_data[0] = mass;
+            if (N > 0)
+            {
+                p.m_data[0] = mass;
 
-            for (int i = 1; i < N; i++)
-                //
-                // Just zero out the rest of the data for lack of a better value.
-                //
-                p.m_data[i] = 0;
+                for (int i = 1; i < N; i++)
+                    //
+                    // Just zero out the rest of the data for lack of a better value.
+                    //
+                    p.m_data[i] = 0;
+            }
 
             if (!ParticleBase::Where(p,m_amr))
                 BoxLib::Abort("ParticleContainer<N>::InitRandom(): invalid particle");
@@ -586,13 +587,16 @@ ParticleContainer<N>::InitRandom (long          icount,
                 BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
             }
 
-            p.m_data[0] = mass;
+            if (N > 0)
+            {
+                p.m_data[0] = mass;
 
-            for (int i = 1; i < N; i++)
-                //
-                // Just zero out the rest of the data for lack of a better value.
-                //
-                p.m_data[i] = 0;
+                for (int i = 1; i < N; i++)
+                    //
+                    // Just zero out the rest of the data for lack of a better value.
+                    //
+                    p.m_data[i] = 0;
+            }
 
             p.m_id  = ParticleBase::NextID();
             p.m_cpu = MyProc;
