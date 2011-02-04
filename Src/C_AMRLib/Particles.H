@@ -532,7 +532,9 @@ ParticleContainer<N>::InitRandom (long          icount,
             }
 
             if (!ParticleBase::Where(p,m_amr))
+            {
                 BoxLib::Abort("ParticleContainer<N>::InitRandom(): invalid particle");
+            }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_amr->finestLevel());
 
@@ -602,7 +604,9 @@ ParticleContainer<N>::InitRandom (long          icount,
             p.m_cpu = MyProc;
 
             if (!ParticleBase::Where(p,m_amr))
+            {
                 BoxLib::Abort("ParticleContainer<N>::InitRandom(): invalid particle");
+            }
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_amr->finestLevel());
             //
@@ -672,7 +676,7 @@ ParticleContainer<N>::MoveRandom ()
                     //
                     ParticleBase::PeriodicShift(*it,m_amr);
 
-                    if (!ParticleBase::Where(*it,m_amr,true))
+                    if (!ParticleBase::Where(*it,m_amr))
                     {
                         std::cout << "Invalidating out-of-domain particle: " << *it << std::endl;
 
@@ -1098,7 +1102,7 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
                 //
                 ParticleBase::PeriodicShift(p,m_amr);
 
-                if (!ParticleBase::Where(p,m_amr,true))
+                if (!ParticleBase::Where(p,m_amr))
                 {
                     std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
 
@@ -1189,7 +1193,7 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
                 //
                 ParticleBase::PeriodicShift(p,m_amr);
 
-                if (!ParticleBase::Where(p,m_amr,true))
+                if (!ParticleBase::Where(p,m_amr))
                 {
                     std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
 
@@ -1312,7 +1316,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
                 //
                 ParticleBase::PeriodicShift(p,m_amr);
 
-                if (!ParticleBase::Where(p,m_amr,true))
+                if (!ParticleBase::Where(p,m_amr))
                 {
                     std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
 
@@ -1431,7 +1435,7 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
 }
 
 //
-// This redistribute valid particles and discard invalid ones.
+// This redistributes valid particles and discard invalid ones.
 //
 
 template <int N>
@@ -1468,7 +1472,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                     if (!where_already_called)
                     {
                         if (!ParticleBase::Where(p,m_amr))
-                            BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle");                        
+                        {
+                            BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle");
+                        }
                     }
                     //
                     // The owner of the particle is the CPU owning the finest grid
@@ -1492,11 +1498,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                         // we can save the "who" in m_grid.
                         //
                         p.m_grid = who;
+
                         notowned.push_back(p);
                     }
-
-                    pbox.pop_front();
                 }
+
+                pbox.pop_front();
             }
             //
             // Force the release of any remaining storage "pbox" may be holding.
@@ -1750,7 +1757,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             rcvp += N;
 
             if (!ParticleBase::Where(*it,m_amr))
+            {
                 BoxLib::Abort("ParticleContainer<N>::Redistribute(): got a bad particle");
+            }
 
             m_particles[it->m_lev][it->m_grid].push_back(*it);
         }
