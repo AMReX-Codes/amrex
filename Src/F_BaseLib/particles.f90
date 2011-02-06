@@ -9,6 +9,7 @@
 module particle_module
 
   use bl_space
+  use bl_constants_module
   use vector_i_module
   use multifab_module
   use ml_layout_module
@@ -25,6 +26,7 @@ module particle_module
      integer :: cell(MAX_SPACEDIM)
 
      double precision :: pos(MAX_SPACEDIM)
+     double precision :: origpos(MAX_SPACEDIM)
 
   end type particle
 
@@ -736,6 +738,9 @@ contains
        call bl_assert(ok(particles), 'particle_container_move_advect: not OK on entry')
     end if
 
+    !-------------------------------------------------------------------------
+    ! predictor -- advance through dt/2 and update the position
+    ! -------------------------------------------------------------------------
     do p_id = 1, capacity(particles)
        !
        ! Make sure to ignore invalid particles.
@@ -778,7 +783,89 @@ contains
             
           vel = (umac_lo(d) + umac_hi(d)) / 2.d0 + delta * slope
 
-          p%pos(d) = p%pos(d) + dt*vel
+          ! save the position at t = n
+          p%origpos(d) = p%pos(d)
+
+          ! update to the t = n+1/2 position
+          p%pos(d) = p%pos(d) + HALF*dt*vel
+       end do
+
+       !
+       ! The particle has moved.
+       !
+       ! Try to put it in the right place in the hierarchy.
+       !
+       if ( .not. particle_where(p,mla,dx,prob_lo,update=.true.) ) then
+          !
+          ! Try to shift particle back across any periodic boundary.
+          !
+          call particle_periodic_shift(p,mla,dx,prob_lo,prob_hi)
+
+          if ( .not. particle_where(p,mla,dx,prob_lo) ) then
+             !
+             ! TODO - deal with non-periodic boundary conditions !!!
+             !
+             print*, 'particle leaving the domain:'
+
+             call print(p)
+
+             call particle_container_remove(particles,p_id)
+          end if
+       end if
+    end do
+    !
+    ! Call redistribute() to give particles to the CPU that owns'm.
+    !
+    call particle_container_redistribute(particles,mla,dx,prob_lo,.true.)
+
+    !-------------------------------------------------------------------------
+    ! corrector -- advance from the original position through dt to
+    ! the final time using the velocity at the 1/2 time position
+    ! -------------------------------------------------------------------------
+    do p_id = 1, capacity(particles)
+       !
+       ! Make sure to ignore invalid particles.
+       !
+       if ( particles%d(p_id)%id <= 0 ) cycle
+
+       p => particles%d(p_id)
+
+       ump => dataptr(umac(p%lev,1),p%grd)
+
+       select case (dm)
+       case (1)
+          umac_lo(1) = ump(p%cell(1)  ,1,1,1)
+          umac_hi(1) = ump(p%cell(1)+1,1,1,1)
+       case (2)
+          vmp => dataptr(umac(p%lev,2),p%grd)
+          umac_lo(1) = ump(p%cell(1)  ,p%cell(2),1,1)
+          umac_hi(1) = ump(p%cell(1)+1,p%cell(2),1,1)
+          umac_lo(2) = vmp(p%cell(1),p%cell(2)  ,1,1)
+          umac_hi(2) = vmp(p%cell(1),p%cell(2)+1,1,1)
+       case (3)
+          vmp => dataptr(umac(p%lev,2),p%grd)
+          wmp => dataptr(umac(p%lev,3),p%grd)
+          umac_lo(1) = ump(p%cell(1)  ,p%cell(2),p%cell(3),1)
+          umac_hi(1) = ump(p%cell(1)+1,p%cell(2),p%cell(3),1)
+          umac_lo(2) = vmp(p%cell(1),p%cell(2)  ,p%cell(3),1)
+          umac_hi(2) = vmp(p%cell(1),p%cell(2)+1,p%cell(3),1)
+          umac_lo(3) = wmp(p%cell(1),p%cell(2),p%cell(3)  ,1)
+          umac_hi(3) = wmp(p%cell(1),p%cell(2),p%cell(3)+1,1)
+       end select
+
+       do d=1,dm
+
+          slope = umac_hi(d) - umac_lo(d)
+
+          ! delta is a number between [-0.5,0.5] that represents the position in the cell
+          delta =  ( (p%pos(d) - prob_lo(d)) - &
+                 int((p%pos(d) - prob_lo(d)) / dx(p%lev,d)) * dx(p%lev,d) ) / dx(p%lev,d) &
+               - 0.5d0
+            
+          vel = (umac_lo(d) + umac_hi(d)) / 2.d0 + delta * slope
+
+          ! update to the final time, using the original position and the new velocity
+          p%pos(d) = p%origpos(d) + dt*vel
        end do
 
        !
