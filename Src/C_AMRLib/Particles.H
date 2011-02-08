@@ -2604,7 +2604,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 
     const int nOutFiles = std::min(MaxOutFiles, NProcs);
 
-    static bool need_header = true;
+    static bool NeedToWriteHeader = true;
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -2632,8 +2632,13 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
             if (!TimeStampFile.good())
                 BoxLib::FileOpenFailed(FileName);
 
-            if (need_header)
+            if (NeedToWriteHeader)
             {
+                //
+                // We write a timestamp header once per run per file to make
+                // as documentation of what is in the file.  Just ignore lines
+                // starting with a '#' when post-processing.
+                //
                 TimeStampFile << "#   ID     CPU   ";
 
                 D_DECL(TimeStampFile << "XPOS   ",
@@ -2649,7 +2654,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 
                 TimeStampFile << '\n';                
 
-                need_header = false;
+                NeedToWriteHeader = false;
             }
 
             PMap& pmap = m_particles[lev];
@@ -2702,9 +2707,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
             const int tag       = (MyProc % nOutFiles);
 
             if (wakeUpPID < NProcs)
-            {
                 ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
-            }
         }
         if (mySet == (iSet + 1))
         {
@@ -2714,6 +2717,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
             int iBuff;
             const int waitForPID = (MyProc - nOutFiles);
             const int tag        = (MyProc % nOutFiles);
+
             ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
         }
     }
