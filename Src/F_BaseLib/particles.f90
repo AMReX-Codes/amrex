@@ -917,7 +917,7 @@ contains
     logical, intent(in), optional :: where
 
     type(particle)   :: p
-    integer          :: i, myproc, nprocs, proc, sCnt, rCnt, iN, rN, ioff, roff
+    integer          :: i, myproc, nprocs, proc, sCnt, rCnt, iN, rN, ioff, roff, dm
     logical          :: lwhere
     double precision :: rbeg, rend, rtime
 
@@ -952,8 +952,9 @@ contains
 
     if ( nprocs == 1 ) return
 
-    iN = 2       ! The count of integers in each particle sent/received.
-    rN = mla%dim ! The count of reals    in each particle sent/received.
+    dm = mla%dim
+    iN = 2        ! The count of integers in each particle sent/received.
+    rN = 2*dm     ! The count of reals    in each particle sent/received.
 
     if ( .not. allocated(nSnd) ) then
        allocate(indx   (0:nprocs-1)                    )
@@ -1030,9 +1031,10 @@ contains
        ioff = iN * indx(proc)
        roff = rN * indx(proc)
 
-       SndDataI(ioff          ) = pp%id
-       SndDataI(ioff+1        ) = pp%cpu
-       SndDataR(roff:roff+rN-1) = pp%pos(1:rN)
+       SndDataI(ioff          )      = pp%id
+       SndDataI(ioff+1        )      = pp%cpu
+       SndDataR(roff:roff+dm-1)      = pp%pos(1:dm)
+       SndDataR(roff+dm:roff+2*dm-1) = pp%origpos(1:dm)
        
        indx(proc) = indx(proc) + 1
     end do
@@ -1077,9 +1079,10 @@ contains
        ioff = iN * i
        roff = rN * i
 
-       p%id        = RcvDataI(ioff          )
-       p%cpu       = RcvDataI(ioff+1        )
-       p%pos(1:rN) = RcvDataR(roff:roff+rN-1)
+       p%id            = RcvDataI(ioff          )
+       p%cpu           = RcvDataI(ioff+1        )
+       p%pos(1:dm)     = RcvDataR(roff:roff+dm-1)
+       p%origpos(1:dm) = RcvDataR(roff+dm:roff+2*dm-1)
        !
        ! Got to set the members of the particle that we didn't transfer.
        !
@@ -1145,9 +1148,11 @@ contains
     !
     call parallel_barrier()
 
-    iN         = 2       ! # of integers to snd/rcv for each particle.
-    dN         = mla%dim ! # of double precisions to snd/rcv for each particle.
-
+    iN = 2       ! # of integers to snd/rcv for each particle.
+    dN = mla%dim ! # of double precisions to snd/rcv for each particle.
+    !
+    ! Note that we do NOT checkpoint/restart the origpos member.
+    !
     nprocs     = parallel_nprocs()
     ioproc     = parallel_IOProcessorNode()
     nparticles = size(particles)
@@ -1361,7 +1366,9 @@ contains
 
     iN = 2       ! # of integers to snd/rcv for each particle.
     dN = mla%dim ! # of double precisions to snd/rcv for each particle.
-
+    !
+    ! Note that we do NOT checkpoint/restart the origpos member.
+    !
     nprocs = parallel_nprocs()
     ioproc = parallel_IOProcessorNode()
 
