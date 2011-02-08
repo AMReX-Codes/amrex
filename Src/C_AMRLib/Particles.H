@@ -148,6 +148,8 @@ public:
 
     void Restart (const std::string& dir, const std::string& file);
 
+    void Timestamp (const std::string& file, int lev, Real time, const std::vector<int>& idx, const std::vector<std::string>& names);
+
     int Verbose () { return m_verbose; }
 
     void Verbose (int verbose) { m_verbose = verbose; }
@@ -2571,6 +2573,164 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
         rptr += rChunkSize;
 
         pbox.push_back(p);
+    }
+}
+
+template <int N>
+void
+ParticleContainer<N>::Timestamp (const std::string&              basename,
+                                 int                             lev,
+                                 Real                            time,
+                                 const std::vector<int>&         indices,
+                                 const std::vector<std::string>& names)
+{
+    BL_ASSERT(lev >= 0);
+    BL_ASSERT(time >= 0);
+    BL_ASSERT(!names.empty());
+    BL_ASSERT(!indices.empty());
+    BL_ASSERT(!basename.empty());
+    BL_ASSERT(indices.size() == names.size());
+
+    const Real strttime = ParallelDescriptor::second();
+    //
+    // We'll spread the output over this many files.
+    //
+    // Should this be ParmParse'd in?
+    //
+    const int nOutFiles = 32;
+
+    const int MyProc = ParallelDescriptor::MyProc();
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    std::string FileName = basename;
+
+    char buf[16];
+    sprintf(buf, "%02d", MyProc % nOutFiles);
+    FileName += buf;
+
+    std::ofstream TimeStampFile;
+
+    TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+    const int nSets = ((NProcs + (nOutFiles - 1)) / nOutFiles);
+    const int mySet = (MyProc / nOutFiles);
+
+    for (int iSet = 0; iSet < nSets; ++iSet)
+    {
+        if (mySet == iSet)
+        {
+            TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app);
+
+            TimeStampFile.seekp(0, std::ios::end);
+
+            if (!TimeStampFile.good())
+                BoxLib::FileOpenFailed(FileName);
+
+            PMap& pmap = m_particles[lev];
+
+            const MultiFab& mf = m_amr->getLevel(lev).get_new_data(0);
+
+            for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+            {
+                const int        grid = pmap_it->first;
+                PBox&            pbox = pmap_it->second;
+                const int        n    = pbox.size();
+                const FArrayBox& fab = mf[grid];
+
+                for (int i = 0; i < n; i++)
+                {
+                    ParticleType& p = pbox[i];
+
+                    if (p.m_id <= 0)
+                        //
+                        // Skip invalid particles.
+                        //
+                        continue;
+
+                    BL_ASSERT(p.m_grid == grid);
+
+                    TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
+
+                    for (int i = 0; i < BL_SPACEDIM; i++)
+                    {
+                        TimeStampFile << p.m_pos[i]  << ' ';
+                    }
+
+                    TimeStampFile << time  << ' ';
+
+                    for (int i = 0; i < indices.size(); i++)
+                    {
+                        TimeStampFile << fab(p.m_cell,indices[i])  << ' ';
+                    }
+
+                    TimeStampFile << '\n';
+                }
+            }
+
+            TimeStampFile.flush();
+#ifdef BL_USECLOSE
+            TimeStampFile.close();
+#endif
+            const int iBuff     = 0;
+            const int wakeUpPID = (MyProc + nOutFiles);
+            const int tag       = (MyProc % nOutFiles);
+
+            if (wakeUpPID < NProcs)
+            {
+                ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+            }
+        }
+        if (mySet == (iSet + 1))
+        {
+            //
+            // Next set waits.
+            //
+            int iBuff;
+            const int waitForPID = (MyProc - nOutFiles);
+            const int tag        = (MyProc % nOutFiles);
+            ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+        }
+    }
+    //
+    // Remove any zero-length files.
+    //
+    if (ParallelDescriptor::IOProcessor())
+    {
+        for (int i = 0; i < nOutFiles; i++)
+        {
+            FileName = basename;
+
+            sprintf(buf, "%02d", i);
+
+            FileName += buf;
+
+            TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app);
+
+            TimeStampFile.seekp(0, std::ios::end);
+
+            long pos = VisMF::FileOffset(TimeStampFile);
+
+            TimeStampFile.close();
+
+            if (pos <= 0)
+            {
+                BoxLib::UnlinkFile(FileName.c_str());
+            }
+        }
+    }
+
+    if (m_verbose > 0)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "\nParticleContainer<N>::Timestamp() time: " << stoptime << "\n\n";
+        }
     }
 }
 
