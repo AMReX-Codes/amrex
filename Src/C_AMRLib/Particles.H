@@ -2597,17 +2597,21 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
     //
     // Should this be ParmParse'd in?
     //
-    const int nOutFiles = 32;
+    const int MaxOutFiles = 32;
 
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
+
+    const int nOutFiles = std::min(MaxOutFiles, NProcs);
+
+    static bool need_header = true;
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
     std::string FileName = basename;
 
     char buf[16];
-    sprintf(buf, "%02d", MyProc % nOutFiles);
+    sprintf(buf, "_%02d", MyProc % nOutFiles);
     FileName += buf;
 
     std::ofstream TimeStampFile;
@@ -2627,6 +2631,26 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 
             if (!TimeStampFile.good())
                 BoxLib::FileOpenFailed(FileName);
+
+            if (need_header)
+            {
+                TimeStampFile << "#   ID     CPU   ";
+
+                D_DECL(TimeStampFile << "XPOS   ",
+                       TimeStampFile << "YPOS   ",
+                       TimeStampFile << "ZPOS   ");
+
+                TimeStampFile << "TIME    ";
+
+                for (int i = 0; i < names.size(); i++)
+                {
+                    TimeStampFile << names[i]  << "    ";
+                }
+
+                TimeStampFile << '\n';                
+
+                need_header = false;
+            }
 
             PMap& pmap = m_particles[lev];
 
@@ -2702,7 +2726,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
         {
             FileName = basename;
 
-            sprintf(buf, "%02d", i);
+            sprintf(buf, "_%02d", i);
 
             FileName += buf;
 
