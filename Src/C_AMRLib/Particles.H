@@ -144,7 +144,7 @@ public:
     //
     // **************************************************************************************************************** 
 
-    void advectWithUMac (const MultiFab* umac, int level, Real dt);
+    void AdvectWithUmac (const MultiFab* umac, int level, Real dt);
 
     void Checkpoint (const std::string& dir, const std::string& name) const;
 
@@ -1449,7 +1449,7 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
 
 template <int N>
 void
-ParticleContainer<N>::advectWithUMac (const MultiFab* umac,
+ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                                       int             lev,
                                       Real            dt)
 {
@@ -1625,7 +1625,7 @@ ParticleContainer<N>::advectWithUMac (const MultiFab* umac,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::movePredict() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::AdvectWithUmac() time: " << stoptime << "\n\n";
         }
     }
 
