@@ -2794,32 +2794,33 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
     //
     const int MaxOutFiles = 32;
 
-    const int MyProc = ParallelDescriptor::MyProc();
-    const int NProcs = ParallelDescriptor::NProcs();
-
+    const int MyProc    = ParallelDescriptor::MyProc();
+    const int NProcs    = ParallelDescriptor::NProcs();
     const int nOutFiles = std::min(MaxOutFiles, NProcs);
+    const int nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
+    const int mySet     = (MyProc / nOutFiles);
 
-    static bool NeedToWriteHeader = true;
-
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
-    std::string FileName = basename;
+    static bool        NeedToWriteHeader = true;
+    static std::string TimestampFormat   = "_%02d";
 
     char buf[16];
-    sprintf(buf, "_%02d", MyProc % nOutFiles);
-    FileName += buf;
-
-    std::ofstream TimeStampFile;
-
-    TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-    const int nSets = ((NProcs + (nOutFiles - 1)) / nOutFiles);
-    const int mySet = (MyProc / nOutFiles);
 
     for (int iSet = 0; iSet < nSets; ++iSet)
     {
         if (mySet == iSet)
         {
+            std::string FileName = basename;
+
+            sprintf(buf, TimestampFormat.c_str(), MyProc % nOutFiles);
+
+            FileName += buf;
+
+            std::ofstream TimeStampFile;
+
+            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+            TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
             TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app);
 
             TimeStampFile.seekp(0, std::ios::end);
@@ -2923,24 +2924,27 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
     {
         for (int i = 0; i < nOutFiles; i++)
         {
-            FileName = basename;
+            std::string FileName = basename;
 
-            sprintf(buf, "_%02d", i);
+            sprintf(buf, TimestampFormat.c_str(), i);
 
             FileName += buf;
+
+            std::ofstream TimeStampFile;
 
             TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app);
 
             TimeStampFile.seekp(0, std::ios::end);
+
+            if (!TimeStampFile.good())
+                BoxLib::FileOpenFailed(FileName);
 
             long pos = VisMF::FileOffset(TimeStampFile);
 
             TimeStampFile.close();
 
             if (pos <= 0)
-            {
                 BoxLib::UnlinkFile(FileName.c_str());
-            }
         }
     }
 
