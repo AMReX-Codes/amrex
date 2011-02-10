@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.50 2010-09-10 22:35:03 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.51 2011-02-10 19:15:21 marc Exp $
 // 
 #include <winstd.H>
 
@@ -355,7 +355,7 @@ int
 MultiGrid::numLevels () const
 {
     int ng = Lp.numGrids();
-    int lv = numLevelsMAX;
+    int lv = numLevelsMAX-1;
     //
     // The routine `falls through' since coarsening and refining
     // a unit box does not yield the initial box.
