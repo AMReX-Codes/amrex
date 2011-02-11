@@ -239,12 +239,16 @@ ParticleContainer<N>::Init (const std::string& file)
 {
     BL_ASSERT(!file.empty());
 
-    const int MyProc = ParallelDescriptor::MyProc();
-    const int NProcs = ParallelDescriptor::NProcs();
+    const int  MyProc   = ParallelDescriptor::MyProc();
+    const Real strttime = ParallelDescriptor::second();
 
     m_particles.resize(m_amr->finestLevel()+1);
 
     std::ifstream ifs;
+
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
     ifs.open(file.c_str(), std::ios::in);
 
@@ -264,10 +268,14 @@ ParticleContainer<N>::Init (const std::string& file)
         // in a manner to guarantee the global uniqueness of the pair.
         //
         for (int i = 0; i < BL_SPACEDIM; i++)
+        {
             ifs >> p.m_pos[i];
+        }
 
         for (int i = 0; i < N; i++)
+        {
             ifs >> p.m_data[i];
+        }
 
         if (!ifs.good())
         {
@@ -282,8 +290,11 @@ ParticleContainer<N>::Init (const std::string& file)
             if (ParallelDescriptor::IOProcessor())
             {
                 std::cout << "Ignoring particle @ position: ";
+
                 for (int i = 0; i < BL_SPACEDIM; i++)
+                {
                     std::cout << p.m_pos[i] << ' ';
+                }
                 std::cout << "-- not in domain !!!\n";
             }
         }
@@ -306,7 +317,7 @@ ParticleContainer<N>::Init (const std::string& file)
         }
     }
 
-    for (int i = 0; i < NProcs; i++)
+    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
     {
         if (MyProc == i)
         {
@@ -316,8 +327,10 @@ ParticleContainer<N>::Init (const std::string& file)
                       << howmany
                       << " particles in Init()" << std::endl;
         }
+
         ParallelDescriptor::Barrier();
     }
+
     if (ParallelDescriptor::IOProcessor())
         std::cout << '\n';
 
@@ -326,6 +339,15 @@ ParticleContainer<N>::Init (const std::string& file)
     if (m_verbose > 0)
     {
         ByteSpread();
+
+        Real runtime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "Init() time: " << runtime << std::endl;
+        }
     }
 }
 
@@ -799,10 +821,9 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
     {
         ParallelDescriptor::ReduceRealMin(dt);
 
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1040,10 +1061,9 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
     if (m_verbose > 0)
     {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1123,10 +1143,9 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
 
     if (m_verbose > 0)
     {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1214,10 +1233,9 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
 
     if (m_verbose > 0)
     {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1337,10 +1355,9 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
 
     if (m_verbose > 0)
     {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1426,10 +1443,9 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
 
     if (m_verbose > 0)
     {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1620,10 +1636,9 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
     if (m_verbose > 0)
     {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1969,10 +1984,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     if (m_verbose > 0)
     {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (m_verbose > 1 && maxsendrecv > 0)
         {
@@ -3024,9 +3038,8 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
     ParallelDescriptor::Barrier();
 
     const int MyProc = ParallelDescriptor::MyProc();
-    const int NProcs = ParallelDescriptor::NProcs();
 
-    for (int i = 0; i < NProcs; i++)
+    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
     {
         if (MyProc == i)
         {
