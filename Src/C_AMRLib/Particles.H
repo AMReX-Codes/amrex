@@ -239,7 +239,7 @@ ParticleContainer<N>::Init (const std::string& file)
 {
     BL_ASSERT(!file.empty());
 
-    const int  MyProc   = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
     const Real strttime = ParallelDescriptor::second();
 
     m_particles.resize(m_amr->finestLevel()+1);
@@ -247,7 +247,7 @@ ParticleContainer<N>::Init (const std::string& file)
     std::ifstream ifs;
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
+ 
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
     ifs.open(file.c_str(), std::ios::in);
@@ -267,15 +267,11 @@ ParticleContainer<N>::Init (const std::string& file)
         // We don't read in m_id or m_cpu.  We'll set those later
         // in a manner to guarantee the global uniqueness of the pair.
         //
-        for (int i = 0; i < BL_SPACEDIM; i++)
-        {
-            ifs >> p.m_pos[i];
-        }
+        for (int d = 0; d < BL_SPACEDIM; d++)
+            ifs >> p.m_pos[d];
 
-        for (int i = 0; i < N; i++)
-        {
-            ifs >> p.m_data[i];
-        }
+        for (int n = 0; n < N; n++)
+            ifs >> p.m_data[n];
 
         if (!ifs.good())
         {
@@ -285,36 +281,27 @@ ParticleContainer<N>::Init (const std::string& file)
             BoxLib::Error(msg.c_str());
         }
 
+
         if (!ParticleBase::Where(p,m_amr))
-        {
-            if (ParallelDescriptor::IOProcessor())
-            {
-                std::cout << "Ignoring particle @ position: ";
+            ParticleBase::PeriodicShift(p,m_amr);
 
-                for (int i = 0; i < BL_SPACEDIM; i++)
-                {
-                    std::cout << p.m_pos[i] << ' ';
-                }
-                std::cout << "-- not in domain !!!\n";
-            }
-        }
-        else
-        {
-            //
-            // Only the MPI process that owns the needed velocity data gets "p".
-            //
-            const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
+        if (!ParticleBase::Where(p,m_amr))
+            BoxLib::Abort("ParticleContainer<N>::Init(): invalid particle");
 
-            if (who == MyProc)
-            {
-                p.m_id  = ParticleBase::NextID();
-                p.m_cpu = MyProc;
+         //
+         // Only the MPI process that owns the needed velocity data gets "p".
+         //
+         const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
 
-                m_particles[p.m_lev][p.m_grid].push_back(p);
+         if (who == MyProc)
+         {
+             p.m_id  = ParticleBase::NextID();
+             p.m_cpu = MyProc;
 
-                howmany++;
-            }
-        }
+             m_particles[p.m_lev][p.m_grid].push_back(p);
+
+             howmany++;
+         }
     }
 
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
@@ -327,10 +314,8 @@ ParticleContainer<N>::Init (const std::string& file)
                       << howmany
                       << " particles in Init()" << std::endl;
         }
-
         ParallelDescriptor::Barrier();
     }
-
     if (ParallelDescriptor::IOProcessor())
         std::cout << '\n';
 
@@ -2059,7 +2044,18 @@ ParticleContainer<N>::OK () const
                         return false;
 
                     if (lev != p.m_lev || grid != p.m_grid || cell != p.m_cell)
+                    {
+                        std::cout << "PARTICLE NUMBER " << p.m_id << std::endl;
+                        std::cout << "POS IS " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
+                        if (lev != p.m_lev)
+                           std::cout << "BAD LEV  " << lev  << " " << p.m_lev << std::endl;
+                        if (grid != p.m_grid)
+                           std::cout << "BAD GRID " << grid << " " << p.m_grid << std::endl;
+                        if (cell != p.m_cell)
+                           std::cout << "BAD CELL " << cell << " " << p.m_cell << std::endl;
+
                         return false;
+                    }
                 }
             }
         }
