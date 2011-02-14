@@ -1266,6 +1266,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
         const FArrayBox& gfab = gv[grid];
 
         Real a_halfsq = a_half * a_half;
+        Real a_dot    = (a_half - a_old) / (0.5*dt);
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
@@ -1295,9 +1296,14 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
                    p.m_data[3] *= a_old;);
 
             // "m_data" now holds a*u at time t^{n+1/2}
-            D_TERM(p.m_data[1] += 0.5 * dt * grav[0];,
-                   p.m_data[2] += 0.5 * dt * grav[1];,
-                   p.m_data[3] += 0.5 * dt * grav[2];);
+            D_TERM(p.m_data[1] += (0.5 * dt) * grav[0];,
+                   p.m_data[2] += (0.5 * dt) * grav[1];,
+                   p.m_data[3] += (0.5 * dt) * grav[2];);
+
+            // DONT FORGET THE ADOT/A UPDATE
+            D_TERM(p.m_data[1] -= (0.5 * dt) * (a_dot * p.m_data[1]);,
+                   p.m_data[2] -= (0.5 * dt) * (a_dot * p.m_data[2]);,
+                   p.m_data[3] -= (0.5 * dt) * (a_dot * p.m_data[3]););
 
             // Divide the half-time velocity "u^{n+1/2}" by "a^{n+1/2} SQUARED"
             // "m_data" now holds u/a at time t^{n+1/2}
@@ -1380,6 +1386,8 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
 
     PMap& pmap = m_particles[lev];
 
+    Real a_dot    = (a_new - a_half) / (0.5*dt);
+
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
         const int        grid = pmap_it->first;
@@ -1417,6 +1425,11 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
             D_TERM(p.m_data[1] += 0.5 * dt * grav[0];,
                    p.m_data[2] += 0.5 * dt * grav[1];,
                    p.m_data[3] += 0.5 * dt * grav[2];);
+
+            // DONT FORGET THE ADOT/A UPDATE
+            D_TERM(p.m_data[1] -= (0.5 * dt) * (a_dot * p.m_data[1]);,
+                   p.m_data[2] -= (0.5 * dt) * (a_dot * p.m_data[2]);,
+                   p.m_data[3] -= (0.5 * dt) * (a_dot * p.m_data[3]););
 
             // Divide the new-time velocity "u^{n+1}" by "a^{n+1}"
             // "m_data" now holds u at time t^{n+1}
