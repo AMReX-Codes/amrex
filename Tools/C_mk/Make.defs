@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.162 2010-11-11 17:54:39 ajnonaka Exp $
+# Make.defs $Id: Make.defs,v 1.163 2011-02-14 02:48:02 almgren Exp $
 #
 
 #
@@ -63,6 +63,11 @@ ifeq ($(findstring CYGWIN_NT, $(UNAMES)), CYGWIN_NT)
     HOSTNAMEF := $(shell hostname)
 else
     HOSTNAMEF := $(shell hostname -f)
+endif
+
+#jfe
+ifeq ($(findstring gwd, $(UNAMEN)), gwd)
+   GWDG = TRUE
 endif
 
 ifndef MACHINE
@@ -521,6 +526,15 @@ ifeq ($(COMP),Intel)
    ifeq ($(WHICHLINUX), GIMANTIS)
      CPPFLAGS += -gxx-name=/usr/bin/gcc-4.1
    endif
+  
+#jfe
+   ifeq ($(GWDG), TRUE)
+     ifeq ($(USE_MPI),TRUE)
+       CXX = mpiicpc -Wno-deprecated
+       CC  = mpiicc
+     endif
+   endif
+#end jfe
 
 endif
 
@@ -682,6 +696,16 @@ ifeq ($(FCOMP),Intel)
     FC = $(_ifc)
     fC = $(_ifc)
    NEEDS_FLUSH_F := TRUE
+
+
+#jfe
+   ifeq ($(GWDG), TRUE)
+     ifeq ($(USE_MPI),TRUE)
+       FC = mpiifort --fc=$(_ifc)
+       fC = mpiifort --fc=$(_ifc)
+     endif
+   endif
+#end jfe
 
 endif
 
