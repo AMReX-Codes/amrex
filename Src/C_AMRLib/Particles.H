@@ -1265,8 +1265,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
         const int        n    = pbox.size();
         const FArrayBox& gfab = gv[grid];
 
-        Real a_halfsq = a_half * a_half;
-        Real a_dot    = (a_half - a_old) / (0.5*dt);
+        Real half_dt  = 0.5 * dt;
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
@@ -1289,37 +1288,30 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
 
             ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
 
-            // Multiply the old-time velocity "u^n" by "a^n"
-            // "m_data" now holds a*u at time t^{n+1/2}
-            D_TERM(p.m_data[1] *= a_old;,
-                   p.m_data[2] *= a_old;,
-                   p.m_data[3] *= a_old;);
+            //
+            // First update (a u)^half = (a u)^old + dt/2 grav^old
+            //
 
-            // "m_data" now holds a*u at time t^{n+1/2}
-            D_TERM(p.m_data[1] += (0.5 * dt) * grav[0];,
-                   p.m_data[2] += (0.5 * dt) * grav[1];,
-                   p.m_data[3] += (0.5 * dt) * grav[2];);
+            D_TERM(p.m_data[1] *= a_old;
+                   p.m_data[2] *= a_old;
+                   p.m_data[3] *= a_old;
 
-            // DONT FORGET THE ADOT/A UPDATE
-            D_TERM(p.m_data[1] -= (0.5 * dt) * (a_dot * p.m_data[1]);,
-                   p.m_data[2] -= (0.5 * dt) * (a_dot * p.m_data[2]);,
-                   p.m_data[3] -= (0.5 * dt) * (a_dot * p.m_data[3]););
+            // Add adot/a and gravitational updates
+            D_TERM(p.m_data[1] += half_dt * grav[0]);,
+                   p.m_data[2] += half_dt * grav[1]);,
+                   p.m_data[3] += half_dt * grav[2]););
 
-            // Divide the half-time velocity "u^{n+1/2}" by "a^{n+1/2} SQUARED"
-            // "m_data" now holds u/a at time t^{n+1/2}
-            D_TERM(p.m_data[1] /= a_halfsq;,
-                   p.m_data[2] /= a_halfsq;,
-                   p.m_data[3] /= a_halfsq;);
+            D_TERM(p.m_data[1] /= a_half;
+                   p.m_data[2] /= a_half;
+                   p.m_data[3] /= a_half;
 
-            D_TERM(p.m_pos[0] += dt * p.m_data[1];,
-                   p.m_pos[1] += dt * p.m_data[2];,
-                   p.m_pos[2] += dt * p.m_data[3];);
+            //
+            // Now update x^new = x^old + dt grav^half / a^half
+            //
 
-            // Multiply the half-time velocity "u^{n+1/2}" by "a^{n+1/2}"
-            // "m_data" now holds u at time t^{n+1/2}
-            D_TERM(p.m_data[1] *= a_half;,
-                   p.m_data[2] *= a_half;,
-                   p.m_data[3] *= a_half;);
+            D_TERM(p.m_pos[0] += (dt / a_half) * p.m_data[1];,
+                   p.m_pos[1] += (dt / a_half) * p.m_data[2];,
+                   p.m_pos[2] += (dt / a_half) * p.m_data[3];);
 
             if (!ParticleBase::Where(p,m_amr,true))
             {
@@ -1386,7 +1378,7 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
 
     PMap& pmap = m_particles[lev];
 
-    Real a_dot    = (a_new - a_half) / (0.5*dt);
+    Real half_dt  = 0.5 * dt;
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -1416,23 +1408,18 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
 
             ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
 
-            // Multiply the half-time velocity "u^{n+1/2}" by "a^{n+1/2}"
-            // "m_data" now holds a*u at time t^{n+1/2}
+            //
+            // Define (a u)^new = (a u)^half + dt/2 grav^new
+            //
+
             D_TERM(p.m_data[1] *= a_half;,
                    p.m_data[2] *= a_half;,
                    p.m_data[3] *= a_half;);
 
-            D_TERM(p.m_data[1] += 0.5 * dt * grav[0];,
-                   p.m_data[2] += 0.5 * dt * grav[1];,
-                   p.m_data[3] += 0.5 * dt * grav[2];);
+            D_TERM(p.m_data[1] += half_dt * grav[0]);,
+                   p.m_data[2] += half_dt * grav[1]);,
+                   p.m_data[3] += half_dt * grav[2]););
 
-            // DONT FORGET THE ADOT/A UPDATE
-            D_TERM(p.m_data[1] -= (0.5 * dt) * (a_dot * p.m_data[1]);,
-                   p.m_data[2] -= (0.5 * dt) * (a_dot * p.m_data[2]);,
-                   p.m_data[3] -= (0.5 * dt) * (a_dot * p.m_data[3]););
-
-            // Divide the new-time velocity "u^{n+1}" by "a^{n+1}"
-            // "m_data" now holds u at time t^{n+1}
             D_TERM(p.m_data[1] /= a_new;,
                    p.m_data[2] /= a_new;,
                    p.m_data[3] /= a_new;);
