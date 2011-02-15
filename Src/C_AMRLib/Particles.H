@@ -1292,8 +1292,8 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
             // First update (a u)^half = (a u)^old + dt/2 grav^old
             //
 
-            D_TERM(p.m_data[1] *= a_old;
-                   p.m_data[2] *= a_old;
+            D_TERM(p.m_data[1] *= a_old;,
+                   p.m_data[2] *= a_old;,
                    p.m_data[3] *= a_old;);
 
             // Add adot/a and gravitational updates
@@ -1301,8 +1301,8 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
                    p.m_data[2] += half_dt * grav[1];,
                    p.m_data[3] += half_dt * grav[2];);
 
-            D_TERM(p.m_data[1] /= a_half;
-                   p.m_data[2] /= a_half;
+            D_TERM(p.m_data[1] /= a_half;,
+                   p.m_data[2] /= a_half;,
                    p.m_data[3] /= a_half;);
 
             //
