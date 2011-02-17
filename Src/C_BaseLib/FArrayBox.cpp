@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.53 2010-06-23 22:02:06 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.54 2011-02-17 17:14:24 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -177,6 +177,27 @@ FArrayBox::contains_nan () const
 }
 
 bool 
+FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
+{
+#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(scomp <  nComp());
+    BL_ASSERT(ncomp <= nComp());
+
+    for (int i = 0; i < ncomp; i++)
+    {
+        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+        {
+            if (isnan(this->operator()(p,scomp+i)))
+                return true;
+        }
+    }
+#endif
+    return false;
+}
+
+bool 
 FArrayBox::contains_inf () const
 {
 #if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
@@ -184,6 +205,27 @@ FArrayBox::contains_inf () const
     for (int i = 0; i < numpts*nvar; i++)
         if (isinf(*dp++))
             return true;
+#endif
+    return false;
+}
+
+bool 
+FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
+{
+#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(scomp <  nComp());
+    BL_ASSERT(ncomp <= nComp());
+
+    for (int i = 0; i < ncomp; i++)
+    {
+        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+        {
+            if (isinf(this->operator()(p,scomp+i)))
+                return true;
+        }
+    }
 #endif
     return false;
 }

@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.31 2009-04-30 17:34:34 lijewski Exp $
+// $Id: FArrayBox.H,v 1.32 2011-02-17 17:14:24 lijewski Exp $
 //
 
 #include <Pointers.H>
@@ -234,12 +234,16 @@ public:
     // doesn't support the appropriate NaN testing functions.
     //
     bool contains_nan () const;
+
+    bool contains_nan (const Box& bx, int scomp, int ncomp) const;
     //
     // Are there any Infs in the FAB?
     // This may return false, even if the FAB contains Infs, if the machine
     // doesn't support the appropriate Inf testing functions.
     //
     bool contains_inf () const;
+
+    bool contains_inf (const Box& bx, int scomp, int ncomp) const;
     //
     // For debugging purposes we hide BaseFab version and do some extra work.
     //
