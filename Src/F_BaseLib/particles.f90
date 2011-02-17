@@ -152,11 +152,6 @@ module particle_module
      module procedure particle_container_timestamp
   end interface timestamp
 
-  interface debugging
-     module procedure particle_container_debugging
-     module procedure particle_container_setdebugging
-  end interface debugging
-
   private :: particle_container_reserve, particle_container_swap
   
   logical, save, private :: pVerboseFlag   = .false.
@@ -657,7 +652,7 @@ contains
 
     dm = mla%dim
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_move_random: not OK on entry')
     end if
 
@@ -706,7 +701,7 @@ contains
     !
     call particle_container_redistribute(particles,mla,dx,prob_lo,.true.)
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_move_random: not OK on exit')
     end if
 
@@ -734,7 +729,7 @@ contains
 
     dm = mla%dim
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_move_advect: not OK on entry')
     end if
 
@@ -896,7 +891,7 @@ contains
     !
     call particle_container_redistribute(particles,mla,dx,prob_lo,.true.)
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_move_random: not OK on exit')
     end if
 
@@ -930,7 +925,7 @@ contains
 
     type(particle), pointer :: pp
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_redistribute: not OK on entry')
     end if
 
@@ -1103,7 +1098,7 @@ contains
        end if
     end if
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_redistribute: not OK on exit')
     end if
 
@@ -1132,7 +1127,7 @@ contains
 
     rbeg = parallel_wtime()
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_checkpoint: not OK on entry')
     end if
 
@@ -1322,7 +1317,7 @@ contains
        end if
     end if
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_checkpoint: not OK on exit')
     end if
 
@@ -1354,7 +1349,7 @@ contains
 
     rbeg = parallel_wtime()
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_restart: not OK on entry')
     end if
 
@@ -1490,7 +1485,7 @@ contains
        end if
     end if
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_restart: not OK on exit')
     end if
 
@@ -1535,7 +1530,7 @@ contains
     nSets     = (NProcs + (nOutFiles - 1)) / nOutFiles
     mySet     = MyProc / nOutFiles
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_timestamp: not OK on entry')
     end if
 
@@ -1697,7 +1692,7 @@ contains
        end if
     end if
 
-    if ( debugging() ) then
+    if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_timestamp: not OK on exit')
     end if
 
