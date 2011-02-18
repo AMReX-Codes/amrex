@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.221 2010-11-11 17:48:24 ajnonaka Exp $
+// $Id: Amr.cpp,v 1.222 2011-02-18 21:28:34 almgren Exp $
 //
 #include <winstd.H>
 
@@ -594,6 +594,7 @@ Amr::Amr ()
     //
     // Read computational domain and set geometry.
     //
+
     Array<int> n_cell(BL_SPACEDIM);
     pp.getarr("n_cell",n_cell,0,BL_SPACEDIM);
     BL_ASSERT(n_cell.size() == BL_SPACEDIM);
@@ -1054,7 +1055,9 @@ Amr::initialInit (Real strt_time,
     Real piTotalAll = piEndAll - piStartAll;
     ParallelDescriptor::ReduceRealMax(piTotal);
     ParallelDescriptor::ReduceRealMax(piTotalAll);
-    if(ParallelDescriptor::IOProcessor()) {
+
+    if ((verbose > 1) && ParallelDescriptor::IOProcessor())
+    {
       std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << std::endl;
       std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
     }
@@ -1230,7 +1233,8 @@ Amr::restart (const std::string& filename)
     Real piTotalAll = piEndAll - piStartAll;
     ParallelDescriptor::ReduceRealMax(piTotal);
     ParallelDescriptor::ReduceRealMax(piTotalAll);
-    if(ParallelDescriptor::IOProcessor()) {
+    if ((verbose > 1) && ParallelDescriptor::IOProcessor())
+    {
       std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << std::endl;
       std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
     }
@@ -1309,6 +1313,13 @@ Amr::restart (const std::string& filename)
     int mx_lev;
     is >> mx_lev;
     is >> finest_level;
+
+    Array<Box> inputs_domain(max_level+1);
+    for (int lev = 0; lev <= max_level; lev++)
+    {
+       Box bx(geom[lev].Domain().smallEnd(),geom[lev].Domain().bigEnd());
+       inputs_domain[lev] = bx;
+    }
 
     if (max_level >= mx_lev) {
 
@@ -1434,6 +1445,23 @@ Amr::restart (const std::string& filename)
            amr_level[lev].post_restart();
 
     }
+
+    for (int lev = 0; lev <= finest_level; lev++)
+    {
+       Box restart_domain(geom[lev].Domain());
+       if (! (inputs_domain[lev] == restart_domain) )
+       {
+          if (ParallelDescriptor::IOProcessor())
+          {
+             std::cout << "Problem at level " << lev << std::endl;
+             std::cout << "Domain according to     inputs file is " <<  inputs_domain[lev] << std::endl;
+             std::cout << "Domain according to checkpoint file is " << restart_domain      << std::endl;
+             std::cout << "Amr::restart() failed -- box from inputs file does not equal box from restart file" << std::endl;
+          }
+          BoxLib::Abort();
+       }
+    }
+
    
 #ifdef USE_STATIONDATA
     station.init(amr_level, finestLevel());
