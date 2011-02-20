@@ -91,6 +91,7 @@ module particle_module
   interface remove
      module procedure particle_container_remove
   end interface remove
+
   !
   ! This "usually" does a push_back on the space holding
   ! the particles.  If however that space is at capacity,
@@ -101,6 +102,15 @@ module particle_module
      module procedure particle_container_add
      module procedure particle_container_add_point
   end interface add
+
+  !
+  ! add a particle only if it is sufficiently far away from any
+  ! existing particles
+  !
+  interface conditional_add
+     module procedure particle_container_conditional_add_point
+  end interface conditional_add
+
   !
   ! This is the total number of "valid" + "invalid" particles.
   !
@@ -424,6 +434,75 @@ contains
     d%d => np
   end subroutine particle_container_reserve
 
+
+  ! add a particle to the container only if there is not already one
+  ! within dr of our desired location
+  !
+  ! on exit, status is true if the particle was added
+  subroutine particle_container_conditional_add_point(particles,loc,mla,dx,prob_lo,dr,status)
+    type(particle_container), intent(inout) :: particles
+    real(kind=dp_t),          intent(in   ) :: loc(:)
+    type(ml_layout),          intent(inout) :: mla
+    double precision,         intent(in   ) :: dx(:,:)
+    double precision,         intent(in   ) :: prob_lo(:)
+    real(kind=dp_t),          intent(in   ) :: dr
+    logical,                  intent(  out) :: status
+
+    ! local variables
+    integer :: i, dm
+    type(particle), pointer :: p
+    integer :: nearby_particle_local, nearby_particle
+    real(kind=dp_t) :: radius
+
+    dm = mla%dim
+    status = .false.
+    
+    ! nearby_particle = 1 indicates that there is already a particle
+    ! near our requested particle
+    nearby_particle_local = 0
+
+    ! check if we are too close to an existing particle -- we need to
+    ! do this on all procs, since we may be on the edge of a grid.
+    do i = 1, capacity(particles)
+       if ( particles%d(i)%id <= 0 ) cycle
+
+       p => particles%d(i)
+
+       select case (dm)
+       case (1)
+          radius = abs(p%pos(1) - loc(1))
+       case (2)
+          radius = sqrt((p%pos(1) - loc(1))**2 + &
+                        (p%pos(2) - loc(2))**2)
+       case (3)
+          radius = sqrt((p%pos(1) - loc(1))**2 + &
+                        (p%pos(2) - loc(2))**2 + &
+                        (p%pos(3) - loc(3))**2)
+       end select
+       
+       if (radius < dr) then
+          ! requested particle position is too close to existing
+          ! particle
+          nearby_particle_local = 1
+          exit
+       endif
+
+    end do
+    
+     
+    ! parallel reduce the result of the dr check
+    call parallel_reduce(nearby_particle, nearby_particle_local, MPI_MAX)
+
+
+    ! if there are no nearby particles, add the particle
+    if (nearby_particle == 0) then
+       call particle_container_add_point(particles,loc,mla,dx,prob_lo)
+       status = .true.
+    endif
+
+  end subroutine particle_container_conditional_add_point
+
+
   subroutine particle_container_add_point(d,loc,mla,dx,prob_lo)
     type(particle_container), intent(inout) :: d
     real(kind=dp_t),          intent(in   ) :: loc(:)
@@ -443,6 +522,7 @@ contains
      if ( .not. particle_where(p,mla,dx,prob_lo) ) then
         call bl_error('problem initializing particle')
      end if
+
 
      if ( local(mla%la(p%lev),p%grd) ) then
         !
