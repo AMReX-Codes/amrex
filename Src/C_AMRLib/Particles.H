@@ -92,7 +92,7 @@ public:
         :
         m_verbose(1), m_amr(amr) { BL_ASSERT(amr != 0); }
 
-    void Init (const std::string& file);
+    void InitFromAsciiFile (const std::string& file);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
     void InitCosmo (Real particleMass = -1);
@@ -235,7 +235,7 @@ ParticleContainer<N>::ByteSpread () const
 
 template <int N>
 void
-ParticleContainer<N>::Init (const std::string& file)
+ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
 {
     BL_ASSERT(!file.empty());
 
