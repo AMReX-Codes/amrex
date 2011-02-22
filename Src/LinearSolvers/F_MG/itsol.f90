@@ -442,6 +442,23 @@ contains
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
     call copy(aa_local, 1, aa, 1, nc = ncomp(aa), ng = nghost(aa))
 
+    ! Make sure to do singular adjustment *before* diagonalization
+    if (singular) then
+      call setval(ss,ONE)
+      if (present(nodal_mask)) then
+            rho = dot(rh_local, ss, nodal_mask)
+         volume = dot(      ss, ss, nodal_mask)
+      else
+            rho = dot(rh_local, ss)
+         volume = dot(       ss,ss)
+      end if
+      print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
+
+      rho = rho / volume
+      call saxpy(rh_local,-rho,ss)
+      call setval(ss,ZERO,all=.true.)
+    end if
+
     call diag_initialize(aa_local,rh_local,mm)
 
     call copy(ph, uu, ng = nghost(ph))
@@ -450,21 +467,6 @@ contains
     cnt = 0
     ! compute rr = aa * uu - rh
     call itsol_defect(aa_local, rr, rh_local, uu, mm, uniform_dh); cnt = cnt + 1
-
-    if (singular) then
-      call setval(ss,ONE)
-      if (present(nodal_mask)) then
-            rho = dot(rr, ss, nodal_mask)
-         volume = dot(ss, ss, nodal_mask)
-      else
-            rho = dot(rr, ss)
-         volume = dot(ss,ss)
-      end if
-!     print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
-      rho = rho / volume
-      call saxpy(rr,-rho,ss)
-      call setval(ss,ZERO,all=.true.)
-    end if
 
     call copy(rt, rr)
     if (present(nodal_mask)) then
@@ -481,8 +483,7 @@ contains
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
-    end if
-
+    end if 
     i = 0
     if ( itsol_converged(rr, uu, bnorm, eps) ) then
       if ( verbose > 0 ) then
