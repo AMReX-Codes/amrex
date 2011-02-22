@@ -64,7 +64,6 @@ contains
     type(layout) :: la1, la2
     type(boxarray) :: ba
     logical :: nodal_flag
-    logical :: all_periodic
     real(kind=dp_t) :: dvol, dvol_pd
     type(bl_prof_timer), save :: bpt
 
@@ -222,7 +221,6 @@ contains
 
     !   Set the face_type array to be BC_DIR or BC_NEU depending on domain_bc
     mgt%face_type = BC_INT
-    mgt%bottom_singular = .true.
     do id = 1,mgt%dim
        lo_dom = lwb(pd,id)
        hi_dom = upb(pd,id)
@@ -235,28 +233,26 @@ contains
        end do
     end do
 
-    all_periodic = .true.
-    ! Note that periodic boundary condition show up in the mg solver as "interior"
-    do id = 1,mgt%dim
-       if (domain_bc(id,1) .ne. BC_INT .or. domain_bc(id,2) .ne. BC_INT) all_periodic = .false.
-    end do
-
+    ! Do we cover the entire domain?
     ! Note that the volume is number of cells so it increments in units of 1, not dx*dy
     ! Need these to be real, not int, so we can handle large numbers.
-    if (all_periodic) then
-       ba = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
-       dvol    = boxarray_dvolume(ba)
-       dvol_pd = box_dvolume(pd)
-       if (abs(dvol-dvol_pd).lt.1.d-2) mgt%bottom_singular = .true.
-    else
+    ba = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
+    dvol    = boxarray_dvolume(ba)
+    dvol_pd = box_dvolume(pd)
+
+    ! If we cover the entire domain, then just test on the domain_bc values
+    if (abs(dvol-dvol_pd).lt.1.d-2) then
+
+       mgt%bottom_singular = .true.
        do id = 1,mgt%dim
-          do i = 1,mgt%nboxes
-             if (mgt%face_type(i,id,1) == BC_INT .or. &
-                 mgt%face_type(i,id,1) == BC_DIR) mgt%bottom_singular = .false.
-             if (mgt%face_type(i,id,2) == BC_INT .or. &
-                 mgt%face_type(i,id,2) == BC_DIR) mgt%bottom_singular = .false.
-          end do
+          if (domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR) mgt%bottom_singular = .false.
        end do
+
+    ! If we don't cover the entire domain, then this wont be singular
+    else
+
+       mgt%bottom_singular = .false.
+
     end if
 
     ! if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
