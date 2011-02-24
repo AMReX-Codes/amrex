@@ -16,8 +16,12 @@
 #include "TV_TempWrite.H"
 
 #include <new>
-using std::setprecision;
 #include <iostream>
+#include <iomanip>
+using std::cout;
+using std::endl;
+using std::cerr;
+
 #ifndef WIN32
 using std::set_new_handler;
 #endif
@@ -46,27 +50,16 @@ main (int   argc,
     if (argc < 2)
         PrintUsage(argc,argv);
 
-    if (argv[1][0] == '-')
-    {
-        cerr << "input file must be first argument\n";
-        PrintUsage(argc, argv);
-    }
-
     ParmParse pp;
     
-    if (pp.contains("help"))
-        PrintUsage(argc, argv);
-    
-    std::string iFile = argv[1];
-    
-    bool ascii = false;
-    if (pp.contains("ascii"))
-        ascii = true;
+    std::string iFile; pp.get("iFile", iFile);
+    int ascii = 0; pp.query("ascii",ascii);
+
 //
 //  Read multifab
 //
     MultiFab mf;
-    readMF(mf,iFile.c_str());
+    VisMF::Read(mf,iFile);
     
     int ngrow = mf.nGrow();
     pp.query("ngrow",ngrow);
@@ -74,11 +67,11 @@ main (int   argc,
     
     MultiFab tmp(mf.boxArray(),mf.nComp(),ngrow,Fab_allocate);
     MultiFab::Copy(tmp,mf,0,0,mf.nComp(),ngrow);
-    if (ascii)
+    if (ascii == 1)
     {
         for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
         {
-            cout << "FAB: " << mfi.index() << endl;
+            cout << "FAB: " << mfi.index() << " on " << tmp[mfi].box() << endl;
             cout << tmp[mfi] << endl;
         }
         return true;
