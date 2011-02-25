@@ -208,6 +208,11 @@ module fab_module
      module procedure lfab_ncomp
   end interface
 
+  interface contains_nan
+     module procedure contains_nan_allc
+     module procedure contains_nan_c
+  end interface contains_nan
+
   logical,       private, save ::      do_init_fabs = .false.
   real(dp_t),    private, save ::  fab_default_init = -Huge(1.0_dp_t)
   complex(dp_t), private, save :: zfab_default_init = -Huge(1.0_dp_t)
@@ -229,7 +234,7 @@ contains
   !
   ! Does a real(dp_t) fab contain a NaN?
   !
-  function contains_nan(fb) result(r)
+  function contains_nan_allc(fb) result(r)
 
     logical               :: r
     type(fab), intent(in) :: fb
@@ -249,7 +254,7 @@ contains
 
     r = .false.
 
-    pp => fab_dataptr(fb)
+    pp => dataptr(fb)
 
     sz = fab_volume(fb,all=.true.)
 
@@ -257,7 +262,38 @@ contains
 
     if (rc == 1) r = .true.
 
-  end function contains_nan
+  end function contains_nan_allc
+
+  function contains_nan_c(fb,comp,ncomp) result(r)
+
+    logical               :: r
+    type(fab), intent(in) :: fb
+    integer,   intent(in) :: comp, ncomp
+
+    integer :: sz, rc
+
+    real(kind=dp_t), pointer :: pp(:,:,:,:)
+
+    interface
+       subroutine fab_contains_nan(dptr, count, res)
+         use bl_types
+         integer,    intent(in)  :: count
+         real(dp_t), intent(in)  :: dptr(count)
+         integer,    intent(out) :: res
+       end subroutine fab_contains_nan
+    end interface
+
+    r = .false.
+
+    pp => dataptr(fb,comp,ncomp)
+
+    sz = box_volume(get_pbox(fb)) * ncomp
+
+    call fab_contains_nan(pp(:,:,:,:), sz, rc)
+
+    if (rc == 1) r = .true.
+
+  end function contains_nan_c
   !
   ! Toggle whether or not setval() is called immediately after a fab is built.
   !
