@@ -426,7 +426,6 @@ contains
     d%d => np
   end subroutine particle_container_reserve
 
-
   subroutine particle_container_add_point(d,loc,mla,dx,prob_lo,conditional)
     type(particle_container), intent(inout) :: d
     real(kind=dp_t),          intent(in   ) :: loc(:)
@@ -435,11 +434,11 @@ contains
     double precision,         intent(in   ) :: prob_lo(:)
     logical, optional,        intent(in   ) :: conditional
 
-    type(particle) :: p
+    type(particle)          :: p
     type(particle), pointer :: p_stored
-    integer        :: i,dm
-    logical        :: lconditional
-    logical        :: same_cell
+    integer                 :: i,dm
+    logical                 :: lconditional
+    logical                 :: same_cell
 
     lconditional = .false. ; if ( present(conditional) ) lconditional = conditional
 
@@ -450,40 +449,28 @@ contains
     end do
 
      if ( .not. particle_where(p,mla,dx,prob_lo) ) then
-        call bl_error('problem initializing particle')
+        call bl_error('particle_container_add_point: invalid particle')
      end if
 
      if ( local(mla%la(p%lev),p%grd) ) then
         !
         ! We own it.
         !
-
-        ! if this is a conditional add, make sure that we don't
-        ! already have a particle in the same grid cell
-        if (lconditional) then
+        if ( lconditional ) then
+           !
+           ! Make sure that we don't already have a particle in the same grid cell.
+           !
            do i = 1, capacity(d)
-              if (d%d(i)%id <= 0) cycle
+              if ( d%d(i)%id <= 0 ) cycle
 
               p_stored => d%d(i)
 
-              same_cell = .false.
-              select case (dm)
-              case (1)
-                 same_cell = (p_stored%cell(1) == p%cell(1))
-              case (2)
-                 same_cell = ((p_stored%cell(1) == p%cell(1)) .and. &
-                              (p_stored%cell(2) == p%cell(2)))
-              case (3)
-                 same_cell = ((p_stored%cell(1) == p%cell(1)) .and. &
-                              (p_stored%cell(2) == p%cell(2)) .and. &
-                              (p_stored%cell(3) == p%cell(3)))
-              end select
+              same_cell = all(p_stored%cell(1:dm) == p%cell(1:dm))
 
-              if (p_stored%lev == p%lev .and. &
-                  p_stored%grd == p%grd .and. &
-                  same_cell) then
-
-                 ! already have a particle here
+              if ( same_cell .and. p_stored%lev == p%lev ) then
+                 !
+                 ! Already have a particle here.
+                 !
                  return                 
               endif
            enddo
