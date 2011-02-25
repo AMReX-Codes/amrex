@@ -211,6 +211,7 @@ module fab_module
   interface contains_nan
      module procedure contains_nan_allc
      module procedure contains_nan_c
+     module procedure contains_nan_bx_c
   end interface contains_nan
 
   logical,       private, save ::      do_init_fabs = .false.
@@ -234,15 +235,56 @@ contains
   !
   ! Does a real(dp_t) fab contain a NaN?
   !
-  function contains_nan_c(fb,comp,ncomp) result(r)
+  function contains_nan_c(fb,c,nc) result(r)
+
+    use bl_error_module
 
     logical               :: r
     type(fab), intent(in) :: fb
-    integer,   intent(in) :: comp, ncomp
+    integer,   intent(in) :: c, nc
 
-    integer :: sz, rc
-
+    integer                  :: sz, rc
     real(kind=dp_t), pointer :: pp(:,:,:,:)
+
+    interface
+       subroutine fab_contains_nan(dptr, count, res)
+         use bl_types
+         integer,    intent(in)  :: count
+         real(dp_t), intent(in)  :: dptr(count)
+         integer,    intent(out) :: res
+       end subroutine fab_contains_nan
+    end interface
+
+    if ( (c+nc-1) > fb%nc ) call bl_error('contains_nan_c: not enough components')
+
+    r = .false.
+
+    pp => dataptr(fb)
+
+    sz = volume(get_pbox(fb)) * nc
+
+    call fab_contains_nan(pp(:,:,:,c), sz, rc)
+
+    if (rc == 1) r = .true.
+
+  end function contains_nan_c
+
+  function contains_nan_allc(fb) result(r)
+    logical               :: r
+    type(fab), intent(in) :: fb
+    r = contains_nan_c(fb,1,ncomp(fb))
+  end function contains_nan_allc
+
+  function contains_nan_bx_c(fb,bx,c,nc) result(r)
+
+    logical               :: r
+    type(fab), intent(in) :: fb
+    type(box), intent(in) :: bx
+    integer,   intent(in) :: c, nc
+
+    integer                      :: sz, rc, i, j, k, n, idx
+    real(kind=dp_t), allocatable :: d(:)
+    real(kind=dp_t), pointer     :: pp(:,:,:,:)
 
     interface
        subroutine fab_contains_nan(dptr, count, res)
@@ -255,24 +297,29 @@ contains
 
     r = .false.
 
-    pp => dataptr(fb,comp,ncomp)
+    sz = volume(bx) * nc
 
-    sz = box_volume(get_pbox(fb)) * ncomp
+    allocate(d(sz))
 
-    call fab_contains_nan(pp(:,:,:,:), sz, rc)
+    pp => dataptr(fb,bx,c,nc)
+
+    idx = 1
+    do n = lbound(pp,dim=4), ubound(pp,dim=4)
+       do k = lbound(pp,dim=3), ubound(pp,dim=3)
+          do j = lbound(pp,dim=2), ubound(pp,dim=2)
+             do i = lbound(pp,dim=1), ubound(pp,dim=1)
+                d(idx) = pp(i,j,k,n)
+                idx = idx + 1
+             end do
+          end do
+       end do
+    end do
+
+    call fab_contains_nan(d,sz,rc)
 
     if (rc == 1) r = .true.
 
-  end function contains_nan_c
-
-  function contains_nan_allc(fb) result(r)
-
-    logical               :: r
-    type(fab), intent(in) :: fb
-
-    r = contains_nan_c(fb,1,ncomp(fb))
-
-  end function contains_nan_allc
+  end function contains_nan_bx_c
   !
   ! Toggle whether or not setval() is called immediately after a fab is built.
   !
