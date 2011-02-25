@@ -234,36 +234,6 @@ contains
   !
   ! Does a real(dp_t) fab contain a NaN?
   !
-  function contains_nan_allc(fb) result(r)
-
-    logical               :: r
-    type(fab), intent(in) :: fb
-
-    integer :: sz, rc
-
-    real(kind=dp_t), pointer :: pp(:,:,:,:)
-
-    interface
-       subroutine fab_contains_nan(dptr, count, res)
-         use bl_types
-         integer,    intent(in)  :: count
-         real(dp_t), intent(in)  :: dptr(count)
-         integer,    intent(out) :: res
-       end subroutine fab_contains_nan
-    end interface
-
-    r = .false.
-
-    pp => dataptr(fb)
-
-    sz = fab_volume(fb,all=.true.)
-
-    call fab_contains_nan(pp(:,:,:,:), sz, rc)
-
-    if (rc == 1) r = .true.
-
-  end function contains_nan_allc
-
   function contains_nan_c(fb,comp,ncomp) result(r)
 
     logical               :: r
@@ -294,6 +264,15 @@ contains
     if (rc == 1) r = .true.
 
   end function contains_nan_c
+
+  function contains_nan_allc(fb) result(r)
+
+    logical               :: r
+    type(fab), intent(in) :: fb
+
+    r = contains_nan_c(fb,1,ncomp(fb))
+
+  end function contains_nan_allc
   !
   ! Toggle whether or not setval() is called immediately after a fab is built.
   !
