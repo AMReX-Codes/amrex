@@ -29,7 +29,7 @@ subroutine t_particle
 
   call particle_setverbose(.true.)
 
-  call debugging(.true.)
+  call particle_container_setdebugging(.true.)
   !
   ! Uncomment one of the following lines.
   !
