@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.17 2011-01-24 23:56:00 lijewski Exp $ 
+   $Id: fabio_c.c,v 1.18 2011-02-25 22:39:33 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
 #include <math.h>
@@ -793,7 +793,7 @@ void
 FAB_CONTAINS_NAN (double dptr[], const int* countp, int* result)
 {
     *result = 0;
-#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
+#if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
     int i;
     const double* dp = dptr;
     for (i = 0; i < *countp && *result == 0; i++)
