@@ -128,16 +128,28 @@ public:
     // TODO: the methods should return a constraint on the timestep...
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
-    //   standard coordinates
+    //   standard coordinates -- these rely on CELL-BASED gravity component
     //
     void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep);
     void moveKick      (const MultiFab& grav_vector, int level, Real timestep);
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
-    //   comoving coordinates
+    //   standard coordinates -- these rely on EDGE-BASED gravity component
+    //
+    void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep);
+    void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep);
+    //
+    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
+    //   comoving coordinates -- these rely on CELL-BASED gravity component
     //
     void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep, Real a_old, Real a_half);
     void moveKick      (const MultiFab& grav_vector, int level, Real timestep, Real a_new, Real a_half);
+    //
+    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
+    //   comoving coordinates -- these rely on EDGE-BASED gravity component
+    //
+    void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_old, Real a_half);
+    void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_new, Real a_half);
     //
     // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
     // so this scheme should work in the overall algorithm...
@@ -781,7 +793,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
                 const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
 
-                Real dt_part = (mag_vel > 0) ? 0.1 * a * dx[0] / mag_vel : 1e50;
+                Real dt_part = (mag_vel > 0) ? 0.9 * a * dx[0] / mag_vel : 1e50;
 
                 const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
 
@@ -1233,18 +1245,18 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
 
 template <int N>
 void
-ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
+ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
                                      int             lev,
                                      Real            dt)
 {
     Real a_old  = 1.;
     Real a_half = 1.;
-    moveKickDrift (gv,lev,dt,a_old,a_half);
+    moveKickDrift (grav_vector,lev,dt,a_old,a_half);
 }
 
 template <int N>
 void
-ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
+ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
                                      int             lev,
                                      Real            dt,
                                      Real            a_old,
@@ -1263,7 +1275,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
         const int        grid = pmap_it->first;
         PBox&            pbox = pmap_it->second;
         const int        n    = pbox.size();
-        const FArrayBox& gfab = gv[grid];
+        const FArrayBox& gfab = grav_vector[grid];
 
         Real half_dt  = 0.5 * dt;
 
@@ -1353,18 +1365,18 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& gv,
 
 template <int N>
 void
-ParticleContainer<N>::moveKick (const MultiFab& gv,
+ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
                                 int             lev,
                                 Real            dt)
 {
     Real a_new  = 1.;
     Real a_half = 1.;
-    moveKick (gv,lev,dt,a_new,a_half);
+    moveKick (grav_vector,lev,dt,a_new,a_half);
 }
 
 template <int N>
 void
-ParticleContainer<N>::moveKick (const MultiFab& gv,
+ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
                                 int             lev,
                                 Real            dt,
                                 Real            a_new,
@@ -1385,7 +1397,7 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
         const int        grid = pmap_it->first;
         PBox&            pbox = pmap_it->second;
         const int        n    = pbox.size();
-        const FArrayBox& gfab = gv[grid];
+        const FArrayBox& gfab = grav_vector[grid];
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
@@ -1419,6 +1431,242 @@ ParticleContainer<N>::moveKick (const MultiFab& gv,
             D_TERM(p.m_data[1] += half_dt * grav[0];,
                    p.m_data[2] += half_dt * grav[1];,
                    p.m_data[3] += half_dt * grav[2];);
+
+            D_TERM(p.m_data[1] /= a_new;,
+                   p.m_data[2] /= a_new;,
+                   p.m_data[3] /= a_new;);
+        }
+    }
+
+    if (m_verbose > 0)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << "\n\n";
+        }
+    }
+    //
+    // No need for Redistribution(), we only change the velocity.
+    //
+}
+
+template <int N>
+void
+ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
+                                     int             lev,
+                                     Real            dt)
+{
+    Real a_old  = 1.;
+    Real a_half = 1.;
+    moveKickDrift (grav_vector,lev,dt,a_old,a_half);
+}
+
+template <int N>
+void
+ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
+                                     int             lev,
+                                     Real            dt,
+                                     Real            a_old,
+                                     Real            a_half) 
+{
+    BL_ASSERT(OK());
+    BL_ASSERT(N >= BL_SPACEDIM+1);
+    BL_ASSERT(lev >= 0 && lev < m_particles.size());
+
+    const Geometry& geom             = m_amr->Geom(lev);
+    const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
+    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0),geom.ProbLo(1),geom.ProbLo(2)) };
+
+    const Real strttime = ParallelDescriptor::second();
+
+    PMap& pmap = m_particles[lev];
+
+    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    {
+        const int        grid = pmap_it->first;
+        PBox&            pbox = pmap_it->second;
+        const int        n    = pbox.size();
+        const FArrayBox* gfab[BL_SPACEDIM] = { D_DECL(&grav_vector[0][grid],&grav_vector[1][grid],&grav_vector[2][grid]) };
+
+        Real half_dt  = 0.5 * dt;
+
+#ifdef BL_USE_OMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < n; i++)
+        {
+            ParticleType& p = pbox[i];
+
+            if (p.m_id <= 0)
+                //
+                // Skip invalid particles.
+                //
+                continue;
+
+            BL_ASSERT(p.m_grid == grid);
+            //
+            // note: m_data[0] is mass, 1 is v_x, ...
+            //
+            Real grav[BL_SPACEDIM];
+
+            //
+            // First update (a u)^half = (a u)^old + dt/2 grav^old
+            //
+
+            D_TERM(p.m_data[1] *= a_old;,
+                   p.m_data[2] *= a_old;,
+                   p.m_data[3] *= a_old;);
+
+            for (int d = 0; d < BL_SPACEDIM; d++)
+            {
+                IntVect lo = p.m_cell, hi = lo;
+
+                hi[d] += 1;
+
+                const Real grav_lo = (*gfab[d])(lo);
+                const Real grav_hi = (*gfab[d])(hi);
+
+                const Real delta = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+
+                //
+                // Note: m_data[0] is mass, 1 is v_x, ...
+                //
+                p.m_data[1+d] += half_dt * (grav_lo + delta * (grav_hi - grav_lo));
+            }
+
+            D_TERM(p.m_data[1] /= a_half;,
+                   p.m_data[2] /= a_half;,
+                   p.m_data[3] /= a_half;);
+
+            //
+            // Now update x^new = x^old + dt grav^half / a^half
+            //
+
+            D_TERM(p.m_pos[0] += (dt / a_half) * p.m_data[1];,
+                   p.m_pos[1] += (dt / a_half) * p.m_data[2];,
+                   p.m_pos[2] += (dt / a_half) * p.m_data[3];);
+
+            if (!ParticleBase::Where(p,m_amr,true))
+            {
+                //
+                // Here's where we need to deal with boundary conditions.
+                //
+                // Attempt to shift the particle back into the domain if it
+                // crossed a periodic boundary.  Otherwise (for now) we
+                // invalidate the particle.
+                //
+                ParticleBase::PeriodicShift(p,m_amr);
+
+                if (!ParticleBase::Where(p,m_amr))
+                {
+                    std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
+
+                    BL_ASSERT(p.m_id > 0);
+
+                    p.m_id = -p.m_id;
+                }
+            }
+        }
+    }
+
+    if (m_verbose > 0)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << "\n\n";
+        }
+    }
+
+    Redistribute(true);
+}
+
+template <int N>
+void
+ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
+                                 int             lev,
+                                 Real            dt)
+{
+    Real a_new  = 1.;
+    Real a_half = 1.;
+    moveKick (grav_vector,lev,dt,a_new,a_half);
+}
+
+template <int N>
+void
+ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
+                                int             lev,
+                                Real            dt,
+                                Real            a_new,
+                                Real            a_half) 
+{
+    BL_ASSERT(OK());
+    BL_ASSERT(N >= BL_SPACEDIM+1);
+    BL_ASSERT(lev >= 0 && lev < m_particles.size());
+
+    const Real strttime = ParallelDescriptor::second();
+
+    const Geometry& geom             = m_amr->Geom(lev);
+    const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
+    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0),geom.ProbLo(1),geom.ProbLo(2)) };
+
+    PMap& pmap = m_particles[lev];
+
+    Real half_dt  = 0.5 * dt;
+
+    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    {
+        const int        grid = pmap_it->first;
+        PBox&            pbox = pmap_it->second;
+        const int        n    = pbox.size();
+        const FArrayBox* gfab[BL_SPACEDIM] = { D_DECL(&grav_vector[0][grid],&grav_vector[1][grid],&grav_vector[2][grid]) };
+
+#ifdef BL_USE_OMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < n; i++)
+        {
+            ParticleType& p = pbox[i];
+
+            if (p.m_id <= 0)
+                //
+                // Skip invalid particles.
+                //
+                continue;
+
+            BL_ASSERT(p.m_grid == grid);
+
+            //
+            // Define (a u)^new = (a u)^half + dt/2 grav^new
+            //
+
+            D_TERM(p.m_data[1] *= a_half;,
+                   p.m_data[2] *= a_half;,
+                   p.m_data[3] *= a_half;);
+
+            for (int d = 0; d < BL_SPACEDIM; d++)
+            {
+                IntVect lo = p.m_cell, hi = lo;
+
+                hi[d] += 1;
+
+                const Real grav_lo = (*gfab[d])(lo);
+                const Real grav_hi = (*gfab[d])(hi);
+
+                const Real delta = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+
+                //
+                // Note: m_data[0] is mass, 1 is v_x, ...
+                //
+                p.m_data[1+d] += half_dt * (grav_lo + delta * (grav_hi - grav_lo));
+            }
 
             D_TERM(p.m_data[1] /= a_new;,
                    p.m_data[2] /= a_new;,
