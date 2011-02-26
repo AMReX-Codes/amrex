@@ -452,7 +452,7 @@ contains
             rho = dot(rh_local, ss)
          volume = dot(       ss,ss)
       end if
-      print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
+!     print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
 
       rho = rho / volume
       call saxpy(rh_local,-rho,ss)
