@@ -1508,10 +1508,6 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
                 continue;
 
             BL_ASSERT(p.m_grid == grid);
-            //
-            // note: m_data[0] is mass, 1 is v_x, ...
-            //
-            Real grav[BL_SPACEDIM];
 
             //
             // First update (a u)^half = (a u)^old + dt/2 grav^old
