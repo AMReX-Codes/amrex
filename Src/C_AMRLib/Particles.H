@@ -793,7 +793,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
                 const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
 
-                Real dt_part = (mag_vel > 0) ? 0.9 * a * dx[0] / mag_vel : 1e50;
+                Real dt_part = (mag_vel > 0) ? 0.5 * a * dx[0] / mag_vel : 1e50;
 
                 const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
 
