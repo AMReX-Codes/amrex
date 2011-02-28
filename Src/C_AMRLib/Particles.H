@@ -1726,8 +1726,8 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
                 const Real umac_lo = (*umacfab[d])(lo);
                 const Real umac_hi = (*umacfab[d])(hi);
-                const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d] - .5;
-                const Real vel     = .5 * (umac_lo + umac_hi) + delta * (umac_hi - umac_lo);
+                const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+                const Real vel     = umac_lo + delta * (umac_hi - umac_lo);
                 //
                 // Save the old position.
                 //
@@ -1799,8 +1799,8 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
                 const Real umac_lo = (*umacfab[d])(lo);
                 const Real umac_hi = (*umacfab[d])(hi);
-                const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d] - .5;
-                const Real vel     = .5 * (umac_lo + umac_hi) + delta * (umac_hi - umac_lo);
+                const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+                const Real vel     = umac_lo + delta * (umac_hi - umac_lo);
                 //
                 // Update to final time using the orig position and the new vel.
                 //
