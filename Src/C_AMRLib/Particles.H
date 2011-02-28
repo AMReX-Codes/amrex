@@ -2574,8 +2574,6 @@ ParticleContainer<N>::WriteParticles (int            lev,
                                       Array<int>&    count,
                                       Array<long>&   where) const
 {
-    BL_ASSERT(m_amr->finestLevel() <= lev+1);
-
     const PMap&     pmap  = m_particles[lev];
     const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
 
