@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.18 2011-02-25 22:39:33 lijewski Exp $ 
+   $Id: fabio_c.c,v 1.19 2011-02-28 17:49:31 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
 #include <math.h>
@@ -44,6 +44,7 @@ typedef int mode_t;
 #define FABIO_READ_SKIP_S fabio_read_skip_s_
 #define FABIO_CLOSE       fabio_close_
 #define FAB_CONTAINS_NAN  fab_contains_nan_
+#define FAB_CONTAINS_INF  fab_contains_inf_
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str__
 #define FABIO_OPEN_STR    fabio_open_str__
@@ -60,6 +61,7 @@ typedef int mode_t;
 #define FABIO_READ_SKIP_S fabio_read_skip_s__
 #define FABIO_CLOSE       fabio_close__
 #define FAB_CONTAINS_NAN  fab_contains_nan__
+#define FAB_CONTAINS_INF  fab_contains_inf__
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str
 #define FABIO_OPEN_STR    fabio_open_str
@@ -76,6 +78,7 @@ typedef int mode_t;
 #define FABIO_READ_SKIP_S fabio_read_skip_s
 #define FABIO_CLOSE       fabio_close
 #define FAB_CONTAINS_NAN  fab_contains_nan
+#define FAB_CONTAINS_INF  fab_contains_inf
 #endif
 
 static
@@ -798,6 +801,19 @@ FAB_CONTAINS_NAN (double dptr[], const int* countp, int* result)
     const double* dp = dptr;
     for (i = 0; i < *countp && *result == 0; i++)
         if (isnan(*dp++))
+            *result = 1;
+#endif
+}
+
+void
+FAB_CONTAINS_INF (double dptr[], const int* countp, int* result)
+{
+    *result = 0;
+#if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
+    int i;
+    const double* dp = dptr;
+    for (i = 0; i < *countp && *result == 0; i++)
+        if (isinf(*dp++))
             *result = 1;
 #endif
 }
