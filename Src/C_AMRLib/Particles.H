@@ -1692,145 +1692,94 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
     const Real      strttime        = ParallelDescriptor::second();
     const Geometry& geom            = m_amr->Geom(lev);
     const Real      dx[BL_SPACEDIM] = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
-    //
-    // Predictor -- advance through dt/2 and update the position.
-    //
-    for (typename PMap::iterator pmap_it = m_particles[lev].begin(), pmapEnd = m_particles[lev].end(); pmap_it != pmapEnd; ++pmap_it)
-    {
-        const int grid = pmap_it->first;
-        PBox&     pbox = pmap_it->second;
-        const int n    = pbox.size();
 
-        const FArrayBox* umacfab[BL_SPACEDIM] = { D_DECL(&umac[0][grid],&umac[1][grid],&umac[2][grid]) };
+    for (int ipass = 0; ipass < 2; ipass++)
+    {
+        for (typename PMap::iterator pmap_it = m_particles[lev].begin(), pmapEnd = m_particles[lev].end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            const int grid = pmap_it->first;
+            PBox&     pbox = pmap_it->second;
+            const int n    = pbox.size();
+
+            const FArrayBox* umacfab[BL_SPACEDIM] = { D_DECL(&umac[0][grid],&umac[1][grid],&umac[2][grid]) };
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
 #endif
-        for (int i = 0; i < n; i++)
-        {
-            ParticleType& p = pbox[i];
-
-            if (p.m_id <= 0)
-                //
-                // Skip invalid particles.
-                //
-                continue;
-
-            BL_ASSERT(p.m_grid == grid);
-
-            for (int d = 0; d < BL_SPACEDIM; d++)
+            for (int i = 0; i < n; i++)
             {
-                IntVect lo = p.m_cell, hi = lo;
+                ParticleType& p = pbox[i];
 
-                hi[d] += 1;
+                if (p.m_id <= 0)
+                    //
+                    // Skip invalid particles.
+                    //
+                    continue;
 
-                const Real umac_lo = (*umacfab[d])(lo);
-                const Real umac_hi = (*umacfab[d])(hi);
-                const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
-                const Real vel     = umac_lo + delta * (umac_hi - umac_lo);
-                //
-                // Save the old position.
-                //
-                // We're assuming m_data[0:BL_SPACEDIM-1] holds old position.
-                //
-                p.m_data[d] = p.m_pos[d];
-                //
-                // Update to the t = n+1/2 position
-                //
-                p.m_pos[d] += .5*dt*vel;
-            }
+                BL_ASSERT(p.m_grid == grid);
 
-            if (!ParticleBase::Where(p,m_amr,true))
-            {
-                //
-                // Here's where we need to deal with boundary conditions.
-                //
-                // Attempt to shift the particle back into the domain if it
-                // crossed a periodic boundary.  Otherwise (for now) we
-                // invalidate the particle.
-                //
-                ParticleBase::PeriodicShift(p,m_amr);
-
-                if (!ParticleBase::Where(p,m_amr))
+                for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
+                    IntVect lo = p.m_cell, hi = lo;
 
-                    BL_ASSERT(p.m_id > 0);
+                    hi[d] += 1;
 
-                    p.m_id = -p.m_id;
+                    const Real umac_lo = (*umacfab[d])(lo);
+                    const Real umac_hi = (*umacfab[d])(hi);
+                    const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+                    const Real vel     = umac_lo + delta * (umac_hi - umac_lo);
+
+                    if (ipass == 0)
+                    {
+                        //
+                        // Predictor:
+                        //
+                        // Save the old position.
+                        //
+                        // We're assuming m_data[0:BL_SPACEDIM-1] holds old position.
+                        //
+                        p.m_data[d] = p.m_pos[d];
+                        //
+                        // Update to the t = n+1/2 position
+                        //
+                        p.m_pos[d] += .5*dt*vel;
+                    }
+                    else
+                    {
+                        //
+                        // Corrector:
+                        //
+                        // Update to final time using the orig position and the new vel.
+                        //
+                        p.m_pos[d] = p.m_data[d] + dt*vel;
+                    }
+                }
+
+                if (!ParticleBase::Where(p,m_amr,true))
+                {
+                    //
+                    // Here's where we need to deal with boundary conditions.
+                    //
+                    // Attempt to shift the particle back into the domain if it
+                    // crossed a periodic boundary.  Otherwise (for now) we
+                    // invalidate the particle.
+                    //
+                    ParticleBase::PeriodicShift(p,m_amr);
+
+                    if (!ParticleBase::Where(p,m_amr))
+                    {
+                        std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
+
+                        BL_ASSERT(p.m_id > 0);
+
+                        p.m_id = -p.m_id;
+                    }
                 }
             }
         }
+
+        Redistribute(true);
     }
-
-    Redistribute(true);
-    //
-    // Corrector -- advance from the original position through dt to
-    // the final time using the velocity at the 1/2 time position.
-    //
-    for (typename PMap::iterator pmap_it = m_particles[lev].begin(), pmapEnd = m_particles[lev].end(); pmap_it != pmapEnd; ++pmap_it)
-    {
-        const int grid = pmap_it->first;
-        PBox&     pbox = pmap_it->second;
-        const int n    = pbox.size();
-
-        const FArrayBox* umacfab[BL_SPACEDIM] = { D_DECL(&umac[0][grid],&umac[1][grid],&umac[2][grid]) };
-
-#ifdef BL_USE_OMP
-#pragma omp parallel for
-#endif
-        for (int i = 0; i < n; i++)
-        {
-            ParticleType& p = pbox[i];
-
-            if (p.m_id <= 0)
-                //
-                // Skip invalid particles.
-                //
-                continue;
-
-            BL_ASSERT(p.m_grid == grid);
-
-            for (int d = 0; d < BL_SPACEDIM; d++)
-            {
-                IntVect lo = p.m_cell, hi = lo;
-
-                hi[d] += 1;
-
-                const Real umac_lo = (*umacfab[d])(lo);
-                const Real umac_hi = (*umacfab[d])(hi);
-                const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
-                const Real vel     = umac_lo + delta * (umac_hi - umac_lo);
-                //
-                // Update to final time using the orig position and the new vel.
-                //
-                p.m_pos[d] = p.m_data[d] + dt*vel;
-            }
-
-            if (!ParticleBase::Where(p,m_amr,true))
-            {
-                //
-                // Here's where we need to deal with boundary conditions.
-                //
-                // Attempt to shift the particle back into the domain if it
-                // crossed a periodic boundary.  Otherwise (for now) we
-                // invalidate the particle.
-                //
-                ParticleBase::PeriodicShift(p,m_amr);
-
-                if (!ParticleBase::Where(p,m_amr))
-                {
-                    std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
-
-                    BL_ASSERT(p.m_id > 0);
-
-                    p.m_id = -p.m_id;
-                }
-            }
-        }
-    }
-
-    Redistribute(true);
 
     if (m_verbose > 0)
     {
