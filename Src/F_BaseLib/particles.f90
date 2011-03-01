@@ -761,12 +761,13 @@ contains
     if ( particle_container_debugging() ) then
        call bl_assert(ok(particles), 'particle_container_move_advect: not OK on entry')
     end if
-
+    !
     !-------------------------------------------------------------------------
     ! do the advection using a predictor-corrector scheme.  ipass = 1 is the
     ! predictor and updates the particle to the 1/2-time.  ipass = 2 is the 
     ! corrector and updates the particle to the final time.
     ! -------------------------------------------------------------------------
+    !
     do ipass = 1,2
        do p_id = 1, capacity(particles)
           !
@@ -802,35 +803,29 @@ contains
           do d=1,dm
 
              slope = umac_hi(d) - umac_lo(d)
-
-             ! delta is a number between [-0.5,0.5] that represents the position in the cell
-             delta =  ( (p%pos(d) - prob_lo(d)) - &
-                  int((p%pos(d) - prob_lo(d)) / dx(p%lev,d)) * dx(p%lev,d) ) / dx(p%lev,d) &
-                  - 0.5d0
-            
-             vel = (umac_lo(d) + umac_hi(d)) / 2.d0 + delta * slope
+             delta = (p%pos(d) - p%cell(d)) / dx(p%lev,d)
+             vel   = umac_lo(d) + delta * slope
 
              if (ipass == 1) then
                 !
                 ! predictor stage
                 !
                 ! save the original particle position and update the
-                ! particle to the 1/2-time position 
+                ! particle to the 1/2-time position
+                !
                 p%origpos(d) = p%pos(d)
                 
                 p%pos(d) = p%pos(d) + HALF*dt*vel
-
              else
                 ! corrector stage
                 !
                 ! update to the final time, using the original position
                 ! and the velocity at teh 1/2-time position
+                !
                 p%pos(d) = p%origpos(d) + dt*vel
-                
              endif
 
           end do
-
           !
           ! The particle has moved.
           !
