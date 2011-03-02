@@ -304,7 +304,7 @@ contains
           call print(layout_get_pd(old_coarse_la))
           print *,'   ... Original boxes ',old_coarse_la%lap%nboxes
           print *,'   ... New      boxes ',new_coarse_la%lap%nboxes
-          print *,'# cells on each side  ',bottom_box_size
+!         print *,'# cells on each side  ',bottom_box_size
        end if
 
        coarse_dx(:) = mgt%dh(:,1)
