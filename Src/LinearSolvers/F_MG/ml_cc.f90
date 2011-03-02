@@ -52,7 +52,7 @@ contains
 
     real(dp_t) :: Anorm, bnorm, abs_eps, ni_res
     real(dp_t) :: tres, tres0, max_norm
-    real(dp_t) :: rho
+    real(dp_t) :: rho, sum
 
     type(bl_prof_timer), save :: bpt
 
@@ -175,23 +175,6 @@ contains
              fmt='("F90mg: Initial residual (resid0)    = ",g15.8)') tres0
     end if
 
-    ! Check the sum of the rhs (for solvability if its singular -- here we only check periodicity)
-    if (all(layout_get_pmask(mla%la(1)) .eqv. .true.) .and. .not. nodal_q(rh(1))) then
-
-      ! Just use res as scratch space here
-      call setval(res(1),ONE)
-
-      ! Sum the rhs over the domain at level 1
-      rho = dot(rh(1), res(1))
-
-      if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
-         write(unit=*, fmt='("F90mg: Sum of rhs                   = ",g15.8)') rho
-      end if
-
-      call multifab_copy(res(1),rh(1),ng = nghost(rh(1)))
-
-    end if
-
     ! ************************************************************************
     !  Define norm to be used for convergence testing that is the maximum
     !    of bnorm (norm of rhs) and tres0 (norm of resid0)
@@ -235,6 +218,26 @@ contains
        do n = nlevs,1,-1
 
           mglev = mgt(n)%nlevels
+
+          ! Enforce solvability if appropriate
+          if (nlevs .eq. 1 .and. mgt(1)%bottom_singular) then
+
+             sum = multifab_sum(res(1))  / boxarray_dvolume(get_boxarray(res(1)))
+
+             ! Set this to all one for use in saxpy 
+             call setval( uu(1),  ONE, all=.true.)
+
+             ! Subtract "sum" from res(1) in order to make this solvable
+             call  saxpy(res(1), -sum, uu(1))
+  
+             ! Return this to zero
+             call setval( uu(1), ZERO, all=.true.)
+
+             if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
+                write(unit=*, fmt='("F90mg: Subtracting from rhs ",g15.8)') sum
+             end if
+
+          end if
 
           if ( do_diagnostics == 1 ) then
              tres = norm_inf(res(n))
