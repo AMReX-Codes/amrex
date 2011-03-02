@@ -452,9 +452,10 @@ contains
             rho = dot(rh_local, ss)
          volume = dot(       ss,ss)
       end if
-!     print *,'SINGULAR ADJUSTMENT ',rho,' OVER ',volume 
-
       rho = rho / volume
+      if ( parallel_IOProcessor() .and. verbose > 0) &
+        print *,'...singular adjustment to rhs: ',rho
+
       call saxpy(rh_local,-rho,ss)
       call setval(ss,ZERO,all=.true.)
     end if
