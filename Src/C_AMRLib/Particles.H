@@ -37,6 +37,8 @@ struct ParticleBase
 
     static bool Where (ParticleBase& prt, const Amr* amr, bool update = false);
 
+    static void Reset (ParticleBase& prt, const Amr* amr, bool update);
+
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
 
     static const std::string& Version ();
@@ -209,7 +211,7 @@ protected:
 };
 
 //
-// This includes both valid and invalid particles.
+// This includes both valid and invalid particles since invalid particles still take up space.
 //
 
 template <int N>
@@ -251,7 +253,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
 {
     BL_ASSERT(!file.empty());
 
-    const int MyProc = ParallelDescriptor::MyProc();
+    const int  MyProc   = ParallelDescriptor::MyProc();
     const Real strttime = ParallelDescriptor::second();
 
     m_particles.resize(m_amr->finestLevel()+1);
@@ -293,13 +295,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
             BoxLib::Error(msg.c_str());
         }
 
-
         if (!ParticleBase::Where(p,m_amr))
             ParticleBase::PeriodicShift(p,m_amr);
 
         if (!ParticleBase::Where(p,m_amr))
             BoxLib::Abort("ParticleContainer<N>::Init(): invalid particle");
-
          //
          // Only the MPI process that owns the needed velocity data gets "p".
          //
@@ -368,8 +368,8 @@ ParticleContainer<N>::InitCosmo (Real          mass)
     }
 
     //FIXME!
-    Real vel_fac  = 1./1000.;
-    Real disp_fac = 1./100.;
+    Real vel_fac  = 1 / 1000.0;
+    Real disp_fac = 1 / 100.0;
 
     D_TERM(len[0] = geom.ProbLength(0);,
            len[1] = geom.ProbLength(1);,
@@ -440,7 +440,6 @@ ParticleContainer<N>::InitCosmo (Real          mass)
 	                BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
 		    }
 
-//		    std::cout << p << std::endl;
 	            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_amr->finestLevel());
 	            //
 	            // Add it to the appropriate PBox at the appropriate level.
@@ -678,38 +677,24 @@ ParticleContainer<N>::MoveRandom ()
         for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
         {
             PBox& pbox = pmap_it->second;
-
+            //
+            // Don't try to thread this.  The random # generator isn't thread-safe.
+            //
             for (typename PBox::iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
             {
-                for (int i = 0; i < BL_SPACEDIM; i++)
+                if (it->m_id > 0)
                 {
-                    int sgn = 1;
-
-                    if (BoxLib::Random() >= 0.5)
-                        sgn = -1;
-
-                    it->m_pos[i] +=  sgn * 0.25 * geom.CellSize(i) * BoxLib::Random();
-                }
-
-                if (!ParticleBase::Where(*it,m_amr,true))
-                {
-                    //
-                    // Here's where we need to deal with boundary conditions.
-                    //
-                    // Attempt to shift the particle back into the domain if it
-                    // crossed a periodic boundary.  Otherwise (for now) we
-                    // invalidate the particle.
-                    //
-                    ParticleBase::PeriodicShift(*it,m_amr);
-
-                    if (!ParticleBase::Where(*it,m_amr))
+                    for (int i = 0; i < BL_SPACEDIM; i++)
                     {
-                        std::cout << "Invalidating out-of-domain particle: " << *it << std::endl;
+                        int sgn = 1;
 
-                        BL_ASSERT(it->m_id > 0);
+                        if (BoxLib::Random() >= 0.5)
+                            sgn = -1;
 
-                        it->m_id = -it->m_id;
+                        it->m_pos[i] +=  sgn * 0.25 * geom.CellSize(i) * BoxLib::Random();
                     }
+
+                    ParticleBase::Reset(*it,m_amr,true);
                 }
             }
         }
@@ -783,26 +768,23 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
             {
                 const ParticleType& p = pbox[i];
 
-                if (p.m_id <= 0)
-                    //
-                    // Skip invalid particles.
-                    //
-                    continue;
+                if (p.m_id > 0)
+                {
+                    BL_ASSERT(p.m_grid == grid);
 
-                BL_ASSERT(p.m_grid == grid);
+                    const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
 
-                const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
+                    Real dt_part = (mag_vel > 0) ? 0.5 * a * dx[0] / mag_vel : 1e50;
 
-                Real dt_part = (mag_vel > 0) ? 0.5 * a * dx[0] / mag_vel : 1e50;
+                    const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
 
-                const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
+                    const Real mag_grav = sqrt(D_TERM(gval[0]*gval[0], + gval[1]*gval[1], + gval[2]*gval[2]));
 
-                const Real mag_grav = sqrt(D_TERM(gval[0]*gval[0], + gval[1]*gval[1], + gval[2]*gval[2]));
+                    if (mag_grav > 0)
+                        dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
 
-                if (mag_grav > 0)
-                    dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
-
-                dt_local = std::min(dt_part, dt_local);
+                    dt_local = std::min(dt_part, dt_local);
+                }
             }
 
 #ifdef BL_USE_OMP
@@ -827,8 +809,6 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
             std::cout << "ParticleContainer<N>::estTimestep() time: " << stoptime << "\n\n";
         }
     }
-
-
 
     return dt;
 }
@@ -887,7 +867,7 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
         const PBox& pbox = pmap_it->second;
-        const int  n     = pbox.size();
+        const int   n    = pbox.size();
 
         Real mom_0 = 0, mom_1 = 0, mom_2 = 0;
 
@@ -898,15 +878,12 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
         {
             const ParticleType& p = pbox[i];
 
-            if (p.m_id <= 0)
-                //
-                // Skip invalid particles.
-                //
-                continue;
-
-            D_TERM(mom_0 += p.m_data[0] * p.m_data[1];,
-                   mom_1 += p.m_data[0] * p.m_data[2];,
-                   mom_2 += p.m_data[0] * p.m_data[3];);
+            if (p.m_id > 0)
+            {
+                D_TERM(mom_0 += p.m_data[0] * p.m_data[1];,
+                       mom_1 += p.m_data[0] * p.m_data[2];,
+                       mom_2 += p.m_data[0] * p.m_data[3];);
+            }
         }
         
         D_TERM(mom[0] += mom_0;, mom[1] += mom_1;, mom[2] += mom_2;);
@@ -974,78 +951,81 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
         {
             const ParticleType& p = *it;
 
-            if (p.m_id > 0)
-            {
-                const IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
-                                           floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
-                                           floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
+            if (p.m_id <= 0)
+                //
+                // Skip invalid particles.
+                //
+                continue;
 
-                const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
-                                                        -csect[1] + p.m_pos[1]/dx[1] + 0.5,
-                                                        -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
-                IntVect cell = csect;
+            const IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
+                                       floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
+                                       floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
+
+            const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
+                                                    -csect[1] + p.m_pos[1]/dx[1] + 0.5,
+                                                    -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
+            IntVect cell = csect;
 
 #if (BL_SPACEDIM == 1)
-                // High
-                fab(cell) += p.m_data[0] * frac[0];
+            // High
+            fab(cell) += p.m_data[0] * frac[0];
 
-                // Low
-                cell[0]     = cell[0] - 1;
-                fab(cell)  += p.m_data[0] * (1-frac[0]);
+            // Low
+            cell[0]     = cell[0] - 1;
+            fab(cell)  += p.m_data[0] * (1-frac[0]);
 #endif
             
 #if (BL_SPACEDIM == 2)
-                // HH
-                fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
+            // HH
+            fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
     
-                // LH
-                cell[0]    = cell[0] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
+            // LH
+            cell[0]    = cell[0] - 1;
+            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
     
-                // LL
-                cell[1]    = cell[1] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
+            // LL
+            cell[1]    = cell[1] - 1;
+            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
     
-                // HL
-                cell[0]    = cell[0] + 1;
-                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
+            // HL
+            cell[0]    = cell[0] + 1;
+            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
 #endif
 
 #if (BL_SPACEDIM == 3)
-                // HHH
-                fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
+            // HHH
+            fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
 
-                // LHH
-                cell[0]    = cell[0] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
+            // LHH
+            cell[0]    = cell[0] - 1;
+            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
 
-                // LLH
-                cell[1]    = cell[1] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * frac[2] ;
+            // LLH
+            cell[1]    = cell[1] - 1;
+            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * frac[2] ;
     
-                // HLH
-                cell[0]    = cell[0] + 1;
-                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) *    frac[2] ;
+            // HLH
+            cell[0]    = cell[0] + 1;
+            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) *    frac[2] ;
 
-                cell     = csect;
-                cell[2]  = cell[2] - 1;
+            cell     = csect;
+            cell[2]  = cell[2] - 1;
 
-                // HHL
-                fab(cell) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
+            // HHL
+            fab(cell) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
     
-                // LHL
-                cell[0]    = cell[0] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
+            // LHL
+            cell[0]    = cell[0] - 1;
+            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
 
-                // LLL
-                cell[1]    = cell[1] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
+            // LLL
+            cell[1]    = cell[1] - 1;
+            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
     
-                // HLL
-                cell[0]    = cell[0] + 1;
-                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
+            // HLL
+            cell[0]    = cell[0] + 1;
+            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
 #endif
-            }
         }
     }
 
@@ -1097,43 +1077,21 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
         {
             ParticleType& p = pbox[i];
 
-            if (p.m_id <= 0)
-                //
-                // Skip invalid particles.
-                //
-                continue;
-
-            BL_ASSERT(p.m_grid == grid);
-            //
-            // Note: m_data[0] is mass, 1 is v_x, ...
-            //
-            D_TERM(p.m_data[1] += dt * gfab(p.m_cell,0);,
-                   p.m_data[2] += dt * gfab(p.m_cell,1);,
-                   p.m_data[3] += dt * gfab(p.m_cell,2););
-
-            D_TERM(p.m_pos[0]  += dt * p.m_data[1];,
-                   p.m_pos[1]  += dt * p.m_data[2];,
-                   p.m_pos[2]  += dt * p.m_data[3];);
-
-            if (!ParticleBase::Where(p,m_amr,true))
+            if (p.m_id > 0)
             {
+                BL_ASSERT(p.m_grid == grid);
                 //
-                // Here's where we need to deal with boundary conditions.
+                // Note: m_data[0] is mass, 1 is v_x, ...
                 //
-                // Attempt to shift the particle back into the domain if it
-                // crossed a periodic boundary.  Otherwise (for now) we
-                // invalidate the particle.
-                //
-                ParticleBase::PeriodicShift(p,m_amr);
+                D_TERM(p.m_data[1] += dt * gfab(p.m_cell,0);,
+                       p.m_data[2] += dt * gfab(p.m_cell,1);,
+                       p.m_data[3] += dt * gfab(p.m_cell,2););
 
-                if (!ParticleBase::Where(p,m_amr))
-                {
-                    std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
+                D_TERM(p.m_pos[0]  += dt * p.m_data[1];,
+                       p.m_pos[1]  += dt * p.m_data[2];,
+                       p.m_pos[2]  += dt * p.m_data[3];);
 
-                    BL_ASSERT(p.m_id > 0);
-
-                    p.m_id = -p.m_id;
-                }
+                ParticleBase::Reset(p,m_amr,true);
             }
         }
     }
@@ -1183,47 +1141,25 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
         {
             ParticleType& p = pbox[i];
 
-            if (p.m_id <= 0)
-                //
-                // Skip invalid particles.
-                //
-                continue;
-
-            BL_ASSERT(p.m_grid == grid);
-            //
-            // Note: m_data[0] is mass, 1 is v_x, ...
-            //
-            D_TERM(p.m_pos[0]  -= 0.5 * dt * p.m_data[1];,
-                   p.m_pos[1]  -= 0.5 * dt * p.m_data[2];,
-                   p.m_pos[2]  -= 0.5 * dt * p.m_data[3];);
-            
-            D_TERM(p.m_data[1] += 0.5 * dt * ( gfab(p.m_cell,0) - gfab_old(p.m_cell,0) );,
-                   p.m_data[2] += 0.5 * dt * ( gfab(p.m_cell,1) - gfab_old(p.m_cell,1) );,
-                   p.m_data[3] += 0.5 * dt * ( gfab(p.m_cell,2) - gfab_old(p.m_cell,2) ););
-
-            D_TERM(p.m_pos[0]  += 0.5 * dt * p.m_data[1];,
-                   p.m_pos[1]  += 0.5 * dt * p.m_data[2];,
-                   p.m_pos[2]  += 0.5 * dt * p.m_data[3];);
-
-            if (!ParticleBase::Where(p,m_amr,true))
+            if (p.m_id > 0)
             {
+                BL_ASSERT(p.m_grid == grid);
                 //
-                // Here's where we need to deal with boundary conditions.
+                // Note: m_data[0] is mass, 1 is v_x, ...
                 //
-                // Attempt to shift the particle back into the domain if it
-                // crossed a periodic boundary.  Otherwise (for now) we
-                // invalidate the particle.
-                //
-                ParticleBase::PeriodicShift(p,m_amr);
+                D_TERM(p.m_pos[0]  -= 0.5 * dt * p.m_data[1];,
+                       p.m_pos[1]  -= 0.5 * dt * p.m_data[2];,
+                       p.m_pos[2]  -= 0.5 * dt * p.m_data[3];);
+            
+                D_TERM(p.m_data[1] += 0.5 * dt * ( gfab(p.m_cell,0) - gfab_old(p.m_cell,0) );,
+                       p.m_data[2] += 0.5 * dt * ( gfab(p.m_cell,1) - gfab_old(p.m_cell,1) );,
+                       p.m_data[3] += 0.5 * dt * ( gfab(p.m_cell,2) - gfab_old(p.m_cell,2) ););
 
-                if (!ParticleBase::Where(p,m_amr))
-                {
-                    std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
+                D_TERM(p.m_pos[0]  += 0.5 * dt * p.m_data[1];,
+                       p.m_pos[1]  += 0.5 * dt * p.m_data[2];,
+                       p.m_pos[2]  += 0.5 * dt * p.m_data[3];);
 
-                    BL_ASSERT(p.m_id > 0);
-
-                    p.m_id = -p.m_id;
-                }
+                ParticleBase::Reset(p,m_amr,true);
             }
         }
     }
@@ -1269,8 +1205,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
     const Real strttime   = ParallelDescriptor::second();
     const Real half_dt    = 0.5 * dt;
     const Real a_half_inv = 1 / a_half;
-
-    PMap& pmap = m_particles[lev];
+    PMap&      pmap       = m_particles[lev];
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -1286,61 +1221,39 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
         {
             ParticleType& p = pbox[i];
 
-            if (p.m_id <= 0)
-                //
-                // Skip invalid particles.
-                //
-                continue;
-
-            BL_ASSERT(p.m_grid == grid);
-            //
-            // note: m_data[0] is mass, 1 is v_x, ...
-            //
-            Real grav[BL_SPACEDIM];
-
-            ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
-            //
-            // First update (a u)^half = (a u)^old + dt/2 grav^old
-            //
-            D_TERM(p.m_data[1] *= a_old;,
-                   p.m_data[2] *= a_old;,
-                   p.m_data[3] *= a_old;);
-            //
-            // Add adot/a and gravitational updates.
-            //
-            D_TERM(p.m_data[1] += half_dt * grav[0];,
-                   p.m_data[2] += half_dt * grav[1];,
-                   p.m_data[3] += half_dt * grav[2];);
-
-            D_TERM(p.m_data[1] *= a_half_inv;,
-                   p.m_data[2] *= a_half_inv;,
-                   p.m_data[3] *= a_half_inv;);
-            //
-            // Now update x^new = x^old + dt grav^half / a^half
-            //
-            D_TERM(p.m_pos[0] += (dt * a_half_inv) * p.m_data[1];,
-                   p.m_pos[1] += (dt * a_half_inv) * p.m_data[2];,
-                   p.m_pos[2] += (dt * a_half_inv) * p.m_data[3];);
-
-            if (!ParticleBase::Where(p,m_amr,true))
+            if (p.m_id > 0)
             {
+                BL_ASSERT(p.m_grid == grid);
                 //
-                // Here's where we need to deal with boundary conditions.
+                // note: m_data[0] is mass, 1 is v_x, ...
                 //
-                // Attempt to shift the particle back into the domain if it
-                // crossed a periodic boundary.  Otherwise (for now) we
-                // invalidate the particle.
+                Real grav[BL_SPACEDIM];
+
+                ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
                 //
-                ParticleBase::PeriodicShift(p,m_amr);
+                // First update (a u)^half = (a u)^old + dt/2 grav^old
+                //
+                D_TERM(p.m_data[1] *= a_old;,
+                       p.m_data[2] *= a_old;,
+                       p.m_data[3] *= a_old;);
+                //
+                // Add adot/a and gravitational updates.
+                //
+                D_TERM(p.m_data[1] += half_dt * grav[0];,
+                       p.m_data[2] += half_dt * grav[1];,
+                       p.m_data[3] += half_dt * grav[2];);
 
-                if (!ParticleBase::Where(p,m_amr))
-                {
-                    std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
+                D_TERM(p.m_data[1] *= a_half_inv;,
+                       p.m_data[2] *= a_half_inv;,
+                       p.m_data[3] *= a_half_inv;);
+                //
+                // Now update x^new = x^old + dt grav^half / a^half
+                //
+                D_TERM(p.m_pos[0] += (dt * a_half_inv) * p.m_data[1];,
+                       p.m_pos[1] += (dt * a_half_inv) * p.m_data[2];,
+                       p.m_pos[2] += (dt * a_half_inv) * p.m_data[3];);
 
-                    BL_ASSERT(p.m_id > 0);
-
-                    p.m_id = -p.m_id;
-                }
+                ParticleBase::Reset(p,m_amr,true);
             }
         }
     }
@@ -1386,8 +1299,7 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
     const Real strttime  = ParallelDescriptor::second();
     const Real half_dt   = 0.5 * dt;
     const Real a_new_inv = 1 / a_new;
-
-    PMap& pmap = m_particles[lev];
+    PMap&      pmap      = m_particles[lev];
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -1403,35 +1315,30 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
         {
             ParticleType& p = pbox[i];
 
-            if (p.m_id <= 0)
+            if (p.m_id > 0)
+            {
+                BL_ASSERT(p.m_grid == grid);
                 //
-                // Skip invalid particles.
+                // Note: m_data[0] is mass, 1 is v_x, ...
                 //
-                continue;
+                Real grav[BL_SPACEDIM];
 
-            BL_ASSERT(p.m_grid == grid);
-            //
-            // Note: m_data[0] is mass, 1 is v_x, ...
-            //
-            Real grav[BL_SPACEDIM];
+                ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
+                //
+                // Define (a u)^new = (a u)^half + dt/2 grav^new
+                //
+                D_TERM(p.m_data[1] *= a_half;,
+                       p.m_data[2] *= a_half;,
+                       p.m_data[3] *= a_half;);
 
-            ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
+                D_TERM(p.m_data[1] += half_dt * grav[0];,
+                       p.m_data[2] += half_dt * grav[1];,
+                       p.m_data[3] += half_dt * grav[2];);
 
-            //
-            // Define (a u)^new = (a u)^half + dt/2 grav^new
-            //
-
-            D_TERM(p.m_data[1] *= a_half;,
-                   p.m_data[2] *= a_half;,
-                   p.m_data[3] *= a_half;);
-
-            D_TERM(p.m_data[1] += half_dt * grav[0];,
-                   p.m_data[2] += half_dt * grav[1];,
-                   p.m_data[3] += half_dt * grav[2];);
-
-            D_TERM(p.m_data[1] *= a_new_inv;,
-                   p.m_data[2] *= a_new_inv;,
-                   p.m_data[3] *= a_new_inv;);
+                D_TERM(p.m_data[1] *= a_new_inv;,
+                       p.m_data[2] *= a_new_inv;,
+                       p.m_data[3] *= a_new_inv;);
+            }
         }
     }
 
@@ -1479,14 +1386,13 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     const Real      dx[BL_SPACEDIM] = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
     const Real      half_dt         = 0.5 * dt;
     const Real      a_half_inv      = 1 / a_half;
-
-    PMap& pmap = m_particles[lev];
+    PMap&           pmap            = m_particles[lev];
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
-        const int        grid = pmap_it->first;
-        PBox&            pbox = pmap_it->second;
-        const int        n    = pbox.size();
+        const int grid = pmap_it->first;
+        PBox&     pbox = pmap_it->second;
+        const int n    = pbox.size();
 
         const FArrayBox* gfab[BL_SPACEDIM] = { D_DECL(&grav_vector[0][grid],&grav_vector[1][grid],&grav_vector[2][grid]) };
 
@@ -1497,65 +1403,43 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
         {
             ParticleType& p = pbox[i];
 
-            if (p.m_id <= 0)
-                //
-                // Skip invalid particles.
-                //
-                continue;
-
-            BL_ASSERT(p.m_grid == grid);
-            //
-            // First update (a u)^half = (a u)^old + dt/2 grav^old
-            //
-            D_TERM(p.m_data[1] *= a_old;,
-                   p.m_data[2] *= a_old;,
-                   p.m_data[3] *= a_old;);
-
-            for (int d = 0; d < BL_SPACEDIM; d++)
+            if (p.m_id > 0)
             {
-                IntVect lo = p.m_cell, hi = lo;
-
-                hi[d] += 1;
-
-                const Real grav_lo = (*gfab[d])(lo);
-                const Real grav_hi = (*gfab[d])(hi);
-                const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+                BL_ASSERT(p.m_grid == grid);
                 //
-                // Note: m_data[0] is mass, 1 is v_x, ...
+                // First update (a u)^half = (a u)^old + dt/2 grav^old
                 //
-                p.m_data[1+d] += half_dt * (grav_lo + delta * (grav_hi - grav_lo));
-            }
+                D_TERM(p.m_data[1] *= a_old;,
+                       p.m_data[2] *= a_old;,
+                       p.m_data[3] *= a_old;);
 
-            D_TERM(p.m_data[1] *= a_half_inv;,
-                   p.m_data[2] *= a_half_inv;,
-                   p.m_data[3] *= a_half_inv;);
-            //
-            // Now update x^new = x^old + dt grav^half / a^half
-            //
-
-            D_TERM(p.m_pos[0] += (dt * a_half_inv) * p.m_data[1];,
-                   p.m_pos[1] += (dt * a_half_inv) * p.m_data[2];,
-                   p.m_pos[2] += (dt * a_half_inv) * p.m_data[3];);
-
-            if (!ParticleBase::Where(p,m_amr,true))
-            {
-                //
-                // Here's where we need to deal with boundary conditions.
-                //
-                // Attempt to shift the particle back into the domain if it
-                // crossed a periodic boundary.  Otherwise (for now) we
-                // invalidate the particle.
-                //
-                ParticleBase::PeriodicShift(p,m_amr);
-
-                if (!ParticleBase::Where(p,m_amr))
+                for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
+                    IntVect lo = p.m_cell, hi = lo;
 
-                    BL_ASSERT(p.m_id > 0);
+                    hi[d] += 1;
 
-                    p.m_id = -p.m_id;
+                    const Real grav_lo = (*gfab[d])(lo);
+                    const Real grav_hi = (*gfab[d])(hi);
+                    const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+                    //
+                    // Note: m_data[0] is mass, 1 is v_x, ...
+                    //
+                    p.m_data[1+d] += half_dt * (grav_lo + delta * (grav_hi - grav_lo));
                 }
+
+                D_TERM(p.m_data[1] *= a_half_inv;,
+                       p.m_data[2] *= a_half_inv;,
+                       p.m_data[3] *= a_half_inv;);
+                //
+                // Now update x^new = x^old + dt grav^half / a^half
+                //
+
+                D_TERM(p.m_pos[0] += (dt * a_half_inv) * p.m_data[1];,
+                       p.m_pos[1] += (dt * a_half_inv) * p.m_data[2];,
+                       p.m_pos[2] += (dt * a_half_inv) * p.m_data[3];);
+
+                ParticleBase::Reset(p,m_amr,true);
             }
         }
     }
@@ -1603,14 +1487,14 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
     const Real      dx[BL_SPACEDIM] = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
     const Real      half_dt         = 0.5 * dt;
     const Real      a_new_inv       = 1 / a_new;
-
-    PMap& pmap = m_particles[lev];
+    PMap&           pmap            = m_particles[lev];
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
-        const int        grid = pmap_it->first;
-        PBox&            pbox = pmap_it->second;
-        const int        n    = pbox.size();
+        const int grid = pmap_it->first;
+        PBox&     pbox = pmap_it->second;
+        const int n    = pbox.size();
+
         const FArrayBox* gfab[BL_SPACEDIM] = { D_DECL(&grav_vector[0][grid],&grav_vector[1][grid],&grav_vector[2][grid]) };
 
 #ifdef BL_USE_OMP
@@ -1620,38 +1504,35 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
         {
             ParticleType& p = pbox[i];
 
-            if (p.m_id <= 0)
-                //
-                // Skip invalid particles.
-                //
-                continue;
-
-            BL_ASSERT(p.m_grid == grid);
-            //
-            // Define (a u)^new = (a u)^half + dt/2 grav^new
-            //
-            D_TERM(p.m_data[1] *= a_half;,
-                   p.m_data[2] *= a_half;,
-                   p.m_data[3] *= a_half;);
-
-            for (int d = 0; d < BL_SPACEDIM; d++)
+            if (p.m_id > 0)
             {
-                IntVect lo = p.m_cell, hi = lo;
-
-                hi[d] += 1;
-
-                const Real grav_lo = (*gfab[d])(lo);
-                const Real grav_hi = (*gfab[d])(hi);
-                const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+                BL_ASSERT(p.m_grid == grid);
                 //
-                // Note: m_data[0] is mass, 1 is v_x, ...
+                // Define (a u)^new = (a u)^half + dt/2 grav^new
                 //
-                p.m_data[1+d] += half_dt * (grav_lo + delta * (grav_hi - grav_lo));
+                D_TERM(p.m_data[1] *= a_half;,
+                       p.m_data[2] *= a_half;,
+                       p.m_data[3] *= a_half;);
+
+                for (int d = 0; d < BL_SPACEDIM; d++)
+                {
+                    IntVect lo = p.m_cell, hi = lo;
+
+                    hi[d] += 1;
+
+                    const Real grav_lo = (*gfab[d])(lo);
+                    const Real grav_hi = (*gfab[d])(hi);
+                    const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+                    //
+                    // Note: m_data[0] is mass, 1 is v_x, ...
+                    //
+                    p.m_data[1+d] += half_dt * (grav_lo + delta * (grav_hi - grav_lo));
+                }
+
+                D_TERM(p.m_data[1] *= a_new_inv;,
+                       p.m_data[2] *= a_new_inv;,
+                       p.m_data[3] *= a_new_inv;);
             }
-
-            D_TERM(p.m_data[1] *= a_new_inv;,
-                   p.m_data[2] *= a_new_inv;,
-                   p.m_data[3] *= a_new_inv;);
         }
     }
 
@@ -1710,70 +1591,48 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
             {
                 ParticleType& p = pbox[i];
 
-                if (p.m_id <= 0)
-                    //
-                    // Skip invalid particles.
-                    //
-                    continue;
-
-                BL_ASSERT(p.m_grid == grid);
-
-                for (int d = 0; d < BL_SPACEDIM; d++)
+                if (p.m_id > 0)
                 {
-                    IntVect lo = p.m_cell, hi = lo;
+                    BL_ASSERT(p.m_grid == grid);
 
-                    hi[d] += 1;
-
-                    const Real umac_lo = (*umacfab[d])(lo);
-                    const Real umac_hi = (*umacfab[d])(hi);
-                    const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
-                    const Real vel     = umac_lo + delta * (umac_hi - umac_lo);
-
-                    if (ipass == 0)
+                    for (int d = 0; d < BL_SPACEDIM; d++)
                     {
-                        //
-                        // Predictor:
-                        //
-                        // Save the old position.
-                        //
-                        // We're assuming m_data[0:BL_SPACEDIM-1] holds old position.
-                        //
-                        p.m_data[d] = p.m_pos[d];
-                        //
-                        // Update to the t = n+1/2 position
-                        //
-                        p.m_pos[d] += .5*dt*vel;
+                        IntVect lo = p.m_cell, hi = lo;
+
+                        hi[d] += 1;
+
+                        const Real umac_lo = (*umacfab[d])(lo);
+                        const Real umac_hi = (*umacfab[d])(hi);
+                        const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+                        const Real vel     = umac_lo + delta * (umac_hi - umac_lo);
+
+                        if (ipass == 0)
+                        {
+                            //
+                            // Predictor:
+                            //
+                            // Save the old position.
+                            //
+                            // We're assuming m_data[0:BL_SPACEDIM-1] holds old position.
+                            //
+                            p.m_data[d] = p.m_pos[d];
+                            //
+                            // Update to the t = n+1/2 position
+                            //
+                            p.m_pos[d] += .5*dt*vel;
+                        }
+                        else
+                        {
+                            //
+                            // Corrector:
+                            //
+                            // Update to final time using the orig position and the new vel.
+                            //
+                            p.m_pos[d] = p.m_data[d] + dt*vel;
+                        }
                     }
-                    else
-                    {
-                        //
-                        // Corrector:
-                        //
-                        // Update to final time using the orig position and the new vel.
-                        //
-                        p.m_pos[d] = p.m_data[d] + dt*vel;
-                    }
-                }
 
-                if (!ParticleBase::Where(p,m_amr,true))
-                {
-                    //
-                    // Here's where we need to deal with boundary conditions.
-                    //
-                    // Attempt to shift the particle back into the domain if it
-                    // crossed a periodic boundary.  Otherwise (for now) we
-                    // invalidate the particle.
-                    //
-                    ParticleBase::PeriodicShift(p,m_amr);
-
-                    if (!ParticleBase::Where(p,m_amr))
-                    {
-                        std::cout << "Invalidating out-of-domain particle: " << p << std::endl;
-
-                        BL_ASSERT(p.m_id > 0);
-
-                        p.m_id = -p.m_id;
-                    }
+                    ParticleBase::Reset(p,m_amr,true);
                 }
             }
         }
@@ -1792,8 +1651,6 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
             std::cout << "ParticleContainer<N>::AdvectWithUmac() time: " << stoptime << "\n\n";
         }
     }
-
-
 }
 
 //
@@ -2207,14 +2064,18 @@ ParticleContainer<N>::OK () const
 
                     if (lev != p.m_lev || grid != p.m_grid || cell != p.m_cell)
                     {
-                        std::cout << "PARTICLE NUMBER " << p.m_id << std::endl;
-                        std::cout << "POS IS " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
+                        std::cout << "PARTICLE NUMBER " << p.m_id << '\n';
+
+                        std::cout << "POS IS " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << '\n';
+
                         if (lev != p.m_lev)
-                           std::cout << "BAD LEV  " << lev  << " " << p.m_lev << std::endl;
+                           std::cout << "BAD LEV  " << lev  << " " << p.m_lev << '\n';
+
                         if (grid != p.m_grid)
-                           std::cout << "BAD GRID " << grid << " " << p.m_grid << std::endl;
+                           std::cout << "BAD GRID " << grid << " " << p.m_grid << '\n';
+
                         if (cell != p.m_cell)
-                           std::cout << "BAD CELL " << cell << " " << p.m_cell << std::endl;
+                           std::cout << "BAD CELL " << cell << " " << p.m_cell << '\n';
 
                         return false;
                     }
@@ -3040,29 +2901,26 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
                 {
                     ParticleType& p = pbox[i];
 
-                    if (p.m_id <= 0)
-                        //
-                        // Skip invalid particles.
-                        //
-                        continue;
-
-                    BL_ASSERT(p.m_grid == grid);
-
-                    TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
-
-                    for (int i = 0; i < BL_SPACEDIM; i++)
+                    if (p.m_id > 0)
                     {
-                        TimeStampFile << p.m_pos[i]  << ' ';
+                        BL_ASSERT(p.m_grid == grid);
+
+                        TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
+
+                        for (int i = 0; i < BL_SPACEDIM; i++)
+                        {
+                            TimeStampFile << p.m_pos[i]  << ' ';
+                        }
+
+                        TimeStampFile << time  << ' ';
+
+                        for (int i = 0; i < indices.size(); i++)
+                        {
+                            TimeStampFile << fab(p.m_cell,indices[i])  << ' ';
+                        }
+
+                        TimeStampFile << '\n';
                     }
-
-                    TimeStampFile << time  << ' ';
-
-                    for (int i = 0; i < indices.size(); i++)
-                    {
-                        TimeStampFile << fab(p.m_cell,indices[i])  << ' ';
-                    }
-
-                    TimeStampFile << '\n';
                 }
             }
 
@@ -3082,7 +2940,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
             //
             // Next set waits.
             //
-            int iBuff;
+            int       iBuff;
             const int waitForPID = (MyProc - nOutFiles);
             const int tag        = (MyProc % nOutFiles);
 
@@ -3153,12 +3011,10 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
             for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
             {
                 if (it->m_id > 0)
-                {
                     //
                     // Only count (and checkpoint) valid particles.
                     //
                     nparticles++;
-                }
             }
         }
     }

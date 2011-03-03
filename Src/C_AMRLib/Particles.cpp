@@ -185,6 +185,35 @@ ParticleBase::PeriodicShift (ParticleBase& p,
 }
 
 void
+ParticleBase::Reset (ParticleBase& p,
+                     const Amr*    amr,
+                     bool          update)
+{
+    BL_ASSERT(amr != 0);
+
+    if (!ParticleBase::Where(p,amr,true))
+    {
+        //
+        // Here's where we need to deal with boundary conditions.
+        //
+        // Attempt to shift the particle back into the domain if it
+        // crossed a periodic boundary.  Otherwise (for now) we
+        // invalidate the particle.
+        //
+        ParticleBase::PeriodicShift(p,amr);
+
+        if (!ParticleBase::Where(p,amr))
+        {
+            std::cout << "Invalidating out-of-domain particle: " << p << '\n';
+
+            BL_ASSERT(p.m_id > 0);
+
+            p.m_id = -p.m_id;
+        }
+    }
+}
+
+void
 ParticleBase::GetGravity (const FArrayBox&    gfab,
                           const Amr*          amr,
                           int                 lev,
