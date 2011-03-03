@@ -1,4 +1,4 @@
-// $Id: MultiFab.cpp,v 1.95 2010-10-06 15:31:30 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.96 2011-03-03 17:57:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -396,6 +396,128 @@ MultiFab::max (const Box& region,
     ParallelDescriptor::ReduceRealMax(mn);
 
     return mn;
+}
+
+IntVect 
+MultiFab::minIndex (int comp,
+                    int nghost) const
+{
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+
+    IntVect loc;
+
+    Real mn = std::numeric_limits<Real>::max();
+
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+        const Box  box = BoxLib::grow(mfi.validbox(),nghost);
+        const Real lmn = get(mfi).min(box,comp);
+
+        if (lmn < mn)
+        {
+            mn  = lmn;
+            loc = get(mfi).minIndex(box,comp);
+        }
+    }
+
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    if (NProcs > 1)
+    {
+        Array<Real> mns(NProcs);
+        Array<int>  locs(NProcs*BL_SPACEDIM);
+
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        ParallelDescriptor::Gather(&mn, 1, mns.dataPtr(), 1, IOProc);
+
+        BL_ASSERT(sizeof(IntVect) == sizeof(int)*BL_SPACEDIM);
+
+        ParallelDescriptor::Gather(loc.getVect(), BL_SPACEDIM, locs.dataPtr(), BL_SPACEDIM, IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            mn  = mns[0];
+            loc = IntVect(D_DECL(locs[0],locs[1],locs[2]));
+
+            for (int i = 1; i < NProcs; i++)
+            {
+                if (mns[i] < mn)
+                {
+                    mn = mns[i];
+
+                    int j = BL_SPACEDIM * i;
+
+                    loc = IntVect(D_DECL(locs[j+0],locs[j+1],locs[j+2]));
+                }
+            }
+        }
+
+        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), BL_SPACEDIM, IOProc);
+    }
+
+    return loc;
+}
+
+IntVect
+MultiFab::maxIndex (int comp,
+                    int nghost) const
+{
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+
+    IntVect loc;
+
+    Real mx = -std::numeric_limits<Real>::max();
+
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+        const Box  box = BoxLib::grow(mfi.validbox(),nghost);
+        const Real lmx = get(mfi).max(box,comp);
+
+        if (lmx > mx)
+        {
+            mx  = lmx;
+            loc = get(mfi).maxIndex(box,comp);
+        }
+    }
+
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    if (NProcs > 1)
+    {
+        Array<Real> mxs(NProcs);
+        Array<int>  locs(NProcs*BL_SPACEDIM);
+
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        ParallelDescriptor::Gather(&mx, 1, mxs.dataPtr(), 1, IOProc);
+
+        BL_ASSERT(sizeof(IntVect) == sizeof(int)*BL_SPACEDIM);
+
+        ParallelDescriptor::Gather(loc.getVect(), BL_SPACEDIM, locs.dataPtr(), BL_SPACEDIM, IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            mx  = mxs[0];
+            loc = IntVect(D_DECL(locs[0],locs[1],locs[2]));
+
+            for (int i = 1; i < NProcs; i++)
+            {
+                if (mxs[i] > mx)
+                {
+                    mx = mxs[i];
+
+                    int j = BL_SPACEDIM * i;
+
+                    loc = IntVect(D_DECL(locs[j+0],locs[j+1],locs[j+2]));
+                }
+            }
+        }
+
+        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), BL_SPACEDIM, IOProc);
+    }
+
+    return loc;
 }
 
 Real

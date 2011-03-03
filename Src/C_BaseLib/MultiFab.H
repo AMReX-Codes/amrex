@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.55 2010-10-05 23:00:00 lijewski Exp $
+// $Id: MultiFab.H,v 1.56 2011-03-03 17:57:22 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -288,6 +288,12 @@ public:
     */
     void negate (const Box& region,
                  int        nghost = 0);
+
+    IntVect minIndex (int comp,
+                      int nghost = 0) const;
+
+    IntVect maxIndex (int comp,
+                      int nghost = 0) const;
 
     /*@ManDoc:
       This function adds the values of the cells in mf to the corresponding
