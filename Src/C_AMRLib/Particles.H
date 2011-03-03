@@ -170,7 +170,7 @@ public:
 
     int Verbose () { return m_verbose; }
 
-    void Verbose (int verbose) { m_verbose = verbose; }
+    void SetVerbose (int verbose) { m_verbose = verbose; }
 
 protected:
     //
