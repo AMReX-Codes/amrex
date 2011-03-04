@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.222 2011-02-18 21:28:34 almgren Exp $
+// $Id: Amr.cpp,v 1.223 2011-03-04 02:03:50 almgren Exp $
 //
 #include <winstd.H>
 
@@ -66,6 +66,12 @@ std::ostream&
 Amr::DataLog (int i)
 {
     return datalog[i];
+}
+
+int
+Amr::NumDataLogs ()
+{
+    return datalog.size();
 }
 
 bool

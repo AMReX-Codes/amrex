@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.44 2010-07-15 04:01:29 almgren Exp $
+// $Id: Amr.H,v 1.45 2011-03-04 02:03:50 almgren Exp $
 //
 
 #include <fstream>
@@ -266,6 +266,10 @@ public:
     //@ManDoc: The ith datalog file.  Do with it what you want.
     //
     std::ostream& DataLog (int i);
+    //
+    //@ManDoc: How many datalogs have been opened
+    //
+    int NumDataLogs ();
 
 protected:
     //
