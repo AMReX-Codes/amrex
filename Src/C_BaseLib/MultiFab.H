@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.56 2011-03-03 17:57:22 lijewski Exp $
+// $Id: MultiFab.H,v 1.57 2011-03-05 00:18:09 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -403,13 +403,21 @@ public:
     // This may return false, even if the MF contains NaNs, if the machine
     // doesn't support the appropriate NaN testing functions.
     //
+    // This version checks all components and grow cells.
+    //
     bool contains_nan () const;
+
+    bool contains_nan (int scomp, int ncomp, int ngrow = 0) const;
     //
     // Are there any Infs in the MF?
     // This may return false, even if the MF contains Infs, if the machine
     // doesn't support the appropriate Inf testing functions.
     //
+    // This version checks all components and grow cells.
+    //
     bool contains_inf () const;
+
+    bool contains_inf (int scomp, int ncomp, int ngrow = 0) const;
 
     const FArrayBox& operator[] (int K) const;
 

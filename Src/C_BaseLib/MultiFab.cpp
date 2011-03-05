@@ -1,4 +1,4 @@
-// $Id: MultiFab.cpp,v 1.96 2011-03-03 17:57:22 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.97 2011-03-05 00:18:09 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -243,13 +243,55 @@ MultiFab::define (const BoxArray&            bxs,
 }
 
 bool 
-MultiFab::contains_nan () const
+MultiFab::contains_nan (int scomp,
+                        int ncomp,
+                        int ngrow) const
 {
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(scomp + ncomp <= nComp());
+    BL_ASSERT(ncomp >  0 && ncomp <= nComp());
+    BL_ASSERT(ngrow >= 0 && ngrow <= nGrow());
+
     bool r = false;
 
     for (MFIter mfi(*this); mfi.isValid() && !r; ++mfi)
-        if (this->FabArray<FArrayBox>::get(mfi.index()).contains_nan())
+    {
+        const Box bx = BoxLib::grow(mfi.validbox(),ngrow);
+
+        if (this->FabArray<FArrayBox>::get(mfi.index()).contains_nan(bx,scomp,ncomp))
             r = true;
+    }
+
+    ParallelDescriptor::ReduceBoolOr(r);
+
+    return r;
+}
+
+bool 
+MultiFab::contains_nan () const
+{
+    return contains_nan(0,nComp(),nGrow());
+}
+
+bool 
+MultiFab::contains_inf (int scomp,
+                        int ncomp,
+                        int ngrow) const
+{
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(scomp + ncomp <= nComp());
+    BL_ASSERT(ncomp >  0 && ncomp <= nComp());
+    BL_ASSERT(ngrow >= 0 && ngrow <= nGrow());
+
+    bool r = false;
+
+    for (MFIter mfi(*this); mfi.isValid() && !r; ++mfi)
+    {
+        const Box bx = BoxLib::grow(mfi.validbox(),ngrow);
+
+        if (this->FabArray<FArrayBox>::get(mfi.index()).contains_inf(bx,scomp,ncomp))
+            r = true;
+    }
 
     ParallelDescriptor::ReduceBoolOr(r);
 
@@ -259,15 +301,7 @@ MultiFab::contains_nan () const
 bool 
 MultiFab::contains_inf () const
 {
-    bool r = false;
-
-    for (MFIter mfi(*this); mfi.isValid() && !r; ++mfi)
-        if (this->FabArray<FArrayBox>::get(mfi.index()).contains_inf())
-            r = true;
-
-    ParallelDescriptor::ReduceBoolOr(r);
-
-    return r;
+    return contains_inf(0,nComp(),nGrow());
 }
 
 static
