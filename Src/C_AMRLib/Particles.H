@@ -796,9 +796,10 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
         }
     }
 
+    ParallelDescriptor::ReduceRealMin(dt);
+
     if (m_verbose > 0)
     {
-        ParallelDescriptor::ReduceRealMin(dt);
 
         Real stoptime = ParallelDescriptor::second() - strttime;
 
