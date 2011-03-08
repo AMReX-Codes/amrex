@@ -745,12 +745,8 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
     const PMap&     pmap     = m_particles[lev];
 
 #ifdef BL_USE_OMP
-    const int maxthreads = omp_get_max_threads();
-#else
-    const int maxthreads = 1;
+    Array<Real> ldt(omp_get_max_threads(),1e50);
 #endif
-
-    Array<Real> ldt(maxthreads,1e50);
 
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -772,7 +768,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
                 const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
 
-                Real dt_part = (mag_vel > 0) ? 0.5 * a * dx[0] / mag_vel : 1e50;
+                Real dt_part = (mag_vel > 0) ? (0.5 * a * dx[0] / mag_vel) : 1e50;
 
                 const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
 
@@ -780,21 +776,21 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
                 if (mag_grav > 0)
                     dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
-
 #ifdef BL_USE_OMP
                 const int tid = omp_get_thread_num();
-#else
-                const int tid = 0;
-#endif
+
                 ldt[tid] = std::min(dt_part, ldt[tid]);
+#else
+                dt = std::min(dt_part, dt);
+#endif
             }
         }
     }
 
-    for (int i = 0; i < maxthreads; i++)
-    {
+#ifdef BL_USE_OMP
+    for (int i = 0; i < ldt.size(); i++)
         dt = std::min(dt, ldt[i]);
-    }
+#endif
 
     ParallelDescriptor::ReduceRealMin(dt);
 
