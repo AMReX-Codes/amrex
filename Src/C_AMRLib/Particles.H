@@ -16,6 +16,10 @@
 #include "Geometry.H"
 #include "VisMF.H"
 
+#ifdef BL_USE_OMP
+#include <omp.h>
+#endif
+
 struct ParticleBase
 {
     int     m_id;
@@ -358,8 +362,6 @@ ParticleContainer<N>::InitCosmo (Real          mass)
     const Geometry& geom     = m_amr->Geom(0);
     const Real*     dx       = geom.CellSize();
 
-    Real len[BL_SPACEDIM];
-
     m_particles.resize(m_amr->finestLevel()+1);
 
     for (int lev = 0; lev < m_particles.size(); lev++)
@@ -370,10 +372,6 @@ ParticleContainer<N>::InitCosmo (Real          mass)
     //FIXME!
     Real vel_fac  = 1 / 1000.0;
     Real disp_fac = 1 / 100.0;
-
-    D_TERM(len[0] = geom.ProbLength(0);,
-           len[1] = geom.ProbLength(1);,
-           len[2] = geom.ProbLength(2););
 
     MultiFab mf;
     VisMF::Read(mf,"init/Level_0/Cell");
@@ -746,6 +744,14 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
     Real            dt       = 1e50;
     const PMap&     pmap     = m_particles[lev];
 
+#ifdef BL_USE_OMP
+    const int maxthreads = omp_get_max_threads();
+#else
+    const int maxthreads = 1;
+#endif
+
+    Array<Real> ldt(maxthreads,1e50);
+
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
         const int        grid = pmap_it->first;
@@ -753,47 +759,41 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
         const int        n    = pbox.size();
         const FArrayBox& gfab = gv[grid];
 
-        Real dt_local;
-
-#ifdef BL_USE_OMP
-#pragma omp parallel private(dt_local)
-#endif
-        {
-            dt_local = 1e50;
-
 #ifdef BL_USE_OMP
 #pragma omp for
 #endif
-            for (int i = 0; i < n; i++)
+        for (int i = 0; i < n; i++)
+        {
+            const ParticleType& p = pbox[i];
+
+            if (p.m_id > 0)
             {
-                const ParticleType& p = pbox[i];
+                BL_ASSERT(p.m_grid == grid);
 
-                if (p.m_id > 0)
-                {
-                    BL_ASSERT(p.m_grid == grid);
+                const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
 
-                    const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
+                Real dt_part = (mag_vel > 0) ? 0.5 * a * dx[0] / mag_vel : 1e50;
 
-                    Real dt_part = (mag_vel > 0) ? 0.5 * a * dx[0] / mag_vel : 1e50;
+                const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
 
-                    const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
+                const Real mag_grav = sqrt(D_TERM(gval[0]*gval[0], + gval[1]*gval[1], + gval[2]*gval[2]));
 
-                    const Real mag_grav = sqrt(D_TERM(gval[0]*gval[0], + gval[1]*gval[1], + gval[2]*gval[2]));
-
-                    if (mag_grav > 0)
-                        dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
-
-                    dt_local = std::min(dt_part, dt_local);
-                }
-            }
+                if (mag_grav > 0)
+                    dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
 
 #ifdef BL_USE_OMP
-#pragma omp critical(estTimestep_lock)
+                const int tid = omp_get_thread_num();
+#else
+                const int tid = 0;
 #endif
-            {
-                dt = std::min(dt, dt_local);
+                ldt[tid] = std::min(dt_part, ldt[tid]);
             }
         }
+    }
+
+    for (int i = 0; i < maxthreads; i++)
+    {
+        dt = std::min(dt, ldt[i]);
     }
 
     ParallelDescriptor::ReduceRealMin(dt);
