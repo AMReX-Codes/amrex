@@ -320,20 +320,23 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
          }
     }
 
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+    if (m_verbose > 1)
     {
-        if (MyProc == i)
-        {
-            std::cout << "Processor "
-                      << i
-                      << " added "
-                      << howmany
-                      << " particles in Init()" << std::endl;
-        }
-        ParallelDescriptor::Barrier();
+       for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+       {
+           if (MyProc == i)
+           {
+               std::cout << "Processor "
+                         << i
+                         << " added "
+                         << howmany
+                         << " particles in Init()" << std::endl;
+           }
+           ParallelDescriptor::Barrier();
+       }
+       if (ParallelDescriptor::IOProcessor())
+           std::cout << '\n';
     }
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << '\n';
 
     BL_ASSERT(OK());
 
@@ -1775,7 +1778,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     int maxsendrecv = 0;
 
-    if (m_verbose > 1)
+    if (m_verbose > 2)
     {
         maxsendrecv = std::max(NumRcvs,NumSnds);
 
