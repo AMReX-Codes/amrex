@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.223 2011-03-04 02:03:50 almgren Exp $
+// $Id: Amr.cpp,v 1.224 2011-03-09 23:54:05 wqzhang Exp $
 //
 #include <winstd.H>
 
@@ -1873,8 +1873,35 @@ Amr::coarseTimeStep (Real stop_time)
 	 check_test = 1;
 	}
     }
+    
+    int to_checkpoint = 0;
+    int to_stop = 0;
+    if (ParallelDescriptor::IOProcessor()) {
+      FILE *fp;
+      if (fp=fopen("dump_and_continue","r")) {
+	remove("dump_and_continue");
+	to_checkpoint = 1;
+	fclose(fp);
+      }
+      else if (fp=fopen("stop_run","r")) {
+	remove("stop_run");
+	to_stop = 1;
+	fclose(fp);
+      }
+      else if (fp=fopen("dump_and_stop","r")) {
+	remove("dump_and_stop");
+	to_checkpoint = 1;
+	to_stop = 1;
+	fclose(fp);
+      }
+    }
+    ParallelDescriptor::Bcast(&to_checkpoint, 1, 
+			      ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::Bcast(&to_stop, 1, 
+			      ParallelDescriptor::IOProcessorNumber());
 
-    if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1)
+    if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
+	|| to_checkpoint)
     {
         last_checkpoint = level_steps[0];
         checkPoint();
@@ -1898,10 +1925,21 @@ Amr::coarseTimeStep (Real stop_time)
 	}
     }
 
-    if ((plot_int > 0 && level_steps[0] % plot_int == 0) || plot_test == 1)
+    if ((plot_int > 0 && level_steps[0] % plot_int == 0) || plot_test == 1
+	|| to_checkpoint)
     {
         last_plotfile = level_steps[0];
         writePlotFile(plot_file_root,level_steps[0]);
+    }
+
+    if (to_stop) {
+      ParallelDescriptor::Barrier();
+      if (to_checkpoint) {
+	BoxLib::Abort("Stopped by user w/ checkpoint");
+      }
+      else {
+	BoxLib::Abort("Stopped by user w/o checkpoint");
+      }
     }
 }
 
