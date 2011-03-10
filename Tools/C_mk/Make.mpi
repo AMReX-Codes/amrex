@@ -373,6 +373,7 @@ ifeq ($(MACHINE), Linux)
       MPI_HOME=/usr/local/mpich
     endif
 
+    ifneq ($(HOSTNAME), pleiades.ucsc.edu)
     ifneq ($(WHICHLINUX), INTREPID)
       ifneq ($(WHICHLINUX), JACQUARD)
         ifneq ($(WHICHLINUX), COLUMBIA)
@@ -391,6 +392,7 @@ ifeq ($(MACHINE), Linux)
           endif
         endif
       endif
+    endif
     endif
 
     ifeq ($(WHICHLINUX), COLUMBIA)
