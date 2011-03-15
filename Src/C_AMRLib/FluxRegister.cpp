@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.103 2010-10-06 15:20:17 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.104 2011-03-15 23:56:12 nazgul Exp $
 //
 #include <winstd.H>
 
@@ -27,6 +27,15 @@ FluxRegister::FluxRegister (const BoxArray& fine_boxes,
                             int             nvar)
 {
     define(fine_boxes,ref_ratio,fine_lev,nvar);
+}
+
+FluxRegister::FluxRegister (const BoxArray&            fine_boxes, 
+                            const IntVect&             ref_ratio,
+                            int                        fine_lev,
+                            int                        nvar,
+                            const DistributionMapping& dm)
+{
+    define(fine_boxes,ref_ratio,fine_lev,nvar,dm);
 }
 
 const IntVect&
@@ -86,6 +95,37 @@ FluxRegister::define (const BoxArray& fine_boxes,
 
         BndryRegister::define(lo_face,typ,0,1,0,nvar);
         BndryRegister::define(hi_face,typ,0,1,0,nvar);
+    }
+}
+
+void
+FluxRegister::define (const BoxArray&            fine_boxes, 
+                      const IntVect&             ref_ratio,
+                      int                        fine_lev,
+                      int                        nvar,
+                      const DistributionMapping& dm)
+{
+    BL_ASSERT(fine_boxes.isDisjoint());
+    BL_ASSERT(grids.size() == 0);
+
+    ratio      = ref_ratio;
+    fine_level = fine_lev;
+    ncomp      = nvar;
+
+    grids.define(fine_boxes);
+    grids.coarsen(ratio);
+
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        const Orientation lo_face(dir,Orientation::low);
+        const Orientation hi_face(dir,Orientation::high);
+
+        IndexType typ(IndexType::TheCellType());
+
+        typ.setType(dir,IndexType::NODE);
+
+        BndryRegister::define(lo_face,typ,0,1,0,nvar,dm);
+        BndryRegister::define(hi_face,typ,0,1,0,nvar,dm);
     }
 }
 

@@ -1,7 +1,7 @@
 #ifndef _FLUXREGISTER_H_
 #define _FLUXREGISTER_H_
 //
-// $Id: FluxRegister.H,v 1.16 2010-06-09 16:56:26 gpau Exp $
+// $Id: FluxRegister.H,v 1.17 2011-03-15 23:56:12 nazgul Exp $
 //
 #include <BndryRegister.H>
 
@@ -32,6 +32,14 @@ public:
                   const IntVect&  ref_ratio,
                   int             fine_lev,
                   int             nvar);
+    /*@ManDoc: The constructor.
+               This version allows setting the DistributionMapping.
+    */
+    FluxRegister (const BoxArray&            fine_boxes, 
+                  const IntVect&             ref_ratio,
+                  int                        fine_lev,
+                  int                        nvar,
+                  const DistributionMapping& dm);
     //
     //@ManDoc: The destructor.
     //
@@ -49,6 +57,15 @@ public:
                          const IntVect&  ref_ratio,
                          int             fine_lev,
                          int             nvar);
+
+    /*@ManDoc: Initialize after using default constructor.
+               This version allows setting the DistributionMapping.
+    */
+    virtual void define (const BoxArray&            fine_boxes, 
+                         const IntVect&             ref_ratio,
+                         int                        fine_lev,
+                         int                        nvar,
+                         const DistributionMapping& dm);
     //
     //@ManDoc: Returns the refinement ratio.
     //
