@@ -1,7 +1,7 @@
 #ifndef _FABSET_H_
 #define _FABSET_H_
 //
-// $Id: FabSet.H,v 1.22 2010-01-20 19:20:11 nazgul Exp $
+// $Id: FabSet.H,v 1.23 2011-03-15 23:55:15 nazgul Exp $
 //
 #include <MultiFab.H>
 
@@ -55,6 +55,12 @@ public:
     //@ManDoc: Define a FabSet constructed via default constructor.
     //
     void define (const BoxArray& grids, int ncomp);
+    //
+    //@ManDoc: Define a FabSet constructed via default constructor.
+    //
+    void define (const BoxArray&            grids,
+                 int                        ncomp,
+                 const DistributionMapping& dm);
     //
     //@ManDoc: Returns number of variables associated with each point.
     //
