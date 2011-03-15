@@ -2,7 +2,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.12 2010-02-11 23:15:08 lijewski Exp $
+// $Id: BndryRegister.H,v 1.13 2011-03-15 23:55:15 nazgul Exp $
 //
 
 #include <BoxArray.H>
@@ -116,6 +116,10 @@ public:
     //
     void setBoxes (const BoxArray& grids);
     //
+    //@ManDoc: Returns constant reference to associated DistributionMapping.
+    //
+    const DistributionMapping& DistributionMap () const;
+    //
     //@ManDoc: Build FABs along given face.
     //
     void define (const Orientation& face,
@@ -124,6 +128,16 @@ public:
                  int                out_rad,
                  int                extent_rad,
                  int                ncomp);
+    //
+    //@ManDoc: Build FABs along given face, specifying the DistributionMapping.
+    //
+    void define (const Orientation&         face,
+                 const IndexType&           typ,
+                 int                        in_rad,
+                 int                        out_rad,
+                 int                        extent_rad,
+                 int                        ncomp,
+                 const DistributionMapping& dm);
 
     //
     //@ManDoc: Write (used for writing to checkpoint)
@@ -145,6 +159,13 @@ protected:
     FabSet    bndry[2*BL_SPACEDIM];
     BoxArray  grids;
 };
+
+inline
+const DistributionMapping&
+BndryRegister::DistributionMap () const
+{
+    return bndry[0].DistributionMap();
+}
 
 inline
 const BoxArray&

@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.63 2010-10-06 15:15:55 lijewski Exp $
+// $Id: FabSet.cpp,v 1.64 2011-03-15 23:55:15 nazgul Exp $
 //
 #include <winstd.H>
 
@@ -43,6 +43,16 @@ FabSet::define (const BoxArray& grids, int ncomp)
     MultiFab* tmp = this;
 
     tmp->define(grids, ncomp, 0, Fab_allocate);
+}
+
+void
+FabSet::define (const BoxArray&            grids,
+                int                        ncomp,
+                const DistributionMapping& dm)
+{
+    MultiFab* tmp = this;
+
+    tmp->define(grids, ncomp, 0, dm, Fab_allocate);
 }
 
 const FabSet&
