@@ -57,7 +57,7 @@ contains
     integer, intent(in), optional :: cg_verbose
     integer, intent(in), optional :: st_type
     integer, intent(in), optional :: use_hypre
-    integer, intent(in), optional :: is_singular
+    logical, intent(in), optional :: is_singular
 
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
