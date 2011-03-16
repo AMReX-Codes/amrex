@@ -123,10 +123,14 @@ contains
                   explicit_mapping = get_proc(get_layout(crse(i))))
        call destroy(tba)
        call build(tcrse, tla, 1, 0, nodal_flags(crse(i)))
+
+       if (nghost(crse(i)) .lt. 1) &
+           call bl_error("Need at least one ghost cell in crse in create_umac_grown")
+       
        do j=1,nboxes(tcrse)
           if ( remote(tcrse,j) ) cycle
           fp => dataptr(tcrse,  j)
-          cp => dataptr(crse(i),j)
+          cp => dataptr(crse(i),j, get_ibox(tcrse,j))
           fp = cp
        end do
 
