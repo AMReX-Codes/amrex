@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_3D.F,v 1.8 2011-01-25 23:50:22 marc Exp $
+c $Id: INTERPBNDRYDATA_3D.F,v 1.9 2011-03-17 20:53:13 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -71,107 +71,100 @@ c ---------------------------------------------------------------
       i    = lo(1)-1
 
       if (max_order.eq.1) then
-!$omp parallel private(n,kc,k,jc,j,joff,koff)
-      do n = 1, nvar
-c
-c        ::::: define interp coefs
-c
-         do koff = 0, ratioz - 1
-!$omp do
-            do kc = kclo,kchi
-               k = ratioz*kc + koff
-               do joff = 0, ratioy - 1
-                  do jc = jclo, jchi
-                     j = ratioy*jc + joff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+
+         do n = 1, nvar
+            !
+            ! ::::: define interp coefs
+            !
+            do koff = 0, ratioz - 1
+               do kc = kclo,kchi
+                  k = ratioz*kc + koff
+                  do joff = 0, ratioy - 1
+                     do jc = jclo, jchi
+                        j = ratioy*jc + joff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel
 
       else
 
-!$omp parallel private(n,kc,k,jc,j,joff,koff,yy,xx)
-      do n = 1, nvar
-c
-c        ::::: define interp coefs
-c
-!$omp do 
-         do kc = kclo, kchi
-         k = ratioz*kc
-         do jc = jclo, jchi
-            j = ratioy*jc
-            derives(jc,kc,XDER)  = half*(crse(ic,jc+1,kc,n) - crse(ic,jc-1,kc,n))
-            derives(jc,kc,X2DER) = half*(crse(ic,jc+1,kc,n) - two*crse(ic,jc,kc,n)
-     &                     + crse(ic,jc-1,kc,n))
-            derives(jc,kc,YDER)  = half*(crse(ic,jc,kc+1,n) - crse(ic,jc,kc-1,n))
-            derives(jc,kc,Y2DER) = half*(crse(ic,jc,kc+1,n) - two*crse(ic,jc,kc,n)
-     &                     + crse(ic,jc,kc-1,n))
-            derives(jc,kc,XYDER) = forth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n)
-     &                     + crse(ic,jc-1,kc-1,n) - crse(ic,jc+1,kc-1,n))
+         do n = 1, nvar
+            !
+            ! ::::: define interp coefs
+            !
+            do kc = kclo, kchi
+               k = ratioz*kc
+               do jc = jclo, jchi
+                  j = ratioy*jc
+                  derives(jc,kc,XDER)  = half*(crse(ic,jc+1,kc,n) - crse(ic,jc-1,kc,n))
+                  derives(jc,kc,X2DER) = half*(crse(ic,jc+1,kc,n) - two*crse(ic,jc,kc,n)
+     &                 + crse(ic,jc-1,kc,n))
+                  derives(jc,kc,YDER)  = half*(crse(ic,jc,kc+1,n) - crse(ic,jc,kc-1,n))
+                  derives(jc,kc,Y2DER) = half*(crse(ic,jc,kc+1,n) - two*crse(ic,jc,kc,n)
+     &                 + crse(ic,jc,kc-1,n))
+                  derives(jc,kc,XYDER) = forth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n)
+     &                 + crse(ic,jc-1,kc-1,n) - crse(ic,jc+1,kc-1,n))
 
-            if (mask(i,j-1,k) .ne. not_covered) then
-               derives(jc,kc,XDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
-               derives(jc,kc,X2DER) = zero
-            end if
-            if (mask(i,j+ratioy,k) .ne. not_covered) then
-               derives(jc,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
-               derives(jc,kc,X2DER) = zero
-            end if
-            if (mask(i,j-1,k)     .ne. not_covered .and.
-     $          mask(i,j+ratioy,k) .ne. not_covered) then
-               derives(jc,kc,XDER)  = zero
-            end if
+                  if (mask(i,j-1,k) .ne. not_covered) then
+                     derives(jc,kc,XDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
+                     derives(jc,kc,X2DER) = zero
+                  end if
+                  if (mask(i,j+ratioy,k) .ne. not_covered) then
+                     derives(jc,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
+                     derives(jc,kc,X2DER) = zero
+                  end if
+                  if (mask(i,j-1,k)     .ne. not_covered .and.
+     $                 mask(i,j+ratioy,k) .ne. not_covered) then
+                     derives(jc,kc,XDER)  = zero
+                  end if
 
-            if (mask(i,j,k-1) .ne. not_covered) then
-               derives(jc,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
-               derives(jc,kc,Y2DER) = zero
-            end if
-            if (mask(i,j,k+ratioz) .ne. not_covered) then
-               derives(jc,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
-               derives(jc,kc,Y2DER) = zero
-            end if
-            if (mask(i,j,k-1)     .ne. not_covered .and.
-     $          mask(i,j,k+ratioz) .ne. not_covered) then
-               derives(jc,kc,YDER)  = zero
-            end if
-            if ( 
-     $           ( mask(i,j+ratioy,k+ratioz) .ne. not_covered ) .or.
-     $           ( mask(i,j-1,k+ratioz)     .ne. not_covered ) .or.
-     $           ( mask(i,j+ratioy,k-1)     .ne. not_covered ) .or.
-     $           ( mask(i,j-1,k-1)         .ne. not_covered ) ) then
+                  if (mask(i,j,k-1) .ne. not_covered) then
+                     derives(jc,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
+                     derives(jc,kc,Y2DER) = zero
+                  end if
+                  if (mask(i,j,k+ratioz) .ne. not_covered) then
+                     derives(jc,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
+                     derives(jc,kc,Y2DER) = zero
+                  end if
+                  if (mask(i,j,k-1)     .ne. not_covered .and.
+     $                 mask(i,j,k+ratioz) .ne. not_covered) then
+                     derives(jc,kc,YDER)  = zero
+                  end if
+                  if ( 
+     $                 ( mask(i,j+ratioy,k+ratioz) .ne. not_covered ) .or.
+     $                 ( mask(i,j-1,k+ratioz)     .ne. not_covered ) .or.
+     $                 ( mask(i,j+ratioy,k-1)     .ne. not_covered ) .or.
+     $                 ( mask(i,j-1,k-1)         .ne. not_covered ) ) then
 
-               derives(jc,kc,XYDER) = zero
-            end if
-         end do
-         end do
-!$omp end do
-c
-c        ::::: interpolate to fine grid
-c
-         do koff = 0, ratioz - 1
-            yy = (dble(koff - ratioz/2) + half)/ratioz
-!$omp do
-            do kc = kclo,kchi
-               k = ratioz*kc + koff
-               do joff = 0, ratioy - 1
-                  xx = (dble(joff - ratioy/2) + half)/ratioy
-                  do jc = jclo, jchi
-                     j = ratioy*jc + joff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(jc,kc,XDER) 
-     &                     + derives(jc,kc,X2DER)*xx**2 + yy*derives(jc,kc,YDER) 
-     &                     + derives(jc,kc,Y2DER)*yy**2 + xx*yy*derives(jc,kc,XYDER) 
+                     derives(jc,kc,XYDER) = zero
+                  end if
+               end do
+            end do
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do koff = 0, ratioz - 1
+               yy = (dble(koff - ratioz/2) + half)/ratioz
+               do kc = kclo,kchi
+                  k = ratioz*kc + koff
+                  do joff = 0, ratioy - 1
+                     xx = (dble(joff - ratioy/2) + half)/ratioy
+                     do jc = jclo, jchi
+                        j = ratioy*jc + joff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(jc,kc,XDER) 
+     &                       + derives(jc,kc,X2DER)*xx**2 + yy*derives(jc,kc,YDER) 
+     &                       + derives(jc,kc,Y2DER)*yy**2 + xx*yy*derives(jc,kc,XYDER) 
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel
+
       endif
+
       end
 
 c ---------------------------------------------------------------
@@ -225,106 +218,100 @@ c ---------------------------------------------------------------
       i    = hi(1)+1
 
       if (max_order.eq.1) then
-!$omp parallel private(n,kc,k,jc,j,joff,koff)
-      do n = 1, nvar
-c
-c        ::::: interpolate to fine grid
-c
-         do koff = 0, ratioz - 1
-!$omp do
-            do kc = kclo,kchi
-               k = ratioz*kc + koff
-               do joff = 0, ratioy - 1
-                  do jc = jclo, jchi
-                     j = ratioy*jc + joff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+
+         do n = 1, nvar
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do koff = 0, ratioz - 1
+               do kc = kclo,kchi
+                  k = ratioz*kc + koff
+                  do joff = 0, ratioy - 1
+                     do jc = jclo, jchi
+                        j = ratioy*jc + joff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel
 
       else
-!$omp parallel private(n,kc,k,jc,j,joff,koff,yy,xx)
-      do n = 1, nvar
-c
-c        ::::: define interp coefs
-c
-!$omp do
-         do kc = kclo, kchi
-         k = ratioz*kc
-         do jc = jclo, jchi
-            j = ratioy*jc
-            derives(jc,kc,XDER)  = half*(crse(ic,jc+1,kc,n) - crse(ic,jc-1,kc,n))
-            derives(jc,kc,X2DER) = half*(crse(ic,jc+1,kc,n) - two*crse(ic,jc,kc,n)
-     &                     + crse(ic,jc-1,kc,n))
-            derives(jc,kc,YDER)  = half*(crse(ic,jc,kc+1,n) - crse(ic,jc,kc-1,n))
-            derives(jc,kc,Y2DER) = half*(crse(ic,jc,kc+1,n) - two*crse(ic,jc,kc,n)
-     &                     + crse(ic,jc,kc-1,n))
-            derives(jc,kc,XYDER) = forth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n)
-     &                     + crse(ic,jc-1,kc-1,n) - crse(ic,jc+1,kc-1,n))
 
-            if (mask(i,j-1,k) .ne. not_covered) then
-               derives(jc,kc,XDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
-               derives(jc,kc,X2DER) = zero
-            end if
-            if (mask(i,j+ratioy,k) .ne. not_covered) then
-               derives(jc,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
-               derives(jc,kc,X2DER) = zero
-            end if
-            if (mask(i,j-1,k)     .ne. not_covered .and.
-     $          mask(i,j+ratioy,k) .ne. not_covered) then
-               derives(jc,kc,XDER)  = zero
-            end if
+         do n = 1, nvar
+            !
+            ! ::::: define interp coefs
+            !
+            do kc = kclo, kchi
+               k = ratioz*kc
+               do jc = jclo, jchi
+                  j = ratioy*jc
+                  derives(jc,kc,XDER)  = half*(crse(ic,jc+1,kc,n) - crse(ic,jc-1,kc,n))
+                  derives(jc,kc,X2DER) = half*(crse(ic,jc+1,kc,n) - two*crse(ic,jc,kc,n)
+     &                 + crse(ic,jc-1,kc,n))
+                  derives(jc,kc,YDER)  = half*(crse(ic,jc,kc+1,n) - crse(ic,jc,kc-1,n))
+                  derives(jc,kc,Y2DER) = half*(crse(ic,jc,kc+1,n) - two*crse(ic,jc,kc,n)
+     &                 + crse(ic,jc,kc-1,n))
+                  derives(jc,kc,XYDER) = forth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n)
+     &                 + crse(ic,jc-1,kc-1,n) - crse(ic,jc+1,kc-1,n))
 
-            if (mask(i,j,k-1) .ne. not_covered) then
-               derives(jc,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
-               derives(jc,kc,Y2DER) = zero
-            end if
-            if (mask(i,j,k+ratioz) .ne. not_covered) then
-               derives(jc,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
-               derives(jc,kc,Y2DER) = zero
-            end if
-            if (mask(i,j,k-1)     .ne. not_covered .and.
-     $          mask(i,j,k+ratioz) .ne. not_covered) then
-               derives(jc,kc,YDER)  = zero
-            end if
-            if (
-     $           ( mask(i,j+ratioy,k+ratioz) .ne. not_covered ) .or.
-     $           ( mask(i,j-1,k+ratioz)     .ne. not_covered ) .or.
-     $           ( mask(i,j+ratioy,k-1)     .ne. not_covered ) .or.
-     $           ( mask(i,j-1,k-1)         .ne. not_covered ) ) then
-               
-                derives(jc,kc,XYDER) = zero
-            end if
-         end do
-         end do
-!$omp end do
-c
-c        ::::: interpolate to fine grid
-c
-         do koff = 0, ratioz - 1
-            yy = (dble(koff - ratioz/2) + half)/ratioz
-!$omp do
-            do kc = kclo,kchi
-               k = ratioz*kc + koff
-               do joff = 0, ratioy - 1
-                  xx = (dble(joff - ratioy/2) + half)/ratioy
-                  do jc = jclo, jchi
-                     j = ratioy*jc + joff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(jc,kc,XDER) 
-     &                     + derives(jc,kc,X2DER)*xx**2 + yy*derives(jc,kc,YDER) 
-     &                     + derives(jc,kc,Y2DER)*yy**2 + xx*yy*derives(jc,kc,XYDER) 
+                  if (mask(i,j-1,k) .ne. not_covered) then
+                     derives(jc,kc,XDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
+                     derives(jc,kc,X2DER) = zero
+                  end if
+                  if (mask(i,j+ratioy,k) .ne. not_covered) then
+                     derives(jc,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
+                     derives(jc,kc,X2DER) = zero
+                  end if
+                  if (mask(i,j-1,k)     .ne. not_covered .and.
+     $                 mask(i,j+ratioy,k) .ne. not_covered) then
+                     derives(jc,kc,XDER)  = zero
+                  end if
+
+                  if (mask(i,j,k-1) .ne. not_covered) then
+                     derives(jc,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
+                     derives(jc,kc,Y2DER) = zero
+                  end if
+                  if (mask(i,j,k+ratioz) .ne. not_covered) then
+                     derives(jc,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
+                     derives(jc,kc,Y2DER) = zero
+                  end if
+                  if (mask(i,j,k-1)     .ne. not_covered .and.
+     $                 mask(i,j,k+ratioz) .ne. not_covered) then
+                     derives(jc,kc,YDER)  = zero
+                  end if
+                  if (
+     $                 ( mask(i,j+ratioy,k+ratioz) .ne. not_covered ) .or.
+     $                 ( mask(i,j-1,k+ratioz)     .ne. not_covered ) .or.
+     $                 ( mask(i,j+ratioy,k-1)     .ne. not_covered ) .or.
+     $                 ( mask(i,j-1,k-1)         .ne. not_covered ) ) then
+                     
+                     derives(jc,kc,XYDER) = zero
+                  end if
+               end do
+            end do
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do koff = 0, ratioz - 1
+               yy = (dble(koff - ratioz/2) + half)/ratioz
+               do kc = kclo,kchi
+                  k = ratioz*kc + koff
+                  do joff = 0, ratioy - 1
+                     xx = (dble(joff - ratioy/2) + half)/ratioy
+                     do jc = jclo, jchi
+                        j = ratioy*jc + joff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(jc,kc,XDER) 
+     &                       + derives(jc,kc,X2DER)*xx**2 + yy*derives(jc,kc,YDER) 
+     &                       + derives(jc,kc,Y2DER)*yy**2 + xx*yy*derives(jc,kc,XYDER) 
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel
+
       endif
+
       end
       
 c ---------------------------------------------------------------
@@ -378,107 +365,100 @@ c ---------------------------------------------------------------
       j    = lo(2)-1
 
       if (max_order.eq.1) then
-!$omp parallel private(kc,k,ic,i,ioff,koff)
-      do n = 1, nvar
-c
-c        ::::: interpolate to fine grid
-c
-         do koff = 0, ratioz - 1
-!$omp do
-            do kc = kclo,kchi
-               k = ratioz*kc + koff
-               do ioff = 0, ratiox - 1
-                  do ic = iclo, ichi
-                     i = ratiox*ic + ioff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+
+         do n = 1, nvar
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do koff = 0, ratioz - 1
+               do kc = kclo,kchi
+                  k = ratioz*kc + koff
+                  do ioff = 0, ratiox - 1
+                     do ic = iclo, ichi
+                        i = ratiox*ic + ioff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel
 
       else
 
-!$omp parallel private(kc,k,ic,i,ioff,koff,yy,xx)
-      do n = 1, nvar
-c
-c        ::::: define interp coefs
-c
-!$omp do
-         do kc = kclo, kchi
-         k = ratioz*kc
-         do ic = iclo, ichi
-            i = ratiox*ic
-            derives(ic,kc,XDER)  = half*(crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n))
-            derives(ic,kc,X2DER) = half*(crse(ic+1,jc,kc,n) - two*crse(ic,jc,kc,n)
-     &                     + crse(ic-1,jc,kc,n))
-            derives(ic,kc,YDER)  = half*(crse(ic,jc,kc+1,n) - crse(ic,jc,kc-1,n))
-            derives(ic,kc,Y2DER) = half*(crse(ic,jc,kc+1,n) - two*crse(ic,jc,kc,n)
-     &                     + crse(ic,jc,kc-1,n))
-            derives(ic,kc,XYDER) = forth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n)
-     &                     + crse(ic-1,jc,kc-1,n) - crse(ic+1,jc,kc-1,n))
+         do n = 1, nvar
+            !
+            ! ::::: define interp coefs
+            !
+            do kc = kclo, kchi
+               k = ratioz*kc
+               do ic = iclo, ichi
+                  i = ratiox*ic
+                  derives(ic,kc,XDER)  = half*(crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n))
+                  derives(ic,kc,X2DER) = half*(crse(ic+1,jc,kc,n) - two*crse(ic,jc,kc,n)
+     &                 + crse(ic-1,jc,kc,n))
+                  derives(ic,kc,YDER)  = half*(crse(ic,jc,kc+1,n) - crse(ic,jc,kc-1,n))
+                  derives(ic,kc,Y2DER) = half*(crse(ic,jc,kc+1,n) - two*crse(ic,jc,kc,n)
+     &                 + crse(ic,jc,kc-1,n))
+                  derives(ic,kc,XYDER) = forth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n)
+     &                 + crse(ic-1,jc,kc-1,n) - crse(ic+1,jc,kc-1,n))
 
-            if (mask(i-1,j,k) .ne. not_covered) then
-               derives(ic,kc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
-               derives(ic,kc,X2DER) = zero
-            end if
-            if (mask(i+ratiox,j,k) .ne. not_covered) then
-               derives(ic,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
-               derives(ic,kc,X2DER) = zero
-            end if
-            if (mask(i-1,j,k)     .ne. not_covered .and.
-     $          mask(i+ratiox,j,k) .ne. not_covered) then
-               derives(ic,kc,XDER)  = zero
-            end if
+                  if (mask(i-1,j,k) .ne. not_covered) then
+                     derives(ic,kc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
+                     derives(ic,kc,X2DER) = zero
+                  end if
+                  if (mask(i+ratiox,j,k) .ne. not_covered) then
+                     derives(ic,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
+                     derives(ic,kc,X2DER) = zero
+                  end if
+                  if (mask(i-1,j,k)     .ne. not_covered .and.
+     $                 mask(i+ratiox,j,k) .ne. not_covered) then
+                     derives(ic,kc,XDER)  = zero
+                  end if
 
-            if (mask(i,j,k-1) .ne. not_covered) then
-               derives(ic,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
-               derives(ic,kc,Y2DER) = zero
-            end if
-            if (mask(i,j,k+ratioz) .ne. not_covered) then
-               derives(ic,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
-               derives(ic,kc,Y2DER) = zero
-            end if
-            if (mask(i,j,k-1)     .ne. not_covered .and.
-     $          mask(i,j,k+ratioz) .ne. not_covered) then
-               derives(ic,kc,YDER)  = zero
-            end if
-            if (
-     $           ( mask(i+ratiox,j,k+ratioz) .ne. not_covered ) .or.
-     $           ( mask(i-1,j,k+ratioz)     .ne. not_covered ) .or.
-     $           ( mask(i+ratiox,j,k-1)     .ne. not_covered ) .or.
-     $           ( mask(i-1,j,k-1)         .ne. not_covered ) ) then
-               
-                derives(ic,kc,XYDER) = zero
-            end if
-         end do
-         end do
-!$omp end do
-c
-c        ::::: interpolate to fine grid
-c
-         do koff = 0, ratioz - 1
-            yy = (dble(koff - ratioz/2) + half)/ratioz
-!$omp do
-            do kc = kclo,kchi
-               k = ratioz*kc + koff
-               do ioff = 0, ratiox - 1
-                  xx = (dble(ioff - ratiox/2) + half)/ratiox
-                  do ic = iclo, ichi
-                     i = ratiox*ic + ioff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,kc,XDER) 
-     &                     + derives(ic,kc,X2DER)*xx**2 + yy*derives(ic,kc,YDER) 
-     &                     + derives(ic,kc,Y2DER)*yy**2 + xx*yy*derives(ic,kc,XYDER) 
+                  if (mask(i,j,k-1) .ne. not_covered) then
+                     derives(ic,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
+                     derives(ic,kc,Y2DER) = zero
+                  end if
+                  if (mask(i,j,k+ratioz) .ne. not_covered) then
+                     derives(ic,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
+                     derives(ic,kc,Y2DER) = zero
+                  end if
+                  if (mask(i,j,k-1)     .ne. not_covered .and.
+     $                 mask(i,j,k+ratioz) .ne. not_covered) then
+                     derives(ic,kc,YDER)  = zero
+                  end if
+                  if (
+     $                 ( mask(i+ratiox,j,k+ratioz) .ne. not_covered ) .or.
+     $                 ( mask(i-1,j,k+ratioz)     .ne. not_covered ) .or.
+     $                 ( mask(i+ratiox,j,k-1)     .ne. not_covered ) .or.
+     $                 ( mask(i-1,j,k-1)         .ne. not_covered ) ) then
+                     
+                     derives(ic,kc,XYDER) = zero
+                  end if
+               end do
+            end do
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do koff = 0, ratioz - 1
+               yy = (dble(koff - ratioz/2) + half)/ratioz
+               do kc = kclo,kchi
+                  k = ratioz*kc + koff
+                  do ioff = 0, ratiox - 1
+                     xx = (dble(ioff - ratiox/2) + half)/ratiox
+                     do ic = iclo, ichi
+                        i = ratiox*ic + ioff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,kc,XDER) 
+     &                       + derives(ic,kc,X2DER)*xx**2 + yy*derives(ic,kc,YDER) 
+     &                       + derives(ic,kc,Y2DER)*yy**2 + xx*yy*derives(ic,kc,XYDER) 
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel
+
       endif
+
       end
 
 c ---------------------------------------------------------------
@@ -533,108 +513,100 @@ c ---------------------------------------------------------------
 
       if (max_order.eq.1) then
 
-!$omp parallel private(kc,k,ic,i,ioff,koff)
-      do n = 1, nvar
-c
-c        ::::: interpolate to fine grid
-c
-         do koff = 0, ratioz - 1
-!$omp do
-            do kc = kclo,kchi
-               k = ratioz*kc + koff
-               do ioff = 0, ratiox - 1
-                  do ic = iclo, ichi
-                     i = ratiox*ic + ioff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+         do n = 1, nvar
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do koff = 0, ratioz - 1
+               do kc = kclo,kchi
+                  k = ratioz*kc + koff
+                  do ioff = 0, ratiox - 1
+                     do ic = iclo, ichi
+                        i = ratiox*ic + ioff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel
 
       else
 
-!$omp parallel private(kc,k,ic,i,ioff,koff,yy,xx)
-      do n = 1, nvar
-c
-c        ::::: define interp coefs
-c
-!$omp do
-         do kc = kclo, kchi
-         k = ratioz*kc
-         do ic = iclo, ichi
-            i = ratiox*ic
-            derives(ic,kc,XDER)  = half*(crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n))
-            derives(ic,kc,X2DER) = half*(crse(ic+1,jc,kc,n) - two*crse(ic,jc,kc,n)
-     &                     + crse(ic-1,jc,kc,n))
-            derives(ic,kc,YDER)  = half*(crse(ic,jc,kc+1,n) - crse(ic,jc,kc-1,n))
-            derives(ic,kc,Y2DER) = half*(crse(ic,jc,kc+1,n) - two*crse(ic,jc,kc,n)
-     &                     + crse(ic,jc,kc-1,n))
-            derives(ic,kc,XYDER) = forth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n)
-     &                     + crse(ic-1,jc,kc-1,n) - crse(ic+1,jc,kc-1,n))
+         do n = 1, nvar
+            !
+            ! ::::: define interp coefs
+            !
+            do kc = kclo, kchi
+               k = ratioz*kc
+               do ic = iclo, ichi
+                  i = ratiox*ic
+                  derives(ic,kc,XDER)  = half*(crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n))
+                  derives(ic,kc,X2DER) = half*(crse(ic+1,jc,kc,n) - two*crse(ic,jc,kc,n)
+     &                 + crse(ic-1,jc,kc,n))
+                  derives(ic,kc,YDER)  = half*(crse(ic,jc,kc+1,n) - crse(ic,jc,kc-1,n))
+                  derives(ic,kc,Y2DER) = half*(crse(ic,jc,kc+1,n) - two*crse(ic,jc,kc,n)
+     &                 + crse(ic,jc,kc-1,n))
+                  derives(ic,kc,XYDER) = forth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n)
+     &                 + crse(ic-1,jc,kc-1,n) - crse(ic+1,jc,kc-1,n))
 
-            if (mask(i-1,j,k) .ne. not_covered) then
-               derives(ic,kc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
-               derives(ic,kc,X2DER) = zero
-            end if
-            if (mask(i+ratiox,j,k) .ne. not_covered) then
-               derives(ic,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
-               derives(ic,kc,X2DER) = zero
-            end if
-            if (mask(i-1,j,k)     .ne. not_covered .and.
-     $          mask(i+ratiox,j,k) .ne. not_covered) then
-               derives(ic,kc,XDER)  = zero
-            end if
+                  if (mask(i-1,j,k) .ne. not_covered) then
+                     derives(ic,kc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
+                     derives(ic,kc,X2DER) = zero
+                  end if
+                  if (mask(i+ratiox,j,k) .ne. not_covered) then
+                     derives(ic,kc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
+                     derives(ic,kc,X2DER) = zero
+                  end if
+                  if (mask(i-1,j,k)     .ne. not_covered .and.
+     $                 mask(i+ratiox,j,k) .ne. not_covered) then
+                     derives(ic,kc,XDER)  = zero
+                  end if
 
-            if (mask(i,j,k-1) .ne. not_covered) then
-               derives(ic,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
-               derives(ic,kc,Y2DER) = zero
-            end if
-            if (mask(i,j,k+ratioz) .ne. not_covered) then
-               derives(ic,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
-               derives(ic,kc,Y2DER) = zero
-            end if
-            if (mask(i,j,k-1)     .ne. not_covered .and.
-     $          mask(i,j,k+ratioz) .ne. not_covered) then
-               derives(ic,kc,YDER)  = zero
-            end if
+                  if (mask(i,j,k-1) .ne. not_covered) then
+                     derives(ic,kc,YDER)  = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
+                     derives(ic,kc,Y2DER) = zero
+                  end if
+                  if (mask(i,j,k+ratioz) .ne. not_covered) then
+                     derives(ic,kc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n)
+                     derives(ic,kc,Y2DER) = zero
+                  end if
+                  if (mask(i,j,k-1)     .ne. not_covered .and.
+     $                 mask(i,j,k+ratioz) .ne. not_covered) then
+                     derives(ic,kc,YDER)  = zero
+                  end if
 
-            if ( 
-     $           ( mask(i+ratiox,j,k+ratioz) .ne. not_covered ) .or.
-     $           ( mask(i-1,j,k+ratioz)     .ne. not_covered ) .or.
-     $           ( mask(i+ratiox,j,k-1)     .ne. not_covered ) .or.
-     $           ( mask(i-1,j,k-1)         .ne. not_covered ) ) then
+                  if ( 
+     $                 ( mask(i+ratiox,j,k+ratioz) .ne. not_covered ) .or.
+     $                 ( mask(i-1,j,k+ratioz)     .ne. not_covered ) .or.
+     $                 ( mask(i+ratiox,j,k-1)     .ne. not_covered ) .or.
+     $                 ( mask(i-1,j,k-1)         .ne. not_covered ) ) then
 
-               derives(ic,kc,XYDER) = zero
-            end if
-         end do
-         end do
-!$omp end do
-c
-c        ::::: interpolate to fine grid
-c
-         do koff = 0, ratioz - 1
-            yy = (dble(koff - ratioz/2) + half)/ratioz
-!$omp do
-            do kc = kclo,kchi
-               k = ratioz*kc + koff
-               do ioff = 0, ratiox - 1
-                  xx = (dble(ioff - ratiox/2) + half)/ratiox
-                  do ic = iclo, ichi
-                     i = ratiox*ic + ioff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,kc,XDER) 
-     &                     + derives(ic,kc,X2DER)*xx**2 + yy*derives(ic,kc,YDER) 
-     &                     + derives(ic,kc,Y2DER)*yy**2 + xx*yy*derives(ic,kc,XYDER) 
+                     derives(ic,kc,XYDER) = zero
+                  end if
+               end do
+            end do
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do koff = 0, ratioz - 1
+               yy = (dble(koff - ratioz/2) + half)/ratioz
+               do kc = kclo,kchi
+                  k = ratioz*kc + koff
+                  do ioff = 0, ratiox - 1
+                     xx = (dble(ioff - ratiox/2) + half)/ratiox
+                     do ic = iclo, ichi
+                        i = ratiox*ic + ioff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,kc,XDER) 
+     &                       + derives(ic,kc,X2DER)*xx**2 + yy*derives(ic,kc,YDER) 
+     &                       + derives(ic,kc,Y2DER)*yy**2 + xx*yy*derives(ic,kc,XYDER) 
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel
+
       endif
+
       end
 
 c ---------------------------------------------------------------
@@ -689,107 +661,99 @@ c ---------------------------------------------------------------
 
       if (max_order.eq.1) then
 
-!$omp parallel private(jc,j,ic,i,ioff,joff)
-      do n = 1, nvar
-c         
-c     ::::: interpolate to fine grid
-c
-         do joff = 0, ratioy - 1
-!$omp do
-            do jc = jclo,jchi
-               j = ratioy*jc + joff
-               do ioff = 0, ratiox - 1
-                  do ic = iclo, ichi
-                     i = ratiox*ic + ioff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+         do n = 1, nvar
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do joff = 0, ratioy - 1
+               do jc = jclo,jchi
+                  j = ratioy*jc + joff
+                  do ioff = 0, ratiox - 1
+                     do ic = iclo, ichi
+                        i = ratiox*ic + ioff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel      
 
       else
 
-!$omp parallel private(jc,j,ic,i,ioff,joff,yy,xx)
-      do n = 1, nvar
-c
-c     ::::: define interp coefs
-c
-!$omp do
-         do jc = jclo, jchi
-            j = ratioy*jc
-            do ic = iclo, ichi
-               i = ratiox*ic
-               
-               derives(ic,jc,XDER)  = half*(crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n) )
-               derives(ic,jc,X2DER) = half*(crse(ic+1,jc,kc,n) - two*crse(ic,jc,kc,n) + crse(ic-1,jc,kc,n) )
-               derives(ic,jc,YDER)  = half*(crse(ic,jc+1,kc,n) - crse(ic,jc-1,kc,n) )
-               derives(ic,jc,Y2DER) = half*(crse(ic,jc+1,kc,n) - two*crse(ic,jc,kc,n) + crse(ic,jc-1,kc,n) )
-               derives(ic,jc,XYDER) = forth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n)
-     &              + crse(ic-1,jc-1,kc,n) - crse(ic+1,jc-1,kc,n))
-               
-               if (mask(i-1,j,k) .ne. not_covered) then
-                  derives(ic,jc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
-                  derives(ic,jc,X2DER) = zero
-               end if
-               if (mask(i+ratiox,j,k) .ne. not_covered) then
-                  derives(ic,jc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
-                  derives(ic,jc,X2DER) = zero
-               end if
-               if (mask(i-1,j,k)     .ne. not_covered .and. 
-     $             mask(i+ratiox,j,k) .ne. not_covered) then
-                  derives(ic,jc,XDER)  = zero
-               end if
-
-               if (mask(i,j-1,k) .ne. not_covered) then
-                  derives(ic,jc,YDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
-                  derives(ic,jc,Y2DER) = zero
-               end if
-               if (mask(i,j+ratioy,k) .ne. not_covered) then
-                  derives(ic,jc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
-                  derives(ic,jc,Y2DER) = zero
-               end if
-               if (mask(i,j-1,k)     .ne. not_covered .and. 
-     $             mask(i,j+ratioy,k) .ne. not_covered) then
-                  derives(ic,jc,YDER)  = zero
-               end if
-
-               if (
-     $              ( mask(i+ratiox,j+ratioy,k) .ne. not_covered ) .or.
-     $              ( mask(i-1,j+ratioy,k)     .ne. not_covered ) .or.
-     $              ( mask(i+ratiox,j-1,k)     .ne. not_covered ) .or.
-     $              ( mask(i-1,j-1,k)         .ne. not_covered ) ) then
+         do n = 1, nvar
+            !
+            ! ::::: define interp coefs
+            !
+            do jc = jclo, jchi
+               j = ratioy*jc
+               do ic = iclo, ichi
+                  i = ratiox*ic
                   
-                  derives(ic,jc,XYDER) = zero
-               end if
+                  derives(ic,jc,XDER)  = half*(crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n) )
+                  derives(ic,jc,X2DER) = half*(crse(ic+1,jc,kc,n) - two*crse(ic,jc,kc,n) + crse(ic-1,jc,kc,n) )
+                  derives(ic,jc,YDER)  = half*(crse(ic,jc+1,kc,n) - crse(ic,jc-1,kc,n) )
+                  derives(ic,jc,Y2DER) = half*(crse(ic,jc+1,kc,n) - two*crse(ic,jc,kc,n) + crse(ic,jc-1,kc,n) )
+                  derives(ic,jc,XYDER) = forth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n)
+     &                 + crse(ic-1,jc-1,kc,n) - crse(ic+1,jc-1,kc,n))
+                  
+                  if (mask(i-1,j,k) .ne. not_covered) then
+                     derives(ic,jc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
+                     derives(ic,jc,X2DER) = zero
+                  end if
+                  if (mask(i+ratiox,j,k) .ne. not_covered) then
+                     derives(ic,jc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
+                     derives(ic,jc,X2DER) = zero
+                  end if
+                  if (mask(i-1,j,k)     .ne. not_covered .and. 
+     $                 mask(i+ratiox,j,k) .ne. not_covered) then
+                     derives(ic,jc,XDER)  = zero
+                  end if
+
+                  if (mask(i,j-1,k) .ne. not_covered) then
+                     derives(ic,jc,YDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
+                     derives(ic,jc,Y2DER) = zero
+                  end if
+                  if (mask(i,j+ratioy,k) .ne. not_covered) then
+                     derives(ic,jc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
+                     derives(ic,jc,Y2DER) = zero
+                  end if
+                  if (mask(i,j-1,k)     .ne. not_covered .and. 
+     $                 mask(i,j+ratioy,k) .ne. not_covered) then
+                     derives(ic,jc,YDER)  = zero
+                  end if
+
+                  if (
+     $                 ( mask(i+ratiox,j+ratioy,k) .ne. not_covered ) .or.
+     $                 ( mask(i-1,j+ratioy,k)     .ne. not_covered ) .or.
+     $                 ( mask(i+ratiox,j-1,k)     .ne. not_covered ) .or.
+     $                 ( mask(i-1,j-1,k)         .ne. not_covered ) ) then
+                     
+                     derives(ic,jc,XYDER) = zero
+                  end if
+               end do
             end do
-         end do
-!$omp end do
-c         
-c     ::::: interpolate to fine grid
-c
-         do joff = 0, ratioy - 1
-            yy = (dble(joff - ratioy/2) + half)/ratioy
-!$omp do
-            do jc = jclo,jchi
-               j = ratioy*jc + joff
-               do ioff = 0, ratiox - 1
-                  xx = (dble(ioff - ratiox/2) + half)/ratiox
-                  do ic = iclo, ichi
-                     i = ratiox*ic + ioff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,jc,XDER) 
-     &                    + derives(ic,jc,X2DER)*xx**2 + yy*derives(ic,jc,YDER) 
-     &                    + derives(ic,jc,Y2DER)*yy**2 + xx*yy*derives(ic,jc,XYDER) 
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do joff = 0, ratioy - 1
+               yy = (dble(joff - ratioy/2) + half)/ratioy
+               do jc = jclo,jchi
+                  j = ratioy*jc + joff
+                  do ioff = 0, ratiox - 1
+                     xx = (dble(ioff - ratiox/2) + half)/ratiox
+                     do ic = iclo, ichi
+                        i = ratiox*ic + ioff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,jc,XDER) 
+     &                       + derives(ic,jc,X2DER)*xx**2 + yy*derives(ic,jc,YDER) 
+     &                       + derives(ic,jc,Y2DER)*yy**2 + xx*yy*derives(ic,jc,XYDER) 
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel      
+
       endif
+
       end
       
 c ---------------------------------------------------------------
@@ -844,107 +808,99 @@ c ---------------------------------------------------------------
 
       if (max_order.eq.1) then
 
-!$omp parallel private(jc,j,ic,i,ioff,joff)
-      do n = 1, nvar
-c
-c        ::::: interpolate to fine grid
-c
-         do joff = 0, ratioy - 1
-!$omp do
-            do jc = jclo,jchi
-               j = ratioy*jc + joff
-               do ioff = 0, ratiox - 1
-                  do ic = iclo, ichi
-                     i = ratiox*ic + ioff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n)
+         do n = 1, nvar
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do joff = 0, ratioy - 1
+               do jc = jclo,jchi
+                  j = ratioy*jc + joff
+                  do ioff = 0, ratiox - 1
+                     do ic = iclo, ichi
+                        i = ratiox*ic + ioff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n)
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel
 
       else
 
-!$omp parallel private(jc,j,ic,i,ioff,joff,yy,xx)
-      do n = 1, nvar
-c
-c        ::::: define interp coefs
-c
-!$omp do
-         do jc = jclo, jchi
-         j = ratioy*jc
-         do ic = iclo, ichi
-            i = ratiox*ic
-            derives(ic,jc,XDER)  = half*(crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n))
-            derives(ic,jc,X2DER) = half*(crse(ic+1,jc,kc,n) - two*crse(ic,jc,kc,n)
-     &                     + crse(ic-1,jc,kc,n))
-            derives(ic,jc,YDER)  = half*(crse(ic,jc+1,kc,n) - crse(ic,jc-1,kc,n))
-            derives(ic,jc,Y2DER) = half*(crse(ic,jc+1,kc,n) - two*crse(ic,jc,kc,n)
-     &                     + crse(ic,jc-1,kc,n))
-            derives(ic,jc,XYDER) = forth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n)
-     &                     + crse(ic-1,jc-1,kc,n) - crse(ic+1,jc-1,kc,n))
+         do n = 1, nvar
+            !
+            ! ::::: define interp coefs
+            !
+            do jc = jclo, jchi
+               j = ratioy*jc
+               do ic = iclo, ichi
+                  i = ratiox*ic
+                  derives(ic,jc,XDER)  = half*(crse(ic+1,jc,kc,n) - crse(ic-1,jc,kc,n))
+                  derives(ic,jc,X2DER) = half*(crse(ic+1,jc,kc,n) - two*crse(ic,jc,kc,n)
+     &                 + crse(ic-1,jc,kc,n))
+                  derives(ic,jc,YDER)  = half*(crse(ic,jc+1,kc,n) - crse(ic,jc-1,kc,n))
+                  derives(ic,jc,Y2DER) = half*(crse(ic,jc+1,kc,n) - two*crse(ic,jc,kc,n)
+     &                 + crse(ic,jc-1,kc,n))
+                  derives(ic,jc,XYDER) = forth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n)
+     &                 + crse(ic-1,jc-1,kc,n) - crse(ic+1,jc-1,kc,n))
 
-            if (mask(i-1,j,k) .ne. not_covered) then
-               derives(ic,jc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
-               derives(ic,jc,X2DER) = zero
-            end if
-            if (mask(i+ratiox,j,k) .ne. not_covered) then
-               derives(ic,jc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
-               derives(ic,jc,X2DER) = zero
-            end if
-            if (mask(i-1,j,k)     .ne. not_covered .and. 
-     $          mask(i+ratiox,j,k) .ne. not_covered) then
-               derives(ic,jc,XDER)  = zero
-            end if
+                  if (mask(i-1,j,k) .ne. not_covered) then
+                     derives(ic,jc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
+                     derives(ic,jc,X2DER) = zero
+                  end if
+                  if (mask(i+ratiox,j,k) .ne. not_covered) then
+                     derives(ic,jc,XDER)  = crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n)
+                     derives(ic,jc,X2DER) = zero
+                  end if
+                  if (mask(i-1,j,k)     .ne. not_covered .and. 
+     $                 mask(i+ratiox,j,k) .ne. not_covered) then
+                     derives(ic,jc,XDER)  = zero
+                  end if
 
-            if (mask(i,j-1,k) .ne. not_covered) then
-               derives(ic,jc,YDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
-               derives(ic,jc,Y2DER) = zero
-            end if
-            if (mask(i,j+ratioy,k) .ne. not_covered) then
-               derives(ic,jc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
-               derives(ic,jc,Y2DER) = zero
-            end if
-            if (mask(i,j-1,k)     .ne. not_covered .and. 
-     $          mask(i,j+ratioy,k) .ne. not_covered) then
-               derives(ic,jc,YDER)  = zero
-            end if
-            if (
-     $           ( mask(i+ratiox,j+ratioy,k) .ne. not_covered ) .or.
-     $           ( mask(i-1,j+ratioy,k)     .ne. not_covered ) .or.
-     $           ( mask(i+ratiox,j-1,k)     .ne. not_covered ) .or.
-     $           ( mask(i-1,j-1,k)         .ne. not_covered ) ) then
-               
-                derives(ic,jc,XYDER) = zero
-            end if
-         end do
-         end do
-!$omp end do
-c
-c        ::::: interpolate to fine grid
-c
-         do joff = 0, ratioy - 1
-            yy = (dble(joff - ratioy/2) + half)/ratioy
-!$omp do
-            do jc = jclo,jchi
-               j = ratioy*jc + joff
-               do ioff = 0, ratiox - 1
-                  xx = (dble(ioff - ratiox/2) + half)/ratiox
-                  do ic = iclo, ichi
-                     i = ratiox*ic + ioff
-                     bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,jc,XDER) 
-     &                     + derives(ic,jc,X2DER)*xx**2 + yy*derives(ic,jc,YDER) 
-     &                     + derives(ic,jc,Y2DER)*yy**2 + xx*yy*derives(ic,jc,XYDER) 
+                  if (mask(i,j-1,k) .ne. not_covered) then
+                     derives(ic,jc,YDER)  = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
+                     derives(ic,jc,Y2DER) = zero
+                  end if
+                  if (mask(i,j+ratioy,k) .ne. not_covered) then
+                     derives(ic,jc,YDER)  = crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n)
+                     derives(ic,jc,Y2DER) = zero
+                  end if
+                  if (mask(i,j-1,k)     .ne. not_covered .and. 
+     $                 mask(i,j+ratioy,k) .ne. not_covered) then
+                     derives(ic,jc,YDER)  = zero
+                  end if
+                  if (
+     $                 ( mask(i+ratiox,j+ratioy,k) .ne. not_covered ) .or.
+     $                 ( mask(i-1,j+ratioy,k)     .ne. not_covered ) .or.
+     $                 ( mask(i+ratiox,j-1,k)     .ne. not_covered ) .or.
+     $                 ( mask(i-1,j-1,k)         .ne. not_covered ) ) then
+                     
+                     derives(ic,jc,XYDER) = zero
+                  end if
+               end do
+            end do
+            !
+            ! ::::: interpolate to fine grid
+            !
+            do joff = 0, ratioy - 1
+               yy = (dble(joff - ratioy/2) + half)/ratioy
+               do jc = jclo,jchi
+                  j = ratioy*jc + joff
+                  do ioff = 0, ratiox - 1
+                     xx = (dble(ioff - ratiox/2) + half)/ratiox
+                     do ic = iclo, ichi
+                        i = ratiox*ic + ioff
+                        bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,jc,XDER) 
+     &                       + derives(ic,jc,X2DER)*xx**2 + yy*derives(ic,jc,YDER) 
+     &                       + derives(ic,jc,Y2DER)*yy**2 + xx*yy*derives(ic,jc,XYDER) 
+                     end do
                   end do
                end do
             end do
-!$omp end do nowait
          end do
-      end do
-!$omp end parallel
+
       endif
+
       end
 
 #undef NUMDERIV

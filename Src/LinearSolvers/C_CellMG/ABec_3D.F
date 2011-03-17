@@ -1,5 +1,5 @@
 c
-c $Id: ABec_3D.F,v 1.16 2010-07-30 23:25:33 almgren Exp $
+c $Id: ABec_3D.F,v 1.17 2011-03-17 20:53:13 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -457,9 +457,7 @@ c
       dhy = one/h(2)
       dhz = one/h(3)
 
-!$omp parallel private(i,j,k,n)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)+1
@@ -467,10 +465,8 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)+1
                do i = lo(1), hi(1)
@@ -478,10 +474,8 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)+1
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -489,9 +483,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 

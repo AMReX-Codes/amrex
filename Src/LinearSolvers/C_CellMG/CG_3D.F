@@ -1,4 +1,4 @@
-c     $Id: CG_3D.F,v 1.10 2009-11-06 21:00:18 lijewski Exp $
+c     $Id: CG_3D.F,v 1.11 2011-03-17 20:53:13 lijewski Exp $
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -46,9 +46,7 @@ c-----------------------------------------------------------------------
 
       integer i,j,k,n
 
-!$omp parallel private(i,j,k) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -57,9 +55,7 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 c-----------------------------------------------------------------------
@@ -92,9 +88,7 @@ c
 
       integer i,j,k,n
 
-!$omp parallel private(i,j,k) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -102,9 +96,8 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
+
       end
       
 c-----------------------------------------------------------------------
@@ -138,7 +131,6 @@ c-----------------------------------------------------------------------
 
       pw = 0.0D0
       do n = 1, nc
-!$omp parallel do private(i,j,k) reduction(+:pw) if((hi(3)-lo(3)).ge.3)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -146,7 +138,6 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
@@ -172,9 +163,7 @@ c-----------------------------------------------------------------------
 
       integer i, j, k, n
 
-!$omp parallel private(i,j,k) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -182,8 +171,6 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
