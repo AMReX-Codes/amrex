@@ -38,7 +38,6 @@ c
 c         ::::: cartesian
 c
           v = dx(1)*dx(2)*dx(3)
-!$omp parallel do private(i,j,k)
           do k = ARG_L3(vol), ARG_H3(vol)
              do j = ARG_L2(vol), ARG_H2(vol)
                 do i = ARG_L1(vol), ARG_H1(vol)
@@ -46,7 +45,6 @@ c
                 end do
              end do
           end do
-!$omp end parallel do
        else
           write(6,*) "FORT_SETVOLUME not define for coord = ",coord
           call bl_abort(" ")
@@ -89,7 +87,6 @@ c ::
              write(6,*) "FORT_SETAREA: invalid dir = ",dir
              call bl_abort(" ")
           end if
-!$omp parallel do private(i,j,k)
           do k = ARG_L3(area), ARG_H3(area)
              do j = ARG_L2(area), ARG_H2(area)
                 do i = ARG_L1(area), ARG_H1(area)
@@ -97,7 +94,6 @@ c ::
                 end do
              end do
           end do
-!$omp end parallel do
        else
           write(6,*) "FORT_SETAREA not define for coord = ",coord
           call bl_abort(" ")
@@ -130,7 +126,6 @@ c ::
 c
 c         ::::: cartesian
 c
-!$omp parallel do private(i,j,k)
           do k = ARG_L3(dloga), ARG_H3(dloga)
              do j = ARG_L2(dloga), ARG_H2(dloga)
                 do i = ARG_L1(dloga), ARG_H1(dloga)
@@ -138,7 +133,6 @@ c
                 end do
              end do
 	  enddo
-!$omp end parallel do
        else 
 	 write(6,*)' non-cartesian not allowed in 3D yet'
          call bl_abort(" ")
