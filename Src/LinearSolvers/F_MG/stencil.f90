@@ -186,7 +186,6 @@ contains
           if ( remote(ss,b) ) cycle
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
-          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(MAX:r1)
           do k = lbound(sp,dim=3), ubound(sp,dim=3)
              do j = lbound(sp,dim=2), ubound(sp,dim=2)
                 do i = lbound(sp,dim=1), ubound(sp,dim=1)
@@ -200,14 +199,12 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
 
        end do
     else
        do b = 1, nboxes(ss)
           if ( multifab_remote(ss,b) ) cycle
           sp => dataptr(ss, b)
-          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(MAX:r1)
           do k = lbound(sp,dim=3), ubound(sp,dim=3)
              do j = lbound(sp,dim=2), ubound(sp,dim=2)
                 do i = lbound(sp,dim=1), ubound(sp,dim=1)
@@ -219,7 +216,6 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end do
     end if
 
@@ -1341,7 +1337,6 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -1349,7 +1344,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine s_simple_3d_cc
 
@@ -2493,7 +2487,6 @@ b1 =       0.0d0/hy2
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -2501,7 +2494,6 @@ b1 =       0.0d0/hy2
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine s_minion_second_fill_3d
 
@@ -3921,7 +3913,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
           i = 1
           flux(1,:,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(j,k)
           do k = 1,nz
              do j = 1,ny
                 if (bc_dirichlet(mm(i,j,k),1,-1)) then
@@ -3938,14 +3929,12 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
 
        !   Hi i face
        else if (face ==  1) then
 
           i = nx
           flux(1,:,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(j,k)
           do k = 1,nz
              do j = 1,ny
                 if (bc_dirichlet(mm(i,j,k),1,+1)) then
@@ -3962,7 +3951,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
        end if
 
     else if ( dim == 2 ) then
@@ -3971,7 +3959,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
        if (face == -1) then
           j = 1
           flux(:,1,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,k)
           do k = 1,nz
              do i = 1,nx
                 if (bc_dirichlet(mm(i,j,k),2,-1)) then
@@ -3988,14 +3975,12 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
 
        !   Hi j face
        else if (face ==  1) then
 
           j = ny
           flux(:,1,:) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,k)
           do k = 1,nz
              do i = 1,nx
                 if (bc_dirichlet(mm(i,j,k),2,+1)) then
@@ -4012,7 +3997,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
        end if
 
     else if ( dim == 3 ) then
@@ -4022,7 +4006,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
           k = 1
           flux(:,:,1) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,j)
           do j = 1,ny
              do i = 1,nx
                 if (bc_dirichlet(mm(i,j,k),3,-1)) then
@@ -4039,14 +4022,12 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
 
        !   Hi k face
        else if (face ==  1) then
 
           k = nz
           flux(:,:,1) = ZERO
-          !$OMP PARALLEL DO PRIVATE(i,j)
           do j = 1,ny
              do i = 1,nx
                 if (bc_dirichlet(mm(i,j,k),3,+1)) then
@@ -4063,7 +4044,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
-          !$OMP END PARALLEL DO
 
        end if
     end if
@@ -4103,7 +4083,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
        !   Lo i face
        i = 0
-       !$OMP PARALLEL DO PRIVATE(j,k)
        do k = 0,nz-1
              do j = 0,ny-1
                 if (bc_dirichlet(mm(i,j,k),1,-1)) then
@@ -4121,11 +4100,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
        !   Hi i face
        i = nx-1
-       !$OMP PARALLEL DO PRIVATE(j,k)
        do k = 0,nz-1
              do j = 0,ny-1
                 if (bc_dirichlet(mm(i,j,k),1,+1)) then
@@ -4142,7 +4119,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
     else if ( dim == 2 ) then
 
@@ -4158,7 +4134,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
        !   Lo j face
        j = 0
-       !$OMP PARALLEL DO PRIVATE(i,k)
        do k = 0,nz-1
              do i = 0,nx-1
                 if (bc_dirichlet(mm(i,j,k),2,-1)) then
@@ -4176,11 +4151,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
        !   Hi j face
        j = ny-1
-       !$OMP PARALLEL DO PRIVATE(i,k)
        do k = 0,nz-1
              do i = 0,nx-1
                 if (bc_dirichlet(mm(i,j,k),2,+1)) then
@@ -4197,7 +4170,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
     else if ( dim == 3 ) then
 
@@ -4213,7 +4185,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
        !   Lo k face
        k = 0
-       !$OMP PARALLEL DO PRIVATE(i,j)
        do j = 0,ny-1
              do i = 0,nx-1
                 if (bc_dirichlet(mm(i,j,k),3,-1)) then
@@ -4231,11 +4202,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
        !   Hi k face
        k = nz-1
-       !$OMP PARALLEL DO PRIVATE(i,j)
        do j = 0,ny-1
              do i = 0,nx-1
                 if (bc_dirichlet(mm(i,j,k),3,+1)) then
@@ -4252,7 +4221,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
     end if
 

@@ -53,7 +53,6 @@ contains
       nz = size(a,dim=3)
       ny = size(a,dim=2)
       nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
@@ -61,7 +60,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
     end subroutine jacobi_precon_3d
 
     subroutine nodal_precon_1d(a, u, r, mm, ng)
@@ -106,7 +104,6 @@ contains
       nz = size(a,dim=3)
       ny = size(a,dim=2)
       nx = size(a,dim=1)
-      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
@@ -116,7 +113,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
     end subroutine nodal_precon_3d
 
     subroutine diag_init_cc_1d(a, ng_a, r, ng_r, lo, hi)

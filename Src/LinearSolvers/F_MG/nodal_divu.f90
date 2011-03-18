@@ -1270,7 +1270,6 @@ contains
       ny = size(mm,dim=2) - 1
       nz = size(mm,dim=3) - 1
 
-      !$OMP PARALLEL DO PRIVATE(i,j,k)
       do k = 0,nz
       do j = 0,ny
       do i = 0,nx
@@ -1279,7 +1278,6 @@ contains
       end do
       end do
       end do
-      !$OMP END PARALLEL DO
 
     end subroutine subtract_divu_from_rh_3d
 
