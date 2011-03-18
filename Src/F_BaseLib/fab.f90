@@ -1863,9 +1863,7 @@ contains
 
     r1 = Huge(r)
 
-    !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MIN : r1)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
-       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -1873,9 +1871,7 @@ contains
              end do
           end do
        end do
-       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL
 
     r = r1
 
@@ -1892,9 +1888,7 @@ contains
 
     r1 = -Huge(r)
 
-    !$OMP PARALLEL PRIVATE(i,j,k) REDUCTION(MAX : r1)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
-       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -1902,9 +1896,7 @@ contains
              end do
           end do
        end do
-       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL
 
     r = r1
 
