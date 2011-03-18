@@ -248,19 +248,19 @@ contains
     else
 
        ! If we cover the entire domain, then just test on the domain_bc values
-       if (abs(dvol-dvol_pd).lt.1.d-2) then
-   
-          mgt%bottom_singular = .true.
-          do id = 1,mgt%dim
-             if (domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR) mgt%bottom_singular = .false.
-          end do
-   
-       ! If we don't cover the entire domain, then this wont be singular
-       else
-   
+!      if (abs(dvol-dvol_pd).lt.1.d-2) then
+!  
+!         mgt%bottom_singular = .true.
+!         do id = 1,mgt%dim
+!            if (domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR) mgt%bottom_singular = .false.
+!         end do
+!  
+!      ! If we don't cover the entire domain, then this wont be singular
+!      else
+!  
           mgt%bottom_singular = .false.
    
-       end if
+!      end if
 
     end if
 
