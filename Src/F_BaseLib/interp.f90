@@ -630,7 +630,6 @@ contains
        !
        ! Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
        !
-       !$OMP PARALLEL DO PRIVATE(i,j,k,ioff,joff,koff)
        do k = cslope_lo(3),cslope_hi(3)
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
@@ -645,7 +644,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
     end do
     !
