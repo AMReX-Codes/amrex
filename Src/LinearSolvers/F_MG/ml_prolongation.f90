@@ -133,7 +133,6 @@ contains
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,ic,jc,kc) IF((hi(3)-lo(3)).ge.3)
     do k = lo(3),hi(3)
        kc = k / ir(3)
        do j = lo(2),hi(2)
@@ -144,7 +143,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine ml_prolongation_3d_cc
 
