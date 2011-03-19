@@ -52,7 +52,7 @@ contains
 
     real(dp_t) :: Anorm, bnorm, abs_eps, ni_res
     real(dp_t) :: tres, tres0, max_norm
-    real(dp_t) :: rho, sum
+    real(dp_t) :: sum
 
     type(bl_prof_timer), save :: bpt
 
@@ -119,7 +119,7 @@ contains
     bnorm = ml_norm_inf(rh,fine_mask)
 
     lcross = ((ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 5) .or. &
-         (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
+              (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
 
     Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
     do n = 1, nlevs-1
