@@ -46,7 +46,7 @@ contains
 
     type(box) :: pd, pdc
     type(layout) :: la, lac
-    integer :: i, n, dm
+    integer :: i, n, dm, ng_fill
     integer :: mglev, mglev_crse, iter
     logical :: fine_converged,need_grad_phi,lcross
 
@@ -129,13 +129,14 @@ contains
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
     do n = 2,nlevs
+       ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                             ref_ratio(n-1,:), -i)
+                             ref_ratio(n-1,:), ng_fill, -i)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                             ref_ratio(n-1,:), +i)
+                             ref_ratio(n-1,:), ng_fill, +i)
        end do
        call multifab_fill_boundary(full_soln(n))
     end do
@@ -357,11 +358,12 @@ contains
           ! Interpolate uu to supply boundary conditions for new 
           ! residual calculation
           call bndry_reg_copy(brs_bcs(n), uu(n-1))
+          ng_fill = nghost(uu(n))
           do i = 1, dm
              call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,0), pd, &
-                                ref_ratio(n-1,:), -i)
+                                ref_ratio(n-1,:), ng_fill, -i)
              call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,1), pd, &
-                                ref_ratio(n-1,:), +i)
+                                ref_ratio(n-1,:), ng_fill, +i)
           end do
           call multifab_fill_boundary(uu(n))
 
@@ -424,13 +426,14 @@ contains
 
        ! Interpolate soln to supply boundary conditions 
        do n = 2,nlevs
+          ng_fill = nghost(soln(n))
           pd = layout_get_pd(mla%la(n))
           call bndry_reg_copy(brs_bcs(n), soln(n-1))
           do i = 1, dm
              call ml_interp_bcs(soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                                ref_ratio(n-1,:), -i)
+                                ref_ratio(n-1,:), ng_fill, -i)
              call ml_interp_bcs(soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                                ref_ratio(n-1,:), +i)
+                                ref_ratio(n-1,:), ng_fill, +i)
           end do
           call multifab_fill_boundary(soln(n))
        end do
@@ -538,11 +541,12 @@ contains
        !   Interpolate boundary conditions of soln in order to get correct grad(phi) at
        !   crse-fine boundaries
        do n = 2,nlevs
+          ng_fill = nghost(full_soln(n))
           pd = layout_get_pd(mla%la(n))
           call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
           do i = 1, dm
-             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
-             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), +i)
+             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), ng_fill, -i)
+             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), ng_fill, +i)
           end do
           call multifab_fill_boundary(full_soln(n))
        end do
@@ -716,7 +720,7 @@ contains
 
     type(box)    :: pd, pdc
     type(layout) :: la, lac
-    integer      :: i, n, dm, nlevs, mglev, mglev_crse
+    integer      :: i, n, ng_fill, dm, nlevs, mglev, mglev_crse
 
     dm = get_dim(rh(1))
 
@@ -744,11 +748,12 @@ contains
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in its ghost cells 
     !   before we evaluate the initial residual  
     do n = 2,nlevs
+       ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
        do i = 1, dm
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), -i)
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), +i)
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), ng_fill, -i)
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), ng_fill, +i)
        end do
        call multifab_fill_boundary(full_soln(n))
     end do
@@ -810,7 +815,7 @@ contains
 
     type(box) :: pd, pdc
     type(layout) :: la, lac
-    integer :: i, n, dm
+    integer :: i, n, ng_fill, dm
     integer :: mglev, mglev_crse
 
     type(bl_prof_timer), save :: bpt
@@ -865,13 +870,14 @@ contains
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
     do n = 2,nlevs
+       ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                             ref_ratio(n-1,:), -i)
+                             ref_ratio(n-1,:), ng_fill, -i)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                             ref_ratio(n-1,:), +i)
+                             ref_ratio(n-1,:), ng_fill, +i)
        end do
        call multifab_fill_boundary(full_soln(n))
     end do
@@ -965,7 +971,7 @@ contains
 
     type(box) :: pd, pdc
     type(layout) :: la, lac
-    integer :: i, n, dm, nComp
+    integer :: i, n, ng_fill, dm, nComp
     integer :: mglev, mglev_crse
 
     type(bl_prof_timer), save :: bpt
@@ -1023,13 +1029,14 @@ contains
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
     do n = 2,nlevs
+       ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                             ref_ratio(n-1,:), -i)
+                             ref_ratio(n-1,:), ng_fill, -i)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                             ref_ratio(n-1,:), +i)
+                             ref_ratio(n-1,:), ng_fill, +i)
        end do
        call multifab_fill_boundary(full_soln(n))
     end do

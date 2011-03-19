@@ -298,13 +298,13 @@ contains
     end do
   end subroutine ml_prolongation_3d_nodal
 
-  subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, side, nc)
+  subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, ng_fill, side, nc)
     use bl_prof_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     type(box),      intent(in)    :: fine_domain
     integer,        intent(in)    :: ir(:)
-    integer,        intent(in)    :: cf, cc, side
+    integer,        intent(in)    :: cf, cc, ng_fill, side
     integer,        intent(in), optional :: nc
 
     type(box) :: fbox, fbox_grown, cbox_refined, isect
@@ -337,7 +337,7 @@ contains
        lof          = lwb(get_pbox(fine, i))
 
        if ( .not. nodal_q(crse) ) then
-          fbox_grown = grow(fbox, 1, dir, face)
+          fbox_grown = grow(fbox, ng_fill, dir, face)
           if (.not. pmask(dir)) fbox_grown = intersection(fbox_grown, fine_domain)
        else
           fbox_grown = fbox
@@ -389,15 +389,15 @@ contains
 
   end subroutine ml_interp_bcs_c
 
-  subroutine ml_interp_bcs(fine, crse, fine_domain, ir, side)
+  subroutine ml_interp_bcs(fine, crse, fine_domain, ir, ng_fill, side)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     type(box),      intent(in)    :: fine_domain
-    integer,        intent(in)    :: ir(:), side
+    integer,        intent(in)    :: ir(:), ng_fill, side
     if ( ncomp(crse) .ne. ncomp(fine) ) then
        call bl_error('ml_interp_bcs: crse & fine must have same # of components')
     end if
-    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, side, ncomp(fine))
+    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, ng_fill, side, ncomp(fine))
   end subroutine ml_interp_bcs
 
   subroutine ml_interp_bcs_1d(ff, lof, cc, loc, lo, ir)
@@ -435,11 +435,9 @@ contains
        xloc(3) =  THREE_EIGHTHS
     end if
 
-
 !   This is the same interpolation as done in IAMR.
     if ( abs(side) == 1 ) then
       call bl_assert(size(cc,dim=1) .eq. 1, "cc must be one cell wide in ml_interp_bcs_2d")
-      i  = lo(1)
       ic = loc(1)
       do jc = lo(2)/ir(2), hi(2)/ir(2)
         first_der  = ZERO
@@ -466,15 +464,16 @@ contains
         end if
 
         j = ir(2)*jc
-        do m = 0, ir(2)-1
-          ff(i,j+m) = cc(ic,jc) + xloc(m)*first_der + HALF*xloc(m)**2*second_der
+        do i = lo(1), hi(1)
+           do m = 0, ir(2)-1
+             ff(i,j+m) = cc(ic,jc) + xloc(m)*first_der + HALF*xloc(m)**2*second_der
+           end do
         end do
       end do
 
     else if ( abs(side) == 2 ) then
 
       call bl_assert(size(cc,dim=2) .eq. 1, "cc must be one cell wide in ml_interp_bcs_2d")
-      j  = lo(2)
       jc = loc(2)
       do ic = lo(1)/ir(1), hi(1)/ir(1)
         first_der  = ZERO
@@ -501,8 +500,10 @@ contains
         end if
 
         i = ir(1)*ic
-        do m = 0,ir(1)-1
-          ff(i+m,j) = cc(ic,jc) + xloc(m)*first_der + HALF*xloc(m)**2*second_der
+        do j = lo(2),hi(2)
+           do m = 0,ir(1)-1
+             ff(i+m,j) = cc(ic,jc) + xloc(m)*first_der + HALF*xloc(m)**2*second_der
+           end do
         end do
       end do
 
