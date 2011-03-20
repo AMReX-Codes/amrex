@@ -241,6 +241,10 @@ contains
     dvol    = boxarray_dvolume(ba)
     dvol_pd = box_dvolume(pd)
 
+    ! Set both of these to false as default -- both must be true in order to subtract off sum(res)
+    mgt%bottom_singular    = .false.
+    mgt%coeffs_sum_to_zero = .false.
+
     if (present(is_singular)) then
 
        mgt%bottom_singular = is_singular
@@ -248,19 +252,19 @@ contains
     else
 
        ! If we cover the entire domain, then just test on the domain_bc values
-!      if (abs(dvol-dvol_pd).lt.1.d-2) then
-!  
-!         mgt%bottom_singular = .true.
-!         do id = 1,mgt%dim
-!            if (domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR) mgt%bottom_singular = .false.
-!         end do
-!  
-!      ! If we don't cover the entire domain, then this wont be singular
-!      else
-!  
+       if (abs(dvol-dvol_pd).lt.1.d-2) then
+   
+          mgt%bottom_singular = .true.
+          do id = 1,mgt%dim
+             if (domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR) mgt%bottom_singular = .false.
+          end do
+   
+       ! If we don't cover the entire domain, then this wont be singular
+       else
+   
           mgt%bottom_singular = .false.
    
-!      end if
+       end if
 
     end if
 
@@ -659,11 +663,16 @@ contains
     type( multifab), intent(in) :: ss
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: lev
-    integer stat
+    integer :: stat
+    logical :: singular_test
     integer i
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_bottom_solve")
+
+    if (.not.nodal_q(rh)) then
+       singular_test =  mgt%bottom_singular .and. mgt%coeffs_sum_to_zero
+    end if
 
     stat = 0
     select case ( mgt%bottom_solver )
@@ -683,7 +692,7 @@ contains
           call itsol_bicgstab_solve(ss, uu, rh, mm, &
                                     mgt%bottom_solver_eps, mgt%bottom_max_iter, &
                                     mgt%cg_verbose, stat = stat, &
-                                    singular_in = mgt%bottom_singular, &
+                                    singular_in = singular_test, &
                                     uniform_dh = mgt%uniform_dh)
        end if
        do i = 1, mgt%nub
@@ -698,7 +707,7 @@ contains
        else
           call itsol_cg_solve(ss, uu, rh, mm, &
                               mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
-                              stat = stat, singular_in = mgt%bottom_singular, &
+                              stat = stat, singular_in = singular_test, &
                               uniform_dh = mgt%uniform_dh)
        end if
        do i = 1, mgt%nub
@@ -867,8 +876,12 @@ contains
     integer :: i, k, n, nn, stat, npts
     integer :: lo(mgt%dim)
     type(bl_prof_timer), save :: bpt
-    logical :: lcross, pmask(mgt%dim)
+    logical :: lcross, pmask(mgt%dim), singular_test
     real(kind=dp_t) :: local_eps
+
+    if (.not.nodal_q(ff)) then
+       singular_test =  mgt%bottom_singular .and. mgt%coeffs_sum_to_zero
+    end if
 
     pmask = get_pmask(get_layout(uu))
 
@@ -912,13 +925,13 @@ contains
           !              ss, uu, ff, mm, &
           !              local_eps, 1050, mgt%cg_verbose, stat = stat, &
           !              local_eps, 1050, 1, stat = stat, &
-          !              singular_in = mgt%bottom_singular, uniform_dh = mgt%uniform_dh)
+          !              singular_in = mgt%singular_test, uniform_dh = mgt%uniform_dh)
 
           local_eps = 0.001 
           npts = multifab_volume(ff)
           call itsol_bicgstab_solve(ss, uu, ff, mm, &
                                     local_eps, npts, mgt%cg_verbose, stat = stat, &
-                                    singular_in = mgt%bottom_singular, &
+                                    singular_in = singular_test, &
                                     uniform_dh = mgt%uniform_dh)
 
           call multifab_fill_boundary(uu, cross = lcross)
