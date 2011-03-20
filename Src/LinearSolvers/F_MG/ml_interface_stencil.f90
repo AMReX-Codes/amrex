@@ -276,22 +276,38 @@ contains
     integer, intent(in) :: face, dim
     real(kind=dp_t), intent(in) :: efactor
 
-    integer :: i, j
+    integer :: i, j, ns
     real (kind = dp_t) :: crse_flux
+ 
+    ns = size(ss,dim=3)
 
     !   Hi i side
     if ( dim == 1 ) then
        if (face == 1) then
           i = lo(1)
           do j = lo(2),hi(2)
-             crse_flux = ss(i,j,2)*(cc(i,j)-cc(i-1,j))
+             if (ns.eq.7) then
+                crse_flux = ss(i,j,2)*(cc(i,j)-cc(i-1,j))
+             else if (ns.eq.9) then
+                crse_flux = &
+                   (15.d0/16.d0)*ss(i,j,2)*(cc(i-1,j)-cc(i  ,j)) &
+                 +               ss(i,j,1)*(cc(i-2,j)-cc(i+1,j))
+
+             endif
              res(i,j) = res(i,j) - efactor*crse_flux
           end do
           !   Lo i side
        else if (face == -1) then
           i = lo(1)
           do j = lo(2),hi(2)
-             crse_flux = ss(i,j,1)*(cc(i,j)-cc(i+1,j))
+             if (ns.eq.7) then
+                crse_flux = ss(i,j,1)*(cc(i,j)-cc(i+1,j))
+             else if (ns.eq.9) then
+                crse_flux = &
+                   (15.d0/16.d0)*ss(i,j,3)*(cc(i+1,j)-cc(i  ,j)) &
+                 +               ss(i,j,4)*(cc(i+2,j)-cc(i-1,j))
+
+             endif
              res(i,j) = res(i,j) - efactor*crse_flux
           end do
        end if
@@ -300,14 +316,27 @@ contains
        if (face == 1) then
           j = lo(2)
           do i = lo(1),hi(1)
-             crse_flux = ss(i,j,4)*(cc(i,j)-cc(i,j-1))
+             if (ns.eq.7) then
+                crse_flux = ss(i,j,4)*(cc(i,j)-cc(i,j-1))
+             else if (ns.eq.9) then
+                crse_flux = &
+                   (15.d0/16.d0)*ss(i,j,6)*(cc(i,j-1)-cc(i,j  )) &
+                 +               ss(i,j,5)*(cc(i,j-2)-cc(i,j+1))
+
+             endif
              res(i,j) = res(i,j) - efactor*crse_flux
           end do
           !   Lo j side
        else if (face == -1) then
           j = lo(2)
           do i = lo(1),hi(1)
-             crse_flux = ss(i,j,3)*(cc(i,j)-cc(i,j+1))
+             if (ns.eq.7) then
+                crse_flux = ss(i,j,3)*(cc(i,j)-cc(i,j+1))
+             else if (ns.eq.9) then
+                crse_flux = &
+                   (15.d0/16.d0)*ss(i,j,7)*(cc(i,j+1)-cc(i,j  )) &
+                 +               ss(i,j,8)*(cc(i,j+2)-cc(i,j-1))
+             endif
              res(i,j) = res(i,j) - efactor*crse_flux
           end do
        end if
