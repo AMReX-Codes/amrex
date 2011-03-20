@@ -409,9 +409,9 @@ contains
 
   end subroutine gs_rb_smoother_3d
 
-  subroutine minion_smoother_2d(omega, ss, uu, ff, lo, ng, is_cross)
+  subroutine minion_smoother_2d(omega, ss, uu, ff, lo, ng, n, is_cross)
     use bl_prof_module
-    integer           , intent(in) :: ng
+    integer           , intent(in) :: ng, n
     integer           , intent(in) :: lo(:)
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):)
@@ -419,7 +419,7 @@ contains
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
     logical            ,intent(in) :: is_cross
 
-    integer            :: j, i, hi(size(lo))
+    integer            :: i, j, hi(size(lo)), ioff
     real (kind = dp_t) :: dd
 
     type(bl_prof_timer), save :: bpt
@@ -431,7 +431,8 @@ contains
     if (is_cross) then
 
        do j = lo(2),hi(2)
-          do i = lo(1), hi(1)
+          ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
+          do i = lo(1) + ioff, hi(1), 2
              if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
                dd =   ss(i,j,0) * uu(i,j) &
                     + ss(i,j,1) * uu(i-2,j) + ss(i,j,2) * uu(i-1,j) &
@@ -476,9 +477,9 @@ contains
 
   end subroutine minion_smoother_2d
 
-  subroutine minion_smoother_3d(omega, ss, uu, ff, lo, ng, is_cross)
+  subroutine minion_smoother_3d(omega, ss, uu, ff, lo, ng, n, is_cross)
     use bl_prof_module
-    integer           , intent(in   ) :: ng
+    integer           , intent(in   ) :: ng, n
     integer           , intent(in   ) :: lo(:)
     real (kind = dp_t), intent(in   ) :: omega
     real (kind = dp_t), intent(in   ) :: ff(lo(1):, lo(2):, lo(3):)
