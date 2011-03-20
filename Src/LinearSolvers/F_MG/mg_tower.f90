@@ -43,6 +43,9 @@ module mg_tower_module
      logical :: bottom_singular = .false.
      real(kind=dp_t) :: bottom_solver_eps = 1.0e-4_dp_t
 
+     ! This must be true in order to enforce solvability
+     logical :: coeffs_sum_to_zero = .false.
+
      integer :: nboxes =  0
      integer :: nlevels =  0
 
