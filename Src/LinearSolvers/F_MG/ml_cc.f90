@@ -167,7 +167,7 @@ contains
     ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
     ! Only test on lowest mg level of lowest AMR level -- this should be cheapest
     if ( multifab_sum(mgt(1)%ss(1)) .lt. (1.d-12 * multifab_max(mgt(1)%ss(1))) ) then
-       if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
+       if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) &
           print *,'Coefficients sum to zero '
        mgt(1)%coeffs_sum_to_zero = .true.
     end if
