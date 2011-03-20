@@ -164,9 +164,17 @@ contains
             mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
+    ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
+    ! Only test on lowest mg level of lowest AMR level -- this should be cheapest
+    if ( multifab_sum(mgt(1)%ss(1)) .lt. (1.d-12 * multifab_max(mgt(1)%ss(1))) ) then
+       if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
+          print *,'Coefficients sum to zero '
+       mgt(1)%coeffs_sum_to_zero = .true.
+    end if
+
     ! Enforce solvability if appropriate
     ! Note we do this before res is copied back into rhs.
-    if (nlevs .eq. 1 .and. mgt(1)%bottom_singular) then
+    if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero) then
 
        sum = multifab_sum(res(1))  / boxarray_dvolume(get_boxarray(res(1)))
 
@@ -242,7 +250,7 @@ contains
           mglev = mgt(n)%nlevels
 
           ! Enforce solvability if appropriate
-          if (nlevs .eq. 1 .and. mgt(1)%bottom_singular) then
+          if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero) then
 
              sum = multifab_sum(res(1))  / boxarray_dvolume(get_boxarray(res(1)))
 
