@@ -181,7 +181,7 @@ contains
        ! Update ghost regions of fine where they overlap with f_mf.
        call boxarray_build_copy(tba, get_boxarray(fine(i)))
        do j = 1, nboxes(tba)
-          call set_box(tba,j,grow(get_box(fine(i),j),1))
+          call set_box(tba,j,grow(get_box(fine(i),j),nghost(fine(i))))
        end do
        call build(tla, tba, get_pd(get_layout(fine(i))), get_pmask(get_layout(fine(i))), &
                   explicit_mapping=get_proc(get_layout(fine(i))))
