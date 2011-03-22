@@ -307,9 +307,8 @@ amr_multigrid::build_mesh (const Box& fdomain)
         //
 	// first, build mg_mesh
         //
-        int nlev =
-	    build_down(ml_mesh[lev_max], fdomain,
-		       lev_max, IntVect::TheUnitVector(), 0);
+        build_down(ml_mesh[lev_max], fdomain,
+                   lev_max, IntVect::TheUnitVector(), 0);
 #ifndef NDEBUG
 	for (int i = 0; i < mg_mesh.size(); i++)
 	    BL_ASSERT(mg_mesh[i].ok());

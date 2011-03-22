@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.225 2011-03-22 20:02:48 lijewski Exp $
+// $Id: Amr.cpp,v 1.226 2011-03-22 20:24:56 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1873,32 +1873,34 @@ Amr::coarseTimeStep (Real stop_time)
 	 check_test = 1;
 	}
     }
-    
+
+    int to_stop       = 0;    
     int to_checkpoint = 0;
-    int to_stop = 0;
-    if (ParallelDescriptor::IOProcessor()) {
-      FILE *fp;
-      if (fp=fopen("dump_and_continue","r")) {
-	remove("dump_and_continue");
-	to_checkpoint = 1;
-	fclose(fp);
-      }
-      else if (fp=fopen("stop_run","r")) {
-	remove("stop_run");
-	to_stop = 1;
-	fclose(fp);
-      }
-      else if (fp=fopen("dump_and_stop","r")) {
-	remove("dump_and_stop");
-	to_checkpoint = 1;
-	to_stop = 1;
-	fclose(fp);
-      }
+    if (ParallelDescriptor::IOProcessor())
+    {
+        FILE *fp;
+        if ((fp=fopen("dump_and_continue","r")) != 0)
+        {
+            remove("dump_and_continue");
+            to_checkpoint = 1;
+            fclose(fp);
+        }
+        else if ((fp=fopen("stop_run","r")) != 0)
+        {
+            remove("stop_run");
+            to_stop = 1;
+            fclose(fp);
+        }
+        else if ((fp=fopen("dump_and_stop","r")) != 0)
+        {
+            remove("dump_and_stop");
+            to_checkpoint = 1;
+            to_stop = 1;
+            fclose(fp);
+        }
     }
-    ParallelDescriptor::Bcast(&to_checkpoint, 1, 
-			      ParallelDescriptor::IOProcessorNumber());
-    ParallelDescriptor::Bcast(&to_stop, 1, 
-			      ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::Bcast(&to_checkpoint, 1, ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::Bcast(&to_stop,       1, ParallelDescriptor::IOProcessorNumber());
 
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
 	|| to_checkpoint)

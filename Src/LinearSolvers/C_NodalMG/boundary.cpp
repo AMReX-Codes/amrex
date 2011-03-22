@@ -297,7 +297,7 @@ mixed_boundary::fill (FArrayBox&       patch,
 	    {
 		refarray[idim] = 1;
 
-		if (flowdim == -3 || t == refWall && idim == flowdim)
+		if (flowdim == -3 || (t == refWall && idim == flowdim))
 		{
 		    negflag = !negflag;
 		}
@@ -329,7 +329,7 @@ mixed_boundary::fill (FArrayBox&       patch,
 	    {
 		refarray[idim] = 1;
 
-		if (flowdim == -3 || t == refWall && idim == flowdim)
+		if (flowdim == -3 || (t == refWall && idim == flowdim))
 		{
 		    negflag = !negflag;
 		}
