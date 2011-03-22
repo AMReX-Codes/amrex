@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.224 2011-03-09 23:54:05 wqzhang Exp $
+// $Id: Amr.cpp,v 1.225 2011-03-22 20:02:48 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2032,29 +2032,6 @@ Amr::regrid (int  lbase,
         MultiFab::FlushSICache();
         Geometry::FlushPIRMCache();
         DistributionMapping::FlushCache();
-
-        if (!regrid_level_zero)
-        {
-            const MultiFab& mf = amr_level[0].get_new_data(0);
-
-            BL_ASSERT(mf.ok());
-
-            DistributionMapping::AddToCache(mf.DistributionMap());
-        }
-
-#ifdef USE_SLABSTAT
-        //
-        // Recache the distribution maps for SlabStat MFs.
-        //
-        std::list<SlabStatRec*>& ssl = AmrLevel::get_slabstat_lst().list();
-
-        for (std::list<SlabStatRec*>::iterator li = ssl.begin(), end = ssl.end();
-             li != end;
-             ++li)
-        {
-            DistributionMapping::AddToCache((*li)->mf().DistributionMap());
-        }
-#endif
     }
     //
     // Define the new grids from level start up to new_finest.
