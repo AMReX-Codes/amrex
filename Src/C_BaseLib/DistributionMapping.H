@@ -1,7 +1,7 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 
-#include <vector>
+#include <map>
 
 #include <Pointers.H>
 #include <BoxLib.H>
@@ -95,17 +95,14 @@ class DistributionMapping
 
     /*@ManDoc: Flush the cache of processor maps.  The processor map cache
                is only flushed manually.  Only call this after a regridding
-               before new MultiFabs are alloc()d.
+               before new MultiFabs are alloc()d.  This removed unreferenced
+               DistributionMaps from the Cache.
     */
     static void FlushCache ();
     //
     //@ManDoc: The size of the cache.
     //
     static int CacheSize ();
-    //
-    //@ManDoc: Append the ProcMap to the Cache.  Checks for consistency.
-    //
-    static void AddToCache (const DistributionMapping& dm);
     //
     //@ManDoc: Output some simple cache statistics.
     //
@@ -220,7 +217,7 @@ protected:
     //
     // Our cache of processor maps.
     //
-    static std::vector< LnClassPtr<Ref> > m_Cache;
+    static std::map< int,LnClassPtr<Ref> > m_Cache;
 };
 
 inline
