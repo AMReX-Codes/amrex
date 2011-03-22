@@ -752,39 +752,39 @@ level_interface::xfer (const BoxMSet& bmset,
 	else
 	{
 	    bool is_in = dom.contains(tmp);
-	    ge[idim][i]  = ( is_in && im.contains(tmp) || !is_in && em.contains(tmp));
+	    ge[idim][i]  = ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp)));
 #if (BL_SPACEDIM == 2)
 	    tmp += IntVect(1, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 1;
+	    ge[idim][i] |= ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp))) << 1;
 	    tmp += IntVect(-1, 1);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 2;
+	    ge[idim][i] |= ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp))) << 2;
 	    tmp += IntVect(1, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 3;
+	    ge[idim][i] |= ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp))) << 3;
 #else
 	    tmp += IntVect(1, 0, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 1;
+	    ge[idim][i] |= ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp))) << 1;
 	    tmp += IntVect(-1, 1, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 2;
+	    ge[idim][i] |= ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp))) << 2;
 	    tmp += IntVect(1, 0, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 3;
+	    ge[idim][i] |= ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp))) << 3;
 	    tmp += IntVect(-1, -1, 1);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 4;
+	    ge[idim][i] |= ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp))) << 4;
 	    tmp += IntVect(1, 0, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 5;
+	    ge[idim][i] |= ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp))) << 5;
 	    tmp += IntVect(-1, 1, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 6;
+	    ge[idim][i] |= ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp))) << 6;
 	    tmp += IntVect(1, 0, 0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 7;
+	    ge[idim][i] |= ( (is_in && im.contains(tmp)) || (!is_in && em.contains(tmp))) << 7;
 #endif
 	}
     }

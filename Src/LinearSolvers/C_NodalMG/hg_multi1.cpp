@@ -387,9 +387,9 @@ holy_grail_sigma_restrictor::fill (FArrayBox&       patch,
 				   const IntVect&   rat) const
 {
     BL_ASSERT(patch.box().cellCentered());
-    BL_ASSERT(rat[0] == 2 && rat[1] == 2 ||
-	rat[0] == 2 && rat[1] == 1 ||
-	rat[0] == 1 && rat[1] == 2);
+    BL_ASSERT((rat[0] == 2 && rat[1] == 2) ||
+              (rat[0] == 2 && rat[1] == 1) ||
+              (rat[0] == 1 && rat[1] == 2));
 
     if (m_hg_stencil == holy_grail_amr_multigrid::terrain)
     {
