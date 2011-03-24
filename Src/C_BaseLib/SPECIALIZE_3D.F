@@ -117,7 +117,9 @@ c
 
       nrm = 0.0d0
 
+!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
+!$omp do reduction(max : nrm)
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -125,7 +127,9 @@ c
                end do
             end do
          end do
+!$omp end do
       end do
+!$omp end parallel
 
       end
 c
@@ -154,7 +158,9 @@ c
 
       nrm = 0.0d0
 
+!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
+!$omp do reduction(+ : nrm)
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -162,7 +168,9 @@ c
                end do
             end do
          end do
+!$omp end do
       end do
+!$omp end parallel
 
       end
 c
@@ -200,7 +208,9 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
+!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
+!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -208,7 +218,9 @@ c
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
 
       end
 c
@@ -246,7 +258,9 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
+!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
+!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -254,7 +268,9 @@ c
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
 
       end
 c
@@ -292,7 +308,9 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
+!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
+!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -300,7 +318,9 @@ c
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
 
       end
 c
@@ -338,7 +358,9 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
+!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
+!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -346,6 +368,8 @@ c
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
 
       end
