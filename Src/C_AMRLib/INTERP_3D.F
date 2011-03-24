@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.44 2011-03-17 21:00:23 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.45 2011-03-24 20:50:43 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -340,6 +340,7 @@ c
 c         Prevent underflow for small crse values.
 c
       do n = 1, nvar 
+!$omp parallel do private(i,j,k)
           do k = cslopelo(3)-1,cslopehi(3)+1
             do j = cslopelo(2)-1,cslopehi(2)+1
               do i = cslopelo(1)-1, cslopehi(1)+1 
@@ -347,26 +348,29 @@ c
               end do
             end do
           end do
+!$omp end parallel do
 c
 c         Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
 c
+!$omp parallel do private(i,j,k,koff,joff,ioff)
           do k = cslopelo(3),cslopehi(3)
-             do j = cslopelo(2),cslopehi(2)
-                do i = cslopelo(1), cslopehi(1)
-                   alpha(i,j,k,n) = 1.d0
-                   cmax(i,j,k,n) = crse(i,j,k,n)
-                   cmin(i,j,k,n) = crse(i,j,k,n)
-                   do koff = -1,1
-                      do joff = -1,1
-                         do ioff = -1,1
-                            cmax(i,j,k,n) = max(cmax(i,j,k,n),crse(i+ioff,j+joff,k+koff,n))
-                            cmin(i,j,k,n) = min(cmin(i,j,k,n),crse(i+ioff,j+joff,k+koff,n))
-                         end do
-                      end do
-                   end do
+            do j = cslopelo(2),cslopehi(2)
+              do i = cslopelo(1), cslopehi(1)
+                alpha(i,j,k,n) = 1.d0
+                cmax(i,j,k,n) = crse(i,j,k,n)
+                cmin(i,j,k,n) = crse(i,j,k,n)
+                do koff = -1,1
+                do joff = -1,1
+                do ioff = -1,1
+                  cmax(i,j,k,n) = max(cmax(i,j,k,n),crse(i+ioff,j+joff,k+koff,n))
+                  cmin(i,j,k,n) = min(cmin(i,j,k,n),crse(i+ioff,j+joff,k+koff,n))
                 end do
-             end do
+                end do
+                end do
+              end do
+            end do
           end do
+!$omp end parallel do
       end do
 c
 c     Computed unlimited and limited slopes
@@ -635,15 +639,9 @@ c     have the same sign, and it is assumed that they do.
 c
 c     compute slope factors
 c
-          do k=cslopelo(3), cslopehi(3)
-            do j=cslopelo(2), cslopehi(2)
-              do i=cslopelo(1), cslopehi(1)
-                xslope_factor(i,j,k) = one
-                yslope_factor(i,j,k) = one
-                zslope_factor(i,j,k) = one
-              end do
-            end do
-          end do
+          xslope_factor = one
+          yslope_factor = one
+          zslope_factor = one
 
           do n = 1, nvar 
 !$omp parallel do private(i,j,k,denom,factorn)
@@ -676,6 +674,7 @@ c
 c         Compute linear limited slopes
 c
           do n = 1, nvar 
+!$omp parallel do private(i,j,k)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
@@ -685,6 +684,7 @@ c
                 end do
               end do
             end do
+!$omp end parallel do
           end do
 
          else
