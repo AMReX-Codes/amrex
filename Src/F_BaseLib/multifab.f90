@@ -3655,7 +3655,9 @@ contains
        
        ! ap = bp + c1*cp
 
+       !$OMP PARALLEL PRIVATE(i,j,k,n)
        do n = lbound(ap,dim=4), ubound(ap,dim=4)
+          !$OMP DO
           do k = lbound(ap,dim=3), ubound(ap,dim=3)
              do j = lbound(ap,dim=2), ubound(ap,dim=2)
                 do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -3663,7 +3665,9 @@ contains
                 end do
              end do
           end do
+          !$OMP END DO NOWAIT
        end do
+       !$OMP END PARALLEL
 
     end do
   end subroutine multifab_saxpy_4
@@ -3676,7 +3680,9 @@ contains
 
     ! ap = ap + b1*bp
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -3684,7 +3690,9 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine multifab_saxpy_3_doit
 
@@ -3939,8 +3947,10 @@ contains
 
     r1 = 0.0_dp_t
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1)
     if ( present(lp) ) then
        do n = lbound(ap,dim=4), ubound(ap,dim=4)
+          !$OMP DO
           do k = lbound(ap,dim=3), ubound(ap,dim=3)
              do j = lbound(ap,dim=2), ubound(ap,dim=2)
                 do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -3948,9 +3958,11 @@ contains
                 end do
              end do
           end do
+          !$OMP END DO NOWAIT
        end do
     else
        do n = lbound(ap,dim=4), ubound(ap,dim=4)
+          !$OMP DO
           do k = lbound(ap,dim=3), ubound(ap,dim=3)
              do j = lbound(ap,dim=2), ubound(ap,dim=2)
                 do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -3958,8 +3970,10 @@ contains
                 end do
              end do
           end do
+          !$OMP END DO NOWAIT
        end do
     end if
+    !$OMP END PARALLEL
 
     r = r1
 
@@ -4117,7 +4131,9 @@ contains
 
     ! ap = ap/bp
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -4125,7 +4141,9 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine multifab_div_div_c_doit
 
@@ -4138,7 +4156,9 @@ contains
 
     ! ap = ap/b
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -4146,7 +4166,9 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine multifab_div_div_s_doit
 
@@ -4289,7 +4311,9 @@ contains
 
     ! ap = ap*bp
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -4297,7 +4321,9 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine multifab_mult_mult_c_doit
 
@@ -4310,7 +4336,9 @@ contains
 
     ! ap = ap*b
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -4318,7 +4346,9 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine multifab_mult_mult_s_doit
 
@@ -4440,7 +4470,9 @@ contains
 
     ! ap = ap - bp
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -4448,7 +4480,9 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine multifab_sub_sub_c_doit
 
@@ -4461,7 +4495,9 @@ contains
 
     ! ap = ap - b
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -4469,7 +4505,9 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine multifab_sub_sub_s_doit
 
@@ -4568,7 +4606,9 @@ contains
 
     ! ap = ap + bp
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -4576,7 +4616,9 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine multifab_plus_plus_c_doit
 
@@ -4589,7 +4631,9 @@ contains
 
     ! ap = ap + b
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
     do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
        do k = lbound(ap,dim=3), ubound(ap,dim=3)
           do j = lbound(ap,dim=2), ubound(ap,dim=2)
              do i = lbound(ap,dim=1), ubound(ap,dim=1)
@@ -4597,7 +4641,9 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine multifab_plus_plus_s_doit
 
