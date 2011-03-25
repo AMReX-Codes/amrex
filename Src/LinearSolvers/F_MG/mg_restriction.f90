@@ -75,6 +75,7 @@ contains
 
     fac = one/real(product(ir),kind=dp_t)
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k,l,m,n)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -90,6 +91,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine cc_restriction_3d
 
@@ -137,6 +139,7 @@ contains
 
     integer :: i, j, k, ifine, jfine, kfine
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine)
     do k = lo(3),hi(3)
        kfine = ir(3)*k
        do j = lo(2),hi(2)
@@ -147,6 +150,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine nodal_zero_3d
 
