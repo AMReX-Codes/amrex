@@ -1337,6 +1337,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -1344,6 +1345,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine s_simple_3d_cc
 
@@ -1500,12 +1502,6 @@ contains
           ss(i,j,6) = -16.d0 * betay(i,j  )
           ss(i,j,7) = -16.d0 * betay(i,j+1)
           ss(i,j,8) =   1.d0 * betay(i,j+1)
-
-!         ss(i,j,2) = -12.d0 * betax(i  ,j)
-!         ss(i,j,3) = -12.d0 * betax(i+1,j)
-!         ss(i,j,6) = -12.d0 * betay(i,j  )
-!         ss(i,j,7) = -12.d0 * betay(i,j+1)
-
           ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4) &
                        +ss(i,j,5) + ss(i,j,6) + ss(i,j,7) + ss(i,j,8) )
        end do
@@ -2493,6 +2489,7 @@ b1 =       0.0d0/hy2
     end do
     !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -2500,6 +2497,7 @@ b1 =       0.0d0/hy2
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine s_minion_second_fill_3d
 
@@ -2524,40 +2522,45 @@ b1 =       0.0d0/hy2
     mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
 
     ss = 0.d0
-
+    !
     ! We only include the beta's here to get the viscous coefficients in here for now.
     ! The projection has beta == 1.
+    !
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          ss(i,j,k, 1) =   1.d0 * betax(i  ,j,k)
-          ss(i,j,k, 2) = -16.d0 * betax(i  ,j,k)
-          ss(i,j,k, 3) = -16.d0 * betax(i+1,j,k)
-          ss(i,j,k, 4) =   1.d0 * betax(i+1,j,k)
-          ss(i,j,k, 5) =   1.d0 * betay(i,j  ,k)
-          ss(i,j,k, 6) = -16.d0 * betay(i,j  ,k)
-          ss(i,j,k, 7) = -16.d0 * betay(i,j+1,k)
-          ss(i,j,k, 8) =   1.d0 * betay(i,j+1,k)
-          ss(i,j,k, 9) =   1.d0 * betaz(i,j,k  )
-          ss(i,j,k,10) = -16.d0 * betaz(i,j,k  )
-          ss(i,j,k,11) = -16.d0 * betaz(i,j,k+1)
-          ss(i,j,k,12) =   1.d0 * betaz(i,j,k+1)
-          ss(i,j,k,0) = -(ss(i,j,k,1) + ss(i,j,k, 2) + ss(i,j,k, 3) + ss(i,j,k, 4) &
-                         +ss(i,j,k,5) + ss(i,j,k, 6) + ss(i,j,k, 7) + ss(i,j,k, 8) &
-                         +ss(i,j,k,9) + ss(i,j,k,10) + ss(i,j,k,11) + ss(i,j,k,12) )
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(i,j,k, 1) =   1.d0 * betax(i  ,j,k)
+             ss(i,j,k, 2) = -16.d0 * betax(i  ,j,k)
+             ss(i,j,k, 3) = -16.d0 * betax(i+1,j,k)
+             ss(i,j,k, 4) =   1.d0 * betax(i+1,j,k)
+             ss(i,j,k, 5) =   1.d0 * betay(i,j  ,k)
+             ss(i,j,k, 6) = -16.d0 * betay(i,j  ,k)
+             ss(i,j,k, 7) = -16.d0 * betay(i,j+1,k)
+             ss(i,j,k, 8) =   1.d0 * betay(i,j+1,k)
+             ss(i,j,k, 9) =   1.d0 * betaz(i,j,k  )
+             ss(i,j,k,10) = -16.d0 * betaz(i,j,k  )
+             ss(i,j,k,11) = -16.d0 * betaz(i,j,k+1)
+             ss(i,j,k,12) =   1.d0 * betaz(i,j,k+1)
+             ss(i,j,k,0)  = -(ss(i,j,k,1) + ss(i,j,k, 2) + ss(i,j,k, 3) + ss(i,j,k, 4) &
+                             +ss(i,j,k,5) + ss(i,j,k, 6) + ss(i,j,k, 7) + ss(i,j,k, 8) &
+                             +ss(i,j,k,9) + ss(i,j,k,10) + ss(i,j,k,11) + ss(i,j,k,12) )
+          end do
        end do
     end do
-    end do
+    !$OMP END PARALLEL DO
 
     ss = ss * (ONE / (12.d0 * dh(1)**2))
-
+    !
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
+    !
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k)
+          end do
        end do
-    end do
     end do
 
   end subroutine s_minion_cross_fill_3d
@@ -2834,7 +2837,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
     integer           , intent(in)  :: mm(:,:)
     logical, intent(in), optional :: skwd
     integer, intent(in) :: ratio, face, dim
-    integer nx,ny,ns
+    integer nx,ny
     integer i,j,ic,jc
     real (kind = dp_t) :: fac
     integer, parameter :: XBC = 5, YBC = 6
@@ -2844,8 +2847,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
-
-    ns = size(ss,dim=3)
 
     !   Note that one factor of ratio is the tangential averaging, while the
     !     other is the normal factor
@@ -2860,21 +2861,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           do j = 1,ny
              jc = (j-1)/ratio+1
              if (bc_dirichlet(mm(i,j),1,-1)) then
-                if (ns .eq. 7) then
-                   flux(1,jc) = flux(1,jc)  &
-                        + ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                        + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
-                   if (bc_skewed(mm(i,j),1,+1)) &
-                        flux(1,jc) = flux(1,jc) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
-                else if (ns .eq. 9) then
-                   flux(1,jc) = flux(1,jc)  &
-                        + (15.d0/16.d0)*ss(i,j,2)*(uu(i-1,j)-uu(i  ,j)) &
-                        +               ss(i,j,1)*(uu(i-2,j)-uu(i+1,j))
-!                       + ss(i,j,2)*(uu(i-1,j)-uu(i,j))
-                else
-                   print *,'ns = ',ns
-                   call bl_error('bad ns in stencil_flux_2d')
-                end if
+                flux(1,jc) = flux(1,jc)  &
+                     + ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
+                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
+                if (bc_skewed(mm(i,j),1,+1)) &
+                     flux(1,jc) = flux(1,jc) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
              else   
                 flux(1,jc) = Huge(flux)
              end if
@@ -2889,21 +2880,12 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           do j = 1,ny
              jc = (j-1)/ratio+1
              if (bc_dirichlet(mm(i,j),1,+1)) then
-                if (ns .eq. 7) then
-                   flux(1,jc) = flux(1,jc) &
-                        + ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                        + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,1)*(uu(i-1,j)-uu(i,j))
-                   if (bc_skewed(mm(i,j),1,-1)) &
-                        flux(1,jc) = flux(1,jc) + ss(i,j,XBC)*(uu(i-2,j)-uu(i,j))
-                else if (ns .eq. 9) then
-                   flux(1,jc) = flux(1,jc)  &
-                        + (15.d0/16.d0)*ss(i,j,3)*(uu(i+1,j)-uu(i  ,j)) &
-                        +               ss(i,j,4)*(uu(i+2,j)-uu(i-1,j))
-!                       + ss(i,j,3)*(uu(i+1,j)-uu(i,j))
-                else
-                   print *,'ns = ',ns
-                   call bl_error('bad ns in stencil_flux_2d')
-                end if
+
+                flux(1,jc) = flux(1,jc) &
+                     + ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
+                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,1)*(uu(i-1,j)-uu(i,j))
+                if (bc_skewed(mm(i,j),1,-1)) &
+                     flux(1,jc) = flux(1,jc) + ss(i,j,XBC)*(uu(i-2,j)-uu(i,j))
              else 
                 flux(1,jc) = Huge(flux)
              end if
@@ -2921,21 +2903,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           do i = 1,nx
              ic = (i-1)/ratio+1
              if (bc_dirichlet(mm(i,j),2,-1)) then
-                if (ns .eq. 7) then
-                   flux(ic,1) = flux(ic,1)  &
-                        + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                        + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
-                   if (bc_skewed(mm(i,j),2,+1)) &
-                        flux(ic,1) =  flux(ic,1) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
-                else if (ns .eq. 9) then
-                   flux(ic,1) = flux(ic,1)  &
-                        + (15.d0/16.d0)*ss(i,j,6)*(uu(i,j-1)-uu(i,j  )) &
-                        +               ss(i,j,5)*(uu(i,j-2)-uu(i,j+1))
-!                       + ss(i,j,6)*(uu(i,j-1)-uu(i,j  ))
-                else
-                   print *,'ns = ',ns
-                   call bl_error('bad ns in stencil_flux_2d')
-                end if
+                flux(ic,1) = flux(ic,1)  &
+                     + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
+                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
+                if (bc_skewed(mm(i,j),2,+1)) &
+                     flux(ic,1) =  flux(ic,1) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
              else 
                 flux(ic,1) = Huge(flux)
              end if
@@ -2951,21 +2923,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           do i = 1,nx
              ic = (i-1)/ratio+1
              if (bc_dirichlet(mm(i,j),2,+1)) then
-                if (ns .eq. 7) then
-                   flux(ic,1) = flux(ic,1)  &
-                        + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                        + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
-                   if (bc_skewed(mm(i,j),2,-1)) &
-                        flux(ic,1) = flux(ic,1) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
-                else if (ns .eq. 9) then
-                   flux(ic,1) = flux(ic,1)  &
-                        + (15.d0/16.d0)*ss(i,j,7)*(uu(i,j+1)-uu(i,j  )) &
-                        +               ss(i,j,8)*(uu(i,j+2)-uu(i,j-1))
-!                       + ss(i,j,7)*(uu(i,j+1)-uu(i,j  ))
-                else
-                   print *,'ns = ',ns
-                   call bl_error('bad ns in stencil_flux_2d')
-                end if
+                flux(ic,1) = flux(ic,1)  &
+                     + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
+                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
+                if (bc_skewed(mm(i,j),2,-1)) &
+                     flux(ic,1) = flux(ic,1) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
              else
                 flux(ic,1) = Huge(flux)
              end if
@@ -3737,7 +3699,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
     integer           , intent(in)  :: mm(:,:)
     logical, intent(in), optional :: skwd
     integer, intent(in) :: face, dim
-    integer nx,ny,ns
+    integer nx,ny
     integer i,j
     integer, parameter :: XBC = 5, YBC = 6
     logical :: lskwd
@@ -3746,7 +3708,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
-    ns = size(ss,dim=3)
 
 !   Lo i face
     if ( dim == 1 ) then
@@ -3756,15 +3717,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           flux(1,:) = ZERO
           do j = 1,ny
              if (bc_dirichlet(mm(i,j),1,-1)) then
-                if (ns .eq. 7) then
-                   flux(1,j) = &
-                          ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                        + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
-                   if (bc_skewed(mm(i,j),1,+1)) &
-                        flux(1,j) = flux(1,j) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
-                else if (ns .eq. 9) then
-                   flux(1,j) = ss(i,j,2)*(uu(i-1,j)-uu(i,j))
-                endif 
+                flux(1,j) = &
+                       ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
+                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
+                if (bc_skewed(mm(i,j),1,+1)) &
+                     flux(1,j) = flux(1,j) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
              else if (bc_neumann(mm(i,j),1,-1)) then
                 flux(1,j) = ss(i,j,2)*uu(i-1,j)
              else   
@@ -3779,15 +3736,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           flux(1,:) = ZERO
           do j = 1,ny
              if (bc_dirichlet(mm(i,j),1,+1)) then
-                if (ns .eq. 7) then
-                   flux(1,j) = &
-                          ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                        + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,1)*(uu(i-1,j)-uu(i,j))
-                   if (bc_skewed(mm(i,j),1,-1)) &
-                        flux(1,j) = flux(1,j) + ss(i,j,XBC)*(uu(i-2,j)-uu(i,j))
-                else if (ns .eq. 9) then
-                   flux(1,j) = ss(i,j,3)*(uu(i+1,j)-uu(i,j))
-                endif 
+                flux(1,j) = &
+                       ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
+                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,1)*(uu(i-1,j)-uu(i,j))
+                if (bc_skewed(mm(i,j),1,-1)) &
+                     flux(1,j) = flux(1,j) + ss(i,j,XBC)*(uu(i-2,j)-uu(i,j))
              else if (bc_neumann(mm(i,j),1,+1)) then
                 flux(1,j) = ss(i,j,1)*uu(i+1,j)
              else 
@@ -3805,15 +3758,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           flux(:,1) = ZERO
           do i = 1,nx
              if (bc_dirichlet(mm(i,j),2,-1)) then
-                if (ns .eq. 7) then
-                   flux(i,1) = &
-                          ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                        + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
-                   if (bc_skewed(mm(i,j),2,+1)) &
-                        flux(i,1) =  flux(i,1) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
-                else if (ns .eq. 9) then
-                   flux(i,1) = ss(i,j,6)*(uu(i,j-1)-uu(i,j))
-                endif 
+                flux(i,1) = &
+                       ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
+                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
+                if (bc_skewed(mm(i,j),2,+1)) &
+                     flux(i,1) =  flux(i,1) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
              else if (bc_neumann(mm(i,j),2,-1)) then
                 flux(i,1) = ss(i,j,4)*uu(i,j-1)
              else 
@@ -3829,15 +3778,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           flux(:,1) = ZERO
           do i = 1,nx
              if (bc_dirichlet(mm(i,j),2,+1)) then
-                if (ns .eq. 7) then
-                   flux(i,1) = &
-                          ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                        + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
-                   if (bc_skewed(mm(i,j),2,-1)) &
-                        flux(i,1) = flux(i,1) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
-                else if (ns .eq. 9) then
-                   flux(i,1) = ss(i,j,7)*(uu(i,j+1)-uu(i,j))
-                endif 
+                flux(i,1) = &
+                       ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
+                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
+                if (bc_skewed(mm(i,j),2,-1)) &
+                     flux(i,1) = flux(i,1) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
              else if (bc_neumann(mm(i,j),2,+1)) then
                 flux(i,1) = ss(i,j,3)*uu(i,j+1)
              else
@@ -3977,6 +3922,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
           i = 1
           flux(1,:,:) = ZERO
+
           do k = 1,nz
              do j = 1,ny
                 if (bc_dirichlet(mm(i,j,k),1,-1)) then

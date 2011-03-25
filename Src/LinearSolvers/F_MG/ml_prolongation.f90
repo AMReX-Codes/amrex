@@ -133,6 +133,7 @@ contains
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k,ic,jc,kc)
     do k = lo(3),hi(3)
        kc = k / ir(3)
        do j = lo(2),hi(2)
@@ -143,6 +144,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine ml_prolongation_3d_cc
 
@@ -180,8 +182,6 @@ contains
     integer, intent(in) :: ir(:)
     integer :: i, j, ic, jc, l, m
     real (dp_t) :: fac_left, fac_rght
-!   real (dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
-!                              lof(2):lof(2)+size(ff,dim=2)-1)
     real (dp_t) :: temp(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2))
 
     do j = lo(2),hi(2),ir(2)
