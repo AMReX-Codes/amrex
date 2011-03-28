@@ -178,6 +178,10 @@ public:
 
 protected:
     //
+    // Helper function for AssignDensity().
+    //
+    void AssignDensityDoIt (MultiFab& mf, int level) const;
+    //
     // Helper function for Checkpoint().
     //
     void WriteParticles (int            level,
@@ -894,36 +898,32 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
 
 //
 // Some cic-scheme.
-// Will get ugly as soon as there is more than just the rootgrid
+//
+// This version does all the particle stuff for a given level, with
+// the exception of dividing by the cell volume.
 //
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensity (MultiFab& mf,
-                                     int       lev) const
+ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
+                                         int       lev) const
 {
     BL_ASSERT(N >= 1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    const Real strttime = ParallelDescriptor::second();
-
     const Geometry& geom = m_amr->Geom(lev);
 
     if (!geom.isAllPeriodic())
-    {
-        BoxLib::Error("AssignDensity: Problem has to be periodic...");
-    }
+        BoxLib::Error("AssignDensity: problem must to be periodic");
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
         mf[mfi].setVal(0);
-    }
 
     const Real* dx = geom.CellSize();
     //
     // This is a little funky.  What in effect this'll do is force
     // each thread to work on a single (separate) grid at a time.  That
-    // way no thread will step on any other.  If there's only one grid,
+    // way no thread will step on any other.  If there's only one grid per CPU,
     // then oh well ....
     //
     const PMap& pmap = m_particles[lev];
@@ -1031,6 +1031,25 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
     mf.SumBoundary();
     geom.SumPeriodicBoundary(mf);
+}
+
+//
+// This is the old single-level version.
+//
+
+template <int N>
+void
+ParticleContainer<N>::AssignDensity (MultiFab& mf,
+                                     int       lev) const
+{
+    BL_ASSERT(N >= 1);
+    BL_ASSERT(lev >= 0 && lev < m_particles.size());
+
+    const Real strttime = ParallelDescriptor::second();
+
+    AssignDensityDoIt(mf,lev);
+
+    const Real* dx = m_amr->Geom(lev).CellSize();
 
     const Real cell_vol = D_TERM(dx[0], * dx[1], * dx[2]);
 
