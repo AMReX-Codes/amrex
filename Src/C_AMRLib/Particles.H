@@ -1662,7 +1662,10 @@ void
 ParticleContainer<N>::Redistribute (bool where_already_called)
 {
     const int  MyProc   = ParallelDescriptor::MyProc();
+
+#if BL_USE_MPI
     const Real strttime = ParallelDescriptor::second();
+#endif
     //
     // The new array of particles.
     //
