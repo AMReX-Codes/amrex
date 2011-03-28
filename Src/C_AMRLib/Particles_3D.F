@@ -17,8 +17,8 @@
       double precision crse(c_l1:c_h1,c_l2:c_h2,c_l3:c_h3,nvar)
       double precision fine(f_l1:f_h1,f_l2:f_h2,f_l3:f_h3,nvar)
 
-      integer i, j, k, n, ic, jc, kc, ioff, joff, koff
-      integer lratx, lraty, lratz
+      integer          i, j, k, n, ic, jc, kc, ioff, joff, koff
+      integer          lratx, lraty, lratz
 
       lratx = lrat(1)
       lraty = lrat(2)
@@ -47,7 +47,7 @@
 
       enddo
 
-      end subroutine part_sumdown
+      end subroutine part_summassdown
 ! ::
 ! :: ----------------------------------------------------------
 ! :: Sum the crse grid mass into the fine grid.
@@ -100,4 +100,4 @@
 
       enddo
 
-      end subroutine part_sumup
+      end subroutine part_summassup
