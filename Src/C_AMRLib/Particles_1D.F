@@ -4,9 +4,9 @@
 ! :: Overlap is given in coarse grid coordinates.
 ! :: ----------------------------------------------------------
 ! ::
-      subroutine part_summassdown(crse,c_l1,c_h1, &
-                                  fine,f_l1,f_h1, &
-                                  lo,hi,lrat)
+      subroutine part_summassdown(crse,c_l1,c_h1,
+     &                            fine,f_l1,f_h1,
+     &                            lo,hi,lrat)
       implicit none
 
       integer          c_l1,c_h1
@@ -15,7 +15,7 @@
       double precision crse(c_l1:c_h1)
       double precision fine(f_l1:f_h1)
 
-      integer          i, n, ic, ioff, lratx
+      integer          i, ic, ioff, lratx
 
       lratx = lrat(1)
 
@@ -33,9 +33,9 @@
 ! :: Overlap is given in coarse grid coordinates.
 ! :: ----------------------------------------------------------
 ! ::
-      subroutine part_summassup(crse,c_l1,c_h1, &
-                                fine,f_l1,f_h1, &
-                                lo,hi,lrat)
+      subroutine part_summassup(crse,c_l1,c_h1,
+     &                          fine,f_l1,f_h1,
+     &                          lo,hi,lrat)
       implicit none
 
       integer          c_l1,c_h1
@@ -44,7 +44,7 @@
       double precision crse(c_l1:c_h1)
       double precision fine(f_l1:f_h1)
 
-      integer          i, n, ic, ioff, lratx
+      integer          i, ic, ioff, lratx
       double precision volfrac
 
       lratx = lrat(1)
