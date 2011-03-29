@@ -5,32 +5,25 @@
 ! :: ----------------------------------------------------------
 ! ::
       subroutine part_summassdown(crse,c_l1,c_h1, &
-                                  nvar, &
                                   fine,f_l1,f_h1, &
                                   lo,hi,lrat)
       implicit none
 
       integer          c_l1,c_h1
       integer          f_l1,f_h1
-      integer          lo(1), hi(1)
-      integer          nvar, lrat(1)
-      double precision crse(c_l1:c_h1,nvar)
-      double precision fine(f_l1:f_h1,nvar)
+      integer          lo(1), hi(1), lrat(1)
+      double precision crse(c_l1:c_h1)
+      double precision fine(f_l1:f_h1)
 
-      integer          i, n, ic, ioff
-      integer          lratx, lraty, lratz
+      integer          i, n, ic, ioff, lratx
 
       lratx = lrat(1)
 
-      do n = 1, nvar
-
-         do ioff = 0, lratx-1
-            do ic = lo(1), hi(1)
-               i = ic*lratx + ioff
-               crse(ic,n) = crse(ic,n) + fine(i,n)
-            enddo
+      do ioff = 0, lratx-1
+         do ic = lo(1), hi(1)
+            i = ic*lratx + ioff
+            crse(ic) = crse(ic) + fine(i)
          enddo
-
       enddo
 
       end subroutine part_summassdown
@@ -41,35 +34,28 @@
 ! :: ----------------------------------------------------------
 ! ::
       subroutine part_summassup(crse,c_l1,c_h1, &
-                                nvar, &
                                 fine,f_l1,f_h1, &
                                 lo,hi,lrat)
       implicit none
 
       integer          c_l1,c_h1
       integer          f_l1,f_h1
-      integer          lo(1), hi(1)
-      integer          nvar, lrat(1)
-      double precision crse(c_l1:c_h1,nvar)
-      double precision fine(f_l1:f_h1,nvar)
+      integer          lo(1), hi(1), lrat(1)
+      double precision crse(c_l1:c_h1)
+      double precision fine(f_l1:f_h1)
 
-      integer          i, n, ic, ioff
-      integer          lratx, lraty, lratz
+      integer          i, n, ic, ioff, lratx
       double precision volfrac
 
       lratx = lrat(1)
 
       volfrac = 1.d0/float(lratx)
 
-      do n = 1, nvar
-
-         do ioff = 0, lratx-1
-            do ic = lo(1), hi(1)
-               i = ic*lratx + ioff
-               fine(i,j,k,n) = fine(i,j,k,n) + volfrac*crse(ic,jc,kc,n)
-            enddo
+      do ioff = 0, lratx-1
+         do ic = lo(1), hi(1)
+            i = ic*lratx + ioff
+            fine(i) = fine(i) + volfrac*crse(ic)
          enddo
-
       enddo
 
       end subroutine part_summassup
