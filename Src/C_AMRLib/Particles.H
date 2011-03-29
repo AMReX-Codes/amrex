@@ -1140,7 +1140,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     // Next we have to sum down from fine to coarse only over
     // fine ghost cells that are not covered by fine valid region.
     //
-    for (int i = finest_level; i > 0; i++)
+    for (int i = finest_level; i > 0; i--)
     {
         //
         // First we make a temporary copy of the fine region
@@ -1194,7 +1194,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         for (MFIter mfi(tcmf); mfi.isValid(); ++mfi)
         {
-            mf[i-1][mfi].plus(tcmf[mfi], mfi.validbox(), 0, 1);
+            mf[i-1][mfi].plus(tcmf[mfi], mfi.validbox(), 0, 0, 1);
         }
     }
 
