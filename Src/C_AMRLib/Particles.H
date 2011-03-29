@@ -1092,7 +1092,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
     const int finest_level = m_amr->finestLevel();
 
-    mf.resize(finest_level, PArrayManage);
+    mf.resize(finest_level+1, PArrayManage);
     //
     // Build the MultiFabs level by level.
     //
