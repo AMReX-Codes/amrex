@@ -6,6 +6,9 @@
 
 #ifdef USE_PARTICLES
 
+extern "C"
+{
+
 BL_FORT_PROC_DECL(PART_SUMMASSDOWN,part_summassdown)
     (BL_FORT_FAB_ARG(crse_fab),
      const BL_FORT_FAB_ARG(fine_fab),
@@ -15,6 +18,8 @@ BL_FORT_PROC_DECL(PART_SUMMASSUP,part_summassup)
     (const BL_FORT_FAB_ARG(crse_fab),
      BL_FORT_FAB_ARG(fine_fab),
      const int* ovlo, const int* ovhi, const int* rat);
+
+};
 
 #endif
 

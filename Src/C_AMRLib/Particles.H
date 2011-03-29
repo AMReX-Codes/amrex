@@ -1137,8 +1137,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         }
     }
     //
-    // Next we have to sum down from fine to coarse
-    // only those ghost cells that are not covered by fine region.
+    // Next we have to sum down from fine to coarse only over
+    // fine ghost cells that are not covered by fine valid region.
     //
     for (int i = finest_level; i > 0; i++)
     {
@@ -1158,11 +1158,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         fmf.FillBoundary();
         //
-        // Now sum down to a coarsen()d version of this MultiFab.
+        // Now sum down to a coarsen()d version of fmf.
         //
         BoxArray cba = fmf.boxArray();
 
-        cba.coarsen(m_amr->MaxRefRatio(i-1));
+        cba.coarsen(m_amr->refRatio(i-1));
 
         BL_ASSERT(mf[i-1].boxArray().contains(cba));
 
@@ -3297,6 +3297,3 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
 }
 
 #endif /*_PARTICLES_H_*/
-
-
-
