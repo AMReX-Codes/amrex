@@ -15,6 +15,7 @@
 #include "Utility.H"
 #include "Geometry.H"
 #include "VisMF.H"
+#include "Particles_F.H"
 
 #ifdef BL_USE_OMP
 #include <omp.h>
@@ -109,6 +110,8 @@ public:
     void Increment (MultiFab& mf, int level) const;
 
     void AssignDensity (MultiFab& mf, int level) const;
+
+    void AssignDensity (PArray<MultiFab>& mf) const;
  
     Real estTimestep (const MultiFab& grav_vector, Real a, int level) const;
 
@@ -910,6 +913,7 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
 {
     BL_ASSERT(N >= 1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
+    BL_ASSERT(mf.boxArray() == m_amr->boxArray(lev));
 
     const Geometry& geom = m_amr->Geom(lev);
 
@@ -1054,6 +1058,154 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
     const Real cell_vol = D_TERM(dx[0], * dx[1], * dx[2]);
 
     mf.mult(1/cell_vol);
+
+    if (m_verbose > 0)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::AssignDensity() time: " << stoptime << "\n\n";
+        }
+    }
+}
+
+//
+// This is the multi-level version.
+//
+// The PArray should be empty on input.
+//
+// The MultiFabs in the PArray will be Managed'd on return.
+//
+// There'll be finest_level+1 of them.
+//
+
+template <int N>
+void
+ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
+{
+    BL_ASSERT(N >= 1);
+
+    const Real strttime = ParallelDescriptor::second();
+
+    const int finest_level = m_amr->finestLevel();
+
+    mf.resize(finest_level, PArrayManage);
+    //
+    // Build the MultiFabs level by level.
+    //
+    for (int i = 0; i <= finest_level; i++)
+    {
+        mf.set(i, new MultiFab(m_amr->boxArray(i), 1, 1));
+        //
+        // This assigns all the particle masses.
+        //
+        // It also calls SumBoundary() and SumPeriodicBoundary().
+        //
+        AssignDensityDoIt(mf[i],i);
+    }
+    //
+    // Next we have to sum up from coarse to fine on any
+    // coarse valid region covered by fine valid region.
+    //
+    for (int i = 1; i <= finest_level; i++)
+    {
+        BoxArray ba = mf[i].boxArray();
+
+        ba.coarsen(m_amr->refRatio(i-1));
+
+        BL_ASSERT(mf[i-1].boxArray().contains(ba));
+
+        MultiFab cmf(ba,1,0);
+
+        cmf.copy(mf[i-1]);
+
+        for (MFIter mfi(cmf); mfi.isValid(); ++mfi)
+        {
+            const FArrayBox& cfab  = cmf[mfi];
+            const Box&       ovlp  = cfab.box();
+            FArrayBox&       ffab  = mf[i][mfi];
+            IntVect          ratio = m_amr->refRatio(i-1);
+
+            BL_FORT_PROC_CALL(PART_SUMMASSUP,part_summassup)
+                (BL_TO_FORTRAN(cfab), 
+                 BL_TO_FORTRAN(ffab),
+                 ovlp.loVect(),ovlp.hiVect(),
+                 ratio.getVect());
+        }
+    }
+    //
+    // Next we have to sum down from fine to coarse
+    // only those ghost cells that are not covered by fine region.
+    //
+    for (int i = finest_level; i > 0; i++)
+    {
+        //
+        // First we make a temporary copy of the fine region
+        // in which we set the valid region and any ghost cells
+        // covered by valid region to zero.
+        //
+        MultiFab fmf(mf[i].boxArray(), 1, m_amr->MaxRefRatio(i-1));
+
+        for (MFIter mfi(fmf); mfi.isValid(); ++mfi)
+        {
+            fmf[mfi].copy(mf[i][mfi]);
+
+            fmf[mfi].setVal(0, mfi.validbox(), 0, 1);
+        }
+
+        fmf.FillBoundary();
+        //
+        // Now sum down to a coarsen()d version of this MultiFab.
+        //
+        BoxArray cba = fmf.boxArray();
+
+        cba.coarsen(m_amr->MaxRefRatio(i-1));
+
+        BL_ASSERT(mf[i-1].boxArray().contains(cba));
+
+        MultiFab cmf(cba, 1, 0);
+
+        cmf.setVal(0);
+
+        for (MFIter mfi(cmf); mfi.isValid(); ++mfi)
+        {
+            FArrayBox&       cfab  = cmf[mfi];
+            const Box&       ovlp  = cfab.box();
+            const FArrayBox& ffab  = fmf[mfi];
+            IntVect          ratio = m_amr->refRatio(i-1);
+
+            BL_FORT_PROC_CALL(PART_SUMMASSDOWN,part_summassdown)
+                (BL_TO_FORTRAN(cfab), 
+                 BL_TO_FORTRAN(ffab),
+                 ovlp.loVect(),ovlp.hiVect(),
+                 ratio.getVect());
+        }
+
+        fmf.clear();
+        //
+        // We now have to sum cmf into mf[i-1].
+        //
+        MultiFab tcmf(mf[i-1].boxArray(), 1, 0);
+
+        tcmf.copy(cmf);
+
+        for (MFIter mfi(tcmf); mfi.isValid(); ++mfi)
+        {
+            mf[i-1][mfi].plus(tcmf[mfi], mfi.validbox(), 0, 1);
+        }
+    }
+
+    for (int i = 0; i <= finest_level; i++)
+    {
+        const Real* dx = m_amr->Geom(i).CellSize();
+
+        const Real cell_vol = D_TERM(dx[0], * dx[1], * dx[2]);
+
+        mf[i].mult(1/cell_vol);
+    }
 
     if (m_verbose > 0)
     {
