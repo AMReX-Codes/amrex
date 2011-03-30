@@ -267,29 +267,51 @@ contains
     type(multifab) , intent(inout) :: mf
     type(bndry_reg), intent(inout) :: br
 
-    integer         :: i, f
-    type(list_box)  :: bl
-    type(multifab)  :: tmf
-    type(boxarray)  :: ba
-    type(layout)    :: la,mf_la
-    real(kind=dp_t), pointer :: src(:,:,:,:), dst(:,:,:,:)
+    integer                   :: i, j, f
+    type(list_box)            :: bl
+    type(multifab)            :: tmf
+    type(boxarray)            :: ba
+    type(layout)              :: la,mf_la
+    type(box)                 :: domain
+    logical                   :: have_periodic_boxes
+    real(kind=dp_t), pointer  :: src(:,:,:,:), dst(:,:,:,:)
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "br_copy")
 
     mf_la = get_layout(mf)
 
+    have_periodic_boxes = .false.
+
     if ( any(get_pmask(mf_la)) ) then
+
+       domain = grow(get_pd(mf_la), nghost(mf), .not. get_pmask(mf_la))
+
+       loop: do i = 1, br%dim
+          do f = 0, 1
+             do j = 1, nboxes(br%bmf(i,f))
+                if ( .not. contains(domain, get_box(br%bmf(i,f),j)) ) then
+                   have_periodic_boxes = .true.
+                   exit loop
+                end if
+             end do
+          end do
+       end do loop
+
+    end if
+
+    if ( have_periodic_boxes ) then
        !
-       ! We're periodic & have boxes that extend outside the domain in periodic direction.
-       ! In order to fill those boxes we do the usual trick of copy()ing from a multifab
-       ! whose valid region has been extended to cover the ghost region.
+       ! We're periodic & have boxes that extend outside the domain in periodic
+       ! direction.  In order to fill those boxes we do the usual trick of copy()ing
+       ! from a multifab whose valid region has been extended to cover the ghost region.
        !
        do i = 1, nboxes(mf)
           call push_back(bl, get_pbox(mf,i))
        end do
-
+       !
        ! Need to fill the ghost cells of the crse array before copying from them.
+       !
        call multifab_fill_boundary(mf)
 
        call build(ba, bl, sort = .false.)
