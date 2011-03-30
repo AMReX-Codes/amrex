@@ -1179,7 +1179,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         fmf.FillBoundary();
 
         if (i==1)
+        {
             m_amr->Geom(i).FillPeriodicBoundary(fmf);
+        }
         //
         // Now sum down to a coarsen()d version of fmf.
         //
@@ -1210,18 +1212,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         }
 
         fmf.clear();
-
-        if (i==1)
-        {
-            //
-            // TODO
-            //
-            // The SUMMASSDOWN may have added values to the periodic grow cells of cmf.
-            // We now want to get any such cells into their proper periodically-shifted
-            // place in the valid region of mf[i-1].  
-            //
-            // m_amr->Geom(i-1).SumPeriodicBoundary(cmf);
-        }
         //
         // We now have to sum cmf into mf[i-1].
         //
@@ -1234,6 +1224,14 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         for (MFIter mfi(tcmf); mfi.isValid(); ++mfi)
         {
             mf[i-1][mfi].plus(tcmf[mfi], mfi.validbox(), 0, 0, 1);
+        }
+
+        if (i==1)
+        {
+            //
+            // We now shift cmf periodically and sum into mf[i-1].
+            //
+            m_amr->Geom(i).SumPeriodicBoundary(mf[i-1], cmf);
         }
     }
 
