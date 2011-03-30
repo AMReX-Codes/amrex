@@ -264,40 +264,22 @@ contains
   end subroutine bndry_reg_build
 
   subroutine bndry_reg_copy(br, mf)
-    type(multifab) , intent(in   ) :: mf
+    type(multifab) , intent(inout) :: mf
     type(bndry_reg), intent(inout) :: br
 
-    integer         :: i, f, j
+    integer         :: i, f
     type(list_box)  :: bl
     type(multifab)  :: tmf
     type(boxarray)  :: ba
-    type(box)       :: domain
     type(layout)    :: la,mf_la
-    logical         :: doit
     real(kind=dp_t), pointer :: src(:,:,:,:), dst(:,:,:,:)
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "br_copy")
 
-    doit = .false.
-
     mf_la = get_layout(mf)
 
     if ( any(get_pmask(mf_la)) ) then
-       domain = grow(get_pd(mf_la), nghost(mf), .not. get_pmask(mf_la))
-       loop: do i = 1, br%dim
-          do f = 0, 1
-             do j = 1, nboxes(br%bmf(i,f))
-                if ( .not. contains(domain, get_box(br%bmf(i,f),j)) ) then
-                   doit = .true.
-                   exit loop
-                end if
-             end do
-          end do
-       end do loop
-    end if
-
-    if ( doit ) then
        !
        ! We're periodic & have boxes that extend outside the domain in periodic direction.
        ! In order to fill those boxes we do the usual trick of copy()ing from a multifab
@@ -306,6 +288,9 @@ contains
        do i = 1, nboxes(mf)
           call push_back(bl, get_pbox(mf,i))
        end do
+
+       ! Need to fill the ghost cells of the crse array before copying from them.
+       call multifab_fill_boundary(mf)
 
        call build(ba, bl, sort = .false.)
        call destroy(bl)
