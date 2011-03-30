@@ -179,6 +179,15 @@ public:
     void SumPeriodicBoundary (MultiFab& mf,
                               int       src_comp,
                               int       num_comp) const;
+
+    void SumPeriodicBoundary (MultiFab&       dstmf,
+                              const MultiFab& srcmf) const;
+
+    void SumPeriodicBoundary (MultiFab&       dstmf,
+                              const MultiFab& srcmf,
+                              int             dcomp,
+                              int             scomp,
+                              int             ncomp) const;
     //
     // Flush the cache of PIRM information.
     //
@@ -539,7 +548,7 @@ namespace BoxLib
                           int             ncomp,
                           bool            corners=false)
     {
-        if (!geom.isAnyPeriodic()) return;
+        if (!geom.isAnyPeriodic() || mf.nGrow() == 0) return;
 
 #ifndef NDEBUG
         //
