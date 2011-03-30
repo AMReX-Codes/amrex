@@ -327,22 +327,33 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
          }
     }
 
+     // Print how many particles on each processor
     if (m_verbose > 1)
     {
-       for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-       {
-           if (MyProc == i)
-           {
-               std::cout << "Processor "
-                         << i
-                         << " added "
-                         << howmany
-                         << " particles in Init()" << std::endl;
-           }
-           ParallelDescriptor::Barrier();
-       }
-       if (ParallelDescriptor::IOProcessor())
-           std::cout << '\n';
+        for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+        {
+            if (MyProc == i)
+            {
+                std::cout << "Processor "
+                          << i
+                          << " added "
+                          << howmany
+                          << " particles in Init()" << std::endl;
+            }
+            ParallelDescriptor::Barrier();
+        }
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << '\n';
+    }
+
+     // Add up all the particles on each processor to get the total number of particles
+    if (m_verbose > 0)
+    {
+        int num_particles = howmany; 
+        ParallelDescriptor::ReduceIntSum(num_particles, ParallelDescriptor::IOProcessorNumber());
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "Total number of particles: " << num_particles << std::endl;
     }
 
     BL_ASSERT(OK());
@@ -356,9 +367,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
-        {
             std::cout << "Init() time: " << runtime << std::endl;
-        }
     }
 }
 
