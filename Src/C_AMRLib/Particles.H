@@ -358,7 +358,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
 
     BL_ASSERT(OK());
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         ByteSpread();
 
@@ -471,7 +471,7 @@ ParticleContainer<N>::InitCosmo (Real          mass)
     //
     Redistribute(true);
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real runtime = ParallelDescriptor::second() - strttime;
 
@@ -662,7 +662,7 @@ ParticleContainer<N>::InitRandom (long          icount,
         Redistribute(true);
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -767,12 +767,16 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
     Array<Real> ldt(omp_get_max_threads(),1e50);
 #endif
 
+    int num_particles_at_level = 0;
+
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
         const int        grid = pmap_it->first;
         const PBox&      pbox = pmap_it->second;
         const int        n    = pbox.size();
         const FArrayBox& gfab = gv[grid];
+
+        num_particles_at_level = num_particles_at_level + n;
 
 #ifdef BL_USE_OMP
 #pragma omp for
@@ -795,6 +799,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
                 if (mag_grav > 0)
                     dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
+
 #ifdef BL_USE_OMP
                 const int tid = omp_get_thread_num();
 
@@ -813,7 +818,11 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
     ParallelDescriptor::ReduceRealMin(dt);
 
-    if (m_verbose > 0)
+    // Set dt negative if there are no particles at this level
+    ParallelDescriptor::ReduceIntSum(num_particles_at_level);
+    if (num_particles_at_level == 0) dt = -1.e50;
+
+    if (m_verbose > 1)
     {
 
         Real stoptime = ParallelDescriptor::second() - strttime;
@@ -1068,7 +1077,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
     mf.mult(1/cell_vol);
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -1218,7 +1227,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -1278,7 +1287,7 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
         }
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -1346,7 +1355,7 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
         }
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -1440,7 +1449,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
         }
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -1524,7 +1533,7 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
         }
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -1626,7 +1635,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
         }
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -1718,7 +1727,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
         }
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -1822,7 +1831,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
         Redistribute(true);
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -2171,13 +2180,13 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     BL_ASSERT(OK());
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
-        if (m_verbose > 1 && maxsendrecv > 0)
+        if (maxsendrecv > 0)
         {
             for (int i = 0; i < NProcs; i++)
             {
@@ -2539,7 +2548,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         }
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -2736,7 +2745,7 @@ ParticleContainer<N>::Restart (const std::string& dir,
         BoxLib::Abort(msg.c_str());
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -3163,7 +3172,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
         }
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
@@ -3294,7 +3303,7 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
         ParallelDescriptor::Barrier();
     }
 
-    if (m_verbose > 0)
+    if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
