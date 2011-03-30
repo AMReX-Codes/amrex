@@ -936,7 +936,7 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
     const Geometry& geom = m_amr->Geom(lev);
 
     if (!geom.isAllPeriodic())
-        BoxLib::Error("AssignDensity: problem must to be periodic");
+        BoxLib::Error("AssignDensityDoIt: problem must to be periodic");
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         mf[mfi].setVal(0);
@@ -1085,7 +1085,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AssignDensity() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::AssignDensity(single-level) time: " << stoptime << "\n\n";
         }
     }
 }
@@ -1167,6 +1167,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         //
         MultiFab fmf(mf[i].boxArray(), 1, m_amr->MaxRefRatio(i-1));
 
+        fmf.setVal(0);
+
         for (MFIter mfi(fmf); mfi.isValid(); ++mfi)
         {
             fmf[mfi].copy(mf[i][mfi]);
@@ -1175,8 +1177,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         }
 
         fmf.FillBoundary();
+
+        if (i==1)
+            m_amr->Geom(i).FillPeriodicBoundary(fmf);
         //
         // Now sum down to a coarsen()d version of fmf.
+        //
+        // The only non-zero stuff in fmf is precisely what needs to be summed down.
         //
         BoxArray cba = fmf.boxArray();
 
@@ -1184,7 +1191,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         BL_ASSERT(mf[i-1].boxArray().contains(cba));
 
-        MultiFab cmf(cba, 1, 0);
+        MultiFab cmf(cba, 1, (i==1) ? 1 : 0);
 
         cmf.setVal(0);
 
@@ -1203,11 +1210,24 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         }
 
         fmf.clear();
+
+        if (i==1)
+        {
+            //
+            // TODO
+            //
+            // The SUMMASSDOWN may have added values to the periodic grow cells of cmf.
+            // We now want to get any such cells into their proper periodically-shifted
+            // place in the valid region of mf[i-1].  
+            //
+            // m_amr->Geom(i-1).SumPeriodicBoundary(cmf);
+        }
         //
         // We now have to sum cmf into mf[i-1].
         //
         MultiFab tcmf(mf[i-1].boxArray(), 1, 0);
-        tcmf.setVal(0.);
+
+        tcmf.setVal(0);
 
         tcmf.copy(cmf);
 
@@ -1224,7 +1244,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         const Real cell_vol = D_TERM(dx[0], * dx[1], * dx[2]);
 
         mf[i].mult(1/cell_vol);
-
     }
 
     if (m_verbose > 1)
@@ -1235,7 +1254,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AssignDensity() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::AssignDensity(multi-level) time: " << stoptime << "\n\n";
         }
     }
 }
