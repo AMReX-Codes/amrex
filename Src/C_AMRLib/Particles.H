@@ -1189,6 +1189,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         // We now have to sum cmf into mf[i-1].
         //
         MultiFab tcmf(mf[i-1].boxArray(), 1, 0);
+        tcmf.setVal(0.);
 
         tcmf.copy(cmf);
 
@@ -1205,6 +1206,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         const Real cell_vol = D_TERM(dx[0], * dx[1], * dx[2]);
 
         mf[i].mult(1/cell_vol);
+
     }
 
     if (m_verbose > 0)
