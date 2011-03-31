@@ -1231,7 +1231,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             //
             // We now shift cmf periodically and sum into mf[i-1].
             //
-            m_amr->Geom(i).SumPeriodicBoundary(mf[i-1], cmf);
+            m_amr->Geom(i-1).SumPeriodicBoundary(mf[i-1], cmf);
         }
     }
 
