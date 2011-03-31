@@ -1387,6 +1387,10 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
     Redistribute(true);
 }
 
+//
+// This version takes as input the gravity vector at cell centers
+//
+
 template <int N>
 void
 ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
@@ -1397,6 +1401,10 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
     Real a_half = 1.;
     moveKickDrift (grav_vector,lev,dt,a_old,a_half);
 }
+
+//
+// This version takes as input the gravity vector at cell centers
+//
 
 template <int N>
 void
@@ -1481,6 +1489,10 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
     Redistribute(true);
 }
 
+//
+// This version takes as input the gravity vector at cell centers
+//
+
 template <int N>
 void
 ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
@@ -1491,6 +1503,10 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
     Real a_half = 1.;
     moveKick (grav_vector,lev,dt,a_new,a_half);
 }
+
+//
+// This version takes as input the gravity vector at cell centers
+//
 
 template <int N>
 void
@@ -1566,6 +1582,10 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
     //
 }
 
+//
+// This version takes as input the normal gravity component on each face
+//
+
 template <int N>
 void
 ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
@@ -1576,6 +1596,10 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     Real a_half = 1.;
     moveKickDrift (grav_vector,lev,dt,a_old,a_half);
 }
+
+//
+// This version takes as input the normal gravity component on each face
+//
 
 template <int N>
 void
@@ -1607,6 +1631,8 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
 #ifdef BL_USE_OMP
 #pragma omp parallel for
 #endif
+
+
         for (int i = 0; i < n; i++)
         {
             ParticleType& p = pbox[i];
@@ -1630,6 +1656,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
                     const Real grav_lo = (*gfab[d])(lo);
                     const Real grav_hi = (*gfab[d])(hi);
                     const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
+
                     //
                     // Note: m_data[0] is mass, 1 is v_x, ...
                     //
@@ -1667,6 +1694,10 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     Redistribute(true);
 }
 
+//
+// This version takes as input the normal gravity component on each face
+//
+
 template <int N>
 void
 ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
@@ -1677,6 +1708,10 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
     Real a_half = 1.;
     moveKick (grav_vector,lev,dt,a_new,a_half);
 }
+
+//
+// This version takes as input the normal gravity component on each face
+//
 
 template <int N>
 void
