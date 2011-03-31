@@ -420,6 +420,19 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
 
         mfcd.FillFab(mfid, it->fbid, fab);
 
+#if 0
+        if (Real nrm = fab.norm(1,0,ncomp))
+        {
+            std::cout << "*** SPB: "
+                      << it->srcBox
+                      << " -> "
+                      << it->dstBox
+                      << " sum(abs(fab)): "
+                      << nrm
+                      << '\n';
+        }
+#endif
+
         dstmf[it->mfid].plus(fab, fab.box(), it->dstBox, 0, dcomp, ncomp);
     }
 }
