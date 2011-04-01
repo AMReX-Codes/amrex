@@ -21,3 +21,9 @@
     FFLAGS   += -fopenmp
     CFLAGS   += -fopenmp
   endif
+
+  ifdef GPROF
+    F90FLAGS += -pg
+    FFLAGS   += -pg
+    CFLAGS   += -pg
+  endif
