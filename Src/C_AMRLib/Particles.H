@@ -1177,11 +1177,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         }
 
         fmf.FillBoundary();
-
-        if (i==1)
-        {
-            m_amr->Geom(i).FillPeriodicBoundary(fmf);
-        }
+        m_amr->Geom(i).FillPeriodicBoundary(fmf);
         //
         // Now sum down to a coarsen()d version of fmf.
         //
@@ -1193,7 +1189,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         BL_ASSERT(mf[i-1].boxArray().contains(cba));
 
-        MultiFab cmf(cba, 1, (i==1) ? 1 : 0);
+        MultiFab cmf(cba, 1, 1);
 
         cmf.setVal(0);
 
@@ -1225,21 +1221,16 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         {
             mf[i-1][mfi].plus(tcmf[mfi], mfi.validbox(), 0, 0, 1);
         }
-
-        if (i==1)
-        {
-            //
-            // We now shift cmf periodically and sum into mf[i-1].
-            //
-            m_amr->Geom(i-1).SumPeriodicBoundary(mf[i-1], cmf);
-        }
+        //
+        // We now shift cmf periodically and sum into mf[i-1].
+        //
+        m_amr->Geom(i-1).SumPeriodicBoundary(mf[i-1], cmf);
     }
 
     for (int i = 0; i <= finest_level; i++)
     {
-        const Real* dx = m_amr->Geom(i).CellSize();
-
-        const Real cell_vol = D_TERM(dx[0], * dx[1], * dx[2]);
+        const Real* dx       = m_amr->Geom(i).CellSize();
+        const Real  cell_vol = D_TERM(dx[0], * dx[1], * dx[2]);
 
         mf[i].mult(1/cell_vol);
     }
