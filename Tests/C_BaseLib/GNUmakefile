@@ -1,22 +1,21 @@
 #
-# $Id: GNUmakefile,v 1.16 2007-04-24 21:05:46 lijewski Exp $
+# $Id: GNUmakefile,v 1.17 2011-04-07 21:19:35 lijewski Exp $
 #
 
 #
 # Set these to the appropriate value.
 #
+DIM          = 2
 DIM          = 3
 PRECISION    = DOUBLE
 COMP = PathScale
 FCOMP = PathScale
-COMP  = g++
+COMP  = Intel
 FCOMP = Intel
 DEBUG        = TRUE
 DEBUG        = FALSE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
-USE_THREADS  = TRUE
-USE_THREADS  = FALSE
 PROFILE      = TRUE
 PROFILE      = FALSE
 
@@ -25,8 +24,18 @@ PROFILE      = FALSE
 PBOXLIB_HOME = ../..
 include $(PBOXLIB_HOME)/mk/Make.defs
 
-FDEBF += -fpe0
-fDEBF += -fpe0
+#ifeq ($(COMP),Intel)
+#  COPTF   += -fast
+#  CXXOPTF += -fast
+#endif
+
+#ifeq ($(FCOMP),Intel)
+#  fOPTF += -fast
+#  FOPTF += -fast
+#endif
+
+#FDEBF += -fpe0
+#fDEBF += -fpe0
 
 #FOPTF += -pg
 #fOPTF += -pg
@@ -46,7 +55,9 @@ fDEBF += -fpe0
 #_progs  := tParmParse
 #_progs  := tCArena
 #_progs  := tBA
-_progs  := tDM
+#_progs  := tDM
+_progs  := tMF
+#_progs  := tFB
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
 ifeq ($(COMP),g++)
@@ -56,6 +67,8 @@ ifeq ($(COMP),g++)
 endif
 VPATH = $(PBOXLIB_HOME)/BoxLib
 include $(PBOXLIB_HOME)/BoxLib/Make.package
+
+FEXE_sources += util.F
 
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
 
