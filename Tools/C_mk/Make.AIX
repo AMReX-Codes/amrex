@@ -69,15 +69,6 @@ else
   LDFLAGS += -bmaxdata:0x80000000
 endif
 
-ifeq ($(USE_THREADS),TRUE)
-FOPTF   += -qnosave -qthreaded
-fOPTF   += -qnosave -qthreaded
-FDEBF   += -qnosave -qthreaded
-fDEBF   += -qnosave -qthreaded
-CXXOPTF += -qthreaded
-CXXDEBF += -qthreaded
-endif
-
 COPTF += -O3
 CDEBF += -g
 CPRFF +=

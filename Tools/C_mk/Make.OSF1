@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.28 2004-09-13 19:02:23 vince Exp $
+# $Id: Make.OSF1,v 1.29 2011-04-07 21:18:19 lijewski Exp $
 #
 
 #
@@ -95,13 +95,6 @@ else
   FDEBF += -g -u -fpconstant
   fOPTF += -fast -O -fpconstant
   fDEBF += -g -fpconstant
-endif
-
-ifeq ($(USE_THREADS),TRUE)
-  FOPTF += -automatic -reentrancy threaded
-  FDEBF += -automatic -reentrancy threaded
-  fOPTF += -automatic -reentrancy threaded
-  fDEBF += -automatic -reentrancy threaded
 endif
 
 FFLAGS += -fpe3

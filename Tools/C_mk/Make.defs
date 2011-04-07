@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.163 2011-02-14 02:48:02 almgren Exp $
+# Make.defs $Id: Make.defs,v 1.164 2011-04-07 21:18:19 lijewski Exp $
 #
 
 #
@@ -231,10 +231,6 @@ endif
 
 ifndef FCOMP
   FCOMP  = f77
-endif
-
-ifndef USE_THREADS
-  USE_THREADS  = FALSE
 endif
 
 ifndef USE_MPI
@@ -689,14 +685,11 @@ ifeq ($(FCOMP),Intel)
 #     fDEBF += -ftrapuv
    endif
    LIBRARY_LOCATIONS += $(shell echo `which ifort | sed 's;bin/ifort;;'`lib)
-   ifeq ($(USE_THREADS),TRUE)
-     override XTRALIBS += -lpthread
-   endif
+
    _ifc += -module $(fmoddir)
     FC = $(_ifc)
     fC = $(_ifc)
    NEEDS_FLUSH_F := TRUE
-
 
 #jfe
    ifeq ($(GWDG), TRUE)
@@ -846,21 +839,7 @@ else
     MAESTROSuffix :=
 endif
 
-ifeq ($(USE_THREADS),TRUE)
-    DEFINES += -DBL_THREADS
-    ifeq ($(COMP),KCC)
-        CXXFLAGS+=--thread_safe
-    endif
-    ifeq ($(COMP),mpKCC)
-        CXXFLAGS+=--thread_safe
-    endif
-    ifeq ($(COMP),g++)
-        CPPFLAGS+=-pthread
-    endif
-    ThreadsSuffix := .TS
-else
-    ThreadsSuffix :=
-endif
+ThreadsSuffix :=
 
 ifeq ($(PRECISION),FLOAT)
 ifeq ($(MACHINE),CRAY)
