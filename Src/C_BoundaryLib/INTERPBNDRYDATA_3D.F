@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_3D.F,v 1.9 2011-03-17 20:53:13 lijewski Exp $
+c $Id: INTERPBNDRYDATA_3D.F,v 1.10 2011-04-13 21:03:26 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -56,7 +56,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy
+      REAL_T   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, joff, koff, n
       integer  jclo, jchi, kclo, kchi, ratioy, ratioz
 
@@ -148,15 +148,17 @@ c ---------------------------------------------------------------
             !
             do koff = 0, ratioz - 1
                yy = (dble(koff - ratioz/2) + half)/ratioz
+               yysq = yy**2
                do kc = kclo,kchi
                   k = ratioz*kc + koff
                   do joff = 0, ratioy - 1
                      xx = (dble(joff - ratioy/2) + half)/ratioy
+                     xxsq = xx**2
                      do jc = jclo, jchi
                         j = ratioy*jc + joff
                         bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(jc,kc,XDER) 
-     &                       + derives(jc,kc,X2DER)*xx**2 + yy*derives(jc,kc,YDER) 
-     &                       + derives(jc,kc,Y2DER)*yy**2 + xx*yy*derives(jc,kc,XYDER) 
+     &                       + derives(jc,kc,X2DER)*xxsq + yy*derives(jc,kc,YDER) 
+     &                       + derives(jc,kc,Y2DER)*yysq + xx*yy*derives(jc,kc,XYDER) 
                      end do
                   end do
                end do
@@ -203,7 +205,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy
+      REAL_T   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, joff, koff, n
       integer  jclo, jchi, kclo, kchi, ratioy, ratioz
 
@@ -295,15 +297,17 @@ c ---------------------------------------------------------------
             !
             do koff = 0, ratioz - 1
                yy = (dble(koff - ratioz/2) + half)/ratioz
+               yysq = yy**2
                do kc = kclo,kchi
                   k = ratioz*kc + koff
                   do joff = 0, ratioy - 1
                      xx = (dble(joff - ratioy/2) + half)/ratioy
+                     xxsq = xx**2
                      do jc = jclo, jchi
                         j = ratioy*jc + joff
                         bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(jc,kc,XDER) 
-     &                       + derives(jc,kc,X2DER)*xx**2 + yy*derives(jc,kc,YDER) 
-     &                       + derives(jc,kc,Y2DER)*yy**2 + xx*yy*derives(jc,kc,XYDER) 
+     &                       + derives(jc,kc,X2DER)*xxsq + yy*derives(jc,kc,YDER) 
+     &                       + derives(jc,kc,Y2DER)*yysq + xx*yy*derives(jc,kc,XYDER) 
                      end do
                   end do
                end do
@@ -350,7 +354,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy
+      REAL_T   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, ioff, koff, n
       integer  iclo, ichi, kclo, kchi, ratiox, ratioz
 
@@ -442,15 +446,17 @@ c ---------------------------------------------------------------
             !
             do koff = 0, ratioz - 1
                yy = (dble(koff - ratioz/2) + half)/ratioz
+               yysq = yy**2
                do kc = kclo,kchi
                   k = ratioz*kc + koff
                   do ioff = 0, ratiox - 1
                      xx = (dble(ioff - ratiox/2) + half)/ratiox
+                     xxsq = xx**2
                      do ic = iclo, ichi
                         i = ratiox*ic + ioff
                         bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,kc,XDER) 
-     &                       + derives(ic,kc,X2DER)*xx**2 + yy*derives(ic,kc,YDER) 
-     &                       + derives(ic,kc,Y2DER)*yy**2 + xx*yy*derives(ic,kc,XYDER) 
+     &                       + derives(ic,kc,X2DER)*xxsq + yy*derives(ic,kc,YDER) 
+     &                       + derives(ic,kc,Y2DER)*yysq + xx*yy*derives(ic,kc,XYDER) 
                      end do
                   end do
                end do
@@ -497,7 +503,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy
+      REAL_T   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, ioff, koff, n
       integer  iclo, ichi, kclo, kchi, ratiox, ratioz
 
@@ -590,15 +596,17 @@ c ---------------------------------------------------------------
             !
             do koff = 0, ratioz - 1
                yy = (dble(koff - ratioz/2) + half)/ratioz
+               yysq = yy**2
                do kc = kclo,kchi
                   k = ratioz*kc + koff
                   do ioff = 0, ratiox - 1
                      xx = (dble(ioff - ratiox/2) + half)/ratiox
+                     xxsq = xx**2
                      do ic = iclo, ichi
                         i = ratiox*ic + ioff
                         bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,kc,XDER) 
-     &                       + derives(ic,kc,X2DER)*xx**2 + yy*derives(ic,kc,YDER) 
-     &                       + derives(ic,kc,Y2DER)*yy**2 + xx*yy*derives(ic,kc,XYDER) 
+     &                       + derives(ic,kc,X2DER)*xxsq + yy*derives(ic,kc,YDER) 
+     &                       + derives(ic,kc,Y2DER)*yysq + xx*yy*derives(ic,kc,XYDER) 
                      end do
                   end do
                end do
@@ -645,7 +653,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy
+      REAL_T   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, ioff, joff, n
       integer  iclo, ichi, jclo, jchi, ratiox, ratioy
 
@@ -737,15 +745,17 @@ c ---------------------------------------------------------------
             !
             do joff = 0, ratioy - 1
                yy = (dble(joff - ratioy/2) + half)/ratioy
+               yysq = yy**2
                do jc = jclo,jchi
                   j = ratioy*jc + joff
                   do ioff = 0, ratiox - 1
                      xx = (dble(ioff - ratiox/2) + half)/ratiox
+                     xxsq = xx**2
                      do ic = iclo, ichi
                         i = ratiox*ic + ioff
                         bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,jc,XDER) 
-     &                       + derives(ic,jc,X2DER)*xx**2 + yy*derives(ic,jc,YDER) 
-     &                       + derives(ic,jc,Y2DER)*yy**2 + xx*yy*derives(ic,jc,XYDER) 
+     &                       + derives(ic,jc,X2DER)*xxsq + yy*derives(ic,jc,YDER) 
+     &                       + derives(ic,jc,Y2DER)*yysq + xx*yy*derives(ic,jc,XYDER) 
                      end do
                   end do
                end do
@@ -792,7 +802,7 @@ c ---------------------------------------------------------------
       integer  mask(DIMV(mask))
       REAL_T   crse(DIMV(crse),nvar)
 
-      REAL_T   xx, yy
+      REAL_T   xx, yy, xxsq, yysq
       integer  i, j, k, ic, jc, kc, ioff, joff, n
       integer  iclo, ichi, jclo, jchi, ratiox, ratioy
 
@@ -884,15 +894,17 @@ c ---------------------------------------------------------------
             !
             do joff = 0, ratioy - 1
                yy = (dble(joff - ratioy/2) + half)/ratioy
+               yysq = yy**2
                do jc = jclo,jchi
                   j = ratioy*jc + joff
                   do ioff = 0, ratiox - 1
                      xx = (dble(ioff - ratiox/2) + half)/ratiox
+                     xxsq = xx**2
                      do ic = iclo, ichi
                         i = ratiox*ic + ioff
                         bdry(i,j,k,n) = crse(ic,jc,kc,n) + xx*derives(ic,jc,XDER) 
-     &                       + derives(ic,jc,X2DER)*xx**2 + yy*derives(ic,jc,YDER) 
-     &                       + derives(ic,jc,Y2DER)*yy**2 + xx*yy*derives(ic,jc,XYDER) 
+     &                       + derives(ic,jc,X2DER)*xxsq + yy*derives(ic,jc,YDER) 
+     &                       + derives(ic,jc,Y2DER)*yysq + xx*yy*derives(ic,jc,XYDER) 
                      end do
                   end do
                end do
