@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.15 2009-11-04 21:35:24 lijewski Exp $
+c $Id: FLUXREG_3D.F,v 1.16 2011-04-13 21:15:20 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -49,7 +49,9 @@ c ::: -----------------------------------------------------------
 
       integer    n, i, j, k
 
+!$omp parallel private(i,j,k)
       do n = 1, numcomp
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -57,7 +59,9 @@ c ::: -----------------------------------------------------------
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
 
       end
 
@@ -89,11 +93,13 @@ c ::: -----------------------------------------------------------
       REAL_T     mult
       REAL_T     reg(DIMV(reg),numcomp)
       REAL_T     flx(DIMV(flx),numcomp)
-      REAL_T    area(DIMV(area))
+      REAL_T     area(DIMV(area))
 
       integer    n, i, j, k
 
+!$omp parallel private(i,j,k)
       do n = 1, numcomp
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -101,7 +107,9 @@ c ::: -----------------------------------------------------------
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
 
       end
 
@@ -373,9 +381,11 @@ c ::
       REAL_T     vol(DIMV(vol))
       REAL_T     reg(DIMV(reg),numcomp)
       
-      integer n, i, j, k
+      integer    n, i, j, k
 
+!$omp parallel private(i,j,k)
       do n = 1, numcomp
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -383,7 +393,9 @@ c ::
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
       
       end
 
@@ -415,12 +427,14 @@ c ::
       REAL_T     reg(DIMV(reg),numcomp)
       REAL_T     s(DIMV(s),numcomp)
       
-      integer n, i, j, k
-      REAL_T vmult
+      integer    n, i, j, k
+      REAL_T     vmult
 
       vmult = mult/(dx(1)*dx(2)*dx(3))
 
+!$omp parallel private(i,j,k)
       do n = 1, numcomp
+!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -428,6 +442,8 @@ c ::
                end do
             end do
          end do
+!$omp end do nowait
       end do
+!$omp end parallel
       
       end
