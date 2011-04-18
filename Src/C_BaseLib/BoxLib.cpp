@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.40 2010-08-24 20:30:31 almgren Exp $
+// $Id: BoxLib.cpp,v 1.41 2011-04-18 16:43:03 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -21,6 +21,10 @@
 #include <Utility.H>
 #include <WorkQueue.H>
 #include <MultiFab.H>
+
+#ifdef BL_USE_OMP
+#include "omp.h"
+#endif
 
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
@@ -229,7 +233,16 @@ BoxLib::Initialize (int& argc, char**& argv)
     {
         std::cout << "MPI initialized with "
                   << ParallelDescriptor::NProcs()
-                  << " MPI Process(es)\n";
+                  << " MPI processes\n";
+    }
+#endif
+
+#ifdef BL_USE_OMP
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "OMP initialized with "
+                  << omp_get_max_threads()
+                  << " OMP threads\n";
     }
 #endif
 
