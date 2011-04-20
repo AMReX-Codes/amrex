@@ -24,7 +24,7 @@ ifeq ($(COMP),PathScale)
   endif
 else
 ifeq ($(COMP),Cray)
-  CXX = crayc++
+  CXX = CC
   CC  = craycc
 
   CXXOPTF += -O1 -h noexceptions
