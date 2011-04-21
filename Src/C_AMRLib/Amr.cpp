@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.226 2011-03-22 20:24:56 lijewski Exp $
+// $Id: Amr.cpp,v 1.227 2011-04-21 20:12:24 ajnonaka Exp $
 //
 #include <winstd.H>
 
@@ -2657,26 +2657,29 @@ Amr::bldFineLevels (Real strt_time)
     //
     // Iterate grids to ensure fine grids encompass all interesting gunk.
     //
-    bool grids_the_same;
+    if (grids_file.empty())  // only iterare if we did not provide a grids file
+      {
+	bool grids_the_same;
 
-    const int MaxCnt = 4;
+	const int MaxCnt = 4;
 
-    int count = 0;
+	int count = 0;
 
-    do
-    {
-        for (int i = 0; i <= finest_level; i++)
-            grids[i] = amr_level[i].boxArray();
+	do
+	  {
+	    for (int i = 0; i <= finest_level; i++)
+	      grids[i] = amr_level[i].boxArray();
 
-        regrid(0,strt_time,true);
+	    regrid(0,strt_time,true);
 
-        grids_the_same = true;
+	    grids_the_same = true;
 
-        for (int i = 0; i <= finest_level && grids_the_same; i++)
-            if (!(grids[i] == amr_level[i].boxArray()))
+	    for (int i = 0; i <= finest_level && grids_the_same; i++)
+	      if (!(grids[i] == amr_level[i].boxArray()))
                 grids_the_same = false;
 
-        count++;
-    }
-    while (!grids_the_same && count < MaxCnt);
+	    count++;
+	  }
+	while (!grids_the_same && count < MaxCnt);
+      }
 }
