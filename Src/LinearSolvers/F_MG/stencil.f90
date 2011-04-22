@@ -180,12 +180,15 @@ contains
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "st_norm")
+
     r1 = -Huge(r1)
+
     if ( present(mask) ) then
        do b = 1, nboxes(ss)
           if ( remote(ss,b) ) cycle
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
+          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lbound(sp,dim=3), ubound(sp,dim=3)
              do j = lbound(sp,dim=2), ubound(sp,dim=2)
                 do i = lbound(sp,dim=1), ubound(sp,dim=1)
@@ -199,12 +202,14 @@ contains
                 end do
              end do
           end do
-
+          !$OMP END PARALLEL DO
        end do
     else
+
        do b = 1, nboxes(ss)
           if ( multifab_remote(ss,b) ) cycle
           sp => dataptr(ss, b)
+          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lbound(sp,dim=3), ubound(sp,dim=3)
              do j = lbound(sp,dim=2), ubound(sp,dim=2)
                 do i = lbound(sp,dim=1), ubound(sp,dim=1)
@@ -216,6 +221,7 @@ contains
                 end do
              end do
           end do
+          !$OMP END PARALLEL DO
        end do
     end if
 

@@ -223,8 +223,9 @@ contains
     real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,1:)
     integer :: i, i2, j, j2, k, k2, n
 
+    !$OMP PARALLEL PRIVATE(i,j,k,i2,j2,k2)
     do n = 1, size(cc,4)
-       !$OMP PARALLEL DO PRIVATE(i,j,k,i2,j2,k2)
+       !$OMP DO
        do k = loc(3),hic(3)
           k2 = 2*k
           do j = loc(2),hic(2)
@@ -240,8 +241,9 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine crse_cell_coeffs_3d
 
@@ -252,8 +254,9 @@ contains
     real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,1:)
     integer :: i, i2, j, j2, k, k2, n
 
+    !$OMP PARALLEL PRIVATE(i,j,k,i2,j2,k2)
     do n = 1, size(cc,4)
-       !$OMP PARALLEL DO PRIVATE(i,j,k,i2,j2,k2)
+       !$OMP DO
        do k = loc(3),hic(3)
           k2 = 2*k
           do j = loc(2),hic(2)
@@ -267,8 +270,9 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine crse_xedge_coeffs_3d
 
@@ -279,8 +283,9 @@ contains
     real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,1:)
     integer :: i, i2, j, j2, k, k2, n
 
+    !$OMP PARALLEL PRIVATE(i,j,k,i2,j2,k2)
     do n = 1, size(cc,4)
-       !$OMP PARALLEL DO PRIVATE(i,j,k,i2,j2,k2)
+       !$OMP DO
        do k = loc(3),hic(3)
           k2 = 2*k
           do j = loc(2),hic(2)+1
@@ -294,8 +299,9 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine crse_yedge_coeffs_3d
 
@@ -306,8 +312,9 @@ contains
     real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,lof(3)-ng:,1:)
     integer :: i, i2, j, j2, k, k2, n
 
+    !$OMP PARALLEL PRIVATE(i,j,k,i2,j2,k2)
     do n = 1, size(cc,4)
-       !$OMP PARALLEL DO PRIVATE(i,j,k,i2,j2,k2)
+       !$OMP DO
        do k = loc(3),hic(3)+1
           k2 = 2*k
           do j = loc(2),hic(2)
@@ -321,8 +328,9 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
 
   end subroutine crse_zedge_coeffs_3d
 

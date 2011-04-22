@@ -461,7 +461,6 @@ contains
       !
       ! First average along the coarse-fine face.
       !
-      !$OMP PARALLEL DO PRIVATE(jc,kc,n,fac,fac2,j,l,k) IF((hid(3)-lod(3)).ge.3)
       do kc = lod(3),hid(3)
          do jc = lod(2),hid(2)
             do n = 0,ratio(2)-1
@@ -507,7 +506,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
       jc = lod(2)
       kc = lod(3)
@@ -689,7 +687,6 @@ contains
       !
       ! First average along the coarse-fine face.
       !
-      !$OMP PARALLEL DO PRIVATE(kc,ic,n,fac2,i,l,fac,k) IF((hid(3)-lod(3)).ge.3)
       do kc = lod(3),hid(3)
          do ic = lod(1),hid(1)
             do n = 0,ratio(1)-1
@@ -734,7 +731,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
       ic = lod(1)
       kc = lod(3)
@@ -916,7 +912,6 @@ contains
       !
       ! First average along the coarse-fine face.
       !
-      !$OMP PARALLEL DO PRIVATE(jc,ic,n,fac2,i,l,fac,j) IF((hid(2)-lod(2)).ge.3)
       do jc = lod(2),hid(2)
          do ic = lod(1),hid(1)
             do n = 0,ratio(1)-1
@@ -961,7 +956,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
       ic = lod(1)
       jc = lod(2)
