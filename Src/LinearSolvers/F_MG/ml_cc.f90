@@ -52,7 +52,7 @@ contains
 
     real(dp_t) :: Anorm, bnorm, abs_eps, ni_res
     real(dp_t) :: tres, tres0, max_norm
-    real(dp_t) :: sum
+    real(dp_t) :: sum, coeff_sum, coeff_max
 
     type(bl_prof_timer), save :: bpt
 
@@ -166,13 +166,17 @@ contains
 
     ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
     ! Only test on lowest mg level of lowest AMR level -- this should be cheapest
-    if ( multifab_sum(mgt(1)%ss(1)) .lt. (1.d-12 * multifab_max(mgt(1)%ss(1))) ) then
+    coeff_sum = max_of_stencil_sum(mgt(1)%ss(1)) 
+    coeff_max = stencil_norm(mgt(1)%ss(1)) 
+
+    if ( coeff_sum .lt. (1.d-12 * coeff_max) ) then
+       mgt(1)%coeffs_sum_to_zero = .true.
        if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) &
           print *,'Coefficients sum to zero '
-       mgt(1)%coeffs_sum_to_zero = .true.
     else
        if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
-          print *,'Coefficients sum to ', sum
+          print *,'Coefficients sum to ', coeff_sum
+          print *,' ... coeff_max   is ', coeff_max
           print *,'Not setting singular flag '
        end if
     end if
