@@ -477,10 +477,10 @@ contains
     !          call bl_error("ROBIN BC's not ready yet")
     if ( nx == 1 .and. face == 1 ) call bl_error("STENCIL_BNDRY_AAA: Shouldn't happen!")
 
-    s0 = 0
-    ss = 0
-    sm = 0
-    sp = 0
+    s0 = ZERO
+    ss = ZERO
+    sm = ZERO
+    sp = ZERO
     !
     ! TODO -- this stuff is just not quite right.
     ! Some of this logic needs to be moved into the bc_?? routines themselves.
@@ -550,7 +550,7 @@ contains
 !     sm  = b0
 !     s0  = -(b0+b1)
 !     sp  = b1
-!     ss  = 0
+!     ss  = ZERO
 !     skewed = .false.
     end subroutine bc_ii
 
@@ -561,7 +561,7 @@ contains
          sm =  b0 + ( -1 + 4/(3 + 2*xb)) * b1
          s0 = -b0 + (( -3 + 2*xb )/(1 + 2*xb)) * b1
          sp =  8*b1/(3 + 4*xb*(2 + xb))
-         ss = 0
+         ss = ZERO
          skewed = .false.
       end if
     end subroutine bc_id
@@ -573,7 +573,7 @@ contains
          sm =  b0 - xb*b1/(1 + xb)
          s0 = -b0 + xb*b1/(1 + xb)
          sp =  b1/(1 + xb)
-         ss = 0
+         ss = ZERO
          skewed = .false.
       end if
     end subroutine bc_in
@@ -584,13 +584,13 @@ contains
          sm = 2*b0/(1 + 2*xa)
          s0 = -2*b0/(1 + 2*xa) - b1
          sp = b1
-         ss = 0
+         ss = ZERO
          skewed = .false.
       case (2)
          sm = 8*b0/(3 + 4*xa*(2 + xa))
          s0 = ((-3 + 2*xa)/(1 + 2*xa))*b0 - b1
          sp = ((1-2*xa)/(3 + 2*xa))*b0    + b1
-         ss = 0
+         ss = ZERO
          skewed = .false.
       case(3)
          if ( old_old ) then
@@ -614,7 +614,7 @@ contains
          sm = ((3+2*xb)*b0 + (1-2*xb)*b1)/((1+2*xa)*(1+xa+xb))
          s0 = 4*((-1 + xa - xb)*b0 + (-1-xa+xb)*b1)/((1+2*xa)*(1+2*xb))
          sp = ((1-2*xa)*b0 + (3+2*xa)*b1)/((1+2*xb)*(1+xa+xb))
-         ss = 0
+         ss = ZERO
          skewed = .false.
       case (2)
          sm = ((3+2*xb)*b0/((1+2*xa)*(1+xa+xb)))
@@ -650,7 +650,7 @@ contains
          sm = 8*((1+xb)*b0 - xb*b1)/((1+2*xa)*(3+2*xa+4*xb))
          s0 = -8*((1+xb)*b0 + xb*b1)/((1+2*xa)*(4+2*xa+4*xb))
          sp = ((1-2*xa)*b0 + (3+2*xa)*b1)/(3+2*xa+4*xb)
-         ss = 0
+         ss = ZERO
          skewed = .false.
       case (2)
          sm = 4*(3+2*xb)*b0/((1+2*xa)*(1+xa+xb))
@@ -674,14 +674,14 @@ contains
          sm = ZERO
          s0 = -b1
          sp =  b1
-         ss = 0
+         ss = ZERO
          skewed = .false.
       case (2)
 !        sm = -b0/(1 + xa)
          sm = ZERO
          s0 = xa*b0/(1 + xa) - b1
          sp = -xa*b0/(1 + xa) + b1
-         ss = 0
+         ss = ZERO
          skewed = .false.
       case (3)
 !        sm = -24*b0/(23 + 12*xa*(3+xa))
@@ -694,7 +694,7 @@ contains
          sm = -b0/(1 + xa)
          s0 = xa*b0/(1 + xa) - b1
          sp = -xa*b0/(1 + xa) + b1
-         ss = 0
+         ss = ZERO
          skewed = .false.
       end select
     end subroutine bc_ni
@@ -705,7 +705,7 @@ contains
          sm = - ((3+2*xb)*b0 + (1-2*xb)*b1)/(3+4*xa+2*xb)
          s0 = 8*(xa*b0 -(1+xa)*b1)/((1+2*xb)*(3+4*xa+2*xb))
          sp = 8*(-xa*b0 + (1+xb)*b1)/((1+2*xb)*(3+4*xa+2*xb))
-         ss = 0
+         ss = ZERO
          skewed = .false.
       case (2)
          sm =  -(3+2*xb)*b0/(3+4*xa+2*xb)
@@ -728,9 +728,9 @@ contains
       select case ( imaxo )
       case (1)
          sm = (-(1+xb)*b0 + xb*b1)/(1+xa+xb)
-         s0 = 0
+         s0 = ZERO
          sp = (-xa*b0 + (1+xa)*b1)/(1+xa+xb)
-         ss = 0
+         ss = ZERO
          skewed = .false.
       case (2)
          sm = -(1+xb)*b0/(1+xa+xb)
