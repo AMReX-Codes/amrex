@@ -170,6 +170,11 @@ contains
        if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) &
           print *,'Coefficients sum to zero '
        mgt(1)%coeffs_sum_to_zero = .true.
+    else
+       if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
+          print *,'Coefficients sum to ', sum
+          print *,'Not setting singular flag '
+       end if
     end if
 
     ! Enforce solvability if appropriate
