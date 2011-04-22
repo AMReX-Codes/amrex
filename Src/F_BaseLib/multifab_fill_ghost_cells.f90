@@ -7,7 +7,7 @@ module multifab_fill_ghost_module
 contains
 
   subroutine multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc, &
-                                       fill_crse_input)
+                                       fill_crse_input,stencil_width_input)
 
     use setbc_module
     use layout_module
@@ -21,6 +21,7 @@ contains
     type(bc_level), intent(in   ) :: bc_crse,bc_fine
     integer       , intent(in   ) :: icomp,bcomp,nc
     logical       , intent(in   ), optional :: fill_crse_input
+    integer       , intent(in   ), optional :: stencil_width_input
 
     integer         :: i, j
     type(multifab)  :: ghost, tmpfine
@@ -42,7 +43,7 @@ contains
 
     fill_crse = .true.
 
-    if ( present(fill_crse_input) ) fill_crse = fill_crse_input
+    if ( present(fill_crse_input    ) ) fill_crse = fill_crse_input
 
     if ( nghost(fine) <  ng          ) &
          call bl_error('multifab_fill_ghost_cells: fine does NOT have enough ghost cells')
@@ -62,10 +63,18 @@ contains
     !
     call build(la, fgasc%ba, get_pd(fine_la), get_pmask(fine_la))
 
-    call build(ghost, la, nc, ng = 1)
+    ! Don't need to make any ghost cells.
+    call build(ghost, la, nc, ng = 0)
 
-    call fillpatch(ghost, crse, 1, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, &
-                   no_final_physbc_input=.true., fill_crse_input=fill_crse)
+    ! Don't ask fillpatch to fill any ghost cells.
+    if (present(stencil_width_input)) then
+       call fillpatch(ghost, crse, 0, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, &
+                      no_final_physbc_input=.true., fill_crse_input=fill_crse, &
+                      stencil_width_input=stencil_width_input)
+    else
+       call fillpatch(ghost, crse, 0, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, &
+                      no_final_physbc_input=.true., fill_crse_input=fill_crse)
+    end if
     !
     ! Copy fillpatch()d ghost cells to fine.
     ! We want to copy the valid region of ghost -> valid + ghost region of fine.
