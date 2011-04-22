@@ -9,7 +9,7 @@ contains
 
   subroutine fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp_fine, icomp_crse, &
                        bcomp, nc, no_final_physbc_input, lim_slope_input, lin_limit_input, &
-                       fill_crse_input)
+                       fill_crse_input, stencil_width_input)
 
     use bc_module
     use setbc_module
@@ -28,6 +28,7 @@ contains
     logical       , intent(in   ), optional :: lim_slope_input
     logical       , intent(in   ), optional :: lin_limit_input
     logical       , intent(in   ), optional :: fill_crse_input
+    integer       , intent(in   ), optional :: stencil_width_input
 
 
     integer         :: i, j, dm, local_bc(multifab_get_dim(fine),2,nc), shft(3**multifab_get_dim(fine),multifab_get_dim(fine)), cnt
@@ -41,6 +42,7 @@ contains
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(multifab_get_dim(fine)), have_periodic_gcells
     logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine))
+    integer         :: stencil_width
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
@@ -69,7 +71,9 @@ contains
     have_periodic_gcells = .false.
     no_final_physbc      = .false.
     fill_crse            = .true.
+    stencil_width        = 1
 
+    if ( present(stencil_width_input)   ) stencil_width   = stencil_width_input
     if ( present(lim_slope_input)       ) lim_slope       = lim_slope_input
     if ( present(lin_limit_input)       ) lin_limit       = lin_limit_input
     if ( present(no_final_physbc_input) ) no_final_physbc = no_final_physbc_input
@@ -183,7 +187,7 @@ contains
     call build(ba, bl, sort = .false.)
     call destroy(bl)
     call boxarray_coarsen(ba, ir)
-    call boxarray_grow(ba, 1) ! Grow by one for stencil in lin_cc_interp.
+    call boxarray_grow(ba, stencil_width) ! Grow by stencil_width for stencil in interpolation routine.
     call build(la, ba, pd = cdomain, pmask = pmask, explicit_mapping = procmap)
     call destroy(ba)
     call build(cfine, la, nc = nc, ng = 0)
@@ -243,8 +247,8 @@ contains
        fbx = intersection(grow(fine_box,ng),fdomain)
        if (empty(fbx)) cycle
 
-       cslope_lo(1:dm) = lwb(grow(cbx, -1))
-       cslope_hi(1:dm) = upb(grow(cbx, -1))
+       cslope_lo(1:dm) = lwb(grow(cbx,-stencil_width))
+       cslope_hi(1:dm) = upb(grow(cbx,-stencil_width))
 
        local_bc(:,:,1:nc) = INTERIOR
 
