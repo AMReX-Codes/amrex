@@ -223,6 +223,64 @@ contains
     call destroy(bpt)
   end function stencil_norm
 
+  function max_of_stencil_sum(ss, mask) result(r)
+    use bl_prof_module
+    real(kind=dp_t) :: r
+    type(multifab), intent(in) :: ss
+    type(lmultifab), intent(in), optional :: mask
+    integer :: i,j,k,n,b
+    real(kind=dp_t) :: r1, sum_comps
+    real(kind=dp_t), pointer :: sp(:,:,:,:)
+    logical, pointer :: lp(:,:,:,:)
+    type(bl_prof_timer), save :: bpt
+
+    ! NOTE: this is exactly the same as the stencil_norm function except that we sum the
+    !       components of the stencil, not the absolute value of each component
+
+    call build(bpt, "st_norm")
+    r1 = -Huge(r1)
+    if ( present(mask) ) then
+       do b = 1, nboxes(ss)
+          if ( remote(ss,b) ) cycle
+          sp => dataptr(ss, b)
+          lp => dataptr(mask, b)
+          do k = lbound(sp,dim=3), ubound(sp,dim=3)
+             do j = lbound(sp,dim=2), ubound(sp,dim=2)
+                do i = lbound(sp,dim=1), ubound(sp,dim=1)
+                   if ( lp(i,j,k,1) ) then
+                      sum_comps = ZERO
+                      do n = lbound(sp,dim=4), ubound(sp,dim=4)
+                         sum_comps = sum_comps + sp(i,j,k,n)
+                      end do
+                      r1 = max(r1,sum_comps)
+                   end if
+                end do
+             end do
+          end do
+
+       end do
+    else
+       do b = 1, nboxes(ss)
+          if ( multifab_remote(ss,b) ) cycle
+          sp => dataptr(ss, b)
+          do k = lbound(sp,dim=3), ubound(sp,dim=3)
+             do j = lbound(sp,dim=2), ubound(sp,dim=2)
+                do i = lbound(sp,dim=1), ubound(sp,dim=1)
+                   sum_comps = ZERO
+                   do n = lbound(sp,dim=4), ubound(sp,dim=4)
+                      sum_comps = sum_comps + sp(i,j,k,n)
+                   end do
+                   r1 = max(r1,sum_comps)
+                end do
+             end do
+          end do
+       end do
+    end if
+
+    call parallel_reduce(r,r1,MPI_MAX)
+    call destroy(bpt)
+  end function max_of_stencil_sum
+
   subroutine stencil_set_extrap_bc(st, max_order)
     type(stencil), intent(inout) :: st
     integer, intent(in) :: max_order
