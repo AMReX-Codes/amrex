@@ -9,7 +9,7 @@ contains
 
   subroutine fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp_fine, icomp_crse, &
                        bcomp, nc, no_final_physbc_input, lim_slope_input, lin_limit_input, &
-                       fill_crse_input, stencil_width_input)
+                       fill_crse_input, stencil_width_input, fourth_order_input)
 
     use bc_module
     use setbc_module
@@ -29,6 +29,7 @@ contains
     logical       , intent(in   ), optional :: lin_limit_input
     logical       , intent(in   ), optional :: fill_crse_input
     integer       , intent(in   ), optional :: stencil_width_input
+    logical       , intent(in   ), optional :: fourth_order_input
 
 
     integer         :: i, j, dm, local_bc(multifab_get_dim(fine),2,nc), shft(3**multifab_get_dim(fine),multifab_get_dim(fine)), cnt
@@ -41,7 +42,7 @@ contains
     type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(multifab_get_dim(fine)), have_periodic_gcells
-    logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine))
+    logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine)), fourth_order
     integer         :: stencil_width
 
     type(list_box_node),   pointer     :: bln
@@ -72,12 +73,18 @@ contains
     no_final_physbc      = .false.
     fill_crse            = .true.
     stencil_width        = 1
+    fourth_order         = .false.
 
     if ( present(stencil_width_input)   ) stencil_width   = stencil_width_input
+    if ( present(fourth_order_input)    ) fourth_order    = fourth_order_input
     if ( present(lim_slope_input)       ) lim_slope       = lim_slope_input
     if ( present(lin_limit_input)       ) lin_limit       = lin_limit_input
     if ( present(no_final_physbc_input) ) no_final_physbc = no_final_physbc_input
     if ( present(fill_crse_input)       ) fill_crse       = fill_crse_input
+
+    if (fourth_order .and. (stencil_width < 2)) &
+       call bl_error('fillpatch: need at least stencil_width = 2 for fourth order interp')
+
     !
     ! Force crse to have good data in ghost cells (only the ng that are needed 
     ! in case has more than ng).
@@ -307,21 +314,41 @@ contains
        select case (dm)
        case (1)
           allocate(fp(lo_f(1):hi_f(1),1:1,1:1,1:nc))
-          call lin_cc_interp_1d(fp(:,1,1,:), lo_f, src(:,1,1,:), lo_c, ir, local_bc, &
-             fvcx, lo_f(1), cvcx, lo_c(1), &
-             cslope_lo, cslope_hi, lim_slope, lin_limit)
+          if (fourth_order) then
+             call fourth_order_interp_1d(fp(:,1,1,:), lo_f, src(:,1,1,:), lo_c, ir, local_bc, &
+                   fvcx, lo_f(1), cvcx, lo_c(1), &
+                   cslope_lo, cslope_hi)
+          else
+             call lin_cc_interp_1d(fp(:,1,1,:), lo_f, src(:,1,1,:), lo_c, ir, local_bc, &
+                fvcx, lo_f(1), cvcx, lo_c(1), &
+                cslope_lo, cslope_hi, lim_slope, lin_limit)
+          endif
        case (2)
           allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),1:1,1:nc))
-          call lin_cc_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, local_bc, &
-             fvcx, lo_f(1), fvcy, lo_f(2), &
-             cvcx, lo_c(1), cvcy, lo_c(2), &
-             cslope_lo, cslope_hi, lim_slope, lin_limit)
+          if (fourth_order) then
+             call fourth_order_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, local_bc, &
+                   fvcx, lo_f(1), fvcy, lo_f(2), &
+                   cvcx, lo_c(1), cvcy, lo_c(2), &
+                   cslope_lo, cslope_hi)
+          else
+             call lin_cc_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, local_bc, &
+                fvcx, lo_f(1), fvcy, lo_f(2), &
+                cvcx, lo_c(1), cvcy, lo_c(2), &
+                cslope_lo, cslope_hi, lim_slope, lin_limit)
+          endif
        case (3)
           allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),lo_f(3):hi_f(3),1:nc))
-          call lin_cc_interp_3d(fp(:,:,:,:), lo_f, src(:,:,:,:), lo_c, ir, local_bc, &
-               fvcx, lo_f(1), fvcy, lo_f(2), fvcz, lo_f(3), &
-               cvcx, lo_c(1), cvcy, lo_c(2), cvcz, lo_c(3), &
-               cslope_lo, cslope_hi, lim_slope, lin_limit)
+          if (fourth_order) then
+             call fourth_order_interp_3d(fp(:,:,:,:), lo_f, src(:,:,:,:), lo_c, ir, local_bc, &
+                     fvcx, lo_f(1), fvcy, lo_f(2), fvcz, lo_f(3), &
+                     cvcx, lo_c(1), cvcy, lo_c(2), cvcz, lo_c(3), &
+                     cslope_lo, cslope_hi)
+          else
+             call lin_cc_interp_3d(fp(:,:,:,:), lo_f, src(:,:,:,:), lo_c, ir, local_bc, &
+                  fvcx, lo_f(1), fvcy, lo_f(2), fvcz, lo_f(3), &
+                  cvcx, lo_c(1), cvcy, lo_c(2), cvcz, lo_c(3), &
+                  cslope_lo, cslope_hi, lim_slope, lin_limit)
+          endif
        end select
 
        if ( n_extra_valid_regions > 0 ) then
