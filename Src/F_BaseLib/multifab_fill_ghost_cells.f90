@@ -7,7 +7,7 @@ module multifab_fill_ghost_module
 contains
 
   subroutine multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc, &
-                                       fill_crse_input,stencil_width_input)
+                                       fill_crse_input,stencil_width_input,fourth_order_input)
 
     use setbc_module
     use layout_module
@@ -22,6 +22,7 @@ contains
     integer       , intent(in   ) :: icomp,bcomp,nc
     logical       , intent(in   ), optional :: fill_crse_input
     integer       , intent(in   ), optional :: stencil_width_input
+    logical       , intent(in   ), optional :: fourth_order_input
 
     integer         :: i, j
     type(multifab)  :: ghost, tmpfine
@@ -32,6 +33,8 @@ contains
     real(kind=dp_t) :: dx(3)
     type(fgassoc)   :: fgasc
     logical         :: fill_crse
+    integer         :: stencil_width
+    logical         :: fourth_order
 
     real(kind=dp_t),     pointer :: src(:,:,:,:), dst(:,:,:,:)
 
@@ -41,15 +44,30 @@ contains
 
     call build(bpt, "mf_fill_ghost_cells")
 
-    fill_crse = .true.
+    fill_crse    = .true.
+    fourth_order = .false.
 
-    if ( present(fill_crse_input    ) ) fill_crse = fill_crse_input
+    if ( present(fill_crse_input    ) )    fill_crse = fill_crse_input
+    if ( present(fourth_order_input ) ) fourth_order = fourth_order_input
 
     if ( nghost(fine) <  ng          ) &
          call bl_error('multifab_fill_ghost_cells: fine does NOT have enough ghost cells')
 
     if ( .not. cell_centered_q(fine) ) &
          call bl_error('fillpatch: fine is NOT cell centered')
+
+    if (present(stencil_width_input)) then
+       if ( fourth_order ) then
+          if ( stencil_width_input < 2) &
+            call bl_error('fillpatch: fourth_order but stencil_width < 2')
+       end if
+    else
+       if ( fourth_order) then
+          stencil_width = 2
+       else
+          stencil_width = 1
+       end if
+    end if
 
     fine_la = get_layout(fine)
     !
@@ -67,14 +85,10 @@ contains
     call build(ghost, la, nc, ng = 0)
 
     ! Don't ask fillpatch to fill any ghost cells.
-    if (present(stencil_width_input)) then
-       call fillpatch(ghost, crse, 0, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, &
-                      no_final_physbc_input=.true., fill_crse_input=fill_crse, &
-                      stencil_width_input=stencil_width_input)
-    else
-       call fillpatch(ghost, crse, 0, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, &
-                      no_final_physbc_input=.true., fill_crse_input=fill_crse)
-    end if
+    call fillpatch(ghost, crse, 0, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, &
+                   no_final_physbc_input=.true., fill_crse_input=fill_crse, &
+                   stencil_width_input=stencil_width, fourth_order_input=fourth_order)
+
     !
     ! Copy fillpatch()d ghost cells to fine.
     ! We want to copy the valid region of ghost -> valid + ghost region of fine.
