@@ -1001,4 +1001,286 @@ contains
 
   end subroutine lin_cc_interp_3d
 
+  !! fourth_order_interp:   fourth order unlimited interpolation from coarse grid to fine
+  !!                    :   NOTE: this is not necessarily conservative!
+
+  subroutine fourth_order_interp_1d (fine, fine_lo, crse, crse_lo, &
+                                     lratio, bc, &
+                                     fvcx, fvcx_lo, cvcx, cvcx_lo, &
+                                     cslope_lo, cslope_hi)
+
+    integer, intent(in) ::   fine_lo(:),  crse_lo(:)
+    integer, intent(in) :: cslope_lo(:),cslope_hi(:)
+    integer, intent(in) :: lratio(:)
+    integer, intent(in) :: bc(:,:,:)
+    integer, intent(in) :: fvcx_lo,cvcx_lo
+    real(kind=dp_t), intent(  out) :: fine(fine_lo(1):,:)
+    real(kind=dp_t), intent(inout) :: crse(crse_lo(1):,:)
+    real(kind=dp_t), intent(in   ) :: fvcx(fvcx_lo:)
+    real(kind=dp_t), intent(in   ) :: cvcx(cvcx_lo:)
+
+
+    real(kind=dp_t) ::     uc_xslope(cslope_lo(1):cslope_hi(1),size(fine,2))
+    real(kind=dp_t) ::         voffx(fvcx_lo:fvcx_lo+size(fine,1)-1)
+
+    integer :: n
+    integer :: i, ic
+    real(kind=dp_t) :: fxcen, cxcen
+    logical :: xok(1)
+    integer :: nxc(1)
+
+    nxc(1) = size(crse,1)-2
+
+    xok = (nxc >=  2)
+
+    do i = fvcx_lo, fvcx_lo+size(fine,1)-1
+       ic = IX_PROJ(i,lratio(1))
+       fxcen = HALF*(fvcx(i)+fvcx(i+1))
+       cxcen = HALF*(cvcx(ic)+cvcx(ic+1))
+       voffx(i) = (fxcen-cxcen)/(cvcx(ic+1)-cvcx(ic))
+    end do
+
+    ! Prevent underflow for small crse values.
+    where ( abs(crse) <= 1.0e-20_dp_t ) crse = ZERO
+
+    !
+    ! Compute unlimited slopes
+    !
+    do n = 1, size(fine,2)
+       do i = cslope_lo(1), cslope_hi(1)
+          uc_xslope(i,n) = HALF*(crse(i+1,n)-crse(i-1,n))
+       end do
+    end do
+
+    ! Do the interpolation using unlimited slopes.
+
+    do n = 1, size(fine,2)
+       do i = fine_lo(1), fine_lo(1)+size(fine,1)-1
+          ic = IX_PROJ(i,lratio(1))
+          fine(i,n) = &
+               crse(ic,n) + voffx(i)*uc_xslope(ic,n)
+       end do
+    end do
+
+  end subroutine fourth_order_interp_1d
+
+  subroutine fourth_order_interp_2d (fine, fine_lo, crse, crse_lo, &
+                                     lratio, bc, &
+                                     fvcx, fvcx_lo, fvcy, fvcy_lo, cvcx, cvcx_lo, cvcy, cvcy_lo, &
+                                     cslope_lo, cslope_hi)
+
+    integer, intent(in) :: fine_lo(:),crse_lo(:)
+    integer, intent(in) :: cslope_lo(:),cslope_hi(:)
+    integer, intent(in) :: lratio(:)
+    integer, intent(in) :: bc(:,:,:)
+    integer, intent(in) :: fvcx_lo,fvcy_lo,cvcx_lo,cvcy_lo
+    real(kind=dp_t), intent(  out) :: fine(fine_lo(1):,fine_lo(2):,:)
+    real(kind=dp_t), intent(inout) :: crse(crse_lo(1):,crse_lo(2):,:)
+    real(kind=dp_t), intent(in   ) :: fvcx(fvcx_lo:)
+    real(kind=dp_t), intent(in   ) :: fvcy(fvcy_lo:)
+    real(kind=dp_t), intent(in   ) :: cvcx(cvcx_lo:)
+    real(kind=dp_t), intent(in   ) :: cvcy(cvcy_lo:)
+
+
+    real(kind=dp_t) ::     uc_xslope(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+    real(kind=dp_t) ::     uc_yslope(cslope_lo(1):cslope_hi(1), &
+                                     cslope_lo(2):cslope_hi(2),size(fine,3))
+    real(kind=dp_t) ::         voffx(fvcx_lo:fvcx_lo+size(fine,1)-1)
+    real(kind=dp_t) ::         voffy(fvcy_lo:fvcy_lo+size(fine,2)-1)
+
+    integer :: n
+    integer :: i, ic
+    integer :: j, jc
+    real(kind=dp_t) :: fxcen, cxcen, fycen, cycen
+    logical :: xok(2)
+    integer :: nxc(2)
+
+    forall (i =1:2) nxc(i) = size(crse,i)-2
+
+    xok = (nxc >=  2)
+
+    do j = fvcy_lo, fvcy_lo+size(fine,2)-1
+       jc = IX_PROJ(j,lratio(2))
+       fycen = HALF*(fvcy(j)+fvcy(j+1))
+       cycen = HALF*(cvcy(jc)+cvcy(jc+1))
+       voffy(j) = (fycen-cycen)/(cvcy(jc+1)-cvcy(jc))
+    end do
+    do i = fvcx_lo, fvcx_lo+size(fine,1)-1
+       ic = IX_PROJ(i,lratio(1))
+       fxcen = HALF*(fvcx(i)+fvcx(i+1))
+       cxcen = HALF*(cvcx(ic)+cvcx(ic+1))
+       voffx(i) = (fxcen-cxcen)/(cvcx(ic+1)-cvcx(ic))
+    end do
+
+    ! Prevent underflow for small crse values.
+    where ( abs(crse) <= 1.0e-20_dp_t ) crse = ZERO
+
+    !
+    ! Compute unlimited slopes
+    !
+    do n = 1, size(fine,3)
+       do j = cslope_lo(2), cslope_hi(2)
+          do i = cslope_lo(1), cslope_hi(1)
+             uc_xslope(i,j,n) = HALF*(crse(i+1,j,n)-crse(i-1,j,n))
+          end do
+       end do
+
+       do j = cslope_lo(2), cslope_hi(2)
+          do i = cslope_lo(1), cslope_hi(1)
+             uc_yslope(i,j,n) = HALF*(crse(i,j+1,n)-crse(i,j-1,n))
+          end do
+       end do
+
+    end do
+
+    ! Do the interpolation using unlimited slopes.
+
+    do n = 1, size(fine,3)
+       do j = fine_lo(2), fine_lo(2)+size(fine,2)-1
+          jc = IX_PROJ(j,lratio(2))
+          do i = fine_lo(1), fine_lo(1)+size(fine,1)-1
+             ic = IX_PROJ(i,lratio(1))
+             fine(i,j,n) = &
+                  crse(ic,jc,n) + voffx(i)*uc_xslope(ic,jc,n)+ voffy(j)*uc_yslope(ic,jc,n)
+          end do
+       end do
+    end do
+
+  end subroutine fourth_order_interp_2d
+
+  subroutine fourth_order_interp_3d (fine, fine_lo, crse, crse_lo, &
+                                     lratio, bc, &
+                                     fvcx, fvcx_lo, fvcy, fvcy_lo, fvcz, fvcz_lo, &
+                                     cvcx, cvcx_lo, cvcy, cvcy_lo, cvcz, cvcz_lo, &
+                                     cslope_lo, cslope_hi)
+
+    integer, intent(in) :: fine_lo(:),crse_lo(:)
+    integer, intent(in) :: cslope_lo(:),cslope_hi(:)
+    integer, intent(in) :: lratio(:)
+    integer, intent(in) :: bc(:,:,:)
+    integer, intent(in) :: fvcx_lo,fvcy_lo,fvcz_lo,cvcx_lo,cvcy_lo,cvcz_lo
+    REAL(kind=dp_t), intent(out) :: fine(fine_lo(1):,fine_lo(2):,fine_lo(3):,:)
+    REAL(kind=dp_t), intent(inout) :: crse(crse_lo(1):,crse_lo(2):,crse_lo(3):,:)
+    REAL(kind=dp_t), intent(in) :: fvcx(fvcx_lo:)
+    REAL(kind=dp_t), intent(in) :: fvcy(fvcy_lo:)
+    REAL(kind=dp_t), intent(in) :: fvcz(fvcz_lo:)
+    REAL(kind=dp_t), intent(in) :: cvcx(cvcx_lo:)
+    REAL(kind=dp_t), intent(in) :: cvcy(cvcy_lo:)
+    REAL(kind=dp_t), intent(in) :: cvcz(cvcz_lo:)
+
+    REAL(kind=dp_t) :: voffx(fvcx_lo:fvcx_lo+size(fine,1)-1)
+    REAL(kind=dp_t) :: voffy(fvcy_lo:fvcy_lo+size(fine,2)-1)
+    REAL(kind=dp_t) :: voffz(fvcz_lo:fvcz_lo+size(fine,3)-1)
+
+    integer :: n 
+    integer :: i, ic
+    integer :: j, jc
+    integer :: k, kc
+    REAL(kind=dp_t) :: fxcen, cxcen, fycen, cycen, fzcen, czcen
+    logical :: xok(3)
+    integer :: nxc(3)
+
+    REAL(kind=dp_t), allocatable ::     uc_xslope(:,:,:,:)
+    REAL(kind=dp_t), allocatable ::     uc_yslope(:,:,:,:)
+    REAL(kind=dp_t), allocatable ::     uc_zslope(:,:,:,:)
+
+    allocate(     uc_xslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+    allocate(     uc_yslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+    allocate(     uc_zslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+                            cslope_lo(3):cslope_hi(3),size(fine,4)))
+
+    forall(i = 1:3) nxc(i) = size(crse,dim=i) - 2
+    xok = (nxc >=  2)
+
+    do k = fvcz_lo, fvcz_lo+size(fine,3)-1
+       kc = IX_PROJ(k,lratio(3))
+       fzcen = HALF*(fvcz(k)+fvcz(k+1))
+       czcen = HALF*(cvcz(kc)+cvcz(kc+1))
+       voffz(k) = (fzcen-czcen)/(cvcz(kc+1)-cvcz(kc))
+    end do
+    do j = fvcy_lo, fvcy_lo+size(fine,2)-1
+       jc = IX_PROJ(j,lratio(2))
+       fycen = HALF*(fvcy(j)+fvcy(j+1))
+       cycen = HALF*(cvcy(jc)+cvcy(jc+1))
+       voffy(j) = (fycen-cycen)/(cvcy(jc+1)-cvcy(jc))
+    end do
+    do i = fvcx_lo, fvcx_lo+size(fine,1)-1
+       ic = IX_PROJ(i,lratio(1))
+       fxcen = HALF*(fvcx(i)+fvcx(i+1))
+       cxcen = HALF*(cvcx(ic)+cvcx(ic+1))
+       voffx(i) = (fxcen-cxcen)/(cvcx(ic+1)-cvcx(ic))
+    end do
+    !
+    ! Prevent underflow for small crse values.
+    !
+    where(abs(crse) < 1.0d-20) crse = ZERO
+
+    !
+    ! Computed unlimited slopes
+    !
+    do n = 1, size(crse,4) 
+
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
+       do k = cslope_lo(3),cslope_hi(3)
+          do j = cslope_lo(2),cslope_hi(2)
+             do i = cslope_lo(1),cslope_hi(1)
+                uc_xslope(i,j,k,n) = HALF*(crse(i+1,j,k,n)-crse(i-1,j,k,n))
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
+       do k = cslope_lo(3),cslope_hi(3)
+          do j = cslope_lo(2),cslope_hi(2)
+             do i = cslope_lo(1),cslope_hi(1)
+                uc_yslope(i,j,k,n) = HALF*(crse(i,j+1,k,n)-crse(i,j-1,k,n))
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
+       do k = cslope_lo(3),cslope_hi(3)
+          do j = cslope_lo(2),cslope_hi(2)
+             do i = cslope_lo(1),cslope_hi(1)
+                uc_zslope(i,j,k,n) = HALF*(crse(i,j,k+1,n)-crse(i,j,k-1,n))
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    end do
+
+    !
+    ! Do the interpolation using unlimited slopes.
+    !
+    !$OMP PARALLEL PRIVATE(i,j,k,n,ic,jc,kc)
+    do n = 1, size(crse,4)
+       !$OMP DO
+       do k = fine_lo(3), fine_lo(3)+size(fine,3) - 1
+          kc = IX_PROJ(k,lratio(3))
+          do j = fine_lo(2), fine_lo(2)+size(fine, 2) - 1
+             jc = IX_PROJ(j,lratio(2))
+             do i = fine_lo(1), fine_lo(1)+size(fine,1) - 1
+                ic = IX_PROJ(i,lratio(1))
+                fine(i,j,k,n) = crse(ic,jc,kc,n) &
+                     + voffx(i)*uc_xslope(ic,jc,kc,n) &
+                     + voffy(j)*uc_yslope(ic,jc,kc,n) &
+                     + voffz(k)*uc_zslope(ic,jc,kc,n)
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+    deallocate(uc_xslope)
+    deallocate(uc_yslope)
+    deallocate(uc_zslope)
+
+  end subroutine fourth_order_interp_3d
+
 end module interp_module
