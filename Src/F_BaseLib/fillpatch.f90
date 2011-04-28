@@ -204,7 +204,7 @@ contains
     ! If ng==0, got to build and use a version of crse that has a grow cell.
     !
     if (ng .eq. 0) then
-       call build(gcrse, get_layout(crse), nc = nc, ng = 1)
+       call build(gcrse, get_layout(crse), nc = ncomp(crse), ng = 1)
        call copy(gcrse, crse)
        call fill_boundary(gcrse, icomp_crse, nc)
        call multifab_physbc(gcrse,icomp_crse,bcomp,nc,bc_crse)
