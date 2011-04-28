@@ -212,6 +212,9 @@ contains
     call boxarray_build_copy(ba,get_boxarray(crse))
     call boxarray_grow(ba,nghost(crse))
 
+    ! Define this outside the test because we will test on it later.
+    grow_counter = nghost(crse)
+
     ! In this case the original crse multifab is big enough to cover cfine
     if (contains(ba,get_boxarray(cfine))) then
 
@@ -233,7 +236,6 @@ contains
        cdomain = grow(cdomain,nghost(crse))
 
        done = .false.
-       grow_counter = nghost(crse)
 
        do while (.not. done)
           grow_counter = grow_counter + 1
@@ -271,7 +273,7 @@ contains
        call cpy_d(dst,src)
     end do
 
-    if (ng .eq. 0) call destroy(gcrse)
+    if (grow_counter .gt. nghost(crse)) call destroy(gcrse)
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
