@@ -39,11 +39,13 @@ contains
     type(multifab)  :: cfine, tmpcrse, tmpfine
     type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**multifab_get_dim(fine))
     type(list_box)  :: bl, pbl, pieces, leftover, extra
-    type(boxarray)  :: ba, tmpba
+    type(boxarray)  :: ba, tmpba, ba_domain
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(multifab_get_dim(fine)), have_periodic_gcells
     logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine)), fourth_order
+    logical         :: done
     integer         :: stencil_width
+    integer         :: grow_counter
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
@@ -89,7 +91,7 @@ contains
     ! Force crse to have good data in ghost cells (only the ng that are needed 
     ! in case has more than ng).
     !
-    if ( fill_crse ) call fill_boundary(crse, icomp_crse, nc, ng)
+    if ( fill_crse ) call fill_boundary(crse, icomp_crse, nc, ng=nghost(crse))
 
     call multifab_physbc(crse,icomp_crse,bcomp,nc,bc_crse)
     !
@@ -198,20 +200,58 @@ contains
     call build(la, ba, pd = cdomain, pmask = pmask, explicit_mapping = procmap)
     call destroy(ba)
     call build(cfine, la, nc = nc, ng = 0)
+ 
+    ! Set all of cfine to 1d40 so that we can make sure it gets completely filled below.
+    call setval(cfine, 1.d40)
     !
     ! Fill cfine from crse.
     ! Got to do it in stages as parallel copy only goes from valid -> valid.
-    ! If ng==0, got to build and use a version of crse that has a grow cell.
-    !
-    if (ng .eq. 0) then
-       call build(gcrse, get_layout(crse), nc = ncomp(crse), ng = 1)
+
+    ! First make sure that cfine will be completely filled by the crse data.
+
+    call boxarray_build_copy(ba,get_boxarray(crse))
+    call boxarray_grow(ba,nghost(crse))
+
+    ! In this case the original crse multifab is big enough to cover cfine
+    if (contains(ba,get_boxarray(cfine))) then
+
+       ! Sanity check
+       cdomain = get_pd(get_layout(crse))
+       cdomain = grow(cdomain,nghost(crse))
+       call boxarray_build_bx(ba_domain,cdomain)
+       if (.not. contains(ba_domain,get_boxarray(cfine))) &
+          call bl_error('Sanity check failed in fillpatch')
+       call destroy(ba_domain)
+
+       ! We can just use the crse multifab that was passed in.
+       pcrse => crse
+ 
+    ! Need to build a larger crse array
+    else
+
+       cdomain = get_pd(get_layout(crse))
+       cdomain = grow(cdomain,nghost(crse))
+
+       done = .false.
+       grow_counter = nghost(crse)
+
+       do while (.not. done)
+          grow_counter = grow_counter + 1
+          cdomain = grow(cdomain,1)
+          call boxarray_build_bx(ba_domain,cdomain)
+          if (contains(ba_domain,get_boxarray(cfine))) done = .true.
+          call destroy(ba_domain)
+       end do
+
+       call build(gcrse, get_layout(crse), nc = ncomp(crse), ng = grow_counter)
        call copy(gcrse, crse)
        call fill_boundary(gcrse, icomp_crse, nc)
        call multifab_physbc(gcrse,icomp_crse,bcomp,nc,bc_crse)
        pcrse => gcrse
-    else
-       pcrse => crse
+       
     end if
+
+    call destroy(ba)
 
     do i = 1, nboxes(pcrse)
        call push_back(bl, get_pbox(pcrse,i))
@@ -234,6 +274,9 @@ contains
     if (ng .eq. 0) call destroy(gcrse)
 
     call copy(cfine, 1, tmpcrse, 1, nc)
+
+    if (multifab_max(cfine) .ge. 0.99d40) &
+       call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
 
     call destroy(tmpcrse)
     call destroy(tmpla)
@@ -396,6 +439,6 @@ contains
 
     call destroy(bpt)
 
-  end subroutine
+  end subroutine fillpatch
 
 end module fillpatch_module
