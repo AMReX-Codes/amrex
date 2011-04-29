@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.39 2010-10-19 22:48:32 wqzhang Exp $
+# $Id: Make.rules,v 1.40 2011-04-29 17:57:19 lijewski Exp $
 #
 
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
@@ -25,7 +25,8 @@ endif
 #
 # Rule for building libraries.
 #
-$(optionsLib): $(optionsLib)( $(objForLibs) )
+$(optionsLib): $(addprefix $(objTempDir)/, $(objForLibs))
+	$(AR) $(ARFLAGS) $(optionsLib) $(addprefix $(objTempDir)/, $(objForLibs))
 ifeq ($(CLOSELIB),TRUE)
 ifeq ($(COMP), CFRONT)
 #
@@ -98,39 +99,33 @@ endif
 #
 # Rules for libraries.
 #
-$(optionsLib)(%.o): %.cpp
+$(objTempDir)/%.o: %.cpp
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -c $< $(LIB_OUTPUT_OPTION)
-	$(AR) r $@ $(objTempDir)/$*.o
 
-$(optionsLib)(%.o): %.c
+$(objTempDir)/%.o: %.c
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(CC) $(CLIBFLAGS) $(CFLAGS) $(CPPFLAGS) -DBL_LANG_C -c $< $(LIB_OUTPUT_OPTION)
-	$(AR) r $@ $(objTempDir)/$*.o
 
-$(optionsLib)(%.o): %.F90
+$(objTempDir)/%.o: %.F90
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(F90PREP) > $(f77TempDir)/$*.f90
 	$(FC) $(FLIBFLAGS) $(FFLAGS) $(fincludes) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
-	$(AR) r $@ $(objTempDir)/$*.o
 
-$(optionsLib)(%.o): %.F
+$(objTempDir)/%.o: %.F
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
 	$(FC) $(FLIBFLAGS) $(FFLAGS) $(fincludes) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
-	$(AR) r $@ $(objTempDir)/$*.o
 
-$(optionsLib)(%.o): %.f90
+$(objTempDir)/%.o: %.f90
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $< $(FORT_LIB_OUTPUT_OPTION)
-	$(AR) r $@ $(objTempDir)/$*.o
 
-$(optionsLib)(%.o): %.f
+$(objTempDir)/%.o: %.f
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $< $(FORT_LIB_OUTPUT_OPTION)
-	$(AR) r $@ $(objTempDir)/$*.o
 #
 # Rules for objects.
 #
