@@ -935,8 +935,11 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
 
     const Geometry& geom = m_amr->Geom(lev);
 
-    if (!geom.isAllPeriodic())
-        BoxLib::Error("AssignDensityDoIt: problem must to be periodic");
+    const PMap& pmap = m_particles[lev];
+    const int   n    = pmap.size();
+
+    if (!geom.isAllPeriodic() && n > 0)
+        BoxLib::Error("AssignDensityDoIt: problem must be periodic");
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         mf[mfi].setVal(0);
@@ -948,9 +951,6 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
     // way no thread will step on any other.  If there's only one grid per CPU,
     // then oh well ....
     //
-    const PMap& pmap = m_particles[lev];
-    const int   n    = pmap.size();
-
     Array<int>         pgrd(n);
     Array<const PBox*> pbxs(n);
 
