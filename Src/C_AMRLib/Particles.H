@@ -2386,6 +2386,8 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
     int maxnextid = ParticleBase::NextID();
 
+    ParticleBase::NextID(maxnextid);
+
     ParallelDescriptor::ReduceIntMax(maxnextid,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
