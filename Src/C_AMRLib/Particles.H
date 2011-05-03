@@ -250,11 +250,11 @@ ParticleContainer<N>::ByteSpread () const
 
     if (ParallelDescriptor::IOProcessor())
     {
-        std::cout << "\nParticleContainer<N> byte spread across MPI nodes: ["
+        std::cout << "ParticleContainer<N> byte spread across MPI nodes: ["
                   << mn
                   << " ... "
                   << mx
-                  << "]\n\n";
+                  << "]\n";
     }
 }
 
@@ -326,8 +326,9 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
              howmany++;
          }
     }
-
-     // Print how many particles on each processor
+    //
+    // Print how many particles on each processor.
+    //
     if (m_verbose > 1)
     {
         for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
@@ -346,8 +347,9 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
         if (ParallelDescriptor::IOProcessor())
             std::cout << '\n';
     }
-
-     // Add up all the particles on each processor to get the total number of particles
+    //
+    // Add up all the particles on each processor to get the total number of particles.
+    //
     if (m_verbose > 0)
     {
         int num_particles = howmany; 
@@ -670,7 +672,7 @@ ParticleContainer<N>::InitRandom (long          icount,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::InitRandom() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::InitRandom() time: " << stoptime << '\n';
         }
     }
 }
@@ -824,14 +826,13 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
     if (m_verbose > 1)
     {
-
         Real stoptime = ParallelDescriptor::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::estTimestep() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::estTimestep() time: " << stoptime << '\n';
         }
     }
 
@@ -1085,7 +1086,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AssignDensity(single-level) time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::AssignDensity(single-level) time: " << stoptime << '\n';
         }
     }
 }
@@ -1243,7 +1244,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AssignDensity(multi-level) time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::AssignDensity(multi-level) time: " << stoptime << '\n';
         }
     }
 }
@@ -1303,7 +1304,7 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::movePredict() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::movePredict() time: " << stoptime << '\n';
         }
     }
 
@@ -1371,7 +1372,7 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::moveCorrect() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::moveCorrect() time: " << stoptime << '\n';
         }
     }
 
@@ -1473,7 +1474,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << '\n';
         }
     }
 
@@ -1565,7 +1566,7 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << '\n';
         }
     }
     //
@@ -1678,7 +1679,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << '\n';
         }
     }
 
@@ -1778,7 +1779,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::moveKick() time: " << stoptime << '\n';
         }
     }
     //
@@ -1882,7 +1883,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AdvectWithUmac() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::AdvectWithUmac() time: " << stoptime << '\n';
         }
     }
 }
@@ -2262,7 +2263,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::Redistribute() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::Redistribute() time: " << stoptime << '\n';
         }
     }
 #endif
@@ -2609,7 +2610,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             if (!HdrFile.good())
                 BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing HdrFile");
 
-            std::cout << "\nParticleContainer<N>::Checkpoint() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::Checkpoint() time: " << stoptime << '\n';
         }
     }
 }
@@ -2798,7 +2799,7 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "\nParticleContainer<N>::Restart() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::Restart() time: " << stoptime << '\n';
         }
     }
 }
@@ -3223,7 +3224,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "\nParticleContainer<N>::Timestamp() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::Timestamp: lev: " << lev << " time: " << stoptime << '\n';
         }
     }
 }
@@ -3354,7 +3355,7 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "\nParticleContainer<N>::WriteAsciiFile() time: " << stoptime << "\n\n";
+            std::cout << "ParticleContainer<N>::WriteAsciiFile() time: " << stoptime << '\n';
         }
     }
 }
