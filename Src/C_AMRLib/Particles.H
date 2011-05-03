@@ -3053,8 +3053,6 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 {
     BL_ASSERT(lev >= 0);
     BL_ASSERT(time >= 0);
-    BL_ASSERT(!names.empty());
-    BL_ASSERT(!indices.empty());
     BL_ASSERT(!basename.empty());
     BL_ASSERT(indices.size() == names.size());
 
