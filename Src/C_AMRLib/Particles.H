@@ -167,6 +167,8 @@ public:
 
     void AdvectWithUmac (const MultiFab* umac, int level, Real dt);
 
+    void RemoveParticlesNotAtFinestLevel ();
+
     void Checkpoint (const std::string& dir, const std::string& name) const;
 
     void Restart (const std::string& dir, const std::string& file);
@@ -1623,8 +1625,6 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
 #ifdef BL_USE_OMP
 #pragma omp parallel for
 #endif
-
-
         for (int i = 0; i < n; i++)
         {
             ParticleType& p = pbox[i];
@@ -1785,6 +1785,37 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
     //
     // No need for Redistribution(), we only change the velocity.
     //
+}
+
+template <int N>
+void
+ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
+{
+    BL_ASSERT(m_amr->finestLevel() == m_particles.size());
+
+    for (int lev = 0; lev < m_amr->finestLevel(); lev++)
+    {
+        PMap& pmap = m_particles[lev];
+
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            PBox& pbox = pmap_it->second;
+
+            for (typename PBox::iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+            {
+                ParticleType& p = *it;
+
+                if (p.m_id > 0)
+                {
+                    //
+                    // Negate it so that it's no longer considered a valid particle.
+                    // It'll be removed on the next Redistribute().
+                    //
+                    p.m_id = -p.m_id;
+                }
+            }
+        }
+    }
 }
 
 //
