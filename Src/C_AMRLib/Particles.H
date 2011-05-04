@@ -730,6 +730,9 @@ ParticleContainer<N>::Increment (MultiFab& mf,
                                  int       lev) const
 {
     BL_ASSERT(OK());
+
+    if (m_particles.empty()) return;
+
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     const PMap& pmap = m_particles[lev];
@@ -1791,7 +1794,7 @@ template <int N>
 void
 ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
 {
-    BL_ASSERT(m_amr->finestLevel() == m_particles.size());
+    BL_ASSERT(m_amr->finestLevel()+1 == m_particles.size());
 
     for (int lev = 0; lev < m_amr->finestLevel(); lev++)
     {
