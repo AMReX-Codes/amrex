@@ -46,6 +46,8 @@ struct ParticleBase
 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
 
+    static void Interp (const ParticleBase& prt, const Amr* amr, const FArrayBox& fab, int lev, const int* idx, Real* val, int cnt);
+
     static const std::string& Version ();
 
     static const std::string& DataPrefix ();
@@ -302,7 +304,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
 
         if (!ifs.good())
         {
-            std::string msg("ParticleContainer::Init(");
+            std::string msg("ParticleContainer::InitFromAsciiFile(");
             msg += file;
             msg += ") failed";
             BoxLib::Error(msg.c_str());
@@ -312,7 +314,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
             ParticleBase::PeriodicShift(p,m_amr);
 
         if (!ParticleBase::Where(p,m_amr))
-            BoxLib::Abort("ParticleContainer<N>::Init(): invalid particle");
+            BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
          //
          // Only the MPI process that owns the needed velocity data gets "p".
          //
@@ -371,7 +373,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "Init() time: " << runtime << std::endl;
+            std::cout << "InitFromAsciiFile() time: " << runtime << std::endl;
     }
 }
 
@@ -3162,12 +3164,14 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 
             const MultiFab& mf = m_amr->getLevel(lev).get_new_data(0);
 
+            std::vector<Real> vals(indices.size());
+
             for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
             {
                 const int        grid = pmap_it->first;
                 PBox&            pbox = pmap_it->second;
                 const int        n    = pbox.size();
-                const FArrayBox& fab = mf[grid];
+                const FArrayBox& fab  = mf[grid];
 
                 for (int i = 0; i < n; i++)
                 {
@@ -3186,9 +3190,14 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 
                         TimeStampFile << time  << ' ';
 
-                        for (int i = 0; i < indices.size(); i++)
+                        if (!indices.empty())
                         {
-                            TimeStampFile << fab(p.m_cell,indices[i])  << ' ';
+                            ParticleBase::Interp(p,m_amr,fab,p.m_lev,&indices[0],&vals[0],indices.size());
+
+                            for (int i = 0; i < indices.size(); i++)
+                            {
+                                TimeStampFile << vals[i]  << ' ';
+                            }
                         }
 
                         TimeStampFile << '\n';

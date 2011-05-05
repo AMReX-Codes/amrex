@@ -214,6 +214,103 @@ ParticleBase::Reset (ParticleBase& p,
 }
 
 void
+ParticleBase::Interp (const ParticleBase&    prt,
+                      const Amr*             amr,
+                      const FArrayBox&       fab,
+                      int                    lev,
+                      const int*             idx,
+                      Real*                  val,
+                      int                    cnt)
+{
+    BL_ASSERT(amr != 0);
+    BL_ASSERT(idx != 0);
+    BL_ASSERT(val != 0);
+    BL_ASSERT(lev >= 0 && lev <= amr->finestLevel());
+
+    const Geometry& geom = amr->Geom(lev);
+    const Real*     dx   = geom.CellSize();
+
+    const IntVect csect(D_DECL(floor((prt.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
+                               floor((prt.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
+                               floor((prt.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
+
+    const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + prt.m_pos[0]/dx[0] + 0.5,
+                                            -csect[1] + prt.m_pos[1]/dx[1] + 0.5,
+                                            -csect[2] + prt.m_pos[2]/dx[2] + 0.5) };
+    for (int i = 0; i < cnt; i++)
+    {
+        BL_ASSERT(idx[i] >= 0 && idx[i] < fab.nComp());
+
+        IntVect cell = csect;
+
+        val[i] = 0;
+
+#if (BL_SPACEDIM == 1)
+        // High
+        val[i] += fab(cell, idx[i]) * frac[0];
+
+        // Low
+        cell[0]   = cell[0] - 1;
+        val[i] += fab(cell, idx[i]) * (1-frac[0]);
+#endif
+            
+#if (BL_SPACEDIM == 2)
+        // HH
+        val[i] += fab(cell, idx[i]) *    frac[0]  *    frac[1] ;
+
+        // LH
+        cell[0]   = cell[0] - 1;
+        val[i] += fab(cell, idx[i]) * (1-frac[0]) *    frac[1] ;
+
+        // LL
+        cell[1]   = cell[1] - 1;
+        val[i] += fab(cell, idx[i]) * (1-frac[0]) * (1-frac[1]);
+
+        // HL
+        cell[0]   = cell[0] + 1;
+        val[i] += fab(cell, idx[i]) *    frac[0]  * (1-frac[1]);
+#endif
+ 
+
+#if (BL_SPACEDIM == 3)
+
+        // HHH
+        val[i] += fab(cell, idx[i]) *    frac[0]  *    frac[1]  *    frac[2] ;
+   
+        // LHH
+        cell[0]   = cell[0] - 1;
+        val[i] += fab(cell, idx[i]) * (1-frac[0]) *    frac[1]  *    frac[2] ;
+   
+        // LLH
+        cell[1]   = cell[1] - 1;
+        val[i] += fab(cell, idx[i]) * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
+   
+        // HLH
+        cell[0]   = cell[0] + 1;
+        val[i] += fab(cell, idx[i]) *    frac[0]  * (1-frac[1]) *    frac[2] ;
+
+        cell     = csect;
+        cell[2]  = cell[2] - 1;
+
+        // HHL
+        val[i] += fab(cell, idx[i]) *    frac[0]  *    frac[1]  *    (1-frac[2]) ;
+   
+        // LHL
+        cell[0]   = cell[0] - 1;
+        val[i] += fab(cell, idx[i]) * (1-frac[0]) *    frac[1]  *    (1-frac[2]) ;
+   
+        // LLL
+        cell[1]   = cell[1] - 1;
+        val[i] += fab(cell, idx[i]) * (1-frac[0]) * (1-frac[1]) *    (1-frac[2]) ;
+   
+        // HLL
+        cell[0]   = cell[0] + 1;
+        val[i] += fab(cell, idx[i]) *    frac[0]  * (1-frac[1]) *    (1-frac[2]) ;
+#endif
+    }
+}
+
+void
 ParticleBase::GetGravity (const FArrayBox&    gfab,
                           const Amr*          amr,
                           int                 lev,
