@@ -3135,9 +3135,10 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
             if (!TimeStampFile.good())
                 BoxLib::FileOpenFailed(FileName);
 
-            if (NeedToWriteHeader)
+            if (MyProc < MaxOutFiles && NeedToWriteHeader)
             {
                 //
+                // Only the first MaxOutFiles procs need be concerned with this.
                 // We write a timestamp header once per run per file to make
                 // as documentation of what is in the file.  Just ignore lines
                 // starting with a '#' when post-processing.
