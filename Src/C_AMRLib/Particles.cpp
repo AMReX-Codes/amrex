@@ -320,85 +320,9 @@ ParticleBase::GetGravity (const FArrayBox&    gfab,
     BL_ASSERT(amr  != 0);
     BL_ASSERT(grav != 0);
 
-    const Geometry& geom = amr->Geom(lev);
-    const Real*     dx   = geom.CellSize();
+    int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
 
-    const IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
-                               floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
-                               floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
-
-    const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
-                                            -csect[1] + p.m_pos[1]/dx[1] + 0.5,
-                                            -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
-
-    for (int dm = 0; dm < BL_SPACEDIM; dm++)
-    {
-        IntVect  cell = csect;
-        grav[dm] = 0;
-
-#if (BL_SPACEDIM == 1)
-        // High
-        grav[dm] += gfab(cell, dm) * frac[0];
-
-        // Low
-        cell[0]   = cell[0] - 1;
-        grav[dm] += gfab(cell, dm) * (1-frac[0]);
-#endif
-            
-#if (BL_SPACEDIM == 2)
-        // HH
-        grav[dm] += gfab(cell, dm) *    frac[0]  *    frac[1] ;
-
-        // LH
-        cell[0]   = cell[0] - 1;
-        grav[dm] += gfab(cell, dm) * (1-frac[0]) *    frac[1] ;
-
-        // LL
-        cell[1]   = cell[1] - 1;
-        grav[dm] += gfab(cell, dm) * (1-frac[0]) * (1-frac[1]);
-
-        // HL
-        cell[0]   = cell[0] + 1;
-        grav[dm] += gfab(cell, dm) *    frac[0]  * (1-frac[1]);
-#endif
- 
-
-#if (BL_SPACEDIM == 3)
-
-        // HHH
-        grav[dm] += gfab(cell, dm) *    frac[0]  *    frac[1]  *    frac[2] ;
-   
-        // LHH
-        cell[0]   = cell[0] - 1;
-        grav[dm] += gfab(cell, dm) * (1-frac[0]) *    frac[1]  *    frac[2] ;
-   
-        // LLH
-        cell[1]   = cell[1] - 1;
-        grav[dm] += gfab(cell, dm) * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
-   
-        // HLH
-        cell[0]   = cell[0] + 1;
-        grav[dm] += gfab(cell, dm) *    frac[0]  * (1-frac[1]) *    frac[2] ;
-
-        cell     = csect;
-        cell[2]  = cell[2] - 1;
-
-        // HHL
-        grav[dm] += gfab(cell, dm) *    frac[0]  *    frac[1]  *    (1-frac[2]) ;
-   
-        // LHL
-        cell[0]   = cell[0] - 1;
-        grav[dm] += gfab(cell, dm) * (1-frac[0]) *    frac[1]  *    (1-frac[2]) ;
-   
-        // LLL
-        cell[1]   = cell[1] - 1;
-        grav[dm] += gfab(cell, dm) * (1-frac[0]) * (1-frac[1]) *    (1-frac[2]) ;
-   
-        // HLL
-        cell[0]   = cell[0] + 1;
-        grav[dm] += gfab(cell, dm) *    frac[0]  * (1-frac[1]) *    (1-frac[2]) ;
-#endif
-    }
+    ParticleBase::Interp(p,amr,gfab,lev,idx,grav,BL_SPACEDIM);
 }
 
 std::ostream&
