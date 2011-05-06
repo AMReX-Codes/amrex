@@ -38,7 +38,7 @@ struct ParticleBase
         m_grid(-1)
         {}
 
-    static IntVect Index (const ParticleBase& prt, int lev, const Amr* amr);
+    static IntVect Index (const ParticleBase& p, int lev, const Amr* amr);
 
     static bool Where (ParticleBase& prt, const Amr* amr, bool update = false);
 
@@ -292,6 +292,15 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
 
     ParticleType p;
 
+    PArray<DistributionMapping> DMap(m_particles.size());
+
+    for (int i = 0; i < DMap.size(); i++)
+    {
+        const DistributionMapping& dm = m_amr->getLevel(i).get_new_data(0).DistributionMap();
+
+        DMap.set(i, const_cast<DistributionMapping*>(&dm));
+    }
+
     for (int i = 0; i < cnt; i++)
     {
         //
@@ -313,16 +322,16 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
         }
 
         if (!ParticleBase::Where(p,m_amr))
+        {
             ParticleBase::PeriodicShift(p,m_amr);
 
-        if (!ParticleBase::Where(p,m_amr))
-            BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
+            if (!ParticleBase::Where(p,m_amr))
+                BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
+        }
          //
          // Only the MPI process that owns the needed velocity data gets "p".
          //
-         const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
-
-         if (who == MyProc)
+         if (DMap[p.m_lev][p.m_grid] == MyProc)
          {
              p.m_id  = ParticleBase::NextID();
              p.m_cpu = MyProc;
