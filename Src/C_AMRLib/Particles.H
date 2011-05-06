@@ -1881,9 +1881,6 @@ ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
 //
 // Uses a predictor/corrector to advance particles using umac.
 //
-// I stole this from fParallel/boxlib/particles.f90.
-//
-// I'm pretty sure Mike Zingale wrote it.
 //
 
 template <int N>
@@ -1945,7 +1942,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                             //
                             // Update to the t = n+1/2 position
                             //
-                            p.m_pos[d] += .5*dt*vel;
+                            p.m_pos[d] += dt*vel;
                         }
                         else
                         {
@@ -1954,7 +1951,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                             //
                             // Update to final time using the orig position and the new vel.
                             //
-                            p.m_pos[d] = p.m_data[d] + dt*vel;
+                            p.m_pos[d] = .5*(p.m_data[d]+p.m_pos[d]) + .5*dt*vel;
                         }
                     }
 
