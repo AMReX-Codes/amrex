@@ -114,6 +114,8 @@ public:
     void AssignDensity (MultiFab& mf, int level) const;
 
     void AssignDensity (PArray<MultiFab>& mf) const;
+
+    void GetRhoFromParticles (MultiFab& mf, int lev, Real frac);
  
     Real estTimestep (const MultiFab& grav_vector, Real a, int level) const;
 
@@ -1262,6 +1264,44 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     }
 }
 
+
+template <int N>
+void
+ParticleContainer<N>::GetRhoFromParticles (MultiFab& mf,
+                                           int       lev,
+                                           Real     frac) 
+{
+    AssignDensity(mf,lev);
+    mf.mult(frac);
+
+    Real omfrac = 1. - frac;
+
+    PMap& pmap = m_particles[lev];
+
+    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    {
+        const int        grid = pmap_it->first;
+        PBox&            pbox = pmap_it->second;
+        const int        n    = pbox.size();
+
+#ifdef BL_USE_OMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < n; i++)
+        {
+            ParticleType& p = pbox[i];
+   
+            if (p.m_id > 0)
+            {
+                //
+                // Note: m_data[0] is mass, ...
+                //
+                p.m_data[0] *= omfrac;
+            }
+        }
+     }
+}
+
 template <int N>
 void
 ParticleContainer<N>::movePredict (const MultiFab& gv,
@@ -1300,8 +1340,7 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
                        p.m_data[2] += dt * gfab(p.m_cell,1);,
                        p.m_data[3] += dt * gfab(p.m_cell,2););
 
-                D_TERM(p.m_pos[0]  += dt * p.m_data[1];,
-                       p.m_pos[1]  += dt * p.m_data[2];,
+                D_TERM(p.m_pos[0]  += dt * p.m_data[1];, p.m_pos[1]  += dt * p.m_data[2];,
                        p.m_pos[2]  += dt * p.m_data[3];);
 
                 ParticleBase::Reset(p,m_amr,true);
