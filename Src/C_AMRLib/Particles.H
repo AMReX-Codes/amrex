@@ -942,12 +942,13 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
     BL_ASSERT(mf.boxArray() == m_amr->boxArray(lev));
 
     const Geometry& geom = m_amr->Geom(lev);
+    Box domain(geom.Domain());
 
     const PMap& pmap = m_particles[lev];
     const int   n    = pmap.size();
 
-    if (!geom.isAllPeriodic() && n > 0)
-        BoxLib::Error("AssignDensityDoIt: problem must be periodic");
+    if (geom.isAnyPeriodic() && !geom.isAllPeriodic())
+        BoxLib::Error("AssignDensityDoIt: problem must be periodic in no or all directions");
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         mf[mfi].setVal(0);
@@ -995,6 +996,11 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
                                                     -csect[1] + p.m_pos[1]/dx[1] + 0.5,
                                                     -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
             IntVect cell = csect;
+
+            // If this is not fully periodic then we have to be careful that no particles go within one cell of the domain boundary.
+            if (!geom.isAllPeriodic())
+               if (!domain.contains(cell))
+                  BoxLib::Error("AssignDensityDoIt: if not periodic, all particles must stay away from the domain boundary");
 
 #if (BL_SPACEDIM == 1)
             // High
@@ -1659,6 +1665,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
                     //
                     p.m_data[1+d] += half_dt * (grav_lo + delta * (grav_hi - grav_lo));
                 }
+
 
                 D_TERM(p.m_data[1] *= a_half_inv;,
                        p.m_data[2] *= a_half_inv;,
