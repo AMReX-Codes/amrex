@@ -271,6 +271,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
     BL_ASSERT(!file.empty());
 
     const int  MyProc   = ParallelDescriptor::MyProc();
+    const int  NProcs   = ParallelDescriptor::NProcs();
     const Real strttime = ParallelDescriptor::second();
 
     m_particles.resize(m_amr->finestLevel()+1);
@@ -301,7 +302,32 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
         DMap.set(i, const_cast<DistributionMapping*>(&dm));
     }
 
-    for (int i = 0; i < cnt; i++)
+    const int Chunk = cnt / NProcs;
+    //
+    // Skip to my section of particles.
+    //
+    std::string line;
+
+    for (int i = 0; i < MyProc*Chunk; i++)
+        std::getline(ifs,line);
+
+    if (!ifs.good())
+    {
+        std::string msg("ParticleContainer::InitFromAsciiFile(");
+        msg += file;
+        msg += ") failed @ 2";
+        BoxLib::Error(msg.c_str());
+    }
+
+    int MyCnt = Chunk;
+
+    if (ParallelDescriptor::IOProcessor())
+        //
+        // Let the I/O proc take any remainder.
+        //
+        MyCnt += cnt % NProcs;
+
+    for (int i = 0; i < MyCnt; i++)
     {
         //
         // We don't read in m_id or m_cpu.  We'll set those later
@@ -317,7 +343,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
         {
             std::string msg("ParticleContainer::InitFromAsciiFile(");
             msg += file;
-            msg += ") failed";
+            msg += ") failed @ 3";
             BoxLib::Error(msg.c_str());
         }
 
@@ -328,19 +354,18 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
             if (!ParticleBase::Where(p,m_amr))
                 BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
         }
-         //
-         // Only the MPI process that owns the needed velocity data gets "p".
-         //
-         if (DMap[p.m_lev][p.m_grid] == MyProc)
-         {
-             p.m_id  = ParticleBase::NextID();
-             p.m_cpu = MyProc;
 
-             m_particles[p.m_lev][p.m_grid].push_back(p);
+        p.m_id  = ParticleBase::NextID();
+        p.m_cpu = DMap[p.m_lev][p.m_grid];
 
-             howmany++;
-         }
+        m_particles[p.m_lev][p.m_grid].push_back(p);
+
+        howmany++;
     }
+    //
+    // Let Redistribute() sort'm out.
+    //
+    Redistribute(true);
     //
     // Print how many particles on each processor.
     //
