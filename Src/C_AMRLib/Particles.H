@@ -101,7 +101,7 @@ public:
         :
         m_verbose(1), m_amr(amr) { BL_ASSERT(amr != 0); }
 
-    void InitFromAsciiFile (const std::string& file, int extradata = 0);
+    void InitFromAsciiFile (const std::string& file, int extradata);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
     void InitCosmo (Real particleMass = -1);
