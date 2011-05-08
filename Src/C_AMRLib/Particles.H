@@ -321,9 +321,9 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
 
     int MyCnt = Chunk;
 
-    if (ParallelDescriptor::IOProcessor())
+    if (MyProc == NProcs -1)
         //
-        // Let the I/O proc take any remainder.
+        // We'll take the remainder.
         //
         MyCnt += cnt % NProcs;
 
