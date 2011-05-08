@@ -101,7 +101,7 @@ public:
         :
         m_verbose(1), m_amr(amr) { BL_ASSERT(amr != 0); }
 
-    void InitFromAsciiFile (const std::string& file);
+    void InitFromAsciiFile (const std::string& file, int extradata = 0);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
     void InitCosmo (Real particleMass = -1);
@@ -266,9 +266,10 @@ ParticleContainer<N>::ByteSpread () const
 
 template <int N>
 void
-ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
+ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 {
     BL_ASSERT(!file.empty());
+    BL_ASSERT(extradata <= N);
 
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
@@ -336,7 +337,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file)
         for (int d = 0; d < BL_SPACEDIM; d++)
             ifs >> p.m_pos[d];
 
-        for (int n = 0; n < N; n++)
+        for (int n = 0; n < extradata; n++)
             ifs >> p.m_data[n];
 
         if (!ifs.good())
