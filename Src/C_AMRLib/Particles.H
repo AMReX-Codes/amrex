@@ -368,28 +368,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
     //
     Redistribute(true);
     //
-    // Print how many particles on each processor.
-    //
-    if (m_verbose > 1)
-    {
-        for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-        {
-            if (MyProc == i)
-            {
-                std::cout << "Processor "
-                          << i
-                          << " added "
-                          << howmany
-                          << " particles in Init()" << std::endl;
-            }
-            ParallelDescriptor::Barrier();
-        }
-
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << '\n';
-    }
-    //
-    // Add up all the particles on each processor to get the total number of particles.
+    // Add up all the particles read in on each processor to get the total number of particles.
     //
     if (m_verbose > 0)
     {
@@ -2381,11 +2360,14 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                         }
                     }
 
-                    std::cout << "Processor "
-                              << i
-                              << " has "
-                              << count
-                              << " particles after Redistribute()" << std::endl;
+                    if (count > 0)
+                    {
+                        std::cout << "Processor "
+                                  << i
+                                  << " has "
+                                  << count
+                                  << " particles after Redistribute()" << std::endl;
+                    }
                 }
                 ParallelDescriptor::Barrier();
             }
