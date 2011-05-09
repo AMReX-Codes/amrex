@@ -322,7 +322,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
     int MyCnt = Chunk;
 
-    if (MyProc == NProcs -1)
+    if (MyProc == (NProcs - 1))
         //
         // We'll take the remainder.
         //
@@ -1879,6 +1879,8 @@ ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
 {
     BL_ASSERT(m_amr->finestLevel()+1 == m_particles.size());
 
+    int cnt = 0;
+
     for (int lev = 0; lev < m_amr->finestLevel(); lev++)
     {
         PMap& pmap = m_particles[lev];
@@ -1898,8 +1900,30 @@ ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
                     // It'll be removed on the next Redistribute().
                     //
                     p.m_id = -p.m_id;
+                    cnt++;
                 }
             }
+        }
+    }
+    //
+    // Print how many particles removed on each processor.
+    //
+    if (m_verbose > 1)
+    {
+        for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+        {
+            if (ParallelDescriptor::MyProc() == i)
+            {
+                if (cnt > 0)
+                {
+                    std::cout << "Processor "
+                              << i
+                              << " removed "
+                              << cnt
+                              << " particles not in finest level" << std::endl;
+                }
+            }
+            ParallelDescriptor::Barrier();
         }
     }
 }
@@ -2152,9 +2176,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                 }
                 ParallelDescriptor::Barrier();
             }
-
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << '\n';
         }
     }
 
@@ -2368,9 +2389,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                 }
                 ParallelDescriptor::Barrier();
             }
-
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << '\n';
         }
 
         ByteSpread();
