@@ -46,7 +46,7 @@ struct ParticleBase
 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
 
-    static void Interp (const ParticleBase& prt, const Amr* amr, const FArrayBox& fab, int lev, const int* idx, Real* val, int cnt);
+    static void Interp (const ParticleBase& prt, const Amr* amr, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
     static const std::string& Version ();
 
@@ -3271,7 +3271,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 
                         if (!indices.empty())
                         {
-                            ParticleBase::Interp(p,m_amr,fab,lev,&indices[0],&vals[0],indices.size());
+                            ParticleBase::Interp(p,m_amr,fab,&indices[0],&vals[0],indices.size());
 
                             for (int i = 0; i < indices.size(); i++)
                             {
