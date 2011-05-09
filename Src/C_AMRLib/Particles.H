@@ -294,15 +294,6 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
     ParticleType p;
 
-    PArray<DistributionMapping> DMap(m_particles.size());
-
-    for (int i = 0; i < DMap.size(); i++)
-    {
-        const DistributionMapping& dm = m_amr->getLevel(i).get_new_data(0).DistributionMap();
-
-        DMap.set(i, const_cast<DistributionMapping*>(&dm));
-    }
-
     const int Chunk = cnt / NProcs;
     //
     // Skip to my section of particles.
@@ -357,7 +348,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
         }
 
         p.m_id  = ParticleBase::NextID();
-        p.m_cpu = DMap[p.m_lev][p.m_grid];
+        p.m_cpu = MyProc;
 
         m_particles[p.m_lev][p.m_grid].push_back(p);
 
@@ -473,10 +464,11 @@ ParticleContainer<N>::InitCosmo (Real          mass)
 	            p.m_cpu = MyProc;
 	
 	            if (!ParticleBase::Where(p,m_amr))
+                    {
       		        ParticleBase::PeriodicShift(p,m_amr);
 
-	            if (!ParticleBase::Where(p,m_amr)){
-	                BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
+                        if (!ParticleBase::Where(p,m_amr))
+                            BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
 		    }
 
 	            BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_amr->finestLevel());
