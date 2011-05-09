@@ -3213,10 +3213,9 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
             if (!TimeStampFile.good())
                 BoxLib::FileOpenFailed(FileName);
 
-            if (MyProc < MaxOutFiles && NeedToWriteHeader)
+            if (iSet == 0 && NeedToWriteHeader)
             {
                 //
-                // Only the first MaxOutFiles procs need be concerned with this.
                 // We write a timestamp header once per run per file to make
                 // as documentation of what is in the file.  Just ignore lines
                 // starting with a '#' when post-processing.
@@ -3271,7 +3270,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 
                         if (!indices.empty())
                         {
-                            ParticleBase::Interp(p,m_amr,fab,p.m_lev,&indices[0],&vals[0],indices.size());
+                            ParticleBase::Interp(p,m_amr,fab,lev,&indices[0],&vals[0],indices.size());
 
                             for (int i = 0; i < indices.size(); i++)
                             {
