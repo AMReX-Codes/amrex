@@ -3308,36 +3308,6 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
             ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
         }
     }
-    //
-    // Remove any zero-length files.
-    //
-    if (ParallelDescriptor::IOProcessor())
-    {
-        for (int i = 0; i < nOutFiles; i++)
-        {
-            std::string FileName = basename;
-
-            sprintf(buf, TimestampFormat.c_str(), i);
-
-            FileName += buf;
-
-            std::ofstream TimeStampFile;
-
-            TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app);
-
-            TimeStampFile.seekp(0, std::ios::end);
-
-            if (!TimeStampFile.good())
-                BoxLib::FileOpenFailed(FileName);
-
-            long pos = VisMF::FileOffset(TimeStampFile);
-
-            TimeStampFile.close();
-
-            if (pos <= 0)
-                BoxLib::UnlinkFile(FileName.c_str());
-        }
-    }
 
     if (m_verbose > 1)
     {
