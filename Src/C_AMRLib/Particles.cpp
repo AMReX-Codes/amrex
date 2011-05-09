@@ -42,10 +42,6 @@ ParticleBase::NextID ()
 void
 ParticleBase::NextID (int nextid)
 {
-    if (ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "Restoring ParticleBase::NextID: " << nextid << std::endl;
-    }
     the_next_id = nextid;
 }
 
