@@ -2418,7 +2418,9 @@ ParticleContainer<N>::OK () const
                     {
                         std::cout << "PARTICLE NUMBER " << p.m_id << '\n';
 
-                        std::cout << "POS IS " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << '\n';
+                        std::cout << "POS IS ";
+                        for (int i = 0; i < BL_SPACEDIM; i++)
+                            std::cout << p.m_pos[i] << ' ';
 
                         if (lev != p.m_lev)
                            std::cout << "BAD LEV  " << lev  << " " << p.m_lev << '\n';
