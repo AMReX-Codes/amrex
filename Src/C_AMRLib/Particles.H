@@ -177,7 +177,7 @@ public:
 
     void Restart (const std::string& dir, const std::string& file);
 
-    void Timestamp (const std::string& file, int lev, Real time, const std::vector<int>& idx, const std::vector<std::string>& names);
+    void Timestamp (const std::string& file, const MultiFab& mf, int lev, Real time, const std::vector<int>& idx, const std::vector<std::string>& names);
 
     void WriteAsciiFile (const std::string& file);
 
@@ -3163,6 +3163,7 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
 template <int N>
 void
 ParticleContainer<N>::Timestamp (const std::string&              basename,
+                                 const MultiFab&                 mf,
                                  int                             lev,
                                  Real                            time,
                                  const std::vector<int>&         indices,
@@ -3242,23 +3243,21 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 
             PMap& pmap = m_particles[lev];
 
-            const MultiFab& mf = m_amr->getLevel(lev).get_new_data(0);
-
             std::vector<Real> vals(indices.size());
 
-            for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+            for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
             {
                 const int        grid = pmap_it->first;
-                PBox&            pbox = pmap_it->second;
-                const int        n    = pbox.size();
+                const PBox&      pbox = pmap_it->second;
                 const FArrayBox& fab  = mf[grid];
 
-                for (int i = 0; i < n; i++)
+                for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
                 {
-                    ParticleType& p = pbox[i];
+                    const ParticleType& p = *it;
 
                     if (p.m_id > 0)
                     {
+                        BL_ASSERT(p.m_lev == lev);
                         BL_ASSERT(p.m_grid == grid);
 
                         TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
