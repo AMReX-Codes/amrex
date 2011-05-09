@@ -187,7 +187,7 @@ ParticleBase::Reset (ParticleBase& p,
 {
     BL_ASSERT(amr != 0);
 
-    if (!ParticleBase::Where(p,amr,true))
+    if (!ParticleBase::Where(p,amr,update))
     {
         //
         // Here's where we need to deal with boundary conditions.
@@ -210,12 +210,12 @@ ParticleBase::Reset (ParticleBase& p,
 }
 
 void
-ParticleBase::Interp (const ParticleBase&    prt,
-                      const Amr*             amr,
-                      const FArrayBox&       fab,
-                      const int*             idx,
-                      Real*                  val,
-                      int                    cnt)
+ParticleBase::Interp (const ParticleBase& prt,
+                      const Amr*          amr,
+                      const FArrayBox&    fab,
+                      const int*          idx,
+                      Real*               val,
+                      int                 cnt)
 {
     BL_ASSERT(amr != 0);
     BL_ASSERT(idx != 0);
