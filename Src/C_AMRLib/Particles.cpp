@@ -224,13 +224,23 @@ ParticleBase::Interp (const ParticleBase& prt,
     const Geometry& gm = amr->Geom(prt.m_lev);
     const Real*     dx = gm.CellSize();
 
-    const IntVect csect(D_DECL(floor((prt.m_pos[0]-gm.ProbLo(0))/dx[0] + 0.5),
-                               floor((prt.m_pos[1]-gm.ProbLo(1))/dx[1] + 0.5),
-                               floor((prt.m_pos[2]-gm.ProbLo(2))/dx[2] + 0.5)));
+    const Real len[BL_SPACEDIM] = { D_DECL((prt.m_pos[0]-gm.ProbLo(0))/dx[0] + 0.5,
+                                          (prt.m_pos[1]-gm.ProbLo(1))/dx[1] + 0.5,
+                                          (prt.m_pos[2]-gm.ProbLo(2))/dx[2] + 0.5) };
 
-    const Real frac[BL_SPACEDIM] = { D_DECL((prt.m_pos[0]-gm.ProbLo(0))/dx[0] + 0.5 - csect[0],
-                                            (prt.m_pos[1]-gm.ProbLo(1))/dx[1] + 0.5 - csect[1],
-                                            (prt.m_pos[2]-gm.ProbLo(2))/dx[2] + 0.5 - csect[2]) };
+    const IntVect csect(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+
+    const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-csect[0],
+                                            len[1]-csect[1],
+                                            len[2]-csect[2])};
+    //
+    // Test that "frac" is in [0,1] with a little floating-point wiggle room.
+    //
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        BL_ASSERT(frac[i] > 0-1.e-12*dx[i]);
+        BL_ASSERT(frac[i] < 1+1.e-12*dx[i]);
+    }
 
     for (int i = 0; i < cnt; i++)
     {
@@ -244,65 +254,61 @@ ParticleBase::Interp (const ParticleBase& prt,
 
 #if (BL_SPACEDIM == 1)
         // High
-        val[i] += fab(cell, comp) * frac[0];
+        val[i] += fab(cell,comp) * frac[0];
 
         // Low
         cell[0]   = cell[0] - 1;
-        val[i] += fab(cell, comp) * (1-frac[0]);
-#endif
-            
-#if (BL_SPACEDIM == 2)
+        val[i] += fab(cell,comp) * (1-frac[0]);
+
+#elif (BL_SPACEDIM == 2)
         // HH
-        val[i] += fab(cell, comp) *    frac[0]  *    frac[1] ;
+        val[i] += fab(cell,comp) *    frac[0]  *    frac[1] ;
 
         // LH
         cell[0]   = cell[0] - 1;
-        val[i] += fab(cell, comp) * (1-frac[0]) *    frac[1] ;
+        val[i] += fab(cell,comp) * (1-frac[0]) *    frac[1] ;
 
         // LL
         cell[1]   = cell[1] - 1;
-        val[i] += fab(cell, comp) * (1-frac[0]) * (1-frac[1]);
+        val[i] += fab(cell,comp) * (1-frac[0]) * (1-frac[1]);
 
         // HL
         cell[0]   = cell[0] + 1;
-        val[i] += fab(cell, comp) *    frac[0]  * (1-frac[1]);
-#endif
- 
+        val[i] += fab(cell,comp) *    frac[0]  * (1-frac[1]);
 
-#if (BL_SPACEDIM == 3)
-
+#elif (BL_SPACEDIM == 3)
         // HHH
-        val[i] += fab(cell, comp) *    frac[0]  *    frac[1]  *    frac[2] ;
+        val[i] += fab(cell,comp) *    frac[0]  *    frac[1]  *    frac[2] ;
    
         // LHH
         cell[0]   = cell[0] - 1;
-        val[i] += fab(cell, comp) * (1-frac[0]) *    frac[1]  *    frac[2] ;
+        val[i] += fab(cell,comp) * (1-frac[0]) *    frac[1]  *    frac[2] ;
    
         // LLH
         cell[1]   = cell[1] - 1;
-        val[i] += fab(cell, comp) * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
+        val[i] += fab(cell,comp) * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
    
         // HLH
         cell[0]   = cell[0] + 1;
-        val[i] += fab(cell, comp) *    frac[0]  * (1-frac[1]) *    frac[2] ;
+        val[i] += fab(cell,comp) *    frac[0]  * (1-frac[1]) *    frac[2] ;
 
         cell     = csect;
         cell[2]  = cell[2] - 1;
 
         // HHL
-        val[i] += fab(cell, comp) *    frac[0]  *    frac[1]  *    (1-frac[2]) ;
+        val[i] += fab(cell,comp) *    frac[0]  *    frac[1]  *    (1-frac[2]) ;
    
         // LHL
         cell[0]   = cell[0] - 1;
-        val[i] += fab(cell, comp) * (1-frac[0]) *    frac[1]  *    (1-frac[2]) ;
+        val[i] += fab(cell,comp) * (1-frac[0]) *    frac[1]  *    (1-frac[2]) ;
    
         // LLL
         cell[1]   = cell[1] - 1;
-        val[i] += fab(cell, comp) * (1-frac[0]) * (1-frac[1]) *    (1-frac[2]) ;
+        val[i] += fab(cell,comp) * (1-frac[0]) * (1-frac[1]) *    (1-frac[2]) ;
    
         // HLL
         cell[0]   = cell[0] + 1;
-        val[i] += fab(cell, comp) *    frac[0]  * (1-frac[1]) *    (1-frac[2]) ;
+        val[i] += fab(cell,comp) *    frac[0]  * (1-frac[1]) *    (1-frac[2]) ;
 #endif
     }
 }
