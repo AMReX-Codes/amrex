@@ -228,9 +228,10 @@ ParticleBase::Interp (const ParticleBase& prt,
                                floor((prt.m_pos[1]-gm.ProbLo(1))/dx[1] + 0.5),
                                floor((prt.m_pos[2]-gm.ProbLo(2))/dx[2] + 0.5)));
 
-    const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + prt.m_pos[0]/dx[0] + 0.5,
-                                            -csect[1] + prt.m_pos[1]/dx[1] + 0.5,
-                                            -csect[2] + prt.m_pos[2]/dx[2] + 0.5) };
+    const Real frac[BL_SPACEDIM] = { D_DECL((prt.m_pos[0]-gm.ProbLo(0))/dx[0] + 0.5 - csect[0],
+                                            (prt.m_pos[1]-gm.ProbLo(1))/dx[1] + 0.5 - csect[1],
+                                            (prt.m_pos[2]-gm.ProbLo(2))/dx[2] + 0.5 - csect[2]) };
+
     for (int i = 0; i < cnt; i++)
     {
         const int comp = idx[i];
