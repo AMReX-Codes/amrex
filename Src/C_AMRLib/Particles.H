@@ -3164,6 +3164,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
     BL_ASSERT(lev >= 0);
     BL_ASSERT(time >= 0);
     BL_ASSERT(!basename.empty());
+    BL_ASSERT(lev <= m_amr->finestLevel());
     BL_ASSERT(indices.size() == names.size());
 
     const Real strttime = ParallelDescriptor::second();
@@ -3183,12 +3184,12 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
     static bool        NeedToWriteHeader = true;
     static std::string TimestampFormat   = "_%02d";
 
-    char buf[16];
-
     for (int iSet = 0; iSet < nSets; ++iSet)
     {
         if (mySet == iSet)
         {
+            char buf[16];
+
             std::string FileName = basename;
 
             sprintf(buf, TimestampFormat.c_str(), MyProc % nOutFiles);
@@ -3211,15 +3212,13 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
             if (iSet == 0 && NeedToWriteHeader)
             {
                 //
-                // We write a timestamp header once per run per file to make
-                // as documentation of what is in the file.  Just ignore lines
+                // We write a timestamp header once per run per file for
+                // documentation of what is in the file.  Just ignore lines
                 // starting with a '#' when post-processing.
                 //
                 TimeStampFile << "#   ID     CPU   ";
 
-                D_DECL(TimeStampFile << "XPOS   ",
-                       TimeStampFile << "YPOS   ",
-                       TimeStampFile << "ZPOS   ");
+                D_TERM(TimeStampFile << "XPOS   ", << "YPOS   ", << "ZPOS   ");
 
                 TimeStampFile << "TIME    ";
 
@@ -3233,7 +3232,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
                 NeedToWriteHeader = false;
             }
 
-            PMap& pmap = m_particles[lev];
+            const PMap& pmap = m_particles[lev];
 
             std::vector<Real> vals(indices.size());
 
