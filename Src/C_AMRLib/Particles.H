@@ -949,19 +949,19 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
     BL_ASSERT(mf.boxArray() == m_amr->boxArray(lev));
 
-    const Geometry& geom = m_amr->Geom(lev);
-    Box domain(geom.Domain());
+    const Geometry& gm   = m_amr->Geom(lev);
+    const PMap&     pmap = m_particles[lev];
+    const int       n    = pmap.size();
 
-    const PMap& pmap = m_particles[lev];
-    const int   n    = pmap.size();
-
-    if (geom.isAnyPeriodic() && !geom.isAllPeriodic())
+    if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
         BoxLib::Error("AssignDensityDoIt: problem must be periodic in no or all directions");
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         mf[mfi].setVal(0);
 
-    const Real* dx = geom.CellSize();
+    const Real problo[BL_SPACEDIM] = {D_DECL(gm.ProbLo(0), gm.ProbLo(1), gm.ProbLo(2))};
+
+    const Real* dx = gm.CellSize();
     //
     // This is a little funky.  What in effect this'll do is force
     // each thread to work on a single (separate) grid at a time.  That
@@ -996,19 +996,32 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
                 //
                 continue;
 
-            const IntVect csect(D_DECL(floor((p.m_pos[0]-geom.ProbLo(0))/dx[0] + 0.5),
-                                       floor((p.m_pos[1]-geom.ProbLo(1))/dx[1] + 0.5),
-                                       floor((p.m_pos[2]-geom.ProbLo(2))/dx[2] + 0.5)));
+            const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-problo[0])/dx[0] + 0.5,
+                                                   (p.m_pos[1]-problo[1])/dx[1] + 0.5,
+                                                   (p.m_pos[2]-problo[2])/dx[2] + 0.5) };
 
-            const Real frac[BL_SPACEDIM] = { D_DECL(-csect[0] + p.m_pos[0]/dx[0] + 0.5,
-                                                    -csect[1] + p.m_pos[1]/dx[1] + 0.5,
-                                                    -csect[2] + p.m_pos[2]/dx[2] + 0.5) };
+            const IntVect csect(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+
+            const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-csect[0],
+                                                    len[1]-csect[1],
+                                                    len[2]-csect[2]) };
+            //
+            // Test that "frac" is in [0,1] with a little floating-point wiggle room.
+            //
+            for (int i = 0; i < BL_SPACEDIM; i++)
+            {
+                BL_ASSERT(frac[i] > 0-1.e-12*dx[i]);
+                BL_ASSERT(frac[i] < 1+1.e-12*dx[i]);
+            }
+
             IntVect cell = csect;
-
-            // If this is not fully periodic then we have to be careful that no particles go within one cell of the domain boundary.
-            if (!geom.isAllPeriodic())
-               if (!domain.contains(cell))
-                  BoxLib::Error("AssignDensityDoIt: if not periodic, all particles must stay away from the domain boundary");
+            //
+            // If this is not fully periodic then we have to be careful that no
+            // particles go within one cell of the domain boundary.
+            //
+            if (!gm.isAllPeriodic())
+                if (!gm.Domain().contains(cell))
+                    BoxLib::Error("AssignDensityDoIt: if not periodic, all particles must stay away from the domain boundary");
 
 #if (BL_SPACEDIM == 1)
             // High
@@ -1017,9 +1030,8 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
             // Low
             cell[0]     = cell[0] - 1;
             fab(cell)  += p.m_data[0] * (1-frac[0]);
-#endif
-            
-#if (BL_SPACEDIM == 2)
+
+#elif (BL_SPACEDIM == 2)
             // HH
             fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
     
@@ -1034,9 +1046,8 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
             // HL
             cell[0]    = cell[0] + 1;
             fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
-#endif
 
-#if (BL_SPACEDIM == 3)
+#elif (BL_SPACEDIM == 3)
             // HHH
             fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
 
@@ -1074,7 +1085,7 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
     }
 
     mf.SumBoundary();
-    geom.SumPeriodicBoundary(mf);
+    gm.SumPeriodicBoundary(mf);
 }
 
 //
