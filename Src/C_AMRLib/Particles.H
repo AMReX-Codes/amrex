@@ -3199,66 +3199,92 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
     {
         if (mySet == iSet)
         {
-            char buf[16];
-
-            std::string FileName = basename;
-
-            sprintf(buf, TimestampFormat.c_str(), MyProc % nOutFiles);
-
-            FileName += buf;
-
-            std::ofstream TimeStampFile;
-
-            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
-            TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-            TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app);
-
-            TimeStampFile.seekp(0, std::ios::end);
-
-            if (!TimeStampFile.good())
-                BoxLib::FileOpenFailed(FileName);
-
-            if (iSet == 0 && NeedToWriteHeader)
-            {
-                //
-                // We write a timestamp header once per run per file for
-                // documentation of what is in the file.  Just ignore lines
-                // starting with a '#' when post-processing.
-                //
-                TimeStampFile << "#   ID     CPU   ";
-
-                D_TERM(TimeStampFile << "XPOS   ", << "YPOS   ", << "ZPOS   ");
-
-                TimeStampFile << "TIME    ";
-
-                for (int i = 0; i < names.size(); i++)
-                {
-                    TimeStampFile << names[i]  << "    ";
-                }
-
-                TimeStampFile << '\n';                
-
-                NeedToWriteHeader = false;
-            }
+            //
+            // Do we have any particles at this level that need writing?
+            //
+            bool gotwork = false;
 
             const PMap& pmap = m_particles[lev];
 
-            std::vector<Real> vals(indices.size());
-
-            for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+            for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
+                 pmap_it != pmapEnd && !gotwork;
+                 ++pmap_it)
             {
-                const int        grid = pmap_it->first;
-                const PBox&      pbox = pmap_it->second;
-                const FArrayBox& fab  = mf[grid];
-
-                for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+                for (typename PBox::const_iterator it = pmap_it->second.begin(), pboxEnd = pmap_it->second.end();
+                     it != pboxEnd && !gotwork;
+                     ++it)
                 {
-                    const ParticleType& p = *it;
-
-                    if (p.m_id > 0)
+                    if (it->m_id > 0)
                     {
+                        gotwork = true;
+                    }
+                }
+            }
+
+            if (gotwork)
+            {
+                char buf[16];
+
+                std::string FileName = basename;
+
+                sprintf(buf, TimestampFormat.c_str(), MyProc % nOutFiles);
+
+                FileName += buf;
+
+                std::ofstream TimeStampFile;
+
+                VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+                TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+                TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app);
+
+                TimeStampFile.seekp(0, std::ios::end);
+
+                if (!TimeStampFile.good())
+                    BoxLib::FileOpenFailed(FileName);
+
+                if (iSet == 0 && NeedToWriteHeader)
+                {
+                    //
+                    // We write a timestamp header once per run per file for
+                    // documentation of what is in the file.  Just ignore lines
+                    // starting with a '#' when post-processing.
+                    //
+                    TimeStampFile << "#   ID     CPU   ";
+
+                    D_TERM(TimeStampFile << "XPOS   ", << "YPOS   ", << "ZPOS   ");
+
+                    TimeStampFile << "TIME    ";
+
+                    for (int i = 0; i < names.size(); i++)
+                    {
+                        TimeStampFile << names[i]  << "    ";
+                    }
+
+                    TimeStampFile << '\n';                
+
+                    NeedToWriteHeader = false;
+                }
+
+                std::vector<Real> vals(indices.size());
+
+                for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
+                     pmap_it != pmapEnd;
+                     ++pmap_it)
+                {
+                    const int        grid = pmap_it->first;
+                    const PBox&      pbox = pmap_it->second;
+                    const FArrayBox& fab  = mf[grid];
+
+                    for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
+                         it != pboxEnd;
+                         ++it)
+                    {
+                        const ParticleType& p = *it;
+
+                        if (p.m_id <= 0) continue;
+
                         BL_ASSERT(p.m_lev == lev);
                         BL_ASSERT(p.m_grid == grid);
 
@@ -3284,29 +3310,29 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
                         TimeStampFile << '\n';
                     }
                 }
-            }
 
-            TimeStampFile.flush();
+                TimeStampFile.flush();
 #ifdef BL_USECLOSE
-            TimeStampFile.close();
+                TimeStampFile.close();
 #endif
-            const int iBuff     = 0;
-            const int wakeUpPID = (MyProc + nOutFiles);
-            const int tag       = (MyProc % nOutFiles);
+                const int iBuff     = 0;
+                const int wakeUpPID = (MyProc + nOutFiles);
+                const int tag       = (MyProc % nOutFiles);
 
-            if (wakeUpPID < NProcs)
-                ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
-        }
-        if (mySet == (iSet + 1))
-        {
-            //
-            // Next set waits.
-            //
-            int       iBuff;
-            const int waitForPID = (MyProc - nOutFiles);
-            const int tag        = (MyProc % nOutFiles);
+                if (wakeUpPID < NProcs)
+                    ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+            }
+            if (mySet == (iSet + 1))
+            {
+                //
+                // Next set waits.
+                //
+                int       iBuff;
+                const int waitForPID = (MyProc - nOutFiles);
+                const int tag        = (MyProc % nOutFiles);
 
-            ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+                ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+            }
         }
     }
 
