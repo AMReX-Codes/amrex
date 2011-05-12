@@ -177,7 +177,7 @@ public:
 
     void Restart (const std::string& dir, const std::string& file);
 
-    void Timestamp (const std::string& file, const MultiFab& mf, int lev, Real time, const std::vector<int>& idx, const std::vector<std::string>& names);
+    void Timestamp (const std::string& file, const MultiFab& mf, int lev, Real time, const std::vector<int>& idx);
 
     void WriteAsciiFile (const std::string& file);
 
@@ -3165,18 +3165,16 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
 
 template <int N>
 void
-ParticleContainer<N>::Timestamp (const std::string&              basename,
-                                 const MultiFab&                 mf,
-                                 int                             lev,
-                                 Real                            time,
-                                 const std::vector<int>&         indices,
-                                 const std::vector<std::string>& names)
+ParticleContainer<N>::Timestamp (const std::string&      basename,
+                                 const MultiFab&         mf,
+                                 int                     lev,
+                                 Real                    time,
+                                 const std::vector<int>& indices)
 {
     BL_ASSERT(lev >= 0);
     BL_ASSERT(time >= 0);
     BL_ASSERT(!basename.empty());
     BL_ASSERT(lev <= m_amr->finestLevel());
-    BL_ASSERT(indices.size() == names.size());
 
     const Real strttime = ParallelDescriptor::second();
     //
@@ -3192,7 +3190,6 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
     const int nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
     const int mySet     = (MyProc / nOutFiles);
 
-    static bool        NeedToWriteHeader = true;
     static std::string TimestampFormat   = "_%02d";
 
     for (int iSet = 0; iSet < nSets; ++iSet)
@@ -3231,88 +3228,67 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
 
                 FileName += buf;
 
-                std::ofstream TimeStampFile;
-
-                VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
-                TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-                TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app);
-
-                TimeStampFile.seekp(0, std::ios::end);
-
-                if (!TimeStampFile.good())
-                    BoxLib::FileOpenFailed(FileName);
-
-                if (iSet == 0 && NeedToWriteHeader)
                 {
-                    //
-                    // We write a timestamp header once per run per file for
-                    // documentation of what is in the file.  Just ignore lines
-                    // starting with a '#' when post-processing.
-                    //
-                    TimeStampFile << "#   ID     CPU   ";
+                    std::ofstream TimeStampFile;
 
-                    D_TERM(TimeStampFile << "XPOS   ", << "YPOS   ", << "ZPOS   ");
+                    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-                    TimeStampFile << "TIME    ";
+                    TimeStampFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-                    for (int i = 0; i < names.size(); i++)
+                    TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app);
+
+                    TimeStampFile.seekp(0, std::ios::end);
+
+                    if (!TimeStampFile.good())
+                        BoxLib::FileOpenFailed(FileName);
+
+                    std::vector<Real> vals(indices.size());
+
+                    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
+                         pmap_it != pmapEnd;
+                         ++pmap_it)
                     {
-                        TimeStampFile << names[i]  << "    ";
-                    }
+                        const int        grid = pmap_it->first;
+                        const PBox&      pbox = pmap_it->second;
+                        const FArrayBox& fab  = mf[grid];
 
-                    TimeStampFile << '\n';
-
-                    NeedToWriteHeader = false;
-                }
-
-                std::vector<Real> vals(indices.size());
-
-                for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
-                     pmap_it != pmapEnd;
-                     ++pmap_it)
-                {
-                    const int        grid = pmap_it->first;
-                    const PBox&      pbox = pmap_it->second;
-                    const FArrayBox& fab  = mf[grid];
-
-                    for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
-                         it != pboxEnd;
-                         ++it)
-                    {
-                        const ParticleType& p = *it;
-
-                        if (p.m_id <= 0) continue;
-
-                        BL_ASSERT(p.m_lev == lev);
-                        BL_ASSERT(p.m_grid == grid);
-
-                        TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
-
-                        for (int i = 0; i < BL_SPACEDIM; i++)
+                        for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
+                             it != pboxEnd;
+                             ++it)
                         {
-                            TimeStampFile << p.m_pos[i]  << ' ';
-                        }
+                            const ParticleType& p = *it;
 
-                        TimeStampFile << time  << ' ';
+                            if (p.m_id <= 0) continue;
 
-                        if (!indices.empty())
-                        {
-                            ParticleBase::Interp(p,m_amr,fab,&indices[0],&vals[0],indices.size());
+                            BL_ASSERT(p.m_lev == lev);
+                            BL_ASSERT(p.m_grid == grid);
 
-                            for (int i = 0; i < indices.size(); i++)
+                            TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
+
+                            for (int i = 0; i < BL_SPACEDIM; i++)
                             {
-                                TimeStampFile << vals[i]  << ' ';
+                                TimeStampFile << p.m_pos[i]  << ' ';
                             }
+
+                            TimeStampFile << time;
+
+                            if (!indices.empty())
+                            {
+                                ParticleBase::Interp(p,m_amr,fab,&indices[0],&vals[0],indices.size());
+
+                                for (int i = 0; i < indices.size(); i++)
+                                {
+                                    TimeStampFile << ' ' << vals[i];
+                                }
+                            }
+
+                            TimeStampFile << '\n';
                         }
-
-                        TimeStampFile << '\n';
                     }
-                }
 
-                TimeStampFile.flush();
-                TimeStampFile.close();
+                    TimeStampFile.flush();
+                    TimeStampFile.close();
+                }
 
                 const int iBuff     = 0;
                 const int wakeUpPID = (MyProc + nOutFiles);
