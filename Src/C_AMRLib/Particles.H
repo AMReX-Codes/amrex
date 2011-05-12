@@ -3262,7 +3262,7 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
                         TimeStampFile << names[i]  << "    ";
                     }
 
-                    TimeStampFile << '\n';                
+                    TimeStampFile << '\n';
 
                     NeedToWriteHeader = false;
                 }
@@ -3312,9 +3312,8 @@ ParticleContainer<N>::Timestamp (const std::string&              basename,
                 }
 
                 TimeStampFile.flush();
-#ifdef BL_USECLOSE
                 TimeStampFile.close();
-#endif
+
                 const int iBuff     = 0;
                 const int wakeUpPID = (MyProc + nOutFiles);
                 const int tag       = (MyProc % nOutFiles);
