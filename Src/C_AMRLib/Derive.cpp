@@ -1,5 +1,5 @@
 //
-// $Id: Derive.cpp,v 1.19 2011-05-13 20:35:05 almgren Exp $
+// $Id: Derive.cpp,v 1.20 2011-05-13 20:58:31 almgren Exp $
 //
 #include <winstd.H>
 
@@ -28,19 +28,18 @@ DeriveRec::DeriveRec (const std::string& name,
     bcr(0)
 {}
 
+// This version doesn't take a Fortran function name, it is entirely defined by the C++
 DeriveRec::DeriveRec (const std::string& name,
                       IndexType      result_type,
-                      int            nvar_derive,
-                      DeriveBoxMap   box_map,
-                      Interpolater*  interp)
+                      int            nvar_derive)
     :
     derive_name(name),
     variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
     func(NULL),
-    mapper(interp),
-    bx_map(box_map),
+    mapper(NULL),
+    bx_map(NULL),
     n_state(0),
     nsr(0),
     rng(0),
@@ -235,11 +234,9 @@ DeriveList::add (const std::string&      name,
 void
 DeriveList::add (const std::string&      name,
                  IndexType               result_type,
-                 int                     nvar_der,
-                 DeriveRec::DeriveBoxMap bx_map,
-                 Interpolater*           interp)
+                 int                     nvar_der)
 {
-    lst.push_back(DeriveRec(name,result_type,nvar_der,bx_map,interp));
+    lst.push_back(DeriveRec(name,result_type,nvar_der));
 }
 
 void
