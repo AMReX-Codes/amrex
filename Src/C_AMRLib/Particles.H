@@ -319,6 +319,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
         //
         MyCnt += cnt % NProcs;
 
+    const Geometry& geom     = m_amr->Geom(0);
+
     for (int i = 0; i < MyCnt; i++)
     {
         //
@@ -327,6 +329,16 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
         //
         for (int d = 0; d < BL_SPACEDIM; d++)
             ifs >> p.m_pos[d];
+
+        //
+        // If particle is right on a domain boundary then move it just inside the boundary.
+        //
+        for (int d = 0; d < BL_SPACEDIM; d++)
+        {
+            Real domain_size = geom.ProbHi(d) - geom.ProbLo(d);
+            if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-12 * domain_size;
+            if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-12 * domain_size;
+        }
 
         for (int n = 0; n < extradata; n++)
             ifs >> p.m_data[n];
@@ -344,7 +356,14 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
             ParticleBase::PeriodicShift(p,m_amr);
 
             if (!ParticleBase::Where(p,m_amr))
+            {
+                std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
+
+                for (int d = 0; d < BL_SPACEDIM; d++)
+                   std::cout << "BAD PARTICLE POS(d) " << p.m_pos[d] << std::endl;
+ 
                 BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
+            }
         }
 
         p.m_id  = ParticleBase::NextID();
