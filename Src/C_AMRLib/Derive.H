@@ -1,7 +1,7 @@
 #ifndef _Derive_H_
 #define _Derive_H_
 //
-// $Id: Derive.H,v 1.16 2011-05-13 20:35:05 almgren Exp $
+// $Id: Derive.H,v 1.17 2011-05-13 20:58:31 almgren Exp $
 //
 #include <list>
 #include <string>
@@ -120,9 +120,7 @@ protected:
     //
     DeriveRec (const std::string& name,
                IndexType      result_type,
-               int            nvar_derive,
-               DeriveBoxMap   box_map,
-               Interpolater*  interp = &pc_interp);
+               int            nvar_derive);
     //
     //
     // Constructor.
@@ -235,9 +233,7 @@ public:
     //
     void add (const std::string&      name,
               IndexType               result_type,
-              int                     nvar_derive,
-              DeriveRec::DeriveBoxMap box_map,
-              Interpolater*           interp = &pc_interp);
+              int                     nvar_derive);
     //
     //
     //@ManDoc: Adds another entry to the registry.
