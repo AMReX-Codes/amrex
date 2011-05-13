@@ -109,9 +109,9 @@ public:
     Real sumParticleMass (const MultiFab& mf, int level) const;
     void sumParticleMomentum (const MultiFab& mf, int lev, Real* mom) const;
 
-    void Increment (MultiFab& mf, int level) const;
+    void Increment (MultiFab& mf, int level);
 
-    void Increment (MultiFab& mf, int level, int num_particles) const;
+    int IncrementWithTotal (MultiFab& mf, int level);
 
     void AssignDensity (MultiFab& mf, int level) const;
 
@@ -758,27 +758,25 @@ ParticleContainer<N>::MoveRandom ()
 template <int N>
 void
 ParticleContainer<N>::Increment (MultiFab& mf,
-                                 int       lev) const
+                                 int       lev) 
 {
-    int num_particles;
-    Increment(mf,lev,num_particles);
+    int num_particles_in_domain = IncrementWithTotal(mf,lev);
 }
 
 template <int N>
-void
-ParticleContainer<N>::Increment (MultiFab& mf,
-                                 int       lev,
-                                 int       num_particles) const
+int
+ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
+                                          int       lev)
 {
     BL_ASSERT(OK());
 
-    if (m_particles.empty()) return;
+    if (m_particles.empty()) return 0;
 
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     const PMap& pmap = m_particles[lev];
   
-    num_particles = 0;
+    int num_particles_in_domain = 0;
 
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -793,11 +791,12 @@ ParticleContainer<N>::Increment (MultiFab& mf,
                 BL_ASSERT(it->m_grid == grid);
 
                 fab(it->m_cell) += 1;
-                num_particles += 1;
+                num_particles_in_domain += 1;
             }
         }
     }
-    ParallelDescriptor::ReduceIntSum(num_particles);
+    ParallelDescriptor::ReduceIntSum(num_particles_in_domain);
+    return num_particles_in_domain;
 }
 
 template <int N>
@@ -820,7 +819,6 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 #endif
 
     int num_particles_at_level = 0;
-
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
         const int        grid = pmap_it->first;
