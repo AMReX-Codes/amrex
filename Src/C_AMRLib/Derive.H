@@ -1,7 +1,7 @@
 #ifndef _Derive_H_
 #define _Derive_H_
 //
-// $Id: Derive.H,v 1.15 2001-08-01 21:50:45 lijewski Exp $
+// $Id: Derive.H,v 1.16 2011-05-13 20:35:05 almgren Exp $
 //
 #include <list>
 #include <string>
@@ -114,6 +114,16 @@ protected:
                DeriveFunc     der_func,
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
+
+    //
+    // Constructor without a Fortran function
+    //
+    DeriveRec (const std::string& name,
+               IndexType      result_type,
+               int            nvar_derive,
+               DeriveBoxMap   box_map,
+               Interpolater*  interp = &pc_interp);
+    //
     //
     // Constructor.
     //
@@ -219,6 +229,16 @@ public:
               DeriveFunc              der_func,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
+
+    //
+    //@ManDoc: This version doesn't take a Fortran function.
+    //
+    void add (const std::string&      name,
+              IndexType               result_type,
+              int                     nvar_derive,
+              DeriveRec::DeriveBoxMap box_map,
+              Interpolater*           interp = &pc_interp);
+    //
     //
     //@ManDoc: Adds another entry to the registry.
     //
