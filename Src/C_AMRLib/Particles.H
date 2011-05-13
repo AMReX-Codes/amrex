@@ -111,6 +111,8 @@ public:
 
     void Increment (MultiFab& mf, int level) const;
 
+    void Increment (MultiFab& mf, int level, int num_particles) const;
+
     void AssignDensity (MultiFab& mf, int level) const;
 
     void AssignDensity (PArray<MultiFab>& mf) const;
@@ -758,6 +760,16 @@ void
 ParticleContainer<N>::Increment (MultiFab& mf,
                                  int       lev) const
 {
+    int num_particles;
+    Increment(mf,lev,num_particles);
+}
+
+template <int N>
+void
+ParticleContainer<N>::Increment (MultiFab& mf,
+                                 int       lev,
+                                 int       num_particles) const
+{
     BL_ASSERT(OK());
 
     if (m_particles.empty()) return;
@@ -765,6 +777,8 @@ ParticleContainer<N>::Increment (MultiFab& mf,
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     const PMap& pmap = m_particles[lev];
+  
+    num_particles = 0;
 
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -779,9 +793,11 @@ ParticleContainer<N>::Increment (MultiFab& mf,
                 BL_ASSERT(it->m_grid == grid);
 
                 fab(it->m_cell) += 1;
+                num_particles += 1;
             }
         }
     }
+    ParallelDescriptor::ReduceIntSum(num_particles);
 }
 
 template <int N>
