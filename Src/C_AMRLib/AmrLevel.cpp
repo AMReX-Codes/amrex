@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.114 2010-07-28 01:07:24 almgren Exp $
+// $Id: AmrLevel.cpp,v 1.115 2011-05-15 18:29:36 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1286,6 +1286,8 @@ AmrLevel::derive (const std::string& name,
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
+        BL_ASSERT(rec->derFunc() != static_cast<DeriveFunc>(0));
+
         rec->getRange(0, index, scomp, ncomp);
 
         BoxArray srcBA(state[index].boxArray());
