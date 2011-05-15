@@ -35,12 +35,6 @@ ifeq ($(COMP),Cray)
     CXXDEBF += -h noomp
   endif
 else
-ifeq ($(COMP),KCC)
-  CXX      = KCC
-  CXXOPTF += -O1 +K1
-  CXXDEBF += +K0
-  FULLWARN := --strict_warnings
-else
 ifeq ($(COMP),PGI)
   CXX = pgCC
   CXXDEBF += -g
@@ -74,7 +68,6 @@ ifeq ($(COMP),xlC)
   CXX     := xlC
   CXXOPTF += -O2 -qsuppress=1500-029 -qmaxmem=-1
   CXXDEBF += -g -qcheck=bounds
-endif
 endif
 endif
 endif

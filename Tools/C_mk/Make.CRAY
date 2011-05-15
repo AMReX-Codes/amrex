@@ -12,16 +12,6 @@ override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
 override XTRADEFS += -DBL_COALESCE_FABS -DBL_OLD_STL
 endif
 
-ifeq ($(COMP),KCC)
-CXX     := KCC
-CXXOPTF += +K2
-CXXDEBF += +K0
-#
-# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
-#
-override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR -DBL_COALESCE_FABS
-endif
-
 FC     = f90 -N 72 -e I
 FOPTF += -O,aggress,vector3
 FDEBF += -g

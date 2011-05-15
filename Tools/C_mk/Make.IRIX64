@@ -55,15 +55,6 @@ XTRALIBS          +=  -lftn
 
 CXX     +=  -LD_LAYOUT:lgot_buffer=30
 
-ifeq ($(COMP),KCC)
-CXX     := KCC
-CXXOPTF += +K2
-CXXDEBF += +K0
-FORT_CPP = KCC -E
-#
-# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
-#
-endif
 
 ifeq ($(BITNESS), 32)
 ifeq ($(WHICHIRIX64), ESCHER)

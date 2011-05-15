@@ -69,7 +69,7 @@ namespace std
 template <class T> inline T abs(const T& r) { return (r<0)?-r:r; }
 }
 #endif
-#if defined( BL_OSF1 ) && !defined(BL_KCC_VERSION)
+#if defined( BL_OSF1 )
 namespace std
 {
 template <class T> inline T abs(const T& r) { return (r<0)?-r:r; }
