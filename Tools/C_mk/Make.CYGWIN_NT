@@ -1,14 +1,5 @@
 # Make for CYGWIN_NT
 
-ifeq ($(COMP),KCC)
-  CXX      = KCC
-  # CXXOPTF += -O3 +K3
-  # CXXOPTF += -O2 +K2
-  CXXOPTF += -O1 +K1
-  CXXDEBF += +K0
-  FULLWARN := --strict_warnings
-endif
-
 FORT_CPP    := gcc -E -traditional
 FFLAGS += -ffixed-line-length-132 -fno-second-underscore
 fFLAGS += -ffixed-line-length-132 -fno-second-underscore

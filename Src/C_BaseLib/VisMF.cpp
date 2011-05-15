@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.116 2010-06-25 22:36:07 vince Exp $
+// $Id: VisMF.cpp,v 1.117 2011-05-15 17:08:14 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -314,16 +314,7 @@ VisMF::clear (int fabIndex,
 long
 VisMF::FileOffset (std::ostream& os)
 {
-    return
-#if defined(__KCC) 
-#if ((BL_KCC_MAJOR_VERSION >= 4) || (BL_KCC_MAJOR_VERSION == 3 && BL_KCC_MINOR_VERSION > 3) || (BL_KCC_MAJOR_VERSION == 0))
-      os.tellp();
-#else
-    os.tellp().offset();
-#endif
-#else
-    os.tellp();
-#endif
+    return os.tellp();
 }
 
 FArrayBox*

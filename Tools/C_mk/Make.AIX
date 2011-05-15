@@ -13,18 +13,6 @@ ifeq ($(COMP),mpCC)
   CXXDEBF += -g -qrtti=all
 endif
 
-ifeq ($(COMP),KCC)
-  CXX     := KCC
-  CXXOPTF += +K1 --no_exceptions --backend '-qmaxmem=-1'
-  CXXDEBF += +K0 --no_exceptions
-endif
-
-ifeq ($(COMP),mpKCC)
-  CXX     := mpKCC
-  CXXOPTF += +K1 --no_exceptions --backend '-qmaxmem=-1'
-  CXXDEBF += +K0 --no_exceptions
-endif
-
 NEEDS_FLUSH_F := TRUE
 
 FC  = xlf

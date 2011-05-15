@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.40 2011-04-29 17:57:19 lijewski Exp $
+# $Id: Make.rules,v 1.41 2011-05-15 17:08:55 lijewski Exp $
 #
 
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
@@ -16,54 +16,12 @@ install: $(instLib) $(addprefix $(instIncludeDir)/, $(instSources))
 clean::
 	$(RM) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
 	$(RM) $(optionsLib) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
-ifeq ($(CLOSELIB),TRUE)
-	$(RM) *.o *.ii $(ptRepDir)/*.o
-	$(RM) -r $(optionsLib) $(objTempDir)/KCC_files $(objTempDir)/ti_files
-endif
 	$(RM) $(executable) *.pure
-
 #
 # Rule for building libraries.
 #
 $(optionsLib): $(addprefix $(objTempDir)/, $(objForLibs))
 	$(AR) $(ARFLAGS) $(optionsLib) $(addprefix $(objTempDir)/, $(objForLibs))
-ifeq ($(CLOSELIB),TRUE)
-ifeq ($(COMP), CFRONT)
-#
-# With cfront we only close boxlib.
-#
-ifeq ($(LBASE),box)
-	$(RM) -r ./tmp
-	mkdir ./tmp
-	-cp -p $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst) ./tmp
-	-$(CXX) -ptv -pts $(CXXLIBFLAGS) -DBL_SPACEDIM=$(DIM) $(CPPFLAGS) $(CXXFLAGS) ./tmp/*.o
-	n=1; for i in $(ptRepDir)/*.o; do cp $$i ./tmp/$${n}.o; n=`expr $$n + 1`; done
-	$(RM) $(optionsLib)
-	ar crv $(optionsLib) ./tmp/*.o
-	$(RM) -r ./tmp
-endif
-endif
-ifeq ($(SUNPRO),TRUE)
-#
-# With sunpro we only close boxlib.
-#
-ifeq ($(LBASE),box)
-	$(RM) -r ./tmp
-	mkdir ./tmp
-	-cp -p $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst) ./tmp
-	n=1; for i in $(ptRepDir)/Templates.DB/*.o; do cp $$i ./tmp/$${n}.o; n=`expr $$n + 1`; done
-	$(RM) $(optionsLib)
-	ar crv $(optionsLib) ./tmp/*.o
-	$(RM) -r ./tmp
-endif
-endif
-#
-# On KCC we close all libraries.
-#
-ifeq ($(COMP), KCC)
-	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -o $(optionsLib) $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst)
-endif
-endif
 	$(RANLIB) $@
  
 realclean: clean
