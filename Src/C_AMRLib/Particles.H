@@ -760,7 +760,7 @@ void
 ParticleContainer<N>::Increment (MultiFab& mf,
                                  int       lev) 
 {
-    int num_particles_in_domain = IncrementWithTotal(mf,lev);
+    IncrementWithTotal(mf,lev);
 }
 
 template <int N>
