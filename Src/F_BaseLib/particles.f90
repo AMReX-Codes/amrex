@@ -753,7 +753,7 @@ contains
     real(kind=dp_t), pointer :: vmp(:,:,:,:)
     real(kind=dp_t), pointer :: wmp(:,:,:,:)
     double precision         :: umac_lo(mla%dim), umac_hi(mla%dim)
-    double precision         :: vel, slope, delta
+    double precision         :: vel, delta
     integer                  :: ipass
 
     dm = mla%dim
@@ -802,9 +802,8 @@ contains
 
           do d=1,dm
 
-             slope = umac_hi(d) - umac_lo(d)
-             delta = (p%pos(d) - p%cell(d)) / dx(p%lev,d)
-             vel   = umac_lo(d) + delta * slope
+             delta = (p%pos(d) - prob_lo(d)) / dx(p%lev,d) - p%cell(d)
+             vel   = umac_lo(d) + delta * (umac_hi(d) - umac_lo(d))
 
              if (ipass == 1) then
                 !
@@ -820,7 +819,7 @@ contains
                 ! corrector stage
                 !
                 ! update to the final time, using the original position
-                ! and the velocity at teh 1/2-time position
+                ! and the velocity at the 1/2-time position
                 !
                 p%pos(d) = p%origpos(d) + dt*vel
              endif
