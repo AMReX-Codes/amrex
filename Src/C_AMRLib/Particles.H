@@ -1957,9 +1957,10 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
     BL_ASSERT(N >= BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    const Real      strttime        = ParallelDescriptor::second();
-    const Geometry& geom            = m_amr->Geom(lev);
-    const Real      dx[BL_SPACEDIM] = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
+    const Real      strttime         = ParallelDescriptor::second();
+    const Geometry& geom             = m_amr->Geom(lev);
+    const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
+    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
@@ -1988,11 +1989,17 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
                         hi[d] += 1;
 
+                        Real delta   = (p.m_pos[d] - plo[d]) / dx[d] - lo[d];
+
+                        if (delta > 1) delta = 1;
+                        if (delta < 0) delta = 0;
+
                         const Real umac_lo = (*umacfab[d])(lo);
                         const Real umac_hi = (*umacfab[d])(hi);
-                        const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
                         const Real vel     = umac_lo + delta * (umac_hi - umac_lo);
-
+                        //
+                        // TODO - this code is NOT correct if we cross a periodic boundary!!!
+                        //
                         if (ipass == 0)
                         {
                             //
@@ -2004,7 +2011,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                             //
                             p.m_data[d] = p.m_pos[d];
                             //
-                            // Update to the t = n+1/2 position
+                            // Predict new time location.
                             //
                             p.m_pos[d] += dt*vel;
                         }
@@ -2015,7 +2022,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                             //
                             // Update to final time using the orig position and the new vel.
                             //
-                            p.m_pos[d] = .5*(p.m_data[d]+p.m_pos[d]) + .5*dt*vel;
+                            p.m_pos[d] = .5 * (p.m_data[d] + p.m_pos[d] + dt*vel);
                         }
                     }
 
