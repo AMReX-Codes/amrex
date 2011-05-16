@@ -1330,7 +1330,6 @@ ParticleContainer<N>::GetRhoFromParticles (MultiFab& mf,
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
-        const int        grid = pmap_it->first;
         PBox&            pbox = pmap_it->second;
         const int        n    = pbox.size();
 
