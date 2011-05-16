@@ -1706,12 +1706,13 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    const Real      strttime        = ParallelDescriptor::second();
-    const Geometry& geom            = m_amr->Geom(lev);
-    const Real      dx[BL_SPACEDIM] = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
-    const Real      half_dt         = 0.5 * dt;
-    const Real      a_half_inv      = 1 / a_half;
-    PMap&           pmap            = m_particles[lev];
+    const Real      strttime         = ParallelDescriptor::second();
+    const Geometry& geom             = m_amr->Geom(lev);
+    const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
+    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+    const Real      half_dt          = 0.5 * dt;
+    const Real      a_half_inv       = 1 / a_half;
+    PMap&           pmap             = m_particles[lev];
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -1744,16 +1745,18 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
 
                     hi[d] += 1;
 
+                    Real delta = (p.m_pos[d] - plo[d]) / dx[d] - lo[d];
+
+                    if (delta > 1) delta = 1;
+                    if (delta < 0) delta = 0;
+
                     const Real grav_lo = (*gfab[d])(lo);
                     const Real grav_hi = (*gfab[d])(hi);
-                    const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
-
                     //
                     // Note: m_data[0] is mass, 1 is v_x, ...
                     //
                     p.m_data[1+d] += half_dt * (grav_lo + delta * (grav_hi - grav_lo));
                 }
-
 
                 D_TERM(p.m_data[1] *= a_half_inv;,
                        p.m_data[2] *= a_half_inv;,
@@ -1817,12 +1820,13 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    const Real      strttime        = ParallelDescriptor::second();
-    const Geometry& geom            = m_amr->Geom(lev);
-    const Real      dx[BL_SPACEDIM] = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
-    const Real      half_dt         = 0.5 * dt;
-    const Real      a_new_inv       = 1 / a_new;
-    PMap&           pmap            = m_particles[lev];
+    const Real      strttime         = ParallelDescriptor::second();
+    const Geometry& geom             = m_amr->Geom(lev);
+    const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
+    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+    const Real      half_dt          = 0.5 * dt;
+    const Real      a_new_inv        = 1 / a_new;
+    PMap&           pmap             = m_particles[lev];
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -1855,9 +1859,13 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
 
                     hi[d] += 1;
 
+                    Real delta = (p.m_pos[d] - plo[d]) / dx[d] - lo[d];
+
+                    if (delta > 1) delta = 1;
+                    if (delta < 0) delta = 0;
+
                     const Real grav_lo = (*gfab[d])(lo);
                     const Real grav_hi = (*gfab[d])(hi);
-                    const Real delta   = (p.m_pos[d] - lo[d]*dx[d]) / dx[d];
                     //
                     // Note: m_data[0] is mass, 1 is v_x, ...
                     //
@@ -1989,7 +1997,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
                         hi[d] += 1;
 
-                        Real delta   = (p.m_pos[d] - plo[d]) / dx[d] - lo[d];
+                        Real delta = (p.m_pos[d] - plo[d]) / dx[d] - lo[d];
 
                         if (delta > 1) delta = 1;
                         if (delta < 0) delta = 0;
