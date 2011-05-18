@@ -111,7 +111,7 @@ public:
 
     void Increment (MultiFab& mf, int level);
 
-    int IncrementWithTotal (MultiFab& mf, int level);
+    long IncrementWithTotal (MultiFab& mf, int level);
 
     void AssignDensity (MultiFab& mf, int level) const;
 
@@ -777,7 +777,7 @@ ParticleContainer<N>::Increment (MultiFab& mf,
 }
 
 template <int N>
-int
+long
 ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
                                           int       lev)
 {
@@ -789,7 +789,7 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
 
     const PMap& pmap = m_particles[lev];
   
-    int num_particles_in_domain = 0;
+    long num_particles_in_domain = 0;
 
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -808,7 +808,9 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
             }
         }
     }
-    ParallelDescriptor::ReduceIntSum(num_particles_in_domain);
+
+    ParallelDescriptor::ReduceLongSum(num_particles_in_domain);
+
     return num_particles_in_domain;
 }
 
