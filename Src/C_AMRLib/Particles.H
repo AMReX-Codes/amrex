@@ -129,6 +129,8 @@ public:
 
     void MoveRandom ();
 
+    void MoveRandom (int level);
+
     // **************************************************************************************************************** 
     //
     // If the particles move only with self-gravity from themselves and the gas, then 
@@ -717,13 +719,22 @@ void
 ParticleContainer<N>::MoveRandom ()
 {
     //
+    // Move particles randomly at all levels
+    //
+    for (int lev = 0; lev < m_particles.size(); lev++)
+       MoveRandom(lev);
+}
+
+template <int N>
+void
+ParticleContainer<N>::MoveRandom (int lev)
+{
+    //
     // Move particles up to 0.25*CellSize distance in each coordinate direction.
     //
     BL_ASSERT(OK());
-
     BL_ASSERT(m_amr != 0);
 
-    for (int lev = 0; lev < m_particles.size(); lev++)
     {
         PMap&           pmap = m_particles[lev];
         const Geometry& geom = m_amr->Geom(lev);
