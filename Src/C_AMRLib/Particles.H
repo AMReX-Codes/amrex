@@ -450,8 +450,27 @@ ParticleContainer<N>::InitCosmo ()
     mfDirName.append("/Level_0/Cell");
     VisMF::Read(mf,mfDirName.c_str());
 
-    ParticleType p;
     Real disp[BL_SPACEDIM];
+
+    // Print the grids as a sanity check
+    for(MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        FArrayBox&  myFab  = mf[mfi];
+        const int  *fab_lo = mfi.validbox().loVect();
+        const int  *fab_hi = mfi.validbox().hiVect();
+        if (mfi.validbox().isEmpty())
+        {
+           std::cout << "...bad grid lo " << fab_lo[0] << " " << fab_lo[1] << " " << fab_lo[2] << std::endl;
+           std::cout << "...bad grid hi " << fab_hi[0] << " " << fab_hi[1] << " " << fab_hi[2] << std::endl;
+           BoxLib::Error("Empty box in InitCosmo ");
+        }
+        if (!geom.Domain().contains(mfi.validbox()))
+        {
+           std::cout << "...bad grid lo " << fab_lo[0] << " " << fab_lo[1] << " " << fab_lo[2] << std::endl;
+           std::cout << "...bad grid hi " << fab_hi[0] << " " << fab_hi[1] << " " << fab_hi[2] << std::endl;
+           BoxLib::Error("Box in InitCosmo not contained in domain");
+        }
+    }
 
     //
     // The grid should be initialized according to the ics...
@@ -471,6 +490,8 @@ ParticleContainer<N>::InitCosmo ()
             {
                 for (int ix = 0; ix < fab_ix; ix++)
                 {
+                    ParticleType p;
+
             	    IntVect indices(D_DECL(kx, jx, ix));
 
 	            for (int n = 0; n < BL_SPACEDIM; n++)
@@ -486,6 +507,13 @@ ParticleContainer<N>::InitCosmo ()
 			//set the velocities
 	                p.m_data[n+1] = disp[n] * vel_fac;
 	            }
+
+                    if (ix == 0 && jx == 3 && kx == 4) 
+                    { 
+                       std::cout << "DOING FAB NUMBER " << mfi.index() << std::endl;
+                       std::cout << "NEW DISP(d) " << disp[0] << " " << disp[1] << " " << disp[2] << std::endl;
+                       std::cout << "NEW POS(d) " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
+                    } 
 
 		    // Set the mass of the particle from the input value
 	            p.m_data[0] = particleMass;
