@@ -104,7 +104,7 @@ public:
     void InitFromAsciiFile (const std::string& file, int extradata);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
-    void InitCosmo (Real particleMass = -1);
+    void InitCosmo ();
 
     Real sumParticleMass (const MultiFab& mf, int level) const;
     void sumParticleMomentum (const MultiFab& mf, int lev, Real* mom) const;
@@ -411,13 +411,16 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
 template <int N>
 void
-ParticleContainer<N>::InitCosmo (Real          mass)
+ParticleContainer<N>::InitCosmo ()
 {
     const int       MyProc   = ParallelDescriptor::MyProc();
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_amr->Geom(0);
     const Real*     dx       = geom.CellSize();
+
+    Real particleMass;
+    std::string mfDirName;
 
     m_particles.resize(m_amr->finestLevel()+1);
 
@@ -426,25 +429,30 @@ ParticleContainer<N>::InitCosmo (Real          mass)
         BL_ASSERT(m_particles[lev].empty());
     }
 
-    //FIXME!
     Real vel_fac  = 1 / 1000.0;
-    Real disp_fac = 1 / 100.0;
 
+    Real len[BL_SPACEDIM];
+    D_TERM(len[0] = geom.ProbLength(0);,
+           len[1] = geom.ProbLength(1);,
+           len[2] = geom.ProbLength(2););
+
+    //
+    // Read the init directory name and particle mass from the inputs file
+    //
+    ParmParse pp("cosmo");
+    pp.get("initDirName", mfDirName);
+    pp.get("particle_mass",particleMass);
+
+    //
+    // Read from the directory into mf
+    //
     MultiFab mf;
-    VisMF::Read(mf,"init/Level_0/Cell");
-    if (MyProc == IOProc)
-    {
-        std::cout << "done." << std::endl;
-    }
+    mfDirName.append("/Level_0/Cell");
+    VisMF::Read(mf,mfDirName.c_str());
 
-    if (mass == -1)
-    {
-        if(MyProc == IOProc)
-        {
-            std::cout << "AAAAAAHHHHHHHHHHHH!!!1!11" << std::endl;
-        }
-        mass=1;
-    }
+    ParticleType p;
+    Real disp[BL_SPACEDIM];
+
     //
     // The grid should be initialized according to the ics...
     //
@@ -463,27 +471,24 @@ ParticleContainer<N>::InitCosmo (Real          mass)
             {
                 for (int ix = 0; ix < fab_ix; ix++)
                 {
-	            ParticleType p;
-            	    int indices[BL_SPACEDIM] = { D_DECL(kx, jx, ix) };
-		    Real disp[BL_SPACEDIM];
-	
-	            for (int i = 0; i < BL_SPACEDIM; i++)
+            	    IntVect indices(D_DECL(kx, jx, ix));
+
+	            for (int n = 0; n < BL_SPACEDIM; n++)
 	            {
-			//equal distribution (for 1 p per cell in the center of the cell)
-	                p.m_pos[i]  = geom.ProbLo(i) + (indices[i]+fab_lo[i]+0.5)*dx[i];
-	            }
-		    //GetGravity essentiality maps quantities defined on grids to particles
-            	    ParticleBase::GetGravity(myFab, m_amr, 0, p, disp);
-	            for (int i = 0; i < BL_SPACEDIM; i++)
-	            {
-			//adding the displacements
-		        p.m_pos[i] += disp[i] * disp_fac;
+                        disp[n] = myFab(indices,n);
+
+			// start with homogeneous distribution (for 1 p per cell in the center of the cell), then
+			//add the displacement (input values weighted by domain length)
+	                p.m_pos[n]  = geom.ProbLo(n) + 
+                                      (indices[n]+fab_lo[n]+0.5)*dx[n] +
+		                      disp[n] * len[n];
+
 			//set the velocities
-	                p.m_data[i+1] = disp[i] * vel_fac;
+	                p.m_data[n+1] = disp[n] * vel_fac;
 	            }
 
-		    //set the mass of the particle in accordance to $\rho_\text{dm}$
-	            p.m_data[0] = mass;
+		    // Set the mass of the particle from the input value
+	            p.m_data[0] = particleMass;
 	
 	            p.m_id  = ParticleBase::NextID();
 	            p.m_cpu = MyProc;
