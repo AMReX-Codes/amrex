@@ -914,6 +914,7 @@ contains
     dm = mla%dim
     iN = 2        ! The count of integers in each particle sent/received.
     rN = 2*dm     ! The count of reals    in each particle sent/received.
+                  ! The "2" here refers to "pos" and "origpos"
 
     if ( .not. allocated(nSnd) ) then
        allocate(indx   (0:nprocs-1)                    )
