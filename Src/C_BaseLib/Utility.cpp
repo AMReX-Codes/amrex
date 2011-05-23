@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.84 2009-12-21 20:36:20 lijewski Exp $
+// $Id: Utility.cpp,v 1.85 2011-05-23 20:30:21 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -273,6 +273,55 @@ BoxLib::is_integer (const char* str)
             return false;
 
     return true;
+}
+
+const std::vector<std::string>&
+BoxLib::Tokenize (const std::string& instr,
+                  const std::string& separators)
+{
+    static std::vector<char*>       ptr;
+    static std::vector<std::string> tokens;
+    static char*                    line    = 0;
+    static int                      linelen = 0;
+    //
+    // Make copy of line that we can modify.
+    //
+    const int len = instr.size() + 1;
+
+    if (len > linelen)
+    {
+        delete [] line;
+        line = new char[len];
+        linelen = len;
+    }
+
+    (void) std::strcpy(line, instr.c_str());
+
+    char* token = 0;
+
+    if (!((token = std::strtok(line, separators.c_str())) == 0))
+    {
+        ptr.push_back(token);
+        while (!((token = strtok(0, separators.c_str())) == 0))
+            ptr.push_back(token);
+    }
+
+    tokens.resize(ptr.size());
+
+    for (int i = 1; i < ptr.size(); i++)
+    {
+        char* p = ptr[i];
+
+        while (strchr(separators.c_str(), *(p-1)) != 0)
+            *--p = 0;
+    }
+
+    for (int i = 0; i < ptr.size(); i++)
+        tokens[i] = ptr[i];
+
+    ptr.clear();
+
+    return tokens;
 }
 
 std::string

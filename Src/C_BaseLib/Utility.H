@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.62 2009-12-11 01:06:49 lijewski Exp $
+// $Id: Utility.H,v 1.63 2011-05-23 20:30:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -51,6 +51,11 @@ namespace BoxLib
     //@ManDoc: Return true if argument is a non-zero length string of digits.
     //
     bool is_integer (const char* str);
+    //
+    // Splits "instr" into separate pieces based on "separators".
+    //
+    const std::vector<std::string>& Tokenize (const std::string& instr,
+                                              const std::string& separators);
     //
     //@ManDoc: Returns rootNNNN where NNNN == num.
     //
