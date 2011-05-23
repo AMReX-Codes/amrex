@@ -856,7 +856,7 @@ contains
     enddo
 
     if ( particle_container_debugging() ) then
-       call bl_assert(ok(particles), 'particle_container_move_random: not OK on exit')
+       call bl_assert(ok(particles), 'particle_container_move_advect: not OK on exit')
     end if
 
   end subroutine particle_container_move_advect
