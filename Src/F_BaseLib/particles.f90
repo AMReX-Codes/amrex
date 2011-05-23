@@ -1663,4 +1663,41 @@ contains
 
   end subroutine particle_container_timestamp
 
+  subroutine make_particle_count(mla,plotdata,comp,particles)
+
+    use bl_error_module
+
+    type(ml_layout        ),  intent(in)    :: mla
+    type(particle_container), intent(inout) :: particles
+    type(multifab),           intent(inout) :: plotdata(:)
+    integer                 , intent(in   ) :: comp
+
+    type(particle), pointer  :: p
+    real(kind=dp_t), pointer :: ptr(:,:,:,:)
+    integer                  :: i,dm
+
+    dm = mla%dim
+
+    do i = 1, capacity(particles)
+
+       if ( particles%d(i)%id <= 0 ) cycle
+
+       p => particles%d(i)
+
+       ptr => dataptr(plotdata(p%lev),p%grd)
+
+       select case (dm)
+       case (1)
+          ptr(p%cell(1),1,1,comp) = ptr(p%cell(1),1,1,comp)  + 1
+       case (2)
+          ptr(p%cell(1),p%cell(2),1,comp) = ptr(p%cell(1),p%cell(2),1,comp)  + 1
+       case (3)
+          ptr(p%cell(1),p%cell(2),p%cell(3),comp) = ptr(p%cell(1),p%cell(2),p%cell(3),comp) + 1
+       end select
+
+       call bl_assert(particles%d(i)%id > 0, 'make_particle_count: got an invalid particle')
+    end do
+
+  end subroutine make_particle_count
+
 end module particle_module
