@@ -1122,6 +1122,10 @@ contains
     ! We have to save the maximum value of particle ID.
     !
     pid = get_particle_id()
+    !
+    ! Got to set it back as get_particle_id() increments it.
+    !
+    call set_particle_id(pid)
 
     call parallel_reduce(maxpid, pid, MPI_MAX)
 
