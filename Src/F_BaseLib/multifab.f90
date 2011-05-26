@@ -2299,13 +2299,17 @@ contains
     integer,        intent(in), optional  :: ng
 
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
-    type(boxarray)      :: bxai
+    type(boxarray)      :: bxai, batmp
     type(box)           :: dbx
-    integer             :: i, j, ii, proc, dm, lng
+    integer             :: i, j, ii, jj, proc, dm, lng
     integer             :: shft(2*3**mf%dim,mf%dim),lo(MAX_SPACEDIM),hi(MAX_SPACEDIM)
     integer, parameter  :: tag = 1713
+    type(layout)        :: latmp
+    type(list_box)      :: bltmp
+    logical             :: anynodal
 
-    real(kind=dp_t), dimension(:,:,:,:), allocatable :: pt
+    type(box_intersector), pointer :: bi(:)
+    real(kind=dp_t), allocatable   :: pt(:,:,:,:)
 
     lng = mf%ng; if ( present(ng) ) lng = ng
 
@@ -2313,21 +2317,36 @@ contains
     if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_SUM_BOUNDARY_C: nc too large', nc)
     if ( lng < 1          ) return
 
-    if ( .not. cell_centered_q(mf) ) call bl_error('MULTIFAB_SUM_BOUNDARY_C: mf is not cell centered')
+    lo       = 1
+    hi       = 1
+    dm       = get_dim(mf)
+    anynodal = any( mf%nodal .eqv. .true. )
 
-    lo = 1
-    hi = 1
-    dm = get_dim(mf)
-    !
-    ! TODO - use box_intersector stuff in the code below ...
-    !
+    if ( anynodal ) then
+       !
+       ! Build a temporary layout to be used in intersection tests below.
+       !
+       do i = 1, nboxes(mf%la)
+          call push_back(bltmp, box_nodalize(get_box(mf%la,i), mf%nodal))
+       end do
+       call boxarray_build_l(batmp, bltmp, sort = .false.)
+       call list_destroy_box(bltmp)
+       call build(latmp, batmp, explicit_mapping = get_proc(mf%la))
+       call boxarray_destroy(batmp)
+    endif
+
     do i = 1, mf%nboxes
        call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft, .false.)
-       do j = 1, mf%nboxes
-          if ( remote(mf,i) .and. remote(mf,j) ) cycle
-          do ii = 1, nboxes(bxai)
-             dbx = intersection(get_ibox(mf,j), get_box(bxai,ii))
-             if ( empty(dbx) ) cycle
+       do ii = 1, nboxes(bxai)
+          if ( anynodal ) then
+             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
+          else
+             bi => layout_get_box_intersector(mf%la, get_box(bxai,ii))
+          end if
+          do jj = 1, size(bi)
+             j = bi(jj)%i
+             if ( remote(mf,i) .and. remote(mf,j) ) cycle
+             dbx = bi(jj)%bx
              if ( local(mf,i) .and. local(mf,j) ) then
                 pdst => dataptr(mf, j, dbx, c, nc)
                 psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
@@ -2347,9 +2366,11 @@ contains
                 call parallel_send(psrc, proc, tag)
              end if
           end do
+          deallocate(bi)
        end do
        call destroy(bxai)
     end do
+    if (anynodal) call destroy(latmp)
   end subroutine multifab_sum_boundary_c
 
   subroutine multifab_sum_boundary(mf, ng)
