@@ -2016,7 +2016,8 @@ contains
     use bl_error_module
 
     type(fluxassoc),  intent(inout) :: flasc
-    type(layout),     intent(in)    :: la_src, la_dst
+    type(layout),     intent(in)    :: la_dst
+    type(layout),     intent(inout) :: la_src
     logical,          intent(in)    :: nd_dst(:), nd_src(:)
     integer,          intent(in)    :: side
     type(box),        intent(in)    :: crse_domain
@@ -2038,6 +2039,7 @@ contains
     type(box_intersector), pointer :: bi(:)
     integer                        :: svol_max, rvol_max, ioproc
     integer, parameter             :: ChunkSize = 50
+    logical                        :: anynodal
     type(bl_prof_timer), save      :: bpt
 
     if ( built_q(flasc) ) call bl_error("fluxassoc_build(): already built")
@@ -2059,6 +2061,7 @@ contains
     flasc%ir(1:dm)    =  ir(1:dm)
     flasc%flux%dim    =  dm
     flasc%mask%dim    =  dm
+    anynodal          =  any( nd_src .eqv. .true. )
 
     allocate(flasc%nd_dst(dm), flasc%nd_src(dm))
 
@@ -2075,26 +2078,41 @@ contains
     allocate(flasc%mask%r_con%snd(ChunkSize))
     allocate(flasc%mask%r_con%rcv(ChunkSize))
     allocate(flasc%fbxs(ChunkSize))
-    !
-    ! Build a temporary layout to be used in intersection tests below.
-    !
-    do i = 1, nboxes(la_src)
-       call push_back(bltmp, box_nodalize(get_box(bxa_src,i), nd_src))
-    end do
-    call boxarray_build_l(batmp, bltmp, sort = .false.)
-    call list_destroy_box(bltmp)
-    call build(lasrctmp, batmp, explicit_mapping = get_proc(la_src))
-    call boxarray_destroy(batmp)
+
+    if ( anynodal ) then
+       !
+       ! Build a temporary layout to be used in intersection tests below.
+       !
+       do i = 1, nboxes(la_src)
+          call push_back(bltmp, box_nodalize(get_box(bxa_src,i), nd_src))
+       end do
+       call boxarray_build_l(batmp, bltmp, sort = .false.)
+       call list_destroy_box(bltmp)
+       call build(lasrctmp, batmp, explicit_mapping = get_proc(la_src))
+       call boxarray_destroy(batmp)
+    end if
 
     parr = 0; pvol = 0; mpvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
 
     do j = 1, nboxes(bxa_dst)
-       bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(bxa_dst,j), nd_dst))
+
+       if ( anynodal ) then
+          bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(bxa_dst,j), nd_dst))
+       else
+          bi => layout_get_box_intersector(la_src,   box_nodalize(get_box(bxa_dst,j), nd_dst))
+       end if
+
        do ii = 1, size(bi)
           i = bi(ii)%i
+
           if ( remote(la_dst,j) .and. remote(la_src,i) ) cycle
+
+          if ( anynodal ) then
+             fbox = get_box(lasrctmp,i)
+          else
+             fbox = get_box(la_src,  i)
+          end if
           isect  = bi(ii)%bx
-          fbox   = get_box(lasrctmp,i)
           loflux = lwb(fbox)
 
           if ( la_dst%lap%pmask(dir) .or. (loflux(dir) /= lo_dom(dir) .and. loflux(dir) /= hi_dom(dir)) ) then
@@ -2185,7 +2203,7 @@ contains
        deallocate(bi)
     end do
 
-    call destroy(lasrctmp)
+    if ( anynodal ) call destroy(lasrctmp)
 
     flasc%flux%l_con%ncpy = lcnt_r
     flasc%flux%r_con%nsnd = cnt_s
@@ -2475,14 +2493,14 @@ contains
   end function layout_copyassoc
 
   function layout_fluxassoc(la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
-    type(fluxassoc)             :: r
-    type(layout),    intent(in) :: la_dst
-    type(layout),    intent(in) :: la_src
-    logical,         intent(in) :: nd_dst(:), nd_src(:)
-    type(fluxassoc), pointer    :: fl
-    integer,         intent(in) :: side
-    type(box),       intent(in) :: crse_domain
-    integer,         intent(in) :: ir(:)
+    type(fluxassoc)                :: r
+    type(layout),    intent(in)    :: la_dst
+    type(layout),    intent(inout) :: la_src
+    logical,         intent(in)    :: nd_dst(:), nd_src(:)
+    type(fluxassoc), pointer       :: fl
+    integer,         intent(in)    :: side
+    type(box),       intent(in)    :: crse_domain
+    integer,         intent(in)    :: ir(:)
     !
     ! Do we have one stored?
     !
