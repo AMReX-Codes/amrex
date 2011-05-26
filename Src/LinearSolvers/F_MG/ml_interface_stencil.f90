@@ -467,7 +467,7 @@ contains
   subroutine ml_crse_contrib_fancy(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
 
     type(multifab), intent(inout) :: res
-    type(multifab), intent(in   ) :: flux
+    type(multifab), intent(inout) :: flux
     type(multifab), intent(in   ) :: crse
     type(multifab), intent(in   ) :: ss
     type(imultifab),intent(in   ) :: mm_crse
@@ -498,7 +498,7 @@ contains
 
     dm = get_dim(res)
     np = parallel_nprocs()
-    fa = layout_fluxassoc(get_layout(crse), get_layout(flux), nodal_flags(crse), nodal_flags(flux), side, crse_domain, ir)
+    fa = layout_fluxassoc(crse%la, flux%la, nodal_flags(crse), nodal_flags(flux), side, crse_domain, ir)
     !
     ! Do all the local work.
     !
@@ -647,7 +647,7 @@ contains
   subroutine ml_crse_contrib(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
     use bl_prof_module
     type(multifab), intent(inout) :: res
-    type(multifab), intent(in   ) :: flux
+    type(multifab), intent(inout) :: flux
     type(multifab), intent(in   ) :: crse
     type(multifab), intent(in   ) :: ss
     type(imultifab),intent(in   ) :: mm_crse
