@@ -1178,6 +1178,7 @@ contains
     type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
     type(list_box)                  :: bltmp
     type(box_intersector), pointer  :: bi(:)
+    logical                         :: anynodal
     type(bl_prof_timer), save       :: bpt
 
     if ( built_q(bxasc) ) call bl_error("boxassoc_build(): already built")
@@ -1191,6 +1192,7 @@ contains
     bxasc%nboxes =  nboxes(bxa)
     bxasc%cross  =  cross
     np           =  parallel_nprocs()
+    anynodal     =  any( nodal .eqv. .true. )
 
     allocate(bxasc%nodal(bxasc%dim))
     allocate(parr(0:np-1,2))
@@ -1199,16 +1201,19 @@ contains
     allocate(bxasc%l_con%cpy(ChunkSize))
     allocate(bxasc%r_con%snd(ChunkSize))
     allocate(bxasc%r_con%rcv(ChunkSize))
-    !
-    ! Build a temporary layout to be used in intersection tests below.
-    !
-    do i = 1, nboxes(la)
-       call push_back(bltmp, box_nodalize(get_box(bxa, i), nodal))
-    end do
-    call boxarray_build_l(batmp, bltmp, sort = .false.)
-    call list_destroy_box(bltmp)
-    call build(latmp, batmp, explicit_mapping = get_proc(la))
-    call boxarray_destroy(batmp)
+
+    if ( anynodal ) then
+       !
+       ! Build a temporary layout to be used in intersection tests below.
+       !
+       do i = 1, nboxes(la)
+          call push_back(bltmp, box_nodalize(get_box(bxa,i), nodal))
+       end do
+       call boxarray_build_l(batmp, bltmp, sort = .false.)
+       call list_destroy_box(bltmp)
+       call build(latmp, batmp, explicit_mapping = get_proc(la))
+       call boxarray_destroy(batmp)
+    end if
 
     bxasc%nodal = nodal
 
@@ -1219,7 +1224,11 @@ contains
     do i = 1, nboxes(bxa)
        call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, cross)
        do ii = 1, nboxes(bxai)
-          bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
+          if ( anynodal ) then
+             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
+          else
+             bi => layout_get_box_intersector(la,    get_box(bxai,ii))
+          end if
           do jj = 1, size(bi)
              j   = bi(jj)%i
              if ( remote(la,i) .and. remote(la,j) ) cycle
@@ -1279,7 +1288,7 @@ contains
        call boxarray_destroy(bxai)
     end do
 
-    call destroy(latmp)
+    if ( anynodal ) call destroy(latmp)
 
     bxasc%l_con%ncpy = lcnt_r
     bxasc%r_con%nsnd = cnt_s
