@@ -280,6 +280,11 @@ module multifab_module
 
   end interface
 
+  interface sum_boundary
+     module procedure multifab_sum_boundary
+     module procedure multifab_sum_boundary_c
+  end interface
+
   interface internal_sync
      module procedure multifab_internal_sync_c
      module procedure multifab_internal_sync
@@ -2288,6 +2293,71 @@ contains
     call zmultifab_fill_boundary_c(mf, 1, mf%nc, ng, cross)
   end subroutine zmultifab_fill_boundary
 
+  subroutine multifab_sum_boundary_c(mf, c, nc, ng)
+    type(multifab), intent(inout)         :: mf
+    integer,        intent(in)            :: c, nc
+    integer,        intent(in), optional  :: ng
+
+    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
+    type(boxarray)      :: bxai
+    type(box)           :: dbx
+    integer             :: i, j, ii, proc, dm, lng
+    integer             :: shft(2*3**mf%dim,mf%dim),lo(MAX_SPACEDIM),hi(MAX_SPACEDIM)
+    integer, parameter  :: tag = 1713
+
+    real(kind=dp_t), dimension(:,:,:,:), allocatable :: pt
+
+    lng = mf%ng; if ( present(ng) ) lng = ng
+
+    if ( lng > mf%ng      ) call bl_error('MULTIFAB_SUM_BOUNDARY_C: ng too large', lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_SUM_BOUNDARY_C: nc too large', nc)
+    if ( lng < 1          ) return
+
+    if ( .not. cell_centered_q(mf) ) call bl_error('MULTIFAB_SUM_BOUNDARY_C: mf is not cell centered')
+
+    lo = 1
+    hi = 1
+    dm = get_dim(mf)
+    !
+    ! TODO - use box_intersector stuff in the code below ...
+    !
+    do i = 1, mf%nboxes
+       call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft, .false.)
+       do j = 1, mf%nboxes
+          if ( remote(mf,i) .and. remote(mf,j) ) cycle
+          do ii = 1, nboxes(bxai)
+             dbx = intersection(get_ibox(mf,j), get_box(bxai,ii))
+             if ( empty(dbx) ) cycle
+             if ( local(mf,i) .and. local(mf,j) ) then
+                pdst => dataptr(mf, j, dbx, c, nc)
+                psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
+                pdst = pdst + psrc
+             else if ( local(mf,j) ) then ! must recv
+                lo(1:dm) = lwb(dbx)
+                hi(1:dm) = upb(dbx)
+                allocate(pt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),nc))
+                pdst => dataptr(mf, j, dbx, c, nc)
+                proc = get_proc(mf%la, i)
+                call parallel_recv(pt, proc, tag)
+                pdst = pdst + pt
+                deallocate(pt)
+             else if ( local(mf,i) ) then  ! must send
+                psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
+                proc = get_proc(mf%la,j)
+                call parallel_send(psrc, proc, tag)
+             end if
+          end do
+       end do
+       call destroy(bxai)
+    end do
+  end subroutine multifab_sum_boundary_c
+
+  subroutine multifab_sum_boundary(mf, ng)
+    type(multifab), intent(inout)         :: mf
+    integer,        intent(in), optional  :: ng
+    call multifab_sum_boundary_c(mf, 1, mf%nc, ng)
+  end subroutine multifab_sum_boundary
+
   subroutine mf_internal_sync_fancy(mf, c, nc, lall, filter)
     type(multifab), intent(inout)               :: mf
     integer, intent(in)                         :: c
@@ -3514,8 +3584,6 @@ contains
 
     r1 = 0_dp_t
     if ( cell_centered_q(mf) ) then
-
-
 
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
