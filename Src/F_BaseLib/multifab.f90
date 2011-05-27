@@ -2302,10 +2302,9 @@ contains
     type(boxarray)      :: bxai, batmp
     type(box)           :: dbx
     integer             :: i, j, ii, jj, proc, dm, lng
-    integer             :: shft(2*3**mf%dim,mf%dim),lo(MAX_SPACEDIM),hi(MAX_SPACEDIM)
+    integer             :: shft(2*3**mf%dim,mf%dim),dims(MAX_SPACEDIM)
     integer, parameter  :: tag = 1713
     type(layout)        :: latmp
-    type(list_box)      :: bltmp
     logical             :: anynodal
 
     type(box_intersector), pointer :: bi(:)
@@ -2317,21 +2316,17 @@ contains
     if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_SUM_BOUNDARY_C: nc too large', nc)
     if ( lng < 1          ) return
 
-    lo       = 1
-    hi       = 1
     dm       = get_dim(mf)
+    dims     = 1
     anynodal = any( mf%nodal .eqv. .true. )
 
     if ( anynodal ) then
        !
        ! Build a temporary layout to be used in intersection tests below.
        !
-       do i = 1, nboxes(mf%la)
-          call push_back(bltmp, box_nodalize(get_box(mf%la,i), mf%nodal))
-       end do
-       call boxarray_build_l(batmp, bltmp, sort = .false.)
-       call list_destroy_box(bltmp)
-       call build(latmp, batmp, explicit_mapping = get_proc(mf%la))
+       call copy(batmp, get_boxarray(get_layout(mf)))
+       call boxarray_nodalize(batmp, nodal_flags(mf))
+       call build(latmp, batmp, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
        call boxarray_destroy(batmp)
     endif
 
@@ -2352,9 +2347,8 @@ contains
                 psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
                 pdst = pdst + psrc
              else if ( local(mf,j) ) then ! must recv
-                lo(1:dm) = lwb(dbx)
-                hi(1:dm) = upb(dbx)
-                allocate(pt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),nc))
+                dims(1:dm) = extent(dbx)
+                allocate(pt(dims(1),dims(2),dims(3),nc))
                 pdst => dataptr(mf, j, dbx, c, nc)
                 proc = get_proc(mf%la, i)
                 call parallel_recv(pt, proc, tag)

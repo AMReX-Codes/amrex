@@ -441,7 +441,7 @@ contains
     type(boxarray)        :: ba
     real(dp_t), pointer   :: ap(:,:,:,:)
     real(dp_t), pointer   :: bp(:,:,:,:)
-    integer               :: i,j,ii,jj,idir,jdir,kdir,proc,lo(MAX_SPACEDIM),hi(MAX_SPACEDIM),dm
+    integer               :: i,j,ii,jj,idir,jdir,kdir,proc,dims(MAX_SPACEDIM),dm,numcomp
     logical               :: nodal(get_dim(dst))
     integer               :: shift_vector(3)
     integer,  parameter   :: tag = 1111
@@ -464,13 +464,13 @@ contains
 
     call build(bpt, "periodic_add_copy")
 
-    dm     = get_dim(dst)
-    lo     = 1
-    hi     = 1
-    nodal  = .true.
-    domain = box_nodalize(get_pd(get_layout(dst)),nodal)
+    dm      = get_dim(dst)
+    dims    = 1
+    nodal   = .true.
+    domain  = box_nodalize(get_pd(get_layout(dst)),nodal)
+    numcomp = ncomp(dst)
 
-    if ( synced ) call multifab_build(temp_dst,get_layout(dst),ncomp(dst),nghost(dst),nodal)
+    if ( synced ) call multifab_build(temp_dst,get_layout(dst),numcomp,nghost(dst),nodal)
     !
     ! Need to build temporary layouts with nodal boxarrays for the intersection tests below.
     !
@@ -548,9 +548,9 @@ contains
                       !
                       ! We own dst.  Got to get src from processor owning it.
                       !
-                      lo(1:dm) = lwb(bx_from); hi(1:dm) = upb(bx_from)
+                      dims(1:dm) = extent(bx_from)
                       proc = get_proc(get_layout(src),i)
-                      allocate(pt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:ncomp(dst)))
+                      allocate(pt(dims(1),dims(2),dims(3),numcomp))
                       call parallel_recv(pt, proc, tag)
                       if ( synced ) then
                          ap => dataptr(temp_dst,j,bx_to)
