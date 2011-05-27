@@ -273,7 +273,7 @@ contains
               proc  =  get_proc(get_layout(mm_fine),i)
 
               dims(1:dm) = extent(isect)
-              allocate(fmp(dims(1),dims(2),dims(3),dims(4)))
+              allocate(fmp(dims(1),dims(2),dims(3),1))
               call parallel_recv(fmp, proc, tag)
 
               select case (dm)
@@ -284,6 +284,7 @@ contains
               case (3)
                  call create_nodal_mask_3d(mkp(:,:,:,1),cmp(:,:,:,1),loc,fmp(:,:,:,1),lof,lo,hi,ir)
               end select
+
               deallocate(fmp)
            end if
         end do

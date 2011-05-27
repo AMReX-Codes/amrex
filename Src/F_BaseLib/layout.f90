@@ -1176,7 +1176,6 @@ contains
     integer, allocatable            :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer  :: n_cpy(:) => Null()
     type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
-    type(list_box)                  :: bltmp
     type(box_intersector), pointer  :: bi(:)
     logical                         :: anynodal
     type(bl_prof_timer), save       :: bpt
@@ -1206,13 +1205,10 @@ contains
        !
        ! Build a temporary layout to be used in intersection tests below.
        !
-       do i = 1, nboxes(la)
-          call push_back(bltmp, box_nodalize(get_box(bxa,i), nodal))
-       end do
-       call boxarray_build_l(batmp, bltmp, sort = .false.)
-       call list_destroy_box(bltmp)
-       call build(latmp, batmp, explicit_mapping = get_proc(la))
-       call boxarray_destroy(batmp)
+       call copy(batmp, bxa)
+       call boxarray_nodalize(batmp, nodal)
+       call build(latmp, batmp, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+       call destroy(batmp)
     end if
 
     bxasc%nodal = nodal
@@ -1471,7 +1467,7 @@ contains
     integer, parameter             :: ChunkSize = 50
     type(local_copy_desc)          :: lcd
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
-    type(list_box)                 :: lb1, lb2, bltmp
+    type(list_box)                 :: lb1, lb2
     type(boxarray)                 :: bxa, batmp
     type(box_intersector), pointer :: bi(:)
     type(layout)                   :: latmp
@@ -1480,14 +1476,10 @@ contains
     !
     ! Build a temporary layout to be used in intersection tests below.
     !
-    do i = 1, nboxes(la)
-       jbx = box_nodalize(get_box(bxa,i), nodal)
-       if ( lall ) jbx = grow(jbx,ng)
-       call push_back(bltmp, jbx)
-    end do
-    call build(batmp, bltmp, sort = .false.)
-    call destroy(bltmp)
-    call build(latmp, batmp, explicit_mapping = get_proc(la))
+    call copy(batmp, bxa)
+    call boxarray_nodalize(batmp, nodal)
+    if ( lall ) call boxarray_grow(batmp,ng)
+    call build(latmp, batmp, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(batmp)
 
     allocate(filled(nboxes(bxa)))
@@ -1801,7 +1793,6 @@ contains
     integer                        :: sh(MAX_SPACEDIM+1), jj
     type(box)                      :: bx
     type(boxarray)                 :: batmp
-    type(list_box)                 :: bltmp
     type(layout)                   :: lasrctmp
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
     integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max
@@ -1842,13 +1833,10 @@ contains
     !
     ! Build a temporary layout to be used in intersection tests below.
     !
-    do i = 1, nboxes(la_src)
-       call push_back(bltmp, box_nodalize(get_box(cpasc%ba_src,i), nd_src))
-    end do
-    call boxarray_build_l(batmp, bltmp, sort = .false.)
-    call list_destroy_box(bltmp)
-    call build(lasrctmp, batmp, explicit_mapping = get_proc(la_src))
-    call boxarray_destroy(batmp)
+    call copy(batmp, cpasc%ba_src)
+    call boxarray_nodalize(batmp, nd_src)
+    call build(lasrctmp, batmp, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+    call destroy(batmp)
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
     !
@@ -2029,7 +2017,6 @@ contains
     type(box)                      :: fbox, isect
     type(layout)                   :: lasrctmp
     type(boxarray)                 :: bxa_src, bxa_dst, batmp
-    type(list_box)                 :: bltmp
     integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, ii
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:), mpvol(:,:)
@@ -2083,13 +2070,10 @@ contains
        !
        ! Build a temporary layout to be used in intersection tests below.
        !
-       do i = 1, nboxes(la_src)
-          call push_back(bltmp, box_nodalize(get_box(bxa_src,i), nd_src))
-       end do
-       call boxarray_build_l(batmp, bltmp, sort = .false.)
-       call list_destroy_box(bltmp)
-       call build(lasrctmp, batmp, explicit_mapping = get_proc(la_src))
-       call boxarray_destroy(batmp)
+       call copy(batmp, bxa_src)
+       call boxarray_nodalize(batmp, nd_src)
+       call build(lasrctmp, batmp, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+       call destroy(batmp)
     end if
 
     parr = 0; pvol = 0; mpvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
