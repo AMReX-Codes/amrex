@@ -30,8 +30,11 @@ endif
 ifndef NDEBUG
   debug_suffix 	:= .debug
 endif
+ifdef SDC
+  sdc_suffix 	:= .SDC
+endif
 
-suf=$(ARCH).$(COMP)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(hpc_suffix)
+suf=$(ARCH).$(COMP)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(hpc_suffix)$(sdc_suffix)
 
 sources     =
 fsources    =
