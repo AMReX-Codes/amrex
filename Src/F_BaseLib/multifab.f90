@@ -4652,7 +4652,7 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng <= ng, "not enough ghost cells in multifab_sub_sub_c")
+    if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub_c")
     do i = 1, a%nboxes
        if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
