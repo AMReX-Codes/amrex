@@ -243,7 +243,7 @@ contains
     ! NOTE: this is exactly the same as the stencil_norm function except that we sum the
     !       components of the stencil, not the absolute value of each component
 
-    call build(bpt, "st_norm")
+    call build(bpt, "st_sum")
     r1 = -Huge(r1)
     if ( present(mask) ) then
        do b = 1, nboxes(ss)
