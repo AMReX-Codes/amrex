@@ -3371,6 +3371,10 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                 TimeStampFile.open(FileName.c_str(), std::ios::out|std::ios::app|std::ios::binary);
 
+                TimeStampFile.setf(std::ios_base::scientific,std::ios_base::floatfield);
+
+                TimeStampFile.precision(10);
+
                 TimeStampFile.seekp(0, std::ios::end);
 
                 if (!TimeStampFile.good())
