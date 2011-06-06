@@ -360,9 +360,7 @@ contains
        case (1)
           allocate(fp(lo_f(1):hi_f(1),1:1,1:1,1:nc))
           if (fourth_order) then
-             call fourth_order_interp_1d(fp(:,1,1,:), lo_f, src(:,1,1,:), lo_c, ir, local_bc, &
-                   fvcx, lo_f(1), cvcx, lo_c(1), &
-                   cslope_lo, cslope_hi)
+             call bl_error('fillpatch: fourth_order_interp not implemented in 1d')
           else
              call lin_cc_interp_1d(fp(:,1,1,:), lo_f, src(:,1,1,:), lo_c, ir, local_bc, &
                 fvcx, lo_f(1), cvcx, lo_c(1), &
@@ -371,10 +369,8 @@ contains
        case (2)
           allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),1:1,1:nc))
           if (fourth_order) then
-             call fourth_order_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, local_bc, &
-                   fvcx, lo_f(1), fvcy, lo_f(2), &
-                   cvcx, lo_c(1), cvcy, lo_c(2), &
-                   cslope_lo, cslope_hi)
+             call fourth_order_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, &
+                  cslope_lo, cslope_hi)
           else
              call lin_cc_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, local_bc, &
                 fvcx, lo_f(1), fvcy, lo_f(2), &
@@ -384,10 +380,7 @@ contains
        case (3)
           allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),lo_f(3):hi_f(3),1:nc))
           if (fourth_order) then
-             call fourth_order_interp_3d(fp(:,:,:,:), lo_f, src(:,:,:,:), lo_c, ir, local_bc, &
-                     fvcx, lo_f(1), fvcy, lo_f(2), fvcz, lo_f(3), &
-                     cvcx, lo_c(1), cvcy, lo_c(2), cvcz, lo_c(3), &
-                     cslope_lo, cslope_hi)
+             call bl_error('fillpatch: fourth_order_interp not implemented in 3d')
           else
              call lin_cc_interp_3d(fp(:,:,:,:), lo_f, src(:,:,:,:), lo_c, ir, local_bc, &
                   fvcx, lo_f(1), fvcy, lo_f(2), fvcz, lo_f(3), &
