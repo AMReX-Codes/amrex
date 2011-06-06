@@ -2092,8 +2092,9 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
                     const IntVect hid = lod + IntVect::TheUnitVector();
 
-                    Real deltad[BL_SPACEDIM] = { D_DECL(delta[0]-0.5, delta[1]-0.5, delta[2]-0.5) };
-
+                    Real deltad[BL_SPACEDIM] =  { D_DECL((p.m_pos[0]-plo[0])/dx[0]-lod[0]-0.5,
+                                                         (p.m_pos[1]-plo[1])/dx[1]-lod[1]-0.5,
+                                                         (p.m_pos[2]-plo[2])/dx[2]-lod[2]-0.5) };
                     deltad[d] = delta[d];
 
                     for (int dm = 0; dm < BL_SPACEDIM; dm++)
