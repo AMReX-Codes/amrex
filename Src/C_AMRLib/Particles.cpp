@@ -209,6 +209,78 @@ ParticleBase::Reset (ParticleBase& p,
     }
 }
 
+Real
+ParticleBase::InterpDoIt (const FArrayBox& fab,
+                          const IntVect&   hi,
+                          const Real*      frac,
+                          int              comp)
+{
+    IntVect cell = hi;
+
+    Real val = 0;
+
+#if (BL_SPACEDIM == 1)
+    // High
+    val += fab(cell,comp) * frac[0];
+
+    // Low
+    cell[0] = cell[0] - 1;
+    val += fab(cell,comp) * (1-frac[0]);
+
+#elif (BL_SPACEDIM == 2)
+    // HH
+    val += fab(cell,comp) *    frac[0]  *    frac[1] ;
+
+    // LH
+    cell[0] = cell[0] - 1;
+    val += fab(cell,comp) * (1-frac[0]) *    frac[1] ;
+
+    // LL
+    cell[1]   = cell[1] - 1;
+    val += fab(cell,comp) * (1-frac[0]) * (1-frac[1]);
+
+    // HL
+    cell[0] = cell[0] + 1;
+    val += fab(cell,comp) *    frac[0]  * (1-frac[1]);
+
+#elif (BL_SPACEDIM == 3)
+    // HHH
+    val += fab(cell,comp) *    frac[0]  *    frac[1]  *    frac[2] ;
+   
+    // LHH
+    cell[0] = cell[0] - 1;
+    val += fab(cell,comp) * (1-frac[0]) *    frac[1]  *    frac[2] ;
+   
+    // LLH
+    cell[1] = cell[1] - 1;
+    val += fab(cell,comp) * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
+   
+    // HLH
+    cell[0] = cell[0] + 1;
+    val += fab(cell,comp) *    frac[0]  * (1-frac[1]) *    frac[2] ;
+
+    cell    = hi;
+    cell[2] = cell[2] - 1;
+
+    // HHL
+    val += fab(cell,comp) *    frac[0]  *    frac[1]  *    (1-frac[2]) ;
+   
+    // LHL
+    cell[0] = cell[0] - 1;
+    val += fab(cell,comp) * (1-frac[0]) *    frac[1]  *    (1-frac[2]) ;
+   
+    // LLL
+    cell[1] = cell[1] - 1;
+    val += fab(cell,comp) * (1-frac[0]) * (1-frac[1]) *    (1-frac[2]) ;
+   
+    // HLL
+    cell[0] = cell[0] + 1;
+    val += fab(cell,comp) *    frac[0]  * (1-frac[1]) *    (1-frac[2]) ;
+#endif
+
+    return val;
+}
+
 void
 ParticleBase::Interp (const ParticleBase& prt,
                       const Amr*          amr,
@@ -225,21 +297,19 @@ ParticleBase::Interp (const ParticleBase& prt,
     const Real*     dx = gm.CellSize();
 
     const Real len[BL_SPACEDIM] = { D_DECL((prt.m_pos[0]-gm.ProbLo(0))/dx[0] + 0.5,
-                                          (prt.m_pos[1]-gm.ProbLo(1))/dx[1] + 0.5,
-                                          (prt.m_pos[2]-gm.ProbLo(2))/dx[2] + 0.5) };
+                                           (prt.m_pos[1]-gm.ProbLo(1))/dx[1] + 0.5,
+                                           (prt.m_pos[2]-gm.ProbLo(2))/dx[2] + 0.5) };
 
-    const IntVect csect(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+    const IntVect hi(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-    const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-csect[0],
-                                            len[1]-csect[1],
-                                            len[2]-csect[2])};
-    //
-    // Test that "frac" is in [0,1] with a little floating-point wiggle room.
-    //
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-hi[0], len[1]-hi[1], len[2]-hi[2])};
+
+    for (int d = 0; d < BL_SPACEDIM; d++)
     {
-        BL_ASSERT(frac[i] > 0-1.e-12*dx[i]);
-        BL_ASSERT(frac[i] < 1+1.e-12*dx[i]);
+        if (frac[d] > 1)
+            frac[d] = 1;
+        else if (frac[d] < 0)
+            frac[d] = 0;
     }
 
     for (int i = 0; i < cnt; i++)
@@ -248,68 +318,7 @@ ParticleBase::Interp (const ParticleBase& prt,
 
         BL_ASSERT(comp >= 0 && comp < fab.nComp());
 
-        IntVect cell = csect;
-
-        val[i] = 0;
-
-#if (BL_SPACEDIM == 1)
-        // High
-        val[i] += fab(cell,comp) * frac[0];
-
-        // Low
-        cell[0]   = cell[0] - 1;
-        val[i] += fab(cell,comp) * (1-frac[0]);
-
-#elif (BL_SPACEDIM == 2)
-        // HH
-        val[i] += fab(cell,comp) *    frac[0]  *    frac[1] ;
-
-        // LH
-        cell[0]   = cell[0] - 1;
-        val[i] += fab(cell,comp) * (1-frac[0]) *    frac[1] ;
-
-        // LL
-        cell[1]   = cell[1] - 1;
-        val[i] += fab(cell,comp) * (1-frac[0]) * (1-frac[1]);
-
-        // HL
-        cell[0]   = cell[0] + 1;
-        val[i] += fab(cell,comp) *    frac[0]  * (1-frac[1]);
-
-#elif (BL_SPACEDIM == 3)
-        // HHH
-        val[i] += fab(cell,comp) *    frac[0]  *    frac[1]  *    frac[2] ;
-   
-        // LHH
-        cell[0]   = cell[0] - 1;
-        val[i] += fab(cell,comp) * (1-frac[0]) *    frac[1]  *    frac[2] ;
-   
-        // LLH
-        cell[1]   = cell[1] - 1;
-        val[i] += fab(cell,comp) * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
-   
-        // HLH
-        cell[0]   = cell[0] + 1;
-        val[i] += fab(cell,comp) *    frac[0]  * (1-frac[1]) *    frac[2] ;
-
-        cell     = csect;
-        cell[2]  = cell[2] - 1;
-
-        // HHL
-        val[i] += fab(cell,comp) *    frac[0]  *    frac[1]  *    (1-frac[2]) ;
-   
-        // LHL
-        cell[0]   = cell[0] - 1;
-        val[i] += fab(cell,comp) * (1-frac[0]) *    frac[1]  *    (1-frac[2]) ;
-   
-        // LLL
-        cell[1]   = cell[1] - 1;
-        val[i] += fab(cell,comp) * (1-frac[0]) * (1-frac[1]) *    (1-frac[2]) ;
-   
-        // HLL
-        cell[0]   = cell[0] + 1;
-        val[i] += fab(cell,comp) *    frac[0]  * (1-frac[1]) *    (1-frac[2]) ;
-#endif
+        val[i] = ParticleBase::InterpDoIt(fab,hi,frac,comp);
     }
 }
 

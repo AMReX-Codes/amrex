@@ -46,6 +46,8 @@ struct ParticleBase
 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
 
+    static Real InterpDoIt (const FArrayBox& fab, const IntVect& hiidx, const Real* frac, int comp);
+
     static void Interp (const ParticleBase& prt, const Amr* amr, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
     static const std::string& Version ();
@@ -2078,20 +2080,31 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                            BL_ASSERT(std::abs(p.m_cell[2]-lo[2]) <= 1););
                 }
 
+                const Real delta[BL_SPACEDIM] =  { D_DECL((p.m_pos[0]-plo[0])/dx[0]-lo[0],
+                                                          (p.m_pos[1]-plo[1])/dx[1]-lo[1],
+                                                          (p.m_pos[2]-plo[2])/dx[2]-lo[2]) };
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    IntVect hi = lo;
+                    IntVect lod(D_DECL(floor((p.m_pos[0]-plo[0])/dx[0]-0.5),
+                                       floor((p.m_pos[1]-plo[1])/dx[1]-0.5),
+                                       floor((p.m_pos[2]-plo[2])/dx[2]-0.5)));
+                    lod[d] = lo[d];
 
-                    hi[d] += 1;
+                    const IntVect hid = lod + IntVect::TheUnitVector();
 
-                    Real delta = (p.m_pos[d] - plo[d]) / dx[d] - lo[d];
+                    Real deltad[BL_SPACEDIM] = { D_DECL(delta[0]-0.5, delta[1]-0.5, delta[2]-0.5) };
 
-                    if (delta > 1)
-                        delta = 1;
-                    else if (delta < 0)
-                        delta = 0;
+                    deltad[d] = delta[d];
 
-                    const Real vlo = (*fab[d])(lo), vhi = (*fab[d])(hi), vel = vlo + delta * (vhi - vlo);
+                    for (int dm = 0; dm < BL_SPACEDIM; dm++)
+                    {
+                        if (deltad[dm] > 1)
+                            deltad[dm] = 1;
+                        else if (deltad[dm] < 0)
+                            deltad[dm] = 0;
+                    }
+
+                    const Real vel = ParticleBase::InterpDoIt(*fab[d], hid, deltad, 0);
 
                     if (ipass == 0)
                     {
