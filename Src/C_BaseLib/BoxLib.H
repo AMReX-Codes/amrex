@@ -2,7 +2,7 @@
 #define BL_BOXLIB_H
 
 //
-// $Id: BoxLib.H,v 1.15 2001-07-31 17:56:25 lijewski Exp $
+// $Id: BoxLib.H,v 1.16 2011-06-06 22:39:17 lijewski Exp $
 //
 
 //
@@ -22,7 +22,7 @@ namespace BoxLib
 {
     void Initialize (int& argc, char**& argv);
 
-    void Finalize();
+    void Finalize (bool finalize_parallel = true);
     //
     //@ManDoc: Print out message to cerr and exit via BoxLib::Abort().
     //

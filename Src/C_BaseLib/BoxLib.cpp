@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.41 2011-04-18 16:43:03 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.42 2011-06-06 22:39:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -281,7 +281,7 @@ BoxLib::Initialize (int& argc, char**& argv)
 }
 
 void
-BoxLib::Finalize ()
+BoxLib::Finalize (bool finalize_parallel)
 {
     bl_prf->stop();
     delete bl_prf;
@@ -291,5 +291,6 @@ BoxLib::Finalize ()
     WorkQueue::Finalize();
     Profiler::Finalize();
     ParmParse::Finalize();
-    ParallelDescriptor::EndParallel();
+    if (finalize_parallel)
+        ParallelDescriptor::EndParallel();
 }
