@@ -1,4 +1,4 @@
-module fourth_order_interp_coeffs_module
+module fourth_order_interp_coef_module
 
   real(kind=8), parameter :: P2(15,21) = &
        reshape((/ &
@@ -383,4 +383,4 @@ module fourth_order_interp_coeffs_module
        0.003125 /), (/4, 15/))
 
 
-end module fourth_order_interp_coeffs_module
+end module fourth_order_interp_coef_module

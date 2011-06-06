@@ -1007,7 +1007,7 @@ contains
   subroutine fourth_order_interp_2d (fine, fine_lo, crse, crse_lo, lratio, &
        cg_lo, cg_hi)
 
-    use fourth_order_interp_coeffs_module
+    use fourth_order_interp_coef_module
 
     implicit none
 
