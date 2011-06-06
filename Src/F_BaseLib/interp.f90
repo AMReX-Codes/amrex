@@ -1054,7 +1054,7 @@ contains
              b( 13) = crse(ic+1, jc-2, n)
              b( 14) = crse(ic+1, jc-1, n)
              b( 15) = crse(ic+1, jc+0, n)
-             e( 16) = crse(ic+1, jc+1, n)
+             b( 16) = crse(ic+1, jc+1, n)
              b( 17) = crse(ic+1, jc+2, n)
              b( 18) = crse(ic+2, jc-1, n)
              b( 19) = crse(ic+2, jc+0, n)
