@@ -433,11 +433,7 @@ ParticleContainer<N>::InitCosmo ()
 
     Real vel_fac  = 1 / 1000.0;
 
-    Real len[BL_SPACEDIM];
-    D_TERM(len[0] = geom.ProbLength(0);,
-           len[1] = geom.ProbLength(1);,
-           len[2] = geom.ProbLength(2););
-
+    const Real len[BL_SPACEDIM] = { geom.ProbLength(0),geom.ProbLength(1),geom.ProbLength(2) };
     //
     // Read the init directory name and particle mass from the inputs file
     //
@@ -576,11 +572,7 @@ ParticleContainer<N>::InitRandom (long          icount,
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_amr->Geom(0);
 
-    Real len[BL_SPACEDIM], r;
-
-    D_TERM(len[0] = geom.ProbLength(0);,
-           len[1] = geom.ProbLength(1);,
-           len[2] = geom.ProbLength(2););
+    Real r, len[BL_SPACEDIM] = { geom.ProbLength(0), geom.ProbLength(1), geom.ProbLength(2) };
 
     BoxLib::InitRandom(iseed+MyProc);
 
@@ -894,7 +886,9 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
             Real dt_part = (mag_vel > 0) ? (0.5 * a * dx[0] / mag_vel) : 1e50;
 
-            const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0), gfab(p.m_cell,1), gfab(p.m_cell,2)) };
+            const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0),
+                                                    gfab(p.m_cell,1),
+                                                    gfab(p.m_cell,2)) };
 
             const Real mag_grav = sqrt(D_TERM(gval[0]*gval[0], + gval[1]*gval[1], + gval[2]*gval[2]));
 
@@ -1088,16 +1082,14 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
 
             const IntVect csect(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-            const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-csect[0],
-                                                    len[1]-csect[1],
-                                                    len[2]-csect[2]) };
-            //
-            // Test that "frac" is in [0,1] with a little floating-point wiggle room.
-            //
-            for (int i = 0; i < BL_SPACEDIM; i++)
+            Real frac[BL_SPACEDIM] = { D_DECL(len[0]-csect[0],
+                                              len[1]-csect[1],
+                                              len[2]-csect[2]) };
+
+            for (int d = 0; d < BL_SPACEDIM; d++)
             {
-                BL_ASSERT(frac[i] > 0-1.e-12*dx[i]);
-                BL_ASSERT(frac[i] < 1+1.e-12*dx[i]);
+                if (frac[d] > 1) frac[d] = 1;
+                if (frac[d] < 0) frac[d] = 0;
             }
 
             IntVect cell = csect;
@@ -1443,7 +1435,8 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
                        p.m_data[2] += dt * gfab(p.m_cell,1);,
                        p.m_data[3] += dt * gfab(p.m_cell,2););
 
-                D_TERM(p.m_pos[0]  += dt * p.m_data[1];, p.m_pos[1]  += dt * p.m_data[2];,
+                D_TERM(p.m_pos[0]  += dt * p.m_data[1];,
+                       p.m_pos[1]  += dt * p.m_data[2];,
                        p.m_pos[2]  += dt * p.m_data[3];);
 
                 ParticleBase::Reset(p,m_amr,true);
@@ -1762,7 +1755,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     const Real      strttime         = ParallelDescriptor::second();
     const Geometry& geom             = m_amr->Geom(lev);
     const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
-    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0),  geom.ProbLo(1),  geom.ProbLo(2))   };
     const Real      half_dt          = 0.5 * dt;
     const Real      a_half_inv       = 1 / a_half;
     PMap&           pmap             = m_particles[lev];
@@ -1802,10 +1795,8 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
 
                 Real delta = (p.m_pos[d] - plo[d]) / dx[d] - lo[d];
 
-                if (delta > 1)
-                    delta = 1;
-                else if (delta < 0)
-                    delta = 0;
+                if (delta > 1) delta = 1;
+                if (delta < 0) delta = 0;
 
                 const Real grav_lo = (*gfab[d])(lo);
                 const Real grav_hi = (*gfab[d])(hi);
@@ -1879,7 +1870,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
     const Real      strttime         = ParallelDescriptor::second();
     const Geometry& geom             = m_amr->Geom(lev);
     const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
-    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0),  geom.ProbLo(1),  geom.ProbLo(2))   };
     const Real      half_dt          = 0.5 * dt;
     const Real      a_new_inv        = 1 / a_new;
     PMap&           pmap             = m_particles[lev];
@@ -1919,10 +1910,8 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
 
                 Real delta = (p.m_pos[d] - plo[d]) / dx[d] - lo[d];
 
-                if (delta > 1)
-                    delta = 1;
-                else if (delta < 0)
-                    delta = 0;
+                if (delta > 1) delta = 1;
+                if (delta < 0) delta = 0;
 
                 const Real grav_lo = (*gfab[d])(lo);
                 const Real grav_hi = (*gfab[d])(hi);
@@ -2036,7 +2025,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
     const Real      strttime         = ParallelDescriptor::second();
     const Geometry& geom             = m_amr->Geom(lev);
     const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
-    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0),  geom.ProbLo(1),  geom.ProbLo(2))   };
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
@@ -2099,10 +2088,8 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
                     for (int dm = 0; dm < BL_SPACEDIM; dm++)
                     {
-                        if (deltad[dm] > 1)
-                            deltad[dm] = 1;
-                        else if (deltad[dm] < 0)
-                            deltad[dm] = 0;
+                        if (deltad[dm] > 1) deltad[dm] = 1;
+                        if (deltad[dm] < 0) deltad[dm] = 0;
                     }
 
                     const Real vel = ParticleBase::InterpDoIt(*fab[d], hid, deltad, 0);
