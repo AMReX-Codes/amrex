@@ -46,7 +46,7 @@ struct ParticleBase
 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
 
-    static Real InterpDoIt (const FArrayBox& fab, const IntVect& hiidx, const Real* frac, int comp);
+    static Real InterpDoit (const FArrayBox& fab, const IntVect& hiidx, const Real* frac, int comp);
 
     static void Interp (const ParticleBase& prt, const Amr* amr, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
@@ -195,7 +195,7 @@ protected:
     //
     // Helper function for AssignDensity().
     //
-    void AssignDensityDoIt (MultiFab& mf, int level) const;
+    void AssignDensityDoit (MultiFab& mf, int level) const;
     //
     // Helper function for Checkpoint().
     //
@@ -1022,7 +1022,7 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
+ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
                                          int       lev) const
 {
     BL_ASSERT(N >= 1);
@@ -1034,7 +1034,7 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
     const int       n    = pmap.size();
 
     if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
-        BoxLib::Error("AssignDensityDoIt: problem must be periodic in no or all directions");
+        BoxLib::Error("AssignDensityDoit: problem must be periodic in no or all directions");
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         mf[mfi].setVal(0);
@@ -1099,7 +1099,7 @@ ParticleContainer<N>::AssignDensityDoIt (MultiFab& mf,
             //
             if (!gm.isAllPeriodic())
                 if (!gm.Domain().contains(cell))
-                    BoxLib::Error("AssignDensityDoIt: if not periodic, all particles must stay away from the domain boundary");
+                    BoxLib::Error("AssignDensityDoit: if not periodic, all particles must stay away from the domain boundary");
 
 #if (BL_SPACEDIM == 1)
             // High
@@ -1180,7 +1180,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
     const Real strttime = ParallelDescriptor::second();
 
-    AssignDensityDoIt(mf,lev);
+    AssignDensityDoit(mf,lev);
 
     const Real* dx = m_amr->Geom(lev).CellSize();
 
@@ -1233,7 +1233,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         //
         // It also calls SumBoundary() and SumPeriodicBoundary().
         //
-        AssignDensityDoIt(mf[i],i);
+        AssignDensityDoit(mf[i],i);
     }
     //
     // Next we have to sum up from coarse to fine on any
@@ -2012,15 +2012,14 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
-    //
-    // We expect to be using a "grown" version of umac.
-    // This'll obviate the need for doing a Redistribute()
-    // after the predictor step; i.e. we'll only need a
-    // Redistribute() after the corrector step.
-    //
+
     D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
            BL_ASSERT(umac[1].nGrow() >= 1);,
            BL_ASSERT(umac[2].nGrow() >= 1););
+
+    D_TERM(BL_ASSERT(!umac[0].contains_nan());,
+           BL_ASSERT(!umac[1].contains_nan());,
+           BL_ASSERT(!umac[2].contains_nan()););
 
     const Real      strttime         = ParallelDescriptor::second();
     const Geometry& geom             = m_amr->Geom(lev);
@@ -2049,50 +2048,32 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                 if (p.m_id <= 0) continue;
 
                 BL_ASSERT(p.m_grid == grid);
-                //
-                // If (ipass==1) we have to get the new location of the
-                // "predicted" particle. Asssuming that we can move
-                // at most one cell, and using the fact that we have one
-                // grow cell, we had better still be on the same grid in
-                // the same fab.
-                //
-                const IntVect lo = (ipass == 0) ? p.m_cell : ParticleBase::Index(p,p.m_lev,m_amr);
 
-                if (ipass == 1)
-                {
-                    D_TERM(BL_ASSERT(fab[0]->box().contains(lo));,
-                           BL_ASSERT(fab[1]->box().contains(lo));,
-                           BL_ASSERT(fab[2]->box().contains(lo)););
+                const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + 0.5,
+                                                       (p.m_pos[1]-plo[1])/dx[1] + 0.5,
+                                                       (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
 
-                    D_TERM(BL_ASSERT(std::abs(p.m_cell[0]-lo[0]) <= 1);,
-                           BL_ASSERT(std::abs(p.m_cell[1]-lo[1]) <= 1);,
-                           BL_ASSERT(std::abs(p.m_cell[2]-lo[2]) <= 1););
-                }
+                const IntVect hi(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-                const Real delta[BL_SPACEDIM] =  { D_DECL((p.m_pos[0]-plo[0])/dx[0]-lo[0],
-                                                          (p.m_pos[1]-plo[1])/dx[1]-lo[1],
-                                                          (p.m_pos[2]-plo[2])/dx[2]-lo[2]) };
+                const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-hi[0], len[1]-hi[1], len[2]-hi[2]) };
+
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    IntVect lod(D_DECL(floor((p.m_pos[0]-plo[0])/dx[0]-0.5),
-                                       floor((p.m_pos[1]-plo[1])/dx[1]-0.5),
-                                       floor((p.m_pos[2]-plo[2])/dx[2]-0.5)));
-                    lod[d] = lo[d];
+                    IntVect ehi = hi;
 
-                    const IntVect hid = lod + IntVect::TheUnitVector();
+                    ehi[d] = p.m_cell[d] + 1;
 
-                    Real deltad[BL_SPACEDIM] =  { D_DECL((p.m_pos[0]-plo[0])/dx[0]-lod[0]-0.5,
-                                                         (p.m_pos[1]-plo[1])/dx[1]-lod[1]-0.5,
-                                                         (p.m_pos[2]-plo[2])/dx[2]-lod[2]-0.5) };
-                    deltad[d] = delta[d];
+                    Real efrac[BL_SPACEDIM] = { D_DECL(frac[0], frac[1], frac[2]) };
 
-                    for (int dm = 0; dm < BL_SPACEDIM; dm++)
+                    efrac[d] = (p.m_pos[d]-plo[d])/dx[d] - p.m_cell[d];
+
+                    for (int j = 0; j < BL_SPACEDIM; j++)
                     {
-                        if (deltad[dm] > 1) deltad[dm] = 1;
-                        if (deltad[dm] < 0) deltad[dm] = 0;
+                        if (efrac[j] > 1) efrac[j] = 1;
+                        if (efrac[j] < 0) efrac[j] = 0;
                     }
 
-                    const Real vel = ParticleBase::InterpDoIt(*fab[d], hid, deltad, 0);
+                    const Real vel = ParticleBase::InterpDoit(*fab[d], ehi, efrac, 0);
 
                     if (ipass == 0)
                     {
@@ -2114,18 +2095,28 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         //
                         // Update to final time using the orig position and the new vel.
                         //
-                        p.m_pos[d] = .5 * (p.m_data[d] + p.m_pos[d] + dt*vel);
+                        p.m_pos[d] = 0.5 * (p.m_data[d] + p.m_pos[d] + dt*vel);
                     }
                 }
 
-                if (ipass == 1) ParticleBase::Reset(p,m_amr,true);
+                if (!ParticleBase::Where(p,m_amr,true))
+                {
+                    //
+                    // If the particle goes out of the domain we invalidate it.
+                    // Even if we're periodic in that direction.  Too much trouble
+                    // to think about the right thing to do right now.
+                    //
+                    std::cout << "Invalidating out-of-domain particle: " << p << '\n';
+
+                    BL_ASSERT(p.m_id > 0);
+
+                    p.m_id = -p.m_id;
+                }
             }
         }
+
+        Redistribute(true);
     }
-    //
-    // We only Redistribute() after both passes.
-    //
-    Redistribute(true);
 
     if (m_verbose > 1)
     {
