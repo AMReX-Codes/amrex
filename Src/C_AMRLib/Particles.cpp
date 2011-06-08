@@ -210,7 +210,7 @@ ParticleBase::Reset (ParticleBase& p,
 }
 
 Real
-ParticleBase::InterpDoIt (const FArrayBox& fab,
+ParticleBase::InterpDoit (const FArrayBox& fab,
                           const IntVect&   hi,
                           const Real*      frac,
                           int              comp)
@@ -302,14 +302,12 @@ ParticleBase::Interp (const ParticleBase& prt,
 
     const IntVect hi(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-hi[0], len[1]-hi[1], len[2]-hi[2])};
+    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-hi[0], len[1]-hi[1], len[2]-hi[2]) };
 
     for (int d = 0; d < BL_SPACEDIM; d++)
     {
-        if (frac[d] > 1)
-            frac[d] = 1;
-        else if (frac[d] < 0)
-            frac[d] = 0;
+        if (frac[d] > 1) frac[d] = 1;
+        if (frac[d] < 0) frac[d] = 0;
     }
 
     for (int i = 0; i < cnt; i++)
@@ -318,7 +316,7 @@ ParticleBase::Interp (const ParticleBase& prt,
 
         BL_ASSERT(comp >= 0 && comp < fab.nComp());
 
-        val[i] = ParticleBase::InterpDoIt(fab,hi,frac,comp);
+        val[i] = ParticleBase::InterpDoit(fab,hi,frac,comp);
     }
 }
 
