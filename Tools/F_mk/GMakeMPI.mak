@@ -26,15 +26,15 @@ ifeq ($(ARCH),Linux)
   ifeq ($(COMP),PathScale)
     FC = mpif90
     F90 = mpif90
-	ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-		FC = mpipathf90
-		F90 = mpipathf90
-                CC = mpipathcc
-        endif
-  ifdef MPIHOME
+    ifeq ($(findstring atlas, $(UNAMEN)), atlas)
+      FC = mpipathf90
+      F90 = mpipathf90
+      CC = mpipathcc
+    endif
+    ifdef MPIHOME
       mpi_include_dir = $(MPIHOME)/include
     endif
-  endif
+  endif  # end of PathScale
 endif
 #
 # Try and catch the Lawrencium cluster ...
@@ -346,6 +346,16 @@ ifeq ($(findstring inf, $(UNAMEN)), inf)
   F90 = mpif90
   CXX = mpicxx
 endif
+
+# generic linux laptop install with MPICH -- assumes that the MPIHOME 
+# environment variable is set
+ifeq ($(findstring localhost, $(UNAMEN)), localhost)
+  ifeq ($(findstring mpich, $(MPIHOME)), mpich)
+    F90 = mpif90
+    CXX = mpicxx
+  endif
+endif
+
 
 ifeq ($(HOST),lookfar)
   MPIHOME=/usr/local
