@@ -3311,11 +3311,14 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     //
     const int MaxOutFiles = 32;
 
-    const int MyProc    = ParallelDescriptor::MyProc();
-    const int NProcs    = ParallelDescriptor::NProcs();
-    const int nOutFiles = std::min(MaxOutFiles, NProcs);
-    const int nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
-    const int mySet     = (MyProc / nOutFiles);
+    const int   MyProc    = ParallelDescriptor::MyProc();
+    const int   NProcs    = ParallelDescriptor::NProcs();
+    const int   nOutFiles = std::min(MaxOutFiles, NProcs);
+    const int   nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
+    const int   mySet     = (MyProc / nOutFiles);
+    const Real* dx        = m_amr->Geom(lev).CellSize();
+    const Real* plo       = m_amr->Geom(lev).ProbLo();
+    const Real* phi       = m_amr->Geom(lev).ProbHi();
 
     static std::string TimestampFormat   = "_%02d";
 
@@ -3404,7 +3407,21 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                         if (!indices.empty())
                         {
+#if (BL_SPACEDIM==2)
+                            const Box& bx = fab.box();
+                            const int* lo = bx.loVect();
+                            const int* hi = bx.hiVect();
+                            const Real x = p.m_pos[0];
+                            const Real y = p.m_pos[1];
+
+                            for (int j = 0; j < indices.size(); j++)
+                            {
+                                BL_FORT_PROC_CALL(BICUBICINTERP,bicubicinterp)
+                                    (&x, &y, fab.dataPtr(indices[j]), lo, hi, plo, phi, dx, &vals[j]);
+                            }
+#else
                             ParticleBase::Interp(p,m_amr,fab,&indices[0],&vals[0],indices.size());
+#endif
 
                             for (int i = 0; i < indices.size(); i++)
                             {
