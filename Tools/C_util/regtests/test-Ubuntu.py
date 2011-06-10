@@ -1565,7 +1565,7 @@ def reportSingleTest(sourceTree, testName, testDir, fullWebDir):
         sf.write("PASSED\n")
         success("    %s PASSED" % (testName))
     else:
-        sf.write("FAILED\n")
+        sf.write("FAILED\n\n\n")
         testfail("    %s FAILED" % (testName))
 
     sf.close()
