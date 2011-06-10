@@ -3320,9 +3320,10 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     const int   nOutFiles = std::min(MaxOutFiles, NProcs);
     const int   nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
     const int   mySet     = (MyProc / nOutFiles);
-    const Real* dx        = m_amr->Geom(lev).CellSize();
-    const Real* plo       = m_amr->Geom(lev).ProbLo();
-    const Real* phi       = m_amr->Geom(lev).ProbHi();
+
+//    const Real* dx        = m_amr->Geom(lev).CellSize();
+//    const Real* plo       = m_amr->Geom(lev).ProbLo();
+//    const Real* phi       = m_amr->Geom(lev).ProbHi();
 
     static std::string TimestampFormat   = "_%02d";
 
