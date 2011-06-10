@@ -763,8 +763,8 @@ ParticleContainer<N>::MoveRandom (int lev)
     BL_ASSERT(m_amr != 0);
 
     {
-        PMap&           pmap = m_particles[lev];
-        const Geometry& geom = m_amr->Geom(lev);
+        PMap&       pmap = m_particles[lev];
+        const Real* dx   = m_amr->Geom(lev).CellSize();
 
         for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
         {
@@ -783,7 +783,7 @@ ParticleContainer<N>::MoveRandom (int lev)
                         if (BoxLib::Random() >= 0.5)
                             sgn = -1;
 
-                        it->m_pos[i] +=  sgn * 0.25 * geom.CellSize(i) * BoxLib::Random();
+                        it->m_pos[i] +=  sgn * 0.25 * dx[i] * BoxLib::Random();
                     }
 
                     ParticleBase::Reset(*it,m_amr,true);
@@ -1752,13 +1752,13 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    const Real      strttime         = ParallelDescriptor::second();
-    const Geometry& geom             = m_amr->Geom(lev);
-    const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
-    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0),  geom.ProbLo(1),  geom.ProbLo(2))   };
-    const Real      half_dt          = 0.5 * dt;
-    const Real      a_half_inv       = 1 / a_half;
-    PMap&           pmap             = m_particles[lev];
+    const Real      strttime   = ParallelDescriptor::second();
+    const Geometry& geom       = m_amr->Geom(lev);
+    const Real*     dx         = geom.CellSize();
+    const Real*     plo        = geom.ProbLo();
+    const Real      half_dt    = 0.5 * dt;
+    const Real      a_half_inv = 1 / a_half;
+    PMap&           pmap       = m_particles[lev];
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -1867,13 +1867,13 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    const Real      strttime         = ParallelDescriptor::second();
-    const Geometry& geom             = m_amr->Geom(lev);
-    const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
-    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0),  geom.ProbLo(1),  geom.ProbLo(2))   };
-    const Real      half_dt          = 0.5 * dt;
-    const Real      a_new_inv        = 1 / a_new;
-    PMap&           pmap             = m_particles[lev];
+    const Real      strttime  = ParallelDescriptor::second();
+    const Geometry& geom      = m_amr->Geom(lev);
+    const Real*     dx        = geom.CellSize();
+    const Real*     plo       = geom.ProbLo();
+    const Real      half_dt   = 0.5 * dt;
+    const Real      a_new_inv = 1 / a_new;
+    PMap&           pmap      = m_particles[lev];
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -2010,7 +2010,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                                       Real            dt)
 {
     BL_ASSERT(OK());
-    BL_ASSERT(N >= BL_SPACEDIM);
+    BL_ASSERT(N >= 2*BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
@@ -2021,10 +2021,10 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
            BL_ASSERT(!umac[1].contains_nan());,
            BL_ASSERT(!umac[2].contains_nan()););
 
-    const Real      strttime         = ParallelDescriptor::second();
-    const Geometry& geom             = m_amr->Geom(lev);
-    const Real      dx[BL_SPACEDIM]  = { D_DECL(geom.CellSize(0),geom.CellSize(1),geom.CellSize(2)) };
-    const Real      plo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0),  geom.ProbLo(1),  geom.ProbLo(2))   };
+    const Real      strttime = ParallelDescriptor::second();
+    const Geometry& geom     = m_amr->Geom(lev);
+    const Real*     dx       = geom.CellSize();
+    const Real*     plo      = geom.ProbLo();
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
@@ -2080,12 +2080,11 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         //
                         // Predictor:
                         //
-                        // Save the old position.
+                        // Save old position and the vel & predict new time location.
                         //
-                        p.m_data[d] = p.m_pos[d];
-                        //
-                        // Predict new time location.
-                        //
+                        p.m_data[d]             = p.m_pos[d];
+                        p.m_data[d+BL_SPACEDIM] = p.m_pos[d];
+
                         p.m_pos[d] += dt*vel;
                     }
                     else
@@ -2095,7 +2094,11 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         //
                         // Update to final time using the orig position and the new vel.
                         //
-                        p.m_pos[d] = 0.5 * (p.m_data[d] + p.m_pos[d] + dt*vel);
+                        // Save the velocity for use in Timestamp().
+                        //
+                        p.m_pos[d]  = 0.5 * (p.m_data[d] + p.m_pos[d] + dt*vel);
+
+                        p.m_data[d] = 0.5 * (p.m_data[d+BL_SPACEDIM] + vel);
                     }
                 }
 
@@ -3301,6 +3304,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     BL_ASSERT(lev >= 0);
     BL_ASSERT(time >= 0);
     BL_ASSERT(!basename.empty());
+    BL_ASSERT(N >= 2*BL_SPACEDIM);
     BL_ASSERT(lev <= m_amr->finestLevel());
 
     const Real strttime = ParallelDescriptor::second();
@@ -3400,28 +3404,36 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                         for (int i = 0; i < BL_SPACEDIM; i++)
                         {
-                            TimeStampFile << p.m_pos[i]  << ' ';
+                            TimeStampFile << p.m_pos[i] << ' ';
                         }
 
                         TimeStampFile << time;
+                        //
+                        // AdvectWithUmac stores the velocity in m_data ...
+                        //
+                        for (int i = 0; i < BL_SPACEDIM; i++)
+                        {
+                            TimeStampFile << ' ' << p.m_data[i];
+                        }
 
                         if (!indices.empty())
                         {
-#if (BL_SPACEDIM==2)
-                            const Box& bx = fab.box();
-                            const int* lo = bx.loVect();
-                            const int* hi = bx.hiVect();
-                            const Real x = p.m_pos[0];
-                            const Real y = p.m_pos[1];
+//#if (BL_SPACEDIM==2)
+//                            const Box& bx = fab.box();
+//                            const int* lo = bx.loVect();
+//                            const int* hi = bx.hiVect();
+//                            const Real x  = p.m_pos[0];
+//                            const Real y  = p.m_pos[1];
+//
+//                            for (int j = 0; j < indices.size(); j++)
+//                            {
+//                                BL_FORT_PROC_CALL(BICUBICINTERP,bicubicinterp)
+//                                    (&x, &y, fab.dataPtr(indices[j]), lo, hi, plo, phi, dx, &vals[j]);
+//                            }
+//#else
 
-                            for (int j = 0; j < indices.size(); j++)
-                            {
-                                BL_FORT_PROC_CALL(BICUBICINTERP,bicubicinterp)
-                                    (&x, &y, fab.dataPtr(indices[j]), lo, hi, plo, phi, dx, &vals[j]);
-                            }
-#else
                             ParticleBase::Interp(p,m_amr,fab,&indices[0],&vals[0],indices.size());
-#endif
+//#endif
 
                             for (int i = 0; i < indices.size(); i++)
                             {
