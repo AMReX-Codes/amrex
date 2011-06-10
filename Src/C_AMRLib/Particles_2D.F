@@ -106,6 +106,15 @@ C     Next line insures all elements of GRID used are in range lo-hi
       NN = MAX ( ILO(2) + 1 , MIN ( IHI(2) - 2, NN ) )
       YR = YY - NN
 
+#if 0
+      if ( MM .ne. INT ( XX ) ) then
+         print*, 'BICUBIC: MM shifted, extrapolating ...'
+      end if
+      if ( NN .ne. INT ( YY ) ) then
+         print*, 'BICUBIC: NN shifted, extrapolating ...'
+      end if
+#endif
+
 C     Assemble information needed by BCUINT()
  
       XL = MM * H + XMIN
