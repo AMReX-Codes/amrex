@@ -71,7 +71,11 @@
       enddo
 
       end subroutine part_summassup
-
+!
+!     Bicubic interpolation of cell-centered data.
+!
+!     Needs two grow cells to work properly.
+!
       SUBROUTINE BICUBICINTERP(X,Y,GRID,ILO,IHI,PLO,PHI,DX,Z)
 
       IMPLICIT DOUBLE PRECISION (A-H,K-L,O-Z)
@@ -89,10 +93,10 @@
       M  = IHI(1)-ILO(1)
       N  = IHI(2)-ILO(2)
       H  = DX(1)
-      XX = ( X    - XMIN ) / H
+      XX = ( X - XMIN ) / H - 0.5d0 ! Minus 0.5 because our data is cell-centered
       MM = INT ( XX )
       K  = DX(2)
-      YY = ( Y    - YMIN ) / K
+      YY = ( Y - YMIN ) / K - 0.5d0 ! Minus 0.5 because our data is cell-centered
       NN = INT ( YY )
 
 C     Next line insures all elements of GRID used are in range lo-hi
@@ -101,9 +105,6 @@ C     Next line insures all elements of GRID used are in range lo-hi
       XR = XX - MM
       NN = MAX ( ILO(2) + 1 , MIN ( IHI(2) - 2, NN ) )
       YR = YY - NN
-
-C      if (MM .ne. INT(XX) ) print*, 'BICUBICINTERP: MM old -vs- new : ', INT(XX), MM
-C      if (NN .ne. INT(YY) ) print*, 'BICUBICINTERP: NN old -vs- new : ', INT(YY), NN
 
 C     Assemble information needed by BCUINT()
  
