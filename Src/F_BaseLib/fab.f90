@@ -443,19 +443,21 @@ contains
 
   subroutine print_and_reset_fab_byte_spread()
     use parallel
-    integer    :: ioproc, ihi, ilo
-    real(dp_t) :: lo, hi
+    integer    :: ioproc, ihi, ilo, iav
+    real(dp_t) :: lo, hi, av
     ioproc = parallel_IOProcessorNode()
     call parallel_reduce(lo, real(fab_high_water_mark,dp_t), MPI_MIN, proc = ioproc)
     call parallel_reduce(hi, real(fab_high_water_mark,dp_t), MPI_MAX, proc = ioproc)
+    call parallel_reduce(av, real(fab_high_water_mark,dp_t), MPI_SUM, proc = ioproc)
     if ( parallel_IOProcessor() ) then
        !
        ! This assumes sizeof(dp_t) == 8
        !
        ilo = int(8*lo,ll_t)
        ihi = int(8*hi,ll_t)
+       iav = int(8*av,ll_t) / parallel_nprocs()
        print*, ''
-       write(6,fmt='("FAB byte spread across MPI nodes: [",i10," ... ",i10, "]")') ilo, ihi
+       write(6,fmt='("FAB byte spread across MPI nodes: [",i11," - ",i11," [avg: ",i11,"]]")') ilo, ihi, iav
        print*, ''
     end if
     fab_high_water_mark = 0
