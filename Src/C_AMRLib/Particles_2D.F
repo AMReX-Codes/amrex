@@ -93,10 +93,10 @@
       M  = IHI(1)-ILO(1)
       N  = IHI(2)-ILO(2)
       H  = DX(1)
-      XX = ( X - XMIN ) / H - 0.5d0 ! Minus 0.5 because our data is cell-centered
+      XX = ( X - XMIN ) / H
       MM = INT ( XX )
       K  = DX(2)
-      YY = ( Y - YMIN ) / K - 0.5d0 ! Minus 0.5 because our data is cell-centered
+      YY = ( Y - YMIN ) / K
       NN = INT ( YY )
 
 C     Next line insures all elements of GRID used are in range lo-hi
