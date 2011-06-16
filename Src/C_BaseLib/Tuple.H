@@ -2,7 +2,7 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.17 2007-04-23 20:44:48 nazgul Exp $
+// $Id: Tuple.H,v 1.18 2011-06-16 16:30:26 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -30,7 +30,7 @@ public:
                objects in the Tuple.  For builtin (intrinsic) types,
                the values in the Tuple will be garbage.
     */
-    Tuple ();
+    Tuple () {}
 
     /*@ManDoc: Constructs a Tuple, initializing the elements in the Tuple
                with the corresponding elements in the vector v.  This assumes
@@ -72,22 +72,6 @@ protected:
     //
     T vect[N];
 };
-
-template <class T, std::size_t N>
-inline
-Tuple<T,N>::Tuple()
-{
-#if 0
-  // LHH (4/23/07):  This section conflicts with the comments because
-  // it requires T to have a copy assignment operator.  It also appears
-  // to be unnecessary in that it does what should already happen
-  // automatically:  call T() for each array element.
-    for ( std::size_t i = 0; i < N; ++i )
-    {
-        vect[i] = T();
-    }
-#endif
-}
 
 template <class T, std::size_t N>
 inline

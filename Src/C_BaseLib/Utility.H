@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.63 2011-05-23 20:30:21 lijewski Exp $
+// $Id: Utility.H,v 1.64 2011-06-16 16:30:26 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -213,12 +213,6 @@ namespace BoxLib
     void SaveRandomState (Array<unsigned long>& state);
 
     void RestoreRandomState (const Array<unsigned long>& state);
-
-    /*@ManDoc: Try to execute a shell command in a subshell.
-               User is responsible for calling waitpid() on the pid
-	       returned from this function.
-    */
-    pid_t Execute (const char* cmd);
     //
     // Helper class for Times, used in Threads, Profiling, and Timers.
     //
