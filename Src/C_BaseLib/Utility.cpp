@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.85 2011-05-23 20:30:21 lijewski Exp $
+// $Id: Utility.cpp,v 1.86 2011-06-16 15:51:30 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -21,10 +21,6 @@
 #include <BLassert.H>
 #include <Profiler.H>
 
-#if defined(BL_XT3) && !defined(BL_USE_MPI)
-#include <unistd.h>
-#endif
-
 #ifdef BL_BGL
 #include <ParallelDescriptor.H>
 #endif
@@ -37,7 +33,7 @@ const char* path_sep_str = "\\";
 const char* path_sep_str = "/";
 #endif
 
-#if !defined(WIN32) && !defined(BL_XT3)
+#if !defined(WIN32)
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -171,32 +167,6 @@ BoxLib::second (double* r)
         *r = rr;
 
     return rr;
-}
-
-#elif defined(BL_XT3) && defined(BL_USE_MPI)
-
-#include <catamount/dclock.h>
-#include <unistd.h>
-
-static
-double
-get_initial_wall_clock_time ()
-{
-    return dclock();
-}
-
-//
-// Attempt to guarantee wsecond() gets initialized on program startup.
-//
-double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
-
-double
-BoxLib::wsecond (double* t_)
-{
-    double t = dclock() - BL_Initial_Wall_Clock_Time;
-    if (t_)
-        *t_ = t;
-    return t;
 }
 
 #else
