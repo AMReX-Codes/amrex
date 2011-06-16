@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.55 2010-10-04 16:47:42 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.56 2011-06-16 16:30:26 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -162,16 +162,6 @@ typedef std::list<ParmParse::PP_entry>::const_iterator const_list_iterator;
 
 template <class T> const char* tok_name(const T&) { return typeid(T).name(); }
 template <class T> const char* tok_name(std::vector<T>&) { return tok_name(T());}
-
-#if 0
-template <> const char* tok_name(const bool&)        { return "bool";        }
-template <> const char* tok_name(const int&)         { return "int";         }
-template <> const char* tok_name(const float&)       { return "float";       }
-template <> const char* tok_name(const double&)      { return "double";      }
-template <> const char* tok_name(const std::string&) { return "std::string"; }
-template <> const char* tok_name(const Box&)         { return "Box";         }
-template <> const char* tok_name(const IntVect&)     { return "IntVect";     }
-#endif
 
 //
 // Simple lexical analyser.

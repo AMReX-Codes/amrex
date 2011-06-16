@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.86 2011-06-16 15:51:30 lijewski Exp $
+// $Id: Utility.cpp,v 1.87 2011-06-16 16:30:26 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -422,36 +422,6 @@ BoxLib::OutOfMemory ()
 #endif
 }
 
-#if 0
-#ifdef WIN32
-pid_t
-BoxLib::Execute (const char* cmd)
-{
-  BoxLib::Error("Execute failed!");
-  return -1;
-}
-#else
-//extern "C" pid_t fork();
-
-pid_t
-BoxLib::Execute (const char* cmd)
-{
-
-    pid_t pid = fork();
-
-    if (pid == 0)
-    {
-        system(cmd);
-
-        exit(0);
-    }
-
-    return pid;
-}
-#endif
-#endif
-
-
 //
 // Encapsulates Time
 //
