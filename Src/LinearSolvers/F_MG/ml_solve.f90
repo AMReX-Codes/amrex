@@ -183,9 +183,6 @@ contains
 
    end subroutine ml_nd_solve
 
-   !
-   ! TODO - cache the communication stuff in the mask's layout if costly?
-   !
    subroutine create_nodal_mask(mask,mm_crse,mm_fine,ir)
 
      type(lmultifab), intent(inout) :: mask
