@@ -462,13 +462,16 @@ contains
     if ( .not. nodal_q(dst) ) call bl_error('periodic_add_copy(): dst NOT nodal')
     if ( .not. nodal_q(src) ) call bl_error('periodic_add_copy(): src NOT nodal')
 
-    call build(bpt, "periodic_add_copy")
-
     dm      = get_dim(dst)
     dims    = 1
     nodal   = .true.
+    pmask   = get_pmask(get_layout(dst))
     domain  = box_nodalize(get_pd(get_layout(dst)),nodal)
     numcomp = ncomp(dst)
+
+    if ( all(pmask .eqv. .false.) ) return
+
+    call build(bpt, "periodic_add_copy")
 
     if ( synced ) call multifab_build(temp_dst,get_layout(dst),numcomp,nghost(dst),nodal)
     !
@@ -482,8 +485,6 @@ contains
     call boxarray_nodalize(ba, nodal)
     call build(srcla, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(ba)
-
-    pmask = get_pmask(get_layout(dst))
 
     do kdir = -1,1
 
@@ -516,9 +517,11 @@ contains
              bidst => layout_get_box_intersector(dstla, domain_edge_dst)
 
              do jj = 1, size(bidst)
+
                 j     =  bidst(jj)%i
                 bxj   =  bidst(jj)%bx
                 bisrc => layout_get_box_intersector(srcla, domain_edge_src)
+
                 do ii = 1, size(bisrc)
                    i = bisrc(ii)%i
                    if ( remote(dst,j) .and. remote(src,i) ) cycle
@@ -564,7 +567,9 @@ contains
                 end do
                 deallocate(bisrc)
              end do
+
              deallocate(bidst)
+
              if ( synced ) call saxpy(dst,ONE,temp_dst)
           end do
        end do
