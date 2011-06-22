@@ -121,7 +121,7 @@ public:
 
     void GetRhoFromParticles (MultiFab& mf, int lev, Real frac);
  
-    Real estTimestep (const MultiFab& grav_vector, Real a, int level) const;
+    Real estTimestep (const MultiFab& grav_vector, Real a, int level, Real cfl) const;
 
     void Redistribute (bool where_already_called = false);
 
@@ -845,7 +845,8 @@ template <int N>
 Real
 ParticleContainer<N>::estTimestep (const MultiFab& gv,
                                    Real             a,
-                                   int             lev) const
+                                   int             lev,
+                                   Real            cfl) const
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -884,7 +885,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
             const Real mag_vel = sqrt(D_TERM(p.m_data[1]*p.m_data[1], + p.m_data[2]*p.m_data[2], + p.m_data[3]*p.m_data[3]));
 
-            Real dt_part = (mag_vel > 0) ? (0.5 * a * dx[0] / mag_vel) : 1e50;
+            Real dt_part = (mag_vel > 0) ? (cfl * a * dx[0] / mag_vel) : 1e50;
 
             const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0),
                                                     gfab(p.m_cell,1),
