@@ -408,9 +408,6 @@ contains
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  !
-  ! TODO - cache the communication pattern here in the dst layout?
-  !
   subroutine periodic_add_copy(dst,src,synced)
 
     use bl_prof_module
@@ -434,18 +431,17 @@ contains
     !   the equivalent node in grid C on the hi-x side has value c ,
     !   then the final value of the node in each grid A, B and C will be (a+b+c)
     !
-    type(multifab)        :: temp_dst
-    type(box)             :: domain,bxi,bxj,bx_to,bx_from
-    type(box)             :: domain_edge_src, domain_edge_dst
-    type(layout)          :: dstla, srcla
-    type(boxarray)        :: ba
-    real(dp_t), pointer   :: ap(:,:,:,:)
-    real(dp_t), pointer   :: bp(:,:,:,:)
-    integer               :: i,j,ii,jj,idir,jdir,kdir,proc,dims(MAX_SPACEDIM),dm,numcomp
-    logical               :: nodal(get_dim(dst))
-    integer               :: shift_vector(3)
-    integer,  parameter   :: tag = 1111
-    logical               :: pmask(get_dim(dst))
+    type(multifab)      :: temp_dst
+    type(box)           :: domain,bxi,bxj,bx_to,bx_from
+    type(box)           :: domain_edge_src, domain_edge_dst
+    type(layout)        :: dstla, srcla
+    type(boxarray)      :: ba
+    real(dp_t), pointer :: ap(:,:,:,:), bp(:,:,:,:)
+    integer             :: i,j,ii,jj,idir,jdir,kdir,proc,dm,nc
+    logical             :: nodal(get_dim(dst))
+    integer             :: shift_vector(3),dims(3),dlen(3)
+    integer,  parameter :: tag = 1111
+    logical             :: pmask(get_dim(dst))
 
     type(box_intersector), pointer :: bisrc(:), bidst(:)
 
@@ -457,23 +453,23 @@ contains
        call bl_error('periodic_add_copy: src & dst must have same # of components')
     end if
 
-    if ( cell_centered_q(dst) ) return
-
     if ( .not. nodal_q(dst) ) call bl_error('periodic_add_copy(): dst NOT nodal')
     if ( .not. nodal_q(src) ) call bl_error('periodic_add_copy(): src NOT nodal')
 
-    dm      = get_dim(dst)
-    dims    = 1
-    nodal   = .true.
-    pmask   = get_pmask(get_layout(dst))
-    domain  = box_nodalize(get_pd(get_layout(dst)),nodal)
-    numcomp = ncomp(dst)
+    pmask = get_pmask(get_layout(dst))
 
     if ( all(pmask .eqv. .false.) ) return
 
+    nc         = ncomp(dst)
+    dm         = get_dim(dst)
+    dims       = 1
+    nodal      = .true.
+    domain     = box_nodalize(get_pd(get_layout(dst)),nodal)
+    dlen(1:dm) = extent(domain)
+
     call build(bpt, "periodic_add_copy")
 
-    if ( synced ) call multifab_build(temp_dst,get_layout(dst),numcomp,nghost(dst),nodal)
+    if ( synced ) call multifab_build(temp_dst,get_layout(dst),nc,0,nodal)
     !
     ! Need to build temporary layouts with nodal boxarrays for the intersection tests below.
     !
@@ -491,13 +487,13 @@ contains
        if ( dm < 3  .and. kdir /= 0                         ) cycle
        if ( dm == 3 .and. (.not. pmask(dm)) .and. kdir /= 0 ) cycle
 
-       if ( dm == 3 ) shift_vector(3) = kdir * (extent(domain,dm) - 1)
+       if ( dm == 3 ) shift_vector(3) = kdir * (dlen(dm) - 1)
 
        do jdir = -1,1
 
           if ( .not. pmask(2) .and. jdir /= 0 ) cycle
 
-          shift_vector(2) = jdir * (extent(domain,2) - 1)
+          shift_vector(2) = jdir * (dlen(2) - 1)
 
           do idir = -1,1
 
@@ -505,10 +501,10 @@ contains
              if ( dm == 2 .and. (idir == 0 .and. jdir == 0)                 ) cycle
              if ( dm == 3 .and. (idir == 0 .and. jdir == 0 .and. kdir == 0) ) cycle
 
-             shift_vector(1) = idir * (extent(domain,1) - 1)
+             shift_vector(1) = idir * (dlen(1) - 1)
 
              domain_edge_src = intersection(domain,shift(domain, shift_vector))
-             domain_edge_dst = intersection(domain,shift(domain,-shift_vector))
+             domain_edge_dst = shift(domain_edge_src,-shift_vector)
 
              if ( synced ) call setval(temp_dst,ZERO)
              !
@@ -553,7 +549,7 @@ contains
                       !
                       dims(1:dm) = extent(bx_from)
                       proc = get_proc(get_layout(src),i)
-                      allocate(pt(dims(1),dims(2),dims(3),numcomp))
+                      allocate(pt(dims(1),dims(2),dims(3),nc))
                       call parallel_recv(pt, proc, tag)
                       if ( synced ) then
                          ap => dataptr(temp_dst,j,bx_to)
@@ -565,6 +561,7 @@ contains
                       deallocate(pt)
                    end if
                 end do
+
                 deallocate(bisrc)
              end do
 
@@ -574,7 +571,7 @@ contains
           end do
        end do
     end do
- 
+
     if ( synced ) call destroy(temp_dst)
 
     call destroy(dstla)
