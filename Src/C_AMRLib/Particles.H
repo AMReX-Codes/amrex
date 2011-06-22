@@ -885,9 +885,9 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
             Real mag_vel_over_dx = abs(p.m_data[1])/(a*dx[0]);
 #if (BL_SPACEDIM > 1)
-            mag_vel_over_dx = max(abs(p.m_data[2])/(a*dx[1]), mag_vel_over_dx);
+            mag_vel_over_dx = std::max(abs(p.m_data[2])/(a*dx[1]), mag_vel_over_dx);
 #if (BL_SPACEDIM > 2)
-            mag_vel_over_dx = max(abs(p.m_data[3])/(a*dx[2]), mag_vel_over_dx);
+            mag_vel_over_dx = std::max(abs(p.m_data[3])/(a*dx[2]), mag_vel_over_dx);
 #endif
 #endif
 
