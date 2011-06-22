@@ -3479,7 +3479,7 @@ contains
     real(dp_t) :: r1
     integer :: n, i, j, k
 
-    r1 = 0_dp_t
+    r1 = 0.0_dp_t
     if ( present(mask) ) then
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
        if ( cell_centered_q(mf) ) then
@@ -3550,7 +3550,7 @@ contains
     real(dp_t) :: r1
     integer :: i
 
-    r1 = 0_dp_t
+    r1 = 0.0_dp_t
     if ( cell_centered_q(mf) ) then
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
@@ -3597,7 +3597,7 @@ contains
     real(dp_t)          :: r1
     integer             :: i
 
-    r1 = 0_dp_t
+    r1 = 0.0_dp_t
     if ( cell_centered_q(mf) ) then
 
        do i = 1, mf%nboxes
@@ -3878,7 +3878,7 @@ contains
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
-    r1 = 0
+    r1 = 0.0_dp_t
     if ( present(mask) ) then
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
@@ -3930,7 +3930,7 @@ contains
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
-    r1 = 0
+    r1 = 0.0_dp_t
     if ( present(mask) ) then
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
@@ -3985,7 +3985,7 @@ contains
 
     lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
-    r1 = 0
+    r1 = 0.0_dp_t
     if ( present(mask) ) then
        do i = 1, mf%nboxes
           if ( remote(mf,i) ) cycle
