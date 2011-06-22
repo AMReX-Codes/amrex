@@ -513,11 +513,9 @@ contains
              bidst => layout_get_box_intersector(dstla, domain_edge_dst)
 
              do jj = 1, size(bidst)
-
                 j     =  bidst(jj)%i
                 bxj   =  bidst(jj)%bx
                 bisrc => layout_get_box_intersector(srcla, domain_edge_src)
-
                 do ii = 1, size(bisrc)
                    i = bisrc(ii)%i
                    if ( remote(dst,j) .and. remote(src,i) ) cycle
@@ -530,22 +528,22 @@ contains
                       if ( synced ) then
                          ap => dataptr(temp_dst,j,bx_to)
                          bp => dataptr(src,i,bx_from)
-                         ap =  bp
+                         call cpy_d(ap,bp) ! ap = bp
                       else
                          ap => dataptr(dst,j,bx_to)
                          bp => dataptr(src,i,bx_from)
-                         ap =  ap + bp
+                         call cpy_d(ap,bp,filter=ml_restrict_copy_sum) ! ap = ap + bp
                       end if
                    else if ( local(src,i) ) then
                       !
-                      ! We own src.  Got to send it to processor owning dst.
+                      ! We own src.
                       !
                       bp   => dataptr(src,i,bx_from)
                       proc =  get_proc(get_layout(dst),j)
                       call parallel_send(bp, proc, tag)
                    else
                       !
-                      ! We own dst.  Got to get src from processor owning it.
+                      ! We own dst.
                       !
                       dims(1:dm) = extent(bx_from)
                       proc = get_proc(get_layout(src),i)
@@ -553,10 +551,10 @@ contains
                       call parallel_recv(pt, proc, tag)
                       if ( synced ) then
                          ap => dataptr(temp_dst,j,bx_to)
-                         ap =  pt
+                         call cpy_d(ap,pt) ! ap = pt
                       else
                          ap => dataptr(dst,j,bx_to)
-                         ap =  ap + pt
+                         call cpy_d(ap,pt,filter=ml_restrict_copy_sum) ! ap = ap + pt
                       end if
                       deallocate(pt)
                    end if
@@ -567,7 +565,7 @@ contains
 
              deallocate(bidst)
 
-             if ( synced ) call saxpy(dst,ONE,temp_dst)
+             if ( synced ) call multifab_copy(dst,temp_dst,filter=ml_restrict_copy_sum)
           end do
        end do
     end do
