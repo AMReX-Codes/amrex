@@ -7,9 +7,9 @@
   CFLAGS   += -Wall
 
   ifdef NDEBUG
-    F90FLAGS += -O -fno-range-check 
-    FFLAGS   += -O -fno-range-check 
-    CFLAGS   += -O 
+    F90FLAGS += -O2 -fno-range-check
+    FFLAGS   += -O2 -fno-range-check
+    CFLAGS   += -O2
   else
     F90FLAGS += -g -fno-range-check -O -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
     FFLAGS   += -g -fno-range-check -O -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
