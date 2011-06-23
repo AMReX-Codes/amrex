@@ -181,6 +181,7 @@ contains
     !
     ! Interpolate at fine nodes between coarse nodes in the i-direction only.
     !
+    !$OMP PARALLEL DO PRIVATE(i,j,k,l,fac_left,fac_rght)
     do k = 0,nz
        do j = 0,ny
           do l = 1, ir(1)-1
@@ -193,12 +194,14 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
     !
     ! Interpolate in the j-direction using previously interpolated "temp".
     !
     do m = 1, ir(2)-1
        fac_left = real(m,kind=dp_t) / real(ir(2),kind=dp_t)
        fac_rght = 1.0_dp_t - fac_left
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 0,nz
           do j = 0,ny-1
              do i = 0,ir(1)*nx
@@ -207,6 +210,7 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end do
     !
     ! Interpolate in the k-direction using previously interpolated "temp".
@@ -224,6 +228,7 @@ contains
        end do
     end do
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0,ir(3)*nz
        do j = 0,ir(2)*ny
           do i = 0,ir(1)*nx
@@ -231,6 +236,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine nodal_prolongation_3d
 
