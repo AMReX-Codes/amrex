@@ -5,9 +5,6 @@ module ml_restriction_module
 
   implicit none
 
-  real(dp_t), private, parameter :: ZERO = 0.0_dp_t
-  real(dp_t), private, parameter :: ONE  = 1.0_dp_t
-
   private
 
   public :: ml_restriction, ml_cc_restriction, ml_cc_restriction_c
@@ -440,8 +437,11 @@ contains
     integer             :: i,j,ii,jj,idir,jdir,kdir,proc,dm,nc
     logical             :: nodal(get_dim(dst))
     integer             :: shift_vector(3),dims(3),dlen(3)
-    integer,  parameter :: tag = 1111
     logical             :: pmask(get_dim(dst))
+
+    integer,    parameter :: TAG  = 1111
+    real(dp_t), parameter :: ZERO = 0.0_dp_t
+    real(dp_t), parameter :: ONE  = 1.0_dp_t
 
     type(box_intersector), pointer :: bisrc(:), bidst(:)
 
@@ -540,7 +540,7 @@ contains
                       !
                       bp   => dataptr(src,i,bx_from)
                       proc =  get_proc(get_layout(dst),j)
-                      call parallel_send(bp, proc, tag)
+                      call parallel_send(bp, proc, TAG)
                    else
                       !
                       ! We own dst.
@@ -548,7 +548,7 @@ contains
                       dims(1:dm) = extent(bx_from)
                       proc = get_proc(get_layout(src),i)
                       allocate(pt(dims(1),dims(2),dims(3),nc))
-                      call parallel_recv(pt, proc, tag)
+                      call parallel_recv(pt, proc, TAG)
                       if ( synced ) then
                          ap => dataptr(temp_dst,j,bx_to)
                          call cpy_d(ap,pt) ! ap = pt
@@ -565,7 +565,7 @@ contains
 
              deallocate(bidst)
 
-             if ( synced ) call multifab_copy(dst,temp_dst,filter=ml_restrict_copy_sum)
+             if ( synced ) call saxpy(dst,ONE,temp_dst)
           end do
        end do
     end do
