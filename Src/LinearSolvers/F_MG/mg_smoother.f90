@@ -269,9 +269,7 @@ contains
     integer :: hi(size(lo))
     integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
     logical :: lskwd
-    real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2)
-    real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2)
-    real(dp_t) :: fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
+    real(dp_t), allocatable :: lr(:,:,:), tb(:,:,:), fb(:,:,:)
     real(dp_t) :: dd
 
     type(bl_prof_timer), save :: bpt
@@ -326,6 +324,10 @@ contains
     end if
 
 1234 if ( lskwd ) then
+
+       allocate(lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2))
+       allocate(tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2))
+       allocate(fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2))
 
        do k = lo(3), hi(3)
           do i = lo(1), hi(1)
@@ -383,6 +385,8 @@ contains
           end do
        end do
        !$OMP END PARALLEL DO
+
+       deallocate(lr,tb,fb)
     else
        !
        ! USE THIS FOR GAUSS-SEIDEL
