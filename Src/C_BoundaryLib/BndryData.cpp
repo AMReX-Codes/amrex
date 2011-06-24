@@ -1,6 +1,6 @@
 
 //
-// $Id: BndryData.cpp,v 1.24 2010-10-06 15:14:27 lijewski Exp $
+// $Id: BndryData.cpp,v 1.25 2011-06-24 22:40:28 marc Exp $
 //
 #include <winstd.H>
 
@@ -219,7 +219,7 @@ operator<< (std::ostream&    os,
         {
             Orientation f = face();
 
-            os << "::: face " << f << " of grid " << grds[grd] << "\nBC = ";
+            os << "::: face " << (int)(f) << " of grid " << grds[grd] << "\nBC = ";
 
             for (int i = 0; i < ncomp; ++i)
                 os << bd.bcond[f][grd][i] << ' ';
