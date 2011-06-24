@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.116 2010-09-10 22:34:20 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.117 2011-06-24 23:13:09 marc Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -293,12 +293,13 @@ ParallelDescriptor::Message::req () const
 
 void
 ParallelDescriptor::StartParallel (int*    argc,
-                                   char*** argv)
+                                   char*** argv,
+                                   MPI_Comm mpi_comm)
 {
     BL_ASSERT(m_MyId == -1);
     BL_ASSERT(m_nProcs == -1);
 
-    m_comm = MPI_COMM_WORLD;
+    m_comm = mpi_comm;
 
     int sflag;
 
@@ -1008,11 +1009,14 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
 
 #else /*!BL_USE_MPI*/
 
-void ParallelDescriptor::StartParallel (int*, char***)
+void
+ParallelDescriptor::StartParallel (int*    argc,
+                                   char*** argv,
+                                   MPI_Comm)
 {
     m_nProcs    = 1;
     m_MyId      = 0;
-    m_comm = 0;
+    m_comm      = 0;
 }
 
 void

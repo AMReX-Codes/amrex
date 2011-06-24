@@ -1,7 +1,7 @@
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
 //
-// $Id: ParmParse.H,v 1.30 2010-10-04 16:47:42 lijewski Exp $
+// $Id: ParmParse.H,v 1.31 2011-06-24 23:13:09 marc Exp $
 //
 #include <stack>
 #include <string>
@@ -864,6 +864,7 @@ public:
     /* publicly needed helpers */
     struct PP_entry;
     typedef std::list<PP_entry> Table;
+    const ParmParse::Table& table() {return m_table;}
 private:
     friend class Frame;
     friend class Record;

@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.83 2009-03-02 23:23:13 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.84 2011-06-24 23:13:09 marc Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -140,7 +140,8 @@ namespace ParallelDescriptor
                first routine in this class called from within a program.
     */
     void StartParallel (int*    argc = 0,
-			char*** argv = 0);
+			char*** argv = 0,
+                        MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
     /*@ManDoc: Perform any needed parallel finalization.  This MUST be the
                last routine in this class called from within a program.
