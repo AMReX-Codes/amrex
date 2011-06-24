@@ -1146,6 +1146,7 @@ contains
       !     Lo-x face
       !
       i = 1
+      !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
       do j = jstart,jend
          dd(i,j,k) = ss(i,j,k,20)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
@@ -1163,10 +1164,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Hi-x face
       !
       i = nx+1
+      !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
       do j = jstart,jend
          dd(i,j,k) = ss(i,j,k,18)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
@@ -1184,10 +1187,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Lo-y face
       !
       j = 1
+      !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
       do i = istart,iend
          dd(i,j,k) = ss(i,j,k,20)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
@@ -1205,10 +1210,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Hi-y face
       !
       j = ny+1
+      !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
       do i = istart,iend
          dd(i,j,k) = ss(i,j,k, 3)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
@@ -1226,10 +1233,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Lo-z face
       !
       k = 1
+      !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
       do i = istart,iend
          dd(i,j,k) = ss(i,j,k,15)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
@@ -1247,10 +1256,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Hi-z face
       !
       k = nz+1
+      !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
       do i = istart,iend
          dd(i,j,k) = ss(i,j,k, 3)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
@@ -1268,15 +1279,16 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Interior
       !
-        !$OMP PARALLEL DO PRIVATE(i,j,k)
-        do k = kstart,kend
-        do j = jstart,jend
-        do i = istart,iend
+      !$OMP PARALLEL DO PRIVATE(i,j,k)
+      do k = kstart,kend
+      do j = jstart,jend
+      do i = istart,iend
 
-          dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k) &
+        dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k) &
             + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
             + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
             + ss(i,j,k, 5) * uu(i+1,j  ,k-1) + ss(i,j,k, 6) * uu(i-1,j+1,k-1) &
@@ -1288,21 +1300,21 @@ contains
             + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
             + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1)
 
-          if ((size(ss,dim=4) .eq. 27) .and. (.not. uniform_dh) ) then
-             !
-             ! Add faces (only non-zero for non-uniform dx)
-             !
-             dd(i,j,k) = dd(i,j,k) + &
+        if ((size(ss,dim=4) .eq. 27) .and. (.not. uniform_dh) ) then
+            !
+            ! Add faces (only non-zero for non-uniform dx)
+            !
+            dd(i,j,k) = dd(i,j,k) + &
                   ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
                   + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
                   + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
-          end if
+         end if
   
-          dd(i,j,k) = ff(i,j,k) - dd(i,j,k)
-        end do
-        end do
-        end do
-        !$OMP END PARALLEL DO
+         dd(i,j,k) = ff(i,j,k) - dd(i,j,k)
+      end do
+      end do
+      end do
+      !$OMP END PARALLEL DO
 
     else if (size(ss,dim=4) .eq. 7) then
        !
