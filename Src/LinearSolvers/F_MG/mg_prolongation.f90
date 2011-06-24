@@ -65,12 +65,13 @@ contains
     ny = size(cc,dim=2)
     nz = size(cc,dim=3)
 
-    do n = 0, ir(3)-1
-       do m = 0, ir(2)-1
-          do l = 0, ir(1)-1
-             do k = 0, nz - 1
-                do j = 0, ny - 1
-                   do i = 0, nx - 1
+    !$OMP PARALLEL DO PRIVATE(i,j,k,l,m,n)
+    do k = 0, nz - 1
+       do n = 0, ir(3)-1
+          do j = 0, ny - 1
+             do m = 0, ir(2)-1
+                do i = 0, nx - 1
+                   do l = 0, ir(1)-1
                       ff(ir(1)*i+l, ir(2)*j+m, ir(3)*k+n) = ff(ir(1)*i+l, ir(2)*j+m, ir(3)*k+n) + cc(i,j,k)
                    end do
                 end do
@@ -78,6 +79,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine pc_c_prolongation_3d
 
@@ -163,7 +165,9 @@ contains
     integer,     intent(in)    :: ir(:)
     integer                    ::  nx, ny, nz, i, j, k, l, m, n
     real (dp_t)                :: fac_left, fac_rght
-    real (dp_t)                :: temp(0:size(ff,dim=1)-1,0:size(ff,dim=2)-1,0:size(ff,dim=3)-1)
+    real (dp_t), allocatable   :: temp(:,:,:)
+
+    allocate(temp(0:size(ff,dim=1)-1,0:size(ff,dim=2)-1,0:size(ff,dim=3)-1))
 
     nx = size(cc,dim=1)-1
     ny = size(cc,dim=2)-1
@@ -218,14 +222,16 @@ contains
     do n = 1, ir(3)-1
        fac_left = real(n,kind=dp_t) / real(ir(3),kind=dp_t)
        fac_rght = 1.0_dp_t - fac_left
-       do k = 0,nz-1
-          do j = 0,ir(2)*ny
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
+       do j = 0,ir(2)*ny
+          do k = 0,nz-1
              do i = 0,ir(1)*nx
                 temp(i, j, ir(3)*k+n) = fac_left*temp(i,j,ir(3)*(k  )) + &
                                         fac_rght*temp(i,j,ir(3)*(k+1))
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end do
 
     !$OMP PARALLEL DO PRIVATE(i,j,k)
