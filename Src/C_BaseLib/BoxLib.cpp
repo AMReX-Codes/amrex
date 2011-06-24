@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.42 2011-06-06 22:39:17 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.43 2011-06-24 23:13:09 marc Exp $
 //
 #include <winstd.H>
 
@@ -212,7 +212,7 @@ namespace
 }
 
 void
-BoxLib::Initialize (int& argc, char**& argv)
+BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_comm)
 {
     static Profiler::Tag bl_prf_tag("BoxLib");
 
@@ -226,7 +226,7 @@ BoxLib::Initialize (int& argc, char**& argv)
     bl_prf = new Profiler(bl_prf_tag, true);
     bl_prf->start();
 
-    ParallelDescriptor::StartParallel(&argc, &argv);
+    ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
 #ifdef BL_USE_MPI
     if (ParallelDescriptor::IOProcessor())
@@ -246,22 +246,25 @@ BoxLib::Initialize (int& argc, char**& argv)
     }
 #endif
 
-    if (argc == 1)
+    if (build_parm_parse)
     {
-        ParmParse::Initialize(0,0,0);
-    }
-    else
-    {
-        if (strchr(argv[1],'='))
+        if (argc == 1)
         {
-            ParmParse::Initialize(argc-1,argv+1,0);
+            ParmParse::Initialize(0,0,0);
         }
         else
         {
-            ParmParse::Initialize(argc-2,argv+2,argv[1]);
+            if (strchr(argv[1],'='))
+            {
+                ParmParse::Initialize(argc-1,argv+1,0);
+            }
+            else
+            {
+                ParmParse::Initialize(argc-2,argv+2,argv[1]);
+            }
         }
     }
-
+        
     Profiler::Initialize();
     WorkQueue::Initialize();
     //

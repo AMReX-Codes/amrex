@@ -2,8 +2,10 @@
 #define BL_BOXLIB_H
 
 //
-// $Id: BoxLib.H,v 1.16 2011-06-06 22:39:17 lijewski Exp $
+// $Id: BoxLib.H,v 1.17 2011-06-24 23:13:09 marc Exp $
 //
+
+#include "ccse-mpi.H"
 
 //
 //@Man:
@@ -20,9 +22,9 @@
 
 namespace BoxLib
 {
-    void Initialize (int& argc, char**& argv);
+    void Initialize (int& argc, char**& argv, bool build_parm_parse=true, MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
-    void Finalize (bool finalize_parallel = true);
+    void Finalize(bool finalize_parallel = true);
     //
     //@ManDoc: Print out message to cerr and exit via BoxLib::Abort().
     //
