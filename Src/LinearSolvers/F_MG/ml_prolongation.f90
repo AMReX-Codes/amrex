@@ -230,23 +230,20 @@ contains
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc, l, m, n
     real (dp_t) :: fac_left, fac_rght
-    real (dp_t), allocatable :: temp(:,:,:)
 
-    allocate(temp(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3)))
-
-    !   Interpolate at coarse node locations only
+    ! Interpolate at coarse node locations only
     do k = lo(3),hi(3),ir(3)
        kc = k / ir(3) 
        do j = lo(2),hi(2),ir(2)
           jc = j / ir(2) 
           do i = lo(1),hi(1),ir(1)
              ic = i / ir(1) 
-             temp(i,j,k) = cc(ic,jc,kc)
+             ff(i,j,k) = cc(ic,jc,kc)
           end do
        end do
     end do
 
-    !   Interpolate at fine nodes between coarse nodes in the i-direction only
+    ! Interpolate at fine nodes between coarse nodes in the i-direction only
     !$OMP PARALLEL DO PRIVATE(i,j,k,l,fac_rght,fac_left)
     do k = lo(3),hi(3),ir(3)
        do j = lo(2),hi(2),ir(2)
@@ -254,14 +251,14 @@ contains
              fac_rght = real(l,dp_t) / real(ir(1),dp_t)
              fac_left = ONE - fac_rght
              do i = lo(1),hi(1)-1,ir(1)
-                temp(i+l,j,k) = fac_left*temp(i,j,k) + fac_rght*temp(i+ir(1),j,k)
+                ff(i+l,j,k) = fac_left*ff(i,j,k) + fac_rght*ff(i+ir(1),j,k)
              end do
           end do
        end do
     end do
     !$OMP END PARALLEL DO
 
-!   Interpolate in the j-direction.
+    ! Interpolate in the j-direction.
     !$OMP PARALLEL DO PRIVATE(i,j,k,m,fac_rght,fac_left)
     do k = lo(3),hi(3),ir(3)
        do m = 1, ir(2)-1
@@ -269,33 +266,28 @@ contains
           fac_left = ONE - fac_rght
           do j = lo(2),hi(2)-1,ir(2)
              do i = lo(1),hi(1)
-                temp(i,j+m,k) = fac_left*temp(i,j,k)+fac_rght*temp(i,j+ir(2),k)
+                ff(i,j+m,k) = fac_left*ff(i,j,k)+fac_rght*ff(i,j+ir(2),k)
              end do
           end do
        end do
     end do
     !$OMP END PARALLEL DO
 
-!   Interpolate in the k-direction.
+    ! Interpolate in the k-direction.
     do n = 1, ir(3)-1
        fac_rght = real(n,dp_t) / real(ir(3),dp_t)
        fac_left = ONE - fac_rght
-       do k = lo(3),hi(3)-1,ir(3)
-          do j = lo(2),hi(2)
+       !$OMP PARALLEL DO PRIVATE(i,j,k)
+       do j = lo(2),hi(2)
+          do k = lo(3),hi(3)-1,ir(3)
              do i = lo(1),hi(1)
-                temp(i,j,k+n) = fac_left*temp(i,j,k)+fac_rght*temp(i,j,k+ir(3))
+                ff(i,j,k+n) = fac_left*ff(i,j,k)+fac_rght*ff(i,j,k+ir(3))
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end do
 
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             ff(i,j,k) = temp(i,j,k)
-          end do
-       end do
-    end do
   end subroutine ml_prolongation_3d_nodal
 
   subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, ng_fill, side, nc)
