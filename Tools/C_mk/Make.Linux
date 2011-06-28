@@ -474,8 +474,8 @@ endif
 ifeq ($(WHICHLINUX), NAN)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
-    FC = mpif90 -module $(fmoddir)
-    fC = mpif90 -module $(fmoddir)    
+    FC = mpif90
+    fC = mpif90    
   endif
 endif
 
