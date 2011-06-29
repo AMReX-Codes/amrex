@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.83 2011-06-29 04:40:38 lijewski Exp $
+// $Id: TagBox.cpp,v 1.84 2011-06-29 05:21:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -469,9 +469,9 @@ TagBoxArray::collate (long& numtags) const
         count += get(fai).numTags();
     }
 
-#if BL_USE_MPI
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
+#if BL_USE_MPI
     Array<int> nmtags(ParallelDescriptor::NProcs(),0);
     Array<int> offset(ParallelDescriptor::NProcs(),0);
     //
@@ -511,9 +511,15 @@ TagBoxArray::collate (long& numtags) const
                 ParallelDescriptor::Mpi_typemap<int>::type(),
                 IOProc,
                 ParallelDescriptor::Communicator());
+#else
+    //
+    // Copy TheLocalCollateSpace to TheGlobalCollateSpace.
+    //
+    for (int i = 0; i < count; i++)
+        TheGlobalCollateSpace[i] = TheLocalCollateSpace[i];
+#endif
 
     delete [] TheLocalCollateSpace;
-#endif
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -525,6 +531,9 @@ TagBoxArray::collate (long& numtags) const
         ptrdiff_t duplicates = (TheGlobalCollateSpace+numtags) - end;
         BL_ASSERT(duplicates >= 0);
         numtags -= duplicates;
+
+        std::cout << "*** numtags: " << numtags << std::endl;
+
     }
     //
     // Now broadcast them back to the other processors.
