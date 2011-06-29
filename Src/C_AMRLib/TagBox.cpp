@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.82 2010-02-26 22:23:37 almgren Exp $
+// $Id: TagBox.cpp,v 1.83 2011-06-29 04:40:38 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -439,23 +439,39 @@ IntVect*
 TagBoxArray::collate (long& numtags) const
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::collate()");
-
+    //
+    // The total number of tags system wide that must be collated.
+    //
     numtags = numTags();
-    //
-    // The caller of collate() is responsible for delete[]ing this space.
-    //
-    IntVect*  TheCollateSpace = new IntVect[numtags];
-    int*      start           = reinterpret_cast<int*>(TheCollateSpace);
-    const int IOProc          = ParallelDescriptor::IOProcessorNumber();
 
     int count = 0;
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        get(fai).collate(TheCollateSpace,count);
+        count += get(fai).numTags();
+    }
+    //
+    // Local space for holding just those tags we want to gather to the root cpu.
+    //
+    IntVect*  TheLocalCollateSpace  = new IntVect[count];
+    //
+    // This holds all tags after they've been gather'd and unique'ified.
+    //
+    // Each CPU needs an identical copy since they all must go through grid_places() which isn't parallelized.
+    //
+    // The caller of collate() is responsible for delete[]ing this space.
+    //
+    IntVect*  TheGlobalCollateSpace = new IntVect[numtags];
+
+    count = 0;
+    for (MFIter fai(*this); fai.isValid(); ++fai)
+    {
+        get(fai).collate(TheLocalCollateSpace,count);
         count += get(fai).numTags();
     }
 
 #if BL_USE_MPI
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
     Array<int> nmtags(ParallelDescriptor::NProcs(),0);
     Array<int> offset(ParallelDescriptor::NProcs(),0);
     //
@@ -482,19 +498,21 @@ TagBoxArray::collate (long& numtags) const
             offset[i] = offset[i-1] + nmtags[i-1];
     }
     //
-    // Gather all the tags to IOProc into TheCollateSpace.
+    // Gather all the tags to IOProc into TheGlobalCollateSpace.
     //
     BL_ASSERT(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
 
-    MPI_Gatherv(start,
+    MPI_Gatherv(reinterpret_cast<int*>(TheLocalCollateSpace),
                 count*BL_SPACEDIM,
                 ParallelDescriptor::Mpi_typemap<int>::type(),
-                start,
+                reinterpret_cast<int*>(TheGlobalCollateSpace),
                 nmtags.dataPtr(),
                 offset.dataPtr(),
                 ParallelDescriptor::Mpi_typemap<int>::type(),
                 IOProc,
                 ParallelDescriptor::Communicator());
+
+    delete [] TheLocalCollateSpace;
 #endif
 
     if (ParallelDescriptor::IOProcessor())
@@ -502,9 +520,9 @@ TagBoxArray::collate (long& numtags) const
         //
         // Remove duplicate IntVects.
         //
-        std::sort(TheCollateSpace, TheCollateSpace+numtags, IntVect::Compare());
-        IntVect* end = std::unique(TheCollateSpace,TheCollateSpace+numtags);
-        ptrdiff_t duplicates = (TheCollateSpace+numtags) - end;
+        std::sort(TheGlobalCollateSpace, TheGlobalCollateSpace+numtags, IntVect::Compare());
+        IntVect* end = std::unique(TheGlobalCollateSpace,TheGlobalCollateSpace+numtags);
+        ptrdiff_t duplicates = (TheGlobalCollateSpace+numtags) - end;
         BL_ASSERT(duplicates >= 0);
         numtags -= duplicates;
     }
@@ -512,9 +530,9 @@ TagBoxArray::collate (long& numtags) const
     // Now broadcast them back to the other processors.
     //
     ParallelDescriptor::Bcast(&numtags, 1, IOProc);
-    ParallelDescriptor::Bcast(start, numtags*BL_SPACEDIM, IOProc);
+    ParallelDescriptor::Bcast(reinterpret_cast<int*>(TheGlobalCollateSpace), numtags*BL_SPACEDIM, IOProc);
 
-    return TheCollateSpace;
+    return TheGlobalCollateSpace;
 }
 
 void
