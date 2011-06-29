@@ -308,6 +308,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
     //
     std::string line;
 
+    ifs >> std::ws;  // Eat newline after "cnt" so we skip proper # of particles.
+
     for (int i = 0; i < MyProc*Chunk; i++)
         std::getline(ifs,line);
 
@@ -315,7 +317,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
     {
         std::string msg("ParticleContainer::InitFromAsciiFile(");
         msg += file;
-        msg += ") failed @ 2";
+        msg += ") failed @ 1";
         BoxLib::Error(msg.c_str());
     }
 
@@ -327,7 +329,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
         //
         MyCnt += cnt % NProcs;
 
-    const Geometry& geom     = m_amr->Geom(0);
+    const Geometry& geom = m_amr->Geom(0);
 
     for (int i = 0; i < MyCnt; i++)
     {
@@ -336,26 +338,30 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
         // in a manner to guarantee the global uniqueness of the pair.
         //
         for (int d = 0; d < BL_SPACEDIM; d++)
+        {
             ifs >> p.m_pos[d];
-
+        }
         //
         // If particle is right on a domain boundary then move it just inside the boundary.
         //
         for (int d = 0; d < BL_SPACEDIM; d++)
         {
-            Real domain_size = geom.ProbHi(d) - geom.ProbLo(d);
+            const Real domain_size = geom.ProbHi(d) - geom.ProbLo(d);
+
             if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-12 * domain_size;
             if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-12 * domain_size;
         }
 
         for (int n = 0; n < extradata; n++)
+        {
             ifs >> p.m_data[n];
+        }
 
         if (!ifs.good())
         {
             std::string msg("ParticleContainer::InitFromAsciiFile(");
             msg += file;
-            msg += ") failed @ 3";
+            msg += ") failed @ 2";
             BoxLib::Error(msg.c_str());
         }
 
@@ -368,14 +374,18 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
                 std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
 
                 for (int d = 0; d < BL_SPACEDIM; d++)
-                   std::cout << "BAD PARTICLE POS(d) " << p.m_pos[d] << std::endl;
- 
+                {
+                    std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                }
+
                 BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
             }
         }
 
         p.m_id  = ParticleBase::NextID();
         p.m_cpu = MyProc;
+
+        std::cout << p << std::endl;
 
         m_particles[p.m_lev][p.m_grid].push_back(p);
 
@@ -391,7 +401,9 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
     if (m_verbose > 0)
     {
         int num_particles = howmany; 
+
         ParallelDescriptor::ReduceIntSum(num_particles, ParallelDescriptor::IOProcessorNumber());
+
         if (ParallelDescriptor::IOProcessor())
             std::cout << "Total number of particles: " << num_particles << std::endl;
     }
