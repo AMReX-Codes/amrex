@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.84 2011-06-29 05:21:17 lijewski Exp $
+// $Id: TagBox.cpp,v 1.85 2011-06-29 05:23:51 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -531,9 +531,6 @@ TagBoxArray::collate (long& numtags) const
         ptrdiff_t duplicates = (TheGlobalCollateSpace+numtags) - end;
         BL_ASSERT(duplicates >= 0);
         numtags -= duplicates;
-
-        std::cout << "*** numtags: " << numtags << std::endl;
-
     }
     //
     // Now broadcast them back to the other processors.
