@@ -474,8 +474,8 @@ endif
 ifeq ($(WHICHLINUX), NAN)
   ifeq ($(USE_MPI),TRUE)
     CXX = mpicxx
-    FC = mpif90
-    fC = mpif90    
+    FC = mpif90 -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+    fC = mpif90 -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
   endif
 endif
 
