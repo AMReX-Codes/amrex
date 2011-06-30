@@ -23,7 +23,9 @@ module ml_layout_module
   interface build
      module procedure ml_layout_build
      module procedure ml_layout_build_n
+     module procedure ml_layout_build_la_array
   end interface
+
   interface destroy
      module procedure ml_layout_destroy
   end interface
@@ -121,6 +123,45 @@ contains
     allocate(mla%mask(mla%nlevel-1))
     call build(mla%mba, nlevel, dm)
   end subroutine ml_layout_build_n
+
+  subroutine ml_layout_build_la_array(mla, mba, la_array, pmask, nlevel)
+
+    type(ml_layout  ), intent(  out) :: mla
+    type(ml_boxarray), intent(in   ) :: mba
+    type(   layout  ), intent(inout) :: la_array(:)
+    integer,           intent(in   ) :: nlevel
+    logical                        :: pmask(:)
+
+    type(boxarray) :: bac
+    integer        :: n
+
+    mla%destroy_all_layouts = .true.
+
+    mla%nlevel = nlevel
+    mla%dim    = get_dim(mba)
+
+    call copy(mla%mba, mba)
+
+    allocate(mla%pmask(mla%dim))
+    mla%pmask  = pmask
+
+    allocate(mla%la(mla%nlevel))
+    do n = 1, nlevel
+       mla%la(n) = la_array(n)
+    end do
+
+    allocate(mla%mask(mla%nlevel-1))
+
+    do n = mla%nlevel-1,  1, -1
+       call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
+       call setval(mla%mask(n), val = .TRUE.)
+       call copy(bac, mba%bas(n+1))
+       call boxarray_coarsen(bac, mba%rr(n,:))
+       call setval(mla%mask(n), .false., bac)
+       call destroy(bac)
+    end do
+
+  end subroutine ml_layout_build_la_array
 
   subroutine ml_layout_build(mla, mba, pmask)
     type(ml_layout), intent(inout) :: mla
