@@ -276,6 +276,7 @@ module make_new_grids_module
                 ! Destroy the old layout and build a new one from ba_new.
                 call destroy(la_array(nl))
                 call layout_build_ba(la_array(nl),ba_new,mba%pd(nl),pmask)
+                call destroy(ba_new)
   
                 ! Double check we got the proper nesting right
 
