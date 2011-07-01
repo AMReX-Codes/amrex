@@ -140,11 +140,23 @@ contains
     mla%nlevel = nlevel
     mla%dim    = get_dim(mba)
 
-    call copy(mla%mba, mba)
+    ! Copy only nlevel levels of the mba
+    call build(mla%mba,nlevel,mla%dim)
 
+    mla%mba%pd(1:nlevel) = mba%pd(1:nlevel)
+    do n = 1, mla%nlevel-1
+      mla%mba%rr(n,:) = mba%rr(n,:)
+    end do
+
+    do n = 1, mla%nlevel
+      call copy(mla%mba%bas(n),mba%bas(n))
+    end do
+
+    ! Build the pmask
     allocate(mla%pmask(mla%dim))
     mla%pmask  = pmask
 
+    ! Point to the existing la_array(:)
     allocate(mla%la(mla%nlevel))
     do n = 1, nlevel
        mla%la(n) = la_array(n)
