@@ -385,8 +385,6 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
         p.m_id  = ParticleBase::NextID();
         p.m_cpu = MyProc;
 
-        std::cout << p << std::endl;
-
         m_particles[p.m_lev][p.m_grid].push_back(p);
 
         howmany++;
