@@ -590,6 +590,9 @@ contains
                         mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
                 elseif (lnc_opt .eq. 1) then
                    call s_simplem_2d_cc(sp(:,:,1,:), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
+                        mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)     
+                elseif (lnc_opt .eq. 2) then
+                   call s_simpleg_2d_cc(sp(:,:,1,:), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
                         mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)                   
                 end if
              else

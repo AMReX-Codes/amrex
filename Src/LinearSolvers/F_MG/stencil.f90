@@ -1233,6 +1233,145 @@ contains
 
   end subroutine s_simplem_2d_cc
 
+ subroutine s_simpleg_2d_cc(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb, order)
+
+    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
+    integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
+    real (kind = dp_t), intent(  out) :: ss(lo(1)  :,lo(2)  :,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,0:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
+    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
+
+    real (kind = dp_t) :: f1(2), blo, bhi
+    integer            :: i, j, dm, bclo, bchi, nx, ny, nc
+    integer, parameter :: XBC = 5, YBC = 6
+
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
+
+    dm = 2
+    nc = size(betax,dim=3)
+    f1 = ONE/dh**2
+
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+ 
+    ss(:,:,:) = 0.d0
+
+    ! Consider the operator  ( alpha - sum_n (beta0_n del dot beta_n grad) )
+    ! Components alpha(i,j,   0) = alpha
+    ! Components alpha(i,j,1:nc) = beta0_n
+    ! Components betax(i,j,1:nc) = betax_n
+    ! Components betay(i,j,1:nc) = betay_n
+
+    ! ss(i,j,1) is the coefficient of phi(i+1,j  )
+    ! ss(i,j,2) is the coefficient of phi(i-1,j  )
+    ! ss(i,j,3) is the coefficient of phi(i  ,j+1)
+    ! ss(i,j,4) is the coefficient of phi(i  ,j-1)
+    ! ss(i,j,0) is the coefficient of phi(i  ,j  )
+    
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          ss(i,j,1) = ss(i,j,1) - betax(i+1,j,1)
+          ss(i,j,2) = ss(i,j,2) - betax(i  ,j,2)
+          ss(i,j,3) = ss(i,j,3) - betay(i,j+1,1) 
+          ss(i,j,4) = ss(i,j,4) - betay(i,j  ,2) 
+       end do
+    end do
+
+    ! x derivatives
+
+    do j = lo(2),hi(2)
+       do i = lo(1)+1,hi(1)-1
+          ss(i,j,0) = ss(i,j,0) - betax(i,j,3)
+       end do
+    end do
+
+    do j = lo(2),hi(2)
+       bclo = stencil_bc_type(mask(lo(1),j),1,-1)
+       bchi = stencil_bc_type(mask(hi(1),j),1,+1)
+ 
+       i = lo(1)
+       if (bclo .eq. BC_INT) then
+          ss(i,j,0) = ss(i,j,0) - betax(i,j,3)
+       elseif (bclo .eq. BC_NEU) then
+          ss(i,j,0) = ss(i,j,0) - betax(i,j,3) - betax(i,j,2)
+          ss(i,j,2) = 0.d0
+          ss(i,j,XBC) = 0.d0
+       elseif (bclo .eq. BC_DIR) then
+          ss(i,j,0) = ss(i,j,0) - betax(i,j,3)
+          ss(i,j,2) = 0.d0
+          ss(i,j,XBC) = 0.d0
+       end if
+
+       if ( hi(1) > lo(1) ) then
+          i = hi(1)
+          if (bchi .eq. BC_INT) then
+             ss(i,j,0) = ss(i,j,0) - betax(i,j,3)
+          elseif (bchi .eq. BC_NEU) then
+             ss(i,j,0) = ss(i,j,0) - betax(i,j,3) - betax(i+1,j,1)
+             ss(i,j,1) = 0.d0
+             ss(i,j,XBC) = 0.d0
+          elseif (bchi .eq. BC_DIR) then
+             ss(i,j,0) = ss(i,j,0) - betax(i,j,3)
+             ss(i,j,1) = 0.d0
+             ss(i,j,XBC) = 0.d0
+          end if
+       end if
+    end do
+
+    ! y derivatives
+    do i = lo(1),hi(1)
+       do j = lo(2)+1,hi(2)-1
+          ss(i,j,0) = ss(i,j,0) - betay(i,j,3)
+       end do
+    end do
+
+    do i = lo(1),hi(1)
+       bclo = stencil_bc_type(mask( i,lo(2)),2,-1)
+       bchi = stencil_bc_type(mask( i,hi(2)),2,+1)
+
+       j = lo(2)
+       if (bclo .eq. BC_INT) then
+          ss(i,j,0) = ss(i,j,0) - betay(i,j,3)
+       elseif (bclo .eq. BC_NEU) then
+          ss(i,j,0)   = ss(i,j,0) - betay(i,j,3) - betay(i,j,2)
+          ss(i,j,4)   = 0.d0
+          ss(i,j,YBC) = 0.d0
+       elseif (bclo .eq. BC_DIR) then
+          ss(i,j,0) = ss(i,j,0) - betay(i,j,3) 
+          ss(i,j,4) = 0.d0
+          ss(i,j,YBC) = 0.d0
+       end if
+
+       if ( hi(2) > lo(2) ) then
+          j = hi(2)
+          if (bchi .eq. BC_INT) then
+             ss(i,j,0) = ss(i,j,0) - betay(i,j,3)
+          elseif (bchi .eq. BC_NEU) then
+             ss(i,j,0) = ss(i,j,0) - betay(i,j,3) - betay(i,j+1,1)
+             ss(i,j,3) = 0.d0
+             ss(i,j,YBC) = 0.d0
+          elseif (bchi .eq. BC_DIR) then
+             ss(i,j,0) = ss(i,j,0) - betay(i,j,3) 
+             ss(i,j,3) = 0.d0
+             ss(i,j,YBC) = 0.d0
+          end if
+       end if
+    end do
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          ss(i,j,0) = ss(i,j,0) + alpha(i,j,0) 
+       end do
+    end do
+
+  end subroutine s_simpleg_2d_cc
+
   subroutine s_simple_3d_cc(ss, alpha, ng_a, betax, betay, betaz, ng_b, dh, mask, lo, hi, xa, xb, order)
 
 

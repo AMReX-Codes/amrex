@@ -382,13 +382,15 @@ subroutine mgt_init_mc_coeffs_lev(lev,nccomp,nc_opt)
   integer :: nlev, dm, i
   integer :: flev
   integer :: nc_cell, nc_edge
-
   if (nc_opt .eq. 0) then
      nc_cell = 1+nccomp
      nc_edge = nccomp
   else if (nc_opt .eq. 1) then
      nc_cell = 1
      nc_edge = 2*nccomp
+  else if (nc_opt .eq. 2) then
+     nc_cell = 1
+     nc_edge = nccomp
   end if
 
   flev = lev + 1
