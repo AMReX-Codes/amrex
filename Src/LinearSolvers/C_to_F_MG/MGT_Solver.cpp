@@ -676,7 +676,6 @@ MGT_Solver::set_porous_coefficients(PArray<MultiFab>& a1,
   for ( int lev = 0; lev < m_nlevel; ++lev )
   {
     mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
-     
     double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
     for ( int i = 0; i < BL_SPACEDIM; ++i ) 
       pxa[i] = pxb[i] = 0;
@@ -691,9 +690,8 @@ MGT_Solver::set_porous_coefficients(PArray<MultiFab>& a1,
 	  
       const int* a1lo = af1.box().loVect();
       const int* a1hi = af1.box().hiVect();
-
       mgt_set_cfa (&lev, &n, af1.dataPtr(), a1lo, a1hi, lo, hi);
-     
+
       if (nc_opt == 0)
       {
 	FArrayBox& af2 = a2[lev][amfi];
