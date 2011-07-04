@@ -1385,33 +1385,40 @@ ParticleContainer<N>::GetRhoFromParticles (MultiFab& mf,
 {
     AssignDensity(mf,lev);
 
-    mf.mult(frac);
-
     const Real omfrac = 1 - frac;
 
-    PMap& pmap = m_particles[lev];
+    if (lev == 0) {
+       mf.mult(frac);
+    } else {
+       mf.mult(frac/omfrac);
+    }
 
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    // Only reduce the mass of the particles if this is the first time, i.e. at level 0. 
+    if (lev == 0)
     {
-        PBox&     pbox = pmap_it->second;
-        const int n    = pbox.size();
+       PMap& pmap = m_particles[lev];
+       for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+       {
+           PBox&     pbox = pmap_it->second;
+           const int n    = pbox.size();
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
 #endif
-        for (int i = 0; i < n; i++)
-        {
-            ParticleType& p = pbox[i];
+           for (int i = 0; i < n; i++)
+           {
+              ParticleType& p = pbox[i];
    
-            if (p.m_id > 0)
-            {
-                //
-                // Note: m_data[0] is mass, ...
-                //
-                p.m_data[0] *= omfrac;
-            }
-        }
+              if (p.m_id > 0)
+              {
+                  //
+                  // Note: m_data[0] is mass, ...
+                  //
+                  p.m_data[0] *= omfrac;
+              }
+           }
      }
+   }
 }
 
 template <int N>
