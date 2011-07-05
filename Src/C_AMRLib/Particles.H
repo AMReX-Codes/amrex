@@ -1393,6 +1393,41 @@ ParticleContainer<N>::GetRhoFromParticles (MultiFab& mf,
        mf.mult(frac/omfrac);
     }
 
+    // We need to do this in case there are particles at lev-1 which contribute to the density at level lev.
+    if (lev > 0) 
+    {
+        MultiFab crse_mf(m_amr->boxArray(lev-1), 1, 1);
+
+        AssignDensity(crse_mf,lev-1);
+
+        // Make sure we give the full weight to the particles' contribution.
+        crse_mf.mult(frac/omfrac);
+
+        BoxArray ba = mf.boxArray();
+
+        ba.coarsen(m_amr->refRatio(lev-1));
+
+        BL_ASSERT(crse_mf.boxArray().contains(ba));
+
+        MultiFab cmf(ba,1,0);
+
+        cmf.copy(crse_mf);
+
+        for (MFIter mfi(cmf); mfi.isValid(); ++mfi)
+        {
+            const FArrayBox& cfab  = cmf[mfi];
+            const Box&       ovlp  = cfab.box();
+            FArrayBox&       ffab  = mf[mfi];
+            IntVect          ratio = m_amr->refRatio(lev-1);
+
+            BL_FORT_PROC_CALL(PART_SUMDENSUP,part_sumdensup)
+                (BL_TO_FORTRAN(cfab),
+                 BL_TO_FORTRAN(ffab),
+                 ovlp.loVect(),ovlp.hiVect(),
+                 ratio.getVect());
+        }
+    }
+
     // Only reduce the mass of the particles if this is the first time, i.e. at level 0. 
     if (lev == 0)
     {
@@ -1629,6 +1664,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             //
             // Now update x^new = x^old + dt grav^half / a^half
             //
+
             D_TERM(p.m_pos[0] += (dt * a_half_inv) * p.m_data[1];,
                    p.m_pos[1] += (dt * a_half_inv) * p.m_data[2];,
                    p.m_pos[2] += (dt * a_half_inv) * p.m_data[3];);
