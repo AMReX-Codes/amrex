@@ -19,6 +19,11 @@ BL_FORT_PROC_DECL(PART_SUMMASSUP,part_summassup)
      BL_FORT_FAB_ARG(fine_fab),
      const int* ovlo, const int* ovhi, const int* rat);
 
+BL_FORT_PROC_DECL(PART_SUMDENSUP,part_sumdensup)
+    (const BL_FORT_FAB_ARG(crse_fab),
+     BL_FORT_FAB_ARG(fine_fab),
+     const int* ovlo, const int* ovhi, const int* rat);
+
 #if (BL_SPACEDIM==2)
     BL_FORT_PROC_DECL(BICUBICINTERP,bicubicinterp)
     (const Real* x, const Real* y, const Real* fab,
