@@ -1348,7 +1348,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         tcmf.setVal(0);
 
-        tcmf.copy(cmf);
+        tcmf.copy(cmf,FabArrayBase::ADD);
 
         for (MFIter mfi(tcmf); mfi.isValid(); ++mfi)
         {
