@@ -1317,7 +1317,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         BL_ASSERT(mf[i-1].boxArray().contains(cba));
 
-        MultiFab cmf(cba, 1, 1);
+        cba.grow(1);
+
+        MultiFab cmf(cba, 1, 0);
 
         cmf.setVal(0);
 
