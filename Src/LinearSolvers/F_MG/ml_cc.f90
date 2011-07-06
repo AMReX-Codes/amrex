@@ -259,7 +259,7 @@ contains
           mglev = mgt(n)%nlevels
 
           ! Enforce solvability if appropriate
-          if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero) then
+          if (n .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero) then
 
              sum = multifab_sum(res(1))  / boxarray_dvolume(get_boxarray(res(1)))
 
