@@ -120,8 +120,6 @@ public:
     void AssignDensity (PArray<MultiFab>& mf) const;
 
     void MultiplyParticleMass (int lev, Real mult);
-
-    void GetRhoFromParticles (MultiFab& mf, int lev, Real frac);
  
     Real estTimestep (const MultiFab& grav_vector, Real a, int level, Real cfl) const;
 
@@ -1403,85 +1401,6 @@ ParticleContainer<N>::MultiplyParticleMass (int lev, Real mult)
               p.m_data[0] *= mult;
           }
        }
-   }
-}
-
-template <int N>
-void
-ParticleContainer<N>::GetRhoFromParticles (MultiFab& mf,
-                                           int       lev,
-                                           Real     frac) 
-{
-    AssignDensity(mf,lev);
-
-    const Real omfrac = 1 - frac;
-
-    if (lev == 0) {
-       mf.mult(frac);
-    } else {
-       mf.mult(frac/omfrac);
-    }
-
-    // We need to do this in case there are particles at lev-1 which contribute to the density at level lev.
-    if (lev > 0) 
-    {
-        MultiFab crse_mf(m_amr->boxArray(lev-1), 1, 1);
-
-        AssignDensity(crse_mf,lev-1);
-
-        // Make sure we give the full weight to the particles' contribution.
-        crse_mf.mult(frac/omfrac);
-
-        BoxArray ba = mf.boxArray();
-
-        ba.coarsen(m_amr->refRatio(lev-1));
-
-        BL_ASSERT(crse_mf.boxArray().contains(ba));
-
-        MultiFab cmf(ba,1,0);
-
-        cmf.copy(crse_mf);
-
-        for (MFIter mfi(cmf); mfi.isValid(); ++mfi)
-        {
-            const FArrayBox& cfab  = cmf[mfi];
-            const Box&       ovlp  = cfab.box();
-            FArrayBox&       ffab  = mf[mfi];
-            IntVect          ratio = m_amr->refRatio(lev-1);
-
-            BL_FORT_PROC_CALL(PART_SUMDENSUP,part_sumdensup)
-                (BL_TO_FORTRAN(cfab),
-                 BL_TO_FORTRAN(ffab),
-                 ovlp.loVect(),ovlp.hiVect(),
-                 ratio.getVect());
-        }
-    }
-
-    // Only reduce the mass of the particles if this is the first time, i.e. at level 0. 
-    if (lev == 0)
-    {
-       PMap& pmap = m_particles[lev];
-       for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-       {
-           PBox&     pbox = pmap_it->second;
-           const int n    = pbox.size();
-
-#ifdef BL_USE_OMP
-#pragma omp parallel for
-#endif
-           for (int i = 0; i < n; i++)
-           {
-              ParticleType& p = pbox[i];
-   
-              if (p.m_id > 0)
-              {
-                  //
-                  // Note: m_data[0] is mass, ...
-                  //
-                  p.m_data[0] *= omfrac;
-              }
-           }
-     }
    }
 }
 
