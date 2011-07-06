@@ -119,6 +119,8 @@ public:
 
     void AssignDensity (PArray<MultiFab>& mf) const;
 
+    void MultiplyParticleMass (int lev, Real mult);
+
     void GetRhoFromParticles (MultiFab& mf, int lev, Real frac);
  
     Real estTimestep (const MultiFab& grav_vector, Real a, int level, Real cfl) const;
@@ -1376,6 +1378,33 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     }
 }
 
+template <int N>
+void
+ParticleContainer<N>::MultiplyParticleMass (int lev, Real mult)
+{
+   BL_ASSERT(lev == 0);
+   PMap& pmap = m_particles[lev];
+   for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+   {
+       PBox&     pbox = pmap_it->second;
+       const int n    = pbox.size();
+
+#ifdef BL_USE_OMP
+#pragma omp parallel for
+#endif
+       for (int i = 0; i < n; i++)
+       {
+          ParticleType& p = pbox[i];
+          if (p.m_id > 0)
+          {
+              //
+              // Note: m_data[0] is mass, ...
+              //
+              p.m_data[0] *= mult;
+          }
+       }
+   }
+}
 
 template <int N>
 void
