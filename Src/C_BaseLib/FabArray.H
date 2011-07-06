@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.206 2010-10-06 15:44:20 lijewski Exp $
+// $Id: FabArray.H,v 1.207 2011-07-06 22:27:53 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -203,6 +203,10 @@ public:
         int fabIndex;
         int srcIndex;
     };
+    //
+    // When copy()ing from one FabArray to another we can do a copy or an add.
+    //
+    enum CpOp { COPY = 0, ADD = 1 };
 
     struct CPC
     {
@@ -557,7 +561,7 @@ public:
                is performed on the region of intersection.  The intersection
                is restricted to the valid region of each FAB.
     */
-    void copy (const FabArray<FAB>& fa);
+    void copy (const FabArray<FAB>& fa, CpOp op = FabArrayBase::COPY);
 
     /*@ManDoc: This function copies data from src to this FabArray.  Each FAB
                in src is intersected with all FABs in this FabArray and a copy
@@ -569,7 +573,8 @@ public:
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
-               int                  num_comp);
+               int                  num_comp,
+               CpOp                 op = FabArrayBase::COPY);
 
     /*@ManDoc: Copies the values contained in the intersection of the
                valid region of this FabArray with the FAB dest into dest.
@@ -1194,7 +1199,8 @@ void
 FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  scomp,
                      int                  dcomp,
-                     int                  ncomp)
+                     int                  ncomp,
+                     CpOp                 op)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy()");
 
@@ -1202,7 +1208,15 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     {
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
-            get(fai).copy(src[fai],fai.validbox(),scomp,fai.validbox(),dcomp,ncomp);
+            if (op == FabArrayBase::COPY)
+            {
+                get(fai).copy(src[fai],fai.validbox(),scomp,fai.validbox(),dcomp,ncomp);
+            }
+            else
+            {
+                BL_ASSERT(op == FabArrayBase::ADD);
+                get(fai).plus(src[fai],fai.validbox(),fai.validbox(),scomp,dcomp,ncomp);
+            }
         }
         return;
     }
@@ -1229,8 +1243,16 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
             BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
-            
-            get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
+
+            if (op == FabArrayBase::COPY)
+            {
+                get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
+            }
+            else
+            {
+                BL_ASSERT(op == FabArrayBase::ADD);
+                get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
+            }
         }
     }
     else
@@ -1255,7 +1277,15 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 {
                     if (src.distributionMap[iii] == MyProc)
                     {
-                        get(i).copy(src[iii],bx,scomp,bx,dcomp,ncomp);
+                        if (op == FabArrayBase::COPY)
+                        {
+                            get(i).copy(src[iii],bx,scomp,bx,dcomp,ncomp);
+                        }
+                        else
+                        {
+                            BL_ASSERT(op == FabArrayBase::ADD);
+                            get(i).plus(src[iii],bx,bx,scomp,dcomp,ncomp);
+                        }
 
                         tag.box      = bx;
                         tag.fabIndex = i;
@@ -1376,7 +1406,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 fab.resize(bx, ncomp);
                 const int N = bx.numPts() * ncomp;
                 memcpy(fab.dataPtr(), recvdptr, N*sizeof(value_type));
-                get(it->fabIndex).copy(fab,bx,0,bx,dcomp,ncomp);
+
+                if (op == FabArrayBase::COPY)
+                {
+                    get(it->fabIndex).copy(fab,bx,0,bx,dcomp,ncomp);
+                }
+                else
+                {
+                    BL_ASSERT(op == FabArrayBase::ADD);
+                    get(it->fabIndex).plus(fab,bx,bx,0,dcomp,ncomp);
+                }
+
                 recvdptr += N;
             }
         }
@@ -1474,7 +1514,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                     fab.resize(bx, ncomp);
                     int N = bx.numPts() * ncomp;
                     memcpy(fab.dataPtr(), dptr, N*sizeof(value_type));
-                    get(it->fabIndex).copy(fab,bx,0,bx,dcomp,ncomp);
+
+                    if (op == FabArrayBase::COPY)
+                    {
+                        get(it->fabIndex).copy(fab,bx,0,bx,dcomp,ncomp);
+                    }
+                    else
+                    {
+                        BL_ASSERT(op == FabArrayBase::ADD);
+                        get(it->fabIndex).plus(fab,bx,bx,0,dcomp,ncomp);
+                    }
+
                     dptr += N;
                 }
                 BoxLib::The_Arena()->free(fab_data[indx[k]]);
@@ -1498,9 +1548,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src)
+FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
 {
-    copy(src,0,0,nComp());
+    copy(src,0,0,nComp(),op);
 }
 
 //
