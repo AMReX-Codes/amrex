@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.56 2011-06-16 16:30:26 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.57 2011-07-06 23:19:58 marc Exp $
 //
 #include <winstd.H>
 
@@ -284,7 +284,7 @@ getToken (const char*& str,
            }
            break;
        case IDENTIFIER:
-           if ( isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' )
+           if ( isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
            {
                ostr += ch; str++;
            }
