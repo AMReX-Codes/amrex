@@ -1,6 +1,6 @@
 
 //
-// $Id: MCCGSolver.cpp,v 1.16 2007-07-05 20:59:05 lijewski Exp $
+// $Id: MCCGSolver.cpp,v 1.17 2011-07-08 16:19:06 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -183,7 +183,7 @@ MCCGSolver::solve (MultiFab&       sol,
         std::cout << "MCCGsolver: Initial error (error0) =  " << rnorm0 << '\n';
     }
 
-    Real beta, rho, rhoold=0.0;
+    Real beta = 0, rho = 0, rhoold = 0;
 
     /* WARNING:
 	 The MultiFab copies used below to update z and p require nghost=0
@@ -216,7 +216,7 @@ MCCGSolver::solve (MultiFab&       sol,
 	    z->copy(*r, srccomp, destcomp, ncomp);
 	}
 
-	rho = 0.0;
+	rho = 0;
 	int ncomp = z->nComp();
 
         for (MFIter rmfi(*r); rmfi.isValid(); ++rmfi)

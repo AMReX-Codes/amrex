@@ -220,7 +220,7 @@ level_interface::grid (int idim, int i, int j) const
 {
     BL_ASSERT(idim >= 0 && idim <= FACEDIM);
     BL_ASSERT(j >= 0 && i >= 0);
-    int ret;
+    int ret = 0;
     switch(idim)
     {
     case FACEDIM:
