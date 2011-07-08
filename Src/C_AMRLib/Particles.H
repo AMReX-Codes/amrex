@@ -759,7 +759,9 @@ ParticleContainer<N>::MoveRandom ()
     // Move particles randomly at all levels
     //
     for (int lev = 0; lev < m_particles.size(); lev++)
+    {
        MoveRandom(lev);
+    }
 }
 
 template <int N>
@@ -788,12 +790,7 @@ ParticleContainer<N>::MoveRandom (int lev)
                 {
                     for (int i = 0; i < BL_SPACEDIM; i++)
                     {
-                        int sgn = 1;
-
-                        if (BoxLib::Random() >= 0.5)
-                            sgn = -1;
-
-                        it->m_pos[i] +=  sgn * 0.25 * dx[i] * BoxLib::Random();
+                        it->m_pos[i] += dx[i] * (0.5*BoxLib::Random() - .25);
                     }
 
                     ParticleBase::Reset(*it,m_amr,true);
