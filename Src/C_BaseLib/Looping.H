@@ -2,7 +2,7 @@
 #define BL_LOOPING_H
 
 //
-// $Id: Looping.H,v 1.14 2006-09-06 17:26:53 lijewski Exp $
+// $Id: Looping.H,v 1.15 2011-07-08 16:42:38 lijewski Exp $
 //
 
 #if (BL_SPACEDIM == 1)
@@ -165,7 +165,6 @@
     const int *_b_len = b_length.getVect();                             \
     const T* _x_p = (x).dataPtr();                                      \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
-        const int nR = _n;                                              \
         const T *_x_pp = _x_p                                           \
             + ((_b_lo[0] - _x_plo[0])                                   \
                + _n * _x_plen[0]);                                      \
@@ -252,7 +251,6 @@
     const int *_b_len = b_length.getVect();                             \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
-        const int nR = _n;                                              \
         const T *_th_pp = _th_p                                         \
             + ((_b_lo[0] - _th_plo[0])                                  \
                + _n * _th_plen[0]);                                     \
@@ -609,7 +607,6 @@
     const int *_b_len = b_length.getVect();                             \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
-        const int nR = _n;                                              \
         for(int _j = 0; _j < _b_len[1]; ++_j) {                         \
             const int jR = _j + _b_lo[1];                               \
             const T *_th_pp = _th_p                                     \
@@ -956,7 +953,6 @@
     const int *_b_len = b_length.getVect();                             \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
-        const int nR = _n;                                              \
         for(int _k = 0; _k < _b_len[2]; ++_k) {                         \
             const int kR = _k + _b_lo[2];                               \
             for(int _j = 0; _j < _b_len[1]; ++_j) {                     \
