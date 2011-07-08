@@ -463,7 +463,6 @@ ParticleContainer<N>::InitCosmo ()
     // Print the grids as a sanity check
     for(MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        FArrayBox&  myFab  = mf[mfi];
         const int  *fab_lo = mfi.validbox().loVect();
         const int  *fab_hi = mfi.validbox().hiVect();
         if (mfi.validbox().isEmpty())
@@ -887,22 +886,26 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
 template <int N>
 Real
 ParticleContainer<N>::estTimestep (const MultiFab& gv,
-                                   Real             a,
+                                   Real            a,
                                    int             lev,
                                    Real            cfl) const
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    const Real      strttime = ParallelDescriptor::second();
-    const Geometry& geom     = m_amr->Geom(lev);
-    const Real*     dx       = geom.CellSize();
-    Real            dt       = 1e50;
-    const PMap&     pmap     = m_particles[lev];
+    const Real      strttime         = ParallelDescriptor::second();
+    const Geometry& geom             = m_amr->Geom(lev);
+    const Real*     dx               = geom.CellSize();
+    const Real      adx[BL_SPACEDIM] = { D_DECL(a*dx[0],a*dx[1],a*dx[2]) };
+    Real            dt               = 1e50;
+    const PMap&     pmap             = m_particles[lev];
+    int             tnum             = 1;
 
 #ifdef BL_USE_OMP
-    Array<Real> ldt(omp_get_max_threads(),1e50);
+    tnum = omp_get_max_threads();
 #endif
+
+    Array<Real> ldt(tnum,1e50);
 
     long num_particles_at_level = 0;
 
@@ -926,39 +929,40 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
             BL_ASSERT(p.m_grid == grid);
 
-            Real mag_vel_over_dx = abs(p.m_data[1])/(a*dx[0]);
-#if (BL_SPACEDIM > 1)
-            mag_vel_over_dx = std::max(abs(p.m_data[2])/(a*dx[1]), mag_vel_over_dx);
-#if (BL_SPACEDIM > 2)
-            mag_vel_over_dx = std::max(abs(p.m_data[3])/(a*dx[2]), mag_vel_over_dx);
-#endif
-#endif
+            const Real mag_vel_over_dx[BL_SPACEDIM] = { D_DECL(abs(p.m_data[1])/adx[0],
+                                                               abs(p.m_data[2])/adx[1],
+                                                               abs(p.m_data[3])/adx[2]) };
+            Real max_mag_vel_over_dx = mag_vel_over_dx[0];
 
-            Real dt_part = (mag_vel_over_dx > 0) ? (cfl / mag_vel_over_dx) : 1e50;
+#if (BL_SPACEDIM > 1)
+            max_mag_vel_over_dx = std::max(mag_vel_over_dx[1], max_mag_vel_over_dx);
+#endif
+#if (BL_SPACEDIM > 2)
+            max_mag_vel_over_dx = std::max(mag_vel_over_dx[2], max_mag_vel_over_dx);
+#endif
+            Real dt_part = (max_mag_vel_over_dx > 0) ? (cfl / max_mag_vel_over_dx) : 1e50;
 
             const Real gval[BL_SPACEDIM] = { D_DECL(gfab(p.m_cell,0),
                                                     gfab(p.m_cell,1),
                                                     gfab(p.m_cell,2)) };
 
-            const Real mag_grav = sqrt(D_TERM(gval[0]*gval[0], + gval[1]*gval[1], + gval[2]*gval[2]));
-
+            const Real mag_grav = sqrt(D_TERM(gval[0]*gval[0],
+                                            + gval[1]*gval[1],
+                                            + gval[2]*gval[2]));
             if (mag_grav > 0)
                 dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
 
-#ifdef BL_USE_OMP
-            const int tid = omp_get_thread_num();
+            int tid = 0;
 
-            ldt[tid] = std::min(dt_part, ldt[tid]);
-#else
-            dt = std::min(dt_part, dt);
+#ifdef BL_USE_OMP
+            tid = omp_get_thread_num();
 #endif
+            ldt[tid] = std::min(dt_part, ldt[tid]);
         }
     }
 
-#ifdef BL_USE_OMP
     for (int i = 0; i < ldt.size(); i++)
         dt = std::min(dt, ldt[i]);
-#endif
 
     ParallelDescriptor::ReduceRealMin(dt);
     //
