@@ -1,6 +1,6 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.26 2010-02-25 22:34:34 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.27 2011-07-08 16:19:06 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -219,7 +219,7 @@ MCLinOp::applyBC (MultiFab& inout,
 	    FArrayBox& denfab    = f[gn];
 	    FArrayBox& tdfab     = td[gn];
 #if BL_SPACEDIM==2
-	    int perpdir;
+	    int perpdir = -1;
 	    if (cdir == 0)
                 perpdir = 1;
 	    else if (cdir == 1)

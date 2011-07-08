@@ -324,7 +324,7 @@ amr_multigrid::build_mesh (const Box& fdomain)
 	//
 	// Initialize lev_interface.
 	//
-	int ldiff, mglev_common = mg_mesh.size();
+	int ldiff = 0, mglev_common = mg_mesh.size();
 	if (lev_min > lev_min_min)
 	{
 	    ldiff = mg_mesh_array[lev_min - 1].size() - mg_mesh.size();
