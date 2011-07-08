@@ -803,7 +803,6 @@ ParticleContainer<N>::MoveRandom (int lev)
         }
     }
 
-    int         tid               = 0;
     PMap&       pmap              = m_particles[lev];
     const Real* dx                = m_amr->Geom(lev).CellSize();
     const Real  dist[BL_SPACEDIM] = { D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
@@ -823,7 +822,9 @@ ParticleContainer<N>::MoveRandom (int lev)
             if (p.m_id <= 0) continue;
 
 #ifdef BL_USE_OMP
-            tid = omp_get_thread_num();
+            int tid = omp_get_thread_num();
+#else
+            int tid = 0;
 #endif
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
