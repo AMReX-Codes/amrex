@@ -1704,4 +1704,22 @@ contains
 
   end subroutine make_particle_count
 
+
+  function particle_global_numparticles(particles) result(num_tot)
+
+    type(particle_container), intent(inout) :: particles
+
+    integer  :: num_tot
+
+    integer :: nparticles, nparticles_tot
+
+    nparticles = size(particles)
+    
+    call parallel_reduce(nparticles_tot, nparticles, MPI_SUM)
+     
+    num_tot = nparticles_tot
+
+    return
+  end function particle_global_numparticles        
+
 end module particle_module
