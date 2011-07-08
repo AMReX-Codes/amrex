@@ -768,34 +768,69 @@ template <int N>
 void
 ParticleContainer<N>::MoveRandom (int lev)
 {
-    //
-    // Move particles up to 0.25*CellSize distance in each coordinate direction.
-    //
     BL_ASSERT(OK());
     BL_ASSERT(m_amr != 0);
+    //
+    // Move particles up to FRAC*CellSize distance in each coordinate direction.
+    //
+    const Real FRAC = 0.25;
 
+    static bool first = true;
+
+    static Array<BoxLib::mt19937> rn;
+
+    if (first)
     {
-        PMap&       pmap = m_particles[lev];
-        const Real* dx   = m_amr->Geom(lev).CellSize();
+        first = false;
+        //
+        // Build and initialize a random number generator per thread.
+        //
+        int tnum = 1;
 
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+#ifdef BL_USE_OMP
+        tnum = omp_get_max_threads();
+#endif
+        rn.resize(tnum);
+
+        for (int i = 0; i < tnum; i++)
         {
-            PBox& pbox = pmap_it->second;
             //
-            // Don't try to thread this.  The random # generator isn't thread-safe.
+            // We want to give each thread across all MPI processes a unique non-zero seed.
             //
-            for (typename PBox::iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
-            {
-                if (it->m_id > 0)
-                {
-                    for (int i = 0; i < BL_SPACEDIM; i++)
-                    {
-                        it->m_pos[i] += dx[i] * (0.5*BoxLib::Random() - .25);
-                    }
+            const unsigned long seedbase = 1+tnum*ParallelDescriptor::MyProc();
 
-                    ParticleBase::Reset(*it,m_amr,true);
-                }
+            rn[i] = BoxLib::mt19937(seedbase+i);
+        }
+    }
+
+    int         tid               = 0;
+    PMap&       pmap              = m_particles[lev];
+    const Real* dx                = m_amr->Geom(lev).CellSize();
+    const Real  dist[BL_SPACEDIM] = { D_DECL(FRAC*dx[0], FRAC*dx[1], FRAC*dx[2]) };
+
+    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    {
+        PBox&     pbox = pmap_it->second;
+        const int n    = pbox.size();
+
+#ifdef BL_USE_OMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < n; i++)
+        {
+            ParticleType& p = pbox[i];
+
+            if (p.m_id <= 0) continue;
+
+#ifdef BL_USE_OMP
+            tid = omp_get_thread_num();
+#endif
+            for (int i = 0; i < BL_SPACEDIM; i++)
+            {
+                p.m_pos[i] += dist[i]*(2*rn[tid].d_value()-1);
             }
+
+            ParticleBase::Reset(p,m_amr,true);
         }
     }
 
@@ -880,7 +915,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
         num_particles_at_level += n;
 
 #ifdef BL_USE_OMP
-#pragma omp for
+#pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
         {
