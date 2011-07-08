@@ -1,6 +1,6 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.27 2011-07-08 16:19:06 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.28 2011-07-08 17:15:56 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -204,7 +204,6 @@ MCLinOp::applyBC (MultiFab& inout,
             FabSet& td = (*tangderiv[level])[oitr()];
             int cdr(oitr());
             const FabSet& fs = bgb.bndryValues(oitr());
-            int cdir = oitr().coordDir();
 	    Real bcl(r[gn]);
 	    const int *bct = (const int *)b[gn].dataPtr();
 	    const FArrayBox& fsfab = fs[gn];
@@ -219,7 +218,7 @@ MCLinOp::applyBC (MultiFab& inout,
 	    FArrayBox& denfab    = f[gn];
 	    FArrayBox& tdfab     = td[gn];
 #if BL_SPACEDIM==2
-	    int perpdir = -1;
+            int cdir = oitr().coordDir(), perpdir = -1;
 	    if (cdir == 0)
                 perpdir = 1;
 	    else if (cdir == 1)
