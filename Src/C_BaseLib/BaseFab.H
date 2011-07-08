@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.72 2011-04-14 22:25:22 marc Exp $
+// $Id: BaseFab.H,v 1.73 2011-07-08 16:03:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1315,8 +1315,6 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)
         { 
-            int nR = _n + destcomp; nR += 0; 
-            int nxR = _n + srccomp; nxR += 0; 
             for(int _j = 0; _j < _subbox_len[1]; ++_j)
             { 
                 const int jR = _j + _subbox_lo[1]; 
