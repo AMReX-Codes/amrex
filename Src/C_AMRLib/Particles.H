@@ -2207,6 +2207,9 @@ void
 ParticleContainer<N>::Redistribute (bool where_already_called)
 {
     const int MyProc = ParallelDescriptor::MyProc();
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    if (NProcs == 1 && where_already_called) return;
 
 #if BL_USE_MPI
     const Real strttime = ParallelDescriptor::second();
@@ -2221,6 +2224,10 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     // The valid particles that we don't own.
     //
     PBox notowned;
+    //
+    // And who rightly owns those particles.
+    //
+    std::vector<int> owner;
 
     for (int lev = 0; lev < m_particles.size(); lev++)
     {
@@ -2237,12 +2244,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                 if (p.m_id > 0)
                 {
                     if (!where_already_called)
-                    {
                         if (!ParticleBase::Where(p,m_amr))
-                        {
                             BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle");
-                        }
-                    }
                     //
                     // The owner of the particle is the CPU owning the finest grid
                     // in state data that contains the particle.
@@ -2261,10 +2264,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                         //
                         // We're not the rightful owner of this particle.
                         //
-                        // Since we don't send/recv m_lev, m_grid or m_cell
-                        // we can save the "who" in m_grid.
-                        //
-                        p.m_grid = who;
+                        owner.push_back(who);
 
                         notowned.push_back(p);
                     }
@@ -2289,12 +2289,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     //
     m_particles.swap(new_m_particles);
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
     if (NProcs == 1)
     {
-        BL_ASSERT(notowned.empty());
-        return;
+        BL_ASSERT(notowned.empty()); return;
     }
 
 #if BL_USE_MPI
@@ -2304,8 +2301,10 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     Array<int> Snds(NProcs,0);
     Array<int> Rcvs(NProcs,0);
 
-    for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
-        Snds[it->m_grid]++;
+    BL_ASSERT(notowned.size() == owner.size());
+
+    for (std::vector<int>::const_iterator it = owner.begin(), End = owner.end(); it != End; ++it)
+        Snds[*it]++;
 
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
@@ -2324,33 +2323,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     for (int i = 0; i < NProcs; i++)
         NumSnds += Snds[i];
 
-    int maxsendrecv = 0;
-
-    if (m_verbose > 2)
-    {
-        maxsendrecv = std::max(NumRcvs,NumSnds);
-
-        ParallelDescriptor::ReduceIntMax(maxsendrecv);
-
-        if (maxsendrecv > 0)
-        {
-            for (int i = 0; i < NProcs; i++)
-            {
-                if (MyProc == i)
-                {
-                    std::cout << "Processor "
-                              << i
-                              << " : NumRcvs: "
-                              << NumRcvs
-                              << " NumSnds: "
-                              << NumSnds
-                              << " in Redistribute()" << std::endl;
-                }
-                ParallelDescriptor::Barrier();
-            }
-        }
-    }
-
     BL_ASSERT(notowned.size() == NumSnds);
 
     PBox nparticles;
@@ -2359,14 +2331,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         // The "int" data.
         //
-        // We only transfer m_cpu and m_id.
-        //
-        // We do NOT transfer m_lev, m_grid or m_cell.  We choose to
-        // recalculate these on the CPU that receives them.  The idea
-        // is that CPUs are faster than networks.
-        //
-        //
-        const int iChunkSize = 2;
+        const int iChunkSize = 4 + BL_SPACEDIM;
 
         Array<int> recvdata (NumRcvs*iChunkSize);
         Array<int> senddata (NumSnds*iChunkSize);
@@ -2391,15 +2356,19 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
         for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
         {
-            //
-            // We're overloaded m_grid to hold "who" the owner of the particle.
-            //
-            int& ioff = offset[it->m_grid];
+            int& ioff = offset[owner[i]];
 
             BL_ASSERT(it->m_id > 0);
 
             senddata[ioff+0] = it->m_id;
             senddata[ioff+1] = it->m_cpu;
+
+            senddata[ioff+2] = it->m_lev;
+            senddata[ioff+3] = it->m_grid;
+
+            D_TERM(senddata[ioff+4] = it->m_cell[0];,
+                   senddata[ioff+5] = it->m_cell[1];,
+                   senddata[ioff+6] = it->m_cell[2];);
 
             ioff += iChunkSize;
 
@@ -2429,9 +2398,16 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             p.m_id   = rcvp[0];
             p.m_cpu  = rcvp[1];
 
+            p.m_lev  = rcvp[2];
+            p.m_grid = rcvp[3];
+
+            D_TERM(p.m_cell[0] = rcvp[4];,
+                   p.m_cell[1] = rcvp[5];,
+                   p.m_cell[2] = rcvp[6];);
+
             nparticles.push_back(p);
 
-            rcvp += 2;
+            rcvp += iChunkSize;
         }
     }
 
@@ -2466,10 +2442,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
         for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
         {
-            //
-            // We've overloaded m_grid to hold "who" (the owner of the particle).
-            //
-            int& ioff = offset[it->m_grid];
+            int& ioff = offset[owner[i]];
 
             D_TERM(senddata[ioff+0] = it->m_pos[0];,
                    senddata[ioff+1] = it->m_pos[1];,
@@ -2495,10 +2468,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                                       ParallelDescriptor::Mpi_typemap<Real>::type(),
                                       ParallelDescriptor::Communicator()) );
         //
-        // Get rid of space held by "notowned".
+        // Get rid of space held by "notowned" and "owner".
         //
         {
             PBox tmpA; notowned.swap(tmpA);
+
+            std::vector<int> tmpB; owner.swap(tmpB);
         }
         //
         // Unpack data into the new particles.
@@ -2520,11 +2495,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
             rcvp += N;
 
-            if (!ParticleBase::Where(*it,m_amr))
-            {
-                BoxLib::Abort("ParticleContainer<N>::Redistribute(): got a bad particle");
-            }
-
             m_particles[it->m_lev][it->m_grid].push_back(*it);
         }
     }
@@ -2536,37 +2506,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         Real stoptime = ParallelDescriptor::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (maxsendrecv > 0)
-        {
-            for (int i = 0; i < NProcs; i++)
-            {
-                if (MyProc == i)
-                {
-                    long count = 0;
-
-                    for (int lev = 0; lev < m_particles.size(); lev++)
-                    {
-                        const PMap& pmap = m_particles[lev];
-
-                        for (typename PMap::const_iterator it = pmap.begin(), End = pmap.end(); it != End; ++it)
-                        {
-                            count += it->second.size();
-                        }
-                    }
-
-                    if (count > 0)
-                    {
-                        std::cout << "Processor "
-                                  << i
-                                  << " has "
-                                  << count
-                                  << " particles after Redistribute()" << std::endl;
-                    }
-                }
-                ParallelDescriptor::Barrier();
-            }
-        }
 
         ByteSpread();
 
