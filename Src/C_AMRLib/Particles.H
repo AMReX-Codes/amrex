@@ -2224,7 +2224,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     //
     // And who rightly owns those particles.
     //
-    std::vector<int> owner;
+    std::deque<int> owner;
 
     for (int lev = 0; lev < m_particles.size(); lev++)
     {
@@ -2295,7 +2295,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     BL_ASSERT(notowned.size() == owner.size());
 
-    for (std::vector<int>::const_iterator it = owner.begin(), End = owner.end(); it != End; ++it)
+    for (std::deque<int>::const_iterator it = owner.begin(), End = owner.end(); it != End; ++it)
         Snds[*it]++;
 
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
@@ -2328,20 +2328,21 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         Array<int> recvdata (NumRcvs*iChunkSize);
         Array<int> senddata (NumSnds*iChunkSize);
 
-        Array<int> sendcnts(NProcs,0), sdispls(NProcs,0);
-        Array<int> recvcnts(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
+        Array<int> sendcnts(NProcs), recvcnts(NProcs);
+
+        Array<int> sdispls(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
 
         for (int i = 0; i < NProcs; i++)
         {
             recvcnts[i] = Rcvs[i] * iChunkSize;
             sendcnts[i] = Snds[i] * iChunkSize;
-        }
 
-        for (int i = 1; i < NProcs; i++)
-        {
-            offset [i] = offset [i-1] + sendcnts[i-1];
-            rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-            sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+            if (i > 0)
+            {
+                offset [i] = offset [i-1] + sendcnts[i-1];
+                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
+                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+            }
         }
 
         int i = 0;
@@ -2376,6 +2377,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                                       rdispls.dataPtr(),
                                       ParallelDescriptor::Mpi_typemap<int>::type(),
                                       ParallelDescriptor::Communicator()) );
+        {
+            Array<int> tmp; senddata.swap(tmp);
+        }
         //
         // Unpack data into the new particles.
         //
@@ -2414,20 +2418,21 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         Array<Real> recvdata (NumRcvs*rChunkSize);
         Array<Real> senddata (NumSnds*rChunkSize);
 
-        Array<int> sendcnts(NProcs,0), sdispls(NProcs,0);
-        Array<int> recvcnts(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
+        Array<int> sendcnts(NProcs), recvcnts(NProcs);
+
+        Array<int> sdispls(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
 
         for (int i = 0; i < NProcs; i++)
         {
             recvcnts[i] = Rcvs[i] * rChunkSize;
             sendcnts[i] = Snds[i] * rChunkSize;
-        }
 
-        for (int i = 1; i < NProcs; i++)
-        {
-            offset [i] = offset [i-1] + sendcnts[i-1];
-            rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-            sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+            if (i > 0)
+            {
+                offset [i] = offset [i-1] + sendcnts[i-1];
+                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
+                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+            }
         }
 
         int i = 0;
@@ -2450,6 +2455,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             i++;
         }
 
+        {
+            PBox tmpA; notowned.swap(tmpA);
+
+            std::deque<int> tmpB; owner.swap(tmpB);
+        }
+
         BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
                                       sendcnts.dataPtr(),
                                       sdispls.dataPtr(),
@@ -2459,35 +2470,34 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                                       rdispls.dataPtr(),
                                       ParallelDescriptor::Mpi_typemap<Real>::type(),
                                       ParallelDescriptor::Communicator()) );
-        //
-        // Get rid of space held by "notowned" and "owner".
-        //
         {
-            PBox tmpA; notowned.swap(tmpA);
-
-            std::vector<int> tmpB; owner.swap(tmpB);
+            Array<Real> tmpC; senddata.swap(tmpC);
         }
         //
         // Unpack data into the new particles.
         //
         Real* rcvp = NumRcvs == 0 ? 0 : recvdata.dataPtr();
 
-        for (typename PBox::iterator it = nparticles.begin(), End = nparticles.end(); it != End; ++it)
+        while (!nparticles.empty())
         {
             BL_ASSERT(rcvp != 0);
 
-            D_TERM(it->m_pos[0] = rcvp[0];,
-                   it->m_pos[1] = rcvp[1];,
-                   it->m_pos[2] = rcvp[2];);
+            ParticleType& p = nparticles.front();
+
+            D_TERM(p.m_pos[0] = rcvp[0];,
+                   p.m_pos[1] = rcvp[1];,
+                   p.m_pos[2] = rcvp[2];);
 
             rcvp += BL_SPACEDIM;
 
             for (int j = 0; j < N; j++)
-                it->m_data[j] = rcvp[j];
+                p.m_data[j] = rcvp[j];
 
             rcvp += N;
 
-            m_particles[it->m_lev][it->m_grid].push_back(*it);
+            m_particles[p.m_lev][p.m_grid].push_back(p);
+
+            nparticles.pop_front();
         }
     }
 
