@@ -2207,9 +2207,6 @@ void
 ParticleContainer<N>::Redistribute (bool where_already_called)
 {
     const int MyProc = ParallelDescriptor::MyProc();
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    if (NProcs == 1 && where_already_called) return;
 
 #if BL_USE_MPI
     const Real strttime = ParallelDescriptor::second();
@@ -2254,18 +2251,11 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
                     if (who == MyProc)
                     {
-                        //
-                        // We own the particle. Stick it where it belongs.
-                        //
                         new_m_particles[p.m_lev][p.m_grid].push_back(p);
                     }
                     else
                     {
-                        //
-                        // We're not the rightful owner of this particle.
-                        //
                         owner.push_back(who);
-
                         notowned.push_back(p);
                     }
                 }
@@ -2288,6 +2278,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     // in the hierarchy.
     //
     m_particles.swap(new_m_particles);
+
+    const int NProcs = ParallelDescriptor::NProcs();
 
     if (NProcs == 1)
     {
@@ -2523,6 +2515,8 @@ ParticleContainer<N>::OK () const
 {
     //
     // Check that the integer data in each valid particle is what it should be.
+    // This includes checking that particles are in the proper place in the particle
+    // container based on what Where() says they should be.
     //
     for (int lev = 0; lev < m_particles.size(); lev++)
     {
@@ -2530,6 +2524,7 @@ ParticleContainer<N>::OK () const
 
         for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
         {
+            const int   grid = pmap_it->first;
             const PBox& pbox = pmap_it->second;
 
             for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
@@ -2541,14 +2536,15 @@ ParticleContainer<N>::OK () const
 
                 if (p.m_id > 0)
                 {
-                    const int     lev  = p.m_lev;
-                    const int     grid = p.m_grid;
-                    const IntVect cell = p.m_cell;
+                    const int     llev  = p.m_lev;
+                    const int     lgrid = p.m_grid;
+                    const IntVect cell  = p.m_cell;
 
                     if (!ParticleBase::Where(p,m_amr))
                         return false;
 
-                    if (lev != p.m_lev || grid != p.m_grid || cell != p.m_cell)
+                    if ((lev  != p.m_lev  || lev  != llev)  ||
+                        (grid != p.m_grid || grid != lgrid) || cell != p.m_cell)
                     {
                         std::cout << "PARTICLE NUMBER " << p.m_id << '\n';
 
@@ -2556,10 +2552,10 @@ ParticleContainer<N>::OK () const
                         for (int i = 0; i < BL_SPACEDIM; i++)
                             std::cout << p.m_pos[i] << ' ';
 
-                        if (lev != p.m_lev)
+                        if (lev != p.m_lev || lev != llev)
                            std::cout << "BAD LEV  " << lev  << " " << p.m_lev << '\n';
 
-                        if (grid != p.m_grid)
+                        if (grid != p.m_grid || grid != lgrid)
                            std::cout << "BAD GRID " << grid << " " << p.m_grid << '\n';
 
                         if (cell != p.m_cell)
