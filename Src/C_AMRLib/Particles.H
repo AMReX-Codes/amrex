@@ -2294,7 +2294,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     if (NProcs == 1)
     {
-        BL_ASSERT(notowned.empty()); return;
+        BL_ASSERT(OK());
+        BL_ASSERT(notowned.empty());
+        return;
     }
 
 #if BL_USE_MPI
@@ -2310,6 +2312,20 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     for (std::deque<int>::const_iterator it = owner.begin(), End = owner.end(); it != End; ++it)
         Snds[*it]++;
+
+    long maxsendcount = 0;
+    for (int i = 0; i < NProcs; i++)
+        maxsendcount += Snds[i];
+    ParallelDescriptor::ReduceLongMax(maxsendcount);
+
+    if (maxsendcount == 0)
+    {
+        //
+        // There's no parallel work to do.
+        //
+        BL_ASSERT(OK());
+        return;
+    }
 
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
