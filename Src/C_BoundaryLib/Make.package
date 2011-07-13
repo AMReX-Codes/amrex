@@ -1,18 +1,20 @@
-#
-# $Id: Make.package,v 1.1 1998-10-28 17:49:32 lijewski Exp $
-#
-
 BNDRYLIB_BASE=EXE
 ifeq ($(LBASE),bndry)
     BNDRYLIB_BASE=LIB
 endif
 
 C$(BNDRYLIB_BASE)_sources += FabSet.cpp BndryRegister.cpp \
-                             Geometry.cpp CoordSys.cpp RealBox.cpp
+                             Geometry.cpp CoordSys.cpp RealBox.cpp \
+                             BndryData.cpp InterpBndryData.cpp Mask.cpp
 
 C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H \
-                             Geometry.H CoordSys.H RealBox.H
+                             Geometry.H CoordSys.H RealBox.H \
+			     BndryData.H BoundCond.H InterpBndryData.H \
+			     LO_BCTYPES.H Mask.H
 
-F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H
+F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H INTERPBNDRYDATA_F.H
 
-F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F
+F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F INTERPBNDRYDATA_$(DIM)D.F
+
+
+
