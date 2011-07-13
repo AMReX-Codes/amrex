@@ -602,8 +602,15 @@ contains
           case (3)
              ycp => dataptr(edge_coeffs(2), i)
              zcp => dataptr(edge_coeffs(3), i)
-             call s_simple_3d_cc(sp(:,:,:,:), ccp(:,:,:,1), ng_c, xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, &
-                                 dh, mp(:,:,:,1), bx%lo, bx%hi, lxa, lxb, order)
+             if (ncomp_coeffs > 1) then
+                 if (lnc_opt .eq. 2) then 
+                    call s_simpleg_3d_cc(sp(:,:,:,:), ccp(:,:,:,:), ng_c, xcp(:,:,:,:), ycp(:,:,:,:), zcp(:,:,:,:), ng_b, &
+                      dh, mp(:,:,:,1), bx%lo, bx%hi, lxa, lxb, order)
+                 end if
+              else
+                 call s_simple_3d_cc(sp(:,:,:,:), ccp(:,:,:,1), ng_c, xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, &
+                      dh, mp(:,:,:,1), bx%lo, bx%hi, lxa, lxb, order)
+              endif
           end select
 
        end if
