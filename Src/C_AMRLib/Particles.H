@@ -2208,9 +2208,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
-#if BL_USE_MPI
-    const Real strttime = ParallelDescriptor::second();
-#endif
+    Real strttime = ParallelDescriptor::second();
     //
     // The new array of particles.
     //
@@ -2281,12 +2279,27 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     const int NProcs = ParallelDescriptor::NProcs();
 
+    if (m_verbose > 1)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+
+        if (NProcs == 1)
+            ByteSpread();
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "ParticleContainer<N>::Redistribute()   scalar time: " << stoptime << '\n';
+    }
+
     if (NProcs == 1)
     {
         BL_ASSERT(notowned.empty()); return;
     }
 
 #if BL_USE_MPI
+
+    strttime = ParallelDescriptor::second();
     //
     // We may now have particles that are rightfully owned by another CPU.
     //
@@ -2512,9 +2525,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         ByteSpread();
 
         if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<N>::Redistribute() time: " << stoptime << '\n';
-        }
+            std::cout << "ParticleContainer<N>::Redistribute() parallel time: " << stoptime << '\n';
     }
 #endif
 }
