@@ -1460,7 +1460,7 @@ contains
 
   end subroutine particle_container_restart
 
-  subroutine particle_container_timestamp(particles,basename,mf,idx,names,time)
+  subroutine particle_container_timestamp(particles,basename,mf,idx,names,time,vel_mf)
 
     use parallel
     use bl_IO_module, only: unit_new
@@ -1473,6 +1473,7 @@ contains
     integer,                  intent(in) :: idx(:)
     character(len=*),         intent(in) :: names(:)
     double precision,         intent(in) :: time
+    type(multifab), optional, intent(in) :: vel_mf(:)
 
     integer             :: un, iSet, nOutFiles, nSets, mySet, MyProc, NProcs
     integer             :: i, j, n, dm, iBuff(1), wakeUpPID, waitForPID, tag
@@ -1485,12 +1486,20 @@ contains
 
     type(particle), pointer :: p
     real(dp_t),     pointer :: r(:,:,:,:)
+    real(dp_t),     pointer :: v(:,:,:,:)
+
+    logical :: print_vels
 
     logical,                       save :: first = .true.
     character(len=64),             save :: dfmtstr, hfmtstr
-    double precision, allocatable, save :: values(:)
+    real(dp_t), allocatable, save :: values(:)
+    real(dp_t) :: vels(MAX_SPACEDIM)
 
     integer, parameter :: MaxOpenFiles = 32
+
+    ! if the optional vel_mf is present, then we will also store velocities
+    print_vels = .false. ; if (present(vel_mf)) print_vels = .true.
+
 
     dm        = mf(1)%dim
     NProcs    = parallel_nprocs()
@@ -1587,14 +1596,32 @@ contains
 
                 select case (dm)
                 case (1)
-                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "time", &
-                        (names(n), n=1, size(idx))
+                   if (print_vels) then
+                      write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "time", &
+                           "vx", &
+                           (names(n), n=1, size(idx))
+                   else
+                      write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "time", &
+                           (names(n), n=1, size(idx))   
+                   endif
                 case (2)
-                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "y", "time", &
-                        (names(n), n=1, size(idx))
+                   if (print_vels) then
+                      write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "y", "time", &
+                           "vx", "vy", &
+                           (names(n), n=1, size(idx))
+                   else
+                      write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "y", "time", &
+                           (names(n), n=1, size(idx))
+                   endif
                 case (3)
-                   write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "y", "z", "time", &
+                   if (print_vels) then
+                      write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "y", "z", "time", &
+                           "vx", "vy", "vz", &
+                           (names(n), n=1, size(idx))                
+                   else
+                      write(unit=un, fmt=trim(hfmtstr)) "# ", "part-ID", "origin-CPU", "x", "y", "z", "time", &
                         (names(n), n=1, size(idx))                
+                   endif
                 end select
                 
                 need_header = .false.
@@ -1620,10 +1647,27 @@ contains
                       values(j) = r(p%cell(1),p%cell(2),p%cell(3),idx(j))
                    end select
                 end do
+
+                if (print_vels) then
+                   v => dataptr(vel_mf(p%lev),p%grd)
+                   select case (dm)
+                   case (1)
+                      vels(1:dm) = v(p%cell(1),1,1,1:dm)
+                   case (2)
+                      vels(1:dm) = v(p%cell(1),p%cell(2),1,1:dm)
+                   case (3)
+                      vels(1:dm) = v(p%cell(1),p%cell(2),p%cell(3),1:dm)
+                   end select
+                endif
+
                 !
                 ! Write to the file.
                 !
-                write(unit=un, fmt=trim(dfmtstr)) p%id, p%cpu, p%pos(1:dm), time, values
+                if (print_vels) then
+                   write(unit=un, fmt=trim(dfmtstr)) p%id, p%cpu, p%pos(1:dm), time, vels(1:dm), values
+                else
+                   write(unit=un, fmt=trim(dfmtstr)) p%id, p%cpu, p%pos(1:dm), time, values
+                endif
              end do
 
              close(un)
