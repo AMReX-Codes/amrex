@@ -241,7 +241,7 @@ template <int N>
 void
 ParticleContainer<N>::ByteSpread () const
 {
-    long mn = 0;
+    long cnt = 0;
 
     for (int lev = 0; lev < m_particles.size(); lev++)
     {
@@ -249,18 +249,17 @@ ParticleContainer<N>::ByteSpread () const
 
         for (typename PMap::const_iterator it = pmap.begin(), End = pmap.end(); it != End; ++it)
         {
-            mn += it->second.size();
+            cnt += it->second.size();
         }
     }
 
-    mn *= sizeof(ParticleType);
-
-    long mx = mn;
+    long mn = cnt*sizeof(ParticleType), mx = mn;
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    ParallelDescriptor::ReduceLongMin(mn,IOProc);
-    ParallelDescriptor::ReduceLongMax(mx,IOProc);
+    ParallelDescriptor::ReduceLongMin(mn, IOProc);
+    ParallelDescriptor::ReduceLongMax(mx, IOProc);
+    ParallelDescriptor::ReduceLongSum(cnt,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -268,7 +267,7 @@ ParticleContainer<N>::ByteSpread () const
                   << mn
                   << " ... "
                   << mx
-                  << "]\n";
+                  << "] total particles: " << cnt << '\n';
     }
 }
 
