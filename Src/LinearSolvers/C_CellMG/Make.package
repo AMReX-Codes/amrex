@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.4 2011-07-13 21:26:24 almgren Exp $
+# $Id: Make.package,v 1.5 2011-07-14 21:24:35 almgren Exp $
 #
 
 MGLIB_BASE=EXE
@@ -12,5 +12,5 @@ CEXE_headers += ABecLaplacian.H CGSolver.H LinOp.H MultiGrid.H Laplacian.H
 FEXE_headers += ABec_F.H CG_F.H LO_F.H LP_F.H MG_F.H
 
 FEXE_sources += ABec_$(DIM)D.F ABec_UTIL.F CG_$(DIM)D.F \
-                LO_$(DIM)D.F LO_UTIL.F LP_$(DIM)D.F MG_$(DIM)D.F
+                LO_$(DIM)D.F LP_$(DIM)D.F MG_$(DIM)D.F
 
