@@ -68,9 +68,18 @@ struct ParticleBase
     // Reset on restart.
     //
     static void NextID (int nextid);
+    //
+    // Used for partitioning particles into valid & invalid groups.
+    //
+    class Invalid
+    {
+    public:
+        bool operator () (const ParticleBase& p) const { return p.m_id <= 0; }
+    };
 };
 
 std::ostream& operator<< (std::ostream& os, const ParticleBase& p);
+
 
 template <int N>
 struct Particle
@@ -2209,12 +2218,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     Real strttime = ParallelDescriptor::second();
     //
-    // The new array of particles.
-    //
-    Array<PMap> new_m_particles;
-
-    new_m_particles.resize(m_amr->finestLevel()+1);
-    //
     // The valid particles that we don't own.
     //
     PBox notowned;
@@ -2229,11 +2232,14 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
         for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
         {
+            int   grid = pmap_it->first;
             PBox& pbox = pmap_it->second;
 
-            while (!pbox.empty())
+            typename PBox::iterator valid_it = pbox.begin();
+
+            for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
             {
-                ParticleType& p = pbox.front();
+                ParticleType& p = *it;
 
                 if (p.m_id > 0)
                 {
@@ -2248,33 +2254,65 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
                     if (who == MyProc)
                     {
-                        new_m_particles[p.m_lev][p.m_grid].push_back(p);
+                        if (p.m_lev != lev || p.m_grid != grid)
+                        {
+                            //
+                            // We own it but must shift it to another place.
+                            //
+                            m_particles[p.m_lev][p.m_grid].push_back(p);
+                            //
+                            // Invalidate the particle so we can reclaim its space.
+                            //
+                            p.m_id = -p.m_id;
+                        }
                     }
                     else
                     {
                         owner.push_back(who);
                         notowned.push_back(p);
+                        //
+                        // Invalidate the particle so we can reclaim its space.
+                        //
+                        p.m_id = -p.m_id;
                     }
                 }
 
-                pbox.pop_front();
+                if (p.m_id <= 0 && it != pbox.begin())
+                {
+                    //
+                    // Find valid particle "before" us with which we can be swapped.
+                    //
+                    for ( ; valid_it < it; ++valid_it)
+                    {
+                        if (valid_it->m_id > 0)
+                        {
+                            //
+                            // Shift invalid particles in front of valid ones.
+                            //
+                            std::swap(*valid_it,*it);
+                            ++valid_it;
+                            break;
+                        }
+                    }
+                }
             }
-            //
-            // Force the release of any remaining storage "pbox" may be holding.
-            //
-            PBox tmp; pbox.swap(tmp);
         }
-        //
-        // Force the release of any remaining storage "pmap" may be holding.
-        //
-        PMap tmp; pmap.swap(tmp);
     }
     //
-    // Make new_m_particles our new "m_particles.  It contains all the
-    // valid particles that we still own put into their proper place
-    // in the hierarchy.
+    // Remove invalid particles.  They should all be at the front.
     //
-    m_particles.swap(new_m_particles);
+    for (int lev = 0; lev < m_particles.size(); lev++)
+    {
+        PMap& pmap = m_particles[lev];
+
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            PBox& pbox = pmap_it->second;
+
+            while (pbox.front().m_id <= 0)
+                pbox.pop_front();
+        }
+    }
 
     const int NProcs = ParallelDescriptor::NProcs();
 
