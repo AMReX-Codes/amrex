@@ -3,7 +3,10 @@
 #
 #  This is a script that extracts files from HSI.  It allows you to extract multiple files
 #  simultaneously, and loops until all your specified files are extracted.
-#
+
+echo WARNING! This script is not for use on Jaguar.
+# It will cause problems and the admin will ask you to tar in serial
+
 
 #----------------------------------------------------------------------------
 # user modifiable variables:
