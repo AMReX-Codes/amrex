@@ -291,6 +291,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
     const int  NProcs   = ParallelDescriptor::NProcs();
     const Real strttime = ParallelDescriptor::second();
 
+    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
+
     m_particles.resize(m_amr->finestLevel()+1);
 
     std::ifstream ifs;
@@ -442,6 +444,8 @@ ParticleContainer<N>::InitCosmo ()
     Real particleMass;
     std::string mfDirName;
 
+    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
+
     m_particles.resize(m_amr->finestLevel()+1);
 
     for (int lev = 0; lev < m_particles.size(); lev++)
@@ -592,6 +596,8 @@ ParticleContainer<N>::InitRandom (long          icount,
     Real r, len[BL_SPACEDIM] = { geom.ProbLength(0), geom.ProbLength(1), geom.ProbLength(2) };
 
     BoxLib::InitRandom(iseed+MyProc);
+
+    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
     m_particles.resize(m_amr->finestLevel()+1);
 
@@ -2213,9 +2219,8 @@ template <int N>
 void
 ParticleContainer<N>::Redistribute (bool where_already_called)
 {
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    Real strttime = ParallelDescriptor::second();
+    const int MyProc   = ParallelDescriptor::MyProc();
+    Real      strttime = ParallelDescriptor::second();
 
     if (m_particles.size() < m_amr->finestLevel()+1)
     {
@@ -2224,7 +2229,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
            m_particles.size() << " to " << m_amr->finestLevel()+1 << std::endl;
        m_particles.resize(m_amr->finestLevel()+1);
     }
-
     //
     // The valid particles that we don't own.
     //
@@ -2242,10 +2246,13 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         {
             int   grid = pmap_it->first;
             PBox& pbox = pmap_it->second;
+            //
+            // Remove any invalid particles from front of container.
+            //
+            while (pbox.front().m_id <= 0)
+                pbox.pop_front();
 
-            typename PBox::iterator valid_it = pbox.begin();
-
-            for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
+            for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; )
             {
                 ParticleType& p = *it;
 
@@ -2285,40 +2292,21 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                     }
                 }
 
-                if (p.m_id <= 0 && it != pbox.begin())
+                if (p.m_id <= 0)
                 {
-                    //
-                    // Find valid particle "before" us with which we can be swapped.
-                    //
-                    for ( ; valid_it < it; ++valid_it)
+                    if (it != pbox.begin())
                     {
-                        if (valid_it->m_id > 0)
-                        {
-                            //
-                            // Shift invalid particles in front of valid ones.
-                            //
-                            std::swap(*valid_it,*it);
-                            ++valid_it;
-                            break;
-                        }
+                        BL_ASSERT(pbox.front().m_id > 0);
+                        std::swap(pbox.front(),p);
                     }
+                    ++it;
+                    pbox.pop_front();
+                }
+                else
+                {
+                    ++it;
                 }
             }
-        }
-    }
-    //
-    // Remove invalid particles.  They should all be at the front.
-    //
-    for (int lev = 0; lev < m_particles.size(); lev++)
-    {
-        PMap& pmap = m_particles[lev];
-
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-        {
-            PBox& pbox = pmap_it->second;
-
-            while (pbox.front().m_id <= 0)
-                pbox.pop_front();
         }
     }
 
@@ -3256,6 +3244,8 @@ ParticleContainer<N>::Restart_OneDotZero (const std::string& fullname,
         ParallelDescriptor::Bcast(which.dataPtr(), which.size(), IOProc);
         ParallelDescriptor::Bcast(count.dataPtr(), count.size(), IOProc);
         ParallelDescriptor::Bcast(where.dataPtr(), where.size(), IOProc);
+
+        m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
         m_particles.resize(m_amr->finestLevel()+1);
 
