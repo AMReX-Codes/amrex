@@ -1401,22 +1401,21 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         }
 
         // ************************************************************************************
-  
-        // Make a version of cmf that does not have a grown boxArray but does have a ghost cell -- 
-        //   we need this in order to do SumPeriodicBoundary.
-        tcmf.clear();
+
         cba = fmf.boxArray();
         cba.coarsen(m_amr->refRatio(i-1));
-        tcmf.define(cba, 1, 1, Fab_allocate);
-        for (MFIter mfi(tcmf); mfi.isValid(); ++mfi)
-        {
-            tcmf[mfi].copy(cmf[mfi]);
-        }
+
+        // Make a version of cmf that does not have a grown boxArray but does have a ghost cell -- 
+        //   we need this in order to do SumPeriodicBoundary.
+        MultiFab new_cmf(cba, 1, 1, Fab_allocate);
+
+        for (MFIter mfi(new_cmf); mfi.isValid(); ++mfi)
+            new_cmf[mfi].copy(cmf[mfi]);
 
         //
-        // We now shift tcmf periodically and sum into mf[i-1].
+        // We now shift new_cmf periodically and sum into mf[i-1].
         //
-        m_amr->Geom(i-1).SumPeriodicBoundary(mf[i-1], tcmf);
+        m_amr->Geom(i-1).SumPeriodicBoundary(mf[i-1], new_cmf);
     }
 
     for (int i = 0; i <= finest_level; i++)
@@ -2221,7 +2220,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     if (m_particles.size() < m_amr->finestLevel()+1)
     {
        if (ParallelDescriptor::IOProcessor())
-           std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from " <<
+           std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from " << 
            m_particles.size() << " to " << m_amr->finestLevel()+1 << std::endl;
        m_particles.resize(m_amr->finestLevel()+1);
     }
