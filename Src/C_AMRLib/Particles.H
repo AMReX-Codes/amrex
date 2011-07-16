@@ -2217,6 +2217,15 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     const int MyProc = ParallelDescriptor::MyProc();
 
     Real strttime = ParallelDescriptor::second();
+
+    if (m_particles.size() < m_amr->finestLevel()+1)
+    {
+       if (ParallelDescriptor::IOProcessor())
+           std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from " <<
+           m_particles.size() << " to " << m_amr->finestLevel()+1 << std::endl;
+       m_particles.resize(m_amr->finestLevel()+1);
+    }
+
     //
     // The valid particles that we don't own.
     //
