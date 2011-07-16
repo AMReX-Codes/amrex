@@ -2308,6 +2308,16 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                 }
             }
         }
+        //
+        // Remove any map entries for which the particle container is now empty.
+        //
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; )
+        {
+            if (pmap_it->second.empty())
+                pmap.erase(pmap_it++);
+            else
+                ++pmap_it;
+        }
     }
 
     const int NProcs = ParallelDescriptor::NProcs();
