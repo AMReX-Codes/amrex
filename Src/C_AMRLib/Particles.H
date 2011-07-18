@@ -2320,6 +2320,24 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         }
     }
 
+    if (m_particles.size() > m_amr->finestLevel()+1)
+    {
+        //
+        // Looks like we lost an AmrLevel on a regrid.
+        //
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
+                      << m_particles.size()
+                      << " to "
+                      << m_amr->finestLevel()+1 << std::endl;
+
+        BL_ASSERT(m_particles.size() >= 2);
+
+        BL_ASSERT(m_particles[m_particles.size()-1].empty());
+
+        m_particles.resize(m_amr->finestLevel()+1);
+    }
+
     const int NProcs = ParallelDescriptor::NProcs();
 
     if (m_verbose > 1)
