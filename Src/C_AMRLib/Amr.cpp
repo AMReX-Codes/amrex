@@ -1,14 +1,14 @@
 //
-// $Id: Amr.cpp,v 1.227 2011-04-21 20:12:24 ajnonaka Exp $
+// $Id: Amr.cpp,v 1.228 2011-07-18 20:51:17 lijewski Exp $
 //
 #include <winstd.H>
 
 #include <algorithm>
 #include <cstdio>
 #include <list>
-#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
+#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
 #include <iostream>
-#include <strstream>
+#include <sstream>
 #endif
 
 #include <Geometry.H>
@@ -890,13 +890,12 @@ Amr::writePlotFile (const std::string& root,
             BoxLib::Error("Amr::writePlotFile() failed");
     }
 
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    const int IOProc         = ParallelDescriptor::IOProcessorNumber();
+    Real      dPlotFileTime1 = ParallelDescriptor::second();
+    Real      dPlotFileTime  = dPlotFileTime1 - dPlotFileTime0;
+    Real      wctime         = ParallelDescriptor::second() - probStartTime;
 
-    Real dPlotFileTime1 = ParallelDescriptor::second();
-    Real dPlotFileTime  = dPlotFileTime1 - dPlotFileTime0;
-    Real wctime         = ParallelDescriptor::second() - probStartTime;
-
-    ParallelDescriptor::ReduceRealMax(wctime,IOProc);
+    ParallelDescriptor::ReduceRealMax(wctime,       IOProc);
     ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
@@ -1030,42 +1029,55 @@ Amr::initialInit (Real strt_time,
     if ((verbose > 0) && ParallelDescriptor::IOProcessor())
        std::cout << "Starting to read probin ... " << std::endl;
 
-#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
-    int nAtOnce(probinit_natonce), myProc(ParallelDescriptor::MyProc());
-    int nProcs(ParallelDescriptor::NProcs());
-    int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
-    int mySet(myProc/nAtOnce);
-    Real piStart = 0, piEnd = 0;
-    Real piStartAll = ParallelDescriptor::second();
-    for(int iSet(0); iSet < nSets; ++iSet) {
-      if(mySet == iSet) {  // call the pesky probin reader
-        piStart = ParallelDescriptor::second();
-        FORT_PROBINIT(&init,
-                      probin_file_name.dataPtr(),
-                      &probin_file_length,
-                      Geometry::ProbLo(),
-                      Geometry::ProbHi());
-        piEnd = ParallelDescriptor::second();
-	const int iBuff(0), wakeUpPID(myProc + nAtOnce), tag(myProc % nAtOnce);
-	if(wakeUpPID < nProcs) {
-          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
-	}
-      }
-      if(mySet == (iSet + 1)) {  // next set waits
-	int iBuff, waitForPID(myProc - nAtOnce), tag(myProc % nAtOnce);
-        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
-      }
-    }  // end for(iSet...)
-    Real piEndAll = ParallelDescriptor::second();
-    Real piTotal = piEnd - piStart;
-    Real piTotalAll = piEndAll - piStartAll;
-    ParallelDescriptor::ReduceRealMax(piTotal);
-    ParallelDescriptor::ReduceRealMax(piTotalAll);
+#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
+    const int nAtOnce(probinit_natonce), myProc(ParallelDescriptor::MyProc());
+    const int nProcs(ParallelDescriptor::NProcs());
+    const int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
+    const int mySet(myProc/nAtOnce);
 
-    if ((verbose > 1) && ParallelDescriptor::IOProcessor())
+    Real piStart = 0, piEnd = 0, piStartAll = ParallelDescriptor::second();
+
+    for (int iSet = 0; iSet < nSets; ++iSet)
     {
-      std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << std::endl;
-      std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
+        if (mySet == iSet)
+        {
+            //
+            // Call the pesky probin reader.
+            //
+            piStart = ParallelDescriptor::second();
+            FORT_PROBINIT(&init,
+                          probin_file_name.dataPtr(),
+                          &probin_file_length,
+                          Geometry::ProbLo(),
+                          Geometry::ProbHi());
+            piEnd = ParallelDescriptor::second();
+            const int iBuff= 0, wakeUpPID = (myProc + nAtOnce), tag = (myProc % nAtOnce);
+            if (wakeUpPID < nProcs)
+                ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+        }
+        if (mySet == (iSet + 1))
+        {
+            //
+            // Next set waits.
+            //
+            int iBuff, waitForPID = (myProc - nAtOnce), tag = (myProc % nAtOnce);
+            ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+        }
+    }
+
+    if (verbose > 1)
+    {
+        const int IOProc     = ParallelDescriptor::IOProcessorNumber();
+        Real      piTotal    = piEnd - piStart;
+        Real      piTotalAll = ParallelDescriptor::second() - piStartAll;
+        ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
+        ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "MFRead::: PROBINIT max time   = " << piTotal    << '\n';
+            std::cout << "MFRead::: PROBINIT total time = " << piTotalAll << std::endl;
+        }
     }
 #else
     Real piStart, piEnd, piTotal;
@@ -1149,10 +1161,13 @@ Amr::initialInit (Real strt_time,
 
     if (ParallelDescriptor::IOProcessor())
     {
-       if (verbose > 1) {
+       if (verbose > 1)
+       {
            std::cout << "INITIAL GRIDS \n";
            printGridInfo(std::cout,0,finest_level);
-       } else if (verbose > 0) { 
+       }
+       else if (verbose > 0)
+       { 
            std::cout << "INITIAL GRIDS \n";
            printGridSummary(std::cout,0,finest_level);
        }
@@ -1208,41 +1223,56 @@ Amr::restart (const std::string& filename)
     if ((verbose > 0) && ParallelDescriptor::IOProcessor())
        std::cout << "Starting to read probin ... " << std::endl;
 
-#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
-    int nAtOnce(probinit_natonce), myProc(ParallelDescriptor::MyProc());
-    int nProcs(ParallelDescriptor::NProcs());
-    int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
-    int mySet(myProc/nAtOnce);
-    Real piStart = 0, piEnd = 0;
-    Real piStartAll = ParallelDescriptor::second();
-    for(int iSet(0); iSet < nSets; ++iSet) {
-      if(mySet == iSet) {  // call the pesky probin reader
-        piStart = ParallelDescriptor::second();
-        FORT_PROBINIT(&init,
-                      probin_file_name.dataPtr(),
-                      &probin_file_length,
-                      Geometry::ProbLo(),
-                      Geometry::ProbHi());
-        piEnd = ParallelDescriptor::second();
-	const int iBuff(0), wakeUpPID(myProc + nAtOnce), tag(myProc % nAtOnce);
-	if(wakeUpPID < nProcs) {
-          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
-	}
-      }
-      if(mySet == (iSet + 1)) {  // next set waits
-	int iBuff, waitForPID(myProc - nAtOnce), tag(myProc % nAtOnce);
-        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
-      }
-    }  // end for(iSet...)
-    Real piEndAll = ParallelDescriptor::second();
-    Real piTotal = piEnd - piStart;
-    Real piTotalAll = piEndAll - piStartAll;
-    ParallelDescriptor::ReduceRealMax(piTotal);
-    ParallelDescriptor::ReduceRealMax(piTotalAll);
-    if ((verbose > 1) && ParallelDescriptor::IOProcessor())
+#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
+    const int nAtOnce = probinit_natonce;
+    const int myProc  = ParallelDescriptor::MyProc();
+    const int nProcs  = ParallelDescriptor::NProcs();
+    const int nSets   = (nProcs + (nAtOnce - 1)) / nAtOnce;
+    const int mySet   = myProc/nAtOnce;
+
+    Real piStart = 0, piEnd = 0, piStartAll = ParallelDescriptor::second();
+
+    for(int iSet = 0; iSet < nSets; ++iSet)
     {
-      std::cout << "MFRead:::  PROBINIT max time   = " << piTotal << std::endl;
-      std::cout << "MFRead:::  PROBINIT total time = " << piTotalAll << std::endl;
+        if (mySet == iSet)
+        {
+            //
+            // Call the pesky probin reader.
+            //
+            piStart = ParallelDescriptor::second();
+            FORT_PROBINIT(&init,
+                          probin_file_name.dataPtr(),
+                          &probin_file_length,
+                          Geometry::ProbLo(),
+                          Geometry::ProbHi());
+            piEnd = ParallelDescriptor::second();
+            const int iBuff = 0, wakeUpPID = (myProc + nAtOnce), tag = (myProc % nAtOnce);
+            if (wakeUpPID < nProcs)
+                ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+        }
+        if (mySet == (iSet + 1))
+        {
+            //
+            // Next set waits.
+            //
+            int iBuff, waitForPID = (myProc - nAtOnce), tag = (myProc % nAtOnce);
+            ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+        }
+    }
+
+    if (verbose > 1)
+    {
+        const int IOProc     = ParallelDescriptor::IOProcessorNumber();
+        Real      piTotal    = piEnd - piStart;
+        Real      piTotalAll = ParallelDescriptor::second() - piStartAll;
+        ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
+        ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "MFRead::: PROBINIT max time   = " << piTotal    << '\n';
+            std::cout << "MFRead::: PROBINIT total time = " << piTotalAll << std::endl;
+        }
     }
 #else
     FORT_PROBINIT(&init,
@@ -1254,7 +1284,6 @@ Amr::restart (const std::string& filename)
 
     if ((verbose > 0) && ParallelDescriptor::IOProcessor())
        std::cout << "Successfully read probin ... " << std::endl;
-
     //
     // Start calculation from given restart file.
     //
@@ -1273,21 +1302,15 @@ Amr::restart (const std::string& filename)
 #if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
-    std::istrstream is(fileCharPtr.dataPtr());
-
-    is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());  // hmmm?
+    std::string fileCharPtrString(fileCharPtr.dataPtr());
+    std::istringstream is(fileCharPtrString, std::istringstream::in);
 #else
-    // define BL_USEOLDREADS to use the old way.
     std::ifstream is;
-
     is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
     is.open(File.c_str(), std::ios::in);
-
     if (!is.good())
         BoxLib::FileOpenFailed(File);
 #endif
-
     //
     // Read global data.
     //
@@ -1468,18 +1491,15 @@ Amr::restart (const std::string& filename)
        }
     }
 
-   
 #ifdef USE_STATIONDATA
     station.init(amr_level, finestLevel());
     station.findGrid(amr_level,geom);
 #endif
 
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    Real dRestartTime = ParallelDescriptor::second() - dRestartTime0;
 
-    Real dRestartTime1 = ParallelDescriptor::second();
-    Real dRestartTime  = dRestartTime1 - dRestartTime0;
+    ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
 
-    ParallelDescriptor::ReduceRealMax(dRestartTime,IOProc);
     if (ParallelDescriptor::IOProcessor())
     {
         std::cout << "Restart time = " << dRestartTime << " seconds." << std::endl;
@@ -1586,16 +1606,14 @@ Amr::checkPoint ()
     //
     AmrLevel::get_slabstat_lst().checkPoint(getAmrLevels(), level_steps[0]);
 #endif
-
     //
     // Don't forget to reset FAB format.
     //
     FArrayBox::setFormat(thePrevFormat);
 
-    const int IOProc     = ParallelDescriptor::IOProcessorNumber();
     Real dCheckPointTime = ParallelDescriptor::second() - dCheckPointTime0;
 
-    ParallelDescriptor::ReduceRealMax(dCheckPointTime,IOProc);
+    ParallelDescriptor::ReduceRealMax(dCheckPointTime,ParallelDescriptor::IOProcessorNumber());
 
     if (ParallelDescriptor::IOProcessor())
         std::cout << "checkPoint() time = "
@@ -1816,9 +1834,10 @@ Amr::coarseTimeStep (Real stop_time)
 
     if (verbose > 0)
     {
-        Real run_stop = ParallelDescriptor::second() - run_strt;
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_stop = ParallelDescriptor::second() - run_strt;
 
-        ParallelDescriptor::ReduceRealMax(run_stop,ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
@@ -1826,8 +1845,8 @@ Amr::coarseTimeStep (Real stop_time)
         long min_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
         long max_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
 
-        ParallelDescriptor::ReduceLongMin(min_fab_bytes,ParallelDescriptor::IOProcessorNumber());
-        ParallelDescriptor::ReduceLongMax(max_fab_bytes,ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceLongMin(min_fab_bytes,IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_bytes,IOProc);
         //
         // Reset to zero to calculate high-water-mark for next timestep.
         //
@@ -1934,14 +1953,17 @@ Amr::coarseTimeStep (Real stop_time)
         writePlotFile(plot_file_root,level_steps[0]);
     }
 
-    if (to_stop) {
-      ParallelDescriptor::Barrier();
-      if (to_checkpoint) {
-	BoxLib::Abort("Stopped by user w/ checkpoint");
-      }
-      else {
-	BoxLib::Abort("Stopped by user w/o checkpoint");
-      }
+    if (to_stop)
+    {
+        ParallelDescriptor::Barrier();
+        if (to_checkpoint)
+        {
+            BoxLib::Abort("Stopped by user w/ checkpoint");
+        }
+        else
+        {
+            BoxLib::Abort("Stopped by user w/o checkpoint");
+        }
     }
 }
 
@@ -2115,9 +2137,12 @@ Amr::regrid (int  lbase,
                   << lbase
                   << std::endl;
 
-        if (verbose > 1) {
+        if (verbose > 1)
+        {
            printGridInfo(std::cout,start,finest_level);
-        } else {
+        }
+        else
+        {
            printGridSummary(std::cout,start,finest_level);
         }
     }
@@ -2609,10 +2634,9 @@ Amr::grid_places (int              lbase,
 
     if (verbose > 0)
     {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
