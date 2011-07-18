@@ -1,13 +1,13 @@
 //
-// $Id: VisMF.cpp,v 1.117 2011-05-15 17:08:14 lijewski Exp $
+// $Id: VisMF.cpp,v 1.118 2011-07-18 19:52:05 lijewski Exp $
 //
 
 #include <winstd.H>
 #include <cstdio>
 #include <fstream>
-#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
+#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
 #include <iostream>
-#include <strstream>
+#include <sstream>
 #include <vector>
 #endif
 
@@ -806,19 +806,15 @@ VisMF::VisMF (const std::string& mf_name)
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
+#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
-    std::istrstream ifs(fileCharPtr.dataPtr());
-
-    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());  // hmmm?
+    std::string fileCharPtrString(fileCharPtr.dataPtr());
+    std::istringstream ifs(fileCharPtrString, std::istringstream::in);
 #else
     std::ifstream ifs;
-
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
     ifs.open(FullHdrFileName.c_str(), std::ios::in);
-
     if (!ifs.good())
         BoxLib::FileOpenFailed(FullHdrFileName);
 #endif
@@ -893,8 +889,9 @@ void
 VisMF::Read (MultiFab&          mf,
              const std::string& mf_name)
 {
-  if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
+  if(ParallelDescriptor::IOProcessor())
+  {
+      std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
   }
 
 #ifdef BL_VISMF_MSGCHECK
@@ -920,7 +917,7 @@ VisMF::Read (MultiFab&          mf,
   ParallelDescriptor::Barrier();
 #endif
 
-#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
+#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
     Real hStartTime, hEndTime;
 #endif
     VisMF::Header hdr;
@@ -928,24 +925,21 @@ VisMF::Read (MultiFab&          mf,
     std::string FullHdrFileName = mf_name;
 
     FullHdrFileName += VisMF::MultiFabHdrFileSuffix;
+
     {
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
-    hStartTime = ParallelDescriptor::second();
-    Array<char> fileCharPtr;
-    ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
-    std::istrstream ifs(fileCharPtr.dataPtr());
-    hEndTime = ParallelDescriptor::second();
-
-    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());  // hmmm?
+#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
+        hStartTime = ParallelDescriptor::second();
+        Array<char> fileCharPtr;
+        ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
+        std::string fileCharPtrString(fileCharPtr.dataPtr());
+        std::istringstream ifs(fileCharPtrString, std::istringstream::in);
+        hEndTime = ParallelDescriptor::second();
 #else
         std::ifstream ifs;
-
         ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
         ifs.open(FullHdrFileName.c_str(), std::ios::in);
-
         if (!ifs.good())
             BoxLib::FileOpenFailed(FullHdrFileName);
 #endif
@@ -959,8 +953,10 @@ VisMF::Read (MultiFab&          mf,
     }
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_noallocate);
 
-#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
-    // here we limit the number of open files when reading a multifab
+#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
+    //
+    // Here we limit the number of open files when reading a multifab.
+    //
     Real startTime(ParallelDescriptor::second());
     static Real totalTime(0.0);
     int nReqs(0), ioProcNum(ParallelDescriptor::IOProcessorNumber());
