@@ -1244,7 +1244,7 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
     real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
-    real (kind = dp_t) :: f1(2), blo, bhi
+    real (kind = dp_t) :: f1(2)
     integer            :: i, j, dm, bclo, bchi, nx, ny, nc
     integer, parameter :: XBC = 5, YBC = 6
 
