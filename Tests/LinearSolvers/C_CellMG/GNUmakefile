@@ -1,6 +1,6 @@
 PBOXLIB_HOME := ../..
-FBOXLIB_HOME = ../../../fParallel
 FBOXLIB_HOME =
+FBOXLIB_HOME = ../../../fParallel
 
 PRECISION = DOUBLE
 PROFILE = FALSE
@@ -10,7 +10,7 @@ DIM	= 3
 DIM	= 2
 
 COMP=g++
-FCOMP=Intel
+FCOMP=gfortran
 
 USE_MPI=FALSE
 USE_ARRAYVIEW = FALSE
@@ -43,9 +43,10 @@ ifdef FBOXLIB_HOME
   INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
   vpathdir += $(PBOXLIB_HOME)/MGT_Solver
 
-  include $(FBOXLIB_HOME)/mg/FParallelMG.mak
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/mg/
-  Fdirs   := boxlib mg extern/SPARSKIT extern/LAPACK
+  include $(FBOXLIB_HOME)/mg/source/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/mg/source
+  Fdirs   := boxlib mg/source extern/SPARSKIT extern/LAPACK extern/BLAS
+  include $(FBOXLIB_HOME)/extern/BLAS/Make.package
   Flocs   := $(foreach dir, $(Fdirs), $(FBOXLIB_HOME)/$(dir))
   vpathdir += $(Flocs)
 endif
