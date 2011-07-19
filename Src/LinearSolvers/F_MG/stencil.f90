@@ -1233,16 +1233,15 @@ contains
 
   end subroutine s_simplem_2d_cc
 
-  subroutine s_simpleg_2d_cc(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi, xa, xb, order)
+  subroutine s_simpleg_2d_cc(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi)
 
-    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
+    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:)
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
     real (kind = dp_t), intent(  out) :: ss(lo(1)  :,lo(2)  :,0:)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,0:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
     real (kind = dp_t) :: f1(2)
     integer            :: i, j, dm, bclo, bchi, nx, ny, nc
@@ -1552,10 +1551,10 @@ contains
 
   end subroutine s_simple_3d_cc
 
-  subroutine s_simpleg_3d_cc(ss, alpha, ng_a, betax, betay, betaz, ng_b, dh, mask, lo, hi, xa, xb, order)
+  subroutine s_simpleg_3d_cc(ss, alpha, ng_a, betax, betay, betaz, ng_b, dh, mask, lo, hi)
 
 
-    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
+    integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:)
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :,lo(3)  :)
     real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,lo(3)  :,0:)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:,0:)
@@ -1563,11 +1562,9 @@ contains
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:,:)
     real (kind = dp_t), intent(in   ) :: betaz(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    real (kind = dp_t), intent(in   ) :: xa(:), xb(:)
 
     real (kind = dp_t) :: f1(3)
     integer            :: i, j, k, bclo, bchi, nx, ny, nz
-    integer            :: lnx, lny, lnz, lorder
     integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
 
     nx = hi(1)-lo(1)+1
@@ -1597,8 +1594,6 @@ contains
     mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
 
-    lnx = nx; lny = ny; lnz = nz; lorder = order
-
     ! x derivatives
 
     !$OMP PARALLEL DO PRIVATE(i,j,k)
@@ -1611,7 +1606,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lnx)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) 
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           bclo = stencil_bc_type(mask(lo(1),j,k),1,-1)
@@ -1660,7 +1655,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lny)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) 
     do k = lo(3),hi(3)
        do i = lo(1),hi(1)
           bclo = stencil_bc_type(mask(i,lo(2),k),2,-1)
@@ -1709,7 +1704,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lnz)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) 
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           bclo = stencil_bc_type(mask(i,j,lo(3)),3,-1)
