@@ -593,7 +593,7 @@ contains
                         mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)     
                 elseif (lnc_opt .eq. 2) then
                    call s_simpleg_2d_cc(sp(:,:,1,:), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
-                        mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)                   
+                        mp(:,:,1,1), bx%lo, bx%hi)
                 end if
              else
                 call s_simple_2d_cc(sp(:,:,1,:), ccp(:,:,1,1), ng_c, xcp(:,:,1,1), ycp(:,:,1,1), ng_b, dh, &
@@ -605,7 +605,7 @@ contains
              if (ncomp_coeffs > 1) then
                  if (lnc_opt .eq. 2) then 
                     call s_simpleg_3d_cc(sp(:,:,:,:), ccp(:,:,:,:), ng_c, xcp(:,:,:,:), ycp(:,:,:,:), zcp(:,:,:,:), ng_b, &
-                      dh, mp(:,:,:,1), bx%lo, bx%hi, lxa, lxb, order)
+                      dh, mp(:,:,:,1), bx%lo, bx%hi)
                  end if
               else
                  call s_simple_3d_cc(sp(:,:,:,:), ccp(:,:,:,1), ng_c, xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, &
