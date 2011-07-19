@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.167 2011-07-01 22:50:54 marc Exp $
+# Make.defs $Id: Make.defs,v 1.168 2011-07-19 21:12:32 lijewski Exp $
 #
 
 #
@@ -318,7 +318,7 @@ ifeq ($(COMP),gcc)
 endif
 ifeq ($(COMP),g++)
     CXXPRFF    := -p
-    CXXOPTF    += -g -O2 -fno-exceptions
+    CXXOPTF    += -g -O3 -fno-exceptions
     CXXDEBF    += -g -O -fno-exceptions -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
@@ -356,8 +356,8 @@ ifeq ($(FCOMP),gfortran)
     fC = gfortran -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
     override XTRALIBS += $(_f95_lib)
-    FOPTF += -ffixed-line-length-132 -g -O2
-    fOPTF += -ffixed-line-length-132 -g -O2
+    FOPTF += -ffixed-line-length-132 -g -O3
+    fOPTF += -ffixed-line-length-132 -g -O3
     FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
     fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
 
