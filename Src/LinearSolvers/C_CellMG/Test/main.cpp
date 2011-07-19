@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.37 2009-09-25 23:18:53 lijewski Exp $
+// $Id: main.cpp,v 1.38 2011-07-19 17:11:07 marc Exp $
 //
 
 #include <fstream>
@@ -231,7 +231,7 @@ main (int argc, char* argv[])
   // rhs=1 at each box center.
   //
   int Ncomp=1;
-  int Nghost=0;
+  int Nghost=1;
   MultiFab soln(bs, Ncomp, Nghost, Fab_allocate); soln.setVal(0.0);
   MultiFab  rhs(bs, Ncomp, Nghost, Fab_allocate);  rhs.setVal(0.0);
   for ( MFIter rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi )
@@ -403,7 +403,6 @@ main (int argc, char* argv[])
         MultiFab cc_coef(bs,1,1);
         for ( MFIter mfi(cc_coef); mfi.isValid(); ++mfi )
         {
-          int i = mfi.index();
           const int* clo = cc_coef[mfi].loVect();
           const int* chi = cc_coef[mfi].hiVect();
           const Box& bx = mfi.validbox();
@@ -419,8 +418,7 @@ main (int argc, char* argv[])
 	  bcoefs[n].define(bsC.surroundingNodes(n), Ncomp, Nghost, Fab_allocate);
           for ( MFIter mfi(bcoefs[n]); mfi.isValid(); ++mfi )
           {
-            int i = mfi.index();
-            Box bx(bs[i]);
+            Box bx(bs[mfi.index()]);
             const int* clo = cc_coef[mfi].loVect();
             const int* chi = cc_coef[mfi].hiVect();
             const int* edgelo = bcoefs[n][mfi].loVect();
@@ -445,28 +443,62 @@ main (int argc, char* argv[])
 #ifdef MG_USE_FBOXLIB
       if ( use_fboxlib )
       {
-          //
-	  // Coefficient agglomoration.
-          //
-	  std::vector<BoxArray> bav(1);
-	  std::vector<DistributionMapping> dmv(1);
-	  bool nodal = false;
-	  bav[0] = bs;
-	  dmv[0] = acoefs.DistributionMap();
-	  // Allocate a Solver
-	  std::vector<int> ipar = MGT_Solver::ipar_defaults();
-	  std::vector<double> rpar = MGT_Solver::rpar_defaults();
-	  MGT_Solver mgt_solver(bd, dx, bav, dmv, ipar, rpar, nodal);
-	  MultiFab* soln_p[1]; soln_p[0] = &soln;
-	  MultiFab* rhs_p[1]; rhs_p[0] = &rhs;
-	  MultiFab* aa_p[1]; aa_p[0] = &acoefs;
-	  MultiFab* bb_p[1][BL_SPACEDIM];
-	  for ( int i = 0; i < BL_SPACEDIM; ++i )
-	  {
-	      bb_p[0][i] = &bcoefs[i];
-	  }
-	  mgt_solver.set_coefficients(aa_p, bb_p);
-	  mgt_solver.solve(soln_p, rhs_p);
+        int num_levels = 1;
+        std::vector<BoxArray> bav(num_levels);
+        std::vector<DistributionMapping> dmv(num_levels);
+        bool nodal = false;
+        bav[0] = bs;
+        dmv[0] = acoefs.DistributionMap();
+        int mg_bc[2*BL_SPACEDIM];
+        for ( int i = 0; i < BL_SPACEDIM; ++i )
+          {
+            if ( geom.isPeriodic(i) )
+              {
+                mg_bc[i*2 + 0] = MGT_BC_PER;
+                mg_bc[i*2 + 1] = MGT_BC_PER;
+              }
+            else
+              {
+                mg_bc[i*2 + 0] = MGT_BC_DIR;
+                mg_bc[i*2 + 1] = MGT_BC_DIR;
+              }
+          }
+        std::vector<Geometry> geomv(num_levels);
+        geomv[0] = geom;
+        MGT_Solver mgt_solver(geomv, mg_bc, bav, dmv, nodal);
+
+        // xa (xb) is distance from left (right) hand side of grid to where bc is to be applied        
+        Array< Array<Real> > xa(num_levels);
+        Array< Array<Real> > xb(num_levels);          
+        xa[0].resize(BL_SPACEDIM);
+        xb[0].resize(BL_SPACEDIM);
+        
+        for ( int i = 0; i < BL_SPACEDIM; ++i ) {
+          const Real dx_crse = dx[i];
+          xa[0][i] = 0.5 * dx_crse; // As typical c-f interface
+          xb[0][i] = 0.5 * dx_crse;
+          xa[0][i] = 0.; // As C++ version above
+          xb[0][i] = 0.;
+        }
+        
+        // Set alpha and beta as in (alpha - del dot beta grad)
+        const MultiFab* aa_p[1];
+        aa_p[0] = &(acoefs);
+        const MultiFab* bb_p[1][BL_SPACEDIM];
+        for ( int i = 0; i < BL_SPACEDIM; ++i )
+        {
+            bb_p[0][i] = &(bcoefs[i]);
+        }
+        Real beta = b[0]; //Note MGT does not support beta[DIM]
+        mgt_solver.set_visc_coefficients(aa_p, bb_p, beta, xa, xb);
+
+        MultiFab* soln_p[1];
+        MultiFab* rhs_p[1];
+        soln_p[0] = &soln;
+        rhs_p[0] = &rhs;
+        Real final_resnorm;
+
+        mgt_solver.solve(soln_p, rhs_p, tolerance, tolerance_abs, bd, final_resnorm);
       }
       else
 #endif
