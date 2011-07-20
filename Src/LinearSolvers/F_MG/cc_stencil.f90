@@ -1,7 +1,6 @@
 module cc_stencil_module
 
   use bl_types
-  use bl_constants_module
   use bc_module
   use bc_functions_module
   use multifab_module
@@ -28,6 +27,10 @@ module cc_stencil_module
   interface destroy
      module procedure stencil_destroy
   end interface
+
+  real(kind=dp_t), parameter, private :: ZERO = 0.0_dp_t
+  real(kind=dp_t), parameter, private :: HALF = 0.5_dp_t
+  real(kind=dp_t), parameter, private :: ONE  = 1.0_dp_t
 
   private :: stencil_bc_type, stencil_bndry_aaa
   private :: stencil_all_flux_1d, stencil_all_flux_2d, stencil_all_flux_3d
