@@ -788,18 +788,20 @@ contains
     r = fb%dim /= 0
   end function lfab_built_q
 
-  subroutine fab_build(fb, bx, nc, ng, nodal, alloc)
+  subroutine fab_build(fb, bx, nc, ng, nodal, alloc, stencil)
     type(fab), intent(out) :: fb
     type(box), intent(in)  :: bx
     integer, intent(in), optional :: ng, nc
     logical, intent(in), optional :: nodal(:)
     logical, intent(in), optional :: alloc
+    logical, intent(in), optional :: stencil
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
     integer :: lnc, lng
-    logical :: lal
+    logical :: lal, lst
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
-    lal = .true.; if ( present(alloc) ) lal = alloc
+    lal = .true. ; if ( present(alloc)   ) lal = alloc
+    lst = .false.; if ( present(stencil) ) lst = stencil
     lo = 1
     hi = 1
     fb%dim = bx%dim
@@ -810,7 +812,11 @@ contains
     lo(1:fb%dim) = fb%pbx%lo(1:fb%dim)
     hi(1:fb%dim) = fb%pbx%hi(1:fb%dim)
     if ( lal ) then
-       allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
+       if ( lst) then
+          allocate(fb%p(1:lnc,lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
+       else
+          allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
+       end if
        if ( do_init_fabs ) call setval(fb, fab_default_init)
        call mem_stats_alloc(fab_ms, volume(fb, all=.TRUE.))
        if ( (fab_ms%num_alloc-fab_ms%num_dealloc) > fab_high_water_mark ) then
