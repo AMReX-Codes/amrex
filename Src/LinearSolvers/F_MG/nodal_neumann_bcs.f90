@@ -3,6 +3,8 @@ module impose_neumann_bcs_module
   use bl_types
   use bc_functions_module
 
+  implicit none
+
 contains
 
   subroutine impose_neumann_bcs_1d(uu,mm,lo,ng)
