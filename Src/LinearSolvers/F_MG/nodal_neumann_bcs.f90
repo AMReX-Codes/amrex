@@ -1,6 +1,7 @@
 module impose_neumann_bcs_module
 
   use bl_types
+  use bc_functions_module
 
 contains
 
