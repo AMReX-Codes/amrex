@@ -1,7 +1,7 @@
 module cc_smoothers_module
 
   use bl_constants_module
-  use stencil_module
+  use cc_stencil_module
 
   implicit none
 

@@ -1,7 +1,7 @@
 module mg_module
 
   use multifab_module
-  use stencil_module
+  use cc_stencil_module
 ! use sparse_solve_module
   use mg_tower_module
   use bl_timer_module
