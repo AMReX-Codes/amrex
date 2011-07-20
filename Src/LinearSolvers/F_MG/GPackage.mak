@@ -5,7 +5,7 @@ f90sources += ml_cc.f90
 f90sources += itsol.f90
 ifdef USE_MG_CPP
 f90sources += cc_mg_cpp.f90
-f90sources += mg_nodal_cpp.f90
+f90sources += nodal_mg_cpp.f90
 endif
 f90sources += mg.f90
 f90sources += mg_tower.f90
