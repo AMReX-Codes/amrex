@@ -1,6 +1,7 @@
 module bc_functions_module
 
   use bl_types
+  use bl_spacedim
   use bc_module
 
   private :: bc_pretty_bit
