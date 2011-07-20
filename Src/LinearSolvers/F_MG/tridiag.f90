@@ -1,6 +1,6 @@
 module tridiag_module
  
-  use bl_constants_module
+  use bl_error_module
  
   implicit none
 
