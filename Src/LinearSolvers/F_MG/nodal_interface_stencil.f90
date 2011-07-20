@@ -1,4 +1,4 @@
-module ml_interface_stencil_module
+module nodal_interface_stencil_module
 
   use bl_types
   use layout_module
@@ -10,460 +10,9 @@ module ml_interface_stencil_module
 
   private
 
-  public :: ml_interface, ml_interface_c, ml_crse_contrib
+  public :: ml_crse_contrib, ml_fine_contrib
 
 contains
-
-  subroutine ml_interface(res, flux, crse, ss, crse_domain, face, dim, efactor)
-    use bl_prof_module
-    type(multifab), intent(inout) :: res
-    type(multifab), intent(in   ) :: flux
-    type(multifab), intent(in   ) :: crse
-    type(multifab), intent(in   ) :: ss
-    type(box), intent(in) :: crse_domain
-    integer, intent(in) :: face, dim
-    real(kind=dp_t), intent(in) :: efactor
-    type(bl_prof_timer), save :: bpt
-    call build(bpt, "ml_interf")
-    call ml_interface_c(res, 1, flux, 1, crse, ss, crse_domain, face, dim, efactor)
-    call destroy(bpt)
-  end subroutine ml_interface
-
-  subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim, efactor)
-    use bl_prof_module
-    use vector_i_module
-
-    type(multifab), intent(inout) :: res
-    type(multifab), intent(in   ) :: flux
-    type(multifab), intent(in   ) :: crse
-    type(multifab), intent(in   ) :: ss
-    integer,        intent(in   ) :: cr, cf
-    type(box),      intent(in   ) :: crse_domain
-    integer,        intent(in   ) :: face, dim
-    real(kind=dp_t),intent(in   ) :: efactor
-
-    type(box)      :: fbox, cbox, isect
-    integer        :: lor(get_dim(res)), los(get_dim(res)), i, j, k, shft, dm
-    integer        :: lo (get_dim(res)), hi (get_dim(res)), loc(get_dim(res)), proc
-    logical        :: pmask(get_dim(res))
-    type(multifab) :: tflux
-    type(list_box) :: bl
-    type(boxarray) :: ba
-    type(layout)   :: la
-    type(vector_i) :: procmap, indxmap, shftmap
-
-    type(box_intersector), pointer   :: bi(:)
-
-    real(kind=dp_t), pointer :: rp(:,:,:,:), fp(:,:,:,:), cp(:,:,:,:), sp(:,:,:,:)
-
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "ml_interf_c")
-
-    pmask = get_pmask(get_layout(res))
-    !
-    ! Build layout used in intersection test for below loop.
-    !
-    call copy(ba, get_boxarray(flux))
-
-    do i = 1, nboxes(flux)
-       fbox = get_ibox(flux,i)
-       if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
-          if ( face .eq. -1 ) then
-             fbox = shift(fbox,  extent(crse_domain,dim), dim)
-          else
-             fbox = shift(fbox, -extent(crse_domain,dim), dim)
-          end if
-          call set_box(ba, i, fbox)
-       end if
-    end do
-    call build(la, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-    call destroy(ba)
-
-    dm = get_dim(res)
-
-    do j = 1, nboxes(crse)
-       if ( remote(crse,j) ) cycle
-
-       cbox =  get_ibox(crse,j)
-       loc  =  lwb(get_pbox(crse,j))
-       lor  =  lwb(get_pbox(res,j))
-       los  =  lwb(get_pbox(ss,j))
-       sp   => dataptr(ss, j)
-       rp   => dataptr(res, j, cr)
-       cp   => dataptr(crse, j, cr)
-       bi   => layout_get_box_intersector(la, cbox)
-
-       do k = 1, size(bi)
-          isect = bi(k)%bx
-          lo    = lwb(isect)
-          hi    = upb(isect)
-
-          select case (dm)
-          case (1)
-             call ml_interface_1d_crse(rp(:,1,1,1), lor, cp(:,1,1,1), loc, sp(:,1,1,:), los, lo, face, efactor)
-          case (2)
-             call ml_interface_2d_crse(rp(:,:,1,1), lor, cp(:,:,1,1), loc, sp(:,:,1,:), los, lo, hi, face, dim, efactor)
-          case (3)
-             call ml_interface_3d_crse(rp(:,:,:,1), lor, cp(:,:,:,1), loc, sp(:,:,:,:), los, lo, hi, face, dim, efactor)
-          end select
-       end do
-
-      deallocate(bi)
-    end do
-    !
-    ! Build a multifab based on the intersections of flux with crse in such a way that each 
-    ! intersecting box is owned by the same CPU as that owning the appropriate box in crse.
-    !
-    call build(procmap)
-    call build(indxmap)
-    call build(shftmap)
-
-    do j = 1, nboxes(crse)
-       cbox =  get_ibox(crse,   j)
-       proc =  get_proc(get_layout(crse),j)
-       bi   => layout_get_box_intersector(la, cbox)
-
-       do k = 1, size(bi)
-          shft  = 0
-          isect = bi(k)%bx
-          fbox  = get_ibox(flux,bi(k)%i)
-
-          if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
-             !
-             ! We need to remember the original flux box & whether or not it needs to be shifted.
-             !
-             shft = 1
-             if ( face .eq. -1 ) then
-                isect = shift(isect, -extent(crse_domain,dim), dim)
-             else
-                isect = shift(isect,  extent(crse_domain,dim), dim)
-             end if
-          end if
-
-          call push_back(bl, isect)
-          call push_back(procmap, proc)
-          call push_back(indxmap, j)
-          call push_back(shftmap, shft)
-       end do
-
-       deallocate(bi)
-    end do
-
-    call destroy(la)
-
-    if ( empty(procmap) ) then
-       !
-       ! Nothing else to do ...
-       !
-       call destroy(bpt)
-       call destroy(shftmap)
-       call destroy(indxmap)
-       call destroy(procmap)
-       return
-    end if
-
-    call build(ba, bl, sort = .false.)
-    call destroy(bl)
-    call build(la, ba, pmask = pmask, explicit_mapping = dataptr(procmap, 1, size(procmap)))
-    call destroy(ba)
-    call build(tflux, la, nc = ncomp(flux), ng = 0)
-    call copy(tflux, 1, flux, cf)  ! parallel copy
-
-    do i = 1, nboxes(tflux)
-
-       if ( remote(tflux,i) ) cycle
-
-       j    =  at(indxmap,i)
-       cbox =  get_ibox(crse,j)
-       loc  =  lwb(get_pbox(crse,j))
-       lor  =  lwb(get_pbox(res,j))
-       los  =  lwb(get_pbox(ss,j))
-       cp   => dataptr(crse, j, cr)
-       rp   => dataptr(res, j, cr)
-       sp   => dataptr(ss, j)
-
-       fbox = get_ibox(tflux,i)
-
-       if ( at(shftmap,i) .eq. 1 ) then
-          if (face .eq. -1) then
-             fbox = shift(fbox,  extent(crse_domain,dim), dim)
-          else
-             fbox = shift(fbox, -extent(crse_domain,dim), dim)
-          end if
-       end if
-
-       call bl_assert(intersects(cbox,fbox), 'ml_interface_c(): how did this happen?')
-
-       lo  =  lwb(fbox)
-       hi  =  upb(fbox)
-       fp  => dataptr(tflux, i, 1)
-
-       select case (dm)
-       case (1)
-          call ml_interface_1d_fine(rp(:,1,1,1), lor, fp(:,1,1,1), lo, lo, efactor)
-       case (2)
-          call ml_interface_2d_fine(rp(:,:,1,1), lor, fp(:,:,1,1), lo, lo, hi, efactor)
-       case (3)
-          call ml_interface_3d_fine(rp(:,:,:,1), lor, fp(:,:,:,1), lo, lo, hi, efactor)
-       end select
-
-    end do
-
-    call destroy(shftmap)
-    call destroy(indxmap)
-    call destroy(procmap)
-    call destroy(tflux)
-    call destroy(la)
-    call destroy(bpt)
-
-  end subroutine ml_interface_c
-
-  subroutine ml_interface_1d_crse(res, lor, cc, loc, &
-       ss , los, lo, face, efactor)
-    integer, intent(in) :: lor(:)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: los(:)
-    integer, intent(in) :: lo(:)
-    real (kind = dp_t), intent(inout) :: res(lor(1):)
-    real (kind = dp_t), intent(in   ) :: cc(loc(1):)
-    real (kind = dp_t), intent(in   ) :: ss(los(1):,0:)
-    integer, intent(in) :: face
-    real(kind=dp_t), intent(in) :: efactor
-
-    integer :: i
-    real (kind = dp_t) :: crse_flux
-
-    i = lo(1)
-
-    !   Lo side
-    if (face == -1) then
-       crse_flux = ss(i,1)*(cc(i)-cc(i+1))
-       res(i) = res(i) - efactor*crse_flux
-
-       !   Hi side
-    else if (face == 1) then
-       crse_flux = ss(i,2)*(cc(i)-cc(i-1))
-       res(i) = res(i) - efactor*crse_flux
-    end if
-
-  end subroutine ml_interface_1d_crse
-
-  subroutine ml_interface_1d_fine(res, lor, fine_flux, lof, lo, efactor)
-
-    integer, intent(in) :: lor(:)
-    integer, intent(in) :: lof(:) 
-    integer, intent(in) :: lo(:)
-    real (kind = dp_t), intent(inout) :: res(lor(1):)
-    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
-    real (kind = dp_t), intent(in   ) :: efactor
-
-    integer :: i 
-
-    i = lo(1)
-    res(i) = res(i) + efactor*fine_flux(i)
-
-  end subroutine ml_interface_1d_fine
-
-  subroutine ml_interface_2d_crse(res, lor, cc, loc, &
-                                  ss , los, lo, hi, face, dim, efactor)
-    integer, intent(in) :: lor(:)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: los(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):)
-    real (kind = dp_t), intent(in   ) ::        cc(loc(1):,loc(2):)
-    real (kind = dp_t), intent(in   ) ::        ss(los(1):,los(2):,0:)
-    integer, intent(in) :: face, dim
-    real(kind=dp_t), intent(in) :: efactor
-
-    integer :: i, j, ns
-    real (kind = dp_t) :: crse_flux
- 
-    ns = size(ss,dim=3)
-
-    !   Hi i side
-    if ( dim == 1 ) then
-       if (face == 1) then
-          i = lo(1)
-          do j = lo(2),hi(2)
-             if (ns.eq.7) then
-                crse_flux = ss(i,j,2)*(cc(i,j)-cc(i-1,j))
-             else if (ns.eq.9) then
-                crse_flux = &
-                   (15.d0/16.d0)*ss(i,j,2)*(cc(i-1,j)-cc(i  ,j)) &
-                 +               ss(i,j,1)*(cc(i-2,j)-cc(i+1,j))
-
-             endif
-             res(i,j) = res(i,j) - efactor*crse_flux
-          end do
-          !   Lo i side
-       else if (face == -1) then
-          i = lo(1)
-          do j = lo(2),hi(2)
-             if (ns.eq.7) then
-                crse_flux = ss(i,j,1)*(cc(i,j)-cc(i+1,j))
-             else if (ns.eq.9) then
-                crse_flux = &
-                   (15.d0/16.d0)*ss(i,j,3)*(cc(i+1,j)-cc(i  ,j)) &
-                 +               ss(i,j,4)*(cc(i+2,j)-cc(i-1,j))
-
-             endif
-             res(i,j) = res(i,j) - efactor*crse_flux
-          end do
-       end if
-    else if ( dim == 2 ) then
-       !   Hi j side
-       if (face == 1) then
-          j = lo(2)
-          do i = lo(1),hi(1)
-             if (ns.eq.7) then
-                crse_flux = ss(i,j,4)*(cc(i,j)-cc(i,j-1))
-             else if (ns.eq.9) then
-                crse_flux = &
-                   (15.d0/16.d0)*ss(i,j,6)*(cc(i,j-1)-cc(i,j  )) &
-                 +               ss(i,j,5)*(cc(i,j-2)-cc(i,j+1))
-
-             endif
-             res(i,j) = res(i,j) - efactor*crse_flux
-          end do
-          !   Lo j side
-       else if (face == -1) then
-          j = lo(2)
-          do i = lo(1),hi(1)
-             if (ns.eq.7) then
-                crse_flux = ss(i,j,3)*(cc(i,j)-cc(i,j+1))
-             else if (ns.eq.9) then
-                crse_flux = &
-                   (15.d0/16.d0)*ss(i,j,7)*(cc(i,j+1)-cc(i,j  )) &
-                 +               ss(i,j,8)*(cc(i,j+2)-cc(i,j-1))
-             endif
-             res(i,j) = res(i,j) - efactor*crse_flux
-          end do
-       end if
-    end if
-  end subroutine ml_interface_2d_crse
-
-  subroutine ml_interface_2d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
-
-    integer, intent(in) :: lor(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):)
-    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
-    real (kind = dp_t), intent(in   ) :: efactor
-
-    integer :: i, j
-    
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          res(i,j) = res(i,j) + efactor*fine_flux(i,j)
-       end do
-    end do
-
-  end subroutine ml_interface_2d_fine
-
-  subroutine ml_interface_3d_crse(res, lor, cc, loc, &
-       ss , los, lo, hi, face, dim, efactor)
-    integer, intent(in) :: lor(:)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: los(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):,lor(3):)
-    real (kind = dp_t), intent(in   ) ::        cc(loc(1):,loc(2):,loc(3):)
-    real (kind = dp_t), intent(in   ) ::        ss(los(1):,los(2):,los(3):,0:)
-    integer, intent(in) :: face, dim
-    real(kind=dp_t), intent(in) :: efactor
-
-    integer :: i, j, k
-    real (kind = dp_t) :: crse_flux
-
-    !   Hi i side
-    if ( dim == 1 ) then
-       if (face == 1) then
-          i = lo(1)
-          do k = lo(3),hi(3)
-             do j = lo(2),hi(2)
-                crse_flux = ss(i,j,k,2)*(cc(i,j,k)-cc(i-1,j,k))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
-             end do
-          end do
-          !   Lo i side
-       else if (face == -1) then
-          i = lo(1)
-          do k = lo(3),hi(3)
-             do j = lo(2),hi(2)
-                crse_flux = ss(i,j,k,1)*(cc(i,j,k)-cc(i+1,j,k))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
-             end do
-          end do
-       end if
-       !   Hi j side
-    else if ( dim ==  2 )  then
-       if (face == 1) then
-          j = lo(2)
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
-                crse_flux = ss(i,j,k,4)*(cc(i,j,k)-cc(i,j-1,k))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
-             end do
-          end do
-          !   Lo j side
-       else if (face == -1) then
-          j = lo(2)
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
-                crse_flux = ss(i,j,k,3)*(cc(i,j,k)-cc(i,j+1,k))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
-             end do
-          end do
-       end if
-    else if ( dim == 3 ) then
-       !   Hi k side
-       if (face == 1) then
-          k = lo(3)
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-                crse_flux = ss(i,j,k,6)*(cc(i,j,k)-cc(i,j,k-1))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
-             end do
-          end do
-          !   Lo k side
-       else if (face == -1) then
-          k = lo(3)
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-                crse_flux = ss(i,j,k,5)*(cc(i,j,k)-cc(i,j,k+1))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
-             end do
-          end do
-       end if
-    end if
-
-  end subroutine ml_interface_3d_crse
-
-  subroutine ml_interface_3d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
-
-    integer, intent(in) :: lor(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):,lor(3):)
-    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
-    real( kind = dp_t), intent(in   ) :: efactor
-
-    integer :: i, j, k
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             res(i,j,k) = res(i,j,k) + efactor*fine_flux(i,j,k)
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-  end subroutine ml_interface_3d_fine
 
   subroutine ml_crse_contrib_fancy(res, flux, crse, ss, mm_crse, mm_fine, crse_domain, ir, side)
 
@@ -1638,4 +1187,1067 @@ contains
 
   end subroutine ml_interface_3d_nodal
 
-end module ml_interface_stencil_module
+  subroutine ml_fine_contrib(flux, res, mm, ratio, crse_domain, side)
+    use bl_prof_module
+    type(multifab), intent(inout) :: flux
+    type(multifab), intent(inout) :: res
+    type(imultifab), intent(in) :: mm
+    type(box) :: crse_domain
+    type(box) :: fbox
+    integer :: side
+    integer :: ratio(:)
+    integer :: lof(get_dim(flux)), dm
+    integer :: lo_dom(get_dim(flux)), hi_dom(get_dim(flux))
+    integer :: i, n, dir
+    real(kind=dp_t), pointer :: fp(:,:,:,:)
+    real(kind=dp_t), pointer :: rp(:,:,:,:)
+    integer        , pointer :: mp(:,:,:,:)
+    integer :: nc
+    logical :: pmask(get_dim(res))
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_fine_contrib")
+
+    nc = ncomp(res)
+
+    if ( ncomp(res) /= ncomp(flux) ) then
+       call bl_error("ML_FILL_FLUXES: res%nc /= flux%nc")
+    end if
+
+    lo_dom = lwb(crse_domain)
+    hi_dom = upb(crse_domain)
+
+    if ( nodal_q(res) ) hi_dom = hi_dom + 1
+
+    dir   = iabs(side)
+    pmask = get_pmask(get_layout(res))
+    dm    = get_dim(flux)
+
+    do i = 1, nboxes(flux)
+       if ( remote(flux, i) ) cycle
+       fbox   = get_ibox(flux,i)
+       lof = lwb(fbox)
+       fp => dataptr(flux, i)
+       rp => dataptr(res, i)
+       mp => dataptr(mm, i)
+       do n = 1, nc
+          if ( pmask(dir) .or. &
+               (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
+             select case(dm)
+             case (1)
+                call fine_edge_resid_1d(fp(:,1,1,n), rp(:,1,1,1), mp(:,1,1,1), ratio, side, lof)
+             case (2)
+                call fine_edge_resid_2d(fp(:,:,1,n), rp(:,:,1,1), mp(:,:,1,1), ratio, side, lof)
+             case (3)
+                call fine_edge_resid_3d(fp(:,:,:,n), rp(:,:,:,1), mp(:,:,:,1), ratio, side, lof)
+             end select
+          end if
+       end do
+    end do
+    call destroy(bpt)
+  end subroutine ml_fine_contrib
+
+  subroutine fine_edge_resid_1d(dd, res, mm, ratio, side, lod)
+
+    integer           , intent(in   ) :: lod(1)
+    real (kind = dp_t), intent(inout) :: dd(lod(1):)
+    real (kind = dp_t), intent(in   ) :: res(-1:)
+    integer           , intent(in   ) ::  mm( 0:)
+    integer, intent(in) :: ratio(:), side
+
+    integer            :: i,ic,m,isign,ioff,nx,nxc
+    real (kind = dp_t) :: fac,fac0
+
+    nx  = size(mm,dim=1)-1
+    nxc = size(dd,dim=1)
+
+!   Lo/Hi i side
+    if (side == -1) then
+       i  = 0
+       isign =  1 
+    else
+       i  = nx
+       isign = -1
+    end if
+
+    ic = lod(1)
+
+    dd(ic) = res(i)
+
+!   Average towards the interior of the fine grid
+    fac0 = ONE / ratio(1)
+    do m = 1,ratio(1)-1
+       fac = (ratio(1)-m) * fac0
+       ioff = i+isign*m
+       dd(ic) = dd(ic) + fac * res(ioff)
+    end do
+
+    if (.not.bc_dirichlet(mm(i),1,0)) dd(ic) = ZERO
+
+  end subroutine fine_edge_resid_1d
+
+  subroutine fine_edge_resid_2d(dd, res, mm, ratio, side, lod)
+
+    use impose_neumann_bcs_module 
+
+    integer           , intent(in   ) :: lod(2)
+    real (kind = dp_t), intent(inout) :: dd(lod(1):,lod(2):)
+    real (kind = dp_t), intent(inout) :: res(-1:,-1:)
+    integer           , intent(in   ) ::  mm( 0:, 0:)
+    integer, intent(in) :: ratio(:), side
+    integer :: nx, ny, nxc, nyc
+    integer :: hid(2)
+    integer :: lo(2),ng_res
+    integer :: i,j,ic,jc,m,n,isign,ioff,joff
+    integer :: ileft,irght,jbot,jtop
+    real (kind = dp_t) :: fac, fac0, fac1
+    logical llo,lhi
+
+    nx = size(mm,dim=1)-1
+    ny = size(mm,dim=2)-1
+
+    nxc = size(dd,dim=1)
+    nyc = size(dd,dim=2)
+
+    hid(1) = lod(1) + nxc-1
+    hid(2) = lod(2) + nyc-1
+
+    lo(:) = 0
+    ng_res = 1
+    call impose_neumann_bcs_2d(res,mm,lo,ng_res)
+
+!   Lo/Hi i side
+    if (side == -1 .or. side == 1) then
+
+      if (side == -1) then
+         i  = 0
+         isign =  1
+      else
+         i  = nx
+         isign = -1
+      end if
+
+      ic = lod(1)
+      fac0 = ONE / ratio(2)
+
+!     First average along the coarse-fine edge
+      do jc = lod(2),hid(2)
+         n = 0
+         fac = HALF*ratio(2)*fac0
+         j = (jc-lod(2))*ratio(2)
+         if (j >  0) dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
+         if (j < ny) dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
+
+         do n = 1,ratio(2)-1
+            fac = (ratio(2)-n)*fac0
+
+            j = (jc-lod(2))*ratio(2) + n
+
+            if (j < ny) then
+               if (jc==lod(2)) then
+                  if (.not. bc_dirichlet(mm(i,j),1,0)) fac = HALF * fac
+               end if
+               dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
+            end if
+
+            j = (jc-lod(2))*ratio(2) - n
+
+            if (j > 0) then
+               if (jc==hid(2)) then
+                  if (.not. bc_dirichlet(mm(i,j),1,0)) fac = HALF * fac
+               end if
+               dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
+            end if
+
+         end do
+
+      end do
+
+      j = 0
+      if (bc_neumann(mm(i,j),2,-1)) dd(ic,lod(2)) = TWO*dd(ic,lod(2))
+
+      j = (hid(2)-lod(2))*ratio(2)
+      if (bc_neumann(mm(i,j),2, 1)) dd(ic,hid(2)) = TWO*dd(ic,hid(2))
+
+!     Now average towards the interior of the fine grid
+      fac0 = fac0 / ratio(1)
+      do n = 0,ratio(2)-1
+         fac1 = (ratio(2)-n) * fac0
+         if (n == 0) fac1 = HALF * fac1
+         do m = 1,ratio(1)-1
+            fac = (ratio(1)-m) * fac1
+            ioff = i+isign*m
+            do jc = lod(2),hid(2)
+               j = (jc-lod(2))*ratio(2)
+               jbot = j-n
+               jtop = j+n
+
+               if (j==0) then
+                  if (bc_neumann(mm(i,j),2,-1)) jbot = jtop
+               end if
+               if (j==ny) then
+                  if (bc_neumann(mm(i,j),2,+1)) jtop = jbot
+               end if
+
+               llo = .false.
+               lhi = .false.
+
+               if (j==0) then
+                  if (.not. bc_neumann(mm(i,j),2,-1)) llo = .true.
+               end if
+               if (j==ny) then
+                  if (.not. bc_neumann(mm(i,j),2,+1)) lhi = .true.
+               end if
+
+               if (llo) then
+                  if (n==0) then
+                     if (.not. bc_dirichlet(mm(ioff,j),1,0)) &
+                          dd(ic,jc) = dd(ic,jc) + fac * res(ioff,j)
+                  else
+                     dd(ic,jc) = dd(ic,jc) + HALF * fac * res(ioff,jtop)
+                  end if
+               else if (lhi) then
+                  if (n==0) then
+                     if (.not. bc_dirichlet(mm(ioff,j),1,0)) &
+                          dd(ic,jc) = dd(ic,jc) + fac * res(ioff,j)
+                  else
+                     dd(ic,jc) = dd(ic,jc) + HALF * fac * res(ioff,jbot)
+                  end if
+               else
+                  dd(ic,jc) = dd(ic,jc) + fac * ( res(ioff,jtop) + &
+                                                  res(ioff,jbot) )
+               end if 
+            end do
+         end do
+      end do
+
+      do jc = lod(2),hid(2)
+         if (.not.bc_dirichlet(mm(i,(jc-lod(2))*ratio(2)),1,0)) dd(ic,jc) = ZERO
+      end do
+
+!   Lo/Hi j side
+    else if (side == -2 .or. side == 2) then
+
+      if (side == -2) then
+         j  = 0
+         isign =  1
+      else
+         j  = ny
+         isign = -1
+      end if
+
+      jc = lod(2)
+      fac0 = ONE / ratio(1) 
+
+!     First average along the coarse-fine edge
+      do ic = lod(1),hid(1)
+         do n = 0,ratio(1)-1
+            fac = (ratio(1)-n)*fac0
+            if (n == 0) fac = HALF * fac
+
+            i = (ic-lod(1))*ratio(1) + n
+
+            if (i == 0) then
+               dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
+            else if (i < nx) then
+               if (ic==lod(1) .and. n>0) then
+                  if (.not. bc_dirichlet(mm(i,j),1,0)) fac = HALF * fac
+               end if
+               dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
+            end if
+
+            i = (ic-lod(1))*ratio(1) - n
+            if (i == nx) then
+              dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
+            else if (i > 0) then
+               if (ic==hid(1) .and. n>0) then
+                  if (.not. bc_dirichlet(mm(i,j),1,0)) fac = HALF * fac
+               end if
+               dd(ic,jc) = dd(ic,jc) + fac * res(i,j)
+            end if
+         end do
+      end do
+
+      i = 0
+      if (bc_neumann(mm(i,j),1,-1)) dd(lod(1),jc) = TWO*dd(lod(1),jc)
+
+      i = (hid(1)-lod(1))*ratio(1)
+      if (bc_neumann(mm(i,j),1, 1)) dd(hid(1),jc) = TWO*dd(hid(1),jc)
+
+!     Now average towards the interior of the fine grid
+      fac0 = fac0 / ratio(2)
+      do n = 0,ratio(1)-1
+         fac1 = (ratio(1)-n) * fac0
+         if (n == 0) fac1 = HALF * fac1
+         do m = 1,ratio(2)-1
+            joff = j + isign*m
+            fac = (ratio(2)-m) * fac1
+            do ic = lod(1),hid(1)
+               i = (ic-lod(1))*ratio(1)
+               ileft = i-n
+               irght = i+n
+
+               if (i==0) then
+                  if (bc_neumann(mm(i,j),1,-1)) ileft = irght
+               end if
+               if (i==nx) then
+                  if (bc_neumann(mm(i,j),1,+1)) irght = ileft
+               end if
+
+               llo = .false.
+               lhi = .false.
+
+               if (i==0) then
+                  if (.not. bc_neumann(mm(i,j),1,-1)) llo = .true.
+               end if
+               if (i==nx) then
+                  if (.not. bc_neumann(mm(i,j),1,+1)) lhi = .true.
+               end if
+
+               if (llo) then
+                  if (n==0) then
+                     if (.not. bc_dirichlet(mm(i,joff),1,0)) &
+                          dd(ic,jc) = dd(ic,jc) + fac * res(i,joff)
+                  else
+                     dd(ic,jc) = dd(ic,jc) + HALF * fac * res(irght,joff)
+                  end if
+               else if (lhi) then
+                  if (n==0) then
+                     if (.not. bc_dirichlet(mm(i,joff),1,0)) &
+                          dd(ic,jc) = dd(ic,jc) + fac * res(i,joff)
+                  else
+                     dd(ic,jc) = dd(ic,jc) + HALF * fac * res(ileft,joff)
+                  end if
+
+               else
+                  dd(ic,jc) = dd(ic,jc) + fac * ( res(irght,joff) + &
+                                                  res(ileft,joff) )
+               end if
+            end do
+         end do
+      end do
+
+      do ic = lod(1),hid(1)
+         if (.not.bc_dirichlet(mm((ic-lod(1))*ratio(1),j),1,0)) dd(ic,jc) = ZERO
+      end do
+
+    end if
+
+  end subroutine fine_edge_resid_2d
+
+  subroutine fine_edge_resid_3d(dd, res, mm, ratio, side, lod)
+
+    use impose_neumann_bcs_module 
+
+    integer, intent(in) :: lod(:)
+    real (kind = dp_t), intent(inout) :: dd(lod(1):,lod(2):,lod(3):)
+    real (kind = dp_t), intent(inout) :: res(-1:,-1:,-1:)
+    integer           , intent(in   ) ::  mm(0:,0:,0:)
+    integer, intent(in) :: ratio(:),side
+    integer :: nx, ny, nz, nxc, nyc, nzc
+    integer :: hid(3),lo(3),ng_res
+    integer :: i,j,k,l,ic,jc,kc,m,n
+    integer :: isign,ioff,joff,koff
+    integer :: ileft,irght,jbot,jtop,kdwn,kup
+    real (kind = dp_t) :: fac, fac0, fac1, fac2
+    real (kind = dp_t) :: corner_fac
+    logical ll1,ll2,ll3,lh1,lh2,lh3
+
+    nx = size(mm,dim=1)-1
+    ny = size(mm,dim=2)-1
+    nz = size(mm,dim=3)-1
+
+    nxc = size(dd,dim=1)
+    nyc = size(dd,dim=2)
+    nzc = size(dd,dim=3)
+
+    hid(1) = lod(1) + nxc-1
+    hid(2) = lod(2) + nyc-1
+    hid(3) = lod(3) + nzc-1
+
+    lo     = 0
+    ng_res = 1
+    call impose_neumann_bcs_3d(res,mm,lo,ng_res)
+
+    if (side == -1 .or. side == 1) then
+
+      if (side == -1) then
+         i     = 0
+         isign =  1
+      else
+         i     = nx
+         isign = -1
+      end if
+
+      ic   = lod(1)
+      fac0 = 1.0_dp_t / (ratio(2)*ratio(3))
+      !
+      ! First average along the coarse-fine face.
+      !
+      do kc = lod(3),hid(3)
+         do jc = lod(2),hid(2)
+            do n = 0,ratio(2)-1
+               fac2 = (ratio(2)-n)*fac0
+               if (n == 0) fac2 = HALF * fac2
+
+               j = (jc-lod(2))*ratio(2) + n
+               if (j < ny) then
+                  do l = 0,ratio(3)-1
+                     fac = (ratio(3)-l)*fac2
+                     if (l == 0) fac = HALF * fac
+
+                     k = (kc-lod(3))*ratio(3) + l
+                     if (k < nz) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     k = (kc-lod(3))*ratio(3) - l
+                     if (k >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
+               end if
+
+               j = (jc-lod(2))*ratio(2) - n
+               if (j > 0) then
+                  do l = 0,ratio(3)-1
+                     fac = (ratio(3)-l)*fac2
+                     if (l == 0) fac = HALF * fac
+
+                     k = (kc-lod(3))*ratio(3) + l
+                     if (k < nz) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     k = (kc-lod(3))*ratio(3) - l
+                     if (k >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
+               end if
+
+            end do
+         end do
+      end do
+
+      jc = lod(2)
+      kc = lod(3)
+      j  = 0
+      k  = 0
+      if ( .not. bc_neumann(mm(i,j,k),2,-1) ) then
+          if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
+               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+       end if
+
+      jc = hid(2)
+      kc = lod(3)
+      j  = ny
+      k  = 0
+      if ( .not. bc_neumann(mm(i,j,k),2,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      jc = lod(2)
+      kc = hid(3)
+      j  = 0
+      k  = nz
+      if ( .not. bc_neumann(mm(i,j,k),2,-1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      jc = hid(2)
+      kc = hid(3)
+      j  = ny
+      k  = nz
+      if ( .not. bc_neumann(mm(i,j,k),2,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      j = 0
+      do kc = lod(3),hid(3)
+         k = (kc-lod(3))*ratio(3)
+         if ( bc_neumann(mm(i,j,k),2,-1) ) dd(ic,lod(2),kc) = TWO*dd(ic,lod(2),kc)
+      end do
+
+      j = (hid(2)-lod(2))*ratio(2)
+      do kc = lod(3),hid(3)
+         k = (kc-lod(3))*ratio(3)
+         if ( bc_neumann(mm(i,j,k),2, 1) ) dd(ic,hid(2),kc) = TWO*dd(ic,hid(2),kc)
+      end do
+
+      k = 0
+      do jc = lod(2),hid(2)
+         j = (jc-lod(2))*ratio(2)
+         if ( bc_neumann(mm(i,j,k),3,-1) ) dd(ic,jc,lod(3)) = TWO*dd(ic,jc,lod(3))
+      end do
+
+      k = (hid(3)-lod(3))*ratio(3)
+      do jc = lod(2),hid(2)
+         j = (jc-lod(2))*ratio(2)
+         if ( bc_neumann(mm(i,j,k),3, 1) ) dd(ic,jc,hid(3)) = TWO*dd(ic,jc,hid(3))
+      end do
+      !
+      ! Now average towards the interior of the grid.
+      !
+      fac0 = fac0 / ratio(1)
+      ic = lod(1)
+      do l = 0, ratio(3)-1
+        fac2 = (ratio(3)-l) * fac0
+        if (l == 0) fac2 = HALF * fac2
+        do n = 0, ratio(2)-1
+          fac1 = (ratio(2)-n) * fac2
+          if (n == 0) fac1 = HALF * fac1
+          do m = 1, ratio(1)-1
+            ioff = i+isign*m
+            fac = (ratio(1)-m) * fac1
+            if (m == 0) fac = HALF * fac
+            do kc = lod(3),hid(3)
+              k = (kc-lod(3))*ratio(3)
+              do jc = lod(2),hid(2)
+                j = (jc-lod(2))*ratio(2)
+                jtop = j+n
+                jbot = j-n
+                kup  = k+l
+                kdwn = k-l
+                if (j==0) then
+                   if (bc_neumann(mm(i,j,k),2,-1)) jbot = jtop
+                end if
+                if (j==ny) then
+                   if (bc_neumann(mm(i,j,k),2,+1)) jtop = jbot
+                end if
+                if (k==0) then
+                   if (bc_neumann(mm(i,j,k),3,-1)) kdwn = kup
+                end if
+                if (k==nz) then
+                   if (bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
+                end if
+
+                ll2 = .false.
+                lh2 = .false.
+                ll3 = .false.
+                lh3 = .false.
+
+                if (jc==lod(2)) then
+                   if (.not. bc_neumann(mm(i,j,k),2,-1)) ll2 = .true.
+                end if
+                if (jc==hid(2)) then
+                   if (.not. bc_neumann(mm(i,j,k),2,+1)) lh2 = .true.
+                end if
+                if (kc==lod(3)) then
+                   if (.not. bc_neumann(mm(i,j,k),3,-1)) ll3 = .true.
+                end if
+                if (kc==hid(3)) then
+                   if (.not. bc_neumann(mm(i,j,k),3,+1)) lh3 = .true.
+                end if
+
+                if ( ( ll2 .or. lh2 ) .and. ( ll3 .or. lh3 ) ) then
+                   corner_fac = 1.0_dp_t / 3.0_dp_t
+                else if ( ( ll2 .or. lh2 ) .and. .not. ( ll3 .or. lh3 ) ) then
+                   corner_fac = 1.0_dp_t  / 2.0_dp_t
+                else if ( .not. ( ll2 .or. lh2 ) .and. ( ll3 .or. lh3 ) ) then
+                   corner_fac = 1.0_dp_t / 2.0_dp_t
+                else
+                   corner_fac = 1.0_dp_t
+                end if
+
+                ll2 = (j-n >  0); if (.not. ll2) ll2 = bc_neumann(mm(i,j,k),2,-1)
+                lh2 = (j-n < ny); if (.not. lh2) lh2 = bc_neumann(mm(i,j,k),2,+1)
+                ll3 = (k-l >  0); if (.not. ll3) ll3 = bc_neumann(mm(i,j,k),3,-1)
+                lh3 = (k-l < nz); if (.not. lh3) lh3 = bc_neumann(mm(i,j,k),3,+1)
+                ll1 = (k+l >  0); if (.not. ll1) ll1 = bc_neumann(mm(i,j,k),3,-1)
+                lh1 = (k+l < nz); if (.not. lh1) lh1 = bc_neumann(mm(i,j,k),3,+1)
+
+                if ( ll2 .and. lh2 ) then
+                   if ( ll3 .and. lh3 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(ioff,jbot,kdwn) 
+                   if ( ll1 .and. lh1 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(ioff,jbot,kup) 
+                end if
+
+                ll2 = (j+n >  0); if (.not. ll2) ll2 = bc_neumann(mm(i,j,k),2,-1)
+                lh2 = (j+n < ny); if (.not. lh2) lh2 = bc_neumann(mm(i,j,k),2,+1)
+
+                if ( ll2 .and. lh2 ) then
+                   if ( ll3 .and. lh3 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(ioff,jtop,kdwn) 
+                   if ( ll1 .and. lh1 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(ioff,jtop,kup) 
+                end if
+
+              end do
+            end do
+          end do
+        end do
+      end do
+
+      do kc = lod(3),hid(3)
+         do jc = lod(2),hid(2)
+            j = (jc-lod(2))*ratio(2)
+            k = (kc-lod(3))*ratio(3)
+            if ( .not. bc_dirichlet(mm(i,j,k),1,0) ) dd(ic,jc,kc) = ZERO
+         end do
+      end do
+
+    else if (side == -2 .or. side == 2) then
+
+      if (side == -2) then
+         j     = 0
+         isign =  1
+      else
+         j     = ny
+         isign = -1
+      end if
+
+      jc   = lod(2)
+      fac0 = 1.0_dp_t / (ratio(1)*ratio(3))
+      !
+      ! First average along the coarse-fine face.
+      !
+      do kc = lod(3),hid(3)
+         do ic = lod(1),hid(1)
+            do n = 0,ratio(1)-1
+               fac2 = (ratio(1)-n)*fac0
+               if (n == 0) fac2 = HALF * fac2
+
+               i = (ic-lod(1))*ratio(1) + n
+               if (i < nx) then
+                  do l = 0,ratio(3)-1
+                     fac = (ratio(3)-l)*fac2
+                     if (l == 0) fac = HALF * fac
+
+                     k = (kc-lod(3))*ratio(3) + l
+                     if (k < nz) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     k = (kc-lod(3))*ratio(3) - l
+                     if (k >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
+               end if
+
+               i = (ic-lod(1))*ratio(1) - n
+               if (i > 0) then
+                  do l = 0,ratio(3)-1
+                     fac = (ratio(3)-l)*fac2
+                     if (l == 0) fac = HALF * fac
+
+                     k = (kc-lod(3))*ratio(3) + l
+                     if (k < nz) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     k = (kc-lod(3))*ratio(3) - l
+                     if (k >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
+               end if
+            end do
+         end do
+      end do
+
+      ic = lod(1)
+      kc = lod(3)
+      i  = 0
+      k  = 0
+      if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      ic = hid(1)
+      kc = lod(3)
+      i  = nx
+      k  = 0
+      if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      ic = lod(1)
+      kc = hid(3)
+      i  = 0
+      k  = nz
+      if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      ic = hid(1)
+      kc = hid(3)
+      i  = nx
+      k  = nz
+      if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      i = 0
+      do kc = lod(3),hid(3)
+         k = (kc-lod(3))*ratio(3)
+         if ( bc_neumann(mm(i,j,k),1,-1) ) dd(lod(1),jc,kc) = TWO*dd(lod(1),jc,kc)
+      end do
+
+      i = (hid(1)-lod(1))*ratio(1)
+      do kc = lod(3),hid(3)
+         k = (kc-lod(3))*ratio(3)
+         if ( bc_neumann(mm(i,j,k),1, 1) ) dd(hid(1),jc,kc) = TWO*dd(hid(1),jc,kc)
+      end do
+
+      k = 0
+      do ic = lod(1),hid(1)
+         i = (ic-lod(1))*ratio(1)
+         if ( bc_neumann(mm(i,j,k),3,-1) ) dd(ic,jc,lod(3)) = TWO*dd(ic,jc,lod(3))
+      end do
+
+      k = (hid(3)-lod(3))*ratio(3)
+      do ic = lod(1),hid(1)
+         i = (ic-lod(1))*ratio(1)
+         if ( bc_neumann(mm(i,j,k),3, 1) ) dd(ic,jc,hid(3)) = TWO*dd(ic,jc,hid(3))
+      end do
+      !
+      ! Now average towards the interior of the grid.
+      !
+      fac0 = fac0 / ratio(2)
+      jc = lod(2)
+      do l = 0, ratio(3)-1
+        fac2 = (ratio(3)-l) * fac0
+        if (l == 0) fac2 = HALF * fac2
+        do n = 0, ratio(1)-1
+          fac1 = (ratio(1)-n) * fac2
+          if (n == 0) fac1 = HALF * fac1
+          do m = 1, ratio(2)-1
+            joff = j+isign*m
+            fac = (ratio(2)-m) * fac1
+            if (m == 0) fac = HALF * fac
+            do kc = lod(3),hid(3)
+              k = (kc-lod(3))*ratio(3)
+              do ic = lod(1),hid(1)
+                i = (ic-lod(1))*ratio(1)
+                irght = i+n
+                ileft = i-n
+                kup  = k+l
+                kdwn = k-l
+                if (i==0) then
+                   if (bc_neumann(mm(i,j,k),1,-1)) ileft = irght
+                end if
+                if (i==nx) then
+                   if (bc_neumann(mm(i,j,k),1,+1)) irght = ileft
+                end if
+                if (k==0) then
+                   if (bc_neumann(mm(i,j,k),3,-1)) kdwn = kup
+                end if
+                if (k==nz) then
+                   if (bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
+                end if
+
+                ll1 = .false.
+                lh1 = .false.
+                ll3 = .false.
+                lh3 = .false.
+
+                if (ic==lod(1)) then
+                   if (.not. bc_neumann(mm(i,j,k),1,-1)) ll1 = .true.
+                end if
+                if (ic==hid(1)) then
+                   if (.not. bc_neumann(mm(i,j,k),1,+1)) lh1 = .true.
+                end if
+                if (kc==lod(3)) then
+                   if (.not. bc_neumann(mm(i,j,k),3,-1)) ll3 = .true.
+                end if
+                if (kc==hid(3)) then
+                   if (.not. bc_neumann(mm(i,j,k),3,+1)) lh3 = .true.
+                end if
+
+                if ( (  ll1 .or. lh1 ) .and. (  ll3 .or. lh3 ) ) then
+                   corner_fac = 1.0_dp_t / 3.0_dp_t
+                else if ( ( ll1 .or. lh1 ) .and. .not. ( ll3 .or. lh3 ) ) then
+                   corner_fac = 1.0_dp_t  / 2.0_dp_t
+                else if ( .not. &
+                          ( ll1 .or. lh1 ) .and. ( ll3 .or. lh3 ) ) then
+                   corner_fac = 1.0_dp_t / 2.0_dp_t
+                else
+                   corner_fac = 1.0_dp_t
+                end if
+
+                ll1 = (i-n >  0); if (.not. ll1) ll1 = bc_neumann(mm(i,j,k),1,-1)
+                lh1 = (i-n < nx); if (.not. lh1) lh1 = bc_neumann(mm(i,j,k),1,+1)
+                ll2 = (k-l >  0); if (.not. ll2) ll2 = bc_neumann(mm(i,j,k),3,-1)
+                lh2 = (k-l < nz); if (.not. lh2) lh2 = bc_neumann(mm(i,j,k),3,+1)
+                ll3 = (k+l >  0); if (.not. ll3) ll3 = bc_neumann(mm(i,j,k),3,-1)
+                lh3 = (k+l < nz); if (.not. lh3) lh3 = bc_neumann(mm(i,j,k),3,+1)
+
+                if ( ll1 .and. lh1 ) then
+                   if ( ll2 .and. lh2 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(ileft,joff,kdwn) 
+                   if ( ll3 .and. lh3 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(ileft,joff,kup) 
+                end if
+
+                ll1 = (i+n >  0); if (.not. ll1) ll1 = bc_neumann(mm(i,j,k),1,-1)
+                lh1 = (i+n < nx); if (.not. lh1) lh1 = bc_neumann(mm(i,j,k),1,+1)
+
+                if ( ll1 .and. lh1 ) then
+                   if ( ll2 .and. lh2 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(irght,joff,kdwn) 
+                   if ( ll3 .and. lh3 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(irght,joff,kup) 
+                end if
+              end do
+            end do
+          end do
+        end do
+      end do
+
+      do kc = lod(3),hid(3)
+         do ic = lod(1),hid(1)
+            i = (ic-lod(1))*ratio(1)
+            k = (kc-lod(3))*ratio(3)
+            if ( .not. bc_dirichlet(mm(i,j,k),1,0) ) dd(ic,jc,kc) = ZERO
+         end do
+      end do
+
+    else 
+
+      if (side == -3) then
+         k     = 0
+         isign =  1
+      else
+         k     = nz
+         isign = -1
+      end if
+
+      kc   = lod(3)
+      fac0 = 1.0_dp_t / (ratio(1)*ratio(2))
+      !
+      ! First average along the coarse-fine face.
+      !
+      do jc = lod(2),hid(2)
+         do ic = lod(1),hid(1)
+            do n = 0,ratio(1)-1
+               fac2 = (ratio(1)-n)*fac0
+               if (n == 0) fac2 = HALF * fac2
+
+               i = (ic-lod(1))*ratio(1) + n
+               if (i < nx) then
+                  do l = 0,ratio(2)-1
+                     fac = (ratio(2)-l)*fac2
+                     if (l == 0) fac = HALF * fac
+
+                     j = (jc-lod(2))*ratio(2) + l
+                     if (j < ny) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     j = (jc-lod(2))*ratio(2) - l
+                     if (j >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
+               end if
+
+               i = (ic-lod(1))*ratio(1) - n
+               if (i > 0) then
+                  do l = 0,ratio(2)-1
+                     fac = (ratio(2)-l)*fac2
+                     if (l == 0) fac = HALF * fac
+
+                     j = (jc-lod(2))*ratio(2) + l
+                     if (j < ny) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+
+                     j = (jc-lod(2))*ratio(2) - l
+                     if (j >  0) then
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
+                     end if
+                  end do
+               end if
+            end do
+         end do
+      end do
+
+      ic = lod(1)
+      jc = lod(2)
+      i  = 0
+      j  = 0
+      if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),2,-1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      ic = hid(1)
+      jc = lod(2)
+      i  = nx
+      j  = 0
+      if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),2,-1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      ic = lod(1)
+      jc = hid(2)
+      i  = 0
+      j  = ny
+      if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),2,+1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      ic = hid(1)
+      jc = hid(2)
+      i  = nx
+      j  = ny
+      if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
+         if ( .not. bc_neumann(mm(i,j,k),2,+1) ) &
+              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+      end if
+
+      i = 0
+      do jc = lod(2),hid(2)
+         j = (jc-lod(2))*ratio(2)
+         if ( bc_neumann(mm(i,j,k),1,-1) ) dd(lod(1),jc,kc) = TWO*dd(lod(1),jc,kc)
+      end do
+
+      i = (hid(1)-lod(1))*ratio(1)
+      do jc = lod(2),hid(2)
+         j = (jc-lod(2))*ratio(2)
+         if ( bc_neumann(mm(i,j,k),1,+1) ) dd(hid(1),jc,kc) = TWO*dd(hid(1),jc,kc)
+      end do
+
+      j = 0
+      do ic = lod(1),hid(1)
+         i = (ic-lod(1))*ratio(1)
+         if ( bc_neumann(mm(i,j,k),2,-1) ) dd(ic,lod(2),kc) = TWO*dd(ic,lod(2),kc)
+      end do
+
+      j = (hid(2)-lod(2))*ratio(2)
+      do ic = lod(1),hid(1)
+         i = (ic-lod(1))*ratio(1)
+         if ( bc_neumann(mm(i,j,k),2,+1) ) dd(ic,hid(2),kc) = TWO*dd(ic,hid(2),kc)
+      end do
+      !
+      ! Now average towards the interior of the grid.
+      !
+      fac0 = fac0 / ratio(3)
+      kc = lod(3)
+      do l = 0, ratio(2)-1
+        fac2 = (ratio(2)-l) * fac0
+        if (l == 0) fac2 = HALF * fac2
+        do n = 0, ratio(1)-1
+          fac1 = (ratio(1)-n) * fac2
+          if (n == 0) fac1 = HALF * fac1
+          do m = 1, ratio(3)-1
+            koff = k+isign*m
+            fac = (ratio(3)-m) * fac1
+            if (m == 0) fac = HALF * fac
+            do jc = lod(2),hid(2)
+              j = (jc-lod(2))*ratio(2)
+              do ic = lod(1),hid(1)
+                i = (ic-lod(1))*ratio(1)
+                irght = i+n
+                ileft = i-n
+                jtop  = j+l
+                jbot  = j-l
+                if (i==0) then
+                   if (bc_neumann(mm(i,j,k),1,-1)) ileft = irght
+                end if
+                if (i==nx) then
+                   if (bc_neumann(mm(i,j,k),1,+1)) irght = ileft
+                end if
+                if (j==0) then
+                   if (bc_neumann(mm(i,j,k),2,-1)) jbot  = jtop
+                end if
+                if (j==ny) then
+                   if (bc_neumann(mm(i,j,k),2,+1)) jtop  = jbot
+                end if
+
+                ll1 = .false.
+                lh1 = .false.
+                ll2 = .false.
+                lh2 = .false.
+
+                if (ic==lod(1)) then
+                   if (.not. bc_neumann(mm(i,j,k),1,-1)) ll1 = .true.
+                end if
+                if (ic==hid(1)) then
+                   if (.not. bc_neumann(mm(i,j,k),1,+1)) lh1 = .true.
+                end if
+                if (jc==lod(2)) then
+                   if (.not. bc_neumann(mm(i,j,k),2,-1)) ll2 = .true.
+                end if
+                if (jc==hid(2)) then
+                   if (.not. bc_neumann(mm(i,j,k),2,+1)) lh2 = .true.
+                end if
+
+                if ( ( ll1 .or. lh1 ) .and. ( ll2 .or. lh2 ) ) then
+                   corner_fac = 1.0_dp_t / 3.0_dp_t
+                else if ( ( ll1 .or. lh1 ) .and. .not. ( ll2 .or. lh2 ) ) then
+                   corner_fac = 1.0_dp_t  / 2.0_dp_t
+                else if ( .not. &
+                          ( ll1 .or. lh1 ) .and. ( ll2 .or. lh2 ) ) then
+                   corner_fac = 1.0_dp_t / 2.0_dp_t
+                else
+                   corner_fac = 1.0_dp_t
+                end if
+
+                ll1 = (i-n >  0); if (.not. ll1) ll1 = bc_neumann(mm(i,j,k),1,-1) 
+                lh1 = (i-n < nx); if (.not. lh1) lh1 = bc_neumann(mm(i,j,k),1,+1)
+                ll2 = (j-l >  0); if (.not. ll2) ll2 = bc_neumann(mm(i,j,k),2,-1)
+                lh2 = (j-l < ny); if (.not. lh2) lh2 = bc_neumann(mm(i,j,k),2,+1)
+                ll3 = (j+l >  0); if (.not. ll3) ll3 = bc_neumann(mm(i,j,k),2,-1)
+                lh3 = (j+l < ny); if (.not. lh3) lh3 = bc_neumann(mm(i,j,k),2,+1)
+
+                if ( ll1 .and. lh1 ) then
+                   if ( ll2 .and. lh2 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(ileft,jbot,koff) 
+                   if ( ll3 .and. lh3 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(ileft,jtop,koff) 
+                end if
+
+                ll1 = (i+n >  0); if (.not. ll1) ll1 = bc_neumann(mm(i,j,k),1,-1) 
+                lh1 = (i+n < nx); if (.not. lh1) lh1 = bc_neumann(mm(i,j,k),1,+1)
+
+                if ( ll1 .and. lh1 ) then
+                   if ( ll2 .and. lh2 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(irght,jbot,koff) 
+                   if ( ll3 .and. lh3 ) &
+                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
+                        fac*res(irght,jtop,koff) 
+                end if
+
+              end do
+            end do
+          end do
+        end do
+      end do
+
+      do jc = lod(2),hid(2)
+         do ic = lod(1),hid(1)
+            i = (ic-lod(1))*ratio(1)
+            j = (jc-lod(2))*ratio(2)
+            if ( .not. bc_dirichlet(mm(i,j,k),1,0) ) dd(ic,jc,kc) = ZERO
+         end do
+      end do
+
+    end if
+
+  end subroutine fine_edge_resid_3d
+
+end module nodal_interface_stencil_module
