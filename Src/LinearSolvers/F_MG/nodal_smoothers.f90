@@ -5,11 +5,11 @@ module nodal_smoothers_module
 
   implicit none
 
-  private dgtsl
-
 contains
 
   subroutine nodal_line_solve_1d(ss, uu, ff, mm, lo, ng)
+
+    use tridiag_module, only: tridiag
 
     integer        , intent(in   ) :: lo(:),ng
     real(kind=dp_t), intent(in   ) :: ff(lo(1)-1:)

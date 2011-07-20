@@ -10,6 +10,9 @@ module cc_smoothers_module
 contains
 
   subroutine gs_line_solve_1d(ss, uu, ff, mm, lo, ng)
+
+    use tridiag_module, only : tridiag
+
     integer, intent(in) :: lo(:)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in)    :: ff(lo(1):)
