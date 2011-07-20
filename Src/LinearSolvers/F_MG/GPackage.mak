@@ -10,6 +10,7 @@ endif
 f90sources += cc_applyop.f90
 f90sources += cc_smoothers.f90
 f90sources += cc_interface_stencil.f90
+f90sources += cc_ml_resid.f90
 f90sources += cc_stencil.f90
 f90sources += cc_stencil_fill.f90
 
