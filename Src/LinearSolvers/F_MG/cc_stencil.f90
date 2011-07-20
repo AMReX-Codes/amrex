@@ -38,8 +38,6 @@ module cc_stencil_module
   real (kind = dp_t), private, parameter :: THIRD = 1.0_dp_t/3.0_dp_t
   real (kind = dp_t), private, parameter :: FOUR_THIRD = 4.0_dp_t/3.0_dp_t
 
-  integer, parameter, private :: BC_GEOM = 3
-
   interface destroy
      module procedure stencil_destroy
   end interface
