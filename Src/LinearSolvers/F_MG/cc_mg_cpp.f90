@@ -1325,7 +1325,7 @@ end subroutine mgt_solve
 
 subroutine mgt_applyop()
   use cpp_mg_module
-  use ml_cc_module
+  use cc_applyop_module
   use fabio_module
   implicit none
 
@@ -1342,7 +1342,7 @@ end subroutine mgt_applyop
 
 subroutine mgt_compute_residual()
   use cpp_mg_module
-  use ml_cc_module
+  use cc_ml_resid_module
   use fabio_module
   implicit none
 
