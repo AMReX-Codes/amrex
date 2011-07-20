@@ -8,6 +8,8 @@ module bc_functions_module
 
   private :: bc_pretty_bit
 
+  integer, parameter, private :: BC_GEOM = 3
+
   integer, dimension(3,MAX_SPACEDIM,-1:1) , parameter :: BC_BIT = &
        reshape((/ &
         0,   9,  18, &          ! BC_BIT(:,1,-1)
