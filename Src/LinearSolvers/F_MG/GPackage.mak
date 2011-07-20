@@ -10,7 +10,9 @@ f90sources += nodal_newu.f90
 endif
 f90sources += mg.f90
 f90sources += mg_tower.f90
-f90sources += mg_smoother.f90
+f90sources += cc_smoothers.f90
+f90sources += nodal_smoothers.f90
+f90sources += tridiag.f90
 f90sources += stencil.f90
 f90sources += stencil_fill.f90
 f90sources += stencil_nodal.f90
