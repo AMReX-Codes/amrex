@@ -17,7 +17,7 @@ contains
 
     use ml_util_module        , only : ml_norm_inf
     use ml_restriction_module , only : ml_restriction, periodic_add_copy
-    use ml_prolongation_module, only : ml_prolongation
+    use ml_prolongation_module, only : ml_nodal_prolongation
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower ), intent(inout) :: mgt(:)
@@ -281,7 +281,7 @@ contains
 
           ! Interpolate uu from coarser level
           if (iter == 1) call saxpy(uu(n-1),  ONE, full_soln(n-1))
-          call ml_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:))
+          call ml_nodal_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:))
           if (iter == 1) call saxpy(uu(n-1), -ONE, full_soln(n-1))
 
           ! Subtract: uu -= full_soln

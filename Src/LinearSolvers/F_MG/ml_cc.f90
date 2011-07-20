@@ -19,7 +19,7 @@ contains
     use bl_prof_module
     use ml_util_module        , only : ml_norm_inf
     use ml_restriction_module , only : ml_restriction
-    use ml_prolongation_module, only : ml_prolongation, ml_interp_bcs
+    use ml_prolongation_module, only : ml_cc_prolongation, ml_interp_bcs
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -364,7 +364,7 @@ contains
           mglev = mgt(n)%nlevels
 
           ! Interpolate uu from coarser level
-          call ml_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:))
+          call ml_cc_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:))
 
           ! Add: soln += uu
           call saxpy(soln(n), ONE, uu(n), .true.)
@@ -812,7 +812,7 @@ contains
 
     use bl_prof_module
     use ml_restriction_module , only : ml_restriction
-    use ml_prolongation_module, only : ml_prolongation, ml_interp_bcs
+    use ml_prolongation_module, only : ml_cc_prolongation, ml_interp_bcs
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -968,7 +968,7 @@ contains
 
     use bl_prof_module
     use ml_restriction_module , only : ml_restriction
-    use ml_prolongation_module, only : ml_prolongation, ml_interp_bcs
+    use ml_prolongation_module, only : ml_cc_prolongation, ml_interp_bcs
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)

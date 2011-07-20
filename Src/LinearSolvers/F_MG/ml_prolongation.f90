@@ -17,11 +17,11 @@ module ml_prolongation_module
 
   private
 
-  public :: ml_prolongation, ml_interp_bcs
+  public :: ml_cc_prolongation, ml_nodal_prolongation, ml_interp_bcs
 
 contains
 
-  subroutine ml_prolongation(fine, crse, ir)
+  subroutine ml_cc_prolongation(fine, crse, ir)
     use bl_prof_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
@@ -33,7 +33,6 @@ contains
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(layout)        :: lacfine,laf
     type(multifab)      :: cfine
-    logical             :: lnodal
     type(bl_prof_timer), save :: bpt
 
     if ( ncomp(crse) .ne. ncomp(fine) ) then
@@ -42,7 +41,60 @@ contains
 
     call build(bpt, "ml_prolongation")
 
-    lnodal = nodal_q(fine)
+    laf = get_layout(fine)
+
+    call layout_build_coarse(lacfine, laf, ir)
+
+    call build(cfine, lacfine, nc = ncomp(crse), ng = 0)
+
+    call copy(cfine, 1, crse, 1, ncomp(crse))
+
+    dm = get_dim(crse)
+
+    do i = 1, nboxes(fine)
+       if ( remote(fine, i) ) cycle
+       loc = lwb(get_pbox(cfine,i))
+       lof = lwb(get_pbox(fine, i))
+       lo  = lwb(get_ibox(fine, i))
+       hi  = upb(get_ibox(fine, i))
+       do n = 1, ncomp(crse)
+          fp => dataptr(fine,  i, n, 1)
+          cp => dataptr(cfine, i, n, 1)
+          select case (dm)
+          case (1)
+             call ml_prolongation_1d_cc(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
+          case (2)
+             call ml_prolongation_2d_cc(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
+          case (3)
+             call ml_prolongation_3d_cc(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
+          end select
+       end do
+    end do
+
+    call destroy(cfine)
+    call destroy(bpt)
+
+  end subroutine ml_cc_prolongation
+
+  subroutine ml_nodal_prolongation(fine, crse, ir)
+    use bl_prof_module
+    type(multifab), intent(inout) :: fine
+    type(multifab), intent(in   ) :: crse
+    integer,        intent(in   ) :: ir(:)
+
+    integer             :: lo (get_dim(fine)), hi (get_dim(fine))
+    integer             :: loc(get_dim(fine)), lof(get_dim(fine))
+    integer             :: i, n, dm
+    real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
+    type(layout)        :: lacfine,laf
+    type(multifab)      :: cfine
+    type(bl_prof_timer), save :: bpt
+
+    if ( ncomp(crse) .ne. ncomp(fine) ) then
+       call bl_error('ml_prolongation: crse & fine must have same # of components')
+    end if
+
+    call build(bpt, "ml_prolongation")
 
     laf = get_layout(fine)
 
@@ -65,23 +117,11 @@ contains
           cp => dataptr(cfine, i, n, 1)
           select case (dm)
           case (1)
-             if ( lnodal ) then
-                call ml_prolongation_1d_nodal(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
-             else
-                call ml_prolongation_1d_cc(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
-             endif
+             call ml_prolongation_1d_nodal(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
           case (2)
-             if ( lnodal ) then
-                call ml_prolongation_2d_nodal(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
-             else
-                call ml_prolongation_2d_cc(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
-             end if
+             call ml_prolongation_2d_nodal(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
           case (3)
-             if ( lnodal ) then
-                call ml_prolongation_3d_nodal(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
-             else
-                call ml_prolongation_3d_cc(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
-             endif
+             call ml_prolongation_3d_nodal(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
           end select
        end do
     end do
@@ -89,7 +129,7 @@ contains
     call destroy(cfine)
     call destroy(bpt)
 
-  end subroutine ml_prolongation
+  end subroutine ml_nodal_prolongation
 
   subroutine ml_prolongation_1d_cc(ff, lof, cc, loc, lo, hi, ir)
     integer, intent(in) :: loc(:)
