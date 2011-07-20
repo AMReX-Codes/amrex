@@ -1,7 +1,6 @@
 module tridiag_module
  
   use bl_constants_module
-  use stencil_module
  
   implicit none
 
