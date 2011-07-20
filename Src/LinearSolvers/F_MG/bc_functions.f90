@@ -4,6 +4,8 @@ module bc_functions_module
   use bl_space
   use bc_module
 
+  implicit none
+
   private :: bc_pretty_bit
 
   integer, dimension(3,MAX_SPACEDIM,-1:1) , parameter :: BC_BIT = &
