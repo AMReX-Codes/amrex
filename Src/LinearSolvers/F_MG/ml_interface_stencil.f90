@@ -3,6 +3,7 @@ module ml_interface_stencil_module
   use bl_types
   use layout_module
   use multifab_module
+  use bc_functions_module
   use bl_constants_module
 
   implicit none

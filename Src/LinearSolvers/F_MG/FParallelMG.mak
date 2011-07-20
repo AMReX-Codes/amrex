@@ -25,6 +25,7 @@
 # ------------------------------------------------
 
 f90EXE_sources += bc.f90
+f90EXE_sources += bc_functions.f90
 f90EXE_sources += bl_IO.f90
 f90EXE_sources += bl_types.f90
 f90EXE_sources += vector_i.f90

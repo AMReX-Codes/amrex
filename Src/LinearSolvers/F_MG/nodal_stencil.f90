@@ -2,6 +2,7 @@ module nodal_stencil_module
 
   use bl_types
   use multifab_module
+  use bc_functions_module
   use impose_neumann_bcs_module
 
   implicit none
