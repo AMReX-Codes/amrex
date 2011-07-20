@@ -577,11 +577,11 @@ contains
 
   end subroutine multifab_build_edge
 
-  subroutine multifab_build(mf, la, nc, ng, nodal)
+  subroutine multifab_build(mf, la, nc, ng, nodal, stencil)
     type(multifab), intent(out) :: mf
     type(layout), intent(in) :: la
     integer, intent(in), optional :: nc, ng
-    logical, intent(in), optional :: nodal(:)
+    logical, intent(in), optional :: nodal(:), stencil
     integer :: i
     integer :: lnc, lng
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
@@ -599,7 +599,7 @@ contains
       call build( &
            mf%fbs(i), get_box(mf%la, i), &
            mf%nc, mf%ng, mf%nodal,  &
-           alloc = local(mf, i))
+           alloc = local(mf, i), stencil = stencil)
     end do
     call mem_stats_alloc(multifab_ms, volume(mf, all = .TRUE.))
   end subroutine multifab_build
