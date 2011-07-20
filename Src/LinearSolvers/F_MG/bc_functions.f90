@@ -5,6 +5,19 @@ module bc_functions_module
 
   private :: bc_pretty_bit
 
+  integer, dimension(3,MAX_SPACEDIM,-1:1) , parameter :: BC_BIT = &
+       reshape((/ &
+        0,   9,  18, &          ! BC_BIT(:,1,-1)
+        1,  10,  19, &          ! BC_BIT(:,2,-1)
+        2,  11,  20, &          ! BC_BIT(:,3,-1)
+        3,  12,  21, &          ! BC_BIT(:,1, 0)
+        4,  13,  22, &          ! BC_BIT(:,2, 0)
+        5,  14,  23, &          ! BC_BIT(:,3, 0)
+        6,  15,  24, &          ! BC_BIT(:,1, 1)
+        7,  16,  25, &          ! BC_BIT(:,2, 1)
+        8,  17,  26  &          ! BC_BIT(:,3, 1)
+       /), (/3,MAX_SPACEDIM,3/))
+
 contains
 
   pure function skewed_q(mm) result(r)
