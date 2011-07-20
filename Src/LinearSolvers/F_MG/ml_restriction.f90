@@ -15,7 +15,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ml_cc_restriction_c(crse, cc, fine, cf, ir, nc)
-    use mg_restriction_module
+    use cc_restriction_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     integer, intent(in)           :: cc, cf, ir(:)
@@ -78,7 +78,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ml_edge_restriction_c(crse, cc, fine, cf, ir, face, nc)
-    use mg_restriction_module
+    use edge_restriction_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
     integer,        intent(in)    :: cc, cf, ir(:)
@@ -291,7 +291,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ml_nodal_restriction(crse, fine, mm_fine, mm_crse, ir, inject, zero_only)
-    use mg_restriction_module
+    use nodal_restriction_module
     type(multifab),  intent(inout)        :: crse
     type(multifab),  intent(inout)        :: fine
     type(imultifab), intent(in   )        :: mm_fine

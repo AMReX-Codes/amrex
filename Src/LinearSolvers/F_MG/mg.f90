@@ -767,8 +767,9 @@ contains
   subroutine mg_tower_restriction(mgt, crse, fine, mm_fine, mm_crse)
 
     use bl_prof_module
-    use mg_restriction_module, only: cc_restriction_1d, nodal_restriction_1d, &
-         cc_restriction_2d, nodal_restriction_2d, cc_restriction_3d, nodal_restriction_3d
+    use cc_restriction_module, only: cc_restriction_1d, cc_restriction_2d, cc_restriction_3d
+    use nodal_restriction_module, only: nodal_restriction_1d, nodal_restriction_2d, &
+                                        nodal_restriction_3d
 
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
