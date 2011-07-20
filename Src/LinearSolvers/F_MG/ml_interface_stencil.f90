@@ -692,7 +692,7 @@ contains
 
   subroutine ml_interface_2d_nodal(res, lor, fine_flux, lof, cc, loc, &
        ss , los, mm_fine, lomf, mm_crse, lomc, lo, hi, ir, side, loflux, hiflux)
-    use stencil_module
+    use cc_stencil_module
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
@@ -995,7 +995,9 @@ contains
 
   subroutine ml_interface_3d_nodal(res, lor, fine_flux, lof, cc, loc, &
        ss, los, mm_fine, lomf, mm_crse, lomc, lo, hi, ir, side, loflux, hiflux)
-    use stencil_module
+
+    use nodal_stencil_module
+
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
