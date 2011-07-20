@@ -11,13 +11,13 @@ f90sources += cc_applyop.f90
 f90sources += cc_smoothers.f90
 f90sources += cc_interface_stencil.f90
 f90sources += cc_ml_resid.f90
+f90sources += cc_restriction.f90
 f90sources += cc_stencil.f90
 f90sources += cc_stencil_fill.f90
 
 f90sources += mg.f90
 f90sources += mg_tower.f90
 f90sources += mg_prolongation.f90
-f90sources += mg_restriction.f90
 
 f90sources += ml_prolongation.f90
 f90sources += ml_restriction.f90
@@ -30,11 +30,13 @@ f90sources += nodal_divu.f90
 f90sources += nodal_interface_stencil.f90
 f90sources += nodal_neumann_bcs.f90
 f90sources += nodal_newu.f90
+f90sources += nodal_restriction.f90
 f90sources += nodal_stencil.f90
 f90sources += nodal_stencil_fill.f90
 f90sources += nodal_smoothers.f90
 f90sources += nodal_stencil.f90
 
+f90sources += edge_restriction.f90
 f90sources += tridiag.f90
  
 #include $(FPARALLEL)/extern/SPARSKIT/GPackage.mak
