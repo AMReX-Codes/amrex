@@ -1,5 +1,7 @@
 module ml_norm_module
 
+  use multifab_module
+
   implicit none
 
   public :: ml_norm_inf, ml_norm_l2
