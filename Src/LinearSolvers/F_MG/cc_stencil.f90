@@ -1,4 +1,4 @@
-module stencil_module
+module cc_stencil_module
 
   use bl_types
   use bc_module
@@ -4640,4 +4640,4 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
   end subroutine stencil_all_flux_3d
 
-end module stencil_module
+end module cc_stencil_module

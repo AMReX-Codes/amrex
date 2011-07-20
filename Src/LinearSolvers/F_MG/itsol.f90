@@ -2,7 +2,7 @@ module itsol_module
 
   use bl_types
   use multifab_module
-  use stencil_module
+  use cc_stencil_module
 
   implicit none
 
@@ -294,7 +294,9 @@ contains
   ! computes rr = aa * uu
   subroutine itsol_stencil_apply(aa, rr, uu, mm, uniform_dh)
     use bl_prof_module
-    use stencil_nodal_module, only: stencil_apply_1d_nodal, stencil_apply_2d_nodal,  stencil_apply_3d_nodal
+
+    use nodal_stencil_module, only: stencil_apply_1d_nodal, stencil_apply_2d_nodal,  stencil_apply_3d_nodal
+
     type(multifab), intent(in) :: aa
     type(multifab), intent(inout) :: rr
     type(multifab), intent(inout) :: uu

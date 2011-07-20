@@ -62,26 +62,30 @@ f90EXE_sources += impose_neumann_bcs.f90
 
 f90EXE_sources += mg_prolongation.f90
 f90EXE_sources += ml_prolongation.f90
-f90EXE_sources += stencil.f90
-f90EXE_sources += stencil_fill.f90
-f90EXE_sources += stencil_nodal.f90
+f90EXE_sources += cc_mg_cpp.f90
+f90EXE_sources += cc_smoothers.f90
+f90EXE_sources += cc_stencil.f90
+f90EXE_sources += cc_stencil_fill.f90
 f90EXE_sources += ml_interface_stencil.f90
 f90EXE_sources += ml_util.f90
-f90EXE_sources += cc_smoothers.f90
-f90EXE_sources += nodal_smoothers.f90
 f90EXE_sources += tridiag.f90
 f90EXE_sources += mg_restriction.f90
 f90EXE_sources += itsol.f90
 f90EXE_sources += ml_restriction.f90
-f90EXE_sources += nodal_mask.f90
-f90EXE_sources += nodal_divu.f90
-f90EXE_sources += nodal_newu.f90
 f90EXE_sources += mg.f90
 f90EXE_sources += mg_tower.f90
 f90EXE_sources += ml_nd.f90
 f90EXE_sources += ml_cc.f90
+
+f90EXE_sources += nodal_mg_cpp.f90
+f90EXE_sources += nodal_mask.f90
+f90EXE_sources += nodal_divu.f90
+f90EXE_sources += nodal_newu.f90
+f90EXE_sources += nodal_stencil.f90
+f90EXE_sources += nodal_stencil_fill.f90
+f90EXE_sources += nodal_smoothers.f90
+
 #f90EXE_sources += mg_hypre_solve.f90
-f90EXE_sources += mg_cpp.f90
 f90EXE_sources += mg_nodal_cpp.f90
 cEXE_headers   += mg_cpp_f.h
 

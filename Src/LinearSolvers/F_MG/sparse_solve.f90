@@ -3,7 +3,7 @@ module sparse_solve_module
   use bl_types
   use box_module
   use multifab_module
-  use stencil_module
+  use cc_stencil_module
 
   implicit none
 

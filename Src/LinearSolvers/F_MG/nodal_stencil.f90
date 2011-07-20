@@ -1,4 +1,4 @@
-module stencil_nodal_module
+module nodal_stencil_module
 
   use bl_types
   use multifab_module
@@ -880,5 +880,4 @@ contains
 
   end subroutine stencil_apply_3d_nodal
 
-end module stencil_nodal_module
-
+end module nodal_stencil_module

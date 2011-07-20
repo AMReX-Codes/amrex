@@ -419,7 +419,7 @@ end subroutine mgt_init_mc_coeffs_lev
 
 subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm)
   use cpp_mg_module
-  use stencil_fill_module
+  use cc_stencil_fill_module
   implicit none
   integer   , intent(in) :: lev, dm
   real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
@@ -446,7 +446,7 @@ end subroutine mgt_finalize_stencil_lev
 
 subroutine mgt_mc_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm, nc_opt)
   use cpp_mg_module
-  use stencil_fill_module
+  use cc_stencil_fill_module
   implicit none
   integer   , intent(in) :: lev, dm
   real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
@@ -1359,7 +1359,7 @@ end subroutine mgt_compute_residual
 
 subroutine mgt_compute_flux(lev)
   use cpp_mg_module
-  use stencil_module
+  use cc_stencil_module
   use fabio_module
   implicit none
  
