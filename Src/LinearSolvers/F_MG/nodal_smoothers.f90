@@ -2,7 +2,7 @@ module nodal_smoothers_module
 
   use bl_constants_module
   use bc_functions_module
-  use stencil_module
+  use nodal_stencil_module
 
   implicit none
 
