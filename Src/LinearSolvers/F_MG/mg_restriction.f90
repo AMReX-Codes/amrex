@@ -1,5 +1,6 @@
 module mg_restriction_module
 
+  use bl_error_module
   use bl_types
   use bc_functions_module
   use impose_neumann_bcs_module

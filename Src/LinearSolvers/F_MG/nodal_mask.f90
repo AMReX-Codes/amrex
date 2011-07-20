@@ -1,6 +1,6 @@
 module nodal_mask_module
 
-  use stencil_module
+  use nodal_stencil_module
   use ml_layout_module
 
   implicit none
