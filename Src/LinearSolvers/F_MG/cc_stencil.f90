@@ -1,6 +1,7 @@
 module cc_stencil_module
 
   use bl_types
+  use bl_constants_module
   use bc_module
   use bc_functions_module
   use multifab_module
