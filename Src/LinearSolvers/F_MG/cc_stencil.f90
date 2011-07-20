@@ -7,14 +7,6 @@ module cc_stencil_module
 
   implicit none
 
-  integer, parameter :: ST_FILL_LAPLACE_2        = 1
-  integer, parameter :: ST_FILL_LAPLACE_4        = 2
-  integer, parameter :: ST_FILL_WEIGHTED_LAPLACE = 3
-  integer, parameter :: ST_FILL_SIMPLE_ABEC      = 6
-  integer, parameter :: ST_FILL_ABEC_LAPLACE     = 4
-  integer, parameter :: ST_FILL_TENSOR_ABEC      = 5
-  integer, parameter :: ST_FILL_USER_DEFINED     = 100
-
   integer, parameter :: ST_CROSS  = 1
   integer, parameter :: ST_DENSE  = 2
   integer, parameter :: ST_DIAG   = 3

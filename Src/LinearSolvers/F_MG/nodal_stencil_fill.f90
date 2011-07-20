@@ -119,8 +119,6 @@ contains
 
   subroutine stencil_fill_nodal(ss, sg, dh, mask, face_type, stencil_type)
 
-    use stencil_nodal_module 
-
     type(multifab ), intent(inout) :: ss
     type(multifab ), intent(inout) :: sg
     real(kind=dp_t), intent(in   ) :: dh(:)
@@ -279,8 +277,6 @@ contains
   end subroutine stencil_fill_nodal
 
   subroutine stencil_fill_one_sided(ss, sg, dh, mask, face_type)
-
-    use stencil_nodal_module 
 
     type(multifab ), intent(inout) :: ss
     type(multifab ), intent(inout) :: sg
