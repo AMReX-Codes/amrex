@@ -87,7 +87,7 @@ f90EXE_sources += nodal_stencil_fill.f90
 f90EXE_sources += nodal_smoothers.f90
 
 #f90EXE_sources += mg_hypre_solve.f90
-f90EXE_sources += mg_nodal_cpp.f90
+f90EXE_sources += nodal_mg_cpp.f90
 cEXE_headers   += mg_cpp_f.h
 
 cEXE_sources   += fabio_c.c
