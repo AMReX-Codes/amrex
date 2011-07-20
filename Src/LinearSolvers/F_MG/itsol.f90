@@ -7,9 +7,10 @@ module itsol_module
   implicit none
 
   integer, private, parameter :: def_bicg_max_iter = 1000
-  integer, private, parameter :: def_cg_max_iter = 1000
-  real(dp_t), private, parameter :: ZERO = 0.0_dp_t
-  real(dp_t), private, parameter :: ONE  = 1.0_dp_t
+  integer, private, parameter :: def_cg_max_iter   = 1000
+
+  real(kind=dp_t),  parameter, private :: ZERO = 0.0_dp_t
+  real(kind=dp_t),  parameter, private :: ONE  = 1.0_dp_t
 
   private :: itsol_defect, itsol_precon
   private :: jacobi_precon_1d, jacobi_precon_2d, jacobi_precon_3d
