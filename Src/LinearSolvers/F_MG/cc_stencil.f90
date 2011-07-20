@@ -7,13 +7,6 @@ module cc_stencil_module
 
   implicit none
 
-  integer, parameter :: ST_CROSS  = 1
-  integer, parameter :: ST_DENSE  = 2
-  integer, parameter :: ST_DIAG   = 3
-  integer, parameter :: ST_TENSOR = 4
-  integer, parameter :: ST_MINION_CROSS = 5
-  integer, parameter :: ST_MINION_FULL  = 6
-
   type stencil
      integer :: dim = 0
      integer :: ns  = 0
@@ -46,31 +39,6 @@ module cc_stencil_module
   real (kind = dp_t), private, parameter :: FOUR_THIRD = 4.0_dp_t/3.0_dp_t
 
   integer, parameter, private :: BC_GEOM = 3
-
-  integer, parameter :: ST_DENSE_MAP_1D(-1:1) = &
-       reshape((/ &
-       1, 0, 2  &
-       /), (/3/))
-
-  integer, parameter :: ST_DENSE_MAP_2D(-1:1,-1:1) = &
-       reshape((/ &
-       1, 2, 3, &
-       4, 0, 5, &
-       6, 7, 8  &
-       /), (/3,3/))
-
-  integer, parameter :: ST_DENSE_MAP_3D(-1:1,-1:1,-1:1) = &
-       reshape((/ &
-       1, 2, 3, &
-       4, 5, 6, &
-       7, 8, 9, &
-       10, 11, 12, &
-       13,  0, 14, &
-       15, 16, 17, &
-       18, 19, 20, &
-       21, 22, 23, &
-       24, 25, 26  &
-       /), (/3,3,3/))
 
   interface destroy
      module procedure stencil_destroy
