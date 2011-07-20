@@ -17,7 +17,7 @@ contains
                    do_diagnostics, rel_eps, abs_eps_in, need_grad_phi_in, final_resnorm)
 
     use bl_prof_module
-    use ml_util_module        , only : ml_norm_inf
+    use ml_norm_module        , only : ml_norm_inf
     use ml_restriction_module , only : ml_restriction
     use ml_prolongation_module, only : ml_cc_prolongation, ml_interp_bcs
 
@@ -610,7 +610,7 @@ contains
 
     function ml_converged(res, sol, mask, bnorm, Anorm, rel_eps, abs_eps, ni_res, verbose) result(r)
 
-      use ml_util_module, only : ml_norm_inf
+      use ml_norm_module, only : ml_norm_inf
 
       logical :: r
       integer :: verbose
@@ -648,7 +648,7 @@ contains
 
   subroutine crse_fine_residual_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio)
 
-      use ml_interface_stencil_module, only : ml_interface
+      use cc_interface_stencil_module, only : ml_interface
 
       integer        , intent(in   ) :: n
       type(mg_tower) , intent(inout) :: mgt(:)
@@ -683,7 +683,7 @@ contains
 
  subroutine crse_fine_residual_n_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio)
 
-      use ml_interface_stencil_module, only : ml_interface
+      use cc_interface_stencil_module, only : ml_interface
 
       integer        , intent(in   ) :: n
       type(mg_tower) , intent(inout) :: mgt(:)
@@ -1173,11 +1173,58 @@ contains
     end do
     call destroy(bpt)
   end subroutine ml_fill_fluxes
-
 !
 ! ******************************************************************************************
 !
+  subroutine ml_fill_fluxes_c(ss, flux, cf, uu, cu, mm, ratio, face, dim)
+    use bl_prof_module
+    type(multifab), intent(inout) :: flux
+    type(multifab), intent(in) :: ss
+    type(multifab), intent(inout) :: uu
+    type(imultifab), intent(in) :: mm
+    integer, intent(in) :: cf, cu
+    integer :: ratio
+    integer :: face, dim
+    integer :: i
+    real(kind=dp_t), pointer :: fp(:,:,:,:)
+    real(kind=dp_t), pointer :: up(:,:,:,:)
+    real(kind=dp_t), pointer :: sp(:,:,:,:)
+    integer        , pointer :: mp(:,:,:,:)
+    integer :: ng
+    logical :: lcross
+    type(bl_prof_timer), save :: bpt
 
+    call build(bpt, "ml_fill_fluxes_c")
+
+    ng = nghost(uu)
+
+    lcross = ( (ncomp(ss) == 5) .or. (ncomp(ss) == 7) )
+
+    call multifab_fill_boundary(uu, cross = lcross)
+
+    do i = 1, nboxes(flux)
+       if ( remote(flux, i) ) cycle
+       fp => dataptr(flux, i, cf)
+       up => dataptr(uu, i, cu)
+       sp => dataptr(ss, i)
+       mp => dataptr(mm, i)
+       select case(get_dim(ss))
+       case (1)
+          call stencil_flux_1d(sp(:,1,1,:), fp(:,1,1,1), up(:,1,1,1), &
+               mp(:,1,1,1), ng, ratio, face, dim)
+       case (2)
+          call stencil_flux_2d(sp(:,:,1,:), fp(:,:,1,1), up(:,:,1,1), &
+               mp(:,:,1,1), ng, ratio, face, dim)
+       case (3)
+          call stencil_flux_3d(sp(:,:,:,:), fp(:,:,:,1), up(:,:,:,1), &
+               mp(:,:,:,1), ng, ratio, face, dim)
+       end select
+    end do
+    call destroy(bpt)
+  end subroutine ml_fill_fluxes_c
+!
+! ******************************************************************************************
+!
   subroutine ml_fill_n_fluxes(ss, flux, uu, mm, ratio, face, dim)
     use bl_prof_module
     type(multifab), intent(inout) :: flux
