@@ -856,10 +856,12 @@ contains
   subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
 
     use bl_prof_module
-    use mg_smoother_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, &
-         jac_smoother_3d, gs_lex_smoother_2d, gs_lex_smoother_3d, nodal_smoother_1d, &
-         nodal_smoother_2d, nodal_smoother_3d, gs_rb_smoother_2d,  gs_rb_smoother_3d, &
-         minion_smoother_2d, minion_smoother_3d, nodal_line_solve_1d
+    use cc_smoothers_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, &
+         jac_smoother_3d, gs_lex_smoother_2d, gs_lex_smoother_3d, &
+         gs_rb_smoother_2d,  gs_rb_smoother_3d, &
+         minion_smoother_2d, minion_smoother_3d
+    use nodal_smoothers_module, only: nodal_smoother_1d, &
+         nodal_smoother_2d, nodal_smoother_3d, nodal_line_solve_1d
     use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
 
     integer        , intent(in   ) :: lev
@@ -1201,7 +1203,7 @@ contains
   subroutine mg_jacobi_smoother(mgt, lev, ss, uu, ff, mm)
 
     use bl_prof_module
-    use mg_smoother_module, only: jac_smoother_1d, jac_smoother_2d, jac_smoother_3d
+    use cc_smoothers_module, only: jac_smoother_1d, jac_smoother_2d, jac_smoother_3d
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
