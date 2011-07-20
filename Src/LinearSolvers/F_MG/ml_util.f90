@@ -1,6 +1,7 @@
 module ml_util_module
 
-  use stencil_module
+  use cc_stencil_module
+  use nodal_stencil_module
   use bc_functions_module
 
   implicit none
