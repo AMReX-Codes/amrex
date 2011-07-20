@@ -1,4 +1,4 @@
-module mg_smoother_module
+module cc_smoothers_module
 
   use bl_constants_module
   use stencil_module
@@ -1266,4 +1266,4 @@ contains
 
   end subroutine dgtsl
 
-end module mg_smoother_module
+end module cc_smoothers_module
