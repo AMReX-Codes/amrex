@@ -3,7 +3,7 @@ module nodal_stencil_fill_module
   use bl_types
   use bc_module
   use multifab_module
-  use cc_stencil_module
+  use nodal_stencil_module
 
   implicit none
 

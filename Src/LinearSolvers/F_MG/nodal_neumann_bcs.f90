@@ -1,7 +1,7 @@
 module impose_neumann_bcs_module
 
   use bl_types
-  use stencil_module
+  use nodal_stencil_module
 
 contains
 

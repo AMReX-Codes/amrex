@@ -58,7 +58,6 @@ f90EXE_sources += ml_multifab.f90
 f90EXE_sources += fabio.f90
 f90EXE_sources += bl_space.f90
 f90EXE_sources += bl_prof_stubs.f90
-f90EXE_sources += impose_neumann_bcs.f90
 
 f90EXE_sources += mg_prolongation.f90
 f90EXE_sources += ml_prolongation.f90
@@ -78,6 +77,7 @@ f90EXE_sources += ml_nd.f90
 f90EXE_sources += ml_cc.f90
 
 f90EXE_sources += nodal_mg_cpp.f90
+f90EXE_sources += nodal_neumann_bcs.f90
 f90EXE_sources += nodal_mask.f90
 f90EXE_sources += nodal_divu.f90
 f90EXE_sources += nodal_newu.f90
