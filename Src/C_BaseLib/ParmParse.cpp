@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.57 2011-07-06 23:19:58 marc Exp $
+// $Id: ParmParse.cpp,v 1.58 2011-07-25 18:10:11 marc Exp $
 //
 #include <winstd.H>
 
@@ -950,6 +950,12 @@ std::string
 ParmParse::Frame::getPrefix () const
 {
     return m_pp.getPrefix();
+}
+
+void
+ParmParse::appendTable(ParmParse::Table& tab)
+{
+  g_table.splice(g_table.end(), tab);
 }
 
 namespace
