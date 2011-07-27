@@ -18,7 +18,7 @@ FCOMP=gfortran
 USE_MPI=TRUE
 USE_MPI=FALSE
 
-GPROF = TRUE
+#GPROF = TRUE
 
 EBASE = main
 
