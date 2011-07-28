@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.207 2011-07-06 22:27:53 lijewski Exp $
+// $Id: FabArray.H,v 1.208 2011-07-28 18:10:15 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -1014,6 +1014,7 @@ FabArray<FAB>::clear ()
         delete it->second;
 
     m_fabs.clear();
+    boxarray.clear();
 }
 
 template <class FAB>
