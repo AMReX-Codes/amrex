@@ -247,10 +247,11 @@ contains
           select case (dm)
           case (2)
              if (ns .eq. 7) then
-                call s_minion_second_fill_2d(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
-                                             xcp(:,:,1,1), ycp(:,:,1,1), ng_b, & 
-                                             dh, mp(:,:,1,1), &
-                                             bx%lo, bx%hi, lxa, lxb)
+
+                call s_simple_2d_cc(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
+                                    xcp(:,:,1,1), ycp(:,:,1,1), ng_b, dh, &
+                                    mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
+
              else if (ns .eq. 9) then
                 call s_minion_cross_fill_2d(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
                                             xcp(:,:,1,1), ycp(:,:,1,1), ng_b, & 
@@ -265,10 +266,9 @@ contains
           case (3)
              zcp => dataptr(edge_coeffs(3), i)
              if (ns .eq. 10) then
-                call s_minion_second_fill_3d(sp(:,:,:,:), ccp(:,:,:,1), ng_c, &
-                                             xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, & 
-                                             dh, mp(:,:,:,1), &
-                                             bx%lo, bx%hi, lxa, lxb)
+                call s_simple_3d_cc(sp(:,:,:,:), ccp(:,:,:,1), ng_c, &
+                                    xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, &
+                                    dh, mp(:,:,:,1), bx%lo, bx%hi, lxa, lxb, order)
              else if (ns .eq. 13) then
                 call s_minion_cross_fill_3d(sp(:,:,:,:), ccp(:,:,:,1), ng_c, &
                                             xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, & 
@@ -304,7 +304,8 @@ contains
                         mp(:,:,1,1), bx%lo, bx%hi)
                 end if
              else
-                call s_simple_2d_cc(sp(:,:,1,:), ccp(:,:,1,1), ng_c, xcp(:,:,1,1), ycp(:,:,1,1), ng_b, dh, &
+                call s_simple_2d_cc(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
+                                    xcp(:,:,1,1), ycp(:,:,1,1), ng_b, dh, &
                                     mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
              endif
           case (3)
@@ -316,8 +317,9 @@ contains
                       dh, mp(:,:,:,1), bx%lo, bx%hi)
                  end if
               else
-                 call s_simple_3d_cc(sp(:,:,:,:), ccp(:,:,:,1), ng_c, xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, &
-                      dh, mp(:,:,:,1), bx%lo, bx%hi, lxa, lxb, order)
+                 call s_simple_3d_cc(sp(:,:,:,:), ccp(:,:,:,1), ng_c, &
+                                     xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, &
+                                     dh, mp(:,:,:,1), bx%lo, bx%hi, lxa, lxb, order)
               endif
           end select
 
