@@ -2053,7 +2053,7 @@ contains
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(lo(1):,lo(2):)
-    real (kind = dp_t), intent(  out) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(  out) ::    ss(lo(1):     ,lo(2):     ,0:)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
@@ -2061,9 +2061,6 @@ contains
 
     integer            :: i, j, nx, ny, nsten
     double precision :: t1,t2,b1,b2,l1,l2,r1,r2,hx2,hy2,ss_sum
-
-    nx = hi(1)-lo(1)+1
-    ny = hi(2)-lo(2)+1
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -2583,8 +2580,8 @@ b1 =       0.0d0/hy2
 
     hx2 = -1.d0 / (12.d0 * dh(1)**2 )
     hy2 = -1.d0 / (12.d0 * dh(2)**2 )
-    do j = 1, ny
-       do i = 1, nx
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
           ss(i,j,11) = ss(i,j,11) + (                            - betax(i,j))*hx2 
           ss(i,j,12) = ss(i,j,12) + (        betax(i+1,j) + 15.0d0*betax(i,j))*hx2 
           ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*betax(i+1,j) - 15.0d0*betax(i,j))*hx2 
