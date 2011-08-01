@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.54 2011-02-17 17:14:24 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.55 2011-08-01 20:32:12 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -133,14 +133,9 @@ FABio::write_header (std::ostream&    os,
         BoxLib::Error("FABio::write_header() failed");
 }
 
-//
-// Default format and FABio pointer to NATIVE type.
-//
-// Note: these should ALWAYS be changed in concert.
-//
-FABio::Format FArrayBox::format = FABio::FAB_NATIVE;
+FABio::Format FArrayBox::format;
 
-FABio* FArrayBox::fabio = new FABio_binary(FPC::NativeRealDescriptor().clone());
+FABio* FArrayBox::fabio = 0;
 
 FArrayBox::FArrayBox ()
 {}
@@ -390,6 +385,8 @@ FArrayBox::get_initval ()
 void
 FArrayBox::Initialize ()
 {
+    BL_ASSERT(fabio == 0);
+
     ParmParse pp("fab");
 
     std::string fmt;
@@ -398,8 +395,7 @@ FArrayBox::Initialize ()
     //
     if (pp.query("format", fmt))
     {
-        FABio*          fio = 0;
-        RealDescriptor* rd  = 0;
+        FABio* fio = 0;
 
         if (fmt == "ASCII")
         {
@@ -414,8 +410,7 @@ FArrayBox::Initialize ()
         else if (fmt == "NATIVE")
         {
             FArrayBox::format = FABio::FAB_NATIVE;
-            rd = FPC::NativeRealDescriptor().clone();
-            fio = new FABio_binary(rd);
+            fio = new FABio_binary(FPC::NativeRealDescriptor().clone());
         }
         else if (fmt == "IEEE" || fmt == "IEEE32")
         {
@@ -428,9 +423,7 @@ FArrayBox::Initialize ()
             {
                 FArrayBox::format = FABio::FAB_IEEE_32;
             }
-            rd = FPC::Ieee32NormalRealDescriptor().clone();
-
-            fio = new FABio_binary(rd);
+            fio = new FABio_binary(FPC::Ieee32NormalRealDescriptor().clone());
         }
         else
         {
@@ -440,11 +433,21 @@ FArrayBox::Initialize ()
 
         setFABio(fio);
     }
+    else
+    {
+        //
+        // We default to "NATIVE" if nothing is specified.
+        //
+        FArrayBox::format = FABio::FAB_NATIVE;
+
+        setFABio(new FABio_binary(FPC::NativeRealDescriptor().clone()));
+    }
     //
     // This block sets ordering which doesn't affect output format.
     // It is only used when reading in an old FAB.
     //
     std::string ord;
+
     if (pp.query("ordering", ord))
     {
         if (ord == "NORMAL_ORDER")
@@ -465,7 +468,10 @@ FArrayBox::Initialize ()
 
 void
 FArrayBox::Finalize ()
-{}
+{
+    delete fabio;
+    fabio = 0;
+}
 
 
 Real

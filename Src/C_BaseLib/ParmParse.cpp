@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.58 2011-07-25 18:10:11 marc Exp $
+// $Id: ParmParse.cpp,v 1.59 2011-08-01 20:32:12 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -888,18 +888,6 @@ ParmParse::getPrefix() const
     return m_pstack.top();
 }
 
-void
-ParmParse::Initialize (int         argc,
-		       char**      argv,
-		       const char* parfile)
-{
-    if ( initialized )
-    {
-	BoxLib::Error("ParmParse::Initialize(): already initialized!");
-    }
-    ppinit(argc, argv, parfile, g_table);
-}
-
 ParmParse::ParmParse (const std::string& prefix)
     :
     m_table(g_table)
@@ -958,8 +946,7 @@ ParmParse::appendTable(ParmParse::Table& tab)
   g_table.splice(g_table.end(), tab);
 }
 
-namespace
-{
+static
 bool
 unused_table_entries_q (const ParmParse::Table& table)
 {
@@ -984,6 +971,7 @@ unused_table_entries_q (const ParmParse::Table& table)
     return false;
 }
 
+static
 void
 finalize_table (std::string pfx, const ParmParse::Table& table)
 {
@@ -1006,8 +994,18 @@ finalize_table (std::string pfx, const ParmParse::Table& table)
 	}
     }
 }
-}
 
+void
+ParmParse::Initialize (int         argc,
+		       char**      argv,
+		       const char* parfile)
+{
+    if ( initialized )
+    {
+	BoxLib::Error("ParmParse::Initialize(): already initialized!");
+    }
+    ppinit(argc, argv, parfile, g_table);
+}
 
 void
 ParmParse::Finalize ()
@@ -1022,6 +1020,8 @@ ParmParse::Finalize ()
 	//
     }
     g_table.clear();
+
+    initialized = false;
 }
 
 void

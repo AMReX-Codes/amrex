@@ -20,14 +20,10 @@ static int    verbose          = 1;
 static int    sfc_threshold    = 4;
 static double max_efficiency   = 0.9;
 static bool   do_full_knapsack = false;
-//
-// Everyone uses the same Strategy -- defaults to SFC.
-//
-DistributionMapping::Strategy
-DistributionMapping::m_Strategy = DistributionMapping::SFC;
 
-DistributionMapping::PVMF
-DistributionMapping::m_BuildMap = &DistributionMapping::SFCProcessorMap;
+DistributionMapping::Strategy DistributionMapping::m_Strategy;
+
+DistributionMapping::PVMF DistributionMapping::m_BuildMap = 0;
 
 const Array<int>&
 DistributionMapping::ProcessorMap () const
@@ -68,11 +64,6 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
     }
 }
 
-//
-// We start out uninitialized.
-//
-bool DistributionMapping::m_Initialized = false;
-
 bool
 DistributionMapping::operator== (const DistributionMapping& rhs) const
 {
@@ -88,17 +79,12 @@ DistributionMapping::operator!= (const DistributionMapping& rhs) const
 void
 DistributionMapping::Initialize ()
 {
-    DistributionMapping::m_Initialized = true;
-        
     ParmParse pp("DistributionMapping");
 
-    pp.query("verbose", verbose);
-
-    pp.query("efficiency", max_efficiency);
-
+    pp.query("verbose",          verbose);
+    pp.query("efficiency",       max_efficiency);
     pp.query("do_full_knapsack", do_full_knapsack);
-
-    pp.query("sfc_threshold", sfc_threshold);
+    pp.query("sfc_threshold",    sfc_threshold);
 
     std::string theStrategy;
 
@@ -123,9 +109,22 @@ DistributionMapping::Initialize ()
             BoxLib::Warning(msg.c_str());
         }
     }
+    else
+    {
+        //
+        // We default to SFC.
+        //
+        strategy(SFC);
+    }
 }
 
-void DistributionMapping::Finalize () {}
+void
+DistributionMapping::Finalize ()
+{
+    DistributionMapping::m_BuildMap = 0;
+
+    DistributionMapping::m_Cache.clear();
+}
 
 //
 // Our cache of processor maps.
@@ -281,6 +280,8 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
     {
         if (!GetMap(boxes))
         {
+            BL_ASSERT(m_BuildMap != 0);
+
             (this->*m_BuildMap)(boxes,nprocs);
             //
             // Add the new processor map to the cache.
