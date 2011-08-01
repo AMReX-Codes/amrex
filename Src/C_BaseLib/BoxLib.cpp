@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.43 2011-06-24 23:13:09 marc Exp $
+// $Id: BoxLib.cpp,v 1.44 2011-08-01 20:32:12 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -272,12 +272,9 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     //
     BoxLib::InitRandom(ParallelDescriptor::MyProc() + 1);
 
-    FArrayBox::Initialize();
-
-    FabArrayBase::Initialize();
-
     DistributionMapping::Initialize();
-
+    FabArrayBase::Initialize();
+    FArrayBox::Initialize();
     MultiFab::Initialize();
 
     std::cout << std::setprecision(10);
@@ -288,12 +285,16 @@ BoxLib::Finalize (bool finalize_parallel)
 {
     bl_prf->stop();
     delete bl_prf;
-    DistributionMapping::Finalize();
-    FabArrayBase::Finalize();
+    bl_prf = 0;
+
+    MultiFab::Finalize();
     FArrayBox::Finalize();
+    FabArrayBase::Finalize();
+    DistributionMapping::Finalize();
     WorkQueue::Finalize();
     Profiler::Finalize();
     ParmParse::Finalize();
+
     if (finalize_parallel)
         ParallelDescriptor::EndParallel();
 }

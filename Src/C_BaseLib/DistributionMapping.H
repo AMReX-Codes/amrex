@@ -182,10 +182,6 @@ protected:
     // Corresponds to the one specified by `m_Strategy'.
     //
     static PVMF m_BuildMap;
-    //
-    // Have we initialized from ParmParse yet?
-    //
-    static bool m_Initialized;
 
     class Ref
     {

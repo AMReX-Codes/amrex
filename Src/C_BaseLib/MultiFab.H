@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.57 2011-03-05 00:18:09 lijewski Exp $
+// $Id: MultiFab.H,v 1.58 2011-08-01 20:32:12 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -444,6 +444,7 @@ public:
     void SumBoundary (int scomp, int ncomp);
 
     static void Initialize ();
+    static void Finalize ();
 
 protected:
 

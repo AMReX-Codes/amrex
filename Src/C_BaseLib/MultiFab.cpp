@@ -1,4 +1,4 @@
-// $Id: MultiFab.cpp,v 1.97 2011-03-05 00:18:09 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.98 2011-08-01 20:32:12 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -188,15 +188,15 @@ MultiFab::negate (const Box& region,
 void
 MultiFab::Initialize ()
 {
-    static bool first = true;
+    ParmParse pp("multifab");
 
-    if (first)
-    {
-        first = false;
-        ParmParse pp("multifab");
-        pp.query("check_for_nan", check_for_nan);
-        pp.query("check_for_inf", check_for_inf);
-    }
+    pp.query("check_for_nan", check_for_nan);
+    pp.query("check_for_inf", check_for_inf);
+}
+
+void
+MultiFab::Finalize ()
+{
 }
 
 MultiFab::MultiFab ()
