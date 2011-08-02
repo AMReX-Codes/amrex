@@ -5,12 +5,13 @@ endif
 
 C$(BNDRYLIB_BASE)_sources += FabSet.cpp BndryRegister.cpp \
                              Geometry.cpp CoordSys.cpp RealBox.cpp \
-                             BndryData.cpp InterpBndryData.cpp Mask.cpp
+                             BndryData.cpp InterpBndryData.cpp MacBndry.cpp \
+                             Mask.cpp
 
 C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H \
                              Geometry.H CoordSys.H RealBox.H \
 			     BndryData.H BoundCond.H InterpBndryData.H \
-			     LO_BCTYPES.H Mask.H
+			     LO_BCTYPES.H MacBndry.H Mask.H
 
 F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H INTERPBNDRYDATA_F.H
 
