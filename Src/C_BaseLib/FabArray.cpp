@@ -19,10 +19,6 @@ FabArrayBase::Initialize ()
     pp.query("do_not_use_cache", FabArrayBase::do_not_use_cache);
 }
 
-void
-FabArrayBase::Finalize ()
-{}
-
 FabArrayBase::FabArrayBase ()
 {}
 
@@ -127,6 +123,12 @@ typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
 typedef CPCCache::iterator CPCCacheIter;
 
 static CPCCache TheCopyCache;
+
+void
+FabArrayBase::Finalize ()
+{
+    TheCopyCache.clear();
+}
 
 FabArrayBase::CPC&
 FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
