@@ -19,7 +19,9 @@ bool Geometry::is_periodic[BL_SPACEDIM];
 
 Geometry::FPBMMap Geometry::m_FPBCache;
 
-int Geometry::fpb_cache_max_size = 10; // -1 ==> no maximum size
+const int fpb_cache_max_size_def = 20; // -1 ==> no maximum size
+
+int Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
 
 std::ostream&
 operator<< (std::ostream&   os,
@@ -420,19 +422,6 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
 
         mfcd.FillFab(mfid, it->fbid, fab);
 
-#if 0
-        if (Real nrm = fab.norm(1,0,ncomp))
-        {
-            std::cout << "*** SPB: "
-                      << it->srcBox
-                      << " -> "
-                      << it->dstBox
-                      << " sum(abs(fab)): "
-                      << nrm
-                      << '\n';
-        }
-#endif
-
         dstmf[it->mfid].plus(fab, fab.box(), it->dstBox, 0, dcomp, ncomp);
     }
 }
@@ -485,6 +474,16 @@ Geometry::define (const Box&     dom,
     } 
 }
 
+void Geometry::Initialize () {}
+
+void
+Geometry::Finalize ()
+{
+    c_sys = undef;
+
+    Geometry::m_FPBCache.clear();
+}
+
 void
 Geometry::Setup (const RealBox* rb, int coord, int* isper)
 {
@@ -530,6 +529,7 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     }
 
     spherical_origin_fix = 0;
+
     pp.query("spherical_origin_fix",spherical_origin_fix);
     //
     // Now get periodicity info.
@@ -548,6 +548,8 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
         for (int n = 0; n < BL_SPACEDIM; n++)  
             is_periodic[n] = isper[n];
     }
+
+    Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
 
     pp.query("fpb_cache_max_size", Geometry::fpb_cache_max_size);
 }
