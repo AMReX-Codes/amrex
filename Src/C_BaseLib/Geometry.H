@@ -42,6 +42,9 @@ public:
     // The destructor.
     //
     ~Geometry();
+    
+    static void Initialize ();
+    static void Finalize ();
     //
     // Read static values from ParmParse database.
     //
