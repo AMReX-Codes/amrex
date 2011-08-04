@@ -5,13 +5,23 @@
 #include <FabArray.H>
 #include <ParmParse.H>
 
-bool FabArrayBase::verbose          = false;
-bool FabArrayBase::do_alltoallv     = false;
-bool FabArrayBase::do_not_use_cache = false;
+//
+// Set initial values for these in Initialize()!!!
+//
+bool FabArrayBase::verbose;
+bool FabArrayBase::do_alltoallv;
+bool FabArrayBase::do_not_use_cache;
 
 void
 FabArrayBase::Initialize ()
 {
+    //
+    // Set initial values!!!
+    //
+    FabArrayBase::verbose          = false;
+    FabArrayBase::do_alltoallv     = false;
+    FabArrayBase::do_not_use_cache = false;
+
     ParmParse pp("fabarray");
 
     pp.query("verbose",          FabArrayBase::verbose);

@@ -1,4 +1,4 @@
-// $Id: MultiFab.cpp,v 1.98 2011-08-01 20:32:12 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.99 2011-08-04 21:13:50 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -15,8 +15,11 @@
 #include <Profiler.H>
 #include <ParmParse.H>
 
-bool MultiFab::check_for_nan = false;
-bool MultiFab::check_for_inf = false;
+//
+// Set initial values in Initialize()!!!
+//
+bool MultiFab::check_for_nan;
+bool MultiFab::check_for_inf;
 
 void
 MultiFab::Add (MultiFab&       dst,
@@ -181,23 +184,22 @@ MultiFab::negate (const Box& region,
     negate(region,0,n_comp,nghost);
 }
 
-//
-// This is called in BoxLib::Initialize().
-//
-
 void
 MultiFab::Initialize ()
 {
+    //
+    // Set initial values!!!
+    //
+    MultiFab::check_for_nan = false;
+    MultiFab::check_for_inf = false;
+
     ParmParse pp("multifab");
 
     pp.query("check_for_nan", check_for_nan);
     pp.query("check_for_inf", check_for_inf);
 }
 
-void
-MultiFab::Finalize ()
-{
-}
+void MultiFab::Finalize () { }
 
 MultiFab::MultiFab ()
 {
