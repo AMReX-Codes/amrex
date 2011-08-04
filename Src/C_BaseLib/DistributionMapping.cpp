@@ -16,10 +16,16 @@
 #include <algorithm>
 #include <numeric>
 
-static int    verbose          = 1;
-static int    sfc_threshold    = 4;
-static double max_efficiency   = 0.9;
-static bool   do_full_knapsack = false;
+namespace
+{
+    //
+    // Set default values for these in Initialize()!!!
+    //
+    int    verbose;
+    int    sfc_threshold;
+    double max_efficiency;
+    bool   do_full_knapsack;
+};
 
 DistributionMapping::Strategy DistributionMapping::m_Strategy;
 
@@ -79,6 +85,14 @@ DistributionMapping::operator!= (const DistributionMapping& rhs) const
 void
 DistributionMapping::Initialize ()
 {
+    //
+    // Set defaults here!!!
+    //
+    verbose          = 1;
+    sfc_threshold    = 4;
+    max_efficiency   = 0.9;
+    do_full_knapsack = false;
+
     ParmParse pp("DistributionMapping");
 
     pp.query("verbose",          verbose);
