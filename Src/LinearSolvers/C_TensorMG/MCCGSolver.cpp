@@ -1,6 +1,6 @@
 
 //
-// $Id: MCCGSolver.cpp,v 1.17 2011-07-08 16:19:06 lijewski Exp $
+// $Id: MCCGSolver.cpp,v 1.18 2011-08-05 23:14:10 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -13,25 +13,47 @@
 #include <MCCGSolver.H>
 
 int MCCGSolver::initialized = 0;
-int MCCGSolver::def_maxiter = 40;
-int MCCGSolver::def_verbose = 0;
-int MCCGSolver::def_isExpert = 0;
-double MCCGSolver::def_unstable_criterion = 10.;
+//
+// Set default values for these in Initialize()!!!
+//
+int    MCCGSolver::def_maxiter;
+int    MCCGSolver::def_verbose;
+int    MCCGSolver::def_isExpert;
+double MCCGSolver::def_unstable_criterion;
 
 void
-MCCGSolver::initialize ()
+MCCGSolver::Initialize ()
 {
+    //
+    // Set defaults here!!!
+    //
+    MCCGSolver::def_maxiter            = 40;
+    MCCGSolver::def_verbose            = 0;
+    MCCGSolver::def_isExpert           = 0;
+    MCCGSolver::def_unstable_criterion = 10;
+
     ParmParse pp("cg");
-    pp.query("maxiter", def_maxiter);
-    pp.query("v", def_verbose);
+
+    pp.query("maxiter",  def_maxiter);
+    pp.query("v",        def_verbose);
     pp.query("isExpert", def_isExpert);
+
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
-	std::cout << "def_maxiter=" << def_maxiter << '\n';
-	std::cout << "def_unstable_criterion=" << def_unstable_criterion << '\n';
-        std::cout << "def_isExpert=" << def_isExpert << '\n';
+	std::cout << "def_maxiter            = " << def_maxiter            << '\n';
+	std::cout << "def_unstable_criterion = " << def_unstable_criterion << '\n';
+        std::cout << "def_isExpert           = " << def_isExpert           << '\n';
     }
+
+    BoxLib::ExecOnFinalize(MCCGSolver::Finalize);
+
     initialized = 1;
+}
+
+void
+MCCGSolver::Finalize ()
+{
+    initialized = 0;
 }
 
 MCCGSolver::MCCGSolver (MCLinOp& _Lp,
@@ -45,7 +67,7 @@ MCCGSolver::MCCGSolver (MCLinOp& _Lp,
     lev(_lev)
 {
     if (!initialized)
-	initialize();
+	Initialize();
     maxiter = def_maxiter;
     verbose = def_verbose;
     set_mg_precond();

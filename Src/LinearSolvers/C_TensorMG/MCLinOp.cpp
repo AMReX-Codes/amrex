@@ -1,6 +1,6 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.28 2011-07-08 17:15:56 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.29 2011-08-05 23:14:10 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -17,9 +17,12 @@
 #include "MCLinOp.H"
 
 bool MCLinOp::initialized = false;
-int MCLinOp::def_harmavg  = 0;
-int MCLinOp::def_verbose  = 0;
-int MCLinOp::def_maxorder = 2;
+//
+// Set default values for these in Initialize()!!!
+//
+int MCLinOp::def_harmavg;
+int MCLinOp::def_verbose;
+int MCLinOp::def_maxorder;
 
 #ifndef NDEBUG
 //
@@ -31,14 +34,32 @@ const int MCLinOp_grow = 1;
 #endif
 
 void
-MCLinOp::initialize ()
+MCLinOp::Initialize ()
 {
+    //
+    // Set defaults here!!!
+    //
+    MCLinOp::def_harmavg  = 0;
+    MCLinOp::def_verbose  = 0;
+    MCLinOp::def_maxorder = 2;
+
     ParmParse pp("MCLp");
+
     pp.query("harmavg", def_harmavg);
-    pp.query("v", def_verbose);
+    pp.query("v",       def_verbose);
+
     if (ParallelDescriptor::IOProcessor() && def_verbose)
 	std::cout << "def_harmavg = " << def_harmavg << '\n';
+
+    BoxLib::ExecOnFinalize(MCLinOp::Finalize);
+
     initialized = true;
+}
+
+void
+MCLinOp::Finalize ()
+{
+    initialized = false;
 }
 
 MCLinOp::MCLinOp (const BndryData& _bgb,
@@ -81,7 +102,7 @@ void
 MCLinOp::initConstruct (const Real* _h)
 {   
     if (!initialized)
-	initialize();
+	Initialize();
     //
     // We'll reserve() space to cut down on copying during resize()s.
     //

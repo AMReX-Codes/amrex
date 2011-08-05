@@ -1,6 +1,6 @@
 
 //
-// $Id: MCMultiGrid.cpp,v 1.14 2007-07-05 20:59:05 lijewski Exp $
+// $Id: MCMultiGrid.cpp,v 1.15 2011-08-05 23:14:10 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -14,52 +14,80 @@
 #include "MG_F.H"
 #include "MCMultiGrid.H"
 
-const char NL = '\n';
-
-bool MCMultiGrid::initialized     = false;
-int MCMultiGrid::def_nu_0         = 1;
-int MCMultiGrid::def_nu_1         = 2;
-int MCMultiGrid::def_nu_2         = 2;
-int MCMultiGrid::def_nu_f         = 8;
-int MCMultiGrid::def_maxiter      = 40;
-int MCMultiGrid::def_numiter      = -1;
-int MCMultiGrid::def_verbose      = 0;
-int MCMultiGrid::def_usecg        = 1;
-Real MCMultiGrid::def_rtol_b      = 0.01;
-Real MCMultiGrid::def_atol_b      = -1.0;
-int MCMultiGrid::def_nu_b         = 0;
-int MCMultiGrid::def_numLevelsMAX = 1024;
+bool MCMultiGrid::initialized = false;
+//
+// Set default values for these in Initialize()!!!
+//
+int  MCMultiGrid::def_nu_0;
+int  MCMultiGrid::def_nu_1;
+int  MCMultiGrid::def_nu_2;
+int  MCMultiGrid::def_nu_f;
+int  MCMultiGrid::def_maxiter;
+int  MCMultiGrid::def_numiter;
+int  MCMultiGrid::def_verbose;
+int  MCMultiGrid::def_usecg;
+Real MCMultiGrid::def_rtol_b;
+Real MCMultiGrid::def_atol_b;
+int  MCMultiGrid::def_nu_b;
+int  MCMultiGrid::def_numLevelsMAX;
 
 void
-MCMultiGrid::initialize ()
+MCMultiGrid::Initialize ()
 {
+    //
+    // Set defaults here!!!
+    //
+    MCMultiGrid::def_nu_0         = 1;
+    MCMultiGrid::def_nu_1         = 2;
+    MCMultiGrid::def_nu_2         = 2;
+    MCMultiGrid::def_nu_f         = 8;
+    MCMultiGrid::def_maxiter      = 40;
+    MCMultiGrid::def_numiter      = -1;
+    MCMultiGrid::def_verbose      = 0;
+    MCMultiGrid::def_usecg        = 1;
+    MCMultiGrid::def_rtol_b       = 0.01;
+    MCMultiGrid::def_atol_b       = -1.0;
+    MCMultiGrid::def_nu_b         = 0;
+    MCMultiGrid::def_numLevelsMAX = 1024;
+
     ParmParse pp("mg");
-    initialized = true;
-    pp.query("maxiter", def_maxiter);
-    pp.query("numiter", def_numiter);
-    pp.query("nu_0", def_nu_0);
-    pp.query("nu_1", def_nu_1);
-    pp.query("nu_2", def_nu_2);
-    pp.query("nu_f", def_nu_f);
-    pp.query("v", def_verbose);
-    pp.query("usecg", def_usecg);
-    pp.query("rtol_b", def_rtol_b);
-    pp.query("bot_atol", def_atol_b);
-    pp.query("nu_b", def_nu_b);
+
+    pp.query("maxiter",      def_maxiter);
+    pp.query("numiter",      def_numiter);
+    pp.query("nu_0",         def_nu_0);
+    pp.query("nu_1",         def_nu_1);
+    pp.query("nu_2",         def_nu_2);
+    pp.query("nu_f",         def_nu_f);
+    pp.query("v",            def_verbose);
+    pp.query("usecg",        def_usecg);
+    pp.query("rtol_b",       def_rtol_b);
+    pp.query("bot_atol",     def_atol_b);
+    pp.query("nu_b",         def_nu_b);
     pp.query("numLevelsMAX", def_numLevelsMAX);
+
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
-	std::cout << "def_nu_0 = " << def_nu_0 << NL;
-	std::cout << "def_nu_1 = " << def_nu_1 << NL;
-	std::cout << "def_nu_2 = " << def_nu_2 << NL;
-	std::cout << "def_nu_f = " << def_nu_f << NL;
-	std::cout << "def_maxiter = " << def_maxiter << NL;
-	std::cout << "def_usecg = "  << def_usecg << NL;
-	std::cout << "def_rtol_b = " << def_rtol_b << NL;
-	std::cout << "def_atol_b = " << def_atol_b << NL;
-	std::cout << "def_nu_b = "   << def_nu_b << NL;
-	std::cout << "def_numLevelsMAX = "   << def_numLevelsMAX << NL;
+	std::cout << "def_nu_0         = " << def_nu_0         << '\n';
+	std::cout << "def_nu_1         = " << def_nu_1         << '\n';
+	std::cout << "def_nu_2         = " << def_nu_2         << '\n';
+	std::cout << "def_nu_f         = " << def_nu_f         << '\n';
+	std::cout << "def_maxiter      = " << def_maxiter      << '\n';
+	std::cout << "def_usecg        = " << def_usecg        << '\n';
+	std::cout << "def_rtol_b       = " << def_rtol_b       << '\n';
+	std::cout << "def_atol_b       = " << def_atol_b       << '\n';
+	std::cout << "def_nu_b         = " << def_nu_b         << '\n';
+	std::cout << "def_numLevelsMAX = " << def_numLevelsMAX << '\n';
     }
+
+    BoxLib::ExecOnFinalize(MCMultiGrid::Finalize);
+
+    initialized = true;
+}
+
+void
+MCMultiGrid::Finalize ()
+{
+    initialized = false;
 }
 
 MCMultiGrid::MCMultiGrid (MCLinOp &_Lp)
@@ -68,7 +96,7 @@ MCMultiGrid::MCMultiGrid (MCLinOp &_Lp)
     Lp(_Lp)
 {
     if (!initialized)
-	initialize();
+	Initialize();
 
     maxiter = def_maxiter;
     numiter = def_numiter;
@@ -201,14 +229,14 @@ MCMultiGrid::solve_ (MultiFab& _sol,
     {
         for (int k = 0; k < level; k++)
             std::cout << "   ";
-        std::cout << "MCMultiGrid: Initial error (error0) = " << error0 << NL;
+        std::cout << "MCMultiGrid: Initial error (error0) = " << error0 << '\n';
     }
 
     if (eps_rel < 1.0e-16 && eps_rel > 0.0 && ParallelDescriptor::IOProcessor())
     {
         std::cout << "MCMultiGrid: Tolerance "
                   << eps_rel
-                  << " < 1e-16 is probably set too low" << NL;
+                  << " < 1e-16 is probably set too low" << '\n';
     }
     int nit;
     //
@@ -238,7 +266,7 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 		std::cout << "MCMultiGrid: Iteration "
                           << nit
                           << " error/error0 "
-                          << error/error0 << NL;
+                          << error/error0 << '\n';
 	    }
 	}
     }
