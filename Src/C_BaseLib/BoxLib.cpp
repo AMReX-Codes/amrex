@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.44 2011-08-01 20:32:12 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.45 2011-08-05 22:20:28 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -9,6 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <new>
+#include <stack>
 
 #include <BoxLib.H>
 #include <BLVERSION.H>
@@ -209,6 +210,14 @@ BoxLib::Assert (const char* EX,
 namespace
 {
     Profiler* bl_prf;
+
+    std::stack<BoxLib::PTR_TO_VOID_FUNC> The_Finalize_Function_Stack;
+}
+
+void
+BoxLib::ExecOnFinalize (PTR_TO_VOID_FUNC fp)
+{
+    The_Finalize_Function_Stack.push(fp);
 }
 
 void
@@ -227,6 +236,10 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     bl_prf->start();
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
+    //
+    // Initialize random seed after we're running in parallel.
+    //
+    BoxLib::InitRandom(ParallelDescriptor::MyProc() + 1);
 
 #ifdef BL_USE_MPI
     if (ParallelDescriptor::IOProcessor())
@@ -264,18 +277,9 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
             }
         }
     }
-        
+
     Profiler::Initialize();
     WorkQueue::Initialize();
-    //
-    // Initialize random seed after we're running in parallel.
-    //
-    BoxLib::InitRandom(ParallelDescriptor::MyProc() + 1);
-
-    DistributionMapping::Initialize();
-    FabArrayBase::Initialize();
-    FArrayBox::Initialize();
-    MultiFab::Initialize();
 
     std::cout << std::setprecision(10);
 }
@@ -287,14 +291,22 @@ BoxLib::Finalize (bool finalize_parallel)
     delete bl_prf;
     bl_prf = 0;
 
-    MultiFab::Finalize();
-    FArrayBox::Finalize();
-    FabArrayBase::Finalize();
-    DistributionMapping::Finalize();
+    while (!The_Finalize_Function_Stack.empty())
+    {
+        //
+        // Call the registered function.
+        //
+        (*The_Finalize_Function_Stack.top())();
+        //
+        // And then remove it from the stack.
+        //
+        The_Finalize_Function_Stack.pop();
+    }
+
     WorkQueue::Finalize();
     Profiler::Finalize();
-    ParmParse::Finalize();
 
     if (finalize_parallel)
         ParallelDescriptor::EndParallel();
 }
+

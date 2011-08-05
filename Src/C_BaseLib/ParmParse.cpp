@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.59 2011-08-01 20:32:12 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.60 2011-08-05 22:20:28 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1005,6 +1005,8 @@ ParmParse::Initialize (int         argc,
 	BoxLib::Error("ParmParse::Initialize(): already initialized!");
     }
     ppinit(argc, argv, parfile, g_table);
+
+    BoxLib::ExecOnFinalize(ParmParse::Finalize);
 }
 
 void

@@ -1,4 +1,4 @@
-// $Id: MultiFab.cpp,v 1.99 2011-08-04 21:13:50 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.100 2011-08-05 22:20:28 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -20,6 +20,11 @@
 //
 bool MultiFab::check_for_nan;
 bool MultiFab::check_for_inf;
+
+namespace
+{
+    bool initialized = false;
+}
 
 void
 MultiFab::Add (MultiFab&       dst,
@@ -197,12 +202,21 @@ MultiFab::Initialize ()
 
     pp.query("check_for_nan", check_for_nan);
     pp.query("check_for_inf", check_for_inf);
+
+    BoxLib::ExecOnFinalize(MultiFab::Finalize);
+
+    initialized = true;
 }
 
-void MultiFab::Finalize () { }
+void
+MultiFab::Finalize ()
+{
+    initialized = false;
+}
 
 MultiFab::MultiFab ()
 {
+    if (!initialized) MultiFab::Initialize();
 }
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -212,6 +226,8 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
 {
+    if (!initialized) MultiFab::Initialize();
+
     if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
 }
 

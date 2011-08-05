@@ -1,6 +1,6 @@
 
 //
-// $Id: BLProfiler.cpp,v 1.29 2010-12-08 23:07:06 lijewski Exp $
+// $Id: BLProfiler.cpp,v 1.30 2011-08-05 22:20:28 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -509,8 +509,11 @@ grovel(const ThreadTimerNode* nodes, const std::string& str, timer_packet& t)
 }
 
 #ifdef BL_PROFILING
-bool Profiler::profiling = true;
-int Profiler::Tag::next_itag = 0;
+//
+// Set default values for these in Initialize()!!!
+//
+bool Profiler::profiling;
+int  Profiler::Tag::next_itag;
 #endif
 
 namespace
@@ -518,15 +521,18 @@ namespace
     ThreadSpecificData<int> tt_i;
     Mutex tt_mutex;
     std::vector<ThreadTimerTree*> tt_data;
-
-    bool verbose = false;
-    std::string filename("bl_prof");
-    bool mma = false;
+    //
+    // Set default values for these in Initialize()!!!
+    //
+    bool verbose;
+    std::string filename;
+    bool mma;
 }
 
 #ifdef BL_PROFILING
 Profiler::Tag::Tag(const std::string& tag_)
-    : tag(tag_)
+    :
+    tag(tag_)
 {
     if ( is_profiling() )
     {
@@ -550,20 +556,36 @@ Profiler::Tag::name() const
 }
 
 void
-Profiler::Initialize()
+Profiler::Initialize ()
 {
+    //
+    // Set defaults here!!!
+    //
+    verbose  = false;
+    filename = "bl_prof";
+    mma      = false;
+
+#ifdef BL_PROFILING
+    Profiler::profiling      = true;
+    Profiler::Tag::next_itag = 0;
+#endif
+
     ParmParse pp("profiler");
+
     pp.query("filename", filename);
     pp.query("mma", mma);
     pp.query("profiling", profiling);
     pp.query("verbose", verbose);
+
     if ( verbose && ParallelDescriptor::IOProcessor() )
     {
-        std::cout << "profiler.filename" << filename << std::endl;
-        std::cout << "profiler.mma" << mma << std::endl;
-        std::cout << "profiler.profiling" << profiling << std::endl;
-        std::cout << "profiler.verbose" << verbose << std::endl;
+        std::cout << "profiler.filename"  << filename  << '\n';
+        std::cout << "profiler.mma"       << mma       << '\n';
+        std::cout << "profiler.profiling" << profiling << '\n';
+        std::cout << "profiler.verbose"   << verbose   << std::endl;
     }
+
+    BoxLib::ExecOnFinalize(Profiler::Finalize);
 }
 
 std::string
@@ -596,7 +618,9 @@ void
 Profiler::Finalize()
 {
 #ifdef BL_PROFILING
+    //
     // Try to measure overhead:
+    //
     for ( int i = 0; i < 100; ++i )
     {
 	BL_PROFILE("Profiler::Finalize():load");
