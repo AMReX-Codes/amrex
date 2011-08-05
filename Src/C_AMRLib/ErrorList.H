@@ -1,8 +1,6 @@
 #ifndef _ErrorList_H_
 #define _ErrorList_H_
-//
-// $Id: ErrorList.H,v 1.10 2001-08-01 21:50:45 lijewski Exp $
-//
+
 #include <string>
 #include <vector>
 
@@ -22,6 +20,12 @@ extern "C"
                               const Real* dx, const Real* xlo,
                               const Real* prob_lo, const Real* time,
                               const int* level);
+
+    typedef void (*ErrorFunc2)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
+                               const int* tagval, const int* clearval,
+                               Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+                               const int* lo, const int * hi, const int* nvar,
+                               const Real* dx, const int* level, const Real* avg);
 }
 
 //
@@ -41,10 +45,14 @@ public:
     //
     //@ManDoc: Error types.
     //
-    enum ErrorType { Richardson=0, Special };
+    enum ErrorType { Special=0, Standard, UseAverage };
     //
-    //@ManDoc: The constructor.
+    //@ManDoc: The constructors.
     //
+    ErrorRec (const std::string& nm,
+              int                ng,
+              ErrorType          etyp,
+              ErrorFunc2         f2);
     ErrorRec (const std::string& nm,
               int                ng,
               ErrorType          etyp,
@@ -62,9 +70,10 @@ public:
     //
     ErrorType errType () const;
     //
-    //@ManDoc: The extern "C" function to do the error tagging.
+    //@ManDoc: The extern "C" functions to do the error tagging.
     //
-    ErrorFunc errFunc () const;
+    ErrorFunc  errFunc () const;
+    ErrorFunc2 errFunc2() const;
 
 private:
     //
@@ -76,9 +85,10 @@ private:
     //
     int ngrow;
     //
-    // Function to do error estimation.
+    // Functions to do error estimation.
     //
-    ErrorFunc err_func;
+    ErrorFunc  err_func;
+    ErrorFunc2 err_func2;
     //
     // The type of Error.
     //
@@ -107,6 +117,10 @@ public:
               int                 nextra, 
               ErrorRec::ErrorType typ,
               ErrorFunc           func);
+    void add (const std::string&  name,
+              int                 nextra, 
+              ErrorRec::ErrorType typ,
+              ErrorFunc2          func);
     //
     //@ManDoc: The kth ErrorRec.
     //

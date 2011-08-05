@@ -1,5 +1,5 @@
 //
-// $Id: ErrorList.cpp,v 1.10 2001-08-01 21:50:45 lijewski Exp $
+// $Id: ErrorList.cpp,v 1.11 2011-08-05 22:04:38 almgren Exp $
 //
 
 #include <iostream>
@@ -10,12 +10,23 @@
 ErrorRec::ErrorRec (const std::string& nm,
                     int                ng,
                     ErrorType          etyp,
+                    ErrorFunc2         f2)
+    :
+    derive_name(nm),
+    ngrow(ng),
+    err_type(etyp),
+    err_func2(f2)
+{}
+
+ErrorRec::ErrorRec (const std::string& nm,
+                    int                ng,
+                    ErrorType          etyp,
                     ErrorFunc          f)
     :
     derive_name(nm),
     ngrow(ng),
-    err_func(f),
-    err_type(etyp)
+    err_type(etyp),
+    err_func(f)
 {}
 
 const std::string&
@@ -42,6 +53,12 @@ ErrorRec::errFunc () const
     return err_func;
 }
 
+ErrorFunc2
+ErrorRec::errFunc2() const
+{
+    return err_func2;
+}
+
 int
 ErrorList::size () const
 {
@@ -60,6 +77,18 @@ ErrorList::add (const std::string&  name,
     vec.push_back(ErrorRec(name, nextra, typ, func));
 }
 
+void
+ErrorList::add (const std::string&  name,
+                int                 nextra,
+                ErrorRec::ErrorType typ,
+                ErrorFunc2          func2)
+{
+    //
+    // Keep list in order of definition, append().
+    //
+    vec.push_back(ErrorRec(name, nextra, typ, func2));
+}
+
 const ErrorRec&
 ErrorList::operator[] (int k) const
 {
@@ -68,7 +97,7 @@ ErrorList::operator[] (int k) const
     return vec[k];
 }
 
-static const char* err_name[] = { "Richardson", "Special" };
+static const char* err_name[] = { "Special", "Standard", "UseAverage" };
 
 std::ostream&
 operator << (std::ostream&    os,
