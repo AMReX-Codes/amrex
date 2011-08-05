@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.23 2011-01-25 23:50:22 marc Exp $
+// $Id: InterpBndryData.cpp,v 1.24 2011-08-05 22:21:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -8,10 +8,38 @@
 #include <InterpBndryData.H>
 #include <INTERPBNDRYDATA_F.H>
 
-static BDInterpFunc* bdfunc[2*BL_SPACEDIM];
-int InterpBndryData::IBD_max_order_DEF = 3;  // For sliding parabolic interp in bdfuncs
+#if (BL_SPACEDIM == 1)
+#define NUMDERIV 2
+#endif
 
-static int bdfunc_set = 0;
+#if (BL_SPACEDIM == 2)
+#define NUMDERIV 2
+#endif
+
+#if (BL_SPACEDIM == 3)
+#define NUMDERIV 5
+#endif
+
+#define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
+const int* fablo = (fab).loVect();           \
+const int* fabhi = (fab).hiVect();           \
+Real* fabdat = (fab).dataPtr();
+#define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
+const int* fablo = (fab).loVect();           \
+const int* fabhi = (fab).hiVect();           \
+const Real* fabdat = (fab).dataPtr();
+
+//
+// For sliding parabolic interp in bdfuncs
+//
+int InterpBndryData::IBD_max_order_DEF = 3;
+
+namespace
+{
+    bool initialized = false;
+
+    BDInterpFunc* bdfunc[2*BL_SPACEDIM];
+}
 
 static
 void
@@ -38,35 +66,15 @@ bdfunc_init ()
 #endif
 }
 
-#if (BL_SPACEDIM == 1)
-#define NUMDERIV 2
-#endif
-
-#if (BL_SPACEDIM == 2)
-#define NUMDERIV 2
-#endif
-
-#if (BL_SPACEDIM == 3)
-#define NUMDERIV 5
-#endif
-
-#define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-Real* fabdat = (fab).dataPtr();
-#define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-const Real* fabdat = (fab).dataPtr();
-
-
 InterpBndryData::InterpBndryData ()
     :
-    BndryData() {}
+    BndryData()
+{}
 
 InterpBndryData::InterpBndryData (const InterpBndryData& rhs)
     :
-    BndryData(rhs) {}
+    BndryData(rhs)
+{}
 
 InterpBndryData&
 InterpBndryData::operator= (const InterpBndryData& rhs)
@@ -156,7 +164,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                                  const BCRec&    bc,
                                  int             max_order)
 {
-    if (!bdfunc_set)
+    if (!initialized)
         bdfunc_init();
     //
     // Check that boxarrays are identical.
@@ -253,7 +261,9 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
             }
         }
         delete [] derives;
-    } else {
+    }
+    else
+    {
         BoxLib::Abort("InterpBndryData::setBndryValues supports only max_order=1 or 3");
     }
 }
