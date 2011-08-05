@@ -3,7 +3,7 @@
 #define _MCCGSOLVER_H_
 
 //
-// $Id: MCCGSolver.H,v 1.8 2001-10-05 07:19:55 marc Exp $
+// $Id: MCCGSolver.H,v 1.9 2011-08-05 23:14:10 lijewski Exp $
 //
 
 #include <cmath>
@@ -134,7 +134,9 @@ protected:
     //
     //@ManDoc: construct work space, initialize parameters
     //
-    static void initialize ();
+    static void Initialize ();
+
+    static void Finalize ();
     //
     //@ManDoc: if (use_mg_precond == 1) then define the MCMultiGrid * mg_precond
     //

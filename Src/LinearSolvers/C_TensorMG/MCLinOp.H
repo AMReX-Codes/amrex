@@ -3,7 +3,7 @@
 #define _MCLINOP_H_
 
 //
-// $Id: MCLinOp.H,v 1.11 2010-02-25 22:34:34 lijewski Exp $
+// $Id: MCLinOp.H,v 1.12 2011-08-05 23:14:10 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -225,7 +225,9 @@ protected:
     //
     //@ManDoc: initialize MCLinOp internal data
     //
-    static void initialize ();
+    static void Initialize ();
+
+    static void Finalize ();
     //
     //@ManDoc: Helper functin for object construction
     //
