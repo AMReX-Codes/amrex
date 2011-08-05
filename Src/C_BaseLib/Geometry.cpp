@@ -11,11 +11,9 @@
 //
 // The definition of static data members.
 //
-int Geometry::spherical_origin_fix = 0;
-
+int     Geometry::spherical_origin_fix = 0;
 RealBox Geometry::prob_domain;
-
-bool Geometry::is_periodic[BL_SPACEDIM];
+bool    Geometry::is_periodic[BL_SPACEDIM];
 
 Geometry::FPBMMap Geometry::m_FPBCache;
 
@@ -474,8 +472,6 @@ Geometry::define (const Box&     dom,
     } 
 }
 
-void Geometry::Initialize () {}
-
 void
 Geometry::Finalize ()
 {
@@ -552,6 +548,8 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
 
     pp.query("fpb_cache_max_size", Geometry::fpb_cache_max_size);
+
+    BoxLib::ExecOnFinalize(Geometry::Finalize);
 }
 
 void

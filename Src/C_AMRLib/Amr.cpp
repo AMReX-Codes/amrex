@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.228 2011-07-18 20:51:17 lijewski Exp $
+// $Id: Amr.cpp,v 1.229 2011-08-05 22:21:36 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -38,29 +38,72 @@
 #define pubsetbuf setbuf
 #endif
 //
-// Static class members.
+// Static class members.  Set defaults in Initialize()!!!
 //
 std::list<std::string> Amr::state_plot_vars;
 std::list<std::string> Amr::derive_plot_vars;
-bool                   Amr::first_plotfile = true;
+bool                   Amr::first_plotfile;
 
 namespace
 {
-  bool plot_files_output              = true;
-  bool checkpoint_files_output        = true;
-  bool refine_grid_layout             = true;
-  int  plot_nfiles                    = 64;
-  int  checkpoint_nfiles              = 64;
-  int  mffile_nstreams                = 1;
-  int  probinit_natonce               = 32;
-  const std::string CheckPointVersion = "CheckPointVersion_1.0";
-  int regrid_on_restart               = 0;
-  int plotfile_on_restart             = 0;
-  int checkpoint_on_restart           = 0;
-  int compute_new_dt_on_regrid        = 0;
+    const std::string CheckPointVersion("CheckPointVersion_1.0");
+
+    bool initialized = false;
+}
+
+namespace
+{
+    //
+    // These are all ParmParse'd in.  Set defaults in Initialize()!!!
+    //
+    bool plot_files_output;
+    bool checkpoint_files_output;
+    bool refine_grid_layout;
+    int  plot_nfiles;
+    int  checkpoint_nfiles;
+    int  mffile_nstreams;
+    int  probinit_natonce;
+    int  regrid_on_restart;
+    int  plotfile_on_restart;
+    int  checkpoint_on_restart;
+    int  compute_new_dt_on_regrid;
 }
 
 bool Amr::Plot_Files_Output () { return plot_files_output; }
+
+void
+Amr::Initialize ()
+{
+    //
+    // Set all defaults here!!!
+    //
+    Amr::first_plotfile = true;
+
+    plot_files_output        = true;
+    checkpoint_files_output  = true;
+    refine_grid_layout       = true;
+    plot_nfiles              = 64;
+    checkpoint_nfiles        = 64;
+    mffile_nstreams          = 1;
+    probinit_natonce         = 32;
+    regrid_on_restart        = 0;
+    plotfile_on_restart      = 0;
+    checkpoint_on_restart    = 0;
+    compute_new_dt_on_regrid = 0;
+
+    BoxLib::ExecOnFinalize(Amr::Finalize);
+
+    initialized = true;
+}
+
+void
+Amr::Finalize ()
+{
+    Amr::state_plot_vars.clear();
+    Amr::derive_plot_vars.clear();
+
+    initialized = false;
+}
 
 std::ostream&
 Amr::DataLog (int i)
@@ -291,6 +334,9 @@ Amr::Amr ()
     amr_level(PArrayManage)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Amr()");
+
+    if (!initialized)
+        Amr::Initialize();
     //
     // Setup Geometry from ParmParse file.
     // May be needed for variableSetup or even getLevelBld.
@@ -516,7 +562,6 @@ Amr::Amr ()
             BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
         }
     }
-
     //
     // Read in max_grid_size..
     //
@@ -540,7 +585,6 @@ Amr::Amr ()
         //
         pp.queryarr("max_grid_size",max_grid_size,0,max_level);
     }
-
     //
     // Read in the blocking_factors.
     //
@@ -565,7 +609,6 @@ Amr::Amr ()
         //
         pp.queryarr("blocking_factor",blocking_factor,0,max_level);
     }
-
     //
     // Read in the regrid interval if max_level > 0.
     //
@@ -592,15 +635,13 @@ Amr::Amr ()
        {
            //
            // Otherwise we expect a vector of max_level values
-        //
+           //
            pp.queryarr("regrid_int",regrid_int,0,max_level);
        }
     }
-
     //
     // Read computational domain and set geometry.
     //
-
     Array<int> n_cell(BL_SPACEDIM);
     pp.getarr("n_cell",n_cell,0,BL_SPACEDIM);
     BL_ASSERT(n_cell.size() == BL_SPACEDIM);
@@ -728,6 +769,8 @@ Amr::~Amr ()
         writePlotFile(plot_file_root,level_steps[0]);
 
     levelbld->variableCleanUp();
+
+    Amr::Finalize();
 }
 
 void
@@ -1185,11 +1228,6 @@ Amr::initialInit (Real strt_time,
 #endif
 }
 
-//
-// Shared by restart() and checkPoint().
-//
-static std::string the_previous_ckfile;
-
 void
 Amr::restart (const std::string& filename)
 {
@@ -1503,8 +1541,6 @@ Amr::restart (const std::string& filename)
     if (ParallelDescriptor::IOProcessor())
     {
         std::cout << "Restart time = " << dRestartTime << " seconds." << std::endl;
-
-        the_previous_ckfile = filename;
     }
 }
 

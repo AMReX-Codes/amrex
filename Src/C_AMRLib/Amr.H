@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.45 2011-03-04 02:03:50 almgren Exp $
+// $Id: Amr.H,v 1.46 2011-08-05 22:21:36 lijewski Exp $
 //
 
 #include <fstream>
@@ -199,6 +199,9 @@ public:
     /*@ManDoc:  Fill the list of derive\_plot\_vars with all derived quantities.
     */
     static void fillDerivePlotVarList ();
+
+    static void Initialize ();
+    static void Finalize ();
     //
     //@ManDoc: Number of buffer cells in error estimator.
     //
