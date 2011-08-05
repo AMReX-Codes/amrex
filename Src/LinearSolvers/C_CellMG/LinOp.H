@@ -3,7 +3,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.21 2010-02-25 20:59:23 lijewski Exp $
+// $Id: LinOp.H,v 1.22 2011-08-05 22:56:49 lijewski Exp $
 //
 
 #include <Array.H>
@@ -240,7 +240,9 @@ protected:
     //
     //@ManDoc: Initialize LinOp internal data.
     //
-    static void initialize ();
+    static void Initialize ();
+
+    static void Finalize ();
     //
     //@ManDoc: Helper function for object construction.
     //

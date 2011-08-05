@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.41 2010-10-06 15:14:27 lijewski Exp $
+// $Id: LinOp.cpp,v 1.42 2011-08-05 22:56:49 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -13,12 +13,13 @@
 #include <LinOp.H>
 #include <Profiler.H>
 
-
-
 bool LinOp::initialized = false;
-int LinOp::def_harmavg  = 0;
-int LinOp::def_verbose  = 0;
-int LinOp::def_maxorder = 2;
+//
+// Set default values for these in Initialize()!!!
+//
+int LinOp::def_harmavg;
+int LinOp::def_verbose;
+int LinOp::def_maxorder;
 
 #ifndef NDEBUG
 //
@@ -30,21 +31,36 @@ const int LinOp_grow = 1;
 #endif
 
 void
-LinOp::initialize ()
+LinOp::Initialize ()
 {
+    //
+    // Set defaults here!!!
+    //
+    LinOp::def_harmavg  = 0;
+    LinOp::def_verbose  = 0;
+    LinOp::def_maxorder = 2;
+
     ParmParse pp("Lp");
 
-    pp.query("harmavg", def_harmavg);
-    pp.query("v", def_verbose);
+    pp.query("harmavg",  def_harmavg);
+    pp.query("v",        def_verbose);
     pp.query("maxorder", def_maxorder);
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
-      {
-        std::cout << "def_harmavg = " << def_harmavg << '\n';
+    {
+        std::cout << "def_harmavg = "  << def_harmavg  << '\n';
         std::cout << "def_maxorder = " << def_maxorder << '\n';
-      }
+    }
+
+    BoxLib::ExecOnFinalize(LinOp::Finalize);
 
     initialized = true;
+}
+
+void
+LinOp::Finalize ()
+{
+    initialized = false;
 }
 
 LinOp::LinOp (const BndryData& _bgb,
@@ -100,7 +116,7 @@ void
 LinOp::initConstruct (const Real* _h)
 {
     if (!initialized)
-        initialize();
+        Initialize();
     //
     // We'll reserve() space to cut down on copying during resize()s.
     //
