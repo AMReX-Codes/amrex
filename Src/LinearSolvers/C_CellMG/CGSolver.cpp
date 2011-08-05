@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.51 2009-11-06 21:00:18 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.52 2011-08-05 22:56:49 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -15,14 +15,16 @@
 #include <CGSolver.H>
 #include <MultiGrid.H>
 
-int              CGSolver::initialized            = 0;
-int              CGSolver::def_maxiter            = 40;
-int              CGSolver::def_verbose            = 1;
-CGSolver::Solver CGSolver::def_cg_solver          = BiCGStab;
-//CGSolver::Solver CGSolver::def_cg_solver          = CG;
-double           CGSolver::def_unstable_criterion = 10.;
-bool             CGSolver::use_jbb_precond        = 0;
-bool             CGSolver::use_jacobi_precond     = 0;
+int CGSolver::initialized = 0;
+//
+// Set default values for these in Initialize()!!!
+//
+int              CGSolver::def_maxiter;
+int              CGSolver::def_verbose;
+CGSolver::Solver CGSolver::def_cg_solver;
+double           CGSolver::def_unstable_criterion;
+bool             CGSolver::use_jbb_precond;
+bool             CGSolver::use_jacobi_precond;
 
 static
 void
@@ -35,16 +37,26 @@ Spacer (std::ostream& os, int lev)
 }
 
 void
-CGSolver::initialize ()
+CGSolver::Initialize ()
 {
+    //
+    // Set defaults here!!!
+    //
+    CGSolver::def_maxiter            = 40;
+    CGSolver::def_verbose            = 1;
+    CGSolver::def_cg_solver          = BiCGStab;
+    CGSolver::def_unstable_criterion = 10;
+    CGSolver::use_jbb_precond        = 0;
+    CGSolver::use_jacobi_precond     = 0;
+
     ParmParse pp("cg");
 
-    pp.query("v", def_verbose);
-    pp.query("maxiter", def_maxiter);
-    pp.query("verbose", def_verbose);
-    pp.query("use_jbb_precond", use_jbb_precond);
+    pp.query("v",                  def_verbose);
+    pp.query("maxiter",            def_maxiter);
+    pp.query("verbose",            def_verbose);
+    pp.query("use_jbb_precond",    use_jbb_precond);
     pp.query("use_jacobi_precond", use_jacobi_precond);
-    pp.query("unstable_criterion",def_unstable_criterion);
+    pp.query("unstable_criterion", def_unstable_criterion);
 
     int ii;
     if (pp.query("cg_solver", ii))
@@ -54,11 +66,11 @@ CGSolver::initialize ()
         case 0: def_cg_solver = CG;       break;
         case 1: def_cg_solver = BiCGStab; break;
         default:
-            BoxLib::Error("CGSolver::initialize(): bad cg_solver");
+            BoxLib::Error("CGSolver::Initialize(): bad cg_solver");
         }
     }
 
-    if (ParallelDescriptor::IOProcessor() && (def_verbose > 2) )
+    if (ParallelDescriptor::IOProcessor() && (def_verbose > 2))
     {
         std::cout << "CGSolver settings ...\n";
 	std::cout << "   def_maxiter            = " << def_maxiter            << '\n';
@@ -67,8 +79,16 @@ CGSolver::initialize ()
 	std::cout << "   use_jbb_precond        = " << use_jbb_precond        << '\n';
 	std::cout << "   use_jacobi_precond     = " << use_jacobi_precond     << '\n';
     }
+
+    BoxLib::ExecOnFinalize(CGSolver::Finalize);
     
     initialized = 1;
+}
+
+void
+CGSolver::Finalize ()
+{
+    initialized = 0;
 }
 
 CGSolver::CGSolver (LinOp& _Lp,
@@ -81,7 +101,7 @@ CGSolver::CGSolver (LinOp& _Lp,
     use_mg_precond(_use_mg_precond)
 {
     if (!initialized)
-        initialize();
+        Initialize();
     maxiter = def_maxiter;
     verbose = def_verbose;
     cg_solver = def_cg_solver;

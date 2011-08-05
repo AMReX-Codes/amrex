@@ -3,7 +3,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.14 2007-10-22 20:27:04 almgren Exp $
+// $Id: MultiGrid.H,v 1.15 2011-08-05 22:56:49 lijewski Exp $
 //
 
 #include <Array.H>
@@ -281,7 +281,9 @@ protected:
     //
     //@ManDoc: set flags, etc
     //
-    static void initialize ();
+    static void Initialize ();
+
+    static void Finalize ();
     //
     //@ManDoc: default number of level, pre-, post- and bottom smooths
     //

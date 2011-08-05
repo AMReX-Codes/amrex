@@ -3,7 +3,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.14 2009-11-04 02:28:22 lijewski Exp $
+// $Id: CGSolver.H,v 1.15 2011-08-05 22:56:49 lijewski Exp $
 //
 
 #include <cmath>
@@ -167,7 +167,9 @@ protected:
     //
     //@ManDoc: construct work space, initialize parameters
     //
-    static void initialize ();
+    static void Initialize ();
+
+    static void Finalize ();
     //
     //@ManDoc: if  (use\_mg\_precond == 1) then define the MultiGrid * mg\_precond
     //

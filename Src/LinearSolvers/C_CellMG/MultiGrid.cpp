@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.51 2011-02-10 19:15:21 marc Exp $
+// $Id: MultiGrid.cpp,v 1.52 2011-08-05 22:56:49 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -14,26 +14,107 @@
 #include <MultiGrid.H>
 #include <Profiler.H>
 
-bool MultiGrid::initialized     = false;
-int MultiGrid::def_nu_0         = 1;
-int MultiGrid::def_nu_1         = 2;
-int MultiGrid::def_nu_2         = 2;
-int MultiGrid::def_nu_f         = 8;
-int MultiGrid::def_maxiter      = 40;
-int MultiGrid::def_maxiter_b    = 80;
-int MultiGrid::def_verbose      = 0;
-int MultiGrid::def_usecg        = 1;
+bool MultiGrid::initialized = false;
+//
+// Set default values for these in Initialize()!!!
+//
+int              MultiGrid::def_nu_0;
+int              MultiGrid::def_nu_1;
+int              MultiGrid::def_nu_2;
+int              MultiGrid::def_nu_f;
+int              MultiGrid::def_maxiter;
+int              MultiGrid::def_maxiter_b;
+int              MultiGrid::def_verbose;
+int              MultiGrid::def_usecg;
+Real             MultiGrid::def_rtol_b;
+Real             MultiGrid::def_atol_b;
+int              MultiGrid::def_nu_b;
+int              MultiGrid::def_numLevelsMAX;
+int              MultiGrid::def_smooth_on_cg_unstable;
+CGSolver::Solver MultiGrid::def_cg_solver;
+
+void
+MultiGrid::Initialize ()
+{
+    //
+    // Set defaults here!!!
+    //
+    MultiGrid::def_nu_0                  = 1;
+    MultiGrid::def_nu_1                  = 2;
+    MultiGrid::def_nu_2                  = 2;
+    MultiGrid::def_nu_f                  = 8;
+    MultiGrid::def_maxiter               = 40;
+    MultiGrid::def_maxiter_b             = 80;
+    MultiGrid::def_verbose               = 0;
+    MultiGrid::def_usecg                 = 1;
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-Real MultiGrid::def_rtol_b      = 0.0001;
+    MultiGrid::def_rtol_b                = 0.0001;
 #else
-Real MultiGrid::def_rtol_b      = 0.01;
+    MultiGrid::def_rtol_b                = 0.01;
 #endif
-Real MultiGrid::def_atol_b      = -1.0;
-int MultiGrid::def_nu_b         = 0;
-int MultiGrid::def_numLevelsMAX = 1024;
-int MultiGrid::def_smooth_on_cg_unstable = 0;
-//CGSolver::Solver MultiGrid::def_cg_solver    = CGSolver::CG;
-CGSolver::Solver MultiGrid::def_cg_solver    = CGSolver::BiCGStab;
+    MultiGrid::def_atol_b                = -1.0;
+    MultiGrid::def_nu_b                  = 0;
+    MultiGrid::def_numLevelsMAX          = 1024;
+    MultiGrid::def_smooth_on_cg_unstable = 0;
+    MultiGrid::def_cg_solver             = CGSolver::BiCGStab;
+
+    ParmParse pp("mg");
+
+    pp.query("maxiter",               def_maxiter);
+    pp.query("maxiter_b",             def_maxiter_b);
+    pp.query("nu_0",                  def_nu_0);
+    pp.query("nu_1",                  def_nu_1);
+    pp.query("nu_2",                  def_nu_2);
+    pp.query("nu_f",                  def_nu_f);
+    pp.query("v",                     def_verbose);
+    pp.query("verbose",               def_verbose);
+    pp.query("usecg",                 def_usecg);
+    pp.query("rtol_b",                def_rtol_b);
+    pp.query("bot_atol",              def_atol_b);
+    pp.query("nu_b",                  def_nu_b);
+    pp.query("numLevelsMAX",          def_numLevelsMAX);
+    pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
+
+    int ii;
+    if (pp.query("cg_solver", ii ))
+    {
+        switch (ii)
+        {
+        case 0: def_cg_solver = CGSolver::CG;       break;
+        case 1: def_cg_solver = CGSolver::BiCGStab; break;
+        default:
+            BoxLib::Error("MultiGrid::Initialize(): bad cg_solver value");
+        }
+    }
+
+    if (ParallelDescriptor::IOProcessor() && (def_verbose > 2))
+    {
+        std::cout << "MultiGrid settings...\n";
+        std::cout << "   def_nu_0                  = " << def_nu_0                  << '\n';
+        std::cout << "   def_nu_1                  = " << def_nu_1                  << '\n';
+        std::cout << "   def_nu_2                  = " << def_nu_2                  << '\n';
+        std::cout << "   def_nu_f                  = " << def_nu_f                  << '\n';
+        std::cout << "   def_maxiter               = " << def_maxiter               << '\n';
+        std::cout << "   def_usecg                 = " << def_usecg                 << '\n';
+        std::cout << "   def_maxiter_b             = " << def_maxiter_b             << '\n';
+        std::cout << "   def_rtol_b                = " << def_rtol_b                << '\n';
+        std::cout << "   def_atol_b                = " << def_atol_b                << '\n';
+        std::cout << "   def_nu_b                  = " << def_nu_b                  << '\n';
+        std::cout << "   def_numLevelsMAX          = " << def_numLevelsMAX          << '\n';
+        std::cout << "   def_smooth_on_cg_unstable = " << def_smooth_on_cg_unstable << '\n';
+        std::cout << "   def_cg_solver             = " << def_cg_solver             << '\n';
+    }
+
+    BoxLib::ExecOnFinalize(MultiGrid::Finalize);
+
+    initialized = true;
+}
+
+void
+MultiGrid::Finalize ()
+{
+    initialized = false;
+}
 
 static
 Real
@@ -58,65 +139,13 @@ Spacer (std::ostream& os, int lev)
     }
 }
 
-void
-MultiGrid::initialize ()
-{
-    ParmParse pp("mg");
-
-    initialized = true;
-
-    pp.query("maxiter", def_maxiter);
-    pp.query("maxiter_b", def_maxiter_b);
-    pp.query("nu_0", def_nu_0);
-    pp.query("nu_1", def_nu_1);
-    pp.query("nu_2", def_nu_2);
-    pp.query("nu_f", def_nu_f);
-    pp.query("v", def_verbose);
-    pp.query("verbose", def_verbose);
-    pp.query("usecg", def_usecg);
-    pp.query("rtol_b", def_rtol_b);
-    pp.query("bot_atol", def_atol_b);
-    pp.query("nu_b", def_nu_b);
-    pp.query("numLevelsMAX", def_numLevelsMAX);
-    pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
-    int ii;
-    if (pp.query("cg_solver", ii ))
-    {
-        switch (ii)
-        {
-        case 0: def_cg_solver = CGSolver::CG;       break;
-        case 1: def_cg_solver = CGSolver::BiCGStab; break;
-        default:
-            BoxLib::Error("MultiGrid::initialize(): bad cg_solver value");
-        }
-    }
-
-    if (ParallelDescriptor::IOProcessor() && (def_verbose > 2) )
-    {
-        std::cout << "MultiGrid settings...\n";
-        std::cout << "   def_nu_0 =         " << def_nu_0         << '\n';
-        std::cout << "   def_nu_1 =         " << def_nu_1         << '\n';
-        std::cout << "   def_nu_2 =         " << def_nu_2         << '\n';
-        std::cout << "   def_nu_f =         " << def_nu_f         << '\n';
-        std::cout << "   def_maxiter =      " << def_maxiter      << '\n';
-        std::cout << "   def_usecg =        " << def_usecg        << '\n';
-        std::cout << "   def_maxiter_b =      " << def_maxiter_b  << '\n';
-        std::cout << "   def_rtol_b =       " << def_rtol_b       << '\n';
-        std::cout << "   def_atol_b =       " << def_atol_b       << '\n';
-        std::cout << "   def_nu_b =         " << def_nu_b         << '\n';
-        std::cout << "   def_numLevelsMAX = " << def_numLevelsMAX << '\n';
-        std::cout << "   def_smooth_on_cg_unstable = " << def_smooth_on_cg_unstable << '\n';
-        std::cout << "   def_cg_solver = " << def_cg_solver << '\n';
-    }
-}
-
 MultiGrid::MultiGrid (LinOp &_Lp)
     :
     initialsolution(0),
     Lp(_Lp)
 {
     if (!initialized)
-        initialize();
+        Initialize();
 
     maxiter      = def_maxiter;
     nu_0         = def_nu_0;
@@ -522,20 +551,19 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                 // If the CG solver returns a nonzero value indicating 
                 // the problem is unstable.  Assume this is not an accuracy 
                 // issue and pound on it with the smoother.
-	      // if ret == 8, then you have failure to converge
+                // if ret == 8, then you have failure to converge
                 //
                 if (ParallelDescriptor::IOProcessor() && (verbose > 0) )
                 {
                     std::cout << "MultiGrid::coarsestSmooth(): CGSolver returns nonzero. Smoothing...." << std::endl;
                 }
-
                 coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode, 0);
             }
             else
             {
                 //
                 // cg failure probably indicates loss of precision accident.
-	      // if ret == 8, then you have failure to converge
+                // if ret == 8, then you have failure to converge
                 // setting solL to 0 should be ok.
                 //
                 solL.setVal(0);
