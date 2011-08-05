@@ -12,6 +12,18 @@ bool FabArrayBase::verbose;
 bool FabArrayBase::do_alltoallv;
 bool FabArrayBase::do_not_use_cache;
 
+namespace
+{
+    bool initialized = false;
+    //
+    // Set default values in Initialize()!!!
+    //
+    bool use_copy_cache;
+    int  copy_cache_max_size;
+    bool use_fb_cache;
+    int  fb_cache_max_size;
+}
+
 void
 FabArrayBase::Initialize ()
 {
@@ -22,15 +34,31 @@ FabArrayBase::Initialize ()
     FabArrayBase::do_alltoallv     = false;
     FabArrayBase::do_not_use_cache = false;
 
+    use_copy_cache      = true;
+    copy_cache_max_size = 10;   // -1 ==> no maximum size
+    use_fb_cache        = true;
+    fb_cache_max_size   = 20;   // -1 ==> no maximum size
+
     ParmParse pp("fabarray");
 
     pp.query("verbose",          FabArrayBase::verbose);
     pp.query("do_alltoallv",     FabArrayBase::do_alltoallv);
     pp.query("do_not_use_cache", FabArrayBase::do_not_use_cache);
+
+    pp.query("use_copy_cache",      use_copy_cache);
+    pp.query("copy_cache_max_size", copy_cache_max_size);
+    pp.query("use_fb_cache",        use_fb_cache);
+    pp.query("fb_cache_max_size",   fb_cache_max_size);
+
+    BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
+
+    initialized = true;
 }
 
 FabArrayBase::FabArrayBase ()
-{}
+{
+    if (!initialized) FabArrayBase::Initialize();
+}
 
 FabArrayBase::~FabArrayBase () {}
 
@@ -134,27 +162,9 @@ typedef CPCCache::iterator CPCCacheIter;
 
 static CPCCache TheCopyCache;
 
-void
-FabArrayBase::Finalize ()
-{
-    TheCopyCache.clear();
-}
-
 FabArrayBase::CPC&
 FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
 {
-    static bool first               = true;
-    static bool use_copy_cache      = true;
-    static int  copy_cache_max_size = 10;   // -1 ==> no maximum size
-
-    if (first)
-    {
-        first = false;
-        ParmParse pp("fabarray");
-        pp.query("use_copy_cache", use_copy_cache);
-        pp.query("copy_cache_max_size", copy_cache_max_size);
-    }
-
     got_from_cache = false;
 
     const int key = cpc.m_dstba.size() + cpc.m_srcba.size();
@@ -277,6 +287,16 @@ typedef SIMMap::iterator SIMMapIter;
 static SIMMap SICache;
 
 void
+FabArrayBase::Finalize ()
+{
+    SICache.clear();
+
+    TheCopyCache.clear();
+
+    initialized = false;
+}
+
+void
 FabArrayBase::FlushSICache ()
 {
     int reused = 0;
@@ -354,18 +374,6 @@ FabArrayBase::TheFBsirec (int                 scomp,
 {
     BL_ASSERT(ncomp >  0);
     BL_ASSERT(scomp >= 0);
-
-    static bool first             = true;
-    static bool use_fb_cache      = true;
-    static int  fb_cache_max_size = 10;   // -1 ==> no maximum size
-
-    if (first)
-    {
-        first = false;
-        ParmParse pp("fabarray");
-        pp.query("use_fb_cache", use_fb_cache);
-        pp.query("fb_cache_max_size", fb_cache_max_size);
-    }
 
     const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow());
 

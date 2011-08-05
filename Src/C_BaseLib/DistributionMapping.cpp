@@ -18,6 +18,11 @@
 
 namespace
 {
+    bool initialized = false;
+}
+
+namespace
+{
     //
     // Set default values for these in Initialize()!!!
     //
@@ -25,7 +30,7 @@ namespace
     int    sfc_threshold;
     double max_efficiency;
     bool   do_full_knapsack;
-};
+}
 
 DistributionMapping::Strategy DistributionMapping::m_Strategy;
 
@@ -130,11 +135,17 @@ DistributionMapping::Initialize ()
         //
         strategy(SFC);
     }
+
+    BoxLib::ExecOnFinalize(DistributionMapping::Finalize);
+
+    initialized = true;
 }
 
 void
 DistributionMapping::Finalize ()
 {
+    initialized = false;
+
     DistributionMapping::m_BuildMap = 0;
 
     DistributionMapping::m_Cache.clear();
@@ -278,6 +289,9 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
 void
 DistributionMapping::define (const BoxArray& boxes, int nprocs)
 {
+    if (!initialized)
+        DistributionMapping::Initialize();
+
     if (m_ref->m_pmap.size() != boxes.size() + 1)
     {
         m_ref->m_pmap.resize(boxes.size() + 1);

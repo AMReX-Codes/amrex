@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.55 2011-08-01 20:32:12 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.56 2011-08-05 22:20:28 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -138,13 +138,8 @@ FABio::Format FArrayBox::format;
 FABio* FArrayBox::fabio = 0;
 
 FArrayBox::FArrayBox ()
-{}
-
-FArrayBox&
-FArrayBox::operator= (const Real& v)
 {
-    BaseFab<Real>::operator=(v);
-    return *this;
+    if (fabio == 0) FArrayBox::Initialize();
 }
 
 FArrayBox::FArrayBox (const Box& b,
@@ -155,8 +150,17 @@ FArrayBox::FArrayBox (const Box& b,
     //
     // For debugging purposes set values to QNAN when possible.
     //
+    if (fabio == 0) FArrayBox::Initialize();
+
     if ( do_initval )
 	setVal(initval);
+}
+
+FArrayBox&
+FArrayBox::operator= (const Real& v)
+{
+    BaseFab<Real>::operator=(v);
+    return *this;
 }
 
 bool 
@@ -462,8 +466,11 @@ FArrayBox::Initialize ()
             BoxLib::Abort();
         }
     }
-    pp.query("initval", initval);
+
+    pp.query("initval",    initval);
     pp.query("do_initval", do_initval);
+
+    BoxLib::ExecOnFinalize(FArrayBox::Finalize);
 }
 
 void
@@ -472,7 +479,6 @@ FArrayBox::Finalize ()
     delete fabio;
     fabio = 0;
 }
-
 
 Real
 FArrayBox::norm (const Box& subbox,
