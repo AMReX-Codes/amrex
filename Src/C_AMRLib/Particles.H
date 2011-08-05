@@ -7,6 +7,8 @@
 #include <fstream>
 #include <iostream>
 
+#include <ParmParse.H>
+
 #include "REAL.H"
 #include "IntVect.H"
 #include "Array.H"
