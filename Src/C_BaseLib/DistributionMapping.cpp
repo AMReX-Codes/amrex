@@ -101,6 +101,7 @@ DistributionMapping::Initialize ()
     ParmParse pp("DistributionMapping");
 
     pp.query("verbose",          verbose);
+    pp.query("v"      ,          verbose);
     pp.query("efficiency",       max_efficiency);
     pp.query("do_full_knapsack", do_full_knapsack);
     pp.query("sfc_threshold",    sfc_threshold);
