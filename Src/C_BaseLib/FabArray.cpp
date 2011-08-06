@@ -224,14 +224,14 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
 void
 FabArrayBase::CPC::FlushCache ()
 {
-    int reused = 0;
-
-    for (CPCCacheIter it = TheCopyCache.begin(), end = TheCopyCache.end(); it != end; ++it)
-        if (it->second.m_reused)
-            reused++;
-
-    if (ParallelDescriptor::IOProcessor() && TheCopyCache.size())
+    if (ParallelDescriptor::IOProcessor() && !TheCopyCache.empty() && FabArrayBase::verbose)
     {
+        int reused = 0;
+
+        for (CPCCacheIter it = TheCopyCache.begin(), End = TheCopyCache.end(); it != End; ++it)
+            if (it->second.m_reused)
+                reused++;
+
         std::cout << "CPC::TheCopyCache.size() = " << TheCopyCache.size() << ", # reused = " << reused << '\n';
     }
     TheCopyCache.clear();
@@ -299,15 +299,15 @@ FabArrayBase::Finalize ()
 void
 FabArrayBase::FlushSICache ()
 {
-    int reused = 0;
-
-    for (SIMMapIter it = SICache.begin(), end = SICache.end(); it != end; ++it)
-        if (it->second.m_reused)
-            reused++;
-
-    if (ParallelDescriptor::IOProcessor() && SICache.size())
+    if (ParallelDescriptor::IOProcessor() && !SICache.empty() && FabArrayBase::verbose)
     {
-        std::cout << "FabArrayBase::SICacheSize() = " << SICache.size() << ", # reused = " << reused << '\n';
+        int reused = 0;
+
+        for (SIMMapIter it = SICache.begin(), End = SICache.end(); it != End; ++it)
+            if (it->second.m_reused)
+                reused++;
+
+        std::cout << "FabArrayBase::SICache.size() = " << SICache.size() << ", # reused = " << reused << '\n';
     }
     SICache.clear();
 }

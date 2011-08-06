@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.209 2011-08-05 22:20:28 lijewski Exp $
+// $Id: FabArray.H,v 1.210 2011-08-06 02:56:31 lijewski Exp $
 //
 #include <iostream>
 #include <cstring>
@@ -1941,16 +1941,6 @@ FabArrayCopyDescriptor<FAB>::clear ()
 
     nextFillBoxId = 0;
     dataAvailable = false;
-
-    if (FabArrayBase::verbose)
-    {
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-        ParallelDescriptor::ReduceLongMax(bytes,IOProc);
-
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Bytes in FabArrayCopyDescriptor = " << bytes << std::endl;
-    }
 }
 
 template <class FAB>
