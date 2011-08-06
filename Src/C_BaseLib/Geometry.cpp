@@ -11,11 +11,16 @@
 //
 // The definition of static data members.
 //
-int     Geometry::spherical_origin_fix = 0;
+int     Geometry::spherical_origin_fix;
 RealBox Geometry::prob_domain;
 bool    Geometry::is_periodic[BL_SPACEDIM];
 
 Geometry::FPBMMap Geometry::m_FPBCache;
+
+namespace
+{
+    bool verbose;
+}
 
 const int fpb_cache_max_size_def = 20; // -1 ==> no maximum size
 
@@ -161,15 +166,15 @@ Geometry::PIRMCacheSize ()
 void
 Geometry::FlushPIRMCache ()
 {
-    if (ParallelDescriptor::IOProcessor() && !m_FPBCache.empty())
+    if (ParallelDescriptor::IOProcessor() && !m_FPBCache.empty() && verbose)
     {
         int reused = 0;
 
-        for (FPBMMapIter it = m_FPBCache.begin(), end = m_FPBCache.end(); it != end; ++it)
+        for (FPBMMapIter it = m_FPBCache.begin(), End = m_FPBCache.end(); it != End; ++it)
             if (it->second.m_reused)
                 reused++;
 
-        std::cout << "Geometry::PIRMCacheSize() = " << m_FPBCache.size() << ", # reused = " << reused << '\n';
+        std::cout << "Geometry::PIRMCache.size() = " << m_FPBCache.size() << ", # reused = " << reused << '\n';
     }
     m_FPBCache.clear();
 }
@@ -452,13 +457,15 @@ Geometry::define (const Box&     dom,
 {
     if (c_sys == undef)
         Setup(rb,coord,is_per);
+
     domain = dom;
     ok     = true;
+
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
     }
-    if (spherical_origin_fix == 1)
+    if (Geometry::spherical_origin_fix == 1)
     {
 	if (c_sys == SPHERICAL && prob_domain.lo(0) == 0 && BL_SPACEDIM > 1)
         {
@@ -523,15 +530,21 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
             prob_domain.setHi(prob_hi);
         }
     }
+    //
+    // Set default values here!!!
+    //
+    verbose                        = false;
+    Geometry::spherical_origin_fix = 0;
+    Geometry::fpb_cache_max_size   = fpb_cache_max_size_def;
 
-    spherical_origin_fix = 0;
+    D_EXPR(is_periodic[0]=0, is_periodic[1]=0, is_periodic[2]=0);
 
-    pp.query("spherical_origin_fix",spherical_origin_fix);
+    pp.query("verbose",              verbose);
+    pp.query("spherical_origin_fix", Geometry::spherical_origin_fix);
+    pp.query("fpb_cache_max_size",   Geometry::fpb_cache_max_size);
     //
     // Now get periodicity info.
     //
-    D_EXPR(is_periodic[0]=0, is_periodic[1]=0, is_periodic[2]=0);
-
     if (isper == 0)
     {
         Array<int> is_per(BL_SPACEDIM);
@@ -544,10 +557,6 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
         for (int n = 0; n < BL_SPACEDIM; n++)  
             is_periodic[n] = isper[n];
     }
-
-    Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
-
-    pp.query("fpb_cache_max_size", Geometry::fpb_cache_max_size);
 
     BoxLib::ExecOnFinalize(Geometry::Finalize);
 }
