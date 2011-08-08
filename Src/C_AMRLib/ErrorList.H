@@ -126,6 +126,8 @@ public:
     //
     const ErrorRec& operator[] (int k) const;
 
+    void clear () { vec.clear(); }
+
 private:
 
     std::vector<ErrorRec> vec;
