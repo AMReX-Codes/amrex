@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.53 2011-08-08 17:24:24 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.54 2011-08-08 20:47:45 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -25,20 +25,21 @@ int              MultiGrid::def_nu_0;
 int              MultiGrid::def_nu_1;
 int              MultiGrid::def_nu_2;
 int              MultiGrid::def_nu_f;
-int              MultiGrid::def_maxiter;
-int              MultiGrid::def_maxiter_b;
-int              MultiGrid::def_verbose;
+int              MultiGrid::def_nu_b;
 int              MultiGrid::def_usecg;
 Real             MultiGrid::def_rtol_b;
 Real             MultiGrid::def_atol_b;
-int              MultiGrid::def_nu_b;
+int              MultiGrid::def_verbose;
+int              MultiGrid::def_maxiter;
+CGSolver::Solver MultiGrid::def_cg_solver;
+int              MultiGrid::def_maxiter_b;
 int              MultiGrid::def_numLevelsMAX;
 int              MultiGrid::def_smooth_on_cg_unstable;
-CGSolver::Solver MultiGrid::def_cg_solver;
 
 void
 MultiGrid::Initialize ()
 {
+    if (initialized) return;
     //
     // Set defaults here!!!
     //
@@ -46,9 +47,7 @@ MultiGrid::Initialize ()
     MultiGrid::def_nu_1                  = 2;
     MultiGrid::def_nu_2                  = 2;
     MultiGrid::def_nu_f                  = 8;
-    MultiGrid::def_maxiter               = 40;
-    MultiGrid::def_maxiter_b             = 80;
-    MultiGrid::def_verbose               = 0;
+    MultiGrid::def_nu_b                  = 0;
     MultiGrid::def_usecg                 = 1;
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
     MultiGrid::def_rtol_b                = 0.0001;
@@ -56,25 +55,27 @@ MultiGrid::Initialize ()
     MultiGrid::def_rtol_b                = 0.01;
 #endif
     MultiGrid::def_atol_b                = -1.0;
-    MultiGrid::def_nu_b                  = 0;
+    MultiGrid::def_verbose               = 0;
+    MultiGrid::def_maxiter               = 40;
+    MultiGrid::def_maxiter_b             = 80;
+    MultiGrid::def_cg_solver             = CGSolver::BiCGStab;
     MultiGrid::def_numLevelsMAX          = 1024;
     MultiGrid::def_smooth_on_cg_unstable = 0;
-    MultiGrid::def_cg_solver             = CGSolver::BiCGStab;
 
     ParmParse pp("mg");
 
-    pp.query("maxiter",               def_maxiter);
-    pp.query("maxiter_b",             def_maxiter_b);
+    pp.query("v",                     def_verbose);
     pp.query("nu_0",                  def_nu_0);
     pp.query("nu_1",                  def_nu_1);
     pp.query("nu_2",                  def_nu_2);
     pp.query("nu_f",                  def_nu_f);
-    pp.query("v",                     def_verbose);
-    pp.query("verbose",               def_verbose);
+    pp.query("nu_b",                  def_nu_b);
     pp.query("usecg",                 def_usecg);
     pp.query("rtol_b",                def_rtol_b);
+    pp.query("verbose",               def_verbose);
+    pp.query("maxiter",               def_maxiter);
     pp.query("bot_atol",              def_atol_b);
-    pp.query("nu_b",                  def_nu_b);
+    pp.query("maxiter_b",             def_maxiter_b);
     pp.query("numLevelsMAX",          def_numLevelsMAX);
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
 
@@ -97,15 +98,15 @@ MultiGrid::Initialize ()
         std::cout << "   def_nu_1                  = " << def_nu_1                  << '\n';
         std::cout << "   def_nu_2                  = " << def_nu_2                  << '\n';
         std::cout << "   def_nu_f                  = " << def_nu_f                  << '\n';
-        std::cout << "   def_maxiter               = " << def_maxiter               << '\n';
+        std::cout << "   def_nu_b                  = " << def_nu_b                  << '\n';
         std::cout << "   def_usecg                 = " << def_usecg                 << '\n';
-        std::cout << "   def_maxiter_b             = " << def_maxiter_b             << '\n';
         std::cout << "   def_rtol_b                = " << def_rtol_b                << '\n';
         std::cout << "   def_atol_b                = " << def_atol_b                << '\n';
-        std::cout << "   def_nu_b                  = " << def_nu_b                  << '\n';
+        std::cout << "   def_maxiter               = " << def_maxiter               << '\n';
+        std::cout << "   def_maxiter_b             = " << def_maxiter_b             << '\n';
+        std::cout << "   def_cg_solver             = " << def_cg_solver             << '\n';
         std::cout << "   def_numLevelsMAX          = " << def_numLevelsMAX          << '\n';
         std::cout << "   def_smooth_on_cg_unstable = " << def_smooth_on_cg_unstable << '\n';
-        std::cout << "   def_cg_solver             = " << def_cg_solver             << '\n';
     }
 
     BoxLib::ExecOnFinalize(MultiGrid::Finalize);
@@ -147,8 +148,7 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     initialsolution(0),
     Lp(_Lp)
 {
-    if (!initialized)
-        Initialize();
+    Initialize();
 
     maxiter      = def_maxiter;
     nu_0         = def_nu_0;

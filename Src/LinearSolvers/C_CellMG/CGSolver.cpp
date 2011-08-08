@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.53 2011-08-08 17:24:24 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.54 2011-08-08 20:47:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -25,32 +25,23 @@ namespace
 int              CGSolver::def_maxiter;
 int              CGSolver::def_verbose;
 CGSolver::Solver CGSolver::def_cg_solver;
-double           CGSolver::def_unstable_criterion;
 bool             CGSolver::use_jbb_precond;
 bool             CGSolver::use_jacobi_precond;
-
-static
-void
-Spacer (std::ostream& os, int lev)
-{
-    for (int k = 0; k < lev; k++)
-    {
-        os << "   ";
-    }
-}
+double           CGSolver::def_unstable_criterion;
 
 void
 CGSolver::Initialize ()
 {
+    if (initialized) return;
     //
     // Set defaults here!!!
     //
     CGSolver::def_maxiter            = 40;
     CGSolver::def_verbose            = 1;
     CGSolver::def_cg_solver          = BiCGStab;
-    CGSolver::def_unstable_criterion = 10;
     CGSolver::use_jbb_precond        = 0;
     CGSolver::use_jacobi_precond     = 0;
+    CGSolver::def_unstable_criterion = 10;
 
     ParmParse pp("cg");
 
@@ -103,8 +94,7 @@ CGSolver::CGSolver (LinOp& _Lp,
     lev(_lev),
     use_mg_precond(_use_mg_precond)
 {
-    if (!initialized)
-        Initialize();
+    Initialize();
     maxiter = def_maxiter;
     verbose = def_verbose;
     cg_solver = def_cg_solver;
@@ -124,6 +114,16 @@ CGSolver::set_mg_precond ()
 CGSolver::~CGSolver ()
 {
     delete mg_precond;
+}
+
+static
+void
+Spacer (std::ostream& os, int lev)
+{
+    for (int k = 0; k < lev; k++)
+    {
+        os << "   ";
+    }
 }
 
 static
