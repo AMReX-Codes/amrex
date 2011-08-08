@@ -1,5 +1,5 @@
 //
-// $Id: BLWorkQueue.cpp,v 1.12 2001-11-16 18:05:16 car Exp $
+// $Id: BLWorkQueue.cpp,v 1.13 2011-08-08 21:23:34 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -39,9 +39,9 @@ WorkQueue::Initialize ()
 
     int maxthreads = 0;
 
+    pp.query("verbose",    verbose);
+    pp.query("stacksize",  stacksize);
     pp.query("maxthreads", maxthreads);
-    pp.query("verbose", verbose);
-    pp.query("stacksize", stacksize);
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -71,7 +71,13 @@ do									\
 while (false)
 
 WorkQueue::WorkQueue(int maxthreads_)
-    : quit(false), eof(false), maxthreads(maxthreads_), numthreads(0), idlethreads(0), tasks(0)
+    :
+    quit(false),
+    eof(false),
+    maxthreads(maxthreads_),
+    numthreads(0),
+    idlethreads(0),
+    tasks(0)
 {
     if ( maxthreads_ >= Thread::max_threads() )
     {

@@ -1,4 +1,4 @@
-// $Id: MultiFab.cpp,v 1.100 2011-08-05 22:20:28 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.101 2011-08-08 21:23:34 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -16,7 +16,7 @@
 #include <ParmParse.H>
 
 //
-// Set initial values in Initialize()!!!
+// Set default values in Initialize()!!!
 //
 bool MultiFab::check_for_nan;
 bool MultiFab::check_for_inf;
@@ -192,6 +192,7 @@ MultiFab::negate (const Box& region,
 void
 MultiFab::Initialize ()
 {
+    if (initialized) return;
     //
     // Set initial values!!!
     //
@@ -216,7 +217,7 @@ MultiFab::Finalize ()
 
 MultiFab::MultiFab ()
 {
-    if (!initialized) MultiFab::Initialize();
+    Initialize();
 }
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -226,7 +227,7 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
 {
-    if (!initialized) MultiFab::Initialize();
+    Initialize();
 
     if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
 }
