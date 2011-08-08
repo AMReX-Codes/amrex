@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.52 2011-08-05 22:56:49 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.53 2011-08-08 17:24:24 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -14,7 +14,10 @@
 #include <MultiGrid.H>
 #include <Profiler.H>
 
-bool MultiGrid::initialized = false;
+namespace
+{
+    bool initialized = false;
+}
 //
 // Set default values for these in Initialize()!!!
 //

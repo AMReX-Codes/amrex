@@ -3,7 +3,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.22 2011-08-05 22:56:49 lijewski Exp $
+// $Id: LinOp.H,v 1.23 2011-08-08 17:24:24 lijewski Exp $
 //
 
 #include <Array.H>
@@ -296,10 +296,6 @@ protected:
     // ghost node values
     //
     int maxorder;
-    //
-    //@ManDoc: flag (=1 if internal data initialized)
-    //
-    static bool initialized;
     //
     //@ManDoc: default value for harm\_avg
     //

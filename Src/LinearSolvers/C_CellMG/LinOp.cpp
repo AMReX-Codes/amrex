@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.42 2011-08-05 22:56:49 lijewski Exp $
+// $Id: LinOp.cpp,v 1.43 2011-08-08 17:24:24 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -13,7 +13,10 @@
 #include <LinOp.H>
 #include <Profiler.H>
 
-bool LinOp::initialized = false;
+namespace
+{
+    bool initialized = false;
+}
 //
 // Set default values for these in Initialize()!!!
 //
