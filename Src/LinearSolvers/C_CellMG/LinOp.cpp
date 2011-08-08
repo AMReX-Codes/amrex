@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.43 2011-08-08 17:24:24 lijewski Exp $
+// $Id: LinOp.cpp,v 1.44 2011-08-08 20:47:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -36,6 +36,7 @@ const int LinOp_grow = 1;
 void
 LinOp::Initialize ()
 {
+    if (initialized) return;
     //
     // Set defaults here!!!
     //
@@ -118,8 +119,7 @@ LinOp::~LinOp ()
 void
 LinOp::initConstruct (const Real* _h)
 {
-    if (!initialized)
-        Initialize();
+    Initialize();
     //
     // We'll reserve() space to cut down on copying during resize()s.
     //
