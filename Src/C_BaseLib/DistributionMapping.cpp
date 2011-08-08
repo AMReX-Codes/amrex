@@ -90,6 +90,7 @@ DistributionMapping::operator!= (const DistributionMapping& rhs) const
 void
 DistributionMapping::Initialize ()
 {
+    if (initialized) return;
     //
     // Set defaults here!!!
     //
@@ -100,11 +101,11 @@ DistributionMapping::Initialize ()
 
     ParmParse pp("DistributionMapping");
 
-    pp.query("verbose",          verbose);
     pp.query("v"      ,          verbose);
+    pp.query("verbose",          verbose);
     pp.query("efficiency",       max_efficiency);
-    pp.query("do_full_knapsack", do_full_knapsack);
     pp.query("sfc_threshold",    sfc_threshold);
+    pp.query("do_full_knapsack", do_full_knapsack);
 
     std::string theStrategy;
 
@@ -290,8 +291,7 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
 void
 DistributionMapping::define (const BoxArray& boxes, int nprocs)
 {
-    if (!initialized)
-        DistributionMapping::Initialize();
+    Initialize();
 
     if (m_ref->m_pmap.size() != boxes.size() + 1)
     {

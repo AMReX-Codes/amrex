@@ -4,9 +4,8 @@
 
 #include <FabArray.H>
 #include <ParmParse.H>
-
 //
-// Set initial values for these in Initialize()!!!
+// Set default values in Initialize()!!!
 //
 bool FabArrayBase::verbose;
 bool FabArrayBase::do_alltoallv;
@@ -27,8 +26,9 @@ namespace
 void
 FabArrayBase::Initialize ()
 {
+    if (initialized) return;
     //
-    // Set initial values!!!
+    // Set default values here!!!
     //
     FabArrayBase::verbose          = false;
     FabArrayBase::do_alltoallv     = false;
@@ -57,7 +57,7 @@ FabArrayBase::Initialize ()
 
 FabArrayBase::FabArrayBase ()
 {
-    if (!initialized) FabArrayBase::Initialize();
+    Initialize();
 }
 
 FabArrayBase::~FabArrayBase () {}
