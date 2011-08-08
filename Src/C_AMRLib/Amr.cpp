@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.229 2011-08-05 22:21:36 lijewski Exp $
+// $Id: Amr.cpp,v 1.230 2011-08-08 20:37:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -56,39 +56,37 @@ namespace
     //
     // These are all ParmParse'd in.  Set defaults in Initialize()!!!
     //
-    bool plot_files_output;
-    bool checkpoint_files_output;
-    bool refine_grid_layout;
     int  plot_nfiles;
-    int  checkpoint_nfiles;
     int  mffile_nstreams;
     int  probinit_natonce;
+    bool plot_files_output;
+    int  checkpoint_nfiles;
     int  regrid_on_restart;
+    bool refine_grid_layout;
     int  plotfile_on_restart;
     int  checkpoint_on_restart;
+    bool checkpoint_files_output;
     int  compute_new_dt_on_regrid;
 }
-
-bool Amr::Plot_Files_Output () { return plot_files_output; }
 
 void
 Amr::Initialize ()
 {
+    if (initialized) return;
     //
     // Set all defaults here!!!
     //
-    Amr::first_plotfile = true;
-
-    plot_files_output        = true;
-    checkpoint_files_output  = true;
-    refine_grid_layout       = true;
+    Amr::first_plotfile      = true;
     plot_nfiles              = 64;
-    checkpoint_nfiles        = 64;
     mffile_nstreams          = 1;
     probinit_natonce         = 32;
+    plot_files_output        = true;
+    checkpoint_nfiles        = 64;
     regrid_on_restart        = 0;
+    refine_grid_layout       = true;
     plotfile_on_restart      = 0;
     checkpoint_on_restart    = 0;
+    checkpoint_files_output  = true;
     compute_new_dt_on_regrid = 0;
 
     BoxLib::ExecOnFinalize(Amr::Finalize);
@@ -104,6 +102,8 @@ Amr::Finalize ()
 
     initialized = false;
 }
+
+bool Amr::Plot_Files_Output () { return plot_files_output; }
 
 std::ostream&
 Amr::DataLog (int i)
@@ -335,8 +335,7 @@ Amr::Amr ()
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Amr()");
 
-    if (!initialized)
-        Amr::Initialize();
+    Initialize();
     //
     // Setup Geometry from ParmParse file.
     // May be needed for variableSetup or even getLevelBld.
@@ -353,18 +352,16 @@ Amr::Amr ()
     //
     // Set default values.
     //
-    max_level        = -1;
-    record_run_info  = false;
+    grid_eff               = 0.7;
+    plot_int               = -1;
+    n_proper               = 1;
+    max_level              = -1;
+    last_plotfile          = 0;
+    last_checkpoint        = 0;
+    record_run_info        = false;
+    record_grid_info       = false;
+    file_name_digits       = 5;
     record_run_info_terse  = false;
-    record_grid_info = false;
-    grid_eff         = 0.7;
-    last_checkpoint  = 0;
-    last_plotfile    = 0;
-    plot_int         = -1;
-    n_proper         = 1;
-
-    // This is the default for the format of plotfile and checkpoint names.
-    file_name_digits = 5;
 
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
@@ -398,6 +395,7 @@ Amr::Amr ()
 
     pp.query("mffile_nstreams", mffile_nstreams);
     pp.query("probinit_natonce", probinit_natonce);
+
     probinit_natonce = std::max(1, std::min(ParallelDescriptor::NProcs(), probinit_natonce));
 
     pp.query("file_name_digits", file_name_digits);
@@ -520,7 +518,6 @@ Amr::Amr ()
     pp.query("n_proper",n_proper);
     pp.query("grid_eff",grid_eff);
     pp.queryarr("n_error_buf",n_error_buf,0,max_level);
-
     //
     // Read in the refinement ratio IntVects as integer BL_SPACEDIM-tuples.
     //
@@ -669,12 +666,13 @@ Amr::Amr ()
 bool
 Amr::isStatePlotVar (const std::string& name)
 {
-    std::list<std::string>::const_iterator li = state_plot_vars.begin(), end = state_plot_vars.end();
-
-    for ( ; li != end; ++li)
+    for (std::list<std::string>::const_iterator li = state_plot_vars.begin(), End = state_plot_vars.end();
+         li != End;
+         ++li)
+    {
         if (*li == name)
             return true;
-
+    }
     return false;
 }
 
@@ -712,8 +710,8 @@ Amr::deleteStatePlotVar (const std::string& name)
 bool
 Amr::isDerivePlotVar (const std::string& name)
 {
-    for (std::list<std::string>::const_iterator li = derive_plot_vars.begin(), end = derive_plot_vars.end();
-         li != end;
+    for (std::list<std::string>::const_iterator li = derive_plot_vars.begin(), End = derive_plot_vars.end();
+         li != End;
          ++li)
     {
         if (*li == name)
@@ -729,8 +727,8 @@ Amr::fillDerivePlotVarList ()
     derive_plot_vars.clear();
     DeriveList& derive_lst = AmrLevel::get_derive_lst();
     std::list<DeriveRec>& dlist = derive_lst.dlist();
-    for (std::list<DeriveRec>::const_iterator it = dlist.begin(), end = dlist.end();
-         it != end;
+    for (std::list<DeriveRec>::const_iterator it = dlist.begin(), End = dlist.end();
+         it != End;
          ++it)
     {
         if (it->deriveType() == IndexType::TheCellType())
@@ -2494,8 +2492,8 @@ Amr::grid_places (int              lbase,
             // We want the net effect to be that grids are NOT shrunk away
             // from the edges of the domain.
             //
-            for (BoxList::iterator blt = bl_tagged.begin(), end = bl_tagged.end();
-                 blt != end;
+            for (BoxList::iterator blt = bl_tagged.begin(), End = bl_tagged.end();
+                 blt != End;
                  ++blt)
             {
                 for (int idir = 0; idir < BL_SPACEDIM; idir++)
