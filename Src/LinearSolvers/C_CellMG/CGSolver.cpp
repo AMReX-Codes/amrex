@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.52 2011-08-05 22:56:49 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.53 2011-08-08 17:24:24 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -15,7 +15,10 @@
 #include <CGSolver.H>
 #include <MultiGrid.H>
 
-int CGSolver::initialized = 0;
+namespace
+{
+    bool initialized = false;
+}
 //
 // Set default values for these in Initialize()!!!
 //
@@ -82,13 +85,13 @@ CGSolver::Initialize ()
 
     BoxLib::ExecOnFinalize(CGSolver::Finalize);
     
-    initialized = 1;
+    initialized = true;
 }
 
 void
 CGSolver::Finalize ()
 {
-    initialized = 0;
+    initialized = false;
 }
 
 CGSolver::CGSolver (LinOp& _Lp,

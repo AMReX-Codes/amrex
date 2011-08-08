@@ -3,7 +3,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.15 2011-08-05 22:56:49 lijewski Exp $
+// $Id: CGSolver.H,v 1.16 2011-08-08 17:24:24 lijewski Exp $
 //
 
 #include <cmath>
@@ -174,10 +174,6 @@ protected:
     //@ManDoc: if  (use\_mg\_precond == 1) then define the MultiGrid * mg\_precond
     //
     virtual void set_mg_precond ();
-    //
-    //@ManDoc: Initialized yet?
-    //
-    static int initialized;
     //
     //@ManDoc: Default maximum number of allowed iterations.
     //
