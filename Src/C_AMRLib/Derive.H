@@ -1,7 +1,7 @@
 #ifndef _Derive_H_
 #define _Derive_H_
 //
-// $Id: Derive.H,v 1.17 2011-05-13 20:58:31 almgren Exp $
+// $Id: Derive.H,v 1.18 2011-08-09 21:32:45 lijewski Exp $
 //
 #include <list>
 #include <string>
@@ -255,6 +255,8 @@ public:
                        int                   ncomp);
  
     std::list<DeriveRec>& dlist ();
+
+    void clear () { lst.clear(); }
 
 private:
     //
