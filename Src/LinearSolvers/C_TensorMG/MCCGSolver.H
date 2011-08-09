@@ -3,7 +3,7 @@
 #define _MCCGSOLVER_H_
 
 //
-// $Id: MCCGSolver.H,v 1.9 2011-08-05 23:14:10 lijewski Exp $
+// $Id: MCCGSolver.H,v 1.10 2011-08-09 15:51:53 lijewski Exp $
 //
 
 #include <cmath>
@@ -169,10 +169,6 @@ protected:
     //@ManDoc: MCMultiGrid solver to be used as preconditioner
     //
     MCMultiGrid* mg_precond;
-    //
-    //@ManDoc: flag, whether initialized yet
-    //
-    static int initialized;
     //
     //@ManDoc: default maximum number of allowed iterations, verbosity
     //

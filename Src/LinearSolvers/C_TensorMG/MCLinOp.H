@@ -3,7 +3,7 @@
 #define _MCLINOP_H_
 
 //
-// $Id: MCLinOp.H,v 1.12 2011-08-05 23:14:10 lijewski Exp $
+// $Id: MCLinOp.H,v 1.13 2011-08-09 15:51:53 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -272,10 +272,6 @@ protected:
     //@ManDoc: maximum interpolation order used for constructing Dirichlet ghost node values
     //
     int maxorder;
-    //
-    //@ManDoc: flag (=1 if internal data initialized)
-    //
-    static bool initialized;
     //
     //@ManDoc: default value for harm_avg
     //

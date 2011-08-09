@@ -1,6 +1,6 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.29 2011-08-05 23:14:10 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.30 2011-08-09 15:51:53 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -16,7 +16,10 @@
 #include "DivVis_F.H"
 #include "MCLinOp.H"
 
-bool MCLinOp::initialized = false;
+namespace
+{
+    bool initialized = false;
+}
 //
 // Set default values for these in Initialize()!!!
 //
@@ -36,6 +39,7 @@ const int MCLinOp_grow = 1;
 void
 MCLinOp::Initialize ()
 {
+    if (initialized) return;
     //
     // Set defaults here!!!
     //
@@ -101,8 +105,7 @@ MCLinOp::~MCLinOp ()
 void
 MCLinOp::initConstruct (const Real* _h)
 {   
-    if (!initialized)
-	Initialize();
+    Initialize();
     //
     // We'll reserve() space to cut down on copying during resize()s.
     //
