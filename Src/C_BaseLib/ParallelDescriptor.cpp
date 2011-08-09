@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.118 2011-08-04 21:13:50 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.119 2011-08-09 16:36:54 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -295,9 +295,6 @@ ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv,
                                    MPI_Comm mpi_comm)
 {
-    BL_ASSERT(m_MyId == -1);
-    BL_ASSERT(m_nProcs == -1);
-
     m_comm = mpi_comm;
 
     int sflag;
