@@ -1,6 +1,6 @@
 
 //
-// $Id: MCCGSolver.cpp,v 1.18 2011-08-05 23:14:10 lijewski Exp $
+// $Id: MCCGSolver.cpp,v 1.19 2011-08-09 15:51:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -12,7 +12,10 @@
 #include <CG_F.H>
 #include <MCCGSolver.H>
 
-int MCCGSolver::initialized = 0;
+namespace
+{
+    bool initialized = false;
+}
 //
 // Set default values for these in Initialize()!!!
 //
@@ -24,6 +27,7 @@ double MCCGSolver::def_unstable_criterion;
 void
 MCCGSolver::Initialize ()
 {
+    if (initialized) return;
     //
     // Set defaults here!!!
     //
@@ -47,13 +51,13 @@ MCCGSolver::Initialize ()
 
     BoxLib::ExecOnFinalize(MCCGSolver::Finalize);
 
-    initialized = 1;
+    initialized = true;
 }
 
 void
 MCCGSolver::Finalize ()
 {
-    initialized = 0;
+    initialized = false;
 }
 
 MCCGSolver::MCCGSolver (MCLinOp& _Lp,
@@ -66,8 +70,7 @@ MCCGSolver::MCCGSolver (MCLinOp& _Lp,
     Lp(_Lp),
     lev(_lev)
 {
-    if (!initialized)
-	Initialize();
+    Initialize();
     maxiter = def_maxiter;
     verbose = def_verbose;
     set_mg_precond();

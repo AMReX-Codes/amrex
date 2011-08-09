@@ -1,6 +1,6 @@
 
 //
-// $Id: MCMultiGrid.cpp,v 1.15 2011-08-05 23:14:10 lijewski Exp $
+// $Id: MCMultiGrid.cpp,v 1.16 2011-08-09 15:51:53 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -11,10 +11,13 @@
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 #include <MCCGSolver.H>
-#include "MG_F.H"
-#include "MCMultiGrid.H"
+#include <MG_F.H>
+#include <MCMultiGrid.H>
 
-bool MCMultiGrid::initialized = false;
+namespace
+{
+    bool initialized = false;
+}
 //
 // Set default values for these in Initialize()!!!
 //
@@ -34,6 +37,7 @@ int  MCMultiGrid::def_numLevelsMAX;
 void
 MCMultiGrid::Initialize ()
 {
+    if (initialized) return;
     //
     // Set defaults here!!!
     //
@@ -95,8 +99,7 @@ MCMultiGrid::MCMultiGrid (MCLinOp &_Lp)
     initialsolution(0),
     Lp(_Lp)
 {
-    if (!initialized)
-	Initialize();
+    Initialize();
 
     maxiter = def_maxiter;
     numiter = def_numiter;
