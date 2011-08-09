@@ -6,62 +6,39 @@
 #include <BaseFab.H>
 #include <BArena.H>
 #include <CArena.H>
-#include <Thread.H>
 #if !(defined(BL_NO_FORT) || defined(WIN32))
 #include <SPECIALIZE_F.H>
 #endif
 
-long BoxLib::total_bytes_allocated_in_fabs = 0;
-
+long BoxLib::total_bytes_allocated_in_fabs     = 0;
 long BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
 
-int BoxLib::BF_init::m_cnt = 0;
-
-static ThreadSpecificData<Arena>* arena = 0;
-
-BoxLib::BF_init::BF_init ()
+namespace
 {
-    if (m_cnt++ == 0)
-        arena = new ThreadSpecificData<Arena>;
-}
+    Arena* the_arena = 0;
 
-BoxLib::BF_init::~BF_init ()
-{
-    if (--m_cnt == 0)
-        delete arena;
-}
-
-Arena*
-BoxLib::ResetArena (Arena* newarena)
-{
-    BL_ASSERT(newarena != 0);
-
-    Arena* oldarena = arena->get();
-
-    BL_ASSERT(oldarena != 0);
-
-    arena->set(newarena);
-
-    return oldarena;
+    void
+    BaseFab_Finalize ()
+    {
+        BoxLib::total_bytes_allocated_in_fabs     = 0;
+        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+    }
 }
 
 Arena*
 BoxLib::The_Arena ()
 {
-    BL_ASSERT(arena != 0);
-
-    Arena* a = arena->get();
-
-    if (a == 0)
+    if (the_arena == 0)
     {
 #if defined(BL_THREADS) || defined(BL_COALESCE_FABS)
-        arena->set(a = new CArena);
+        the_arena = new CArena;
 #else
-        arena->set(a = new BArena);
+        the_arena = new BArena;
 #endif
+        BoxLib::ExecOnFinalize(BaseFab_Finalize);
     }
 
-    return a;
+    return the_arena;
 }
 
 #if !(defined(BL_NO_FORT) || defined(WIN32))
