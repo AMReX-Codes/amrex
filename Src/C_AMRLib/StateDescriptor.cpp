@@ -1,5 +1,5 @@
 //
-// $Id: StateDescriptor.cpp,v 1.20 2010-03-26 21:34:23 almgren Exp $
+// $Id: StateDescriptor.cpp,v 1.21 2011-08-09 16:30:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -69,6 +69,7 @@ void
 DescriptorList::clear ()
 {
     desc.clear();
+    desc.resize(0);
 }
 
 int
