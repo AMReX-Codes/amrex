@@ -9,7 +9,6 @@
 #include <boundary.H>
 #include <Profiler.H>
 
-
 #ifdef HG_DEBUG
 #include <algorithm>
 #include <iomanip>
@@ -19,14 +18,20 @@
 #include <sstream>
 #endif
 
-bool HG_is_debugging       = false;
-MPI_Comm HG::mpi_comm      = MPI_COMM_WORLD;
-int HG::max_live_tasks     = 50;
-int HG::multigrid_maxiter  = 100;
-int HG::cgsolve_maxiter    = 250;
-int HG::pverbose           = 0;
-bool HG::initialized       = false;
-double HG::cgsolve_tolfact = 1.0e-3;
+namespace
+{
+    bool initialized = false;
+}
+//
+// Set defaults in MPI_init.
+//
+bool     HG_is_debugging;
+MPI_Comm HG::mpi_comm;
+int      HG::max_live_tasks;
+int      HG::multigrid_maxiter;
+int      HG::cgsolve_maxiter;
+int      HG::pverbose;
+double   HG::cgsolve_tolfact;
 
 #ifdef HG_DEBUG
 std::ofstream debug_out;
@@ -35,39 +40,49 @@ std::ofstream debug_out;
 void
 HG::MPI_init ()
 {
-    if (!initialized)
+    if (initialized) return;
+    //
+    // Set defaults here!
+    //
+    HG_is_debugging       = false;
+    HG::mpi_comm          = MPI_COMM_WORLD;
+    HG::max_live_tasks    = 50;
+    HG::multigrid_maxiter = 100;
+    HG::cgsolve_maxiter   = 250;
+    HG::pverbose          = 0;
+    HG::cgsolve_tolfact   = 1.0e-3;
+
+    ParmParse pp("HG");
+
+    pp.query("cgsolve_maxiter",   cgsolve_maxiter);
+    pp.query("debugging",         HG_is_debugging);
+    pp.query("multigrid_maxiter", multigrid_maxiter);
+    pp.query("cgsolve_tolfact",   cgsolve_tolfact);
+    pp.query("max_live_tasks",    max_live_tasks);
+    pp.query("pverbose",          pverbose);
+
+    if (ParallelDescriptor::IOProcessor())
     {
-        ParmParse pp("HG");
+        std::cout << "HG.cgsolve_maxiter = "   << cgsolve_maxiter   << '\n';
+        std::cout << "HG.multigrid_maxiter = " << multigrid_maxiter << '\n';
+        std::cout << "HG.cgsolve_tolfact = "   << cgsolve_tolfact   << '\n';
+        std::cout << "HG.max_live_tasks = "    << max_live_tasks    << '\n';
+        std::cout << "HG.pverbose = "          << pverbose          << '\n';
+    }
 
-        pp.query("cgsolve_maxiter", cgsolve_maxiter);
-	pp.query("debugging", HG_is_debugging);
-        pp.query("multigrid_maxiter", multigrid_maxiter);
-        pp.query("cgsolve_tolfact", cgsolve_tolfact);
-        pp.query("max_live_tasks", max_live_tasks);
-        pp.query("pverbose", pverbose);
+    initialized = true;
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "HG.cgsolve_maxiter = "   << cgsolve_maxiter   << '\n';
-            std::cout << "HG.multigrid_maxiter = " << multigrid_maxiter << '\n';
-            std::cout << "HG.cgsolve_tolfact = "   << cgsolve_tolfact   << '\n';
-            std::cout << "HG.max_live_tasks = "    << max_live_tasks    << '\n';
-            std::cout << "HG.pverbose = "          << pverbose          << '\n';
-        }
-
-        initialized = true;
-
-        ParallelDescriptor::Comm_dup(MPI_COMM_WORLD, mpi_comm);
+    ParallelDescriptor::Comm_dup(MPI_COMM_WORLD, mpi_comm);
 
 #ifdef HG_DEBUG
-        std::ostringstream fname;
-        fname << "gu" << ParallelDescriptor::NProcs()
-              << "_" << ParallelDescriptor::MyProc() << std::ends;
-        debug_out.open(fname.str().c_str(), std::ios::trunc);
-        if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
-        debug_out << std::setprecision(15);
+    std::ostringstream fname;
+    fname << "gu" << ParallelDescriptor::NProcs()
+          << "_" << ParallelDescriptor::MyProc() << std::ends;
+    debug_out.open(fname.str().c_str(), std::ios::trunc);
+    if ( debug_out.fail() )
+        BoxLib::Error( "Failed to open debug file" );
+    debug_out << std::setprecision(15);
 #endif
-    }
 }
 
 void
@@ -76,6 +91,7 @@ HG::MPI_finish ()
 #ifdef HG_DEBUG
     debug_out.close();
 #endif
+    initialized = false;
 }
 
 // task

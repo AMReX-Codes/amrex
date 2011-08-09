@@ -43,10 +43,6 @@ struct HG
     static int      cgsolve_maxiter;
     static double   cgsolve_tolfact;
     static int      pverbose;
-
-private:
-
-    static bool initialized;
 };
 
 class task_list;
