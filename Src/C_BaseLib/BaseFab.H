@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.73 2011-07-08 16:03:40 lijewski Exp $
+// $Id: BaseFab.H,v 1.74 2011-08-09 00:00:01 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2394,20 +2394,5 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     } EndForTX
     return *this;
 }
-
-namespace BoxLib
-{
-    class BF_init
-    {
-    public:
-        BF_init ();
-        ~BF_init ();
-    private:
-        static int m_cnt;
-    };
-}
-
-static BoxLib::BF_init file_scope_BF_init_object;
-
 
 #endif /*BL_BASEFAB_H*/

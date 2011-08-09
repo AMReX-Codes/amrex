@@ -1,7 +1,7 @@
 #ifndef BL_ARENA_H
 #define BL_ARENA_H
 //
-// $Id: Arena.H,v 1.16 2004-01-07 21:44:20 car Exp $
+// $Id: Arena.H,v 1.17 2011-08-09 00:00:01 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -12,8 +12,6 @@ class Arena;
 namespace BoxLib
 {
     Arena* The_Arena ();
-
-    Arena* ResetArena (Arena*);
 }
 
 //
