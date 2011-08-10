@@ -11,8 +11,6 @@ module nodal_stencil_module
   integer, parameter :: ST_DENSE  = 2
   integer, parameter :: ST_DIAG   = 3
   integer, parameter :: ST_TENSOR = 4
-  integer, parameter :: ST_MINION_CROSS = 5
-  integer, parameter :: ST_MINION_FULL  = 6
 
   real (kind = dp_t), private, parameter :: ZERO  = 0.0_dp_t
   real (kind = dp_t), private, parameter :: ONE   = 1.0_dp_t
