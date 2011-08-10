@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.43 2011-08-10 20:18:57 almgren Exp $
+# $Id: Make.package,v 1.44 2011-08-10 22:11:31 almgren Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -104,11 +104,6 @@ T_headers += ccse-mpi.H
 #
 C$(BOXLIB_BASE)_sources += CoordSys.cpp	Geometry.cpp
 C$(BOXLIB_BASE)_headers += CoordSys.H	Geometry.H
-
-C$(BOXLIB_BASE)_headers += Looping.H
-
-T_headers += BaseFab.H
-C$(BOXLIB_BASE)_sources += BaseFab.cpp
 
 #
 # Fortran interface routines.
