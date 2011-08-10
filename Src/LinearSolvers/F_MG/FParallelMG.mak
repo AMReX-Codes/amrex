@@ -1,7 +1,6 @@
 # FParallelMG.mak
 #
-# Use this to access fParallel's fortran solvers in Parallel/BoxLib code.
-# See iamrlib/run2d/GNUmakefile for an example.
+# Use this to access the F90 solvers from C++.
 # Note: that you can do a parallel make if you are using this file if you
 # are using the MODDEP dependency evaluater that is in Parallel/scripts 
 # and is used in the default Parallel/mk/Make.{rules,defs}. Otherwise,
@@ -15,7 +14,7 @@
 # ifdef FBOXLIB_HOME
 #   include FParallelMG.mak
 #   DEFINES += -DMG_USE_FBOXLIB
-#   Fdirs   := boxlib mg extern/SPARSKIT extern/LAPACK
+#   Fdirs   := boxlib mg extern/LAPACK
 #   Flocs   := $(foreach dir, $(Fdirs), $(FBOXLIB_HOME)/$(dir))
 # endif
 #
@@ -99,8 +98,8 @@ cEXE_headers   += mg_cpp_f.h
 cEXE_sources   += fabio_c.c
 cEXE_sources   += timer_c.c
 
-fEXE_sources += ilut.f
+#fEXE_sources += ilut.f
 #fEXE_sources += iters.f
-fEXE_sources += sk_sup.f
-fEXE_sources += dnrm2.f
+#fEXE_sources += sk_sup.f
+#fEXE_sources += dnrm2.f
 
