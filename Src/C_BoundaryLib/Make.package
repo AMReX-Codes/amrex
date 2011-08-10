@@ -3,16 +3,13 @@ ifeq ($(LBASE),bndry)
     BNDRYLIB_BASE=LIB
 endif
 
-C$(BNDRYLIB_BASE)_sources += FabSet.cpp BndryRegister.cpp \
-                             Geometry.cpp CoordSys.cpp RealBox.cpp \
-                             BndryData.cpp InterpBndryData.cpp MacBndry.cpp \
-                             Mask.cpp
+C$(BNDRYLIB_BASE)_sources += FabSet.cpp	BndryRegister.cpp 	Mask.cpp\
+                             BndryData.cpp InterpBndryData.cpp	MacBndry.cpp
 
-C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H \
-                             Geometry.H CoordSys.H RealBox.H \
+C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H Mask.H \
 			     BndryData.H BoundCond.H InterpBndryData.H \
-			     LO_BCTYPES.H MacBndry.H Mask.H
+			     LO_BCTYPES.H MacBndry.H 
 
-F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H INTERPBNDRYDATA_F.H
+F$(BNDRYLIB_BASE)_headers += INTERPBNDRYDATA_F.H
 
-F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F INTERPBNDRYDATA_$(DIM)D.F LO_UTIL.F
+F$(BNDRYLIB_BASE)_sources += INTERPBNDRYDATA_$(DIM)D.F LO_UTIL.F
