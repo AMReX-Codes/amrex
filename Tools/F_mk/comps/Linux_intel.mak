@@ -3,6 +3,16 @@
     _icc := icc 
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
+    ifeq ($(findstring Version 12, $(_ifc_version)), Version 12)
+      ifeq ($(findstring atlas, $(UNAMEN)), atlas)
+        _ifc  := mpiifort
+        _icc  := mpiicc
+        _comp := Intel12
+      else
+        _ifc  := ifort
+        _comp := Intel12
+      endif
+    else
     ifeq ($(findstring Version 11, $(_ifc_version)), Version 11)
       ifeq ($(findstring atlas, $(UNAMEN)), atlas)
         _ifc  := mpiifort
@@ -41,6 +51,7 @@
     endif
     endif
     endif
+    endif
 #   _ifc += -auto
     F90 := $(_ifc)
     FC  := $(_ifc)
@@ -57,7 +68,7 @@
       FFLAGS   += -openmp -openmp-report2
       F90FLAGS += -openmp -openmp-report2
     endif
-    ifeq ($(_comp),Intel11)
+    ifeq ($(_comp),Intel12)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0 -check all -warn all -u 
         FFLAGS   += -g -traceback -O0 -check all -warn all -u 
@@ -68,10 +79,32 @@
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip -mp1 -fltconsistency 
-          FFLAGS += -O3 -ip -mp1 -fltconsistency
+          F90FLAGS += -O3 -ip -mp1# -fltconsistency 
+          FFLAGS += -O3 -ip -mp1# -fltconsistency
           CFLAGS += -O3 -ip -mp1
 	endif
+      endif
+      ifdef GPROF
+        F90FLAGS += -pg
+      endif
+#      F90FLAGS += -stand f95
+#     FFLAGS += -stand f95
+    endif
+    ifeq ($(_comp),Intel11)
+      ifndef NDEBUG
+        F90FLAGS += -g -traceback -O0 -check all -warn all -u
+        FFLAGS   += -g -traceback -O0 -check all -warn all -u
+        #CFLAGS   += -g -Wcheck
+      else
+        ifdef INTEL_X86
+          F90FLAGS += -fast
+          FFLAGS += -fast
+          CFLAGS += -fast
+        else
+          F90FLAGS += -O3 -ip -mp1# -fltconsistency
+          FFLAGS += -O3 -ip -mp1# -fltconsistency
+          CFLAGS += -O3 -ip -mp1
+        endif
       endif
       ifdef GPROF
         F90FLAGS += -pg
