@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.42 2010-10-01 21:54:57 marc Exp $
+# $Id: Make.package,v 1.43 2011-08-10 20:18:57 almgren Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -66,6 +66,12 @@ C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp
 C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
 
 #
+# Real space.
+#
+C$(BOXLIB_BASE)_sources += RealBox.cpp 
+C$(BOXLIB_BASE)_headers += RealBox.H 
+
+#
 # Unions of rectangles.
 #
 C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp
@@ -94,8 +100,22 @@ C$(BOXLIB_BASE)_sources += FabArray.cpp
 T_headers += ccse-mpi.H
 
 #
+# Geometry / Coordinate system routines.
+#
+C$(BOXLIB_BASE)_sources += CoordSys.cpp	Geometry.cpp
+C$(BOXLIB_BASE)_headers += CoordSys.H	Geometry.H
+
+C$(BOXLIB_BASE)_headers += Looping.H
+
+T_headers += BaseFab.H
+C$(BOXLIB_BASE)_sources += BaseFab.cpp
+
+#
 # Fortran interface routines.
 #
+
+F$(BOXLIB_BASE)_sources += COORDSYS_$(DIM)D.F
+F$(BOXLIB_BASE)_headers += COORDSYS_F.H
 
 ifneq ($(BL_NO_FORT),TRUE)
   f$(BOXLIB_BASE)_sources += BLutil_F.f
