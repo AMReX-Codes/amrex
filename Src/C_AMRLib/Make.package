@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.14 2010-10-06 20:18:19 almgren Exp $
+# $Id: Make.package,v 1.15 2011-08-11 13:47:16 almgren Exp $
 #
 
 AMRLIB_BASE=EXE
@@ -46,3 +46,12 @@ ifeq ($(USE_ARRAYVIEW),TRUE)
   C$(AMRLIB_BASE)_headers += DatasetClient.H
   C$(AMRLIB_BASE)_sources += DatasetClient.cpp
 endif
+
+ifeq ($(USE_PARTICLES), TRUE)
+  DEFINES += -DUSE_PARTICLES
+  CEXE_sources += Particles.cpp
+  CEXE_headers += Particles.H
+  FEXE_headers += Particles_F.H
+  FEXE_sources += Particles_$(DIM)D.F
+endif
+
