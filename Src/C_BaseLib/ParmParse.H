@@ -1,8 +1,7 @@
+
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
-//
-// $Id: ParmParse.H,v 1.33 2011-07-25 18:10:11 marc Exp $
-//
+
 #include <stack>
 #include <string>
 #include <iosfwd>

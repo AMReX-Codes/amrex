@@ -1,6 +1,3 @@
-//
-// $Id: UseCount.cpp,v 1.3 2010-02-11 22:22:34 lijewski Exp $
-//
 
 #include <UseCount.H>
 

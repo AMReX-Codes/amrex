@@ -1,6 +1,3 @@
-//
-// $Id: BLWorkQueue.cpp,v 1.13 2011-08-08 21:23:34 lijewski Exp $
-//
 
 #include <winstd.H>
 #include <cstdlib>

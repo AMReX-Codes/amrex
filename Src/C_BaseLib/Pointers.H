@@ -1,8 +1,7 @@
+
 #ifndef BL_POINTERS_H
 #define BL_POINTERS_H
-//
-// $Id: Pointers.H,v 1.17 2004-07-21 23:50:01 car Exp $
-//
+
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <UseCount.H>

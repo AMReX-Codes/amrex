@@ -1,8 +1,7 @@
+
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
-//
-// $Id: Array.H,v 1.32 2009-02-03 17:08:10 lijewski Exp $
-//
+
 #include <cstddef>
 #include <vector>
 

@@ -1,6 +1,4 @@
-//
-// $Id: RealBox.cpp,v 1.12 2010-02-11 23:15:08 lijewski Exp $
-//
+
 #include <iostream>
 #include <string>
 

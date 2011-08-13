@@ -1,9 +1,6 @@
+
 #ifndef _BL_WORKQUEUE_H_
 #define _BL_WORKQUEUE_H_
-
-//
-// $Id: WorkQueue.H,v 1.5 2001-11-16 18:19:33 car Exp $
-//
 
 #include <Thread.H>
 #include <queue>

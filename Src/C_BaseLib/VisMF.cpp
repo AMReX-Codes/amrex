@@ -1,6 +1,3 @@
-//
-// $Id: VisMF.cpp,v 1.118 2011-07-18 19:52:05 lijewski Exp $
-//
 
 #include <winstd.H>
 #include <cstdio>

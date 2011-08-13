@@ -1,8 +1,7 @@
+
 #ifndef BL_USECOUNT_H
 #define BL_USECOUNT_H
-//
-// $Id: UseCount.H,v 1.14 2010-02-11 22:22:34 lijewski Exp $
-//
+
 #include <BLassert.H>
 #include <BoxLib.H>
 

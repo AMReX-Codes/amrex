@@ -1,8 +1,7 @@
+
 #ifndef BL_BARENA_H
 #define BL_BARENA_H
-//
-// $Id: BArena.H,v 1.11 2004-01-07 21:18:19 car Exp $
-//
+
 #include <Arena.H>
 
 //

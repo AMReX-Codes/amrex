@@ -1,10 +1,6 @@
 #ifndef BL_CONSTANTS_H
 #define BL_CONSTANTS_H
 
-/*
- * $Id: CONSTANTS.H,v 1.12 2001-08-02 16:37:49 car Exp $
- */
-
 #include <REAL.H>
 
 

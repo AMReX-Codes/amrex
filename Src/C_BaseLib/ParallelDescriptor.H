@@ -1,8 +1,7 @@
+
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
-//
-// $Id: ParallelDescriptor.H,v 1.84 2011-06-24 23:13:09 marc Exp $
-//
+
 #include <BLassert.H>
 #include <REAL.H>
 #include <Box.H>

@@ -1,6 +1,3 @@
-#
-# $Id: GNUmakefile,v 1.25 2010-10-01 21:54:57 marc Exp $
-#
 
 PBOXLIB_HOME = ..
 

@@ -1,8 +1,7 @@
+
 #ifndef BL_INDEXTYPE_H
 #define BL_INDEXTYPE_H
-//
-// $Id: IndexType.H,v 1.15 2010-02-11 22:22:34 lijewski Exp $
-//
+
 #include <iosfwd>
 
 #include <ccse-mpi.H>

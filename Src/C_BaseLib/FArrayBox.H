@@ -1,9 +1,6 @@
+
 #ifndef BL_FARRAYBOX_H
 #define BL_FARRAYBOX_H
-
-//
-// $Id: FArrayBox.H,v 1.32 2011-02-17 17:14:24 lijewski Exp $
-//
 
 #include <Pointers.H>
 #include <Box.H>

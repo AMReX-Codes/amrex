@@ -1,6 +1,4 @@
-//
-// $Id: Box.cpp,v 1.29 2010-02-16 18:15:17 lijewski Exp $
-//
+
 #include <iostream>
 #include <limits>
 

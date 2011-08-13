@@ -1,8 +1,7 @@
+
 #ifndef _RealBox_H_
 #define _RealBox_H_ 
-//
-// $Id: RealBox.H,v 1.12 2010-02-11 23:15:08 lijewski Exp $
-//
+
 #include <iosfwd>
 
 #include <Array.H>

@@ -1,8 +1,7 @@
+
 #ifndef BL_BOXDOMAIN_H
 #define BL_BOXDOMAIN_H
-//
-// $Id: BoxDomain.H,v 1.27 2002-03-26 20:04:06 lijewski Exp $
-//
+
 #include <iosfwd>
 
 #include <IndexType.H>

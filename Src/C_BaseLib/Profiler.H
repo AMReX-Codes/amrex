@@ -1,8 +1,6 @@
+
 #ifndef _BL_PROFILER_H_
 #define _BL_PROFILER_H_
-//
-// $Id: Profiler.H,v 1.10 2006-02-10 22:18:40 car Exp $
-//
 
 #ifdef BL_PROFILING
 #include <iostream>

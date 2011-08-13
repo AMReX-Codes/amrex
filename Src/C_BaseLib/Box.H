@@ -1,8 +1,7 @@
+
 #ifndef BL_BOX_H
 #define BL_BOX_H
-//
-// $Id: Box.H,v 1.29 2010-02-16 18:15:17 lijewski Exp $
-//
+
 #ifdef NODEV
 #undef NODEV
 #endif

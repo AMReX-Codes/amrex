@@ -1,6 +1,4 @@
 C
-C $Id: BLutil_F.f,v 1.5 2009-02-11 01:44:06 lijewski Exp $
-C
 C=======================================================================
 C
 C     String handling routines:

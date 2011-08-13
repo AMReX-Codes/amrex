@@ -1,8 +1,7 @@
+
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
-//
-// $Id: FabArray.H,v 1.210 2011-08-06 02:56:31 lijewski Exp $
-//
+
 #include <iostream>
 #include <cstring>
 #include <limits>

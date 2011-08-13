@@ -1,9 +1,6 @@
+
 #ifndef BL_LOOPING_H
 #define BL_LOOPING_H
-
-//
-// $Id: Looping.H,v 1.15 2011-07-08 16:42:38 lijewski Exp $
-//
 
 #if (BL_SPACEDIM == 1)
 

@@ -1,6 +1,4 @@
-//
-// $Id: ParallelDescriptor.cpp,v 1.119 2011-08-09 16:36:54 lijewski Exp $
-//
+
 #include <cstdio>
 #include <Utility.H>
 #include <ParallelDescriptor.H>

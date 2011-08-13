@@ -1,8 +1,6 @@
+
 #ifndef BL_VISMF_H
 #define BL_VISMF_H
-//
-// $Id: VisMF.H,v 1.54 2007-04-06 19:58:58 vince Exp $
-//
 
 #include <iosfwd>
 #include <string>

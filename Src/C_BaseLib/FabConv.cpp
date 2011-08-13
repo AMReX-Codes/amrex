@@ -1,6 +1,3 @@
-//
-// $Id: FabConv.cpp,v 1.17 2007-03-29 19:40:57 lijewski Exp $
-//
 
 #include <iostream>
 #include <cstdlib>

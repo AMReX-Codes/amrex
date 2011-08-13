@@ -1,6 +1,3 @@
-//
-// $Id: Arena.cpp,v 1.3 2004-01-07 21:18:19 car Exp $
-//
 
 #include <Arena.H>
 #include <BoxLib.H>

@@ -1,8 +1,7 @@
+
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
-//
-// $Id: BoxList.H,v 1.36 2010-06-28 17:33:48 lijewski Exp $
-//
+
 #include <iosfwd>
 #include <list>
 

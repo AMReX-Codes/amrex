@@ -1,9 +1,6 @@
+
 #ifndef BL_BOXLIB_H
 #define BL_BOXLIB_H
-
-//
-// $Id: BoxLib.H,v 1.18 2011-08-05 22:20:28 lijewski Exp $
-//
 
 #include "ccse-mpi.H"
 
