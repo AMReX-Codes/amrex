@@ -1,8 +1,5 @@
-//
-// $Id: BCRec.cpp,v 1.10 2010-02-11 23:38:05 lijewski Exp $
-//
-#include <iostream>
 
+#include <iostream>
 #include <BCRec.H>
 
 BCRec::BCRec () {}

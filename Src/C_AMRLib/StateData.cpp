@@ -1,10 +1,6 @@
 
-//
-// $Id: StateData.cpp,v 1.43 2010-04-02 20:29:13 almgren Exp $
-//
 #include <winstd.H>
 #include <iostream>
-
 #include <algorithm>
 
 #include <RealBox.H>

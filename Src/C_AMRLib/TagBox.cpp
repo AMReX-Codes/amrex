@@ -1,9 +1,5 @@
 
-//
-// $Id: TagBox.cpp,v 1.85 2011-06-29 05:23:51 lijewski Exp $
-//
 #include <winstd.H>
-
 #include <algorithm>
 #include <cstdlib>
 #include <vector>

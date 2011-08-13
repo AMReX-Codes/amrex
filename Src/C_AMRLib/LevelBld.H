@@ -2,10 +2,6 @@
 #ifndef _LEVELBLD_H_
 #define _LEVELBLD_H_
 
-//
-// $Id: LevelBld.H,v 1.7 2007-07-05 17:02:00 lijewski Exp $
-//
-
 #include <REAL.H>
 #include <Box.H>
 #include <Geometry.H>

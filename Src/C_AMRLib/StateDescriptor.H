@@ -1,8 +1,7 @@
+
 #ifndef _StateDescriptor_H_
 #define _StateDescriptor_H_ 
-//
-// $Id: StateDescriptor.H,v 1.22 2010-03-26 21:34:23 almgren Exp $
-//
+
 #include <utility>
 #include <vector>
 

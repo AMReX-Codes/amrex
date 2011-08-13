@@ -1,6 +1,3 @@
-c
-c $Id: INTERP_2D.F,v 1.34 2010-11-09 16:56:07 almgren Exp $
-c
 
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT

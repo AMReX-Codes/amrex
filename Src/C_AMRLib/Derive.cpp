@@ -1,8 +1,5 @@
-//
-// $Id: Derive.cpp,v 1.20 2011-05-13 20:58:31 almgren Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <cstring>
 
 #include <Derive.H>

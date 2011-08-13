@@ -1,6 +1,3 @@
-C
-c $Id: INTERP_3D.F,v 1.45 2011-03-24 20:50:43 lijewski Exp $
-c
 
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT

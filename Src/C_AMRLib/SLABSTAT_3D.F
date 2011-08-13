@@ -1,6 +1,4 @@
-c
-c $Id: SLABSTAT_3D.F,v 1.4 2002-11-27 21:54:19 car Exp $
-c
+
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

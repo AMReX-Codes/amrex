@@ -1,8 +1,5 @@
-//
-// $Id: FluxRegister.cpp,v 1.104 2011-03-15 23:56:12 nazgul Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <BArena.H>
 #include <FluxRegister.H>
 #include <Geometry.H>

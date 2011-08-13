@@ -1,10 +1,6 @@
 #ifndef _INTERP_NAMES_H
 #define _INTERP_NAMES_H
 
-/*
-** $Id: INTERP_F.H,v 1.17 2010-07-29 16:33:28 almgren Exp $
-*/
-
 #ifdef BL_LANG_FORT
 #    define FORT_NBINTERP    nbinterp
 #    define FORT_CBINTERP    cbinterp

@@ -1,8 +1,6 @@
 
 #include <winstd.H>
-
 #include <iostream>
-
 #include <AuxBoundaryData.H>
 
 AuxBoundaryData::AuxBoundaryData ()

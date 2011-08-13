@@ -1,8 +1,5 @@
-//
-// $Id: SlabStat.cpp,v 1.16 2007-10-04 22:31:27 lijewski Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <AmrLevel.H>
 #include <ParmParse.H>
 #include <SlabStat.H>

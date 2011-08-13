@@ -1,6 +1,3 @@
-c
-c $Id: ARRAYLIM_3D.F,v 1.1 2000-04-21 16:20:21 sstanley Exp $
-c
 
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT

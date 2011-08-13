@@ -1,9 +1,5 @@
-//
-// $Id: ErrorList.cpp,v 1.11 2011-08-05 22:04:38 almgren Exp $
-//
 
 #include <iostream>
-
 #include <BLassert.H>
 #include <ErrorList.H>
 

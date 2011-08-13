@@ -1,6 +1,3 @@
-c
-c $Id: FILCC_2D.F,v 1.9 2008-02-08 17:48:47 lijewski Exp $
-c
 
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT

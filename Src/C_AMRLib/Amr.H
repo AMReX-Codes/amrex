@@ -1,9 +1,6 @@
+
 #ifndef _Amr_H_
 #define _Amr_H_ 
-
-//
-// $Id: Amr.H,v 1.46 2011-08-05 22:21:36 lijewski Exp $
-//
 
 #include <fstream>
 

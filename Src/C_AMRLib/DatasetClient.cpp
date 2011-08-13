@@ -1,8 +1,4 @@
 
-//
-// $Id: DatasetClient.cpp,v 1.21 2008-09-25 22:50:21 vince Exp $
-//
-
 #include <climits>
 #include <cstring>
 #include <cstdlib>

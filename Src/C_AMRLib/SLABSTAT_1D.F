@@ -1,6 +1,4 @@
-c
-c $Id: SLABSTAT_1D.F,v 1.1 2006-05-02 16:47:05 lijewski Exp $
-c
+
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

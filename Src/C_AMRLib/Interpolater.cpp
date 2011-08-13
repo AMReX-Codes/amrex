@@ -1,6 +1,4 @@
-//
-// $Id: Interpolater.cpp,v 1.39 2010-07-28 01:07:23 almgren Exp $
-//
+
 #include <winstd.H>
 #include <climits>
 

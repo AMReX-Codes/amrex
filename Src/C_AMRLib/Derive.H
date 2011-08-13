@@ -1,8 +1,5 @@
 #ifndef _Derive_H_
 #define _Derive_H_
-//
-// $Id: Derive.H,v 1.18 2011-08-09 21:32:45 lijewski Exp $
-//
 #include <list>
 #include <string>
 

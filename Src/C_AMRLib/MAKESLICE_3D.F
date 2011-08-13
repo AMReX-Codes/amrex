@@ -1,6 +1,3 @@
-c
-c $Id: MAKESLICE_3D.F,v 1.9 2010-11-10 23:46:09 lijewski Exp $
-c
 
 #undef  BL_LANG_CC         
 #ifndef BL_LANG_FORT

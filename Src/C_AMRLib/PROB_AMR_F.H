@@ -1,10 +1,6 @@
 #ifndef _PROB_AMR_F_H_
 #define _PROB_AMR_F_H_
 
-/*
-** $Id: PROB_AMR_F.H,v 1.9 2002-04-26 22:10:02 lijewski Exp $
-*/
-
 #ifdef BL_LANG_FORT
 #    define FORT_PROBINIT    probinit
 #ifdef BL_SYNC_RANTABLES
