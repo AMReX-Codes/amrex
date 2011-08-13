@@ -1,6 +1,3 @@
-
-//
-// $Id: tread.cpp,v 1.1 2001-10-11 16:33:38 lijewski Exp $
 //
 // Read in and sum up FABs on command line.
 //

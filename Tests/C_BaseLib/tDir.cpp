@@ -1,8 +1,4 @@
 
-//
-// $Id: tDir.cpp,v 1.4 2001-07-22 18:25:48 car Exp $
-//
-
 #include <Utility.H>
 
 int
