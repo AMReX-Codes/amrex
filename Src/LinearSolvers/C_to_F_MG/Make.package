@@ -1,8 +1,2 @@
-#
-# $Id: Make.package,v 1.1 2006-05-18 21:14:49 car Exp $
-#
-
-ifdef FBOXLIB_HOME
-  CEXE_sources += MGT_Solver.cpp
-  CEXE_headers += MGT_Solver.H
-endif
+CEXE_sources += MGT_Solver.cpp
+CEXE_headers += MGT_Solver.H
