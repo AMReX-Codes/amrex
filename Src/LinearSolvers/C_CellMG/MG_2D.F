@@ -1,6 +1,4 @@
-c
-c $Id: MG_2D.F,v 1.5 2008-02-08 18:08:01 lijewski Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

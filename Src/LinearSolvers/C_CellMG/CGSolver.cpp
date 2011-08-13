@@ -1,6 +1,3 @@
-//
-// $Id: CGSolver.cpp,v 1.54 2011-08-08 20:47:45 lijewski Exp $
-//
 #include <winstd.H>
 
 #include <algorithm>

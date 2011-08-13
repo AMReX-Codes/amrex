@@ -2,10 +2,6 @@
 #ifndef _LAPLACIAN_H_
 #define _LAPLACIAN_H_
 
-//
-// $Id: Laplacian.H,v 1.10 2010-02-16 17:52:34 lijewski Exp $
-//
-
 #include <LinOp.H>
 
 //@Man:

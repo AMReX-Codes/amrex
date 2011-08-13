@@ -1,9 +1,5 @@
 
-//
-// $Id: LinOp.cpp,v 1.44 2011-08-08 20:47:45 lijewski Exp $
-//
 #include <winstd.H>
-
 #include <cstdlib>
 
 #include <ParmParse.H>

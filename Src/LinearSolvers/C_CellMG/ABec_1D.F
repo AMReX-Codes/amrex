@@ -1,6 +1,3 @@
-c
-c $Id: ABec_1D.F,v 1.2 2007-10-30 20:47:09 almgren Exp $
-c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

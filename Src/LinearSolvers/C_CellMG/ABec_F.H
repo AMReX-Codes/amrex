@@ -1,10 +1,6 @@
 #ifndef _AABBEC_F_H_
 #define _AABBEC_F_H_
 
-/*
-** $Id: ABec_F.H,v 1.10 2009-09-28 21:13:06 lijewski Exp $
-*/
-
 #include <REAL.H>
 
 #if        defined(BL_LANG_FORT)

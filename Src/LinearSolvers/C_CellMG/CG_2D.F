@@ -1,5 +1,3 @@
-c     $Id: CG_2D.F,v 1.6 2008-02-08 18:08:01 lijewski Exp $
-
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

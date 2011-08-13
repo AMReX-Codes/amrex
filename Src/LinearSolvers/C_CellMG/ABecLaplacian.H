@@ -2,10 +2,6 @@
 #ifndef _ABecLAPLACIAN_H_
 #define _ABecLAPLACIAN_H_
 
-//
-// $Id: ABecLaplacian.H,v 1.14 2007-10-22 20:27:04 almgren Exp $
-//
-
 #include <Tuple.H>
 #include <LinOp.H>
 

@@ -1,11 +1,5 @@
-
-//
-// $Id: ABecLaplacian.cpp,v 1.28 2009-09-29 20:42:36 lijewski Exp $
-//
 #include <winstd.H>
-
 #include <algorithm>
-
 #include <ABecLaplacian.H>
 #include <ABec_F.H>
 #include <ParallelDescriptor.H>

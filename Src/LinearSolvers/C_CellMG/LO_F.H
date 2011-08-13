@@ -1,10 +1,6 @@
 #ifndef _LO_F_H_
 #define _LO_F_H_
 
-/*
-** $Id: LO_F.H,v 1.4 2007-10-30 20:47:09 almgren Exp $
-*/
-
 #include <REAL.H>
 
 #if        defined(BL_LANG_FORT)
