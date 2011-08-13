@@ -1,6 +1,4 @@
-c
-c $Id: LO_UTIL.F,v 1.3 2002-10-19 18:33:57 car Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

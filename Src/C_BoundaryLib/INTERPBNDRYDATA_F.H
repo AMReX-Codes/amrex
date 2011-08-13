@@ -1,9 +1,6 @@
+
 #ifndef _INTERPBNDRY_F_H_
 #define _INTERPBNDRY_F_H_
-
-/*
-** $Id: INTERPBNDRYDATA_F.H,v 1.4 2011-01-25 23:50:22 marc Exp $
-*/
 
 #ifdef BL_LANG_FORT
 #    define FORT_BDINTERPXLO  bdintrpxlo

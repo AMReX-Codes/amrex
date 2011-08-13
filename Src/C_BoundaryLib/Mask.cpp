@@ -1,10 +1,5 @@
 
-//
-// $Id: Mask.cpp,v 1.7 2010-02-16 18:02:58 lijewski Exp $
-//
-
 #include <cstdlib>
-
 #include <Looping.H>
 #include <Mask.H>
 #include <Utility.H>

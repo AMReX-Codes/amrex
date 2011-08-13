@@ -2,10 +2,6 @@
 #ifndef _BOUNDCOND_H_
 #define _BOUNDCOND_H_
 
-//
-// $Id: BoundCond.H,v 1.8 2000-10-02 20:51:15 lijewski Exp $
-//
-
 #include <BLassert.H>
 
 //@Man:

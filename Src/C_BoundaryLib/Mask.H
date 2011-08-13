@@ -1,9 +1,6 @@
 
 #ifndef _MASK_H_
 #define _MASK_H_
-//
-// $Id: Mask.H,v 1.6 2010-02-16 18:02:58 lijewski Exp $
-//
 
 #include <BaseFab.H>
 #include <FArrayBox.H>

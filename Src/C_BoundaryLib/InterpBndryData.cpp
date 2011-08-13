@@ -1,9 +1,5 @@
 
-//
-// $Id: InterpBndryData.cpp,v 1.24 2011-08-05 22:21:16 lijewski Exp $
-//
 #include <winstd.H>
-
 #include <LO_BCTYPES.H>
 #include <InterpBndryData.H>
 #include <INTERPBNDRYDATA_F.H>

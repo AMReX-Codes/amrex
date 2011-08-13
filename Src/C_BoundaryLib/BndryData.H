@@ -2,10 +2,6 @@
 #ifndef _BNDRYDATA_H_
 #define _BNDRYDATA_H_
 
-//
-// $Id: BndryData.H,v 1.13 2010-02-16 17:55:01 lijewski Exp $
-//
-
 #include <BLassert.H>
 #include <BoxArray.H>
 #include <FArrayBox.H>
