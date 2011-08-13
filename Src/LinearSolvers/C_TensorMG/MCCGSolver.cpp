@@ -1,9 +1,4 @@
-
-//
-// $Id: MCCGSolver.cpp,v 1.19 2011-08-09 15:51:53 lijewski Exp $
-//
 #include <winstd.H>
-
 #include <algorithm>
 
 #include <ParmParse.H>

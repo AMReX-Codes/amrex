@@ -1,9 +1,4 @@
-
-//
-// $Id: DivVis.cpp,v 1.13 2007-07-05 20:59:05 lijewski Exp $
-//
 #include <winstd.H>
-
 #include <DivVis.H>
 #include <DivVis_F.H>
 
