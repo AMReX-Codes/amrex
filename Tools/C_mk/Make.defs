@@ -255,12 +255,12 @@ CC  = cc
 ARCH		= IEEE
 FORTLINK  	= UNDERSCORE
 
-FORTPREP  	= perl $(PBOXLIB_HOME)/Tools/C_scripts/strip72 -c
+FORTPREP  	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
 # a placeholder in case we have to write something later
 F90PREP  	= cat
-MKDEP		= perl $(PBOXLIB_HOME)/Tools/C_scripts/mkdep
-MODDEP		= perl $(PBOXLIB_HOME)/Tools/C_scripts/moddep.pl
-INSTALL		= sh   $(PBOXLIB_HOME)/Tools/C_scripts/install-sh -c
+MKDEP		= perl $(PBOXLIB_HOME)/scripts/mkdep
+MODDEP		= perl $(PBOXLIB_HOME)/scripts/moddep.pl
+INSTALL		= sh   $(PBOXLIB_HOME)/scripts/install-sh -c
 #
 # SunOS ranlib has a problem if the library is installed 444 :-(
 #
@@ -714,7 +714,7 @@ ifndef F90
 F90 = $(FC)
 endif
 
-include $(PBOXLIB_HOME)/Tools/C_mk/Make.$(MACHINE)
+include $(PBOXLIB_HOME)/mk/Make.$(MACHINE)
 
 ifeq ($(DEBUG),TRUE)
     FFLAGS	+= $(FDEBF)
@@ -748,7 +748,7 @@ endif
 ifeq ($(USE_MPI),TRUE)
     MPISuffix	:= .MPI
     CPPFLAGS	+= -DBL_USE_MPI
-    include $(PBOXLIB_HOME)/Tools/C_mk/Make.mpi
+    include $(PBOXLIB_HOME)/mk/Make.mpi
 else
     MPISuffix	:=
 endif
@@ -756,7 +756,7 @@ endif
 ifeq ($(USE_OMP),TRUE)
     OMPSuffix	:= .OMP
     CPPFLAGS	+= -DBL_USE_OMP
-    #include $(PBOXLIB_HOME)/Tools/C_mk/Make.mpi
+    #include $(PBOXLIB_HOME)/mk/Make.mpi
 else
     OMPSuffix	:=
 endif
@@ -853,7 +853,7 @@ instBinDir	= $(INSTALL_PREFIX)/bin/$(machineSuffix)
 instScriptDir	= $(INSTALL_PREFIX)/bin
 instHtmlDir	= $(INSTALL_PREFIX)/html
 instInfoDir	= $(INSTALL_PREFIX)/info
-instMkDir	= $(INSTALL_PREFIX)/Tools/C_mk
+instMkDir	= $(INSTALL_PREFIX)/mk
  
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
