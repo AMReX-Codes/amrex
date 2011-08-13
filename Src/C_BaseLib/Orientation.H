@@ -1,8 +1,7 @@
+
 #ifndef BL_ORIENTATION_H
 #define BL_ORIENTATION_H
-//
-// $Id: Orientation.H,v 1.16 2010-02-16 18:15:17 lijewski Exp $
-//
+
 #include <iosfwd>
 
 #include <BLassert.H>

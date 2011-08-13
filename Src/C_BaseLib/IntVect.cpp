@@ -1,8 +1,5 @@
-//
-// $Id: IntVect.cpp,v 1.23 2010-02-16 18:15:17 lijewski Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>

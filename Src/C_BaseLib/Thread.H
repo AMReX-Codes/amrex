@@ -1,9 +1,6 @@
+
 #ifndef _BL_THREAD_H_
 #define _BL_THREAD_H_
-
-//
-// $Id: Thread.H,v 1.24 2008-02-28 17:48:22 lijewski Exp $
-//
 
 //#include <cstdio>
 

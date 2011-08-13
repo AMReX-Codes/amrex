@@ -1,9 +1,6 @@
+
 #ifndef BL_CCSE_MPP
 #define BL_CCSE_MPP
-
-//
-// $Id: ccse-mpi.H,v 1.15 2010-04-23 20:16:46 lijewski Exp $
-//
 
 //
 // This header encapsulates the MPI header.

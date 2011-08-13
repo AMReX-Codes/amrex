@@ -1,9 +1,6 @@
+
 #ifndef BL_FPC_H
 #define BL_FPC_H
-
-//
-// $Id: FPC.H,v 1.7 2007-03-29 19:40:57 lijewski Exp $
-//
 
 #include <FabConv.H>
 

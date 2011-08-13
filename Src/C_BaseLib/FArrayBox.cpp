@@ -1,8 +1,5 @@
-//
-// $Id: FArrayBox.cpp,v 1.56 2011-08-05 22:20:28 lijewski Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>

@@ -1,6 +1,3 @@
-//
-// $Id: BLThread.cpp,v 1.37 2008-08-01 17:49:14 mzingale Exp $
-//
 
 #include <winstd.H>
 #include <Profiler.H>

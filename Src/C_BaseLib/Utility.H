@@ -1,8 +1,7 @@
+
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
-//
-// $Id: Utility.H,v 1.64 2011-06-16 16:30:26 lijewski Exp $
-//
+
 #include <winstd.H>
 
 #include <iostream>

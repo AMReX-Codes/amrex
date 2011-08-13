@@ -1,8 +1,5 @@
-//
-// $Id: CArena.cpp,v 1.34 2010-02-02 13:01:47 ajnonaka Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <utility>
 #include <cstring>
 

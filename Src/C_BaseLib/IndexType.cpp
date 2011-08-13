@@ -1,6 +1,4 @@
-//
-// $Id: IndexType.cpp,v 1.13 2010-02-11 22:22:34 lijewski Exp $
-//
+
 #include <iostream>
 #include <iomanip>
 

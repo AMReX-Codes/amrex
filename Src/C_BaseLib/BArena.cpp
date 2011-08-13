@@ -1,6 +1,4 @@
-//
-// $Id: BArena.cpp,v 1.11 2004-01-07 21:18:19 car Exp $
-//
+
 #include <BArena.H>
 #include <BoxLib.H>
 

@@ -1,6 +1,4 @@
-//
-// $Id: Orientation.cpp,v 1.9 2001-07-31 22:43:19 lijewski Exp $
-//
+
 #include <iostream>
 
 #include <BoxLib.H>

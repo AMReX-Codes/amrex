@@ -1,6 +1,3 @@
-//
-// $Id: Utility.cpp,v 1.87 2011-06-16 16:30:26 lijewski Exp $
-//
 
 #include <cstdlib>
 #include <cstring>

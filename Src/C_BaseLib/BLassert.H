@@ -1,9 +1,6 @@
+
 #ifndef BL_BLASSERT_H
 #define BL_BLASSERT_H
-
-//
-// $Id: BLassert.H,v 1.5 2001-07-17 23:02:18 lijewski Exp $
-//
 
 #include <BoxLib.H>
 

@@ -1,9 +1,6 @@
+
 #ifndef _COORDSYS_H_
 #define _COORDSYS_H_ 
-
-//
-// $Id: CoordSys.H,v 1.12 2010-02-11 23:15:08 lijewski Exp $
-//
 
 #include <REAL.H>
 #include <Array.H>

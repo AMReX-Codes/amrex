@@ -1,10 +1,8 @@
+
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
-//
-// $Id: BaseFab.H,v 1.74 2011-08-09 00:00:01 lijewski Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>

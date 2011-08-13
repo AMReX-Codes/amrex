@@ -1,10 +1,8 @@
+
 #ifndef BL_ARENA_H
 #define BL_ARENA_H
-//
-// $Id: Arena.H,v 1.17 2011-08-09 00:00:01 lijewski Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <cstddef>
 
 class Arena;

@@ -1,8 +1,5 @@
-//
-// $Id: CoordSys.cpp,v 1.20 2010-02-11 23:15:08 lijewski Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <cmath>
 #include <iostream>
 

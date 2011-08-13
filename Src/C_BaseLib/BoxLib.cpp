@@ -1,8 +1,5 @@
-//
-// $Id: BoxLib.cpp,v 1.45 2011-08-05 22:20:28 lijewski Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

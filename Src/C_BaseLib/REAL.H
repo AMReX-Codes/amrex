@@ -1,9 +1,6 @@
+
 #ifndef BL_REAL_H
 #define BL_REAL_H
-
-/*
- * $Id: REAL.H,v 1.14 2007-03-29 19:40:57 lijewski Exp $
- */
 
 #ifdef BL_USE_FLOAT
 #  undef BL_USE_DOUBLE

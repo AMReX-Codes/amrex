@@ -1,9 +1,6 @@
+
 #ifndef BL_SPACE_H
 #define BL_SPACE_H
-
-/*
-** $Id: SPACE.H,v 1.11 2002-04-26 22:10:01 lijewski Exp $
-*/
 
 #if defined(BL_SPACEDIM) && !defined(SPACEDIM)
 #define SPACEDIM BL_SPACEDIM

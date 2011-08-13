@@ -1,8 +1,5 @@
-//
-// $Id: BoxArray.cpp,v 1.71 2010-06-28 18:24:45 lijewski Exp $
-//
-#include <iostream>
 
+#include <iostream>
 #include <BLassert.H>
 #include <BoxArray.H>
 

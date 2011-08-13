@@ -1,6 +1,3 @@
-//
-// $Id: FPC.cpp,v 1.16 2010-09-30 22:41:03 lijewski Exp $
-//
 
 #include <FPC.H>
 //

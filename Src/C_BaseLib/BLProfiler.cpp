@@ -1,9 +1,5 @@
 
-//
-// $Id: BLProfiler.cpp,v 1.30 2011-08-05 22:20:28 lijewski Exp $
-//
 #include <winstd.H>
-
 #include <cstdio>
 #include <cctype>
 #include <cassert>

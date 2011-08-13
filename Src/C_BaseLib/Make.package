@@ -1,6 +1,3 @@
-#
-# $Id: Make.package,v 1.44 2011-08-10 22:11:31 almgren Exp $
-#
 
 BOXLIB_BASE=EXE
 ifeq ($(LBASE),box)

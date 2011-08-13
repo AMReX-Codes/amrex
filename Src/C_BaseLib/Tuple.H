@@ -1,9 +1,6 @@
+
 #ifndef BL_TUPLE_H
 #define BL_TUPLE_H
-
-//
-// $Id: Tuple.H,v 1.18 2011-06-16 16:30:26 lijewski Exp $
-//
 
 #include <cstdlib>
 
