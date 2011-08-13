@@ -1,9 +1,7 @@
 #ifndef _DivVis_F_H_
-
 #define _DivVis_F_H_ "$Id"
 
 #include <REAL.H>
-
 
 #if   defined(BL_LANG_FORT)
 #   if  (BL_SPACEDIM==2)

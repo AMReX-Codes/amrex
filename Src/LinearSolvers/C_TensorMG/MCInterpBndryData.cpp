@@ -1,9 +1,4 @@
-
-//
-// $Id: MCInterpBndryData.cpp,v 1.16 2004-01-07 21:18:43 car Exp $
-//
 #include <winstd.H>
-
 #include <cmath>
 
 #include <LO_BCTYPES.H>

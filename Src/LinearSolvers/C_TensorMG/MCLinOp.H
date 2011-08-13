@@ -2,10 +2,6 @@
 #ifndef _MCLINOP_H_
 #define _MCLINOP_H_
 
-//
-// $Id: MCLinOp.H,v 1.13 2011-08-09 15:51:53 lijewski Exp $
-//
-
 #include <BLassert.H>
 #include <Array.H>
 #include <Tuple.H>

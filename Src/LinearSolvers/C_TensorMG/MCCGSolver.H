@@ -2,10 +2,6 @@
 #ifndef _MCCGSOLVER_H_
 #define _MCCGSOLVER_H_
 
-//
-// $Id: MCCGSolver.H,v 1.10 2011-08-09 15:51:53 lijewski Exp $
-//
-
 #include <cmath>
 
 #include <Array.H>

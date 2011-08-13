@@ -1,9 +1,5 @@
 
-//
-// $Id: MCMultiGrid.cpp,v 1.16 2011-08-09 15:51:53 lijewski Exp $
-// 
 #include <winstd.H>
-
 #include <algorithm>
 #include <cstdlib>
 

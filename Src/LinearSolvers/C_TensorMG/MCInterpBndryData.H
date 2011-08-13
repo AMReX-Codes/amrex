@@ -2,10 +2,6 @@
 #ifndef _MCINTERPBNDRYDATA_H_
 #define _MCINTERPBNDRYDATA_H_
 
-//
-// $Id: MCInterpBndryData.H,v 1.8 2000-10-02 20:53:39 lijewski Exp $
-//
-
 #include <BLassert.H>
 #include <BoxArray.H>
 #include <FArrayBox.H>

@@ -1,10 +1,5 @@
-
 #ifndef _DivVis_H_
 #define _DivVis_H_
-
-//
-// $Id: DivVis.H,v 1.6 2001-08-01 21:51:06 lijewski Exp $
-//
 
 #include <Tuple.H>
 #include <MCLinOp.H>
