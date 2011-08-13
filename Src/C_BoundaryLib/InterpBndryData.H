@@ -2,10 +2,6 @@
 #ifndef _INTERPBNDRYDATA_H_
 #define _INTERPBNDRYDATA_H_
 
-//
-// $Id: InterpBndryData.H,v 1.11 2011-01-25 23:50:22 marc Exp $
-//
-
 #include <BoxArray.H>
 #include <FArrayBox.H>
 #include <Orientation.H>

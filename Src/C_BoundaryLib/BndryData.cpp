@@ -1,9 +1,5 @@
 
-//
-// $Id: BndryData.cpp,v 1.25 2011-06-24 22:40:28 marc Exp $
-//
 #include <winstd.H>
-
 #include <BndryData.H>
 #include <Utility.H>
 #include <LO_BCTYPES.H>

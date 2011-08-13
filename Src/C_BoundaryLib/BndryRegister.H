@@ -1,9 +1,6 @@
+
 #ifndef _BNDRYREGISTER_H_
 #define _BNDRYREGISTER_H_
-
-//
-// $Id: BndryRegister.H,v 1.13 2011-03-15 23:55:15 nazgul Exp $
-//
 
 #include <BoxArray.H>
 #include <FabSet.H>

@@ -1,6 +1,4 @@
-c
-c $Id: INTERPBNDRYDATA_3D.F,v 1.10 2011-04-13 21:03:26 lijewski Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

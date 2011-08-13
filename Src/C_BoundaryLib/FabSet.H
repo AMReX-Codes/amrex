@@ -1,8 +1,7 @@
+
 #ifndef _FABSET_H_
 #define _FABSET_H_
-//
-// $Id: FabSet.H,v 1.23 2011-03-15 23:55:15 nazgul Exp $
-//
+
 #include <MultiFab.H>
 
 //@Man:
