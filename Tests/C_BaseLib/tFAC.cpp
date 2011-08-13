@@ -1,7 +1,5 @@
 
 //
-// $Id: tFAC.cpp,v 1.6 2004-03-05 17:49:51 car Exp $
-//
 // A simple program to test FabArray<T>::copy() in parallel.
 //
 

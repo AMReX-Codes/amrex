@@ -1,8 +1,4 @@
 
-//
-// $Id: tParmParse.cpp,v 1.1 2004-01-21 21:04:13 lijewski Exp $
-//
-
 #include <iostream>
 
 #include <Array.H>
