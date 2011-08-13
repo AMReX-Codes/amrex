@@ -223,7 +223,7 @@ dsp: $(DspFileRoot).dsp
 
 $(DspFileRoot).dsp: .dspDepends
 	@(echo Building DSP file = $(DspFileRoot).dsp; \
-	$(TOP)/scripts/dsp.mak -p $(DspFileRoot) -t $(TOP) -d $(DIM) \
+	$(TOP)/Tools/C_scripts/dsp.mak -p $(DspFileRoot) -t $(TOP) -d $(DIM) \
 		-o $(DspFileRoot).dsp -O $(DspOlevel) -f $^)
 
 .PHONY: dsp
