@@ -2,10 +2,6 @@
 #ifndef _MULTIGRID_H_
 #define _MULTIGRID_H_
 
-//
-// $Id: MultiGrid.H,v 1.16 2011-08-08 17:24:24 lijewski Exp $
-//
-
 #include <Array.H>
 #include <PArray.H>
 #include <Pointers.H>

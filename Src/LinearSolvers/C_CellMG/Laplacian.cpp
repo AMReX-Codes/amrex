@@ -1,11 +1,6 @@
 
-//
-// $Id: Laplacian.cpp,v 1.20 2010-02-16 17:52:34 lijewski Exp $
-//
 #include <winstd.H>
-
 #include <Laplacian.H>
-
 #include <LP_F.H>
 
 Laplacian::Laplacian (const BndryData& bd,

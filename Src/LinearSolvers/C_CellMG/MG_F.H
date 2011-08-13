@@ -1,10 +1,6 @@
 #ifndef _MG_F_H_
 #define _MG_F_H_
 
-/*
-** $Id: MG_F.H,v 1.4 2007-10-30 20:48:24 almgren Exp $
-*/
-
 #include <REAL.H>
 
 #if        defined(BL_LANG_FORT)

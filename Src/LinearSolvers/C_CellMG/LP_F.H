@@ -1,10 +1,6 @@
 #ifndef _LP_F_H_
 #define _LP_F_H_
 
-/*
-** $Id: LP_F.H,v 1.11 2009-09-28 21:13:06 lijewski Exp $
-*/
-
 #include <REAL.H>
 
 #if        defined(BL_LANG_FORT)

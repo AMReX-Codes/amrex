@@ -1,6 +1,3 @@
-c
-c $Id: ABec_UTIL.F,v 1.3 2003-02-18 20:54:40 car Exp $
-c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

@@ -1,6 +1,4 @@
-c
-c $Id: MG_3D.F,v 1.7 2009-11-04 16:55:37 lijewski Exp $
-c
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT

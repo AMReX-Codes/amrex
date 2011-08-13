@@ -2,10 +2,6 @@
 #ifndef _LINOP_H_
 #define _LINOP_H_
 
-//
-// $Id: LinOp.H,v 1.23 2011-08-08 17:24:24 lijewski Exp $
-//
-
 #include <Array.H>
 #include <Tuple.H>
 #include <Pointers.H>

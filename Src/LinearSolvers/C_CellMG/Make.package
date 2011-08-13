@@ -1,7 +1,3 @@
-#
-# $Id: Make.package,v 1.5 2011-07-14 21:24:35 almgren Exp $
-#
-
 MGLIB_BASE=EXE
 
 CEXE_sources += ABecLaplacian.cpp CGSolver.cpp \

@@ -2,10 +2,6 @@
 #ifndef _CGSOLVER_H_
 #define _CGSOLVER_H_
 
-//
-// $Id: CGSolver.H,v 1.16 2011-08-08 17:24:24 lijewski Exp $
-//
-
 #include <cmath>
 
 #include <Array.H>
