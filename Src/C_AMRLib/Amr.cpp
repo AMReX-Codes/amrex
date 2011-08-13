@@ -1,8 +1,5 @@
-//
-// $Id: Amr.cpp,v 1.230 2011-08-08 20:37:25 lijewski Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <algorithm>
 #include <cstdio>
 #include <list>

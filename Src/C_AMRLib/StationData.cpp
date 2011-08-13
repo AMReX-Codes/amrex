@@ -1,8 +1,5 @@
-//
-// $Id: StationData.cpp,v 1.23 2010-11-15 19:13:37 vince Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <cstdio>
 #include <cstring>
 

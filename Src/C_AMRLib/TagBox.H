@@ -1,8 +1,7 @@
+
 #ifndef _TagBox_H_
 #define _TagBox_H_
-//
-// $Id: TagBox.H,v 1.21 2009-03-13 18:01:25 almgren Exp $
-//
+
 #include <IntVect.H>
 #include <Box.H>
 #include <Array.H>

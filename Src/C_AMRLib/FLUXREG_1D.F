@@ -1,6 +1,3 @@
-c
-c $Id: FLUXREG_1D.F,v 1.4 2008-05-07 20:19:34 almgren Exp $
-c
 
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT

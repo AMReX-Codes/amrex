@@ -1,10 +1,6 @@
 #ifndef _SLABSTAT_F_H_
 #define _SLABSTAT_F_H_
 
-/*
-** $Id: SLABSTAT_F.H,v 1.3 2002-04-26 22:10:02 lijewski Exp $
-*/
-
 #ifdef BL_LANG_FORT
 #    define FORT_REYNAVG_FIRST4MOMS    reynavg_first4moms
 #    define FORT_FAVREAVG_FIRST4MOMS   favreavg_first4moms

@@ -1,11 +1,6 @@
-//
-// $Id: Cluster.cpp,v 1.29 2010-02-23 21:37:42 lijewski Exp $
-//
 
 #include <winstd.H>
-
 #include <algorithm>
-
 #include <Cluster.H>
 #include <BoxDomain.H>
 

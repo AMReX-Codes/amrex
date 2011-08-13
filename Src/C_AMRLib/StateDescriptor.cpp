@@ -1,8 +1,5 @@
-//
-// $Id: StateDescriptor.cpp,v 1.21 2011-08-09 16:30:16 lijewski Exp $
-//
-#include <winstd.H>
 
+#include <winstd.H>
 #include <algorithm>
 #include <string>
 #include <iostream>

@@ -1,10 +1,7 @@
 #ifndef _SlabStat_H_
 #define _SlabStat_H_
-//
-// $Id: SlabStat.H,v 1.9 2001-08-01 21:50:46 lijewski Exp $
-//
-#include <list>
 
+#include <list>
 #include <ArrayLim.H>
 #include <REAL.H>
 #include <Box.H>

@@ -1,8 +1,6 @@
 #ifndef _INTERPOLATER_H_
 #define _INTERPOLATER_H_ 
-//
-// $Id: Interpolater.H,v 1.12 2010-07-28 01:07:23 almgren Exp $
-//
+
 #include <Box.H>
 #include <BCRec.H>
 #include <REAL.H>

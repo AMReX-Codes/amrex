@@ -1,6 +1,3 @@
-#
-# $Id: Make.package,v 1.15 2011-08-11 13:47:16 almgren Exp $
-#
 
 AMRLIB_BASE=EXE
 ifeq ($(LBASE),amr)

@@ -1,8 +1,7 @@
+
 #ifndef _StationData_H_
 #define _StationData_H_
-//
-// $Id: StationData.H,v 1.12 2010-11-08 20:19:22 vince Exp $
-//
+
 #include <iostream>
 #include <fstream>
 #include <string>

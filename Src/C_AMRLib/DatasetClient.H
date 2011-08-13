@@ -2,10 +2,6 @@
 #ifndef _DATASETCLIENT_H_
 #define _DATASETCLIENT_H_
 
-//
-// $Id: DatasetClient.H,v 1.2 2000-10-02 20:48:41 lijewski Exp $
-//
-
 extern "C"
 {
     //

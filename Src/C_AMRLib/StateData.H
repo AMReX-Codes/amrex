@@ -1,8 +1,7 @@
+
 #ifndef _StateData_H_
 #define _StateData_H_ 
-//
-// $Id: StateData.H,v 1.19 2001-08-01 21:50:46 lijewski Exp $
-//
+
 #include <Box.H>
 #include <BoxArray.H>
 #include <MultiFab.H>
