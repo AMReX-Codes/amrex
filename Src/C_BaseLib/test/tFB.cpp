@@ -1,6 +1,3 @@
-
-//
-// $Id: tFB.cpp,v 1.10 2004-03-05 17:49:38 car Exp $
 //
 // A test program for FillBoundary().
 //

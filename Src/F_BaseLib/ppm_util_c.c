@@ -1,5 +1,4 @@
 /* 
-   $Id: ppm_util_c.c,v 1.4 2010-07-17 00:51:01 lijewski Exp $ 
    Contains architecture specific PPM writing routines used by ppm_util.f90
 */
 #include <stdlib.h>

@@ -1,8 +1,4 @@
 #
-# $Id: GNUmakefile,v 1.17 2011-04-07 21:19:35 lijewski Exp $
-#
-
-#
 # Set these to the appropriate value.
 #
 DIM          = 2

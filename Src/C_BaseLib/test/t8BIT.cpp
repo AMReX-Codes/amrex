@@ -1,6 +1,3 @@
-
-//
-// $Id: t8BIT.cpp,v 1.3 2004-03-05 17:49:38 car Exp $
 //
 // A simple program to read in a MultiFab and write out in 8BIT format.
 //

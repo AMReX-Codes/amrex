@@ -1,5 +1,4 @@
 /* 
-   $Id: timer_c.c,v 1.4 2005-03-12 19:43:51 car Exp $ 
    Contains architecture specific timer routines used by bl_timer.f90
 */
 #if defined(BL_FORT_USE_UNDERSCORE)
