@@ -11,38 +11,36 @@
 class BoxArray;
 
 //
-//@Man:
-//@Memo: Calculates the distribution of FABs to processors.
-/*@Doc:
-
-  This class calculates the distribution of FABs to processors in a
-  FabArray in a multi-processor environment.  By distribution is meant what
-  CPU in the multi-processor environment owns what FAB.  Only the BoxArray
-  on which the FabArray is built is used in determining the distribution.
-  The two types of distributions supported are round-robin and knapsack.  In
-  the round-robin distribution FAB `i' is owned by CPU `i%N' where N is total
-  number of CPUs.  In the knapsack distribution the FABs are partitioned
-  across CPUs such that the total volume of the Boxes in the underlying
-  BoxArray are as equal across CPUs as is possible.
-*/
+// Calculates the distribution of FABs to processors.
+//
+//  This class calculates the distribution of FABs to processors in a
+//  FabArray in a multi-processor environment.  By distribution is meant what
+//  CPU in the multi-processor environment owns what FAB.  Only the BoxArray
+//  on which the FabArray is built is used in determining the distribution.
+//  The two types of distributions supported are round-robin and knapsack.  In
+//  the round-robin distribution FAB i is owned by CPU i%N where N is total
+//  number of CPUs.  In the knapsack distribution the FABs are partitioned
+//  across CPUs such that the total volume of the Boxes in the underlying
+//  BoxArray are as equal across CPUs as is possible.
+//
 
 class DistributionMapping
 {
   public:
     //
-    //@ManDoc: The distribution strategy: ROUNDROBIN, KNAPSACK or SFC.
+    // The distribution strategy: ROUNDROBIN, KNAPSACK or SFC.
     //
     enum Strategy { ROUNDROBIN, KNAPSACK, SFC };
     //
-    //@ManDoc: The default constructor.
+    // The default constructor.
     //
     DistributionMapping ();
     //
-    //@ManDoc: Create object with specified mapping.  The sentinel is already included.
+    // Create object with specified mapping.  The sentinel is already included.
     //
     DistributionMapping (const Array<int>& pmap);
     //
-    //@ManDoc: Build mapping out of BoxArray over nprocs processors.
+    // Build mapping out of BoxArray over nprocs processors.
     //
     DistributionMapping (const BoxArray& boxes, int nprocs);
     //
@@ -52,67 +50,67 @@ class DistributionMapping
     DistributionMapping (const DistributionMapping& d1,
                          const DistributionMapping& d2);
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     ~DistributionMapping ();
     //
-    //@ManDoc: Copy constructor.
+    // Copy constructor.
     //
     DistributionMapping (const DistributionMapping& rhs);
     //
-    //@ManDoc: Assignment operator.
+    // Assignment operator.
     //
     DistributionMapping& operator= (const DistributionMapping& rhs);
-
-    /*@ManDoc: Build mapping out of BoxArray over nprocs processors.
-               You need to call this if you built your DistributionMapping
-               with the default constructor.
-    */
+    //
+    // Build mapping out of BoxArray over nprocs processors.
+    // You need to call this if you built your DistributionMapping
+    // with the default constructor.
+    //
     void define (const BoxArray& boxes, int nprocs);
-
-    /*@ManDoc: Returns a constant reference to the mapping of boxes in the
-               underlying BoxArray to the CPU that holds the FAB on that Box.
-               ProcessorMap()[i] is an integer in the interval [0, NCPU) where
-               NCPU is the number of CPUs being used.
-    */
+    //
+    // Returns a constant reference to the mapping of boxes in the
+    // underlying BoxArray to the CPU that holds the FAB on that Box.
+    // ProcessorMap()[i] is an integer in the interval [0, NCPU) where
+    // NCPU is the number of CPUs being used.
+    //
     const Array<int>& ProcessorMap () const;
     //
     // Length of the underlying processor map.
     //
     int size () const;
     //
-    //@ManDoc: Equivalent to ProcessorMap()[index].
+    // Equivalent to ProcessorMap()[index].
     //
     int operator[] (int index) const;
     //
-    //@ManDoc: Set distribution strategy.
+    // Set distribution strategy.
     //
     static void strategy (Strategy how);
     //
-    //@ManDoc: Returns the distribution strategy.
+    // Returns the distribution strategy.
     //
     static Strategy strategy ();
-
-    /*@ManDoc: Flush the cache of processor maps.  The processor map cache
-               is only flushed manually.  Only call this after a regridding
-               before new MultiFabs are alloc()d.  This removed unreferenced
-               DistributionMaps from the Cache.
-    */
+    //
+    // Flush the cache of processor maps.  The processor map cache
+    // is only flushed manually.  Only call this after a regridding
+    // before new MultiFabs are alloc()d.  This removed unreferenced
+    // DistributionMaps from the Cache.
+    //
     static void FlushCache ();
     //
-    //@ManDoc: The size of the cache.
+    // The size of the cache.
     //
     static int CacheSize ();
     //
-    //@ManDoc: Output some simple cache statistics.
+    // Output some simple cache statistics.
     //
     static void CacheStats (std::ostream& os);
     //
-    //@ManDoc: Are the distributions equal?
+    // Are the distributions equal?
     //
     bool operator== (const DistributionMapping& rhs) const;
     //
-    //@ManDoc: Are the distributions different?
+    // Are the distributions different?
     //
     bool operator!= (const DistributionMapping& rhs) const;
 
@@ -179,7 +177,7 @@ protected:
     static Strategy m_Strategy;
     //
     // Pointer to one of the CreateProcessorMap() functions.
-    // Corresponds to the one specified by `m_Strategy'.
+    // Corresponds to the one specified by m_Strategy.
     //
     static PVMF m_BuildMap;
 
@@ -199,7 +197,7 @@ protected:
         //
         // Local data -- our processor map.
         //
-        // The length is always equal to boxes.length()+1 where `boxes' is
+        // The length is always equal to boxes.length()+1 where boxes is
         // the BoxArray on which the distribution is based.  It is also true
         // that m_pmap[boxes.length()] == ParallelDescriptor::MyProc().
         // This latter acts as a sentinel in some FabArray loops.

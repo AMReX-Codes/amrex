@@ -5,23 +5,18 @@
 #include <Array.H>
 
 //
-//@Man:
-//@Memo:
-/*@Doc: An enum that controls whether or not class PArray<T>
-         manages the pointed to objects, as well as the pointer itself.
-         Valid values are PArrayNoManage and PArrayManage.
-*/
-
+// An enum that controls whether or not class PArray<T>
+// manages the pointed to objects, as well as the pointer itself.
+// Valid values are PArrayNoManage and PArrayManage.
+//
 enum PArrayPolicy
 {
     PArrayNoManage = 0,
     PArrayManage   = 1
 };
 
-//
-//@Man:
-//@Memo: An Array of Pointers to Objects of Type T
-/*@Doc:
+/*
+  An Array of Pointers to Objects of Type T
 
   The PArray<T> class is similar to the Array<T> class except that it
   implements an array of pointers to objects of type T rather than an array
@@ -45,105 +40,105 @@ template <class T>
 class PArray
 {
 public:
-
-    /*@ManDoc: Constructs a PArray<T> with no elements.  The default memory
-               management policy is not to delete the underlying objects
-               upon destruction.
-    */
+    //
+    // Constructs a PArray<T> with no elements.  The default memory
+    // management policy is not to delete the underlying objects
+    // upon destruction.
+    //
     explicit PArray (PArrayPolicy _managed = PArrayNoManage);
-
-    /*@ManDoc: Constructs a PArray<T> of length len of null pointers.  
-               The default memory management policy is not to delete the
-               underlying objects upon destruction.
-    */
+    //
+    // Constructs a PArray<T> of length len of null pointers.  
+    // The default memory management policy is not to delete the
+    // underlying objects upon destruction.
+    //
     explicit PArray (int          len,
                      PArrayPolicy _managed = PArrayNoManage);
-
-    /*@ManDoc: The destructor.  If the memory management policy was
-               set to Manage upon construction, this destructor will
-               also delete all objects referenced by the pointers in
-               this array.
-    */
+    //
+    // The destructor.  If the memory management policy was
+    // set to Manage upon construction, this destructor will
+    // also delete all objects referenced by the pointers in
+    // this array.
+    //
     ~PArray ();
     //
-    //@ManDoc: Returns true if the i'th element is not the null pointer.
+    // Returns true if the i'th element is not the null pointer.
     //
     bool defined (int i) const;
-
-    /*@ManDoc: Returns a constant reference to the object pointed to by the
-               i'th element in this PArray<T>.  Performs bounds checking
-               when the library is compiled in debug mode.
-    */
+    //
+    // Returns a constant reference to the object pointed to by the
+    // i'th element in this PArray<T>.  Performs bounds checking
+    // when the library is compiled in debug mode.
+    //
     const T& operator[] (int i) const;
-
-    /*@ManDoc: Returns a reference to the object pointed to by the
-               i'th element in this PArray<T>.  Performs bounds checking
-               when the library is compiled in debug mode.
-    */
+    //
+    // Returns a reference to the object pointed to by the
+    // i'th element in this PArray<T>.  Performs bounds checking
+    // when the library is compiled in debug mode.
+    //
     T& operator[] (int i);
-
-    /*@ManDoc: Returns a constant reference to the object pointed to by the
-               i'th element in the PArray.  It is an error if the i'th element
-               is the null pointer.
-    */
+    //
+    // Returns a constant reference to the object pointed to by the
+    // i'th element in the PArray.  It is an error if the i'th element
+    // is the null pointer.
+    //
     const T& get (int i) const;
-
-    /*@ManDoc: Returns a reference to the object pointed to by the i'th
-               element in the PArray.  It is an error if the i'th element
-               is the null pointer.
-    */
+    //
+    // Returns a reference to the object pointed to by the i'th
+    // element in the PArray.  It is an error if the i'th element
+    // is the null pointer.
+    //
     T& get (int i);
-
-    /*@ManDoc: Defines the i'th element of this PArray<T> to the pointer
-               value elem.  It is an error if the i'th element previously
-               had a value.
-    */
+    //
+    // Defines the i'th element of this PArray<T> to the pointer
+    // value elem.  It is an error if the i'th element previously
+    // had a value.
+    //
     void set (int i,
               T*  elem);
     //
-    //@ManDoc: Returns the number of elements.
+    // Returns the number of elements.
     //
     int size () const;
-
-    /*@ManDoc: This function sets each pointer in this PArray<T> to null.
-               If the memory management policy was set to Manage
-               upon construction, this function will also delete all objects
-               referenced by the pointers in this array.
-    */
+    //
+    // This function sets each pointer in this PArray<T> to null.
+    // If the memory management policy was set to Manage
+    // upon construction, this function will also delete all objects
+    // referenced by the pointers in this array.
+    //
     void clear ();
-
-    /*@ManDoc: The i'th element in this PArray<T> is set to null.
-               If the memory management policy was set to Manage
-               upon construction, this function will also delete the object
-               referenced by that pointer.
-    */
+    //
+    // The i'th element in this PArray<T> is set to null.
+    // If the memory management policy was set to Manage
+    // upon construction, this function will also delete the object
+    // referenced by that pointer.
+    //
     void clear (int i);
-
-    /*@ManDoc: This function changes the size of the array to newsize
-               while preserving the value of as many array elements as
-               possible.  If newsize is greater than the current length,
-               the array is grown and the new elements are null pointers.
-               If newsize is less than the current length the array is
-               cropped with the remaining elements retaining their
-               original pointer values. If the memory management policy
-               was set to Manage, any cropped pointers are deleted.
-    */
+    //
+    // This function changes the size of the array to newsize
+    // while preserving the value of as many array elements as
+    // possible.  If newsize is greater than the current length,
+    // the array is grown and the new elements are null pointers.
+    // If newsize is less than the current length the array is
+    // cropped with the remaining elements retaining their
+    // original pointer values. If the memory management policy
+    // was set to Manage, any cropped pointers are deleted.
+    //
     void resize (int newsize);
-
-    /*@ManDoc: This function does a resize and changes the PArrayPolicy.
-	       (Especially for arrays of PArray where the user wants
-	       the default policy to be managed--the default constructor
-	       makes the default unmanaged).  If the new managed policy is
-               different from the old one, none of the elements of the
-               original are retained.
-    */
+    //
+    // This function does a resize and changes the PArrayPolicy.
+    // (Especially for arrays of PArray where the user wants
+    // the default policy to be managed--the default constructor
+    // makes the default unmanaged).  If the new managed policy is
+    // different from the old one, none of the elements of the
+    // original are retained.
+    //
     void resize (int          newsize,
                  PArrayPolicy newmanagedpolicy);
-
-    /*@ManDoc: Removes the i'th element from the PArray and returns the
-               pointer to the calling function.  Nulls out the pointer
-               in the PArray<T>.
-    */
+    //
+    // Removes the i'th element from the PArray and returns the
+    // pointer to the calling function.  Nulls out the pointer
+    // in the PArray<T>.
+    //
     T* remove (int i);
 
 protected:

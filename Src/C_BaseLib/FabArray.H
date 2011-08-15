@@ -311,31 +311,31 @@ class MFIter
 {
 public:
     //
-    //@ManDoc: Construct a MFIter.
+    // Construct a MFIter.
     //
     explicit MFIter (const FabArrayBase& fabarray);
     //
-    //@ManDoc: Returns the Box at the current index in the underlying BoxArray.
+    // Returns the Box at the current index in the underlying BoxArray.
     //
     const Box& validbox () const;
     //
-    //@ManDoc: Returns the Box of the FAB at which we currently point.
+    // Returns the Box of the FAB at which we currently point.
     //
     const Box fabbox () const;
     //
-    //@ManDoc: Increments iterator to the next FAB in the FabArray that we own.
+    // Increments iterator to the next FAB in the FabArray that we own.
     //
     void operator++ ();
     //
-    //@ManDoc: Is the iterator valid i.e. is it associated with a FAB?
+    // Is the iterator valid i.e. is it associated with a FAB?
     //
     bool isValid ();
     //
-    //@ManDoc: The index into the underlying BoxArray of the current FAB.
+    // The index into the underlying BoxArray of the current FAB.
     //
     int index () const;
     //
-    //@ManDoc: Constant reference to FabArray over which we're iterating.
+    // Constant reference to FabArray over which we're iterating.
     //
     const FabArrayBase& theFabArrayBase () const;
 
@@ -408,7 +408,7 @@ template <class FAB> class FabArrayCopyDescriptor;
 //
 // An enumumeration that controls whether or not the memory for a FAB
 // will actually be allocated on construction of a FabArray.
-// Possible values are: Fab\_noallocate and Fab\_allocate.
+// Possible values are: Fab_noallocate and Fab_allocate.
 //
 
 enum FabAlloc { Fab_noallocate = 0, Fab_allocate };
@@ -422,36 +422,36 @@ public:
 
     typedef typename FAB::value_type value_type;
     //
-    //@ManDoc: Constructs an empty FabArray<FAB>.
+    // Constructs an empty FabArray<FAB>.
     //
     FabArray ();
-
-    /*@ManDoc: Construct a FabArray<FAB> with a valid region defined by bxs
-               and a region of definition defined by the grow factor ngrow
-               and the number of components nvar.
-               If mem\_mode is defined to be Fab\_allocate then FABs are
-               allocated for each Box in the BoxArray.  The size of the Kth
-               FAB is given by bxs[K] grown by ngrow.  If mem\_mode is defined
-               to be Fab\_noallocate, then no FABs are allocated at this time,
-               but can be defined later.  The number of components in each
-               FAB is not specified and is expected to be implicit in the
-               definition of the FAB class.  That is, the FAB constructor will
-               take only a Box argument.  Call this constructor number two.
-    */
+    //
+    // Construct a FabArray<FAB> with a valid region defined by bxs
+    // and a region of definition defined by the grow factor ngrow
+    // and the number of components nvar.
+    // If mem_mode is defined to be Fab_allocate then FABs are
+    // allocated for each Box in the BoxArray.  The size of the Kth
+    // FAB is given by bxs[K] grown by ngrow.  If mem_mode is defined
+    // to be Fab_noallocate, then no FABs are allocated at this time,
+    // but can be defined later.  The number of components in each
+    // FAB is not specified and is expected to be implicit in the
+    // definition of the FAB class.  That is, the FAB constructor will
+    // take only a Box argument.  Call this constructor number two.
+    //
     FabArray (const BoxArray& bxs,
               int             nvar,
               int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
     //
-    //@ManDoc: The destructor -- deletes all FABs in the array.
+    // The destructor -- deletes all FABs in the array.
     //
     ~FabArray ();
-
-    /*@ManDoc: Define this FabArray identically to that performed by
-               the constructor having an analogous function signature.
-               This is only valid if this FabArray was defined using
-               the default constructor.
-    */
+    //
+    // Define this FabArray identically to that performed by
+    // the constructor having an analogous function signature.
+    // This is only valid if this FabArray was defined using
+    // the default constructor.
+    //
     void define (const BoxArray& bxs,
                  int             nvar,
                  int             ngrow,
@@ -462,145 +462,142 @@ public:
                  int                        ngrow,
 		 const DistributionMapping& dm,
                  FabAlloc                   mem_mode);
-
-    /*Returns true if the FabArray is well-defined.  That is,
-      if FABs are allocated for each Box in the BoxArray and the
-      sizes of the FABs and the number of components are consistent
-      with the definition of the FabArray.
-    */
+    //
+    // Returns true if the FabArray is well-defined.  That is,
+    // if FABs are allocated for each Box in the BoxArray and the
+    // sizes of the FABs and the number of components are consistent
+    // with the definition of the FabArray.
+    //
     bool ok () const;
-
-    /*@ManDoc: Returns a constant reference to the FAB associated with the
-               Kth element.
-    */
+    //
+    // Returns a constant reference to the FAB associated with the Kth element.
+    //
     const FAB& operator[] (const MFIter& mfi) const;
 
     const FAB& get (const MFIter& mfi) const;
     //
-    //@ManDoc: Returns a reference to the FAB associated with the Kth element.
+    // Returns a reference to the FAB associated with the Kth element.
     //
     FAB& operator[] (const MFIter& mfi);
 
     FAB& get (const MFIter& mfi);
-
-    /*@ManDoc: Returns a constant reference to the FAB associated with the
-               Kth element.
-    */
+    //
+    // Returns a constant reference to the FAB associated with the Kth element.
+    //
     const FAB& operator[] (int K) const;
 
     const FAB& get (int K) const;
     //
-    //@ManDoc: Returns a reference to the FAB associated with the Kth element.
+    // Returns a reference to the FAB associated with the Kth element.
     //
     FAB& operator[] (int K);
 
     FAB& get (int K);
     //
-    //@ManDoc: Explicitly set the Kth FAB in the FabArray to point to elem.
+    // Explicitly set the Kth FAB in the FabArray to point to elem.
     //
     void setFab (int K, FAB* elem);
     //
-    //@ManDoc: Releases FAB memory in the FabArray.
+    // Releases FAB memory in the FabArray.
     //
     void clear ();
     //
-    //@ManDoc: Set all components in the valid region of each FAB to val.
+    // Set all components in the valid region of each FAB to val.
     //
     void setVal (value_type val);
     void operator= (const value_type& val);
-
-    /*@ManDoc: Set the value of num\_comp components in the valid region of
-               each FAB in the FabArray, starting at component comp to val.
-               Also set the value of nghost boundary cells.
-    */
+    //
+    // Set the value of num_comp components in the valid region of
+    // each FAB in the FabArray, starting at component comp to val.
+    // Also set the value of nghost boundary cells.
+    //
     void setVal (value_type val,
                  int        comp,
                  int        num_comp,
                  int        nghost = 0);
-
-    /*@ManDoc: Set the value of num\_comp components in the valid region of
-               each FAB in the FabArray, starting at component comp, as well
-               as nghost boundary cells, to val, provided they also intersect
-               with the Box region.
-    */
+    //
+    // Set the value of num_comp components in the valid region of
+    // each FAB in the FabArray, starting at component comp, as well
+    // as nghost boundary cells, to val, provided they also intersect
+    // with the Box region.
+    //
     void setVal (value_type val,
                  const Box& region,
                  int        comp,
                  int        num_comp,
                  int        nghost = 0);
-
-    /*@ManDoc: Set all components in the valid region of each FAB in the
-               FabArray to val, including nghost boundary cells.
-    */
+    //
+    // Set all components in the valid region of each FAB in the
+    // FabArray to val, including nghost boundary cells.
+    //
     void setVal (value_type val,
                  int        nghost);
-
-    /*@ManDoc: Set all components in the valid region of each FAB in the
-               FabArray to val, including nghost boundary cells, that also
-               intersect the Box region.
-    */
+    //
+    // Set all components in the valid region of each FAB in the
+    // FabArray to val, including nghost boundary cells, that also
+    // intersect the Box region.
+    //
     void setVal (value_type val,
                  const Box& region,
                  int        nghost);
     //
-    //@ManDoc: Set all values in the boundary region to val.
+    // Set all values in the boundary region to val.
     //
     void setBndry (value_type val);
-
-    /*@ManDoc: Set ncomp values in the boundary region, starting at
-               start\_comp to val.
-    */
+    //
+    // Set ncomp values in the boundary region, starting at start_comp to val.
+    //
     void setBndry (value_type val,
                    int        strt_comp,
                    int        ncomp);
-
-    /*@ManDoc: This function copies data from fa to this FabArray.  Each FAB
-               in fa is intersected with all FABs in this FabArray and a copy
-               is performed on the region of intersection.  The intersection
-               is restricted to the valid region of each FAB.
-    */
+    //
+    // This function copies data from fa to this FabArray.  Each FAB
+    // in fa is intersected with all FABs in this FabArray and a copy
+    // is performed on the region of intersection.  The intersection
+    // is restricted to the valid region of each FAB.
+    //
     void copy (const FabArray<FAB>& fa, CpOp op = FabArrayBase::COPY);
-
-    /*@ManDoc: This function copies data from src to this FabArray.  Each FAB
-               in src is intersected with all FABs in this FabArray and a copy
-               is performed on the region of intersection.  The intersection
-               is restricted to the num\_comp components starting at src\_comp
-               in the FabArray src, with the destination components in this
-               FabArray starting at dest\_comp.
-    */
+    //
+    // This function copies data from src to this FabArray.  Each FAB
+    // in src is intersected with all FABs in this FabArray and a copy
+    // is performed on the region of intersection.  The intersection
+    // is restricted to the num_comp components starting at src_comp
+    // in the FabArray src, with the destination components in this
+    // FabArray starting at dest_comp.
+    //
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
                CpOp                 op = FabArrayBase::COPY);
-
-    /*@ManDoc: Copies the values contained in the intersection of the
-               valid region of this FabArray with the FAB dest into dest.
-    */
+    //
+    // Copies the values contained in the intersection of the
+    // valid region of this FabArray with the FAB dest into dest.
+    //
     void copy (FAB& dest) const;
-
-    /*@ManDoc: Copies the values contained in the intersection of the
-               valid region of this FabArray with the FAB dest and the Box
-               subbox into that subregion of dest.
-    */
+    //
+    // Copies the values contained in the intersection of the
+    // valid region of this FabArray with the FAB dest and the Box
+    // subbox into that subregion of dest.
+    //
     void copy (FAB&       dest,
                const Box& subbox) const;
-
-    /*@ManDoc: Copies the values contained in the intersection of the
-               num\_comp component valid region of this FabArray, starting at
-               component src\_comp, with the FAB dest into dest, starting at
-               component dest\_comp in dest.
-    */
+    //
+    // Copies the values contained in the intersection of the
+    // num_comp component valid region of this FabArray, starting at
+    // component src_comp, with the FAB dest into dest, starting at
+    // component dest_comp in dest.
+    //
     void copy (FAB& dest,
                int  src_comp,
                int  dest_comp,
                int  num_comp) const;
-
-    /*@ManDoc: Copies the values contained in the intersection of the
-               num\_comp component valid region of this FabArray, starting at
-               component src\_comp, with the FAB dest and the Box subbox, into
-               dest, starting at component dest\_comp in dest.
-    */
+    //
+    // Copies the values contained in the intersection of the
+    // num_comp component valid region of this FabArray, starting at
+    // component src_comp, with the FAB dest and the Box subbox, into
+    // dest, starting at component dest_comp in dest.
+    //
     void copy (FAB&       dest,
                const Box& subbox,
                int        src_comp,

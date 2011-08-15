@@ -29,25 +29,24 @@ extern "C"
 }
 
 //
-//@Man:
-//@Memo: Error Record.
-/*@Doc:
-
-  ErrorRec is designed to tag cells for regridding based on the state
-  data contained in AmrLevel and its derivatives.  It is conceivable that
-  actual error tagging will be through derivation, so provision is made
-  for this as well.
-*/
+// Error Record.
+//
+//
+// ErrorRec is designed to tag cells for regridding based on the state
+// data contained in AmrLevel and its derivatives.  It is conceivable that
+// actual error tagging will be through derivation, so provision is made
+// for this as well.
+//
 
 class ErrorRec
 {
 public:
     //
-    //@ManDoc: Error types.
+    // Error types.
     //
     enum ErrorType { Special=0, Standard, UseAverage };
     //
-    //@ManDoc: The constructors.
+    // The constructors.
     //
     ErrorRec (const std::string& nm,
               int                ng,
@@ -58,19 +57,19 @@ public:
               ErrorType          etyp,
               ErrorFunc          f);
     //
-    //@ManDoc: The name of the quantity to derive.
+    // The name of the quantity to derive.
     //
     const std::string& name () const;
     //
-    //@ManDoc: The number of extra zones needed for derivation.
+    // The number of extra zones needed for derivation.
     //
     int nGrow () const;
     //
-    //@ManDoc: The type of the error tagging.
+    // The type of the error tagging.
     //
     ErrorType errType () const;
     //
-    //@ManDoc: The extern "C" functions to do the error tagging.
+    // The extern "C" functions to do the error tagging.
     //
     ErrorFunc  errFunc () const;
     ErrorFunc2 errFunc2() const;
@@ -96,22 +95,20 @@ private:
 };
 
 //
-//@Man:
-//@Memo: A List of ErrorRecs.
-/*@Doc:
-
-  Container class for ErrorRecs.
-*/
+// A List of ErrorRecs.
+//
+// Container class for ErrorRecs.
+//
 
 class ErrorList
 {
 public:
     //
-    //@ManDoc: The number of ErrorRecs in the list.
+    // The number of ErrorRecs in the list.
     //
     int size () const;
     //
-    //@ManDoc: Append a new ErrorRec to the list.
+    // Append a new ErrorRec to the list.
     //
     void add (const std::string&  name,
               int                 nextra, 
@@ -122,7 +119,7 @@ public:
               ErrorRec::ErrorType typ,
               ErrorFunc2          func);
     //
-    //@ManDoc: The kth ErrorRec.
+    // The kth ErrorRec.
     //
     const ErrorRec& operator[] (int k) const;
 

@@ -5,10 +5,9 @@
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <UseCount.H>
-//
-//@Man:
-//@Memo: A Smart Pointer for Intrinsic or User-Defined Types
-/*@Doc:
+
+/*
+  A Smart Pointer for Intrinsic or User-Defined Types
 
   The template class CpPtr<T> provides a simple wrapper around a pointer
   to type T (T*) that builds a copy of the pointed-to object when copied
@@ -27,63 +26,62 @@ class CpPtr
 {
 public:
     //
-    //@ManDoc: The default constructor.  The wrapped pointer is null.
+    // The default constructor.  The wrapped pointer is null.
     //
     CpPtr ();
     //
-    //@ManDoc: Construct a CpPtr<T> setting the wrapped pointer to rhs.
+    // Construct a CpPtr<T> setting the wrapped pointer to rhs.
     //
     explicit CpPtr (T* rhs);
     //
-    //@ManDoc: The destructor.  Deletes the wrapped pointer.
+    // The destructor.  Deletes the wrapped pointer.
     //
     ~CpPtr ();
-
-    /*@ManDoc: The copy constructor.  If the pointer wrapped by rhs is null,
-               the wrapped pointer is null here as well.  Otherwise,
-               the contained pointer here is set to a new'd copy of that
-               wrapped by rhs, with the two pointed-to values being identical.
-               This assumes that type T has a well-defined and accessible copy
-               constructor.  T must also be a concrete type, not a abstract
-               type.
-    */
+    //
+    // The copy constructor.  If the pointer wrapped by rhs is null,
+    // the wrapped pointer is null here as well.  Otherwise,
+    // the contained pointer here is set to a new'd copy of that
+    // wrapped by rhs, with the two pointed-to values being identical.
+    // This assumes that type T has a well-defined and accessible copy
+    // constructor.  T must also be a concrete type, not a abstract
+    // type.
+    //
     CpPtr (const CpPtr<T>& rhs);
-
-    /*@ManDoc: Sets the wrapped pointer to rhs.  Deletes the previously
-               wrapped pointer.
-    */
+    //
+    // Sets the wrapped pointer to rhs.  Deletes the previously wrapped pointer.
+    //
     CpPtr<T>& operator= (T* rhs);
-
-    /*@ManDoc: The copy assignment operator.  If the pointer wrapped by rhs
-               is null, the wrapped pointer is null here as well.  Otherwise,
-               the contained pointer here is set to a new'd copy of that
-               wrapped by rhs, with the two pointed-to values being identical.
-               This assumes that type T has a well-defined and accessible copy
-               constructor.  T must also be a concrete type, not a abstract
-               type.
-    */
+    //
+    // The copy assignment operator.  If the pointer wrapped by rhs
+    // is null, the wrapped pointer is null here as well.  Otherwise,
+    // the contained pointer here is set to a new'd copy of that
+    // wrapped by rhs, with the two pointed-to values being identical.
+    // This assumes that type T has a well-defined and accessible copy
+    // constructor.  T must also be a concrete type, not a abstract
+    // type.
+    //
     CpPtr<T>& operator= (const CpPtr<T>& rhs);
-
-    /*@ManDoc: Returns a reference to the value pointed to by the wrapped
-               pointer; i.e. dereferencing this CpPtr<T>, returns the
-               dereferenced wrapped pointer.  It is an error if the wrapped
-               pointer is null.
-    */
+    //
+    // Returns a reference to the value pointed to by the wrapped
+    // pointer; i.e. dereferencing this CpPtr<T>, returns the
+    // dereferenced wrapped pointer.  It is an error if the wrapped
+    // pointer is null.
+    //
     T& operator* () const;
     //
-    //@ManDoc: Returns true if the wrapped pointer null.
+    // Returns true if the wrapped pointer null.
     //
     bool isNull () const;
     //
-    //@ManDoc: Sets the wrapped pointer to null and returns the previous value.
+    // Sets the wrapped pointer to null and returns the previous value.
     //
     T* release ();
     //
-    //@ManDoc: Are the two pointers (not the values to which they point) equal?
+    // Are the two pointers (not the values to which they point) equal?
     //
     bool operator== (const CpPtr<T>& rhs) const;
     //
-    //@ManDoc: Are the two pointers not equal?
+    // Are the two pointers not equal?
     //
     bool operator!= (const CpPtr<T>& rhs) const;
 
@@ -93,16 +91,14 @@ protected:
 };
 
 //
-//@Man:
-//@Memo: A Smart Pointer for User-Defined Types
-/*@Doc:
-
-  The template class CpClassPtr<T> is derived from CpPtr<T>.  It provides a
-  simple wrapper around a pointer to type T (a T*) that "does the right thing"
-  when copied from one CpPtr<T> to another.  The type T MUST be a user-defined
-  type, not an intrinsic type.  Given this restriction, we can supply
-  an operator->().
-*/
+//  A Smart Pointer for User-Defined Types
+//
+//  The template class CpClassPtr<T> is derived from CpPtr<T>.  It provides a
+//  simple wrapper around a pointer to type T (a T*) that "does the right thing"
+//  when copied from one CpPtr<T> to another.  The type T MUST be a user-defined
+//  type, not an intrinsic type.  Given this restriction, we can supply
+//  an operator->().
+//
 
 template<class T>
 class CpClassPtr
@@ -111,48 +107,45 @@ class CpClassPtr
 {
 public:
     //
-    //@ManDoc: The default constructor.  The wrapped pointer is null.
+    // The default constructor.  The wrapped pointer is null.
     //
     CpClassPtr ();
     //
-    //@ManDoc: Construct a CpPtr<T> setting the wrapped pointer to rhs.
+    // Construct a CpPtr<T> setting the wrapped pointer to rhs.
     //
     explicit CpClassPtr (T* rhs);
-
-    /*@ManDoc: The copy constructor.  If the pointer wrapped by rhs is null,
-               the wrapped pointer is null here as well.  Otherwise,
-               the contained pointer here is set to a new'd copy of that
-               wrapped by rhs, with the two pointed-to values being identical.
-               This assumes that type T has a well-defined and accessible copy
-               constructor.  T must also be a concrete type, not a abstract
-               type.
-    */
+    //
+    // The copy constructor.  If the pointer wrapped by rhs is null,
+    // the wrapped pointer is null here as well.  Otherwise,
+    // the contained pointer here is set to a new'd copy of that
+    // wrapped by rhs, with the two pointed-to values being identical.
+    // This assumes that type T has a well-defined and accessible copy
+    // constructor.  T must also be a concrete type, not a abstract
+    // type.
+    //
     CpClassPtr (const CpClassPtr<T>& rhs);
-
-    /*@ManDoc: Sets the wrapped pointer to rhs.  Deletes the previously
-               wrapped pointer.
-    */
+    //
+    // Sets the wrapped pointer to rhs.  Deletes the previously wrapped pointer.
+    //
     CpClassPtr<T>& operator= (T* rhs);
-
-    /*@ManDoc: The copy assignment operator.  If the pointer wrapped by rhs
-               is null, the wrapped pointer is null here as well.  Otherwise,
-               the contained pointer here is set to a new'd copy of that
-               wrapped by rhs, with the two pointed-to values being identical.
-               This assumes that type T has a well-defined and accessible copy
-               constructor.  T must also be a concrete type, not a abstract
-               type.
-    */
+    //
+    // The copy assignment operator.  If the pointer wrapped by rhs
+    // is null, the wrapped pointer is null here as well.  Otherwise,
+    // the contained pointer here is set to a new'd copy of that
+    // wrapped by rhs, with the two pointed-to values being identical.
+    // This assumes that type T has a well-defined and accessible copy
+    // constructor.  T must also be a concrete type, not a abstract
+    // type.
+    //
     CpClassPtr<T>& operator= (const CpClassPtr<T>& rhs);
     //
-    //@ManDoc: Applies operator-> to the wrapped pointer.
+    // Applies operator-> to the wrapped pointer.
     //
     T* operator-> () const;
 };
 
-//
-//@Man:
-//@Memo: A Reference Counted Smart Pointer for Intrinsic or User-Defined Types
-/*@Doc:
+/*
+  A Reference Counted Smart Pointer for Intrinsic or User-Defined Types
 
   The template class LnPtr<T> provides a reference counted wrapper around a
   pointer to type T (a T*).  This "smart" pointer is intended for use with
@@ -167,56 +160,56 @@ class LnPtr
 {
 public:
     //
-    //@ManDoc: The default constructor.  The wrapped pointer is null.
+    // The default constructor.  The wrapped pointer is null.
     //
     LnPtr ();
     //
-    //@ManDoc: Construct a LnPtr<T> setting the wrapped pointer to rhs.
+    // Construct a LnPtr<T> setting the wrapped pointer to rhs.
     //
     explicit LnPtr (T* rhs);
-
-    /*@ManDoc: The copy assignment operator.  The contained pointer is set
-               to the one wrapped by rhs.  The reference count is decremented
-               on this object and the reference count is incremented for
-               the newly wrapped pointer.
-    */
+    //
+    // The copy assignment operator.  The contained pointer is set
+    // to the one wrapped by rhs.  The reference count is decremented
+    // on this object and the reference count is incremented for
+    // the newly wrapped pointer.
+    //
     LnPtr<T>& operator= (const LnPtr<T>& rhs);
-
-    /*@ManDoc: Sets the wrapped pointer to rhs.  Decrements the count
-               on the previously wrapped pointer and deletes it if there
-               was only one reference.
-    */
+    //
+    // Sets the wrapped pointer to rhs.  Decrements the count
+    // on the previously wrapped pointer and deletes it if there
+    // was only one reference.
+    //
     LnPtr<T>& operator= (T* rhs);
-
-    /*@ManDoc: The destructor -- decrements the reference count and deletes
-               the wrapped pointer if there is only one reference.
-    */
+    //
+    // The destructor -- decrements the reference count and deletes
+    // the wrapped pointer if there is only one reference.
+    //
     ~LnPtr ();
     //
-    //@ManDoc: Returns true if only one reference to the wrapped pointer.
+    // Returns true if only one reference to the wrapped pointer.
     //
     bool unique () const;
     //
-    //@ManDoc: Returns the number of references to the wrapped pointer.
+    // Returns the number of references to the wrapped pointer.
     //
     int linkCount () const;
-
-    /*@ManDoc: Returns a reference to the value pointed to by the wrapped
-               pointer; i.e. dereferencing this LnPtr<T>, returns the
-               dereferenced wrapped pointer.  It is an error if the wrapped
-               pointer is null.
-    */
+    //
+    // Returns a reference to the value pointed to by the wrapped
+    // pointer; i.e. dereferencing this LnPtr<T>, returns the
+    // dereferenced wrapped pointer.  It is an error if the wrapped
+    // pointer is null.
+    //
     T& operator* () const;
     //
-    //@ManDoc: Returns true if the wrapped pointer is null.
+    // Returns true if the wrapped pointer is null.
     //
     bool isNull () const;
     //
-    //@ManDoc: Are the two pointers (not the values to which they point) equal?
+    // Are the two pointers (not the values to which they point) equal?
     //
     bool operator== (const LnPtr<T>& rhs) const;
     //
-    //@ManDoc: Are the two pointers not equal?
+    // Are the two pointers not equal?
     //
      bool operator!= (const LnPtr<T>& rhs) const;
 
@@ -228,15 +221,13 @@ private:
 };
 
 //
-//@Man:
-//@Memo: A Smart Reference Counted Pointer for User-Defined Types
-/*@Doc:
-
-  The template class LnClassPtr<T> is derived from LnPtr<T>.  It provides a
-  reference counted wrapper around a pointer to type T (a T*).  The type T
-  MUST be a user-defined type, not an intrinsic type.  Given this
-  restriction, we can supply an operator->().
-*/
+// A Smart Reference Counted Pointer for User-Defined Types
+//
+// The template class LnClassPtr<T> is derived from LnPtr<T>.  It provides a
+// reference counted wrapper around a pointer to type T (a T*).  The type T
+// MUST be a user-defined type, not an intrinsic type.  Given this
+// restriction, we can supply an operator->().
+//
 
 template<class T>
 class LnClassPtr
@@ -245,28 +236,28 @@ class LnClassPtr
 {
 public:
     //
-    //@ManDoc: The default constructor.  The wrapped pointer is null.
+    // The default constructor.  The wrapped pointer is null.
     //
     LnClassPtr ();
     //
-    //@ManDoc: Construct a LnPtr<T> setting the wrapped pointer to rhs.
+    // Construct a LnPtr<T> setting the wrapped pointer to rhs.
     //
     explicit LnClassPtr (T* rhs);
-
-    /*@ManDoc: The copy assignment operator.  The contained pointer is set
-               to the one wrapped by rhs.  The reference count is decremented
-               on this object and the reference count is incremented for
-               the newly wrapped pointer.
-    */
+    //
+    // The copy assignment operator.  The contained pointer is set
+    // to the one wrapped by rhs.  The reference count is decremented
+    // on this object and the reference count is incremented for
+    // the newly wrapped pointer.
+    //
     LnClassPtr<T>& operator= (const LnClassPtr<T>& rhs);
-
-    /*@ManDoc: Sets the wrapped pointer to rhs.  Decrements the count
-               on the previously wrapped pointer and deletes it if there
-               was only one reference.
-    */
+    //
+    // Sets the wrapped pointer to rhs.  Decrements the count
+    // on the previously wrapped pointer and deletes it if there
+    // was only one reference.
+    //
     LnClassPtr<T>& operator= (T* rhs);
     //
-    //@ManDoc: Applies operator-> to the wrapped pointer.
+    // Applies operator-> to the wrapped pointer.
     //
     T* operator->() const;
 };

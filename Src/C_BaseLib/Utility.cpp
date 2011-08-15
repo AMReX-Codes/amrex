@@ -304,12 +304,12 @@ BoxLib::Concatenate (const std::string& root,
 }
 
 //
-// Creates the specified directories.  `path' may be either a full pathname
+// Creates the specified directories.  path may be either a full pathname
 // or a relative pathname.  It will create all the directories in the
 // pathname, if they don't already exist, so that on successful return the
 // pathname refers to an existing directory.  Returns true or false
 // depending upon whether or not all it was successful.  Also returns
-// true if `path' is NULL.  `mode' is the mode passed to mkdir() for
+// true if path is NULL.  mode is the mode passed to mkdir() for
 // any directories that must be created.
 //
 // For example, if it is passed the string "/a/b/c/d/e/f/g", it

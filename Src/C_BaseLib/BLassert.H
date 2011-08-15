@@ -10,23 +10,22 @@
 
 #if defined(NDEBUG)
 
-/*@ManDoc:
-
-  The macro BL\_ASSERT(EX) is a debugging macro, used to test the
+/*
+  The macro BL_ASSERT(EX) is a debugging macro, used to test the
   internal consistency of BoxLib, that may also be useful in user
   code.  The argument EX is a C++ expression that you expect to
   always evaluate to true.
 
   When code is compiled with the DEBUG macro set to TRUE, the
-  BL\_ASSERT(EX) macro expands to a boolean test of the expression EX.
+  BL_ASSERT(EX) macro expands to a boolean test of the expression EX.
   If that expression evaluates to true, nothing happens, but if the
   expression evaluates to false, a message is output detailing the
-  file and line number of the BL\_ASSERT(EX) statement, as well as the
+  file and line number of the BL_ASSERT(EX) statement, as well as the
   literal expression EX itself, and then exits via abort() using
   BoxLib::Assert().  The idea is that if the assertion fails, something
   has gone terribly wrong somewhere.
 
-  If the DEBUG macro is not set to TRUE, the BL\_ASSERT(EX) call becomes
+  If the DEBUG macro is not set to TRUE, the BL_ASSERT(EX) call becomes
   a null statement in the code, which will be eliminated by the code
   optimizer.
 */

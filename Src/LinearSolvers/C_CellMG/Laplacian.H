@@ -4,13 +4,11 @@
 
 #include <LinOp.H>
 
-//@Man:
-/*@Memo:
+/*
   A Laplacian tailors the description of a linear operator to apply
   the second-order central difference approximation to the laplacian
   differential operator on a cell-centered MultiFab of data
-  */        
-/*@Doc:
+
   A Laplacian tailors a LinOp (a virtual base class for general linear
   operators) to compute the second-order central difference
   approximation to the laplacian differential operator,
@@ -40,16 +38,16 @@ class Laplacian
 {
 public:
     //
-    //@ManDoc: constructor;
+    // constructor;
     //
     Laplacian (const BndryData& bd,
                Real             _h);
     //
-    //@ManDoc: destructor
+    // destructor
     //
     ~Laplacian();
     //
-    //@ManDoc: Compute flux associated with the op
+    // Compute flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode);
@@ -58,20 +56,20 @@ public:
 
 protected:
     //
-    //@ManDoc: compute out=L(in) at level=level
+    // compute out=L(in) at level=level
     //
     virtual void Fapply (MultiFab&       out,
                          const MultiFab& in,
                          int             level);
     //
-    //@ManDoc: apply GSRB smoother to improve residual to L(solnL)=rhsL
+    // apply GSRB smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth (MultiFab&       solnL,
                           const MultiFab& rhsL,
                           int             level,
                           int             rgbflag);
     //
-    //@ManDoc: apply Jacobi smoother to improve residual to L(solnL)=rhsL
+    // apply Jacobi smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
                                  const MultiFab& rhsL,

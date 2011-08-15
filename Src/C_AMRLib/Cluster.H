@@ -13,75 +13,73 @@ class BoxDomain;
 class ClusterList;
 
 //
-//@Man:
-//@Memo: A cluster of tagged cells.
-/*@Doc:
-
-  Utility class for tagging error cells.
-*/
+// A cluster of tagged cells.
+//
+// Utility class for tagging error cells.
+//
 
 class Cluster
 {
 public:
     //
-    //@ManDoc: The default constructor -- builds invalid Cluster.
+    // The default constructor -- builds invalid Cluster.
     //
     Cluster ();
-
-    /*@ManDoc: Construct a cluster from an array of IntVects.
-               The Cluster object does NOT take over memory management
-               of array; i.e. that's the user's ultimate responsibility.
-    */
+    //
+    // Construct a cluster from an array of IntVects.
+    // The Cluster object does NOT take over memory management
+    // of array; i.e. that's the user's ultimate responsibility.
+    //
     Cluster (IntVect* a,
              long     len);
-
-    /*@ManDoc: Construct new cluster by removing all points from c that lie
-               in box b.  Cluster c is modified and may become invalid.
-    */
+    //
+    // Construct new cluster by removing all points from c that lie
+    // in box b.  Cluster c is modified and may become invalid.
+    //
     Cluster (Cluster&   c,
              const Box& b);
     //
-    //@ManDoc: The destructor.  Does NOT destroy the initial IntVect array.
+    // The destructor.  Does NOT destroy the initial IntVect array.
     //
     ~Cluster ();
     //
-    //@ManDoc: Return minimal box containing all tagged points.
+    // Return minimal box containing all tagged points.
     //
     const Box& box () const;
     //
-    //@ManDoc: Does cluster contain any points?
+    // Does cluster contain any points?
     //
     bool ok () const;
     //
-    //@ManDoc: Returns number of tagged points in cluster.
+    // Returns number of tagged points in cluster.
     //
     long numTag () const;
     //
-    //@ManDoc: Return number of tagged points in intersection of cluster and Box b.
+    // Return number of tagged points in intersection of cluster and Box b.
     //
     long numTag (const Box& b) const;
-
-    /*@ManDoc: This operation splits a cluster into two pieces by selecting
-                a cutting plane with certain optimal characteristics then
-                dividing the tagged points into clusters on either side of the
-                plane.  One cluster is returned as a new object the other
-                is the modified calling object.
-    */
+    //
+    // This operation splits a cluster into two pieces by selecting
+    // a cutting plane with certain optimal characteristics then
+    // dividing the tagged points into clusters on either side of the
+    // plane.  One cluster is returned as a new object the other
+    // is the modified calling object.
+    //
     Cluster* chop ();
-
-    /*@ManDoc: Constructs a list of cluster objects obtained by intersecting
-               this cluster with each box in bl.  The list is retruned in the
-               argument clst.  For each intersection that includes tagged
-               points, construct a new cluster by removing those points from
-               this object.  Empty intersections or those that contain no
-               tagged points will not generate a new cluster.
-               Note that this cluster will be modified and possibly become
-               invalid in the process.
-    */
+    //
+    // Constructs a list of cluster objects obtained by intersecting
+    // this cluster with each box in bl.  The list is retruned in the
+    // argument clst.  For each intersection that includes tagged
+    // points, construct a new cluster by removing those points from
+    // this object.  Empty intersections or those that contain no
+    // tagged points will not generate a new cluster.
+    // Note that this cluster will be modified and possibly become
+    // invalid in the process.
+    //
     void distribute (ClusterList&     clst,
                      const BoxDomain& bd);
     //
-    //@ManDoc: Compute ratio of tagged to total number of points in cluster.
+    // Compute ratio of tagged to total number of points in cluster.
     //
     Real eff () const;
 
@@ -104,61 +102,59 @@ private:
 };
 
 //
-//@Man:
-//@Memo: A list of Cluster objects
-/*@Doc:
-
-  A container class for Cluster.
-*/
+// A list of Cluster objects
+//
+// A container class for Cluster.
+//
 
 class ClusterList 
 {
 public:
     //
-    //@ManDoc: The default constructor.
+    // The default constructor.
     //
     ClusterList ();
     //
-    //@ManDoc: Construct a list containing Cluster(pts,len).
+    // Construct a list containing Cluster(pts,len).
     //
     ClusterList (IntVect* pts,
                  long     len);
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     ~ClusterList ();
     //
-    //@ManDoc: Return number of clusters in list.
+    // Return number of clusters in list.
     //
     int length () const;
     //
-    //@ManDoc: Add cluster to end of list.
+    // Add cluster to end of list.
     //
     void append (Cluster* c);
     //
-    //@ManDoc: Return array of boxes corresponding to clusters.
+    // Return array of boxes corresponding to clusters.
     //
     BoxArray boxArray () const;
     //
-    //@ManDoc: Return array of boxes corresponding to clusters in argument.
+    // Return array of boxes corresponding to clusters in argument.
     //
     void boxArray (BoxArray& ba) const;
     //
-    //@ManDoc: Return list of boxes corresponding to clusters.
+    // Return list of boxes corresponding to clusters.
     //
     BoxList boxList() const;
     //
-    //@ManDoc: Return list of boxes corresponding to clusters in argument.
+    // Return list of boxes corresponding to clusters in argument.
     //
     void boxList (BoxList& blst) const;
     //
-    //@ManDoc: Chop all clusters in list that have poor efficiency.
+    // Chop all clusters in list that have poor efficiency.
     //
     void chop (Real eff);
-
-    /*@ManDoc: Intersect clusters with BoxDomain to insure cluster
-               boxes are interior to domain.
-    */
+    //
+    // Intersect clusters with BoxDomain to insure cluster
+    // boxes are interior to domain.
+    //
     void intersect (const BoxDomain& dom);
 
 private:

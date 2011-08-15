@@ -61,7 +61,7 @@ Cluster::Cluster (Cluster&   c,
         if (prt_it == c.m_ar)
         {
             //
-            // None of the points in `c.m_ar' were in `b'.
+            // None of the points in c.m_ar were in b.
             //
             m_ar  = 0;
             m_len = 0;
@@ -70,7 +70,7 @@ Cluster::Cluster (Cluster&   c,
         else if (prt_it == (c.m_ar+c.m_len))
         {
             //
-            // All the points in `c.m_ar' were in `b'.
+            // All the points in c.m_ar were in b.
             //
             m_bx    = c.m_bx;
             m_ar    = c.m_ar;

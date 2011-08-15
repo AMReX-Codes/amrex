@@ -4,34 +4,32 @@
 
 #include <BLassert.H>
 
-//@Man:
-/*@Memo:
-  Maintain an identifier for boundary condition types.
-*/        
-/*@Doc:
-        This is a placeholder for more extensive boundary condition
-        implementations, which might include stencils, etc.  Presently,
-        boundary conditions are specified via an integer identifier.
-        This class maintains that integer.
+/*
+   Maintain an identifier for boundary condition types.
+
+   This is a placeholder for more extensive boundary condition
+   implementations, which might include stencils, etc.  Presently,
+   boundary conditions are specified via an integer identifier.
+   This class maintains that integer.
 */
 
 class BoundCond
 {
 public:
     //
-    //@ManDoc: Initializes boundary condition type to default.
+    // Initializes boundary condition type to default.
     //
     BoundCond () : bctype(-1) {}
     //
-    //@ManDoc: Initializes boundary condition type to specified value.
+    // Initializes boundary condition type to specified value.
     //
     BoundCond (int _bctype) : bctype(_bctype) {}
     //
-    //@ManDoc: Copy constructor.
+    // Copy constructor.
     //
     BoundCond (const BoundCond& rhs) : bctype(rhs.bctype) {}
     //
-    //@ManDoc: Copy assignment operator.
+    // Copy assignment operator.
     //
     BoundCond& operator= (const BoundCond& rhs)
     {
@@ -42,7 +40,7 @@ public:
         return *this;
     }
     //
-    //@ManDoc: Return index of boundary condition type.
+    // Return index of boundary condition type.
     //
     operator int () const
     {
@@ -50,7 +48,7 @@ public:
         return bctype;
     }
     //
-    //@ManDoc: Set index of boundary condition type.
+    // Set index of boundary condition type.
     //
     BoundCond& operator= (const int _bctype)
     {

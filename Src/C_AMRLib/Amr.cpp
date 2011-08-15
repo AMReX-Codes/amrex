@@ -1055,7 +1055,7 @@ Amr::initialInit (Real strt_time,
     //
     int  init = true;
     //
-    // Populate integer array with name of `probin' file.
+    // Populate integer array with name of probin file.
     //
     int probin_file_length = probin_file.length();
 
@@ -1244,7 +1244,7 @@ Amr::restart (const std::string& filename)
     //
     int init = false;
     //
-    // Populate integer array with name of `probin' file.
+    // Populate integer array with name of probin file.
     //
     int probin_file_length = probin_file.length();
 

@@ -13,12 +13,10 @@
 #include <BndryData.H>
 
 
-//@Man:
-/*@Memo:
+/*
         An MCInterpBndryData object adds to a BndryData object the ability to
 	manipulate and set the data stored in the boundary cells.
-*/	
-/*@Doc:
+
         The "Interpbndrydata" class is a virtual base class derived from
 	BndryData.  It is intended to provide a more physical method for
 	filling boundary-related data.  Boundary values in a BndryData object
@@ -43,26 +41,24 @@ class MCInterpBndryData
     public BndryData
 {
 public:
-    //@ManMemo: Constructor
-
     //
-    //@ManDoc: default constructor
+    // default constructor
     //
     MCInterpBndryData () : BndryData() {}
     //
-    //@ManDoc: constructor for given BoxArray, etc
+    // constructor for given BoxArray, etc
     //
     MCInterpBndryData (const BoxArray& _grids,
 		       int             _ncomp,
 		       const Geometry& geom);
     //
-    //@ManDoc: interpret user BCs to those expected by LinOp
+    // interpret user BCs to those expected by LinOp
     //
     virtual void setBndryConds (const BCRec& phys_bc,
                                 int          ratio,
                                 int          comp=0) = 0;
     //
-    //@ManDoc: set bndry values at coarse level (non interpolation performed)
+    // set bndry values at coarse level (non interpolation performed)
     //
     void setBndryValues (const MultiFab&     mf,
 			 int                 mf_start,
@@ -70,7 +66,7 @@ public:
 			 int                 num_comp,
 			 const Array<BCRec>& phys_bc);
     //
-    //@ManDoc: set bndry values at fine level, performing necessary interpolations
+    // set bndry values at fine level, performing necessary interpolations
     //
     void setBndryValues (const ::BndryRegister& crse,
 			 int                  c_start,

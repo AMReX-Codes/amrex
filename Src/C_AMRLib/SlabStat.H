@@ -16,8 +16,8 @@ extern "C"
     //
     // Type of extern "C" function called by SlabStat to compute a statistic.
     //
-    // `dst' contains the statistics to be updated in place.
-    // `src' contains the variables need to calculate the statistics.
+    // dst contains the statistics to be updated in place.
+    // src contains the variables need to calculate the statistics.
     //
     typedef void (*SlabStatFunc)(const Real* src,
                                  ARLIM_P(src_lo), ARLIM_P(src_hi),
@@ -29,65 +29,64 @@ extern "C"
 }
 
 //
-//@Man:
-//@Memo: Slab Statistics Record
-/*@Doc:
-
-  SlabStatRecs are designed to control the output of running averages as 
-  a simulation proceeds.  A required list of state and derived variables
-  is specified, as well as a list of boxes on which the statistics are
-  to be calculated.  Every time step on the level where these boxes are 
-  defined, the specified fortran function is called and the running statistics
-  are accumulated.  The statistics are written out every check_int level 0
-  timesteps.
-*/
+// Slab Statistics Record
+//
+//
+//  SlabStatRecs are designed to control the output of running averages as 
+//  a simulation proceeds.  A required list of state and derived variables
+//  is specified, as well as a list of boxes on which the statistics are
+//  to be calculated.  Every time step on the level where these boxes are 
+//  defined, the specified fortran function is called and the running statistics
+//  are accumulated.  The statistics are written out every check_int level 0
+//  timesteps.
+//
 class SlabStatRec
 {
    friend class SlabStatList;
 
 public:
     //
-    //@ManDoc: The name of the statistic.
+    // The name of the statistic.
     //
     const std::string& name () const;
     //
-    //@ManDoc: Number of components in the statistic.
+    // Number of components in the statistic.
     //
     int nComp () const;
     //
-    //@ManDoc: The names of State/Derived variables needed for statistic.
+    // The names of State/Derived variables needed for statistic.
     //
     const Array<std::string>& vars () const;
     //
-    //@ManDoc: Number of variables used to calculate statistic.
+    // Number of variables used to calculate statistic.
     //
     long nVariables () const;
     //
-    //@ManDoc: Ghost cells needed in the variables when calculating statistic.
+    // Ghost cells needed in the variables when calculating statistic.
     //
     int nGrow () const;
     //
-    //@ManDoc: Level on which to calculate the statistic
+    // Level on which to calculate the statistic
     //
     int level () const;
     //
-    //@ManDoc: Boxes, at specified level, on which to calculate the statistic.
+    // Boxes, at specified level, on which to calculate the statistic.
     //
     const BoxArray& boxes () const;
     //
-    //@ManDoc: The SlabStatFunc used to calculate the statistic.
+    // The SlabStatFunc used to calculate the statistic.
     //
     SlabStatFunc func () const;
     //
-    //@ManDoc: The MultiFab in which statistics are accumulated.
+    // The MultiFab in which statistics are accumulated.
     //
     MultiFab& mf ();
     //
-    //@ManDoc: Temporary (grown) MultiFab used in calculating the statistic.
+    // Temporary (grown) MultiFab used in calculating the statistic.
     //
     MultiFab& tmp_mf ();
     //
-    //@ManDoc: Interval over which the stats have been calculated.
+    // Interval over which the stats have been calculated.
     //
     Real interval () const;
 
@@ -164,26 +163,24 @@ private:
 };
 
 //
-//@Man:
-//@Memo: A list of SlabStatRecs.
-/*@Doc:
-
-  SlabStatList manages and provides access to the list of SlabStatRecs.
-*/
+// A list of SlabStatRecs.
+//
+// SlabStatList manages and provides access to the list of SlabStatRecs.
+//
 
 class SlabStatList
 {
 public:
     //
-    //@ManDoc: The default constructor.
+    // The default constructor.
     //
     SlabStatList ();
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     ~SlabStatList ();
     //
-    //@ManDoc: Adds another entry to the list of SlabStats.
+    // Adds another entry to the list of SlabStats.
     //
     void add (const std::string&  name,
               int                 ncomp,
@@ -193,7 +190,7 @@ public:
               const BoxArray&     boxes,
               SlabStatFunc        func);
     //
-    //@ManDoc: Another way to add an entry to the list of SlabStats.
+    // Another way to add an entry to the list of SlabStats.
     //
     void add (const std::string&  name,
               int                 ncomp,
@@ -201,11 +198,11 @@ public:
               int                 ngrow,
               SlabStatFunc        func);
     //
-    //@ManDoc: Update the statistics in the list.
+    // Update the statistics in the list.
     //
     void update (AmrLevel& amrlevel, Real time, Real dt);
     //
-    //@ManDoc: Write out any SlabStats in the list.
+    // Write out any SlabStats in the list.
     //
     void checkPoint (PArray<AmrLevel>& amrLevels, int level0_step);
 

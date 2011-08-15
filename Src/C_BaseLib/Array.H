@@ -10,13 +10,11 @@
 
 template <class T> class Array;
 
-//
-//@Man:
-//@Memo: An Array of Objects of Type T
-/*@Doc: 
+/*
+   An Array of Objects of Type T
 
    This class implements an array of objects of the parameterized type
-   T.  In contrast with the predefined C++ array type, an `Array<T>'
+   T.  In contrast with the predefined C++ array type, an Array<T>
    object knows its size, can be dynamically resized, and provides
    automatic bounds checking.  The bounds checking can be turned off by
    specifying the -DNDEBUG flag on the command line when compiling the
@@ -24,12 +22,12 @@ template <class T> class Array;
    it is used, either by composition or inheritance, to implement many of
    the other classes in the BOXLIB library.
 
-   The `Array<T>' class works by storing copies of the objects it
-   contains.  If the objects are large, such as `FARRAYBOX's it is
-   probably better to use the `PArray' class which is an array class that
+   The Array<T> class works by storing copies of the objects it
+   contains.  If the objects are large, such as FARRAYBOXs it is
+   probably better to use the PArray class which is an array class that
    stores pointers to the objects (avoiding expensive copies).
-   The `Array<T>' class destructs all objects in the array when it is 
-   itself destructed.  If this is not the desired action, the `PArray' class
+   The Array<T> class destructs all objects in the array when it is 
+   itself destructed.  If this is not the desired action, the PArray class
    should be used.
 
    In the Array<T> class, there are two different concepts of size: the amount
@@ -39,9 +37,9 @@ template <class T> class Array;
    Rather than construct and destroy a temporary Array<T> many times, it may 
    be less expensive to allocate it once with enough memory to handle all uses,
    and resize the Array<T> for each particular use.  See the member functions
-   `reserve', `shrinkWrap', and `resize'. 
+   reserve, shrinkWrap, and resize. 
 
-   Note that care must be taken when deriving classes from `Array<T>'.  It is
+   Note that care must be taken when deriving classes from Array<T>.  It is
    a concrete class, not a polymorphic one.
 
    This class does NOT provide an assignment operator for assigning an integer
@@ -59,59 +57,58 @@ class Array
 {
 public:
     //
-    //@ManDoc: Constructs an `Array<T>' with no elements
+    // Constructs an Array<T> with no elements
     //
     Array ();
-
-    /*@ManDoc: Constructs an `Array<T>' of size len with the value of each
-      element defined by the default constructor for `T'.
-    */
+    //
+    // Constructs an Array<T> of size len with the value of each
+    // element defined by the default constructor for T.
+    //
     explicit Array (size_t len);
-
-    /*@ManDoc: Constructs an `Array<T>' of size len with the value of each
-               elements given by initialvalue.
-    */
+    //
+    // Constructs an Array<T> of size len with the value of each
+    // elements given by initialvalue.
+    //
     Array (size_t   len,
            const T& initialvalue);
-
-    /*@ManDoc: Constructs an `Array<T>' of size len in which the K'th
-               value is a copy of vec[K].
-    */
+    //
+    // Constructs an Array<T> of size len in which the K'th
+    // value is a copy of vec[K].
+    //
     Array (const T* vec,
            size_t   len);
 
     int size () const;
-  
-    /*@ManDoc: Returns a reference to the K'th element in this `Array<T>'.
-               The element can be modified through this reference.  The
-               result can be used as an L-value.
-    */
+    //
+    // Returns a reference to the K'th element in this Array<T>.
+    // The element can be modified through this reference.  The
+    // result can be used as an L-value.
+    //
     T& operator[] (size_t i);
     //
-    //@ManDoc: Same as above, except acts on const Array's.
+    // Same as above, except acts on const Array's.
     //
     const T& operator[] (size_t i) const;
-
     //
-    //@ManDoc: Different syntax for operator[] (long i).
+    // Different syntax for operator[].
     //
     T& get (size_t i);
     //
-    //@ManDoc: Different syntax for const operator[] (long i).
+    // Different syntax for const operator[].
     //
     const T& get (size_t i) const;
- 
-    /*@ManDoc: Returns pointer to vector of data.  This function breaks object
-               encapsulation and should only be used for interfacing to
-               Fortran subroutines.
-    */
+    //
+    // Returns pointer to vector of data.  This function breaks object
+    // encapsulation and should only be used for interfacing to
+    // Fortran subroutines.
+    //
     T* dataPtr ();
     //
-    //@ManDoc: Same as above for constant arrays.
+    // Same as above for constant arrays.
     //
     const T* dataPtr () const;
     //
-    //@ManDoc: Changes the i'th element of this `Array<T>' to elem.
+    // Changes the i'th element of this Array<T> to elem.
     //
     void set (size_t   i,
               const T& elem);

@@ -213,7 +213,7 @@ StationData::report (Real            time,
         if (m_stn[i].own && m_stn[i].level == level)
         {
             //
-            // Fill in the `data' vector.
+            // Fill in the data vector.
             //
             for (int j = 0; j < N; j++)
             {

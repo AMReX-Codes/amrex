@@ -11,12 +11,10 @@
 #include <BoundCond.H>
 #include <BndryData.H>
 
-//@Man:
-/*@Memo:
-  An InterpBndryData object adds to a BndryData object the ability to
-  manipulate and set the data stored in the boundary cells.
-*/        
-/*@Doc:
+/*
+        An InterpBndryData object adds to a BndryData object the ability to
+        manipulate and set the data stored in the boundary cells.
+
         The "Interpbndrydata" class is a virtual base class derived from
         BndryData.  It is intended to provide a more physical method for
         filling boundary-related data.  Boundary values in a BndryData object
@@ -45,37 +43,37 @@ class InterpBndryData
 {
 public:
     //
-    //@ManDoc: default constructor
+    // default constructor
     //
     InterpBndryData ();
     //
-    //@ManDoc: constructor for given BoxArray, etc
+    // constructor for given BoxArray, etc
     //
     InterpBndryData (const BoxArray& _grids,
                      int             _ncomp,
                      const Geometry& geom);
     //
-    //@ManDoc: Copy constructor.
+    // Copy constructor.
     //
     InterpBndryData (const InterpBndryData& rhs);
     //
-    //@ManDoc: Copy assignment operator.
+    // Copy assignment operator.
     //
     InterpBndryData& operator= (const InterpBndryData& rhs);
     //
-    //@ManDoc: interpret user BCs to those expected by LinOp: takes integer ratio and
+    // interpret user BCs to those expected by LinOp: takes integer ratio and
     // is a wrapper to the IntVect version
     //
     virtual void setBndryConds (const BCRec& phys_bc,
                                 int          ratio);
     //
-    //@ManDoc: interpret user BCs to those expected by LinOp: takes IntVect ratio
+    // interpret user BCs to those expected by LinOp: takes IntVect ratio
     //
     virtual void setBndryConds (const BCRec& phys_bc,
                                 IntVect&     ratio,
 				int          comp = 0) = 0;
     //
-    //@ManDoc: set bndry values at coarse level (non interpolation performed)
+    // set bndry values at coarse level (non interpolation performed)
     //
     virtual void setBndryValues (const MultiFab& mf,
                                  int             mf_start,
@@ -83,7 +81,7 @@ public:
                                  int             num_comp,
                                  const BCRec&    phys_bc);
     //
-    //@ManDoc: set bndry values at fine level, performing necessary interpolations
+    // set bndry values at fine level, performing necessary interpolations
     //
     virtual void setBndryValues (::BndryRegister&  crse,
                                  int             c_start,
@@ -95,7 +93,7 @@ public:
                                  const BCRec&    phys_bc,
                                  int             max_order = IBD_max_order_DEF);    
     //
-    //@ManDoc: set bndry values at fine level, performing necessary interpolations
+    // set bndry values at fine level, performing necessary interpolations
     //
     virtual void setBndryValues (::BndryRegister&  crse,
                                  int             c_start,
@@ -108,6 +106,7 @@ public:
                                  int             max_order = IBD_max_order_DEF);
     
     static int IBD_max_order_DEF;
+
     static int maxOrderDEF() {return IBD_max_order_DEF;}
 };
 

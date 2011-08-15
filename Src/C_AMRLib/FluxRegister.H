@@ -6,12 +6,10 @@
 class Geometry;
 
 //
-//@Man:
-//@Memo: Flux Register.
-/*@Doc:
-
-  Stores and manipulates fluxes at coarse-fine interfaces.
-*/
+// Flux Register.
+//
+// Stores and manipulates fluxes at coarse-fine interfaces.
+//
 
 class FluxRegister
     :
@@ -19,77 +17,75 @@ class FluxRegister
 {
 public:
     //
-    //@ManDoc: The default constructor.
+    // The default constructor.
     //
     FluxRegister();
-
-    /*@ManDoc: The constructor.
-               Note that this takes the fine BoxArray.
-    */
+    //
+    // The constructor. Note that this takes the fine BoxArray.
+    //
     FluxRegister (const BoxArray& fine_boxes, 
                   const IntVect&  ref_ratio,
                   int             fine_lev,
                   int             nvar);
-    /*@ManDoc: The constructor.
-               This version allows setting the DistributionMapping.
-    */
+    //
+    // The constructor. This version allows setting the DistributionMapping.
+    //
     FluxRegister (const BoxArray&            fine_boxes, 
                   const IntVect&             ref_ratio,
                   int                        fine_lev,
                   int                        nvar,
                   const DistributionMapping& dm);
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     virtual ~FluxRegister ();
-
     //
-    //@ManDoc: An enum that says whether to add or copy src data to members.
+    // An enum that says whether to add or copy src data to members.
     //
     enum FrOp {COPY = 0, ADD = 1};
-
-    /*@ManDoc: Initialize after using default constructor.
-               Note that this takes the fine BoxArray.
-    */
+    //
+    // Initialize after using default constructor.
+    // Note that this takes the fine BoxArray.
+    //
     virtual void define (const BoxArray& fine_boxes, 
                          const IntVect&  ref_ratio,
                          int             fine_lev,
                          int             nvar);
-
-    /*@ManDoc: Initialize after using default constructor.
-               This version allows setting the DistributionMapping.
-    */
+    //
+    // Initialize after using default constructor.
+    // This version allows setting the DistributionMapping.
+    //
     virtual void define (const BoxArray&            fine_boxes, 
                          const IntVect&             ref_ratio,
                          int                        fine_lev,
                          int                        nvar,
                          const DistributionMapping& dm);
     //
-    //@ManDoc: Returns the refinement ratio.
+    // Returns the refinement ratio.
     //
     const IntVect& refRatio () const;
     //
-    //@ManDoc: Returns the level number of the fine level.
+    // Returns the level number of the fine level.
     //
     int fineLevel () const;
     //
-    //@ManDoc: Returns the level number of the coarse level (fineLevel()-1).
+    // Returns the level number of the coarse level (fineLevel()-1).
     //
     int crseLevel () const;
     //
-    //@ManDoc: The number of components.
+    // The number of components.
     //
     int nComp () const;
     //
-    //@ManDoc: The coarsened boxes.
+    // The coarsened boxes.
     //
     const BoxArray& coarsenedBoxes () const;
     //
-    //@ManDoc: Returns the sum of the registers.
+    // Returns the sum of the registers.
     //
     Real SumReg (int comp) const;
     //
-    //@ManDoc: Copy from flux register to FAB `flx'.
+    // Copy from flux register to FAB flx.
     //
     void copyTo (FArrayBox& flx,
                  int        dir,
@@ -97,7 +93,7 @@ public:
                  int        dest_comp,
                  int        num_comp);
     //
-    //@ManDoc: flx = flx + mult*register.
+    // flx = flx + mult*register.
     //
     void addTo (FArrayBox& flx,
                 int        dir,
@@ -106,7 +102,7 @@ public:
                 int        dest_comp,
                 int        num_comp);
     //
-    //@ManDoc: mf = fm + mult*register.
+    // mf = fm + mult*register.
     //
     void addTo (MultiFab& mf,
                 int       dir,
@@ -115,7 +111,7 @@ public:
                 int       dest_comp,
                 int       num_comp);
     //
-    //@ManDoc: Initialize flux correction with coarse data.
+    // Initialize flux correction with coarse data.
     //
     void CrseInit (const MultiFab& mflx,
                    const MultiFab& area,
@@ -126,7 +122,7 @@ public:
                    Real            mult = -1.0,
                    FrOp            op = FluxRegister::COPY);
     //
-    //@ManDoc: Initialize flux correction with coarse data.
+    // Initialize flux correction with coarse data.
     //
     void CrseInit (const MultiFab& mflx,
                    int             dir,
@@ -136,7 +132,7 @@ public:
                    Real            mult = -1.0,
                    FrOp            op = FluxRegister::COPY);
     //
-    //@ManDoc: Initialize flux correction with coarse data. 
+    // Initialize flux correction with coarse data. 
     //
     void CrseInit (const FArrayBox& flux,
                    const Box&       subbox,
@@ -154,7 +150,7 @@ public:
     //
     void CrseInitFinish (FrOp op = FluxRegister::COPY);
     //
-    //@ManDoc: Increment flux correction with fine data.
+    // Increment flux correction with fine data.
     //
     void FineAdd (const MultiFab& mflx,
                   int             dir, 
@@ -163,7 +159,7 @@ public:
                   int             numcomp,
                   Real            mult);
     //
-    //@ManDoc: Increment flux correction with fine data.
+    // Increment flux correction with fine data.
     //
     void FineAdd (const MultiFab& mflx,
                   const MultiFab& area,
@@ -173,7 +169,7 @@ public:
                   int             numcomp,
                   Real            mult);
     //
-    //@ManDoc: Increment flux correction with fine data.
+    // Increment flux correction with fine data.
     //
     void FineAdd (const FArrayBox& flux,
                   int              dir,
@@ -183,7 +179,7 @@ public:
                   int              numcomp,
                   Real             mult);
     //
-    //@ManDoc: Increment flux correction with fine data.
+    // Increment flux correction with fine data.
     //
     void FineAdd (const FArrayBox& flux,
                   const FArrayBox& area,
@@ -194,7 +190,7 @@ public:
                   int              numcomp,
                   Real             mult);
     //
-    //@ManDoc: Apply flux correction.  Note that this takes the coarse Geometry.
+    // Apply flux correction.  Note that this takes the coarse Geometry.
     //
     void Reflux (MultiFab&       mf,
                  const MultiFab& volume,
@@ -205,7 +201,7 @@ public:
                  const Geometry& crse_geom,
 		 const Real*     multf = 0);
     //
-    //@ManDoc: Constant volume version of Reflux().  Note that this takes the coarse Geometry.
+    // Constant volume version of Reflux().  Note that this takes the coarse Geometry.
     //
     void Reflux (MultiFab&       mf,
                  Real            scale,
@@ -215,11 +211,11 @@ public:
                  const Geometry& crse_geom);
 
     //
-    //@ManDoc: Write (used for writing to checkpoint)
+    // Write (used for writing to checkpoint)
     //
     void write (const std::string& name, std::ostream& os) const;
     //
-    //@ManDoc: Read (used for reading from checkpoint)
+    // Read (used for reading from checkpoint)
     //
     void read (const std::string& name, std::istream& is);
 

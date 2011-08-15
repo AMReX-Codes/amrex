@@ -12,12 +12,11 @@
 
 #include <algorithm>
 
-//@Man:
-/*@Memo:
+/*
+
   A MultiGrid solves the linear equation, L(phi)=rhs, for a LinOp L and
   MultiFabs rhs and phi using a V-type cycle of the MultiGrid algorithm
-  */        
-/*@Doc:
+
   A MultiGrid object solves the linear equation, L(phi)=rhs for a LinOp
   L, and MultiFabs phi and rhs.  A MultiGrid is constructed with a
   fully initialized 2D or 3D LinOp, and responds to "solve" requests of
@@ -62,11 +61,11 @@
   In addition to changing the actual smoothers employed, the user
   has access to the following parameters (defaults shown in parentheses):
   \begin{itemize}
-  \item nu\_1(2) Number of passes of the pre-smoother
-  \item nu\_2(2) Number of passes of the post-smoother
-  \item nu\_0(1) Number of passes of the coarse-grid smoother per
+  \item nu_1(2) Number of passes of the pre-smoother
+  \item nu_2(2) Number of passes of the post-smoother
+  \item nu_0(1) Number of passes of the coarse-grid smoother per
   cycle
-  \item nu\_f(8) Number of passes of the bottom smoother (if not using
+  \item nu_f(8) Number of passes of the bottom smoother (if not using
   the conjugate-gradient bottom solve)
   \item maxiter(40) Maximum number of full multigrid cycles allowed to
   solve the system
@@ -74,9 +73,9 @@
   \item verbose(0) Verbosity (1-results, 2-progress)
   \item usecg(1) Whether to use the conjugate-gradient solver for the
   coarsest (bottom) solve of the multigrid hierarchy
-  \item atol\_b(-1.0) Absolute error tolerance (<0 => ignored) for cg
-  \item rtol\_b(.01) Relative error tolerance (<0 => ignored) for cg
-  \item nu\_b(0) Number of passes of the bottom smoother taken
+  \item atol_b(-1.0) Absolute error tolerance (<0 => ignored) for cg
+  \item rtol_b(.01) Relative error tolerance (<0 => ignored) for cg
+  \item nu_b(0) Number of passes of the bottom smoother taken
   {\it AFTER} the cg bottom solve (value ignored if <= 0)
   \item numLevelsMAX(1024) maximum number of mg levels
   \end{itemize}
@@ -88,15 +87,15 @@ class MultiGrid
 {
 public:
     //
-    //@ManDoc: constructor
+    // constructor
     //
     MultiGrid (LinOp& _Lp);
     //
-    //@ManDoc: destructor
+    // destructor
     //
     virtual ~MultiGrid ();
     //
-    //@ManDoc: solve the system to relative err eps\_rel, absolute err eps\_abs
+    // solve the system to relative err eps_rel, absolute err eps_abs
     //
     virtual void solve (MultiFab&       solution,
                         const MultiFab& _rhs,
@@ -104,99 +103,99 @@ public:
                         Real            eps_abs = -1.0,
                         LinOp::BC_Mode  bc_mode=LinOp::Inhomogeneous_BC);
     //
-    //@ManDoc: return the linear operator
+    // return the linear operator
     //
     LinOp& linOp ();
     //
-    //@ManDoc: set the maximum permitted multigrid iterations
+    // set the maximum permitted multigrid iterations
     //
     void setMaxIter (int _maxiter);
     //
-    //@ManDoc: return the maximum permitted multigrid iterations
+    // return the maximum permitted multigrid iterations
     //
     int getMaxIter () const;
     //
-    //@ManDoc: return the number of multigrid iterations
+    // return the number of multigrid iterations
     //
     int getNumIter () const;
     //
-    //@ManDoc: set the flag for whether to use CGSolver at coarsest level
+    // set the flag for whether to use CGSolver at coarsest level
     //
     void setUseCG (int _usecg);
     //
-    //@ManDoc: return the flag for whether to use CGSolver at coarsest level
+    // return the flag for whether to use CGSolver at coarsest level
     //
     int getUseCG () const;
     //
-    //@ManDoc: set/return the number of multigrid levels
+    // set/return the number of multigrid levels
     //
     int getNumLevels (int _numlevels);
     //
-    //@ManDoc: return the number of multigrid levels
+    // return the number of multigrid levels
     //
     int getNumLevels () const;
     //
-    //@ManDoc: set the verbosity value
+    // set the verbosity value
     //
     void setVerbose (int _verbose);
     //
-    //@ManDoc: return the verbosity value
+    // return the verbosity value
     //
     int getVerbose ();
     //
-    //@ManDoc: set the number of passes of the pre-smoother
+    // set the number of passes of the pre-smoother
     //
     void set_preSmooth (int pre_smooth);
     //
-    //@ManDoc: set the number of passes of the post-smoother
+    // set the number of passes of the post-smoother
     //
     void set_postSmooth (int post_smooth);
     //
-    //@ManDoc: set the number of passes of the coarse-grid smoother/mg iteration
+    // set the number of passes of the coarse-grid smoother/mg iteration
     //
     void set_cntRelax (int cnt_relax);
     //
-    //@ManDoc: set the number of passes of the bottom mg relaxer
+    // set the number of passes of the bottom mg relaxer
     //
     void set_finalSmooth (int final_smooth);
     //
-    //@ManDoc: Return the number of pre-smooth iterations at the level
+    // Return the number of pre-smooth iterations at the level
     //
     int preSmooth () const;
     //
-    //@ManDoc: Return the number of post-smooth iterations at the level
+    // Return the number of post-smooth iterations at the level
     //
     int postSmooth () const;
     //
-    //@ManDoc: Return the number of level relaxations (not implemented)
+    // Return the number of level relaxations (not implemented)
     //
     int cntRelax () const;
     //
-    //@ManDoc: Return the number of smoothing passes at bottom of MG (if no cg)
+    // Return the number of smoothing passes at bottom of MG (if no cg)
     //
     int finalSmooth () const;
     //
-    //@ManDoc: set the maximum permitted absolute tolerance (<0 bypasses test)
+    // set the maximum permitted absolute tolerance (<0 bypasses test)
     //
     void set_atol_b (Real atol);
     //
-    //@ManDoc: get the maximum permitted absolute tolerance
+    // get the maximum permitted absolute tolerance
     //
     Real get_atol_b () const;
     //
-    //@ManDoc: set the maximum permitted relative tolerance (<0 bypasses test)
+    // set the maximum permitted relative tolerance (<0 bypasses test)
     //
     void set_rtol_b (Real rtol);
     //
-    //@ManDoc: get the maximum permitted relative tolerance
+    // get the maximum permitted relative tolerance
     //
     Real get_rtol_b () const;
     //
-    //@ManDoc: set the number of post-cg relax passes
+    // set the number of post-cg relax passes
     //
     void set_nu_b (int _nu_b);
     //
-    //@ManDoc: set the number of post-cg relax passes
+    // set the number of post-cg relax passes
     //
     int get_nu_b () const;
 
@@ -205,14 +204,14 @@ public:
 
     void set_maxiter_b (int n);
     //
-    //@ManDoc: get the maximum permitted relative tolerance
+    // get the maximum permitted relative tolerance
     //
     int  get_maxiter_b () const;
 protected:
     //@ManMemo: Internal members
     
     //
-    //@ManDoc: Solve the linear system to relative and absolute tolerance
+    // Solve the linear system to relative and absolute tolerance
     //
     virtual int solve_ (MultiFab&      _sol,
                         Real           _eps_rel,
@@ -220,7 +219,7 @@ protected:
                         LinOp::BC_Mode bc_mode,
                         int            level);
     //
-    //@ManDoc: Put the system in r-c form
+    // Put the system in r-c form
     //
     void residualCorrectionForm (MultiFab&       newrhs,
                                  const MultiFab& oldrhs,
@@ -229,30 +228,30 @@ protected:
                                  LinOp::BC_Mode  bc_mode,
                                  int             level);
     //
-    //@ManDoc: Make space, set switches for new solution level
+    // Make space, set switches for new solution level
     //
     void prepareForLevel (int level);
     //
-    //@ManDoc: Compute the number of multigrid levels, assuming ratio=2
+    // Compute the number of multigrid levels, assuming ratio=2
     //
     int numLevels () const;
     //
-    //@ManDoc: Return scalar estimate of error
+    // Return scalar estimate of error
     //
     virtual Real errorEstimate (int            level,
                                 LinOp::BC_Mode bc_mode);
     //
-    //@ManDoc: Transfer MultiFab from fine to coarse level
+    // Transfer MultiFab from fine to coarse level
     //
     void average (MultiFab&       c,
                   const MultiFab& f);
     //
-    //@ManDoc: Transfer MultiFab from coarse to fine level
+    // Transfer MultiFab from coarse to fine level
     //
     void interpolate (MultiFab&       f,
                       const MultiFab& c);
     //
-    //@ManDoc: Perform a MG V-cycle
+    // Perform a MG V-cycle
     //
     void relax (MultiFab&      solL,
                 MultiFab&      rhsL,
@@ -261,7 +260,7 @@ protected:
                 Real           eps_abs,
                 LinOp::BC_Mode bc_mode);
     //
-    //@ManDoc: Perform relaxation at bottom of V-cycle
+    // Perform relaxation at bottom of V-cycle
     //
     virtual void coarsestSmooth (MultiFab&      solL,
                                  MultiFab&      rhsL,
@@ -271,102 +270,102 @@ protected:
                                  LinOp::BC_Mode bc_mode,
                                  int            local_usecg);
     //
-    //@ManDoc: default flag, whether to use CG at bottom of MG cycle
+    // default flag, whether to use CG at bottom of MG cycle
     //
     static int def_usecg;
     //
-    //@ManDoc: set flags, etc
+    // set flags, etc
     //
     static void Initialize ();
 
     static void Finalize ();
     //
-    //@ManDoc: default number of level, pre-, post- and bottom smooths
+    // default number of level, pre-, post- and bottom smooths
     //
     static int def_nu_0, def_nu_1, def_nu_2, def_nu_f;
     //
-    //@ManDoc: default number of post-cg relax passes
+    // default number of post-cg relax passes
     //
     static int def_nu_b;
     //
-    //@ManDoc: default maximum number of complete MG cycle iterations
+    // default maximum number of complete MG cycle iterations
     //
     static int def_maxiter;
     //
-    //@ManDoc: default verbosity
+    // default verbosity
     //
     static int def_verbose;
     //
-    //@ManDoc: default relative, absolute tolerance for cg solve
+    // default relative, absolute tolerance for cg solve
     //
     static Real def_rtol_b, def_atol_b;
     static int def_maxiter_b;
     //
-    //@ManDoc: default maximum number of mg levels
+    // default maximum number of mg levels
     //
     static int def_numLevelsMAX;
     //
-    //@ManDoc: default flag controlling the behaviour when the cg solver returns indicating unstable
+    // default flag controlling the behaviour when the cg solver returns indicating unstable
     //
     static int def_smooth_on_cg_unstable;
   //
   static CGSolver::Solver def_cg_solver;
   CGSolver::Solver cg_solver;
     //
-    //@ManDoc: verbosity
+    // verbosity
     //
     int verbose;
     //
-    //@ManDoc: Number of MG levels
+    // Number of MG levels
     //
     int numlevels;
     //
-    //@ManDoc: current maximum number of allowed iterations
+    // current maximum number of allowed iterations
     //
     int maxiter;
     //
-    //@ManDoc: current number of level, pre-, post- and bottom smooths
+    // current number of level, pre-, post- and bottom smooths
     //
     int nu_0, nu_1, nu_2, nu_f;
     //
-    //@ManDoc: current number of post-cg relax passes
+    // current number of post-cg relax passes
     //
     int nu_b;
     //
-    //@ManDoc: current flag, whether to use CG at bottom of MG cycle
+    // current flag, whether to use CG at bottom of MG cycle
     //
     int usecg;
     //
-    //@ManDoc: relative, absolute tolerance, maxiter for cg bottom solver.
+    // relative, absolute tolerance, maxiter for cg bottom solver.
     //
     Real rtol_b, atol_b;
     int maxiter_b;
     //
-    //@ManDoc: maximum number of mg levels
+    // maximum number of mg levels
     //
     int numLevelsMAX;
     //
-    //@ManDoc: flag controlling the behaviour when the cg solver returns indicating unstable
+    // flag controlling the behaviour when the cg solver returns indicating unstable
     //
     int smooth_on_cg_unstable;
     //
-    //@ManDoc: internal temp data to store initial guess of solution
+    // internal temp data to store initial guess of solution
     //
     MultiFab* initialsolution;
     //
-    //@ManDoc: internal temp data
+    // internal temp data
     //
     Array< MultiFab* > res;
     //
-    //@ManDoc: internal temp data
+    // internal temp data
     //
     Array< MultiFab* > rhs;
     //
-    //@ManDoc: internal temp data
+    // internal temp data
     //
     Array< MultiFab* > cor;
     //
-    //@ManDoc: internal reference to linear operator
+    // internal reference to linear operator
     //
     LinOp &Lp;
 

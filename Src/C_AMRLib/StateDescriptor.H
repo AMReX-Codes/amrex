@@ -23,12 +23,10 @@ extern "C"
 }
 
 //
-//@Man:
-//@Memo: Attributes of StateData.
-/*@Doc:
-
-  Attributes of StateData.
-*/
+// Attributes of StateData.
+//
+// Attributes of StateData.
+//
 
 class StateDescriptor
 {
@@ -36,11 +34,11 @@ class StateDescriptor
 
 public:
     //
-    //@ManDoc: Defines the temporal centeredness of data.
+    // Defines the temporal centeredness of data.
     //
     enum TimeCenter { Point = 0 , Interval };
     //
-    //@ManDoc: Type of function called by BCRec for user-supplied boundary data.
+    // Type of function called by BCRec for user-supplied boundary data.
     //
     // Class wrapper around BndryFuncDefault.
     //
@@ -88,11 +86,11 @@ public:
         BndryFuncDefault  m_gfunc;
     };
     //
-    //@ManDoc: The default constructor.
+    // The default constructor.
     //
     StateDescriptor ();
     //
-    //@ManDoc: Constructor that sets all data members.
+    // Constructor that sets all data members.
     //
     StateDescriptor (IndexType     btyp,
                      TimeCenter    ttyp,
@@ -103,11 +101,11 @@ public:
                      bool          extrap = false,
                      bool          store_in_checkpoint = true);
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     ~StateDescriptor ();
     //
-    //@ManDoc: Define the data members if constructed with default construtor.
+    // Define the data members if constructed with default construtor.
     //
     void define (IndexType     btyp,
                  TimeCenter    ttyp,
@@ -118,7 +116,7 @@ public:
                  bool          extrap = false,
                  bool          store_in_checkpoint = true);
     //
-    //@ManDoc: Sets details of `comp' component.
+    // Sets details of comp component.
     //
     void setComponent (int                comp,
                        const std::string& nm,
@@ -128,7 +126,7 @@ public:
                        int                max_map_start_comp = -1,
                        int                min_map_end_comp   = -1);
     //
-    //@ManDoc: Sets details of `comp' component.
+    // Sets details of comp component.
     //
     void setComponent (int                comp,
                        const std::string& nm,
@@ -138,13 +136,13 @@ public:
                        bool               master_or_slave,
                        int                groupsize);
     //
-    //@ManDoc: Resets boundary condition data for `comp' component.
+    // Resets boundary condition data for comp component.
     //
     void resetComponentBCs (int              comp,
                             const BCRec&     bcr,
                             const BndryFunc& func);
     //
-    //@ManDoc: Set interpolaters for a subset of the state vector components.
+    // Set interpolaters for a subset of the state vector components.
     //
     void setUpMaps (int&                use_default_map,
                     const Interpolater* default_map,
@@ -157,7 +155,7 @@ public:
                     int*&               max_start_comp,
                     int*&               min_end_comp) const;
     //
-    //@ManDoc: Cleanup interpolaters for a subset of the state vector components.
+    // Cleanup interpolaters for a subset of the state vector components.
     //
     void cleanUpMaps (Interpolater**& maps, 
                       int*&           map_start_comp,
@@ -165,69 +163,69 @@ public:
                       int*&           max_start_comp,
                       int*&           min_end_comp) const;
     //
-    //@ManDoc: Output names of components.
+    // Output names of components.
     //
     void dumpNames (std::ostream& os,
                     int           start_comp,
                     int           num_comp) const;
     //
-    //@ManDoc: Returns the IndexType.
+    // Returns the IndexType.
     //
     IndexType getType () const;
     //
-    //@ManDoc: Returns StateDescriptor::TimeCenter.
+    // Returns StateDescriptor::TimeCenter.
     //
     StateDescriptor::TimeCenter timeType () const;
     //
-    //@ManDoc: Returns number of components.
+    // Returns number of components.
     //
     int nComp () const;
     //
-    //@ManDoc: Returns the grow factor.
+    // Returns the grow factor.
     //
     int nExtra () const;
     //
-    //@ManDoc: Returns the interpolater.
+    // Returns the interpolater.
     //
     Interpolater* interp () const;
     //
-    //@ManDoc: Returns the interpolater of specified component.
+    // Returns the interpolater of specified component.
     //
     Interpolater* interp (int i) const;
     //
-    //@ManDoc: Returns the name of specified component.
+    // Returns the name of specified component.
     //
     const std::string& name (int i) const;
     //
-    //@ManDoc: Returns the BCRec of specified component.
+    // Returns the BCRec of specified component.
     //
     const BCRec& getBC (int i) const;
     //
-    //@ManDoc: Returns all BCRecs.
+    // Returns all BCRecs.
     //
     const Array<BCRec>& getBCs () const;
     //
-    //@ManDoc: Returns the BndryFunc of specified component.
+    // Returns the BndryFunc of specified component.
     //
     const BndryFunc& bndryFill (int i) const;
     //
-    //@ManDoc: Is sc>=0 \&\& sc+nc<=ncomp ?
+    // Is sc>=0 \&\& sc+nc<=ncomp ?
     //
     int inRange (int sc, int nc) const;
     //
-    //@ManDoc: Are the interpolaters in the specified range identical?
+    // Are the interpolaters in the specified range identical?
     //
     bool identicalInterps (int scomp, int ncomp) const;
     //
-    //@ManDoc: Returns contiguous ranges of comps with identical interpolaters.
+    // Returns contiguous ranges of comps with identical interpolaters.
     //
     std::vector< std::pair<int,int> > sameInterps (int scomp, int ncomp) const;
     //
-    //@ManDoc: Can extrapolate in time.
+    // Can extrapolate in time.
     //
     bool extrap () const;
     //
-    //@ManDoc: Should store this StateData in the checkpoint file
+    // Should store this StateData in the checkpoint file
     //
     bool store_in_checkpoint () const;
 
@@ -281,19 +279,19 @@ class DescriptorList
 {
 public:
     //
-    //@ManDoc: The constructor.
+    // The constructor.
     //
     DescriptorList ();
     //
-    //@ManDoc: Set the list to its default state.
+    // Set the list to its default state.
     //
     void clear ();
     //
-    //@ManDoc: Returns number of elements in the list.
+    // Returns number of elements in the list.
     //
     int size () const;
     //
-    //@ManDoc: Adds new StateDescriptor at index `indx' to list.
+    // Adds new StateDescriptor at index indx to list.
     //
     void addDescriptor (int                         indx,
                         IndexType                   typ,
@@ -304,14 +302,14 @@ public:
                         bool                        extrap = false,
                         bool                        store_in_checkpoint = true);
     //
-    //@ManDoc: Calls resetComponentBCs() on StateDescriptor at index `indx'.
+    // Calls resetComponentBCs() on StateDescriptor at index indx.
     //
     void resetComponentBCs (int                               indx,
                             int                               comp,
                             const BCRec&                      bc,
                             const StateDescriptor::BndryFunc& func);
     //
-    //@ManDoc: Calls setComponent() on StateDescriptor at index `indx'.
+    // Calls setComponent() on StateDescriptor at index indx.
     //
     void setComponent (int                               indx,
                        int                               comp,
@@ -322,7 +320,7 @@ public:
                        int                               max_map_start_comp = -1,
                        int                               min_map_end_comp   = -1);
     //
-    //@ManDoc: Calls setComponent() on StateDescriptor at index `indx' on group.
+    // Calls setComponent() on StateDescriptor at index indx on group.
     //
     void setComponent (int                               indx,
                        int                               comp,
@@ -331,7 +329,7 @@ public:
                        const StateDescriptor::BndryFunc& func,
                        Interpolater*                     interp = 0);
     //
-    //@ManDoc: Returns StateDescriptor at index `k'.
+    // Returns StateDescriptor at index k.
     //
     const StateDescriptor& operator[] (int k) const;
 

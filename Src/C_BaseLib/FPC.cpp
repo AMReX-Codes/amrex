@@ -16,7 +16,7 @@ const long FPC::ieee_float[]  = { 32L,  8L, 23L, 0L, 1L,  9L, 0L,   0x7FL };
 const long FPC::ieee_double[] = { 64L, 11L, 52L, 0L, 1L, 12L, 0L,  0x3FFL };
 //
 // Every copy of the library will have exactly one
-// `nativeLongDescriptor' and `nativeRealDescriptor' compiled into it.
+// nativeLongDescriptor and nativeRealDescriptor compiled into it.
 // Each machine on which BoxLib runs MUST have them defined below.
 //
 const

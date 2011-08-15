@@ -5,20 +5,20 @@
 #ifdef BL_USE_FLOAT
 #  undef BL_USE_DOUBLE
 #  undef BL_USE_FLOAT
-/*@ManDoc:
-  The macro BL\_USE\_FLOAT indicates that C++ floating-point calculations should
+/*
+  The macro BL_USE_FLOAT indicates that C++ floating-point calculations should
   use "float" variables and Fortran floating-point calculations should use
-  "real*4" variables.  One of BL\_USE\_FLOAT or BL\_USE\_DOUBLE must always be
+  "real*4" variables.  One of BL_USE_FLOAT or BL_USE_DOUBLE must always be
   defined when compiling and using BoxLib.
 */
 #  define BL_USE_FLOAT 1
 #else
 #  undef  BL_USE_FLOAT
 #  undef  BL_USE_DOUBLE
-/*@ManDoc:
-  The macro BL\_USE\_DOUBLE indicates that C++ floating-point calculations
+/*
+  The macro BL_USE_DOUBLE indicates that C++ floating-point calculations
   should use "double" variables and Fortran floating-point calculations
-  should use "real*8" variables.  One of BL\_USE\_FLOAT or BL\_USE\_DOUBLE must
+  should use "real*8" variables.  One of BL_USE_FLOAT or BL_USE_DOUBLE must
   always be defined when compiling and using BoxLib.
 */
 #  define BL_USE_DOUBLE 1
@@ -26,13 +26,13 @@
 
 #if !defined(BL_LANG_FORT)
 
-/*@ManDoc: 
+/* 
   Real is a typedef specifying the precision of the floating-point
-  calculations in C++ code.  It will be either `float' or `double'
-  depending upon which of the macros BL\_USE\_FLOAT or
-  BL\_USE\_DOUBLE, respectively, is defined during compilations.  For
+  calculations in C++ code.  It will be either float or double
+  depending upon which of the macros BL_USE_FLOAT or
+  BL_USE_DOUBLE, respectively, is defined during compilations.  For
   portability, you should write floating-point code in terms of this
-  typedef, instead of using `float' or `double' directly.
+  typedef, instead of using float or double directly.
 
   Note that exactly one of these macros must be defined
   when compiling any module that uses floating-point.
@@ -45,13 +45,13 @@
 
 #else
 
-/*@ManDoc:
-  The REAL\_T macro specifies the precision of the floating-point
-  calculations in Fortran code.  It will be either `real*4' or
-  `real*8' depending upon which of the symbols BL\_USE\_FLOAT or
-  BL\_USE\_DOUBLE, respectively, is defined during compilations.  For
+/*
+  The REAL_T macro specifies the precision of the floating-point
+  calculations in Fortran code.  It will be either real*4 or
+  real*8 depending upon which of the symbols BL_USE_FLOAT or
+  BL_USE_DOUBLE, respectively, is defined during compilations.  For
   portability, you should write floating-point code in terms of this
-  macro, instead of using `real*4' or `real*8' directly.
+  macro, instead of using real*4 or real*8 directly.
 
   Note that exactly one of these macros must be defined
   when compiling any module that uses floating-point.

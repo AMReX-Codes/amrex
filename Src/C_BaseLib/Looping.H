@@ -4,7 +4,7 @@
 
 #if (BL_SPACEDIM == 1)
 
-/*@ManDoc:
+/*
   The macro ForAllThisPencil(T,b,ns,nc) is intended to facilitate efficient
   looping over the contents of BaseFabs and objects derived from BaseFab.
   Special attention has been paid to make it work efficiently on vector
@@ -20,7 +20,7 @@
   macro is a type: the type contained in the BaseFab that is being iterated
   over.
 
-  We can rewrite the code illustrated in `ForAllThisBNN' in this form:
+  We can rewrite the code illustrated in ForAllThisBNN in this form:
 
     template <class T>
     void BaseFab<T>::performSetVal(const T val, const Box bx, int ns, int nc)
@@ -59,7 +59,7 @@
         T &thisR = * _th_pp;                                            \
         const int thisLen = _b_len[0];                                  \
 
-/*@ManDoc:
+/*
   The macro ForAllThisCPencil(T,b,ns,nc) is intended to facilitate efficient
   looping over the contents of BaseFabs and objects derived from BaseFab.
   Special attention has been paid to make it work efficiently on vector
@@ -94,7 +94,7 @@
         const T &thisR = * _th_pp;                                      \
         const int thisLen = _b_len[0];
 
-/*@ManDoc:
+/*
   The macro ForAllXBNN(T,x,b,ns,nc) is intended to facilitate efficient
   looping over the contents of BaseFabs and objects derived from BaseFab.
   Special attention has been paid to make it work efficiently on vector
@@ -134,7 +134,7 @@
             const int iR = _i + _b_lo[0];                               \
             T &x##R = * _x_pp;
 
-/*@ManDoc:
+/*
   The macro ForAllXCBNN(T,x,b,ns,nc) is intended to facilitate efficient
   looping over the contents of BaseFabs and objects derived from BaseFab.
   Special attention has been paid to make it work efficiently on vector
@@ -169,7 +169,7 @@
             const int iR = _i + _b_lo[0];                               \
             const T & x##R = _x_pp[_i];
 
-/*@ManDoc:
+/*
   The ForAllThisBNN(T,b,ns,nc) macro is intended to facilitate efficient
   looping over the contents of BaseFabs and objects derived from BaseFab.
   Special attention has been paid to make it work efficiently on vector
@@ -220,7 +220,7 @@
             int iR = _i + _b_lo[0]; iR += 0;                            \
             T &thisR = * _th_pp;
 
-/*@ManDoc:
+/*
   The macro ForAllThisCBNN(T,b,ns,nc) is intended to facilitate efficient
   looping over the contents of BaseFabs and objects derived from BaseFab.
   Special attention has been paid to make it work efficiently on vector
@@ -255,7 +255,7 @@
             const int iR = _i + _b_lo[0];                               \
             const T &thisR = _th_pp[_i];
 
-/*@ManDoc:
+/*
   The macro ForAllThisBNNXC(T,b,ns,nc,x,nss) is intended to facilitate
   efficient looping over the contents of BaseFabs and objects derived from
   BaseFab.  Special attention has been paid to make it work efficiently on
@@ -304,7 +304,7 @@
             for(int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp) {      \
                 int iR = _i + _subbox_lo[0]; iR += 0;                   \
                 T &thisR = * _th_pp; const T & x##R = _x_pp[_i];
-/*@ManDoc:
+/*
   The macro ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss) is intended to facilitate
   efficient looping over the contents of BaseFabs and objects derived from
   BaseFab.  Special attention has been paid to make it work efficiently on
@@ -358,7 +358,7 @@
                 int i##x##R = _i + _bx_lo[0]; i##x##R += 0;             \
                 T &thisR = * _th_pp; const T & x##R = _x_pp[_i];
 
-/*@ManDoc:
+/*
   The macro ForAllThisBNNXCBNYCBN(T,b,ns,nc,x,bx,nsx,y,by,nsy) is intended to
   facilitate efficient looping over the contents of BaseFabs and objects
   derived from BaseFab.  Special attention has been paid to make it work
@@ -459,19 +459,19 @@
             T & x##R = _x_pp[_ix];                                      \
             const T & y##R = _y_pp[_i];
 
-/*@ManDoc:
+/*
   The macro EndForTX must be used to end all ForAllThisBNNXC,
   ForAllThisBNNXCBN and ForAllThisBNNXCBNYCBN looping constructs.
 */
 #define EndForTX }}}}
 
-/*@ManDoc:
+/*
   The macro EndFor must be used to end all ForAllXBNN, ForAllXCBNN,
   ForAllThisBNN, and ForAllThisCBNN looping constructs.
 */
 #define EndFor }}}
 
-/*@ManDoc:
+/*
   The macro EndForPencil must be used to end ForAll*Pencil looping constructs.
 */
 #define EndForPencil }}
@@ -1192,60 +1192,60 @@
 
 #endif
 
-/*@ManDoc:
-  The macro ForAllX(T,x) is a shortened form of `ForAllXBNN' where the Box
+/*
+  The macro ForAllX(T,x) is a shortened form of ForAllXBNN where the Box
   defaults to the domain of x and the components run over all the components
   of x.
 */
 #define ForAllX(T,x)            ForAllXBNN(T,x,((x).box()),0,((x).nComp()))
 
-/*@ManDoc:
+/*
   The macro ForAllXC(T,x) is the constant form of ForAllX(T,x).
 */
 #define ForAllXC(T,x)           ForAllXCBNN(T,x,((x).box()),0,((x).nComp()))
 
-/*@ManDoc:
-  The macro ForAllXB(T,x,b) is a shortened form of `ForAllXBNN' 
+/*
+  The macro ForAllXB(T,x,b) is a shortened form of ForAllXBNN
   where the components run over all the components of x.
 */
 #define ForAllXB(T,x,b)         ForAllXBNN(T,x,(b),0,(x).nComp())
 
-/*@ManDoc:
+/*
   The macro ForAllXBC(T,x,b) is the constant form of ForAllXB(T,x,b).
 */
 #define ForAllXBC(T,x,b)        ForAllXCBNN(T,x,(b),0,(x).nComp())
 
-/*@ManDoc:
-  The macro ForAllThis(T) is a shortened form of `ForAllThisBNN' where the Box
+/*
+  The macro ForAllThis(T) is a shortened form of ForAllThisBNN where the Box
   defaults to the domain of x and the components run over all the components
   of x.
 */
 #define ForAllThis(T)           ForAllThisBNN(T,domain,0,nComp())
 
-/*@ManDoc:
+/*
   The macro ForAllThisC(T) is the constant form of ForAllThis(T).
 */
 #define ForAllThisC(T)          ForAllThisCBNN(T,domain,0,nComp())
 
-/*@ManDoc:
-  The macro ForAllThisB(T,b) is a shortened form of `ForAllThisBNN'
+/*
+  The macro ForAllThisB(T,b) is a shortened form of ForAllThisBNN
   where the components run over all the components of x.
 */
 #define ForAllThisB(T,b)        ForAllThisBNN(T,(b),0,nComp())
 
-/*@ManDoc:
+/*
   The macro ForAllThisCB(T,b) is the constant form of ForAllThisB(T,b).
 */
 #define ForAllThisCB(T,b)       ForAllThisCBNN(T,(b),0,nComp())
 
-/*@ManDoc:
-  The macro ForAllThisNN(T,ns,nc) is a shortened form of `ForAllThisBNN'
+/*
+  The macro ForAllThisNN(T,ns,nc) is a shortened form of ForAllThisBNN
   where the Box defaults to the domain of *this.
 */
 #define ForAllThisNN(T,ns,nc)     ForAllThisBNN(T,domain,ns,nc)
 
-/*@ManDoc:
-  The macro ForAllThisXC(T,x) is a shortened form of `ForAllThisBNNXC'
+/*
+  The macro ForAllThisXC(T,x) is a shortened form of ForAllThisBNNXC
   where the Box defaults to the domain of *this and the components run over
   all the components of *this.
 */

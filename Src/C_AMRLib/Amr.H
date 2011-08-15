@@ -18,96 +18,95 @@ class LevelBld;
 class BoxDomain;
 
 //
-//@Man:
-//@Memo: Manages hierarchy of levels for time-dependent AMR computations.
-/*@Doc:
-
-  The Amr class is designed to manage parts of the computation  which do
-  not belong on a single level, like establishing and updating the hierarchy
-  of levels, global timestepping, and managing the different AmrLevels
-*/
+//
+// Manages hierarchy of levels for time-dependent AMR computations.
+//
+// The Amr class is designed to manage parts of the computation  which do
+// not belong on a single level, like establishing and updating the hierarchy
+// of levels, global timestepping, and managing the different AmrLevels
+//
 
 class Amr
 {
 public:
     //
-    //@ManDoc: The constructor.
+    // The constructor.
     //
     Amr ();
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     ~Amr ();
     //
-    //@ManDoc: Init data after construction. Must be called before timestepping.
+    // Init data after construction. Must be called before timestepping.
     //
     void init (Real strt_time, Real stop_time);
     //
-    //@ManDoc: Set the timestep on each level.
+    // Set the timestep on each level.
     //
     void setDtLevel (const Array<Real>& dt_lev);
     //
-    //@ManDoc: Set the dtmin on each level.
+    // Set the dtmin on each level.
     //
     void setDtMin (const Array<Real>& dt_lev);
     //
-    //@ManDoc: Set the cycle count on each level.
+    // Set the cycle count on each level.
     //
     void setNCycle (const Array<int>& mss);
     //
-    //@ManDoc: return blocking_factor
+    // return blocking_factor
     //
     int blockingFactor (int lev) const;
     //
-    //@ManDoc: Largest allowable grid.
+    // Largest allowable grid.
     //
     int maxGridSize (int lev) const;
     //
-    //@ManDoc: Subcycle in time?
+    // Subcycle in time?
     //
     int subCycle () const;
     //
-    //@ManDoc: Maximum allowable level.
+    // Maximum allowable level.
     //
     int maxLevel () const;
     //
-    //@ManDoc: Finest currently existing level.
+    // Finest currently existing level.
     //
     int finestLevel () const;
     //
-    //@ManDoc: Physical time.
+    // Physical time.
     //
     Real cumTime () const;
     //
-    //@ManDoc: Time step at specified level.
+    // Time step at specified level.
     //
     Real dtLevel (int level) const;
     //
-    //@ManDoc: Array of time steps at all levels.
+    // Array of time steps at all levels.
     //
     const Array<Real>& dtLevel () const;
     //
-    //@ManDoc: Geometry object.
+    // Geometry object.
     //
     const Geometry& Geom (int level) const;
     //
-    //@ManDoc: Number of subcycled time steps.
+    // Number of subcycled time steps.
     //
     int nCycle (int level) const;
     //
-    //@ManDoc: Refinement ratio.
+    // Refinement ratio.
     //
     IntVect refRatio (int coarse_level) const;
     //
-    //@ManDoc: Maximum refinement ratio in any direction.
+    // Maximum refinement ratio in any direction.
     //
     int MaxRefRatio (int level) const;
     //
-    //@ManDoc: Refinement ratios between all levels.
+    // Refinement ratios between all levels.
     //
     const Array<IntVect>& refRatio () const;
     //
-    //@ManDoc: Number of time steps at specified level.
+    // Number of time steps at specified level.
     //
     int levelSteps (int lev) const;
     //
@@ -115,159 +114,159 @@ public:
     //
     int levelCount (int lev) const;
     //
-    //@ManDoc: Whether to regrid right after restart
+    // Whether to regrid right after restart
     //
     bool RegridOnRestart () const;
     //
-    //@ManDoc: Interval between regridding.
+    // Interval between regridding.
     //
     int regridInt (int lev) const;
     //
-    //@ManDoc: Number of time steps between checkpoint files.
+    // Number of time steps between checkpoint files.
     //
     int checkInt () const;
     //
-    //@ManDoc: Time between checkpoint files.
+    // Time between checkpoint files.
     //
     Real checkPer() const;
     //
-    //@ManDoc: Number of time steps between plot files.
+    // Number of time steps between plot files.
     //
     int plotInt () const;
     //
-    //@ManDoc: Time between plot files.
+    // Time between plot files.
     //
     Real plotPer () const;
-
-    /*@ManDoc: The names of state variables to output in the
-               plotfile.  They can be set using the amr.plot\_vars variable
-               in a ParmParse inputs file. 
-    */
+    //
+    // The names of state variables to output in the
+    // plotfile.  They can be set using the amr.plot_vars variable
+    // in a ParmParse inputs file. 
+    //
     static const std::list<std::string>& statePlotVars ();
-
-    /*@ManDoc: Is the string the name of a variable in state\_plot\_vars?
-    */
+    //
+    // Is the string the name of a variable in state_plot_vars?
+    //
     static bool isStatePlotVar (const std::string& name);
-
-    /*@ManDoc: If the string is not the name of a variable in state\_plot\_vars,
-               add it to state\_plot\_vars.  
-    */
+    //
+    // If the string is not the name of a variable in state_plot_vars,
+    // add it to state_plot_vars.  
+    //
     static void addStatePlotVar (const std::string& name);
-
-    /*@ManDoc: Remove the string from state\_plot\_vars.
-    */
+    //
+    // Remove the string from state_plot_vars.
+    //
     static void deleteStatePlotVar (const std::string& name);
-
-    /*@ManDoc: Clear the list of state\_plot\_vars.
-    */
+    //
+    // Clear the list of state_plot_vars.
+    //
     static void clearStatePlotVarList ();
-
-    /*@ManDoc:  Fill the list of state\_plot\_vars with all of the state
-                quantities.
-    */
+    //
+    //  Fill the list of state_plot_vars with all of the state quantities.
+    //
     static void fillStatePlotVarList ();
-
-    /*@ManDoc:  Write out plotfiles (True/False)? */
+    //
+    //  Write out plotfiles (True/False)?
+    //
     static bool Plot_Files_Output ();
-
-    /*@ManDoc: The names of derived variables to output in the
-               plotfile.  They can be set using the amr.derive\_plot\_vars 
-               variable in a ParmParse inputs file.
-    */
+    //
+    // The names of derived variables to output in the
+    // plotfile.  They can be set using the amr.derive_plot_vars 
+    // variable in a ParmParse inputs file.
+    //
     static const std::list<std::string>& derivePlotVars ();
-
-    /*@ManDoc: Is the string the name of a variable in derive\_plot\_vars?
-    */
+    //
+    // Is the string the name of a variable in derive_plot_vars?
+    //
     static bool isDerivePlotVar (const std::string& name);
-
-    /*@ManDoc: If the string is not the name of a variable in 
-               derive\_plot\_vars, add it to derive\_plot\_vars.  
-    */
+    //
+    // If the string is not the name of a variable in 
+    // derive_plot_vars, add it to derive_plot_vars.  
+    //
     static void addDerivePlotVar (const std::string& name);
-
-    /*@ManDoc: Remove the string from derive\_plot\_vars.
-    */
+    //
+    // Remove the string from derive_plot_vars.
+    //
     static void deleteDerivePlotVar (const std::string& name);
-
-    /*@ManDoc: Clear the list of derive\_plot\_vars.
-    */
+    //
+    // Clear the list of derive_plot_vars.
+    //
     static void clearDerivePlotVarList ();
-
-    /*@ManDoc:  Fill the list of derive\_plot\_vars with all derived quantities.
-    */
+    //
+    //  Fill the list of derive_plot_vars with all derived quantities.
+    //
     static void fillDerivePlotVarList ();
 
     static void Initialize ();
     static void Finalize ();
     //
-    //@ManDoc: Number of buffer cells in error estimator.
+    // Number of buffer cells in error estimator.
     //
     int nErrorBuf (int lev) const;
     //
-    //@ManDoc: Minimum allowable grid efficiency.
+    // Minimum allowable grid efficiency.
     //
     Real gridEff () const;
     //
-    //@ManDoc: Number of cells to define proper nesting 
+    // Number of cells to define proper nesting 
     //
     int nProper () const;
     //
-    //@ManDoc: List of grids at each level.
+    // List of grids at each level.
     //
     const BoxArray& boxArray (int lev) const;
     //
-    //@ManDoc: AmrLevel lev.
+    // AmrLevel lev.
     //
     AmrLevel&  getLevel (int lev);
     //
-    //@ManDoc: PArray of AmrLevels.
+    // PArray of AmrLevels.
     //
     PArray<AmrLevel>& getAmrLevels ();
     //
-    //@ManDoc: Total number of cells.
+    // Total number of cells.
     //
     long cellCount ();
     //
-    //@ManDoc: Number of cells at given level.
+    // Number of cells at given level.
     //
     long cellCount (int lev);
     //
-    //@ManDoc: Total number of grids.
+    // Total number of grids.
     //
     int numGrids ();
     //
-    //@ManDoc: Number of grids at given level.
+    // Number of grids at given level.
     //
     int numGrids (int lev);
     //
-    //@ManDoc: More work to be done?
+    // More work to be done?
     //
     int okToContinue ();
     //
-    //@ManDoc: Regrid only!
+    // Regrid only!
     //
     void RegridOnly (Real time);
     //
-    //@ManDoc: Do a complete integration cycle.
+    // Do a complete integration cycle.
     //
     void coarseTimeStep (Real stop_time);
     //
-    //@ManDoc: Retrieve derived data. User is responsible for deleting pointer.
+    // Retrieve derived data. User is responsible for deleting pointer.
     //
     MultiFab* derive (const std::string& name,
                       Real           time,
                       int            lev,
                       int            ngrow);
     //
-    //@ManDoc: Name of the restart file.
+    // Name of the restart file.
     //
     const std::string& theRestartFile () const;
     //
-    //@ManDoc: The ith datalog file.  Do with it what you want.
+    // The ith datalog file.  Do with it what you want.
     //
     std::ostream& DataLog (int i);
     //
-    //@ManDoc: How many datalogs have been opened
+    // How many datalogs have been opened
     //
     int NumDataLogs ();
 

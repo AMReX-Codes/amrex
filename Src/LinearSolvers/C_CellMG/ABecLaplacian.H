@@ -5,8 +5,7 @@
 #include <Tuple.H>
 #include <LinOp.H>
 
-//@Man:
-/*@Memo:
+/*
         An ABecLaplacian tailors the description of a linear operator to apply
         the second-order central difference approximation to the differential
         operator, alpha*a(x).phi - beta*div[b(x).grad(phi)], on a cell-centered
@@ -15,8 +14,7 @@
         MultiFabs, 1 per dimension.  phi can have multiple components, but
         all coefficient info is scalar, and norm reports on ALL components
         together.
-*/        
-/*@Doc:
+
         An ABecLaplacian tailors a LinOp (a virtual base class for general
         linear operators) to compute the second-order central difference
         approximation to the differential operator,
@@ -66,21 +64,21 @@ class ABecLaplacian
 {
 public:
     //
-    //@ManDoc: constructor for box array, boundary data and scalar mesh spacing
+    // constructor for box array, boundary data and scalar mesh spacing
     //
     ABecLaplacian (const BndryData& bd,
                    Real             _h);
     //
-    //@ManDoc: constructor for box array, boundary data and vector mesh spacing
+    // constructor for box array, boundary data and vector mesh spacing
     //
     ABecLaplacian (const BndryData& bd,
                    const Real*      _h);
     //
-    //@ManDoc: destructor
+    // destructor
     //
     virtual ~ABecLaplacian ();
     //
-    //@ManDoc: Compute extensive (area-weighted) flux associated with the op
+    // Compute extensive (area-weighted) flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC);
@@ -88,61 +86,61 @@ public:
     void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
                    MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC);
     //
-    //@ManDoc: Set scalar coefficients.
+    // Set scalar coefficients.
     //
     void setScalars (Real _alpha,
                      Real _beta);
     //
-    //@ManDoc: get scalar alpha coefficient
+    // get scalar alpha coefficient
     //
     Real get_alpha () const;
     //
-    //@ManDoc: get scalar beta coefficient
+    // get scalar beta coefficient
     //
     Real get_beta () const;
     //
-    //@ManDoc: return reference to "a" coefficients for base level
+    // return reference to "a" coefficients for base level
     //
     const MultiFab& aCoefficients (int level = 0);
     //
-    //@ManDoc: return reference to "b" coefficients for base level
+    // return reference to "b" coefficients for base level
     //
     const MultiFab& bCoefficients (int dir,
                                    int level=0);
     //
-    //@ManDoc: copy \_a into "a" coeffs for base level
+    // copy _a into "a" coeffs for base level
     //
     void aCoefficients (const MultiFab& _a);
     //
-    //@ManDoc: copy \_b into "b" coeffs in "dir" coordinate direction for base level
+    // copy _b into "b" coeffs in "dir" coordinate direction for base level
     //
     void bCoefficients (const MultiFab& _b,
                         int             dir);
     //
-    //@ManDoc: alternative (older) version of above members
+    // alternative (older) version of above members
     //
     void setCoefficients (const MultiFab& _a,
                           const MultiFab& _bX,
                           const MultiFab& _bY);
     //
-    //@ManDoc: collective version of above members (taking an array of MultiFabs for "b")
+    // collective version of above members (taking an array of MultiFabs for "b")
     //
     void setCoefficients (const MultiFab& _a,
                           const MultiFab* _b);
     //
-    //@ManDoc: allocate/fill internal data for new level
+    // allocate/fill internal data for new level
     //
     virtual void prepareForLevel (int level);
     //
-    //@ManDoc: remove internal data for this level and all levels above
+    // remove internal data for this level and all levels above
     //
     virtual void clearToLevel (int level);
     //
-    //@ManDoc: set flags so that a coeffs at lev and coarser require recalculation
+    // set flags so that a coeffs at lev and coarser require recalculation
     //
     void invalidate_a_to_level (int lev);
     //
-    //@ManDoc: set flags so that b coeffs at lev and coarser require recalculation
+    // set flags so that b coeffs at lev and coarser require recalculation
     //
     void invalidate_b_to_level (int lev);
 
@@ -150,43 +148,43 @@ public:
   
 protected:
     //
-    //@ManDoc: initialize a full set (a,b) of coefficients on the box array
+    // initialize a full set (a,b) of coefficients on the box array
     //
     void initCoefficients (const BoxArray &_ba);
     //
-    //@ManDoc: compute out=L(in) at level=level
+    // compute out=L(in) at level=level
     //
     virtual void Fapply (MultiFab&       out,
                          const MultiFab& in,
                          int             level);
     //
-    //@ManDoc: apply GSRB smoother to improve residual to L(solnL)=rhsL
+    // apply GSRB smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth (MultiFab&       solnL,
                           const MultiFab& rhsL,
                           int             level,
                           int             rgbflag);
     //
-    //@ManDoc: apply Jacobi smoother to improve residual to L(solnL)=rhsL
+    // apply Jacobi smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
                                  const MultiFab& rhsL,
                                  int             level);
     //
     //
-    //@ManDoc: Array (on level) of "a" coefficients
+    // Array (on level) of "a" coefficients
     //
     Array< MultiFab* > acoefs;
     //
-    //@ManDoc: Array (on level) of Tuple (on dimension) of "b" coefficients
+    // Array (on level) of Tuple (on dimension) of "b" coefficients
     //
     Array< Tuple< MultiFab*, BL_SPACEDIM> > bcoefs;
     //
-    //@ManDoc: Scalar "alpha" coefficient
+    // Scalar "alpha" coefficient
     //
     Real alpha;
     //
-    //@ManDoc: Scalar "beta" coefficient
+    // Scalar "beta" coefficient
     //
     Real beta;
     

@@ -473,7 +473,7 @@ _PD_reorder (char*      arr,
 
 //
 // This should only be called with two arrays of Reals.
-// It maps the `in' array into the `out' array, changing the ordering
+// It maps the in array into the out array, changing the ordering
 // from inord to outord.
 //
 
