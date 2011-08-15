@@ -1,6 +1,4 @@
 //
-// $Id: macprojTest.cpp,v 1.2 2001-08-21 22:15:37 car Exp $
-//
 // In order to use this utility to mimic a mac projection solve from the
 // full AMR code, the lines of code below need to be added to the top
 // of mac_level_driver in MacOperator.cpp.  This will dump the required 

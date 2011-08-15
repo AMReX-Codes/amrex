@@ -1,5 +1,4 @@
 /* 
-   $Id: fabio_c.c,v 1.19 2011-02-28 17:49:31 lijewski Exp $ 
    Contains the IO routines for fabio module
 */
 #include <math.h>

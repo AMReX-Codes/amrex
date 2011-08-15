@@ -1,6 +1,3 @@
-//
-// $Id: main.cpp,v 1.38 2011-07-19 17:11:07 marc Exp $
-//
 
 #include <fstream>
 #include <iomanip>

@@ -1,6 +1,3 @@
-
-//
-// $Id: tMF.cpp,v 1.2 2004-03-05 17:49:38 car Exp $
 //
 // A test program for MultiFab.
 //
