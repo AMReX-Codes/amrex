@@ -14,8 +14,6 @@
 #include <VisMF.H>
 #include <COEF_F.H>
 
-#include <WorkQueue.H>
-
 #ifdef MG_USE_FBOXLIB
 #include <MacBndry.H>
 #include <MGT_Solver.H>

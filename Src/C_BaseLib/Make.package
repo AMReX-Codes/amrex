@@ -34,9 +34,6 @@ C$(BOXLIB_BASE)_headers += BLFort.H
 C$(BOXLIB_BASE)_sources += BLThread.cpp
 C$(BOXLIB_BASE)_headers += Thread.H
 
-C$(BOXLIB_BASE)_sources += BLWorkQueue.cpp
-C$(BOXLIB_BASE)_headers += WorkQueue.H
-
 ifeq ($(PROFILE),TRUE)
 ifeq ($(USE_MPI),TRUE)
 ifndef NO_BLMPI
