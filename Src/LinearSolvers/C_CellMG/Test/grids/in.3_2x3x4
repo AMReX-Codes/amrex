@@ -1,9 +1,0 @@
-boxes = grids/gr.3_2x3x4
-geometry.coord_sys = 0
-geometry.prob_lo   =  0.0   0.0   0.0
-geometry.prob_hi   = 16.0  24.0  32.0
-DistributionMapping.verbose=1
-DistributionMapping.do_not_minimize_comm_costs=0
-DistributionMapping.strategy=KNAPSACK
-DistributionMapping.strategy=SFC
-DistributionMapping.sfc_threshold=8
