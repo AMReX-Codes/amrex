@@ -7,7 +7,7 @@ endif
 #
 # Utility classes.
 #
-C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H
+C$(BOXLIB_BASE)_headers += BoxLib.H
 C$(BOXLIB_BASE)_sources += BoxLib.cpp
 
 C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp
