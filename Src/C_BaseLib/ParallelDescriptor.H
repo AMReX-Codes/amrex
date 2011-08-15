@@ -21,7 +21,7 @@ namespace ParallelDescriptor
     struct CommData
     {
         //
-        // We encapsulate seven `int's and a `Box' as an `int[3*BL_SPACEDIM+7]'.
+        // We encapsulate seven ints and a Box as an int[3*BL_SPACEDIM+7].
         //
         enum { DIM = 3*BL_SPACEDIM+7 };
 
@@ -134,20 +134,20 @@ namespace ParallelDescriptor
 	MPI_Request        m_req;
 	mutable MPI_Status m_stat;
     };
-
-    /*@ManDoc: Perform any needed parallel initialization.  This MUST be the
-               first routine in this class called from within a program.
-    */
+    //
+    // Perform any needed parallel initialization.  This MUST be the
+    // first routine in this class called from within a program.
+    //
     void StartParallel (int*    argc = 0,
 			char*** argv = 0,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
-
-    /*@ManDoc: Perform any needed parallel finalization.  This MUST be the
-               last routine in this class called from within a program.
-    */
+    //
+    // Perform any needed parallel finalization.  This MUST be the
+    // last routine in this class called from within a program.
+    //
     void EndParallel ();
     //
-    //@ManDoc: Returns processor number of calling program.
+    // Returns processor number of calling program.
     //
     extern int m_MyId;
     inline int
@@ -157,7 +157,7 @@ namespace ParallelDescriptor
         return m_MyId;
     }
     //
-    //@ManDoc: Returns number of CPUs involved in the computation.
+    // Returns number of CPUs involved in the computation.
     //
     extern int m_nProcs;
     inline int
@@ -167,7 +167,7 @@ namespace ParallelDescriptor
         return m_nProcs;
     }
     //
-    //@ManDoc: The CPU number of the I/O Processor.
+    // The CPU number of the I/O Processor.
     //
     extern const int ioProcessor;
     inline int
@@ -176,7 +176,7 @@ namespace ParallelDescriptor
         return ioProcessor;
     }
     //
-    //@ManDoc: Is this CPU the I/O Processor?
+    // Is this CPU the I/O Processor?
     //
     inline bool
     IOProcessor ()
@@ -184,7 +184,7 @@ namespace ParallelDescriptor
          return MyProc() == IOProcessorNumber();
     }
     //
-    //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
+    // BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
     //
     extern MPI_Comm m_comm;
     inline MPI_Comm Communicator ()
@@ -192,180 +192,180 @@ namespace ParallelDescriptor
         return m_comm;
     }
     //
-    //@ManDoc: 
+    // 
     //
     void Barrier ();
 
     void Barrier (MPI_Comm comm);
     //
-    //@ManDoc: 
+    // 
     //
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
     //
-    //@ManDoc: 
+    // 
     //
     void Comm_dup (MPI_Comm comm, MPI_Comm& newcomm);
     //
-    //@ManDoc: Issue architecture specific Abort.
+    // Issue architecture specific Abort.
     //
     void Abort ();
     //
-    //@ManDoc: Abort with specified error code.
+    // Abort with specified error code.
     //
     void Abort (int errorcode);
     //
-    //@ManDoc: ErrorString return string associated with error internal error condition
+    // ErrorString return string associated with error internal error condition
     //
     const char* ErrorString (int errcode);
     //
-    //@ManDoc: Returns wall-clock seconds since start of execution.
+    // Returns wall-clock seconds since start of execution.
     //
     double second ();
     //
-    //@ManDoc: And-wise boolean reduction.
+    // And-wise boolean reduction.
     //
     void ReduceBoolAnd (bool& rvar);
     //
-    //@ManDoc: And-wise boolean reduction to specified cpu.
+    // And-wise boolean reduction to specified cpu.
     //
     void ReduceBoolAnd (bool& rvar, int cpu);
     //
-    //@ManDoc: Or-wise boolean reduction.
+    // Or-wise boolean reduction.
     //
     void ReduceBoolOr  (bool& rvar);
     //
-    //@ManDoc: Or-wise boolean reduction to specified cpu.
+    // Or-wise boolean reduction to specified cpu.
     //
     void ReduceBoolOr  (bool& rvar, int cpu);
     //
-    //@ManDoc: Real sum reduction.
+    // Real sum reduction.
     //
     void ReduceRealSum (Real& rvar);
 
     void ReduceRealSum (Real* rvar, int cnt);
     //
-    //@ManDoc: Real sum reduction to specified cpu.
+    // Real sum reduction to specified cpu.
     //
     void ReduceRealSum (Real& rvar, int cpu);
 
     void ReduceRealSum (Real* rvar, int cnt, int cpu);
     //
-    //@ManDoc: Real max reduction.
+    // Real max reduction.
     //
     void ReduceRealMax (Real& rvar);
 
     void ReduceRealMax (Real* rvar, int cnt);
     //
-    //@ManDoc: Real max reduction to specified cpu.
+    // Real max reduction to specified cpu.
     //
     void ReduceRealMax (Real& rvar, int cpu);
 
     void ReduceRealMax (Real* rvar, int cnt, int cpu);
     //
-    //@ManDoc: Real min reduction.
+    // Real min reduction.
     //
     void ReduceRealMin (Real& rvar);
 
     void ReduceRealMin (Real* rvar, int cnt);
     //
-    //@ManDoc: Real min reduction to specified cpu.
+    // Real min reduction to specified cpu.
     //
     void ReduceRealMin (Real& rvar, int cpu);
 
     void ReduceRealMin (Real* rvar, int cnt, int cpu);
     //
-    //@ManDoc: Integer sum reduction.
+    // Integer sum reduction.
     //
     void ReduceIntSum (int& rvar);
 
     void ReduceIntSum (int* rvar, int cnt);
     //
-    //@ManDoc: Integer sum reduction to specified cpu.
+    // Integer sum reduction to specified cpu.
     //
     void ReduceIntSum (int& rvar, int cpu);
 
     void ReduceIntSum (int* rvar, int cnt, int cpu);
     //
-    //@ManDoc: Integer max reduction.
+    // Integer max reduction.
     //
     void ReduceIntMax (int& rvar);
 
     void ReduceIntMax (int* rvar, int cnt);
     //
-    //@ManDoc: Integer max reduction to specified cpu.
+    // Integer max reduction to specified cpu.
     //
     void ReduceIntMax (int& rvar, int cpu);
 
     void ReduceIntMax (int* rvar, int cnt, int cpu);
     //
-    //@ManDoc: Integer min reduction.
+    // Integer min reduction.
     //
     void ReduceIntMin (int& rvar);
 
     void ReduceIntMin (int* rvar, int cnt);
     //
-    //@ManDoc: Integer min reduction to specified cpu.
+    // Integer min reduction to specified cpu.
     //
     void ReduceIntMin (int& rvar, int cpu);
 
     void ReduceIntMin (int* rvar, int cnt, int cpu);
     //
-    //@ManDoc: Long sum reduction.
+    // Long sum reduction.
     //
     void ReduceLongSum (long& rvar);
 
     void ReduceLongSum (long* rvar, int cnt);
     //
-    //@ManDoc: Long sum reduction to specified cpu.
+    // Long sum reduction to specified cpu.
     //
     void ReduceLongSum (long& rvar, int cpu);
 
     void ReduceLongSum (long* rvar, int cnt, int cpu);
     //
-    //@ManDoc: Long max reduction.
+    // Long max reduction.
     //
     void ReduceLongMax (long& rvar);
 
     void ReduceLongMax (long* rvar, int cnt);
     //
-    //@ManDoc: Long max reduction to specified cpu.
+    // Long max reduction to specified cpu.
     //
     void ReduceLongMax (long& rvar, int cpu);
 
     void ReduceLongMax (long* rvar, int cnt, int cpu);
     //
-    //@ManDoc: Long min reduction.
+    // Long min reduction.
     //
     void ReduceLongMin (long& rvar);
 
     void ReduceLongMin (long* rvar, int cnt);
     //
-    //@ManDoc: Long min reduction to specified cpu.
+    // Long min reduction to specified cpu.
     //
     void ReduceLongMin (long& rvar, int cpu);
 
     void ReduceLongMin (long* rvar, int cnt, int cpu);
     //
-    //@ManDoc: Long and-wise reduction.
+    // Long and-wise reduction.
     //
     void ReduceLongAnd (long& rvar);
 
     void ReduceLongAnd (long* rvar, int cnt);
     //
-    //@ManDoc: Long and-wise reduction to specified cpu.
+    // Long and-wise reduction to specified cpu.
     //
     void ReduceLongAnd (long& rvar, int cpu);
 
     void ReduceLongAnd (long* rvar, int cnt, int cpu);
     //
-    //@ManDoc: Parallel gather.
+    // Parallel gather.
     //
     void Gather (Real* sendbuf,
                  int   sendcount,
                  Real* recvbuf,
                  int   root);
     //
-    //@ManDoc: Returns sequential message sequence numbers in range 1000-9000.
+    // Returns sequential message sequence numbers in range 1000-9000.
     //
     int SeqNum ();
 

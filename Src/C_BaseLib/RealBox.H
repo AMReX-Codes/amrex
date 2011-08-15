@@ -9,103 +9,101 @@
 #include <Box.H>
 
 //
-//@Man:
-//@Memo: A Real Box
-/*@Doc:
-
-  A Box with real dimensions.  A RealBox is OK iff volume > 0.
-*/
+// A Real Box
+//
+//  A Box with real dimensions.  A RealBox is OK iff volume > 0.
+//
 
 class RealBox
 {
 public:
     //
-    //@ManDoc: The default constructor.  Builds invalid RealBox.
+    // The default constructor.  Builds invalid RealBox.
     //
     RealBox ();
     //
-    //@ManDoc: Construct region given diagonal points.
+    // Construct region given diagonal points.
     //
     RealBox (const Real* lo,
              const Real* hi);
-
-    /*@ManDoc: Construct region given index box, cell spacing
-               and physical location of index (0,0,0).
-    */
+    //
+    // Construct region given index box, cell spacing
+    // and physical location of index (0,0,0).
+    //
     RealBox (const Box&  bx,
              const Real* dx,
              const Real* base);
     //
-    //@ManDoc: Explicit dimension specific constructors.
+    // Explicit dimension specific constructors.
     //
     RealBox (D_DECL(Real x0, Real y0, Real z0),
              D_DECL(Real x1, Real y1, Real z1));
     //
-    //@ManDoc: Set epsilon used by contains() function when comparing floating point numbers.
+    // Set epsilon used by contains() function when comparing floating point numbers.
     //
     static void setEpsilon (Real epsilon);
     //
-    //@ManDoc: Returns epsilon.
+    // Returns epsilon.
     //
     static Real epsilon ();
     //
-    //@ManDoc: Returns lo side.
+    // Returns lo side.
     //
     const Real* lo () const;
     //
-    //@ManDoc: Returns hide side.
+    // Returns hide side.
     //
     const Real* hi () const;
     //
-    //@ManDoc: Returns length in each direction.
+    // Returns length in each direction.
     //
     const Real* length () const;
     //
-    //@ManDoc: Returns length in specified direction.
+    // Returns length in specified direction.
     //
     Real lo (int dir) const;
     //
-    //@ManDoc: Returns hi side in specified direction.
+    // Returns hi side in specified direction.
     //
     Real hi (int dir) const;
     //
-    //@ManDoc: Returns length in specified direction.
+    // Returns length in specified direction.
     //
     Real length (int dir) const;
     //
-    //@ManDoc: Sets lo side.
+    // Sets lo side.
     //
     void setLo (const Real* lo);
     //
-    //@ManDoc: Sets lo side.
+    // Sets lo side.
     //
     void setLo (const Array<Real>& lo);
     //
-    //@ManDoc: Sets lo side in specified direction.
+    // Sets lo side in specified direction.
     //
     void setLo (int dir, Real lo);
     //
-    //@ManDoc: Sets hi side.
+    // Sets hi side.
     //
     void setHi (const Real* hi);
     //
-    //@ManDoc: Sets hi side.
+    // Sets hi side.
     //
     void setHi (const Array<Real>& hi);
     //
-    //@ManDoc: Sets hi side in specified direction.
+    // Sets hi side in specified direction.
     //
     void setHi (int dir, Real hi);
     //
-    //@ManDoc: Is the RealBox OK; i.e. does it have positive volume?
+    // Is the RealBox OK; i.e. does it have positive volume?
     //
     bool ok () const;
     //
-    //@ManDoc: Is the specified point contained in the RealBox?
+    // Is the specified point contained in the RealBox?
     //
     bool contains (const Real* point) const;
     //
-    //@ManDoc: Is the specified RealBox contained in this RealBox?
+    // Is the specified RealBox contained in this RealBox?
     //
     bool contains (const RealBox& bx) const;
 
@@ -126,11 +124,11 @@ protected:
     static Real eps;
 };
 //
-//@ManDoc: Nice ASCII output.
+// Nice ASCII output.
 //
 std::ostream& operator<< (std::ostream&, const RealBox&);
 //
-//@ManDoc: Nice ASCII input.
+// Nice ASCII input.
 //
 std::istream& operator>> (std::istream&, RealBox&);
 

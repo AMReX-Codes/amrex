@@ -10,10 +10,9 @@
 
 class FArrayBox;
 
-//
-//@Man:
-//@Memo: A Class Facilitating I/O for Fabs
-/*@Doc:
+/*
+       A Class Facilitating I/O for Fabs
+
        This data-less class aids I/O for FABs and encapsulates information
        about the floating point format being used in output.
        Note that the "new" format for writing out FABs is self-describing;
@@ -30,36 +29,38 @@ class FArrayBox;
 class FABio
 {
 public:
-    /*@ManDoc: An enum which controls precision of FAB output.
-               Valid values are FAB\_FLOAT and FAB\_DOUBLE.  This
-               is deprecated; i.e. please don't use it except
-               for reading old FABs as it will probably be going
-               away in a later release.
-    */
+    //
+    // An enum which controls precision of FAB output.
+    // Valid values are FAB_FLOAT and FAB_DOUBLE.  This
+    // is deprecated; i.e. please don't use it except
+    // for reading old FABs as it will probably be going
+    // away in a later release.
+    //
     enum Precision
     {
         FAB_FLOAT = 0,
         FAB_DOUBLE
     };
-    /*@ManDoc: An enum which controls format of FAB output.
-               Valid values are FAB\_ASCII, FAB\_IEEE, FAB\_NATIVE,
-               FAB\_8BIT and FAB\_IEEE\_32;
+    /*         An enum which controls format of FAB output.
 
-               FAB\_ASCII: write the FAB out in ASCII format.
+               Valid values are FAB_ASCII, FAB_IEEE, FAB_NATIVE,
+               FAB_8BIT and FAB_IEEE_32;
 
-               FAB\_8BIT: write the FAB out with all floating-point
+               FAB_ASCII: write the FAB out in ASCII format.
+
+               FAB_8BIT: write the FAB out with all floating-point
                values scaled to range 0 - 255.
 
-               FAB\_NATIVE: write out floating-point values in the native
+               FAB_NATIVE: write out floating-point values in the native
                format.  This is usually the "best" choice of formats.
 
-               FAB\_IEEE\_32: write out floating-point values in IEEE 32
+               FAB_IEEE_32: write out floating-point values in IEEE 32
                bit normal format.  This is recommended for use when your
                internal computations are done in 64 bits and you want to save
                space when writing out the FABs.
 
-               FAB\_IEEE: this is deprecated.  It is identical to
-               FAB\_IEEE\_32.
+               FAB_IEEE: this is deprecated.  It is identical to
+               FAB_IEEE_32.
     */
     enum Format
     {
@@ -68,29 +69,25 @@ public:
         FAB_NATIVE,
         //
         // This is set to four so that when reading in an old FAB,
-        // we don't get confused when we see an old FAB\_8BITRLE file.
+        // we don't get confused when we see an old FAB_8BITRLE file.
         //
         FAB_8BIT = 4,
         FAB_IEEE_32
     };
-    /*@ManDoc: An enum which controls byte ordering of FAB output.
-               Valid values are FAB\_NORMAL\_ORDER, FAB\_REVERSE\_ORDER,
-               and FAB\_REVERSE\_ORDER\_2.  This is deprecated; i.e. please
-               don't use it except for reading old FABs as it will probably
-               be going away in a later release.  These exist solely to
-               describe the ordering of "old" FABs that you want to read.
-    */
+    //
+    // An enum which controls byte ordering of FAB output.
+    // Valid values are FAB_NORMAL_ORDER, FAB_REVERSE_ORDER,
+    // and FAB_REVERSE_ORDER_2.  This is deprecated; i.e. please
+    // don't use it except for reading old FABs as it will probably
+    // be going away in a later release.  These exist solely to
+    // describe the ordering of "old" FABs that you want to read.
+    //
     enum Ordering
     {
         FAB_NORMAL_ORDER,
         FAB_REVERSE_ORDER,
         FAB_REVERSE_ORDER_2
     };
-
-    //
-    // None of the member functions here are documented with doc++
-    // as this class really isn't meant for users.
-
     //
     //The virtual destructor.
     //
@@ -155,21 +152,20 @@ public:
 			       int&          nCompAvailable);
 };
 
-//@Man:
-//@Memo: A Fortran Array of REALs
-/*@Doc: 
+/*
+  A Fortran Array of REALs
 
   Fortran Array Box's (generally called FAB's) are objects constructed
-  to emulate the `FORTRAN' array.  Useful operations can be performed
+  to emulate the FORTRAN array.  Useful operations can be performed
   upon FAB's in C++, and they provide a convenient interface to
-  `FORTRAN' when it is necessary to retreat into that language.
+  FORTRAN when it is necessary to retreat into that language.
 
   FArrayBox is derived from BaseFab<Real>.
   FArrayBox adds additional useful capabilities which make sense
   for Real types, such as I/O and L**p norms.
 
   FArrayBox's may be output in various format's with various
-  precisions. Available formats are ascii, `IEEE 32', native, and
+  precisions. Available formats are ascii, IEEE 32, native, and
   8bit.  Ascii is self explanatory.  IEEE 32 is the standard on
   most microprocessor based computers; it specifies that output should be in
   IEEE 32 bit floating point format in normal order.  Native is the most
@@ -183,19 +179,20 @@ public:
   class by the "fab.format" variable.  Allowed values are NATIVE, ASCII,
   8BIT and IEEE32.
 
-  FABs written using `operator<<' are always written in ASCII.
-  FABS written using `writOn' use the FABio::Format specified with
-  `setFormat' or the FABio::Format specified in the ParmParse file
-  read by `init'. If the FABio::Format is not set explicitly by either
+  FABs written using operator<< are always written in ASCII.
+  FABS written using writOn use the FABio::Format specified with
+  setFormat or the FABio::Format specified in the ParmParse file
+  read by init. If the FABio::Format is not set explicitly by either
   of these two methods, then it defaults to NATIVE.
 
-  The C pre-processor macro `BL\_SPACEDIM' must be defined to use
+  The C pre-processor macro BL_SPACEDIM must be defined to use
   this class.  The internal precision of FARRAYBOX objects is
-  set by defining either `BL\_USE\_FLOAT' or `BL\_USE\_DOUBLE' 
+  set by defining either BL_USE_FLOAT or BL_USE_DOUBLE
 
   This is NOT a polymorphic class.
 
-  This class does NOT provide a copy constructor or assignment operator.  */
+  This class does NOT provide a copy constructor or assignment operator.
+*/
 
 class FArrayBox
     :
@@ -207,14 +204,14 @@ class FArrayBox
     friend class FABio;
 public:
     //
-    //@ManDoc: Construct an invalid FAB with no memory.
+    // Construct an invalid FAB with no memory.
     //
     FArrayBox ();
     //
-    /*@ManDoc: Construct an initial FAB with the data space allocated but
-               not inititialized. ncomp is the number of components
-               (variables) at each data point in the Box.
-    */
+    // Construct an initial FAB with the data space allocated but
+    // not inititialized. ncomp is the number of components
+    // (variables) at each data point in the Box.
+    //
     explicit FArrayBox (const Box& b,
                         int        ncomp=1);
     //
@@ -222,7 +219,7 @@ public:
     //
     FArrayBox& operator= (const Real& r);
     //
-    //@ManDoc:  The destructor.
+    //  The destructor.
     //
     ~FArrayBox ();
     //
@@ -246,123 +243,123 @@ public:
     //
     void resize (const Box& b,
                  int        N = 1);
-
-    /*@ManDoc: Compute the Lp-norm of this FAB using components
-               (scomp : scomp+ncomp-1).  p < 0  -> ERROR.
-               p = 0  -> infinity norm (max norm).
-               p = 1  -> sum of ABS(FAB)
-               p > 1  -> Lp-norm
-    */
+    //
+    // Compute the Lp-norm of this FAB using components
+    // (scomp : scomp+ncomp-1).  p < 0  -> ERROR.
+    // p = 0  -> infinity norm (max norm).
+    // p = 1  -> sum of ABS(FAB)
+    // p > 1  -> Lp-norm
+    //
     Real norm (int p     = 2,
                int scomp = 0,
                int ncomp = 1) const;
     //
-    //@ManDoc: Same as above except only on given subbox.
+    // Same as above except only on given subbox.
     //
     Real norm (const Box& subbox,
                int        p     = 2,
                int        scomp = 0,
                int        ncomp = 1) const;
     //
-    //@ManDoc: Write FABs in ASCII form.
+    // Write FABs in ASCII form.
     //
     friend std::ostream& operator<< (std::ostream&    os,
                                      const FArrayBox& fb);
     //
-    //@ManDoc: Read FABs in ASCII form.
+    // Read FABs in ASCII form.
     //
     friend std::istream& operator>> (std::istream& is,
                                      FArrayBox&    fb);
-
-    /*@ManDoc: Writes out the FAB in whatever format you've set.
-               The default format is ASCII.
-    */
+    //
+    // Writes out the FAB in whatever format you've set.
+    // The default format is ASCII.
+    //
     void writeOn (std::ostream& of) const;
-
-    /*@ManDoc: Write only selected range of components.  comp specifies
-               from which component (starting at 0) to write at each
-               point in space.  num\_comp specifies how many data points
-               to write out at each point is space -- it defaults to 1.
-               It must be the case the comp >= 0 \&\& num\_comp >= 1 \&\&
-               (comp+num\_comp) <= nComp().  The FAB is written out in
-               whatever format you've set, with the default format being
-               ASCII.  The FAB that is written to disk will be an
-               num\_comp component FAB.
-    */
+    //
+    // Write only selected range of components.  comp specifies
+    // from which component (starting at 0) to write at each
+    // point in space.  num_comp specifies how many data points
+    // to write out at each point is space -- it defaults to 1.
+    // It must be the case the comp >= 0 && num_comp >= 1 &&
+    // (comp+num_comp) <= nComp().  The FAB is written out in
+    // whatever format you've set, with the default format being
+    // ASCII.  The FAB that is written to disk will be an
+    // num_comp component FAB.
+    //
     void writeOn (std::ostream& of,
                   int           comp,
                   int           num_comp=1) const;
     //
-    //@ManDoc: Read FAB from istream.  Format is as it was written out.
+    // Read FAB from istream.  Format is as it was written out.
     //
     void readFrom (std::istream& is);
-
-    /*@ManDoc: Read FAB from istream.  Format is as it was written out.
-	       This creates a single component FAB with data from
-	       compIndex of the FAB from the istream.
-	       Returns the number of components available in the fab.
-    */
+    //
+    // Read FAB from istream.  Format is as it was written out.
+    // This creates a single component FAB with data from
+    // compIndex of the FAB from the istream.
+    // Returns the number of components available in the fab.
+    //
     int readFrom (std::istream& is, int compIndex);
-
-    /*@ManDoc: Skip over the next FAB from the input stream.
-               Return the Box defining the domain of the FAB and the
-               number of components.
-    */
+    //
+    // Skip over the next FAB from the input stream.
+    // Return the Box defining the domain of the FAB and the
+    // number of components.
+    //
     static Box skipFAB (std::istream& is,
                         int&          num_comp);
     //
-    //@ManDoc: Skip over the next FAB from the input stream.
+    // Skip over the next FAB from the input stream.
     //
     static void skipFAB (std::istream& is);
-
-    /*@ManDoc: Set the FABio::Format in the program.
-               This is the preferred way to set the output format
-               in "new" FABs.  When desiging new programs, this should
-               be the only function that needs to be called in order
-               to set the format.
-    */
+    //
+    // Set the FABio::Format in the program.
+    // This is the preferred way to set the output format
+    // in "new" FABs.  When desiging new programs, this should
+    // be the only function that needs to be called in order
+    // to set the format.
+    //
     static void setFormat (FABio::Format fmt);
     //
-    //@ManDoc: Gets the FABio::Format set in the program.
+    // Gets the FABio::Format set in the program.
     //
     static FABio::Format getFormat ();
-
-    /*@ManDoc: Set the FABio::Ordering for reading old FABs.  It does
-               NOT set the ordering for output.
-               This is deprecated.  It exists only to facilitate
-               reading old FABs.  When you're reading in an "old" FAB,
-               you must set the Ordering, before attempting
-               to read it in.  This is because FABs written out in the
-               "old" format weren't self-describing; i.e. information
-               such as the Ordering was lost when the "old" FAB was
-               written out.
-    */
+    //
+    // Set the FABio::Ordering for reading old FABs.  It does
+    // NOT set the ordering for output.
+    // This is deprecated.  It exists only to facilitate
+    // reading old FABs.  When you're reading in an "old" FAB,
+    // you must set the Ordering, before attempting
+    // to read it in.  This is because FABs written out in the
+    // "old" format weren't self-describing; i.e. information
+    // such as the Ordering was lost when the "old" FAB was
+    // written out.
+    //
     static void setOrdering (FABio::Ordering ordering);
-
-    /*@ManDoc: Gets the FABio::Ordering set in the program.  This is
-               deprecated.  It does NOT do the right thing with the
-               new FAB I/O format.
-     */
+    //
+    // Gets the FABio::Ordering set in the program.  This is
+    // deprecated.  It does NOT do the right thing with the
+    // new FAB I/O format.
+    //
     static FABio::Ordering getOrdering ();
-
-    /*@ManDoc: Set the FABio::Precision.  This is deprecated.  It
-               is not useful with the "new" FAB I/O format.
-    */
+    //
+    // Set the FABio::Precision.  This is deprecated.  It
+    // is not useful with the "new" FAB I/O format.
+    //
     static void setPrecision (FABio::Precision precision);
-
-    /*@ManDoc: Returns the FABio::Precision.  This is deprecated.  It
-               is not useful with the "new" FAB I/O format.  Always
-               returns FABio::Float.
-    */
+    //
+    // Returns the FABio::Precision.  This is deprecated.  It
+    // is not useful with the "new" FAB I/O format.  Always
+    // returns FABio::Float.
+    //
     static FABio::Precision getPrecision ();
     //
-    //@ManDoc: Returns reference to the FABio object used by the program.
+    // Returns reference to the FABio object used by the program.
     //
     static const FABio& getFABio ();
-
-    /*@ManDoc: Sets the FABio object used by the program.  It is an error
-               if the passed pointer `rd' is the null pointer.
-    */
+    //
+    // Sets the FABio object used by the program.  It is an error
+    // if the passed pointer rd is the null pointer.
+    //
     static void setFABio (FABio* rd);
 
     static bool set_do_initval (bool tf);

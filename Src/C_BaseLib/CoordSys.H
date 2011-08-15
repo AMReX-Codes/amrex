@@ -9,12 +9,10 @@
 class FArrayBox;
 
 //
-//@Man:
-//@Memo: Coordinate System
-/*@Doc:
-
-  Routines for mapping between physical coordinate system and index space.
-*/
+// Coordinate System
+//
+// Routines for mapping between physical coordinate system and index space.
+//
 
 class CoordSys
 {
@@ -22,214 +20,214 @@ public:
 
     enum CoordType { undef = -1, cartesian = 0, RZ = 1, SPHERICAL = 2 };
     //
-    //@ManDoc: Nice ASCII output.
+    // Nice ASCII output.
     //
     friend std::ostream& operator<< (std::ostream&, const CoordSys& );
     //
-    //@ManDoc: Nice ASCII input.
+    // Nice ASCII input.
     //
     friend std::istream& operator>> (std::istream&, CoordSys& );
     //
-    //@ManDoc: Default constructor to undefined state.
+    // Default constructor to undefined state.
     //
     CoordSys ();
     //
-    //@ManDoc: Construct, specify a cell size, and low end of index range.
+    // Construct, specify a cell size, and low end of index range.
     //
     CoordSys (const Real* cell_dx);
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     ~CoordSys ();
     //
-    //@ManDoc: Initialize after construction.
+    // Initialize after construction.
     //
     void define (const Real* cell_dx);
     //
-    //@ManDoc: Set the CoordType.
+    // Set the CoordType.
     //
     static void SetCoord (CoordType coord);
     //
-    //@ManDoc: Returns the CoordType.
+    // Returns the CoordType.
     //
     static CoordType Coord ();
     //
-    //@ManDoc: Is CoordType == SPHERICAL?
+    // Is CoordType == SPHERICAL?
     //
     static bool IsSPHERICAL ();
     //
-    //@ManDoc: Is CoordType == RZ?
+    // Is CoordType == RZ?
     //
     static bool IsRZ ();
     //
-    //@ManDoc: Is CoordType == cartesion?
+    // Is CoordType == cartesion?
     //
     static bool IsCartesian ();
     //
-    //@ManDoc: Sets the offset for each coordinate direction.
+    // Sets the offset for each coordinate direction.
     //
     static void SetOffset (const Real* x_lo);
     //
-    //@ManDoc: Returns the offset.
+    // Returns the offset.
     //
     static const Real* Offset ();
     //
-    //@ManDoc: Returns the offset for the specified coordinate direction.
+    // Returns the offset for the specified coordinate direction.
     //
     static Real Offset (int dir);
     //
-    //@ManDoc: Returns the cellsize for each coordinate direction.
+    // Returns the cellsize for each coordinate direction.
     //
     const Real* CellSize () const;
     //
-    //@ManDoc: Returns the cellsize for the specified coordinate direction.
+    // Returns the cellsize for the specified coordinate direction.
     //
     Real CellSize (int dir) const;
     //
-    //@ManDoc: Returns location of cell center in specified direction.
+    // Returns location of cell center in specified direction.
     //
     Real CellCenter (int point, int dir) const;
     //
-    //@ManDoc: Return location of cell center.
+    // Return location of cell center.
     //
     void CellCenter (const IntVect& point, Array<Real>& loc) const;
     //
-    //@ManDoc: Return location of cell center.
+    // Return location of cell center.
     //
     void CellCenter (const IntVect& point, Real* loc) const;
     //
-    //@ManDoc: Returns location of lo edge in specified direction.
+    // Returns location of lo edge in specified direction.
     //
     Real LoEdge (int point, int dir) const;
     //
-    //@ManDoc: Equivalent to LoEdge(point[dir], dir).
+    // Equivalent to LoEdge(point[dir], dir).
     //
     Real LoEdge (const IntVect& point, int dir) const;
     //
-    //@ManDoc: Returns location of hi edge in specified direction.
+    // Returns location of hi edge in specified direction.
     //
     Real HiEdge (int point, int dir) const;
     //
-    //@ManDoc: Equivalent to HiEdge(point[dir], dir).
+    // Equivalent to HiEdge(point[dir], dir).
     //
     Real HiEdge (const IntVect& point, int dir) const;
     //
-    //@ManDoc: Sets location of lo face into `loc'.
+    // Sets location of lo face into loc.
     //
     void LoFace (const IntVect& point, int dir, Array<Real>& loc) const;
     //
-    //@ManDoc: Sets location of lo face into `loc'.
+    // Sets location of lo face into loc.
     //
     void LoFace (const IntVect& point, int dir, Real* loc) const;
     //
-    //@ManDoc: Sets location of hi face into `loc'.
+    // Sets location of hi face into loc.
     //
     void HiFace (const IntVect& point, int dir, Array<Real>& loc) const;
     //
-    //@ManDoc: Sets location of hi face into `loc'.
+    // Sets location of hi face into loc.
     //
     void HiFace (const IntVect& point, int dir, Real* loc) const;
     //
-    //@ManDoc: Return location of lower left hand corner.
+    // Return location of lower left hand corner.
     //
     void LoNode (const IntVect& point, Array<Real>& loc) const;
     //
-    //@ManDoc: Return location of lower left hand corner.
+    // Return location of lower left hand corner.
     //
     void LoNode (const IntVect& point, Real* loc) const;
     //
-    //@ManDoc: Return location of upper right hand corner.
+    // Return location of upper right hand corner.
     //
     void HiNode (const IntVect& point, Array<Real>& loc) const;
     //
-    //@ManDoc: Return location of upper right hand corner.
+    // Return location of upper right hand corner.
     //
     void HiNode (const IntVect& point, Real* loc) const;
-
-    /*@ManDoc: Returns cell centered index of cell containing point.
-               This may return undesired results if point
-               is on a cell boundary.
-    */ 
+    //
+    // Returns cell centered index of cell containing point.
+    // This may return undesired results if point
+    // is on a cell boundary.
+    // 
     IntVect CellIndex (const Real* point) const;
-
-    /*@ManDoc: Returns node centered index of lower left hand corner of
-               cell containing this point.
-    */
+    //
+    // Returns node centered index of lower left hand corner of
+    // cell containing this point.
+    //
     IntVect LowerIndex (const Real* point) const;
-
-    /*@ManDoc: Returns node centered index of upper right hand corner of
-               cell containing this point.
-    */
+    //
+    // Returns node centered index of upper right hand corner of
+    // cell containing this point.
+    //
     IntVect UpperIndex (const Real* point) const;
-
-    /*@ManDoc: Compute cell volumes in given region and place them into
-               resize()d input FAB.
-    */
+    //
+    // Compute cell volumes in given region and place them into
+    // resize()d input FAB.
+    //
     void GetVolume (FArrayBox& vol, const Box& region) const;
-
-    /*@ManDoc: Compute cell volumes in given region and place them into
-               new()d FAB.  It is the user's respoinsibility to delete
-               the returned FAB.
-    */
+    //
+    // Compute cell volumes in given region and place them into
+    // new()d FAB.  It is the user's respoinsibility to delete
+    // the returned FAB.
+    //
     FArrayBox* GetVolume (const Box& region) const;
-    
-    /*@ManDoc: Compute d(log(A))/dr at cell centers in given region and
-               return the results in the resize()d input FAB.
-    */
+    //
+    // Compute d(log(A))/dr at cell centers in given region and
+    // return the results in the resize()d input FAB.
+    //
     void GetDLogA (FArrayBox& dloga, const Box& region, int dir) const;
-
-    /*@ManDoc: Compute d(log(A))/dr at cell centers in given region and
-               return the results in a new()d FAB.  It is the user's
-               responsibility to delete the returned FAB.
-    */
+    //
+    // Compute d(log(A))/dr at cell centers in given region and
+    // return the results in a new()d FAB.  It is the user's
+    // responsibility to delete the returned FAB.
+    //
     FArrayBox* GetDLogA (const Box& region, int dir) const;
     //
-    //@ManDoc: Return the volume of the specified cell.
+    // Return the volume of the specified cell.
     //
     Real Volume (const IntVect& point) const;
     //
-    //@ManDoc: Return the volume of the specified cell.
+    // Return the volume of the specified cell.
     //
     Real Volume (const Real xlo[BL_SPACEDIM],
                  const Real xhi[BL_SPACEDIM]) const;
-
-    /*@ManDoc: Compute area of cell faces in given region and given
-               index direction and return the result in resize()d input FAB.
-    */
+    //
+    // Compute area of cell faces in given region and given
+    // index direction and return the result in resize()d input FAB.
+    //
     void GetFaceArea (FArrayBox& area, const Box& region, int dir) const;
-
-    /*@ManDoc: Compute area of cell faces in given region and given
-               index direction and return the result in new()d FAB.
-               It is the user's responsibility to delete the FAB.
-    */
+    //
+    // Compute area of cell faces in given region and given
+    // index direction and return the result in new()d FAB.
+    // It is the user's responsibility to delete the FAB.
+    //
     FArrayBox* GetFaceArea (const Box& region, int dir) const;
     //
-    //@ManDoc: Returns lo face area of given cell in direction dir.
+    // Returns lo face area of given cell in direction dir.
     //
     Real AreaLo (const IntVect& point, int dir) const;
     //
-    //@ManDoc: Returns hi face area of given cell in direction dir.
+    // Returns hi face area of given cell in direction dir.
     //
     Real AreaHi (const IntVect& point, int dir) const;
-
-    /*@ManDoc: Return array of physical locations of cell edges
-               in the resize()d input array.
-    */
+    //
+    // Return array of physical locations of cell edges
+    // in the resize()d input array.
+    //
     void GetEdgeLoc (Array<Real>& loc, const Box& region, int dir) const;
-
-    /*@ManDoc: Return array of physical locations of cell centers
-               in the resize()d input array.
-    */
+    //
+    // Return array of physical locations of cell centers
+    // in the resize()d input array.
+    //
     void GetCellLoc (Array<Real>& loc, const Box& region, int dir) const;
-
-    /*@ManDoc: Return array of volume coordinates at cell edges
-               for region in given direction.
-    */
+    //
+    // Return array of volume coordinates at cell edges
+    // for region in given direction.
+    //
     void GetEdgeVolCoord (Array<Real>& loc, const Box& region, int dir) const;
-
-    /*@ManDoc: Return array of volume coordinates at cell centers
-               for region in given direction.
-    */
+    //
+    // Return array of volume coordinates at cell centers
+    // for region in given direction.
+    //
     void GetCellVolCoord (Array<Real>& loc, const Box& region, int dir) const;
 
 protected:

@@ -12,12 +12,10 @@
 #include <Geometry.H>
 
 //
-//@Man:
-//@Memo: Tagged cells in a Box.
-/*@Doc:
-
-  This class is used to tag cells in a Box that need addition refinement.
-*/
+// Tagged cells in a Box.
+//
+// This class is used to tag cells in a Box that need addition refinement.
+//
 
 class BoxDomain;
 
@@ -27,69 +25,69 @@ class TagBox
 {
 public:
     //
-    //@ManDoc: The type of each tag.
+    // The type of each tag.
     //
     typedef char TagType;
     //
-    //@ManDoc: Possible values for each cell.
+    // Possible values for each cell.
     //
     enum TagVal { CLEAR=0, BUF, SET };
     //
-    //@ManDoc: Construct an invalid TagBox with no memory.
+    // Construct an invalid TagBox with no memory.
     //
     TagBox ();
     //
-    //@ManDoc: Construct a TagBox on Box `bx' with number of components `n'.
+    // Construct a TagBox on Box bx with number of components n.
     //
     TagBox (const Box& bx, int n = 1);
     //
-    //@ManDoc: Resize the box on which the TagBox is defined.
+    // Resize the box on which the TagBox is defined.
     //
     void resize (const Box& b, int ncomp=1);
-
-    /*@ManDoc: Construct and return a new tagbox in which the coarsened cell
-               is tagged of any of the corresponding fine cells are tagged.
-    */
+    //
+    // Construct and return a new tagbox in which the coarsened cell
+    // is tagged of any of the corresponding fine cells are tagged.
+    //
     TagBox* coarsen (const IntVect& ratio);
-
-    /*@ManDoc: Mark neighbors of every tagged cell a distance nbuff away
-               only search interior for initial tagged points where nwid
-               is given as the width of the bndry region.
-    */
+    //
+    // Mark neighbors of every tagged cell a distance nbuff away
+    // only search interior for initial tagged points where nwid
+    // is given as the width of the bndry region.
+    //
     void buffer (int nbuff, int nwid);
     //
-    //@ManDoc: Tag cells on intersect with src if corresponding src cell is tagged.
+    // Tag cells on intersect with src if corresponding src cell is tagged.
     //
     void merge (const TagBox& src);
-
-    /*@ManDoc: Add location of every tagged cell to IntVect array,
-               starting at given location.  Returns the number of
-               collated points.
-    */
+    //
+    // Add location of every tagged cell to IntVect array,
+    // starting at given location.  Returns the number of
+    // collated points.
+    //
     int collate (IntVect* ar, int start) const;
     //
-    //@ManDoc: Returns number of tagged cells in specified Box.
+    // Returns number of tagged cells in specified Box.
     //
     int numTags (const Box& bx) const;
     //
-    //@ManDoc: Returns total number of tagged cells in the TagBox.
+    // Returns total number of tagged cells in the TagBox.
     //
     int numTags () const;
-
-    /*@ManDoc: Returns Array<int> of size domain.numPts() suitable for calling
-               Fortran, with positions set to same value as in the TagBox
-               dataPtr().
-    */
+    //
+    // Returns Array<int> of size domain.numPts() suitable for calling
+    // Fortran, with positions set to same value as in the TagBox
+    // dataPtr().
+    //
     Array<int> tags () const;
-
-    /*@ManDoc: Set values as specified by the array -- this only tags.
-               It's an error if ar.length() != domain.numPts().
-    */
+    //
+    // Set values as specified by the array -- this only tags.
+    // It's an error if ar.length() != domain.numPts().
+    //
     void tags (const Array<int>& ar);
-
-    /*@ManDoc: Set values as specified by the array -- this tags and untags.
-               It's an error if ar.length() != domain.numPts().
-    */
+    //
+    // Set values as specified by the array -- this tags and untags.
+    // It's an error if ar.length() != domain.numPts().
+    //
     void tags_and_untags (const Array<int>& ar);
 
 private:
@@ -101,12 +99,10 @@ private:
 };
 
 //
-//@Man:
-//@Memo: An array of TagBoxes.
-/*@Doc:
-
-  A container class for TagBoxes.
-*/
+// An array of TagBoxes.
+//
+// A container class for TagBoxes.
+//
 
 class TagBoxArray
     :
@@ -114,50 +110,50 @@ class TagBoxArray
 {
 public:
     //
-    //@ManDoc: The type of each tag.
+    // The type of each tag.
     //
     typedef TagBox::TagType TagType;
     //
-    //@ManDoc: The constructor.
+    // The constructor.
     //
     TagBoxArray (const BoxArray& bs, int _ngrow=0);
     //
-    //@ManDoc: Returns the grow factor for the TagBoxArray.
+    // Returns the grow factor for the TagBoxArray.
     //
     int borderSize () const;
     //
-    //@ManDoc: Calls buffer() on all contained TagBoxes.
+    // Calls buffer() on all contained TagBoxes.
     //
     void buffer (int nbuf);
-
-    /*@ManDoc: Map tagged cells through a periodic boundary to other grids in
-               TagBoxArray cells which were outside domain are set to TagBox::CLEAR.
-    */
+    //
+    // Map tagged cells through a periodic boundary to other grids in
+    // TagBoxArray cells which were outside domain are set to TagBox::CLEAR.
+    //
     void mapPeriodic (const Geometry& geom);
     //
-    //@ManDoc: Set values in `bl' to `val'.
+    // Set values in bl to val.
     //
     void setVal (const BoxList& bl, TagBox::TagVal val);
     //
-    //@ManDoc: Set values in `bd' to `val'.
+    // Set values in bd to val.
     //
     void setVal (const BoxDomain& bd, TagBox::TagVal val);
     //
-    //@ManDoc: Set values in `ba' to `val'. 
+    // Set values in ba to val. 
     //
     void setVal (const BoxArray& ba, TagBox::TagVal val);
     //
-    //@ManDoc: Calls coarsen() on all contained TagBoxes.
+    // Calls coarsen() on all contained TagBoxes.
     //
     void coarsen (const IntVect& ratio);
     //
-    //@ManDoc: The total number of Tags in all the contained TagBoxes.
+    // The total number of Tags in all the contained TagBoxes.
     //
     long numTags () const;
-
-    /*@ManDoc: Calls collate() on all contained TagBoxes.
-               The callee must delete[] the space when not needed.
-    */
+    //
+    // Calls collate() on all contained TagBoxes.
+    // The callee must delete[] the space when not needed.
+    //
     IntVect* collate (long& numtags) const;
 
 private:

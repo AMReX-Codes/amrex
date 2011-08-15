@@ -4,8 +4,8 @@
 #include <Tuple.H>
 #include <MCLinOp.H>
 
-//@Man:
-/*@Memo:
+/*
+
   A DivVis tailors the description of a linear operator to apply
   the second-order central difference approximation to the differential
   operator, alpha*a(x).u(x) - beta*div[tau(u(x))], on a cell-centered
@@ -16,8 +16,7 @@
   together.
   tau is a three by three tensor
   b(x)*(u_{i,j}+u_{j,i})
-  */	
-/*@Doc:
+
   A DivVis tailors a LinOp (a virtual base class for general
   linear operators) to compute the second-order central difference
   approximation to the differential operator,
@@ -68,52 +67,52 @@ class DivVis
 {
 public:
     //
-    //@ManDoc: constructor for box array, boundary data and scalar mesh spacing
+    // constructor for box array, boundary data and scalar mesh spacing
     //
     DivVis (const BndryData& bd,
 	    Real             _h);
     //
-    //@ManDoc: constructor for box array, boundary data and vector mesh spacing
+    // constructor for box array, boundary data and vector mesh spacing
     //
     DivVis (const BndryData& bd,
 	    const Real*      _h);
     //
-    //@ManDoc: destructor
+    // destructor
     //
     virtual ~DivVis ();
     //
-    //@ManDoc: set scalar coefficients
+    // set scalar coefficients
     //
     void setScalars (Real _alpha,
 		     Real _beta);
     //
-    //@ManDoc: get scalar alpha coefficient
+    // get scalar alpha coefficient
     //
     Real get_alpha () const;
     //
-    //@ManDoc: get scalar beta coefficient
+    // get scalar beta coefficient
     //
     Real get_beta () const;
     //
-    //@ManDoc: return reference to "a" coefficients for base level
+    // return reference to "a" coefficients for base level
     //
     const MultiFab& aCoefficients (int level = 0);
     //
-    //@ManDoc: return reference to "b" coefficients for base level
+    // return reference to "b" coefficients for base level
     //
     const MultiFab& bCoefficients (int dir,
 				   int level = 0);
     //
-    //@ManDoc: copy _a into "a" coeffs for base level
+    // copy _a into "a" coeffs for base level
     //
     void aCoefficients (const MultiFab& _a);
     //
-    //@ManDoc: copy _b into "b" coeffs in "dir" coordinate direction for base level
+    // copy _b into "b" coeffs in "dir" coordinate direction for base level
     //
     void bCoefficients (const MultiFab& _b,
 			int             dir);
     //
-    //@ManDoc: alternative (older) version of above members
+    // alternative (older) version of above members
     //
     void setCoefficients (const MultiFab &_a,
 			  const MultiFab &_bX,
@@ -123,28 +122,28 @@ public:
 #endif
 	);
     //
-    //@ManDoc: collective version of above members (taking an array of MultiFabs for "b")
+    // collective version of above members (taking an array of MultiFabs for "b")
     //
     void setCoefficients (const MultiFab& _a,
 			  const MultiFab* _b);
     //
-    //@ManDoc: allocate/fill internal data for new level
+    // allocate/fill internal data for new level
     //
     virtual void prepareForLevel (int level);
     //
-    //@ManDoc: remove internal data for this level and all levels above
+    // remove internal data for this level and all levels above
     //
     virtual void clearToLevel (int level);
     //
-    //@ManDoc: set flags so that a coeffs at lev and coarser require recalculation
+    // set flags so that a coeffs at lev and coarser require recalculation
     //
     void invalidate_a_to_level (int lev);
     //
-    //@ManDoc: set flags so that b coeffs at lev and coarser require recalculation
+    // set flags so that b coeffs at lev and coarser require recalculation
     //
     void invalidate_b_to_level (int lev);
     //
-    //@ManDoc: computes flux associated with operator
+    // computes flux associated with operator
     //
     void compFlux (MultiFab &xflux, 
 		   MultiFab &yflux, 
@@ -155,50 +154,50 @@ public:
     
 protected:
     //
-    //@ManDoc: initialize a full set (a,b) of coefficients on the box array
+    // initialize a full set (a,b) of coefficients on the box array
     //
     void initCoefficients (const BoxArray &_ba);
     //
-    //@ManDoc: compute out=L (in) at level=level
+    // compute out=L (in) at level=level
     //
     virtual void Fapply (MultiFab&       out,
 			 const MultiFab& in,
 			 int             level);
     //
-    //@ManDoc: apply smoother to improve residual to L(solnL)=rhsL
+    // apply smoother to improve residual to L(solnL)=rhsL
     //
     virtual void Fsmooth (MultiFab&       solnL,
 			  const MultiFab& rhsL,
 			  int             level,
 			  int             phaseflag);
     //
-    //@ManDoc: return number of components.  This is virtual since only the derived knows
+    // return number of components.  This is virtual since only the derived knows
     //
     virtual int numberComponents ();
     //
-    //@ManDoc: number of relaxation phases.  On derived class knows.
+    // number of relaxation phases.  On derived class knows.
     //
     virtual int numberPhases ();
     //
-    //@ManDoc: Helper function for object construction
+    // Helper function for object construction
     //
     void initConstruct (const Real* _h);
 
 protected:
     //
-    //@ManDoc: Array (on level) of "a" coefficients
+    // Array (on level) of "a" coefficients
     //
     Array< MultiFab* > acoefs;
     //
-    //@ManDoc: Array (on level) of Tuple (on dimension) of "b" coefficients
+    // Array (on level) of Tuple (on dimension) of "b" coefficients
     //
     Array< Tuple< MultiFab*, BL_SPACEDIM> > bcoefs;
     //
-    //@ManDoc: Scalar "alpha" coefficient
+    // Scalar "alpha" coefficient
     //
     Real alpha;
     //
-    //@ManDoc: Scalar "beta" coefficient
+    // Scalar "beta" coefficient
     //
     Real beta;
 

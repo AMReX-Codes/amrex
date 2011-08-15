@@ -9,57 +9,56 @@
 #include <REAL.H>
 
 //
-//@Man:
-//@Memo: A Descriptor of the Long Integer type
-/*@Doc:
-
-  This class is meant to hold all information needed to completely
-  describe the "long" type on a machine.  To describe a "long" both
-  the number of bytes in the long and their ordering, relative to canonical
-  ordering 1 .. sizeof(long), needs to be specified.
-
-  This allows us to write out "long"s in the native format on a machine,
-  and then by also saving the IntDescriptor, we can read them back in on
-  another machine and have enough information to construct the exact same
-  "long" values.
-*/
+// A Descriptor of the Long Integer type
+//
+// This class is meant to hold all information needed to completely
+// describe the "long" type on a machine.  To describe a "long" both
+// the number of bytes in the long and their ordering, relative to canonical
+// ordering 1 .. sizeof(long), needs to be specified.
+//
+// This allows us to write out "long"s in the native format on a machine,
+// and then by also saving the IntDescriptor, we can read them back in on
+// another machine and have enough information to construct the exact same
+// "long" values.
+//
 
 class IntDescriptor
 {
 
 public:
-    /*@ManDoc: An enumeration describing the two ordering of a "long"
-               that we currently support: NormalOrder and ReverseOrder.
-               Other ordering may be added as BoxLib is ported to run on
-               machines with non-standard "long" orderings.
-    */
+    //
+    // An enumeration describing the two ordering of a "long"
+    // that we currently support: NormalOrder and ReverseOrder.
+    // Other ordering may be added as BoxLib is ported to run on
+    // machines with non-standard "long" orderings.
+    //
     enum Ordering { NormalOrder = 1, ReverseOrder = 2 };
-
-    /*@ManDoc: The default constructor.  Does not build a proper IntDescriptor.
-               This should only be used when you need to build a generic
-               IntDescriptor in order to be able to read in a specific
-               one from an istream.
-    */
+    //
+    // The default constructor.  Does not build a proper IntDescriptor.
+    // This should only be used when you need to build a generic
+    // IntDescriptor in order to be able to read in a specific
+    // one from an istream.
+    //
     IntDescriptor ();
     //
-    //@ManDoc: Construct a specific IntDescriptor.
+    // Construct a specific IntDescriptor.
     //
     IntDescriptor (long     nb,
                    Ordering ordering = NormalOrder);
     //
-    //@ManDoc: Returns the ordering of the "long".
+    // Returns the ordering of the "long".
     //
     Ordering order () const;
     //
-    //@ManDoc: Returns the number of bytes in a "long".
+    // Returns the number of bytes in a "long".
     //
     int numBytes () const;
     //
-    //@ManDoc: The equality operator.
+    // The equality operator.
     //
     bool operator== (const IntDescriptor& id) const;
     //
-    //@ManDoc: The inequality operator.
+    // The inequality operator.
     //
     bool operator!= (const IntDescriptor& id) const;
 
@@ -69,24 +68,22 @@ protected:
 };
 
 //
-//@ManDoc: Write out an IntDescriptor to an ostream in ASCII.
+// Write out an IntDescriptor to an ostream in ASCII.
 //
 std::ostream& operator<< (std::ostream& os, const IntDescriptor& id);
 //
-//@ManDoc: Read in an IntDescriptor from an istream.
+// Read in an IntDescriptor from an istream.
 //
 std::istream& operator>> (std::istream& is, IntDescriptor& id);
 
-//
-//@Man:
-//@Memo: A Descriptor of the Real Type
-/*@Doc:
+/*
+  A Descriptor of the Real Type
 
   This class is meant to hold all information needed to completely
   describe the "Real" floating-point type on a machine.  By "Real" here we
   mean either the "float" or "double" type that this version of BoxLib
-  was built with, which corresponds to whether BL\_USE\_FLOAT or
-  BL\_USE\_DOUBLE was used to build the version of the library.
+  was built with, which corresponds to whether BL_USE_FLOAT or
+  BL_USE_DOUBLE was used to build the version of the library.
   
   To describe a "Real" type two arrays are needed: one detailing the ordering
   of the bytes in the Real, relative to the canonical ordering
@@ -114,111 +111,111 @@ std::istream& operator>> (std::istream& is, IntDescriptor& id);
 class RealDescriptor
 {
 public:
-    /*@ManDoc: The default constructor.  Does not build a proper
-               RealDescriptor. This should only be used when you need to
-               build a generic RealDescriptor in order to be able to read
-               in a specific one from an istream.
-    */
+    //
+    // The default constructor.  Does not build a proper
+    // RealDescriptor. This should only be used when you need to
+    // build a generic RealDescriptor in order to be able to read
+    // in a specific one from an istream.
+    //
     RealDescriptor ();
-
-    /*@ManDoc: Construct a specific RealDescriptor, passing in the format
-               of the Real, the order of the Real, and the length of the
-               array detailing the ordering.
-    */
+    //
+    // Construct a specific RealDescriptor, passing in the format
+    // of the Real, the order of the Real, and the length of the
+    // array detailing the ordering.
+    //
     RealDescriptor (const long* format,
                     const int*  order,
                     int         order_length);
     //
-    //@ManDoc: The copy constructor.
+    // The copy constructor.
     //
     RealDescriptor (const RealDescriptor& rhs);
     //
-    //@ManDoc: The assignment operator.
+    // The assignment operator.
     //
     RealDescriptor& operator= (const RealDescriptor& rhs);
     //
-    //@ManDoc: Destructor is virtual incase a derived class has a non-trivial
+    // Destructor is virtual incase a derived class has a non-trivial
     //         destructor.
     virtual ~RealDescriptor ();
     //
-    //@ManDoc: Returns the format array as a `const long*'
+    // Returns the format array as a const long*
     //
     const long* format () const;
     //
-    //@ManDoc: Returns const Array<long> reference to the format array.
+    // Returns const Array<long> reference to the format array.
     //
     const Array<long>& formatarray () const;
     //
-    //@ManDoc: Returns the order array as a `const int*'
+    // Returns the order array as a const int*
     //
     const int* order () const;
     //
-    //@ManDoc: Returns const Array<int> reference to the order array.
+    // Returns const Array<int> reference to the order array.
     //
     const Array<int>& orderarray () const;
     //
-    //@ManDoc: Returns the number of bytes in the Real.
+    // Returns the number of bytes in the Real.
     //
     int numBytes () const;
     //
-    //@ManDoc: The equality operator.
+    // The equality operator.
     //
     bool operator== (const RealDescriptor& rd) const;
     //
-    //@ManDoc: The inequality operator.
+    // The inequality operator.
     //
     bool operator != (const RealDescriptor& rd) const;
-
     //
-    //@ManDoc: Set to always fix denormals when converting to native format.
+    // Set to always fix denormals when converting to native format.
     //
     static void SetFixDenormals();
-
-    /*@ManDoc: Returns a copy of this RealDescriptor on the heap.
-               The user is responsible for deletion.
-    */
+    //
+    // Returns a copy of this RealDescriptor on the heap.
+    // The user is responsible for deletion.
+    //
     virtual RealDescriptor* clone () const;
-
-    /*@ManDoc: Returns a RealDescriptor on the heap detailing requested
-               floating-point type.  Here format, precision, and ordering
-               correspond to the enumerations in FABio.  This is here to
-               support reading "old" FABs.  Do NOT use it in new code.
-    */
+    //
+    // Returns a RealDescriptor on the heap detailing requested
+    // floating-point type.  Here format, precision, and ordering
+    // correspond to the enumerations in FABio.  This is here to
+    // support reading "old" FABs.  Do NOT use it in new code.
+    //
     static RealDescriptor* newRealDescriptor (int         format,
                                               int         precision,
                                               const char* systype,
                                               int         ordering);
-
-    /*@ManDoc: Convert nitems in RealDescriptor format to native Real format.
-               The out array is assumed to be large enough to hold the
-               resulting output.
-    */
+    //
+    // Convert nitems in RealDescriptor format to native Real format.
+    // The out array is assumed to be large enough to hold the
+    // resulting output.
+    //
     static void convertToNativeFormat (Real*                 out,
                                        long                  nitems,
                                        void*                 in,
                                        const RealDescriptor& id);
-
-    /*@ManDoc: Read nitems from istream in ReadDescriptor format and
-               convert them to the native Real format.  The out array is
-               assumed to be large enough to hold the resulting output.
-    */
+    //
+    // Read nitems from istream in ReadDescriptor format and
+    // convert them to the native Real format.  The out array is
+    // assumed to be large enough to hold the resulting output.
+    //
     static void convertToNativeFormat (Real*                 out,
                                        long                  nitems,
                                        std::istream&         is,
                                        const RealDescriptor& id);
-
-    /*@ManDoc: Convert nitems Reals in native format to RealDescriptor format
-               and write them to the ostream.
-    */
+    //
+    // Convert nitems Reals in native format to RealDescriptor format
+    // and write them to the ostream.
+    //
     static void convertFromNativeFormat (std::ostream&         os,
                                          long                  nitems,
                                          const Real*           in,
                                          const RealDescriptor& od);
-
-    /*@ManDoc: Convert nitems Reals in native format to RealDescriptor format.
-               The out array is assumed to be large enough to hold the
-               resulting output.
-    */
+    //
+    // Convert nitems Reals in native format to RealDescriptor format.
+    // The out array is assumed to be large enough to hold the
+    // resulting output.
+    //
     static void convertFromNativeFormat (void*                 out,
                                          long                  nitems,
                                          Real*                 in,
@@ -230,11 +227,11 @@ protected:
 };
 
 //
-//@ManDoc: Write out an RealDescriptor to an ostream in ASCII.
+// Write out an RealDescriptor to an ostream in ASCII.
 //
 std::ostream& operator<< (std::ostream& os, const RealDescriptor& id);
 //
-//@ManDoc: Read in a RealDescriptor from an istream.
+// Read in a RealDescriptor from an istream.
 //
 std::istream& operator>> (std::istream& is, RealDescriptor& id);
 

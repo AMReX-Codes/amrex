@@ -28,16 +28,14 @@ extern "C"
 }
 
 //
-//@Man:
-//@Memo: Derived Type Record
-/*@Doc:
-
-  Computes quantities derived from state data.
-
-  DeriveRec is designed to compute quantities which can be derived
-  from the state data contained in AmrLevel and its derivatives. Some
-  examples might be kinetic energy, vorticity, concentration gradients ...
-*/
+// Derived Type Record
+//
+// Computes quantities derived from state data.
+//
+// DeriveRec is designed to compute quantities which can be derived
+// from the state data contained in AmrLevel and its derivatives. Some
+// examples might be kinetic energy, vorticity, concentration gradients ...
+//
 
 class DeriveRec
 {
@@ -45,58 +43,58 @@ class DeriveRec
 
 public:
     //
-    //@ManDoc: A pointer to function taking and returning a Box. 
+    // A pointer to function taking and returning a Box. 
     //
     typedef Box (*DeriveBoxMap)(const Box&);
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     ~DeriveRec ();
     //
-    //@ManDoc: The name of the derived type.
+    // The name of the derived type.
     //
     const std::string& name () const;
     //
-    //@ManDoc: The names of components
+    // The names of components
     //
     const std::string& variableName (int comp) const;
     //
-    //@ManDoc: The IndexType of the derived type.
+    // The IndexType of the derived type.
     //
     IndexType deriveType () const;
     //
-    //@ManDoc: The DeriveFunc used to calculate the derived type.
+    // The DeriveFunc used to calculate the derived type.
     //
     DeriveFunc derFunc () const;
     //
-    //@ManDoc: Maps state data box to derived data box.
+    // Maps state data box to derived data box.
     //
     DeriveBoxMap boxMap () const;
     //
-    //@ManDoc: Type of interpolater to use in computing derived type.
+    // Type of interpolater to use in computing derived type.
     //
     Interpolater* interp () const;
     //
-    //@ManDoc: Number of components in the derived type.
+    // Number of components in the derived type.
     //
     int numDerive () const;
     //
-    //@ManDoc: Number of different chunks of state data needed for derived type.
+    // Number of different chunks of state data needed for derived type.
     //
     int numRange () const;
     //
-    //@ManDoc: Total number of state variables needed for derived type.
+    // Total number of state variables needed for derived type.
     //
     int numState () const;
     //
-    //@ManDoc: The boundary conditions.
+    // The boundary conditions.
     //
     const int* getBC () const;
-
-    /*@ManDoc: Sets state\_indx, src\_comp and num\_comp for the kth
-               range (or chunk) of state data components needed to calculate
-               the derived quantity.
-    */
+    //
+    // Sets state_indx, src_comp and num_comp for the kth
+    // range (or chunk) of state data components needed to calculate
+    // the derived quantity.
+    //
     void getRange (int  k,
                    int& state_indx,
                    int& src_comp,
@@ -193,30 +191,28 @@ protected:
 };
 
 //
-//@Man:
-//@Memo: A list of DeriveRecs.
-/*@Doc:
-
-  DeriveList manages and provides access to the list of DeriveRecs.
-*/
+// A list of DeriveRecs.
+//
+// DeriveList manages and provides access to the list of DeriveRecs.
+//
 
 class DeriveList
 {
 public:
     //
-    //@ManDoc: The default constructor.
+    // The default constructor.
     //
     DeriveList ();
     //
-    //@ManDoc: Determines whether quantity identified by <name> is in the registry.
+    // Determines whether quantity identified by <name> is in the registry.
     //
     bool canDerive (const std::string& name) const;
     //
-    //@ManDoc: Access the particular record in registry.
+    // Access the particular record in registry.
     //
     const DeriveRec* get (const std::string& name) const;
     //
-    //@ManDoc: Adds another entry to the registry.
+    // Adds another entry to the registry.
     //
     void add (const std::string&      name,
               IndexType               result_type,
@@ -226,14 +222,14 @@ public:
               Interpolater*           interp = &pc_interp);
 
     //
-    //@ManDoc: This version doesn't take a Fortran function.
+    // This version doesn't take a Fortran function.
     //
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive);
     //
     //
-    //@ManDoc: Adds another entry to the registry.
+    // Adds another entry to the registry.
     //
     void add (const std::string&      name,
               IndexType               result_type,
@@ -243,7 +239,7 @@ public:
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
     //
-    //@ManDoc: Adds another StateRange to the DeriveRec identified by <name>.
+    // Adds another StateRange to the DeriveRec identified by <name>.
     //
     void addComponent (const std::string&    name,
                        const DescriptorList& d_list,

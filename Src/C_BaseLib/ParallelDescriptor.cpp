@@ -836,7 +836,7 @@ ParallelDescriptor::ReduceIntMin (int* r, int cnt, int cpu)
 void
 ParallelDescriptor::ReduceBoolAnd (bool& r)
 {
-    int src = r; // `src' is either 0 or 1.
+    int src = r; // src is either 0 or 1.
 
     util::DoAllReduceInt(src,MPI_SUM);
 
@@ -846,7 +846,7 @@ ParallelDescriptor::ReduceBoolAnd (bool& r)
 void
 ParallelDescriptor::ReduceBoolOr (bool& r)
 {
-    int src = r; // `src' is either 0 or 1.
+    int src = r; // src is either 0 or 1.
 
     util::DoAllReduceInt(src,MPI_SUM);
 
@@ -856,7 +856,7 @@ ParallelDescriptor::ReduceBoolOr (bool& r)
 void
 ParallelDescriptor::ReduceBoolAnd (bool& r, int cpu)
 {
-    int src = r; // `src' is either 0 or 1.
+    int src = r; // src is either 0 or 1.
 
     util::DoReduceInt(src,MPI_SUM,cpu);
 
@@ -867,7 +867,7 @@ ParallelDescriptor::ReduceBoolAnd (bool& r, int cpu)
 void
 ParallelDescriptor::ReduceBoolOr (bool& r, int cpu)
 {
-    int src = r; // `src' is either 0 or 1.
+    int src = r; // src is either 0 or 1.
 
     util::DoReduceInt(src,MPI_SUM,cpu);
 

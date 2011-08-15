@@ -14,15 +14,13 @@
 
 enum MCBC_Mode { MCHomogeneous_BC = 0, MCInhomogeneous_BC };
 
-//@Man:
-/*@Memo:
+/*
         A MCLinOp is a virtual base class for general linear operators capable
 	of acting on multicomponent MultiFabs.  Eventually, this should
 	be merged back into LinOp. All implementation and access functions are
 	designed to make a MCLinOp object useful for representing and solving
 	a set of linear equations on a union of rectangles in 2D or 3D.
-*/	
-/*@Doc:
+
         A MCLinOp contains all the information necessary to construct and
 	maintain a linear operator which acts on a cell-centered MultiFab.  It
 	is a virtual base class, and therefore cannot itself be
@@ -88,34 +86,34 @@ class MCLinOp
 {
 public:
     //
-    //@ManDoc: allocate a MCLinOp for this box array, boundary and (uniform) spacing info
+    // allocate a MCLinOp for this box array, boundary and (uniform) spacing info
     //
     MCLinOp (const BndryData& mgb,
 	     const Real       _h);
     //
-    //@ManDoc: allocate MCLinOp for this boxArray, boundary data and spacing array info
+    // allocate MCLinOp for this boxArray, boundary data and spacing array info
     //
     MCLinOp (const BndryData& mgb,
 	     const Real*      _h);
     //
-    //@ManDoc: destructor
+    // destructor
     //
     virtual ~MCLinOp ();
     //
-    //@ManDoc: applies level MCLinOp to "in", returns "out", uses BC_mode flag
+    // applies level MCLinOp to "in", returns "out", uses BC_mode flag
     //
     void apply (MultiFab& out,
 		MultiFab& in,
 		int       level = 0,
 		MCBC_Mode bc_mode = MCInhomogeneous_BC);
     //
-    //@ManDoc: fills level boundary cells using BC_mode flag, int. BC data if reqd
+    // fills level boundary cells using BC_mode flag, int. BC data if reqd
     //
     void applyBC (MultiFab& inout,
 		  int       level = 0,
 		  MCBC_Mode bc_mode = MCInhomogeneous_BC);
     //
-    //@ManDoc: compute the level residual = rhsL - L(solnL)
+    // compute the level residual = rhsL - L(solnL)
     //
     void residual (MultiFab&       residL,
 		   const MultiFab& rhsL,
@@ -123,161 +121,159 @@ public:
 		   int             level = 0,
 		   MCBC_Mode       bc_mode = MCInhomogeneous_BC);
     //
-    //@ManDoc: smooth the level system L(solnL)=rhsL
+    // smooth the level system L(solnL)=rhsL
     //
     void smooth (MultiFab&       solnL,
 		 const MultiFab& rhsL,
 		 int             level = 0,
 		 MCBC_Mode       bc_mode = MCInhomogeneous_BC);
-
     //
-    //@ManDoc: Compute the norm of "in"
+    // Compute the norm of "in"
     //
     Real norm (const MultiFab& in,
 	       int             level = 0) const;
     //
-    //@ManDoc: return the boundary data object
+    // return the boundary data object
     //
     const BndryData& bndryData () const;
     //
-    //@ManDoc: set the boundary data object
+    // set the boundary data object
     //
     void bndryData (const BndryData& bd);
     //
-    //@ManDoc: return the box array
+    // return the box array
     //
     const BoxArray& boxArray (int level = 0) const;
     //
-    //@ManDoc: return the number of grids
+    // return the number of grids
     //
     int numGrids () const;
     //
-    //@ManDoc: return the number of levels
+    // return the number of levels
     //
     int numLevels () const;
     //
-    //@ManDoc: return the order of the boundary condition interpolant
+    // return the order of the boundary condition interpolant
     //
     int maxOrder () const;
     //
-    //@ManDoc: set the order of the boundary condition interpolant
+    // set the order of the boundary condition interpolant
     //
     int maxOrder (int maxorder_);
     //
-    //@ManDoc: construct/allocate internal data necessary for adding a new level
+    // construct/allocate internal data necessary for adding a new level
     //
     virtual void prepareForLevel (int level);
     //
-    //@ManDoc: remove internal data necessary for a level and all higher
+    // remove internal data necessary for a level and all higher
     //
     virtual void clearToLevel (int level);
     //
-    //@ManDoc: return number of components.  This is virtual since only the derived knows
+    // return number of components.  This is virtual since only the derived knows
     //
     virtual int numberComponents () = 0;
     //
-    //@ManDoc: number of relaxation phases.  Only derived class knows.
+    // number of relaxation phases.  Only derived class knows.
     //
     virtual int numberPhases () = 0;
     //
-    //@ManDoc: output the operator to an ASCII stream
+    // output the operator to an ASCII stream
     //
     friend std::ostream& operator<< (std::ostream& os, const MCLinOp&  lp);
     //
-    //@ManDoc: compute the number of components required in BCRec.
+    // compute the number of components required in BCRec.
     //
     static int bcComponentsNeeded();
 
 protected:
     //
-    //@ManDoc: number of components
+    // number of components
     //
     int numcomp;
     //
-    //@ManDoc: number of relaxation phases
+    // number of relaxation phases
     //
     int numphase;
     //
-    //@ManDoc: virtual to apply the level operator to the internal nodes of "in", return result in "out"
+    // virtual to apply the level operator to the internal nodes of "in", return result in "out"
     //
     virtual void Fapply (MultiFab&       out,
 			 const MultiFab& in,
 			 int             level) = 0;
     //
-    //@ManDoc: virtual to carry out the level smoothing operation for L(solnL)=rhsL on internal nodes.  Modify solnL in place.
+    // virtual to carry out the level smoothing operation for L(solnL)=rhsL on internal nodes.  Modify solnL in place.
     //
     virtual void Fsmooth (MultiFab&       solnL,
 			  const MultiFab& rhsL,
 			  int             level,
 			  int             phaseflag) = 0;
-
 protected:
     //
-    //@ManDoc: build coefficients at coarser level by interpolating "fine" (builds in appropriate node/cell centering)
+    // build coefficients at coarser level by interpolating "fine" (builds in appropriate node/cell centering)
     //
     void makeCoefficients (MultiFab&       crse,
 			   const MultiFab& fine,
 			   int             level);
     //
-    //@ManDoc: initialize MCLinOp internal data
+    // initialize MCLinOp internal data
     //
     static void Initialize ();
 
     static void Finalize ();
     //
-    //@ManDoc: Helper functin for object construction
+    // Helper functin for object construction
     //
     void initConstruct (const Real* _h);
     //
-    //@ManDoc: Array (on level) of Tuples (on dimension) of grid spacings
+    // Array (on level) of Tuples (on dimension) of grid spacings
     //
     Array< Tuple<Real, BL_SPACEDIM> > h;
     //
-    //@ManDoc: Array (on level) of pointers to BoxArray's of MCLinOp's domain
+    // Array (on level) of pointers to BoxArray's of MCLinOp's domain
     //
     Array< BoxArray > gbox;
     //
-    //@ManDoc: Array (on level) of pointers to BndryRegisters along each grid for scratch data required to modify internal stencil on boundary
+    // Array (on level) of pointers to BndryRegisters along each grid for scratch data required to modify internal stencil on boundary
     //
     Array< LnClassPtr< BndryRegister > > undrrelxr;
     //
-    //@ManDoc: Array (on level) of pointers to BndryRegisters along each grid for tangential derivative data
+    // Array (on level) of pointers to BndryRegisters along each grid for tangential derivative data
     //
     Array< LnClassPtr< BndryRegister > > tangderiv;
     //
-    //@ManDoc: Array (on level) of Arrays (on grid) of Arrays (on orientation) of pointers to Masks for whether boundary Fabs are covered, not_covered, outside_domain
+    // Array (on level) of Arrays (on grid) of Arrays (on orientation) of pointers to Masks for whether boundary Fabs are covered, not_covered, outside_domain
     //
     Array< Array< Array< Mask*> > > maskvals;
     //
-    //@ManDoc: boundary data class
+    // boundary data class
     //
     BndryData bgb;
     //
-    //@ManDoc: Array (on level) of geometry objects.  Needed for determining whether stuff intersects on periodic domains
+    // Array (on level) of geometry objects.  Needed for determining whether stuff intersects on periodic domains
     //
     Array< Geometry > geomarray;
     //
-    //@ManDoc: flag (=1 if use harmonic averaged interpolation for coefficients, =0 is arithmetic averaging)
+    // flag (=1 if use harmonic averaged interpolation for coefficients, =0 is arithmetic averaging)
     //
     int harmavg;
     //
-    //@ManDoc: flag (>0 is verbose execution)
+    // flag (>0 is verbose execution)
     //
     int verbose;
     //
-    //@ManDoc: maximum interpolation order used for constructing Dirichlet ghost node values
+    // maximum interpolation order used for constructing Dirichlet ghost node values
     //
     int maxorder;
     //
-    //@ManDoc: default value for harm_avg
+    // default value for harm_avg
     //
     static int def_harmavg;
     //
-    //@ManDoc: default value for verbose
+    // default value for verbose
     //
     static int def_verbose;
     //
-    //@ManDoc: default maximum BC interpolant order
+    // default maximum BC interpolant order
     //
     static int def_maxorder;
 };

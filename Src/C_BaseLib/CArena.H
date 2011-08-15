@@ -10,45 +10,43 @@
 #include <Array.H>
 
 //
-//@Man:
-//@Memo: A Concrete Class for Dynamic Memory Management
-/*@Doc:
-
-  This is a coalescing memory manager.  It allocates (possibly) large
-  chunks of heap space and apportions it out as requested.  It merges
-  together neighboring chunks on each free().
-*/
+// A Concrete Class for Dynamic Memory Management
+//
+// This is a coalescing memory manager.  It allocates (possibly) large
+// chunks of heap space and apportions it out as requested.  It merges
+// together neighboring chunks on each free().
+//
 
 class CArena
     :
     public Arena
 {
 public:
-
-    /*@ManDoc: Construct a coalescing memory manager.  `hunk\_size' is the
-               minimum size of hunks of memory to allocate from the heap.
-               If hunk\_size == 0 we use DefaultHunkSize as specified below.
-    */
+    //
+    // Construct a coalescing memory manager.  hunk_size is the
+    // minimum size of hunks of memory to allocate from the heap.
+    // If hunk_size == 0 we use DefaultHunkSize as specified below.
+    //
     CArena (size_t hunk_size = 0);
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     virtual ~CArena ();
     //
-    //@ManDoc: Allocate some memory.
+    // Allocate some memory.
     //
     virtual void* alloc (size_t nbytes);
-
-    /*@ManDoc: Free up allocated memory.  Merge neighboring free memory chunks
-               into largest possible chunk.
-    */
+    //
+    // Free up allocated memory.  Merge neighboring free memory chunks
+    // into largest possible chunk.
+    //
     virtual void free (void* ap);
     //
-    //@ManDoc: The current amount of heap space used by the CArena object.
+    // The current amount of heap space used by the CArena object.
     //
     size_t heap_space_used () const;
     //
-    //@ManDoc: The default memory hunk size to grab from the heap.
+    // The default memory hunk size to grab from the heap.
     //
     enum { DefaultHunkSize = 1024*1024 };
 

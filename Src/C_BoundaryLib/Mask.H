@@ -5,13 +5,11 @@
 #include <BaseFab.H>
 #include <FArrayBox.H>
 
-//@Man:
-/*@Memo:
-  A Mask is a derived Fab class whose elements maintain a logical
-  "TRUE" or "FALSE" state.  A Mask can perform several elementary
-  logical operations on its data members.
-*/        
-/*@Doc:
+/*
+        A Mask is a derived Fab class whose elements maintain a logical
+        "TRUE" or "FALSE" state.  A Mask can perform several elementary
+        logical operations on its data members.
+
         Implement a logical class Mask to maintain the TRUE or FALSE state
         of elements in a box.  A Mask can perform element-wise logical
         operations, but is otherwise very similar to an FArrayBox object.
@@ -28,55 +26,55 @@ class Mask
 {
 public:
     //
-    //@ManDoc: default constructor
+    // default constructor
     //
     Mask ();
     //
-    //@ManDoc: allocating constructor (nc=number of components)
+    // allocating constructor (nc=number of components)
     //
     Mask (const Box& bx,
           int        nc = 1);
     //
-    //@ManDoc: construct from input stream
+    // construct from input stream
     //
     Mask (std::istream& is);
     //
-    //@ManDoc: destructor
+    // destructor
     //
     ~Mask ();
     //
-    //@ManDoc: Initialize from stream.
+    // Initialize from stream.
     //
     friend std::istream& operator>> (std::istream&, Mask&);
     //
-    //@ManDoc: initialize from stream, FAB-style
+    // initialize from stream, FAB-style
     //
     void readFrom (std::istream&);
     //
-    //@ManDoc: output to stream
+    // output to stream
     //
     friend std::ostream& operator<< (std::ostream&, const Mask&);
     //
-    //@ManDoc: output to stream, FAB-style
+    // output to stream, FAB-style
     //
     void writeOn (std::ostream&) const;
     //
-    //@ManDoc: in-place And operator
+    // in-place And operator
     //
     Mask& operator&= (const Mask& src) { return And(src); }
     //
-    //@ManDoc: in-place And
+    // in-place And
     //
     Mask& And (const Mask& src);
     //
-    //@ManDoc: as above, but specify source/destination/number of components
+    // as above, but specify source/destination/number of components
     //
     Mask& And (const Mask& src,
                int         srccomp,
                int         destcomp,
                int         numcomp = 1);
     //
-    //@ManDoc: as above, and specify subregion
+    // as above, and specify subregion
     //
     Mask& And (const Mask& src,
                const Box&  subbox,
@@ -84,7 +82,7 @@ public:
                int         destcomp,
                int         numcomp = 1);
     //
-    //@ManDoc: in-pace And, over source components to destination components,
+    // in-pace And, over source components to destination components,
     //  and on intersection of source and destination boxes
     //
     Mask& And (const Mask& src,
@@ -94,22 +92,22 @@ public:
                int         destcomp,
                int         numcomp = 1);
     //
-    //@ManDoc: in-place Or operator
+    // in-place Or operator
     //
     Mask& operator|= (const Mask& src) { return Or(src); }
     //
-    //@ManDoc: in-place Or
+    // in-place Or
     //
     Mask& Or (const Mask& src);
     //
-    //@ManDoc: as above, but specify source/destination/number of components
+    // as above, but specify source/destination/number of components
     //
     Mask& Or (const Mask& src,
               int         srccomp,
               int         destcomp,
               int         numcomp = 1);
     //
-    //@ManDoc: as above, and specify subregion
+    // as above, and specify subregion
     //
     Mask& Or (const Mask& src,
               const Box&  subbox,
@@ -117,7 +115,7 @@ public:
               int         destcomp,
               int         numcomp = 1);
     //
-    //@ManDoc: in-pace Or, over source components to destination components,
+    // in-pace Or, over source components to destination components,
     //  and on intersection of source and destination boxes
     //
     Mask& Or (const Mask& src,

@@ -11,13 +11,13 @@
 #include <BoundCond.H>
 #include <Geometry.H>
 
-//@Man:
-/*@Memo:
-  A BndryData stores and manipulates boundary data
-  information on each side of each box in a BoxArray.
-*/    
-/*@Doc:
-        A BndryData contains a BndryRegister about each side of each grid in
+//
+//  A BndryData stores and manipulates boundary data
+//  information on each side of each box in a BoxArray.
+//    
+
+/*
+    A BndryData contains a BndryRegister about each side of each grid in
     a Boxarray.  These data are used to store information along the
     outer layer of each grid (at the same level of coarseness), such
     as the value of boundary conditions there.  Also, for each
@@ -43,117 +43,117 @@ class BndryData
 {
 public:
     //
-    //@ManDoc: return the array of Boxes
+    // return the array of Boxes
     //
     BndryRegister::boxes;
     //
-    //@ManDoc: return the number of Boxes
+    // return the number of Boxes
     //
     BndryRegister::size;
     //
-    //@ManDoc: mask values enumeration
+    // mask values enumeration
     //
     enum MaskVal { covered = 0, not_covered = 1, outside_domain = 2, NumMaskVals = 3 };
     //
-    //@ManDoc: default constructor
+    // Default constructor
     //
     BndryData();
-
-    /*@ManDoc: constructor specifying number of components and box of physical
-        domain (cell-centered)
-    */
+    //
+    // constructor specifying number of components and box of physical
+    // domain (cell-centered)
+    //
     BndryData (const BoxArray& grids,
                int             ncomp,
                const Geometry& geom);
     //
-    //@ManDoc: destructor
+    // destructor
     //
     virtual ~BndryData ();
     //
-    //@ManDoc: copy constructor
+    // copy constructor
     //
     BndryData (const BndryData& src);
     //
-    //@ManDoc: copy assignment operator
+    // copy assignment operator
     //
     BndryData& operator= (const BndryData& src);
     //
-    //@ManDoc: alocate bndry fabs along given face
+    // alocate bndry fabs along given face
     //
     void define (const BoxArray& grids,
                  int             ncomp,
                  const Geometry& geom);
     //
-    //@ManDoc: write to output stream
+    // write to output stream
     //
     friend std::ostream& operator<< (std::ostream& os, const BndryData& bd);
     //
-    //@ManDoc: return FabSet on given face
+    // return FabSet on given face
     //
     const FabSet& bndryValues (const Orientation& face) const;
     //
-    //@ManDoc: return boundary location on given face
+    // return boundary location on given face
     //
     const Array<Real>& bndryLocs (const Orientation& face) const;
     //
-    //@ManDoc: return boundary type specifyer on given face
+    // return boundary type specifyer on given face
     //
     const Array<Array<BoundCond> >& bndryConds (const Orientation& face) const;
     //
-    //@ManDoc: return boundary mask on given face
+    // return boundary mask on given face
     //
     const PArray<Mask>& bndryMasks (const Orientation& face) const;
     //
-    //@ManDoc: return number of components for which this object is inteded
+    // return number of components for which this object is inteded
     //
     int nComp () const;
     //
-    //@ManDoc: return domain used to define masks
+    // return domain used to define masks
     //
     const Box& getDomain () const;
     //
-    //@ManDoc: return geometry used to define masks
+    // return geometry used to define masks
     //
     const Geometry& getGeom () const;
     //
-    //@ManDoc: set values of boundary Fab for given orientation on nth grid
+    // set values of boundary Fab for given orientation on nth grid
     //
     void setValue (const Orientation& face,
                    int                n,
                    Real               val);
     //
-    //@ManDoc: set mask values for given orientation on nth grid
+    // set mask values for given orientation on nth grid
     //
     void setMaskValue (const Orientation& face,
                        int                n,
                        int                val);
     //
-    //@ManDoc: set boundary type specifier for given orientation on nth grid
+    // set boundary type specifier for given orientation on nth grid
     //
     void setBoundCond (const Orientation& face,
                        int                n,
                        int                comp,
                        const BoundCond&   bcn);
     //
-    //@ManDoc: set boundary location for given orientation on nth grid
+    // set boundary location for given orientation on nth grid
     //
     void setBoundLoc (const Orientation& face,
                       int                n,
                       Real               val);
     //
-    //@ManDoc: implement public access to const BndryRegister::operator[]
+    // implement public access to const BndryRegister::operator[]
     //
     const FabSet& operator[] (const Orientation& face) const;
     //
-    //@ManDoc: implement public access to BndryRegister::operator[]
+    // implement public access to BndryRegister::operator[]
     //
     FabSet& operator[] (const Orientation& face);
     //
-    //@ManDoc: write the boundary data object to an ostream
+    // write the boundary data object to an ostream
     //
     void writeOn (std::ostream& os) const;
     //
-    //@ManDoc: read the boundary data object from an istream
+    // read the boundary data object from an istream
     //
     void readFrom (std::istream& is);
 
@@ -163,11 +163,11 @@ protected:
     //
     void init (const BndryData& src);
     //
-    //@ManDoc: protect BndryRegister grids.
+    // protect BndryRegister grids.
     //
     BndryRegister::grids;
     //
-    //@ManDoc: protect BndryRegister FabSets.
+    // protect BndryRegister FabSets.
     //
     BndryRegister::bndry;
     //
@@ -190,12 +190,12 @@ protected:
     //
     Geometry geom;
 
-
 private:
     //
     // Free memory taken by masks for this BndryData object.
     //
     void clear_masks ();
+
     static int NTangHalfWidth;
 };
 

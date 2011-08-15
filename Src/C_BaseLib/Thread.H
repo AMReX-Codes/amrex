@@ -86,7 +86,7 @@ protected:
 //   {
 //       //
 //       // Instantiate Lock object in its own scope.
-//       // This locks the Mutex `counterMT'.
+//       // This locks the Mutex counterMT.
 //       //
 //       Lock lock(counterMT);
 //       //
@@ -95,7 +95,7 @@ protected:
 //       counter += 1;
 //       //
 //       // On exit from the scope the Lock destructor is called which
-//       // will unlock the Mutex `counterMT'.
+//       // will unlock the Mutex counterMT.
 //   }
 //
 
@@ -140,7 +140,7 @@ Lock<M>::~Lock()
 //   {
 //       //
 //       // Instantiate TryLock object in its own scope.
-//       // This attempts to lock the Mutex `counterMT'.
+//       // This attempts to lock the Mutex counterMT.
 //       //
 //       TryLock trylock(counterMT);
 //
@@ -153,7 +153,7 @@ Lock<M>::~Lock()
 //       }
 //       //
 //       // On exit from the scope the TryLock destructor is called which
-//       // will unlock the Mutex `counterMT' only if it was successfully
+//       // will unlock the Mutex counterMT only if it was successfully
 //       // locked.
 //       //
 //   }

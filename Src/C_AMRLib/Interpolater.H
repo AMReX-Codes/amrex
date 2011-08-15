@@ -9,39 +9,37 @@ class Geometry;
 class FArrayBox;
 
 //
-//@Man:
-//@Memo: Virtual base class for interpolaters.
-/*@Doc:
-
-  Specifies interpolater interface for coarse-to-fine interpolation in space.
-*/
+// Virtual base class for interpolaters.
+//
+// Specifies interpolater interface for coarse-to-fine interpolation in space.
+//
 
 class Interpolater
 {
 public:
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     virtual ~Interpolater ();
-
-    /*@ManDoc: Returns coarsened box given fine box and refinement ratio.
-               This is a pure virtual function and hence MUST
-               be implemented by derived classes.
-    */
+    //
+    // Returns coarsened box given fine box and refinement ratio.
+    // This is a pure virtual function and hence MUST
+    // be implemented by derived classes.
+    //
     virtual Box CoarseBox (const Box& fine,
                            int        ratio) = 0;
-
-    /*@ManDoc: Returns coarsened box given fine box and refinement ratio.
-               This is a pure virtual function and hence MUST
-               be implemented by derived classes.
-    */
+    //
+    // Returns coarsened box given fine box and refinement ratio.
+    // This is a pure virtual function and hence MUST
+    // be implemented by derived classes.
+    //
     virtual Box CoarseBox (const Box&     fine,
                            const IntVect& ratio) = 0;
-
-    /*@ManDoc: Coarse to fine interpolation in space.
-               This is a pure virtual function and hence MUST
-               be implemented by derived classes.
-    */
+    //
+    // Coarse to fine interpolation in space.
+    // This is a pure virtual function and hence MUST
+    // be implemented by derived classes.
+    //
     virtual void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
@@ -54,9 +52,8 @@ public:
                          Array<BCRec>&    bcr,
                          int              actual_comp,
                          int              actual_state) = 0;
-
     //
-    //@ManDoc: Re-visit the interpolation to protect against under- or overshoots.
+    // Re-visit the interpolation to protect against under- or overshoots.
     //
     virtual void protect (const FArrayBox& crse,
                           int              crse_comp,
@@ -73,12 +70,10 @@ public:
 };
 
 //
-//@Man:
-//@Memo: Bilinear interpolation on node centered data.
-/*@Doc:
-
-  Bilinear interpolation on node centered data.
-*/
+// Bilinear interpolation on node centered data.
+//
+// Bilinear interpolation on node centered data.
+//
 
 class NodeBilinear
     :
@@ -86,21 +81,21 @@ class NodeBilinear
 {
 public:
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     virtual ~NodeBilinear ();
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
                            int        ratio);
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
                            const IntVect& ratio);
     //
-    //@ManDoc: Coarse to fine interpolation in space.
+    // Coarse to fine interpolation in space.
     //
     virtual void interp (const FArrayBox& crse,
                          int              crse_comp,
@@ -117,12 +112,10 @@ public:
 };
 
 //
-//@Man:
-//@Memo: Bilinear interpolation on cell centered data.
-/*@Doc:
-
-  Bilinear interpolation on cell centered data.
-*/
+// Bilinear interpolation on cell centered data.
+//
+// Bilinear interpolation on cell centered data.
+//
 
 class CellBilinear
     :
@@ -130,21 +123,21 @@ class CellBilinear
 {
 public:
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     virtual ~CellBilinear ();
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
                            int        ratio);
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
                            const IntVect& ratio);
     //
-    //@ManDoc: Coarse to fine interpolation in space.
+    // Coarse to fine interpolation in space.
     //
     virtual void interp (const FArrayBox& crse,
                          int              crse_comp,
@@ -161,22 +154,21 @@ public:
 };
 
 //
-//@Man:
-//@Memo: Linear conservative interpolation on cell centered data
-/*@Doc:
-
-  Linear conservative interpolation on cell centered data
-  I.e, conservative interpolation with a limiting scheme that 
-  preserves the value of any linear combination  of the
-  fab components; e.g.,
-
-  if sum\_ivar a(ic,jc,ivar)*fab(ic,jc,ivar) = 0, then
-  sum\_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
-  in all fine cells if,jf covering coarse cell ic,jc.
-
-  If do\_linear\_limiting = 0, the interpolation scheme is identical to
-  the used in CellConservative for do\_limited\_slopes=1.
-*/
+// Linear conservative interpolation on cell centered data
+//
+//
+//  Linear conservative interpolation on cell centered data
+//  I.e, conservative interpolation with a limiting scheme that 
+//  preserves the value of any linear combination  of the
+//  fab components; e.g.,
+//
+//  if sum_ivar a(ic,jc,ivar)*fab(ic,jc,ivar) = 0, then
+//  sum_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
+//  in all fine cells if,jf covering coarse cell ic,jc.
+//
+//  If do_linear_limiting = 0, the interpolation scheme is identical to
+//  the used in CellConservative for do_limited_slopes=1.
+//
 
 class CellConservativeLinear
     :
@@ -184,25 +176,25 @@ class CellConservativeLinear
 {
 public:
     //
-    //@ManDoc: The constructor.
+    // The constructor.
     //
     CellConservativeLinear (bool do_linear_limiting_= true);
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     virtual ~CellConservativeLinear ();
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
                            int        ratio);
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
                            const IntVect& ratio);
     //
-    //@ManDoc: Coarse to fine interpolation in space.
+    // Coarse to fine interpolation in space.
     //
     virtual void interp (const FArrayBox& crse,
                          int              crse_comp,
@@ -218,17 +210,16 @@ public:
                          int              actual_state);
 
 private:
+
     bool do_linear_limiting;
 };
 
 //
-//@Man:
-//@Memo: Lin. cons. interp. on cc data with protection against under/over-shoots.
-/*@Doc:
-
-  Linear conservative interpolation on cell centered data
-  but with protection against undershoots or overshoots.
-*/
+// Lin. cons. interp. on cc data with protection against under/over-shoots.
+//
+// Linear conservative interpolation on cell centered data
+// but with protection against undershoots or overshoots.
+//
 
 class CellConservativeProtected
     :
@@ -236,25 +227,25 @@ class CellConservativeProtected
 {
 public:
     //
-    //@ManDoc: The constructor.
+    // The constructor.
     //
     CellConservativeProtected ();
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     virtual ~CellConservativeProtected ();
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
                            int        ratio);
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
                            const IntVect& ratio);
     //
-    //@ManDoc: Coarse to fine interpolation in space.
+    // Coarse to fine interpolation in space.
     //
     virtual void interp (const FArrayBox& crse,
                          int              crse_comp,
@@ -270,7 +261,7 @@ public:
                          int              actual_state);
 
     //
-    //@ManDoc: Re-visit the interpolation to protect against under- or overshoots.
+    // Re-visit the interpolation to protect against under- or overshoots.
     //
     virtual void protect (const FArrayBox& crse,
                           int              crse_comp,
@@ -287,12 +278,10 @@ public:
 };
 
 //
-//@Man:
-//@Memo: Quadratic interpolation on cell centered data.
-/*@Doc:
-
-  Quadratic interpolation on cell centered data.
-*/
+// Quadratic interpolation on cell centered data.
+//
+// Quadratic interpolation on cell centered data.
+//
 
 class CellQuadratic
     :
@@ -300,25 +289,25 @@ class CellQuadratic
 {
 public:
     //
-    //@ManDoc: The constructor.
+    // The constructor.
     //
     CellQuadratic (bool limit = true);
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     virtual ~CellQuadratic ();
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
                            int        ratio);
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
                            const IntVect& ratio);
     //
-    //@ManDoc: Coarse to fine interpolation in space.
+    // Coarse to fine interpolation in space.
     //
     virtual void interp (const FArrayBox& crse,
                          int              crse_comp,
@@ -338,12 +327,10 @@ private:
 };
 
 //
-//@Man:
-//@Memo: Piecewise Constant interpolation on cell centered data.
-/*@Doc:
-
-  Piecewise Constant interpolation on cell centered data.
-*/
+// Piecewise Constant interpolation on cell centered data.
+//
+// Piecewise Constant interpolation on cell centered data.
+//
 
 class PCInterp
     :
@@ -351,21 +338,21 @@ class PCInterp
 {
 public:
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     virtual ~PCInterp ();
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
                            int        ratio);
     //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
+    // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
                            const IntVect& ratio);
     //
-    //@ManDoc: Coarse to fine interpolation in space.
+    // Coarse to fine interpolation in space.
     //
     virtual void interp (const FArrayBox& crse,
                          int              crse_comp,

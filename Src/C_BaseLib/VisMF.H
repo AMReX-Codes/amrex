@@ -8,37 +8,35 @@
 #include <MultiFab.H>
 
 //
-//@Man:
-//@Memo: File I/O for MultiFabs.
-/*@Doc:
-
-  Wrapper class for reading/writing MultiFabs to disk in various "smart" ways.
-*/
+// File I/O for MultiFabs.
+//
+//  Wrapper class for reading/writing MultiFabs to disk in various "smart" ways.
+//
 
 class VisMF
 {
 public:
     //
-    //@ManDoc: How we write out MultiFabs.
+    // How we write out MultiFabs.
     //
     enum How { OneFilePerCPU };
-
-    /*@ManDoc: Construct by reading in the on-disk VisMF of the specified name.
-               The MF on-disk is read lazily. The name here is the name of
-               the MF not the name of the on-disk file.
-    */
+    //
+    // Construct by reading in the on-disk VisMF of the specified name.
+    // The MF on-disk is read lazily. The name here is the name of
+    // the MF not the name of the on-disk file.
+    //
     explicit VisMF (const std::string& mf_name);
     //
-    //@ManDoc: A structure containing info regarding an on-disk FAB.
+    // A structure containing info regarding an on-disk FAB.
     //
     struct FabOnDisk
     {
         //
-        //@ManDoc: The default constructor -- null out all fields.
+        // The default constructor -- null out all fields.
         //
         FabOnDisk ();
         //
-        //@ManDoc: Constructor that sets the two values.
+        // Constructor that sets the two values.
         //
         FabOnDisk (const std::string& name, long offset);
         //
@@ -52,7 +50,7 @@ public:
         static const std::string Prefix;
     };
     //
-    //@ManDoc: An on-disk MultiFab contains this info in a header file.
+    // An on-disk MultiFab contains this info in a header file.
     //
     struct Header
     {
@@ -61,11 +59,11 @@ public:
         //
         enum { Version = 1 };
         //
-        //@ManDoc: The default constructor.
+        // The default constructor.
         //
         Header ();
         //
-        //@ManDoc: Construct from a MultiFab.
+        // Construct from a MultiFab.
         //
         Header (const MultiFab& mf, How how);
         //
@@ -81,71 +79,71 @@ public:
         Array< Array<Real> > m_max;   // The max()s of each component of FABs.
     };
     //
-    //@ManDoc: The number of components in the on-disk MultiFab.
+    // The number of components in the on-disk MultiFab.
     //
     int nComp () const;
     //
-    //@ManDoc: The grow factor of the on-disk MultiFab.
+    // The grow factor of the on-disk MultiFab.
     //
     int nGrow () const;
     //
-    //@ManDoc: # of FABs in the VisMF. Equal to # of Boxes in the BoxArray.
+    // # of FABs in the VisMF. Equal to # of Boxes in the BoxArray.
     //
     int size () const;
     //
-    //@ManDoc: The BoxArray of the on-disk MultiFab.
+    // The BoxArray of the on-disk MultiFab.
     //
     const BoxArray& boxArray () const;
     //
-    //@ManDoc: The min of the FAB (in valid region) at specified index and component.
+    // The min of the FAB (in valid region) at specified index and component.
     //
     Real min (int fabIndex,
               int nComp) const;
     //
-    //@ManDoc: The max of the FAB (in valid region) at specified index and component.
+    // The max of the FAB (in valid region) at specified index and component.
     //
     Real max (int fabIndex,
               int nComp) const;
 
-    /*@ManDoc: The FAB at the specified index and component.
+    /* The FAB at the specified index and component.
                Reads it from disk if necessary.
                This reads only the specified component.
     */
     const FArrayBox& GetFab (int fabIndex,
                              int compIndex) const;
     //
-    //@ManDoc: Delete()s the FAB at the specified index and component.
+    // Delete()s the FAB at the specified index and component.
     //
     void clear (int fabIndex,
                 int compIndex);
     //
-    //@ManDoc: Delete()s the FAB at the specified index (all components).
+    // Delete()s the FAB at the specified index (all components).
     //
     void clear (int fabIndex);
     //
-    //@ManDoc: Delete()s all the FABs.
+    // Delete()s all the FABs.
     //
     void clear ();
-
-    /*@ManDoc: Write a MultiFab to disk in a "smart" way.
-               Returns the total number of bytes written on this processor.
-               If set\_ghost is true, sets the ghost cells in the MultiFab to
-               one-half the average of the min and max over the valid region
-               of each contained FAB.
-     */
+    //
+    // Write a MultiFab to disk in a "smart" way.
+    // Returns the total number of bytes written on this processor.
+    // If set_ghost is true, sets the ghost cells in the MultiFab to
+    // one-half the average of the min and max over the valid region
+    // of each contained FAB.
+    //
     static long Write (const MultiFab&    mf,
                        const std::string& name,
                        VisMF::How         how = OneFilePerCPU,
                        bool               set_ghost = false);
-
-    /*@ManDoc: Read a MultiFab from disk written using VisMF::Write().
-               The MultiFab `mf' must have been defined using the default
-               constructor.
-    */
+    //
+    // Read a MultiFab from disk written using VisMF::Write().
+    // The MultiFab mf must have been defined using the default
+    // constructor.
+    //
     static void Read (MultiFab&          mf,
                       const std::string& name);
     //
-    //@ManDoc: We try to do I/O with buffers of this size.
+    // We try to do I/O with buffers of this size.
     //
     enum { IO_Buffer_Size = 40960 * 32 };
     //
@@ -157,31 +155,32 @@ public:
     typedef char Setbuf_Char_Type;
 #endif
     //
-    //@ManDoc: A simple character buffer for setbuf() usage.
+    // A simple character buffer for setbuf() usage.
     //
     typedef Array<Setbuf_Char_Type> IO_Buffer;
     //
-    //@ManDoc: The file offset of the passed ostream.
+    // The file offset of the passed ostream.
     //
     static long FileOffset (std::ostream& os);
     //
-    //@ManDoc: Read the entire fab (all components).
+    // Read the entire fab (all components).
     //
     FArrayBox* readFAB (int                fabIndex,
                         const std::string& mfName);
     //
-    //@ManDoc: Read the specified fab component.
+    // Read the specified fab component.
     //
     FArrayBox* readFAB (int fabIndex,
                         int ncomp);
 
-    static void SetNOutFiles(int noutfiles) {
-      nOutFiles = std::max(1, std::min(ParallelDescriptor::NProcs(), noutfiles));
+    static void SetNOutFiles(int noutfiles)
+    {
+        nOutFiles = std::max(1, std::min(ParallelDescriptor::NProcs(), noutfiles));
     }
 
-    static void SetMFFileInStreams(int nstreams) {
-      nMFFileInStreams = std::max(1, std::min(ParallelDescriptor::NProcs(),
-                                  nstreams));
+    static void SetMFFileInStreams(int nstreams)
+    {
+        nMFFileInStreams = std::max(1, std::min(ParallelDescriptor::NProcs(), nstreams));
     }
     static int GetNOutFiles() { return nOutFiles; }
 
@@ -199,7 +198,6 @@ private:
 
     static long WriteHeader (const std::string& mf_name,
                              VisMF::Header&     hdr);
-
     //
     // Read the fab.
     // If ncomp == -1 reads the whole FAB.

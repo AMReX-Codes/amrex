@@ -60,9 +60,6 @@ write_to_stderr_without_buffering (const char* str)
 
     if (str)
     {
-        //
-        // Add some `!'s and a newline to the string.
-        //
         const char * const end = " !!!\n";
         fwrite(str, strlen(str), 1, stderr);
         fwrite(end, strlen(end), 1, stderr);

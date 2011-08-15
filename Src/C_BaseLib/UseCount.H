@@ -6,40 +6,38 @@
 #include <BoxLib.H>
 
 //
-//@Man:
-//@Memo: A Class Encapsulating Reference Counts
-/*@Doc:
-
-  This class encapsulates reference counts.
-*/
+// A Class Encapsulating Reference Counts
+//
+// This class encapsulates reference counts.
+//
 
 class UseCount
 {
 public:
     //
-    //@ManDoc: Construct a UseCount initialized to one.
+    // Construct a UseCount initialized to one.
     //
     UseCount ();
     //
-    //@ManDoc: The copy constructor -- bumps reference count.
+    // The copy constructor -- bumps reference count.
     //
     UseCount (const UseCount& rhs);
- 
-    /*@ManDoc: The assignment operator.  Increments the reference count on
-               rhs, decrements the reference count on this, and then makes
-               this and rhs point to the same reference count.
-    */
+    //
+    // The assignment operator.  Increments the reference count on
+    // rhs, decrements the reference count on this, and then makes
+    // this and rhs point to the same reference count.
+    //
     UseCount& operator= (const UseCount& rhs);
     //
-    //@ManDoc: The destructor -- decrements the reference count.
+    // The destructor -- decrements the reference count.
     //
     ~UseCount ();
     //
-    //@ManDoc: The UseCount is unique if the reference count == 1.
+    // The UseCount is unique if the reference count == 1.
     //
     bool unique () const;
     //
-    //@ManDoc: Returns the reference count.
+    // Returns the reference count.
     //
     int linkCount () const;
 

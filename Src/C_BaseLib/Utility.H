@@ -19,35 +19,34 @@
 #include <Array.H>
 
 //
-//@Man:
-//@Memo: Useful C++ Utility Functions
-/*@Doc:
-
-  This data-less class is a poor-person's namespace of utility functions.
-  Since we can't assume the existence of namespaces, and we don't
-  like global functions, we put them into a data-less class as
-  static member functions.
-*/
+// Useful C++ Utility Functions
+//
+// This data-less class is a poor-person's namespace of utility functions.
+// Since we can't assume the existence of namespaces, and we don't
+// like global functions, we put them into a data-less class as
+// static member functions.
+//
 
 namespace BoxLib
 {
-    /*@ManDoc: Returns the total user and system time used by
-      the calling process up to the point of the call.
-      If t != 0, it also stores the result in t.
-    */
+    //
+    // Returns the total user and system time used by
+    // the calling process up to the point of the call.
+    // If t != 0, it also stores the result in t.
+    //
     double second (double* t = 0);
-
-    /*@ManDoc: Returns the current time as the number of microseconds
-               relative to program startup.  If t != 0, it also
-               stores the result in t.
-    */
+    //
+    // Returns the current time as the number of microseconds
+    // relative to program startup.  If t != 0, it also
+    // stores the result in t.
+    //
     double wsecond (double* t = 0);
     //
-    //@ManDoc: Reset start of Wall Clock Time for wsecond() to NOW.
+    // Reset start of Wall Clock Time for wsecond() to NOW.
     //
     void ResetWallClockTime ();
     //
-    //@ManDoc: Return true if argument is a non-zero length string of digits.
+    // Return true if argument is a non-zero length string of digits.
     //
     bool is_integer (const char* str);
     //
@@ -56,19 +55,18 @@ namespace BoxLib
     const std::vector<std::string>& Tokenize (const std::string& instr,
                                               const std::string& separators);
     //
-    //@ManDoc: Returns rootNNNN where NNNN == num.
+    // Returns rootNNNN where NNNN == num.
     //
     std::string Concatenate (const std::string& root,
                              int                num,
                              int                mindigits = 5);
-
-    /*@ManDoc:
-      Creates the specified directories.  `path' may be either a full pathname
+    /*
+      Creates the specified directories.  path may be either a full pathname
       or a relative pathname.  It will create all the directories in the
       pathname, if they don't already exist, so that on successful return the
       pathname refers to an existing directory.  Returns true or false
       depending upon whether or not all it was successful.  Also returns
-      if `path' is NULL or "/".  `mode' is the mode passed to mkdir() for
+      if path is NULL or "/".  mode is the mode passed to mkdir() for
       any directories that must be created.
     
       For example, if it is passed the string "/a/b/c/d/e/f/g", it
@@ -83,26 +81,24 @@ namespace BoxLib
     bool UtilCreateDirectory (const std::string& path,
                               mode_t             mode);
     //
-    //@ManDoc: Output a message and abort when couldn't create the directory.
+    // Output a message and abort when couldn't create the directory.
     //
     void CreateDirectoryFailed (const std::string& dir);
     //
-    //@ManDoc: Output a message and abort when couldn't open the file.
+    // Output a message and abort when couldn't open the file.
     //
     void FileOpenFailed (const std::string& dir);
     //
-    //@ManDoc: Attempt to unlink the file.  Ignore any errors.
+    // Attempt to unlink the file.  Ignore any errors.
     //
     void UnlinkFile (const std::string& file);
-
-    /*@ManDoc: Aborts after printing message indicating out-of-memory;
-               i.e. operator new has failed. This is the "supported"
-               set\_new\_handler() function for BoxLib applications.
-     */
+    //
+    // Aborts after printing message indicating out-of-memory;
+    // i.e. operator new has failed. This is the "supported"
+    // set_new_handler() function for BoxLib applications.
+    //
     void OutOfMemory ();
-
-    /*@ManDoc:
-
+    /*
       This function returns an approximation of the inverse cumulative
       standard normal distribution function.  I.e., given P, it returns
       an approximation to the X satisfying P = Pr{Z <= X} where Z is a
@@ -128,11 +124,9 @@ namespace BoxLib
       object (the same one called by blutilrand()) to get a random number in
       the open interval (0,1), and then sets "val" to the result of calling
       BoxLib::InvNormDist() with that random number.
-     */
+    */
     double InvNormDist (double p);
-
-    /*@ManDoc:
-
+    /*
       This function returns an approximation of the inverse cumulative
       standard normal distribution function.  I.e., given P, it returns
       an approximation to the X satisfying P = Pr{Z <= X} where Z is a
@@ -163,11 +157,9 @@ namespace BoxLib
       object (the same one called by blutilrand()) to get a random number in
       the open interval (0,1), and then sets "val" to the result of calling
       BoxLib::InvNormDist() with that random number.
-     */
-
+    */
     double InvNormDistBest (double p);
-
-    /*@ManDoc:
+    /*
       Mersenne Twister pseudo-random number generator.
 
       Generates one pseudorandom real number (double) which is
@@ -181,7 +173,7 @@ namespace BoxLib
 
       There is also an entry point for Fortran callable as:
     
-      REAL\_T rn
+      REAL_T rn
       call blutilrand(rn)
 
       Internally, blutilrand() calls a static Mersenne Twister oject (the
@@ -189,8 +181,7 @@ namespace BoxLib
       sets "rn" to that value.
     */
     double Random ();
-
-    /*@ManDoc: Set the seed of the random number generator.
+    /* Set the seed of the random number generator.
 
       There is also an entry point for Fortran callable as:
 
@@ -202,7 +193,6 @@ namespace BoxLib
       INTEGER seed
       call blinitrand(seed)
     */
-
     void InitRandom (unsigned long seed);
     //
     // Save and restore random state.
@@ -319,29 +309,29 @@ namespace BoxLib
 
 #ifdef BL_LANG_FORT
 #undef BL_LANG_FORT
-/*@ManDoc:
-  The macro BL\_LANG\_FORT indicates that Fortran code is being compiled.
+/*
+  The macro BL_LANG_FORT indicates that Fortran code is being compiled.
 */
 #define BL_LANG_FORT 1
 #endif /*BL_LANG_FORT*/
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #undef BL_FORT_USE_UNDERSCORE
-/*@ManDoc:
-  The macro BL\_FORT\_USE\_UNDERSCORE indicates that C++ code should call
+/*
+  The macro BL_FORT_USE_UNDERSCORE indicates that C++ code should call
   Fortran routines by appending an underscore to the name of the Fortran
   routine.  This is set automatically by the make subsystem.
 
   For example, if the Fortran routine is named abcxyx, then it will
-  be called in C++ code as abcxyz\_.
+  be called in C++ code as abcxyz_.
 */
 #define BL_FORT_USE_UNDERSCORE 1
 #endif /*BL_FORT_USE_UNDERSCORE*/
 
 #ifdef BL_FORT_USE_UPPERCASE
 #undef BL_FORT_USE_UPPERCASE
-/*@ManDoc:
-  The macro BL\_FORT\_USE\_UPPERCASE indicates that C++ code should call
+/*
+  The macro BL_FORT_USE_UPPERCASE indicates that C++ code should call
   Fortran routines using uppercase letters for all the letters in the
   routine.  This is set automatically by the make subsystem.
 
@@ -353,8 +343,8 @@ namespace BoxLib
 
 #ifdef BL_FORT_USE_LOWERCASE
 #undef BL_FORT_USE_LOWERCASE
-/*@ManDoc:
-  The macro BL\_FORT\_USE\_LOWERCASE indicates that C++ code should call
+/*
+  The macro BL_FORT_USE_LOWERCASE indicates that C++ code should call
   Fortran routines using lowercase letters for all the letters in the
   routine.  This is set automatically by the make subsystem.  
 
@@ -364,14 +354,14 @@ namespace BoxLib
 #define BL_FORT_USE_LOWERCASE 1
 #endif /*BL_FORT_USE_LOWERCASE*/
 
-/*@ManDoc:
-  BL\_IGNORE\_MAX is a macro that expands to the literal value 100000.  It is
+/*
+  BL_IGNORE_MAX is a macro that expands to the literal value 100000.  It is
   defined when compiling either Fortran or C++ code; i.e. when either
-  BL\_LANG\_CC or BL\_LANG\_FORT is defined.  It is used in calls to
+  BL_LANG_CC or BL_LANG_FORT is defined.  It is used in calls to
   istream::ignore() in the BoxLib code when reading in characters from an
-  istream.  We use this macro instead of the more proper INT\_MAX from
+  istream.  We use this macro instead of the more proper INT_MAX from
   <limits.h> since at least one compiler didn't work properly when
-  istream::ignore() was passed INT\_MAX.
+  istream::ignore() was passed INT_MAX.
 */
 #define BL_IGNORE_MAX 100000
 

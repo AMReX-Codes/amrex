@@ -12,13 +12,11 @@
 
 class MultiGrid;
 
-//@Man:
-/*@Memo:
-  A CGSolver solves the linear equation, L(phi)=rhs, for a LinOp L and
-  MultiFabs rhs and phi, using the conjugate gradient algorithm, either
-  vanilla, or preconditioned via a single V-cycle of multigrid.
-*/        
-/*@Doc:
+/*
+        A CGSolver solves the linear equation, L(phi)=rhs, for a LinOp L and
+        MultiFabs rhs and phi, using the conjugate gradient algorithm, either
+        vanilla, or preconditioned via a single V-cycle of multigrid.
+
         A CGSolver object solves the linear equation, L(phi)=rhs for a LinOp
         L, and MultiFabs phi and rhs.  A CGSolver is constructed with a
         fully initialized 2D or 3D LinOp, and responds to "solve" requests of
@@ -72,9 +70,9 @@ class MultiGrid;
         \item maxiter(40) Maximum number of cg cycles allowed to solve the
         system before abandoning
         \item verbose(0) Verbosity (1-results, 2-progress, 3-detailed progress)
-        \item use\_mg\_precond(false) Whether to use the V-cycle multigrid
+        \item use_mg_precond(false) Whether to use the V-cycle multigrid
         solver for the preconditioner system
-	\item unstable\_criterion(10) if norm of residual grows by more than 
+	\item unstable_criterion(10) if norm of residual grows by more than 
 	this factor, it is taken as signal that you've run into a solvability
 	problem.
         \end{itemize}
@@ -87,19 +85,18 @@ class CGSolver
 {
 public:
     enum Solver { CG, BiCGStab };
-
-  //
-    //@ManDoc: constructor
+    //
+    // The Constructor.
     //
     CGSolver (LinOp& _Lp,
               bool   _use_mg_precond = false,
               int    _lev = 0);
     //
-    //@ManDoc: destructor
+    // The Destructor.
     //
     virtual ~CGSolver ();
     //
-    //@ManDoc: solve the system, Lp(solnL)=rhsL to relative err, tolerance
+    // solve the system, Lp(solnL)=rhsL to relative err, tolerance
     // RETURNS AN INT!!!! indicating success or failure.  
     // 0 means success
     // 1 means failed for loss of precision
@@ -112,27 +109,27 @@ public:
 	       LinOp::BC_Mode  bc_mode    = LinOp::Inhomogeneous_BC,
 	       Solver          cg_solver_ = BiCGStab);
     //
-    //@ManDoc: set maximum allowed number of CG iterations
+    // Set maximum allowed number of CG iterations.
     //
     void setMaxIter (int _maxiter);
     //
-    //@ManDoc: get maximum allowed number of CG iterations
+    // Get maximum allowed number of CG iterations.
     //
     int getMaxIter () const;
     //
-    //@ManDoc: set flag determining whether MG preconditioning is used
+    // Set flag determining whether MG preconditioning is used.
     //
     void setUseMGPrecond (bool _use_mg_precond);
     //
-    //@ManDoc: get  flag determining whether MG preconditioning is used
+    // Get  flag determining whether MG preconditioning is used.
     //
     bool getUseMGPrecond () const;
     //
-    //@ManDoc: set the verbosity value
+    // Set the verbosity value.
     //
     void setVerbose (int _verbose);
     //
-    //@ManDoc: return the verbosity value
+    // Return the verbosity value.
     //
     int getVerbose ();
 
@@ -161,25 +158,25 @@ protected:
                      int             lev,
                      LinOp&          Lp);
     //
-    //@ManDoc: construct work space, initialize parameters
+    // Construct work space, initialize parameters.
     //
     static void Initialize ();
 
     static void Finalize ();
     //
-    //@ManDoc: if  (use\_mg\_precond == 1) then define the MultiGrid * mg\_precond
+    // if  (use_mg_precond == 1) then define the MultiGrid * mg_precond
     //
     virtual void set_mg_precond ();
     //
-    //@ManDoc: Default maximum number of allowed iterations.
+    // Default maximum number of allowed iterations.
     //
     static int def_maxiter;
     //
-    //@ManDoc: default unstable_criterion used to test for loss of accuracy in
+    // Default unstable_criterion used to test for loss of accuracy in.
     //
     static double def_unstable_criterion;
     //
-    //@ManDoc: Default verbosity flag.
+    // Default verbosity flag.
     //
     static int def_verbose;
     static Solver def_cg_solver;

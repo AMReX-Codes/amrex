@@ -7,13 +7,11 @@
 
 class Orientation;
 
-//@Man:
-/*@Memo:
+/*
         A BndryRegister organizes FabSets bounding each grid in a BoxArray.
         A FabSet is maintained for each boundary orientation, as well as
         the BoxArray domain of definition.
-*/        
-/*@Doc:
+
         A BndryRegister object contains a list of FabSets bounding the grids
         in a BoxArray.  The FabSet FABs are at the same refinement level
         as the grids they bound, and are accessed and modified via a variety
@@ -37,11 +35,11 @@ class BndryRegister
 
 public:
     //
-    //@ManDoc: The default constructor.
+    // The default constructor.
     //
     BndryRegister ();
     //
-    //@ManDoc: The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
+    // The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
     //
     BndryRegister (const BoxArray& grids,
                    int             in_rad,
@@ -49,39 +47,39 @@ public:
                    int             extent_rad,
                    int             ncomp);
     //
-    //@ManDoc: The copy constructor.
+    // The copy constructor.
     //
     BndryRegister (const BndryRegister& src);
     //
-    //@ManDoc: The copy assignment operator.
+    // The copy assignment operator.
     //
     BndryRegister& operator= (const BndryRegister& src);
     //
-    //@ManDoc: The destructor.
+    // The destructor.
     //
     virtual ~BndryRegister();
     //
-    //@ManDoc: Get box domain (as an array of boxes).
+    // Get box domain (as an array of boxes).
     //
     const BoxArray& boxes () const;
     //
-    //@ManDoc: Return the number of grids in this domain.
+    // Return the number of grids in this domain.
     //
     int size () const;
     //
-    //@ManDoc: Return const set of FABs bounding the domain grid boxes on a given orientation
+    // Return const set of FABs bounding the domain grid boxes on a given orientation
     //
     const FabSet& operator[] (const Orientation& face) const;
     //
-    //@ManDoc: Return set of FABs bounding the domain grid boxes on a given orientation
+    // Return set of FABs bounding the domain grid boxes on a given orientation
     //
     FabSet& operator[] (const Orientation& face);
     //
-    //@ManDoc: Set all boundary FABs to given value.
+    // Set all boundary FABs to given value.
     //
     void setVal (Real v);
     //
-    //@ManDoc: Fill the boundary FABs on intersection with given MultiFab.
+    // Fill the boundary FABs on intersection with given MultiFab.
     //
     BndryRegister& copyFrom (const MultiFab& src,
                              int             nghost,
@@ -89,7 +87,7 @@ public:
                              int             dest_comp,
                              int             num_comp);
     //
-    //@ManDoc: Increment the boundary FABs on intersect with given MultiFab.
+    // Increment the boundary FABs on intersect with given MultiFab.
     //
     BndryRegister& plusFrom (const MultiFab& src,
                              int             nghost,
@@ -97,7 +95,7 @@ public:
                              int             dest_comp,
                              int             num_comp);
     //
-    //@ManDoc: Linear combination: this := a*mfa + b*mfb on intersection of MultiFabs with the boundary FABs
+    // Linear combination: this := a*mfa + b*mfb on intersection of MultiFabs with the boundary FABs
     //
     BndryRegister& linComb (Real            a,
                             const MultiFab& mfa,
@@ -109,15 +107,15 @@ public:
                             int             num_comp,
                             int             n_ghost = 0);
     //
-    //@ManDoc: Set box domain, if not set previously.
+    // Set box domain, if not set previously.
     //
     void setBoxes (const BoxArray& grids);
     //
-    //@ManDoc: Returns constant reference to associated DistributionMapping.
+    // Returns constant reference to associated DistributionMapping.
     //
     const DistributionMapping& DistributionMap () const;
     //
-    //@ManDoc: Build FABs along given face.
+    // Build FABs along given face.
     //
     void define (const Orientation& face,
                  const IndexType&   typ,
@@ -126,7 +124,7 @@ public:
                  int                extent_rad,
                  int                ncomp);
     //
-    //@ManDoc: Build FABs along given face, specifying the DistributionMapping.
+    // Build FABs along given face, specifying the DistributionMapping.
     //
     void define (const Orientation&         face,
                  const IndexType&           typ,
@@ -137,11 +135,11 @@ public:
                  const DistributionMapping& dm);
 
     //
-    //@ManDoc: Write (used for writing to checkpoint)
+    // Write (used for writing to checkpoint)
     //
     void write (const std::string& name, std::ostream& os) const;
     //
-    //@ManDoc: Read (used for reading from checkpoint)
+    // Read (used for reading from checkpoint)
     //
     void read (const std::string& name, std::istream& is);
 

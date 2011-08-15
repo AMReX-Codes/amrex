@@ -229,7 +229,7 @@ Box::numPtsOK (long& N) const
         else
         {
             //
-            // The return value `N' will be undefined.
+            // The return value N will be undefined.
             //
             return false;
         }
