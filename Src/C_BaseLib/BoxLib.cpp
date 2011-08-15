@@ -17,7 +17,6 @@
 #include <ParmParse.H>
 #include <Profiler.H>
 #include <Utility.H>
-#include <WorkQueue.H>
 #include <MultiFab.H>
 
 #ifdef BL_USE_OMP
@@ -276,7 +275,6 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     }
 
     Profiler::Initialize();
-    WorkQueue::Initialize();
 
     std::cout << std::setprecision(10);
 }
@@ -300,7 +298,6 @@ BoxLib::Finalize (bool finalize_parallel)
         The_Finalize_Function_Stack.pop();
     }
 
-    WorkQueue::Finalize();
     Profiler::Finalize();
 
     if (finalize_parallel)

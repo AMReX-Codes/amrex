@@ -6,7 +6,6 @@
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
 #include <Profiler.H>
-#include <Thread.H>
 #include <ccse-mpi.H>
 
 #include <vector>
@@ -893,7 +892,6 @@ static Array<int>                           CIMsgs;
 static std::vector<FabArrayBase::FabComTag> CITags;
 static std::vector<FArrayBox*>              CIFabs;
 static BArena                               CIArena;
-static Mutex                                CIMutex;
 
 static
 void
@@ -945,8 +943,6 @@ DoIt (Orientation        face,
 
         fab->copy(flux, bx, srccomp, bx, 0, numcomp);
         fab->mult(mult, bx, 0, numcomp);
-
-        Lock<Mutex> lock(CIMutex);
 
         CITags.push_back(tag);
         CIFabs.push_back(fab);

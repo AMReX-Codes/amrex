@@ -36,7 +36,6 @@
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 #include <TV_TempWrite.H>
-#include <WorkQueue.H>
 
 #include <WritePlotFile.H>
 

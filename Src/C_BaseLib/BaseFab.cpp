@@ -30,7 +30,7 @@ BoxLib::The_Arena ()
 {
     if (the_arena == 0)
     {
-#if defined(BL_THREADS) || defined(BL_COALESCE_FABS)
+#if defined(BL_COALESCE_FABS)
         the_arena = new CArena;
 #else
         the_arena = new BArena;

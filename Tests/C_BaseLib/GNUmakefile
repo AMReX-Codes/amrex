@@ -43,11 +43,8 @@ include $(PBOXLIB_HOME)/mk/Make.defs
 # that simply needs to link against BoxLib.
 #
 #_progs += tVisMF tDir t8BIT tFB tFAC tCArena
-#_progs += tProfiler tWorkQueue
 #_progs += tRan
-#_progs  := tProfiler
 #_progs  := tread
-#_progs  := tWorkQueue
 #_progs  := tParmParse
 #_progs  := tCArena
 #_progs  := tBA
