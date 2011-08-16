@@ -56,42 +56,40 @@
   There are a number of options in the multigrid algorithm details.
   In addition to changing the actual smoothers employed, the user
   has access to the following parameters (defaults shown in parentheses):
-  \begin{itemize}
-  \item nu_1(2) Number of passes of the pre-smoother
-  \item nu_2(2) Number of passes of the post-smoother
-  \item nu_0(1) Number of passes of the coarse-grid smoother per
-  cycle
-  \item nu_f(8) Number of passes of the bottom smoother (if not using
-  the conjugate-gradient bottom solve)
-  \item maxiter(40) Maximum number of full multigrid cycles allowed to
-  solve the system
-  \item numiter(-1) Number of full multigrid cycles to perform
-  (should be less than maxiter for fixed number of MG cycles;
-  value is ignored if < 0)
-  \item verbose(0) Verbosity (1-results, 2-progress)
-  \item usecg(1) Whether to use the conjugate-gradient solver for the
-  coarsest (bottom) solve of the multigrid hierarchy
-  \item atol_b(-1.0) Absolute error tolerance (<0 => ignored) for cg
-  \item rtol_b(.01) Relative error tolerance (<0 => ignored) for cg
-  \item nu_b(0) Number of passes of the bottom smoother taken
-  {\it AFTER} the cg bottom solve (value ignored if <= 0)
-  \item numLevelsMAX(1024) maximum number of mg levels
-  \end{itemize}
+
+  nu_1(2) Number of passes of the pre-smoother
+  nu_2(2) Number of passes of the post-smoother
+  nu_0(1) Number of passes of the coarse-grid smoother per cycle
+  nu_f(8) Number of passes of the bottom smoother (if not using
+          the conjugate-gradient bottom solve)
+  maxiter(40) Maximum number of full multigrid cycles allowed to
+              solve the system
+  numiter(-1) Number of full multigrid cycles to perform
+              (should be less than maxiter for fixed number of MG cycles;
+              value is ignored if < 0)
+  verbose(0) Verbosity (1-results, 2-progress)
+  usecg(1) Whether to use the conjugate-gradient solver for the
+           coarsest (bottom) solve of the multigrid hierarchy
+  atol_b(-1.0) Absolute error tolerance (<0 => ignored) for cg
+  rtol_b(.01)  Relative error tolerance (<0 => ignored) for cg
+  nu_b(0)      Number of passes of the bottom smoother taken
+               AFTER} the cg bottom solve (value ignored if <= 0)
+  numLevelsMAX(1024) maximum number of mg levels
   */
 
 class MCMultiGrid
 {
 public:
     //
-    // constructor
+    // Constructor.
     //
     MCMultiGrid (MCLinOp &_Lp);
     //
-    // destructor
+    // Destructor.
     //
     virtual ~MCMultiGrid ();
     //
-    // solve the system to relative err eps_rel, absolute err eps_abs
+    // Solve the system to relative err eps_rel, absolute err eps_abs.
     //
     virtual void solve (MultiFab&       solution,
 			const MultiFab& _rhs,
@@ -99,107 +97,107 @@ public:
 			Real            eps_abs = -1.0,
 			MCBC_Mode       bc_mode = MCInhomogeneous_BC);
     //
-    // return the linear operator
+    // Return the linear operator.
     //
     MCLinOp& linOp ();
     //
-    // set the maximum permitted multigrid iterations
+    // Set the maximum permitted multigrid iterations.
     //
     void setMaxIter (int _maxiter);
     //
-    // return the maximum permitted multigrid iterations
+    // Return the maximum permitted multigrid iterations.
     //
     int getMaxIter () const;
     //
-    // set the number of multigrid iterations to perform
+    // Set the number of multigrid iterations to perform.
     //
     void setNumIter (int _numiter);
     //
-    // return the number of multigrid iterations
+    // Return the number of multigrid iterations.
     //
     int getNumIter () const;
     //
-    // set the flag for whether to use CGSolver at coarsest level
+    // Set the flag for whether to use CGSolver at coarsest level.
     //
     void setUseCG (int _usecg);
     //
-    // return the flag for whether to use CGSolver at coarsest level
+    // Return the flag for whether to use CGSolver at coarsest level.
     //
     int getUseCG () const;
     //
-    // set/return the number of multigrid levels
+    // Set/return the number of multigrid levels.
     //
     int getNumLevels (int _numlevels);
     //
-    // return the number of multigrid levels
+    // Return the number of multigrid levels.
     //
     int getNumLevels () const;
     //
-    // return the number of components in solution
+    // Return the number of components in solution.
     //
     int getNumComponents () const;
     //
-    // set the verbosity value
+    // Set the verbosity value.
     //
     void setVerbose (int _verbose);
     //
-    // return the verbosity value
+    // Return the verbosity value.
     //
     int getVerbose ();
     //
-    // set the number of passes of the pre-smoother
+    // Set the number of passes of the pre-smoother.
     //
     void set_preSmooth (int pre_smooth);
     //
-    // set the number of passes of the post-smoother
+    // Set the number of passes of the post-smoother.
     //
     void set_postSmooth (int post_smooth);
     //
-    // set the number of passes of the coarse-grid smoother/mg iteration
+    // Set the number of passes of the coarse-grid smoother/mg iteration.
     //
     void set_cntRelax (int cnt_relax);
     //
-    // set the number of passes of the bottom mg relaxer
+    // Set the number of passes of the bottom mg relaxer.
     //
     void set_finalSmooth (int final_smooth);
     //
-    // Return the number of pre-smooth iterations at the level
+    // Return the number of pre-smooth iterations at the level.
     //
     int preSmooth () const;
     //
-    // Return the number of post-smooth iterations at the level
+    // Return the number of post-smooth iterations at the level.
     //
     int postSmooth () const;
     //
-    // Return the number of level relaxations  (not implemented)
+    // Return the number of level relaxations  (not implemented).
     //
     int cntRelax () const;
     //
-    // Return the number of smoothing passes at bottom of MG (if no cg)
+    // Return the number of smoothing passes at bottom of MG (if no cg).
     //
     int finalSmooth () const;
     //
-    // set the maximum permitted absolute tolerance (<0 bypasses test)
+    // Set the maximum permitted absolute tolerance (<0 bypasses test).
     //
     void set_atol_b (Real atol);
     //
-    // get the maximum permitted absolute tolerance
+    // Get the maximum permitted absolute tolerance.
     //
     Real get_atol_b () const;    
     //
-    // set the maximum permitted relative tolerance (<0 bypasses test)
+    // Set the maximum permitted relative tolerance (<0 bypasses test).
     //
     void set_rtol_b (Real rtol);
     //
-    // get the maximum permitted relative tolerance
+    // Get the maximum permitted relative tolerance.
     //
     Real get_rtol_b () const;
     //
-    // set the number of post-cg relax passes
+    // Set the number of post-cg relax passes.
     //
     void set_nu_b (int _nu_b);
     //
-    // set the number of post-cg relax passes
+    // Set the number of post-cg relax passes.
     //
     int get_nu_b () const;
     
@@ -264,41 +262,41 @@ protected:
 				 MCBC_Mode bc_mode);
 protected:
     //
-    // default flag, whether to use CG at bottom of MG cycle
+    // Default flag, whether to use CG at bottom of MG cycle.
     //
     static int def_usecg;
     //
-    // set flags, etc
+    // Set flags, etc.
     //
     static void Initialize ();
 
     static void Finalize ();
     //
-    // default number of level, pre-, post and bottom smooths
+    // Default number of level, pre-, post and bottom smooths.
     //
     static int def_nu_0, def_nu_1, def_nu_2, def_nu_f;
     //
-    // default number of post-cg relax passes
+    // Default number of post-cg relax passes.
     //
     static int def_nu_b;
     //
-    // default maximum number of complete MG cycle iterations
+    // Default maximum number of complete MG cycle iterations.
     //
     static int def_maxiter;
     //
-    // default number of complete MG cycle iterations to perform
+    // Default number of complete MG cycle iterations to perform.
     //
     static int def_numiter;
     //
-    // default verbosity
+    // Default verbosity.
     //
     static int def_verbose;
     //
-    // default relative, absolute tolerances for cg solve
+    // Default relative, absolute tolerances for cg solve.
     //
     static Real def_rtol_b, def_atol_b;
     //
-    // default maximum number of mg levels
+    // Default maximum number of mg levels.
     //
     static int def_numLevelsMAX;
     //
@@ -310,55 +308,55 @@ protected:
     //
     int numlevels;
     //
-    // Number of components in solution
+    // Number of components in solution.
     //
     int numcomps;
     //
-    // current maximum number of allowed iterations
+    // Current maximum number of allowed iterations.
     //
     int maxiter;
     //
-    // current number of iterations to take
+    // Current number of iterations to take.
     //
     int numiter;
     //
-    // current number of level, pre-, post- and bottom smooths
+    // Current number of level, pre-, post- and bottom smooths.
     //
     int nu_0, nu_1, nu_2, nu_f;
     //
-    // current number of post-cg relax passes
+    // Current number of post-cg relax passes.
     //
     int nu_b;
     //
-    // current flag, whether to use CG at bottom of MG cycle
+    // Current flag, whether to use CG at bottom of MG cycle.
     //
     int usecg;
     //
-    // relative, absolute tolerances
+    // Relative, absolute tolerances.
     //
     Real rtol_b, atol_b;
     //
-    // maximum number of mg levels
+    // Maximum number of mg levels.
     //
     int numLevelsMAX;
     //
-    // internal temp data to store initial guess of solution
+    // Internal temp data to store initial guess of solution.
     //
     MultiFab* initialsolution;
     //
-    // internal temp data
+    // Internal temp data.
     //
     Array< MultiFab* > res;
     //
-    // internal temp data
+    // Internal temp data.
     //
     Array< MultiFab* > rhs;
     //
-    // internal temp data
+    // Internal temp data.
     //
     Array< MultiFab* > cor;
     //
-    // internal reference to linear operator
+    // Internal reference to linear operator.
     //
     MCLinOp &Lp;
     

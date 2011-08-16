@@ -36,8 +36,8 @@ class MultiGrid;
         object (the MultiGrid class is documented separately).
 
         Implementation Notes:
-        \begin{itemize}
-        \item This algorithm implements solution of equations in a way that
+
+        This algorithm implements solution of equations in a way that
         requires linearity of the operator.  In "residual correction form",
         equations are solved only for the "correction" to the initial guess
         that is required to solve the desired system.  In particular,
@@ -48,42 +48,42 @@ class MultiGrid;
         has homigeneous boundary conditions.  This solver therefore cannot
         incorporate fully nonlinear systems.
 
-        \item In general, a LinOp has the ability to apply high-order
+        In general, a LinOp has the ability to apply high-order
         interpolation methods for computing boundary values.  However, if
         the operator used in this CGSolver is non-symmetric, cg performance
         suffers tremendously.  As a result, BC's should be applied with
         interpolants of order less than or equal to 2.  We do not enforce
-        this condition rigourosly, since it would interfere with the user's
+        this condition rigourously, since it would interfere with the user's
         definition of the operator.  If cg performance is bad however,
         setting the LinOp's maxorder=2 is a good place to start.
 
-	\item CGSolver can fail to converge, or more likely diverge, if you
+	CGSolver can fail to converge, or more likely diverge, if you
 	run into a solvability problem (likely the accuracy cannot be 
 	achieved).  CGSolver returns error codes 0 means good, 1--7 means
 	loss-of-accuracy, 8 means iteration count exceeded.
 
-        \end{itemize}
-        
         Default settings:
         The user has access to the following options in the cg algorithm:
-        \begin{itemize}
-        \item maxiter(40) Maximum number of cg cycles allowed to solve the
+
+        maxiter(40) Maximum number of cg cycles allowed to solve the
         system before abandoning
-        \item verbose(0) Verbosity (1-results, 2-progress, 3-detailed progress)
-        \item use_mg_precond(false) Whether to use the V-cycle multigrid
+
+        verbose(0) Verbosity (1-results, 2-progress, 3-detailed progress)
+
+        use_mg_precond(false) Whether to use the V-cycle multigrid
         solver for the preconditioner system
-	\item unstable_criterion(10) if norm of residual grows by more than 
+
+	unstable_criterion(10) if norm of residual grows by more than 
 	this factor, it is taken as signal that you've run into a solvability
 	problem.
-        \end{itemize}
         
         This class does NOT provide a copy constructor or assignment operator.
-        
 */
 
 class CGSolver
 {
 public:
+
     enum Solver { CG, BiCGStab };
     //
     // The Constructor.
@@ -247,16 +247,16 @@ CGSolver::getVerbose ()
 
 inline
 void
-CGSolver::setCGSolver(Solver cg_solver_)
+CGSolver::setCGSolver (Solver cg_solver_)
 {
-  cg_solver = cg_solver_;
+    cg_solver = cg_solver_;
 }
 
 inline
 CGSolver::Solver
-CGSolver::getCGSolver() const
+CGSolver::getCGSolver () const
 {
-  return cg_solver;
+    return cg_solver;
 }
 
 

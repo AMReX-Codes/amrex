@@ -24,17 +24,18 @@
 	MCInterpBndryData class provides a mechanism for filling these FabSets,
 	consistent with AMR-like numerical discretizations.  When asked to
 	set it's boundary values, an MCInterpBndryData object:
-	\begin{enumerate}
-	\item Fills with physical boundary values if the FAB is on the
-	domain boundary ({\it the corresponding values are presumed to be
+
+	Fills with physical boundary values if the FAB is on the
+	domain boundary - the corresponding values are presumed to be
 	stored in the ghost cells of a MultiFab given to the boundary filling
-	routine})
-	\item Fills on intersection with data from the VALID region of the
+	routine
+
+	Fills on intersection with data from the VALID region of the
 	input MultiFab, ensuring that adjacent FABs use consistent data at
 	their intersection, and otherwise,
-	\item Fills with values interpolated from a coarser FAB that
+
+	Fills with values interpolated from a coarser FAB that
 	bounds the cells that do not meet the above two criteria
-	\end{enumerate}
 */
 class MCInterpBndryData
     :
@@ -42,23 +43,23 @@ class MCInterpBndryData
 {
 public:
     //
-    // default constructor
+    // Default constructor.
     //
     MCInterpBndryData () : BndryData() {}
     //
-    // constructor for given BoxArray, etc
+    // Constructor for given BoxArray, etc.
     //
     MCInterpBndryData (const BoxArray& _grids,
 		       int             _ncomp,
 		       const Geometry& geom);
     //
-    // interpret user BCs to those expected by LinOp
+    // Interpret user BCs to those expected by LinOp.
     //
     virtual void setBndryConds (const BCRec& phys_bc,
                                 int          ratio,
                                 int          comp=0) = 0;
     //
-    // set bndry values at coarse level (non interpolation performed)
+    // Set bndry values at coarse level (non interpolation performed).
     //
     void setBndryValues (const MultiFab&     mf,
 			 int                 mf_start,
@@ -66,7 +67,7 @@ public:
 			 int                 num_comp,
 			 const Array<BCRec>& phys_bc);
     //
-    // set bndry values at fine level, performing necessary interpolations
+    // Set bndry values at fine level, performing necessary interpolations.
     //
     void setBndryValues (const ::BndryRegister& crse,
 			 int                  c_start,

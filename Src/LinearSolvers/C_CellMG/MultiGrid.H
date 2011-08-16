@@ -13,7 +13,6 @@
 #include <algorithm>
 
 /*
-
   A MultiGrid solves the linear equation, L(phi)=rhs, for a LinOp L and
   MultiFabs rhs and phi using a V-type cycle of the MultiGrid algorithm
 
@@ -60,25 +59,22 @@
   There are a number of options in the multigrid algorithm details.
   In addition to changing the actual smoothers employed, the user
   has access to the following parameters (defaults shown in parentheses):
-  \begin{itemize}
-  \item nu_1(2) Number of passes of the pre-smoother
-  \item nu_2(2) Number of passes of the post-smoother
-  \item nu_0(1) Number of passes of the coarse-grid smoother per
-  cycle
-  \item nu_f(8) Number of passes of the bottom smoother (if not using
-  the conjugate-gradient bottom solve)
-  \item maxiter(40) Maximum number of full multigrid cycles allowed to
-  solve the system
-  value is ignored if < 0)
-  \item verbose(0) Verbosity (1-results, 2-progress)
-  \item usecg(1) Whether to use the conjugate-gradient solver for the
-  coarsest (bottom) solve of the multigrid hierarchy
-  \item atol_b(-1.0) Absolute error tolerance (<0 => ignored) for cg
-  \item rtol_b(.01) Relative error tolerance (<0 => ignored) for cg
-  \item nu_b(0) Number of passes of the bottom smoother taken
-  {\it AFTER} the cg bottom solve (value ignored if <= 0)
-  \item numLevelsMAX(1024) maximum number of mg levels
-  \end{itemize}
+
+   nu_1(2) Number of passes of the pre-smoother
+   nu_2(2) Number of passes of the post-smoother
+   nu_0(1) Number of passes of the coarse-grid smoother per cycle
+   nu_f(8) Number of passes of the bottom smoother (if not using
+           the conjugate-gradient bottom solve)
+   maxiter(40)  Maximum number of full multigrid cycles allowed to
+                solve the system value is ignored if < 0)
+   verbose(0)   Verbosity (1-results, 2-progress)
+   usecg(1)     Whether to use the conjugate-gradient solver for the
+                coarsest (bottom) solve of the multigrid hierarchy
+   atol_b(-1.0) Absolute error tolerance (<0 => ignored) for cg
+   rtol_b(.01)  Relative error tolerance (<0 => ignored) for cg
+   nu_b(0)      Number of passes of the bottom smoother taken
+                AFTER the cg bottom solve (value ignored if <= 0)
+   numLevelsMAX(1024) maximum number of mg levels
         
   This class does NOT provide a copy constructor or assignment operator.
 */
@@ -199,8 +195,8 @@ public:
     //
     int get_nu_b () const;
 
-    CGSolver::Solver getCGSolver() const;
-    void setCGSolver(CGSolver::Solver solver_);
+    CGSolver::Solver getCGSolver () const;
+    void setCGSolver (CGSolver::Solver solver_);
 
     void set_maxiter_b (int n);
     //
@@ -549,14 +545,14 @@ inline
 void
 MultiGrid::setCGSolver (CGSolver::Solver cg_solver_)
 {
-  cg_solver = cg_solver_;
+   cg_solver = cg_solver_;
 }
 
 inline
 CGSolver::Solver
 MultiGrid::getCGSolver () const
 {
-  return cg_solver;
+    return cg_solver;
 }
 
 inline

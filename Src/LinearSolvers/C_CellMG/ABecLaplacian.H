@@ -18,9 +18,9 @@
         An ABecLaplacian tailors a LinOp (a virtual base class for general
         linear operators) to compute the second-order central difference
         approximation to the differential operator,
-        \begin{center}
-        alpha*a(x).phi - beta*div[b(x).grad(phi)],
-        \end{center}
+
+              alpha*a(x).phi - beta*div[b(x).grad(phi)]
+
         on a cell-centered
         MultiFab, phi.  Here, alpha and beta are constants, a(x) is a
         cell-centered MultiFab, and b(x) is a vector of wall-centered
@@ -48,12 +48,11 @@
         functions prior to call.
 
         Defaults are as follows for the coefficients:
-        \begin{itemize}
-        \item alpha = 1.0
-        \item beta = 1.0
-        \item a (MultiFab) = 0.0
-        \item b (MultiFab) = 1.0
-        \end{itemize}
+
+         alpha = 1.0
+         beta = 1.0
+         a (MultiFab) = 0.0
+         b (MultiFab) = 1.0
         
         This class does NOT provide a copy constructor or assignment operator.
 */
