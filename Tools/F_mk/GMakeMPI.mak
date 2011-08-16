@@ -4,8 +4,6 @@ ifndef MPI
 $(error THIS FILE SHOULD ONLY BE LOADED WITH MPI defined)
 endif
 
-BL_NEED_FARG=
-
 # Architecture specific changes...
 ifeq ($(ARCH),AIX)
   F90 = mpxlf95$(rsuf)
@@ -307,33 +305,6 @@ ifeq ($(findstring donev, $(HOSTNAME)), donev)
   mpi_lib_dir = $(MPIHOME)/lib
 endif
 
-ifeq ($(HOST),harmonic)
-  MPIHOME=/usr/local/mpich_gm
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_libraries += -lmpichfarg
-  mpi_libraries += -lmpich
-  xtr_libraries += -lgm
-  LDFLAGS += -L/usr/local/gm/lib
-  LDFLAGS += -Wl,-rpath -Wl,$(MPIHOME)/lib/shared -L$(MPIHOME)/lib/shared
-  ifeq ($(COMP),Intel)
-    FFLAGS += -assume 2underscores
-    F90FLAGS += -assume 2underscores
-    CFLAGS += -DBL_FORT_USE_DBL_UNDERSCORE
-    CFLAGS += -UBL_FORT_USE_UNDERSCORE
-  endif
-  BL_NEED_FARG=t
-endif
-
-ifeq ($(HOST),hive)
-  MPIHOME=/usr/lib/mpi/mpi_gnu
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_libraries += -lmpifarg
-  mpi_libraries += -lmpi
-  BL_NEED_FARG=t
-endif
-
 ifeq ($(HOST),greenstreet)
   MPIHOME=/usr/local/anag/pkg/mpich-1.2.6-intel90
   mpi_lib_dir = $(MPIHOME)/lib
@@ -362,7 +333,6 @@ ifeq ($(findstring localhost, $(UNAMEN)), localhost)
   endif
 endif
 
-
 ifeq ($(HOST),lookfar)
   MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
@@ -375,6 +345,4 @@ ifeq ($(HOST),lookfar)
     CFLAGS += -UBL_FORT_USE_UNDERSCORE
   endif
 endif
-
-include $(FPARALLEL)/extern/mpi/GPackage.mak
 
