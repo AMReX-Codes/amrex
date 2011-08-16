@@ -5,7 +5,6 @@
 
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
 #include <Utility.H>
 #include <LO_BCTYPES.H>
 #include <CG_F.H>
@@ -172,8 +171,6 @@ sxay (MultiFab&       ss,
       Real            a,
       const MultiFab& yy)
 {
-    BL_PROFILE("CGSolver::sxay");
-
     const int ncomp = ss.nComp();
 
     for (MFIter mfi(ss); mfi.isValid(); ++mfi)
@@ -197,8 +194,6 @@ dotxy (const MultiFab& r,
        const MultiFab& z,
        bool            local = false)
 {
-    BL_PROFILE("CGSolver::dotxy");
-
     int  ncomp = z.nComp();
     Real rho   = 0.0;
 
@@ -229,8 +224,6 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 		       Real            eps_abs,
 		       LinOp::BC_Mode  bc_mode)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::solve_bicgstab()");
-
     const int nghost = 1;
     const int ncomp  = 1;
 
@@ -463,8 +456,6 @@ CGSolver::solve_cg (MultiFab&       sol,
 		    Real            eps_abs,
 		    LinOp::BC_Mode  bc_mode)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::solve_cg()");
-
     const int nghost = 1;
     const int ncomp  = sol.nComp();
 
@@ -652,7 +643,6 @@ CGSolver::jbb_precond (MultiFab&       sol,
                        int             lev,
 		       LinOp&          Lp)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::jbb_precond(MF)");
     //
     // This is a local routine.  No parallel is allowed to happen here.
     //

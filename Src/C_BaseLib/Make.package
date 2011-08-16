@@ -24,24 +24,9 @@ C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
 C$(BOXLIB_BASE)_sources += VisMF.cpp Arena.cpp BArena.cpp CArena.cpp
 C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
 
-ifeq ($(PROFILE),TRUE)
-C$(BOXLIB_BASE)_sources += BLProfiler.cpp
-endif
 C$(BOXLIB_BASE)_headers += Profiler.H
 
 C$(BOXLIB_BASE)_headers += BLFort.H
-
-C$(BOXLIB_BASE)_sources += BLThread.cpp
-C$(BOXLIB_BASE)_headers += Thread.H
-
-ifeq ($(PROFILE),TRUE)
-ifeq ($(USE_MPI),TRUE)
-ifndef NO_BLMPI
-C$(BOXLIB_BASE)_sources += BLMpi.cpp
-endif
-endif
-endif
-
 #
 # Container classes.
 #

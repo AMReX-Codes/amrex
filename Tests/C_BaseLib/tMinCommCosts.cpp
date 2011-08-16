@@ -338,8 +338,6 @@ MinimizeCommCosts (std::vector<int>&        procmap,
                    const std::vector<long>& pts,
                    int                      nprocs)
 {
-    BL_PROFILE("MinimizeCommCosts()");
-
     BL_ASSERT(ba.size() == pts.size());
     BL_ASSERT(procmap.size() >= ba.size());
 

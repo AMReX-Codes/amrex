@@ -20,7 +20,6 @@
 #include <PROB_AMR_F.H>
 #include <Amr.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
 #include <Utility.H>
 #include <DistributionMapping.H>
 #include <FabSet.H>
@@ -330,8 +329,6 @@ Amr::Amr ()
     :
     amr_level(PArrayManage)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Amr()");
-
     Initialize();
     //
     // Setup Geometry from ParmParse file.
@@ -865,8 +862,6 @@ void
 Amr::writePlotFile (const std::string& root,
                     int                num)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::writePlotFile()");
-
     if (!Plot_Files_Output()) return;
 
     VisMF::SetNOutFiles(plot_nfiles);
@@ -950,8 +945,6 @@ Amr::writePlotFile (const std::string& root,
 void
 Amr::checkInput ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::checkInput()");
-
     if (max_level < 0)
         BoxLib::Error("checkInput: max_level not set");
     //
@@ -1044,7 +1037,6 @@ void
 Amr::initialInit (Real strt_time,
                   Real stop_time)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::initialInit()");
     checkInput();
     //
     // Generate internal values from user-supplied values.
@@ -1226,8 +1218,6 @@ Amr::initialInit (Real strt_time,
 void
 Amr::restart (const std::string& filename)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::restart()");
-
     Real dRestartTime0 = ParallelDescriptor::second();
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
@@ -1542,8 +1532,6 @@ Amr::restart (const std::string& filename)
 void
 Amr::checkPoint ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::checkPoint()");
-
     if (!checkpoint_files_output) return;
 
     VisMF::SetNOutFiles(checkpoint_nfiles);
@@ -1656,8 +1644,6 @@ Amr::checkPoint ()
 void
 Amr::RegridOnly (Real time)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::RegridOnly()");
-
     BL_ASSERT(regrid_on_restart == 1);
 
     int lev_top = std::min(finest_level, max_level-1);
@@ -1680,7 +1666,6 @@ Amr::timeStep (int  level,
                int  niter,
                Real stop_time)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::timeStep()");
     //
     // Allow regridding of level 0 calculation on restart.
     //
@@ -1839,8 +1824,6 @@ Amr::timeStep (int  level,
 void
 Amr::coarseTimeStep (Real stop_time)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::coarseTimeStep()");
-
     const Real run_strt = ParallelDescriptor::second() ;
     //
     // Compute new dt.
@@ -2043,8 +2026,6 @@ Amr::regrid (int  lbase,
              Real time,
              bool initial)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::regrid()");
-
     if ((verbose > 0) && ParallelDescriptor::IOProcessor())
         std::cout << "REGRID: at level lbase = " << lbase << std::endl;
 
@@ -2256,8 +2237,6 @@ Amr::ProjPeriodic (BoxList&        blout,
     //
     // Add periodic translates to blout.
     //
-    BL_PROFILE("Amr::ProjPeriodic()");
-
     Box domain = geom.Domain();
 
     BoxList blorig(blout);
@@ -2310,8 +2289,6 @@ Amr::grid_places (int              lbase,
                   int&             new_finest,
                   Array<BoxArray>& new_grids)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::grid_places()");
-
     int i, max_crse = std::min(finest_level,max_level-1);
 
     const Real strttime = ParallelDescriptor::second();
@@ -2679,7 +2656,6 @@ Amr::grid_places (int              lbase,
 void
 Amr::bldFineLevels (Real strt_time)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::bldFineLevels()");
     finest_level = 0;
 
     Array<BoxArray> grids(max_level+1);

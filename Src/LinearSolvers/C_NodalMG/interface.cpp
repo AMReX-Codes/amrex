@@ -2,10 +2,8 @@
 
 #include <algorithm>
 
-#include <Profiler.H>
-
-#include "interface.H"
-#include "boundary.H"
+#include <interface.H>
+#include <boundary.H>
 
 const level_interface default_level_interface;
 
@@ -38,8 +36,6 @@ add (level_interface::BoxMSet& bmset,
      Box      b,
      int      startgrid)
 {
-    BL_PROFILE("interface::add()");
-
     const IntVect t = b.type();
 
     Box tb(b.smallEnd(), b.bigEnd());
@@ -84,8 +80,6 @@ add (level_interface::BoxMSet& bmset,
 
 level_interface::~level_interface()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::~level_interface()");
-
     if (!ok())
 	return;
 
@@ -127,8 +121,6 @@ level_interface::~level_interface()
 void
 level_interface::copy (const level_interface& src)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy()");
-
     if (ok()) BoxLib::Error( "level_interface::copy: this object already allocated" );
 
     m_fill_internal_borders_fn = src.m_fill_internal_borders_fn;
@@ -168,8 +160,6 @@ level_interface::alloc_coarsened (const BoxArray&           Im,
                                   const level_interface&    src,
                                   const IntVect&            rat)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::coarsened()");
-
     if (ok()) BoxLib::Error( "level_interface::alloc_coarsened: this object already allocated" );
 
     m_fill_internal_borders_fn.resize(src.nboxes(level_interface::FACEDIM));
@@ -253,8 +243,6 @@ level_interface::alloc (const BoxArray&     Im,
                         const Box&          Domain,
                         const amr_boundary* bdy)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::alloc()");
-
     if (ok()) BoxLib::Error( "level_interface::alloc: this object already allocated" );
 
     status = 3;
@@ -707,7 +695,6 @@ void
 level_interface::xfer (const BoxMSet& bmset,
                        int            idim)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::xfer()");
     nbx[idim] = bmset.size();
     bx[idim]  = new Box[nbx[idim]];
     ge[idim]  = new unsigned int[nbx[idim]];
@@ -965,7 +952,6 @@ Array<int>
 level_interface::geo_array (int idim,
                             int i) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::geo_array()");
     Array<int> ga(N_CORNER_GRIDS);
     unsigned int gtmp = geo(idim, i);
     for (int k = 0; k < N_CORNER_GRIDS; k++)

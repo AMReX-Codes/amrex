@@ -1,16 +1,8 @@
 #include <winstd.H>
-
 #include <iostream>
-
 #include <cmath>
 
-#include "amr_multi.H"
-
-#include <Profiler.H>
-
-//#if BL_SPACEDIM==2
-//int amr_multigrid::c_sys = 0; // default is Cartesian, 1 is RZ
-//#endif
+#include <amr_multi.H>
 
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define FORT_FILL_INIT    hgfinit_
@@ -570,8 +562,6 @@ amr_multigrid::solve (Real reltol,
                       int  i1,
                       int  i2)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::solve()");
-
     if (lev_max > lev_min)
 	sync_interfaces();
 

@@ -301,8 +301,6 @@ FabSet::copyFrom (const MultiFab& src,
                   int             dcomp,
                   int             ncomp)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copyFrom()");
-
     DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::COPYFROM);
 
     return *this;
@@ -315,8 +313,6 @@ FabSet::plusFrom (const MultiFab& src,
                   int             dcomp,
                   int             ncomp)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::plusFrom()");
-
     DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::PLUSFROM);
 
     return *this;
@@ -368,8 +364,6 @@ FabSet::linComb (Real            a,
                  int             ncomp,
                  int             ngrow)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::linComb()");
-
     BL_ASSERT(ngrow <= mfa.nGrow());
     BL_ASSERT(ngrow <= mfb.nGrow());
 

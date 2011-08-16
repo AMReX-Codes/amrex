@@ -429,8 +429,6 @@ VisMF::Header::Header (const MultiFab& mf,
     m_max(m_ba.size())
 {
 #ifdef BL_USE_MPI
-    BL_PROFILE("VisMF::Header::Header()");
-
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     //
     // Calculate m_min and m_max on the CPU owning the fab.
@@ -604,8 +602,6 @@ VisMF::Write (const MultiFab&    mf,
               VisMF::How         how,
               bool               set_ghost)
 {
-    BL_PROFILE("VisMF::Write()");
-
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
     const int MyProc = ParallelDescriptor::MyProc();

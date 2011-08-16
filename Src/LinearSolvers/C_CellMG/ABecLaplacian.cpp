@@ -3,7 +3,6 @@
 #include <ABecLaplacian.H>
 #include <ABec_F.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
 
 Real ABecLaplacian::a_def     = 0.0;
 Real ABecLaplacian::b_def     = 1.0;
@@ -257,8 +256,6 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
                         int             level,
                         int             redBlackFlag)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Fsmooth()");
-
     OrientationIter oitr;
 
     const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
@@ -342,8 +339,6 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
                                const MultiFab& rhsL,
                                int             level)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Fsmooth_jacobi()");
-
     OrientationIter oitr;
 
     const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;

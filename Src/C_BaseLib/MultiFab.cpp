@@ -981,8 +981,6 @@ MultiFab::SumBoundary (int  scomp,
 {
     if ( n_grow <= 0 ) return;
 
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::SumBoundary()");
-
     std::list<SIRec>       sirec;
     MultiFabCopyDescriptor mfcd;
     const FabArrayId       mfid = mfcd.RegisterFabArray(this);

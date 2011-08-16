@@ -95,8 +95,6 @@ void
 Cluster::distribute (ClusterList&     clst,
                      const BoxDomain& bd)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::distribute()");
-
     BL_ASSERT(ok());
     BL_ASSERT(bd.ok());
     BL_ASSERT(clst.length() == 0);
@@ -156,8 +154,6 @@ FindCut (const int* hist,
          int        hi,
          CutStatus& status)
 {
-    BL_PROFILE("Cluster::FindCut()");
-
     const int MINOFF     = 2;
     const int CUT_THRESH = 2;
 
@@ -421,8 +417,6 @@ ClusterList::boxList (BoxList& blst) const
 void
 ClusterList::chop (Real eff)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::chop()");
-
     for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
         if ((*cli)->eff() < eff)
@@ -466,7 +460,6 @@ FastContains (BoxArray& ba, const Box& bx)
 void
 ClusterList::intersect (const BoxDomain& dom)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::intersect()");
     //
     // Make a BoxArray covering dom.
     // We'll use this to speed up the contains() test below.

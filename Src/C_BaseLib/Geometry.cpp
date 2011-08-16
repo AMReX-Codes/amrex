@@ -186,7 +186,6 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 bool      corners,
                                 bool      local) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillPeriodicBoundary(mf)");
 
     if (!isAnyPeriodic()) return;
 
@@ -253,8 +252,6 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
                                int       scomp,
                                int       ncomp) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::SumPeriodicBoundary(mf)");
-
     if (!isAnyPeriodic() || mf.nGrow() == 0) return;
 
 #ifndef NDEBUG
@@ -343,8 +340,6 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
                                int             scomp,
                                int             ncomp) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::SumPeriodicBoundary(dst,src)");
-
     if (!isAnyPeriodic() || srcmf.nGrow() == 0) return;
 
     BL_ASSERT(scomp+ncomp <= srcmf.nComp());

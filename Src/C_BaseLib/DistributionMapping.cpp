@@ -471,8 +471,6 @@ static
 std::vector< std::list<int> >
 knapsack (const std::vector<long>& wgts, int nprocs)
 {
-    BL_PROFILE("knapsack()");
-
     const Real strttime = ParallelDescriptor::second();
     //
     // Sort balls by size largest first.

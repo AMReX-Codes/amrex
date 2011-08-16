@@ -326,7 +326,6 @@ BoxLib::UtilCreateDirectory (const std::string& path,
                              mode_t         mode)
 #endif
 {
-    BL_PROFILE("BoxLib::UtilCreateDirectory()");
     if (path.length() == 0 || path == path_sep_str)
         return true;
 

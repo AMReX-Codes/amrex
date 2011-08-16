@@ -2,9 +2,7 @@
 
 #include <algorithm>
 
-#include <Profiler.H>
-
-#include "boundary.H"
+#include <boundary.H>
 
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define FORT_FBREF    bref_
@@ -569,8 +567,6 @@ void
 mixed_boundary::sync_borders (MultiFab&              r,
 			      const level_interface& lev_interface) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::sync_borders()");
-
     BL_ASSERT(type(r) == IntVect::TheNodeVector());
 
     task_list tl;
@@ -711,8 +707,6 @@ mixed_boundary::fill_borders (MultiFab&              r,
 			      const level_interface& lev_interface,
 			      int                    w) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::fill_borders()");
-
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
 
     BL_ASSERT(w == 1 || w == 0);
@@ -1024,11 +1018,10 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 			               const level_interface& lev_interface,
           			       int                    w) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::fill_sync_reg_borders()");
-
+    //
     // This is the same as the fill_borders routine except that it
     // doesn't fill outside periodic boundaries
-
+    //
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
 
     BL_ASSERT(w == 1 || w == 0);

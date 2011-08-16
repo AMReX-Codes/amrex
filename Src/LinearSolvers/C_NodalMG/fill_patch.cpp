@@ -1,7 +1,6 @@
 #include <iostream>
 
-#include "fill_patch.H"
-#include <Profiler.H>
+#include <fill_patch.H>
 
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define FORT_FIPRODC   iprodc_
@@ -93,8 +92,6 @@ task_fill_patch::~task_fill_patch () {}
 bool
 task_fill_patch::fill_patch_blindly ()
 {
-    BL_PROFILE("task_fill_patch::fill_patch_blindly()");
-
     const BoxArray& r_ba = r.boxArray();
 
     std::vector< std::pair<int,Box> > isects = r_ba.intersections(region);
@@ -142,8 +139,6 @@ task_fill_patch::fill_patch_blindly ()
 bool
 task_fill_patch::fill_exterior_patch_blindly ()
 {
-    BL_PROFILE("task_fill_patch::fill_exterior_patch_blindly()");
-
     const BoxArray& em = lev_interface.exterior_mesh();
 
     for (int igrid = 0; igrid < em.size(); igrid++)
@@ -189,8 +184,6 @@ task_fill_patch::fill_exterior_patch_blindly ()
 void
 task_fill_patch::fill_patch ()
 {
-    BL_PROFILE("task_fill_patch::fill_patch()");
-
     if (!region.ok()) return;
 
     if (target != 0)
@@ -283,8 +276,6 @@ void
 sync_internal_borders (MultiFab&              r,
                        const level_interface& lev_interface)
 {
-    BL_PROFILE("sync_internal_borders()");
-
     BL_ASSERT(type(r) == IntVect::TheNodeVector());
 
     task_list tl;
@@ -469,8 +460,6 @@ fill_internal_borders (MultiFab&              r,
                        int                    w,
                        bool                   hg_dense)
 {
-    BL_PROFILE("fill_internal_borders()");
-
     BL_ASSERT(type(r) == IntVect::TheCellVector()
 	      || type(r) == IntVect::TheNodeVector() );
 
@@ -880,8 +869,6 @@ restrict_level (MultiFab&                   dest,
                 const level_interface&      lev_interface,
                 const amr_boundary*         bdy)
 {
-    BL_PROFILE("restrict_level()");
-
     BL_ASSERT(type(dest) == type(r));
 
     HG_TEST_NORM( dest, "restrict_level a");

@@ -1198,8 +1198,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  ncomp,
                      CpOp                 op)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy()");
-
     if (boxarray == src.boxarray && distributionMap == src.distributionMap)
     {
         for (MFIter fai(*this); fai.isValid(); ++fai)
@@ -1588,8 +1586,6 @@ FabArray<FAB>::copy (FAB&       dest,
 {
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
 
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy(Fab&, ...)");
-
     if (ParallelDescriptor::NProcs() == 1)
     {
         for (int j = 0; j < size(); ++j)
@@ -1953,8 +1949,6 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
     if (NProcs == 1) return;
 
 #if BL_USE_MPI
-
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CollectData()");
     //
     // Make sure we can treat CommData as a stream of integers.
     //
@@ -2401,8 +2395,6 @@ void
 FabArray<FAB>::FillBoundary (int scomp,
                              int ncomp)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillBoundary()");
-
     if ( n_grow <= 0 ) return;
 
     FabArrayCopyDescriptor<FAB> mfcd;

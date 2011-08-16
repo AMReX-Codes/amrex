@@ -5,7 +5,6 @@
 #include <Geometry.H>
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
 #include <ccse-mpi.H>
 
 #include <vector>
@@ -216,8 +215,6 @@ FluxRegister::Reflux (MultiFab&       S,
                       const Geometry& geom,
 		      const Real*     multf)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Reflux(MultiFab&,...)");
-
     FabSetCopyDescriptor fscd;
 
     FabSetId fsid[2*BL_SPACEDIM];
@@ -433,8 +430,6 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Reflux(MultiFab&, Real,...)");
-
     const Real* dx = geom.CellSize();
 
     FabSetCopyDescriptor fscd;
@@ -619,8 +614,6 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                         Real            mult,
                         FrOp            op)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CrseInit(MultiFab,MultiFab)");
-
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
@@ -780,8 +773,6 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                         Real            mult,
                         FrOp            op)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CrseInit(MultiFab)");
-
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
@@ -964,8 +955,6 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                         Real             mult,
                         FrOp             op)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CrseInit(FAB)");
-
     BL_ASSERT(flux.box().contains(subbox));
     BL_ASSERT(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -993,8 +982,6 @@ void
 FluxRegister::CrseInitFinish (FrOp op)
 {
     if (ParallelDescriptor::NProcs() == 1) return;
-
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CrseInitFinish()");
 
 #if BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
@@ -1243,7 +1230,6 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              numcomp,
                        Real             mult)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FineAdd");
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 #ifndef NDEBUG

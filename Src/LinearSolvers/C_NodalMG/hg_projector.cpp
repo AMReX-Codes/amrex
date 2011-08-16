@@ -979,8 +979,6 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
                                          int               Lev_min,
                                          bool              is_coarse)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::fill_sync_reg()");
-
     int for_fill_sync_reg = is_coarse ? 1 : 2;
 
     if ( is_coarse )
@@ -1173,8 +1171,6 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                                           int               Lev_max,
                                           Real              scale)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::manual_project()");
-
     Box crse_domain(crse_geom.Domain());
 
     if (Lev_min < 0)
@@ -1446,8 +1442,6 @@ holy_grail_amr_projector::right_hand_side (PArray<MultiFab>* u,
                                            PArray<MultiFab>& S,
                                            int for_fill_sync_reg)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::right_hand_side()");
-
     if (u)
     {
 	grid_divergence(u, source, for_fill_sync_reg);
@@ -1749,8 +1743,6 @@ holy_grail_amr_projector::sync_right_hand_side (PArray<MultiFab>* u)
 void
 holy_grail_amr_projector::interface_average (PArray<MultiFab>& S, int lev)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interface_average()");
-
     const int mglev = ml_index[lev];
     const int mgc = ml_index[lev-1];
 
@@ -1958,8 +1950,6 @@ void
 holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
                                                 int               lev)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interface_divergence()");
-
     const int mglev = ml_index[lev];
     const int mgc = ml_index[lev-1];
 
@@ -2205,8 +2195,6 @@ void
 holy_grail_amr_projector::interface_vorticity (PArray<MultiFab>* u,
                                                 int               lev)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interface_vorticity()");
-
 #if (BL_SPACEDIM == 2)
     const int mglev = ml_index[lev];
     const int mgc = ml_index[lev-1];
@@ -2452,8 +2440,6 @@ void
 holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>* u,
                                                 const PArray<MultiFab>& sigma_in)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::form_solution_vector()");
-
     BL_ASSERT(u != 0);
 
     if (u)
