@@ -63,7 +63,7 @@ hdir = t/html
 
 # ALL G95's are the same
 ifeq ($(COMP),g95)
-  include ./comps/g95.mak
+  include $(BOXLIB_HOME)/Tools/F_mk/comps/g95.mak
 endif
 
 # Note, we need a recent gfortran 4.2 build to compile --
@@ -71,16 +71,16 @@ endif
 # to compile mt19937ar.f90, we need -fno-range-check, since
 # that routine relies on overflows when doing initializations
 ifeq ($(COMP),gfortran)
-  include ./comps/gfortran.mak
+  include $(BOXLIB_HOME)/Tools/F_mk/comps/gfortran.mak
 endif
 
 ifeq ($(COMP),xlf)
-  include ./comps/xlf.mak
+  include $(BOXLIB_HOME)/Tools/F_mk/comps/xlf.mak
 endif
 
 ifeq ($(ARCH),Darwin)
   ifeq ($(COMP),IBM)
-    include ./comps/Darwin_ibm.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Darwin_ibm.mak
   endif
 endif
 
@@ -89,7 +89,7 @@ endif
 
 ifeq ($(ARCH),Linux)
   ifeq ($(COMP),catamount)
-    include ./comps/Linux_catamount.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_catamount.mak
   endif
 
   ifeq ($(COMP),Cray)
@@ -97,23 +97,23 @@ ifeq ($(ARCH),Linux)
   endif
 
   ifeq ($(COMP),xt4)
-    include ./comps/Linux_xt4.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_xt4.mak
   endif
 
   ifeq ($(COMP),PGI)
-    include ./comps/Linux_pgi.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_pgi.mak
   endif
 
   ifeq ($(COMP),SunStudio)
-    include ./comps/Linux_sunstudio.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_sunstudio.mak
   endif
 
   ifeq ($(COMP),PathScale)
-    include ./comps/Linux_pathscale.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_pathscale.mak
   endif
 
   ifeq ($(COMP),Intel)
-    include ./comps/Linux_intel.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_intel.mak
   endif
 
   ifeq ($(COMP),NAG)
@@ -121,28 +121,28 @@ ifeq ($(ARCH),Linux)
   endif
 
   ifeq ($(COMP),Lahey)
-    include ./comps/Linux_lahey.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_lahey.mak
   endif
 endif
 
 ifeq ($(ARCH),CRAYX1)
-  include ./comps/crayx1.mak
+  include $(BOXLIB_HOME)/Tools/F_mk/comps/crayx1.mak
 endif
 
 ifeq ($(ARCH),AIX)
-  include ./mk/comps/aix.mak
+  include $(BOXLIB_HOME)/Tools/F_mk/comps/aix.mak
 endif
 
 ifeq ($(ARCH),IRIX64)
-  include ./mk/comps/irix64.mak
+  include $(BOXLIB_HOME)/Tools/F_mk/comps/irix64.mak
 endif
 
 ifeq ($(ARCH),OSF1)
-  include ./mk/comps/osf1.mak
+  include $(BOXLIB_HOME)/Tools/F_mk/comps/osf1.mak
 endif
 
 ifdef MPI
-  include ./mk/GMakeMPI.mak
+  include $(BOXLIB_HOME)/Tools/F_mk/GMakeMPI.mak
 endif
 
 ifdef mpi_include_dir
