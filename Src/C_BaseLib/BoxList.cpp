@@ -157,8 +157,6 @@ BoxList::isDisjoint () const
 bool
 BoxList::contains (const IntVect& v) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(IntVect)");
-
     for (const_iterator bli = begin(), End = end(); bli != End; ++bli)
         if (bli->contains(v))
             return true;
@@ -169,8 +167,6 @@ BoxList::contains (const IntVect& v) const
 bool
 BoxList::contains (const Box& b) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(Box)");
-
     if (isEmpty()) return false;
 
     BL_ASSERT(ixType() == b.ixType());
@@ -183,8 +179,6 @@ BoxList::contains (const Box& b) const
 bool
 BoxList::contains (const BoxList&  bl) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(BoxList)");
-
     if (isEmpty() || bl.isEmpty()) return false;
 
     BL_ASSERT(ixType() == bl.ixType());
@@ -255,7 +249,6 @@ const BoxList
 BoxLib::complementIn (const Box&     b,
                       const BoxList& bl)
 {
-    BL_PROFILE("BoxLib::complementIn(Box,BoxList)");
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newb(b.ixType());
     newb.complementIn(b,bl);
@@ -266,8 +259,6 @@ BoxList&
 BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::complementIn()");
-
     BL_ASSERT(bl.ixType() == b.ixType());
 
     if (bl.size() == 1)
@@ -321,8 +312,6 @@ BoxList&
 BoxList::complementIn_base (const Box&     b,
                             const BoxList& bl)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::complementIn_base()");
-
     BL_ASSERT(bl.ixType() == b.ixType());
 
     clear();
@@ -507,8 +496,6 @@ namespace
 int
 BoxList::simplify (bool best)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::simplify()");
-
     lbox.sort(BoxCmp());
 
     return simplify_doit(best);
@@ -605,7 +592,6 @@ BoxList::simplify_doit (bool best)
 int
 BoxList::minimize ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::minimize()");
     int cnt = 0;
     for (int n; (n=simplify(true)) > 0; )
         cnt += n;

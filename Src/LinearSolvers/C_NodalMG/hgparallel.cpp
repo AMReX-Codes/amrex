@@ -7,7 +7,6 @@
 #include <amr_defs.H>
 #include <hgparallel.H>
 #include <boundary.H>
-#include <Profiler.H>
 
 #ifdef HG_DEBUG
 #include <algorithm>
@@ -260,8 +259,6 @@ task_list::print_dependencies (std::ostream& os) const
 void
 task_list::execute (const char* msg)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::execute()");
-
     if (HG_is_debugging)
         ParallelDescriptor::Barrier(HG::mpi_comm);
     //

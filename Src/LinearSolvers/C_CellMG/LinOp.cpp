@@ -7,7 +7,6 @@
 #include <LO_BCTYPES.H>
 #include <LO_F.H>
 #include <LinOp.H>
-#include <Profiler.H>
 
 namespace
 {
@@ -205,8 +204,6 @@ LinOp::apply (MultiFab&      out,
               LinOp::BC_Mode bc_mode,
               bool           local)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "apply()");
-
     applyBC(in,0,1,level,bc_mode,local);
     Fapply(out,in,level);
 }
@@ -219,7 +216,6 @@ LinOp::applyBC (MultiFab&      inout,
                 LinOp::BC_Mode bc_mode,
                 bool           local)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::applyBC()");
     //
     // The inout MultiFab needs at least LinOp_grow ghost cells for applyBC.
     //
@@ -307,8 +303,6 @@ LinOp::residual (MultiFab&       residL,
                  LinOp::BC_Mode  bc_mode,
                  bool            local)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "residual()");
-
     apply(residL, solnL, level, bc_mode, local);
 
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
@@ -336,8 +330,6 @@ LinOp::smooth (MultiFab&       solnL,
                int             level,
                LinOp::BC_Mode  bc_mode)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::smooth()");
-
     for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)
     {
         applyBC(solnL, 0, 1, level, bc_mode);
@@ -351,7 +343,6 @@ LinOp::jacobi_smooth (MultiFab&       solnL,
                       int             level,
                       LinOp::BC_Mode  bc_mode)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::jacobi_smooth()");
     Fsmooth_jacobi(solnL, rhsL, level);
 }
 

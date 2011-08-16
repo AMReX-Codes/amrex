@@ -9,7 +9,6 @@
 #include <CGSolver.H>
 #include <MG_F.H>
 #include <MultiGrid.H>
-#include <Profiler.H>
 
 namespace
 {
@@ -273,7 +272,6 @@ MultiGrid::solve (MultiFab&       _sol,
                   Real            _eps_abs,
                   LinOp::BC_Mode  bc_mode)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::solve()");
     //
     // Prepare memory for new level, and solve the general boundary
     // value problem to within relative error _eps_rel.  Customized
@@ -422,7 +420,6 @@ MultiGrid::relax (MultiFab&      solL,
                   Real           eps_abs,
                   LinOp::BC_Mode bc_mode)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::relax()");
     //
     // Recursively relax system.  Equivalent to multigrid V-cycle.
     // At coarsest grid, call coarsestSmooth.
@@ -506,8 +503,6 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                            LinOp::BC_Mode bc_mode,
                            int            local_usecg)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "coarsestSmooth()");
-
     prepareForLevel(level);
     if (local_usecg == 0)
     {

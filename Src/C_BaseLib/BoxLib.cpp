@@ -215,17 +215,12 @@ BoxLib::ExecOnFinalize (PTR_TO_VOID_FUNC fp)
 void
 BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_comm)
 {
-    static Profiler::Tag bl_prf_tag("BoxLib");
-
 #ifndef WIN32
     //
     // Make sure to catch new failures.
     //
     std::set_new_handler(BoxLib::OutOfMemory);
 #endif
-
-    bl_prf = new Profiler(bl_prf_tag, true);
-    bl_prf->start();
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
     //
@@ -270,18 +265,12 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
         }
     }
 
-    Profiler::Initialize();
-
     std::cout << std::setprecision(10);
 }
 
 void
 BoxLib::Finalize (bool finalize_parallel)
 {
-    bl_prf->stop();
-    delete bl_prf;
-    bl_prf = 0;
-
     while (!The_Finalize_Function_Stack.empty())
     {
         //
@@ -293,8 +282,6 @@ BoxLib::Finalize (bool finalize_parallel)
         //
         The_Finalize_Function_Stack.pop();
     }
-
-    Profiler::Finalize();
 
     if (finalize_parallel)
         ParallelDescriptor::EndParallel();

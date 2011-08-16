@@ -60,7 +60,6 @@ BoxDomain&
 BoxDomain::complementIn (const Box&       b,
                          const BoxDomain& bl)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::complementIn(Box,BoxDomain)");
     BoxList::complementIn(b,bl);
     BL_ASSERT(ok());
     return *this;
@@ -70,7 +69,6 @@ BoxDomain
 BoxLib::complementIn (const Box&       b,
 		      const BoxDomain& bl)
 {
-    BL_PROFILE("BoxDomain BoxLib::complementIn(Box,BoxDomain)");
     BoxDomain result;
     result.complementIn(b,bl);
     return result;
@@ -114,8 +112,6 @@ BoxDomain::BoxDomain (const Box& bx)
 void
 BoxDomain::add (const Box& b)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::add(Box)");
-
     BL_ASSERT(b.ixType() == ixType());
 
     std::list<Box> tmp, check;
@@ -155,7 +151,6 @@ BoxDomain::add (const Box& b)
 void
 BoxDomain::add (const BoxList& bl)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::add(BoxList)");
     BoxList bl2 = bl;
     bl2.catenate(*this);
     BoxList nbl = BoxLib::removeOverlap(bl2);
@@ -165,8 +160,6 @@ BoxDomain::add (const BoxList& bl)
 BoxDomain&
 BoxDomain::rmBox (const Box& b)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::rmBox()");
-
     BL_ASSERT(b.ixType() == ixType());
 
     std::list<Box> tmp;

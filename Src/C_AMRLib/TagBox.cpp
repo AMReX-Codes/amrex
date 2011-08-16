@@ -9,7 +9,6 @@
 #include <TagBox.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
 #include <ccse-mpi.H>
 
 TagBox::TagBox () {}
@@ -345,8 +344,6 @@ TagBoxArray::buffer (int nbuf)
 void
 TagBoxArray::mapPeriodic (const Geometry& geom)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::mapPeriodic()");
-
     if (!geom.isAnyPeriodic()) return;
 
     FabArrayCopyDescriptor<TagBox> facd;
@@ -434,7 +431,6 @@ TagBoxArray::numTags () const
 IntVect*
 TagBoxArray::collate (long& numtags) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::collate()");
     //
     // The total number of tags system wide that must be collated.
     //

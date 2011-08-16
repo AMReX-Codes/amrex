@@ -296,8 +296,6 @@ BoxArray::grow (int dir,
 bool
 BoxArray::contains (const IntVect& iv) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(IntVect)");
-
     if (size() > 0)
     {
         std::vector< std::pair<int,Box> > isects = intersections(Box(iv,iv,get(0).ixType()));
@@ -313,8 +311,6 @@ BoxArray::contains (const IntVect& iv) const
 bool
 BoxArray::contains (const Box& b) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(Box)");
-
     if (size() > 0)
     {
         BL_ASSERT(get(0).sameType(b));
@@ -337,8 +333,6 @@ BoxArray::contains (const Box& b) const
 bool
 BoxArray::contains (const BoxArray& bl) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::contains(BoxArray)");
-
     if (size() == 0) return false;
 
     if (!minimalBox().contains(bl.minimalBox())) return false;
@@ -567,7 +561,6 @@ BoxArray
 BoxLib::complementIn (const Box&      b,
 		      const BoxArray& ba)
 {
-    BL_PROFILE("BoxLib::complementIn(Box,BoxArray)");
     return BoxArray(BoxLib::complementIn(b,ba.boxList()));
 }
 
@@ -723,8 +716,6 @@ BoxArray::intersections (const Box& bx) const
 BoxList
 BoxArray::removeOverlap ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::removeOverlap()");
-
     if (!m_ref.unique()) uniqify();
 
     const Box EmptyBox;

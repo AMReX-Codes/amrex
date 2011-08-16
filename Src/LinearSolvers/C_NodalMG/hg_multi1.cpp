@@ -1,7 +1,5 @@
 
-#include "hg_multi.H"
-
-#include <Profiler.H>
+#include <hg_multi.H>
 
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGSRST		hgsrst_
@@ -117,8 +115,6 @@ task_interpolate_patch::task_interpolate_patch (task_list&              tl_,
 bool
 task_interpolate_patch::ready ()
 {
-  //    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::ready()");
-
     if (is_local(dmf, dgrid))
     {
         BL_ASSERT(is_started());
@@ -958,8 +954,6 @@ holy_grail_amr_multigrid::can_coarsen (const BoxArray& mesh,
 void
 holy_grail_amr_multigrid::sync_interfaces ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::sync_interfaces()");
-
     for (int lev = lev_min+1; lev <= lev_max; lev++)
     {
 	int mglev = ml_index[lev];
@@ -1003,8 +997,6 @@ holy_grail_amr_multigrid::sync_interfaces ()
 void
 holy_grail_amr_multigrid::sync_periodic_interfaces ()
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::sync_periodic_interfaces()");
-
     for (int lev = lev_min+1; lev <= lev_max; lev++)
     {
 	int mglev = ml_index[lev];
@@ -1128,8 +1120,6 @@ void
 holy_grail_amr_multigrid::mg_interpolate_level (int lto,
                                                 int lfrom)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::mg_interpolate_level()");
-
     if (get_amr_level(lfrom) >= 0)
     {
         //

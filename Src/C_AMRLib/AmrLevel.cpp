@@ -9,7 +9,6 @@
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 #include <ParmParse.H>
-#include <Profiler.H>
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
@@ -507,7 +506,6 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                                      int           ncomp,
                                      Interpolater* mapper)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Initialize()");
     BL_ASSERT(mapper);
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
@@ -732,8 +730,6 @@ FillPatchIterator::Initialize (int  boxGrow,
                                int  scomp,
                                int  ncomp)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Initialize()");
-
     const bool verbose = false;
 
     const Real strt = ParallelDescriptor::second();
@@ -831,8 +827,6 @@ FixUpPhysCorners (FArrayBox&      fab,
                   int             dcomp,
                   int             ncomp)
 {
-    BL_PROFILE("FixUpPhysCorners");
-
     const Box& ProbDomain = TheState.getDomain();
 
     if (!HasPhysBndry(fab.box(),ProbDomain,TheGeom)) return;
@@ -1195,7 +1189,6 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
                            int       scomp,
                            int       ncomp)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillCoarsePatch()");
     //
     // Must fill this region on crse level and interpolate.
     //
