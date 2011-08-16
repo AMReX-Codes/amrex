@@ -36,8 +36,8 @@
 	object (the MCMultiGrid class is documented separately).
 
 	Implementation Notes:
-	\begin{itemize}
-	\item This algorithm implements solution of equations in a way that
+
+	This algorithm implements solution of equations in a way that
 	requires linearity of the operator.  In "residual correction form",
 	equations are solved only for the "correction" to the initial guess
 	that is required to solve the desired system.  In particular,
@@ -48,7 +48,7 @@
 	has homigeneous boundary conditions.  This solver therefore cannot
 	incorporate fully nonlinear systems.
 
-	\item In general, a MCLinOp has the ability to apply high-order
+	In general, a MCLinOp has the ability to apply high-order
 	interpolation methods for computing boundary values.  However, if
 	the operator used in this MCCGSolver is non-symmetric, cg performance
 	suffers tremendously.  As a result, BC's should be applied with
@@ -57,34 +57,31 @@
 	definition of the operator.  If cg performance is bad however,
 	setting the MCLinOp's maxorder=2 is a good place to start.
 
-        \end{itemize}
-	
 	Default settings:
 	The user has access to the following options in the cg algorithm:
-	\begin{itemize}
-	\item maxiter(40) Maximum number of cg cycles allowed to solve the
-	system before abandoning
-	\item verbose(0) Verbosity (1-results, 2-progress, 3-detailed progress)
-	\item use_mg_precond(false) Whether to use the V-cycle multigrid
-	solver for the preconditioner system
-	\end{itemize}
+
+	maxiter(40) Maximum number of cg cycles allowed to solve the
+	            system before abandoning
+	verbose(0)  Verbosity (1-results, 2-progress, 3-detailed progress)
+	use_mg_precond(false) Whether to use the V-cycle multigrid
+                              solver for the preconditioner system
 */
 
 class MCCGSolver
 {
 public:
     //
-    // constructor
+    // Constructor.
     //
     MCCGSolver (MCLinOp& _Lp,
 		bool     _use_mg_precond = false,
 		int      _lev=0);
     //
-    // destructor
+    // Destructor.
     //
     virtual ~MCCGSolver ();
     //
-    // solve the system, Lp(solnL)=rhsL to relative err, tolerance
+    // Solve the system, Lp(solnL)=rhsL to relative err, tolerance.
     //
     virtual void solve (MultiFab&       solnL,
 			const MultiFab& rhsL,
@@ -92,41 +89,41 @@ public:
 			Real            eps_abs = -1.0,
 			MCBC_Mode       bc_mode = MCInhomogeneous_BC);
     //
-    // set maximum allowed number of CG iterations
+    // Set maximum allowed number of CG iterations.
     //
     void setMaxIter (int _maxiter);
     //
-    // get maximum allowed number of CG iterations
+    // Get maximum allowed number of CG iterations.
     //
     int getMaxIter () const;
     //
-    // set expert mode
+    // Set expert mode.
     //
     void setExpert( bool flag ) { isExpert = flag; }
     //
-    // get expert flag
+    // Get expert flag.
     //
     bool getExpert() { return isExpert; }
     //
-    // set flag determining whether MG preconditioning is used
+    // Set flag determining whether MG preconditioning is used.
     //
     void setUseMGPrecond (bool _use_mg_precond);
     //
-    // get  flag determining whether MG preconditioning is used
+    // Get flag determining whether MG preconditioning is used.
     //
     bool getUseMGPrecond () const;
     //
-    // set the verbosity value
+    // Set the verbosity value.
     //
     void setVerbose (int _verbose);
     //
-    // return the verbosity value
+    // Return the verbosity value.
     //
     int getVerbose ();
 
 protected:
     //
-    // construct work space, initialize parameters
+    // Construct work space, initialize parameters.
     //
     static void Initialize ();
 
@@ -136,13 +133,13 @@ protected:
     //
     void set_mg_precond ();
     //
-    // compute p = z  +  beta p in the CG algorithm
+    // Compute p = z  +  beta p in the CG algorithm.
     //
     void advance (MultiFab&       p,
 		  Real            beta,
 		  const MultiFab& z);
     //
-    // compute x =+ alpha p  and  r -= alpha w in the CG algorithm
+    // Compute x =+ alpha p  and  r -= alpha w in the CG algorithm.
     //
     void update (MultiFab&       sol,
 		 Real            alpha,
@@ -150,52 +147,52 @@ protected:
 		 const MultiFab& p,
 		 const MultiFab& w);
     //
-    // compute w = A.p, and return Transpose(p).w in the CG algorithm
+    // Compute w = A.p, and return Transpose(p).w in the CG algorithm.
     //
     Real axp (MultiFab& w,
 	      MultiFab& p,
 	      MCBC_Mode bc_mode);
     //
-    // compute a suitable norm of the residual, used to check stopping criteria
+    // Compute a suitable norm of the residual, used to check stopping criteria.
     //
     Real norm (const MultiFab& res);
     //
-    // MCMultiGrid solver to be used as preconditioner
+    // MCMultiGrid solver to be used as preconditioner.
     //
     MCMultiGrid* mg_precond;
     //
-    // default maximum number of allowed iterations, verbosity
+    // Default maximum number of allowed iterations, verbosity.
     //
     static int def_maxiter, def_verbose;
     //
-    // flag: use multigrid as a preconditioner
+    // Flag: use multigrid as a preconditioner.
     //
     bool use_mg_precond;
     //
-    // default unstable_criterion used to test for loss of accuracy in
+    // Default unstable_criterion used to test for loss of accuracy in.
     //
     static double def_unstable_criterion;
     //
-    // flag determining action when error conditions are hit
+    // Flag determining action when error conditions are hit.
     //
     static int def_isExpert;
     bool isExpert;
     //
-    // current maximum number of allowed iterations, verbosity
+    // Current maximum number of allowed iterations, verbosity.
     //
     int maxiter, verbose;
     //
-    // reference to operator for linear system to be solved
+    // Reference to operator for linear system to be solved.
     //
     MCLinOp &Lp;
     //
-    // integer to choose which "level" of the linear operator to use
+    // Integer to choose which "level" of the linear operator to use.
     //
     int lev;
     
 private:
     //
-    // disable copy constructor, = operator
+    // Disable copy constructor, = operator.
     //
     MCCGSolver (const MCCGSolver&);
     MCCGSolver& operator= (const MCCGSolver&);

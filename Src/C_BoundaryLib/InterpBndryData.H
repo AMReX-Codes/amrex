@@ -15,24 +15,25 @@
         An InterpBndryData object adds to a BndryData object the ability to
         manipulate and set the data stored in the boundary cells.
 
-        The "Interpbndrydata" class is a virtual base class derived from
+        The Interpbndrydata class is a virtual base class derived from
         BndryData.  It is intended to provide a more physical method for
         filling boundary-related data.  Boundary values in a BndryData object
         are stored in FabSets around each grid in the domain, and the
         InterpBndryData class provides a mechanism for filling these FabSets,
         consistent with AMR-like numerical discretizations.  When asked to
-        set it's boundary values, an InterpBndryData object:
-        \begin{enumerate}
-        \item Fills with physical boundary values if the FAB is on the
-        domain boundary ({\it the corresponding values are presumed to be
+        set its boundary values, an InterpBndryData object:
+
+        Fills with physical boundary values if the FAB is on the
+        domain boundary - the corresponding values are presumed to be
         stored in the ghost cells of a MultiFab given to the boundary filling
-        routine})
-        \item Fills on intersection with data from the VALID region of the
+        routine
+
+        Fills on intersection with data from the VALID region of the
         input MultiFab, ensuring that adjacent FABs use consistent data at
         their intersection, and otherwise,
-        \item Fills with values interpolated from a coarser FAB that
+
+        Fills with values interpolated from a coarser FAB that
         bounds the cells that do not meet the above two criteria
-        \end{enumerate}
         
         This class does NOT provide a copy constructor or assignment operator.
 */

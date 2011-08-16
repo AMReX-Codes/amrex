@@ -15,14 +15,15 @@
   all coefficient info is scalar, and norm reports on ALL components
   together.
   tau is a three by three tensor
+
   b(x)*(u_{i,j}+u_{j,i})
 
   A DivVis tailors a LinOp (a virtual base class for general
   linear operators) to compute the second-order central difference
   approximation to the differential operator,
-  \begin{center}
-  alpha*a(x).u(x) - beta*div[tau(u(x))],
-  \end{center}
+
+  alpha*a(x).u(x) - beta*div[tau(u(x))]
+
   on a cell-centered
   MultiFab, u(x).  Here, alpha and beta are constants, a(x) is a
   cell-centered MultiFab, and b(x) is a vector of wall-centered
@@ -30,9 +31,9 @@
   all coefficient info is scalar, and norm reports on ALL components
   together.
   Tau is the 3 by 3 tensor
-  \begin{center}
+
   b(x)*(u_{i,j}+u_{j,i})
-  \end{center}
+
 
   This class provides the necessary
   implementations for applying the operator, and for 
@@ -54,65 +55,65 @@
   functions prior to call.
 
   Defaults are as follows for the coefficients:
-  \begin{itemize}
-  \item alpha = 1.0
-  \item beta = 1.0
-  \item a (MultiFab) = 0.0
-  \item b (MultiFab) = 1.0
-  \end{itemize}
+
+   alpha = 1.0
+   beta = 1.0
+   a (MultiFab) = 0.0
+   b (MultiFab) = 1.0
   */
+
 class DivVis
     :
     public MCLinOp
 {
 public:
     //
-    // constructor for box array, boundary data and scalar mesh spacing
+    // Constructor for box array, boundary data and scalar mesh spacing.
     //
     DivVis (const BndryData& bd,
 	    Real             _h);
     //
-    // constructor for box array, boundary data and vector mesh spacing
+    // Constructor for box array, boundary data and vector mesh spacing.
     //
     DivVis (const BndryData& bd,
 	    const Real*      _h);
     //
-    // destructor
+    // The destructor.
     //
     virtual ~DivVis ();
     //
-    // set scalar coefficients
+    // Set scalar coefficients.
     //
     void setScalars (Real _alpha,
 		     Real _beta);
     //
-    // get scalar alpha coefficient
+    // Get scalar alpha coefficient.
     //
     Real get_alpha () const;
     //
-    // get scalar beta coefficient
+    // Get scalar beta coefficient.
     //
     Real get_beta () const;
     //
-    // return reference to "a" coefficients for base level
+    // Return reference to "a" coefficients for base level.
     //
     const MultiFab& aCoefficients (int level = 0);
     //
-    // return reference to "b" coefficients for base level
+    // Return reference to "b" coefficients for base level.
     //
     const MultiFab& bCoefficients (int dir,
 				   int level = 0);
     //
-    // copy _a into "a" coeffs for base level
+    // Copy _a into "a" coeffs for base level.
     //
     void aCoefficients (const MultiFab& _a);
     //
-    // copy _b into "b" coeffs in "dir" coordinate direction for base level
+    // Copy _b into "b" coeffs in "dir" coordinate direction for base level.
     //
     void bCoefficients (const MultiFab& _b,
 			int             dir);
     //
-    // alternative (older) version of above members
+    // Alternative (older) version of above members.
     //
     void setCoefficients (const MultiFab &_a,
 			  const MultiFab &_bX,
@@ -122,28 +123,28 @@ public:
 #endif
 	);
     //
-    // collective version of above members (taking an array of MultiFabs for "b")
+    // Collective version of above members (taking an array of MultiFabs for "b").
     //
     void setCoefficients (const MultiFab& _a,
 			  const MultiFab* _b);
     //
-    // allocate/fill internal data for new level
+    // Allocate/fill internal data for new level.
     //
     virtual void prepareForLevel (int level);
     //
-    // remove internal data for this level and all levels above
+    // Remove internal data for this level and all levels above.
     //
     virtual void clearToLevel (int level);
     //
-    // set flags so that a coeffs at lev and coarser require recalculation
+    // Set flags so that a coeffs at lev and coarser require recalculation.
     //
     void invalidate_a_to_level (int lev);
     //
-    // set flags so that b coeffs at lev and coarser require recalculation
+    // Set flags so that b coeffs at lev and coarser require recalculation.
     //
     void invalidate_b_to_level (int lev);
     //
-    // computes flux associated with operator
+    // Computes flux associated with operator.
     //
     void compFlux (MultiFab &xflux, 
 		   MultiFab &yflux, 
@@ -154,32 +155,32 @@ public:
     
 protected:
     //
-    // initialize a full set (a,b) of coefficients on the box array
+    // Initialize a full set (a,b) of coefficients on the box array.
     //
     void initCoefficients (const BoxArray &_ba);
     //
-    // compute out=L (in) at level=level
+    // Compute out=L (in) at level=level.
     //
     virtual void Fapply (MultiFab&       out,
 			 const MultiFab& in,
 			 int             level);
     //
-    // apply smoother to improve residual to L(solnL)=rhsL
+    // Apply smoother to improve residual to L(solnL)=rhsL.
     //
     virtual void Fsmooth (MultiFab&       solnL,
 			  const MultiFab& rhsL,
 			  int             level,
 			  int             phaseflag);
     //
-    // return number of components.  This is virtual since only the derived knows
+    // Return number of components.  This is virtual since only the derived knows.
     //
     virtual int numberComponents ();
     //
-    // number of relaxation phases.  On derived class knows.
+    // Number of relaxation phases.  On derived class knows.
     //
     virtual int numberPhases ();
     //
-    // Helper function for object construction
+    // Helper function for object construction.
     //
     void initConstruct (const Real* _h);
 
@@ -206,6 +207,7 @@ private:
     // Flag, can a coeffs be trusted at a level.
     //
     std::vector<bool> a_valid;
+    //
     // Flag, can b coeffs be trusted at a level.
     //
     std::vector<bool> b_valid;
@@ -270,7 +272,8 @@ DivVis::setCoefficients (const MultiFab& _a,
 			 const MultiFab* _b)
 {
     aCoefficients(_a);
-    for (int n = 0; n < BL_SPACEDIM; ++n) bCoefficients(_b[n], n);
+    for (int n = 0; n < BL_SPACEDIM; ++n)
+        bCoefficients(_b[n], n);
 }
 
 #endif /*_DivVis_H_*/
