@@ -1,5 +1,0 @@
-FEXE_headers += COEF_F.H 
-FEXE_sources += COEF_$(DIM)D.F 
-
-CEXE_sources  += MacBndry.cpp
-CEXE_headeres += MacBndry.H

@@ -52,4 +52,4 @@ FORT_LIB_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 
 FORTLINK = UPPERCASE
 
-FORTPREP = sed '/^!/d' | perl $(PBOXLIB_HOME)/Tools/C_scripts/strip72 -c
+FORTPREP = sed '/^!/d' | perl $(BOXLIB_HOME)/Tools/C_scripts/strip72 -c

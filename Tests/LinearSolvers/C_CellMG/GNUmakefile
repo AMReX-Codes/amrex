@@ -1,4 +1,4 @@
-PBOXLIB_HOME := ../..
+BOXLIB_HOME := ../..
 FBOXLIB_HOME =
 FBOXLIB_HOME = ../../../fParallel
 
@@ -17,31 +17,31 @@ USE_ARRAYVIEW = FALSE
 
 EBASE = main
 
-include $(PBOXLIB_HOME)/mk/Make.defs
+include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
 # multigrid test sources
 CEXE_sources += $(EBASE).cpp
 
 include Make.package
-include $(PBOXLIB_HOME)/bndrylib/Make.package
-include $(PBOXLIB_HOME)/mglib/Make.package
-include $(PBOXLIB_HOME)/BoxLib/Make.package
+include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
+include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG/Make.package
+include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
-vpathdir += $(PBOXLIB_HOME)/bndrylib
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
-vpathdir += $(PBOXLIB_HOME)/BoxLib
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/iamrlib
-vpathdir += $(PBOXLIB_HOME)/iamrlib
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
-vpathdir += $(PBOXLIB_HOME)/mglib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/bndrylib
+vpathdir += $(BOXLIB_HOME)/bndrylib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/BoxLib
+vpathdir += $(BOXLIB_HOME)/BoxLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/iamrlib
+vpathdir += $(BOXLIB_HOME)/iamrlib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/mglib
+vpathdir += $(BOXLIB_HOME)/mglib
 
 ifdef FBOXLIB_HOME
   DEFINES += -DMG_USE_FBOXLIB
 
-  include $(PBOXLIB_HOME)/MGT_Solver/Make.package
-  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
-  vpathdir += $(PBOXLIB_HOME)/MGT_Solver
+  include $(BOXLIB_HOME)/MGT_Solver/Make.package
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/MGT_Solver
+  vpathdir += $(BOXLIB_HOME)/MGT_Solver
 
   include $(FBOXLIB_HOME)/mg/source/FParallelMG.mak
   INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/mg/source
@@ -55,13 +55,13 @@ endif
 
 CEXE_sources += BCRec.cpp 
 CEXE_headers += BCRec.H BC_TYPES.H
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/amrlib
-vpathdir += $(PBOXLIB_HOME)/amrlib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/amrlib
+vpathdir += $(BOXLIB_HOME)/amrlib
 
 # Needed from AmrVis
 #CEXE_headers += AmrData.H
-#INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pAmrvis
-#vpathdir += $(PBOXLIB_HOME)/pAmrvis
+#INCLUDE_LOCATIONS += $(BOXLIB_HOME)/pAmrvis
+#vpathdir += $(BOXLIB_HOME)/pAmrvis
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
@@ -73,4 +73,4 @@ vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
-include $(PBOXLIB_HOME)/mk/Make.rules
+include $(BOXLIB_HOME)/mk/Make.rules

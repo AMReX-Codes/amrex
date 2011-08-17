@@ -1,9 +1,6 @@
-#
-# $Id: GNUmakefile,v 1.2 2006-05-08 22:07:45 lijewski Exp $
-#
-PBOXLIB_HOME = ../../
+BOXLIB_HOME = ../../
 
-TOP = $(PBOXLIB_HOME)
+TOP = $(BOXLIB_HOME)
 #
 # Variables for the user to set ...
 #
@@ -19,17 +16,17 @@ EBASE = crsGrids
 CEXE_sources += $(EBASE).cpp
 
 DEFINES += -DBL_PARALLEL_IO
-include $(TOP)/mk/Make.defs ./Make.package
+include $(TOP)/Tools/C_mk/Make.defs ./Make.package
 
-include $(TOP)/BoxLib/Make.package
+include $(TOP)/Src/C_BaseLib/Make.package
 
 INCLUDE_LOCATIONS += . 
-INCLUDE_LOCATIONS += $(TOP)/BoxLib 
+INCLUDE_LOCATIONS += $(TOP)/Src/C_BaseLib 
 
-vpath %.H   . $(TOP)/BoxLib
-vpath %.cpp . $(TOP)/BoxLib
-vpath %.F   . $(TOP)/BoxLib
-vpath %.f   . $(TOP)/BoxLib
+vpath %.H   . $(TOP)/Source/C_BaseLib
+vpath %.cpp . $(TOP)/Source/C_BaseLib
+vpath %.F   . $(TOP)/Source/C_BaseLib
+vpath %.f   . $(TOP)/Source/C_BaseLib
 
 all: $(executable)
 
