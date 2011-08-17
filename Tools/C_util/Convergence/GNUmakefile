@@ -7,7 +7,6 @@ TOP = $(BOXLIB_HOME)
 PRECISION     = DOUBLE
 DEBUG	      = TRUE
 DEBUG	      = FALSE
-PROFILE       = FALSE
 DIM	      = 2
 COMP          = Intel
 FCOMP         = Intel
