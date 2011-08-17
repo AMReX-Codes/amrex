@@ -14,7 +14,7 @@
 #include <VisMF.H>
 #include <COEF_F.H>
 
-#ifdef USE_F90_SOLVERS
+#ifdef USE_F90_MG
 #include <MacBndry.H>
 #include <MGT_Solver.H>
 #endif
@@ -234,7 +234,7 @@ main (int argc, char* argv[])
 
   int Ncomp=1;
 
-#ifdef MG_USE_FBOXLIB
+#ifdef USE_F90_MG
   int Nghost=1;
 #else
   int Nghost=0;
@@ -372,7 +372,7 @@ main (int argc, char* argv[])
       //
       if ( use_fboxlib )
       {
-#ifdef MG_USE_FBOXLIB
+#ifdef USE_F90_MG
           // Translate into F90 solver
           std::vector<BoxArray> bav(1);
           bav[0] = rhs.boxArray();
