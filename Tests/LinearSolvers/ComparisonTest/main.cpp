@@ -296,8 +296,6 @@ main (int argc, char* argv[])
   bool dump_Lp=false        ; pp.query("dump_Lp",dump_Lp);
   bool dump_MF=false        ; pp.query("dump_MF", dump_MF);
   bool dump_VisMF=false     ; pp.query("dump_VisMF", dump_VisMF);
-  bool dump_ascii=false     ; pp.query("dump_ascii", dump_ascii);
-  bool dump_rhs_ascii=false ; pp.query("dump_rhs_ascii", dump_rhs_ascii);
   bool use_fboxlib=false    ; pp.query("use_fboxlib", use_fboxlib);
 
   bool use_variable_coef=false; pp.query("use_variable_coef", use_variable_coef);
@@ -524,22 +522,6 @@ main (int argc, char* argv[])
       }
   }
   
-  if ( dump_ascii )
-  {
-      for ( MFIter mfi(soln); mfi.isValid(); ++mfi )
-      {
-	  std::cout << soln[mfi] << std::endl;
-      }
-  }
-
-  if ( dump_rhs_ascii )
-  {
-      for ( MFIter mfi(soln); mfi.isValid(); ++mfi )
-      {
-	  std::cout << rhs[mfi] << std::endl;
-      }
-  }
-
   BoxLib::Finalize();
 
 }
