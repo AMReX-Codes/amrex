@@ -17,8 +17,8 @@ PROFILE      = FALSE
 
 #DEFINES += -DBL_COALESCE_FABS
 
-PBOXLIB_HOME = ../..
-include $(PBOXLIB_HOME)/mk/Make.defs
+BOXLIB_HOME = ../..
+include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
 #ifeq ($(COMP),Intel)
 #  COPTF   += -fast
@@ -52,14 +52,14 @@ include $(PBOXLIB_HOME)/mk/Make.defs
 _progs  := tMF
 #_progs  := tFB
 
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 ifeq ($(COMP),g++)
   ifeq ($(__gcc_major_version),2)
-    INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib/std
+    INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib/std
   endif
 endif
-VPATH = $(PBOXLIB_HOME)/BoxLib
-include $(PBOXLIB_HOME)/BoxLib/Make.package
+VPATH = $(BOXLIB_HOME)/Src/C_BaseLib
+include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 
 FEXE_sources += util.F
 
@@ -86,4 +86,4 @@ clean::
 	$(RM) bl3_prof bl3_prof.m
 	$(RM) *.ex *.o
 
-include $(PBOXLIB_HOME)/mk/Make.rules
+include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
