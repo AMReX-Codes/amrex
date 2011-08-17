@@ -1,4 +1,6 @@
-BOXLIB_HOME := /path/to/BoxLib
+BOXLIB_HOME := ../../..
+
+USE_F90_MG := 
 
 PRECISION = DOUBLE
 
@@ -15,7 +17,7 @@ USE_MPI=FALSE
 
 EBASE = main
 
-include $(BOXLIB_HOME)/mk/Make.defs
+include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
 # multigrid test sources
 CEXE_sources += $(EBASE).cpp
@@ -34,13 +36,14 @@ vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
 vpathdir += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
 
-# We need these from amrlib 
+# We need these from C_AMRLib 
+
 CEXE_sources += BCRec.cpp 
 CEXE_headers += BCRec.H BC_TYPES.H
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/amrlib
-vpathdir += $(BOXLIB_HOME)/amrlib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
+vpathdir += $(BOXLIB_HOME)/Src/C_AMRLib
 
-ifdef FBOXLIB_HOME
+ifdef USE_F90_MG
   DEFINES += -DMG_USE_FBOXLIB
 
   include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
@@ -51,15 +54,15 @@ ifdef FBOXLIB_HOME
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
   vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
 
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/SPARSKIT
-  vpathdir          += $(FBOXLIB_HOME)/extern/SPARSKIT
+# INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/SPARSKIT
+# vpathdir          += $(FBOXLIB_HOME)/extern/SPARSKIT
 
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/LAPACK
-  vpathdir          += $(FBOXLIB_HOME)/extern/LAPACK
+# INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/LAPACK
+# vpathdir          += $(FBOXLIB_HOME)/extern/LAPACK
 
-  include $(FBOXLIB_HOME)/extern/BLAS/Make.package
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/BLAS
-  vpathdir          += $(FBOXLIB_HOME)/extern/BLAS
+# include $(FBOXLIB_HOME)/extern/BLAS/Make.package
+# INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/BLAS
+# vpathdir          += $(FBOXLIB_HOME)/extern/BLAS
 
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
   vpathdir          += $(BOXLIB_HOME)/Src/F_BaseLib
@@ -75,4 +78,4 @@ vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
-include $(BOXLIB_HOME)/mk/Make.rules
+include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
