@@ -37,9 +37,6 @@ vpathdir          += $(BOXLIB_HOME)/Src/C_AMRLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
 vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
 
-#INCLUDE_LOCATIONS += $(BOXLIB_HOME)/iamrlib
-#vpathdir          += $(BOXLIB_HOME)/iamrlib
-
 CEXE_sources += BCRec.cpp 
 CEXE_headers += BCRec.H BC_TYPES.H
 
