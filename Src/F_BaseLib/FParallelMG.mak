@@ -1,10 +1,11 @@
 # FParallelMG.mak
 #
-# Use this to access include the fParallel/boxlib files that you need
-# when calling fParallel code from files in Parallel.
+# Use this to access include the F_BaseLib files that you need
+# when calling F90 code from C++.
+#
 # Note: you can do a parallel make if you are using this file if you
-# are using the MODDEP dependency evaluater that is in Parallel/scripts 
-# and is used in the default Parallel/mk/Make.{rules,defs}. Otherwise,
+# are using the MODDEP dependency evaluater that is in Tools/C_scripts 
+# and is used in the default Tools/C_mk/Make.{rules,defs}. Otherwise,
 # you can't since the dependencies for the object/module files can not be
 # inferred from the names or ordering of thes files.
 #
