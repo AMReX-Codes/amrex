@@ -105,7 +105,7 @@ CPRFF +=
 
 OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 
-FORTPREP	= perl $(PBOXLIB_HOME)/Tools/C_scripts/strip72 -c
+FORTPREP	= perl $(BOXLIB_HOME)/Tools/C_scripts/strip72 -c
 FORT_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 
 ifeq ($(WHICHIRIX64), MAHLER)

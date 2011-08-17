@@ -1,7 +1,3 @@
-#
-# $Id: Make.rules,v 1.41 2011-05-15 17:08:55 lijewski Exp $
-#
-
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
 	$(INSTALL_DATA) $< $@
@@ -223,7 +219,7 @@ dsp: $(DspFileRoot).dsp
 
 $(DspFileRoot).dsp: .dspDepends
 	@(echo Building DSP file = $(DspFileRoot).dsp; \
-	$(PBOXLIB_HOME)/Tools/C_scripts/dsp.mak -p $(DspFileRoot) -t $(TOP) -d $(DIM) \
+	$(BOXLIB_HOME)/Tools/C_scripts/dsp.mak -p $(DspFileRoot) -t $(TOP) -d $(DIM) \
 		-o $(DspFileRoot).dsp -O $(DspOlevel) -f $^)
 
 .PHONY: dsp
