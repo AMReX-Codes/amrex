@@ -6,7 +6,6 @@ TOP = $(BOXLIB_HOME)
 #
 PRECISION     = DOUBLE
 DEBUG	      = TRUE
-PROFILE       = FALSE
 DIM	      = 3
 COMP          = g++
 USE_MPI       = FALSE

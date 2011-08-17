@@ -12,25 +12,6 @@ override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
 override XTRADEFS += -DBL_COALESCE_FABS -DBL_OLD_STL
 endif
 
-ifeq ($(PROFILE), TRUE)
-#
-# The following are for apprentice
-# apprentice is broken on the T3E -- vince
-#
-#CXXPRFF	 += -happrentice
-#XTRALIBS += -lapp
-#FPRFF += -eA
-#
-# The following is for pat
-#
-ifeq ($(COMP),CC)
-XTRALIBS += -lpat pat.cld
-endif
-ifeq ($(COMP),KCC)
-XTRALIBS += --backend -lpat --backend pat.cld
-endif
-endif
-
 FC     = f90 -M 1110
 FOPTF += -O,aggress,pipeline2,vector3,split0 -apad 
 FDEBF += -g

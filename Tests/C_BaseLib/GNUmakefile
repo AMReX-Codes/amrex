@@ -12,8 +12,6 @@ DEBUG        = TRUE
 DEBUG        = FALSE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
-PROFILE      = TRUE
-PROFILE      = FALSE
 
 #DEFINES += -DBL_COALESCE_FABS
 

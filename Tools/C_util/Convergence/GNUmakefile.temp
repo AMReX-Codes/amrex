@@ -1,5 +1,4 @@
 PRECISION = DOUBLE
-PROFILE   = FALSE
 COMP      = KCC
 DEBUG     = FALSE
 DIM       = 2
@@ -8,11 +7,6 @@ BOXLIB_HOME = ../..
 include $(BOXLIB_HOME)/mk/Make.defs
 
 USE_ARRAYVIEW = FALSE
-ifeq ($(PROFILE), FALSE)
-ifeq ($(DEBUG), TRUE)
-USE_ARRAYVIEW = TRUE
-endif
-endif
 
 #USE_MPI=TRUE
 USE_MPI=FALSE

@@ -6,7 +6,6 @@ TOP = $(BOXLIB_HOME)
 #
 PRECISION     = DOUBLE
 DEBUG	      = FALSE
-PROFILE       = FALSE
 DIM	      = 3
 COMP          = KCC
 #
