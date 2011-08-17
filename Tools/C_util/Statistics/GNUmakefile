@@ -1,9 +1,6 @@
-#
-# $Id: GNUmakefile,v 1.11 2009-12-21 21:51:12 gpau Exp $
-#
-PBOXLIB_HOME = ../../
+BOXLIB_HOME = ../../
 
-TOP = $(PBOXLIB_HOME)
+TOP = $(BOXLIB_HOME)
 #
 # Variables for the user to set ...
 #
@@ -17,17 +14,7 @@ COMP          = Intel
 FCOMP         = Intel
 USE_MPI       = FALSE
 USE_MPI       = TRUE
-#
-# The only stencils in which we're interested when using USE_HGPROJ_SERIAL.
-#
-ifeq ($(USE_HGPROJ_SERIAL),TRUE)
-DEFINES += -DBL_USE_HGPROJ_SERIAL
-ifeq ($(DIM),2)
-PRVERSION = v5
-else
-PRVERSION = v7
-endif
-endif
+
 #
 # Base name of the executable.
 #
@@ -39,11 +26,6 @@ CEXE_sources += $(EBASE).cpp
 
 include $(TOP)/mk/Make.defs ./Make.package
 XTRALIBS += -ldl
-
-ifeq ($(USE_ARRAYVIEW),TRUE)
-  DEFINES += -DBL_USE_ARRAYVIEW
-  DEFINES += -DBL_ARRAYVIEW_TAGBOX
-endif
 
 fincludes=$(includes)
 
