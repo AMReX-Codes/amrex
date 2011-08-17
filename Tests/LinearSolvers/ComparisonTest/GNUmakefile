@@ -1,6 +1,6 @@
 BOXLIB_HOME := ../../..
 
-USE_F90_MG := 
+USE_F90_MG := TRUE
 
 PRECISION = DOUBLE
 
@@ -44,7 +44,7 @@ INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 vpathdir += $(BOXLIB_HOME)/Src/C_AMRLib
 
 ifdef USE_F90_MG
-  DEFINES += -DMG_USE_FBOXLIB
+  DEFINES += -DUSE_F90_MG
 
   include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
@@ -53,16 +53,6 @@ ifdef USE_F90_MG
   include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
   vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
-
-# INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/SPARSKIT
-# vpathdir          += $(FBOXLIB_HOME)/extern/SPARSKIT
-
-# INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/LAPACK
-# vpathdir          += $(FBOXLIB_HOME)/extern/LAPACK
-
-# include $(FBOXLIB_HOME)/extern/BLAS/Make.package
-# INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/BLAS
-# vpathdir          += $(FBOXLIB_HOME)/extern/BLAS
 
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
   vpathdir          += $(BOXLIB_HOME)/Src/F_BaseLib
