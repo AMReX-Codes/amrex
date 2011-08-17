@@ -3,13 +3,18 @@
 #
 DIM          = 2
 DIM          = 3
+
 PRECISION    = DOUBLE
+
 COMP = PathScale
 FCOMP = PathScale
+
 COMP  = Intel
 FCOMP = Intel
+
 DEBUG        = TRUE
 DEBUG        = FALSE
+
 USE_MPI      = TRUE
 USE_MPI      = FALSE
 
