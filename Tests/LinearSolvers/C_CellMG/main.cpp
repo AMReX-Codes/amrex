@@ -17,12 +17,6 @@
 #include <VisMF.H>
 #include <COEF_F.H>
 
-#include <WorkQueue.H>
-
-#ifdef MG_USE_FBOXLIB
-#include <MGT_Solver.H>
-#endif
-
 static
 Real
 mfnorm_0_valid (const MultiFab& mf)
@@ -440,68 +434,6 @@ main (int argc, char* argv[])
       //
       // Build operator, set coeffs, build solver, solve
       //
-#ifdef MG_USE_FBOXLIB
-      if ( use_fboxlib )
-      {
-        int num_levels = 1;
-        std::vector<BoxArray> bav(num_levels);
-        std::vector<DistributionMapping> dmv(num_levels);
-        bool nodal = false;
-        bav[0] = bs;
-        dmv[0] = acoefs.DistributionMap();
-        int mg_bc[2*BL_SPACEDIM];
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-          {
-            if ( geom.isPeriodic(i) )
-              {
-                mg_bc[i*2 + 0] = MGT_BC_PER;
-                mg_bc[i*2 + 1] = MGT_BC_PER;
-              }
-            else
-              {
-                mg_bc[i*2 + 0] = MGT_BC_DIR;
-                mg_bc[i*2 + 1] = MGT_BC_DIR;
-              }
-          }
-        std::vector<Geometry> geomv(num_levels);
-        geomv[0] = geom;
-        MGT_Solver mgt_solver(geomv, mg_bc, bav, dmv, nodal);
-
-        // xa (xb) is distance from left (right) hand side of grid to where bc is to be applied        
-        Array< Array<Real> > xa(num_levels);
-        Array< Array<Real> > xb(num_levels);          
-        xa[0].resize(BL_SPACEDIM);
-        xb[0].resize(BL_SPACEDIM);
-        
-        for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-          const Real dx_crse = dx[i];
-          xa[0][i] = 0.5 * dx_crse; // As typical c-f interface
-          xb[0][i] = 0.5 * dx_crse;
-          xa[0][i] = 0.; // As C++ version above
-          xb[0][i] = 0.;
-        }
-        
-        // Set alpha and beta as in (alpha - del dot beta grad)
-        const MultiFab* aa_p[1];
-        aa_p[0] = &(acoefs);
-        const MultiFab* bb_p[1][BL_SPACEDIM];
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            bb_p[0][i] = &(bcoefs[i]);
-        }
-        Real beta = b[0]; //Note MGT does not support beta[DIM]
-        mgt_solver.set_visc_coefficients(aa_p, bb_p, beta, xa, xb);
-
-        MultiFab* soln_p[1];
-        MultiFab* rhs_p[1];
-        soln_p[0] = &soln;
-        rhs_p[0] = &rhs;
-        Real final_resnorm;
-
-        mgt_solver.solve(soln_p, rhs_p, tolerance, tolerance_abs, bd, final_resnorm);
-      }
-      else
-#endif
       {
 	  ABecLaplacian lp(bd, dx);
 	  lp.setScalars(alpha, beta);
