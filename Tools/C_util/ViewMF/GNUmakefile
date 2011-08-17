@@ -1,9 +1,6 @@
-#
-# $Id: GNUmakefile,v 1.8 2011-03-08 18:47:47 marc Exp $
-#
-PBOXLIB_HOME = ../..
+BOXLIB_HOME = ../..
 
-TOP = $(PBOXLIB_HOME)
+TOP = $(BOXLIB_HOME)
 #
 # Variables for the user to set ...
 #
