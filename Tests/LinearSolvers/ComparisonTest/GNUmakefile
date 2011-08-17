@@ -1,5 +1,4 @@
-PBOXLIB_HOME := ../..
-FBOXLIB_HOME := ../../../fParallel
+BOXLIB_HOME := ../..
 
 PRECISION = DOUBLE
 PROFILE   = FALSE
@@ -22,41 +21,41 @@ USE_MPI=FALSE
 
 EBASE = main
 
-include $(PBOXLIB_HOME)/mk/Make.defs
+include $(BOXLIB_HOME)/mk/Make.defs
 
 # multigrid test sources
 CEXE_sources += $(EBASE).cpp
 
 include Make.package
-include $(PBOXLIB_HOME)/bndrylib/Make.package
-include $(PBOXLIB_HOME)/mglib/Make.package
-include $(PBOXLIB_HOME)/BoxLib/Make.package
+include $(BOXLIB_HOME)/bndrylib/Make.package
+include $(BOXLIB_HOME)/mglib/Make.package
+include $(BOXLIB_HOME)/BoxLib/Make.package
 
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
-vpathdir += $(PBOXLIB_HOME)/bndrylib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/bndrylib
+vpathdir += $(BOXLIB_HOME)/bndrylib
 
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
-vpathdir += $(PBOXLIB_HOME)/BoxLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/BoxLib
+vpathdir += $(BOXLIB_HOME)/BoxLib
 
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
-vpathdir += $(PBOXLIB_HOME)/mglib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/mglib
+vpathdir += $(BOXLIB_HOME)/mglib
 
 # We need these from amrlib 
 CEXE_sources += BCRec.cpp 
 CEXE_headers += BCRec.H BC_TYPES.H
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/amrlib
-vpathdir += $(PBOXLIB_HOME)/amrlib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/amrlib
+vpathdir += $(BOXLIB_HOME)/amrlib
 
 ifdef FBOXLIB_HOME
   DEFINES += -DMG_USE_FBOXLIB
 
-  include $(PBOXLIB_HOME)/MGT_Solver/Make.package
-  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/MGT_Solver
-  vpathdir          += $(PBOXLIB_HOME)/MGT_Solver
+  include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
+  vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
 
-  include $(FBOXLIB_HOME)/mg/source/FParallelMG.mak
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/mg/source
-  vpathdir          += $(FBOXLIB_HOME)/mg/source
+  include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
+  vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
 
   INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/SPARSKIT
   vpathdir          += $(FBOXLIB_HOME)/extern/SPARSKIT
@@ -68,8 +67,8 @@ ifdef FBOXLIB_HOME
   INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/extern/BLAS
   vpathdir          += $(FBOXLIB_HOME)/extern/BLAS
 
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/boxlib
-  vpathdir          += $(FBOXLIB_HOME)/boxlib
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
+  vpathdir          += $(BOXLIB_HOME)/Src/F_BaseLib
 endif
 
 vpath %.c   : . $(vpathdir)
@@ -82,4 +81,4 @@ vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
-include $(PBOXLIB_HOME)/mk/Make.rules
+include $(BOXLIB_HOME)/mk/Make.rules

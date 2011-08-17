@@ -1,4 +1,4 @@
-PBOXLIB_HOME := ../..
+BOXLIB_HOME := ../..
 
 PROFILE = FALSE
 PRECISION = DOUBLE
@@ -14,7 +14,7 @@ USE_ARRAYVIEW = FALSE
 
 EBASE = main
 
-include $(PBOXLIB_HOME)/mk/Make.defs
+include $(BOXLIB_HOME)/mk/Make.defs
 
 CXXFLAGS +=
 CXXOPTF  +=
@@ -22,28 +22,28 @@ CXXDEBF  +=
 
 include Make.package
 
-include $(PBOXLIB_HOME)/tensorMG/Make.package
-include $(PBOXLIB_HOME)/bndrylib/Make.package
-include $(PBOXLIB_HOME)/mglib/Make.package
-include $(PBOXLIB_HOME)/BoxLib/Make.package
+include $(BOXLIB_HOME)/Src/LinearSolvers/C_TensorMG/Make.package
+include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
+include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG/Make.package
+include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/tensorMG
-vpathdir += $(PBOXLIB_HOME)/tensorMG
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
-vpathdir += $(PBOXLIB_HOME)/bndrylib
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
-vpathdir += $(PBOXLIB_HOME)/BoxLib
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/iamrlib
-vpathdir += $(PBOXLIB_HOME)/iamrlib
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
-vpathdir += $(PBOXLIB_HOME)/mglib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/tensorMG
+vpathdir += $(BOXLIB_HOME)/tensorMG
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/bndrylib
+vpathdir += $(BOXLIB_HOME)/bndrylib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/BoxLib
+vpathdir += $(BOXLIB_HOME)/BoxLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/iamrlib
+vpathdir += $(BOXLIB_HOME)/iamrlib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/mglib
+vpathdir += $(BOXLIB_HOME)/mglib
 
 # We need these from amrlib 
 
 CEXE_sources += BCRec.cpp 
 CEXE_headers += BCRec.H BC_TYPES.H
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/amrlib
-vpathdir += $(PBOXLIB_HOME)/amrlib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/amrlib
+vpathdir += $(BOXLIB_HOME)/amrlib
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
@@ -55,6 +55,6 @@ vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
-include $(PBOXLIB_HOME)/mk/Make.rules
+include $(BOXLIB_HOME)/mk/Make.rules
 
 

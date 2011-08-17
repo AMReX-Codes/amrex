@@ -93,7 +93,7 @@ ifeq ($(ARCH),Linux)
   endif
 
   ifeq ($(COMP),Cray)
-    include ./mk/comps/Linux_cray.mak
+    include $(BOXLIB_HOME)/F_mk/comps/Linux_cray.mak
   endif
 
   ifeq ($(COMP),xt4)
@@ -156,10 +156,10 @@ endif
 f_includes = $(addprefix -I , $(FINCLUDE_LOCATIONS))
 c_includes = $(addprefix -I , $(INCLUDE_LOCATIONS))
 
-TCSORT  :=  ../F_scripts/tcsort.pl
-MODDEP  :=  ../F_scripts/moddep.pl
-MKDEP   :=  ../F_scripts/mkdep.pl
-F90DOC  :=  ../F_scripts/f90doc/f90doc
+TCSORT  :=  $(BOXLIB_HOME)/Tools/F_scripts/tcsort.pl
+MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
+MKDEP   :=  $(BOXLIB_HOME)/Tools/F_scripts/mkdep.pl
+F90DOC  :=  $(BOXLIB_HOME)/Tools/F_scripts/f90doc/f90doc
 
 FPPFLAGS += $(fpp_flags) $(f_includes)
 LDFLAGS  += $(fld_flags)

@@ -4,8 +4,8 @@ COMP      = KCC
 DEBUG     = FALSE
 DIM       = 2
 
-PBOXLIB_HOME = ../..
-include $(PBOXLIB_HOME)/mk/Make.defs
+BOXLIB_HOME = ../..
+include $(BOXLIB_HOME)/mk/Make.defs
 
 USE_ARRAYVIEW = FALSE
 ifeq ($(PROFILE), FALSE)
@@ -25,15 +25,15 @@ EBASE = DiffFab
 HERE = .
 
 INCLUDE_LOCATIONS += $(HERE)
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pBoxLib_2
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/amrlib
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pAmrvis
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/pBoxLib_2
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/amrlib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/pAmrvis
 
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/util
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/bndrylib
 
 LIBRARIES += -lbox$(DIM)d -lX11
-LIBRARY_LOCATIONS += $(PBOXLIB_HOME)/lib/$(machineSuffix)
+LIBRARY_LOCATIONS += $(BOXLIB_HOME)/lib/$(machineSuffix)
 LIBRARY_LOCATIOSN += ../../lib/$(machineSuffix)
 MPI_HOME =
 
@@ -95,11 +95,11 @@ include $(HERE)/Make.package.temp
 # both AmrDerive.cpp and AmrDeriveIntegrate.cpp.
 #
 
-vpath %.cpp $(HERE) $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/pAmrvis $(PBOXLIB_HOME)/util $(PBOXLIB_HOME)/bndrylib
-vpath %.F $(HERE) $(PBOXLIB_HOME)/pAmrvis $(PBOXLIB_HOME)/bndrylib
+vpath %.cpp $(HERE) $(BOXLIB_HOME)/pBoxLib_2 $(BOXLIB_HOME)/amrlib $(BOXLIB_HOME)/pAmrvis $(BOXLIB_HOME)/util $(BOXLIB_HOME)/bndrylib
+vpath %.F $(HERE) $(BOXLIB_HOME)/pAmrvis $(BOXLIB_HOME)/bndrylib
 vpath %.a $(LIBRARY_LOCATIONS)
 
 all: $(executable)
 
-include $(PBOXLIB_HOME)/mk/Make.rules
+include $(BOXLIB_HOME)/mk/Make.rules
 
