@@ -84,14 +84,14 @@ private:
     //
     int ngrow;
     //
+    // The type of Error.
+    //
+    ErrorType err_type; 
+    //
     // Functions to do error estimation.
     //
     ErrorFunc  err_func;
     ErrorFunc2 err_func2;
-    //
-    // The type of Error.
-    //
-    ErrorType err_type; 
 };
 
 //

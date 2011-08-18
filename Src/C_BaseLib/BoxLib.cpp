@@ -201,8 +201,6 @@ BoxLib::Assert (const char* EX,
 
 namespace
 {
-    Profiler* bl_prf;
-
     std::stack<BoxLib::PTR_TO_VOID_FUNC> The_Finalize_Function_Stack;
 }
 
