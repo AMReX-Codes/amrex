@@ -1,8 +1,4 @@
 #
-# Make.defs $Id: Make.defs,v 1.168 2011-07-19 21:12:32 lijewski Exp $
-#
-
-#
 # Establish some defaults, assuming that they are not already set by the
 # Makefile that includes this file.
 #
@@ -28,10 +24,6 @@ endif
 ifeq ($(findstring T3E, $(UNAMEM)), T3E)
     MACHINE := T3E
 ifeq ($(findstring mcurie, $(UNAMEN)), mcurie)
-    WHICHT3E := NERSC
-endif
-# currently both nersc t3es have the same home path names
-ifeq ($(findstring pierre, $(UNAMEN)), pierre)
     WHICHT3E := NERSC
 endif
 ifeq ($(findstring seymour, $(UNAMEN)), seymour)
@@ -73,7 +65,6 @@ endif
 ifndef MACHINE
     MACHINE := $(shell uname)
 endif
-
 #
 # We'd also like to distinguish between SunOS and Solaris.
 #
@@ -96,7 +87,6 @@ ifeq ($(MACHINE), IRIX64)
     WHICHIRIX64 := MAHLER
   endif
 endif
-
 #
 # Set special flag for the Linux cluster (n2001.lbl.gov)
 #
@@ -216,7 +206,7 @@ ifeq ($(MACHINE), HP-UX)
 endif
 
 ifndef PRECISION
-  PRECISION	= DOUBLE
+  PRECISION = DOUBLE
 endif
 
 ifndef DEBUG
@@ -224,25 +214,24 @@ ifndef DEBUG
 endif
 
 ifndef PROFILE
-  PROFILE	= FALSE
+  PROFILE = FALSE
 endif
 
 ifndef DIM
-  DIM		= 2
+  DIM = 2
 endif
 
 ifndef COMP
-  COMP	= CC
+  COMP = CC
 endif
 
 ifndef FCOMP
-  FCOMP  = f77
+  FCOMP = f77
 endif
 
 ifndef USE_MPI
-  USE_MPI  = FALSE
+  USE_MPI = FALSE
 endif
-
 #
 # Set some reasonable defaults.
 #
@@ -260,29 +249,6 @@ FORTPREP  	= perl $(BOXLIB_HOME)/Tools/C_scripts/strip72 -c
 F90PREP  	= cat
 MKDEP		= perl $(BOXLIB_HOME)/Tools/C_scripts/mkdep
 MODDEP		= perl $(BOXLIB_HOME)/Tools/C_scripts/moddep.pl
-INSTALL		= sh   $(BOXLIB_HOME)/Tools/C_scripts/install-sh -c
-#
-# SunOS ranlib has a problem if the library is installed 444 :-(
-#
-ifeq ($(MACHINE), SunOS)
-INSTALL_DATA 	= $(INSTALL) -m 0644
-else
-INSTALL_DATA 	= $(INSTALL) -m 0444
-endif
-#
-# We assume that INSTALL_ROOT is either set on the command line,
-# set in the environment, or set by a controlling GNUmakefile.
-# It is where the stuff is to be installed. For the guthamr stuff
-# proper, we set this to GUTHAMR_HOME.  If this isn't set,
-# we set it to where guthamr was installed.
-#
-ifndef INSTALL_ROOT
-    INSTALL_ROOT = $(GUTHAMR_HOME)
-endif
-
-ifndef INSTALL_PREFIX
-    INSTALL_PREFIX = $(INSTALL_ROOT)
-endif
 
 RANLIB = true
 
@@ -291,15 +257,13 @@ LIB_OUTPUT_OPTION      = -o $(objTempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 #
-# Generic setup for using g++ ...
+# Generic setup for using gcc/g++ ...
 #
 ifeq ($(COMP),gcc)
     CXXPRFF    := -p
-    CXXOPTF    += -O3
-    CXXDEBF    += -g
-    CXXOPTF    += -g
-    FULLWARN   := -Wall 
-    FULLWARN   += -Wno-sign-compare
+    CXXOPTF    += -g -O3 -fno-exceptions
+    CXXDEBF    += -g -O -fno-exceptions -Wall -Wno-sign-compare
+    FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
@@ -814,8 +778,6 @@ objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
-instSources	= $(CLIB_headers) $(FLIB_headers) $(cLIB_headers) $(T_sources) $(T_headers) $(fLIB_headers) $(f90LIB_headers)
-
 INCLUDE_LOCATIONS += . $(XTRAINCLOC) $(XINCL) $(GNU_STD_INCL)
 LIBRARY_LOCATIONS += . $(XTRALIBLOC) $(XLIBL)
 
@@ -846,14 +808,6 @@ optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib,					\
 			$(addsuffix $(optionsSuffix).a, $(LBASE)))
-
-instIncludeDir	= $(INSTALL_PREFIX)/include
-instLibDir	= $(INSTALL_PREFIX)/lib/$(machineSuffix)
-instBinDir	= $(INSTALL_PREFIX)/bin/$(machineSuffix)
-instScriptDir	= $(INSTALL_PREFIX)/bin
-instHtmlDir	= $(INSTALL_PREFIX)/html
-instInfoDir	= $(INSTALL_PREFIX)/info
-instMkDir	= $(INSTALL_PREFIX)/mk
  
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 

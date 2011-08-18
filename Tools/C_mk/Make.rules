@@ -1,14 +1,4 @@
-$(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
-	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
-	$(INSTALL_DATA) $< $@
 
-$(instLib) : $(optionsLib)
-	@if [ ! -d $(instLibDir) ]; then mkdir -p $(instLibDir); fi
-	$(INSTALL_DATA) $< $@
-	$(RANLIB) $@
-
-install: $(instLib) $(addprefix $(instIncludeDir)/, $(instSources))
- 
 clean::
 	$(RM) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
 	$(RM) $(optionsLib) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
@@ -35,7 +25,7 @@ TAGS:	$(allSources)
 BROWSE:	$(T_headesr) $(T_sources) $(CEXE_headers) $(CEXE_sources)
 	ebrowse $^
 
-.PHONY:	all clean install TAGS realclean tags BROWSE
+.PHONY:	all clean TAGS realclean tags BROWSE
 #
 # Rules for building executable.
 #
@@ -43,13 +33,6 @@ $(executable):	$(objForExecs)
 	$(PRELINK) $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) \
 		-o $@ $^ $(libraries)
 	@echo SUCCESS
-#
-# Rule for building a purified executable.
-#
-ifdef PURIFY
-%.pure: %
-	$(PURIFY) $(PURIFYFLAGS) $^
-endif
 #
 # Rules for libraries.
 #
@@ -104,7 +87,6 @@ $(objEXETempDir)/%.o: %.f90
 $(objEXETempDir)/%.o: %.f
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	$(fC) $(fFLAGS) $(fincludes) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
-
 #
 # Rules for dependencies in libraries.
 #
@@ -149,7 +131,6 @@ $(depTempDir)/%.d: %.f
 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
-
 #
 # Rules for dependencies in bare object files.
 #
