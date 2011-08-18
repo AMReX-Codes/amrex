@@ -11,6 +11,7 @@ ErrorRec::ErrorRec (const std::string& nm,
     derive_name(nm),
     ngrow(ng),
     err_type(etyp),
+    err_func(0),
     err_func2(f2)
 {}
 
@@ -22,7 +23,8 @@ ErrorRec::ErrorRec (const std::string& nm,
     derive_name(nm),
     ngrow(ng),
     err_type(etyp),
-    err_func(f)
+    err_func(f),
+    err_func2(0)
 {}
 
 const std::string&
