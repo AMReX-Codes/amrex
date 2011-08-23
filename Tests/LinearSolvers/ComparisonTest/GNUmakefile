@@ -1,4 +1,5 @@
-BOXLIB_HOME := ../../..
+# BOXLIB_HOME defines the directory in which we will find all the BoxLib code
+BOXLIB_HOME ?= ../../..
 
 USE_F90_MG := TRUE
 
