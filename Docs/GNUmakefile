@@ -16,7 +16,7 @@ paper.pdf: paper.tex $(pdf_source) $(section_sources) $(pdf_source)
 	pdflatex paper.tex < /dev/null
 	pdflatex paper.tex < /dev/null
 
-pdf:	paper.pdf 
+pdf: paper.pdf 
 
 %.ps: %.dvi
 	dvips -t letter -o $@ $<
