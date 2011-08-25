@@ -257,7 +257,7 @@ c
          if (is_neumann(bct)) then
             do n = 1, nc
                do j = lo(2), hi(2)
-                  phi(lo(1)-1,j,n) = cvmgt(
+                  phi(lo(1)-1,j,n) = merge(
      $                 phi(lo(1),j,n),
      $                 phi(lo(1)-1,j,n),
      $                 mask(lo(1)-1,j) .gt. 0)
@@ -278,14 +278,14 @@ c
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     phi(lo(1)-1, j, n) = cvmgt(
+                     phi(lo(1)-1, j, n) = merge(
      $                    bcval(lo(1)-1,j,n)*coef(-1),
      $                    phi(lo(1)-1, j, n),
      $                    mask(lo(1)-1,j) .gt. 0)
                   end do
                else
                   do j = lo(2), hi(2)
-                     phi(lo(1)-1, j, n) = cvmgt(
+                     phi(lo(1)-1, j, n) = merge(
      $                    0.0D0,
      $                    phi(lo(1)-1, j, n),
      $                    mask(lo(1)-1,j) .gt. 0)
@@ -293,7 +293,7 @@ c
                end if
                do m = 0, lenx
                   do j = lo(2), hi(2)
-                     phi(lo(1)-1,j,n) = cvmgt(
+                     phi(lo(1)-1,j,n) = merge(
      $                    phi(lo(1)-1,j,n)
      $                    + phi(lo(1)+m, j, n)*coef(m),
      $                    phi(lo(1)-1,j,n),
@@ -303,7 +303,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(lo(1),j) = cvmgt(coef(0), 0.0D0,
+                  den(lo(1),j) = merge(coef(0), 0.0D0,
      $                 mask(lo(1)-1,j) .gt. 0)
                end do
             end if
@@ -312,7 +312,7 @@ c
 
             do n = 1, nc
                do j = lo(2), hi(2)
-                  phi(lo(1)-1, j, n) = cvmgt(
+                  phi(lo(1)-1, j, n) = merge(
      $                -phi(lo(1),j,n),
      $                 phi(lo(1)-1, j, n),
      $                 mask(lo(1)-1,j) .gt. 0)
@@ -320,7 +320,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(lo(1),j) = cvmgt(-1.0D0, 0.0D0,
+                  den(lo(1),j) = merge(-1.0D0, 0.0D0,
      $                 mask(lo(1)-1,j) .gt. 0)
                end do
             end if
@@ -337,7 +337,7 @@ c
          if(is_neumann(bct)) then
             do n = 1, nc
                do j = lo(2), hi(2)
-                  phi(hi(1)+1,j,n) = cvmgt(
+                  phi(hi(1)+1,j,n) = merge(
      $                 phi(hi(1), j, n),
      $                 phi(hi(1)+1, j, n),
      $                 mask(hi(1)+1,j) .gt. 0)
@@ -358,14 +358,14 @@ c
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     phi(hi(1)+1,j,n) = cvmgt(
+                     phi(hi(1)+1,j,n) = merge(
      $                    bcval(hi(1)+1,j,n)*coef(-1),
      $                    phi(hi(1)+1,j,n),
      $                    mask(hi(1)+1,j) .gt. 0)
                   end do
                else
                   do j = lo(2), hi(2)
-                     phi(hi(1)+1,j,n) = cvmgt(
+                     phi(hi(1)+1,j,n) = merge(
      $                    0.0D0,
      $                    phi(hi(1)+1,j,n),
      $                    mask(hi(1)+1,j) .gt. 0)
@@ -373,7 +373,7 @@ c
                end if
                do m = 0, lenx
                   do j = lo(2), hi(2)
-                     phi(hi(1)+1,j,n) = cvmgt(
+                     phi(hi(1)+1,j,n) = merge(
      $                    phi(hi(1)+1,j,n)
      $                    + phi(hi(1)-m,j,n)*coef(m),
      $                    phi(hi(1)+1,j,n),
@@ -383,7 +383,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(hi(1),j)   = cvmgt(coef(0), 0.0D0,
+                  den(hi(1),j)   = merge(coef(0), 0.0D0,
      $                 mask(hi(1)+1,j) .gt. 0)
                end do
             end if
@@ -392,7 +392,7 @@ c
 
             do n = 1, nc
                do j = lo(2), hi(2)
-                  phi(hi(1)+1, j, n) = cvmgt(
+                  phi(hi(1)+1, j, n) = merge(
      $                -phi(hi(1),j,n),
      $                 phi(hi(1)+1, j, n),
      $                 mask(hi(1)+1,j) .gt. 0)
@@ -400,7 +400,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do j = lo(2), hi(2)
-                  den(hi(1),j) = cvmgt(-1.0D0, 0.0D0,
+                  den(hi(1),j) = merge(-1.0D0, 0.0D0,
      $                 mask(hi(1)+1,j) .gt. 0)
                end do
             end if
@@ -417,7 +417,7 @@ c
          if(is_neumann(bct)) then
             do n = 1, nc
                do i = lo(1),hi(1)
-                  phi(i,lo(2)-1,n) = cvmgt(
+                  phi(i,lo(2)-1,n) = merge(
      $                 phi(i,lo(2),n),
      $                 phi(i,lo(2)-1,n),
      $                 mask(i,lo(2)-1) .gt. 0)
@@ -438,14 +438,14 @@ c
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     phi(i,lo(2)-1,n) = cvmgt(
+                     phi(i,lo(2)-1,n) = merge(
      $                    bcval(i,lo(2)-1,n)*coef(-1),
      $                    phi(i,lo(2)-1,n),
      $                    mask(i,lo(2)-1) .gt. 0)
                   end do
                else
                   do i = lo(1), hi(1)
-                     phi(i,lo(2)-1,n) = cvmgt(
+                     phi(i,lo(2)-1,n) = merge(
      $                    0.0D0,
      $                    phi(i,lo(2)-1,n),
      $                    mask(i,lo(2)-1) .gt. 0)
@@ -453,7 +453,7 @@ c
                end if
                do m = 0, leny
                   do i = lo(1), hi(1)
-                     phi(i, lo(2)-1, n) = cvmgt(
+                     phi(i, lo(2)-1, n) = merge(
      $                    phi(i, lo(2)-1,n)
      $                    + phi(i, lo(2)+m,n)*coef(m),
      $                    phi(i, lo(2)-1, n),
@@ -463,7 +463,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i, lo(2))   = cvmgt(coef(0), 0.0D0,
+                  den(i, lo(2))   = merge(coef(0), 0.0D0,
      $                 mask(i, lo(2)-1) .gt. 0)
                end do
             end if
@@ -472,7 +472,7 @@ c
 
             do n = 1, nc
                do i = lo(1), hi(1)
-                  phi(i,lo(2)-1,n) = cvmgt(
+                  phi(i,lo(2)-1,n) = merge(
      $                -phi(i,lo(2),n),
      $                 phi(i,lo(2)-1,n),
      $                 mask(i,lo(2)-1) .gt. 0)
@@ -480,7 +480,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i,lo(2)) = cvmgt(-1.0D0, 0.0D0,
+                  den(i,lo(2)) = merge(-1.0D0, 0.0D0,
      $                 mask(i,lo(2)-1) .gt. 0)
                end do
             end if
@@ -497,7 +497,7 @@ c
          if(is_neumann(bct)) then
             do n = 1, nc
                do i = lo(1), hi(1)
-                  phi(i,hi(2)+1,n) = cvmgt(
+                  phi(i,hi(2)+1,n) = merge(
      $                 phi(i,hi(2),n),
      $                 phi(i,hi(2)+1,n),
      $                 mask(i,hi(2)+1) .gt. 0)
@@ -519,14 +519,14 @@ c
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     phi(i,hi(2)+1,n) = cvmgt(
+                     phi(i,hi(2)+1,n) = merge(
      $                    bcval(i,hi(2)+1,n)*coef(-1),
      $                    phi(i,hi(2)+1,n),
      $                    mask(i,hi(2)+1) .gt. 0)
                   end do
                else
                   do i = lo(1), hi(1)
-                     phi(i,hi(2)+1,n) = cvmgt(
+                     phi(i,hi(2)+1,n) = merge(
      $                    0.0D0,
      $                    phi(i,hi(2)+1,n),
      $                    mask(i,hi(2)+1) .gt. 0)
@@ -534,7 +534,7 @@ c
                end if
                do m = 0, leny
                   do i = lo(1), hi(1)
-                     phi(i, hi(2)+1,n) = cvmgt(
+                     phi(i, hi(2)+1,n) = merge(
      $                    phi(i,hi(2)+1,n)
      $                    + phi(i, hi(2)-m,n)*coef(m),
      $                    phi(i,hi(2)+1,n),
@@ -544,7 +544,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i,hi(2))   = cvmgt(coef(0), 0.0D0,
+                  den(i,hi(2))   = merge(coef(0), 0.0D0,
      $                 mask(i,hi(2)+1) .gt. 0)
                end do
             end if
@@ -553,7 +553,7 @@ c
 
             do n = 1, nc
                do i = lo(1), hi(1)
-                  phi(i,hi(2)+1,n) = cvmgt(
+                  phi(i,hi(2)+1,n) = merge(
      $                -phi(i,hi(2),n),
      $                 phi(i,hi(2)+1,n),
      $                 mask(i,hi(2)+1) .gt. 0)
@@ -561,7 +561,7 @@ c
             end do
             if ( flagden .eq. 1 ) then
                do i = lo(1), hi(1)
-                  den(i,hi(2)) = cvmgt(-1.0D0, 0.0D0,
+                  den(i,hi(2)) = merge(-1.0D0, 0.0D0,
      $                 mask(i,hi(2)+1) .gt. 0)
                end do
             end if

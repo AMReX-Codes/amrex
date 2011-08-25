@@ -364,7 +364,7 @@ c ::: ::::: compute slopes in x direction
               forw = crse(i+ist,n)-crse(i,n)
               back = crse(i,n)-crse(i-ist,n)
               slp = sign(one,cen)*min(abs(cen),abs(forw),abs(back))
-              cslope(i,1)=cvmgp(slp,zero,forw*back)
+              cslope(i,1)=merge(slp,zero,forw*back>=0.0)
 220       continue
 
 c ::: .....::::: strip out a fine grid slope vector
@@ -464,7 +464,7 @@ c ::: local var
 c ::: ::::: added to prevent underflow for small crse values
       do n = 1, nvar 
         do i = clo, chi 
-          crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0d-50)
+          crse(i,n) = merge(crse(i,n),zero,abs(crse(i,n)).gt.1.0d-50)
         enddo
       enddo
 
@@ -477,7 +477,7 @@ c ::: ::::: compute slopes in x direction
                forw = two*(crse(i+ist,n)-crse(i,n))
                back = two*(crse(i,n)-crse(i-ist,n))
                slp  = min(abs(forw),abs(back))
-               slp  = cvmgp(slp,zero,forw*back)
+               slp  = merge(slp,zero,forw*back>=0.0)
                cslope(i,1)=sign(one,cen)*min(slp,abs(cen))
             enddo
             if (xok) then
@@ -490,7 +490,7 @@ c               if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
                      forw = two*(crse(i+ist,n)-crse(i,n))
                      back = two*(crse(i,n)-crse(i-ist,n))
                      slp  = min(abs(forw),abs(back))
-                     slp  = cvmgp(slp,zero,forw*back)
+                     slp  = merge(slp,zero,forw*back>=0.0)
                      cslope(i,1)=sgn*min(slp,abs(cen))
                   enddo
                endif
@@ -502,7 +502,7 @@ c               if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
                      forw = two*(crse(i+ist,n)-crse(i,n))
                      back = two*(crse(i,n)-crse(i-ist,n))
                      slp  = min(abs(forw),abs(back))
-                     slp  = cvmgp(slp,zero,forw*back)
+                     slp  = merge(slp,zero,forw*back>=0.0)
                      cslope(i,1)=sgn*min(slp,abs(cen))
                   enddo
                endif
@@ -733,7 +733,7 @@ c
 c ...     Prevent underflow for small crse values.
 c
           do i = cslopelo(1)-1, cslopehi(1)+1
-             crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0d-50)
+             crse(i,n) = merge(crse(i,n),zero,abs(crse(i,n)).gt.1.0d-50)
           end do
 c
 c ...     Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
@@ -760,7 +760,7 @@ c
              forw = two*(crse(i+1,n)-crse(i,n))
              back = two*(crse(i,n)-crse(i-1,n))
              slp  = min(abs(forw),abs(back))
-             slp  = cvmgp(slp,zero,forw*back)
+             slp  = merge(slp,zero,forw*back>=0.0)
              lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
           end do
 
@@ -778,7 +778,7 @@ c
             forw = two*(crse(i+1,n)-crse(i,n))
             back = two*(crse(i,n)-crse(i-1,n))
             slp  = min(abs(forw),abs(back))
-            slp  = cvmgp(slp,zero,forw*back)
+            slp  = merge(slp,zero,forw*back>=0.0)
             lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
           end if
 
@@ -796,7 +796,7 @@ c
             forw = two*(crse(i+1,n)-crse(i,n))
             back = two*(crse(i,n)-crse(i-1,n))
             slp  = min(abs(forw),abs(back))
-            slp  = cvmgp(slp,zero,forw*back)
+            slp  = merge(slp,zero,forw*back>=0.0)
             lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
           end if
 
@@ -831,9 +831,9 @@ c
            do n = 1, nvar
              do i=cslopelo(1), cslopehi(1)
                 denom = uc_xslope(i,n)
-                denom = cvmgt(denom,one,denom.ne.zero)
+                denom = merge(denom,one,denom.ne.zero)
                 factorn = lc_xslope(i,n)/denom
-                factorn = cvmgt(one,factorn,denom.eq.zero)
+                factorn = merge(one,factorn,denom.eq.zero)
                 xslope_factor(i) = min(xslope_factor(i),factorn)
              end do
            end do

@@ -1062,7 +1062,7 @@ c
          do n = 1, nc
             if (is_neumann(bct(n))) then
                do j = lo(2), hi(2)
-                  u(lo(1)-1,j,n) = cvmgt(
+                  u(lo(1)-1,j,n) = merge(
      $                 u(lo(1),j,n),
      $                 u(lo(1)-1,j,n),
      $                 mask(lo(1)-1,j) .gt. 0)
@@ -1106,14 +1106,14 @@ c     :::::: upper left side
                call polyInterpCoeff(xInt, x, lenx+2, coef)
                if ( flagbc .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     u(lo(1)-1, j, n) = cvmgt(
+                     u(lo(1)-1, j, n) = merge(
      $                    bcval(lo(1)-1,j,n)*coef(-1),
      $                    u(lo(1)-1, j, n),
      $                    mask(lo(1)-1,j) .gt. 0)
                   enddo
                else
                   do j = lo(2), hi(2)
-                     u(lo(1)-1, j, n) = cvmgt(
+                     u(lo(1)-1, j, n) = merge(
      $                    0.0,
      $                    u(lo(1)-1, j, n),
      $                    mask(lo(1)-1,j) .gt. 0)
@@ -1121,7 +1121,7 @@ c     :::::: upper left side
                endif
                do m = 0, lenx
                   do j = lo(2), hi(2)
-                     u(lo(1)-1,j,n) = cvmgt(
+                     u(lo(1)-1,j,n) = merge(
      $                    u(lo(1)-1,j,n)
      $                    + u(lo(1)+m, j, n)*coef(m),
      $                    u(lo(1)-1,j,n),
@@ -1130,7 +1130,7 @@ c     :::::: upper left side
                enddo
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     den(lo(1),j,n) = cvmgt(coef(0), 0.0,
+                     den(lo(1),j,n) = merge(coef(0), 0.0,
      $                    mask(lo(1)-1,j) .gt. 0)
                   enddo
                endif
@@ -1216,7 +1216,7 @@ c     :::::: upper left side
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                
                do j = lo(2), hi(2)
-                  u(lo(1)-1, j, n) = cvmgt(
+                  u(lo(1)-1, j, n) = merge(
      $                 -u(lo(1),j,n),
      $                 u(lo(1)-1, j, n),
      $                 mask(lo(1)-1,j) .gt. 0)
@@ -1224,7 +1224,7 @@ c     :::::: upper left side
                enddo
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     den(lo(1),j,n) = cvmgt(-1.0, 0.0,
+                     den(lo(1),j,n) = merge(-1.0, 0.0,
      $                    mask(lo(1)-1,j) .gt. 0)
                   enddo
                endif
@@ -1242,7 +1242,7 @@ c
          do n = 1, nc
             if(is_neumann(bct(n))) then
                do j = lo(2), hi(2)
-                  u(hi(1)+1,j,n) = cvmgt(
+                  u(hi(1)+1,j,n) = merge(
      $                 u(hi(1), j, n),
      $                 u(hi(1)+1, j, n),
      $                 mask(hi(1)+1,j) .gt. 0)
@@ -1286,14 +1286,14 @@ c     :::::: upper right side
                call polyInterpCoeff(xInt, x, lenx+2, coef)
                if ( flagbc .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     u(hi(1)+1,j,n) = cvmgt(
+                     u(hi(1)+1,j,n) = merge(
      $                    bcval(hi(1)+1,j,n)*coef(-1),
      $                    u(hi(1)+1,j,n),
      $                    mask(hi(1)+1,j) .gt. 0)
                   enddo
                else
                   do j = lo(2), hi(2)
-                     u(hi(1)+1,j,n) = cvmgt(
+                     u(hi(1)+1,j,n) = merge(
      $                    0.0,
      $                    u(hi(1)+1,j,n),
      $                    mask(hi(1)+1,j) .gt. 0)
@@ -1301,7 +1301,7 @@ c     :::::: upper right side
                endif
                do m = 0, lenx
                   do j = lo(2), hi(2)
-                     u(hi(1)+1,j,n) = cvmgt(
+                     u(hi(1)+1,j,n) = merge(
      $                    u(hi(1)+1,j,n)
      $                    + u(hi(1)-m,j,n)*coef(m),
      $                    u(hi(1)+1,j,n),
@@ -1310,7 +1310,7 @@ c     :::::: upper right side
                enddo
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     den(hi(1),j,n)   = cvmgt(coef(0), 0.0,
+                     den(hi(1),j,n)   = merge(coef(0), 0.0,
      $                    mask(hi(1)+1,j) .gt. 0)
                   enddo
                endif
@@ -1396,7 +1396,7 @@ c     :::::: upper right side
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                
                do j = lo(2), hi(2)
-                  u(hi(1)+1, j, n) = cvmgt(
+                  u(hi(1)+1, j, n) = merge(
      $                 -u(hi(1),j,n),
      $                 u(hi(1)+1, j, n),
      $                 mask(hi(1)+1,j) .gt. 0)
@@ -1405,7 +1405,7 @@ c                 ::: tangential der is trivial
                enddo
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     den(hi(1),j,n) = cvmgt(-1.0, 0.0,
+                     den(hi(1),j,n) = merge(-1.0, 0.0,
      $                    mask(hi(1)+1,j) .gt. 0)
                   enddo
                endif
@@ -1423,7 +1423,7 @@ c
          do n = 1, nc
             if(is_neumann(bct(n))) then
                do i = lo(1),hi(1)
-                  u(i,lo(2)-1,n) = cvmgt(
+                  u(i,lo(2)-1,n) = merge(
      $                 u(i,lo(2),n),
      $                 u(i,lo(2)-1,n),
      $                 mask(i,lo(2)-1) .gt. 0)
@@ -1466,14 +1466,14 @@ c :::::: right bottom side
                call polyInterpCoeff(xInt, x, leny+2, coef)
                if ( flagbc .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     u(i,lo(2)-1,n) = cvmgt(
+                     u(i,lo(2)-1,n) = merge(
      $                    bcval(i,lo(2)-1,n)*coef(-1),
      $                    u(i,lo(2)-1,n),
      $                    mask(i,lo(2)-1) .gt. 0)
                   enddo
                else
                   do i = lo(1), hi(1)
-                     u(i,lo(2)-1,n) = cvmgt(
+                     u(i,lo(2)-1,n) = merge(
      $                    0.0,
      $                    u(i,lo(2)-1,n),
      $                    mask(i,lo(2)-1) .gt. 0)
@@ -1481,7 +1481,7 @@ c :::::: right bottom side
                endif
                do m = 0, leny
                   do i = lo(1), hi(1)
-                     u(i, lo(2)-1, n) = cvmgt(
+                     u(i, lo(2)-1, n) = merge(
      $                    u(i, lo(2)-1,n)
      $                    + u(i, lo(2)+m,n)*coef(m),
      $                    u(i, lo(2)-1, n),
@@ -1490,7 +1490,7 @@ c :::::: right bottom side
                enddo
                if ( flagden .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     den(i, lo(2),n)   = cvmgt(coef(0), 0.0,
+                     den(i, lo(2),n)   = merge(coef(0), 0.0,
      $                    mask(i, lo(2)-1) .gt. 0)
                   enddo
                endif
@@ -1575,7 +1575,7 @@ c :::::: right bottom side
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                
                do i = lo(1), hi(1)
-                  u(i,lo(2)-1,n) = cvmgt(
+                  u(i,lo(2)-1,n) = merge(
      $                 -u(i,lo(2),n),
      $                 u(i,lo(2)-1,n),
      $                 mask(i,lo(2)-1) .gt. 0)
@@ -1583,7 +1583,7 @@ c :::::: right bottom side
                enddo
                if ( flagden .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     den(i,lo(2),n) = cvmgt(-1.0, 0.0,
+                     den(i,lo(2),n) = merge(-1.0, 0.0,
      $                    mask(i,lo(2)-1) .gt. 0)
                   enddo
                endif
@@ -1601,7 +1601,7 @@ c
          do n = 1, nc
             if(is_neumann(bct(n))) then
                do i = lo(1), hi(1)
-                  u(i,hi(2)+1,n) = cvmgt(
+                  u(i,hi(2)+1,n) = merge(
      $                 u(i,hi(2),n),
      $                 u(i,hi(2)+1,n),
      $                 mask(i,hi(2)+1) .gt. 0)
@@ -1645,14 +1645,14 @@ c     :::::: right top side
                call polyInterpCoeff(xInt, x, leny+2, coef)
                if ( flagbc .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     u(i,hi(2)+1,n) = cvmgt(
+                     u(i,hi(2)+1,n) = merge(
      $                    bcval(i,hi(2)+1,n)*coef(-1),
      $                    u(i,hi(2)+1,n),
      $                    mask(i,hi(2)+1) .gt. 0)
                   enddo
                else
                   do i = lo(1), hi(1)
-                     u(i,hi(2)+1,n) = cvmgt(
+                     u(i,hi(2)+1,n) = merge(
      $                    0.0,
      $                    u(i,hi(2)+1,n),
      $                    mask(i,hi(2)+1) .gt. 0)
@@ -1660,7 +1660,7 @@ c     :::::: right top side
                endif
                do m = 0, leny
                   do i = lo(1), hi(1)
-                     u(i, hi(2)+1,n) = cvmgt(
+                     u(i, hi(2)+1,n) = merge(
      $                    u(i,hi(2)+1,n)
      $                    + u(i, hi(2)-m,n)*coef(m),
      $                    u(i,hi(2)+1,n),
@@ -1669,7 +1669,7 @@ c     :::::: right top side
                enddo
                if ( flagden .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     den(i,hi(2),n)   = cvmgt(coef(0), 0.0,
+                     den(i,hi(2),n)   = merge(coef(0), 0.0,
      $                    mask(i,hi(2)+1) .gt. 0)
                   enddo
                endif
@@ -1754,7 +1754,7 @@ c     :::::: right top side
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                
                do i = lo(1), hi(1)
-                  u(i,hi(2)+1,n) = cvmgt(
+                  u(i,hi(2)+1,n) = merge(
      $                 -u(i,hi(2),n),
      $                 u(i,hi(2)+1,n),
      $                 mask(i,hi(2)+1) .gt. 0)
@@ -1762,7 +1762,7 @@ c     :::::: right top side
                enddo
                if ( flagden .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     den(i,hi(2),n) = cvmgt(-1.0, 0.0,
+                     den(i,hi(2),n) = merge(-1.0, 0.0,
      $                    mask(i,hi(2)+1) .gt. 0)
                   enddo
                endif

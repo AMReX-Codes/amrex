@@ -366,7 +366,7 @@ c ...     Prevent underflow for small crse values.
 c
           do j = cslopelo(2)-1,cslopehi(2)+1
              do i = cslopelo(1)-1, cslopehi(1)+1
-                crse(i,j,n) = cvmgt(crse(i,j,n),zero,abs(crse(i,j,n)).gt.1.0d-50)
+                crse(i,j,n) = merge(crse(i,j,n),zero,abs(crse(i,j,n)).gt.1.0d-50)
              end do
           end do
 c
@@ -399,7 +399,7 @@ c
                 forw = two*(crse(i+1,j,n)-crse(i,j,n))
                 back = two*(crse(i,j,n)-crse(i-1,j,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = cvmgp(slp,zero,forw*back)
+                slp  = merge(slp,zero,forw*back>=0.0)
                 lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
              end do
           end do
@@ -423,7 +423,7 @@ c
                forw = two*(crse(i+1,j,n)-crse(i,j,n))
                back = two*(crse(i,j,n)-crse(i-1,j,n))
                slp  = min(abs(forw),abs(back))
-               slp  = cvmgp(slp,zero,forw*back)
+               slp  = merge(slp,zero,forw*back>=0.0)
                lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
             end do
           end if
@@ -447,7 +447,7 @@ c
                forw = two*(crse(i+1,j,n)-crse(i,j,n))
                back = two*(crse(i,j,n)-crse(i-1,j,n))
                slp  = min(abs(forw),abs(back))
-               slp  = cvmgp(slp,zero,forw*back)
+               slp  = merge(slp,zero,forw*back>=0.0)
                lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
             end do
           end if
@@ -459,7 +459,7 @@ c
                 forw = two*(crse(i,j+1,n)-crse(i,j,n))
                 back = two*(crse(i,j,n)-crse(i,j-1,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = cvmgp(slp,zero,forw*back)
+                slp  = merge(slp,zero,forw*back>=0.0)
                 lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
              end do
           end do
@@ -483,7 +483,7 @@ c
                 forw = two*(crse(i,j+1,n)-crse(i,j,n))
                 back = two*(crse(i,j,n)-crse(i,j-1,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = cvmgp(slp,zero,forw*back)
+                slp  = merge(slp,zero,forw*back>=0.0)
                 lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
              end do
           end if
@@ -507,7 +507,7 @@ c
                 forw = two*(crse(i,j+1,n)-crse(i,j,n))
                 back = two*(crse(i,j,n)-crse(i,j-1,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = cvmgp(slp,zero,forw*back)
+                slp  = merge(slp,zero,forw*back>=0.0)
                 lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
              end do
           end if
@@ -551,14 +551,14 @@ c
              do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
                    denom = uc_xslope(i,j,n)
-                   denom = cvmgt(denom,one,denom.ne.zero)
+                   denom = merge(denom,one,denom.ne.zero)
                    factorn = lc_xslope(i,j,n)/denom
-                   factorn = cvmgt(one,factorn,denom.eq.zero)
+                   factorn = merge(one,factorn,denom.eq.zero)
                    xslope_factor(i,j) = min(xslope_factor(i,j),factorn)
                    denom = uc_yslope(i,j,n)
-                   denom = cvmgt(denom,one,denom.ne.zero)
+                   denom = merge(denom,one,denom.ne.zero)
                    factorn = lc_yslope(i,j,n)/denom
-                   factorn = cvmgt(one,factorn,denom.eq.zero)
+                   factorn = merge(one,factorn,denom.eq.zero)
                    yslope_factor(i,j) = min(yslope_factor(i,j),factorn)
                 end do
              end do
@@ -707,7 +707,7 @@ c
 
       do n = 1, nvar 
         do i = clo, chi 
-          crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0d-50)
+          crse(i,n) = merge(crse(i,n),zero,abs(crse(i,n)).gt.1.0d-50)
         end do
       end do
 

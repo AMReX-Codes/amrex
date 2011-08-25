@@ -129,13 +129,13 @@ c
             ioff = MOD(j + redblack,2)
             do i = lo(1) + ioff,hi(1),2
 c     
-               cf0 = cvmgt(f0(lo(1),j), 0.0D0,
+               cf0 = merge(f0(lo(1),j), 0.0D0,
      $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = cvmgt(f1(i,lo(2)), 0.0D0,
+               cf1 = merge(f1(i,lo(2)), 0.0D0,
      $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = cvmgt(f2(hi(1),j), 0.0D0,
+               cf2 = merge(f2(hi(1),j), 0.0D0,
      $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = cvmgt(f3(i,hi(2)), 0.0D0,
+               cf3 = merge(f3(i,hi(2)), 0.0D0,
      $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
@@ -157,13 +157,13 @@ c
          do i = lo(1) + redblack,hi(1),2
              do j = lo(2), hi(2)
 c     
-               cf0 = cvmgt(f0(lo(1),j), 0.0D0,
+               cf0 = merge(f0(lo(1),j), 0.0D0,
      $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = cvmgt(f1(i,lo(2)), 0.0D0,
+               cf1 = merge(f1(i,lo(2)), 0.0D0,
      $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = cvmgt(f2(hi(1),j), 0.0D0,
+               cf2 = merge(f2(hi(1),j), 0.0D0,
      $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = cvmgt(f3(i,hi(2)), 0.0D0,
+               cf3 = merge(f3(i,hi(2)), 0.0D0,
      $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
@@ -200,13 +200,13 @@ c
            do j = lo(2) + redblack,hi(2),2
              do i = lo(1), hi(1)
 c     
-               cf0 = cvmgt(f0(lo(1),j), 0.0D0,
+               cf0 = merge(f0(lo(1),j), 0.0D0,
      $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = cvmgt(f1(i,lo(2)), 0.0D0,
+               cf1 = merge(f1(i,lo(2)), 0.0D0,
      $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = cvmgt(f2(hi(1),j), 0.0D0,
+               cf2 = merge(f2(hi(1),j), 0.0D0,
      $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = cvmgt(f3(i,hi(2)), 0.0D0,
+               cf3 = merge(f3(i,hi(2)), 0.0D0,
      $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
@@ -333,13 +333,13 @@ c
          do j = lo(2), hi(2)
             do i = lo(1),hi(1)
 c     
-               cf0 = cvmgt(f0(lo(1),j), 0.0D0,
+               cf0 = merge(f0(lo(1),j), 0.0D0,
      $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = cvmgt(f1(i,lo(2)), 0.0D0,
+               cf1 = merge(f1(i,lo(2)), 0.0D0,
      $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = cvmgt(f2(hi(1),j), 0.0D0,
+               cf2 = merge(f2(hi(1),j), 0.0D0,
      $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = cvmgt(f3(i,hi(2)), 0.0D0,
+               cf3 = merge(f3(i,hi(2)), 0.0D0,
      $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)

@@ -197,7 +197,7 @@ c
             if (is_neumann(bct(n))) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
-                     u(lo(1)-1,j,k,n) = cvmgt(
+                     u(lo(1)-1,j,k,n) = merge(
      $                    u(lo(1),j,k,n),
      $                    u(lo(1)-1,j,k,n),
      $                    maskw(lo(1)-1,j,k) .gt. 0)
@@ -275,7 +275,7 @@ c ::: ::: ::: Z
                      enddo
                   enddo
                   do j = lo(2), hi(2)
-                     u(lo(1)-1, j, k, n) = cvmgt(
+                     u(lo(1)-1, j, k, n) = merge(
      &                    tmp(j-lo(2)),
      $                    u(lo(1)-1, j,k, n),
      $                    maskw(lo(1)-1,j,k) .gt. 0)
@@ -284,7 +284,7 @@ c ::: ::: ::: Z
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
-                        den(lo(1),j,k,n) = cvmgt(coef(0), 0.0d0,
+                        den(lo(1),j,k,n) = merge(coef(0), 0.0d0,
      $                       maskw(lo(1)-1,j,k) .gt. 0)
                      enddo
                   enddo
@@ -462,7 +462,7 @@ c ::: ::: ::: now endpoints
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
-                     u(lo(1)-1, j, k, n) = cvmgt(
+                     u(lo(1)-1, j, k, n) = merge(
      $                   -u(lo(1),j,k,n),
      $                    u(lo(1)-1,j,k,n),
      $                    maskw(lo(1)-1,j,k) .gt. 0)
@@ -473,7 +473,7 @@ c ::: ::: ::: now endpoints
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
-                        den(lo(1),j,k,n) = cvmgt(-1.0d0, 0.0d0,
+                        den(lo(1),j,k,n) = merge(-1.0d0, 0.0d0,
      $                       maskw(lo(1)-1,j,k) .gt. 0)
                      enddo
                   enddo
@@ -492,7 +492,7 @@ c
             if(is_neumann(bct(n))) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
-                     u(hi(1)+1,j,k,n) = cvmgt(
+                     u(hi(1)+1,j,k,n) = merge(
      $                    u(hi(1), j, k, n),
      $                    u(hi(1)+1, j, k, n),
      $                    maske(hi(1)+1,j,k) .gt. 0)
@@ -569,7 +569,7 @@ c ::: ::: ::: Z
                      enddo
                   enddo
                   do j = lo(2), hi(2)
-                     u(hi(1)+1,j,k,n) = cvmgt(
+                     u(hi(1)+1,j,k,n) = merge(
      $                    tmp(j-lo(2)),
      $                    u(hi(1)+1,j,k,n),
      $                    maske(hi(1)+1,j,k) .gt. 0)
@@ -578,7 +578,7 @@ c ::: ::: ::: Z
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
-                        den(hi(1),j,k,n)   = cvmgt(coef(0), 0.0d0,
+                        den(hi(1),j,k,n)   = merge(coef(0), 0.0d0,
      $                       maske(hi(1)+1,j,k) .gt. 0)
                      enddo
                   enddo
@@ -756,7 +756,7 @@ c ::: ::: ::: now endpoints
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
-                     u(hi(1)+1, j, k, n) = cvmgt(
+                     u(hi(1)+1, j, k, n) = merge(
      $                   -u(hi(1),j,k,n),
      $                    u(hi(1)+1,j,k,n),
      $                    maske(hi(1)+1,j,k) .gt. 0)
@@ -767,7 +767,7 @@ c ::: ::: ::: now endpoints
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do j = lo(2), hi(2)
-                        den(hi(1),j,k,n) = cvmgt(-1.0d0, 0.0d0,
+                        den(hi(1),j,k,n) = merge(-1.0d0, 0.0d0,
      $                       maske(hi(1)+1,j,k) .gt. 0)
                      enddo
                   enddo
@@ -786,7 +786,7 @@ c
             if(is_neumann(bct(n))) then
                do k = lo(3), hi(3)
                   do i = lo(1),hi(1)
-                     u(i,lo(2)-1,k,n) = cvmgt(
+                     u(i,lo(2)-1,k,n) = merge(
      $                    u(i,lo(2),k,n),
      $                    u(i,lo(2)-1,k,n),
      $                    masks(i,lo(2)-1,k) .gt. 0)
@@ -864,7 +864,7 @@ c ::: ::: ::: ::: interior part of south face
                      enddo
                   enddo
                   do i = lo(1), hi(1)
-                     u(i,lo(2)-1,k,n) = cvmgt(
+                     u(i,lo(2)-1,k,n) = merge(
      $                    tmp(i-lo(1)),
      $                    u(i,lo(2)-1,k,n),
      $                    masks(i,lo(2)-1,k) .gt. 0)
@@ -873,7 +873,7 @@ c ::: ::: ::: ::: interior part of south face
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        den(i, lo(2),k,n)   = cvmgt(coef(0), 0.0d0,
+                        den(i, lo(2),k,n)   = merge(coef(0), 0.0d0,
      $                       masks(i, lo(2)-1,k) .gt. 0)
                      enddo
                   enddo
@@ -1050,7 +1050,7 @@ c ::: ::: ::: Z
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
-                     u(i, lo(2)-1, k, n) = cvmgt(
+                     u(i, lo(2)-1, k, n) = merge(
      $                   -u(i,lo(2),k,n),
      $                    u(i,lo(2)-1,k,n),
      $                    masks(i,lo(2)-1,k) .gt. 0)
@@ -1061,7 +1061,7 @@ c ::: ::: ::: Z
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        den(i,lo(2),k,n) = cvmgt(-1.0d0, 0.0d0,
+                        den(i,lo(2),k,n) = merge(-1.0d0, 0.0d0,
      $                       masks(i,lo(2)-1,k) .gt. 0)
                      enddo
                   enddo
@@ -1080,7 +1080,7 @@ c
             if(is_neumann(bct(n))) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
-                     u(i,hi(2)+1,k,n) = cvmgt(
+                     u(i,hi(2)+1,k,n) = merge(
      $                    u(i,hi(2),k,n),
      $                    u(i,hi(2)+1,k,n),
      $                    maskn(i,hi(2)+1,k) .gt. 0)
@@ -1158,7 +1158,7 @@ c ::: ::: ::: ::: interior part of south face
                      enddo
                   enddo
                   do i = lo(1), hi(1)
-                     u(i,hi(2)+1,k,n) = cvmgt(
+                     u(i,hi(2)+1,k,n) = merge(
      $                    tmp(i-lo(1)),
      $                    u(i,hi(2)+1,k,n),
      $                    maskn(i,hi(2)+1,k) .gt. 0)
@@ -1167,7 +1167,7 @@ c ::: ::: ::: ::: interior part of south face
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        den(i,hi(2),k,n)   = cvmgt(coef(0), 0.0d0,
+                        den(i,hi(2),k,n)   = merge(coef(0), 0.0d0,
      $                       maskn(i,hi(2)+1,k) .gt. 0)
                      enddo
                   enddo
@@ -1344,7 +1344,7 @@ c ::: ::: ::: Z
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
-                     u(i, hi(2)+1, k, n) = cvmgt(
+                     u(i, hi(2)+1, k, n) = merge(
      $                   -u(i,hi(2),k,n),
      $                    u(i,hi(2)+1,k,n),
      $                    maskn(i,hi(2)+1,k) .gt. 0)
@@ -1355,7 +1355,7 @@ c ::: ::: ::: Z
                if ( flagden .eq. 1 ) then
                   do k = lo(3), hi(3)
                      do i = lo(1), hi(1)
-                        den(i,hi(2),k,n) = cvmgt(-1.0d0, 0.0d0,
+                        den(i,hi(2),k,n) = merge(-1.0d0, 0.0d0,
      $                       maskn(i,hi(2)+1,k) .gt. 0)
                      enddo
                   enddo
@@ -1374,7 +1374,7 @@ c
            if(is_neumann(bct(n))) then
                do j = lo(2), hi(2)
                   do i = lo(1),hi(1)
-                     u(i,j,lo(3)-1,n) = cvmgt(
+                     u(i,j,lo(3)-1,n) = merge(
      $                    u(i,j,lo(3),n),
      $                    u(i,j,lo(3)-1,n),
      $                    maskb(i,j,lo(3)-1) .gt. 0)
@@ -1452,7 +1452,7 @@ c ::: ::: ::: interior part of bottom face
                      enddo
                   enddo
                   do i=lo(1),hi(1)
-                     u(i,j,lo(3)-1,n) = cvmgt(
+                     u(i,j,lo(3)-1,n) = merge(
      &                    tmp(i-lo(1)),
      &                    u(i,j,lo(3)-1,n),
      &                    maskb(i,j,lo(3)-1).gt. 0 )
@@ -1461,7 +1461,7 @@ c ::: ::: ::: interior part of bottom face
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        den(i, j, lo(3),n)   = cvmgt(coef(0), 0.0d0,
+                        den(i, j, lo(3),n)   = merge(coef(0), 0.0d0,
      $                       maskb(i, j, lo(3)-1) .gt. 0)
                      enddo
                   enddo
@@ -1638,7 +1638,7 @@ c ::: ::: ::: Y
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
-                     u(i, j, lo(3)-1, n) = cvmgt(
+                     u(i, j, lo(3)-1, n) = merge(
      $                   -u(i,j,lo(3),n),
      $                    u(i,j,lo(3)-1,n),
      $                    maskb(i,j,lo(3)-1) .gt. 0)
@@ -1649,7 +1649,7 @@ c ::: ::: ::: Y
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        den(i,j,lo(3),n) = cvmgt(-1.0d0, 0.0d0,
+                        den(i,j,lo(3),n) = merge(-1.0d0, 0.0d0,
      $                       maskb(i,j,lo(3)-1) .gt. 0)
                      enddo
                   enddo
@@ -1668,7 +1668,7 @@ c
             if(is_neumann(bct(n))) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
-                     u(i,j, hi(3)+1,n) = cvmgt(
+                     u(i,j, hi(3)+1,n) = merge(
      $                    u(i,j, hi(3),n),
      $                    u(i,j, hi(3)+1,n),
      $                    maskt(i,j, hi(3)+1) .gt. 0)
@@ -1747,7 +1747,7 @@ c ::: ::: ::: interior part of bottom face
                      enddo
                   enddo
                   do i = lo(1), hi(1)
-                     u(i,j, hi(3)+1,n) = cvmgt(
+                     u(i,j, hi(3)+1,n) = merge(
      $                    tmp(i-lo(1)),
      $                    u(i,j, hi(3)+1,n),
      $                    maskt(i,j, hi(3)+1) .gt. 0)
@@ -1756,7 +1756,7 @@ c ::: ::: ::: interior part of bottom face
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        den(i,j, hi(3),n)   = cvmgt(coef(0), 0.0d0,
+                        den(i,j, hi(3),n)   = merge(coef(0), 0.0d0,
      $                       maskt(i,j, hi(3)+1) .gt. 0)
                      enddo
                   enddo
@@ -1933,7 +1933,7 @@ c ::: ::: ::: Y
             else if ( bct(n) .eq. LO_REFLECT_ODD ) then
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
-                     u(i, j, hi(3)+1, n) = cvmgt(
+                     u(i, j, hi(3)+1, n) = merge(
      $                   -u(i,j,hi(3),n),
      $                    u(i,j,hi(3)+1,n),
      $                    maskt(i,j,hi(3)+1) .gt. 0)
@@ -1944,7 +1944,7 @@ c ::: ::: ::: Y
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        den(i,j,hi(3),n) = cvmgt(-1.0d0, 0.0d0,
+                        den(i,j,hi(3),n) = merge(-1.0d0, 0.0d0,
      $                       maskt(i,j,hi(3)+1) .gt. 0)
                      enddo
                   enddo
