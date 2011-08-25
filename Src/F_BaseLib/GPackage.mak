@@ -1,4 +1,4 @@
-f90sources += BoxLib.f90
+f90sources += boxlib_f.f90
 f90sources += f2kcli$(f2kcli_suf).f90
 
 f90sources += bl_constants.f90
@@ -18,17 +18,17 @@ f90sources += bl_system.f90
 f90sources += bl_timer.f90  
 f90sources += bl_types.f90  
 
-f90sources += box.f90  
+f90sources += box_f.f90  
 f90sources += knapsack.f90 
 f90sources += layout.f90  
-f90sources += boxarray.f90  
+f90sources += boxarray_f.f90  
 f90sources += box_util.f90
 f90sources += fab.f90  
-f90sources += multifab.f90
+f90sources += multifab_f.f90
 f90sources += fabio.f90
 f90sources += plotfile.f90
 f90sources += filler.f90
-f90sources += cluster.f90
+f90sources += cluster_f.f90
 f90sources += interp.f90
 f90sources += fourth_order_interp_coeffs.f90
 f90sources += bc.f90
@@ -50,7 +50,7 @@ f90sources += make_new_grids.f90
 f90sources += tag_boxes.f90
 
 ifdef PARTICLES
-  f90sources += particles.f90
+  f90sources += particles_f.f90
 endif
 
 ifndef MPI
