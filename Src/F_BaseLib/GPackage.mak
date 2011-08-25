@@ -2,7 +2,7 @@ f90sources += boxlib_f.f90
 f90sources += f2kcli$(f2kcli_suf).f90
 
 f90sources += bl_constants.f90
-f90sources += bl_error.f90  
+f90sources += bl_error.f90
 f90sources += bl_IO.f90
 ifdef PROF
   f90sources += bl_prof.f90
@@ -11,19 +11,19 @@ else
 endif
 f90sources += bl_mem_stat.f90
 f90sources += bl_parmparse.f90
-f90sources += bl_space.f90  
-f90sources += bl_stream.f90  
-f90sources += bl_string.f90  
+f90sources += bl_space.f90
+f90sources += bl_stream.f90
+f90sources += bl_string.f90
 f90sources += bl_system.f90
-f90sources += bl_timer.f90  
-f90sources += bl_types.f90  
+f90sources += bl_timer.f90
+f90sources += bl_types.f90
 
-f90sources += box_f.f90  
-f90sources += knapsack.f90 
-f90sources += layout.f90  
-f90sources += boxarray_f.f90  
+f90sources += box_f.f90
+f90sources += knapsack.f90
+f90sources += layout.f90
+f90sources += boxarray_f.f90
 f90sources += box_util.f90
-f90sources += fab.f90  
+f90sources += fab.f90
 f90sources += multifab_f.f90
 f90sources += fabio.f90
 f90sources += plotfile.f90
@@ -40,7 +40,7 @@ f90sources += ml_multifab.f90
 
 f90sources += list_box.f90
 f90sources += sort_box.f90
-f90sources += vector_i.f90 
+f90sources += vector_i.f90
 f90sources += sort_d.f90
 f90sources += sort_i.f90
 
