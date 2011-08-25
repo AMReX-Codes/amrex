@@ -192,7 +192,7 @@ c
       if(cdir .eq. 0) then
          if (is_neumann(bct)) then
             do n = 1, nc
-               phi(lo(1)-1,n) = cvmgt(
+               phi(lo(1)-1,n) = merge(
      $              phi(lo(1),n),
      $              phi(lo(1)-1,n),
      $              mask(lo(1)-1) .gt. 0)
@@ -209,18 +209,18 @@ c
             call polyInterpCoeff(xInt, x, lenx+2, coef)
             do n = 1, nc
                if ( flagbc .eq. 1 ) then
-                  phi(lo(1)-1,n) = cvmgt(
+                  phi(lo(1)-1,n) = merge(
      $                 bcval(lo(1)-1,n)*coef(-1),
      $                 phi(lo(1)-1,n),
      $                 mask(lo(1)-1) .gt. 0)
                else
-                  phi(lo(1)-1,n) = cvmgt(
+                  phi(lo(1)-1,n) = merge(
      $                 0.0D0,
      $                 phi(lo(1)-1,n),
      $                 mask(lo(1)-1) .gt. 0)
                end if
                do m = 0, lenx
-                  phi(lo(1)-1,n) = cvmgt(
+                  phi(lo(1)-1,n) = merge(
      $                 phi(lo(1)-1,n)
      $                 + phi(lo(1)+m,n)*coef(m),
      $                 phi(lo(1)-1,n),
@@ -228,20 +228,20 @@ c
                end do
             end do
             if ( flagden .eq. 1 ) then
-               den(lo(1)) = cvmgt(coef(0), 0.0D0,
+               den(lo(1)) = merge(coef(0), 0.0D0,
      $              mask(lo(1)-1) .gt. 0)
             end if
 
          else if ( bct .eq. LO_REFLECT_ODD ) then
 
             do n = 1, nc
-               phi(lo(1)-1,n) = cvmgt(
+               phi(lo(1)-1,n) = merge(
      $             -phi(lo(1),n),
      $              phi(lo(1)-1,n),
      $              mask(lo(1)-1) .gt. 0)
             end do
             if ( flagden .eq. 1 ) then
-               den(lo(1)) = cvmgt(-1.0D0, 0.0D0,
+               den(lo(1)) = merge(-1.0D0, 0.0D0,
      $              mask(lo(1)-1) .gt. 0)
             end if
 
@@ -256,7 +256,7 @@ c
       if(cdir .eq. 2) then
          if(is_neumann(bct)) then
             do n = 1, nc
-               phi(hi(1)+1,n) = cvmgt(
+               phi(hi(1)+1,n) = merge(
      $              phi(hi(1),n),
      $              phi(hi(1)+1,n),
      $              mask(hi(1)+1) .gt. 0)
@@ -273,18 +273,18 @@ c
             call polyInterpCoeff(xInt, x, lenx+2, coef)
             do n = 1, nc 
                if ( flagbc .eq. 1 ) then
-                  phi(hi(1)+1,n) = cvmgt(
+                  phi(hi(1)+1,n) = merge(
      $                 bcval(hi(1)+1,n)*coef(-1),
      $                 phi(hi(1)+1,n),
      $                 mask(hi(1)+1) .gt. 0)
                else
-                  phi(hi(1)+1,n) = cvmgt(
+                  phi(hi(1)+1,n) = merge(
      $                 0.0D0,
      $                 phi(hi(1)+1,n),
      $                 mask(hi(1)+1) .gt. 0)
                end if
                do m = 0, lenx
-                  phi(hi(1)+1,n) = cvmgt(
+                  phi(hi(1)+1,n) = merge(
      $                 phi(hi(1)+1,n)
      $                 + phi(hi(1)-m,n)*coef(m),
      $                 phi(hi(1)+1,n),
@@ -292,20 +292,20 @@ c
                end do
             end do
             if ( flagden .eq. 1 ) then
-               den(hi(1))   = cvmgt(coef(0), 0.0D0,
+               den(hi(1))   = merge(coef(0), 0.0D0,
      $              mask(hi(1)+1) .gt. 0)
             end if
 
          else if ( bct .eq. LO_REFLECT_ODD ) then
 
             do n = 1, nc
-               phi(hi(1)+1,n) = cvmgt(
+               phi(hi(1)+1,n) = merge(
      $             -phi(hi(1),n),
      $              phi(hi(1)+1,n),
      $              mask(hi(1)+1) .gt. 0)
             end do
             if ( flagden .eq. 1 ) then
-               den(hi(1)) = cvmgt(-1.0D0, 0.0D0,
+               den(hi(1)) = merge(-1.0D0, 0.0D0,
      $              mask(hi(1)+1) .gt. 0)
             end if
 

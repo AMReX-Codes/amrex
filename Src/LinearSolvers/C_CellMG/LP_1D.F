@@ -64,9 +64,9 @@ c
       do n = 1, nc
          do i = lo(1),hi(1)
 c     
-               cf0 = cvmgt(f0(lo(1)), 0.0D0,
+               cf0 = merge(f0(lo(1)), 0.0D0,
      $              (i .eq. lo(1)) .and. (m0(lo(1)-1).gt.0))
-               cf2 = cvmgt(f2(hi(1)), 0.0D0,
+               cf2 = merge(f2(hi(1)), 0.0D0,
      $              (i .eq. hi(1)) .and. (m2(hi(1)+1).gt.0))
 c     
                delta = cf0 + cf2
