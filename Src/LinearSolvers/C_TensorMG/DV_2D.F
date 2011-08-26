@@ -1114,7 +1114,7 @@ c     :::::: upper left side
                else
                   do j = lo(2), hi(2)
                      u(lo(1)-1, j, n) = merge(
-     $                    0.0,
+     $                    0.0d0,
      $                    u(lo(1)-1, j, n),
      $                    mask(lo(1)-1,j) .gt. 0)
                   enddo
@@ -1130,7 +1130,7 @@ c     :::::: upper left side
                enddo
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     den(lo(1),j,n) = merge(coef(0), 0.0,
+                     den(lo(1),j,n) = merge(coef(0), 0.0d0,
      $                    mask(lo(1)-1,j) .gt. 0)
                   enddo
                endif
@@ -1224,7 +1224,7 @@ c     :::::: upper left side
                enddo
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     den(lo(1),j,n) = merge(-1.0, 0.0,
+                     den(lo(1),j,n) = merge(-1.0d0, 0.0d0,
      $                    mask(lo(1)-1,j) .gt. 0)
                   enddo
                endif
@@ -1294,7 +1294,7 @@ c     :::::: upper right side
                else
                   do j = lo(2), hi(2)
                      u(hi(1)+1,j,n) = merge(
-     $                    0.0,
+     $                    0.0d0,
      $                    u(hi(1)+1,j,n),
      $                    mask(hi(1)+1,j) .gt. 0)
                   enddo
@@ -1310,7 +1310,7 @@ c     :::::: upper right side
                enddo
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     den(hi(1),j,n)   = merge(coef(0), 0.0,
+                     den(hi(1),j,n)   = merge(coef(0), 0.0d0,
      $                    mask(hi(1)+1,j) .gt. 0)
                   enddo
                endif
@@ -1405,7 +1405,7 @@ c                 ::: tangential der is trivial
                enddo
                if ( flagden .eq. 1 ) then
                   do j = lo(2), hi(2)
-                     den(hi(1),j,n) = merge(-1.0, 0.0,
+                     den(hi(1),j,n) = merge(-1.0d0, 0.0d0,
      $                    mask(hi(1)+1,j) .gt. 0)
                   enddo
                endif
@@ -1474,7 +1474,7 @@ c :::::: right bottom side
                else
                   do i = lo(1), hi(1)
                      u(i,lo(2)-1,n) = merge(
-     $                    0.0,
+     $                    0.0d0,
      $                    u(i,lo(2)-1,n),
      $                    mask(i,lo(2)-1) .gt. 0)
                   enddo
@@ -1490,7 +1490,7 @@ c :::::: right bottom side
                enddo
                if ( flagden .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     den(i, lo(2),n)   = merge(coef(0), 0.0,
+                     den(i, lo(2),n)   = merge(coef(0), 0.0d0,
      $                    mask(i, lo(2)-1) .gt. 0)
                   enddo
                endif
@@ -1583,7 +1583,7 @@ c :::::: right bottom side
                enddo
                if ( flagden .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     den(i,lo(2),n) = merge(-1.0, 0.0,
+                     den(i,lo(2),n) = merge(-1.0d0, 0.0d0,
      $                    mask(i,lo(2)-1) .gt. 0)
                   enddo
                endif
@@ -1653,7 +1653,7 @@ c     :::::: right top side
                else
                   do i = lo(1), hi(1)
                      u(i,hi(2)+1,n) = merge(
-     $                    0.0,
+     $                    0.0d0,
      $                    u(i,hi(2)+1,n),
      $                    mask(i,hi(2)+1) .gt. 0)
                   enddo
@@ -1669,7 +1669,7 @@ c     :::::: right top side
                enddo
                if ( flagden .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     den(i,hi(2),n)   = merge(coef(0), 0.0,
+                     den(i,hi(2),n)   = merge(coef(0), 0.0d0,
      $                    mask(i,hi(2)+1) .gt. 0)
                   enddo
                endif
@@ -1762,7 +1762,7 @@ c     :::::: right top side
                enddo
                if ( flagden .eq. 1 ) then
                   do i = lo(1), hi(1)
-                     den(i,hi(2),n) = merge(-1.0, 0.0,
+                     den(i,hi(2),n) = merge(-1.0d0, 0.0d0,
      $                    mask(i,hi(2)+1) .gt. 0)
                   enddo
                endif
