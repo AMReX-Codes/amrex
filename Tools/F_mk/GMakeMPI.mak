@@ -12,7 +12,17 @@ ifeq ($(ARCH),AIX)
 endif
 
 ifeq ($(ARCH),Darwin)
-  $(error SORRY, no MPI for Darwin/Mac as yet)
+  ifeq ($(UNAMEN),maudib.ucolick.org)
+    MPIHOME=/Users/cmalone/work/usr/local
+    mpi_include_dir = $(MPIHOME)/include
+    mpi_lib_dir = $(MPIHOME)/lib
+
+    FC = mpif90
+    F90 = mpif90
+    CC = mpicc
+  else
+    $(error SORRY, no MPI for Darwin/Mac as yet)
+  endif
 endif
 
 ifeq ($(ARCH),Linux)
