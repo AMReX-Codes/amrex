@@ -387,7 +387,6 @@ protected:
     std::string      restart_file;
     std::string      probin_file;
     LevelBld*        levelbld;
-    Real             probStartTime;   // wallclock time just before init
     //
     // The static data ...
     //
