@@ -399,7 +399,7 @@ c
                 forw = two*(crse(i+1,j,n)-crse(i,j,n))
                 back = two*(crse(i,j,n)-crse(i-1,j,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
              end do
           end do
@@ -423,7 +423,7 @@ c
                forw = two*(crse(i+1,j,n)-crse(i,j,n))
                back = two*(crse(i,j,n)-crse(i-1,j,n))
                slp  = min(abs(forw),abs(back))
-               slp  = merge(slp,zero,forw*back>=0.0)
+               slp  = merge(slp,zero,forw*back>=zero)
                lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
             end do
           end if
@@ -447,7 +447,7 @@ c
                forw = two*(crse(i+1,j,n)-crse(i,j,n))
                back = two*(crse(i,j,n)-crse(i-1,j,n))
                slp  = min(abs(forw),abs(back))
-               slp  = merge(slp,zero,forw*back>=0.0)
+               slp  = merge(slp,zero,forw*back>=zero)
                lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
             end do
           end if
@@ -459,7 +459,7 @@ c
                 forw = two*(crse(i,j+1,n)-crse(i,j,n))
                 back = two*(crse(i,j,n)-crse(i,j-1,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
              end do
           end do
@@ -483,7 +483,7 @@ c
                 forw = two*(crse(i,j+1,n)-crse(i,j,n))
                 back = two*(crse(i,j,n)-crse(i,j-1,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
              end do
           end if
@@ -507,7 +507,7 @@ c
                 forw = two*(crse(i,j+1,n)-crse(i,j,n))
                 back = two*(crse(i,j,n)-crse(i,j-1,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
              end do
           end if

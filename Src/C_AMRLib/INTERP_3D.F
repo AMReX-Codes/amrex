@@ -383,7 +383,7 @@ c
                 forw = two*(crse(i+1,j,k,n)-crse(i,j,k,n))
                 back = two*(crse(i,j,k,n)-crse(i-1,j,k,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
              end do
             end do
@@ -414,7 +414,7 @@ c
                 forw = two*(crse(i+1,j,k,n)-crse(i,j,k,n))
                 back = two*(crse(i,j,k,n)-crse(i-1,j,k,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
@@ -444,7 +444,7 @@ c
                 forw = two*(crse(i+1,j,k,n)-crse(i,j,k,n))
                 back = two*(crse(i,j,k,n)-crse(i-1,j,k,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
@@ -459,7 +459,7 @@ c
                 forw = two*(crse(i,j+1,k,n)-crse(i,j,k,n))
                 back = two*(crse(i,j,k,n)-crse(i,j-1,k,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
                end do
             end do
@@ -490,7 +490,7 @@ c
                 forw = two*(crse(i,j+1,k,n)-crse(i,j,k,n))
                 back = two*(crse(i,j,k,n)-crse(i,j-1,k,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
@@ -520,7 +520,7 @@ c
                   forw = two*(crse(i,j+1,k,n)-crse(i,j,k,n))
                   back = two*(crse(i,j,k,n)-crse(i,j-1,k,n))
                   slp  = min(abs(forw),abs(back))
-                  slp  = merge(slp,zero,forw*back>=0.0)
+                  slp  = merge(slp,zero,forw*back>=zero)
                   lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
               end do
@@ -535,7 +535,7 @@ c
                 forw = two*(crse(i,j,k+1,n)-crse(i,j,k,n))
                 back = two*(crse(i,j,k,n)-crse(i,j,k-1,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
@@ -566,7 +566,7 @@ c
                 forw = two*(crse(i,j,k+1,n)-crse(i,j,k,n))
                 back = two*(crse(i,j,k,n)-crse(i,j,k-1,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
               end do
             end do
@@ -596,7 +596,7 @@ c
                 forw = two*(crse(i,j,k+1,n)-crse(i,j,k,n))
                 back = two*(crse(i,j,k,n)-crse(i,j,k-1,n))
                 slp  = min(abs(forw),abs(back))
-                slp  = merge(slp,zero,forw*back>=0.0)
+                slp  = merge(slp,zero,forw*back>=zero)
                 lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
              end do
             end do
@@ -901,7 +901,7 @@ c        ::::: compute x slopes
             forw = two*(crse(ic+1,jc,kc,n)-crse(ic,jc,kc,n))
             back = two*(crse(ic,jc,kc,n) - crse(ic-1,jc,kc,n))
 	    slp  = min(abs(forw),abs(back))
-	    slp  = merge(slp,zero,forw*back>=0.0)
+	    slp  = merge(slp,zero,forw*back>=zero)
 	    sgn  = sign(one,cen)
             cx   = sgn*min(slp,abs(cen))
             if (ic.eq.cb_l1 .and. (bclo(1,n) .eq. EXT_DIR 
@@ -932,7 +932,7 @@ c	 ::::: slopes in the Y direction
             forw = two*(crse(ic,jc+1,kc,n)-crse(ic,jc,kc,n))
             back = two*(crse(ic,jc,kc,n) - crse(ic,jc-1,kc,n))
 	    slp  = min(abs(forw),abs(back))
-	    slp  = merge(slp,zero,forw*back>=0.0)
+	    slp  = merge(slp,zero,forw*back>=zero)
 	    sgn  = sign(one,cen)
             cy   = sgn*min(slp,abs(cen))
             if (jc.eq.cb_l2 .and. (bclo(2,n) .eq. EXT_DIR 
@@ -963,7 +963,7 @@ c	 ::::: slopes in the Z direction
             forw = two*(crse(ic,jc,kc+1,n)-crse(ic,jc,kc,n))
             back = two*(crse(ic,jc,kc,n) - crse(ic,jc,kc-1,n))
 	    slp  = min(abs(forw),abs(back))
-	    slp  = merge(slp,zero,forw*back>=0.0)
+	    slp  = merge(slp,zero,forw*back>=zero)
 	    sgn  = sign(one,cen)
             cz   = sgn*min(slp,abs(cen))
             if (kc.eq.cb_l3 .and. (bclo(3,n) .eq. EXT_DIR 
