@@ -364,7 +364,7 @@ c ::: ::::: compute slopes in x direction
               forw = crse(i+ist,n)-crse(i,n)
               back = crse(i,n)-crse(i-ist,n)
               slp = sign(one,cen)*min(abs(cen),abs(forw),abs(back))
-              cslope(i,1)=merge(slp,zero,forw*back>=0.0)
+              cslope(i,1)=merge(slp,zero,forw*back>=zero)
 220       continue
 
 c ::: .....::::: strip out a fine grid slope vector
@@ -477,7 +477,7 @@ c ::: ::::: compute slopes in x direction
                forw = two*(crse(i+ist,n)-crse(i,n))
                back = two*(crse(i,n)-crse(i-ist,n))
                slp  = min(abs(forw),abs(back))
-               slp  = merge(slp,zero,forw*back>=0.0)
+               slp  = merge(slp,zero,forw*back>=zero)
                cslope(i,1)=sign(one,cen)*min(slp,abs(cen))
             enddo
             if (xok) then
@@ -490,7 +490,7 @@ c               if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
                      forw = two*(crse(i+ist,n)-crse(i,n))
                      back = two*(crse(i,n)-crse(i-ist,n))
                      slp  = min(abs(forw),abs(back))
-                     slp  = merge(slp,zero,forw*back>=0.0)
+                     slp  = merge(slp,zero,forw*back>=zero)
                      cslope(i,1)=sgn*min(slp,abs(cen))
                   enddo
                endif
@@ -502,7 +502,7 @@ c               if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
                      forw = two*(crse(i+ist,n)-crse(i,n))
                      back = two*(crse(i,n)-crse(i-ist,n))
                      slp  = min(abs(forw),abs(back))
-                     slp  = merge(slp,zero,forw*back>=0.0)
+                     slp  = merge(slp,zero,forw*back>=zero)
                      cslope(i,1)=sgn*min(slp,abs(cen))
                   enddo
                endif
@@ -760,7 +760,7 @@ c
              forw = two*(crse(i+1,n)-crse(i,n))
              back = two*(crse(i,n)-crse(i-1,n))
              slp  = min(abs(forw),abs(back))
-             slp  = merge(slp,zero,forw*back>=0.0)
+             slp  = merge(slp,zero,forw*back>=zero)
              lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
           end do
 
@@ -778,7 +778,7 @@ c
             forw = two*(crse(i+1,n)-crse(i,n))
             back = two*(crse(i,n)-crse(i-1,n))
             slp  = min(abs(forw),abs(back))
-            slp  = merge(slp,zero,forw*back>=0.0)
+            slp  = merge(slp,zero,forw*back>=zero)
             lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
           end if
 
@@ -796,7 +796,7 @@ c
             forw = two*(crse(i+1,n)-crse(i,n))
             back = two*(crse(i,n)-crse(i-1,n))
             slp  = min(abs(forw),abs(back))
-            slp  = merge(slp,zero,forw*back>=0.0)
+            slp  = merge(slp,zero,forw*back>=zero)
             lc_xslope(i,n)=sign(one,cen)*min(slp,abs(cen))
           end if
 
