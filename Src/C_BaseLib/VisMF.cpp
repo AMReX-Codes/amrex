@@ -22,8 +22,53 @@
 const std::string VisMF::FabFileSuffix("_D_");
 const std::string VisMF::MultiFabHdrFileSuffix("_H");
 const std::string VisMF::FabOnDisk::Prefix("FabOnDisk:");
-int VisMF::nOutFiles(-1);
-int VisMF::nMFFileInStreams(1);
+//
+// Set these in Initialize().
+//
+int VisMF::nOutFiles;
+int VisMF::nMFFileInStreams;
+
+namespace
+{
+    bool initialized = false;
+}
+
+void
+VisMF::Initialize ()
+{
+    if (initialized) return;
+
+    nOutFiles        = 1;
+    nMFFileInStreams = 1;
+
+    BoxLib::ExecOnFinalize(VisMF::Finalize);
+
+    initialized = true;
+}
+
+void
+VisMF::Finalize ()
+{
+    initialized = false;
+}
+
+void
+VisMF::SetNOutFiles (int noutfiles)
+{
+    nOutFiles = std::max(1, std::min(ParallelDescriptor::NProcs(), noutfiles));
+}
+
+void
+VisMF::SetMFFileInStreams (int nstreams)
+{
+    nMFFileInStreams = std::max(1, std::min(ParallelDescriptor::NProcs(), nstreams));
+}
+
+int
+VisMF::GetNOutFiles()
+{
+    return nOutFiles;
+}
 
 std::ostream&
 operator<< (std::ostream&           os,
@@ -547,14 +592,18 @@ VisMF::Header::Header (const MultiFab& mf,
 #endif /*BL_USE_MPI*/
 
 #ifdef BL_FIXHEADERDENORMS
-    if (ParallelDescriptor::IOProcessor()) {
-      for(int i(0); i < m_min.size(); ++i) {
-        for(int  j(0); j < m_min[i].size(); ++j) {
-	  if(std::abs(m_min[i][j]) < 1.0e-300) {
-	    m_min[i][j] = 0.0;
-	  }
-	}
-      }
+    if (ParallelDescriptor::IOProcessor())
+    {
+        for(int i = 0; i < m_min.size(); ++i)
+        {
+            for(int j = 0; j < m_min[i].size(); ++j)
+            {
+                if (std::abs(m_min[i][j]) < 1.0e-300)
+                {
+                    m_min[i][j] = 0.0;
+                }
+            }
+        }
     }
 #endif
 }
@@ -604,6 +653,8 @@ VisMF::Write (const MultiFab&    mf,
 {
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
+    VisMF::Initialize();
+
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
@@ -638,9 +689,6 @@ VisMF::Write (const MultiFab&    mf,
 
     std::string FullFileName = mf_name;
 
-    if (nOutFiles == -1) 
-        nOutFiles = NProcs;
-
     FullFileName += VisMF::FabFileSuffix;
     sprintf(buf, "%04d", MyProc % nOutFiles);
     FullFileName += buf;
@@ -649,72 +697,64 @@ VisMF::Write (const MultiFab&    mf,
 
     FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
+    const int   nSets    = (NProcs + (nOutFiles - 1)) / nOutFiles;
+    const int   mySet    = MyProc/nOutFiles;
+    std::string basename = VisMF::BaseName(FullFileName);
+
+    for (int iSet = 0; iSet < nSets; ++iSet)
+    {
+        if (mySet == iSet)
+        {
+            if (iSet == 0)
+            {
+                //
+                // First set.
+                //
+                FabFile.open(FullFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
+            }
+            else
+            {
+                FabFile.open(FullFileName.c_str(), std::ios::out|std::ios::app|std::ios::binary);
+                //
+                // Set to the end of the file.
+                //
+                FabFile.seekp(0, std::ios::end);
+            }
+            if (!FabFile.good())
+                BoxLib::FileOpenFailed(FullFileName);
+
+            for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+            {
+                hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
+            }
+
+            FabFile.flush();
+#ifdef BL_USECLOSE
+            FabFile.close();
+#endif
+
 #ifdef BL_NFILES_BARRIER
-    int nSets((NProcs + (nOutFiles - 1)) / nOutFiles);
-    int mySet(MyProc/nOutFiles);
-    for(int iSet(0); iSet < nSets; ++iSet) {
-      if(mySet == iSet) {  // write the data
-        if(iSet == 0) {  // first set
-          FabFile.open(FullFileName.c_str(),
-	               std::ios::out|std::ios::trunc|std::ios::binary);
-        } else {
-          FabFile.open(FullFileName.c_str(),
-	               std::ios::out|std::ios::app|std::ios::binary);
-	  FabFile.seekp(0, std::ios::end);  // set to the end of the file
         }
-        if( ! FabFile.good()) {
-          BoxLib::FileOpenFailed(FullFileName);
-        }
-        std::string basename = VisMF::BaseName(FullFileName);
-        for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-          hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
-        }
-        FabFile.flush();
-#ifdef BL_USECLOSE
-        FabFile.close();
-#endif
-      }
-      ParallelDescriptor::Barrier();
-    }  // end for(iSet...)
+        ParallelDescriptor::Barrier();
 #else
-    int nSets((NProcs + (nOutFiles - 1)) / nOutFiles);
-    int mySet(MyProc/nOutFiles);
-    for(int iSet(0); iSet < nSets; ++iSet) {
-      if(mySet == iSet) {  // write the data
-        if(iSet == 0) {  // first set
-          FabFile.open(FullFileName.c_str(),
-	               std::ios::out|std::ios::trunc|std::ios::binary);
-        } else {
-          FabFile.open(FullFileName.c_str(),
-	               std::ios::out|std::ios::app|std::ios::binary);
-	  FabFile.seekp(0, std::ios::end);  // set to the end of the file
+            int iBuff     = 0;
+            int wakeUpPID = (MyProc + nOutFiles);
+            int tag       = (MyProc % nOutFiles);
+            if (wakeUpPID < NProcs)
+                ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
         }
-        if( ! FabFile.good()) {
-          BoxLib::FileOpenFailed(FullFileName);
+        if (mySet == (iSet + 1))
+        {
+            //
+            // Next set waits.
+            //
+            int iBuff;
+            int waitForPID = (MyProc - nOutFiles);
+            int tag        = (MyProc % nOutFiles);
+            ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
         }
-        std::string basename = VisMF::BaseName(FullFileName);
-        for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-          hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
-        }
-        FabFile.flush();
-#ifdef BL_USECLOSE
-        FabFile.close();
 #endif
-	const int iBuff(0);
-	int wakeUpPID(MyProc + nOutFiles);
-	int tag(MyProc % nOutFiles);
-	if(wakeUpPID < NProcs) {
-          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
-	}
-      }
-      if(mySet == (iSet + 1)) {  // next set waits
-	int iBuff;
-	int waitForPID(MyProc - nOutFiles);
-	int tag(MyProc % nOutFiles);
-        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
-      }
-    }  // end for(iSet...)
-#endif
+    }
 
 #ifdef BL_USE_MPI
     ParallelDescriptor::Barrier();
@@ -813,6 +853,7 @@ VisMF::VisMF (const std::string& mf_name)
 #endif
 
     ifs >> m_hdr;
+
 #if defined(BL_USEOLDREADS)
 #ifdef BL_USECLOSE
     ifs.close();
@@ -882,7 +923,9 @@ void
 VisMF::Read (MultiFab&          mf,
              const std::string& mf_name)
 {
-  if(ParallelDescriptor::IOProcessor())
+  VisMF::Initialize();
+
+  if (ParallelDescriptor::IOProcessor())
   {
       std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
   }
@@ -897,13 +940,13 @@ VisMF::Read (MultiFab&          mf,
       while(mwflag) {
         bextra = true;
         std::cout << "### ### ### :  EXTRA MESSAGE BEFORE:  myproc = "
-	          << ParallelDescriptor::MyProc() << std::endl << std::flush;
+	          << ParallelDescriptor::MyProc() << '\n' << std::flush;
         ParallelDescriptor::Message rmess;
         std::vector<int> cread(mwstatus.count);
         rmess = ParallelDescriptor::Recv(cread, mwstatus.MPI_SOURCE, mwstatus.MPI_TAG);
         ParallelDescriptor::IProbe(MPI_ANY_SOURCE, MPI_ANY_TAG, mwflag, mwstatus);
       }
-      if(bextra) {
+      if (bextra) {
         //BoxLib::Abort("EXTRA MESSAGES BEFORE");
       }
   }
@@ -1117,7 +1160,7 @@ VisMF::Read (MultiFab&          mf,
       while(mwflag) {
         bextra = true;
         std::cout << "### ### ### :  EXTRA MESSAGE AFTER:  myproc = "
-	          << ParallelDescriptor::MyProc() << std::endl << std::flush;
+	          << ParallelDescriptor::MyProc() << '\n' << std::flush;
         ParallelDescriptor::Message rmess;
         std::vector<int> cread(mwstatus.count);
         rmess = ParallelDescriptor::Recv(cread, mwstatus.MPI_SOURCE, mwstatus.MPI_TAG);

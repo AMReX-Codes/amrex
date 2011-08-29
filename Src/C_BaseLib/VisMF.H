@@ -173,16 +173,14 @@ public:
     FArrayBox* readFAB (int fabIndex,
                         int ncomp);
 
-    static void SetNOutFiles(int noutfiles)
-    {
-        nOutFiles = std::max(1, std::min(ParallelDescriptor::NProcs(), noutfiles));
-    }
+    static void SetNOutFiles (int noutfiles);
 
-    static void SetMFFileInStreams(int nstreams)
-    {
-        nMFFileInStreams = std::max(1, std::min(ParallelDescriptor::NProcs(), nstreams));
-    }
-    static int GetNOutFiles() { return nOutFiles; }
+    static void SetMFFileInStreams (int nstreams);
+
+    static int GetNOutFiles ();
+
+    static void Initialize ();
+    static void Finalize ();
 
 private:
     //
