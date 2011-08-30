@@ -44,7 +44,7 @@ CEXE_headers += BCRec.H BC_TYPES.H
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 vpathdir += $(BOXLIB_HOME)/Src/C_AMRLib
 
-ifdef USE_F90_MG
+ifeq ($(USE_F90_MG),TRUE)
   DEFINES += -DUSE_F90_MG
 
   include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
@@ -55,6 +55,7 @@ ifdef USE_F90_MG
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
   vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
 
+  include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
   vpathdir          += $(BOXLIB_HOME)/Src/F_BaseLib
 endif
