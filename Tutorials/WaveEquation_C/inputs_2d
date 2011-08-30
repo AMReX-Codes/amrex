@@ -1,0 +1,10 @@
+Nsteps = 1000
+
+plot_int = -1
+
+n_cell = 256
+
+max_grid_size = 128
+
+verbose = 0
+

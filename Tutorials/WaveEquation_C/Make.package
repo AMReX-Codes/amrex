@@ -1,0 +1,11 @@
+
+CEXE_sources += main.cpp 
+CEXE_sources += BCRec.cpp 
+CEXE_sources += writePlotFile.cpp
+
+CEXE_headers += BC_TYPES.H
+CEXE_headers += BCRec.H
+CEXE_headers += writePlotFile.H
+
+f90EXE_sources += init_data_$(DIM)d.f90 
+f90EXE_sources += advance_$(DIM)d.f90
