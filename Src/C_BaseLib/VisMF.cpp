@@ -2,12 +2,9 @@
 #include <winstd.H>
 #include <cstdio>
 #include <fstream>
-#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
 #include <iostream>
 #include <sstream>
 #include <vector>
-#endif
-
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
 //
@@ -37,9 +34,12 @@ void
 VisMF::Initialize ()
 {
     if (initialized) return;
+    //
+    // Use the same defaults as in Amr.cpp.
+    //
+    VisMF::SetNOutFiles(64);
 
-    nOutFiles        = 1;
-    nMFFileInStreams = 1;
+    VisMF::SetMFFileInStreams(1);
 
     BoxLib::ExecOnFinalize(VisMF::Finalize);
 
@@ -638,9 +638,8 @@ VisMF::WriteHeader (const std::string& mf_name,
         // Add in the number of bytes written out in the Header.
         //
         bytes += VisMF::FileOffset(MFHdrFile);
-#ifdef BL_USECLOSE
+
         MFHdrFile.close();
-#endif
     }
     return bytes;
 }
@@ -654,11 +653,6 @@ VisMF::Write (const MultiFab&    mf,
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
     VisMF::Initialize();
-
-    const int MyProc = ParallelDescriptor::MyProc();
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    long bytes = 0;
 
     VisMF::Header hdr(mf, how);
 
@@ -683,67 +677,68 @@ VisMF::Write (const MultiFab&    mf,
         }
     }
 
-    char buf[16];
+    char        buf[16];
+    long        bytes    = 0;
+    const int   MyProc   = ParallelDescriptor::MyProc();
+    const int   NProcs   = ParallelDescriptor::NProcs();
+    const int   NSets    = (NProcs + (nOutFiles - 1)) / nOutFiles;
+    const int   MySet    = MyProc/nOutFiles;
+    std::string FullName = mf_name;
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
-    std::string FullFileName = mf_name;
-
-    FullFileName += VisMF::FabFileSuffix;
+    FullName += VisMF::FabFileSuffix;
     sprintf(buf, "%04d", MyProc % nOutFiles);
-    FullFileName += buf;
+    FullName += buf;
 
-    std::ofstream FabFile;
+    const std::string BName = VisMF::BaseName(FullName);
 
-    FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-    const int   nSets    = (NProcs + (nOutFiles - 1)) / nOutFiles;
-    const int   mySet    = MyProc/nOutFiles;
-    std::string basename = VisMF::BaseName(FullFileName);
-
-    for (int iSet = 0; iSet < nSets; ++iSet)
+    for (int iSet = 0; iSet < NSets; ++iSet)
     {
-        if (mySet == iSet)
+        if (MySet == iSet)
         {
-            if (iSet == 0)
             {
-                //
-                // First set.
-                //
-                FabFile.open(FullFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
-            }
-            else
-            {
-                FabFile.open(FullFileName.c_str(), std::ios::out|std::ios::app|std::ios::binary);
-                //
-                // Set to the end of the file.
-                //
-                FabFile.seekp(0, std::ios::end);
-            }
-            if (!FabFile.good())
-                BoxLib::FileOpenFailed(FullFileName);
+                VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    
+                std::ofstream FabFile;
 
-            for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-            {
-                hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
+                FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+                if (iSet == 0)
+                {
+                    //
+                    // First set.
+                    //
+                    FabFile.open(FullName.c_str(),
+                                 std::ios::out|std::ios::trunc|std::ios::binary);
+                }
+                else
+                {
+                    FabFile.open(FullName.c_str(),
+                                 std::ios::out|std::ios::app|std::ios::binary);
+                    //
+                    // Set to the end of the file.
+                    //
+                    FabFile.seekp(0, std::ios::end);
+                }
+                if (!FabFile.good())
+                    BoxLib::FileOpenFailed(FullName);
+
+                for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+                {
+                    hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,FabFile,bytes);
+                }
+
+                FabFile.flush();
+
+                FabFile.close();
             }
 
-            FabFile.flush();
-#ifdef BL_USECLOSE
-            FabFile.close();
-#endif
-
-#ifdef BL_NFILES_BARRIER
-        }
-        ParallelDescriptor::Barrier();
-#else
             int iBuff     = 0;
             int wakeUpPID = (MyProc + nOutFiles);
             int tag       = (MyProc % nOutFiles);
             if (wakeUpPID < NProcs)
                 ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
         }
-        if (mySet == (iSet + 1))
+        if (MySet == (iSet + 1))
         {
             //
             // Next set waits.
@@ -753,7 +748,6 @@ VisMF::Write (const MultiFab&    mf,
             int tag        = (MyProc % nOutFiles);
             ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
         }
-#endif
     }
 
 #ifdef BL_USE_MPI
@@ -821,9 +815,6 @@ VisMF::Write (const MultiFab&    mf,
     }
 #endif /*BL_USE_MPI*/
 
-    if (nOutFiles == NProcs && VisMF::FileOffset(FabFile) <= 0)
-        BoxLib::UnlinkFile(FullFileName);
-
     bytes += VisMF::WriteHeader(mf_name, hdr);
 
     return bytes;
@@ -837,28 +828,12 @@ VisMF::VisMF (const std::string& mf_name)
 
     FullHdrFileName += VisMF::MultiFabHdrFileSuffix;
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
-#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
     std::string fileCharPtrString(fileCharPtr.dataPtr());
     std::istringstream ifs(fileCharPtrString, std::istringstream::in);
-#else
-    std::ifstream ifs;
-    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-    ifs.open(FullHdrFileName.c_str(), std::ios::in);
-    if (!ifs.good())
-        BoxLib::FileOpenFailed(FullHdrFileName);
-#endif
 
     ifs >> m_hdr;
-
-#if defined(BL_USEOLDREADS)
-#ifdef BL_USECLOSE
-    ifs.close();
-#endif
-#endif
 
     m_pa.resize(m_hdr.m_ncomp);
 
@@ -886,9 +861,9 @@ VisMF::readFAB (int                  idx,
 
     FArrayBox* fab = new FArrayBox(fab_box, ncomp == -1 ? hdr.m_ncomp : 1);
 
-    std::string FullFileName = VisMF::DirName(mf_name);
+    std::string FullName = VisMF::DirName(mf_name);
 
-    FullFileName += hdr.m_fod[idx].m_name;
+    FullName += hdr.m_fod[idx].m_name;
     
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -896,10 +871,10 @@ VisMF::readFAB (int                  idx,
 
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    ifs.open(FullFileName.c_str(), std::ios::in|std::ios::binary);
+    ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
 
     if (!ifs.good())
-        BoxLib::FileOpenFailed(FullFileName);
+        BoxLib::FileOpenFailed(FullName);
 
     if (hdr.m_fod[idx].m_head)
         ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
@@ -913,9 +888,8 @@ VisMF::readFAB (int                  idx,
         fab->readFrom(ifs, ncomp);
     }
 
-#ifdef BL_USECLOSE
     ifs.close();
-#endif
+
     return fab;
 }
 
@@ -953,43 +927,27 @@ VisMF::Read (MultiFab&          mf,
   ParallelDescriptor::Barrier();
 #endif
 
-#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
-    Real hStartTime, hEndTime;
-#endif
     VisMF::Header hdr;
 
     std::string FullHdrFileName = mf_name;
 
     FullHdrFileName += VisMF::MultiFabHdrFileSuffix;
 
-    {
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    Real hEndTime, hStartTime;
 
-#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
+    {
         hStartTime = ParallelDescriptor::second();
         Array<char> fileCharPtr;
         ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
         std::string fileCharPtrString(fileCharPtr.dataPtr());
         std::istringstream ifs(fileCharPtrString, std::istringstream::in);
         hEndTime = ParallelDescriptor::second();
-#else
-        std::ifstream ifs;
-        ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-        ifs.open(FullHdrFileName.c_str(), std::ios::in);
-        if (!ifs.good())
-            BoxLib::FileOpenFailed(FullHdrFileName);
-#endif
 
         ifs >> hdr;
-#if defined(BL_USEOLDREADS)
-#ifdef BL_USECLOSE
-	ifs.close();
-#endif
-#endif
     }
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_noallocate);
 
-#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
+#ifdef BL_USE_MPI
     //
     // Here we limit the number of open files when reading a multifab.
     //
@@ -1217,4 +1175,3 @@ VisMF::clear ()
         }
     }
 }
-

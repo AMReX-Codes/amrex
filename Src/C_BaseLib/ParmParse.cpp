@@ -430,45 +430,11 @@ read_file (const char*                     fname,
     //
     if ( fname != 0 && fname[0] != 0 )
     {
-#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
 	Array<char> fileCharPtr;
 	std::string filename = fname;
 	ParallelDescriptor::ReadAndBcastFile(filename, fileCharPtr);
 	const char* b = fileCharPtr.dataPtr();
         bldTable(b, tab);
-#else
-        FILE* pffd = fopen(fname, "rb");
-        if ( pffd == 0 )
-        {
-            std::cerr << "ParmParse::read_file(): couldn't open \""
-                      << fname
-                      << "\"";
-            BoxLib::Abort();
-        }
-        //
-        // Get the length.
-        //
-        fseek(pffd, 0, 2);
-        int pflen = (int)ftell(pffd);
-        rewind(pffd);
-        char* str = new char[pflen+1];
-        memset(str,0,pflen+1);
-        int nread = fread(str, 1, pflen, pffd);
-        if ( !(nread == pflen) )
-        {
-            std::cerr << "ParmParse::read_file(): fread() only "
-                      << nread
-                      << " bytes out of "
-                      << pflen
-                      << " from "
-                      << fname;
-            BoxLib::Abort();
-        }
-        fclose(pffd);
-	const char* b = str;
-        bldTable(b, tab);
-        delete [] str;
-#endif
     }
 }
 

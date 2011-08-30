@@ -2874,9 +2874,8 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
                 ParticleFile.flush();
 
-#ifdef BL_USECLOSE
                 ParticleFile.close();
-#endif
+
                 if (!ParticleFile.good())
                     BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing ParticleFile");
 
@@ -2952,9 +2951,8 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         {
             HdrFile.flush();
 
-#ifdef BL_USECLOSE
             HdrFile.close();
-#endif
+
             if (!HdrFile.good())
                 BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing HdrFile");
 
@@ -3315,9 +3313,8 @@ ParticleContainer<N>::Restart_OneDotZero (const std::string& fullname,
 
             ReadParticles_OneDotZero(count[grid],grid,lev,ParticleFile);
 
-#ifdef BL_USECLOSE
             ParticleFile.close();
-#endif
+
             if (!ParticleFile.good())
                 BoxLib::Abort("ParticleContainer<N>::Restart(): problem reading particles");
         }
@@ -3615,9 +3612,7 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
             
         File.flush();
 
-#ifdef BL_USECLOSE
         File.close();
-#endif
 
         if (!File.good())
             BoxLib::Abort("ParticleContainer<N>::WriteAsciiFile(): problem writing file");
@@ -3676,9 +3671,8 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
 
             File.flush();
 
-#ifdef BL_USECLOSE
             File.close();
-#endif
+
             if (!File.good())
                 BoxLib::Abort("ParticleContainer<N>::WriteAsciiFile(): problem writing file");
 

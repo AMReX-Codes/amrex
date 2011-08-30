@@ -285,6 +285,10 @@ protected:
     //
     void initialInit (Real strt_time, Real stop_time);
     //
+    // Read the probin file.
+    //
+    void readProbinFile (int& init);
+    //
     // Check for valid input.
     //
     void checkInput ();

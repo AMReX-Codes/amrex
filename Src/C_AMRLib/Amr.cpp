@@ -3,10 +3,8 @@
 #include <algorithm>
 #include <cstdio>
 #include <list>
-#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
 #include <iostream>
 #include <sstream>
-#endif
 
 #include <Geometry.H>
 #include <TagBox.H>
@@ -1029,18 +1027,8 @@ Amr::init (Real strt_time,
 }
 
 void
-Amr::initialInit (Real strt_time,
-                  Real stop_time)
+Amr::readProbinFile (int& init)
 {
-    checkInput();
-    //
-    // Generate internal values from user-supplied values.
-    //
-    finest_level = 0;
-    //
-    // Init problem dependent data.
-    //
-    int  init = true;
     //
     // Populate integer array with name of probin file.
     //
@@ -1054,17 +1042,17 @@ Amr::initialInit (Real strt_time,
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
        std::cout << "Starting to read probin ... " << std::endl;
 
-#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
-    const int nAtOnce(probinit_natonce), myProc(ParallelDescriptor::MyProc());
-    const int nProcs(ParallelDescriptor::NProcs());
-    const int nSets((nProcs + (nAtOnce - 1)) / nAtOnce);
-    const int mySet(myProc/nAtOnce);
+    const int nAtOnce = probinit_natonce;
+    const int MyProc  = ParallelDescriptor::MyProc();
+    const int NProcs  = ParallelDescriptor::NProcs();
+    const int NSets   = (NProcs + (nAtOnce - 1)) / nAtOnce;
+    const int MySet   = MyProc/nAtOnce;
 
     Real piStart = 0, piEnd = 0, piStartAll = ParallelDescriptor::second();
 
-    for (int iSet = 0; iSet < nSets; ++iSet)
+    for (int iSet = 0; iSet < NSets; ++iSet)
     {
-        if (mySet == iSet)
+        if (MySet == iSet)
         {
             //
             // Call the pesky probin reader.
@@ -1076,16 +1064,20 @@ Amr::initialInit (Real strt_time,
                           Geometry::ProbLo(),
                           Geometry::ProbHi());
             piEnd = ParallelDescriptor::second();
-            const int iBuff= 0, wakeUpPID = (myProc + nAtOnce), tag = (myProc % nAtOnce);
-            if (wakeUpPID < nProcs)
+            const int iBuff     = 0;
+            const int wakeUpPID = (MyProc + nAtOnce);
+            const int tag       = (MyProc % nAtOnce);
+            if (wakeUpPID < NProcs)
                 ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
         }
-        if (mySet == (iSet + 1))
+        if (MySet == (iSet + 1))
         {
             //
             // Next set waits.
             //
-            int iBuff, waitForPID = (myProc - nAtOnce), tag = (myProc % nAtOnce);
+            int iBuff;
+            int waitForPID = (MyProc - nAtOnce);
+            int tag        = (MyProc % nAtOnce);
             ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
         }
     }
@@ -1104,21 +1096,26 @@ Amr::initialInit (Real strt_time,
             std::cout << "MFRead::: PROBINIT total time = " << piTotalAll << '\n';
         }
     }
-#else
-    Real piStart, piEnd, piTotal;
-    piStart = ParallelDescriptor::second();
-    FORT_PROBINIT(&init,
-                  probin_file_name.dataPtr(),
-                  &probin_file_length,
-                  Geometry::ProbLo(),
-                  Geometry::ProbHi());
-    piEnd = ParallelDescriptor::second();
-    piTotal = piEnd - piStart;
-    std::cout << "MFRead:::  PROBINIT time   = " << piTotal << '\n';
-#endif
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
        std::cout << "Successfully read probin ... " << '\n';
+}
+
+void
+Amr::initialInit (Real strt_time,
+                  Real stop_time)
+{
+    checkInput();
+    //
+    // Generate internal values from user-supplied values.
+    //
+    finest_level = 0;
+    //
+    // Init problem dependent data.
+    //
+    int init = true;
+
+    readProbinFile(init);
 
 #ifdef BL_SYNC_RANTABLES
     int iGet(0), iSet(1);
@@ -1228,80 +1225,8 @@ Amr::restart (const std::string& filename)
     // Init problem dependent data.
     //
     int init = false;
-    //
-    // Populate integer array with name of probin file.
-    //
-    int probin_file_length = probin_file.length();
 
-    Array<int> probin_file_name(probin_file_length);
-
-    for (int i = 0; i < probin_file_length; i++)
-        probin_file_name[i] = probin_file[i];
-
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
-       std::cout << "Starting to read probin ... " << std::endl;
-
-#if (defined(BL_USE_MPI) && !defined(BL_USEOLDREADS))
-    const int nAtOnce = probinit_natonce;
-    const int myProc  = ParallelDescriptor::MyProc();
-    const int nProcs  = ParallelDescriptor::NProcs();
-    const int nSets   = (nProcs + (nAtOnce - 1)) / nAtOnce;
-    const int mySet   = myProc/nAtOnce;
-
-    Real piStart = 0, piEnd = 0, piStartAll = ParallelDescriptor::second();
-
-    for(int iSet = 0; iSet < nSets; ++iSet)
-    {
-        if (mySet == iSet)
-        {
-            //
-            // Call the pesky probin reader.
-            //
-            piStart = ParallelDescriptor::second();
-            FORT_PROBINIT(&init,
-                          probin_file_name.dataPtr(),
-                          &probin_file_length,
-                          Geometry::ProbLo(),
-                          Geometry::ProbHi());
-            piEnd = ParallelDescriptor::second();
-            const int iBuff = 0, wakeUpPID = (myProc + nAtOnce), tag = (myProc % nAtOnce);
-            if (wakeUpPID < nProcs)
-                ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
-        }
-        if (mySet == (iSet + 1))
-        {
-            //
-            // Next set waits.
-            //
-            int iBuff, waitForPID = (myProc - nAtOnce), tag = (myProc % nAtOnce);
-            ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
-        }
-    }
-
-    if (verbose > 1)
-    {
-        const int IOProc     = ParallelDescriptor::IOProcessorNumber();
-        Real      piTotal    = piEnd - piStart;
-        Real      piTotalAll = ParallelDescriptor::second() - piStartAll;
-        ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
-        ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
-
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "MFRead::: PROBINIT max time   = " << piTotal    << '\n';
-            std::cout << "MFRead::: PROBINIT total time = " << piTotalAll << '\n';
-        }
-    }
-#else
-    FORT_PROBINIT(&init,
-                  probin_file_name.dataPtr(),
-                  &probin_file_length,
-                  Geometry::ProbLo(),
-                  Geometry::ProbHi());
-#endif
-
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
-       std::cout << "Successfully read probin ... " << std::endl;
+    readProbinFile(init);
     //
     // Start calculation from given restart file.
     //
@@ -1317,18 +1242,10 @@ Amr::restart (const std::string& filename)
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-#if (defined(BL_USE_MPI) && ! defined(BL_USEOLDREADS))
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
     std::string fileCharPtrString(fileCharPtr.dataPtr());
     std::istringstream is(fileCharPtrString, std::istringstream::in);
-#else
-    std::ifstream is;
-    is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-    is.open(File.c_str(), std::ios::in);
-    if (!is.good())
-        BoxLib::FileOpenFailed(File);
-#endif
     //
     // Read global data.
     //
