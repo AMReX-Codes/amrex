@@ -39,14 +39,6 @@ public:
     Orientation (int  dir,
                  Side side);
     //
-    // The copy constructor.
-    //
-    Orientation (const Orientation& rhs);
-    //
-    // The assignment operator.
-    //
-    Orientation& operator= (const Orientation& rhs);
-    //
     // Logical equality.
     //
     bool operator== (const Orientation& o) const;
@@ -134,14 +126,6 @@ public:
     //
     OrientationIter (const Orientation& _face);
     //
-    // The copy constructor.
-    //
-    OrientationIter (const OrientationIter& it);
-    //
-    // The assignment operator.
-    //
-    OrientationIter& operator= (const OrientationIter& it);
-    //
     // Reset (rewind) the iterator.
     //
     void rewind ();
@@ -179,6 +163,7 @@ public:
     bool operator!= (const OrientationIter& oi) const;
 
 protected:
+
     int face;
     //
     // Construct an iterator on the face.
@@ -209,20 +194,6 @@ Orientation::Orientation (int  _dir,
     val(BL_SPACEDIM*_side + _dir)
 {
     BL_ASSERT(0 <= _dir && _dir < BL_SPACEDIM);
-}
-
-inline
-Orientation::Orientation (const Orientation& o)
-    :
-    val(o.val)
-{}
-
-inline
-Orientation&
-Orientation::operator= (const Orientation& o)
-{
-    val = o.val;
-    return *this;
 }
 
 inline
@@ -334,22 +305,6 @@ OrientationIter::ok () const
 }
 
 inline
-OrientationIter::OrientationIter (const OrientationIter& it)
-{
-    BL_ASSERT(it.ok());
-    face = it.face;
-}
-
-inline
-OrientationIter&
-OrientationIter::operator= (const OrientationIter& it)
-{
-    BL_ASSERT(it.ok());
-    face = it.face;
-    return *this;
-}
-
-inline
 void
 OrientationIter::rewind ()
 {
@@ -393,7 +348,9 @@ OrientationIter
 OrientationIter::operator-- (int)
 {
     BL_ASSERT(ok());
-    return OrientationIter(face--);
+    OrientationIter it(face);
+    --face;
+    return it;
 }
 
 inline
@@ -401,7 +358,9 @@ OrientationIter
 OrientationIter::operator++ (int)
 {
     BL_ASSERT(ok());
-    return OrientationIter(face++);
+    OrientationIter it(face);
+    ++face;
+    return it;
 }
 
 inline
