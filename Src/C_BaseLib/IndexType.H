@@ -31,17 +31,9 @@ public:
     //
     IndexType ();
     //
-    // The copy constructor.
-    //
-    IndexType (const IndexType& rhs);
-    //
     // Construct an IndexType identical to an IntVect.
     //
     explicit IndexType (const IntVect& iv);
-    //
-    // The assignment operator.
-    //
-    IndexType& operator= (const IndexType& rhs);
     //
     // Construct an IndexType given an explicit CellIndex for
     // each direction.  D_DECL is a macro that sets the constructor
@@ -162,12 +154,6 @@ IndexType::IndexType ()
 {}
 
 inline
-IndexType::IndexType (const IndexType& bt)
-    :
-    itype(bt.itype)
-{}
-
-inline
 IndexType::IndexType (const IntVect& iv)
 {
     itype = D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2));
@@ -177,14 +163,6 @@ inline
 IndexType::IndexType (D_DECL(CellIndex i, CellIndex j, CellIndex k))
 {
     itype = D_TERM(i, | (j<<1), | (k<<2));
-}
-
-inline
-IndexType&
-IndexType::operator= (const IndexType& bt)
-{
-    itype = bt.itype;
-    return *this;
 }
 
 inline
