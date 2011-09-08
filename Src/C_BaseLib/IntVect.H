@@ -128,14 +128,6 @@ public:
     //
     explicit IntVect (const Array<int>& a);
     //
-    // The copy constructor.
-    //
-    IntVect (const IntVect& rhs);
-    //
-    // The assignment operator.
-    //
-    IntVect& operator= (const IntVect& rhs);
-    //
     // Returns a reference to the i'th coordinate of the IntVect.
     //
     int& operator[] (int i);
@@ -346,20 +338,6 @@ inline
 IntVect::IntVect (D_DECL(int i, int j, int k))
 {
     D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k);
-}
-
-inline
-IntVect::IntVect (const IntVect &iv)
-{
-    D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
-}
-
-inline
-IntVect&
-IntVect::operator= (const IntVect &iv)
-{
-    D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
-    return *this;
 }
 
 inline
