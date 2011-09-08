@@ -1,0 +1,96 @@
+# -*- mode: cmake -*-
+#
+# Set up defines necessary to build BoxLib-based code
+
+if(__CCSE_OPTIONS_INCLUDED)
+  return()
+endif()
+set(__CCSE_OPTIONS_INCLUDED)
+
+enable_language(C)
+enable_language(CXX)
+enable_language(Fortran)
+
+# No idea why we need this.
+# I think it was required for Franklin build. -- lpritch
+if(PREFER_STATIC_LIBRARIES)
+  # Prefer static libraries, but don't require that everything must be static. 
+  # This appears to be necessary on Franklin at NERSC right now.  --RTM
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib)
+endif(PREFER_STATIC_LIBRARIES)
+
+if(BUILD_STATIC_EXECUTABLES)
+    set(CMAKE_EXE_LINKER_FLAGS -static)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+    set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic
+    set(CMAKE_EXE_LINK_DYNAMIC_CXX_FLAGS)
+    set(CMAKE_SHARED_LIBRARY_C_FLAGS)         # remove -fPIC
+    set(CMAKE_SHARED_LIBRARY_CXX_FLAGS)
+    set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)    # remove -rdynamic
+    set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
+endif(BUILD_STATIC_EXECUTABLES)
+
+
+# Testing
+include(CMakeDependentOption)
+cmake_dependent_option(ENABLE_TESTS "Enable unit testing" ON
+                       "ENABLE_UnitTest" ON)
+if (ENABLE_TESTS)
+    set(BUILD_TESTS 1)
+endif()    
+
+include(FortranCInterface)
+include(${FortranCInterface_BINARY_DIR}/Output.cmake)
+
+message(STATUS "BoxLib-specific compile settings:")
+if(FortranCInterface_GLOBAL_SUFFIX STREQUAL ""  AND FortranCInterface_GLOBAL_CASE STREQUAL "UPPER")
+    message(STATUS "   Fortran name mangling scheme to UPPERCASE (upper case, no append underscore)")
+    set(BL_FORTLINK UPPERCASE)
+elseif(FortranCInterface_GLOBAL_SUFFIX STREQUAL ""  AND FortranCInterface_GLOBAL_CASE STREQUAL "LOWER")
+    message(STATUS "   Fortran name mangling scheme to LOWERCASE (lower case, no append underscore)")
+    set(BL_FORTLINK LOWERCASE)
+elseif(FortranCInterface_GLOBAL_SUFFIX STREQUAL "_" AND FortranCInterface_GLOBAL_CASE STREQUAL "LOWER")
+    message(STATUS "   Fortran name mangling scheme to UNDERSCORE (lower case, append underscore)")
+    set(BL_FORTLINK "UNDERSCORE")
+else()
+    message(AUTHOR_WARNING "Fortran to C mangling not backward compatible with older style BoxLib code") 
+endif()
+
+
+set(BL_MACHINE ${CMAKE_SYSTEM_NAME})
+
+message(STATUS "   BL_SPACEDIM = ${BL_SPACEDIM} (1,2,3)")
+message(STATUS "   BL_MACHINE = ${BL_MACHINE} (<ARCH>)")
+message(STATUS "   BL_PRECISION = ${BL_PRECISION} (FLOAT, DOUBLE)")
+message(STATUS "   ENABLE_MPI = ${ENABLE_MPI} (0,1)")
+message(STATUS "   ENABLE_OpenMP = ${ENABLE_OpenMP} (0,1)")
+
+set(BL_DEFINES "BL_NOLINEVALUES;BL_PARALLEL_IO;BL_SPACEDIM=${BL_SPACEDIM};BL_FORT_USE_${BL_FORTLINK};BL_${BL_MACHINE};BL_USE_${BL_PRECISION}")
+
+set(BOXLIB_EXTRA_LIBRARIES)
+set(BOXLIB_EXTRA_LIBRARY_PATH)
+set(BOXLIB_EXTRA_INCLUDE_PATH)
+
+if (ENABLE_MPI)
+  set(MPI_SUFFIX .MPI)
+  list(APPEND BL_DEFINES BL_USE_MPI)
+else()
+  set(MPI_SUFFIX)
+endif()
+
+if (ENABLE_OpenMP)
+  set(OMP_SUFFIX .OMP)
+  list(APPEND BL_DEFINES BL_USE_OMP)
+  find_package(OpenMP REQUIRED)
+  set(CMAKE_CC_FLAGS "${CMAKE_CC_FLAGS} ${OpenMP_C_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+else()
+  set(OMP_SUFFIX)
+endif()
+
+set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${BL_DEFINES}")
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-64 -Wno-deprecated")
+endif(CMAKE_COMPILER_IS_GNUCXX)
+
