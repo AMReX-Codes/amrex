@@ -1,0 +1,4 @@
+CEXE_sources += AmrData.cpp DataServices.cpp
+CEXE_headers += AmrData.H AmrvisConstants.H DataServices.H
+FEXE_headers += 
+FEXE_sources += FABUTIL_${DIM}D.F
