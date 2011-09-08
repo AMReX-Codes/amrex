@@ -3,6 +3,7 @@
 #include <AmrLevel.H>
 #include <ParmParse.H>
 #include <SlabStat.H>
+#include <Utility.H>
 
 SlabStatRec::SlabStatRec (const std::string&  name,
                           int                 ncomp,
