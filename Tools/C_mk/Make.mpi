@@ -457,3 +457,39 @@ ifndef MPI_HOME
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
 endif
+
+ifeq ($(HOST),c2)
+      MPI_HOME=/usr/lib/openmpi
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS = $(shell mpic++ --showme:link)
+      BL_MPI_LIBS +=$(shell mpif90 --showme:link)
+endif
+
+ifeq ($(HOST),c1)
+      MPI_HOME=/usr/lib/openmpi
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS = $(shell mpic++ --showme:link)
+      BL_MPI_LIBS +=$(shell mpif90 --showme:link)
+endif
+
+ifeq ($(HOST),c3)
+      MPI_HOME=/usr/lib/openmpi
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS = $(shell mpic++ --showme:link)
+      BL_MPI_LIBS +=$(shell mpif90 --showme:link)
+endif
+ifeq ($(HOST),c4)
+      MPI_HOME=/usr/lib/openmpi
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS = $(shell mpic++ --showme:link)
+      BL_MPI_LIBS +=$(shell mpif90 --showme:link)
+endif
+

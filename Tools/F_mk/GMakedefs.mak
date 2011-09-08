@@ -116,6 +116,10 @@ ifeq ($(ARCH),Linux)
     include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_intel.mak
   endif
 
+  ifeq ($(HOST),hicegate0)
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_intel.mak
+  endif
+
   ifeq ($(COMP),NAG)
     include .k/comps/Linux_nag.mak
   endif
