@@ -1,0 +1,13 @@
+solver_type = Fortran90
+solver_type = CPlusPlus
+
+plot_rhs  = 1 # plot the RHS
+plot_soln = 1 # plot the solution
+
+n_cell        = 64
+max_grid_size = 64
+
+tol_rel = 1.e-8
+
+mg.v = 2
+cg.v = 0
