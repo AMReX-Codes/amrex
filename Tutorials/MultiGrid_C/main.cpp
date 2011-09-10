@@ -26,38 +26,11 @@ Real a = 0.;
 Real b = 1.;
 Real dx[BL_SPACEDIM];
 
-// Give this a bogus default value to force user to define in inputs file
+// Give these bogus default values to force user to define in inputs file
 std::string solver_type = "fillme";
+std::string     bc_type = "fillme";
 
-static
-Real
-mfnorm_0_valid (const MultiFab& mf)
-{
-    Real r = 0;
-    for ( MFIter cmfi(mf); cmfi.isValid(); ++cmfi )
-    {
-        Real s = mf[cmfi].norm(cmfi.validbox(), 0, 0, mf[cmfi].nComp());
-        r = (r > s) ? r : s;
-    }
-    ParallelDescriptor::ReduceRealMax(r);
-    return r;
-}
-
-static
-Real
-mfnorm_2_valid (const MultiFab& mf)
-{
-    Real r = 0;
-    for ( MFIter cmfi(mf); cmfi.isValid(); ++cmfi )
-    {
-        Real s = mf[cmfi].norm(cmfi.validbox(), 2, 0, mf[cmfi].nComp());
-        r += s*s;
-    }
-    ParallelDescriptor::ReduceRealSum(r);
-    return ::sqrt(r);
-}
-
-void setup_coeffs(BoxArray& bs, MultiFab& acoefs, MultiFab bcoefs[])
+void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[])
 {
    ParmParse pp;
 
@@ -67,7 +40,7 @@ void setup_coeffs(BoxArray& bs, MultiFab& acoefs, MultiFab bcoefs[])
    int Nghost;
    if (solver_type == "CPlusPlus")
    {
-      Nghost = 0;
+      Nghost = 1;
    }
    else if (solver_type == "Fortran90")
    {
@@ -79,8 +52,8 @@ void setup_coeffs(BoxArray& bs, MultiFab& acoefs, MultiFab bcoefs[])
       Nghost = 0;
    }
      
-   acoefs.define(bs, Ncomp, Nghost, Fab_allocate);
-   acoefs.setVal(a);
+   alpha.define(bs, Ncomp, Nghost, Fab_allocate);
+   alpha.setVal(a);
 
    MultiFab  a_coef(bs,1,1);
    a_coef.setVal(0.);
@@ -89,7 +62,6 @@ void setup_coeffs(BoxArray& bs, MultiFab& acoefs, MultiFab bcoefs[])
 
    for ( MFIter mfi(cc_coef); mfi.isValid(); ++mfi )
    {
-     int i = mfi.index();
      const Box& bx = mfi.validbox();
 
      if (a != 0)
@@ -110,17 +82,17 @@ void setup_coeffs(BoxArray& bs, MultiFab& acoefs, MultiFab bcoefs[])
      for ( int n=0; n<BL_SPACEDIM; ++n )
      {
           BoxArray bsC(bs);
-	  bcoefs[n].define(bsC.surroundingNodes(n), Ncomp, Nghost, Fab_allocate);
-          for ( MFIter mfi(bcoefs[n]); mfi.isValid(); ++mfi )
+	  beta[n].define(bsC.surroundingNodes(n), Ncomp, Nghost, Fab_allocate);
+          for ( MFIter mfi(beta[n]); mfi.isValid(); ++mfi )
           {
             int i = mfi.index();
             Box bx(bs[i]);
             const int* clo = cc_coef[mfi].loVect();
             const int* chi = cc_coef[mfi].hiVect();
-            const int* edgelo = bcoefs[n][mfi].loVect();
-            const int* edgehi = bcoefs[n][mfi].hiVect();
+            const int* edgelo = beta[n][mfi].loVect();
+            const int* edgehi = beta[n][mfi].hiVect();
 
-            FORT_COEF_TO_EDGES(&n,bcoefs[n][mfi].dataPtr(),ARLIM(edgelo),ARLIM(edgehi),
+            FORT_COEF_TO_EDGES(&n,beta[n][mfi].dataPtr(),ARLIM(edgelo),ARLIM(edgehi),
                                cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),
                                bx.loVect(),bx.hiVect());
           }
@@ -154,7 +126,7 @@ void setup_rhs(MultiFab& rhs)
 }
 
 void 
-solve_with_Cpp(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& acoefs, MultiFab bcoefs[])
+solve_with_Cpp(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& alpha, MultiFab beta[])
 {
   BoxArray bs(rhs.boxArray());
   BndryData bd(bs, 1, geom);
@@ -164,22 +136,37 @@ solve_with_Cpp(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& acoefs, 
   {
         for ( MFIter mfi(rhs); mfi.isValid(); ++mfi )
 	{
-            int i = mfi.index();  //   ^^^ using rhs to get mfi.index() yes, this is a hack
+            int i = mfi.index(); 
 
+            // Set the boundary conditions to live exactly on the faces of the domain
             bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
             bd.setBoundLoc(Orientation(n, Orientation::high),i,0.0 );
 
-            bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
-            bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
+            if (bc_type == "Dirichlet")
+            {
+               // Define the type of boundary conditions to be Dirichlet
+               bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
+               bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
+            }
+            else if (bc_type == "Neumann")
+            {
+               // Define the type of boundary conditions to be Neumann
+               bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_NEUMANN);
+               bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_NEUMANN);
+            }
 
+            // Set the Dirichlet/Neumann values to be 0
             bd.setValue(Orientation(n, Orientation::low) ,i, 0.0);
             bd.setValue(Orientation(n, Orientation::high),i, 0.0);
 	}
   }
 
+  // The coefficients are set such that we will solve
+  //  (a alpha - b del dot beta grad) soln = rhs
+
   ABecLaplacian abec_operator(bd, dx);
   abec_operator.setScalars(a, b);
-  abec_operator.setCoefficients(acoefs, bcoefs);
+  abec_operator.setCoefficients(alpha, beta);
 
   MultiGrid mg(abec_operator);
   mg.setVerbose(2);
@@ -187,12 +174,8 @@ solve_with_Cpp(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& acoefs, 
 } 
 
 void 
-solve_with_F90(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& acoefs, MultiFab bcoefs[])
+solve_with_F90(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& alpha, MultiFab beta[])
 {
-      //
-      // Build operator, set coeffs, build solver, solve
-      //
-
       // Translate into F90 solver
       std::vector<BoxArray> bav(1);
       bav[0] = rhs.boxArray();
@@ -201,21 +184,7 @@ solve_with_F90(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& acoefs, 
       std::vector<Geometry> fgeom(1);
       fgeom[0] = geom;
 
-      // Hard-wired to periodic
       int mg_bc[2*BL_SPACEDIM];
-      for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
-      {
-         mg_bc[2*dir + 0] = 0;
-         mg_bc[2*dir + 1] = 0;
-      }
-
-      MGT_Solver mgt_solver(fgeom, mg_bc, bav, dmv, false);
-
-      MultiFab* soln_p[1]; soln_p[0] = &soln;
-      MultiFab*  rhs_p[1];  rhs_p[0] = &rhs;
-
-      Array< PArray<MultiFab> > coeffs(1);
-      coeffs[0].resize(BL_SPACEDIM,PArrayManage);
 
       Array< Array<Real> > xa(1);
       Array< Array<Real> > xb(1);
@@ -223,36 +192,86 @@ solve_with_F90(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& acoefs, 
       xa[0].resize(BL_SPACEDIM);
       xb[0].resize(BL_SPACEDIM);
 
+      // Set the boundary conditions to live exactly on the faces of the domain
+      for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
+      {
+          xa[0][dir] = 0.;
+          xb[0][dir] = 0.;
+      }
+
+      if (bc_type == "Periodic")
+      {
+         // Define the type of boundary conditions to be periodic
+         for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
+         {
+            mg_bc[2*dir + 0] = MGT_BC_PER;
+            mg_bc[2*dir + 1] = MGT_BC_PER;
+         }
+      }
+      else if (bc_type == "Neumann")
+      {
+         // Define the type of boundary conditions to be Neumann
+         for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
+         {
+            mg_bc[2*dir + 0] = MGT_BC_NEU;
+            mg_bc[2*dir + 1] = MGT_BC_NEU;
+         }
+      }
+      else if (bc_type == "Dirichlet")
+      {
+         // Define the type of boundary conditions to be Dirichlet
+         for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
+         {
+            mg_bc[2*dir + 0] = MGT_BC_DIR;
+            mg_bc[2*dir + 1] = MGT_BC_DIR;
+         }
+      }
+
+      MGT_Solver mgt_solver(fgeom, mg_bc, bav, dmv, false);
+
+      MultiFab* soln_p[1]; soln_p[0] = &soln;
+      MultiFab*  rhs_p[1];  rhs_p[0] = &rhs;
+
+      PArray<MultiFab> acoeffs(1); 
+      acoeffs[0].copy(alpha);
+      acoeffs[0].mult(a); 
+
+      Array< PArray<MultiFab> > bcoeffs(1);
+      bcoeffs[0].resize(BL_SPACEDIM,PArrayManage);
+
       for (int i = 0; i < BL_SPACEDIM ; i++) {
 
           BoxArray edge_boxes(rhs.boxArray());
           edge_boxes.surroundingNodes(i);
-          coeffs[0].set(i, new MultiFab(edge_boxes,1,0,Fab_allocate));
-          coeffs[0][i].setVal(-1.0);
-
-          xa[0][i] = 0.;
-          xb[0][i] = 0.;
+          bcoeffs[0].set(i, new MultiFab(edge_boxes,1,0,Fab_allocate));
+          bcoeffs[0][i].copy(beta[i]);
       }
 
-      mgt_solver.set_gravity_coefficients(coeffs,xa,xb,1);
+      // The coefficients are set such that we will solve
+      //  (a alpha - b del dot beta grad) soln = rhs
+      //  written in the form 
+      //  (acoeffs - b del dot bcoeffs grad) soln = rhs
+      mgt_solver.set_visc_coefficients(acoeffs,bcoeffs,b,xa,xb);
 
-          BCRec* phys_bc = new BCRec;
-          for (int i = 0; i < BL_SPACEDIM; i++)
-          {
-              phys_bc->setLo(i,0);
-              phys_bc->setHi(i,0);
-          }
+      BCRec* phys_bc = new BCRec;
+      for (int i = 0; i < BL_SPACEDIM; i++)
+      {
+          phys_bc->setLo(i,0);
+          phys_bc->setHi(i,0);
+      }
 
-          BoxArray bs(rhs.boxArray());
-          MacBndry bndry(bs,1,geom);
-          bndry.setBndryValues(soln,0,0,1,*phys_bc);
-         
-          Real final_resnorm;
-          mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
+      BoxArray bs(rhs.boxArray());
+      MacBndry bndry(bs,1,geom);
+      bndry.setBndryValues(soln,0,0,1,*phys_bc);
+     
+      Real final_resnorm;
+      mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
 }
 
-void solve_with_hypre(MultiFab& rhs, MultiFab& soln, MultiFab& acoefs, MultiFab bcoefs[])
+void solve_with_hypre(MultiFab& rhs, MultiFab& soln, MultiFab& alpha, MultiFab beta[])
 {
+  // The coefficients are set such that we will solve
+  //  (a alpha - b del dot beta grad) soln = rhs
 }
 
 int
@@ -273,6 +292,7 @@ main (int argc, char* argv[])
   pp.get("n_cell",n_cell);
   pp.get("max_grid_size",max_grid_size);
   pp.get("solver_type",solver_type);
+  pp.get("bc_type",bc_type);
 
   pp.query("plot_rhs" , plot_rhs);
   pp.query("plot_soln", plot_soln);
@@ -299,9 +319,24 @@ main (int argc, char* argv[])
   // This says we are using Cartesian coordinates
   int coord = 0;
  
-  // This sets the boundary conditions to be doubly or triply periodic
+  // This sets the boundary conditions to be periodic or not
   int* is_per = new int[BL_SPACEDIM];
-  for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1;
+
+  if (bc_type == "Dirichlet" || bc_type == "Neumann")
+  {
+     for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 0;
+  }
+  else 
+  if (bc_type == "Periodic")
+  {
+     for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1;
+  }
+  else 
+  {
+     if (ParallelDescriptor::IOProcessor())
+        std::cout << "Don't know this BC type: " << bc_type << std::endl;
+     BoxLib::Error("");
+  }
  
   // This defines a Geometry object which is useful for writing the plotfiles
   Geometry geom(domain,&real_box,coord,is_per);
@@ -309,19 +344,11 @@ main (int argc, char* argv[])
   for ( int n=0; n<BL_SPACEDIM; n++ )
       dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/domain.length(n);
 
-  //
-  // Allocate/initialize solution and right-hand-side, reset
-  // rhs=1 at each box center.
-  //
+  // The solution and RHS have only one component
+  int Ncomp  = 1;
 
-  int Ncomp=1;
-
-#ifdef USE_F90_MG
-  int Nghost=1;
-#else
-  int Nghost=0;
-#endif
-
+  // Set the number of ghost cells in the solution array.
+  int Nghost = 1;
 
   // Allocate and define the right hand side.
   MultiFab  rhs(bs, Ncomp, 0, Fab_allocate); 
@@ -342,13 +369,11 @@ main (int argc, char* argv[])
   pp.query("tol_rel", tolerance_rel);
   pp.query("tol_abs", tolerance_abs);
   pp.query("maxiter", maxiter);
-
-  int res;
         
-  MultiFab  acoefs;
-  MultiFab bcoefs[BL_SPACEDIM];
+  MultiFab alpha;
+  MultiFab beta[BL_SPACEDIM];
 
-  setup_coeffs(bs,acoefs,bcoefs);
+  setup_coeffs(bs,alpha,beta);
 
   const Real run_strt = ParallelDescriptor::second();
 
@@ -356,25 +381,25 @@ main (int argc, char* argv[])
   {
      if (ParallelDescriptor::IOProcessor())
         std::cout << "Solving with CPlusPlus solver " << std::endl;
-     solve_with_Cpp(geom,rhs,soln,acoefs,bcoefs);
+     solve_with_Cpp(geom,rhs,soln,alpha,beta);
   }
   else if (solver_type == "Fortran90")
   {
      if (ParallelDescriptor::IOProcessor())
         std::cout << "Solving with Fortran90 solver " << std::endl;
-     solve_with_F90(geom,rhs,soln,acoefs,bcoefs);
+     solve_with_F90(geom,rhs,soln,alpha,beta);
   }
   else if (solver_type == "Hypre")
   {
      if (ParallelDescriptor::IOProcessor())
         std::cout << "Solving with Hypre " << std::endl;
-     solve_with_hypre(rhs,soln,acoefs,bcoefs);
+     solve_with_hypre(rhs,soln,alpha,beta);
   }
   else
   {
      if (ParallelDescriptor::IOProcessor())
-        std::cout << "Error type " << solver_type << std::endl;
-     BoxLib::Error("Dont know this solver type");
+        std::cout << "Don't know this solver type: " << solver_type << std::endl;
+     BoxLib::Error("");
   }
 
   Real run_stop = ParallelDescriptor::second() - run_strt;

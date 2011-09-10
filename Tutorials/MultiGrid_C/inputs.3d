@@ -1,6 +1,10 @@
 solver_type = Fortran90
 solver_type = CPlusPlus
 
+bc_type = Neumann
+bc_type = Periodic
+bc_type = Dirichlet
+
 plot_rhs  = 1 # plot the RHS
 plot_soln = 1 # plot the solution
 
@@ -10,4 +14,3 @@ max_grid_size = 64
 tol_rel = 1.e-8
 
 mg.v = 2
-cg.v = 0
