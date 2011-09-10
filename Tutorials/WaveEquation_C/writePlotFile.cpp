@@ -120,8 +120,5 @@ writePlotFile (const std::string& dir,
     std::string TheFullPath = FullPath;
     TheFullPath += BaseName;
 
-    MultiFab plotMF(mf.boxArray(),mf.nComp(),0);
-    plotMF.copy(mf,0,0,mf.nComp());
-
-    VisMF::Write(plotMF,TheFullPath);
+    VisMF::Write(mf,TheFullPath);
 }
