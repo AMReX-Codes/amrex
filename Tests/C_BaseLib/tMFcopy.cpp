@@ -23,7 +23,7 @@ main (int argc, char* argv[])
     DistributionMapping::strategy(DistributionMapping::SFC);
     //
     // If there are >= "2" grids per CPU on average use Space Filling
-    // Curse algorithm for distributing grids, otherwise use KnapSack
+    // Curve algorithm for distributing grids, otherwise use KnapSack
     // algorithm.
     //
     DistributionMapping::SFC_Threshold(2);
