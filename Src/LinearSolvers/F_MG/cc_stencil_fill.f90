@@ -278,7 +278,7 @@ contains
                 call s_minion_full_fill_3d(sp(:,:,:,:), ccp(:,:,:,1), ng_c, &
                                            xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, & 
                                            dh, mp(:,:,:,1), &
-                                           bx%lo, bx%hi, lxa, lxb)
+                                           bx%lo, bx%hi)
              end if
           end select
 
