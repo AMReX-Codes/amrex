@@ -6,6 +6,52 @@
 #include <REAL.H>
 #include "ArrayLim.H"
 #include "COEF_F.H"
+#include "LO_BCTYPES.H"
+
+c-----------------------------------------------------------------------
+      subroutine FORT_COMP_ASOL (
+     $     asol, a_l1, a_l2, a_l3, a_h1, a_h2, a_h3,
+     $     lo, hi, dx, ibnd)
+
+      implicit none
+
+      integer          :: lo(3), hi(3) 
+      integer          :: ibnd
+      integer          :: a_l1, a_l2, a_l3, a_h1, a_h2, a_h3
+      double precision :: asol(a_l1:a_h1, a_l2:a_h2, a_l3:a_h3)
+      double precision :: dx(3)
+c
+      integer i,j,k
+      REAL_T  x,y,z
+      REAL_T  pi, phi, fpi, tpi
+
+      pi = 4.d0 * datan(1.d0)
+
+      phi = .25d0 * pi
+      tpi = 2.0d0 * pi
+      fpi = 4.0d0 * pi
+ 
+      do k = lo(3), hi(3)
+         z = (dble(k)+0.5d0)*dx(3)
+         do j = lo(2), hi(2)
+            y = (dble(j)+0.5d0)*dx(2)
+            do i = lo(1), hi(1)
+               x = (dble(i)+0.5d0)*dx(1)
+
+               if (ibnd .eq. LO_DIRICHLET) then
+                  asol(i,j,k) = 1.d0 * sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
+     $                       + .25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
+               else if (ibnd .eq. LO_NEUMANN) then
+
+               else if (ibnd .eq. 0) then 
+c                 periodic
+                  
+               endif
+            end do
+         end do
+      end do
+ 
+      end
 
 c-----------------------------------------------------------------------
       subroutine FORT_SET_ALPHA (
@@ -99,11 +145,12 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
       subroutine FORT_SET_RHS (
      $     rhs, r_l1, r_l2, r_l3, r_h1, r_h2, r_h3,
-     $     lo, hi, dx)
+     $     lo, hi, dx, ibnd)
 
       implicit none
 
       integer          :: lo(3), hi(3)
+      integer          :: ibnd
       integer          :: r_l1, r_l2, r_l3, r_h1, r_h2, r_h3
       double precision :: rhs(r_l1:r_h1, r_l2:r_h2, r_l3:r_h3)
       double precision ::  dx(3)
@@ -119,15 +166,21 @@ c
       fpi = 4.0d0 * pi
  
       do k = lo(3), hi(3)
-         z = (dble(k)+0.5)*dx(3)
+         z = (dble(k)+0.5d0)*dx(3)
          do j = lo(2), hi(2)
-            y = (dble(j)+0.5)*dx(2)
+            y = (dble(j)+0.5d0)*dx(2)
             do i = lo(1), hi(1)
-               x = (dble(i)+0.5)*dx(1)
+               x = (dble(i)+0.5d0)*dx(1)
 
-               rhs(i,j,k) =         sin(tpi*x)     * sin(tpi*y)       * sin(tpi*z)  
-     $                    + .25d0 * sin(fpi*x+phi) * sin(fpi*y + phi) * sin(fpi*z + phi)
-
+               if (ibnd .eq. LO_DIRICHLET) then
+                  rhs(i,j,k) = sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
+     $                 +       sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
+                  rhs(i,j,k) = rhs(i,j,k) * 12.d0*pi**2
+               else if (ibnd .eq. LO_NEUMANN) then
+                  
+               else if (ibnd .eq. 0) then 
+c                 periodic
+               endif
             end do
          end do
       end do
