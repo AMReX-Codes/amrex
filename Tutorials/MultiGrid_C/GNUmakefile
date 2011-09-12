@@ -11,8 +11,8 @@ DIM	= 3
 COMP =gcc
 FCOMP=gfortran
 
+# USE_MPI must be TRUE because of hypre
 USE_MPI=TRUE
-USE_MPI=FALSE
 
 EBASE = main
 
