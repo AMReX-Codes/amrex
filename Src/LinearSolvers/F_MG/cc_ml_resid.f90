@@ -173,7 +173,10 @@ contains
 ! ******************************************************************************************
 !
   subroutine ml_fill_fluxes(ss, flux, uu, mm, ratio, face, dim)
+
     use bl_prof_module
+    use cc_stencil_apply_module
+
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss
     type(multifab), intent(inout) :: uu
@@ -224,7 +227,10 @@ contains
 ! ******************************************************************************************
 !
   subroutine ml_fill_fluxes_c(ss, flux, cf, uu, cu, mm, ratio, face, dim)
+
     use bl_prof_module
+    use cc_stencil_apply_module
+
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss
     type(multifab), intent(inout) :: uu
@@ -273,7 +279,10 @@ contains
 ! ******************************************************************************************
 !
   subroutine ml_fill_n_fluxes(ss, flux, uu, mm, ratio, face, dim)
+
     use bl_prof_module
+    use cc_stencil_apply_module
+
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss
     type(multifab), intent(inout) :: uu

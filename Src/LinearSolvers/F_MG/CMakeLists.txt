@@ -15,7 +15,7 @@ include_directories(${FBOXLIB_INCLUDE_DIRS})
 
 include_directories(${CMAKE_FORTRAN_MODULE_DIRECTORY})
 
-set(F90_source_files bc_functions.f90 coarsen_coeffs.f90 mg_prolongation.f90 ml_prolongation.f90 cc_mg_cpp.f90 cc_applyop.f90 cc_ml_resid.f90 cc_smoothers.f90 cc_restriction.f90 cc_stencil.f90 cc_stencil_fill.f90 cc_interface_stencil.f90 itsol.f90 ml_restriction.f90 mg.f90 mg_tower.f90 ml_cc.f90 ml_nd.f90 ml_norm.f90 edge_restriction.f90 tridiag.f90 nodal_mg_cpp.f90 nodal_neumann_bcs.f90 nodal_mask.f90 nodal_divu.f90 nodal_interface_stencil.f90 nodal_newu.f90 nodal_restriction.f90 nodal_stencil.f90 nodal_stencil_fill.f90 nodal_smoothers.f90 nodal_mg_cpp.f90)
+set(F90_source_files bc_functions.f90 coarsen_coeffs.f90 mg_prolongation.f90 ml_prolongation.f90 cc_mg_cpp.f90 cc_applyop.f90 cc_ml_resid.f90 cc_smoothers.f90 cc_restriction.f90 cc_stencil.f90 cc_stencil_apply.f90 cc_stencil_fill.f90 cc_interface_stencil.f90 itsol.f90 ml_restriction.f90 mg.f90 mg_tower.f90 ml_cc.f90 ml_nd.f90 ml_norm.f90 edge_restriction.f90 tridiag.f90 nodal_mg_cpp.f90 nodal_neumann_bcs.f90 nodal_mask.f90 nodal_divu.f90 nodal_interface_stencil.f90 nodal_newu.f90 nodal_restriction.f90 nodal_stencil.f90 nodal_stencil_fill.f90 nodal_smoothers.f90 nodal_mg_cpp.f90)
 
 set(C_header_files mg_cpp_f.h)
 set(CXX_header_files)

@@ -13,6 +13,7 @@ f90sources += cc_interface_stencil.f90
 f90sources += cc_ml_resid.f90
 f90sources += cc_restriction.f90
 f90sources += cc_stencil.f90
+f90sources += cc_stencil_apply.f90
 f90sources += cc_stencil_fill.f90
 
 f90sources += mg.f90
