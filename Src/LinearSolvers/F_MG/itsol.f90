@@ -3,6 +3,7 @@ module itsol_module
   use bl_types
   use multifab_module
   use cc_stencil_module
+  use cc_stencil_apply_module
   use bl_constants_module, ONLY: ZERO, ONE
 
   implicit none

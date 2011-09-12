@@ -77,7 +77,10 @@ contains
    end subroutine ml_cc_solve
 
    subroutine ml_fill_fine_fluxes(ss, flux, uu, mm, face, dim)
+
      use bl_prof_module
+     use cc_stencil_apply_module
+
      type(multifab), intent(inout) :: flux
      type(multifab), intent(in) :: ss
      type(multifab), intent(inout) :: uu

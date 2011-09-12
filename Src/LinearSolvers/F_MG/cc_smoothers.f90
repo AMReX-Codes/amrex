@@ -416,7 +416,7 @@ contains
 
   end subroutine gs_rb_smoother_3d
 
-  subroutine minion_smoother_2d(omega, ss, uu, ff, lo, ng, n, is_cross)
+  subroutine fourth_order_smoother_2d(omega, ss, uu, ff, lo, ng, n)
     use bl_prof_module
     integer           , intent(in) :: ng, n
     integer           , intent(in) :: lo(:)
@@ -424,18 +424,17 @@ contains
     real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
-    logical            ,intent(in) :: is_cross
 
     integer            :: i, j, hi(size(lo)), ioff
     real (kind = dp_t) :: dd
 
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "minion_smoother_2d")
+    call build(bpt, "fourth_order_smoother_2d")
 
     hi = ubound(ff)
 
-    if (is_cross) then
+    if (size(ss,dim=3) .eq. 9) then
 
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
@@ -451,7 +450,7 @@ contains
           end do
        end do
 
-    else
+    else if (size(ss,dim=3) .eq. 25) then
 
        do j = lo(2),hi(2)
           do i = lo(1), hi(1)
@@ -482,9 +481,9 @@ contains
 
     call destroy(bpt)
 
-  end subroutine minion_smoother_2d
+  end subroutine fourth_order_smoother_2d
 
-  subroutine minion_smoother_3d(omega, ss, uu, ff, lo, ng, n, is_cross)
+  subroutine fourth_order_smoother_3d(omega, ss, uu, ff, lo, ng, n)
     use bl_prof_module
     integer           , intent(in   ) :: ng, n
     integer           , intent(in   ) :: lo(:)
@@ -492,18 +491,18 @@ contains
     real (kind = dp_t), intent(in   ) :: ff(lo(1):, lo(2):, lo(3):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:,lo(3)-ng:)
     real (kind = dp_t), intent(in   ) :: ss(lo(1):, lo(2):, lo(3):, 0:)
-    logical            ,intent(in   ) :: is_cross
 
     integer            :: i, j, k, hi(size(lo))
     real (kind = dp_t) :: dd
 
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "minion_smoother_3d")
+    call build(bpt, "fourth_order_smoother_3d")
 
     hi = ubound(ff)
 
-    if (is_cross) then
+    ! This is the fourth order stencil for constant coefficients.
+    if (size(ss,dim=4) .eq. 13) then
 
        do k = lo(3),hi(3)
        do j = lo(2),hi(2)
@@ -522,15 +521,75 @@ contains
        end do
        end do
 
-    else
+    ! This is the fourth order stencil for variable coefficients.
+    else if (size(ss,dim=4) .eq. 61) then
 
-       call bl_error('3d minion full smoother not yet implemented')
+       do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1), hi(1)
+             if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
+                dd = &
+                       ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
+                       ! Contributions from k-2
+                     + ss(i,j,k, 1) * uu(i  ,j-2,k-2) + ss(i,j,k, 2) * uu(i  ,j-1,k-2) &
+                     + ss(i,j,k, 3) * uu(i-2,j  ,k-2) + ss(i,j,k, 4) * uu(i-1,j  ,k-2) &
+                     + ss(i,j,k, 5) * uu(i  ,j  ,k-2) + ss(i,j,k, 6) * uu(i+1,j  ,k-2) &
+                     + ss(i,j,k, 7) * uu(i+2,j  ,k-2) + ss(i,j,k, 8) * uu(i  ,j+1,k-2) &
+                     + ss(i,j,k, 9) * uu(i  ,j+2,k-2)                                  &
+                       ! Contributions from k-1
+                     + ss(i,j,k,10) * uu(i  ,j-2,k-1) + ss(i,j,k,11) * uu(i  ,j-1,k-1) &
+                     + ss(i,j,k,12) * uu(i-2,j  ,k-1) + ss(i,j,k,13) * uu(i-1,j  ,k-1) &
+                     + ss(i,j,k,14) * uu(i  ,j  ,k-1) + ss(i,j,k,15) * uu(i+1,j  ,k-1) &
+                     + ss(i,j,k,16) * uu(i+2,j  ,k-1) + ss(i,j,k,17) * uu(i  ,j+1,k-1) &
+                     + ss(i,j,k,18) * uu(i  ,j+2,k-1)                                  &
+                       ! Contributions from j-2,k
+                     + ss(i,j,k,19) * uu(i-2,j-2,k  ) + ss(i,j,k,20) * uu(i-1,j-2,k  ) &
+                     + ss(i,j,k,21) * uu(i  ,j-2,k  ) + ss(i,j,k,22) * uu(i+1,j-2,k  ) &
+                     + ss(i,j,k,23) * uu(i+2,j-2,k  )
+
+                dd = dd &
+                       ! Contributions from j-1,k
+                     + ss(i,j,k,24) * uu(i-2,j-1,k  ) + ss(i,j,k,25) * uu(i-1,j-1,k  ) &
+                     + ss(i,j,k,26) * uu(i  ,j-1,k  ) + ss(i,j,k,27) * uu(i+1,j-1,k  ) &
+                     + ss(i,j,k,28) * uu(i+2,j-1,k  )                                  &
+                       ! Contributions from j  ,k
+                     + ss(i,j,k,29) * uu(i-2,j  ,k  ) + ss(i,j,k,30) * uu(i-1,j  ,k  ) &
+                     + ss(i,j,k,31) * uu(i  ,j  ,k  ) + ss(i,j,k,32) * uu(i+1,j  ,k  ) &
+                     + ss(i,j,k,33) * uu(i+2,j  ,k  )                                  &
+                       ! Contributions from j+1,k
+                     + ss(i,j,k,34) * uu(i-2,j+1,k  ) + ss(i,j,k,35) * uu(i-1,j+1,k  ) &
+                     + ss(i,j,k,36) * uu(i  ,j+1,k  ) + ss(i,j,k,37) * uu(i+1,j+1,k  ) &
+                     + ss(i,j,k,38) * uu(i+2,j+1,k  )                                  &
+                       ! Contributions from j+2,k
+                     + ss(i,j,k,39) * uu(i-2,j+2,k  ) + ss(i,j,k,40) * uu(i-1,j+2,k  ) &
+                     + ss(i,j,k,41) * uu(i  ,j+2,k  ) + ss(i,j,k,42) * uu(i+1,j+2,k  ) &
+                     + ss(i,j,k,43) * uu(i+2,j+2,k  )
+
+                dd = dd &
+                       ! Contributions from k+1
+                     + ss(i,j,k,44) * uu(i  ,j-2,k+1) + ss(i,j,k,45) * uu(i  ,j-1,k+1) &
+                     + ss(i,j,k,46) * uu(i-2,j  ,k+1) + ss(i,j,k,47) * uu(i-1,j  ,k+1) &
+                     + ss(i,j,k,48) * uu(i  ,j  ,k+1) + ss(i,j,k,49) * uu(i+1,j  ,k+1) &
+                     + ss(i,j,k,50) * uu(i+2,j  ,k+1) + ss(i,j,k,51) * uu(i  ,j+1,k+1) &
+                     + ss(i,j,k,52) * uu(i  ,j+2,k+1)                                  &
+                       ! Contributions from k+2
+                     + ss(i,j,k,53) * uu(i  ,j-2,k+2) + ss(i,j,k,54) * uu(i  ,j-1,k+2) &
+                     + ss(i,j,k,55) * uu(i-2,j  ,k+2) + ss(i,j,k,56) * uu(i-1,j  ,k+2) &
+                     + ss(i,j,k,57) * uu(i  ,j  ,k+2) + ss(i,j,k,58) * uu(i+1,j  ,k+2) &
+                     + ss(i,j,k,59) * uu(i+2,j  ,k+2) + ss(i,j,k,60) * uu(i  ,j+1,k+2) &
+                     + ss(i,j,k,61) * uu(i  ,j+2,k+2)
+
+               uu(i,j,k) = uu(i,j,k) + (omega/ss(i,j,k,0)) * (ff(i,j,k) - dd)
+             end if
+          end do
+       end do
+       end do
 
     end if
 
     call destroy(bpt)
 
-  end subroutine minion_smoother_3d
+  end subroutine fourth_order_smoother_3d
 
   subroutine gs_lex_smoother_1d(omega, ss, uu, ff, ng, skwd)
     integer, intent(in) :: ng
