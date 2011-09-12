@@ -2254,7 +2254,11 @@ contains
     real (kind = dp_t), intent(in   ) :: betaz(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer :: i, j, k, nsten
+    integer          :: i, j, k, nsten
+    double precision :: hx2,hy2,hz2
+    double precision :: rhoax,rhobx,rhofx,rhotx
+    double precision :: rhoby,rholy,rhory,rhoty
+    double precision :: rhofz,rholz,rhorz,rhoaz
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
