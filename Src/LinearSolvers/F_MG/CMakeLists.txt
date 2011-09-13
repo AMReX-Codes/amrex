@@ -33,17 +33,8 @@ add_library(box_fmg ${local_source_files})
 #  and tell CMake that anything that links to fmg must link to fboxlib.
 target_link_libraries(box_fmg box_f)
 
-install(TARGETS box_fmg
-  LIBRARY DESTINATION ${CCSE_INSTALL_DIR}/lib${MPI_SUFFIX}${OMP_SUFFIX}
-  ARCHIVE DESTINATION ${CCSE_INSTALL_DIR}/lib${MPI_SUFFIX}${OMP_SUFFIX}
-  CONFIGURATIONS ${CMAKE_BUILD_TYPE}
-  )
-
-if (${CCSE_INSTALL_DIR} STREQUAL ${PROJECT_SOURCE_DIR})
-else ()
-    install(FILES ${local_header_files}
-        DESTINATION ${CCSE_INSTALL_DIR}/include)
-endif ()
+add_install_include_file(${local_header_files})
+add_install_library(box_fmg)
 
 if (BUILD_TESTS AND BL_SPACEDIM EQUAL 3)
 endif()

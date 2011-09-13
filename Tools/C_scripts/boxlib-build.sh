@@ -2,6 +2,7 @@
 
 BoxLib_CONFIG=0
 BoxLib_Root=${PWD}
+BoxLib_INSTALL_PREFIX=${BoxLib_Root}/install
 BoxLib_MAKE=0
 BoxLib_CLOBBER=0
 BoxLib_TEST=0
@@ -68,7 +69,8 @@ if [ $BoxLib_CONFIG -eq 1 ]; then
                 -D ENABLE_Config_Report:BOOL=ON \
                 -D BL_SPACEDIM:INT=${SPACEDIM} \
                 -D BL_PRECISION:STRING=${PRECISION} \
-                -D ENABLE_TESTS:BOOL=ON"
+                -D ENABLE_TESTS:BOOL=ON \
+                -D CMAKE_INSTALL_PREFIX:FILEPATH=${BoxLib_INSTALL_PREFIX} "
 
     if [ ${BoxLib_VERBOSE} -eq 1 ]; then
         CMAKE_ARGS=${CMAKE_ARGS} " --debug-output"
