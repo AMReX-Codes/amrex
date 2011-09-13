@@ -2733,24 +2733,24 @@ contains
                                               ) 
 
           !  Now we add in the 2nd order stencil
-          ss(i,j,k,11) = ss(i,j,k,29) + (                       -        betax(i,j,k))*hx22
-          ss(i,j,k,12) = ss(i,j,k,30) + (        betax(i+1,j,k) + 15.0d0*betax(i,j,k))*hx22
+          ss(i,j,k,29) = ss(i,j,k,29) + (                       -        betax(i,j,k))*hx22
+          ss(i,j,k,30) = ss(i,j,k,30) + (        betax(i+1,j,k) + 15.0d0*betax(i,j,k))*hx22
           ss(i,j,k, 0) = ss(i,j,k, 0) + (-15.0d0*betax(i+1,j,k) - 15.0d0*betax(i,j,k))*hx22
-          ss(i,j,k,13) = ss(i,j,k,31) + ( 15.0d0*betax(i+1,j,k) +        betax(i,j,k))*hx22
-          ss(i,j,k,14) = ss(i,j,k,32) + (       -betax(i+1,j,k)                      )*hx22
-
-          ss(i,j,k, 3) = ss(i,j,k,21) + (                       -        betay(i,j,k))*hy22
-          ss(i,j,k, 8) = ss(i,j,k,26) + (        betay(i,j+1,k) + 15.0d0*betay(i,j,k))*hy22
+          ss(i,j,k,31) = ss(i,j,k,31) + ( 15.0d0*betax(i+1,j,k) +        betax(i,j,k))*hx22
+          ss(i,j,k,32) = ss(i,j,k,32) + (       -betax(i+1,j,k)                      )*hx22
+ 
+          ss(i,j,k,21) = ss(i,j,k,21) + (                      -        betay(i,j,k))*hy22
+          ss(i,j,k,26) = ss(i,j,k,26) + (        betay(i,j+1,k) + 15.0d0*betay(i,j,k))*hy22
           ss(i,j,k, 0) = ss(i,j,k, 0) + (-15.0d0*betay(i,j+1,k) - 15.0d0*betay(i,j,k))*hy22
-          ss(i,j,k,17) = ss(i,j,k,35) + ( 15.0d0*betay(i,j+1,k) +        betay(i,j,k))*hy22
-          ss(i,j,k,22) = ss(i,j,k,40) + (       -betay(i,j+1,k)                      )*hy22
-
-          ss(i,j,k, 3) = ss(i,j,k, 5) + (                       -        betaz(i,j,k))*hz22
-          ss(i,j,k, 8) = ss(i,j,k,14) + (        betaz(i,j,k+1) + 15.0d0*betaz(i,j,k))*hz22
+          ss(i,j,k,35) = ss(i,j,k,35) + ( 15.0d0*betay(i,j+1,k) +        betay(i,j,k))*hy22
+          ss(i,j,k,40) = ss(i,j,k,40) + (       -betay(i,j+1,k)                      )*hy22
+ 
+ 
+          ss(i,j,k, 5) = ss(i,j,k, 5) + (                       -        betaz(i,j,k))*hz22
+          ss(i,j,k,14) = ss(i,j,k,14) + (        betaz(i,j,k+1) + 15.0d0*betaz(i,j,k))*hz22
           ss(i,j,k, 0) = ss(i,j,k, 0) + (-15.0d0*betaz(i,j,k+1) - 15.0d0*betaz(i,j,k))*hz22
-          ss(i,j,k,17) = ss(i,j,k,47) + ( 15.0d0*betaz(i,j,k+1) +        betaz(i,j,k))*hz22
-          ss(i,j,k,22) = ss(i,j,k,56) + (       -betaz(i,j,k+1)                      )*hz22
-
+          ss(i,j,k,47) = ss(i,j,k,47) + ( 15.0d0*betaz(i,j,k+1) +        betaz(i,j,k))*hz22
+          ss(i,j,k,56) = ss(i,j,k,56) + (       -betaz(i,j,k+1)                      )*hz22
 
           end do
        end do
