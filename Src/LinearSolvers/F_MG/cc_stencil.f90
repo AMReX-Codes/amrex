@@ -2247,6 +2247,7 @@ contains
     double precision :: rhoby,rholy,rhory,rhoty
     double precision :: rhofz,rholz,rhorz,rhoaz
     double precision :: s1,s2,scale
+    double precision :: sum
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -2270,7 +2271,6 @@ contains
     !  In the output of make_stencil3d.f90, the coefficents of the correction are multiplied by
     !  all the denominators so that they are integers.  So we have to put the denominators back in
     scale = 1.0d0/(12.0d0*48.d0)
-
 
     !  The coefficients hx2 and hy2 are defined by  (the minus sign is because it is minus beta*Lap)
     hx2 = -1.0d0/(12.d0*dh(1)**2)*scale
@@ -2739,7 +2739,7 @@ contains
           ss(i,j,k,13) = ss(i,j,k,31) + ( 15.0d0*betax(i+1,j,k) +        betax(i,j,k))*hx22
           ss(i,j,k,14) = ss(i,j,k,32) + (       -betax(i+1,j,k)                      )*hx22
 
-          ss(i,j,k, 3) = ss(i,j,k,21) + (                      -        betay(i,j,k))*hy22
+          ss(i,j,k, 3) = ss(i,j,k,21) + (                       -        betay(i,j,k))*hy22
           ss(i,j,k, 8) = ss(i,j,k,26) + (        betay(i,j+1,k) + 15.0d0*betay(i,j,k))*hy22
           ss(i,j,k, 0) = ss(i,j,k, 0) + (-15.0d0*betay(i,j+1,k) - 15.0d0*betay(i,j,k))*hy22
           ss(i,j,k,17) = ss(i,j,k,35) + ( 15.0d0*betay(i,j+1,k) +        betay(i,j,k))*hy22
@@ -2751,11 +2751,24 @@ contains
           ss(i,j,k,17) = ss(i,j,k,47) + ( 15.0d0*betaz(i,j,k+1) +        betaz(i,j,k))*hz22
           ss(i,j,k,22) = ss(i,j,k,56) + (       -betaz(i,j,k+1)                      )*hz22
 
+
           end do
        end do
     end do
 
     !$OMP END PARALLEL DO
+
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+          sum = 0.d0
+          do nsten = 0,60
+             sum = sum + ss(i,j,k,nsten)
+          end do
+          ss(i,j,k,0) = -sum
+          end do
+       end do
+    end do
 
     !
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
