@@ -39,6 +39,8 @@ main (int argc, char* argv[])
     if (!fba.isDisjoint())
         BoxLib::Error("BoxArray is not disjoint");
 
+    fba.maxSize(32);
+
     if (ParallelDescriptor::IOProcessor())
         std::cout << "number of grids in fba: " << fba.size() << '\n';
     //
@@ -54,17 +56,12 @@ main (int argc, char* argv[])
 
     cbl.simplify();
 
-//    cbl.maxSize(32);
+    cbl.maxSize(32);
 
     BoxArray cba(cbl);
 
-    BoxArray isect = BoxLib::intersect(cba,fba);
-
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "number of grids in isect: " << isect.size() << std::endl;
-
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "number of grids in cba: " << cba.size() << '\n';
+        std::cout << "number of grids in cba: " << cba.size() << std::endl;
     //
     // If you want to make the copy do more work increase NComp.
     //
