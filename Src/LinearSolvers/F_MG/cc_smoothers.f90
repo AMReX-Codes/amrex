@@ -528,6 +528,7 @@ contains
        do j = lo(2),hi(2)
           do i = lo(1), hi(1)
              if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
+
                 dd = &
                        ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
                        ! Contributions from k-2
@@ -545,7 +546,7 @@ contains
                        ! Contributions from j-2,k
                      + ss(i,j,k,19) * uu(i-2,j-2,k  ) + ss(i,j,k,20) * uu(i-1,j-2,k  ) &
                      + ss(i,j,k,21) * uu(i  ,j-2,k  ) + ss(i,j,k,22) * uu(i+1,j-2,k  ) &
-                     + ss(i,j,k,23) * uu(i+2,j-2,k  )
+                     + ss(i,j,k,23) * uu(i+2,j-2,k  ) 
 
                 dd = dd &
                        ! Contributions from j-1,k
@@ -554,30 +555,30 @@ contains
                      + ss(i,j,k,28) * uu(i+2,j-1,k  )                                  &
                        ! Contributions from j  ,k
                      + ss(i,j,k,29) * uu(i-2,j  ,k  ) + ss(i,j,k,30) * uu(i-1,j  ,k  ) &
-                     + ss(i,j,k,31) * uu(i  ,j  ,k  ) + ss(i,j,k,32) * uu(i+1,j  ,k  ) &
-                     + ss(i,j,k,33) * uu(i+2,j  ,k  )                                  &
+                                                      + ss(i,j,k,31) * uu(i+1,j  ,k  ) &
+                     + ss(i,j,k,32) * uu(i+2,j  ,k  )                                  &
                        ! Contributions from j+1,k
-                     + ss(i,j,k,34) * uu(i-2,j+1,k  ) + ss(i,j,k,35) * uu(i-1,j+1,k  ) &
-                     + ss(i,j,k,36) * uu(i  ,j+1,k  ) + ss(i,j,k,37) * uu(i+1,j+1,k  ) &
-                     + ss(i,j,k,38) * uu(i+2,j+1,k  )                                  &
+                     + ss(i,j,k,33) * uu(i-2,j+1,k  ) + ss(i,j,k,34) * uu(i-1,j+1,k  ) &
+                     + ss(i,j,k,35) * uu(i  ,j+1,k  ) + ss(i,j,k,36) * uu(i+1,j+1,k  ) &
+                     + ss(i,j,k,37) * uu(i+2,j+1,k  )                                  &
                        ! Contributions from j+2,k
-                     + ss(i,j,k,39) * uu(i-2,j+2,k  ) + ss(i,j,k,40) * uu(i-1,j+2,k  ) &
-                     + ss(i,j,k,41) * uu(i  ,j+2,k  ) + ss(i,j,k,42) * uu(i+1,j+2,k  ) &
-                     + ss(i,j,k,43) * uu(i+2,j+2,k  )
+                     + ss(i,j,k,38) * uu(i-2,j+2,k  ) + ss(i,j,k,39) * uu(i-1,j+2,k  ) &
+                     + ss(i,j,k,40) * uu(i  ,j+2,k  ) + ss(i,j,k,41) * uu(i+1,j+2,k  ) &
+                     + ss(i,j,k,42) * uu(i+2,j+2,k  )                                  
 
                 dd = dd &
                        ! Contributions from k+1
-                     + ss(i,j,k,44) * uu(i  ,j-2,k+1) + ss(i,j,k,45) * uu(i  ,j-1,k+1) &
-                     + ss(i,j,k,46) * uu(i-2,j  ,k+1) + ss(i,j,k,47) * uu(i-1,j  ,k+1) &
-                     + ss(i,j,k,48) * uu(i  ,j  ,k+1) + ss(i,j,k,49) * uu(i+1,j  ,k+1) &
-                     + ss(i,j,k,50) * uu(i+2,j  ,k+1) + ss(i,j,k,51) * uu(i  ,j+1,k+1) &
-                     + ss(i,j,k,52) * uu(i  ,j+2,k+1)                                  &
+                     + ss(i,j,k,43) * uu(i  ,j-2,k+1) + ss(i,j,k,44) * uu(i  ,j-1,k+1) &
+                     + ss(i,j,k,45) * uu(i-2,j  ,k+1) + ss(i,j,k,46) * uu(i-1,j  ,k+1) &
+                     + ss(i,j,k,47) * uu(i  ,j  ,k+1) + ss(i,j,k,48) * uu(i+1,j  ,k+1) &
+                     + ss(i,j,k,49) * uu(i+2,j  ,k+1) + ss(i,j,k,50) * uu(i  ,j+1,k+1) &
+                     + ss(i,j,k,51) * uu(i  ,j+2,k+1)                                  &
                        ! Contributions from k+2
-                     + ss(i,j,k,53) * uu(i  ,j-2,k+2) + ss(i,j,k,54) * uu(i  ,j-1,k+2) &
-                     + ss(i,j,k,55) * uu(i-2,j  ,k+2) + ss(i,j,k,56) * uu(i-1,j  ,k+2) &
-                     + ss(i,j,k,57) * uu(i  ,j  ,k+2) + ss(i,j,k,58) * uu(i+1,j  ,k+2) &
-                     + ss(i,j,k,59) * uu(i+2,j  ,k+2) + ss(i,j,k,60) * uu(i  ,j+1,k+2) &
-                     + ss(i,j,k,61) * uu(i  ,j+2,k+2)
+                     + ss(i,j,k,52) * uu(i  ,j-2,k+2) + ss(i,j,k,53) * uu(i  ,j-1,k+2) &
+                     + ss(i,j,k,54) * uu(i-2,j  ,k+2) + ss(i,j,k,55) * uu(i-1,j  ,k+2) &
+                     + ss(i,j,k,56) * uu(i  ,j  ,k+2) + ss(i,j,k,57) * uu(i+1,j  ,k+2) &
+                     + ss(i,j,k,58) * uu(i+2,j  ,k+2) + ss(i,j,k,59) * uu(i  ,j+1,k+2) &
+                     + ss(i,j,k,60) * uu(i  ,j+2,k+2)                                   
 
                uu(i,j,k) = uu(i,j,k) + (omega/ss(i,j,k,0)) * (ff(i,j,k) - dd)
              end if
