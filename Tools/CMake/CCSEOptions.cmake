@@ -30,6 +30,17 @@ if(BUILD_STATIC_EXECUTABLES)
     set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
 endif(BUILD_STATIC_EXECUTABLES)
 
+set(cat_exec "cat")
+if (WIN32)
+    if( NOT UNIX)
+        set(cat_exec "type")
+    endif(NOT UNIX)
+endif(WIN32)
+
+execute_process(COMMAND "${cat_exec}" "${CCSE_ROOT_DIR}/BoxLib_Version.txt"
+                OUTPUT_VARIABLE CCSE_VERSION
+                ERROR_VARIABLE  _stderr
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # Testing
 include(CMakeDependentOption)
@@ -72,20 +83,14 @@ set(BOXLIB_EXTRA_LIBRARY_PATH)
 set(BOXLIB_EXTRA_INCLUDE_PATH)
 
 if (ENABLE_MPI)
-  set(MPI_SUFFIX .MPI)
   list(APPEND BL_DEFINES BL_USE_MPI)
-else()
-  set(MPI_SUFFIX)
 endif()
 
 if (ENABLE_OpenMP)
-  set(OMP_SUFFIX .OMP)
   list(APPEND BL_DEFINES BL_USE_OMP)
   find_package(OpenMP REQUIRED)
   set(CMAKE_CC_FLAGS "${CMAKE_CC_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-else()
-  set(OMP_SUFFIX)
 endif()
 
 set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${BL_DEFINES}")
