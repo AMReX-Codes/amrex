@@ -1,5 +1,5 @@
-solver_type = Hypre
-#solver_type = BoxLib_F
+#solver_type = Hypre
+solver_type = BoxLib_F
 #solver_type = BoxLib_C
 
 bc_type = Neumann
@@ -21,6 +21,20 @@ tol_abs = 0.0
 a = 0.0
 b = 1.0
 
-mg.v = 2 
-
 hypre.pfmg_relax_type = 2
+
+#For BoxLib_F: 
+# mg.v = 0 shows just the Run time.
+# mg.v = 1 shows Initial rhs, Final Iter, and Run time
+# mg.v = 2 shows Initial rhs, Residual at each V-cycle, Final Iter, and Run time
+
+#For BoxLib_C: 
+# mg.v = 0 shows just the Run time.
+# mg.v = 1 shows Initial rhs, Final Iter, and Run time
+# mg.v = 2 shows Initial rhs, Residual at each V-cycle, Final Iter, and Run time
+  cg.v = 0 controls verbosity of CG bottom solver
+
+#For Hypre: 
+# mg.v = 0 shows just the Run time.
+
+mg.v = 1
