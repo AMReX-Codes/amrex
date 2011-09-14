@@ -1,9 +1,9 @@
 solver_type = Hypre
-solver_type = BoxLib_F
-solver_type = BoxLib_C
+#solver_type = BoxLib_F
+#solver_type = BoxLib_C
 
-#bc_type = Neumann
-bc_type = Periodic
+bc_type = Neumann
+#bc_type = Periodic
 #bc_type = Dirichlet
 
 plot_rhs  = 1 # plot the RHS
@@ -18,4 +18,9 @@ max_grid_size = 32
 tol_rel = 1.e-8
 tol_abs = 0.0
 
-verbose = 2
+a = 0.0
+b = 1.0
+
+mg.v = 2 
+
+hypre.pfmg_relax_type = 2

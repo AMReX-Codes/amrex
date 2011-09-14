@@ -1,10 +1,14 @@
 #ifndef _HypreABecLap_H_
 #define _HypreABecLap_H_
 
+#include <iomanip>
+#include <iostream>
+
 #include <Tuple.H>
 #include <Geometry.H>
 #include <MultiFab.H>
 #include <MacBndry.H>
+#include <ParmParse.H>
 
 #include "_hypre_utilities.h"
 #include "HYPRE_struct_ls.h"
@@ -44,6 +48,7 @@ protected:
   HYPRE_StructVector b, x;
   HYPRE_StructSolver solver, precond;
 
+  int pfmg_relax_type;
 };
 #endif
 
