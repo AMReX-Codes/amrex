@@ -418,15 +418,15 @@ int main(int argc, char* argv[])
 
   const Real run_strt = ParallelDescriptor::second();
 
-  if (solver_type == "CPlusPlus") {
+  if (solver_type == "BoxLib_C") {
     if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Solving with CPlusPlus solver " << std::endl;
+      std::cout << "Solving with BoxLib C++ solver " << std::endl;
     }
     solve_with_Cpp(soln, alpha, beta, rhs, bs, geom);
   } 
-  else if (solver_type == "Fortran90") {
+  else if (solver_type == "BoxLib_F") {
     if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Solving with Fortran90 solver " << std::endl;
+      std::cout << "Solving with BoxLib Fortran90 solver " << std::endl;
     }
     solve_with_F90(soln, alpha, beta, rhs, bs, geom);
   }

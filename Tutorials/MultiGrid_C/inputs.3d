@@ -1,6 +1,6 @@
 solver_type = Hypre
-#solver_type = Fortran90
-#solver_type = CPlusPlus
+solver_type = BoxLib_F
+solver_type = BoxLib_C
 
 #bc_type = Neumann
 bc_type = Periodic
