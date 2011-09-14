@@ -67,10 +67,10 @@ c-----------------------------------------------------------------------
       double precision :: dx(3)
  
       integer i,j,k
- 
-      do k = a_l3, a_h3
-      do j = a_l2, a_h2
-      do i = a_l2, a_h1
+
+      do k = lo(3), hi(3)
+      do j = lo(2), hi(2)
+      do i = lo(1), hi(1)
          alpha(i,j,k) = 1.d0
       end do
       end do

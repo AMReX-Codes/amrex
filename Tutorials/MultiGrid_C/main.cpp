@@ -1,3 +1,6 @@
+// We solve
+// (a alpha - b del dot beta grad) soln = rhs
+// where a and b are scalars, alpha and beta are arrays
 
 #include <fstream>
 #include <iomanip>
@@ -29,13 +32,12 @@ int  plot_asol     = 0;
 int  plot_err      = 0;
 int  comp_norm     = 1;
 
-Real a = 0.;
-Real b = 1.;
 Real dx[BL_SPACEDIM];
 
-// Give these bogus default values to force user to define in inputs file
 std::string solver_type = "fillme";
 std::string     bc_type = "fillme";
+
+int Ncomp = 1;
 
 void compute_analyticSolution(MultiFab& anaSoln)
 {
@@ -62,24 +64,15 @@ void compute_analyticSolution(MultiFab& anaSoln)
 
 void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[])
 {
-  ParmParse pp;
+  MultiFab cc_coef(bs,Ncomp,1); // cell-centered beta
 
-  pp.query("a",  a);
-  
-  MultiFab  a_coef(bs,1,1);
-  a_coef.setVal(0.);
-  
-  MultiFab cc_coef(bs,1,1);
-
-  for ( MFIter mfi(cc_coef); mfi.isValid(); ++mfi ) {
+  for ( MFIter mfi(alpha); mfi.isValid(); ++mfi ) {
     const Box& bx = mfi.validbox();
 
-    if (a != 0) {
-      const int* alo = a_coef[mfi].loVect();
-      const int* ahi = a_coef[mfi].hiVect();
-      FORT_SET_ALPHA(a_coef[mfi].dataPtr(),ARLIM(alo),ARLIM(ahi),
-      		     bx.loVect(),bx.hiVect(),dx);
-    }
+    const int* alo = alpha[mfi].loVect();
+    const int* ahi = alpha[mfi].hiVect();
+    FORT_SET_ALPHA(alpha[mfi].dataPtr(),ARLIM(alo),ARLIM(ahi),
+    		   bx.loVect(),bx.hiVect(),dx);
 
     const int* clo = cc_coef[mfi].loVect();
     const int* chi = cc_coef[mfi].hiVect();
@@ -87,17 +80,8 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[])
 		     bx.loVect(),bx.hiVect(),dx);
   }
 
-//   VisMF::Write(cc_coef,"COEF");    
-  
-  int Ncomp = 1;
-  alpha.define(bs, Ncomp, 0, Fab_allocate);
-  alpha.setVal(a);
-  // need to set alpha
-
+  // convert cell-centered beta to edges
   for ( int n=0; n<BL_SPACEDIM; ++n ) {
-    BoxArray bx(bs);
-    beta[n].define(bx.surroundingNodes(n), Ncomp, 1, Fab_allocate);
-
     for ( MFIter mfi(beta[n]); mfi.isValid(); ++mfi ) {
       int i = mfi.index();
       Box bx(bs[i]);
@@ -126,9 +110,6 @@ void setup_rhs(MultiFab& rhs)
     ibnd = 0;
   }
 
-  // Define rhs in Fortran routine.
-  rhs.setVal(0.0);
-
   Real sum_rhs = 0;
   for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
     const int* rlo = rhs[mfi].loVect();
@@ -150,12 +131,9 @@ void setup_rhs(MultiFab& rhs)
   }
 }
 
-void solve_with_Cpp(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& rhs,
-		    const BoxArray& bs, const Geometry& geom)
+void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
-  // The coefficients are set such that we will solve
-  //  (a alpha - b del dot beta grad) soln = rhs
-
   BndryData bd(bs, 1, geom);
   int comp = 0;
 
@@ -193,8 +171,8 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& 
   mg.solve(soln, rhs, tolerance_rel, tolerance_abs);
 } 
 
-void solve_with_F90(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& rhs,
-		    const BoxArray& bs, const Geometry& geom)
+void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
   // Translate into F90 solver
   std::vector<BoxArray> bav(1);
@@ -246,7 +224,7 @@ void solve_with_F90(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& 
   MultiFab*  rhs_p[1];  rhs_p[0] = &rhs;
 
   PArray<MultiFab> acoeffs(1, PArrayManage);
-  acoeffs.set(0, new MultiFab(bs,1,0,Fab_allocate));
+  acoeffs.set(0, new MultiFab(bs,Ncomp,0,Fab_allocate));
   acoeffs[0].copy(alpha);
   acoeffs[0].mult(a); 
 
@@ -256,7 +234,7 @@ void solve_with_F90(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& 
     edge_boxes.surroundingNodes(i);
 
     bcoeffs[i].resize(1,PArrayManage);
-    bcoeffs[i].set(0, new MultiFab(edge_boxes,1,0,Fab_allocate));
+    bcoeffs[i].set(0, new MultiFab(edge_boxes,Ncomp,0,Fab_allocate));
     bcoeffs[i][0].copy(beta[i]);
   }
 
@@ -280,12 +258,9 @@ void solve_with_F90(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& 
 }
 
 #ifdef USEHYPRE
-void solve_with_hypre(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& rhs,
-		      const BoxArray& bs, const Geometry& geom)
+void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+		      MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
-  // The coefficients are set such that we will solve
-  //  (a alpha - b del dot beta grad) soln = rhs
-
   BndryData bd(bs, 1, geom);
   int comp = 0;
 
@@ -319,8 +294,7 @@ void solve_with_hypre(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab
   hypreSolver.setACoeffs(alpha);
   hypreSolver.setBCoeffs(beta);
   hypreSolver.setVerbose(verbose);
-  int max_iter = 100;
-  hypreSolver.solve(soln, rhs, tolerance_rel, tolerance_abs, max_iter, bd);
+  hypreSolver.solve(soln, rhs, tolerance_rel, tolerance_abs, maxiter, bd);
 }
 #endif
 
@@ -329,10 +303,23 @@ int main(int argc, char* argv[])
   BoxLib::Initialize(argc,argv);
 
   std::cout << std::setprecision(15);
+
+  ParmParse ppmg("mg");  
+  ppmg.query("v", verbose);
   
   ParmParse pp;
+  pp.query("tol_rel", tolerance_rel);
+  pp.query("tol_abs", tolerance_abs);
+  pp.query("maxiter", maxiter);
+  pp.query("plot_rhs" , plot_rhs);
+  pp.query("plot_soln", plot_soln);
+  pp.query("plot_asol", plot_asol);
+  pp.query("plot_err", plot_err);
+  pp.query("comp_norm", comp_norm);
 
-  pp.query("verbose", verbose);
+  Real a = 0., b = 1.;
+  pp.query("a",  a);
+  pp.query("b",  b);
 
   int n_cell;
   int max_grid_size;
@@ -341,9 +328,6 @@ int main(int argc, char* argv[])
   pp.get("max_grid_size",max_grid_size);
   pp.get("solver_type",solver_type);
   pp.get("bc_type",bc_type);
-
-  pp.query("plot_rhs" , plot_rhs);
-  pp.query("plot_soln", plot_soln);
 
   // Define a single box covering the domain
   IntVect dom_lo(0,0,0);
@@ -389,36 +373,23 @@ int main(int argc, char* argv[])
     dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/domain.length(n);
   }
 
-  // The solution and RHS have only one component
-  int Ncomp  = 1;
-
-  // Set the number of ghost cells in the solution array.
-  int Nghost = 1;
-
   // Allocate and define the right hand side.
-  MultiFab  rhs(bs, Ncomp, 0, Fab_allocate); 
+  MultiFab rhs(bs, Ncomp, 0, Fab_allocate); 
   setup_rhs(rhs);
 
   // Allocate the solution array and initialize to zero
-  MultiFab soln(bs, Ncomp, Nghost, Fab_allocate);
+  // Set the number of ghost cells in the solution array.
+  MultiFab soln(bs, Ncomp, 1, Fab_allocate);
   soln.setVal(0.0);
 
-  //
-  // Initialize boundary data, set boundary condition flags and locations:
-  // (phys boundaries set to dirichlet on cell walls).
-  //
-
-  //
-  // Read the relative and absolute tolerance and maxiter from the inputs file.
-  //
-  pp.query("tol_rel", tolerance_rel);
-  pp.query("tol_abs", tolerance_abs);
-  pp.query("maxiter", maxiter);
-        
-  MultiFab alpha;
+  MultiFab alpha(bs, Ncomp, 0, Fab_allocate);
   MultiFab beta[BL_SPACEDIM];
+  for ( int n=0; n<BL_SPACEDIM; ++n ) {
+    BoxArray bx(bs);
+    beta[n].define(bx.surroundingNodes(n), Ncomp, 1, Fab_allocate);
+  }
 
-  setup_coeffs(bs,alpha,beta);
+  setup_coeffs(bs, alpha, beta);
 
   const Real run_strt = ParallelDescriptor::second();
 
@@ -426,20 +397,20 @@ int main(int argc, char* argv[])
     if (ParallelDescriptor::IOProcessor()) {
       std::cout << "Solving with BoxLib C++ solver " << std::endl;
     }
-    solve_with_Cpp(soln, alpha, beta, rhs, bs, geom);
+    solve_with_Cpp(soln, a, b, alpha, beta, rhs, bs, geom);
   } 
   else if (solver_type == "BoxLib_F") {
     if (ParallelDescriptor::IOProcessor()) {
       std::cout << "Solving with BoxLib Fortran90 solver " << std::endl;
     }
-    solve_with_F90(soln, alpha, beta, rhs, bs, geom);
+    solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
   }
   else if (solver_type == "Hypre") {
 #ifdef USEHYPRE
     if (ParallelDescriptor::IOProcessor()) {
       std::cout << "Solving with Hypre " << std::endl;
     }
-    solve_with_hypre(soln, alpha, beta, rhs, bs, geom);
+    solve_with_hypre(soln, a, b, alpha, beta, rhs, bs, geom);
 #else
     BoxLib::Error("Set USE_HYPRE=TRUE in GNUMakefile.");
 #endif
@@ -463,10 +434,6 @@ int main(int argc, char* argv[])
   if (plot_soln == 1) {
     VisMF::Write(soln,"SOLN");
   }
-
-  pp.query("comp_norm", comp_norm);
-  pp.query("plot_err", plot_err);
-  pp.query("plot_asol", plot_asol);
 
   if (comp_norm || plot_err || plot_asol) {
     MultiFab anaSoln(bs, Ncomp, 0, Fab_allocate);
