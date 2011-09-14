@@ -6,14 +6,7 @@ set(F77_source_files acorni.f backtr.f beyond.f blue.f chknam.f chktitle.f CMake
 add_library(gslib ${F77_source_files})
 set_target_properties(gslib PROPERTIES LINKER_LANGUAGE Fortran)
 
-if (${CCSE_INSTALL_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
-else ()
-    install(TARGETS gslib
-      LIBRARY DESTINATION ${CCSE_INSTALL_DIR}/lib${MPI_SUFFIX}${OMP_SUFFIX}
-      ARCHIVE DESTINATION ${CCSE_INSTALL_DIR}/lib${MPI_SUFFIX}${OMP_SUFFIX}
-      CONFIGURATIONS ${CMAKE_BUILD_TYPE}
-      )
-endif ()
+add_install_library(gslib)
 
 if (BUILD_TESTS)
 endif()

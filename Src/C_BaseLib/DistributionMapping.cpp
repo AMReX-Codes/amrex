@@ -75,6 +75,18 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
     }
 }
 
+void
+DistributionMapping::SFC_Threshold (int n)
+{
+    sfc_threshold = std::min(n,1);
+}
+
+int
+DistributionMapping::SFC_Threshold ()
+{
+    return sfc_threshold;
+}
+
 bool
 DistributionMapping::operator== (const DistributionMapping& rhs) const
 {

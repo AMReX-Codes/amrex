@@ -859,7 +859,7 @@ contains
     use cc_smoothers_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, &
          jac_smoother_3d, gs_lex_smoother_2d, gs_lex_smoother_3d, &
          gs_rb_smoother_2d,  gs_rb_smoother_3d, &
-         minion_smoother_2d, minion_smoother_3d
+         fourth_order_smoother_2d, fourth_order_smoother_3d
     use nodal_smoothers_module, only: nodal_smoother_1d, &
          nodal_smoother_2d, nodal_smoother_3d, nodal_line_solve_1d
     use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
@@ -1030,11 +1030,11 @@ contains
                    do n = 1, mgt%nc
                       select case ( mgt%dim)
                       case (2)
-                         call minion_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,1), &
-                                                 fp(:,:,1,1), lo, mgt%ng, nn, .true.)
+                         call fourth_order_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,1), &
+                                                       fp(:,:,1,1), lo, mgt%ng, nn)
                       case (3)
-                         call minion_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                                 fp(:,:,:,1), lo, mgt%ng, nn, .true.)
+                         call fourth_order_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
+                                                       fp(:,:,:,1), lo, mgt%ng, nn)
                       end select
                    end do
                 end do
@@ -1054,11 +1054,11 @@ contains
                    do n = 1, mgt%nc
                    select case ( mgt%dim)
                       case (2)
-                         call minion_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,1), &
-                                                 fp(:,:,1,1), lo, mgt%ng, n, .false.)
+                         call fourth_order_smoother_2d(mgt%omega, sp(:,:,1,:), up(:,:,1,1), &
+                                                       fp(:,:,1,1), lo, mgt%ng, n)
                       case (3)
-                         call minion_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                                 fp(:,:,:,1), lo, mgt%ng, n, .false.)
+                         call fourth_order_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
+                                                       fp(:,:,:,1), lo, mgt%ng, n)
                       end select
                    end do
                 end do

@@ -37,6 +37,15 @@ set(CMAKE_MODULE_PATH  ${CCSE_MODULE_PATH})
 # Addtional build options
 include(CCSEOptions)
 
+# A property for accumulating the a global CCSE link line.
+set_property(GLOBAL PROPERTY AMANZI_LINK_LINE "-L${CMAKE_INSTALL_PREFIX}/lib")
+
+# A property for accumulating CCSE library targets
+set_property(GLOBAL PROPERTY CCSE_LIBRARY_TARGETS)
+set(CCSE_LINK_LINE_FILE "${CMAKE_INSTALL_PREFIX}/lib/link_line")  # A filename to write link-line to.
+include(InstallManager)
+
+
 # Define the project name
 # This command will define
 #     CCSE_SOURCE_DIR
@@ -46,6 +55,9 @@ project(CCSE)
 # Source files for all binaries and libraries found under src
 add_subdirectory(Src)
 
+# Make the exports only _after_ doing the build
+create_exports()
+
 if (${CCSE_INSTALL_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
 else ()
     install(FILES ${CCSE_PERL_DIR}/strip72
@@ -53,17 +65,10 @@ else ()
 endif ()
 
 option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
-set(CCSE_CONFIG_LOG "${CCSE_BINARY_DIR}/amanzi-config.log"
+set(CCSE_CONFIG_LOG "${CCSE_BINARY_DIR}/ccse-config.log"
     CACHE string "CCSE configuration log file")
 include(CCSEConfigReport)
 if (ENABLE_Config_Report)
-    set(cat_exec "cat")
-    if (WIN32)
-        if( NOT UNIX)
-            set(cat_exec "type")
-        endif(NOT UNIX)
-    endif(WIN32)
-
     execute_process(COMMAND "${cat_exec}" "${CCSE_CONFIG_LOG}" OUTPUT_VARIABLE config_output)
     message(STATUS "contents of: ${CCSE_CONFIG_LOG}")
     message(STATUS "${config_output}")

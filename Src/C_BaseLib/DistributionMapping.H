@@ -83,13 +83,17 @@ class DistributionMapping
     //
     int operator[] (int index) const;
     //
-    // Set distribution strategy.
+    // Set/get the distribution strategy.
     //
     static void strategy (Strategy how);
-    //
-    // Returns the distribution strategy.
-    //
+
     static Strategy strategy ();
+    //
+    // Set/get the space filling curve threshold.
+    //
+    static void SFC_Threshold (int n);
+
+    static int SFC_Threshold ();
     //
     // Flush the cache of processor maps.  The processor map cache
     // is only flushed manually.  Only call this after a regridding

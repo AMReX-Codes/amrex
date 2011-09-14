@@ -35,18 +35,6 @@ macro(_write_blank_line)
 endmacro(_write_blank_line)    
 
 macro(_create_log_file timestamp)
-
-    set(cat_exec "cat")
-    if (WIN32)
-        if( NOT UNIX)
-            set(cat_exec "type")
-        endif(NOT UNIX)
-    endif(WIN32)
-
-    execute_process(COMMAND "${cat_exec}" "${CCSE_ROOT_DIR}/BoxLib_Version.txt"
-                    OUTPUT_VARIABLE CCSE_VERSION
-                    ERROR_VARIABLE  _stderr)
-
     file(WRITE ${CCSE_CONFIG_LOG} "${PROJECT_NAME} Configuration\n")
     _write_blank_line()
     _write_to_log("Version ${CCSE_VERSION}")

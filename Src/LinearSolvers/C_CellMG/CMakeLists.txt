@@ -19,7 +19,7 @@ set(FPP_source_files ABec_${BL_SPACEDIM}D.F ABec_UTIL.F CG_${BL_SPACEDIM}D.F LO_
 set(F77_source_files)
 set(F90_source_files)
 
-set(CXX_header_files ABecLaplacian.H CGSolver.H Laplacian.H LinOp.H MG_F.H MultiGrid.H)
+set(CXX_header_files ABecLaplacian.H CGSolver.H Laplacian.H LinOp.H MultiGrid.H)
 set(FPP_header_files ABec_F.H CG_F.H LO_F.H LP_F.H MG_F.H)
 set(F77_header_files lo_bctypes.fi)
 set(F90_header_files)
@@ -32,17 +32,8 @@ set(local_source_files ${FPP_out_files} ${F77_source_files} ${F90_source_files} 
 set(local_header_files ${FPP_header_files} ${F77_header_files} ${F90_header_files} ${CXX_header_files})
 add_library(box_cmg ${local_source_files})
 
-install(TARGETS box_cmg
-  LIBRARY DESTINATION ${CCSE_INSTALL_DIR}/lib${MPI_SUFFIX}${OMP_SUFFIX}
-  ARCHIVE DESTINATION ${CCSE_INSTALL_DIR}/lib${MPI_SUFFIX}${OMP_SUFFIX}
-  CONFIGURATIONS ${CMAKE_BUILD_TYPE}
-  )
-
-if (${CCSE_INSTALL_DIR} STREQUAL ${PROJECT_SOURCE_DIR})
-else ()
-    install(FILES ${local_header_files}
-        DESTINATION ${CCSE_INSTALL_DIR}/include)
-endif ()
+add_install_include_file(${local_header_files})
+add_install_library(box_cmg)
 
 if (BUILD_TESTS)
 
