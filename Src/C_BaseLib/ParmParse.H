@@ -859,7 +859,8 @@ public:
     struct PP_entry;
     typedef std::list<PP_entry> Table;
     static void appendTable(ParmParse::Table& tab);
-
+    const Table& table() const {return m_table;}
+  
 protected:
     friend class Frame;
     friend class Record;

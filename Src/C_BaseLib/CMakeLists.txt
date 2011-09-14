@@ -29,18 +29,8 @@ set(local_source_files ${CXX_source_files} ${F77_source_files} ${FPP_out_files} 
 set(local_header_files ${CXX_header_files} ${F77_header_files} ${FPP_header_files} ${F90_header_files})
 add_library(box_c ${local_source_files})
 
-install(TARGETS box_c
-  LIBRARY DESTINATION ${CCSE_INSTALL_DIR}/lib${MPI_SUFFIX}${OMP_SUFFIX}
-  ARCHIVE DESTINATION ${CCSE_INSTALL_DIR}/lib${MPI_SUFFIX}${OMP_SUFFIX}
-  CONFIGURATIONS ${CMAKE_BUILD_TYPE}
-  )
-
-if (${CCSE_INSTALL_DIR} STREQUAL ${PROJECT_SOURCE_DIR})
-else ()
-    install(FILES ${local_header_files}
-        DESTINATION ${CCSE_INSTALL_DIR}/include)
-endif ()
-
+add_install_include_file(${local_header_files})
+add_install_library(box_c)
 
 #if (BUILD_TESTS AND BL_SPACEDIM EQUAL 3)
 #   # Add UnitTest include directories
