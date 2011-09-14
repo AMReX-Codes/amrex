@@ -4,15 +4,6 @@
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
 
-static
-void
-copy_test_one (const BoxArray& fba)
-{
-    //
-    // In this test we'll copy from 
-    //
-}
-
 int
 main (int argc, char* argv[])
 {
@@ -48,24 +39,29 @@ main (int argc, char* argv[])
     if (!fba.isDisjoint())
         BoxLib::Error("BoxArray is not disjoint");
 
+    fba.maxSize(32);
+
     if (ParallelDescriptor::IOProcessor())
         std::cout << "number of grids in fba: " << fba.size() << '\n';
     //
     // Let do a simple example of copy()ing from one MultiFab to another
-    // that cover the same area, but that have a different processor distribution.
+    // that it covers. We'll build a BoxArray that contains every other Box
+    // in fba.
     //
-    BoxList cbl = fba.boxList();
+    BoxList cbl;
 
-    cbl.coarsen(2);
+    for (int i = 0; i < fba.size(); i++)
+        if (i%2 == 0)
+            cbl.push_back(fba[i]);
 
     cbl.simplify();
 
-    cbl.maxSize(64);
+    cbl.maxSize(32);
 
     BoxArray cba(cbl);
 
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "number of grids in cba: " << cba.size() << '\n';
+        std::cout << "number of grids in cba: " << cba.size() << std::endl;
     //
     // If you want to make the copy do more work increase NComp.
     //
@@ -77,6 +73,9 @@ main (int argc, char* argv[])
     fmf.setVal(1.23e45);
 
     cmf.copy(fmf);
+
+    if (cmf.DistributionMap()[0] == ParallelDescriptor::MyProc())
+        std::cout << cmf[0] << std::endl;
 
     BoxLib::Finalize();
 
