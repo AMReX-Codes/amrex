@@ -1,6 +1,8 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code
 BOXLIB_HOME ?= ../../..
 
+HYPRE_DIR ?= $(HOME)/lib/hypre
+
 PRECISION = DOUBLE
 
 DEBUG	= FALSE
@@ -50,6 +52,15 @@ vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
 include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
 vpathdir          += $(BOXLIB_HOME)/Src/F_BaseLib
+
+include $(BOXLIB_HOME)/Src/LinearSolvers/C_Hypre/Make.package
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_Hypre
+vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/C_Hypre
+
+INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
+vpathdir          += $(HYPRE_DIR)/include
+LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
+LIBRARIES += -lHYPRE
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
