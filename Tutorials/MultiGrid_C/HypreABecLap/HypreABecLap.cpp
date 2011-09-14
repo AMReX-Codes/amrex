@@ -137,6 +137,13 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
     edge_boxes.surroundingNodes(i);
     bcoefs[i] = new MultiFab(edge_boxes, ncomp, ngrow);
   }
+
+  ParmParse pp("hypre");
+  // in following line, Falgout says use 1 as relax type, not 2 (rbp, 9/27/05)
+  // weighted Jacobi = 1; red-black GS = 2
+  // but 2 seems to be faster (wqz, 9/14/11)
+  pfmg_relax_type = 1;
+  pp.query("pfmg_relax_type", pfmg_relax_type);
 }
 
 HypreABecLap::~HypreABecLap()
@@ -291,9 +298,6 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
     HYPRE_StructPFMGSetMaxIter(solver, maxiter);
     HYPRE_StructPFMGSetRelChange(solver, 0);
     HYPRE_StructPFMGSetTol(solver, reltol);
-    // in following line, Falgout says use 1 as relax type, not 2 (rbp, 9/27/05)
-    // weighted Jacobi = 1; red-black GS = 2
-    int pfmg_relax_type = 1;
     HYPRE_StructPFMGSetRelaxType(solver, pfmg_relax_type);
     HYPRE_StructPFMGSetNumPreRelax(solver, 1);
     HYPRE_StructPFMGSetNumPostRelax(solver, 1);
