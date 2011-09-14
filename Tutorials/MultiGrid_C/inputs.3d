@@ -1,16 +1,21 @@
-solver_type = Fortran90
-solver_type = CPlusPlus
+solver_type = Hypre
+solver_type = BoxLib_F
+solver_type = BoxLib_C
 
-bc_type = Neumann
+#bc_type = Neumann
 bc_type = Periodic
-bc_type = Dirichlet
+#bc_type = Dirichlet
 
 plot_rhs  = 1 # plot the RHS
 plot_soln = 1 # plot the solution
+plot_asol = 1
+plot_err  = 1 # plot the error
+comp_norm = 1 # compute 2 norm of the error
 
-n_cell        = 64
-max_grid_size = 64
+n_cell        = 128
+max_grid_size = 32
 
 tol_rel = 1.e-8
+tol_abs = 0.0
 
-mg.v = 2
+verbose = 2
