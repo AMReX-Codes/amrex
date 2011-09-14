@@ -15,7 +15,9 @@
 #include <COEF_F.H>
 #include <MacBndry.H>
 #include <MGT_Solver.H>
+#ifdef USEHYPRE
 #include <HypreABecLap.H>
+#endif
 
 int  verbose       = 2;     
 Real tolerance_rel = 1.e-12;
@@ -277,6 +279,7 @@ void solve_with_F90(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& 
   mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
 }
 
+#ifdef USEHYPRE
 void solve_with_hypre(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& rhs,
 		      const BoxArray& bs, const Geometry& geom)
 {
@@ -319,6 +322,7 @@ void solve_with_hypre(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab
   int max_iter = 100;
   hypreSolver.solve(soln, rhs, tolerance_rel, tolerance_abs, max_iter, bd);
 }
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -431,10 +435,14 @@ int main(int argc, char* argv[])
     solve_with_F90(soln, alpha, beta, rhs, bs, geom);
   }
   else if (solver_type == "Hypre") {
+#ifdef USEHYPRE
     if (ParallelDescriptor::IOProcessor()) {
       std::cout << "Solving with Hypre " << std::endl;
     }
     solve_with_hypre(soln, alpha, beta, rhs, bs, geom);
+#else
+    BoxLib::Error("Set USE_HYPRE=TRUE in GNUMakefile.");
+#endif
   }
   else {
     if (ParallelDescriptor::IOProcessor()) {
