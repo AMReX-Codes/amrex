@@ -1,5 +1,5 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code
-BOXLIB_HOME ?= ../../..
+BOXLIB_HOME ?= ../..
 
 USE_HYPRE = TRUE
 # where the hypre library is
