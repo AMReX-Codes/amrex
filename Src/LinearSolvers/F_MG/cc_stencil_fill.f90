@@ -274,11 +274,11 @@ contains
                                             xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, & 
                                             dh, mp(:,:,:,1), &
                                             bx%lo, bx%hi)
-!            else if (ns .eq. 125) then
-!               call s_minion_full_fill_3d(sp(:,:,:,:), ccp(:,:,:,1), ng_c, &
-!                                          xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, & 
-!                                          dh, mp(:,:,:,1), &
-!                                          bx%lo, bx%hi, lxa, lxb)
+             else if (ns .eq. 61) then
+                call s_minion_full_fill_3d(sp(:,:,:,:), ccp(:,:,:,1), ng_c, &
+                                           xcp(:,:,:,1), ycp(:,:,:,1), zcp(:,:,:,1), ng_b, & 
+                                           dh, mp(:,:,:,1), &
+                                           bx%lo, bx%hi)
              end if
           end select
 

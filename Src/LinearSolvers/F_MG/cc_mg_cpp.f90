@@ -1359,7 +1359,7 @@ end subroutine mgt_compute_residual
 
 subroutine mgt_compute_flux(lev)
   use cpp_mg_module
-  use cc_stencil_module
+  use cc_stencil_apply_module
   use fabio_module
   implicit none
  

@@ -24,28 +24,13 @@ module cc_stencil_module
      integer :: extrap_max_order = 0
   end type stencil
 
-  interface destroy
-     module procedure stencil_destroy
-  end interface
-
   real(kind=dp_t), parameter, private :: ZERO = 0.0_dp_t
   real(kind=dp_t), parameter, private :: HALF = 0.5_dp_t
   real(kind=dp_t), parameter, private :: ONE  = 1.0_dp_t
 
   private :: stencil_bc_type, stencil_bndry_aaa
-  private :: stencil_all_flux_1d, stencil_all_flux_2d, stencil_all_flux_3d
-  private :: stencil_dense_apply_1d, stencil_dense_apply_2d, stencil_dense_apply_3d
 
 contains
-
-  subroutine stencil_destroy(st)
-    type(stencil), intent(inout) :: st
-    call destroy(st%ss)
-    call destroy(st%mm)
-    deallocate(st%skewed, st%xa, st%xb, st%dh, st%diag_0,st%pxa,st%pxb)
-    st%dim = 0
-    st%ns = -1
-  end subroutine stencil_destroy
 
   function stencil_norm_st(st, mask) result(r)
     type(stencil), intent(in) :: st
@@ -1941,8 +1926,10 @@ contains
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer            :: i, j, nsten
-    double precision :: t1,t2,b1,b2,l1,l2,r1,r2,hx2,hy2,ss_sum
+    integer          :: i, j, nsten
+    double precision :: hx2,hy2,hx22,hy22,ss_sum
+    double precision :: rholy,rhory,rhotx,rhobx  !  Transverse derivatives
+    double precision :: s1,s2,scale              ! Coefficients for slopes
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -1957,527 +1944,215 @@ contains
     !     11 12 0  13 14   
     !     6  7  8  9  10
     !     1  2  3  4  5
-    !    The points for beta are at i,j,1 and i+1,j,1 for left and  right
-    !                           and i,j,2 and i,j+1,2 for top bottom
-    !  The stencil is the has two parts, the regular stencil and the correction
-
-    !  We do the correction first which looks like
-    !  ss(i,j,nsten)  =   r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-    !                  +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) &
-    !                  +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-    !                  +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) &
-    !                  +  t2*(betay(i-2,j+1)-betay(i-2,j+1)) & 
-    !                  +  t1*(betay(i-1,j+1)-betay(i-1,j+1)) &
-    !                  +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-    !                  +  b1*(betay(i-1,j  )-betay(i+1,j  )) &
+    !    The points for beta are at i,j,1 and i+1,j,1 for left and right
+    !                           and i,j,2 and i,j+1,2 for top  and bottom
+    !
+    !  The stencil has two parts: the regular stencil and the correction.
 
     !  start with zero
     ss=0.0d0
 
-    !  The coefficients hx2 and hy2 are defined by
-    hx2 = -( 12.d0**2 * 48.d0**2 * dh(1)**2 )
-    hy2 = -( 12.d0**2 * 48.d0**2 * dh(2)**2 )
+    ! These are the coefficients in the second order part
+    hx22 = -1.d0 / (12.d0 * dh(1)**2 )
+    hy22 = -1.d0 / (12.d0 * dh(2)**2 )
+
+    !  These are the coefficients for the tangential slopes
+    !  We don't divide by h because the product of slopes is multiplied by h^2/12
+    s1 = 34.d0 / 48.d0
+    s2 = -5.d0 / 48.d0
+
+    !  In the output of make_stencil2d.f90, the coefficents of the correction are multiplied by
+    !  all the denominators so that they are integers.  So we have to put the denominators back in
+    scale = 1.0d0/(12.0d0*48.d0)
+
+    !  The coefficients hx2 and hy2 are defined by  (the minus sign is because it is minus beta*Lap)
+    hx2 = -1.0d0/(12.d0*dh(1)**2)*scale
+    hy2 = -1.0d0/(12.d0*dh(2)**2)*scale
+
     do j = lo(2), hi(2)
        do i = lo(1), hi(1)
           ss_sum=0.0d0
- ! DOING CONTRIB AT           -2          -2
- nsten =            1
-r2 =       0.0d0/hx2
-r1 =       0.0d0/hx2
-l2 =     -25.0d0/hx2
-l1 =     170.0d0/hx2
-t2 =       0.0d0/hy2
-t1 =       0.0d0/hy2
-b2 =     -25.0d0/hy2
-b1 =     170.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT           -1          -2
- nsten =            2
-r2 =      25.0d0/hx2
-r1 =    -170.0d0/hx2
-l2 =     375.0d0/hx2
-l1 =   -2550.0d0/hx2
-t2 =       0.0d0/hy2
-t1 =       0.0d0/hy2
-b2 =     170.0d0/hy2
-b1 =   -1156.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            0          -2
- nsten =            3
-r2 =    -375.0d0/hx2
-r1 =    2550.0d0/hx2
-l2 =    -375.0d0/hx2
-l1 =    2550.0d0/hx2
-t2 =       0.0d0/hy2
-t1 =      -0.0d0/hy2
-b2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            1          -2
- nsten =            4
-r2 =     375.0d0/hx2
-r1 =   -2550.0d0/hx2
-l2 =      25.0d0/hx2
-l1 =    -170.0d0/hx2
-t2 =       0.0d0/hy2
-t1 =       0.0d0/hy2
-b2 =    -170.0d0/hy2
-b1 =    1156.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            2          -2
- nsten =            5
-r2 =     -25.0d0/hx2
-r1 =     170.0d0/hx2
-l2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
-t2 =       0.0d0/hy2
-t1 =       0.0d0/hy2
-b2 =      25.0d0/hy2
-b1 =    -170.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT           -2          -1
- nsten =            6
-r2 =       0.0d0/hx2
-r1 =       0.0d0/hx2
-l2 =     170.0d0/hx2
-l1 =   -1156.0d0/hx2
-t2 =      25.0d0/hy2
-t1 =    -170.0d0/hy2
-b2 =     375.0d0/hy2
-b1 =   -2550.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT           -1          -1
- nsten =            7
-r2 =    -170.0d0/hx2
-r1 =    1156.0d0/hx2
-l2 =   -2550.0d0/hx2
-l1 =   17340.0d0/hx2
-t2 =    -170.0d0/hy2
-t1 =    1156.0d0/hy2
-b2 =   -2550.0d0/hy2
-b1 =   17340.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            0          -1
- nsten =            8
-r2 =    2550.0d0/hx2
-r1 =  -17340.0d0/hx2
-l2 =    2550.0d0/hx2
-l1 =  -17340.0d0/hx2
-t2 =       0.0d0/hy2
-t1 =       0.0d0/hy2
-b2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            1          -1
- nsten =            9
-r2 =   -2550.0d0/hx2
-r1 =   17340.0d0/hx2
-l2 =    -170.0d0/hx2
-l1 =    1156.0d0/hx2
-t2 =     170.0d0/hy2
-t1 =   -1156.0d0/hy2
-b2 =    2550.0d0/hy2
-b1 =  -17340.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            2          -1
- nsten =           10
-r2 =     170.0d0/hx2
-r1 =   -1156.0d0/hx2
-l2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
-t2 =     -25.0d0/hy2
-t1 =     170.0d0/hy2
-b2 =    -375.0d0/hy2
-b1 =    2550.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT           -2           0
- nsten =           11
-r2 =       0.0d0/hx2
-r1 =      -0.0d0/hx2
-l2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
-t2 =    -375.0d0/hy2
-t1 =    2550.0d0/hy2
-b2 =    -375.0d0/hy2
-b1 =    2550.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT           -1           0
- nsten =           12
-r2 =       0.0d0/hx2
-r1 =       0.0d0/hx2
-l2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
-t2 =    2550.0d0/hy2
-t1 =  -17340.0d0/hy2
-b2 =    2550.0d0/hy2
-b1 =  -17340.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            0           0
- nsten =            0
-r2 =       0.0d0/hx2
-r1 =       0.0d0/hx2
-l2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
-t2 =       0.0d0/hy2
-t1 =       0.0d0/hy2
-b2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            1           0
- nsten =           13
-r2 =       0.0d0/hx2
-r1 =      -0.0d0/hx2
-l2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
-t2 =   -2550.0d0/hy2
-t1 =   17340.0d0/hy2
-b2 =   -2550.0d0/hy2
-b1 =   17340.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            2           0
- nsten =           14
-r2 =       0.0d0/hx2
-r1 =       0.0d0/hx2
-l2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
-t2 =     375.0d0/hy2
-t1 =   -2550.0d0/hy2
-b2 =     375.0d0/hy2
-b1 =   -2550.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT           -2           1
- nsten =           15
-r2 =       0.0d0/hx2
-r1 =       0.0d0/hx2
-l2 =    -170.0d0/hx2
-l1 =    1156.0d0/hx2
-t2 =     375.0d0/hy2
-t1 =   -2550.0d0/hy2
-b2 =      25.0d0/hy2
-b1 =    -170.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT           -1           1
- nsten =           16
-r2 =     170.0d0/hx2
-r1 =   -1156.0d0/hx2
-l2 =    2550.0d0/hx2
-l1 =  -17340.0d0/hx2
-t2 =   -2550.0d0/hy2
-t1 =   17340.0d0/hy2
-b2 =    -170.0d0/hy2
-b1 =    1156.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            0           1
- nsten =           17
-r2 =   -2550.0d0/hx2
-r1 =   17340.0d0/hx2
-l2 =   -2550.0d0/hx2
-l1 =   17340.0d0/hx2
-t2 =       0.0d0/hy2
-t1 =      -0.0d0/hy2
-b2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            1           1
- nsten =           18
-r2 =    2550.0d0/hx2
-r1 =  -17340.0d0/hx2
-l2 =     170.0d0/hx2
-l1 =   -1156.0d0/hx2
-t2 =    2550.0d0/hy2
-t1 =  -17340.0d0/hy2
-b2 =     170.0d0/hy2
-b1 =   -1156.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            2           1
- nsten =           19
-r2 =    -170.0d0/hx2
-r1 =    1156.0d0/hx2
-l2 =      -0.0d0/hx2
-l1 =       0.0d0/hx2
-t2 =    -375.0d0/hy2
-t1 =    2550.0d0/hy2
-b2 =     -25.0d0/hy2
-b1 =     170.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT           -2           2
- nsten =           20
-r2 =       0.0d0/hx2
-r1 =       0.0d0/hx2
-l2 =      25.0d0/hx2
-l1 =    -170.0d0/hx2
-t2 =     -25.0d0/hy2
-t1 =     170.0d0/hy2
-b2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT           -1           2
- nsten =           21
-r2 =     -25.0d0/hx2
-r1 =     170.0d0/hx2
-l2 =    -375.0d0/hx2
-l1 =    2550.0d0/hx2
-t2 =     170.0d0/hy2
-t1 =   -1156.0d0/hy2
-b2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            0           2
- nsten =           22
-r2 =     375.0d0/hx2
-r1 =   -2550.0d0/hx2
-l2 =     375.0d0/hx2
-l1 =   -2550.0d0/hx2
-t2 =       0.0d0/hy2
-t1 =       0.0d0/hy2
-b2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            1           2
- nsten =           23
-r2 =    -375.0d0/hx2
-r1 =    2550.0d0/hx2
-l2 =     -25.0d0/hx2
-l1 =     170.0d0/hx2
-t2 =    -170.0d0/hy2
-t1 =    1156.0d0/hy2
-b2 =      -0.0d0/hy2
-b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
- ! DOING CONTRIB AT            2           2
- nsten =           24
-r2 =      25.0d0/hx2
-r1 =    -170.0d0/hx2
-l2 =       0.0d0/hx2
-l1 =       0.0d0/hx2
-t2 =      25.0d0/hy2
-t1 =    -170.0d0/hy2
-b2 =       0.0d0/hy2
-b1 =       0.0d0/hy2
-   ss(i,j,nsten) = r2*(betax(i+1,j-2)-betax(i+1,j+2)) & 
-                +  r1*(betax(i+1,j-1)-betax(i+1,j+1)) & 
-                +  l2*(betax(i  ,j-2)-betax(i  ,j+2)) & 
-                +  l1*(betax(i  ,j-1)-betax(i  ,j+1)) & 
-                +  t2*(betay(i-2,j+1)-betay(i+2,j+1)) & 
-                +  t1*(betay(i-1,j+1)-betay(i+1,j+1)) & 
-                +  b2*(betay(i-2,j  )-betay(i+2,j  )) & 
-                +  b1*(betay(i-1,j  )-betay(i+1,j  ))   
-   ss_sum = ss_sum+ss(i,j,nsten)
+
+          rholy = s1*(betax(i  ,j+1)- betax(i  ,j-1)) + s2*(betax(i  ,j+2)- betax(i  ,j-2))
+          rhory = s1*(betax(i+1,j+1)- betax(i+1,j-1)) + s2*(betax(i+1,j+2)- betax(i+1,j-2))
+          rhotx = s1*(betay(i+1,j+1)- betay(i-1,j+1)) + s2*(betay(i+2,j+1)- betay(i-2,j+1))
+          rhobx = s1*(betay(i+1,j  )- betay(i-1,j  )) + s2*(betay(i+2,j  )- betay(i-2,j  ))
+
+          !   DOING CONTRIB AT           -2          -2
+         nsten =   1
+           ss(i,j,nsten) = (   &
+                             -5.0d0*rholy*hx2  &
+                             -5.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT           -1          -2
+
+         nsten =   2
+           ss(i,j,nsten) = (   &
+                         +     5.0d0*rhory*hx2  &
+                         +    75.0d0*rholy*hx2  &
+                         +    34.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT            0          -2
+         nsten =   3
+           ss(i,j,nsten) = (   &
+                            -75.0d0*rhory*hx2  &
+                            -75.0d0*rholy*hx2  )
+                                               
+            !   DOING CONTRIB AT            1          -2
+         nsten =   4
+           ss(i,j,nsten) = (   &
+                         +    75.0d0*rhory*hx2  &
+                         +     5.0d0*rholy*hx2  &
+                            -34.0d0*rhobx*hy2   )
+                                               
+            !   DOING CONTRIB AT            2          -2
+         nsten =   5
+           ss(i,j,nsten) = (   &
+                             -5.0d0*rhory*hx2  &
+                         +     5.0d0*rhobx*hy2 )
+                                               
+            !   DOING CONTRIB AT           -2          -1
+         nsten =   6
+           ss(i,j,nsten) = (   &
+                         +    34.0d0*rholy*hx2  &
+                         +     5.0d0*rhotx*hy2  &
+                         +    75.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT           -1          -1
+         nsten =   7
+           ss(i,j,nsten) = (   &
+                            -34.0d0*rhory*hx2  &
+                           -510.0d0*rholy*hx2  &
+                            -34.0d0*rhotx*hy2  &
+                           -510.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT            0          -1
+         nsten =   8
+           ss(i,j,nsten) = (   &
+                         +   510.0d0*rhory*hx2  &
+                         +   510.0d0*rholy*hx2  )
+                                               
+            !   DOING CONTRIB AT            1          -1
+         nsten =   9
+           ss(i,j,nsten) = (   &
+                           -510.0d0*rhory*hx2  &
+                            -34.0d0*rholy*hx2  &
+                         +    34.0d0*rhotx*hy2  &
+                         +   510.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT            2          -1
+         nsten =  10
+           ss(i,j,nsten) = (   &
+                         +    34.0d0*rhory*hx2  &
+                             -5.0d0*rhotx*hy2  &
+                            -75.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT           -2           0
+         nsten =  11
+           ss(i,j,nsten) = (   &
+                            -75.0d0*rhotx*hy2  &
+                            -75.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT           -1           0
+         nsten =  12
+           ss(i,j,nsten) = (   &
+                         +   510.0d0*rhotx*hy2  &
+                         +   510.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT            1           0
+         nsten =  13
+           ss(i,j,nsten) = (   &
+                           -510.0d0*rhotx*hy2  &
+                           -510.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT            2           0
+         nsten =  14
+           ss(i,j,nsten) = (   &
+                         +    75.0d0*rhotx*hy2  &
+                         +    75.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT           -2           1
+         nsten =  15
+           ss(i,j,nsten) = (   &
+                            -34.0d0*rholy*hx2  &
+                         +    75.0d0*rhotx*hy2  &
+                         +     5.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT           -1           1
+         nsten =  16
+           ss(i,j,nsten) = (   &
+                         +    34.0d0*rhory*hx2  &
+                         +   510.0d0*rholy*hx2  &
+                           -510.0d0*rhotx*hy2  &
+                            -34.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT            0           1
+         nsten =  17
+           ss(i,j,nsten) = (   &
+                           -510.0d0*rhory*hx2  &
+                           -510.0d0*rholy*hx2  )
+                                               
+            !   DOING CONTRIB AT            1           1
+         nsten =  18
+           ss(i,j,nsten) = (   &
+                         +   510.0d0*rhory*hx2  &
+                         +    34.0d0*rholy*hx2  &
+                         +   510.0d0*rhotx*hy2  &
+                         +    34.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT            2           1
+         nsten =  19
+           ss(i,j,nsten) = (   &
+                            -34.0d0*rhory*hx2  &
+                            -75.0d0*rhotx*hy2  &
+                             -5.0d0*rhobx*hy2  )
+                                               
+            !   DOING CONTRIB AT           -2           2
+         nsten =  20
+           ss(i,j,nsten) = (   &
+                         +     5.0d0*rholy*hx2 &
+                             -5.0d0*rhotx*hy2  )
+                                              
+            !   DOING CONTRIB AT           -1           2
+         nsten =  21
+           ss(i,j,nsten) = (   &
+                             -5.0d0*rhory*hx2  &
+                            -75.0d0*rholy*hx2  &
+                         +    34.0d0*rhotx*hy2 )
+                                              
+            !   DOING CONTRIB AT            0           2
+         nsten =  22
+           ss(i,j,nsten) = (   &
+                         +    75.0d0*rhory*hx2  &
+                         +    75.0d0*rholy*hx2  )
+                                              
+            !   DOING CONTRIB AT            1           2
+         nsten =  23
+           ss(i,j,nsten) = (   &
+                            -75.0d0*rhory*hx2  &
+                             -5.0d0*rholy*hx2  &
+                            -34.0d0*rhotx*hy2  )
+
+            !   DOING CONTRIB AT            2           2
+         nsten =  24
+           ss(i,j,nsten) = (   &
+                         +     5.0d0*rhory*hx2  &
+                         +     5.0d0*rhotx*hy2  )
+
+          !  Now we add in the 2nd order stencil
+          ss(i,j,11) = ss(i,j,11) + (                            - betax(i,j))*hx22
+          ss(i,j,12) = ss(i,j,12) + (        betax(i+1,j) + 15.0d0*betax(i,j))*hx22
+          ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*betax(i+1,j) - 15.0d0*betax(i,j))*hx22
+          ss(i,j,13) = ss(i,j,13) + ( 15.0d0*betax(i+1,j) +        betax(i,j))*hx22
+          ss(i,j,14) = ss(i,j,14) + (       -betax(i+1,j)                    )*hx22
+
+          ss(i,j,3) = ss(i,j,3)   + (                            - betay(i,j))*hy22
+          ss(i,j,8) = ss(i,j,8)   + (        betay(i,j+1) + 15.0d0*betay(i,j))*hy22
+          ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*betay(i,j+1) - 15.0d0*betay(i,j))*hy22
+          ss(i,j,17) = ss(i,j,17) + ( 15.0d0*betay(i,j+1) +        betay(i,j))*hy22
+          ss(i,j,22) = ss(i,j,22) + (       -betay(i,j+1)                    )*hy22
        end do
     end do
-
-    !  Now we add in the 2nd order stencil
-
-    hx2 = -1.d0 / (12.d0 * dh(1)**2 )
-    hy2 = -1.d0 / (12.d0 * dh(2)**2 )
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          ss(i,j,11) = ss(i,j,11) + (                            - betax(i,j))*hx2 
-          ss(i,j,12) = ss(i,j,12) + (        betax(i+1,j) + 15.0d0*betax(i,j))*hx2 
-          ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*betax(i+1,j) - 15.0d0*betax(i,j))*hx2 
-          ss(i,j,13) = ss(i,j,13) + ( 15.0d0*betax(i+1,j) +        betax(i,j))*hx2 
-          ss(i,j,14) = ss(i,j,14) + (       -betax(i+1,j)                    )*hx2 
-
-          ss(i,j,3) = ss(i,j,3)   + (                            - betay(i,j))*hy2 
-          ss(i,j,8) = ss(i,j,8)   + (        betay(i,j+1) + 15.0d0*betay(i,j))*hy2 
-          ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*betay(i,j+1) - 15.0d0*betay(i,j))*hy2 
-          ss(i,j,17) = ss(i,j,17) + ( 15.0d0*betay(i,j+1) +        betay(i,j))*hy2 
-          ss(i,j,22) = ss(i,j,22) + (       -betay(i,j+1)                    )*hy2 
-       end do
-    end do
-
 
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
     do j = lo(2), hi(2)
@@ -2552,881 +2227,562 @@ b1 =       0.0d0/hy2
 
   end subroutine s_minion_cross_fill_3d
 
-  subroutine stencil_apply_1d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
+  subroutine s_minion_full_fill_3d(ss, alpha, ng_a, betax, betay, betaz, ng_b, dh, mask, lo, hi)
 
-    integer, intent(in) :: ng_d, ng_u, lo(:), hi(:)
-    real (kind = dp_t), intent(in)  :: ss(lo(1)     :,0:)
-    real (kind = dp_t), intent(out) :: dd(lo(1)-ng_d:)
-    real (kind = dp_t), intent(in)  :: uu(lo(1)-ng_u:)
-    integer           , intent(in)  :: mm(lo(1):)
-    logical, intent(in), optional   :: skwd
+    integer           , intent(in   ) :: ng_a,ng_b
+    integer           , intent(in   ) :: lo(:), hi(:)
+    integer           , intent(inout) :: mask(lo(1)      :,lo(2)     :,lo(3)     :)
+    real (kind = dp_t), intent(  out) ::    ss(lo(1)     :,lo(2)     :,lo(3)     :,0:)
+    real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
+    real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: betaz(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
+    real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer, parameter :: XBC = 3
-    logical :: lskwd
-    integer :: i
-   
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
+    integer          :: i, j, k, nsten
+    double precision :: hx2,hy2,hz2,hx22,hy22,hz22
 
-    do i = lo(1),hi(1)
-       dd(i) = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
-    end do
+   ! Transverse derivatives: left,right,top,bottom,fore,aft
+    double precision :: rhoax,rhobx,rhofx,rhotx
+    double precision :: rhoby,rholy,rhory,rhoty
+    double precision :: rhofz,rholz,rhorz,rhoaz
+    double precision :: s1,s2,scale
+    double precision :: sum
 
-    if ( lskwd ) then
-       if (hi(1) > lo(1)) then
-          i = lo(1)
-          if (bc_skewed(mm(i),1,+1)) then
-             dd(i) = dd(i) + ss(i,XBC)*uu(i+2)
-          end if
-  
-          i = hi(1)
-          if (bc_skewed(mm(i),1,-1)) then
-             dd(i) = dd(i) + ss(i,XBC)*uu(i-2)
-          end if
-       end if
-    end if
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
 
-  end subroutine stencil_apply_1d
+    ss = 0.d0
 
-  subroutine stencil_flux_1d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in)  :: ss(:,0:)
-    real (kind = dp_t), intent(out) :: flux(:)
-    real (kind = dp_t), intent(in)  :: uu(1-ng:)
-    integer           , intent(in)  :: mm(:)
-    logical, intent(in), optional :: skwd
-    integer, intent(in) :: ratio, face, dim
-    integer nx
-    integer i
-    integer, parameter :: XBC = 3
+    !  These are the coefficients in the second order part
+    hx22 = -1.d0 / (12.d0 * dh(1)**2 )
+    hy22 = -1.d0 / (12.d0 * dh(2)**2 )
+    hz22 = -1.d0 / (12.d0 * dh(3)**2 )
 
-    real (kind = dp_t) :: fac
+    !  These are the coefficients for the tangential slopes
+    !  We don't divide by h because the product of slopes is multiplied by h^2/12
+    s1 = 34.d0 / 48.d0
+    s2 = -5.d0 / 48.d0
 
-    logical :: lskwd
+    !  In the output of make_stencil3d.f90, the coefficents of the correction are multiplied by
+    !  all the denominators so that they are integers.  So we have to put the denominators back in
+    scale = 1.0d0/(12.0d0*48.d0)
 
-    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
+    !  The coefficients hx2 and hy2 are defined by  (the minus sign is because it is minus beta*Lap)
+    hx2 = -1.0d0/(12.d0*dh(1)**2)*scale
+    hy2 = -1.0d0/(12.d0*dh(2)**2)*scale
+    hz2 = -1.0d0/(12.d0*dh(3)**2)*scale
 
-    nx = size(ss,dim=1)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
 
-    !   This factor is dx^fine / dx^crse
-    fac = ONE / real(ratio, kind=dp_t)
-
-    if ( dim == 1 ) then
-       if ( face == -1 ) then
-          i = 1
-          if (bc_dirichlet(mm(1),1,-1)) then
-             flux(1) = ss(i,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
-                  - ss(i+1,2)*(uu(i+1)-uu(i))
-             if (bc_skewed(mm(i),1,+1)) then
-                flux(1) =  flux(1) + ss(i,XBC)*uu(i+2)
-             end if
-          else 
-             flux(1) = Huge(flux)
-          end if
-          flux(1) = fac*flux(1)
-       else if ( face == 1 ) then
-          i = nx
-          if (bc_dirichlet(mm(i),1,+1)) then
-             flux(1) = ss(i,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
-                  - ss(i-1,1)*(uu(i-1)-uu(i))
-             if (bc_skewed(mm(i),1,-1)) then
-                flux(1) =  flux(1) + ss(i,XBC)*uu(i-2)
-             end if
-          else 
-             flux(1) = Huge(flux)
-          end if
-          flux(1) = fac*flux(1)
-       end if
-    end if
-
-  end subroutine stencil_flux_1d
-
-  subroutine stencil_apply_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
-    integer           , intent(in   ) :: ng_d, ng_u, lo(:), hi(:)
-    real (kind = dp_t), intent(in   ) :: ss(lo(1):,lo(2):,0:)
-    real (kind = dp_t), intent(  out) :: dd(lo(1)-ng_d:,lo(2)-ng_d:)
-    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng_u:,lo(2)-ng_u:)
-    integer           , intent(in   )  :: mm(lo(1):,lo(2):)
-    logical           , intent(in   ), optional :: skwd
-
-    integer i,j
-
-    integer, parameter :: XBC = 5, YBC = 6
-
-    logical :: lskwd
-
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
-    ! This is the Minion 4th order cross stencil.
-    if (size(ss,dim=3) .eq. 9) then
-
+    do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-            dd(i,j) = &
-                   ss(i,j,0) * uu(i,j) &
-                 + ss(i,j,1) * uu(i-2,j) + ss(i,j,2) * uu(i-1,j) &
-                 + ss(i,j,3) * uu(i+1,j) + ss(i,j,4) * uu(i+2,j) &
-                 + ss(i,j,5) * uu(i,j-2) + ss(i,j,6) * uu(i,j-1) &
-                 + ss(i,j,7) * uu(i,j+1) + ss(i,j,8) * uu(i,j+2)
-          end do
-       end do
 
-    ! This is the Minion 4th order full stencil.
-    else if (size(ss,dim=3) .eq. 25) then
-
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-            dd(i,j) = ss(i,j, 0) * uu(i,j) &
-                    + ss(i,j, 1) * uu(i-2,j-2) + ss(i,j, 2) * uu(i-1,j-2) & ! AT J-2
-                    + ss(i,j, 3) * uu(i  ,j-2) + ss(i,j, 4) * uu(i+1,j-2) & ! AT J-2
-                    + ss(i,j, 5) * uu(i+2,j-2)                            & ! AT J-2
-                    + ss(i,j, 6) * uu(i-2,j-1) + ss(i,j, 7) * uu(i-1,j-1) & ! AT J-1
-                    + ss(i,j, 8) * uu(i  ,j-1) + ss(i,j, 9) * uu(i+1,j-1) & ! AT J-1
-                    + ss(i,j,10) * uu(i+2,j-1)                            & ! AT J-1
-                    + ss(i,j,11) * uu(i-2,j  ) + ss(i,j,12) * uu(i-1,j  ) & ! AT J
-                    + ss(i,j,13) * uu(i+1,j  ) + ss(i,j,14) * uu(i+2,j  ) & ! AT J
-                    + ss(i,j,15) * uu(i-2,j+1) + ss(i,j,16) * uu(i-1,j+1) & ! AT J+1
-                    + ss(i,j,17) * uu(i  ,j+1) + ss(i,j,18) * uu(i+1,j+1) & ! AT J+1
-                    + ss(i,j,19) * uu(i+2,j+1)                            & ! AT J+1
-                    + ss(i,j,20) * uu(i-2,j+2) + ss(i,j,21) * uu(i-1,j+2) & ! AT J+2
-                    + ss(i,j,22) * uu(i  ,j+2) + ss(i,j,23) * uu(i+1,j+2) & ! AT J+2
-                    + ss(i,j,24) * uu(i+2,j+2)                              ! AT J+2
-          end do
-       end do
-
-    ! This is our standard 5-point Laplacian with a possible correction at boundaries
-    else 
-
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             dd(i,j) = ss(i,j,0)*uu(i,j) &
-                  + ss(i,j,1)*uu(i+1,j  ) + ss(i,j,2)*uu(i-1,j  ) &
-                  + ss(i,j,3)*uu(i  ,j+1) + ss(i,j,4)*uu(i  ,j-1)
-          end do
-       end do
-
-       if ( lskwd ) then
-       ! Corrections for skewed stencils
-       if (hi(1) > lo(1)) then
-          do j = lo(2),hi(2)
-
-             i = lo(1)
-             if (bc_skewed(mm(i,j),1,+1)) then
-                dd(i,j) = dd(i,j) + ss(i,j,XBC)*uu(i+2,j)
-             end if
-
-             i = hi(1)
-             if (bc_skewed(mm(i,j),1,-1)) then
-                dd(i,j) = dd(i,j) + ss(i,j,XBC)*uu(i-2,j)
-             end if
-          end do
-       end if
-
-       if (hi(2) > lo(2)) then
-          do i = lo(1),hi(1)
-
-             j = lo(2)
-             if (bc_skewed(mm(i,j),2,+1)) then
-                dd(i,j) = dd(i,j) + ss(i,j,YBC)*uu(i,j+2)
-             end if
-
-             j = hi(2)
-             if (bc_skewed(mm(i,j),2,-1)) then
-                dd(i,j) = dd(i,j) + ss(i,j,YBC)*uu(i,j-2)
-             end if
-
-          end do
-       end if
-       end if
-    end if
-
-  end subroutine stencil_apply_2d
-
-subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
-    integer           , intent(in   ) :: ng_d, ng_u, lo(:), hi(:)
-    real (kind = dp_t), intent(in   ) :: ss(lo(1):,lo(2):,0:)
-    real (kind = dp_t), intent(  out) :: dd(lo(1)-ng_d:,lo(2)-ng_d:)
-    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng_u:,lo(2)-ng_u:)
-    integer           , intent(in   )  :: mm(lo(1):,lo(2):)
-    logical           , intent(in   ), optional :: skwd
-
-    integer i,j,n,nc,dm,nm1,nedge,nset
-    
-    integer, parameter :: XBC = 6, YBC = 7
-
-    logical :: lskwd
-
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-    
-    dm    = 2
-    nset  = 1+3*dm
-    nc    = (size(ss,dim=3)-1)/(nset+1)
-    nedge = nc*nset
-
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          dd(i,j) = ss(i,j,0)*uu(i,j)
-       end do
-    end do
-
-    do n = 1,nc
-       nm1 = (n-1)*nset
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             dd(i,j) = dd(i,j) + &
-                  (ss(i,j,1+nm1)*uu(i,j) &
-                  + ss(i,j,2+nm1)*uu(i+1,j  ) + ss(i,j,3+nm1)*uu(i-1,j  ) &
-                  + ss(i,j,4+nm1)*uu(i  ,j+1) + ss(i,j,5+nm1)*uu(i  ,j-1) &
-                  )/ss(i,j,nedge+n)
-          end do
-       end do
-
-       if ( lskwd ) then
-       ! Corrections for skewed stencils
-       if (hi(1) > lo(1)) then
-          do j = lo(2),hi(2)
-
-             i = lo(1)
-             if (bc_skewed(mm(i,j),1,+1)) then
-                dd(i,j) = dd(i,j) + ss(i,j,XBC+nm1)*uu(i+2,j)
-             end if
-
-             i = hi(1)
-             if (bc_skewed(mm(i,j),1,-1)) then
-                dd(i,j) = dd(i,j) + ss(i,j,XBC+nm1)*uu(i-2,j)
-             end if
-          end do
-       end if
-
-       if (hi(2) > lo(2)) then
-          do i = lo(1),hi(1)
-
-             j = lo(2)
-             if (bc_skewed(mm(i,j),2,+1)) then
-                dd(i,j) = dd(i,j) + ss(i,j,YBC+nm1)*uu(i,j+2)
-             end if
-
-             j = hi(2)
-             if (bc_skewed(mm(i,j),2,-1)) then
-                dd(i,j) = dd(i,j) + ss(i,j,YBC+nm1)*uu(i,j-2)
-             end if
-          end do
-       end if
-       end if
-    end do
-
-  end subroutine stencil_apply_n_2d
-
-  subroutine stencil_flux_2d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:)
-    real (kind = dp_t), intent(out) :: flux(:,:)
-    real (kind = dp_t), intent(in ) :: ss(:,:,0:)
-    integer           , intent(in)  :: mm(:,:)
-    logical, intent(in), optional :: skwd
-    integer, intent(in) :: ratio, face, dim
-    integer nx,ny
-    integer i,j,ic,jc
-    real (kind = dp_t) :: fac
-    integer, parameter :: XBC = 5, YBC = 6
-    logical :: lskwd
-
-    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-
-    !   Note that one factor of ratio is the tangential averaging, while the
-    !     other is the normal factor
-    fac = ONE/real(ratio*ratio, kind=dp_t)
-
-!   Lo i face
-    if ( dim == 1 ) then
-       if (face == -1) then
-
-          i = 1
-          flux(1,:) = ZERO
-          do j = 1,ny
-             jc = (j-1)/ratio+1
-             if (bc_dirichlet(mm(i,j),1,-1)) then
-                flux(1,jc) = flux(1,jc)  &
-                     + ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
-                if (bc_skewed(mm(i,j),1,+1)) &
-                     flux(1,jc) = flux(1,jc) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
-             else   
-                flux(1,jc) = Huge(flux)
-             end if
-          end do
-          flux(1,:) = fac * flux(1,:)
-
-!      Hi i face
-       else if (face == 1) then
-
-          i = nx
-          flux(1,:) = ZERO
-          do j = 1,ny
-             jc = (j-1)/ratio+1
-             if (bc_dirichlet(mm(i,j),1,+1)) then
-
-                flux(1,jc) = flux(1,jc) &
-                     + ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,1)*(uu(i-1,j)-uu(i,j))
-                if (bc_skewed(mm(i,j),1,-1)) &
-                     flux(1,jc) = flux(1,jc) + ss(i,j,XBC)*(uu(i-2,j)-uu(i,j))
-             else 
-                flux(1,jc) = Huge(flux)
-             end if
-          end do
-          flux(1,:) = fac * flux(1,:)
-
-       end if
-
-!   Lo j face
-    else if ( dim == 2 ) then
-       if (face == -1) then
-
-          j = 1
-          flux(:,1) = ZERO
-          do i = 1,nx
-             ic = (i-1)/ratio+1
-             if (bc_dirichlet(mm(i,j),2,-1)) then
-                flux(ic,1) = flux(ic,1)  &
-                     + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
-                if (bc_skewed(mm(i,j),2,+1)) &
-                     flux(ic,1) =  flux(ic,1) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
-             else 
-                flux(ic,1) = Huge(flux)
-             end if
-          end do
-          flux(:,1) = fac * flux(:,1)
-
-
-!      Hi j face
-       else if (face == 1) then
-
-          j = ny
-          flux(:,1) = ZERO
-          do i = 1,nx
-             ic = (i-1)/ratio+1
-             if (bc_dirichlet(mm(i,j),2,+1)) then
-                flux(ic,1) = flux(ic,1)  &
-                     + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
-                if (bc_skewed(mm(i,j),2,-1)) &
-                     flux(ic,1) = flux(ic,1) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
-             else
-                flux(ic,1) = Huge(flux)
-             end if
-          end do
-          flux(:,1) = fac * flux(:,1)
-
-       end if
-    end if
-
-  end subroutine stencil_flux_2d
-
-  subroutine stencil_flux_n_2d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:)
-    real (kind = dp_t), intent(out) :: flux(:,:,1:)
-    real (kind = dp_t), intent(in ) :: ss(:,:,0:)
-    integer           , intent(in)  :: mm(:,:)
-    logical, intent(in), optional :: skwd
-    integer, intent(in) :: ratio, face, dim
-    integer nx,ny,dm,nc,nedge,nm1,nset
-    integer i,j,ic,jc,n
-    real (kind = dp_t) :: fac
-    integer, parameter :: XBC = 6, YBC = 7
-    logical :: lskwd
-
-    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-
-    dm    = 2
-    nset  = 1+3*dm
-    nc    = (size(ss,dim=3)-1)/(nset+1)
-    nedge = nc*nset
-
-    !   Note that one factor of ratio is the tangential averaging, while the
-    !     other is the normal factor
-    fac = ONE/real(ratio*ratio, kind=dp_t)
-
-!   Lo i face
-    if ( dim == 1 ) then
-       if (face == -1) then
-
-          i = 1
-          flux(1,:,:) = ZERO
-          do n = 1,nc
-             nm1  = (n-1)*nset
-             do j = 1,ny
-                jc = (j-1)/ratio+1
-                if (bc_dirichlet(mm(i,j),1,-1)) then
-                   flux(1,jc,n) = flux(1,jc,n)  &
-                     + ss(i,j,2+nm1)*(uu(i+1,j)-uu(i,j)) &
-                     + ss(i,j,3+nm1)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,3+nm1)*(uu(i+1,j)-uu(i,j))
-                   if (bc_skewed(mm(i,j),1,+1)) &
-                        flux(1,jc,n) = flux(1,jc,n) + ss(i,j,XBC+nm1)*(uu(i+2,j)-uu(i,j)) 
-                else   
-                   flux(1,jc,n) = Huge(flux(:,:,n))
-                end if
-             end do
-             flux(1,:,n) = fac * flux(1,:,n)
-          end do
-
-!      Hi i face
-       else if (face == 1) then
-
-          i = nx
-          flux(1,:,:) = ZERO
-          do n = 1,nc
-             nm1 = (n-1)*nset
-             do j = 1,ny
-                jc = (j-1)/ratio+1
-                if (bc_dirichlet(mm(i,j),1,+1)) then
-                   flux(1,jc,n) = flux(1,jc,n) &
-                     + ss(i,j,2+nm1)*(uu(i+1,j)-uu(i,j)) &
-                     + ss(i,j,3+nm1)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,2+nm1)*(uu(i-1,j)-uu(i,j))
-                   if (bc_skewed(mm(i,j),1,-1)) &
-                     flux(1,jc,n) = flux(1,jc,n) + ss(i,j,XBC+nm1)*(uu(i-2,j)-uu(i,j))
-                else 
-                   flux(1,jc,n) = Huge(flux(:,:,n))
-                end if
-             end do
-             flux(1,:,n) = fac * flux(1,:,n)
-          end do
-
-       end if
-
-!   Lo j face
-    else if ( dim == 2 ) then
-       if (face == -1) then
-
-          j = 1
-          flux(:,1,:) = ZERO
-          do n = 1,nc
-             nm1 = (n-1)*nset
-             do i = 1,nx
-                ic = (i-1)/ratio+1
-                if (bc_dirichlet(mm(i,j),2,-1)) then
-                   flux(ic,1,n) = flux(ic,1,n)  &
-                        + ss(i,j,4+nm1)*(uu(i,j+1)-uu(i,j)) &
-                        + ss(i,j,5+nm1)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,5+nm1)*(uu(i,j+1)-uu(i,j))
-                   if (bc_skewed(mm(i,j),2,+1)) &
-                        flux(ic,1,n) =  flux(ic,1,n) + ss(i,j,YBC+nm1)*(uu(i,j+2)-uu(i,j))
-                else 
-                   flux(ic,1,n) = Huge(flux(:,:,n))
-                end if
-             end do
-             flux(:,1,n) = fac * flux(:,1,n)
-          end do
-
-
-!      Hi j face
-       else if (face == 1) then
-
-          j = ny
-          flux(:,1,:) = ZERO
-          do n = 1,nc
-             nm1 = (n-1)*nset
-             do i = 1,nx
-                ic = (i-1)/ratio+1
-                if (bc_dirichlet(mm(i,j),2,+1)) then
-                   flux(ic,1,n) = flux(ic,1,n)  &
-                     + ss(i,j,4+nm1)*(uu(i,j+1)-uu(i,j)) &
-                     + ss(i,j,5+nm1)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,4+nm1)*(uu(i,j-1)-uu(i,j))
-                   if (bc_skewed(mm(i,j),2,-1)) &
-                     flux(ic,1,n) = flux(ic,1,n) + ss(i,j,YBC+nm1)*(uu(i,j-2)-uu(i,j))
-                else
-                   flux(ic,1,n) = Huge(flux(:,:,n))
-                end if
-             end do
-             flux(:,1,n) = fac * flux(:,1,n)
-          end do
-
-       end if
-    end if
-
-  end subroutine stencil_flux_n_2d
-
-  subroutine stencil_apply_3d(ss, dd, ng_d, uu, ng_u, mm, skwd)
-
-    integer           , intent(in ) :: ng_d,ng_u
-    real (kind = dp_t), intent(in ) :: ss(:,:,:,0:)
-    real (kind = dp_t), intent(out) :: dd(1-ng_d:,1-ng_d:,1-ng_d:)
-    real (kind = dp_t), intent(in ) :: uu(1-ng_u:,1-ng_u:,1-ng_u:)
-    integer           , intent(in ) :: mm(:,:,:)
-    logical           , intent(in ), optional :: skwd
-
-    integer nx,ny,nz,i,j,k
-    integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
-    logical :: lskwd
-
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
-
-    ! This is the Minion 4th order cross stencil.
-    if (size(ss,dim=4) .eq. 13) then
+          rholy = s1*(betax(i  ,j+1,k)- betax(i  ,j-1,k)) + s2*(betax(i  ,j+2,k)- betax(i  ,j-2,k))
+          rhory = s1*(betax(i+1,j+1,k)- betax(i+1,j-1,k)) + s2*(betax(i+1,j+2,k)- betax(i+1,j-2,k))
+          rholz = s1*(betax(i  ,j,k+1)- betax(i  ,j,k-1)) + s2*(betax(i  ,j,k+2)- betax(i  ,j,k-2))
+          rhorz = s1*(betax(i+1,j,k+1)- betax(i+1,j,k-1)) + s2*(betax(i+1,j,k+2)- betax(i+1,j,k-2))
+
+          rhofx = s1*(betay(i+1,j+1,k)- betay(i-1,j+1,k)) + s2*(betay(i+2,j+1,k)- betay(i-2,j+1,k))
+          rhoax = s1*(betay(i+1,j  ,k)- betay(i-1,j  ,k)) + s2*(betay(i+2,j  ,k)- betay(i-2,j  ,k))
+          rhofz = s1*(betay(i,j+1,k+1)- betay(i,j+1,k-1)) + s2*(betay(i,j+1,k+2)- betay(i,j+1,k-2))
+          rhoaz = s1*(betay(i,j  ,k+1)- betay(i,j  ,k-1)) + s2*(betay(i,j  ,k+2)- betay(i,j  ,k-2))
+
+          rhotx = s1*(betaz(i+1,j,k+1)- betaz(i-1,j,k+1)) + s2*(betaz(i+2,j,k+1)- betaz(i-2,j,k+1))
+          rhobx = s1*(betaz(i+1,j  ,k)- betaz(i-1,j  ,k)) + s2*(betaz(i+2,j  ,k)- betaz(i-2,j  ,k))
+          rhoty = s1*(betaz(i,j+1,k+1)- betaz(i,j-1,k+1)) + s2*(betaz(i,j+2,k+1)- betaz(i,j-2,k+1))
+          rhoby = s1*(betaz(i,j+1,k  )- betaz(i,j-1,k  )) + s2*(betaz(i,j+2  ,k)- betaz(i,j-2  ,k))
+
+
+ ! DOING CONTRIB AT            0          -2          -2 nsten =            1
+         nsten =   1
+           ss(i,j,k,nsten) = (   &
+                         -5.0d0*rhoby*hz2  &
+                    +     5.0d0*rhofz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0          -1          -2 nsten =            2
+         nsten =   2
+           ss(i,j,k,nsten) = (   &
+                    +    34.0d0*rhoby*hz2  &
+                        -75.0d0*rhofz*hy2  &
+                         -5.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -2           0          -2 nsten =            3
+         nsten =   3
+           ss(i,j,k,nsten) = (   &
+                         -5.0d0*rholz*hx2  &
+                         -5.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT           -1           0          -2 nsten =            4
+         nsten =   4
+           ss(i,j,k,nsten) = (   &
+                    +    75.0d0*rholz*hx2  &
+                    +    34.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           0          -2 nsten =            5
+         nsten =   5
+           ss(i,j,k,nsten) = (   &
+                        -75.0d0*rholz*hx2  &
+                    +    75.0d0*rhofz*hy2  &
+                    +    75.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            1           0          -2 nsten =            6
+         nsten =   6
+           ss(i,j,k,nsten) = (   &
+                    +     5.0d0*rholz*hx2  &
+                        -34.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            2           0          -2 nsten =            7
+         nsten =   7
+           ss(i,j,k,nsten) = (   &
+                    +     5.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           1          -2 nsten =            8
+         nsten =   8
+           ss(i,j,k,nsten) = (   &
+                        -34.0d0*rhoby*hz2  &
+                         -5.0d0*rhofz*hy2  &
+                        -75.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           2          -2 nsten =            9
+         nsten =   9
+           ss(i,j,k,nsten) = (   &
+                    +     5.0d0*rhoby*hz2  &
+                    +     5.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0          -2          -1 nsten =           10
+         nsten =  10
+           ss(i,j,k,nsten) = (   &
+                    +     5.0d0*rhoty*hz2  &
+                    +    75.0d0*rhoby*hz2  &
+                        -34.0d0*rhofz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0          -1          -1 nsten =           11
+         nsten =  11
+           ss(i,j,k,nsten) = (   &
+                        -34.0d0*rhoty*hz2  &
+                       -510.0d0*rhoby*hz2  &
+                    +   510.0d0*rhofz*hy2  &
+                    +    34.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -2           0          -1 nsten =           12
+         nsten =  12
+           ss(i,j,k,nsten) = (   &
+                    +    34.0d0*rholz*hx2  &
+                    +     5.0d0*rhotx*hz2  &
+                    +    75.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT           -1           0          -1 nsten =           13
+         nsten =  13
+           ss(i,j,k,nsten) = (   &
+                       -510.0d0*rholz*hx2  &
+                        -34.0d0*rhotx*hz2  &
+                       -510.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           0          -1 nsten =           14
+         nsten =  14
+           ss(i,j,k,nsten) = (   &
+                    +   510.0d0*rholz*hx2  &
+                       -510.0d0*rhofz*hy2  &
+                       -510.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            1           0          -1 nsten =           15
+         nsten =  15
+           ss(i,j,k,nsten) = (   &
+                        -34.0d0*rholz*hx2  &
+                    +    34.0d0*rhotx*hz2  &
+                    +   510.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            2           0          -1 nsten =           16
+         nsten =  16
+           ss(i,j,k,nsten) = (   &
+                         -5.0d0*rhotx*hz2  &
+                        -75.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           1          -1 nsten =           17
+         nsten =  17
+           ss(i,j,k,nsten) = (   &
+                    +    34.0d0*rhoty*hz2  &
+                    +   510.0d0*rhoby*hz2  &
+                    +    34.0d0*rhofz*hy2  &
+                    +   510.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           2          -1 nsten =           18
+         nsten =  18
+           ss(i,j,k,nsten) = (   &
+                         -5.0d0*rhoty*hz2  &
+                        -75.0d0*rhoby*hz2  &
+                        -34.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -2          -2           0 nsten =           19
+         nsten =  19
+           ss(i,j,k,nsten) = (   &
+                         -5.0d0*rholy*hx2  &
+                    +     5.0d0*rhofx*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -1          -2           0 nsten =           20
+         nsten =  20
+           ss(i,j,k,nsten) = (   &
+                    +     5.0d0*rhory*hx2  &
+                    +     5.0d0*rhorz*hx2  &
+                    +    75.0d0*rholy*hx2  &
+                        -34.0d0*rhofx*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0          -2           0 nsten =           21
+         nsten =  21
+           ss(i,j,k,nsten) = (   &
+                        -75.0d0*rhory*hx2  &
+                        -75.0d0*rhorz*hx2  &
+                        -75.0d0*rholy*hx2  &
+                        -75.0d0*rhoty*hz2  &
+                        -75.0d0*rhoby*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            1          -2           0 nsten =           22
+         nsten =  22
+           ss(i,j,k,nsten) = (   &
+                    +    75.0d0*rhory*hx2  &
+                    +    75.0d0*rhorz*hx2  &
+                    +     5.0d0*rholy*hx2  &
+                    +    34.0d0*rhofx*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            2          -2           0 nsten =           23
+         nsten =  23
+           ss(i,j,k,nsten) = (   &
+                         -5.0d0*rhory*hx2  &
+                         -5.0d0*rhorz*hx2  &
+                         -5.0d0*rhofx*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -2          -1           0 nsten =           24
+         nsten =  24
+           ss(i,j,k,nsten) = (   &
+                    +    34.0d0*rholy*hx2  &
+                        -75.0d0*rhofx*hy2  &
+                         -5.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -1          -1           0 nsten =           25
+         nsten =  25
+           ss(i,j,k,nsten) = (   &
+                        -34.0d0*rhory*hx2  &
+                        -34.0d0*rhorz*hx2  &
+                       -510.0d0*rholy*hx2  &
+                    +   510.0d0*rhofx*hy2  &
+                    +    34.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0          -1           0 nsten =           26
+         nsten =  26
+           ss(i,j,k,nsten) = (   &
+                    +   510.0d0*rhory*hx2  &
+                    +   510.0d0*rhorz*hx2  &
+                    +   510.0d0*rholy*hx2  &
+                    +   510.0d0*rhoty*hz2  &
+                    +   510.0d0*rhoby*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            1          -1           0 nsten =           27
+         nsten =  27
+           ss(i,j,k,nsten) = (   &
+                       -510.0d0*rhory*hx2  &
+                       -510.0d0*rhorz*hx2  &
+                        -34.0d0*rholy*hx2  &
+                       -510.0d0*rhofx*hy2  &
+                        -34.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            2          -1           0 nsten =           28
+         nsten =  28
+           ss(i,j,k,nsten) = (   &
+                    +    34.0d0*rhory*hx2  &
+                    +    34.0d0*rhorz*hx2  &
+                    +    75.0d0*rhofx*hy2  &
+                    +     5.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -2           0           0 nsten =           29
+         nsten =  29
+           ss(i,j,k,nsten) = (   &
+                        -75.0d0*rhotx*hz2  &
+                        -75.0d0*rhobx*hz2  &
+                    +    75.0d0*rhofx*hy2  &
+                    +    75.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -1           0           0 nsten =           30
+         nsten =  30
+           ss(i,j,k,nsten) = (   &
+                    +   510.0d0*rhotx*hz2  &
+                    +   510.0d0*rhobx*hz2  &
+                       -510.0d0*rhofx*hy2  &
+                       -510.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            1           0           0 nsten =           31
+         nsten =  31
+           ss(i,j,k,nsten) = (   &
+                       -510.0d0*rhotx*hz2  &
+                       -510.0d0*rhobx*hz2  &
+                    +   510.0d0*rhofx*hy2  &
+                    +   510.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            2           0           0 nsten =           32
+         nsten =  32
+           ss(i,j,k,nsten) = (   &
+                    +    75.0d0*rhotx*hz2  &
+                    +    75.0d0*rhobx*hz2  &
+                        -75.0d0*rhofx*hy2  &
+                        -75.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -2           1           0 nsten =           33
+         nsten =  33
+           ss(i,j,k,nsten) = (   &
+                        -34.0d0*rholy*hx2  &
+                         -5.0d0*rhofx*hy2  &
+                        -75.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -1           1           0 nsten =           34
+         nsten =  34
+           ss(i,j,k,nsten) = (   &
+                    +    34.0d0*rhory*hx2  &
+                    +    34.0d0*rhorz*hx2  &
+                    +   510.0d0*rholy*hx2  &
+                    +    34.0d0*rhofx*hy2  &
+                    +   510.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           1           0 nsten =           35
+         nsten =  35
+           ss(i,j,k,nsten) = (   &
+                       -510.0d0*rhory*hx2  &
+                       -510.0d0*rhorz*hx2  &
+                       -510.0d0*rholy*hx2  &
+                       -510.0d0*rhoty*hz2  &
+                       -510.0d0*rhoby*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            1           1           0 nsten =           36
+         nsten =  36
+           ss(i,j,k,nsten) = (   &
+                    +   510.0d0*rhory*hx2  &
+                    +   510.0d0*rhorz*hx2  &
+                    +    34.0d0*rholy*hx2  &
+                        -34.0d0*rhofx*hy2  &
+                       -510.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            2           1           0 nsten =           37
+         nsten =  37
+           ss(i,j,k,nsten) = (   &
+                        -34.0d0*rhory*hx2  &
+                        -34.0d0*rhorz*hx2  &
+                    +     5.0d0*rhofx*hy2  &
+                    +    75.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -2           2           0 nsten =           38
+         nsten =  38
+           ss(i,j,k,nsten) = (   &
+                    +     5.0d0*rholy*hx2  &
+                    +     5.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -1           2           0 nsten =           39
+         nsten =  39
+           ss(i,j,k,nsten) = (   &
+                         -5.0d0*rhory*hx2  &
+                         -5.0d0*rhorz*hx2  &
+                        -75.0d0*rholy*hx2  &
+                        -34.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           2           0 nsten =           40
+         nsten =  40
+           ss(i,j,k,nsten) = (   &
+                    +    75.0d0*rhory*hx2  &
+                    +    75.0d0*rhorz*hx2  &
+                    +    75.0d0*rholy*hx2  &
+                    +    75.0d0*rhoty*hz2  &
+                    +    75.0d0*rhoby*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            1           2           0 nsten =           41
+         nsten =  41
+           ss(i,j,k,nsten) = (   &
+                        -75.0d0*rhory*hx2  &
+                        -75.0d0*rhorz*hx2  &
+                         -5.0d0*rholy*hx2  &
+                    +    34.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            2           2           0 nsten =           42
+         nsten =  42
+           ss(i,j,k,nsten) = (   &
+                    +     5.0d0*rhory*hx2  &
+                    +     5.0d0*rhorz*hx2  &
+                         -5.0d0*rhoax*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0          -2           1 nsten =           43
+         nsten =  43
+           ss(i,j,k,nsten) = (   &
+                    +    75.0d0*rhoty*hz2  &
+                    +     5.0d0*rhoby*hz2  &
+                    +    34.0d0*rhofz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0          -1           1 nsten =           44
+         nsten =  44
+           ss(i,j,k,nsten) = (   &
+                       -510.0d0*rhoty*hz2  &
+                        -34.0d0*rhoby*hz2  &
+                       -510.0d0*rhofz*hy2  &
+                        -34.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -2           0           1 nsten =           45
+         nsten =  45
+           ss(i,j,k,nsten) = (   &
+                        -34.0d0*rholz*hx2  &
+                    +    75.0d0*rhotx*hz2  &
+                    +     5.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT           -1           0           1 nsten =           46
+         nsten =  46
+           ss(i,j,k,nsten) = (   &
+                    +   510.0d0*rholz*hx2  &
+                       -510.0d0*rhotx*hz2  &
+                        -34.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           0           1 nsten =           47
+         nsten =  47
+           ss(i,j,k,nsten) = (   &
+                       -510.0d0*rholz*hx2  &
+                    +   510.0d0*rhofz*hy2  &
+                    +   510.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            1           0           1 nsten =           48
+         nsten =  48
+           ss(i,j,k,nsten) = (   &
+                    +    34.0d0*rholz*hx2  &
+                    +   510.0d0*rhotx*hz2  &
+                    +    34.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            2           0           1 nsten =           49
+         nsten =  49
+           ss(i,j,k,nsten) = (   &
+                        -75.0d0*rhotx*hz2  &
+                         -5.0d0*rhobx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           1           1 nsten =           50
+         nsten =  50
+           ss(i,j,k,nsten) = (   &
+                    +   510.0d0*rhoty*hz2  &
+                    +    34.0d0*rhoby*hz2  &
+                        -34.0d0*rhofz*hy2  &
+                       -510.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           2           1 nsten =           51
+         nsten =  51
+           ss(i,j,k,nsten) = (   &
+                        -75.0d0*rhoty*hz2  &
+                         -5.0d0*rhoby*hz2  &
+                    +    34.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0          -2           2 nsten =           52
+         nsten =  52
+           ss(i,j,k,nsten) = (   &
+                         -5.0d0*rhoty*hz2  &
+                         -5.0d0*rhofz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0          -1           2 nsten =           53
+         nsten =  53
+           ss(i,j,k,nsten) = (   &
+                    +    34.0d0*rhoty*hz2  &
+                    +    75.0d0*rhofz*hy2  &
+                    +     5.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT           -2           0           2 nsten =           54
+         nsten =  54
+           ss(i,j,k,nsten) = (   &
+                    +     5.0d0*rholz*hx2  &
+                         -5.0d0*rhotx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT           -1           0           2 nsten =           55
+         nsten =  55
+           ss(i,j,k,nsten) = (   &
+                        -75.0d0*rholz*hx2  &
+                    +    34.0d0*rhotx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           0           2 nsten =           56
+         nsten =  56
+           ss(i,j,k,nsten) = (   &
+                    +    75.0d0*rholz*hx2  &
+                        -75.0d0*rhofz*hy2  &
+                        -75.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            1           0           2 nsten =           57
+         nsten =  57
+           ss(i,j,k,nsten) = (   &
+                         -5.0d0*rholz*hx2  &
+                        -34.0d0*rhotx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            2           0           2 nsten =           58
+         nsten =  58
+           ss(i,j,k,nsten) = (   &
+                    +     5.0d0*rhotx*hz2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           1           2 nsten =           59
+         nsten =  59
+           ss(i,j,k,nsten) = (   &
+                        -34.0d0*rhoty*hz2  &
+                    +     5.0d0*rhofz*hy2  &
+                    +    75.0d0*rhoaz*hy2  &
+                                              ) 
+ ! DOING CONTRIB AT            0           2           2 nsten =           60
+         nsten =  60
+           ss(i,j,k,nsten) = (   &
+                    +     5.0d0*rhoty*hz2  &
+                         -5.0d0*rhoaz*hy2  &
+                                              ) 
+
+          !  Now we add in the 2nd order stencil
+          ss(i,j,k,29) = ss(i,j,k,29) + (                       -        betax(i,j,k))*hx22
+          ss(i,j,k,30) = ss(i,j,k,30) + (        betax(i+1,j,k) + 15.0d0*betax(i,j,k))*hx22
+          ss(i,j,k, 0) = ss(i,j,k, 0) + (-15.0d0*betax(i+1,j,k) - 15.0d0*betax(i,j,k))*hx22
+          ss(i,j,k,31) = ss(i,j,k,31) + ( 15.0d0*betax(i+1,j,k) +        betax(i,j,k))*hx22
+          ss(i,j,k,32) = ss(i,j,k,32) + (       -betax(i+1,j,k)                      )*hx22
  
-       !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
-       do k = 1,nz
-          do j = 1,ny
-             do i = 1,nx
-                dd(i,j,k) = ss(i,j,k,0) * uu(i,j,k) &
-                     + ss(i,j,k, 1) * uu(i-2,j,k) + ss(i,j,k, 2) * uu(i-1,j,k) &
-                     + ss(i,j,k, 3) * uu(i+1,j,k) + ss(i,j,k, 4) * uu(i+2,j,k) &
-                     + ss(i,j,k, 5) * uu(i,j-2,k) + ss(i,j,k, 6) * uu(i,j-1,k) &
-                     + ss(i,j,k, 7) * uu(i,j+1,k) + ss(i,j,k, 8) * uu(i,j+2,k) &
-                     + ss(i,j,k, 9) * uu(i,j,k-2) + ss(i,j,k,10) * uu(i,j,k-1) &
-                     + ss(i,j,k,11) * uu(i,j,k+1) + ss(i,j,k,12) * uu(i,j,k+2)
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
+          ss(i,j,k,21) = ss(i,j,k,21) + (                      -        betay(i,j,k))*hy22
+          ss(i,j,k,26) = ss(i,j,k,26) + (        betay(i,j+1,k) + 15.0d0*betay(i,j,k))*hy22
+          ss(i,j,k, 0) = ss(i,j,k, 0) + (-15.0d0*betay(i,j+1,k) - 15.0d0*betay(i,j,k))*hy22
+          ss(i,j,k,35) = ss(i,j,k,35) + ( 15.0d0*betay(i,j+1,k) +        betay(i,j,k))*hy22
+          ss(i,j,k,40) = ss(i,j,k,40) + (       -betay(i,j+1,k)                      )*hy22
+ 
+ 
+          ss(i,j,k, 5) = ss(i,j,k, 5) + (                       -        betaz(i,j,k))*hz22
+          ss(i,j,k,14) = ss(i,j,k,14) + (        betaz(i,j,k+1) + 15.0d0*betaz(i,j,k))*hz22
+          ss(i,j,k, 0) = ss(i,j,k, 0) + (-15.0d0*betaz(i,j,k+1) - 15.0d0*betaz(i,j,k))*hz22
+          ss(i,j,k,47) = ss(i,j,k,47) + ( 15.0d0*betaz(i,j,k+1) +        betaz(i,j,k))*hz22
+          ss(i,j,k,56) = ss(i,j,k,56) + (       -betaz(i,j,k+1)                      )*hz22
 
-    else 
-
-       !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
-       do k = 1,nz
-          do j = 1,ny
-             do i = 1,nx
-                dd(i,j,k) = &
-                     ss(i,j,k,0)*uu(i,j,k)       + &
-                     ss(i,j,k,1)*uu(i+1,j  ,k  ) + &
-                     ss(i,j,k,2)*uu(i-1,j  ,k  ) + &
-                     ss(i,j,k,3)*uu(i  ,j+1,k  ) + &
-                     ss(i,j,k,4)*uu(i  ,j-1,k  ) + &
-                     ss(i,j,k,5)*uu(i  ,j  ,k+1) + &
-                     ss(i,j,k,6)*uu(i  ,j  ,k-1)
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-    end if
-
-    if ( lskwd ) then
-       !
-       ! Corrections for skewed stencils
-       !
-       if (nx > 1) then
-          do k = 1, nz
-             do j = 1, ny
-                i = 1
-                if (bc_skewed(mm(i,j,k),1,+1)) then
-                   dd(i,j,k) = dd(i,j,k) + ss(i,j,k,XBC)*uu(i+2,j,k)
-                end if
-
-                i = nx
-                if (bc_skewed(mm(i,j,k),1,-1)) then
-                   dd(i,j,k) = dd(i,j,k) + ss(i,j,k,XBC)*uu(i-2,j,k)
-                end if
-             end do
-          end do
-       end if
-
-       if (ny > 1) then
-          do k = 1,nz
-             do i = 1,nx
-                j = 1
-                if (bc_skewed(mm(i,j,k),2,+1)) then
-                   dd(i,j,k) = dd(i,j,k) + ss(i,j,k,YBC)*uu(i,j+2,k)
-                end if
-
-                j = ny
-                if (bc_skewed(mm(i,j,k),2,-1)) then
-                   dd(i,j,k) = dd(i,j,k) + ss(i,j,k,YBC)*uu(i,j-2,k)
-                end if
-             end do
-          end do
-       end if
-
-       if (nz > 1) then
-          do j = 1,ny
-             do i = 1,nx
-                k = 1
-                if (bc_skewed(mm(i,j,k),3,+1)) then
-                   dd(i,j,k) = dd(i,j,k) + ss(i,j,k,ZBC)*uu(i,j,k+2)
-                end if
-
-                k = nz
-                if (bc_skewed(mm(i,j,k),3,-1)) then
-                   dd(i,j,k) = dd(i,j,k) + ss(i,j,k,ZBC)*uu(i,j,k-2)
-                end if
-             end do
-          end do
-       end if
-    end if
-  end subroutine stencil_apply_3d
-
-  subroutine stencil_flux_3d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(out) :: flux(:,:,:)
-    real (kind = dp_t), intent(in ) :: ss(:,:,:,0:)
-    integer           , intent(in)  :: mm(:,:,:)
-    logical, intent(in), optional :: skwd
-    integer, intent(in) :: ratio, face, dim
-    integer nx, ny, nz
-    integer i,j,k,ic,jc,kc
-    integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
-    real (kind = dp_t) :: fac
-    logical :: lskwd
-
-    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
-
-    ! Note that two factors of ratio is from the tangential averaging, while the
-    ! other is the normal factor
-    fac = ONE/real(ratio*ratio*ratio, kind=dp_t)
-
-    ! Note: Do not try to add OMP calls to this subroutine.  For example,
-    !       in the first k loop below, kc may end up having the same value 
-    !       on multiple threads, and then you try to update the same flux(1,jc,kc)
-    !       memory simultaneously on different threads.
-
-    !   Lo i face
-    if ( dim ==  1 ) then
-       if (face == -1) then
-
-          i = 1
-          flux(1,:,:) = ZERO
-          do k = 1,nz
-             do j = 1,ny
-                jc = (j-1)/ratio + 1
-                kc = (k-1)/ratio + 1
-                if (bc_dirichlet(mm(i,j,k),1,-1)) then
-                   flux(1,jc,kc) =  flux(1,jc,kc) &
-                        + ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        - ss(i+1,j,k,2)*(uu(i+1,j,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),1,+1)) &
-                        flux(1,jc,kc) =  flux(1,jc,kc) + ss(i,j,k,XBC)*(uu(i+2,j,k)-uu(i,j,k))
-                else 
-                   flux(1,jc,kc) = Huge(flux)
-                end if
-             end do
-          end do
-          flux(1,:,:) = flux(1,:,:) * fac
-
-          !   Hi i face
-       else if (face ==  1) then
-
-          i = nx
-          flux(1,:,:) = ZERO
-          do k = 1,nz
-             do j = 1,ny
-                jc = (j-1)/ratio + 1
-                kc = (k-1)/ratio + 1
-                if (bc_dirichlet(mm(i,j,k),1,+1)) then
-                   flux(1,jc,kc) =  flux(1,jc,kc) &
-                        + ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        - ss(i-1,j,k,1)*(uu(i-1,j,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),1,-1)) &
-                        flux(1,jc,kc) =  flux(1,jc,kc) + ss(i,j,k,XBC)*(uu(i-2,j,k)-uu(i,j,k))
-                else 
-                   flux(1,jc,kc) = Huge(flux)
-                end if
-             end do
-          end do
-          flux(1,:,:) = flux(1,:,:) * fac
-
-       end if
-       !   Lo j face
-    else if ( dim == 2 ) then
-       if (face == -1) then
-          j = 1
-          flux(:,1,:) = ZERO
-          do k = 1,nz
-             do i = 1,nx
-                ic = (i-1)/ratio + 1
-                kc = (k-1)/ratio + 1
-                if (bc_dirichlet(mm(i,j,k),2,-1)) then
-                   flux(ic,1,kc) =  flux(ic,1,kc) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        - ss(i,j+1,k,4)*(uu(i,j+1,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),2,+1)) &
-                        flux(ic,1,kc) =  flux(ic,1,kc) + ss(i,j,k,YBC)*(uu(i,j+2,k)-uu(i,j,k))
-                else 
-                   flux(ic,1,kc) = Huge(flux)
-                end if
-             end do
-          end do
-          flux(:,1,:) = flux(:,1,:) * fac
-
-          !   Hi j face
-       else if (face ==  1) then
-          j = ny
-          flux(:,1,:) = ZERO
-          do k = 1,nz
-             do i = 1,nx
-                ic = (i-1)/ratio + 1
-                kc = (k-1)/ratio + 1
-
-                if (bc_dirichlet(mm(i,j,k),2,+1)) then
-                   flux(ic,1,kc) =  flux(ic,1,kc) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        - ss(i,j-1,k,3)*(uu(i,j-1,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),2,-1)) &
-                        flux(ic,1,kc) =  flux(ic,1,kc) + ss(i,j,k,YBC)*(uu(i,j-2,k)-uu(i,j,k))
-                else
-                   flux(ic,1,kc) = Huge(flux)
-                end if
-             end do
-          end do
-          flux(:,1,:) = flux(:,1,:) * fac
-
-          !   Lo k face
-       end if
-    else if ( dim == 3 ) then
-       if (face == -1) then
-
-          k = 1
-          flux(:,:,1) = ZERO
-          do j = 1,ny
-             do i = 1,nx
-                ic = (i-1)/ratio + 1
-                jc = (j-1)/ratio + 1
-                if (bc_dirichlet(mm(i,j,k),3,-1)) then
-                   flux(ic,jc,1) =  flux(ic,jc,1) &
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
-                        - ss(i,j,k+1,6)*(uu(i,j,k+1)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),3,+1)) &
-                        flux(ic,jc,1) =  flux(ic,jc,1) + ss(i,j,k,ZBC)*(uu(i,j,k+2)-uu(i,j,k)) 
-                else 
-                   flux(ic,jc,1) = Huge(flux)
-                end if
-             end do
-          end do
-          flux(:,:,1) = flux(:,:,1) * fac
-
-          !   Hi k face
-       else if (face ==  1) then
-
-          k = nz
-          flux(:,:,1) = ZERO
-          do j = 1,ny
-             do i = 1,nx
-                ic = (i-1)/ratio + 1
-                jc = (j-1)/ratio + 1
-                if (bc_dirichlet(mm(i,j,k),3,+1)) then
-                   flux(ic,jc,1) =  flux(ic,jc,1) &
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
-                        - ss(i,j,k-1,5)*(uu(i,j,k-1)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),3,-1)) &
-                        flux(ic,jc,1) =  flux(ic,jc,1) + ss(i,j,k,ZBC)*(uu(i,j,k-2)-uu(i,j,k))
-                else
-                   flux(ic,jc,1) = Huge(flux)
-                end if
-             end do
-          end do
-          flux(:,:,1) = flux(:,:,1) * fac
-
-       end if
-    end if
-
-  end subroutine stencil_flux_3d
-
-  subroutine stencil_dense_apply_1d(ss, dd, ng_d, uu, ng_u)
-    integer, intent(in) :: ng_d, ng_u
-    real (kind = dp_t), intent(in   ) :: ss(:,0:)
-    real (kind = dp_t), intent(  out) :: dd(1-ng_d:)
-    real (kind = dp_t), intent(in   ) :: uu(1-ng_u:)
-    integer i, nx
-   
-    nx = size(ss,dim=1)
-    do i = 1, nx
-      dd(i) = ss(i,1)*uu(i-1) + ss(i,0)*uu(i) + ss(i,2)*uu(i+1)
-    end do
-
-  end subroutine stencil_dense_apply_1d
-
-  subroutine stencil_dense_apply_2d(ss, dd, ng_d, uu, ng_u)
-    integer, intent(in) :: ng_d, ng_u
-    real (kind = dp_t), intent(in   ) :: ss(:,:,0:)
-    real (kind = dp_t), intent(  out) :: dd(1-ng_d:,1-ng_d:)
-    real (kind = dp_t), intent(in   ) :: uu(1-ng_u:,1-ng_u:)
-    integer i, j, nx, ny
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-
-    do j = 1, ny
-       do i = 1, nx
-          dd(i,j) = &
-               + ss(i,j,1)*uu(i-1,j-1) + ss(i,j,2)*uu(i  ,j-1) + ss(i,j,3)*uu(i+1,j-1) &
-               + ss(i,j,4)*uu(i-1,j  ) + ss(i,j,0)*uu(i  ,j  ) + ss(i,j,5)*uu(i+1,j  ) &
-               + ss(i,j,6)*uu(i-1,j+1) + ss(i,j,7)*uu(i  ,j+1) + ss(i,j,8)*uu(i+1,j+1)
-       end do
-    end do
-
-  end subroutine stencil_dense_apply_2d
-
-  subroutine stencil_dense_apply_3d(ss, dd, ng_d, uu, ng_u)
-    integer, intent(in) :: ng_d, ng_u
-    real (kind = dp_t), intent(in   ) :: ss(:,:,:,0:)
-    real (kind = dp_t), intent(in   ) :: uu(1-ng_u:,1-ng_u:,1-ng_u:)
-    real (kind = dp_t), intent(  out) :: dd(1-ng_d:,1-ng_d:,1-ng_d:)
-    integer i, j, k, nx, ny, nz
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
-    do k = 1, nz
-       do j = 1, ny
-          do i = 1, nx
-             dd(i,j,k) = &
-                  + ss(i,j,k, 1)*uu(i-1,j-1,k-1) &
-                  + ss(i,j,k, 2)*uu(i  ,j-1,k-1) &
-                  + ss(i,j,k, 3)*uu(i+1,j-1,k-1) &
-                  + ss(i,j,k, 4)*uu(i-1,j  ,k-1) &
-                  + ss(i,j,k, 5)*uu(i  ,j  ,k-1) &
-                  + ss(i,j,k, 6)*uu(i+1,j  ,k-1) &
-                  + ss(i,j,k, 7)*uu(i-1,j+1,k-1) &
-                  + ss(i,j,k, 8)*uu(i  ,j+1,k-1) &
-                  + ss(i,j,k, 9)*uu(i+1,j+1,k-1) &
-
-                  + ss(i,j,k,10)*uu(i-1,j-1,k  ) &
-                  + ss(i,j,k,11)*uu(i  ,j-1,k  ) &
-                  + ss(i,j,k,12)*uu(i+1,j-1,k  ) &
-                  + ss(i,j,k,13)*uu(i-1,j  ,k  ) &
-                  + ss(i,j,k, 0)*uu(i  ,j  ,k  ) &
-                  + ss(i,j,k,14)*uu(i+1,j  ,k  ) &
-                  + ss(i,j,k,15)*uu(i-1,j+1,k  ) &
-                  + ss(i,j,k,16)*uu(i  ,j+1,k  ) &
-                  + ss(i,j,k,17)*uu(i+1,j+1,k  ) &
-
-                  + ss(i,j,k,18)*uu(i-1,j-1,k+1) &
-                  + ss(i,j,k,19)*uu(i  ,j-1,k+1) &
-                  + ss(i,j,k,20)*uu(i+1,j-1,k+1) &
-                  + ss(i,j,k,21)*uu(i-1,j  ,k+1) &
-                  + ss(i,j,k,22)*uu(i  ,j  ,k+1) &
-                  + ss(i,j,k,23)*uu(i+1,j  ,k+1) &
-                  + ss(i,j,k,24)*uu(i-1,j+1,k+1) &
-                  + ss(i,j,k,25)*uu(i  ,j+1,k+1) &
-                  + ss(i,j,k,26)*uu(i+1,j+1,k+1)
           end do
        end do
     end do
+
     !$OMP END PARALLEL DO
 
-  end subroutine stencil_dense_apply_3d
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+          sum = 0.d0
+          do nsten = 0,60
+             sum = sum + ss(i,j,k,nsten)
+          end do
+          ss(i,j,k,0) = -sum
+          end do
+       end do
+    end do
+
+    !
+    ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
+    !
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k)
+          end do
+       end do
+    end do
+
+  end subroutine s_minion_full_fill_3d
 
   ! polyInterpCoeff:
   !  
@@ -3521,706 +2877,5 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
     end function Horner
 
   end subroutine t_polyInterpCoeffTest
-
-  subroutine stencil_fine_flux_1d(ss, flux, uu, mm, ng, face, dim, skwd)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in)  :: ss(:,0:)
-    real (kind = dp_t), intent(out) :: flux(:)
-    real (kind = dp_t), intent(in)  :: uu(1-ng:)
-    integer           , intent(in)  :: mm(:)
-    logical, intent(in), optional :: skwd
-    integer, intent(in) :: face, dim
-    integer nx
-    integer i
-    integer, parameter :: XBC = 3
-    logical :: lskwd
-
-    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
-
-    nx = size(ss,dim=1)
-
-    if ( dim == 1 ) then
-       if ( face == -1 ) then
-!         Lo i face
-          i = 1
-          if (bc_dirichlet(mm(1),1,-1)) then
-             flux(1) = ss(i,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
-                  - ss(i+1,2)*(uu(i+1)-uu(i))
-             if (bc_skewed(mm(i),1,+1)) then
-                flux(1) =  flux(1) + ss(i,XBC)*uu(i+2)
-             end if
-          else 
-             flux(1) = ss(i,2)*(uu(i-1)-uu(i))
-          end if
-       else if ( face == 1 ) then
-
-!         Hi i face
-          i = nx
-          if (bc_dirichlet(mm(i),1,+1)) then
-             flux(1) = ss(i,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
-                  - ss(i-1,1)*(uu(i-1)-uu(i))
-             if (bc_skewed(mm(i),1,-1)) then
-                flux(1) =  flux(1) + ss(i,XBC)*uu(i-2)
-             end if
-          else 
-             flux(1) = ss(i,1)*(uu(i+1)-uu(i))
-          end if
-       end if
-    end if
-
-  end subroutine stencil_fine_flux_1d
-
-  subroutine ml_fill_all_fluxes(ss, flux, uu, mm)
-
-    use bl_prof_module
-    use multifab_module
-
-    type( multifab), intent(in   ) :: ss
-    type( multifab), intent(inout) :: flux(:)
-    type( multifab), intent(inout) :: uu
-    type(imultifab), intent(in   ) :: mm
-
-    integer :: dim, i, ngu, ngf
-    logical :: lcross
-
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: up(:,:,:,:)
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
-    integer        , pointer :: mp(:,:,:,:)
-
-    type(bl_prof_timer), save :: bpt
-    call build(bpt, "ml_fill_all_fluxes")
-
-    ngu = nghost(uu)
-
-    lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
-
-    if ( ncomp(uu) /= ncomp(flux(1)) ) then
-       call bl_error("ML_FILL_ALL_FLUXES: uu%nc /= flux%nc")
-    end if
-
-    call multifab_fill_boundary(uu, cross = lcross)
-
-    do dim = 1, get_dim(uu)
-       do i = 1, nboxes(flux(dim))
-          if ( remote(flux(dim), i) ) cycle
-          ngf = nghost(flux(dim))
-          fp => dataptr(flux(dim), i)
-          up => dataptr(uu, i)
-          sp => dataptr(ss, i)
-          mp => dataptr(mm, i)
-          select case(get_dim(ss))
-          case (1)
-             call stencil_all_flux_1d(sp(:,1,1,:), fp(:,1,1,1), up(:,1,1,1), &
-                  mp(:,1,1,1), ngu, ngf)
-          case (2)
-             call stencil_all_flux_2d(sp(:,:,1,:), fp(:,:,1,1), up(:,:,1,1), &
-                  mp(:,:,1,1), ngu, ngf, dim)
-          case (3)
-             call stencil_all_flux_3d(sp(:,:,:,:), fp(:,:,:,1), up(:,:,:,1), &
-                  mp(:,:,:,1), ngu, ngf, dim)
-          end select
-       end do
-    end do
-
-    call destroy(bpt)
-
-  end subroutine ml_fill_all_fluxes
-
-  subroutine stencil_all_flux_1d(ss, flux, uu, mm, ngu, ngf, skwd)
-    integer, intent(in) :: ngu, ngf
-    real (kind = dp_t), intent(in ) ::   uu(-ngu:)
-    real (kind = dp_t), intent(out) :: flux(-ngf:)
-    real (kind = dp_t), intent(in ) :: ss(0:,0:)
-    integer           , intent(in)  :: mm(0:)
-    logical, intent(in), optional :: skwd
-    integer nx
-    integer i
-    integer, parameter :: XBC = 3, YBC = 4
-    logical :: lskwd
-
-    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
-
-    nx = size(ss,dim=1)
-
-    do i = 1,nx-1
-      flux(i) = ss(i,2) * (uu(i)-uu(i-1)) 
-    end do
-
-    ! Lo i face
-     i = 0
-     if (bc_dirichlet(mm(i),1,-1)) then
-        flux(0) = &
-               ss(i,1)*(uu(i+1)-uu(i)) + ss(i  ,2)*(uu(i-1)-uu(i)) &
-                                             - ss(i+1,2)*(uu(i+1)-uu(i))
-        if (bc_skewed(mm(i),1,+1)) &
-             flux(0) = flux(0) + ss(i,XBC)*(uu(i+2)-uu(i)) 
-        flux(0) = -flux(0)
-     else if (bc_neumann(mm(i),1,-1)) then
-        flux(0) = -ss(i,2)*uu(i-1)
-        else   
-        flux(0) = ss(i,2)*(uu(i)-uu(i-1))
-     end if
-
-    ! Hi i face
-     i = nx-1
-     if (bc_dirichlet(mm(i),1,+1)) then
-        flux(nx) = &
-               ss(i  ,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
-             - ss(i-1,1)*(uu(i-1)-uu(i))
-        if (bc_skewed(mm(i),1,-1)) &
-             flux(nx) = flux(nx) + ss(i,XBC)*(uu(i-2)-uu(i))
-     else if (bc_neumann(mm(i),1,+1)) then
-        flux(nx) = ss(i,1)*uu(i+1)
-     else 
-        flux(nx) = ss(i,1)*(uu(i+1)-uu(i))
-     end if
-
-  end subroutine stencil_all_flux_1d
-
-  subroutine stencil_fine_flux_2d(ss, flux, uu, mm, ng, face, dim, skwd)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:)
-    real (kind = dp_t), intent(out) :: flux(:,:)
-    real (kind = dp_t), intent(in ) :: ss(:,:,0:)
-    integer           , intent(in)  :: mm(:,:)
-    logical, intent(in), optional :: skwd
-    integer, intent(in) :: face, dim
-    integer nx,ny
-    integer i,j
-    integer, parameter :: XBC = 5, YBC = 6
-    logical :: lskwd
-
-    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-
-!   Lo i face
-    if ( dim == 1 ) then
-       if (face == -1) then
-
-          i = 1
-          flux(1,:) = ZERO
-          do j = 1,ny
-             if (bc_dirichlet(mm(i,j),1,-1)) then
-                flux(1,j) = &
-                       ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
-                if (bc_skewed(mm(i,j),1,+1)) &
-                     flux(1,j) = flux(1,j) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
-             else if (bc_neumann(mm(i,j),1,-1)) then
-                flux(1,j) = ss(i,j,2)*uu(i-1,j)
-             else   
-                flux(1,j) = ss(i,j,2)*(uu(i-1,j)-uu(i,j))
-             end if
-          end do
-
-!      Hi i face
-       else if (face == 1) then
-
-          i = nx
-          flux(1,:) = ZERO
-          do j = 1,ny
-             if (bc_dirichlet(mm(i,j),1,+1)) then
-                flux(1,j) = &
-                       ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,1)*(uu(i-1,j)-uu(i,j))
-                if (bc_skewed(mm(i,j),1,-1)) &
-                     flux(1,j) = flux(1,j) + ss(i,j,XBC)*(uu(i-2,j)-uu(i,j))
-             else if (bc_neumann(mm(i,j),1,+1)) then
-                flux(1,j) = ss(i,j,1)*uu(i+1,j)
-             else 
-                flux(1,j) = ss(i,j,1)*(uu(i+1,j)-uu(i,j))
-             end if
-          end do
-
-       end if
-
-!   Lo j face
-    else if ( dim == 2 ) then
-       if (face == -1) then
-
-          j = 1
-          flux(:,1) = ZERO
-          do i = 1,nx
-             if (bc_dirichlet(mm(i,j),2,-1)) then
-                flux(i,1) = &
-                       ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
-                if (bc_skewed(mm(i,j),2,+1)) &
-                     flux(i,1) =  flux(i,1) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
-             else if (bc_neumann(mm(i,j),2,-1)) then
-                flux(i,1) = ss(i,j,4)*uu(i,j-1)
-             else 
-                flux(i,1) = ss(i,j,4)*(uu(i,j-1)-uu(i,j))
-             end if
-          end do
-
-
-!      Hi j face
-       else if (face == 1) then
-
-          j = ny
-          flux(:,1) = ZERO
-          do i = 1,nx
-             if (bc_dirichlet(mm(i,j),2,+1)) then
-                flux(i,1) = &
-                       ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
-                if (bc_skewed(mm(i,j),2,-1)) &
-                     flux(i,1) = flux(i,1) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
-             else if (bc_neumann(mm(i,j),2,+1)) then
-                flux(i,1) = ss(i,j,3)*uu(i,j+1)
-             else
-                flux(i,1) = ss(i,j,3)*(uu(i,j+1)-uu(i,j))
-             end if
-          end do
-
-       end if
-    end if
-
-  end subroutine stencil_fine_flux_2d
-
-  subroutine stencil_all_flux_2d(ss, flux, uu, mm, ngu, ngf, dim, skwd)
-    integer, intent(in) :: ngu, ngf
-    real (kind = dp_t), intent(in ) ::   uu(-ngu:,-ngu:)
-    real (kind = dp_t), intent(out) :: flux(-ngf:,-ngf:)
-    real (kind = dp_t), intent(in ) :: ss(0:,0:,0:)
-    integer           , intent(in)  :: mm(0:,0:)
-    logical, intent(in), optional :: skwd
-    integer, intent(in) :: dim
-    integer nx,ny
-    integer i,j
-    integer, parameter :: XBC = 5, YBC = 6
-    logical :: lskwd
-
-    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-
-    if ( dim == 1 ) then
-       do j = 0,ny-1
-       do i = 1,nx-1
-         flux(i,j) = ss(i,j,2) * (uu(i,j)-uu(i-1,j)) 
-       end do
-       end do
-
-       ! Lo i face
-        i = 0
-        do j = 0,ny-1
-             if (bc_dirichlet(mm(i,j),1,-1)) then
-                flux(0,j) = &
-                       ss(i,j,1)*(uu(i+1,j)-uu(i,j)) + ss(i  ,j,2)*(uu(i-1,j)-uu(i,j)) &
-                                                     - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
-                if (bc_skewed(mm(i,j),1,+1)) &
-                     flux(0,j) = flux(0,j) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
-                flux(0,j) = -flux(0,j)
-             else if (bc_neumann(mm(i,j),1,-1)) then
-                flux(0,j) = -ss(i,j,2)*uu(i-1,j)
-             else   
-                flux(0,j) = ss(i,j,2)*(uu(i,j)-uu(i-1,j))
-             end if
-        end do
-
-       ! Hi i face
-        i = nx-1
-        do j = 0,ny-1
-             if (bc_dirichlet(mm(i,j),1,+1)) then
-                flux(nx,j) = &
-                       ss(i  ,j,1)*(uu(i+1,j)-uu(i,j)) + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) &
-                     - ss(i-1,j,1)*(uu(i-1,j)-uu(i,j))
-                if (bc_skewed(mm(i,j),1,-1)) &
-                     flux(nx,j) = flux(nx,j) + ss(i,j,XBC)*(uu(i-2,j)-uu(i,j))
-             else if (bc_neumann(mm(i,j),1,+1)) then
-                flux(nx,j) = ss(i,j,1)*uu(i+1,j)
-             else 
-                flux(nx,j) = ss(i,j,1)*(uu(i+1,j)-uu(i,j))
-             end if
-        end do
-
-    else if ( dim == 2 ) then
-       do j = 1,ny-1
-       do i = 0,nx-1
-         flux(i,j) = ss(i,j,4) * (uu(i,j)-uu(i,j-1)) 
-       end do
-       end do
-
-       ! Lo j face
-       j = 0
-       do i = 0,nx-1
-             if (bc_dirichlet(mm(i,j),2,-1)) then
-                flux(i,0) = &
-                       ss(i,j,3)*(uu(i,j+1)-uu(i,j)) + ss(i,j  ,4)*(uu(i,j-1)-uu(i,j)) & 
-                                                     - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
-                if (bc_skewed(mm(i,j),2,+1)) &
-                     flux(i,0) =  flux(i,0) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
-                flux(i,0) = -flux(i,0)
-             else if (bc_neumann(mm(i,j),2,-1)) then
-                flux(i,0) = -ss(i,j,4)*uu(i,j-1)
-             else 
-                flux(i,0) = ss(i,j,4)*(uu(i,j)-uu(i,j-1))
-             end if
-       end do
-
-       ! Hi j face
-       j = ny-1
-       do i = 0,nx-1
-             if (bc_dirichlet(mm(i,j),2,+1)) then
-                flux(i,ny) = &
-                       ss(i,j  ,3)*(uu(i,j+1)-uu(i,j)) + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) & 
-                     - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
-                if (bc_skewed(mm(i,j),2,-1)) &
-                     flux(i,ny) = flux(i,ny) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
-             else if (bc_neumann(mm(i,j),2,+1)) then
-                flux(i,ny) = ss(i,j,3)*uu(i,j+1)
-             else
-                flux(i,ny) = ss(i,j,3)*(uu(i,j+1)-uu(i,j))
-             end if
-       end do
-
-    end if
-
-  end subroutine stencil_all_flux_2d
-
-  subroutine stencil_fine_flux_3d(ss, flux, uu, mm, ng, face, dim, skwd)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in ) :: ss(:,:,:,0:)
-    real (kind = dp_t), intent(out) :: flux(:,:,:)
-    real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:,1-ng:)
-    integer           , intent(in)  :: mm(:,:,:)
-    logical, intent(in), optional :: skwd
-    integer, intent(in) :: face, dim
-    integer nx, ny, nz
-    integer i,j,k
-    integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
-    logical :: lskwd
-
-    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
-
-    if ( dim ==  1 ) then
-       !   Lo i face
-       if (face == -1) then
-
-          i = 1
-          flux(1,:,:) = ZERO
-
-          do k = 1,nz
-             do j = 1,ny
-                if (bc_dirichlet(mm(i,j,k),1,-1)) then
-                   flux(1,j,k) =  &
-                          ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        - ss(i+1,j,k,2)*(uu(i+1,j,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),1,+1)) &
-                        flux(1,j,k) =  flux(1,j,k) + ss(i,j,k,XBC)*(uu(i+2,j,k)-uu(i,j,k))
-                else if (bc_neumann(mm(i,j,k),1,-1)) then
-                   flux(1,j,k) = ss(i,j,k,2)*uu(i-1,j,k)
-                else 
-                   flux(1,j,k) = ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k))
-                end if
-             end do
-          end do
-
-       !   Hi i face
-       else if (face ==  1) then
-
-          i = nx
-          flux(1,:,:) = ZERO
-          do k = 1,nz
-             do j = 1,ny
-                if (bc_dirichlet(mm(i,j,k),1,+1)) then
-                   flux(1,j,k) = &
-                          ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        - ss(i-1,j,k,1)*(uu(i-1,j,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),1,-1)) &
-                        flux(1,j,k) =  flux(1,j,k) + ss(i,j,k,XBC)*(uu(i-2,j,k)-uu(i,j,k))
-                else if (bc_neumann(mm(i,j,k),1,+1)) then
-                   flux(1,j,k) = ss(i,j,k,1)*uu(i+1,j,k)
-                else 
-                   flux(1,j,k) = ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k))
-                end if
-             end do
-          end do
-       end if
-
-    else if ( dim == 2 ) then
-
-       !   Lo j face
-       if (face == -1) then
-          j = 1
-          flux(:,1,:) = ZERO
-          do k = 1,nz
-             do i = 1,nx
-                if (bc_dirichlet(mm(i,j,k),2,-1)) then
-                   flux(i,1,k) = &
-                          ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        - ss(i,j+1,k,4)*(uu(i,j+1,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),2,+1)) &
-                        flux(i,1,k) =  flux(i,1,k) + ss(i,j,k,YBC)*(uu(i,j+2,k)-uu(i,j,k))
-                else if (bc_neumann(mm(i,j,k),2,-1)) then
-                   flux(i,1,k) = ss(i,j,k,4)*uu(i,j-1,k)
-                else 
-                   flux(i,1,k) = ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k))
-                end if
-             end do
-          end do
-
-       !   Hi j face
-       else if (face ==  1) then
-
-          j = ny
-          flux(:,1,:) = ZERO
-          do k = 1,nz
-             do i = 1,nx
-                if (bc_dirichlet(mm(i,j,k),2,+1)) then
-                   flux(i,1,k) =  &
-                          ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        - ss(i,j-1,k,3)*(uu(i,j-1,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),2,-1)) &
-                        flux(i,1,k) =  flux(i,1,k) + ss(i,j,k,YBC)*(uu(i,j-2,k)-uu(i,j,k))
-                else if (bc_neumann(mm(i,j,k),2,+1)) then
-                   flux(i,1,k) = ss(i,j,k,3)*uu(i,j+1,k)
-                else
-                   flux(i,1,k) = ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k))
-                end if
-             end do
-          end do
-       end if
-
-    else if ( dim == 3 ) then
-
-       !   Lo k face
-       if (face == -1) then
-
-          k = 1
-          flux(:,:,1) = ZERO
-          do j = 1,ny
-             do i = 1,nx
-                if (bc_dirichlet(mm(i,j,k),3,-1)) then
-                   flux(i,j,1) =  &
-                          ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
-                        - ss(i,j,k+1,6)*(uu(i,j,k+1)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),3,+1)) &
-                        flux(i,j,1) =  flux(i,j,1) + ss(i,j,k,ZBC)*(uu(i,j,k+2)-uu(i,j,k)) 
-                else if (bc_neumann(mm(i,j,k),3,-1)) then
-                   flux(i,j,1) = ss(i,j,k,6)*uu(i,j,k-1)
-                else 
-                   flux(i,j,1) = ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
-                end if
-             end do
-          end do
-
-       !   Hi k face
-       else if (face ==  1) then
-
-          k = nz
-          flux(:,:,1) = ZERO
-          do j = 1,ny
-             do i = 1,nx
-                if (bc_dirichlet(mm(i,j,k),3,+1)) then
-                   flux(i,j,1) =  &
-                          ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
-                        - ss(i,j,k-1,5)*(uu(i,j,k-1)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),3,-1)) &
-                        flux(i,j,1) =  flux(i,j,1) + ss(i,j,k,ZBC)*(uu(i,j,k-2)-uu(i,j,k))
-                else if (bc_neumann(mm(i,j,k),3,+1)) then
-                   flux(i,j,1) = ss(i,j,k,5)*uu(i,j,k+1)
-                else
-                   flux(i,j,1) = ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k))
-                end if
-             end do
-          end do
-
-       end if
-    end if
-
-  end subroutine stencil_fine_flux_3d
-
-  subroutine stencil_all_flux_3d(ss, flux, uu, mm, ngu, ngf, dim, skwd)
-    integer, intent(in) :: ngu,ngf
-    real (kind = dp_t), intent(in ) ::   uu(-ngu:,-ngu:,-ngu:)
-    real (kind = dp_t), intent(out) :: flux(-ngf:,-ngf:,-ngf:)
-    real (kind = dp_t), intent(in ) :: ss(0:,0:,0:,0:)
-    integer           , intent(in)  :: mm(0:,0:,0:)
-    logical, intent(in), optional :: skwd
-    integer, intent(in) :: dim
-    integer nx, ny, nz
-    integer i,j,k
-    integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
-    logical :: lskwd
-
-    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
-
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
-
-    if ( dim ==  1 ) then
-
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
-       do k = 0,nz-1
-          do j = 0,ny-1
-             do i = 0,nx-1
-                flux(i,j,k) = ss(i,j,k,2) * (uu(i,j,k)-uu(i-1,j,k))
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       !   Lo i face
-       i = 0
-       do k = 0,nz-1
-             do j = 0,ny-1
-                if (bc_dirichlet(mm(i,j,k),1,-1)) then
-                   flux(0,j,k) =  &
-                          ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        - ss(i+1,j,k,2)*(uu(i+1,j,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),1,+1)) &
-                        flux(0,j,k) =  flux(0,j,k) + ss(i,j,k,XBC)*(uu(i+2,j,k)-uu(i,j,k))
-                   flux(0,j,k) = -flux(0,j,k)
-                else if (bc_neumann(mm(i,j,k),1,-1)) then
-                   flux(0,j,k) = -ss(i,j,k,2)*uu(i-1,j,k)
-                else 
-                   flux(0,j,k) = ss(i,j,k,2)*(uu(i,j,k)-uu(i-1,j,k))
-                end if
-             end do
-       end do
-
-       !   Hi i face
-       i = nx-1
-       do k = 0,nz-1
-             do j = 0,ny-1
-                if (bc_dirichlet(mm(i,j,k),1,+1)) then
-                   flux(nx,j,k) = &
-                          ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        - ss(i-1,j,k,1)*(uu(i-1,j,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),1,-1)) &
-                        flux(nx,j,k) =  flux(nx,j,k) + ss(i,j,k,XBC)*(uu(i-2,j,k)-uu(i,j,k))
-                else if (bc_neumann(mm(i,j,k),1,+1)) then
-                   flux(nx,j,k) = ss(i,j,k,1)*uu(i+1,j,k)
-                else 
-                   flux(nx,j,k) = ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k))
-                end if
-             end do
-       end do
-
-    else if ( dim == 2 ) then
-
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
-       do k = 0,nz-1
-          do j = 0,ny-1
-             do i = 0,nx-1
-                flux(i,j,k) = ss(i,j,k,4) * (uu(i,j,k)-uu(i,j-1,k))
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       !   Lo j face
-       j = 0
-       do k = 0,nz-1
-             do i = 0,nx-1
-                if (bc_dirichlet(mm(i,j,k),2,-1)) then
-                   flux(i,0,k) = &
-                          ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        - ss(i,j+1,k,4)*(uu(i,j+1,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),2,+1)) &
-                        flux(i,0,k) =  flux(i,0,k) + ss(i,j,k,YBC)*(uu(i,j+2,k)-uu(i,j,k))
-                   flux(i,0,k) = -flux(i,0,k)
-                else if (bc_neumann(mm(i,j,k),2,-1)) then
-                   flux(i,0,k) = -ss(i,j,k,4)*uu(i,j-1,k)
-                else 
-                   flux(i,0,k) = ss(i,j,k,4)*(uu(i,j,k)-uu(i,j-1,k))
-                end if
-             end do
-       end do
-
-       !   Hi j face
-       j = ny-1
-       do k = 0,nz-1
-             do i = 0,nx-1
-                if (bc_dirichlet(mm(i,j,k),2,+1)) then
-                   flux(i,ny,k) =  &
-                          ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        - ss(i,j-1,k,3)*(uu(i,j-1,k)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),2,-1)) &
-                        flux(i,ny,k) =  flux(i,1,ny) + ss(i,j,k,YBC)*(uu(i,j-2,k)-uu(i,j,k))
-                else if (bc_neumann(mm(i,j,k),2,+1)) then
-                   flux(i,ny,k) = ss(i,j,k,3)*uu(i,j+1,k)
-                else
-                   flux(i,ny,k) = ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k))
-                end if
-             end do
-       end do
-
-    else if ( dim == 3 ) then
-
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
-       do k = 0,nz-1
-          do j = 0,ny-1
-             do i = 0,nx-1
-                flux(i,j,k) = ss(i,j,k,6) * (uu(i,j,k)-uu(i,j,k-1))
-             end do
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       !   Lo k face
-       k = 0
-       do j = 0,ny-1
-             do i = 0,nx-1
-                if (bc_dirichlet(mm(i,j,k),3,-1)) then
-                   flux(i,j,0) =  &
-                          ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
-                        - ss(i,j,k+1,6)*(uu(i,j,k+1)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),3,+1)) &
-                        flux(i,j,0) =  flux(i,j,0) + ss(i,j,k,ZBC)*(uu(i,j,k+2)-uu(i,j,k)) 
-                   flux(i,j,0) = -flux(i,j,0)
-                else if (bc_neumann(mm(i,j,k),3,-1)) then
-                   flux(i,j,0) = -ss(i,j,k,6)*uu(i,j,k-1)
-                else 
-                   flux(i,j,0) = ss(i,j,k,6)*(uu(i,j,k)-uu(i,j,k-1))
-                end if
-             end do
-       end do
-
-       !   Hi k face
-       k = nz-1
-       do j = 0,ny-1
-             do i = 0,nx-1
-                if (bc_dirichlet(mm(i,j,k),3,+1)) then
-                   flux(i,j,nz) =  &
-                          ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
-                        - ss(i,j,k-1,5)*(uu(i,j,k-1)-uu(i,j,k))
-                   if (bc_skewed(mm(i,j,k),3,-1)) &
-                        flux(i,j,nz) =  flux(i,j,nz) + ss(i,j,k,ZBC)*(uu(i,j,k-2)-uu(i,j,k))
-                else if (bc_neumann(mm(i,j,k),3,+1)) then
-                   flux(i,j,nz) = ss(i,j,k,5)*uu(i,j,k+1)
-                else
-                   flux(i,j,nz) = ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k))
-                end if
-             end do
-       end do
-
-    end if
-
-  end subroutine stencil_all_flux_3d
 
 end module cc_stencil_module
