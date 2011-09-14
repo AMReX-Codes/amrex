@@ -15,7 +15,9 @@
 #include <COEF_F.H>
 #include <MacBndry.H>
 #include <MGT_Solver.H>
+#include <HypreABecLap.H>
 
+int  verbose       = 2;     
 Real tolerance_rel = 1.e-12;
 Real tolerance_abs = 1.e-12;
 int  maxiter       = 100; 
@@ -146,10 +148,12 @@ void setup_rhs(MultiFab& rhs)
   }
 }
 
-void 
-solve_with_Cpp(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& alpha, MultiFab beta[])
+void solve_with_Cpp(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& rhs,
+		    const BoxArray& bs, const Geometry& geom)
 {
-  BoxArray bs(rhs.boxArray());
+  // The coefficients are set such that we will solve
+  //  (a alpha - b del dot beta grad) soln = rhs
+
   BndryData bd(bs, 1, geom);
   int comp = 0;
 
@@ -178,24 +182,21 @@ solve_with_Cpp(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& alpha, M
     }
   }
 
-  // The coefficients are set such that we will solve
-  //  (a alpha - b del dot beta grad) soln = rhs
-
   ABecLaplacian abec_operator(bd, dx);
   abec_operator.setScalars(a, b);
   abec_operator.setCoefficients(alpha, beta);
 
   MultiGrid mg(abec_operator);
-  mg.setVerbose(2);
+  mg.setVerbose(verbose);
   mg.solve(soln, rhs, tolerance_rel, tolerance_abs);
 } 
 
-void 
-solve_with_F90(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& alpha, MultiFab beta[])
+void solve_with_F90(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& rhs,
+		    const BoxArray& bs, const Geometry& geom)
 {
   // Translate into F90 solver
   std::vector<BoxArray> bav(1);
-  bav[0] = rhs.boxArray();
+  bav[0] = bs;
   std::vector<DistributionMapping> dmv(1);
   dmv[0] = rhs.DistributionMap();
   std::vector<Geometry> fgeom(1);
@@ -243,13 +244,13 @@ solve_with_F90(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& alpha, M
   MultiFab*  rhs_p[1];  rhs_p[0] = &rhs;
 
   PArray<MultiFab> acoeffs(1, PArrayManage);
-  acoeffs.set(0, new MultiFab(rhs.boxArray(),1,0,Fab_allocate));
+  acoeffs.set(0, new MultiFab(bs,1,0,Fab_allocate));
   acoeffs[0].copy(alpha);
   acoeffs[0].mult(a); 
 
   Array< PArray<MultiFab> > bcoeffs(BL_SPACEDIM);
   for (int i = 0; i < BL_SPACEDIM ; i++) {
-    BoxArray edge_boxes(rhs.boxArray());
+    BoxArray edge_boxes(bs);
     edge_boxes.surroundingNodes(i);
 
     bcoeffs[i].resize(1,PArrayManage);
@@ -269,7 +270,6 @@ solve_with_F90(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& alpha, M
     phys_bc->setHi(i,0);
   }
 
-  BoxArray bs(rhs.boxArray());
   MacBndry bndry(bs,1,geom);
   bndry.setBndryValues(soln,0,0,1,*phys_bc);
   
@@ -277,10 +277,47 @@ solve_with_F90(Geometry& geom, MultiFab& rhs, MultiFab& soln, MultiFab& alpha, M
   mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
 }
 
-void solve_with_hypre(MultiFab& rhs, MultiFab& soln, MultiFab& alpha, MultiFab beta[])
+void solve_with_hypre(MultiFab& soln, MultiFab& alpha, MultiFab beta[], MultiFab& rhs,
+		      const BoxArray& bs, const Geometry& geom)
 {
   // The coefficients are set such that we will solve
   //  (a alpha - b del dot beta grad) soln = rhs
+
+  BndryData bd(bs, 1, geom);
+  int comp = 0;
+
+  for (int n=0; n<BL_SPACEDIM; ++n) {
+    for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
+      int i = mfi.index(); 
+      
+      // Set the boundary conditions to live exactly on the faces of the domain
+      bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
+      bd.setBoundLoc(Orientation(n, Orientation::high),i,0.0 );
+      
+      if (bc_type == "Dirichlet") {
+	// Define the type of boundary conditions to be Dirichlet
+	bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
+	bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
+      }
+      else if (bc_type == "Neumann") {
+	// Define the type of boundary conditions to be Neumann
+	bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_NEUMANN);
+	bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_NEUMANN);
+      }
+      
+      // Set the Dirichlet/Neumann values to be 0
+      bd.setValue(Orientation(n, Orientation::low) ,i, 0.0);
+      bd.setValue(Orientation(n, Orientation::high),i, 0.0);
+    }
+  }
+
+  HypreABecLap hypreSolver(bs, geom);
+  hypreSolver.setScalars(a, b);
+  hypreSolver.setACoeffs(alpha);
+  hypreSolver.setBCoeffs(beta);
+  hypreSolver.setVerbose(verbose);
+  int max_iter = 100;
+  hypreSolver.solve(soln, rhs, tolerance_rel, tolerance_abs, max_iter, bd);
 }
 
 int main(int argc, char* argv[])
@@ -290,9 +327,8 @@ int main(int argc, char* argv[])
   std::cout << std::setprecision(15);
   
   ParmParse pp;
-  //
-  // Obtain prob domain and box-list, set H per phys domain [0:1]Xn
-  //
+
+  pp.query("verbose", verbose);
 
   int n_cell;
   int max_grid_size;
@@ -386,19 +422,19 @@ int main(int argc, char* argv[])
     if (ParallelDescriptor::IOProcessor()) {
       std::cout << "Solving with CPlusPlus solver " << std::endl;
     }
-    solve_with_Cpp(geom,rhs,soln,alpha,beta);
+    solve_with_Cpp(soln, alpha, beta, rhs, bs, geom);
   } 
   else if (solver_type == "Fortran90") {
     if (ParallelDescriptor::IOProcessor()) {
       std::cout << "Solving with Fortran90 solver " << std::endl;
     }
-    solve_with_F90(geom,rhs,soln,alpha,beta);
+    solve_with_F90(soln, alpha, beta, rhs, bs, geom);
   }
   else if (solver_type == "Hypre") {
     if (ParallelDescriptor::IOProcessor()) {
       std::cout << "Solving with Hypre " << std::endl;
     }
-    solve_with_hypre(rhs,soln,alpha,beta);
+    solve_with_hypre(soln, alpha, beta, rhs, bs, geom);
   }
   else {
     if (ParallelDescriptor::IOProcessor()) {

@@ -42,10 +42,12 @@ c
                   asol(i,j,k) = 1.d0 * sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
      $                       + .25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
                else if (ibnd .eq. LO_NEUMANN) then
-
+                  asol(i,j,k) = 1.d0 * cos(tpi*x) * cos(tpi*y) * cos(tpi*z)  
+     $                       + .25d0 * cos(fpi*x) * cos(fpi*y) * cos(fpi*z)
                else if (ibnd .eq. 0) then 
 c                 periodic
-                  
+                  asol(i,j,k) = 1.d0 * sin(tpi*x+phi) * sin(tpi*y+phi) * sin(tpi*z+phi)  
+     $                 + .25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
                endif
             end do
          end do
@@ -177,9 +179,14 @@ c
      $                 +       sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
                   rhs(i,j,k) = rhs(i,j,k) * 12.d0*pi**2
                else if (ibnd .eq. LO_NEUMANN) then
-                  
+                  rhs(i,j,k) = cos(tpi*x) * cos(tpi*y) * cos(tpi*z)  
+     $                 +       cos(fpi*x) * cos(fpi*y) * cos(fpi*z)
+                  rhs(i,j,k) = rhs(i,j,k) * 12.d0*pi**2                  
                else if (ibnd .eq. 0) then 
 c                 periodic
+                  rhs(i,j,k) = sin(tpi*x+phi) * sin(tpi*y+phi) * sin(tpi*z+phi)  
+     $                 +       sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
+                  rhs(i,j,k) = rhs(i,j,k) * 12.d0*pi**2
                endif
             end do
          end do
