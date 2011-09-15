@@ -1,6 +1,7 @@
 module cc_stencil_module
 
   use bl_types
+  use bl_constants_module
   use bc_module
   use bc_functions_module
   use multifab_module
@@ -24,20 +25,9 @@ module cc_stencil_module
      integer :: extrap_max_order = 0
   end type stencil
 
-  real(kind=dp_t), parameter, private :: ZERO = 0.0_dp_t
-  real(kind=dp_t), parameter, private :: HALF = 0.5_dp_t
-  real(kind=dp_t), parameter, private :: ONE  = 1.0_dp_t
-
   private :: stencil_bc_type, stencil_bndry_aaa
 
 contains
-
-  function stencil_norm_st(st, mask) result(r)
-    type(stencil), intent(in) :: st
-    type(lmultifab), intent(in), optional :: mask
-    real(kind=dp_t) :: r
-    r = stencil_norm(st%ss, mask)
-  end function stencil_norm_st
 
   function stencil_norm(ss, mask) result(r)
     use bl_prof_module
@@ -78,7 +68,7 @@ contains
     else
 
        do b = 1, nboxes(ss)
-          if ( multifab_remote(ss,b) ) cycle
+          if ( remote(ss,b) ) cycle
           sp => dataptr(ss, b)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lbound(sp,dim=3), ubound(sp,dim=3)
@@ -138,7 +128,7 @@ contains
        end do
     else
        do b = 1, nboxes(ss)
-          if ( multifab_remote(ss,b) ) cycle
+          if ( remote(ss,b) ) cycle
           sp => dataptr(ss, b)
           do k = lbound(sp,dim=3), ubound(sp,dim=3)
              do j = lbound(sp,dim=2), ubound(sp,dim=2)
@@ -1634,11 +1624,7 @@ contains
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    integer nx, ny
     integer i, j
-
-    nx = hi(1)-lo(1)+1
-    ny = hi(2)-lo(2)+1
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))

@@ -235,7 +235,7 @@ contains
     end if
 
     do i = 1, nboxes(ss)
-       if ( multifab_remote(ss,i) ) cycle
+       if ( remote(ss,i) ) cycle
 
        sp => dataptr(ss,   i)
        cp => dataptr(sg,   i)
@@ -292,7 +292,7 @@ contains
     dm = get_dim(ss)
 
     do i = 1, nboxes(ss)
-       if ( multifab_remote(ss,i) ) cycle
+       if ( remote(ss,i) ) cycle
 
        sp => dataptr(ss,   i)
        cp => dataptr(sg,   i)
