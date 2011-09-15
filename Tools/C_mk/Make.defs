@@ -322,8 +322,10 @@ ifeq ($(FCOMP),gfortran)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -ffixed-line-length-132 -g -O3
     fOPTF += -ffixed-line-length-132 -g -O3
-    FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
-    fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
+#    FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
+#    fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
+    FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wintrinsics-std -Wno-tabs -Wintrinsic-shadow -Wline-truncation
+    fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wintrinsics-std -Wno-tabs -Wintrinsic-shadow -Wline-truncation
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
