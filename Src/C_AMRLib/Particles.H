@@ -2469,9 +2469,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                                       rdispls.dataPtr(),
                                       ParallelDescriptor::Mpi_typemap<int>::type(),
                                       ParallelDescriptor::Communicator()) );
-        {
-            Array<int> tmp; senddata.swap(tmp);
-        }
+        Array<int>().swap(senddata);
         //
         // Unpack data into the new particles.
         //
@@ -2547,11 +2545,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             i++;
         }
 
-        {
-            PBox tmpA; notowned.swap(tmpA);
+        PBox().swap(notowned);
 
-            std::deque<int> tmpB; owner.swap(tmpB);
-        }
+        std::deque<int>().swap(owner);
 
         BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
                                       sendcnts.dataPtr(),
@@ -2562,9 +2558,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                                       rdispls.dataPtr(),
                                       ParallelDescriptor::Mpi_typemap<Real>::type(),
                                       ParallelDescriptor::Communicator()) );
-        {
-            Array<Real> tmpC; senddata.swap(tmpC);
-        }
+        Array<Real>().swap(senddata);
         //
         // Unpack data into the new particles.
         //
