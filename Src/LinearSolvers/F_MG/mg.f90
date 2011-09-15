@@ -7,8 +7,6 @@ module mg_module
 
   implicit none
 
-  real(kind=dp_t), parameter, private :: zero = 0.0_dp_t
-
   interface destroy
      module procedure mg_tower_destroy
   end interface
@@ -802,7 +800,7 @@ contains
     end if
 
     do i = 1, mgt%nboxes
-       if ( multifab_remote(crse, i) ) cycle
+       if ( remote(crse, i) ) cycle
 
        cp       => dataptr(crse, i)
        fp       => dataptr(fine, i)

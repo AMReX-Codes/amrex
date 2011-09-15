@@ -39,7 +39,7 @@ contains
          mglev_fine = mgt(n)%nlevels
          call multifab_fill_boundary(unew(n))
          do i = 1, nboxes(unew(n))
-            if ( multifab_remote(unew(n), i) ) cycle
+            if ( remote(unew(n), i) ) cycle
             unp => dataptr(unew(n), i)
             rhp => dataptr(rh(n)  , i)
             mp   => dataptr(mgt(n)%mm(mglev_fine),i)
@@ -240,7 +240,7 @@ contains
 !     First compute a residual which only takes contributions from the
 !        grid on which it is calculated.
        do i = 1, nboxes(u(n_fine))
-          if ( multifab_remote(u(n_fine), i) ) cycle
+          if ( remote(u(n_fine), i) ) cycle
           unp => dataptr(u(n_fine), i)
           rhp => dataptr( temp_rhs, i)
           select case (dm)
@@ -1187,7 +1187,7 @@ contains
       do n = 1, nlevs
          mglev_fine = mgt(n)%nlevels
          do i = 1, nboxes(rh(n))
-            if ( multifab_remote(rh(n), i) ) cycle
+            if ( remote(rh(n), i) ) cycle
             rp => dataptr(rh(n)      , i)
             dp => dataptr(divu_rhs(n), i)
             mp => dataptr(mgt(n)%mm(mglev_fine),i)
