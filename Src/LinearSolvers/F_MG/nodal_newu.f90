@@ -25,7 +25,7 @@ contains
       dm = unew%dim
 
       do i = 1, unew%nboxes
-         if ( multifab_remote(unew, i) ) cycle
+         if ( remote(unew, i) ) cycle
          up => dataptr(unew, i)
          pp => dataptr(phi, i)
          rp  => dataptr(coeff, i)

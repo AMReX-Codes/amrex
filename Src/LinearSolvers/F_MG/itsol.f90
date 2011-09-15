@@ -325,7 +325,7 @@ contains
     nodal_flag = nodal_q(uu)
 
     do i = 1, nboxes(rr)
-       if ( multifab_remote(rr, i) ) cycle
+       if ( remote(rr, i) ) cycle
        rp => dataptr(rr, i)
        up => dataptr(uu, i)
        ap => dataptr(aa, i)
@@ -919,7 +919,7 @@ contains
        call copy(uu, rh)
     case (1)
        do i = 1, nboxes(rh)
-          if ( multifab_remote(uu, i) ) cycle
+          if ( remote(uu, i) ) cycle
           rp => dataptr(rh, i)
           up => dataptr(uu, i)
           ap => dataptr(aa, i)
@@ -978,7 +978,7 @@ contains
     dm = get_dim(rh)
 
     do i = 1, nboxes(rh)
-       if ( multifab_remote(rh, i) ) cycle
+       if ( remote(rh, i) ) cycle
        rp => dataptr(rh, i)
        ap => dataptr(aa, i)
        mp => dataptr(mm, i)

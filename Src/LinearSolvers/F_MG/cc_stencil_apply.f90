@@ -610,7 +610,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
              end do
           end do
        end do
-
        !$OMP END PARALLEL DO
 
     ! This is the 2nd order cross stencil.
