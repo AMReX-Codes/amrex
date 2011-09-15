@@ -110,6 +110,9 @@ void setup_rhs(MultiFab& rhs)
     ibnd = 0;
   }
 
+  // We test the sum of the RHS to check solvability
+  Real sum_rhs = 0.;
+
   for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
     const int* rlo = rhs[mfi].loVect();
     const int* rhi = rhs[mfi].hiVect();
@@ -117,7 +120,17 @@ void setup_rhs(MultiFab& rhs)
 
     FORT_SET_RHS(rhs[mfi].dataPtr(),ARLIM(rlo),ARLIM(rhi),
                  bx.loVect(),bx.hiVect(),dx, &ibnd);
+    sum_rhs += rhs[mfi].sum(0,1);
   }
+
+  sum_rhs *= dx[0]*dx[0]*dx[0];
+  
+  const int IOProc = ParallelDescriptor::IOProcessorNumber();
+  ParallelDescriptor::ReduceRealSum(sum_rhs,IOProc);
+
+  if (ParallelDescriptor::IOProcessor())  
+     std::cout << "The RHS sums to " << sum_rhs << std::endl;
+
 
   if (plot_rhs == 1) {
     VisMF::Write(rhs,"RHS");
@@ -453,6 +466,14 @@ int main(int argc, char* argv[])
     }
     BoxLib::Error("");
   }
+
+  if (ParallelDescriptor::IOProcessor())  
+  {
+     std::cout << "Domain size            : " << n_cell     << std::endl;
+     std::cout << "Number of grids        : " << bs.size()  << std::endl;
+     std::cout << "Boundary condition type: " << bc_type    << std::endl;
+     std::cout << "                         "               << std::endl;
+  }
  
   // This defines a Geometry object which is useful for writing the plotfiles
   Geometry geom(domain,&real_box,coord,is_per);
@@ -482,31 +503,70 @@ int main(int argc, char* argv[])
   const Real run_strt = ParallelDescriptor::second();
 
   if (solver_type == "BoxLib_C") {
-    if (ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor())  
       std::cout << "Solving with BoxLib C++ solver " << std::endl;
-    }
     solve_with_Cpp(soln, a, b, alpha, beta, rhs, bs, geom);
   } 
   else if (solver_type == "BoxLib_F") {
-    if (ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor())  
       std::cout << "Solving with BoxLib Fortran90 solver " << std::endl;
-    }
     solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
   }
   else if (solver_type == "Hypre") {
 #ifdef USEHYPRE
-    if (ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor())  
       std::cout << "Solving with Hypre " << std::endl;
-    }
     solve_with_hypre(soln, a, b, alpha, beta, rhs, bs, geom);
 #else
     BoxLib::Error("Set USE_HYPRE=TRUE in GNUMakefile.");
 #endif
   }
-  else {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Don't know this solver type: " << solver_type << std::endl;
+  else if (solver_type == "All") 
+  {
+
+    const Real run_0 = ParallelDescriptor::second();
+
+    // ********************************************************************
+    if (ParallelDescriptor::IOProcessor())  
+      std::cout << "Solving with BoxLib C++ solver " << std::endl;
+    solve_with_Cpp(soln, a, b, alpha, beta, rhs, bs, geom);
+
+    Real run_1 = ParallelDescriptor::second();
+    if (ParallelDescriptor::IOProcessor())  
+    {
+      std::cout << "BoxLib_C Run time = " << run_1-run_0 << std::endl;
+      std::cout << "                    "                << std::endl;
     }
+
+    // ********************************************************************
+    if (ParallelDescriptor::IOProcessor())  
+      std::cout << "Solving with BoxLib Fortran90 solver " << std::endl;
+    solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
+
+    Real run_2 = ParallelDescriptor::second();
+    if (ParallelDescriptor::IOProcessor())  
+    {
+      std::cout << "BoxLib_F Run time = " << run_2-run_1 << std::endl;
+      std::cout << "                    "                << std::endl;
+    }
+
+    // ********************************************************************
+#ifdef USEHYPRE
+    if (ParallelDescriptor::IOProcessor())  
+      std::cout << "Solving with Hypre " << std::endl;
+    solve_with_hypre(soln, a, b, alpha, beta, rhs, bs, geom);
+
+    Real run_3 = ParallelDescriptor::second();
+    if (ParallelDescriptor::IOProcessor())  
+    {
+      std::cout << "Hypre    Run time = " << run_3-run_2 << std::endl;
+      std::cout << "                    "                << std::endl;
+    }
+#endif
+  }
+  else {
+    if (ParallelDescriptor::IOProcessor())  
+      std::cout << "Don't know this solver type: " << solver_type << std::endl;
     BoxLib::Error("");
   }
 
