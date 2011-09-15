@@ -232,30 +232,30 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
 
   // Set the boundary conditions to live exactly on the faces of the domain --
   //   this is only relevant for Dirichlet and Neumann bc's
-  for ( int dir = 0; dir < BL_SPACEDIM; ++dir ) {
-    xa[0][dir] = 0.;
-    xb[0][dir] = 0.;
+  for ( int n = 0; n < BL_SPACEDIM; ++n ) {
+    xa[0][n] = 0.;
+    xb[0][n] = 0.;
   }
 
   if (bc_type == "Periodic") {
     // Define the type of boundary conditions to be periodic
-    for ( int dir = 0; dir < BL_SPACEDIM; ++dir ) {
-      mg_bc[2*dir + 0] = MGT_BC_PER;
-      mg_bc[2*dir + 1] = MGT_BC_PER;
+    for ( int n = 0; n < BL_SPACEDIM; ++n ) {
+      mg_bc[2*n + 0] = MGT_BC_PER;
+      mg_bc[2*n + 1] = MGT_BC_PER;
     }
   }
   else if (bc_type == "Neumann") {
     // Define the type of boundary conditions to be Neumann
-    for ( int dir = 0; dir < BL_SPACEDIM; ++dir ) {
-      mg_bc[2*dir + 0] = MGT_BC_NEU;
-      mg_bc[2*dir + 1] = MGT_BC_NEU;
+    for ( int n = 0; n < BL_SPACEDIM; ++n ) {
+      mg_bc[2*n + 0] = MGT_BC_NEU;
+      mg_bc[2*n + 1] = MGT_BC_NEU;
     }
   }
   else if (bc_type == "Dirichlet") {
     // Define the type of boundary conditions to be Dirichlet
-    for ( int dir = 0; dir < BL_SPACEDIM; ++dir ) {
-      mg_bc[2*dir + 0] = MGT_BC_DIR;
-      mg_bc[2*dir + 1] = MGT_BC_DIR;
+    for ( int n = 0; n < BL_SPACEDIM; ++n ) {
+      mg_bc[2*n + 0] = MGT_BC_DIR;
+      mg_bc[2*n + 1] = MGT_BC_DIR;
     }
   }
 
@@ -270,13 +270,13 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
   acoeffs[0].mult(a); 
 
   Array< PArray<MultiFab> > bcoeffs(BL_SPACEDIM);
-  for (int i = 0; i < BL_SPACEDIM ; i++) {
+  for (int n = 0; n < BL_SPACEDIM ; n++) {
     BoxArray edge_boxes(bs);
-    edge_boxes.surroundingNodes(i);
+    edge_boxes.surroundingNodes(n);
 
-    bcoeffs[i].resize(1,PArrayManage);
-    bcoeffs[i].set(0, new MultiFab(edge_boxes,Ncomp,0,Fab_allocate));
-    bcoeffs[i][0].copy(beta[i]);
+    bcoeffs[n].resize(1,PArrayManage);
+    bcoeffs[n].set(0, new MultiFab(edge_boxes,Ncomp,0,Fab_allocate));
+    bcoeffs[n][0].copy(beta[n]);
   }
 
   // The coefficients are set such that we will solve
@@ -286,9 +286,9 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
   mgt_solver.set_visc_coefficients(acoeffs,bcoeffs,b,xa,xb);
 
   BCRec* phys_bc = new BCRec;
-  for (int i = 0; i < BL_SPACEDIM; i++) {
-    phys_bc->setLo(i,0);
-    phys_bc->setHi(i,0);
+  for (int n = 0; n < BL_SPACEDIM; n++) {
+    phys_bc->setLo(n,0);
+    phys_bc->setHi(n,0);
   }
 
   MacBndry bndry(bs,1,geom);
@@ -442,10 +442,10 @@ int main(int argc, char* argv[])
   int* is_per = new int[BL_SPACEDIM];
   
   if (bc_type == "Dirichlet" || bc_type == "Neumann") {
-    for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 0;
+    for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
   } 
   else if (bc_type == "Periodic") {
-    for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1;
+    for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 1;
   }
   else {
     if (ParallelDescriptor::IOProcessor()) {
