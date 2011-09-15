@@ -4,33 +4,11 @@
 
 #include "_hypre_struct_mv.h"
 
-static int ispow2(int i)
-{
-  return (i == 1) ? 1 : (((i <= 0) || (i & 1)) ? 0 : ispow2(i / 2));
-}
-
-static int* loV(const Box& b) {
-#if (BL_SPACEDIM == 1)
-  vl[0] = b.smallEnd(0);
-  return vl;
-#else
-  return (int*) b.loVect();
-#endif
-}
-
-static int* hiV(const Box& b) {
-#if (BL_SPACEDIM == 1)
-  vh[0] = b.bigEnd(0);
-  return vh;
-#else
-  return (int*) b.hiVect();
-#endif
-}
-
 HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
 			   int _solver_flag)
   : solver_flag(_solver_flag)
 {
+
   int num_procs, myid;
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs );
   MPI_Comm_rank(MPI_COMM_WORLD, &myid );
@@ -76,47 +54,43 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
 #if (BL_SPACEDIM == 1)
   // if we were really 1D:
 /*
-  int offsets[2][1] = {{-1},
-		       { 0}};
+  int offsets[3][1] = {{ 0}
+		       {-1},
+		       { 1}};
 */
   // fake 1D as a 2D problem:
-  int offsets[2][2] = {{-1,  0},
-		       { 0,  0}};
+  int offsets[3][2] = {{ 0,  0},
+		       {-1,  0},
+		       { 1,  0}};
 #elif (BL_SPACEDIM == 2)
-  int offsets[3][2] = {{-1,  0},
+  int offsets[5][2] = {{ 0,  0},
+		       {-1,  0},
+		       { 1,  0},
 		       { 0, -1},
-		       { 0,  0}};
+		       { 0,  1}};
 #elif (BL_SPACEDIM == 3)
-  int offsets[4][3] = {{-1,  0,  0},
+  int offsets[7][3] = {{ 0,  0,  0},
+		       {-1,  0,  0},
+		       { 1,  0,  0},
 		       { 0, -1,  0},
+		       { 0,  1,  0},
 		       { 0,  0, -1},
-		       { 0,  0,  0}};
-#endif
-
-#if   (BL_SPACEDIM == 1)
-  int A_num_ghost[6] = { 1, 1, 0, 0, 0, 0 };
-#elif (BL_SPACEDIM == 2)
-  //int A_num_ghost[4] = { 1, 1, 1, 1 };
-  int A_num_ghost[6] = { 1, 1, 1, 1, 0, 0 };
-#elif (BL_SPACEDIM == 3)
-  int A_num_ghost[6] = { 1, 1, 1, 1, 1, 1 };
+		       { 0,  0,  1}};
 #endif
 
   HYPRE_StructStencil stencil;
 
 #if (BL_SPACEDIM == 1)
-  HYPRE_StructStencilCreate(2, 2, &stencil);
+  HYPRE_StructStencilCreate(2, 3, &stencil);
 #else
-  HYPRE_StructStencilCreate(BL_SPACEDIM, BL_SPACEDIM + 1, &stencil);
+  HYPRE_StructStencilCreate(BL_SPACEDIM, 2 * BL_SPACEDIM + 1, &stencil);
 #endif
 
-  for (int i = 0; i < BL_SPACEDIM + 1; i++) {
+  for (int i = 0; i < 2 * BL_SPACEDIM + 1; i++) {
     HYPRE_StructStencilSetElement(stencil, i, offsets[i]);
   }
 
   HYPRE_StructMatrixCreate(MPI_COMM_WORLD, grid, stencil, &A);
-  HYPRE_StructMatrixSetSymmetric(A, 1);
-  HYPRE_StructMatrixSetNumGhost(A, A_num_ghost);
   HYPRE_StructMatrixInitialize(A);
 
   HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &b);
@@ -142,8 +116,19 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
   // in following line, Falgout says use 1 as relax type, not 2 (rbp, 9/27/05)
   // weighted Jacobi = 1; red-black GS = 2
   // but 2 seems to be faster (wqz, 9/14/11)
-  pfmg_relax_type = 1;
+  pfmg_relax_type = -1;
   pp.query("pfmg_relax_type", pfmg_relax_type);
+
+  num_pre_relax = -1;
+  pp.query("num_pre_relax", num_pre_relax);
+  num_post_relax = -1;
+  pp.query("num_post_relax", num_post_relax);
+
+  skip_relax = -1;
+  pp.query("skip_relax", skip_relax);
+
+  print_level = -1;
+  pp.query("print_level", print_level);
 }
 
 HypreABecLap::~HypreABecLap()
@@ -162,7 +147,7 @@ HypreABecLap::~HypreABecLap()
 void HypreABecLap::setScalars(Real sa, Real sb)
 {
   scalar_a = sa;
-  scalar_b  = sb;
+  scalar_b = sb;
 }
 
 void HypreABecLap::setACoeffs(const MultiFab& alpha)
@@ -200,7 +185,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
   // set up solver
   const BoxArray& grids = acoefs->boxArray();
 
-  const int size = BL_SPACEDIM + 1;
+  const int size = 2 * BL_SPACEDIM + 1;
   int stencil_indices[size];
   for (int i = 0; i < size; i++) {
     stencil_indices[i] = i;
@@ -293,15 +278,25 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
 
   if (solver_flag == 1) {
     HYPRE_StructPFMGCreate(MPI_COMM_WORLD, &solver);
-    //HYPRE_StructPFMGSetMemoryUse(solver, 0);
-    HYPRE_StructPFMGSetSkipRelax(solver, 0);
+    if (skip_relax >= 0) {
+      HYPRE_StructPFMGSetSkipRelax(solver, skip_relax); // default: 1
+    }
     HYPRE_StructPFMGSetMaxIter(solver, maxiter);
-    HYPRE_StructPFMGSetRelChange(solver, 0);
-    HYPRE_StructPFMGSetTol(solver, reltol);
-    HYPRE_StructPFMGSetRelaxType(solver, pfmg_relax_type);
-    HYPRE_StructPFMGSetNumPreRelax(solver, 1);
-    HYPRE_StructPFMGSetNumPostRelax(solver, 1);
-    HYPRE_StructPFMGSetLogging(solver, 1);
+    //    HYPRE_StructPFMGSetRelChange(solver, 0);    // default: 0
+    HYPRE_StructPFMGSetTol(solver, reltol);           // default: 1.e-6
+    if (pfmg_relax_type >= 0) {
+      HYPRE_StructPFMGSetRelaxType(solver, pfmg_relax_type);  // default: 1
+    }
+    if (num_pre_relax >= 0) {
+      HYPRE_StructPFMGSetNumPreRelax(solver, num_pre_relax);  // default: 1
+    }
+    if (num_post_relax <= 0) {
+      HYPRE_StructPFMGSetNumPostRelax(solver, num_post_relax);// default: 1
+    }
+    HYPRE_StructPFMGSetLogging(solver, 1);                  // default: 0
+    if (print_level >= 0) {
+      HYPRE_StructPFMGSetPrintLevel(solver, print_level);     // default: 0
+    }
     HYPRE_StructPFMGSetup(solver, A, b, x);
   }
 
@@ -322,35 +317,14 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
 		       : reltol);
 
     if (reltol_new > reltol) {
-      if (solver_flag == 0) {
-	HYPRE_StructSMGSetTol(solver, reltol_new);
-      }
-      else if(solver_flag == 1) {
+      if(solver_flag == 1) {
 	HYPRE_StructPFMGSetTol(solver, reltol_new);
-      }
-      else if(solver_flag == 2) {
-	// nothing for this option
-      }
-      else if(solver_flag == 3 || solver_flag == 4) {
-	HYPRE_StructPCGSetTol(solver, reltol_new);
       }
     }
   }
 
-  if (solver_flag == 0) {
-    HYPRE_StructSMGSolve(solver, A, b, x);
-  }
-  else if (solver_flag == 1) {
+  if (solver_flag == 1) {
     HYPRE_StructPFMGSolve(solver, A, b, x);
-  }
-  else if (solver_flag == 2) {
-    HYPRE_StructJacobiSolve(solver, A, b, x);
-  }
-  else if (solver_flag == 3 || solver_flag == 4) {
-    HYPRE_StructPCGSolve(solver, A, b, x);
-  }
-  else if (solver_flag == 5 || solver_flag == 6) {
-    HYPRE_StructHybridSolve(solver, A, b, x);
   }
 
   for (MFIter mfi(soln); mfi.isValid(); ++mfi) {
@@ -377,25 +351,9 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
   if (verbose >= 2 && ParallelDescriptor::IOProcessor()) {
     int num_iterations;
     Real res;
-    if (solver_flag == 0) {
-      HYPRE_StructSMGGetNumIterations(solver, &num_iterations);
-      HYPRE_StructSMGGetFinalRelativeResidualNorm(solver, &res);
-    }
-    else if(solver_flag == 1) {
+    if(solver_flag == 1) {
       HYPRE_StructPFMGGetNumIterations(solver, &num_iterations);
       HYPRE_StructPFMGGetFinalRelativeResidualNorm(solver, &res);
-    }
-    else if(solver_flag == 2) {
-      HYPRE_StructJacobiGetNumIterations(solver, &num_iterations);
-      HYPRE_StructJacobiGetFinalRelativeResidualNorm(solver, &res);
-    }
-    else if(solver_flag == 3 || solver_flag == 4) {
-      HYPRE_StructPCGGetNumIterations(solver, &num_iterations);
-      HYPRE_StructPCGGetFinalRelativeResidualNorm(solver, &res);
-    }
-    else if(solver_flag == 5 || solver_flag == 6) {
-      HYPRE_StructHybridGetNumIterations(solver, &num_iterations);
-      HYPRE_StructHybridGetFinalRelativeResidualNorm(solver, &res);
     }
 
     int oldprec = std::cout.precision(20);

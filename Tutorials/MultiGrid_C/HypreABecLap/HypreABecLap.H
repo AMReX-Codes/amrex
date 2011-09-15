@@ -10,7 +10,6 @@
 #include <MacBndry.H>
 #include <ParmParse.H>
 
-#include "_hypre_utilities.h"
 #include "HYPRE_struct_ls.h"
 
 class HypreABecLap {
@@ -48,7 +47,35 @@ protected:
   HYPRE_StructVector b, x;
   HYPRE_StructSolver solver, precond;
 
-  int pfmg_relax_type;
+  int pfmg_relax_type, skip_relax;
+  int num_pre_relax, num_post_relax;
+  int print_level;
+
+  // static utility functions follow:
+
+  static int ispow2(int i)
+  {
+    return (i == 1) ? 1 : (((i <= 0) || (i & 1)) ? 0 : ispow2(i / 2));
+  }
+  
+  static int* loV(const Box& b) {
+#if (BL_SPACEDIM == 1)
+    vl[0] = b.smallEnd(0);
+    return vl;
+#else
+    return (int*) b.loVect();
+#endif
+  }
+  
+  static int* hiV(const Box& b) {
+#if (BL_SPACEDIM == 1)
+    vh[0] = b.bigEnd(0);
+    return vh;
+#else
+    return (int*) b.hiVect();
+#endif
+  }
+
 };
 #endif
 
