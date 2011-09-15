@@ -135,7 +135,7 @@ contains
        ng = nghost(res(n))
        
        do i=1, nboxes(res(n))
-          if (multifab_remote(res(n),i)) cycle
+          if (remote(res(n),i)) cycle
           resp  => dataptr(res(n),i)
           lo =  lwb(get_box(res(n), i))
           hi =  upb(get_box(res(n), i))
@@ -296,7 +296,7 @@ contains
        ng = nghost(res(n))
        
        do i=1, nboxes(res(n))
-          if (multifab_remote(res(n),i)) cycle
+          if (remote(res(n),i)) cycle
           resp  => dataptr(res(n),i)
           lo =  lwb(get_box(res(n), i))
           hi =  upb(get_box(res(n), i))

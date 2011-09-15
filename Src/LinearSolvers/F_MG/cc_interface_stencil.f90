@@ -178,10 +178,7 @@ contains
        cbox =  get_ibox(crse,j)
        loc  =  lwb(get_pbox(crse,j))
        lor  =  lwb(get_pbox(res,j))
-       los  =  lwb(get_pbox(ss,j))
-       cp   => dataptr(crse, j, cr)
        rp   => dataptr(res, j, cr)
-       sp   => dataptr(ss, j)
 
        fbox = get_ibox(tflux,i)
 

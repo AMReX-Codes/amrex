@@ -82,6 +82,10 @@ ifeq ($(ARCH),Darwin)
   ifeq ($(COMP),IBM)
     include $(BOXLIB_HOME)/Tools/F_mk/comps/Darwin_ibm.mak
   endif
+
+  ifeq ($(COMP),Intel)
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Darwin_intel.mak
+  endif
 endif
 
 ifeq ($(ARCH),FreeBSD)

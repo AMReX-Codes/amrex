@@ -578,9 +578,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                        ! Contributions from j-2,k
                      + ss(i,j,k,19) * uu(i-2,j-2,k  ) + ss(i,j,k,20) * uu(i-1,j-2,k  ) &
                      + ss(i,j,k,21) * uu(i  ,j-2,k  ) + ss(i,j,k,22) * uu(i+1,j-2,k  ) &
-                     + ss(i,j,k,23) * uu(i+2,j-2,k  ) 
-
-                dd(i,j,k) = dd(i,j,k) &
+                     + ss(i,j,k,23) * uu(i+2,j-2,k  )                                  &
                        ! Contributions from j-1,k
                      + ss(i,j,k,24) * uu(i-2,j-1,k  ) + ss(i,j,k,25) * uu(i-1,j-1,k  ) &
                      + ss(i,j,k,26) * uu(i  ,j-1,k  ) + ss(i,j,k,27) * uu(i+1,j-1,k  ) &
@@ -596,9 +594,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                        ! Contributions from j+2,k
                      + ss(i,j,k,38) * uu(i-2,j+2,k  ) + ss(i,j,k,39) * uu(i-1,j+2,k  ) &
                      + ss(i,j,k,40) * uu(i  ,j+2,k  ) + ss(i,j,k,41) * uu(i+1,j+2,k  ) &
-                     + ss(i,j,k,42) * uu(i+2,j+2,k  )                                  
-
-                dd(i,j,k) = dd(i,j,k) &
+                     + ss(i,j,k,42) * uu(i+2,j+2,k  )                                  &
                        ! Contributions from k+1
                      + ss(i,j,k,43) * uu(i  ,j-2,k+1) + ss(i,j,k,44) * uu(i  ,j-1,k+1) &
                      + ss(i,j,k,45) * uu(i-2,j  ,k+1) + ss(i,j,k,46) * uu(i-1,j  ,k+1) &
@@ -611,7 +607,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                      + ss(i,j,k,56) * uu(i  ,j  ,k+2) + ss(i,j,k,57) * uu(i+1,j  ,k+2) &
                      + ss(i,j,k,58) * uu(i+2,j  ,k+2) + ss(i,j,k,59) * uu(i  ,j+1,k+2) &
                      + ss(i,j,k,60) * uu(i  ,j+2,k+2)                                   
-
              end do
           end do
        end do
