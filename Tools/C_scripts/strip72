@@ -359,7 +359,7 @@ sub chop_line {
    }
 
    if ($line_no > 19) {
-      warn "$0: produced $line_no continuation lines\n";
+      #warn "$0: produced $line_no continuation lines\n";
    }
 }
 
