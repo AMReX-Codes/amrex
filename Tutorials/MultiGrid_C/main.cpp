@@ -1,5 +1,4 @@
-// We solve
-// (a alpha - b del dot beta grad) soln = rhs
+// We solve (a alpha - b del dot beta grad) soln = rhs
 // where a and b are scalars, alpha and beta are arrays
 
 #include <fstream>
@@ -34,23 +33,222 @@ int  comp_norm     = 1;
 
 Real dx[BL_SPACEDIM];
 
-std::string solver_type = "fillme";
-std::string     bc_type = "fillme";
+enum solver_t {BoxLib_C, BoxLib_F, Hypre};
+enum bc_t {Periodic = 0,
+	   Dirichlet = LO_DIRICHLET, 
+	   Neumann = LO_NEUMANN};
+solver_t solver_type;
+bc_t     bc_type;
 
 int Ncomp = 1;
 
+void compute_analyticSolution(MultiFab& anaSoln);
+void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[]);
+void setup_rhs(MultiFab& rhs);
+void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
+void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
+void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
+#ifdef USEHYPRE
+void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+		      MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
+#endif
+
+int main(int argc, char* argv[])
+{
+  BoxLib::Initialize(argc,argv);
+
+  std::cout << std::setprecision(15);
+
+  ParmParse ppmg("mg");  
+  ppmg.query("v", verbose);
+  
+  ParmParse pp;
+
+  std::string solver_type_in;
+  pp.get("solver_type",solver_type_in);
+  if (solver_type_in == "BoxLib_C") {
+    solver_type = BoxLib_C;
+  }
+  else if (solver_type_in == "BoxLib_F") {
+    solver_type = BoxLib_F;      
+  }
+  else if (solver_type_in == "Hypre") {
+#ifdef USEHYPRE
+    solver_type = Hypre;
+#else
+    BoxLib::Error("Set USE_HYPRE=TRUE in GNUmakefile");
+#endif
+  }
+  else {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "Don't know this solver type: " << solver_type << std::endl;
+    }
+    BoxLib::Error("");
+  }
+
+  std::string bc_type_in;
+  pp.get("bc_type",bc_type_in);
+  if (bc_type_in == "Dirichlet") {
+    bc_type = Dirichlet;
+  }
+  else if (bc_type_in == "Neumann") {
+    bc_type = Neumann;
+  }
+  else if (bc_type_in == "Periodic") {
+    bc_type = Periodic;
+  }
+  else {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "Don't know this boundary type: " << bc_type << std::endl;
+    }
+    BoxLib::Error("");
+  }
+
+  pp.query("tol_rel", tolerance_rel);
+  pp.query("tol_abs", tolerance_abs);
+  pp.query("maxiter", maxiter);
+  pp.query("plot_rhs" , plot_rhs);
+  pp.query("plot_soln", plot_soln);
+  pp.query("plot_asol", plot_asol);
+  pp.query("plot_err", plot_err);
+  pp.query("comp_norm", comp_norm);
+
+  Real a = 0., b = 1.;
+  pp.query("a",  a);
+  pp.query("b",  b);
+
+  int n_cell;
+  int max_grid_size;
+
+  pp.get("n_cell",n_cell);
+  pp.get("max_grid_size",max_grid_size);
+
+  // Define a single box covering the domain
+  IntVect dom_lo(0,0,0);
+  IntVect dom_hi(n_cell-1,n_cell-1,n_cell-1);
+  Box domain(dom_lo,dom_hi);
+
+  // Initialize the boxarray "bs" from the single box "bx"
+  BoxArray bs(domain);
+
+  // Break up boxarray "bs" into chunks no larger than "max_grid_size" along a direction
+  bs.maxSize(max_grid_size);
+
+  // This defines the physical size of the box.  Right now the box is [0,1] in each direction.
+  RealBox real_box;
+  for (int n = 0; n < BL_SPACEDIM; n++) {
+    real_box.setLo(n, 0.0);
+    real_box.setHi(n, 1.0);
+  }
+ 
+  // This says we are using Cartesian coordinates
+  int coord = 0;
+  
+  // This sets the boundary conditions to be periodic or not
+  int* is_per = new int[BL_SPACEDIM];
+  
+  if (bc_type == Dirichlet || bc_type == Neumann) {
+    for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
+  } 
+  else {
+    for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 1;
+  }
+ 
+  // This defines a Geometry object which is useful for writing the plotfiles
+  Geometry geom(domain,&real_box,coord,is_per);
+
+  for ( int n=0; n<BL_SPACEDIM; n++ ) {
+    dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/domain.length(n);
+  }
+
+  // Allocate and define the right hand side.
+  MultiFab rhs(bs, Ncomp, 0, Fab_allocate); 
+  setup_rhs(rhs);
+
+  // Allocate the solution array and initialize to zero
+  // Set the number of ghost cells in the solution array.
+  MultiFab soln(bs, Ncomp, 1, Fab_allocate);
+  soln.setVal(0.0);
+
+  MultiFab alpha(bs, Ncomp, 0, Fab_allocate);
+  MultiFab beta[BL_SPACEDIM];
+  for ( int n=0; n<BL_SPACEDIM; ++n ) {
+    BoxArray bx(bs);
+    beta[n].define(bx.surroundingNodes(n), Ncomp, 1, Fab_allocate);
+  }
+
+  setup_coeffs(bs, alpha, beta);
+
+  const Real run_strt = ParallelDescriptor::second();
+
+  if (solver_type == BoxLib_C) {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "Solving with BoxLib C++ solver " << std::endl;
+    }
+    solve_with_Cpp(soln, a, b, alpha, beta, rhs, bs, geom);
+  } 
+  else if (solver_type == BoxLib_F) {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "Solving with BoxLib Fortran90 solver " << std::endl;
+    }
+    solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
+  }
+#ifdef USEHYPRE
+  else if (solver_type == Hypre) {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "Solving with Hypre " << std::endl;
+    }
+    solve_with_hypre(soln, a, b, alpha, beta, rhs, bs, geom);
+  }
+#endif
+
+  Real run_stop = ParallelDescriptor::second() - run_strt;
+  
+  ParallelDescriptor::ReduceRealMax(run_stop,ParallelDescriptor::IOProcessorNumber());
+  
+  if (ParallelDescriptor::IOProcessor()) {
+    std::cout << "Run time = " << run_stop << std::endl;
+  }
+  
+  if (plot_soln == 1) {
+    VisMF::Write(soln,"SOLN");
+  }
+
+  if (comp_norm || plot_err || plot_asol) {
+    MultiFab anaSoln(bs, Ncomp, 0, Fab_allocate);
+    compute_analyticSolution(anaSoln);
+    
+    if (plot_asol) {
+      VisMF::Write(anaSoln,"ASOL");
+    }
+
+    anaSoln.minus(soln, 0, Ncomp, 0); // anaSoln is error now
+    if (plot_err) {
+      VisMF::Write(anaSoln,"ERR");
+    }
+
+    if (comp_norm) {
+      Real twoNorm = anaSoln.norm2();
+      Real maxNorm = anaSoln.norm0();
+
+      anaSoln.setVal(1.0);
+      Real vol = anaSoln.norm2();
+      twoNorm /= vol;
+
+      if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "2 norm error: " << twoNorm << ", max norm error: " << maxNorm << std::endl;
+      }
+    }
+  }
+
+  BoxLib::Finalize();
+}
+
 void compute_analyticSolution(MultiFab& anaSoln)
 {
-  int ibnd;
-  if (bc_type == "Dirichlet") {
-    ibnd = LO_DIRICHLET;
-  }
-  else if (bc_type == "Neumann") {
-    ibnd = LO_NEUMANN;
-  }
-  else if (bc_type == "Periodic") {
-    ibnd = 0;
-  }
+  int ibnd = static_cast<int>(bc_type);
 
   for (MFIter mfi(anaSoln); mfi.isValid(); ++mfi) {
     const int* alo = anaSoln[mfi].loVect();
@@ -99,16 +297,7 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[])
 
 void setup_rhs(MultiFab& rhs)
 {
-  int ibnd;
-  if (bc_type == "Dirichlet") {
-    ibnd = LO_DIRICHLET;
-  }
-  else if (bc_type == "Neumann") {
-    ibnd = LO_NEUMANN;
-  }
-  else if (bc_type == "Periodic") {
-    ibnd = 0;
-  }
+  int ibnd = static_cast<int>(bc_type);
 
   for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
     const int* rlo = rhs[mfi].loVect();
@@ -124,83 +313,65 @@ void setup_rhs(MultiFab& rhs)
   }
 }
 
-void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
-		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
+void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
 {
-  BndryData bd(bs, 1, geom);
-  int comp = 0;
-
-  for (int n=0; n<BL_SPACEDIM; ++n) 
-  {
-    for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) 
-    {
+  for (int n=0; n<BL_SPACEDIM; ++n) {
+    for (MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
       int i = mfi.index(); 
-
+      
       const Box& bx = mfi.validbox();
-
+      
       // Our default will be that the face of this grid is either touching another grid
       //  across an interior boundary or a periodic boundary.  We will test for the other
       //  cases below.
       {
-         // Define the type of boundary conditions to be Dirichlet (even for periodic)
-         bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
-         bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
- 
-         // Set the boundary conditions to the cell centers outside the domain
-         bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.5*dx[n]);
-         bd.setBoundLoc(Orientation(n, Orientation::high),i,0.5*dx[n]);
- 
-         // Dont need to set values in the periodic case.
+	// Define the type of boundary conditions to be Dirichlet (even for periodic)
+	bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
+	bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
+	
+	// Set the boundary conditions to the cell centers outside the domain
+	bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.5*dx[n]);
+	bd.setBoundLoc(Orientation(n, Orientation::high),i,0.5*dx[n]);
       }
 
       // Now test to see if we should override the above with Dirichlet or Neumann physical bc's
+      if (bc_type != Periodic) { 
+	int ibnd = static_cast<int>(bc_type); // either LO_DIRICHLET or LO_NEUMANN
+	const Geometry& geom = bd.getGeom();
 
-      if (bc_type != "Periodic")
-      { 
-         // We are on the low side of the domain in coordinate direction n
-         if (bx.smallEnd(n) == geom.Domain().smallEnd(n))
-         {
-            // Set the boundary conditions to live exactly on the faces of the domain
-            bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
-
-            // Set the Dirichlet/Neumann values to be 0 (i.e. this is homogeneous)
-            bd.setValue(Orientation(n, Orientation::low) ,i, 0.0);
-
-            if (bc_type == "Dirichlet")
-            {
-   	       // Define the type of boundary conditions to be Dirichlet
-               bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
-            }
-            else if (bc_type == "Neumann") 
-            {
-   	       // Define the type of boundary conditions to be Neumann
-               bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_NEUMANN);
-            }
-         }
-
-         // We are on the high side of the domain in coordinate direction n
-         if (bx.bigEnd(n) == geom.Domain().bigEnd(n))
-         {
-            // Set the boundary conditions to live exactly on the faces of the domain
-            bd.setBoundLoc(Orientation(n, Orientation::high) ,i,0.0 );
-
-            // Set the Dirichlet/Neumann values to be 0 (i.e. this is homogeneous)
-            bd.setValue(Orientation(n, Orientation::high) ,i, 0.0);
-
-            if (bc_type == "Dirichlet")
-            {
-   	       // Define the type of boundary conditions to be Dirichlet
-               bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,LO_DIRICHLET);
-            }
-            else if (bc_type == "Neumann") 
-            {
-   	       // Define the type of boundary conditions to be Neumann
-               bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,LO_NEUMANN);
-            }
-         }
+	// We are on the low side of the domain in coordinate direction n
+	if (bx.smallEnd(n) == geom.Domain().smallEnd(n)) {
+	  // Set the boundary conditions to live exactly on the faces of the domain
+	  bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
+	  
+	  // Set the Dirichlet/Neumann values to be 0 (i.e. this is homogeneous)
+	  bd.setValue(Orientation(n, Orientation::low) ,i, 0.0);
+	  
+	  // Define the type of boundary conditions 
+	  bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,ibnd);
+	}
+	
+	// We are on the high side of the domain in coordinate direction n
+	if (bx.bigEnd(n) == geom.Domain().bigEnd(n)) {
+	  // Set the boundary conditions to live exactly on the faces of the domain
+	  bd.setBoundLoc(Orientation(n, Orientation::high) ,i,0.0 );
+	  
+	  // Set the Dirichlet/Neumann values to be 0 (i.e. this is homogeneous)
+	  bd.setValue(Orientation(n, Orientation::high) ,i, 0.0);
+	  
+	  // Define the type of boundary conditions 
+	  bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,ibnd);
+	}
       } 
     }
   }
+}
+
+void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
+{
+  BndryData bd(bs, 1, geom);
+  set_boundary(bd, rhs);
 
   ABecLaplacian abec_operator(bd, dx);
   abec_operator.setScalars(a, b);
@@ -237,21 +408,21 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
     xb[0][n] = 0.;
   }
 
-  if (bc_type == "Periodic") {
+  if (bc_type == Periodic) {
     // Define the type of boundary conditions to be periodic
     for ( int n = 0; n < BL_SPACEDIM; ++n ) {
       mg_bc[2*n + 0] = MGT_BC_PER;
       mg_bc[2*n + 1] = MGT_BC_PER;
     }
   }
-  else if (bc_type == "Neumann") {
+  else if (bc_type == Neumann) {
     // Define the type of boundary conditions to be Neumann
     for ( int n = 0; n < BL_SPACEDIM; ++n ) {
       mg_bc[2*n + 0] = MGT_BC_NEU;
       mg_bc[2*n + 1] = MGT_BC_NEU;
     }
   }
-  else if (bc_type == "Dirichlet") {
+  else if (bc_type == Dirichlet) {
     // Define the type of boundary conditions to be Dirichlet
     for ( int n = 0; n < BL_SPACEDIM; ++n ) {
       mg_bc[2*n + 0] = MGT_BC_DIR;
@@ -303,79 +474,7 @@ void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab 
 		      MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
   BndryData bd(bs, 1, geom);
-  int comp = 0;
-
-  for (int n=0; n<BL_SPACEDIM; ++n) 
-  {
-    for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) 
-    {
-      int i = mfi.index(); 
-
-      const Box& bx = mfi.validbox();
-
-      // Our default will be that the face of this grid is either touching another grid
-      //  across an interior boundary or a periodic boundary.  We will test for the other
-      //  cases below.
-      {
-         // Define the type of boundary conditions to be Dirichlet (even for periodic)
-         bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
-         bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
- 
-         // Set the boundary conditions to the cell centers outside the domain
-         bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.5*dx[n]);
-         bd.setBoundLoc(Orientation(n, Orientation::high),i,0.5*dx[n]);
- 
-         // Dont need to set values in the periodic case.
-      }
-
-      // Now test to see if we should override the above with Dirichlet or Neumann physical bc's
-
-      if (bc_type != "Periodic")
-      { 
-         // We are on the low side of the domain in coordinate direction n
-         if (bx.smallEnd(n) == geom.Domain().smallEnd(n))
-         {
-            // Set the boundary conditions to live exactly on the faces of the domain
-            bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
-
-            // Set the Dirichlet/Neumann values to be 0 (i.e. this is homogeneous)
-            bd.setValue(Orientation(n, Orientation::low) ,i, 0.0);
-
-            if (bc_type == "Dirichlet")
-            {
-   	       // Define the type of boundary conditions to be Dirichlet
-               bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
-            }
-            else if (bc_type == "Neumann") 
-            {
-   	       // Define the type of boundary conditions to be Neumann
-               bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_NEUMANN);
-            }
-         }
-
-         // We are on the high side of the domain in coordinate direction n
-         if (bx.bigEnd(n) == geom.Domain().bigEnd(n))
-         {
-            // Set the boundary conditions to live exactly on the faces of the domain
-            bd.setBoundLoc(Orientation(n, Orientation::high) ,i,0.0 );
-
-            // Set the Dirichlet/Neumann values to be 0 (i.e. this is homogeneous)
-            bd.setValue(Orientation(n, Orientation::high) ,i, 0.0);
-
-            if (bc_type == "Dirichlet")
-            {
-   	       // Define the type of boundary conditions to be Dirichlet
-               bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,LO_DIRICHLET);
-            }
-            else if (bc_type == "Neumann") 
-            {
-   	       // Define the type of boundary conditions to be Neumann
-               bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,LO_NEUMANN);
-            }
-         }
-      } 
-    }
-  }
+  set_boundary(bd, rhs);
 
   HypreABecLap hypreSolver(bs, geom);
   hypreSolver.setScalars(a, b);
@@ -386,168 +485,3 @@ void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab 
 }
 #endif
 
-int main(int argc, char* argv[])
-{
-  BoxLib::Initialize(argc,argv);
-
-  std::cout << std::setprecision(15);
-
-  ParmParse ppmg("mg");  
-  ppmg.query("v", verbose);
-  
-  ParmParse pp;
-  pp.query("tol_rel", tolerance_rel);
-  pp.query("tol_abs", tolerance_abs);
-  pp.query("maxiter", maxiter);
-  pp.query("plot_rhs" , plot_rhs);
-  pp.query("plot_soln", plot_soln);
-  pp.query("plot_asol", plot_asol);
-  pp.query("plot_err", plot_err);
-  pp.query("comp_norm", comp_norm);
-
-  Real a = 0., b = 1.;
-  pp.query("a",  a);
-  pp.query("b",  b);
-
-  int n_cell;
-  int max_grid_size;
-
-  pp.get("n_cell",n_cell);
-  pp.get("max_grid_size",max_grid_size);
-  pp.get("solver_type",solver_type);
-  pp.get("bc_type",bc_type);
-
-  // Define a single box covering the domain
-  IntVect dom_lo(0,0,0);
-  IntVect dom_hi(n_cell-1,n_cell-1,n_cell-1);
-  Box domain(dom_lo,dom_hi);
-
-  // Initialize the boxarray "bs" from the single box "bx"
-  BoxArray bs(domain);
-
-  // Break up boxarray "bs" into chunks no larger than "max_grid_size" along a direction
-  bs.maxSize(max_grid_size);
-
-  // This defines the physical size of the box.  Right now the box is [0,1] in each direction.
-  RealBox real_box;
-  for (int n = 0; n < BL_SPACEDIM; n++) {
-    real_box.setLo(n, 0.0);
-    real_box.setHi(n, 1.0);
-  }
- 
-  // This says we are using Cartesian coordinates
-  int coord = 0;
-  
-  // This sets the boundary conditions to be periodic or not
-  int* is_per = new int[BL_SPACEDIM];
-  
-  if (bc_type == "Dirichlet" || bc_type == "Neumann") {
-    for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
-  } 
-  else if (bc_type == "Periodic") {
-    for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 1;
-  }
-  else {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Don't know this BC type: " << bc_type << std::endl;
-    }
-    BoxLib::Error("");
-  }
- 
-  // This defines a Geometry object which is useful for writing the plotfiles
-  Geometry geom(domain,&real_box,coord,is_per);
-
-  for ( int n=0; n<BL_SPACEDIM; n++ ) {
-    dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/domain.length(n);
-  }
-
-  // Allocate and define the right hand side.
-  MultiFab rhs(bs, Ncomp, 0, Fab_allocate); 
-  setup_rhs(rhs);
-
-  // Allocate the solution array and initialize to zero
-  // Set the number of ghost cells in the solution array.
-  MultiFab soln(bs, Ncomp, 1, Fab_allocate);
-  soln.setVal(0.0);
-
-  MultiFab alpha(bs, Ncomp, 0, Fab_allocate);
-  MultiFab beta[BL_SPACEDIM];
-  for ( int n=0; n<BL_SPACEDIM; ++n ) {
-    BoxArray bx(bs);
-    beta[n].define(bx.surroundingNodes(n), Ncomp, 1, Fab_allocate);
-  }
-
-  setup_coeffs(bs, alpha, beta);
-
-  const Real run_strt = ParallelDescriptor::second();
-
-  if (solver_type == "BoxLib_C") {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Solving with BoxLib C++ solver " << std::endl;
-    }
-    solve_with_Cpp(soln, a, b, alpha, beta, rhs, bs, geom);
-  } 
-  else if (solver_type == "BoxLib_F") {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Solving with BoxLib Fortran90 solver " << std::endl;
-    }
-    solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
-  }
-  else if (solver_type == "Hypre") {
-#ifdef USEHYPRE
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Solving with Hypre " << std::endl;
-    }
-    solve_with_hypre(soln, a, b, alpha, beta, rhs, bs, geom);
-#else
-    BoxLib::Error("Set USE_HYPRE=TRUE in GNUMakefile.");
-#endif
-  }
-  else {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Don't know this solver type: " << solver_type << std::endl;
-    }
-    BoxLib::Error("");
-  }
-
-  Real run_stop = ParallelDescriptor::second() - run_strt;
-  
-  ParallelDescriptor::ReduceRealMax(run_stop,ParallelDescriptor::IOProcessorNumber());
-  
-  if (ParallelDescriptor::IOProcessor()) {
-    std::cout << "Run time = " << run_stop << std::endl;
-  }
-  
-  if (plot_soln == 1) {
-    VisMF::Write(soln,"SOLN");
-  }
-
-  if (comp_norm || plot_err || plot_asol) {
-    MultiFab anaSoln(bs, Ncomp, 0, Fab_allocate);
-    compute_analyticSolution(anaSoln);
-    
-    if (plot_asol) {
-      VisMF::Write(anaSoln,"ASOL");
-    }
-
-    anaSoln.minus(soln, 0, Ncomp, 0); // anaSoln is error now
-    if (plot_err) {
-      VisMF::Write(anaSoln,"ERR");
-    }
-
-    if (comp_norm) {
-      Real twoNorm = anaSoln.norm2();
-      Real maxNorm = anaSoln.norm0();
-
-      anaSoln.setVal(1.0);
-      Real vol = anaSoln.norm2();
-      twoNorm /= vol;
-
-      if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "2 norm error: " << twoNorm << ", max norm error: " << maxNorm << std::endl;
-      }
-    }
-  }
-
-  BoxLib::Finalize();
-}
