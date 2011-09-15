@@ -147,8 +147,8 @@ void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
          bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
  
          // Set the boundary conditions to the cell centers outside the domain
-         bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.5*dx[i]);
-         bd.setBoundLoc(Orientation(n, Orientation::high),i,0.5*dx[i]);
+         bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.5*dx[n]);
+         bd.setBoundLoc(Orientation(n, Orientation::high),i,0.5*dx[n]);
  
          // Dont need to set values in the periodic case.
       }
@@ -305,28 +305,75 @@ void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab 
   BndryData bd(bs, 1, geom);
   int comp = 0;
 
-  for (int n=0; n<BL_SPACEDIM; ++n) {
-    for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
+  for (int n=0; n<BL_SPACEDIM; ++n) 
+  {
+    for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) 
+    {
       int i = mfi.index(); 
-      
-      // Set the boundary conditions to live exactly on the faces of the domain
-      bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
-      bd.setBoundLoc(Orientation(n, Orientation::high),i,0.0 );
-      
-      if (bc_type == "Dirichlet") {
-	// Define the type of boundary conditions to be Dirichlet
-	bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
-	bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
+
+      const Box& bx = mfi.validbox();
+
+      // Our default will be that the face of this grid is either touching another grid
+      //  across an interior boundary or a periodic boundary.  We will test for the other
+      //  cases below.
+      {
+         // Define the type of boundary conditions to be Dirichlet (even for periodic)
+         bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
+         bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
+ 
+         // Set the boundary conditions to the cell centers outside the domain
+         bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.5*dx[n]);
+         bd.setBoundLoc(Orientation(n, Orientation::high),i,0.5*dx[n]);
+ 
+         // Dont need to set values in the periodic case.
       }
-      else if (bc_type == "Neumann") {
-	// Define the type of boundary conditions to be Neumann
-	bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_NEUMANN);
-	bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_NEUMANN);
-      }
-      
-      // Set the Dirichlet/Neumann values to be 0
-      bd.setValue(Orientation(n, Orientation::low) ,i, 0.0);
-      bd.setValue(Orientation(n, Orientation::high),i, 0.0);
+
+      // Now test to see if we should override the above with Dirichlet or Neumann physical bc's
+
+      if (bc_type != "Periodic")
+      { 
+         // We are on the low side of the domain in coordinate direction n
+         if (bx.smallEnd(n) == geom.Domain().smallEnd(n))
+         {
+            // Set the boundary conditions to live exactly on the faces of the domain
+            bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
+
+            // Set the Dirichlet/Neumann values to be 0 (i.e. this is homogeneous)
+            bd.setValue(Orientation(n, Orientation::low) ,i, 0.0);
+
+            if (bc_type == "Dirichlet")
+            {
+   	       // Define the type of boundary conditions to be Dirichlet
+               bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
+            }
+            else if (bc_type == "Neumann") 
+            {
+   	       // Define the type of boundary conditions to be Neumann
+               bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_NEUMANN);
+            }
+         }
+
+         // We are on the high side of the domain in coordinate direction n
+         if (bx.bigEnd(n) == geom.Domain().bigEnd(n))
+         {
+            // Set the boundary conditions to live exactly on the faces of the domain
+            bd.setBoundLoc(Orientation(n, Orientation::high) ,i,0.0 );
+
+            // Set the Dirichlet/Neumann values to be 0 (i.e. this is homogeneous)
+            bd.setValue(Orientation(n, Orientation::high) ,i, 0.0);
+
+            if (bc_type == "Dirichlet")
+            {
+   	       // Define the type of boundary conditions to be Dirichlet
+               bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,LO_DIRICHLET);
+            }
+            else if (bc_type == "Neumann") 
+            {
+   	       // Define the type of boundary conditions to be Neumann
+               bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,LO_NEUMANN);
+            }
+         }
+      } 
     }
   }
 
