@@ -110,7 +110,6 @@ void setup_rhs(MultiFab& rhs)
     ibnd = 0;
   }
 
-  Real sum_rhs = 0;
   for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
     const int* rlo = rhs[mfi].loVect();
     const int* rhi = rhs[mfi].hiVect();
@@ -118,14 +117,8 @@ void setup_rhs(MultiFab& rhs)
 
     FORT_SET_RHS(rhs[mfi].dataPtr(),ARLIM(rlo),ARLIM(rhi),
                  bx.loVect(),bx.hiVect(),dx, &ibnd);
-    sum_rhs += rhs[mfi].sum(0,1);
   }
 
-  if (ParallelDescriptor::IOProcessor()) {
-    std::cout << "The RHS sums to " << sum_rhs << std::endl;
-  }
-
-  // Write out the RHS
   if (plot_rhs == 1) {
     VisMF::Write(rhs,"RHS");
   }
@@ -430,7 +423,6 @@ int main(int argc, char* argv[])
     std::cout << "Run time = " << run_stop << std::endl;
   }
   
-  // Write out the RHS
   if (plot_soln == 1) {
     VisMF::Write(soln,"SOLN");
   }

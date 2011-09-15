@@ -2,14 +2,14 @@ solver_type = Hypre
 #solver_type = BoxLib_F
 #solver_type = BoxLib_C
 
-bc_type = Neumann
+#bc_type = Neumann
 #bc_type = Periodic
-#bc_type = Dirichlet
+bc_type = Dirichlet
 
-plot_rhs  = 1 # plot the RHS
-plot_soln = 1 # plot the solution
-plot_asol = 1
-plot_err  = 1 # plot the error
+plot_rhs  = 0 # plot the RHS
+plot_soln = 0 # plot the solution
+plot_asol = 0
+plot_err  = 0 # plot the error
 comp_norm = 1 # compute 2 norm of the error
 
 n_cell        = 128
@@ -18,9 +18,10 @@ max_grid_size = 32
 tol_rel = 1.e-8
 tol_abs = 0.0
 
-a = 0.0
-b = 1.0
-
 mg.v = 2 
 
-hypre.pfmg_relax_type = 2
+hypre.pfmg_relax_type = 2  # default: 1 (Jacobi); else: 2 (red-black GSRB)
+hypre.num_pre_relax   = 2  # default: 1
+hypre.num_post_relax  = 2  # default: 1
+hypre.skip_relax      = 0  # default: 1
+hypre.print_level     = 1  # default: 0
