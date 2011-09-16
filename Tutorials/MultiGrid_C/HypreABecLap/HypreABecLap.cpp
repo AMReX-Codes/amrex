@@ -235,28 +235,26 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
     for (OrientationIter oitr; oitr; oitr++) {
       int cdir(oitr());
       int idim = oitr().coordDir();
-      if (is_periodic[idim] == 0) {
-	const BoundCond &bct = bndry.bndryConds(oitr())[i][0];
-	const Real      &bcl = bndry.bndryLocs(oitr())[i];
-	const FArrayBox &bcv = bndry.bndryValues(oitr())[i];
-	const Mask      &msk = bndry.bndryMasks(oitr())[i];
-	const int* blo = (*bcoefs[idim])[i].loVect();
-	const int* bhi = (*bcoefs[idim])[i].hiVect();
-	const int* mlo = msk.loVect();
-	const int* mhi = msk.hiVect();
-	const int* bvlo = bcv.loVect();
-	const int* bvhi = bcv.hiVect();
-	
-	if (reg[oitr()] == domain[oitr()]) {
-	  int bctype = bct;
-	  FORT_HPBVEC3(vec, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
-		       reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
-		       msk.dataPtr(), ARLIM(mlo), ARLIM(mhi),
-		       bcv.dataPtr(), ARLIM(bvlo), ARLIM(bvhi));
-	  FORT_HPBMAT3(mat, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
-		       reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
-		       msk.dataPtr(), ARLIM(mlo), ARLIM(mhi));
-	}
+      const BoundCond &bct = bndry.bndryConds(oitr())[i][0];
+      const Real      &bcl = bndry.bndryLocs(oitr())[i];
+      const FArrayBox &bcv = bndry.bndryValues(oitr())[i];
+      const Mask      &msk = bndry.bndryMasks(oitr())[i];
+      const int* blo = (*bcoefs[idim])[i].loVect();
+      const int* bhi = (*bcoefs[idim])[i].hiVect();
+      const int* mlo = msk.loVect();
+      const int* mhi = msk.hiVect();
+      const int* bvlo = bcv.loVect();
+      const int* bvhi = bcv.hiVect();
+      
+      if (reg[oitr()] == domain[oitr()]) {
+	int bctype = bct;
+	FORT_HPBVEC3(vec, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
+		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
+		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi),
+		     bcv.dataPtr(), ARLIM(bvlo), ARLIM(bvhi));
+	FORT_HPBMAT3(mat, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
+		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
+		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi));
       }
     }
 
