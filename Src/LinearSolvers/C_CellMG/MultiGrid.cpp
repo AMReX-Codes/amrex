@@ -31,6 +31,7 @@ CGSolver::Solver MultiGrid::def_cg_solver;
 int              MultiGrid::def_maxiter_b;
 int              MultiGrid::def_numLevelsMAX;
 int              MultiGrid::def_smooth_on_cg_unstable;
+int              MultiGrid::use_Anorm_for_convergence;
 
 void
 MultiGrid::Initialize ()
@@ -58,6 +59,10 @@ MultiGrid::Initialize ()
     MultiGrid::def_numLevelsMAX          = 1024;
     MultiGrid::def_smooth_on_cg_unstable = 0;
 
+    // This has traditionally been part of the stopping criteria, but for testing against
+    //  other solvers it is convenient to be able to turn it off
+    MultiGrid::use_Anorm_for_convergence = 1;
+
     ParmParse pp("mg");
 
     pp.query("v",                     def_verbose);
@@ -74,6 +79,8 @@ MultiGrid::Initialize ()
     pp.query("maxiter_b",             def_maxiter_b);
     pp.query("numLevelsMAX",          def_numLevelsMAX);
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
+
+    pp.query("use_Anorm_for_convergence", use_Anorm_for_convergence);
 
     int ii;
     if (pp.query("cg_solver", ii ))
@@ -103,6 +110,7 @@ MultiGrid::Initialize ()
         std::cout << "   def_cg_solver             = " << def_cg_solver             << '\n';
         std::cout << "   def_numLevelsMAX          = " << def_numLevelsMAX          << '\n';
         std::cout << "   def_smooth_on_cg_unstable = " << def_smooth_on_cg_unstable << '\n';
+        std::cout << "   use_Anorm_for_convergence = " << use_Anorm_for_convergence << '\n';
     }
 
     BoxLib::ExecOnFinalize(MultiGrid::Finalize);
@@ -327,28 +335,54 @@ MultiGrid::solve_ (MultiFab&      _sol,
   Real       norm_cor    = 0.0;
   int        nit         = 1;
 
-  const Real norm_Lp     = Lp.norm(0, level);
   const Real new_error_0 = norm_rhs;
+  const Real norm_Lp     = Lp.norm(0, level);
 
-  for ( ;
-        error > eps_abs &&
-            error > eps_rel*(norm_Lp*norm_cor+norm_rhs) &&
-            nit <= maxiter;
-        ++nit)
+  if (use_Anorm_for_convergence == 1) 
   {
-      relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
-      norm_cor = norm_inf(*cor[level]);
-      error = errorEstimate(level, bc_mode);
+     for ( ;
+           error > eps_abs &&
+               error > eps_rel*(norm_Lp*norm_cor+norm_rhs) &&
+               nit <= maxiter;
+           ++nit)
+     {
+         relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
+         norm_cor = norm_inf(*cor[level]);
+         error = errorEstimate(level, bc_mode);
 	
-      if (ParallelDescriptor::IOProcessor() && verbose > 1 )
-      {
-          const Real rel_error = (error0 != 0) ? error/new_error_0 : 0;
-          Spacer(std::cout, level);
-          std::cout << "MultiGrid: Iteration   "
-                    << nit
-                    << " error/error0 = "
-                    << rel_error << '\n';
-      }
+         if (ParallelDescriptor::IOProcessor() && verbose > 1 )
+         {
+             const Real rel_error = (error0 != 0) ? error/new_error_0 : 0;
+             Spacer(std::cout, level);
+             std::cout << "MultiGrid: Iteration   "
+                       << nit
+                       << " error/error0 = "
+                       << rel_error << '\n';
+         }
+     }
+  }
+  else
+  {
+     for ( ;
+           error > eps_abs &&
+               error > eps_rel*(norm_rhs) &&
+               nit <= maxiter;
+           ++nit)
+     {
+         relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
+         norm_cor = norm_inf(*cor[level]);
+         error = errorEstimate(level, bc_mode);
+
+         if (ParallelDescriptor::IOProcessor() && verbose > 1 )
+         {
+             const Real rel_error = (error0 != 0) ? error/new_error_0 : 0;
+             Spacer(std::cout, level);
+             std::cout << "MultiGrid: Iteration   "
+                       << nit
+                       << " error/error0 = "
+                       << rel_error << '\n';
+         }
+     }
   }
 
   if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
@@ -367,7 +401,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
       {
          std::cout << "   Converged res < eps_rel*bnorm " << std::endl;
       } 
-      else if (error < eps_rel*norm_Lp*norm_cor)
+      else if ( (use_Anorm_for_convergence == 1) && (error < eps_rel*norm_Lp*norm_cor) )
       {
          std::cout << "   Converged res < eps_rel*Anorm*sol " << std::endl;
       } 
@@ -384,9 +418,18 @@ MultiGrid::solve_ (MultiFab&      _sol,
   _sol.copy(*cor[level]);
   _sol.plus(*initialsolution,0,_sol.nComp(),0);
 
-  if ( error <= eps_rel*(norm_Lp*norm_cor+norm_rhs) ||
-       error <= eps_abs )
-    returnVal = 1;
+  if (use_Anorm_for_convergence == 1) 
+  {
+     if ( error <= eps_rel*(norm_Lp*norm_cor+norm_rhs) ||
+          error <= eps_abs )
+       returnVal = 1;
+  } 
+  else 
+  {
+     if ( error <= eps_rel*(norm_rhs) ||
+          error <= eps_abs )
+       returnVal = 1;
+  } 
 
   //
   // Otherwise, failed to solve satisfactorily
