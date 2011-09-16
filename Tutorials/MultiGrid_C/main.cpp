@@ -200,6 +200,7 @@ int main(int argc, char* argv[])
   // Allocate the solution array 
   // Set the number of ghost cells in the solution array.
   MultiFab soln(bs, Ncomp, 1, Fab_allocate);
+  soln.setVal(0.);
 
   if (solver_type == BoxLib_C || solver_type == All) {
     if (ParallelDescriptor::IOProcessor()) {
@@ -209,6 +210,9 @@ int main(int argc, char* argv[])
 
     solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, BoxLib_C);
   }
+
+  if (solver_type == All) 
+     soln.setVal(0.);
 
   if (solver_type == BoxLib_F || solver_type == All) {
     if (ParallelDescriptor::IOProcessor()) {
@@ -220,6 +224,9 @@ int main(int argc, char* argv[])
   }
 
 #ifdef USEHYPRE
+  if (solver_type == All) 
+     soln.setVal(0.);
+
   if (solver_type == Hypre || solver_type == All) {
     if (ParallelDescriptor::IOProcessor()) {
       std::cout << "----------------------------------------" << std::endl;
@@ -391,10 +398,12 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
     ss = "F90";
     solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
   }
+#ifdef USEHYPRE
   else if (solver == Hypre) {
     ss = "Hyp";
     solve_with_hypre(soln, a, b, alpha, beta, rhs, bs, geom);
   }
+#endif
   else {
     BoxLib::Error("Invalid solver");
   }
