@@ -93,10 +93,10 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
   HYPRE_StructMatrixCreate(MPI_COMM_WORLD, grid, stencil, &A);
   HYPRE_StructMatrixInitialize(A);
 
+  HYPRE_StructStencilDestroy(stencil); // no longer needed
+
   HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &b);
   HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &x);
-
-  HYPRE_StructStencilDestroy(stencil); // no longer needed
 
   HYPRE_StructVectorInitialize(b);
   HYPRE_StructVectorInitialize(x);
