@@ -25,23 +25,13 @@ c-----------------------------------------------------------------------
 
       integer i, j, k
 
-      if (sa .eq. 0.d0) then
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  mat(0,i,j,k) = 0.d0
-               enddo
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               mat(6,i,j,k) = sa * a(i,j,k)
             enddo
          enddo
-      else
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  mat(0,i,j,k) = sa * a(i,j,k)
-               enddo
-            enddo
-         enddo
-      endif
+      enddo
 
       end subroutine
 
@@ -68,9 +58,9 @@ c-----------------------------------------------------------------------
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  mat(0,i,j,k) = mat(0,i,j,k) + fac * (b(i,j,k) + b(i+1,j,k))
-                  mat(1,i,j,k) = - fac * b(i,j,k)
-                  mat(2,i,j,k) = - fac * b(i+1,j,k)
+                  mat(0,i,j,k) = - fac * b(i,j,k)
+                  mat(3,i,j,k) = - fac * b(i+1,j,k)
+                  mat(6,i,j,k) = mat(6,i,j,k) + fac * (b(i,j,k) + b(i+1,j,k))
                enddo
             enddo
          enddo
@@ -78,9 +68,9 @@ c-----------------------------------------------------------------------
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  mat(0,i,j,k) = mat(0,i,j,k) + fac * (b(i,j,k) + b(i,j+1,k))
-                  mat(3,i,j,k) = - fac * b(i,j,k)
+                  mat(1,i,j,k) = - fac * b(i,j,k)
                   mat(4,i,j,k) = - fac * b(i,j+1,k)
+                  mat(6,i,j,k) = mat(6,i,j,k) + fac * (b(i,j,k) + b(i,j+1,k))
                enddo
             enddo
          enddo
@@ -88,9 +78,9 @@ c-----------------------------------------------------------------------
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  mat(0,i,j,k) = mat(0,i,j,k) + fac * (b(i,j,k) + b(i,j,k+1))
-                  mat(5,i,j,k) = - fac * b(i,j,k)
-                  mat(6,i,j,k) = - fac * b(i,j,k+1)
+                  mat(2,i,j,k) = - fac * b(i,j,k)
+                  mat(5,i,j,k) = - fac * b(i,j,k+1)
+                  mat(6,i,j,k) = mat(6,i,j,k) + fac * (b(i,j,k) + b(i,j,k+1))
                enddo
             enddo
          enddo
@@ -102,12 +92,12 @@ c-----------------------------------------------------------------------
 
       subroutine FORT_HPBMAT3(mat, 
      @     b, b_l1, b_l2, b_l3, b_h1, b_h2, b_h3,
-     @     lo, hi, sb, dx, cdir, bct, bcl,
+     @     lo, hi, sb, dx, cdir, bct, bcl, hob,
      @     mask, m_l1, m_l2, m_l3, m_h1, m_h2, m_h3)
 
       implicit none
 
-      integer lo(3), hi(3), cdir, bct
+      integer lo(3), hi(3), cdir, bct, hob
       integer b_l1, b_l2, b_l3, b_h1, b_h2, b_h3
       integer m_l1, m_l2, m_l3, m_h1, m_h2, m_h3
       double precision b(b_l1:b_h1, b_l2:b_h2, b_l3:b_h3)
@@ -140,8 +130,8 @@ c-----------------------------------------------------------------------
                      print *, "hpmat3: unsupported boundary type"
                      stop
                   endif
-                  mat(0,i,j,k) = mat(0,i,j,k) + bfm - fac * b(i,j,k)
-                  mat(1,i,j,k) = 0.d0
+                  mat(0,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfm - fac * b(i,j,k)
                endif
             enddo
          enddo
@@ -159,8 +149,8 @@ c-----------------------------------------------------------------------
                      print *, "hpmat3: unsupported boundary type"
                      stop
                   endif
-                  mat(0,i,j,k) = mat(0,i,j,k) + bfm - fac * b(i+1,j,k)
-                  mat(2,i,j,k) = 0.d0
+                  mat(3,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfm - fac * b(i+1,j,k)
                endif
             enddo
          enddo
@@ -178,8 +168,8 @@ c-----------------------------------------------------------------------
                      print *, "hpmat3: unsupported boundary type"
                      stop
                   endif
-                  mat(0,i,j,k) = mat(0,i,j,k) + bfm - fac * b(i,j,k)
-                  mat(3,i,j,k) = 0.d0
+                  mat(1,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfm - fac * b(i,j,k)
                endif
             enddo
          enddo
@@ -197,8 +187,8 @@ c-----------------------------------------------------------------------
                      print *, "hpmat3: unsupported boundary type"
                      stop
                   endif
-                  mat(0,i,j,k) = mat(0,i,j,k) + bfm - fac * b(i,j+1,k)
                   mat(4,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfm - fac * b(i,j+1,k)
                endif
             enddo
          enddo
@@ -216,8 +206,8 @@ c-----------------------------------------------------------------------
                      print *, "hpmat3: unsupported boundary type"
                      stop
                   endif
-                  mat(0,i,j,k) = mat(0,i,j,k) + bfm - fac * b(i,j,k)
-                  mat(5,i,j,k) = 0.d0
+                  mat(2,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfm - fac * b(i,j,k)
                endif
             enddo
          enddo
@@ -235,8 +225,8 @@ c-----------------------------------------------------------------------
                      print *, "hpmat3: unsupported boundary type"
                      stop
                   endif
-                  mat(0,i,j,k) = mat(0,i,j,k) + bfm - fac * b(i,j,k+1)
-                  mat(6,i,j,k) = 0.d0
+                  mat(5,i,j,k) = 0.d0
+                  mat(6,i,j,k) = mat(6,i,j,k) + bfm - fac * b(i,j,k+1)
                endif
             enddo
          enddo

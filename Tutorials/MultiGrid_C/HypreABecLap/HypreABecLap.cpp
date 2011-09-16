@@ -8,6 +8,10 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
 			   int _solver_flag)
   : solver_flag(_solver_flag)
 {
+  ParmParse pp("hypre");
+
+  hob = 1; // high-order boundary?
+  pp.query("hob", hob);
 
   int num_procs, myid;
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs );
@@ -59,23 +63,23 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
 		       { 1}};
 */
   // fake 1D as a 2D problem:
-  int offsets[3][2] = {{ 0,  0},
-		       {-1,  0},
-		       { 1,  0}};
-#elif (BL_SPACEDIM == 2)
-  int offsets[5][2] = {{ 0,  0},
-		       {-1,  0},
+  int offsets[3][2] = {{-1,  0},
 		       { 1,  0},
-		       { 0, -1},
-		       { 0,  1}};
+		       { 0,  0}};
+#elif (BL_SPACEDIM == 2)
+  int offsets[5][2] = {{-1,  0},      // 0
+		       { 0, -1},      // 1
+		       { 1,  0},      // 2
+		       { 0,  1},      // 3
+		       { 0,  0}};     // 4
 #elif (BL_SPACEDIM == 3)
-  int offsets[7][3] = {{ 0,  0,  0},
-		       {-1,  0,  0},
-		       { 1,  0,  0},
-		       { 0, -1,  0},
-		       { 0,  1,  0},
-		       { 0,  0, -1},
-		       { 0,  0,  1}};
+  int offsets[7][3] = {{-1,  0,  0},  // 0
+		       { 0, -1,  0},  // 1
+		       { 0,  0, -1},  // 2
+		       { 1,  0,  0},  // 3
+		       { 0,  1,  0},  // 4
+		       { 0,  0,  1},  // 5
+		       { 0,  0,  0}}; // 6
 #endif
 
   HYPRE_StructStencil stencil;
@@ -112,7 +116,6 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
     bcoefs[i] = new MultiFab(edge_boxes, ncomp, ngrow);
   }
 
-  ParmParse pp("hypre");
   // in following line, Falgout says use 1 as relax type, not 2 (rbp, 9/27/05)
   // weighted Jacobi = 1; red-black GS = 2
   // but 2 seems to be faster (wqz, 9/14/11)
@@ -249,11 +252,11 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
       if (reg[oitr()] == domain[oitr()]) {
 	int bctype = bct;
 	FORT_HPBVEC3(vec, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
-		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
+		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, hob,
 		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi),
 		     bcv.dataPtr(), ARLIM(bvlo), ARLIM(bvhi));
 	FORT_HPBMAT3(mat, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
-		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
+		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, hob,
 		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi));
       }
     }
