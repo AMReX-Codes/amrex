@@ -240,13 +240,13 @@ c-----------------------------------------------------------------------
 
       subroutine FORT_HPBVEC3(vec, 
      @     b, b_l1, b_l2, b_l3, b_h1, b_h2, b_h3,
-     @     lo, hi, sb, dx, cdir, bct, bcl,
+     @     lo, hi, sb, dx, cdir, bct, bcl, hob,
      @     mask, m_l1, m_l2, m_l3, m_h1, m_h2, m_h3, 
      @     bcv, bv_l1, bv_l2, bv_l3, bv_h1, bv_h2, bv_h3)
 
       implicit none
 
-      integer lo(3), hi(3), cdir, bct
+      integer lo(3), hi(3), cdir, bct, hob
       integer b_l1, b_l2, b_l3, b_h1, b_h2, b_h3
       integer m_l1, m_l2, m_l3, m_h1, m_h2, m_h3
       integer bv_l1, bv_l2, bv_l3, bv_h1, bv_h2, bv_h3
