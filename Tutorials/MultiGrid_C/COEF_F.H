@@ -5,63 +5,29 @@
 
 #if        defined(BL_LANG_FORT)
 
-#if (BL_SPACEDIM == 2)
-#define FORT_COMP_ASOL          comp_asol_2d
-#define FORT_SET_RHS            set_rhs_2d
-#define FORT_SET_ALPHA          set_alpha_2d
-#define FORT_SET_CC_COEF        set_cc_coef_2d
-#define FORT_COEF_TO_EDGES      coef_to_edges_2d
-#elif (BL_SPACEDIM == 3)
-#define FORT_COMP_ASOL          comp_asol_3d
-#define FORT_SET_RHS            set_rhs_3d
-#define FORT_SET_ALPHA          set_alpha_3d
-#define FORT_SET_CC_COEF        set_cc_coef_3d
-#define FORT_COEF_TO_EDGES      coef_to_edges_3d
-#endif
+#define FORT_COMP_ASOL          comp_asol
+#define FORT_SET_ALPHA          set_alpha
+#define FORT_SET_CC_COEF        set_cc_coef
+#define FORT_COEF_TO_EDGES      coef_to_edges
 
 #else
 
-#if (BL_SPACEDIM == 2)
-#if    defined(BL_FORT_USE_UPPERCASE)
-#define FORT_COMP_ASOL          COMP_ASOL_2d
-#define FORT_SET_RHS            SET_RHS_2d
-#define FORT_SET_ALPHA          SET_ALPHA_2d
-#define FORT_SET_CC_COEF        SET_CC_COEF_2d
-#define FORT_COEF_TO_EDGES      COEF_TO_EDGES_2d
-#elif  defined(BL_FORT_USE_LOWERCASE)
-#define FORT_COMP_ASOL          comp_asol_2d
-#define FORT_SET_RHS            set_rhs_2d
-#define FORT_SET_ALPHA          set_alpha_2d
-#define FORT_SET_CC_COEF        set_cc_coef_2d
-#define FORT_COEF_TO_EDGES      coef_to_edges_2d
-#elif  defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_COMP_ASOL          comp_asol_2d_
-#define FORT_SET_RHS            set_rhs_2d_
-#define FORT_SET_ALPHA          set_alpha_2d_
-#define FORT_SET_CC_COEF        set_cc_coef_2d_
-#define FORT_COEF_TO_EDGES      coef_to_edges_2d_
-#endif
-#endif
-
 #if (BL_SPACEDIM == 3)
 #if    defined(BL_FORT_USE_UPPERCASE)
-#define FORT_COMP_ASOL          COMP_ASOL_3d
-#define FORT_SET_RHS            SET_RHS_3d
-#define FORT_SET_ALPHA          SET_ALPHA_3d
-#define FORT_SET_CC_COEF        SET_CC_COEF_3d
-#define FORT_COEF_TO_EDGES      COEF_TO_EDGES_3d
+#define FORT_COMP_ASOL          COMP_ASOL
+#define FORT_SET_ALPHA          SET_ALPHA
+#define FORT_SET_CC_COEF        SET_CC_COEF
+#define FORT_COEF_TO_EDGES      COEF_TO_EDGES
 #elif  defined(BL_FORT_USE_LOWERCASE)
-#define FORT_COMP_ASOL          comp_asol_3d
-#define FORT_SET_RHS            set_rhs_3d
-#define FORT_SET_ALPHA          set_alpha_3d
-#define FORT_SET_CC_COEF        set_cc_coef_3d
-#define FORT_COEF_TO_EDGES      coef_to_edges_3d
+#define FORT_COMP_ASOL          comp_asol
+#define FORT_SET_ALPHA          set_alpha
+#define FORT_SET_CC_COEF        set_cc_coef
+#define FORT_COEF_TO_EDGES      coef_to_edges
 #elif  defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_COMP_ASOL          comp_asol_3d_
-#define FORT_SET_RHS            set_rhs_3d_
-#define FORT_SET_ALPHA          set_alpha_3d_
-#define FORT_SET_CC_COEF        set_cc_coef_3d_
-#define FORT_COEF_TO_EDGES      coef_to_edges_3d_
+#define FORT_COMP_ASOL          comp_asol_
+#define FORT_SET_ALPHA          set_alpha_
+#define FORT_SET_CC_COEF        set_cc_coef_
+#define FORT_COEF_TO_EDGES      coef_to_edges_
 #endif
 #endif
 
@@ -84,10 +50,6 @@ extern "C"
         Real* edge     , ARLIM_P(edge_lo), ARLIM_P(edge_hi),
         Real* coef     , ARLIM_P(coef_lo), ARLIM_P(coef_hi),
         const int* lo, const int* hi);
-
-    void FORT_SET_RHS (
-        Real* rhs      , ARLIM_P(rhs_lo), ARLIM_P(rhs_hi),
-        const int* lo, const int* hi, const Real* dx, const int * ibnd);
 }
 #endif
 
