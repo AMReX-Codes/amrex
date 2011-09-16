@@ -2,13 +2,13 @@ module vector_i_module
   
   implicit none
 
+  real, private, parameter :: BUMP = 1.5
+
   type vector_i
      private
-     integer :: end  = 0
-     integer :: size = 0
-     integer :: bump = 2
-     integer, dimension(:), pointer :: d => NULL()
-     logical :: built = .false.
+     integer          :: end  = 0
+     integer          :: size = 0
+     integer, pointer :: d(:) => NULL()
   end type vector_i
 
   interface capacity
@@ -109,96 +109,75 @@ contains
 
   subroutine vector_build_v_i(d, values)
     type(vector_i), intent(out) :: d
-    integer, intent(in), dimension(:) :: values
-
-    if ( .not. d%built  ) then
+    integer,        intent(in ) :: values(:)
+    if ( .not. associated(d%d) ) then
        d%size = size(values)
        allocate(d%d(d%size))
        d%d     = values
-       d%end   = size(values)
-       d%built = .true.
+       d%end   = d%size
     end if
-
   end subroutine vector_build_v_i
 
-  subroutine vector_build_i(d, size, value, bump)
-    type(vector_i), intent(out) :: d
-    integer, intent(in), optional :: size
-    integer, intent(in), optional :: value
-    integer, intent(in), optional :: bump
-
-    integer :: v
-
+  subroutine vector_build_i(d, size, value)
+    type(vector_i), intent(out)           :: d
+    integer,        intent(in ), optional :: size
+    integer,        intent(in ), optional :: value
+    integer                               :: v
     v = 0
-
     if ( present(value) ) v      = value
-    if ( present(size)  ) d%size = size
-    if ( present(bump)  ) d%bump = bump
-
-    if ( .not. d%built  ) then
+    if ( present(size ) ) d%size = size
+    if ( .not. associated(d%d)  ) then
        allocate(d%d(d%size))
-       d%d(1:d%size) = v
-       d%built = .true.
+       d%d = v
     end if
-
   end subroutine vector_build_i
 
   subroutine vector_destroy_i(d)
     type(vector_i), intent(inout) :: d
-    if ( d%built ) then
-       call clear(d)
-       d%bump = 2
-    end if
-
+    call clear(d)
   end subroutine vector_destroy_i
 
   pure function vector_empty_i(d) result(r)
-    logical :: r
+    logical                    :: r
     type(vector_i), intent(in) :: d
-
     r = d%size == 0
-
   end function vector_empty_i
 
   pure function vector_size_i(d) result(r)
-    integer :: r
+    integer                    :: r
     type(vector_i), intent(in) :: d
-
     r = d%size
-
   end function vector_size_i
 
   pure function vector_capacity_i(d) result(r)
-    integer :: r
+    integer                    :: r
     type(vector_i), intent(in) :: d
-
-    r = size(d%d)
-
+    if ( associated(d%d)  ) then
+       r = size(d%d)
+    else
+       r = 0
+    endif
   end function vector_capacity_i
 
   pure function vector_at_i(d, i) result(r)
-    integer :: r
-    integer, intent(in) :: i
+    integer                    :: r
+    integer,        intent(in) :: i
     type(vector_i), intent(in) :: d
-
     r = d%d(i)
-
   end function vector_at_i
 
   subroutine vector_at_set_i(d, i, v)
-    integer :: v
-    integer, intent(in) :: i
+    integer                       :: v
+    integer,        intent(in   ) :: i
     type(vector_i), intent(inout) :: d
-
     d%d(i) = v
-
   end subroutine vector_at_set_i
 
   function vector_dataptr_i(d,lo,hi) result(r)
-    integer, pointer, dimension(:) :: r
-    type(vector_i), intent(in) :: d
-    integer, intent(in), optional :: lo
-    integer, intent(in), optional :: hi
+    integer, pointer                     :: r(:)
+    type(vector_i), intent(in)           :: d
+    integer,        intent(in), optional :: lo
+    integer,        intent(in), optional :: hi
 
     if ( present(lo) .AND. present(hi) ) then
        r => d%d(lo:hi)
@@ -216,10 +195,10 @@ contains
     type(vector_i), intent(inout) :: d
     integer, intent(in) :: size
     integer, intent(in), optional ::  value
-    integer, dimension(:), pointer :: np
+    integer, pointer :: np(:)
     integer :: v
 
-        v = 0
+    v = 0
     if ( present(value) ) v = value
     if ( size <= vector_capacity_i(d) ) then
        d%d(1:d%size) = d%d(1:d%end)
@@ -228,9 +207,7 @@ contains
        allocate(np(size))
        np(1:d%size) = d%d(1:d%end)
        np(d%size+1:size) = v
-       if ( associated(d%d) ) then
-          deallocate(d%d)
-       end if
+       if ( associated(d%d) ) deallocate(d%d)
        d%d => np
     end if
     d%size  = size
@@ -238,39 +215,29 @@ contains
 
   end subroutine vector_resize_i
 
-  subroutine vector_set_bump_i(d, bump)
-    type(vector_i), intent(inout) :: d
-    integer, intent(in) :: bump
-
-    d%bump = bump
-
-  end subroutine vector_set_bump_i
-
   subroutine vector_reserve_i(d, size)
     type(vector_i), intent(inout) :: d
-    integer, intent(in) :: size
-    integer, dimension(:), pointer :: np
+    integer,        intent(in)    :: size
+    integer, pointer              :: np(:)
 
     if ( size <= vector_capacity_i(d) ) return
+
     allocate(np(size))
     np(1:d%size) = d%d(1:d%size)
-    if ( associated(d%d) ) then
-       deallocate(d%d)
-    end if
+    if ( associated(d%d) ) deallocate(d%d)
     d%d => np
 
   end subroutine vector_reserve_i
 
   subroutine vector_shrink_wrap_i(d)
     type(vector_i), intent(inout) :: d
-    integer, dimension(:), pointer :: np
+    integer, pointer              :: np(:)
 
     if ( size(d%d) == d%size ) return
+
     allocate(np(d%size))
     np(1:d%size) = d%d(1:d%size)
-    if ( associated(d%d) ) then
-       deallocate(d%d)
-    end if
+    if ( associated(d%d) ) deallocate(d%d)
     d%d => np
     d%end   = d%size
 
@@ -278,39 +245,33 @@ contains
 
   subroutine vector_push_back_i(d,v)
     type(vector_i), intent(inout) :: d
-    integer, intent(in) :: v
+    integer,        intent(in   ) :: v
 
     if ( d%size >= vector_capacity_i(d) ) then
-       call vector_reserve_i(d,max(d%size+1,d%size*d%bump))
+       call vector_reserve_i(d,max(d%size+4,int(BUMP*d%size)))
     end if
-    d%size = d%size + 1
-    d%end = d%end + 1
+    d%size     = d%size + 1
+    d%end      = d%end  + 1
     d%d(d%end) = v
 
   end subroutine vector_push_back_i
 
   subroutine vector_pop_back_i(d)
     type(vector_i), intent(inout) :: d
-
     d%size = d%size - 1
-    d%end = d%end - 1
-
+    d%end  = d%end  - 1
   end subroutine vector_pop_back_i
 
   pure function vector_front_i(d) result(r)
     type(vector_i), intent(in) :: d
-
     integer :: r
     r = d%d(1)
-
   end function vector_front_i
 
   pure function vector_back_i(d) result(r)
     type(vector_i), intent(in) :: d
-
     integer :: r
     r = d%d(d%end)
-
   end function vector_back_i
 
   subroutine vector_reverse_i(d)
@@ -326,9 +287,7 @@ contains
     subroutine sw(a,b)
       integer, intent(inout) :: a, b
       integer :: t
-
       t = a; a = b; b = t
-
     end subroutine sw
 
   end subroutine vector_reverse_i
@@ -336,32 +295,29 @@ contains
   subroutine vector_swap_i(a,b)
     type(vector_i), intent(inout) :: a,b
     type(vector_i) :: t
-
     t = a; a = b; b = t
-
   end subroutine vector_swap_i
 
   function vector_erase_i(d,i) result(r)
     type(vector_i), intent(inout) :: d
     integer, intent(in) :: i
     integer :: r
-
     d%d(i:d%size-1) = d%d(i+1:d%size)
     d%size = d%size - 1
-    d%end =  d%end  - 1
+    d%end  = d%end  - 1
     r = i
   end function vector_erase_i
 
   subroutine vector_insert_i(d, i, elem)
     type(vector_i), intent(inout) :: d
-    integer, intent(in) :: i
+    integer,        intent(in   ) :: i
+    integer,        intent(in   ) :: elem
 
-    integer, intent(in) :: elem
     if ( d%size >= vector_capacity_i(d) ) then
-       call vector_reserve_i(d,max(d%size+1,d%size*d%bump))
+       call vector_reserve_i(d,max(d%size+4,int(BUMP*d%size)))
     end if
     d%size = d%size + 1
-    d%end  = d%end + 1
+    d%end  = d%end  + 1
     d%d(i+1:d%size) = d%d(i:d%size-1)
     d%d(i) = elem
 
@@ -369,34 +325,29 @@ contains
 
   subroutine vector_insert_n_i(d, i, elem, n)
     type(vector_i), intent(inout) :: d
-    integer, intent(in) :: n
-    integer, intent(in) :: i
-    integer, intent(in) :: elem
+    integer,        intent(in   ) :: n
+    integer,        intent(in   ) :: i
+    integer,        intent(in   ) :: elem
     integer j
-
     do j = 1, n
        call vector_insert_i(d,i,elem)
     end do
-
   end subroutine vector_insert_n_i
 
   subroutine vector_clear_i(d)
     type(vector_i), intent(inout) :: d
-
-    if ( d%built ) then
-       d%size = 0
-       d%end  = 0
+    if ( associated(d%d) ) then
        deallocate(d%d)
-       d%d     => Null()
-       d%built = .false.
+       d%d    => Null()
+       d%end  = 0
+       d%size = 0
     end if
-
   end subroutine vector_clear_i
 
   pure function vector_equal_i(d1, d2) result(r)
-    logical :: r
+    logical                    :: r
     type(vector_i), intent(in) :: d1, d2
-    integer :: i
+    integer                    :: i
 
     r = .TRUE.
     if ( size(d1) .ne. size(d2) ) then
@@ -410,27 +361,28 @@ contains
        end if
     end do
   end function vector_equal_i
+
   pure function vector_not_equal_i(d1, d2) result(r)
     logical :: r
     type(vector_i), intent(in) :: d1, d2
     r = .not. equal(d1,d2)
   end function vector_not_equal_i
 
-  subroutine vector_print_i(d, str, unit)
-    use bl_IO_module
-    type(vector_i), intent(in) :: d
-    character (len=*), intent(in), optional :: str
-    integer, intent(in), optional :: unit
-    integer :: un
+   subroutine vector_print_i(d, str, unit)
+     use bl_IO_module
+     type(vector_i), intent(in) :: d
+     character (len=*), intent(in), optional :: str
+     integer, intent(in), optional :: unit
+     integer :: un
 
-    un = unit_stdout(unit)
-    if ( present(str) ) write(unit=un, fmt='(A)', advance='no') str
-    if ( empty(d) ) then
-       write(unit=un, fmt='("Empty")')
-    else
-       write(unit=un, fmt=*) d%d(1:d%end)
-    end if
+     un = unit_stdout(unit)
+     if ( present(str) ) write(unit=un, fmt='(A)', advance='no') str
+     if ( empty(d) ) then
+        write(unit=un, fmt='("Empty")')
+     else
+        write(unit=un, fmt=*) d%d(1:d%end)
+     end if
 
-  end subroutine vector_print_i
+   end subroutine vector_print_i
 
 end module vector_i_module
