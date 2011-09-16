@@ -33,7 +33,7 @@ int  comp_norm     = 1;
 
 Real dx[BL_SPACEDIM];
 
-enum solver_t {BoxLib_C, BoxLib_F, Hypre};
+enum solver_t {BoxLib_C, BoxLib_F, Hypre, All};
 enum bc_t {Periodic = 0,
 	   Dirichlet = LO_DIRICHLET, 
 	   Neumann = LO_NEUMANN};
@@ -46,6 +46,10 @@ void compute_analyticSolution(MultiFab& anaSoln);
 void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[]);
 void setup_rhs(MultiFab& rhs);
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
+void solve(MultiFab& soln, const MultiFab& anaSoln, 
+	   Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
+	   solver_t solver);
 void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
@@ -66,44 +70,51 @@ int main(int argc, char* argv[])
   
   ParmParse pp;
 
-  std::string solver_type_in;
-  pp.get("solver_type",solver_type_in);
-  if (solver_type_in == "BoxLib_C") {
-    solver_type = BoxLib_C;
-  }
-  else if (solver_type_in == "BoxLib_F") {
-    solver_type = BoxLib_F;      
-  }
-  else if (solver_type_in == "Hypre") {
-#ifdef USEHYPRE
-    solver_type = Hypre;
-#else
-    BoxLib::Error("Set USE_HYPRE=TRUE in GNUmakefile");
-#endif
-  }
-  else {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Don't know this solver type: " << solver_type << std::endl;
+  {
+    std::string solver_type_s;
+    pp.get("solver_type",solver_type_s);
+    if (solver_type_s == "BoxLib_C") {
+      solver_type = BoxLib_C;
     }
-    BoxLib::Error("");
+    else if (solver_type_s == "BoxLib_F") {
+      solver_type = BoxLib_F;      
+    }
+    else if (solver_type_s == "Hypre") {
+#ifdef USEHYPRE
+      solver_type = Hypre;
+#else
+      BoxLib::Error("Set USE_HYPRE=TRUE in GNUmakefile");
+#endif
+    }
+    else if (solver_type_s == "All") {
+      solver_type = All;
+    }  
+    else {
+      if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "Don't know this solver type: " << solver_type << std::endl;
+      }
+      BoxLib::Error("");
+    }
   }
 
-  std::string bc_type_in;
-  pp.get("bc_type",bc_type_in);
-  if (bc_type_in == "Dirichlet") {
-    bc_type = Dirichlet;
-  }
-  else if (bc_type_in == "Neumann") {
-    bc_type = Neumann;
-  }
-  else if (bc_type_in == "Periodic") {
-    bc_type = Periodic;
-  }
-  else {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Don't know this boundary type: " << bc_type << std::endl;
+  {
+    std::string bc_type_s;
+    pp.get("bc_type",bc_type_s);
+    if (bc_type_s == "Dirichlet") {
+      bc_type = Dirichlet;
     }
-    BoxLib::Error("");
+    else if (bc_type_s == "Neumann") {
+      bc_type = Neumann;
+    }
+    else if (bc_type_s == "Periodic") {
+      bc_type = Periodic;
+    }
+    else {
+      if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "Don't know this boundary type: " << bc_type << std::endl;
+      }
+      BoxLib::Error("");
+    }
   }
 
   pp.query("tol_rel", tolerance_rel);
@@ -167,11 +178,6 @@ int main(int argc, char* argv[])
   MultiFab rhs(bs, Ncomp, 0, Fab_allocate); 
   setup_rhs(rhs);
 
-  // Allocate the solution array and initialize to zero
-  // Set the number of ghost cells in the solution array.
-  MultiFab soln(bs, Ncomp, 1, Fab_allocate);
-  soln.setVal(0.0);
-
   MultiFab alpha(bs, Ncomp, 0, Fab_allocate);
   MultiFab beta[BL_SPACEDIM];
   for ( int n=0; n<BL_SPACEDIM; ++n ) {
@@ -181,68 +187,53 @@ int main(int argc, char* argv[])
 
   setup_coeffs(bs, alpha, beta);
 
-  const Real run_strt = ParallelDescriptor::second();
-
-  if (solver_type == BoxLib_C) {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Solving with BoxLib C++ solver " << std::endl;
-    }
-    solve_with_Cpp(soln, a, b, alpha, beta, rhs, bs, geom);
-  } 
-  else if (solver_type == BoxLib_F) {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Solving with BoxLib Fortran90 solver " << std::endl;
-    }
-    solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
-  }
-#ifdef USEHYPRE
-  else if (solver_type == Hypre) {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "Solving with Hypre " << std::endl;
-    }
-    solve_with_hypre(soln, a, b, alpha, beta, rhs, bs, geom);
-  }
-#endif
-
-  Real run_stop = ParallelDescriptor::second() - run_strt;
-  
-  ParallelDescriptor::ReduceRealMax(run_stop,ParallelDescriptor::IOProcessorNumber());
-  
-  if (ParallelDescriptor::IOProcessor()) {
-    std::cout << "Run time = " << run_stop << std::endl;
-  }
-  
-  if (plot_soln == 1) {
-    VisMF::Write(soln,"SOLN");
-  }
-
+  MultiFab anaSoln;
   if (comp_norm || plot_err || plot_asol) {
-    MultiFab anaSoln(bs, Ncomp, 0, Fab_allocate);
+    anaSoln.define(bs, Ncomp, 0, Fab_allocate);
     compute_analyticSolution(anaSoln);
     
     if (plot_asol) {
       VisMF::Write(anaSoln,"ASOL");
     }
-
-    anaSoln.minus(soln, 0, Ncomp, 0); // anaSoln is error now
-    if (plot_err) {
-      VisMF::Write(anaSoln,"ERR");
-    }
-
-    if (comp_norm) {
-      Real twoNorm = anaSoln.norm2();
-      Real maxNorm = anaSoln.norm0();
-
-      anaSoln.setVal(1.0);
-      Real vol = anaSoln.norm2();
-      twoNorm /= vol;
-
-      if (ParallelDescriptor::IOProcessor()) {
-	std::cout << "2 norm error: " << twoNorm << ", max norm error: " << maxNorm << std::endl;
-      }
-    }
   }
 
+  // Allocate the solution array 
+  // Set the number of ghost cells in the solution array.
+  MultiFab soln(bs, Ncomp, 1, Fab_allocate);
+
+  if (solver_type == BoxLib_C || solver_type == All) {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "----------------------------------------" << std::endl;
+      std::cout << "Solving with BoxLib C++ solver " << std::endl;
+    }
+
+    solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, BoxLib_C);
+  }
+
+  if (solver_type == BoxLib_F || solver_type == All) {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "----------------------------------------" << std::endl;
+      std::cout << "Solving with BoxLib F90 solver " << std::endl;
+    }
+
+    solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, BoxLib_F);
+  }
+
+#ifdef USEHYPRE
+  if (solver_type == Hypre || solver_type == All) {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "----------------------------------------" << std::endl;
+      std::cout << "Solving with Hypre " << std::endl;
+    }
+
+    solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, Hypre);
+  }
+#endif
+
+  if (ParallelDescriptor::IOProcessor()) {
+    std::cout << "----------------------------------------" << std::endl;
+  }
+  
   BoxLib::Finalize();
 }
 
@@ -299,6 +290,9 @@ void setup_rhs(MultiFab& rhs)
 {
   int ibnd = static_cast<int>(bc_type);
 
+  // We test the sum of the RHS to check solvability
+  Real sum_rhs = 0.;
+
   for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
     const int* rlo = rhs[mfi].loVect();
     const int* rhi = rhs[mfi].hiVect();
@@ -306,6 +300,17 @@ void setup_rhs(MultiFab& rhs)
 
     FORT_SET_RHS(rhs[mfi].dataPtr(),ARLIM(rlo),ARLIM(rhi),
                  bx.loVect(),bx.hiVect(),dx, &ibnd);
+    sum_rhs += rhs[mfi].sum(0,1);
+  }
+
+  for (int n=0; n < BL_SPACEDIM; n++) {
+    sum_rhs *= dx[n]; 
+  }
+  
+  ParallelDescriptor::ReduceRealSum(sum_rhs, ParallelDescriptor::IOProcessorNumber());
+
+  if (ParallelDescriptor::IOProcessor()) {
+     std::cout << "The RHS sums to " << sum_rhs << std::endl;
   }
 
   if (plot_rhs == 1) {
@@ -363,6 +368,68 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
 	  bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,ibnd);
 	}
       } 
+    }
+  }
+}
+
+void solve(MultiFab& soln, const MultiFab& anaSoln, 
+	   Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
+	   solver_t solver)
+{
+  std::string ss;
+
+  soln.setVal(0.0);
+
+  const Real run_strt = ParallelDescriptor::second();
+
+  if (solver == BoxLib_C) {
+    ss = "CPP";
+    solve_with_Cpp(soln, a, b, alpha, beta, rhs, bs, geom);
+  }
+  else if (solver == BoxLib_F) {
+    ss = "FPP";
+    solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
+  }
+  else if (solver == Hypre) {
+    ss = "Hyp";
+    solve_with_hypre(soln, a, b, alpha, beta, rhs, bs, geom);
+  }
+  else {
+    BoxLib::Error("Invalid solver");
+  }
+
+  Real run_time = ParallelDescriptor::second() - run_strt;
+
+  ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
+  if (ParallelDescriptor::IOProcessor()) {
+    std::cout << "   Run time      : " << run_time << std::endl;
+  }
+
+  if (plot_soln) {
+    VisMF::Write(soln,"SOLN-"+ss);
+  }
+
+  if (plot_err || comp_norm) {
+    soln.minus(anaSoln, 0, Ncomp, 0); // soln contains errors now
+    MultiFab& err = soln;
+
+    if (plot_err) {
+      VisMF::Write(err,"ERR-"+ss);
+    }
+    
+    if (comp_norm) {
+      Real twoNorm = err.norm2();
+      Real maxNorm = err.norm0();
+      
+      err.setVal(1.0);
+      Real vol = err.norm2();
+      twoNorm /= vol;
+      
+      if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "   2 norm error  : " << twoNorm << std::endl;
+	std::cout << "   max norm error: " << maxNorm << std::endl;
+      }
     }
   }
 }

@@ -1,9 +1,10 @@
-#solver_type = Hypre
-solver_type = BoxLib_F
-#solver_type = BoxLib_C
+# solver_type = Hypre
+# solver_type = BoxLib_F
+# solver_type = BoxLib_C
+solver_type = All
 
-#bc_type = Neumann
-#bc_type = Periodic
+# bc_type = Neumann
+# bc_type = Periodic
 bc_type = Dirichlet
 
 plot_rhs  = 0 # plot the RHS
