@@ -599,9 +599,9 @@ contains
       nlevs = size(res)
       ni_res = norm_inf(res(nlevs))
       ni_sol = norm_inf(sol(nlevs))
-!      r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-!           ni_res <= abs_eps .or. &
-!           ni_res <= epsilon(Anorm)*Anorm
+!     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
+!          ni_res <= abs_eps .or. &
+!          ni_res <= epsilon(Anorm)*Anorm
       r =  ni_res <= rel_eps*(bnorm) .or. &
            ni_res <= abs_eps
     end function ml_fine_converged
@@ -620,20 +620,23 @@ contains
 
       ni_res = ml_norm_inf(res, mask)
       ni_sol = ml_norm_inf(sol, mask)
-!      r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-!           ni_res <= abs_eps .or. &
-!           ni_res <= epsilon(Anorm)*Anorm
+
+!     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
+!          ni_res <= abs_eps .or. &
+!          ni_res <= epsilon(Anorm)*Anorm
+
       r =  ni_res <= rel_eps*(bnorm) .or. &
            ni_res <= abs_eps 
+
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
-         if (ni_res <= rel_eps*Anorm*ni_sol) then
-            print *,'Converged res < rel_eps*Anorm*sol'
+         if (ni_res <= rel_eps*bnorm) then
+            print *,'Converged res < rel_eps*bnorm '
          else if (ni_res <= abs_eps) then
             print *,'Converged res < abs_eps '
-         else if (ni_res <= rel_eps*bnorm) then
-            print *,'Converged res < rel_eps*bnorm '
-         else 
-            print *,'Converged res < epsilon(Anorm)*Anorm'
+!        else if (ni_res <= rel_eps*Anorm*ni_sol) then
+!           print *,'Converged res < rel_eps*Anorm*sol'
+!        else if (ni_res <= epsilon(Anorm)*Anorm) then 
+!           print *,'Converged res < epsilon(Anorm)*Anorm'
          end if
       end if
     end function ml_converged
