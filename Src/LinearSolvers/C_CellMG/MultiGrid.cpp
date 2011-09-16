@@ -361,6 +361,22 @@ MultiGrid::solve_ (MultiFab&      _sol,
                 << rel_error << '\n';
   }
 
+  if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
+  {
+      if (error > eps_rel*norm_rhs)
+      {
+         std::cout << "   Converged res < rel_eps*bnorm " << std::endl;
+      } 
+      else if (error > eps_rel*norm_Lp*norm_cor)
+      {
+         std::cout << "   Converged res < rel_eps*Anorm*sol " << std::endl;
+      } 
+      else if (error > eps_abs)
+      {
+         std::cout << "   Converged res < abs_eps " << std::endl;
+      }
+  }
+
   //
   // Omit ghost update since maybe not initialized in calling routine.
   // Add to boundary values stored in initialsolution.
