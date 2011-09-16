@@ -15,6 +15,7 @@
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 #include <COEF_F.H>
+#include <RHS_F.H>
 #include <MacBndry.H>
 #include <MGT_Solver.H>
 #ifdef USEHYPRE
