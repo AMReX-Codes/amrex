@@ -388,7 +388,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
     solve_with_Cpp(soln, a, b, alpha, beta, rhs, bs, geom);
   }
   else if (solver == BoxLib_F) {
-    ss = "FPP";
+    ss = "F90";
     solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
   }
   else if (solver == Hypre) {
