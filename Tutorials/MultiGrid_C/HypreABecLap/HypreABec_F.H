@@ -67,11 +67,11 @@ extern "C" {
 		    const Real* dx, const int& idim);
   void FORT_HPBMAT3(Real* mat, Real* bcoefs, ARLIM_P(blo), ARLIM_P(bhi),
 		    const int* lo, const int* hi, const Real& sb, const Real* dx, 
-		    const int& idim, const int& bct, const Real& bcl, 
+		    const int& idim, const int& bct, const Real& bcl, const Real& hob,
 		    const int* msk, ARLIM_P(mlo), ARLIM_P(mhi));
   void FORT_HPBVEC3(Real* vec, Real* bcoefs, ARLIM_P(blo), ARLIM_P(bhi),
 		    const int* lo, const int* hi, const Real& sb, const Real* dx, 
-		    const int& idim, const int& bct, const Real& bcl, 
+		    const int& idim, const int& bct, const Real& bcl, const Real& hob,
 		    const int* msk, ARLIM_P(mlo), ARLIM_P(mhi),
 		    const Real* bcv, ARLIM_P(bvlo), ARLIM_P(bvhi));
 };
