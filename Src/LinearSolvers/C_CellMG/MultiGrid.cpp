@@ -363,17 +363,17 @@ MultiGrid::solve_ (MultiFab&      _sol,
 
   if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
   {
-      if (error > eps_rel*norm_rhs)
+      if (error < eps_rel*norm_rhs)
       {
-         std::cout << "   Converged res < rel_eps*bnorm " << std::endl;
+         std::cout << "   Converged res < eps_rel*bnorm " << std::endl;
       } 
-      else if (error > eps_rel*norm_Lp*norm_cor)
+      else if (error < eps_rel*norm_Lp*norm_cor)
       {
-         std::cout << "   Converged res < rel_eps*Anorm*sol " << std::endl;
+         std::cout << "   Converged res < eps_rel*Anorm*sol " << std::endl;
       } 
-      else if (error > eps_abs)
+      else if (error < eps_abs)
       {
-         std::cout << "   Converged res < abs_eps " << std::endl;
+         std::cout << "   Converged res < eps_abs " << std::endl;
       }
   }
 
