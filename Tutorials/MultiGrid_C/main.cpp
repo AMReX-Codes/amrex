@@ -175,6 +175,12 @@ int main(int argc, char* argv[])
     dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/domain.length(n);
   }
 
+  if (ParallelDescriptor::IOProcessor()) {
+     std::cout << "Domain size     : " << n_cell << std::endl;
+     std::cout << "Max_grid_size   : " << max_grid_size << std::endl;
+     std::cout << "Number of grids : " << bs.size() << std::endl;
+  }
+
   // Allocate and define the right hand side.
   MultiFab rhs(bs, Ncomp, 0, Fab_allocate); 
   setup_rhs(rhs);
@@ -311,7 +317,7 @@ void setup_rhs(MultiFab& rhs)
   ParallelDescriptor::ReduceRealSum(sum_rhs, ParallelDescriptor::IOProcessorNumber());
 
   if (ParallelDescriptor::IOProcessor()) {
-     std::cout << "The RHS sums to " << sum_rhs << std::endl;
+     std::cout << "Sum of RHS      : " << sum_rhs << std::endl;
   }
 
   if (plot_rhs == 1) {
