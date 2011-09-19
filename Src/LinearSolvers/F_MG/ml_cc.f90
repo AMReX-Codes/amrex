@@ -52,6 +52,8 @@ contains
     real(dp_t) :: tres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
+    real(dp_t) :: r1,r2
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_cc")
@@ -234,6 +236,8 @@ contains
 !      end if
 
     else 
+
+     r1 = parallel_wtime() 
 
      do iter = 1, mgt(nlevs)%max_iter
 
@@ -587,6 +591,13 @@ contains
 
     if ( present(final_resnorm) ) &
        final_resnorm = ni_res
+
+    r2 = parallel_wtime() - r1
+
+    call parallel_reduce(r1, r2, MPI_MAX, proc = parallel_IOProcessorNode())
+
+    if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
+       print*, 'Solve Time = ', r1
 
   contains
 
