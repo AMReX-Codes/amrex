@@ -50,13 +50,13 @@ contains
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
-          do k = lbound(sp,dim=3), ubound(sp,dim=3)
-             do j = lbound(sp,dim=2), ubound(sp,dim=2)
-                do i = lbound(sp,dim=1), ubound(sp,dim=1)
+          do k = lbound(sp,dim=4), ubound(sp,dim=4)
+             do j = lbound(sp,dim=3), ubound(sp,dim=3)
+                do i = lbound(sp,dim=2), ubound(sp,dim=2)
                    if ( lp(i,j,k,1) ) then
                       sum_comps = ZERO
-                      do n = lbound(sp,dim=4), ubound(sp,dim=4)
-                         sum_comps = sum_comps + abs(sp(i,j,k,n))
+                      do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                         sum_comps = sum_comps + abs(sp(n,i,j,k))
                       end do
                       r1 = max(r1,sum_comps)
                    end if
@@ -66,17 +66,16 @@ contains
           !$OMP END PARALLEL DO
        end do
     else
-
        do b = 1, nboxes(ss)
           if ( remote(ss,b) ) cycle
           sp => dataptr(ss, b)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
-          do k = lbound(sp,dim=3), ubound(sp,dim=3)
-             do j = lbound(sp,dim=2), ubound(sp,dim=2)
-                do i = lbound(sp,dim=1), ubound(sp,dim=1)
+          do k = lbound(sp,dim=4), ubound(sp,dim=4)
+             do j = lbound(sp,dim=3), ubound(sp,dim=3)
+                do i = lbound(sp,dim=2), ubound(sp,dim=2)
                    sum_comps = ZERO
-                   do n = lbound(sp,dim=4), ubound(sp,dim=4)
-                      sum_comps = sum_comps + abs(sp(i,j,k,n))
+                   do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                      sum_comps = sum_comps + abs(sp(n,i,j,k))
                    end do
                    r1 = max(r1,sum_comps)
                 end do
@@ -111,31 +110,30 @@ contains
           if ( remote(ss,b) ) cycle
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
-          do k = lbound(sp,dim=3), ubound(sp,dim=3)
-             do j = lbound(sp,dim=2), ubound(sp,dim=2)
-                do i = lbound(sp,dim=1), ubound(sp,dim=1)
+          do k = lbound(sp,dim=4), ubound(sp,dim=4)
+             do j = lbound(sp,dim=3), ubound(sp,dim=3)
+                do i = lbound(sp,dim=2), ubound(sp,dim=2)
                    if ( lp(i,j,k,1) ) then
                       sum_comps = ZERO
-                      do n = lbound(sp,dim=4), ubound(sp,dim=4)
-                         sum_comps = sum_comps + sp(i,j,k,n)
+                      do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                         sum_comps = sum_comps + sp(n,i,j,k)
                       end do
                       r1 = max(r1,sum_comps)
                    end if
                 end do
              end do
           end do
-
        end do
     else
        do b = 1, nboxes(ss)
           if ( remote(ss,b) ) cycle
           sp => dataptr(ss, b)
-          do k = lbound(sp,dim=3), ubound(sp,dim=3)
-             do j = lbound(sp,dim=2), ubound(sp,dim=2)
-                do i = lbound(sp,dim=1), ubound(sp,dim=1)
+          do k = lbound(sp,dim=4), ubound(sp,dim=4)
+             do j = lbound(sp,dim=3), ubound(sp,dim=3)
+                do i = lbound(sp,dim=2), ubound(sp,dim=2)
                    sum_comps = ZERO
-                   do n = lbound(sp,dim=4), ubound(sp,dim=4)
-                      sum_comps = sum_comps + sp(i,j,k,n)
+                   do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                      sum_comps = sum_comps + sp(n,i,j,k)
                    end do
                    r1 = max(r1,sum_comps)
                 end do
@@ -627,7 +625,7 @@ contains
 
     integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1):)
-    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,0:)
+    real (kind = dp_t), intent(  out) ::   ss(0:,lo(1):)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
@@ -644,16 +642,16 @@ contains
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
 
     do i = lo(1),hi(1)
-       ss(i,0) =   ZERO
-       ss(i,1) = -betax(i+1)*f1(1)
-       ss(i,2) = -betax(i  )*f1(1)
-       ss(i,XBC) = ZERO
+       ss(0,i) =   ZERO
+       ss(1,i) = -betax(i+1)*f1(1)
+       ss(2,i) = -betax(i  )*f1(1)
+       ss(XBC,i) = ZERO
     end do
 
     ! x derivatives
 
     do i = lo(1)+1, hi(1)-1
-       ss(i,0) = ss(i,0) + (betax(i+1)+betax(i))*f1(1)
+       ss(0,i) = ss(0,i) + (betax(i+1)+betax(i))*f1(1)
     end do
 
     bclo = stencil_bc_type(mask(lo(1)),1,-1)
@@ -661,26 +659,26 @@ contains
 
     i = lo(1)
     if (bclo .eq. BC_INT) then
-       ss(i,0) = ss(i,0) + (betax(i)+betax(i+1))*f1(1)
+       ss(0,i) = ss(0,i) + (betax(i)+betax(i+1))*f1(1)
     else
        call stencil_bndry_aaa(order, nx, 1, -1, mask(i), &
-            ss(i,0), ss(i,1), ss(i,2), ss(i,XBC), &
+            ss(0,i), ss(1,i), ss(2,i), ss(XBC,i), &
             betax(i), betax(i+1), xa(1), xb(1), dh(1), bclo, bchi)
     end if
 
     if ( hi(1) > lo(1) ) then
        i = hi(1)
        if (bchi .eq. BC_INT) then
-          ss(i,0) = ss(i,0) + (betax(i)+betax(i+1))*f1(1)
+          ss(0,i) = ss(0,i) + (betax(i)+betax(i+1))*f1(1)
        else
           call stencil_bndry_aaa(order, nx, 1, 1, mask(i), &
-               ss(i,0), ss(i,1), ss(i,2), ss(i,XBC), &
+               ss(0,i), ss(1,i), ss(2,i), ss(XBC,i), &
                betax(i), betax(i+1), xa(1), xb(1), dh(1), bclo, bchi)
        end if
     end if
 
     do i = lo(1),hi(1)
-       ss(i,0) = ss(i,0) + alpha(i)
+       ss(0,i) = ss(0,i) + alpha(i)
     end do
 
   end subroutine s_simple_1d_cc
@@ -689,7 +687,7 @@ contains
 
     integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
-    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,0:)
+    real (kind = dp_t), intent(  out) ::   ss(0:, lo(1)  :,lo(2)  :)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
@@ -712,13 +710,13 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,0) = ZERO
-          ss(i,j,1) = -betax(i+1,j)*f1(1)
-          ss(i,j,2) = -betax(i  ,j)*f1(1)
-          ss(i,j,3) = -betay(i,j+1)*f1(2)
-          ss(i,j,4) = -betay(i,j  )*f1(2)
-          ss(i,j,XBC) = ZERO
-          ss(i,j,YBC) = ZERO
+          ss(0,i,j) = ZERO
+          ss(1,i,j) = -betax(i+1,j)*f1(1)
+          ss(2,i,j) = -betax(i  ,j)*f1(1)
+          ss(3,i,j) = -betay(i,j+1)*f1(2)
+          ss(4,i,j) = -betay(i,j  )*f1(2)
+          ss(XBC,i,j) = ZERO
+          ss(YBC,i,j) = ZERO
        end do
     end do
 
@@ -726,7 +724,7 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1)+1,hi(1)-1
-          ss(i,j,0) = ss(i,j,0) + (betax(i,j)+betax(i+1,j))*f1(1)
+          ss(0,i,j) = ss(0,i,j) + (betax(i,j)+betax(i+1,j))*f1(1)
        end do
     end do
 
@@ -736,10 +734,10 @@ contains
  
        i = lo(1)
        if (bclo .eq. BC_INT) then
-          ss(i,j,0) = ss(i,j,0) + (betax(i,j)+betax(i+1,j))*f1(1)
+          ss(0,i,j) = ss(0,i,j) + (betax(i,j)+betax(i+1,j))*f1(1)
        else
           call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
-               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+               ss(0,i,j), ss(1,i,j), ss(2,i,j), ss(XBC,i,j), &
                betax(i,j), betax(i+1,j), &
                xa(1), xb(1), dh(1), bclo, bchi)
        end if
@@ -747,10 +745,10 @@ contains
        if ( hi(1) > lo(1) ) then
           i = hi(1)
           if (bchi .eq. BC_INT) then
-             ss(i,j,0) = ss(i,j,0) + (betax(i,j)+betax(i+1,j))*f1(1)
+             ss(0,i,j) = ss(0,i,j) + (betax(i,j)+betax(i+1,j))*f1(1)
           else
              call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
-                  ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+                  ss(0,i,j), ss(1,i,j), ss(2,i,j), ss(XBC,i,j), &
                   betax(i,j), betax(i+1,j), &
                   xa(1), xb(1), dh(1), bclo, bchi) 
           end if 
@@ -761,7 +759,7 @@ contains
 
     do i = lo(1),hi(1)
        do j = lo(2)+1,hi(2)-1
-          ss(i,j,0) = ss(i,j,0) + (betay(i,j)+betay(i,j+1))*f1(2)
+          ss(0,i,j) = ss(0,i,j) + (betay(i,j)+betay(i,j+1))*f1(2)
        end do
     end do
 
@@ -771,10 +769,10 @@ contains
 
        j = lo(2)
        if (bclo .eq. BC_INT) then
-          ss(i,j,0) = ss(i,j,0) + (betay(i,j)+betay(i,j+1))*f1(2)
+          ss(0,i,j) = ss(0,i,j) + (betay(i,j)+betay(i,j+1))*f1(2)
        else
           call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
-               ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
+               ss(0,i,j), ss(3,i,j), ss(4,i,j),ss(YBC,i,j), &
                betay(i,j), betay(i,j+1), &
                xa(2), xb(2), dh(2), bclo, bchi)
        end if
@@ -782,10 +780,10 @@ contains
        if ( hi(2) > lo(2) ) then
           j = hi(2)
           if (bchi .eq. BC_INT) then
-             ss(i,j,0) = ss(i,j,0) + (betay(i,j)+betay(i,j+1))*f1(2)
+             ss(0,i,j) = ss(0,i,j) + (betay(i,j)+betay(i,j+1))*f1(2)
           else
              call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
-                  ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
+                  ss(0,i,j), ss(3,i,j), ss(4,i,j), ss(YBC,i,j), &
                   betay(i,j), betay(i,j+1), &
                   xa(2), xb(2), dh(2), bclo, bchi)
           end if
@@ -794,7 +792,7 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,0) = ss(i,j,0) + alpha(i,j)
+          ss(0,i,j) = ss(0,i,j) + alpha(i,j)
        end do
     end do
 
@@ -804,7 +802,7 @@ contains
 
     integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
-    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,0:)
+    real (kind = dp_t), intent(  out) ::   ss(0:, lo(1)  :,lo(2)  :)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,0:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,:)
@@ -827,7 +825,7 @@ contains
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
  
-    ss(:,:,:) = 0.d0
+    ss = 0.d0
 
     ! Consider the operator  ( alpha - sum_n (beta0_n del dot beta_n grad) )
     ! Components alpha(i,j,   0) = alpha
@@ -835,19 +833,19 @@ contains
     ! Components betax(i,j,1:nc) = betax_n
     ! Components betay(i,j,1:nc) = betay_n
 
-    ! ss(i,j,1) is the coefficient of phi(i+1,j  )
-    ! ss(i,j,2) is the coefficient of phi(i-1,j  )
-    ! ss(i,j,3) is the coefficient of phi(i  ,j+1)
-    ! ss(i,j,4) is the coefficient of phi(i  ,j-1)
-    ! ss(i,j,0) is the coefficient of phi(i  ,j  )
+    ! ss(1,i,j) is the coefficient of phi(i+1,j  )
+    ! ss(2,i,j) is the coefficient of phi(i-1,j  )
+    ! ss(3,i,j) is the coefficient of phi(i  ,j+1)
+    ! ss(4,i,j) is the coefficient of phi(i  ,j-1)
+    ! ss(0,i,j) is the coefficient of phi(i  ,j  )
     
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           do n = 1,nc
-             ss(i,j,1) = ss(i,j,1) - betax(i+1,j,n)*f1(1) / alpha(i,j,n)
-             ss(i,j,2) = ss(i,j,2) - betax(i  ,j,n)*f1(1) / alpha(i,j,n)
-             ss(i,j,3) = ss(i,j,3) - betay(i,j+1,n)*f1(2) / alpha(i,j,n)
-             ss(i,j,4) = ss(i,j,4) - betay(i,j  ,n)*f1(2) / alpha(i,j,n)
+             ss(1,i,j) = ss(1,i,j) - betax(i+1,j,n)*f1(1) / alpha(i,j,n)
+             ss(2,i,j) = ss(2,i,j) - betax(i  ,j,n)*f1(1) / alpha(i,j,n)
+             ss(3,i,j) = ss(3,i,j) - betay(i,j+1,n)*f1(2) / alpha(i,j,n)
+             ss(4,i,j) = ss(4,i,j) - betay(i,j  ,n)*f1(2) / alpha(i,j,n)
           end do 
        end do
     end do
@@ -857,7 +855,7 @@ contains
     do j = lo(2),hi(2)
        do i = lo(1)+1,hi(1)-1
           do n = 1, nc
-             ss(i,j,0) = ss(i,j,0) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) / alpha(i,j,n)
+             ss(0,i,j) = ss(0,i,j) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) / alpha(i,j,n)
           end do
        end do
     end do
@@ -869,7 +867,7 @@ contains
        i = lo(1)
        if (bclo .eq. BC_INT) then
           do n = 1, nc
-             ss(i,j,0) = ss(i,j,0) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) / alpha(i,j,n)
+             ss(0,i,j) = ss(0,i,j) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) / alpha(i,j,n)
           end do
        else
           blo = 0.d0
@@ -879,7 +877,7 @@ contains
             bhi = bhi + betax(i+1,j,n) / alpha(i,j,n)
           end do
           call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
-               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+               ss(0,i,j), ss(1,i,j), ss(2,i,j), ss(XBC,i,j), &
                blo, bhi, xa(1), xb(1), dh(1), bclo, bchi)
        end if
 
@@ -887,7 +885,7 @@ contains
           i = hi(1)
           if (bchi .eq. BC_INT) then
              do n = 1, nc
-                ss(i,j,0) = ss(i,j,0) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) / alpha(i,j,n)
+                ss(0,i,j) = ss(0,i,j) + (betax(i,j,n)+betax(i+1,j,n))*f1(1) / alpha(i,j,n)
              end do
           else
              blo = 0.d0
@@ -897,7 +895,7 @@ contains
                 bhi = bhi + betax(i+1,j,n) / alpha(i,j,n)
              end do
              call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
-                  ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+                  ss(0,i,j), ss(1,i,j), ss(2,i,j), ss(XBC,i,j), &
                   blo, bhi, xa(1), xb(1), dh(1), bclo, bchi)
           end if
        end if
@@ -908,7 +906,7 @@ contains
     do i = lo(1),hi(1)
        do j = lo(2)+1,hi(2)-1
           do n = 1,nc
-             ss(i,j,0) = ss(i,j,0) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) / alpha(i,j,n)
+             ss(0,i,j) = ss(0,i,j) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) / alpha(i,j,n)
           end do
        end do
     end do
@@ -920,7 +918,7 @@ contains
        j = lo(2)
        if (bclo .eq. BC_INT) then
           do n = 1,nc
-             ss(i,j,0) = ss(i,j,0) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) / alpha(i,j,n)
+             ss(0,i,j) = ss(0,i,j) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) / alpha(i,j,n)
           end do
        else
           blo = 0.d0
@@ -930,7 +928,7 @@ contains
              bhi = bhi + betay(i,j+1,n) / alpha(i,j,n) 
           end do
           call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
-               ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
+               ss(0,i,j), ss(3,i,j), ss(4,i,j),ss(YBC,i,j), &
                blo, bhi, xa(2), xb(2), dh(2), bclo, bchi)
        end if
 
@@ -938,7 +936,7 @@ contains
           j = hi(2)
           if (bchi .eq. BC_INT) then
              do n = 1,nc
-                ss(i,j,0) = ss(i,j,0) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) / alpha(i,j,n)
+                ss(0,i,j) = ss(0,i,j) + (betay(i,j,n)+betay(i,j+1,n))*f1(2) / alpha(i,j,n)
              end do
           else
              blo = 0.d0
@@ -948,7 +946,7 @@ contains
                 bhi = bhi + betay(i,j+1,n) / alpha(i,j,n) 
              end do
              call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
-                  ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
+                  ss(0,i,j), ss(3,i,j), ss(4,i,j), ss(YBC,i,j), &
                   blo, bhi, xa(2), xb(2), dh(2), bclo, bchi)
           end if
        end if
@@ -956,7 +954,7 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,0) = ss(i,j,0) + alpha(i,j,0) 
+          ss(0,i,j) = ss(0,i,j) + alpha(i,j,0) 
        end do
     end do
 
@@ -966,7 +964,7 @@ contains
 
     integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
-    real (kind = dp_t), intent(  out) :: ss(lo(1)  :,lo(2)  :,0:)
+    real (kind = dp_t), intent(  out) :: ss(0:, lo(1)  :,lo(2)  :)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,0:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,:)
@@ -989,7 +987,7 @@ contains
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
  
-    ss(:,:,:) = 0.d0
+    ss = 0.d0
 
     ! Consider the operator  ( alpha - sum_n (beta0_n del dot beta_n grad) )
     ! Components alpha(i,j,   0) = alpha
@@ -997,18 +995,18 @@ contains
     ! Components betax(i,j,1:nc) = betax_n
     ! Components betay(i,j,1:nc) = betay_n
 
-    ! ss(i,j,1) is the coefficient of phi(i+1,j  )
-    ! ss(i,j,2) is the coefficient of phi(i-1,j  )
-    ! ss(i,j,3) is the coefficient of phi(i  ,j+1)
-    ! ss(i,j,4) is the coefficient of phi(i  ,j-1)
-    ! ss(i,j,0) is the coefficient of phi(i  ,j  )
+    ! ss(1,i,j) is the coefficient of phi(i+1,j  )
+    ! ss(2,i,j) is the coefficient of phi(i-1,j  )
+    ! ss(3,i,j) is the coefficient of phi(i  ,j+1)
+    ! ss(4,i,j) is the coefficient of phi(i  ,j-1)
+    ! ss(0,i,j) is the coefficient of phi(i  ,j  )
     
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,1) = ss(i,j,1) - (betax(i+1,j,1)+betax(i+1,j,2))*f1(1) 
-          ss(i,j,2) = ss(i,j,2) - (betax(i  ,j,1)-betax(i,  j,2))*f1(1) 
-          ss(i,j,3) = ss(i,j,3) - (betay(i,j+1,1)+betay(i,j+1,2))*f1(2) 
-          ss(i,j,4) = ss(i,j,4) - (betay(i,j  ,1)-betay(i,j  ,2))*f1(2) 
+          ss(1,i,j) = ss(1,i,j) - (betax(i+1,j,1)+betax(i+1,j,2))*f1(1) 
+          ss(2,i,j) = ss(2,i,j) - (betax(i  ,j,1)-betax(i,  j,2))*f1(1) 
+          ss(3,i,j) = ss(3,i,j) - (betay(i,j+1,1)+betay(i,j+1,2))*f1(2) 
+          ss(4,i,j) = ss(4,i,j) - (betay(i,j  ,1)-betay(i,j  ,2))*f1(2) 
        end do
     end do
 
@@ -1016,7 +1014,7 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1)+1,hi(1)-1
-            ss(i,j,0) = ss(i,j,0) - ss(i,j,1) - ss(i,j,2) 
+            ss(0,i,j) = ss(0,i,j) - ss(1,i,j) - ss(2,i,j) 
        end do
     end do
 
@@ -1026,24 +1024,24 @@ contains
  
        i = lo(1)
        if (bclo .eq. BC_INT) then
-          ss(i,j,0) = ss(i,j,0) - ss(i,j,1) - ss(i,j,2)
+          ss(0,i,j) = ss(0,i,j) - ss(1,i,j) - ss(2,i,j)
        else
-          blo = -ss(i,j,2)/f1(1)  
-          bhi = -ss(i,j,1)/f1(1)
+          blo = -ss(2,i,j)/f1(1)  
+          bhi = -ss(1,i,j)/f1(1)
           call stencil_bndry_aaa(order, nx, 1, -1, mask(i,j), &
-               ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+               ss(0,i,j), ss(1,i,j), ss(2,i,j), ss(XBC,i,j), &
                blo, bhi, xa(1), xb(1), dh(1), bclo, bchi)
        end if
 
        if ( hi(1) > lo(1) ) then
           i = hi(1)
           if (bchi .eq. BC_INT) then
-             ss(i,j,0) = ss(i,j,0) - ss(i,j,1) - ss(i,j,2) 
+             ss(0,i,j) = ss(0,i,j) - ss(1,i,j) - ss(2,i,j) 
           else
-             blo = -ss(i,j,2)/f1(1)  
-             bhi = -ss(i,j,1)/f1(1)
+             blo = -ss(2,i,j)/f1(1)  
+             bhi = -ss(1,i,j)/f1(1)
              call stencil_bndry_aaa(order, nx, 1, 1, mask(i,j), &
-                  ss(i,j,0), ss(i,j,1), ss(i,j,2), ss(i,j,XBC), &
+                  ss(0,i,j), ss(1,i,j), ss(2,i,j), ss(XBC,i,j), &
                   blo, bhi, xa(1), xb(1), dh(1), bclo, bchi)
           end if
        end if
@@ -1053,7 +1051,7 @@ contains
 
     do i = lo(1),hi(1)
        do j = lo(2)+1,hi(2)-1
-             ss(i,j,0) = ss(i,j,0) - ss(i,j,3) - ss(i,j,4) 
+             ss(0,i,j) = ss(0,i,j) - ss(3,i,j) - ss(4,i,j) 
        end do
     end do
 
@@ -1063,24 +1061,24 @@ contains
 
        j = lo(2)
        if (bclo .eq. BC_INT) then
-          ss(i,j,0) = ss(i,j,0) - ss(i,j,3) - ss(i,j,4) 
+          ss(0,i,j) = ss(0,i,j) - ss(3,i,j) - ss(4,i,j) 
        else
-          blo = -ss(i,j,4)/f1(2)  
-          bhi = -ss(i,j,3)/f1(2)         
+          blo = -ss(4,i,j)/f1(2)  
+          bhi = -ss(3,i,j)/f1(2)         
           call stencil_bndry_aaa(order, ny, 2, -1, mask(i,j), &
-               ss(i,j,0), ss(i,j,3), ss(i,j,4),ss(i,j,YBC), &
+               ss(0,i,j), ss(3,i,j), ss(4,i,j),ss(YBC,i,j), &
                blo, bhi, xa(2), xb(2), dh(2), bclo, bchi)
        end if
 
        if ( hi(2) > lo(2) ) then
           j = hi(2)
           if (bchi .eq. BC_INT) then
-             ss(i,j,0) = ss(i,j,0) - ss(i,j,3) - ss(i,j,4) 
+             ss(0,i,j) = ss(0,i,j) - ss(3,i,j) - ss(4,i,j) 
           else
-             blo = -ss(i,j,4)/f1(2)  
-             bhi = -ss(i,j,3)/f1(2)
+             blo = -ss(4,i,j)/f1(2)  
+             bhi = -ss(3,i,j)/f1(2)
              call stencil_bndry_aaa(order, ny, 2, 1, mask(i,j), &
-                  ss(i,j,0), ss(i,j,3), ss(i,j,4), ss(i,j,YBC), &
+                  ss(0,i,j), ss(3,i,j), ss(4,i,j), ss(YBC,i,j), &
                   blo, bhi, xa(2), xb(2), dh(2), bclo, bchi)
           end if
        end if
@@ -1088,7 +1086,7 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,0) = ss(i,j,0) + alpha(i,j,0) 
+          ss(0,i,j) = ss(0,i,j) + alpha(i,j,0) 
        end do
     end do
 
@@ -1098,7 +1096,7 @@ contains
 
     integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:)
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :)
-    real (kind = dp_t), intent(  out) :: ss(lo(1)  :,lo(2)  :,0:)
+    real (kind = dp_t), intent(  out) :: ss(0:, lo(1)  :,lo(2)  :)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,0:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,:)
@@ -1120,7 +1118,7 @@ contains
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
  
-    ss(:,:,:) = 0.d0
+    ss = 0.d0
 
     ! Consider the operator  ( alpha - sum_n (beta0_n del dot beta_n grad) )
     ! Components alpha(i,j,   0) = alpha
@@ -1128,18 +1126,18 @@ contains
     ! Components betax(i,j,1:nc) = betax_n
     ! Components betay(i,j,1:nc) = betay_n
 
-    ! ss(i,j,1) is the coefficient of phi(i+1,j  )
-    ! ss(i,j,2) is the coefficient of phi(i-1,j  )
-    ! ss(i,j,3) is the coefficient of phi(i  ,j+1)
-    ! ss(i,j,4) is the coefficient of phi(i  ,j-1)
-    ! ss(i,j,0) is the coefficient of phi(i  ,j  )
+    ! ss(1,i,j) is the coefficient of phi(i+1,j  )
+    ! ss(2,i,j) is the coefficient of phi(i-1,j  )
+    ! ss(3,i,j) is the coefficient of phi(i  ,j+1)
+    ! ss(4,i,j) is the coefficient of phi(i  ,j-1)
+    ! ss(0,i,j) is the coefficient of phi(i  ,j  )
     
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,1) = ss(i,j,1) - betax(i+1,j,1)
-          ss(i,j,2) = ss(i,j,2) - betax(i  ,j,2)
-          ss(i,j,3) = ss(i,j,3) - betay(i,j+1,1) 
-          ss(i,j,4) = ss(i,j,4) - betay(i,j  ,2) 
+          ss(1,i,j) = ss(1,i,j) - betax(i+1,j,1)
+          ss(2,i,j) = ss(2,i,j) - betax(i  ,j,2)
+          ss(3,i,j) = ss(3,i,j) - betay(i,j+1,1) 
+          ss(4,i,j) = ss(4,i,j) - betay(i,j  ,2) 
        end do
     end do
 
@@ -1147,7 +1145,7 @@ contains
 
     do j = lo(2),hi(2)
        do i = lo(1)+1,hi(1)-1
-          ss(i,j,0) = ss(i,j,0) - betax(i,j,3)
+          ss(0,i,j) = ss(0,i,j) - betax(i,j,3)
        end do
     end do
 
@@ -1157,29 +1155,29 @@ contains
  
        i = lo(1)
        if (bclo .eq. BC_INT) then
-          ss(i,j,0) = ss(i,j,0) - betax(i,j,3)
+          ss(0,i,j) = ss(0,i,j) - betax(i,j,3)
        elseif (bclo .eq. BC_NEU) then
-          ss(i,j,0) = ss(i,j,0) - betax(i,j,3) - betax(i,j,2)
-          ss(i,j,2) = 0.d0
-          ss(i,j,XBC) = 0.d0
+          ss(0,i,j) = ss(0,i,j) - betax(i,j,3) - betax(i,j,2)
+          ss(2,i,j) = 0.d0
+          ss(XBC,i,j) = 0.d0
        elseif (bclo .eq. BC_DIR) then
-          ss(i,j,0) = ss(i,j,0) - betax(i,j,3)
-          ss(i,j,2) = 0.d0
-          ss(i,j,XBC) = 0.d0
+          ss(0,i,j) = ss(0,i,j) - betax(i,j,3)
+          ss(2,i,j) = 0.d0
+          ss(XBC,i,j) = 0.d0
        end if
 
        if ( hi(1) > lo(1) ) then
           i = hi(1)
           if (bchi .eq. BC_INT) then
-             ss(i,j,0) = ss(i,j,0) - betax(i,j,3)
+             ss(0,i,j) = ss(0,i,j) - betax(i,j,3)
           elseif (bchi .eq. BC_NEU) then
-             ss(i,j,0) = ss(i,j,0) - betax(i,j,3) - betax(i+1,j,1)
-             ss(i,j,1) = 0.d0
-             ss(i,j,XBC) = 0.d0
+             ss(0,i,j) = ss(0,i,j) - betax(i,j,3) - betax(i+1,j,1)
+             ss(1,i,j) = 0.d0
+             ss(XBC,i,j) = 0.d0
           elseif (bchi .eq. BC_DIR) then
-             ss(i,j,0) = ss(i,j,0) - betax(i,j,3)
-             ss(i,j,1) = 0.d0
-             ss(i,j,XBC) = 0.d0
+             ss(0,i,j) = ss(0,i,j) - betax(i,j,3)
+             ss(1,i,j) = 0.d0
+             ss(XBC,i,j) = 0.d0
           end if
        end if
     end do
@@ -1187,7 +1185,7 @@ contains
     ! y derivatives
     do i = lo(1),hi(1)
        do j = lo(2)+1,hi(2)-1
-          ss(i,j,0) = ss(i,j,0) - betay(i,j,3)
+          ss(0,i,j) = ss(0,i,j) - betay(i,j,3)
        end do
     end do
 
@@ -1197,36 +1195,36 @@ contains
 
        j = lo(2)
        if (bclo .eq. BC_INT) then
-          ss(i,j,0) = ss(i,j,0) - betay(i,j,3)
+          ss(0,i,j) = ss(0,i,j) - betay(i,j,3)
        elseif (bclo .eq. BC_NEU) then
-          ss(i,j,0)   = ss(i,j,0) - betay(i,j,3) - betay(i,j,2)
-          ss(i,j,4)   = 0.d0
-          ss(i,j,YBC) = 0.d0
+          ss(0,i,j)   = ss(0,i,j) - betay(i,j,3) - betay(i,j,2)
+          ss(4,i,j)   = 0.d0
+          ss(YBC,i,j) = 0.d0
        elseif (bclo .eq. BC_DIR) then
-          ss(i,j,0) = ss(i,j,0) - betay(i,j,3) 
-          ss(i,j,4) = 0.d0
-          ss(i,j,YBC) = 0.d0
+          ss(0,i,j) = ss(0,i,j) - betay(i,j,3) 
+          ss(4,i,j) = 0.d0
+          ss(YBC,i,j) = 0.d0
        end if
 
        if ( hi(2) > lo(2) ) then
           j = hi(2)
           if (bchi .eq. BC_INT) then
-             ss(i,j,0) = ss(i,j,0) - betay(i,j,3)
+             ss(0,i,j) = ss(0,i,j) - betay(i,j,3)
           elseif (bchi .eq. BC_NEU) then
-             ss(i,j,0) = ss(i,j,0) - betay(i,j,3) - betay(i,j+1,1)
-             ss(i,j,3) = 0.d0
-             ss(i,j,YBC) = 0.d0
+             ss(0,i,j) = ss(0,i,j) - betay(i,j,3) - betay(i,j+1,1)
+             ss(3,i,j) = 0.d0
+             ss(YBC,i,j) = 0.d0
           elseif (bchi .eq. BC_DIR) then
-             ss(i,j,0) = ss(i,j,0) - betay(i,j,3) 
-             ss(i,j,3) = 0.d0
-             ss(i,j,YBC) = 0.d0
+             ss(0,i,j) = ss(0,i,j) - betay(i,j,3) 
+             ss(3,i,j) = 0.d0
+             ss(YBC,i,j) = 0.d0
           end if
        end if
     end do
 
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(i,j,0) = ss(i,j,0) + alpha(i,j,0) 
+          ss(0,i,j) = ss(0,i,j) + alpha(i,j,0) 
        end do
     end do
 
@@ -1237,7 +1235,7 @@ contains
 
     integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:), order
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :,lo(3)  :)
-    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,lo(3)  :,0:)
+    real (kind = dp_t), intent(  out) ::   ss(0:, lo(1)  :,lo(2)  :,lo(3)  :)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
@@ -1255,20 +1253,22 @@ contains
     nz = hi(3)-lo(3)+1
     f1 = ONE/dh**2
 
-    ss(:,:,:,0) = ZERO
-
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = -betax(lo(1)+1:hi(1)+1,lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(1)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),2) = -betax(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(1)
-
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),3) = -betay(lo(1)  :hi(1),  lo(2)+1:hi(2)+1,lo(3)  :hi(3)  )*f1(2)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),4) = -betay(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(2)
-
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5) = -betaz(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)+1:hi(3)+1)*f1(3)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6) = -betaz(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  )*f1(3)
-
-    ss(:,:,:,XBC) = ZERO
-    ss(:,:,:,YBC) = ZERO
-    ss(:,:,:,ZBC) = ZERO
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(0,i,j,k)   = ZERO
+             ss(1,i,j,k)   = -betax(i+1, j  , k  )*f1(1)
+             ss(2,i,j,k)   = -betax(i  , j  , k  )*f1(1)
+             ss(3,i,j,k)   = -betay(i  , j+1, k  )*f1(2)
+             ss(4,i,j,k)   = -betay(i  , j  , k  )*f1(2)
+             ss(5,i,j,k)   = -betaz(i  , j  , k+1)*f1(3)
+             ss(6,i,j,k)   = -betaz(i  , j  , k  )*f1(3)
+             ss(XBC,i,j,k) = ZERO
+             ss(YBC,i,j,k) = ZERO
+             ss(ZBC,i,j,k) = ZERO
+          end do
+       end do
+    end do
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -1285,7 +1285,7 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1)+1,hi(1)-1
-             ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
+             ss(0,i,j,k) = ss(0,i,j,k) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
           end do
        end do
     end do
@@ -1299,20 +1299,20 @@ contains
 
           i = lo(1)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
+             ss(0,i,j,k) = ss(0,i,j,k) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
           else
              call stencil_bndry_aaa(lorder, lnx, 1, -1, mask(i,j,k), &
-                  ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
+                  ss(0,i,j,k), ss(1,i,j,k), ss(2,i,j,k), ss(XBC,i,j,k), &
                   betax(i,j,k), betax(i+1,j,k), xa(1), xb(1), dh(1), bclo, bchi)
           end if
 
           if ( hi(1) > lo(1) ) then
              i = hi(1)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
+                ss(0,i,j,k) = ss(0,i,j,k) + (betax(i,j,k)+betax(i+1,j,k))*f1(1)
              else
                 call stencil_bndry_aaa(lorder, lnx, 1, 1, mask(i,j,k), &
-                     ss(i,j,k,0), ss(i,j,k,1), ss(i,j,k,2), ss(i,j,k,XBC), &
+                     ss(0,i,j,k), ss(1,i,j,k), ss(2,i,j,k), ss(XBC,i,j,k), &
                      betax(i,j,k), betax(i+1,j,k), xa(1), xb(1), dh(1), bclo, bchi)
              end if
           end if
@@ -1326,7 +1326,7 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2)+1,hi(2)-1
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
+             ss(0,i,j,k) = ss(0,i,j,k) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
           end do
        end do
     end do
@@ -1340,19 +1340,19 @@ contains
 
           j = lo(2)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
+             ss(0,i,j,k) = ss(0,i,j,k) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
           else
              call stencil_bndry_aaa(lorder, lny, 2, -1, mask(i,j,k), &
-                  ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4),ss(i,j,k,YBC), &
+                  ss(0,i,j,k), ss(3,i,j,k), ss(4,i,j,k),ss(YBC,i,j,k), &
                   betay(i,j,k), betay(i,j+1,k), xa(2), xb(2), dh(2), bclo, bchi)
           end if
           if ( hi(2) > lo(2) ) then
              j = hi(2)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
+                ss(0,i,j,k) = ss(0,i,j,k) + (betay(i,j,k)+betay(i,j+1,k))*f1(2)
              else
                 call stencil_bndry_aaa(lorder, lny, 2, 1, mask(i,j,k), &
-                     ss(i,j,k,0), ss(i,j,k,3), ss(i,j,k,4), ss(i,j,k,YBC), &
+                     ss(0,i,j,k), ss(3,i,j,k), ss(4,i,j,k), ss(YBC,i,j,k), &
                      betay(i,j,k), betay(i,j+1,k), xa(2), xb(2), dh(2), bclo, bchi)
              end if
           end if
@@ -1366,7 +1366,7 @@ contains
     do k = lo(3)+1,hi(3)-1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
+             ss(0,i,j,k) = ss(0,i,j,k) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
           end do
        end do
     end do
@@ -1380,19 +1380,19 @@ contains
 
           k = lo(3)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
+             ss(0,i,j,k) = ss(0,i,j,k) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
           else
              call stencil_bndry_aaa(lorder, lnz, 3, -1, mask(i,j,k), &
-                  ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6),ss(i,j,k,ZBC), &
+                  ss(0,i,j,k), ss(5,i,j,k), ss(6,i,j,k),ss(ZBC,i,j,k), &
                   betaz(i,j,k), betaz(i,j,k+1), xa(3), xb(3), dh(3), bclo, bchi)
           end if
           if ( hi(3) > lo(3) ) then
              k = hi(3)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
+                ss(0,i,j,k) = ss(0,i,j,k) + (betaz(i,j,k)+betaz(i,j,k+1))*f1(3)
              else
                 call stencil_bndry_aaa(lorder, lnz, 3, 1, mask(i,j,k), &
-                     ss(i,j,k,0), ss(i,j,k,5), ss(i,j,k,6), ss(i,j,k,ZBC), &
+                     ss(0,i,j,k), ss(5,i,j,k), ss(6,i,j,k), ss(ZBC,i,j,k), &
                      betaz(i,j,k), betaz(i,j,k+1), xa(3), xb(3), dh(3), bclo, bchi)
              end if
           end if
@@ -1404,7 +1404,7 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k)
+             ss(0,i,j,k) = ss(0,i,j,k) + alpha(i,j,k)
           end do
        end do
     end do
@@ -1414,10 +1414,9 @@ contains
 
   subroutine s_simpleg_3d_cc(ss, alpha, ng_a, betax, betay, betaz, ng_b, dh, mask, lo, hi)
 
-
     integer           , intent(in   ) :: ng_a, ng_b, lo(:), hi(:)
     integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :,lo(3)  :)
-    real (kind = dp_t), intent(  out) ::   ss(lo(1)  :,lo(2)  :,lo(3)  :,0:)
+    real (kind = dp_t), intent(  out) ::   ss(0:, lo(1)  :,lo(2)  :,lo(3)  :)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:,0:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:,:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:,:)
@@ -1433,20 +1432,22 @@ contains
     nz = hi(3)-lo(3)+1
     f1 = ONE/dh**2
 
-    ss(:,:,:,:) = ZERO
-
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = -betax(lo(1)+1:hi(1)+1,lo(2)  :hi(2),  lo(3)  :hi(3)  ,1)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),2) = -betax(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  ,2)
-
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),3) = -betay(lo(1)  :hi(1),  lo(2)+1:hi(2)+1,lo(3)  :hi(3)  ,1)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),4) = -betay(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  ,2)
-
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5) = -betaz(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)+1:hi(3)+1,1)
-    ss(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6) = -betaz(lo(1)  :hi(1),  lo(2)  :hi(2),  lo(3)  :hi(3)  ,2)
-
-    ss(:,:,:,XBC) = ZERO
-    ss(:,:,:,YBC) = ZERO
-    ss(:,:,:,ZBC) = ZERO
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(0,i,j,k)   = ZERO
+             ss(1,i,j,k)   = -betax(i+1, j  , k  , 1)
+             ss(2,i,j,k)   = -betax(i  , j  , k  , 2)
+             ss(3,i,j,k)   = -betay(i  , j+1, k  , 1)
+             ss(4,i,j,k)   = -betay(i  , j  , k  , 2)
+             ss(5,i,j,k)   = -betaz(i  , j  , k+1, 1)
+             ss(6,i,j,k)   = -betaz(i  , j  , k  , 2)
+             ss(XBC,i,j,k) = ZERO
+             ss(YBC,i,j,k) = ZERO
+             ss(ZBC,i,j,k) = ZERO
+          end do
+       end do
+    end do
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -1461,7 +1462,7 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1)+1,hi(1)-1
-             ss(i,j,k,0) = ss(i,j,k,0) - betax(i,j,k,3)
+             ss(0,i,j,k) = ss(0,i,j,k) - betax(i,j,k,3)
           end do
        end do
     end do
@@ -1475,29 +1476,29 @@ contains
 
           i = lo(1)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) - betax(i,j,k,3)
+             ss(0,i,j,k) = ss(0,i,j,k) - betax(i,j,k,3)
           elseif (bclo .eq. BC_NEU) then
-             ss(i,j,k,0) = ss(i,j,k,0) - betax(i,j,k,3) - betax(i,j,k,2)
-             ss(i,j,k,2) = 0.d0
-             ss(i,j,k,XBC) = 0.d0
+             ss(0,i,j,k) = ss(0,i,j,k) - betax(i,j,k,3) - betax(i,j,k,2)
+             ss(2,i,j,k) = 0.d0
+             ss(XBC,i,j,k) = 0.d0
           elseif (bclo .eq. BC_DIR) then
-             ss(i,j,k,0) = ss(i,j,k,0) - betax(i,j,k,3)
-             ss(i,j,k,2) = 0.d0
-             ss(i,j,k,XBC) = 0.d0
+             ss(0,i,j,k) = ss(0,i,j,k) - betax(i,j,k,3)
+             ss(2,i,j,k) = 0.d0
+             ss(XBC,i,j,k) = 0.d0
           end if
 
           if ( hi(1) > lo(1) ) then
              i = hi(1)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) - betax(i,j,k,3)
+                ss(0,i,j,k) = ss(0,i,j,k) - betax(i,j,k,3)
              elseif (bchi .eq. BC_NEU) then
-                ss(i,j,k,0) = ss(i,j,k,0) - betax(i,j,k,3) - betax(i+1,j,k,1)
-                ss(i,j,k,1) = 0.d0
-                ss(i,j,k,XBC) = 0.d0
+                ss(0,i,j,k) = ss(0,i,j,k) - betax(i,j,k,3) - betax(i+1,j,k,1)
+                ss(1,i,j,k) = 0.d0
+                ss(XBC,i,j,k) = 0.d0
              elseif (bchi .eq. BC_DIR) then
-                ss(i,j,k,0) = ss(i,j,k,0) - betax(i,j,k,3)
-                ss(i,j,k,1) = 0.d0
-                ss(i,j,k,XBC) = 0.d0
+                ss(0,i,j,k) = ss(0,i,j,k) - betax(i,j,k,3)
+                ss(1,i,j,k) = 0.d0
+                ss(XBC,i,j,k) = 0.d0
              end if
           end if
        end do
@@ -1510,7 +1511,7 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2)+1,hi(2)-1
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) - betay(i,j,k,3)
+             ss(0,i,j,k) = ss(0,i,j,k) - betay(i,j,k,3)
           end do
        end do
     end do
@@ -1524,29 +1525,29 @@ contains
 
           j = lo(2)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) - betay(i,j,k,3)
+             ss(0,i,j,k) = ss(0,i,j,k) - betay(i,j,k,3)
           elseif (bclo .eq. BC_NEU) then
-             ss(i,j,k,0)   = ss(i,j,k,0) - betay(i,j,k,3) - betay(i,j,k,2)
-             ss(i,j,k,4)   = 0.d0
-             ss(i,j,k,YBC) = 0.d0
+             ss(0,i,j,k)   = ss(0,i,j,k) - betay(i,j,k,3) - betay(i,j,k,2)
+             ss(4,i,j,k)   = 0.d0
+             ss(YBC,i,j,k) = 0.d0
           elseif (bclo .eq. BC_DIR) then
-             ss(i,j,k,0)   = ss(i,j,k,0) - betay(i,j,k,3) 
-             ss(i,j,k,4)   = 0.d0
-             ss(i,j,k,YBC) = 0.d0
+             ss(0,i,j,k)   = ss(0,i,j,k) - betay(i,j,k,3) 
+             ss(4,i,j,k)   = 0.d0
+             ss(YBC,i,j,k) = 0.d0
           end if
 
           if ( hi(2) > lo(2) ) then
              j = hi(2)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) - betay(i,j,k,3)
+                ss(0,i,j,k) = ss(0,i,j,k) - betay(i,j,k,3)
              elseif (bchi .eq. BC_NEU) then
-                ss(i,j,k,0)   = ss(i,j,k,0) - betay(i,j,k,3) - betay(i,j+1,k,1)
-                ss(i,j,k,3)   = 0.d0
-                ss(i,j,k,YBC) = 0.d0
+                ss(0,i,j,k)   = ss(0,i,j,k) - betay(i,j,k,3) - betay(i,j+1,k,1)
+                ss(3,i,j,k)   = 0.d0
+                ss(YBC,i,j,k) = 0.d0
              elseif (bchi .eq. BC_DIR) then
-                ss(i,j,k,0)   = ss(i,j,k,0) - betay(i,j,k,3) 
-                ss(i,j,k,3)   = 0.d0
-                ss(i,j,k,YBC) = 0.d0
+                ss(0,i,j,k)   = ss(0,i,j,k) - betay(i,j,k,3) 
+                ss(3,i,j,k)   = 0.d0
+                ss(YBC,i,j,k) = 0.d0
              end if
           end if
        end do
@@ -1559,7 +1560,7 @@ contains
     do k = lo(3)+1,hi(3)-1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) - betaz(i,j,k,3)
+             ss(0,i,j,k) = ss(0,i,j,k) - betaz(i,j,k,3)
           end do
        end do
     end do
@@ -1573,29 +1574,29 @@ contains
 
           k = lo(3)
           if (bclo .eq. BC_INT) then
-             ss(i,j,k,0) = ss(i,j,k,0) - betaz(i,j,k,3)
+             ss(0,i,j,k) = ss(0,i,j,k) - betaz(i,j,k,3)
           elseif (bclo .eq. BC_NEU) then
-             ss(i,j,k,0)   = ss(i,j,k,0) - betaz(i,j,k,3) - betaz(i,j,k,2)
-             ss(i,j,k,6)   = 0.d0
-             ss(i,j,k,ZBC) = 0.d0
+             ss(0,i,j,k)   = ss(0,i,j,k) - betaz(i,j,k,3) - betaz(i,j,k,2)
+             ss(6,i,j,k)   = 0.d0
+             ss(ZBC,i,j,k) = 0.d0
           elseif (bclo .eq. BC_DIR) then
-             ss(i,j,k,0)   = ss(i,j,k,0) - betaz(i,j,k,3) 
-             ss(i,j,k,6)   = 0.d0
-             ss(i,j,k,ZBC) = 0.d0
+             ss(0,i,j,k)   = ss(0,i,j,k) - betaz(i,j,k,3) 
+             ss(6,i,j,k)   = 0.d0
+             ss(ZBC,i,j,k) = 0.d0
           end if
 
           if ( hi(3) > lo(3) ) then
              k = hi(3)
              if (bchi .eq. BC_INT) then
-                ss(i,j,k,0) = ss(i,j,k,0) - betaz(i,j,k,3)
+                ss(0,i,j,k) = ss(0,i,j,k) - betaz(i,j,k,3)
              elseif (bchi .eq. BC_NEU) then
-                ss(i,j,k,0)   = ss(i,j,k,0) - betaz(i,j,k,3) - betaz(i,j,k+1,1)
-                ss(i,j,k,5)   = 0.d0
-                ss(i,j,k,ZBC) = 0.d0
+                ss(0,i,j,k)   = ss(0,i,j,k) - betaz(i,j,k,3) - betaz(i,j,k+1,1)
+                ss(5,i,j,k)   = 0.d0
+                ss(ZBC,i,j,k) = 0.d0
              elseif (bchi .eq. BC_DIR) then
-                ss(i,j,k,0)   = ss(i,j,k,0) - betaz(i,j,k,3) 
-                ss(i,j,k,5)   = 0.d0
-                ss(i,j,k,ZBC) = 0.d0
+                ss(0,i,j,k)   = ss(0,i,j,k) - betaz(i,j,k,3) 
+                ss(5,i,j,k)   = 0.d0
+                ss(ZBC,i,j,k) = 0.d0
              end if
           end if
        end do
@@ -1606,7 +1607,7 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k,0)
+             ss(0,i,j,k) = ss(0,i,j,k) + alpha(i,j,k,0)
           end do
        end do
     end do
@@ -1614,17 +1615,19 @@ contains
 
   end subroutine s_simpleg_3d_cc
 
+
   subroutine s_minion_cross_fill_2d(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi)
 
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(lo(1):,lo(2):)
-    real (kind = dp_t), intent(  out) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(  out) :: ss(0:,lo(1):,lo(2):)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    integer i, j
+
+    integer            :: i, j
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -1637,27 +1640,22 @@ contains
     ! The projection has beta == 1.
     do j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          ss(i,j,1) =   1.d0 * betax(i  ,j)
-          ss(i,j,2) = -16.d0 * betax(i  ,j)
-          ss(i,j,3) = -16.d0 * betax(i+1,j)
-          ss(i,j,4) =   1.d0 * betax(i+1,j)
-          ss(i,j,5) =   1.d0 * betay(i,j  )
-          ss(i,j,6) = -16.d0 * betay(i,j  )
-          ss(i,j,7) = -16.d0 * betay(i,j+1)
-          ss(i,j,8) =   1.d0 * betay(i,j+1)
-          ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4) &
-                       +ss(i,j,5) + ss(i,j,6) + ss(i,j,7) + ss(i,j,8) )
+          ss(1,i,j) =   1.d0 * betax(i  ,j)
+          ss(2,i,j) = -16.d0 * betax(i  ,j)
+          ss(3,i,j) = -16.d0 * betax(i+1,j)
+          ss(4,i,j) =   1.d0 * betax(i+1,j)
+          ss(5,i,j) =   1.d0 * betay(i,j  )
+          ss(6,i,j) = -16.d0 * betay(i,j  )
+          ss(7,i,j) = -16.d0 * betay(i,j+1)
+          ss(8,i,j) =   1.d0 * betay(i,j+1)
+
+          ss(0,i,j) = -( ss(1,i,j) + ss(2,i,j) + ss(3,i,j) + ss(4,i,j)   &
+                        +ss(5,i,j) + ss(6,i,j) + ss(7,i,j) + ss(8,i,j) ) &
+                       + alpha(i,j)
        end do
     end do
 
-    ss = ss * (ONE / (12.d0 * dh(1)**2))
-
-    ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
-    do j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          ss(i,j,0) = ss(i,j,0) + alpha(i,j)
-       end do
-    end do
+    ss = ss *  (ONE / (12.d0 * dh(1)**2))
 
   end subroutine s_minion_cross_fill_2d
 
@@ -1666,7 +1664,7 @@ contains
     integer           , intent(in   ) :: ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(:,:)
-    real (kind = dp_t), intent(  out) :: ss(:,:,0:)
+    real (kind = dp_t), intent(  out) :: ss(0:,:,:)
     real (kind = dp_t), intent(inout) :: beta(1-ng_b:,1-ng_b:,0:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
@@ -1687,87 +1685,87 @@ contains
     do j = 1, ny
        do i = 1, nx
 
-          ss(i,j,12) = 27648.d0*beta(i+1,j,1) + 414720.d0 * beta(i  ,j,1)
-          ss(i,j,13) = 27648.d0*beta(i  ,j,1) + 414720.d0 * beta(i+1,j,1)
+          ss(12,i,j) = 27648.d0*beta(i+1,j,1) + 414720.d0 * beta(i  ,j,1)
+          ss(13,i,j) = 27648.d0*beta(i  ,j,1) + 414720.d0 * beta(i+1,j,1)
 
-          ss(i,j,11) = -27648.d0 * beta(i  ,j,1)
-          ss(i,j,14) = -27648.d0 * beta(i+1,j,1)
+          ss(11,i,j) = -27648.d0 * beta(i  ,j,1)
+          ss(14,i,j) = -27648.d0 * beta(i+1,j,1)
 
-          ss(i,j, 8) = -2550.d0 * beta(i,j+2,1)  - 2550.d0 * beta(i+1,j+2,1) &
+          ss( 8,i,j) = -2550.d0 * beta(i,j+2,1)  - 2550.d0 * beta(i+1,j+2,1) &
                       +17340.d0 * beta(i,j+1,1) + 17340.d0 * beta(i+1,j+1,1) &
                       -17340.d0 * beta(i,j-1,1) - 17340.d0 * beta(i+1,j-1,1) &
                       + 2550.d0 * beta(i,j-2,1)  + 2550.d0 * beta(i+1,j-2,1)
 
-          ss(i,j,17) = -2550.d0 * beta(i,j-2,1)  - 2550.d0 * beta(i+1,j-2,1) &
+          ss(17,i,j) = -2550.d0 * beta(i,j-2,1)  - 2550.d0 * beta(i+1,j-2,1) &
                       +17340.d0 * beta(i,j-1,1) + 17340.d0 * beta(i+1,j-1,1) &
                       -17340.d0 * beta(i,j+1,1) - 17340.d0 * beta(i+1,j+1,1) &
                       + 2550.d0 * beta(i,j+2,1)  + 2550.d0 * beta(i+1,j+2,1)
 
-          ss(i,j, 7) =  170.d0 * beta(i+1,j+2,1) +  2550.d0 * beta(i,j+2,1) &
+          ss( 7,i,j) =  170.d0 * beta(i+1,j+2,1) +  2550.d0 * beta(i,j+2,1) &
                       -1156.d0 * beta(i+1,j+1,1) - 17340.d0 * beta(i,j+1,1) &
                       +1156.d0 * beta(i+1,j-1,1) + 17340.d0 * beta(i,j-1,1) &
                       - 170.d0 * beta(i+1,j-2,1) -  2550.d0 * beta(i,j-2,1) 
 
-          ss(i,j,16) =  170.d0 * beta(i+1,j-2,1) +  2550.d0 * beta(i,j-2,1) &
+          ss(16,i,j) =  170.d0 * beta(i+1,j-2,1) +  2550.d0 * beta(i,j-2,1) &
                       -1156.d0 * beta(i+1,j-1,1) - 17340.d0 * beta(i,j-1,1) &
                       +1156.d0 * beta(i+1,j+1,1) + 17340.d0 * beta(i,j+1,1) &
                       - 170.d0 * beta(i+1,j+2,1) -  2550.d0 * beta(i,j+2,1) 
 
-          ss(i,j, 9) =  170.d0 * beta(i,j+2,1) +  2550.d0 * beta(i+1,j+2,1) &
+          ss( 9,i,j) =  170.d0 * beta(i,j+2,1) +  2550.d0 * beta(i+1,j+2,1) &
                       -1156.d0 * beta(i,j+1,1) - 17340.d0 * beta(i+1,j+1,1) &
                       +1156.d0 * beta(i,j-1,1) + 17340.d0 * beta(i+1,j-1,1) &
                       - 170.d0 * beta(i,j-2,1) -  2550.d0 * beta(i+1,j-2,1) 
 
-          ss(i,j,18) =  170.d0 * beta(i,j-2,1) +  2550.d0 * beta(i+1,j-2,1) &
+          ss(18,i,j) =  170.d0 * beta(i,j-2,1) +  2550.d0 * beta(i+1,j-2,1) &
                       -1156.d0 * beta(i,j-1,1) - 17340.d0 * beta(i+1,j-1,1) &
                       +1156.d0 * beta(i,j+1,1) + 17340.d0 * beta(i+1,j+1,1) &
                       - 170.d0 * beta(i,j+2,1) -  2550.d0 * beta(i+1,j+2,1) 
 
-          ss(i,j, 6) = -170.d0 * beta(i,j+2,1) +  1156.d0 * beta(i,j+1,1) &
+          ss( 6,i,j) = -170.d0 * beta(i,j+2,1) +  1156.d0 * beta(i,j+1,1) &
                        +170.d0 * beta(i,j-2,1) -  1156.d0 * beta(i,j-1,1)
-          ss(i,j,15) = -170.d0 * beta(i,j-2,1) +  1156.d0 * beta(i,j-1,1) &
+          ss(15,i,j) = -170.d0 * beta(i,j-2,1) +  1156.d0 * beta(i,j-1,1) &
                        +170.d0 * beta(i,j+2,1) -  1156.d0 * beta(i,j+1,1)
-          ss(i,j,10) = -170.d0 * beta(i+1,j+2,1) +  1156.d0 * beta(i+1,j+1,1) &
+          ss(10,i,j) = -170.d0 * beta(i+1,j+2,1) +  1156.d0 * beta(i+1,j+1,1) &
                        +170.d0 * beta(i+1,j-2,1) -  1156.d0 * beta(i+1,j-1,1)
-          ss(i,j,19) = -170.d0 * beta(i+1,j-2,1) +  1156.d0 * beta(i+1,j-1,1) &
+          ss(19,i,j) = -170.d0 * beta(i+1,j-2,1) +  1156.d0 * beta(i+1,j-1,1) &
                        +170.d0 * beta(i+1,j+2,1) -  1156.d0 * beta(i+1,j+1,1)
 
-          ss(i,j, 3) =   375.d0 * beta(i,j+2,1) +  375.d0 * beta(i+1,j+2,1) &
+          ss( 3,i,j) =   375.d0 * beta(i,j+2,1) +  375.d0 * beta(i+1,j+2,1) &
                       - 2550.d0 * beta(i,j+1,1) - 2550.d0 * beta(i+1,j+1,1) &
                       + 2550.d0 * beta(i,j-1,1) + 2550.d0 * beta(i+1,j-1,1) &
                       -  375.d0 * beta(i,j-2,1) -  375.d0 * beta(i+1,j-2,1)
-          ss(i,j,22) =  375.d0 * beta(i,j-2,1) +  375.d0 * beta(i+1,j-2,1) &
+          ss(22,i,j) =  375.d0 * beta(i,j-2,1) +  375.d0 * beta(i+1,j-2,1) &
                       -2550.d0 * beta(i,j-1,1) - 2550.d0 * beta(i+1,j-1,1) &
                       +2550.d0 * beta(i,j+1,1) + 2550.d0 * beta(i+1,j+1,1) &
                       - 375.d0 * beta(i,j+2,1) -  375.d0 * beta(i+1,j+2,1)
 
-          ss(i,j, 2) = - 25.d0 * beta(i+1,j+2,1) -  375.d0 * beta(i,j+2,1) &
+          ss( 2,i,j) = - 25.d0 * beta(i+1,j+2,1) -  375.d0 * beta(i,j+2,1) &
                        +170.d0 * beta(i+1,j+1,1) + 2550.d0 * beta(i,j+1,1) &
                        -170.d0 * beta(i+1,j-1,1) - 2550.d0 * beta(i,j-1,1) &
                        + 25.d0 * beta(i+1,j-2,1) +  375.d0 * beta(i,j-2,1)
-          ss(i,j,21) = - 25.d0 * beta(i+1,j-2,1) -  375.d0 * beta(i,j-2,1) &
+          ss(21,i,j) = - 25.d0 * beta(i+1,j-2,1) -  375.d0 * beta(i,j-2,1) &
                        +170.d0 * beta(i+1,j-1,1) + 2550.d0 * beta(i,j-1,1) &
                        -170.d0 * beta(i+1,j+1,1) - 2550.d0 * beta(i,j+1,1) &
                        + 25.d0 * beta(i+1,j+2,1) +  375.d0 * beta(i,j+2,1)
-          ss(i,j, 4) = - 25.d0 * beta(i,j+2,1) -  375.d0 * beta(i+1,j+2,1) &
+          ss( 4,i,j) = - 25.d0 * beta(i,j+2,1) -  375.d0 * beta(i+1,j+2,1) &
                        +170.d0 * beta(i,j+1,1) + 2550.d0 * beta(i+1,j+1,1) &
                        -170.d0 * beta(i,j-1,1) - 2550.d0 * beta(i+1,j-1,1) &
                        + 25.d0 * beta(i,j-2,1) +  375.d0 * beta(i+1,j-2,1)
-          ss(i,j,23) = - 25.d0 * beta(i,j-2,1) -  375.d0 * beta(i+1,j-2,1) &
+          ss(23,i,j) = - 25.d0 * beta(i,j-2,1) -  375.d0 * beta(i+1,j-2,1) &
                        +170.d0 * beta(i,j-1,1) + 2550.d0 * beta(i+1,j-1,1) &
                        -170.d0 * beta(i,j+1,1) - 2550.d0 * beta(i+1,j+1,1) &
                        + 25.d0 * beta(i,j+2,1) +  375.d0 * beta(i+1,j+2,1)
 
-          ss(i,j, 1) =   25.d0 * beta(i,j+2,1) -  170.d0 * beta(i,j+1,1) &
+          ss( 1,i,j) =   25.d0 * beta(i,j+2,1) -  170.d0 * beta(i,j+1,1) &
                         -25.d0 * beta(i,j-2,1) +  170.d0 * beta(i,j-1,1)
-          ss(i,j, 5) =   25.d0 * beta(i+1,j+2,1) -  170.d0 * beta(i+1,j+1,1) &
+          ss( 5,i,j) =   25.d0 * beta(i+1,j+2,1) -  170.d0 * beta(i+1,j+1,1) &
                         -25.d0 * beta(i+1,j-2,1) +  170.d0 * beta(i+1,j-1,1)
-          ss(i,j,20) =   25.d0 * beta(i,j-2,1) -  170.d0 * beta(i,j-1,1) &
+          ss(20,i,j) =   25.d0 * beta(i,j-2,1) -  170.d0 * beta(i,j-1,1) &
                         -25.d0 * beta(i,j+2,1) +  170.d0 * beta(i,j+1,1)
-          ss(i,j,24) =   25.d0 * beta(i+1,j-2,1) -  170.d0 * beta(i+1,j-1,1) &
+          ss(24,i,j) =   25.d0 * beta(i+1,j-2,1) -  170.d0 * beta(i+1,j-1,1) &
                         -25.d0 * beta(i+1,j+2,1) +  170.d0 * beta(i+1,j+1,1)
 
-          ss(i,j, 0) = -414720.d0 * (beta(i,j,1) + beta(i+1,j,1))
+          ss( 0,i,j) = -414720.d0 * (beta(i,j,1) + beta(i+1,j,1))
 
        end do
     end do
@@ -1776,114 +1774,114 @@ contains
     do j = 1, ny
        do i = 1, nx
 
-          ss(i,j, 8) = ss(i,j, 8) + 27648.d0*beta(i,j+1,2) + 414720.d0 * beta(i,j  ,2)
-          ss(i,j,17) = ss(i,j,17) + 27648.d0*beta(i,j  ,2) + 414720.d0 * beta(i,j+1,2)
+          ss( 8,i,j) = ss( 8,i,j) + 27648.d0*beta(i,j+1,2) + 414720.d0 * beta(i,j  ,2)
+          ss(17,i,j) = ss(17,i,j) + 27648.d0*beta(i,j  ,2) + 414720.d0 * beta(i,j+1,2)
 
-          ss(i,j, 3) = ss(i,j, 3) - 27648.d0 * beta(i,j  ,2)
-          ss(i,j,22) = ss(i,j,22) - 27648.d0 * beta(i,j+1,2)
+          ss( 3,i,j) = ss( 3,i,j) - 27648.d0 * beta(i,j  ,2)
+          ss(22,i,j) = ss(22,i,j) - 27648.d0 * beta(i,j+1,2)
 
-          ss(i,j,12) = ss(i,j,12) & 
+          ss(12,i,j) = ss(12,i,j) & 
                        -2550.d0 * beta(i+2,j,2)  - 2550.d0 * beta(i+2,j+1,2) &
                       +17340.d0 * beta(i+1,j,2) + 17340.d0 * beta(i+1,j+1,2) &
                       -17340.d0 * beta(i-1,j,2) - 17340.d0 * beta(i-1,j+1,2) &
                       + 2550.d0 * beta(i-2,j,2)  + 2550.d0 * beta(i-2,j+1,2)
 
-          ss(i,j,13) = ss(i,j,13) & 
+          ss(13,i,j) = ss(13,i,j) & 
                        -2550.d0 * beta(i-2,j,2)  - 2550.d0 * beta(i-2,j+1,2) &
                       +17340.d0 * beta(i-1,j,2) + 17340.d0 * beta(i-1,j+1,2) &
                       -17340.d0 * beta(i+1,j,2) - 17340.d0 * beta(i+1,j+1,2) &
                       + 2550.d0 * beta(i+2,j,2)  + 2550.d0 * beta(i+2,j+1,2)
 
-          ss(i,j, 7) = ss(i,j, 7) &
+          ss( 7,i,j) = ss( 7,i,j) &
                       + 170.d0 * beta(i+2,j+1,2) +  2550.d0 * beta(i+2,j  ,2) &
                       -1156.d0 * beta(i+1,j+1,2) - 17340.d0 * beta(i+1,j  ,2) &
                       +1156.d0 * beta(i-1,j+1,2) + 17340.d0 * beta(i-1,j  ,2) &
                       - 170.d0 * beta(i-2,j+1,2) -  2550.d0 * beta(i-2,j  ,2) 
 
-          ss(i,j,16) = ss(i,j,16) &  
+          ss(16,i,j) = ss(16,i,j) &  
                       + 170.d0 * beta(i+2,j  ,2) +  2550.d0 * beta(i+2,j+1,2) &
                       -1156.d0 * beta(i+1,j  ,2) - 17340.d0 * beta(i+1,j+1,2) &
                       +1156.d0 * beta(i-1,j  ,2) + 17340.d0 * beta(i-1,j+1,2) &
                       - 170.d0 * beta(i-2,j  ,2) -  2550.d0 * beta(i-2,j+1,2) 
 
-          ss(i,j, 9) = ss(i,j, 9) &  
+          ss( 9,i,j) = ss( 9,i,j) &  
                      +  170.d0 * beta(i-2,j+1,2) +  2550.d0 * beta(i-2,j  ,2) &
                       -1156.d0 * beta(i-1,j+1,2) - 17340.d0 * beta(i-1,j  ,2) &
                       +1156.d0 * beta(i+1,j+1,2) + 17340.d0 * beta(i+1,j  ,2) &
                       - 170.d0 * beta(i+2,j+1,2) -  2550.d0 * beta(i+2,j  ,2) 
 
-          ss(i,j,18) = ss(i,j,18) &  
+          ss(18,i,j) = ss(18,i,j) &  
                      +  170.d0 * beta(i-2,j  ,2) +  2550.d0 * beta(i-2,j+1,2) &
                       -1156.d0 * beta(i-1,j  ,2) - 17340.d0 * beta(i-1,j+1,2) &
                       +1156.d0 * beta(i+1,j  ,2) + 17340.d0 * beta(i+1,j+1,2) &
                       - 170.d0 * beta(i+2,j  ,2) -  2550.d0 * beta(i+2,j+1,2) 
 
-          ss(i,j, 2) = ss(i,j, 2) &
+          ss( 2,i,j) = ss( 2,i,j) &
                        -170.d0 * beta(i+2,j,2) +  1156.d0 * beta(i+1,j,2) &
                        +170.d0 * beta(i-2,j,2) -  1156.d0 * beta(i-1,j,2)
 
-          ss(i,j,21) = ss(i,j,21) &
+          ss(21,i,j) = ss(21,i,j) &
                        -170.d0 * beta(i+2,j+1,2) +  1156.d0 * beta(i+1,j+1,2) &
                        +170.d0 * beta(i-2,j+1,2) -  1156.d0 * beta(i-1,j+1,2)
 
-          ss(i,j, 4) = ss(i,j, 4) &
+          ss( 4,i,j) = ss( 4,i,j) &
                        -170.d0 * beta(i-2,j,2) +  1156.d0 * beta(i-1,j,2) &
                        +170.d0 * beta(i+2,j,2) -  1156.d0 * beta(i+1,j,2)
 
-          ss(i,j,23) = ss(i,j,23) &
+          ss(23,i,j) = ss(23,i,j) &
                        -170.d0 * beta(i-2,j+1,2) +  1156.d0 * beta(i-1,j+1,2) &
                        +170.d0 * beta(i+2,j+1,2) -  1156.d0 * beta(i+1,j+1,2)
 
-          ss(i,j,11) = ss(i,j,11) &
+          ss(11,i,j) = ss(11,i,j) &
                       +  375.d0 * beta(i+2,j,2) +  375.d0 * beta(i+2,j+1,2) &
                       - 2550.d0 * beta(i+1,j,2) - 2550.d0 * beta(i+1,j+1,2) &
                       + 2550.d0 * beta(i-1,j,2) + 2550.d0 * beta(i-1,j+1,2) &
                       -  375.d0 * beta(i-2,j,2) -  375.d0 * beta(i-2,j+1,2)
 
-          ss(i,j,14) = ss(i,j,14) &
+          ss(14,i,j) = ss(14,i,j) &
                      +  375.d0 * beta(i-2,j,2) +  375.d0 * beta(i-2,j+1,2) &
                       -2550.d0 * beta(i-1,j,2) - 2550.d0 * beta(i-1,j+1,2) &
                       +2550.d0 * beta(i+1,j,2) + 2550.d0 * beta(i+1,j+1,2) &
                       - 375.d0 * beta(i+2,j,2) -  375.d0 * beta(i+2,j+1,2)
 
-          ss(i,j, 6) = ss(i,j, 6) &
+          ss( 6,i,j) = ss( 6,i,j) &
                        - 25.d0 * beta(i+2,j+1,2) -  375.d0 * beta(i+2,j,2) &
                        +170.d0 * beta(i+1,j+1,2) + 2550.d0 * beta(i+1,j,2) &
                        -170.d0 * beta(i-1,j+1,2) - 2550.d0 * beta(i-1,j,2) &
                        + 25.d0 * beta(i-2,j+1,2) +  375.d0 * beta(i-2,j,2)
 
-          ss(i,j,15) = ss(i,j,15) &
+          ss(15,i,j) = ss(15,i,j) &
                        - 25.d0 * beta(i+2,j,2) -  375.d0 * beta(i+2,j+1,2) &
                        +170.d0 * beta(i+1,j,2) + 2550.d0 * beta(i+1,j+1,2) &
                        -170.d0 * beta(i-1,j,2) - 2550.d0 * beta(i-1,j+1,2) &
                        + 25.d0 * beta(i-2,j,2) +  375.d0 * beta(i-2,j+1,2)
 
-          ss(i,j,10) = ss(i,j,10) &
+          ss(10,i,j) = ss(10,i,j) &
                        - 25.d0 * beta(i-2,j+1,2) -  375.d0 * beta(i-2,j,2) &
                        +170.d0 * beta(i-1,j+1,2) + 2550.d0 * beta(i-1,j,2) &
                        -170.d0 * beta(i+1,j+1,2) - 2550.d0 * beta(i+1,j,2) &
                        + 25.d0 * beta(i+2,j+1,2) +  375.d0 * beta(i+2,j,2)
 
-          ss(i,j,19) = ss(i,j,19) &
+          ss(19,i,j) = ss(19,i,j) &
                        - 25.d0 * beta(i-2,j,2) -  375.d0 * beta(i-2,j+1,2) &
                        +170.d0 * beta(i-1,j,2) + 2550.d0 * beta(i-1,j+1,2) &
                        -170.d0 * beta(i+1,j,2) - 2550.d0 * beta(i+1,j+1,2) &
                        + 25.d0 * beta(i+2,j,2) +  375.d0 * beta(i+2,j+1,2)
 
-          ss(i,j, 1) = ss(i,j, 1) &
+          ss( 1,i,j) = ss( 1,i,j) &
                        + 25.d0 * beta(i+2,j,2) -  170.d0 * beta(i+1,j,2) &
                         -25.d0 * beta(i-2,j,2) +  170.d0 * beta(i-1,j,2)
-          ss(i,j, 5) = ss(i,j, 5) &
+          ss( 5,i,j) = ss( 5,i,j) &
                        + 25.d0 * beta(i-2,j,2) -  170.d0 * beta(i-1,j,2) &
                         -25.d0 * beta(i+2,j,2) +  170.d0 * beta(i+1,j,2)
-          ss(i,j,20) = ss(i,j,20) &
+          ss(20,i,j) = ss(20,i,j) &
                        + 25.d0 * beta(i+2,j+1,2) -  170.d0 * beta(i+1,j+1,2) &
                         -25.d0 * beta(i-2,j+1,2) +  170.d0 * beta(i-1,j+1,2)
-          ss(i,j,24) = ss(i,j,24) &
+          ss(24,i,j) = ss(24,i,j) &
                        + 25.d0 * beta(i-2,j+1,2) -  170.d0 * beta(i-1,j+1,2) &
                         -25.d0 * beta(i+2,j+1,2) +  170.d0 * beta(i+1,j+1,2)
 
-          ss(i,j, 0) = ss(i,j,0) -414720.d0 * ( beta(i,j,2) + beta(i,j+1,2) )
+          ss( 0,i,j) = ss(0,i,j) -414720.d0 * ( beta(i,j,2) + beta(i,j+1,2) )
 
        end do
     end do
@@ -1895,7 +1893,7 @@ contains
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
     do j = 1, ny
        do i = 1, nx
-          ss(i,j,0) = ss(i,j,0) + beta(i,j,0)
+          ss(0,i,j) = ss(0,i,j) + beta(i,j,0)
        end do
     end do
 
@@ -1906,7 +1904,7 @@ contains
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(lo(1):,lo(2):)
-    real (kind = dp_t), intent(  out) ::    ss(lo(1):     ,lo(2):     ,0:)
+    real (kind = dp_t), intent(  out) :: ss(0:,lo(1):     ,lo(2):     )
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:)
@@ -1966,47 +1964,47 @@ contains
 
           !   DOING CONTRIB AT           -2          -2
          nsten =   1
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                              -5.0d0*rholy*hx2  &
                              -5.0d0*rhobx*hy2  )
                                                
             !   DOING CONTRIB AT           -1          -2
 
          nsten =   2
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +     5.0d0*rhory*hx2  &
                          +    75.0d0*rholy*hx2  &
                          +    34.0d0*rhobx*hy2  )
                                                
             !   DOING CONTRIB AT            0          -2
          nsten =   3
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                             -75.0d0*rhory*hx2  &
                             -75.0d0*rholy*hx2  )
                                                
             !   DOING CONTRIB AT            1          -2
          nsten =   4
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +    75.0d0*rhory*hx2  &
                          +     5.0d0*rholy*hx2  &
                             -34.0d0*rhobx*hy2   )
                                                
             !   DOING CONTRIB AT            2          -2
          nsten =   5
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                              -5.0d0*rhory*hx2  &
                          +     5.0d0*rhobx*hy2 )
                                                
             !   DOING CONTRIB AT           -2          -1
          nsten =   6
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +    34.0d0*rholy*hx2  &
                          +     5.0d0*rhotx*hy2  &
                          +    75.0d0*rhobx*hy2  )
                                                
             !   DOING CONTRIB AT           -1          -1
          nsten =   7
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                             -34.0d0*rhory*hx2  &
                            -510.0d0*rholy*hx2  &
                             -34.0d0*rhotx*hy2  &
@@ -2014,13 +2012,13 @@ contains
                                                
             !   DOING CONTRIB AT            0          -1
          nsten =   8
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +   510.0d0*rhory*hx2  &
                          +   510.0d0*rholy*hx2  )
                                                
             !   DOING CONTRIB AT            1          -1
          nsten =   9
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                            -510.0d0*rhory*hx2  &
                             -34.0d0*rholy*hx2  &
                          +    34.0d0*rhotx*hy2  &
@@ -2028,45 +2026,45 @@ contains
                                                
             !   DOING CONTRIB AT            2          -1
          nsten =  10
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +    34.0d0*rhory*hx2  &
                              -5.0d0*rhotx*hy2  &
                             -75.0d0*rhobx*hy2  )
                                                
             !   DOING CONTRIB AT           -2           0
          nsten =  11
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                             -75.0d0*rhotx*hy2  &
                             -75.0d0*rhobx*hy2  )
                                                
             !   DOING CONTRIB AT           -1           0
          nsten =  12
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +   510.0d0*rhotx*hy2  &
                          +   510.0d0*rhobx*hy2  )
                                                
             !   DOING CONTRIB AT            1           0
          nsten =  13
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                            -510.0d0*rhotx*hy2  &
                            -510.0d0*rhobx*hy2  )
                                                
             !   DOING CONTRIB AT            2           0
          nsten =  14
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +    75.0d0*rhotx*hy2  &
                          +    75.0d0*rhobx*hy2  )
                                                
             !   DOING CONTRIB AT           -2           1
          nsten =  15
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                             -34.0d0*rholy*hx2  &
                          +    75.0d0*rhotx*hy2  &
                          +     5.0d0*rhobx*hy2  )
                                                
             !   DOING CONTRIB AT           -1           1
          nsten =  16
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +    34.0d0*rhory*hx2  &
                          +   510.0d0*rholy*hx2  &
                            -510.0d0*rhotx*hy2  &
@@ -2074,13 +2072,13 @@ contains
                                                
             !   DOING CONTRIB AT            0           1
          nsten =  17
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                            -510.0d0*rhory*hx2  &
                            -510.0d0*rholy*hx2  )
                                                
             !   DOING CONTRIB AT            1           1
          nsten =  18
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +   510.0d0*rhory*hx2  &
                          +    34.0d0*rholy*hx2  &
                          +   510.0d0*rhotx*hy2  &
@@ -2088,62 +2086,62 @@ contains
                                                
             !   DOING CONTRIB AT            2           1
          nsten =  19
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                             -34.0d0*rhory*hx2  &
                             -75.0d0*rhotx*hy2  &
                              -5.0d0*rhobx*hy2  )
                                                
             !   DOING CONTRIB AT           -2           2
          nsten =  20
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +     5.0d0*rholy*hx2 &
                              -5.0d0*rhotx*hy2  )
                                               
             !   DOING CONTRIB AT           -1           2
          nsten =  21
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                              -5.0d0*rhory*hx2  &
                             -75.0d0*rholy*hx2  &
                          +    34.0d0*rhotx*hy2 )
                                               
             !   DOING CONTRIB AT            0           2
          nsten =  22
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +    75.0d0*rhory*hx2  &
                          +    75.0d0*rholy*hx2  )
                                               
             !   DOING CONTRIB AT            1           2
          nsten =  23
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                             -75.0d0*rhory*hx2  &
                              -5.0d0*rholy*hx2  &
                             -34.0d0*rhotx*hy2  )
 
             !   DOING CONTRIB AT            2           2
          nsten =  24
-           ss(i,j,nsten) = (   &
+           ss(nsten,i,j) = (   &
                          +     5.0d0*rhory*hx2  &
                          +     5.0d0*rhotx*hy2  )
 
           !  Now we add in the 2nd order stencil
-          ss(i,j,11) = ss(i,j,11) + (                            - betax(i,j))*hx22
-          ss(i,j,12) = ss(i,j,12) + (        betax(i+1,j) + 15.0d0*betax(i,j))*hx22
-          ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*betax(i+1,j) - 15.0d0*betax(i,j))*hx22
-          ss(i,j,13) = ss(i,j,13) + ( 15.0d0*betax(i+1,j) +        betax(i,j))*hx22
-          ss(i,j,14) = ss(i,j,14) + (       -betax(i+1,j)                    )*hx22
+          ss(11,i,j) = ss(11,i,j) + (                            - betax(i,j))*hx22
+          ss(12,i,j) = ss(12,i,j) + (        betax(i+1,j) + 15.0d0*betax(i,j))*hx22
+          ss( 0,i,j) = ss( 0,i,j) + (-15.0d0*betax(i+1,j) - 15.0d0*betax(i,j))*hx22
+          ss(13,i,j) = ss(13,i,j) + ( 15.0d0*betax(i+1,j) +        betax(i,j))*hx22
+          ss(14,i,j) = ss(14,i,j) + (       -betax(i+1,j)                    )*hx22
 
-          ss(i,j,3) = ss(i,j,3)   + (                            - betay(i,j))*hy22
-          ss(i,j,8) = ss(i,j,8)   + (        betay(i,j+1) + 15.0d0*betay(i,j))*hy22
-          ss(i,j,0) =  ss(i,j,0 ) + (-15.0d0*betay(i,j+1) - 15.0d0*betay(i,j))*hy22
-          ss(i,j,17) = ss(i,j,17) + ( 15.0d0*betay(i,j+1) +        betay(i,j))*hy22
-          ss(i,j,22) = ss(i,j,22) + (       -betay(i,j+1)                    )*hy22
+          ss( 3,i,j) = ss( 3,i,j) + (                            - betay(i,j))*hy22
+          ss( 8,i,j) = ss( 8,i,j) + (        betay(i,j+1) + 15.0d0*betay(i,j))*hy22
+          ss( 0,i,j) = ss( 0,i,j) + (-15.0d0*betay(i,j+1) - 15.0d0*betay(i,j))*hy22
+          ss(17,i,j) = ss(17,i,j) + ( 15.0d0*betay(i,j+1) +        betay(i,j))*hy22
+          ss(22,i,j) = ss(22,i,j) + (       -betay(i,j+1)                    )*hy22
        end do
     end do
 
     ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
     do j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          ss(i,j,0) = ss(i,j,0) + alpha(i,j)
+          ss(0,i,j) = ss(0,i,j) + alpha(i,j)
        end do
     end do
 
@@ -2153,14 +2151,15 @@ contains
 
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
-    integer           , intent(inout) :: mask(lo(1)      :,lo(2)     :,lo(3)     :)
-    real (kind = dp_t), intent(  out) ::    ss(lo(1)     :,lo(2)     :,lo(3)     :,0:)
+    integer           , intent(inout) :: mask(lo(1) :,lo(2) :,lo(3) :)
+    real (kind = dp_t), intent(  out) :: ss(0:,lo(1) :,lo(2) :,lo(3) :)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
     real (kind = dp_t), intent(in   ) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: betaz(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    integer i, j, k
+
+    integer            :: i, j, k
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -2170,6 +2169,7 @@ contains
     mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
 
     ss = 0.d0
+
     !
     ! We only include the beta's here to get the viscous coefficients in here for now.
     ! The projection has beta == 1.
@@ -2178,21 +2178,22 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss(i,j,k, 1) =   1.d0 * betax(i  ,j,k)
-             ss(i,j,k, 2) = -16.d0 * betax(i  ,j,k)
-             ss(i,j,k, 3) = -16.d0 * betax(i+1,j,k)
-             ss(i,j,k, 4) =   1.d0 * betax(i+1,j,k)
-             ss(i,j,k, 5) =   1.d0 * betay(i,j  ,k)
-             ss(i,j,k, 6) = -16.d0 * betay(i,j  ,k)
-             ss(i,j,k, 7) = -16.d0 * betay(i,j+1,k)
-             ss(i,j,k, 8) =   1.d0 * betay(i,j+1,k)
-             ss(i,j,k, 9) =   1.d0 * betaz(i,j,k  )
-             ss(i,j,k,10) = -16.d0 * betaz(i,j,k  )
-             ss(i,j,k,11) = -16.d0 * betaz(i,j,k+1)
-             ss(i,j,k,12) =   1.d0 * betaz(i,j,k+1)
-             ss(i,j,k,0)  = -(ss(i,j,k,1) + ss(i,j,k, 2) + ss(i,j,k, 3) + ss(i,j,k, 4) &
-                             +ss(i,j,k,5) + ss(i,j,k, 6) + ss(i,j,k, 7) + ss(i,j,k, 8) &
-                             +ss(i,j,k,9) + ss(i,j,k,10) + ss(i,j,k,11) + ss(i,j,k,12) )
+             ss( 1,i,j,k) =   1.d0 * betax(i  ,j,k)
+             ss( 2,i,j,k) = -16.d0 * betax(i  ,j,k)
+             ss( 3,i,j,k) = -16.d0 * betax(i+1,j,k)
+             ss( 4,i,j,k) =   1.d0 * betax(i+1,j,k)
+             ss( 5,i,j,k) =   1.d0 * betay(i,j  ,k)
+             ss( 6,i,j,k) = -16.d0 * betay(i,j  ,k)
+             ss( 7,i,j,k) = -16.d0 * betay(i,j+1,k)
+             ss( 8,i,j,k) =   1.d0 * betay(i,j+1,k)
+             ss( 9,i,j,k) =   1.d0 * betaz(i,j,k  )
+             ss(10,i,j,k) = -16.d0 * betaz(i,j,k  )
+             ss(11,i,j,k) = -16.d0 * betaz(i,j,k+1)
+             ss(12,i,j,k) =   1.d0 * betaz(i,j,k+1)
+             ss(0,i,j,k)  = -( ss(1,i,j,k) + ss( 2,i,j,k) + ss( 3,i,j,k) + ss( 4,i,j,k) &
+                              +ss(5,i,j,k) + ss( 6,i,j,k) + ss( 7,i,j,k) + ss( 8,i,j,k) &
+                              +ss(9,i,j,k) + ss(10,i,j,k) + ss(11,i,j,k) + ss(12,i,j,k) ) &
+                             + alpha(i,j,k)
           end do
        end do
     end do
@@ -2206,7 +2207,7 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k)
+             ss(0,i,j,k) = ss(0,i,j,k) + alpha(i,j,k)
           end do
        end do
     end do
@@ -2218,7 +2219,7 @@ contains
     integer           , intent(in   ) :: ng_a,ng_b
     integer           , intent(in   ) :: lo(:), hi(:)
     integer           , intent(inout) :: mask(lo(1)      :,lo(2)     :,lo(3)     :)
-    real (kind = dp_t), intent(  out) ::    ss(lo(1)     :,lo(2)     :,lo(3)     :,0:)
+    real (kind = dp_t), intent(  out) :: ss(0:,lo(1)     :,lo(2)     :,lo(3)     :)
     real (kind = dp_t), intent(in   ) :: alpha(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
     real (kind = dp_t), intent(inout) :: betax(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
     real (kind = dp_t), intent(inout) :: betay(lo(1)-ng_b:,lo(2)-ng_b:,lo(3)-ng_b:)
@@ -2287,70 +2288,70 @@ contains
 
  ! DOING CONTRIB AT            0          -2          -2 nsten =            1
         nsten =   1
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                         -5.0d0*rhoby*hz2 &
                         -5.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT            0          -1          -2 nsten =            2
         nsten =   2
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    34.0d0*rhoby*hz2 &
                    +     5.0d0*rhofz*hy2 &
                    +    75.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT           -2           0          -2 nsten =            3
         nsten =   3
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                         -5.0d0*rholz*hx2 &
                         -5.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT           -1           0          -2 nsten =            4
         nsten =   4
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    75.0d0*rholz*hx2 &
                    +    34.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT            0           0          -2 nsten =            5
         nsten =   5
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -75.0d0*rholz*hx2 &
                        -75.0d0*rhofz*hy2 &
                        -75.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT            1           0          -2 nsten =            6
         nsten =   6
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +     5.0d0*rholz*hx2 &
                        -34.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT            2           0          -2 nsten =            7
         nsten =   7
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +     5.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT            0           1          -2 nsten =            8
         nsten =   8
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -34.0d0*rhoby*hz2 &
                    +    75.0d0*rhofz*hy2 &
                    +     5.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT            0           2          -2 nsten =            9
         nsten =   9
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +     5.0d0*rhoby*hz2 &
                         -5.0d0*rhofz*hy2 )
                                               
  ! DOING CONTRIB AT            0          -2          -1 nsten =           10
         nsten =  10
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +     5.0d0*rhoty*hz2 &
                    +    75.0d0*rhoby*hz2 &
                    +    34.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT            0          -1          -1 nsten =           11
         nsten =  11
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -34.0d0*rhoty*hz2 &
                       -510.0d0*rhoby*hz2 &
                        -34.0d0*rhofz*hy2 &
@@ -2358,41 +2359,41 @@ contains
                                               
  ! DOING CONTRIB AT           -2           0          -1 nsten =           12
         nsten =  12
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    34.0d0*rholz*hx2 &
                    +     5.0d0*rhotx*hz2 &
                    +    75.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT           -1           0          -1 nsten =           13
         nsten =  13
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                       -510.0d0*rholz*hx2 &
                        -34.0d0*rhotx*hz2 &
                       -510.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT            0           0          -1 nsten =           14
         nsten =  14
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +   510.0d0*rholz*hx2 &
                    +   510.0d0*rhofz*hy2 &
                    +   510.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT            1           0          -1 nsten =           15
         nsten =  15
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -34.0d0*rholz*hx2 &
                    +    34.0d0*rhotx*hz2 &
                    +   510.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT            2           0          -1 nsten =           16
         nsten =  16
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                         -5.0d0*rhotx*hz2 &
                        -75.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT            0           1          -1 nsten =           17
         nsten =  17
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    34.0d0*rhoty*hz2 &
                    +   510.0d0*rhoby*hz2 &
                       -510.0d0*rhofz*hy2 &
@@ -2400,20 +2401,20 @@ contains
                                               
  ! DOING CONTRIB AT            0           2          -1 nsten =           18
         nsten =  18
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                         -5.0d0*rhoty*hz2 &
                        -75.0d0*rhoby*hz2 &
                    +    34.0d0*rhofz*hy2 )
                                               
  ! DOING CONTRIB AT           -2          -2           0 nsten =           19
         nsten =  19
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                         -5.0d0*rholy*hx2 &
                         -5.0d0*rhoax*hy2 )
                                               
  ! DOING CONTRIB AT           -1          -2           0 nsten =           20
         nsten =  20
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +     5.0d0*rhory*hx2 &
                    +     5.0d0*rhorz*hx2 &
                    +    75.0d0*rholy*hx2 &
@@ -2421,7 +2422,7 @@ contains
                                               
  ! DOING CONTRIB AT            0          -2           0 nsten =           21
         nsten =  21
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -75.0d0*rhory*hx2 &
                        -75.0d0*rhorz*hx2 &
                        -75.0d0*rholy*hx2 &
@@ -2430,7 +2431,7 @@ contains
                                               
  ! DOING CONTRIB AT            1          -2           0 nsten =           22
         nsten =  22
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    75.0d0*rhory*hx2 &
                    +    75.0d0*rhorz*hx2 &
                    +     5.0d0*rholy*hx2 &
@@ -2438,21 +2439,21 @@ contains
                                               
  ! DOING CONTRIB AT            2          -2           0 nsten =           23
         nsten =  23
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                         -5.0d0*rhory*hx2 &
                         -5.0d0*rhorz*hx2 &
                    +     5.0d0*rhoax*hy2 )
                                               
  ! DOING CONTRIB AT           -2          -1           0 nsten =           24
         nsten =  24
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    34.0d0*rholy*hx2 &
                    +     5.0d0*rhofx*hy2 &
                    +    75.0d0*rhoax*hy2 )
                                               
  ! DOING CONTRIB AT           -1          -1           0 nsten =           25
         nsten =  25
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -34.0d0*rhory*hx2 &
                        -34.0d0*rhorz*hx2 &
                       -510.0d0*rholy*hx2 &
@@ -2461,7 +2462,7 @@ contains
                                               
  ! DOING CONTRIB AT            0          -1           0 nsten =           26
         nsten =  26
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +   510.0d0*rhory*hx2 &
                    +   510.0d0*rhorz*hx2 &
                    +   510.0d0*rholy*hx2 &
@@ -2470,7 +2471,7 @@ contains
                                               
  ! DOING CONTRIB AT            1          -1           0 nsten =           27
         nsten =  27
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                       -510.0d0*rhory*hx2 &
                       -510.0d0*rhorz*hx2 &
                        -34.0d0*rholy*hx2 &
@@ -2479,7 +2480,7 @@ contains
                                               
  ! DOING CONTRIB AT            2          -1           0 nsten =           28
         nsten =  28
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    34.0d0*rhory*hx2 &
                    +    34.0d0*rhorz*hx2 &
                         -5.0d0*rhofx*hy2 &
@@ -2487,7 +2488,7 @@ contains
                                               
  ! DOING CONTRIB AT           -2           0           0 nsten =           29
         nsten =  29
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -75.0d0*rhotx*hz2 &
                        -75.0d0*rhobx*hz2 &
                        -75.0d0*rhofx*hy2 &
@@ -2495,7 +2496,7 @@ contains
                                               
  ! DOING CONTRIB AT           -1           0           0 nsten =           30
         nsten =  30
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +   510.0d0*rhotx*hz2 &
                    +   510.0d0*rhobx*hz2 &
                    +   510.0d0*rhofx*hy2 &
@@ -2503,7 +2504,7 @@ contains
                                               
  ! DOING CONTRIB AT            1           0           0 nsten =           31
         nsten =  31
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                       -510.0d0*rhotx*hz2 &
                       -510.0d0*rhobx*hz2 &
                       -510.0d0*rhofx*hy2 &
@@ -2511,7 +2512,7 @@ contains
                                               
  ! DOING CONTRIB AT            2           0           0 nsten =           32
         nsten =  32
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    75.0d0*rhotx*hz2 &
                    +    75.0d0*rhobx*hz2 &
                    +    75.0d0*rhofx*hy2 &
@@ -2519,14 +2520,14 @@ contains
                                               
  ! DOING CONTRIB AT           -2           1           0 nsten =           33
         nsten =  33
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -34.0d0*rholy*hx2 &
                    +    75.0d0*rhofx*hy2 &
                    +     5.0d0*rhoax*hy2 )
                                               
  ! DOING CONTRIB AT           -1           1           0 nsten =           34
         nsten =  34
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    34.0d0*rhory*hx2 &
                    +    34.0d0*rhorz*hx2 &
                    +   510.0d0*rholy*hx2 &
@@ -2535,7 +2536,7 @@ contains
                                               
  ! DOING CONTRIB AT            0           1           0 nsten =           35
         nsten =  35
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                       -510.0d0*rhory*hx2 &
                       -510.0d0*rhorz*hx2 &
                       -510.0d0*rholy*hx2 &
@@ -2544,7 +2545,7 @@ contains
                                               
  ! DOING CONTRIB AT            1           1           0 nsten =           36
         nsten =  36
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +   510.0d0*rhory*hx2 &
                    +   510.0d0*rhorz*hx2 &
                    +    34.0d0*rholy*hx2 &
@@ -2553,7 +2554,7 @@ contains
                                               
  ! DOING CONTRIB AT            2           1           0 nsten =           37
         nsten =  37
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -34.0d0*rhory*hx2 &
                        -34.0d0*rhorz*hx2 &
                        -75.0d0*rhofx*hy2 &
@@ -2561,13 +2562,13 @@ contains
                                               
  ! DOING CONTRIB AT           -2           2           0 nsten =           38
         nsten =  38
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +     5.0d0*rholy*hx2 &
                         -5.0d0*rhofx*hy2 )
                                               
  ! DOING CONTRIB AT           -1           2           0 nsten =           39
         nsten =  39
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                         -5.0d0*rhory*hx2 &
                         -5.0d0*rhorz*hx2 &
                        -75.0d0*rholy*hx2 &
@@ -2575,7 +2576,7 @@ contains
                                               
  ! DOING CONTRIB AT            0           2           0 nsten =           40
         nsten =  40
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    75.0d0*rhory*hx2 &
                    +    75.0d0*rhorz*hx2 &
                    +    75.0d0*rholy*hx2 &
@@ -2584,7 +2585,7 @@ contains
                                               
  ! DOING CONTRIB AT            1           2           0 nsten =           41
         nsten =  41
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -75.0d0*rhory*hx2 &
                        -75.0d0*rhorz*hx2 &
                         -5.0d0*rholy*hx2 &
@@ -2592,21 +2593,21 @@ contains
                                               
  ! DOING CONTRIB AT            2           2           0 nsten =           42
         nsten =  42
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +     5.0d0*rhory*hx2 &
                    +     5.0d0*rhorz*hx2 &
                    +     5.0d0*rhofx*hy2 )
                                               
  ! DOING CONTRIB AT            0          -2           1 nsten =           43
         nsten =  43
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    75.0d0*rhoty*hz2 &
                    +     5.0d0*rhoby*hz2 &
                        -34.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT            0          -1           1 nsten =           44
         nsten =  44
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                       -510.0d0*rhoty*hz2 &
                        -34.0d0*rhoby*hz2 &
                    +    34.0d0*rhofz*hy2 &
@@ -2614,41 +2615,41 @@ contains
                                               
  ! DOING CONTRIB AT           -2           0           1 nsten =           45
         nsten =  45
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -34.0d0*rholz*hx2 &
                    +    75.0d0*rhotx*hz2 &
                    +     5.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT           -1           0           1 nsten =           46
         nsten =  46
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +   510.0d0*rholz*hx2 &
                       -510.0d0*rhotx*hz2 &
                        -34.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT            0           0           1 nsten =           47
         nsten =  47
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                       -510.0d0*rholz*hx2 &
                       -510.0d0*rhofz*hy2 &
                       -510.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT            1           0           1 nsten =           48
         nsten =  48
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    34.0d0*rholz*hx2 &
                    +   510.0d0*rhotx*hz2 &
                    +    34.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT            2           0           1 nsten =           49
         nsten =  49
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -75.0d0*rhotx*hz2 &
                         -5.0d0*rhobx*hz2 )
                                               
  ! DOING CONTRIB AT            0           1           1 nsten =           50
         nsten =  50
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +   510.0d0*rhoty*hz2 &
                    +    34.0d0*rhoby*hz2 &
                    +   510.0d0*rhofz*hy2 &
@@ -2656,119 +2657,109 @@ contains
                                               
  ! DOING CONTRIB AT            0           2           1 nsten =           51
         nsten =  51
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -75.0d0*rhoty*hz2 &
                         -5.0d0*rhoby*hz2 &
                        -34.0d0*rhofz*hy2 )
                                               
  ! DOING CONTRIB AT            0          -2           2 nsten =           52
         nsten =  52
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                         -5.0d0*rhoty*hz2 &
                    +     5.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT            0          -1           2 nsten =           53
         nsten =  53
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    34.0d0*rhoty*hz2 &
                         -5.0d0*rhofz*hy2 &
                        -75.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT           -2           0           2 nsten =           54
         nsten =  54
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +     5.0d0*rholz*hx2 &
                         -5.0d0*rhotx*hz2 )
                                               
  ! DOING CONTRIB AT           -1           0           2 nsten =           55
         nsten =  55
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -75.0d0*rholz*hx2 &
                    +    34.0d0*rhotx*hz2 )
                                               
  ! DOING CONTRIB AT            0           0           2 nsten =           56
         nsten =  56
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +    75.0d0*rholz*hx2 &
                    +    75.0d0*rhofz*hy2 &
                    +    75.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT            1           0           2 nsten =           57
         nsten =  57
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                         -5.0d0*rholz*hx2 &
                        -34.0d0*rhotx*hz2 )
                                               
  ! DOING CONTRIB AT            2           0           2 nsten =           58
         nsten =  58
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +     5.0d0*rhotx*hz2 )
                                               
  ! DOING CONTRIB AT            0           1           2 nsten =           59
         nsten =  59
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                        -34.0d0*rhoty*hz2 &
                        -75.0d0*rhofz*hy2 &
                         -5.0d0*rhoaz*hy2 )
                                               
  ! DOING CONTRIB AT            0           2           2 nsten =           60
         nsten =  60
-          ss(i,j,k,nsten) = ( &
+          ss(nsten,i,j,k) = ( &
                    +     5.0d0*rhoty*hz2 &
                    +     5.0d0*rhofz*hy2 )
                                               
 
           !  Now we add in the 2nd order stencil
-          ss(i,j,k,29) = ss(i,j,k,29) + (                       -        betax(i,j,k))*hx22
-          ss(i,j,k,30) = ss(i,j,k,30) + (        betax(i+1,j,k) + 15.0d0*betax(i,j,k))*hx22
-          ! ss(i,j,k, 0) = ss(i,j,k, 0) + (-15.0d0*betax(i+1,j,k) - 15.0d0*betax(i,j,k))*hx22
-          ss(i,j,k,31) = ss(i,j,k,31) + ( 15.0d0*betax(i+1,j,k) +        betax(i,j,k))*hx22
-          ss(i,j,k,32) = ss(i,j,k,32) + (       -betax(i+1,j,k)                      )*hx22
+          ss(29,i,j,k) = ss(29,i,j,k) + (                       -        betax(i,j,k))*hx22
+          ss(30,i,j,k) = ss(30,i,j,k) + (        betax(i+1,j,k) + 15.0d0*betax(i,j,k))*hx22
+          !ss(0,i,j,k) = ss( 0,i,j,k) + (-15.0d0*betax(i+1,j,k) - 15.0d0*betax(i,j,k))*hx22
+          ss(31,i,j,k) = ss(31,i,j,k) + ( 15.0d0*betax(i+1,j,k) +        betax(i,j,k))*hx22
+          ss(32,i,j,k) = ss(32,i,j,k) + (       -betax(i+1,j,k)                      )*hx22
  
-          ss(i,j,k,21) = ss(i,j,k,21) + (                      -        betay(i,j,k))*hy22
-          ss(i,j,k,26) = ss(i,j,k,26) + (        betay(i,j+1,k) + 15.0d0*betay(i,j,k))*hy22
-          ! ss(i,j,k, 0) = ss(i,j,k, 0) + (-15.0d0*betay(i,j+1,k) - 15.0d0*betay(i,j,k))*hy22
-          ss(i,j,k,35) = ss(i,j,k,35) + ( 15.0d0*betay(i,j+1,k) +        betay(i,j,k))*hy22
-          ss(i,j,k,40) = ss(i,j,k,40) + (       -betay(i,j+1,k)                      )*hy22
+          ss(21,i,j,k) = ss(21,i,j,k) + (                      -        betay(i,j,k))*hy22
+          ss(26,i,j,k) = ss(26,i,j,k) + (        betay(i,j+1,k) + 15.0d0*betay(i,j,k))*hy22
+          !ss(0,i,j,k) = ss( 0,i,j,k) + (-15.0d0*betay(i,j+1,k) - 15.0d0*betay(i,j,k))*hy22
+          ss(35,i,j,k) = ss(35,i,j,k) + ( 15.0d0*betay(i,j+1,k) +        betay(i,j,k))*hy22
+          ss(40,i,j,k) = ss(40,i,j,k) + (       -betay(i,j+1,k)                      )*hy22
  
-          ss(i,j,k, 5) = ss(i,j,k, 5) + (                       -        betaz(i,j,k))*hz22
-          ss(i,j,k,14) = ss(i,j,k,14) + (        betaz(i,j,k+1) + 15.0d0*betaz(i,j,k))*hz22
-          ! ss(i,j,k, 0) = ss(i,j,k, 0) + (-15.0d0*betaz(i,j,k+1) - 15.0d0*betaz(i,j,k))*hz22
-          ss(i,j,k,47) = ss(i,j,k,47) + ( 15.0d0*betaz(i,j,k+1) +        betaz(i,j,k))*hz22
-          ss(i,j,k,56) = ss(i,j,k,56) + (       -betaz(i,j,k+1)                      )*hz22
+          ss( 5,i,j,k) = ss( 5,i,j,k) + (                       -        betaz(i,j,k))*hz22
+          ss(14,i,j,k) = ss(14,i,j,k) + (        betaz(i,j,k+1) + 15.0d0*betaz(i,j,k))*hz22
+          !ss(0,i,j,k) = ss( 0,i,j,k) + (-15.0d0*betaz(i,j,k+1) - 15.0d0*betaz(i,j,k))*hz22
+          ss(47,i,j,k) = ss(47,i,j,k) + ( 15.0d0*betaz(i,j,k+1) +        betaz(i,j,k))*hz22
+          ss(56,i,j,k) = ss(56,i,j,k) + (       -betaz(i,j,k+1)                      )*hz22
 
           end do
        end do
     end do
-
     !$OMP END PARALLEL DO
 
     !
-    ! Define the center stencil.
-    !
+    ! Define the center stencil and add the "alpha" term in 
+    !     (alpha - del dot beta grad) phi = RHS.
+    !$OMP PARALLEL DO PRIVATE(i,j,k,sum)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
           sum = 0.d0
           do nsten = 1,60
-             sum = sum + ss(i,j,k,nsten)
+             sum = sum + ss(nsten,i,j,k)
           end do
-          ss(i,j,k,0) = -sum
+          ss(0,i,j,k) = alpha(i,j,k) - sum
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
-    !
-    ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
-    !
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             ss(i,j,k,0) = ss(i,j,k,0) + alpha(i,j,k)
-          end do
-       end do
-    end do
 
   end subroutine s_minion_full_fill_3d
 

@@ -247,13 +247,13 @@ contains
 
        select case (dm)
        case (1)
-          call s_simple_1d_nodal(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), dh)
+          call s_simple_1d_nodal(sp(:,:,1,1), cp(:,1,1,1), mp(:,1,1,1), dh)
        case (2)
           if (stencil_type == ST_DENSE) then
-            call s_dense_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
+            call s_dense_2d_nodal(sp(:,:,:,1), cp(:,:,1,1), mp(:,:,1,1), &
                                   face_type(i,:,:), dh)
           else if (stencil_type == ST_CROSS) then
-            call s_cross_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
+            call s_cross_2d_nodal(sp(:,:,:,1), cp(:,:,1,1), mp(:,:,1,1), &
                                    face_type(i,:,:), dh)
           else 
             print *,'DONT KNOW THIS NODAL STENCIL TYPE ',stencil_type
@@ -300,9 +300,9 @@ contains
 
        select case (dm)
        case (1)
-!         call s_simple_1d_one_sided(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), face_type(i,1,:), dh)
+         call bl_error('s_simple_1d_one_sided() not implemented')
        case (2)
-          call s_simple_2d_one_sided(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
+          call s_simple_2d_one_sided(sp(:,:,:,1), cp(:,:,1,1), mp(:,:,1,1), &
                                      face_type(i,:,:), dh)
        case (3)
           call s_simple_3d_one_sided(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), dh)

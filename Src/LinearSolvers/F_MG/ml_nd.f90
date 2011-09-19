@@ -113,17 +113,10 @@ contains
 
     end do
 
-!   DONT WANT TO DO THIS AS CAN ERRONEOUSLY PUT FINE GRID RH FROM NODE NEXT
-!     TO CRSE-FINE BDRY ONTO CRSE POINT AT CRSE-FINE BDRY
-!   do n = nlevs,2,-1
-!      mglev      = mgt(n  )%nlevels
-!      mglev_crse = mgt(n-1)%nlevels
-!      call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
-!           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
-!   end do
     bnorm = ml_norm_inf(rh,fine_mask)
 
-    lcross = ((ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 5) .or. (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
+    lcross = ((ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 5) .or. &
+              (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
 
     Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
     do n = 1, nlevs-1
@@ -134,16 +127,6 @@ contains
        mglev = mgt(n)%nlevels
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
     end do
-
-!   do n = nlevs,2,-1
-!      mglev      = mgt(n  )%nlevels
-!      mglev_crse = mgt(n-1)%nlevels
-!      call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-!           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
-!      pdc = layout_get_pd(mla%la(n-1))
-!      call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),temp_res(n),temp_res(n-1), &
-!           full_soln(n-1),full_soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
-!   enddo
 
     do n = 1,nlevs
        call multifab_copy(rh(n),res(n),ng=nghost(rh(n)))
@@ -493,7 +476,8 @@ contains
 
       !    First compute a residual which only takes contributions from the
       !       grid on which it is calculated.
-      if (multifab_ncomp(mgt(n)%ss(mglev_fine)) .eq. (2*dm+1) ) then
+
+      if (ncomp(mgt(n)%ss(mglev_fine)) .eq. (2*dm+1) ) then
         call grid_res(one_sided_ss,temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type,mgt(n)%uniform_dh)
       else
@@ -621,10 +605,10 @@ contains
        do n = 1, ncomp(uu)
           select case(dm)
           case (1)
-             call grid_laplace_1d(sp(:,1,1,:), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
+             call grid_laplace_1d(sp(:,:,1,1), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
                                   mp(:,1,1,1),nghost(uu))
           case (2)
-             call grid_laplace_2d(sp(:,:,1,:), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
+             call grid_laplace_2d(sp(:,:,:,1), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
                                   mp(:,:,1,1), nghost(uu), face_type(i,:,:))
           case (3)
              call grid_laplace_3d(sp(:,:,:,:), dp(:,:,:,n), fp(:,:,:,n), up(:,:,:,n), &
@@ -642,28 +626,28 @@ contains
     use impose_neumann_bcs_module
 
     integer           , intent(in   ) :: ng
-    real (kind = dp_t), intent(in   ) :: ss(:,0:)
+    real (kind = dp_t), intent(in   ) :: ss(0:,:)
     real (kind = dp_t), intent(inout) :: dd(0:)
     real (kind = dp_t), intent(in   ) :: ff(0:)
     integer,            intent(in   ) :: mm(:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
 
     integer :: i,nx,lo(1)
-    nx = size(ss,dim=1)-1
+    nx = size(ss,dim=2)-1
 
     lo = 1
     call impose_neumann_bcs_1d(uu,mm,lo,ng)
 
     i = 1
-    dd(i) = HALF*ff(i) - (ss(i,0)*uu(i) + ss(i,1)*(uu(i+1)-uu(i)))
+    dd(i) = HALF*ff(i) - (ss(0,i)*uu(i) + ss(1,i)*(uu(i+1)-uu(i)))
 
     do i = 2,nx
       dd(i) = ff(i) - &
-              (ss(i,0)*uu(i) + ss(i,1) * uu(i+1) + ss(i,2) * uu(i-1))
+              (ss(0,i)*uu(i) + ss(1,i) * uu(i+1) + ss(2,i) * uu(i-1))
     end do
 
     i = nx+1
-    dd(i) = HALF*ff(i) - (ss(i,2)*(uu(i-1)-uu(i)))
+    dd(i) = HALF*ff(i) - (ss(2,i)*(uu(i-1)-uu(i)))
 
   end subroutine grid_laplace_1d
 
@@ -673,7 +657,7 @@ contains
     use impose_neumann_bcs_module
 
     integer           , intent(in   ) :: ng
-    real (kind = dp_t), intent(in   ) :: ss(:,:,0:)
+    real (kind = dp_t), intent(in   ) :: ss(0:,:,:)
     real (kind = dp_t), intent(inout) :: dd(0:,0:) 
     real (kind = dp_t), intent(in   ) :: ff(0:,0:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
@@ -682,8 +666,8 @@ contains
     integer :: i,j,nx,ny,lo(2)
     integer :: istart,iend,jstart,jend
 
-    nx = size(ss,dim=1)-1
-    ny = size(ss,dim=2)-1
+    nx = size(ss,dim=2)-1
+    ny = size(ss,dim=3)-1
 
     lo = 1
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
@@ -709,141 +693,141 @@ contains
       jend = ny
     end if
 
-    if (size(ss,dim=3) .eq. 9) then
+    if (size(ss,dim=1) .eq. 9) then
 !     Corners
       i = 1
       j = 1
-      dd(i,j) = ss(i,j,8)*(uu(i+1,j+1)+HALF*uu(i,j+1)+HALF*uu(i+1,j)-TWO*uu(i,j))
+      dd(i,j) = ss(8,i,j)*(uu(i+1,j+1)+HALF*uu(i,j+1)+HALF*uu(i+1,j)-TWO*uu(i,j))
       dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
 
       i = 1
       j = ny+1
-      dd(i,j) = ss(i,j,3)*(uu(i+1,j-1)+HALF*uu(i,j-1)+HALF*uu(i+1,j)-TWO*uu(i,j))
+      dd(i,j) = ss(3,i,j)*(uu(i+1,j-1)+HALF*uu(i,j-1)+HALF*uu(i+1,j)-TWO*uu(i,j))
       dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
  
       i = nx+1
       j = 1
-      dd(i,j) = ss(i,j,6)*(uu(i-1,j+1)+HALF*uu(i,j+1)+HALF*uu(i-1,j)-TWO*uu(i,j))
+      dd(i,j) = ss(6,i,j)*(uu(i-1,j+1)+HALF*uu(i,j+1)+HALF*uu(i-1,j)-TWO*uu(i,j))
       dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
 
       i = nx+1
       j = ny+1
-      dd(i,j) = ss(i,j,1)*(uu(i-1,j-1)+HALF*uu(i,j-1)+HALF*uu(i-1,j)-TWO*uu(i,j))
+      dd(i,j) = ss(1,i,j)*(uu(i-1,j-1)+HALF*uu(i,j-1)+HALF*uu(i-1,j)-TWO*uu(i,j))
       dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
  
 !     Lo-x edge
       i = 1
       do j = jstart,jend
-         dd(i,j) = ss(i,j,3)*(uu(i+1,j-1)+HALF*uu(i,j-1)+HALF*uu(i+1,j)-TWO*uu(i,j)) &
-                  +ss(i,j,8)*(uu(i+1,j+1)+HALF*uu(i,j+1)+HALF*uu(i+1,j)-TWO*uu(i,j))
+         dd(i,j) = ss(3,i,j)*(uu(i+1,j-1)+HALF*uu(i,j-1)+HALF*uu(i+1,j)-TWO*uu(i,j)) &
+                  +ss(8,i,j)*(uu(i+1,j+1)+HALF*uu(i,j+1)+HALF*uu(i+1,j)-TWO*uu(i,j))
          dd(i,j) = HALF*ff(i,j) - dd(i,j)
       end do
 
 !     Hi-x edge
       i = nx+1
       do j = jstart,jend
-         dd(i,j) = ss(i,j,1)*(uu(i-1,j-1)+HALF*uu(i,j-1)+HALF*uu(i-1,j)-TWO*uu(i,j)) &
-                  +ss(i,j,6)*(uu(i-1,j+1)+HALF*uu(i,j+1)+HALF*uu(i-1,j)-TWO*uu(i,j))
+         dd(i,j) = ss(1,i,j)*(uu(i-1,j-1)+HALF*uu(i,j-1)+HALF*uu(i-1,j)-TWO*uu(i,j)) &
+                  +ss(6,i,j)*(uu(i-1,j+1)+HALF*uu(i,j+1)+HALF*uu(i-1,j)-TWO*uu(i,j))
          dd(i,j) = HALF*ff(i,j) - dd(i,j)
       end do
  
 !     Lo-y edge
       j = 1
       do i = istart,iend
-         dd(i,j) = ss(i,j,6)*(uu(i-1,j+1)+HALF*uu(i,j+1)+HALF*uu(i-1,j)-TWO*uu(i,j)) &
-                  +ss(i,j,8)*(uu(i+1,j+1)+HALF*uu(i,j+1)+HALF*uu(i+1,j)-TWO*uu(i,j))
+         dd(i,j) = ss(6,i,j)*(uu(i-1,j+1)+HALF*uu(i,j+1)+HALF*uu(i-1,j)-TWO*uu(i,j)) &
+                  +ss(8,i,j)*(uu(i+1,j+1)+HALF*uu(i,j+1)+HALF*uu(i+1,j)-TWO*uu(i,j))
          dd(i,j) = HALF*ff(i,j) - dd(i,j)
       end do
 
 !     Hi-y edge
       j = ny+1
       do i = istart,iend
-         dd(i,j) = ss(i,j,1)*(uu(i-1,j-1)+HALF*uu(i,j-1)+HALF*uu(i-1,j)-TWO*uu(i,j)) &
-                  +ss(i,j,3)*(uu(i+1,j-1)+HALF*uu(i,j-1)+HALF*uu(i+1,j)-TWO*uu(i,j))
+         dd(i,j) = ss(1,i,j)*(uu(i-1,j-1)+HALF*uu(i,j-1)+HALF*uu(i-1,j)-TWO*uu(i,j)) &
+                  +ss(3,i,j)*(uu(i+1,j-1)+HALF*uu(i,j-1)+HALF*uu(i+1,j)-TWO*uu(i,j))
          dd(i,j) = HALF*ff(i,j) - dd(i,j)
       end do
  
 !     Interior
       do j = jstart,jend
       do i = istart,iend
-         dd(i,j) = ss(i,j,0)*uu(i,j) + ss(i,j,1) * uu(i-1,j-1) &
-                                     + ss(i,j,2) * uu(i  ,j-1) &
-                                     + ss(i,j,3) * uu(i+1,j-1) &
-                                     + ss(i,j,4) * uu(i-1,j  ) &
-                                     + ss(i,j,5) * uu(i+1,j  ) &
-                                     + ss(i,j,6) * uu(i-1,j+1) &
-                                     + ss(i,j,7) * uu(i  ,j+1) &
-                                     + ss(i,j,8) * uu(i+1,j+1)
+         dd(i,j) = ss(0,i,j)*uu(i,j) + ss(1,i,j) * uu(i-1,j-1) &
+                                     + ss(2,i,j) * uu(i  ,j-1) &
+                                     + ss(3,i,j) * uu(i+1,j-1) &
+                                     + ss(4,i,j) * uu(i-1,j  ) &
+                                     + ss(5,i,j) * uu(i+1,j  ) &
+                                     + ss(6,i,j) * uu(i-1,j+1) &
+                                     + ss(7,i,j) * uu(i  ,j+1) &
+                                     + ss(8,i,j) * uu(i+1,j+1)
          dd(i,j) = ff(i,j) - dd(i,j)
       end do
       end do
 
-    else if (size(ss,dim=3) .eq. 5) then
+    else if (size(ss,dim=1) .eq. 5) then
 
 !     Corners
       i = 1
       j = 1
-      dd(i,j) = ss(i,j,1)*(uu(i+1,j)-uu(i,j)) + ss(i,j,3)*(uu(i,j+1)-uu(i,j))
+      dd(i,j) = ss(1,i,j)*(uu(i+1,j)-uu(i,j)) + ss(3,i,j)*(uu(i,j+1)-uu(i,j))
       dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
 
       i = 1
       j = ny+1
-      dd(i,j) = ss(i,j,1)*(uu(i+1,j)-uu(i,j)) + ss(i,j,4)*(uu(i,j-1)-uu(i,j))
+      dd(i,j) = ss(1,i,j)*(uu(i+1,j)-uu(i,j)) + ss(4,i,j)*(uu(i,j-1)-uu(i,j))
       dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
 
       i = nx+1
       j = 1
-      dd(i,j) = ss(i,j,2)*(uu(i-1,j)-uu(i,j)) + ss(i,j,3)*(uu(i,j+1)-uu(i,j))
+      dd(i,j) = ss(2,i,j)*(uu(i-1,j)-uu(i,j)) + ss(3,i,j)*(uu(i,j+1)-uu(i,j))
       dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
 
       i = nx+1
       j = ny+1
-      dd(i,j) = ss(i,j,2)*(uu(i-1,j)-uu(i,j)) + ss(i,j,4)*(uu(i,j-1)-uu(i,j))
+      dd(i,j) = ss(2,i,j)*(uu(i-1,j)-uu(i,j)) + ss(4,i,j)*(uu(i,j-1)-uu(i,j))
       dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
 
 !     Lo-x edge
       i = 1
       do j = jstart,jend
-         dd(i,j) =  ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                   +ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                   +ss(i,j,4)*(uu(i,j-1)-uu(i,j)) 
+         dd(i,j) =  ss(1,i,j)*(uu(i+1,j)-uu(i,j)) &
+                   +ss(3,i,j)*(uu(i,j+1)-uu(i,j)) &
+                   +ss(4,i,j)*(uu(i,j-1)-uu(i,j)) 
          dd(i,j) = HALF*ff(i,j) - dd(i,j)
       end do
 
 !     Hi-x edge
       i = nx+1
       do j = jstart,jend
-         dd(i,j) = ss(i,j,2)*(uu(i-1,j)-uu(i,j)) &
-                  +ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                  +ss(i,j,4)*(uu(i,j-1)-uu(i,j)) 
+         dd(i,j) = ss(2,i,j)*(uu(i-1,j)-uu(i,j)) &
+                  +ss(3,i,j)*(uu(i,j+1)-uu(i,j)) &
+                  +ss(4,i,j)*(uu(i,j-1)-uu(i,j)) 
          dd(i,j) = HALF*ff(i,j) - dd(i,j)
       end do
  
 !     Lo-y edge
       j = 1
       do i = istart,iend
-         dd(i,j) = ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                  +ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                  +ss(i,j,2)*(uu(i-1,j)-uu(i,j)) 
+         dd(i,j) = ss(3,i,j)*(uu(i,j+1)-uu(i,j)) &
+                  +ss(1,i,j)*(uu(i+1,j)-uu(i,j)) &
+                  +ss(2,i,j)*(uu(i-1,j)-uu(i,j)) 
          dd(i,j) = HALF*ff(i,j) - dd(i,j)
       end do
 
 !     Hi-y edge
       j = ny+1
       do i = istart,iend
-         dd(i,j) = ss(i,j,4)*(uu(i,j-1)-uu(i,j)) &
-                  +ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                  +ss(i,j,2)*(uu(i-1,j)-uu(i,j)) 
+         dd(i,j) = ss(4,i,j)*(uu(i,j-1)-uu(i,j)) &
+                  +ss(1,i,j)*(uu(i+1,j)-uu(i,j)) &
+                  +ss(2,i,j)*(uu(i-1,j)-uu(i,j)) 
          dd(i,j) = HALF*ff(i,j) - dd(i,j)
       end do
  
 !     Interior
       do j = jstart,jend
       do i = istart,iend
-         dd(i,j) = ss(i,j,0)*uu(i,j) + ss(i,j,1) * uu(i+1,j  ) &
-                                     + ss(i,j,2) * uu(i-1,j  ) &
-                                     + ss(i,j,3) * uu(i  ,j+1) &
-                                     + ss(i,j,4) * uu(i  ,j-1)  
+         dd(i,j) = ss(0,i,j)*uu(i,j) + ss(1,i,j) * uu(i+1,j  ) &
+                                     + ss(2,i,j) * uu(i-1,j  ) &
+                                     + ss(3,i,j) * uu(i  ,j+1) &
+                                     + ss(4,i,j) * uu(i  ,j-1)  
          dd(i,j) = ff(i,j) - dd(i,j)
       end do
       end do
@@ -859,7 +843,7 @@ contains
     real (kind = dp_t), intent(in   ) :: ff(0:,0:,0:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), intent(inout) :: dd(0:,0:,0:)
-    real (kind = dp_t), intent(in   ) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(in   ) :: ss(0:,:,:,:)
     integer,            intent(in   ) :: mm(:,:,:)
     integer,            intent(in   ) :: face_type(:,:)
     logical,            intent(in)    :: uniform_dh
@@ -868,9 +852,9 @@ contains
     integer :: istart, iend, jstart, jend, kstart, kend
     integer :: nx, ny, nz
 
-    nx = size(ss,dim=1)-1
-    ny = size(ss,dim=2)-1
-    nz = size(ss,dim=3)-1
+    nx = size(ss,dim=2)-1
+    ny = size(ss,dim=3)-1
+    nz = size(ss,dim=4)-1
 
     lo = 1
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
@@ -906,14 +890,14 @@ contains
       kend = nz
     end if
 
-    if (size(ss,dim=4) .eq. 27 .or. size(ss,dim=4) .eq. 21) then
+    if (size(ss,dim=1) .eq. 27 .or. size(ss,dim=1) .eq. 21) then
        !
        !     Corners
        !
       i = 1
       j = 1
       k = 1
-      dd(i,j,k) = ss(i,j,k,20)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
+      dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
                                +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
                          - FOUR*uu(i  ,j  ,k) )
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
@@ -921,7 +905,7 @@ contains
       i = 1
       j = ny+1
       k = 1
-      dd(i,j,k) = ss(i,j,k,15)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
+      dd(i,j,k) = ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
                                +uu(i+1,j  ,k+1) + uu(i  ,j-1,k+1) &
                          - FOUR*uu(i  ,j  ,k) )
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
@@ -929,7 +913,7 @@ contains
       i = nx+1
       j = 1
       k = 1
-      dd(i,j,k) = ss(i,j,k,18)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
+      dd(i,j,k) = ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
                                +uu(i-1,j  ,k+1) + uu(i  ,j+1,k+1) &
                          - FOUR*uu(i  ,j  ,k) )
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
@@ -937,7 +921,7 @@ contains
       i = nx+1
       j = ny+1
       k = 1
-      dd(i,j,k) = ss(i,j,k,13)*(uu(i-1,j-1,k+1) + uu(i-1,j-1,k  ) &
+      dd(i,j,k) = ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i-1,j-1,k  ) &
                                +uu(i-1,j  ,k+1) + uu(i  ,j-1,k+1) &
                          - FOUR*uu(i  ,j  ,k) )
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
@@ -945,7 +929,7 @@ contains
       i = 1
       j = 1
       k = nz+1
-      dd(i,j,k) = ss(i,j,k, 8)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
+      dd(i,j,k) = ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
                                +uu(i+1,j  ,k-1) + uu(i  ,j+1,k-1) &
                          - FOUR*uu(i  ,j  ,k) )
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
@@ -953,7 +937,7 @@ contains
       i = 1
       j = ny+1
       k = nz+1
-      dd(i,j,k) = ss(i,j,k, 3)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
+      dd(i,j,k) = ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
                                +uu(i+1,j  ,k-1) + uu(i  ,j-1,k-1) &
                          - FOUR*uu(i  ,j  ,k) )
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
@@ -961,7 +945,7 @@ contains
       i = nx+1
       j = 1
       k = nz+1
-      dd(i,j,k) = ss(i,j,k, 6)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
+      dd(i,j,k) = ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
                                +uu(i-1,j  ,k-1) + uu(i  ,j+1,k-1) &
                          - FOUR*uu(i  ,j  ,k) )
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
@@ -969,7 +953,7 @@ contains
       i = nx+1
       j = ny+1
       k = nz+1
-      dd(i,j,k) = ss(i,j,k, 1)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
+      dd(i,j,k) = ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
                                +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
                          - FOUR*uu(i  ,j  ,k) )
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
@@ -979,10 +963,10 @@ contains
       i = 1
       j = 1
       do k = kstart,kend
-         dd(i,j,k) = ss(i,j,k,20)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
+         dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
                                   +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 8)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
+                    +ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
                                   +uu(i+1,j  ,k-1) + uu(i  ,j+1,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -993,10 +977,10 @@ contains
       i = nx+1
       j = 1
       do k = kstart,kend
-         dd(i,j,k) = ss(i,j,k,18)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
+         dd(i,j,k) = ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
                                    +uu(i-1,j  ,k+1) + uu(i  ,j+1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 6)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
+                    +ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
                                   +uu(i-1,j  ,k-1) + uu(i  ,j+1,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1007,10 +991,10 @@ contains
       i = 1
       j = ny+1
       do k = kstart,kend
-         dd(i,j,k) = ss(i,j,k,15)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
+         dd(i,j,k) = ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
                                   +uu(i+1,j  ,k+1) + uu(i  ,j-1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 3)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
+                    +ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
                                   +uu(i+1,j  ,k-1) + uu(i  ,j-1,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1021,10 +1005,10 @@ contains
       i = nx+1
       j = ny+1
       do k = kstart,kend
-         dd(i,j,k) = ss(i,j,k,13)*(uu(i-1,j-1,k+1) + uu(i-1,j-1,k  ) &
+         dd(i,j,k) = ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i-1,j-1,k  ) &
                                   +uu(i-1,j  ,k+1) + uu(i  ,j-1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 1)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
+                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
                                   +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1035,10 +1019,10 @@ contains
       i = 1
       k = 1
       do j = jstart,jend
-         dd(i,j,k) = ss(i,j,k,20)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
+         dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
                                   +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,15)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
+                    +ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
                                   +uu(i+1,j  ,k+1) + uu(i  ,j-1,k+1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1049,10 +1033,10 @@ contains
       i = nx+1
       k = 1
       do j = jstart,jend
-         dd(i,j,k) = ss(i,j,k,18)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
+         dd(i,j,k) = ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
                                   +uu(i-1,j  ,k+1) + uu(i  ,j+1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,13)*(uu(i-1,j-1,k+1) + uu(i-1,j  ,k+1) &
+                    +ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i-1,j  ,k+1) &
                                   +uu(i-1,j-1,k  ) + uu(i  ,j-1,k+1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1063,10 +1047,10 @@ contains
       i = 1
       k = nz+1
       do j = jstart,jend
-         dd(i,j,k) = ss(i,j,k, 8)*(uu(i+1,j+1,k-1) + uu(i+1,j  ,k-1) &
+         dd(i,j,k) = ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j  ,k-1) &
                                   +uu(i+1,j+1,k  ) + uu(i  ,j+1,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 3)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
+                    +ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
                                   +uu(i+1,j  ,k-1) + uu(i  ,j-1,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1077,10 +1061,10 @@ contains
       i = nx+1
       k = nz+1
       do j = jstart,jend
-         dd(i,j,k) = ss(i,j,k, 6)*(uu(i-1,j+1,k-1) + uu(i-1,j  ,k-1) &
+         dd(i,j,k) = ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j  ,k-1) &
                                   +uu(i-1,j+1,k  ) + uu(i  ,j+1,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 1)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
+                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
                                 +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1091,10 +1075,10 @@ contains
       j = 1
       k = 1
       do i = istart,iend
-         dd(i,j,k) = ss(i,j,k,20)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
+         dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
                                   +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,18)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
+                    +ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
                                   +uu(i  ,j+1,k+1) + uu(i-1,j  ,k+1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1105,10 +1089,10 @@ contains
       j = ny+1
       k = 1
       do i = istart,iend
-         dd(i,j,k) = ss(i,j,k,15)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
+         dd(i,j,k) = ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
                                   +uu(i  ,j-1,k+1) + uu(i+1,j  ,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,13)*(uu(i-1,j-1,k+1) + uu(i  ,j-1,k+1) &
+                    +ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i  ,j-1,k+1) &
                                   +uu(i-1,j-1,k  ) + uu(i-1,j  ,k+1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1119,10 +1103,10 @@ contains
       j = 1
       k = nz+1
       do i = istart,iend
-         dd(i,j,k) = ss(i,j,k, 8)*(uu(i+1,j+1,k-1) + uu(i+1,j  ,k-1) &
+         dd(i,j,k) = ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j  ,k-1) &
                                   +uu(i+1,j+1,k  ) + uu(i  ,j+1,k-1) &
                           - FOUR*uu(i  ,j  ,k) ) &
-                      +ss(i,j,k, 6)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
+                      +ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
                                   +uu(i  ,j+1,k-1) + uu(i-1,j  ,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1133,10 +1117,10 @@ contains
       j = ny+1
       k = nz+1
       do i = istart,iend
-         dd(i,j,k) = ss(i,j,k, 3)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
+         dd(i,j,k) = ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
                                   +uu(i+1,j-1,k  ) + uu(i+1,j  ,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 1)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
+                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
                                   +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
@@ -1148,16 +1132,16 @@ contains
       !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
       do j = jstart,jend
-         dd(i,j,k) = ss(i,j,k,20)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
+         dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
                                   +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 8)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
+                    +ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
                                   +uu(i+1,j  ,k-1) + uu(i  ,j+1,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,15)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
+                    +ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
                                   +uu(i+1,j  ,k+1) + uu(i  ,j-1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 3)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
+                    +ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
                                   +uu(i+1,j  ,k-1) + uu(i  ,j-1,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
@@ -1171,16 +1155,16 @@ contains
       !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
       do j = jstart,jend
-         dd(i,j,k) = ss(i,j,k,18)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
+         dd(i,j,k) = ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
                                   +uu(i-1,j  ,k+1) + uu(i  ,j+1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,13)*(uu(i-1,j-1,k+1) + uu(i-1,j  ,k+1) &
+                    +ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i-1,j  ,k+1) &
                                   +uu(i-1,j-1,k  ) + uu(i  ,j-1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 6)*(uu(i-1,j+1,k-1) + uu(i-1,j  ,k-1) &
+                    +ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j  ,k-1) &
                                   +uu(i-1,j+1,k  ) + uu(i  ,j+1,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 1)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
+                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
                                   +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
                           - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
@@ -1194,16 +1178,16 @@ contains
       !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
       do i = istart,iend
-         dd(i,j,k) = ss(i,j,k,20)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
+         dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
                                   +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 8)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
+                    +ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
                                   +uu(i+1,j  ,k-1) + uu(i  ,j+1,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,18)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
+                    +ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
                                   +uu(i-1,j  ,k+1) + uu(i  ,j+1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 6)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
+                    +ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
                                   +uu(i-1,j  ,k-1) + uu(i  ,j+1,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
@@ -1217,16 +1201,16 @@ contains
       !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
       do i = istart,iend
-         dd(i,j,k) = ss(i,j,k, 3)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
+         dd(i,j,k) = ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
                                   +uu(i+1,j-1,k  ) + uu(i+1,j  ,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 1)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
+                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
                                   +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,15)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
+                    +ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
                                   +uu(i  ,j-1,k+1) + uu(i+1,j  ,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,13)*(uu(i-1,j-1,k+1) + uu(i  ,j-1,k+1) &
+                    +ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i  ,j-1,k+1) &
                                   +uu(i-1,j-1,k  ) + uu(i-1,j  ,k+1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
@@ -1240,16 +1224,16 @@ contains
       !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
       do i = istart,iend
-         dd(i,j,k) = ss(i,j,k,15)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
+         dd(i,j,k) = ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
                                   +uu(i  ,j-1,k+1) + uu(i+1,j  ,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,13)*(uu(i-1,j-1,k+1) + uu(i  ,j-1,k+1) &
+                    +ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i  ,j-1,k+1) &
                                   +uu(i-1,j-1,k  ) + uu(i-1,j  ,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,20)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
+                    +ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
                                   +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k,18)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
+                    +ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
                                   +uu(i  ,j+1,k+1) + uu(i-1,j  ,k+1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
@@ -1263,16 +1247,16 @@ contains
       !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
       do i = istart,iend
-         dd(i,j,k) = ss(i,j,k, 3)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
+         dd(i,j,k) = ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
                                   +uu(i+1,j-1,k  ) + uu(i+1,j  ,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 1)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
+                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
                                   +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 8)*(uu(i+1,j+1,k-1) + uu(i+1,j  ,k-1) &
+                    +ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j  ,k-1) &
                                   +uu(i+1,j+1,k  ) + uu(i  ,j+1,k-1) &
                             - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(i,j,k, 6)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
+                    +ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
                                   +uu(i  ,j+1,k-1) + uu(i-1,j  ,k-1) &
                             - FOUR*uu(i  ,j  ,k) )
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
@@ -1287,26 +1271,26 @@ contains
       do j = jstart,jend
       do i = istart,iend
 
-        dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k) &
-            + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
-            + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
-            + ss(i,j,k, 5) * uu(i+1,j  ,k-1) + ss(i,j,k, 6) * uu(i-1,j+1,k-1) &
-            + ss(i,j,k, 7) * uu(i  ,j+1,k-1) + ss(i,j,k, 8) * uu(i+1,j+1,k-1) &
-            + ss(i,j,k, 9) * uu(i-1,j-1,k  ) + ss(i,j,k,10) * uu(i+1,j-1,k  ) &
-            + ss(i,j,k,11) * uu(i-1,j+1,k  ) + ss(i,j,k,12) * uu(i+1,j+1,k  ) &
-            + ss(i,j,k,13) * uu(i-1,j-1,k+1) + ss(i,j,k,14) * uu(i  ,j-1,k+1) &
-            + ss(i,j,k,15) * uu(i+1,j-1,k+1) + ss(i,j,k,16) * uu(i-1,j  ,k+1) &
-            + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
-            + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1)
+        dd(i,j,k) = ss(0,i,j,k)*uu(i,j,k) &
+            + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
+            + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
+            + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
+            + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
+            + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
+            + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
+            + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
+            + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
+            + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
+            + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1)
 
-        if ((size(ss,dim=4) .eq. 27) .and. (.not. uniform_dh) ) then
+        if ((size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh) ) then
             !
             ! Add faces (only non-zero for non-uniform dx)
             !
             dd(i,j,k) = dd(i,j,k) + &
-                  ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
-                  + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
-                  + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
+                  ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
+                  + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
+                  + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
          end if
   
          dd(i,j,k) = ff(i,j,k) - dd(i,j,k)
@@ -1315,72 +1299,72 @@ contains
       end do
       !$OMP END PARALLEL DO
 
-    else if (size(ss,dim=4) .eq. 7) then
+    else if (size(ss,dim=1) .eq. 7) then
        !
        !     Corners
        !
       i = 1
       j = 1
       k = 1
-      dd(i,j,k) =  ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                 + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                 + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k))
+      dd(i,j,k) =  ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                 + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                 + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k))
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
 
       i = 1
       j = ny+1
       k = 1
-      dd(i,j,k) =  ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                 + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                 + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k))
+      dd(i,j,k) =  ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                 + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                 + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k))
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
    
       i = nx+1
       j = 1
       k = 1
-      dd(i,j,k) =  ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                 + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                 + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k))
+      dd(i,j,k) =  ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                 + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                 + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k))
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
   
       i = nx+1
       j = ny+1
       k = 1
-      dd(i,j,k) =  ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                 + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                 + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k))
+      dd(i,j,k) =  ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                 + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                 + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k))
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
 
       i = 1
       j = 1
       k = nz+1
-      dd(i,j,k) =  ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                 + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                 + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
+      dd(i,j,k) =  ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                 + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                 + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
   
       i = 1
       j = ny+1
       k = nz+1
-      dd(i,j,k) =  ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                 + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                 + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
+      dd(i,j,k) =  ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                 + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                 + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
    
       i = nx+1
       j = 1
       k = nz+1
-      dd(i,j,k) =  ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                 + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                 + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
+      dd(i,j,k) =  ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                 + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                 + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
   
       i = nx+1
       j = ny+1
       k = nz+1
-      dd(i,j,k) =  ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                 + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                 + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
+      dd(i,j,k) =  ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                 + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                 + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
       dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
       !
       !     Lo-x / Lo-y edge
@@ -1388,10 +1372,10 @@ contains
       i = 1
       j = 1
       do k = kstart,kend
-         dd(i,j,k) =      ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
+         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1400,10 +1384,10 @@ contains
       i = nx+1
       j = 1
       do k = kstart,kend
-         dd(i,j,k) =      ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
+         dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1412,10 +1396,10 @@ contains
       i = 1
       j = ny+1
       do k = kstart,kend
-         dd(i,j,k) =      ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
+         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1424,10 +1408,10 @@ contains
       i = nx+1
       j = ny+1
       do k = kstart,kend
-         dd(i,j,k) =      ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
+         dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1436,10 +1420,10 @@ contains
       i = 1
       k = 1
       do j = jstart,jend
-         dd(i,j,k) =      ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) 
+         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1448,10 +1432,10 @@ contains
       i = nx+1
       k = 1
       do j = jstart,jend
-         dd(i,j,k) =      ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) 
+         dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1460,10 +1444,10 @@ contains
       i = 1
       k = nz+1
       do j = jstart,jend
-         dd(i,j,k) =      ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) 
+         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1472,10 +1456,10 @@ contains
       i = nx+1
       k = nz+1
       do j = jstart,jend
-         dd(i,j,k) =      ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) 
+         dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1484,10 +1468,10 @@ contains
       j = 1
       k = 1
       do i = istart,iend
-         dd(i,j,k) =      ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) 
+         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1496,10 +1480,10 @@ contains
       j = ny+1
       k = 1
       do i = istart,iend
-         dd(i,j,k) =      ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) 
+         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1508,10 +1492,10 @@ contains
       j = 1
       k = nz+1
       do i = istart,iend
-         dd(i,j,k) =      ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) 
+         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1520,10 +1504,10 @@ contains
       j = ny+1
       k = nz+1
       do i = istart,iend
-         dd(i,j,k) =      ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) 
+         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) 
          dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
       end do
       !
@@ -1532,11 +1516,11 @@ contains
       i = 1
       do k = kstart,kend
       do j = jstart,jend
-         dd(i,j,k) =      ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) & 
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))  
+         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) & 
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) & 
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) & 
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))  
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
@@ -1546,11 +1530,11 @@ contains
       i = nx+1
       do k = kstart,kend
       do j = jstart,jend
-         dd(i,j,k) =      ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) & 
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))  
+         dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) & 
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) & 
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) & 
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))  
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
@@ -1560,11 +1544,11 @@ contains
       j = 1
       do k = kstart,kend
       do i = istart,iend
-         dd(i,j,k) =      ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) & 
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))  
+         dd(i,j,k) =      ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) & 
+                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) & 
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) & 
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))  
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
@@ -1574,11 +1558,11 @@ contains
       j = ny+1
       do k = kstart,kend
       do i = istart,iend
-         dd(i,j,k) =      ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) & 
-                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))  
+         dd(i,j,k) =      ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        + ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) & 
+                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) & 
+                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) & 
+                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))  
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
@@ -1588,11 +1572,11 @@ contains
       k = 1
       do j = jstart,jend
       do i = istart,iend
-         dd(i,j,k) =      ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) 
+         dd(i,j,k) =      ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
+                        + ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) & 
+                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) & 
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) & 
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) 
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
@@ -1602,11 +1586,11 @@ contains
       k = nz+1
       do j = jstart,jend
       do i = istart,iend
-         dd(i,j,k) =      ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
-                        + ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) & 
-                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) 
+         dd(i,j,k) =      ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) &
+                        + ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) & 
+                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) & 
+                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) & 
+                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) 
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
@@ -1617,10 +1601,10 @@ contains
       do k = kstart,kend
       do j = jstart,jend
       do i = istart,iend
-          dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k) &
-            + ss(i,j,k,1) * uu(i+1,j  ,k  ) + ss(i,j,k,2) * uu(i-1,j  ,k  ) &
-            + ss(i,j,k,3) * uu(i  ,j+1,k  ) + ss(i,j,k,4) * uu(i  ,j-1,k  ) &
-            + ss(i,j,k,5) * uu(i  ,j  ,k+1) + ss(i,j,k,6) * uu(i  ,j  ,k-1) 
+          dd(i,j,k) = ss(0,i,j,k)*uu(i,j,k) &
+            + ss(1,i,j,k) * uu(i+1,j  ,k  ) + ss(2,i,j,k) * uu(i-1,j  ,k  ) &
+            + ss(3,i,j,k) * uu(i  ,j+1,k  ) + ss(4,i,j,k) * uu(i  ,j-1,k  ) &
+            + ss(5,i,j,k) * uu(i  ,j  ,k+1) + ss(6,i,j,k) * uu(i  ,j  ,k-1) 
           dd(i,j,k) = ff(i,j,k) - dd(i,j,k)
       end do
       end do
