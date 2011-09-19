@@ -1,0 +1,26 @@
+This short program demonstrates the difference that ordering of indices can make in a stencil
+computation. 
+
+If you set "oldway" = true then this uses the traditional stencil ordering, with the stencil index last.
+
+If you set "oldway" = false then this uses the new stencil ordering, with the stencil index first.
+
+Build the code, for example, by typing
+
+fort -O3 -ip program.f90 -o nway   (when oldway = .false.)
+
+and
+
+fort -O3 -ip program.f90 -o nway   (when oldway = .true.)
+
+
+Then run the code with timings by typing
+
+time ./nway
+
+and 
+
+time ./oway
+ 
+
+This simple test demonstrates roughly a factor of 5 speedup with the new stencil ordering.
