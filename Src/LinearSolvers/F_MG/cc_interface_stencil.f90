@@ -101,9 +101,9 @@ contains
 
           select case (dm)
           case (1)
-             call ml_interface_1d_crse(rp(:,1,1,1), lor, cp(:,1,1,1), loc, sp(:,1,1,:), los, lo, face, efactor)
+             call ml_interface_1d_crse(rp(:,1,1,1), lor, cp(:,1,1,1), loc, sp(:,:,1,1), los, lo, face, efactor)
           case (2)
-             call ml_interface_2d_crse(rp(:,:,1,1), lor, cp(:,:,1,1), loc, sp(:,:,1,:), los, lo, hi, face, dim, efactor)
+             call ml_interface_2d_crse(rp(:,:,1,1), lor, cp(:,:,1,1), loc, sp(:,:,:,1), los, lo, hi, face, dim, efactor)
           case (3)
              call ml_interface_3d_crse(rp(:,:,:,1), lor, cp(:,:,:,1), loc, sp(:,:,:,:), los, lo, hi, face, dim, efactor)
           end select
@@ -224,7 +224,7 @@ contains
     integer, intent(in) :: lo(:)
     real (kind = dp_t), intent(inout) :: res(lor(1):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):)
-    real (kind = dp_t), intent(in   ) :: ss(los(1):,0:)
+    real (kind = dp_t), intent(in   ) :: ss(0:,los(1):)
     integer, intent(in) :: face
     real(kind=dp_t), intent(in) :: efactor
 
@@ -235,12 +235,12 @@ contains
 
     !   Lo side
     if (face == -1) then
-       crse_flux = ss(i,1)*(cc(i)-cc(i+1))
+       crse_flux = ss(1,i)*(cc(i)-cc(i+1))
        res(i) = res(i) - efactor*crse_flux
 
        !   Hi side
     else if (face == 1) then
-       crse_flux = ss(i,2)*(cc(i)-cc(i-1))
+       crse_flux = ss(2,i)*(cc(i)-cc(i-1))
        res(i) = res(i) - efactor*crse_flux
     end if
 
@@ -268,16 +268,16 @@ contains
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
     integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):)
-    real (kind = dp_t), intent(in   ) ::        cc(loc(1):,loc(2):)
-    real (kind = dp_t), intent(in   ) ::        ss(los(1):,los(2):,0:)
+    real (kind = dp_t), intent(inout) :: res(lor(1):,lor(2):)
+    real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
+    real (kind = dp_t), intent(in   ) :: ss(0:,los(1):,los(2):)
     integer, intent(in) :: face, dim
     real(kind=dp_t), intent(in) :: efactor
 
     integer :: i, j, ns
     real (kind = dp_t) :: crse_flux
  
-    ns = size(ss,dim=3)
+    ns = size(ss,dim=1)
 
     !   Hi i side
     if ( dim == 1 ) then
@@ -285,11 +285,11 @@ contains
           i = lo(1)
           do j = lo(2),hi(2)
              if (ns.eq.7) then
-                crse_flux = ss(i,j,2)*(cc(i,j)-cc(i-1,j))
+                crse_flux = ss(2,i,j)*(cc(i,j)-cc(i-1,j))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(i,j,2)*(cc(i-1,j)-cc(i  ,j)) &
-                 +               ss(i,j,1)*(cc(i-2,j)-cc(i+1,j))
+                   (15.d0/16.d0)*ss(2,i,j)*(cc(i-1,j)-cc(i  ,j)) &
+                 +               ss(1,i,j)*(cc(i-2,j)-cc(i+1,j))
 
              endif
              res(i,j) = res(i,j) - efactor*crse_flux
@@ -299,11 +299,11 @@ contains
           i = lo(1)
           do j = lo(2),hi(2)
              if (ns.eq.7) then
-                crse_flux = ss(i,j,1)*(cc(i,j)-cc(i+1,j))
+                crse_flux = ss(1,i,j)*(cc(i,j)-cc(i+1,j))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(i,j,3)*(cc(i+1,j)-cc(i  ,j)) &
-                 +               ss(i,j,4)*(cc(i+2,j)-cc(i-1,j))
+                   (15.d0/16.d0)*ss(3,i,j)*(cc(i+1,j)-cc(i  ,j)) &
+                 +               ss(4,i,j)*(cc(i+2,j)-cc(i-1,j))
 
              endif
              res(i,j) = res(i,j) - efactor*crse_flux
@@ -315,11 +315,11 @@ contains
           j = lo(2)
           do i = lo(1),hi(1)
              if (ns.eq.7) then
-                crse_flux = ss(i,j,4)*(cc(i,j)-cc(i,j-1))
+                crse_flux = ss(4,i,j)*(cc(i,j)-cc(i,j-1))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(i,j,6)*(cc(i,j-1)-cc(i,j  )) &
-                 +               ss(i,j,5)*(cc(i,j-2)-cc(i,j+1))
+                   (15.d0/16.d0)*ss(6,i,j)*(cc(i,j-1)-cc(i,j  )) &
+                 +               ss(5,i,j)*(cc(i,j-2)-cc(i,j+1))
 
              endif
              res(i,j) = res(i,j) - efactor*crse_flux
@@ -329,11 +329,11 @@ contains
           j = lo(2)
           do i = lo(1),hi(1)
              if (ns.eq.7) then
-                crse_flux = ss(i,j,3)*(cc(i,j)-cc(i,j+1))
+                crse_flux = ss(3,i,j)*(cc(i,j)-cc(i,j+1))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(i,j,7)*(cc(i,j+1)-cc(i,j  )) &
-                 +               ss(i,j,8)*(cc(i,j+2)-cc(i,j-1))
+                   (15.d0/16.d0)*ss(7,i,j)*(cc(i,j+1)-cc(i,j  )) &
+                 +               ss(8,i,j)*(cc(i,j+2)-cc(i,j-1))
              endif
              res(i,j) = res(i,j) - efactor*crse_flux
           end do
@@ -368,7 +368,7 @@ contains
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):,lor(3):)
     real (kind = dp_t), intent(in   ) ::        cc(loc(1):,loc(2):,loc(3):)
-    real (kind = dp_t), intent(in   ) ::        ss(los(1):,los(2):,los(3):,0:)
+    real (kind = dp_t), intent(in   ) ::        ss(0:,los(1):,los(2):,los(3):)
     integer, intent(in) :: face, dim
     real(kind=dp_t), intent(in) :: efactor
 
@@ -381,7 +381,7 @@ contains
           i = lo(1)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
-                crse_flux = ss(i,j,k,2)*(cc(i,j,k)-cc(i-1,j,k))
+                crse_flux = ss(2,i,j,k)*(cc(i,j,k)-cc(i-1,j,k))
                 res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
@@ -390,7 +390,7 @@ contains
           i = lo(1)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
-                crse_flux = ss(i,j,k,1)*(cc(i,j,k)-cc(i+1,j,k))
+                crse_flux = ss(1,i,j,k)*(cc(i,j,k)-cc(i+1,j,k))
                 res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
@@ -401,7 +401,7 @@ contains
           j = lo(2)
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
-                crse_flux = ss(i,j,k,4)*(cc(i,j,k)-cc(i,j-1,k))
+                crse_flux = ss(4,i,j,k)*(cc(i,j,k)-cc(i,j-1,k))
                 res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
@@ -410,7 +410,7 @@ contains
           j = lo(2)
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
-                crse_flux = ss(i,j,k,3)*(cc(i,j,k)-cc(i,j+1,k))
+                crse_flux = ss(3,i,j,k)*(cc(i,j,k)-cc(i,j+1,k))
                 res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
@@ -421,7 +421,7 @@ contains
           k = lo(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                crse_flux = ss(i,j,k,6)*(cc(i,j,k)-cc(i,j,k-1))
+                crse_flux = ss(6,i,j,k)*(cc(i,j,k)-cc(i,j,k-1))
                 res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do
@@ -430,7 +430,7 @@ contains
           k = lo(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                crse_flux = ss(i,j,k,5)*(cc(i,j,k)-cc(i,j,k+1))
+                crse_flux = ss(5,i,j,k)*(cc(i,j,k)-cc(i,j,k+1))
                 res(i,j,k) = res(i,j,k) - efactor*crse_flux
              end do
           end do

@@ -99,7 +99,7 @@ contains
 
      ng = nghost(uu)
 
-     lcross = ((ncomp(ss) == 5) .or. (ncomp(ss) == 7))
+     lcross = ( (ncomp(ss) == 5) .or. (ncomp(ss) == 7) )
 
      if ( ncomp(uu) /= ncomp(flux) ) then
         call bl_error("ML_FILL_FINE_FLUXES: uu%nc /= flux%nc")
@@ -116,10 +116,10 @@ contains
         do n = 1, ncomp(uu)
            select case(get_dim(ss))
            case (1)
-              call stencil_fine_flux_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
+              call stencil_fine_flux_1d(sp(:,:,1,1), fp(:,1,1,n), up(:,1,1,n), &
                    mp(:,1,1,1), ng, face, dim)
            case (2)
-              call stencil_fine_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
+              call stencil_fine_flux_2d(sp(:,:,:,1), fp(:,:,1,n), up(:,:,1,n), &
                    mp(:,:,1,1), ng, face, dim)
            case (3)
               call stencil_fine_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &

@@ -15,7 +15,7 @@ contains
     integer        , intent(in   ) :: lo(:),ng
     real(kind=dp_t), intent(in   ) :: ff(lo(1)-1:)
     real(kind=dp_t), intent(inout) :: uu(lo(1)-ng:)
-    real(kind=dp_t), intent(in   ) :: ss(lo(1):,0:)
+    real(kind=dp_t), intent(in   ) :: ss(0:,lo(1):)
     integer        , intent(in   ) :: mm(lo(1):)
 
 !   real(kind=dp_t)              :: dd
@@ -44,9 +44,9 @@ contains
     allocate(u_ls(0:ilen-1))
 
     do i = is,ie
-      a_ls(i-is) = ss(i,2)
-      b_ls(i-is) = ss(i,0)
-      c_ls(i-is) = ss(i,1)
+      a_ls(i-is) = ss(2,i)
+      b_ls(i-is) = ss(0,i)
+      c_ls(i-is) = ss(1,i)
       r_ls(i-is) = ff(i)
     end do
 
@@ -60,8 +60,8 @@ contains
       a_ls(0) = 2.d0*a_ls(0)
     end if
 
-    r_ls(0)      = r_ls(0)      - ss(is,2) * uu(is-1)
-    r_ls(ilen-1) = r_ls(ilen-1) - ss(ie,1) * uu(ie+1)
+    r_ls(0)      = r_ls(0)      - ss(2,is) * uu(is-1)
+    r_ls(ilen-1) = r_ls(ilen-1) - ss(1,ie) * uu(ie+1)
 
     call tridiag(a_ls,b_ls,c_ls,r_ls,u_ls,ilen)
  
@@ -72,18 +72,18 @@ contains
 !   TESTING ONLY 
 !   i = lo(1)
 !   if (.not. bc_dirichlet(mm(i),1,0)) then
-!      dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1)
+!      dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1)
 !      print *,'RES AT ',i, ff(i) - dd
 !   end if
 
 !   do i = lo(1)+1,hi(1)-1
-!      dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
+!      dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
 !      print *,'RES AT ',i, ff(i) - dd
 !   end do
 
 !   i = hi(1)
 !   if (.not. bc_dirichlet(mm(i),1,0)) then
-!      dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
+!      dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
 !      print *,'RES AT ',i, ff(i) - dd
 !   end if
 
@@ -97,7 +97,7 @@ contains
     real (kind = dp_t), intent(in)    :: omega
     real (kind = dp_t), intent(in)    :: ff(lo(1)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
-    real (kind = dp_t), intent(in)    :: ss(lo(1):,0:)
+    real (kind = dp_t), intent(in)    :: ss(0:,lo(1):)
     integer            ,intent(in)    :: mm(lo(1):)
     real (kind = dp_t) :: dd
     integer :: i, hi(size(lo))
@@ -107,8 +107,8 @@ contains
     ! Red/black
     do i = lo(1)+red_black,hi(1),2
        if (.not. bc_dirichlet(mm(i),1,0)) then
-          dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
-          uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+          dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
+          uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
        end if
     end do
 
@@ -125,7 +125,7 @@ contains
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1)-1:, lo(2)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
-    real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
+    real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
     integer            ,intent(in) :: red_black
 
@@ -145,26 +145,26 @@ contains
 
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
 
-    if (size(ss,dim=3) .eq. 9) then
+    if (size(ss,dim=1) .eq. 9) then
 
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
              if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                dd = ss(i,j,0)*uu(i,j) &
-                     + ss(i,j,1) * uu(i-1,j-1) &
-                     + ss(i,j,2) * uu(i  ,j-1) &
-                     + ss(i,j,3) * uu(i+1,j-1) &
-                     + ss(i,j,4) * uu(i-1,j  ) &
-                     + ss(i,j,5) * uu(i+1,j  ) &
-                     + ss(i,j,6) * uu(i-1,j+1) &
-                     + ss(i,j,7) * uu(i  ,j+1) &
-                     + ss(i,j,8) * uu(i+1,j+1)
-                uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+                dd = ss(0,i,j)*uu(i,j) &
+                     + ss(1,i,j) * uu(i-1,j-1) &
+                     + ss(2,i,j) * uu(i  ,j-1) &
+                     + ss(3,i,j) * uu(i+1,j-1) &
+                     + ss(4,i,j) * uu(i-1,j  ) &
+                     + ss(5,i,j) * uu(i+1,j  ) &
+                     + ss(6,i,j) * uu(i-1,j+1) &
+                     + ss(7,i,j) * uu(i  ,j+1) &
+                     + ss(8,i,j) * uu(i+1,j+1)
+                uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
              end if
           end do
        end do
 
-    else if (size(ss,dim=3) .eq. 5) then
+    else if (size(ss,dim=1) .eq. 5) then
 
       ! PURE HACK just to match up the gsrb with Parallel/hgproj
       offset = .true.
@@ -202,10 +202,10 @@ contains
          do j = jstart,hi(2)
             do i = istart,hi(1)
                if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                  dd =   ss(i,j,0) * uu(i  ,j ) &
-                       + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
-                       + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
-                  uu_temp(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+                  dd =   ss(0,i,j) * uu(i  ,j ) &
+                       + ss(2,i,j) * uu(i-1,j  ) + ss(1,i,j) * uu(i+1,j  ) &
+                       + ss(4,i,j) * uu(i  ,j-1) + ss(3,i,j) * uu(i  ,j+1) 
+                  uu_temp(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
                end if
             end do
          end do
@@ -226,10 +226,10 @@ contains
             ipar = 1 - ipar
             do i = istart+ipar,hi(1),2
                if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                  dd =   ss(i,j,0) * uu(i  ,j ) &
-                       + ss(i,j,2) * uu(i-1,j  ) + ss(i,j,1) * uu(i+1,j  ) &
-                       + ss(i,j,4) * uu(i  ,j-1) + ss(i,j,3) * uu(i  ,j+1) 
-                  uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+                  dd =   ss(0,i,j) * uu(i  ,j ) &
+                       + ss(2,i,j) * uu(i-1,j  ) + ss(1,i,j) * uu(i+1,j  ) &
+                       + ss(4,i,j) * uu(i  ,j-1) + ss(3,i,j) * uu(i  ,j+1) 
+                  uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
                end if
             end do
          end do
@@ -253,7 +253,7 @@ contains
     real (kind = dp_t), intent(in   ) :: omega
     real (kind = dp_t), intent(in   ) :: ff(lo(1)-1:,lo(2)-1:,lo(3)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
-    real (kind = dp_t), intent(in   ) :: ss(lo(1):, lo(2):, lo(3):, 0:)
+    real (kind = dp_t), intent(in   ) :: ss(0:,lo(1):,lo(2):,lo(3):)
     integer            ,intent(in   ) :: mm(lo(1):,lo(2):,lo(3):)
     logical, intent(in) :: uniform_dh
     integer, intent(in) :: red_black
@@ -274,7 +274,7 @@ contains
 
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
 
-    if (size(ss,dim=4) .eq. 7) then
+    if (size(ss,dim=1) .eq. 7) then
       !
       ! PURE HACK just to match up the gsrb with Parallel/hgproj
       !
@@ -344,11 +344,11 @@ contains
                   end if
 
                   if (doit) then
-                     dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
-                          + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
-                          + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
-                          + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
-                     uu_temp(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                     dd =   ss(0,i,j,k) * uu(i  ,j  ,k  ) &
+                          + ss(2,i,j,k) * uu(i-1,j  ,k  ) + ss(1,i,j,k) * uu(i+1,j  ,k  ) &
+                          + ss(4,i,j,k) * uu(i  ,j-1,k  ) + ss(3,i,j,k) * uu(i  ,j+1,k  ) &
+                          + ss(6,i,j,k) * uu(i  ,j  ,k-1) + ss(5,i,j,k) * uu(i  ,j  ,k+1)
+                     uu_temp(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
                   else
                      uu_temp(i,j,k) = uu(i,j,k)
                   end if
@@ -389,12 +389,12 @@ contains
                   end if
 
                   if (doit) then
-                     dd =   ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
-                          + ss(i,j,k,2) * uu(i-1,j  ,k  ) + ss(i,j,k,1) * uu(i+1,j  ,k  ) &
-                          + ss(i,j,k,4) * uu(i  ,j-1,k  ) + ss(i,j,k,3) * uu(i  ,j+1,k  ) &
-                          + ss(i,j,k,6) * uu(i  ,j  ,k-1) + ss(i,j,k,5) * uu(i  ,j  ,k+1)
+                     dd =   ss(0,i,j,k) * uu(i  ,j  ,k  ) &
+                          + ss(2,i,j,k) * uu(i-1,j  ,k  ) + ss(1,i,j,k) * uu(i+1,j  ,k  ) &
+                          + ss(4,i,j,k) * uu(i  ,j-1,k  ) + ss(3,i,j,k) * uu(i  ,j+1,k  ) &
+                          + ss(6,i,j,k) * uu(i  ,j  ,k-1) + ss(5,i,j,k) * uu(i  ,j  ,k+1)
 
-                     uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                     uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
                   end if
                end do
             end do
@@ -403,7 +403,7 @@ contains
 
       end if
 
-    else if ((size(ss,dim=4) .eq. 21) .or. (size(ss,dim=4) .eq. 27)) then
+    else if ((size(ss,dim=1) .eq. 21) .or. (size(ss,dim=1) .eq. 27)) then
 
       do k = lo(3),hi(3)
          kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
@@ -420,36 +420,36 @@ contains
                end if
 
                if (doit) then
-                  dd = ss(i,j,k,0)*uu(i,j,k) &
-                       + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
-                       + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
-                       + ss(i,j,k, 5) * uu(i+1,j  ,k-1) + ss(i,j,k, 6) * uu(i-1,j+1,k-1) &
-                       + ss(i,j,k, 7) * uu(i  ,j+1,k-1) + ss(i,j,k, 8) * uu(i+1,j+1,k-1) &
-                       + ss(i,j,k, 9) * uu(i-1,j-1,k  ) + ss(i,j,k,10) * uu(i+1,j-1,k  ) &
-                       + ss(i,j,k,11) * uu(i-1,j+1,k  ) + ss(i,j,k,12) * uu(i+1,j+1,k  ) &
-                       + ss(i,j,k,13) * uu(i-1,j-1,k+1) + ss(i,j,k,14) * uu(i  ,j-1,k+1) &
-                       + ss(i,j,k,15) * uu(i+1,j-1,k+1) + ss(i,j,k,16) * uu(i-1,j  ,k+1) &
-                       + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
-                       + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1) 
+                  dd = ss(0,i,j,k)*uu(i,j,k) &
+                       + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
+                       + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
+                       + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
+                       + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
+                       + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
+                       + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
+                       + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
+                       + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
+                       + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
+                       + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1) 
 
-                  if ((size(ss,dim=4) .eq. 27) .and. (.not. uniform_dh) ) then
+                  if ((size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh) ) then
                      !
                      ! Add faces (only non-zero for non-uniform dx)
                      !
                      dd = dd + &
-                          ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
-                          + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
-                          + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
+                          ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
+                          + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
+                          + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
                   end if
 
-                  uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                  uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
                end if
             end do
          end do
       end do
 
     else
-      call bl_error('BAD SS IN NODAL_SMOOTHER ',size(ss,dim=4))
+      call bl_error('BAD SS IN NODAL_SMOOTHER ',size(ss,dim=1))
     end if
 
     call destroy(bpt)
