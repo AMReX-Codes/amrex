@@ -16,8 +16,7 @@ class HypreABecLap {
 
 public:
 
-  HypreABecLap(const BoxArray& grids, const Geometry& geom,
-	       int solver_flag = 1);
+  HypreABecLap(const BoxArray& grids, const Geometry& geom);
   ~HypreABecLap();
 
   void setScalars(Real sa, Real sb);

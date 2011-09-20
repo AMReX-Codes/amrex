@@ -4,11 +4,14 @@
 
 #include "_hypre_struct_mv.h"
 
-HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
-			   int _solver_flag)
-  : solver_flag(_solver_flag)
+HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom)
 {
   ParmParse pp("hypre");
+
+  // solver_flag = 0 for SMG
+  // solver_flag = 1 for PFMG
+  solver_flag = 1;
+  pp.query("solver_flag", solver_flag);
 
   hob = 1; // high-order boundary?
   pp.query("hob", hob);
@@ -179,8 +182,6 @@ void HypreABecLap::setVerbose(int _verbose)
 void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
 			 int max_iter, const BndryData& bndry)
 {
-  solver_flag = 1;
-
   reltol = rel_tol;
   abstol = abs_tol;
   maxiter = max_iter;
@@ -249,7 +250,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
       const int* bvlo = bcv.loVect();
       const int* bvhi = bcv.hiVect();
       
-      if (reg[oitr()] == domain[oitr()]) {
+      if (reg[oitr()] == domain[oitr()] && is_periodic[idim] == 0) {
 	int bctype = bct;
 	FORT_HPBVEC3(vec, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
 		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, hob,
@@ -277,7 +278,18 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
   HYPRE_StructVectorAssemble(x); 
   HYPRE_StructVectorAssemble(b); 
 
-  if (solver_flag == 1) {
+  if (solver_flag == 0) {
+    HYPRE_StructSMGCreate(MPI_COMM_WORLD, &solver);
+    HYPRE_StructSMGSetMemoryUse(solver, 0);
+    HYPRE_StructSMGSetMaxIter(solver, maxiter);
+    HYPRE_StructSMGSetRelChange(solver, 0);
+    HYPRE_StructSMGSetTol(solver, reltol);
+    HYPRE_StructSMGSetNumPreRelax(solver, 1);
+    HYPRE_StructSMGSetNumPostRelax(solver, 1);
+    HYPRE_StructSMGSetLogging(solver, 1);
+    HYPRE_StructSMGSetup(solver, A, b, x);
+  }
+  else if (solver_flag == 1) {
     HYPRE_StructPFMGCreate(MPI_COMM_WORLD, &solver);
     if (skip_relax >= 0) {
       HYPRE_StructPFMGSetSkipRelax(solver, skip_relax); // default: 1
@@ -318,13 +330,19 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
 		       : reltol);
 
     if (reltol_new > reltol) {
-      if(solver_flag == 1) {
+      if (solver_flag == 0) {
+	HYPRE_StructSMGSetTol(solver, reltol_new);
+      }
+      else if(solver_flag == 1) {
 	HYPRE_StructPFMGSetTol(solver, reltol_new);
       }
     }
   }
 
-  if (solver_flag == 1) {
+  if (solver_flag == 0) {
+    HYPRE_StructSMGSolve(solver, A, b, x);
+  }
+  else if (solver_flag == 1) {
     HYPRE_StructPFMGSolve(solver, A, b, x);
   }
 
@@ -352,7 +370,11 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
   if (verbose >= 2 && ParallelDescriptor::IOProcessor()) {
     int num_iterations;
     Real res;
-    if(solver_flag == 1) {
+    if (solver_flag == 0) {
+      HYPRE_StructSMGGetNumIterations(solver, &num_iterations);
+      HYPRE_StructSMGGetFinalRelativeResidualNorm(solver, &res);
+    }
+    else if(solver_flag == 1) {
       HYPRE_StructPFMGGetNumIterations(solver, &num_iterations);
       HYPRE_StructPFMGGetFinalRelativeResidualNorm(solver, &res);
     }
@@ -365,7 +387,10 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
   }
 
   // claer solver
-  if (solver_flag == 1) {
+  if (solver_flag == 0) {
+    HYPRE_StructSMGDestroy(solver);
+  }
+  else if (solver_flag == 1) {
     HYPRE_StructPFMGDestroy(solver);
   }
 }

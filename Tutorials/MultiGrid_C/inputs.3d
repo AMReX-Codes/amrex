@@ -46,6 +46,8 @@ tol_abs = 0.0
 mg.v = 2 
 
 # These are only relevant for the hypre solver
+hypre.solver_flag = 1      # 0: SMG,  1: PFMG (default)
+## parameters below are for PFMG
 hypre.pfmg_relax_type = 2  # default: 1 (Jacobi); else: 2 (red-black GSRB)
 hypre.num_pre_relax   = 2  # default: 1
 hypre.num_post_relax  = 2  # default: 1
