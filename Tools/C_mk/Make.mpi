@@ -183,14 +183,6 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
-    ifeq ($(HOST), mothra)
-      MPI_HOME=/usr/local
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
     ifeq ($(HOST), orga)
       MPI_HOME=/usr/local
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
@@ -493,3 +485,27 @@ ifeq ($(HOST),c4)
       BL_MPI_LIBS +=$(shell mpif90 --showme:link)
 endif
 
+ifeq ($(findstring maudib, $(HOST)), maudib)
+     ifeq ($(FCOMP),gfortran)
+        CXX := mpic++
+	CC  := mpicc
+	FC  := mpif90
+	fC  := mpif90
+	F90 := mpif90
+
+	MPI_HOME=/Users/cmalone/work/usr/local
+     else
+	CXX := mpiic++
+	CC  := mpiicc
+	FC  := mpiif90
+	fC  := mpiif90
+	F90 := mpiif90
+	
+	MPI_HOME=/Users/cmalone/work/usr/local/intel
+
+     endif
+
+     LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+     INCLUDE_LOCATIONS += $(MPI_HOME)/include
+     LIBRARIES += -lmpi_f77
+endif

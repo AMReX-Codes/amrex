@@ -58,7 +58,7 @@ ifndef MPI
 else
   f90sources += parallel.f90
   ifeq ($(ARCH),Darwin)
-    include $(FPARALLEL)/extern/MacMPI/GPackage.mak
+#    include $(FPARALLEL)/extern/MacMPI/GPackage.mak
   endif
 endif
 

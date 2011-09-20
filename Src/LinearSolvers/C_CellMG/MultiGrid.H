@@ -288,6 +288,10 @@ protected:
     //
     static int def_maxiter;
     //
+    // default convergence setting
+    //
+    static int use_Anorm_for_convergence;
+    //
     // default verbosity
     //
     static int def_verbose;

@@ -4,7 +4,6 @@ module itsol_module
   use multifab_module
   use cc_stencil_module
   use cc_stencil_apply_module
-  use bl_constants_module, ONLY: ZERO, ONE
 
   implicit none
 
@@ -19,45 +18,45 @@ contains
 
     subroutine jacobi_precon_1d(a, u, r, ng)
       integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,0:)
+      real(kind=dp_t), intent(in)    :: a(0:,:)
       real(kind=dp_t), intent(inout) :: u(1-ng:)
-      real(kind=dp_t), intent(in)  :: r(:)
+      real(kind=dp_t), intent(in)    :: r(:)
       integer :: i, nx
-      nx = size(a,dim=1)
+      nx = size(a,dim=2)
       do i = 1, nx
-         u(i) = r(i)/a(i,0)
+         u(i) = r(i)/a(0,i)
       end do
     end subroutine jacobi_precon_1d
 
     subroutine jacobi_precon_2d(a, u, r, ng)
       integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,0:)
+      real(kind=dp_t), intent(in)    :: a(0:,:,:)
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(:,:)
+      real(kind=dp_t), intent(in)    :: r(:,:)
       integer :: i, j, nx, ny
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
+      ny = size(a,dim=3)
+      nx = size(a,dim=2)
       do j = 1, ny
          do i = 1, nx
-            u(i,j) = r(i,j)/a(i,j,0)
+            u(i,j) = r(i,j)/a(0,i,j)
          end do
       end do
     end subroutine jacobi_precon_2d
 
     subroutine jacobi_precon_3d(a, u, r, ng)
       integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,:,0:)
+      real(kind=dp_t), intent(in)    :: a(0:,:,:,:)
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(:,:,:)
+      real(kind=dp_t), intent(in)    :: r(:,:,:)
       integer i, j, k, nx, ny, nz
-      nz = size(a,dim=3)
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
+      nz = size(a,dim=4)
+      ny = size(a,dim=3)
+      nx = size(a,dim=2)
       !$OMP PARALLEL DO PRIVATE(j,i,k)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
-               u(i,j,k) = r(i,j,k)/a(i,j,k,0)
+               u(i,j,k) = r(i,j,k)/a(0,i,j,k)
             end do
          end do
       end do
@@ -66,31 +65,31 @@ contains
 
     subroutine nodal_precon_1d(a, u, r, mm, ng)
       integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,0:)
+      real(kind=dp_t), intent(in)  :: a(0:,:)
       real(kind=dp_t), intent(inout) :: u(1-ng:)
       real(kind=dp_t), intent(in)  :: r(0:)
       integer, intent(in)  :: mm(:)
       integer :: i, nx
-      nx = size(a,dim=1)
+      nx = size(a,dim=2)
       do i = 1, nx
          if (.not. bc_dirichlet(mm(i),1,0)) &
-            u(i) = r(i)/a(i,0)
+            u(i) = r(i)/a(0,i)
       end do
     end subroutine nodal_precon_1d
 
     subroutine nodal_precon_2d(a, u, r, mm, ng)
       integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,0:)
+      real(kind=dp_t), intent(in)    :: a(0:,:,:)
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(0:,0:)
-      integer, intent(in)  :: mm(:,:)
+      real(kind=dp_t), intent(in)    :: r(0:,0:)
+      integer, intent(in)            :: mm(:,:)
       integer :: i, j, nx, ny
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
+      ny = size(a,dim=3)
+      nx = size(a,dim=2)
       do j = 1, ny
          do i = 1, nx
             if (.not. bc_dirichlet(mm(i,j),1,0)) then
-               u(i,j) = r(i,j)/a(i,j,0)
+               u(i,j) = r(i,j)/a(0,i,j)
             end if
          end do
       end do
@@ -98,20 +97,20 @@ contains
 
     subroutine nodal_precon_3d(a, u, r, mm, ng)
       integer, intent(in) :: ng
-      real(kind=dp_t), intent(in)  :: a(:,:,:,0:)
+      real(kind=dp_t), intent(in)    :: a(0:,:,:,:)
       real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
-      real(kind=dp_t), intent(in)  :: r(0:,0:,0:)
-      integer, intent(in)  :: mm(:,:,:)
+      real(kind=dp_t), intent(in)    :: r(0:,0:,0:)
+      integer, intent(in)            :: mm(:,:,:)
       integer :: i, j, k, nx, ny, nz
-      nz = size(a,dim=3)
-      ny = size(a,dim=2)
-      nx = size(a,dim=1)
+      nz = size(a,dim=4)
+      ny = size(a,dim=3)
+      nx = size(a,dim=2)
       !$OMP PARALLEL DO PRIVATE(j,i,k)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
                if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-                  u(i,j,k) = r(i,j,k)/a(i,j,k,0)
+                  u(i,j,k) = r(i,j,k)/a(0,i,j,k)
                end if
             end do
          end do
@@ -122,19 +121,19 @@ contains
     subroutine diag_init_cc_1d(a, ng_a, r, ng_r, lo, hi)
       integer        , intent(in   )  :: ng_a, ng_r
       integer        , intent(in   )  :: lo(:),hi(:)
-      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  a(0:,lo(1)-ng_a:)
       real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:   )
 
       integer         :: i, nc
       real(kind=dp_t) :: denom
 
-      nc = size(a,dim=2)-1
+      nc = size(a,dim=1)-1
 
       do i = lo(1),hi(1)
-         denom = 1.d0 / a(i,0)
+         denom = 1.d0 / a(0,i)
          r(i     ) = r(i     ) * denom
-         a(i,1:nc) = a(i,1:nc) * denom
-         a(i,0   ) = 1.d0
+         a(1:nc,i) = a(1:nc,i) * denom
+         a(0,i   ) = 1.d0
       end do
 
     end subroutine diag_init_cc_1d
@@ -142,20 +141,20 @@ contains
     subroutine diag_init_cc_2d(a, ng_a, r, ng_r, lo, hi)
       integer        , intent(in   )  :: ng_a, ng_r
       integer        , intent(in   )  :: lo(:),hi(:)
-      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,lo(2)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  a(0:,lo(1)-ng_a:,lo(2)-ng_a:)
       real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:   )
 
       integer         :: i, j, nc
       real(kind=dp_t) :: denom
 
-      nc = size(a,dim=3)-1
+      nc = size(a,dim=1)-1
 
       do j = lo(2),hi(2)
          do i = lo(1),hi(1)
-            denom = 1.d0 / a(i,j,0)
+            denom = 1.d0 / a(0,i,j)
             r(i,j     ) = r(i,j     ) * denom
-            a(i,j,1:nc) = a(i,j,1:nc) * denom
-            a(i,j,0   ) = 1.d0
+            a(1:nc,i,j) = a(1:nc,i,j) * denom
+            a(0,i,j   ) = 1.d0
          end do
       end do
 
@@ -164,22 +163,22 @@ contains
     subroutine diag_init_cc_3d(a, ng_a, r, ng_r, lo, hi)
       integer        , intent(in   )  :: ng_a, ng_r
       integer        , intent(in   )  :: lo(:),hi(:)
-      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  a(0:,lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
       real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:   )
 
       integer         :: i, j, k, nc
       real(kind=dp_t) :: denom
 
-      nc = size(a,dim=4)-1
+      nc = size(a,dim=1)-1
 
       !$OMP PARALLEL DO PRIVATE(j,i,k,denom)
       do k = lo(3),hi(3)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
-               denom = 1.d0 / a(i,j,k,0)
+               denom = 1.d0 / a(0,i,j,k)
                r(i,j,k     ) = r(i,j,k     ) * denom
-               a(i,j,k,1:nc) = a(i,j,k,1:nc) * denom
-               a(i,j,k,0   ) = 1.d0
+               a(1:nc,i,j,k) = a(1:nc,i,j,k) * denom
+               a(0,i,j,k   ) = 1.d0
             end do
          end do
       end do
@@ -190,21 +189,21 @@ contains
     subroutine diag_init_nd_1d(a, ng_a, r, ng_r, mm, ng_m, lo, hi)
       integer        , intent(in   )  :: ng_a, ng_r, ng_m
       integer        , intent(in   )  :: lo(:),hi(:)
-      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  a(0:,lo(1)-ng_a:)
       real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:   )
       integer        , intent(inout)  :: mm(lo(1)-ng_m:   )
 
       integer         :: i, nc
       real(kind=dp_t) :: denom
 
-      nc = size(a,dim=2)-1
+      nc = size(a,dim=1)-1
 
       do i = lo(1),hi(1)+1
          if (.not. bc_dirichlet(mm(i),1,0)) then
-            denom = 1.d0 / a(i,0)
+            denom = 1.d0 / a(0,i)
             r(i     ) = r(i     ) * denom
-            a(i,1:nc) = a(i,1:nc) * denom
-            a(i,0   ) = 1.d0
+            a(1:nc,i) = a(1:nc,i) * denom
+            a(0,i   ) = 1.d0
          end if
       end do
 
@@ -213,22 +212,22 @@ contains
     subroutine diag_init_nd_2d(a, ng_a, r, ng_r, mm, ng_m, lo, hi)
       integer        , intent(in   )  :: ng_a, ng_r, ng_m
       integer        , intent(in   )  :: lo(:),hi(:)
-      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,lo(2)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  a(0:,lo(1)-ng_a:,lo(2)-ng_a:)
       real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:   )
       integer        , intent(inout)  :: mm(lo(1)-ng_m:,lo(2)-ng_m:   )
 
       integer         :: i, j, nc
       real(kind=dp_t) :: denom
 
-      nc = size(a,dim=3)-1
+      nc = size(a,dim=1)-1
 
       do j = lo(2),hi(2)+1
          do i = lo(1),hi(1)+1
             if (.not. bc_dirichlet(mm(i,j),1,0)) then
-               denom = 1.d0 / a(i,j,0)
+               denom = 1.d0 / a(0,i,j)
                r(i,j     ) = r(i,j     ) * denom
-               a(i,j,1:nc) = a(i,j,1:nc) * denom
-               a(i,j,0   ) = 1.d0
+               a(1:nc,i,j) = a(1:nc,i,j) * denom
+               a(0,i,j   ) = 1.d0
             end if
          end do
       end do
@@ -238,24 +237,24 @@ contains
     subroutine diag_init_nd_3d(a, ng_a, r, ng_r, mm, ng_m, lo, hi)
       integer        , intent(in   )  :: ng_a, ng_r, ng_m
       integer        , intent(in   )  :: lo(:),hi(:)
-      real(kind=dp_t), intent(inout)  ::  a(lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:,0:)
+      real(kind=dp_t), intent(inout)  ::  a(0:,lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
       real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:   )
       integer        , intent(inout)  :: mm(lo(1)-ng_m:,lo(2)-ng_m:,lo(3)-ng_m:   )
 
       integer         :: i, j, k, nc
       real(kind=dp_t) :: denom
 
-      nc = size(a,dim=4)-1
+      nc = size(a,dim=1)-1
 
       !$OMP PARALLEL DO PRIVATE(j,i,k,denom)
       do k = lo(3),hi(3)+1
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
                if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-                  denom = 1.d0 / a(i,j,k,0)
+                  denom = 1.d0 / a(0,i,j,k)
                   r(i,j,k     ) = r(i,j,k     ) * denom
-                  a(i,j,k,1:nc) = a(i,j,k,1:nc) * denom
-                  a(i,j,k,0   ) = 1.d0
+                  a(1:nc,i,j,k) = a(1:nc,i,j,k) * denom
+                  a(0,i,j,k   ) = 1.d0
                end if
             end do
          end do
@@ -266,15 +265,18 @@ contains
 
   function itsol_converged(rr, uu, bnorm, eps, abs_eps) result(r)
     use bl_prof_module
-    type(multifab), intent(in) :: rr, uu
-    real(dp_t), intent(in) :: bnorm, eps
-    real(dp_t), intent(in), optional :: abs_eps
 
-    real(dp_t)             :: norm_rr, norm_uu
-    logical :: r
+    type(multifab), intent(in)           :: rr, uu
+    real(dp_t),     intent(in)           :: bnorm, eps
+    real(dp_t),     intent(in), optional :: abs_eps
+
+    real(dp_t) :: norm_rr, norm_uu
+    logical    :: r
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_converged")
+
     norm_rr = norm_inf(rr)
     norm_uu = norm_inf(uu)
     if (present(abs_eps)) then
@@ -297,15 +299,14 @@ contains
 
     use nodal_stencil_module, only: stencil_apply_1d_nodal, stencil_apply_2d_nodal,  stencil_apply_3d_nodal
 
-    type(multifab), intent(in) :: aa
+    type(multifab), intent(in)    :: aa
     type(multifab), intent(inout) :: rr
     type(multifab), intent(inout) :: uu
-    type(imultifab), intent(in) :: mm
-    logical, intent(in),optional :: uniform_dh
-    logical :: luniform_dh
-    real(kind=dp_t), pointer :: rp(:,:,:,:)
-    real(kind=dp_t), pointer :: up(:,:,:,:)
-    real(kind=dp_t), pointer :: ap(:,:,:,:)
+    type(imultifab), intent(in)   :: mm
+    logical, intent(in),optional  :: uniform_dh
+    logical                       :: luniform_dh
+
+    real(kind=dp_t), pointer :: rp(:,:,:,:), up(:,:,:,:), ap(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
 
     integer :: i, n, lo(get_dim(rr)), hi(get_dim(rr)), dm
@@ -336,18 +337,18 @@ contains
           select case(dm)
           case (1)
              if ( .not. nodal_flag) then
-                call stencil_apply_1d(ap(:,1,1,:), rp(:,1,1,n), nghost(rr), up(:,1,1,n), nghost(uu),  &
+                call stencil_apply_1d(ap(:,:,1,1), rp(:,1,1,n), nghost(rr), up(:,1,1,n), nghost(uu),  &
                                       mp(:,1,1,1), lo, hi)
              else
-                call stencil_apply_1d_nodal(ap(:,1,1,:), rp(:,1,1,n), up(:,1,1,n),  &
+                call stencil_apply_1d_nodal(ap(:,:,1,1), rp(:,1,1,n), up(:,1,1,n),  &
                      mp(:,1,1,1), nghost(uu))
              end if
           case (2)
              if ( .not. nodal_flag) then
-                call stencil_apply_2d(ap(:,:,1,:), rp(:,:,1,n), nghost(rr), up(:,:,1,n), nghost(uu),  &
+                call stencil_apply_2d(ap(:,:,:,1), rp(:,:,1,n), nghost(rr), up(:,:,1,n), nghost(uu),  &
                      mp(:,:,1,1), lo, hi)
              else
-                call stencil_apply_2d_nodal(ap(:,:,1,:), rp(:,:,1,n), up(:,:,1,n),  &
+                call stencil_apply_2d_nodal(ap(:,:,:,1), rp(:,:,1,n), up(:,:,1,n),  &
                      mp(:,:,1,1), nghost(uu))
              end if
           case (3)
@@ -367,15 +368,15 @@ contains
   end subroutine itsol_stencil_apply
 
   ! computes rr = aa * uu - rh
-  subroutine itsol_defect(aa, rr, rh, uu, mm, uniform_dh)
+  subroutine itsol_defect(ss, rr, rh, uu, mm, uniform_dh)
     use bl_prof_module
     type(multifab), intent(inout) :: uu, rr
-    type(multifab), intent(in) :: rh, aa
-    type(imultifab), intent(in) :: mm
+    type(multifab), intent(in)    :: rh, ss
+    type(imultifab), intent(in)   :: mm
     logical, intent(in), optional :: uniform_dh
-    type(bl_prof_timer), save :: bpt
+    type(bl_prof_timer), save     :: bpt
     call build(bpt, "its_defect")
-    call itsol_stencil_apply(aa, rr, uu, mm, uniform_dh)
+    call itsol_stencil_apply(ss, rr, uu, mm, uniform_dh)
     call saxpy(rr, rh, -1.0_dp_t, rr)
     call destroy(bpt)
   end subroutine itsol_defect
@@ -402,6 +403,7 @@ contains
     integer :: cnt, ng_for_res
     logical :: nodal_solve
     logical :: singular, nodal(get_dim(rh))
+    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
     type(bl_prof_timer), save :: bpt
 
     type(multifab) :: rh_local, aa_local
@@ -439,10 +441,18 @@ contains
 
     ! Use these for local preconditioning
     call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
-    call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa))
+
+    call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
-    call copy(aa_local, 1, aa, 1, nc = ncomp(aa), ng = nghost(aa))
+
+    ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    do i = 1, aa%nboxes
+       if ( remote(aa,i) ) cycle
+       pdst => dataptr(aa_local, i)
+       psrc => dataptr(aa      , i)
+       call cpy_d(pdst, psrc)
+    end do
 
     ! Make sure to do singular adjustment *before* diagonalization
     if (singular) then
@@ -676,10 +686,10 @@ contains
     logical, intent(in   ), optional :: uniform_dh
     type(multifab), intent(in), optional :: nodal_mask
 
-    type( multifab), intent(in) :: aa
+    type( multifab), intent(in)    :: aa
     type( multifab), intent(inout) :: uu
-    type( multifab), intent(in) :: rh
-    type(imultifab), intent(in) :: mm
+    type( multifab), intent(in)    :: rh
+    type(imultifab), intent(in)    :: mm
 
     real(dp_t), intent(in) :: eps
     type(multifab) :: rr, zz, pp, qq
@@ -690,6 +700,7 @@ contains
     logical :: nodal_solve, nodal(get_dim(rh))
     logical :: singular 
     integer :: cnt
+    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
 
     real(dp_t) :: rho_hg, rho_orig, volume, rho_hg_orig, norm_uu
     type(bl_prof_timer), save :: bpt
@@ -721,10 +732,18 @@ contains
 
     ! Use these for local preconditioning
     call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
-    call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa))
+
+    call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
-    call copy(aa_local, 1, aa, 1, nc = ncomp(aa), ng = nghost(aa))
+
+    ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    do i = 1, aa%nboxes
+       if ( remote(aa,i) ) cycle
+       pdst => dataptr(aa_local, i)
+       psrc => dataptr(aa      , i)
+       call cpy_d(pdst, psrc)
+    end do
 
     call diag_initialize(aa_local,rh_local,mm)
 
@@ -928,16 +947,16 @@ contains
              select case(dm)
              case (1)
                 if ( cell_centered_q(rh) ) then
-                   call jacobi_precon_1d(ap(:,1,1,:), up(:,1,1,n), rp(:,1,1,n), nghost(uu))
+                   call jacobi_precon_1d(ap(:,:,1,1), up(:,1,1,n), rp(:,1,1,n), nghost(uu))
                 else
-                   call nodal_precon_1d(ap(:,1,1,:), up(:,1,1,n), rp(:,1,1,n), &
+                   call nodal_precon_1d(ap(:,:,1,1), up(:,1,1,n), rp(:,1,1,n), &
                                         mp(:,1,1,1),nghost(uu))
                 end if
              case (2)
                 if ( cell_centered_q(rh) ) then
-                   call jacobi_precon_2d(ap(:,:,1,:), up(:,:,1,n), rp(:,:,1,n), nghost(uu))
+                   call jacobi_precon_2d(ap(:,:,:,1), up(:,:,1,n), rp(:,:,1,n), nghost(uu))
                 else
-                   call nodal_precon_2d(ap(:,:,1,:), up(:,:,1,n), rp(:,:,1,n), &
+                   call nodal_precon_2d(ap(:,:,:,1), up(:,:,1,n), rp(:,:,1,n), &
                                         mp(:,:,1,1),nghost(uu))
                 end if
              case (3)
@@ -987,15 +1006,15 @@ contains
        select case(dm)
           case (1)
              if ( cell_centered_q(rh) ) then
-                call diag_init_cc_1d(ap(:,1,1,:), ng_a, rp(:,1,1,1), ng_r, lo, hi)
+                call diag_init_cc_1d(ap(:,:,1,1), ng_a, rp(:,1,1,1), ng_r, lo, hi)
              else
-                call diag_init_nd_1d(ap(:,1,1,:), ng_a, rp(:,1,1,1), ng_r, mp(:,1,1,1), ng_m, lo, hi)
+                call diag_init_nd_1d(ap(:,:,1,1), ng_a, rp(:,1,1,1), ng_r, mp(:,1,1,1), ng_m, lo, hi)
              end if
           case (2)
              if ( cell_centered_q(rh) ) then
-                call diag_init_cc_2d(ap(:,:,1,:), ng_a, rp(:,:,1,1), ng_r, lo, hi)
+                call diag_init_cc_2d(ap(:,:,:,1), ng_a, rp(:,:,1,1), ng_r, lo, hi)
              else
-                call diag_init_nd_2d(ap(:,:,1,:), ng_a, rp(:,:,1,1), ng_r, mp(:,:,1,1), ng_m, lo, hi)
+                call diag_init_nd_2d(ap(:,:,:,1), ng_a, rp(:,:,1,1), ng_r, mp(:,:,1,1), ng_m, lo, hi)
              end if
           case (3)
              if ( cell_centered_q(rh) ) then
