@@ -324,6 +324,8 @@ ifeq ($(FCOMP),gfortran)
     fOPTF += -ffixed-line-length-132 -g -O3
 #    FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
 #    fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
+#   -Wall includes of the following *and* -Wunused-dummy-arguments, which I don't like.  Adding -Wno-unused-dummy-arguments does take.
+#    Also, should maybe condition on gfortran version since -Wall may change in later version.....todo....
     FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wintrinsics-std -Wno-tabs -Wintrinsic-shadow -Wline-truncation
     fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wintrinsics-std -Wno-tabs -Wintrinsic-shadow -Wline-truncation
 
