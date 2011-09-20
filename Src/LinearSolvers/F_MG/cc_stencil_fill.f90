@@ -1,7 +1,6 @@
 module cc_stencil_fill_module
 
   use bl_types
-  use bl_constants_module
   use bc_module
   use multifab_module
   use cc_stencil_module
@@ -217,10 +216,10 @@ contains
           end if
        end do
 
-       sp => dataptr(ss, i)
+       sp  => dataptr(ss, i)
        ccp => dataptr(cell_coeffs, i)
        xcp => dataptr(edge_coeffs(1), i)
-       mp => dataptr(mask, i)
+       mp  => dataptr(mask, i)
 
        ng_c = nghost(cell_coeffs)
        ng_b = nghost(edge_coeffs(1))
@@ -234,18 +233,16 @@ contains
           select case (dm)
           case (2)
              if (ns .eq. 7) then
-
-                call s_simple_2d_cc(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
+                call s_simple_2d_cc(sp(:,:,:,1), ccp(:,:,1,1), ng_c, &
                                     xcp(:,:,1,1), ycp(:,:,1,1), ng_b, dh, &
                                     mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
-
              else if (ns .eq. 9) then
-                call s_minion_cross_fill_2d(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
+                call s_minion_cross_fill_2d(sp(:,:,:,1), ccp(:,:,1,1), ng_c, &
                                             xcp(:,:,1,1), ycp(:,:,1,1), ng_b, & 
                                             dh, mp(:,:,1,1), &
                                             bx%lo, bx%hi)
              else if (ns .eq. 25) then
-                call s_minion_full_fill_2d(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
+                call s_minion_full_fill_2d(sp(:,:,:,1), ccp(:,:,1,1), ng_c, &
                                            xcp(:,:,1,1), ycp(:,:,1,1), ng_b, & 
                                            dh, mp(:,:,1,1), &
                                            bx%lo, bx%hi)
@@ -275,23 +272,23 @@ contains
 
           select case (dm)
           case (1)
-             call s_simple_1d_cc(sp(:,1,1,:), ccp(:,1,1,1), ng_c, xcp(:,1,1,1), ng_b, dh, &
+             call s_simple_1d_cc(sp(:,:,1,1), ccp(:,1,1,1), ng_c, xcp(:,1,1,1), ng_b, dh, &
                                  mp(:,1,1,1), bx%lo, bx%hi, lxa, lxb, order)
           case (2)
              ycp => dataptr(edge_coeffs(2), i)
              if (ncomp_coeffs > 1) then
                 if (lnc_opt .eq. 0) then
-                   call s_simplen_2d_cc(sp(:,:,1,:), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
+                   call s_simplen_2d_cc(sp(:,:,:,1), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
                         mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
                 elseif (lnc_opt .eq. 1) then
-                   call s_simplem_2d_cc(sp(:,:,1,:), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
+                   call s_simplem_2d_cc(sp(:,:,:,1), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
                         mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)     
                 elseif (lnc_opt .eq. 2) then
-                   call s_simpleg_2d_cc(sp(:,:,1,:), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
+                   call s_simpleg_2d_cc(sp(:,:,:,1), ccp(:,:,1,:), ng_c, xcp(:,:,1,:), ycp(:,:,1,:), ng_b, dh, &
                         mp(:,:,1,1), bx%lo, bx%hi)
                 end if
              else
-                call s_simple_2d_cc(sp(:,:,1,:), ccp(:,:,1,1), ng_c, &
+                call s_simple_2d_cc(sp(:,:,:,1), ccp(:,:,1,1), ng_c,&
                                     xcp(:,:,1,1), ycp(:,:,1,1), ng_b, dh, &
                                     mp(:,:,1,1), bx%lo, bx%hi, lxa, lxb, order)
              endif

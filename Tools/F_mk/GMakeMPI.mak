@@ -12,17 +12,36 @@ ifeq ($(ARCH),AIX)
 endif
 
 ifeq ($(ARCH),Darwin)
+
+  # specifics for maudib
+  # I have both GNU and Intel compilers installed, as well as MPI-wrapped
+  # versions, so I need to be careful here
   ifeq ($(UNAMEN),maudib.ucolick.org)
-    MPIHOME=/Users/cmalone/work/usr/local
+
+    # GNU compilers
+    ifeq ($(COMP),gfortran)
+      FC = mpif90
+      F90 = mpif90
+      CC = mpicc
+
+      MPIHOME=/Users/cmalone/work/usr/local
+
+    # Intel compilers
+    else
+      FC  = mpiif90
+      F90 = mpiif90
+      CC  = mpiicc
+
+      MPIHOME=/Users/cmalone/work/usr/local/intel
+    endif 
+
     mpi_include_dir = $(MPIHOME)/include
     mpi_lib_dir = $(MPIHOME)/lib
 
-    FC = mpif90
-    F90 = mpif90
-    CC = mpicc
   else
-    $(error SORRY, no MPI for Darwin/Mac as yet)
+    $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak)
   endif
+
 endif
 
 ifeq ($(ARCH),Linux)

@@ -52,6 +52,8 @@ contains
     real(dp_t) :: tres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
+    real(dp_t) :: r1,r2
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_cc")
@@ -234,6 +236,8 @@ contains
 !      end if
 
     else 
+
+     r1 = parallel_wtime() 
 
      do iter = 1, mgt(nlevs)%max_iter
 
@@ -588,6 +592,13 @@ contains
     if ( present(final_resnorm) ) &
        final_resnorm = ni_res
 
+    r2 = parallel_wtime() - r1
+
+    call parallel_reduce(r1, r2, MPI_MAX, proc = parallel_IOProcessorNode())
+
+    if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
+       print*, 'Solve Time = ', r1
+
   contains
 
     function ml_fine_converged(res, sol, bnorm, Anorm, rel_eps, abs_eps) result(r)
@@ -599,9 +610,9 @@ contains
       nlevs = size(res)
       ni_res = norm_inf(res(nlevs))
       ni_sol = norm_inf(sol(nlevs))
-!      r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-!           ni_res <= abs_eps .or. &
-!           ni_res <= epsilon(Anorm)*Anorm
+!     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
+!          ni_res <= abs_eps .or. &
+!          ni_res <= epsilon(Anorm)*Anorm
       r =  ni_res <= rel_eps*(bnorm) .or. &
            ni_res <= abs_eps
     end function ml_fine_converged
@@ -620,20 +631,23 @@ contains
 
       ni_res = ml_norm_inf(res, mask)
       ni_sol = ml_norm_inf(sol, mask)
-!      r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-!           ni_res <= abs_eps .or. &
-!           ni_res <= epsilon(Anorm)*Anorm
+
+!     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
+!          ni_res <= abs_eps .or. &
+!          ni_res <= epsilon(Anorm)*Anorm
+
       r =  ni_res <= rel_eps*(bnorm) .or. &
            ni_res <= abs_eps 
+
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
-         if (ni_res <= rel_eps*Anorm*ni_sol) then
-            print *,'Converged res < rel_eps*Anorm*sol'
+         if (ni_res <= rel_eps*bnorm) then
+            print *,'Converged res < rel_eps*bnorm '
          else if (ni_res <= abs_eps) then
             print *,'Converged res < abs_eps '
-         else if (ni_res <= rel_eps*bnorm) then
-            print *,'Converged res < rel_eps*bnorm '
-         else 
-            print *,'Converged res < epsilon(Anorm)*Anorm'
+!        else if (ni_res <= rel_eps*Anorm*ni_sol) then
+!           print *,'Converged res < rel_eps*Anorm*sol'
+!        else if (ni_res <= epsilon(Anorm)*Anorm) then 
+!           print *,'Converged res < epsilon(Anorm)*Anorm'
          end if
       end if
     end function ml_converged

@@ -9,8 +9,6 @@ module nodal_stencil_module
 
   integer, parameter :: ST_CROSS  = 1
   integer, parameter :: ST_DENSE  = 2
-  integer, parameter :: ST_DIAG   = 3
-  integer, parameter :: ST_TENSOR = 4
 
   real (kind = dp_t), private, parameter :: ZERO  = 0.0_dp_t
   real (kind = dp_t), private, parameter :: ONE   = 1.0_dp_t
@@ -98,7 +96,7 @@ contains
   end subroutine stencil_set_bc_nodal
 
   subroutine s_simple_1d_nodal(ss, sg, mm, dh)
-    real (kind = dp_t), intent(inout) :: ss(:,0:)
+    real (kind = dp_t), intent(inout) :: ss(0:,:)
     real (kind = dp_t), intent(inout) :: sg(0:)
     integer           , intent(in   ) :: mm(:)
     real (kind = dp_t), intent(in   ) :: dh(:)
@@ -109,21 +107,21 @@ contains
     f1 = ONE/dh(1)**2
 
     ! x derivatives
-    nx = size(ss,dim=1)
+    nx = size(ss,dim=2)
 
     if (bc_neumann(mm( 1),1,-1)) sg( 0) = sg(   1)
     if (bc_neumann(mm(nx),1,+1)) sg(nx) = sg(nx-1)
 
     do i = 1,nx
-       ss(i,1) = sg(i  )*f1
-       ss(i,2) = sg(i-1)*f1
-       ss(i,0) = -(sg(i)+sg(i-1))*f1
+       ss(1,i) = sg(i  )*f1
+       ss(2,i) = sg(i-1)*f1
+       ss(0,i) = -(sg(i)+sg(i-1))*f1
     end do
 
   end subroutine s_simple_1d_nodal
 
   subroutine s_cross_2d_nodal(ss, sg, mm, face_type, dh)
-    real (kind = dp_t), intent(inout) :: ss(:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(0:,:,:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: face_type(:,:)
@@ -131,8 +129,8 @@ contains
 
     integer            :: i, j, nx, ny
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
+    nx = size(ss,dim=2)
+    ny = size(ss,dim=3)
 
     ! Set sg on edges at a Neumann boundary.
     do i = 1,nx-1
@@ -165,11 +163,11 @@ contains
 
     do j = 1,ny
       do i = 1,nx
-          ss(i,j,1) = sg(i  ,j-1) + sg(i  ,j  )
-          ss(i,j,2) = sg(i-1,j-1) + sg(i-1,j  )
-          ss(i,j,3) = sg(i-1,j  ) + sg(i  ,j  )
-          ss(i,j,4) = sg(i-1,j-1) + sg(i  ,j-1)
-          ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4))
+          ss(1,i,j) = sg(i  ,j-1) + sg(i  ,j  )
+          ss(2,i,j) = sg(i-1,j-1) + sg(i-1,j  )
+          ss(3,i,j) = sg(i-1,j  ) + sg(i  ,j  )
+          ss(4,i,j) = sg(i-1,j-1) + sg(i  ,j-1)
+          ss(0,i,j) = -(ss(1,i,j) + ss(2,i,j) + ss(3,i,j) + ss(4,i,j))
       end do
     end do
 
@@ -178,7 +176,7 @@ contains
   end subroutine s_cross_2d_nodal
 
   subroutine s_simple_2d_one_sided(ss, sg, mm, face_type, dh)
-    real (kind = dp_t), intent(inout) :: ss(:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(0:,:,:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: face_type(:,:)
@@ -188,8 +186,8 @@ contains
 
     integer            :: i, j, nx, ny
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
+    nx = size(ss,dim=2)
+    ny = size(ss,dim=3)
 
     allocate(sg_int(0:size(sg,dim=1)-1,0:size(sg,dim=2)-1))
 
@@ -231,11 +229,11 @@ contains
 
     do j = 1,ny
       do i = 1,nx
-          ss(i,j,1) = sg_int(i  ,j-1) + sg_int(i  ,j  )
-          ss(i,j,2) = sg_int(i-1,j-1) + sg_int(i-1,j  )
-          ss(i,j,3) = sg_int(i-1,j  ) + sg_int(i  ,j  )
-          ss(i,j,4) = sg_int(i-1,j-1) + sg_int(i  ,j-1)
-          ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4))
+          ss(1,i,j) = sg_int(i  ,j-1) + sg_int(i  ,j  )
+          ss(2,i,j) = sg_int(i-1,j-1) + sg_int(i-1,j  )
+          ss(3,i,j) = sg_int(i-1,j  ) + sg_int(i  ,j  )
+          ss(4,i,j) = sg_int(i-1,j-1) + sg_int(i  ,j-1)
+          ss(0,i,j) = -(ss(1,i,j) + ss(2,i,j) + ss(3,i,j) + ss(4,i,j))
       end do
     end do
 
@@ -246,16 +244,16 @@ contains
   end subroutine s_simple_2d_one_sided
 
   subroutine s_dense_2d_nodal(ss, sg, mm, face_type, dh)
-    real (kind = dp_t), intent(inout) :: ss(:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(0:,:,:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer            :: i, j, nx, ny
+    integer :: i, j, nx, ny
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
+    nx = size(ss,dim=2)
+    ny = size(ss,dim=3)
 
     ! Set sg on edges at a Neumann boundary.
     do i = 1,nx-1
@@ -268,7 +266,7 @@ contains
        if (bc_neumann(mm(nx,j),1,+1)) sg(nx,j) = sg(nx-1,j)
     end do
 
-!   Note: we do the corners *after* each of the edge has been done.
+    ! Note: we do the corners *after* each of the edge has been done.
     if (face_type(1,1) == BC_NEU) then
        sg(0, 0) = sg(1, 0)
        sg(0,ny) = sg(1,ny)
@@ -290,19 +288,19 @@ contains
       do i = 1,nx
 
           ! Faces
-          ss(i,j,2) = HALF * (sg(i  ,j-1) + sg(i-1,j-1))
-          ss(i,j,4) = HALF * (sg(i-1,j  ) + sg(i-1,j-1))
-          ss(i,j,5) = HALF * (sg(i  ,j  ) + sg(i  ,j-1))
-          ss(i,j,7) = HALF * (sg(i  ,j  ) + sg(i-1,j  ))
+          ss(2,i,j) = HALF * (sg(i  ,j-1) + sg(i-1,j-1))
+          ss(4,i,j) = HALF * (sg(i-1,j  ) + sg(i-1,j-1))
+          ss(5,i,j) = HALF * (sg(i  ,j  ) + sg(i  ,j-1))
+          ss(7,i,j) = HALF * (sg(i  ,j  ) + sg(i-1,j  ))
 
           ! Corners
-          ss(i,j,1) = sg(i-1,j-1)
-          ss(i,j,3) = sg(i  ,j-1)
-          ss(i,j,6) = sg(i-1,j  ) 
-          ss(i,j,8) = sg(i,  j  )
+          ss(1,i,j) = sg(i-1,j-1)
+          ss(3,i,j) = sg(i  ,j-1)
+          ss(6,i,j) = sg(i-1,j  ) 
+          ss(8,i,j) = sg(i,  j  )
  
-          ss(i,j,0) = -(ss(i,j,1) + ss(i,j,2) + ss(i,j,3) + ss(i,j,4) &
-                       +ss(i,j,5) + ss(i,j,6) + ss(i,j,7) + ss(i,j,8) ) 
+          ss(0,i,j) = -(ss(1,i,j) + ss(2,i,j) + ss(3,i,j) + ss(4,i,j) &
+                      + ss(5,i,j) + ss(6,i,j) + ss(7,i,j) + ss(8,i,j) ) 
 
       end do
     end do
@@ -420,16 +418,16 @@ contains
   end subroutine set_faces_edges_corners_3d
 
   subroutine s_cross_3d_nodal(ss, sg, mm, dh)
-    real (kind = dp_t), intent(inout) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(0:,:,:,:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer :: i, j, k, nx, ny, nz
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
+    nx = size(ss,dim=2)
+    ny = size(ss,dim=3)
+    nz = size(ss,dim=4)
     !
     !   BEGIN STENCIL
     !
@@ -454,28 +452,28 @@ contains
              !
              ! Faces in x-direction
              !
-             ss(i,j,k,2) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+             ss(2,i,j,k) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
                   +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-             ss(i,j,k,1) = (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
+             ss(1,i,j,k) = (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
                   +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
              !
              ! Faces in y-direction
              !
-             ss(i,j,k,4) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+             ss(4,i,j,k) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
                   +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-             ss(i,j,k,3) = (sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
+             ss(3,i,j,k) = (sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
                   +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
              !
              ! Faces in z-direction
              !
-             ss(i,j,k,6) = (sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+             ss(6,i,j,k) = (sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
                   +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-             ss(i,j,k,5) = (sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+             ss(5,i,j,k) = (sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
                   +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
 
-             ss(i,j,k,0) = -( ss(i,j,k,1) + ss(i,j,k,2) &
-                  +ss(i,j,k,3) + ss(i,j,k,4) &
-                  +ss(i,j,k,5) + ss(i,j,k,6) )
+             ss(0,i,j,k) = -( ss(1,i,j,k) + ss(2,i,j,k) &
+                  +ss(3,i,j,k) + ss(4,i,j,k) &
+                  +ss(5,i,j,k) + ss(6,i,j,k) )
           end do
        end do
     end do
@@ -487,7 +485,7 @@ contains
 
   subroutine s_simple_3d_one_sided(ss, sg, mm, dh)
 
-    real (kind = dp_t), intent(inout) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(0:,:,:,:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
@@ -495,9 +493,9 @@ contains
     integer :: i, j, k, nx, ny, nz
     real (kind = dp_t), allocatable :: sg_int(:,:,:)
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
+    nx = size(ss,dim=2)
+    ny = size(ss,dim=3)
+    nz = size(ss,dim=4)
     !
     !   BEGIN STENCIL
     !
@@ -534,28 +532,28 @@ contains
              !
              ! Faces in x-direction
              !
-             ss(i,j,k,2) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+             ss(2,i,j,k) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
                   +sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ))
-             ss(i,j,k,1) = (sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ) &
+             ss(1,i,j,k) = (sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ) &
                   +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
              !
              ! Faces in y-direction
              !
-             ss(i,j,k,4) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+             ss(4,i,j,k) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
                   +sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ))
-             ss(i,j,k,3) = (sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ) &
+             ss(3,i,j,k) = (sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ) &
                   +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
              !
              ! Faces in z-direction
              !
-             ss(i,j,k,6) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
+             ss(6,i,j,k) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
                   +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1))
-             ss(i,j,k,5) = (sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
+             ss(5,i,j,k) = (sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
                   +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  ))
 
-             ss(i,j,k,0) = -( ss(i,j,k,1) + ss(i,j,k,2) &
-                  +ss(i,j,k,3) + ss(i,j,k,4) &
-                  +ss(i,j,k,5) + ss(i,j,k,6) )
+             ss(0,i,j,k) = -( ss(1,i,j,k) + ss(2,i,j,k) &
+                  +ss(3,i,j,k) + ss(4,i,j,k) &
+                  +ss(5,i,j,k) + ss(6,i,j,k) )
           end do
        end do
     end do
@@ -568,7 +566,7 @@ contains
   end subroutine s_simple_3d_one_sided
 
   subroutine s_dense_3d_nodal(ss, sg, mm, dh)
-    real (kind = dp_t), intent(inout) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(inout) :: ss(0:,:,:,:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
@@ -576,9 +574,9 @@ contains
     integer            :: i, j, k, nx, ny, nz
     real (kind = dp_t) :: fx,fy,fz,f0
 
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
-    nz = size(ss,dim=3)
+    nx = size(ss,dim=2)
+    ny = size(ss,dim=3)
+    nz = size(ss,dim=4)
     !
     !   BEGIN STENCIL
     !
@@ -606,61 +604,61 @@ contains
              !
              ! Corners
              !
-             ss(i,j,k, 1) = (fx+fy+fz)* sg(i-1,j-1,k-1)
-             ss(i,j,k, 3) = (fx+fy+fz)* sg(i  ,j-1,k-1)
-             ss(i,j,k, 6) = (fx+fy+fz)* sg(i-1,j  ,k-1)
-             ss(i,j,k, 8) = (fx+fy+fz)* sg(i  ,j  ,k-1)
-             ss(i,j,k,13) = (fx+fy+fz)* sg(i-1,j-1,k  )
-             ss(i,j,k,15) = (fx+fy+fz)* sg(i  ,j-1,k  )
-             ss(i,j,k,18) = (fx+fy+fz)* sg(i-1,j  ,k  )
-             ss(i,j,k,20) = (fx+fy+fz)* sg(i  ,j  ,k  )
+             ss( 1,i,j,k) = (fx+fy+fz)* sg(i-1,j-1,k-1)
+             ss( 3,i,j,k) = (fx+fy+fz)* sg(i  ,j-1,k-1)
+             ss( 6,i,j,k) = (fx+fy+fz)* sg(i-1,j  ,k-1)
+             ss( 8,i,j,k) = (fx+fy+fz)* sg(i  ,j  ,k-1)
+             ss(13,i,j,k) = (fx+fy+fz)* sg(i-1,j-1,k  )
+             ss(15,i,j,k) = (fx+fy+fz)* sg(i  ,j-1,k  )
+             ss(18,i,j,k) = (fx+fy+fz)* sg(i-1,j  ,k  )
+             ss(20,i,j,k) = (fx+fy+fz)* sg(i  ,j  ,k  )
              !
              ! Edges in x-direction
              !
-             ss(i,j,k, 2) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k-1) + sg(i-1,j-1,k-1))
-             ss(i,j,k, 7) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k-1) + sg(i-1,j  ,k-1))
-             ss(i,j,k,14) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k  ) + sg(i-1,j-1,k  ))
-             ss(i,j,k,19) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k  ) + sg(i-1,j  ,k  ))
+             ss( 2,i,j,k) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k-1) + sg(i-1,j-1,k-1))
+             ss( 7,i,j,k) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k-1) + sg(i-1,j  ,k-1))
+             ss(14,i,j,k) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k  ) + sg(i-1,j-1,k  ))
+             ss(19,i,j,k) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k  ) + sg(i-1,j  ,k  ))
              !
              ! Edges in y-direction
              !
-             ss(i,j,k, 4) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1))
-             ss(i,j,k, 5) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-             ss(i,j,k,16) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ))
-             ss(i,j,k,17) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
+             ss( 4,i,j,k) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1))
+             ss( 5,i,j,k) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
+             ss(16,i,j,k) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ))
+             ss(17,i,j,k) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
              !
              ! Edges in z-direction
              !
-             ss(i,j,k, 9) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ))
-             ss(i,j,k,10) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-             ss(i,j,k,11) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-             ss(i,j,k,12) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+             ss( 9,i,j,k) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ))
+             ss(10,i,j,k) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
+             ss(11,i,j,k) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
+             ss(12,i,j,k) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
 
-             if (size(ss,dim=4) .eq. 27) then
+             if (size(ss,dim=1) .eq. 27) then
                 !
                 ! Faces in x-direction (only non-zero for non-uniform dx)
                 !
-                ss(i,j,k,21) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                ss(21,i,j,k) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
                      +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-                ss(i,j,k,22) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
+                ss(22,i,j,k) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
                      +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
                 !
                 ! Faces in y-direction (only non-zero for non-uniform dx)
                 !
-                ss(i,j,k,23) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                ss(23,i,j,k) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
                      +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-                ss(i,j,k,24) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
+                ss(24,i,j,k) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
                      +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
                 !
                 ! Faces in z-direction (only non-zero for non-uniform dx)
                 !
-                ss(i,j,k,25) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                ss(25,i,j,k) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
                      +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-                ss(i,j,k,26) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                ss(26,i,j,k) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
                      +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
              end if
 
-             ss(i,j,k,0) = -(sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
+             ss(0,i,j,k) = -(sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
                   +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
                   +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
                   +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * f0
@@ -676,29 +674,29 @@ contains
 
   subroutine stencil_apply_1d_nodal(ss, dd, uu, mm, ng)
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in   ) :: ss(:,0:)
+    real (kind = dp_t), intent(in   ) :: ss(0:,:)
     real (kind = dp_t), intent(inout) :: dd(0:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
     integer           , intent(in   ) :: mm(:)
     integer i,lo(1)
  
-    dd(:) = ZERO
+    dd = ZERO
 
-    lo(:) = 1
+    lo = 1
     call impose_neumann_bcs_1d(uu,mm,lo,ng)
    
     i = 1
     if (.not. bc_dirichlet(mm(i),1,0)) then
-      dd(i) = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
+      dd(i) = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
     end if
 
-    do i = 2,size(ss,dim=1)-1
-      dd(i) = ss(i,0)*uu(i) + ss(i,1) * uu(i+1) + ss(i,2) * uu(i-1)
+    do i = 2,size(ss,dim=2)-1
+      dd(i) = ss(0,i)*uu(i) + ss(1,i) * uu(i+1) + ss(2,i) * uu(i-1)
     end do
 
-    i = size(ss,dim=1)
+    i = size(ss,dim=2)
     if (.not. bc_dirichlet(mm(i),1,0)) then
-      dd(i) = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
+      dd(i) = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
     end if
 
   end subroutine stencil_apply_1d_nodal
@@ -707,19 +705,19 @@ contains
     integer, intent(in) :: ng
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
     real (kind = dp_t), intent(inout) :: dd(0:,0:)
-    real (kind = dp_t), intent(in   ) :: ss(:,:,0:)
+    real (kind = dp_t), intent(in   ) :: ss(0:,:,:)
     integer           , intent(in   ) :: mm(:,:)
 
-    integer i,j,lo(2),nx,ny
-    logical zeroit,iface,jface
+    integer :: i,j,lo(2),nx,ny
+    logical :: zeroit,iface,jface
 
-    lo(:) = 1
+    lo = 1
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
  
-    nx = size(ss,dim=1)
-    ny = size(ss,dim=2)
+    nx = size(ss,dim=2)
+    ny = size(ss,dim=3)
 
-    if (size(ss,dim=3) .eq. 5) then
+    if (size(ss,dim=1) .eq. 5) then
 
        do j = 1,ny
           jface = .false. ; if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
@@ -735,15 +733,15 @@ contains
              if (zeroit) then
                 dd(i,j) = ZERO
              else
-                dd(i,j) = ss(i,j,0)*uu(i,j) + ss(i,j,1) * uu(i+1,j  ) &
-                     + ss(i,j,2) * uu(i-1,j  ) &
-                     + ss(i,j,3) * uu(i  ,j+1) &
-                     + ss(i,j,4) * uu(i  ,j-1) 
+                dd(i,j) = ss(0,i,j)*uu(i,j) + ss(1,i,j) * uu(i+1,j  ) &
+                     + ss(2,i,j) * uu(i-1,j  ) &
+                     + ss(3,i,j) * uu(i  ,j+1) &
+                     + ss(4,i,j) * uu(i  ,j-1) 
              end if
           end do
        end do
 
-    else if (size(ss,dim=3) .eq. 9) then
+    else if (size(ss,dim=1) .eq. 9) then
 
        do j = 1,ny
           jface = .false. ; if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
@@ -759,14 +757,14 @@ contains
              if (zeroit) then
                 dd(i,j) = ZERO
              else
-                dd(i,j) = ss(i,j,0)*uu(i,j) + ss(i,j,1) * uu(i-1,j-1) &
-                     + ss(i,j,2) * uu(i  ,j-1) &
-                     + ss(i,j,3) * uu(i+1,j-1) &
-                     + ss(i,j,4) * uu(i-1,j  ) &
-                     + ss(i,j,5) * uu(i+1,j  ) &
-                     + ss(i,j,6) * uu(i-1,j+1) &
-                     + ss(i,j,7) * uu(i  ,j+1) &
-                     + ss(i,j,8) * uu(i+1,j+1)
+                dd(i,j) = ss(0,i,j)*uu(i,j) + ss(1,i,j) * uu(i-1,j-1) &
+                     + ss(2,i,j) * uu(i  ,j-1) &
+                     + ss(3,i,j) * uu(i+1,j-1) &
+                     + ss(4,i,j) * uu(i-1,j  ) &
+                     + ss(5,i,j) * uu(i+1,j  ) &
+                     + ss(6,i,j) * uu(i-1,j+1) &
+                     + ss(7,i,j) * uu(i  ,j+1) &
+                     + ss(8,i,j) * uu(i+1,j+1)
              end if
           end do
        end do
@@ -779,7 +777,7 @@ contains
     integer           , intent(in   ) :: ng
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), intent(inout) :: dd(0:,0:,0:)
-    real (kind = dp_t), intent(in   ) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(in   ) :: ss(0:,:,:,:)
     integer           , intent(in   ) :: mm(:,:,:)
     logical           , intent(in   ) :: uniform_dh
 
@@ -791,11 +789,11 @@ contains
 
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
 
-    nz = size(ss,dim=3)
-    ny = size(ss,dim=2)
-    nx = size(ss,dim=1)
+    nz = size(ss,dim=4)
+    ny = size(ss,dim=3)
+    nx = size(ss,dim=2)
 
-    if (size(ss,dim=4) .eq. 7) then
+    if (size(ss,dim=1) .eq. 7) then
 
        !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
@@ -816,13 +814,13 @@ contains
                    dd(i,j,k) = ZERO
                 else
                    dd(i,j,k) = &
-                        ss(i,j,k,0) * uu(i,j,k)       + &
-                        ss(i,j,k,1) * uu(i+1,j  ,k  ) + &
-                        ss(i,j,k,2) * uu(i-1,j  ,k  ) + &
-                        ss(i,j,k,3) * uu(i  ,j+1,k  ) + &
-                        ss(i,j,k,4) * uu(i  ,j-1,k  ) + &
-                        ss(i,j,k,5) * uu(i  ,j  ,k+1) + &
-                        ss(i,j,k,6) * uu(i  ,j  ,k-1)
+                        ss(0,i,j,k) * uu(i,j,k)       + &
+                        ss(1,i,j,k) * uu(i+1,j  ,k  ) + &
+                        ss(2,i,j,k) * uu(i-1,j  ,k  ) + &
+                        ss(3,i,j,k) * uu(i  ,j+1,k  ) + &
+                        ss(4,i,j,k) * uu(i  ,j-1,k  ) + &
+                        ss(5,i,j,k) * uu(i  ,j  ,k+1) + &
+                        ss(6,i,j,k) * uu(i  ,j  ,k-1)
                 end if
 
              end do
@@ -830,7 +828,7 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-    else if ((size(ss,dim=4) .eq. 21) .or. (size(ss,dim=4) .eq. 27)) then
+    else if ((size(ss,dim=1) .eq. 21) .or. (size(ss,dim=1) .eq. 27)) then
 
        !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
@@ -850,26 +848,26 @@ contains
                 if (zeroit) then
                    dd(i,j,k) = ZERO
                 else
-                   dd(i,j,k) = ss(i,j,k,0)*uu(i,j,k) &
-                        + ss(i,j,k, 1) * uu(i-1,j-1,k-1) + ss(i,j,k, 2) * uu(i  ,j-1,k-1) &
-                        + ss(i,j,k, 3) * uu(i+1,j-1,k-1) + ss(i,j,k, 4) * uu(i-1,j  ,k-1) &
-                        + ss(i,j,k, 5) * uu(i+1,j  ,k-1) + ss(i,j,k, 6) * uu(i-1,j+1,k-1) &
-                        + ss(i,j,k, 7) * uu(i  ,j+1,k-1) + ss(i,j,k, 8) * uu(i+1,j+1,k-1) &
-                        + ss(i,j,k, 9) * uu(i-1,j-1,k  ) + ss(i,j,k,10) * uu(i+1,j-1,k  ) &
-                        + ss(i,j,k,11) * uu(i-1,j+1,k  ) + ss(i,j,k,12) * uu(i+1,j+1,k  ) &
-                        + ss(i,j,k,13) * uu(i-1,j-1,k+1) + ss(i,j,k,14) * uu(i  ,j-1,k+1) &
-                        + ss(i,j,k,15) * uu(i+1,j-1,k+1) + ss(i,j,k,16) * uu(i-1,j  ,k+1) &
-                        + ss(i,j,k,17) * uu(i+1,j  ,k+1) + ss(i,j,k,18) * uu(i-1,j+1,k+1) &
-                        + ss(i,j,k,19) * uu(i  ,j+1,k+1) + ss(i,j,k,20) * uu(i+1,j+1,k+1)
+                   dd(i,j,k) = ss(0,i,j,k)*uu(i,j,k) &
+                        + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
+                        + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
+                        + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
+                        + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
+                        + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
+                        + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
+                        + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
+                        + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
+                        + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
+                        + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1)
 
-                   if ((size(ss,dim=4) .eq. 27) .and. (.not. uniform_dh)) then
+                   if ((size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh)) then
                       !
                       ! Add faces (only non-zero for non-uniform dx)
                       !
                       dd(i,j,k) = dd(i,j,k) + &
-                           ss(i,j,k,21) * uu(i-1,j  ,k  ) + ss(i,j,k,22) * uu(i+1,j  ,k  ) &
-                           + ss(i,j,k,23) * uu(i  ,j-1,k  ) + ss(i,j,k,24) * uu(i  ,j+1,k  ) &
-                           + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
+                           ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
+                           + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
+                           + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
                    end if
                 end if
 
@@ -878,7 +876,7 @@ contains
        end do
        !$OMP END PARALLEL DO
     else 
-      print*,'BAD STENCIL SIZE IN APPLY_3D_NODAL ',size(ss,dim=4)
+      print*,'BAD STENCIL SIZE IN APPLY_3D_NODAL ',size(ss,dim=1)
       call bl_error(' ')
 
     end if

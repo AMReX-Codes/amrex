@@ -452,6 +452,13 @@ ifeq ($(COMP),Intel)
        ICC_MAJOR_VERSION := 11
        ICC_MINOR_VERSION := 1
        _icpc := icpc
+   else
+   ifeq ($(findstring Version 12.1, $(__icc_version)), Version 12.1)
+       ICC_VERSION := 12.1
+       ICC_MAJOR_VERSION := 12
+       ICC_MINOR_VERSION := 1
+       _icpc := icpc
+   endif
    endif
    endif
    endif
@@ -473,11 +480,14 @@ ifeq ($(COMP),Intel)
      endif
    endif
 
-   ifeq ($(ICC_MAJOR_VERSION),11)
+   ifeq ($(ICC_MAJOR_VERSION),12)
+     CXXOPTF += -mp1
+   else ifeq ($(ICC_MAJOR_VERSION),11)
      CXXOPTF += -mp1
    else
      CXXOPTF += -mp
    endif
+
    ifeq ($(ICC_MAJOR_VERSION),9)
      CXXDEBF += -O0 # -traceback 
 #    CXXDEBF += -debug expr-source-pos 
@@ -600,6 +610,12 @@ ifeq ($(FCOMP),Intel)
        IFC_VERSION := 11.1
        IFC_MAJOR_VERSION := 11
        IFC_MINOR_VERSION := 1
+   else
+   ifeq ($(findstring Version 12.1, $(__ifc_version)), Version 12.1)
+       IFC_VERSION := 12.1
+       IFC_MAJOR_VERSION := 12
+       IFC_MINOR_VERSION := 1
+   endif
    endif
    endif
    endif
@@ -635,7 +651,10 @@ ifeq ($(FCOMP),Intel)
    FOPTF += -O2 -fpconstant
    fOPTF += -O2 -fpconstant
 
-   ifeq ($(IFC_MAJOR_VERSION), 11)
+   ifeq ($(IFC_MAJOR_VERSION),12)
+     FOPTF += -mp1
+     fOPTF += -mp1
+   else ifeq ($(IFC_MAJOR_VERSION), 11)
      FOPTF += -mp1
      fOPTF += -mp1
    else
@@ -658,9 +677,16 @@ ifeq ($(FCOMP),Intel)
 #     FDEBF += -ftrapuv
 #     fDEBF += -ftrapuv
    endif
-   LIBRARY_LOCATIONS += $(shell echo `which ifort | sed 's;bin/ifort;;'`lib)
+   ifneq ($(UNAMEN),maudib.ucolick.org)
+      LIBRARY_LOCATIONS += $(shell echo `which ifort | sed 's;bin/ifort;;'`lib)
+   endif
 
-   _ifc += -module $(fmoddir)
+#   _ifc += -module $(fmoddir)
+    FOPTF += -module $(fmoddir)
+    fOPTF += -module $(fmoddir)
+    FDEBF += -module $(fmoddir)
+    fDEBF += -module $(fmoddir)
+
     FC = $(_ifc)
     fC = $(_ifc)
    NEEDS_FLUSH_F := TRUE

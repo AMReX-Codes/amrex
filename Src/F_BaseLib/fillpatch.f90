@@ -201,8 +201,8 @@ contains
     call destroy(ba)
     call build(cfine, la, nc = nc, ng = 0)
  
-    ! Set all of cfine to 1d40 so that we can make sure it gets completely filled below.
-    call setval(cfine, 1.d40)
+    ! Set all of cfine to 1d200 so that we can make sure it gets completely filled below.
+    call setval(cfine, 1.d200)
     !
     ! Fill cfine from crse.
     ! Got to do it in stages as parallel copy only goes from valid -> valid.
@@ -277,8 +277,13 @@ contains
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
-    if (multifab_max(cfine) .ge. 0.99d40) &
-       call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
+    if (multifab_max(cfine) .ge. 0.99d200) then
+       if (multifab_max(tmpcrse) .ge. 0.99d200) then
+          call bl_error('fillpatch: tmpcrse greater than 1e200 before trying to fill cfine')
+       else
+          call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
+       end if
+    end if
 
     call destroy(tmpcrse)
     call destroy(tmpla)

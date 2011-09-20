@@ -210,10 +210,10 @@ contains
        do n = 1, ncomp(uu)
           select case(dm)
           case (1)
-             call stencil_flux_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
+             call stencil_flux_1d(sp(:,:,1,1), fp(:,1,1,n), up(:,1,1,n), &
                   mp(:,1,1,1), ng, ratio, face, dim)
           case (2)
-             call stencil_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
+             call stencil_flux_2d(sp(:,:,:,1), fp(:,:,1,n), up(:,:,1,n), &
                   mp(:,:,1,1), ng, ratio, face, dim)
           case (3)
              call stencil_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
@@ -263,10 +263,10 @@ contains
        mp => dataptr(mm, i)
        select case(get_dim(ss))
        case (1)
-          call stencil_flux_1d(sp(:,1,1,:), fp(:,1,1,1), up(:,1,1,1), &
+          call stencil_flux_1d(sp(:,:,1,1), fp(:,1,1,1), up(:,1,1,1), &
                mp(:,1,1,1), ng, ratio, face, dim)
        case (2)
-          call stencil_flux_2d(sp(:,:,1,:), fp(:,:,1,1), up(:,:,1,1), &
+          call stencil_flux_2d(sp(:,:,:,1), fp(:,:,1,1), up(:,:,1,1), &
                mp(:,:,1,1), ng, ratio, face, dim)
        case (3)
           call stencil_flux_3d(sp(:,:,:,:), fp(:,:,:,1), up(:,:,:,1), &
@@ -284,9 +284,9 @@ contains
     use cc_stencil_apply_module
 
     type(multifab), intent(inout) :: flux
-    type(multifab), intent(in) :: ss
+    type(multifab), intent(in)    :: ss
     type(multifab), intent(inout) :: uu
-    type(imultifab), intent(in) :: mm
+    type(imultifab), intent(in)   :: mm
     integer :: ratio
     integer :: face, dim
     integer :: i, n
@@ -310,11 +310,11 @@ contains
        do n = 1, ncomp(uu)
           select case(get_dim(ss))
           case (1)
-             call stencil_flux_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
+             call stencil_flux_1d(sp(:,:,1,1), fp(:,1,1,n), up(:,1,1,n), &
                   mp(:,1,1,1), ng, ratio, face, dim)
           case (2)
              if ( ncomp(flux) > 1 ) then
-                call stencil_flux_n_2d(sp(:,:,1,:), fp(:,:,1,:), up(:,:,1,n), &
+                call stencil_flux_n_2d(sp(:,:,:,1), fp(:,:,1,:), up(:,:,1,n), &
                      mp(:,:,1,1), ng, ratio, face, dim)
              else
                 call stencil_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &

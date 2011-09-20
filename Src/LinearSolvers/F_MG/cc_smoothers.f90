@@ -17,7 +17,7 @@ contains
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in)    :: ff(lo(1):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
-    real (kind = dp_t), intent(in)    :: ss(lo(1):,0:)
+    real (kind = dp_t), intent(in)    :: ss(0:,lo(1):)
     integer            ,intent(in)    :: mm(lo(1):)
 
     real (kind = dp_t), allocatable :: a_ls(:), b_ls(:), c_ls(:), r_ls(:), u_ls(:)
@@ -34,23 +34,23 @@ contains
     allocate(u_ls(0:hi(1)-lo(1)))
 
     do i = lo(1), hi(1)
-      a_ls(i-lo(1)) = ss(i,2)
-      b_ls(i-lo(1)) = ss(i,0)
-      c_ls(i-lo(1)) = ss(i,1)
+      a_ls(i-lo(1)) = ss(2,i)
+      b_ls(i-lo(1)) = ss(0,i)
+      c_ls(i-lo(1)) = ss(1,i)
       r_ls(i-lo(1)) = ff(i)
 
       if ( hi(1) > lo(1) ) then
          if (bc_skewed(mm(i),1,+1)) then
-            r_ls(i-lo(1)) = r_ls(i-lo(1)) - ss(i,XBC)*uu(i+2)
+            r_ls(i-lo(1)) = r_ls(i-lo(1)) - ss(XBC,i)*uu(i+2)
          else if (bc_skewed(mm(i),1,-1)) then
-            r_ls(i-lo(1)) = r_ls(i-lo(1)) - ss(i,XBC)*uu(i-2)
+            r_ls(i-lo(1)) = r_ls(i-lo(1)) - ss(XBC,i)*uu(i-2)
          end if
       end if
 
     end do
 
-    r_ls(0)           = r_ls(0)           - ss(lo(1),2) * uu(lo(1)-1)
-    r_ls(hi(1)-lo(1)) = r_ls(hi(1)-lo(1)) - ss(hi(1),1) * uu(hi(1)+1)
+    r_ls(0)           = r_ls(0)           - ss(2,lo(1)) * uu(lo(1)-1)
+    r_ls(hi(1)-lo(1)) = r_ls(hi(1)-lo(1)) - ss(1,hi(1)) * uu(hi(1)+1)
 
     call tridiag(a_ls,b_ls,c_ls,r_ls,u_ls,ilen)
  
@@ -68,7 +68,7 @@ contains
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
-    real (kind = dp_t), intent(in) :: ss(lo(1):,0:)
+    real (kind = dp_t), intent(in) :: ss(0:,lo(1):)
     integer            ,intent(in) :: mm(lo(1):)
     logical, intent(in), optional :: skwd
     integer :: i, hi(size(lo)), ioff
@@ -93,14 +93,14 @@ contains
        if (bc_skewed(mm(hi(1)),1,-1)) lskwd = .true.
     end if
 
-    !! assumption: ss(i,0) vanishes only for 1x1 problems
+    !! assumption: ss(0,i) vanishes only for 1x1 problems
     if ( all(lo == hi) ) then
        i = lo(1)
        if ( mod(i,2) == n ) then
-          if ( abs(ss(i,0)) .gt. 0.0_dp_t ) then
-             dd = ss(i,0)*uu(i) &
-                + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1) 
-             uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+          if ( abs(ss(0,i)) .gt. 0.0_dp_t ) then
+             dd = ss(0,i)*uu(i) &
+                + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1) 
+             uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
           end if
        end if
        call destroy(bpt)
@@ -116,26 +116,26 @@ contains
        ioff = 0; if ( mod(lo(1), 2) /= n ) ioff = 1
        do i = lo(1) + ioff, hi(1), 2
 
-             dd = ss(i,0)*uu(i) &
-                  + ss(i,1) * uu(i+1) + ss(i,2) * uu(i-1)
+             dd = ss(0,i)*uu(i) &
+                  + ss(1,i) * uu(i+1) + ss(2,i) * uu(i-1)
              if ( i == lo(1) .or. i == hi(1)) then
                 if (bc_skewed(mm(i),1,+1)) then
-                   dd = dd + ss(i,XBC)*lr(1)
+                   dd = dd + ss(XBC,i)*lr(1)
                 end if
                 if (bc_skewed(mm(i),1,-1)) then
-                   dd = dd + ss(i,XBC)*lr(2)
+                   dd = dd + ss(XBC,i)*lr(2)
                 end if
              end if
-             uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+             uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
           end do
 
     else
 
        do i = lo(1), hi(1)
-          if (abs(ss(i,0)) .gt. 0.0_dp_t) then
-            dd = ss(i,0)*uu(i) &
-               + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1) 
-            uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+          if (abs(ss(0,i)) .gt. 0.0_dp_t) then
+            dd = ss(0,i)*uu(i) &
+               + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1) 
+            uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
           end if
        end do
 
@@ -153,7 +153,7 @@ contains
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
-    real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
+    real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
     logical, intent(in), optional :: skwd
     integer :: j, i, hi(size(lo)), ioff
@@ -183,15 +183,15 @@ contains
        end do
     end if
 
-    !! assumption: ss(i,j,0) vanishes only for 1x1 problems
+    !! assumption: ss(0,i,j) vanishes only for 1x1 problems
     if ( all(lo == hi) ) then
        i = lo(1); j = lo(2)
        if ( mod(i + j,2) == n ) then
-          if ( abs(ss(i,j,0)) .gt. 0.0_dp_t ) then
-             dd = ss(i,j,0)*uu(i,j) &
-                  + ss(i,j,1)*uu(i+1,j) + ss(i,j,2)*uu(i-1,j) &
-                  + ss(i,j,3)*uu(i,j+1) + ss(i,j,4)*uu(i,j-1)
-             uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+          if ( abs(ss(0,i,j)) .gt. 0.0_dp_t ) then
+             dd = ss(0,i,j)*uu(i,j) &
+                  + ss(1,i,j)*uu(i+1,j) + ss(2,i,j)*uu(i-1,j) &
+                  + ss(3,i,j)*uu(i,j+1) + ss(4,i,j)*uu(i,j-1)
+             uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
           end if
        end if
        call destroy(bpt)
@@ -215,24 +215,24 @@ contains
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
 
-             dd = ss(i,j,0)*uu(i,j) &
-                  + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j) &
-                  + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
+             dd = ss(0,i,j)*uu(i,j) &
+                  + ss(1,i,j) * uu(i+1,j) + ss(2,i,j) * uu(i-1,j) &
+                  + ss(3,i,j) * uu(i,j+1) + ss(4,i,j) * uu(i,j-1)
              if ( i == lo(1) .or. i == hi(1) .or. j == lo(2) .or. j == hi(2) ) then
                 if (bc_skewed(mm(i,j),1,+1)) then
-                   dd = dd + ss(i,j,XBC)*lr(j,1)
+                   dd = dd + ss(XBC,i,j)*lr(j,1)
                 end if
                 if (bc_skewed(mm(i,j),1,-1)) then
-                   dd = dd + ss(i,j,XBC)*lr(j,2)
+                   dd = dd + ss(XBC,i,j)*lr(j,2)
                 end if
                 if (bc_skewed(mm(i,j),2,+1)) then
-                   dd = dd + ss(i,j,YBC)*tb(i,1)
+                   dd = dd + ss(YBC,i,j)*tb(i,1)
                 end if
                 if (bc_skewed(mm(i,j),2,-1)) then
-                   dd = dd + ss(i,j,YBC)*tb(i,2)
+                   dd = dd + ss(YBC,i,j)*tb(i,2)
                 end if
              end if
-             uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+             uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
           end do
        end do
     else
@@ -242,11 +242,11 @@ contains
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
-             if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
-               dd = ss(i,j,0)*uu(i,j) &
-                    + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j) &
-                    + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
-               uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+             if (abs(ss(0,i,j)) .gt. 0.0_dp_t) then
+               dd = ss(0,i,j)*uu(i,j) &
+                    + ss(1,i,j) * uu(i+1,j) + ss(2,i,j) * uu(i-1,j) &
+                    + ss(3,i,j) * uu(i,j+1) + ss(4,i,j) * uu(i,j-1)
+               uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
              end if
           end do
        end do
@@ -265,7 +265,7 @@ contains
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):,lo(3):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
-    real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, lo(3):, 0:)
+    real (kind = dp_t), intent(in) :: ss(0:,lo(1):, lo(2):, lo(3):)
     integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
     logical, intent(in), optional :: skwd
     integer :: i, j, k, ioff
@@ -284,12 +284,12 @@ contains
     if ( all(lo == hi) ) then
        k = lo(3); j = lo(2); i = lo(1)
        if ( mod(i + j + k, 2) == n ) then
-          if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
-             dd = ss(i,j,k,0)*uu(i,j,k)
-             dd = dd + ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k)
-             dd = dd + ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k)
-             dd = dd + ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
-             uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+          if (abs(ss(0,i,j,k)) .gt. 0.0_dp_t) then
+             dd = ss(0,i,j,k)*uu(i,j,k)   + &
+                  ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k) + &
+                  ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k) + &
+                  ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
+             uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
           end if
        end if
        call destroy(bpt)
@@ -359,31 +359,31 @@ contains
              ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
              do i = lo(1)+ioff, hi(1), 2
 
-                dd = ss(i,j,k,0)*uu(i,j,k) + &
-                     ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k) + &
-                     ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k) + &
-                     ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+                dd = ss(0,i,j,k)*uu(i,j,k)   + &
+                     ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k) + &
+                     ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k) + &
+                     ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
 
                 if ( i == lo(1)) then
-                   if ( bc_skewed(mm(i,j,k),1,+1) ) dd = dd + ss(i,j,k,XBC)*lr(j,k,1)
+                   if ( bc_skewed(mm(i,j,k),1,+1) ) dd = dd + ss(XBC,i,j,k)*lr(j,k,1)
                 end if
                 if ( i == hi(1)) then
-                   if ( bc_skewed(mm(i,j,k),1,-1) ) dd = dd + ss(i,j,k,XBC)*lr(j,k,2)
+                   if ( bc_skewed(mm(i,j,k),1,-1) ) dd = dd + ss(XBC,i,j,k)*lr(j,k,2)
                 end if
                 if ( j == lo(2)) then
-                   if ( bc_skewed(mm(i,j,k),2,+1) ) dd = dd + ss(i,j,k,YBC)*tb(i,k,1)
+                   if ( bc_skewed(mm(i,j,k),2,+1) ) dd = dd + ss(YBC,i,j,k)*tb(i,k,1)
                 end if
                 if ( j == hi(2) ) then
-                   if ( bc_skewed(mm(i,j,k),2,-1) ) dd = dd + ss(i,j,k,YBC)*tb(i,k,2)
+                   if ( bc_skewed(mm(i,j,k),2,-1) ) dd = dd + ss(YBC,i,j,k)*tb(i,k,2)
                 end if
                 if ( k == lo(3)) then
-                   if ( bc_skewed(mm(i,j,k),3,+1) ) dd = dd + ss(i,j,k,ZBC)*fb(i,j,1)
+                   if ( bc_skewed(mm(i,j,k),3,+1) ) dd = dd + ss(ZBC,i,j,k)*fb(i,j,1)
                 end if
                 if ( k == hi(3) ) then
-                   if ( bc_skewed(mm(i,j,k),3,-1) ) dd = dd + ss(i,j,k,ZBC)*fb(i,j,2)
+                   if ( bc_skewed(mm(i,j,k),3,-1) ) dd = dd + ss(ZBC,i,j,k)*fb(i,j,2)
                 end if
 
-                uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
              end do
           end do
        end do
@@ -399,12 +399,12 @@ contains
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
              do i = lo(1)+ioff, hi(1), 2
-                  dd = ss(i,j,k,0)*uu(i,j,k) + &
-                       ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k) + &
-                       ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k) + &
-                       ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+                  dd = ss(0,i,j,k)*uu(i,j,k)   + &
+                       ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k) + &
+                       ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k) + &
+                       ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
 
-                  uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                  uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
              end do
           end do
        end do
@@ -423,7 +423,7 @@ contains
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
-    real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
+    real (kind = dp_t), intent(in) :: ss(0:,lo(1):, lo(2):)
 
     integer            :: i, j, hi(size(lo)), ioff
     real (kind = dp_t) :: dd
@@ -434,44 +434,44 @@ contains
 
     hi = ubound(ff)
 
-    if (size(ss,dim=3) .eq. 9) then
+    if (size(ss,dim=1) .eq. 9) then
 
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
-             if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
-               dd =   ss(i,j,0) * uu(i,j) &
-                    + ss(i,j,1) * uu(i-2,j) + ss(i,j,2) * uu(i-1,j) &
-                    + ss(i,j,3) * uu(i+1,j) + ss(i,j,4) * uu(i+2,j) &
-                    + ss(i,j,5) * uu(i,j-2) + ss(i,j,6) * uu(i,j-1) &
-                    + ss(i,j,7) * uu(i,j+1) + ss(i,j,8) * uu(i,j+2)
-               uu(i,j) = uu(i,j) + (omega/ss(i,j,0)) * (ff(i,j) - dd)
+             if (abs(ss(0,i,j)) .gt. 0.0_dp_t) then
+               dd =   ss(0,i,j) * uu(i,j) &
+                    + ss(1,i,j) * uu(i-2,j) + ss(2,i,j) * uu(i-1,j) &
+                    + ss(3,i,j) * uu(i+1,j) + ss(4,i,j) * uu(i+2,j) &
+                    + ss(5,i,j) * uu(i,j-2) + ss(6,i,j) * uu(i,j-1) &
+                    + ss(7,i,j) * uu(i,j+1) + ss(8,i,j) * uu(i,j+2)
+               uu(i,j) = uu(i,j) + (omega/ss(0,i,j)) * (ff(i,j) - dd)
              end if
           end do
        end do
 
-    else if (size(ss,dim=3) .eq. 25) then
+    else if (size(ss,dim=1) .eq. 25) then
 
        do j = lo(2),hi(2)
           do i = lo(1), hi(1)
-             if (abs(ss(i,j,0)) .gt. 0.0_dp_t) then
-               dd =   ss(i,j, 0) * uu(i,j) &
-                    + ss(i,j, 1) * uu(i-2,j-2) + ss(i,j, 2) * uu(i-1,j-2) & ! AT J-2
-                    + ss(i,j, 3) * uu(i  ,j-2) + ss(i,j, 4) * uu(i+1,j-2) & ! AT J-2
-                    + ss(i,j, 5) * uu(i+2,j-2)                            & ! AT J-2
-                    + ss(i,j, 6) * uu(i-2,j-1) + ss(i,j, 7) * uu(i-1,j-1) & ! AT J-1
-                    + ss(i,j, 8) * uu(i  ,j-1) + ss(i,j, 9) * uu(i+1,j-1) & ! AT J-1
-                    + ss(i,j,10) * uu(i+2,j-1)                            & ! AT J-1
-                    + ss(i,j,11) * uu(i-2,j  ) + ss(i,j,12) * uu(i-1,j  ) & ! AT J
-                    + ss(i,j,13) * uu(i+1,j  ) + ss(i,j,14) * uu(i+2,j  ) & ! AT J
-                    + ss(i,j,15) * uu(i-2,j+1) + ss(i,j,16) * uu(i-1,j+1) & ! AT J+1
-                    + ss(i,j,17) * uu(i  ,j+1) + ss(i,j,18) * uu(i+1,j+1) & ! AT J+1
-                    + ss(i,j,19) * uu(i+2,j+1)                            & ! AT J+1
-                    + ss(i,j,20) * uu(i-2,j+2) + ss(i,j,21) * uu(i-1,j+2) & ! AT J+2
-                    + ss(i,j,22) * uu(i  ,j+2) + ss(i,j,23) * uu(i+1,j+2) & ! AT J+2
-                    + ss(i,j,24) * uu(i+2,j+2)                              ! AT J+2
+             if (abs(ss(0,i,j)) .gt. 0.0_dp_t) then
+               dd =   ss( 0,i,j) * uu(i,j) &
+                    + ss( 1,i,j) * uu(i-2,j-2) + ss( 2,i,j) * uu(i-1,j-2) & ! AT J-2
+                    + ss( 3,i,j) * uu(i  ,j-2) + ss( 4,i,j) * uu(i+1,j-2) & ! AT J-2
+                    + ss( 5,i,j) * uu(i+2,j-2)                            & ! AT J-2
+                    + ss( 6,i,j) * uu(i-2,j-1) + ss( 7,i,j) * uu(i-1,j-1) & ! AT J-1
+                    + ss( 8,i,j) * uu(i  ,j-1) + ss( 9,i,j) * uu(i+1,j-1) & ! AT J-1
+                    + ss(10,i,j) * uu(i+2,j-1)                            & ! AT J-1
+                    + ss(11,i,j) * uu(i-2,j  ) + ss(12,i,j) * uu(i-1,j  ) & ! AT J
+                    + ss(13,i,j) * uu(i+1,j  ) + ss(14,i,j) * uu(i+2,j  ) & ! AT J
+                    + ss(15,i,j) * uu(i-2,j+1) + ss(16,i,j) * uu(i-1,j+1) & ! AT J+1
+                    + ss(17,i,j) * uu(i  ,j+1) + ss(18,i,j) * uu(i+1,j+1) & ! AT J+1
+                    + ss(19,i,j) * uu(i+2,j+1)                            & ! AT J+1
+                    + ss(20,i,j) * uu(i-2,j+2) + ss(21,i,j) * uu(i-1,j+2) & ! AT J+2
+                    + ss(22,i,j) * uu(i  ,j+2) + ss(23,i,j) * uu(i+1,j+2) & ! AT J+2
+                    + ss(24,i,j) * uu(i+2,j+2)                              ! AT J+2
 
-               uu(i,j) = uu(i,j) + (omega/ss(i,j,0)) * (ff(i,j) - dd)
+               uu(i,j) = uu(i,j) + (omega/ss(0,i,j)) * (ff(i,j) - dd)
 
              end if
           end do
@@ -490,7 +490,7 @@ contains
     real (kind = dp_t), intent(in   ) :: omega
     real (kind = dp_t), intent(in   ) :: ff(lo(1):, lo(2):, lo(3):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:,lo(3)-ng:)
-    real (kind = dp_t), intent(in   ) :: ss(lo(1):, lo(2):, lo(3):, 0:)
+    real (kind = dp_t), intent(in   ) :: ss(0:, lo(1):, lo(2):, lo(3):)
 
     integer            :: i, j, k, hi(size(lo))
     real (kind = dp_t) :: dd
@@ -502,85 +502,85 @@ contains
     hi = ubound(ff)
 
     ! This is the fourth order stencil for constant coefficients.
-    if (size(ss,dim=4) .eq. 13) then
+    if (size(ss,dim=1) .eq. 13) then
 
        do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1), hi(1)
-             if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
-               dd =   ss(i,j,k, 0) * uu(i,j,k) &
-                    + ss(i,j,k, 1) * uu(i-2,j,k) + ss(i,j,k, 2) * uu(i-1,j,k) &
-                    + ss(i,j,k, 3) * uu(i+1,j,k) + ss(i,j,k, 4) * uu(i+2,j,k) &
-                    + ss(i,j,k, 5) * uu(i,j-2,k) + ss(i,j,k, 6) * uu(i,j-1,k) &
-                    + ss(i,j,k, 7) * uu(i,j+1,k) + ss(i,j,k, 8) * uu(i,j+2,k) &
-                    + ss(i,j,k, 9) * uu(i,j,k-2) + ss(i,j,k,10) * uu(i,j,k-1) &
-                    + ss(i,j,k,11) * uu(i,j,k+1) + ss(i,j,k,12) * uu(i,j,k+2)
-               uu(i,j,k) = uu(i,j,k) + (omega/ss(i,j,k,0)) * (ff(i,j,k) - dd)
+             if (abs(ss(0,i,j,k)) .gt. 0.0_dp_t) then
+               dd =   ss( 0,i,j,k) * uu(i,j,k) &
+                    + ss( 1,i,j,k) * uu(i-2,j,k) + ss( 2,i,j,k) * uu(i-1,j,k) &
+                    + ss( 3,i,j,k) * uu(i+1,j,k) + ss( 4,i,j,k) * uu(i+2,j,k) &
+                    + ss( 5,i,j,k) * uu(i,j-2,k) + ss( 6,i,j,k) * uu(i,j-1,k) &
+                    + ss( 7,i,j,k) * uu(i,j+1,k) + ss( 8,i,j,k) * uu(i,j+2,k) &
+                    + ss( 9,i,j,k) * uu(i,j,k-2) + ss(10,i,j,k) * uu(i,j,k-1) &
+                    + ss(11,i,j,k) * uu(i,j,k+1) + ss(12,i,j,k) * uu(i,j,k+2)
+               uu(i,j,k) = uu(i,j,k) + (omega/ss(0,i,j,k)) * (ff(i,j,k) - dd)
              end if
           end do
        end do
        end do
 
     ! This is the fourth order stencil for variable coefficients.
-    else if (size(ss,dim=4) .eq. 61) then
+    else if (size(ss,dim=1) .eq. 61) then
 
        do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1), hi(1)
-             if (abs(ss(i,j,k,0)) .gt. 0.0_dp_t) then
+             if (abs(ss(0,i,j,k)) .gt. 0.0_dp_t) then
 
                 dd = &
-                       ss(i,j,k, 0) * uu(i  ,j  ,k  ) &
+                       ss( 0,i,j,k) * uu(i  ,j  ,k  ) &
                        ! Contributions from k-2
-                     + ss(i,j,k, 1) * uu(i  ,j-2,k-2) + ss(i,j,k, 2) * uu(i  ,j-1,k-2) &
-                     + ss(i,j,k, 3) * uu(i-2,j  ,k-2) + ss(i,j,k, 4) * uu(i-1,j  ,k-2) &
-                     + ss(i,j,k, 5) * uu(i  ,j  ,k-2) + ss(i,j,k, 6) * uu(i+1,j  ,k-2) &
-                     + ss(i,j,k, 7) * uu(i+2,j  ,k-2) + ss(i,j,k, 8) * uu(i  ,j+1,k-2) &
-                     + ss(i,j,k, 9) * uu(i  ,j+2,k-2)                                  &
+                     + ss( 1,i,j,k) * uu(i  ,j-2,k-2) + ss( 2,i,j,k) * uu(i  ,j-1,k-2) &
+                     + ss( 3,i,j,k) * uu(i-2,j  ,k-2) + ss( 4,i,j,k) * uu(i-1,j  ,k-2) &
+                     + ss( 5,i,j,k) * uu(i  ,j  ,k-2) + ss( 6,i,j,k) * uu(i+1,j  ,k-2) &
+                     + ss( 7,i,j,k) * uu(i+2,j  ,k-2) + ss( 8,i,j,k) * uu(i  ,j+1,k-2) &
+                     + ss( 9,i,j,k) * uu(i  ,j+2,k-2)                                  &
                        ! Contributions from k-1
-                     + ss(i,j,k,10) * uu(i  ,j-2,k-1) + ss(i,j,k,11) * uu(i  ,j-1,k-1) &
-                     + ss(i,j,k,12) * uu(i-2,j  ,k-1) + ss(i,j,k,13) * uu(i-1,j  ,k-1) &
-                     + ss(i,j,k,14) * uu(i  ,j  ,k-1) + ss(i,j,k,15) * uu(i+1,j  ,k-1) &
-                     + ss(i,j,k,16) * uu(i+2,j  ,k-1) + ss(i,j,k,17) * uu(i  ,j+1,k-1) &
-                     + ss(i,j,k,18) * uu(i  ,j+2,k-1)                                  &
+                     + ss(10,i,j,k) * uu(i  ,j-2,k-1) + ss(11,i,j,k) * uu(i  ,j-1,k-1) &
+                     + ss(12,i,j,k) * uu(i-2,j  ,k-1) + ss(13,i,j,k) * uu(i-1,j  ,k-1) &
+                     + ss(14,i,j,k) * uu(i  ,j  ,k-1) + ss(15,i,j,k) * uu(i+1,j  ,k-1) &
+                     + ss(16,i,j,k) * uu(i+2,j  ,k-1) + ss(17,i,j,k) * uu(i  ,j+1,k-1) &
+                     + ss(18,i,j,k) * uu(i  ,j+2,k-1)                                  &
                        ! Contributions from j-2,k
-                     + ss(i,j,k,19) * uu(i-2,j-2,k  ) + ss(i,j,k,20) * uu(i-1,j-2,k  ) &
-                     + ss(i,j,k,21) * uu(i  ,j-2,k  ) + ss(i,j,k,22) * uu(i+1,j-2,k  ) &
-                     + ss(i,j,k,23) * uu(i+2,j-2,k  ) 
+                     + ss(19,i,j,k) * uu(i-2,j-2,k  ) + ss(20,i,j,k) * uu(i-1,j-2,k  ) &
+                     + ss(21,i,j,k) * uu(i  ,j-2,k  ) + ss(22,i,j,k) * uu(i+1,j-2,k  ) &
+                     + ss(23,i,j,k) * uu(i+2,j-2,k  )
 
                 dd = dd &
                        ! Contributions from j-1,k
-                     + ss(i,j,k,24) * uu(i-2,j-1,k  ) + ss(i,j,k,25) * uu(i-1,j-1,k  ) &
-                     + ss(i,j,k,26) * uu(i  ,j-1,k  ) + ss(i,j,k,27) * uu(i+1,j-1,k  ) &
-                     + ss(i,j,k,28) * uu(i+2,j-1,k  )                                  &
+                     + ss(24,i,j,k) * uu(i-2,j-1,k  ) + ss(25,i,j,k) * uu(i-1,j-1,k  ) &
+                     + ss(26,i,j,k) * uu(i  ,j-1,k  ) + ss(27,i,j,k) * uu(i+1,j-1,k  ) &
+                     + ss(28,i,j,k) * uu(i+2,j-1,k  )                                  &
                        ! Contributions from j  ,k
-                     + ss(i,j,k,29) * uu(i-2,j  ,k  ) + ss(i,j,k,30) * uu(i-1,j  ,k  ) &
-                                                      + ss(i,j,k,31) * uu(i+1,j  ,k  ) &
-                     + ss(i,j,k,32) * uu(i+2,j  ,k  )                                  &
+                     + ss(29,i,j,k) * uu(i-2,j  ,k  ) + ss(30,i,j,k) * uu(i-1,j  ,k  ) &
+                                                      + ss(31,i,j,k) * uu(i+1,j  ,k  ) &
+                     + ss(32,i,j,k) * uu(i+2,j  ,k  )                                  &
                        ! Contributions from j+1,k
-                     + ss(i,j,k,33) * uu(i-2,j+1,k  ) + ss(i,j,k,34) * uu(i-1,j+1,k  ) &
-                     + ss(i,j,k,35) * uu(i  ,j+1,k  ) + ss(i,j,k,36) * uu(i+1,j+1,k  ) &
-                     + ss(i,j,k,37) * uu(i+2,j+1,k  )                                  &
+                     + ss(33,i,j,k) * uu(i-2,j+1,k  ) + ss(34,i,j,k) * uu(i-1,j+1,k  ) &
+                     + ss(35,i,j,k) * uu(i  ,j+1,k  ) + ss(36,i,j,k) * uu(i+1,j+1,k  ) &
+                     + ss(37,i,j,k) * uu(i+2,j+1,k  )                                  &
                        ! Contributions from j+2,k
-                     + ss(i,j,k,38) * uu(i-2,j+2,k  ) + ss(i,j,k,39) * uu(i-1,j+2,k  ) &
-                     + ss(i,j,k,40) * uu(i  ,j+2,k  ) + ss(i,j,k,41) * uu(i+1,j+2,k  ) &
-                     + ss(i,j,k,42) * uu(i+2,j+2,k  )                                  
+                     + ss(38,i,j,k) * uu(i-2,j+2,k  ) + ss(39,i,j,k) * uu(i-1,j+2,k  ) &
+                     + ss(40,i,j,k) * uu(i  ,j+2,k  ) + ss(41,i,j,k) * uu(i+1,j+2,k  ) &
+                     + ss(42,i,j,k) * uu(i+2,j+2,k  )
 
                 dd = dd &
                        ! Contributions from k+1
-                     + ss(i,j,k,43) * uu(i  ,j-2,k+1) + ss(i,j,k,44) * uu(i  ,j-1,k+1) &
-                     + ss(i,j,k,45) * uu(i-2,j  ,k+1) + ss(i,j,k,46) * uu(i-1,j  ,k+1) &
-                     + ss(i,j,k,47) * uu(i  ,j  ,k+1) + ss(i,j,k,48) * uu(i+1,j  ,k+1) &
-                     + ss(i,j,k,49) * uu(i+2,j  ,k+1) + ss(i,j,k,50) * uu(i  ,j+1,k+1) &
-                     + ss(i,j,k,51) * uu(i  ,j+2,k+1)                                  &
+                     + ss(43,i,j,k) * uu(i  ,j-2,k+1) + ss(44,i,j,k) * uu(i  ,j-1,k+1) &
+                     + ss(45,i,j,k) * uu(i-2,j  ,k+1) + ss(46,i,j,k) * uu(i-1,j  ,k+1) &
+                     + ss(47,i,j,k) * uu(i  ,j  ,k+1) + ss(48,i,j,k) * uu(i+1,j  ,k+1) &
+                     + ss(49,i,j,k) * uu(i+2,j  ,k+1) + ss(50,i,j,k) * uu(i  ,j+1,k+1) &
+                     + ss(51,i,j,k) * uu(i  ,j+2,k+1)                                  &
                        ! Contributions from k+2
-                     + ss(i,j,k,52) * uu(i  ,j-2,k+2) + ss(i,j,k,53) * uu(i  ,j-1,k+2) &
-                     + ss(i,j,k,54) * uu(i-2,j  ,k+2) + ss(i,j,k,55) * uu(i-1,j  ,k+2) &
-                     + ss(i,j,k,56) * uu(i  ,j  ,k+2) + ss(i,j,k,57) * uu(i+1,j  ,k+2) &
-                     + ss(i,j,k,58) * uu(i+2,j  ,k+2) + ss(i,j,k,59) * uu(i  ,j+1,k+2) &
-                     + ss(i,j,k,60) * uu(i  ,j+2,k+2)                                   
+                     + ss(52,i,j,k) * uu(i  ,j-2,k+2) + ss(53,i,j,k) * uu(i  ,j-1,k+2) &
+                     + ss(54,i,j,k) * uu(i-2,j  ,k+2) + ss(55,i,j,k) * uu(i-1,j  ,k+2) &
+                     + ss(56,i,j,k) * uu(i  ,j  ,k+2) + ss(57,i,j,k) * uu(i+1,j  ,k+2) &
+                     + ss(58,i,j,k) * uu(i+2,j  ,k+2) + ss(59,i,j,k) * uu(i  ,j+1,k+2) &
+                     + ss(60,i,j,k) * uu(i  ,j+2,k+2)
 
-               uu(i,j,k) = uu(i,j,k) + (omega/ss(i,j,k,0)) * (ff(i,j,k) - dd)
+               uu(i,j,k) = uu(i,j,k) + (omega/ss(0,i,j,k)) * (ff(i,j,k) - dd)
              end if
           end do
        end do
@@ -597,7 +597,7 @@ contains
     real (kind = dp_t), intent(in)    :: omega
     real (kind = dp_t), intent(in)    :: ff(:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
-    real (kind = dp_t), intent(in)    :: ss(:,0:)
+    real (kind = dp_t), intent(in)    :: ss(0:,:)
     logical, intent(in), optional :: skwd
     real (kind = dp_t) :: dd
     integer :: i
@@ -605,8 +605,8 @@ contains
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
     do i = 1, size(ff,dim=1)
-       dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
-       uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+       dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
+       uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
     end do
 
   end subroutine gs_lex_smoother_1d
@@ -617,7 +617,7 @@ contains
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:, :)
     real (kind = dp_t), intent(inout) :: uu(1-ng:, 1-ng:)
-    real (kind = dp_t), intent(in) :: ss(:, :, 0:)
+    real (kind = dp_t), intent(in) :: ss(0:, :, :)
     logical, intent(in), optional :: skwd
     integer :: j, i
     real (kind = dp_t) :: dd
@@ -632,12 +632,12 @@ contains
     do j = 1, size(ff,dim=2)
        do i = 1, size(ff, dim=1)
           dd = &
-               + ss(i,j,0)*uu(i  ,j  ) &
-               + ss(i,j,1)*uu(i+1,j  ) &
-               + ss(i,j,2)*uu(i-1,j  ) &
-               + ss(i,j,3)*uu(i  ,j+1) &
-               + ss(i,j,4)*uu(i  ,j-1)
-          uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+               + ss(0,i,j)*uu(i  ,j  ) &
+               + ss(1,i,j)*uu(i+1,j  ) &
+               + ss(2,i,j)*uu(i-1,j  ) &
+               + ss(3,i,j)*uu(i  ,j+1) &
+               + ss(4,i,j)*uu(i  ,j-1)
+          uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
        end do
     end do
 
@@ -650,7 +650,7 @@ contains
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:,:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
     logical, intent(in), optional :: skwd
     integer :: i, j, k
     real (kind = dp_t) :: dd
@@ -666,14 +666,14 @@ contains
        do j = 1, size(ff,dim=2)
           do i = 1, size(ff,dim=1)
              dd = &
-                  + ss(i,j,k, 0)*uu(  i,j  ,k  ) &
-                  + ss(i,j,k, 1)*uu(i+1,j  ,k  ) &
-                  + ss(i,j,k, 2)*uu(i-1,j  ,k  ) &
-                  + ss(i,j,k, 3)*uu(i  ,j+1,k  ) &
-                  + ss(i,j,k, 4)*uu(i  ,j-1,k  ) &
-                  + ss(i,j,k, 5)*uu(i  ,j  ,k-1) &
-                  + ss(i,j,k, 6)*uu(i  ,j  ,k+1) 
-             uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+                  + ss(0,i,j,k)*uu(  i,j  ,k  ) &
+                  + ss(1,i,j,k)*uu(i+1,j  ,k  ) &
+                  + ss(2,i,j,k)*uu(i-1,j  ,k  ) &
+                  + ss(3,i,j,k)*uu(i  ,j+1,k  ) &
+                  + ss(4,i,j,k)*uu(i  ,j-1,k  ) &
+                  + ss(5,i,j,k)*uu(i  ,j  ,k-1) &
+                  + ss(6,i,j,k)*uu(i  ,j  ,k+1) 
+             uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
           end do
        end do
     end do
@@ -687,7 +687,7 @@ contains
     real (kind = dp_t), intent(in)    :: omega
     real (kind = dp_t), intent(in)    :: ff(:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
-    real (kind = dp_t), intent(in)    :: ss(:,0:)
+    real (kind = dp_t), intent(in)    :: ss(0:,:)
     logical, intent(in), optional :: skwd
     real (kind = dp_t) :: dd
     integer :: i
@@ -695,8 +695,8 @@ contains
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
     do i = 1, size(ff,dim=1)
-       dd = ss(i,0)*uu(i) + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1)
-       uu(i) = uu(i) + omega/ss(i,0)*(ff(i) - dd)
+       dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
+       uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
     end do
 
 
@@ -708,7 +708,7 @@ contains
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:, :)
     real (kind = dp_t), intent(inout) :: uu(1-ng:, 1-ng:)
-    real (kind = dp_t), intent(in) :: ss(:, :, 0:)
+    real (kind = dp_t), intent(in) :: ss(0:, :, :)
     logical, intent(in), optional :: skwd
     integer :: j, i
     real (kind = dp_t) :: dd
@@ -723,18 +723,18 @@ contains
     do j = 1, size(ff,dim=2)
        do i = 1, size(ff, dim=1)
           dd = &
-               + ss(i,j,1)*uu(i-1,j-1) &
-               + ss(i,j,2)*uu(i  ,j-1) &
-               + ss(i,j,3)*uu(i+1,j-1) &
+               + ss(1,i,j)*uu(i-1,j-1) &
+               + ss(2,i,j)*uu(i  ,j-1) &
+               + ss(3,i,j)*uu(i+1,j-1) &
                
-               + ss(i,j,4)*uu(i-1,j  ) &
-               + ss(i,j,0)*uu(i  ,j  ) &
-               + ss(i,j,5)*uu(i+1,j  ) &
+               + ss(4,i,j)*uu(i-1,j  ) &
+               + ss(0,i,j)*uu(i  ,j  ) &
+               + ss(5,i,j)*uu(i+1,j  ) &
                
-               + ss(i,j,6)*uu(i-1,j+1) &
-               + ss(i,j,7)*uu(i  ,j+1) &
-               + ss(i,j,8)*uu(i+1,j+1)
-          uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
+               + ss(6,i,j)*uu(i-1,j+1) &
+               + ss(7,i,j)*uu(i  ,j+1) &
+               + ss(8,i,j)*uu(i+1,j+1)
+          uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
        end do
     end do
 
@@ -748,7 +748,7 @@ contains
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(:,:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
     logical, intent(in), optional :: skwd
     integer :: i, j, k
     real (kind = dp_t) :: dd
@@ -764,38 +764,38 @@ contains
        do j = 1, size(ff,dim=2)
           do i = 1, size(ff,dim=1)
              dd = &
-                  + ss(i,j,k, 0)*uu(i  ,j  ,k  ) &
-                  + ss(i,j,k, 1)*uu(i-1,j-1,k-1) &
-                  + ss(i,j,k, 2)*uu(i  ,j-1,k-1) &
-                  + ss(i,j,k, 3)*uu(i+1,j-1,k-1) &
-                  + ss(i,j,k, 4)*uu(i-1,j  ,k-1) &
-                  + ss(i,j,k, 5)*uu(i  ,j  ,k-1) &
-                  + ss(i,j,k, 6)*uu(i+1,j  ,k-1) &
-                  + ss(i,j,k, 7)*uu(i-1,j+1,k-1) &
-                  + ss(i,j,k, 8)*uu(i  ,j+1,k-1) &
-                  + ss(i,j,k, 9)*uu(i+1,j+1,k-1) &
+                  + ss( 0,i,j,k)*uu(i  ,j  ,k  ) &
+                  + ss( 1,i,j,k)*uu(i-1,j-1,k-1) &
+                  + ss( 2,i,j,k)*uu(i  ,j-1,k-1) &
+                  + ss( 3,i,j,k)*uu(i+1,j-1,k-1) &
+                  + ss( 4,i,j,k)*uu(i-1,j  ,k-1) &
+                  + ss( 5,i,j,k)*uu(i  ,j  ,k-1) &
+                  + ss( 6,i,j,k)*uu(i+1,j  ,k-1) &
+                  + ss( 7,i,j,k)*uu(i-1,j+1,k-1) &
+                  + ss( 8,i,j,k)*uu(i  ,j+1,k-1) &
+                  + ss( 9,i,j,k)*uu(i+1,j+1,k-1) &
                   
-                  + ss(i,j,k,10)*uu(i-1,j-1,k  ) &
-                  + ss(i,j,k,11)*uu(i  ,j-1,k  ) &
-                  + ss(i,j,k,12)*uu(i+1,j-1,k  ) &
-                  + ss(i,j,k,13)*uu(i-1,j  ,k  ) &
-                  + ss(i,j,k, 0)*uu(i  ,j  ,k  ) &
-                  + ss(i,j,k,14)*uu(i+1,j  ,k  ) &
-                  + ss(i,j,k,15)*uu(i  ,j+1,k  ) &
-                  + ss(i,j,k,16)*uu(i-1,j+1,k  ) &
-                  + ss(i,j,k,17)*uu(i+1,j+1,k  ) &
+                  + ss(10,i,j,k)*uu(i-1,j-1,k  ) &
+                  + ss(11,i,j,k)*uu(i  ,j-1,k  ) &
+                  + ss(12,i,j,k)*uu(i+1,j-1,k  ) &
+                  + ss(13,i,j,k)*uu(i-1,j  ,k  ) &
+                  + ss( 0,i,j,k)*uu(i  ,j  ,k  ) &
+                  + ss(14,i,j,k)*uu(i+1,j  ,k  ) &
+                  + ss(15,i,j,k)*uu(i  ,j+1,k  ) &
+                  + ss(16,i,j,k)*uu(i-1,j+1,k  ) &
+                  + ss(17,i,j,k)*uu(i+1,j+1,k  ) &
                   
-                  + ss(i,j,k,18)*uu(i-1,j-1,k+1) &
-                  + ss(i,j,k,19)*uu(i  ,j-1,k+1) &
-                  + ss(i,j,k,20)*uu(i+1,j-1,k+1) &
-                  + ss(i,j,k,21)*uu(i-1,j  ,k+1) &
-                  + ss(i,j,k,22)*uu(i  ,j  ,k+1) &
-                  + ss(i,j,k,23)*uu(i+1,j  ,k+1) &
-                  + ss(i,j,k,24)*uu(i-1,j+1,k+1) &
-                  + ss(i,j,k,25)*uu(i  ,j+1,k+1) &
-                  + ss(i,j,k,26)*uu(i+1,j+1,k+1) 
+                  + ss(18,i,j,k)*uu(i-1,j-1,k+1) &
+                  + ss(19,i,j,k)*uu(i  ,j-1,k+1) &
+                  + ss(20,i,j,k)*uu(i+1,j-1,k+1) &
+                  + ss(21,i,j,k)*uu(i-1,j  ,k+1) &
+                  + ss(22,i,j,k)*uu(i  ,j  ,k+1) &
+                  + ss(23,i,j,k)*uu(i+1,j  ,k+1) &
+                  + ss(24,i,j,k)*uu(i-1,j+1,k+1) &
+                  + ss(25,i,j,k)*uu(i  ,j+1,k+1) &
+                  + ss(26,i,j,k)*uu(i+1,j+1,k+1) 
 
-             uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
+             uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
           end do
        end do
     end do
@@ -807,7 +807,7 @@ contains
   subroutine jac_smoother_1d(omega, ss, uu, ff, mm, ng)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) ::  omega
-    real (kind = dp_t), intent(in) ::  ss(:,0:)
+    real (kind = dp_t), intent(in) ::  ss(0:,:)
     real (kind = dp_t), intent(in) ::  ff(:)
     integer           , intent(in) ::  mm(:)
     real (kind = dp_t), intent(inout) ::  uu(1-ng:)
@@ -819,18 +819,18 @@ contains
 
     nx = size(ff,dim=1)
     do i = 1, nx
-       dd = + ss(i,1)*uu(i+1) + ss(i,2)*uu(i-1) 
+       dd = + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1) 
        if ( nx > 1 ) then
           if ( bc_skewed(mm(i),1,+1) ) then
-             dd = dd + ss(i,XBC)*uu(i+2)
+             dd = dd + ss(XBC,i)*uu(i+2)
           else if ( bc_skewed(mm(i),1,-1) ) then
-             dd = dd + ss(i,XBC)*uu(i-2)
+             dd = dd + ss(XBC,i)*uu(i-2)
           end if
        end if
        wrk(i) = ff(i) - dd
     end do
     do i = 1, nx
-       uu(i) = uu(i) + omega*(wrk(i)/ss(i,0)-uu(i))
+       uu(i) = uu(i) + omega*(wrk(i)/ss(0,i)-uu(i))
     end do
 
   end subroutine jac_smoother_1d
@@ -846,12 +846,10 @@ contains
 
     nx = size(ff,dim=1)
     do i = 1, nx
-       wrk(i) = ( ff(i) &
-            - ss(i,1)*uu(i+1) - ss(i,3)*uu(i-1) &
-            )
+       wrk(i) = ( ff(i) - ss(1,i)*uu(i+1) - ss(3,i)*uu(i-1) )
     end do
     do i = 1, nx
-       uu(i) = uu(i) + omega*(wrk(i)/ss(i,2)-uu(i))
+       uu(i) = uu(i) + omega*(wrk(i)/ss(2,i)-uu(i))
     end do
 
   end subroutine jac_dense_smoother_1d
@@ -860,7 +858,7 @@ contains
     use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) ::  omega
-    real (kind = dp_t), intent(in) ::  ss(:,:,0:)
+    real (kind = dp_t), intent(in) ::  ss(0:,:,:)
     real (kind = dp_t), intent(in) ::  ff(:,:)
     integer           , intent(in) ::  mm(:,:)
     real (kind = dp_t), intent(inout) ::  uu(1-ng:,1-ng:)
@@ -879,20 +877,20 @@ contains
 
     do j = 1, ny
        do i = 1, nx
-          dd =    + ss(i,j,1) * uu(i+1,j) + ss(i,j,2) * uu(i-1,j)
-          dd = dd + ss(i,j,3) * uu(i,j+1) + ss(i,j,4) * uu(i,j-1)
+          dd =    + ss(1,i,j) * uu(i+1,j) + ss(2,i,j) * uu(i-1,j)
+          dd = dd + ss(3,i,j) * uu(i,j+1) + ss(4,i,j) * uu(i,j-1)
           if ( nx > 1 ) then
              if (bc_skewed(mm(i,j),1,+1)) then
-                dd = dd + ss(i,j,XBC)*uu(i+2,j)
+                dd = dd + ss(XBC,i,j)*uu(i+2,j)
              else if (bc_skewed(mm(i,j),1,-1)) then
-                dd = dd + ss(i,j,XBC)*uu(i-2,j)
+                dd = dd + ss(XBC,i,j)*uu(i-2,j)
              end if
           end if
           if ( ny > 1 ) then
              if (bc_skewed(mm(i,j),2,+1)) then
-                dd = dd + ss(i,j,YBC)*uu(i,j+2)
+                dd = dd + ss(YBC,i,j)*uu(i,j+2)
              else if (bc_skewed(mm(i,j),2,-1)) then
-                dd = dd + ss(i,j,YBC)*uu(i,j-2)
+                dd = dd + ss(YBC,i,j)*uu(i,j-2)
              end if
           end if
           wrk(i,j) = ff(i,j) - dd
@@ -901,7 +899,7 @@ contains
 
     do j = 1, ny
        do i = 1, nx
-          uu(i,j) = uu(i,j) + omega*(wrk(i,j)/ss(i,j,0)-uu(i,j))
+          uu(i,j) = uu(i,j) + omega*(wrk(i,j)/ss(0,i,j)-uu(i,j))
        end do
     end do
 
@@ -913,7 +911,7 @@ contains
     use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(:,:,0:)
+    real (kind = dp_t), intent(in) :: ss(0:,:,:)
     real (kind = dp_t), intent(in) :: ff(:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
     real (kind = dp_t) :: wrk(size(ff,1),size(ff,2))
@@ -924,29 +922,29 @@ contains
 
     call build(bpt, "jac_dense_smoother_2d")
 
-    nx=size(ss,dim=1)
-    ny=size(ss,dim=2)
+    nx=size(ss,dim=2)
+    ny=size(ss,dim=3)
 
     do j = 1, ny
        do i = 1, nx
           wrk(i,j) = ff(i,j) - (&
-               + ss(i,j,1)*uu(i-1,j-1) &
-               + ss(i,j,2)*uu(i  ,j-1) &
-               + ss(i,j,3)*uu(i+1,j-1) &
+               + ss(1,i,j)*uu(i-1,j-1) &
+               + ss(2,i,j)*uu(i  ,j-1) &
+               + ss(3,i,j)*uu(i+1,j-1) &
                
-               + ss(i,j,4)*uu(i-1,j  ) &
-               + ss(i,j,5)*uu(i+1,j  ) &
+               + ss(4,i,j)*uu(i-1,j  ) &
+               + ss(5,i,j)*uu(i+1,j  ) &
                
-               + ss(i,j,6)*uu(i-1,j+1) &
-               + ss(i,j,7)*uu(i  ,j+1) &
-               + ss(i,j,8)*uu(i+1,j+1) &
+               + ss(6,i,j)*uu(i-1,j+1) &
+               + ss(7,i,j)*uu(i  ,j+1) &
+               + ss(8,i,j)*uu(i+1,j+1) &
                )
        end do
     end do
 
     do j = 1, ny
        do i = 1, nx
-          uu(i,j) = uu(i,j) + omega*(wrk(i,j)/ss(i,j,0)-uu(i,j))
+          uu(i,j) = uu(i,j) + omega*(wrk(i,j)/ss(0,i,j)-uu(i,j))
        end do
     end do
 
@@ -958,7 +956,7 @@ contains
     use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
     real (kind = dp_t), intent(in) :: ff(:,:,:)
     integer           , intent(in) :: mm(:,:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
@@ -982,31 +980,31 @@ contains
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
-             dd = ss(i,j,k,1)*uu(i+1,j,k) + ss(i,j,k,2)*uu(i-1,j,k) + &
-                  ss(i,j,k,3)*uu(i,j+1,k) + ss(i,j,k,4)*uu(i,j-1,k) + &
-                  ss(i,j,k,5)*uu(i,j,k+1) + ss(i,j,k,6)*uu(i,j,k-1)
+             dd = ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k) + &
+                  ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k) + &
+                  ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
 
              if ( nx > 1 ) then
                 if (bc_skewed(mm(i,j,k),1,+1)) then
-                   dd = dd + ss(i,j,k,XBC)*uu(i+2,j,k)
+                   dd = dd + ss(XBC,i,j,k)*uu(i+2,j,k)
                 else if (bc_skewed(mm(i,j,k),1,-1)) then
-                   dd = dd + ss(i,j,k,XBC)*uu(i-2,j,k)
+                   dd = dd + ss(XBC,i,j,k)*uu(i-2,j,k)
                 end if
              end if
 
              if ( ny > 1 ) then
                 if (bc_skewed(mm(i,j,k),2,+1)) then
-                   dd = dd + ss(i,j,k,YBC)*uu(i,j+2,k)
+                   dd = dd + ss(YBC,i,j,k)*uu(i,j+2,k)
                 else if (bc_skewed(mm(i,j,k),2,-1)) then
-                   dd = dd + ss(i,j,k,YBC)*uu(i,j-2,k)
+                   dd = dd + ss(YBC,i,j,k)*uu(i,j-2,k)
                 end if
              end if
 
              if ( nz > 1 ) then
                 if (bc_skewed(mm(i,j,k),3,+1)) then
-                   dd = dd + ss(i,j,k,ZBC)*uu(i,j,k+2)
+                   dd = dd + ss(ZBC,i,j,k)*uu(i,j,k+2)
                 else if (bc_skewed(mm(i,j,k),3,-1)) then
-                   dd = dd + ss(i,j,k,ZBC)*uu(i,j,k-2)
+                   dd = dd + ss(ZBC,i,j,k)*uu(i,j,k-2)
                 end if
              end if
              wrk(i,j,k) = ff(i,j,k) - dd
@@ -1019,7 +1017,7 @@ contains
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
-             uu(i,j,k) = uu(i,j,k) + omega*(wrk(i,j,k)/ss(i,j,k,0) - uu(i,j,k))
+             uu(i,j,k) = uu(i,j,k) + omega*(wrk(i,j,k)/ss(0,i,j,k) - uu(i,j,k))
           end do
        end do
     end do
@@ -1033,7 +1031,7 @@ contains
     use bl_prof_module
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
+    real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
     real (kind = dp_t), intent(in) :: ff(:,:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), allocatable :: wrk(:,:,:)
@@ -1055,35 +1053,35 @@ contains
        do j = 1, ny
           do i = 1, nx
              wrk(i,j,k) = ff(i,j,k) - ( &
-                  + ss(i,j,k, 0)*uu(i  ,j  ,k)  &
-                  + ss(i,j,k, 1)*uu(i-1,j-1,k-1) &
-                  + ss(i,j,k, 2)*uu(i  ,j-1,k-1) &
-                  + ss(i,j,k, 3)*uu(i+1,j-1,k-1) &
-                  + ss(i,j,k, 4)*uu(i-1,j  ,k-1) &
-                  + ss(i,j,k, 5)*uu(i  ,j  ,k-1) &
-                  + ss(i,j,k, 6)*uu(i+1,j  ,k-1) &
-                  + ss(i,j,k, 7)*uu(i-1,j+1,k-1) &
-                  + ss(i,j,k, 8)*uu(i  ,j+1,k-1) &
-                  + ss(i,j,k, 9)*uu(i+1,j+1,k-1) &
+                  + ss( 0,i,j,k)*uu(i  ,j  ,k)  &
+                  + ss( 1,i,j,k)*uu(i-1,j-1,k-1) &
+                  + ss( 2,i,j,k)*uu(i  ,j-1,k-1) &
+                  + ss( 3,i,j,k)*uu(i+1,j-1,k-1) &
+                  + ss( 4,i,j,k)*uu(i-1,j  ,k-1) &
+                  + ss( 5,i,j,k)*uu(i  ,j  ,k-1) &
+                  + ss( 6,i,j,k)*uu(i+1,j  ,k-1) &
+                  + ss( 7,i,j,k)*uu(i-1,j+1,k-1) &
+                  + ss( 8,i,j,k)*uu(i  ,j+1,k-1) &
+                  + ss( 9,i,j,k)*uu(i+1,j+1,k-1) &
                   
-                  + ss(i,j,k,10)*uu(i-1,j-1,k  ) &
-                  + ss(i,j,k,11)*uu(i  ,j-1,k  ) &
-                  + ss(i,j,k,12)*uu(i+1,j-1,k  ) &
-                  + ss(i,j,k,13)*uu(i-1,j  ,k  ) &
-                  + ss(i,j,k,14)*uu(i+1,j  ,k  ) &
-                  + ss(i,j,k,15)*uu(i-1,j+1,k  ) &
-                  + ss(i,j,k,16)*uu(i  ,j+1,k  ) &
-                  + ss(i,j,k,17)*uu(i+1,j+1,k  ) &
+                  + ss(10,i,j,k)*uu(i-1,j-1,k  ) &
+                  + ss(11,i,j,k)*uu(i  ,j-1,k  ) &
+                  + ss(12,i,j,k)*uu(i+1,j-1,k  ) &
+                  + ss(13,i,j,k)*uu(i-1,j  ,k  ) &
+                  + ss(14,i,j,k)*uu(i+1,j  ,k  ) &
+                  + ss(15,i,j,k)*uu(i-1,j+1,k  ) &
+                  + ss(16,i,j,k)*uu(i  ,j+1,k  ) &
+                  + ss(17,i,j,k)*uu(i+1,j+1,k  ) &
                   
-                  + ss(i,j,k,18)*uu(i-1,j-1,k+1) &
-                  + ss(i,j,k,19)*uu(i  ,j-1,k+1) &
-                  + ss(i,j,k,20)*uu(i+1,j-1,k+1) &
-                  + ss(i,j,k,21)*uu(i-1,j  ,k+1) &
-                  + ss(i,j,k,22)*uu(i  ,j  ,k+1) &
-                  + ss(i,j,k,23)*uu(i+1,j  ,k+1) &
-                  + ss(i,j,k,24)*uu(i-1,j+1,k+1) &
-                  + ss(i,j,k,25)*uu(i  ,j+1,k+1) &
-                  + ss(i,j,k,26)*uu(i+1,j+1,k+1) &
+                  + ss(18,i,j,k)*uu(i-1,j-1,k+1) &
+                  + ss(19,i,j,k)*uu(i  ,j-1,k+1) &
+                  + ss(20,i,j,k)*uu(i+1,j-1,k+1) &
+                  + ss(21,i,j,k)*uu(i-1,j  ,k+1) &
+                  + ss(22,i,j,k)*uu(i  ,j  ,k+1) &
+                  + ss(23,i,j,k)*uu(i+1,j  ,k+1) &
+                  + ss(24,i,j,k)*uu(i-1,j+1,k+1) &
+                  + ss(25,i,j,k)*uu(i  ,j+1,k+1) &
+                  + ss(26,i,j,k)*uu(i+1,j+1,k+1) &
                   )
           end do
        end do
@@ -1094,7 +1092,7 @@ contains
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
-             uu(i,j,k) = uu(i,j,k) + omega*(wrk(i,j,k)/ss(i,j,k,14)-uu(i,j,k))
+             uu(i,j,k) = uu(i,j,k) + omega*(wrk(i,j,k)/ss(14,i,j,k)-uu(i,j,k))
           end do
        end do
     end do
@@ -1107,7 +1105,7 @@ contains
   subroutine lgs_x_2d(omega, ss, uu, ff, lo, ng)
     integer, intent(in) :: lo(:), ng
     real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
     real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
 
@@ -1118,8 +1116,8 @@ contains
 
     do j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          wrk(i,1:3) = ss(i,j,(/0,2,1/))
-          wrk(i,4) = ff(i,j) - (ss(i,j,3)*uu(i,j+1) + ss(i,j,4)*uu(i,j-1))
+          wrk(i,1:3) = ss((/0,2,1/),i,j)
+          wrk(i,4) = ff(i,j) - (ss(3,i,j)*uu(i,j+1) + ss(4,i,j)*uu(i,j-1))
        end do
        call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
        do i = lo(1), hi(1)
@@ -1131,7 +1129,7 @@ contains
   subroutine lgs_y_2d(omega, ss, uu, ff, lo, ng)
     integer, intent(in) :: lo(:), ng
     real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
     real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
     real (kind = dp_t) :: wrk(size(ff,dim=2),4)
@@ -1139,8 +1137,8 @@ contains
     hi = ubound(ff)
     do i = lo(1), hi(1)
        do j = lo(2), hi(2)
-          wrk(j,1:3) = ss(i,j,(/0,4,3/))
-          wrk(j,4) = ff(i,j) -(ss(i,j,1)*uu(i+1,j) + ss(i,j,2)*uu(i-1,j))
+          wrk(j,1:3) = ss((/0,4,3/),i,j)
+          wrk(j,4) = ff(i,j) -(ss(1,i,j)*uu(i+1,j) + ss(2,i,j)*uu(i-1,j))
        end do
        call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
        do j = lo(2), hi(2)
@@ -1152,7 +1150,7 @@ contains
   subroutine lgs_rb_x_2d(omega, ss, uu, ff, lo, ng)
     integer, intent(in) :: lo(:), ng
     real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
     real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
     real (kind = dp_t) :: wrk(size(ff,dim=1),4)
@@ -1164,8 +1162,8 @@ contains
 
     do j = lo(2), hi(2), 2
        do i = lo(1), hi(1)
-          wrk(i,1:3) = ss(i,j,(/0,2,1/))
-          wrk(i,4) = ff(i,j) -(ss(i,j,3)*uu(i,j+1) + ss(i,j,4)*uu(i,j-1))
+          wrk(i,1:3) = ss((/0,2,1/),i,j)
+          wrk(i,4) = ff(i,j) -(ss(3,i,j)*uu(i,j+1) + ss(4,i,j)*uu(i,j-1))
        end do
        call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
        do i = lo(1), hi(1)
@@ -1175,8 +1173,8 @@ contains
 
     do j = lo(2)+1, hi(2), 2
        do i = lo(1), hi(1)
-          wrk(i,1:3) = ss(i,j,(/0,2,1/))
-          wrk(i,4) = -(ss(i,j,3)*uu(i,j+1) + ss(i,j,4)*uu(i,j-1))
+          wrk(i,1:3) = ss((/0,2,1/),i,j)
+          wrk(i,4) = -(ss(3,i,j)*uu(i,j+1) + ss(4,i,j)*uu(i,j-1))
        end do
        call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
        do i = lo(1), hi(1)
@@ -1188,7 +1186,7 @@ contains
   subroutine lgs_rb_y_2d(omega, ss, uu, ff, lo, ng)
     integer, intent(in) :: lo(:), ng
     real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(lo(1):,lo(2):,0:)
+    real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
     real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
     real (kind = dp_t) :: wrk(size(ff,dim=2),4)
@@ -1197,8 +1195,8 @@ contains
     hi = ubound(ff)
     do i = lo(1), hi(1), 2
        do j = lo(2), hi(2)
-          wrk(j,1:3) = ss(i,j,(/0,4,3/))
-          wrk(j,4) = ff(i,j) -(ss(i,j,1)*uu(i+1,j) + ss(i,j,2)*uu(i-1,j))
+          wrk(j,1:3) = ss((/0,4,3/),i,j)
+          wrk(j,4) = ff(i,j) -(ss(1,i,j)*uu(i+1,j) + ss(2,i,j)*uu(i-1,j))
        end do
        call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
        do j = lo(2), hi(2)
@@ -1208,8 +1206,8 @@ contains
 
     do i = lo(1)+1, hi(1), 2
        do j = lo(2), hi(2)
-          wrk(j,1:3) = ss(i,j,(/0,4,3/))
-          wrk(j,4) = ff(i,j) -(ss(i,j,1)*uu(i+1,j) + ss(i,j,2)*uu(i-1,j))
+          wrk(j,1:3) = ss((/0,4,3/),i,j)
+          wrk(j,4) = ff(i,j) -(ss(1,i,j)*uu(i+1,j) + ss(2,i,j)*uu(i-1,j))
        end do
        call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
        do j = lo(2), hi(2)

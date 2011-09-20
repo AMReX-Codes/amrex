@@ -17,7 +17,7 @@ class HypreABecLap {
 public:
 
   HypreABecLap(const BoxArray& grids, const Geometry& geom,
-	       int solver_flag = 0);
+	       int solver_flag = 1);
   ~HypreABecLap();
 
   void setScalars(Real sa, Real sb);
@@ -30,6 +30,8 @@ public:
 protected:
 
   int solver_flag, verbose;
+
+  int hob; // high-order boundary?
 
   int is_periodic[BL_SPACEDIM];
   Real dx[BL_SPACEDIM];
