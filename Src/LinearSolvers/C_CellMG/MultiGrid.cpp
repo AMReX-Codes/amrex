@@ -81,6 +81,14 @@ MultiGrid::Initialize ()
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
 
     pp.query("use_Anorm_for_convergence", use_Anorm_for_convergence);
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+    if (ParallelDescriptor::IOProcessor() && def_verbose > 2) {
+      if (use_Anorm_for_convergence == 0) {
+	std::cout << "It might be a good idea to define CG_USE_OLD_CONVERGENCE_CRITERIA."
+		  << std::endl;
+      }
+    }
+#endif
 
     int ii;
     if (pp.query("cg_solver", ii ))
