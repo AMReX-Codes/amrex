@@ -185,7 +185,7 @@ MultiGrid::MultiGrid (LinOp &_Lp)
 	     << " multigrid levels created for this solve" << '\n';
     }
 
-    if ( ParallelDescriptor::IOProcessor() && (verbose > 2) )
+    if ( ParallelDescriptor::IOProcessor() && (verbose > 4) )
     {
 	std::cout << "Grids: " << '\n';
 	BoxArray tmp = Lp.boxArray();
