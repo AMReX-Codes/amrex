@@ -28,6 +28,10 @@ FCOMP=gfortran
 
 USE_HYPRE = TRUE
 
+# Make BoxLib_C bottom CG solver to use the old convergence criteria.
+# Using the new criteria, BoxLIb_C will fail at the hard test.
+CPPFLAGS += -DCG_USE_OLD_CONVERGENCE_CRITERIA
+
 # USE_MPI must be TRUE if USE_HYPRE
 USE_MPI=TRUE
 
