@@ -503,7 +503,7 @@ contains
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
        if (diag_inited) then
-          write(*,*) "    BiCGStab: A and rhs have been rescaled. So do the error."
+          write(*,*) "   BiCGStab: A and rhs have been rescaled. So do the error."
        end if
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
     end if 
