@@ -20,10 +20,11 @@ import getopt
 import datetime
 import time
 import string
+import tarfile
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-# C L A S S E S
+# T E S T   C L A S S E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 class testObj:
 
@@ -160,6 +161,9 @@ def LoadParams(file):
         elif (opt == "sourceDir"):
             mysuite.sourceDir = checkTestDir(value)
 
+        elif (opt == "boxLibDir"):
+            mysuite.boxLibDir = checkTestDir(value)
+
         elif (opt == "testTopDir"):
             mysuite.testTopDir = checkTestDir(value)
 
@@ -181,9 +185,10 @@ def LoadParams(file):
         elif (opt == "COMP"):
             mysuite.COMP = value
 
-
-    # check to make sure everything is set properly
+        else:
+            warning("WARNING: suite parameter %s not valid" % (opt))
             
+
 
     # all other sections are tests
     print "\n"
@@ -331,6 +336,14 @@ def bold(str):
     new_str = termColors.BOLD + str + termColors.ENDC
     print new_str
 
+
+
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# S Y S T E M   R O U T I N E S
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+def systemCall(string):    
+    status = os.system('bash -c "' + string + '"')
+    return status
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -489,7 +502,7 @@ def makeChangeLog(topDir, root, outDir):
    os.chdir("%s/" % (root) )
 
    if (have_cvs2cl):
-       os.system("./cvs2cl.pl -f ChangeLog.%s" % (root) )
+       systemCall("./cvs2cl.pl -f ChangeLog.%s >& /dev/null" % (root) )
    else:
        cf = open("ChangeLog.%s" % (root), 'w')
        cf.write("unable to generate ChangeLog")
@@ -680,11 +693,9 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # parse the commandline arguments
     #--------------------------------------------------------------------------
-    
     if len(sys.argv) == 1:
         print usage
         sys.exit(2)
-
 
     try:
         opts, next = getopt.getopt(argv[1:], "",
@@ -733,7 +744,6 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # read in the test information
     #--------------------------------------------------------------------------
-
     bold("loading" + testFile)
 
     suite, testList = LoadParams(testFile)
@@ -860,18 +870,22 @@ def testSuite(argv):
 
     os.chdir(suite.compareToolDir)
 
-    os.system("gmake COMP=%s realclean >& /dev/null" % (suite.FCOMP))
+    systemCall("gmake BOXLIB_HOME=%s COMP=%s realclean >& /dev/null" % \
+                   (suite.boxLibDir, suite.FCOMP))
 
-    os.system("gmake programs=fcompare NDEBUG=t MPI= COMP=%s  >& fcompare.make.out" % (suite.FCOMP))
+    systemCall("gmake BOXLIB_HOME=%s programs=fcompare NDEBUG=t MPI= COMP=%s  >& fcompare.make.out" % \
+                   (suite.boxLibDir, suite.FCOMP))
     compareExecutable = getRecentFileName(suite.compareToolDir,"fcompare",".exe")
 
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
 
     bold("building the visualization tools...")
-    os.system("gmake programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % (suite.FCOMP))
+    systemCall("gmake BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
+                   (suite.boxLibDir, suite.FCOMP))
     vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
     
-    os.system("gmake programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % (suite.FCOMP))
+    systemCall("gmake BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % \
+                   (suite.boxLibDir, suite.FCOMP))
     vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
     
 
@@ -884,7 +898,6 @@ def testSuite(argv):
     for obj in testList:
         print "  %s " % obj.name
     
-
 
     #--------------------------------------------------------------------------
     # do a make clean, only once per build directory
@@ -900,12 +913,10 @@ def testSuite(argv):
         os.chdir(suite.sourceDir + dir)
 
         if (suite.sourceTree == "Parallel"):
-            os.system("gmake realclean 2>&1 > /dev/null")
+            systemCall("gmake BOXLIB_HOME=%s realclean >& /dev/null" % (suite.boxLibDir))
         else:
-            os.system("gmake realclean 2>&1 > /dev/null")
+            systemCall("gmake BOXLIB_HOME=%s realclean >& /dev/null" % (suite.boxLibDir))
             
-    print "\n"
-
     os.chdir(suite.testTopDir)
     
 
@@ -914,6 +925,8 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     for test in testList:
 
+
+        print "\n"
         bold("working on test: %s" % (test.name))
 
         if (test.restartTest and make_benchmarks):
@@ -954,32 +967,32 @@ def testSuite(argv):
 
 	    if (test.useMPI):
 	       executable = "%s%dd.MPI.ex" % (suite.suiteName, test.dim)
-               compString = "gmake DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "gmake BOXLIB_HOME=%s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.boxLibDir, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
-	       os.system(compString)
+	       systemCall(compString)
 
             else:
 	       executable = "%s%dd.ex" % (suite.suiteName, test.dim)
-               compString = "gmake DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "gmake BOXLIB_HOME=%s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.boxLibDir, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
-               os.system(compString)
+               systemCall(compString)
 	       
             
         elif (suite.sourceTree == "fParallel"):
 
             if (test.useMPI):
-                compString = "gmake MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.FCOMP, outputDir, test.name)
+                compString = "gmake BOXLIB_HOME=%s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.boxLibDir, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
-                os.system(compString)
+                systemCall(compString)
 
             else:
-                compString = "gmake MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.FCOMP, outputDir, test.name)
+                compString = "gmake BOXLIB_HOME=%s MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.boxLibDir, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
-                os.system(compString)
+                systemCall(compString)
 
 
             # we need a better way to get the executable name here
@@ -1007,13 +1020,13 @@ def testSuite(argv):
         try: shutil.copy(executable, outputDir)
         except IOError:
            errorMsg = "    ERROR: compilation failed"
-           reportTestFailure(errorMsg, test.name, testDir, fullWebDir)
+           reportTestFailure(errorMsg, test, testDir, fullWebDir)
            continue
 
         try: shutil.copy(test.inputFile, outputDir)
         except IOError:
             errorMsg = "    ERROR: unable to copy input file: %s" % test.inputFile
-            reportTestFailure(errorMsg, test.name, testDir, fullWebDir)
+            reportTestFailure(errorMsg, test, testDir, fullWebDir)
             continue
 
 	# sometimes the input file was in a subdirectory under the
@@ -1028,7 +1041,7 @@ def testSuite(argv):
             try: shutil.copy(test.probinFile, outputDir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy probin file: %s" % test.probinFile
-                reportTestFailure(errorMsg, test.name, testDir, fullWebDir)
+                reportTestFailure(errorMsg, test, testDir, fullWebDir)
                 continue
 
             # sometimes the probin file was in a subdirectory under the
@@ -1044,7 +1057,7 @@ def testSuite(argv):
             try: shutil.copy(helmeosFile, outputDir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy helmeos file: %s" % helmeosFile
-                reportTestFailure(errorMsg, test.name, testDir, fullWebDir)
+                reportTestFailure(errorMsg, test, testDir, fullWebDir)
                 continue
 
 
@@ -1056,7 +1069,7 @@ def testSuite(argv):
             try: shutil.copy(file, outputDir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy aux file: %s" % file
-                reportTestFailure(errorMsg, test.name, testDir, fullWebDir)
+                reportTestFailure(errorMsg, test, testDir, fullWebDir)
                 skip_to_next_test = 1
                 break
             
@@ -1085,21 +1098,21 @@ def testSuite(argv):
 	       testRunCommand = testRunCommand.replace("@command@", command)
 
 	       print "    " + testRunCommand
-               os.system(testRunCommand)
+               systemCall(testRunCommand)
 	       
             else:
                testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out" % \
                    (executable, test.inputFile, test.name, test.name, test.name)
 
                print "    " + testRunCommand
-               os.system(testRunCommand)
+               systemCall(testRunCommand)
 
         elif (suite.sourceTree == "fParallel"):
 
             if (test.useMPI):
 
 	       # create the MPI executable
-	       testRunCommand = MPIcommand
+	       testRunCommand = suite.MPIcommand
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
 
@@ -1114,7 +1127,7 @@ def testSuite(argv):
 	       testRunCommand = testRunCommand.replace("@command@", command)
 
 	       print "    " + testRunCommand
-               os.system(testRunCommand)
+               systemCall(testRunCommand)
 
             else:
 
@@ -1127,29 +1140,33 @@ def testSuite(argv):
                         (executable, test.inputFile, test.name, test.name, test.name)
 
                 print "    " + testRunCommand
-                os.system(testRunCommand)
+                systemCall(testRunCommand)
 
 
         # if it is a restart test, then rename the final output file and
         # restart the test
 
         if (test.restartTest):
-           lastFile = getLastPlotfile(outputDir, test.name)
-           origLastFile = "orig_%s" % (lastFile)
-           shutil.move(lastFile, origLastFile)
+            lastFile = getLastPlotfile(outputDir, test)
+            origLastFile = "orig_%s" % (lastFile)
+            shutil.move(lastFile, origLastFile)
 
-           # get the file number to restart from
-	   restartFile = "%s_chk%5.5d" % (test.name, test.restartFileNum)
+            # get the file number to restart from
+            restartFile = "%s_chk%5.5d" % (test.name, test.restartFileNum)
 
-           print "    restarting from %s ... " % (restartFile)
+            print "  restarting from %s ... " % (restartFile)
            
-           if (suite.sourceTree == "Parallel"):
-              os.system("./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.restart=%s >>  %s.run.out 2>&1" %
-                      (executable, test.inputFile, test.name, test.name, restartFile, test.name))
+            if (suite.sourceTree == "Parallel"):
+                testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.restart=%s >>  %s.run.out 2>&1" % \
+                    (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                print "    " + testRunCommand
+                systemCall(testRunCommand)               
 
-           elif (suite.sourceTree == "fParallel"):
-              os.system("./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" %
-                      (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name))
+            elif (suite.sourceTree == "fParallel"):
+                testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
+                    (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                print "    " + testRunCommand
+                systemCall(testRunCommand)                
            
             
         #----------------------------------------------------------------------
@@ -1193,7 +1210,7 @@ def testSuite(argv):
                         cf.write("\n")
                         cf.close()
                     
-                        os.system(command)
+                        systemCall(command)
 
                     else:
                         warning("WARNING: unable to do a comparison")
@@ -1209,7 +1226,7 @@ def testSuite(argv):
                 print "     new benchmark file: ", compareFile
 
                 if (not compareFile == ""):
-                    os.system("cp -rf %s %s" % (compareFile, benchDir))
+                    systemCall("cp -rf %s %s" % (compareFile, benchDir))
 
                     cf = open("%s.status" % (test.name), 'w')
                     cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
@@ -1267,12 +1284,12 @@ def testSuite(argv):
                 print "  doing the visualization..."
 
                 if (test.dim == 2):
-                    os.system('%s/%s --palette %s/Palette -cname "%s" -p "%s" >& /dev/null' %
+                    systemCall('%s/%s --palette %s/Palette -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis2dExecutable, suite.compareToolDir, 
                                test.visVar, compareFile) )
                 elif (test.dim == 3):
-                    os.system('%s/%s --palette %s/Palette -n 1 -cname "%s" -p "%s" >& /dev/null' %
-                              (suite.ompareToolDir, vis3dExecutable, suite.compareToolDir, 
+                    systemCall('%s/%s --palette %s/Palette -n 1 -cname "%s" -p "%s" >& /dev/null' %
+                              (suite.compareToolDir, vis3dExecutable, suite.compareToolDir, 
                                test.visVar, compareFile) )
                 else:
                     print "    Visualization not supported for dim = %d" % (test.dim)
@@ -1281,7 +1298,7 @@ def testSuite(argv):
                 # convert the .ppm files into .png files
                 ppmFile = getRecentFileName(outputDir, "", ".ppm")
 
-                os.system("convert %s `basename %s .ppm`.png" % 
+                systemCall("convert %s `basename %s .ppm`.png" % 
                           (ppmFile, ppmFile) )
         
             else:
@@ -1326,14 +1343,22 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # archive the output
         #----------------------------------------------------------------------
+        print "  archiving the output..."
         for file in os.listdir(outputDir):
             if (os.path.isdir(file) and 
                 (file.startswith("%s_plt" % (test.name)) or 
                  file.startswith("%s_chk" % (test.name)) ) ):
-                err = os.system("tar czf %s.tgz %s >& %s.tar.out" % (file, file, file))
-                if (err == 0):
+
+                try:
+                    tar = tarfile.open("%s.tgz" % (file), "w:gz")
+                    tar.add("%s" % (file))
+                    tar.close()
+
+                except:
+                    warning("    WARNING: unable to tar output file %s" % (file))
+
+                else:
                     shutil.rmtree(file)
-                    os.remove("%s.tar.out" % (file))
                     
 
         #----------------------------------------------------------------------
@@ -1618,7 +1643,7 @@ def reportSingleTest(suite, test, testDir, fullWebDir):
 #==============================================================================
 # reportTestAbort
 #==============================================================================
-def reportTestFailure(message, testName, testDir, fullWebDir):
+def reportTestFailure(message, test, testDir, fullWebDir):
     """ generate a simple report for an error encountered while performing 
         the test """
     
@@ -1634,12 +1659,12 @@ def reportTestFailure(message, testName, testDir, fullWebDir):
     #--------------------------------------------------------------------------
     # write out the status file for this problem -- FAILED
     #--------------------------------------------------------------------------
-    statusFile = "%s.status" % (testName)
+    statusFile = "%s.status" % (test.name)
     sf = open(statusFile, 'w')
     sf.write("FAILED\n")
     sf.close()
 
-    testfail("    %s FAILED" % (testName))
+    testfail("    %s FAILED" % (test.name))
     print "\n"
 
 
@@ -1652,19 +1677,18 @@ def reportTestFailure(message, testName, testDir, fullWebDir):
         create_css()
 
     
-    htmlFile = "%s.html" % (testName)
+    htmlFile = "%s.html" % (test.name)
     hf = open(htmlFile, 'w')
 
     newHead = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
     newHead = newHead.replace("@TESTDIR@", testDir)
-    newHead = newHead.replace("@TESTNAME@", testName)
+    newHead = newHead.replace("@TESTNAME@", test.name)
 
     hf.write(newHead)
 
     # write out the information about the test
-    buildDir = getParam("%s.buildDir" % (testName) )
-    hf.write("<P><b>build directory:</b> %s\n" % (buildDir) )
+    hf.write("<P><b>build directory:</b> %s\n" % (test.buildDir) )
 
     hf.write("<P><H3 CLASS=\"failed\">Test Failed</H3></P>\n")
     hf.write("<P>%s</P>\n" % (message) )
