@@ -30,8 +30,6 @@ protected:
 
   int solver_flag, verbose;
 
-  int hob; // high-order boundary?
-
   int is_periodic[BL_SPACEDIM];
   Real dx[BL_SPACEDIM];
 
@@ -60,21 +58,11 @@ protected:
   }
   
   static int* loV(const Box& b) {
-#if (BL_SPACEDIM == 1)
-    vl[0] = b.smallEnd(0);
-    return vl;
-#else
     return (int*) b.loVect();
-#endif
   }
   
   static int* hiV(const Box& b) {
-#if (BL_SPACEDIM == 1)
-    vh[0] = b.bigEnd(0);
-    return vh;
-#else
     return (int*) b.hiVect();
-#endif
   }
 
 };
