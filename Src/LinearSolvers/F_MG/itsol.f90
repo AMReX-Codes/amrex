@@ -408,6 +408,8 @@ contains
 
     type(multifab) :: rh_local, aa_local
 
+    logical :: diag_inited
+
     call build(bpt, "its_BiCGStab_solve")
 
     if ( present(stat) ) stat = 0
@@ -472,7 +474,12 @@ contains
       call setval(ss,ZERO,all=.true.)
     end if
 
-    call diag_initialize(aa_local,rh_local,mm)
+    if (.true.) then
+       call diag_initialize(aa_local,rh_local,mm)
+       diag_inited = .true.
+    else
+       diag_inited = .false.
+    end if
 
     call copy(ph, uu, ng = nghost(ph))
     call copy(sh, uu, ng = nghost(sh))
@@ -495,6 +502,9 @@ contains
     bnorm = norm_inf(rh_local)
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
+       if (diag_inited) then
+          write(*,*) "   BiCGStab: A and rhs have been rescaled. So do the error."
+       end if
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
     end if 
     i = 0
