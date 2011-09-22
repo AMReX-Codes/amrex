@@ -13,14 +13,14 @@
 #include <Laplacian.H>
 #include <ABecLaplacian.H>
 #include <ParallelDescriptor.H>
-#include <VisMF.H>
-#include <COEF_F.H>
-#include <RHS_F.H>
 #include <MacBndry.H>
 #include <MGT_Solver.H>
 #ifdef USEHYPRE
-#include <HypreABecLap.H>
+#include "HypreABecLap.H"
 #endif
+#include "COEF_F.H"
+#include "RHS_F.H"
+#include "writePlotFile.H"
 
 int  verbose       = 2;     
 Real tolerance_rel = 1.e-8;
@@ -45,8 +45,8 @@ bc_t     bc_type;
 int Ncomp = 1;
 
 void compute_analyticSolution(MultiFab& anaSoln);
-void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[]);
-void setup_rhs(MultiFab& rhs);
+void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry& geom);
+void setup_rhs(MultiFab& rhs, const Geometry& geom);
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
 void solve(MultiFab& soln, const MultiFab& anaSoln, 
 	   Real a, Real b, MultiFab& alpha, MultiFab beta[], 
@@ -185,7 +185,7 @@ int main(int argc, char* argv[])
 
   // Allocate and define the right hand side.
   MultiFab rhs(bs, Ncomp, 0, Fab_allocate); 
-  setup_rhs(rhs);
+  setup_rhs(rhs, geom);
 
   MultiFab alpha(bs, Ncomp, 0, Fab_allocate);
   MultiFab beta[BL_SPACEDIM];
@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
     beta[n].define(bx.surroundingNodes(n), Ncomp, 1, Fab_allocate);
   }
 
-  setup_coeffs(bs, alpha, beta);
+  setup_coeffs(bs, alpha, beta, geom);
 
   MultiFab anaSoln;
   if (comp_norm || plot_err || plot_asol) {
@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
     compute_analyticSolution(anaSoln);
     
     if (plot_asol) {
-      VisMF::Write(anaSoln,"ASOL");
+      writePlotFile("ASOL", anaSoln, geom);
     }
   }
 
@@ -260,7 +260,7 @@ void compute_analyticSolution(MultiFab& anaSoln)
   }
 }
 
-void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[])
+void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry& geom)
 {
   ParmParse pp;
 
@@ -301,11 +301,11 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[])
   }
 
   if (plot_beta == 1) {
-    VisMF::Write(cc_coef, "BETA");
+    writePlotFile("BETA", cc_coef, geom);
   }
 }
 
-void setup_rhs(MultiFab& rhs)
+void setup_rhs(MultiFab& rhs, const Geometry& geom)
 {
   ParmParse pp;
 
@@ -341,7 +341,7 @@ void setup_rhs(MultiFab& rhs)
   }
 
   if (plot_rhs == 1) {
-    VisMF::Write(rhs,"RHS");
+    writePlotFile("RHS", rhs, geom);
   }
 }
 
@@ -438,7 +438,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
   }
 
   if (plot_soln) {
-    VisMF::Write(soln,"SOLN-"+ss, VisMF::OneFilePerCPU, true);
+    writePlotFile("SOLN-"+ss, soln, geom);
   }
 
   if (plot_err || comp_norm) {
@@ -446,7 +446,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
     MultiFab& err = soln;
 
     if (plot_err) {
-      VisMF::Write(err,"ERR-"+ss, VisMF::OneFilePerCPU, true);
+      writePlotFile("ERR-"+ss, soln, geom);
     }
     
     if (comp_norm) {
