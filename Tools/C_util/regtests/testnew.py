@@ -189,6 +189,12 @@ def LoadParams(file):
             warning("WARNING: suite parameter %s not valid" % (opt))
             
 
+    # checks
+    if (mysuite.sourceTree == "" or mysuite.boxLibDir == "" or
+        mysuite.sourceDir == "" or mysuite.testTopDir == "" or
+        mysuite.compareToolDir == "" or mysuite.helmeosDir == ""):
+        fail("ERROR: required suite-wide directory not specified\n" + \
+                 "(sourceTree, boxLibDir, sourceDir, testTopDir, compareToolDir, helmeosDir)")
 
     # all other sections are tests
     print "\n"
@@ -295,6 +301,20 @@ def LoadParams(file):
 
         else:
             warning("   WARNING: test %s will be skipped" % (sec))
+
+    
+    # final checks
+    
+    # if any runs are parallel, make sure that the suite-wide
+    # MPIcommand is defined
+    anyMPI = 0
+    for test in testList:
+        if (test.useMPI):
+            anyMPI = 1
+            break
+
+    if (anyMPI and mysuite.MPIcommand == ""):
+        fail("ERROR: one or more tests are parallel, but MPIcommand is not defined")
 
 
     return mysuite, testList
@@ -870,22 +890,31 @@ def testSuite(argv):
 
     os.chdir(suite.compareToolDir)
 
-    systemCall("gmake BOXLIB_HOME=%s COMP=%s realclean >& /dev/null" % \
-                   (suite.boxLibDir, suite.FCOMP))
+    compString = "gmake BOXLIB_HOME=%s COMP=%s realclean >& /dev/null" % \
+                   (suite.boxLibDir, suite.FCOMP)
+    print "  " + compString
+    systemCall(compString)
 
-    systemCall("gmake BOXLIB_HOME=%s programs=fcompare NDEBUG=t MPI= COMP=%s  >& fcompare.make.out" % \
-                   (suite.boxLibDir, suite.FCOMP))
+    compString = "gmake BOXLIB_HOME=%s programs=fcompare NDEBUG=t MPI= COMP=%s  >& fcompare.make.out" % \
+                   (suite.boxLibDir, suite.FCOMP)
+    print "  " + compString
+    systemCall(compString)
     compareExecutable = getRecentFileName(suite.compareToolDir,"fcompare",".exe")
 
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
 
     bold("building the visualization tools...")
-    systemCall("gmake BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
-                   (suite.boxLibDir, suite.FCOMP))
+
+    compString = "gmake BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
+                   (suite.boxLibDir, suite.FCOMP)
+    print "  " + compString
+    systemCall(compString)
     vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
     
-    systemCall("gmake BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % \
-                   (suite.boxLibDir, suite.FCOMP))
+    compString = "gmake BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % \
+                   (suite.boxLibDir, suite.FCOMP)
+    print "  " + compString
+    systemCall(compString)
     vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
     
 
