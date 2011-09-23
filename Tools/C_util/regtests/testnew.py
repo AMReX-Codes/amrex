@@ -21,6 +21,7 @@ import datetime
 import time
 import string
 import tarfile
+import subprocess
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -465,56 +466,112 @@ def doCVSUpdate(topDir, root, outDir):
  
    print "\n"
    bold("cvs update %s" % (root))
-   os.system("cvs update %s >& cvs.%s.out" % (root, root))
 
-        
-   # make sure that the cvs update was not aborted -- this can happen, for
-   # instance, if the CVSROOT was not defined
+   # we need to be tricky here to make sure that the stdin is presented to      
+   # the user to get the password.  Therefore, we use the subprocess            
+   # class instead of os.system                                                 
+   prog = ["cvs", "update", "%s" % (root)]
+   p = subprocess.Popen(prog, stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT)
+   stdout, stderr = p.communicate()
+
+
+   # check if CVS was successful and if so, write stdout (and error
+   # which was combined with stdout) into a log file
+   cvsFailed = 0
+   for line in stdout:
+       if (string.find(line, "update aborted") >= 0):
+           cvsFailed = 1
+           break
+
    try:
-       cf = open("cvs.%s.out" % (root), 'r')
-
+       cf = open("cvs.%s.out" % (root), 'w')
+   
    except IOError:
-       fail("ERROR: no CVS output")
+       fail("  ERROR: unable to open file for writing")
 
    else:
-       cvsLines = cf.readlines()
+       for line in stdout:
+           cf.write(line)
 
-       cvsFailed = 0
-    
-       for line in cvsLines:
-           if (string.find(line, "update aborted") >= 0):
-               cvsFailed = 1
-               break
-        
        cf.close()
 
-   if (cvsFailed):
-       fail("  ERROR: cvs update was aborted. See cvs.%s.out for details" % (root) )
+
+   if (cvsFailed or stdout == ""):
+       fail("  ERROR: cvs update was aborted. See cvs.%s.out for details" % (root))
+       
         
    shutil.copy("cvs.%s.out" % (root),  outDir)
 
 
+
 #==============================================================================
-# makeChangeLog
+# doGITUpdate
 #==============================================================================
-def makeChangeLog(topDir, root, outDir):
-   """ generate a ChangeLog for the CVS repository named root.  topDir is 
-       the full path to the directory containing root.  outDir is the full 
-       path to the directory where we will store the CVS output """
+def doGITUpdate(topDir, root, outDir):
+   """ do a git update of the repository in topDir.  root is the name
+       of the directory (used for labeling).  outDir is the full path
+       to the directory where we will store the git output"""
 
    os.chdir(topDir)
+ 
+   print "\n"
+   bold("'git pull' in %s" % (topDir))
+
+   # we need to be tricky here to make sure that the stdin is presented to      
+   # the user to get the password.  Therefore, we use the subprocess            
+   # class instead of os.system                                                 
+   prog = ["git", "pull"]
+   p = subprocess.Popen(prog, stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT)
+   stdout, stderr = p.communicate()
+
+
+   try:
+       cf = open("git.%s.out" % (root), 'w')
+   
+   except IOError:
+       fail("  ERROR: unable to open file for writing")
+
+   else:
+
+       for line in stdout:
+           cf.write(line)
+
+       cf.close()
+
+
+   if (stdout == ""):
+       fail("  ERROR: git update was unsuccessful")
+       
+        
+   shutil.copy("git.%s.out" % (root),  outDir)
+
+
+#==============================================================================
+# makeCVSChangeLog
+#==============================================================================
+def makeCVSChangeLog(suite, root, outDir):
+   """ generate a ChangeLog for the CVS repository named root.  outDir
+       is the full path to the directory where we will store the CVS
+       output"""
+
+   os.chdir(suite.sourceDir)
 
    have_cvs2cl = 0 
 
    print "\n"
-   bold("Generating ChangeLog for %s/" % (root))
+   bold("generating ChangeLog for %s/" % (root))
     
    if (not os.path.isfile("%s/cvs2cl.pl" % (root) )):
-       if (not os.path.isfile("fParallel/scripts/cvs2cl.pl")):
+       if (not os.path.isfile("%s/Tools/F_scripts/cvs2cl.pl" % 
+                              (suite.boxLibDir) )):
            warning("  WARNING: unable to locate cvs2cl.pl script.")
            warning("           no ChangeLog will be generated")
        else:
-           shutil.copy("fParallel/scripts/cvs2cl.pl", "%s/" % (root) )
+           shutil.copy("%s/Tools/F_scripts/cvs2cl.pl" % (suite.boxLibDir), "%s/" % (root) )
            have_cvs2cl = 1
    else:
        have_cvs2cl = 1
@@ -528,9 +585,27 @@ def makeChangeLog(topDir, root, outDir):
        cf.write("unable to generate ChangeLog")
        cf.close()
 
-   os.chdir(topDir)
+   os.chdir(suite.sourceDir)
 
    shutil.copy("%s/ChangeLog.%s" % (root, root), outDir)
+
+
+#==============================================================================
+# makeGITChangeLog
+#==============================================================================
+def makeGITChangeLog(suite, root, outDir):
+   """ generate a ChangeLog git repository named root.  outDir is the
+       full path to the directory where we will store the git output"""
+
+   os.chdir(suite.boxLibDir)
+
+
+   print "\n"
+   bold("generating ChangeLog for %s/" % (root))
+    
+   systemCall("git log --name-only >& ChangeLog.%s" % (root) )
+
+   shutil.copy("ChangeLog.%s" % (root), outDir)
 
 
 
@@ -541,7 +616,7 @@ def testSuite(argv):
 
     usage = """
     ./test.py [--make_benchmarks comment,
-               --no_cvs_update,
+               --no_update,
                --single_test test,
                --note note]
         testfile.ini
@@ -685,8 +760,8 @@ def testSuite(argv):
           update and will be appended to the web output for
           future reference.
 
-       --no_cvs_update
-          skip the cvs update and run the suite on the code as it
+       --no_update
+          skip the cvs and git updates and run the suite on the code as it
           exists now.
 
        --single_test mytest
@@ -720,7 +795,7 @@ def testSuite(argv):
     try:
         opts, next = getopt.getopt(argv[1:], "",
                                    ["make_benchmarks=",
-                                    "no_cvs_update",
+                                    "no_update",
                                     "single_test=",
                                     "note="])
 
@@ -732,7 +807,7 @@ def testSuite(argv):
 
     # defaults
     make_benchmarks = 0
-    no_cvs_update = 0
+    no_update = 0
     single_test = ""
     comment = ""
     note = ""
@@ -743,8 +818,8 @@ def testSuite(argv):
             make_benchmarks = 1
             comment = a
 
-        if o == "--no_cvs_update":
-            no_cvs_update = 1
+        if o == "--no_update":
+            no_update = 1
 
         if o == "--single_test":
             single_test = a
@@ -859,7 +934,7 @@ def testSuite(argv):
 
     os.chdir(suite.testTopDir)
     
-    if (not no_cvs_update):
+    if (not no_update):
 
        # Parallel
        if (suite.sourceTree == "Parallel"):
@@ -868,19 +943,25 @@ def testSuite(argv):
        # fParallel
        doCVSUpdate(suite.sourceDir, "fParallel", fullWebDir)
     
+       # BoxLib
+       doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir)
+
 
     #--------------------------------------------------------------------------
     # generate the ChangeLogs
     #--------------------------------------------------------------------------
-    if (not no_cvs_update):
+    if (not no_update):
 
        # Parallel
        if (suite.sourceTree == "Parallel"):
-          makeChangeLog(suite.sourceDir, "Parallel", fullWebDir)
+          makeCVSChangeLog(suite, "Parallel", fullWebDir)
 
        # fParallel
-       makeChangeLog(suite.sourceDir, "fParallel", fullWebDir)
+       makeCVSChangeLog(suite, "fParallel", fullWebDir)
     
+       # BoxLib
+       makeGITChangeLog(suite, "BoxLib", fullWebDir)
+
 
     #--------------------------------------------------------------------------
     # build the comparison and visualization tools
