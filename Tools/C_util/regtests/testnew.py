@@ -10,7 +10,7 @@ are separated as such in this file.
 This test framework understands source based out of the Parallel/ and
 fParallel/ frameworks.
 
-2010-03-19
+2011-09-23
 """
 
 import os
@@ -1164,9 +1164,9 @@ def testSuite(argv):
         # if we are using the Helmholtz EOS, we need the input table
         if (test.needsHelmEOS):
             helmeosFile = suite.helmeosDir + "helm_table.dat"
-            try: shutil.copy(helmeosFile, outputDir)
+            try: os.symlink(helmeosFile, outputDir + "helm_table.dat")
             except IOError:
-                errorMsg = "    ERROR: unable to copy helmeos file: %s" % helmeosFile
+                errorMsg = "    ERROR: unable to links helmeos file: %s" % helmeosFile
                 reportTestFailure(errorMsg, test, testDir, fullWebDir)
                 continue
 
