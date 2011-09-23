@@ -37,6 +37,7 @@ class testObj:
         self.inputFile = ""
         self.probinFile = ""
         self.auxFiles = []
+        self.linkFiles = []
 
         self.dim = -1
 
@@ -228,6 +229,9 @@ def LoadParams(file):
                 
             elif (opt == "aux1File" or opt == "aux2File" or opt == "aux3File"):
                 mytest.auxFiles.append(value)
+
+            elif (opt == "link1File" or opt == "link2File" or opt == "link3File"):
+                mytest.linkFiles.append(value)
                 
             elif (opt == "dim"):
                 mytest.dim = value
@@ -629,6 +633,7 @@ def testSuite(argv):
           suite knows about.  It has the format
 
             [main]
+            boxLibDir      = < directory to the main BoxLib/ directory >
             sourceDir      = < directory above Parallel/ and fParallel/ >
             testTopDir     = < full path to test output directory >
             compareToolDir = < full path to the fParallel/data_processing/ directory >
@@ -637,6 +642,9 @@ def testSuite(argv):
             sourceTree = < Parallel or fParallel -- what type is it? >
 
             suiteName = < descriptive name (i.e. Castro) >
+
+            FCOMP = < name of Fortran compiler >
+            COMP  = < name of C/C++ compiler >
 
             MPIcommand = < MPI run command, with placeholders for host,
                            # of proc, and program command.  Should look
@@ -651,17 +659,28 @@ def testSuite(argv):
             buildDir = < relative path (from sourceDir) for this problem >
             inputFile = < input file name >
             probinFile = < probin file name >
+            dim = < dimensionality: 1, 2, or 3 >
             needs_helmeos = < need Helmholtz eos? 0 for no, 1 for yes >
+
+            aux1File = < name of additional file needed by the test >
+            link1File = < name of additional file needed by the test >
+
             restartTest = < is this a restart test? 0 for no, 1 for yes >
             restartFileNum = < # of file to restart from (if restart test) >
-            dim = < dimensionality: 1, 2, or 3 >
+
             useMPI = <is this a parallel job? 0 for no, 1 for yes) >
             numprocs = < # of processors to run on (if parallel job) >
+
             compileTest = < 0 for normal run, 1 if we just test compilation >
+
             selfTest = < 0 for normal run, 1 if test self-diagnoses if it 
                          succeeded >
             stSuccessString = < string to search for in self-test output to 
                          determine success >
+
+            doVis = < 0 for no visualization, 1 if we do visualization >
+            visVar = < string of the variable to visualize >
+
 
           Here, [main] lists the parameters for the test suite as a
           whole and [Sod-x] is a single test.  There can be many more
@@ -670,6 +689,8 @@ def testSuite(argv):
 
           In [main],
 
+            boxLibDir is the full path to the BoxLib/ directory.
+            
             sourceDir should be the full path to the directory where
             the Parallel/ and fParallel/ source directories live.
 
@@ -694,6 +715,12 @@ def testSuite(argv):
             output directories will be named suiteName-tests/ and
             suiteName-web/.  The benchmark directory will be
             suiteName-benchmarks/.
+
+            FCOMP is the name of the Fortran compiler -- this should be
+            a name that the Makefiles of the code recognize.
+
+            COMP is the name of the C++ compiler -- this should be a 
+            name that the Makefils of the code recognize.
 
             To run jobs in Parallel, the following need to be set:
 
@@ -720,11 +747,21 @@ def testSuite(argv):
             probinFile is only required for a Parallel (not fParallel)
             sourceTree run.
 
+            dim is the dimensionality for the problem.
+
             needs_helmeos is set to 1 if the Helmholtz EOS is used.
             This will ensure that the helm_table.dat file is copied
             into the run directory.
             
-            dim is the dimensionality for the problem.
+            aux1File (also aux2File and aux3File) is the name of 
+            any additional file needed by the test.  This will be 
+            COPIED into the run directory
+
+            link1File (also link2File and link3File) is the name of
+            any additional file needed by the test.  This can be
+            used instead of the aux files.  The difference is that the
+            link files are SYMLINKed into the run directory, instead
+            of copied.
 
             restartTest = 1 means that this is a restart test.  Instead of
             comparing to a stored benchmark, we will run the test and then
@@ -1185,6 +1222,31 @@ def testSuite(argv):
             
         if (skip_to_next_test):
             continue
+
+
+        # python doesn't allow labelled continue statements, so we
+        # use skip_to_next_test to decide if we need to skip to 
+        # the next test
+        skip_to_next_test = 0
+        for file in test.linkFiles:
+            if (not os.path.isfile(file)):
+                errorMsg = "    ERROR: link file %s does not exist" % file
+                reportTestFailure(errorMsg, test, testDir, fullWebDir)
+                skip_to_next_test = 1
+                break
+
+            else:
+                
+                try: os.symlink(os.path.abspath(file), outputDir + file)
+                except IOError:
+                    errorMsg = "    ERROR: unable to symlink link file: %s" % file
+                    reportTestFailure(errorMsg, test, testDir, fullWebDir)
+                    skip_to_next_test = 1
+                    break
+            
+        if (skip_to_next_test):
+            continue
+
 
         #----------------------------------------------------------------------
         # run the test
@@ -1775,7 +1837,6 @@ def reportTestFailure(message, test, testDir, fullWebDir):
     sf.close()
 
     testfail("    %s FAILED" % (test.name))
-    print "\n"
 
 
     #--------------------------------------------------------------------------
