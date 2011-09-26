@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <cstdlib>
+
 #include <BaseFab.H>
 #include <BArena.H>
 #include <CArena.H>
@@ -13,30 +14,37 @@
 long BoxLib::total_bytes_allocated_in_fabs     = 0;
 long BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
 
+int  BoxLib::BF_init::m_cnt = 0;
+
 namespace
 {
     Arena* the_arena = 0;
-
-    void
-    BaseFab_Finalize ()
-    {
-        BoxLib::total_bytes_allocated_in_fabs     = 0;
-        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
-    }
 }
 
-Arena*
-BoxLib::The_Arena ()
+BoxLib::BF_init::BF_init ()
 {
-    if (the_arena == 0)
+    if (m_cnt++ == 0)
     {
+        BL_ASSERT(the_arena == 0);
+
 #if defined(BL_COALESCE_FABS)
         the_arena = new CArena;
 #else
         the_arena = new BArena;
 #endif
-        BoxLib::ExecOnFinalize(BaseFab_Finalize);
     }
+}
+
+BoxLib::BF_init::~BF_init ()
+{
+    if (--m_cnt == 0)
+        delete the_arena;
+}
+
+Arena*
+BoxLib::The_Arena ()
+{
+    BL_ASSERT(the_arena != 0);
 
     return the_arena;
 }
