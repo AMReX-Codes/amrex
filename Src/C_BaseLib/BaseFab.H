@@ -2389,4 +2389,18 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     return *this;
 }
 
+namespace BoxLib
+{
+    class BF_init
+    {
+    public:
+        BF_init ();
+        ~BF_init ();
+    private:
+        static int m_cnt;
+    };
+}
+
+static BoxLib::BF_init file_scope_BF_init_object;
+
 #endif /*BL_BASEFAB_H*/

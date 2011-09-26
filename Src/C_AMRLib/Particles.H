@@ -117,7 +117,7 @@ public:
     void InitFromAsciiFile (const std::string& file, int extradata);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
-    void InitCosmo ();
+    void InitCosmo  (const Real vel_fac[]);
 
     Real sumParticleMass (const MultiFab& mf, int level) const;
     void sumParticleMomentum (const MultiFab& mf, int lev, Real* mom) const;
@@ -435,7 +435,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
 template <int N>
 void
-ParticleContainer<N>::InitCosmo ()
+ParticleContainer<N>::InitCosmo (const Real vel_fac[])
 {
     const int       MyProc   = ParallelDescriptor::MyProc();
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -454,8 +454,6 @@ ParticleContainer<N>::InitCosmo ()
     {
         BL_ASSERT(m_particles[lev].empty());
     }
-
-    Real vel_fac  = 1 / 1000.0;
 
     const Real len[BL_SPACEDIM] = { geom.ProbLength(0),geom.ProbLength(1),geom.ProbLength(2) };
     //
@@ -526,15 +524,8 @@ ParticleContainer<N>::InitCosmo ()
 		                      disp[n] * len[n];
 
 			//set the velocities
-	                p.m_data[n+1] = disp[n] * vel_fac;
+	                p.m_data[n+1] = disp[n] * vel_fac[n];
 	            }
-
-                    if (ix == 0 && jx == 3 && kx == 4) 
-                    { 
-                       std::cout << "DOING FAB NUMBER " << mfi.index() << std::endl;
-                       std::cout << "NEW DISP(d) " << disp[0] << " " << disp[1] << " " << disp[2] << std::endl;
-                       std::cout << "NEW POS(d) " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
-                    } 
 
 		    // Set the mass of the particle from the input value
 	            p.m_data[0] = particleMass;
