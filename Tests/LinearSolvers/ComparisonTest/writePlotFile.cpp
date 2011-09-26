@@ -15,7 +15,8 @@ void writePlotFile (const std::string& dir,
 		    const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 
 		    const PArray<MultiFab>& alph, const PArray<MultiFab>& beta, 
 		    const PArray<MultiFab>& rhs, 
-		    Geometry geom[], BoxArray bas[],
+		    const std::vector<Geometry>& geom, 
+		    const std::vector<BoxArray>& grids,
 		    int nsoln, int iF90, int iCpp)
 {
   int n_data_items = 4+nsoln;
@@ -127,11 +128,11 @@ void writePlotFile (const std::string& dir,
       ParallelDescriptor::Barrier();
 
       if (ParallelDescriptor::IOProcessor()) {
-	HeaderFile << ilev << ' ' << bas[ilev].size() << ' ' << 0 << '\n';
+	HeaderFile << ilev << ' ' << grids[ilev].size() << ' ' << 0 << '\n';
 	HeaderFile << 0 << '\n';
 	
-	for (int i = 0; i < bas[ilev].size(); ++i) {
-	  RealBox loc = RealBox(bas[ilev][i], geom[ilev].CellSize(), geom[ilev].ProbLo());
+	for (int i = 0; i < grids[ilev].size(); ++i) {
+	  RealBox loc = RealBox(grids[ilev][i], geom[ilev].CellSize(), geom[ilev].ProbLo());
 	  for (int n = 0; n < BL_SPACEDIM; n++) {
 	    HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
 	  }
@@ -150,7 +151,7 @@ void writePlotFile (const std::string& dir,
       //
       // We combine all of the multifabs 
       //
-      MultiFab  plotMF(bas[ilev], n_data_items, 0);
+      MultiFab  plotMF(grids[ilev], n_data_items, 0);
       //
       // Cull data -- use no ghost cells.
       //
