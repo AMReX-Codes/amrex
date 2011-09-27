@@ -46,8 +46,8 @@ void solve_with_F90(PArray<MultiFab>& soln, int iF90, Real a, Real b,
   }
   else { // periodic
     for ( int n = 0; n < BL_SPACEDIM; ++n ) {
-      mg_bc[2*n + 0] = MGT_BC_PER;
-      mg_bc[2*n + 1] = MGT_BC_PER;
+      mg_bc[2*n + 0] = 0; // MGT_BC_PER;
+      mg_bc[2*n + 1] = 0; // MGT_BC_PER;
     }
   }
    
@@ -68,81 +68,122 @@ void solve_with_F90(PArray<MultiFab>& soln, int iF90, Real a, Real b,
     phys_bc.setLo(n, phys_bc_type);
     phys_bc.setHi(n, phys_bc_type);
   }
- 
+
+  std::vector<DistributionMapping> dmap(nlevel);
+  for (int ilev=0; ilev<nlevel; ilev++ ) {
+    dmap[ilev] = soln[ilev].DistributionMap();
+  }
+
+  // The coefficients are set such that we will solve
+  //  (a alpha - b del dot beta grad) soln = rhs
+  //  written in the form 
+  //  (acoeffs - b del dot bcoeffs grad) soln = rhs
+
+  PArray<MultiFab> acoeffs(nlevel, PArrayManage);
+  for (int ilev=0; ilev<nlevel; ilev++ ) {
+    acoeffs.set(ilev, new MultiFab(grids[ilev], 1, 0, Fab_allocate));
+    acoeffs[ilev].copy(alph[ilev]);
+    acoeffs[ilev].mult(a); 
+  }
+
+  Array< PArray<MultiFab> > bcoeffs(nlevel);
+  for (int ilev=0; ilev<nlevel; ilev++ ) {
+
+    bcoeffs[ilev].resize(BL_SPACEDIM, PArrayManage);
+
+    BoxArray edge_boxes(grids[ilev]);
+
+    for (int n = 0; n < BL_SPACEDIM ; n++) {
+
+      edge_boxes.surroundingNodes(n);
+      
+      bcoeffs[ilev].set(n, new MultiFab(edge_boxes,1,0,Fab_allocate));
+
+      for (MFIter mfi(bcoeffs[ilev][n]); mfi.isValid(); ++mfi) {
+  	int i = mfi.index();
+  	const Box& bx = grids[ilev][i];
+  	const int* betalo = beta[ilev][i].loVect();
+  	const int* betahi = beta[ilev][i].hiVect();
+  	const int* edgelo = bcoeffs[ilev][n][i].loVect();
+  	const int* edgehi = bcoeffs[ilev][n][i].hiVect();
+	  
+  	FORT_COEF_TO_EDGES(&n, bcoeffs[ilev][n][i].dataPtr(),
+  			   ARLIM(edgelo), ARLIM(edgehi),
+  			   beta[ilev][i].dataPtr(),
+  			   ARLIM(betalo), ARLIM(betahi),
+  			   bx.loVect(),bx.hiVect());
+      }
+    }
+  }
+
+  Array< Array<Real> > xa(nlevel);
+  Array< Array<Real> > xb(nlevel);
+  for (int ilev=0; ilev<nlevel; ilev++ ) {
+    xa[ilev].resize(BL_SPACEDIM);
+    xb[ilev].resize(BL_SPACEDIM);
+    if (ilev == 0) {
+      // For level 0, the boundary lives exactly on the faces
+      for (int n=0; n<BL_SPACEDIM; n++) {
+	xa[0][n] = 0.0;
+	xb[0][n] = 0.0;
+      }
+    }
+    else {
+      const Real* dx_crse = geom[ilev-1].CellSize();
+      for (int n=0; n<BL_SPACEDIM; n++) {
+	xa[ilev][n] = 0.5 * dx_crse[n];
+	xb[ilev][n] = 0.5 * dx_crse[n];
+      }
+    }
+  }
+
+
   if (composite_solve) {
 
+    bool nodal = false;
+    MGT_Solver mgt_solver(geom, mg_bc, grids, dmap, nodal);
+
+    int index_order = 1; // because of bcoeffs[nlevel][BL_SPACEDIM]
+    mgt_solver.set_visc_coefficients(acoeffs, bcoeffs, b, xa, xb, index_order);
+    
+    MultiFab* soln_p[nlevel];
+    MultiFab* rhs_p[nlevel];
+    for (int ilev=0; ilev<nlevel; ilev++ ) {
+      soln_p[ilev] = &soln[ilev];
+      rhs_p[ilev] = &rhs[ilev];
+    }    
+
+    MacBndry bndry(grids[0], 1, geom[0]);
+    bndry.setBndryValues(soln[0], 0, 0, 1, phys_bc); 
+    // does this work for Neumann?
+
+    Real final_resnorm;
+    mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
+ 
   }
   else {
 
     for (int ilev=0; ilev<nlevel; ilev++ ) {
 
-      std::vector<Geometry> fgeom(1);
-      fgeom[0] = geom[ilev];
-
-      std::vector<BoxArray> fgrids(1);
-      fgrids[0] = grids[ilev];
-
-      std::vector<DistributionMapping> dmap(1);
-      dmap[0] = soln[ilev].DistributionMap();
+      std::vector<Geometry> geom_l(1, geom[ilev]);
+      std::vector<BoxArray> grids_l(1, grids[ilev]);
+      std::vector<DistributionMapping> dmap_l(1, dmap[ilev]);
 
       bool nodal = false;
-      MGT_Solver mgt_solver(fgeom, mg_bc, fgrids, dmap, nodal);
+      MGT_Solver mgt_solver(geom_l, mg_bc, grids_l, dmap_l, nodal);
 
-      PArray<MultiFab> acoeffs(1, PArrayManage);
-      acoeffs.set(0, new MultiFab(grids[ilev], 1, 0, Fab_allocate));
-      acoeffs[0].copy(alph[ilev]);
-      acoeffs[0].mult(a); 
+      MultiFab* acoeffs_l[1];
+      acoeffs_l[0] = &acoeffs[ilev];
 
-      Array< PArray<MultiFab> > bcoeffs(BL_SPACEDIM);
+      MultiFab* bcoeffs_l[1][BL_SPACEDIM];
       for (int n = 0; n < BL_SPACEDIM ; n++) {
-
-	bcoeffs[n].resize(1, PArrayManage);
-
-	BoxArray edge_boxes(grids[ilev]);
-	edge_boxes.surroundingNodes(n);
+	bcoeffs_l[0][n] = &bcoeffs[ilev][n];
+      }
       
-	bcoeffs[n].set(0, new MultiFab(edge_boxes,1,0,Fab_allocate));
+      Array< Array<Real> > xa_l(1, xa[ilev]);
+      Array< Array<Real> > xb_l(1, xb[ilev]);
 
-	for (MFIter mfi(bcoeffs[n][0]); mfi.isValid(); ++mfi) {
-	  int i = mfi.index();
-	  const Box& bx = grids[ilev][i];
-	  const int* betalo = beta[ilev][i].loVect();
-	  const int* betahi = beta[ilev][i].hiVect();
-	  const int* edgelo = bcoeffs[n][0][i].loVect();
-	  const int* edgehi = bcoeffs[n][0][i].hiVect();
-	  
-	  FORT_COEF_TO_EDGES(&n, bcoeffs[n][0][i].dataPtr(),
-			     ARLIM(edgelo), ARLIM(edgehi),
-			     beta[ilev][i].dataPtr(),
-			     ARLIM(betalo), ARLIM(betahi),
-			     bx.loVect(),bx.hiVect());
-	}
-      }
-
-      Array< Array<Real> > xa(1);
-      Array< Array<Real> > xb(1);
-      xa[0].resize(BL_SPACEDIM);
-      xb[0].resize(BL_SPACEDIM);
-      if (ilev == 0) {
-	// For level 0, the boundary lives exactly on the faces
-	for (int n=0; n<BL_SPACEDIM; n++) {
-	  xa[0][n] = 0.0;
-	  xb[0][n] = 0.0;
-	}
-      }
-      else {
-	const Real* dx_crse = geom[ilev-1].CellSize();
-	for (int n=0; n<BL_SPACEDIM; n++) {
-	  xa[0][n] = 0.5 * dx_crse[n];
-	  xb[0][n] = 0.5 * dx_crse[n];
-	}
-      }
-
-      // The coefficients are set such that we will solve
-      //  (a alpha - b del dot beta grad) soln = rhs
-      //  written in the form 
-      //  (acoeffs - b del dot bcoeffs grad) soln = rhs
-      mgt_solver.set_visc_coefficients(acoeffs, bcoeffs, b, xa, xb);
+      mgt_solver.set_visc_coefficients(acoeffs_l, bcoeffs_l, b, xa_l, xb_l);
 
       MultiFab* soln_p[1];
       MultiFab* rhs_p[1];
