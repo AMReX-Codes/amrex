@@ -1,5 +1,7 @@
 FEXE_headers += RHS_F.H		COEF_F.H 
 FEXE_sources += RHS_$(DIM)D.F	COEF_$(DIM)D.F 
 
-CEXE_sources  += main.cpp
+CEXE_headers += writePlotFile.H
 
+CEXE_sources += main.cpp
+CEXE_sources += writePlotFile.cpp

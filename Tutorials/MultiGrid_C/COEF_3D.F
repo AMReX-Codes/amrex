@@ -15,19 +15,17 @@ c-----------------------------------------------------------------------
 
       implicit none
 
-      integer          :: lo(3), hi(3) 
-      integer          :: ibnd
+      integer          :: lo(3), hi(3), ibnd
       integer          :: a_l1, a_l2, a_l3, a_h1, a_h2, a_h3
       double precision :: asol(a_l1:a_h1, a_l2:a_h2, a_l3:a_h3)
       double precision :: dx(3)
 c
       integer i,j,k
       REAL_T  x,y,z
-      REAL_T  pi, phi, fpi, tpi
+      REAL_T  pi, fpi, tpi
 
       pi = 4.d0 * datan(1.d0)
 
-      phi = .25d0 * pi
       tpi = 2.0d0 * pi
       fpi = 4.0d0 * pi
  
@@ -38,16 +36,15 @@ c
             do i = lo(1), hi(1)
                x = (dble(i)+0.5d0)*dx(1)
 
-               if (ibnd .eq. LO_DIRICHLET) then
-                  asol(i,j,k) = 1.d0 * sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
-     $                       + .25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
-               else if (ibnd .eq. LO_NEUMANN) then
+               if (ibnd .eq. 0 .or. ibnd.eq. LO_NEUMANN) then
                   asol(i,j,k) = 1.d0 * cos(tpi*x) * cos(tpi*y) * cos(tpi*z)  
      $                       + .25d0 * cos(fpi*x) * cos(fpi*y) * cos(fpi*z)
-               else if (ibnd .eq. 0) then 
-c                 periodic
-                  asol(i,j,k) = 1.d0 * sin(tpi*x+phi) * sin(tpi*y+phi) * sin(tpi*z+phi)  
-     $                 + .25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
+               else if (ibnd .eq. LO_DIRICHLET) then
+                  asol(i,j,k) = 1.d0 * sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
+     $                       + .25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
+               else
+                  print *, 'FORT_COMP_ASOL: unknow boundary type'
+                  stop
                endif
             end do
          end do
@@ -80,23 +77,33 @@ c
 
 c-----------------------------------------------------------------------
       subroutine FORT_SET_CC_COEF (coef, c_l1, c_l2, c_l3, c_h1, c_h2, c_h3, 
-     $                             lo, hi, dx)
+     $                             lo, hi, dx, sigma, w)
 
       implicit none
 
       integer          :: lo(3), hi(3)
       integer          :: c_l1, c_l2, c_l3, c_h1, c_h2, c_h3
       double precision :: coef(c_l1:c_h1, c_l2:c_h2, c_l3:c_h3)
-      double precision :: dx(3)
+      double precision :: dx(3), sigma, w
  
       integer i,j,k
+      double precision theta, x, y, z, r
  
-      do k = lo(3)-1, hi(3)+1
-      do j = lo(2)-1, hi(2)+1
-      do i = lo(1)-1, hi(1)+1
-         coef(i,j,k) = 1.d0
-      end do
-      end do
+      theta = 0.5d0*log(3.0) / (w + 1.d-50)
+
+      do k = c_l3, c_h3
+         z = (dble(k)+0.5d0)*dx(3)
+         do j = c_l2, c_h2
+            y = (dble(j)+0.5d0)*dx(2)
+            do i = c_l1, c_h1
+               x = (dble(i)+0.5d0)*dx(1)
+
+               r = sqrt((x-0.5d0)**2 + (y-0.5d0)**2 + (z-0.5d0)**2)
+
+               coef(i,j,k) = (sigma-1.d0)/2.d0*tanh(theta*(r-0.25d0)) 
+     $              + (sigma+1.d0)/2.d0
+            end do
+         end do
       end do
  
       end

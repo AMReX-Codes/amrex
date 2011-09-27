@@ -1529,12 +1529,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     if (verbose)
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
-        Real      end    = ParallelDescriptor::second() - strt;
+        Real      tot    = ParallelDescriptor::second() - strt;
 
-        ParallelDescriptor::ReduceRealMax(end,IOProc);
+        ParallelDescriptor::ReduceRealMax(tot,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "FabArray::copy() time = " << end << std::endl;
+            std::cout << "FabArray::copy() time = " << tot << std::endl;
     }
 
 #endif /*BL_USE_MPI*/

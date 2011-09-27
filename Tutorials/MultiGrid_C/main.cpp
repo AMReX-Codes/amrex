@@ -13,20 +13,21 @@
 #include <Laplacian.H>
 #include <ABecLaplacian.H>
 #include <ParallelDescriptor.H>
-#include <VisMF.H>
-#include <COEF_F.H>
-#include <RHS_F.H>
 #include <MacBndry.H>
 #include <MGT_Solver.H>
 #ifdef USEHYPRE
-#include <HypreABecLap.H>
+#include "HypreABecLap.H"
 #endif
+#include "COEF_F.H"
+#include "RHS_F.H"
+#include "writePlotFile.H"
 
 int  verbose       = 2;     
-Real tolerance_rel = 1.e-12;
-Real tolerance_abs = 1.e-12;
+Real tolerance_rel = 1.e-8;
+Real tolerance_abs = 0.0;
 int  maxiter       = 100; 
 int  plot_rhs      = 0; 
+int  plot_beta     = 0;
 int  plot_soln     = 0; 
 int  plot_asol     = 0; 
 int  plot_err      = 0;
@@ -44,8 +45,8 @@ bc_t     bc_type;
 int Ncomp = 1;
 
 void compute_analyticSolution(MultiFab& anaSoln);
-void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[]);
-void setup_rhs(MultiFab& rhs);
+void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry& geom);
+void setup_rhs(MultiFab& rhs, const Geometry& geom);
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
 void solve(MultiFab& soln, const MultiFab& anaSoln, 
 	   Real a, Real b, MultiFab& alpha, MultiFab beta[], 
@@ -122,14 +123,15 @@ int main(int argc, char* argv[])
   pp.query("tol_abs", tolerance_abs);
   pp.query("maxiter", maxiter);
   pp.query("plot_rhs" , plot_rhs);
+  pp.query("plot_beta", plot_beta);
   pp.query("plot_soln", plot_soln);
   pp.query("plot_asol", plot_asol);
   pp.query("plot_err", plot_err);
   pp.query("comp_norm", comp_norm);
 
-  Real a = 0., b = 1.;
-  pp.query("a",  a);
-  pp.query("b",  b);
+  Real a, b;
+  pp.get("a",  a);
+  pp.get("b",  b);
 
   int n_cell;
   int max_grid_size;
@@ -183,7 +185,7 @@ int main(int argc, char* argv[])
 
   // Allocate and define the right hand side.
   MultiFab rhs(bs, Ncomp, 0, Fab_allocate); 
-  setup_rhs(rhs);
+  setup_rhs(rhs, geom);
 
   MultiFab alpha(bs, Ncomp, 0, Fab_allocate);
   MultiFab beta[BL_SPACEDIM];
@@ -192,7 +194,7 @@ int main(int argc, char* argv[])
     beta[n].define(bx.surroundingNodes(n), Ncomp, 1, Fab_allocate);
   }
 
-  setup_coeffs(bs, alpha, beta);
+  setup_coeffs(bs, alpha, beta, geom);
 
   MultiFab anaSoln;
   if (comp_norm || plot_err || plot_asol) {
@@ -200,13 +202,24 @@ int main(int argc, char* argv[])
     compute_analyticSolution(anaSoln);
     
     if (plot_asol) {
-      VisMF::Write(anaSoln,"ASOL");
+      writePlotFile("ASOL", anaSoln, geom);
     }
   }
 
   // Allocate the solution array 
   // Set the number of ghost cells in the solution array.
   MultiFab soln(bs, Ncomp, 1, Fab_allocate);
+
+#ifdef USEHYPRE
+  if (solver_type == Hypre || solver_type == All) {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "----------------------------------------" << std::endl;
+      std::cout << "Solving with Hypre " << std::endl;
+    }
+
+    solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, Hypre);
+  }
+#endif
 
   if (solver_type == BoxLib_C || solver_type == All) {
     if (ParallelDescriptor::IOProcessor()) {
@@ -226,17 +239,6 @@ int main(int argc, char* argv[])
     solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, BoxLib_F);
   }
 
-#ifdef USEHYPRE
-  if (solver_type == Hypre || solver_type == All) {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "----------------------------------------" << std::endl;
-      std::cout << "Solving with Hypre " << std::endl;
-    }
-
-    solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, Hypre);
-  }
-#endif
-
   if (ParallelDescriptor::IOProcessor()) {
     std::cout << "----------------------------------------" << std::endl;
   }
@@ -246,7 +248,7 @@ int main(int argc, char* argv[])
 
 void compute_analyticSolution(MultiFab& anaSoln)
 {
-  int ibnd = static_cast<int>(bc_type);
+  int ibnd = static_cast<int>(bc_type); 
 
   for (MFIter mfi(anaSoln); mfi.isValid(); ++mfi) {
     const int* alo = anaSoln[mfi].loVect();
@@ -254,12 +256,18 @@ void compute_analyticSolution(MultiFab& anaSoln)
     const Box& bx = mfi.validbox();
 
     FORT_COMP_ASOL(anaSoln[mfi].dataPtr(), ARLIM(alo), ARLIM(ahi),
-		   bx.loVect(),bx.hiVect(),dx, &ibnd);
+		   bx.loVect(),bx.hiVect(),dx, ibnd);
   }
 }
 
-void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[])
+void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry& geom)
 {
+  ParmParse pp;
+
+  Real sigma, w;
+  pp.get("sigma", sigma);
+  pp.get("w", w);
+
   MultiFab cc_coef(bs,Ncomp,1); // cell-centered beta
 
   for ( MFIter mfi(alpha); mfi.isValid(); ++mfi ) {
@@ -273,7 +281,7 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[])
     const int* clo = cc_coef[mfi].loVect();
     const int* chi = cc_coef[mfi].hiVect();
     FORT_SET_CC_COEF(cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),
-		     bx.loVect(),bx.hiVect(),dx);
+		     bx.loVect(),bx.hiVect(),dx, sigma, w);
   }
 
   // convert cell-centered beta to edges
@@ -291,11 +299,23 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[])
 			 bx.loVect(),bx.hiVect());
     }
   }
+
+  if (plot_beta == 1) {
+    writePlotFile("BETA", cc_coef, geom);
+  }
 }
 
-void setup_rhs(MultiFab& rhs)
+void setup_rhs(MultiFab& rhs, const Geometry& geom)
 {
-  int ibnd = static_cast<int>(bc_type);
+  ParmParse pp;
+
+  Real a, b, sigma, w;
+  pp.get("a",  a);
+  pp.get("b",  b);
+  pp.get("sigma", sigma);
+  pp.get("w", w);
+
+  int ibnd = static_cast<int>(bc_type); 
 
   // We test the sum of the RHS to check solvability
   Real sum_rhs = 0.;
@@ -306,7 +326,7 @@ void setup_rhs(MultiFab& rhs)
     const Box& bx = mfi.validbox();
 
     FORT_SET_RHS(rhs[mfi].dataPtr(),ARLIM(rlo),ARLIM(rhi),
-                 bx.loVect(),bx.hiVect(),dx, &ibnd);
+                 bx.loVect(),bx.hiVect(),dx, a, b, sigma, w, ibnd);
     sum_rhs += rhs[mfi].sum(0,1);
   }
 
@@ -321,12 +341,14 @@ void setup_rhs(MultiFab& rhs)
   }
 
   if (plot_rhs == 1) {
-    VisMF::Write(rhs,"RHS");
+    writePlotFile("RHS", rhs, geom);
   }
 }
 
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
 {
+  Real bc_value = 0.0;
+
   for (int n=0; n<BL_SPACEDIM; ++n) {
     for (MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
       int i = mfi.index(); 
@@ -356,8 +378,8 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
 	  // Set the boundary conditions to live exactly on the faces of the domain
 	  bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
 	  
-	  // Set the Dirichlet/Neumann values to be 0 (i.e. this is homogeneous)
-	  bd.setValue(Orientation(n, Orientation::low) ,i, 0.0);
+	  // Set the Dirichlet/Neumann boundary values 
+	  bd.setValue(Orientation(n, Orientation::low) ,i, bc_value);
 	  
 	  // Define the type of boundary conditions 
 	  bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,ibnd);
@@ -368,8 +390,8 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
 	  // Set the boundary conditions to live exactly on the faces of the domain
 	  bd.setBoundLoc(Orientation(n, Orientation::high) ,i,0.0 );
 	  
-	  // Set the Dirichlet/Neumann values to be 0 (i.e. this is homogeneous)
-	  bd.setValue(Orientation(n, Orientation::high) ,i, 0.0);
+	  // Set the Dirichlet/Neumann boundary values
+	  bd.setValue(Orientation(n, Orientation::high) ,i, bc_value);
 	  
 	  // Define the type of boundary conditions 
 	  bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,ibnd);
@@ -416,7 +438,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
   }
 
   if (plot_soln) {
-    VisMF::Write(soln,"SOLN-"+ss);
+    writePlotFile("SOLN-"+ss, soln, geom);
   }
 
   if (plot_err || comp_norm) {
@@ -424,7 +446,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
     MultiFab& err = soln;
 
     if (plot_err) {
-      VisMF::Write(err,"ERR-"+ss);
+      writePlotFile("ERR-"+ss, soln, geom);
     }
     
     if (comp_norm) {

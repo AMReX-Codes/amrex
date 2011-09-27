@@ -1,21 +1,59 @@
-use_fboxlib = 1
+solver_type = BoxLib_F
+# solver_type = BoxLib_C
+# solver_type = All
 
-geometry.coord_sys   =  0        # 0=cartesian
+bc_type = Neumann
+# bc_type = Periodic
+# bc_type = Dirichlet
 
-geometry.prob_lo     =  0. 0. 0.
+a = 1.e-3
+b = 1.0
+# a case with constant diffusion coefficient
+# sigma = 1.0
+# w     = 0.05
+# a case with variable diffusion coefficient
+sigma = 10.0    # controls the size of jump
+w     = 0.05    # controls the width of the jump 
 
-geometry.prob_hi     =  1. 1. 1.
+write_plot = 1 # write plotfile
+comp_norm = 1 # compute 2 norm of the error
 
-geometry.is_periodic =  1 1 1    # for each direction, 1=periodic
+n_cell        = 64
+max_level     = 2
+max_grid_size = 32
 
-dump_MF=1                        # dump RHS and soln to a "plotfile" named soln_pf
+tol_rel = 1.e-8
+tol_abs = 0.0
 
-#boxes=grids.32           # work on this set of boxes
+#For BoxLib_F: 
+# mg.v = 0 shows just the Run time.
+# mg.v = 1 shows Initial rhs, Final Iter, and Run time
+# mg.v = 2 shows Initial rhs, Residual at each V-cycle, Final Iter, and Run time
+#
+#For BoxLib_C: 
+# mg.v = 0 shows just the Run time.
+# mg.v = 1 shows Initial rhs, Final Iter, and Run time
+# mg.v = 2 shows Initial rhs, Residual at each V-cycle, Final Iter, and Run time
+#
+#For Hypre: 
+# mg.v = 0 shows just the Run time.
+# mg.v = 2 shows # of iterations and final residual
 
-n_cell        = 256
-max_grid_size = 64
+mg.v = 2 
 
-tol = 1.e-8
+# These are only relevant for the hypre solver
+hypre.solver_flag = 1      # 0: SMG,  1: PFMG (default)
+## parameters below are for PFMG
+hypre.pfmg_relax_type = 2  # default: 1 (Jacobi); else: 2 (red-black GSRB)
+hypre.num_pre_relax   = 2  # default: 1
+hypre.num_post_relax  = 2  # default: 1
+hypre.skip_relax      = 0  # default: 1
+hypre.print_level     = 1  # default: 0
 
-mg.v = 2
+# These are only relevant for the BoxLib_C solver -- 
+#  * set this to do a comparison with BoxLib_F and hypre
+mg.use_Anorm_for_convergence = 0
+#
+#  * set this to turn off verbosity of the BoxLib_C bottom solver
 cg.v = 0
+
