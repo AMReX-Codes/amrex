@@ -4,14 +4,14 @@
 
 #include "_hypre_struct_mv.h"
 
-HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
-			   int _solver_flag)
-  : solver_flag(_solver_flag)
+HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom)
 {
   ParmParse pp("hypre");
 
-  hob = 1; // high-order boundary?
-  pp.query("hob", hob);
+  // solver_flag = 0 for SMG
+  // solver_flag = 1 for PFMG
+  solver_flag = 1;
+  pp.query("solver_flag", solver_flag);
 
   int num_procs, myid;
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs );
@@ -55,18 +55,7 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
 
   HYPRE_StructGridAssemble(grid);
 
-#if (BL_SPACEDIM == 1)
-  // if we were really 1D:
-/*
-  int offsets[3][1] = {{ 0}
-		       {-1},
-		       { 1}};
-*/
-  // fake 1D as a 2D problem:
-  int offsets[3][2] = {{-1,  0},
-		       { 1,  0},
-		       { 0,  0}};
-#elif (BL_SPACEDIM == 2)
+#if (BL_SPACEDIM == 2)
   int offsets[5][2] = {{-1,  0},      // 0
 		       { 0, -1},      // 1
 		       { 1,  0},      // 2
@@ -84,11 +73,7 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
 
   HYPRE_StructStencil stencil;
 
-#if (BL_SPACEDIM == 1)
-  HYPRE_StructStencilCreate(2, 3, &stencil);
-#else
   HYPRE_StructStencilCreate(BL_SPACEDIM, 2 * BL_SPACEDIM + 1, &stencil);
-#endif
 
   for (int i = 0; i < 2 * BL_SPACEDIM + 1; i++) {
     HYPRE_StructStencilSetElement(stencil, i, offsets[i]);
@@ -97,7 +82,7 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
   HYPRE_StructMatrixCreate(MPI_COMM_WORLD, grid, stencil, &A);
   HYPRE_StructMatrixInitialize(A);
 
-  HYPRE_StructStencilDestroy(stencil); // no longer needed
+  HYPRE_StructStencilDestroy(stencil); 
 
   HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &b);
   HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &x);
@@ -116,9 +101,6 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom,
     bcoefs[i] = new MultiFab(edge_boxes, ncomp, ngrow);
   }
 
-  // in following line, Falgout says use 1 as relax type, not 2 (rbp, 9/27/05)
-  // weighted Jacobi = 1; red-black GS = 2
-  // but 2 seems to be faster (wqz, 9/14/11)
   pfmg_relax_type = -1;
   pp.query("pfmg_relax_type", pfmg_relax_type);
 
@@ -179,8 +161,6 @@ void HypreABecLap::setVerbose(int _verbose)
 void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
 			 int max_iter, const BndryData& bndry)
 {
-  solver_flag = 1;
-
   reltol = rel_tol;
   abstol = abs_tol;
   maxiter = max_iter;
@@ -215,7 +195,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
     HYPRE_StructVectorSetBoxValues(x, loV(reg), hiV(reg), vec);
 
     f->copy(rhs[i], 0, 0, 1); 
-    // vec now contains rhs, but we nned to add bc's before SetBoxValues
+    // vec now contains rhs, but we need to add bc's before SetBoxValues
 
     int volume = reg.numPts();
     mat = hypre_CTAlloc(double, size*volume);
@@ -249,14 +229,14 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
       const int* bvlo = bcv.loVect();
       const int* bvhi = bcv.hiVect();
       
-      if (reg[oitr()] == domain[oitr()]) {
+      if (reg[oitr()] == domain[oitr()] && is_periodic[idim] == 0) {
 	int bctype = bct;
 	FORT_HPBVEC3(vec, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
-		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, hob,
+		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
 		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi),
 		     bcv.dataPtr(), ARLIM(bvlo), ARLIM(bvhi));
 	FORT_HPBMAT3(mat, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
-		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, hob,
+		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
 		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi));
       }
     }
@@ -277,7 +257,18 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
   HYPRE_StructVectorAssemble(x); 
   HYPRE_StructVectorAssemble(b); 
 
-  if (solver_flag == 1) {
+  if (solver_flag == 0) {
+    HYPRE_StructSMGCreate(MPI_COMM_WORLD, &solver);
+    HYPRE_StructSMGSetMemoryUse(solver, 0);
+    HYPRE_StructSMGSetMaxIter(solver, maxiter);
+    HYPRE_StructSMGSetRelChange(solver, 0);
+    HYPRE_StructSMGSetTol(solver, reltol);
+    HYPRE_StructSMGSetNumPreRelax(solver, 1);
+    HYPRE_StructSMGSetNumPostRelax(solver, 1);
+    HYPRE_StructSMGSetLogging(solver, 1);
+    HYPRE_StructSMGSetup(solver, A, b, x);
+  }
+  else if (solver_flag == 1) {
     HYPRE_StructPFMGCreate(MPI_COMM_WORLD, &solver);
     if (skip_relax >= 0) {
       HYPRE_StructPFMGSetSkipRelax(solver, skip_relax); // default: 1
@@ -318,13 +309,19 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
 		       : reltol);
 
     if (reltol_new > reltol) {
-      if(solver_flag == 1) {
+      if (solver_flag == 0) {
+	HYPRE_StructSMGSetTol(solver, reltol_new);
+      }
+      else if(solver_flag == 1) {
 	HYPRE_StructPFMGSetTol(solver, reltol_new);
       }
     }
   }
 
-  if (solver_flag == 1) {
+  if (solver_flag == 0) {
+    HYPRE_StructSMGSolve(solver, A, b, x);
+  }
+  else if (solver_flag == 1) {
     HYPRE_StructPFMGSolve(solver, A, b, x);
   }
 
@@ -352,7 +349,11 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
   if (verbose >= 2 && ParallelDescriptor::IOProcessor()) {
     int num_iterations;
     Real res;
-    if(solver_flag == 1) {
+    if (solver_flag == 0) {
+      HYPRE_StructSMGGetNumIterations(solver, &num_iterations);
+      HYPRE_StructSMGGetFinalRelativeResidualNorm(solver, &res);
+    }
+    else if(solver_flag == 1) {
       HYPRE_StructPFMGGetNumIterations(solver, &num_iterations);
       HYPRE_StructPFMGGetFinalRelativeResidualNorm(solver, &res);
     }
@@ -365,7 +366,10 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
   }
 
   // claer solver
-  if (solver_flag == 1) {
+  if (solver_flag == 0) {
+    HYPRE_StructSMGDestroy(solver);
+  }
+  else if (solver_flag == 1) {
     HYPRE_StructPFMGDestroy(solver);
   }
 }

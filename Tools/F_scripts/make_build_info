@@ -5,6 +5,29 @@
 # into the executable, and compilation lines.  This information can
 # then be written to the plotfiles (in MAESTRO this is done in
 # write_job_info.f90).
+#
+# To call it from the makefile, you would do something like:
+#
+# build_info.f90: 
+#       $(BOXLIB_HOME)/Tools/F_scripts/make_build_info \
+#            "$(Fmdirs)" "$(COMPILE.f90)" "$(COMPILE.f)" \
+#            "$(COMPILE.c)" "$(LINK.f90)" "$(BOXLIB_HOME)"
+#
+# where:
+#
+#  Fmdirs is a string containing the list of directories used to
+#  assemble the code
+#
+#  COMPILE.f90 is a string giving the Fortran 90 compile line
+#
+#  COMPILE.f is a string giving the Fortran 77 compile line
+#
+#  COMPILE.c is a string giving the C compile line
+#
+#  LINK.f90 is a string giving the link line
+#
+#  BOXLIB_HOME is a string giving the path to the BoxLib directory
+
 
 # the basic build strings will be MAX_STRING_LENGTH long
 MAX_STRING_LENGTH=128
@@ -44,7 +67,7 @@ CCOMPILE2=`echo $4 | cut -c $s2-$f2`
 LINK1=`echo $5 | cut -c 1-$DBL_STRING_LINE_LENGTH`
 LINK2=`echo $5 | cut -c $s2-$f2`
 
-
+BOXLIB_DIR=`echo $6 | cut -c 1-$MAX_STRING_LENGTH`
 
 
 
@@ -61,6 +84,9 @@ module build_info_module
 
   character (len=$MAX_STRING_LENGTH), save :: build_machine = &
 "$BUILD_MACHINE"
+
+  character (len=$MAX_STRING_LENGTH), save :: boxlib_dir = &
+"$BOXLIB_DIR"
 
   character (len=$DBL_STRING_LENGTH), save :: module_list = &
 "$MODULES1" //&

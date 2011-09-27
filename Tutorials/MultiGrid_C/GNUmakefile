@@ -28,6 +28,9 @@ FCOMP=gfortran
 
 USE_HYPRE = TRUE
 
+# Make BoxLib_C bottom CG solver use the old convergence criteria for comparison with BoxLib_F
+CPPFLAGS += -DCG_USE_OLD_CONVERGENCE_CRITERIA
+
 # USE_MPI must be TRUE if USE_HYPRE
 USE_MPI=TRUE
 

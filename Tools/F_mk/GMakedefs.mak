@@ -48,7 +48,18 @@ mpi_libraries =
 mpi_include_dir =
 mpi_lib_dir =
 
-CPPFLAGS += -DBL_$(ARCH)
+# test for endianness to distinguish older IBM Mac's from newer Intel ones
+endian := $(shell perl -MConfig -e '$$i=index $$Config{byteorder},1;if ($$i == 0){print "little"};')
+
+ifeq ($(ARCH),Darwin)
+  ifeq ($(findstring little,$(endian)),little)
+    CPPFLAGS += -DBL_$(ARCH)_little
+  else
+    CPPFLAGS += -DBL_$(ARCH)
+  endif
+else
+  CPPFLAGS += -DBL_$(ARCH)
+endif
 
 F_C_LINK := UNDERSCORE
 
