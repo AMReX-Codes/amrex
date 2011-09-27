@@ -480,10 +480,12 @@ ifeq ($(COMP),Intel)
 
    ifeq ($(ICC_MAJOR_VERSION),12)
      CXXOPTF += -mp1
-   else ifeq ($(ICC_MAJOR_VERSION),11)
-     CXXOPTF += -mp1
    else
-     CXXOPTF += -mp
+      ifeq ($(ICC_MAJOR_VERSION),11)
+        CXXOPTF += -mp1
+      else
+        CXXOPTF += -mp
+      endif
    endif
 
    ifeq ($(ICC_MAJOR_VERSION),9)
@@ -652,12 +654,14 @@ ifeq ($(FCOMP),Intel)
    ifeq ($(IFC_MAJOR_VERSION),12)
      FOPTF += -mp1
      fOPTF += -mp1
-   else ifeq ($(IFC_MAJOR_VERSION), 11)
-     FOPTF += -mp1
-     fOPTF += -mp1
    else
-     FOPTF += -mp
-     fOPTF += -mp
+      ifeq ($(IFC_MAJOR_VERSION), 11)
+         FOPTF += -mp1
+         fOPTF += -mp1
+      else
+         FOPTF += -mp
+         fOPTF += -mp
+      endif
    endif
 
    ifneq ($(IFC_MAJOR_VERSION), 9)
