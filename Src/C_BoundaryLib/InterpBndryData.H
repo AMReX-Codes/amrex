@@ -34,8 +34,6 @@
 
         Fills with values interpolated from a coarser FAB that
         bounds the cells that do not meet the above two criteria
-        
-        This class does NOT provide a copy constructor or assignment operator.
 */
 
 class InterpBndryData
