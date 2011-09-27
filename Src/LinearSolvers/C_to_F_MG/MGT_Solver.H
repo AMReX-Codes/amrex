@@ -38,11 +38,15 @@ public:
                                 Array< Array<Real> >& xb,
                                 int is_constant);
 
+  // If index_order == 0, bb[dim][level]
+  // else,                bb[level][dim] 
+  // The second way is consistent with set_gravity_coefficients.
   void set_visc_coefficients(PArray<MultiFab>& aa, 
 			     Array<PArray<MultiFab> >& bb, 
 			     const Real& beta, 
 			     Array< Array<Real> >& xa,
-			     Array< Array<Real> >& xb);
+			     Array< Array<Real> >& xb, 
+			     int index_order=0);
 
   void set_visc_coefficients(const MultiFab* aa[], 
                              const MultiFab* bb[][BL_SPACEDIM],
