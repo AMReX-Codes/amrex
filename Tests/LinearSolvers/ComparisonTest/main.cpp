@@ -1,8 +1,6 @@
 // We solve (a alpha - b del dot beta grad) soln = rhs
 // where a and b are scalars, alpha and beta are arrays
 
-#include <iomanip>
-
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
@@ -34,12 +32,13 @@ void solve_with_F90(PArray<MultiFab>& soln, int iF90, Real a, Real b,
 		    const std::vector<Geometry>& geom, 
 		    const std::vector<BoxArray>& grids,
 		    int ibnd);
+void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 
+		  const std::vector<Geometry>& geom, const std::vector<BoxArray>& grids,
+		  int nsoln, int iF90, int iCpp);
 
 int main(int argc, char* argv[])
 {
   BoxLib::Initialize(argc,argv);
-
-  std::cout << std::setprecision(15);
 
   ParmParse pp;
 
@@ -148,6 +147,12 @@ int main(int argc, char* argv[])
   pp.query("write_plot", write_plot);
   if (write_plot) {
     writePlotFile("plot", soln, exac, alph, beta, rhs, geom, grids, nsoln, iF90, iCpp);
+  }
+
+  int comp_norm = 1;
+  pp.query("comp_norm", comp_norm);
+  if (comp_norm) {
+    compute_norm(soln, exac, geom, grids, nsoln, iF90, iCpp);
   }
 
   BoxLib::Finalize();
