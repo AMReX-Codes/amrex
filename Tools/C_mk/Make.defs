@@ -324,8 +324,8 @@ ifeq ($(FCOMP),gfortran)
     fOPTF += -ffixed-line-length-132 -g -O3
 #    FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
 #    fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
-    FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wintrinsics-std -Wno-tabs -Wintrinsic-shadow -Wline-truncation
-    fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wintrinsics-std -Wno-tabs -Wintrinsic-shadow -Wline-truncation
+    FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
+    fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
