@@ -554,14 +554,14 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
   //  (acoeffs - b del dot bcoeffs grad) soln = rhs
   mgt_solver.set_visc_coefficients(acoeffs,bcoeffs,b,xa,xb);
 
-  BCRec* phys_bc = new BCRec;
+  BCRec phys_bc;
   for (int n = 0; n < BL_SPACEDIM; n++) {
-    phys_bc->setLo(n,0);
-    phys_bc->setHi(n,0);
+    phys_bc.setLo(n,0);
+    phys_bc.setHi(n,0);
   }
 
   MacBndry bndry(bs,1,geom);
-  bndry.setBndryValues(soln,0,0,1,*phys_bc);
+  bndry.setBndryValues(soln,0,0,1,phys_bc);
   
   Real final_resnorm;
   mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
