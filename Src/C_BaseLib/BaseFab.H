@@ -82,8 +82,6 @@ public:
     //
     BaseFab ();
 
-    BaseFab (const BaseFab&);
-    BaseFab& operator= (const BaseFab&);
     BaseFab& operator= (const T&);
     //
     // Make BaseFab with desired domain and number of components.
@@ -782,6 +780,13 @@ protected:
     long    numpts;   // Cached number of points in FAB.
     long    truesize; // nvar*numpts that was allocated on heap.
     T*      dptr;     // The data pointer.
+
+private:
+    //
+    // Disable these.
+    //
+    BaseFab (const BaseFab&);
+    BaseFab& operator= (const BaseFab&);
 };
 
 template <class T>
@@ -1121,39 +1126,6 @@ BaseFab<T>::BaseFab ()
     truesize(0),
     dptr(0)
 {}
-
-template <class T>
-BaseFab<T>::BaseFab (const BaseFab& fab)
-    :
-    domain(fab.box()),
-    dlen(fab.dlen),
-    nvar(fab.nComp())
-{
-    numpts = domain.numPts();
-    dptr = 0;
-    define();
-    for ( int i = 0; i < numpts*nvar; ++i )
-    {
-	dptr[i] = fab.dptr[i];
-    }
-}
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::operator= (const BaseFab& fab)
-{
-    if ( this == &fab ) return *this;
-    domain = fab.box();
-    nvar   = fab.nComp();
-    numpts = domain.numPts();
-    dptr = 0;
-    define();
-    for ( int i = 0; i < numpts*nvar; ++i )
-    {
-	dptr[i] = fab.dptr[i];
-    }
-    return *this;
-}
 
 template <class T>
 BaseFab<T>&
