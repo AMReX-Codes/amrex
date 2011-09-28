@@ -1,7 +1,5 @@
 
 #include <winstd.H>
-#include <cstdio>
-#include <cstring>
 #include <sstream>
 
 #include <AmrLevel.H>
@@ -12,6 +10,7 @@
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
+
 #ifdef USE_SLABSTAT
 SlabStatList   AmrLevel::slabstat_lst;
 #endif
@@ -267,18 +266,16 @@ AmrLevel::countCells () const
 
 void
 AmrLevel::checkPoint (const std::string& dir,
-                      std::ostream&  os,
-                      VisMF::How     how,
-                      bool dump_old)
+                      std::ostream&      os,
+                      VisMF::How         how,
+                      bool               dump_old)
 {
     int ndesc = desc_lst.size(), i;
     //
     // Build directory to hold the MultiFabs in the StateData at this level.
     // The directory is relative the the directory containing the Header file.
     //
-    char buf[64];
-    sprintf(buf, "Level_%d", level);
-    std::string Level = buf;
+    std::string Level = BoxLib::Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -318,12 +315,10 @@ AmrLevel::checkPoint (const std::string& dir,
         //
         // There is only one MultiFab written out at each level in HyperCLaw.
         //
-        std::string PathNameInHeader = Level;
-        sprintf(buf, "/SD_%d", i);
-        PathNameInHeader += buf;
-        std::string FullPathName = FullPath;
-        FullPathName += buf;
-        state[i].checkPoint(PathNameInHeader, FullPathName, os, how, dump_old);
+        std::string PathNameInHdr = BoxLib::Concatenate(Level    + "/SD_", i, 1);
+        std::string FullPathName  = BoxLib::Concatenate(FullPath + "/SD_", i, 1);
+
+        state[i].checkPoint(PathNameInHdr, FullPathName, os, how, dump_old);
     }
 }
 
