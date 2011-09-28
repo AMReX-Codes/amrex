@@ -3418,7 +3418,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
             if (gotwork)
             {
-                std::string FileName = BoxLib::Concatenate(basename + '_', MyProc % nOutFiles, 2)
+                std::string FileName = BoxLib::Concatenate(basename + '_', MyProc % nOutFiles, 2);
 
                 std::ofstream TimeStampFile;
 
