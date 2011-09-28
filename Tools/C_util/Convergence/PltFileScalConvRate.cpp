@@ -1,11 +1,8 @@
 
-#include <new>
 #include <iostream>
-#include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <cmath>
-using std::ios;
 
 #include <unistd.h>
 
@@ -18,6 +15,8 @@ using std::ios;
 #ifndef NDEBUG
 #include "TV_TempWrite.H"
 #endif
+
+using std::ios;
 
 static
 void
@@ -95,12 +94,13 @@ main (int   argc,
 	int maxl = 0;
 	for (int i=0; i<names.size(); ++i)
 	    maxl = std::max(maxl,int(names[i].size()));
-	char sbuf[128];
-	sprintf(sbuf,"%d",maxl);
+
+        std::string maxl_str = BoxLib::Concatenate("", maxl, 1);
+
 	std::string formatStr =
-	    std::string("\t%") + sbuf + std::string("s |  %10e   %10e   %10e\n");
+	    std::string("\t%") + maxl_str + std::string("s |  %10e   %10e   %10e\n");
 	std::string sformatStr =
-	    std::string("\t%") + sbuf + std::string("s |  %10s   %10s   %10s\n");
+	    std::string("\t%") + maxl_str + std::string("s |  %10s   %10s   %10s\n");
 	
 	std::cout << '\n' << "Rates for pltfiles = "
 	     << cFile << ", "

@@ -6,9 +6,8 @@
 #include <winstd.H>
 #include <iostream>
 #include <fstream>
-#include <cstdio>
 
-#ifndef        WIN32
+#ifndef WIN32
 #include <unistd.h>
 #endif
 
@@ -113,9 +112,7 @@ writePlotFile (const std::string&        dir,
     // Build the directory to hold the MultiFabs at this level.
     // The name is relative to the directory containing the Header file.
     //
-    char buf[64];
-    sprintf(buf, "Level_%d", level);
-    std::string Level = buf;
+    std::string Level = BoxLib::Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -149,9 +146,9 @@ writePlotFile (const std::string&        dir,
 	    {
                 if (names.size()==0)
                 {
-                    char buff[64];
-                    sprintf(buff, "state_%d", n);
-                    os << buff << '\n';
+                    std::string name = BoxLib::Concatenate("state_", n, 1);
+
+                    os << name << '\n';
                 }
                 else
                 {
@@ -368,8 +365,8 @@ void WritePlotFile(const Array<MultiFab*> mfa,
         // Write state data.
         //
         int nGrids = amrdToMimic.boxArray(iLevel).size();
-        char buf[64];
-        sprintf(buf, "Level_%d", iLevel);
+
+        std::string LevelStr = BoxLib::Concatenate("Level_", iLevel, 1);
     
         if (ParallelDescriptor::IOProcessor())
         {
@@ -391,7 +388,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
             //
             std::string Level(oFile);
             Level += '/';
-            Level += buf;
+            Level += LevelStr;
     
             if (!BoxLib::UtilCreateDirectory(Level, 0755))
                 BoxLib::CreateDirectoryFailed(Level);
@@ -407,7 +404,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
     
         std::string PathName(oFile);
         PathName += '/';
-        PathName += buf;
+        PathName += LevelStr;
         PathName += MultiFabBaseName;
     
         if (ParallelDescriptor::IOProcessor())
@@ -415,7 +412,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
             //
             // The full name relative to the Header file.
             //
-            std::string RelativePathName(buf);
+            std::string RelativePathName(LevelStr);
             RelativePathName += '/';
             RelativePathName += MultiFabBaseName;
             os << RelativePathName << '\n';

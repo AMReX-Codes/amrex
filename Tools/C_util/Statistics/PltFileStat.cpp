@@ -1,13 +1,8 @@
 
-#include <new>
 #include <iostream>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
-using std::ios;
-using std::set_new_handler;
-
 #include <unistd.h>
 
 #include "ComputeAmrDataStat.H"
@@ -19,6 +14,8 @@ using std::set_new_handler;
 #ifndef NDEBUG
 #include "TV_TempWrite.H"
 #endif
+
+using std::ios;
 
 static
 void
@@ -80,11 +77,7 @@ main (int   argc,
       int nstart = 10;
       pp.query("nstart",nstart);
 
-      char buftmp[64];
-      sprintf(buftmp,"%05d",nstart);
-          
-      std::string idxs(buftmp);
-      tmpFile = iFile + buftmp;
+      tmpFile = BoxLib::Concatenate(iFile, nstart, 5);
     }
 
     int iFile_type = 0;
@@ -261,10 +254,8 @@ main (int   argc,
 	pp.query("nfac",nfac);
 
 	for (int i = nstart; i<nmax;i++) {
-	  char buf[64];
-	  sprintf(buf,"%05d",i*nfac);
-	  std::string idxs(buf);
-	  tmpFile = iFile + idxs;
+
+          tmpFile = BoxLib::Concatenate(iFile, i*nfac, 5);
 
 	  DataServices tmpdataServices(tmpFile, fileType);
 	  if (!tmpdataServices.AmrDataOk())
