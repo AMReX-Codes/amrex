@@ -1,4 +1,4 @@
-BOXLIB_HOME = ../../
+BOXLIB_HOME ?= ../..
 
 TOP = $(BOXLIB_HOME)
 #
@@ -8,10 +8,9 @@ PRECISION     = DOUBLE
 DEBUG	      = TRUE
 DEBUG	      = FALSE
 DIM	      = 2
-COMP          = Intel
-FCOMP         = Intel
+COMP          = g++
+FCOMP         = gfortran
 USE_MPI       = TRUE
-
 #
 # Base name of the executable.
 #
@@ -27,42 +26,60 @@ EBASE = DiffUniform
 #EBASE = DiffSameGrid2
 #EBASE = DiffUniform
 #EBASE = DiffSameGridRefined
-
 #EBASE = DiffFab
 
 CEXE_sources += $(EBASE).cpp
 
-include $(TOP)/mk/Make.defs ./Make.package
-
-ifeq ($(USE_ARRAYVIEW),TRUE)
-  DEFINES += -DBL_USE_ARRAYVIEW
-  DEFINES += -DBL_ARRAYVIEW_TAGBOX
-endif
-
-fincludes=$(includes)
+include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
 DEFINES += -DBL_NOLINEVALUES -DBL_PARALLEL_IO
 
-Bdirs := BoxLib bndrylib
+include Make.package
+include ../Make.package
+include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
+#include $(BOXLIB_HOME)/Src/C_AMRLib/Make.package
+include $(BOXLIB_HOME)/Src/Extern/amrdata/Make.package
 
-Bpack	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
-Blocs	:= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+INCLUDE_LOCATIONS += .
+INCLUDE_LOCATIONS += ..
+vpathdir += ..
 
-VPATH_LOCATIONS   += . .. $(Blocs)
-INCLUDE_LOCATIONS += . .. $(Blocs) $(TOP)/pAmrvis
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
+vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
 
-include $(Bpack)
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
+vpathdir += $(BOXLIB_HOME)/Src/C_BoundaryLib
 
-vpath %.c   $(VPATH_LOCATIONS)
-vpath %.cpp $(VPATH_LOCATIONS) $(TOP)/pAmrvis
-vpath %.h   $(VPATH_LOCATIONS)
-vpath %.H   $(VPATH_LOCATIONS) 
-vpath %.F   $(VPATH_LOCATIONS) $(TOP)/pAmrvis
-vpath %.f   $(VPATH_LOCATIONS)
-vpath %.f90 $(VPATH_LOCATIONS)
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
+vpathdir += $(BOXLIB_HOME)/Src/C_AMRLib
+
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/amrdata
+vpathdir += $(BOXLIB_HOME)/Src/Extern/amrdata
+
+CEXE_sources += BCRec.cpp
+CEXE_headers += BCRec.H BC_TYPES.H
+
+vpath %.c   : . $(vpathdir)
+vpath %.h   : . $(vpathdir)
+vpath %.cpp : . $(vpathdir)
+vpath %.H   : . $(vpathdir)
+vpath %.F   : . $(vpathdir)
+vpath %.f   : . $(vpathdir)
+vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
-$(executable): $(LIBRARIES)
+include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
 
-include $(TOP)/mk/Make.rules
+#include $(TOP)/Tools/C_mk/Make.defs ./Make.package
+
+#ifeq ($(USE_ARRAYVIEW),TRUE)
+#  DEFINES += -DBL_USE_ARRAYVIEW
+#  DEFINES += -DBL_ARRAYVIEW_TAGBOX
+#endif
+
+
+
+
+
