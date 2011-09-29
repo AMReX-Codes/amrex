@@ -30,7 +30,7 @@ CreateSocket (int& newsocket)
 {
     int                sockfd;
     struct sockaddr_in serveraddr;
-    char*              serverhost = "localhost";
+    const  char*       serverhost = "localhost";
     struct hostent*    serverhostp;
 
     int GETUID_SERVER_PORT = getuid() + PortOffset;
