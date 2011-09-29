@@ -133,7 +133,8 @@ SendRealArray (int        sockfd,
     //
     // Send nComp.
     //
-    sprintf(buffer, "%d", nvar);
+    if (snprintf(buffer, MaxBufSize, "%d", nvar) >= MaxBufSize)
+        BoxLib::Abort("SendRealArray: nComp buffer too small");
 
     if (send(sockfd, buffer, strlen(buffer), 0) < 0)
     {
@@ -652,7 +653,8 @@ ArrayViewMultiFabFormatLabel (MultiFab*   mf,
     //
     // Send nElements.
     //
-    sprintf(buffer, "%d", mf->size());
+    if (snprintf(buffer, MaxBufSize, "%d", mf->size()) >= MaxBufSize)
+        BoxLib::Abort("SendRealArray: nElements buffer too small");
 
     if (!SendString(sockfd, buffer))
         return false;
