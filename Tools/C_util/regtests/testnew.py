@@ -78,6 +78,8 @@ class suiteObj:
         self.FCOMP = "gfortran"
         self.COMP = "g++"
 
+        self.MAKE = "gmake"
+        self.numMakeJobs = 1
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # R U N T I M E   P A R A M E T E R   R O U T I N E S
@@ -186,6 +188,12 @@ def LoadParams(file):
 
         elif (opt == "COMP"):
             mysuite.COMP = value
+
+        elif (opt == "MAKE"):
+            mysuite.MAKE = value
+
+        elif (opt == "numMakeJobs"):
+            mysuite.numMakeJobs = value
 
         else:
             warning("WARNING: suite parameter %s not valid" % (opt))
@@ -646,6 +654,9 @@ def testSuite(argv):
             FCOMP = < name of Fortran compiler >
             COMP  = < name of C/C++ compiler >
 
+            MAKE        = < name of make > 
+            numMakeJobs = < number of make jobs >
+
             MPIcommand = < MPI run command, with placeholders for host,
                            # of proc, and program command.  Should look
                            something like :
@@ -721,6 +732,11 @@ def testSuite(argv):
 
             COMP is the name of the C++ compiler -- this should be a 
             name that the Makefils of the code recognize.
+
+            MAKE is the name of the make utility -- this should be name that
+            the operating system recongnizes.
+
+            numMakeJobs is the number of make jobs to run simultaneously.
 
             To run jobs in Parallel, the following need to be set:
 
@@ -1008,13 +1024,13 @@ def testSuite(argv):
 
     os.chdir(suite.compareToolDir)
 
-    compString = "gmake BOXLIB_HOME=%s COMP=%s realclean >& /dev/null" % \
-                   (suite.boxLibDir, suite.FCOMP)
+    compString = "%s BOXLIB_HOME=%s COMP=%s realclean >& /dev/null" % \
+                   (suite.MAKE, suite.boxLibDir, suite.FCOMP)
     print "  " + compString
     systemCall(compString)
 
-    compString = "gmake BOXLIB_HOME=%s programs=fcompare NDEBUG=t MPI= COMP=%s  >& fcompare.make.out" % \
-                   (suite.boxLibDir, suite.FCOMP)
+    compString = "%s -j%s BOXLIB_HOME=%s programs=fcompare NDEBUG=t MPI= COMP=%s  >& fcompare.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
     print "  " + compString
     systemCall(compString)
     compareExecutable = getRecentFileName(suite.compareToolDir,"fcompare",".exe")
@@ -1023,14 +1039,14 @@ def testSuite(argv):
 
     bold("building the visualization tools...")
 
-    compString = "gmake BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
-                   (suite.boxLibDir, suite.FCOMP)
+    compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
     print "  " + compString
     systemCall(compString)
     vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
     
-    compString = "gmake BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % \
-                   (suite.boxLibDir, suite.FCOMP)
+    compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
     print "  " + compString
     systemCall(compString)
     vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
@@ -1060,9 +1076,9 @@ def testSuite(argv):
         os.chdir(suite.sourceDir + dir)
 
         if (suite.sourceTree == "Parallel"):
-            systemCall("gmake BOXLIB_HOME=%s realclean >& /dev/null" % (suite.boxLibDir))
+            systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
         else:
-            systemCall("gmake BOXLIB_HOME=%s realclean >& /dev/null" % (suite.boxLibDir))
+            systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
             
     os.chdir(suite.testTopDir)
     
@@ -1114,15 +1130,15 @@ def testSuite(argv):
 
 	    if (test.useMPI):
 	       executable = "%s%dd.MPI.ex" % (suite.suiteName, test.dim)
-               compString = "gmake BOXLIB_HOME=%s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.boxLibDir, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
-	       systemCall(compString)
+               systemCall(compString)
 
             else:
 	       executable = "%s%dd.ex" % (suite.suiteName, test.dim)
-               compString = "gmake BOXLIB_HOME=%s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.boxLibDir, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 	       
@@ -1130,14 +1146,14 @@ def testSuite(argv):
         elif (suite.sourceTree == "fParallel"):
 
             if (test.useMPI):
-                compString = "gmake BOXLIB_HOME=%s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.boxLibDir, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
             else:
-                compString = "gmake BOXLIB_HOME=%s MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.boxLibDir, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
@@ -1236,8 +1252,13 @@ def testSuite(argv):
                 break
 
             else:
-                
-                try: os.symlink(os.path.abspath(file), outputDir + file)
+                if os.path.isabs(file):
+                    link_source = file
+                    link_name = outputDir + os.path.basename(file)
+                else:
+                    link_source = os.path.abspath(file)
+                    link_name = outputDir + file
+                try: os.symlink(link_source, link_name)
                 except IOError:
                     errorMsg = "    ERROR: unable to symlink link file: %s" % file
                     reportTestFailure(errorMsg, test, testDir, fullWebDir)
