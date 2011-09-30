@@ -1,6 +1,5 @@
 
 #include <winstd.H>
-#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -677,17 +676,12 @@ VisMF::Write (const MultiFab&    mf,
         }
     }
 
-    char        buf[16];
     long        bytes    = 0;
     const int   MyProc   = ParallelDescriptor::MyProc();
     const int   NProcs   = ParallelDescriptor::NProcs();
     const int   NSets    = (NProcs + (nOutFiles - 1)) / nOutFiles;
     const int   MySet    = MyProc/nOutFiles;
-    std::string FullName = mf_name;
-
-    FullName += VisMF::FabFileSuffix;
-    sprintf(buf, "%04d", MyProc % nOutFiles);
-    FullName += buf;
+    std::string FullName = BoxLib::Concatenate(mf_name + VisMF::FabFileSuffix, MyProc % nOutFiles, 4);
 
     const std::string BName = VisMF::BaseName(FullName);
 
@@ -803,10 +797,7 @@ VisMF::Write (const MultiFab&    mf,
 
             hdr.m_fod[j].m_head = recvdata[offset[i]+cnt[i]];
 
-            std::string name = mf_name;
-            name += VisMF::FabFileSuffix;
-            sprintf(buf, "%04d", i % nOutFiles);
-            name += buf;
+            std::string name = BoxLib::Concatenate(mf_name + VisMF::FabFileSuffix, i % nOutFiles, 4);
 
             hdr.m_fod[j].m_name = VisMF::BaseName(name);
 

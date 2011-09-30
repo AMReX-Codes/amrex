@@ -37,7 +37,7 @@ ifeq ($(COMP),Cray)
 else
 ifeq ($(COMP),PGI)
   CXX = pgCC
-  CXXDEBF += -g
+  CXXDEBF += -g -O0
 
   ifeq ($(BL_NOFAST),TRUE)
     CXXOPTF += -O --no_exceptions
@@ -413,7 +413,7 @@ ifeq ($(WHICHLINUX), YANA)
   ifeq ($(COMP),PGI)
     CXX = pgCC
     CXXOPTF = -fast --no_exceptions
-    CXXDEBF = -g
+    CXXDEBF = -g -O0
     FC = pgif90
     fC = pgif90
     ifeq ($(USE_MPI),TRUE)

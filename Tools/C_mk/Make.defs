@@ -262,7 +262,7 @@ FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 ifeq ($(COMP),gcc)
     CXXPRFF    := -p
     CXXOPTF    += -g -O3 -fno-exceptions
-    CXXDEBF    += -g -O -fno-exceptions -Wall -Wno-sign-compare
+    CXXDEBF    += -g -O0 -fno-exceptions -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
@@ -283,7 +283,7 @@ endif
 ifeq ($(COMP),g++)
     CXXPRFF    := -p
     CXXOPTF    += -g -O3 -fno-exceptions
-    CXXDEBF    += -g -O -fno-exceptions -Wall -Wno-sign-compare
+    CXXDEBF    += -g -O0 -fno-exceptions -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
     CC	       := gcc
@@ -306,8 +306,8 @@ ifeq ($(FCOMP),g77)
     fC := g77 -fno-second-underscore
     FOPTF += -g -O
     fOPTF += -g -O
-    FDEBF += -g
-    fDEBF += -g
+    FDEBF += -g -O0
+    fDEBF += -g -O0
     _f77_lib:=$(shell g77 -print-file-name=libg2c.a)
     override XTRALIBS += $(_f77_lib)
     FDEBF +=   -ffortran-bounds-check 
@@ -322,10 +322,10 @@ ifeq ($(FCOMP),gfortran)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -ffixed-line-length-132 -g -O3
     fOPTF += -ffixed-line-length-132 -g -O3
-#    FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
-#    fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Wall
-    FDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
-    fDEBF += -g -O -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
+#    FDEBF += -g -O0 -ffixed-line-length-132 -fbounds-check -Wall
+#    fDEBF += -g -O0 -ffixed-line-length-132 -fbounds-check -Wall
+    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
+    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -341,8 +341,8 @@ ifeq ($(FCOMP),g95)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra
     fOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra
-    FDEBF += -g -fbounds-check
-    fDEBF += -g -fbounds-check
+    FDEBF += -g -O0 -fbounds-check
+    fDEBF += -g -O0 -fbounds-check
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -374,7 +374,7 @@ ifeq ($(COMP),Intel)
    endif
 
    CXXOPTF += -g -O2 #-fno-exceptions
-   CXXDEBF += -g #-fno-exceptions
+   CXXDEBF += -g -O0 #-fno-exceptions
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
@@ -489,13 +489,7 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(ICC_MAJOR_VERSION),9)
-     CXXDEBF += -O0 # -traceback 
-#    CXXDEBF += -debug expr-source-pos 
-#    CXXDEBF += -debug semantic-stepping
-#    CXXDEBF += -debug inline_debug_info
-#    CXXDEBF += -debug variable-locations
-#     CXXDEBF += -debug extended
-#     CXXDEBF += -ftrapuv
+     CXXDEBF += -O0
    endif
    CXX = $(_icpc) -Wno-deprecated
    CC  = $(_icc)

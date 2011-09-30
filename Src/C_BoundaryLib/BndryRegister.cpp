@@ -1,8 +1,8 @@
 
 #include <winstd.H>
-#include <cstdio>
 #include <BndryRegister.H>
 #include <Orientation.H>
+#include <Utility.H>
 
 const Real BL_SAFE_BOGUS = -666.e200;
 
@@ -324,12 +324,10 @@ BndryRegister::write (const std::string& name, std::ostream& os) const
         // Simplest thing would probably to append "_n" to the name,
         // where n is the integer value of face().
         //
-        std::string facename = name;
-        char buf[4]; // 3 should be enough
-        int i = face();
+        const int i = face();
         BL_ASSERT(i >= 0 && i <= 7);
-        sprintf(buf, "_%d", i);
-        facename += buf;
+
+        std::string facename = BoxLib::Concatenate(name + '_', i, 1);
 
         bndry[face()].write(facename);
     }
@@ -347,12 +345,10 @@ BndryRegister::read (const std::string& name, std::istream& is)
         // Simplest thing would probably to append "_n" to the name,
         // where n is the integer value of face().
         //
-        std::string facename = name;
-        char buf[4]; // 3 should be enough
-        int i = face();
+        const int i = face();
         BL_ASSERT(i >= 0 && i <= 7);
-        sprintf(buf, "_%d", i);
-        facename += buf;
+
+        std::string facename = BoxLib::Concatenate(name + '_', i, 1);
 
         bndry[face()].read(facename);
     }

@@ -2783,11 +2783,8 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
         if (!LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/')
             LevelDir += '/';
-        
-        char buf[32];
-        sprintf(buf, "Level_%d", lev);
 
-        LevelDir += buf;
+        LevelDir = BoxLib::Concatenate(LevelDir + "Level_", lev, 1);
 
         if (ParallelDescriptor::IOProcessor())
             if (!BoxLib::UtilCreateDirectory(LevelDir, 0755))
@@ -2806,15 +2803,12 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         Array<int > count(state.size(),0);
         Array<long> where(state.size(),0);
 
-        const int FileNumber = MyProc % nOutFiles;
-
-        sprintf(buf, "%04d", FileNumber);
-
+        const int   FileNumber   = MyProc % nOutFiles;
         std::string FullFileName = LevelDir;
 
         FullFileName += '/';
         FullFileName += ParticleBase::DataPrefix();
-        FullFileName += buf;
+        FullFileName += BoxLib::Concatenate("", FileNumber, 4);
 
         std::ofstream ParticleFile;
 
@@ -2910,15 +2904,11 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             {
                 if (cnt[i] == 0)
                 {
-                    char buf[32];
-
-                    sprintf(buf, "%04d", i);
-
                     std::string FullFileName = LevelDir;
 
                     FullFileName += '/';
                     FullFileName += ParticleBase::DataPrefix();
-                    FullFileName += buf;
+                    FullFileName += BoxLib::Concatenate("", i, 4);
 
                     BoxLib::UnlinkFile(FullFileName.c_str());
                 }
@@ -3277,15 +3267,11 @@ ParticleContainer<N>::Restart_OneDotZero (const std::string& fullname,
             if (!name.empty() && name[name.size()-1] != '/')
                 name += '/';
 
-            char buf[64];
-
-            sprintf(buf,
-                    "Level_%d/%s%04d",
-                    lev,
-                    ParticleBase::DataPrefix().c_str(),
-                    which[grid]);
-
-            name += buf;
+            name += "Level_";
+            name += BoxLib::Concatenate("", lev, 1);
+            name += '/';
+            name += ParticleBase::DataPrefix();
+            name += BoxLib::Concatenate("", which[grid], 4);
 
             std::ifstream ParticleFile;
 
@@ -3404,8 +3390,6 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     const int   nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
     const int   mySet     = (MyProc / nOutFiles);
 
-    static std::string TimestampFormat   = "_%02d";
-
     for (int iSet = 0; iSet < nSets; ++iSet)
     {
         if (mySet == iSet)
@@ -3434,13 +3418,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
             if (gotwork)
             {
-                char buf[16];
-
-                std::string FileName = basename;
-
-                sprintf(buf, TimestampFormat.c_str(), MyProc % nOutFiles);
-
-                FileName += buf;
+                std::string FileName = BoxLib::Concatenate(basename + '_', MyProc % nOutFiles, 2);
 
                 std::ofstream TimeStampFile;
 

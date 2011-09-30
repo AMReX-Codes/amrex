@@ -1,14 +1,10 @@
 
-#include <new>
 #include <iostream>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
-using std::ios;
-using std::set_new_handler;
-
 #include <unistd.h>
+
 #include "WritePlotFile.H"
 #include "ComputeAmrDataStat.H"
 #include "ParmParse.H"
@@ -19,6 +15,8 @@ using std::set_new_handler;
 #ifndef NDEBUG
 #include "TV_TempWrite.H"
 #endif
+
+using std::ios;
 
 static
 void
@@ -99,11 +97,9 @@ main (int   argc,
     {
       for (int i = 1; i <= nmax; i++)
       {
-	char idx[4];
-	sprintf(idx,"%i",i);
-          
-	std::string idxs(idx);
-	File = hdrFile + idxs + "/" + iFile;
+        File  = BoxLib::Concatenate(hdrFile, i, 1);
+        File += '/';
+        File += iFile;
       
 	DataServices dataServices(File, fileType);
 	
@@ -153,11 +149,9 @@ main (int   argc,
     {
       for (int i = 1; i <= nmax; i++)
       {
-	char idx[4];
-	sprintf(idx,"%i",i);
-          
-	std::string idxs(idx);
-	File = hdrFile + idxs + "/" + iFile;
+        File  = BoxLib::Concatenate(hdrFile, i, 1);
+        File += '/';
+        File += iFile;
 
 	MultiFab tmpmean;
 	VisMF::Read(tmpmean,File);

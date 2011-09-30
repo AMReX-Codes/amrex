@@ -6,6 +6,7 @@
 #include <AmrLevel.H>
 #include <ParmParse.H>
 #include <StationData.H>
+#include <Utility.H>
 
 StationRec::StationRec ()
 {
@@ -153,13 +154,11 @@ StationData::init (const PArray<AmrLevel>& levels, const int finestlevel)
         //
         // Open the data file.
         //
-        char buf[80];
+        const int MyProc = ParallelDescriptor::MyProc();
 
-        sprintf(buf,
-                "Stations/stn_CPU_%04d",
-                ParallelDescriptor::MyProc());
+        std::string datafile = BoxLib::Concatenate("Stations/stn_CPU_", MyProc, 4);
 
-        m_ofile.open(buf, std::ios::out|std::ios::app);
+        m_ofile.open(datafile.c_str(), std::ios::out|std::ios::app);
 
         m_ofile.precision(30);
 
