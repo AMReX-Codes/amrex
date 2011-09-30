@@ -296,9 +296,12 @@ BoxLib::Concatenate (const std::string& root,
                      int                num,
                      int                mindigits)
 {
+    BL_ASSERT(mindigits >= 0);
+    const int N = 64;
+    char buf[N];
+    if (snprintf(buf, N, "%0*d",  mindigits, num) >= N)
+        BoxLib::Abort("BoxLib::Concatenate: buf too small");
     std::string result = root;
-    char buf[32];
-    sprintf(buf, "%0*d",  mindigits, num);
     result += buf;
     return result;
 }

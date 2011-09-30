@@ -47,9 +47,6 @@ void advance(MultiFab* old_data, MultiFab* new_data, Real* dx, Real dt)
   // Advance the solution one grid at a time
   for ( MFIter mfi(*new_data); mfi.isValid(); ++mfi )
   {
-    int i = mfi.index();
-    const int* nlo = (*new_data)[mfi].loVect();
-    const int* nhi = (*new_data)[mfi].hiVect();
     const Box& bx = mfi.validbox();
 
     FORT_ADVANCE((*old_data)[mfi].dataPtr(),
@@ -162,9 +159,6 @@ main (int argc, char* argv[])
   // MFIter = MultiFab Iterator
   for ( MFIter mfi(*new_data); mfi.isValid(); ++mfi )
   {
-    int i = mfi.index();
-    const int* nlo = (*new_data)[mfi].loVect();
-    const int* nhi = (*new_data)[mfi].hiVect();
     const Box& bx = mfi.validbox();
 
     FORT_INIT_DATA((*new_data)[mfi].dataPtr(),

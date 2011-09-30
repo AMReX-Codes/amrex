@@ -721,8 +721,10 @@ bool DataServices::DumpSlice(int slicedir, int slicenum,
     return false;
   }
   sliceFile += ".";
-  char slicechar[64];
-  sprintf(slicechar, "%d.Level_%d", slicenum, iWTL);
+  const int N = 64;
+  char slicechar[N];
+  if (snprintf(slicechar, N, "%d.Level_%d", slicenum, iWTL) >= N)
+    BoxLib::Abort("DataServices::DumpSlice(1): slicechar buffer too small");
   sliceFile += slicechar;
   sliceFile += ".fab";
   cout << "sliceFile = " << sliceFile << endl;
@@ -777,8 +779,10 @@ bool DataServices::DumpSlice(int slicedir, int slicenum) {  // dump all vars
     return false;
   }
   sliceFile += ".";
-  char slicechar[64];
-  sprintf(slicechar, "%d.Level_%d", slicenum, iWTL);
+  const int N = 64;
+  char slicechar[N];
+  if (snprintf(slicechar, N, "%d.Level_%d", slicenum, iWTL) >= N)
+    BoxLib::Abort("DataServices::DumpSlice(2): slicechar buffer too small");
   sliceFile += slicechar;
   sliceFile += ".fab";
   cout << "sliceFile = " << sliceFile << endl;
@@ -824,16 +828,19 @@ bool DataServices::DumpSlice(const Box &b, const string &varname) {
   sliceFile += ".";
   sliceFile += varname;
   sliceFile += ".";
-  char slicechar[256];
+  const int N = 256;
+  char slicechar[N];
 # if (BL_SPACEDIM == 2)
-    sprintf(slicechar, "%d_%d__%d_%d.Level_%d",
-            b.smallEnd(XDIR), b.smallEnd(YDIR),
-            b.bigEnd(XDIR),   b.bigEnd(YDIR), iWTL);
+  int count = snprintf(slicechar, N, "%d_%d__%d_%d.Level_%d",
+                       b.smallEnd(XDIR), b.smallEnd(YDIR),
+                       b.bigEnd(XDIR),   b.bigEnd(YDIR), iWTL);
 # else
-    sprintf(slicechar, "%d_%d_%d__%d_%d_%d.Level_%d",
-            b.smallEnd(XDIR), b.smallEnd(YDIR), b.smallEnd(ZDIR),
-            b.bigEnd(XDIR),   b.bigEnd(YDIR),   b.bigEnd(ZDIR), iWTL);
+  int count = snprintf(slicechar, N, "%d_%d_%d__%d_%d_%d.Level_%d",
+                       b.smallEnd(XDIR), b.smallEnd(YDIR), b.smallEnd(ZDIR),
+                       b.bigEnd(XDIR),   b.bigEnd(YDIR),   b.bigEnd(ZDIR), iWTL);
 #endif
+  if (count >= N)
+    BoxLib::Abort("DataServices::DumpSlice(3): slicechar buffer too small");      
   sliceFile += slicechar;
   sliceFile += ".fab";
   cout << "sliceFile = " << sliceFile << endl;
@@ -867,16 +874,19 @@ bool DataServices::DumpSlice(const Box &b) {  // dump all vars
 
   string sliceFile = fileName;
   sliceFile += ".";
-  char slicechar[256];
+  const int N = 256;
+  char slicechar[N];
 # if (BL_SPACEDIM == 2)
-    sprintf(slicechar, "%d_%d__%d_%d.Level_%d",
-            b.smallEnd(XDIR), b.smallEnd(YDIR),
-            b.bigEnd(XDIR),   b.bigEnd(YDIR), iWTL);
+  int count = snprintf(slicechar, N, "%d_%d__%d_%d.Level_%d",
+                       b.smallEnd(XDIR), b.smallEnd(YDIR),
+                       b.bigEnd(XDIR),   b.bigEnd(YDIR), iWTL);
 # else
-    sprintf(slicechar, "%d_%d_%d__%d_%d_%d.Level_%d",
-            b.smallEnd(XDIR), b.smallEnd(YDIR), b.smallEnd(ZDIR),
-            b.bigEnd(XDIR),   b.bigEnd(YDIR),   b.bigEnd(ZDIR), iWTL);
+  int count = snprintf(slicechar, N, "%d_%d_%d__%d_%d_%d.Level_%d",
+                       b.smallEnd(XDIR), b.smallEnd(YDIR), b.smallEnd(ZDIR),
+                       b.bigEnd(XDIR),   b.bigEnd(YDIR),   b.bigEnd(ZDIR), iWTL);
 #endif
+  if (count >= N)
+    BoxLib::Abort("DataServices::DumpSlice(4): slicechar buffer too small");      
   sliceFile += slicechar;
   sliceFile += ".fab";
   cout << "sliceFile = " << sliceFile << endl;

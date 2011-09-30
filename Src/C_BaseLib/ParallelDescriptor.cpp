@@ -152,22 +152,18 @@ namespace
                         const char* call,
                         int         status)
     {
-	//
-	// Should be large enough.
-	//
-	const int DIM = 1024;
-	static char buf[DIM];
+	const int N = 512;
+	static char buf[N];
 	if ( status )
 	{
-	    std::sprintf(buf, "BoxLib MPI Error: File %s, line %d, %s: %s",
+	    std::snprintf(buf, N, "BoxLib MPI Error: File %s, line %d, %s: %s",
 			 file, line, call, ParallelDescriptor::ErrorString(status));
 	}
 	else
 	{
-	    std::sprintf(buf, "BoxLib MPI Error: File %s, line %d, %s",
+	    std::snprintf(buf, N, "BoxLib MPI Error: File %s, line %d, %s",
 			 file, line, call);
 	}
-	buf[DIM-1] = '\0';		// Just to be safe.
 	return buf;
     }
 }

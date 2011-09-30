@@ -866,10 +866,12 @@ bool AmrData::ReadNonPlotfileData(const string &filename, FileType filetype) {
       dataGridsDefined[0][iComp].resize(1);
       dataGridsDefined[0][iComp][0] = true;
     }
-    char fabname[64];  // arbitrarily
+    const int N = 64;
+    char fabname[N];  // arbitrarily
     plotVars.resize(nComp);
     for(i = 0; i < nComp; ++i) {
-      sprintf(fabname, "%s%d", "Fab_", i);
+      if (snprintf(fabname, N, "%s%d", "Fab_", i) >= N)
+        BoxLib::Abort("AmrData::ReadNonPlotfileData: fabname buffer too small");
       plotVars[i] = fabname;
     }
     probDomain[0] = newfab->box();
@@ -896,11 +898,13 @@ bool AmrData::ReadNonPlotfileData(const string &filename, FileType filetype) {
     fabBoxArray.set(0, probDomain[0]);
 
     int nGrow(0);
-    char fabname[64];  // arbitrarily
+    const int N = 64;
+    char fabname[N];  // arbitrarily
     plotVars.resize(nComp);
 
     for(int iComp(0); iComp < nComp; ++iComp) {
-      sprintf(fabname, "%s%d", "MultiFab_", iComp);
+      if (snprintf(fabname, N, "%s%d", "MultiFab_", iComp) >= N)
+        BoxLib::Abort("AmrData::ReadNonPlotfileData: fabname buffer too small");
       plotVars[iComp] = fabname;
 
       for(int iDim(0); iDim < BL_SPACEDIM; ++iDim) {
