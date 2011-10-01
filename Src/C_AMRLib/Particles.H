@@ -1361,11 +1361,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         BL_ASSERT(mf[i-1].boxArray().contains(cba));
 
-        // ************************************************************************************
-
         cba.grow(1);
 
-        // This version of cmf that has a grown boxArray but does not have a ghost cell
         MultiFab cmf(cba, 1, 0);
 
         cmf.setVal(0);
@@ -1398,19 +1395,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         {
             mf[i-1][mfi].plus(tcmf[mfi], mfi.validbox(), 0, 0, 1);
         }
+        //
+        // Make a version of cmf that does not have a grown boxArray but does have a ghost cell.
+        // We need this in order to do SumPeriodicBoundary.
+        //
+        cba = mf[i].boxArray();
 
-        // ************************************************************************************
-
-        cba = fmf.boxArray();
         cba.coarsen(m_amr->refRatio(i-1));
 
-        // Make a version of cmf that does not have a grown boxArray but does have a ghost cell -- 
-        //   we need this in order to do SumPeriodicBoundary.
         MultiFab new_cmf(cba, 1, 1, Fab_allocate);
 
         for (MFIter mfi(new_cmf); mfi.isValid(); ++mfi)
+        {
             new_cmf[mfi].copy(cmf[mfi]);
-
+        }
         //
         // We now shift new_cmf periodically and sum into mf[i-1].
         //
