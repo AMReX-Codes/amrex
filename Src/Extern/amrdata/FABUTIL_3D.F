@@ -152,7 +152,7 @@ c ::: ::::: compute slopes in x direction
               forw = crse(i+ist,n)-crse(i,n)
               back = crse(i,n)-crse(i-ist,n)
               slp = sign(one,cen)*min(abs(cen),abs(forw),abs(back))
-              cslope(i,1)=cvmgp(slp,zero,forw*back)
+              cslope(i,1)=merge(slp,zero,forw*back>=0.0d0)
 140       continue
 c ::: ::::: compute slopes in y direction
           do 150 i = 1, clen 
@@ -160,7 +160,7 @@ c ::: ::::: compute slopes in y direction
               forw = crse(i+jst,n)-crse(i,n)
               back = crse(i,n)-crse(i-jst,n)
               slp = sign(one,cen)*min(abs(cen),abs(forw),abs(back))
-              cslope(i,2)=cvmgp(slp,zero,forw*back)
+              cslope(i,2)=merge(slp,zero,forw*back>=0.0d0)
 150       continue
 c ::: ::::: compute slopes in z direction
           do 160 i = 1, clen 
@@ -168,7 +168,7 @@ c ::: ::::: compute slopes in z direction
               forw = crse(i+kst,n)-crse(i,n)
               back = crse(i,n)-crse(i-kst,n)
               slp = sign(one,cen)*min(abs(cen),abs(forw),abs(back))
-              cslope(i,3)=cvmgp(slp,zero,forw*back)
+              cslope(i,3)=merge(slp,zero,forw*back>=0.0d0)
 160       continue
 
           if (maxlen .eq. lenx) then
@@ -536,7 +536,7 @@ c ::: ::::: compute slopes in x direction
               forw = crse(i+ist,n)-crse(i,n)
               back = crse(i,n)-crse(i-ist,n)
               slp = sign(one,cen)*min(abs(cen),abs(forw),abs(back))
-              cslope(i,1)=cvmgp(slp,zero,forw*back)
+              cslope(i,1)=merge(slp,zero,forw*back>=0.0d0)
 420       continue
 c ::: ::::: compute slopes in y direction
           do 430 i = 1, clen 
@@ -544,7 +544,7 @@ c ::: ::::: compute slopes in y direction
               forw = crse(i+jst,n)-crse(i,n)
               back = crse(i,n)-crse(i-jst,n)
               slp = sign(one,cen)*min(abs(cen),abs(forw),abs(back))
-              cslope(i,2)=cvmgp(slp,zero,forw*back)
+              cslope(i,2)=merge(slp,zero,forw*back>=0.0d0)
 430       continue
 c ::: ::::: compute slopes in z direction
           do 440 i = 1, clen 
@@ -552,7 +552,7 @@ c ::: ::::: compute slopes in z direction
               forw = crse(i+kst,n)-crse(i,n)
               back = crse(i,n)-crse(i-kst,n)
               slp = sign(one,cen)*min(abs(cen),abs(forw),abs(back))
-              cslope(i,3)=cvmgp(slp,zero,forw*back)
+              cslope(i,3)=merge(slp,zero,forw*back>=0.0d0)
 440       continue
 
           if (maxlen .eq. lenx) then
