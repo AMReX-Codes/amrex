@@ -650,8 +650,8 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -mp1
    else
       ifeq ($(IFC_MAJOR_VERSION), 11)
-         FOPTF += -mp1
-         fOPTF += -mp1
+         FOPTF += -mp1 -fltconsistency
+         fOPTF += -mp1 -fltconsistency
       else
          FOPTF += -mp
          fOPTF += -mp
