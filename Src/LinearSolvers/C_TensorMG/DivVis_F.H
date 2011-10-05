@@ -1,5 +1,5 @@
 #ifndef _DivVis_F_H_
-#define _DivVis_F_H_ "$Id"
+#define _DivVis_F_H_
 
 #include <REAL.H>
 

@@ -1,5 +1,5 @@
 #!/usr/local/gnu/bin/perl
-# "$Id: strip72,v 1.8 2005-03-03 02:25:05 car Exp $"
+#
 # -------------------------------------------------------------------------
 # This PERL script will act as a filter for FORTRAN code.
 # It will:
