@@ -87,7 +87,7 @@ BndryRegister::define (const Orientation& _face,
     //
     BoxArray fsBA(grids.size());
 
-    for (int idx = 0; idx < grids.size(); ++idx)
+    for (int idx = 0, N = grids.size(); idx < N; ++idx)
     {
         Box b;
         //
@@ -170,7 +170,7 @@ BndryRegister::define (const Orientation&         _face,
     //
     BoxArray fsBA(grids.size());
 
-    for (int idx = 0; idx < grids.size(); ++idx)
+    for (int idx = 0, N = grids.size(); idx < N; ++idx)
     {
         Box b;
         //
