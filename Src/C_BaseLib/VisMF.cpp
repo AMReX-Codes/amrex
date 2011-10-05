@@ -498,16 +498,16 @@ VisMF::Header::Header (const MultiFab& mf,
 
     const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
 
-    for (int i = 0; i < mf.size(); i++)
+    for (int i = 0, N = mf.size(); i < N; i++)
         nmtags[pmap[i]]++;
 
-    for (int i = 0; i < nmtags.size(); i++)
+    for (int i = 0, N = nmtags.size(); i < N; i++)
         //
         // Each Fab corresponds to 2*m_ncomp Reals.
         //
         nmtags[i] *= 2*m_ncomp;
 
-    for (int i = 1; i < offset.size(); i++)
+    for (int i = 1, N = offset.size(); i < N; i++)
         offset[i] = offset[i-1] + nmtags[i-1];
 
     Array<Real> senddata(nmtags[ParallelDescriptor::MyProc()]);
@@ -549,7 +549,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        for (int i = 0; i < mf.size(); i++)
+        for (int i = 0, N = mf.size(); i < N; i++)
         {
             if (pmap[i] != IOProc)
             {
@@ -558,7 +558,7 @@ VisMF::Header::Header (const MultiFab& mf,
             }
         }
 
-        for (int j = 0; j < mf.size(); j++)
+        for (int j = 0, N = mf.size(); j < N; j++)
         {
             if (pmap[j] != IOProc)
             {
@@ -754,10 +754,10 @@ VisMF::Write (const MultiFab&    mf,
 
     const Array<int>& pmap = mf.DistributionMap().ProcessorMap();
 
-    for (int i = 0; i < mf.size(); i++)
+    for (int i = 0, N = mf.size(); i < N; i++)
         nmtags[pmap[i]]++;
 
-    for (int i = 1; i < offset.size(); i++)
+    for (int i = 1, N = offset.size(); i < N; i++)
         offset[i] = offset[i-1] + nmtags[i-1];
 
     Array<long> senddata(nmtags[ParallelDescriptor::MyProc()]);
@@ -791,7 +791,7 @@ VisMF::Write (const MultiFab&    mf,
     {
         Array<int> cnt(NProcs,0);
 
-        for (int j = 0; j < mf.size(); ++j)
+        for (int j = 0, N = mf.size(); j < N; ++j)
         {
             const int i = pmap[j];
 
@@ -832,7 +832,7 @@ VisMF::VisMF (const std::string& mf_name)
     {
         m_pa[nComp].resize(m_hdr.m_ba.size());
 
-        for (int ii = 0; ii < m_pa[nComp].size(); ++ii)
+        for (int ii = 0, N = m_pa[nComp].size(); ii < N; ++ii)
         {
             m_pa[nComp][ii] = 0;
         }
@@ -1149,7 +1149,7 @@ VisMF::Read (MultiFab&          mf,
 void
 VisMF::clear (int fabIndex)
 {
-    for (int ncomp = 0; ncomp < m_pa.size(); ++ncomp)
+    for (int ncomp = 0, N = m_pa.size(); ncomp < N; ++ncomp)
     {
         clear(ncomp, fabIndex);
     }
@@ -1158,9 +1158,9 @@ VisMF::clear (int fabIndex)
 void
 VisMF::clear ()
 {
-    for (int ncomp = 0; ncomp < m_pa.size(); ++ncomp)
+    for (int ncomp = 0, N = m_pa.size(); ncomp < N; ++ncomp)
     {
-        for (int fabIndex = 0; fabIndex < m_pa[ncomp].size(); ++fabIndex)
+        for (int fabIndex = 0, M = m_pa[ncomp].size(); fabIndex < M; ++fabIndex)
         {
             clear(ncomp, fabIndex);
         }

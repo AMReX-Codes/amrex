@@ -275,7 +275,7 @@ BoxLib::Tokenize (const std::string& instr,
 
     tokens.resize(ptr.size());
 
-    for (int i = 1; i < ptr.size(); i++)
+    for (int i = 1, N = ptr.size(); i < N; i++)
     {
         char* p = ptr[i];
 
@@ -283,7 +283,7 @@ BoxLib::Tokenize (const std::string& instr,
             *--p = 0;
     }
 
-    for (int i = 0; i < ptr.size(); i++)
+    for (int i = 0, N = ptr.size(); i < N; i++)
         tokens[i] = ptr[i];
 
     ptr.clear();

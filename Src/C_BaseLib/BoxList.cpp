@@ -120,7 +120,7 @@ BoxList::BoxList (const BoxArray &ba)
 {
     if (ba.size() > 0)
         btype = ba[0].ixType();
-    for (int i = 0; i < ba.size(); ++i)
+    for (int i = 0, N = ba.size(); i < N; ++i)
         push_back(ba[i]);
 }
 
@@ -187,7 +187,7 @@ BoxList::contains (const BoxList&  bl) const
 
     BoxArray ba(*this);
 
-    for (const_iterator bli = bl.begin(), end = bl.end(); bli != end; ++bli)
+    for (const_iterator bli = bl.begin(), End = bl.end(); bli != End; ++bli)
         if (!ba.contains(*bli))
             return false;
 
@@ -232,7 +232,7 @@ BoxList::intersect (const BoxList& b)
 
     for (iterator lhs = begin(); lhs != end(); ++lhs)
     {
-        for (const_iterator rhs = b.begin(), end = b.end(); rhs != end; ++rhs)
+        for (const_iterator rhs = b.begin(), End = b.end(); rhs != End; ++rhs)
         {
             const Box bx = *lhs & *rhs;
             if (bx.ok())
@@ -281,7 +281,7 @@ BoxList::complementIn (const Box&     b,
             mesh.push_back(minbox);
         mesh.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
 
-        for (BoxList::const_iterator bli = mesh.begin(), end = mesh.end(); bli != end; ++bli)
+        for (BoxList::const_iterator bli = mesh.begin(), End = mesh.end(); bli != End; ++bli)
         {
             const Box bx = *bli & b;
 
@@ -318,7 +318,7 @@ BoxList::complementIn_base (const Box&     b,
 
     push_back(b);
 
-    for (const_iterator bli = bl.begin(), end = bl.end(); bli != end && isNotEmpty(); ++bli)
+    for (const_iterator bli = bl.begin(), End = bl.end(); bli != End && isNotEmpty(); ++bli)
     {
         for (iterator newbli = lbox.begin(); newbli != lbox.end(); )
         {
@@ -732,9 +732,9 @@ std::ostream&
 operator<< (std::ostream&  os,
             const BoxList& blist)
 {
-    BoxList::const_iterator bli = blist.begin(), end = blist.end();
+    BoxList::const_iterator bli = blist.begin(), End = blist.end();
     os << "(BoxList " << blist.size() << ' ' << blist.ixType() << '\n';
-    for (int count = 1; bli != end; ++bli, ++count)
+    for (int count = 1; bli != End; ++bli, ++count)
     {
         os << count << " : " << *bli << '\n';
     }
