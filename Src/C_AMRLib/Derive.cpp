@@ -257,8 +257,8 @@ DeriveList::dlist ()
 bool
 DeriveList::canDerive (const std::string& name) const 
 {
-    for (std::list<DeriveRec>::const_iterator li = lst.begin(), end = lst.end();
-         li != end;
+    for (std::list<DeriveRec>::const_iterator li = lst.begin(), End = lst.end();
+         li != End;
          ++li)
     {
         if (li->derive_name == name)
@@ -270,8 +270,8 @@ DeriveList::canDerive (const std::string& name) const
 const DeriveRec*
 DeriveList::get (const std::string& name) const
 {
-    for (std::list<DeriveRec>::const_iterator li = lst.begin(), end = lst.end();
-         li != end;
+    for (std::list<DeriveRec>::const_iterator li = lst.begin(), End = lst.end();
+         li != End;
          ++li)
     {
         if (li->derive_name == name)
@@ -287,15 +287,15 @@ DeriveList::addComponent (const std::string&    name,
                           int                   s_comp,
                           int                   n_comp)
 {
-    std::list<DeriveRec>::iterator li = lst.begin(), end = lst.end();
+    std::list<DeriveRec>::iterator li = lst.begin(), End = lst.end();
 
-    for ( ; li != end; ++li)
+    for ( ; li != End; ++li)
     {
         if (li->derive_name == name)
             break;
     }
 
-    BL_ASSERT (li != end);
+    BL_ASSERT (li != End);
 
     li->addRange(d_list, state_indx, s_comp, n_comp);
 }
