@@ -621,6 +621,12 @@ public:
 
 protected:
 
+    void defineDoit (const BoxArray&            bxs,
+                     int                        nvar,
+                     int                        ngrow,
+                     FabAlloc                   mem_mode,
+                     const DistributionMapping* dm);
+
     std::map<int,FAB*> m_fabs;
 
     typedef typename std::map<int,FAB*>::value_type ValueType;
@@ -1005,7 +1011,7 @@ template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
-    for (Iterator it = m_fabs.begin(), end = m_fabs.end(); it != end; ++it)
+    for (Iterator it = m_fabs.begin(), End = m_fabs.end(); it != End; ++it)
         delete it->second;
 
     m_fabs.clear();
@@ -1076,32 +1082,56 @@ FabArray<FAB>::ok () const
 
 template <class FAB>
 void
-FabArray<FAB>::define (const BoxArray& bxs,
-                       int             nvar,
-                       int             ngrow,
-                       FabAlloc        alloc)
+FabArray<FAB>::defineDoit (const BoxArray&            bxs,
+                           int                        nvar,
+                           int                        ngrow,
+                           FabAlloc                   alloc,
+                           const DistributionMapping* dm)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
 
     n_grow = ngrow;
     n_comp = nvar;
+
     boxarray.define(bxs);
-    distributionMap.define(boxarray,ParallelDescriptor::NProcs());
+
+    if (dm == 0)
+    {
+        distributionMap.define(boxarray,ParallelDescriptor::NProcs());
+    }
+    else
+    {
+        BL_ASSERT(dm->ProcessorMap().size() == bxs.size()+1);
+
+        distributionMap = *dm;
+    }
 
     int cnt = 0;
     const int MyProc = ParallelDescriptor::MyProc();
-    for (int i = 0; i < boxarray.size(); i++)
+    for (int i = 0, N = boxarray.size(); i < N; i++)
         if (distributionMap[i] == MyProc)
             cnt++;
+
     indexMap.resize(cnt);
+
     cnt = 0;
-    for (int i = 0; i < boxarray.size(); i++)
+    for (int i = 0, N = boxarray.size(); i < N; i++)
         if (distributionMap[i] == MyProc)
             indexMap[cnt++] = i;
 
     if (alloc == Fab_allocate)
         AllocFabs();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::define (const BoxArray& bxs,
+                       int             nvar,
+                       int             ngrow,
+                       FabAlloc        alloc)
+{
+    defineDoit(bxs,nvar,ngrow,alloc,0);
 }
 
 template <class FAB>
@@ -1112,28 +1142,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
                        const DistributionMapping& dm,
                        FabAlloc                   alloc)
 {
-    BL_ASSERT(ngrow >= 0);
-    BL_ASSERT(boxarray.size() == 0);
-    BL_ASSERT(dm.ProcessorMap().size() == bxs.size()+1);
-
-    n_grow = ngrow;
-    n_comp = nvar;
-    boxarray.define(bxs);
-    distributionMap = dm;
-
-    int cnt = 0;
-    const int MyProc = ParallelDescriptor::MyProc();
-    for (int i = 0; i < boxarray.size(); i++)
-        if (distributionMap[i] == MyProc)
-            cnt++;
-    indexMap.resize(cnt);
-    cnt = 0;
-    for (int i = 0; i < boxarray.size(); i++)
-        if (distributionMap[i] == MyProc)
-            indexMap[cnt++] = i;
-
-    if (alloc == Fab_allocate)
-        AllocFabs();
+    defineDoit(bxs,nvar,ngrow,alloc,&dm);
 }
 
 template <class FAB>
@@ -1209,6 +1218,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             else
             {
                 BL_ASSERT(op == FabArrayBase::ADD);
+
                 get(fai).plus(src[fai],fai.validbox(),fai.validbox(),scomp,dcomp,ncomp);
             }
         }
@@ -1229,8 +1239,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         // All we need to do here are the local copy()s.
         //
-        for (std::list<CopyComTag>::iterator it = thecpc.m_LocalTags.begin(), end = thecpc.m_LocalTags.end();
-             it != end;
+        for (std::list<CopyComTag>::iterator it = thecpc.m_LocalTags.begin(), End = thecpc.m_LocalTags.end();
+             it != End;
              ++it)
         {
             CopyComTag& tag = *it;
@@ -1258,11 +1268,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         std::vector< std::pair<int,Box> > isects;
 
-        for (int i = 0; i < size(); i++)
+        for (int i = 0, N = size(); i < N; i++)
         {
             isects = src.boxarray.intersections(boxarray[i]);
 
-            for (int ii = 0; ii < isects.size(); ii++)
+            for (int ii = 0, M = isects.size(); ii < M; ii++)
             {
                 const Box& bx  = isects[ii].second;
                 const int  iii = isects[ii].first;
@@ -1323,8 +1333,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         for (int i = 0; i < NProcs; i++)
         {
             int Ns = 0;
-            for (std::list<CopyComTag>::iterator it = thecpc.m_SndTags[i].begin(), end = thecpc.m_SndTags[i].end();
-                 it != end;
+            for (std::list<CopyComTag>::iterator it = thecpc.m_SndTags[i].begin(), End = thecpc.m_SndTags[i].end();
+                 it != End;
                  ++it)
             {
                 Ns += it->box.numPts() * ncomp;
@@ -1333,8 +1343,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             Nsend       += Ns;
 
             int Nr = 0;
-            for (std::list<CopyComTag>::iterator it = thecpc.m_RcvTags[i].begin(), end = thecpc.m_RcvTags[i].end();
-                 it != end;
+            for (std::list<CopyComTag>::iterator it = thecpc.m_RcvTags[i].begin(), End = thecpc.m_RcvTags[i].end();
+                 it != End;
                  ++it)
             {
                 Nr += it->box.numPts() * ncomp;
@@ -1361,8 +1371,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         for (int i = 0; i < NProcs; i++)
         {
-            for (std::list<CopyComTag>::iterator it = thecpc.m_SndTags[i].begin(), end = thecpc.m_SndTags[i].end();
-                 it != end;
+            for (std::list<CopyComTag>::iterator it = thecpc.m_SndTags[i].begin(), End = thecpc.m_SndTags[i].end();
+                 it != End;
                  ++it)
             {
                 const Box& bx = it->box;
@@ -1392,8 +1402,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         for (int i = 0; i < NProcs; i++)
         {
-            for (std::list<CopyComTag>::iterator it = thecpc.m_RcvTags[i].begin(), end = thecpc.m_RcvTags[i].end();
-                 it != end;
+            for (std::list<CopyComTag>::iterator it = thecpc.m_RcvTags[i].begin(), End = thecpc.m_RcvTags[i].end();
+                 it != End;
                  ++it)
             {
                 const Box& bx = it->box;
@@ -1440,8 +1450,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             {
                 NWaits++;
                 size_t N = 0;
-                for (std::list<CopyComTag>::iterator it = thecpc.m_RcvTags[i].begin(), end = thecpc.m_RcvTags[i].end();
-                     it != end;
+                for (std::list<CopyComTag>::iterator it = thecpc.m_RcvTags[i].begin(), End = thecpc.m_RcvTags[i].end();
+                     it != End;
                      ++it)
                 {
                     N += it->box.numPts() * ncomp;
@@ -1462,8 +1472,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             {
                 size_t N = 0;
 
-                for (std::list<CopyComTag>::iterator it = thecpc.m_SndTags[i].begin(), end = thecpc.m_SndTags[i].end();
-                     it != end;
+                for (std::list<CopyComTag>::iterator it = thecpc.m_SndTags[i].begin(), End = thecpc.m_SndTags[i].end();
+                     it != End;
                      ++it)
                 {
                     N += it->box.numPts() * ncomp;
@@ -1473,8 +1483,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
                 value_type* dptr = data;
 
-                for (std::list<CopyComTag>::iterator it = thecpc.m_SndTags[i].begin(), end = thecpc.m_SndTags[i].end();
-                     it != end;
+                for (std::list<CopyComTag>::iterator it = thecpc.m_SndTags[i].begin(), End = thecpc.m_SndTags[i].end();
+                     it != End;
                      ++it)
                 {
                     const Box& bx = it->box;
@@ -1500,8 +1510,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             {
                 value_type* dptr = fab_data[indx[k]];
                 BL_ASSERT(!(dptr == 0));
-                for (std::list<CopyComTag>::iterator it = thecpc.m_RcvTags[indx[k]].begin(), end = thecpc.m_RcvTags[indx[k]].end();
-                     it != end;
+                for (std::list<CopyComTag>::iterator it = thecpc.m_RcvTags[indx[k]].begin(), End = thecpc.m_RcvTags[indx[k]].end();
+                     it != End;
                      ++it)
                 {
                     const Box& bx = it->box;
@@ -1588,7 +1598,7 @@ FabArray<FAB>::copy (FAB&       dest,
 
     if (ParallelDescriptor::NProcs() == 1)
     {
-        for (int j = 0; j < size(); ++j)
+        for (int j = 0, N = size(); j < N; ++j)
         {
             if (boxarray[j].intersects(subbox))
             {
@@ -1603,7 +1613,7 @@ FabArray<FAB>::copy (FAB&       dest,
 
     FArrayBox ovlp;
 
-    for (int i = 0; i < size(); i++)
+    for (int i = 0, N = size(); i < N; i++)
     {
         if (subbox.intersects(boxarray[i]))
         {
@@ -1824,7 +1834,7 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
 
     std::vector< std::pair<int,Box> > isects = fabArrays[fabarrayid.Id()]->boxArray().intersections(destFabBox);
 
-    for (int ii = 0; ii < isects.size(); ii++)
+    for (int ii = 0, N = isects.size(); ii < N; ii++)
     {
         AddBoxDoIt(fabarrayid,
                    destFabBox,
@@ -1910,10 +1920,10 @@ FabArrayCopyDescriptor<FAB>::clear ()
 {
     long bytes = 0;
 
-    for (unsigned int i = 0; i < fabCopyDescList.size(); ++i)
+    for (unsigned int i = 0, N = fabCopyDescList.size(); i < N; ++i)
     {
-        for (FCDMapIter fmi = fabCopyDescList[i].begin();
-             fmi != fabCopyDescList[i].end();
+        for (FCDMapIter fmi = fabCopyDescList[i].begin(), End = fabCopyDescList[i].end();
+             fmi != End;
              ++fmi)
         {
             if ((*fmi).second->cacheDataAllocated)
@@ -1960,8 +1970,8 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
     //
     // Set Rcvs[i] to # of blocks needed from CPU i
     //
-    for (std::list<FabArrayBase::FabComTag>::const_iterator it = fabComTagList.begin(), end = fabComTagList.end();
-         it != end;
+    for (std::list<FabArrayBase::FabComTag>::const_iterator it = fabComTagList.begin(), End = fabComTagList.end();
+         it != End;
          ++it)
     {
         BL_ASSERT(it->box.ok());
@@ -2015,8 +2025,8 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
 
         Array<int> index = sdispls;
 
-        for (std::list<FabArrayBase::FabComTag>::const_iterator it = fabComTagList.begin(), end = fabComTagList.end();
-             it != end;
+        for (std::list<FabArrayBase::FabComTag>::const_iterator it = fabComTagList.begin(), End = fabComTagList.end();
+             it != End;
              ++it)
         {
             ParallelDescriptor::CommData data(0,
@@ -2138,8 +2148,8 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
             {
                 value_type* dptr = &recvbuf[rdispls[i]];
 
-                for (std::list<FabArrayBase::FabComTag>::const_iterator it = fabComTagList.begin(), end = fabComTagList.end();
-                     it != end;
+                for (std::list<FabArrayBase::FabComTag>::const_iterator it = fabComTagList.begin(), End = fabComTagList.end();
+                     it != End;
                      ++it)
                 {
                     if (it->procThatHasData == i)
@@ -2268,8 +2278,8 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
 
                 BL_ASSERT(!(dptr == 0));
 
-                for (std::list<FabArrayBase::FabComTag>::const_iterator it = fabComTagList.begin(), end = fabComTagList.end();
-                     it != end;
+                for (std::list<FabArrayBase::FabComTag>::const_iterator it = fabComTagList.begin(), End = fabComTagList.end();
+                     it != End;
                      ++it)
                 {
                     if (it->procThatHasData == indx[k])
@@ -2403,8 +2413,8 @@ FabArray<FAB>::FillBoundary (int scomp,
     //
     // Add boxes we need to collect.
     //
-    for (std::list<SIRec>::iterator it = si.m_sirec.begin(), end = si.m_sirec.end();
-         it != end;
+    for (std::list<SIRec>::iterator it = si.m_sirec.begin(), End = si.m_sirec.end();
+         it != End;
          ++it)
     {
         it->m_fbid = mfcd.AddBox(mfid,
@@ -2418,8 +2428,8 @@ FabArray<FAB>::FillBoundary (int scomp,
 
     mfcd.CollectData(&si.m_cache,&si.m_commdata);
 
-    for (std::list<SIRec>::iterator it = si.m_sirec.begin(), end = si.m_sirec.end();
-         it != end;
+    for (std::list<SIRec>::iterator it = si.m_sirec.begin(), End = si.m_sirec.end();
+         it != End;
          ++it)
     {
         BL_ASSERT(DistributionMap()[it->m_i] == ParallelDescriptor::MyProc());
