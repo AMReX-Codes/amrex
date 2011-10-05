@@ -8,7 +8,7 @@
 #include <MacBndry.H>
 #include <MGT_Solver.H>
 
-#include "COEF_F.H"
+#include <COEF_F.H>
 
 void solve_with_F90(PArray<MultiFab>& soln, int iF90, Real a, Real b, 
 		    const PArray<MultiFab>& alph, 

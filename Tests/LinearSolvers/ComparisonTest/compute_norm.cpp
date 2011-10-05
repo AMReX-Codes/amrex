@@ -5,7 +5,7 @@
 #include <PArray.H>
 #include <MultiFab.H>
 
-#include "COMP_NORM_F.H"
+#include <COMP_NORM_F.H>
 
 void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 
 		  const std::vector<Geometry>& geom, const std::vector<BoxArray>& grids,

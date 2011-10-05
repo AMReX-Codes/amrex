@@ -4,7 +4,7 @@
 
 #include <Profiler.H>
 
-#include "hg_projector.H"
+#include <hg_projector.H>
 
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGDIV		hgdiv_

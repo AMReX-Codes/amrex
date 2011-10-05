@@ -2,12 +2,10 @@
 #ifndef _FILL_PATCH_H_
 #define _FILL_PATCH_H_
 
-#include "interface.H"
-#include "boundary.H"
-#include "interpolator.H"
-#include "restrictor.H"
-
-//void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b);
+#include <interface.H>
+#include <boundary.H>
+#include <interpolator.H>
+#include <restrictor.H>
 
 Real
 inner_product (const MultiFab& r,

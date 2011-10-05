@@ -2,7 +2,7 @@
 #ifndef BL_BOXLIB_H
 #define BL_BOXLIB_H
 
-#include "ccse-mpi.H"
+#include <ccse-mpi.H>
 
 //
 // Error-reporting Functions and Version Number

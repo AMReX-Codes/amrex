@@ -1,5 +1,5 @@
 
-#include "interpolator.H"
+#include <interpolator.H>
 
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define FORT_FACINT2  acint2_

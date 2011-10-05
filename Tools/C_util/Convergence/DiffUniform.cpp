@@ -1,6 +1,3 @@
-//
-// $Id: DiffUniform.cpp,v 1.14 2010-12-22 23:46:58 gpau Exp $
-//
 
 #include <new>
 #include <iostream>
@@ -11,21 +8,21 @@ using std::ios;
 
 #include <unistd.h>
 
-#include "WritePlotFile.H"
-#include "REAL.H"
-#include "Box.H"
-#include "FArrayBox.H"
-#include "ParmParse.H"
-#include "ParallelDescriptor.H"
-#include "DataServices.H"
-#include "Utility.H"
-#include "VisMF.H"
+#include <WritePlotFile.H>
+#include <REAL.H>
+#include <Box.H>
+#include <FArrayBox.H>
+#include <ParmParse.H>
+#include <ParallelDescriptor.H>
+#include <DataServices.H>
+#include <Utility.H>
+#include <VisMF.H>
 
 #ifndef NDEBUG
-#include "TV_TempWrite.H"
+#include <TV_TempWrite.H>
 #endif
 
-#include "AVGDOWN_F.H"
+#include <AVGDOWN_F.H>
 
 #define GARBAGE 666.e+40
  

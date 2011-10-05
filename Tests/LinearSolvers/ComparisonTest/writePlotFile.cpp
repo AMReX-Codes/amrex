@@ -9,7 +9,7 @@
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 
-#include "writePlotFile.H"
+#include <writePlotFile.H>
 
 void writePlotFile (const std::string& dir, 
 		    const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 

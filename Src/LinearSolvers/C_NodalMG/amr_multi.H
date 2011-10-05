@@ -2,7 +2,7 @@
 #ifndef _AMR_MULTI_H_
 #define _AMR_MULTI_H_
 
-#include "fill_patch.H"
+#include <fill_patch.H>
 
 class amr_multigrid
 {

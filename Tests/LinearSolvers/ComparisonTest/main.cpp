@@ -8,8 +8,8 @@
 
 #include <LO_BCTYPES.H>
 
-#include "COEF_F.H"
-#include "writePlotFile.H"
+#include <COEF_F.H>
+#include <writePlotFile.H>
 
 enum solver_t {BoxLib_C, BoxLib_F, All};
 enum bc_t {Periodic = 0,
