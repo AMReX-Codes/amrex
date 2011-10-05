@@ -7,7 +7,7 @@
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
-#include "writePlotFile.H"
+#include <writePlotFile.H>
 
 #if    defined(BL_FORT_USE_UPPERCASE)
 #define FORT_INIT_DATA            INIT_DATA

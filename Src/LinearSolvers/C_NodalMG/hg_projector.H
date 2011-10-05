@@ -2,7 +2,7 @@
 #ifndef _HG_PROJECTOR_H_
 #define _HG_PROJECTOR_H_
 
-#include "hg_multi.H"
+#include <hg_multi.H>
 #include <Geometry.H>
 
 extern PArray<MultiFab> null_amr_real;

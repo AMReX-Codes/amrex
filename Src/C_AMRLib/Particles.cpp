@@ -1,4 +1,4 @@
-#include "Particles.H"
+#include <Particles.H>
 
 const std::string&
 ParticleBase::DataPrefix ()

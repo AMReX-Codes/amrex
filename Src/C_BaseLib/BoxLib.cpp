@@ -19,7 +19,7 @@
 #include <MultiFab.H>
 
 #ifdef BL_USE_OMP
-#include "omp.h"
+#include <omp.h>
 #endif
 
 #define bl_str(s)  # s

@@ -1,8 +1,4 @@
 
-//
-// $Id: DiffFab.cpp,v 1.9 2010-02-19 23:40:10 almgren Exp $
-//
-
 #include <new>
 #include <iostream>
 #include <fstream>
@@ -13,18 +9,18 @@ using std::ios;
 
 #include <unistd.h>
 
-#include "REAL.H"
-#include "Box.H"
-#include "FArrayBox.H"
-#include "ParmParse.H"
-#include "Utility.H"
-#include "VisMF.H"
+#include <REAL.H>
+#include <Box.H>
+#include <FArrayBox.H>
+#include <ParmParse.H>
+#include <Utility.H>
+#include <VisMF.H>
 
 #ifndef NDEBUG
-#include "TV_TempWrite.H"
+#include <TV_TempWrite.H>
 #endif
 
-#include "AVGDOWN_F.H"
+#include <AVGDOWN_F.H>
 
 #define GARBAGE 666.e+40
 

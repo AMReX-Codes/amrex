@@ -5,9 +5,9 @@
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 
-#include "LO_BCTYPES.H"
-#include "DivVis_F.H"
-#include "MCLinOp.H"
+#include <LO_BCTYPES.H>
+#include <DivVis_F.H>
+#include <MCLinOp.H>
 
 namespace
 {

@@ -3,17 +3,16 @@
 #include <cstdlib>
 #include <string>
 #include <cmath>
-
 #include <unistd.h>
 
-#include "ComputeAmrDataNorms.H"
-#include "ParmParse.H"
-#include "ParallelDescriptor.H"
-#include "DataServices.H"
-#include "Utility.H"
+#include <ComputeAmrDataNorms.H>
+#include <ParmParse.H>
+#include <ParallelDescriptor.H>
+#include <DataServices.H>
+#include <Utility.H>
 
 #ifndef NDEBUG
-#include "TV_TempWrite.H"
+#include <TV_TempWrite.H>
 #endif
 
 using std::ios;

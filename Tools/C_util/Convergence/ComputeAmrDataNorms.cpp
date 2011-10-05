@@ -1,16 +1,16 @@
 
 #include <string>
 
-#include "ComputeAmrDataNorms.H"
+#include <ComputeAmrDataNorms.H>
 
-#include "WritePlotFile.H"
-#include "REAL.H"
-#include "Box.H"
-#include "FArrayBox.H"
-#include "ParmParse.H"
-#include "ParallelDescriptor.H"
-#include "Utility.H"
-#include "VisMF.H"
+#include <WritePlotFile.H>
+#include <REAL.H>
+#include <Box.H>
+#include <FArrayBox.H>
+#include <ParmParse.H>
+#include <ParallelDescriptor.H>
+#include <Utility.H>
+#include <VisMF.H>
 
 void
 ComputeAmrDataNorms (AmrData&     amrData,

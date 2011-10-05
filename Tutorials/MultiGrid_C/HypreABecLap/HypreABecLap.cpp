@@ -1,8 +1,8 @@
 
-#include "HypreABecLap.H"
-#include "HypreABec_F.H"
+#include <HypreABecLap.H>
+#include <HypreABec_F.H>
 
-#include "_hypre_struct_mv.h"
+#include <_hypre_struct_mv.h>
 
 HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom)
 {

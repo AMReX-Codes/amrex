@@ -10,7 +10,7 @@
 #include <MacBndry.H>
 #include <ParmParse.H>
 
-#include "HYPRE_struct_ls.h"
+#include <HYPRE_struct_ls.h>
 
 class HypreABecLap {
 

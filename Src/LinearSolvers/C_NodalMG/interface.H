@@ -5,7 +5,7 @@
 #include <map>
 #include <set>
 
-#include "amr_defs.H"
+#include <amr_defs.H>
 
 class amr_boundary;
 

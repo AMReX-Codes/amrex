@@ -1,8 +1,4 @@
 
-//
-// $ $
-//
-
 #include <winstd.H>
 #include <new>
 #include <iostream>
@@ -13,12 +9,12 @@ using std::set_new_handler;
 
 #include <unistd.h>
 
-#include "Box.H"
-#include "ParmParse.H"
-#include "ParallelDescriptor.H"
-#include "Utility.H"
-#include "ArrayLim.H"
-#include "VisMF.H"
+#include <Box.H>
+#include <ParmParse.H>
+#include <ParallelDescriptor.H>
+#include <Utility.H>
+#include <ArrayLim.H>
+#include <VisMF.H>
 
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.

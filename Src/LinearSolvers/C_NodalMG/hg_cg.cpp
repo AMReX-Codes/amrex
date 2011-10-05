@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "hg_multi.H"
+#include <hg_multi.H>
 
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGCG1            hgcg1_
