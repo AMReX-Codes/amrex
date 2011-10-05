@@ -118,9 +118,9 @@ BoxDomain::add (const Box& b)
 
     check.push_back(b);
 
-    for (iterator bli = lbox.begin(), end = lbox.end(); bli != end; ++bli)
+    for (iterator bli = lbox.begin(), End = lbox.end(); bli != End; ++bli)
     {
-        for (iterator ci = check.begin(), cend = check.end(); ci != cend; )
+        for (iterator ci = check.begin(), Cend = check.end(); ci != Cend; )
         {
             if (ci->intersects(*bli))
             {
@@ -164,7 +164,7 @@ BoxDomain::rmBox (const Box& b)
 
     std::list<Box> tmp;
 
-    for (std::list<Box>::iterator bli = lbox.begin(), end = lbox.end(); bli != end; )
+    for (std::list<Box>::iterator bli = lbox.begin(), End = lbox.end(); bli != End; )
     {
         if (bli->intersects(b))
         {

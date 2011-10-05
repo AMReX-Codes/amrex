@@ -393,7 +393,7 @@ FabArrayBase::TheFBsirec (int                 scomp,
                 //
                 Array<ParallelDescriptor::CommData>& cd = it->second.m_commdata.theCommData();
 
-                for (int i = 0; i < cd.size(); i++)
+                for (int i = 0, N = cd.size(); i < N; i++)
                 {
                     cd[i].nComp(ncomp);
                     cd[i].srcComp(scomp);

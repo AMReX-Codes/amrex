@@ -1444,7 +1444,7 @@ BaseFab<T>::setComplement (T          x,
                            int        num)
 {
     BoxList b_lst = BoxLib::boxDiff(domain,b);
-    for (BoxList::iterator bli = b_lst.begin(), end = b_lst.end(); bli != end; ++bli)
+    for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli)
         performSetVal(x, *bli, ns, num);
 }
 

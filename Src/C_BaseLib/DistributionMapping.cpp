@@ -312,7 +312,7 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
 
     if (nprocs == 1)
     {
-        for (int i = 0; i < m_ref->m_pmap.size(); i++)
+        for (int i = 0, N = m_ref->m_pmap.size(); i < N; i++)
         {
             m_ref->m_pmap[i] = 0;
         }
@@ -417,7 +417,7 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 
     LIpairV.reserve(boxes.size());
 
-    for (int i = 0; i < boxes.size(); i++)
+    for (int i = 0, N = boxes.size(); i < N; i++)
     {
         LIpairV.push_back(LIpair(boxes[i].numPts(),i));
     }
@@ -491,7 +491,7 @@ knapsack (const std::vector<long>& wgts, int nprocs)
 
     std::vector<WeightedBox> lb;
     lb.reserve(wgts.size());
-    for (unsigned int i = 0; i < wgts.size(); ++i)
+    for (unsigned int i = 0, N = wgts.size(); i < N; ++i)
     {
         lb.push_back(WeightedBox(i, wgts[i]));
     }
@@ -509,7 +509,7 @@ knapsack (const std::vector<long>& wgts, int nprocs)
         wblq.push(WeightedBoxList(vbbs[i]));
     }
     BL_ASSERT(int(wblq.size()) == nprocs);
-    for (unsigned int i = 0; i < wgts.size(); ++i)
+    for (unsigned int i = 0, N = wgts.size(); i < N; ++i)
     {
         WeightedBoxList wbl = wblq.top();
         wblq.pop();
@@ -531,7 +531,7 @@ knapsack (const std::vector<long>& wgts, int nprocs)
     double max_weight = 0;
     double sum_weight = 0;
     std::list<WeightedBoxList>::iterator it = wblqg.begin();
-    for (std::list<WeightedBoxList>::const_iterator end =  wblqg.end(); it != end; ++it)
+    for (std::list<WeightedBoxList>::const_iterator End =  wblqg.end(); it != End; ++it)
     {
         long wgt = (*it).weight();
         sum_weight += wgt;
@@ -635,7 +635,8 @@ top:
                   << "%, time: "             << stoptime << '\n';
     }
 
-    for (int i  = 0; i < nprocs; i++) delete vbbs[i];
+    for (int i  = 0; i < nprocs; i++)
+        delete vbbs[i];
 
     return result;
 }
@@ -652,10 +653,12 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     Array<long> wgts_per_cpu(nprocs,0);
 
-    for (unsigned int i = 0; i < vec.size(); i++)
+    for (unsigned int i = 0, N = vec.size(); i < N; i++)
     {
-        for (std::list<int>::iterator lit = vec[i].begin(), end = vec[i].end(); lit != end; ++lit)
+        for (std::list<int>::iterator lit = vec[i].begin(), End = vec[i].end(); lit != End; ++lit)
+        {
             wgts_per_cpu[i] += wgts[*lit];
+        }
     }
 
     std::vector<LIpair> LIpairV;
@@ -674,12 +677,12 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     std::reverse(LIpairV.begin(), LIpairV.end());
 
-    for (unsigned int i = 0; i < vec.size(); i++)
+    for (unsigned int i = 0, N = vec.size(); i < N; i++)
     {
         const int idx = LIpairV[i].second;
         const int cpu = ord[i%nprocs];
 
-        for (std::list<int>::iterator lit = vec[idx].begin(), end = vec[idx].end(); lit != end; ++lit)
+        for (std::list<int>::iterator lit = vec[idx].begin(), End = vec[idx].end(); lit != End; ++lit)
         {
             m_ref->m_pmap[*lit] = cpu;
         }
@@ -728,8 +731,10 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
 
         wgts.reserve(boxes.size());
 
-        for (unsigned int i = 0; i < boxes.size(); i++)
+        for (unsigned int i = 0, N = boxes.size(); i < N; i++)
+        {
             wgts.push_back(boxes[i].numPts());
+        }
 
         KnapSackDoIt(wgts, nprocs);
     }
@@ -794,7 +799,7 @@ Distribute (const std::vector<SFCToken>& tokens,
             Real                         volpercpu)
 
 {
-    int K         = 0;
+    int  K        = 0;
     Real totalvol = 0;
 
     const int Navg = tokens.size() / nprocs;
@@ -808,8 +813,8 @@ Distribute (const std::vector<SFCToken>& tokens,
 
         v[i].reserve(Navg + 2);
 
-        for ( ;
-              K < tokens.size() && (i == (nprocs-1) || vol < volpercpu);
+        for ( int TSZ = tokens.size();
+              K < TSZ && (i == (nprocs-1) || vol < volpercpu);
               cnt++, K++)
         {
             vol += tokens[K].m_vol;
@@ -852,7 +857,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     int maxijk = 0;
 
-    for (int i = 0; i < boxes.size(); i++)
+    for (int i = 0, N = boxes.size(); i < N; i++)
     {
         tokens.push_back(SFCToken(i,boxes[i].smallEnd(),wgts[i]));
 
@@ -874,7 +879,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     // Split'm up as equitably as possible per CPU.
     //
     Real volpercpu = 0;
-    for (int i = 0; i < tokens.size(); i++)
+    for (int i = 0, N = tokens.size(); i < N; i++)
         volpercpu += tokens[i].m_vol;
     volpercpu /= nprocs;
 
@@ -886,10 +891,10 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     Array<long> wgts_per_cpu(nprocs,0);
 
-    for (unsigned int i = 0; i < vec.size(); i++)
+    for (unsigned int i = 0, N = vec.size(); i < N; i++)
     {
         //std::cout << "vec[" << i << "]: wgt: ";
-        for (int j = 0; j < vec[i].size(); j++)
+        for (int j = 0, M = vec[i].size(); j < M; j++)
             wgts_per_cpu[i] += wgts[vec[i][j]];
         //std::cout << wgts_per_cpu[i] << '\n';
     }
@@ -915,7 +920,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         const int cpu = ord[i%nprocs];
         const int idx = LIpairV[i].second;
 
-        for (int j = 0; j < vec[idx].size(); j++)
+        for (int j = 0, N = vec[idx].size(); j < N; j++)
         {
             m_ref->m_pmap[vec[idx][j]] = cpu;
         }
@@ -931,11 +936,11 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
         std::vector<Real> wgt(nprocs,0);
 
-        for (int i = 0; i < tokens.size(); i++)
+        for (int i = 0, N = tokens.size(); i < N; i++)
             wgt[m_ref->m_pmap[tokens[i].m_box]] += tokens[i].m_vol;
 
         Real sum_wgt = 0, max_wgt = 0;
-        for (int i = 0; i < wgt.size(); i++)
+        for (int i = 0, N = wgt.size(); i < N; i++)
         {
             if (wgt[i] > max_wgt)
                 max_wgt = wgt[i];
@@ -975,7 +980,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 
         wgts.reserve(boxes.size());
 
-        for (int i = 0; i < boxes.size(); i++)
+        for (int i = 0, N = boxes.size(); i < N; i++)
             wgts.push_back(boxes[i].volume());
 
         SFCProcessorMapDoIt(boxes,wgts,nprocs);
