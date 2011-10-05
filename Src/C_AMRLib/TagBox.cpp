@@ -347,19 +347,19 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     std::list< std::pair<FillBoxId,IntVect> > IDs;
 
-    for (int i = 0; i < boxarray.size(); i++)
+    for (int i = 0, N = boxarray.size(); i < N; i++)
     {
         if (!domain.contains(boxarray[i]))
         {
             geom.periodicShift(domain, boxarray[i], pshifts);
 
-            for (int iiv = 0; iiv < pshifts.size(); iiv++)
+            for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
             {
                 Box shiftbox(boxarray[i]);
 
                 shiftbox.shift(pshifts[iiv]);
 
-                for (int j = 0; j < boxarray.size(); j++)
+                for (int j = 0; j < N; j++)
                 {
                     if (distributionMap[j] == MyProc)
                     {
@@ -389,8 +389,8 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     TagBox src;
 
-    for (std::list< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(), end = IDs.end();
-         it != end;
+    for (std::list< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(), End = IDs.end();
+         it != End;
          ++it)
     {
         BL_ASSERT(distributionMap[it->first.FabIndex()] == MyProc);
@@ -472,13 +472,13 @@ TagBoxArray::collate (long& numtags) const
 
     if (ParallelDescriptor::IOProcessor())
     {
-        for (int i = 0; i < nmtags.size(); i++)
+        for (int i = 0, N = nmtags.size(); i < N; i++)
             //
             // Convert from count of tags to count of integers to expect.
             //
             nmtags[i] *= BL_SPACEDIM;
 
-        for (int i = 1; i < offset.size(); i++)
+        for (int i = 1, N = offset.size(); i < N; i++)
             offset[i] = offset[i-1] + nmtags[i-1];
     }
     //
