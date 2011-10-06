@@ -430,11 +430,4 @@ BoxList::listBox() const
     return lbox;
 }
 
-inline
-void
-BoxList::clear ()
-{
-    lbox.clear();
-}
-
 #endif /*BL_BOXLIST_H*/
