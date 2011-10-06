@@ -117,7 +117,7 @@ public:
     void InitFromAsciiFile (const std::string& file, int extradata);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
-    void InitCosmo  (const Real vel_fac[]);
+    void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Real particleMass);
 
     Real sumParticleMass (const MultiFab& mf, int level) const;
     void sumParticleMomentum (const MultiFab& mf, int lev, Real* mom) const;
@@ -435,16 +435,13 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
 template <int N>
 void
-ParticleContainer<N>::InitCosmo (const Real vel_fac[])
+ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Real particleMass)
 {
     const int       MyProc   = ParallelDescriptor::MyProc();
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_amr->Geom(0);
     const Real*     dx       = geom.CellSize();
-
-    Real particleMass;
-    std::string mfDirName;
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
@@ -456,19 +453,6 @@ ParticleContainer<N>::InitCosmo (const Real vel_fac[])
     }
 
     const Real len[BL_SPACEDIM] = { geom.ProbLength(0),geom.ProbLength(1),geom.ProbLength(2) };
-    //
-    // Read the init directory name and particle mass from the inputs file
-    //
-    ParmParse pp("cosmo");
-    pp.get("initDirName", mfDirName);
-    pp.get("particle_mass",particleMass);
-
-    //
-    // Read from the directory into mf
-    //
-    MultiFab mf;
-    mfDirName.append("/Level_0/Cell");
-    VisMF::Read(mf,mfDirName.c_str());
 
     Real disp[BL_SPACEDIM];
 
