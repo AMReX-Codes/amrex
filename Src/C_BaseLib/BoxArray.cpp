@@ -1,5 +1,6 @@
 
 #include <iostream>
+
 #include <BLassert.H>
 #include <BoxArray.H>
 
@@ -132,7 +133,7 @@ BoxArray::Ref::define (std::istream& is)
     unsigned long hash;
     is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> hash;
     m_abox.resize(maxbox);
-    for (int i = 0, N = m_abox.size(); i < N; i++)
+    for (int i = 0; i < m_abox.size(); i++)
         is >> m_abox.get(i);
     is.ignore(BL_IGNORE_MAX, ')');
     if (is.fail())
@@ -154,12 +155,8 @@ BoxArray::Ref::define (const BoxList& bl)
     BL_ASSERT(m_abox.size() == 0);
     m_abox.resize(bl.size());
     int count = 0;
-    for (BoxList::const_iterator bli = bl.begin(), End = bl.end();
-         bli != End;
-         ++bli)
-    {
+    for (BoxList::const_iterator bli = bl.begin(), end = bl.end(); bli != end; ++bli)
         m_abox.get(count++) = *bli;
-    }
 }
 
 void
@@ -188,7 +185,7 @@ BoxArray::refine (int refinement_ratio)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).refine(refinement_ratio);
     return *this;
 }
@@ -198,7 +195,7 @@ BoxArray::refine (const IntVect& iv)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i <size(); i++)
         m_ref->m_abox.get(i).refine(iv);
     return *this;
 }
@@ -209,7 +206,7 @@ BoxArray::shift (int dir,
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).shift(dir, nzones);
     return *this;
 }
@@ -220,7 +217,7 @@ BoxArray::shift (const IntVect& iv)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).shift(iv);
     return *this;
 }
@@ -231,7 +228,7 @@ BoxArray::shiftHalf (int dir,
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).shiftHalf(dir, num_halfs);
     return *this;
 }
@@ -241,7 +238,7 @@ BoxArray::shiftHalf (const IntVect& iv)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).shiftHalf(iv);
     return *this;
 }
@@ -251,7 +248,7 @@ BoxArray::coarsen (int refinement_ratio)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).coarsen(refinement_ratio);
     return *this;
 }
@@ -261,7 +258,7 @@ BoxArray::coarsen (const IntVect& iv)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).coarsen(iv);
     return *this;
 }
@@ -271,7 +268,7 @@ BoxArray::grow (int n)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).grow(n);
     return *this;
 }
@@ -281,7 +278,7 @@ BoxArray::grow (const IntVect& iv)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).grow(iv);
     return *this;
 }
@@ -292,7 +289,7 @@ BoxArray::grow (int dir,
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).grow(dir, n_cell);
     return *this;
 }
@@ -341,7 +338,7 @@ BoxArray::contains (const BoxArray& bl) const
 
     if (!minimalBox().contains(bl.minimalBox())) return false;
 
-    for (int i = 0, N = bl.size(); i < N; i++)
+    for (int i = 0; i < bl.size(); i++)
         if (!contains(bl.m_ref->m_abox.get(i)))
             return false;
 
@@ -353,7 +350,7 @@ BoxArray::surroundingNodes ()
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).surroundingNodes();
     return *this;
 }
@@ -363,7 +360,7 @@ BoxArray::surroundingNodes (int dir)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).surroundingNodes(dir);
     return *this;
 }
@@ -373,7 +370,7 @@ BoxArray::enclosedCells ()
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).enclosedCells();
     return *this;
 }
@@ -383,7 +380,7 @@ BoxArray::enclosedCells (int dir)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).enclosedCells(dir);
     return *this;
 }
@@ -393,7 +390,7 @@ BoxArray::convert (IndexType typ)
 {
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox.get(i).convert(typ);
     return *this;
 }
@@ -405,7 +402,7 @@ BoxArray::convert (Box (*fp)(const Box&))
 
     if (!m_ref.unique())
         uniqify();
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         m_ref->m_abox[i] = (*fp)(m_ref->m_abox[i]);
     return *this;
 }
@@ -418,7 +415,7 @@ BoxArray::writeOn (std::ostream& os) const
     //
     os << '(' << size() << ' ' << 0 << '\n';
 
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
         os << get(i) << '\n';
 
     os << ')';
@@ -432,7 +429,7 @@ BoxArray::writeOn (std::ostream& os) const
 bool
 BoxArray::isDisjoint () const
 {
-    for (int i = 0, N = size(); i < N; i++)
+    for (int i = 0; i < size(); i++)
     {
         std::vector< std::pair<int,Box> > isects = intersections(get(i));
 
@@ -456,11 +453,10 @@ BoxArray::ok () const
         if (size() == 1)
             isok = bx0.ok();
 
-        for (int i = 1, N = size(); i < N && isok; i++)
+        for (int i = 1; i < size() && isok; i++)
         {
             const Box& bxi = m_ref->m_abox[i];
-
-            isok = (bxi.ok() && bxi.sameType(bx0));
+            isok = bxi.ok() && bxi.sameType(bx0);
         }
     }
     return isok;
@@ -470,7 +466,7 @@ long
 BoxArray::numPts () const
 {
     long result = 0;
-    for (int i = 0, N = size(); i < N; ++i)
+    for (int i = 0; i < size(); ++i)
     {
         result += m_ref->m_abox.get(i).numPts();
     }
@@ -481,7 +477,7 @@ double
 BoxArray::d_numPts () const
 {
     double result = 0;
-    for (int i = 0, N = size(); i < N; ++i)
+    for (int i = 0; i < size(); ++i)
     {
         result += m_ref->m_abox.get(i).d_numPts();
     }
@@ -496,8 +492,8 @@ BoxArray::maxSize (const IntVect& block_size)
     blst.maxSize(block_size);
     clear();
     m_ref->m_abox.resize(blst.size());
-    BoxList::iterator bli = blst.begin(), End = blst.end();
-    for (int i = 0; bli != End; ++bli)
+    BoxList::iterator bli = blst.begin(), end = blst.end();
+    for (int i = 0; bli != end; ++bli)
         set(i++, *bli);
     return *this;
 }
@@ -521,7 +517,7 @@ operator<< (std::ostream&   os,
        << 0
        << ")\n       ";
 
-    for (int i = 0, N = ba.size(); i < N; ++i)
+    for (int i = 0; i < ba.size(); ++i)
         os << ba[i] << ' ';
 
     os << ")\n";
@@ -537,7 +533,7 @@ BoxArray::boxList () const
 {
     if ( size() == 0 ) return BoxList();
     BoxList newb(get(0).ixType());
-    for (int i = 0, N = size(); i < N; ++i)
+    for (int i = 0; i < size(); ++i)
         newb.push_back(get(i));
     return newb;
 }
@@ -549,7 +545,7 @@ BoxArray::minimalBox () const
     if (size() > 0)
     {
         minbox = m_ref->m_abox.get(0);
-        for (int i = 0, N = size(); i < N; i++)
+        for (int i = 0; i < size(); i++)
             minbox.minBox(m_ref->m_abox.get(i));
     }
     return minbox;
@@ -588,7 +584,7 @@ BoxLib::intersect (const BoxArray& lhs,
 {
     if (lhs.size() == 0 || rhs.size() == 0) return BoxArray();
     BoxList bl(lhs[0].ixType());
-    for (int i = 0, N = lhs.size(); i < N; i++)
+    for (int i = 0; i < lhs.size(); i++)
     {
         BoxArray ba  = BoxLib::intersect(rhs, lhs[i]);
         BoxList  tmp = ba.boxList();
@@ -612,14 +608,14 @@ BoxLib::GetBndryCells (const BoxArray& ba,
 
     bcells.clear();
 
-    for (int i = 0, N = tba.size(); i < N; ++i)
+    for (int i = 0; i < tba.size(); ++i)
     {
 	gcells.join(BoxLib::boxDiff(BoxLib::grow(tba[i],ngrow),tba[i]));
     }
     //
     // Now strip out intersections with original BoxArray.
     //
-    for (BoxList::const_iterator it = gcells.begin(), End = gcells.end(); it != End; ++it)
+    for (BoxList::const_iterator it = gcells.begin(), end = gcells.end(); it != end; ++it)
     {
         std::vector< std::pair<int,Box> > isects = tba.intersections(*it);
 
@@ -666,7 +662,7 @@ BoxArray::intersections (const Box& bx) const
 
         Box boundingbox = get(0);
 
-        for (int i = 0, N = size(); i < N; i++)
+        for (int i = 0; i < size(); i++)
         {
             boundingbox.minBox(get(i));
             maxext = BoxLib::max(maxext, get(i).size());
@@ -676,7 +672,7 @@ BoxArray::intersections (const Box& bx) const
 
         m_ref->hash.resize(boundingbox, 1);
 
-        for (int i = 0, N = size(); i < N; i++)
+        for (int i = 0; i < size(); i++)
         {
             m_ref->hash(BoxLib::coarsen(get(i).smallEnd(),maxext)).push_back(i);
         }
@@ -700,7 +696,7 @@ BoxArray::intersections (const Box& bx) const
         {
             std::vector<int>& v = m_ref->hash(iv);
 
-            for (int i = 0, N = v.size(); i < N; i++)
+            for (int i = 0; i < v.size(); i++)
             {
                 const Box isect = bx & get(v[i]);
 
@@ -725,7 +721,7 @@ BoxArray::removeOverlap ()
 
     const Box EmptyBox;
 
-    for (int i = 0, M = size(); i < M; i++)
+    for (int i = 0; i < size(); i++)
     {
         const Box b = m_ref->m_abox[i];
 
@@ -741,7 +737,7 @@ BoxArray::removeOverlap ()
 
                 m_ref->m_abox[isects[j].first] = EmptyBox;
 
-                for (BoxList::const_iterator it = diff.begin(), End = diff.end(); it != End; ++it)
+                for (BoxList::const_iterator it = diff.begin(), end = diff.end(); it != end; ++it)
                 {
                     m_ref->m_abox.push_back(*it);
 
@@ -757,7 +753,7 @@ BoxArray::removeOverlap ()
     for (IntVect iv = bb.smallEnd(); iv <= bb.bigEnd(); bb.next(iv))
     {
         std::vector<int>& v = m_ref->hash(iv);
-        for (int i = 0, N = v.size(); i < N; i++)
+        for (int i = 0; i < v.size(); i++)
             if (m_ref->m_abox[v[i]].ok())
                 nbl.push_back(m_ref->m_abox[v[i]]);
     }
