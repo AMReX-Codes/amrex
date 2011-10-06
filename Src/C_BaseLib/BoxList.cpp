@@ -9,6 +9,15 @@
 #include <Profiler.H>
 
 void
+BoxList::clear ()
+{
+    //
+    // Really clear out the boxes.
+    //
+    std::list<Box>().swap(lbox);
+}
+
+void
 BoxList::join (const BoxList& blist)
 {
     BL_ASSERT(ixType() == blist.ixType());
