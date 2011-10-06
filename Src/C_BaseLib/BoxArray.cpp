@@ -716,18 +716,18 @@ BoxArray::intersections (const Box& bx) const
 //
 // Currently this assumes your Boxes are cell-centered.
 //
-BoxList
+void
 BoxArray::removeOverlap ()
 {
     if (!m_ref.unique()) uniqify();
 
-    BoxList diff;
+    BoxList bl;
 
     const Box EmptyBox;
 
     for (int i = 0; i < size(); i++)
     {
-        const Box b = m_ref->m_abox[i];
+        const Box& b = m_ref->m_abox[i];
 
         if (b.ok())
         {
@@ -737,11 +737,11 @@ BoxArray::removeOverlap ()
             {
                 if (isects[j].first == i) continue;
 
-                diff = BoxLib::boxDiff(m_ref->m_abox[isects[j].first], isects[j].second);
+                bl = BoxLib::boxDiff(m_ref->m_abox[isects[j].first], isects[j].second);
 
                 m_ref->m_abox[isects[j].first] = EmptyBox;
 
-                for (BoxList::const_iterator it = diff.begin(), End = diff.end(); it != End; ++it)
+                for (BoxList::const_iterator it = bl.begin(), End = bl.end(); it != End; ++it)
                 {
                     m_ref->m_abox.push_back(*it);
 
@@ -750,9 +750,12 @@ BoxArray::removeOverlap ()
             }
         }
     }
+    //
+    // We now have "holes" in our BoxArray. Make us good.
+    //
+    bl.clear();
 
-    Box     bb = m_ref->hash.box();
-    BoxList nbl;
+    const Box& bb = m_ref->hash.box();
 
     for (IntVect iv = bb.smallEnd(), End = bb.bigEnd(); iv <= End; bb.next(iv))
     {
@@ -761,11 +764,15 @@ BoxArray::removeOverlap ()
         for (int i = 0, N = v.size(); i < N; i++)
         {
             if (m_ref->m_abox[v[i]].ok())
-                nbl.push_back(m_ref->m_abox[v[i]]);
+                bl.push_back(m_ref->m_abox[v[i]]);
         }
     }
 
-    BL_ASSERT(nbl.isDisjoint());
+    BoxArray nba(bl);
 
-    return nbl;
+    bl.clear();
+
+    *this = nba;
+
+    BL_ASSERT(isDisjoint());
 }

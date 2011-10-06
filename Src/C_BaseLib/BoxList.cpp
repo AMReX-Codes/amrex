@@ -86,7 +86,8 @@ const BoxList
 BoxLib::removeOverlap (const BoxList& bl)
 {
     BoxArray ba(bl);
-    return ba.removeOverlap();
+    ba.removeOverlap();
+    return ba.boxList();
 }
 
 bool
