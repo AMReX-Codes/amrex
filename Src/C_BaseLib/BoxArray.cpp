@@ -716,6 +716,7 @@ BoxArray::intersections (const Box& bx) const
 //
 // Currently this assumes your Boxes are cell-centered.
 //
+
 void
 BoxArray::removeOverlap ()
 {
@@ -725,21 +726,25 @@ BoxArray::removeOverlap ()
 
     const Box EmptyBox;
 
+    std::vector< std::pair<int,Box> > isects;
+    //
+    // Note that "size()" can increase in this loop!!!
+    //
     for (int i = 0; i < size(); i++)
     {
-        const Box& b = m_ref->m_abox[i];
-
-        if (b.ok())
+        if (m_ref->m_abox[i].ok())
         {
-            std::vector< std::pair<int,Box> > isects = intersections(b);
+            isects = intersections(m_ref->m_abox[i]);
 
             for (int j = 0, N = isects.size(); j < N; j++)
             {
                 if (isects[j].first == i) continue;
 
-                bl = BoxLib::boxDiff(m_ref->m_abox[isects[j].first], isects[j].second);
+                Box& bx = m_ref->m_abox[isects[j].first];
 
-                m_ref->m_abox[isects[j].first] = EmptyBox;
+                bl = BoxLib::boxDiff(bx, isects[j].second);
+
+                bx = EmptyBox;
 
                 for (BoxList::const_iterator it = bl.begin(), End = bl.end(); it != End; ++it)
                 {
@@ -764,9 +769,13 @@ BoxArray::removeOverlap ()
         for (int i = 0, N = v.size(); i < N; i++)
         {
             if (m_ref->m_abox[v[i]].ok())
+            {
                 bl.push_back(m_ref->m_abox[v[i]]);
+            }
         }
     }
+
+    bl.simplify();
 
     BoxArray nba(bl);
 
