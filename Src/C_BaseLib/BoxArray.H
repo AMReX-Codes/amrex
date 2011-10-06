@@ -262,6 +262,7 @@ public:
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
     //
     // Changes the BoxArray to one with no overlap.
+    // Also tries to "simplify" the BoxArray within reason.
     //
     void removeOverlap ();
 
