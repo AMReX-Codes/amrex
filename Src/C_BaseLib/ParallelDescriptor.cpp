@@ -51,7 +51,7 @@ namespace ParallelDescriptor
 //
 ParallelDescriptor::CommData::CommData ()
 {
-    for (int i = 0; i < length(); i++)
+    for (int i = 0, N = length(); i < N; i++)
         m_data[i] = 0;
 }
 
@@ -90,7 +90,7 @@ ParallelDescriptor::CommData::CommData (int        face,
 
 ParallelDescriptor::CommData::CommData (const CommData& rhs)
 {
-    for (int i = 0; i < length(); i++)
+    for (int i = 0, N = length(); i < N; i++)
         m_data[i] = rhs.m_data[i];
 }
 
@@ -99,7 +99,7 @@ ParallelDescriptor::CommData::operator= (const CommData& rhs)
 {
     if (!(this == &rhs))
     {
-        for (int i = 0; i < length(); i++)
+        for (int i = 0, N = length(); i < N; i++)
             m_data[i] = rhs.m_data[i];
     }
     return *this;
@@ -108,7 +108,7 @@ ParallelDescriptor::CommData::operator= (const CommData& rhs)
 bool
 ParallelDescriptor::CommData::operator== (const CommData& rhs) const
 {
-    for (int i = 0; i < length(); i++)
+    for (int i = 0, N = length(); i < N; i++)
         if (!(m_data[i] == rhs.m_data[i]))
             return false;
 
@@ -135,7 +135,7 @@ std::ostream&
 operator<< (std::ostream&                              os,
             const Array<ParallelDescriptor::CommData>& cd)
 {
-    for (int i = 0; i < cd.size(); i++)
+    for (int i = 0, N = cd.size(); i < N; i++)
         os << cd[i] << '\n';
     return os;
 }
@@ -152,24 +152,21 @@ namespace
                         const char* call,
                         int         status)
     {
-	//
-	// Should be large enough.
-	//
-	const int DIM = 1024;
-	static char buf[DIM];
+	const int N = 512;
+	static char buf[N];
 	if ( status )
 	{
-	    std::sprintf(buf, "BoxLib MPI Error: File %s, line %d, %s: %s",
-			 file, line, call, ParallelDescriptor::ErrorString(status));
+	    snprintf(buf, N, "BoxLib MPI Error: File %s, line %d, %s: %s",
+                     file, line, call, ParallelDescriptor::ErrorString(status));
 	}
 	else
 	{
-	    std::sprintf(buf, "BoxLib MPI Error: File %s, line %d, %s",
-			 file, line, call);
+	    snprintf(buf, N, "BoxLib MPI Error: File %s, line %d, %s",
+                     file, line, call);
 	}
-	buf[DIM-1] = '\0';		// Just to be safe.
 	return buf;
     }
+
 }
 
 namespace ParallelDescriptor

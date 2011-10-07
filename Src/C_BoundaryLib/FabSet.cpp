@@ -219,7 +219,7 @@ FabSet::DoIt (const MultiFab& src,
     // Calculate and cache intersection info.
     //
     BoxArray ba_src(src.size());
-    for (int i = 0; i < src.size(); i++)
+    for (int i = 0, N = src.size(); i < N; i++)
         ba_src.set(i, BoxLib::grow(src.boxArray()[i],ngrow));
 
     std::vector< std::pair<int,Box> > isects;
@@ -253,7 +253,7 @@ FabSet::DoIt (const MultiFab& src,
 
     fbids.reserve(boxes.size());
 
-    for (int i = 0; i < boxes.size(); i++)
+    for (int i = 0, N = boxes.size(); i < N; i++)
     {
         fbids.push_back(fscd.AddBox(mfid,
                                     boxes[i],
@@ -275,7 +275,7 @@ FabSet::DoIt (const MultiFab& src,
 
     FArrayBox tmp;
 
-    for (int i = 0; i < fbids.size(); i++)
+    for (int i = 0, N = fbids.size(); i < N; i++)
     {
         BL_ASSERT(DistributionMap()[fbids[i].FabIndex()] == ParallelDescriptor::MyProc());
 
@@ -383,7 +383,7 @@ FabSet::linComb (Real            a,
 
     BoxArray ba_isects(bxa.size());  // Temp BoxArray for intersections() usage below.
 
-    for (int i = 0; i < bxa.size(); i++)
+    for (int i = 0, N = bxa.size(); i < N; i++)
     {
         ba_isects.set(i, BoxLib::grow(bxa[i],ngrow));
     }
@@ -433,7 +433,7 @@ FabSet::linComb (Real            a,
 
     BL_ASSERT(fbids_mfa.size() == fbids_mfb.size());
 
-    for (int i = 0; i < fbids_mfa.size(); i++)
+    for (int i = 0, N = fbids_mfa.size(); i < N; i++)
     {
         a_fab.resize(fbids_mfa[i].box(), ncomp);
         b_fab.resize(fbids_mfb[i].box(), ncomp);

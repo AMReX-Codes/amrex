@@ -570,12 +570,16 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
   int nc = *ncp;
   size_t count = *countp;
   off_t offset;
-  char buffer[1024];
+  char buffer[256];
   int ilen;
   double* dp = (double*)vp;
 
   offset = lseek(fd, 0, SEEK_END);
-  sprintf(buffer, "FAB ((8, (%s)),(8, (%s)))", str_ieee_d, str_norder_d);
+  if ( snprintf(buffer, 256, "FAB ((8, (%s)),(8, (%s)))", str_ieee_d, str_norder_d) >= 256 )
+    {
+      fprintf(stderr, "FABIO_WRITE_RAW_D: buffer too small");
+      exit(1);
+    }
   ilen = strlen(buffer);
   if ( ilen != write(fd, buffer, ilen) )
     {
@@ -586,21 +590,28 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
   switch ( dm ) 
     {
     case 1:
-      sprintf(buffer,"((%d) (%d) (%d)) %d\n", 
-	      lo[0], hi[0], nd[0], nc);
+      ilen = snprintf(buffer, 256, "((%d) (%d) (%d)) %d\n", 
+                      lo[0], hi[0], nd[0], nc);
       break;
     case 2:
-      sprintf(buffer,"((%d,%d) (%d,%d) (%d,%d)) %d\n", 
-	      lo[0], lo[1], hi[0], hi[1], nd[0], nd[1], nc);
+      ilen = snprintf(buffer, 256, "((%d,%d) (%d,%d) (%d,%d)) %d\n", 
+                      lo[0], lo[1], hi[0], hi[1], nd[0], nd[1], nc);
       break;
     case 3:
-      sprintf(buffer,"((%d,%d,%d) (%d,%d,%d) (%d,%d,%d)) %d\n", 
-	      lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], nd[0], nd[1], nd[2], nc);
+      ilen = snprintf(buffer, 256, "((%d,%d,%d) (%d,%d,%d) (%d,%d,%d)) %d\n", 
+                      lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], nd[0], nd[1], nd[2], nc);
       break;
     default:
       fprintf(stderr, "FABIO_WRITE_RAW_D: strange dimension = %d\n", dm);
       exit(1);
     }
+
+  if ( ilen >= 256 )
+    {
+      fprintf(stderr, "FABIO_WRITE_RAW_D: buffer too small");
+      exit(1);
+    }
+
   ilen = write(fd, buffer, strlen(buffer));
 
   if ( ilen !=  strlen(buffer) )
@@ -617,7 +628,7 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
       exit(1);
     }
 
-  if (offset > INT_MAX)
+  if ( offset > INT_MAX )
   {
       fprintf(stderr, "FABIO_WRITE_RAW_D: offset will overflow offsetp");
       exit(1);
@@ -636,12 +647,16 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
   int nc = *ncp;
   size_t count = *countp;
   off_t offset;
-  char buffer[1024];
+  char buffer[256];
   int ilen;
   float* sp = (float*)vp;
 
   offset = lseek(fd, 0, SEEK_END);
-  sprintf(buffer, "FAB ((8, (%s)),(4, (%s)))", str_ieee_f, str_norder_f);
+  if ( snprintf(buffer, 256, "FAB ((8, (%s)),(4, (%s)))", str_ieee_f, str_norder_f) >= 256 )
+  {
+      fprintf(stderr, "FABIO_WRITE_RAW_S: buffer too small");
+      exit(1);
+  }
   ilen = strlen(buffer);
   if ( ilen != write(fd, buffer, ilen) )
     {
@@ -652,19 +667,25 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
   switch ( dm ) 
     {
     case 1:
-      sprintf(buffer,"((%d) (%d) (%d)) %d\n", 
-	      lo[0], hi[0], nd[0], nc);
+      ilen = snprintf(buffer, 256, "((%d) (%d) (%d)) %d\n", 
+                      lo[0], hi[0], nd[0], nc);
       break;
     case 2:
-      sprintf(buffer,"((%d,%d) (%d,%d) (%d,%d)) %d\n", 
-	      lo[0], lo[1], hi[0], hi[1], nd[0], nd[1], nc);
+      ilen = snprintf(buffer, 256, "((%d,%d) (%d,%d) (%d,%d)) %d\n", 
+                      lo[0], lo[1], hi[0], hi[1], nd[0], nd[1], nc);
       break;
     case 3:
-      sprintf(buffer,"((%d,%d,%d) (%d,%d,%d) (%d,%d,%d)) %d\n", 
-	      lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], nd[0], nd[1], nd[2], nc);
+      ilen = snprintf(buffer, 256, "((%d,%d,%d) (%d,%d,%d) (%d,%d,%d)) %d\n", 
+                      lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], nd[0], nd[1], nd[2], nc);
       break;
     default:
       fprintf(stderr, "FABIO_WRITE_RAW_S: strange dimension = %d\n", dm);
+      exit(1);
+    }
+
+  if ( ilen >= 256 )
+    {
+      fprintf(stderr, "FABIO_WRITE_RAW_S: buffer too small");
       exit(1);
     }
 
@@ -683,7 +704,7 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
       exit(1);
     }
 
-  if (offset > INT_MAX)
+  if ( offset > INT_MAX )
   {
       fprintf(stderr, "FABIO_WRITE_RAW_S: offset will overflow offsetp");
       exit(1);

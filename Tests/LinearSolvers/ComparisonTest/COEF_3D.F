@@ -4,51 +4,134 @@
 #endif
 
 #include <REAL.H>
+#include <LO_BCTYPES.H>
+
 #include "ArrayLim.H"
 #include "COEF_F.H"
 
 c-----------------------------------------------------------------------
-      subroutine FORT_SET_CC_COEF (
-     $     coef, DIMS(coef), lo, hi, dx, prob_lo, prob_hi)
+      subroutine FORT_SET_COEF (
+     $     exac, alph, beta, rhs, 
+     $     lo, hi, prob_lo, prob_hi, 
+     $     dx, a, b, sigma, w, ibnd)
 
       implicit none
 
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
-      integer DIMDEC(coef)
-      REAL_T coef(DIMV(coef))
-      REAL_T dx(BL_SPACEDIM)
-      REAL_T prob_lo(BL_SPACEDIM)
-      REAL_T prob_hi(BL_SPACEDIM)
+      integer ibnd
+      double precision a, b, sigma, w
+      double precision prob_lo(BL_SPACEDIM)
+      double precision prob_hi(BL_SPACEDIM)
+      double precision dx(BL_SPACEDIM)
+      double precision exac(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+      double precision alph(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+      double precision rhs (lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+      double precision beta 
+     $     (lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1)
 c
       integer i,j,k
+      double precision x, y, z, xc, yc, zc
+      double precision r, theta, dbdrfac
+      double precision pi, fpi, tpi, fac
 c
+      pi = 4.d0 * datan(1.d0)
+      tpi = 2.0d0 * pi
+      fpi = 4.0d0 * pi
+      fac = 12.d0 * pi**2
+
+      xc = (prob_hi(1) + prob_lo(1))/2.d0
+      yc = (prob_hi(2) + prob_lo(2))/2.d0
+      zc = (prob_hi(3) + prob_lo(3))/2.d0
+
+      theta = 0.5d0*log(3.0) / (w + 1.d-50)
+      
       do k = lo(3)-1, hi(3)+1
-      do j = lo(2)-1, hi(2)+1
-      do i = lo(1)-1, hi(1)+1
-         coef(i,j,k) = 1.d0
+         z = prob_lo(3) + dx(3) * (dble(k)+0.5d0)
+         do j = lo(2)-1, hi(2)+1
+            y = prob_lo(2) + dx(2) * (dble(j)+0.5d0)
+            do i = lo(1)-1, hi(1)+1
+               x = prob_lo(1) + dx(1) * (dble(i)+0.5d0)
+               
+               r = sqrt((x-xc)**2 + (y-yc)**2 + (z-zc)**2)
+               
+               beta(i,j,k) = (sigma-1.d0)/2.d0*tanh(theta*(r-0.25d0))
+     $              + (sigma+1.d0)/2.d0
+            end do
+         end do
       end do
-      end do
+      
+      do k = lo(3), hi(3)
+         z = prob_lo(3) + dx(3) * (dble(k)+0.5d0)
+         do j = lo(2), hi(2)
+            y = prob_lo(2) + dx(2) * (dble(j)+0.5d0)
+            do i = lo(1), hi(1)
+               x = prob_lo(1) + dx(1) * (dble(i)+0.5d0)
+               
+               r = sqrt((x-xc)**2 + (y-yc)**2 + (z-zc)**2)
+               
+               dbdrfac = (sigma-1.d0)/2.d0/(cosh(theta*(r-0.25d0)))**2 * theta/r
+               dbdrfac = dbdrfac * b
+               
+               alph(i,j,k) = 1.d0
+
+               if (ibnd .eq. 0 .or. ibnd.eq. LO_NEUMANN) then
+
+                  exac(i,j,k) = 1.d0 * cos(tpi*x) * cos(tpi*y) * cos(tpi*z)  
+     $                 + .25d0 * cos(fpi*x) * cos(fpi*y) * cos(fpi*z)
+
+                  rhs(i,j,k) = beta(i,j,k)*b*fac*(cos(tpi*x) * cos(tpi*y) * cos(tpi*z)  
+     $                                          + cos(fpi*x) * cos(fpi*y) * cos(fpi*z))
+     $                 + dbdrfac*((x-0.5d0)*(tpi*sin(tpi*x) * cos(tpi*y) * cos(tpi*z)  
+     $                                      + pi*sin(fpi*x) * cos(fpi*y) * cos(fpi*z))
+     $                          + (y-0.5d0)*(tpi*cos(tpi*x) * sin(tpi*y) * cos(tpi*z)  
+     $                                      + pi*cos(fpi*x) * sin(fpi*y) * cos(fpi*z))
+     $                          + (z-0.5d0)*(tpi*cos(tpi*x) * cos(tpi*y) * sin(tpi*z)  
+     $                                      + pi*cos(fpi*x) * cos(fpi*y) * sin(fpi*z)))
+     $                 + a * (cos(tpi*x) * cos(tpi*y) * cos(tpi*z)  
+     $                          + 0.25d0 * cos(fpi*x) * cos(fpi*y) * cos(fpi*z))
+
+               else if (ibnd .eq. LO_DIRICHLET) then
+
+                  exac(i,j,k) = 1.d0 * sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
+     $                 + .25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
+
+                  rhs(i,j,k) = beta(i,j,k)*b*fac*(sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
+     $                                          + sin(fpi*x) * sin(fpi*y) * sin(fpi*z))
+     $                 + dbdrfac*((x-0.5d0)*(-tpi*cos(tpi*x) * sin(tpi*y) * sin(tpi*z)  
+     $                                       - pi*cos(fpi*x) * sin(fpi*y) * sin(fpi*z))
+     $                          + (y-0.5d0)*(-tpi*sin(tpi*x) * cos(tpi*y) * sin(tpi*z)  
+     $                                       - pi*sin(fpi*x) * cos(fpi*y) * sin(fpi*z))
+     $                          + (z-0.5d0)*(-tpi*sin(tpi*x) * sin(tpi*y) * cos(tpi*z)  
+     $                                       - pi*sin(fpi*x) * sin(fpi*y) * cos(fpi*z)))
+     $                 + a * (sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
+     $                          + 0.25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z))
+
+               else
+                  print *, 'FORT_SET_COEF: unknow boundary type'
+                  stop
+               endif
+            end do
+         end do
       end do
 c
       end
 
 c-----------------------------------------------------------------------
-      subroutine FORT_COEF_TO_EDGES (dir, edge, DIMS(edge),
-     $                               coef, DIMS(coef), lo, hi)
+      subroutine FORT_COEF_TO_EDGES (dir, edge, e_l1, e_l2, e_l3, e_h1, e_h2, e_h3,
+     $                                    coef, c_l1, c_l2, c_l3, c_h1, c_h2, c_h3,
+     $                                    lo, hi)
 
       implicit none
 
-      integer dir
-      integer lo(BL_SPACEDIM)
-      integer hi(BL_SPACEDIM)
-      integer DIMDEC(edge)
-      REAL_T edge(DIMV(edge))
-      integer DIMDEC(coef)
-      REAL_T coef(DIMV(coef))
-c
+      integer dir, lo(3), hi(3)
+      integer e_l1, e_l2, e_l3, e_h1, e_h2, e_h3
+      integer c_l1, c_l2, c_l3, c_h1, c_h2, c_h3
+      double precision edge(e_l1:e_h1, e_l2:e_h2, e_l3:e_h3)
+      double precision coef(c_l1:c_h1, c_l2:c_h2, c_l3:c_h3)
+ 
       integer i,j,k
-c
+ 
       if (dir .eq. 0) then 
         do k = lo(3), hi(3)
         do j = lo(2), hi(2)
@@ -74,45 +157,7 @@ c
         end do
         end do
       end if
-c
+ 
       end
 
 c-----------------------------------------------------------------------
-      subroutine FORT_SET_RHS (
-     $     rhs, DIMS(rhs), lo, hi, dx, prob_lo, prob_hi)
-
-      implicit none
-
-      integer lo(BL_SPACEDIM)
-      integer hi(BL_SPACEDIM)
-      integer DIMDEC(rhs)
-      REAL_T rhs(DIMV(rhs))
-      REAL_T dx(BL_SPACEDIM)
-      REAL_T prob_lo(BL_SPACEDIM)
-      REAL_T prob_hi(BL_SPACEDIM)
-c
-      integer i,j,k
-      REAL_T  x,y,z
-      REAL_T  pi, phi, fpi, tpi
-
-      pi = 4.d0 * datan(1.d0)
-
-      phi = .25d0 * pi
-      tpi = 2.0d0 * pi
-      fpi = 4.0d0 * pi
-c
-      do k = lo(3), hi(3)
-         z = (dble(k)+0.5)*dx(3)
-         do j = lo(2), hi(2)
-            y = (dble(j)+0.5)*dx(2)
-            do i = lo(1), hi(1)
-               x = (dble(i)+0.5)*dx(1)
-
-               rhs(i,j,k) =         sin(tpi*x)     * sin(tpi*y)       * sin(tpi*z)  
-     $                    + .25d0 * sin(fpi*x+phi) * sin(fpi*y + phi) * sin(fpi*z + phi)
-
-            end do
-         end do
-      end do
-c
-      end

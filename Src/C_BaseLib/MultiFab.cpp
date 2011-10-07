@@ -1021,8 +1021,8 @@ MultiFab::SumBoundary (int  scomp,
 
     FArrayBox fab;
 
-    for (std::list<SIRec>::iterator it = sirec.begin(), end = sirec.end();
-         it != end;
+    for (std::list<SIRec>::iterator it = sirec.begin(), End = sirec.end();
+         it != End;
          ++it)
     {
         BL_ASSERT(DistributionMap()[it->m_i] == ParallelDescriptor::MyProc());

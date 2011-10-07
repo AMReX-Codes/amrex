@@ -107,7 +107,7 @@ c ::: ::::: compute slopes in x direction
               forw = crse(i+ist,n)-crse(i,n)
               back = crse(i,n)-crse(i-ist,n)
               slp = sign(one,cen)*min(abs(cen),abs(forw),abs(back))
-              cslope(i,1)=cvmgp(slp,zero,forw*back)
+              cslope(i,1)=merge(slp,zero,forw*back>=0.0d0)
 130       continue
 c ::: ::::: compute slopes in y direction
           do 140 i = 1, clen 
@@ -115,7 +115,7 @@ c ::: ::::: compute slopes in y direction
               forw = crse(i+jst,n)-crse(i,n)
               back = crse(i,n)-crse(i-jst,n)
               slp = sign(one,cen)*min(abs(cen),abs(forw),abs(back))
-              cslope(i,2)=cvmgp(slp,zero,forw*back)
+              cslope(i,2)=merge(slp,zero,forw*back>=0.0d0)
 140       continue
           if (maxlen .eq. lenx) then
               do 150 jc = cblo(2), cbhi(2) 

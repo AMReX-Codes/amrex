@@ -223,6 +223,8 @@ contains
 
     fine_converged = .false.
 
+    r1 = parallel_wtime() 
+
     if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
@@ -236,8 +238,6 @@ contains
 !      end if
 
     else 
-
-     r1 = parallel_wtime() 
 
      do iter = 1, mgt(nlevs)%max_iter
 

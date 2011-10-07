@@ -332,6 +332,11 @@ ifeq ($(findstring donev, $(HOSTNAME)), donev)
    endif
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
+else ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
+   MPIHOME=/usr/lib64/openmpi
+   mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
+   mpi_include_dir = /usr/include/openmpi-x86_64
+   mpi_lib_dir = $(MPIHOME)/lib
 endif
 
 ifeq ($(HOST),greenstreet)

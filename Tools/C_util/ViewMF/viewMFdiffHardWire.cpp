@@ -1,20 +1,15 @@
-#ifdef BL_ARCH_CRAY
-#ifdef BL_USE_DOUBLE
-#error "DOUBLE PRECISION NOT ALLOWED ON CRAY"
-#endif
-#endif
 
-#ifndef        WIN32
+#ifndef WIN32
 #include <unistd.h>
 #endif
 
-#include "MultiFab.H"
-#include "ArrayView.H"
-#include "ParmParse.H"
-#include "Utility.H"
-#include "ParallelDescriptor.H"
-#include "TV_TempWrite.H"
-#include "MFNorm.H"
+#include <MultiFab.H>
+#include <ArrayView.H>
+#include <ParmParse.H>
+#include <Utility.H>
+#include <ParallelDescriptor.H>
+#include <TV_TempWrite.H>
+#include <MFNorm.H>
 
 #include <new>
 using std::setprecision;

@@ -28,7 +28,7 @@ ParmParse::PP_entry::PP_entry (const std::string& name,
     m_table(0),
     m_queried(false)
 {
-    for ( std::list<std::string>::const_iterator li = vals.begin(); li != vals.end(); ++li )
+    for ( std::list<std::string>::const_iterator li = vals.begin(), End = vals.end(); li != End; ++li )
     {
 	m_vals.push_back(*li);
     }
@@ -374,7 +374,7 @@ ppindex (const ParmParse::Table& table,
         //
         // Search from back of list.
         //
-        for (std::list<ParmParse::PP_entry>::const_reverse_iterator li = table.rbegin(); li != table.rend(); ++li)
+        for (std::list<ParmParse::PP_entry>::const_reverse_iterator li = table.rbegin(), REnd = table.rend(); li != REnd; ++li)
         {
             if ( ppfound(name, *li, recordQ) )
             {
@@ -385,7 +385,7 @@ ppindex (const ParmParse::Table& table,
     }
     else
     {
-        for ( const_list_iterator li=table.begin(); li != table.end(); ++li )
+        for ( const_list_iterator li =table.begin(), End = table.end(); li != End; ++li )
         {
             if ( ppfound(name, *li, recordQ) )
             {
@@ -407,7 +407,7 @@ ppindex (const ParmParse::Table& table,
         //
         // Found an entry; mark all occurences of name as used.
         //
-        for ( const_list_iterator li=table.begin(); li != table.end(); ++li )
+        for ( const_list_iterator li = table.begin(), End = table.end(); li != End; ++li )
 	{
             if ( ppfound(name, *li, recordQ) )
 	    {
@@ -913,7 +913,7 @@ static
 bool
 unused_table_entries_q (const ParmParse::Table& table)
 {
-    for ( const_list_iterator li = table.begin(); li != table.end(); ++li )
+    for ( const_list_iterator li = table.begin(), End = table.end(); li != End; ++li )
     {
 	if ( li->m_table )
 	{
@@ -938,7 +938,7 @@ static
 void
 finalize_table (std::string pfx, const ParmParse::Table& table)
 {
-    for ( const_list_iterator li = table.begin(); li != table.end(); ++li )
+    for ( const_list_iterator li = table.begin(), End = table.end(); li != End; ++li )
     {
 	if ( li->m_table )
 	{
@@ -992,7 +992,7 @@ ParmParse::Finalize ()
 void
 ParmParse::dumpTable (std::ostream& os)
 {
-    for ( const_list_iterator li=g_table.begin(); li != g_table.end(); ++li )
+    for ( const_list_iterator li = g_table.begin(), End = g_table.end(); li != End; ++li )
     {
 	os << *li << std::endl;
     }
@@ -1571,7 +1571,7 @@ int
 ParmParse::countname (const std::string& name) const
 {
     int cnt = 0;
-    for ( const_list_iterator li=m_table.begin(); li != m_table.end(); ++li )
+    for ( const_list_iterator li = m_table.begin(), End = m_table.end(); li != End; ++li )
     {
 	if ( ppfound(prefixedName(name), *li, false) )
 	{
@@ -1585,7 +1585,7 @@ int
 ParmParse::countRecords (const std::string& name) const
 {
     int cnt = 0;
-    for ( const_list_iterator li=m_table.begin(); li != m_table.end(); ++li )
+    for ( const_list_iterator li = m_table.begin(), End = m_table.end(); li != End; ++li )
     {
 	if ( ppfound(prefixedName(name), *li, true) )
 	{
@@ -1602,7 +1602,7 @@ ParmParse::countRecords (const std::string& name) const
 bool
 ParmParse::contains (const char* name) const
 {
-    for ( const_list_iterator li = m_table.begin(); li != m_table.end(); ++li )
+    for ( const_list_iterator li = m_table.begin(), End = m_table.end(); li != End; ++li )
     {
        if ( ppfound(prefixedName(name), *li, false))
        {
@@ -1753,7 +1753,7 @@ BL_FORT_PROC_DECL(BL_PP_GET_INT_N_CPP, bl_pp_get_int_n_cpp)(int* ierr, const int
     require_valid_parmparse("BL_PP_GET_INT_N", *pp);
     *ierr = parsers[*pp]->queryarr(Fint_2_string(istr, *nstr).c_str(), arr);
     require_valid_size("BL_PP_GET_INT_N", arr.size(), *nval);
-    for ( int i = 0; i < arr.size(); ++i )
+    for ( int i = 0, N = arr.size(); i < N; ++i )
     {
 	val[i] = arr[i];
     }
@@ -1783,7 +1783,7 @@ BL_FORT_PROC_DECL(BL_PP_GET_REAL_N_CPP, bl_pp_get_real_n_cpp)(int* ierr, const i
     require_valid_parmparse("BL_PP_GET_REAL_N", *pp);
     *ierr = parsers[*pp]->queryarr(Fint_2_string(istr, *nstr).c_str(), arr);
     require_valid_size("BL_PP_GET_REAL_N", arr.size(), *nval);
-    for ( int i = 0; i < arr.size(); ++i )
+    for ( int i = 0, N = arr.size(); i < N; ++i )
     {
 	val[i] = arr[i];
     }
@@ -1802,7 +1802,7 @@ BL_FORT_PROC_DECL(BL_PP_GET_DOUBLE_N_CPP, bl_pp_get_double_n_cpp)(int* ierr, con
     require_valid_parmparse("BL_PP_GET_DOUBLE_N", *pp);
     *ierr = parsers[*pp]->queryarr(Fint_2_string(istr, *nstr).c_str(), arr);
     require_valid_size("BL_PP_GET_INT_N", arr.size(), *nval);
-    for ( int i = 0; i < arr.size(); ++i )
+    for ( int i = 0, N = arr.size(); i < N; ++i )
     {
 	val[i] = arr[i];
     }

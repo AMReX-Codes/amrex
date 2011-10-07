@@ -91,13 +91,10 @@ contains
 
 end module cpp_mg_module
 
-subroutine mgt_init ()
+subroutine mgt_init (comm)
   use parallel
-  logical, save :: first = .true.
-  if ( first ) then
-     call parallel_initialize()
-     first = .false.
-  end if
+  integer comm
+  call parallel_initialize(comm)
 end subroutine mgt_init
 
 subroutine mgt_use_alltoallv ()

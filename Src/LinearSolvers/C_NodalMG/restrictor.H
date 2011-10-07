@@ -2,8 +2,8 @@
 #ifndef _RESTRICTOR_H_
 #define _RESTRICTOR_H_
 
-#include "interface.H"
-#include "boundary.H"
+#include <interface.H>
+#include <boundary.H>
 
 //
 // This is the base class for all amr_restrictors.  The basic functions

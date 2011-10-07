@@ -19,7 +19,7 @@ CArena::CArena (size_t hunk_size)
 
 CArena::~CArena ()
 {
-    for (unsigned int i = 0; i < m_alloc.size(); i++)
+    for (unsigned int i = 0, N = m_alloc.size(); i < N; i++)
         ::operator delete(m_alloc[i]);
 }
 

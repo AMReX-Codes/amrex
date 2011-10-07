@@ -9,15 +9,15 @@
 
 #include <ParmParse.H>
 
-#include "REAL.H"
-#include "IntVect.H"
-#include "Array.H"
-#include "Amr.H"
-#include "AmrLevel.H"
-#include "Utility.H"
-#include "Geometry.H"
-#include "VisMF.H"
-#include "Particles_F.H"
+#include <REAL.H>
+#include <IntVect.H>
+#include <Array.H>
+#include <Amr.H>
+#include <AmrLevel.H>
+#include <Utility.H>
+#include <Geometry.H>
+#include <VisMF.H>
+#include <Particles_F.H>
 
 #ifdef BL_USE_OMP
 #include <omp.h>
@@ -117,7 +117,7 @@ public:
     void InitFromAsciiFile (const std::string& file, int extradata);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
-    void InitCosmo ();
+    void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Real particleMass);
 
     Real sumParticleMass (const MultiFab& mf, int level) const;
     void sumParticleMomentum (const MultiFab& mf, int lev, Real* mom) const;
@@ -435,16 +435,13 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
 template <int N>
 void
-ParticleContainer<N>::InitCosmo ()
+ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Real particleMass)
 {
     const int       MyProc   = ParallelDescriptor::MyProc();
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_amr->Geom(0);
     const Real*     dx       = geom.CellSize();
-
-    Real particleMass;
-    std::string mfDirName;
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
@@ -455,22 +452,7 @@ ParticleContainer<N>::InitCosmo ()
         BL_ASSERT(m_particles[lev].empty());
     }
 
-    Real vel_fac  = 1 / 1000.0;
-
     const Real len[BL_SPACEDIM] = { geom.ProbLength(0),geom.ProbLength(1),geom.ProbLength(2) };
-    //
-    // Read the init directory name and particle mass from the inputs file
-    //
-    ParmParse pp("cosmo");
-    pp.get("initDirName", mfDirName);
-    pp.get("particle_mass",particleMass);
-
-    //
-    // Read from the directory into mf
-    //
-    MultiFab mf;
-    mfDirName.append("/Level_0/Cell");
-    VisMF::Read(mf,mfDirName.c_str());
 
     Real disp[BL_SPACEDIM];
 
@@ -526,15 +508,8 @@ ParticleContainer<N>::InitCosmo ()
 		                      disp[n] * len[n];
 
 			//set the velocities
-	                p.m_data[n+1] = disp[n] * vel_fac;
+	                p.m_data[n+1] = disp[n] * vel_fac[n];
 	            }
-
-                    if (ix == 0 && jx == 3 && kx == 4) 
-                    { 
-                       std::cout << "DOING FAB NUMBER " << mfi.index() << std::endl;
-                       std::cout << "NEW DISP(d) " << disp[0] << " " << disp[1] << " " << disp[2] << std::endl;
-                       std::cout << "NEW POS(d) " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
-                    } 
 
 		    // Set the mass of the particle from the input value
 	            p.m_data[0] = particleMass;
@@ -1370,11 +1345,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         BL_ASSERT(mf[i-1].boxArray().contains(cba));
 
-        // ************************************************************************************
-
         cba.grow(1);
 
-        // This version of cmf that has a grown boxArray but does not have a ghost cell
         MultiFab cmf(cba, 1, 0);
 
         cmf.setVal(0);
@@ -1407,19 +1379,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         {
             mf[i-1][mfi].plus(tcmf[mfi], mfi.validbox(), 0, 0, 1);
         }
+        //
+        // Make a version of cmf that does not have a grown boxArray but does have a ghost cell.
+        // We need this in order to do SumPeriodicBoundary.
+        //
+        cba = mf[i].boxArray();
 
-        // ************************************************************************************
-
-        cba = fmf.boxArray();
         cba.coarsen(m_amr->refRatio(i-1));
 
-        // Make a version of cmf that does not have a grown boxArray but does have a ghost cell -- 
-        //   we need this in order to do SumPeriodicBoundary.
         MultiFab new_cmf(cba, 1, 1, Fab_allocate);
 
         for (MFIter mfi(new_cmf); mfi.isValid(); ++mfi)
+        {
             new_cmf[mfi].copy(cmf[mfi]);
-
+        }
         //
         // We now shift new_cmf periodically and sum into mf[i-1].
         //
@@ -2792,11 +2765,8 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
         if (!LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/')
             LevelDir += '/';
-        
-        char buf[32];
-        sprintf(buf, "Level_%d", lev);
 
-        LevelDir += buf;
+        LevelDir = BoxLib::Concatenate(LevelDir + "Level_", lev, 1);
 
         if (ParallelDescriptor::IOProcessor())
             if (!BoxLib::UtilCreateDirectory(LevelDir, 0755))
@@ -2815,15 +2785,12 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         Array<int > count(state.size(),0);
         Array<long> where(state.size(),0);
 
-        const int FileNumber = MyProc % nOutFiles;
-
-        sprintf(buf, "%04d", FileNumber);
-
+        const int   FileNumber   = MyProc % nOutFiles;
         std::string FullFileName = LevelDir;
 
         FullFileName += '/';
         FullFileName += ParticleBase::DataPrefix();
-        FullFileName += buf;
+        FullFileName += BoxLib::Concatenate("", FileNumber, 4);
 
         std::ofstream ParticleFile;
 
@@ -2919,15 +2886,11 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             {
                 if (cnt[i] == 0)
                 {
-                    char buf[32];
-
-                    sprintf(buf, "%04d", i);
-
                     std::string FullFileName = LevelDir;
 
                     FullFileName += '/';
                     FullFileName += ParticleBase::DataPrefix();
-                    FullFileName += buf;
+                    FullFileName += BoxLib::Concatenate("", i, 4);
 
                     BoxLib::UnlinkFile(FullFileName.c_str());
                 }
@@ -3286,15 +3249,11 @@ ParticleContainer<N>::Restart_OneDotZero (const std::string& fullname,
             if (!name.empty() && name[name.size()-1] != '/')
                 name += '/';
 
-            char buf[64];
-
-            sprintf(buf,
-                    "Level_%d/%s%04d",
-                    lev,
-                    ParticleBase::DataPrefix().c_str(),
-                    which[grid]);
-
-            name += buf;
+            name += "Level_";
+            name += BoxLib::Concatenate("", lev, 1);
+            name += '/';
+            name += ParticleBase::DataPrefix();
+            name += BoxLib::Concatenate("", which[grid], 4);
 
             std::ifstream ParticleFile;
 
@@ -3413,8 +3372,6 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     const int   nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
     const int   mySet     = (MyProc / nOutFiles);
 
-    static std::string TimestampFormat   = "_%02d";
-
     for (int iSet = 0; iSet < nSets; ++iSet)
     {
         if (mySet == iSet)
@@ -3443,13 +3400,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
             if (gotwork)
             {
-                char buf[16];
-
-                std::string FileName = basename;
-
-                sprintf(buf, TimestampFormat.c_str(), MyProc % nOutFiles);
-
-                FileName += buf;
+                std::string FileName = BoxLib::Concatenate(basename + '_', MyProc % nOutFiles, 2);
 
                 std::ofstream TimeStampFile;
 

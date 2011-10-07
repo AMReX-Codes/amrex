@@ -1,7 +1,5 @@
 
 #include <winstd.H>
-#include <cstdio>
-#include <cstring>
 #include <sstream>
 
 #include <AmrLevel.H>
@@ -12,6 +10,7 @@
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
+
 #ifdef USE_SLABSTAT
 SlabStatList   AmrLevel::slabstat_lst;
 #endif
@@ -258,7 +257,7 @@ long
 AmrLevel::countCells () const
 {
     long cnt = 0;
-    for (int i = 0; i < grids.size(); i++)
+    for (int i = 0, N = grids.size(); i < N; i++)
     {
         cnt += grids[i].numPts();
     }
@@ -267,18 +266,16 @@ AmrLevel::countCells () const
 
 void
 AmrLevel::checkPoint (const std::string& dir,
-                      std::ostream&  os,
-                      VisMF::How     how,
-                      bool dump_old)
+                      std::ostream&      os,
+                      VisMF::How         how,
+                      bool               dump_old)
 {
     int ndesc = desc_lst.size(), i;
     //
     // Build directory to hold the MultiFabs in the StateData at this level.
     // The directory is relative the the directory containing the Header file.
     //
-    char buf[64];
-    sprintf(buf, "Level_%d", level);
-    std::string Level = buf;
+    std::string Level = BoxLib::Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -318,12 +315,10 @@ AmrLevel::checkPoint (const std::string& dir,
         //
         // There is only one MultiFab written out at each level in HyperCLaw.
         //
-        std::string PathNameInHeader = Level;
-        sprintf(buf, "/SD_%d", i);
-        PathNameInHeader += buf;
-        std::string FullPathName = FullPath;
-        FullPathName += buf;
-        state[i].checkPoint(PathNameInHeader, FullPathName, os, how, dump_old);
+        std::string PathNameInHdr = BoxLib::Concatenate(Level    + "/SD_", i, 1);
+        std::string FullPathName  = BoxLib::Concatenate(FullPath + "/SD_", i, 1);
+
+        state[i].checkPoint(PathNameInHdr, FullPathName, os, how, dump_old);
     }
 }
 
@@ -535,7 +530,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     {
         amrLevels[l].state[m_index].RegisterData(m_mfcd, m_mfid[l]);
     }
-    for (int i = 0; i < m_ba.size(); ++i)
+    for (int i = 0, N = m_ba.size(); i < N; ++i)
     {
         if (m_leveldata.DistributionMap()[i] == MyProc)
         {
@@ -552,7 +547,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
     Array<IntVect> pshifts(27);
 
-    for (int ibox = 0; ibox < m_ba.size(); ++ibox)
+    for (int ibox = 0, N = m_ba.size(); ibox < N; ++ibox)
     {
         if (m_leveldata.DistributionMap()[ibox] != MyProc)
             continue;
@@ -572,7 +567,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                 //
                 topLevel.geom.periodicShift(topPDomain,m_ba[ibox],pshifts);
 
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                 {
                     Box shbox  = m_ba[ibox] + pshifts[iiv];
                     shbox     &= topPDomain;
@@ -591,8 +586,8 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                     if (shbox.ok())
                     {
                         BoxList bl = BoxLib::boxDiff(shbox,m_ba[ibox]);
-                        for (BoxList::iterator bli = bl.begin();
-                             bli != bl.end();
+                        for (BoxList::const_iterator bli = bl.begin(), End = bl.end();
+                             bli != End;
                              ++bli)
                         {
                             unfilledThisLevel.push_back(*bli);
@@ -620,7 +615,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
             //
             m_finebox[ibox][l].resize(unfilledThisLevel.size());
 
-            for (int i = 0; i < unfilledThisLevel.size(); i++)
+            for (int i = 0, M = unfilledThisLevel.size(); i < M; i++)
                 m_finebox[ibox][l][i] = unfilledThisLevel[i];
             //
             // Now build coarse boxes needed to interpolate to fine.
@@ -633,7 +628,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
             const Array<Box>& FineBoxes = m_finebox[ibox][l];
 
-            for (int i = 0; i < FineBoxes.size(); i++)
+            for (int i = 0, M = FineBoxes.size(); i < M; i++)
             {
                 crse_boxes.push_back(FineBoxes[i]);
 
@@ -645,7 +640,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                     {
                         theGeom.periodicShift(thePDomain,cbox,pshifts);
 
-                        for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                        for (int iiv = 0, MM = pshifts.size(); iiv < MM; iiv++)
                         {
                             Box shbox = cbox + pshifts[iiv];
                             shbox    &= thePDomain;
@@ -676,7 +671,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
             //
             Array<Box>& CrseBoxes = m_crsebox[ibox][l];
 
-            for (int i = 0; i < CrseBoxes.size(); i++)
+            for (int i = 0, M = CrseBoxes.size(); i < M; i++)
             {
                 BL_ASSERT(tempUnfillable.isEmpty());
 
@@ -708,8 +703,8 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
             {
                 unfilledThisLevel.clear();
 
-                for (BoxList::iterator bli = unfillableThisLevel.begin();
-                     bli != unfillableThisLevel.end();
+                for (BoxList::const_iterator bli = unfillableThisLevel.begin(), End = unfillableThisLevel.end();
+                     bli != End;
                      ++bli)
                 {
                     unfilledThisLevel.push_back(*bli);
@@ -933,7 +928,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         cfab[l].resize(m_crsebox[idx][l].size(),PArrayManage);
 
-        for (int i = 0; i < CrseFabs.size(); i++)
+        for (int i = 0, N = CrseFabs.size(); i < N; i++)
         {
             const Box& cbox = m_crsebox[idx][l][i];
 
@@ -973,7 +968,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Fill CrseFabs with periodic data in preparation for interp().
             //
-            for (int i = 0; i < CrseFabs.size(); i++)
+            for (int i = 0, N = CrseFabs.size(); i < N; i++)
             {
                 FArrayBox& dstfab = CrseFabs[i];
 
@@ -981,12 +976,12 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                 {
                     TheGeom.periodicShift(ThePDomain,dstfab.box(),pshifts);
 
-                    for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                    for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                     {
                         Box fullsrcbox = dstfab.box() + pshifts[iiv];
                         fullsrcbox    &= ThePDomain;
 
-                        for (int j = 0; j < CrseFabs.size(); j++)
+                        for (int j = 0, K = CrseFabs.size(); j < K; j++)
                         {
                             FArrayBox& srcfab = CrseFabs[j];
                             Box        srcbox = fullsrcbox & srcfab.box();
@@ -1009,7 +1004,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 	const Real*    theCellSize   = TheGeom.CellSize();
 	const RealBox& theProbDomain = TheGeom.ProbDomain();
 
-        for (int i = 0; i < CrseFabs.size(); i++)
+        for (int i = 0, N = CrseFabs.size(); i < N; i++)
         {
             if (!ThePDomain.contains(CrseFabs[i].box()))
             {
@@ -1029,8 +1024,10 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         if (m_FixUpCorners)
         {
-            for (int i = 0; i < CrseFabs.size(); i++)
+            for (int i = 0, N = CrseFabs.size(); i < N; i++)
+            {
                 FixUpPhysCorners(CrseFabs[i],TheState,TheGeom,m_time,m_scomp,0,m_ncomp);
+            }
         }
         //
         // Interpolate up to next level.
@@ -1044,7 +1041,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         FArrayBox finefab, crsefab;
 
-        for (int i = 0; i < FineBoxes.size(); i++)
+        for (int i = 0, N = FineBoxes.size(); i < N; i++)
         {
             finefab.resize(FineBoxes[i],m_ncomp);
 
@@ -1054,7 +1051,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Fill crsefab from m_crsebox via copy on intersect.
             //
-            for (int j = 0; j < CrseFabs.size(); j++)
+            for (int j = 0, M = CrseFabs.size(); j < M; j++)
                 crsefab.copy(CrseFabs[j]);
             //
             // Get boundary conditions for the fine patch.
@@ -1088,7 +1085,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Copy intersect finefab into next level m_crseboxes.
             //
-            for (int j = 0; j < FinerCrseFabs.size(); j++)
+            for (int j = 0, K = FinerCrseFabs.size(); j < K; j++)
                 FinerCrseFabs[j].copy(finefab);
         }
         //
@@ -1106,16 +1103,16 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     // Copy intersect coarse into destination fab.
     //
-    for (int i = 0; i < FinestCrseFabs.size(); i++)
+    for (int i = 0, N = FinestCrseFabs.size(); i < N; i++)
         fab.copy(FinestCrseFabs[i],0,dcomp,m_ncomp);
 
     if (FineGeom.isAnyPeriodic() && !FineDomain.contains(fab.box()))
     {
         FineGeom.periodicShift(FineDomain,fab.box(),pshifts);
 
-        for (int i = 0; i < FinestCrseFabs.size(); i++)
+        for (int i = 0, N = FinestCrseFabs.size(); i < N; i++)
         {
-            for (int iiv = 0; iiv < pshifts.size(); iiv++)
+            for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
             {
                 fab.shift(pshifts[iiv]);
 
@@ -1215,7 +1212,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
         BoxArray crseBA(mf_BA.size());
         
-        for (int j = 0; j < crseBA.size(); ++j)
+        for (int j = 0, N = crseBA.size(); j < N; ++j)
         {
             BL_ASSERT(mf_BA[j].ixType() == desc.getType());
 

@@ -1,23 +1,21 @@
 
-#include <new>
 #include <iostream>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
-using std::ios;
-using std::set_new_handler;
-
 #include <unistd.h>
-#include "PltFileFluxAve.H"
-#include "WritePlotFile.H"
-#include "ParallelDescriptor.H"
-#include "ParmParse.H"
-#include "Utility.H"
+
+#include <PltFileFluxAve.H>
+#include <WritePlotFile.H>
+#include <ParallelDescriptor.H>
+#include <ParmParse.H>
+#include <Utility.H>
 
 #ifndef NDEBUG
-#include "TV_TempWrite.H"
+#include <TV_TempWrite.H>
 #endif
+
+using std::ios;
 
 static
 void
@@ -242,11 +240,8 @@ main (int   argc,
       Array<string> cNames(2);
       Array<Real> xold;
       for (int i = nstart; i < nmax; i++) {
-	char buf[64];
-	sprintf(buf,"%05d",i*nfac);
-          
-	std::string idxs(buf);
-	File = iFile + idxs;
+
+        File = BoxLib::Concatenate(iFile, i*nfac, 5);
       
 	DataServices dataServices(File, fileType);
 
@@ -305,11 +300,7 @@ compute_flux_all(int nstart,
     
   for (int i = nstart; i < nmax; i++)
   {
-    char buf[64];
-    sprintf(buf,"%05d",i*nfac);
-          
-    std::string idxs(buf);
-    std::string File = iFile + idxs;
+    std::string File = BoxLib::Concatenate(iFile, i*nfac, 5);
       
     DataServices dataServices(File, fileType);
 
@@ -457,11 +448,7 @@ compute_flux_all(int nstart,
     
   for (int i = nstart; i < nmax; i++)
   {
-    char buf[64];
-    sprintf(buf,"%05d",i*nfac);
-          
-    std::string idxs(buf);
-    std::string File = iFile + idxs;
+    std::string File = BoxLib::Concatenate(iFile, i*nfac, 5);
       
     DataServices dataServices(File, fileType);
 

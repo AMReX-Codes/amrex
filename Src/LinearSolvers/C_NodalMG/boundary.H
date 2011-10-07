@@ -2,8 +2,8 @@
 #ifndef _BOUNDARY_H_
 #define _BOUNDARY_H_
 
-#include "interface.H"
-#include "RegType.H"
+#include <interface.H>
+#include <RegType.H>
 
 //
 // This is the base class for all amr_boundaries.  The default function dir

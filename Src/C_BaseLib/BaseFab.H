@@ -82,8 +82,6 @@ public:
     //
     BaseFab ();
 
-    BaseFab (const BaseFab&);
-    BaseFab& operator= (const BaseFab&);
     BaseFab& operator= (const T&);
     //
     // Make BaseFab with desired domain and number of components.
@@ -782,6 +780,13 @@ protected:
     long    numpts;   // Cached number of points in FAB.
     long    truesize; // nvar*numpts that was allocated on heap.
     T*      dptr;     // The data pointer.
+
+private:
+    //
+    // Disable these.
+    //
+    BaseFab (const BaseFab&);
+    BaseFab& operator= (const BaseFab&);
 };
 
 template <class T>
@@ -1123,39 +1128,6 @@ BaseFab<T>::BaseFab ()
 {}
 
 template <class T>
-BaseFab<T>::BaseFab (const BaseFab& fab)
-    :
-    domain(fab.box()),
-    dlen(fab.dlen),
-    nvar(fab.nComp())
-{
-    numpts = domain.numPts();
-    dptr = 0;
-    define();
-    for ( int i = 0; i < numpts*nvar; ++i )
-    {
-	dptr[i] = fab.dptr[i];
-    }
-}
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::operator= (const BaseFab& fab)
-{
-    if ( this == &fab ) return *this;
-    domain = fab.box();
-    nvar   = fab.nComp();
-    numpts = domain.numPts();
-    dptr = 0;
-    define();
-    for ( int i = 0; i < numpts*nvar; ++i )
-    {
-	dptr[i] = fab.dptr[i];
-    }
-    return *this;
-}
-
-template <class T>
 BaseFab<T>&
 BaseFab<T>::operator= (const T& t)
 {
@@ -1472,7 +1444,7 @@ BaseFab<T>::setComplement (T          x,
                            int        num)
 {
     BoxList b_lst = BoxLib::boxDiff(domain,b);
-    for (BoxList::iterator bli = b_lst.begin(), end = b_lst.end(); bli != end; ++bli)
+    for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli)
         performSetVal(x, *bli, ns, num);
 }
 
@@ -2388,5 +2360,19 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     } EndForTX
     return *this;
 }
+
+namespace BoxLib
+{
+    class BF_init
+    {
+    public:
+        BF_init ();
+        ~BF_init ();
+    private:
+        static int m_cnt;
+    };
+}
+
+static BoxLib::BF_init file_scope_BF_init_object;
 
 #endif /*BL_BASEFAB_H*/

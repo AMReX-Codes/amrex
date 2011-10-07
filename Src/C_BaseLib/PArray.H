@@ -261,8 +261,10 @@ PArray<T>::PArray (int          len,
     vp(len),
     managed(_managed)
 {
-    for (int i = 0; i < size(); i++)
+    for (int i = 0, N = size(); i < N; i++)
+    {
         vp[i] = 0;
+    }
 }
 
 template <class T>
@@ -271,13 +273,19 @@ PArray<T>::clear ()
 {
     if (managed)
     {
-        for (int i = 0; i < size(); ++i)
+        for (int i = 0, N = size(); i < N; ++i)
         {
             delete ((T*)(vp[i]));
+            vp[i] = 0;
         }
     }
-    for (int i = 0; i < size(); ++i)
-        vp[i] = 0;
+    else
+    {
+        for (int i = 0, N = size(); i < N; ++i)
+        {
+            vp[i] = 0;
+        }
+    }
 }
 
 template <class T>

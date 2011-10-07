@@ -10,10 +10,10 @@ ifeq ($(COMP),PathScale)
     CXX = mpicxx
   endif
 
-  ifeq ($(BL_NOFAST),TRUE)
-    CXXOPTF += -O -fno-exceptions -Wno-deprecated
-  else
+  ifeq ($(BL_FAST),TRUE)
     CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
+  else
+    CXXOPTF += -O -fno-exceptions -Wno-deprecated
   endif
 
   CXXDEBF += -O0 -fno-exceptions -g -Wno-deprecated
@@ -37,17 +37,17 @@ ifeq ($(COMP),Cray)
 else
 ifeq ($(COMP),PGI)
   CXX = pgCC
-  CXXDEBF += -g
+  CXXDEBF += -g -O0
 
-  ifeq ($(BL_NOFAST),TRUE)
-    CXXOPTF += -O --no_exceptions
-  else
+  ifeq ($(BL_FAST),TRUE)
     ifeq ($(findstring jaguar, $(HOST)), jaguar)
       CXXOPTF += -O
     else
       COPTF += -fast
       CXXOPTF += -fast -Minline=levels:10 --no_exceptions
     endif
+  else
+    CXXOPTF += -O --no_exceptions
   endif
 
 #  ifneq ($(USE_MPI),TRUE)
@@ -88,12 +88,12 @@ ifeq ($(FCOMP),PathScale)
   FDEBF += -O0 -g
   fDEBF += -O0 -g
 
-  ifeq ($(BL_NOFAST),TRUE)
-    FOPTF += -O
-    fOPTF += -O
-  else
+  ifeq ($(BL_FAST),TRUE)
     FOPTF += -Ofast
     fOPTF += -Ofast
+  else
+    FOPTF += -O
+    fOPTF += -O
   endif
 
   ifeq ($(USE_OMP),TRUE)
@@ -156,12 +156,12 @@ ifeq ($(FCOMP),PGI)
   FC := pgf90
   fC := $(FC)
 
-  ifeq ($(BL_NOFAST),TRUE)
-    FOPTF  += -O
-    fOPTF  += -O
-  else
+  ifeq ($(BL_FAST),TRUE)
     FOPTF  += -fast
     fOPTF  += -fast
+  else
+    FOPTF  += -O
+    fOPTF  += -O
   endif
 
   ifeq ($(USE_OMP),TRUE)
@@ -413,7 +413,7 @@ ifeq ($(WHICHLINUX), YANA)
   ifeq ($(COMP),PGI)
     CXX = pgCC
     CXXOPTF = -fast --no_exceptions
-    CXXDEBF = -g
+    CXXDEBF = -g -O0
     FC = pgif90
     fC = pgif90
     ifeq ($(USE_MPI),TRUE)

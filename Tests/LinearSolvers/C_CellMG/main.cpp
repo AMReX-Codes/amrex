@@ -1,6 +1,3 @@
-//
-// $Id: main.cpp,v 1.38 2011-07-19 17:11:07 marc Exp $
-//
 
 #include <fstream>
 #include <iomanip>
@@ -146,9 +143,8 @@ writePlotFile (const std::string& dir,
     // The name is relative to the directory containing the Header file.
     //
     static const std::string BaseName = "/Cell";
-    char buf[64];
-    sprintf(buf, "Level_%d", 0);
-    std::string Level = buf;
+
+    std::string Level = BoxLib::Concatenate("Level_", 0, 1);
     //
     // Now for the full pathname of that directory.
     //
