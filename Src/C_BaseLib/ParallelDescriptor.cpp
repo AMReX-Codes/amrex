@@ -156,16 +156,17 @@ namespace
 	static char buf[N];
 	if ( status )
 	{
-	    std::snprintf(buf, N, "BoxLib MPI Error: File %s, line %d, %s: %s",
-			 file, line, call, ParallelDescriptor::ErrorString(status));
+	    snprintf(buf, N, "BoxLib MPI Error: File %s, line %d, %s: %s",
+                     file, line, call, ParallelDescriptor::ErrorString(status));
 	}
 	else
 	{
-	    std::snprintf(buf, N, "BoxLib MPI Error: File %s, line %d, %s",
-			 file, line, call);
+	    snprintf(buf, N, "BoxLib MPI Error: File %s, line %d, %s",
+                     file, line, call);
 	}
 	return buf;
     }
+
 }
 
 namespace ParallelDescriptor
