@@ -219,7 +219,8 @@ contains
     r = g_init
   end function parallel_initialized
 
-  subroutine parallel_initialize()
+  subroutine parallel_initialize(comm)
+    integer, intent(in), optional :: comm
     g_init = .True.
   end subroutine parallel_initialize
 
