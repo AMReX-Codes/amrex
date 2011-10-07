@@ -1,7 +1,8 @@
 #include <ParmParse.H>
 #include <MGT_Solver.H>
+#include <ParallelDescriptor.H>
 
-bool  MGT_Solver::initialized;
+bool  MGT_Solver::initialized = false;
 int   MGT_Solver::def_nu_1;
 int   MGT_Solver::def_nu_2;
 int   MGT_Solver::def_nu_b;
@@ -279,13 +280,26 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
   }
 }
 
+void
+MGT_Solver::Finalize()
+{
+    initialized = false;
+}
 
 void
 MGT_Solver::initialize(bool nodal)
 {
+    BoxLib::ExecOnFinalize(MGT_Solver::Finalize);
+
     initialized = true;
 
-    mgt_init();
+    int comm = 0;
+
+#ifdef BL_USE_MPI
+    comm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+#endif
+
+    mgt_init(&comm);
 
     if (nodal) {
       mgt_get_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
