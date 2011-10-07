@@ -204,13 +204,18 @@ contains
     call MPI_Initialized(r, ierr)
   end function parallel_initialized
 
-  subroutine parallel_initialize()
+  subroutine parallel_initialize(comm)
+    integer, intent(in), optional :: comm
     integer ierr
     logical flag
     external MPI_Init, MPI_Comm_Dup, MPI_Comm_Size, MPI_Comm_Rank
     call MPI_Initialized(flag, ierr)
     if ( .not. flag ) call MPI_Init(ierr)
-    call MPI_Comm_Dup(MPI_COMM_WORLD, m_comm, ierr)
+    if ( present(comm) ) then
+       call MPI_Comm_Dup(comm, m_comm, ierr)
+    else
+       call MPI_Comm_Dup(MPI_COMM_WORLD, m_comm, ierr)
+    endif
     call MPI_Comm_Size(m_comm, m_nprocs, ierr)
     call MPI_Comm_Rank(m_comm, m_myproc, ierr)
     call parallel_barrier()
