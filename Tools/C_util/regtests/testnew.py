@@ -1169,7 +1169,7 @@ def testSuite(argv):
             shutil.copy("%s/%s.make.out"    % (outputDir, test.name), fullWebDir)
 
             print "  creating problem test report ..."
-            reportSingleTest(suite, test, testDir, fullWebDir)
+            reportSingleTest(suite, test, compString, "", testDir, fullWebDir)
 
             # ... skip to the next test in the loop
             continue
@@ -1559,7 +1559,7 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         if (not make_benchmarks):
             print "  creating problem test report ..."
-            reportSingleTest(suite, test, testDir, fullWebDir)
+            reportSingleTest(suite, test, compString, testRunCommand, testDir, fullWebDir)
 
 
         
@@ -1642,7 +1642,7 @@ def create_css():
 #==============================================================================
 # reportSingleTest
 #==============================================================================
-def reportSingleTest(suite, test, testDir, fullWebDir):
+def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDir):
     """ generate a single problem's test result page """
     
     # get the current directory
@@ -1791,7 +1791,8 @@ def reportSingleTest(suite, test, testDir, fullWebDir):
     else:
         hf.write("<P><H3 CLASS=\"failed\">Compilation Failed</H3></P>\n")
 
-    hf.write("<A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
+    hf.write("<P>compliation command: %s\n" % (compileCommand) )
+    hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
 
     hf.write("<P>&nbsp;\n")
 
@@ -1804,7 +1805,8 @@ def reportSingleTest(suite, test, testDir, fullWebDir):
         else:
             hf.write("<P><H3 CLASS=\"failed\">Comparison Failed</H3></P>\n")
 
-        hf.write("<A HREF=\"%s.run.out\">execution output</A>\n" % (test.name) )
+        hf.write("<P>Execution command: %s\n" % (runCommand) )
+        hf.write("<P><A HREF=\"%s.run.out\">execution output</A>\n" % (test.name) )
 
 
         hf.write("<P>&nbsp;\n")
@@ -1965,6 +1967,10 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime,
             
     hf.write("<p>&nbsp;&nbsp;<b>fParallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
              ("ChangeLog.fParallel", "ChangeLog.fParallel") )        
+
+    hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+             ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
+
     hf.write("<p>&nbsp;\n")    
 
     hf.write("<P><TABLE BORDER=0 CELLPADDING=3>\n")
