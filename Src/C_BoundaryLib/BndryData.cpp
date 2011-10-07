@@ -91,7 +91,7 @@ BndryData::clear_masks ()
     {
         const Orientation face = oitr();
 
-        for (int k = 0; k < masks[face].size(); k++)
+        for (int k = 0, N = masks[face].size(); k < N; k++)
         {
             if (masks[face].defined(k))
             {
@@ -157,7 +157,7 @@ BndryData::define (const BoxArray& _grids,
             {
                 geom.periodicShift(geom.Domain(), face_box, pshifts);
 
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                for (int iiv = 0, N = pshifts.size(); iiv < N; iiv++)
                 {
                     m->shift(pshifts[iiv]);
                     Box target = geom.Domain() & m->box();
@@ -180,7 +180,7 @@ BndryData::define (const BoxArray& _grids,
             {
                 geom.periodicShift(geom.Domain(), face_box, pshifts);
 
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                 {
                     m->shift(pshifts[iiv]);
 

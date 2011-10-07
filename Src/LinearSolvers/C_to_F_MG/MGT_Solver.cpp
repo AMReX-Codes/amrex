@@ -1,7 +1,8 @@
 #include <ParmParse.H>
 #include <MGT_Solver.H>
+#include <ParallelDescriptor.H>
 
-bool  MGT_Solver::initialized;
+bool  MGT_Solver::initialized = false;
 int   MGT_Solver::def_nu_1;
 int   MGT_Solver::def_nu_2;
 int   MGT_Solver::def_nu_b;
@@ -279,13 +280,26 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
   }
 }
 
+void
+MGT_Solver::Finalize()
+{
+    initialized = false;
+}
 
 void
 MGT_Solver::initialize(bool nodal)
 {
+    BoxLib::ExecOnFinalize(MGT_Solver::Finalize);
+
     initialized = true;
 
-    mgt_init();
+    int comm = 0;
+
+#ifdef BL_USE_MPI
+    comm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+#endif
+
+    mgt_init(&comm);
 
     if (nodal) {
       mgt_get_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
@@ -493,7 +507,8 @@ MGT_Solver::set_visc_coefficients(PArray<MultiFab>& aa,
 				  Array<PArray<MultiFab> >& bb, 
                                   const Real& beta, 
                                   Array< Array<Real> >& xa,
-                                  Array< Array<Real> >& xb)
+                                  Array< Array<Real> >& xb,
+				  int index_order)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
   {
@@ -516,20 +531,20 @@ MGT_Solver::set_visc_coefficients(PArray<MultiFab>& aa,
       const int* ahi = a.box().hiVect();
       mgt_set_cfa (&lev, &n, a.dataPtr(), alo, ahi, lo, hi);
 
-      const FArrayBox& bx = bb[0][lev][amfi];
+      const FArrayBox& bx = (index_order==0) ? bb[0][lev][amfi] : bb[lev][0][amfi];
       const int* bxlo = bx.box().loVect();
       const int* bxhi = bx.box().hiVect();
       mgt_set_cfbx(&lev, &n, bx.dataPtr(), &beta, bxlo, bxhi, lo, hi);
 
 #if (BL_SPACEDIM >= 2)
-      const FArrayBox& by = bb[1][lev][amfi];
+      const FArrayBox& by = (index_order==0) ? bb[1][lev][amfi] : bb[lev][1][amfi];
       const int* bylo = by.box().loVect();
       const int* byhi = by.box().hiVect();
       mgt_set_cfby(&lev, &n, by.dataPtr(), &beta, bylo, byhi, lo, hi);
 #endif
 
 #if (BL_SPACEDIM == 3)
-      const FArrayBox& bz = bb[2][lev][amfi];
+      const FArrayBox& bz = (index_order==0) ? bb[2][lev][amfi] : bb[lev][2][amfi];
       const int* bzlo = bz.box().loVect();
       const int* bzhi = bz.box().hiVect();
       mgt_set_cfbz(&lev, &n, bz.dataPtr(), &beta, bzlo, bzhi, lo, hi);

@@ -1,5 +1,10 @@
-FEXE_headers += COEF_F.H 
+FEXE_headers += COEF_F.H  COMP_NORM_F.H
 FEXE_sources += COEF_$(DIM)D.F 
+f90EXE_sources += COMP_NORM_$(DIM)d.f90
 
-CEXE_sources  += MacBndry.cpp
-CEXE_headeres += MacBndry.H
+CEXE_headers += writePlotFile.H
+
+CEXE_sources += main.cpp
+CEXE_sources += writePlotFile.cpp
+CEXE_sources += solve_with_F90.cpp
+CEXE_sources += compute_norm.cpp

@@ -2,7 +2,7 @@
 #ifndef _INTERPOLATOR_H_
 #define _INTERPOLATOR_H_
 
-#include "amr_defs.H"
+#include <amr_defs.H>
 
 //
 // This is the base class for all amr_interpolators.  Currently these

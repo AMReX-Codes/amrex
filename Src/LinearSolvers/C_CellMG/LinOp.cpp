@@ -85,24 +85,22 @@ LinOp::LinOp (const BndryData& _bgb,
 
 LinOp::~LinOp ()
 {
-
-
-    for (int i = 0; i < maskvals.size(); ++i)
+    for (int i = 0, N = maskvals.size(); i < N; ++i)
     {
-        for (int j = 0; j < maskvals[i].size(); ++j)
+        for (int j = 0, NN = maskvals[i].size(); j < NN; ++j)
         {
-            for (int k = 0; k < maskvals[i][j].size(); ++k)
+            for (int k = 0, NNN = maskvals[i][j].size(); k < NNN; ++k)
             {
                 delete maskvals[i][j][k];
             }
         }
     }
 
-    for (int i = 0; i < lmaskvals.size(); ++i)
+    for (int i = 0, N = lmaskvals.size(); i < N; ++i)
     {
-        for (int j = 0; j < lmaskvals[i].size(); ++j)
+        for (int j = 0, NN = lmaskvals[i].size(); j < NN; ++j)
         {
-            for (int k = 0; k < lmaskvals[i][j].size(); ++k)
+            for (int k = 0, NNN = lmaskvals[i][j].size(); k < NNN; ++k)
             {
                 delete lmaskvals[i][j][k];
             }
@@ -149,7 +147,7 @@ LinOp::initConstruct (const Real* _h)
     //
     // For each orientation, build NULL masks, then use distributed allocation.
     //
-    for (int i = 0; i < gbox[level].size(); i++)
+    for (int i = 0, N = gbox[level].size(); i < N; i++)
     {
         maskvals[level][i].resize(2*BL_SPACEDIM, 0);
     }
@@ -158,7 +156,7 @@ LinOp::initConstruct (const Real* _h)
     {
         Orientation face = oitr();
         const FabSet& bndry = bgb[face];
-        for (int i = 0; i < gbox[level].size(); i++)
+        for (int i = 0, N = gbox[level].size(); i < N; i++)
         {
             if (bndry.DistributionMap()[i] == ParallelDescriptor::MyProc())
             {
@@ -175,7 +173,7 @@ LinOp::initConstruct (const Real* _h)
     //
     // For each orientation, build NULL masks, then use distributed allocation.
     //
-    for (int i = 0; i < gbox[level].size(); i++)
+    for (int i = 0, N = gbox[level].size(); i < N; i++)
     {
         lmaskvals[level][i].resize(2*BL_SPACEDIM, 0);
     }
@@ -184,7 +182,7 @@ LinOp::initConstruct (const Real* _h)
     {
         Orientation face = oitr();
         const FabSet& bndry = bgb[face];
-        for (int i = 0; i < gbox[level].size(); i++)
+        for (int i = 0, N = gbox[level].size(); i < N; i++)
         {
             if (bndry.DistributionMap()[i] == ParallelDescriptor::MyProc())
             {
@@ -428,7 +426,7 @@ LinOp::prepareForLevel (int level)
             {
                 curgeom.periodicShift(curdomain, bx_k, pshifts);
 
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                 {
                     curmask.shift(pshifts[iiv]);
                     isects = gbox[level].intersections(curmask.box());
@@ -445,7 +443,7 @@ LinOp::prepareForLevel (int level)
     BL_ASSERT(lmaskvals.size() == level);
     lmaskvals.resize(level+1);
     lmaskvals[level].resize(gbox[level].size());
-    for (int i = 0; i < gbox[level].size(); i++)
+    for (int i = 0, N = gbox[level].size(); i < N; i++)
         lmaskvals[level][i].resize(2*BL_SPACEDIM, 0);
 
     const int MyProc = ParallelDescriptor::MyProc();
@@ -477,7 +475,7 @@ LinOp::prepareForLevel (int level)
             {
                 curgeom.periodicShift(curdomain, bx_k, pshifts);
 
-                for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                 {
                     curmask.shift(pshifts[iiv]);
                     isects = gbox[level].intersections(curmask.box());

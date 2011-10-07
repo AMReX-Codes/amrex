@@ -17,7 +17,7 @@
 #define DIMLIST(a) 	a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1), a.smallEnd(2), a.bigEnd(2)
 #endif
 
-#include "hgparallel.H"
+#include <hgparallel.H>
 
 extern bool HG_is_debugging;
 

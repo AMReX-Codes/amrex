@@ -1,8 +1,4 @@
 
-//
-// $Id: PltFileNormB.cpp,v 1.6 2010-02-19 23:40:10 almgren Exp $
-//
-
 #include <new>
 #include <iostream>
 #include <cstdio>
@@ -12,18 +8,18 @@ using std::ios;
 
 #include <unistd.h>
 
-#include "WritePlotFile.H"
-#include "REAL.H"
-#include "Box.H"
-#include "FArrayBox.H"
-#include "ParmParse.H"
-#include "ParallelDescriptor.H"
-#include "DataServices.H"
-#include "Utility.H"
-#include "VisMF.H"
+#include <WritePlotFile.H>
+#include <REAL.H>
+#include <Box.H>
+#include <FArrayBox.H>
+#include <ParmParse.H>
+#include <ParallelDescriptor.H>
+#include <DataServices.H>
+#include <Utility.H>
+#include <VisMF.H>
 
 #ifndef NDEBUG
-#include "TV_TempWrite.H"
+#include <TV_TempWrite.H>
 #endif
 
 #define GARBAGE 666.e+40

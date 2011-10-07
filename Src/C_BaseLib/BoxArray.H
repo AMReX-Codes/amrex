@@ -260,8 +260,11 @@ public:
     void reserve (long _truesize);
 
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
-
-    BoxList removeOverlap (); // Do NOT call unless you REALLY know what you're doing.
+    //
+    // Changes the BoxArray to one with no overlap.
+    // Also tries to "simplify" the BoxArray within reason.
+    //
+    void removeOverlap ();
 
 protected:
 

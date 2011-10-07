@@ -2,7 +2,7 @@
 #ifndef _HG_MULTI_H_
 #define _HG_MULTI_H_
 
-#include "amr_multi.H"
+#include <amr_multi.H>
 
 class holy_grail_amr_multigrid
     :

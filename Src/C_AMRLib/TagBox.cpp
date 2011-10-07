@@ -30,32 +30,26 @@ TagBox::resize (const Box& b, int ncomp)
 TagBox*
 TagBox::coarsen (const IntVect& ratio)
 {
-    Box cbx(domain);
-    cbx.coarsen(ratio);
-    TagBox* crse = new TagBox(cbx);
+    TagBox* crse = new TagBox(BoxLib::coarsen(domain,ratio));
+
     const Box& cbox = crse->box();
+
     Box b1(BoxLib::refine(cbox,ratio));
 
-    const int* flo  = domain.loVect();
-    const int* fhi  = domain.hiVect();
-    IntVect d_length = domain.size();
-    const int* flen = d_length.getVect();
-
-    const int* clo  = cbox.loVect();
-    IntVect cbox_length = cbox.size();
-    const int* clen = cbox_length.getVect();
-
-    const int* lo  = b1.loVect();
-
-    int longlen;
-    longlen = b1.longside();
+    const int* flo      = domain.loVect();
+    const int* fhi      = domain.hiVect();
+    IntVect    d_length = domain.size();
+    const int* flen     = d_length.getVect();
+    const int* clo      = cbox.loVect();
+    IntVect    cbox_len = cbox.size();
+    const int* clen     = cbox_len.getVect();
+    const int* lo       = b1.loVect();
+    int        longlen  = b1.longside();
 
     TagType* fdat = dataPtr();
     TagType* cdat = crse->dataPtr();
 
-    TagType* t = new TagType[longlen];
-    for (int i = 0; i < longlen; i++)
-        t[i] = TagBox::CLEAR;
+    Array<TagType> t(longlen,TagBox::CLEAR);
 
     int klo = 0, khi = 0, jlo = 0, jhi = 0, ilo, ihi;
     D_TERM(ilo=flo[0]; ihi=fhi[0]; ,
@@ -72,11 +66,11 @@ TagBox::coarsen (const IntVect& ratio)
 
    for (int k = klo; k <= khi; k++)
    {
-       int kc = IXPROJ(k,ratioz);
+       const int kc = IXPROJ(k,ratioz);
        for (int j = jlo; j <= jhi; j++)
        {
-           int jc = IXPROJ(j,ratioy);
-           TagType* c = cdat + IOFF(jc,kc,clo,clen);
+           const int     jc = IXPROJ(j,ratioy);
+           TagType*       c = cdat + IOFF(jc,kc,clo,clen);
            const TagType* f = fdat + IOFF(j,k,flo,flen);
            //
            // Copy fine grid row of values into tmp array.
@@ -88,14 +82,12 @@ TagBox::coarsen (const IntVect& ratio)
            {
                for (int ic = 0; ic < clen[0]; ic++)
                {
-                   int i = ic*ratiox + off;
+                   const int i = ic*ratiox + off;
                    c[ic] = std::max(c[ic],t[i]);
                }
            }
        }
    }
-
-   delete [] t;
 
    return crse;
 
@@ -355,19 +347,19 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     std::list< std::pair<FillBoxId,IntVect> > IDs;
 
-    for (int i = 0; i < boxarray.size(); i++)
+    for (int i = 0, N = boxarray.size(); i < N; i++)
     {
         if (!domain.contains(boxarray[i]))
         {
             geom.periodicShift(domain, boxarray[i], pshifts);
 
-            for (int iiv = 0; iiv < pshifts.size(); iiv++)
+            for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
             {
                 Box shiftbox(boxarray[i]);
 
                 shiftbox.shift(pshifts[iiv]);
 
-                for (int j = 0; j < boxarray.size(); j++)
+                for (int j = 0; j < N; j++)
                 {
                     if (distributionMap[j] == MyProc)
                     {
@@ -397,8 +389,8 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     TagBox src;
 
-    for (std::list< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(), end = IDs.end();
-         it != end;
+    for (std::list< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(), End = IDs.end();
+         it != End;
          ++it)
     {
         BL_ASSERT(distributionMap[it->first.FabIndex()] == MyProc);
@@ -480,13 +472,13 @@ TagBoxArray::collate (long& numtags) const
 
     if (ParallelDescriptor::IOProcessor())
     {
-        for (int i = 0; i < nmtags.size(); i++)
+        for (int i = 0, N = nmtags.size(); i < N; i++)
             //
             // Convert from count of tags to count of integers to expect.
             //
             nmtags[i] *= BL_SPACEDIM;
 
-        for (int i = 1; i < offset.size(); i++)
+        for (int i = 1, N = offset.size(); i < N; i++)
             offset[i] = offset[i-1] + nmtags[i-1];
     }
     //
@@ -569,8 +561,7 @@ TagBoxArray::coarsen (const IntVect & ratio)
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         TagBox* tfine = m_fabs[fai.index()];
-        TagBox* tcrse = tfine->coarsen(ratio);
-        m_fabs[fai.index()] = tcrse;
+        m_fabs[fai.index()] = tfine->coarsen(ratio);
         delete tfine;
     }
     boxarray.coarsen(ratio);

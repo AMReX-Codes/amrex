@@ -69,8 +69,8 @@ std::ostream&
 operator<< (std::ostream&             os,
 	    const Geometry::PIRMList& pirm)
 {
-    for (Geometry::PIRMList::const_iterator it = pirm.begin(), end = pirm.end();
-         it != end;
+    for (Geometry::PIRMList::const_iterator it = pirm.begin(), End = pirm.end();
+         it != End;
          ++it)
     {
         os << *it << '\n';
@@ -229,7 +229,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
                     periodicShift(dst, src, pshifts);
 
-                    for (int i = 0; i < pshifts.size(); i++)
+                    for (int i = 0, N = pshifts.size(); i < N; i++)
                     {
                         Box shftbox = src + pshifts[i];
                         Box dbx     = dst & shftbox;
@@ -285,7 +285,7 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
         //
         const BoxArray& grids = mf.boxArray();
 
-        for (int j = 0; j < grids.size(); j++)
+        for (int j = 0, N = grids.size(); j < N; j++)
         {
             Box src = BoxLib::grow(grids[j],mf.nGrow());
 
@@ -293,7 +293,7 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
 
             periodicShift(dest, src, pshifts);
 
-            for (int i = 0; i < pshifts.size(); i++)
+            for (int i = 0, M = pshifts.size(); i < M; i++)
             {
                 Box shftbox = src + pshifts[i];
                 Box dbx     = dest & shftbox;
@@ -317,8 +317,8 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
 
     FArrayBox fab;
 
-    for (Geometry::PIRMList::const_iterator it = pirm.begin(), end = pirm.end();
-         it != end;
+    for (Geometry::PIRMList::const_iterator it = pirm.begin(), End = pirm.end();
+         it != End;
          ++it)
     {
         BL_ASSERT(it->fbid.box() == it->srcBox);
@@ -376,7 +376,7 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
         //
         const BoxArray& grids = srcmf.boxArray();
 
-        for (int j = 0; j < grids.size(); j++)
+        for (int j = 0, N = grids.size(); j < N; j++)
         {
             Box src = BoxLib::grow(grids[j],srcmf.nGrow());
 
@@ -384,7 +384,7 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
 
             periodicShift(dest, src, pshifts);
 
-            for (int i = 0; i < pshifts.size(); i++)
+            for (int i = 0, M = pshifts.size(); i < M; i++)
             {
                 Box shftbox = src + pshifts[i];
                 Box dbx     = dest & shftbox;
@@ -408,8 +408,8 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
 
     FArrayBox fab;
 
-    for (Geometry::PIRMList::const_iterator it = pirm.begin(), end = pirm.end();
-         it != end;
+    for (Geometry::PIRMList::const_iterator it = pirm.begin(), End = pirm.end();
+         it != End;
          ++it)
     {
         BL_ASSERT(it->fbid.box() == it->srcBox);

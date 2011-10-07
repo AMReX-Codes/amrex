@@ -1,26 +1,14 @@
-#ifdef BL_ARCH_CRAY
-#ifdef BL_USE_DOUBLE
-#error "DOUBLE PRECISION NOT ALLOWED ON CRAY"
-#endif
-#endif
 
-#ifndef        WIN32
+#ifndef WIN32
 #include <unistd.h>
 #endif
 
-#include "MultiFab.H"
-#include "ArrayView.H"
-#include "ParmParse.H"
-#include "Utility.H"
-#include "ParallelDescriptor.H"
-#include "TV_TempWrite.H"
-
-#include <new>
-using std::setprecision;
-#include <iostream>
-#ifndef WIN32
-using std::set_new_handler;
-#endif
+#include <MultiFab.H>
+#include <ArrayView.H>
+#include <ParmParse.H>
+#include <Utility.H>
+#include <ParallelDescriptor.H>
+#include <TV_TempWrite.H>
 
 const int NPROCS = 1;
 
@@ -53,17 +41,12 @@ int
 main (int   argc,
       char* argv[])
 {
-    //
-    // Make sure to catch new failures.
-    //
-#ifndef WIN32
-    set_new_handler(Utility::OutOfMemory);
-#endif
 
     // Parse command line
     ParmParse pp(argc-1,argv+1,NULL,NULL); 
 
     int nprocs = NPROCS; pp.query("nprocs", nprocs);
+
 #ifndef BL_USE_BSP
     if (nprocs > 1)
     {

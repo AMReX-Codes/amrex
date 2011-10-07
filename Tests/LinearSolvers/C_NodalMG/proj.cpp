@@ -1,7 +1,6 @@
 
-#include "hg_projector.H"
+#include <hg_projector.H>
 
-#include <CArena.H>
 #include <Utility.H>
 #include <ParmParse.H>
 #include <VisMF.H>
@@ -136,29 +135,6 @@ main(int argc, char **argv)
 	    driver(filename.c_str());
 	  }
       }
-
-    if (CArena* arena = dynamic_cast<CArena*>(BoxLib::The_Arena()))
-    {
-        //
-        // A barrier to make sure our output follows that of RunStats.
-        //
-        ParallelDescriptor::Barrier();
-        //
-        // We're using a CArena -- output some FAB memory stats.
-        //
-        // This'll output total # of bytes of heap space in the Arena.
-        //
-        // It's actually the high water mark of heap space required by FABs.
-        //
-        char buf[256];
-
-        sprintf(buf,
-                "CPU(%d): Heap Space (bytes) used by Coalescing FAB Arena: %ld",
-                ParallelDescriptor::MyProc(),
-                arena->heap_space_used());
-
-        std::cout << buf << std::endl;
-    }
 
     HG::MPI_finish();
 

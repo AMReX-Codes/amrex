@@ -228,7 +228,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
     BoxArray ba(grids.size());
 
-    for (int i = 0; i < grids.size(); i++)
+    for (int i = 0, N = grids.size(); i < N; i++)
     {
         ba.set(i, BoxLib::grow(grids[i],1));
     }
@@ -278,7 +278,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
         for (MFIter mfi(S); mfi.isValid(); ++mfi)
         {
-            for (int k = 0; k < grids.size(); k++)
+            for (int k = 0, N = grids.size(); k < N; k++)
             {
                 const Box& bx = ba[k];
 
@@ -286,7 +286,7 @@ FluxRegister::Reflux (MultiFab&       S,
                 {
                     geom.periodicShift(bx,mfi.validbox(),pshifts);
 
-                    for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                    for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                     {
                         const IntVect& iv = pshifts[iiv];
                         S[mfi].shift(iv);
@@ -337,8 +337,8 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    for (std::list<RF>::const_iterator it = RFs.begin(), end = RFs.end();
-         it != end;
+    for (std::list<RF>::const_iterator it = RFs.begin(), End = RFs.end();
+         it != End;
          ++it)
     {
         const RF&        rf   = *it;
@@ -445,7 +445,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
     BoxArray ba(grids.size());
 
-    for (int i = 0; i < grids.size(); i++)
+    for (int i = 0, N = grids.size(); i < N; i++)
     {
         ba.set(i, BoxLib::grow(grids[i],1));
     }
@@ -495,7 +495,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
         for (MFIter mfi(S); mfi.isValid(); ++mfi)
         {
-            for (int k = 0; k < grids.size(); k++)
+            for (int k = 0, N = grids.size(); k < N; k++)
             {
                 const Box& bx = ba[k];
 
@@ -503,7 +503,7 @@ FluxRegister::Reflux (MultiFab&       S,
                 {
                     geom.periodicShift(bx,mfi.validbox(),pshifts);
 
-                    for (int iiv = 0; iiv < pshifts.size(); iiv++)
+                    for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                     {
                         const IntVect& iv = pshifts[iiv];
                         S[mfi].shift(iv);
@@ -543,8 +543,8 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    for (std::list<RF>::const_iterator it = RFs.begin(), end = RFs.end();
-         it != end;
+    for (std::list<RF>::const_iterator it = RFs.begin(), End = RFs.end();
+         it != End;
          ++it)
     {
         const RF& rf          = *it;
@@ -846,7 +846,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     FArrayBox fab;
 
-    for (int i = 0; i < fillBoxId.size(); i++)
+    for (int i = 0, N = fillBoxId.size(); i < N; i++)
     {
         const FillBoxId& fbid_mflx = fillBoxId[i];
 
@@ -993,8 +993,10 @@ FluxRegister::CrseInitFinish (FrOp op)
     {
         long count = 0;
 
-        for (int i = 0; i < CIFabs.size(); i++)
+        for (int i = 0, N = CIFabs.size(); i < N; i++)
+        {
             count += CIFabs[i]->box().numPts()*CIFabs[i]->nComp()*sizeof(Real);
+        }
 
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -1058,7 +1060,7 @@ FluxRegister::CrseInitFinish (FrOp op)
         for (int i = 1; i < NProcs; i++)
             offset[i] = offset[i-1] + CIMsgs[i-1];
 
-        for (int j = 0; j < CITags.size(); j++)
+        for (int j = 0, N = CITags.size(); j < N; j++)
         {
             ParallelDescriptor::CommData data(CITags[j].face,
                                               CITags[j].fabIndex,

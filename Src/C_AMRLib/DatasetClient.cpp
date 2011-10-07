@@ -14,11 +14,11 @@
 #include <strstream>
 #include <unistd.h>
 
-#include "Box.H"
-#include "FArrayBox.H"
-#include "MultiFab.H"
-#include "TagBox.H"
-#include "DatasetClient.H"
+#include <Box.H>
+#include <FArrayBox.H>
+#include <MultiFab.H>
+#include <TagBox.H>
+#include <DatasetClient.H>
 
 const int         MaxBufSize    = 1024;
 const int         PortOffset    = 5000;
@@ -30,7 +30,7 @@ CreateSocket (int& newsocket)
 {
     int                sockfd;
     struct sockaddr_in serveraddr;
-    char*              serverhost = "localhost";
+    const  char*       serverhost = "localhost";
     struct hostent*    serverhostp;
 
     int GETUID_SERVER_PORT = getuid() + PortOffset;
@@ -133,7 +133,8 @@ SendRealArray (int        sockfd,
     //
     // Send nComp.
     //
-    sprintf(buffer, "%d", nvar);
+    if (snprintf(buffer, MaxBufSize, "%d", nvar) >= MaxBufSize)
+        BoxLib::Abort("SendRealArray: nComp buffer too small");
 
     if (send(sockfd, buffer, strlen(buffer), 0) < 0)
     {
@@ -652,7 +653,8 @@ ArrayViewMultiFabFormatLabel (MultiFab*   mf,
     //
     // Send nElements.
     //
-    sprintf(buffer, "%d", mf->size());
+    if (snprintf(buffer, MaxBufSize, "%d", mf->size()) >= MaxBufSize)
+        BoxLib::Abort("SendRealArray: nElements buffer too small");
 
     if (!SendString(sockfd, buffer))
         return false;

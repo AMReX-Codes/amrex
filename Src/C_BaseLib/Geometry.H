@@ -444,7 +444,7 @@ namespace BoxLib
             {
                 const BoxArray& grids = mf.boxArray();
 
-                for (int j = 0; j < grids.size(); j++)
+                for (int j = 0, N = grids.size(); j < N; j++)
                 {
                     Box src = grids[j] & TheDomain;
 
@@ -464,7 +464,7 @@ namespace BoxLib
 
                     geom.periodicShift(dest, src, pshifts);
 
-                    for (int i = 0; i < pshifts.size(); i++)
+                    for (int i = 0, M = pshifts.size(); i < M; i++)
                     {
                         Box shftbox = src + pshifts[i];
                         Box dbx     = dest & shftbox;
@@ -501,7 +501,7 @@ namespace BoxLib
                 //
                 Array<ParallelDescriptor::CommData>& cd = it->second.m_commdata.theCommData();
 
-                for (int i = 0; i < cd.size(); i++)
+                for (int i = 0, N = cd.size(); i < N; i++)
                 {
                     cd[i].nComp(ncomp);
                     cd[i].srcComp(scomp);
@@ -570,8 +570,8 @@ namespace BoxLib
         //
         // Add boxes we need to collect.
         //
-        for (Geometry::PIRMList::iterator it = pirm.begin(), end = pirm.end();
-             it != end;
+        for (Geometry::PIRMList::iterator it = pirm.begin(), End = pirm.end();
+             it != End;
              ++it)
         {
             it->fbid = mfcd.AddBox(mfid,
@@ -586,8 +586,8 @@ namespace BoxLib
 
         mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
 
-        for (Geometry::PIRMList::const_iterator it = pirm.begin(), end = pirm.end();
-             it != end;
+        for (Geometry::PIRMList::const_iterator it = pirm.begin(), End = pirm.end();
+             it != End;
              ++it)
         {
             BL_ASSERT(it->fbid.box() == it->srcBox);

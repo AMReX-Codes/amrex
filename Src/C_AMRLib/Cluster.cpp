@@ -99,8 +99,8 @@ Cluster::distribute (ClusterList&     clst,
     BL_ASSERT(bd.ok());
     BL_ASSERT(clst.length() == 0);
    
-    for (BoxDomain::const_iterator bdi = bd.begin(), end = bd.end();
-         bdi != end && ok();
+    for (BoxDomain::const_iterator bdi = bd.begin(), End = bd.end();
+         bdi != End && ok();
          ++bdi)
     {
         Cluster* c = new Cluster(*this, *bdi);
@@ -347,8 +347,8 @@ ClusterList::ClusterList (IntVect* pts,
 
 ClusterList::~ClusterList ()
 {
-    for (std::list<Cluster*>::iterator cli = lst.begin(), end = lst.end();
-         cli != end;
+    for (std::list<Cluster*>::iterator cli = lst.begin(), End = lst.end();
+         cli != End;
          ++cli)
     {
         delete *cli;
@@ -362,8 +362,8 @@ ClusterList::boxArray () const
 
     int i = 0;
 
-    for (std::list<Cluster*>::const_iterator cli = lst.begin(), end = lst.end();
-         cli != end;
+    for (std::list<Cluster*>::const_iterator cli = lst.begin(), End = lst.end();
+         cli != End;
          ++cli, ++i)
     {
         ba.set(i,(*cli)->box());
@@ -381,8 +381,8 @@ ClusterList::boxArray (BoxArray& ba) const
 
     int i = 0;
 
-    for (std::list<Cluster*>::const_iterator cli = lst.begin(), end = lst.end();
-         cli != end;
+    for (std::list<Cluster*>::const_iterator cli = lst.begin(), End = lst.end();
+         cli != End;
          ++cli, ++i)
     {
         ba.set(i,(*cli)->box());
@@ -393,8 +393,8 @@ BoxList
 ClusterList::boxList() const
 {
     BoxList blst;
-    for (std::list<Cluster*>::const_iterator cli = lst.begin(), end = lst.end();
-         cli != end;
+    for (std::list<Cluster*>::const_iterator cli = lst.begin(), End = lst.end();
+         cli != End;
          ++cli)
     {
         blst.push_back((*cli)->box());
@@ -406,8 +406,8 @@ void
 ClusterList::boxList (BoxList& blst) const
 {
     blst.clear();
-    for (std::list<Cluster*>::const_iterator cli = lst.begin(), end = lst.end();
-         cli != end;
+    for (std::list<Cluster*>::const_iterator cli = lst.begin(), End = lst.end();
+         cli != End;
          ++cli)
     {
         blst.push_back((*cli)->box());
