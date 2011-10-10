@@ -15,9 +15,10 @@
 #include <Utility.H>
 #include <VisMF.H>
 
-const std::string VisMF::FabFileSuffix("_D_");
-const std::string VisMF::MultiFabHdrFileSuffix("_H");
-const std::string VisMF::FabOnDisk::Prefix("FabOnDisk:");
+static const char* TheMultiFabHdrFileSuffix = "_H";
+
+static const char* TheFabOnDiskPrefix = "FabOnDisk:";
+
 //
 // Set these in Initialize().
 //
@@ -73,7 +74,7 @@ std::ostream&
 operator<< (std::ostream&           os,
             const VisMF::FabOnDisk& fod)
 {
-    os << VisMF::FabOnDisk::Prefix << ' ' << fod.m_name << ' ' << fod.m_head;
+    os << TheFabOnDiskPrefix << ' ' << fod.m_name << ' ' << fod.m_head;
 
     if (!os.good())
         BoxLib::Error("Write of VisMF::FabOnDisk failed");
@@ -88,7 +89,7 @@ operator>> (std::istream&     is,
     std::string str;
     is >> str;
 
-    BL_ASSERT(str == VisMF::FabOnDisk::Prefix);
+    BL_ASSERT(str == TheFabOnDiskPrefix);
 
     is >> fod.m_name;
     is >> fod.m_head;
@@ -619,7 +620,7 @@ VisMF::WriteHeader (const std::string& mf_name,
     {
         std::string MFHdrFileName = mf_name;
 
-        MFHdrFileName += VisMF::MultiFabHdrFileSuffix;
+        MFHdrFileName += TheMultiFabHdrFileSuffix;
 
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -651,6 +652,8 @@ VisMF::Write (const MultiFab&    mf,
 {
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
+    static const char* FabFileSuffix = "_D_";
+
     VisMF::Initialize();
 
     VisMF::Header hdr(mf, how);
@@ -681,7 +684,7 @@ VisMF::Write (const MultiFab&    mf,
     const int   NProcs   = ParallelDescriptor::NProcs();
     const int   NSets    = (NProcs + (nOutFiles - 1)) / nOutFiles;
     const int   MySet    = MyProc/nOutFiles;
-    std::string FullName = BoxLib::Concatenate(mf_name + VisMF::FabFileSuffix, MyProc % nOutFiles, 4);
+    std::string FullName = BoxLib::Concatenate(mf_name + FabFileSuffix, MyProc % nOutFiles, 4);
 
     const std::string BName = VisMF::BaseName(FullName);
 
@@ -797,7 +800,7 @@ VisMF::Write (const MultiFab&    mf,
 
             hdr.m_fod[j].m_head = recvdata[offset[i]+cnt[i]];
 
-            std::string name = BoxLib::Concatenate(mf_name + VisMF::FabFileSuffix, i % nOutFiles, 4);
+            std::string name = BoxLib::Concatenate(mf_name + FabFileSuffix, i % nOutFiles, 4);
 
             hdr.m_fod[j].m_name = VisMF::BaseName(name);
 
@@ -817,7 +820,7 @@ VisMF::VisMF (const std::string& mf_name)
 {
     std::string FullHdrFileName = m_mfname;
 
-    FullHdrFileName += VisMF::MultiFabHdrFileSuffix;
+    FullHdrFileName += TheMultiFabHdrFileSuffix;
 
     Array<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, fileCharPtr);
@@ -922,7 +925,7 @@ VisMF::Read (MultiFab&          mf,
 
     std::string FullHdrFileName = mf_name;
 
-    FullHdrFileName += VisMF::MultiFabHdrFileSuffix;
+    FullHdrFileName += TheMultiFabHdrFileSuffix;
 
     Real hEndTime, hStartTime;
 
