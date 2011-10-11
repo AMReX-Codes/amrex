@@ -31,13 +31,13 @@
       #
       # franklin.nersc.gov
       #
-        F90FLAGS += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        FFLAGS   += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        CFLAGS   += -O -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+        F90FLAGS += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+        FFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+        CFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
       else
-        F90FLAGS += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        FFLAGS   += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        CFLAGS   += -Ofast -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+        F90FLAGS += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+        FFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+        CFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
       endif
     endif
 #   LDFLAGS += -static
