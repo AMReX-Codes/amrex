@@ -284,8 +284,7 @@ FArrayBox::~FArrayBox () {}
 void
 FArrayBox::setFormat (FABio::Format fmt)
 {
-    FABio*          fio = 0;
-    RealDescriptor* rd  = 0;
+    FABio* fio = 0;
 
     switch (fmt)
     {
@@ -296,8 +295,7 @@ FArrayBox::setFormat (FABio::Format fmt)
         fio = new FABio_8bit;
         break;
     case FABio::FAB_NATIVE:
-        rd = FPC::NativeRealDescriptor().clone();
-        fio = new FABio_binary(rd);
+        fio = new FABio_binary(FPC::NativeRealDescriptor().clone());
         break;
     case FABio::FAB_IEEE:
         BoxLib::Warning("FABio::FAB_IEEE has been deprecated");
@@ -305,8 +303,7 @@ FArrayBox::setFormat (FABio::Format fmt)
         // Fall through ...
         //
     case FABio::FAB_IEEE_32:
-        rd = FPC::Ieee32NormalRealDescriptor().clone();
-        fio = new FABio_binary(rd);
+        fio = new FABio_binary(FPC::Ieee32NormalRealDescriptor().clone());
         break;
     default:
         std::cerr << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;

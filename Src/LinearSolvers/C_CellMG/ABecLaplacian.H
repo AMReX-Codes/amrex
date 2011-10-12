@@ -169,6 +169,7 @@ protected:
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
                                  const MultiFab& rhsL,
                                  int             level);
+private:
     //
     //
     // Array (on level) of "a" coefficients
@@ -186,8 +187,6 @@ protected:
     // Scalar "beta" coefficient
     //
     Real beta;
-    
-private:
     //
     // Flag, can a coeffs be trusted at a level.
     //

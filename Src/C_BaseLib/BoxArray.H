@@ -266,7 +266,7 @@ public:
     //
     void removeOverlap ();
 
-protected:
+private:
 
     class Ref
     {

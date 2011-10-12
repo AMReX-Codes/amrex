@@ -551,7 +551,7 @@ public:
     //
     static const Box& TheUnitBox ();
 
-protected:
+private:
     //
     // A helper function for numPtsOK() and numPts().
     //

@@ -47,7 +47,7 @@ public:
     //
     // The destructor.
     //
-    virtual ~FabSet ();
+    ~FabSet ();
     //
     // Define a FabSet constructed via default constructor.
     //

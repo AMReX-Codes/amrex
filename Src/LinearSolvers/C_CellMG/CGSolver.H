@@ -94,7 +94,7 @@ public:
     //
     // The Destructor.
     //
-    virtual ~CGSolver ();
+    ~CGSolver ();
     //
     // solve the system, Lp(solnL)=rhsL to relative err, tolerance
     // RETURNS AN INT!!!! indicating success or failure.  
@@ -131,10 +131,10 @@ public:
     //
     // Return the verbosity value.
     //
-    int getVerbose ();
+    int getVerbose () const;
 
-    void setCGSolver(Solver cg_solver_);
-    Solver getCGSolver() const;
+    void   setCGSolver (Solver cg_solver_);
+    Solver getCGSolver () const;
 
 protected:
 
@@ -143,16 +143,19 @@ protected:
 	       Real            eps_rel = -1.0,
 	       Real            eps_abs = -1.0,
 	       LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+
     int solve_cg (MultiFab&       solnL,
 		  const MultiFab& rhsL,
 		  Real            eps_rel = -1.0,
 		  Real            eps_abs = -1.0,
 		  LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+
     int solve_bicgstab (MultiFab&       solnL,
 		  const MultiFab& rhsL,
 		  Real            eps_rel = -1.0,
 		  Real            eps_abs = -1.0,
 		  LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+
     int jbb_precond (MultiFab&       sol,
                      const MultiFab& rhs,
                      int             lev,
@@ -166,35 +169,26 @@ protected:
     //
     // if  (use_mg_precond == 1) then define the MultiGrid * mg_precond
     //
-    virtual void set_mg_precond ();
-    //
-    // Default maximum number of allowed iterations.
-    //
-    static int def_maxiter;
-    //
-    // Default unstable_criterion used to test for loss of accuracy in.
-    //
+    void set_mg_precond ();
+
+private:
+
+    static int    def_maxiter;
     static double def_unstable_criterion;
-    //
-    // Default verbosity flag.
-    //
-    static int def_verbose;
+    static int    def_verbose;
     static Solver def_cg_solver;
-    Solver cg_solver;
+    static bool   use_jbb_precond;    // Use JBB's new method as a preconditioner.
+    static bool   use_jacobi_precond; // Use Jacobi smoothing as a preconditioner.
     //
     // The data.
     //
+    Solver     cg_solver;
     LinOp&     Lp;             // Operator for linear system to be solved.
     MultiGrid* mg_precond;     // MultiGrid solver to be used as preconditioner
     int        maxiter;        // Current maximum number of allowed iterations.
     int        verbose;        // Current verbosity level.
     int        lev;            // Level of the linear operator to use
     bool       use_mg_precond; // Use multigrid as a preconditioner.
-
-    static bool use_jbb_precond; // Use JBB's new method as a preconditioner.
-    static bool use_jacobi_precond; // Use Jacobi smoothing as a preconditioner.
-    
-private:
     //
     // Disable copy constructor and assignment operator.
     //
@@ -240,7 +234,7 @@ CGSolver::setVerbose (int _verbose)
 
 inline
 int
-CGSolver::getVerbose ()
+CGSolver::getVerbose () const
 {
     return verbose;
 }

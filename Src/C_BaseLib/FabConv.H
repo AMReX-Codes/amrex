@@ -62,7 +62,8 @@ public:
     //
     bool operator!= (const IntDescriptor& id) const;
 
-protected:
+private:
+
     long     numbytes;
     Ordering ord;
 };
@@ -127,18 +128,6 @@ public:
                     const int*  order,
                     int         order_length);
     //
-    // The copy constructor.
-    //
-    RealDescriptor (const RealDescriptor& rhs);
-    //
-    // The assignment operator.
-    //
-    RealDescriptor& operator= (const RealDescriptor& rhs);
-    //
-    // Destructor is virtual incase a derived class has a non-trivial
-    //         destructor.
-    virtual ~RealDescriptor ();
-    //
     // Returns the format array as a const long*
     //
     const long* format () const;
@@ -169,12 +158,12 @@ public:
     //
     // Set to always fix denormals when converting to native format.
     //
-    static void SetFixDenormals();
+    static void SetFixDenormals ();
     //
     // Returns a copy of this RealDescriptor on the heap.
     // The user is responsible for deletion.
     //
-    virtual RealDescriptor* clone () const;
+    RealDescriptor* clone () const;
     //
     // Returns a RealDescriptor on the heap detailing requested
     // floating-point type.  Here format, precision, and ordering
@@ -220,7 +209,8 @@ public:
                                          long                  nitems,
                                          Real*                 in,
                                          const RealDescriptor& od);
-protected:
+private:
+
     Array<long> fr;
     Array<int>  ord;
     static bool bAlwaysFixDenormals;

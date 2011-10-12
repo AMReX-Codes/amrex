@@ -208,7 +208,7 @@ public:
     //
     bool hasNewData () const;
 
-protected:
+private:
 
     struct TimeInterval
     {

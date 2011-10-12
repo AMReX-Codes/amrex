@@ -861,9 +861,11 @@ public:
     static void appendTable(ParmParse::Table& tab);
     const Table& table() const {return m_table;}
   
-protected:
+private:
+
     friend class Frame;
     friend class Record;
+
     explicit ParmParse (const Table& tbl);
     //
     // Set/Get the prefix.
