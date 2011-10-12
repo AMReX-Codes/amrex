@@ -107,7 +107,11 @@ public:
     //
     bool contains (const RealBox& bx) const;
 
-protected:
+private:
+    //
+    // Static data.
+    //
+    static Real eps;
     //
     // Helper function.
     //
@@ -118,10 +122,6 @@ protected:
     Real xlo[BL_SPACEDIM];
     Real xhi[BL_SPACEDIM];
     Real len[BL_SPACEDIM];
-    //
-    // Static data.
-    //
-    static Real eps;
 };
 //
 // Nice ASCII output.

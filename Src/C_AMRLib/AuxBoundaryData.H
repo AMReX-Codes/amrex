@@ -55,14 +55,12 @@ public:
 
     bool isEmpty () const;
 
-protected:
+private:
 
     MultiFab m_fabs;
     int      m_ngrow;
     bool     m_empty;
     bool     m_initialized;
-
-private:
     //
     // Not defined -- but could be if it's needed.
     // 

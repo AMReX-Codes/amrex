@@ -89,15 +89,15 @@ public:
     //
     // destructor
     //
-    virtual ~MultiGrid ();
+    ~MultiGrid ();
     //
     // solve the system to relative err eps_rel, absolute err eps_abs
     //
-    virtual void solve (MultiFab&       solution,
-                        const MultiFab& _rhs,
-                        Real            eps_rel = -1.0,
-                        Real            eps_abs = -1.0,
-                        LinOp::BC_Mode  bc_mode=LinOp::Inhomogeneous_BC);
+     void solve (MultiFab&       solution,
+                 const MultiFab& _rhs,
+                 Real            eps_rel = -1.0,
+                 Real            eps_abs = -1.0,
+                 LinOp::BC_Mode  bc_mode=LinOp::Inhomogeneous_BC);
     //
     // return the linear operator
     //
@@ -203,17 +203,16 @@ public:
     // get the maximum permitted relative tolerance
     //
     int  get_maxiter_b () const;
+
 protected:
-    //@ManMemo: Internal members
-    
     //
     // Solve the linear system to relative and absolute tolerance
     //
-    virtual int solve_ (MultiFab&      _sol,
-                        Real           _eps_rel,
-                        Real           _eps_abs,
-                        LinOp::BC_Mode bc_mode,
-                        int            level);
+    int solve_ (MultiFab&      _sol,
+                Real           _eps_rel,
+                Real           _eps_abs,
+                LinOp::BC_Mode bc_mode,
+                int            level);
     //
     // Put the system in r-c form
     //
@@ -234,8 +233,8 @@ protected:
     //
     // Return scalar estimate of error
     //
-    virtual Real errorEstimate (int            level,
-                                LinOp::BC_Mode bc_mode);
+    Real errorEstimate (int            level,
+                        LinOp::BC_Mode bc_mode);
     //
     // Transfer MultiFab from fine to coarse level
     //
@@ -258,13 +257,14 @@ protected:
     //
     // Perform relaxation at bottom of V-cycle
     //
-    virtual void coarsestSmooth (MultiFab&      solL,
-                                 MultiFab&      rhsL,
-                                 int            level,
-                                 Real           eps_rel,
-                                 Real           eps_abs,
-                                 LinOp::BC_Mode bc_mode,
-                                 int            local_usecg);
+    void coarsestSmooth (MultiFab&      solL,
+                         MultiFab&      rhsL,
+                         int            level,
+                         Real           eps_rel,
+                         Real           eps_abs,
+                         LinOp::BC_Mode bc_mode,
+                         int            local_usecg);
+private:
     //
     // default flag, whether to use CG at bottom of MG cycle
     //
@@ -308,9 +308,10 @@ protected:
     // default flag controlling the behaviour when the cg solver returns indicating unstable
     //
     static int def_smooth_on_cg_unstable;
-  //
-  static CGSolver::Solver def_cg_solver;
-  CGSolver::Solver cg_solver;
+
+    static CGSolver::Solver def_cg_solver;
+
+    CGSolver::Solver cg_solver;
     //
     // verbosity
     //
@@ -368,8 +369,6 @@ protected:
     // internal reference to linear operator
     //
     LinOp &Lp;
-
-private:
     //
     // Disallow copy constructor, assignment operator
     //

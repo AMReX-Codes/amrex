@@ -260,7 +260,7 @@ public:
 
     static int fpb_cache_max_size;
 
-protected:
+private:
     //
     // Helper functions.
     //

@@ -372,7 +372,7 @@ public:
     static void Initialize ();
     static void Finalize ();
 
-protected:
+private:
     //
     // Format and ordering for all FAB output.
     // This stuff exists solely to support reading old FABs.

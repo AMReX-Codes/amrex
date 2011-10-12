@@ -323,7 +323,7 @@ public:
     //
     static const IntVect& TheCellVector ();
 
-protected:
+private:
 
     int vect[BL_SPACEDIM];
 };

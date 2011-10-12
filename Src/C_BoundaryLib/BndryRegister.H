@@ -57,7 +57,7 @@ public:
     //
     // The destructor.
     //
-    virtual ~BndryRegister();
+    ~BndryRegister();
     //
     // Get box domain (as an array of boxes).
     //

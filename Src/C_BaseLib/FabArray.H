@@ -339,7 +339,7 @@ public:
     //
     const FabArrayBase& theFabArrayBase () const;
 
-protected:
+private:
 
     const FabArrayBase& fabArray;
     int                 currentIndex;
@@ -791,7 +791,12 @@ class FabArrayCopyDescriptor
 
     int nFabCopyDescs () const { return fabCopyDescList.size(); }
 
-  protected:
+private:
+    //
+    // These are disallowed.
+    //
+    FabArrayCopyDescriptor (const FabArrayCopyDescriptor<FAB>&);
+    FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &);
     //
     // Helper function for AddBox() routines.
     //
@@ -804,19 +809,14 @@ class FabArrayCopyDescriptor
                      int        numcomp,
                      bool       bUseValidBox,
                      BoxDomain& unfilledBoxDomain);
-
+    //
+    // The data.
+    //
     std::vector<FabArray<FAB>*>        fabArrays;
     std::vector<FCDMap>                fabCopyDescList;
     std::list<FabArrayBase::FabComTag> fabComTagList;
     int                                nextFillBoxId;
     bool                               dataAvailable;
-
-  private:
-    //
-    // These are disallowed.
-    //
-    FabArrayCopyDescriptor (const FabArrayCopyDescriptor<FAB>&);
-    FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &);
 };
 
 
