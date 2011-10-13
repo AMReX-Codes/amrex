@@ -815,3 +815,50 @@ BoxLib::adjCell (const Box&         b,
     typ.unset(dir);
     return Box(low,hi,typ);
 }
+
+bool
+Box::contains (const IntVect& p) const
+{
+    return p >= smallend && p <= bigend;
+}
+
+bool
+Box::contains (const Box& b) const
+{
+    BL_ASSERT(sameType(b));
+    return b.smallend >= smallend && b.bigend <= bigend;
+}
+
+bool
+Box::sameSize (const Box& b) const
+{
+    BL_ASSERT(sameType(b));
+    return D_TERM(length(0) == b.length(0),
+                  && length(1)==b.length(1),
+                  && length(2)==b.length(2));
+}
+
+bool
+Box::operator== (const Box& b) const
+{
+    return smallend == b.smallend && bigend == b.bigend && b.btype == btype;
+}
+
+bool
+Box::operator!= (const Box& b) const
+{
+    return !operator==(b);
+}
+
+long
+Box::index (const IntVect& v) const
+{
+    long result = v[0]-smallend[0];
+#if   BL_SPACEDIM==2
+    result += length(0)*(v[1]-smallend[1]);
+#elif BL_SPACEDIM==3
+    result += length(0)*(v[1]-smallend[1]
+                      +(v[2]-smallend[2])*length(1));
+#endif
+    return result;
+}

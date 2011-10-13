@@ -20,6 +20,13 @@ UseCount::decrement ()
     }
 }
 
+UseCount::UseCount (const UseCount& rhs)
+    :
+    cnt(rhs.cnt)
+{
+    ++*cnt;
+}
+
 UseCount&
 UseCount::operator= (const UseCount& rhs)
 {
