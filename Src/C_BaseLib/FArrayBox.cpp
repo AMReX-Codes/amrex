@@ -46,7 +46,7 @@ public:
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
 		       int           nCompToSkip) const;
-protected:
+private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
                                int              nvar) const;
@@ -74,7 +74,7 @@ public:
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
 		       int           nCompToSkip) const;
-protected:
+private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
                                int              nvar) const;
@@ -105,7 +105,7 @@ public:
                        FArrayBox&    f,
 		       int           nCompToSkip) const;
 
-protected:
+private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
                                int              nvar) const;
