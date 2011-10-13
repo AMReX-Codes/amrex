@@ -170,6 +170,20 @@ DistributionMapping::Finalize ()
 //
 std::map< int,LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
 
+void
+DistributionMapping::Sort (std::vector<LIpair>& vec, bool reverse)
+{
+    if (vec.size() > 1)
+    {
+        std::stable_sort(vec.begin(), vec.end(), LIpairComp());
+
+        if (reverse)
+        {
+            std::reverse(vec.begin(), vec.end());
+        }
+    }
+}
+
 Array<int>
 DistributionMapping::LeastUsedCPUs (int nprocs)
 {
@@ -191,9 +205,11 @@ DistributionMapping::LeastUsedCPUs (int nprocs)
     LIpairV.reserve(nprocs);
 
     for (int i = 0; i < nprocs; i++)
+    {
         LIpairV.push_back(LIpair(bytes[i],i));
+    }
 
-    std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
+    Sort(LIpairV, false);
 
     for (int i = 0; i < nprocs; i++)
     {
@@ -421,13 +437,8 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
     {
         LIpairV.push_back(LIpair(boxes[i].numPts(),i));
     }
-    //
-    // This call does the sort() from least to most numPts().
-    // Will need to reverse the order afterwards.
-    //
-    std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
 
-    std::reverse(LIpairV.begin(), LIpairV.end());
+    Sort(LIpairV, true);
 
     RoundRobinDoIt(boxes.size(), nprocs, &LIpairV);
 }
@@ -669,13 +680,8 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
     {
         LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
     }
-    //
-    // This call does the sort() from least to most weight.
-    // Will need to reverse the order afterwards.
-    //
-    std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
 
-    std::reverse(LIpairV.begin(), LIpairV.end());
+    Sort(LIpairV, true);
 
     for (unsigned int i = 0, N = vec.size(); i < N; i++)
     {
@@ -907,13 +913,8 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     {
         LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
     }
-    //
-    // This call does the sort() from least to most weight.
-    // Will need to reverse the order afterwards.
-    //
-    std::stable_sort(LIpairV.begin(), LIpairV.end(), LIpairComp());
 
-    std::reverse(LIpairV.begin(), LIpairV.end());
+    Sort(LIpairV, true);
 
     for (int i = 0; i < nprocs; i++)
     {

@@ -153,6 +153,8 @@ private:
             }
     };
 
+    static void Sort (std::vector<LIpair>& vec, bool reverse);
+
     void RoundRobinDoIt (int                  nboxes,
                          int                  nprocs,
                          std::vector<LIpair>* LIpairV = 0);
