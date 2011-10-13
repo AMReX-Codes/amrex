@@ -134,7 +134,7 @@ class DistributionMapping
 
     static void Finalize ();
 
-protected:
+private:
     //
     // Ways to create the processor map.
     //

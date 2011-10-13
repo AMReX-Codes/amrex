@@ -690,3 +690,12 @@ MultiGrid::interpolate (MultiFab&       f,
                     bx.loVect(), bx.hiVect(), &nc);
     }
 }
+
+int
+MultiGrid::getNumLevels (int _numlevels)
+{
+    BL_ASSERT(_numlevels >= 0);
+    int oldnumlevels = numlevels;
+    numlevels = std::min(_numlevels, numLevels());
+    return oldnumlevels;
+}

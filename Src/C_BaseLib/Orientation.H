@@ -162,7 +162,7 @@ public:
     //
     bool operator!= (const OrientationIter& oi) const;
 
-protected:
+private:
 
     int face;
     //

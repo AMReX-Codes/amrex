@@ -558,14 +558,4 @@ MultiGrid::getCGSolver () const
     return cg_solver;
 }
 
-inline
-int
-MultiGrid::getNumLevels (int _numlevels)
-{
-    BL_ASSERT(_numlevels >= 0);
-    int oldnumlevels = numlevels;
-    numlevels = std::min(_numlevels, numLevels());
-    return oldnumlevels;
-}
-
 #endif /*_MULTIGRID_H_*/
