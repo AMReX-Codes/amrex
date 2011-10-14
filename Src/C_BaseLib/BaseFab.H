@@ -1105,7 +1105,8 @@ BaseFab<T>::define ()
     //
     T* ptr = dptr;
 
-    for (int i = 0; i < truesize; i++, ptr++)
+    // Note this must be long not int for very large (e.g.,1024^3) boxes
+    for (long i = 0; i < truesize; i++, ptr++)
     {
         new (ptr) T;
     }
