@@ -1200,7 +1200,7 @@ BaseFab<T>::clear ()
         //
         T* ptr = dptr;
 
-        for (int i = 0; i < truesize; i++, ptr++)
+        for (long i = 0; i < truesize; i++, ptr++)
         {
             ptr->~T();
         }
