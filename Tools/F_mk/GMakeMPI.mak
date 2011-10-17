@@ -225,7 +225,7 @@ ifeq ($(HOST), orga)
   MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
+  mpi_libraries += -lmpich -lmpl -lpthread
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
