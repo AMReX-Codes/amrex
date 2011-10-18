@@ -892,7 +892,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # read in the test information
     #--------------------------------------------------------------------------
-    bold("loading" + testFile)
+    bold("loading " + testFile)
 
     suite, testList = LoadParams(testFile)
 
