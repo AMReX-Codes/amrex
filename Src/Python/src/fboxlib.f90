@@ -95,6 +95,32 @@ contains
     call build(la, ba)
   end subroutine create_layout_from_boxes
 
+  subroutine create_ml_layout_from_layouts(laoids,nlevels,oid)
+    implicit none
+    integer, intent(in)  :: nlevels, laoids(nlevels)
+    integer, intent(out) :: oid
+
+    integer :: i, dim
+    type(ml_boxarray) :: mba
+    type(ml_layout), pointer :: mla
+    type(layout), pointer :: la
+    type(boxarray) :: bas
+
+    call pybl_ml_layout_new(oid,mla)
+    call pybl_layout_get(laoids(1),la)
+
+    dim = get_dim(la)
+
+    call build(mba, nlevels, dim)
+
+    do i=1,nlevels
+       call pybl_layout_get(laoids(i),la)
+       mba%bas(i) = get_boxarray(la)
+    end do
+
+    call build(mla,mba)
+  end subroutine create_ml_layout_from_layouts
+
   subroutine print_layout(oid)
     implicit none
     integer, intent(in) :: oid
@@ -103,6 +129,15 @@ contains
     call pybl_layout_get(oid, la)
     call print(la)
   end subroutine print_layout
+
+  subroutine print_ml_layout(oid)
+    implicit none
+    integer, intent(in) :: oid
+    type(ml_layout), pointer :: mla
+
+    call pybl_ml_layout_get(oid, mla)
+    call print(mla)
+  end subroutine print_ml_layout
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! multifab routines

@@ -7,14 +7,13 @@ identified by an object id(oid).
 The current implementation for a store is simply a fixed sized array.
 """
 
-types = [ 'lmultifab', 'multifab', 'layout', 'boxarray' ]
-
-# XXX: probably better to use arrays of pointers here!
+types = [ 'lmultifab', 'multifab', 'ml_layout', 'layout', 'boxarray' ]
 
 module = '''\
 module blobjects
   use multifab_module
   use layout_module
+  use ml_layout_module
   integer, parameter :: PYBL_MAX_STORE = 256
   {stores}
 contains
