@@ -9,10 +9,8 @@ void multifab_as_numpy_f(int *mfid, int *nbox, void *ptr, int *nx, int *ny, int 
 void lmultifab_as_numpy_f(int *mfid, int *nbox, void *ptr, int *nx, int *ny, int *nz, int *nc);
 
 /*
-divert(1)dnl
 {"multifab_array", multifab_as_numpy, METH_VARARGS, "Return NumPy array associated with a BoxLib multifab."},
 {"lmultifab_array", lmultifab_as_numpy, METH_VARARGS, "Return NumPy array associated with a BoxLib lmultifab."},
-divert(0)dnl
 */
 
 PyObject *
