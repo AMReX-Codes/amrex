@@ -29,3 +29,11 @@ class layout(base.BLObject):
     ba.from_regrid(lmfab)
 
     self.create(boxarray=ba)
+
+class mllayout(base.BLObject):
+  """BoxLib multi-level layout."""
+
+  def create(self, layouts):
+    """Create a multi-level layout from a list of layouts."""
+
+    self.oid = fboxlib.create_ml_layout_from_layouts([ x.oid for x in layouts ])
