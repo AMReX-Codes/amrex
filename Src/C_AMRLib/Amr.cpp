@@ -2191,7 +2191,7 @@ Amr::ProjPeriodic (BoxList&        blout,
 
                 BoxList tmp(blorig);
                 tmp.intersect(domain);
-                blout.join(tmp);
+                blout.catenate(tmp);
  
                 if (rk != 0 && geom.isPeriodic(2))
                     blorig.shift(2,-rk*domain.length(2));

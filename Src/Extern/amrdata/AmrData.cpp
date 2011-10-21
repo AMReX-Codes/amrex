@@ -1185,7 +1185,7 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
                       BoxArray(BoxLib::complementIn(tempCoarseBox,
 		               tempUnfillableBoxes));
 
-                  unfillableBoxesOnThisLevel.join(tempUnfillableBoxes);
+                  unfillableBoxesOnThisLevel.catenate(tempUnfillableBoxes);
                   ++currentBLI;
                 }
             }
@@ -1410,7 +1410,7 @@ void AmrData::FillVar(Array<FArrayBox *> &destFabs, const Array<Box> &destBoxes,
                       BoxArray(BoxLib::complementIn(tempCoarseBox,
 		               tempUnfillableBoxes));
 
-                  unfillableBoxesOnThisLevel.join(tempUnfillableBoxes);
+                  unfillableBoxesOnThisLevel.catenate(tempUnfillableBoxes);
                   ++currentBLI;
                 }
             }
