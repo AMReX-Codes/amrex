@@ -2316,9 +2316,15 @@ Amr::grid_places (int              lbase,
     for (i = lbase+1; i <= max_crse; i++)
     {
         p_n_comp[i] = p_n_comp[i-1];
+
+        // Need to simplify p_n_comp or the number of grids can too large for many levels.
+        p_n_comp[i].simplify();
+
         p_n_comp[i].refine(rr_lev[i-1]);
         p_n_comp[i].accrete(n_proper);
+
         Amr::ProjPeriodic(p_n_comp[i], Geometry(pc_domain[i]));
+
         p_n[i].complementIn(pc_domain[i],p_n_comp[i]);
         p_n[i].simplify();
     }
