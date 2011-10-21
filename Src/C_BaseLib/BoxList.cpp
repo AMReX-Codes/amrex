@@ -527,7 +527,7 @@ BoxList::simplify_doit (bool best)
         const int* alo   = bla->loVect();
         const int* ahi   = bla->hiVect();
         bool       match = false;
-        iterator blb = bla;
+        iterator   blb   = bla;
         ++blb;
         //
         // If we're not looking for the "best" we can do in one pass, we
@@ -537,14 +537,14 @@ BoxList::simplify_doit (bool best)
         //
         const int MaxCnt = (best ? size() : 100);
 
-        for (int cnt = 0; blb != end() && cnt < MaxCnt; cnt++)
+        for (int cnt = 0; blb != End && cnt < MaxCnt; cnt++)
         {
             const int* blo = blb->loVect();
             const int* bhi = blb->hiVect();
             //
             // Determine if a and b can be coalesced.
-            // They must have equal extents in all index direciton
-            // except possibly one and must abutt in that direction.
+            // They must have equal extents in all index directions
+            // except possibly one, and must abutt in that direction.
             //
             bool canjoin = true;
             int  joincnt = 0;
