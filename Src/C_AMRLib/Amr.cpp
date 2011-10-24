@@ -552,9 +552,11 @@ Amr::Amr ()
         }
     }
     //
-    // Read in max_grid_size..
+    // Read in max_grid_size.  Use defaults if not explicitly defined.
     //
-    if (pp.countval("max_grid_size") == 1)
+    int cnt = pp.countval("max_grid_size");
+
+    if (cnt == 1)
     {
         //
         // Set all values to the single available value.
@@ -567,7 +569,8 @@ Amr::Amr ()
         {
             max_grid_size[i] = the_max_grid_size;
         }
-    } else
+    }
+    else if (cnt > 1)
     {
         //
         // Otherwise we expect a vector of max_grid_size values.
@@ -575,9 +578,11 @@ Amr::Amr ()
         pp.getarr("max_grid_size",max_grid_size,0,max_level+1);
     }
     //
-    // Read in the blocking_factors.
+    // Read in the blocking_factors.  Use defaults if not explicitly defined.
     //
-    if (pp.countval("blocking_factor") == 1)
+    cnt = pp.countval("blocking_factor");
+
+    if (cnt == 1)
     {
         //
         // Set all values to the single available value.
@@ -591,7 +596,7 @@ Amr::Amr ()
             blocking_factor[i] = the_blocking_factor;
         }
     }
-    else
+    else if (cnt > 1)
     {
         //
         // Otherwise we expect a vector of blocking factors.
