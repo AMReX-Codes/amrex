@@ -1,5 +1,5 @@
 subroutine t_stencil
-  use stencil_module
+  use cc_stencil_module
   use multifab_module
   use itsol_module
   use bl_IO_module
@@ -348,7 +348,7 @@ contains
 end subroutine t_stencil
 
 subroutine t_stencil_map
-  use stencil_module
+  use cc_stencil_module
   implicit none
   integer i, j, k
   print *, 'DENSE_MAP_3D'

@@ -1,23 +1,21 @@
 subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics, eps, stencil_order, fabio)
   use BoxLib
-  use stencil_module
-  use coeffs_module
+  use cc_stencil_module
+  use coarsen_coeffs_module
+  use cc_stencil_fill_module
+  use ml_norm_module
   use mg_module
   use list_box_module
   use ml_boxarray_module
   use ml_layout_module
   use itsol_module
-  use sparse_solve_module
   use bl_mem_stat_module
   use bl_timer_module
   use box_util_module
   use bl_IO_module
   use fabio_module
-
   use ml_restriction_module
   use ml_prolongation_module
-  use ml_interface_stencil_module
-  use ml_util_module
   use ml_cc_module
 
   use bndry_reg_module
@@ -108,14 +106,6 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
              pdv, mgt(n)%mm(i), xa, xb, pxa, pxb, mgt(n)%pd(i), stencil_order, domain_bc)
      end do
 
-     if ( n == 1 .and. bottom_solver == 3 ) then
-        call copy(mgt(n)%ss1, mgt(n)%ss(1))
-        call copy(mgt(n)%mm1, mgt(n)%mm(1))
-        if ( parallel_IOProcessor() ) then
-           call sparse_build(mgt(n)%sparse_object, mgt(n)%ss1, &
-                mgt(n)%mm1, mgt(n)%ss1%la, stencil_order, mgt(nlevs)%verbose)
-        end if
-     end if
      do i = mgt(n)%nlevels, 1, -1
         call multifab_destroy(coeffs(i))
      end do
