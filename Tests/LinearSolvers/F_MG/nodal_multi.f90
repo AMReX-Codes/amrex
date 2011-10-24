@@ -121,6 +121,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
      allocate(coeffs(mgt(n)%nlevels))
 
      la = get_layout(full_soln(n))
+
      pd = mla%mba%pd(n)
 
      if ( parallel_ioprocessor() ) print *,'N MG LEVS ',mgt(n)%nlevels
@@ -145,19 +146,8 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
      end do 
      call multifab_fill_boundary(coeffs(mgt(n)%nlevels))
 
-     do i = mgt(n)%nlevels-1, 1, -1
-        call multifab_build(coeffs(i), mgt(n)%ss(i)%la, 1, 1)
-        call setval(coeffs(i), 0.0_dp_t, 1, all=.true.)
-        call coarsen_coeffs(coeffs(i+1),coeffs(i))
-        call multifab_fill_boundary(coeffs(i))
-      end do
+     call stencil_fill_nodal_all_mglevels(mgt(n), coeffs, stencil_type)
 
-!    NOTE: we define the stencils with the finest dx.
-     do i = mgt(n)%nlevels, 1, -1
-        call stencil_fill_nodal(mgt(n)%ss(i), coeffs(i), mgt(n)%dh(:,i), &
-                                mgt(n)%mm(i), mgt(n)%face_type, stencil_type)
- 
-     end do
      if (stencil_type .eq. ST_CROSS .and. n .gt. 1) then
         i = mgt(n)%nlevels
         call stencil_fill_one_sided(one_sided_ss(n), coeffs(i), mgt(n)%dh(:,i), &
