@@ -561,7 +561,7 @@ Amr::Amr ()
         //
         int the_max_grid_size = 0;
 
-        pp.query("max_grid_size",the_max_grid_size);
+        pp.get("max_grid_size",the_max_grid_size);
 
         for (i = 0; i <= max_level; i++)
         {
@@ -572,7 +572,7 @@ Amr::Amr ()
         //
         // Otherwise we expect a vector of max_grid_size values.
         //
-        pp.queryarr("max_grid_size",max_grid_size,0,max_level);
+        pp.getarr("max_grid_size",max_grid_size,0,max_level+1);
     }
     //
     // Read in the blocking_factors.
@@ -584,7 +584,7 @@ Amr::Amr ()
         //
         int the_blocking_factor = 0;
 
-        pp.query("blocking_factor",the_blocking_factor);
+        pp.get("blocking_factor",the_blocking_factor);
 
         for (i = 0; i <= max_level; i++)
         {
@@ -596,7 +596,7 @@ Amr::Amr ()
         //
         // Otherwise we expect a vector of blocking factors.
         //
-        pp.queryarr("blocking_factor",blocking_factor,0,max_level);
+        pp.getarr("blocking_factor",blocking_factor,0,max_level+1);
     }
     //
     // Read in the regrid interval if max_level > 0.
