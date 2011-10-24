@@ -1,6 +1,6 @@
 
 subroutine t_smoother
-  use mg_smoother_module
+  use cc_smoothers_module
   implicit none
   integer  n, nn
   real(kind=dp_t),allocatable :: ss(:,:,:)

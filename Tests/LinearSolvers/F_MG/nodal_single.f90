@@ -1,19 +1,20 @@
 subroutine t_nodal_multigrid()
   use BoxLib
   use f2kcli
-  use stencil_nodal_module
-  use stencil_module
-  use coeffs_module
+  use nodal_stencil_module
+  use cc_stencil_module
   use mg_module
   use list_box_module
   use ml_boxarray_module
   use itsol_module
-  use sparse_solve_module
   use bl_mem_stat_module
   use bl_timer_module
   use box_util_module
   use bl_IO_module
   use fabio_module
+  use omp_module
+  use coarsen_coeffs_module
+  use nodal_stencil_fill_module
   use mt19937_module
 
   implicit none
@@ -30,7 +31,6 @@ subroutine t_nodal_multigrid()
 
   type(multifab) :: uu, rh, ss
   type(imultifab) :: mm
-  type(sparse) :: sparse_object
   type(ml_boxarray) :: mba
   type(layout) :: la
   type(mg_tower) :: mgt
@@ -89,9 +89,6 @@ subroutine t_nodal_multigrid()
   integer :: stencil_type
   logical, allocatable :: nodal(:)
   logical uu_rand
-
-  real(dp_t), parameter :: ONE = 1.0_dp_t
-  real(dp_t), parameter :: ZERO = 0.0_dp_t
 
   character(len=128) defect_dirname
   logical :: defect_history
@@ -576,15 +573,6 @@ subroutine t_nodal_multigrid()
                                 mgt%mm(i), mgt%face_type, stencil_type)
         pd = coarsen(pd,2)
      end do
-     if ( bottom_solver == 3 ) then
-        call copy(mgt%ss1, mgt%ss(1))
-        call copy(mgt%mm1, mgt%mm(1))
-        if ( parallel_IOProcessor() ) then
-           call sparse_nodal_build(mgt%sparse_object, mgt%ss1, &
-                mgt%mm1, mgt%ss1%la, &
-                mgt%face_type, mgt%verbose)
-        end if
-     end if
      call timer_stop(tm(1))
      call timer_start(tm(2))
      if ( qq_history ) then
@@ -627,26 +615,6 @@ subroutine t_nodal_multigrid()
      call timer_stop(tm(1))
      call timer_start(tm(2))
      call itsol_CG_solve(ss, uu, rh, mm, eps, max_iter, verbose, uniform_dh = mgt%uniform_dh)
-     call timer_stop(tm(2))
-  case (3)
-     if ( parallel_nprocs() > 1 ) then
-        call bl_error("cc_single: bottom solver test can't be called in parallel")
-     end if
-     la = mgt%dd(Mgt%nlevels)%la
-     pdv = layout_boxarray(la)
-     call multifab_build(ss, la, ns, 0, nodal)
-     call imultifab_build(mm, la,  1, 0, nodal)
-     call timer_start(tm(1))
-     i = mgt%nlevels
-     call stencil_fill_nodal(ss, coeffs(i), mgt%dh(:,i), &
-                             mm, mgt%face_type, stencil_type)
-     call timer_stop(tm(1))
-     call sparse_nodal_build(sparse_object, ss, mm, la, mgt%face_type, mgt%verbose)
-     call timer_start(tm(2))
-     call sparse_nodal_solve(sparse_object, uu, rh, eps, mgt%max_iter, mgt%verbose, stat)
-     if ( stat /= 0 ) then
-        call bl_warn("SPARSE SOLVE FAILED DUE TO BREAKDOWN")
-     end if
      call timer_stop(tm(2))
   end select
 
@@ -695,9 +663,6 @@ subroutine t_nodal_multigrid()
   call fabio_multifab_write_d(uu, "tdir1", "uu")
   end if
 
-  if ( test == 3 ) then
-     call sparse_destroy(sparse_object)
-  end if
   if ( test > 0 ) then
      call destroy(ss)
      call destroy(mm)

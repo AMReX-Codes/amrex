@@ -1,22 +1,20 @@
-NDEBUG :=
+BOXLIB_HOME := ../../..
+
+NDEBUG := t
 MPI    :=
 OMP    :=
 MPI    :=  
 PROF   :=
 
-NDEBUG :=
-
 USE_MG_CPP :=  
 
 COMP := g95
 COMP := PathScale
-COMP := Intel
+COMP := gfortran
 
 MKVERBOSE := t
 
-FPARALLEL := ../..
-
-include $(FPARALLEL)/mk/GMakedefs.mak
+include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 
 programs   += main.f90
 
@@ -26,20 +24,20 @@ f90sources += cc_multi.f90
 f90sources += nodal_single.f90
 f90sources += nodal_multi.f90
 f90sources += t_smoother.f90
-#f90sources += bc_interp.f90
+f90sources += mt19937ar.f90
 
-include $(FPARALLEL)/mg/test//GPackage.mak
-VPATH_LOCATIONS += $(FPARALLEL)/mg/test
+include GPackage.mak
+VPATH_LOCATIONS   += .
+INCLUDE_LOCATIONS += .
 
-include $(FPARALLEL)/boxlib/GPackage.mak
-VPATH_LOCATIONS += $(FPARALLEL)/boxlib
+include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/GPackage.mak
+VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
 
-include $(FPARALLEL)/mg/GPackage.mak
-VPATH_LOCATIONS += $(FPARALLEL)/mg
-
-include $(FPARALLEL)/extern/random/GPackage.mak
-VPATH_LOCATIONS += $(FPARALLEL)/extern/random
+include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
+VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/F_BaseLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
 
 all:	$(pnames)
 
-include $(FPARALLEL)/mk/GMakerules.mak
+include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak

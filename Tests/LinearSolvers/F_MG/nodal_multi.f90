@@ -1,8 +1,7 @@
 subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
                                 bottom_solver,do_diagnostics,eps,test, fabio, stencil_type)
   use BoxLib
-  use stencil_module
-  use coeffs_module
+  use nodal_stencil_module
   use mg_module
   use list_box_module
   use ml_boxarray_module
@@ -15,13 +14,12 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
   use fabio_module
   use ml_nd_module
   use nodal_mask_module
-
   use ml_restriction_module
   use ml_prolongation_module
-  use ml_interface_stencil_module
-  use ml_util_module
-
   use bndry_reg_module
+  use ml_norm_module
+  use coarsen_coeffs_module
+  use nodal_stencil_fill_module
 
   implicit none
 
@@ -175,16 +173,6 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
                               mla)
      endif
 
-     if ( test == 0 .and. n == 1 .and. bottom_solver == 3 ) then
-        if ( parallel_ioprocessor() ) print *,'SPARSE BOTTOM SOLVER '
-        call copy(mgt(n)%ss1, mgt(n)%ss(1))
-        call copy(mgt(n)%mm1, mgt(n)%mm(1))
-        if ( parallel_ioprocessor() ) then
-           call sparse_nodal_build(mgt(n)%sparse_object, mgt(n)%ss1, &
-                mgt(n)%mm1, mgt(n)%ss1%la, &
-                mgt(n)%face_type, mgt(nlevs)%verbose)
-        end if
-     end if
      do i = mgt(n)%nlevels, 1, -1
         call multifab_destroy(coeffs(i))
      end do
@@ -198,25 +186,6 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
   if (test == 0) then
      if ( parallel_ioprocessor() ) print *,'DOING MG SOLVER'
      continue
-  else if (test == 3) then
-     if ( parallel_ioprocessor() ) print *,'DOING SPARSE SOLVER AT TOP LEVEL '
-     n = nlevs
-     i = mgt(n)%nlevels
-     if ( parallel_nprocs() > 1 ) then
-        call bl_error("NODAL_MULTI: can't do parallel at top level")
-     end if
-     call sparse_nodal_build(mgt(n)%sparse_object, mgt(n)%ss(i), &
-                             mgt(n)%mm(i), mgt(n)%ss(i)%la, &
-                             mgt(n)%face_type,mgt(n)%verbose)
-     call sparse_nodal_solve(mgt(n)%sparse_object, full_soln(n), rh(n), &
-                             eps, mgt(n)%max_iter, mgt(n)%verbose, stat)
-     if ( stat /= 0 ) then
-        call bl_warn("SPARSE SOLVE FAILED DUE TO BREAKDOWN")
-     end if
-     if ( fabio ) then
-       call fabio_ml_write(full_soln, ref_ratio(:,1), "sparse_soln_nodal")
-     end if
-     stop
   else 
      print *,'WE DO NOT SUPPORT THAT TEST TYPE FOR NODAL: ',test
      stop
