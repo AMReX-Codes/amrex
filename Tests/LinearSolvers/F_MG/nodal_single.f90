@@ -560,20 +560,11 @@ subroutine t_nodal_multigrid()
 
   select case (test)
   case (0)
+
      call timer_start(tm(1))
-     do i = mgt%nlevels-1, 1, -1
-       call multifab_build(coeffs(i), mgt%ss(i)%la, 1, 1)
-       call setval(coeffs(i), ZERO, 1, all=.true.)
-       call coarsen_coeffs(coeffs(i+1), coeffs(i))
-       call multifab_fill_boundary(coeffs(i))
-     end do
-     do i = mgt%nlevels, 1, -1
-        pdv = layout_boxarray(mgt%ss(i)%la)
-        call stencil_fill_nodal(mgt%ss(i), coeffs(i), mgt%dh(:,i), &
-                                mgt%mm(i), mgt%face_type, stencil_type)
-        pd = coarsen(pd,2)
-     end do
+     call stencil_fill_nodal_all_mglevels(mgt, coeffs, stencil_type)
      call timer_stop(tm(1))
+
      call timer_start(tm(2))
      if ( qq_history ) then
         allocate(qq(0:max_iter))
@@ -595,26 +586,26 @@ subroutine t_nodal_multigrid()
      pdv = layout_boxarray(la)
      call  multifab_build(ss, la, ns, 0, nodal)
      call imultifab_build(mm, la,  1, 0, nodal)
+
      call timer_start(tm(1))
-     i = mgt%nlevels
-     call stencil_fill_nodal(mgt%ss(i), coeffs(i),mgt%dh(:,i), &
-                             mgt%mm(i), mgt%face_type, stencil_type)
+     call stencil_fill_nodal_all_mglevels(mgt, coeffs, stencil_type)
      call timer_stop(tm(1))
+
      call timer_start(tm(2))
-     call itsol_BiCGStab_solve(ss, uu, rh, mm, eps, max_iter, verbose, uniform_dh = mgt%uniform_dh)
+     call itsol_BiCGStab_solve(mgt%ss(mgt%nlevels), uu, rh, mm, eps, max_iter, verbose, uniform_dh = mgt%uniform_dh)
      call timer_stop(tm(2))
   case (2)
      la = mgt%dd(Mgt%nlevels)%la
      pdv = layout_boxarray(la)
      call  multifab_build(ss, la, ns, 0, nodal)
      call imultifab_build(mm, la,  1, 0, nodal)
+
      call timer_start(tm(1))
-     i = mgt%nlevels
-     call stencil_fill_nodal(mgt%ss(i), coeffs(i), mgt%dh(:,i), &
-                             mgt%mm(i), mgt%face_type, stencil_type)
+     call stencil_fill_nodal_all_mglevels(mgt, coeffs, stencil_type)
      call timer_stop(tm(1))
+
      call timer_start(tm(2))
-     call itsol_CG_solve(ss, uu, rh, mm, eps, max_iter, verbose, uniform_dh = mgt%uniform_dh)
+     call itsol_CG_solve(mgt%ss(mgt%nlevels), uu, rh, mm, eps, max_iter, verbose, uniform_dh = mgt%uniform_dh)
      call timer_stop(tm(2))
   end select
 
