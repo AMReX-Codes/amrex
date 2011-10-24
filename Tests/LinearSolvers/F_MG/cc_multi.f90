@@ -1,7 +1,6 @@
 subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics, eps, stencil_order, fabio)
   use BoxLib
   use cc_stencil_module
-  use coarsen_coeffs_module
   use cc_stencil_fill_module
   use ml_norm_module
   use mg_module
@@ -32,15 +31,18 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
   logical        , intent(in   ) :: fabio
 
   type(box      )                :: pd
-  type(boxarray )                :: pdv
-  type( multifab), allocatable   :: coeffs(:)
+
+  type(multifab) :: cell_coeffs
+  type(multifab) :: edge_coeffs(mla%dim)
+
   type( multifab), allocatable   :: full_soln(:)
   type( multifab), allocatable   ::        rh(:)
 
+  type(layout)                   :: la
   real(dp_t)     , allocatable   :: xa(:), xb(:), pxa(:), pxb(:)
 
   integer        , allocatable   :: ref_ratio(:,:)
-  integer                        :: i, n, dm, nlevs
+  integer                        :: i, d, n, dm, nlevs
 
   real(dp_t)                     :: snrm(2)
 
@@ -71,22 +73,20 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
      if (n == nlevs) call mf_init_2(rh(n))
   end do
 
-  !! Fill coefficient array
+  !! Fill coefficient arrays
 
   mac_beta = 1.0_dp_t
 
   do n = nlevs, 1, -1
 
-     allocate(coeffs(mgt(n)%nlevels))
+     la = mla%la(n)
 
-     call build(coeffs(mgt(n)%nlevels), mla%la(n), 1+dm, 1)
-     call setval(coeffs(mgt(n)%nlevels), ZERO, 1, all=.true.)
-     call setval(coeffs(mgt(n)%nlevels), mac_beta,  2, dm, all=.true.)
+     call multifab_build(cell_coeffs, la, nc=1, ng=0)
+     call setval(cell_coeffs,0.d0,all=.true.)
 
-     do i = mgt(n)%nlevels-1, 1, -1
-        call build(coeffs(i), mgt(n)%ss(i)%la, 1+dm, 1)
-        call setval(coeffs(i), ZERO, 1, dm+1, all=.true.)
-        call coarsen_coeffs(coeffs(i+1),coeffs(i))
+     do d = 1,dm
+        call multifab_build_edge(edge_coeffs(d), la, nc=1, ng=0, dir=d)
+        call setval(edge_coeffs(d),mac_beta,all=.true.)
      end do
 
      pxa = ZERO
@@ -100,16 +100,16 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
      end if
 
      pd = mla%mba%pd(n)
-     do i = mgt(n)%nlevels, 1, -1
-        pdv = layout_boxarray(mgt(n)%ss(i)%la)
-        call stencil_fill_cc(mgt(n)%ss(i), coeffs(i), mgt(n)%dh(:,i), &
-             pdv, mgt(n)%mm(i), xa, xb, pxa, pxb, mgt(n)%pd(i), stencil_order, domain_bc)
-     end do
 
-     do i = mgt(n)%nlevels, 1, -1
-        call multifab_destroy(coeffs(i))
-     end do
-     deallocate(coeffs)
+     call stencil_fill_cc(mgt(n)%ss(mgt(n)%nlevels), cell_coeffs, edge_coeffs, mgt(n)%dh(:,mgt(n)%nlevels), &
+                          mgt(n)%mm(mgt(n)%nlevels), xa, xb, pxa, pxb, stencil_order, &
+                          domain_bc)
+
+     call destroy(cell_coeffs)
+
+    do d = 1,dm
+       call destroy(edge_coeffs(d))
+    end do
 
   end do
 
