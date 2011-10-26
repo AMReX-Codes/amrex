@@ -1,4 +1,3 @@
-
 // ---------------------------------------------------------------
 // AmrData.H
 // ---------------------------------------------------------------
@@ -17,8 +16,6 @@
 using std::list;
 using std::string;
 using std::vector;
-//using std::istream;
-//using std::ostream;
 
 class Interpolater;
 
@@ -27,10 +24,7 @@ class AmrData {
  protected: 
   // List of grids at each level, level 0 being coarsest.
   Array<Array<MultiFab *> > dataGrids;    // [level][component]
-  //Array<Array<Array<bool> > > dataGridsDefined;  // [level][component][index]
   vector<vector<vector<bool> > > dataGridsDefined;  // [level][component][index]
-  // ^^^^^^^^^^^^^^^^^^^^^^^^ need to put these in a class which handles
-  //                          setting defined/not defined
   Array<Array<VisMF *> > visMF;    // [level][whichMultiFab]
   Array<int> compIndexToVisMFMap;  // [nComp]
   Array<int> compIndexToVisMFComponentMap;  // [nComp]
@@ -50,10 +44,10 @@ class AmrData {
   int boundaryWidth;    // number of zones in the boundary regions
   int coordSys;
   Array< Array< FArrayBox *> > regions; // [lev][nReg]  ptrs to bndry data
-  BoxArray fabBoxArray;  // used only for fileType == FAB
+  BoxArray fabBoxArray;  // used only for fileType == Amrvis::FAB
   string plotFileVersion;
   
-  FileType fileType;
+  Amrvis::FileType fileType;
   bool bCartGrid;
   bool bTerrain;
   Array<int> levelSteps;
@@ -62,15 +56,15 @@ class AmrData {
   AmrData();
   ~AmrData();
   
-  bool ReadData(const string &filename, FileType filetype);
-  bool ReadNonPlotfileData(const string &filename, FileType filetype);
+  bool ReadData(const string &filename, Amrvis::FileType filetype);
+  bool ReadNonPlotfileData(const string &filename, Amrvis::FileType filetype);
   
   const Array<string> &PlotVarNames() const { return plotVars; }
   
   int FinestLevel() const		{ return finestLevel; }
   const Array<int> &RefRatio() const      { return refRatio; }
   const BoxArray &boxArray(int level) const {
-    if(fileType == FAB || (fileType == MULTIFAB && level == 0)) {
+    if(fileType == Amrvis::FAB || (fileType == Amrvis::MULTIFAB && level == 0)) {
       return fabBoxArray;
     } else {
       // use visMF[][0]:  all boxArrays are
@@ -124,8 +118,8 @@ class AmrData {
   
   const string &GetFileName() const { return fileName; }
   
-  void SetFileType(FileType type);
-  FileType GetFileType() const     { return fileType;  }
+  void SetFileType(Amrvis::FileType type);
+  Amrvis::FileType GetFileType() const     { return fileType;  }
   bool CartGrid() const            { return bCartGrid; }
   Real VfEps(int level) const      { return vfEps[level]; }
   void SetVfEps(Real *newvfeps, int finestlev);
@@ -164,7 +158,7 @@ class AmrData {
   
  private:
   string fileName;
-  static FileType defaultFileType;
+  static Amrvis::FileType defaultFileType;
   static bool verbose;
   static int  skipPltLines;
   static int  sBoundaryWidth;

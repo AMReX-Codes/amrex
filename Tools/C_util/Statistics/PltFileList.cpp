@@ -82,7 +82,7 @@ main (int   argc,
 
 
     DataServices::SetBatchMode();
-    FileType fileType(NEWPLT);
+    Amrvis::FileType fileType(Amrvis::NEWPLT);
     MultiFab mean;
     MultiFab variance;
 

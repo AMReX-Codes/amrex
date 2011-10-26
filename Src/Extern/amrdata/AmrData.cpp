@@ -1,4 +1,3 @@
-
 // ---------------------------------------------------------------
 // AmrData.cpp
 // ---------------------------------------------------------------
@@ -149,15 +148,21 @@ AmrData::AmrData() {
 
 // ---------------------------------------------------------------
 AmrData::~AmrData() {
-   for(int i(0); i < nRegions; ++i) {
-     for(int lev(0); lev <= finestLevel; ++lev) {
+   for(int lev(0); lev < regions.size(); ++lev) {
+     for(int i(0); i < regions[lev].size(); ++i) {
        delete regions[lev][i];
      }
    }
 
-   for(int lev(0); lev <= finestLevel; ++lev) {
-     for(int iComp(0); iComp < nComp; ++iComp) {
-       delete dataGrids[lev][iComp];
+   for(int lev(0); lev < dataGrids.size(); ++lev) {
+     for(int i(0); i< dataGrids[lev].size(); ++i) {
+       delete dataGrids[lev][i];
+     }
+   }
+
+   for(int lev(0); lev < visMF.size(); ++lev) {
+     for(int i(0); i < visMF[lev].size(); ++i) {
+       delete visMF[lev][i];
      }
    }
 }
@@ -178,11 +183,11 @@ namespace {
 
 
 // ---------------------------------------------------------------
-bool AmrData::ReadData(const string &filename, FileType filetype) {
+bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
    fileType = filetype;
    bCartGrid = false;
    bTerrain = false;
-   if(filetype == FAB || filetype == MULTIFAB) {
+   if(filetype == Amrvis::FAB || filetype == Amrvis::MULTIFAB) {
      return ReadNonPlotfileData(filename, filetype);
    }
 
@@ -218,9 +223,9 @@ bool AmrData::ReadData(const string &filename, FileType filetype) {
       return false;
    }
 
-   char skipBuff[LINELENGTH];
+   char skipBuff[Amrvis::LINELENGTH];
    for(i = 0; i < skipPltLines; ++i) {
-     isPltIn.getline(skipBuff, LINELENGTH);
+     isPltIn.getline(skipBuff, Amrvis::LINELENGTH);
      if(ParallelDescriptor::IOProcessor()) {
        cout << "Skipped line in pltfile = " << skipBuff << endl;
      }
@@ -258,11 +263,11 @@ bool AmrData::ReadData(const string &filename, FileType filetype) {
       }
 
       plotVars.resize(nComp);
-      char plotVarName[LINELENGTH];
+      char plotVarName[Amrvis::LINELENGTH];
       bool bVFracFound(false);
-      isPltIn.getline(plotVarName, LINELENGTH); // eat white space left by op<<
+      isPltIn.getline(plotVarName, Amrvis::LINELENGTH); // eat white space left by op<<
       for(i = 0; i < nComp; ++i) {
-        isPltIn.getline(plotVarName, LINELENGTH);
+        isPltIn.getline(plotVarName, Amrvis::LINELENGTH);
 	mytrim(plotVarName);
 	if(bCartGrid) {  // check various permutations of vfrac name
 	  if(strcmp(plotVarName, "vol_frac") == 0) {
@@ -789,7 +794,7 @@ bool AmrData::ReadData(const string &filename, FileType filetype) {
 
 
 // ---------------------------------------------------------------
-bool AmrData::ReadNonPlotfileData(const string &filename, FileType filetype) {
+bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filetype) {
   int i;
   if(verbose) {
     cout << "AmrPlot::opening file = " << filename << endl;
@@ -802,18 +807,18 @@ bool AmrData::ReadNonPlotfileData(const string &filename, FileType filetype) {
 #endif
 
   time = 0;
-  if(fileType == FAB) {
+  if(fileType == Amrvis::FAB) {
     finestLevel = 0;
-  } else if(fileType == MULTIFAB) {
+  } else if(fileType == Amrvis::MULTIFAB) {
     finestLevel = 1;  // level zero is filler
   }
   probDomain.resize(finestLevel + 1);
   maxDomain.resize(finestLevel + 1);
   dxLevel.resize(finestLevel + 1);
   refRatio.resize(finestLevel + 1);
-  if(fileType == FAB) {
+  if(fileType == Amrvis::FAB) {
     refRatio[0] = 1;
-  } else if(fileType == MULTIFAB) {
+  } else if(fileType == Amrvis::MULTIFAB) {
     refRatio[0] = 2;
   }
   for(int iLevel(0); iLevel <= finestLevel; ++iLevel) {
@@ -829,7 +834,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, FileType filetype) {
   dataGrids.resize(finestLevel + 1);
   dataGridsDefined.resize(finestLevel + 1);
 
-  if(fileType == FAB) {
+  if(fileType == Amrvis::FAB) {
     ifstream is;
     is.open(filename.c_str(), ios::in);
     if(is.fail()) {
@@ -880,7 +885,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, FileType filetype) {
     }
     is.close();
 
-  } else if(fileType == MULTIFAB) {
+  } else if(fileType == Amrvis::MULTIFAB) {
     VisMF tempVisMF(filename);
     nComp = tempVisMF.nComp();
     probDomain[1] = tempVisMF.boxArray().minimalBox();
@@ -1566,7 +1571,7 @@ int AmrData::NIntersectingGrids(int level, const Box &b) const {
   BL_ASSERT(b.ok());
 
   int nGrids(0);
-  if(fileType == FAB || (fileType == MULTIFAB && level == 0)) {
+  if(fileType == Amrvis::FAB || (fileType == Amrvis::MULTIFAB && level == 0)) {
     nGrids = 1;
   } else {
     const BoxArray &visMFBA = visMF[level][0]->boxArray();
@@ -1585,7 +1590,7 @@ int AmrData::FinestContainingLevel(const Box &b, int startLevel) const {
   BL_ASSERT(startLevel >= 0 && startLevel <= finestLevel);
   BL_ASSERT(b.ok());
 
-  if(fileType == FAB) {
+  if(fileType == Amrvis::FAB) {
     return 0;
   } else {
     Box levelBox(b);
@@ -1606,7 +1611,7 @@ int AmrData::FinestIntersectingLevel(const Box &b, int startLevel) const {
   BL_ASSERT(startLevel >= 0 && startLevel <= finestLevel);
   BL_ASSERT(b.ok());
 
-  if(fileType == FAB) {
+  if(fileType == Amrvis::FAB) {
     return 0;
   } else {
     Box levelBox(b);
@@ -1637,7 +1642,7 @@ MultiFab &AmrData::GetGrids(int level, int componentIndex) {
 
 // ---------------------------------------------------------------
 MultiFab &AmrData::GetGrids(int level, int componentIndex, const Box &onBox) {
-  if(fileType == FAB || (fileType == MULTIFAB && level == 0)) {
+  if(fileType == Amrvis::FAB || (fileType == Amrvis::MULTIFAB && level == 0)) {
     // do nothing
   } else {
     int whichVisMF(compIndexToVisMFMap[componentIndex]);
@@ -1702,7 +1707,7 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
 
   int compIndex(StateNumber(derived));
 
-  if(fileType == FAB || (fileType == MULTIFAB && level == 0)) {
+  if(fileType == Amrvis::FAB || (fileType == Amrvis::MULTIFAB && level == 0)) {
     for(MFIter gpli(*dataGrids[level][compIndex]); gpli.isValid(); ++gpli) {
       if(onBox.intersects(dataGrids[level][compIndex]->boxArray()[gpli.index()])) {
           valid = true;

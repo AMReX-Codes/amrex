@@ -96,7 +96,7 @@ main (int   argc,
         BoxLib::Abort("You must specify `outfile'");
 
     DataServices::SetBatchMode();
-    FileType fileType(NEWPLT);
+    Amrvis::FileType fileType(Amrvis::NEWPLT);
     
     DataServices dataServicesC(iFile, fileType);
     DataServices dataServicesF(eFile, fileType);
