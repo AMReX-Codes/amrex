@@ -279,17 +279,19 @@ BoxList::complementIn (const Box&     b,
     {
         clear();
 
-        Box     minbox = bl.minimalBox();
-        BoxList tmpbl  = BoxLib::boxDiff(b,minbox);
+        Box     mbox = bl.minimalBox();
+        BoxList diff = BoxLib::boxDiff(b,mbox);
 
-        catenate(tmpbl);
+        catenate(diff);
 
         BoxArray ba(bl);
 
         BoxList mesh(b.ixType());
-        if (minbox.ok())
-            mesh.push_back(minbox);
+        if (mbox.ok())
+            mesh.push_back(mbox);
         mesh.maxSize(BL_SPACEDIM == 3 ? 64 : 128);
+
+        std::vector< std::pair<int,Box> > isects;
 
         for (BoxList::const_iterator bli = mesh.begin(), End = mesh.end(); bli != End; ++bli)
         {
@@ -297,20 +299,19 @@ BoxList::complementIn (const Box&     b,
 
             if (!bx.ok()) continue;
 
-            std::vector< std::pair<int,Box> > isects = ba.intersections(bx);
+            isects = ba.intersections(bx);
 
-            if (!isects.empty())
+            if (isects.empty())
             {
-                tmpbl.clear();
-                BoxList tm(b.ixType());
+                push_back(bx);
+            }
+            else
+            {
+                BoxList tm(b.ixType()), tmpbl(b.ixType());
                 for (int i = 0, N = isects.size(); i < N; i++)
                     tmpbl.push_back(isects[i].second);
                 tm.complementIn_base(bx,tmpbl);
                 catenate(tm);
-            }
-            else
-            {
-                push_back(bx);
             }
         }
     }
@@ -328,14 +329,16 @@ BoxList::complementIn_base (const Box&     b,
 
     push_back(b);
 
+    BoxList diff;
+
     for (const_iterator bli = bl.begin(), End = bl.end(); bli != End && isNotEmpty(); ++bli)
     {
         for (iterator newbli = lbox.begin(); newbli != lbox.end(); )
         {
             if (newbli->intersects(*bli))
             {
-                BoxList tm = BoxLib::boxDiff(*newbli, *bli);
-                lbox.splice(lbox.begin(), tm.lbox);
+                diff = BoxLib::boxDiff(*newbli, *bli);
+                lbox.splice(lbox.begin(), diff.lbox);
                 lbox.erase(newbli++);
             }
             else
@@ -524,7 +527,7 @@ BoxList::simplify_doit (bool best)
         const int* alo   = bla->loVect();
         const int* ahi   = bla->hiVect();
         bool       match = false;
-        iterator blb = bla;
+        iterator   blb   = bla;
         ++blb;
         //
         // If we're not looking for the "best" we can do in one pass, we
@@ -534,14 +537,14 @@ BoxList::simplify_doit (bool best)
         //
         const int MaxCnt = (best ? size() : 100);
 
-        for (int cnt = 0; blb != end() && cnt < MaxCnt; cnt++)
+        for (int cnt = 0; blb != End && cnt < MaxCnt; cnt++)
         {
             const int* blo = blb->loVect();
             const int* bhi = blb->hiVect();
             //
             // Determine if a and b can be coalesced.
-            // They must have equal extents in all index direciton
-            // except possibly one and must abutt in that direction.
+            // They must have equal extents in all index directions
+            // except possibly one, and must abutt in that direction.
             //
             bool canjoin = true;
             int  joincnt = 0;

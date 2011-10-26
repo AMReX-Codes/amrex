@@ -958,6 +958,9 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     BL_ASSERT(flux.box().contains(subbox));
     BL_ASSERT(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
+
+    if (ParallelDescriptor::IOProcessor())
+        BoxLib::Warning("\n*** FluxRegister::CrseInit(const FArrayBox&,...) is deprecated; please use CrseInit(MultiFab&,...) instead!!");
     
     const Orientation lo(dir,Orientation::low);
 
@@ -981,6 +984,9 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 void
 FluxRegister::CrseInitFinish (FrOp op)
 {
+    if (ParallelDescriptor::IOProcessor())
+        BoxLib::Warning("\n*** FluxRegister::CrseInitFinish() is deprecated; please use CrseInit(MultiFab&,...) instead!!");
+
     if (ParallelDescriptor::NProcs() == 1) return;
 
 #if BL_USE_MPI

@@ -201,7 +201,7 @@ ifeq ($(MACHINE), Linux)
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
+      BL_MPI_LIBS += -lmpich -lmpl -lpthread
     endif
 
     ifeq ($(HOST),manda)
@@ -210,6 +210,14 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
       BL_MPI_LIBS += -lmpich -lpthread -lmpl
+    endif
+
+    ifeq ($(HOST),stribog)
+      MPI_HOME = /usr/lib/openmpi
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lmpi -lmpi_cxx -lmpi_f77
     endif
 
     ifeq ($(HOST),HedorahU64804)
@@ -397,8 +405,10 @@ ifeq ($(MACHINE), Linux)
                   ifneq ($(HOST), hicegate0)     # This is Wolfram Schmidt's machine
                     ifneq ($(WHICHLINUX), DONEV)
                       ifneq ($(WHICHLINUX), HEDORAH)
-                      ifneq ($(HOST), manda)     
+                      ifneq ($(HOST), manda)     # This is Ann Almgren's machine
+                      ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
                         BL_MPI_LIBS += -lmpich
+                      endif  
                       endif  
                       endif  
                     endif  

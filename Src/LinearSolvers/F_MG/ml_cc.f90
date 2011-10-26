@@ -302,7 +302,7 @@ contains
           end if
 
           ! Add: Soln += uu
-          call saxpy(soln(n), ONE, uu(n))
+          call plus_plus(soln(n), uu(n))
 
           if (n > 1) then
 
@@ -368,11 +368,11 @@ contains
           ! Interpolate uu from coarser level
           call ml_cc_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:))
 
-          ! Add: soln += uu
-          call saxpy(soln(n), ONE, uu(n), .true.)
+          ! Add: soln(n) += uu
+          call plus_plus(soln(n), uu(n), nghost(uu(n)))
 
           ! Add: uu_hold += uu
-          if (n < nlevs) call saxpy(uu_hold(n), ONE, uu(n), .true.)
+          if (n < nlevs) call plus_plus(uu_hold(n), uu(n), nghost(uu(n)))
 
           ! Interpolate uu to supply boundary conditions for new 
           ! residual calculation
@@ -419,10 +419,10 @@ contains
           end if
 
           ! Add: soln += uu
-          call saxpy(soln(n), ONE, uu(n), .true.)
+          call plus_plus(soln(n), uu(n), nghost(uu(n)))
 
           ! Add: uu += uu_hold so that it will be interpolated too
-          if (n < nlevs) call saxpy(uu(n), ONE, uu_hold(n), .true.)
+          if (n < nlevs) call plus_plus(uu(n), uu_hold(n), nghost(uu_hold(n)))
 
           ! Only do this as long as tangential interp looks under fine grids
           mglev_crse = mgt(n-1)%nlevels
@@ -545,9 +545,9 @@ contains
 
     end if
 
-    ! Add: soln += full_soln
+    ! Add: full_soln += soln
     do n = 1,nlevs
-       call saxpy(full_soln(n),ONE,soln(n))
+       call plus_plus(full_soln(n),soln(n))
        call multifab_fill_boundary(full_soln(n))
     end do
 

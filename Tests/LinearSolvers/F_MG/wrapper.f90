@@ -6,7 +6,7 @@ subroutine wrapper()
   use box_util_module
   use ml_boxarray_module
   use ml_layout_module
-  use stencil_module
+  use cc_stencil_module
   use mg_module
   use box_util_module
   use mt19937_module
