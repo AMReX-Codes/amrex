@@ -2429,7 +2429,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             //
             // Remove any invalid particles from front of container.
             //
-            while (pbox.front().m_id <= 0)
+            while (!pbox.empty() && pbox.front().m_id <= 0)
                 pbox.pop_front();
 
             for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; )
