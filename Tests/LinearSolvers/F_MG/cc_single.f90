@@ -1,20 +1,20 @@
 subroutine t_cc_multigrid()
   use BoxLib
   use f2kcli
-  use stencil_module
-  use coeffs_module
+  use cc_stencil_module
+  use cc_stencil_fill_module
   use mg_module
   use list_box_module
   use ml_boxarray_module
   use itsol_module
-  use sparse_solve_module
   use bl_mem_stat_module
   use bl_timer_module
   use box_util_module
   use bl_IO_module
   use fabio_module
-  use mt19937_module
   use bl_prof_module
+  use omp_module
+  use mt19937_module
 
   implicit none
 
@@ -26,16 +26,16 @@ subroutine t_cc_multigrid()
 
   type(box) pd
 
-  type(multifab), allocatable :: coeffs(:)
+  type(multifab) :: cell_coeffs
+  type(multifab), allocatable :: edge_coeffs(:)
 
   type(multifab) :: uu, rh, ss
   type(imultifab) :: mm
-  type(sparse) :: sparse_object
   type(ml_boxarray) :: mba
   type(layout) :: la
   type(mg_tower) :: mgt
   real(dp_t), allocatable :: dh(:)
-  integer i, dm, ns
+  integer i, d, dm, ns
 
   integer :: narg, farg
   character(len=128) :: fname
@@ -90,8 +90,6 @@ subroutine t_cc_multigrid()
   logical uu_rand
 
   real(dp_t), allocatable :: xa(:), xb(:), pxa(:), pxb(:)
-  real(dp_t), parameter :: ONE = 1.0_dp_t
-  real(dp_t), parameter :: ZERO = 0.0_dp_t
 
   character(len=128) defect_dirname
   logical :: defect_history
@@ -560,40 +558,31 @@ subroutine t_cc_multigrid()
        verbose = verbose, &
        nodal = nodal)
 
-  allocate(coeffs(mgt%nlevels))
-  call multifab_build(coeffs(mgt%nlevels), la, 1+dm, 1)
-  call setval(coeffs(mgt%nlevels), ZERO, 1, all=.true.)
-  ! call setval(coeffs(mgt%nlevels), ONE, 1, all=.true.)
-  call setval(coeffs(mgt%nlevels), ONE, 2, dm, all=.true.)
+  call multifab_build(cell_coeffs, la, nc=1, ng=0)
+  call setval(cell_coeffs, ZERO, 1, all=.true.)
+
+  allocate(edge_coeffs(dm))
+  do d = 1,dm
+      call multifab_build_edge(edge_coeffs(d), la, nc=1, ng=0, dir=d)
+      call setval(edge_coeffs(d),1.d0,all=.true.)
+  end do
 
   allocate(xa(dm), xb(dm), pxa(dm), pxb(dm))
   pxa = ZERO
   pxb = ZERO
   xa = ZERO
   xb = ZERO
+
   select case (test)
   case (0)
      call timer_start(tm(1))
-     do i = mgt%nlevels-1, 1, -1
-        call multifab_build(coeffs(i), mgt%ss(i)%la, 1+dm, 1)
-        call setval(coeffs(i), ZERO, 1, dm+1, all=.true.)
-        call coarsen_coeffs(coeffs(i+1), coeffs(i))
-     end do
-     do i = mgt%nlevels, 1, -1
-        pdv = layout_boxarray(mgt%ss(i)%la)
-        call stencil_fill_cc(mgt%ss(i), coeffs(i), mgt%dh(:,i), pdv, &
-             mgt%mm(i), xa, xb, pxa, pxb, pd, stencil_order, domain_bc)
-call fill_boundary(coeffs(i))
-     end do
-     if ( bottom_solver == 3 ) then
-        call copy(mgt%ss1, mgt%ss(1))
-        call copy(mgt%mm1, mgt%mm(1))
-        if ( parallel_IOProcessor() ) then
-           call sparse_build(mgt%sparse_object, mgt%ss1, mgt%mm1, &
-                mgt%ss1%la, stencil_order, verbose)
-        end if
-     end if
+
+     call stencil_fill_cc(mgt%ss(mgt%nlevels), cell_coeffs, edge_coeffs, mgt%dh(:,mgt%nlevels), &
+                          mgt%mm(mgt%nlevels), xa, xb, pxa, pxb, stencil_order, &
+                          domain_bc)
+
      call timer_stop(tm(1))
+
      if ( qq_history ) then
         allocate(qq(0:max_iter))
      else
@@ -611,9 +600,6 @@ call fill_boundary(coeffs(i))
      if ( stat /= 0 ) then
         call bl_warn("MG_TOWER_SOLVE: failed : ", stat)
      end if
-     do i = mgt%nlevels-1, 1, -1
-        call multifab_destroy(coeffs(i))
-     end do
   case (1)
      la = mgt%dd(Mgt%nlevels)%la
      pdv = layout_boxarray(la)
@@ -621,9 +607,8 @@ call fill_boundary(coeffs(i))
      call imultifab_build(mm, la,  1, 0)
      call timer_start(tm(1))
      call build(bpt_setup, "BICG_SETUP")
-     call stencil_fill_cc(ss, coeffs(mgt%nlevels), mgt%dh(:,mgt%nlevels), &
-          pdv, mm, xa, xb, pxa, pxb, pd, stencil_order, domain_bc)
-call fill_boundary(coeffs(mgt%nlevels))
+     call stencil_fill_cc(ss, cell_coeffs, edge_coeffs, mgt%dh(:,mgt%nlevels), &
+                          mm, xa, xb, pxa, pxb, stencil_order, domain_bc)
      call timer_stop(tm(1))
      call destroy(bpt_setup)
      call timer_start(tm(2))
@@ -639,9 +624,8 @@ call fill_boundary(coeffs(mgt%nlevels))
      call imultifab_build(mm, la,  1, 0)
      call build(bpt_setup, "CG_SETUP")
      call timer_start(tm(1))
-     call stencil_fill_cc(ss, coeffs(mgt%nlevels), mgt%dh(:,mgt%nlevels), &
-          pdv, mm, xa, xb, pxa, pxb, pd, stencil_order, domain_bc)
-call fill_boundary(coeffs(mgt%nlevels))
+     call stencil_fill_cc(ss, cell_coeffs, edge_coeffs, mgt%dh(:,mgt%nlevels), &
+                          mm, xa, xb, pxa, pxb, stencil_order, domain_bc)
      call timer_stop(tm(1))
      call timer_start(tm(2))
      call itsol_CG_solve(ss, uu, rh, mm, eps, max_iter, verbose, stat)
@@ -650,35 +634,12 @@ call fill_boundary(coeffs(mgt%nlevels))
      if ( stat /= 0 ) then
         call bl_warn("itsol_CG_SOLVE: failed : ", stat)
      end if
-  case (3)
-     if ( parallel_nprocs() > 1 ) then
-        call bl_error("cc_single: bottom solver test can't be called in parallel")
-     end if
-     la = mgt%dd(Mgt%nlevels)%la
-     pdv = layout_boxarray(la)
-     call multifab_build(ss, la, ns, 0)
-     call imultifab_build(mm, la,  1, 0)
-     call build(bpt_setup, "SS_SETUP")
-     call timer_start(tm(1))
-     call stencil_fill_cc(ss, coeffs(mgt%nlevels), mgt%dh(:,mgt%nlevels), &
-          pdv, mm, xa, xb, pxa, pxb, pd, stencil_order, domain_bc)
-call fill_boundary(coeffs(mgt%nlevels))
-     call timer_stop(tm(1))
-     call destroy(bpt_setup)
-     call sparse_build(sparse_object, ss, mm, la, stencil_order, verbose)
-     call timer_start(tm(2))
-     call sparse_solve(sparse_object, uu, rh, eps, max_iter, verbose, stat)
-     if ( stat /= 0 ) then
-        call bl_warn("SPARSE SOLVE FAILED DUE TO BREAKDOWN")
-     end if
-     call timer_stop(tm(2))
   end select
+
+  deallocate(edge_coeffs)
 
   call multifab_fill_boundary(uu)
   ! call print(uu, "SOLN")
-
-  call multifab_destroy(coeffs(mgt%nlevels))
-  deallocate(coeffs)
 
   if ( parallel_IOProcessor() ) print *, 'TIMER RESOLUTION: ', timer_tick()
   call timer_print(tm(1), "setup  time")
@@ -719,9 +680,6 @@ call fill_boundary(coeffs(mgt%nlevels))
      call fabio_multifab_write_d(uu, "tdir1", "uu")
   end if
 
-  if ( test == 3 ) then
-     call sparse_destroy(sparse_object)
-  end if
   if ( test > 0 ) then
      call destroy(ss)
      call destroy(mm)
