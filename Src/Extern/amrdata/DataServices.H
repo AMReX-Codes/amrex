@@ -40,9 +40,9 @@ class DataServices {
 #endif
     };
 
-    DataServices(const string &filename, const FileType &filetype);
+    DataServices(const string &filename, const Amrvis::FileType &filetype);
     DataServices();
-    void Init(const string &filename, const FileType &filetype);
+    void Init(const string &filename, const Amrvis::FileType &filetype);
     ~DataServices();
 
     static void SetBatchMode();
@@ -110,7 +110,7 @@ class DataServices {
 
     // information functions
     const string &GetFileName() const { return fileName; }
-    FileType GetFileType()      const { return fileType; }
+    Amrvis::FileType GetFileType()      const { return fileType; }
     bool CanDerive(const string &name) const;
     bool CanDerive(const Array<string> &names) const;
     int  NumDeriveFunc() const;
@@ -128,7 +128,7 @@ class DataServices {
 
   private:
     string fileName;
-    FileType fileType;
+    Amrvis::FileType fileType;
     AmrData amrData;
     bool bAmrDataOk;
     int dsArrayIndex;

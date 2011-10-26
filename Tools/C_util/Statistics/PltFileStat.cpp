@@ -94,7 +94,7 @@ main (int   argc,
     // file is a plotfile
     if (iFile_type == 0) 
     {
-      FileType fileType(NEWPLT);
+      Amrvis::FileType fileType(Amrvis::NEWPLT);
       DataServices::SetBatchMode();   
       DataServices dataServices(tmpFile,fileType);
 

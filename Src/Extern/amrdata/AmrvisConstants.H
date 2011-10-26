@@ -10,9 +10,9 @@
 
 #include <stdio.h>
 
-#ifndef BUFSIZ
-# define BUFSIZ 8192
-#endif
+namespace Amrvis {
+
+const int BUFSIZE = 8192;
 
 const int LINELENGTH = 160;
 const int MAXARGS = 50;
@@ -78,6 +78,8 @@ enum ContourType {
 };
 
 enum FileType { INVALIDTYPE = 0, FAB, MULTIFAB, NEWPLT, NUMDBPTYPES };
+
+}  // end namespace Amrvis
 
 #endif
 // -------------------------------------------------------------------

@@ -70,7 +70,7 @@ main (int   argc,
     Array<Real> norm0, norm1, norm2;
 
     DataServices::SetBatchMode();
-    FileType fileType(NEWPLT);
+    Amrvis::FileType fileType(Amrvis::NEWPLT);
     
     DataServices dataServices(iFile, fileType);
 
