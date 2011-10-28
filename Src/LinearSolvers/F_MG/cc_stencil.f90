@@ -2262,10 +2262,10 @@ contains
     hy2 = -1.0d0/(12.d0*dh(2)**2)*scale
     hz2 = -1.0d0/(12.d0*dh(3)**2)*scale
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
-
     !  Initialize to zero.
     ss = 0.d0
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
 
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
