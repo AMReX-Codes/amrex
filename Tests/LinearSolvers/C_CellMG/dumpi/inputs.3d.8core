@@ -1,16 +1,13 @@
-use_fboxlib = 0
 
-geometry.coord_sys   =  0        # 0=cartesian
+geometry.coord_sys   =  0
 
 geometry.prob_lo     =  0. 0. 0.
 
 geometry.prob_hi     =  1. 1. 1.
 
-geometry.is_periodic =  1 1 1    # for each direction, 1=periodic
+geometry.is_periodic =  1 1 1
 
-dump_MF=0                        # dump RHS and soln to a "plotfile" named soln_pf
-
-#boxes=grids.32           # work on this set of boxes
+dump_MF=0
 
 n_cell        = 128
 
