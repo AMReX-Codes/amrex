@@ -16,6 +16,6 @@ echo usercode "'''"
 cat $BLNPY
 echo "'''"
 echo pymethoddef "'''"
-grep '^{"' $BLNPY
+grep 'METH_VARARGS' $BLNPY
 echo "'''"
 echo end python module pyfboxlib
