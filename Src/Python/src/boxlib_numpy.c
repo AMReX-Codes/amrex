@@ -19,7 +19,7 @@ multifab_as_numpy (PyObject * self, PyObject * args)
   int mfid, nbox, nx, ny, nz, nc;
   double *ptr;
 
-  PyArrayObject *arr = NULL;
+  PyObject *arr = NULL;
   int ndim = 4;
   npy_intp dims[4];
 
@@ -37,7 +37,6 @@ multifab_as_numpy (PyObject * self, PyObject * args)
                              PyArray_DescrFromType(NPY_DOUBLE), ndim, dims, NULL,
                              ptr, NPY_FORTRAN|NPY_WRITEABLE, NULL);
 
-
   Py_INCREF(arr);
   return arr;
 }
@@ -48,7 +47,7 @@ lmultifab_as_numpy (PyObject * self, PyObject * args)
   int mfid, nbox, nx, ny, nz, nc;
   double *ptr;
 
-  PyArrayObject *arr = NULL;
+  PyObject *arr = NULL;
   int ndim = 4;
   npy_intp dims[4];
 
