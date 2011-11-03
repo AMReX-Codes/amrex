@@ -8,7 +8,7 @@ def findparams(paramFileDirs):
     params = []
 
     for d in paramFileDirs:
-        f = d + "/_parameters"
+        f = os.path.normpath(d + "/_parameters")
         if (os.path.isfile(f)):
             params.append(f)
 
