@@ -139,7 +139,7 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     const Geometry& geom = amr->Geom(0);
     const Box&      dmn  = geom.Domain();
     IntVect         iv   = Index(p,0,amr);
-    const Real      eps  = 1.e13;
+    const Real      eps  = 1.e-13;
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
