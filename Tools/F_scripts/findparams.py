@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# a simple script that returns (to stdout) the paths to _parameter
+# files given a list of directories to search (as arguments on the
+# commandline).  This is used in various makefiles to get the input
+# for write_probin.py
+
 import sys
 import os
 
