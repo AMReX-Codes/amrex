@@ -135,10 +135,11 @@ def abort(outfile):
 # write_probin will read through the list of parameter files and output 
 # the new outFile
 #=============================================================================
-def write_probin(probinTemplate, paramFiles, namelistName, outFile):
+def write_probin(probinTemplate, paramAFiles, paramBFiles, 
+                 namelistName, outFile):
 
-    params = []
-    externParams = []
+    paramsA = []
+    paramsB = []
 
     print(" ")
     print("write_probin.py: creating %s" % (outFile))
@@ -146,12 +147,23 @@ def write_probin(probinTemplate, paramFiles, namelistName, outFile):
     #-------------------------------------------------------------------------
     # read the parameters defined in the parameter files
     #-------------------------------------------------------------------------
-    for f in paramFiles:
-        err = parseParamFile(params, f)
+    for f in paramAFiles:
+        err = parseParamFile(paramsA, f)
         
         if (err):
             abort(outFile)
 
+
+    for f in paramBFiles:
+        err = parseParamFile(paramsB, f)
+        
+        if (err):
+            abort(outFile)
+
+
+    # params will hold all the parameters (from both lists A and B)
+    params = paramsA + paramsB
+            
 
     #-------------------------------------------------------------------------
     # open up the template
@@ -189,35 +201,70 @@ def write_probin(probinTemplate, paramFiles, namelistName, outFile):
             keyword = line[index+len("@@"):index2]
             indent = index*" "
 
-            if (keyword == "declarations"):
+            if (keyword == "declarationsA"):
 
                 # declaraction statements
                 n = 0
-                while (n < len(params)):
+                while (n < len(paramsA)):
 
-                    type = params[n].type
+                    type = paramsA[n].type
 
                     if (type == "real"):
                         fout.write("%sreal (kind=dp_t), save, public :: %s\n" % 
-                                   (indent, params[n].var))
+                                   (indent, paramsA[n].var))
 
                     elif (type == "character"):
                         fout.write("%scharacter (len=256), save, public :: %s\n" % 
-                                   (indent, params[n].var))
+                                   (indent, paramsA[n].var))
 
                     elif (type == "integer"):
                         fout.write("%sinteger, save, public :: %s\n" % 
-                                   (indent, params[n].var))
+                                   (indent, paramsA[n].var))
 
                     elif (type == "logical"):
                         fout.write("%slogical, save, public :: %s\n" % 
-                                   (indent, params[n].var))
+                                   (indent, paramsA[n].var))
 
                     else:
-                        print("write_probin.py: invalid datatype for variable "+params[n].var)
+                        print("write_probin.py: invalid datatype for variable "+paramsA[n].var)
 
                     n += 1
 
+
+            elif (keyword == "declarationsB"):
+
+                if (len(paramsB) > 0):
+
+                    # declaraction statements
+                    n = 0
+                    while (n < len(paramsB)):
+
+                        type = paramsB[n].type
+
+                        if (type == "real"):
+                            fout.write("%sreal (kind=dp_t), save, public :: %s\n" % 
+                                       (indent, paramsB[n].var))
+
+                        elif (type == "character"):
+                            fout.write("%scharacter (len=256), save, public :: %s\n" % 
+                                       (indent, paramsB[n].var))
+
+                        elif (type == "integer"):
+                            fout.write("%sinteger, save, public :: %s\n" % 
+                                       (indent, paramsB[n].var))
+
+                        elif (type == "logical"):
+                            fout.write("%slogical, save, public :: %s\n" % 
+                                       (indent, paramsB[n].var))
+
+                        else:
+                            print("write_probin.py: invalid datatype for variable "+paramsB[n].var)
+
+                        n += 1
+
+                else:
+                    fout.write("\n")
+                    
 
             elif (keyword == "namelist"):
                                        
@@ -281,7 +328,7 @@ def write_probin(probinTemplate, paramFiles, namelistName, outFile):
 
 if __name__ == "__main__":
 
-    try: opts, next = getopt.getopt(sys.argv[1:], "t:o:n:")
+    try: opts, next = getopt.getopt(sys.argv[1:], "t:o:n:", ["pa=","pb="])
 
     except getopt.GetoptError:
         print("write_probin.py: invalid calling sequence")
@@ -302,18 +349,22 @@ if __name__ == "__main__":
         if o == "-n":
             namelistName = a
 
-    if len(next) == 0:
-        print("write_probin.py: ERROR: no parameter files specified")
-        sys.exit(2)
+        if o == "--pa":
+            paramAFilesStr = a
+
+        if o == "--pb":
+            paramBFilesStr = a
 
 
     if (probinTemplate == "" or outFile == "" or namelistName == ""):
         print("write_probin.py: ERROR: invalid calling sequence")
         sys.exit(2)
 
-    paramFiles = next[0:]
+    paramAFiles = paramAFilesStr.split()
+    paramBFiles = paramBFilesStr.split()
 
-    write_probin(probinTemplate, paramFiles, namelistName, outFile)
+    write_probin(probinTemplate, paramAFiles, paramBFiles, 
+                 namelistName, outFile)
 
 
 
