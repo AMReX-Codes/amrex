@@ -72,7 +72,12 @@ def getParamIndex(paramList, var):
 # parseParamFile read all the parameters in a given parameter file and adds
 # valid parameters to the params list.
 #=============================================================================
-def parseParamFile(paramsList, paramFile):
+def parseParamFile(paramsList, paramFile, otherList=None):
+
+    # if otherList is present, we will search through it to make sure
+    # we don't add a duplicate parameter.
+    if (otherList==None):
+        otherList = []
 
     err = 0
 
@@ -105,11 +110,16 @@ def parseParamFile(paramsList, paramFile):
         currentParam.type  = fields[1]
         currentParam.value = fields[2]
 
+        # check to see if this parameter is defined in the current list
+        # of otherList
         index = getParamIndex(paramsList, currentParam.var)
+        index2 = getParamIndex(otherList, currentParam.var)
 
-        if (index >= 0):
-            print("write_probin.py: ERROR: parameter %s already defined," % (currentParam.var))
+        if (index >= 0 or index2 > 0):
+            print("write_probin.py: ERROR: parameter %s already defined." % (currentParam.var))
             err = 1                
+
+
             
         paramsList.append(currentParam)
 
@@ -155,7 +165,7 @@ def write_probin(probinTemplate, paramAFiles, paramBFiles,
 
 
     for f in paramBFiles:
-        err = parseParamFile(paramsB, f)
+        err = parseParamFile(paramsB, f, otherList=paramsA)
         
         if (err):
             abort(outFile)
