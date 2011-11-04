@@ -40,6 +40,7 @@ f90EXE_sources += itsol.f90
 f90EXE_sources += ml_restriction.f90
 f90EXE_sources += mg.f90
 f90EXE_sources += mg_tower.f90
+f90EXE_sources += mg_tower_smoother.f90
 f90EXE_sources += ml_cc.f90
 f90EXE_sources += ml_nd.f90
 f90EXE_sources += ml_norm.f90
