@@ -274,7 +274,7 @@ public:
     //
     // Write the contents of the table in ASCII to the ostream.
     //
-    static void dumpTable (std::ostream& os);
+    static void dumpTable (std::ostream& os, bool prettyPrint = false);
     //
     // Get the ival'th value of kth occurrence of the requested name.
     // If successful, the value is converted to a bool and stored
@@ -314,6 +314,11 @@ public:
                bool&        ref,
                int         ival = FIRST) const;
     //
+    // Add a key 'name'with value 'ref' to the end of the PP table.
+    //
+    void add (const char* name,
+              const bool  val);
+    //
     // Get the ival'th value of kth occurrence of the requested name.
     // If successful, the value is converted to an int and stored
     // in reference ref.  If the kth occurrence does not exist or
@@ -349,6 +354,11 @@ public:
     int query (const char* name,
                int&        ref,
                int         ival = FIRST) const;
+    //
+    // Add a key 'name'with value 'ref' to the end of the PP table.
+    //
+    void add (const char* name,
+              const int  val);
     //
     // Get the ival'th value of kth occurrence of the requested name.
     // If successful, the value is converted to an int and stored
@@ -386,6 +396,11 @@ public:
                long&        ref,
                int         ival = FIRST) const;
     //
+    // Add a key 'name'with value 'ref' to the end of the PP table.
+    //
+    void add (const char* name,
+              const long  val);
+    //
     // Get the ival'th value of kth occurrence of the requested name.
     // If successful, the value is converted to a float and stored
     // in reference ref.  If the kth occurrence does not exist or
@@ -421,6 +436,11 @@ public:
     int query (const char* name,
                float&      ref,
                int         ival = FIRST) const;
+    //
+    // Add a key 'name'with value 'ref' to the end of the PP table.
+    //
+    void add (const char* name,
+              const float  val);
     //
     // Get the ival'th value of kth occurrence of the requested name.
     // If successful, the value is converted to a double and stored
@@ -458,6 +478,11 @@ public:
                double&     ref,
                int         ival = FIRST) const;
     //
+    // Add a key 'name'with value 'ref' to the end of the PP table.
+    //
+    void add (const char* name,
+              const double  val);
+    //
     // Get the ival'th value of kth occurrence of the requested name.
     // If successful, the value is converted to a std::string and stored
     // in reference ref.  If the kth occurrence does not exist or
@@ -493,6 +518,11 @@ public:
     int query (const char* name,
                std::string&    ref,
                int         ival = FIRST) const;
+    //
+    // Add a key 'name'with value 'ref' to the end of the PP table.
+    //
+    void add (const char* name,
+              const std::string&  val);
     //
     // Get the ival'th value of kth occurrence of the requested name.
     // If successful, the value is converted to an IntVect and stored
@@ -530,6 +560,11 @@ public:
                IntVect&    ref,
                int         ival = FIRST) const;
     //
+    // Add a key 'name'with value 'ref' to the end of the PP table.
+    //
+    void add (const char* name,
+              const IntVect&  val);
+    //
     // Get the ival'th value of kth occurrence of the requested name.
     // If successful, the value is converted to a Box and stored
     // in reference ref.  If the kth occurrence does not exist or
@@ -565,6 +600,11 @@ public:
     int query (const char* name,
                Box&        ref,
                int         ival = FIRST) const;
+    //
+    // Add a key 'name'with value 'ref' to the end of the PP table.
+    //
+    void add (const char* name,
+              const Box&  val);
     //
     // Gets an std::vector<int> of num_val values from kth occurrence of
     // given name.  If successful, the values are converted to an int
@@ -605,6 +645,12 @@ public:
                   int         start_ix = FIRST,
                   int         num_val = ALL) const;
     //
+    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
+    //
+    void addarr (const char* name,
+                const std::vector<int>&  ptr);
+
+    //
     // Gets an std::vector<long> of num_val values from kth occurrence of
     // given name.  If successful, the values are converted to a long
     // and stored in the std::vector<long> object ref.  ref is resized (if
@@ -643,6 +689,12 @@ public:
                   std::vector<long>& ref,
                   int         start_ix = FIRST,
                   int         num_val = ALL) const;
+    //
+    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
+    //
+    void addarr (const char* name,
+                const std::vector<long>&  ptr);
+
     //
     // Gets an std::vector<float> of num_val values from kth occurrence of
     // given name.  If successful, the values are converted to a float
@@ -683,6 +735,11 @@ public:
                   int           start_ix = FIRST,
                   int           num_val = ALL) const;
     //
+    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
+    //
+    void addarr (const char* name,
+                const std::vector<float>&  ptr);
+    //
     // Gets an std::vector<double> of num_val values from kth occurrence of
     // given name.  If successful, the values are converted to a double
     // and stored in the std::vector<double> object ref.  ref is resized (if
@@ -721,6 +778,11 @@ public:
                   std::vector<double>& ref,
                   int            start_ix = FIRST,
                   int            num_val = ALL) const;
+    //
+    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
+    //
+    void addarr (const char* name,
+                const std::vector<double>&  ptr);
     //
     // Gets an std::vector<std::string> of num_val values from kth occurrence of
     // given name.  If successful, the values are converted to an
@@ -761,6 +823,11 @@ public:
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
     //
+    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
+    //
+    void addarr (const char* name,
+                const std::vector<std::string>&  ptr);
+    //
     // Gets an std::vector<IntVect> of num_val values from kth occurrence of
     // given name.  If successful, the values are converted to an
     // IntVect and stored in the std::vector<IntVect> object ref.  ref is
@@ -800,6 +867,11 @@ public:
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
     //
+    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
+    //
+    void addarr (const char* name,
+                const std::vector<IntVect>&  ptr);
+    //
     // Gets an std::vector<Box> of num_val values from kth occurrence of
     // given name.  If successful, the values are converted to an
     // Box and stored in the std::vector<Box> object ref.  ref is
@@ -838,6 +910,11 @@ public:
                   std::vector<Box>& ref,
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
+    //
+    // Add a key 'name' with vector of values 'ptr' to the end of the PP table.
+    //
+    void addarr (const char* name,
+                const std::vector<Box>&  ptr);
     //
     // Construct an initial ParmParse object from the argc and argv
     // passed in to main().  An error will be signalled if another
@@ -887,10 +964,13 @@ struct ParmParse::PP_entry
     PP_entry (const std::string&            name,
               const std::list<std::string>& vals);
     PP_entry (const std::string& name,
+              const std::string& vals);              
+    PP_entry (const std::string& name,
 	      const Table& table);
     PP_entry (const PP_entry& pe);
     PP_entry& operator= (const PP_entry& pe);
     ~PP_entry ();
+    std::string print() const;
 
     std::string              m_name;
     std::vector<std::string> m_vals;
