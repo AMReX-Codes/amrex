@@ -1070,7 +1070,16 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
    BL_ASSERT(finestFillLevel >= 0 && finestFillLevel <= finestLevel);
    BoxArray destBoxes(destMultiFab.boxArray());
    for(int iIndex = 0; iIndex < destBoxes.size(); ++iIndex) {
-     BL_ASSERT(probDomain[finestFillLevel].contains(destBoxes[iIndex]));
+      if (!probDomain[finestFillLevel].contains(destBoxes[iIndex]))
+      {
+         if(ParallelDescriptor::IOProcessor())  
+         {
+            cerr << "Error in AmrData::FillVar  -- probDomain does not contain destBoxes" << std::endl;
+            cerr << "   Domain is  " << probDomain[finestFillLevel] << std::endl;
+            cerr << "   ith box is " << destBoxes[iIndex]           << std::endl;
+         }
+         BoxLib::Abort("Error:  AmrData::FillVar");
+      }
    }
 
     int myProc(ParallelDescriptor::MyProc());
