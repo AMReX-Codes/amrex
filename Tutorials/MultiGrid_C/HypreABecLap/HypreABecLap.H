@@ -46,7 +46,7 @@ protected:
   HYPRE_StructVector b, x;
   HYPRE_StructSolver solver, precond;
 
-  int pfmg_relax_type, skip_relax;
+  int pfmg_rap_type, pfmg_relax_type, skip_relax;
   int num_pre_relax, num_post_relax;
   int print_level;
 
