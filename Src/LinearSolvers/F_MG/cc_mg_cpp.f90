@@ -11,9 +11,7 @@ module cpp_mg_module
      logical         :: nodal
      integer         :: dim  = 0
      integer         :: nlevel
-!     integer         :: stencil_order = 3
-!     integer         :: stencil_order = 2
-     integer         :: stencil_order = 1
+     integer         :: stencil_order = 2
      integer         :: nu1, nu2, nuf, nub
      integer         :: gamma
      real(dp_t)      :: omega
