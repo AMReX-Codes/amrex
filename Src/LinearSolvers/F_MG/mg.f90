@@ -402,7 +402,10 @@ contains
           write(unit=un,fmt= '(" Level",i2)') i
           do ii = 1,nboxes(mgt%cc(i))
              bb = get_box(mgt%cc(i),ii)
-             if (mgt%dim == 2) then
+             if (mgt%dim == 1) then
+                write(unit=un,fmt= '("  [",i4,"]: (",i4,") (",i4,")",i4 )') &
+                     ii,bb%lo(1),bb%hi(1),bb%hi(1)-bb%lo(1)+1
+             elseif (mgt%dim == 2) then
                 write(unit=un,fmt= '("  [",i4,"]: (",i4,",",i4,") (",i4,",",i4,")",i4,i4 )') &
                      ii,bb%lo(1),bb%lo(2),bb%hi(1),bb%hi(2), &
                      bb%hi(1)-bb%lo(1)+1,bb%hi(2)-bb%lo(2)+1
