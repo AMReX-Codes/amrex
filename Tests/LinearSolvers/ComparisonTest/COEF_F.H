@@ -4,18 +4,18 @@
 #include <REAL.H>
 
 #if        defined(BL_LANG_FORT)
-#define FORT_SET_COEF        set_coef_3d
+#define FORT_SET_COEF        set_coef
 #define FORT_COEF_TO_EDGES   coef_to_edges
 #else
 
 #if    defined(BL_FORT_USE_UPPERCASE)
-#define FORT_SET_COEF        SET_COEF_3d
+#define FORT_SET_COEF        SET_COEF
 #define FORT_COEF_TO_EDGES   COEF_TO_EDGES
 #elif  defined(BL_FORT_USE_LOWERCASE)
-#define FORT_SET_COEF        set_coef_3d
+#define FORT_SET_COEF        set_coef
 #define FORT_COEF_TO_EDGES   coef_to_edges
 #elif  defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_SET_COEF        set_coef_3d_
+#define FORT_SET_COEF        set_coef_
 #define FORT_COEF_TO_EDGES   coef_to_edges_
 #endif
 
