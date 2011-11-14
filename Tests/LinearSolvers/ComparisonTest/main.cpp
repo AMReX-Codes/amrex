@@ -170,8 +170,19 @@ void build_grids(std::vector<Geometry>& geom, std::vector<BoxArray>& grids)
   pp.get("max_grid_size",max_grid_size);
 
   // Define a single box covering the domain
+#if (BL_SPACEDIM == 1)
+  IntVect dom0_lo(0);
+  IntVect dom0_hi(n_cell-1);
+#endif
+#if (BL_SPACEDIM == 2)
+  IntVect dom0_lo(0,0);
+  IntVect dom0_hi(n_cell-1,n_cell-1);
+#endif
+#if (BL_SPACEDIM == 3)
   IntVect dom0_lo(0,0,0);
   IntVect dom0_hi(n_cell-1,n_cell-1,n_cell-1);
+#endif
+
   Box dom0(dom0_lo,dom0_hi);
 
   BoxArray ba0(dom0);
