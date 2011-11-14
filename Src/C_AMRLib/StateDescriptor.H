@@ -25,8 +25,6 @@ extern "C"
 //
 // Attributes of StateData.
 //
-// Attributes of StateData.
-//
 
 class StateDescriptor
 {
@@ -233,7 +231,7 @@ public:
 
     int groupsize (int i) const { return m_groupsize[i]; }
 
-protected:
+private:
 
     IndexType          type;     // Cell centered, node centered ...
     TimeCenter         t_type;   // Temporal centering

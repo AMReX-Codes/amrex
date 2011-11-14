@@ -44,10 +44,6 @@ public:
         //
         std::string m_name; // The name of file containing the FAB.
         long    m_head;     // Offset to start of FAB in file.
-        //
-        // Prefixed to lines of FabOnDisk I/O.
-        //
-        static const std::string Prefix;
     };
     //
     // An on-disk MultiFab contains this info in a header file.
@@ -209,14 +205,6 @@ private:
     static std::string DirName (const std::string& filename);
 
     static std::string BaseName (const std::string& filename);
-    //
-    // The suffix appended to files containing FAB data.
-    //
-    static const std::string FabFileSuffix;
-    //
-    // The suffix appended to files containing MultiFabs.
-    //
-    static const std::string MultiFabHdrFileSuffix;
     //
     // Name of the MultiFab.
     //

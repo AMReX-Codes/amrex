@@ -1,4 +1,4 @@
-BOXLIB_HOME ?= ../../
+BOXLIB_HOME ?= ../../..
 
 TOP = $(BOXLIB_HOME)
 #

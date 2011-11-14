@@ -11,9 +11,7 @@ module cpp_mg_module
      logical         :: nodal
      integer         :: dim  = 0
      integer         :: nlevel
-!     integer         :: stencil_order = 3
-!     integer         :: stencil_order = 2
-     integer         :: stencil_order = 1
+     integer         :: stencil_order = 2
      integer         :: nu1, nu2, nuf, nub
      integer         :: gamma
      real(dp_t)      :: omega
@@ -91,13 +89,10 @@ contains
 
 end module cpp_mg_module
 
-subroutine mgt_init ()
+subroutine mgt_init (comm)
   use parallel
-  logical, save :: first = .true.
-  if ( first ) then
-     call parallel_initialize()
-     first = .false.
-  end if
+  integer comm
+  call parallel_initialize(comm)
 end subroutine mgt_init
 
 subroutine mgt_use_alltoallv ()

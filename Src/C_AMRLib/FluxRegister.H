@@ -38,7 +38,7 @@ public:
     //
     // The destructor.
     //
-    virtual ~FluxRegister ();
+    ~FluxRegister ();
     //
     // An enum that says whether to add or copy src data to members.
     //
@@ -47,19 +47,19 @@ public:
     // Initialize after using default constructor.
     // Note that this takes the fine BoxArray.
     //
-    virtual void define (const BoxArray& fine_boxes, 
-                         const IntVect&  ref_ratio,
-                         int             fine_lev,
-                         int             nvar);
+    void define (const BoxArray& fine_boxes, 
+                 const IntVect&  ref_ratio,
+                 int             fine_lev,
+                 int             nvar);
     //
     // Initialize after using default constructor.
     // This version allows setting the DistributionMapping.
     //
-    virtual void define (const BoxArray&            fine_boxes, 
-                         const IntVect&             ref_ratio,
-                         int                        fine_lev,
-                         int                        nvar,
-                         const DistributionMapping& dm);
+    void define (const BoxArray&            fine_boxes, 
+                 const IntVect&             ref_ratio,
+                 int                        fine_lev,
+                 int                        nvar,
+                 const DistributionMapping& dm);
     //
     // Returns the refinement ratio.
     //
@@ -134,6 +134,9 @@ public:
     //
     // Initialize flux correction with coarse data. 
     //
+    // *** This function is deprecated -- do NOT use it!!!
+    // *** Use CrseInit(MultiFab&, ...) instead.
+    //
     void CrseInit (const FArrayBox& flux,
                    const Box&       subbox,
                    int              dir,
@@ -145,8 +148,11 @@ public:
     //
     // This isn't documented  --  it's a parallel feature :-(
     //
-    // It MUST be called after all CrseInit()s outside of
+    // It MUST be called after all CrseInit(FArrayBox&,...)s outside of
     // any implicit or explicit parallel loop.
+    //
+    // *** This function is deprecated -- do NOT use it!!!
+    // *** Use CrseInit(MultiFab&, ...) instead.
     //
     void CrseInitFinish (FrOp op = FluxRegister::COPY);
     //
@@ -219,7 +225,11 @@ public:
     //
     void read (const std::string& name, std::istream& is);
 
-protected:
+private:
+    //
+    // Helper member function.
+    //
+    void increment (const FArrayBox& fab, int dir);
     //
     // Refinement ratio
     //
@@ -232,10 +242,7 @@ protected:
     // Number of state components.
     //
     int ncomp;
-    //
-    // Helper member function.
-    //
-    void increment (const FArrayBox& fab, int dir);
+
 };
 
 #endif /*_FLUXREGISTER_H_*/

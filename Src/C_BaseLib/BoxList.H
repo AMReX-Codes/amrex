@@ -282,7 +282,16 @@ public:
     //
     BoxList& convert (IndexType typ);
 
-protected:
+private:
+    //
+    // This is a helper function for the real complementIn().
+    //
+    BoxList& complementIn_base (const Box&     b,
+                                const BoxList& bl);
+    //
+    // Core simplify routine.
+    //
+    int simplify_doit (bool best);
     //
     // The list of Boxes.
     //
@@ -295,21 +304,11 @@ protected:
     // Returns a constant reference to the List<Box>.
     //
     const std::list<Box>& listBox() const;
-
-private:
     //
     // The IndexType of Boxes in the BoxList.
     //
     IndexType btype;
-    //
-    // This is a helper function for the real complementIn().
-    //
-    BoxList& complementIn_base (const Box&     b,
-                                const BoxList& bl);
-    //
-    // Core simplify routine.
-    //
-    int simplify_doit (bool best);
+
 };
 
 inline

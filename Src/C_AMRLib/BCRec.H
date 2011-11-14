@@ -69,7 +69,7 @@ public:
     //
     friend std::ostream& operator << (std::ostream&, const BCRec&);
 
-protected:
+private:
     //
     // Array of integer values describing boundary conditions.
     //

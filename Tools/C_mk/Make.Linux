@@ -13,7 +13,7 @@ ifeq ($(COMP),PathScale)
   ifeq ($(BL_FAST),TRUE)
     CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
   else
-    CXXOPTF += -O -fno-exceptions -Wno-deprecated
+    CXXOPTF += -O3 -fno-exceptions -Wno-deprecated
   endif
 
   CXXDEBF += -O0 -fno-exceptions -g -Wno-deprecated
@@ -92,8 +92,8 @@ ifeq ($(FCOMP),PathScale)
     FOPTF += -Ofast
     fOPTF += -Ofast
   else
-    FOPTF += -O
-    fOPTF += -O
+    FOPTF += -O3
+    fOPTF += -O3
   endif
 
   ifeq ($(USE_OMP),TRUE)
@@ -105,7 +105,7 @@ ifeq ($(FCOMP),PathScale)
 
   fFLAGS += -extend-source -module $(objEXETempDir)
   FORT_CPP := cpp -traditional
-  override XTRALIBS += -lpathfortran  -lmv
+  override XTRALIBS += -lpathfortran  #-lmv
 #  LDFLAGS += -static
 else
 ifeq ($(FCOMP),Cray)

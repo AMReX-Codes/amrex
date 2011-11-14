@@ -97,7 +97,7 @@ main (int   argc,
     pp.query("norm", norm);
 
     DataServices::SetBatchMode();
-    FileType fileType(NEWPLT);
+    Amrvis::FileType fileType(Amrvis::NEWPLT);
     
     DataServices dataServicesC(iFile1, fileType);
     DataServices dataServicesF(iFile2, fileType);

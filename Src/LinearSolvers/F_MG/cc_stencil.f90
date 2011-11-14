@@ -336,10 +336,6 @@ contains
        call bl_error("STENCIL_BNDRY_AAA: face not -1 or 1")
     end if
 
-    !     if ( bclo == BC_ROB .and. (.not.present(aa1) .and. .not.present(bb1)) ) &
-    !          call bl_error("ROBIN BC's not ready yet")
-    !     if ( bchi == BC_ROB .and. (.not.present(aa2) .and. .not.present(bb2)) ) &
-    !          call bl_error("ROBIN BC's not ready yet")
     if ( nx == 1 .and. face == 1 ) call bl_error("STENCIL_BNDRY_AAA: Shouldn't happen!")
 
     s0 = ZERO
@@ -2262,10 +2258,10 @@ contains
     hy2 = -1.0d0/(12.d0*dh(2)**2)*scale
     hz2 = -1.0d0/(12.d0*dh(3)**2)*scale
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
-
     !  Initialize to zero.
     ss = 0.d0
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
 
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)

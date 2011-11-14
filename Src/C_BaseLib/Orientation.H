@@ -93,14 +93,14 @@ public:
     //
     friend std::istream& operator>> (std::istream& os, Orientation& o);
 
-protected:
+private:
     //
     // Used internally.
     //
     Orientation (int val);
-
-private:
-
+    //
+    // The data.
+    //
     int val;
 };
 
@@ -162,7 +162,7 @@ public:
     //
     bool operator!= (const OrientationIter& oi) const;
 
-protected:
+private:
 
     int face;
     //

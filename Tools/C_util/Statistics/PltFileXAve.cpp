@@ -205,7 +205,7 @@ main (int   argc,
     pp.query("phi",phi);
 
     DataServices::SetBatchMode();
-    FileType fileType(NEWPLT);
+    Amrvis::FileType fileType(Amrvis::NEWPLT);
 
     
 
@@ -273,7 +273,7 @@ compute_flux_all(int nstart,
 		 Real phi)
 {
   DataServices::SetBatchMode();
-  FileType fileType(NEWPLT);
+  Amrvis::FileType fileType(Amrvis::NEWPLT);
 
   int finestLevel;
   int nComp;
@@ -416,7 +416,7 @@ compute_flux_all(int nstart,
 		 MultiFab& phidata)
 {
   DataServices::SetBatchMode();
-  FileType fileType(NEWPLT);
+  Amrvis::FileType fileType(Amrvis::NEWPLT);
 
   int finestLevel;
   int nComp=2;

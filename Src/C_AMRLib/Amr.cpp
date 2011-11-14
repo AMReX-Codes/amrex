@@ -552,51 +552,56 @@ Amr::Amr ()
         }
     }
     //
-    // Read in max_grid_size..
+    // Read in max_grid_size.  Use defaults if not explicitly defined.
     //
-    if (pp.countval("max_grid_size") == 1)
+    int cnt = pp.countval("max_grid_size");
+
+    if (cnt == 1)
     {
         //
         // Set all values to the single available value.
         //
         int the_max_grid_size = 0;
 
-        pp.query("max_grid_size",the_max_grid_size);
+        pp.get("max_grid_size",the_max_grid_size);
 
         for (i = 0; i <= max_level; i++)
         {
             max_grid_size[i] = the_max_grid_size;
         }
-    } else
+    }
+    else if (cnt > 1)
     {
         //
         // Otherwise we expect a vector of max_grid_size values.
         //
-        pp.queryarr("max_grid_size",max_grid_size,0,max_level);
+        pp.getarr("max_grid_size",max_grid_size,0,max_level+1);
     }
     //
-    // Read in the blocking_factors.
+    // Read in the blocking_factors.  Use defaults if not explicitly defined.
     //
-    if (pp.countval("blocking_factor") == 1)
+    cnt = pp.countval("blocking_factor");
+
+    if (cnt == 1)
     {
         //
         // Set all values to the single available value.
         //
         int the_blocking_factor = 0;
 
-        pp.query("blocking_factor",the_blocking_factor);
+        pp.get("blocking_factor",the_blocking_factor);
 
         for (i = 0; i <= max_level; i++)
         {
             blocking_factor[i] = the_blocking_factor;
         }
     }
-    else
+    else if (cnt > 1)
     {
         //
         // Otherwise we expect a vector of blocking factors.
         //
-        pp.queryarr("blocking_factor",blocking_factor,0,max_level);
+        pp.getarr("blocking_factor",blocking_factor,0,max_level+1);
     }
     //
     // Read in the regrid interval if max_level > 0.
@@ -2191,7 +2196,7 @@ Amr::ProjPeriodic (BoxList&        blout,
 
                 BoxList tmp(blorig);
                 tmp.intersect(domain);
-                blout.join(tmp);
+                blout.catenate(tmp);
  
                 if (rk != 0 && geom.isPeriodic(2))
                     blorig.shift(2,-rk*domain.length(2));
@@ -2316,9 +2321,15 @@ Amr::grid_places (int              lbase,
     for (i = lbase+1; i <= max_crse; i++)
     {
         p_n_comp[i] = p_n_comp[i-1];
+
+        // Need to simplify p_n_comp or the number of grids can too large for many levels.
+        p_n_comp[i].simplify();
+
         p_n_comp[i].refine(rr_lev[i-1]);
         p_n_comp[i].accrete(n_proper);
+
         Amr::ProjPeriodic(p_n_comp[i], Geometry(pc_domain[i]));
+
         p_n[i].complementIn(pc_domain[i],p_n_comp[i]);
         p_n[i].simplify();
     }

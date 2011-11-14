@@ -67,12 +67,4 @@ UseCount::linkCount () const
     return *cnt;
 }
 
-inline
-UseCount::UseCount (const UseCount& rhs)
-    :
-    cnt(rhs.cnt)
-{
-    ++*cnt;
-}
-
 #endif /*BL_USECOUNT_H*/

@@ -43,8 +43,8 @@ mfnorm_2_valid (const MultiFab& mf)
 }
 
 static
-BoxList
-readBoxList(const std::string file, Box& domain)
+BoxArray
+readBoxList (const std::string file, Box& domain)
 {
     BoxList retval;
 
@@ -75,7 +75,7 @@ readBoxList(const std::string file, Box& domain)
         retval.push_back(tmpbox);
     }
 
-    return retval;
+    return BoxArray(retval);
 }
 
 static
@@ -86,7 +86,7 @@ writePlotFile (const std::string& dir,
 {
     BL_ASSERT(mf.nComp() == 2);
     //
-    // Only let 64 CPUs be writing at any one time.
+    // Only let at most 64 CPUs write at any one time.
     //
     VisMF::SetNOutFiles(64);
     //
@@ -198,24 +198,49 @@ main (int argc, char* argv[])
   //
   // Obtain prob domain and box-list, set H per phys domain [0:1]Xn
   //
-  Box container;
-  int ba_coarsen = 1        ; pp.query("ba_coarsen", ba_coarsen);
+  Box      dmn;
+  BoxArray bs;
 
+  int ba_coarsen = -1 ; pp.query("ba_coarsen", ba_coarsen);
+  int ncells     = -1 ; pp.query("n_cell", ncells);
+
+  if (ncells > 0)
+  {
+      if (ParallelDescriptor::IOProcessor())
+          std::cout << "Building grids bases on n_cell = " << ncells << std::endl;
+      
+      dmn = Box(IntVect(D_DECL(0,0,0)),IntVect(D_DECL(ncells-1,ncells-1,ncells-1)));
+
+      int maxgrid = -1 ; pp.query("max_grid_size", maxgrid);
+
+      if (maxgrid < 0)
+          BoxLib::Abort("max_grid_size must be positive");
+
+      bs = BoxArray(dmn);
+
+      bs.maxSize(maxgrid);
+  }
+  else
+  {
 #if (BL_SPACEDIM == 2)
-  std::string boxfile("grids/gr.2_small_a") ; pp.query("boxes", boxfile);
+      std::string boxfile("grids/gr.2_small_a") ; pp.query("boxes", boxfile);
 #elif (BL_SPACEDIM == 3)
-  std::string boxfile("grids/gr.3_small_a") ; pp.query("boxes", boxfile);
+      std::string boxfile("grids/gr.3_small_a") ; pp.query("boxes", boxfile);
 #endif
 
-  BoxArray bs(readBoxList(boxfile,container));
+      if (ParallelDescriptor::IOProcessor())
+          std::cout << "Reading in grids from file: " << boxfile << std::endl;
+
+     bs = readBoxList(boxfile,dmn);
+  }
 
   if ( ba_coarsen > 1 )
       bs.coarsen(ba_coarsen);
 
-  Geometry geom( container );
+  Geometry geom( dmn );
   Real dx[BL_SPACEDIM];
   for ( int n=0; n<BL_SPACEDIM; n++ )
-      dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/container.length(n);
+      dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/dmn.length(n);
   //
   // Allocate/initialize solution and right-hand-side, reset
   // rhs=1 at each box center.

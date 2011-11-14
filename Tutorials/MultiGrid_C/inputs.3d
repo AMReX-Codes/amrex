@@ -48,10 +48,11 @@ mg.v = 2
 # These are only relevant for the hypre solver
 hypre.solver_flag = 1      # 0: SMG,  1: PFMG (default)
 ## parameters below are for PFMG
+hypre.pfmg_rap_type   = 1  # default: 0 (Galerkin); else: 1 (non-Galerkin)
 hypre.pfmg_relax_type = 2  # default: 1 (Jacobi); else: 2 (red-black GSRB)
 hypre.num_pre_relax   = 2  # default: 1
 hypre.num_post_relax  = 2  # default: 1
-hypre.skip_relax      = 0  # default: 1
+hypre.skip_relax      = 1  # default: 1
 hypre.print_level     = 1  # default: 0
 
 # These are only relevant for the BoxLib_C solver -- 

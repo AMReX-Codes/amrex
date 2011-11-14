@@ -565,7 +565,7 @@ contains
 
              deallocate(bidst)
 
-             if ( synced ) call saxpy(dst,ONE,temp_dst)
+             if ( synced ) call plus_plus(dst,temp_dst)
           end do
        end do
     end do
