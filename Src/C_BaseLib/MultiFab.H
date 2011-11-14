@@ -440,17 +440,15 @@ public:
     static void Initialize ();
     static void Finalize ();
 
-protected:
-
-    static bool check_for_nan;
-    static bool check_for_inf;
-
 private:
     //
     // These are disabled.
     //
     MultiFab (const MultiFab& rhs);
     MultiFab& operator= (const MultiFab& rhs);
+
+    static bool check_for_nan;
+    static bool check_for_inf;
 };
 
 class MultiFabCopyDescriptor

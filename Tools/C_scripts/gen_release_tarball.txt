@@ -8,5 +8,5 @@ git tag -a v0.1.5 -m "Version 0.1.5"
 
 Generate a taball with 
 
-git archive --format=tar --prefix=ccse-0.1.5/ v0.1.5 | gzip >../ccse-0.1.5.tar.gz
+git archive --format=tar --prefix=ccse/ v0.1.6 | gzip >../ccse-0.1.6.tar.gz
 

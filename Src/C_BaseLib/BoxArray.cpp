@@ -599,10 +599,14 @@ BoxList
 BoxLib::GetBndryCells (const BoxArray& ba,
                        int             ngrow)
 {
+    BL_ASSERT(ba.ok());
+    BL_ASSERT(ba.size() > 0);
     //
     // First get list of all ghost cells.
     //
-    BoxList gcells, bcells = ba.boxList();
+    const IndexType btype = ba[0].ixType();
+
+    BoxList bcells = ba.boxList(), gcells(btype), leftover(btype);
 
     bcells.simplify();
 
@@ -612,14 +616,18 @@ BoxLib::GetBndryCells (const BoxArray& ba,
 
     for (int i = 0, N = tba.size(); i < N; ++i)
     {
-	gcells.join(BoxLib::boxDiff(BoxLib::grow(tba[i],ngrow),tba[i]));
+        bcells = BoxLib::boxDiff(BoxLib::grow(tba[i],ngrow),tba[i]);
+
+	gcells.catenate(bcells);
     }
     //
     // Now strip out intersections with original BoxArray.
     //
+    std::vector< std::pair<int,Box> > isects;
+
     for (BoxList::const_iterator it = gcells.begin(), End = gcells.end(); it != End; ++it)
     {
-        std::vector< std::pair<int,Box> > isects = tba.intersections(*it);
+        isects = tba.intersections(*it);
 
         if (isects.empty())
         {
@@ -630,10 +638,10 @@ BoxLib::GetBndryCells (const BoxArray& ba,
             //
             // Collect all the intersection pieces.
             //
-            BoxList pieces;
+            BoxList pieces(btype);
             for (int i = 0, N = isects.size(); i < N; i++)
                 pieces.push_back(isects[i].second);
-            BoxList leftover = BoxLib::complementIn(*it,pieces);
+            leftover = BoxLib::complementIn(*it,pieces);
             bcells.catenate(leftover);
         }
     }

@@ -28,6 +28,7 @@ public:
 	     int ncomp);
 
   static void initialize(bool nodal);
+  static void Finalize();
 
   void set_mac_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
                             Array< Array<Real> >& xa,

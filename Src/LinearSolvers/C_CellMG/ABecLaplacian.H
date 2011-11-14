@@ -169,6 +169,7 @@ protected:
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
                                  const MultiFab& rhsL,
                                  int             level);
+private:
     //
     //
     // Array (on level) of "a" coefficients
@@ -186,8 +187,6 @@ protected:
     // Scalar "beta" coefficient
     //
     Real beta;
-    
-private:
     //
     // Flag, can a coeffs be trusted at a level.
     //
@@ -231,64 +230,6 @@ Real
 ABecLaplacian::get_beta () const
 {
     return beta;
-}
-
-inline
-void
-ABecLaplacian::aCoefficients (const MultiFab& _a)
-{
-    BL_ASSERT(_a.ok());
-    BL_ASSERT(_a.boxArray() == (acoefs[0])->boxArray());
-    invalidate_a_to_level(0);
-    (*acoefs[0]).copy(_a,0,0,1);
-}
-
-inline
-void
-ABecLaplacian::bCoefficients (const MultiFab& _b,
-                              int             dir)
-{
-    BL_ASSERT(_b.ok());
-    BL_ASSERT(_b.boxArray() == (bcoefs[0][dir])->boxArray());
-    invalidate_b_to_level(0);
-    (*bcoefs[0][dir]).copy(_b,0,0,1);
-}
-
-inline
-const MultiFab&
-ABecLaplacian::aCoefficients (int level)
-{
-    prepareForLevel(level);
-    return *acoefs[level];
-}
-
-inline
-const MultiFab&
-ABecLaplacian::bCoefficients (int dir,int level)
-{
-    prepareForLevel(level);
-    return *bcoefs[level][dir];
-}
-
-inline
-void
-ABecLaplacian::setCoefficients (const MultiFab &_a,
-                                const MultiFab &_bX,
-                                const MultiFab &_bY)
-{
-    aCoefficients(_a);
-    bCoefficients(_bX, 0);
-    bCoefficients(_bY, 1);
-}
-
-inline
-void
-ABecLaplacian::setCoefficients (const MultiFab& _a,
-                                const MultiFab* _b)
-{
-    aCoefficients(_a);
-    for (int n = 0; n < BL_SPACEDIM; ++n)
-        bCoefficients(_b[n], n);
 }
 
 inline

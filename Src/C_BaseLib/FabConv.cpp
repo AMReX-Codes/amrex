@@ -10,12 +10,9 @@
 #include <FPC.H>
 #include <REAL.H>
 
-RealDescriptor::~RealDescriptor() {}
+bool RealDescriptor::bAlwaysFixDenormals (false);
 
-bool RealDescriptor::bAlwaysFixDenormals(false);
-
-IntDescriptor::IntDescriptor ()
-{}
+IntDescriptor::IntDescriptor () {}
 
 IntDescriptor::IntDescriptor (long     nb,
                               Ordering o)
@@ -56,19 +53,6 @@ RealDescriptor::RealDescriptor (const long* fr_,
     : fr(fr_, 8),
       ord(ord_, ordl_)
 {}
-
-RealDescriptor::RealDescriptor (const RealDescriptor& rhs)
-    : fr(rhs.fr),
-      ord(rhs.ord)
-{}
-
-RealDescriptor&
-RealDescriptor::operator= (const RealDescriptor& rhs)
-{
-    fr  = rhs.fr;
-    ord = rhs.ord;
-    return *this;
-}
 
 const long*
 RealDescriptor::format () const
@@ -123,14 +107,10 @@ RealDescriptor::SetFixDenormals()
     bAlwaysFixDenormals = true;
 }
 
-//
-// This is not inlined as it's an inherited virtual.
-//
 RealDescriptor*
 RealDescriptor::clone () const
 {
-    RealDescriptor* rd = new RealDescriptor(*this);
-    return rd;
+    return new RealDescriptor(*this);
 }
 
 //

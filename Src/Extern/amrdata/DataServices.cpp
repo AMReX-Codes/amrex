@@ -75,7 +75,7 @@ namespace ParallelDescriptor {
 
 
 // ---------------------------------------------------------------
-DataServices::DataServices(const string &filename, const FileType &filetype)
+DataServices::DataServices(const string &filename, const Amrvis::FileType &filetype)
              : fileName(filename), fileType(filetype), bAmrDataOk(false),
 	       iWriteToLevel(-1)
 {
@@ -101,7 +101,7 @@ DataServices::DataServices() {
 
 
 // ---------------------------------------------------------------
-void DataServices::Init(const string &filename, const FileType &filetype) {
+void DataServices::Init(const string &filename, const Amrvis::FileType &filetype) {
   fileName = filename;
   fileType = filetype;
   bAmrDataOk = false;
@@ -161,7 +161,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     // broadcast the fileName and fileType to nonioprocessors
     char *fileNameCharPtr;
     int   fileNameLength(-1), fileNameLengthPadded(-1);
-    FileType newFileType(INVALIDTYPE);
+    Amrvis::FileType newFileType(Amrvis::INVALIDTYPE);
 
     if(ParallelDescriptor::IOProcessor()) {
       fileNameLength = ds->fileName.length();
@@ -173,7 +173,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     {
       int tmp = newFileType;
       ParallelDescriptor::Bcast(&tmp, 1, 0);
-      newFileType = static_cast<FileType>(tmp);
+      newFileType = static_cast<Amrvis::FileType>(tmp);
     }
 
     fileNameLengthPadded = fileNameLength + 1;    // for the null
@@ -710,11 +710,11 @@ bool DataServices::DumpSlice(int slicedir, int slicenum,
   sliceFile += ".";
   sliceFile += varname;
   sliceFile += ".";
-  if(slicedir == XDIR) {
+  if(slicedir == Amrvis::XDIR) {
     sliceFile += "xslice";
-  } else if(slicedir == YDIR) {
+  } else if(slicedir == Amrvis::YDIR) {
     sliceFile += "yslice";
-  } else if(slicedir == ZDIR) {
+  } else if(slicedir == Amrvis::ZDIR) {
     sliceFile += "zslice";
   } else {
     cerr << "bad slicedir = " << slicedir << endl;
@@ -731,7 +731,7 @@ bool DataServices::DumpSlice(int slicedir, int slicenum,
 
   Box sliceBox(amrData.ProbDomain()[iWTL]);
 
-  if(BL_SPACEDIM == 2 && slicedir == ZDIR) {
+  if(BL_SPACEDIM == 2 && slicedir == Amrvis::ZDIR) {
     // use probDomain for the sliceBox
   } else {
     // make the box one cell thick in the slice direction
@@ -768,11 +768,11 @@ bool DataServices::DumpSlice(int slicedir, int slicenum) {  // dump all vars
 
   string sliceFile = fileName;
   sliceFile += ".";
-  if(slicedir == XDIR) {
+  if(slicedir == Amrvis::XDIR) {
     sliceFile += "xslice";
-  } else if(slicedir == YDIR) {
+  } else if(slicedir == Amrvis::YDIR) {
     sliceFile += "yslice";
-  } else if(slicedir == ZDIR) {
+  } else if(slicedir == Amrvis::ZDIR) {
     sliceFile += "zslice";
   } else {
     cerr << "bad slicedir = " << slicedir << endl;
@@ -789,7 +789,7 @@ bool DataServices::DumpSlice(int slicedir, int slicenum) {  // dump all vars
 
   Box sliceBox(amrData.ProbDomain()[iWTL]);
 
-  if(BL_SPACEDIM == 2 && slicedir == ZDIR) {
+  if(BL_SPACEDIM == 2 && slicedir == Amrvis::ZDIR) {
     // use probDomain for the sliceBox
   } else {
     // make the box one cell thick in the slice direction
@@ -832,12 +832,12 @@ bool DataServices::DumpSlice(const Box &b, const string &varname) {
   char slicechar[N];
 # if (BL_SPACEDIM == 2)
   int count = snprintf(slicechar, N, "%d_%d__%d_%d.Level_%d",
-                       b.smallEnd(XDIR), b.smallEnd(YDIR),
-                       b.bigEnd(XDIR),   b.bigEnd(YDIR), iWTL);
+                       b.smallEnd(Amrvis::XDIR), b.smallEnd(Amrvis::YDIR),
+                       b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR), iWTL);
 # else
   int count = snprintf(slicechar, N, "%d_%d_%d__%d_%d_%d.Level_%d",
-                       b.smallEnd(XDIR), b.smallEnd(YDIR), b.smallEnd(ZDIR),
-                       b.bigEnd(XDIR),   b.bigEnd(YDIR),   b.bigEnd(ZDIR), iWTL);
+                       b.smallEnd(Amrvis::XDIR), b.smallEnd(Amrvis::YDIR), b.smallEnd(Amrvis::ZDIR),
+                       b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR),   b.bigEnd(Amrvis::ZDIR), iWTL);
 #endif
   if (count >= N)
     BoxLib::Abort("DataServices::DumpSlice(3): slicechar buffer too small");      
@@ -878,12 +878,12 @@ bool DataServices::DumpSlice(const Box &b) {  // dump all vars
   char slicechar[N];
 # if (BL_SPACEDIM == 2)
   int count = snprintf(slicechar, N, "%d_%d__%d_%d.Level_%d",
-                       b.smallEnd(XDIR), b.smallEnd(YDIR),
-                       b.bigEnd(XDIR),   b.bigEnd(YDIR), iWTL);
+                       b.smallEnd(Amrvis::XDIR), b.smallEnd(Amrvis::YDIR),
+                       b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR), iWTL);
 # else
   int count = snprintf(slicechar, N, "%d_%d_%d__%d_%d_%d.Level_%d",
-                       b.smallEnd(XDIR), b.smallEnd(YDIR), b.smallEnd(ZDIR),
-                       b.bigEnd(XDIR),   b.bigEnd(YDIR),   b.bigEnd(ZDIR), iWTL);
+                       b.smallEnd(Amrvis::XDIR), b.smallEnd(Amrvis::YDIR), b.smallEnd(Amrvis::ZDIR),
+                       b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR),   b.bigEnd(Amrvis::ZDIR), iWTL);
 #endif
   if (count >= N)
     BoxLib::Abort("DataServices::DumpSlice(4): slicechar buffer too small");      

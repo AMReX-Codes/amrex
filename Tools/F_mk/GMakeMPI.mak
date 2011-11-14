@@ -225,7 +225,7 @@ ifeq ($(HOST), orga)
   MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
+  mpi_libraries += -lmpich -lmpl -lpthread
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
@@ -354,6 +354,12 @@ endif
 
 ifeq ($(findstring inf, $(UNAMEN)), inf)
   MPIHOME=/usr/local/mpich2/
+  F90 = mpif90
+  CXX = mpicxx
+endif
+
+ifeq ($(findstring sn, $(UNAMEN)), sn)
+  MPIHOME=/usr/lib64/mpich2
   F90 = mpif90
   CXX = mpicxx
 endif

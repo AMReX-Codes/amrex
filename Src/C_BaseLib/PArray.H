@@ -141,7 +141,7 @@ public:
     //
     T* remove (int i);
 
-protected:
+private:
     //
     // The underlying representation.
     //

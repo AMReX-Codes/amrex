@@ -134,7 +134,7 @@ class DistributionMapping
 
     static void Finalize ();
 
-protected:
+private:
     //
     // Ways to create the processor map.
     //
@@ -152,6 +152,8 @@ protected:
                 return lhs.first < rhs.first;
             }
     };
+
+    static void Sort (std::vector<LIpair>& vec, bool reverse);
 
     void RoundRobinDoIt (int                  nboxes,
                          int                  nprocs,

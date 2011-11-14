@@ -101,6 +101,9 @@ HypreABecLap::HypreABecLap(const BoxArray& grids, const Geometry& geom)
     bcoefs[i] = new MultiFab(edge_boxes, ncomp, ngrow);
   }
 
+  pfmg_rap_type = -1;
+  pp.query("pfmg_rap_type", pfmg_rap_type);
+
   pfmg_relax_type = -1;
   pp.query("pfmg_relax_type", pfmg_relax_type);
 
@@ -276,6 +279,9 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
     HYPRE_StructPFMGSetMaxIter(solver, maxiter);
     //    HYPRE_StructPFMGSetRelChange(solver, 0);    // default: 0
     HYPRE_StructPFMGSetTol(solver, reltol);           // default: 1.e-6
+    if (pfmg_rap_type >= 0) {
+      HYPRE_StructPFMGSetRelaxType(solver, pfmg_rap_type);  // default: 1
+    }
     if (pfmg_relax_type >= 0) {
       HYPRE_StructPFMGSetRelaxType(solver, pfmg_relax_type);  // default: 1
     }

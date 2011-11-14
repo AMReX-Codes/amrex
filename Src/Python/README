@@ -1,0 +1,5 @@
+PyBoxLib
+========
+
+PyBoxLib is a Python wrapper of the Fortran version of BoxLib, and is
+authored by Matthew Emmett <memmett@unc.edu>.

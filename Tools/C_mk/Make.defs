@@ -132,6 +132,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring nan, $(UNAMEN)), nan)
     WHICHLINUX := NAN
   endif
+  ifeq ($(findstring sn.astro, $(UNAMEN)), sn.astro)
+    WHICHLINUX := SN
+  endif
   ifeq ($(findstring atlas, $(UNAMEN)), atlas)
     WHICHLINUX := ATLAS
   endif

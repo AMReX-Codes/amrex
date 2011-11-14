@@ -10,21 +10,21 @@
 
 class FArrayBox;
 
-/*
-       A Class Facilitating I/O for Fabs
-
-       This data-less class aids I/O for FABs and encapsulates information
-       about the floating point format being used in output.
-       Note that the "new" format for writing out FABs is self-describing;
-       i.e. we can always read in a FAB written in the "new" format.  For this
-       reason, it is usually preferable to write FABs out in the native
-       format on the machine, unless you're doing computations in 64 bit and
-       only want to write out 32 bit FABs.
-
-       With the exception of the enumeration constants, this class is
-       primarily for FArrayBox implementors; i.e. user's shouldn't
-       call any of the member functions in this class directly.
-*/
+//
+// A Class Facilitating I/O for Fabs
+//
+// This data-less class aids I/O for FABs and encapsulates information
+// about the floating point format being used in output.
+// Note that the "new" format for writing out FABs is self-describing;
+//    i.e. we can always read in a FAB written in the "new" format.  For this
+// reason, it is usually preferable to write FABs out in the native
+//    format on the machine, unless you're doing computations in 64 bit and
+// only want to write out 32 bit FABs.
+//
+// With the exception of the enumeration constants, this class is
+// primarily for FArrayBox implementors; i.e. user's shouldn't
+// call any of the member functions in this class directly.
+//
 
 class FABio
 {
@@ -41,27 +41,28 @@ public:
         FAB_FLOAT = 0,
         FAB_DOUBLE
     };
-    /*         An enum which controls format of FAB output.
-
-               Valid values are FAB_ASCII, FAB_IEEE, FAB_NATIVE,
-               FAB_8BIT and FAB_IEEE_32;
-
-               FAB_ASCII: write the FAB out in ASCII format.
-
-               FAB_8BIT: write the FAB out with all floating-point
-               values scaled to range 0 - 255.
-
-               FAB_NATIVE: write out floating-point values in the native
-               format.  This is usually the "best" choice of formats.
-
-               FAB_IEEE_32: write out floating-point values in IEEE 32
-               bit normal format.  This is recommended for use when your
-               internal computations are done in 64 bits and you want to save
-               space when writing out the FABs.
-
-               FAB_IEEE: this is deprecated.  It is identical to
-               FAB_IEEE_32.
-    */
+    //
+    // An enum which controls format of FAB output.
+    //
+    // Valid values are FAB_ASCII, FAB_IEEE, FAB_NATIVE,
+    // FAB_8BIT and FAB_IEEE_32;
+    //
+    // FAB_ASCII: write the FAB out in ASCII format.
+    //
+    // FAB_8BIT: write the FAB out with all floating-point
+    // values scaled to range 0 - 255.
+    //
+    // FAB_NATIVE: write out floating-point values in the native
+    // format.  This is usually the "best" choice of formats.
+    //
+    // FAB_IEEE_32: write out floating-point values in IEEE 32
+    // bit normal format.  This is recommended for use when your
+    // internal computations are done in 64 bits and you want to save
+    // space when writing out the FABs.
+    //
+    // FAB_IEEE: this is deprecated.  It is identical to
+    // FAB_IEEE_32.
+    //
     enum Format
     {
         FAB_ASCII = 0,
@@ -372,7 +373,7 @@ public:
     static void Initialize ();
     static void Finalize ();
 
-protected:
+private:
     //
     // Format and ordering for all FAB output.
     // This stuff exists solely to support reading old FABs.

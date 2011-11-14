@@ -1,0 +1,9 @@
+The original MultiGrid runs I did from which I passed DUMPI trace files to
+Joe Kenny was done with an early version of ComparisonTest, not C_CellMG.
+ComparisonTest has been changed so much that I fixed up C_CellMG so that
+it more-or-less does an equivalent problem.  Not exactly the same, but
+close enough to illustrate what we do.
+
+If anyone wants to duplicate exactly the original DUMPI trace files:
+
+  git checkout 22b9473cd7a908cfac60d6c4ca6613169c16721d

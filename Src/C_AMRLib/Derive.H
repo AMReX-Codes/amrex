@@ -144,6 +144,8 @@ protected:
         int         nc;
         StateRange* next;
     };
+
+private:
     //
     // Name of derived quantity.
     //

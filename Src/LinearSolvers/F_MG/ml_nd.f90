@@ -190,7 +190,7 @@ contains
           end if
 
           ! Add: soln += uu
-          call saxpy(soln(n),ONE,uu(n))
+          call plus_plus(soln(n),uu(n))
 
           if (n > 1) then
              mglev_crse = mgt(n-1)%nlevels
@@ -263,19 +263,19 @@ contains
           mglev = mgt(n)%nlevels
 
           ! Interpolate uu from coarser level
-          if (iter == 1) call saxpy(uu(n-1),  ONE, full_soln(n-1))
+          if (iter == 1) call plus_plus(uu(n-1),  full_soln(n-1))
           call ml_nodal_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:))
-          if (iter == 1) call saxpy(uu(n-1), -ONE, full_soln(n-1))
+          if (iter == 1) call sub_sub(uu(n-1), full_soln(n-1))
 
           ! Subtract: uu -= full_soln
           !     Must do this in order to remove interpolated full_soln...
-          if (iter == 1) call saxpy(uu(n),-ONE,full_soln(n))
+          if (iter == 1) call sub_sub(uu(n),full_soln(n))
 
           ! Add: soln += uu
-          call saxpy(soln(n), ONE, uu(n), .true.)
+          call plus_plus(soln(n), uu(n), nghost(uu(n)))
 
           ! Add: uu_hold += uu 
-          if (n < nlevs) call saxpy(uu_hold(n), ONE, uu(n), .true.)
+          if (n < nlevs) call plus_plus(uu_hold(n), uu(n), nghost(uu(n)))
 
           ! Compute Res = Res - Lap(uu)
           call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
@@ -308,10 +308,10 @@ contains
           end if
 
           ! Add: soln += uu
-          call saxpy(soln(n), ONE, uu(n), .true.)
+          call plus_plus(soln(n), uu(n), nghost(uu(n)))
 
           ! Add: uu += uu_hold so that it will be interpolated too.
-          if (n < nlevs) call saxpy(  uu(n), ONE, uu_hold(n), .true.)
+          if (n < nlevs) call plus_plus(uu(n), uu_hold(n), nghost(uu(n)))
 
        end do
 
@@ -423,7 +423,7 @@ contains
 
     ! Add: full_soln += soln
     do n = 1,nlevs
-       call saxpy(full_soln(n),ONE,soln(n))
+       call plus_plus(full_soln(n),soln(n))
     end do
 
     end if
@@ -512,7 +512,7 @@ contains
       end do
 
 !     Add to res(n-1).
-      call saxpy(crse_res,ONE,temp_crse_res)
+      call plus_plus(crse_res,temp_crse_res)
 
       call periodic_add_copy(crse_res,temp_crse_res,synced=.true.)
 
