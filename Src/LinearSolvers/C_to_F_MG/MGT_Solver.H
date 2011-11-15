@@ -39,6 +39,9 @@ public:
                                 Array< Array<Real> >& xb,
                                 int is_constant);
 
+  void set_const_gravity_coeffs(Array< Array<Real> >& xa,
+                                Array< Array<Real> >& xb);
+
   // If index_order == 0, bb[dim][level]
   // else,                bb[level][dim] 
   // The second way is consistent with set_gravity_coefficients.
