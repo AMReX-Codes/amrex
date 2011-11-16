@@ -541,8 +541,6 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_amr->Geom(0);
-    const Real*     dx       = geom.CellSize();
-
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
@@ -554,97 +552,90 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
     }
 
     const Real len[BL_SPACEDIM] = { geom.ProbLength(0),geom.ProbLength(1),geom.ProbLength(2) };
-
-    Real disp[BL_SPACEDIM];
-
-    // Print the grids as a sanity check
-    for(MFIter mfi(mf); mfi.isValid(); ++mfi)
+    //
+    // Print the grids as a sanity check.
+    //
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         const int  *fab_lo = mfi.validbox().loVect();
         const int  *fab_hi = mfi.validbox().hiVect();
         if (mfi.validbox().isEmpty())
         {
-           std::cout << "...bad grid lo " << fab_lo[0] << " " << fab_lo[1] << " " << fab_lo[2] << std::endl;
-           std::cout << "...bad grid hi " << fab_hi[0] << " " << fab_hi[1] << " " << fab_hi[2] << std::endl;
+           std::cout << "...bad grid lo " << fab_lo[0] << " " << fab_lo[1] << " " << fab_lo[2] << '\n';
+           std::cout << "...bad grid hi " << fab_hi[0] << " " << fab_hi[1] << " " << fab_hi[2] << '\n';
            BoxLib::Error("Empty box in InitCosmo ");
         }
         if (!geom.Domain().contains(mfi.validbox()))
         {
-           std::cout << "...bad grid lo " << fab_lo[0] << " " << fab_lo[1] << " " << fab_lo[2] << std::endl;
-           std::cout << "...bad grid hi " << fab_hi[0] << " " << fab_hi[1] << " " << fab_hi[2] << std::endl;
+           std::cout << "...bad grid lo " << fab_lo[0] << " " << fab_lo[1] << " " << fab_lo[2] << '\n';
+           std::cout << "...bad grid hi " << fab_hi[0] << " " << fab_hi[1] << " " << fab_hi[2] << '\n';
            BoxLib::Error("Box in InitCosmo not contained in domain");
         }
     }
-
-
-    //we will need one ghost cell, so check wether we have one.
-    if(mf.nGrow() < 1){
-	    BoxLib::Abort("ParticleContainer<N>::InitCosmo: mf needs at least one correctly filled ghost zone!");
-    }
-
-    if( !(n_part[0] == n_part[1] && n_part[1] == n_part[2]) ){
-	    std::cout << std::endl;
-	    std::cout << std::endl;
-	    std::cout << "Your particle lattice will have different spacings in the spatial directions!" << std::endl;
-	    std::cout << "You might want to change the particle number or the algorithm... ;)" << std::endl;
-	    std::cout << std::endl;
-	    std::cout << std::endl;
-    }
-	    
-
     //
-    //Place the particles evenly spaced in the problem domain.
-    //Not perfectly fast - but easy
+    // We will need one ghost cell, so check wether we have one.
     //
-    for(MFIter mfi(mf); mfi.isValid(); ++mfi)
+    if (mf.nGrow() < 1)
+        BoxLib::Abort("ParticleContainer<N>::InitCosmo: mf needs at least one correctly filled ghost zone!");
+
+    if ( !(n_part[0] == n_part[1] && n_part[1] == n_part[2]) )
     {
-        FArrayBox&  myFab  = mf[mfi];
-        const int  *fab_lo = mfi.validbox().loVect();
-        const int  *fab_hi = mfi.validbox().hiVect();
+	    std::cout << '\n';
+	    std::cout << '\n';
+	    std::cout << "Your particle lattice will have different spacings in the spatial directions!" << '\n';
+	    std::cout << "You might want to change the particle number or the algorithm... ;)" << '\n';
+	    std::cout << '\n';
+	    std::cout << std::endl;
+    }
+    //
+    // Place the particles evenly spaced in the problem domain.
+    // Not perfectly fast - but easy
+    //
+    Real         pos[BL_SPACEDIM];
+    ParticleType p;
 
-        const Box& box     = mfi.validbox();
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        const Box&  box     = mfi.validbox();
+        RealBox     gridloc = RealBox(box, geom.CellSize(), geom.ProbLo());
+	const Real* xlo     = gridloc.lo();
+	const Real* xhi     = gridloc.hi();
 
-        RealBox gridloc    = RealBox(box,
-                                     geom.CellSize(),
-                                     geom.ProbLo());
-
-	const Real* xlo    = gridloc.lo();
-	const Real* xhi    = gridloc.hi();
-
-        for(int k = 0; k < n_part[2]; k++){
-	    for(int j = 0; j < n_part[1]; j++){
-	        for(int i = 0; i < n_part[0]; i++){
-
-		    Real pos[BL_SPACEDIM];
-		    bool isInValidBox = true;
+        for (int k = 0; k < n_part[2]; k++)
+        {
+	    for (int j = 0; j < n_part[1]; j++)
+            {
+	        for (int i = 0; i < n_part[0]; i++)
+                {
+		    bool    isInValidBox = true;
             	    IntVect indices(D_DECL(i, j, k));
 
-		    for(int n = 0; n < BL_SPACEDIM; n++){
+		    for (int n = 0; n < BL_SPACEDIM; n++)
+                    {
   		        pos[n] = geom.ProbLo(n)
 		               + (indices[n] + 0.5)*len[n]/n_part[n]
 			       + shift[n];
-
-			//make sure particle is not on a boundary...
+                        //
+			// Make sure particle is not on a boundary...
+                        //
 			pos[n] += 1e-14 * (geom.ProbHi(n) - geom.ProbLo(n));
 
 			isInValidBox = isInValidBox 
 				     && (pos[n] > xlo[n]) 
 				     && (pos[n] < xhi[n]);
-
 		    }
 
-		    if(isInValidBox){
-		        ParticleType p;
-
-		        for(int n = 0; n < BL_SPACEDIM; n++){
-  		            p.m_pos[n] = pos[n];
-		        }
-
-		        // Set the mass of the particle
+		    if (isInValidBox)
+                    {
+                        D_TERM(p.m_pos[0] = pos[0];,
+                               p.m_pos[1] = pos[1];,
+                               p.m_pos[2] = pos[2];);
+                        //
+		        // Set the mass of the particle.
+                        //
 	                p.m_data[0] = particleMass;
-
-	                p.m_id  = ParticleBase::NextID();
-	                p.m_cpu = MyProc;
+	                p.m_id      = ParticleBase::NextID();
+	                p.m_cpu     = MyProc;
 
 	                if (!ParticleBase::Where(p,m_amr))
                         {
@@ -665,37 +656,38 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
         }
     }
 
-    if(ParallelDescriptor::IOProcessor() && m_verbose){
-	    std::cout << "Done with equidistant placement" << std::endl;
+    if (ParallelDescriptor::IOProcessor() && m_verbose)
+    {
+        std::cout << "Done with equidistant placement" << std::endl;
     }
-
     //
     // Let Redistribute() sort out where the particles belong.
     //
     Redistribute(true);
 
-    if(ParallelDescriptor::IOProcessor() && m_verbose){
-       std::cout << "Redistribute done" << std::endl;
+    if (ParallelDescriptor::IOProcessor() && m_verbose)
+    {
+        std::cout << "Redistribute done" << std::endl;
     }
 
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
-
-    //FIXME: Will we ever need initial particles in grids deeper than 0?!
-    PMap&      pmap       = m_particles[0];
-
-    //make sure, that mf and m_amr.boxArray(0) are based on the same boxarray
+    //
+    // FIXME: Will we ever need initial particles in grids deeper than 0?!
+    //
+    PMap& pmap = m_particles[0];
+    //
+    // Make sure, that mf and m_amr.boxArray(0) are based on the same boxarray.
+    //
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
-        const int        grid = pmap_it->first;
-        PBox&            pbox = pmap_it->second;
-        const int        n    = pbox.size();
-        const FArrayBox& dfab = mf[grid];
+        const int        grid    = pmap_it->first;
+        PBox&            pbox    = pmap_it->second;
+        const int        n       = pbox.size();
+        const FArrayBox& dfab    = mf[grid];
+	const Box&       box     = mf.boxArray()[grid];
+        RealBox          gridloc = RealBox(box, geom.CellSize(), geom.ProbLo());
 
-	Box   box             = mf.boxArray()[grid];
-        RealBox gridloc       = RealBox(box,
-                                        geom.CellSize(),
-                                        geom.ProbLo());
 #ifdef BL_USE_OMP
 #pragma omp parallel for
 #endif
@@ -706,22 +698,23 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
             if (p.m_id <= 0) continue;
 
             BL_ASSERT(p.m_grid == grid);
-            Real disp[BL_SPACEDIM];
 
-	    //do CIC interpolation onto the particle positions
-	    //for CIC we need one ghost cell!
+            Real disp[BL_SPACEDIM];
+            //
+	    // Do CIC interpolation onto the particle positions.
+	    // For CIC we need one ghost cell!
+            //
             ParticleBase::GetGravity(dfab, m_amr, 0, p, disp);
 
             D_TERM(p.m_pos[0] += len[0]*disp[0];,
                    p.m_pos[1] += len[1]*disp[1];,
                    p.m_pos[2] += len[2]*disp[2];);
-
             //
-            // note: m_data[0] is mass, 1 is v_x, ...
+            // Note: m_data[0] is mass, 1 is v_x, ...
             //
-            D_TERM(p.m_data[1] += vel_fac[0]*disp[0];,
-                   p.m_data[2] += vel_fac[1]*disp[1];,
-                   p.m_data[3] += vel_fac[2]*disp[2];);
+            D_TERM(p.m_data[1] = vel_fac[0]*disp[0];,
+                   p.m_data[2] = vel_fac[1]*disp[1];,
+                   p.m_data[3] = vel_fac[2]*disp[2];);
 
             if (!ParticleBase::Where(p,m_amr))
             {
@@ -734,14 +727,14 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
             ParticleBase::Reset(p,m_amr,true);
         }
     }
-
     //
     // Let Redistribute() sort out where the particles now belong.
     //
     Redistribute(true);
 
-    if(ParallelDescriptor::IOProcessor() && m_verbose){
-	    std::cout << "Done with particle displacement" << std::endl;
+    if (ParallelDescriptor::IOProcessor() && m_verbose)
+    {
+        std::cout << "Done with particle displacement" << std::endl;
     }
 
     if (m_verbose > 1)
@@ -750,7 +743,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 
         ParallelDescriptor::ReduceRealMax(runtime, IOProc);
 
-        if (MyProc == IOProc)
+        if (ParallelDescriptor::IOProcessor())
         {
             std::cout << "InitCosmo() done time: " << runtime << std::endl;
         }
