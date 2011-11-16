@@ -10,7 +10,6 @@ BL_FORT_PROC_DECL(LST_COMP_NORM, lst_comp_norm)
    const BL_FORT_FAB_ARG(mask),
    const BL_FORT_FAB_ARG(volb),
    Real* norm2, Real* norm0,
-   Real* volume, 
-   int* nsoln, int* iCpp, int *iF90);
+   Real* volume, int* nsoln);
 
 #endif

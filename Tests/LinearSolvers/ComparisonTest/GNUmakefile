@@ -2,6 +2,10 @@
 #    then the line below will be ignored
 BOXLIB_HOME ?= ../..
 
+# HYPRE_DIR defines the directory in which you can find hypre -- if this is already defined 
+#    then the line below will be ignored
+HYPRE_DIR ?= $(HOME)/lib/hypre
+
 # If you try to build with USE_MPI = TRUE and the make system can not find your mpi files, it may be because
 #    MPI_HOME is not already defined on your machine.  In that case, you may need to set
 #    the following variables according to the path of MPI on your particular machine.  
@@ -21,6 +25,8 @@ DIM	= 3
 
 COMP =gcc
 FCOMP=gfortran
+
+USE_HYPRE = FALSE
 
 # Make BoxLib_C bottom CG solver use the old convergence criteria for comparison with BoxLib_F
 CPPFLAGS += -DCG_USE_OLD_CONVERGENCE_CRITERIA
@@ -63,6 +69,24 @@ vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
 include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
 vpathdir          += $(BOXLIB_HOME)/Src/F_BaseLib
+
+ifeq ($(USE_HYPRE), TRUE)
+  # USE_MPI must be TRUE if USE_HYPRE
+  USE_MPI=TRUE
+
+  # hypre driver
+  include HypreABecLap/Make.package
+  INCLUDE_LOCATIONS += HypreABecLap
+  vpathdir          += HypreABecLap
+
+  # hypre library
+  INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
+  vpathdir          += $(HYPRE_DIR)/include
+  LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
+  LIBRARIES += -lHYPRE
+
+  DEFINES += -DUSEHYPRE
+endif
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
