@@ -4,12 +4,12 @@ subroutine lst_comp_norm ( &
      exac, e_l1, e_h1, &
      mask, m_l1, m_h1, &
      volb, v_l1, v_h1, &
-     norm2, norm0, volume, nsoln, iCpp, iF90)
+     norm2, norm0, volume, nsoln)
 
   implicit none
 
   integer, intent(in) :: lo(1), hi(1)
-  integer, intent(in) :: nsoln, iCpp, iF90
+  integer, intent(in) :: nsoln
   integer, intent(in) :: s_l1, s_h1
   integer, intent(in) :: e_l1, e_h1
   integer, intent(in) :: m_l1, m_h1
@@ -20,24 +20,18 @@ subroutine lst_comp_norm ( &
   double precision, intent(in) :: mask(m_l1:m_h1)
   double precision, intent(in) :: volb(v_l1:v_h1)
 
-  integer :: i
+  integer :: i, isoln
   double precision :: error
 
   do i = lo(1), hi(1)
      if (mask(i) .gt. 0.d0) then
         volume = volume + volb(i)
         
-        if (iCpp .ge. 0) then
-           error = soln(i,iCpp)-exac(i)
-           norm2(iCpp) = norm2(iCpp) + error**2 * volb(i)
-           norm0(iCpp) = max(norm0(iCpp), abs(error))
-        end if
-        
-        if (iF90 .ge. 0) then
-           error = soln(i,iF90)-exac(i)
-           norm2(iF90) = norm2(iF90) + error**2 * volb(i)
-           norm0(iF90) = max(norm0(iF90), abs(error))
-        end if
+        do isoln = 0, nsoln-1
+           error = soln(i,isoln)-exac(i)
+           norm2(isoln) = norm2(isoln) + error**2 * volb(i)
+           norm0(isoln) = max(norm0(isoln), abs(error))
+        end do
      end if
   end do
 

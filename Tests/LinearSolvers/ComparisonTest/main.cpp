@@ -8,10 +8,14 @@
 
 #include <LO_BCTYPES.H>
 
+#ifdef USEHYPRE
+#include <HypreABecLap.H>
+#endif
+
 #include <COEF_F.H>
 #include <writePlotFile.H>
 
-enum solver_t {BoxLib_C, BoxLib_F, All};
+enum solver_t {BoxLib_C, BoxLib_F, Hypre, All};
 enum bc_t {Periodic = 0,
 	   Dirichlet = LO_DIRICHLET, 
 	   Neumann = LO_NEUMANN};
@@ -25,16 +29,25 @@ void setup_coef(PArray<MultiFab> &exac, PArray<MultiFab> &alph,
 		const std::vector<Geometry>& geom, 
 		const std::vector<BoxArray>& grids,
 		Real a, Real b, Real sigma, Real w);
-void solve_with_F90(PArray<MultiFab>& soln, int iF90, Real a, Real b, 
+void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b, 
 		    const PArray<MultiFab>& alph, 
 		    const PArray<MultiFab>& beta, 
 		    PArray<MultiFab>& rhs, 
 		    const std::vector<Geometry>& geom, 
 		    const std::vector<BoxArray>& grids,
 		    int ibnd);
+#ifdef USEHYPRE
+void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b, 
+		      const PArray<MultiFab>& alph, 
+		      const PArray<MultiFab>& beta, 
+		      PArray<MultiFab>& rhs, 
+		      const std::vector<Geometry>& geom, 
+		      const std::vector<BoxArray>& grids,
+		      int ibnd);
+#endif
 void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 
 		  const std::vector<Geometry>& geom, const std::vector<BoxArray>& grids,
-		  int nsoln, int iF90, int iCpp);
+		  int nsoln, int iCpp, int iF90, int iHyp);
 
 int main(int argc, char* argv[])
 {
@@ -50,6 +63,13 @@ int main(int argc, char* argv[])
     }
     else if (solver_type_s == "BoxLib_F") {
       solver_type = BoxLib_F;      
+    }
+    else if (solver_type_s == "Hypre") {
+#ifdef USEHYPRE
+      solver_type = Hypre;
+#else
+      BoxLib::Error("Set USE_HYPRE=TRUE in GNUmakefile");
+#endif
     }
     else if (solver_type_s == "All") {
       solver_type = All;
@@ -92,12 +112,13 @@ int main(int argc, char* argv[])
   build_grids(geom, grids);
 
   PArray<MultiFab> soln(nlevel, PArrayManage);
+  PArray<MultiFab> soln1(nlevel, PArrayNoManage);
   PArray<MultiFab> exac(nlevel, PArrayManage);
   PArray<MultiFab> alph(nlevel, PArrayManage);
   PArray<MultiFab> beta(nlevel, PArrayManage);
   PArray<MultiFab> rhs(nlevel, PArrayManage);
 
-  int nsoln=-1, iF90=-1, iCpp=-1;
+  int nsoln=-1, iF90=-1, iCpp=-1, iHyp=-1;
   switch (solver_type) 
     {
     case BoxLib_C:
@@ -108,15 +129,32 @@ int main(int argc, char* argv[])
       nsoln = 1;
       iF90 = 0;
       break;
+    case Hypre:
+      nsoln = 1;
+      iHyp = 0;
+      break;
     case All:
+#ifdef USEHYPRE
+      nsoln = 3;
+      iCpp = 0;
+      iF90 = 1;
+      iHyp = 2;
+#else
       nsoln = 2;
       iCpp = 0;
       iF90 = 1;
+#endif
       break;
     }
 
   for (int ilev=0; ilev < nlevel; ilev++) {
     soln.set(ilev, new MultiFab(grids[ilev], nsoln, 1));
+    if (nsoln == 1) {
+      soln1.set(ilev, &(soln.get(ilev)));
+    }
+    else {
+      soln1.set(ilev, new MultiFab(grids[ilev], 1, 1));
+    }
     exac.set(ilev, new MultiFab(grids[ilev], 1, 0));
     alph.set(ilev, new MultiFab(grids[ilev], 1, 0));
     beta.set(ilev, new MultiFab(grids[ilev], 1, 1)); // one ghost cell
@@ -131,28 +169,69 @@ int main(int argc, char* argv[])
 
   setup_coef(exac, alph, beta, rhs, geom, grids, a, b, sigma, w);
 
-  for (int ilev=0; ilev < nlevel; ilev++) {
-    soln[ilev].setVal(0.0);
-  }    
+  int ibnd = static_cast<int>(bc_type);
 
   if (solver_type == BoxLib_C || solver_type == All) {
-    //    solve_with_Cpp(soln, iCpp, a, b, alph, beta, rhs, geom, grids, nlevel, ibnd);
+    for (int ilev=0; ilev < nlevel; ilev++) {
+      soln1[ilev].setVal(0.0);
+    }    
+
+    //    solve_with_Cpp(soln1, a, b, alph, beta, rhs, geom, grids, nlevel, ibnd);
+
+    if (nsoln > 1) { // soln1 doesn't point to the same multifabs as soln
+      for (int ilev=0; ilev < nlevel; ilev++) {
+	MultiFab::Copy(soln[ilev], soln1[ilev], 0, iCpp, 1, 1);
+      }        
+    }
   }
-  else if (solver_type == BoxLib_F || solver_type == All) {
-    int ibnd = static_cast<int>(bc_type);
-    solve_with_F90(soln, iF90, a, b, alph, beta, rhs, geom, grids, ibnd);
+
+  if (solver_type == BoxLib_F || solver_type == All) {
+    for (int ilev=0; ilev < nlevel; ilev++) {
+      soln1[ilev].setVal(0.0);
+    }    
+
+    solve_with_F90(soln1, a, b, alph, beta, rhs, geom, grids, ibnd);
+
+    if (nsoln > 1) { // soln1 doesn't point to the same multifabs as soln
+      for (int ilev=0; ilev < nlevel; ilev++) {
+	MultiFab::Copy(soln[ilev], soln1[ilev], 0, iF90, 1, 1);
+      }        
+    }
+  }
+
+#ifdef USEHYPRE
+  if (solver_type == Hypre || solver_type == All) {
+    for (int ilev=0; ilev < nlevel; ilev++) {
+      soln1[ilev].setVal(0.0);
+    }    
+
+    solve_with_hypre(soln1, a, b, alph, beta, rhs, geom, grids, ibnd);
+
+    if (nsoln > 1) { // soln1 doesn't point to the same multifabs as soln
+      for (int ilev=0; ilev < nlevel; ilev++) {
+	MultiFab::Copy(soln[ilev], soln1[ilev], 0, iHyp, 1, 1);
+      }        
+    }
+  }
+#endif
+
+  if (nsoln > 1) { // soln1 doesn't point to the same multifabs as soln,
+                   // and soln1 is defined with PArrayNoManage
+    for (int ilev=0; ilev < nlevel; ilev++) {
+      delete &(soln1[ilev]);
+    }
   }
 
   int write_plot = 0;
   pp.query("write_plot", write_plot);
   if (write_plot) {
-    writePlotFile("plot", soln, exac, alph, beta, rhs, geom, grids, nsoln, iF90, iCpp);
+    writePlotFile("plot", soln, exac, alph, beta, rhs, geom, grids, nsoln, iCpp, iF90, iHyp);
   }
 
   int comp_norm = 1;
   pp.query("comp_norm", comp_norm);
   if (comp_norm) {
-    compute_norm(soln, exac, geom, grids, nsoln, iF90, iCpp);
+    compute_norm(soln, exac, geom, grids, nsoln, iCpp, iF90, iHyp);
   }
 
   BoxLib::Finalize();

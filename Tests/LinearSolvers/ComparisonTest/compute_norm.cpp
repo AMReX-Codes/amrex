@@ -9,7 +9,7 @@
 
 void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac, 
 		  const std::vector<Geometry>& geom, const std::vector<BoxArray>& grids,
-		  int nsoln, int iF90, int iCpp)
+		  int nsoln, int iCpp, int iF90, int iHyp)
 {
   Array<Real> twonorm(nsoln, 0.0);
   Array<Real> maxnorm(nsoln, 0.0);
@@ -53,8 +53,7 @@ void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac,
 	 BL_TO_FORTRAN(volbox),
 	 twonorm.dataPtr(),
 	 maxnorm.dataPtr(),
-	 &volume, 
-	 &nsoln, &iCpp, &iF90);
+	 &volume, &nsoln);
     }
   }
 
@@ -70,13 +69,19 @@ void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac,
   if (ParallelDescriptor::IOProcessor()) {
     if (iCpp >= 0) {
       std::cout << "----------------------------------------" << std::endl;
-      std::cout << "BoxLib_C: max-norm error = "<< maxnorm[iCpp] << std::endl;
-      std::cout << "BoxLib_C:   2-norm error = "<< twonorm[iCpp] << std::endl;
+      std::cout << "BoxLib_C: not implemented yet. " << std::endl;
+      //      std::cout << "BoxLib_C: max-norm error = "<< maxnorm[iCpp] << std::endl;
+      //      std::cout << "BoxLib_C:   2-norm error = "<< twonorm[iCpp] << std::endl;
     }
     if (iF90 >= 0) {
       std::cout << "----------------------------------------" << std::endl;
       std::cout << "BoxLib_F: max-norm error = "<< maxnorm[iF90] << std::endl;
       std::cout << "BoxLib_F:   2-norm error = "<< twonorm[iF90] << std::endl;
+    }
+    if (iHyp >= 0) {
+      std::cout << "----------------------------------------" << std::endl;
+      std::cout << "Hypre: max-norm error = "<< maxnorm[iHyp] << std::endl;
+      std::cout << "Hypre:   2-norm error = "<< twonorm[iHyp] << std::endl;
     }
     std::cout << "----------------------------------------" << std::endl;
   }
