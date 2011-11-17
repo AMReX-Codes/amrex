@@ -1,6 +1,6 @@
 EPStoPDF = epstopdf
 
-ALL: paper.ps paper.pdf 
+ALL: UsersGuide.ps UsersGuide.pdf 
 
 eps_source = $(wildcard BoxLib/*.eps) 
 
@@ -8,15 +8,15 @@ pdf_source = $(eps_source:.eps=.pdf)
 
 section_sources = BoxLib/boxlib.tex 
 
-paper.dvi: paper.tex $(eps_source) $(section_sources) $(eps_source) 
-	latex paper.tex < /dev/null
-	latex paper.tex < /dev/null
+UsersGuide.dvi: UsersGuide.tex $(eps_source) $(section_sources) $(eps_source) 
+	latex UsersGuide.tex < /dev/null
+	latex UsersGuide.tex < /dev/null
 
-paper.pdf: paper.tex $(pdf_source) $(section_sources) $(pdf_source)
-	pdflatex paper.tex < /dev/null
-	pdflatex paper.tex < /dev/null
+UsersGuide.pdf: UsersGuide.tex $(pdf_source) $(section_sources) $(pdf_source)
+	pdflatex UsersGuide.tex < /dev/null
+	pdflatex UsersGuide.tex < /dev/null
 
-pdf: paper.pdf 
+pdf: UsersGuide.pdf 
 
 %.ps: %.dvi
 	dvips -t letter -o $@ $<
@@ -25,9 +25,9 @@ pdf: paper.pdf
 	$(EPStoPDF) $<
 
 clean:
-	$(RM) $(pdf_source) paper.dvi 
-	$(RM) paper.blg paper.log
-	$(RM) paper.aux paper.ps paper.bbl
-	$(RM) *~
+	$(RM) $(pdf_source) UsersGuide.dvi
+	$(RM) UsersGuide.blg UsersGuide.log UsersGuide.lof
+	$(RM) UsersGuide.aux UsersGuide.ps UsersGuide.bbl
+	$(RM) UsersGuide.toc UsersGuide.pdf *~
 
 .PHONY: clean
