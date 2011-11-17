@@ -1751,6 +1751,8 @@ void HypreABecLap::doIt()
     }
   }
 
+  const Real run_strt = ParallelDescriptor::second();
+
   if (solver_flag == 104) {
     HYPRE_ParCSRMatrix par_A;
     HYPRE_ParVector par_b;
@@ -1767,6 +1769,13 @@ void HypreABecLap::doIt()
   }
 
   HYPRE_SStructVectorGather(x);
+
+  Real run_time = ParallelDescriptor::second() - run_strt;
+
+  ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
+  if (ParallelDescriptor::IOProcessor()) {
+    std::cout << "Real Hypre Solve Time      : " << run_time << std::endl;
+  }
 }
 
 
