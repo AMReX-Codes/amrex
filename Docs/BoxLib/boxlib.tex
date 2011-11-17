@@ -1,17 +1,13 @@
-\section{{\tt BoxLib} Directory Structure}
+\section{\BoxLib\ Directory Structure}
 
-{\tt BoxLib} is the base directory in a hierarchy of subdirectories that
-support AMR applications.  {\tt BoxLib} is available in C++ and fortran.
+\BoxLib\ is the base directory in a hierarchy of subdirectories that
+support AMR applications.  \BoxLib\ is available in C++ and fortran.
 
 \begin{itemize}
-\item {\tt BoxLib/} 
-
- BoxLib is a library for describing meshes consisting of a union
- of boxes.
 
 \item {\tt docs/}
 
- Documentation describing BoxLib.
+ Documentation describing \BoxLib.
 
 \item {\tt mglib/}
 
@@ -25,14 +21,22 @@ support AMR applications.  {\tt BoxLib} is available in C++ and fortran.
 \item {\tt scripts/}
 
   Some simple scripts that are useful for building, running,
-  maintaining codes in BoxLib.
+  maintaining codes in \BoxLib.
 
 \end{itemize}
 
-\section{BoxLib Data Structures}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[h]
+\centering
+\includegraphics[width=6.5in]{./BoxLib/boxlib_directory_bw2}
+\caption{\label{fig:boxlib_directory}\BoxLib\ directory structure.}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-BoxLib contains the most fundamental objects used by applications written
-in the Parallel directory. The objects in BoxLib support structured
+\section{\BoxLib\ Data Structures}
+
+\BoxLib\ contains the most fundamental objects used by applications written
+in the Parallel directory. The objects in \BoxLib\ support structured
 grid adaptive mesh refinement (AMR), i.e. in a single calculation
 different regions of the domain can have different spatial resolutions.  
 At each level of refinement, the region covered by that level is broken
@@ -55,7 +59,7 @@ a fashion designed to put roughly equal amounts of work on each
 processor (load balancing).
 
 On a grid, the data can be stored at cell-centers, on a face/edge, or
-on the corners.  In BoxLib, data that is on an edge is termed `nodal'
+on the corners.  In \BoxLib\, data that is on an edge is termed `nodal'
 in that direction (see Figure~\ref{fig:dataloc}).  Data that is on the
 corners is nodal in all spatial directions.  In our Parallel applications, 
 the state data (velocity, density, species $\ldots$) is generally
@@ -63,6 +67,7 @@ cell-centered.  Fluxes are nodal in the direction they represent.
 A few quantities are nodal in all directions (e.g.\ the pressure in
 the low Mach number projection methods).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[h]
 \centering
 \includegraphics[width=6.5in]{./BoxLib/data_loc2}
@@ -73,8 +78,9 @@ integer index corresponds to the lower boundary in that direction.
 In each of these centerings, the red point has the same indices:\ (1,2).
 Not shown is the case where data is nodal in the $y$-direction only.}
 \end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-To simplify the description of the underlying AMR grid, BoxLib
+To simplify the description of the underlying AMR grid, \BoxLib\
 provides a number of classes.  We briefly summarize some of the major
 classes below.
 
@@ -98,13 +104,15 @@ do not hold any data themselves. A box basically contains
 only the indices of its low end and high end as well as a type 
 (cell-centered, edge-centered, or nodal).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[h]
 \centering
 \includegraphics[width=4.0in]{./BoxLib/index_grid2}
 \caption{\label{fig:boxes} Three boxes that comprise a single level.
 At this resolution, the domain is 20$\times$18 zones.  Note that the
-indexing in BoxLib starts with $0$.}
+indexing in \BoxLib\ starts with $0$.}
 \end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 The computational domain is divided into boxes.  The collection of
 boxes with the same resolution comprise a level.
