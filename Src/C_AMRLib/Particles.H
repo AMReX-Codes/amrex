@@ -295,124 +295,126 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
     const Real strttime = ParallelDescriptor::second();
-
     const int  NReaders = std::min(NProcs,64);
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
     m_particles.resize(m_amr->finestLevel()+1);
 
-    std::ifstream ifs;
-
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
- 
-    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-    ifs.open(file.c_str(), std::ios::in);
-
-    if (!ifs.good())
-        BoxLib::FileOpenFailed(file);
-
-    int cnt = 0, howmany = 0;
-
-    ifs >> cnt;
-
-    ParticleType p;
-
-    const int Chunk = cnt / NReaders;
+    int howmany = 0;
 
     if (MyProc < NReaders)
     {
-
-    //
-    // Skip to my section of particles.
-    //
-    std::string line;
-
-    ifs >> std::ws;  // Eat newline after "cnt" so we skip proper # of particles.
-
-    for (int i = 0; i < MyProc*Chunk; i++)
-        std::getline(ifs,line);
-
-    if (!ifs.good())
-    {
-        std::string msg("ParticleContainer::InitFromAsciiFile(");
-        msg += file;
-        msg += ") failed @ 1";
-        BoxLib::Error(msg.c_str());
-    }
-
-    int MyCnt = Chunk;
-
-    if (MyProc == (NReaders - 1))
         //
-        // We'll take the remainder.
+        // Only the first NReaders MPI processes read particles.
         //
-        MyCnt += cnt % NReaders;
+        std::ifstream ifs;
 
-    const Geometry& geom = m_amr->Geom(0);
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+ 
+        ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    for (int i = 0; i < MyCnt; i++)
-    {
+        ifs.open(file.c_str(), std::ios::in);
+
+        if (!ifs.good())
+            BoxLib::FileOpenFailed(file);
+
+        int cnt = 0;
+
+        ifs >> cnt;
+
+        ParticleType p;
+
+        const int Chunk = cnt / NReaders;
         //
-        // We don't read in m_id or m_cpu.  We'll set those later
-        // in a manner to guarantee the global uniqueness of the pair.
+        // Skip to my section of particles.
         //
-        for (int d = 0; d < BL_SPACEDIM; d++)
+        std::string line;
+
+        ifs >> std::ws;  // Eat newline after "cnt" so we skip proper # of particles.
+
+        for (int i = 0; i < MyProc*Chunk; i++)
         {
-            ifs >> p.m_pos[d];
-        }
-        //
-        // If particle is right on a domain boundary then move it just inside the boundary.
-        //
-        for (int d = 0; d < BL_SPACEDIM; d++)
-        {
-            const Real domain_size = geom.ProbHi(d) - geom.ProbLo(d);
-
-            if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-12 * domain_size;
-            if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-12 * domain_size;
-        }
-
-        for (int n = 0; n < extradata; n++)
-        {
-            ifs >> p.m_data[n];
+            std::getline(ifs,line);
         }
 
         if (!ifs.good())
         {
             std::string msg("ParticleContainer::InitFromAsciiFile(");
             msg += file;
-            msg += ") failed @ 2";
+            msg += ") failed @ 1";
             BoxLib::Error(msg.c_str());
         }
 
-        if (!ParticleBase::Where(p,m_amr))
+        int MyCnt = Chunk;
+
+        if (MyProc == (NReaders - 1))
+            //
+            // We'll take the remainder.
+            //
+            MyCnt += cnt % NReaders;
+
+        const Geometry& geom = m_amr->Geom(0);
+
+        for (int i = 0; i < MyCnt; i++)
         {
-            ParticleBase::PeriodicShift(p,m_amr);
+            //
+            // We don't read in m_id or m_cpu.  We'll set those later
+            // in a manner to guarantee the global uniqueness of the pair.
+            //
+            for (int d = 0; d < BL_SPACEDIM; d++)
+            {
+                ifs >> p.m_pos[d];
+            }
+            //
+            // If particle is right on a domain boundary then move it just inside the boundary.
+            //
+            for (int d = 0; d < BL_SPACEDIM; d++)
+            {
+                const Real domain_size = geom.ProbHi(d) - geom.ProbLo(d);
+
+                if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-12 * domain_size;
+                if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-12 * domain_size;
+            }
+
+            for (int n = 0; n < extradata; n++)
+            {
+                ifs >> p.m_data[n];
+            }
+
+            if (!ifs.good())
+            {
+                std::string msg("ParticleContainer::InitFromAsciiFile(");
+                msg += file;
+                msg += ") failed @ 2";
+                BoxLib::Error(msg.c_str());
+            }
 
             if (!ParticleBase::Where(p,m_amr))
             {
-                std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
+                ParticleBase::PeriodicShift(p,m_amr);
 
-                for (int d = 0; d < BL_SPACEDIM; d++)
+                if (!ParticleBase::Where(p,m_amr))
                 {
-                    std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                    std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
+
+                    for (int d = 0; d < BL_SPACEDIM; d++)
+                    {
+                        std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                    }
+
+                    BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
                 }
-
-                BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
             }
+
+            p.m_id  = ParticleBase::NextID();
+            p.m_cpu = MyProc;
+
+            m_particles[p.m_lev][p.m_grid].push_back(p);
+
+            howmany++;
         }
-
-        p.m_id  = ParticleBase::NextID();
-        p.m_cpu = MyProc;
-
-        m_particles[p.m_lev][p.m_grid].push_back(p);
-
-        howmany++;
     }
-
-    } // end of test on MyProc < NReaders
-
     //
     // Let Redistribute() sort'm out.
     //
