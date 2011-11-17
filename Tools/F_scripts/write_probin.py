@@ -347,6 +347,8 @@ if __name__ == "__main__":
     probinTemplate = ""
     outFile = ""
     namelistName = ""
+    paramAFilesStr = ""
+    paramBFilesStr = ""
 
     for o, a in opts:
 
