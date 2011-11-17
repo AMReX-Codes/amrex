@@ -9,8 +9,8 @@ at {\tt https://ccse.lbl.gov/}.  Key features of \BoxLib\ include:
 
 \begin{itemize}
 \item Support for block-structured AMR with optional subcycling in time
-\item Support for cell-centered, face-centered and node-centered data
-\item Support for hyperbolic, parabolic and elliptic solves on hierarchical grid structure
+\item Support for cell-centered, face-centered, and nodal data
+\item Support for hyperbolic, parabolic, and elliptic solves on hierarchical grid structure
 \item C++ and Fortran90 versions
 \item Supports hybrid programming model with MPI and OpenMP
 \item Basis of mature applications in combustion, astrophysics, cosmology, and porous media
@@ -32,10 +32,11 @@ independently.  The software supports two data distribution schemes, as well as 
 dynamic switching scheme that decides which approach to use based on the number of 
 grids at a level and the number of processors.  The first scheme is based on a 
 heuristic knapsack algorithm; the second is based on the use of a Morton-ordering 
-space-filling curve.  \MultiFab\ operations are performed with an owner computes rule 
+space-filling curve.  \MultiFab\ operations are performed with an ``owner computes'' rule 
 with each processor operating independently on its local data.  For operations that 
 require data owned by other processors, the \MultiFab\ operations are preceded by a 
-data exchange between processors.  Each processor contains meta-data that is needed 
+data exchange between processors to fill ghost cells.  Each processor contains 
+meta-data that is needed 
 to fully specify the geometry and processor assignments of the \MultiFab~s. At a 
 minimum, this requires the storage of an array of boxes specifying the index space 
 region for each AMR level of refinement.  The meta-data can thus be used to 
@@ -60,12 +61,12 @@ cores using OpenMP.
 Data for checkpoints and analysis are written in a self-describing format that consists 
 of a directory for each time step written. Checkpoint directories contain all necessary 
 data to restart the calculation from that time step. Plotfile directories contain data 
-for postprocessing, visualization, and analytics, which can be read using AmrVis, a 
-customized visualization package developed at LBNL for visualizing data on AMR grids, or 
-VisIt. Within each checkpoint or plotfile directory is an ASCII header file and 
+for postprocessing, visualization, and analytics, which can be read using {\tt VisIt} or
+{\tt AmrVis}, a customized visualization package developed at CCSE for visualizing 
+data on AMR grids.  Within each checkpoint or plotfile directory is an ASCII header file and 
 subdirectories for each AMR level. The header describes the AMR hierarchy, including 
 number of levels, the grid boxes at each level, the problem size, refinement ratio 
-between levels, step time, etc. Within each level directory are the MultiFab files for 
+between levels, step time, etc. Within each level directory are the \MultiFab\ files for 
 each AMR level. Checkpoint and plotfile directories are written at user-specified intervals. 
 
 Restarting a calculation can present some difficult issues for reading data efficiently. 
@@ -186,98 +187,94 @@ Contains the \BoxLib\ User's Guide.
 
 \section{\BoxLib\ Data Structures}
 
-\BoxLib\ contains the most fundamental objects used to construct block-structured
-AMR applications.  The objects in \BoxLib\ support structured
-grid adaptive mesh refinement (AMR), i.e. in a single calculation
-different regions of the domain can have different spatial resolutions.  
+\BoxLib\ contains the most fundamental objects used to construct parallel
+block-structured AMR applications, where different regions of the domain 
+can have different spatial resolutions. 
 At each level of refinement, the region covered by that level is broken
 into boxes, or grids.  The entire computational domain is covered by
-the coarsest (base) level of refinement, often called level 0. 
-Higher levels of refinement have finer zones by a ``refinement ratio''
-of either 2 or 4.  Only a portion of the domain may
-be covered by the higher levels of refinement.  
-
-The grids are properly nested, in the sense that the union of grids
-at level $\ell+1$ is contained in the union of grids at level $\ell$.
-Furthermore, the containment is strict in the sense that,
-except at physical boundaries,
-the level $\ell$ grids are large enough to guarantee that there is
+the coarsest (base) level of refinement, often called level $\ell=0$. 
+Higher levels of refinement have cells that are finer by a ``refinement ratio''
+of either 2 or 4.  The grids are properly nested in the sense that the union 
+of grids at level $\ell+1$ is contained in the union of grids at level $\ell$.
+Furthermore, the containment is strict in the sense that, except at physical 
+boundaries, the level $\ell$ grids are large enough to guarantee that there is
 a border at least $n_{\rm proper}$ level $\ell$ cells wide surrounding each level
 $\ell +1$ grid (grids at all levels are allowed to extend to the physical
 boundaries so the proper nesting is not strict there).
-For parallel computations, the boxes are distributed to processors, in
+For parallel computations, the boxes are distributed to processors in
 a fashion designed to put roughly equal amounts of work on each
 processor (load balancing).
 
-On a grid, the data can be stored at cell-centers, on a face/edge, or
-on the corners.  In \BoxLib\, data that is on an edge is termed `nodal'
+On a grid, the data can be stored at cell-centers, on a faces, or
+on the corners.  In \BoxLib, data that is on an face is termed `nodal'
 in that direction (see Figure~\ref{fig:dataloc}).  Data that is on the
-corners is nodal in all spatial directions.  In our Parallel applications, 
-the state data (velocity, density, species $\ldots$) is generally
+corners is nodal in all spatial directions.  In our \BoxLib\ applications, 
+the state data (velocity, density, species, $\ldots$) is generally
 cell-centered.  Fluxes are nodal in the direction they represent.
 A few quantities are nodal in all directions (e.g.\ the pressure in
-the low Mach number projection methods).
-
+the low Mach number projection methods).  
+Note that when a C++ \BoxLib\ application is compiled and linked,
+the number of spatial dimensions (1, 2, or 3), {\tt DIM},
+of the code must be specified.  The code that will be
+built is specifically designed to run only with that number of dimensions.
+(This is unlike the fortran \BoxLib\ data structures in which we build
+dimension-independent code at compile-time.)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[h]
 \centering
 \includegraphics[width=6.5in]{./BoxLib/data_loc2}
 \caption{\label{fig:dataloc} Some of the different data-centerings:
-(a) cell-centered, (b) nodal in the $x$-direction, and (c) nodal in
+(a) cell-centered, (b) nodal in the $x$-direction only, and (c) nodal in
 both the $x$- and $y$-directions.  Note that for nodal data, the
 integer index corresponds to the lower boundary in that direction.
 In each of these centerings, the red point has the same indices:\ (1,2).
-Not shown is the case where data is nodal in the $y$-direction only.}
+Not shown is the case where data is nodal in the $y$-direction only.  
+Note that \BoxLib\ uses $0$-based indexing.}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 To simplify the description of the underlying AMR grid, \BoxLib\
-provides a number of classes.  We briefly summarize some of the major
-classes below.
-
-First, note that when a Parallel application is compiled and linked,
-the number of spatial dimensions (1,2 or 3), {\bf DIM},
- of the code must be specified.  The code that will be
-built is specifically designed to run only with that number of dimensions.
-(This is unlike the fParallel data structures in which we build
-dimension-independent code at compile-time.)
+provides a number of classes.  We now briefly summarize some of the major
+classes.
 
 \subsection{\IntVect}
 
-\IntVect~s are n-tuples of integers that are used to define
+\IntVect~s are {\tt DIM}-tuples of integers that are used to define
 indices in space.  An example of an \IntVect\ in 2D would
 be (3,5).
 
 \subsection{\BoxType}
 
-A \BoxType\ is simply a rectangular domain in space.  Note that \BoxType~s
-do not hold any data themselves. A box basically contains
-only the indices of its low end and high end as well as a type 
-(cell-centered, edge-centered, or nodal).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{figure}[h]
-\centering
-\includegraphics[width=4.0in]{./BoxLib/index_grid2}
-\caption{\label{fig:boxes} Three boxes that comprise a single level.
-At this resolution, the domain is 20$\times$18 zones.  Note that the
-indexing in \BoxLib\ starts with $0$.}
-\end{figure}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+A \BoxType\ is simply a rectangular domain in space.  Note that \BoxType~es
+do not hold any data themselves. A \BoxType\ contains
+the indices of its low end and high end, {\tt lo} and {\tt hi}.
+In C++ \BoxLib\, a \BoxType\ also
+contains an {\tt IndexType} (cell-centered, face-centered, or nodal) for each
+dimension.  In fortran \BoxLib\, a \BoxType\ also contains the dimensionality
+of the \BoxType.
 
 The computational domain is divided into boxes.  The collection of
 boxes with the same resolution comprise a level.
 Figure~\ref{fig:boxes} shows three boxes at the same level of
 refinement.  The position of the boxes is with respect to a global
 index space at that level.  For example, box 1 in the figure has 
-{\tt lo} = (3,7) and {\tt hi} = (9,12).  
+{\tt lo} = (3,7) and {\tt hi} = (9,12).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[h]
+\centering
+\includegraphics[width=4.0in]{./BoxLib/index_grid2}
+\caption{\label{fig:boxes} Three boxes that comprise a single level.
+At this resolution, the domain is 20$\times$18 cells.}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-For a \BoxType\ {\bf bx},
-you can access the indices {\bf bx} using the 
-
+In C++ \BoxLib\, for a \BoxType\ {\tt bx},
+you can access the indices using
 \begin{itemize}
-\item {\tt smallEnd}  -- for box 1 above this would return the \IntVect\ (3,7)
-\item {\tt bigEnd} -- for box 1 above this would return the \IntVect\ (9,12)
+\item {{\tt IntVect se = bx.smallEnd();} // for box 1 above this would return
+      the \IntVect\ (3,7)}
+\item {{\tt IntVect be = bx.bigEnd();} // for box 1 above this would return 
+      the \IntVect\ (9,12)}
 \end{itemize}
 
 \subsection{\BoxArray}
@@ -287,41 +284,28 @@ number of boxes in the \BoxArray.
 
 \subsection{\FArrayBox}
 
-A \FArrayBox\ (or \Fab) is a ``Fortran Array Box'' that holds data.  It contains the
+A \FArrayBox\ (or \Fab) is a ``fortran array box'' that holds data.  It contains the
 \BoxType\ that it is built on as well as a pointer to the data 
-that can be sent to a Fortran routine.
- 
-To build a \Fab\ you must specify the \BoxType\ and the number of components.
-For example, the section of code below builds a \Fab\ called {\tt myfab}
-that has two components of data defined on the box from (0,0) to (31,15).
-
-\begin{verbatim}
-IntVect iv_lo(0,0);
-IntVect iv_hi(31,15);
-Box bx(iv_lo,iv_hi);
-FArrayBox myfab;
-myfab.define(bx,2);
-\end{verbatim}
-
-In Parallel, we don't usually deal with \Fab~s alone, but rather
+that can be sent to a Fortran routine.  In \BoxLib\, we don't usually deal with 
+\Fab~s alone, but rather
 through \MultiFab~s, described next.
 
 \subsection{\MultiFab}
 
 A \MultiFab\ is a collection of \Fab~s at the same level of
 refinement.  A \MultiFab\ is defined using a \BoxArray,
-number of components, and number of ``ghost'' calls that each box
-will have.  Note that a \Fab\ has no concept of ghost cells, it
-merely has a single box that identifies it.  A \MultiFab\ has
-a "valid" region that is defined by the \BoxArray.  In addition,
-each \Fab\ in the \MultiFab\ is built large enough to hold data
-on the box associated with it {\it grown by ngrow ghost cells.}
-
-If we had a \BoxArray, {\tt myba}, then we could define a \MultiFab\ as"
-
+number of components, and number of ``ghost'' calls that each \Fab\
+will have.  A \MultiFab\ has a "valid" region that is defined by 
+the \BoxArray.  Each \Fab\ in the \MultiFab\ is built large enough 
+to hold valid data and ghost data, and thus the \BoxType\ associated with
+each \Fab\ is a grown version of the corresponding \BoxType\ from the \BoxArray.
+Thus, a \Fab\ has no concept 
+of ghost cells, it merely has a single box that identifies it.  
+If we have a \BoxArray, {\tt myba}, then in C++ \BoxLib\ we could 
+define a \MultiFab\ as:
 \begin{verbatim}
 MultiFab mymf(myba,2,1);
 \end{verbatim}
-
-This \MultiFab\ has two components of data and each \Fab\ in the \MultiFab\ contains ghost cells one row wide in all directions outside the box from the \BoxArray.
+This \MultiFab\ has two components of data and each \Fab\ in the \MultiFab\ contains 
+ghost cells one row wide in all directions outside the box from the \BoxArray.
 
