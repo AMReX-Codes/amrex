@@ -1617,6 +1617,8 @@ Amr::timeStep (int  level,
         amr_level.clear(0);
         amr_level.set(0,a);
 
+        amr_level[0].post_regrid(0,0);
+
         if (ParallelDescriptor::IOProcessor())
         {
            if (verbose > 1)

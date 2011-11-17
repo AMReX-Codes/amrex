@@ -364,6 +364,12 @@ ifeq ($(findstring sn, $(UNAMEN)), sn)
   CXX = mpicxx
 endif
 
+ifeq ($(findstring xrb, $(UNAMEN)), xrb)
+  MPIHOME=/usr/lib64/mpich2
+  F90 = mpif90
+  CXX = mpicxx
+endif
+
 # generic linux laptop install with MPICH -- assumes that the MPIHOME 
 # environment variable is set
 ifeq ($(findstring localhost, $(UNAMEN)), localhost)
