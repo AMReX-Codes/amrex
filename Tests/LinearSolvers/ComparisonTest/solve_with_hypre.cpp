@@ -22,6 +22,8 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 		      const std::vector<BoxArray>& grids,
 		      int ibnd)
 {
+  const Real run_strt = ParallelDescriptor::second();
+
   int composite_solve = 0;
   Real tolerance_rel, tolerance_abs;
   int max_iter = 100;
@@ -100,6 +102,13 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
   }
   else {
 
+  }
+
+  Real run_time = ParallelDescriptor::second() - run_strt;
+
+  ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
+  if (ParallelDescriptor::IOProcessor()) {
+    std::cout << "Hypre Run time      : " << run_time << std::endl;
   }
 }
 
