@@ -284,6 +284,8 @@ void
 MGT_Solver::Finalize()
 {
     initialized = false;
+
+    mgt_flush_copyassoc_cache();
 }
 
 void
