@@ -296,6 +296,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
     const int  NProcs   = ParallelDescriptor::NProcs();
     const Real strttime = ParallelDescriptor::second();
 
+    const int  NReaders = std::min(NProcs,64);
+
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
     m_particles.resize(m_amr->finestLevel()+1);
@@ -317,7 +319,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
     ParticleType p;
 
-    const int Chunk = cnt / NProcs;
+    const int Chunk = cnt / NReaders;
+
+    if (MyProc < NReaders)
+    {
+
     //
     // Skip to my section of particles.
     //
@@ -338,11 +344,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
     int MyCnt = Chunk;
 
-    if (MyProc == (NProcs - 1))
+    if (MyProc == (NReaders - 1))
         //
         // We'll take the remainder.
         //
-        MyCnt += cnt % NProcs;
+        MyCnt += cnt % NReaders;
 
     const Geometry& geom = m_amr->Geom(0);
 
@@ -404,6 +410,9 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
         howmany++;
     }
+
+    } // end of test on MyProc < NReaders
+
     //
     // Let Redistribute() sort'm out.
     //
