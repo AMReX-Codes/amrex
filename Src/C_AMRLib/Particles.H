@@ -295,114 +295,125 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
     const Real strttime = ParallelDescriptor::second();
+    const int  NReaders = std::min(NProcs,64);
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
     m_particles.resize(m_amr->finestLevel()+1);
 
-    std::ifstream ifs;
+    int howmany = 0;
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    if (MyProc < NReaders)
+    {
+        //
+        // Only the first NReaders MPI processes read particles.
+        //
+        std::ifstream ifs;
+
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
  
-    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+        ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    ifs.open(file.c_str(), std::ios::in);
+        ifs.open(file.c_str(), std::ios::in);
 
-    if (!ifs.good())
-        BoxLib::FileOpenFailed(file);
+        if (!ifs.good())
+            BoxLib::FileOpenFailed(file);
 
-    int cnt = 0, howmany = 0;
+        int cnt = 0;
 
-    ifs >> cnt;
+        ifs >> cnt;
 
-    ParticleType p;
+        ParticleType p;
 
-    const int Chunk = cnt / NProcs;
-    //
-    // Skip to my section of particles.
-    //
-    std::string line;
-
-    ifs >> std::ws;  // Eat newline after "cnt" so we skip proper # of particles.
-
-    for (int i = 0; i < MyProc*Chunk; i++)
-        std::getline(ifs,line);
-
-    if (!ifs.good())
-    {
-        std::string msg("ParticleContainer::InitFromAsciiFile(");
-        msg += file;
-        msg += ") failed @ 1";
-        BoxLib::Error(msg.c_str());
-    }
-
-    int MyCnt = Chunk;
-
-    if (MyProc == (NProcs - 1))
+        const int Chunk = cnt / NReaders;
         //
-        // We'll take the remainder.
+        // Skip to my section of particles.
         //
-        MyCnt += cnt % NProcs;
+        std::string line;
 
-    const Geometry& geom = m_amr->Geom(0);
+        ifs >> std::ws;  // Eat newline after "cnt" so we skip proper # of particles.
 
-    for (int i = 0; i < MyCnt; i++)
-    {
-        //
-        // We don't read in m_id or m_cpu.  We'll set those later
-        // in a manner to guarantee the global uniqueness of the pair.
-        //
-        for (int d = 0; d < BL_SPACEDIM; d++)
+        for (int i = 0; i < MyProc*Chunk; i++)
         {
-            ifs >> p.m_pos[d];
-        }
-        //
-        // If particle is right on a domain boundary then move it just inside the boundary.
-        //
-        for (int d = 0; d < BL_SPACEDIM; d++)
-        {
-            const Real domain_size = geom.ProbHi(d) - geom.ProbLo(d);
-
-            if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-12 * domain_size;
-            if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-12 * domain_size;
-        }
-
-        for (int n = 0; n < extradata; n++)
-        {
-            ifs >> p.m_data[n];
+            std::getline(ifs,line);
         }
 
         if (!ifs.good())
         {
             std::string msg("ParticleContainer::InitFromAsciiFile(");
             msg += file;
-            msg += ") failed @ 2";
+            msg += ") failed @ 1";
             BoxLib::Error(msg.c_str());
         }
 
-        if (!ParticleBase::Where(p,m_amr))
+        int MyCnt = Chunk;
+
+        if (MyProc == (NReaders - 1))
+            //
+            // We'll take the remainder.
+            //
+            MyCnt += cnt % NReaders;
+
+        const Geometry& geom = m_amr->Geom(0);
+
+        for (int i = 0; i < MyCnt; i++)
         {
-            ParticleBase::PeriodicShift(p,m_amr);
+            //
+            // We don't read in m_id or m_cpu.  We'll set those later
+            // in a manner to guarantee the global uniqueness of the pair.
+            //
+            for (int d = 0; d < BL_SPACEDIM; d++)
+            {
+                ifs >> p.m_pos[d];
+            }
+            //
+            // If particle is right on a domain boundary then move it just inside the boundary.
+            //
+            for (int d = 0; d < BL_SPACEDIM; d++)
+            {
+                const Real domain_size = geom.ProbHi(d) - geom.ProbLo(d);
+
+                if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-12 * domain_size;
+                if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-12 * domain_size;
+            }
+
+            for (int n = 0; n < extradata; n++)
+            {
+                ifs >> p.m_data[n];
+            }
+
+            if (!ifs.good())
+            {
+                std::string msg("ParticleContainer::InitFromAsciiFile(");
+                msg += file;
+                msg += ") failed @ 2";
+                BoxLib::Error(msg.c_str());
+            }
 
             if (!ParticleBase::Where(p,m_amr))
             {
-                std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
+                ParticleBase::PeriodicShift(p,m_amr);
 
-                for (int d = 0; d < BL_SPACEDIM; d++)
+                if (!ParticleBase::Where(p,m_amr))
                 {
-                    std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                    std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
+
+                    for (int d = 0; d < BL_SPACEDIM; d++)
+                    {
+                        std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                    }
+
+                    BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
                 }
-
-                BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid particle");
             }
+
+            p.m_id  = ParticleBase::NextID();
+            p.m_cpu = MyProc;
+
+            m_particles[p.m_lev][p.m_grid].push_back(p);
+
+            howmany++;
         }
-
-        p.m_id  = ParticleBase::NextID();
-        p.m_cpu = MyProc;
-
-        m_particles[p.m_lev][p.m_grid].push_back(p);
-
-        howmany++;
     }
     //
     // Let Redistribute() sort'm out.
@@ -455,14 +466,13 @@ ParticleContainer<N>::InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const R
         BL_ASSERT(m_particles[lev].empty());
     }
 
-    const Real len[BL_SPACEDIM] = { geom.ProbLength(0),geom.ProbLength(1),geom.ProbLength(2) };
-
-    Real disp[BL_SPACEDIM];
-
+    ParticleType p;
+    Real         disp[BL_SPACEDIM];
+    const Real   len[BL_SPACEDIM] = { geom.ProbLength(0),geom.ProbLength(1),geom.ProbLength(2) };
     //
     // The grid should be initialized according to the ics...
     //
-    for(MFIter mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         FArrayBox&  myFab  = mf[mfi];
         const int  *fab_lo = mfi.validbox().loVect();
@@ -477,33 +487,29 @@ ParticleContainer<N>::InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const R
             {
                 for (int ix = fab_lo[0]; ix <= fab_hi[0]; ix++)
                 {
-                    ParticleType p;
-
             	    IntVect indices(D_DECL(ix, jx, kx));
-
-//		    std::cout << indices << "\t" << myFab.smallEnd() << "\t" << myFab.bigEnd() << std::endl;
 
 	            for (int n = 0; n < BL_SPACEDIM; n++)
 	            {
-//			std::cout << "get data" << std::endl;
                         disp[n] = myFab(indices,n);
-//			std::cout << "get data done" << std::endl;
-
-			// start with homogeneous distribution (for 1 p per cell in the center of the cell), then
-			//add the displacement (input values weighted by domain length)
-	                p.m_pos[n]  = geom.ProbLo(n) + 
+                        //
+			// Start with homogeneous distribution (for 1 p per cell in the center of the cell),
+                        // then add the displacement (input values weighted by domain length).
+                        //
+	                p.m_pos[n] = geom.ProbLo(n) + 
                                       (indices[n]+0.5)*dx[n] +
 		                      disp[n] * len[n];
-
-			//set the velocities
+                        //
+			// Set the velocities.
+                        //
 	                p.m_data[n+1] = disp[n] * vel_fac[n];
 	            }
-
-		    // Set the mass of the particle from the input value
+                    //
+		    // Set the mass of the particle from the input value.
+                    //
 	            p.m_data[0] = particleMass;
-	
-	            p.m_id  = ParticleBase::NextID();
-	            p.m_cpu = MyProc;
+	            p.m_id      = ParticleBase::NextID();
+	            p.m_cpu     = MyProc;
 	
 	            if (!ParticleBase::Where(p,m_amr))
                     {
@@ -522,7 +528,6 @@ ParticleContainer<N>::InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const R
             }
         }
     }
-
 }
 
 template <int N>
@@ -1730,6 +1735,7 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
         const int        n        = pbox.size();
         const FArrayBox& gfab     = gv[grid];
         const FArrayBox& gfab_old = gv_old[grid];
+        const Real       half_dt  = 0.5 * dt;
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
@@ -1744,17 +1750,17 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
                 //
                 // Note: m_data[0] is mass, 1 is v_x, ...
                 //
-                D_TERM(p.m_pos[0]  -= 0.5 * dt * p.m_data[1];,
-                       p.m_pos[1]  -= 0.5 * dt * p.m_data[2];,
-                       p.m_pos[2]  -= 0.5 * dt * p.m_data[3];);
+                D_TERM(p.m_pos[0]  -= half_dt * p.m_data[1];,
+                       p.m_pos[1]  -= half_dt * p.m_data[2];,
+                       p.m_pos[2]  -= half_dt * p.m_data[3];);
             
-                D_TERM(p.m_data[1] += 0.5 * dt * ( gfab(p.m_cell,0) - gfab_old(p.m_cell,0) );,
-                       p.m_data[2] += 0.5 * dt * ( gfab(p.m_cell,1) - gfab_old(p.m_cell,1) );,
-                       p.m_data[3] += 0.5 * dt * ( gfab(p.m_cell,2) - gfab_old(p.m_cell,2) ););
+                D_TERM(p.m_data[1] += half_dt * ( gfab(p.m_cell,0) - gfab_old(p.m_cell,0) );,
+                       p.m_data[2] += half_dt * ( gfab(p.m_cell,1) - gfab_old(p.m_cell,1) );,
+                       p.m_data[3] += half_dt * ( gfab(p.m_cell,2) - gfab_old(p.m_cell,2) ););
 
-                D_TERM(p.m_pos[0]  += 0.5 * dt * p.m_data[1];,
-                       p.m_pos[1]  += 0.5 * dt * p.m_data[2];,
-                       p.m_pos[2]  += 0.5 * dt * p.m_data[3];);
+                D_TERM(p.m_pos[0]  += half_dt * p.m_data[1];,
+                       p.m_pos[1]  += half_dt * p.m_data[2];,
+                       p.m_pos[2]  += half_dt * p.m_data[3];);
 
                 ParticleBase::Reset(p,m_amr,true);
             }
@@ -1807,10 +1813,11 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    const Real strttime   = ParallelDescriptor::second();
-    const Real half_dt    = 0.5 * dt;
-    const Real a_half_inv = 1 / a_half;
-    PMap&      pmap       = m_particles[lev];
+    const Real strttime      = ParallelDescriptor::second();
+    const Real half_dt       = 0.5 * dt;
+    const Real a_half_inv    = 1 / a_half;
+    const Real dt_a_half_inv = dt * a_half_inv;
+    PMap&      pmap          = m_particles[lev];
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -1855,9 +1862,9 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             // Now update x^new = x^old + dt grav^half / a^half
             //
 
-            D_TERM(p.m_pos[0] += (dt * a_half_inv) * p.m_data[1];,
-                   p.m_pos[1] += (dt * a_half_inv) * p.m_data[2];,
-                   p.m_pos[2] += (dt * a_half_inv) * p.m_data[3];);
+            D_TERM(p.m_pos[0] += dt_a_half_inv * p.m_data[1];,
+                   p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
+                   p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
 
             ParticleBase::Reset(p,m_amr,true);
         }
@@ -2002,13 +2009,14 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    const Real      strttime   = ParallelDescriptor::second();
-    const Geometry& geom       = m_amr->Geom(lev);
-    const Real*     dx         = geom.CellSize();
-    const Real*     plo        = geom.ProbLo();
-    const Real      half_dt    = 0.5 * dt;
-    const Real      a_half_inv = 1 / a_half;
-    PMap&           pmap       = m_particles[lev];
+    const Real      strttime      = ParallelDescriptor::second();
+    const Geometry& geom          = m_amr->Geom(lev);
+    const Real*     dx            = geom.CellSize();
+    const Real*     plo           = geom.ProbLo();
+    const Real      half_dt       = 0.5 * dt;
+    const Real      a_half_inv    = 1 / a_half;
+    const Real      dt_a_half_inv = dt * a_half_inv;
+    PMap&           pmap          = m_particles[lev];
 
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -2063,9 +2071,9 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
             // Now update x^new = x^old + dt grav^half / a^half
             //
 
-            D_TERM(p.m_pos[0] += (dt * a_half_inv) * p.m_data[1];,
-                   p.m_pos[1] += (dt * a_half_inv) * p.m_data[2];,
-                   p.m_pos[2] += (dt * a_half_inv) * p.m_data[3];);
+            D_TERM(p.m_pos[0] += dt_a_half_inv * p.m_data[1];,
+                   p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
+                   p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
 
             ParticleBase::Reset(p,m_amr,true);
         }
@@ -2108,10 +2116,10 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
 template <int N>
 void
 ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
-                                int             lev,
-                                Real            dt,
-                                Real            a_new,
-                                Real            a_half) 
+                                int               lev,
+                                Real              dt,
+                                Real              a_new,
+                                Real              a_half) 
 {
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);

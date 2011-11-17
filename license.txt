@@ -1,6 +1,6 @@
 SOURCE CODE LICENSE AGREEMENT
-Software: AmrLib
-Version: Oct. 12, 2000 Release
+Software: BoxLib
+Version: Nov. 17, 2012 Release
 
 IMPORTANT - READ CAREFULLY: This License Agreement ("Agreement") is a
 legal agreement between you (in your capacity as an individual and as
