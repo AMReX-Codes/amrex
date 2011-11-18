@@ -225,7 +225,7 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
 
   ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
   if (ParallelDescriptor::IOProcessor()) {
-    std::cout << "BoxLib_F Run time      : " << run_time << std::endl;
+    std::cout << "Total BoxLib_F Run time      : " << run_time << std::endl;
   }
 }
 

@@ -1670,6 +1670,7 @@ void HypreABecLap::setupSolver()
   BL_ASSERT(precond        == NULL);
 
   if (solver_flag == 104) {
+
     HYPRE_ParCSRMatrix par_A;
     HYPRE_ParVector par_b;
     HYPRE_ParVector par_x;
@@ -1700,7 +1701,16 @@ void HypreABecLap::setupSolver()
                                 (HYPRE_PtrToParSolverFcn) HYPRE_BoomerAMGSetup,
                                 precond);
 
+    const Real run_strt = ParallelDescriptor::second();
+
     HYPRE_ParCSRGMRESSetup(solver, par_A, par_b, par_x);
+
+    Real run_time = ParallelDescriptor::second() - run_strt;
+
+    ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "   Time on HYPRE_ParCSRGMRESSetup: " << run_time << std::endl;
+    }
   }
   else {
     BoxLib::Error("No such solver in HypreABecLap");
@@ -1773,7 +1783,7 @@ void HypreABecLap::doIt()
 
   ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
   if (ParallelDescriptor::IOProcessor()) {
-    std::cout << "Real Hypre Solve Time      : " << run_time << std::endl;
+    std::cout << "   Hypre Solve Time: " << run_time << std::endl;
   }
 }
 
