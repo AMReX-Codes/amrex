@@ -1285,10 +1285,10 @@ void HypreABecLap::setRhs(int level, const MultiFab& rhs)
 
     HYPRE_SStructVectorSetBoxValues(b, part, loV(reg), hiV(reg), 0, vec);
 
-    b_loaded = true;
-    
     delete f; 
   }
+
+  b_loaded = true;
 }
 
 
@@ -1307,10 +1307,10 @@ void HypreABecLap::setInitGuess(int level, const MultiFab& guess)
 
     HYPRE_SStructVectorSetBoxValues(x, part, loV(reg), hiV(reg), 0, vec);
 
-    x_loaded = true;
-
     delete f;   
   }
+
+  x_loaded = true;
 }
 
 
