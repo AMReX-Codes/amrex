@@ -95,6 +95,11 @@ subroutine mgt_init (comm)
   call parallel_initialize(comm)
 end subroutine mgt_init
 
+subroutine mgt_flush_copyassoc_cache()
+  use layout_module
+  call layout_flush_copyassoc_cache()
+end subroutine mgt_flush_copyassoc_cache
+
 subroutine mgt_use_alltoallv ()
   use multifab_module
   call multifab_set_alltoallv(.true.)
