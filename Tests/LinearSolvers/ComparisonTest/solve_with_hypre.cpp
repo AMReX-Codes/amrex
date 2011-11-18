@@ -108,7 +108,7 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 
   ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
   if (ParallelDescriptor::IOProcessor()) {
-    std::cout << "Hypre Run time      : " << run_time << std::endl;
+    std::cout << "Total Hypre Run time      : " << run_time << std::endl;
   }
 }
 
