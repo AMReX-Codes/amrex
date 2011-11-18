@@ -2333,7 +2333,9 @@ contains
     if (.not. r) return
     r = boxarray_same_q(cpasc%ba_dst, get_boxarray(la_dst))
     if (.not. r) return
-    r =  all(cpasc%prc_src == la_src%lap%prc) .and. all(cpasc%prc_dst == la_dst%lap%prc)
+    r =  all(cpasc%prc_src == la_src%lap%prc)
+    if (.not. r) return
+    r =  all(cpasc%prc_dst == la_dst%lap%prc)
   end function copyassoc_check
 
   pure function fluxassoc_check(flasc, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
