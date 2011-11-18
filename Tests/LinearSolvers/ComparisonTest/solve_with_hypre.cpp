@@ -118,7 +118,6 @@ void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio)
   Real bc_value = 0.0; // This is hardwired.
 
   const BoxArray& grids = levelbd.boxes();
-  int ngrds = grids.size();
   const Geometry& geom = levelbd.getGeom();
   const Real* dx = geom.CellSize();
   const Box& domain = levelbd.getDomain();
