@@ -605,8 +605,7 @@ HypreABecLap::~HypreABecLap()
     delete acoefs.remove(level);
     delete bcoefs.remove(level);
 
-    // Members of the bd PArray are the responsibility of the calling
-    // program and thus are not deleted here.
+    delete bd.remove(level);
   }
 
   HYPRE_SStructVectorDestroy(b);
