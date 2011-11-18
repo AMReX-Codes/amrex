@@ -3,6 +3,7 @@
 
 #if defined(BL_FORT_USE_UPPERCASE)
 #define mgt_init                  MGT_INIT
+#define mgt_flush_copyassoc_cache MGT_FLUSH_COPYASSOC_CACHE
 #define mgt_use_alltoallv         MGT_USE_ALLTOALLV
 #define mgt_alloc                 MGT_ALLOC
 #define mgt_nodal_alloc           MGT_NODAL_ALLOC
@@ -109,6 +110,7 @@
 #elif defined(BL_FORT_USE_UNDERSCORE)
 
 #define mgt_init                  mgt_init_
+#define mgt_flush_copyassoc_cache mgt_flush_copyassoc_cache_
 #define mgt_use_alltoallv         mgt_use_alltoallv_
 #define mgt_alloc                 mgt_alloc_
 #define mgt_nodal_alloc           mgt_nodal_alloc_
@@ -212,6 +214,7 @@
 
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
 #define mgt_init                  mgt_init__
+#define mgt_flush_copyassoc_cache mgt_flush_copyassoc_cache__
 #define mgt_use_alltoallv         mgt_use_alltoallv__
 #define mgt_alloc                 mgt_alloc__
 #define mgt_nodal_alloc           mgt_nodal_alloc__
@@ -321,6 +324,8 @@ extern "C"
   const int MGT_BC_NEU =  2;	/* Neumann   */
 
   void mgt_init(const int* comm);
+
+  void mgt_flush_copyassoc_cache();
 
   void mgt_use_alltoallv();
 
