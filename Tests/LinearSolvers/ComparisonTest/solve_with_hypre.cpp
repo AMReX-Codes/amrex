@@ -48,7 +48,7 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 
   if (composite_solve) {
     HypreABecLap hypreSolver(0, nlevel-1, 1);
-    
+
     // add grids in reverse order in case we are masking covered part of coarse
     for (int level = nlevel-1; level>=0; level--) {
       hypreSolver.addLevel(level, geom[level], grids[level], ratio);
@@ -97,7 +97,7 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 
       hypreSolver.setInitGuess(level, soln[level]);
     }
-    
+
     hypreSolver.solve(soln, tolerance_rel, tolerance_abs, max_iter);
   }
   else {
@@ -128,8 +128,9 @@ void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio)
 
     int dir = face.coordDir();
     Real delta = dx[dir]*ratio[dir];
-
-    for (int i = 0; i < ngrds; i++) {
+    
+    for (FabSetIter bfsi(levelbd[face]); bfsi.isValid(); ++bfsi) {
+      const int i = bfsi.index();
       const Box& grd = grids[i];
 
       if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {
