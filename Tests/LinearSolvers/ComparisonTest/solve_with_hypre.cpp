@@ -115,7 +115,7 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio)
 {
   int comp = 0;
-  Real bc_vale = 0.0; // This is hardwired.
+  Real bc_value = 0.0; // This is hardwired.
 
   const BoxArray& grids = levelbd.boxes();
   int ngrds = grids.size();
@@ -135,7 +135,7 @@ void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio)
       if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {
 	levelbd.setBoundCond(face, i, comp, ibnd);
 	levelbd.setBoundLoc(face, i, 0.0);
-	levelbd.setValue(face, i, bc_vale);
+	levelbd.setValue(face, i, bc_value);
       }
       else {
 	// internal bndry
