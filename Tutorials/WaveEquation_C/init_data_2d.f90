@@ -12,10 +12,6 @@
  
       integer          :: i,j
       double precision :: x,y,r2
-      double precision :: xlen,ylen
- 
-      xlen = prob_hi(1) - prob_lo(1)
-      ylen = prob_hi(2) - prob_lo(2)
  
       do j = lo(2), hi(2)
          y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
