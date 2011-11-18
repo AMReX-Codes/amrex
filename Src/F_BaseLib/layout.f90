@@ -144,7 +144,7 @@ module layout_module
   type(copyassoc), pointer, save, private :: the_copyassoc_head => Null()
 
   integer, save, private :: the_copyassoc_cnt = 0  ! Count of copyassocs on list.
-  integer, save, private :: the_copyassoc_max = 50 ! Maximum # copyassocs allowed on list.
+  integer, save, private :: the_copyassoc_max = 25 ! Maximum # copyassocs allowed on list.
   !
   ! Global list of fluxassoc's used by ml_crse_contrib()
   !
@@ -301,7 +301,7 @@ contains
   subroutine layout_set_copyassoc_max(v)
     use bl_error_module
     integer, intent(in) :: v
-    call bl_assert(the_copyassoc_max .gt. 0, "the_copyassoc_max must be positive")
+    call bl_assert(the_copyassoc_max .gt. 1, "the_copyassoc_max must be > 1")
     the_copyassoc_max = v
   end subroutine layout_set_copyassoc_max
   pure function layout_get_copyassoc_max() result(r)
@@ -484,22 +484,16 @@ contains
     type(copyassoc), pointer :: cp, ncp
     integer                  :: i
 
-    if ( verbose > 0 .and. parallel_IOProcessor() ) then
-       print*, '*** flushing copyassoc cache of size: ', the_copyassoc_cnt
-    end if
-
     i  =  1
     cp => the_copyassoc_head
     do while ( associated(cp) )
-       if ( verbose > 0 .and. parallel_IOProcessor() ) then
-          print*, i, ' reused: ', cp%reused
-       end if
        ncp => cp%next
        call copyassoc_destroy(cp)
        deallocate(cp)
        cp => ncp
        i  =  i + 1
     end do
+
     the_copyassoc_cnt  =  0
     the_copyassoc_head => Null()
   end subroutine layout_flush_copyassoc_cache
@@ -1360,22 +1354,6 @@ contains
        end if
     end do
 
-    if ( verbose > 1 ) then
-       ioproc = parallel_IOProcessorNode()
-       call parallel_reduce(lcnt_r_max, lcnt_r,           MPI_MAX, proc = ioproc)
-       call parallel_reduce(cnt_s_max,  cnt_s,            MPI_MAX, proc = ioproc)
-       call parallel_reduce(cnt_r_max,  cnt_r,            MPI_MAX, proc = ioproc)
-       call parallel_reduce(svol_max,   bxasc%r_con%svol, MPI_MAX, proc = ioproc)
-       call parallel_reduce(rvol_max,   bxasc%r_con%rvol, MPI_MAX, proc = ioproc)
-       if ( parallel_IOProcessor() ) then
-          print*, '*** boxassoc_build(): max(lcnt_r) = ', lcnt_r_max
-          print*, '*** boxassoc_build(): max(cnt_s)  = ', cnt_s_max
-          print*, '*** boxassoc_build(): max(cnt_r)  = ', cnt_r_max
-          print*, '*** boxassoc_build(): max(svol)   = ', svol_max
-          print*, '*** boxassoc_build(): max(rvol)   = ', rvol_max
-       end if
-    end if
-
     call mem_stats_alloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
 
     call destroy(bpt)
@@ -1725,22 +1703,6 @@ contains
        end if
     end do
 
-    if ( verbose > 1 ) then
-       ioproc = parallel_IOProcessorNode()
-       call parallel_reduce(lcnt_r_max,           lcnt_r, MPI_MAX, proc = ioproc)
-       call parallel_reduce(cnt_s_max,             cnt_s, MPI_MAX, proc = ioproc)
-       call parallel_reduce(cnt_r_max,             cnt_r, MPI_MAX, proc = ioproc)
-       call parallel_reduce(svol_max,   snasc%r_con%svol, MPI_MAX, proc = ioproc)
-       call parallel_reduce(rvol_max,   snasc%r_con%rvol, MPI_MAX, proc = ioproc)
-       if ( parallel_IOProcessor() ) then
-          print*, '*** syncassoc_build(): max(lcnt_r) = ', lcnt_r_max
-          print*, '*** syncassoc_build(): max(cnt_s)  = ', cnt_s_max
-          print*, '*** syncassoc_build(): max(cnt_r)  = ', cnt_r_max
-          print*, '*** syncassoc_build(): max(svol)   = ', svol_max
-          print*, '*** syncassoc_build(): max(rvol)   = ', rvol_max
-       end if
-    end if
-
     call mem_stats_alloc(snx_ms, snasc%r_con%nsnd + snasc%r_con%nrcv)
 
     call destroy(bpt)
@@ -1976,22 +1938,6 @@ contains
           pi_s = pi_s + 1
        end if
     end do
-
-    if ( verbose > 1 ) then
-       ioproc = parallel_IOProcessorNode()
-       call parallel_reduce(lcnt_r_max,           lcnt_r, MPI_MAX, proc = ioproc)
-       call parallel_reduce(cnt_s_max,             cnt_s, MPI_MAX, proc = ioproc)
-       call parallel_reduce(cnt_r_max,             cnt_r, MPI_MAX, proc = ioproc)
-       call parallel_reduce(svol_max,   cpasc%r_con%svol, MPI_MAX, proc = ioproc)
-       call parallel_reduce(rvol_max,   cpasc%r_con%rvol, MPI_MAX, proc = ioproc)
-       if ( parallel_IOProcessor() ) then
-          print*, '*** copyassoc_build(): max(lcnt_r) = ', lcnt_r_max
-          print*, '*** copyassoc_build(): max(cnt_s)  = ', cnt_s_max
-          print*, '*** copyassoc_build(): max(cnt_r)  = ', cnt_r_max
-          print*, '*** copyassoc_build(): max(svol)   = ', svol_max
-          print*, '*** copyassoc_build(): max(rvol)   = ', rvol_max
-       end if
-    end if
 
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
 
@@ -2309,22 +2255,6 @@ contains
           pi_s = pi_s + 1
        end if
     end do
-
-    if ( verbose > 1 ) then
-       ioproc = parallel_IOProcessorNode()
-       call parallel_reduce(lcnt_r_max,              lcnt_r, MPI_MAX, proc = ioproc)
-       call parallel_reduce(cnt_s_max,                cnt_s, MPI_MAX, proc = ioproc)
-       call parallel_reduce(cnt_r_max,                cnt_r, MPI_MAX, proc = ioproc)
-       call parallel_reduce(svol_max, flasc%flux%r_con%svol, MPI_MAX, proc = ioproc)
-       call parallel_reduce(rvol_max, flasc%flux%r_con%rvol, MPI_MAX, proc = ioproc)
-       if ( parallel_IOProcessor() ) then
-          print*, '*** fluxassoc_build(): max(lcnt_r) = ', lcnt_r_max
-          print*, '*** fluxassoc_build(): max(cnt_s)  = ', cnt_s_max
-          print*, '*** fluxassoc_build(): max(cnt_r)  = ', cnt_r_max
-          print*, '*** fluxassoc_build(): max(svol)   = ', svol_max
-          print*, '*** fluxassoc_build(): max(rvol)   = ', rvol_max
-       end if
-    end if
     !
     ! Recall that fluxassoc contains two copyassocs.
     !
@@ -2424,12 +2354,15 @@ contains
   end function fluxassoc_check
 
   function layout_copyassoc(la_dst, la_src, nd_dst, nd_src) result(r)
+
+    use bl_error_module
+
     type(copyassoc)                :: r
     type(layout),    intent(inout) :: la_dst
     type(layout),    intent(in)    :: la_src
     logical,         intent(in)    :: nd_dst(:), nd_src(:)
-    type(copyassoc), pointer       :: cp
-    integer                        :: i
+    type(copyassoc), pointer       :: cp, ncp
+    integer                        :: i, cnt, which
     !
     ! Do we have one stored?
     !
@@ -2437,9 +2370,6 @@ contains
     cp => the_copyassoc_head
     do while ( associated(cp) )
        if ( copyassoc_check(cp, la_dst, la_src, nd_dst, nd_src) ) then
-          if ( verbose > 0 .and. parallel_IOProcessor() ) then
-             print*, ' reused # ', i, ', cnt: ', cp%reused
-          end if
           cp%reused = cp%reused + 1
           r = cp
           return
@@ -2459,21 +2389,46 @@ contains
 
     if ( the_copyassoc_cnt .gt. the_copyassoc_max ) then
        !
-       ! Remove least recently inserted copyassoc (last one in the list).
+       ! We want to remove a least used copyassoc, but we never remove the
+       ! first one.  That's the one we've (potentially) just built and will be
+       ! passing back for use.  We want to get the latest entry in the list
+       ! having the lowest reuse count.
        !
-       i  =  1
+       i     =  1
+       cnt   = Huge(1)
+       which = -1
        cp => the_copyassoc_head
        do while ( associated(cp) )
-          if ( i .eq. the_copyassoc_max ) then
-             call copyassoc_destroy(cp%next)
-             deallocate(cp%next)
-             cp%next => Null()
-             the_copyassoc_cnt = the_copyassoc_cnt - 1
+          if ( i .gt. 1 .and. cp%reused .le. cnt ) then
+             cnt   = cp%reused
+             which = i
           end if
           cp => cp%next
           i  =  i + 1
        end do
+
+       call bl_assert(which .le. the_copyassoc_cnt, 'which not in range')
+       !
+       ! Get rid of "which".
+       !
+       if ( which .gt. 1 ) then
+          i =  1
+          cp => the_copyassoc_head
+          do while ( associated(cp) )
+             if ( i .eq. (which-1) ) then
+                ncp     => cp%next
+                cp%next => ncp%next
+                call copyassoc_destroy(ncp)
+                deallocate(ncp)
+                the_copyassoc_cnt = the_copyassoc_cnt - 1
+                exit
+             end if
+             cp => cp%next
+             i  =  i + 1
+          end do
+       end if
     end if
+
   end function layout_copyassoc
 
   function layout_fluxassoc(la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
