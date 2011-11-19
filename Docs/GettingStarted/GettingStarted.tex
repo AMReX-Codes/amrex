@@ -1,1 +1,98 @@
-Getting started...
+We now proceed through a series of tutorial applications of increasing complexity
+to help understand how to write your own application.  Any of these examples
+can be used as starting points for your own application.  Each of the examples
+will be presented in fortran and C++.  The examples are contained in the \BoxLib\
+release found at {\tt https://ccse.lbl.gov/pub/BoxLib/}.
+
+\section{Diffusion Equation - Fortran}
+Our first example, contained in {\tt BoxLib/Tutorials/WaveEquation\_F}, advances the equations
+\begin{eqnarray}
+\frac{\partial\phi_1}{\partial t} &=& \phi_2, \\
+\frac{\partial\phi_2}{\partial t} &=& \nabla^2\phi_1,
+\end{eqnarray}
+on a domain from $[-1,-1,-1]$ to $[1,1,1]$ (in 3D; analogous in 2D) with initial conditions
+\begin{eqnarray}
+\phi_1(t=0) &=& 0 \\
+\phi_2(t=0) &=& e^{-100r^2},
+\end{eqnarray}
+where $r$ is the distance from the cell-center to the center of the domain.
+We use uniform grid spacing in each direction, i.e., $\Delta x = \Delta y = \Delta z$,
+and for this example, we used a fixed time step with $\Delta t = 0.1\Delta x$.
+To advance these equations, we use a Runge-Kutta temporal discretization and a 
+fourth-order spatial discretization of the Laplacian.  This example does not use AMR, 
+and uses periodic boundary conditions on all sides.
+
+In the problem directory, you will see the following files:
+\begin{itemize}
+\item {\tt GNUmakefile}
+
+This contains compiler settings and directories required by the make system to build the code.
+
+  \begin{itemize}
+
+    \item {\tt BOXLIB\_HOME}
+
+    Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
+    as an environment variables on your system.
+
+    \item {\tt MKVERBOSE}
+
+    Verbosity of compile-time output.
+
+    \item {\tt NDEBUG}
+      
+    ``Not Debug'' (we know, confusing).  If 't', modifies compiler flags to build a more optimized version
+    of the code.
+
+    \item {\tt MPI}
+
+    Indicate whether you want your executable to be MPI-compatible.  In general there is no reason to turn this
+    off since you can still run the resulting executable serially.
+
+    \item {\tt OMP}
+
+    Turns on OpenMP compiler flags.  Note that you still must write OpenMP directives into your code.
+
+    \item {\tt COMP}
+
+    The compiler.  Supported options include Intel, PathScale, and PGI.  gfortran seems to be bug-free
+    on all systems we've run on.  Intel after version 9 seems flaky.  PathScale (available at OLCF and NERSC)
+    seems to work as long as you don't turn the optimization flags too high.  PGI seems to work fine, but
+    is slower than the others.
+
+  \end{itemize}
+
+\item {\tt GPackage.mak}
+
+List of local files needed to be included in the build.  The {\tt GNUmakefile} points to this.
+
+\item {\tt main.f90}, {\tt init\_data.f90}, {\tt advance.f90}, {\tt write\_plotfile.f90}
+
+Source code that is not within the {\tt BoxLib/Src/} tree.  Note: if a file that exists in the
+{\tt BoxLib/Src/} tree also exists in the local directory, the local copy takes precedence.
+{\tt main.f90} is the driver program that calls subroutines from the other fortran90 files.
+
+\item {\tt inputs\_2d}, {\tt inputs\_3d}
+
+Inputs files to customize the simulation parameters.
+
+\end{itemize}
+
+To build the code, simply type ``make''.  An exectubale will appear that has some indication (but not complete)
+about what setting you used in the {\tt GNUmakefile}.  To run the code serially, simply type, for example,
+\begin{verbatim}
+./main.Linux.gfortran.mpi.exe inputs_2d
+\end{verbatim}
+To run in parallel, if you have MPI on your machine, instead type, for example,
+\begin{verbatim}
+mpiexec -n 4 ./main.Linux.gfortran.mpi.exe inputs_2d
+\end{verbatim}
+In the parallel case,you should see the following on your screen at the beginning
+\begin{verbatim}
+MPI initialized with            4  MPI processes
+MPI initialized with            1  threads
+\end{verbatim}
+The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, in the run directory.
+You can open these using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/}) by opening
+the {\tt Header} file within the plotfile directory.  (For the {\tt VisIt} novice, after you open the {\tt Header}
+file, select ``Add'' $\rightarrow$ ``Pseudocolor'' $\rightarrow$ ``Variable 2'' and then click ``Draw''.)

@@ -35,6 +35,8 @@ program main
   ! processes and OpenMP threads
   call boxlib_initialize()
 
+  ! parallel_wtime() returns the number of wallclock-time seconds since
+  ! the program began
   start_time = parallel_wtime()
 
   ! default values - will get overwritten by the inputs file
@@ -45,9 +47,8 @@ program main
   max_grid_size = 32
   verbose       = 0
 
-  ! not using AMR in this example
+  ! we are not using AMR in this example
   n_amr_levels = 1
-
 
   ! read inputs file and overwrite any default values
   narg = command_argument_count()
@@ -66,6 +67,7 @@ program main
      end if
   end if
 
+  ! now that we have dim, we can allocate these
   allocate(lo(dim),hi(dim))
   allocate(is_periodic(dim))
   allocate(dx(n_amr_levels,dim))
@@ -76,13 +78,15 @@ program main
   prob_hi(:) =  1.d0
   is_periodic(:) = .true.
 
+  ! create a box from (0,0) to (n_cell-1,n_cell-1)
   lo(:) = 0
   hi(:) = n_cell-1
-
   bx = make_box(lo,hi)
 
+  ! the grid spacing is the same in each direction
   dx(1,:) = (prob_hi(:)-prob_lo(:)) / n_cell
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! build the ml_boxarray, mba
   ! initialize the number of levels and dimensionality
   call ml_boxarray_build_n(mba,n_amr_levels,dim)
@@ -92,10 +96,12 @@ program main
   call boxarray_maxsize(mba%bas(1),max_grid_size)
   ! initialze the problem domain
   mba%pd(1) = bx
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   ! build the ml_layout, mla
   call ml_layout_restricted_build(mla,mba,n_amr_levels,is_periodic)
 
+  ! data is a multifab with only 1 level
   allocate(data(n_amr_levels))
   do n=1,n_amr_levels
      ! build multifab with 2 components and 6 ghost cells
@@ -112,7 +118,6 @@ program main
 
   ! write out plotfile 0
   call write_plotfile(mla,data,istep,dx,time,prob_lo,prob_hi)
-
 
   do istep=1,nsteps
 
@@ -136,7 +141,7 @@ program main
   end do
 
   do n=1,n_amr_levels
-     ! make sure to destroy the multifab to avoid memory leaks
+     ! make sure to destroy the multifab or you'll leak memory
      call destroy(data(n))
   end do
 
