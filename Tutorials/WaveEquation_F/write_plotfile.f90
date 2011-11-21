@@ -1,6 +1,6 @@
 module write_plotfile_module
 
-  use ml_layout_module
+  use layout_module
   use multifab_module
   use fabio_module
 
@@ -8,44 +8,46 @@ module write_plotfile_module
 
 contains
   
-  subroutine write_plotfile(mla,data,istep_to_write,dx,time,prob_lo,prob_hi)
+  subroutine write_plotfile(la,data,istep,dx,time,prob_lo,prob_hi)
 
-    type(ml_layout), intent(in   ) :: mla
-    type(multifab) , intent(in   ) :: data(mla%dim)
-    integer        , intent(in   ) :: istep_to_write
-    real(dp_t)     , intent(in   ) :: dx(mla%nlevel,mla%dim), time
-    real(dp_t)     , intent(in   ) :: prob_lo(mla%dim), prob_hi(mla%dim)
+    type(layout)   , intent(in   ) :: la
+    type(multifab) , intent(in   ) :: data
+    integer        , intent(in   ) :: istep
+    real(dp_t)     , intent(in   ) :: dx,time
+    real(dp_t)     , intent(in   ) :: prob_lo(data%dim), prob_hi(data%dim)
 
     ! local variables
-    type(multifab) :: plotdata(mla%dim)
+    character(len=8)  :: plotfile_name
+    character(len=20) :: variable_names(2)
 
-    integer           :: n, nlevs
-    character(len=8)  :: sd_name
-    character(len=20) :: plot_names(2)
+    ! dimensioned as an array of size 1 for fabio_ml_multifab_write_d
+    type(multifab) :: plotdata(1)
 
-    nlevs = mla%nlevel
+    ! dimensioned as an array of size 0 for fabio_ml_multifab_write_d
+    integer :: rr(0)
 
-    plot_names(1) = "Variable 1"
-    plot_names(2) = "Variable 2"
+    ! dimensioned as an array with size dm for fabio_ml_multifab_write_d
+    real(dp_t) :: dx_vec(data%dim)
 
-    do n=1,nlevs
-       ! build plotdata with 2 components and 0 ghost cells
-       call multifab_build(plotdata(n),mla%la(n),2,0)
-       ! copy the state into plotdata
-       call multifab_copy_c(plotdata(n),1,data(n),1,2)
-    end do
+    dx_vec(:) = dx
+
+    variable_names(1) = "Variable 1"
+    variable_names(2) = "Variable 2"
+
+    ! build plotdata with 2 components and 0 ghost cells
+    call multifab_build(plotdata(1),la,2,0)
+    ! copy the state into plotdata
+    call multifab_copy_c(plotdata(1),1,data,1,2)
 
     ! define the name of the plotfile that will be written
-    write(unit=sd_name,fmt='("plt",i5.5)') istep_to_write
+    write(unit=plotfile_name,fmt='("plt",i5.5)') istep
 
     ! write the plotfile
-    call fabio_ml_multifab_write_d(plotdata, mla%mba%rr(:,1), sd_name, plot_names, &
-                                   mla%mba%pd(1), prob_lo, prob_hi, time, dx(1,:))
+    call fabio_ml_multifab_write_d(plotdata, rr, plotfile_name, variable_names, &
+                                   la%lap%pd, prob_lo, prob_hi, time, dx_vec)
 
-    do n=1,nlevs
-       ! make sure to destroy the multifab or you'll leak memory
-       call multifab_destroy(plotdata(n))
-    end do
+    ! make sure to destroy the multifab or you'll leak memory
+    call multifab_destroy(plotdata(1))
 
   end subroutine write_plotfile
 

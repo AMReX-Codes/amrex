@@ -4,30 +4,33 @@ program main
   use parallel
   use multifab_module
   use bl_IO_module
-  use ml_layout_module
+  use layout_module
   use init_data_module
   use write_plotfile_module
   use advance_module
 
   implicit none
 
+  ! stuff you can set with the inputs file (otherwise use default values below)
   integer :: dim, nsteps, plot_int, n_cell, max_grid_size, verbose
-  integer :: un, farg, narg, n_amr_levels, n, istep
+
+  ! dummy indices using for reading in inputs file
+  integer :: un, farg, narg
+  logical :: need_inputs_file, found_inputs_file
+  character(len=128) :: inputs_file_name
+
   integer, allocatable :: lo(:), hi(:)
+  integer :: istep
 
-  real(dp_t), allocatable :: dx(:,:), prob_lo(:), prob_hi(:)
-  real(dp_t) :: time, dt, start_time, end_time
+  real(dp_t), allocatable :: prob_lo(:), prob_hi(:)
+  real(dp_t) :: dx, dt, time, start_time, end_time
   
-  character(len=128) :: fname
-
-  logical :: lexist, need_inputs
   logical, allocatable :: is_periodic(:)
 
-  type(ml_layout) :: mla
-  type(box) :: bx
-  type(ml_boxarray) :: mba
-
-  type(multifab), allocatable :: data(:)
+  type(box)      :: bx
+  type(boxarray) :: ba
+  type(layout)   :: la
+  type(multifab) :: data
 
   namelist /probin/ dim, nsteps, plot_int, n_cell, max_grid_size, verbose
 
@@ -47,30 +50,26 @@ program main
   max_grid_size = 32
   verbose       = 0
 
-  ! we are not using AMR in this example
-  n_amr_levels = 1
-
   ! read inputs file and overwrite any default values
   narg = command_argument_count()
-  need_inputs = .true.
+  need_inputs_file = .true.
   farg = 1
-  if ( need_inputs .AND. narg >= 1 ) then
-     call get_command_argument(farg, value = fname)
-     inquire(file = fname, exist = lexist )
-     if ( lexist ) then
+  if ( need_inputs_file .AND. narg >= 1 ) then
+     call get_command_argument(farg, value = inputs_file_name)
+     inquire(file = inputs_file_name, exist = found_inputs_file )
+     if ( found_inputs_file ) then
         farg = farg + 1
         un = unit_new()
-        open(unit=un, file = fname, status = 'old', action = 'read')
+        open(unit=un, file = inputs_file_name, status = 'old', action = 'read')
         read(unit=un, nml = probin)
         close(unit=un)
-        need_inputs = .false.
+        need_inputs_file = .false.
      end if
   end if
 
   ! now that we have dim, we can allocate these
   allocate(lo(dim),hi(dim))
   allocate(is_periodic(dim))
-  allocate(dx(n_amr_levels,dim))
   allocate(prob_lo(dim),prob_hi(dim))
 
   ! physical problem is a box on (-1,-1) to (1,1), periodic on all sides
@@ -84,40 +83,30 @@ program main
   bx = make_box(lo,hi)
 
   ! the grid spacing is the same in each direction
-  dx(1,:) = (prob_hi(:)-prob_lo(:)) / n_cell
+  dx = (prob_hi(1)-prob_lo(1)) / n_cell
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! build the ml_boxarray, mba
-  ! initialize the number of levels and dimensionality
-  call ml_boxarray_build_n(mba,n_amr_levels,dim)
   ! initialize the boxarray to be one single box
-  call boxarray_build_bx(mba%bas(1),bx)
+  call build(ba,bx)
   ! overwrite the boxarray to respect max_grid_size
-  call boxarray_maxsize(mba%bas(1),max_grid_size)
-  ! initialze the problem domain
-  mba%pd(1) = bx
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  call boxarray_maxsize(ba,max_grid_size)
 
-  ! build the ml_layout, mla
-  call ml_layout_restricted_build(mla,mba,n_amr_levels,is_periodic)
+  ! build the layout, la
+  call build(la,ba,pmask=is_periodic)
 
-  ! data is a multifab with only 1 level
-  allocate(data(n_amr_levels))
-  do n=1,n_amr_levels
-     ! build multifab with 2 components and 6 ghost cells
-     call multifab_build(data(n),mla%la(n),2,6)
-  end do
-
+  ! build multifab with 2 components and 6 ghost cells
+  call multifab_build(data,la,2,6)
+  
   ! initialze data
-  call init_data(mla,dx,prob_lo,data)
+  call init_data(data,dx,prob_lo)
 
   istep = 0
   time = 0.d0
 
-  dt = 0.1d0*dx(1,1)
+  dt = 0.1d0*dx
 
   ! write out plotfile 0
-  call write_plotfile(mla,data,istep,dx,time,prob_lo,prob_hi)
+  call write_plotfile(la,data,istep,dx,time,prob_lo,prob_hi)
 
   do istep=1,nsteps
 
@@ -129,24 +118,24 @@ program main
      end if
      
      ! advance the data
-     call advance(mla,dx,dt,data)
+     call advance(data,dx,dt)
 
      time = time + dt
 
      if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
         ! write out plotfile
-        call write_plotfile(mla,data,istep,dx,time,prob_lo,prob_hi)
+        call write_plotfile(la,data,istep,dx,time,prob_lo,prob_hi)
      end if
 
   end do
 
-  do n=1,n_amr_levels
-     ! make sure to destroy the multifab or you'll leak memory
-     call destroy(data(n))
-  end do
+  ! make sure to destroy the multifab or you'll leak memory
+  call destroy(data)
 
-  deallocate(lo,hi,dx,is_periodic,data,prob_lo,prob_hi)
+  deallocate(lo,hi,is_periodic,prob_lo,prob_hi)
 
+  ! parallel_wtime() returns the number of wallclock-time seconds since
+  ! the program began
   end_time = parallel_wtime()
 
   call boxlib_finalize()

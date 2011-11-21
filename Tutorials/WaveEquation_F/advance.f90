@@ -1,7 +1,7 @@
 module advance_module
 
   use multifab_module
-  use ml_layout_module
+  use layout_module
 
   implicit none
 
@@ -11,47 +11,41 @@ module advance_module
 
 contains
   
-  subroutine advance(mla,dx,dt,data)
+  subroutine advance(data,dx,dt)
 
-    type(ml_layout), intent(in   ) :: mla
-    type(multifab) , intent(inout) :: data(mla%nlevel)
-    real(kind=dp_t), intent(in   ) :: dx(mla%nlevel,mla%dim)
+    type(multifab) , intent(inout) :: data
+    real(kind=dp_t), intent(in   ) :: dx
     real(kind=dp_t), intent(in   ) :: dt
 
     ! local variables
-    integer :: lo(mla%dim), hi(mla%dim)
-    integer :: nlevs, dm, ng, n, i
+    integer :: lo(data%dim), hi(data%dim)
+    integer :: dm, ng, i
 
     real(kind=dp_t), pointer :: dp(:,:,:,:)
 
     ! set these here so we don't have to pass them into the subroutine
-    nlevs = mla%nlevel
-    dm    = mla%dim
-    ng    = nghost(data(1))
+    dm = data%dim
+    ng = data%ng
 
-    do n=1,nlevs
-
-       do i=1,nboxes(data(n))
-          if ( multifab_remote(data(n),i) ) cycle
-          dp => dataptr(data(n),i)
-          lo = lwb(get_box(data(n),i))
-          hi = upb(get_box(data(n),i))
-          select case(dm)
-          case (2)
-             call advance_2d(dp(:,:,1,:), ng, lo, hi, dx(n,1), dt)
-          case (3)
-             call advance_3d(dp(:,:,:,:), ng, lo, hi, dx(n,1), dt)
-          end select
-       end do
-
-       ! fill ghost cells
-       ! this only fills periodic ghost cells and ghost cells for neighboring
-       ! grids at the same level.  Physical boundary ghost cells are filled
-       ! using multifab_physbc.  But this problem is periodic, so this
-       ! call is sufficient.
-       call multifab_fill_boundary(data(n))
-
+    do i=1,nboxes(data)
+       if ( multifab_remote(data,i) ) cycle
+       dp => dataptr(data,i)
+       lo = lwb(get_box(data,i))
+       hi = upb(get_box(data,i))
+       select case(dm)
+       case (2)
+          call advance_2d(dp(:,:,1,:), ng, lo, hi, dx, dt)
+       case (3)
+          call advance_3d(dp(:,:,:,:), ng, lo, hi, dx, dt)
+       end select
     end do
+    
+    ! fill ghost cells
+    ! this only fills periodic ghost cells and ghost cells for neighboring
+    ! grids at the same level.  Physical boundary ghost cells are filled
+    ! using multifab_physbc.  But this problem is periodic, so this
+    ! call is sufficient.
+    call multifab_fill_boundary(data)
 
   end subroutine advance
 
