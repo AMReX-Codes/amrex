@@ -81,18 +81,18 @@ Inputs files to customize the simulation parameters.
 
 To build the code, simply type ``make''.  An exectubale will appear that has some indication (but not complete)
 about what setting you used in the {\tt GNUmakefile}.  To run the code serially, simply type, for example,
-\begin{verbatim}
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
 ./main.Linux.gfortran.mpi.exe inputs_2d
-\end{verbatim}
+\end{lstlisting}
 To run in parallel, if you have MPI on your machine, instead type, for example,
-\begin{verbatim}
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
 mpiexec -n 4 ./main.Linux.gfortran.mpi.exe inputs_2d
-\end{verbatim}
+\end{lstlisting}
 In the parallel case,you should see the following on your screen at the beginning
-\begin{verbatim}
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
 MPI initialized with            4  MPI processes
 MPI initialized with            1  threads
-\end{verbatim}
+\end{lstlisting}
 The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, in the run directory.
 You can open these using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/}) by opening
 the {\tt Header} file within the plotfile directory.  (For the {\tt VisIt} novice, after you open the {\tt Header}

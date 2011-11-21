@@ -22,6 +22,27 @@
 \raggedright\tiny\sffamily
 \hrule\smallskip{\color{red}#1}\par\smallskip\hrule}}
 
+% special colors and definitions for framing source code listings
+\usepackage{listings}
+
+\definecolor{AntiqueWhite3}{rgb}{0.804,0.753,0.69}
+\definecolor{DarkerAntiqueWhite3}{rgb}{0.659,0.635,0.612}
+\definecolor{orange}{rgb}{1.0,0.65,0.0}
+
+\lstset{%
+  keywordstyle=\color{blue}\ttfamily,%
+  commentstyle=\itshape\color[gray]{0.5},%
+  mathescape=true,%
+  basicstyle=\small\ttfamily,%
+  frameround=fttt,%
+  frame=shadowbox,%
+  rulesepcolor=\color{DarkerAntiqueWhite3},%
+  backgroundcolor=\color{AntiqueWhite3},%
+  emph={load,add_slice,save}, emphstyle=\color{blue},%
+  emph={[2]In}, emphstyle=[2]\color{yellow},%
+  emph={[3]Out}, emphstyle=[3]\color{orange},%
+  mathescape=false}
+
 \title{\Huge \bf \BoxLib\ User's Guide}
 
 \begin{document}
