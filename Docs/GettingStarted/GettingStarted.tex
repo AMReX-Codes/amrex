@@ -1,16 +1,17 @@
 We now proceed through a series of tutorial applications of increasing complexity
 to help understand how to write your own application.  Any of these examples
-can be used as starting points for your own application.  Each of the examples
+can be used as a starting point for your own application.  Each of the examples
 will be presented in Fortran90 and C++.  The examples are contained in the \BoxLib\
 release found at {\tt https://ccse.lbl.gov/pub/BoxLib/}.
 
 \section{Diffusion Equation - Fortran90}
-Our first example, contained in {\tt BoxLib/Tutorials/WaveEquation\_F}, advances the equations
+Our first example, contained in {\tt BoxLib/Tutorials/WaveEquation\_F/}, advances the 
+equations
 \begin{eqnarray}
 \frac{\partial\phi_1}{\partial t} &=& \phi_2, \\
 \frac{\partial\phi_2}{\partial t} &=& \nabla^2\phi_1,
 \end{eqnarray}
-on a domain from $[-1,-1,-1]$ to $[1,1,1]$ (in 3D; analogous in 2D) with initial conditions
+on a domain from -1 to 1 in each spatial direction with initial conditions
 \begin{eqnarray}
 \phi_1(t=0) &=& 0 \\
 \phi_2(t=0) &=& e^{-100r^2},
