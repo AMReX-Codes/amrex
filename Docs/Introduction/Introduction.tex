@@ -125,12 +125,23 @@ of either 2 or 4.  The grids are properly nested in the sense that the union
 of grids at level $\ell+1$ is contained in the union of grids at level $\ell$.
 Furthermore, the containment is strict in the sense that, except at physical 
 boundaries, the level $\ell$ grids are large enough to guarantee that there is
-a border at least $n_{\rm proper}$ level $\ell$ cells wide surrounding each level
+a border at least $n_{\rm buffer}$ level $\ell$ cells wide surrounding each level
 $\ell +1$ grid (grids at all levels are allowed to extend to the physical
-boundaries so the proper nesting is not strict there).
+boundaries so the proper nesting is not strict there).  See Figure \ref{fig:AMR}
+for a sample two-dimensional grid structure.
 As discussed earlier, the grids are distributed to processors in
 a fashion designed to put roughly equal amounts of work on each
 processor (load balancing).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[tb]
+\centering
+\includegraphics[width=6in]{./Introduction/AMR}
+\caption{\label{fig:AMR}Sample grid structure with two levels of refinement.  These
+grids satisfy the requirements that the base grid covers the entire computational domain 
+and the grids are properly nested.  Note that refined grids are allowed to extend to the
+domain boundary without coarser buffer cells.}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 On a grid, the data can be stored at cell-centers, faces, edges, or
 corners (often called nodes).  In \BoxLib, data that is on an face is termed `nodal'
