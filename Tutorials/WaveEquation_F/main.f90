@@ -85,14 +85,14 @@ program main
   ! the grid spacing is the same in each direction
   dx = (prob_hi(1)-prob_lo(1)) / n_cell
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! initialize the boxarray to be one single box
-  call build(ba,bx)
+  call boxarray_build_bx(ba,bx)
+
   ! overwrite the boxarray to respect max_grid_size
   call boxarray_maxsize(ba,max_grid_size)
 
   ! build the layout, la
-  call build(la,ba,pmask=is_periodic)
+  call layout_build_ba(la,ba,pmask=is_periodic)
 
   ! build multifab with 2 components and 6 ghost cells
   call multifab_build(data,la,2,6)
