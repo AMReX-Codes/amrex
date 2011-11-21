@@ -3,13 +3,13 @@ EPStoPDF = epstopdf
 ALL: UsersGuide.ps UsersGuide.pdf 
 
 eps_source = $(wildcard Preface/*.eps) \
-	     $(wildcard Overview/*.eps) \
+	     $(wildcard Introduction/*.eps) \
 	     $(wildcard GettingStarted/*.eps)
 
 pdf_source = $(eps_source:.eps=.pdf)
 
 section_sources = Preface/Preface.tex \
-                  Overview/Overview.tex \
+                  Introduction/Introduction.tex \
                   GettingStarted/GettingStarted.tex
 
 UsersGuide.dvi: UsersGuide.tex $(eps_source) $(section_sources) $(eps_source) 

@@ -1,10 +1,10 @@
 We now proceed through a series of tutorial applications of increasing complexity
 to help understand how to write your own application.  Any of these examples
 can be used as starting points for your own application.  Each of the examples
-will be presented in fortran and C++.  The examples are contained in the \BoxLib\
+will be presented in Fortran90 and C++.  The examples are contained in the \BoxLib\
 release found at {\tt https://ccse.lbl.gov/pub/BoxLib/}.
 
-\section{Diffusion Equation - Fortran}
+\section{Diffusion Equation - Fortran90}
 Our first example, contained in {\tt BoxLib/Tutorials/WaveEquation\_F}, advances the equations
 \begin{eqnarray}
 \frac{\partial\phi_1}{\partial t} &=& \phi_2, \\
@@ -70,7 +70,7 @@ List of local files needed to be included in the build.  The {\tt GNUmakefile} p
 
 Source code that is not within the {\tt BoxLib/Src/} tree.  Note: if a file that exists in the
 {\tt BoxLib/Src/} tree also exists in the local directory, the local copy takes precedence.
-{\tt main.f90} is the driver program that calls subroutines from the other fortran90 files.
+{\tt main.f90} is the driver program that calls subroutines from the other Fortran90 files.
 
 \item {\tt inputs\_2d}, {\tt inputs\_3d}
 
