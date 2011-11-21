@@ -1,6 +1,5 @@
 
 #include <winstd.H>
-#include <cmath>
 #include <iostream>
 
 #include <CoordSys.H>
