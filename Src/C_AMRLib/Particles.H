@@ -301,7 +301,12 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
     m_particles.resize(m_amr->finestLevel()+1);
 
-    int howmany = 0;
+    int howmany      = 0;
+    int howmany_read = 0;
+
+    int Nrepx = 1;
+    int Nrepy = 1;
+    int Nrepz = 1;
 
     if (MyProc < NReaders)
     {
@@ -396,7 +401,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
                 if (!ParticleBase::Where(p,m_amr))
                 {
-                    std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
+                    std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
 
                     for (int d = 0; d < BL_SPACEDIM; d++)
                     {
@@ -413,23 +418,77 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
             m_particles[p.m_lev][p.m_grid].push_back(p);
 
             howmany++;
+            howmany_read++;
+
+            for (int repz = 1; repz <= Nrepz; repz++) 
+               for (int repy = 1; repy <= Nrepy; repy++) 
+                  for (int repx = 1; repx <= Nrepx; repx++) 
+                  {
+                     if (!( (repx == 1) && (repy == 1) && (repz == 1) ) )
+                     {
+                        ParticleType p_rep;
+
+                        // Shift the position
+                        p_rep.m_pos[0] = p.m_pos[0] + float(repx-1)*(geom.ProbHi(0) - geom.ProbLo(0));
+                        p_rep.m_pos[1] = p.m_pos[1] + float(repy-1)*(geom.ProbHi(1) - geom.ProbLo(1));
+                        p_rep.m_pos[2] = p.m_pos[2] + float(repz-1)*(geom.ProbHi(2) - geom.ProbLo(2));
+   
+                        // Copy the mass and velocity
+                        for (int n = 0; n < extradata; n++)
+                           p_rep.m_data[n] = p.m_data[n];
+
+                        if (!ParticleBase::Where(p_rep,m_amr))
+                        {
+                            ParticleBase::PeriodicShift(p_rep,m_amr);
+                            if (!ParticleBase::Where(p_rep,m_amr))
+                            {
+                                std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
+                                BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid replicated particle");
+                            }
+                        }
+   
+                        // Increment the particle ID
+                        p_rep.m_id  = ParticleBase::NextID();
+   
+                        // Assign to the same processor for now
+                        p_rep.m_cpu = MyProc;
+   
+                        m_particles[p.m_lev][p.m_grid].push_back(p_rep);
+   
+                        howmany++;
+                     }
+                  }
         }
     }
     //
     // Let Redistribute() sort'm out.
     //
+
     Redistribute(true);
+
     //
     // Add up all the particles read in on each processor to get the total number of particles.
     //
     if (m_verbose > 0)
     {
         int num_particles = howmany; 
-
         ParallelDescriptor::ReduceIntSum(num_particles, ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Total number of particles: " << num_particles << std::endl;
+        if (Nrepx == 1 && Nrepy == 1 && Nrepz == 1) 
+        {
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "Total number of particles: " << num_particles << std::endl;
+        }
+        else
+        {
+            int num_particles_read = howmany_read; 
+            ParallelDescriptor::ReduceIntSum(num_particles_read, ParallelDescriptor::IOProcessorNumber());
+            if (ParallelDescriptor::IOProcessor())
+            {
+                std::cout << "Total number of particles read in          : " << num_particles_read << std::endl;
+                std::cout << "Total number of particles after replication: " << num_particles      << std::endl;
+            }
+        }
     }
 
     BL_ASSERT(OK());
@@ -442,8 +501,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "InitFromAsciiFile() time: " << runtime << std::endl;
+        if (ParallelDescriptor::IOProcessor()) std::cout << "InitFromAsciiFile() time: " << runtime << std::endl;
     }
 }
 
@@ -2427,6 +2485,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         {
             int   grid = pmap_it->first;
             PBox& pbox = pmap_it->second;
+
             //
             // Remove any invalid particles from front of container.
             //
