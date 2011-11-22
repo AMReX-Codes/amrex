@@ -243,12 +243,11 @@ call multifab_destroy(data)      ! free up memory to prevent leaks
 In C++, using the \BoxArray\ built above, you could either build a \MultiFab, 
 or a pointer to a \MultiFab:
 \begin{lstlisting}[language={[gnu]make},mathescape=false]
-MultiFab data(ba,2,6);                     // build a MultiFab
-MultiFab* data_ptr = new MultiFab(ba,2,6); // build pointer to MultiFab
+MultiFab* data = new MultiFab(ba,2,6);     // build pointer to MultiFab
 
 ...                                        // do fun stuff with the data
 
-delete data_ptr;                           // free up memory
+delete data;                               // free up memory
 \end{lstlisting}
 
 \subsection{Accessing Data}
@@ -304,8 +303,82 @@ subroutine work_on_data_2d(data, ng, nc, lo, hi)
 end subroutine work_on_data_2d
 \end{lstlisting}
 
+In C++:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+#if    defined(BL_FORT_USE_UPPERCASE)
+#define FORT_WORK_ON_DATA            WORK_ON_DATA
+#elif  defined(BL_FORT_USE_LOWERCASE)
+#define FORT_WORK_ON_DATA            work_on_data
+#elif  defined(BL_FORT_USE_UNDERSCORE)
+#define FORT_WORK_ON_DATA            work_on_data_
+#endif
+
+extern "C"
+{
+    void FORT_WORK_ON_DATA (
+        Real* data, const int* Ncomp, const int* ng,
+        const int* lo, const int* hi);
+}
+
+int main()
+{
+  int Ncomp = 2, Nghost = 6;
+
+  ...    // build pointer to MultiFab* data as described above
+  
+  // MFIter is a ``MultiFab Iterator'' that essentially
+  // loops over grids
+  for ( MFIter mfi(*data); mfi.isValid(); ++mfi )
+  {
+    const Box& bx = mfi.validbox();
+    FORT_WORK_ON_DATA((*data)[mfi].dataPtr(),
+                      bx.loVect(), bx.hiVect(), &Ncomp, &Nghost);
+  }
+  // fill periodic domain boundary and neighboring grid ghost cells
+  data->FillBoundary();
+}
+\end{lstlisting}
+The {\tt FORT\_WORK\_ON\_DATA} calls a Fortran90 subroutine which is nearly
+identical to the example given above.  The only difference is the subroutine
+name cannot have the \_2d or \_3d in its name.  Thus, the 2d and 3d versions
+are both named {\tt subroutine work\_on\_data}, and must be written in
+different .f90 files.
+
+
 \subsection{Other \MultiFab\ Functions}
-setval, copy, plus/minus/mult/div
+{\tt setVal} is a simple subroutine that sets the \MultiFab\ data to a particular value.
+In Fortran90, use:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+! set all variables to 0.0; ``all=.true.'' means set the ghost cells also
+call setval(data,0.d0,all=.true.)
+\end{lstlisting}
+In C++, use:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+data->setVal(0.0);  // set all variables to 0.0, including ghost cells
+\end{lstlisting}
+{\tt copy} is a simple subroutine that copies data from one \MultiFab\ to another.
+In Fortran90, use:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+! copy components 1 and 2 from data_src into data_dest, 
+! including the ghost cells. calling sequence is 
+! (1) destination multifab, (2) first component of destination, 
+! (3) source multifab, ! (4) first component of source, 
+! (5) number of components, (6) ghost cells
+call multifab_copy_c(data_dest,1,data_src,1,2,6)
+\end{lstlisting}
+In C++, use:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+// copy components 0 and 1 from data_src into data_dest, 
+// including the ghost cells. calling sequence is 
+// (1) destination multifab, (2) source multifab, 
+// (3) first component of destination, (4) first component of source, 
+// (5) number of components, (6) ghost cells
+MultiFab::Copy(data_dest,data_src,0,0,2,6)
+\end{lstlisting}
+There are many other subroutines available for adding, subtracting, multiplying, etc.,
+components of \MultiFab s, finding the min/max value, norms, number of cells, etc.
+Refer to {\tt BoxLib/Src/F\_BaseLib/multifab\_f.f90} or 
+{\tt BoxLib/Src/C\_BaseLib/MultiFab.H} for a complete listing.
 
 \section{Simple Example - Fortran90}
 We now present a complete sample code that uses the concepts discussed up to this point.
