@@ -1,10 +1,228 @@
-We now proceed through a series of tutorial applications of increasing complexity
-to help understand how to write your own application.  Any of these examples
-can be used as a starting point for your own application.  Each of the examples
-will be presented in Fortran90 and C++.  The examples are contained in the \BoxLib\
-release found at {\tt https://ccse.lbl.gov/pub/BoxLib/}.
+We now give an overview of common data structures used in \BoxLib, followed by a simple
+example written in both Fortran90 and C++ that makes use of these structures.
 
-\section{Wave Equation - Fortran90}
+\section{Overview of Data Structures}
+
+\BoxLib\ contains the most fundamental objects used to construct parallel
+block-structured AMR applications.
+At each level of refinement, the region covered by that level is divided
+into grids, or boxes.  The entire computational domain is covered by
+the coarsest (base) level of refinement (called level $\ell=0$ in C++ \BoxLib\ 
+and called level $\ell=1$ in Fortran90 \BoxLib) and can be represented on one
+grid or divided into many grids.
+Higher levels of refinement have cells that are finer by a ``refinement ratio''
+of either 2 or 4.  The grids are properly nested in the sense that the union 
+of grids at level $\ell+1$ is contained in the union of grids at level $\ell$.
+Furthermore, the containment is strict in the sense that, except at physical 
+boundaries, the level $\ell$ grids are large enough to guarantee that there is
+a border at least $n_{\rm buffer}$ level $\ell$ cells wide surrounding each level
+$\ell +1$ grid (grids at all levels are allowed to extend to the physical
+boundaries so the proper nesting is not strict there).  See Figure \ref{fig:AMR}
+for a sample two-dimensional grid structure.
+As discussed earlier, the grids are distributed to processors in
+a fashion designed to put roughly equal amounts of work on each
+processor (load balancing).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[tb]
+\centering
+\includegraphics[width=6in]{./Introduction/AMR}
+\caption{\label{fig:AMR}Sample grid structure with two levels of refinement.  These
+grids satisfy the requirements that the base grid covers the entire computational domain 
+and the grids are properly nested.  Note that refined grids are allowed to extend to the
+domain boundary without coarser buffer cells.}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+On a grid, the data can be stored at cell-centers, faces, edges, or
+corners (often called nodes).  In \BoxLib, data that is on an face is termed `nodal'
+in that direction (see Figure~\ref{fig:dataloc}).  Data that is on the
+corners is nodal in all spatial directions.  In three-dimensional problems, data
+that is nodal in exactly two directions lies on edges.
+\BoxLib\ uses $0$-based indexing, and for nodal data, the integer index
+corresponds to the lower boundary in that direction.
+In our \BoxLib\ applications, the state data (velocity, density, 
+species, $\ldots$) is generally cell-centered.  Fluxes are typically nodal a
+single direction.  A few quantities are nodal in all directions 
+(e.g.~the pressure in the low Mach number projection methods).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[tb]
+\centering
+\includegraphics[width=6.5in]{./Introduction/data_loc2}
+\caption{\label{fig:dataloc} Some of the different data-centerings in two dimensions:
+(a) cell-centered, (b) nodal in the $x$-direction only, and (c) nodal in
+both the $x$- and $y$-directions.  Note that for nodal data, the
+integer index corresponds to the lower boundary in that direction.
+In each of these centerings, the red point has the same indices:\ (1,2).
+Not shown is the case where data is nodal in the $y$-direction only.  
+Also note that \BoxLib\ uses $0$-based indexing.}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Note that when a C++ \BoxLib\ application is compiled and linked,
+the number of spatial dimensions (1, 2, or 3), {\tt DIM},
+of the code must be specified.  The code that will be
+built is specifically designed to run only with that number of dimensions.
+This is unlike the Fortran90 \BoxLib\ data structures in which we build
+dimension-independent code at compile-time.
+
+To simplify the description of the underlying AMR grid, \BoxLib\
+provides a number of classes.  We now briefly summarize some of the major
+classes.
+
+\subsection{\IntVect}
+
+\IntVect s are {\tt DIM}-tuples of integers that are used to define
+indices in space.  In C++ \BoxLib\, an example of an \IntVect\ in 2D would be
+
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+IntVect iv(3,5);
+\end{lstlisting}
+In Fortran90 \BoxLib\, we don't use \IntVect\ s, but instead use standard
+arrays of integers:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+integer :: iv(2)
+iv(1) = 3
+iv(2) = 5
+\end{lstlisting}
+
+\subsection{\BoxType}
+
+A \BoxType\ is simply a rectangular domain in space and does not hold any data.
+A \BoxType\ contains the indices of its low end and high end, 
+{\tt IntVect lo} and {\tt IntVect hi}.  In C++ \BoxLib, a \BoxType\ also
+contains an {\tt IndexType} (cell-centered, face-centered, or nodal) for each
+dimension.  In Fortran90 \BoxLib, a \BoxType\ also contains the dimensionality 
+of the \BoxType.  To build a \BoxType\ in C++ \BoxLib\ use:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+IntVect iv_lo(0,0);
+IntVect iv_hi(15,15);
+Box bx(iv_lo,iv_hi);
+\end{lstlisting}
+To build a \BoxType\ in Fortran90 \BoxLib\ use:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+type(box) :: bx
+integer   :: iv_lo(2), iv_hi(2)
+iv_lo(1:2) = 0
+iv_hi(1:2) = 15
+bx = make_box(lo,hi)
+\end{lstlisting}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[tb]
+\centering
+\includegraphics[width=4.0in]{./Introduction/index_grid2}
+\caption{\label{fig:boxes} Three boxes that comprise a single level.
+At this resolution, the domain is 16$\times$16 cells.}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The computational domain is divided into non-overlapping grids.  The collection of
+grids at the same resolution comprise a level.
+Figure~\ref{fig:boxes} shows three grids at the same level of
+refinement.  The position of the grids is with respect to a global
+index space at that level, and uses 0-based indexing.
+For example, the \BoxType\ associated with grid 1 
+in the figure has {\tt lo} = (2,6) and {\tt hi} = (5,13).
+The global index space covers the entire domain at a given resolution.
+For a simulation setup with 32 cells in each direction,
+the coarsest level has $32 \times 32$ zones, and the
+global index space will run from 0 to 31 in each coordinate
+direction.  The next finer level will have a global index space running from 
+0 to 63 in each coordinate direction (corresponding to $64 \times
+64$ zones if fully refined), and the next finer level will have a global index
+space running from 0 to 127 in each coordinate direction
+(corresponding to $128\times 128$ zones if fully refined).
+
+In C++ \BoxLib, for a 
+\BoxType\ {\tt bx}, you can access the indices using
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+IntVect iv_lo = bx.smallEnd(); // for grid 1 above this would return (2,6)
+IntVect iv_hi = bx.bigEnd();   // for grid 1 above this would return (5,13)
+\end{lstlisting}
+In Fortran90 \BoxLib, for a {\tt type(box)::bx}, you can access the indices using
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+integer :: iv_lo(2), iv_hi(2)
+iv_lo(1:2) = bx%lo(1:2)  ! for grid 1 above this would return (2,6)
+iv_hi(1:2) = bx%hi(1:2)  ! for grid 1 above this would return (5,13)
+\end{lstlisting}
+
+\subsection{\BoxArray}
+
+A \BoxArray\ is an array of \BoxType es.   The size of the array is the 
+number of \BoxType es in the \BoxArray.
+Suppose you have a \BoxType\ {\tt bx} with lo indices (0,0) and hi indices (15,15).
+In C++ \BoxLib, you could first initialize a \BoxArray\ to have that single box, and then
+chop up the domain so that your \BoxArray\ contains 4 8$\times$ 8 \BoxType\ es using:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+BoxArray bx(domain);
+ba.maxSize(8);
+\end{lstlisting}
+The analogous code in Fortran90 \BoxLib\ is
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+type(boxarray) :: ba
+call boxarray_build_bx(ba,bx)
+call boxarray_maxsize(ba,8)
+\end{lstlisting}
+
+\subsection{\layout\ (Fortran90 Only)}
+
+A \layout\ is a more intelligent \BoxArray, since it contains a \BoxArray\ as well
+as the associated processor assignments, \BoxType\ connectivity, and many other
+parallel constructs.  In the simplest case, if we have a \BoxArray\ {\tt ba}, a 
+\layout\ can be defined using:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+type(layout) :: la
+call layout_build_ba(la,ba)
+\end{lstlisting}
+In C++ \BoxLib, the information that is contained in the Fortran90 \layout\ is part of
+the \MultiFab\ class.
+
+\subsection{\FArrayBox}
+
+A \FArrayBox\ (or \Fab) is a ``Fortran array box'' that holds data.  It contains the
+\BoxType\ that it is built on as well as a pointer to the data 
+that can be sent to a Fortran routine.
+In Fortran90 \BoxLib, \Fab\ data is stored in a four-dimensional array,
+{\tt (nx,ny,nz,nc)} in size, regardless of the dimensionality of the
+problem.  Here {\tt nc} is the number of components, for instance
+representing different fluid variables.  For 2D problems, {\tt nz=1}.
+
+In \BoxLib, we don't usually deal with 
+\Fab s alone, but rather through \MultiFab s, described next.
+
+\section{The \MultiFab}
+\MultiFab s are so important that we will give them their own section.
+A \MultiFab\ is a collection of all the \Fab s at the same level of
+refinement.  In C++ \BoxLib, a \MultiFab\ is defined using a \BoxArray,
+number of components, and number of ghost cells that each \Fab\
+will have.  In Fortran90 \BoxLib, a \MultiFab\ is defined using a \layout,
+number of components, and a number of ghost cells.
+A \MultiFab\ has a ``valid'' region that is defined by 
+the \BoxArray.  Each \Fab\ in the \MultiFab\ is built large enough 
+to hold valid data and ghost cell data, and thus the \BoxType\ associated with
+each \Fab\ is a grown version of the corresponding \BoxType\ from the \BoxArray.
+Thus, a \Fab\ has no concept 
+of ghost cells, it merely has a single \BoxType\ that identifies it.  
+In C++ \BoxLib, if we have a \BoxArray {\tt ba}, then we could define a 
+\MultiFab\ as:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+MultiFab mf(ba,2,1);
+\end{lstlisting}
+In Fortran90 \BoxLib, if we have a \layout\ {\tt la}, then we could define
+a \MultiFab\ as:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+type(multifab) :: mf
+call multifab_build(mf,la,2,1)
+\end{lstlisting}
+In each case, the \MultiFab\ has two components of data and each \Fab\ in the \MultiFab\ 
+contains ghost cells one row wide in all directions outside the box from the \BoxArray.
+
+We now describe some of the most common \MultiFab\ operations.
+\subsection{Accessing Data}
+
+\subsection{Global Functions}
+setval, copy, plus/minus/mult/div, fillboundary
+
+\section{Simple Example - Fortran90}
 Our first example, contained in {\tt BoxLib/Tutorials/WaveEquation\_F/}, advances the 
 equations
 \begin{eqnarray}
@@ -36,34 +254,36 @@ This contains compiler settings and directories required by the make system to b
     Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
     as an environment variables on your system.
 
-    \item {\tt NDEBUG}
+    \item {\tt NDEBUG} ('{\tt t}' or '{\tt f}')
       
-    ``Not Debug'' (we know, confusing).  If 't', modifies compiler flags to build a more optimized version
-    of the code.
+    ``not debug'' (we know, confusing).  If '{\tt t}', modifies compiler flags to build a 
+    more optimized version of the code.  The program will run faster, but have fewer 
+    runtime error checks.
 
-    \item {\tt MPI}
+    \item {\tt MPI} ('{\tt t}' or '{\tt f}')
 
-    Indicate whether you want your executable to be MPI-compatible.  In general there is no reason to turn this
-    off since you can still run the resulting executable serially.
+    Indicate whether you want your executable to be MPI-compatible.  MPI must be installed on your
+    machine in order to use this.
 
-    \item {\tt OMP}
+    \item {\tt OMP} ('{\tt t}' or '{\tt f}')
 
     Turns on OpenMP compiler flags.  Note that you still must write OpenMP directives into your code.
 
-    \item {\tt PROF}
+    \item {\tt PROF} ('{\tt t}' or '{\tt f}')
 
     Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
     what subroutines are taking the most time and require more optimization.  Note that you still have 
     to write timers into your code.
 
-    \item {\tt COMP}
+    \item {\tt COMP} ('{\tt gfortran}, {\tt Intel}, $\ldots$)'
 
-    The Fortran compiler.  Supported options include gfortran, Intel, PathScale, and PGI.  gfortran seems to 
-    be bug-free on all systems we've run on.  Intel after version 9 seems flaky.  PathScale (available at 
-    OLCF and NERSC) seems to work as long as you don't turn the optimization flags too high.  PGI seems to 
-    work fine, but is slower than the others.
+    The Fortran compiler.  Supported options include {\tt gfortran}, {\tt Intel}, {\tt PathScale}, and 
+    {\tt PGI}.  The {\tt gfortran} compiler seems to 
+    be bug-free on all systems we've run on.  {\tt Intel} after version 9 seems flaky.  {\tt PathScale} 
+    (available at OLCF and NERSC) seems to work as long as you don't turn the optimization flags too high.
+    {\tt PGI} (available at OLCF and NERSC) seems to work fine, but is slower than the others.
 
-    \item {\tt MKVERBOSE}
+    \item {\tt MKVERBOSE} ('{\tt t}' or '{\tt f}')
 
     Verbosity of compile-time output.
 
@@ -88,23 +308,14 @@ Inputs files to customize the simulation parameters.
 To build the code, simply type ``make''.  An exectubale will appear that has some indication (but not complete)
 about what setting you used in the {\tt GNUmakefile}.  To run the code serially, simply type, for example,
 \begin{lstlisting}[language={[gnu]make},mathescape=false]
-./main.Linux.gfortran.mpi.exe inputs_2d
-\end{lstlisting}
-To run in parallel, if you have MPI on your machine, instead type, for example,
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
-mpiexec -n 4 ./main.Linux.gfortran.mpi.exe inputs_2d
-\end{lstlisting}
-In the parallel case,you should see the following on your screen at the beginning
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
-MPI initialized with            4  MPI processes
-MPI initialized with            1  threads
+./main.Linux.gfortran.exe inputs_2d
 \end{lstlisting}
 The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, in the run directory.
 You can open these using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/}) by opening
 the {\tt Header} file within the plotfile directory.  (For the {\tt VisIt} novice, after you open the {\tt Header}
 file, select ``Add'' $\rightarrow$ ``Pseudocolor'' $\rightarrow$ ``Variable 2'' and then click ``Draw''.)
 
-\section{Wave Equation - C++}
+\section{Simple Example - C++}
 
 \begin{itemize}
 \item {\tt GNUmakefile}
@@ -118,48 +329,51 @@ This contains compiler settings and directories required by the make system to b
     Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
     as an environment variables on your system.
 
-    \item {\tt DEBUG}
+    \item {\tt DEBUG} ('{\tt TRUE}' or '{\tt FALSE}')
       
     Debug mode.  If 'FALSE', modifies compiler flags to build a more optimized version of the code.
+    The program will run faster, but have fewer runtime error checks.
 
-    \item {\tt USE\_MPI}
+    \item {\tt USE\_MPI} ('{\tt TRUE}' or '{\tt FALSE}')
 
-    Indicate whether you want your executable to be MPI-compatible.  In general there is no reason to turn this
-    off since you can still run the resulting executable serially.
+    Indicate whether you want your executable to be MPI-compatible.  MPI must be installed on your
+    machine in order to use this.
 
-    \item {\tt USE\_OMP}
+    \item {\tt USE\_OMP} ('{\tt TRUE}' or '{\tt FALSE}')
 
     Turns on OpenMP compiler flags.  Note that you still must write OpenMP directives into your code.
 
-    \item {\tt PROFILE}
+    \item {\tt PROFILE} ('{\tt TRUE}' or '{\tt FALSE}')
 
     Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
     what subroutines are taking the most time and require more optimization.  Note that you still have 
     to write timers into your code.
 
-    \item {\tt COMP}
+    \item {\tt COMP} ('{\tt g++}, {\tt Intel}, $\ldots$)'
 
-    The C++ compiler.  Supported options include g++, Intel, PathScale, and PGI.  g++ seems to be bug-free
-    on all systems we've run on.  Intel after version 9 seems flaky.  PathScale (available at OLCF and NERSC)
-    seems to work as long as you don't turn the optimization flags too high.  PGI seems to work fine, but
-    is slower than the others.
+    The C++ compiler.  Supported options include {\tt g++}, {\tt Intel}, {\tt PathScale}, and 
+    {\tt PGI}.  The {\tt g++} compiler seems to 
+    be bug-free on all systems we've run on.  {\tt Intel} after version 9 seems flaky.  {\tt PathScale} 
+    (available at OLCF and NERSC) seems to work as long as you don't turn the optimization flags too high.
+    {\tt PGI} (available at OLCF and NERSC) seems to work fine, but is slower than the others.
 
-    \item {\tt FCOMP}
+    \item {\tt FCOMP} ('{\tt gfortran}, {\tt Intel}, $\ldots$)'
 
-    The Fortran compiler.  Supported options include gfortran, Intel, PathScale, and PGI.  gfortran seems to 
-    be bug-free on all systems we've run on.  Intel after version 9 seems flaky.  PathScale (available at 
-    OLCF and NERSC) seems to work as long as you don't turn the optimization flags too high.  PGI seems to 
-    work fine, but is slower than the others.
+    The Fortran compiler.  Supported options include {\tt gfortran}, {\tt Intel}, {\tt PathScale}, and 
+    {\tt PGI}.  The {\tt gfortran} compiler seems to 
+    be bug-free on all systems we've run on.  {\tt Intel} after version 9 seems flaky.  {\tt PathScale} 
+    (available at OLCF and NERSC) seems to work as long as you don't turn the optimization flags too high.
+    {\tt PGI} (available at OLCF and NERSC) seems to work fine, but is slower than the others.
 
-    \item {\tt DIM}
+    \item {\tt DIM} (1', '2', or '3')
 
     Dimensionality of the problem.  Unlike Fortran90 \BoxLib, you need to set this in the C++ version.
 
-    \item {\tt PRECISION}
+    \item {\tt PRECISION} ('{\tt DOUBLE}' or '{\tt FLOAT}')
 
-    Precision of real numbers.
+    Precision of real numbers.  You can use {\tt FLOAT} for single-precision real numbers to save memory.
 
-    \item {\tt EBASE}
+    \item {\tt EBASE} ('{\tt main}', $\ldots$)
 
     The executable string will begin with this.
 
@@ -185,15 +399,7 @@ Inputs files to customize the simulation parameters.
 To build the code, simply type ``make''.  An exectubale will appear that has some indication (but not complete)
 about what setting you used in the {\tt GNUmakefile}.  To run the code serially, simply type, for example,
 \begin{lstlisting}[language={[gnu]make},mathescape=false]
-./main2d.Linux.g++.gfortran.MPI.ex inputs_2d
-\end{lstlisting}
-To run in parallel, if you have MPI on your machine, instead type, for example,
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
-mpiexec -n 4 ./main2d.Linux.g++.gfortran.MPI.ex inputs_2d
-\end{lstlisting}
-In in either case,you should see the following on your screen at the beginning
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
-MPI initialized with 4 MPI processes
+./main2d.Linux.g++.gfortran.ex inputs_2d
 \end{lstlisting}
 The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, in the run directory.
 You can open these using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/}) by opening
