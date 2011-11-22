@@ -1,5 +1,6 @@
 We now give an overview of common data structures used in \BoxLib, followed by a simple
 example written in both Fortran90 and C++ that makes use of these structures.
+The example advances variables in time on multiple grids (no AMR) and produces plotfiles.
 
 \section{Overview of Data Structures}
 
@@ -25,7 +26,7 @@ processor (load balancing).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[tb]
 \centering
-\includegraphics[width=6in]{./Introduction/AMR}
+\includegraphics[width=6.5in]{./Introduction/AMR}
 \caption{\label{fig:AMR}Sample grid structure with two levels of refinement.  These
 grids satisfy the requirements that the base grid covers the entire computational domain 
 and the grids are properly nested.  Note that refined grids are allowed to extend to the
@@ -107,18 +108,12 @@ iv_hi(1:2) = 15
 bx = make_box(lo,hi)
 \end{lstlisting}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{figure}[tb]
-\centering
-\includegraphics[width=4.0in]{./Introduction/index_grid2}
-\caption{\label{fig:boxes} Three boxes that comprise a single level.
-At this resolution, the domain is 16$\times$16 cells.}
-\end{figure}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The computational domain is divided into non-overlapping grids.  The collection of
-grids at the same resolution comprise a level.
+The computational domain is divided into non-overlapping grids.  
+The collection of grids at the same resolution comprise a level.
 Figure~\ref{fig:boxes} shows three grids at the same level of
-refinement.  The position of the grids is with respect to a global
+refinement.  Note that this figure cannot represent the base level of refinement,
+since it would required that the grids span the problem domain.
+The position of the grids is with respect to a global
 index space at that level, and uses 0-based indexing.
 For example, the \BoxType\ associated with grid 1 
 in the figure has {\tt lo} = (2,6) and {\tt hi} = (5,13).
@@ -131,43 +126,74 @@ direction.  The next finer level will have a global index space running from
 64$ zones if fully refined), and the next finer level will have a global index
 space running from 0 to 127 in each coordinate direction
 (corresponding to $128\times 128$ zones if fully refined).
-
-In C++ \BoxLib, for a 
-\BoxType\ {\tt bx}, you can access the indices using
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
-IntVect iv_lo = bx.smallEnd(); // for grid 1 above this would return (2,6)
-IntVect iv_hi = bx.bigEnd();   // for grid 1 above this would return (5,13)
-\end{lstlisting}
-In Fortran90 \BoxLib, for a {\tt type(box)::bx}, you can access the indices using
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
-integer :: iv_lo(2), iv_hi(2)
-iv_lo(1:2) = bx%lo(1:2)  ! for grid 1 above this would return (2,6)
-iv_hi(1:2) = bx%hi(1:2)  ! for grid 1 above this would return (5,13)
-\end{lstlisting}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[tb]
+\centering
+\includegraphics[width=4.0in]{./Introduction/index_grid2}
+\caption{\label{fig:boxes} Three boxes that comprise a single level.
+At this resolution, the domain is 16$\times$16 cells.}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection{\BoxArray}
 
-A \BoxArray\ is an array of \BoxType es.   The size of the array is the 
-number of \BoxType es in the \BoxArray.
-Suppose you have a \BoxType\ {\tt bx} with lo indices (0,0) and hi indices (15,15).
-In C++ \BoxLib, you could first initialize a \BoxArray\ to have that single box, and then
-chop up the domain so that your \BoxArray\ contains 4 8$\times$ 8 \BoxType\ es using:
+A \BoxArray\ is an array of \BoxType es.  The size of the array is the 
+number of \BoxType es in the \BoxArray.  Suppose your problem domain
+has lo indicies (0,0) and hi indices (15,15), and you want to define
+a \BoxArray\ to contain four 8$^2$ boxes to cover the problem domain.
+In Fortran90, you could do the following:
 \begin{lstlisting}[language={[gnu]make},mathescape=false]
-BoxArray bx(domain);
-ba.maxSize(8);
+integer        :: lo(2), hi(2)
+type(box)      :: bx(4)
+type(boxarray) :: ba
+lo(1) = 0
+lo(2) = 0
+hi(1) = 7
+hi(2) = 7
+bx(1) = make_box(lo,hi)
+lo(1) = 8
+lo(2) = 0
+hi(1) = 15
+hi(2) = 7
+bx(2) = make_box(lo,hi)
+lo(1) = 0
+lo(2) = 8
+hi(1) = 7
+hi(2) = 15
+bx(3) = make_box(lo,hi)
+lo(1) = 8
+lo(2) = 8
+hi(1) = 15
+hi(2) = 15
+bx(4) = make_box(lo,hi)
+call boxarray_build_v(ba,bx)
 \end{lstlisting}
-The analogous code in Fortran90 \BoxLib\ is
+This is rather cumbersome, so instead we use other \BoxLib\ functions to
+build the same \BoxArray:
 \begin{lstlisting}[language={[gnu]make},mathescape=false]
 type(boxarray) :: ba
-call boxarray_build_bx(ba,bx)
-call boxarray_maxsize(ba,8)
+integer        :: lo(2), hi(2)
+type(box)      :: bx
+lo(1:2) = 0
+hi(1:2) = 15
+bx = make_box(lo,hi)
+call boxarray_build_bx(ba,bx)  ! the boxarray has one 16^2 box
+call boxarray_maxsize(ba,8)    ! the boxarray has four 8^2 boxes
+\end{lstlisting}
+The analogous code in C++ is
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+IntVect lo(0,0), hi(15,15);
+Box bx(lo,hi);
+BoxArray ba(bx);  // the BoxArray has one 16^2 box
+ba.maxSize(8);    // the BoxArray has four 8^2 boxes
 \end{lstlisting}
 
 \subsection{\layout\ (Fortran90 Only)}
 
 A \layout\ is a more intelligent \BoxArray, since it contains a \BoxArray\ as well
 as the associated processor assignments, \BoxType\ connectivity, and many other
-parallel constructs.  In the simplest case, if we have a \BoxArray\ {\tt ba}, a 
+parallel constructs.  In the simplest case, if we have a \BoxArray\ {\tt ba} (obtained
+from the example above), a 
 \layout\ can be defined using:
 \begin{lstlisting}[language={[gnu]make},mathescape=false]
 type(layout) :: la
@@ -201,30 +227,93 @@ the \BoxArray.  Each \Fab\ in the \MultiFab\ is built large enough
 to hold valid data and ghost cell data, and thus the \BoxType\ associated with
 each \Fab\ is a grown version of the corresponding \BoxType\ from the \BoxArray.
 Thus, a \Fab\ has no concept 
-of ghost cells, it merely has a single \BoxType\ that identifies it.  
-In C++ \BoxLib, if we have a \BoxArray {\tt ba}, then we could define a 
-\MultiFab\ as:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
-MultiFab mf(ba,2,1);
-\end{lstlisting}
-In Fortran90 \BoxLib, if we have a \layout\ {\tt la}, then we could define
-a \MultiFab\ as:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
-type(multifab) :: mf
-call multifab_build(mf,la,2,1)
-\end{lstlisting}
-In each case, the \MultiFab\ has two components of data and each \Fab\ in the \MultiFab\ 
-contains ghost cells one row wide in all directions outside the box from the \BoxArray.
+of ghost cells, it merely has a single \BoxType\ that identifies it.
 
-We now describe some of the most common \MultiFab\ operations.
+To build a \MultiFab, we require a \layout\ (in Fortran90) or a \BoxArray\ (in C++).
+In Fortran90, using the \layout\ built above, we build a \MultiFab\ using:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+type(multifab) :: data
+call multifab_build(data,la,2,6) ! build the multifab with 2 components 
+                                 ! and 6 ghost cells
+
+...                              ! do fun stuff with the data
+
+call multifab_destroy(data)      ! free up memory to prevent leaks
+\end{lstlisting}
+In C++, using the \BoxArray\ built above, you could either build a \MultiFab, 
+or a pointer to a \MultiFab:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+MultiFab data(ba,2,6);                     // build a MultiFab
+MultiFab* data_ptr = new MultiFab(ba,2,6); // build pointer to MultiFab
+
+...                                        // do fun stuff with the data
+
+delete data_ptr;                           // free up memory
+\end{lstlisting}
+
 \subsection{Accessing Data}
+Here is some sample Fortran90 code to access data within a \MultiFab:
+\begin{lstlisting}[language={[gnu]make},mathescape=false]
+integer                  :: i,dm,ng,nc,lo(2),hi(2)
+type(multifab)           :: data
+real(kind=dp_t), pointer :: dp(:,:,:,:)
 
-\subsection{Global Functions}
-setval, copy, plus/minus/mult/div, fillboundary
+...    ! build multifab data as described above
+
+dm = data%dim   ! dm is dimensionality
+ng = data%ng    ! ng is number of ghost cells
+nc = data%nc    ! nc is number of components
+
+do i=1,nboxes(data)
+   ! if associated fab is not local to processor, then
+   ! 'cycle', i.e., go to the next box
+   if ( multifab_remote(data,i) ) cycle
+   dp => dataptr(data,i)          ! dp points to data inside fab
+   lo = lwb(get_box(data,i))      ! get lo indices of box
+   hi = upb(get_box(data,i))      ! get hi indices of box
+   select case(dm)
+   case (2)
+      call work_on_data_2d(dp(:,:,1,:), ng, nc, lo, hi)
+   case (3)
+      call work_on_data_3d(dp(:,:,:,:), ng, nc, lo, hi)
+    end select
+end do
+
+! fill periodic domain boundary and neighboring grid ghost cells
+call multifab_fill_boundary(data)  
+
+...
+
+subroutine work_on_data_2d(data, ng, nc, lo, hi)
+
+  integer          :: lo(2), hi(2), ng
+  double precision :: data(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,nc)
+
+  ! local variables
+  integer :: i,j,n
+
+  do j=lo(2),h(2)
+     do i=lo(1),hi(1)
+        do n=1,nc
+           ! some silly function I made up
+           data(i,j,n) = (i + j) * n
+        end do
+     end do
+  end do
+
+end subroutine work_on_data_2d
+\end{lstlisting}
+
+\subsection{Other \MultiFab\ Functions}
+setval, copy, plus/minus/mult/div
 
 \section{Simple Example - Fortran90}
-Our first example, contained in {\tt BoxLib/Tutorials/WaveEquation\_F/}, advances the 
-equations
+We now present a complete sample code that uses the concepts discussed up to this point.
+The example also writes plotfiles that can be viewed, and can be run in parallel if you
+are working on a machine with MPI.  The Fortran90 version of this example is contained in 
+{\tt BoxLib/Tutorials/WaveEquation\_F/}.
+
+In this example, we advance the equations:
 \begin{eqnarray}
 \frac{\partial\phi_1}{\partial t} &=& \phi_2, \\
 \frac{\partial\phi_2}{\partial t} &=& \nabla^2\phi_1,
