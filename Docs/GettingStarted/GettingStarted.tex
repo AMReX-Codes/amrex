@@ -8,8 +8,8 @@ The example advances variables in time on multiple grids (no AMR) and produces p
 block-structured AMR applications.
 At each level of refinement, the region covered by that level is divided
 into grids, or boxes.  The entire computational domain is covered by
-the coarsest (base) level of refinement (called level $\ell=0$ in C++ \BoxLib\ 
-and called level $\ell=1$ in Fortran90 \BoxLib) and can be represented on one
+the coarsest (base) level of refinement (called level $\ell=0$ in C++ 
+and called level $\ell=1$ in Fortran90) and can be represented on one
 grid or divided into many grids.
 Higher levels of refinement have cells that are finer by a ``refinement ratio''
 of either 2 or 4.  The grids are properly nested in the sense that the union 
@@ -59,11 +59,11 @@ Also note that \BoxLib\ uses $0$-based indexing.}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Note that when a C++ \BoxLib\ application is compiled and linked,
+Note that when a C++ application is compiled and linked,
 the number of spatial dimensions (1, 2, or 3), {\tt DIM},
 of the code must be specified.  The code that will be
 built is specifically designed to run only with that number of dimensions.
-This is unlike the Fortran90 \BoxLib\ data structures in which we build
+This is unlike the Fortran90 data structures in which we build
 dimension-independent code at compile-time.
 
 To simplify the description of the underlying AMR grid, \BoxLib\
@@ -73,14 +73,13 @@ classes.
 \subsection{\IntVect}
 
 \IntVect s are {\tt DIM}-tuples of integers that are used to define
-indices in space.  In C++ \BoxLib\, an example of an \IntVect\ in 2D would be
-
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+indices in space.  In C++, an example of an \IntVect\ in 2D would be
+\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
 IntVect iv(3,5);
 \end{lstlisting}
-In Fortran90 \BoxLib\, we don't use \IntVect\ s, but instead use standard
+In Fortran90, we don't use \IntVect\ s, but instead use standard
 arrays of integers:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
 integer :: iv(2)
 iv(1) = 3
 iv(2) = 5
@@ -90,22 +89,22 @@ iv(2) = 5
 
 A \BoxType\ is simply a rectangular domain in space and does not hold any data.
 A \BoxType\ contains the indices of its low end and high end, 
-{\tt IntVect lo} and {\tt IntVect hi}.  In C++ \BoxLib, a \BoxType\ also
+{\tt IntVect lo} and {\tt IntVect hi}.  In C++, a \BoxType\ also
 contains an {\tt IndexType} (cell-centered, face-centered, or nodal) for each
-dimension.  In Fortran90 \BoxLib, a \BoxType\ also contains the dimensionality 
-of the \BoxType.  To build a \BoxType\ in C++ \BoxLib\ use:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
-IntVect iv_lo(0,0);
-IntVect iv_hi(15,15);
-Box bx(iv_lo,iv_hi);
-\end{lstlisting}
-To build a \BoxType\ in Fortran90 \BoxLib\ use:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+dimension.  In Fortran90, a \BoxType\ also contains the dimensionality 
+of the \BoxType.  To build a \BoxType\ in Fortran90 use:
+\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
 type(box) :: bx
 integer   :: iv_lo(2), iv_hi(2)
 iv_lo(1:2) = 0
 iv_hi(1:2) = 15
 bx = make_box(lo,hi)
+\end{lstlisting}
+To build a \BoxType\ in C++ use:
+\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
+IntVect iv_lo(0,0);
+IntVect iv_hi(15,15);
+Box bx(iv_lo,iv_hi);
 \end{lstlisting}
 
 The computational domain is divided into non-overlapping grids.  
@@ -140,9 +139,9 @@ At this resolution, the domain is 16$\times$16 cells.}
 A \BoxArray\ is an array of \BoxType es.  The size of the array is the 
 number of \BoxType es in the \BoxArray.  Suppose your problem domain
 has lo indicies (0,0) and hi indices (15,15), and you want to define
-a \BoxArray\ to contain four 8$^2$ boxes to cover the problem domain.
+a \BoxArray\ to contain four $8\times 8$ boxes to cover the problem domain.
 In Fortran90, you could do the following:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
 integer        :: lo(2), hi(2)
 type(box)      :: bx(4)
 type(boxarray) :: ba
@@ -170,7 +169,7 @@ call boxarray_build_v(ba,bx)
 \end{lstlisting}
 This is rather cumbersome, so instead we use other \BoxLib\ functions to
 build the same \BoxArray:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
 type(boxarray) :: ba
 integer        :: lo(2), hi(2)
 type(box)      :: bx
@@ -181,7 +180,7 @@ call boxarray_build_bx(ba,bx)  ! the boxarray has one 16^2 box
 call boxarray_maxsize(ba,8)    ! the boxarray has four 8^2 boxes
 \end{lstlisting}
 The analogous code in C++ is
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
 IntVect lo(0,0), hi(15,15);
 Box bx(lo,hi);
 BoxArray ba(bx);  // the BoxArray has one 16^2 box
@@ -195,11 +194,11 @@ as the associated processor assignments, \BoxType\ connectivity, and many other
 parallel constructs.  In the simplest case, if we have a \BoxArray\ {\tt ba} (obtained
 from the example above), a 
 \layout\ can be defined using:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
 type(layout) :: la
 call layout_build_ba(la,ba)
 \end{lstlisting}
-In C++ \BoxLib, the information that is contained in the Fortran90 \layout\ is part of
+In C++, the information that is contained in the Fortran90 \layout\ is part of
 the \MultiFab\ class.
 
 \subsection{\FArrayBox}
@@ -207,7 +206,7 @@ the \MultiFab\ class.
 A \FArrayBox\ (or \Fab) is a ``Fortran array box'' that holds data.  It contains the
 \BoxType\ that it is built on as well as a pointer to the data 
 that can be sent to a Fortran routine.
-In Fortran90 \BoxLib, \Fab\ data is stored in a four-dimensional array,
+In Fortran90, \Fab\ data is stored in a four-dimensional array,
 {\tt (nx,ny,nz,nc)} in size, regardless of the dimensionality of the
 problem.  Here {\tt nc} is the number of components, for instance
 representing different fluid variables.  For 2D problems, {\tt nz=1}.
@@ -218,9 +217,9 @@ In \BoxLib, we don't usually deal with
 \section{The \MultiFab}
 \MultiFab s are so important that we will give them their own section.
 A \MultiFab\ is a collection of all the \Fab s at the same level of
-refinement.  In C++ \BoxLib, a \MultiFab\ is defined using a \BoxArray,
+refinement.  In C++, a \MultiFab\ is defined using a \BoxArray,
 number of components, and number of ghost cells that each \Fab\
-will have.  In Fortran90 \BoxLib, a \MultiFab\ is defined using a \layout,
+will have.  In Fortran90, a \MultiFab\ is defined using a \layout,
 number of components, and a number of ghost cells.
 A \MultiFab\ has a ``valid'' region that is defined by 
 the \BoxArray.  Each \Fab\ in the \MultiFab\ is built large enough 
@@ -231,7 +230,7 @@ of ghost cells, it merely has a single \BoxType\ that identifies it.
 
 To build a \MultiFab, we require a \layout\ (in Fortran90) or a \BoxArray\ (in C++).
 In Fortran90, using the \layout\ built above, we build a \MultiFab\ using:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
 type(multifab) :: data
 call multifab_build(data,la,2,6) ! build the multifab with 2 components 
                                  ! and 6 ghost cells
@@ -242,7 +241,7 @@ call multifab_destroy(data)      ! free up memory to prevent leaks
 \end{lstlisting}
 In C++, using the \BoxArray\ built above, you could either build a \MultiFab, 
 or a pointer to a \MultiFab:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
 MultiFab* data = new MultiFab(ba,2,6);     // build pointer to MultiFab
 
 ...                                        // do fun stuff with the data
@@ -252,7 +251,7 @@ delete data;                               // free up memory
 
 \subsection{Accessing Data}
 Here is some sample Fortran90 code to access data within a \MultiFab:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
 integer                  :: i,dm,ng,nc,lo(2),hi(2)
 type(multifab)           :: data
 real(kind=dp_t), pointer :: dp(:,:,:,:)
@@ -291,7 +290,7 @@ subroutine work_on_data_2d(data, ng, nc, lo, hi)
   ! local variables
   integer :: i,j,n
 
-  do j=lo(2),h(2)
+  do j=lo(2),hi(2)
      do i=lo(1),hi(1)
         do n=1,nc
            ! some silly function I made up
@@ -304,7 +303,7 @@ end subroutine work_on_data_2d
 \end{lstlisting}
 
 In C++:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
 #if    defined(BL_FORT_USE_UPPERCASE)
 #define FORT_WORK_ON_DATA            WORK_ON_DATA
 #elif  defined(BL_FORT_USE_LOWERCASE)
@@ -348,17 +347,17 @@ different .f90 files.
 \subsection{Other \MultiFab\ Functions}
 {\tt setVal} is a simple subroutine that sets the \MultiFab\ data to a particular value.
 In Fortran90, use:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[=AntiqueWhite3]
 ! set all variables to 0.0; ``all=.true.'' means set the ghost cells also
 call setval(data,0.d0,all=.true.)
 \end{lstlisting}
 In C++, use:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
 data->setVal(0.0);  // set all variables to 0.0, including ghost cells
 \end{lstlisting}
 {\tt copy} is a simple subroutine that copies data from one \MultiFab\ to another.
 In Fortran90, use:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[=AntiqueWhite3]
 ! copy components 1 and 2 from data_src into data_dest, 
 ! including the ghost cells. calling sequence is 
 ! (1) destination multifab, (2) first component of destination, 
@@ -367,7 +366,7 @@ In Fortran90, use:
 call multifab_copy_c(data_dest,1,data_src,1,2,6)
 \end{lstlisting}
 In C++, use:
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
 // copy components 0 and 1 from data_src into data_dest, 
 // including the ghost cells. calling sequence is 
 // (1) destination multifab, (2) source multifab, 
@@ -469,7 +468,7 @@ Inputs files to customize the simulation parameters.
 
 To build the code, simply type ``make''.  An exectubale will appear that has some indication (but not complete)
 about what setting you used in the {\tt GNUmakefile}.  To run the code serially, simply type, for example,
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
 ./main.Linux.gfortran.exe inputs_2d
 \end{lstlisting}
 The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, in the run directory.
@@ -478,6 +477,7 @@ the {\tt Header} file within the plotfile directory.  (For the {\tt VisIt} novic
 file, select ``Add'' $\rightarrow$ ``Pseudocolor'' $\rightarrow$ ``Variable 2'' and then click ``Draw''.)
 
 \section{Simple Example - C++}
+The C++ version of this example is contained in {\tt BoxLib/Tutorials/WaveEquation\_C/}.
 
 \begin{itemize}
 \item {\tt GNUmakefile}
@@ -529,7 +529,7 @@ This contains compiler settings and directories required by the make system to b
 
     \item {\tt DIM} (1', '2', or '3')
 
-    Dimensionality of the problem.  Unlike Fortran90 \BoxLib, you need to set this in the C++ version.
+    Dimensionality of the problem.  Unlike Fortran90, you need to set this in the C++ version.
 
     \item {\tt PRECISION} ('{\tt DOUBLE}' or '{\tt FLOAT}')
 
@@ -560,7 +560,7 @@ Inputs files to customize the simulation parameters.
 
 To build the code, simply type ``make''.  An exectubale will appear that has some indication (but not complete)
 about what setting you used in the {\tt GNUmakefile}.  To run the code serially, simply type, for example,
-\begin{lstlisting}[language={[gnu]make},mathescape=false]
+\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
 ./main2d.Linux.g++.gfortran.ex inputs_2d
 \end{lstlisting}
 The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, in the run directory.
