@@ -3,7 +3,7 @@
 BOXLIB_HOME ?= /path/to/BoxLib/
 
 NDEBUG    := t
-MPI       := t
+MPI       :=
 OMP       :=
 PROF      :=
 COMP      := gfortran
