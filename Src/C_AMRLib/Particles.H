@@ -306,6 +306,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     if (Nrep != 0)
         lNrep = *Nrep;
 
+    std::cout << "LNREP " << lNrep[0] << std::endl;
+
     int howmany      = 0;
     int howmany_read = 0;
 
@@ -479,7 +481,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         int num_particles = howmany; 
         ParallelDescriptor::ReduceIntSum(num_particles, ParallelDescriptor::IOProcessorNumber());
 
-        if ( !(lNrep[0] == 1 && lNrep[1] == 1 && lNrep[2] == 1) )
+        if (lNrep[0] == 1 && lNrep[1] == 1 && lNrep[2] == 1)
         {
             if (ParallelDescriptor::IOProcessor())
                 std::cout << "Total number of particles: " << num_particles << std::endl;
