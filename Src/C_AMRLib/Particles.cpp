@@ -219,13 +219,15 @@ ParticleBase::InterpDoit (const FArrayBox& fab,
 
     Real val = 0;
 
+    const Real ifrac[BL_SPACEDIM] = { D_DECL((1-frac[0]), (1-frac[1]), (1-frac[2])) };
+
 #if (BL_SPACEDIM == 1)
     // High
     val += fab(cell,comp) * frac[0];
 
     // Low
     cell[0] = cell[0] - 1;
-    val += fab(cell,comp) * (1-frac[0]);
+    val += fab(cell,comp) * ifrac[0];
 
 #elif (BL_SPACEDIM == 2)
     // HH
@@ -233,15 +235,15 @@ ParticleBase::InterpDoit (const FArrayBox& fab,
 
     // LH
     cell[0] = cell[0] - 1;
-    val += fab(cell,comp) * (1-frac[0]) *    frac[1] ;
+    val += fab(cell,comp) * ifrac[0] *    frac[1] ;
 
     // LL
     cell[1]   = cell[1] - 1;
-    val += fab(cell,comp) * (1-frac[0]) * (1-frac[1]);
+    val += fab(cell,comp) * ifrac[0] * ifrac[1];
 
     // HL
     cell[0] = cell[0] + 1;
-    val += fab(cell,comp) *    frac[0]  * (1-frac[1]);
+    val += fab(cell,comp) *    frac[0]  * ifrac[1];
 
 #elif (BL_SPACEDIM == 3)
     // HHH
@@ -249,33 +251,34 @@ ParticleBase::InterpDoit (const FArrayBox& fab,
    
     // LHH
     cell[0] = cell[0] - 1;
-    val += fab(cell,comp) * (1-frac[0]) *    frac[1]  *    frac[2] ;
+    val += fab(cell,comp) * ifrac[0] *    frac[1]  *    frac[2] ;
    
     // LLH
     cell[1] = cell[1] - 1;
-    val += fab(cell,comp) * (1-frac[0]) * (1-frac[1]) *    frac[2] ;
+    val += fab(cell,comp) * ifrac[0] * ifrac[1] *    frac[2] ;
    
     // HLH
     cell[0] = cell[0] + 1;
-    val += fab(cell,comp) *    frac[0]  * (1-frac[1]) *    frac[2] ;
+    val += fab(cell,comp) *    frac[0]  * ifrac[1] *    frac[2] ;
 
     cell    = hi;
     cell[2] = cell[2] - 1;
 
     // HHL
-    val += fab(cell,comp) *    frac[0]  *    frac[1]  *    (1-frac[2]) ;
+    val += fab(cell,comp) *    frac[0]  *    frac[1]  *    ifrac[2] ;
    
     // LHL
     cell[0] = cell[0] - 1;
-    val += fab(cell,comp) * (1-frac[0]) *    frac[1]  *    (1-frac[2]) ;
+    val += fab(cell,comp) * ifrac[0] *    frac[1]  *    ifrac[2] ;
    
     // LLL
     cell[1] = cell[1] - 1;
-    val += fab(cell,comp) * (1-frac[0]) * (1-frac[1]) *    (1-frac[2]) ;
+    val += fab(cell,comp) * ifrac[0] * ifrac[1] *    ifrac[2] ;
    
     // HLL
     cell[0] = cell[0] + 1;
-    val += fab(cell,comp) *    frac[0]  * (1-frac[1]) *    (1-frac[2]) ;
+    val += fab(cell,comp) *    frac[0]  * ifrac[1] *    ifrac[2] ;
+
 #endif
 
     return val;
@@ -323,7 +326,6 @@ ParticleBase::Interp (const ParticleBase& prt,
 void
 ParticleBase::GetGravity (const FArrayBox&    gfab,
                           const Amr*          amr,
-                          int                 lev,
                           const ParticleBase& p,
                           Real*               grav)
 {

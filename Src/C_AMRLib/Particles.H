@@ -56,7 +56,7 @@ struct ParticleBase
 
     static const std::string& DataPrefix ();
 
-    static void GetGravity (const FArrayBox& gfab, const Amr* amr, int lev, const ParticleBase& p, Real* grav);
+    static void GetGravity (const FArrayBox& gfab, const Amr* amr, const ParticleBase& p, Real* grav);
     //
     // Returns the next particle ID for this processor.
     // Particle IDs start at 1 and are never reused.
@@ -774,7 +774,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 	    // Do CIC interpolation onto the particle positions.
 	    // For CIC we need one ghost cell!
             //
-            ParticleBase::GetGravity(dfab, m_amr, 0, p, disp);
+            ParticleBase::GetGravity(dfab, m_amr, p, disp);
 
             D_TERM(p.m_pos[0] += len[0]*disp[0];,
                    p.m_pos[1] += len[1]*disp[1];,
@@ -1906,7 +1906,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             //
             Real grav[BL_SPACEDIM];
 
-            ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
+            ParticleBase::GetGravity(gfab, m_amr, p, grav);
             //
             // First update (a u)^half = (a u)^old + dt/2 grav^old
             //
@@ -2008,7 +2008,7 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
                 //
                 Real grav[BL_SPACEDIM];
 
-                ParticleBase::GetGravity(gfab, m_amr, lev, p, grav);
+                ParticleBase::GetGravity(gfab, m_amr, p, grav);
                 //
                 // Define (a u)^new = (a u)^half + dt/2 grav^new
                 //
