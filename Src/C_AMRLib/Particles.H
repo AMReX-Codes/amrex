@@ -114,7 +114,7 @@ public:
         :
         m_verbose(1), m_amr(amr) { BL_ASSERT(amr != 0); }
 
-    void InitFromAsciiFile (const std::string& file, int extradata, const Array<int> Nrep);
+    void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, const Real particleMass);
@@ -287,7 +287,7 @@ ParticleContainer<N>::ByteSpread () const
 
 template <int N>
 void
-ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata, const Array<int> Nrep)
+ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= N);
@@ -300,6 +300,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
     m_particles.resize(m_amr->finestLevel()+1);
+
+    IntVect lNrep(D_DECL(1,1,1));
+
+    if (Nrep != 0)
+        lNrep = *Nrep;
 
     int howmany      = 0;
     int howmany_read = 0;
@@ -416,13 +421,13 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             howmany++;
             howmany_read++;
 
-            const Real domain_size_x  = (geom.ProbHi(0) - geom.ProbLo(0)) / float(Nrep[0]);
-            const Real domain_size_y  = (geom.ProbHi(1) - geom.ProbLo(1)) / float(Nrep[1]);
-            const Real domain_size_z  = (geom.ProbHi(2) - geom.ProbLo(2)) / float(Nrep[2]);
+            const Real domain_size_x  = (geom.ProbHi(0) - geom.ProbLo(0)) / float(lNrep[0]);
+            const Real domain_size_y  = (geom.ProbHi(1) - geom.ProbLo(1)) / float(lNrep[1]);
+            const Real domain_size_z  = (geom.ProbHi(2) - geom.ProbLo(2)) / float(lNrep[2]);
 
-            for (int repz = 1; repz <= Nrep[0]; repz++) 
-               for (int repy = 1; repy <= Nrep[1]; repy++) 
-                  for (int repx = 1; repx <= Nrep[2]; repx++) 
+            for (int repz = 1; repz <= lNrep[0]; repz++) 
+               for (int repy = 1; repy <= lNrep[1]; repy++) 
+                  for (int repx = 1; repx <= lNrep[2]; repx++) 
                   {
                      if (!( (repx == 1) && (repy == 1) && (repz == 1) ) )
                      {
@@ -474,7 +479,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         int num_particles = howmany; 
         ParallelDescriptor::ReduceIntSum(num_particles, ParallelDescriptor::IOProcessorNumber());
 
-        if ( !(Nrep[0] == 1 && Nrep[1] == 1 && Nrep[2] == 0) )
+        if ( !(lNrep[0] == 1 && lNrep[1] == 1 && lNrep[2] == 0) )
         {
             if (ParallelDescriptor::IOProcessor())
                 std::cout << "Total number of particles: " << num_particles << std::endl;
@@ -486,8 +491,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             if (ParallelDescriptor::IOProcessor())
             {
                 std::cout << "Replication the domain with vector           " << 
-                              Nrep[0] << " " << Nrep[1] << " " << Nrep[2] << std::endl;
-                std::cout << "Total number of particles read in          : " << num_particles_read << std::endl;
+                              lNrep[0] << " " << lNrep[1] << " " << lNrep[2] << '\n';
+                std::cout << "Total number of particles read in          : " << num_particles_read << '\n';
                 std::cout << "Total number of particles after replication: " << num_particles      << std::endl;
             }
         }
