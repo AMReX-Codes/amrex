@@ -425,9 +425,9 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             const Real domain_size_y  = (geom.ProbHi(1) - geom.ProbLo(1)) / float(lNrep[1]);
             const Real domain_size_z  = (geom.ProbHi(2) - geom.ProbLo(2)) / float(lNrep[2]);
 
-            for (int repz = 1; repz <= lNrep[0]; repz++) 
+            for (int repz = 1; repz <= lNrep[2]; repz++) 
                for (int repy = 1; repy <= lNrep[1]; repy++) 
-                  for (int repx = 1; repx <= lNrep[2]; repx++) 
+                  for (int repx = 1; repx <= lNrep[0]; repx++) 
                   {
                      if (!( (repx == 1) && (repy == 1) && (repz == 1) ) )
                      {
