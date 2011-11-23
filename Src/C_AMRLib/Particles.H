@@ -306,8 +306,6 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     if (Nrep != 0)
         lNrep = *Nrep;
 
-    std::cout << "LNREP " << lNrep[0] << std::endl;
-
     int howmany      = 0;
     int howmany_read = 0;
 
