@@ -114,7 +114,7 @@ public:
         :
         m_verbose(1), m_amr(amr) { BL_ASSERT(amr != 0); }
 
-    void InitFromAsciiFile (const std::string& file, int extradata);
+    void InitFromAsciiFile (const std::string& file, int extradata, const Array<int> Nrep);
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, const Real particleMass);
@@ -287,7 +287,7 @@ ParticleContainer<N>::ByteSpread () const
 
 template <int N>
 void
-ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
+ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata, const Array<int> Nrep)
 {
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= N);
@@ -303,10 +303,6 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
 
     int howmany      = 0;
     int howmany_read = 0;
-
-    int Nrepx = 1;
-    int Nrepy = 1;
-    int Nrepz = 1;
 
     if (MyProc < NReaders)
     {
@@ -420,18 +416,22 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
             howmany++;
             howmany_read++;
 
-            for (int repz = 1; repz <= Nrepz; repz++) 
-               for (int repy = 1; repy <= Nrepy; repy++) 
-                  for (int repx = 1; repx <= Nrepx; repx++) 
+            const Real domain_size_x  = (geom.ProbHi(0) - geom.ProbLo(0)) / float(Nrep[0]);
+            const Real domain_size_y  = (geom.ProbHi(1) - geom.ProbLo(1)) / float(Nrep[1]);
+            const Real domain_size_z  = (geom.ProbHi(2) - geom.ProbLo(2)) / float(Nrep[2]);
+
+            for (int repz = 1; repz <= Nrep[0]; repz++) 
+               for (int repy = 1; repy <= Nrep[1]; repy++) 
+                  for (int repx = 1; repx <= Nrep[2]; repx++) 
                   {
                      if (!( (repx == 1) && (repy == 1) && (repz == 1) ) )
                      {
                         ParticleType p_rep;
 
                         // Shift the position
-                        p_rep.m_pos[0] = p.m_pos[0] + float(repx-1)*(geom.ProbHi(0) - geom.ProbLo(0));
-                        p_rep.m_pos[1] = p.m_pos[1] + float(repy-1)*(geom.ProbHi(1) - geom.ProbLo(1));
-                        p_rep.m_pos[2] = p.m_pos[2] + float(repz-1)*(geom.ProbHi(2) - geom.ProbLo(2));
+                        p_rep.m_pos[0] = p.m_pos[0] + float(repx-1)*domain_size_x;
+                        p_rep.m_pos[1] = p.m_pos[1] + float(repy-1)*domain_size_y;
+                        p_rep.m_pos[2] = p.m_pos[2] + float(repz-1)*domain_size_z;
    
                         // Copy the mass and velocity
                         for (int n = 0; n < extradata; n++)
@@ -474,7 +474,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
         int num_particles = howmany; 
         ParallelDescriptor::ReduceIntSum(num_particles, ParallelDescriptor::IOProcessorNumber());
 
-        if (Nrepx == 1 && Nrepy == 1 && Nrepz == 1) 
+        if ( !(Nrep[0] == 1 && Nrep[1] == 1 && Nrep[2] == 0) )
         {
             if (ParallelDescriptor::IOProcessor())
                 std::cout << "Total number of particles: " << num_particles << std::endl;
@@ -485,6 +485,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata)
             ParallelDescriptor::ReduceIntSum(num_particles_read, ParallelDescriptor::IOProcessorNumber());
             if (ParallelDescriptor::IOProcessor())
             {
+                std::cout << "Replication the domain with vector           " << 
+                              Nrep[0] << " " << Nrep[1] << " " << Nrep[2] << std::endl;
                 std::cout << "Total number of particles read in          : " << num_particles_read << std::endl;
                 std::cout << "Total number of particles after replication: " << num_particles      << std::endl;
             }
