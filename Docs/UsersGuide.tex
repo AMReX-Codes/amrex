@@ -51,7 +51,23 @@
 
 \title{\Huge \bf \BoxLib\ User's Guide}
 
+% don't put a header on blank pages, see
+% http://www.latex-community.org/forum/viewtopic.php?f=4&p=51559
+% change ``plain'' to ``empty'' to eliminate the page number
+\makeatletter
+\renewcommand*\cleardoublepage{\clearpage\if@twoside
+\ifodd\c@page\else
+\hbox{}
+\thispagestyle{empty}
+\newpage
+\if@twocolumn\hbox{}\newpage\fi\fi\fi}
+\makeatother
+
+
+
 \begin{document}
+
+\frontmatter
 
 \maketitle
 
@@ -71,6 +87,8 @@
 \chapter*{Preface}
 \addcontentsline{toc}{part}{Preface}
 \input Preface/Preface
+
+\mainmatter
 
 \chapter{Introduction}
 \input Introduction/Introduction
