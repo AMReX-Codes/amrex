@@ -74,12 +74,12 @@ classes.
 
 \IntVect s are {\tt DIM}-tuples of integers that are used to define
 indices in space.  In C++, an example of an \IntVect\ in 2D would be
-\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-blue}]
 IntVect iv(3,5);
 \end{lstlisting}
 In Fortran90, we don't use \IntVect\ s, but instead use standard
 arrays of integers:
-\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
 integer :: iv(2)
 iv(1) = 3
 iv(2) = 5
@@ -93,7 +93,7 @@ A \BoxType\ contains the indices of its low end and high end,
 contains an {\tt IndexType} (cell-centered, face-centered, or nodal) for each
 dimension.  In Fortran90, a \BoxType\ also contains the dimensionality 
 of the \BoxType.  To build a \BoxType\ in Fortran90 use:
-\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
 type(box) :: bx
 integer   :: iv_lo(2), iv_hi(2)
 iv_lo(1:2) = 0
@@ -101,7 +101,7 @@ iv_hi(1:2) = 15
 bx = make_box(lo,hi)
 \end{lstlisting}
 To build a \BoxType\ in C++ use:
-\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-blue}]
 IntVect iv_lo(0,0);
 IntVect iv_hi(15,15);
 Box bx(iv_lo,iv_hi);
@@ -141,7 +141,7 @@ number of \BoxType es in the \BoxArray.  Suppose your problem domain
 has lo indicies (0,0) and hi indices (15,15), and you want to define
 a \BoxArray\ to contain four $8\times 8$ boxes to cover the problem domain.
 In Fortran90, you could do the following:
-\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
 integer        :: lo(2), hi(2)
 type(box)      :: bx(4)
 type(boxarray) :: ba
@@ -169,7 +169,7 @@ call boxarray_build_v(ba,bx)
 \end{lstlisting}
 This is rather cumbersome, so instead we use other \BoxLib\ functions to
 build the same \BoxArray:
-\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
 type(boxarray) :: ba
 integer        :: lo(2), hi(2)
 type(box)      :: bx
@@ -180,7 +180,7 @@ call boxarray_build_bx(ba,bx)  ! the boxarray has one 16^2 box
 call boxarray_maxsize(ba,8)    ! the boxarray has four 8^2 boxes
 \end{lstlisting}
 The analogous code in C++ is
-\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-blue}]
 IntVect lo(0,0), hi(15,15);
 Box bx(lo,hi);
 BoxArray ba(bx);  // the BoxArray has one 16^2 box
@@ -194,7 +194,7 @@ as the associated processor assignments, \BoxType\ connectivity, and many other
 parallel constructs.  In the simplest case, if we have a \BoxArray\ {\tt ba} (obtained
 from the example above), a 
 \layout\ can be defined using:
-\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
 type(layout) :: la
 call layout_build_ba(la,ba)
 \end{lstlisting}
@@ -230,7 +230,7 @@ of ghost cells, it merely has a single \BoxType\ that identifies it.
 
 To build a \MultiFab, we require a \layout\ (in Fortran90) or a \BoxArray\ (in C++).
 In Fortran90, using the \layout\ built above, we build a \MultiFab\ using:
-\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
 type(multifab) :: data
 call multifab_build(data,la,2,6) ! build the multifab with 2 components 
                                  ! and 6 ghost cells
@@ -241,7 +241,7 @@ call multifab_destroy(data)      ! free up memory to prevent leaks
 \end{lstlisting}
 In C++, using the \BoxArray\ built above, you could either build a \MultiFab, 
 or a pointer to a \MultiFab:
-\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-blue}]
 MultiFab* data = new MultiFab(ba,2,6);     // build pointer to MultiFab
 
 ...                                        // do fun stuff with the data
@@ -251,7 +251,7 @@ delete data;                               // free up memory
 
 \subsection{Accessing Data}
 Here is some sample Fortran90 code to access data within a \MultiFab:
-\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
 integer                  :: i,dm,ng,nc,lo(2),hi(2)
 type(multifab)           :: data
 real(kind=dp_t), pointer :: dp(:,:,:,:)
@@ -303,7 +303,7 @@ end subroutine work_on_data_2d
 \end{lstlisting}
 
 In C++:
-\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-blue}]
 #if    defined(BL_FORT_USE_UPPERCASE)
 #define FORT_WORK_ON_DATA            WORK_ON_DATA
 #elif  defined(BL_FORT_USE_LOWERCASE)
@@ -347,17 +347,17 @@ different .f90 files.
 \subsection{Other \MultiFab\ Functions}
 {\tt setVal} is a simple subroutine that sets the \MultiFab\ data to a particular value.
 In Fortran90, use:
-\begin{lstlisting}[=AntiqueWhite3]
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
 ! set all variables to 0.0; ``all=.true.'' means set the ghost cells also
 call setval(data,0.d0,all=.true.)
 \end{lstlisting}
 In C++, use:
-\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-blue}]
 data->setVal(0.0);  // set all variables to 0.0, including ghost cells
 \end{lstlisting}
 {\tt copy} is a simple subroutine that copies data from one \MultiFab\ to another.
 In Fortran90, use:
-\begin{lstlisting}[=AntiqueWhite3]
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
 ! copy components 1 and 2 from data_src into data_dest, 
 ! including the ghost cells. calling sequence is 
 ! (1) destination multifab, (2) first component of destination, 
@@ -366,7 +366,7 @@ In Fortran90, use:
 call multifab_copy_c(data_dest,1,data_src,1,2,6)
 \end{lstlisting}
 In C++, use:
-\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-blue}]
 // copy components 0 and 1 from data_src into data_dest, 
 // including the ghost cells. calling sequence is 
 // (1) destination multifab, (2) source multifab, 
@@ -466,9 +466,9 @@ Inputs files to customize the simulation parameters.
 
 \end{itemize}
 
-To build the code, simply type ``make''.  An exectubale will appear that has some indication (but not complete)
+To build the code, simply type ``{\tt make}''.  An exectubale will appear that has some indication (but not complete)
 about what setting you used in the {\tt GNUmakefile}.  To run the code serially, simply type, for example,
-\begin{lstlisting}[backgroundcolor=\color{AntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-red}]
 ./main.Linux.gfortran.exe inputs_2d
 \end{lstlisting}
 The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, in the run directory.
@@ -558,9 +558,9 @@ Inputs files to customize the simulation parameters.
 
 \end{itemize}
 
-To build the code, simply type ``make''.  An exectubale will appear that has some indication (but not complete)
+To build the code, simply type ``{\tt make}''.  An exectubale will appear that has some indication (but not complete)
 about what setting you used in the {\tt GNUmakefile}.  To run the code serially, simply type, for example,
-\begin{lstlisting}[backgroundcolor=\color{DarkerAntiqueWhite3}]
+\begin{lstlisting}[backgroundcolor=\color{light-red}]
 ./main2d.Linux.g++.gfortran.ex inputs_2d
 \end{lstlisting}
 The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, in the run directory.
