@@ -265,7 +265,7 @@ FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 ifeq ($(COMP),gcc)
     CXXPRFF    := -p
     CXXOPTF    += -g -O3 -fno-exceptions
-    CXXDEBF    += -g -O0 -fno-exceptions -Wall -Wno-sign-compare
+    CXXDEBF    += -g -O1 -fno-exceptions -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
@@ -286,7 +286,7 @@ endif
 ifeq ($(COMP),g++)
     CXXPRFF    := -p
     CXXOPTF    += -g -O3 -fno-exceptions
-    CXXDEBF    += -g -O0 -fno-exceptions -Wall -Wno-sign-compare
+    CXXDEBF    += -g -O1 -fno-exceptions -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
     CC	       := gcc
