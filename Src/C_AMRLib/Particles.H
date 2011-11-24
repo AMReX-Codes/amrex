@@ -57,6 +57,8 @@ struct ParticleBase
     static const std::string& DataPrefix ();
 
     static void GetGravity (const FArrayBox& gfab, const Amr* amr, const ParticleBase& p, Real* grav);
+
+    static int MaxReaders ();
     //
     // Returns the next particle ID for this processor.
     // Particle IDs start at 1 and are never reused.
@@ -295,7 +297,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
     const Real strttime = ParallelDescriptor::second();
-    const int  NReaders = std::min(NProcs,64);
+    const int  NReaders = ParticleBase::MaxReaders();
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
