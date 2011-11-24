@@ -1,4 +1,33 @@
 #include <Particles.H>
+#include <ParmParse.H>
+
+int
+ParticleBase::MaxReaders ()
+{
+    const int Max_Readers_def = 64;
+
+    static int Max_Readers;
+
+    static bool first = true;
+
+    if (first)
+    {
+        first = false;
+
+        ParmParse pp("particles");
+
+        Max_Readers = Max_Readers_def;
+
+        pp.query("nreaders", Max_Readers);
+
+        Max_Readers = std::min(ParallelDescriptor::NProcs(),Max_Readers);
+
+        if (Max_Readers <= 0)
+            BoxLib::Abort("particles.nreaders must be positive");
+    }
+
+    return Max_Readers;
+}
 
 const std::string&
 ParticleBase::DataPrefix ()
