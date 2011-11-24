@@ -306,8 +306,13 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     if (Nrep != 0)
         lNrep = *Nrep;
 
-    int howmany      = 0;
-    int howmany_read = 0;
+    int  howmany      = 0;
+    int  howmany_read = 0;
+    //
+    // NReaders will read particles into a PBox.
+    // Later they'll each put their chunk into m_particles and call Redistribute().
+    //
+    PBox nparticles;
 
     if (MyProc < NReaders)
     {
@@ -329,7 +334,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
         ifs >> cnt;
 
-        ParticleType p;
+        ParticleType p, p_rep;
 
         const int Chunk = cnt / NReaders;
         //
@@ -402,7 +407,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
                 if (!ParticleBase::Where(p,m_amr))
                 {
-                    std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
+                    std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << '\n';
 
                     for (int d = 0; d < BL_SPACEDIM; d++)
                     {
@@ -416,7 +421,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             p.m_id  = ParticleBase::NextID();
             p.m_cpu = MyProc;
 
-            m_particles[p.m_lev][p.m_grid].push_back(p);
+            nparticles.push_back(p);
 
             howmany++;
             howmany_read++;
@@ -425,52 +430,77 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             const Real domain_size_y  = (geom.ProbHi(1) - geom.ProbLo(1)) / float(lNrep[1]);
             const Real domain_size_z  = (geom.ProbHi(2) - geom.ProbLo(2)) / float(lNrep[2]);
 
-            for (int repz = 1; repz <= lNrep[2]; repz++) 
-               for (int repy = 1; repy <= lNrep[1]; repy++) 
-                  for (int repx = 1; repx <= lNrep[0]; repx++) 
-                  {
-                     if (!( (repx == 1) && (repy == 1) && (repz == 1) ) )
-                     {
-                        ParticleType p_rep;
-
-                        // Shift the position
-                        p_rep.m_pos[0] = p.m_pos[0] + float(repx-1)*domain_size_x;
-                        p_rep.m_pos[1] = p.m_pos[1] + float(repy-1)*domain_size_y;
-                        p_rep.m_pos[2] = p.m_pos[2] + float(repz-1)*domain_size_z;
-   
-                        // Copy the mass and velocity
-                        for (int n = 0; n < extradata; n++)
-                           p_rep.m_data[n] = p.m_data[n];
-
-                        if (!ParticleBase::Where(p_rep,m_amr))
+            for (int repz = 1; repz <= lNrep[2]; repz++)
+            {
+                for (int repy = 1; repy <= lNrep[1]; repy++)
+                {
+                    for (int repx = 1; repx <= lNrep[0]; repx++) 
+                    {
+                        if (!( (repx == 1) && (repy == 1) && (repz == 1) ) )
                         {
-                            ParticleBase::PeriodicShift(p_rep,m_amr);
+                            //
+                            // Shift the position.
+                            //
+                            p_rep.m_pos[0] = p.m_pos[0] + float(repx-1)*domain_size_x;
+                            p_rep.m_pos[1] = p.m_pos[1] + float(repy-1)*domain_size_y;
+                            p_rep.m_pos[2] = p.m_pos[2] + float(repz-1)*domain_size_z;
+                            //
+                            // Copy the mass and velocity.
+                            //
+                            for (int n = 0; n < extradata; n++)
+                                p_rep.m_data[n] = p.m_data[n];
+
                             if (!ParticleBase::Where(p_rep,m_amr))
                             {
-                                std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
-                                BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid replicated particle");
+                                ParticleBase::PeriodicShift(p_rep,m_amr);
+                                if (!ParticleBase::Where(p_rep,m_amr))
+                                {
+                                    std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
+                                    BoxLib::Abort("ParticleContainer<N>::InitFromAsciiFile(): invalid replicated particle");
+                                }
                             }
+                            //
+                            // Increment the particle ID.
+                            //
+                            p_rep.m_id  = ParticleBase::NextID();
+                            //
+                            // Assign to the same processor for now.
+                            //
+                            p_rep.m_cpu = MyProc;
+   
+                            nparticles.push_back(p_rep);
+   
+                            howmany++;
                         }
-   
-                        // Increment the particle ID
-                        p_rep.m_id  = ParticleBase::NextID();
-   
-                        // Assign to the same processor for now
-                        p_rep.m_cpu = MyProc;
-   
-                        m_particles[p.m_lev][p.m_grid].push_back(p_rep);
-   
-                        howmany++;
-                     }
-                  }
+                    }
+                }
+            }
         }
     }
     //
-    // Let Redistribute() sort'm out.
+    // We've read in all the particles.
+    // Now Redistribute() each chunk separately to minimize memory bloat.
     //
+    for (int which = 0; which < NReaders; which++)
+    {
+        if (which == MyProc)
+        {
+            while (!nparticles.empty())
+            {
+                ParticleType& p = nparticles.front();
 
-    Redistribute(true);
+                m_particles[p.m_lev][p.m_grid].push_back(p);
 
+                nparticles.pop_front();
+            }
+
+            PBox().swap(nparticles);
+        }
+        //
+        // Let Redistribute() sort'm out.
+        //
+        Redistribute(true);
+    }
     //
     // Add up all the particles read in on each processor to get the total number of particles.
     //
