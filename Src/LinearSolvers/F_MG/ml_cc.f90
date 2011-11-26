@@ -181,6 +181,12 @@ contains
        end if
     end if
 
+    ! Make sure to pass this flag through to the bottom_mgt object if there is one. 
+    ! Otherwise the BiCG/CG bottom solver will not see it.
+    if (associated(mgt(1)%bottom_mgt)) then
+       mgt(1)%bottom_mgt%coeffs_sum_to_zero = mgt(1)%coeffs_sum_to_zero
+    end if
+
     ! Enforce solvability if appropriate
     ! Note we do this before res is copied back into rhs.
     if (nlevs .eq. 1 .and. mgt(1)%bottom_singular .and. mgt(1)%coeffs_sum_to_zero) then
