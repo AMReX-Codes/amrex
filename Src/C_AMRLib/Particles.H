@@ -25,7 +25,7 @@
 
 struct ParticleBase
 {
-    int     m_id;
+    long    m_id;
     int     m_cpu;
     int     m_lev;
     int     m_grid;
@@ -67,11 +67,11 @@ struct ParticleBase
     // across all processors must be checkpointed and then restored on restart
     // so that we don't reuse particle IDs.
     //
-    static int NextID ();
+    static long NextID ();
     //
     // Reset on restart.
     //
-    static void NextID (int nextid);
+    static void NextID (long nextid);
     //
     // Used for partitioning particles into valid & invalid groups.
     //
@@ -3004,7 +3004,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
     ParallelDescriptor::ReduceLongSum(nparticles,IOProc);
 
-    int maxnextid = ParticleBase::NextID();
+    long maxnextid = ParticleBase::NextID();
 
     ParticleBase::NextID(maxnextid);
 
