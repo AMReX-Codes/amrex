@@ -51,12 +51,12 @@ ParticleBase::Version ()
     return version;
 }
 
-static int the_next_id = 1;
+static long the_next_id = 1;
 
-int
+long
 ParticleBase::NextID ()
 {
-    int next;
+    long next;
 
 #ifdef BL_USE_OMP
 #pragma omp critical(nextid_lock)
@@ -69,7 +69,7 @@ ParticleBase::NextID ()
 }
 
 void
-ParticleBase::NextID (int nextid)
+ParticleBase::NextID (long nextid)
 {
     the_next_id = nextid;
 }
