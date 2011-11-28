@@ -2,13 +2,17 @@ EPStoPDF = epstopdf
 
 ALL: UsersGuide.ps UsersGuide.pdf 
 
-eps_source = $(wildcard preface/*.eps) \
-	     $(wildcard BoxLib/*.eps) 
+eps_source = $(wildcard Preface/*.eps) \
+	     $(wildcard Introduction/*.eps) \
+	     $(wildcard GettingStarted/*.eps) \
+	     $(wildcard AdvancedTopics/*.eps)
 
 pdf_source = $(eps_source:.eps=.pdf)
 
-section_sources = preface/preface.tex \
-                  BoxLib/boxlib.tex 
+section_sources = Preface/Preface.tex \
+                  Introduction/Introduction.tex \
+                  GettingStarted/GettingStarted.tex \
+                  AdvancedTopics/AdvancedTopics.tex
 
 UsersGuide.dvi: UsersGuide.tex $(eps_source) $(section_sources) $(eps_source) 
 	latex UsersGuide.tex < /dev/null

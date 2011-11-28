@@ -14,6 +14,7 @@
 \newcommand{\Fab}{{\tt Fab}}
 \newcommand{\FArrayBox}{{\tt FArrayBox}}
 \newcommand{\MultiFab}{{\tt MultiFab}}
+\newcommand{\layout}{{\tt layout}}
 
 \setlength{\marginparwidth}{0.8in}
 \newcommand{\MarginPar}[1]{\marginpar{%
@@ -21,9 +22,45 @@
 \raggedright\tiny\sffamily
 \hrule\smallskip{\color{red}#1}\par\smallskip\hrule}}
 
+% special colors and definitions for framing source code listings
+\usepackage{listings}
+
+\definecolor{gray}{rgb}       {0.8,0.8,0.8}
+\definecolor{light-blue}{rgb} {0.8,0.8,1.0}
+\definecolor{light-green}{rgb}{0.8,1.0,0.8}
+\definecolor{light-red}{rgb}  {1.0,0.9,0.9}
+
+\lstset{
+  basicstyle=\small\ttfamily,%
+  frame=shadowbox,%
+  rulesepcolor=\color{gray},%
+  backgroundcolor=\color{white}%
+}
+
+\renewcommand{\floatpagefraction}{1.0}
+\renewcommand{\topfraction}{1.0}
+\renewcommand{\bottomfraction}{1.0}
+\renewcommand{\textfraction}{0.0}
+
 \title{\Huge \bf \BoxLib\ User's Guide}
 
+% don't put a header on blank pages, see
+% http://www.latex-community.org/forum/viewtopic.php?f=4&p=51559
+% change ``plain'' to ``empty'' to eliminate the page number
+\makeatletter
+\renewcommand*\cleardoublepage{\clearpage\if@twoside
+\ifodd\c@page\else
+\hbox{}
+\thispagestyle{empty}
+\newpage
+\if@twocolumn\hbox{}\newpage\fi\fi\fi}
+\makeatother
+
+
+
 \begin{document}
+
+\frontmatter
 
 \maketitle
 
@@ -42,9 +79,17 @@
 
 \chapter*{Preface}
 \addcontentsline{toc}{part}{Preface}
-\input preface/preface
+\input Preface/Preface
 
-\chapter{\BoxLib}
-\input BoxLib/boxlib
+\mainmatter
+
+\chapter{Introduction}
+\input Introduction/Introduction
+
+\chapter{Getting Started}
+\input GettingStarted/GettingStarted
+
+\chapter{Advanced Topics}
+\input AdvancedTopics/AdvancedTopics
 
 \end{document}

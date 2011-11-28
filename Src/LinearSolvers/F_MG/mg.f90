@@ -542,6 +542,12 @@ contains
           exit
        end if
 
+       if ( bottom_levs > 1 ) then
+          if ( any(extent(bx1) < 8) ) then
+             exit
+          end if
+       end if
+
        if (any(mod(extent(bx1),2) .eq. 1)) then
 
           if (all(mod(extent(bx1),3) .eq. 0)) then

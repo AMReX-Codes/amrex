@@ -1,25 +1,19 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code
-BOXLIB_HOME ?= /path/to/BoxLib
+# If you set BOXLIB_HOME as an environment variable, this line will be ignored
+BOXLIB_HOME ?= /path/to/BoxLib/
 
+DEBUG     = FALSE
+USE_MPI   = FALSE
+USE_OMP   = FALSE
+PROFILE   = FALSE
+COMP      = g++
+FCOMP     = gfortran
+DIM       = 2
 PRECISION = DOUBLE
-
-DEBUG	= TRUE
-DEBUG	= FALSE
-
-DIM	= 2
-
-COMP =gcc
-FCOMP=gfortran
-
-USE_MPI=FALSE
-USE_MPI=TRUE
-
-EBASE = main
-
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+EBASE     = main
 
 include ./Make.package
-
+include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 

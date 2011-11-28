@@ -605,8 +605,7 @@ HypreABecLap::~HypreABecLap()
     delete acoefs.remove(level);
     delete bcoefs.remove(level);
 
-    // Members of the bd PArray are the responsibility of the calling
-    // program and thus are not deleted here.
+    delete bd.remove(level);
   }
 
   HYPRE_SStructVectorDestroy(b);
@@ -1286,10 +1285,10 @@ void HypreABecLap::setRhs(int level, const MultiFab& rhs)
 
     HYPRE_SStructVectorSetBoxValues(b, part, loV(reg), hiV(reg), 0, vec);
 
-    b_loaded = true;
-    
     delete f; 
   }
+
+  b_loaded = true;
 }
 
 
@@ -1308,10 +1307,10 @@ void HypreABecLap::setInitGuess(int level, const MultiFab& guess)
 
     HYPRE_SStructVectorSetBoxValues(x, part, loV(reg), hiV(reg), 0, vec);
 
-    x_loaded = true;
-
     delete f;   
   }
+
+  x_loaded = true;
 }
 
 
@@ -1671,6 +1670,7 @@ void HypreABecLap::setupSolver()
   BL_ASSERT(precond        == NULL);
 
   if (solver_flag == 104) {
+
     HYPRE_ParCSRMatrix par_A;
     HYPRE_ParVector par_b;
     HYPRE_ParVector par_x;
@@ -1701,7 +1701,16 @@ void HypreABecLap::setupSolver()
                                 (HYPRE_PtrToParSolverFcn) HYPRE_BoomerAMGSetup,
                                 precond);
 
+    const Real run_strt = ParallelDescriptor::second();
+
     HYPRE_ParCSRGMRESSetup(solver, par_A, par_b, par_x);
+
+    Real run_time = ParallelDescriptor::second() - run_strt;
+
+    ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "   Time on HYPRE_ParCSRGMRESSetup: " << run_time << std::endl;
+    }
   }
   else {
     BoxLib::Error("No such solver in HypreABecLap");
@@ -1751,6 +1760,8 @@ void HypreABecLap::doIt()
     }
   }
 
+  const Real run_strt = ParallelDescriptor::second();
+
   if (solver_flag == 104) {
     HYPRE_ParCSRMatrix par_A;
     HYPRE_ParVector par_b;
@@ -1767,6 +1778,13 @@ void HypreABecLap::doIt()
   }
 
   HYPRE_SStructVectorGather(x);
+
+  Real run_time = ParallelDescriptor::second() - run_strt;
+
+  ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
+  if (ParallelDescriptor::IOProcessor()) {
+    std::cout << "   Hypre Solve Time: " << run_time << std::endl;
+  }
 }
 
 
