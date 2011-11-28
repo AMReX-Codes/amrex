@@ -72,15 +72,11 @@ odir = $(tdir)/o
 mdir = $(tdir)/m
 hdir = t/html
 
-# ALL G95's are the same
+
 ifeq ($(COMP),g95)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/g95.mak
 endif
 
-# Note, we need a recent gfortran 4.2 build to compile --
-# there are still runtime issues.
-# to compile mt19937ar.f90, we need -fno-range-check, since
-# that routine relies on overflows when doing initializations
 ifeq ($(COMP),gfortran)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/gfortran.mak
 endif

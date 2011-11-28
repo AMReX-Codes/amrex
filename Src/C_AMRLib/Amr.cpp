@@ -325,7 +325,8 @@ Amr::MaxRefRatio (int level) const
 
 Amr::Amr ()
     :
-    amr_level(PArrayManage)
+    amr_level(PArrayManage),
+    datalog(PArrayManage)
 {
     Initialize();
     //

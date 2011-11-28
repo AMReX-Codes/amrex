@@ -22,6 +22,8 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 		      const std::vector<BoxArray>& grids,
 		      int ibnd)
 {
+  const Real run_strt = ParallelDescriptor::second();
+
   int composite_solve = 0;
   Real tolerance_rel, tolerance_abs;
   int max_iter = 100;
@@ -46,7 +48,7 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 
   if (composite_solve) {
     HypreABecLap hypreSolver(0, nlevel-1, 1);
-    
+
     // add grids in reverse order in case we are masking covered part of coarse
     for (int level = nlevel-1; level>=0; level--) {
       hypreSolver.addLevel(level, geom[level], grids[level], ratio);
@@ -95,21 +97,27 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 
       hypreSolver.setInitGuess(level, soln[level]);
     }
-    
+
     hypreSolver.solve(soln, tolerance_rel, tolerance_abs, max_iter);
   }
   else {
 
+  }
+
+  Real run_time = ParallelDescriptor::second() - run_strt;
+
+  ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
+  if (ParallelDescriptor::IOProcessor()) {
+    std::cout << "Total Hypre Run time      : " << run_time << std::endl;
   }
 }
 
 void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio)
 {
   int comp = 0;
-  Real bc_vale = 0.0; // This is hardwired.
+  Real bc_value = 0.0; // This is hardwired.
 
   const BoxArray& grids = levelbd.boxes();
-  int ngrds = grids.size();
   const Geometry& geom = levelbd.getGeom();
   const Real* dx = geom.CellSize();
   const Box& domain = levelbd.getDomain();
@@ -119,14 +127,15 @@ void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio)
 
     int dir = face.coordDir();
     Real delta = dx[dir]*ratio[dir];
-
-    for (int i = 0; i < ngrds; i++) {
+    
+    for (FabSetIter bfsi(levelbd[face]); bfsi.isValid(); ++bfsi) {
+      const int i = bfsi.index();
       const Box& grd = grids[i];
 
       if (domain[face] == grd[face] && !geom.isPeriodic(dir)) {
 	levelbd.setBoundCond(face, i, comp, ibnd);
 	levelbd.setBoundLoc(face, i, 0.0);
-	levelbd.setValue(face, i, bc_vale);
+	levelbd.setValue(face, i, bc_value);
       }
       else {
 	// internal bndry

@@ -824,4 +824,18 @@ Box::growHi (int idir,
     return *this;
 }
 
+inline
+long
+Box::index (const IntVect& v) const
+{
+    long result = v[0]-smallend[0];
+#if   BL_SPACEDIM==2
+    result += length(0)*(v[1]-smallend[1]);
+#elif BL_SPACEDIM==3
+    result += length(0)*(v[1]-smallend[1]
+                      +(v[2]-smallend[2])*length(1));
+#endif
+    return result;
+}
+
 #endif /*BL_BOX_H*/
