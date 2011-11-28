@@ -508,8 +508,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     //
     if (m_verbose > 0)
     {
-        int num_particles = howmany; 
-        ParallelDescriptor::ReduceIntSum(num_particles, ParallelDescriptor::IOProcessorNumber());
+        long num_particles = howmany; 
+        ParallelDescriptor::ReduceLongSum(num_particles, ParallelDescriptor::IOProcessorNumber());
 
         if (lNrep[0] == 1 && lNrep[1] == 1 && lNrep[2] == 1)
         {
@@ -518,8 +518,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         }
         else
         {
-            int num_particles_read = howmany_read; 
-            ParallelDescriptor::ReduceIntSum(num_particles_read, ParallelDescriptor::IOProcessorNumber());
+            long num_particles_read = howmany_read; 
+            ParallelDescriptor::ReduceLongSum(num_particles_read, ParallelDescriptor::IOProcessorNumber());
             if (ParallelDescriptor::IOProcessor())
             {
                 std::cout << "Replication the domain with vector           " << 
