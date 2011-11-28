@@ -409,7 +409,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
                 if (!ParticleBase::Where(p,m_amr))
                 {
-                    std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << '\n';
+                    std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << '\n';
 
                     for (int d = 0; d < BL_SPACEDIM; d++)
                     {
