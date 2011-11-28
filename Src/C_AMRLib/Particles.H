@@ -308,8 +308,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     if (Nrep != 0)
         lNrep = *Nrep;
 
-    int  howmany      = 0;
-    int  howmany_read = 0;
+    long  howmany      = 0;
+    long  howmany_read = 0;
     //
     // NReaders will read particles into a PBox.
     // Later they'll each put their chunk into m_particles and call Redistribute().
