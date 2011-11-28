@@ -240,6 +240,8 @@ def write_probin(probinTemplate, paramAFiles, paramBFiles,
 
                     n += 1
 
+                if (len(paramsA) == 0):
+                    fout.write("%sinteger, save, public :: a_dummy_var\n" % (indent))
 
             elif (keyword == "declarationsB"):
 
@@ -287,6 +289,10 @@ def write_probin(probinTemplate, paramAFiles, paramBFiles,
 
                     n += 1
 
+
+                if (len(params) == 0):
+                    fout.write("%snamelist /%s/ a_dummy_var\n" %
+                               (indent, namelistName))
 
             elif (keyword == "defaults"):
 
