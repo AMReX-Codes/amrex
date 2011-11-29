@@ -1,5 +1,6 @@
 #include <Particles.H>
 #include <ParmParse.H>
+#include <limits>
 
 int
 ParticleBase::MaxReaders ()
@@ -51,17 +52,20 @@ ParticleBase::Version ()
     return version;
 }
 
-static long the_next_id = 1;
+static int the_next_id = 1;
 
-long
+int
 ParticleBase::NextID ()
 {
-    long next;
+    int next;
 
 #ifdef BL_USE_OMP
 #pragma omp critical(nextid_lock)
 #endif
     {
+        if (the_next_id == std::numeric_limits<int>::max())
+            BoxLib::Abort("ParticleBase::NextID() -- too many particles");
+
         next = the_next_id++;
     }
 
@@ -69,7 +73,7 @@ ParticleBase::NextID ()
 }
 
 void
-ParticleBase::NextID (long nextid)
+ParticleBase::NextID (int nextid)
 {
     the_next_id = nextid;
 }
