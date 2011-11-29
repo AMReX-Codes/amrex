@@ -542,11 +542,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     //
     if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-        if (NRedist*NRedist_chunk < NProcs)
+        if (NRedist*NRedist_chunk < NReaders)
             std::cout << "Redistributing from processor " << NRedist*NRedist_chunk << " to " 
-                                                          << NProcs << std::endl;
+                                                          << NReaders << std::endl;
     }
-    for (int which = NRedist*NRedist_chunk; which < NProcs; which++)
+    for (int which = NRedist*NRedist_chunk; which < NReaders; which++)
     {
         if (which == MyProc)
         {
@@ -561,11 +561,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
             PBox().swap(nparticles);
         }
+        //
+        // Let Redistribute() sort'm out.
+        //
+        Redistribute(true);
     }
-    //
-    // Let Redistribute() sort'm out.
-    //
-    Redistribute(true);
 
     //
     // Add up all the particles read in on each processor to get the total number of particles.
