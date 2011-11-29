@@ -25,7 +25,7 @@
 
 struct ParticleBase
 {
-    long    m_id;
+    int     m_id;
     int     m_cpu;
     int     m_lev;
     int     m_grid;
@@ -67,11 +67,11 @@ struct ParticleBase
     // across all processors must be checkpointed and then restored on restart
     // so that we don't reuse particle IDs.
     //
-    static long NextID ();
+    static int NextID ();
     //
     // Reset on restart.
     //
-    static void NextID (long nextid);
+    static void NextID (int nextid);
     //
     // Used for partitioning particles into valid & invalid groups.
     //
@@ -308,8 +308,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     if (Nrep != 0)
         lNrep = *Nrep;
 
-    long  howmany      = 0;
-    long  howmany_read = 0;
+    int  howmany      = 0;
+    int  howmany_read = 0;
     //
     // NReaders will read particles into a PBox.
     // Later they'll each put their chunk into m_particles and call Redistribute().
@@ -508,8 +508,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     //
     if (m_verbose > 0)
     {
+        const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
+
         long num_particles = howmany; 
-        ParallelDescriptor::ReduceLongSum(num_particles, ParallelDescriptor::IOProcessorNumber());
+
+        ParallelDescriptor::ReduceLongSum(num_particles, IOProcNumber);
 
         if (lNrep[0] == 1 && lNrep[1] == 1 && lNrep[2] == 1)
         {
@@ -519,7 +522,9 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         else
         {
             long num_particles_read = howmany_read; 
-            ParallelDescriptor::ReduceLongSum(num_particles_read, ParallelDescriptor::IOProcessorNumber());
+
+            ParallelDescriptor::ReduceLongSum(num_particles_read, IOProcNumber);
+
             if (ParallelDescriptor::IOProcessor())
             {
                 std::cout << "Replication the domain with vector           " << 
@@ -3004,7 +3009,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
     ParallelDescriptor::ReduceLongSum(nparticles,IOProc);
 
-    long maxnextid = ParticleBase::NextID();
+    int maxnextid = ParticleBase::NextID();
 
     ParticleBase::NextID(maxnextid);
 
