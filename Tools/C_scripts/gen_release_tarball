@@ -1,0 +1,18 @@
+#!/bin/bash
+
+if [ "$#" -ne 1 ]
+then
+  echo " " 
+  echo " Generate a release tarball: "
+  echo " " 
+  echo "        $0 <n> (where <n> is a version string)"
+  echo " " 
+fi
+
+export version=$1
+export outfile="../ccse-${version}.tar.gz"
+echo "Creating tarball ${outfile}" 
+#echo ${version} > BoxLib_Version.txt
+#git tag -a v${version} -m "Version ${version}"
+git archive --format=tar --prefix=ccse/ v${version} | gzip >${outfile}
+
