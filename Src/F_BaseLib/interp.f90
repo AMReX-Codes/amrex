@@ -1059,7 +1059,7 @@ contains
              b( 18) = crse(ic+2, jc-1, n)
              b( 19) = crse(ic+2, jc+0, n)
              b( 20) = crse(ic+2, jc+1, n)
-             b( 21) = 1000.0*crse(ic+0, jc+0, n)
+             b( 21) = 1000.0D0*crse(ic+0, jc+0, n)
 
              c(ic,jc,n,:) = matmul(P2, b)
 

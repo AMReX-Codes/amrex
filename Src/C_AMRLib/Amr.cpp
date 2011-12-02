@@ -325,7 +325,8 @@ Amr::MaxRefRatio (int level) const
 
 Amr::Amr ()
     :
-    amr_level(PArrayManage)
+    amr_level(PArrayManage),
+    datalog(PArrayManage)
 {
     Initialize();
     //
@@ -1616,6 +1617,8 @@ Amr::timeStep (int  level,
         a->init(amr_level[0]);
         amr_level.clear(0);
         amr_level.set(0,a);
+
+        amr_level[0].post_regrid(0,0);
 
         if (ParallelDescriptor::IOProcessor())
         {

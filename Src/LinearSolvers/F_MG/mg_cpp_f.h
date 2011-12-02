@@ -3,6 +3,7 @@
 
 #if defined(BL_FORT_USE_UPPERCASE)
 #define mgt_init                  MGT_INIT
+#define mgt_flush_copyassoc_cache MGT_FLUSH_COPYASSOC_CACHE
 #define mgt_use_alltoallv         MGT_USE_ALLTOALLV
 #define mgt_alloc                 MGT_ALLOC
 #define mgt_nodal_alloc           MGT_NODAL_ALLOC
@@ -79,6 +80,8 @@
 #define mgt_set_cfbny_3d          MGT_SET_CFBNY_3D
 #define mgt_set_cfbnz_3d          MGT_SET_CFBNZ_3D
 
+#define mgt_set_all_const         MGT_SET_ALL_CONST
+
 #define mgt_set_cfa_1d_const      MGT_SET_CFA_1D_CONST
 #define mgt_set_cfbx_1d_const     MGT_SET_CFBX_1D_CONST
 #define mgt_set_cfa_2d_const      MGT_SET_CFA_2D_CONST
@@ -107,6 +110,7 @@
 #elif defined(BL_FORT_USE_UNDERSCORE)
 
 #define mgt_init                  mgt_init_
+#define mgt_flush_copyassoc_cache mgt_flush_copyassoc_cache_
 #define mgt_use_alltoallv         mgt_use_alltoallv_
 #define mgt_alloc                 mgt_alloc_
 #define mgt_nodal_alloc           mgt_nodal_alloc_
@@ -185,6 +189,8 @@
 #define mgt_set_cfbny_3d          mgt_set_cfbny_3d_
 #define mgt_set_cfbnz_3d          mgt_set_cfbnz_3d_
 
+#define mgt_set_all_const         mgt_set_all_const_
+
 #define mgt_set_cfa_1d_const      mgt_set_cfa_1d_const_
 #define mgt_set_cfbx_1d_const     mgt_set_cfbx_1d_const_
 #define mgt_set_cfa_2d_const      mgt_set_cfa_2d_const_
@@ -208,6 +214,7 @@
 
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
 #define mgt_init                  mgt_init__
+#define mgt_flush_copyassoc_cache mgt_flush_copyassoc_cache__
 #define mgt_use_alltoallv         mgt_use_alltoallv__
 #define mgt_alloc                 mgt_alloc__
 #define mgt_nodal_alloc           mgt_nodal_alloc__
@@ -279,6 +286,8 @@
 #define mgt_set_cfby_3d           mgt_set_cfby_3d__
 #define mgt_set_cfbz_3d           mgt_set_cfbz_3d__
 
+#define mgt_set_all_const         mgt_set_all_const__
+
 #define mgt_set_cfa_1d_const      mgt_set_cfa_1d_const__
 #define mgt_set_cfbx_1d_const     mgt_set_cfbx_1d_const__
 #define mgt_set_cfa_2d_const      mgt_set_cfa_2d_const__
@@ -315,6 +324,8 @@ extern "C"
   const int MGT_BC_NEU =  2;	/* Neumann   */
 
   void mgt_init(const int* comm);
+
+  void mgt_flush_copyassoc_cache();
 
   void mgt_use_alltoallv();
 
@@ -409,6 +420,8 @@ extern "C"
 		        const Real* b,
 		        const int* plo, const int* phi, 
 		        const int* lo, const int* hi, const int& ncomps);
+  
+  void mgt_set_all_const(const int* lev, const Real* alpha_const, const Real* beta_const);
   
   void mgt_set_cfa_1d_const(const int* lev, const int* n, 
 		            const int* lo, const int* hi, const Real* value);

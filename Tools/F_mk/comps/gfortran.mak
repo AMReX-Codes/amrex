@@ -1,3 +1,8 @@
+# Note: gfortran > 4.4 is needed.  
+#
+# to compile mt19937ar.f90, we need -fno-range-check, since that
+# routine relies on overflows when doing initializations
+
   FC  := gfortran
   F90 := gfortran
   CC  := gcc
