@@ -139,11 +139,13 @@ contains
     integer        , intent(in   ) :: ng,lof(:),loc(:),hic(:)
     real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,:)
     real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,:)
-    integer :: i, i2
+    integer :: i, i2, n
 
-    do i = loc(1),hic(1)
-       i2 = 2*i
-       cc(i,:) = HALF * (cf(i2,:) + cf(i2+1,:))
+    do n = 1, size(cc,2)
+       do i = loc(1),hic(1)
+          i2 = 2*i
+          cc(i,n) = HALF * (cf(i2,n) + cf(i2+1,n))
+       end do
     end do
 
   end subroutine crse_cell_coeffs_1d
@@ -153,12 +155,14 @@ contains
     integer        , intent(in   ) :: ng,lof(:),loc(:),hic(:)
     real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,:)
     real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,:)
-    integer :: i, i2
+    integer :: i, i2, n
 
-   do i = loc(1),hic(1)+1
-      i2 = 2*i
-      cc(i,:) = cf(i2,:)
-   end do
+    do n = 1, size(cc,2)
+       do i = loc(1),hic(1)+1
+          i2 = 2*i
+          cc(i,n) = cf(i2,n)
+       end do
+    end do
 
   end subroutine crse_xedge_coeffs_1d
 
@@ -167,16 +171,17 @@ contains
     integer        , intent(in   ) :: ng,lof(:),loc(:),hic(:)
     real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,:)
     real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,:)
-    integer :: i, i2, j, j2
+    integer :: i, i2, j, j2, n
 
-    do j = loc(2),hic(2)
-       do i = loc(1),hic(1)
-          i2 = 2*i
-          j2 = 2*j
-          cc(i,j,:) = FOURTH * ( &
-               + cf(i2,j2  ,:) + cf(i2+1,j2  ,:) & 
-               + cf(i2,j2+1,:) + cf(i2+1,j2+1,:) &
-               )
+    do n = 1, size(cc,3)
+       do j = loc(2),hic(2)
+          do i = loc(1),hic(1)
+             i2 = 2*i
+             j2 = 2*j
+             cc(i,j,n) = FOURTH * (  &
+                  cf(i2,j2  ,n) + cf(i2+1,j2  ,n) + & 
+                  cf(i2,j2+1,n) + cf(i2+1,j2+1,n) )
+          end do
        end do
     end do
 
@@ -187,14 +192,16 @@ contains
     integer        , intent(in   ) :: ng,lof(:),loc(:),hic(:)
     real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,:)
     real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,:)
-    integer :: i, i2, j, j2
+    integer :: i, i2, j, j2, n
 
-    do j = loc(2),hic(2)
-       do i = loc(1),hic(1)+1
-          i2 = 2*i
-          j2 = 2*j
-          cc(i,j,:) = HALF * (cf(i2,j2,:) + cf(i2,j2+1,:))
-        end do
+    do n = 1, size(cc,3)
+       do j = loc(2),hic(2)
+          do i = loc(1),hic(1)+1
+             i2 = 2*i
+             j2 = 2*j
+             cc(i,j,n) = HALF * (cf(i2,j2,n) + cf(i2,j2+1,n))
+          end do
+       end do
     end do
 
   end subroutine crse_xedge_coeffs_2d
@@ -204,13 +211,15 @@ contains
     integer        , intent(in   ) :: ng,lof(:),loc(:),hic(:)
     real(kind=dp_t), intent(inout) :: cc(loc(1)-ng:,loc(2)-ng:,:)
     real(kind=dp_t), intent(in)    :: cf(lof(1)-ng:,lof(2)-ng:,:)
-    integer :: i, i2, j, j2
+    integer :: i, i2, j, j2, n
 
-    do j = loc(2),hic(2)+1
-       do i = loc(1),hic(1)
-          i2 = 2*i
-          j2 = 2*j
-          cc(i,j,:) = HALF * (cf(i2,j2,:) + cf(i2+1,j2,:))
+    do n = 1, size(cc,3)
+       do j = loc(2),hic(2)+1
+          do i = loc(1),hic(1)
+             i2 = 2*i
+             j2 = 2*j
+             cc(i,j,n) = HALF * (cf(i2,j2,n) + cf(i2+1,j2,n))
+          end do
        end do
     end do
 

@@ -1,0 +1,20 @@
+this is a boxlib i/o test (just o, really),
+it writes a multifab.  the usage is:
+
+Usage:
+iotest3d.Linux.g++.gfortran.MPI.ex
+   [nfiles = nfiles]
+   [maxgrid = maxgrid]
+   [ncomps = ncomps]
+   [nboxes = nboxes]
+   [nsleep = nsleep]
+   [ntimes = ntimes]
+
+
+the range [1,nprocs] is enforced for nfiles.
+ntimes is the number of times to run the test.
+
+example run:
+
+mpiexec -n 4 iotest3d.Linux.g++.gfortran.MPI.ex nfiles=4 maxgrid=64 ncomps=16 nboxes=32 ntimes=4
+

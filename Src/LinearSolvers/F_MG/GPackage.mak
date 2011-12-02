@@ -18,6 +18,7 @@ f90sources += cc_stencil_fill.f90
 
 f90sources += mg.f90
 f90sources += mg_tower.f90
+f90sources += mg_tower_smoother.f90
 f90sources += mg_prolongation.f90
 
 f90sources += ml_prolongation.f90

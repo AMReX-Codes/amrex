@@ -10,7 +10,7 @@
 
 #include <COEF_F.H>
 
-void solve_with_F90(PArray<MultiFab>& soln, int iF90, Real a, Real b, 
+void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b, 
 		    const PArray<MultiFab>& alph, 
 		    const PArray<MultiFab>& beta, 
 		    PArray<MultiFab>& rhs, 
@@ -18,6 +18,8 @@ void solve_with_F90(PArray<MultiFab>& soln, int iF90, Real a, Real b,
 		    const std::vector<BoxArray>& grids,
 		    int ibnd)
 {
+  const Real run_strt = ParallelDescriptor::second();
+
   int composite_solve = 0;
   Real tolerance_rel, tolerance_abs;
   {
@@ -91,10 +93,9 @@ void solve_with_F90(PArray<MultiFab>& soln, int iF90, Real a, Real b,
 
     bcoeffs[ilev].resize(BL_SPACEDIM, PArrayManage);
 
-    BoxArray edge_boxes(grids[ilev]);
-
     for (int n = 0; n < BL_SPACEDIM ; n++) {
 
+      BoxArray edge_boxes(grids[ilev]);
       edge_boxes.surroundingNodes(n);
       
       bcoeffs[ilev].set(n, new MultiFab(edge_boxes,1,0,Fab_allocate));
@@ -218,6 +219,13 @@ void solve_with_F90(PArray<MultiFab>& soln, int iF90, Real a, Real b,
       Real final_resnorm;
       mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
     }
+  }
+
+  Real run_time = ParallelDescriptor::second() - run_strt;
+
+  ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
+  if (ParallelDescriptor::IOProcessor()) {
+    std::cout << "Total BoxLib_F Run time      : " << run_time << std::endl;
   }
 }
 

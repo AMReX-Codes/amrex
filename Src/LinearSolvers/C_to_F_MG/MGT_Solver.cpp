@@ -284,6 +284,8 @@ void
 MGT_Solver::Finalize()
 {
     initialized = false;
+
+    mgt_flush_copyassoc_cache();
 }
 
 void
@@ -441,15 +443,21 @@ MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& coeffs,
                                      Array< Array<Real> >& xb,
                                      int is_constant)
 {
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-      mgt_init_coeffs_lev(&lev);
-      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
 
+   if (is_constant == 1) 
+   {
+      set_const_gravity_coeffs(xa,xb);
+   }
+   else
+   {
+
+      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
       for ( int i = 0; i < BL_SPACEDIM; ++i ) 
-	{
-	  pxa[i] = pxb[i] = 0;
-	}
+         pxa[i] = pxb[i] = 0.;
+
+      for ( int lev = 0; lev < m_nlevel; ++lev )
+      {
+      mgt_init_coeffs_lev(&lev);
 
 //    NOTE: the sign convention is because the elliptic solver solves
 //           (alpha MINUS del dot beta grad) phi = RHS
@@ -466,40 +474,56 @@ MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& coeffs,
 
            mgt_set_cfa_const (&lev, &n, lo, hi, &value_zero);
  
-           if (is_constant == 1) {
-              mgt_set_cfbx_const(&lev, &n, lo, hi, &value_one);
-           } else {
-              const int* bxlo = coeffs[lev][0][n].box().loVect();
-              const int* bxhi = coeffs[lev][0][n].box().hiVect();
-   	      mgt_set_cfbx(&lev, &n, coeffs[lev][0][n].dataPtr(), &value_one, bxlo, bxhi, lo, hi);
-           }
+           const int* bxlo = coeffs[lev][0][n].box().loVect();
+           const int* bxhi = coeffs[lev][0][n].box().hiVect();
+           mgt_set_cfbx(&lev, &n, coeffs[lev][0][n].dataPtr(), &value_one, bxlo, bxhi, lo, hi);
  
 #if (BL_SPACEDIM >= 2) 
-           if (is_constant == 1) {
-              mgt_set_cfby_const(&lev, &n, lo, hi, &value_one);
-           } else {
-              const int* bylo = coeffs[lev][1][n].box().loVect(); 
-              const int* byhi = coeffs[lev][1][n].box().hiVect();
-   	      mgt_set_cfby(&lev, &n, coeffs[lev][1][n].dataPtr(), &value_one, bylo, byhi, lo, hi);
-           }
+           const int* bylo = coeffs[lev][1][n].box().loVect(); 
+           const int* byhi = coeffs[lev][1][n].box().hiVect();
+   	   mgt_set_cfby(&lev, &n, coeffs[lev][1][n].dataPtr(), &value_one, bylo, byhi, lo, hi);
 #endif
  
 #if (BL_SPACEDIM == 3)
-           if (is_constant == 1) {
-              mgt_set_cfbz_const(&lev, &n, lo, hi, &value_one);
-           } else {
-              const int* bzlo = coeffs[lev][2][n].box().loVect();
-              const int* bzhi = coeffs[lev][2][n].box().hiVect();
-	      mgt_set_cfbz(&lev, &n, coeffs[lev][2][n].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
-           }
+           const int* bzlo = coeffs[lev][2][n].box().loVect();
+           const int* bzhi = coeffs[lev][2][n].box().hiVect();
+	   mgt_set_cfbz(&lev, &n, coeffs[lev][2][n].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
 #endif
         }
 
       int dm = BL_SPACEDIM;
       mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
     }
+    mgt_finalize_stencil();
+   }
+}
 
-  mgt_finalize_stencil();
+void
+MGT_Solver::set_const_gravity_coeffs(Array< Array<Real> >& xa,
+                                     Array< Array<Real> >& xb)
+{
+   double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+   for ( int i = 0; i < BL_SPACEDIM; ++i ) 
+      pxa[i] = pxb[i] = 0.;
+
+   for ( int lev = 0; lev < m_nlevel; ++lev )
+   {
+      mgt_init_coeffs_lev(&lev);
+
+//    NOTE: the sign convention is because the elliptic solver solves
+//           (alpha MINUS del dot beta grad) phi = RHS
+//           Here alpha is zero and we want to solve del dot grad phi = RHS,
+//             which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
+      Real value_zero =  0.0;
+      Real value_one  = -1.0;
+
+      mgt_set_all_const(&lev,&value_zero,&value_one);
+
+      int dm = BL_SPACEDIM;
+      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
+   }
+
+   mgt_finalize_stencil();
 }
 
 void
