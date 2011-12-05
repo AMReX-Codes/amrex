@@ -303,7 +303,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
     // Number of chunks we break the redistribution loop into
     // This is just a good guess at this point
-    int NRedist;
+    int NRedist = 16;
+
     if (NProcs <= 1024)
     {
        if (NReaders > 1)
@@ -318,10 +319,6 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     {
        NReaders = std::max(NReaders,384);
        NRedist = 32;
-    }
-    else
-    {
-       NRedist = 16;
     }
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
