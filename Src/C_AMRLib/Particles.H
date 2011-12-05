@@ -297,7 +297,29 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
     const Real strttime = ParallelDescriptor::second();
-    const int  NReaders = ParticleBase::MaxReaders();
+
+    // Number of processes that read from the file
+    int NReaders = ParticleBase::MaxReaders();
+
+    // Number of chunks we break the redistribution loop into
+    // This is just a good guess at this point
+    int NRedist = 16;
+
+    if (NProcs <= 1024)
+    {
+       if (NReaders > 1)
+          NRedist = 2;
+    }
+    else if (NProcs <= 4096)
+    {
+       NReaders = std::max(NReaders,128);
+       NRedist = 4;
+    }
+    else if (NProcs <= 16192)
+    {
+       NReaders = std::max(NReaders,384);
+       NRedist = 32;
+    }
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
@@ -308,8 +330,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     if (Nrep != 0)
         lNrep = *Nrep;
 
-    int  howmany      = 0;
-    int  howmany_read = 0;
+    long  howmany      = 0;
+    long  howmany_read = 0;
     //
     // NReaders will read particles into a PBox.
     // Later they'll each put their chunk into m_particles and call Redistribute().
@@ -409,7 +431,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
                 if (!ParticleBase::Where(p,m_amr))
                 {
-                    std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << '\n';
+                    std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << '\n';
 
                     for (int d = 0; d < BL_SPACEDIM; d++)
                     {
@@ -483,7 +505,45 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     // We've read in all the particles.
     // Now Redistribute() each chunk separately to minimize memory bloat.
     //
-    for (int which = 0; which < NReaders; which++)
+    int NRedist_chunk = NReaders / NRedist;
+
+    for (int nr = 0; nr < NRedist; nr++)
+    {
+        if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+            std::cout << "Redistributing from processor " << nr*NRedist_chunk << " to " 
+                                                          << (nr+1)*NRedist_chunk-1 << std::endl;
+        for (int which = nr*NRedist_chunk; which < (nr+1)*NRedist_chunk; which++)
+        {
+            if (which == MyProc)
+            {
+                while (!nparticles.empty())
+                {
+                    ParticleType& p = nparticles.front();
+    
+                    m_particles[p.m_lev][p.m_grid].push_back(p);
+    
+                    nparticles.pop_front();
+                }
+
+                PBox().swap(nparticles);
+            }
+        }
+        //
+        // Let Redistribute() sort'm out.
+        //
+        Redistribute(true);
+    }
+
+    //
+    // Take care of any leftover chunk
+    //
+    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+        if (NRedist*NRedist_chunk < NReaders)
+            std::cout << "Redistributing from processor " << NRedist*NRedist_chunk << " to " 
+                                                          << NReaders << std::endl;
+    }
+    for (int which = NRedist*NRedist_chunk; which < NReaders; which++)
     {
         if (which == MyProc)
         {
@@ -503,13 +563,17 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         //
         Redistribute(true);
     }
+
     //
     // Add up all the particles read in on each processor to get the total number of particles.
     //
     if (m_verbose > 0)
     {
-        int num_particles = howmany; 
-        ParallelDescriptor::ReduceIntSum(num_particles, ParallelDescriptor::IOProcessorNumber());
+        const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
+
+        long num_particles = howmany; 
+
+        ParallelDescriptor::ReduceLongSum(num_particles, IOProcNumber);
 
         if (lNrep[0] == 1 && lNrep[1] == 1 && lNrep[2] == 1)
         {
@@ -518,8 +582,10 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         }
         else
         {
-            int num_particles_read = howmany_read; 
-            ParallelDescriptor::ReduceIntSum(num_particles_read, ParallelDescriptor::IOProcessorNumber());
+            long num_particles_read = howmany_read; 
+
+            ParallelDescriptor::ReduceLongSum(num_particles_read, IOProcNumber);
+
             if (ParallelDescriptor::IOProcessor())
             {
                 std::cout << "Replication the domain with vector           " << 
