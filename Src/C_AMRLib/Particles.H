@@ -302,8 +302,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     int NReaders = ParticleBase::MaxReaders();
 
     // Number of chunks we break the redistribution loop into
-    // This is just a good guess at this point
-    int NRedist = 16;
+    // This default is just for the case of NProcs = NReaders = 1.
+    int NRedist = 1;
 
     if (NProcs <= 1024)
     {
