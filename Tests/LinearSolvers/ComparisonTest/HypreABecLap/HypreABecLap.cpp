@@ -1694,7 +1694,20 @@ void HypreABecLap::setupSolver()
     //HYPRE_BoomerAMGSetStrongThreshold(precond, 0.6);
     //HYPRE_BoomerAMGSetPrintLevel(precond, 2);
     //HYPRE_BoomerAMGSetTruncFactor(precond, 0.5);
-    //HYPRE_BoomerAMGSetCoarsenType(precond, 6);
+
+    // original version
+    // HYPRE_BoomerAMGSetCoarsenType(precond, 6);
+    //
+    // first version by Ulrike Meier
+    HYPRE_BoomerAMGSetCoarsenType(precond, 10);
+    HYPRE_BoomerAMGSetAggNumLevels(precond,2);
+    HYPRE_BoomerAMGSetNumPaths(precond,2);
+    //
+    // second version by Ulrike Meier
+    //    HYPRE_BoomerAMGSetCoarsenType(precond, 10);
+    //    HYPRE_BoomerAMGSetAggNumLevels(precond,1);
+    //
+
     //HYPRE_BoomerAMGSetLogging(precond, 2);
     HYPRE_ParCSRGMRESSetPrecond(solver,
                                 (HYPRE_PtrToParSolverFcn) HYPRE_BoomerAMGSolve,
