@@ -33,7 +33,7 @@ CGSolver::Initialize ()
     // Set defaults here!!!
     //
     CGSolver::def_maxiter            = 40;
-    CGSolver::def_verbose            = 1;
+    CGSolver::def_verbose            = 0;
     CGSolver::def_cg_solver          = BiCGStab;
     CGSolver::use_jbb_precond        = 0;
     CGSolver::use_jacobi_precond     = 0;

@@ -26,6 +26,9 @@ int   MGT_Solver::stencil_type;
 typedef void (*mgt_get)(const int* lev, const int* n, double* uu, 
 			const int* plo, const int* phi, 
 			const int* lo, const int* hi);
+typedef void (*mgt_getni)(const int* lev, const int* n, double* uu, 
+			const int* plo, const int* phi, 
+			const int* lo, const int* hi, const int& nuu, const int&iuu);
 typedef void (*mgt_get_ng)(const int* lev, const int* n, double* uu, 
 			   const int* plo, const int* phi, 
    			   const int* lo, const int* hi, const int* ng);
@@ -39,6 +42,9 @@ typedef void (*mgt_set)(const int* lev, const int* n, const double* uu,
 typedef void (*mgt_setn)(const int* lev, const int* n, const double* uu, 
 		 	 const int* plo, const int* phi, 
 			 const int* lo, const int* hi, const int& nc);
+typedef void (*mgt_setni)(const int* lev, const int* n, const double* uu, 
+			  const int* plo, const int* phi, 
+			  const int* lo, const int* hi, const int& nuu, const int& iuu);
 typedef void (*mgt_set_cf)(const int* lev, const int* n, const double* uu, 
                            const double* b, 
                            const int* plo, const int* phi, 
@@ -52,10 +58,10 @@ typedef void (*mgt_set_c)(const int* lev, const int* n,
 #if BL_SPACEDIM == 1
 mgt_get_ng  mgt_get_uu         = mgt_get_uu_1d;
 mgt_set     mgt_set_uu         = mgt_set_uu_1d;
-mgt_get     mgt_get_pr         = mgt_get_pr_1d;
+mgt_getni   mgt_get_pr         = mgt_get_pr_1d;
 mgt_get     mgt_get_res        = mgt_get_res_1d;
 mgt_get_dir mgt_get_gp         = mgt_get_gp_1d;
-mgt_set     mgt_set_pr         = mgt_set_pr_1d;
+mgt_setni   mgt_set_pr         = mgt_set_pr_1d;
 mgt_set     mgt_set_rh         = mgt_set_rh_1d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_1d;
 mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_1d;
@@ -63,16 +69,16 @@ mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_1d;
 mgt_set_cfn mgt_set_cfbnx      = mgt_set_cfbnx_1d;
 mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_1d_const;
 mgt_set_c   mgt_set_cfbx_const = mgt_set_cfbx_1d_const;
-mgt_set mgt_set_cfs            = mgt_set_cfs_1d;
-mgt_get mgt_get_vel            = mgt_get_vel_1d;
-mgt_set mgt_set_vel            = mgt_set_vel_1d;
+mgt_set     mgt_set_cfs        = mgt_set_cfs_1d;
+mgt_getni   mgt_get_vel        = mgt_get_vel_1d;
+mgt_setni   mgt_set_vel        = mgt_set_vel_1d;
 #elif BL_SPACEDIM == 2
 mgt_get_ng  mgt_get_uu         = mgt_get_uu_2d;
 mgt_set     mgt_set_uu         = mgt_set_uu_2d;
-mgt_get     mgt_get_pr         = mgt_get_pr_2d;
+mgt_getni   mgt_get_pr         = mgt_get_pr_2d;
 mgt_get     mgt_get_res        = mgt_get_res_2d;
 mgt_get_dir mgt_get_gp         = mgt_get_gp_2d;
-mgt_set     mgt_set_pr         = mgt_set_pr_2d;
+mgt_setni   mgt_set_pr         = mgt_set_pr_2d;
 mgt_set     mgt_set_rh         = mgt_set_rh_2d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_2d;
 mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_2d;
@@ -83,16 +89,16 @@ mgt_set_c   mgt_set_cfbx_const = mgt_set_cfbx_2d_const;
 mgt_set_cf  mgt_set_cfby       = mgt_set_cfby_2d;
 mgt_set_cfn mgt_set_cfbny      = mgt_set_cfbny_2d;
 mgt_set_c   mgt_set_cfby_const = mgt_set_cfby_2d_const;
-mgt_set mgt_set_cfs            = mgt_set_cfs_2d;
-mgt_get mgt_get_vel            = mgt_get_vel_2d;
-mgt_set mgt_set_vel            = mgt_set_vel_2d;
+mgt_set     mgt_set_cfs        = mgt_set_cfs_2d;
+mgt_getni   mgt_get_vel        = mgt_get_vel_2d;
+mgt_setni   mgt_set_vel        = mgt_set_vel_2d;
 #elif BL_SPACEDIM == 3
 mgt_get_ng  mgt_get_uu         = mgt_get_uu_3d;
 mgt_set     mgt_set_uu         = mgt_set_uu_3d;
-mgt_get     mgt_get_pr         = mgt_get_pr_3d;
+mgt_getni   mgt_get_pr         = mgt_get_pr_3d;
 mgt_get     mgt_get_res        = mgt_get_res_3d;
 mgt_get_dir mgt_get_gp         = mgt_get_gp_3d;
-mgt_set     mgt_set_pr         = mgt_set_pr_3d;
+mgt_setni   mgt_set_pr         = mgt_set_pr_3d;
 mgt_set     mgt_set_rh         = mgt_set_rh_3d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_3d;
 mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_3d;
@@ -106,9 +112,9 @@ mgt_set_c   mgt_set_cfby_const = mgt_set_cfby_3d_const;
 mgt_set_cf  mgt_set_cfbz       = mgt_set_cfbz_3d;
 mgt_set_cfn mgt_set_cfbnz      = mgt_set_cfbnz_3d;
 mgt_set_c   mgt_set_cfbz_const = mgt_set_cfbz_3d_const;
-mgt_set mgt_set_cfs            = mgt_set_cfs_3d;
-mgt_get mgt_get_vel            = mgt_get_vel_3d;
-mgt_set mgt_set_vel            = mgt_set_vel_3d;
+mgt_set     mgt_set_cfs        = mgt_set_cfs_3d;
+mgt_getni   mgt_get_vel        = mgt_get_vel_3d;
+mgt_setni   mgt_set_vel        = mgt_set_vel_3d;
 #endif
 
 MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
@@ -1359,6 +1365,13 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
+
+      BL_ASSERT( (*p[lev]).nGrow() == 1 );
+      //      BL_ASSERT( (*vel[lev]).nGrow() == 1 );
+
+      const int ncomp_p = (*p[lev]).nComp();
+      const int ncomp_vel = (*vel[lev]).nComp();
+
       for (MFIter vmfi(*(vel[lev])); vmfi.isValid(); ++vmfi)
 	{
 	  int n = vmfi.index();
@@ -1370,7 +1383,8 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
 	  const Real* vd = velfab.dataPtr();
 	  const int* vlo = velfab.box().loVect();
 	  const int* vhi = velfab.box().hiVect();
-	  mgt_set_vel(&lev, &n, vd, vlo, vhi, lo, hi);
+	  const int ivel = 0;
+	  mgt_set_vel(&lev, &n, vd, vlo, vhi, lo, hi, ncomp_vel, ivel);
 	}
 
       for (MFIter pmfi(*(p[lev])); pmfi.isValid(); ++pmfi)
@@ -1384,7 +1398,8 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
 	  const Real* sd = sol.dataPtr();
 	  const int* slo = sol.box().loVect();
 	  const int* shi = sol.box().hiVect();
-	  mgt_set_pr(&lev, &n, sd, slo, shi, lo, hi);
+	  const int ip = 0;
+	  mgt_set_pr(&lev, &n, sd, slo, shi, lo, hi, ncomp_p, ip);
 	}
     }
 
@@ -1396,6 +1411,10 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
+
+      const int ncomp_p = (*p[lev]).nComp();
+      const int ncomp_vel = (*vel[lev]).nComp();
+
       for (MFIter pmfi(*(p[lev])); pmfi.isValid(); ++pmfi)
 	{
 	  FArrayBox& sol = (*(p[lev]))[pmfi];
@@ -1405,7 +1424,8 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
 	  const int* hi = pmfi.validbox().hiVect();
 	  const int* plo = sol.box().loVect();
 	  const int* phi = sol.box().hiVect();
-	  mgt_get_pr(&lev, &n, sd, plo, phi, lo, hi);
+	  const int ip = 0;
+	  mgt_get_pr(&lev, &n, sd, plo, phi, lo, hi, ncomp_p, ip);
 	}
 
       for (MFIter vmfi(*(vel[lev])); vmfi.isValid(); ++vmfi)
@@ -1417,7 +1437,8 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
 	  const int* hi = vmfi.validbox().hiVect();
 	  const int* vlo = velfab.box().loVect();
 	  const int* vhi = velfab.box().hiVect();
-	  mgt_get_vel(&lev, &n, vd, vlo, vhi, lo, hi);
+	  const int ivel = 0;
+	  mgt_get_vel(&lev, &n, vd, vlo, vhi, lo, hi, ncomp_vel, ivel);
 	}
     }
 }

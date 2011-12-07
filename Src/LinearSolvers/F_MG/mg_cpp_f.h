@@ -397,11 +397,13 @@ extern "C"
   
   void mgt_get_pr_1d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi);
+		     const int* lo, const int* hi,
+		     const int& np, const int& ip);
   
   void mgt_set_pr_1d(const int* lev, const int* n, const Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi);
+		     const int* lo, const int* hi,
+		     const int& np, const int& ip);
   
   void mgt_set_cfa_1d(const int* lev, const int* n, const Real* cf,
 		      const int* plo, const int* phi, 
@@ -435,11 +437,13 @@ extern "C"
   
   void mgt_get_vel_1d(const int* lev, const int* n, Real* cf,
 		      const int* plo, const int* phi, 
-		      const int* lo, const int* hi);
+		      const int* lo, const int* hi,
+		      const int& nv, const int& iv);
   
   void mgt_set_vel_1d(const int* lev, const int* n, const Real* cf,
 		      const int* plo, const int* phi, 
-		      const int* lo, const int* hi);
+		      const int* lo, const int* hi,
+		      const int& nv, const int& iv);
 
 
   void mgt_set_rh_2d(const int* lev, const int* n, const Real* rh, 
@@ -465,11 +469,13 @@ extern "C"
   
   void mgt_get_pr_2d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi);
+		     const int* lo, const int* hi,
+		     const int& np, const int& ip);
   
   void mgt_set_pr_2d(const int* lev, const int* n, const Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi);
+		     const int* lo, const int* hi,
+		     const int& np, const int& ip);
   
   void mgt_set_cfa_2d(const int* lev, const int* n, const Real* cf,
 		      const int* plo, const int* phi, 
@@ -514,13 +520,13 @@ extern "C"
   
   void mgt_get_vel_2d(const int* lev, const int* n, Real* cf,
 		      const int* plo, const int* phi, 
-		      const int* lo, const int* hi);
+		      const int* lo, const int* hi,
+		      const int& nv, const int& iv);
   
-  void mgt_set_vel_2d(const int* lev, const int* n, const Real* cf,
+  void mgt_set_vel_2d(const int* lev, const int* n, const Real* v,
 		      const int* plo, const int* phi, 
-		      const int* lo, const int* hi);
-
-
+		      const int* lo, const int* hi,
+		      const int& nv, const int& iv);
 
   
   void mgt_set_rh_3d(const int* lev, const int* n, const Real* rh, 
@@ -546,11 +552,13 @@ extern "C"
   
   void mgt_get_pr_3d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi);
+		     const int* lo, const int* hi,
+		     const int& np, const int& ip);
   
   void mgt_set_pr_3d(const int* lev, const int* n, const Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi);
+		     const int* lo, const int* hi,
+		     const int& np, const int& ip);
   
   void mgt_set_cfa_3d(const int* lev, const int* n, const Real* cf,
 		      const int* plo, const int* phi, 
@@ -608,11 +616,13 @@ extern "C"
   
   void mgt_get_vel_3d(const int* lev, const int* n, Real* cf,
 		      const int* plo, const int* phi, 
-		      const int* lo, const int* hi);
+		      const int* lo, const int* hi,
+		      const int& nv, const int& iv);
   
   void mgt_set_vel_3d(const int* lev, const int* n, const Real* cf,
 		      const int* plo, const int* phi, 
-		      const int* lo, const int* hi);
+		      const int* lo, const int* hi,
+		      const int& nv, const int& iv);
 
   void mgt_dealloc();
 
