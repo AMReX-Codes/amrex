@@ -244,17 +244,12 @@ public:
     //
     // Function to set physical boundary conditions.
     //
-    void setPhysBoundaryValues (int state_indx,
-                                int comp,
-                                int ncomp,
-                                int do_new = 1);
-    //
-    // Another function to set physical boundary conditions.
-    //
-    void setPhysBoundaryValues (int  state_indx,
-                                int  comp,
-                                int  ncomp,
-                                Real time);
+    virtual void setPhysBoundaryValues (FArrayBox& dest,
+                                        int        state_indx,
+                                        Real       time,
+                                        int        dest_comp,
+                                        int        src_comp,
+                                        int        num_comp);
     //
     // Returns a MultiFab containing the derived data for this level.
     // The user is responsible for deleting this pointer when done

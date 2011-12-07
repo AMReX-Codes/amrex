@@ -362,48 +362,6 @@ StateData::swapTimeLevels (Real dt)
 }
 
 void
-StateData::FillBoundary (const Real*    dx,
-                         const RealBox& prob_domain,
-                         int            src_comp,
-                         int            num_comp,
-                         int            do_new)
-{
-    Real cur_time;
-    if (desc->timeType() == StateDescriptor::Point)
-    {
-        cur_time = new_time.start;
-        if (!do_new)
-            cur_time = old_time.start;
-    }
-    else
-    {
-        cur_time = 0.5*(new_time.start + new_time.stop);
-        if (!do_new)
-            cur_time = 0.5*(old_time.start + old_time.stop);
-    }
-    //
-    // Make ghost cell data consistent before bc's.
-    //
-    if (do_new)
-    {
-        new_data->FillBoundary(src_comp, num_comp);
-    }
-    else
-    {
-        old_data->FillBoundary(src_comp, num_comp);
-    }
-
-    BL_ASSERT((do_new && new_data != 0) || old_data != 0);
-
-    MultiFab& mf = do_new ? *new_data : *old_data;
-   
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        FillBoundary(mf[mfi],cur_time,dx,prob_domain,src_comp,src_comp,num_comp);
-    }
-}
-
-void
 StateData::FillBoundary (FArrayBox&     dest,
                          Real           time,
                          const Real*    dx,
