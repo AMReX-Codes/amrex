@@ -18,6 +18,7 @@
 #define mgt_finalize_stencil      MGT_FINALIZE_STENCIL
 #define mgt_finalize_nodal_stencil MGT_FINALIZE_NODAL_STENCIL
 #define mgt_finalize_stencil_lev  MGT_FINALIZE_STENCIL_LEV
+#define mgt_finalize_const_stencil_lev  MGT_FINALIZE_CONST_STENCIL_LEV
 #define mgt_mc_finalize_stencil_lev  MGT_MC_FINALIZE_STENCIL_LEV
 #define mgt_finalize_nodal_stencil_lev  MGT_FINALIZE_NODAL_STENCIL_LEV
 #define mgt_dealloc               MGT_DEALLOC
@@ -125,6 +126,7 @@
 #define mgt_finalize_stencil      mgt_finalize_stencil_
 #define mgt_finalize_nodal_stencil mgt_finalize_nodal_stencil_
 #define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev_
+#define mgt_finalize_const_stencil_lev  mgt_finalize_const_stencil_lev_
 #define mgt_mc_finalize_stencil_lev   mgt_mc_finalize_stencil_lev_
 #define mgt_finalize_nodal_stencil_lev  mgt_finalize_nodal_stencil_lev_
 #define mgt_dealloc               mgt_dealloc_
@@ -229,6 +231,7 @@
 #define mgt_finalize_stencil      mgt_finalize_stencil__
 #define mgt_finalize_nodal_stencil mgt_finalize_nodal_stencil__
 #define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev__
+#define mgt_finalize_const_stencil_lev  mgt_finalize_const_stencil_lev__
 #define mgt_mc_finalize_stencil_lev   mgt_mc_finalize_stencil_lev__
 #define mgt_finalize_nodal_stencil_lev  mgt_finalize_nodal_stencil_lev__
 #define mgt_dealloc               mgt_dealloc__
@@ -361,6 +364,12 @@ extern "C"
 			    const Real* xa, const Real* xb,
 			    const Real* pxa, const Real* pxb,
 			    const int* dm);
+  
+  void mgt_finalize_const_stencil_lev(const int* lev,
+			         const Real* alpha_const, const Real* beta_const,
+			         const Real* xa, const Real* xb,
+     			         const Real* pxa, const Real* pxb,
+         			 const int* dm);
 
   void mgt_mc_finalize_stencil_lev(const int* lev,
 				   const Real* xa, const Real* xb,
