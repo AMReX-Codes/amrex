@@ -107,8 +107,9 @@ public:
                            int                      dest_comp,
                            int                      num_comp,
                            bool                     extrap = false);
+
     //
-    // Set physical bndry values for all state variables in range.
+    // Set physical bndry values
     //
     void FillBoundary (FArrayBox&     dest,
                        Real           time,
@@ -117,14 +118,6 @@ public:
                        int            dest_comp,
                        int            src_comp,
                        int            num_comp = 1);
-    //
-    // Set physical bndry values for all state variables in range.
-    //
-    void FillBoundary (const Real*    dx,
-                       const RealBox& prob_domain,
-                       int            src_comp,
-                       int            num_comp = 1,
-                       int            do_new = 1);
     //
     // Write the state data to a checkpoint file.
     //

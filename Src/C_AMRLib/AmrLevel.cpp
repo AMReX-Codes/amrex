@@ -55,19 +55,6 @@ AmrLevel::Geom () const
     return geom;
 }
 
-void
-AmrLevel::setPhysBoundaryValues (int state_indx,
-                                 int comp,
-                                 int ncomp,
-                                 int do_new)
-{
-    state[state_indx].FillBoundary(geom.CellSize(),
-                                   geom.ProbDomain(),
-                                   comp,
-                                   ncomp,
-                                   do_new);
-}
-
 StateData&
 AmrLevel::get_state_data (int state_indx)
 {
@@ -379,28 +366,29 @@ AmrLevel::get_data (int  state_indx,
 }
 
 void
+AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
+                                 int        state_indx,
+                                 Real       time,
+                                 int        dest_comp,
+                                 int        src_comp,
+                                 int        num_comp)
+{
+    state[state_indx].FillBoundary(dest,time,geom.CellSize(),
+                                   geom.ProbDomain(),dest_comp,src_comp,num_comp);
+}
+
+#if 0
+void
 AmrLevel::setPhysBoundaryValues (int  state_indx,
                                  int  comp,
                                  int  ncomp,
-                                 Real time)
+                                 const AmrLevel::TimeLevel& whichTime)
 {
-    const Real old_time = state[state_indx].prevTime();
-    const Real new_time = state[state_indx].curTime();
-    const Real eps = 0.001*(new_time - old_time);
+    TimeLevel old_time = which_time(state_indx,state[state_indx].prevTime());
+    TimeLevel new_time = which_time(state_indx,state[state_indx].curTime());
+    BL_ASSERT(whichTime==new_time  || whichTime==old_time);
 
-    int do_new = -1;
-    if (time > old_time-eps && time < old_time+eps)
-    {
-        do_new = 0;
-    }
-    else if (time > new_time-eps && time < new_time+eps)
-    {
-        do_new = 1;
-    }
-    else
-    {
-        BoxLib::Error("AmrLevel::setPhysBndryValues(): invalid time");
-    }
+    int do_new = (whichTime == new_time  ?  0 : 1 );
 
     state[state_indx].FillBoundary(geom.CellSize(),
                                    geom.ProbDomain(),
@@ -408,6 +396,7 @@ AmrLevel::setPhysBoundaryValues (int  state_indx,
                                    ncomp,
                                    do_new);
 }
+#endif
 
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel& amrlevel,
                                                   MultiFab& leveldata)
@@ -815,13 +804,15 @@ HasPhysBndry (const Box&      b,
 static
 void
 FixUpPhysCorners (FArrayBox&      fab,
-                  StateData&      TheState,
-                  const Geometry& TheGeom,
+                  AmrLevel&       TheLevel,
+                  int             state_indx,
                   Real            time,
                   int             scomp,
                   int             dcomp,
                   int             ncomp)
 {
+    StateData& TheState = TheLevel.get_state_data(state_indx);
+    const Geometry& TheGeom = TheLevel.Geom();
     const Box& ProbDomain = TheState.getDomain();
 
     if (!HasPhysBndry(fab.box(),ProbDomain,TheGeom)) return;
@@ -862,13 +853,12 @@ FixUpPhysCorners (FArrayBox&      fab,
             tmp.resize(lo_slab,ncomp);
             tmp.copy(fab,dcomp,0,ncomp);
             tmp.shift(dir,ProbDomain.length(dir));
-            TheState.FillBoundary(tmp,
-                                  time,
-                                  TheGeom.CellSize(),
-                                  TheGeom.ProbDomain(),
-                                  0,
-                                  scomp,
-                                  ncomp);
+            TheLevel.setPhysBoundaryValues(tmp,
+                                           state_indx,
+                                           time,
+                                           0,
+                                           scomp,
+                                           ncomp);
             tmp.shift(dir,-ProbDomain.length(dir));
             fab.copy(tmp,0,dcomp,ncomp);
         }
@@ -883,13 +873,12 @@ FixUpPhysCorners (FArrayBox&      fab,
             tmp.resize(hi_slab,ncomp);
             tmp.copy(fab,dcomp,0,ncomp);
             tmp.shift(dir,-ProbDomain.length(dir));
-            TheState.FillBoundary(tmp,
-                                  time,
-                                  TheGeom.CellSize(),
-                                  TheGeom.ProbDomain(),
-                                  0,
-                                  scomp,
-                                  ncomp);
+            TheLevel.setPhysBoundaryValues(tmp,
+                                           state_indx,
+                                           time,
+                                           0,
+                                           scomp,
+                                           ncomp);
             tmp.shift(dir,ProbDomain.length(dir));
             fab.copy(tmp,0,dcomp,ncomp);
         }
@@ -958,9 +947,10 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     for (int l = 0; l < m_amrlevel.level; l++)
     {
-        StateData&         TheState   = amrLevels[l].state[m_index];
+        AmrLevel&          TheLevel   = amrLevels[l];
+        StateData&         TheState   = TheLevel.state[m_index];
         PArray<FArrayBox>& CrseFabs   = cfab[l];
-        const Geometry&    TheGeom    = amrLevels[l].geom;
+        const Geometry&    TheGeom    = TheLevel.geom;
         const Box&         ThePDomain = TheState.getDomain();
 
         if (TheGeom.isAnyPeriodic())
@@ -1001,20 +991,16 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         // Set non-periodic BCs in coarse data -- what we interpolate with.
         // This MUST come after the periodic fill mumbo-jumbo.
         //
-	const Real*    theCellSize   = TheGeom.CellSize();
-	const RealBox& theProbDomain = TheGeom.ProbDomain();
-
         for (int i = 0, N = CrseFabs.size(); i < N; i++)
         {
             if (!ThePDomain.contains(CrseFabs[i].box()))
             {
-                TheState.FillBoundary(CrseFabs[i],
-                                      m_time,
-                                      theCellSize,
-                                      theProbDomain,
-                                      0,
-                                      m_scomp,
-                                      m_ncomp);
+                TheLevel.setPhysBoundaryValues(CrseFabs[i],
+                                               m_index,
+                                               m_time,
+                                               0,
+                                               m_scomp,
+                                               m_ncomp);
             }
             //
             // The coarse FAB had better be completely filled with "good" data.
@@ -1026,7 +1012,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         {
             for (int i = 0, N = CrseFabs.size(); i < N; i++)
             {
-                FixUpPhysCorners(CrseFabs[i],TheState,TheGeom,m_time,m_scomp,0,m_ncomp);
+                FixUpPhysCorners(CrseFabs[i],TheLevel,m_index,m_time,m_scomp,0,m_ncomp);
             }
         }
         //
@@ -1135,18 +1121,17 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     if (!FineState.getDomain().contains(fab.box()))
     {
-        FineState.FillBoundary(fab,
-                               m_time,
-                               FineGeom.CellSize(),
-                               FineGeom.ProbDomain(),
-                               dcomp,
-                               m_scomp,
-                               m_ncomp);
+        m_amrlevel.setPhysBoundaryValues(fab,
+                                         m_index,
+                                         m_time,
+                                         dcomp,
+                                         m_scomp,
+                                         m_ncomp);
     }
 
     if (m_FixUpCorners)
     {
-        FixUpPhysCorners(fab,FineState,FineGeom,m_time,m_scomp,dcomp,m_ncomp);
+        FixUpPhysCorners(fab,m_amrlevel,m_index,m_time,m_scomp,dcomp,m_ncomp);
     }
 }
 
