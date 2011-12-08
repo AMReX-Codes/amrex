@@ -506,23 +506,19 @@ MGT_Solver::set_const_gravity_coeffs(Array< Array<Real> >& xa,
    for ( int i = 0; i < BL_SPACEDIM; ++i ) 
       pxa[i] = pxb[i] = 0.;
 
+   // NOTE: the sign convention is because the elliptic solver solves
+   //        (alpha MINUS del dot beta grad) phi = RHS
+   //        Here alpha is zero and we want to solve del dot grad phi = RHS,
+   //        which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
+   Real value_zero =  0.0;
+   Real value_one  = -1.0;
+
+   int dm = BL_SPACEDIM;
    for ( int lev = 0; lev < m_nlevel; ++lev )
    {
-      mgt_init_coeffs_lev(&lev);
-
-//    NOTE: the sign convention is because the elliptic solver solves
-//           (alpha MINUS del dot beta grad) phi = RHS
-//           Here alpha is zero and we want to solve del dot grad phi = RHS,
-//             which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
-      Real value_zero =  0.0;
-      Real value_one  = -1.0;
-
-      mgt_set_all_const(&lev,&value_zero,&value_one);
-
-      int dm = BL_SPACEDIM;
-      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
+      mgt_finalize_const_stencil_lev(&lev, &value_zero, &value_one, 
+                                     xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
    }
-
    mgt_finalize_stencil();
 }
 
