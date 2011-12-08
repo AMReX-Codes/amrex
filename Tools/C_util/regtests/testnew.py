@@ -1610,6 +1610,8 @@ body {font-family: "Arial", san-serif;}
 
 h1 {font-family: "Arial", sans-serif;}
 
+h3 {display: inline;}
+
 h3.passed {text-decoration: none; display: inline;
            color: black; background-color: lime; padding: 2px}
 
@@ -1621,6 +1623,10 @@ h3.benchmade {text-decoration: none; display: inline;
 
 span.nobreak {white-space: nowrap;}
 
+a.main:link {color: yellow; text-decoration: none;}
+a.main:visited {color: yellow; text-decoration: none;}
+a.main:hover {color: #00ffff; text-decoration: underline;}
+
 th {background-color: black;
     padding: 4px;
     color: yellow;
@@ -1628,9 +1634,19 @@ th {background-color: black;
 
 td {border-width: 0px;
     padding: 5px;
-    background-color: white;}
+    background-color: white;
+    vertical-align: middle;}
 
-table {border-collapse:collapse;}
+td.passed {background-color: lime; opacity: 0.8;}
+td.failed {background-color: red; color: yellow; opacity: 0.8;}
+td.benchmade {background-color: orange; opacity: 0.8;}
+td.date {background-color: #666666; color: white; opacity: 0.8; font-weight: bold;}
+
+.maintable tr:hover {background-color: blue;}
+
+
+table {border-collapse: separate;
+       border-spacing: 2px;}
 
 """
 
@@ -1821,7 +1837,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     else:
         hf.write("<P><H3 CLASS=\"failed\">Compilation Failed</H3></P>\n")
 
-    hf.write("<P>compliation command: %s\n" % (compileCommand) )
+    hf.write("<P>compliation command:\n %s\n" % (compileCommand) )
     hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
 
     hf.write("<P>&nbsp;\n")
@@ -1835,7 +1851,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         else:
             hf.write("<P><H3 CLASS=\"failed\">Comparison Failed</H3></P>\n")
 
-        hf.write("<P>Execution command: %s\n" % (runCommand) )
+        hf.write("<P>Execution command:\n %s\n" % (runCommand) )
         hf.write("<P><A HREF=\"%s.run.out\">execution output</A>\n" % (test.name) )
 
 
@@ -2183,7 +2199,7 @@ def reportAllRuns(suite, webTopDir):
     header = MainHeader.replace("@TITLE@", title)
     hf.write(header)
 
-    hf.write("<P><TABLE>\n")
+    hf.write("<P><TABLE class='maintable'>\n")
 
     # write out the header
     hf.write("<TR><TH ALIGN=CENTER>date</TH>")
@@ -2197,7 +2213,7 @@ def reportAllRuns(suite, webTopDir):
     for dir in validDirs:
 
         # write out the directory (date)
-        hf.write("<TR><TD><SPAN CLASS='nobreak'><A HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
+        hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
                  (dir, dir) )
         
         for test in allTests:
@@ -2231,11 +2247,11 @@ def reportAllRuns(suite, webTopDir):
                 
             # write out this test's status
             if (status == 1):
-                hf.write("<TD ALIGN=CENTER><H3 class=\"passed\">PASSED</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"passed\"><H3>PASSED</H3></TD>\n")
             elif (status == -1):
-                hf.write("<TD ALIGN=CENTER><H3 class=\"failed\">FAILED</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3>FAILED</H3></TD>\n")
             elif (status == 10):
-                hf.write("<TD ALIGN=CENTER><H3 class=\"benchmade\">UPDATED</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"benchmade\"><H3>UPDATED</H3></TD>\n")
             else:
                 hf.write("<TD>&nbsp;</TD>\n")
 
