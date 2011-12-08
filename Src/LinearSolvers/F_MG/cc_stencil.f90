@@ -1611,7 +1611,6 @@ contains
 
   end subroutine s_simpleg_3d_cc
 
-
   subroutine s_minion_cross_fill_2d(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi)
 
     integer           , intent(in   ) :: ng_a,ng_b
@@ -2756,8 +2755,185 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-
   end subroutine s_minion_full_fill_3d
+
+  subroutine simple_3d_const(ss, alpha_const, beta_const, dh, mask, lo, hi, xa, xb, order)
+
+
+    integer           , intent(in   ) :: lo(:), hi(:), order
+    integer           , intent(inout) :: mask(lo(1)  :,lo(2)  :,lo(3)  :)
+    real (kind = dp_t), intent(  out) ::   ss(0:, lo(1)  :,lo(2)  :,lo(3)  :)
+    real (kind = dp_t), intent(in   ) :: alpha_const, beta_const
+    real (kind = dp_t), intent(in   ) :: dh(:), xa(:), xb(:)
+
+    real (kind = dp_t) :: f1(3)
+    integer            :: i, j, k, bclo, bchi, nx, ny, nz
+    integer            :: lnx, lny, lnz, lorder
+    integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
+
+    nx = hi(1)-lo(1)+1
+    ny = hi(2)-lo(2)+1
+    nz = hi(3)-lo(3)+1
+    f1 = ONE/dh**2
+
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(0,i,j,k)   = ZERO
+             ss(1,i,j,k)   = -beta_const*f1(1)
+             ss(2,i,j,k)   = -beta_const*f1(1)
+             ss(3,i,j,k)   = -beta_const*f1(2)
+             ss(4,i,j,k)   = -beta_const*f1(2)
+             ss(5,i,j,k)   = -beta_const*f1(3)
+             ss(6,i,j,k)   = -beta_const*f1(3)
+             ss(XBC,i,j,k) = ZERO
+             ss(YBC,i,j,k) = ZERO
+             ss(ZBC,i,j,k) = ZERO
+          end do
+       end do
+    end do
+
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
+    mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
+
+    lnx = nx; lny = ny; lnz = nz; lorder = order
+
+    ! x derivatives
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1)+1,hi(1)-1
+             ss(0,i,j,k) = ss(0,i,j,k) + 2.d0*beta_const*f1(1)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lnx)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          bclo = stencil_bc_type(mask(lo(1),j,k),1,-1)
+          bchi = stencil_bc_type(mask(hi(1),j,k),1,+1)
+
+          i = lo(1)
+          if (bclo .eq. BC_INT) then
+             ss(0,i,j,k) = ss(0,i,j,k) + 2.d0*beta_const*f1(1)
+          else
+             call stencil_bndry_aaa(lorder, lnx, 1, -1, mask(i,j,k), &
+                  ss(0,i,j,k), ss(1,i,j,k), ss(2,i,j,k), ss(XBC,i,j,k), &
+                  beta_const, beta_const, xa(1), xb(1), dh(1), bclo, bchi)
+          end if
+
+          if ( hi(1) > lo(1) ) then
+             i = hi(1)
+             if (bchi .eq. BC_INT) then
+                ss(0,i,j,k) = ss(0,i,j,k) + 2.d0*beta_const*f1(1)
+             else
+                call stencil_bndry_aaa(lorder, lnx, 1, 1, mask(i,j,k), &
+                     ss(0,i,j,k), ss(1,i,j,k), ss(2,i,j,k), ss(XBC,i,j,k), &
+                     beta_const, beta_const, xa(1), xb(1), dh(1), bclo, bchi)
+             end if
+          end if
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    ! y derivatives
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = lo(3),hi(3)
+       do j = lo(2)+1,hi(2)-1
+          do i = lo(1),hi(1)
+             ss(0,i,j,k) = ss(0,i,j,k) + 2.d0*beta_const*f1(2)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lny)
+    do k = lo(3),hi(3)
+       do i = lo(1),hi(1)
+          bclo = stencil_bc_type(mask(i,lo(2),k),2,-1)
+          bchi = stencil_bc_type(mask(i,hi(2),k),2,+1)
+
+          j = lo(2)
+          if (bclo .eq. BC_INT) then
+             ss(0,i,j,k) = ss(0,i,j,k) + 2.d0*beta_const*f1(2)
+          else
+             call stencil_bndry_aaa(lorder, lny, 2, -1, mask(i,j,k), &
+                  ss(0,i,j,k), ss(3,i,j,k), ss(4,i,j,k),ss(YBC,i,j,k), &
+                  beta_const, beta_const, xa(2), xb(2), dh(2), bclo, bchi)
+          end if
+          if ( hi(2) > lo(2) ) then
+             j = hi(2)
+             if (bchi .eq. BC_INT) then
+                ss(0,i,j,k) = ss(0,i,j,k) + 2.d0*beta_const*f1(2)
+             else
+                call stencil_bndry_aaa(lorder, lny, 2, 1, mask(i,j,k), &
+                     ss(0,i,j,k), ss(3,i,j,k), ss(4,i,j,k), ss(YBC,i,j,k), &
+                     beta_const, beta_const, xa(2), xb(2), dh(2), bclo, bchi)
+             end if
+          end if
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    ! z derivatives
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = lo(3)+1,hi(3)-1
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(0,i,j,k) = ss(0,i,j,k) + 2.d0*beta_const*f1(3)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k,bclo,bchi) FIRSTPRIVATE(lorder,lnz)
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          bclo = stencil_bc_type(mask(i,j,lo(3)),3,-1)
+          bchi = stencil_bc_type(mask(i,j,hi(3)),3,+1)
+
+          k = lo(3)
+          if (bclo .eq. BC_INT) then
+             ss(0,i,j,k) = ss(0,i,j,k) + 2.d0*beta_const*f1(3)
+          else
+             call stencil_bndry_aaa(lorder, lnz, 3, -1, mask(i,j,k), &
+                  ss(0,i,j,k), ss(5,i,j,k), ss(6,i,j,k),ss(ZBC,i,j,k), &
+                  beta_const, beta_const, xa(3), xb(3), dh(3), bclo, bchi)
+          end if
+          if ( hi(3) > lo(3) ) then
+             k = hi(3)
+             if (bchi .eq. BC_INT) then
+                ss(0,i,j,k) = ss(0,i,j,k) + 2.d0*beta_const*f1(3)
+             else
+                call stencil_bndry_aaa(lorder, lnz, 3, 1, mask(i,j,k), &
+                     ss(0,i,j,k), ss(5,i,j,k), ss(6,i,j,k), ss(ZBC,i,j,k), &
+                     beta_const, beta_const, xa(3), xb(3), dh(3), bclo, bchi)
+             end if
+          end if
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             ss(0,i,j,k) = ss(0,i,j,k) + alpha_const
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+  end subroutine simple_3d_const
 
   ! polyInterpCoeff:
   !  

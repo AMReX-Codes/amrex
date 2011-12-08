@@ -444,6 +444,24 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm)
 
 end subroutine mgt_finalize_stencil_lev
 
+subroutine mgt_finalize_const_stencil_lev(lev, alpha_const, beta_const, xa, xb, pxa, pxb, dm)
+  use cpp_mg_module
+  use cc_stencil_fill_module
+  implicit none
+  integer   , intent(in) :: lev, dm
+  real(dp_t), intent(in) :: alpha_const, beta_const
+  real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
+    
+  integer        :: i, nlev, flev
+
+  flev = lev + 1
+  call mgt_verify_lev("MGT_FINALIZE_CONST_STENCIL_LEV", flev)
+
+  call stencil_fill_const_all_mglevels(mgts%mgt(flev), alpha_const, beta_const, &
+                                       xa, xb, pxa, pxb, mgts%stencil_order, mgts%bc)
+
+end subroutine mgt_finalize_const_stencil_lev
+
 subroutine mgt_mc_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm, nc_opt)
   use cpp_mg_module
   use cc_stencil_fill_module
