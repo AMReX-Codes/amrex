@@ -38,7 +38,7 @@ set(CMAKE_MODULE_PATH  ${CCSE_MODULE_PATH})
 include(CCSEOptions)
 
 # A property for accumulating the a global CCSE link line.
-set_property(GLOBAL PROPERTY AMANZI_LINK_LINE "-L${CMAKE_INSTALL_PREFIX}/lib")
+set_property(GLOBAL PROPERTY CCSE_LINK_LINE "-L${CMAKE_INSTALL_PREFIX}/lib")
 
 # A property for accumulating CCSE library targets
 set_property(GLOBAL PROPERTY CCSE_LIBRARY_TARGETS)
@@ -58,11 +58,7 @@ add_subdirectory(Src)
 # Make the exports only _after_ doing the build
 create_exports()
 
-if (${CCSE_INSTALL_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
-else ()
-    install(FILES ${CCSE_PERL_DIR}/strip72
-        DESTINATION ${CCSE_INSTALL_DIR}/perl)
-endif ()
+ADD_INSTALL_PERLSCRIPT(${CCSE_PERL_DIR}/strip72)
 
 option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
 set(CCSE_CONFIG_LOG "${CCSE_BINARY_DIR}/ccse-config.log"
