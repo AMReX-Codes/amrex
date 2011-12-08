@@ -8,7 +8,7 @@
 #define mgt_alloc                 MGT_ALLOC
 #define mgt_nodal_alloc           MGT_NODAL_ALLOC
 #define mgt_set_level             MGT_SET_LEVEL
-#define mgt_set_nodal_level       MGET_SET_NODAL_LEVEL
+#define mgt_set_nodal_level       MGT_SET_NODAL_LEVEL
 #define mgt_finalize              MGT_FINALIZE
 #define mgt_finalize_n            MGT_FINALIZE_N
 #define mgt_nodal_finalize        MGT_NODAL_FINALIZE
