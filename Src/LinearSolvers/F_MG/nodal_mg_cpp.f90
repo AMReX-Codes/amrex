@@ -631,6 +631,55 @@ subroutine mgt_get_pr_3d(lev, n, uu, plo, phi, lo, hi, np, ip)
 
 end subroutine mgt_get_pr_3d
 
+subroutine mgt_add_rh_nodal_1d(lev, n, rh_in, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(in) :: rh_in(plo(1):phi(1))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  rp => dataptr(mgts%rh(flev), fn)
+  rp(lo(1):hi(1),1,1,1) = rp(lo(1):hi(1),1,1,1) + rh_in(lo(1):hi(1))
+
+end subroutine mgt_add_rh_nodal_1d
+
+subroutine mgt_add_rh_nodal_2d(lev, n, rh_in, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
+  real(kind=dp_t), intent(in) :: rh_in(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  rp => dataptr(mgts%rh(flev), fn)
+  rp(lo(1):hi(1),lo(2):hi(2),1,1) = &
+       rp(lo(1):hi(1),lo(2):hi(2),1,1) +  &
+       rh_in(lo(1):hi(1),lo(2):hi(2))
+
+end subroutine mgt_add_rh_nodal_2d
+
+subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(in) :: rh_in(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  rp => dataptr(mgts%rh(flev), fn)
+  rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = &
+       rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) + &
+       rh_in(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
+
+end subroutine mgt_add_rh_nodal_3d
+
 subroutine mgt_nodal_dealloc()
   use nodal_cpp_mg_module
   implicit none
