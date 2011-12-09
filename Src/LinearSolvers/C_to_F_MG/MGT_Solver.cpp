@@ -72,6 +72,7 @@ mgt_set_c   mgt_set_cfbx_const = mgt_set_cfbx_1d_const;
 mgt_set     mgt_set_cfs        = mgt_set_cfs_1d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_1d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_1d;
+mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_1d;
 #elif BL_SPACEDIM == 2
 mgt_get_ng  mgt_get_uu         = mgt_get_uu_2d;
 mgt_set     mgt_set_uu         = mgt_set_uu_2d;
@@ -92,6 +93,7 @@ mgt_set_c   mgt_set_cfby_const = mgt_set_cfby_2d_const;
 mgt_set     mgt_set_cfs        = mgt_set_cfs_2d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_2d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_2d;
+mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_2d;
 #elif BL_SPACEDIM == 3
 mgt_get_ng  mgt_get_uu         = mgt_get_uu_3d;
 mgt_set     mgt_set_uu         = mgt_set_uu_3d;
@@ -115,6 +117,7 @@ mgt_set_c   mgt_set_cfbz_const = mgt_set_cfbz_3d_const;
 mgt_set     mgt_set_cfs        = mgt_set_cfs_3d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_3d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_3d;
+mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_3d;
 #endif
 
 MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
@@ -1400,6 +1403,24 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
     }
 
   mgt_divu();
+
+  for ( int lev = 0; lev < m_nlevel; ++lev ) {
+    if (Rhs[lev] != 0) {
+
+      for (MFIter rmfi(*(Rhs[lev])); rmfi.isValid(); ++rmfi) {
+	int n = rmfi.index();
+	
+	const int* lo = rmfi.validbox().loVect();
+	const int* hi = rmfi.validbox().hiVect();
+	
+	const FArrayBox& rhsfab = (*(Rhs[lev]))[rmfi];
+	const Real* rhsd = rhsfab.dataPtr();
+	const int* rhslo = rhsfab.box().loVect();
+	const int* rhshi = rhsfab.box().hiVect();
+	mgt_add_rh_nodal(&lev, &n, rhsd, rhslo, rhshi, lo, hi);
+      }
+    }    
+  }
 
   mgt_nodal_solve(tol,abs_tol);
 

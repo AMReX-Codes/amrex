@@ -7,3 +7,6 @@ f/
 o/
 t/
 TAGS
+
+run-*/
+*.org
