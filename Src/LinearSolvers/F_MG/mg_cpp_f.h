@@ -8,7 +8,7 @@
 #define mgt_alloc                 MGT_ALLOC
 #define mgt_nodal_alloc           MGT_NODAL_ALLOC
 #define mgt_set_level             MGT_SET_LEVEL
-#define mgt_set_nodal_level       MGET_SET_NODAL_LEVEL
+#define mgt_set_nodal_level       MGT_SET_NODAL_LEVEL
 #define mgt_finalize              MGT_FINALIZE
 #define mgt_finalize_n            MGT_FINALIZE_N
 #define mgt_nodal_finalize        MGT_NODAL_FINALIZE
@@ -18,6 +18,7 @@
 #define mgt_finalize_stencil      MGT_FINALIZE_STENCIL
 #define mgt_finalize_nodal_stencil MGT_FINALIZE_NODAL_STENCIL
 #define mgt_finalize_stencil_lev  MGT_FINALIZE_STENCIL_LEV
+#define mgt_finalize_const_stencil_lev  MGT_FINALIZE_CONST_STENCIL_LEV
 #define mgt_mc_finalize_stencil_lev  MGT_MC_FINALIZE_STENCIL_LEV
 #define mgt_finalize_nodal_stencil_lev  MGT_FINALIZE_NODAL_STENCIL_LEV
 #define mgt_dealloc               MGT_DEALLOC
@@ -39,6 +40,10 @@
 #define mgt_set_rh_1d             MGT_SET_RH_1D
 #define mgt_set_rh_2d             MGT_SET_RH_2D
 #define mgt_set_rh_3d             MGT_SET_RH_3D
+
+#define mgt_add_rh_nodal_1d       MGT_ADD_RH_NODAL_1D
+#define mgt_add_rh_nodal_2d       MGT_ADD_RH_NODAL_2D
+#define mgt_add_rh_nodal_3d       MGT_ADD_RH_NODAL_3D
 
 #define mgt_set_uu_1d             MGT_SET_UU_1D
 #define mgt_get_uu_1d             MGT_GET_UU_1D
@@ -125,6 +130,7 @@
 #define mgt_finalize_stencil      mgt_finalize_stencil_
 #define mgt_finalize_nodal_stencil mgt_finalize_nodal_stencil_
 #define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev_
+#define mgt_finalize_const_stencil_lev  mgt_finalize_const_stencil_lev_
 #define mgt_mc_finalize_stencil_lev   mgt_mc_finalize_stencil_lev_
 #define mgt_finalize_nodal_stencil_lev  mgt_finalize_nodal_stencil_lev_
 #define mgt_dealloc               mgt_dealloc_
@@ -146,6 +152,10 @@
 #define mgt_set_rh_1d             mgt_set_rh_1d_
 #define mgt_set_rh_2d             mgt_set_rh_2d_
 #define mgt_set_rh_3d             mgt_set_rh_3d_
+
+#define mgt_add_rh_nodal_1d       mgt_add_rh_nodal_1d_
+#define mgt_add_rh_nodal_2d       mgt_add_rh_nodal_2d_
+#define mgt_add_rh_nodal_3d       mgt_add_rh_nodal_3d_
 
 #define mgt_set_uu_1d             mgt_set_uu_1d_
 #define mgt_get_uu_1d             mgt_get_uu_1d_
@@ -229,6 +239,7 @@
 #define mgt_finalize_stencil      mgt_finalize_stencil__
 #define mgt_finalize_nodal_stencil mgt_finalize_nodal_stencil__
 #define mgt_finalize_stencil_lev  mgt_finalize_stencil_lev__
+#define mgt_finalize_const_stencil_lev  mgt_finalize_const_stencil_lev__
 #define mgt_mc_finalize_stencil_lev   mgt_mc_finalize_stencil_lev__
 #define mgt_finalize_nodal_stencil_lev  mgt_finalize_nodal_stencil_lev__
 #define mgt_dealloc               mgt_dealloc__
@@ -250,6 +261,10 @@
 #define mgt_set_rh_1d             mgt_set_rh_1d__
 #define mgt_set_rh_2d             mgt_set_rh_2d__
 #define mgt_set_rh_3d             mgt_set_rh_3d__
+
+#define mgt_add_rh_nodal_1d       mgt_add_rh_nodal_1d__
+#define mgt_add_rh_nodal_2d       mgt_add_rh_nodal_2d__
+#define mgt_add_rh_nodal_3d       mgt_add_rh_nodal_3d__
 
 #define mgt_set_uu_1d             mgt_set_uu_1d__
 #define mgt_get_uu_1d             mgt_get_uu_1d__
@@ -361,6 +376,12 @@ extern "C"
 			    const Real* xa, const Real* xb,
 			    const Real* pxa, const Real* pxb,
 			    const int* dm);
+  
+  void mgt_finalize_const_stencil_lev(const int* lev,
+			         const Real* alpha_const, const Real* beta_const,
+			         const Real* xa, const Real* xb,
+     			         const Real* pxa, const Real* pxb,
+         			 const int* dm);
 
   void mgt_mc_finalize_stencil_lev(const int* lev,
 				   const Real* xa, const Real* xb,
@@ -374,7 +395,7 @@ extern "C"
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
-  void mgt_set_rh_1d(const int* lev, const int* n, const Real* rh, 
+  void mgt_add_rh_nodal_1d(const int* lev, const int* n, const Real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
@@ -445,8 +466,11 @@ extern "C"
 		      const int* lo, const int* hi,
 		      const int& nv, const int& iv);
 
-
   void mgt_set_rh_2d(const int* lev, const int* n, const Real* rh, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+
+  void mgt_add_rh_nodal_2d(const int* lev, const int* n, const Real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   
@@ -528,8 +552,11 @@ extern "C"
 		      const int* lo, const int* hi,
 		      const int& nv, const int& iv);
 
-  
   void mgt_set_rh_3d(const int* lev, const int* n, const Real* rh, 
+		     const int* plo, const int* phi, 
+		     const int* lo, const int* hi);
+
+  void mgt_add_rh_nodal_3d(const int* lev, const int* n, const Real* rh, 
 		     const int* plo, const int* phi, 
 		     const int* lo, const int* hi);
   

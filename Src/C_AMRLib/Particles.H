@@ -854,7 +854,6 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
         const int        n       = pbox.size();
         const FArrayBox& dfab    = mf[grid];
 	const Box&       box     = mf.boxArray()[grid];
-        RealBox          gridloc = RealBox(box, geom.CellSize(), geom.ProbLo());
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for

@@ -2039,7 +2039,7 @@ Amr::regrid (int  lbase,
 
     }
     //
-    // Build any additional data structures after grid generation.
+    // Build any additional data structures at levels start and higher after grid generation.
     //
     for (int lev = 0; lev <= new_finest; lev++)
         amr_level[lev].post_regrid(lbase,new_finest);
