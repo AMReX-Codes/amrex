@@ -117,155 +117,10 @@ Amr::RegridOnRestart () const
     return regrid_on_restart;
 }
 
-int
-Amr::checkInt () const
+const BoxArray&
+Amr::boxArray (int lev) const
 {
-    return check_int;
-}
-
-Real
-Amr::checkPer () const
-{
-    return check_per;
-}
-
-int
-Amr::plotInt () const
-{
-    return plot_int;
-}
-
-Real
-Amr::plotPer () const
-{
-    return plot_per;
-}
-
-const std::list<std::string>&
-Amr::statePlotVars ()
-{
-    return state_plot_vars;
-}
-
-const std::list<std::string>&
-Amr::derivePlotVars ()
-{
-    return derive_plot_vars;
-}
-
-int
-Amr::blockingFactor (int lev) const
-{
-    return blocking_factor[lev];
-}
-
-
-int
-Amr::maxGridSize (int lev) const
-{
-    return max_grid_size[lev];
-}
-
-int
-Amr::maxLevel () const
-{
-    return max_level;
-}
-
-int
-Amr::finestLevel () const
-{
-    return finest_level;
-}
-
-IntVect
-Amr::refRatio (int level) const
-{
-    return ref_ratio[level];
-}
-
-int
-Amr::nCycle (int level) const
-{
-    return n_cycle[level];
-}
-
-const Array<IntVect>&
-Amr::refRatio () const
-{
-    return ref_ratio;
-}
-
-Real
-Amr::dtLevel (int level) const
-{
-    return dt_level[level];
-}
-
-const Array<Real>&
-Amr::dtLevel () const
-{
-    return dt_level;
-}
-
-const Geometry&
-Amr::Geom (int level) const
-{
-    return geom[level];
-}
-
-int
-Amr::levelSteps (int i) const
-{
-    return level_steps[i];
-}
-
-int
-Amr::levelCount (int i) const
-{
-    return level_count[i];
-}
-
-Real
-Amr::cumTime () const
-{
-    return cumtime;
-}
-
-int
-Amr::regridInt (int lev) const
-{
-    return regrid_int[lev];
-}
-
-int
-Amr::nErrorBuf (int lev) const
-{
-    return n_error_buf[lev];
-}
-
-Real
-Amr::gridEff () const
-{
-    return grid_eff;
-}
-
-int
-Amr::subCycle () const
-{
-    return sub_cycle;
-}
-
-int
-Amr::nProper () const
-{
-    return n_proper;
-}
-
-const std::string&
-Amr::theRestartFile () const
-{
-    return restart_file;
+    return amr_level[lev].boxArray();
 }
 
 void
@@ -273,12 +128,6 @@ Amr::setDtMin (const Array<Real>& dt_min_in)
 {
     for (int i = 0; i <= finest_level; i++)
         dt_min[i] = dt_min_in[i];
-}
-
-AmrLevel&
-Amr::getLevel (int lev)
-{
-    return amr_level[lev];
 }
 
 PArray<AmrLevel>&
@@ -297,12 +146,6 @@ int
 Amr::numGrids (int lev)
 {
     return amr_level[lev].numGrids();
-}
-
-const BoxArray&
-Amr::boxArray (int lev) const
-{
-    return amr_level[lev].boxArray();
 }
 
 MultiFab*
