@@ -112,6 +112,17 @@
 #define mgt_get_vel_3d            MGT_GET_VEL_3D
 #define mgt_set_vel_3d            MGT_SET_VEL_3D
 
+#define mgt_alloc_nodal_sync      MGT_ALLOC_NODAL_SYNC
+#define mgt_dealloc_nodal_sync    MGT_DEALLOC_NODAL_SYNC
+
+#define mgt_set_sync_msk_1d       MGT_SET_SYNC_MSK_1D 
+#define mgt_set_sync_msk_2d       MGT_SET_SYNC_MSK_2D 
+#define mgt_set_sync_msk_3d       MGT_SET_SYNC_MSK_3D 
+
+#define mgt_get_sync_res_1d       MGT_GET_SYNC_RES_1D 
+#define mgt_get_sync_res_2d       MGT_GET_SYNC_RES_2D 
+#define mgt_get_sync_res_3d       MGT_GET_SYNC_RES_3D 
+
 #elif defined(BL_FORT_USE_UNDERSCORE)
 
 #define mgt_init                  mgt_init_
@@ -222,6 +233,17 @@
 #define mgt_set_vel_3d            mgt_set_vel_3d_ 
 #define mgt_get_vel_3d            mgt_get_vel_3d_
 
+#define mgt_alloc_nodal_sync      mgt_alloc_nodal_sync_
+#define mgt_dealloc_nodal_sync    mgt_dealloc_nodal_sync_
+
+#define mgt_set_sync_msk_1d       mgt_set_sync_msk_1d_ 
+#define mgt_set_sync_msk_2d       mgt_set_sync_msk_2d_ 
+#define mgt_set_sync_msk_3d       mgt_set_sync_msk_3d_ 
+
+#define mgt_get_sync_res_1d       mgt_get_sync_res_1d_ 
+#define mgt_get_sync_res_2d       mgt_get_sync_res_2d_ 
+#define mgt_get_sync_res_3d       mgt_get_sync_res_3d_ 
+
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
 #define mgt_init                  mgt_init__
 #define mgt_flush_copyassoc_cache mgt_flush_copyassoc_cache__
@@ -323,6 +345,18 @@
 #define mgt_get_vel_2d            mgt_get_vel_2d__
 #define mgt_set_vel_3d            mgt_set_vel_3d__
 #define mgt_get_vel_3d            mgt_get_vel_3d__
+
+#define mgt_alloc_nodal_sync      mgt_alloc_nodal_sync__
+#define mgt_dealloc_nodal_sync    mgt_dealloc_nodal_sync__
+
+#define mgt_set_sync_msk_1d       mgt_set_sync_msk_1d__ 
+#define mgt_set_sync_msk_2d       mgt_set_sync_msk_2d__ 
+#define mgt_set_sync_msk_3d       mgt_set_sync_msk_3d__ 
+
+#define mgt_get_sync_res_1d       mgt_get_sync_res_1d__ 
+#define mgt_get_sync_res_2d       mgt_get_sync_res_2d__ 
+#define mgt_get_sync_res_3d       mgt_get_sync_res_3d__ 
+
 #endif
 
 #ifdef __cplusplus
@@ -650,6 +684,29 @@ extern "C"
 		      const int* plo, const int* phi, 
 		      const int* lo, const int* hi,
 		      const int& nv, const int& iv);
+
+  void mgt_set_sync_msk_1d(const int* lev, const int* n, const Real* cf,
+			   const int* plo, const int* phi, 
+			   const int* lo, const int* hi);
+  void mgt_set_sync_msk_2d(const int* lev, const int* n, const Real* cf,
+			   const int* plo, const int* phi, 
+			   const int* lo, const int* hi);
+  void mgt_set_sync_msk_3d(const int* lev, const int* n, const Real* cf,
+			   const int* plo, const int* phi, 
+			   const int* lo, const int* hi);
+
+  void mgt_get_sync_res_1d(const int* lev, const int* n, Real* cf,
+			   const int* plo, const int* phi, 
+			   const int* lo, const int* hi);
+  void mgt_get_sync_res_2d(const int* lev, const int* n, Real* cf,
+			   const int* plo, const int* phi, 
+			   const int* lo, const int* hi);
+  void mgt_get_sync_res_3d(const int* lev, const int* n, Real* cf,
+			   const int* plo, const int* phi, 
+			   const int* lo, const int* hi);
+
+  void mgt_alloc_nodal_sync();
+  void mgt_dealloc_nodal_sync();
 
   void mgt_dealloc();
 

@@ -117,6 +117,8 @@ public:
   void set_nodal_coefficients(const MultiFab* aa[]);
   void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rh[], const Real& tol, const Real& abs_tol);
 
+  void fill_sync_resid_crse(MultiFab* sync_resid_crse, const MultiFab& msk);
+
   ~MGT_Solver();
 
   static int def_maxiter, def_maxiter_b, def_bottom_solver;
