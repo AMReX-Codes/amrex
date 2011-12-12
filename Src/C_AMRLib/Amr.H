@@ -406,4 +406,186 @@ private:
     Amr& operator= (const Amr& rhs);
 };
 
+inline
+AmrLevel&
+Amr::getLevel (int lev)
+{
+    return amr_level[lev];
+}
+
+inline
+int
+Amr::blockingFactor (int lev) const
+{
+    return blocking_factor[lev];
+}
+
+inline
+int
+Amr::maxGridSize (int lev) const
+{
+    return max_grid_size[lev];
+}
+
+inline
+int
+Amr::maxLevel () const
+{
+    return max_level;
+}
+
+inline
+int
+Amr::finestLevel () const
+{
+    return finest_level;
+}
+
+inline
+IntVect
+Amr::refRatio (int level) const
+{
+    return ref_ratio[level];
+}
+
+inline
+const Array<IntVect>&
+Amr::refRatio () const
+{
+    return ref_ratio;
+}
+
+inline
+Real
+Amr::dtLevel (int level) const
+{
+    return dt_level[level];
+}
+
+inline
+const Array<Real>&
+Amr::dtLevel () const
+{
+    return dt_level;
+}
+
+inline
+const Geometry&
+Amr::Geom (int level) const
+{
+    return geom[level];
+}
+
+inline
+int
+Amr::checkInt () const
+{
+    return check_int;
+}
+
+inline
+Real
+Amr::checkPer () const
+{
+    return check_per;
+}
+
+inline
+int
+Amr::plotInt () const
+{
+    return plot_int;
+}
+
+inline
+Real
+Amr::plotPer () const
+{
+    return plot_per;
+}
+
+inline
+const std::list<std::string>&
+Amr::statePlotVars ()
+{
+    return state_plot_vars;
+}
+
+inline
+const std::list<std::string>&
+Amr::derivePlotVars ()
+{
+    return derive_plot_vars;
+}
+
+inline
+int
+Amr::nCycle (int level) const
+{
+    return n_cycle[level];
+}
+
+inline
+int
+Amr::levelSteps (int i) const
+{
+    return level_steps[i];
+}
+
+inline
+int
+Amr::levelCount (int i) const
+{
+    return level_count[i];
+}
+
+inline
+Real
+Amr::cumTime () const
+{
+    return cumtime;
+}
+
+inline
+int
+Amr::regridInt (int lev) const
+{
+    return regrid_int[lev];
+}
+
+inline
+int
+Amr::nErrorBuf (int lev) const
+{
+    return n_error_buf[lev];
+}
+
+inline
+Real
+Amr::gridEff () const
+{
+    return grid_eff;
+}
+
+inline
+int
+Amr::subCycle () const
+{
+    return sub_cycle;
+}
+
+inline
+int
+Amr::nProper () const
+{
+    return n_proper;
+}
+
+inline
+const std::string&
+Amr::theRestartFile () const
+{
+    return restart_file;
+}
+
 #endif /*_Amr_H_*/
