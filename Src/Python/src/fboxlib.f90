@@ -22,6 +22,18 @@ contains
     call parallel_finalize()
   end subroutine close
 
+  subroutine mpi_rank(r)
+    use parallel
+    integer, intent(out) :: r
+    r = parallel_myproc()
+  end subroutine mpi_rank
+
+  subroutine mpi_size(r)
+    use parallel
+    integer, intent(out) :: r
+    r = parallel_nprocs()
+  end subroutine mpi_size
+
   ! subroutine set_comm(comm)
   !   use parallel
   !   implicit none
@@ -180,9 +192,10 @@ contains
     ibx_hi = bx%hi
   end subroutine get_multifab_fab_info
 
-  subroutine create_multifab_from_layout(la_oid,nc,ng,oid)
+  subroutine create_multifab_from_layout(la_oid,nc,ng,interleave,oid)
     implicit none
     integer, intent(in)  :: la_oid, nc, ng
+    logical, intent(in)  :: interleave
     integer, intent(out) :: oid
 
     type(layout), pointer :: la
@@ -191,8 +204,7 @@ contains
     call pybl_layout_get(la_oid,la)
     call pybl_multifab_new(oid,mfab)
 
-    call build(mfab, la, nc=nc, ng=ng)
-    call setval(mfab, 0.0d0)
+    call build(mfab, la, nc=nc, ng=ng, stencil=interleave)
   end subroutine create_multifab_from_layout
 
   subroutine print_multifab(oid)
@@ -248,9 +260,10 @@ contains
     ibx_hi = bx%hi
   end subroutine get_lmultifab_fab_info
 
-  subroutine create_lmultifab_from_layout(la_oid,nc,ng,oid)
+  subroutine create_lmultifab_from_layout(la_oid,nc,ng,interleave,oid)
     implicit none
     integer, intent(in)  :: la_oid, nc, ng
+    logical, intent(in)  :: interleave
     integer, intent(out) :: oid
 
     type(layout), pointer :: la

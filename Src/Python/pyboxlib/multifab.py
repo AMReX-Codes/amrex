@@ -8,13 +8,14 @@ from fab import fab
 class multifab(base.BLObject):
   """MultiFAB."""
 
-  def create(self, layout, components=1, ghost_cells=0):
+  def create(self, layout, components=1, ghost_cells=0, interleave=False):
     """Create a multifab from a layout."""
 
     create   = getattr(fboxlib, 'create_' + self.__class__.__name__ + '_from_layout')
     get_info = getattr(fboxlib, 'get_' + self.__class__.__name__ + '_info')
 
-    self.oid = create(layout.oid, components, ghost_cells)
+    self.oid = create(layout.oid, components, ghost_cells, interleave)
+    self.interleaved = interleave
 
     if self.oid:
       self.dim, self.nboxes, self.nc, self.ng = get_info(self.oid)
