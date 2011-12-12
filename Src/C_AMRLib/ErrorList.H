@@ -25,6 +25,7 @@ extern "C"
                                const int* tagval, const int* clearval,
                                Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                                const int* lo, const int * hi, const int* nvar,
+                               const int* domain_lo, const int* domain_hi,
                                const Real* dx, const int* level, const Real* avg);
 }
 

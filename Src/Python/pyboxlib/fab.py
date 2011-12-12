@@ -58,7 +58,9 @@ class fab(object):
     return self.array.size
 
   def __getitem__(self, key):
+    # XXX: switch to global indexing
     return self.array[key]
 
   def __setitem__(self, key, value):
+    # XXX: switch to global indexing
     self.array[key] = value
