@@ -27,6 +27,58 @@ ifeq ($(BL_NO_FORT),TRUE)
   DEFINES += -DBL_NO_FORT
 endif
 
+ifeq ($(BL_MANGLE_SYMBOLS_WITH_DIM),TRUE)
+  ifeq ($(DIM),3)
+    DEFINES += -DBox=Box3D
+    DEFINES += -DBoxArray=BoxArray3D
+    DEFINES += -DBoxDomain=BoxDomain3D
+    DEFINES += -DBoxList=BoxList3D
+    DEFINES += -DDistributionMapping=DistributionMapping3D
+    DEFINES += -DFABio=FABio3D
+    DEFINES += -DFABio_8bit=FABio_8bit3D
+    DEFINES += -DFABio_ascii=FABio_ascii3D
+    DEFINES += -DFABio_binary=FABio_binary3D
+    DEFINES += -DFArrayBox=FArrayBox3D
+    DEFINES += -DFabArrayBase=FabArrayBase3D
+    DEFINES += -DFabArrayId=FabArrayId3D
+    DEFINES += -DFillBoxId=FillBoxId3D
+    DEFINES += -DIndexType=IndexType3D
+    DEFINES += -DIntVect=IntVect3D
+    DEFINES += -DMFIter=MFIter3D
+    DEFINES += -DMultiFab=MultiFab3D
+    DEFINES += -DMultiFabCopyDescriptor=MultiFabCopyDescriptor3D
+    DEFINES += -DMultiFabId=MultiFabId3D
+    DEFINES += -DParallelDescriptor=ParallelDescriptor3D
+    DEFINES += -DParmParse=ParmParse3D
+    DEFINES += -DRealBox=RealBox3D
+    DEFINES += -DVisMF=VisMF3D
+  else
+    DEFINES += -DBox=Box2D
+    DEFINES += -DBoxArray=BoxArray2D
+    DEFINES += -DBoxDomain=BoxDomain2D
+    DEFINES += -DBoxList=BoxList2D
+    DEFINES += -DDistributionMapping=DistributionMapping2D
+    DEFINES += -DFABio=FABio2D
+    DEFINES += -DFABio_8bit=FABio_8bit2D
+    DEFINES += -DFABio_ascii=FABio_ascii2D
+    DEFINES += -DFABio_binary=FABio_binary2D
+    DEFINES += -DFArrayBox=FArrayBox2D
+    DEFINES += -DFabArrayBase=FabArrayBase2D
+    DEFINES += -DFabArrayId=FabArrayId2D
+    DEFINES += -DFillBoxId=FillBoxId2D
+    DEFINES += -DIndexType=IndexType2D
+    DEFINES += -DIntVect=IntVect2D
+    DEFINES += -DMFIter=MFIter2D
+    DEFINES += -DMultiFab=MultiFab2D
+    DEFINES += -DMultiFabCopyDescriptor=MultiFabCopyDescriptor2D
+    DEFINES += -DMultiFabId=MultiFabId2D
+    DEFINES += -DParallelDescriptor=ParallelDescriptor2D
+    DEFINES += -DParmParse=ParmParse2D
+    DEFINES += -DRealBox=RealBox2D
+    DEFINES += -DVisMF=VisMF2D
+  endif
+endif
+
 include $(TOP)/Tools/C_mk/Make.defs ./Make.package
 
 ifeq ($(KCC_VERSION),3.3)
