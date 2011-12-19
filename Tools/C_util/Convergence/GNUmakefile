@@ -14,19 +14,17 @@ USE_MPI       = TRUE
 #
 # Base name of the executable.
 #
-EBASE = DiffUniform
-#EBASE = PltFileNorm
-#EBASE = PltFileScalConvRate
+#EBASE = Add
+#EBASE = ComputeAmrDataNorms
 #EBASE = DiffFab
-#EBASE = DiffSameGrid
-#EBASE = PltFileNorm
-#EBASE = PltFileNormB
-#EBASE = PltFileScalConvRate
-#EBASE = DiffSameGrid
+EBASE = DiffSameDomainRefined
 #EBASE = DiffSameGrid2
-#EBASE = DiffUniform
+#EBASE = DiffSameGrid
 #EBASE = DiffSameGridRefined
-#EBASE = DiffFab
+#EBASE = DiffUniform
+#EBASE = PltFileNormB
+#EBASE = PltFileNorm
+#EBASE = PltFileScalConvRate
 
 CEXE_sources += $(EBASE).cpp
 
