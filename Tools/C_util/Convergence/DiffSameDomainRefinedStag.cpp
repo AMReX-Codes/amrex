@@ -30,15 +30,16 @@ void
 PrintUsage (const char* progName)
 {
     std::cout << "This utility performs a diff operation between two" << std::endl
-         << "plotfiles which have the same geometrical domain"        << std::endl
+	 << "staggered grid (i.e., nodal in exactly one direction)"   << std::endl
+	 << "plotfiles which have the same geometrical domain"        << std::endl
          << "but a factor of refinement between"                      << std::endl
          << "the cells from each plotfile at the same level."         << std::endl
          << "For instance, it works to diff two plotfiles having"     << std::endl
-         << "  Plotfile 1: 25x25 base grid, Ref_Ratio = 2"            << std::endl
-         << "  Plotfile 2: 50x50 base grid, Ref_Ratio = 2"            << std::endl
+         << "  Plotfile 1: 26x25 base grid, Ref_Ratio = 2"            << std::endl
+         << "  Plotfile 2: 51x50 base grid, Ref_Ratio = 2"            << std::endl
          << "Should also work for,"                                   << std::endl
-         << "  Plotfile 1: 25x25 base grid, Ref_Ratio = 2"            << std::endl
-         << "  Plotfile 2: 25x25 base grid, Ref_Ratio = 4"            << std::endl
+         << "  Plotfile 1: 26x25 base grid, Ref_Ratio = 2"            << std::endl
+         << "  Plotfile 2: 26x25 base grid, Ref_Ratio = 4"            << std::endl
          << "In both cases, the geometrical region which is refined"  << std::endl
          << "must be the same.  So, this is generally good for"       << std::endl
          << "comparing cases ran using a fixed grid file."            << std::endl;
