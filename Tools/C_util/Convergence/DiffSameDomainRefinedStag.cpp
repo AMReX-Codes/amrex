@@ -30,15 +30,16 @@ void
 PrintUsage (const char* progName)
 {
     std::cout << "This utility performs a diff operation between two" << std::endl
-         << "plotfiles which have the same geometrical domain"        << std::endl
+	 << "staggered grid (i.e., nodal in exactly one direction)"   << std::endl
+	 << "plotfiles which have the same geometrical domain"        << std::endl
          << "but a factor of refinement between"                      << std::endl
          << "the cells from each plotfile at the same level."         << std::endl
          << "For instance, it works to diff two plotfiles having"     << std::endl
-         << "  Plotfile 1: 25x25 base grid, Ref_Ratio = 2"            << std::endl
-         << "  Plotfile 2: 50x50 base grid, Ref_Ratio = 2"            << std::endl
+         << "  Plotfile 1: 26x25 base grid, Ref_Ratio = 2"            << std::endl
+         << "  Plotfile 2: 51x50 base grid, Ref_Ratio = 2"            << std::endl
          << "Should also work for,"                                   << std::endl
-         << "  Plotfile 1: 25x25 base grid, Ref_Ratio = 2"            << std::endl
-         << "  Plotfile 2: 25x25 base grid, Ref_Ratio = 4"            << std::endl
+         << "  Plotfile 1: 26x25 base grid, Ref_Ratio = 2"            << std::endl
+         << "  Plotfile 2: 26x25 base grid, Ref_Ratio = 4"            << std::endl
          << "In both cases, the geometrical region which is refined"  << std::endl
          << "must be the same.  So, this is generally good for"       << std::endl
          << "comparing cases ran using a fixed grid file."            << std::endl;
@@ -159,8 +160,11 @@ main (int   argc,
         const BoxArray& ba1 = amrData1.boxArray(iLevel);
         const BoxArray& ba2 = amrData2.boxArray(iLevel);
 
+	/*
         if (ba1.size() != ba2.size())
-           std::cout << "Warning: BoxArray lengths are not the same at level " << iLevel << std::endl;
+           std::cout << "Warning: BoxArray lengths are not the same at level " 
+	             << iLevel << std::endl;
+	*/
 
         //
         // Construct refinement ratio, build the coarsened boxarray
@@ -168,7 +172,23 @@ main (int   argc,
         //
         const Box& domain1     = amrData1.ProbDomain()[iLevel];
         const Box& domain2     = amrData2.ProbDomain()[iLevel];
+
+	int nodal_dir = -1;
+	for (int i=0; i<BL_SPACEDIM; i++)
+	  {
+	    if (ba1[0].type(i) == 1)
+	      {
+		nodal_dir = i;
+	      }
+	  }
+	std::cout << "Nodal Direction = " << nodal_dir << std::endl;
+	if (nodal_dir == -1)
+	  {
+	    BoxLib::Error("Data is not nodal in any direction");
+	  }
+
         IntVect refine_ratio   = getRefRatio(domain1, domain2);
+
         if (refine_ratio == IntVect())
             BoxLib::Error("Cannot find refinement ratio from data to exact");
 
@@ -217,16 +237,17 @@ main (int   argc,
                 FArrayBox data2Coarse(ba2Coarse[index], 1);
                 int ncCoarse = 1;
 
-                FORT_CV_AVGDOWN(data2Coarse.dataPtr(),
-                                ARLIM(data2Coarse.loVect()),
-                                ARLIM(data2Coarse.hiVect()),
-                                &ncCoarse,
-                                data2Fine[mfi].dataPtr(),
-                                ARLIM(data2Fine[mfi].loVect()),
-                                ARLIM(data2Fine[mfi].hiVect()), 
-                                ba2Coarse[index].loVect(), 
-                                ba2Coarse[index].hiVect(),
-                                refine_ratio.getVect());
+                FORT_CV_AVGDOWN_STAG(&nodal_dir,
+				     data2Coarse.dataPtr(),
+                                     ARLIM(data2Coarse.loVect()),
+				     ARLIM(data2Coarse.hiVect()),
+				     &ncCoarse,
+				     data2Fine[mfi].dataPtr(),
+				     ARLIM(data2Fine[mfi].loVect()),
+				     ARLIM(data2Fine[mfi].hiVect()), 
+				     ba2Coarse[index].loVect(), 
+				     ba2Coarse[index].hiVect(),
+				     refine_ratio.getVect());
 
 
                 //
