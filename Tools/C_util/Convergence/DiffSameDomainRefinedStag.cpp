@@ -160,8 +160,11 @@ main (int   argc,
         const BoxArray& ba1 = amrData1.boxArray(iLevel);
         const BoxArray& ba2 = amrData2.boxArray(iLevel);
 
+	/*
         if (ba1.size() != ba2.size())
-           std::cout << "Warning: BoxArray lengths are not the same at level " << iLevel << std::endl;
+           std::cout << "Warning: BoxArray lengths are not the same at level " 
+	             << iLevel << std::endl;
+	*/
 
         //
         // Construct refinement ratio, build the coarsened boxarray
@@ -169,7 +172,23 @@ main (int   argc,
         //
         const Box& domain1     = amrData1.ProbDomain()[iLevel];
         const Box& domain2     = amrData2.ProbDomain()[iLevel];
+
+	int nodal_dir = -1;
+	for (int i=0; i<BL_SPACEDIM; i++)
+	  {
+	    if (ba1[0].type(i) == 1)
+	      {
+		nodal_dir = i;
+	      }
+	  }
+	std::cout << "Nodal Direction = " << nodal_dir << std::endl;
+	if (nodal_dir == -1)
+	  {
+	    BoxLib::Error("Data is not nodal in any direction");
+	  }
+
         IntVect refine_ratio   = getRefRatio(domain1, domain2);
+
         if (refine_ratio == IntVect())
             BoxLib::Error("Cannot find refinement ratio from data to exact");
 
@@ -218,7 +237,8 @@ main (int   argc,
                 FArrayBox data2Coarse(ba2Coarse[index], 1);
                 int ncCoarse = 1;
 
-                FORT_CV_AVGDOWN_STAG(data2Coarse.dataPtr(),
+                FORT_CV_AVGDOWN_STAG(&nodal_dir,
+				     data2Coarse.dataPtr(),
                                      ARLIM(data2Coarse.loVect()),
 				     ARLIM(data2Coarse.hiVect()),
 				     &ncCoarse,
