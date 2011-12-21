@@ -61,12 +61,86 @@ c
                      crse(ic,jc,n) = crse(ic,jc,n) + fine(i,j,n)
                   end do
                end do
+
             end do
          end do
 
          do jc = lo(2), hi(2)
             do ic = lo(1), hi(1)
                crse(ic,jc,n) = crse(ic,jc,n) * vol_inv
+            end do
+         end do
+         
+      end do
+         
+      end
+
+      subroutine FORT_CV_AVGDOWN_STAG (
+     &     crse,DIMS(crse),nvar,
+     &     fine,DIMS(fine),
+     &     lo,hi,ratios)
+c     ----------------------------------------------------------
+c     Average the fine grid data onto the coarse
+c     grid.  Overlap is given in coarse grid coordinates.
+c     
+c     crse      = coarse grid data
+c     nvar	= number of components in arrays
+c     fine      = fine grid data
+c     lo,hi     = index limits of overlap (crse grid)
+c     ratios    = IntVect refinement ratio
+c     ----------------------------------------------------------
+      integer  DIMDEC(crse)
+      integer  DIMDEC(fine)
+      integer  lo(SDIM), hi(SDIM)
+      integer  nvar
+      integer  ratios(SDIM)
+      REAL_T   crse(DIMV(crse),nvar)
+      REAL_T   fine(DIMV(fine),nvar)
+
+      integer  i, j, n, ic, jc, ioff, joff
+      integer  lratx,lraty
+      REAL_T   vol_inv
+
+      lratx = ratios(1)
+      lraty = ratios(2)
+      vol_inv = one / (lratx * lraty)
+
+      do n = 1, nvar
+c
+c     set coarse grid to zero on overlap
+c
+         do jc = lo(2), hi(2)
+            do ic = lo(1), hi(1)
+               crse(ic,jc,n) = zero
+            end do
+         end do
+c
+c     sum fine data
+c
+
+c         do joff = 0, lraty-1
+c            do jc = lo(2), hi(2)
+c               j = jc*lraty + joff
+c               do ioff = 0, lratx-1
+c                  do ic = lo(1), hi(1)
+c                     i = ic*lratx + ioff
+c                     crse(ic,jc,n) = crse(ic,jc,n) + fine(i,j,n)
+c                  end do
+c               end do
+c
+c            end do
+c         end do
+c
+c         do jc = lo(2), hi(2)
+c            do ic = lo(1), hi(1)
+c               crse(ic,jc,n) = crse(ic,jc,n) * vol_inv
+c            end do
+c         end do
+
+         do j=lo(2),hi(2)
+            do i=lo(1),hi(1)
+               crse(i,j,n) = crse(i,j,n) + 0.5d0*fine(2*i,2*j,n)
+               crse(i,j,n) = crse(i,j,n) + 0.5d0*fine(2*i,2*j+1,n)
             end do
          end do
          

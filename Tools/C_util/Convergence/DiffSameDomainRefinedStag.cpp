@@ -218,16 +218,16 @@ main (int   argc,
                 FArrayBox data2Coarse(ba2Coarse[index], 1);
                 int ncCoarse = 1;
 
-                FORT_CV_AVGDOWN(data2Coarse.dataPtr(),
-                                ARLIM(data2Coarse.loVect()),
-                                ARLIM(data2Coarse.hiVect()),
-                                &ncCoarse,
-                                data2Fine[mfi].dataPtr(),
-                                ARLIM(data2Fine[mfi].loVect()),
-                                ARLIM(data2Fine[mfi].hiVect()), 
-                                ba2Coarse[index].loVect(), 
-                                ba2Coarse[index].hiVect(),
-                                refine_ratio.getVect());
+                FORT_CV_AVGDOWN_STAG(data2Coarse.dataPtr(),
+                                     ARLIM(data2Coarse.loVect()),
+				     ARLIM(data2Coarse.hiVect()),
+				     &ncCoarse,
+				     data2Fine[mfi].dataPtr(),
+				     ARLIM(data2Fine[mfi].loVect()),
+				     ARLIM(data2Fine[mfi].hiVect()), 
+				     ba2Coarse[index].loVect(), 
+				     ba2Coarse[index].hiVect(),
+				     refine_ratio.getVect());
 
 
                 //
