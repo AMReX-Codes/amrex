@@ -25,7 +25,8 @@ extern "C" {
 			  const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
 			  const int* lo, const int* hi, const int* ratio);
 
-    void FORT_CV_AVGDOWN_STAG (const Real* crse, ARLIM_P(clo),     ARLIM_P(chi),
+    void FORT_CV_AVGDOWN_STAG (const int* nodal_dir, 
+  			       const Real* crse, ARLIM_P(clo),     ARLIM_P(chi),
     			       const int* nvar,
 			       const Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
 			       const int* lo, const int* hi, const int* ratio);
