@@ -114,10 +114,16 @@
 
 #define mgt_alloc_nodal_sync      MGT_ALLOC_NODAL_SYNC
 #define mgt_dealloc_nodal_sync    MGT_DEALLOC_NODAL_SYNC
+#define mgt_compute_sync_resid_crse  MGT_COMPUTE_SYNC_RESID_CRSE
+#define mgt_compute_sync_resid_fine  MGT_COMPUTE_SYNC_RESID_FINE
 
 #define mgt_set_sync_msk_1d       MGT_SET_SYNC_MSK_1D 
 #define mgt_set_sync_msk_2d       MGT_SET_SYNC_MSK_2D 
 #define mgt_set_sync_msk_3d       MGT_SET_SYNC_MSK_3D 
+
+#define mgt_set_vold_1d           MGT_SET_VOLD_1D 
+#define mgt_set_vold_2d           MGT_SET_VOLD_2D 
+#define mgt_set_vold_3d           MGT_SET_VOLD_3D 
 
 #define mgt_get_sync_res_1d       MGT_GET_SYNC_RES_1D 
 #define mgt_get_sync_res_2d       MGT_GET_SYNC_RES_2D 
@@ -235,10 +241,16 @@
 
 #define mgt_alloc_nodal_sync      mgt_alloc_nodal_sync_
 #define mgt_dealloc_nodal_sync    mgt_dealloc_nodal_sync_
+#define mgt_compute_sync_resid_crse  mgt_compute_sync_resid_crse_
+#define mgt_compute_sync_resid_fine  mgt_compute_sync_resid_fine_
 
 #define mgt_set_sync_msk_1d       mgt_set_sync_msk_1d_ 
 #define mgt_set_sync_msk_2d       mgt_set_sync_msk_2d_ 
 #define mgt_set_sync_msk_3d       mgt_set_sync_msk_3d_ 
+
+#define mgt_set_vold_1d           mgt_set_vold_1d_
+#define mgt_set_vold_2d           mgt_set_vold_2d_
+#define mgt_set_vold_3d           mgt_set_vold_3d_
 
 #define mgt_get_sync_res_1d       mgt_get_sync_res_1d_ 
 #define mgt_get_sync_res_2d       mgt_get_sync_res_2d_ 
@@ -348,10 +360,16 @@
 
 #define mgt_alloc_nodal_sync      mgt_alloc_nodal_sync__
 #define mgt_dealloc_nodal_sync    mgt_dealloc_nodal_sync__
+#define mgt_compute_sync_resid_crse  mgt_compute_sync_resid_crse__
+#define mgt_compute_sync_resid_fine  mgt_compute_sync_resid_fine__
 
 #define mgt_set_sync_msk_1d       mgt_set_sync_msk_1d__ 
 #define mgt_set_sync_msk_2d       mgt_set_sync_msk_2d__ 
 #define mgt_set_sync_msk_3d       mgt_set_sync_msk_3d__ 
+
+#define mgt_set_vold_1d           mgt_set_vold_1d__
+#define mgt_set_vold_2d           mgt_set_vold_2d__
+#define mgt_set_vold_3d           mgt_set_vold_3d__
 
 #define mgt_get_sync_res_1d       mgt_get_sync_res_1d__ 
 #define mgt_get_sync_res_2d       mgt_get_sync_res_2d__ 
@@ -695,6 +713,16 @@ extern "C"
 			   const int* plo, const int* phi, 
 			   const int* lo, const int* hi);
 
+  void mgt_set_vold_1d(const int* lev, const int* n, const Real* cf,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+  void mgt_set_vold_2d(const int* lev, const int* n, const Real* cf,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+  void mgt_set_vold_3d(const int* lev, const int* n, const Real* cf,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+
   void mgt_get_sync_res_1d(const int* lev, const int* n, Real* cf,
 			   const int* plo, const int* phi, 
 			   const int* lo, const int* hi);
@@ -707,6 +735,8 @@ extern "C"
 
   void mgt_alloc_nodal_sync();
   void mgt_dealloc_nodal_sync();
+  void mgt_compute_sync_resid_crse();
+  void mgt_compute_sync_resid_fine();
 
   void mgt_dealloc();
 

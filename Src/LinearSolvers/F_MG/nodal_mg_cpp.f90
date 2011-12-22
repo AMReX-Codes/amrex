@@ -41,7 +41,8 @@ module nodal_cpp_mg_module
      type(multifab) , pointer :: one_sided_ss(:) => Null()
      type(lmultifab), pointer ::    fine_mask(:) => Null()
      type(multifab) , pointer ::     sync_res(:) => Null()
-     type(imultifab), pointer ::     sync_msk(:) => Null()
+     type(multifab) , pointer ::     sync_msk(:) => Null()
+     type(multifab) , pointer ::         vold(:) => Null()
   end type mg_server
 
   type(mg_server), save :: mgts
@@ -731,7 +732,7 @@ subroutine mgt_nodal_solve(tol, abs_tol)
      call bl_error("MGT_SOLVE: MGT not finalized")
   end if
 
-  do_diagnostics = 0
+  do_diagnostics = 1
   call ml_nd(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
        mgts%fine_mask, &
@@ -800,121 +801,3 @@ subroutine mgt_get_nodal_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,botto
 
 end subroutine mgt_get_nodal_defaults
 
-subroutine mgt_alloc_nodal_sync()
-  use nodal_cpp_mg_module
-  implicit none
-  logical, allocatable :: nodal(:)
-
-  allocate(mgts%sync_res(1))
-  allocate(mgts%sync_msk(1))
-
-  allocate(nodal(1:mgts%dim))
-  nodal = mgts%nodal
-
-  call build(mgts%sync_res(1) , mgts%mla%la(1), nc = 1, ng = 1, nodal = nodal)
-  call build(mgts%sync_msk(1) , mgts%mla%la(1), nc = 1, ng = 1)
-  
-  call setval(mgts%sync_res(1),ZERO,all=.true.)
-
-end subroutine mgt_alloc_nodal_sync
-
-subroutine mgt_dealloc_nodal_sync()
-  use nodal_cpp_mg_module
-  implicit none
-  
-  call destroy(mgts%sync_res(1))
-  call destroy(mgts%sync_msk(1))
-
-  deallocate(mgts%sync_res)
-  deallocate(mgts%sync_msk)
-
-end subroutine mgt_dealloc_nodal_sync
-
-subroutine mgt_set_sync_msk_1d(lev, n, msk_in, plo, phi, lo, hi)
-  use nodal_cpp_mg_module
-  implicit none
-  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
-  real(kind=dp_t), intent(in) :: msk_in(plo(1):phi(1))
-  integer, pointer :: mskp(:,:,:,:)
-  integer :: flev, fn
-  fn = n + 1
-  flev = lev+1
-
-  mskp => dataptr(mgts%sync_msk(flev), fn)
-  mskp(plo(1):phi(1),1,1,1) = msk_in(plo(1):phi(1))
-end subroutine mgt_set_sync_msk_1d
-
-subroutine mgt_set_sync_msk_2d(lev, n, msk_in, plo, phi, lo, hi)
-  use nodal_cpp_mg_module
-  implicit none
-  integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
-  real(kind=dp_t), intent(in) :: msk_in(plo(1):phi(1),plo(2):phi(2))
-  integer, pointer :: mskp(:,:,:,:)
-  integer :: flev, fn
-  fn = n + 1
-  flev = lev+1
-
-  mskp => dataptr(mgts%sync_msk(flev), fn)
-  mskp(plo(1):phi(1),plo(2):phi(2),1,1) = msk_in(plo(1):phi(1),plo(2):phi(2))
-end subroutine mgt_set_sync_msk_2d
-
-subroutine mgt_set_sync_msk_3d(lev, n, msk_in, plo, phi, lo, hi)
-  use nodal_cpp_mg_module
-  implicit none
-  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
-  real(kind=dp_t), intent(in) :: msk_in(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
-  integer, pointer :: mskp(:,:,:,:)
-  integer :: flev, fn
-  fn = n + 1
-  flev = lev+1
-
-  mskp => dataptr(mgts%sync_msk(flev), fn)
-  mskp(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3),1) = &
-       msk_in(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
-end subroutine mgt_set_sync_msk_3d
-
-subroutine mgt_get_sync_res_1d(lev, n, res, plo, phi, lo, hi)
-  use nodal_cpp_mg_module
-  implicit none
-  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
-  real(kind=dp_t), intent(inout) :: res(plo(1):phi(1))
-  real(kind=dp_t), pointer :: rp(:,:,:,:)
-  integer :: flev, fn
-  fn = n + 1
-  flev = lev+1
-
-  rp => dataptr(mgts%sync_res(flev), fn)
-  res(plo(1):phi(1)) = rp(plo(1):phi(1), 1, 1, 1)
-
-end subroutine mgt_get_sync_res_1d
-
-subroutine mgt_get_sync_res_2d(lev, n, res, plo, phi, lo, hi)
-  use nodal_cpp_mg_module
-  implicit none
-  integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
-  real(kind=dp_t), intent(inout) :: res(plo(1):phi(1), plo(2):phi(2))
-  real(kind=dp_t), pointer :: rp(:,:,:,:)
-  integer :: flev, fn
-  fn = n + 1
-  flev = lev+1
-
-  rp => dataptr(mgts%sync_res(flev), fn)
-  res(plo(1):phi(1), plo(2):phi(2)) = rp(plo(1):phi(1), plo(2):phi(2), 1, 1)
-
-end subroutine mgt_get_sync_res_2d
-
-subroutine mgt_get_sync_res_3d(lev, n, res, plo, phi, lo, hi)
-  use nodal_cpp_mg_module
-  implicit none
-  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
-  real(kind=dp_t), intent(inout) :: res(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
-  real(kind=dp_t), pointer :: rp(:,:,:,:)
-  integer :: flev, fn
-  fn = n + 1
-  flev = lev+1
-
-  rp => dataptr(mgts%sync_res(flev), fn)
-  res(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3)) =  &
-       rp(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3), 1)
-
-end subroutine mgt_get_sync_res_3d
