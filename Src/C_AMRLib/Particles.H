@@ -858,7 +858,6 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
         PBox&            pbox    = pmap_it->second;
         const int        n       = pbox.size();
         const FArrayBox& dfab    = mf[grid];
-	const Box&       box     = mf.boxArray()[grid];
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for
