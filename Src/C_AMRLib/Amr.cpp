@@ -1163,15 +1163,20 @@ Amr::restart (const std::string& filename)
                const int rat  = MaxRefRatio(i-1);
                const int mult = sub_cycle ? rat : 1;
    
-               dt_level[i]    = dt_level[i-1]/Real(rat);
+               dt_level[i]    = dt_level[i-1]/Real(mult);
                n_cycle[i]     = mult;
                level_steps[i] = mult*level_steps[i-1];
                level_count[i] = 0;
            }
+
+           // This is just an error check
            if (!sub_cycle)
            {
-               for (i = 0; i <= max_level; i++)
-                   dt_level[i] = dt_level[max_level];
+               for (i = 1; i <= finest_level; i++)
+               {
+                   if (dt_level[i] != dt_level[i-1])
+                      BoxLib::Error("defBaseLevel: must have even number of cells");
+               }
            }
        }
 
