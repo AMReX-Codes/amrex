@@ -22,6 +22,24 @@ class layout(base.BLObject):
     if boxarray is not None:
       self.oid = fboxlib.create_layout_from_boxarray(boxarray.oid)
 
+  @property
+  def nboxes(self):
+    """Return number of boxes."""
+    return fboxlib.pybl_layout_nboxes(self.oid)
+
+  @property
+  def local_boxes(self):
+    """Return list of local boxes."""
+    boxes = []
+    for k in range(self.nboxes):
+      if self.local(k+1):
+        boxes.append(k+1)
+    return boxes
+
+  def local(self, box):
+    """Return True if box is local."""
+    return fboxlib.pybl_layout_local(self.oid, box)
+
   def from_regrid(self, lmfab):
     """Create a layout from re-gridding a tagged multifab."""
 

@@ -9,5 +9,5 @@ $(tdir)/blobjects.f90: $(PYBOXLIB)/src/blobjects.py
 $(tdir)/%.pyf: %.f90
 	f2py --overwrite-signature -h $@ $<
 
-$(tdir)/pyfboxlib.pyf: $(PYBOXLIB)/src/boxlib_numpy.c $(pybl_pyfs) $(pybl_sources)
+$(tdir)/pyfboxlib.pyf: $(PYBOXLIB)/src/boxlib_numpy.c $(PYBOXLIB)/src/boxlib_numpy.f90 $(pybl_pyfs) $(pybl_sources)
 	@$(PYBOXLIB)/mkpyfboxlib $(PYBOXLIB)/src/boxlib_numpy.c $(pybl_pyfs) > $(tdir)/pyfboxlib.pyf

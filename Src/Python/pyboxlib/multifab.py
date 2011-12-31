@@ -14,6 +14,7 @@ class multifab(base.BLObject):
     create   = getattr(fboxlib, 'create_' + self.__class__.__name__ + '_from_layout')
     get_info = getattr(fboxlib, 'get_' + self.__class__.__name__ + '_info')
 
+    self.layout = layout
     self.oid = create(layout.oid, components, ghost_cells, interleave)
     self.interleaved = interleave
 
