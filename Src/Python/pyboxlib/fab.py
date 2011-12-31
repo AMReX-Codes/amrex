@@ -49,6 +49,7 @@ class fab(object):
 
     self.array = get_array(self.mfab.oid, nbox).squeeze()
 
+
   @property
   def shape(self):
     return self.array.shape

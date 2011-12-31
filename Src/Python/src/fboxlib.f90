@@ -151,6 +151,28 @@ contains
     call print(mla)
   end subroutine print_ml_layout
 
+  subroutine pybl_layout_nboxes(oid, boxes)
+    implicit none
+    integer, intent(in) :: oid
+    integer, intent(out) :: boxes
+    type(layout), pointer :: la
+
+    call pybl_layout_get(oid,la)
+
+    boxes = nboxes(la)
+  end subroutine pybl_layout_nboxes
+
+  subroutine pybl_layout_local(oid, nbox, islocal)
+    implicit none
+    integer, intent(in) :: oid, nbox
+    logical, intent(out) :: islocal
+    type(layout), pointer :: la
+
+    call pybl_layout_get(oid,la)
+
+    islocal = local(la, nbox)
+  end subroutine pybl_layout_local
+
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! multifab routines
 
