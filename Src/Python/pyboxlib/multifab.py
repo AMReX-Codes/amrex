@@ -24,6 +24,9 @@ class multifab(base.BLObject):
   def fab(self, box):
     return fab(self, box)
 
+  def write(self, dirname, header):
+    fboxlib.pybl_multifab_write(self.oid, dirname, header)
+
 
 class lmultifab(multifab):
   """Logical MultiFAB."""

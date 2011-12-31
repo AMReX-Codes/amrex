@@ -238,6 +238,18 @@ contains
     call print(mfab)
   end subroutine print_multifab
 
+  subroutine pybl_multifab_write(oid, dirname, header)
+    use fabio_module
+    implicit none
+    integer, intent(in) :: oid
+    character(len=*), intent(in) :: dirname, header
+    type(multifab), pointer :: mfab
+
+    call pybl_multifab_get(oid, mfab)
+
+    call fabio_write(mfab, dirname, header)
+  end subroutine pybl_multifab_write
+
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! lmultifab routines
 
