@@ -227,7 +227,28 @@ contains
     call pybl_multifab_new(oid,mfab)
 
     call build(mfab, la, nc=nc, ng=ng, stencil=interleave)
+    call setval(mfab, 0.0d0)
   end subroutine create_multifab_from_layout
+
+  subroutine create_multifab_from_bbox(oid1, nc,ng,interleave, oid)
+    implicit none
+    integer, intent(in) :: oid1, nc, ng
+    logical, intent(in)  :: interleave
+    integer, intent(out) :: oid
+    type(multifab), pointer :: mfab1, mfab
+    type(layout) :: la
+    type(boxarray) :: ba
+    type(box) :: bx
+
+    call pybl_multifab_get(oid1, mfab1)
+    call build(ba, boxarray_bbox(get_boxarray(get_layout(mfab1))))
+    call build(la, ba)
+
+    call pybl_multifab_new(oid,mfab)
+
+    call build(mfab, la, nc=nc, ng=ng, stencil=interleave)
+    call setval(mfab, 0.0d0)
+  end subroutine create_multifab_from_bbox
 
   subroutine print_multifab(oid)
     implicit none
@@ -249,6 +270,30 @@ contains
 
     call fabio_write(mfab, dirname, header)
   end subroutine pybl_multifab_write
+
+  subroutine pybl_multifab_read(dirname, header, oid)
+    use fabio_module
+    implicit none
+    integer, intent(out) :: oid
+    character(len=*), intent(in) :: dirname, header
+    type(multifab), pointer :: mfab
+
+    call pybl_multifab_new(oid, mfab)
+
+    call fabio_multifab_read_d(mfab, dirname, header)
+  end subroutine pybl_multifab_read
+
+  subroutine pybl_multifab_copy(doid, soid)
+    use fabio_module
+    implicit none
+    integer, intent(in) :: doid, soid
+    type(multifab), pointer :: dmfab, smfab
+
+    call pybl_multifab_get(doid, dmfab)
+    call pybl_multifab_get(soid, smfab)
+
+    call copy(dmfab, 1, smfab, 1, ncomp(smfab))
+  end subroutine pybl_multifab_copy
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! lmultifab routines
