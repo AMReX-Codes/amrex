@@ -1495,7 +1495,7 @@ Amr::timeStep (int  level,
         }
         else
         {
-            if (verbose > 1 && ParallelDescriptor::IOProcessor())
+            if (verbose > 0 && ParallelDescriptor::IOProcessor())
                 std::cout << "Regridding at level 0 but grids unchanged " << std::endl;
         }
     }
@@ -1853,7 +1853,7 @@ Amr::regrid (int  lbase,
         }
         if (grids_unchanged) 
         {
-            if (verbose > 1 && ParallelDescriptor::IOProcessor())
+            if (verbose > 0 && ParallelDescriptor::IOProcessor())
                 std::cout << "Regridding at level lbase = " << lbase << " but grids unchanged " << std::endl;
             return;
         }
