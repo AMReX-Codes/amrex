@@ -105,6 +105,9 @@ ifeq ($(MACHINE), Linux)
         WHICHLINUX := GIGAN
       endif
   endif
+  ifeq ($(findstring lens, $(UNAMEN)), lens)
+    WHICHLINUX := LENS
+  endif
   ifeq ($(findstring jvn, $(UNAMEN)), jvn)
     WHICHLINUX := JVN
   endif
