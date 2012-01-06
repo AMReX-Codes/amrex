@@ -381,6 +381,14 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpich -lpthread -lmpl
     endif
 
+    ifeq ($(HOST),rodan)
+      mpihome=/usr/local
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += $(mpihome)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lmpich -lpthread -lmpl
+    endif
+
     ifeq ($(HOST),varan)
       mpihome=/usr/local
       LIBRARY_LOCATIONS += $(mpihome)/lib
