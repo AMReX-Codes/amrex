@@ -1377,20 +1377,21 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
   integer        , intent(in   ), optional :: needgradphi
   real(kind=dp_t), intent(  out), optional :: final_resnorm
 
-  integer :: do_diagnostics
+  integer :: do_diag
 
   call mgt_verify("MGT_SOLVE")
   if ( .not. mgts%final ) then
      call bl_error("MGT_SOLVE: MGT not finalized")
   end if
 
-  do_diagnostics = 0
+  do_diag = 0; if ( mgts%verbose >= 4 ) do_diag = 1
+
   if (present(needgradphi)) then
     if (needgradphi .eq. 1) then
       call ml_cc(mgts%mla, mgts%mgt, &
            mgts%rh, mgts%uu, &
            mgts%mla%mask, mgts%rr, &
-           do_diagnostics, tol, &
+           do_diag, tol, &
            abs_eps_in = abs_tol, &
            need_grad_phi_in = .true.,&
            final_resnorm = final_resnorm)
@@ -1398,7 +1399,7 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
       call ml_cc(mgts%mla, mgts%mgt, &
            mgts%rh, mgts%uu, &
            mgts%mla%mask, mgts%rr, &
-           do_diagnostics, tol, &
+           do_diag, tol, &
            abs_eps_in = abs_tol, &
            final_resnorm = final_resnorm )
     end if
@@ -1406,7 +1407,7 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
     call ml_cc(mgts%mla, mgts%mgt, &
          mgts%rh, mgts%uu, &
          mgts%mla%mask, mgts%rr, &
-         do_diagnostics, tol,&
+         do_diag, tol,&
          abs_eps_in = abs_tol, &
          final_resnorm = final_resnorm )
   end if
