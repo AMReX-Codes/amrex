@@ -493,4 +493,88 @@ private:
     bool                         m_FixUpCorners;
 };
 
+inline
+int
+AmrLevel::Level () const
+{
+    return level;
+}
+
+inline
+const BoxArray&
+AmrLevel::boxArray () const
+{
+    return grids;
+}
+
+inline
+int
+AmrLevel::numGrids () const
+{
+    return grids.size();
+}
+
+inline
+const Box&
+AmrLevel::Domain () const
+{
+    return geom.Domain();
+}
+
+inline
+int
+AmrLevel::nStep () const
+{
+    return parent->levelSteps(level);
+}
+
+inline
+const Geometry&
+AmrLevel::Geom () const
+{
+    return geom;
+}
+
+inline
+StateData&
+AmrLevel::get_state_data (int state_indx)
+{
+    return state[state_indx];
+}
+
+inline
+MultiFab&
+AmrLevel::get_old_data (int state_indx)
+{
+    return state[state_indx].oldData();
+}
+
+inline
+const MultiFab&
+AmrLevel::get_old_data (int state_indx) const
+{
+    return state[state_indx].oldData();
+}
+
+inline
+MultiFab&
+AmrLevel::get_new_data (int state_indx)
+{
+    return state[state_indx].newData();
+}
+
+inline
+const MultiFab&
+AmrLevel::get_new_data (int state_indx) const
+{
+    return state[state_indx].newData();
+}
+
+inline
+const DescriptorList&
+AmrLevel::get_desc_lst ()
+{
+    return desc_lst;
+}
+
 #endif /*_AmrLevel_H_*/
