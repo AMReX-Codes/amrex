@@ -223,8 +223,7 @@ subroutine mgt_nodal_finalize(dx,bc)
   else
     ns = 2*dm+1
     do n = nlev, 2, -1
-      call multifab_build(mgts%one_sided_ss(n), mgts%mla%la(n), ns, 0, nodal)
-      call setval(mgts%one_sided_ss(n), 0.0_dp_t, all=.true.)
+      call multifab_build(mgts%one_sided_ss(n), mgts%mla%la(n), ns, 0, nodal, stencil=.true.)
     end do
   end if
 
@@ -364,7 +363,7 @@ subroutine mgt_finalize_nodal_stencil()
    use nodal_cpp_mg_module
    implicit none
    integer :: i
-   call mgt_verify("MGT_FINALIZE_STENCIL")
+   call mgt_verify("MGT_FINALIZE_NODAL_STENCIL")
 
    do i = 1, mgts%nlevel-1
      call build(mgts%fine_mask(i), mgts%mla%la(i), nc = 1, ng = 0, nodal = mgts%nodal)
@@ -732,7 +731,7 @@ subroutine mgt_nodal_solve(tol, abs_tol)
      call bl_error("MGT_SOLVE: MGT not finalized")
   end if
 
-  do_diagnostics = 1
+  do_diagnostics = 0
   call ml_nd(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
        mgts%fine_mask, &
