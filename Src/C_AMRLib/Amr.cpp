@@ -56,6 +56,7 @@ namespace
     bool plot_files_output;
     int  checkpoint_nfiles;
     int  regrid_on_restart;
+    int  use_efficient_regrid;
     bool refine_grid_layout;
     int  plotfile_on_restart;
     int  checkpoint_on_restart;
@@ -77,6 +78,7 @@ Amr::Initialize ()
     plot_files_output        = true;
     checkpoint_nfiles        = 64;
     regrid_on_restart        = 0;
+    use_efficient_regrid     = 0;
     refine_grid_layout       = true;
     plotfile_on_restart      = 0;
     checkpoint_on_restart    = 0;
@@ -117,155 +119,10 @@ Amr::RegridOnRestart () const
     return regrid_on_restart;
 }
 
-int
-Amr::checkInt () const
+const BoxArray&
+Amr::boxArray (int lev) const
 {
-    return check_int;
-}
-
-Real
-Amr::checkPer () const
-{
-    return check_per;
-}
-
-int
-Amr::plotInt () const
-{
-    return plot_int;
-}
-
-Real
-Amr::plotPer () const
-{
-    return plot_per;
-}
-
-const std::list<std::string>&
-Amr::statePlotVars ()
-{
-    return state_plot_vars;
-}
-
-const std::list<std::string>&
-Amr::derivePlotVars ()
-{
-    return derive_plot_vars;
-}
-
-int
-Amr::blockingFactor (int lev) const
-{
-    return blocking_factor[lev];
-}
-
-
-int
-Amr::maxGridSize (int lev) const
-{
-    return max_grid_size[lev];
-}
-
-int
-Amr::maxLevel () const
-{
-    return max_level;
-}
-
-int
-Amr::finestLevel () const
-{
-    return finest_level;
-}
-
-IntVect
-Amr::refRatio (int level) const
-{
-    return ref_ratio[level];
-}
-
-int
-Amr::nCycle (int level) const
-{
-    return n_cycle[level];
-}
-
-const Array<IntVect>&
-Amr::refRatio () const
-{
-    return ref_ratio;
-}
-
-Real
-Amr::dtLevel (int level) const
-{
-    return dt_level[level];
-}
-
-const Array<Real>&
-Amr::dtLevel () const
-{
-    return dt_level;
-}
-
-const Geometry&
-Amr::Geom (int level) const
-{
-    return geom[level];
-}
-
-int
-Amr::levelSteps (int i) const
-{
-    return level_steps[i];
-}
-
-int
-Amr::levelCount (int i) const
-{
-    return level_count[i];
-}
-
-Real
-Amr::cumTime () const
-{
-    return cumtime;
-}
-
-int
-Amr::regridInt (int lev) const
-{
-    return regrid_int[lev];
-}
-
-int
-Amr::nErrorBuf (int lev) const
-{
-    return n_error_buf[lev];
-}
-
-Real
-Amr::gridEff () const
-{
-    return grid_eff;
-}
-
-int
-Amr::subCycle () const
-{
-    return sub_cycle;
-}
-
-int
-Amr::nProper () const
-{
-    return n_proper;
-}
-
-const std::string&
-Amr::theRestartFile () const
-{
-    return restart_file;
+    return amr_level[lev].boxArray();
 }
 
 void
@@ -273,12 +130,6 @@ Amr::setDtMin (const Array<Real>& dt_min_in)
 {
     for (int i = 0; i <= finest_level; i++)
         dt_min[i] = dt_min_in[i];
-}
-
-AmrLevel&
-Amr::getLevel (int lev)
-{
-    return amr_level[lev];
 }
 
 PArray<AmrLevel>&
@@ -297,12 +148,6 @@ int
 Amr::numGrids (int lev)
 {
     return amr_level[lev].numGrids();
-}
-
-const BoxArray&
-Amr::boxArray (int lev) const
-{
-    return amr_level[lev].boxArray();
 }
 
 MultiFab*
@@ -368,6 +213,7 @@ Amr::Amr ()
     pp.query("v",verbose);
 
     pp.query("regrid_on_restart",regrid_on_restart);
+    pp.query("use_efficient_regrid",use_efficient_regrid);
     pp.query("plotfile_on_restart",plotfile_on_restart);
     pp.query("checkpoint_on_restart",checkpoint_on_restart);
 
@@ -1320,15 +1166,20 @@ Amr::restart (const std::string& filename)
                const int rat  = MaxRefRatio(i-1);
                const int mult = sub_cycle ? rat : 1;
    
-               dt_level[i]    = dt_level[i-1]/Real(rat);
+               dt_level[i]    = dt_level[i-1]/Real(mult);
                n_cycle[i]     = mult;
                level_steps[i] = mult*level_steps[i-1];
                level_count[i] = 0;
            }
+
+           // This is just an error check
            if (!sub_cycle)
            {
-               for (i = 0; i <= max_level; i++)
-                   dt_level[i] = dt_level[max_level];
+               for (i = 1; i <= finest_level; i++)
+               {
+                   if (dt_level[i] != dt_level[i-1])
+                      BoxLib::Error("defBaseLevel: must have even number of cells");
+               }
            }
        }
 
@@ -1609,31 +1460,44 @@ Amr::timeStep (int  level,
         // Now refine these boxes back to level 0.
         //
         lev0.refine(2);
+
         //
-        // Construct skeleton of new level.
+        // If use_efficient_regrid flag is set, then test to see whether we in fact 
+        //    have just changed the level 0 grids. If not, then don't do anything more here.
         //
-        AmrLevel* a = (*levelbld)(*this,0,geom[0],lev0,cumtime);
-
-        a->init(amr_level[0]);
-        amr_level.clear(0);
-        amr_level.set(0,a);
-
-        amr_level[0].post_regrid(0,0);
-
-        if (ParallelDescriptor::IOProcessor())
+        if ( !( (use_efficient_regrid == 1) && (lev0 == amr_level[0].boxArray()) ) ) 
         {
-           if (verbose > 1)
-           {
-              printGridInfo(std::cout,0,finest_level);
-           }
-           else if (verbose > 0)
-           {
-              printGridSummary(std::cout,0,finest_level);
-           }
-        }
+            //
+            // Construct skeleton of new level.
+            //
+            AmrLevel* a = (*levelbld)(*this,0,geom[0],lev0,cumtime);
 
-        if (record_grid_info && ParallelDescriptor::IOProcessor())
-            printGridInfo(gridlog,0,finest_level);
+            a->init(amr_level[0]);
+            amr_level.clear(0);
+            amr_level.set(0,a);
+
+            amr_level[0].post_regrid(0,0);
+
+            if (ParallelDescriptor::IOProcessor())
+            {
+               if (verbose > 1)
+               {
+                  printGridInfo(std::cout,0,finest_level);
+               }
+               else if (verbose > 0)
+               {
+                  printGridSummary(std::cout,0,finest_level);
+               }
+            }
+
+            if (record_grid_info && ParallelDescriptor::IOProcessor())
+                printGridInfo(gridlog,0,finest_level);
+        }
+        else
+        {
+            if (verbose > 0 && ParallelDescriptor::IOProcessor())
+                std::cout << "Regridding at level 0 but grids unchanged " << std::endl;
+        }
     }
     else
     {
@@ -1960,11 +1824,7 @@ Amr::regrid (int  lbase,
 
     if (record_run_info && ParallelDescriptor::IOProcessor())
         runlog << "REGRID: at level lbase = " << lbase << '\n';
-    //
-    // Remove old-time grid space at highest level.
-    //
-    if (finest_level == max_level)
-        amr_level[finest_level].removeOldData();
+
     //
     // Compute positions of new grids.
     //
@@ -1978,6 +1838,27 @@ Amr::regrid (int  lbase,
         lbase == 0 && new_grid_places[0] != amr_level[0].boxArray();
 
     const int start = regrid_level_zero ? 0 : lbase+1;
+
+    //
+    // If use_efficient_regrid flag is set, then test to see whether we in fact 
+    //    have changed the grids at any of the levels through the regridding process.  
+    //    If not, then don't do anything more here.
+    //
+    if (use_efficient_regrid == 1 && !regrid_level_zero && (finest_level == new_finest) )
+    {
+        bool grids_unchanged = true;
+        for (int lev = start; lev <= finest_level && grids_unchanged; lev++)
+        {
+            if (new_grid_places[lev] != amr_level[lev].boxArray()) grids_unchanged = false;
+        }
+        if (grids_unchanged) 
+        {
+            if (verbose > 0 && ParallelDescriptor::IOProcessor())
+                std::cout << "Regridding at level lbase = " << lbase << " but grids unchanged " << std::endl;
+            return;
+        }
+    }
+
     //
     // Reclaim old-time grid space for all remain levels > lbase.
     //
@@ -1998,10 +1879,11 @@ Amr::regrid (int  lbase,
         Geometry::FlushPIRMCache();
         DistributionMapping::FlushCache();
     }
+
     //
     // Define the new grids from level start up to new_finest.
     //
-    for (int lev = start; lev <= new_finest; lev++)
+    for (int lev = start; lev <= new_finest; lev++) 
     {
         //
         // Construct skeleton of new level.

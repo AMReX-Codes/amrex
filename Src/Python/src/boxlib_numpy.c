@@ -16,7 +16,7 @@ void lmultifab_as_numpy_f(int *mfid, int *nbox, void *ptr, int *nx, int *ny, int
 PyObject *
 multifab_as_numpy (PyObject * self, PyObject * args)
 {
-  int mfid, nbox, nx, ny, nz, nc;
+  int mfid, nbox, n1, n2, n3, n4;
   double *ptr;
 
   PyObject *arr = NULL;
@@ -26,12 +26,12 @@ multifab_as_numpy (PyObject * self, PyObject * args)
   if (!PyArg_ParseTuple (args, "ii", &mfid, &nbox))
     return NULL;
 
-  multifab_as_numpy_f(&mfid, &nbox, &ptr, &nx, &ny, &nz, &nc);
+  multifab_as_numpy_f(&mfid, &nbox, &ptr, &n1, &n2, &n3, &n4);
 
-  dims[0] = nx;
-  dims[1] = ny;
-  dims[2] = nz;
-  dims[3] = nc;
+  dims[0] = n1;
+  dims[1] = n2;
+  dims[2] = n3;
+  dims[3] = n4;
 
   arr = PyArray_NewFromDescr(&PyArray_Type,
                              PyArray_DescrFromType(NPY_DOUBLE), ndim, dims, NULL,
@@ -44,7 +44,7 @@ multifab_as_numpy (PyObject * self, PyObject * args)
 PyObject *
 lmultifab_as_numpy (PyObject * self, PyObject * args)
 {
-  int mfid, nbox, nx, ny, nz, nc;
+  int mfid, nbox, n1, n2, n3, n4;
   double *ptr;
 
   PyObject *arr = NULL;
@@ -54,12 +54,12 @@ lmultifab_as_numpy (PyObject * self, PyObject * args)
   if (!PyArg_ParseTuple (args, "ii", &mfid, &nbox))
     return NULL;
 
-  lmultifab_as_numpy_f(&mfid, &nbox, &ptr, &nx, &ny, &nz, &nc);
+  lmultifab_as_numpy_f(&mfid, &nbox, &ptr, &n1, &n2, &n3, &n4);
 
-  dims[0] = nx;
-  dims[1] = ny;
-  dims[2] = nz;
-  dims[3] = nc;
+  dims[0] = n1;
+  dims[1] = n2;
+  dims[2] = n3;
+  dims[3] = n4;
 
   arr = PyArray_NewFromDescr(&PyArray_Type,
                              PyArray_DescrFromType(NPY_INT), ndim, dims, NULL,
