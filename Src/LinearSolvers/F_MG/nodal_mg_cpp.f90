@@ -40,6 +40,9 @@ module nodal_cpp_mg_module
      type(multifab) , pointer ::   amr_coeffs(:) => Null()
      type(multifab) , pointer :: one_sided_ss(:) => Null()
      type(lmultifab), pointer ::    fine_mask(:) => Null()
+     type(multifab) , pointer ::     sync_res(:) => Null()
+     type(multifab) , pointer ::     sync_msk(:) => Null()
+     type(multifab) , pointer ::         vold(:) => Null()
   end type mg_server
 
   type(mg_server), save :: mgts
@@ -220,8 +223,7 @@ subroutine mgt_nodal_finalize(dx,bc)
   else
     ns = 2*dm+1
     do n = nlev, 2, -1
-      call multifab_build(mgts%one_sided_ss(n), mgts%mla%la(n), ns, 0, nodal)
-      call setval(mgts%one_sided_ss(n), 0.0_dp_t, all=.true.)
+      call multifab_build(mgts%one_sided_ss(n), mgts%mla%la(n), ns, 0, nodal, stencil=.true.)
     end do
   end if
 
@@ -361,7 +363,7 @@ subroutine mgt_finalize_nodal_stencil()
    use nodal_cpp_mg_module
    implicit none
    integer :: i
-   call mgt_verify("MGT_FINALIZE_STENCIL")
+   call mgt_verify("MGT_FINALIZE_NODAL_STENCIL")
 
    do i = 1, mgts%nlevel-1
      call build(mgts%fine_mask(i), mgts%mla%la(i), nc = 1, ng = 0, nodal = mgts%nodal)
@@ -631,6 +633,55 @@ subroutine mgt_get_pr_3d(lev, n, uu, plo, phi, lo, hi, np, ip)
 
 end subroutine mgt_get_pr_3d
 
+subroutine mgt_add_rh_nodal_1d(lev, n, rh_in, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(in) :: rh_in(plo(1):phi(1))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  rp => dataptr(mgts%rh(flev), fn)
+  rp(lo(1):hi(1),1,1,1) = rp(lo(1):hi(1),1,1,1) + rh_in(lo(1):hi(1))
+
+end subroutine mgt_add_rh_nodal_1d
+
+subroutine mgt_add_rh_nodal_2d(lev, n, rh_in, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
+  real(kind=dp_t), intent(in) :: rh_in(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  rp => dataptr(mgts%rh(flev), fn)
+  rp(lo(1):hi(1),lo(2):hi(2),1,1) = &
+       rp(lo(1):hi(1),lo(2):hi(2),1,1) +  &
+       rh_in(lo(1):hi(1),lo(2):hi(2))
+
+end subroutine mgt_add_rh_nodal_2d
+
+subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(in) :: rh_in(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+
+  rp => dataptr(mgts%rh(flev), fn)
+  rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = &
+       rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) + &
+       rh_in(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
+
+end subroutine mgt_add_rh_nodal_3d
+
 subroutine mgt_nodal_dealloc()
   use nodal_cpp_mg_module
   implicit none
@@ -748,3 +799,4 @@ subroutine mgt_get_nodal_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,botto
   min_width       = mgts%mg_tower_default%min_width
 
 end subroutine mgt_get_nodal_defaults
+

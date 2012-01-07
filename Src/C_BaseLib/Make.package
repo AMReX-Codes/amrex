@@ -81,17 +81,18 @@ T_headers += ccse-mpi.H
 #
 # Geometry / Coordinate system routines.
 #
-C$(BOXLIB_BASE)_sources += CoordSys.cpp	Geometry.cpp
-C$(BOXLIB_BASE)_headers += CoordSys.H	Geometry.H
+ifneq ($(BL_NO_FORT),TRUE)
+  C$(BOXLIB_BASE)_sources += CoordSys.cpp Geometry.cpp
+  C$(BOXLIB_BASE)_headers += CoordSys.H Geometry.H
+endif
 
 #
 # Fortran interface routines.
 #
-
-F$(BOXLIB_BASE)_sources += COORDSYS_$(DIM)D.F
-F$(BOXLIB_BASE)_headers += COORDSYS_F.H
-
 ifneq ($(BL_NO_FORT),TRUE)
+  F$(BOXLIB_BASE)_sources += COORDSYS_$(DIM)D.F
+  F$(BOXLIB_BASE)_headers += COORDSYS_F.H
+
   f$(BOXLIB_BASE)_sources += BLutil_F.f
   f$(BOXLIB_BASE)_sources += BLParmParse_F.f
   f$(BOXLIB_BASE)_sources += BLBoxLib_F.f

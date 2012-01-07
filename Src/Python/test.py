@@ -5,30 +5,24 @@ fboxlib.open()
 
 la = layout()
 la.create(boxes=[ [(1,1), (3,3)],
-                  [(7,7), (100,100)],
+                  [(4,1), (6,3)],
                   ])
 
-lmfab = lmultifab()
-lmfab.create(la)
+mfab1 = multifab()
+mfab1.create(la)
 
-b = lmfab.fab(2)                        # get the second box of lmfab
-b[2:8,2:8] = True                       # direct access (local indexing) to the fortran data array!
+fab = mfab1.fab(1)
+fab[0,0] = 22.0
 
-print b.shape
-print 'bx: ', b.bx                      # lo/hi bounds of cell indexes (boxes)
-print 'ibx:', b.ibx                     # lo/hi bounds of indexes
-print 'pbx:', b.pbx                     # lo/hi of physical indexes
+fab = mfab1.fab(2)
+fab[-1,-1] = 44.0
 
-#lmfab.echo()
+mfab2 = multifab()
+mfab2.create_from_bbox(mfab1)
 
-la = layout()
-la.from_regrid(lmfab)                   # regrid based on tagged cells in lmfab
+mfab1.copy(mfab2)
 
-la.echo()
-
-mfab = multifab()
-mfab.create(la)
-#mfab.echo()
+mfab1.echo()
+mfab2.echo()
 
 fboxlib.close()
-

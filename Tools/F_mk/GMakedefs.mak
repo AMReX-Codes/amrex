@@ -104,7 +104,7 @@ ifeq ($(ARCH),Linux)
   endif
 
   ifeq ($(COMP),Cray)
-    include $(BOXLIB_HOME)/F_mk/comps/Linux_cray.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_cray.mak
   endif
 
   ifeq ($(COMP),xt4)
