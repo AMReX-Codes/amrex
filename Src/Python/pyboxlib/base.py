@@ -23,6 +23,10 @@ class BLObject(object):
       pr(self.oid)
 
   @property
+  def associated(self):
+    return self._oid is not None
+
+  @property
   def oid(self):
     if self._oid is None:
       raise ValueError('PyBoxLib: OID not associated')

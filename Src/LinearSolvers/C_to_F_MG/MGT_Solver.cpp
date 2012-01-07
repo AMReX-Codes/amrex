@@ -72,6 +72,10 @@ mgt_set_c   mgt_set_cfbx_const = mgt_set_cfbx_1d_const;
 mgt_set     mgt_set_cfs        = mgt_set_cfs_1d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_1d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_1d;
+mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_1d;
+mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_1d;
+mgt_set     mgt_set_vold       = mgt_set_vold_1d;
+mgt_get     mgt_get_sync_res   = mgt_get_sync_res_1d;
 #elif BL_SPACEDIM == 2
 mgt_get_ng  mgt_get_uu         = mgt_get_uu_2d;
 mgt_set     mgt_set_uu         = mgt_set_uu_2d;
@@ -92,6 +96,10 @@ mgt_set_c   mgt_set_cfby_const = mgt_set_cfby_2d_const;
 mgt_set     mgt_set_cfs        = mgt_set_cfs_2d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_2d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_2d;
+mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_2d;
+mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_2d;
+mgt_set     mgt_set_vold       = mgt_set_vold_2d;
+mgt_get     mgt_get_sync_res   = mgt_get_sync_res_2d;
 #elif BL_SPACEDIM == 3
 mgt_get_ng  mgt_get_uu         = mgt_get_uu_3d;
 mgt_set     mgt_set_uu         = mgt_set_uu_3d;
@@ -115,6 +123,10 @@ mgt_set_c   mgt_set_cfbz_const = mgt_set_cfbz_3d_const;
 mgt_set     mgt_set_cfs        = mgt_set_cfs_3d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_3d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_3d;
+mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_3d;
+mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_3d;
+mgt_set     mgt_set_vold       = mgt_set_vold_2d;
+mgt_get     mgt_get_sync_res   = mgt_get_sync_res_3d;
 #endif
 
 MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
@@ -512,23 +524,19 @@ MGT_Solver::set_const_gravity_coeffs(Array< Array<Real> >& xa,
    for ( int i = 0; i < BL_SPACEDIM; ++i ) 
       pxa[i] = pxb[i] = 0.;
 
+   // NOTE: the sign convention is because the elliptic solver solves
+   //        (alpha MINUS del dot beta grad) phi = RHS
+   //        Here alpha is zero and we want to solve del dot grad phi = RHS,
+   //        which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
+   Real value_zero =  0.0;
+   Real value_one  = -1.0;
+
+   int dm = BL_SPACEDIM;
    for ( int lev = 0; lev < m_nlevel; ++lev )
    {
-      mgt_init_coeffs_lev(&lev);
-
-//    NOTE: the sign convention is because the elliptic solver solves
-//           (alpha MINUS del dot beta grad) phi = RHS
-//           Here alpha is zero and we want to solve del dot grad phi = RHS,
-//             which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
-      Real value_zero =  0.0;
-      Real value_one  = -1.0;
-
-      mgt_set_all_const(&lev,&value_zero,&value_one);
-
-      int dm = BL_SPACEDIM;
-      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
+      mgt_finalize_const_stencil_lev(&lev, &value_zero, &value_one, 
+                                     xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
    }
-
    mgt_finalize_stencil();
 }
 
@@ -1405,6 +1413,26 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
 
   mgt_divu();
 
+  for ( int lev = 0; lev < m_nlevel; ++lev ) {
+    if (Rhs[lev] != 0) {
+
+      BL_ASSERT( (*Rhs[lev]).nGrow() == 1 );
+
+      for (MFIter rmfi(*(Rhs[lev])); rmfi.isValid(); ++rmfi) {
+	int n = rmfi.index();
+	
+	const int* lo = rmfi.validbox().loVect();
+	const int* hi = rmfi.validbox().hiVect();
+	
+	const FArrayBox& rhsfab = (*(Rhs[lev]))[rmfi];
+	const Real* rhsd = rhsfab.dataPtr();
+	const int* rhslo = rhsfab.box().loVect();
+	const int* rhshi = rhsfab.box().hiVect();
+	mgt_add_rh_nodal(&lev, &n, rhsd, rhslo, rhshi, lo, hi);
+      }
+    }    
+  }
+
   mgt_nodal_solve(tol,abs_tol);
 
   mgt_newu();
@@ -1441,6 +1469,98 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
 	  mgt_get_vel(&lev, &n, vd, vlo, vhi, lo, hi, ncomp_vel, ivel);
 	}
     }
+}
+
+void MGT_Solver::fill_sync_resid_crse(MultiFab* sync_resid_crse, const MultiFab& msk,
+				      const MultiFab& vold)
+{
+  mgt_alloc_nodal_sync();
+
+  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
+    int n = mfi.index();
+    const FArrayBox& mskfab = msk[n];
+    const Real* md = mskfab.dataPtr();
+    const int* lo = mfi.validbox().loVect();
+    const int* hi = mfi.validbox().hiVect();
+    const int* plo = mskfab.box().loVect();
+    const int* phi = mskfab.box().hiVect();
+    const int lev = 0;
+    mgt_set_sync_msk(&lev, &n, md, plo, phi, lo, hi);
+  }
+
+  for (MFIter mfi(vold); mfi.isValid(); ++mfi) {
+    int n = mfi.index();
+    const FArrayBox& vfab = vold[n];
+    const Real* vd = vfab.dataPtr();
+    const int* lo = mfi.validbox().loVect();
+    const int* hi = mfi.validbox().hiVect();
+    const int* plo = vfab.box().loVect();
+    const int* phi = vfab.box().hiVect();
+    const int lev = 0;
+    mgt_set_vold(&lev, &n, vd, plo, phi, lo, hi);
+  }
+
+  mgt_compute_sync_resid_crse();
+
+  for (MFIter mfi(*sync_resid_crse); mfi.isValid(); ++mfi) {
+    int n = mfi.index();
+    FArrayBox& sfab = (*sync_resid_crse)[n];
+    Real* sd = sfab.dataPtr();
+    const int* lo = mfi.validbox().loVect();
+    const int* hi = mfi.validbox().hiVect();
+    const int* plo = sfab.box().loVect();
+    const int* phi = sfab.box().hiVect();
+    const int lev = 0;
+    mgt_get_sync_res(&lev, &n, sd, plo, phi, lo, hi);
+  }
+
+  mgt_dealloc_nodal_sync();
+}
+
+void MGT_Solver::fill_sync_resid_fine(MultiFab* sync_resid_fine, const MultiFab& msk,
+				      const MultiFab& vold)
+{
+  mgt_alloc_nodal_sync();
+
+  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
+    int n = mfi.index();
+    const FArrayBox& mskfab = msk[n];
+    const Real* md = mskfab.dataPtr();
+    const int* lo = mfi.validbox().loVect();
+    const int* hi = mfi.validbox().hiVect();
+    const int* plo = mskfab.box().loVect();
+    const int* phi = mskfab.box().hiVect();
+    const int lev = 0;
+    mgt_set_sync_msk(&lev, &n, md, plo, phi, lo, hi);
+  }
+
+  for (MFIter mfi(vold); mfi.isValid(); ++mfi) {
+    int n = mfi.index();
+    const FArrayBox& vfab = vold[n];
+    const Real* vd = vfab.dataPtr();
+    const int* lo = mfi.validbox().loVect();
+    const int* hi = mfi.validbox().hiVect();
+    const int* plo = vfab.box().loVect();
+    const int* phi = vfab.box().hiVect();
+    const int lev = 0;
+    mgt_set_vold(&lev, &n, vd, plo, phi, lo, hi);
+  }
+
+  mgt_compute_sync_resid_fine();
+
+  for (MFIter mfi(*sync_resid_fine); mfi.isValid(); ++mfi) {
+    int n = mfi.index();
+    FArrayBox& sfab = (*sync_resid_fine)[n];
+    Real* sd = sfab.dataPtr();
+    const int* lo = mfi.validbox().loVect();
+    const int* hi = mfi.validbox().hiVect();
+    const int* plo = sfab.box().loVect();
+    const int* phi = sfab.box().hiVect();
+    const int lev = 0;
+    mgt_get_sync_res(&lev, &n, sd, plo, phi, lo, hi);
+  }
+
+  mgt_dealloc_nodal_sync();
 }
 
 MGT_Solver::~MGT_Solver()

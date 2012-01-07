@@ -22,6 +22,18 @@ contains
     call parallel_finalize()
   end subroutine close
 
+  subroutine mpi_rank(r)
+    use parallel
+    integer, intent(out) :: r
+    r = parallel_myproc()
+  end subroutine mpi_rank
+
+  subroutine mpi_size(r)
+    use parallel
+    integer, intent(out) :: r
+    r = parallel_nprocs()
+  end subroutine mpi_size
+
   ! subroutine set_comm(comm)
   !   use parallel
   !   implicit none
@@ -139,6 +151,28 @@ contains
     call print(mla)
   end subroutine print_ml_layout
 
+  subroutine pybl_layout_nboxes(oid, boxes)
+    implicit none
+    integer, intent(in) :: oid
+    integer, intent(out) :: boxes
+    type(layout), pointer :: la
+
+    call pybl_layout_get(oid,la)
+
+    boxes = nboxes(la)
+  end subroutine pybl_layout_nboxes
+
+  subroutine pybl_layout_local(oid, nbox, islocal)
+    implicit none
+    integer, intent(in) :: oid, nbox
+    logical, intent(out) :: islocal
+    type(layout), pointer :: la
+
+    call pybl_layout_get(oid,la)
+
+    islocal = local(la, nbox)
+  end subroutine pybl_layout_local
+
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! multifab routines
 
@@ -180,9 +214,10 @@ contains
     ibx_hi = bx%hi
   end subroutine get_multifab_fab_info
 
-  subroutine create_multifab_from_layout(la_oid,nc,ng,oid)
+  subroutine create_multifab_from_layout(la_oid,nc,ng,interleave,oid)
     implicit none
     integer, intent(in)  :: la_oid, nc, ng
+    logical, intent(in)  :: interleave
     integer, intent(out) :: oid
 
     type(layout), pointer :: la
@@ -191,9 +226,29 @@ contains
     call pybl_layout_get(la_oid,la)
     call pybl_multifab_new(oid,mfab)
 
-    call build(mfab, la, nc=nc, ng=ng)
+    call build(mfab, la, nc=nc, ng=ng, stencil=interleave)
     call setval(mfab, 0.0d0)
   end subroutine create_multifab_from_layout
+
+  subroutine create_multifab_from_bbox(oid1, nc,ng,interleave, oid)
+    implicit none
+    integer, intent(in) :: oid1, nc, ng
+    logical, intent(in)  :: interleave
+    integer, intent(out) :: oid
+    type(multifab), pointer :: mfab1, mfab
+    type(layout) :: la
+    type(boxarray) :: ba
+    type(box) :: bx
+
+    call pybl_multifab_get(oid1, mfab1)
+    call build(ba, boxarray_bbox(get_boxarray(get_layout(mfab1))))
+    call build(la, ba)
+
+    call pybl_multifab_new(oid,mfab)
+
+    call build(mfab, la, nc=nc, ng=ng, stencil=interleave)
+    call setval(mfab, 0.0d0)
+  end subroutine create_multifab_from_bbox
 
   subroutine print_multifab(oid)
     implicit none
@@ -203,6 +258,42 @@ contains
     call pybl_multifab_get(oid, mfab)
     call print(mfab)
   end subroutine print_multifab
+
+  subroutine pybl_multifab_write(oid, dirname, header)
+    use fabio_module
+    implicit none
+    integer, intent(in) :: oid
+    character(len=*), intent(in) :: dirname, header
+    type(multifab), pointer :: mfab
+
+    call pybl_multifab_get(oid, mfab)
+
+    call fabio_write(mfab, dirname, header)
+  end subroutine pybl_multifab_write
+
+  subroutine pybl_multifab_read(dirname, header, oid)
+    use fabio_module
+    implicit none
+    integer, intent(out) :: oid
+    character(len=*), intent(in) :: dirname, header
+    type(multifab), pointer :: mfab
+
+    call pybl_multifab_new(oid, mfab)
+
+    call fabio_multifab_read_d(mfab, dirname, header)
+  end subroutine pybl_multifab_read
+
+  subroutine pybl_multifab_copy(doid, soid)
+    use fabio_module
+    implicit none
+    integer, intent(in) :: doid, soid
+    type(multifab), pointer :: dmfab, smfab
+
+    call pybl_multifab_get(doid, dmfab)
+    call pybl_multifab_get(soid, smfab)
+
+    call copy(dmfab, 1, smfab, 1, ncomp(smfab))
+  end subroutine pybl_multifab_copy
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! lmultifab routines
@@ -248,9 +339,10 @@ contains
     ibx_hi = bx%hi
   end subroutine get_lmultifab_fab_info
 
-  subroutine create_lmultifab_from_layout(la_oid,nc,ng,oid)
+  subroutine create_lmultifab_from_layout(la_oid,nc,ng,interleave,oid)
     implicit none
     integer, intent(in)  :: la_oid, nc, ng
+    logical, intent(in)  :: interleave
     integer, intent(out) :: oid
 
     type(layout), pointer :: la

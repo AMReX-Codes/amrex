@@ -150,6 +150,8 @@ contains
 
   end subroutine stencil_fill_cc_all_mglevels
 
+! ******************************************************************************
+
   subroutine stencil_fill_cc(ss, cell_coeffs, edge_coeffs, &
                              dh, mask, xa, xb, pxa, pxb, order, bc_face, nc_opt)
 
@@ -314,5 +316,122 @@ contains
     call destroy(bpt)
 
   end subroutine stencil_fill_cc
+
+! ******************************************************************************
+
+  recursive subroutine stencil_fill_const_all_mglevels(mgt, alpha_const, beta_const, &
+                                                       xa, xb, pxa, pxb, &
+                                                       stencil_order, bc_face)
+
+    use coarsen_coeffs_module
+    use mg_tower_module
+
+    type(mg_tower) , intent(inout) :: mgt
+    real(kind=dp_t), intent(in   ) :: xa(:), xb(:), pxa(:), pxb(:)
+    integer        , intent(in   ) :: stencil_order
+    integer        , intent(in   ) :: bc_face(:,:)
+    real(dp_t)     , intent(in   ) :: alpha_const, beta_const
+
+    ! Local variables
+    integer                     :: i, d, maxlev
+    real(dp_t)                  :: coarse_xa(mgt%dim),  coarse_xb(mgt%dim)
+    real(dp_t)                  :: coarse_pxa(mgt%dim), coarse_pxb(mgt%dim)
+    real(dp_t), pointer :: sc_orig(:,:,:,:), sc_grown(:,:,:,:)
+
+    maxlev = mgt%nlevels
+
+    do i = maxlev, 1, -1
+       call stencil_fill_const(mgt%ss(i), alpha_const, beta_const, &
+                               mgt%dh(:,i), mgt%mm(i), &
+                               xa, xb, pxa, pxb, stencil_order, bc_face) 
+    end do
+
+    if (associated(mgt%bottom_mgt)) then
+
+       coarse_xa = ZERO
+       coarse_xb = ZERO
+       coarse_pxa = ZERO
+       coarse_pxb = ZERO
+
+       call stencil_fill_const_all_mglevels(mgt%bottom_mgt, alpha_const, beta_const, &
+                                            coarse_xa,  coarse_xb, &
+                                            coarse_pxa, coarse_pxb, stencil_order, bc_face)
+
+    end if
+
+
+  end subroutine stencil_fill_const_all_mglevels
+
+! ******************************************************************************
+
+  subroutine stencil_fill_const(ss, alpha_const, beta_const, &
+                                dh, mask, xa, xb, pxa, pxb, order, bc_face)
+
+    use bl_prof_module
+
+    type(multifab) , intent(inout) :: ss
+    real(kind=dp_t), intent(in   ) :: dh(:)
+    type(imultifab), intent(inout) :: mask
+    integer        , intent(in   ) :: order
+    integer        , intent(in   ) :: bc_face(:,:)
+    real(kind=dp_t), intent(in   ) :: alpha_const, beta_const
+    real(kind=dp_t), intent(in   ) :: xa(:), xb(:), pxa(:), pxb(:)
+
+    type(box)                 :: bx, pd
+    real(kind=dp_t)           :: lxa(get_dim(ss)), lxb(get_dim(ss))
+
+    real(kind=dp_t), pointer  ::  sp(:,:,:,:)
+    integer        , pointer  ::  mp(:,:,:,:)
+    integer                   :: i,ns,id,dm
+    logical                   :: pmask(get_dim(ss))
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "stencil_fill_const")
+
+    pd = get_pd(get_layout(ss))
+
+    pmask = get_pmask(get_layout(ss))
+
+    dm = get_dim(ss)
+
+    do i = 1, nboxes(ss)
+       if ( remote(ss,i) ) cycle
+       bx = get_box(ss,i)
+       call stencil_set_bc(ss, i, mask, bc_face)
+       lxa = xa
+       lxb = xb
+       do id = 1,pd%dim
+          if ( .not. pmask(id) ) then
+             if ( bx%lo(id) == pd%lo(id) ) then
+                lxa(id) = pxa(id)
+             end if
+             if ( bx%hi(id) == pd%hi(id) ) then
+                lxb(id) = pxb(id)
+             end if
+          end if
+       end do
+
+       sp  => dataptr(ss, i)
+       mp  => dataptr(mask, i)
+
+       select case (dm)
+       case (1)
+           call bl_error("simple_1d_const not yet implemented")
+       case (2)
+           call bl_error("simple_2d_const not yet implemented")
+       case (3)
+           call simple_3d_const(sp(:,:,:,:),alpha_const,beta_const,&
+                                dh,mp(:,:,:,1), &
+                                bx%lo, bx%hi, lxa, lxb, order)
+       end select
+
+    end do
+    
+    call destroy(bpt)
+
+  end subroutine stencil_fill_const
+
+! ******************************************************************************
 
 end module cc_stencil_fill_module
