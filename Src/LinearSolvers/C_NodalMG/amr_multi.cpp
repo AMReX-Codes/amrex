@@ -589,8 +589,10 @@ amr_multigrid::solve (Real reltol,
 	std::cout << "HG: Initial rhs              = " << norm << std::endl;
     }
 
-//  Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol, 0.0);
-    Real err = ml_residual(mglev_max, lev_max);
+    // wqz. There are cases that ml_residual is zero while ml_cycle is not.
+    Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol, 0.0);
+    //    Real err = ml_residual(mglev_max, lev_max);
+
     if (pcode >= 2 && ParallelDescriptor::IOProcessor())
     {
 	std::cout << "HG: Initial error            = " << err << std::endl;
@@ -609,8 +611,6 @@ amr_multigrid::solve (Real reltol,
 	if ( pcode >= 2 )
 	{
 	    if ( pcode >= 4 && ParallelDescriptor::IOProcessor()) std::cout << " " << std::endl;
-
-            Real err = ml_residual(mglev_max, lev_max);
 
 	    if ( ParallelDescriptor::IOProcessor())
             {
@@ -660,10 +660,10 @@ amr_multigrid::ml_cycle (int  lev,
     //
     Real res_norm = ml_residual(mglev, lev);
 
-//  if (pcode >= 2  && ParallelDescriptor::IOProcessor())
-//  {
-//	std::cout << "HG: Residual at level " << lev << " is " << res_norm << std::endl;
-//  }
+    if (pcode >= 2  && ParallelDescriptor::IOProcessor())
+    {
+	std::cout << "HG: Residual at level " << lev << " is " << res_norm << std::endl;
+    }
 
     res_norm = (res_norm_fine > res_norm) ? res_norm_fine : res_norm;
     //
@@ -778,6 +778,8 @@ amr_multigrid::mg_cycle (int mglev,
 			 int i1,
 			 int i2)
 {
+    int oldprec = std::cout.precision(18);
+
     if (mglev == 0)
     {
 
@@ -886,4 +888,6 @@ amr_multigrid::mg_cycle (int mglev,
             std::cout << "   UP: Norm after  smooth " << nm << std::endl;
         }
     }
+
+    std::cout.precision(oldprec);
 }
