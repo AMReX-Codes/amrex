@@ -731,7 +731,12 @@ subroutine mgt_nodal_solve(tol, abs_tol)
      call bl_error("MGT_SOLVE: MGT not finalized")
   end if
 
-  do_diagnostics = 0
+  if (mgts%verbose >= 4) then 
+     do_diagnostics = 1
+  else
+     do_diagnostics = 0
+  endif
+
   call ml_nd(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
        mgts%fine_mask, &
