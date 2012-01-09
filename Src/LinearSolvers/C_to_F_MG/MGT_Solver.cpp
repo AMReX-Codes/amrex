@@ -355,7 +355,7 @@ MGT_Solver::initialize(bool nodal)
     pp.query("cg_solver", def_cg_solver);
     pp.query("rtol_b", def_bottom_solver_eps);
     pp.query("numLevelsMAX", def_max_nlevel);
-
+    pp.query("smoother", def_smoother);
     pp.query("stencil_type", stencil_type);
 
 /*
