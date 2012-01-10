@@ -117,8 +117,8 @@ public:
   void set_nodal_coefficients(const MultiFab* aa[]);
   void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rh[], const Real& tol, const Real& abs_tol);
 
-  void fill_sync_resid_crse(MultiFab* sync_resid_crse, const MultiFab& msk, const MultiFab& vold);
-  void fill_sync_resid_fine(MultiFab* sync_resid_fine, const MultiFab& msk, const MultiFab& vold);
+  void fill_sync_resid(MultiFab* sync_resid_crse, const MultiFab& msk, const MultiFab& vold,
+		       int isCoarse);
 
   ~MGT_Solver();
 
