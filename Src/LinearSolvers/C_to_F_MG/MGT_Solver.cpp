@@ -1471,8 +1471,8 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
     }
 }
 
-void MGT_Solver::fill_sync_resid_crse(MultiFab* sync_resid_crse, const MultiFab& msk,
-				      const MultiFab& vold)
+void MGT_Solver::fill_sync_resid(MultiFab* sync_resid, const MultiFab& msk,
+				 const MultiFab& vold, int isCoarse)
 {
   mgt_alloc_nodal_sync();
 
@@ -1500,57 +1500,16 @@ void MGT_Solver::fill_sync_resid_crse(MultiFab* sync_resid_crse, const MultiFab&
     mgt_set_vold(&lev, &n, vd, plo, phi, lo, hi);
   }
 
-  mgt_compute_sync_resid_crse();
-
-  for (MFIter mfi(*sync_resid_crse); mfi.isValid(); ++mfi) {
-    int n = mfi.index();
-    FArrayBox& sfab = (*sync_resid_crse)[n];
-    Real* sd = sfab.dataPtr();
-    const int* lo = mfi.validbox().loVect();
-    const int* hi = mfi.validbox().hiVect();
-    const int* plo = sfab.box().loVect();
-    const int* phi = sfab.box().hiVect();
-    const int lev = 0;
-    mgt_get_sync_res(&lev, &n, sd, plo, phi, lo, hi);
+  if (isCoarse) {
+    mgt_compute_sync_resid_crse();
+  }
+  else {
+    mgt_compute_sync_resid_fine();
   }
 
-  mgt_dealloc_nodal_sync();
-}
-
-void MGT_Solver::fill_sync_resid_fine(MultiFab* sync_resid_fine, const MultiFab& msk,
-				      const MultiFab& vold)
-{
-  mgt_alloc_nodal_sync();
-
-  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
+  for (MFIter mfi(*sync_resid); mfi.isValid(); ++mfi) {
     int n = mfi.index();
-    const FArrayBox& mskfab = msk[n];
-    const Real* md = mskfab.dataPtr();
-    const int* lo = mfi.validbox().loVect();
-    const int* hi = mfi.validbox().hiVect();
-    const int* plo = mskfab.box().loVect();
-    const int* phi = mskfab.box().hiVect();
-    const int lev = 0;
-    mgt_set_sync_msk(&lev, &n, md, plo, phi, lo, hi);
-  }
-
-  for (MFIter mfi(vold); mfi.isValid(); ++mfi) {
-    int n = mfi.index();
-    const FArrayBox& vfab = vold[n];
-    const Real* vd = vfab.dataPtr();
-    const int* lo = mfi.validbox().loVect();
-    const int* hi = mfi.validbox().hiVect();
-    const int* plo = vfab.box().loVect();
-    const int* phi = vfab.box().hiVect();
-    const int lev = 0;
-    mgt_set_vold(&lev, &n, vd, plo, phi, lo, hi);
-  }
-
-  mgt_compute_sync_resid_fine();
-
-  for (MFIter mfi(*sync_resid_fine); mfi.isValid(); ++mfi) {
-    int n = mfi.index();
-    FArrayBox& sfab = (*sync_resid_fine)[n];
+    FArrayBox& sfab = (*sync_resid)[n];
     Real* sd = sfab.dataPtr();
     const int* lo = mfi.validbox().loVect();
     const int* hi = mfi.validbox().hiVect();
