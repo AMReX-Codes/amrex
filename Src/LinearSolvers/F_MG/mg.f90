@@ -665,15 +665,29 @@ contains
     type( multifab), intent(in) :: ss
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: lev
-    integer :: stat
-    logical :: singular_test
-    integer i
+
+    ! Local variables
+    integer             :: stat
+    logical             :: singular_test
+    integer             :: i
+    real(dp_t)          :: nrm
     type(bl_prof_timer), save :: bpt
+    logical             :: do_diag
+
+    do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
     call build(bpt, "mgt_bottom_solve")
 
     if (.not.nodal_q(rh)) then
        singular_test =  mgt%bottom_singular .and. mgt%coeffs_sum_to_zero
+    end if
+
+    if (do_diag) then
+       ! compute mgt%cc(lev) = ss * uu - rh
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+       nrm = norm_inf(mgt%cc(lev))
+       if ( parallel_IOProcessor() ) &
+          print *,' BOT: Norm before bottom         ',nrm
     end if
 
     stat = 0
@@ -726,6 +740,14 @@ contains
        do i = 1, 20
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
+    end if
+
+    if (do_diag) then
+       ! compute mgt%cc(lev) = ss * uu - rh
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+       nrm = norm_inf(mgt%cc(lev))
+       if ( parallel_IOProcessor() ) &
+          print *,' BOT: Norm  after bottom         ',nrm
     end if
 
     call destroy(bpt)
@@ -969,28 +991,30 @@ contains
 
     else if ( lev == lbl ) then
 
-       if (do_diag) then
-          ! compute mgt%cc(lev) = ss * uu - rh
-          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
-          nrm = norm_inf(mgt%cc(lev))
-          if ( parallel_IOProcessor() ) &
-             print *,'  DN: Norm before bottom         ',nrm
-       end if
-
        if (associated(mgt%bottom_mgt)) then
+          if (do_diag) then
+             ! compute mgt%cc(lev) = ss * uu - rh
+             call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+             nrm = norm_inf(mgt%cc(lev))
+             if ( parallel_IOProcessor() ) &
+                print *,'  DN: Norm before bottom         ',nrm
+          end if
+
           call do_bottom_mgt(mgt, uu, rh)
+
+          if (do_diag) then
+             ! compute mgt%cc(lev) = ss * uu - rh
+             call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+             nrm = norm_inf(mgt%cc(lev))
+             if ( parallel_IOProcessor() ) &
+                print *,'  UP: Norm after  bottom         ',nrm
+          end if
+
        else
           call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
        end if
 
        if ( cyc == MG_FCycle ) gamma = 1
-       if (do_diag) then
-          ! compute mgt%cc(lev) = ss * uu - rh
-          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
-          nrm = norm_inf(mgt%cc(lev))
-          if ( parallel_IOProcessor() ) &
-             print *,'  UP: Norm after  bottom         ',nrm
-       end if
 
     else 
 
@@ -1078,17 +1102,39 @@ contains
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: lev
     integer, intent(in) :: nu1, nu2
-    integer :: i
+
+    ! Local variables
+    integer             :: i
+    logical             :: do_diag
+    real(dp_t)          :: nrm
+
+    do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
     call timer_start(mgt%tm(lev))
 
-    if ( lev == 1 ) then
+    ! Always relax first at the level we come in at
+    if (do_diag) then
+       nrm = norm_inf(rh)
+       if ( parallel_IOProcessor() ) &
+          print *,'MINI_FINE: Norm before smooth         ',nrm
+    end if
 
-       do i = 1, nu1
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
-       end do
+    do i = 1, nu1
+       call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+    end do
 
-    else 
+    ! compute mgt%cc(lev) = ss * uu - rh
+    call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+
+    if (do_diag) then
+       nrm = norm_inf(mgt%cc(lev))
+       if ( parallel_IOProcessor() ) &
+           print *,'MINI_FINE: Norm after  smooth         ',nrm
+    end if
+
+    ! If we are doing a mini V-cycle here, then we must compute the coarse residual, 
+    !   relax at the next lower level, then interpolate the correction and relax again
+    if ( lev > 1 ) then
 
        ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
@@ -1107,14 +1153,45 @@ contains
 
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
-       call mg_tower_bottom_solve(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
-                                  mgt%dd(lev-1), mgt%mm(lev-1))
+       if (do_diag) then
+          nrm = norm_inf(mgt%dd(lev-1))
+          if ( parallel_IOProcessor() ) &
+             print *,'MINI_CRSE: Norm before smooth         ',nrm
+       end if
+
+       do i = 1, nu1
+          call mg_tower_smoother(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), mgt%dd(lev-1), mgt%mm(lev-1))
+       end do
+
+       if (do_diag) then
+          call mg_defect(mgt%ss(lev-1), mgt%cc(lev-1), mgt%dd(lev-1), mgt%uu(lev-1), mgt%mm(lev-1), mgt%uniform_dh)
+          nrm = norm_inf(mgt%cc(lev-1))
+          if ( parallel_IOProcessor() ) &
+             print *,'MINI_CRSE: Norm  after smooth         ',nrm
+       end if
+
+!      call mg_tower_bottom_solve(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
+!                                 mgt%dd(lev-1), mgt%mm(lev-1))
 
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
+
+       if (do_diag) then
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+          nrm = norm_inf(mgt%cc(lev))
+          if ( parallel_IOProcessor() ) &
+             print *,'MINI_FINE: Norm before smooth         ',nrm
+       end if
 
        do i = 1, nu2
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
+
+       if (do_diag) then
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+          nrm = norm_inf(mgt%cc(lev))
+          if ( parallel_IOProcessor() ) &
+             print *,'MINI_FINE: Norm before smooth         ',nrm
+       end if
 
     end if
 
