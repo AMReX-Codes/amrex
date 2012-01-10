@@ -16,7 +16,7 @@ of either 2 or 4.  The grids are properly nested in the sense that the union
 of grids at level $\ell+1$ is contained in the union of grids at level $\ell$.
 Furthermore, the containment is strict in the sense that, except at physical 
 boundaries, the level $\ell$ grids are large enough to guarantee that there is
-a border at least $n_{\rm buffer}$ level $\ell$ cells wide surrounding each level
+a border at least $n_{\rm buffer}$ (typically $\sim$4) level $\ell$ cells wide surrounding each level
 $\ell +1$ grid (grids at all levels are allowed to extend to the physical
 boundaries so the proper nesting is not strict there).  See Figure \ref{fig:AMR}
 for a sample two-dimensional grid structure.
@@ -36,35 +36,38 @@ domain boundary without coarser buffer cells.}
 
 On a grid, the data can be stored at cell-centers, faces, edges, or
 corners (often called nodes).  In \BoxLib, data that is on an face is termed `nodal'
-in that direction (see Figure~\ref{fig:dataloc}).  Data that is on the
-corners is nodal in all spatial directions.  In three-dimensional problems, data
-that is nodal in exactly two directions lies on edges.
+in that one direction (see Figure~\ref{fig:dataloc}).  In three-dimensions (not pictured),
+data that is nodal in two directions is said to live on edges.  Data that is nodal in
+all directions lives on the corners of cells.
 \BoxLib\ uses $0$-based indexing, and for nodal data, the integer index
 corresponds to the lower boundary in that direction.
 In our \BoxLib\ applications, the state data (velocity, density, 
 species, $\ldots$) is generally cell-centered.  Fluxes are typically nodal a
-single direction.  A few quantities are nodal in all directions 
-(e.g.~the pressure in the low Mach number projection methods).
+single direction (i.e.~they are face-centered).  A few quantities are nodal in all 
+directions (e.g.~the pressure in the low Mach number projection methods).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[tb]
 \centering
 \includegraphics[width=6.5in]{./Introduction/data_loc2}
 \caption{\label{fig:dataloc} Some of the different data-centerings in two dimensions:
-(a) cell-centered, (b) nodal in the $x$-direction only, and (c) nodal in
+(a) cell-centered, (b) nodal in the $x$-direction only (face-centered), and (c) nodal in
 both the $x$- and $y$-directions.  Note that for nodal data, the
 integer index corresponds to the lower boundary in that direction.
-In each of these centerings, the red point has the same indices:\ (1,2).
+Also note that \BoxLib\ uses $0$-based indexing, e.g., in each of these centerings, 
+the red point has the same indices:\ (1,2).
 Not shown is the case where data is nodal in the $y$-direction only.  
-Also note that \BoxLib\ uses $0$-based indexing.}
+Also not shown is the three-dimensional edge-centered case, where the data
+is nodal in exactly two directions.  }
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Note that when a C++ application is compiled and linked,
-the number of spatial dimensions (1, 2, or 3), {\tt DIM},
-of the code must be specified.  The code that will be
-built is specifically designed to run only with that number of dimensions.
-This is unlike the Fortran90 data structures in which we build
-dimension-independent code at compile-time.
+\begin{itemize}
+\item In C++ \BoxLib, we must specify the number of spatial dimensions (1, 2, or 3), 
+{\tt DIM}, at compile-time.  The code that will be built is specifically designed to 
+run only with that number of dimensions.
+\item In Fortran90 \BoxLib, we build dimension-independent code at compile-time, 
+and tell the program the dimensionality of the problem via a runtime inputs file.
+\end{itemize}
 
 To simplify the description of the underlying AMR grid, \BoxLib\
 provides a number of classes.  We now briefly summarize some of the major
@@ -89,22 +92,27 @@ iv(2) = 5
 
 A \BoxType\ is simply a rectangular domain in space and does not hold any data.
 A \BoxType\ contains the indices of its low end and high end, 
-{\tt IntVect lo} and {\tt IntVect hi}.  In C++, a \BoxType\ also
+{\tt IntVect lo} and {\tt IntVect hi}.
+\begin{itemize}
+\item In C++, a \BoxType\ also
 contains an {\tt IndexType} (cell-centered, face-centered, or nodal) for each
-dimension.  In Fortran90, a \BoxType\ also contains the dimensionality 
-of the \BoxType.  To build a \BoxType\ in Fortran90 use:
+spatial direction.
+\item In Fortran90, a \BoxType\ also contains the dimensionality 
+of the \BoxType.
+\end{itemize}
+To build a \BoxType\ in C++ use:
+\begin{lstlisting}[backgroundcolor=\color{light-blue}]
+IntVect iv_lo(0,0);
+IntVect iv_hi(15,15);
+Box bx(iv_lo,iv_hi);
+\end{lstlisting}
+To build a \BoxType\ in Fortran90 use:
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
 type(box) :: bx
 integer   :: iv_lo(2), iv_hi(2)
 iv_lo(1:2) = 0
 iv_hi(1:2) = 15
 bx = make_box(lo,hi)
-\end{lstlisting}
-To build a \BoxType\ in C++ use:
-\begin{lstlisting}[backgroundcolor=\color{light-blue}]
-IntVect iv_lo(0,0);
-IntVect iv_hi(15,15);
-Box bx(iv_lo,iv_hi);
 \end{lstlisting}
 
 The computational domain is divided into non-overlapping grids.  
@@ -217,10 +225,15 @@ In \BoxLib, we don't usually deal with
 \section{The \MultiFab}
 \MultiFab s are so important that we will give them their own section.
 A \MultiFab\ is a collection of all the \Fab s at the same level of
-refinement.  In C++, a \MultiFab\ is defined using a \BoxArray,
+refinement.
+\begin{itemize}
+\item In C++, a \MultiFab\ is defined using a \BoxArray,
 number of components, and number of ghost cells that each \Fab\
-will have.  In Fortran90, a \MultiFab\ is defined using a \layout,
-number of components, and a number of ghost cells.
+will have.
+\item In Fortran90, a \MultiFab\ is defined using a \layout,
+number of components, , and number of ghost cells that each \Fab\
+will have.
+\end{itemize}
 A \MultiFab\ has a ``valid'' region that is defined by 
 the \BoxArray.  Each \Fab\ in the \MultiFab\ is built large enough 
 to hold valid data and ghost cell data, and thus the \BoxType\ associated with
@@ -567,3 +580,35 @@ The program will complete and there will be a series of plotfiles, e.g., {\tt pl
 You can open these using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/}) by opening
 the {\tt Header} file within the plotfile directory.  (For the {\tt VisIt} novice, after you open the {\tt Header}
 file, select ``Add'' $\rightarrow$ ``Pseudocolor'' $\rightarrow$ ``Variable 2'' and then click ``Draw''.)
+
+\section{Running in Parallel}
+We will now demonstrate how to run the example in {\tt BoxLib/Tutorials/WaveEquation\_C/}
+in parallel.  On your local machine, if you have MPI installed, you can simply build
+the executable as describe before, but with {\tt USE\_MPI=TRUE} in the {\tt GNUmakefile}.
+Alternatively, you can override the settings in {\tt GNUmakefile} at the command line
+using, e.g., ``{\tt make USE\_MPI=TRUE}''.  
+An executable named {\tt main2d.Linux.g++.gfortran.MPI.ex} will be built.
+Then you can run the program in parallel using, e.g.,
+\begin{lstlisting}[backgroundcolor=\color{light-red}].
+mpiexec -n 4 main2d.Linux.g++.gfortran.MPI.ex inputs_2d
+\end{lstlisting}
+
+To run in parallel on the hopper machine at NERSC, first copy the \BoxLib\ source code
+into your home directory on hopper and enter the {\tt WaveEquation\_C/} directory.
+The default programming environment uses the {\tt PGI} compilers, so we will switch to the
+{\tt gnu} programming environment to make {\tt g++} and {\tt gfortran} available
+using the command:
+\begin{lstlisting}[backgroundcolor=\color{light-red}].
+module swap PrgEnv-pgi PrgEnv-gnu
+\end{lstlisting}
+Next, in {\tt GNUmakefile}, set {\tt USE\_MPI=TRUE}, and then type ``{\tt make}''
+(or alternatively, type ``{\tt make USE\_MPI=TRUE}'').
+An executable named {\tt main2d.Linux.g++.gfortran.MPI.ex} will be built.
+You cannot submit jobs in your home directory, so change to a scratch space
+(``{\tt cd \$SCRATCH}'' will typically do), and copy the executable and
+{\tt inputs\_2d} into this directory.  Then you need to create a job script,
+e.g., "{\tt hopper.run}", that has contents:
+\lstinputlisting[backgroundcolor=\color{light-red}]{./AdvancedTopics/hopper.run}
+To run, simply type ``{\tt qsub hopper.run}''.  You can monitor the status of your job
+using ``{\tt qstat -u <username>}'' and view your position in the queue 
+using ``{\tt showq}''.
