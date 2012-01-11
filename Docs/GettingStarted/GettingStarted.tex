@@ -608,7 +608,7 @@ You cannot submit jobs in your home directory, so change to a scratch space
 (``{\tt cd \$SCRATCH}'' will typically do), and copy the executable and
 {\tt inputs\_2d} into this directory.  Then you need to create a job script,
 e.g., "{\tt hopper.run}", that has contents:
-\lstinputlisting[backgroundcolor=\color{light-red}]{./AdvancedTopics/hopper.run}
+\lstinputlisting[backgroundcolor=\color{light-red}]{./GettingStarted/hopper.run}
 To run, simply type ``{\tt qsub hopper.run}''.  You can monitor the status of your job
 using ``{\tt qstat -u <username>}'' and view your position in the queue 
 using ``{\tt showq}''.
