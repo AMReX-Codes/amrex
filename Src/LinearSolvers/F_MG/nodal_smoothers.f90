@@ -129,9 +129,9 @@ contains
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
     integer            ,intent(in) :: red_black
 
-    integer :: j, i, ipar, istart, jstart, half_x
+    integer :: j, i, ipar, half_x
     integer :: hi(size(lo))
-    logical :: offset, x_is_odd
+    logical :: x_is_odd
     real (kind = dp_t) :: dd
 
     real (kind = dp_t), allocatable :: uu_temp(:,:)
@@ -166,27 +166,6 @@ contains
 
     else if (size(ss,dim=1) .eq. 5) then
 
-      ! PURE HACK just to match up the gsrb with Parallel/hgproj
-      offset = .true.
-      do j = lo(2),hi(2)
-        if (.not. bc_dirichlet(mm(lo(1),j),1,0)) offset = .false.
-      end do
-      if (offset) then 
-        istart = lo(1)+1
-      else
-        istart = lo(1)
-      end if
-
-      offset = .true.
-      do i = lo(1),hi(1)
-        if (.not. bc_dirichlet(mm(i,lo(2)),1,0)) offset = .false.
-      end do
-      if (offset) then 
-        jstart = lo(2)+1
-      else
-        jstart = lo(2)
-      end if
-
       half_x = (hi(1)-lo(1))/2
       if ( 2*half_x .eq. ( hi(1)-lo(1) ) ) then
          x_is_odd = .false.
@@ -198,9 +177,9 @@ contains
          !
          ! USE THIS FOR JACOBI ITERATION
          !
-         allocate(uu_temp(istart:hi(1),jstart:hi(2)))
-         do j = jstart,hi(2)
-            do i = istart,hi(1)
+         allocate(uu_temp(lo(1):hi(1),lo(2):hi(2)))
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
                if (.not. bc_dirichlet(mm(i,j),1,0)) then
                   dd =   ss(0,i,j) * uu(i  ,j ) &
                        + ss(2,i,j) * uu(i-1,j  ) + ss(1,i,j) * uu(i+1,j  ) &
@@ -209,8 +188,8 @@ contains
                end if
             end do
          end do
-         do j = jstart,hi(2)
-            do i = istart,hi(1)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
                if (.not. bc_dirichlet(mm(i,j),1,0)) &
                     uu(i,j) = uu_temp(i,j)
             end do
@@ -222,9 +201,9 @@ contains
          ! USE THIS FOR GAUSS-SEIDEL ITERATION
          !
          ipar = 1-red_black
-         do j = jstart,hi(2)
+         do j = lo(2),hi(2)
             ipar = 1 - ipar
-            do i = istart+ipar,hi(1),2
+            do i = lo(1)+ipar,hi(1),2
                if (.not. bc_dirichlet(mm(i,j),1,0)) then
                   dd =   ss(0,i,j) * uu(i  ,j ) &
                        + ss(2,i,j) * uu(i-1,j  ) + ss(1,i,j) * uu(i+1,j  ) &
@@ -258,7 +237,7 @@ contains
     logical, intent(in) :: uniform_dh
     integer, intent(in) :: red_black
 
-    integer :: i, j, k, ipar, istart, jstart, kstart, hi(size(lo)), half_x, half_y
+    integer :: i, j, k, ipar, hi(size(lo)), half_x, half_y
     logical :: x_is_odd, y_is_odd, jface, kface, doit
     real (kind = dp_t) :: dd
 
@@ -275,38 +254,6 @@ contains
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
 
     if (size(ss,dim=1) .eq. 7) then
-      !
-      ! PURE HACK just to match up the gsrb with Parallel/hgproj
-      !
-      istart = lo(1)+1
-      outer1: do k = lo(3),hi(3)
-         do j = lo(2),hi(2)
-            if (.not. bc_dirichlet(mm(lo(1),j,k),1,0)) then
-               istart = lo(1)
-               exit outer1
-            end if
-         end do
-      end do outer1
-
-      jstart = lo(2)+1
-      outer2: do k = lo(3),hi(3)
-         do i = lo(1),hi(1)
-            if (.not. bc_dirichlet(mm(i,lo(2),k),1,0)) then
-               jstart = lo(2)
-               exit outer2
-            end if
-         end do
-      end do outer2
-
-      kstart = lo(3)+1
-      outer3: do j = lo(2),hi(2)
-         do i = lo(1),hi(1)
-            if (.not. bc_dirichlet(mm(i,j,lo(3)),1,0)) then
-               kstart = lo(3)
-               exit outer3
-            end if
-         end do
-      end do outer3
 
       half_x = (hi(1)-lo(1))/2
       if ( 2*half_x .eq. ( hi(1)-lo(1) ) ) then
@@ -326,16 +273,16 @@ contains
          !
          ! USE THIS FOR JACOBI ITERATION
          !
-         allocate(uu_temp(istart:hi(1),jstart:hi(2),kstart:hi(3)))
+         allocate(uu_temp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
 
-         !$OMP PARALLEL DO PRIVATE(i,j,k,dd,jface,kface,doit) IF((hi(3)-kstart).ge.3)
-         do k = kstart,hi(3)
+         !$OMP PARALLEL DO PRIVATE(i,j,k,dd,jface,kface,doit) IF((hi(3)-lo(3)).ge.3)
+         do k = lo(3),hi(3)
             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
-            do j = jstart,hi(2)
+            do j = lo(2),hi(2)
                jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
-               do i = istart,hi(1)
+               do i = lo(1),hi(1)
 
                   doit = .true.
 
@@ -357,9 +304,9 @@ contains
          end do
          !$OMP END PARALLEL DO
 
-         do k = kstart,hi(3)
-            do j = jstart,hi(2)
-               do i = istart,hi(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               do i = lo(1),hi(1)
                   uu(i,j,k) = uu_temp(i,j,k)
                end do
             end do
@@ -371,16 +318,16 @@ contains
          !
          ! USE THIS FOR GAUSS-SEIDEL ITERATION
          !
-         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit) IF((hi(3)-kstart).ge.3)
-         do k = kstart,hi(3)
+         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit) IF((hi(3)-lo(3)).ge.3)
+         do k = lo(3),hi(3)
             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
-            do j = jstart,hi(2)
+            do j = lo(2),hi(2)
                jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
                ipar = MOD(j + k + red_black,2)
 
-               do i = istart+ipar,hi(1),2
+               do i = lo(1)+ipar,hi(1),2
 
                   doit = .true.
 
