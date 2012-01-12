@@ -253,7 +253,7 @@ subroutine mgt_get_sync_res_1d(lev, n, res, plo, phi, lo, hi)
   flev = lev+1
 
   rp => dataptr(mgts%sync_res(flev), fn)
-  res(plo(1):phi(1)) = rp(plo(1):phi(1), 1, 1, 1)
+  res(lo(1):hi(1)) = rp(lo(1):hi(1), 1, 1, 1)
 
 end subroutine mgt_get_sync_res_1d
 
@@ -268,7 +268,7 @@ subroutine mgt_get_sync_res_2d(lev, n, res, plo, phi, lo, hi)
   flev = lev+1
 
   rp => dataptr(mgts%sync_res(flev), fn)
-  res(plo(1):phi(1), plo(2):phi(2)) = rp(plo(1):phi(1), plo(2):phi(2), 1, 1)
+  res(lo(1):hi(1), lo(2):hi(2)) = rp(lo(1):hi(1), lo(2):hi(2), 1, 1)
 
 end subroutine mgt_get_sync_res_2d
 
@@ -283,8 +283,8 @@ subroutine mgt_get_sync_res_3d(lev, n, res, plo, phi, lo, hi)
   flev = lev+1
 
   rp => dataptr(mgts%sync_res(flev), fn)
-  res(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3)) =  &
-       rp(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3), 1)
+  res(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)) =  &
+       rp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1)
 
 end subroutine mgt_get_sync_res_3d
 
