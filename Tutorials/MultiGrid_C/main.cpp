@@ -140,8 +140,8 @@ int main(int argc, char* argv[])
   pp.get("max_grid_size",max_grid_size);
 
   // Define a single box covering the domain
-  IntVect dom_lo(0,0,0);
-  IntVect dom_hi(n_cell-1,n_cell-1,n_cell-1);
+  IntVect dom_lo(D_DECL(0,0,0));
+  IntVect dom_hi(D_DECL(n_cell-1,n_cell-1,n_cell-1));
   Box domain(dom_lo,dom_hi);
 
   // Initialize the boxarray "bs" from the single box "bx"
