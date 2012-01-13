@@ -76,6 +76,13 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -L/soft/apps/ibmcmp-jan2010/xlf/bg/11.1/lib -lxlf90 -lxlfmath -lxlopt -lxlsmp -lxl -lxlomp_ser -lpthread -lrt
     endif
 
+    ifeq ($(WHICHLINUX), LENS)
+      MPI_HOME:=/sw/analysis-x64/ompi/1.4.3/centos5.5_pgi10.9
+      BL_MPI_LIBS += -lmpi
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+    endif
+
     ifeq ($(WHICHLINUX), ORANGE)
       MPI_HOME:=/usr/lib64/openmpi/1.4-gcc
       BL_MPI_LIBS += -lmpi -lmpi_f77
@@ -345,6 +352,12 @@ ifeq ($(MACHINE), Linux)
       endif
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
+    else ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
+      mpihome=/usr/lib64/openmpi
+      CPPFLAGS += -DOMPI_SKIP_MPICXX
+      BL_MPI_LIBS += -lmpi_f77 -lmpi      
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += /usr/include/openmpi-x86_64
     endif
 
 # JFG 2006/05/04: CAR added the following ifeq block for the 64 bit
@@ -363,6 +376,14 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),naphta)
+      mpihome=/usr/local
+      LIBRARY_LOCATIONS += $(mpihome)/lib
+      INCLUDE_LOCATIONS += $(mpihome)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lmpich -lpthread -lmpl
+    endif
+
+    ifeq ($(HOST),rodan)
       mpihome=/usr/local
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
@@ -409,7 +430,9 @@ ifeq ($(MACHINE), Linux)
                       ifneq ($(WHICHLINUX), HEDORAH)
                       ifneq ($(HOST), manda)     # This is Ann Almgren's machine
                       ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
-                        BL_MPI_LIBS += -lmpich
+                        ifneq ($(WHICHLINUX), LENS)
+                          BL_MPI_LIBS += -lmpich
+                        endif  
                       endif  
                       endif  
                       endif  

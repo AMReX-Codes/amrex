@@ -264,6 +264,11 @@ contains
        !   Down the V-cycle
        do n = nlevs,1,-1
 
+          if ( do_diagnostics == 1 .and.  parallel_ioprocessor() ) then
+             print *,' '
+             print *,'AT AMR LEVEL ',n
+          end if
+
           mglev = mgt(n)%nlevels
 
           ! Enforce solvability if appropriate
@@ -289,7 +294,7 @@ contains
           if ( do_diagnostics == 1 ) then
              tres = norm_inf(res(n))
              if ( parallel_ioprocessor() ) then
-                print *,'DWN: RES BEFORE GSRB AT LEVEL ',n, tres
+                print *,'DWN: Norm before relax ',tres
              end if
           end if
 
@@ -326,7 +331,7 @@ contains
              if (do_diagnostics == 1 ) then
                 tres = norm_inf(res(n))
                 if ( parallel_ioprocessor()) then
-                   print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, tres
+                   print *,'DWN: Norm  after relax ',tres
                 end if
              end if
 
@@ -367,6 +372,9 @@ contains
 
        !   Back up the V-cycle
        do n = 2, nlevs
+
+          if ( do_diagnostics == 1 .and.  parallel_ioprocessor() ) &
+             print *,'AT AMR LEVEL ',n
 
           pd = layout_get_pd(mla%la(n))
           mglev = mgt(n)%nlevels

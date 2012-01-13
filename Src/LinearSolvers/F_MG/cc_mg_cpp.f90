@@ -444,6 +444,24 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm)
 
 end subroutine mgt_finalize_stencil_lev
 
+subroutine mgt_finalize_const_stencil_lev(lev, alpha_const, beta_const, xa, xb, pxa, pxb, dm)
+  use cpp_mg_module
+  use cc_stencil_fill_module
+  implicit none
+  integer   , intent(in) :: lev, dm
+  real(dp_t), intent(in) :: alpha_const, beta_const
+  real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
+    
+  integer        :: i, nlev, flev
+
+  flev = lev + 1
+  call mgt_verify_lev("MGT_FINALIZE_CONST_STENCIL_LEV", flev)
+
+  call stencil_fill_const_all_mglevels(mgts%mgt(flev), alpha_const, beta_const, &
+                                       xa, xb, pxa, pxb, mgts%stencil_order, mgts%bc)
+
+end subroutine mgt_finalize_const_stencil_lev
+
 subroutine mgt_mc_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm, nc_opt)
   use cpp_mg_module
   use cc_stencil_fill_module
@@ -1359,20 +1377,21 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
   integer        , intent(in   ), optional :: needgradphi
   real(kind=dp_t), intent(  out), optional :: final_resnorm
 
-  integer :: do_diagnostics
+  integer :: do_diag
 
   call mgt_verify("MGT_SOLVE")
   if ( .not. mgts%final ) then
      call bl_error("MGT_SOLVE: MGT not finalized")
   end if
 
-  do_diagnostics = 0
+  do_diag = 0; if ( mgts%verbose >= 4 ) do_diag = 1
+
   if (present(needgradphi)) then
     if (needgradphi .eq. 1) then
       call ml_cc(mgts%mla, mgts%mgt, &
            mgts%rh, mgts%uu, &
            mgts%mla%mask, mgts%rr, &
-           do_diagnostics, tol, &
+           do_diag, tol, &
            abs_eps_in = abs_tol, &
            need_grad_phi_in = .true.,&
            final_resnorm = final_resnorm)
@@ -1380,7 +1399,7 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
       call ml_cc(mgts%mla, mgts%mgt, &
            mgts%rh, mgts%uu, &
            mgts%mla%mask, mgts%rr, &
-           do_diagnostics, tol, &
+           do_diag, tol, &
            abs_eps_in = abs_tol, &
            final_resnorm = final_resnorm )
     end if
@@ -1388,7 +1407,7 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
     call ml_cc(mgts%mla, mgts%mgt, &
          mgts%rh, mgts%uu, &
          mgts%mla%mask, mgts%rr, &
-         do_diagnostics, tol,&
+         do_diag, tol,&
          abs_eps_in = abs_tol, &
          final_resnorm = final_resnorm )
   end if

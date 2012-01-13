@@ -315,10 +315,15 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
        NReaders = std::max(NReaders,128);
        NRedist = 4;
     }
-    else if (NProcs <= 16192)
+    else if (NProcs <= 8192)
     {
        NReaders = std::max(NReaders,384);
        NRedist = 32;
+    }
+    else if (NProcs <= 16384)
+    {
+       NReaders = std::max(NReaders,512);
+       NRedist = 48;
     }
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
@@ -853,8 +858,6 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
         PBox&            pbox    = pmap_it->second;
         const int        n       = pbox.size();
         const FArrayBox& dfab    = mf[grid];
-	const Box&       box     = mf.boxArray()[grid];
-        RealBox          gridloc = RealBox(box, geom.CellSize(), geom.ProbLo());
 
 #ifdef BL_USE_OMP
 #pragma omp parallel for

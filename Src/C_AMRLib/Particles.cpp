@@ -233,7 +233,12 @@ ParticleBase::Reset (ParticleBase& p,
 
         if (!ParticleBase::Where(p,amr))
         {
-            std::cout << "Invalidating out-of-domain particle: " << p << '\n';
+#ifdef BL_USE_OMP
+#pragma omp critical(reset_lock)
+#endif
+            {
+                std::cout << "Invalidating out-of-domain particle: " << p << '\n';
+            }
 
             BL_ASSERT(p.m_id > 0);
 
@@ -365,7 +370,7 @@ ParticleBase::GetGravity (const FArrayBox&    gfab,
     BL_ASSERT(amr  != 0);
     BL_ASSERT(grav != 0);
 
-    int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
+    int idx[BL_SPACEDIM] = { D_DECL(0,1,2) };
 
     ParticleBase::Interp(p,amr,gfab,idx,grav,BL_SPACEDIM);
 }
