@@ -69,6 +69,7 @@ class suiteObj:
         self.boxLibDir = ""
         self.sourceDir = ""
         self.testTopDir = ""
+        self.webTopDir = ""
         self.compareToolDir = ""
         self.helmeosDir = ""
 
@@ -171,6 +172,9 @@ def LoadParams(file):
         elif (opt == "testTopDir"):
             mysuite.testTopDir = checkTestDir(value)
 
+        elif (opt == "webTopDir"):
+            mysuite.webTopDir = value
+
         elif (opt == "compareToolDir"):
             mysuite.compareToolDir = checkTestDir(value)
 
@@ -205,6 +209,18 @@ def LoadParams(file):
         mysuite.compareToolDir == "" or mysuite.helmeosDir == ""):
         fail("ERROR: required suite-wide directory not specified\n" + \
                  "(sourceTree, boxLibDir, sourceDir, testTopDir, compareToolDir, helmeosDir)")
+
+
+    # if no webTopDir was specified, use the default.  In either case, make
+    # sure that the web directory is valid
+    if (mysuite.webTopDir == ""):
+        mysuite.webTopDir = "%s/%s-web/" % (mysuite.testTopDir, mysuite.suiteName)
+
+    if (not (os.path.isdir(mysuite.webTopDir)) ):
+        try: os.mkdir(mysuite.webTopDir)
+        except: fail("ERROR: unable to create the web directory: %s\n" % 
+                     (mysuite.webTopDir))
+
 
     # all other sections are tests
     print "\n"
@@ -892,7 +908,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # read in the test information
     #--------------------------------------------------------------------------
-    bold("loading " + testFile)
+    bold("loading" + testFile)
 
     suite, testList = LoadParams(testFile)
 
@@ -966,13 +982,8 @@ def testSuite(argv):
 
     # make the web directory -- this is where all the output and HTML will be
     # put, so it is easy to move the entire test website to a different disk
-    webTopDir = "%s/%s-web/" % (suite.testTopDir, suite.suiteName)
-    fullWebDir = "%s/%s-web/%s/"  % (suite.testTopDir, suite.suiteName, testDir)
+    fullWebDir = "%s/%s/"  % (suite.webTopDir, testDir)
         
-
-    if (not (os.path.isdir(webTopDir)) ):
-        os.mkdir(webTopDir)
-
     os.mkdir(fullWebDir)
 
     # copy the test file into the web output directory
@@ -1585,7 +1596,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     print "\n"
     bold("creating suite report...")
-    reportAllRuns(suite, webTopDir)
+    reportAllRuns(suite, suite.webTopDir)
 
 
 
@@ -1595,12 +1606,48 @@ def testSuite(argv):
 
 cssContents = \
 r"""
-h3.passed {text-decoration: none; display: inline; 
+body {font-family: "Arial", san-serif;}
+
+h1 {font-family: "Arial", sans-serif;}
+
+h3 {display: inline;}
+
+h3.passed {text-decoration: none; display: inline;
            color: black; background-color: lime; padding: 2px}
+
 h3.failed {text-decoration: none; display: inline; 
            color: black; background-color: red; padding: 2px}
+
 h3.benchmade {text-decoration: none; display: inline; 
               color: black; background-color: orange; padding: 2px}
+
+span.nobreak {white-space: nowrap;}
+
+a.main:link {color: yellow; text-decoration: none;}
+a.main:visited {color: yellow; text-decoration: none;}
+a.main:hover {color: #00ffff; text-decoration: underline;}
+
+th {background-color: black;
+    padding: 4px;
+    color: yellow;
+    border-width: 0px;}
+
+td {border-width: 0px;
+    padding: 5px;
+    background-color: white;
+    vertical-align: middle;}
+
+td.passed {background-color: lime; opacity: 0.8;}
+td.failed {background-color: red; color: yellow; opacity: 0.8;}
+td.benchmade {background-color: orange; opacity: 0.8;}
+td.date {background-color: #666666; color: white; opacity: 0.8; font-weight: bold;}
+
+.maintable tr:hover {background-color: blue;}
+
+
+table {border-collapse: separate;
+       border-spacing: 2px;}
+
 """
 
 HTMLHeader = \
@@ -1731,9 +1778,8 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     # generate the HTML page for this test
     #--------------------------------------------------------------------------
 
-    # check to see if the CSS file is present, if not, write it
-    if (not os.path.isfile("tests.css")):
-        create_css()
+    # write the css file
+    create_css()
 
     
     htmlFile = "%s.html" % (test.name)
@@ -1791,7 +1837,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     else:
         hf.write("<P><H3 CLASS=\"failed\">Compilation Failed</H3></P>\n")
 
-    hf.write("<P>compliation command: %s\n" % (compileCommand) )
+    hf.write("<P>compliation command:\n %s\n" % (compileCommand) )
     hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
 
     hf.write("<P>&nbsp;\n")
@@ -1805,7 +1851,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         else:
             hf.write("<P><H3 CLASS=\"failed\">Comparison Failed</H3></P>\n")
 
-        hf.write("<P>Execution command: %s\n" % (runCommand) )
+        hf.write("<P>Execution command:\n %s\n" % (runCommand) )
         hf.write("<P><A HREF=\"%s.run.out\">execution output</A>\n" % (test.name) )
 
 
@@ -1973,7 +2019,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime,
 
     hf.write("<p>&nbsp;\n")    
 
-    hf.write("<P><TABLE BORDER=0 CELLPADDING=3>\n")
+    hf.write("<P><TABLE>\n")
     
     # loop over the tests and add a line for each
     for test in testList:
@@ -2153,12 +2199,12 @@ def reportAllRuns(suite, webTopDir):
     header = MainHeader.replace("@TITLE@", title)
     hf.write(header)
 
-    hf.write("<P><TABLE BORDER=0 CELLPADDING=5>\n")
+    hf.write("<P><TABLE class='maintable'>\n")
 
     # write out the header
-    hf.write("<TR><TD ALIGN=CENTER>date</TD><TD>&nbsp;</TD>")
+    hf.write("<TR><TH ALIGN=CENTER>date</TH>")
     for test in allTests:
-        hf.write("<TD ALIGN=CENTER>%s</TD>" % (test))
+        hf.write("<TH ALIGN=CENTER>%s</TH>" % (test))
     
     hf.write("</TR>\n")
 
@@ -2166,7 +2212,8 @@ def reportAllRuns(suite, webTopDir):
     # loop over all the test runs 
     for dir in validDirs:
 
-        hf.write("<TR><TD><A HREF=\"%s/index.html\">%s</A></TD><TD>&nbsp;</TD>" %
+        # write out the directory (date)
+        hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
                  (dir, dir) )
         
         for test in allTests:
@@ -2200,16 +2247,16 @@ def reportAllRuns(suite, webTopDir):
                 
             # write out this test's status
             if (status == 1):
-                hf.write("<TD ALIGN=CENTER><H3 class=\"passed\">PASSED</H3></TD>")
+                hf.write("<TD ALIGN=CENTER class=\"passed\"><H3>PASSED</H3></TD>\n")
             elif (status == -1):
-                hf.write("<TD ALIGN=CENTER><H3 class=\"failed\">FAILED</H3></TD>")
+                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3>FAILED</H3></TD>\n")
             elif (status == 10):
-                hf.write("<TD ALIGN=CENTER><H3 class=\"benchmade\">new benchmark</H3></TD>")
+                hf.write("<TD ALIGN=CENTER class=\"benchmade\"><H3>UPDATED</H3></TD>\n")
             else:
-                hf.write("<TD>&nbsp;</TD>")
+                hf.write("<TD>&nbsp;</TD>\n")
 
 
-        hf.write("</TR>\n")
+        hf.write("</TR>\n\n")
         
     hf.write("</TABLE>\n")    
 

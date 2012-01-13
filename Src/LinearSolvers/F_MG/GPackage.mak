@@ -6,6 +6,7 @@ f90sources += itsol.f90
 ifdef USE_MG_CPP
 f90sources += cc_mg_cpp.f90
 f90sources += nodal_mg_cpp.f90
+f90sources += nodal_sync_resid.f90
 endif
 f90sources += cc_applyop.f90
 f90sources += cc_smoothers.f90

@@ -8,7 +8,7 @@ module ml_nd_module
 
   implicit none
 
-  private :: grid_res, grid_laplace_1d, grid_laplace_2d, grid_laplace_3d
+!  private :: grid_res, grid_laplace_1d, grid_laplace_2d, grid_laplace_3d
 
 contains
 
@@ -80,6 +80,7 @@ contains
     allocate(brs_flx(2:nlevs))
 
     allocate(zero_rh(nlevs))
+    ! wqz This can be (2:nlevs)
 
     do n = 2,nlevs-1
        la = mla%la(n)

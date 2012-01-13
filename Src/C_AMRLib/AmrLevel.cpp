@@ -19,78 +19,6 @@ void
 AmrLevel::postCoarseTimeStep (Real time)
 {}
 
-int
-AmrLevel::Level () const
-{
-    return level;
-}
-
-const BoxArray&
-AmrLevel::boxArray () const
-{
-    return grids;
-}
-
-int
-AmrLevel::numGrids () const
-{
-    return grids.size();
-}
-
-const Box&
-AmrLevel::Domain () const
-{
-    return geom.Domain();
-}
-
-int
-AmrLevel::nStep () const
-{
-    return parent->levelSteps(level);
-}
-
-const Geometry&
-AmrLevel::Geom () const
-{
-    return geom;
-}
-
-StateData&
-AmrLevel::get_state_data (int state_indx)
-{
-    return state[state_indx];
-}
-
-MultiFab&
-AmrLevel::get_old_data (int state_indx)
-{
-    return state[state_indx].oldData();
-}
-
-const MultiFab&
-AmrLevel::get_old_data (int state_indx) const
-{
-    return state[state_indx].oldData();
-}
-
-MultiFab&
-AmrLevel::get_new_data (int state_indx)
-{
-    return state[state_indx].newData();
-}
-
-const MultiFab&
-AmrLevel::get_new_data (int state_indx) const
-{
-    return state[state_indx].newData();
-}
-
-const DescriptorList&
-AmrLevel::get_desc_lst ()
-{
-    return desc_lst;
-}
-
 #ifdef USE_SLABSTAT
 SlabStatList&
 AmrLevel::get_slabstat_lst ()
@@ -376,27 +304,6 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
     state[state_indx].FillBoundary(dest,time,geom.CellSize(),
                                    geom.ProbDomain(),dest_comp,src_comp,num_comp);
 }
-
-#if 0
-void
-AmrLevel::setPhysBoundaryValues (int  state_indx,
-                                 int  comp,
-                                 int  ncomp,
-                                 const AmrLevel::TimeLevel& whichTime)
-{
-    TimeLevel old_time = which_time(state_indx,state[state_indx].prevTime());
-    TimeLevel new_time = which_time(state_indx,state[state_indx].curTime());
-    BL_ASSERT(whichTime==new_time  || whichTime==old_time);
-
-    int do_new = (whichTime == new_time  ?  0 : 1 );
-
-    state[state_indx].FillBoundary(geom.CellSize(),
-                                   geom.ProbDomain(),
-                                   comp,
-                                   ncomp,
-                                   do_new);
-}
-#endif
 
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel& amrlevel,
                                                   MultiFab& leveldata)

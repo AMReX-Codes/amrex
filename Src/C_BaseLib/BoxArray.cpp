@@ -662,29 +662,35 @@ BoxLib::GetBndryCells (const BoxArray& ba,
 std::vector< std::pair<int,Box> >
 BoxArray::intersections (const Box& bx) const
 {
-    if (!m_ref->hash.isAllocated() && size() > 0)
+
+#ifdef BL_USE_OMP
+#pragma omp critical(intersections_lock)
+#endif
     {
-        BL_ASSERT(bx.sameType(get(0)));
-        //
-        // Calculate the bounding box & maximum extent of the boxes.
-        //
-        IntVect maxext(D_DECL(0,0,0));
-
-        Box boundingbox = get(0);
-
-        for (int i = 0, N = size(); i < N; i++)
+        if (!m_ref->hash.isAllocated() && size() > 0)
         {
-            boundingbox.minBox(get(i));
-            maxext = BoxLib::max(maxext, get(i).size());
-        }
-        m_ref->crsn = maxext;
-        boundingbox.coarsen(maxext);
+            BL_ASSERT(bx.sameType(get(0)));
+            //
+            // Calculate the bounding box & maximum extent of the boxes.
+            //
+            IntVect maxext(D_DECL(0,0,0));
 
-        m_ref->hash.resize(boundingbox, 1);
+            Box boundingbox = get(0);
 
-        for (int i = 0, N = size(); i < N; i++)
-        {
-            m_ref->hash(BoxLib::coarsen(get(i).smallEnd(),maxext)).push_back(i);
+            for (int i = 0, N = size(); i < N; i++)
+            {
+                boundingbox.minBox(get(i));
+                maxext = BoxLib::max(maxext, get(i).size());
+            }
+            m_ref->crsn = maxext;
+            boundingbox.coarsen(maxext);
+
+            m_ref->hash.resize(boundingbox, 1);
+
+            for (int i = 0, N = size(); i < N; i++)
+            {
+                m_ref->hash(BoxLib::coarsen(get(i).smallEnd(),maxext)).push_back(i);
+            }
         }
     }
 

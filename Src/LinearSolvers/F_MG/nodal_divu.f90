@@ -64,8 +64,6 @@ contains
       do n = nlevs,2,-1
 
          la_fine = get_layout(unew(n))
-         mglev_fine = mgt(n)%nlevels
-
          la_crse = get_layout(unew(n-1))
          pdc = get_pd(la_crse)
 
