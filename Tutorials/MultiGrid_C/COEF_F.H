@@ -12,7 +12,6 @@
 
 #else
 
-#if (BL_SPACEDIM == 3)
 #if    defined(BL_FORT_USE_UPPERCASE)
 #define FORT_COMP_ASOL          COMP_ASOL
 #define FORT_SET_ALPHA          SET_ALPHA
@@ -28,7 +27,6 @@
 #define FORT_SET_ALPHA          set_alpha_
 #define FORT_SET_CC_COEF        set_cc_coef_
 #define FORT_COEF_TO_EDGES      coef_to_edges_
-#endif
 #endif
 
 #include <ArrayLim.H>
