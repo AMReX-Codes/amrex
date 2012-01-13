@@ -308,8 +308,10 @@ ifeq ($(COMP),g++)
     endif
 endif
 ifeq ($(FCOMP),g77)
-    FC := g77 -fno-second-underscore
-    fC := g77 -fno-second-underscore
+    FC := g77
+    fC := $(FC)
+    FFLAGS = -fno-second-underscore
+    fFLAGS = -fno-second-underscore
     FOPTF += -g -O
     fOPTF += -g -O
     FDEBF += -g -O0
@@ -322,8 +324,10 @@ ifeq ($(FCOMP),g77)
     fDEBF +=   -ffortran-bounds-check
 endif
 ifeq ($(FCOMP),gfortran)
-    FC = gfortran -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
-    fC = gfortran -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+    FC = gfortran
+    fC = $(FC)
+    FFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+    fFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -ffixed-line-length-132 -g -O3
@@ -341,8 +345,10 @@ ifeq ($(FCOMP),gfortran)
    endif
 endif
 ifeq ($(FCOMP),g95)
-    FC = g95 -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
-    fC = g95 -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
+    FC = g95
+    fC = $(FC)
+    FFLAGS = -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
+    fFLAGS = -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell g95 -print-file-name=libf95.a)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra
