@@ -324,11 +324,13 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),hedorah)
-      mpihome=/usr/lib/openmpi
+      #mpihome=/usr/lib/openmpi
+      mpihome=/usr/local
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread -lmpi -lmpi_cxx
+      #BL_MPI_LIBS += -lpthread -lmpi -lmpi_cxx
+      BL_MPI_LIBS += -lmpi -lmpl -lpthread
     endif
 
     ifeq ($(findstring donev, $(HOSTNAME)), donev)
