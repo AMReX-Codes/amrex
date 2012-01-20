@@ -17,7 +17,8 @@ public:
              int *bc, 
 	     const std::vector<BoxArray>& grids, 
 	     const std::vector<DistributionMapping>& dmap,
-	     bool nodal);
+	     bool nodal,
+	     int _stencil_type = -1);
 
   MGT_Solver(const std::vector<Geometry>& geom,
              int *bc, 
