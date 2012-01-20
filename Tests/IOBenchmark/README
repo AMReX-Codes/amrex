@@ -12,6 +12,7 @@ iotest3d.Linux.g++.gfortran.MPI.ex
 
 
 the range [1,nprocs] is enforced for nfiles.
+ncomps is the number of FAB components.
 ntimes is the number of times to run the test.
 
 example run:
