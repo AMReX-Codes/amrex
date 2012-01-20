@@ -366,8 +366,8 @@ endif
 
 ifeq ($(findstring bender, $(UNAMEN)), bender)
   MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90
-  CXX = mpicxx
+  F90 = mpif90 -f90=gfortran 
+  CXX = mpicxx -cxx=gcc
 endif
 
 ifeq ($(findstring xrb, $(UNAMEN)), xrb)
