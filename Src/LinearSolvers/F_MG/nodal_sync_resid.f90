@@ -6,7 +6,6 @@ module nodal_sync_resid_module
 contains
 
   subroutine compute_divuo(divuo, mask, vold, dx)
-    implicit none
     type(multifab) , intent(inout) :: divuo
     type(multifab) , intent(in   ) :: mask
     type(multifab) , intent(in   ) :: vold
@@ -108,7 +107,6 @@ contains
   end subroutine divuo_3d
 
   subroutine comp_sync_res(sync_res, divuo, mask, sign_res)
-    implicit none
     type(multifab) , intent(inout) :: sync_res
     type(multifab) , intent(in   ) :: divuo
     type(multifab) , intent(in   ) :: mask
@@ -139,7 +137,6 @@ contains
   end subroutine comp_sync_res
 
   subroutine comp_sync_res_2d(res, dvo, msk, sgnr)
-    implicit none
     real(kind=dp_t), intent(inout) :: res(-1:,-1:)
     real(kind=dp_t), intent(in   ) :: dvo(-1:,-1:)
     real(kind=dp_t), intent(in   ) :: msk(-1:,-1:)
@@ -167,7 +164,6 @@ contains
   end subroutine comp_sync_res_2d
 
   subroutine comp_sync_res_3d(res, dvo, msk, sgnr)
-    implicit none
     real(kind=dp_t), intent(inout) :: res(-1:,-1:,-1:)
     real(kind=dp_t), intent(in   ) :: dvo(-1:,-1:,-1:)
     real(kind=dp_t), intent(in   ) :: msk(-1:,-1:,-1:)
@@ -196,6 +192,62 @@ contains
     end do
 
   end subroutine comp_sync_res_3d
+
+  subroutine divuo_add_rhcc(divuo, rhcc, mask)
+    type(multifab) , intent(inout) :: divuo
+    type(multifab) , intent(inout) :: rhcc
+    type(multifab) , intent(in   ) :: mask
+    
+    integer :: i, dm
+    real(kind=dp_t), pointer :: msk(:,:,:,:) 
+    real(kind=dp_t), pointer :: dvo(:,:,:,:) 
+    real(kind=dp_t), pointer :: rc(:,:,:,:) 
+    
+    dm = get_dim(rhcc)
+
+    do i = 1, nboxes(divuo)
+       if (remote(divuo, i)) cycle
+       dvo => dataptr(divuo, i)
+       msk => dataptr(mask , i)
+       rc  => dataptr(rhcc , i)
+       select case (dm)
+       case (1)
+          call bl_error('divuo_rhcc_1d: 1d not done')
+       case (2)
+          call divuo_rhcc_2d(dvo(:,:,1,1), msk(:,:,1,1), rc(:,:,1,1))
+       case (3)
+          call bl_error('divuo_rhcc_3d: 1d not done')
+       end select
+    end do
+
+  end subroutine divuo_add_rhcc
+
+  subroutine divuo_rhcc_2d(dvo, msk, rc)
+    real(kind=dp_t), intent(inout) :: dvo(-1:,-1:)
+    real(kind=dp_t), intent(in   ) :: msk(-1:,-1:)
+    real(kind=dp_t), intent(inout) ::  rc(-1:,-1:)
+    
+    integer :: i, j, nx, ny
+
+    nx = size(msk,dim=1) - 2
+    ny = size(msk,dim=2) - 2
+
+    rc(-1,:) = ZERO
+    rc(nx,:) = ZERO
+    rc(:,-1) = ZERO
+    rc(:,ny) = ZERO
+
+    do j = 0, ny
+       do i = 0, nx
+          dvo(i,j) = dvo(i,j) +  FOURTH *   &
+               ( rc(i-1,j-1) * msk(i-1,j-1)  &
+               + rc(i  ,j-1) * msk(i  ,j-1)  &
+               + rc(i-1,j  ) * msk(i-1,j  )  &
+               + rc(i  ,j  ) * msk(i  ,j  ) )
+       end do
+    end do
+
+  end subroutine divuo_rhcc_2d
 
 end module nodal_sync_resid_module
 
@@ -386,6 +438,10 @@ subroutine mgt_compute_sync_resid_crse()
 
   call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev))
 
+  if (associated(mgts%rhcc)) then  ! only single level solve could get here
+     call divuo_add_rhcc(divuo, mgts%rhcc(1), mgts%sync_msk(1))
+  end if
+
   call multifab_mult_mult(mgts%amr_coeffs(1), mgts%sync_msk(1))
 
   call stencil_fill_nodal(mgts%mgt(1)%ss(mglev), mgts%amr_coeffs(1), &
@@ -426,6 +482,10 @@ subroutine mgt_compute_sync_resid_fine()
   call setval(rh0,ZERO,all=.true.)
 
   call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev))
+
+  if (associated(mgts%rhcc)) then  ! only single level solve could get here
+     call divuo_add_rhcc(divuo, mgts%rhcc(1), mgts%sync_msk(1))
+  end if
 
   if (mgts%stencil_type .eq. ST_CROSS) then
      call multifab_build(ss1, mgts%mla%la(1), 2*dm+1, 0, nodal, stencil=.true.)

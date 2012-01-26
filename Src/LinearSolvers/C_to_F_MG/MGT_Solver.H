@@ -18,7 +18,8 @@ public:
 	     const std::vector<BoxArray>& grids, 
 	     const std::vector<DistributionMapping>& dmap,
 	     bool nodal,
-	     int _stencil_type = -1);
+	     int _stencil_type = -1,
+	     bool _have_rhcc = false);
 
   MGT_Solver(const std::vector<Geometry>& geom,
              int *bc, 
@@ -26,7 +27,8 @@ public:
 	     const std::vector<DistributionMapping>& dmap,
 	     bool nodal,
 	     int nc, 
-	     int ncomp);
+	     int ncomp,
+	     bool _have_rhcc = false);
 
   static void initialize(bool nodal);
   static void Finalize();
@@ -116,7 +118,8 @@ public:
 		  const Real* dx);
 
   void set_nodal_coefficients(const MultiFab* aa[]);
-  void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rh[], const Real& tol, const Real& abs_tol);
+  void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rhcc[], MultiFab* rhcrse[], 
+		     const Real& tol, const Real& abs_tol);
 
   void fill_sync_resid(MultiFab* sync_resid_crse, const MultiFab& msk, const MultiFab& vold,
 		       int isCoarse);
@@ -142,6 +145,7 @@ private:
   const std::vector<DistributionMapping> m_dmap;
   const std::vector<BoxArray> m_grids;
   const bool m_nodal;
+  bool have_rhcc;
 
   static bool initialized;
 
