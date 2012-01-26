@@ -353,9 +353,10 @@ ifeq ($(findstring nan, $(UNAMEN)), nan)
 endif
 
 ifeq ($(findstring inf, $(UNAMEN)), inf)
-  MPIHOME=/usr/local/mpich2/
+  MPIHOME=/usr/lib64/mpich2
   F90 = mpif90
   CXX = mpicxx
+  mpi_lib_dir = $(MPIHOME)/lib
 endif
 
 ifeq ($(findstring sn, $(UNAMEN)), sn)
@@ -366,8 +367,8 @@ endif
 
 ifeq ($(findstring bender, $(UNAMEN)), bender)
   MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90
-  CXX = mpicxx
+  F90 = mpif90 -f90=gfortran 
+  CXX = mpicxx -cxx=gcc
 endif
 
 ifeq ($(findstring xrb, $(UNAMEN)), xrb)

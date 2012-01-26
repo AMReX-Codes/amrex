@@ -133,13 +133,18 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
                        int* bc, 
 		       const std::vector<BoxArray>& grids,
 		       const std::vector<DistributionMapping>& dmap,
-		       bool nodal)
+		       bool nodal,
+		       int _stencil_type)
   :
   m_dmap(dmap), m_grids(grids), m_nodal(nodal)
 {
 
    if (!initialized)
         initialize(nodal);
+
+   if (_stencil_type >= 0) {
+     stencil_type = _stencil_type;
+   }
 
   BL_ASSERT( m_grids.size() == dmap.size() );
   m_nlevel = grids.size();

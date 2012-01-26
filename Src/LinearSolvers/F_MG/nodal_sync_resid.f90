@@ -30,7 +30,7 @@ contains
        case (2)
           call divuo_2d(dvo(:,:,1,1), msk(:,:,1,1), vo(:,:,1,:), dx)
        case (3)
-          call bl_error('divuo: 3d not done')
+          call divuo_3d(dvo(:,:,:,1), msk(:,:,:,1), vo(:,:,:,:), dx)
        end select
     end do
 
@@ -60,6 +60,53 @@ contains
 
   end subroutine divuo_2d
 
+  subroutine divuo_3d(dvo, msk, vel, dx)
+    real(kind=dp_t), intent(inout) :: dvo(-1:,-1:,-1:)
+    real(kind=dp_t), intent(in   ) :: msk(-1:,-1:,-1:)
+    real(kind=dp_t), intent(in   ) :: vel(-1:,-1:,-1:,:)
+    real(kind=dp_t), intent(in   ) :: dx(:)
+    
+    integer :: i, j, k, nx, ny, nz
+    real(kind=dp_t) :: divv
+
+    nx = size(msk,dim=1) - 2
+    ny = size(msk,dim=2) - 2
+    nz = size(msk,dim=3) - 2
+
+    do k = 0, nz
+    do j = 0, ny
+       do i = 0, nx
+          divv = (vel(i  ,j  ,k  ,1) * msk(i  ,j  ,k  ) &
+               +  vel(i  ,j-1,k  ,1) * msk(i  ,j-1,k  ) &
+               +  vel(i  ,j  ,k-1,1) * msk(i  ,j  ,k-1) &
+               +  vel(i  ,j-1,k-1,1) * msk(i  ,j-1,k-1) &
+               -  vel(i-1,j  ,k  ,1) * msk(i-1,j  ,k  ) &
+               -  vel(i-1,j-1,k  ,1) * msk(i-1,j-1,k  ) &
+               -  vel(i-1,j  ,k-1,1) * msk(i-1,j  ,k-1) &
+               -  vel(i-1,j-1,k-1,1) * msk(i-1,j-1,k-1)) / dx(1) &
+               + (vel(i  ,j  ,k  ,2) * msk(i  ,j  ,k  ) &
+               +  vel(i-1,j  ,k  ,2) * msk(i-1,j  ,k  ) &
+               +  vel(i  ,j  ,k-1,2) * msk(i  ,j  ,k-1) &
+               +  vel(i-1,j  ,k-1,2) * msk(i-1,j  ,k-1) &
+               -  vel(i  ,j-1,k  ,2) * msk(i  ,j-1,k  ) &
+               -  vel(i-1,j-1,k  ,2) * msk(i-1,j-1,k  ) &
+               -  vel(i  ,j-1,k-1,2) * msk(i  ,j-1,k-1) & 
+               -  vel(i-1,j-1,k-1,2) * msk(i-1,j-1,k-1)) / dx(2) &
+               + (vel(i  ,j  ,k  ,3) * msk(i  ,j  ,k  ) &
+               +  vel(i-1,j  ,k  ,3) * msk(i-1,j  ,k  ) &
+               +  vel(i  ,j-1,k  ,3) * msk(i  ,j-1,k  ) & 
+               +  vel(i-1,j-1,k  ,3) * msk(i-1,j-1,k  ) &
+               -  vel(i  ,j  ,k-1,3) * msk(i  ,j  ,k-1) & 
+               -  vel(i-1,j  ,k-1,3) * msk(i-1,j  ,k-1) &
+               -  vel(i  ,j-1,k-1,3) * msk(i  ,j-1,k-1) &
+               -  vel(i-1,j-1,k-1,3) * msk(i-1,j-1,k-1)) / dx(3)
+          dvo(i,j,k) = FOURTH * divv
+       end do
+    end do
+    end do
+
+  end subroutine divuo_3d
+
   subroutine comp_sync_res(sync_res, divuo, mask, sign_res)
     implicit none
     type(multifab) , intent(inout) :: sync_res
@@ -85,7 +132,7 @@ contains
        case (2)
           call comp_sync_res_2d(res(:,:,1,1), dvo(:,:,1,1), msk(:,:,1,1), sign_res)
        case (3)
-          call bl_error('comp_sync_res: 3d not done')
+          call comp_sync_res_3d(res(:,:,:,1), dvo(:,:,:,1), msk(:,:,:,1), sign_res)
        end select
     end do
 
@@ -118,6 +165,37 @@ contains
     end do
 
   end subroutine comp_sync_res_2d
+
+  subroutine comp_sync_res_3d(res, dvo, msk, sgnr)
+    implicit none
+    real(kind=dp_t), intent(inout) :: res(-1:,-1:,-1:)
+    real(kind=dp_t), intent(in   ) :: dvo(-1:,-1:,-1:)
+    real(kind=dp_t), intent(in   ) :: msk(-1:,-1:,-1:)
+    real(kind=dp_t), intent(in   ) :: sgnr
+    
+    integer :: i, j, k, nx, ny, nz
+
+    nx = size(msk,dim=1) - 2
+    ny = size(msk,dim=2) - 2
+    nz = size(msk,dim=3) - 2
+
+    do k = 0, nz
+    do j = 0, ny
+       do i = 0, nx
+          if (all(msk(i-1:i,j-1:j,k-1:k) .eq. ONE)) then
+             res(i,j,k) = ZERO
+          else if (all(msk(i-1:i,j-1:j,k-1:k) .eq. ZERO)) then
+             res(i,j,k) = ZERO
+          else if (any(msk(i-1:i,j-1:j,k-1:k) .lt. ZERO)) then
+             res(i,j,k) = ZERO
+          else
+             res(i,j,k) = sgnr*res(i,j,k) + dvo(i,j,k)
+          end if
+       end do
+    end do
+    end do
+
+  end subroutine comp_sync_res_3d
 
 end module nodal_sync_resid_module
 

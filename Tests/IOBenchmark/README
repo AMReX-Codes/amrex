@@ -12,9 +12,13 @@ iotest3d.Linux.g++.gfortran.MPI.ex
 
 
 the range [1,nprocs] is enforced for nfiles.
+ncomps is the number of FAB components.
+nboxes is the number of boxes in the multifab.
+nsleep will sleep for nsleep seconds.
 ntimes is the number of times to run the test.
 
 example run:
 
 mpiexec -n 4 iotest3d.Linux.g++.gfortran.MPI.ex nfiles=4 maxgrid=64 ncomps=16 nboxes=32 ntimes=4
+
 
