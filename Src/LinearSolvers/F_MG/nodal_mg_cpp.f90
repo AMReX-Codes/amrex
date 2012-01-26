@@ -272,6 +272,9 @@ subroutine mgt_nodal_finalize(dx,bc)
     call mg_tower_print(mgts%mgt(nlev))
   end if
 
+  deallocate(nodal)
+  deallocate(mgts%bc)
+
 end subroutine mgt_nodal_finalize
 
 subroutine mgt_init_nodal_coeffs_lev(lev)
@@ -319,6 +322,7 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
                                  mgts%mgt(flev)%mm(nlev), mgts%mgt(flev)%face_type)
   end if
 
+  call destroy(mgts%cell_coeffs(nlev))
   deallocate(mgts%cell_coeffs)
 
 end subroutine mgt_finalize_nodal_stencil_lev
@@ -333,13 +337,15 @@ subroutine mgt_divu()
 
   call divu(mgts%nlevel,mgts%mgt,mgts%vel,mgts%rh,mgts%rr,mgts%nodal)
 
-  if (parallel_IOProcessor() .and. mgts%verbose > 0) then
+  if (mgts%verbose > 0) then
      rhmax = norm_inf(mgts%rh(mgts%nlevel))
      do n = mgts%nlevel-1, 1, -1
        r = norm_inf(mgts%rh(n), mgts%fine_mask(n))
        rhmax = max(r, rhmax) 
      end do 
-     print *,'F90: Source norm is ',rhmax
+     if (parallel_IOProcessor()) then
+        print *,'F90: Source norm is ',rhmax
+     endif
   end if
 
 end subroutine mgt_divu
@@ -701,6 +707,7 @@ subroutine mgt_nodal_dealloc()
   do i = 1,mgts%nlevel
      call destroy(mgts%rh(i))
      call destroy(mgts%uu(i))
+     call destroy(mgts%vel(i))
      call destroy(mgts%amr_coeffs(i))
   end do
   do i = 1,mgts%nlevel-1
@@ -714,6 +721,16 @@ subroutine mgt_nodal_dealloc()
   call destroy(mgts%mla)
   mgts%dim = 0
   mgts%final = .false.
+
+  deallocate(mgts%rr)
+  deallocate(mgts%rh)
+  deallocate(mgts%vel)
+  deallocate(mgts%pd)
+  deallocate(mgts%uu)
+  deallocate(mgts%mgt)
+  deallocate(mgts%amr_coeffs)
+  deallocate(mgts%one_sided_ss)
+  deallocate(mgts%fine_mask)
 
 end subroutine mgt_nodal_dealloc
 

@@ -79,8 +79,7 @@ contains
     allocate(temp_res(nlevs))
     allocate(brs_flx(2:nlevs))
 
-    allocate(zero_rh(nlevs))
-    ! wqz This can be (2:nlevs)
+    allocate(zero_rh(2:nlevs))
 
     do n = 2,nlevs-1
        la = mla%la(n)
@@ -100,10 +99,10 @@ contains
        call setval(     res(n), ZERO,all=.true.)
        call setval(temp_res(n), ZERO,all=.true.)
 
+       if ( n == 1 ) exit
+
        call multifab_build(zero_rh(n), la, 1, nghost(rh(n)), nodal)
        call setval(zero_rh(n), ZERO,all=.true.)
-
-       if ( n == 1 ) exit
 
        ! Build the (coarse resolution) flux registers to be used in computing
        !  the residual at a non-finest AMR level.
@@ -440,8 +439,8 @@ contains
        call multifab_destroy(      uu(n))
        call multifab_destroy(     res(n))
        call multifab_destroy(temp_res(n))
-       call multifab_destroy( zero_rh(n))
        if ( n == 1 ) exit
+       call multifab_destroy( zero_rh(n))
        call bndry_reg_destroy(brs_flx(n))
     end do
 
