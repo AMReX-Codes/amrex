@@ -627,14 +627,12 @@ contains
                    crse_flux =        (uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
                 else 
                    crse_flux = FOURTH*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
-! wqz                   crse_flux = HALF*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
                 end if
              else if (j == hiflx(2)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
                    crse_flux =        (uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
                 else 
                    crse_flux = FOURTH*(uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
-! wqz                   crse_flux = HALF*(uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
                 end if
              else
                 crse_flux = (HALF*(uc(i,j,1) + uc(i,j-1,1))/dx(1) &
@@ -658,14 +656,12 @@ contains
                    crse_flux =        (-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
                 else
                    crse_flux = FOURTH*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
-! wqz                   crse_flux = HALF*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
                 end if 
              else if (j == hiflx(2)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
                    crse_flux =        (-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
                 else 
                    crse_flux = FOURTH*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2)) 
-! wqz                   crse_flux = HALF*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2)) 
                 end if
              else
                 crse_flux = (HALF*(-uc(i-1,j,1)-uc(i-1,j-1,1))/dx(1)  &
@@ -689,14 +685,12 @@ contains
                    crse_flux =        (uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
                 else 
                    crse_flux = FOURTH*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
-! wqz                   crse_flux = HALF*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
                 end if
              else if (i == hiflx(1)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
                    crse_flux =        (-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
                 else 
                    crse_flux = FOURTH*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
-! wqz                   crse_flux = HALF*(-uc(i-1,j,1)/dx(1) + uc(i-1,j,2)/dx(2))
                 end if
              else
                 crse_flux = (HALF*(uc(i,j,1)-uc(i-1,j,1))/dx(1)  &
@@ -720,7 +714,6 @@ contains
                    crse_flux =        (uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
                 else
                    crse_flux = FOURTH*(uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
-! wqz                   crse_flux = HALF*(uc(i,j-1,1)/dx(1) - uc(i,j-1,2)/dx(2))
                 end if
 
              else if (i == hiflx(1)) then
@@ -728,7 +721,6 @@ contains
                    crse_flux =        (-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
                 else 
                    crse_flux = FOURTH*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
-! wqz                   crse_flux = HALF*(-uc(i-1,j-1,1)/dx(1) - uc(i-1,j-1,2)/dx(2))
                 end if
              else
                 crse_flux = (HALF*( uc(i,j-1,1)-uc(i-1,j-1,1))/dx(1) &
