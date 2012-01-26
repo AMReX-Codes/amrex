@@ -626,6 +626,10 @@ contains
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
                    crse_flux =        (uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
                 else 
+                   ! We have FOURTH rather than HALF here because
+                   ! point (i,j) will be touched again when side == -2.
+                   ! So in the end, the total crse_flux subtracted from rh(i,j)
+                   ! will be HALF*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
                    crse_flux = FOURTH*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
                 end if
              else if (j == hiflx(2)) then
