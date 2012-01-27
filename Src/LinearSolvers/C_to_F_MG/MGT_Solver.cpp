@@ -320,6 +320,12 @@ MGT_Solver::Finalize()
 }
 
 void
+MGT_Solver::FlushFortranOutput()
+{
+    mgt_flush_output();
+}
+
+void
 MGT_Solver::initialize(bool nodal)
 {
     BoxLib::ExecOnFinalize(MGT_Solver::Finalize);
