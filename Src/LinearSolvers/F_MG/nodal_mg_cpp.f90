@@ -733,8 +733,6 @@ subroutine mgt_nodal_dealloc()
   deallocate(mgts%one_sided_ss)
   deallocate(mgts%fine_mask)
 
-  call flush()
-
 end subroutine mgt_nodal_dealloc
 
 subroutine mgt_nodal_solve(tol, abs_tol)
