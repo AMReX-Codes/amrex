@@ -1331,7 +1331,7 @@ contains
        call ml_fine_rhcc_contrib(brs_flx%bmf(i,1), &
             rhcc(n_fine),mgt(n_fine)%mm(mglev_fine),ref_ratio,pdc,+i)
     end do
-    
+
     ! compute the crse contributions
     do i = 1, dm
        call ml_crse_rhcc_contrib(temp_rhs_crse, brs_flx%bmf(i,0), &
@@ -1672,7 +1672,7 @@ contains
     integer           , intent(in   ) :: side
 
     integer :: i, j
-    real (kind = dp_t) :: crse_flux
+    real (kind = dp_t) :: crse_flux, fac
 
     i = lo(1)
     j = lo(2)
@@ -1685,23 +1685,29 @@ contains
        do j = lo(2), hi(2)
 
           if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+
+             fac = ONE
+
              if (j == loflx(2)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
                    crse_flux = rc(i,j)*HALF                   
                 else
                    crse_flux = rc(i,j)*FOURTH
+                   fac = HALF  ! because the corner will touch again when side==-2
                 end if
              else if (j == hiflx(2)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
                    crse_flux = rc(i,j-1)*HALF
                 else
-                   crse_flux = rc(i,j-1)*FOURTH                   
+                   crse_flux = rc(i,j-1)*FOURTH
+                   fac = HALF
                 end if
              else
                 crse_flux = (rc(i,j-1)+rc(i,j))*FOURTH
              end if
 
-             rh(i,j) = rh(i,j) - crse_flux + fine_flux(i,j)
+             rh(i,j) = rh(i,j) + fac * (fine_flux(i,j) - crse_flux)
+
           end if
 
        end do
@@ -1712,23 +1718,28 @@ contains
        do j = lo(2),hi(2)
 
           if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+
+             fac = ONE
+
              if (j == loflx(2)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
                    crse_flux = rc(i-1,j)*HALF
                 else
                    crse_flux = rc(i-1,j)*FOURTH
+                   fac = HALF
                 end if
              else if (j == hiflx(2)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
                    crse_flux = rc(i-1,j-1)*HALF
                 else 
                    crse_flux = rc(i-1,j-1)*FOURTH
+                   fac = HALF
                 end if
              else
                 crse_flux = (rc(i-1,j-1)+rc(i-1,j))*FOURTH
              end if
-             
-             rh(i,j) = rh(i,j) - crse_flux + fine_flux(i,j)
+
+             rh(i,j) = rh(i,j) + fac * (fine_flux(i,j) - crse_flux)
 
           end if
 
@@ -1740,23 +1751,28 @@ contains
        do i = lo(1),hi(1)
           
           if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+
+             fac = ONE
+
              if (i == loflx(1)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
                    crse_flux = rc(i,j)*HALF
                 else 
                    crse_flux = rc(i,j)*FOURTH
+                   fac = HALF
                 end if
              else if (i == hiflx(1)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
                    crse_flux = rc(i-1,j)*HALF
                 else 
                    crse_flux = rc(i-1,j)*FOURTH
+                   fac = HALF
                 end if
              else
                 crse_flux = (rc(i-1,j)+rc(i,j))*FOURTH
              end if
-             
-             rh(i,j) = rh(i,j) - crse_flux + fine_flux(i,j)
+
+             rh(i,j) = rh(i,j) + fac * (fine_flux(i,j) - crse_flux)
              
           end if
        
@@ -1769,11 +1785,14 @@ contains
 
           if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
 
+             fac = ONE
+
              if (i == loflx(1)) then
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
                    crse_flux = rc(i,j-1)*HALF
                 else
                    crse_flux = rc(i,j-1)*FOURTH
+                   fac = HALF
                 end if
 
              else if (i == hiflx(1)) then
@@ -1781,12 +1800,13 @@ contains
                    crse_flux = rc(i,j-1)*HALF
                 else 
                    crse_flux = rc(i-1,j-1)*FOURTH
+                   fac = HALF
                 end if
              else
                 crse_flux = (rc(i-1,j-1)+rc(i,j-1))*FOURTH
              end if
 
-             rh(i,j) = rh(i,j) - crse_flux + fine_flux(i,j)
+             rh(i,j) = rh(i,j) + fac * (fine_flux(i,j) - crse_flux)
 
           end if
 

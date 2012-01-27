@@ -733,6 +733,8 @@ subroutine mgt_nodal_dealloc()
   deallocate(mgts%one_sided_ss)
   deallocate(mgts%fine_mask)
 
+  call flush()
+
 end subroutine mgt_nodal_dealloc
 
 subroutine mgt_nodal_solve(tol, abs_tol)
@@ -918,7 +920,7 @@ subroutine mgt_add_divucc()
        rhmax = max(r, rhmax) 
      end do 
      if (parallel_IOProcessor()) then
-        print *,'F90: Source norm after adding divucc is ',rhmax
+        print *,'F90: Source norm after adding rhs is ',rhmax
      endif
   end if
 

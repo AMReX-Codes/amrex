@@ -483,7 +483,7 @@ subroutine mgt_compute_sync_resid_fine()
 
   call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev))
 
-  if (associated(mgts%rhcc)) then  ! only single level solve could get here
+  if (associated(mgts%rhcc)) then  
      call divuo_add_rhcc(divuo, mgts%rhcc(1), mgts%sync_msk(1))
   end if
 
