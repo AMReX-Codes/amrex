@@ -809,8 +809,10 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
   time = 0;
   if(fileType == Amrvis::FAB) {
     finestLevel = 0;
+    plotFileVersion = "FromFAB";
   } else if(fileType == Amrvis::MULTIFAB) {
     finestLevel = 1;  // level zero is filler
+    plotFileVersion = "FromMultiFAB";
   }
   probDomain.resize(finestLevel + 1);
   maxDomain.resize(finestLevel + 1);
