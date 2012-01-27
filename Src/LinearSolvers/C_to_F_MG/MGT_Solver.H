@@ -30,6 +30,7 @@ public:
 
   static void initialize(bool nodal);
   static void Finalize();
+  static void FlushFortranOutput();
 
   void set_mac_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
                             Array< Array<Real> >& xa,

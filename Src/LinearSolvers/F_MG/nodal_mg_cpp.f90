@@ -337,13 +337,15 @@ subroutine mgt_divu()
 
   call divu(mgts%nlevel,mgts%mgt,mgts%vel,mgts%rh,mgts%rr,mgts%nodal)
 
-  if (parallel_IOProcessor() .and. mgts%verbose > 0) then
+  if (mgts%verbose > 0) then
      rhmax = norm_inf(mgts%rh(mgts%nlevel))
      do n = mgts%nlevel-1, 1, -1
        r = norm_inf(mgts%rh(n), mgts%fine_mask(n))
        rhmax = max(r, rhmax) 
      end do 
-     print *,'F90: Source norm is ',rhmax
+     if (parallel_IOProcessor()) then
+        print *,'F90: Source norm is ',rhmax
+     endif
   end if
 
 end subroutine mgt_divu
