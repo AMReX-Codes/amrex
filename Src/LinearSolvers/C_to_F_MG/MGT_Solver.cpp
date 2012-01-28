@@ -127,7 +127,7 @@ mgt_getni   mgt_get_vel        = mgt_get_vel_3d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_3d;
 mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_3d;
 mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_3d;
-mgt_set     mgt_set_vold       = mgt_set_vold_2d;
+mgt_set     mgt_set_vold       = mgt_set_vold_3d;
 mgt_get     mgt_get_sync_res   = mgt_get_sync_res_3d;
 mgt_set     mgt_set_rhcc_nodal = mgt_set_rhcc_nodal_3d;
 #endif
