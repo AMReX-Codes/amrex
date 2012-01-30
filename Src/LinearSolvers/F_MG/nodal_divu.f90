@@ -1241,45 +1241,35 @@ contains
     integer        , intent(in   ) :: face_type(:,:)
     
     integer         :: i,j,nx,ny
+    real(kind=dp_t), pointer   :: rhtmp(:,:)
     
     nx = size(rh,dim=1) - 3
     ny = size(rh,dim=2) - 3
     
+    allocate(rhtmp(0:nx,0:ny))
+
     do j = 0,ny
     do i = 0,nx
        if (.not.bc_dirichlet(mm(i,j),1,0)) then 
-          rh(i,j) = rh(i,j) + (rc(i-1,j-1)+rc(i,j-1)+rc(i-1,j)+rc(i,j))*FOURTH
+          rhtmp(i,j) = (rc(i-1,j-1)+rc(i,j-1)+rc(i-1,j)+rc(i,j))*FOURTH
+       else
+          rhtmp(i,j) = ZERO 
        end if
     end do
     end do
 
-    if (face_type(1,1) == BC_NEU) then
-       i = 0
-       do j = 0, ny
-          rh(i,j) = rh(i,j) + (-rc(i-1,j-1)+rc(i,j-1)-rc(i-1,j)+rc(i,j))*FOURTH
-       end do
-    endif
+    if (face_type(1,1) == BC_NEU) rhtmp( 0,:) = TWO*rhtmp( 0,:)
+    if (face_type(1,2) == BC_NEU) rhtmp(nx,:) = TWO*rhtmp(nx,:)
+    if (face_type(2,1) == BC_NEU) rhtmp(:, 0) = TWO*rhtmp(:, 0)
+    if (face_type(2,2) == BC_NEU) rhtmp(:,ny) = TWO*rhtmp(:,ny)
 
-    if (face_type(1,2) == BC_NEU) then
-       i = nx
-       do j = 0, ny
-          rh(i,j) = rh(i,j) + (rc(i-1,j-1)-rc(i,j-1)+rc(i-1,j)-rc(i,j))*FOURTH
-       enddo
-    endif
+    do j = 0,ny
+    do i = 0,nx
+       rh(i,j) = rh(i,j) + rhtmp(i,j)
+    end do
+    end do
 
-    if (face_type(2,1) == BC_NEU) then
-       j = 0
-       do i = 0, nx
-          rh(i,j) = rh(i,j) + (-rc(i-1,j-1)-rc(i,j-1)+rc(i-1,j)+rc(i,j))*FOURTH
-       enddo
-    endif
-
-    if (face_type(2,2) == BC_NEU) then
-       j = ny
-       do i = 0, nx
-          rh(i,j) = rh(i,j) + (rc(i-1,j-1)+rc(i,j-1)-rc(i-1,j)-rc(i,j))*FOURTH
-       enddo
-    endif
+    deallocate(rhtmp)
     
   end subroutine divucc_2d
   
