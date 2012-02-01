@@ -42,7 +42,7 @@ contains
             if ( remote(unew(n), i) ) cycle
             unp => dataptr(unew(n), i)
             rhp => dataptr(rh(n)  , i)
-            mp   => dataptr(mgt(n)%mm(mglev_fine),i)
+            mp  => dataptr(mgt(n)%mm(mglev_fine),i)
             select case (dm)
                case (1)
                  call divu_1d(unp(:,1,1,1), rhp(:,1,1,1), &
@@ -626,6 +626,10 @@ contains
                 if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
                    crse_flux =        (uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
                 else 
+                   ! We have FOURTH rather than HALF here because
+                   ! point (i,j) will be touched again when side == -2.
+                   ! So in the end, the total crse_flux subtracted from rh(i,j)
+                   ! will be HALF*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
                    crse_flux = FOURTH*(uc(i,j,1)/dx(1) + uc(i,j,2)/dx(2))
                 end if
              else if (j == hiflx(2)) then
@@ -1163,120 +1167,645 @@ contains
 
   end subroutine ml_interface_3d_divu
 
-    subroutine subtract_divu_from_rh(nlevs,mgt,rh,divu_rhs)
-
-      integer        , intent(in   ) :: nlevs
-      type(mg_tower) , intent(inout) :: mgt(:)
-      type(multifab) , intent(inout) :: rh(:)
-      type(multifab) , intent(in   ) :: divu_rhs(:)
-
-      real(kind=dp_t), pointer :: dp(:,:,:,:) 
-      real(kind=dp_t), pointer :: rp(:,:,:,:) 
-      integer        , pointer :: mp(:,:,:,:) 
-
-      integer :: i,n,dm,ng_r,ng_d
-      integer :: mglev_fine
-
-      dm   = get_dim(rh(nlevs))
-      ng_r = nghost(rh(nlevs))
-      ng_d = nghost(divu_rhs(nlevs))
-
-!     Create the regular single-level divergence.
-      do n = 1, nlevs
-         mglev_fine = mgt(n)%nlevels
-         do i = 1, nboxes(rh(n))
-            if ( remote(rh(n), i) ) cycle
-            rp => dataptr(rh(n)      , i)
-            dp => dataptr(divu_rhs(n), i)
-            mp => dataptr(mgt(n)%mm(mglev_fine),i)
-            select case (dm)
-               case (1)
-                 call subtract_divu_from_rh_1d(rp(:,1,1,1), ng_r, &
-                                               dp(:,1,1,1), ng_d, &
-                                               mp(:,1,1,1) )
-               case (2)
-                 call subtract_divu_from_rh_2d(rp(:,:,1,1), ng_r, &
-                                               dp(:,:,1,1), ng_d, &
-                                               mp(:,:,1,1) )
-               case (3)
-                 call subtract_divu_from_rh_3d(rp(:,:,:,1), ng_r, &
-                                               dp(:,:,:,1), ng_d, &
-                                               mp(:,:,:,1) )
-            end select
-         end do
-      end do
-
-    end subroutine subtract_divu_from_rh
-
 !   ********************************************************************************************* !
 
-    subroutine subtract_divu_from_rh_1d(rh,ng_rh,divu_rhs,ng_divu,mm)
+  ! have_divu stuff
 
-      integer        , intent(in   ) :: ng_rh,ng_divu
-      real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:)
-      real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:)
-      integer        , intent(inout) :: mm(0:)
+  subroutine divucc(nlevs,mgt,rhcc,rh,ref_ratio,nodal)
 
-      integer         :: i,nx
+    integer        , intent(in   ) :: nlevs
+    type(mg_tower) , intent(inout) :: mgt(:)
+    type(multifab) , intent(inout) :: rhcc(:)
+    type(multifab) , intent(inout) :: rh(:)
+    integer        , intent(in   ) :: ref_ratio(:,:)
+    logical        , intent(in   ) :: nodal(:)
+    
+    real(kind=dp_t), pointer :: rcp(:,:,:,:) 
+    real(kind=dp_t), pointer :: rhp(:,:,:,:) 
+    integer        , pointer ::  mp(:,:,:,:) 
+    
+    integer :: i,n,dm,ng
+    integer :: mglev_fine
+    type(      box) :: pdc
+    type(   layout) :: la_crse,la_fine
+    type(bndry_reg) :: brs_flx
 
-      nx = size(mm,dim=1) - 1
+    dm = get_dim(rhcc(nlevs))
+    ng = nghost(rhcc(nlevs))
+    
+    ! regular single-level divergence
+    do n = 1, nlevs
+       mglev_fine = mgt(n)%nlevels
+       call multifab_fill_boundary(rhcc(n))
+       do i = 1, nboxes(rhcc(n))
+          if ( remote(rhcc(n), i) ) cycle
+          rcp => dataptr(rhcc(n), i)
+          rhp => dataptr(rh(n)  , i)
+          mp  => dataptr(mgt(n)%mm(mglev_fine),i)
+          select case (dm)
+          case (1)
+             call bl_error('divucc_1d not implemented')
+          case (2)
+             call divucc_2d(rcp(:,:,1,1), rhp(:,:,1,1), &
+                  &          mp(:,:,1,1), mgt(n)%face_type(i,:,:), ng)
+          case (3)
+             call bl_error('divucc_3d not implemented')
+             ! call divucc_3d(rcp(:,:,:,1), rhp(:,:,:,1), &
+             !                 mp(:,:,:,1), mgt(n)%face_type(i,:,:), ng)
+          end select
+       end do
+    end do
 
-      do i = 0,nx
-         if (.not. bc_dirichlet(mm(i),1,0)) &
-           rh(i) = rh(i) - divu_rhs(i)
-      end do
+    ! Modify rh at coarse-fine interfaces.
+    do n = nlevs,2,-1
 
-    end subroutine subtract_divu_from_rh_1d
+       la_fine = get_layout(rhcc(n))
+       la_crse = get_layout(rhcc(n-1))
+       pdc = get_pd(la_crse)
+       
+       call bndry_reg_rr_build(brs_flx,la_fine,la_crse, ref_ratio(n-1,:), &
+            pdc, nodal = nodal, other = .false.)
+       call crse_fine_divucc(n,nlevs,rh(n-1),rhcc,brs_flx,ref_ratio(n-1,:),mgt)
+       call bndry_reg_destroy(brs_flx)
+    end do
+    
+  end subroutine divucc
 
-!   ********************************************************************************************* !
+  
+  subroutine divucc_2d(rc,rh,mm,face_type,ng)
 
-    subroutine subtract_divu_from_rh_2d(rh,ng_rh,divu_rhs,ng_divu,mm)
+    integer        , intent(in   ) :: ng
+    real(kind=dp_t), intent(inout) :: rc(-ng:,-ng:)
+    real(kind=dp_t), intent(inout) :: rh(-1:,-1:)
+    integer        , intent(inout) :: mm(0:,0:)
+    integer        , intent(in   ) :: face_type(:,:)
+    
+    integer         :: i,j,nx,ny
+    real(kind=dp_t), pointer   :: rhtmp(:,:)
+    
+    nx = size(rh,dim=1) - 3
+    ny = size(rh,dim=2) - 3
+    
+    allocate(rhtmp(0:nx,0:ny))
 
-      integer        , intent(in   ) :: ng_rh,ng_divu
-      real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:,  -ng_rh:)
-      real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:,-ng_divu:)
-      integer        , intent(inout) :: mm(0:,0:)
+    do j = 0,ny
+    do i = 0,nx
+       if (.not.bc_dirichlet(mm(i,j),1,0)) then 
+          rhtmp(i,j) = (rc(i-1,j-1)+rc(i,j-1)+rc(i-1,j)+rc(i,j))*FOURTH
+       else
+          rhtmp(i,j) = ZERO 
+       end if
+    end do
+    end do
 
-      integer         :: i,j,nx,ny
+    if (face_type(1,1) == BC_NEU) rhtmp( 0,:) = TWO*rhtmp( 0,:)
+    if (face_type(1,2) == BC_NEU) rhtmp(nx,:) = TWO*rhtmp(nx,:)
+    if (face_type(2,1) == BC_NEU) rhtmp(:, 0) = TWO*rhtmp(:, 0)
+    if (face_type(2,2) == BC_NEU) rhtmp(:,ny) = TWO*rhtmp(:,ny)
 
-      nx = size(mm,dim=1) - 1
-      ny = size(mm,dim=2) - 1
+    do j = 0,ny
+    do i = 0,nx
+       rh(i,j) = rh(i,j) + rhtmp(i,j)
+    end do
+    end do
 
-      do j = 0,ny
-      do i = 0,nx
-         if (.not. bc_dirichlet(mm(i,j),1,0)) &
-           rh(i,j) = rh(i,j) - divu_rhs(i,j)
-      end do
-      end do
+    deallocate(rhtmp)
+    
+  end subroutine divucc_2d
+  
+  subroutine crse_fine_divucc(n_fine,nlevs,rh_crse,rhcc,brs_flx,ref_ratio,mgt)
 
-    end subroutine subtract_divu_from_rh_2d
+    integer        , intent(in   ) :: n_fine,nlevs
+    type(multifab) , intent(inout) :: rh_crse
+    type(multifab) , intent(in   ) :: rhcc(:)
+    type(bndry_reg), intent(inout) :: brs_flx
+    integer        , intent(in   ) :: ref_ratio(:)
+    type(mg_tower) , intent(in   ) :: mgt(:)
 
-!   ********************************************************************************************* !
+    real(kind=dp_t), pointer :: rhccp(:,:,:,:) 
+    real(kind=dp_t), pointer :: rhndp(:,:,:,:) 
+    real(kind=dp_t), pointer :: rhcrp(:,:,:,:) 
 
-    subroutine subtract_divu_from_rh_3d(rh,ng_rh,divu_rhs,ng_divu,mm)
+    type(multifab) :: temp_rhs_crse
+    type(  layout) :: la_crse,la_fine
+    type(     box) :: pdc
+    integer :: i,dm,n_crse, ng
+    integer :: mglev_fine, mglev_crse
+    logical :: nodal(get_dim(rhcc(n_fine)))
 
-      integer        , intent(in   ) :: ng_rh,ng_divu
-      real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:,  -ng_rh:,   -ng_rh:)
-      real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:,-ng_divu:, -ng_divu:)
-      integer        , intent(inout) :: mm(0:,0:,0:)
+    dm = get_dim(rhcc(n_fine))
+    ng = nghost(rhcc(n_fine))
+    n_crse = n_fine-1
+    
+    nodal = .true.
+    
+    la_crse = get_layout(rhcc(n_crse))
+    la_fine = get_layout(rhcc(n_fine))
+    
+    mglev_crse = mgt(n_crse)%nlevels
+    mglev_fine = mgt(n_fine)%nlevels
+  
+    call multifab_build(temp_rhs_crse, la_crse, 1, 1, nodal)
+    call setval(temp_rhs_crse, ZERO, 1, all=.true.)
 
-      integer         :: i,j,k,nx,ny,nz
+    ! Zero out the flux registers which will hold the fine contributions
+    call bndry_reg_setval(brs_flx, ZERO, all = .true.)
 
-      nx = size(mm,dim=1) - 1
-      ny = size(mm,dim=2) - 1
-      nz = size(mm,dim=3) - 1
+    ! compute the fine contributions
 
-      !$OMP PARALLEL DO PRIVATE(i,j,k)
-      do k = 0,nz
-         do j = 0,ny
-            do i = 0,nx
-               if (.not. bc_dirichlet(mm(i,j,k),1,0)) &
-                    rh(i,j,k) = rh(i,j,k) - divu_rhs(i,j,k)
-            end do
-         end do
-      end do
-      !$OMP END PARALLEL DO
+    pdc = get_pd(la_crse)
 
-    end subroutine subtract_divu_from_rh_3d
+    do i = 1, dm
+       call ml_fine_rhcc_contrib(brs_flx%bmf(i,0), &
+            rhcc(n_fine),mgt(n_fine)%mm(mglev_fine),ref_ratio,pdc,-i)
+       call ml_fine_rhcc_contrib(brs_flx%bmf(i,1), &
+            rhcc(n_fine),mgt(n_fine)%mm(mglev_fine),ref_ratio,pdc,+i)
+    end do
+
+    ! compute the crse contributions
+    do i = 1, dm
+       call ml_crse_rhcc_contrib(temp_rhs_crse, brs_flx%bmf(i,0), &
+            rhcc(n_crse), mgt(n_fine)%mm(mglev_fine), pdc,ref_ratio, -i) 
+       call ml_crse_rhcc_contrib(temp_rhs_crse, brs_flx%bmf(i,1), &
+            rhcc(n_crse), mgt(n_fine)%mm(mglev_fine), pdc,ref_ratio, +i) 
+    end do
+
+    call multifab_plus_plus(rh_crse,temp_rhs_crse)
+    call periodic_add_copy(rh_crse,temp_rhs_crse,synced=.true.)
+
+    call multifab_destroy(temp_rhs_crse)
+
+  end subroutine crse_fine_divucc
+
+  subroutine ml_fine_rhcc_contrib(flux, rhcc, mm, ratio, crse_domain, side)
+
+    use bl_prof_module
+    type(multifab), intent(inout) :: flux
+    type(multifab), intent(in   ) :: rhcc
+    type(imultifab), intent(in) :: mm
+    type(box) :: crse_domain
+    type(box) :: fbox
+    integer :: side
+    integer :: ratio(:)
+    integer :: lof(get_dim(flux)), dm
+    integer :: lo_dom(get_dim(flux)), hi_dom(get_dim(flux))
+    integer :: i, dir
+    real(kind=dp_t), pointer :: fp(:,:,:,:)
+    real(kind=dp_t), pointer :: rp(:,:,:,:)
+    integer        , pointer :: mp(:,:,:,:)
+    logical :: pmask(get_dim(rhcc))
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ml_fine_rhcc_contrib")
+
+    lo_dom = lwb(crse_domain)
+    hi_dom = upb(crse_domain) + 1
+
+    dir   = iabs(side)
+    pmask = get_pmask(get_layout(rhcc))
+    dm    = get_dim(flux)
+
+    do i = 1, nboxes(flux)
+      if ( remote(flux, i) ) cycle
+       fbox   = get_ibox(flux,i)
+       lof = lwb(fbox)
+       fp => dataptr(flux, i)
+       rp => dataptr(rhcc, i)
+       mp => dataptr(mm, i)
+       if ( pmask(dir) .or. &
+            (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
+          select case(dm)
+          case (1)
+             call bl_error("ml_fine_rhcc_contrib_1d not implemented");
+          case (2)
+             call ml_fine_rhcc_contrib_2d(fp(:,:,1,1), rp(:,:,1,1), mp(:,:,1,1), ratio, side)
+          case (3)
+             call bl_error("ml_fine_rhcc_contrib_3d not implemented");
+          end select
+       end if
+    enddo
+
+    call destroy(bpt)
+
+  end subroutine ml_fine_rhcc_contrib
+
+  subroutine ml_fine_rhcc_contrib_2d(flx, rhcc, mm, ratio, side)
+
+    real (kind = dp_t), intent(inout) :: flx( 0:, 0:)
+    real (kind = dp_t), intent(in   ) :: rhcc(-1:,-1:)
+    integer           , intent(in   ) ::   mm( 0:, 0:)
+    integer, intent(in) :: ratio(:), side
+    integer :: nxcc, nycc, nxf, nyf
+    integer :: icc, jcc, iif, jjf
+    integer :: istart, iend, jstart, jend
+    real (kind = dp_t) :: xc, yc, fac, rrfac, foo, fx, fy, freflect
+
+    nxf = size(flx,dim=1)
+    nyf = size(flx,dim=2)
+
+    nxcc = size(rhcc,dim=1)-2
+    nycc = size(rhcc,dim=2)-2
+
+    rrfac = ONE / (ratio(1) * ratio(2))
+
+    if (side == -1 .or. side == 1) then ! Lo/Hi i side
+
+       iif = 0
+       do jjf = 0, nyf-1
+          if (side == -1) then
+             istart = 0
+             iend = ratio(1)-1
+             xc = -HALF
+          else
+             istart = nxcc-ratio(1)
+             iend = nxcc-1
+             xc = iend + HALF
+          endif
+
+          if (jjf == 0) then
+             jstart = 0
+             jend = ratio(2)-1
+             yc = -HALF
+             if (bc_neumann(mm(istart,jstart),2,-1)) then
+                freflect = TWO
+             else
+                freflect = ONE
+             end if
+          else if (jjf == nyf-1) then
+             jstart = nycc - ratio(2)
+             jend = nycc-1
+             yc = jend + HALF
+             if (bc_neumann(mm(istart,jend+1),2,+1)) then
+                freflect = TWO
+             else
+                freflect = ONE
+             end if
+          else
+             jstart = jjf * ratio(2) - ratio(2)
+             jend = jjf * ratio(2) + ratio(2) - 1
+             yc = jjf * ratio(2) - HALF
+             freflect = ONE
+          end if
+
+          foo = ZERO
+          do jcc = jstart, jend
+             fy = ONE - abs((jcc-yc)/ratio(2))
+             do icc = istart, iend
+                fx = ONE - abs((icc-xc)/ratio(1))
+                foo = foo + rhcc(icc,jcc) * fx * fy
+             end do
+          enddo
+          flx(iif,jjf) = flx(iif,jjf) + foo * rrfac * freflect
+
+       enddo
+
+    else if (side == -2 .or. side == 2) then ! Lo/Hi j side
+
+       jjf = 0
+       do iif = 0, nxf-1
+          if (side == -2) then
+             jstart = 0
+             jend = ratio(2)-1
+             yc = -HALF
+          else
+             jstart = nycc-ratio(2)
+             jend = nycc-1
+             yc = jend + HALF
+          endif
+
+          if (iif == 0) then
+             istart = 0
+             iend = ratio(1)-1
+             xc = -HALF
+             if (bc_neumann(mm(istart,jstart),1,-1)) then
+                freflect = TWO
+             else
+                freflect = ONE
+             end if
+          else if (iif == nxf-1) then
+             istart = nxcc - ratio(1)
+             iend = nxcc-1
+             xc = iend + HALF
+             if (bc_neumann(mm(iend+1,jstart),1,+1)) then
+                freflect = TWO
+             else
+                freflect = ONE
+             end if
+          else
+             istart = iif * ratio(1) - ratio(1)
+             iend = iif * ratio(1) + ratio(1) - 1
+             xc = iif * ratio(1) - HALF
+             freflect = ONE
+          end if
+
+          foo = ZERO
+          do jcc = jstart, jend
+             fy = ONE - abs((jcc-yc)/ratio(2))
+             do icc = istart, iend
+                fx = ONE - abs((icc-xc)/ratio(1))
+                foo = foo + rhcc(icc,jcc) * fx * fy
+             end do
+          enddo
+          flx(iif,jjf) = flx(iif,jjf) + foo * rrfac * freflect
+
+       enddo
+
+    end if
+
+  end subroutine ml_fine_rhcc_contrib_2d
+
+
+  subroutine ml_crse_rhcc_contrib(rh, flux, rhcc, mm, crse_domain, ir, side)
+    type(multifab), intent(inout) :: rh
+    type(multifab), intent(inout) :: flux
+    type(multifab), intent(in   ) :: rhcc
+    type(imultifab),intent(in   ) :: mm
+    type(box)      ,intent(in   ) :: crse_domain
+    integer        ,intent(in   ) :: ir(:)
+    integer        ,intent(in   ) :: side
+    
+    type(box) :: fbox, rcbox, mbox, isect
+
+    integer   :: lo (get_dim(rh)), hi (get_dim(rh)), lorc(get_dim(rh)), dims(4), dm
+    integer   :: lof(get_dim(rh)), hif(get_dim(rh)), lorh(get_dim(rh)), lom(get_dim(rh))
+    integer   :: lodom(get_dim(rh)), hidom(get_dim(rh)), dir, i, j, k, proc
+    logical   :: nodal(get_dim(rh))
+    logical   :: pmask(get_dim(rh))
+
+    type(layout) :: flux_la
+    
+    integer,               parameter :: tag = 1371
+    real(kind=dp_t),       pointer   :: rhp(:,:,:,:), fp(:,:,:,:), rcp(:,:,:,:)
+    integer,               pointer   :: mp(:,:,:,:)
+    type(box_intersector), pointer   :: bi(:)
+    type(bl_prof_timer),   save      :: bpt
+    
+    call build(bpt, "ml_crse_rhcc_contrib")
+
+    dims    = 1;
+    nodal   = .true.
+    dir     = iabs(side)
+    lodom   = lwb(crse_domain)
+    hidom   = upb(crse_domain)+1
+    flux_la = get_layout(flux)
+    dm      = get_dim(rh)
+    pmask   = get_pmask(get_layout(rh))
+
+    do j = 1, nboxes(rhcc)
+
+       rcbox = box_nodalize(get_ibox(rhcc,j),nodal)
+       lorc  = lwb(get_pbox(rhcc,j))
+       lorh  = lwb(get_pbox(rh  ,j))
+       
+       bi => layout_get_box_intersector(flux_la, rcbox)
+
+       do k = 1, size(bi)
+          
+          i = bi(k)%i
+          
+          if ( remote(flux,i) .and. remote(rhcc,j) ) cycle
+          
+          fbox  = get_ibox(flux,i)
+          isect = bi(k)%bx
+          lof   = lwb(fbox)
+          hif   = upb(fbox)
+
+          if ( (lof(dir) == lodom(dir) .or. lof(dir) == hidom(dir)) .and. &
+               .not. pmask(dir) ) cycle
+
+          lo = lwb(isect)
+          hi = upb(isect)
+
+          if ( local(flux,i) .and. local(rhcc,j) ) then
+
+             lom  =  lwb(get_pbox(mm,i))
+             fp   => dataptr(flux,i)
+             mp   => dataptr(mm  ,i)
+             rcp  => dataptr(rhcc,j)
+             rhp  => dataptr(rh  ,j)
+             select case (dm)
+             case (1)
+                call bl_error("ml_interface_rhcc_1d not done")
+             case (2)
+                call ml_interface_rhcc_2d(rhp(:,:,1,1), lorh, &
+                     fp(:,:,1,1), lof, lof, hif, &
+                     rcp(:,:,1,1), lorh, mp(:,:,1,1), lom, lo, hi, ir, side)
+             case (3)
+                call bl_error("ml_interface_rhcc_3d not done")
+             end select
+
+          else if ( local(flux,i) ) then
+             !
+             ! Must send flux & mm.
+             !
+             mbox =  intersection(refine(isect,ir), get_pbox(mm,i))
+             fp   => dataptr(flux, i, isect, 1, ncomp(flux))
+             mp   => dataptr(mm,   i, mbox,  1, ncomp(mm))
+             proc =  get_proc(get_layout(rhcc), j)
+             call parallel_send(fp, proc, tag)
+             call parallel_send(mp, proc, tag)
+             
+          else
+             !
+             ! Must receive flux & mm.
+             !
+             proc = get_proc(flux_la, i)
+             mbox = intersection(refine(isect,ir), get_pbox(mm,i))
+             lom  = lwb(mbox)
+             dims(1:dm) = extent(isect)
+             allocate(fp(dims(1),dims(2),dims(3),ncomp(flux)))
+             dims(1:dm) = extent(mbox)
+             allocate(mp(dims(1),dims(2),dims(3),ncomp(mm)))
+             call parallel_recv(fp, proc, tag)
+             call parallel_recv(mp, proc, tag)
+
+             rcp => dataptr(rhcc,j)
+             rhp => dataptr(rh  ,j)
+             select case (dm)
+             case (1)
+                call bl_error("ml_interface_rhcc_1d not done")
+             case (2)
+                call ml_interface_rhcc_2d(rhp(:,:,1,1), lorh, &
+                     fp(:,:,1,1), lo, lof, hif, &
+                     rcp(:,:,1,1), lorh, mp(:,:,1,1), lom, lo, hi, ir, side)
+             case (3)
+                call bl_error("ml_interface_rhcc_3d not done")
+             end select
+
+             deallocate(fp,mp)
+
+          end if
+
+       end do
+
+       deallocate(bi)
+
+    end do
+
+    call destroy(bpt)
+
+  end subroutine ml_crse_rhcc_contrib
+
+  subroutine ml_interface_rhcc_2d(rh, lor, fine_flux, lof, loflx, hiflx, rc, loc, &
+       &                          mm, lom, lo, hi, ir, side)
+    integer, intent(in) :: lor(:)
+    integer, intent(in) :: loc(:)
+    integer, intent(in) :: lom(:)
+    integer, intent(in) :: lof(:)
+    integer, intent(in) :: loflx(:), hiflx(:)
+    integer, intent(in) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) ::        rh(lor(1):,lor(2):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
+    real (kind = dp_t), intent(in   ) ::        rc(loc(1):,loc(2):)
+    integer           , intent(in   ) ::        mm(lom(1):,lom(2):)
+    integer           , intent(in   ) :: ir(:)
+    integer           , intent(in   ) :: side
+
+    integer :: i, j
+    real (kind = dp_t) :: crse_flux, fac
+
+    i = lo(1)
+    j = lo(2)
+
+!   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
+
+!   Lo i side
+    if (side == -1) then
+
+       do j = lo(2), hi(2)
+
+          if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+
+             fac = ONE
+
+             if (j == loflx(2)) then
+                if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
+                   crse_flux = rc(i,j)*HALF                   
+                else
+                   crse_flux = rc(i,j)*FOURTH
+                   fac = HALF  ! because the corner will touch again when side==-2
+                end if
+             else if (j == hiflx(2)) then
+                if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
+                   crse_flux = rc(i,j-1)*HALF
+                else
+                   crse_flux = rc(i,j-1)*FOURTH
+                   fac = HALF
+                end if
+             else
+                crse_flux = (rc(i,j-1)+rc(i,j))*FOURTH
+             end if
+
+             rh(i,j) = rh(i,j) + fac * (fine_flux(i,j) - crse_flux)
+
+          end if
+
+       end do
+
+!   Hi i side
+    else if (side ==  1) then
+
+       do j = lo(2),hi(2)
+
+          if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+
+             fac = ONE
+
+             if (j == loflx(2)) then
+                if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,-1)) then
+                   crse_flux = rc(i-1,j)*HALF
+                else
+                   crse_flux = rc(i-1,j)*FOURTH
+                   fac = HALF
+                end if
+             else if (j == hiflx(2)) then
+                if (bc_neumann(mm(ir(1)*i,ir(2)*j),2,+1)) then
+                   crse_flux = rc(i-1,j-1)*HALF
+                else 
+                   crse_flux = rc(i-1,j-1)*FOURTH
+                   fac = HALF
+                end if
+             else
+                crse_flux = (rc(i-1,j-1)+rc(i-1,j))*FOURTH
+             end if
+
+             rh(i,j) = rh(i,j) + fac * (fine_flux(i,j) - crse_flux)
+
+          end if
+
+       end do
+
+! Lo j side
+    else if (side == -2) then
+
+       do i = lo(1),hi(1)
+          
+          if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+
+             fac = ONE
+
+             if (i == loflx(1)) then
+                if (bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
+                   crse_flux = rc(i,j)*HALF
+                else 
+                   crse_flux = rc(i,j)*FOURTH
+                   fac = HALF
+                end if
+             else if (i == hiflx(1)) then
+                if (bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
+                   crse_flux = rc(i-1,j)*HALF
+                else 
+                   crse_flux = rc(i-1,j)*FOURTH
+                   fac = HALF
+                end if
+             else
+                crse_flux = (rc(i-1,j)+rc(i,j))*FOURTH
+             end if
+
+             rh(i,j) = rh(i,j) + fac * (fine_flux(i,j) - crse_flux)
+             
+          end if
+       
+       end do
+
+! Hi j side
+    else if (side ==  2) then
+
+       do i = lo(1),hi(1)
+
+          if (bc_dirichlet(mm(ir(1)*i,ir(2)*j),1,0)) then
+
+             fac = ONE
+
+             if (i == loflx(1)) then
+                if (bc_neumann(mm(ir(1)*i,ir(2)*j),1,-1)) then
+                   crse_flux = rc(i,j-1)*HALF
+                else
+                   crse_flux = rc(i,j-1)*FOURTH
+                   fac = HALF
+                end if
+
+             else if (i == hiflx(1)) then
+                if (bc_neumann(mm(ir(1)*i,ir(2)*j),1,+1)) then
+                   crse_flux = rc(i,j-1)*HALF
+                else 
+                   crse_flux = rc(i-1,j-1)*FOURTH
+                   fac = HALF
+                end if
+             else
+                crse_flux = (rc(i-1,j-1)+rc(i,j-1))*FOURTH
+             end if
+
+             rh(i,j) = rh(i,j) + fac * (fine_flux(i,j) - crse_flux)
+
+          end if
+
+       end do
+
+    end if
+
+  end subroutine ml_interface_rhcc_2d
 
 end module nodal_divu_module
+
+
