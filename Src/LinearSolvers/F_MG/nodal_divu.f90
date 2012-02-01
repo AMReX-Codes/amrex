@@ -1209,9 +1209,8 @@ contains
              call divucc_2d(rcp(:,:,1,1), rhp(:,:,1,1), &
                   &          mp(:,:,1,1), mgt(n)%face_type(i,:,:), ng)
           case (3)
-             call bl_error('divucc_3d not implemented')
-             ! call divucc_3d(rcp(:,:,:,1), rhp(:,:,:,1), &
-             !                 mp(:,:,:,1), mgt(n)%face_type(i,:,:), ng)
+             call divucc_3d(rcp(:,:,:,1), rhp(:,:,:,1), &
+                  &          mp(:,:,:,1), mgt(n)%face_type(i,:,:), ng)
           end select
        end do
     end do
@@ -1272,6 +1271,56 @@ contains
     deallocate(rhtmp)
     
   end subroutine divucc_2d
+  
+  subroutine divucc_3d(rc,rh,mm,face_type,ng)
+
+    integer        , intent(in   ) :: ng
+    real(kind=dp_t), intent(inout) :: rc(-ng:,-ng:,-ng:)
+    real(kind=dp_t), intent(inout) :: rh(-1:,-1:,-1:)
+    integer        , intent(inout) :: mm(0:,0:,0:)
+    integer        , intent(in   ) :: face_type(:,:)
+    
+    integer         :: i,j,k,nx,ny,nz
+    real(kind=dp_t), pointer   :: rhtmp(:,:,:)
+    
+    nx = size(rh,dim=1) - 3
+    ny = size(rh,dim=2) - 3
+    nz = size(rh,dim=3) - 3
+    
+    allocate(rhtmp(0:nx,0:ny,0:nz))
+
+    do k = 0,nz
+    do j = 0,ny
+    do i = 0,nx
+       if (.not.bc_dirichlet(mm(i,j,k),1,0)) then 
+          rhtmp(i,j,k) = EIGHTH *  &
+               (rc(i-1,j-1,k-1)+rc(i,j-1,k-1)+rc(i-1,j,k-1)+rc(i,j,k-1) &
+               +rc(i-1,j-1,k  )+rc(i,j-1,k  )+rc(i-1,j,k  )+rc(i,j,k  ) )
+       else
+          rhtmp(i,j,k) = ZERO 
+       end if
+    end do
+    end do
+    end do
+
+    if (face_type(1,1) == BC_NEU) rhtmp( 0,:,:) = TWO*rhtmp( 0,:,:)
+    if (face_type(1,2) == BC_NEU) rhtmp(nx,:,:) = TWO*rhtmp(nx,:,:)
+    if (face_type(2,1) == BC_NEU) rhtmp(:, 0,:) = TWO*rhtmp(:, 0,:)
+    if (face_type(2,2) == BC_NEU) rhtmp(:,ny,:) = TWO*rhtmp(:,ny,:)
+    if (face_type(3,1) == BC_NEU) rhtmp(:,:, 0) = TWO*rhtmp(:,:, 0)
+    if (face_type(3,2) == BC_NEU) rhtmp(:,:,nz) = TWO*rhtmp(:,:,nz)
+
+    do k = 0,nz
+    do j = 0,ny
+    do i = 0,nx
+       rhtmp(i,j,k) = rh(i,j,k) + rhtmp(i,j,k)
+    end do
+    end do
+    end do
+
+    deallocate(rhtmp)
+    
+  end subroutine divucc_3d
   
   subroutine crse_fine_divucc(n_fine,nlevs,rh_crse,rhcc,brs_flx,ref_ratio,mgt)
 
@@ -1380,7 +1429,7 @@ contains
           case (2)
              call ml_fine_rhcc_contrib_2d(fp(:,:,1,1), rp(:,:,1,1), mp(:,:,1,1), ratio, side)
           case (3)
-             call bl_error("ml_fine_rhcc_contrib_3d not implemented");
+             call ml_fine_rhcc_contrib_3d(fp(:,:,:,1), rp(:,:,:,1), mp(:,:,:,1), ratio, side)
           end select
        end if
     enddo
@@ -1411,17 +1460,18 @@ contains
     if (side == -1 .or. side == 1) then ! Lo/Hi i side
 
        iif = 0
-       do jjf = 0, nyf-1
-          if (side == -1) then
-             istart = 0
-             iend = ratio(1)-1
-             xc = -HALF
-          else
-             istart = nxcc-ratio(1)
-             iend = nxcc-1
-             xc = iend + HALF
-          endif
 
+       if (side == -1) then
+          istart = 0
+          iend = ratio(1)-1
+          xc = -HALF
+       else
+          istart = nxcc-ratio(1)
+          iend = nxcc-1
+          xc = iend + HALF
+       endif
+
+       do jjf = 0, nyf-1
           if (jjf == 0) then
              jstart = 0
              jend = ratio(2)-1
@@ -1462,16 +1512,18 @@ contains
     else if (side == -2 .or. side == 2) then ! Lo/Hi j side
 
        jjf = 0
+
+       if (side == -2) then
+          jstart = 0
+          jend = ratio(2)-1
+          yc = -HALF
+       else
+          jstart = nycc-ratio(2)
+          jend = nycc-1
+          yc = jend + HALF
+       endif
+
        do iif = 0, nxf-1
-          if (side == -2) then
-             jstart = 0
-             jend = ratio(2)-1
-             yc = -HALF
-          else
-             jstart = nycc-ratio(2)
-             jend = nycc-1
-             yc = jend + HALF
-          endif
 
           if (iif == 0) then
              istart = 0
@@ -1514,6 +1566,262 @@ contains
 
   end subroutine ml_fine_rhcc_contrib_2d
 
+
+  subroutine ml_fine_rhcc_contrib_3d(flx, rhcc, mm, ratio, side)
+
+    real (kind = dp_t), intent(inout) :: flx( 0:, 0:, 0:)
+    real (kind = dp_t), intent(in   ) :: rhcc(-1:,-1:,-1:)
+    integer           , intent(in   ) ::   mm( 0:, 0:, 0:)
+    integer, intent(in) :: ratio(:), side
+    integer :: nxcc, nycc, nzcc, nxf, nyf, nzf
+    integer :: icc, jcc, kcc, iif, jjf, kkf
+    integer :: istart, iend, jstart, jend, kstart, kend
+    real (kind = dp_t) :: xc, yc, zc, fac, rrfac, foo, fx, fy, fz, freflect
+
+    nxf = size(flx,dim=1)
+    nyf = size(flx,dim=2)
+    nzf = size(flx,dim=3)
+
+    nxcc = size(rhcc,dim=1)-2
+    nycc = size(rhcc,dim=2)-2
+    nzcc = size(rhcc,dim=3)-2
+
+    rrfac = ONE / (ratio(1) * ratio(2) * ratio(3))
+
+    if (side == -1 .or. side == 1) then 
+
+       iif = 0
+
+       if (side == -1) then
+          istart = 0
+          iend = ratio(1)-1
+          xc = -HALF
+       else
+          istart = nxcc-ratio(1)
+          iend = nxcc-1
+          xc = iend + HALF
+       endif
+
+       do kkf = 0, nzf-1
+
+          if (kkf == 0) then
+             kstart = 0
+             kend = ratio(3)-1
+             zc = -HALF
+          else if (kkf == nzf-1) then
+             kstart = nzcc - ratio(3)
+             kend = nzcc-1
+             zc = kend + HALF
+          else
+             kstart = kkf * ratio(3) - ratio(3)
+             kend = kkf * ratio(3) + ratio(3) - 1
+             zc = kkf * ratio(3) - HALF
+          end if
+
+          do jjf = 0, nyf-1
+
+             if (jjf == 0) then
+                jstart = 0
+                jend = ratio(2)-1
+                yc = -HALF
+             else if (jjf == nyf-1) then
+                jstart = nycc - ratio(2)
+                jend = nycc-1
+                yc = jend + HALF
+             else
+                jstart = jjf * ratio(2) - ratio(2)
+                jend = jjf * ratio(2) + ratio(2) - 1
+                yc = jjf * ratio(2) - HALF
+             end if
+
+             freflect = ONE
+
+             if (bc_neumann(mm(istart,jstart,kstart),2,-1)) then
+                freflect = freflect * TWO
+             else if (bc_neumann(mm(istart,jend+1,kstart),2,+1)) then
+                freflect = freflect * TWO
+             end if
+
+             if (bc_neumann(mm(istart,jstart,kstart),3,-1)) then
+                freflect = freflect * TWO
+             else if (bc_neumann(mm(istart,jstart,kend+1),3,+1)) then
+                freflect = freflect * TWO
+             end if
+
+             foo = ZERO
+             do kcc = kstart, kend
+                fz = ONE - abs((kcc-zc)/ratio(3))
+                do jcc = jstart, jend
+                   fy = ONE - abs((jcc-yc)/ratio(2))
+                   do icc = istart, iend
+                      fx = ONE - abs((icc-xc)/ratio(1))
+                      foo = foo + rhcc(icc,jcc,kcc) * fx * fy * fz
+                   end do
+                end do
+             enddo
+
+             flx(iif,jjf,kkf) = flx(iif,jjf,kkf) + foo * rrfac * freflect
+             
+          enddo
+       enddo
+
+    else if (side == -2 .or. side == 2) then 
+
+       jjf = 0
+
+       if (side == -2) then
+          jstart = 0
+          jend = ratio(2)-1
+          yc = -HALF
+       else
+          jstart = nycc-ratio(2)
+          jend = nycc-1
+          yc = jend + HALF
+       endif
+
+       do kkf = 0, nzf-1
+
+          if (kkf == 0) then
+             kstart = 0
+             kend = ratio(3)-1
+             zc = -HALF
+          else if (kkf == nzf-1) then
+             kstart = nzcc - ratio(3)
+             kend = nzcc-1
+             zc = kend + HALF
+          else
+             kstart = kkf * ratio(3) - ratio(3)
+             kend = kkf * ratio(3) + ratio(3) - 1
+             zc = kkf * ratio(3) - HALF
+          end if
+
+          do iif = 0, nxf-1
+
+             if (iif == 0) then
+                istart = 0
+                iend = ratio(1)-1
+                xc = -HALF
+             else if (iif == nxf-1) then
+                istart = nxcc - ratio(1)
+                iend = nxcc-1
+                xc = iend + HALF
+             else
+                istart = iif * ratio(1) - ratio(1)
+                iend = iif * ratio(1) + ratio(1) - 1
+                xc = iif * ratio(1) - HALF
+             end if
+
+             freflect = ONE
+
+             if (bc_neumann(mm(istart,jstart,kstart),1,-1)) then
+                freflect = freflect * TWO
+             else if (bc_neumann(mm(iend+1,jstart,kstart),1,+1)) then
+                freflect = freflect * TWO
+             end if
+
+             if (bc_neumann(mm(istart,jstart,kstart),3,-1)) then
+                freflect = freflect * TWO
+             else if (bc_neumann(mm(istart,jstart,kend+1),3,+1)) then
+                freflect = freflect * TWO
+             end if
+
+             foo = ZERO
+             do kcc = kstart, kend
+                fz = ONE - abs((kcc-zc)/ratio(3))
+                do jcc = jstart, jend
+                   fy = ONE - abs((jcc-yc)/ratio(2))
+                   do icc = istart, iend
+                      fx = ONE - abs((icc-xc)/ratio(1))
+                      foo = foo + rhcc(icc,jcc,kcc) * fx * fy * fz
+                   end do
+                end do
+             enddo
+
+             flx(iif,jjf,kkf) = flx(iif,jjf,kkf) + foo * rrfac * freflect
+             
+          enddo
+       enddo
+
+    else if (side == -3 .or. side == 3) then 
+
+       kkf = 0
+
+       if (side == -3) then
+          kstart = 0
+          kend = ratio(3)-1
+          zc = -HALF
+       else
+          kstart = nzcc-ratio(3)
+          kend = nzcc-1
+          zc = kend + HALF
+       endif
+
+       do jjf = 0, nyf-1
+
+          if (jjf == 0) then
+             jstart = 0
+             jend = ratio(2)-1
+             yc = -HALF
+          else if (jjf == nyf-1) then
+             jstart = nycc - ratio(2)
+             jend = nycc-1
+             yc = jend + HALF
+          else
+             jstart = jjf * ratio(2) - ratio(2)
+             jend = jjf * ratio(2) + ratio(2) - 1
+             yc = jjf * ratio(2) - HALF
+          end if
+
+          do iif = 0, nxf-1
+
+             if (iif == 0) then
+                istart = 0
+                iend = ratio(1)-1
+                xc = -HALF
+             else if (iif == nxf-1) then
+                istart = nxcc - ratio(1)
+                iend = nxcc-1
+                xc = iend + HALF
+             else
+                istart = iif * ratio(1) - ratio(1)
+                iend = iif * ratio(1) + ratio(1) - 1
+                xc = iif * ratio(1) - HALF
+             end if
+
+             freflect = ONE
+
+             if (bc_neumann(mm(istart,jstart,kstart),1,-1)) then
+                freflect = freflect * TWO
+             else if (bc_neumann(mm(iend+1,jstart,kstart),1,+1)) then
+                freflect = freflect * TWO
+             end if
+
+             if (bc_neumann(mm(istart,jstart,kstart),2,-1)) then
+                freflect = freflect * TWO
+             else if (bc_neumann(mm(istart,jend+1,kstart),2,+1)) then
+                freflect = freflect * TWO
+             end if
+
+             foo = ZERO
+             do kcc = kstart, kend
+                fz = ONE - abs((kcc-zc)/ratio(3))
+                do jcc = jstart, jend
+                   fy = ONE - abs((jcc-yc)/ratio(2))
+                   do icc = istart, iend
+                      fx = ONE - abs((icc-xc)/ratio(1))
+                      foo = foo + rhcc(icc,jcc,kcc) * fx * fy * fz
+                   end do
+                end do
+             enddo
+
+             flx(iif,jjf,kkf) = flx(iif,jjf,kkf) + foo * rrfac * freflect
+             
+          enddo
+       enddo
+       
+    end if
+
+  end subroutine ml_fine_rhcc_contrib_3d
 
   subroutine ml_crse_rhcc_contrib(rh, flux, rhcc, mm, crse_domain, ir, side)
     type(multifab), intent(inout) :: rh
@@ -1591,7 +1899,9 @@ contains
                      fp(:,:,1,1), lof, lof, hif, &
                      rcp(:,:,1,1), lorh, mp(:,:,1,1), lom, lo, hi, ir, side)
              case (3)
-                call bl_error("ml_interface_rhcc_3d not done")
+                call ml_interface_rhcc_3d(rhp(:,:,:,1), lorh, &
+                     fp(:,:,:,1), lof, lof, hif, &
+                     rcp(:,:,:,1), lorh, mp(:,:,:,1), lom, lo, hi, ir, side)
              end select
 
           else if ( local(flux,i) ) then
@@ -1629,7 +1939,9 @@ contains
                      fp(:,:,1,1), lo, lof, hif, &
                      rcp(:,:,1,1), lorh, mp(:,:,1,1), lom, lo, hi, ir, side)
              case (3)
-                call bl_error("ml_interface_rhcc_3d not done")
+                call ml_interface_rhcc_3d(rhp(:,:,:,1), lorh, &
+                     fp(:,:,:,1), lo, lof, hif, &
+                     rcp(:,:,:,1), lorh, mp(:,:,:,1), lom, lo, hi, ir, side)
              end select
 
              deallocate(fp,mp)
@@ -1805,6 +2117,459 @@ contains
     end if
 
   end subroutine ml_interface_rhcc_2d
+
+  subroutine ml_interface_rhcc_3d(rh, lor, fine_flux, lof, loflx, hiflx, rc, loc, &
+       &                          mm, lom, lo, hi, ir, side)
+    integer, intent(in) :: lor(:)
+    integer, intent(in) :: loc(:)
+    integer, intent(in) :: lom(:)
+    integer, intent(in) :: lof(:)
+    integer, intent(in) :: loflx(:), hiflx(:)
+    integer, intent(in) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) ::        rh(lor(1):,lor(2):,lor(3):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
+    real (kind = dp_t), intent(in   ) ::        rc(loc(1):,loc(2):,loc(3):)
+    integer           , intent(in   ) ::        mm(lom(1):,lom(2):,lom(3):)
+    integer           , intent(in   ) :: ir(:)
+    integer           , intent(in   ) :: side
+
+    integer :: i, j, k, ii, jj, kk
+    logical :: lo_i_neu,lo_j_neu,lo_k_neu,hi_i_neu,hi_j_neu,hi_k_neu
+    logical :: lo_i_not,lo_j_not,lo_k_not,hi_i_not,hi_j_not,hi_k_not
+    real (kind = dp_t) :: cell_pp,cell_mp,cell_pm,cell_mm
+    real (kind = dp_t) :: crse_flux,fac
+
+    ii = lo(1)
+    jj = lo(2)
+    kk = lo(3)
+
+!   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
+
+!   Lo/Hi i side
+    if (( side == -1) .or. (side == 1) ) then
+ 
+      if (side == -1) then
+        i    = ii
+      else
+        i    = ii-1
+      end if
+
+      do k = lo(3),hi(3)
+      do j = lo(2),hi(2)
+
+        if (bc_dirichlet(mm(ir(1)*ii,ir(2)*j,ir(3)*k),1,0)) then
+
+          cell_pp = rc(i,j  ,k  ) * EIGHTH
+          cell_pm = rc(i,j  ,k-1) * EIGHTH
+          cell_mp = rc(i,j-1,k  ) * EIGHTH
+          cell_mm = rc(i,j-1,k-1) * EIGHTH
+
+          lo_j_not = .false.
+          hi_j_not = .false.
+          lo_j_neu = .false.
+          hi_j_neu = .false.
+          lo_k_not = .false.
+          hi_k_not = .false.
+          lo_k_neu = .false.
+          hi_k_neu = .false.
+
+          if (j == loflx(2)) then
+             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1)) lo_j_not = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,-1))       lo_j_neu = .true.
+          end if
+
+          if (j == hiflx(2)) then
+             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1)) hi_j_not = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),2,+1))       hi_j_neu = .true.
+          end if
+
+          if (k == loflx(3)) then
+             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1)) lo_k_not = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,-1))       lo_k_neu = .true.
+          end if
+
+          if (k == hiflx(3)) then
+             if (.not. bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1)) hi_k_not = .true.
+             if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1))       hi_k_neu = .true.
+          end if
+
+          if (lo_k_not) then
+             if (lo_j_not) then
+                crse_flux = THIRD*cell_pp
+                fac = THIRD
+             else if (lo_j_neu) then
+                crse_flux = cell_pp
+                fac = HALF
+             else if (hi_j_not) then
+                crse_flux = THIRD*cell_mp
+                fac = THIRD
+             else if (hi_j_neu) then
+                crse_flux = cell_mp
+                fac = HALF
+             else
+                crse_flux = HALF*(cell_pp + cell_mp)
+                fac = HALF
+             end if
+          else if (lo_k_neu) then
+             if (lo_j_not) then
+                crse_flux = cell_pp
+                fac = HALF
+             else if (lo_j_neu) then
+                crse_flux = FOUR*cell_pp
+                fac = ONE
+             else if (hi_j_not) then
+                crse_flux = cell_mp
+                fac = HALF
+             else if (hi_j_neu) then
+                crse_flux = FOUR*cell_mp
+                fac = ONE
+             else
+                crse_flux = TWO*(cell_pp + cell_mp)
+                fac = one
+             end if
+          else if (hi_k_not) then
+             if (lo_j_not) then
+                crse_flux = THIRD*cell_pm
+                fac = THIRD
+             else if (lo_j_neu) then
+                crse_flux = cell_pm
+                fac = HALF
+             else if (hi_j_not) then
+                crse_flux = THIRD*cell_mm
+                fac = THIRD
+             else if (hi_j_neu) then
+                crse_flux = cell_mm
+                fac = HALF
+             else
+                crse_flux = HALF*(cell_pm  + cell_mm)
+                fac = HALF
+             end if
+          else if (hi_k_neu) then
+             if (lo_j_not) then
+                crse_flux = cell_pm
+                fac = HALF
+             else if (lo_j_neu) then
+                crse_flux = FOUR*cell_pm
+                fac = ONE
+             else if (hi_j_not) then
+                crse_flux = cell_mm
+                fac = HALF
+             else if (hi_j_neu) then
+                crse_flux = FOUR*cell_mm
+                fac = ONE
+             else
+                crse_flux = TWO*(cell_pm  + cell_mm)
+                fac = ONE
+             end if
+          else
+             if (lo_j_not) then
+                crse_flux = HALF*(cell_pm  + cell_pp)
+                fac = HALF
+             else if (lo_j_neu) then
+                crse_flux = TWO*(cell_pm  + cell_pp)
+                fac = ONE
+             else if (hi_j_not) then
+                crse_flux = HALF*(cell_mm  + cell_mp)
+                fac = HALF
+             else if (hi_j_neu) then
+                crse_flux = TWO*(cell_mm  + cell_mp)
+                fac = ONE
+             else
+                crse_flux = cell_mm  + cell_mp + cell_pm + cell_pp
+                fac = ONE
+             end if
+          end if
+
+          rh(ii,j,k) = rh(ii,j,k) - crse_flux + fac*fine_flux(ii,j,k)
+        end if
+
+      end do
+      end do
+
+!   Lo/Hi j side
+    else if (( side == -2) .or. (side == 2) ) then
+ 
+      if (side == -2) then
+        j    = jj
+      else
+        j    = jj-1
+      end if
+
+      do k = lo(3),hi(3)
+      do i = lo(1),hi(1)
+
+        if (bc_dirichlet(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,0)) then
+
+          lo_i_not = .false.
+          hi_i_not = .false.
+          lo_i_neu = .false.
+          hi_i_neu = .false.
+          lo_k_not = .false.
+          hi_k_not = .false.
+          lo_k_neu = .false.
+          hi_k_neu = .false.
+
+          if (i == loflx(1)) then
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1)) lo_i_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,-1))       lo_i_neu = .true.
+          end if
+
+          if (i == hiflx(1)) then
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1)) hi_i_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),1,+1))       hi_i_neu = .true.
+          end if
+
+          if (k == loflx(3)) then
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1)) lo_k_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,-1))       lo_k_neu = .true.
+          end if
+          if (k == hiflx(3)) then
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1)) hi_k_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*jj,ir(3)*k),3,+1))       hi_k_neu = .true.
+          end if
+
+          cell_pp = rc(i  ,j,k  ) * EIGHTH
+          cell_pm = rc(i  ,j,k-1) * EIGHTH
+          cell_mp = rc(i-1,j,k  ) * EIGHTH
+          cell_mm = rc(i-1,j,k-1) * EIGHTH
+
+          if (lo_k_not) then
+             if (lo_i_not) then
+                crse_flux = THIRD*cell_pp
+                fac = THIRD
+             else if (lo_i_neu) then
+                crse_flux = cell_pp
+                fac = HALF
+             else if (hi_i_not) then
+                crse_flux = THIRD*cell_mp
+                fac = THIRD
+             else if (hi_i_neu) then
+                crse_flux = cell_mp
+                fac = HALF
+             else
+                crse_flux = HALF*(cell_pp + cell_mp)
+                fac = HALF
+             end if
+          else if (lo_k_neu) then
+             if (lo_i_not) then
+                crse_flux = cell_pp
+                fac = HALF
+             else if (lo_i_neu) then
+                crse_flux = FOUR*cell_pp
+                fac = ONE
+             else if (hi_i_not) then
+                crse_flux = cell_mp
+                fac = HALF
+             else if (hi_i_neu) then
+                crse_flux = FOUR*cell_mp
+                fac = ONE
+             else
+                crse_flux = TWO*(cell_pp + cell_mp)
+                fac = ONE
+             end if
+          else if (hi_k_not) then
+             if (lo_i_not) then
+                crse_flux = THIRD*cell_pm
+                fac = THIRD
+             else if (lo_i_neu) then
+                crse_flux = cell_pm
+                fac = HALF
+             else if (hi_i_not) then
+                crse_flux = THIRD*cell_mm
+                fac = THIRD
+             else if (hi_i_neu) then
+                crse_flux = cell_mm
+                fac = HALF
+             else
+                crse_flux = HALF*(cell_pm  + cell_mm)
+                fac = HALF
+             end if
+          else if (hi_k_neu) then
+             if (lo_i_not) then
+                crse_flux = cell_pm
+                fac = HALF
+             else if (lo_i_neu) then
+                crse_flux = FOUR*cell_pm
+                fac = ONE
+             else if (hi_i_not) then
+                crse_flux = cell_mm
+                fac = HALF
+             else if (hi_i_neu) then
+                crse_flux = FOUR*cell_mm
+                fac = ONE
+             else
+                crse_flux = TWO*(cell_pm  + cell_mm)
+                fac = ONE
+             end if
+          else
+             if (lo_i_not) then
+                crse_flux = HALF*(cell_pm  + cell_pp)
+                fac = HALF
+             else if (lo_i_neu) then
+                crse_flux = TWO*(cell_pm  + cell_pp)
+                fac = ONE
+             else if (hi_i_not) then
+                crse_flux = HALF*(cell_mm  + cell_mp)
+                fac = HALF
+             else if (hi_i_neu) then
+                crse_flux = TWO*(cell_mm  + cell_mp)
+                fac = ONE
+             else
+                crse_flux = cell_mm  + cell_mp + cell_pm + cell_pp
+                fac = ONE
+             end if
+          end if
+
+          rh(i,jj,k) = rh(i,jj,k) - crse_flux + fac*fine_flux(i,jj,k)
+        end if
+
+      end do
+      end do
+
+!   Lo/Hi k side
+    else if (( side == -3) .or. (side == 3) ) then
+ 
+      if (side == -3) then
+        k    = kk
+      else
+        k    = kk-1
+      end if
+
+      do j = lo(2),hi(2)
+      do i = lo(1),hi(1)
+
+        if (bc_dirichlet(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,0)) then
+
+          lo_i_not = .false.
+          hi_i_not = .false.
+          lo_i_neu = .false.
+          hi_i_neu = .false.
+          lo_j_not = .false.
+          hi_j_not = .false.
+          lo_j_neu = .false.
+          hi_j_neu = .false.
+
+          if (i == loflx(1)) then
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1)) lo_i_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,-1))       lo_i_neu = .true.
+          end if
+
+          if (i == hiflx(1)) then
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1)) hi_i_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),1,+1))       hi_i_neu = .true.
+          end if
+
+          if (j == loflx(2)) then
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1)) lo_j_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,-1))       lo_j_neu = .true.
+          end if
+
+          if (j == hiflx(2)) then
+             if (.not. bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1)) hi_j_not = .true.
+             if (bc_neumann(mm(ir(1)*i,ir(2)*j,ir(3)*kk),2,+1))       hi_j_neu = .true.
+          end if
+
+          cell_pp = rc(i  ,j  ,k) * EIGHTH
+          cell_pm = rc(i  ,j-1,k) * EIGHTH
+          cell_mp = rc(i-1,j  ,k) * EIGHTH
+          cell_mm = rc(i-1,j-1,k) * EIGHTH
+
+          if (lo_j_not) then
+             if (lo_i_not) then
+                crse_flux = THIRD*cell_pp
+                fac = THIRD
+             else if (lo_i_neu) then
+                crse_flux = cell_pp
+                fac = HALF
+             else if (hi_i_not) then
+                crse_flux = THIRD*cell_mp
+                fac = THIRD
+             else if (hi_i_neu) then
+                crse_flux = cell_mp
+                fac = HALF
+             else
+                crse_flux = HALF*(cell_pp + cell_mp)
+                fac = HALF
+             end if
+          else if (lo_j_neu) then
+             if (lo_i_not) then
+                crse_flux = cell_pp
+                fac = HALF
+             else if (lo_i_neu) then
+                crse_flux = FOUR*cell_pp
+                fac = ONE
+             else if (hi_i_not) then
+                crse_flux = cell_mp
+                fac = HALF
+             else if (hi_i_neu) then
+                crse_flux = FOUR*cell_mp
+                fac = ONE
+             else
+                crse_flux = TWO*(cell_pp + cell_mp)
+                fac = ONE
+             end if
+          else if (hi_j_not) then
+             if (lo_i_not) then
+                crse_flux = THIRD*cell_pm
+                fac = THIRD
+             else if (lo_i_neu) then
+                crse_flux = cell_pm
+                fac = HALF
+             else if (hi_i_not) then
+                crse_flux = THIRD*cell_mm
+                fac = THIRD
+             else if (hi_i_neu) then
+                crse_flux = cell_mm
+                fac = HALF
+             else
+                crse_flux = HALF*(cell_pm  + cell_mm)
+                fac = HALF
+             end if
+          else if (hi_j_neu) then
+             if (lo_i_not) then
+                crse_flux = cell_pm
+                fac = HALF
+             else if (lo_i_neu) then
+                crse_flux = FOUR*cell_pm
+                fac = ONE
+             else if (hi_i_not) then
+                crse_flux = cell_mm
+                fac = HALF
+             else if (hi_i_neu) then
+                crse_flux = FOUR*cell_mm
+                fac = ONE
+             else
+                crse_flux = TWO*(cell_pm  + cell_mm)
+                fac = ONE
+             end if
+          else
+             if (lo_i_not) then
+                crse_flux = HALF*(cell_pm  + cell_pp)
+                fac = HALF
+             else if (lo_i_neu) then
+                crse_flux = TWO*(cell_pm  + cell_pp)
+                fac = ONE
+             else if (hi_i_not) then
+                crse_flux = HALF*(cell_mm  + cell_mp)
+                fac = HALF
+             else if (hi_i_neu) then
+                crse_flux = TWO*(cell_mm  + cell_mp)
+                fac = ONE
+             else
+                crse_flux = cell_mm  + cell_mp + cell_pm + cell_pp
+                fac = ONE
+             end if
+          end if
+  
+          rh(i,j,kk) = rh(i,j,kk) - crse_flux + fac*fine_flux(i,j,kk)
+        end if
+
+      end do
+      end do
+
+    end if
+
+  end subroutine ml_interface_rhcc_3d
 
 end module nodal_divu_module
 
