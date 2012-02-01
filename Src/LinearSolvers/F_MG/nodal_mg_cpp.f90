@@ -210,9 +210,7 @@ subroutine mgt_nodal_finalize(dx,bc)
 
   if (mgts%stencil_type .eq. ST_DENSE) then
      if (dm .eq. 3) then
-       i = mgts%mgt(nlev)%nlevels
-       if ( (mgts%mgt(nlev)%dh(1,i) .eq. mgts%mgt(nlev)%dh(2,i)) .and. &
-            (mgts%mgt(nlev)%dh(1,i) .eq. mgts%mgt(nlev)%dh(3,i)) ) then
+       if ( dx(nlev,1) .eq. dx(nlev,2) .and. dx(nlev,1) .eq. dx(nlev,3) ) then
          ns = 21
        else
          ns = 27
