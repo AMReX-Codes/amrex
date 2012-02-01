@@ -98,12 +98,12 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine mkunew_3d(unew,phi,rhohalf,dx,ng)
+    subroutine mkunew_3d(unew,phi,coeff,dx,ng)
 
       integer        , intent(in   ) :: ng
       real(kind=dp_t), intent(inout) :: unew(-ng:,-ng:,-ng:,:)
       real(kind=dp_t), intent(inout) :: phi(-ng:,-ng:,-ng:)
-      real(kind=dp_t), intent(in   ) :: rhohalf(-1:,-1:,-1:)
+      real(kind=dp_t), intent(in   ) :: coeff(-1:,-1:,-1:)
       real(kind=dp_t), intent(in   ) :: dx(:)
 
       ! Local variables
@@ -134,9 +134,9 @@ contains
                     -phi(i,j  ,k  ) - phi(i+1,j  ,k  ) &
                     -phi(i,j+1,k  ) - phi(i+1,j+1,k  ) ) /dx(3)
 
-               unew(i,j,k,1) = unew(i,j,k,1) - gpx / rhohalf(i,j,k)
-               unew(i,j,k,2) = unew(i,j,k,2) - gpy / rhohalf(i,j,k)
-               unew(i,j,k,3) = unew(i,j,k,3) - gpz / rhohalf(i,j,k)
+               unew(i,j,k,1) = unew(i,j,k,1) - gpx * coeff(i,j,k)
+               unew(i,j,k,2) = unew(i,j,k,2) - gpy * coeff(i,j,k)
+               unew(i,j,k,3) = unew(i,j,k,3) - gpz * coeff(i,j,k)
             end do
          end do
       end do
