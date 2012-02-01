@@ -227,7 +227,7 @@ contains
        case (2)
           call divuo_rhcc_2d(dvo(:,:,1,1), msk(:,:,1,1), rc(:,:,1,1), face_type(i,:,:))
        case (3)
-          call bl_error('divuo_rhcc_3d: 3d not done')
+          call divuo_rhcc_3d(dvo(:,:,:,1), msk(:,:,:,1), rc(:,:,:,1), face_type(i,:,:))
        end select
     end do
 
@@ -276,6 +276,63 @@ contains
     deallocate(tmp)
 
   end subroutine divuo_rhcc_2d
+
+  subroutine divuo_rhcc_3d(dvo, msk, rc, face_type)
+    real(kind=dp_t), intent(inout) :: dvo(-1:,-1:,-1:)
+    real(kind=dp_t), intent(in   ) :: msk(-1:,-1:,-1:)
+    real(kind=dp_t), intent(inout) ::  rc(-1:,-1:,-1:)
+    integer        , intent(in   ) :: face_type(:,:)
+    
+    integer :: i, j, k, nx, ny, nz
+    real(kind=dp_t), pointer :: tmp(:,:,:)
+
+    nx = size(msk,dim=1) - 2
+    ny = size(msk,dim=2) - 2
+    nz = size(msk,dim=3) - 2
+
+    rc(-1,:,:) = ZERO
+    rc(nx,:,:) = ZERO
+    rc(:,-1,:) = ZERO
+    rc(:,ny,:) = ZERO
+    rc(:,:,-1) = ZERO
+    rc(:,:,nz) = ZERO
+
+    allocate(tmp(0:nx,0:ny,0:nz))
+
+    do k = 0, nz
+    do j = 0, ny
+    do i = 0, nx
+       tmp(i,j,k) = EIGHTH *   &
+            ( rc(i-1,j-1,k-1) * msk(i-1,j-1,k-1)  &
+            + rc(i  ,j-1,k-1) * msk(i  ,j-1,k-1)  &
+            + rc(i-1,j  ,k-1) * msk(i-1,j  ,k-1)  &
+            + rc(i  ,j  ,k-1) * msk(i  ,j  ,k-1)  &
+            + rc(i-1,j-1,k  ) * msk(i-1,j-1,k  )  &
+            + rc(i  ,j-1,k  ) * msk(i  ,j-1,k  )  &
+            + rc(i-1,j  ,k  ) * msk(i-1,j  ,k  )  &
+            + rc(i  ,j  ,k  ) * msk(i  ,j  ,k  )  )
+    end do
+    end do
+    end do
+
+    if (face_type(1,1) == BC_NEU) tmp( 0,:,:) = TWO*tmp( 0,:,:)
+    if (face_type(1,2) == BC_NEU) tmp(nx,:,:) = TWO*tmp(nx,:,:)
+    if (face_type(2,1) == BC_NEU) tmp(:, 0,:) = TWO*tmp(:, 0,:)
+    if (face_type(2,2) == BC_NEU) tmp(:,ny,:) = TWO*tmp(:,ny,:)
+    if (face_type(3,1) == BC_NEU) tmp(:,:, 0) = TWO*tmp(:,:, 0)
+    if (face_type(3,2) == BC_NEU) tmp(:,:,nz) = TWO*tmp(:,:,nz)
+
+    do k = 0, nz
+    do j = 0, ny
+    do i = 0, nx
+       dvo(i,j,k) = dvo(i,j,k) + tmp(i,j,k)
+    end do
+    end do
+    end do
+
+    deallocate(tmp)
+
+  end subroutine divuo_rhcc_3d
 
   subroutine sync_res_fine_bndry(res_fine, face_type)
     type(multifab), intent(inout) :: res_fine
