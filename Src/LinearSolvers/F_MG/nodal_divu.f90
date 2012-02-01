@@ -1313,7 +1313,7 @@ contains
     do k = 0,nz
     do j = 0,ny
     do i = 0,nx
-       rhtmp(i,j,k) = rh(i,j,k) + rhtmp(i,j,k)
+       rh(i,j,k) = rh(i,j,k) + rhtmp(i,j,k)
     end do
     end do
     end do
