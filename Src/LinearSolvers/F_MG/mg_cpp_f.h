@@ -4,6 +4,7 @@
 #if defined(BL_FORT_USE_UPPERCASE)
 #define mgt_init                  MGT_INIT
 #define mgt_flush_copyassoc_cache MGT_FLUSH_COPYASSOC_CACHE
+#define mgt_flush_output          MGT_FLUSH_OUTPUT
 #define mgt_use_alltoallv         MGT_USE_ALLTOALLV
 #define mgt_alloc                 MGT_ALLOC
 #define mgt_nodal_alloc           MGT_NODAL_ALLOC
@@ -129,10 +130,20 @@
 #define mgt_get_sync_res_2d       MGT_GET_SYNC_RES_2D 
 #define mgt_get_sync_res_3d       MGT_GET_SYNC_RES_3D 
 
+#define mgt_alloc_rhcc_nodal      MGT_ALLOC_RHCC_NODAL
+#define mgt_dealloc_rhcc_nodal    MGT_DEALLOC_RHCC_NODAL
+
+#define mgt_set_rhcc_nodal_1d     MGT_SET_RHCC_NODAL_1D
+#define mgt_set_rhcc_nodal_2d     MGT_SET_RHCC_NODAL_2D
+#define mgt_set_rhcc_nodal_3d     MGT_SET_RHCC_NODAL_3D
+
+#define mgt_add_divucc            MGT_ADD_DIVUCC
+
 #elif defined(BL_FORT_USE_UNDERSCORE)
 
 #define mgt_init                  mgt_init_
 #define mgt_flush_copyassoc_cache mgt_flush_copyassoc_cache_
+#define mgt_flush_output          mgt_flush_output_
 #define mgt_use_alltoallv         mgt_use_alltoallv_
 #define mgt_alloc                 mgt_alloc_
 #define mgt_nodal_alloc           mgt_nodal_alloc_
@@ -256,9 +267,20 @@
 #define mgt_get_sync_res_2d       mgt_get_sync_res_2d_ 
 #define mgt_get_sync_res_3d       mgt_get_sync_res_3d_ 
 
+#define mgt_alloc_rhcc_nodal      mgt_alloc_rhcc_nodal_
+#define mgt_dealloc_rhcc_nodal    mgt_dealloc_rhcc_nodal_
+
+#define mgt_set_rhcc_nodal_1d     mgt_set_rhcc_nodal_1d_
+#define mgt_set_rhcc_nodal_2d     mgt_set_rhcc_nodal_2d_
+#define mgt_set_rhcc_nodal_3d     mgt_set_rhcc_nodal_3d_
+
+#define mgt_add_divucc            mgt_add_divucc_
+
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
+
 #define mgt_init                  mgt_init__
 #define mgt_flush_copyassoc_cache mgt_flush_copyassoc_cache__
+#define mgt_flush_output          mgt_flush_output__
 #define mgt_use_alltoallv         mgt_use_alltoallv__
 #define mgt_alloc                 mgt_alloc__
 #define mgt_nodal_alloc           mgt_nodal_alloc__
@@ -375,6 +397,15 @@
 #define mgt_get_sync_res_2d       mgt_get_sync_res_2d__ 
 #define mgt_get_sync_res_3d       mgt_get_sync_res_3d__ 
 
+#define mgt_alloc_rhcc_nodal      mgt_alloc_rhcc_nodal__
+#define mgt_dealloc_rhcc_nodal    mgt_dealloc_rhcc_nodal__
+
+#define mgt_set_rhcc_nodal_1d     mgt_set_rhcc_nodal_1d_
+#define mgt_set_rhcc_nodal_2d     mgt_set_rhcc_nodal_2d_
+#define mgt_set_rhcc_nodal_3d     mgt_set_rhcc_nodal_3d_
+
+#define mgt_add_divucc            mgt_add_divucc_
+
 #endif
 
 #ifdef __cplusplus
@@ -383,7 +414,7 @@ extern "C"
 #endif
 
   /* The contants match the ones in 'bc.f90'; care is needed to ensure 
-     that the continue to match. */
+     that they continue to match. */
 
   const int MGT_BC_PER = -1;	/* Periodic  */
   const int MGT_BC_INT =  0;	/* Interior  */
@@ -393,6 +424,8 @@ extern "C"
   void mgt_init(const int* comm);
 
   void mgt_flush_copyassoc_cache();
+
+  void mgt_flush_output();
 
   void mgt_use_alltoallv();
 
@@ -733,10 +766,24 @@ extern "C"
 			   const int* plo, const int* phi, 
 			   const int* lo, const int* hi);
 
+  void mgt_set_rhcc_nodal_1d(const int* lev, const int* n, const Real* cf,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+  void mgt_set_rhcc_nodal_2d(const int* lev, const int* n, const Real* cf,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+  void mgt_set_rhcc_nodal_3d(const int* lev, const int* n, const Real* cf,
+		       const int* plo, const int* phi, 
+		       const int* lo, const int* hi);
+
   void mgt_alloc_nodal_sync();
   void mgt_dealloc_nodal_sync();
   void mgt_compute_sync_resid_crse();
   void mgt_compute_sync_resid_fine();
+
+  void mgt_alloc_rhcc_nodal();
+  void mgt_dealloc_rhcc_nodal();
+  void mgt_add_divucc();
 
   void mgt_dealloc();
 

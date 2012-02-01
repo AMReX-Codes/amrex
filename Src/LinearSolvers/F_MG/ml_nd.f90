@@ -140,6 +140,9 @@ contains
              fmt='("F90mg: Initial residual (resid0)    = ",g15.8)') tres0
     end if
 
+    bnorm = max(bnorm, tres0)  
+    ! wqz.  Otherwise, we may sometimes have trouble if tres0 is much larger than bnorm
+
     ! ****************************************************************************
 
     fine_converged = .false.
