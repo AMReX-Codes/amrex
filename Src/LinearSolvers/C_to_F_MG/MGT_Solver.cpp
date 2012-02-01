@@ -1438,8 +1438,7 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], Mult
     if (rhcrse[lev] != 0) {
 
       BL_ASSERT( (*rhcrse[lev]).nGrow() == 1 );
-      BL_ASSERT( (*rhcc != 0 ) );
-
+ 
       for (MFIter rmfi(*(rhcrse[lev])); rmfi.isValid(); ++rmfi) {
 	int n = rmfi.index();
 	
