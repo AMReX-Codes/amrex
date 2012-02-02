@@ -1167,6 +1167,124 @@ contains
 
   end subroutine ml_interface_3d_divu
 
+
+    subroutine subtract_divu_from_rh(nlevs,mgt,rh,divu_rhs)
+
+      integer        , intent(in   ) :: nlevs
+      type(mg_tower) , intent(inout) :: mgt(:)
+      type(multifab) , intent(inout) :: rh(:)
+      type(multifab) , intent(in   ) :: divu_rhs(:)
+
+      real(kind=dp_t), pointer :: dp(:,:,:,:) 
+      real(kind=dp_t), pointer :: rp(:,:,:,:) 
+      integer        , pointer :: mp(:,:,:,:) 
+
+      integer :: i,n,dm,ng_r,ng_d
+      integer :: mglev_fine
+
+      dm   = get_dim(rh(nlevs))
+      ng_r = nghost(rh(nlevs))
+      ng_d = nghost(divu_rhs(nlevs))
+
+!     Create the regular single-level divergence.
+      do n = 1, nlevs
+         mglev_fine = mgt(n)%nlevels
+         do i = 1, nboxes(rh(n))
+            if ( remote(rh(n), i) ) cycle
+            rp => dataptr(rh(n)      , i)
+            dp => dataptr(divu_rhs(n), i)
+            mp => dataptr(mgt(n)%mm(mglev_fine),i)
+            select case (dm)
+               case (1)
+                 call subtract_divu_from_rh_1d(rp(:,1,1,1), ng_r, &
+                                               dp(:,1,1,1), ng_d, &
+                                               mp(:,1,1,1) )
+               case (2)
+                 call subtract_divu_from_rh_2d(rp(:,:,1,1), ng_r, &
+                                               dp(:,:,1,1), ng_d, &
+                                               mp(:,:,1,1) )
+               case (3)
+                 call subtract_divu_from_rh_3d(rp(:,:,:,1), ng_r, &
+                                               dp(:,:,:,1), ng_d, &
+                                               mp(:,:,:,1) )
+            end select
+         end do
+      end do
+
+    end subroutine subtract_divu_from_rh
+
+!   ********************************************************************************************* !
+
+    subroutine subtract_divu_from_rh_1d(rh,ng_rh,divu_rhs,ng_divu,mm)
+
+      integer        , intent(in   ) :: ng_rh,ng_divu
+      real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:)
+      real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:)
+      integer        , intent(inout) :: mm(0:)
+
+      integer         :: i,nx
+
+      nx = size(mm,dim=1) - 1
+
+      do i = 0,nx
+         if (.not. bc_dirichlet(mm(i),1,0)) &
+           rh(i) = rh(i) - divu_rhs(i)
+      end do
+
+    end subroutine subtract_divu_from_rh_1d
+
+!   ********************************************************************************************* !
+
+    subroutine subtract_divu_from_rh_2d(rh,ng_rh,divu_rhs,ng_divu,mm)
+
+      integer        , intent(in   ) :: ng_rh,ng_divu
+      real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:,  -ng_rh:)
+      real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:,-ng_divu:)
+      integer        , intent(inout) :: mm(0:,0:)
+
+      integer         :: i,j,nx,ny
+
+      nx = size(mm,dim=1) - 1
+      ny = size(mm,dim=2) - 1
+
+      do j = 0,ny
+      do i = 0,nx
+         if (.not. bc_dirichlet(mm(i,j),1,0)) &
+           rh(i,j) = rh(i,j) - divu_rhs(i,j)
+      end do
+      end do
+
+    end subroutine subtract_divu_from_rh_2d
+
+!   ********************************************************************************************* !
+
+    subroutine subtract_divu_from_rh_3d(rh,ng_rh,divu_rhs,ng_divu,mm)
+
+      integer        , intent(in   ) :: ng_rh,ng_divu
+      real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:,  -ng_rh:,   -ng_rh:)
+      real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:,-ng_divu:, -ng_divu:)
+      integer        , intent(inout) :: mm(0:,0:,0:)
+
+      integer         :: i,j,k,nx,ny,nz
+
+      nx = size(mm,dim=1) - 1
+      ny = size(mm,dim=2) - 1
+      nz = size(mm,dim=3) - 1
+
+      !$OMP PARALLEL DO PRIVATE(i,j,k)
+      do k = 0,nz
+         do j = 0,ny
+            do i = 0,nx
+               if (.not. bc_dirichlet(mm(i,j,k),1,0)) &
+                    rh(i,j,k) = rh(i,j,k) - divu_rhs(i,j,k)
+            end do
+         end do
+      end do
+      !$OMP END PARALLEL DO
+
+    end subroutine subtract_divu_from_rh_3d
+
+
 !   ********************************************************************************************* !
 
   ! have_divu stuff
