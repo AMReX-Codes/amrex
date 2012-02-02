@@ -410,7 +410,7 @@ subroutine mgt_alloc_nodal_sync()
   call build(mgts%vold(1)     , mgts%mla%la(1), nc = mgts%dim, ng = 1)
 
   call setval(mgts%sync_res(1),ZERO,all=.true.)
-  call setval(mgts%vold(1),ZERO,all=.true.)
+! wqz. unnecessary to call setval(mgts%vold(1),ZERO,all=.true.)
   
 end subroutine mgt_alloc_nodal_sync
 
@@ -482,7 +482,7 @@ subroutine mgt_set_vold_1d(lev, n, v_in, plo, phi, lo, hi)
   flev = lev+1
 
   vp => dataptr(mgts%vold(flev), fn)
-  vp(lo(1):hi(1),1,1,1) = v_in(lo(1):hi(1))
+  vp(lo(1)-1:hi(1)+1,1,1,1) = v_in(lo(1)-1:hi(1)+1)
 end subroutine mgt_set_vold_1d
 
 subroutine mgt_set_vold_2d(lev, n, v_in, plo, phi, lo, hi)
@@ -496,7 +496,8 @@ subroutine mgt_set_vold_2d(lev, n, v_in, plo, phi, lo, hi)
   flev = lev+1
 
   vp => dataptr(mgts%vold(flev), fn)
-  vp(lo(1):hi(1),lo(2):hi(2),1,1:2) = v_in(lo(1):hi(1),lo(2):hi(2),1:2)
+  vp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,1,1:2) =   &
+       v_in(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,1:2)
 end subroutine mgt_set_vold_2d
 
 subroutine mgt_set_vold_3d(lev, n, v_in, plo, phi, lo, hi)
@@ -510,8 +511,8 @@ subroutine mgt_set_vold_3d(lev, n, v_in, plo, phi, lo, hi)
   flev = lev+1
 
   vp => dataptr(mgts%vold(flev), fn)
-  vp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:3) = &
-       v_in(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:3)
+  vp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1,1:3) = &
+       v_in(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1,1:3)
 end subroutine mgt_set_vold_3d
 
 subroutine mgt_get_sync_res_1d(lev, n, res, plo, phi, lo, hi)

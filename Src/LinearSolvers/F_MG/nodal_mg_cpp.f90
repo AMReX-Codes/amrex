@@ -395,8 +395,7 @@ subroutine mgt_set_vel_1d(lev, n, vel_in, plo, phi, lo, hi, nv, iv)
   call mgt_verify_n("MGT_SET_VEL_1D", flev, fn, lo, hi)
 
   vp => dataptr(mgts%vel(flev), fn)
-  vp(:,:,:,:) = ZERO
-  vp(lo(1):hi(1),1,1,1) = vel_in(lo(1):hi(1),iv+1)
+  vp(lo(1)-1:hi(1)+1,1,1,1) = vel_in(lo(1)-1:hi(1)+1,iv+1)
 
 end subroutine mgt_set_vel_1d
 
@@ -428,8 +427,8 @@ subroutine mgt_set_vel_2d(lev, n, vel_in, plo, phi, lo, hi, nv, iv)
   call mgt_verify_n("MGT_SET_VEL_2D", flev, fn, lo, hi)
 
   vp => dataptr(mgts%vel(flev), fn)
-  vp(:,:,:,:) = ZERO
-  vp(lo(1):hi(1), lo(2):hi(2), 1, 1:2) = vel_in(lo(1):hi(1), lo(2):hi(2), iv+1:iv+2)
+  vp(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, 1, 1:2) =  &
+       vel_in(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, iv+1:iv+2)
 
 end subroutine mgt_set_vel_2d
 
@@ -461,9 +460,8 @@ subroutine mgt_set_vel_3d(lev, n, vel_in, plo, phi, lo, hi, nv, iv)
   call mgt_verify_n("MGT_SET_VEL_3D", flev, fn, lo, hi)
 
   vp => dataptr(mgts%vel(flev), fn)
-  vp(:,:,:,:) = ZERO
-  vp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1:3) =  &
-       vel_in(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), iv+1:iv+3)
+  vp(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, 1:3) =  &
+       vel_in(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, iv+1:iv+3)
 
 end subroutine mgt_set_vel_3d
 
