@@ -120,7 +120,8 @@ public:
 
   void set_nodal_coefficients(const MultiFab* aa[]);
   void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rhcc[], MultiFab* rhcrse[], 
-		     const Real& tol, const Real& abs_tol);
+		     const Real& tol, const Real& abs_tol, 
+		     int* lo_inflow=0, int* hi_inflow=0);
 
   void fill_sync_resid(MultiFab* sync_resid_crse, const MultiFab& msk, const MultiFab& vold,
 		       int isCoarse);

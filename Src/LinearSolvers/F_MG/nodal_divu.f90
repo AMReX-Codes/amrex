@@ -12,7 +12,7 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine divu(nlevs,mgt,unew,rh,ref_ratio,nodal)
+    subroutine divu(nlevs,mgt,unew,rh,ref_ratio,nodal, lo_inflow, hi_inflow)
 
       integer        , intent(in   ) :: nlevs
       type(mg_tower) , intent(inout) :: mgt(:)
@@ -20,6 +20,7 @@ contains
       type(multifab) , intent(inout) :: rh(:)
       integer        , intent(in   ) :: ref_ratio(:,:)
       logical        , intent(in   ) :: nodal(:)
+      integer        , intent(in   ) :: lo_inflow(3), hi_inflow(3)
 
       real(kind=dp_t), pointer :: unp(:,:,:,:) 
       real(kind=dp_t), pointer :: rhp(:,:,:,:) 
@@ -69,7 +70,8 @@ contains
 
          call bndry_reg_rr_build(brs_flx,la_fine,la_crse, ref_ratio(n-1,:), &
                                  pdc, nodal = nodal, other = .false.)
-         call crse_fine_divu(n,nlevs,rh(n-1),unew,brs_flx,ref_ratio(n-1,:),mgt)
+         call crse_fine_divu(n,nlevs,rh(n-1),unew,brs_flx,ref_ratio(n-1,:),mgt, &
+              lo_inflow, hi_inflow)
          call bndry_reg_destroy(brs_flx)
       end do
 
@@ -194,7 +196,8 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine crse_fine_divu(n_fine,nlevs,rh_crse,u,brs_flx,ref_ratio,mgt)
+    subroutine crse_fine_divu(n_fine,nlevs,rh_crse,u,brs_flx,ref_ratio,mgt, &
+         lo_inflow, hi_inflow)
 
       use nodal_interface_stencil_module, only : ml_fine_contrib
 
@@ -204,6 +207,7 @@ contains
       type(bndry_reg), intent(inout) :: brs_flx
       integer        , intent(in   ) :: ref_ratio(:)
       type(mg_tower) , intent(in   ) :: mgt(:)
+      integer        , intent(in   ) :: lo_inflow(3), hi_inflow(3)
 
       real(kind=dp_t), pointer :: unp(:,:,:,:) 
       real(kind=dp_t), pointer :: rhp(:,:,:,:) 
@@ -244,13 +248,13 @@ contains
           select case (dm)
              case (1)
                call grid_divu_1d(unp(:,1,1,1), rhp(:,1,1,1), mgt(n_fine)%dh(:,mglev_fine), &
-                                 mgt(n_fine)%face_type(i,:,:), ng)
+                                 mgt(n_fine)%face_type(i,:,:), ng, lo_inflow, hi_inflow)
              case (2)
                call grid_divu_2d(unp(:,:,1,:), rhp(:,:,1,1), mgt(n_fine)%dh(:,mglev_fine), &
-                                 mgt(n_fine)%face_type(i,:,:), ng)
+                                 mgt(n_fine)%face_type(i,:,:), ng, lo_inflow, hi_inflow)
              case (3)
                call grid_divu_3d(unp(:,:,:,:), rhp(:,:,:,1), mgt(n_fine)%dh(:,mglev_fine), &
-                                 mgt(n_fine)%face_type(i,:,:), ng)
+                                 mgt(n_fine)%face_type(i,:,:), ng, lo_inflow, hi_inflow)
           end select
       end do
 
@@ -287,19 +291,25 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine grid_divu_1d(u,rh,dx,face_type,ng)
+    subroutine grid_divu_1d(u,rh,dx,face_type,ng, lo_inflow, hi_inflow)
 
       integer        , intent(in   ) :: ng
       real(kind=dp_t), intent(inout) ::  u(-ng:)
       real(kind=dp_t), intent(inout) :: rh(-1:)
       real(kind=dp_t), intent(in   ) :: dx(:)
       integer        , intent(in   ) :: face_type(:,:)
+      integer        , intent(in   ) :: lo_inflow(:), hi_inflow(:)
 
       integer :: i,nx
       nx = size(rh,dim=1) - 3
 
-      u(-1) = ZERO
-      u(nx) = ZERO
+      if (face_type(1,1) .ne. BC_NEU .or. lo_inflow(1) .ne. 1) then
+         u(-1) = ZERO
+      end if
+
+      if (face_type(1,2) .ne. BC_NEU .or. hi_inflow(1) .ne. 1) then
+         u(nx) = ZERO
+      end if
 
       do i = 0,nx
          rh(i) = (u(i)-u(i-1)) / dx(1)
@@ -312,23 +322,39 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine grid_divu_2d(u,rh,dx,face_type,ng)
+    subroutine grid_divu_2d(u,rh,dx,face_type,ng, lo_inflow, hi_inflow)
 
       integer        , intent(in   ) :: ng
       real(kind=dp_t), intent(inout) ::  u(-ng:,-ng:,1:)
       real(kind=dp_t), intent(inout) :: rh(-1:,-1:)
       real(kind=dp_t), intent(in   ) :: dx(:)
       integer        , intent(in   ) :: face_type(:,:)
+      integer        , intent(in   ) :: lo_inflow(:), hi_inflow(:)
 
       integer :: i,j,nx,ny
       nx = size(rh,dim=1) - 3
       ny = size(rh,dim=2) - 3
 
-      u(-1,:,:) = ZERO
-      u(nx,:,:) = ZERO
-      u(:,-1,:) = ZERO
-      u(:,ny,:) = ZERO
+      ! x-veclocity
+      u(:,-1,1) = ZERO
+      u(:,ny,1) = ZERO
+      if (lo_inflow(1) .ne. 1 .or. face_type(1,1) .ne. BC_NEU) then
+         u(-1,0:ny-1,1) = ZERO
+      end if
+      if (hi_inflow(1) .ne. 1 .or. face_type(1,2) .ne. BC_NEU) then
+         u(nx,0:ny-1,1) = ZERO
+      end if
 
+      ! y-velocity
+      u(-1,:,2) = ZERO
+      u(nx,:,2) = ZERO
+      if (lo_inflow(2) .ne. 1 .or. face_type(2,1) .ne. BC_NEU) then
+         u(0:nx-1,-1,2) = ZERO
+      end if
+      if (hi_inflow(2) .ne. 1 .or. face_type(2,2) .ne. BC_NEU) then
+         u(0:nx-1,ny,2) = ZERO
+      end if
+      
       do j = 0,ny
       do i = 0,nx
          rh(i,j) = HALF * (u(i  ,j,1) + u(i  ,j-1,1) &
@@ -347,13 +373,14 @@ contains
 
 !   ********************************************************************************************* !
 
-    subroutine grid_divu_3d(u,rh,dx,face_type,ng)
+    subroutine grid_divu_3d(u,rh,dx,face_type,ng, lo_inflow, hi_inflow)
 
       integer        , intent(in   ) :: ng
       real(kind=dp_t), intent(inout) ::  u(-ng:,-ng:,-ng:,1:)
       real(kind=dp_t), intent(inout) :: rh(-1:,-1:,-1:)
       real(kind=dp_t), intent(in   ) :: dx(:)
       integer        , intent(in   ) :: face_type(:,:)
+      integer        , intent(in   ) :: lo_inflow(:), hi_inflow(:)
 
       integer :: i,j,k,nx,ny,nz
 
@@ -361,12 +388,41 @@ contains
       ny = size(rh,dim=2) - 3
       nz = size(rh,dim=3) - 3
 
-      u(-1,:,:,:) = ZERO
-      u(nx,:,:,:) = ZERO
-      u(:,-1,:,:) = ZERO
-      u(:,ny,:,:) = ZERO
-      u(:,:,-1,:) = ZERO
-      u(:,:,nz,:) = ZERO
+      ! x-velocity
+      u(:,-1,:,1) = ZERO
+      u(:,ny,:,1) = ZERO
+      u(:,:,-1,1) = ZERO
+      u(:,:,nz,1) = ZERO
+      if (lo_inflow(1) .ne. 1 .or. face_type(1,1) .ne. BC_NEU) then
+         u(-1,0:ny-1,0:nz-1,1) = ZERO
+      end if
+      if (hi_inflow(1) .ne. 1 .or. face_type(1,2) .ne. BC_NEU) then
+         u(nx,0:ny-1,0:nz-1,1) = ZERO
+      end if
+
+      ! y-velocity
+      u(-1,:,:,2) = ZERO
+      u(nx,:,:,2) = ZERO
+      u(:,:,-1,2) = ZERO
+      u(:,:,nz,2) = ZERO
+      if (lo_inflow(2) .ne. 1 .or. face_type(2,1) .ne. BC_NEU) then
+         u(0:nx-1,-1,0:nz-1,2) = ZERO
+      end if
+      if (hi_inflow(2) .ne. 1 .or. face_type(2,2) .ne. BC_NEU) then
+         u(0:nx-1,ny,0:nz-1,2) = ZERO
+      end if
+
+      ! z-velocity
+      u(-1,:,:,3) = ZERO
+      u(nx,:,:,3) = ZERO
+      u(:,-1,:,3) = ZERO
+      u(:,ny,:,3) = ZERO
+      if (lo_inflow(3) .ne. 1 .or. face_type(3,1) .ne. BC_NEU) then
+         u(0:nx-1,0:ny-1,-1,3) = ZERO
+      end if
+      if (hi_inflow(3) .ne. 1 .or. face_type(3,2) .ne. BC_NEU) then
+         u(0:nx-1,0:ny-1,nz,3) = ZERO
+      end if
 
       !$OMP PARALLEL DO PRIVATE(i,j,k)
       do k = 0,nz

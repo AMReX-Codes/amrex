@@ -1389,7 +1389,8 @@ MGT_Solver::get_fluxes(int lev,
 
 void 
 MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], MultiFab* rhcrse[],
-			  const Real& tol, const Real& abs_tol)
+			  const Real& tol, const Real& abs_tol,
+			  int* lo_inflow, int* hi_inflow)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -1431,7 +1432,7 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], Mult
 	}
     }
 
-  mgt_divu();
+  mgt_divu(lo_inflow, hi_inflow);
 
   {
     int lev = 0;

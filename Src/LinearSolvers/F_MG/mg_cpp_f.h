@@ -801,7 +801,7 @@ extern "C"
   
   void mgt_nodal_solve(const Real& tol, const Real& abs_tol);
   
-  void mgt_divu();
+  void mgt_divu(int* lo_inflow, int* hi_inflow);
   
   void mgt_newu();
 
