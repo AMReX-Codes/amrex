@@ -326,15 +326,18 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
 
 end subroutine mgt_finalize_nodal_stencil_lev
 
-subroutine mgt_divu()
+subroutine mgt_divu(lo_inflow, hi_inflow)
 
   use nodal_divu_module
   use nodal_cpp_mg_module
 
+  integer, intent(in) :: lo_inflow(3), hi_inflow(3)
+
   integer    :: n
   real(dp_t) :: r, rhmax
 
-  call divu(mgts%nlevel,mgts%mgt,mgts%vel,mgts%rh,mgts%rr,mgts%nodal)
+  call divu(mgts%nlevel,mgts%mgt,mgts%vel,mgts%rh,mgts%rr,mgts%nodal,  &
+       lo_inflow, hi_inflow)
 
   if (mgts%verbose > 0) then
      rhmax = norm_inf(mgts%rh(mgts%nlevel))
