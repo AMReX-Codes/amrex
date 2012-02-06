@@ -20,7 +20,7 @@ contains
       type(multifab) , intent(inout) :: rh(:)
       integer        , intent(in   ) :: ref_ratio(:,:)
       logical        , intent(in   ) :: nodal(:)
-      integer        , intent(in   ) :: lo_inflow(3), hi_inflow(3)
+      integer        , intent(in   ) :: lo_inflow(:), hi_inflow(:)
 
       real(kind=dp_t), pointer :: unp(:,:,:,:) 
       real(kind=dp_t), pointer :: rhp(:,:,:,:) 
@@ -207,7 +207,7 @@ contains
       type(bndry_reg), intent(inout) :: brs_flx
       integer        , intent(in   ) :: ref_ratio(:)
       type(mg_tower) , intent(in   ) :: mgt(:)
-      integer        , intent(in   ) :: lo_inflow(3), hi_inflow(3)
+      integer        , intent(in   ) :: lo_inflow(:), hi_inflow(:)
 
       real(kind=dp_t), pointer :: unp(:,:,:,:) 
       real(kind=dp_t), pointer :: rhp(:,:,:,:) 
