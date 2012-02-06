@@ -75,16 +75,17 @@ contains
     integer        , intent(in   ) :: face_type(:,:)
     
     integer :: i, j, k, nx, ny, nz
-    real(kind=dp_t) :: divv
 
     nx = size(msk,dim=1) - 2
     ny = size(msk,dim=2) - 2
     nz = size(msk,dim=3) - 2
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0, nz
     do j = 0, ny
        do i = 0, nx
-          divv = (vel(i  ,j  ,k  ,1) * msk(i  ,j  ,k  ) &
+          dvo(i,j,k) = FOURTH * (  &
+               & (vel(i  ,j  ,k  ,1) * msk(i  ,j  ,k  ) &
                +  vel(i  ,j-1,k  ,1) * msk(i  ,j-1,k  ) &
                +  vel(i  ,j  ,k-1,1) * msk(i  ,j  ,k-1) &
                +  vel(i  ,j-1,k-1,1) * msk(i  ,j-1,k-1) &
@@ -107,11 +108,11 @@ contains
                -  vel(i  ,j  ,k-1,3) * msk(i  ,j  ,k-1) & 
                -  vel(i-1,j  ,k-1,3) * msk(i-1,j  ,k-1) &
                -  vel(i  ,j-1,k-1,3) * msk(i  ,j-1,k-1) &
-               -  vel(i-1,j-1,k-1,3) * msk(i-1,j-1,k-1)) / dx(3)
-          dvo(i,j,k) = FOURTH * divv
+               -  vel(i-1,j-1,k-1,3) * msk(i-1,j-1,k-1)) / dx(3) )
        end do
     end do
     end do
+    !$OMP END PARALLEL DO
 
     if (face_type(1,1) == BC_NEU) dvo( 0,:,:) = TWO*dvo( 0,:,:)
     if (face_type(1,2) == BC_NEU) dvo(nx,:,:) = TWO*dvo(nx,:,:)
@@ -188,6 +189,7 @@ contains
     ny = size(msk,dim=2) - 2
     nz = size(msk,dim=3) - 2
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0, nz
     do j = 0, ny
        do i = 0, nx
@@ -200,6 +202,7 @@ contains
        end do
     end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine comp_sync_res_3d
 
@@ -299,6 +302,7 @@ contains
 
     allocate(tmp(0:nx,0:ny,0:nz))
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0, nz
     do j = 0, ny
     do i = 0, nx
@@ -314,6 +318,7 @@ contains
     end do
     end do
     end do
+    !$OMP END PARALLEL DO
 
     if (face_type(1,1) == BC_NEU) tmp( 0,:,:) = TWO*tmp( 0,:,:)
     if (face_type(1,2) == BC_NEU) tmp(nx,:,:) = TWO*tmp(nx,:,:)
@@ -322,6 +327,7 @@ contains
     if (face_type(3,1) == BC_NEU) tmp(:,:, 0) = TWO*tmp(:,:, 0)
     if (face_type(3,2) == BC_NEU) tmp(:,:,nz) = TWO*tmp(:,:,nz)
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0, nz
     do j = 0, ny
     do i = 0, nx
@@ -329,6 +335,7 @@ contains
     end do
     end do
     end do
+    !$OMP END PARALLEL DO
 
     deallocate(tmp)
 

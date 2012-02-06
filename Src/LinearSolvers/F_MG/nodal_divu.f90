@@ -1463,6 +1463,7 @@ contains
     
     allocate(rhtmp(0:nx,0:ny,0:nz))
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0,nz
     do j = 0,ny
     do i = 0,nx
@@ -1476,6 +1477,7 @@ contains
     end do
     end do
     end do
+    !$OMP END PARALLEL DO
 
     if (face_type(1,1) == BC_NEU) rhtmp( 0,:,:) = TWO*rhtmp( 0,:,:)
     if (face_type(1,2) == BC_NEU) rhtmp(nx,:,:) = TWO*rhtmp(nx,:,:)
@@ -1484,6 +1486,7 @@ contains
     if (face_type(3,1) == BC_NEU) rhtmp(:,:, 0) = TWO*rhtmp(:,:, 0)
     if (face_type(3,2) == BC_NEU) rhtmp(:,:,nz) = TWO*rhtmp(:,:,nz)
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0,nz
     do j = 0,ny
     do i = 0,nx
@@ -1491,6 +1494,7 @@ contains
     end do
     end do
     end do
+    !$OMP END PARALLEL DO
 
     deallocate(rhtmp)
     
@@ -2328,6 +2332,9 @@ contains
         i    = ii-1
       end if
 
+      !$OMP PARALLEL DO PRIVATE(j,k,lo_j_not,hi_j_not,lo_k_not,hi_k_not) &
+      !$OMP PRIVATE(lo_j_neu,hi_j_neu,lo_k_neu,hi_k_neu) &
+      !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux, fac)
       do k = lo(3),hi(3)
       do j = lo(2),hi(2)
 
@@ -2459,6 +2466,7 @@ contains
 
       end do
       end do
+      !$OMP END PARALLEL DO
 
 !   Lo/Hi j side
     else if (( side == -2) .or. (side == 2) ) then
@@ -2469,6 +2477,9 @@ contains
         j    = jj-1
       end if
 
+      !$OMP PARALLEL DO PRIVATE(i,k,lo_i_not,hi_i_not,lo_k_not,hi_k_not) &
+      !$OMP PRIVATE(lo_i_neu,hi_i_neu,lo_k_neu,hi_k_neu) &
+      !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux, fac)
       do k = lo(3),hi(3)
       do i = lo(1),hi(1)
 
@@ -2599,6 +2610,7 @@ contains
 
       end do
       end do
+      !$OMP END PARALLEL DO
 
 !   Lo/Hi k side
     else if (( side == -3) .or. (side == 3) ) then
@@ -2609,6 +2621,9 @@ contains
         k    = kk-1
       end if
 
+      !$OMP PARALLEL DO PRIVATE(i,j,lo_i_not,hi_i_not,lo_j_not,hi_j_not) &
+      !$OMP PRIVATE(lo_i_neu,hi_i_neu,lo_j_neu,hi_j_neu) &
+      !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux,fac)
       do j = lo(2),hi(2)
       do i = lo(1),hi(1)
 
@@ -2740,6 +2755,7 @@ contains
 
       end do
       end do
+      !$OMP END PARALLEL DO
 
     end if
 
