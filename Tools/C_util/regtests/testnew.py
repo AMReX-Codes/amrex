@@ -1193,9 +1193,14 @@ def testSuite(argv):
 
         try: shutil.copy(executable, outputDir)
         except IOError:
-           errorMsg = "    ERROR: compilation failed"
-           reportTestFailure(errorMsg, test, testDir, fullWebDir)
-           continue
+
+            # compilation failed.  First copy the make.out into the
+            # web directory and then report
+            shutil.copy("%s/%s.make.out" % (outputDir, test.name), fullWebDir)
+
+            errorMsg = "    ERROR: compilation failed"
+            reportTestFailure(errorMsg, test, testDir, fullWebDir, compString=compString)
+            continue
 
         try: shutil.copy(test.inputFile, outputDir)
         except IOError:
@@ -1884,7 +1889,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 #==============================================================================
 # reportTestAbort
 #==============================================================================
-def reportTestFailure(message, test, testDir, fullWebDir):
+def reportTestFailure(message, test, testDir, fullWebDir, compString=None):
     """ generate a simple report for an error encountered while performing 
         the test """
     
@@ -1903,6 +1908,7 @@ def reportTestFailure(message, test, testDir, fullWebDir):
     statusFile = "%s.status" % (test.name)
     sf = open(statusFile, 'w')
     sf.write("FAILED\n")
+
     sf.close()
 
     testfail("    %s FAILED" % (test.name))
@@ -1932,6 +1938,11 @@ def reportTestFailure(message, test, testDir, fullWebDir):
 
     hf.write("<P><H3 CLASS=\"failed\">Test Failed</H3></P>\n")
     hf.write("<P>%s</P>\n" % (message) )
+
+    if (not compString == None):
+        hf.write("<P>compliation command:\n %s\n" % (compString) )
+        hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
+
 
     # close
     hf.write("</BODY>\n")
