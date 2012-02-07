@@ -307,8 +307,9 @@ ifeq ($(COMP),g++)
       CXXDEBF += -fopenmp
     endif
 endif
+
 ifeq ($(FCOMP),g77)
-    FC := g77
+    FC := $(FCOMP)
     fC := $(FC)
     FFLAGS = -fno-second-underscore
     fFLAGS = -fno-second-underscore
@@ -323,9 +324,10 @@ ifeq ($(FCOMP),g77)
     fDEBF += -Wimplicit
     fDEBF +=   -ffortran-bounds-check
 endif
-ifeq ($(FCOMP),gfortran)
-    FC = gfortran
-    fC = $(FC)
+
+ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
+    FC := $(FCOMP)
+    fC := $(FC)
     FFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     fFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
@@ -344,9 +346,10 @@ ifeq ($(FCOMP),gfortran)
     fDEBF += -fopenmp
    endif
 endif
+
 ifeq ($(FCOMP),g95)
-    FC = g95
-    fC = $(FC)
+    FC := g95
+    fC := $(FC)
     FFLAGS = -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
     fFLAGS = -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell g95 -print-file-name=libf95.a)
@@ -734,10 +737,10 @@ else
 endif
 
 ifeq ($(GPROF),TRUE)
-   FFLAGS += -pg
+   FFLAGS   += -pg
    CXXFLAGS += -pg
-   fFLAGS += -pg
-   CFLAGS += -pg
+   fFLAGS   += -pg
+   CFLAGS   += -pg
 endif
 
 ifeq ($(PROFILE),TRUE)
