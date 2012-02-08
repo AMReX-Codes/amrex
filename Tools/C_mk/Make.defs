@@ -265,16 +265,16 @@ FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 #
 # Generic setup for using gcc/g++ ...
 #
-ifeq ($(COMP),gcc)
+ifeq ($(findstring gcc, $(COMP)), gcc)
     CXXPRFF    := -p
     CXXOPTF    += -g -O3 -fno-exceptions
     CXXDEBF    += -g -O1 -fno-exceptions -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
+    CXX	       := $(COMP) -ftemplate-depth-64 -Wno-deprecated
+    CC	       := $(COMP)
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-    CC	       := gcc
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
@@ -286,13 +286,14 @@ ifeq ($(COMP),gcc)
       CXXDEBF += -fopenmp
     endif
 endif
-ifeq ($(COMP),g++)
+
+ifeq ($(findstring g++, $(COMP)), g++)
     CXXPRFF    := -p
     CXXOPTF    += -g -O3 -fno-exceptions
     CXXDEBF    += -g -O1 -fno-exceptions -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
-    CC	       := gcc
+    CXX	       := $(COMP) -ftemplate-depth-64 -Wno-deprecated
+    CC	       := $(COMP)
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
