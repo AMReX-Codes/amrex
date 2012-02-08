@@ -77,7 +77,7 @@ ifeq ($(COMP),g95)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/g95.mak
 endif
 
-ifeq ($(COMP),gfortran)
+ifeq ($(findstring gfortran, $(COMP)), gfortran)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/gfortran.mak
 endif
 
