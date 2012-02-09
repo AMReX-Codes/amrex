@@ -57,6 +57,11 @@ class testObj:
         self.doVis = 0
         self.visVar = ""
 
+    def __cmp__(self, other):
+        return cmp(self.value(), other.value())
+
+    def value(self):
+        return self.name
 
 
 class suiteObj:
@@ -351,6 +356,7 @@ def LoadParams(file):
     if (anyMPI and mysuite.MPIcommand == ""):
         fail("ERROR: one or more tests are parallel, but MPIcommand is not defined")
 
+    testList.sort()
 
     return mysuite, testList
 
