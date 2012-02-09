@@ -1645,12 +1645,18 @@ contains
           ss(8,i,j) =   1.d0 * betay(i,j+1)
 
           ss(0,i,j) = -( ss(1,i,j) + ss(2,i,j) + ss(3,i,j) + ss(4,i,j)   &
-                        +ss(5,i,j) + ss(6,i,j) + ss(7,i,j) + ss(8,i,j) ) &
-                       + alpha(i,j)
+                        +ss(5,i,j) + ss(6,i,j) + ss(7,i,j) + ss(8,i,j) )
        end do
     end do
 
     ss = ss *  (ONE / (12.d0 * dh(1)**2))
+
+    ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          ss(0,i,j) = ss(0,i,j) + alpha(i,j)
+       end do
+    end do
 
   end subroutine s_minion_cross_fill_2d
 
@@ -2187,8 +2193,7 @@ contains
              ss(12,i,j,k) =   1.d0 * betaz(i,j,k+1)
              ss(0,i,j,k)  = -( ss(1,i,j,k) + ss( 2,i,j,k) + ss( 3,i,j,k) + ss( 4,i,j,k) &
                               +ss(5,i,j,k) + ss( 6,i,j,k) + ss( 7,i,j,k) + ss( 8,i,j,k) &
-                              +ss(9,i,j,k) + ss(10,i,j,k) + ss(11,i,j,k) + ss(12,i,j,k) ) &
-                             + alpha(i,j,k)
+                              +ss(9,i,j,k) + ss(10,i,j,k) + ss(11,i,j,k) + ss(12,i,j,k) )
           end do
        end do
     end do
