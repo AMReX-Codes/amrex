@@ -270,7 +270,7 @@ ifeq ($(findstring gcc, $(COMP)), gcc)
     CXXOPTF    += -g -O3 -fno-exceptions
     CXXDEBF    += -g -O1 -fno-exceptions -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       := $(COMP) -ftemplate-depth-64 -Wno-deprecated
+    CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
     CC	       := $(COMP)
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
@@ -293,7 +293,7 @@ ifeq ($(findstring g++, $(COMP)), g++)
     CXXDEBF    += -g -O1 -fno-exceptions -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := $(COMP) -ftemplate-depth-64 -Wno-deprecated
-    CC	       := $(COMP)
+    CC	       := gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
