@@ -29,8 +29,8 @@ program main
 
   integer :: lo(DM), hi(DM), istep
 
-  real(dp_t) :: prob_lo(DM), prob_hi(DM)
-  real(dp_t) :: dx, dt, time, start_time, end_time
+  double precision :: prob_lo(DM), prob_hi(DM)
+  double precision :: dx, dt, time, start_time, end_time
   
   logical :: is_periodic(DM)
 

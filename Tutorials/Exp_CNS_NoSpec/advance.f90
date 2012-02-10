@@ -2,7 +2,6 @@ module advance_module
 
   use bl_error_module
   use multifab_module
-  use layout_module
 
   implicit none
 
@@ -12,152 +11,216 @@ module advance_module
 
 contains
   
-  subroutine advance(data,dx,dt)
+  subroutine advance(U,dx,dt)
 
-    type(multifab) , intent(inout) :: data
-    real(kind=dp_t), intent(in   ) :: dx
-    real(kind=dp_t), intent(in   ) :: dt
+    type(multifab),   intent(inout) :: U
+    double precision, intent(in   ) :: dx
+    double precision, intent(in   ) :: dt
 
-    ! local variables
-    integer :: lo(data%dim), hi(data%dim)
-    integer :: dm, ng, i
+    double precision, parameter :: OneThird      = 1.d0/3.d0
+    double precision, parameter :: TwoThirds     = 2.d0/3.d0
+    double precision, parameter :: OneQuarter    = 1.d0/4.d0
+    double precision, parameter :: ThreeQuarters = 3.d0/4.d0
 
-    real(kind=dp_t), pointer :: dp(:,:,:,:)
+    integer        :: lo(U%dim), hi(U%dim)
+    integer        :: i, j, k, m, n, nc, ng
+    type(layout)   :: la
+    type(multifab) :: D, F, U13, U23
 
-    ! set these here so we don't have to pass them into the subroutine
-    dm = data%dim
-    ng = data%ng
+    double precision, pointer, dimension(:,:,:,:) ::   up, dp, fp, u13p, u23p
 
-    do i=1,nboxes(data)
-       if ( multifab_remote(data,i) ) cycle
-       dp => dataptr(data,i)
-       lo = lwb(get_box(data,i))
-       hi = upb(get_box(data,i))
-       select case(dm)
-       case (2)
-          call bl_error('we only support 3-D')
-       case (3)
-          call advance_3d(dp(:,:,:,:), ng, lo, hi, dx, dt)
-       end select
+    nc = ncomp(U)
+    ng = nghost(U)
+    la = get_layout(U)
+    !
+    ! Sync up ghost cells and periodic boundary cells in U.
+    !
+    call multifab_fill_boundary(U)
+
+    call multifab_build(D,  la,nc,ng)
+    call multifab_build(F,  la,nc,ng)
+    call multifab_build(U13,la,nc,ng)
+    call multifab_build(U23,la,nc,ng)
+    !
+    ! Calculate D at time N.
+    !
+    do n=1,nboxes(D)
+       if ( remote(D,n) ) cycle
+
+       dp => dataptr(D,n)
+
+       lo = lwb(get_box(D,n))
+       hi = upb(get_box(D,n))
+       !
+       ! Use U.
+       !
+       dp = 0.0d0
     end do
     !
-    ! This only fills periodic ghost cells and ghost cells for neighboring
-    ! grids at the same level.  Physical boundary ghost cells are filled
-    ! using multifab_physbc.  But this problem is periodic, so this
-    ! call is sufficient.
+    ! Calculate F at time N.
     !
-    call multifab_fill_boundary(data)
+    do n=1,nboxes(F)
+       if ( remote(F,n) ) cycle
+
+       fp => dataptr(F,n)
+
+       lo = lwb(get_box(F,n))
+       hi = upb(get_box(F,n))
+       !
+       ! Use U.
+       !
+       fp = 0.0d0
+    end do
+    !
+    ! Calculate U at time N+1/3.
+    !
+    do n=1,nboxes(U13)
+       if ( remote(U13,n) ) cycle
+
+       dp   => dataptr(D,n)
+       fp   => dataptr(F,n)
+       up   => dataptr(U,n)
+       u13p => dataptr(U13,n)
+
+       lo = lwb(get_box(U13,n))
+       hi = upb(get_box(U13,n))
+
+       do m = 1, nc
+          do k = lo(3),hi(3)
+             do j = lo(2),hi(2)
+                do i = lo(1),hi(1)
+                   u13p(i,j,k,m) = up(i,j,k,m) + dt * (dp(i,j,k,m) + fp(i,j,k,m))
+                end do
+             end do
+          end do
+       end do
+    end do
+    !
+    ! Sync up ghost cells and periodic boundary cells in U13.
+    !
+    call multifab_fill_boundary(U13)
+    !
+    ! Calculate D at time N+1/3.
+    !
+    do n=1,nboxes(D)
+       if ( remote(D,n) ) cycle
+
+       dp => dataptr(D,n)
+
+       lo = lwb(get_box(D,n))
+       hi = upb(get_box(D,n))
+       !
+       ! Use U13.
+       !
+       dp = 0.0d0
+    end do
+    !
+    ! Calculate F at time N+1/3.
+    !
+    do n=1,nboxes(F)
+       if ( remote(F,n) ) cycle
+
+       fp => dataptr(F,n)
+
+       lo = lwb(get_box(F,n))
+       hi = upb(get_box(F,n))
+       !
+       ! Use U13.
+       !
+       fp = 0.0d0
+    end do
+    !
+    ! Calculate U at time N+2/3.
+    !
+    do n=1,nboxes(U23)
+       if ( remote(U23,n) ) cycle
+
+       dp   => dataptr(D,n)
+       fp   => dataptr(F,n)
+       up   => dataptr(U,n)
+       u13p => dataptr(U13,n)
+       u23p => dataptr(U23,n)
+
+       lo = lwb(get_box(U23,n))
+       hi = upb(get_box(U23,n))
+
+       do m = 1, nc
+          do k = lo(3),hi(3)
+             do j = lo(2),hi(2)
+                do i = lo(1),hi(1)
+                   u23p(i,j,k,m) = ThreeQuarters * up(i,j,k,m) + &
+                        OneQuarter * (u13p(i,j,k,m) + dt * (dp(i,j,k,m) + fp(i,j,k,m)))
+                end do
+             end do
+          end do
+       end do
+    end do
+    !
+    ! Sync up ghost cells and periodic boundary cells in U23.
+    !
+    call multifab_fill_boundary(U13)
+    !
+    ! Calculate D at time N+2/3.
+    !
+    do n=1,nboxes(D)
+       if ( remote(D,n) ) cycle
+
+       dp => dataptr(D,n)
+
+       lo = lwb(get_box(D,n))
+       hi = upb(get_box(D,n))
+       !
+       ! Use U23.
+       !
+       dp = 0.0d0
+    end do
+    !
+    ! Calculate F at time N+2/3.
+    !
+    do n=1,nboxes(F)
+       if ( remote(F,n) ) cycle
+
+       fp => dataptr(F,n)
+
+       lo = lwb(get_box(F,n))
+       hi = upb(get_box(F,n))
+       !
+       ! Use U23.
+       !
+       fp = 0.0d0
+    end do
+    !
+    ! Calculate U at time N+1.
+    !
+    do n=1,nboxes(U23)
+       if ( remote(U23,n) ) cycle
+
+       dp   => dataptr(D,n)
+       fp   => dataptr(F,n)
+       up   => dataptr(U,n)
+       u23p => dataptr(U23,n)
+
+       lo = lwb(get_box(U23,n))
+       hi = upb(get_box(U23,n))
+
+       do m = 1, nc
+          do k = lo(3),hi(3)
+             do j = lo(2),hi(2)
+                do i = lo(1),hi(1)
+                   up(i,j,k,m) = OneThird * up(i,j,k,m) + &
+                        TwoThirds * (u23p(i,j,k,m) + dt * (dp(i,j,k,m) + fp(i,j,k,m)))
+                end do
+             end do
+          end do
+       end do
+    end do
+
+    call destroy(U23)
+    call destroy(U13)
+    call destroy(F)
+    call destroy(D)
 
   end subroutine advance
-
-  subroutine advance_3d(U, ng, lo, hi, dx, dt)
-
-    integer          :: lo(3), hi(3), ng
-    double precision :: U(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,2)
-    double precision :: dx, dt
-
-    double precision, allocatable :: dU(:,:,:,:), Unew(:,:,:,:)
-
-    double precision, parameter :: third     = 1.d0/3.d0
-    double precision, parameter :: twothirds = 2.d0/3.d0
-    double precision, parameter :: fac1      = -1.d0/12.d0
-    double precision, parameter :: fac2      =  4.d0/3.d0
-    double precision, parameter :: fac3      = -7.5d0
-    
-    integer          :: i,j,k,ndo
-
-    allocate(  dU(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,2))
-    allocate(Unew(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,2))
-
-    if (ng < 6) then
-       print *,'NOT ENOUGH GHOST CELLS IN ADVANCE ',ng
-       stop
-    end if
- 
-    ! First call to get RHS = Lap(U)
-    ndo = 4
-
-    do k = lo(3)-ndo,hi(3)+ndo
-       do j = lo(2)-ndo,hi(2)+ndo
-          do i = lo(1)-ndo,hi(1)+ndo
-
-             dU(i,j,k,1) = U(i,j,k,2)
-  
-             dU(i,j,k,2) = (  fac1 * ( U(i-2,j,k,1) + U(i+2,j,k,1) + &
-                                       U(i,j-2,k,1) + U(i,j+2,k,1) + &
-                                       U(i,j,k-2,1) + U(i,j,k+2,1) ) &
-                            + fac2 * ( U(i-1,j,k,1) + U(i+1,j,k,1) + &
-                                       U(i,j-1,k,1) + U(i,j+1,k,1) + &
-                                       U(i,j,k-1,1) + U(i,j,k+1,1) ) &
-                            + fac3 *   U(i,j,k,1)  ) / (dx*dx)
-          end do
-       end do
-    end do
-
-    ! First update
-    ! This Unew lives at t^{n+1}
-    Unew(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2) = & 
-                 U(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2) &
-         + dt * dU(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2)
- 
-    ! Second call to get RHS = Lap(Unew)
-    ndo = 2
-
-    do k = lo(3)-ndo,hi(3)+ndo
-       do j = lo(2)-ndo,hi(2)+ndo
-          do i = lo(1)-ndo,hi(1)+ndo
-
-             dU(i,j,k,1) = Unew(i,j,k,2)
-
-             dU(i,j,k,2) = (  fac1 * ( Unew(i-2,j,k,1) + Unew(i+2,j,k,1) + &
-                                       Unew(i,j-2,k,1) + Unew(i,j+2,k,1) + &
-                                       Unew(i,j,k-2,1) + Unew(i,j,k+2,1) ) &
-                            + fac2 * ( Unew(i-1,j,k,1) + Unew(i+1,j,k,1) + &
-                                       Unew(i,j-1,k,1) + Unew(i,j+1,k,1) + &
-                                       Unew(i,j,k-1,1) + Unew(i,j,k+1,1) ) &
-                            + fac3 *   Unew(i,j,k,1)  ) / (dx*dx)
-          end do
-       end do
-    end do
-
-    ! Second update
-    ! This Unew lives at t^{n+1/2}
-    Unew(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2) = & 
-                .75d0 *    U(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2) &
-              + .25d0 * Unew(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2) &
-         + dt * .25d0 *   dU(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2) 
-
-    ! Third call to get RHS = Lap(Unew)
-    ndo = 0
-
-    do k = lo(3)-ndo,hi(3)+ndo
-       do j = lo(2)-ndo,hi(2)+ndo
-          do i = lo(1)-ndo,hi(1)+ndo
-
-             dU(i,j,k,1) = Unew(i,j,k,2)
-
-             dU(i,j,k,2) = (  fac1 * ( Unew(i-2,j,k,1) + Unew(i+2,j,k,1) + &
-                                       Unew(i,j-2,k,1) + Unew(i,j+2,k,1) + &
-                                       Unew(i,j,k-2,1) + Unew(i,j,k+2,1) ) &
-                            + fac2 * ( Unew(i-1,j,k,1) + Unew(i+1,j,k,1) + &
-                                       Unew(i,j-1,k,1) + Unew(i,j+1,k,1) + &
-                                       Unew(i,j,k-1,1) + Unew(i,j,k+1,1) ) &
-                            + fac3 *   Unew(i,j,k,1)  ) / (dx*dx)
-
-          end do
-       end do
-    end do
-
-    ! Third update
-    ! This Unew lives at t^{n+1}
-    U(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2) =        &
-                third     *    U(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2)   &
-              + twothirds * Unew(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2)   &
-         + dt * twothirds *   dU(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,lo(3)-ndo:hi(3)+ndo,1:2)
-
-    deallocate(dU,Unew)
-
-  end subroutine advance_3d
 
 end module advance_module
 
