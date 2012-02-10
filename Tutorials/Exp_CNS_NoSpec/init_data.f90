@@ -1,5 +1,6 @@
 module init_data_module
 
+  use bl_error_module
   use multifab_module
   use layout_module
 
@@ -34,45 +35,20 @@ contains
        hi = upb(get_box(data,i))
        select case(dm)
        case (2)
-          call init_data_2d(dp(:,:,1,:), ng, lo, hi, prob_lo, dx)
+          call bl_error('we only support 3-D')
        case (3)
           call init_data_3d(dp(:,:,:,:), ng, lo, hi, prob_lo, dx)
        end select
     end do
-
-    ! fill ghost cells
-    ! this only fills periodic ghost cells and ghost cells for neighboring
+    !
+    ! This only fills periodic ghost cells and ghost cells for neighboring
     ! grids at the same level.  Physical boundary ghost cells are filled
     ! using multifab_physbc.  But this problem is periodic, so this
     ! call is sufficient.
+    !
     call multifab_fill_boundary(data)
 
   end subroutine init_data
-
-  subroutine init_data_2d(U, ng, lo, hi, prob_lo, dx)
-
-    integer          :: lo(2), hi(2), ng
-    double precision :: U(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,2)
-    double precision :: prob_lo(2)
-    double precision :: dx
- 
-    ! local varables
-    integer          :: i,j
-    double precision :: x,y,r2
-
-    do j = lo(2), hi(2)
-         y = prob_lo(2) + (dble(j)+0.5d0) * dx
-         do i = lo(1), hi(1)
-            x = prob_lo(1) + (dble(i)+0.5d0) * dx
-            r2 = (x*x + y*y) / 0.01
-
-            U(i,j,1) = 0.d0
-            U(i,j,2) = exp(-r2)
-
-         end do
-      end do
-
-    end subroutine init_data_2d
 
     subroutine init_data_3d(U, ng, lo, hi, prob_lo, dx)
 

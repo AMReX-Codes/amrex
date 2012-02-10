@@ -1,5 +1,6 @@
 module advance_module
 
+  use bl_error_module
   use multifab_module
   use layout_module
 
@@ -34,116 +35,20 @@ contains
        hi = upb(get_box(data,i))
        select case(dm)
        case (2)
-          call advance_2d(dp(:,:,1,:), ng, lo, hi, dx, dt)
+          call bl_error('we only support 3-D')
        case (3)
           call advance_3d(dp(:,:,:,:), ng, lo, hi, dx, dt)
        end select
     end do
-    
-    ! fill ghost cells
-    ! this only fills periodic ghost cells and ghost cells for neighboring
+    !
+    ! This only fills periodic ghost cells and ghost cells for neighboring
     ! grids at the same level.  Physical boundary ghost cells are filled
     ! using multifab_physbc.  But this problem is periodic, so this
     ! call is sufficient.
+    !
     call multifab_fill_boundary(data)
 
   end subroutine advance
-
-  subroutine advance_2d(U, ng, lo, hi, dx, dt)
-
-    integer          :: lo(2), hi(2), ng
-    double precision :: U(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,2)
-    double precision :: dx, dt
-
-    double precision, allocatable :: dU(:,:,:), Unew(:,:,:)
-
-    double precision, parameter :: third     = 1.d0/3.d0
-    double precision, parameter :: twothirds = 2.d0/3.d0
-    double precision, parameter :: fac1      = -1.d0/12.d0
-    double precision, parameter :: fac2      =  4.d0/3.d0
-    double precision, parameter :: fac3      = -5.0d0
-    
-    integer          :: i,j,ndo
-
-    allocate(  dU(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,2))
-    allocate(Unew(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,2))
-
-    if (ng < 6) then
-       print *,'NOT ENOUGH GHOST CELLS IN ADVANCE ',ng
-       stop
-    end if
-    
-    ! First call to get RHS = Lap(U)
-    ndo = 4
-
-    do j = lo(2)-ndo,hi(2)+ndo
-       do i = lo(1)-ndo,hi(1)+ndo
-
-          dU(i,j,1) = U(i,j,2)
-
-          dU(i,j,2) = (  fac1 * ( U(i-2,j,1) + U(i+2,j,1) + &
-                                  U(i,j-2,1) + U(i,j+2,1) ) &
-                       + fac2 * ( U(i-1,j,1) + U(i+1,j,1) + &
-                                  U(i,j-1,1) + U(i,j+1,1) ) &
-                       + fac3 *   U(i,j,1)  ) / (dx*dx)
-       end do
-    end do
-
-    ! First update
-    ! This Unew lives at t^{n+1}
-    Unew(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2) = & 
-                 U(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2) &
-         + dt * dU(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2)
-
-    ! Second call to get RHS = Lap(Unew)
-    ndo = 2
-
-    do j = lo(2)-ndo,hi(2)+ndo
-       do i = lo(1)-ndo,hi(1)+ndo
-
-          dU(i,j,1) = Unew(i,j,2)
-
-          dU(i,j,2) = (  fac1 * ( Unew(i-2,j,1) + Unew(i+2,j,1) + &
-                                  Unew(i,j-2,1) + Unew(i,j+2,1) ) &
-                       + fac2 * ( Unew(i-1,j,1) + Unew(i+1,j,1) + &
-                                  Unew(i,j-1,1) + Unew(i,j+1,1) ) &
-                       + fac3 *   Unew(i,j,1)  ) / (dx*dx)
-       end do
-    end do
-
-    ! Second update
-    ! This Unew lives at t^{n+1/2}
-    Unew(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2) =        &
-                .75d0 *    U(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2)   &
-              + .25d0 * Unew(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2)   &
-         + dt * .25d0 *   dU(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2)
-
-    ! Third call to get RHS = Lap(Unew)
-    ndo = 0
-
-    do j = lo(2)-ndo,hi(2)+ndo
-       do i = lo(1)-ndo,hi(1)+ndo
-
-          dU(i,j,1) = Unew(i,j,2)
-
-          dU(i,j,2) = (  fac1 * ( Unew(i-2,j,1) + Unew(i+2,j,1) + &
-                                  Unew(i,j-2,1) + Unew(i,j+2,1) ) &
-                       + fac2 * ( Unew(i-1,j,1) + Unew(i+1,j,1) + &
-                                  Unew(i,j-1,1) + Unew(i,j+1,1) ) &
-                       + fac3 *   Unew(i,j,1)  ) / (dx*dx)
-       end do
-    end do
-
-    ! Third update
-    ! This Unew lives at t^{n+1}
-    U(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2) =        &
-                third     *    U(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2)   &
-              + twothirds * Unew(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2)   &
-         + dt * twothirds *   dU(lo(1)-ndo:hi(1)+ndo,lo(2)-ndo:hi(2)+ndo,1:2)
-
-    deallocate(dU,Unew)
-
-  end subroutine advance_2d
 
   subroutine advance_3d(U, ng, lo, hi, dx, dt)
 
