@@ -40,7 +40,7 @@ public:
     //
     // Init data after construction. Must be called before timestepping.
     //
-    void init (Real strt_time, Real stop_time);
+    virtual void init (Real strt_time, Real stop_time);
     //
     // Set the timestep on each level.
     //
@@ -249,7 +249,7 @@ public:
     //
     // Do a complete integration cycle.
     //
-    void coarseTimeStep (Real stop_time);
+    virtual void coarseTimeStep (Real stop_time);
     //
     // Retrieve derived data. User is responsible for deleting pointer.
     //
