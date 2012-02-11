@@ -1,4 +1,4 @@
-module advance_module
+ module advance_module
 
   use bl_error_module
   use multifab_module
@@ -11,10 +11,9 @@ module advance_module
 
 contains
   
-  subroutine advance(U,dx,dt)
+  subroutine advance(U,dt)
 
     type(multifab),   intent(inout) :: U
-    double precision, intent(in   ) :: dx
     double precision, intent(in   ) :: dt
 
     double precision, parameter :: OneThird      = 1.d0/3.d0
@@ -25,22 +24,21 @@ contains
     integer        :: lo(U%dim), hi(U%dim)
     integer        :: i, j, k, m, n, nc, ng
     type(layout)   :: la
-    type(multifab) :: D, F, U13, U23
+    type(multifab) :: D, F, Unew
 
-    double precision, pointer, dimension(:,:,:,:) ::   up, dp, fp, u13p, u23p
+    double precision, pointer, dimension(:,:,:,:) :: up, dp, fp, unp
 
     nc = ncomp(U)
     ng = nghost(U)
     la = get_layout(U)
     !
-    ! Sync up ghost cells and periodic boundary cells in U.
+    ! Sync ghost cells and periodic boundary cells in U prior to calculating D & F
     !
     call multifab_fill_boundary(U)
 
-    call multifab_build(D,  la,nc,ng)
-    call multifab_build(F,  la,nc,ng)
-    call multifab_build(U13,la,nc,ng)
-    call multifab_build(U23,la,nc,ng)
+    call multifab_build(D,    la, nc, ng)
+    call multifab_build(F,    la, nc, ng)
+    call multifab_build(Unew, la, nc, ng)
     !
     ! Calculate D at time N.
     !
@@ -74,31 +72,31 @@ contains
     !
     ! Calculate U at time N+1/3.
     !
-    do n=1,nboxes(U13)
-       if ( remote(U13,n) ) cycle
+    do n=1,nboxes(U)
+       if ( remote(U,n) ) cycle
 
-       dp   => dataptr(D,n)
-       fp   => dataptr(F,n)
-       up   => dataptr(U,n)
-       u13p => dataptr(U13,n)
+       dp  => dataptr(D,   n)
+       fp  => dataptr(F,   n)
+       up  => dataptr(U,   n)
+       unp => dataptr(Unew,n)
 
-       lo = lwb(get_box(U13,n))
-       hi = upb(get_box(U13,n))
+       lo = lwb(get_box(U,n))
+       hi = upb(get_box(U,n))
 
        do m = 1, nc
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 do i = lo(1),hi(1)
-                   u13p(i,j,k,m) = up(i,j,k,m) + dt * (dp(i,j,k,m) + fp(i,j,k,m))
+                   unp(i,j,k,m) = up(i,j,k,m) + dt * (dp(i,j,k,m) + fp(i,j,k,m))
                 end do
              end do
           end do
        end do
     end do
     !
-    ! Sync up ghost cells and periodic boundary cells in U13.
+    ! Sync U^1/3 prior to calculating D & F.
     !
-    call multifab_fill_boundary(U13)
+    call multifab_fill_boundary(Unew)
     !
     ! Calculate D at time N+1/3.
     !
@@ -110,7 +108,7 @@ contains
        lo = lwb(get_box(D,n))
        hi = upb(get_box(D,n))
        !
-       ! Use U13.
+       ! Use Unew.
        !
        dp = 0.0d0
     end do
@@ -125,40 +123,39 @@ contains
        lo = lwb(get_box(F,n))
        hi = upb(get_box(F,n))
        !
-       ! Use U13.
+       ! Use Unew.
        !
        fp = 0.0d0
     end do
     !
     ! Calculate U at time N+2/3.
     !
-    do n=1,nboxes(U23)
-       if ( remote(U23,n) ) cycle
+    do n=1,nboxes(U)
+       if ( remote(U,n) ) cycle
 
-       dp   => dataptr(D,n)
-       fp   => dataptr(F,n)
-       up   => dataptr(U,n)
-       u13p => dataptr(U13,n)
-       u23p => dataptr(U23,n)
+       dp  => dataptr(D,   n)
+       fp  => dataptr(F,   n)
+       up  => dataptr(U,   n)
+       unp => dataptr(Unew,n)
 
-       lo = lwb(get_box(U23,n))
-       hi = upb(get_box(U23,n))
+       lo = lwb(get_box(U,n))
+       hi = upb(get_box(U,n))
 
        do m = 1, nc
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 do i = lo(1),hi(1)
-                   u23p(i,j,k,m) = ThreeQuarters * up(i,j,k,m) + &
-                        OneQuarter * (u13p(i,j,k,m) + dt * (dp(i,j,k,m) + fp(i,j,k,m)))
+                   unp(i,j,k,m) = ThreeQuarters * up(i,j,k,m) + &
+                        OneQuarter * (unp(i,j,k,m) + dt * (dp(i,j,k,m) + fp(i,j,k,m)))
                 end do
              end do
           end do
        end do
     end do
     !
-    ! Sync up ghost cells and periodic boundary cells in U23.
+    ! Sync U^2/3 prior to calculating D & F.
     !
-    call multifab_fill_boundary(U13)
+    call multifab_fill_boundary(Unew)
     !
     ! Calculate D at time N+2/3.
     !
@@ -170,7 +167,7 @@ contains
        lo = lwb(get_box(D,n))
        hi = upb(get_box(D,n))
        !
-       ! Use U23.
+       ! Use Unew.
        !
        dp = 0.0d0
     end do
@@ -185,38 +182,37 @@ contains
        lo = lwb(get_box(F,n))
        hi = upb(get_box(F,n))
        !
-       ! Use U23.
+       ! Use Unew.
        !
        fp = 0.0d0
     end do
     !
     ! Calculate U at time N+1.
     !
-    do n=1,nboxes(U23)
-       if ( remote(U23,n) ) cycle
+    do n=1,nboxes(U)
+       if ( remote(U,n) ) cycle
 
-       dp   => dataptr(D,n)
-       fp   => dataptr(F,n)
-       up   => dataptr(U,n)
-       u23p => dataptr(U23,n)
+       dp  => dataptr(D,   n)
+       fp  => dataptr(F,   n)
+       up  => dataptr(U,   n)
+       unp => dataptr(Unew,n)
 
-       lo = lwb(get_box(U23,n))
-       hi = upb(get_box(U23,n))
+       lo = lwb(get_box(U,n))
+       hi = upb(get_box(U,n))
 
        do m = 1, nc
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 do i = lo(1),hi(1)
                    up(i,j,k,m) = OneThird * up(i,j,k,m) + &
-                        TwoThirds * (u23p(i,j,k,m) + dt * (dp(i,j,k,m) + fp(i,j,k,m)))
+                        TwoThirds * (unp(i,j,k,m) + dt * (dp(i,j,k,m) + fp(i,j,k,m)))
                 end do
              end do
           end do
        end do
     end do
 
-    call destroy(U23)
-    call destroy(U13)
+    call destroy(Unew)
     call destroy(F)
     call destroy(D)
 
