@@ -96,6 +96,8 @@ program main
 
   call layout_build_ba(la,ba,pmask=is_periodic)
 
+  call destroy(ba)
+
   ! build multifab with 2 components and 6 ghost cells
   call multifab_build(data,la,2,6)
   
@@ -113,7 +115,7 @@ program main
         print*,'Advancing time step',istep
      end if
      
-     call advance(data,dx,dt)
+     call advance(data,dt)
 
      time = time + dt
 
@@ -124,6 +126,7 @@ program main
   end do
 
   call destroy(data)
+  call destroy(la)
 
   end_time = parallel_wtime()
 
