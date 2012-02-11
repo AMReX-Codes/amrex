@@ -1,17 +1,18 @@
 module nodal_sync_resid_module
   use bl_constants_module
+  use bc_functions_module
   use multifab_module
   implicit none
 
 contains
 
-  subroutine compute_divuo(divuo, mask, vold, dx)
-    implicit none
+  subroutine compute_divuo(divuo, mask, vold, dx, face_type)
     type(multifab) , intent(inout) :: divuo
     type(multifab) , intent(in   ) :: mask
     type(multifab) , intent(in   ) :: vold
     real(kind=dp_t), intent(in   ) :: dx(:)
-    
+    integer        , intent(in   ) :: face_type(:,:,:)
+
     integer :: i, dm
     real(kind=dp_t), pointer :: msk(:,:,:,:) 
     real(kind=dp_t), pointer :: vo(:,:,:,:) 
@@ -28,19 +29,20 @@ contains
        case (1)
           call bl_error('divuo: 1d not done')
        case (2)
-          call divuo_2d(dvo(:,:,1,1), msk(:,:,1,1), vo(:,:,1,:), dx)
+          call divuo_2d(dvo(:,:,1,1), msk(:,:,1,1), vo(:,:,1,:), dx, face_type(i,:,:))
        case (3)
-          call divuo_3d(dvo(:,:,:,1), msk(:,:,:,1), vo(:,:,:,:), dx)
+          call divuo_3d(dvo(:,:,:,1), msk(:,:,:,1), vo(:,:,:,:), dx, face_type(i,:,:))
        end select
     end do
 
   end subroutine compute_divuo
 
-  subroutine divuo_2d(dvo, msk, vel, dx)
+  subroutine divuo_2d(dvo, msk, vel, dx, face_type)
     real(kind=dp_t), intent(inout) :: dvo(-1:,-1:)
     real(kind=dp_t), intent(in   ) :: msk(-1:,-1:)
     real(kind=dp_t), intent(in   ) :: vel(-1:,-1:,:)
     real(kind=dp_t), intent(in   ) :: dx(:)
+    integer        , intent(in   ) :: face_type(:,:)
     
     integer :: i, j, nx, ny
     real(kind=dp_t) :: divv
@@ -58,25 +60,32 @@ contains
        end do
     end do
 
+    if (face_type(1,1) == BC_NEU) dvo( 0,:) = TWO*dvo( 0,:)
+    if (face_type(1,2) == BC_NEU) dvo(nx,:) = TWO*dvo(nx,:)
+    if (face_type(2,1) == BC_NEU) dvo(:, 0) = TWO*dvo(:, 0)
+    if (face_type(2,2) == BC_NEU) dvo(:,ny) = TWO*dvo(:,ny)
+
   end subroutine divuo_2d
 
-  subroutine divuo_3d(dvo, msk, vel, dx)
+  subroutine divuo_3d(dvo, msk, vel, dx, face_type)
     real(kind=dp_t), intent(inout) :: dvo(-1:,-1:,-1:)
     real(kind=dp_t), intent(in   ) :: msk(-1:,-1:,-1:)
     real(kind=dp_t), intent(in   ) :: vel(-1:,-1:,-1:,:)
     real(kind=dp_t), intent(in   ) :: dx(:)
+    integer        , intent(in   ) :: face_type(:,:)
     
     integer :: i, j, k, nx, ny, nz
-    real(kind=dp_t) :: divv
 
     nx = size(msk,dim=1) - 2
     ny = size(msk,dim=2) - 2
     nz = size(msk,dim=3) - 2
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0, nz
     do j = 0, ny
        do i = 0, nx
-          divv = (vel(i  ,j  ,k  ,1) * msk(i  ,j  ,k  ) &
+          dvo(i,j,k) = FOURTH * (  &
+               & (vel(i  ,j  ,k  ,1) * msk(i  ,j  ,k  ) &
                +  vel(i  ,j-1,k  ,1) * msk(i  ,j-1,k  ) &
                +  vel(i  ,j  ,k-1,1) * msk(i  ,j  ,k-1) &
                +  vel(i  ,j-1,k-1,1) * msk(i  ,j-1,k-1) &
@@ -99,16 +108,22 @@ contains
                -  vel(i  ,j  ,k-1,3) * msk(i  ,j  ,k-1) & 
                -  vel(i-1,j  ,k-1,3) * msk(i-1,j  ,k-1) &
                -  vel(i  ,j-1,k-1,3) * msk(i  ,j-1,k-1) &
-               -  vel(i-1,j-1,k-1,3) * msk(i-1,j-1,k-1)) / dx(3)
-          dvo(i,j,k) = FOURTH * divv
+               -  vel(i-1,j-1,k-1,3) * msk(i-1,j-1,k-1)) / dx(3) )
        end do
     end do
     end do
+    !$OMP END PARALLEL DO
+
+    if (face_type(1,1) == BC_NEU) dvo( 0,:,:) = TWO*dvo( 0,:,:)
+    if (face_type(1,2) == BC_NEU) dvo(nx,:,:) = TWO*dvo(nx,:,:)
+    if (face_type(2,1) == BC_NEU) dvo(:, 0,:) = TWO*dvo(:, 0,:)
+    if (face_type(2,2) == BC_NEU) dvo(:,ny,:) = TWO*dvo(:,ny,:)
+    if (face_type(3,1) == BC_NEU) dvo(:,:, 0) = TWO*dvo(:,:, 0)
+    if (face_type(3,2) == BC_NEU) dvo(:,:,nz) = TWO*dvo(:,:,nz)
 
   end subroutine divuo_3d
 
   subroutine comp_sync_res(sync_res, divuo, mask, sign_res)
-    implicit none
     type(multifab) , intent(inout) :: sync_res
     type(multifab) , intent(in   ) :: divuo
     type(multifab) , intent(in   ) :: mask
@@ -139,7 +154,6 @@ contains
   end subroutine comp_sync_res
 
   subroutine comp_sync_res_2d(res, dvo, msk, sgnr)
-    implicit none
     real(kind=dp_t), intent(inout) :: res(-1:,-1:)
     real(kind=dp_t), intent(in   ) :: dvo(-1:,-1:)
     real(kind=dp_t), intent(in   ) :: msk(-1:,-1:)
@@ -152,14 +166,11 @@ contains
 
     do j = 0, ny
        do i = 0, nx
-          if (all(msk(i-1:i,j-1:j) .eq. ONE)) then
-             res(i,j) = ZERO
-          else if (all(msk(i-1:i,j-1:j) .eq. ZERO)) then
-             res(i,j) = ZERO
-          else if (any(msk(i-1:i,j-1:j) .lt. ZERO)) then
-             res(i,j) = ZERO
-          else
+          if ( any(msk(i-1:i,j-1:j) .eq. ONE) .and. &
+               any(msk(i-1:i,j-1:j) .eq. ZERO) ) then
              res(i,j) = sgnr*res(i,j) + dvo(i,j)
+          else
+             res(i,j) = ZERO
           end if
        end do
     end do
@@ -167,7 +178,6 @@ contains
   end subroutine comp_sync_res_2d
 
   subroutine comp_sync_res_3d(res, dvo, msk, sgnr)
-    implicit none
     real(kind=dp_t), intent(inout) :: res(-1:,-1:,-1:)
     real(kind=dp_t), intent(in   ) :: dvo(-1:,-1:,-1:)
     real(kind=dp_t), intent(in   ) :: msk(-1:,-1:,-1:)
@@ -179,23 +189,214 @@ contains
     ny = size(msk,dim=2) - 2
     nz = size(msk,dim=3) - 2
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0, nz
     do j = 0, ny
        do i = 0, nx
-          if (all(msk(i-1:i,j-1:j,k-1:k) .eq. ONE)) then
-             res(i,j,k) = ZERO
-          else if (all(msk(i-1:i,j-1:j,k-1:k) .eq. ZERO)) then
-             res(i,j,k) = ZERO
-          else if (any(msk(i-1:i,j-1:j,k-1:k) .lt. ZERO)) then
-             res(i,j,k) = ZERO
-          else
+          if ( any(msk(i-1:i,j-1:j,k-1:k) .eq. ONE) .and. &
+               any(msk(i-1:i,j-1:j,k-1:k) .eq. ZERO) ) then
              res(i,j,k) = sgnr*res(i,j,k) + dvo(i,j,k)
+          else
+             res(i,j,k) = ZERO
           end if
        end do
     end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine comp_sync_res_3d
+
+  subroutine divuo_add_rhcc(divuo, rhcc, mask, face_type)
+    type(multifab) , intent(inout) :: divuo
+    type(multifab) , intent(inout) :: rhcc
+    type(multifab) , intent(in   ) :: mask
+    integer        , intent(in   ) :: face_type(:,:,:)
+    
+    integer :: i, dm
+    real(kind=dp_t), pointer :: msk(:,:,:,:) 
+    real(kind=dp_t), pointer :: dvo(:,:,:,:) 
+    real(kind=dp_t), pointer :: rc(:,:,:,:) 
+    
+    dm = get_dim(rhcc)
+
+    do i = 1, nboxes(divuo)
+       if (remote(divuo, i)) cycle
+       dvo => dataptr(divuo, i)
+       msk => dataptr(mask , i)
+       rc  => dataptr(rhcc , i)
+       select case (dm)
+       case (1)
+          call bl_error('divuo_rhcc_1d: 1d not done')
+       case (2)
+          call divuo_rhcc_2d(dvo(:,:,1,1), msk(:,:,1,1), rc(:,:,1,1), face_type(i,:,:))
+       case (3)
+          call divuo_rhcc_3d(dvo(:,:,:,1), msk(:,:,:,1), rc(:,:,:,1), face_type(i,:,:))
+       end select
+    end do
+
+  end subroutine divuo_add_rhcc
+
+  subroutine divuo_rhcc_2d(dvo, msk, rc, face_type)
+    real(kind=dp_t), intent(inout) :: dvo(-1:,-1:)
+    real(kind=dp_t), intent(in   ) :: msk(-1:,-1:)
+    real(kind=dp_t), intent(inout) ::  rc(-1:,-1:)
+    integer        , intent(in   ) :: face_type(:,:)
+    
+    integer :: i, j, nx, ny
+    real(kind=dp_t), pointer :: tmp(:,:)
+
+    nx = size(msk,dim=1) - 2
+    ny = size(msk,dim=2) - 2
+
+    rc(-1,:) = ZERO
+    rc(nx,:) = ZERO
+    rc(:,-1) = ZERO
+    rc(:,ny) = ZERO
+
+    allocate(tmp(0:nx,0:ny))
+
+    do j = 0, ny
+       do i = 0, nx
+          tmp(i,j) = FOURTH *   &
+               ( rc(i-1,j-1) * msk(i-1,j-1)  &
+               + rc(i  ,j-1) * msk(i  ,j-1)  &
+               + rc(i-1,j  ) * msk(i-1,j  )  &
+               + rc(i  ,j  ) * msk(i  ,j  ) )
+       end do
+    end do
+
+    if (face_type(1,1) == BC_NEU) tmp( 0,:) = TWO*tmp( 0,:)
+    if (face_type(1,2) == BC_NEU) tmp(nx,:) = TWO*tmp(nx,:)
+    if (face_type(2,1) == BC_NEU) tmp(:, 0) = TWO*tmp(:, 0)
+    if (face_type(2,2) == BC_NEU) tmp(:,ny) = TWO*tmp(:,ny)
+
+    do j = 0, ny
+       do i = 0, nx
+          dvo(i,j) = dvo(i,j) + tmp(i,j)
+       end do
+    end do
+
+    deallocate(tmp)
+
+  end subroutine divuo_rhcc_2d
+
+  subroutine divuo_rhcc_3d(dvo, msk, rc, face_type)
+    real(kind=dp_t), intent(inout) :: dvo(-1:,-1:,-1:)
+    real(kind=dp_t), intent(in   ) :: msk(-1:,-1:,-1:)
+    real(kind=dp_t), intent(inout) ::  rc(-1:,-1:,-1:)
+    integer        , intent(in   ) :: face_type(:,:)
+    
+    integer :: i, j, k, nx, ny, nz
+    real(kind=dp_t), pointer :: tmp(:,:,:)
+
+    nx = size(msk,dim=1) - 2
+    ny = size(msk,dim=2) - 2
+    nz = size(msk,dim=3) - 2
+
+    rc(-1,:,:) = ZERO
+    rc(nx,:,:) = ZERO
+    rc(:,-1,:) = ZERO
+    rc(:,ny,:) = ZERO
+    rc(:,:,-1) = ZERO
+    rc(:,:,nz) = ZERO
+
+    allocate(tmp(0:nx,0:ny,0:nz))
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = 0, nz
+    do j = 0, ny
+    do i = 0, nx
+       tmp(i,j,k) = EIGHTH *   &
+            ( rc(i-1,j-1,k-1) * msk(i-1,j-1,k-1)  &
+            + rc(i  ,j-1,k-1) * msk(i  ,j-1,k-1)  &
+            + rc(i-1,j  ,k-1) * msk(i-1,j  ,k-1)  &
+            + rc(i  ,j  ,k-1) * msk(i  ,j  ,k-1)  &
+            + rc(i-1,j-1,k  ) * msk(i-1,j-1,k  )  &
+            + rc(i  ,j-1,k  ) * msk(i  ,j-1,k  )  &
+            + rc(i-1,j  ,k  ) * msk(i-1,j  ,k  )  &
+            + rc(i  ,j  ,k  ) * msk(i  ,j  ,k  )  )
+    end do
+    end do
+    end do
+    !$OMP END PARALLEL DO
+
+    if (face_type(1,1) == BC_NEU) tmp( 0,:,:) = TWO*tmp( 0,:,:)
+    if (face_type(1,2) == BC_NEU) tmp(nx,:,:) = TWO*tmp(nx,:,:)
+    if (face_type(2,1) == BC_NEU) tmp(:, 0,:) = TWO*tmp(:, 0,:)
+    if (face_type(2,2) == BC_NEU) tmp(:,ny,:) = TWO*tmp(:,ny,:)
+    if (face_type(3,1) == BC_NEU) tmp(:,:, 0) = TWO*tmp(:,:, 0)
+    if (face_type(3,2) == BC_NEU) tmp(:,:,nz) = TWO*tmp(:,:,nz)
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = 0, nz
+    do j = 0, ny
+    do i = 0, nx
+       dvo(i,j,k) = dvo(i,j,k) + tmp(i,j,k)
+    end do
+    end do
+    end do
+    !$OMP END PARALLEL DO
+
+    deallocate(tmp)
+
+  end subroutine divuo_rhcc_3d
+
+  subroutine sync_res_fine_bndry(res_fine, face_type)
+    type(multifab), intent(inout) :: res_fine
+    integer, intent(in) :: face_type(:,:,:)
+
+    integer :: i, dm
+    real(kind=dp_t), pointer :: resp(:,:,:,:) 
+
+    dm = get_dim(res_fine)
+
+    do i = 1, nboxes(res_fine)
+       if (remote(res_fine, i)) cycle
+       resp => dataptr(res_fine, i)
+       select case (dm)
+       case (1)
+          call bl_error('sync_res_fine_bndry: 1d not done')
+       case (2)
+          call res_fine_bndry_2d(resp(:,:,1,1), face_type(i,:,:))
+       case (3)
+          call res_fine_bndry_3d(resp(:,:,:,1), face_type(i,:,:))
+       end select
+    end do
+
+  end subroutine sync_res_fine_bndry
+
+  subroutine res_fine_bndry_2d(res, face_type)
+    real(kind=dp_t), intent(inout) :: res(-1:,-1:)
+    integer        , intent(in   ) :: face_type(:,:)
+    integer :: nx, ny
+
+    nx = size(res,dim=1) - 3
+    ny = size(res,dim=2) - 3
+
+    if (face_type(1,1) == BC_NEU) res( 0,:) = HALF*res( 0,:)
+    if (face_type(1,2) == BC_NEU) res(nx,:) = HALF*res(nx,:)
+    if (face_type(2,1) == BC_NEU) res(:, 0) = HALF*res(:, 0)
+    if (face_type(2,2) == BC_NEU) res(:,ny) = HALF*res(:,ny)
+
+  end subroutine res_fine_bndry_2d
+
+  subroutine res_fine_bndry_3d(res, face_type)
+    real(kind=dp_t), intent(inout) :: res(-1:,-1:,-1:)
+    integer        , intent(in   ) :: face_type(:,:)
+    integer :: nx, ny, nz
+
+    nx = size(res,dim=1) - 3
+    ny = size(res,dim=2) - 3
+    nz = size(res,dim=3) - 3
+
+    if (face_type(1,1) == BC_NEU) res( 0,:,:) = HALF*res( 0,:,:)
+    if (face_type(1,2) == BC_NEU) res(nx,:,:) = HALF*res(nx,:,:)
+    if (face_type(2,1) == BC_NEU) res(:, 0,:) = HALF*res(:, 0,:)
+    if (face_type(2,2) == BC_NEU) res(:,ny,:) = HALF*res(:,ny,:)
+    if (face_type(3,1) == BC_NEU) res(:,:, 0) = HALF*res(:,:, 0)
+    if (face_type(3,2) == BC_NEU) res(:,:,nz) = HALF*res(:,:,nz)
+
+  end subroutine res_fine_bndry_3d
 
 end module nodal_sync_resid_module
 
@@ -216,7 +417,7 @@ subroutine mgt_alloc_nodal_sync()
   call build(mgts%vold(1)     , mgts%mla%la(1), nc = mgts%dim, ng = 1)
 
   call setval(mgts%sync_res(1),ZERO,all=.true.)
-  call setval(mgts%vold(1),ZERO,all=.true.)
+! wqz. unnecessary to call setval(mgts%vold(1),ZERO,all=.true.)
   
 end subroutine mgt_alloc_nodal_sync
 
@@ -288,7 +489,7 @@ subroutine mgt_set_vold_1d(lev, n, v_in, plo, phi, lo, hi)
   flev = lev+1
 
   vp => dataptr(mgts%vold(flev), fn)
-  vp(lo(1):hi(1),1,1,1) = v_in(lo(1):hi(1))
+  vp(lo(1)-1:hi(1)+1,1,1,1) = v_in(lo(1)-1:hi(1)+1)
 end subroutine mgt_set_vold_1d
 
 subroutine mgt_set_vold_2d(lev, n, v_in, plo, phi, lo, hi)
@@ -302,7 +503,8 @@ subroutine mgt_set_vold_2d(lev, n, v_in, plo, phi, lo, hi)
   flev = lev+1
 
   vp => dataptr(mgts%vold(flev), fn)
-  vp(lo(1):hi(1),lo(2):hi(2),1,1:2) = v_in(lo(1):hi(1),lo(2):hi(2),1:2)
+  vp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,1,1:2) =   &
+       v_in(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,1:2)
 end subroutine mgt_set_vold_2d
 
 subroutine mgt_set_vold_3d(lev, n, v_in, plo, phi, lo, hi)
@@ -316,8 +518,8 @@ subroutine mgt_set_vold_3d(lev, n, v_in, plo, phi, lo, hi)
   flev = lev+1
 
   vp => dataptr(mgts%vold(flev), fn)
-  vp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:3) = &
-       v_in(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:3)
+  vp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1,1:3) = &
+       v_in(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1,1:3)
 end subroutine mgt_set_vold_3d
 
 subroutine mgt_get_sync_res_1d(lev, n, res, plo, phi, lo, hi)
@@ -384,7 +586,12 @@ subroutine mgt_compute_sync_resid_crse()
 
   call build(divuo, mgts%mla%la(1), nc=1, ng=1, nodal=nodal)
 
-  call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev))
+  call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev), &
+       mgts%mgt(1)%face_type)
+
+  if (associated(mgts%rhcc)) then  ! only single level solve could get here
+     call divuo_add_rhcc(divuo, mgts%rhcc(1), mgts%sync_msk(1), mgts%mgt(1)%face_type)
+  end if
 
   call multifab_mult_mult(mgts%amr_coeffs(1), mgts%sync_msk(1))
 
@@ -425,7 +632,12 @@ subroutine mgt_compute_sync_resid_fine()
   call build(rh0, mgts%mla%la(1), nc=1, ng=1, nodal=nodal)
   call setval(rh0,ZERO,all=.true.)
 
-  call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev))
+  call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev), &
+       mgts%mgt(1)%face_type)
+
+  if (associated(mgts%rhcc)) then  
+     call divuo_add_rhcc(divuo, mgts%rhcc(1), mgts%sync_msk(1), mgts%mgt(1)%face_type)
+  end if
 
   if (mgts%stencil_type .eq. ST_CROSS) then
      call multifab_build(ss1, mgts%mla%la(1), 2*dm+1, 0, nodal, stencil=.true.)
@@ -443,6 +655,8 @@ subroutine mgt_compute_sync_resid_fine()
 
   sign_res = ONE
   call comp_sync_res(mgts%sync_res(1), divuo, mgts%sync_msk(1), sign_res)
+
+  call sync_res_fine_bndry(mgts%sync_res(1), mgts%mgt(1)%face_type)
 
   if (mgts%stencil_type .eq. ST_CROSS) then
      call destroy(ss1)

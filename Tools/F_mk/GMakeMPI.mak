@@ -35,12 +35,21 @@ ifeq ($(ARCH),Darwin)
       MPIHOME=/Users/cmalone/work/usr/local/intel
     endif 
 
-    mpi_include_dir = $(MPIHOME)/include
-    mpi_lib_dir = $(MPIHOME)/lib
+  # attempt at general support for Mac; only works if MPIHOME env var is set
+  # and applies some general defaults
+  else ifdef MPIHOME
+    FC = $(MPIHOME)/bin/mpif90
+    F90 = $(MPIHOME)/bin/mpif90
+    CC = $(MPIHOME)/bin/mpicc
+    CXX = $(MPIHOME)/bin/mpicxx
 
+  # otherwise break
   else
-    $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak)
+    $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)
   endif
+
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
 
 endif
 

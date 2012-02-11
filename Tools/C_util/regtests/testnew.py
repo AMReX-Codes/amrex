@@ -57,6 +57,11 @@ class testObj:
         self.doVis = 0
         self.visVar = ""
 
+    def __cmp__(self, other):
+        return cmp(self.value(), other.value())
+
+    def value(self):
+        return self.name
 
 
 class suiteObj:
@@ -173,7 +178,7 @@ def LoadParams(file):
             mysuite.testTopDir = checkTestDir(value)
 
         elif (opt == "webTopDir"):
-            mysuite.webTopDir = value
+            mysuite.webTopDir = os.path.normpath(value) + "/"
 
         elif (opt == "compareToolDir"):
             mysuite.compareToolDir = checkTestDir(value)
@@ -298,11 +303,17 @@ def LoadParams(file):
         invalid = 0
 
         # make sure all the require parameters are present
-        if (mytest.buildDir == "" or mytest.inputFile == "" or
-            (mysuite.sourceTree == "Parallel" and mytest.probinFile == "") or 
-            mytest.dim == -1 or mytest.needsHelmEOS == -1):
-            warning("   WARNING: manditory runtime parameters for test %s not set" % (sec))
-            invalid = 1
+        if (mytest.compileTest):
+            if (mytest.buildDir == ""):
+                warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
+                invalid = 1
+
+        else:
+            if (mytest.buildDir == "" or mytest.inputFile == "" or
+                (mysuite.sourceTree == "Parallel" and mytest.probinFile == "") or 
+                mytest.dim == -1 or mytest.needsHelmEOS == -1):
+                warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
+                invalid = 1
 
 
         # check the optional parameters
@@ -345,6 +356,7 @@ def LoadParams(file):
     if (anyMPI and mysuite.MPIcommand == ""):
         fail("ERROR: one or more tests are parallel, but MPIcommand is not defined")
 
+    testList.sort()
 
     return mysuite, testList
 
@@ -622,19 +634,33 @@ def makeCVSChangeLog(suite, root, outDir):
 # makeGITChangeLog
 #==============================================================================
 def makeGITChangeLog(suite, root, outDir):
-   """ generate a ChangeLog git repository named root.  outDir is the
-       full path to the directory where we will store the git output"""
+    """ generate a ChangeLog git repository named root.  outDir is the
+        full path to the directory where we will store the git output"""
 
-   os.chdir(suite.boxLibDir)
+    os.chdir(suite.boxLibDir)
 
 
-   print "\n"
-   bold("generating ChangeLog for %s/" % (root))
+    print "\n"
+    bold("generating ChangeLog for %s/" % (root))
     
-   systemCall("git log --name-only >& ChangeLog.%s" % (root) )
+    systemCall("git log --name-only >& ChangeLog.%s" % (root) )
+    
+    shutil.copy("ChangeLog.%s" % (root), outDir)
 
-   shutil.copy("ChangeLog.%s" % (root), outDir)
 
+#==============================================================================
+# allAreCompileTests
+#==============================================================================
+def allAreCompileTests(testList):
+    """ return 1 if all the tests in the list are compile tests """
+
+    allCompile = 1
+    for test in testList:
+        if (not test.compileTest):
+            allCompile = 0
+            break
+            
+    return allCompile
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -908,7 +934,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # read in the test information
     #--------------------------------------------------------------------------
-    bold("loading" + testFile)
+    bold("loading " + testFile)
 
     suite, testList = LoadParams(testFile)
 
@@ -922,13 +948,15 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # get the name of the benchmarks directory
     #--------------------------------------------------------------------------
-    benchDir = suite.testTopDir + suite.suiteName + "-benchmarks/"
-    if (not os.path.isdir(benchDir)):
-        if (make_benchmarks):
-            os.mkdir(benchDir)
-        else:
-            fail("ERROR: benchmark directory, %s, does not exist" % (benchDir))
+    allCompile = allAreCompileTests(testList)
 
+    if (not allCompile):
+        benchDir = suite.testTopDir + suite.suiteName + "-benchmarks/"
+        if (not os.path.isdir(benchDir)):
+            if (make_benchmarks):
+                os.mkdir(benchDir)
+            else:
+                fail("ERROR: benchmark directory, %s, does not exist" % (benchDir))
     
 
     #--------------------------------------------------------------------------
@@ -1048,6 +1076,7 @@ def testSuite(argv):
 
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
 
+    print "\n"
     bold("building the visualization tools...")
 
     compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
@@ -1193,9 +1222,14 @@ def testSuite(argv):
 
         try: shutil.copy(executable, outputDir)
         except IOError:
-           errorMsg = "    ERROR: compilation failed"
-           reportTestFailure(errorMsg, test, testDir, fullWebDir)
-           continue
+
+            # compilation failed.  First copy the make.out into the
+            # web directory and then report
+            shutil.copy("%s/%s.make.out" % (outputDir, test.name), fullWebDir)
+
+            errorMsg = "    ERROR: compilation failed"
+            reportTestFailure(errorMsg, test, testDir, fullWebDir, compString=compString)
+            continue
 
         try: shutil.copy(test.inputFile, outputDir)
         except IOError:
@@ -1579,7 +1613,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     print "\n"
     bold("creating new test report...")
-    reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, 
+    reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, no_update,
                       testList, testDir, testFile, fullWebDir)
 
 
@@ -1792,6 +1826,8 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
     hf.write(newHead)
 
+    hf.write("<P><b>build directory:</b> %s\n" % (test.buildDir) )
+    hf.write("<P>&nbsp;\n")
 
     if (not test.compileTest):
 
@@ -1809,8 +1845,6 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         hf.write("<P>&nbsp;\n")       
 
         # write out the information about the test
-        hf.write("<P><b>build directory:</b> %s\n" % (test.buildDir) )
-
         hf.write("<P><b>input file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
                  (test.name, test.inputFile, test.inputFile) )
 
@@ -1837,7 +1871,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     else:
         hf.write("<P><H3 CLASS=\"failed\">Compilation Failed</H3></P>\n")
 
-    hf.write("<P>compliation command:\n %s\n" % (compileCommand) )
+    hf.write("<P>compliation command:<BR>\n&nbsp; %s\n" % (compileCommand) )
     hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
 
     hf.write("<P>&nbsp;\n")
@@ -1884,7 +1918,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 #==============================================================================
 # reportTestAbort
 #==============================================================================
-def reportTestFailure(message, test, testDir, fullWebDir):
+def reportTestFailure(message, test, testDir, fullWebDir, compString=None):
     """ generate a simple report for an error encountered while performing 
         the test """
     
@@ -1903,6 +1937,7 @@ def reportTestFailure(message, test, testDir, fullWebDir):
     statusFile = "%s.status" % (test.name)
     sf = open(statusFile, 'w')
     sf.write("FAILED\n")
+
     sf.close()
 
     testfail("    %s FAILED" % (test.name))
@@ -1933,6 +1968,11 @@ def reportTestFailure(message, test, testDir, fullWebDir):
     hf.write("<P><H3 CLASS=\"failed\">Test Failed</H3></P>\n")
     hf.write("<P>%s</P>\n" % (message) )
 
+    if (not compString == None):
+        hf.write("<P>compliation command:\n %s\n" % (compString) )
+        hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
+
+
     # close
     hf.write("</BODY>\n")
     hf.write("</HTML>\n")    
@@ -1947,7 +1987,7 @@ def reportTestFailure(message, test, testDir, fullWebDir):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, 
+def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, no_update,
                       testList, testDir, testFile, fullWebDir):
     """ generate the master page for a single run of the test suite """
     
@@ -1995,27 +2035,30 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime,
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (testFile, testFile) )
 
-    hf.write("<p>&nbsp;\n")
-    hf.write("<p><b>CVS update was done at: </b>%s\n" % (cvsTime) )
+    if (not no_update):
+        hf.write("<p>&nbsp;\n")
+        hf.write("<p><b>CVS update was done at: </b>%s\n" % (cvsTime) )
 
-    if (suite.sourceTree == "Parallel"):
-        hf.write("<p>&nbsp;&nbsp;<b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
-                 ("cvs.Parallel.out", "cvs.Parallel.out") )
+        if (suite.sourceTree == "Parallel"):
+            hf.write("<p>&nbsp;&nbsp;<b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
+                     ("cvs.Parallel.out", "cvs.Parallel.out") )
 
-    hf.write("<p>&nbsp;&nbsp;<b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
-             ("cvs.fParallel.out", "cvs.fParallel.out") )        
-    hf.write("<p>&nbsp;\n")
+        hf.write("<p>&nbsp;&nbsp;<b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
+                 ("cvs.fParallel.out", "cvs.fParallel.out") )        
+        hf.write("<p>&nbsp;\n")
 
 
-    if (suite.sourceTree == "Parallel"):
+        if (suite.sourceTree == "Parallel"):
             hf.write("<p>&nbsp;&nbsp;<b>Parallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
                      ("ChangeLog.Parallel", "ChangeLog.Parallel") )
             
-    hf.write("<p>&nbsp;&nbsp;<b>fParallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-             ("ChangeLog.fParallel", "ChangeLog.fParallel") )        
+        hf.write("<p>&nbsp;&nbsp;<b>fParallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                 ("ChangeLog.fParallel", "ChangeLog.fParallel") )        
 
-    hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-             ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
+        hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                 ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
+    else:
+        hf.write("<p>No CVS / git update done\n")
 
     hf.write("<p>&nbsp;\n")    
 

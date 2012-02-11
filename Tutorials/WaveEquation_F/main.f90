@@ -94,6 +94,8 @@ program main
   ! build the layout, la
   call layout_build_ba(la,ba,pmask=is_periodic)
 
+  call destroy(ba)
+
   ! build multifab with 2 components and 6 ghost cells
   call multifab_build(data,la,2,6)
   
@@ -131,6 +133,7 @@ program main
 
   ! make sure to destroy the multifab or you'll leak memory
   call destroy(data)
+  call destroy(la)
 
   deallocate(lo,hi,is_periodic,prob_lo,prob_hi)
 

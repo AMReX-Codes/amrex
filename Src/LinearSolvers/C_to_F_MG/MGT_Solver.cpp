@@ -76,6 +76,7 @@ mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_1d;
 mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_1d;
 mgt_set     mgt_set_vold       = mgt_set_vold_1d;
 mgt_get     mgt_get_sync_res   = mgt_get_sync_res_1d;
+mgt_set     mgt_set_rhcc_nodal = mgt_set_rhcc_nodal_1d;
 #elif BL_SPACEDIM == 2
 mgt_get_ng  mgt_get_uu         = mgt_get_uu_2d;
 mgt_set     mgt_set_uu         = mgt_set_uu_2d;
@@ -100,6 +101,7 @@ mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_2d;
 mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_2d;
 mgt_set     mgt_set_vold       = mgt_set_vold_2d;
 mgt_get     mgt_get_sync_res   = mgt_get_sync_res_2d;
+mgt_set     mgt_set_rhcc_nodal = mgt_set_rhcc_nodal_2d;
 #elif BL_SPACEDIM == 3
 mgt_get_ng  mgt_get_uu         = mgt_get_uu_3d;
 mgt_set     mgt_set_uu         = mgt_set_uu_3d;
@@ -125,8 +127,9 @@ mgt_getni   mgt_get_vel        = mgt_get_vel_3d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_3d;
 mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_3d;
 mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_3d;
-mgt_set     mgt_set_vold       = mgt_set_vold_2d;
+mgt_set     mgt_set_vold       = mgt_set_vold_3d;
 mgt_get     mgt_get_sync_res   = mgt_get_sync_res_3d;
+mgt_set     mgt_set_rhcc_nodal = mgt_set_rhcc_nodal_3d;
 #endif
 
 MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
@@ -134,9 +137,10 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 		       const std::vector<BoxArray>& grids,
 		       const std::vector<DistributionMapping>& dmap,
 		       bool nodal,
-		       int _stencil_type)
+		       int _stencil_type,
+		       bool _have_rhcc)
   :
-  m_dmap(dmap), m_grids(grids), m_nodal(nodal)
+  m_dmap(dmap), m_grids(grids), m_nodal(nodal), have_rhcc(_have_rhcc)
 {
 
    if (!initialized)
@@ -209,6 +213,9 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 
   if (nodal) {
     mgt_nodal_finalize(&dx[0],&bc[0]);
+    if (have_rhcc) {
+      mgt_alloc_rhcc_nodal();
+    }
   } else {
     mgt_finalize(&dx[0],&bc[0]);
   }
@@ -226,9 +233,10 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 		       const std::vector<DistributionMapping>& dmap,
 		       bool nodal,
 		       int nc, 
-		       int ncomp)
+		       int ncomp,
+		       bool _have_rhcc)
   :
-  m_dmap(dmap), m_grids(grids), m_nodal(nodal)
+  m_dmap(dmap), m_grids(grids), m_nodal(nodal), have_rhcc(_have_rhcc)
 {
 
    if (!initialized)
@@ -309,6 +317,12 @@ MGT_Solver::Finalize()
     initialized = false;
 
     mgt_flush_copyassoc_cache();
+}
+
+void
+MGT_Solver::FlushFortranOutput()
+{
+    mgt_flush_output();
 }
 
 void
@@ -1374,7 +1388,9 @@ MGT_Solver::get_fluxes(int lev,
 }
 
 void 
-MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const Real& tol, const Real& abs_tol)
+MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], MultiFab* rhcrse[],
+			  const Real& tol, const Real& abs_tol,
+			  int* lo_inflow, int* hi_inflow)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -1416,26 +1432,48 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* Rhs[], const
 	}
     }
 
-  mgt_divu();
+  mgt_divu(lo_inflow, hi_inflow);
 
-  for ( int lev = 0; lev < m_nlevel; ++lev ) {
-    if (Rhs[lev] != 0) {
+  {
+    int lev = 0;
+    if (rhcrse[lev] != 0) {
 
-      BL_ASSERT( (*Rhs[lev]).nGrow() == 1 );
-
-      for (MFIter rmfi(*(Rhs[lev])); rmfi.isValid(); ++rmfi) {
+      BL_ASSERT( (*rhcrse[lev]).nGrow() == 1 );
+ 
+      for (MFIter rmfi(*(rhcrse[lev])); rmfi.isValid(); ++rmfi) {
 	int n = rmfi.index();
 	
 	const int* lo = rmfi.validbox().loVect();
 	const int* hi = rmfi.validbox().hiVect();
 	
-	const FArrayBox& rhsfab = (*(Rhs[lev]))[rmfi];
+	const FArrayBox& rhsfab = (*(rhcrse[lev]))[rmfi];
 	const Real* rhsd = rhsfab.dataPtr();
 	const int* rhslo = rhsfab.box().loVect();
 	const int* rhshi = rhsfab.box().hiVect();
 	mgt_add_rh_nodal(&lev, &n, rhsd, rhslo, rhshi, lo, hi);
       }
     }    
+  }
+
+  if (have_rhcc) {
+    BL_ASSERT(rhcc[0] != 0);
+    for ( int lev = 0; lev < m_nlevel; ++lev ) {
+      for (MFIter mfi(*(rhcc[lev])); mfi.isValid(); ++mfi) {
+	int n = mfi.index();
+
+	  const int* lo = mfi.validbox().loVect();
+	  const int* hi = mfi.validbox().hiVect();
+
+	  const FArrayBox& rhccfab = (*(rhcc[lev]))[mfi];
+	  const Real* p = rhccfab.dataPtr();
+	  const int* plo = rhccfab.box().loVect();
+	  const int* phi = rhccfab.box().hiVect();
+
+	  mgt_set_rhcc_nodal(&lev, &n, p, plo, phi, lo, hi);
+      }
+    }
+
+    mgt_add_divucc();
   }
 
   mgt_nodal_solve(tol,abs_tol);
@@ -1530,6 +1568,9 @@ void MGT_Solver::fill_sync_resid(MultiFab* sync_resid, const MultiFab& msk,
 MGT_Solver::~MGT_Solver()
 {
   if (m_nodal) {
+    if (have_rhcc) {
+      mgt_dealloc_rhcc_nodal();      
+    }
     mgt_nodal_dealloc();
   } else {
     mgt_dealloc();
