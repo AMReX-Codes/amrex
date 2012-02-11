@@ -43,6 +43,7 @@ module nodal_cpp_mg_module
      type(multifab) , pointer ::     sync_res(:) => Null()
      type(multifab) , pointer ::     sync_msk(:) => Null()
      type(multifab) , pointer ::         vold(:) => Null()
+     type(multifab) , pointer ::         rhcc(:) => Null()
   end type mg_server
 
   type(mg_server), save :: mgts
@@ -209,9 +210,7 @@ subroutine mgt_nodal_finalize(dx,bc)
 
   if (mgts%stencil_type .eq. ST_DENSE) then
      if (dm .eq. 3) then
-       i = mgts%mgt(nlev)%nlevels
-       if ( (mgts%mgt(nlev)%dh(1,i) .eq. mgts%mgt(nlev)%dh(2,i)) .and. &
-            (mgts%mgt(nlev)%dh(1,i) .eq. mgts%mgt(nlev)%dh(3,i)) ) then
+       if ( dx(nlev,1) .eq. dx(nlev,2) .and. dx(nlev,1) .eq. dx(nlev,3) ) then
          ns = 21
        else
          ns = 27
@@ -327,15 +326,18 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
 
 end subroutine mgt_finalize_nodal_stencil_lev
 
-subroutine mgt_divu()
+subroutine mgt_divu(lo_inflow, hi_inflow)
 
   use nodal_divu_module
   use nodal_cpp_mg_module
 
+  integer, intent(in) :: lo_inflow(3), hi_inflow(3)
+
   integer    :: n
   real(dp_t) :: r, rhmax
 
-  call divu(mgts%nlevel,mgts%mgt,mgts%vel,mgts%rh,mgts%rr,mgts%nodal)
+  call divu(mgts%nlevel,mgts%mgt,mgts%vel,mgts%rh,mgts%rr,mgts%nodal,  &
+       lo_inflow, hi_inflow)
 
   if (mgts%verbose > 0) then
      rhmax = norm_inf(mgts%rh(mgts%nlevel))
@@ -396,8 +398,7 @@ subroutine mgt_set_vel_1d(lev, n, vel_in, plo, phi, lo, hi, nv, iv)
   call mgt_verify_n("MGT_SET_VEL_1D", flev, fn, lo, hi)
 
   vp => dataptr(mgts%vel(flev), fn)
-  vp(:,:,:,:) = ZERO
-  vp(lo(1):hi(1),1,1,1) = vel_in(lo(1):hi(1),iv+1)
+  vp(lo(1)-1:hi(1)+1,1,1,1) = vel_in(lo(1)-1:hi(1)+1,iv+1)
 
 end subroutine mgt_set_vel_1d
 
@@ -429,8 +430,8 @@ subroutine mgt_set_vel_2d(lev, n, vel_in, plo, phi, lo, hi, nv, iv)
   call mgt_verify_n("MGT_SET_VEL_2D", flev, fn, lo, hi)
 
   vp => dataptr(mgts%vel(flev), fn)
-  vp(:,:,:,:) = ZERO
-  vp(lo(1):hi(1), lo(2):hi(2), 1, 1:2) = vel_in(lo(1):hi(1), lo(2):hi(2), iv+1:iv+2)
+  vp(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, 1, 1:2) =  &
+       vel_in(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, iv+1:iv+2)
 
 end subroutine mgt_set_vel_2d
 
@@ -462,9 +463,8 @@ subroutine mgt_set_vel_3d(lev, n, vel_in, plo, phi, lo, hi, nv, iv)
   call mgt_verify_n("MGT_SET_VEL_3D", flev, fn, lo, hi)
 
   vp => dataptr(mgts%vel(flev), fn)
-  vp(:,:,:,:) = ZERO
-  vp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1:3) =  &
-       vel_in(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), iv+1:iv+3)
+  vp(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, 1:3) =  &
+       vel_in(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, iv+1:iv+3)
 
 end subroutine mgt_set_vel_3d
 
@@ -822,3 +822,103 @@ subroutine mgt_get_nodal_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,botto
 
 end subroutine mgt_get_nodal_defaults
 
+
+subroutine mgt_alloc_rhcc_nodal()
+  use nodal_cpp_mg_module
+  implicit none
+  integer :: i
+
+  allocate(mgts%rhcc(mgts%nlevel))
+
+  do i = 1, mgts%nlevel
+     call build(mgts%rhcc(i), mgts%mla%la(i), nc = 1, ng = 1)
+     call setval(mgts%rhcc(i),ZERO,all=.true.)
+  end do
+
+end subroutine mgt_alloc_rhcc_nodal
+
+subroutine mgt_dealloc_rhcc_nodal()
+  use nodal_cpp_mg_module
+  implicit none
+  integer :: i
+
+  do i = 1, mgts%nlevel
+     call destroy(mgts%rhcc(i))
+  end do
+
+  deallocate(mgts%rhcc)
+
+end subroutine mgt_dealloc_rhcc_nodal
+
+subroutine mgt_set_rhcc_nodal_1d(lev, n, rh, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(in) :: rh(plo(1):phi(1))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+  call mgt_verify_n("MGT_SET_RHCC_NODAL_1D", flev, fn, lo, hi)
+
+  rp => dataptr(mgts%rhcc(flev), fn)
+  rp(lo(1):hi(1), 1,1,1) = rh(lo(1):hi(1))
+
+end subroutine mgt_set_rhcc_nodal_1d
+
+subroutine mgt_set_rhcc_nodal_2d(lev, n, rh, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
+  real(kind=dp_t), intent(in) :: rh(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+  
+  call mgt_verify_n("MGT_SET_RHCC_NODAL_2D", flev, fn, lo, hi)
+
+  rp => dataptr(mgts%rhcc(flev), fn)
+  rp(lo(1):hi(1), lo(2):hi(2),1,1) = rh(lo(1):hi(1), lo(2):hi(2))
+
+end subroutine mgt_set_rhcc_nodal_2d
+
+subroutine mgt_set_rhcc_nodal_3d(lev, n, rh, plo, phi, lo, hi)
+  use nodal_cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(in) :: rh(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), pointer :: rp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+  
+  call mgt_verify_n("MGT_SET_RHCC_NODAL_3D", flev, fn, lo, hi)
+
+  rp => dataptr(mgts%rhcc(flev), fn)
+  rp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3),1) = rh(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
+
+end subroutine mgt_set_rhcc_nodal_3d
+
+subroutine mgt_add_divucc()
+
+  use nodal_divu_module
+  use nodal_cpp_mg_module
+
+  integer    :: n
+  real(dp_t) :: r, rhmax
+
+  call divucc(mgts%nlevel,mgts%mgt,mgts%rhcc,mgts%rh,mgts%rr,mgts%nodal)
+
+  if (mgts%verbose > 0) then
+     rhmax = norm_inf(mgts%rh(mgts%nlevel))
+     do n = mgts%nlevel-1, 1, -1
+       r = norm_inf(mgts%rh(n), mgts%fine_mask(n))
+       rhmax = max(r, rhmax) 
+     end do 
+     if (parallel_IOProcessor()) then
+        print *,'F90: Source norm after adding rhs is ',rhmax
+     endif
+  end if
+
+end subroutine mgt_add_divucc

@@ -528,27 +528,47 @@ ifeq ($(HOST),c4)
       BL_MPI_LIBS +=$(shell mpif90 --showme:link)
 endif
 
-ifeq ($(findstring maudib, $(HOST)), maudib)
-     ifeq ($(FCOMP),gfortran)
-        CXX := mpic++
-	CC  := mpicc
-	FC  := mpif90
-	fC  := mpif90
-	F90 := mpif90
 
-	MPI_HOME=/Users/cmalone/work/usr/local
-     else
-	CXX := mpiic++
-	CC  := mpiicc
-	FC  := mpiif90
-	fC  := mpiif90
-	F90 := mpiif90
+ifeq ($(MACHINE), Darwin)
+  # specifics for maudib
+  ifeq ($(findstring maudib, $(HOST)), maudib)
+       ifeq ($(FCOMP),gfortran)
+          CXX := mpic++
+	  CC  := mpicc
+ 	  FC  := mpif90
+	  fC  := mpif90
+	  F90 := mpif90
+
+	  MPI_HOME=/Users/cmalone/work/usr/local
+       else
+	  CXX := mpiic++
+	  CC  := mpiicc
+	  FC  := mpiif90
+	  fC  := mpiif90
+	  F90 := mpiif90
 	
-	MPI_HOME=/Users/cmalone/work/usr/local/intel
+	  MPI_HOME=/Users/cmalone/work/usr/local/intel
 
-     endif
+       endif
 
-     LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-     INCLUDE_LOCATIONS += $(MPI_HOME)/include
-     LIBRARIES += -lmpi_f77
+  # sane defaults for general mac; assumes MPIHOME env var defined
+  else ifdef MPIHOME
+    CXX := $(MPIHOME)/bin/mpic++
+    CC  := $(MPIHOME)/bin/mpicc
+    FC  := $(MPIHOME)/bin/mpif90
+    fC  := $(MPIHOME)/bin/mpif90
+    F90 := $(MPIHOME)/bin/mpif90
+
+    MPI_HOME=$(MPIHOME)
+
+  # otherwise bail
+  else
+    $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)
+
+  endif
+
+  LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+  INCLUDE_LOCATIONS += $(MPI_HOME)/include
+  LIBRARIES += -lmpi_f77
+
 endif

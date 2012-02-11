@@ -214,6 +214,10 @@ contains
        mgt%dh(:,mgt%nlevels) = 1.0_dp_t
     end if
 
+    if ((.not. mgt%uniform_dh) .and. nodal_flag) then
+       call bl_error("nodal solver does not support nonuniform dh")
+    end if
+
     do i = mgt%nlevels-1, 1, -1
        mgt%dh(:,i) = mgt%dh(:,i+1)*2.0_dp_t
     end do

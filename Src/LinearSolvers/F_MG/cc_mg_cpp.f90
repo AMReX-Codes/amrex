@@ -100,6 +100,10 @@ subroutine mgt_flush_copyassoc_cache()
   call layout_flush_copyassoc_cache()
 end subroutine mgt_flush_copyassoc_cache
 
+subroutine mgt_flush_output()
+  call flush(6)
+end subroutine mgt_flush_output
+
 subroutine mgt_use_alltoallv ()
   use multifab_module
   call multifab_set_alltoallv(.true.)
