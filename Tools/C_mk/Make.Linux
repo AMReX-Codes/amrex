@@ -11,12 +11,12 @@ ifeq ($(COMP),PathScale)
   endif
 
   ifeq ($(BL_FAST),TRUE)
-    CXXOPTF += -Ofast -fno-exceptions -Wno-deprecated
+    CXXOPTF += -Ofast -Wno-deprecated
   else
-    CXXOPTF += -O3 -fno-exceptions -Wno-deprecated
+    CXXOPTF += -O3 -Wno-deprecated
   endif
 
-  CXXDEBF += -O0 -fno-exceptions -g -Wno-deprecated
+  CXXDEBF += -O0 -g -Wno-deprecated
 
   ifeq ($(USE_OMP),TRUE)
     CXXOPTF += -mp
@@ -27,8 +27,8 @@ ifeq ($(COMP),Cray)
   CXX = CC
   CC  = craycc
 
-  CXXOPTF += -O1 -h noexceptions
-  CXXDEBF += -g -O0 -h noexceptions
+  CXXOPTF += -O1
+  CXXDEBF += -g -O0
 
   ifneq ($(USE_OMP),TRUE)
     CXXOPTF += -h noomp
@@ -44,10 +44,10 @@ ifeq ($(COMP),PGI)
       CXXOPTF += -O
     else
       COPTF += -fast
-      CXXOPTF += -fast -Minline=levels:10 --no_exceptions
+      CXXOPTF += -fast -Minline=levels:10
     endif
   else
-    CXXOPTF += -O --no_exceptions
+    CXXOPTF += -O
   endif
 
 #  ifneq ($(USE_MPI),TRUE)
@@ -368,8 +368,8 @@ endif
 ifeq ($(WHICHLINUX), ATLAS)
   ifeq ($(COMP),Intel)
     CXX = icpc
-#    CXXOPTF = -O3 -ip -mp -fno-exceptions
-    CXXOPTF = -O3 -ip -fp-model fast=2 -fno-exceptions
+#    CXXOPTF = -O3 -ip -mp
+    CXXOPTF = -O3 -ip -fp-model fast=2
     CXXDEBF = -g
     ifeq ($(USE_MPI),TRUE)
 # MAS: 4.17.2008
@@ -390,7 +390,7 @@ endif
 ifeq ($(WHICHLINUX), YANA)
   ifeq ($(COMP),Intel)
     CXX = icpc
-    CXXOPTF = -O3 -ip -mp -fno-exceptions
+    CXXOPTF = -O3 -ip -mp
     CXXDEBF = -g
     ifeq ($(USE_MPI),TRUE)
 # MAS: 4.17.2008
@@ -412,7 +412,7 @@ ifeq ($(WHICHLINUX), YANA)
   endif
   ifeq ($(COMP),PGI)
     CXX = pgCC
-    CXXOPTF = -fast --no_exceptions
+    CXXOPTF = -fast
     CXXDEBF = -g -O0
     FC = pgif90
     fC = pgif90
@@ -425,7 +425,7 @@ endif
 ifeq ($(WHICHLINUX), HYPERION)
   ifeq ($(COMP),Intel)
     CXX = icpc
-    CXXOPTF = -O3 -ip -mp -fno-exceptions
+    CXXOPTF = -O3 -ip -mp
     CXXDEBF = -g
     ifeq ($(USE_MPI),TRUE)
 # MAS: 4.17.2008
@@ -453,7 +453,7 @@ ifeq ($(WHICHLINUX), HYPERION)
   endif
   ifeq ($(COMP),PGI)
     CXX = pgCC
-    CXXOPTF = -fast --no_exceptions
+    CXXOPTF = -fast
     CXXDEBF = -g
     FC = pgf90
     fC = pgf90
@@ -486,7 +486,7 @@ ifeq ($(WHICHLINUX), COLUMBIA)
   ifeq ($(COMP),Intel)
     FOPTF   += -ip
     fOPTF   += -ip
-    CXXOPTF += -ip -fno-exceptions
+    CXXOPTF += -ip
   endif
   DEFINES += -DCOLUMBIA
 endif
