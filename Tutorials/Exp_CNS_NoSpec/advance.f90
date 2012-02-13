@@ -36,11 +36,11 @@ contains
 
     integer          :: lo(U%dim), hi(U%dim)
     integer          :: i, j, k, m, n, nc, ng
-    double precision :: dx(U%dim)
+    double precision :: dx(U%dim), courno, courno_proc
     type(layout)     :: la
-    type(multifab)   :: D, F, Unew
+    type(multifab)   :: D, F, Unew, Q
 
-    double precision, pointer, dimension(:,:,:,:) :: up, dp, fp, unp
+    double precision, pointer, dimension(:,:,:,:) :: up, dp, fp, unp, qp
 
     nc = ncomp(U)
     ng = nghost(U)
@@ -50,9 +50,32 @@ contains
     !
     call multifab_fill_boundary(U)
 
-    call multifab_build(D,    la, nc, ng)
-    call multifab_build(F,    la, nc, ng)
+    call multifab_build(D,    la, nc, 0)
+    call multifab_build(F,    la, nc, 0)
+    call multifab_build(Q,    la, nc, ng+1)
     call multifab_build(Unew, la, nc, ng)
+    !
+    ! Calculate primitive variables based on U.
+    !
+    courno_proc = 1.0e-50
+
+    do n=1,nboxes(Q)
+       if ( remote(Q,n) ) cycle
+
+       up => dataptr(U,n)
+       qp => dataptr(Q,n)
+
+       lo = lwb(get_box(Q,n))
+       hi = upb(get_box(Q,n))
+
+       call ctoprim(lo,hi,up,qp,courno_proc,dx,ng)
+    end do
+
+    call parallel_reduce(courno, courno_proc, MPI_MAX)
+
+    if ( parallel_IOProcessor() ) then
+       print*, "courno = ", courno
+    end if
     !
     ! Calculate D at time N.
     !
@@ -74,14 +97,14 @@ contains
     do n=1,nboxes(F)
        if ( remote(F,n) ) cycle
 
+       up => dataptr(U,n)
+       qp => dataptr(Q,n)
        fp => dataptr(F,n)
 
        lo = lwb(get_box(F,n))
        hi = upb(get_box(F,n))
-       !
-       ! Use U.
-       !
-       fp = 0.0d0
+
+       call hypterm(lo,hi,ng,dx,up,qp,fp)
     end do
     !
     ! Calculate U at time N+1/3.
@@ -112,6 +135,29 @@ contains
     !
     call multifab_fill_boundary(Unew)
     !
+    ! Calculate primitive variables based on U^1/3.
+    !
+    courno_proc = 1.0e-50
+
+    do n=1,nboxes(Q)
+       if ( remote(Q,n) ) cycle
+
+       up => dataptr(Unew,n)
+       qp => dataptr(Q,   n)
+
+       lo = lwb(get_box(Q,n))
+       hi = upb(get_box(Q,n))
+
+       call ctoprim(lo,hi,up,qp,courno_proc,dx,ng)
+    end do
+
+    !call parallel_reduce(courno, courno_proc, MPI_MAX)
+
+    !if ( parallel_IOProcessor() ) then
+    !   print*, "courno = ", courno
+    !end if
+
+    !
     ! Calculate D at time N+1/3.
     !
     do n=1,nboxes(D)
@@ -132,14 +178,14 @@ contains
     do n=1,nboxes(F)
        if ( remote(F,n) ) cycle
 
-       fp => dataptr(F,n)
+       up => dataptr(Unew,n)
+       qp => dataptr(Q,   n)
+       fp => dataptr(F,   n)
 
        lo = lwb(get_box(F,n))
        hi = upb(get_box(F,n))
-       !
-       ! Use Unew.
-       !
-       fp = 0.0d0
+
+       call hypterm(lo,hi,ng,dx,up,qp,fp)
     end do
     !
     ! Calculate U at time N+2/3.
@@ -171,6 +217,29 @@ contains
     !
     call multifab_fill_boundary(Unew)
     !
+    ! Calculate primitive variables based on U^2/3.
+    !
+    courno_proc = 1.0e-50
+
+    do n=1,nboxes(Q)
+       if ( remote(Q,n) ) cycle
+
+       up => dataptr(Unew,n)
+       qp => dataptr(Q,   n)
+
+       lo = lwb(get_box(Q,n))
+       hi = upb(get_box(Q,n))
+
+       call ctoprim(lo,hi,up,qp,courno_proc,dx,ng)
+    end do
+
+    !call parallel_reduce(courno, courno_proc, MPI_MAX)
+
+    !if ( parallel_IOProcessor() ) then
+    !   print*, "courno = ", courno
+    !end if
+
+    !
     ! Calculate D at time N+2/3.
     !
     do n=1,nboxes(D)
@@ -191,14 +260,14 @@ contains
     do n=1,nboxes(F)
        if ( remote(F,n) ) cycle
 
-       fp => dataptr(F,n)
+       up => dataptr(Unew,n)
+       qp => dataptr(Q,   n)
+       fp => dataptr(F,   n)
 
        lo = lwb(get_box(F,n))
        hi = upb(get_box(F,n))
-       !
-       ! Use Unew.
-       !
-       fp = 0.0d0
+
+       call hypterm(lo,hi,ng,dx,up,qp,fp)
     end do
     !
     ! Calculate U at time N+1.
@@ -227,18 +296,19 @@ contains
     end do
 
     call destroy(Unew)
+    call destroy(Q)
     call destroy(F)
     call destroy(D)
 
   end subroutine advance
 
-  subroutine ctoprim (lo,hi,uin,q,courno,dx,ng)
+  subroutine ctoprim (lo,hi,u,q,courno,dx,ng)
 
-    integer,          intent(in ) :: lo(3), hi(3), ng
-    double precision, intent(in ) :: uin(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,5)
-    double precision, intent(in ) :: dx(3)
-    double precision, intent(out) :: q(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,6)
-    double precision, intent(out) :: courno
+    integer,          intent(in   ) :: lo(3), hi(3), ng
+    double precision, intent(in   ) :: u(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,5)
+    double precision, intent(in   ) :: dx(3)
+    double precision, intent(out  ) :: q(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,6)
+    double precision, intent(inout) :: courno
 
     integer          :: i, j, k
     double precision :: c, eint, courx, coury, courz, courmx, courmy, courmz
@@ -251,10 +321,11 @@ contains
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
 
-             q(i,j,k,1) = uin(i,j,k,1)
-             q(i,j,k,2) = uin(i,j,k,2)/uin(i,j,k,1)
-             q(i,j,k,3) = uin(i,j,k,3)/uin(i,j,k,1)
-             q(i,j,k,4) = uin(i,j,k,4)/uin(i,j,k,1)
+             q(i,j,k,1) = u(i,j,k,1)
+             q(i,j,k,2) = u(i,j,k,2)/u(i,j,k,1)
+             q(i,j,k,3) = u(i,j,k,3)/u(i,j,k,1)
+             q(i,j,k,4) = u(i,j,k,4)/u(i,j,k,1)
+
           enddo
        enddo
     enddo
@@ -266,20 +337,15 @@ contains
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
 
-             eint =  uin(i,j,k,5)/uin(i,j,k,1)      & 
+             eint =  u(i,j,k,5)/u(i,j,k,1)      & 
                   - 0.5d0*( q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4) **2)
-             q(i,j,k,5) = (GAMMA-1.d0)*eint*uin(i,j,k,1)
+             q(i,j,k,5) = (GAMMA-1.d0)*eint*u(i,j,k,1)
              q(i,j,k,6) = eint/CV
 
           end do
        end do
     end do
     !$OMP END PARALLEL DO
-
-    ! Compute running max of Courant number over grids
-    courmx = courno
-    courmy = courno
-    courmz = courno
 
     !$OMP PARALLEL DO PRIVATE(i,j,k,courx,coury,courz) REDUCTION(max:courmx,courmy,courmz)
     do k = lo(3),hi(3)
@@ -299,8 +365,10 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
-
-    courno = max( courmx, courmy, courmz )
+    !
+    ! Compute running max of Courant number over grids.
+    !
+    courno = max( courmx, courmy, courmz , courno )
 
   end subroutine ctoprim
 
