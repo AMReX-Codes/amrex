@@ -15,7 +15,7 @@ contains
   subroutine init_data(data,dx,prob_lo)
 
     type(multifab) , intent(inout) :: data
-    real(kind=dp_t), intent(in   ) :: dx
+    real(kind=dp_t), intent(in   ) :: dx(data%dim)
     real(kind=dp_t), intent(in   ) :: prob_lo(data%dim)
 
     ! local variables
@@ -55,18 +55,18 @@ contains
     integer          :: lo(3), hi(3), ng
     double precision :: U(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,2)
     double precision :: prob_lo(3)
-    double precision :: dx
+    double precision :: dx(3)
  
     ! local varables
     integer          :: i,j,k
     double precision :: x,y,z,r2
 
     do k = lo(3), hi(3)
-       z = prob_lo(3) + (dble(k)+0.5d0) * dx
+       z = prob_lo(3) + (dble(k)+0.5d0) * dx(3)
        do j = lo(2), hi(2)
-          y = prob_lo(2) + (dble(j)+0.5d0) * dx
+          y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
           do i = lo(1), hi(1)
-             x = prob_lo(1) + (dble(i)+0.5d0) * dx
+             x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
              r2 = (x*x + y*y + z*z) / 0.01
 
              U(i,j,k,1) = 0.d0

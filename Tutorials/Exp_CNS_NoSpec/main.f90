@@ -27,10 +27,10 @@ program main
   logical :: need_inputs_file, found_inputs_file
   character(len=128) :: inputs_file_name
 
-  integer :: lo(DM), hi(DM), istep
+  integer :: i, lo(DM), hi(DM), istep
 
   double precision :: prob_lo(DM), prob_hi(DM)
-  double precision :: dx, dt, time, start_time, end_time
+  double precision :: dx(DM), dt, time, start_time, end_time
   
   logical :: is_periodic(DM)
 
@@ -84,7 +84,9 @@ program main
   !
   ! The grid spacing is the same in each direction.
   !
-  dx = (prob_hi(1)-prob_lo(1)) / n_cell
+  do i = 1,DM
+     dx(i) = (prob_hi(i)-prob_lo(i)) / n_cell
+  end do
   !
   ! Initialize the boxarray to be one single box.
   !
@@ -105,7 +107,7 @@ program main
 
   istep = 0
   time  = 0.d0
-  dt    = 0.1d0*dx
+  dt    = 0.1d0*dx(1)
 
   call write_plotfile(la,data,istep,dx,time,prob_lo,prob_hi)
 
@@ -115,7 +117,7 @@ program main
         print*,'Advancing time step',istep
      end if
      
-     call advance(data,dt)
+     call advance(data,dt,dx)
 
      time = time + dt
 
