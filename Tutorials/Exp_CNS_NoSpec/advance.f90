@@ -6,7 +6,9 @@
   implicit none
 
   private
-
+  !
+  ! These index constants are shared with the initial data routine.
+  !
   integer, parameter, public :: irho = 1
   integer, parameter, public :: imx  = 2
   integer, parameter, public :: imy  = 3
@@ -27,11 +29,18 @@
 
 contains
 
-  subroutine advance (U,dt,dx)
+  subroutine advance (U,dt,dx,cfl,eta,alam)
 
     type(multifab),   intent(inout) :: U
     double precision, intent(out  ) :: dt
-    double precision, intent(in   ) :: dx(U%dim)
+    double precision, intent(in   ) :: dx(U%dim), cfl, eta, alam
+
+    integer          :: lo(U%dim), hi(U%dim), i, j, k, m, n, nc, ng
+    double precision :: courno, courno_proc
+    type(layout)     :: la
+    type(multifab)   :: D, F, Unew, Q
+
+    double precision, pointer, dimension(:,:,:,:) :: up, dp, fp, unp, qp
     !
     ! Some arithmetic constants.
     !
@@ -39,21 +48,6 @@ contains
     double precision, parameter :: TwoThirds     = 2.d0/3.d0
     double precision, parameter :: OneQuarter    = 1.d0/4.d0
     double precision, parameter :: ThreeQuarters = 3.d0/4.d0
-    !
-    ! Hardwire our diffusion coefficients.
-    !
-    double precision, parameter :: ETA  = 1.8d-4
-    double precision, parameter :: ALAM = 1.5d2
-
-    double precision, parameter :: CFL = 0.5d0
-
-    integer          :: lo(U%dim), hi(U%dim)
-    integer          :: i, j, k, m, n, nc, ng
-    double precision :: courno, courno_proc
-    type(layout)     :: la
-    type(multifab)   :: D, F, Unew, Q
-
-    double precision, pointer, dimension(:,:,:,:) :: up, dp, fp, unp, qp
 
     nc = ncomp(U)
     ng = nghost(U)
@@ -86,7 +80,7 @@ contains
 
     call parallel_reduce(courno, courno_proc, MPI_MAX)
 
-    dt = CFL / courno
+    dt = cfl / courno
 
     if ( parallel_IOProcessor() ) then
        print*, "dt,courno", dt, courno
@@ -569,8 +563,9 @@ contains
     double precision :: mechwork, uxy,uxz,vyz,wzx,wzy,vyx
     integer          :: i,j,k
 
-    double precision, parameter :: TWOTHIRDS  = 2.0d0/3.0d0
-    double precision, parameter :: FOURTHIRDS = 4.0d0/3.0d0
+    double precision, parameter :: OneThird   = 1.0d0/3.0d0
+    double precision, parameter :: TwoThirds  = 2.0d0/3.0d0
+    double precision, parameter :: FourThirds = 4.0d0/3.0d0
 
     double precision, parameter :: CENTER = -205.d0/72.d0
     double precision, parameter :: OFF1   =    8.d0/5.d0
@@ -744,9 +739,9 @@ contains
                   + GAM*(vy(i,j,k+3)-vy(i,j,k-3)) &
                   + DEL*(vy(i,j,k+4)-vy(i,j,k-4)))/dx(3)
 
-             difflux(i,j,k,imx) = eta*(FOURTHIRDS*uxx + uyy + uzz + (vyx+wzx)/3.d0)
-             difflux(i,j,k,imy) = eta*(vxx + FOURTHIRDS*vyy + vzz + (uxy+wzy)/3.d0)
-             difflux(i,j,k,imz) = eta*(wxx + wyy + FOURTHIRDS*wzz + (uxz+vyz)/3.d0)
+             difflux(i,j,k,imx) = eta*(FourThirds*uxx + uyy + uzz + OneThird*(vyx+wzx))
+             difflux(i,j,k,imy) = eta*(vxx + FourThirds*vyy + vzz + OneThird*(uxy+wzy))
+             difflux(i,j,k,imz) = eta*(wxx + wyy + FourThirds*wzz + OneThird*(uxz+vyz))
 
              txx = (CENTER*q(i,j,k,6)                &
                   + OFF1*(q(i+1,j,k,6)+q(i-1,j,k,6)) &
@@ -766,13 +761,10 @@ contains
                   + OFF3*(q(i,j,k+3,6)+q(i,j,k-3,6)) &
                   + OFF4*(q(i,j,k+4,6)+q(i,j,k-4,6)))/dx(3)**2
 
-             !    differentiate out \nabla \cdot \tau u
-             !    this is rather horrific
-
              divu  = ux(i,j,k)+vy(i,j,k)+wz(i,j,k)
-             tauxx = 2.d0*ux(i,j,k) - TWOTHIRDS*divu
-             tauyy = 2.d0*vy(i,j,k) - TWOTHIRDS*divu
-             tauzz = 2.d0*wz(i,j,k) - TWOTHIRDS*divu
+             tauxx = 2.d0*ux(i,j,k) - TwoThirds*divu
+             tauyy = 2.d0*vy(i,j,k) - TwoThirds*divu
+             tauzz = 2.d0*wz(i,j,k) - TwoThirds*divu
              tauxy = uy(i,j,k)+vx(i,j,k)
              tauxz = uz(i,j,k)+wx(i,j,k)
              tauyz = vz(i,j,k)+wy(i,j,k)
