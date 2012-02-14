@@ -34,7 +34,7 @@ program main
   type(box)          :: bx
   type(boxarray)     :: ba
   type(layout)       :: la
-  type(multifab)     :: data
+  type(multifab)     :: U
   !
   ! What's settable via an inputs file.
   !
@@ -104,14 +104,14 @@ program main
 
   call destroy(ba)
 
-  call multifab_build(data,la,NC,NG)
+  call multifab_build(U,la,NC,NG)
   
-  call init_data(data,dx,prob_lo,prob_hi)
+  call init_data(U,dx,prob_lo,prob_hi)
 
   istep = 0
   time  = 0.d0
 
-  call write_plotfile(la,data,istep,dx,time,prob_lo,prob_hi)
+  call write_plotfile(la,U,istep,dx,time,prob_lo,prob_hi)
 
   do istep=1,nsteps
 
@@ -119,17 +119,17 @@ program main
         print*,'Advancing time step',istep,'time = ',time
      end if
      
-     call advance(data,dt,dx,cfl,eta,alam)
+     call advance(U,dt,dx,cfl,eta,alam)
 
      time = time + dt
 
      if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
-        call write_plotfile(la,data,istep,dx,time,prob_lo,prob_hi)
+        call write_plotfile(la,U,istep,dx,time,prob_lo,prob_hi)
      end if
 
   end do
 
-  call destroy(data)
+  call destroy(U)
   call destroy(la)
 
   end_time = parallel_wtime()
