@@ -111,7 +111,7 @@ program main
   istep = 0
   time  = 0.d0
 
-  call write_plotfile(la,U,istep,dx,time,prob_lo,prob_hi)
+  call write_plotfile(U,istep,dx,time,prob_lo,prob_hi)
 
   do istep=1,nsteps
 
@@ -124,7 +124,7 @@ program main
      time = time + dt
 
      if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
-        call write_plotfile(la,U,istep,dx,time,prob_lo,prob_hi)
+        call write_plotfile(U,istep,dx,time,prob_lo,prob_hi)
      end if
 
   end do
