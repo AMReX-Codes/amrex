@@ -134,10 +134,10 @@ program main
 
   end_time = parallel_wtime()
 
-  call boxlib_finalize()
-
   if ( parallel_IOProcessor() ) then
      print*,"Run time (s) =",end_time-start_time
   end if
+
+  call boxlib_finalize()
 
 end program main
