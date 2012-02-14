@@ -26,7 +26,9 @@ contains
 
     type(multifab),   intent(inout) :: U
     double precision, intent(in   ) :: dt
-
+    !
+    ! Some arithmetic constants.
+    !
     double precision, parameter :: OneThird      = 1.d0/3.d0
     double precision, parameter :: TwoThirds     = 2.d0/3.d0
     double precision, parameter :: OneQuarter    = 1.d0/4.d0
@@ -561,7 +563,10 @@ contains
 
   end subroutine hypterm
 
-  subroutine diffterm(lo,hi,ng,dx,q,difflux,eta,alam)
+  subroutine diffterm (lo,hi,ng,dx,q,difflux,eta,alam)
+
+    double precision, parameter :: TWOTHIRDS  = 2.0d0/3.0d0
+    double precision, parameter :: FOURTHIRDS = 4.0d0/3.0d0
 
     double precision, parameter :: CENTER = -205.d0/72.d0
     double precision, parameter :: OFF1   =    8.d0/5.d0
@@ -754,11 +759,9 @@ contains
                   + GAM*(vy(i,j,k+3)-vy(i,j,k-3)) &
                   + DEL*(vy(i,j,k+4)-vy(i,j,k-4)))/dx(3)
 
-             difflux(i,j,k,imx) = eta * (4.d0*uxx/3.d0 + uyy + uzz + (vyx+wzx)/3.d0)
-
-             difflux(i,j,k,imy) = eta * (vxx + 4.d0*vyy/3.d0 + vzz + (uxy+wzy)/3.d0)
-
-             difflux(i,j,k,imz) = eta * (wxx + wyy + 4.d0*wzz/3.d0 + (uxz+vyz)/3.d0)
+             difflux(i,j,k,imx) = eta*(FOURTHIRDS*uxx + uyy + uzz + (vyx+wzx)/3.d0)
+             difflux(i,j,k,imy) = eta*(vxx + FOURTHIRDS*vyy + vzz + (uxy+wzy)/3.d0)
+             difflux(i,j,k,imz) = eta*(wxx + wyy + FOURTHIRDS*wzz + (uxz+vyz)/3.d0)
 
              txx = (CENTER*q(i,j,k,6)                &
                   + OFF1*(q(i+1,j,k,6)+q(i-1,j,k,6)) &
@@ -778,15 +781,13 @@ contains
                   + OFF3*(q(i,j,k+3,6)+q(i,j,k-3,6)) &
                   + OFF4*(q(i,j,k+4,6)+q(i,j,k-4,6)))/dx(3)**2
 
-             difflux(i,j,k,iene) = alam*(txx+tyy+tzz)
-
              !    differentiate out \nabla \cdot \tau u
              !    this is rather horrific
 
              divu  = ux(i,j,k)+vy(i,j,k)+wz(i,j,k)
-             tauxx = 2.d0*ux(i,j,k) - 2.d0*divu/3.d0
-             tauyy = 2.d0*vy(i,j,k) - 2.d0*divu/3.d0
-             tauzx = 2.d0*wz(i,j,k) - 2.d0*divu/3.d0
+             tauxx = 2.d0*ux(i,j,k) - TWOTHIRDS*divu
+             tauyy = 2.d0*vy(i,j,k) - TWOTHIRDS*divu
+             tauzx = 2.d0*wz(i,j,k) - TWOTHIRDS*divu
              tauxy = uy(i,j,k)+vx(i,j,k)
              tauxz = uz(i,j,k)+wx(i,j,k)
              tauyx = vz(i,j,k)+wy(i,j,k)
@@ -799,7 +800,7 @@ contains
                   + difflux(i,j,k,imy)*q(i,j,k,qv)                    &
                   + difflux(i,j,k,imz)*q(i,j,k,qw)
 
-             difflux(i,j,k,iene) = difflux(i,j,k,iene) + mechwork
+             difflux(i,j,k,iene) = alam*(txx+tyy+tzz) + mechwork
           enddo
        enddo
     enddo
