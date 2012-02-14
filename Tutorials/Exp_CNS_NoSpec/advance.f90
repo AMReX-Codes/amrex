@@ -314,7 +314,7 @@ contains
     double precision, parameter :: GAMMA = 1.4d0
     double precision, parameter :: CV    = 8.3333333333d6
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,eint)
     do k = lo(3)-ng,hi(3)+ng
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
@@ -324,23 +324,15 @@ contains
              q(i,j,k,3) = u(i,j,k,3)/u(i,j,k,1)
              q(i,j,k,4) = u(i,j,k,4)/u(i,j,k,1)
 
-          enddo
-       enddo
-    enddo
-    !$OMP END PARALLEL DO
+             eint = u(i,j,k,5)/u(i,j,k,1) - &
+                  0.5d0*(q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4)**2)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,eint)
-    do k = lo(3)-ng,hi(3)+ng
-       do j = lo(2)-ng,hi(2)+ng
-          do i = lo(1)-ng,hi(1)+ng
-
-             eint = u(i,j,k,5)/u(i,j,k,1) - 0.5d0*(q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4)**2)
              q(i,j,k,5) = (GAMMA-1.d0)*eint*u(i,j,k,1)
              q(i,j,k,6) = eint/CV
 
-          end do
-       end do
-    end do
+          enddo
+       enddo
+    enddo
     !$OMP END PARALLEL DO
 
     !$OMP PARALLEL DO PRIVATE(i,j,k,c,courx,coury,courz) REDUCTION(max:courmx,courmy,courmz)
@@ -632,17 +624,17 @@ contains
        do j=lo(2),hi(2)   
           do i=lo(1)-ng,hi(1)+ng
 
-             vy(i,j,k)= &
-                   (ALP*(q(i,j+1,k,qv)-q(i,j-1,k,qv)) &
-                  + BET*(q(i,j+2,k,qv)-q(i,j-2,k,qv)) &
-                  + GAM*(q(i,j+3,k,qv)-q(i,j-3,k,qv)) &
-                  + DEL*(q(i,j+4,k,qv)-q(i,j-4,k,qv)))*dxinv(2)
-
              uy(i,j,k)= &
                    (ALP*(q(i,j+1,k,qu)-q(i,j-1,k,qu)) &
                   + BET*(q(i,j+2,k,qu)-q(i,j-2,k,qu)) &
                   + GAM*(q(i,j+3,k,qu)-q(i,j-3,k,qu)) &
                   + DEL*(q(i,j+4,k,qu)-q(i,j-4,k,qu)))*dxinv(2)
+
+             vy(i,j,k)= &
+                   (ALP*(q(i,j+1,k,qv)-q(i,j-1,k,qv)) &
+                  + BET*(q(i,j+2,k,qv)-q(i,j-2,k,qv)) &
+                  + GAM*(q(i,j+3,k,qv)-q(i,j-3,k,qv)) &
+                  + DEL*(q(i,j+4,k,qv)-q(i,j-4,k,qv)))*dxinv(2)
 
              wy(i,j,k)= &
                    (ALP*(q(i,j+1,k,qw)-q(i,j-1,k,qw)) &
@@ -659,12 +651,6 @@ contains
        do j=lo(2)-ng,hi(2)+ng
           do i=lo(1)-ng,hi(1)+ng
 
-             wz(i,j,k)= &
-                   (ALP*(q(i,j,k+1,qw)-q(i,j,k-1,qw)) &
-                  + BET*(q(i,j,k+2,qw)-q(i,j,k-2,qw)) &
-                  + GAM*(q(i,j,k+3,qw)-q(i,j,k-3,qw)) &
-                  + DEL*(q(i,j,k+4,qw)-q(i,j,k-4,qw)))*dxinv(3)
-
              uz(i,j,k)= &
                    (ALP*(q(i,j,k+1,qu)-q(i,j,k-1,qu)) &
                   + BET*(q(i,j,k+2,qu)-q(i,j,k-2,qu)) &
@@ -676,6 +662,12 @@ contains
                   + BET*(q(i,j,k+2,qv)-q(i,j,k-2,qv)) &
                   + GAM*(q(i,j,k+3,qv)-q(i,j,k-3,qv)) &
                   + DEL*(q(i,j,k+4,qv)-q(i,j,k-4,qv)))*dxinv(3)
+
+             wz(i,j,k)= &
+                   (ALP*(q(i,j,k+1,qw)-q(i,j,k-1,qw)) &
+                  + BET*(q(i,j,k+2,qw)-q(i,j,k-2,qw)) &
+                  + GAM*(q(i,j,k+3,qw)-q(i,j,k-3,qw)) &
+                  + DEL*(q(i,j,k+4,qw)-q(i,j,k-4,qw)))*dxinv(3)
           enddo
        enddo
     enddo
@@ -823,18 +815,21 @@ contains
                   + OFF3*(q(i,j,k+3,6)+q(i,j,k-3,6)) &
                   + OFF4*(q(i,j,k+4,6)+q(i,j,k-4,6)))*dxinv(3)**2
 
-             divu  = ux(i,j,k)+vy(i,j,k)+wz(i,j,k)
-             tauxx = 2.d0*ux(i,j,k) - TwoThirds*divu
-             tauyy = 2.d0*vy(i,j,k) - TwoThirds*divu
-             tauzz = 2.d0*wz(i,j,k) - TwoThirds*divu
+             divu  = TwoThirds*(ux(i,j,k)+vy(i,j,k)+wz(i,j,k))
+             tauxx = 2.d0*ux(i,j,k) - divu
+             tauyy = 2.d0*vy(i,j,k) - divu
+             tauzz = 2.d0*wz(i,j,k) - divu
              tauxy = uy(i,j,k)+vx(i,j,k)
              tauxz = uz(i,j,k)+wx(i,j,k)
              tauyz = vz(i,j,k)+wy(i,j,k)
 
-             mechwork = tauxx*ux(i,j,k) + tauyy*vy(i,j,k)+tauzz*wz(i,j,k) + tauxy**2+tauxz**2+tauyz**2
+             mechwork = tauxx*ux(i,j,k) + &
+                        tauyy*vy(i,j,k) + &
+                        tauzz*wz(i,j,k) + tauxy**2+tauxz**2+tauyz**2
 
-             mechwork = eta*mechwork + difflux(i,j,k,imx)*q(i,j,k,qu) &
-                  + difflux(i,j,k,imy)*q(i,j,k,qv)                    &
+             mechwork = eta*mechwork &
+                  + difflux(i,j,k,imx)*q(i,j,k,qu) &
+                  + difflux(i,j,k,imy)*q(i,j,k,qv) &
                   + difflux(i,j,k,imz)*q(i,j,k,qw)
 
              difflux(i,j,k,iene) = alam*(txx+tyy+tzz) + mechwork
