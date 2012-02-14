@@ -53,7 +53,7 @@ program main
   !
   nsteps        = 10
   plot_int      = 1
-  n_cell        = 64
+  n_cell        = 32
   max_grid_size = 32
   !
   ! Read inputs file and overwrite any default values.
@@ -76,8 +76,8 @@ program main
   !
   ! Physical problem is a box on (-1,-1) to (1,1), periodic on all sides.
   !
-  prob_lo     = -1.d0
-  prob_hi     =  1.d0
+  prob_lo     = -0.1d0
+  prob_hi     =  0.1d0
   is_periodic = .true.
   !
   ! Create a box from (0,0) to (n_cell-1,n_cell-1).
@@ -115,7 +115,7 @@ program main
   do istep=1,nsteps
 
      if (parallel_IOProcessor()) then
-        print*,'Advancing time step',istep
+        print*,'Advancing time step',istep,'time = ',time
      end if
      
      call advance(data,dt,dx)
