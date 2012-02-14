@@ -25,7 +25,8 @@ contains
   subroutine advance (U,dt,dx)
 
     type(multifab),   intent(inout) :: U
-    double precision, intent(in   ) :: dt
+    double precision, intent(out  ) :: dt
+    double precision, intent(in   ) :: dx(U%dim)
     !
     ! Some arithmetic constants.
     !
@@ -36,12 +37,14 @@ contains
     !
     ! Hardwire our diffusion coefficients.
     !
-    double precision, parameter :: ETA  = 1.0d0
-    double precision, parameter :: ALAM = 1.0d0
+    double precision, parameter :: ETA  = 1.8d-4
+    double precision, parameter :: ALAM = 1.5d2
+
+    double precision, parameter :: CFL = 0.5d0
 
     integer          :: lo(U%dim), hi(U%dim)
     integer          :: i, j, k, m, n, nc, ng
-    double precision :: dx(U%dim), courno, courno_proc
+    double precision :: courno, courno_proc
     type(layout)     :: la
     type(multifab)   :: D, F, Unew, Q
 
@@ -78,8 +81,10 @@ contains
 
     call parallel_reduce(courno, courno_proc, MPI_MAX)
 
+    dt = CFL / courno
+
     if ( parallel_IOProcessor() ) then
-       print*, "courno = ", courno
+       print*, "dt,courno", dt, courno
     end if
     !
     ! Calculate D at time N.
@@ -355,9 +360,15 @@ contains
           do i = lo(1),hi(1)
 
              c     = sqrt(GAMMA*q(i,j,k,5)/q(i,j,k,1))
-             courx = ( c+abs(q(i,j,k,2)) ) * dx(1)
-             coury = ( c+abs(q(i,j,k,3)) ) * dx(2)
-             courz = ( c+abs(q(i,j,k,4)) ) * dx(3)
+
+             if (i .eq. 1 .and. j .eq. 1 .and. k .eq. 1) then
+                print*, 'c = ', c
+                print*, 'q(1), q(5)', q(i,j,k,1), q(i,j,k,5)
+             end if
+
+             courx = ( c+abs(q(i,j,k,2)) ) / dx(1)
+             coury = ( c+abs(q(i,j,k,3)) ) / dx(2)
+             courz = ( c+abs(q(i,j,k,4)) ) / dx(3)
 
              courmx = max( courmx, courx )
              courmy = max( courmy, coury )
@@ -587,7 +598,7 @@ contains
 
     double precision, allocatable, dimension(:,:,:) :: ux,uy,uz,vx,vy,vz,wx,wy,wz
 
-    double precision :: tauxx,tauyy,tauzz,tauxy,tauxz,tauyz,tauyx,tauzx
+    double precision :: tauxx,tauyy,tauzz,tauxy,tauxz,tauyz
     double precision :: divu, uxx,uyy,uzz,vxx,vyy,vzz,wxx,wyy,wzz,txx,tyy,tzz
     double precision :: mechwork, uxy,uxz,vyz,wzx,wzy,vyx
 
@@ -787,14 +798,14 @@ contains
              divu  = ux(i,j,k)+vy(i,j,k)+wz(i,j,k)
              tauxx = 2.d0*ux(i,j,k) - TWOTHIRDS*divu
              tauyy = 2.d0*vy(i,j,k) - TWOTHIRDS*divu
-             tauzx = 2.d0*wz(i,j,k) - TWOTHIRDS*divu
+             tauzz = 2.d0*wz(i,j,k) - TWOTHIRDS*divu
              tauxy = uy(i,j,k)+vx(i,j,k)
              tauxz = uz(i,j,k)+wx(i,j,k)
-             tauyx = vz(i,j,k)+wy(i,j,k)
+             tauyz = vz(i,j,k)+wy(i,j,k)
 
              mechwork = tauxx *ux(i,j,k) +          &
                   tauyy*vy(i,j,k)+tauzz*wz(i,j,k) + &
-                  tauxy*2+tauxz**2+tauyz**2
+                  tauxy**2+tauxz**2+tauyz**2
 
              mechwork = eta*mechwork + difflux(i,j,k,imx)*q(i,j,k,qu) &
                   + difflux(i,j,k,imy)*q(i,j,k,qv)                    &

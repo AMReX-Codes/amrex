@@ -49,7 +49,7 @@ contains
     double precision, intent(in   ) :: dx(3)
     double precision, intent(inout) :: cons(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,5)
 
-    double precision :: xloc,yloc,zloc,rholoc,ploc,uvel,vvel,wvel,scale
+    double precision :: xloc,yloc,zloc,rholoc,eloc,uvel,vvel,wvel,scale
 
     integer :: i,j,k
     !
@@ -74,13 +74,13 @@ contains
              vvel = sin(2.d0*xloc/scale)*sin(4.d0*yloc/scale)*sin(1.d0*zloc/scale)
              wvel = sin(3.d0*xloc/scale)*cos(2.d0*yloc/scale)*sin(2.d0*zloc/scale)
              rholoc = 1.d-3+1.d-5* sin(xloc/scale)*cos(2.d0*yloc/scale)*cos(3.d0*zloc/scale)
-             ploc = 1.d6+ .001*sin(2.d0*xloc/scale)*cos(2.d0*yloc/scale)*sin(2.d0*zloc/scale)
+             eloc = 2.5d9+.001*sin(2.d0*xloc/scale)*cos(2.d0*yloc/scale)*sin(2.d0*zloc/scale)
 
              cons(i,j,k,irho) = rholoc
              cons(i,j,k,imx)  = rholoc*uvel
              cons(i,j,k,imy)  = rholoc*vvel
              cons(i,j,k,imz)  = rholoc*wvel
-             cons(i,j,k,iene) = ploc/0.4d0+rholoc*(uvel**2+vvel**2+wvel**2)/2.d0
+             cons(i,j,k,iene) = rholoc*(eloc+(uvel**2+vvel**2+wvel**2)/2.d0)
 
           enddo
        enddo
