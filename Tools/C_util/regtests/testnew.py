@@ -57,6 +57,9 @@ class testObj:
         self.doVis = 0
         self.visVar = ""
 
+        self.compareFile = ""
+
+
     def __cmp__(self, other):
         return cmp(self.value(), other.value())
 
@@ -240,6 +243,9 @@ def LoadParams(file):
         # create the test object for this test
         mytest = testObj(sec)
 
+
+        invalid = 0
+
         # set the test object data by looking at all the options in
         # the current section of the parameter file
         for opt in cp.options(sec):
@@ -248,6 +254,11 @@ def LoadParams(file):
             value = convertType(cp.get(sec, opt))
 
             if (opt == "buildDir"):
+                # make sure that the build directory actually exists
+                if (not os.path.isdir(mysuite.sourceDir + value)):
+                    warning("   WARNING: invalid build directory: %s" % (value))
+                    invalid = 1
+
                 mytest.buildDir = value
 
             elif (opt == "inputFile"):
@@ -295,12 +306,13 @@ def LoadParams(file):
             elif (opt == "visVar"):
                 mytest.visVar = value
 
+            elif (opt == "compareFile"):
+                mytest.compareFile = value
+
             else:
                 warning("   WARNING: unrecognized parameter %s for test %s" % (opt, sec))
 
 
-
-        invalid = 0
 
         # make sure all the require parameters are present
         if (mytest.compileTest):
@@ -313,6 +325,13 @@ def LoadParams(file):
                 (mysuite.sourceTree == "Parallel" and mytest.probinFile == "") or 
                 mytest.dim == -1 or mytest.needsHelmEOS == -1):
                 warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
+                warning("            buildDir = %s" % (mytest.buildDir))
+                warning("            inputFile = %s" % (mytest.inputFile))
+                if (mysuite.sourceTree == "Parallel"):
+                    warning("            probinFile = %s" % (mytest.probinFile))
+                warning("            dim = %s" % (mytest.dim))
+                warning("            needsHelmEOS = %s" % (mytest.needsHelmEOS))
+
                 invalid = 1
 
 
@@ -734,6 +753,7 @@ def testSuite(argv):
             doVis = < 0 for no visualization, 1 if we do visualization >
             visVar = < string of the variable to visualize >
 
+            compareFile = < explicit output file to do the comparison with >
 
           Here, [main] lists the parameters for the test suite as a
           whole and [Sod-x] is a single test.  There can be many more
@@ -837,6 +857,11 @@ def testSuite(argv):
             test output will be compared to the stored benchmark.  Setting 
             to 1 will determine success by searching for the string
             stSuccessString in the execution output.
+
+            compareFile is the name of the plotfile that is output that
+            should be used for the comparison.  Normally this is not
+            specified and the suite uses the last plotfile output by the
+            test.
 
           Each test problem should get its own [testname] block
           defining the problem.  The name between the [..] will be how
@@ -946,20 +971,6 @@ def testSuite(argv):
 
 
     #--------------------------------------------------------------------------
-    # get the name of the benchmarks directory
-    #--------------------------------------------------------------------------
-    allCompile = allAreCompileTests(testList)
-
-    if (not allCompile):
-        benchDir = suite.testTopDir + suite.suiteName + "-benchmarks/"
-        if (not os.path.isdir(benchDir)):
-            if (make_benchmarks):
-                os.mkdir(benchDir)
-            else:
-                fail("ERROR: benchmark directory, %s, does not exist" % (benchDir))
-    
-
-    #--------------------------------------------------------------------------
     # if we are doing a single test, remove all other tests
     #--------------------------------------------------------------------------
     if (not single_test == ""):
@@ -975,6 +986,20 @@ def testSuite(argv):
         else:
             testList = newTestList
         
+
+    #--------------------------------------------------------------------------
+    # get the name of the benchmarks directory
+    #--------------------------------------------------------------------------
+    allCompile = allAreCompileTests(testList)
+
+    if (not allCompile):
+        benchDir = suite.testTopDir + suite.suiteName + "-benchmarks/"
+        if (not os.path.isdir(benchDir)):
+            if (make_benchmarks):
+                os.mkdir(benchDir)
+            else:
+                fail("ERROR: benchmark directory, %s, does not exist" % (benchDir))
+    
 
     #--------------------------------------------------------------------------
     # create the output directories
@@ -1412,7 +1437,11 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         if (not test.selfTest):
 
-            compareFile = getLastPlotfile(outputDir, test)
+            if (test.compareFile == ""):
+                compareFile = getLastPlotfile(outputDir, test)
+            else:
+                compareFile = test.compareFile
+
 
             if (not make_benchmarks):
 
