@@ -18,20 +18,19 @@ contains
     double precision, intent(in   ) :: dx(data%dim)
     double precision, intent(in   ) :: plo(data%dim), phi(data%dim)
 
-    integer :: lo(data%dim), hi(data%dim), dm, ng, i
-
+    integer                   :: lo(data%dim), hi(data%dim), ng, i
     double precision, pointer :: dp(:,:,:,:)
 
-    ! set these here so we don't have to pass them into the subroutine
-    dm = data%dim
     ng = data%ng
 
     do i=1,nboxes(data)
        if ( multifab_remote(data,i) ) cycle
+
        dp => dataptr(data,i)
        lo = lwb(get_box(data,i))
        hi = upb(get_box(data,i))
-       select case(dm)
+
+       select case(data%dim)
        case (2)
           call bl_error('We only support 3-D')
        case (3)
@@ -39,11 +38,11 @@ contains
        end select
     end do
 
-    call multifab_fill_boundary(data)
-
   end subroutine init_data
 
   subroutine init_data_3d(lo,hi,ng,dx,cons)
+
+    use advance_module ! For: irho imx imy imz iene.
 
     integer,          intent(in   ) :: lo(3),hi(3),ng
     double precision, intent(in   ) :: dx(3)
@@ -52,16 +51,8 @@ contains
     double precision :: xloc,yloc,zloc,rholoc,eloc,uvel,vvel,wvel,scale
 
     integer :: i,j,k
-    !
-    ! These need to match those in advance()!
-    !
-    integer, parameter :: irho = 1
-    integer, parameter :: imx  = 2
-    integer, parameter :: imy  = 3
-    integer, parameter :: imz  = 4
-    integer, parameter :: iene = 5
 
-    scale = .02d0
+    scale = 0.02d0
 
     do k=lo(3)-ng,hi(3)+ng
        zloc = dfloat(k)*dx(3)
@@ -70,17 +61,17 @@ contains
           do i=lo(1)-ng,hi(1)+ng
              xloc = dfloat(i)*dx(1)
 
-             uvel = sin(xloc/scale)*sin(2.d0*yloc/scale)*sin(3.d0*zloc/scale)
-             vvel = sin(2.d0*xloc/scale)*sin(4.d0*yloc/scale)*sin(1.d0*zloc/scale)
-             wvel = sin(3.d0*xloc/scale)*cos(2.d0*yloc/scale)*sin(2.d0*zloc/scale)
-             rholoc = 1.d-3+1.d-5* sin(xloc/scale)*cos(2.d0*yloc/scale)*cos(3.d0*zloc/scale)
-             eloc = 2.5d9+.001*sin(2.d0*xloc/scale)*cos(2.d0*yloc/scale)*sin(2.d0*zloc/scale)
+             uvel   = sin(xloc/scale)*sin(2*yloc/scale)*sin(3.d0*zloc/scale)
+             vvel   = sin(2*xloc/scale)*sin(4.d0*yloc/scale)*sin(1.d0*zloc/scale)
+             wvel   = sin(3.d0*xloc/scale)*cos(2*yloc/scale)*sin(2*zloc/scale)
+             rholoc = 1.0d-3+1.0d-5*sin(xloc/scale)*cos(2*yloc/scale)*cos(3*zloc/scale)
+             eloc   = 2.5d9+1.0d-3*sin(2*xloc/scale)*cos(2*yloc/scale)*sin(2*zloc/scale)
 
              cons(i,j,k,irho) = rholoc
              cons(i,j,k,imx)  = rholoc*uvel
              cons(i,j,k,imy)  = rholoc*vvel
              cons(i,j,k,imz)  = rholoc*wvel
-             cons(i,j,k,iene) = rholoc*(eloc+(uvel**2+vvel**2+wvel**2)/2.d0)
+             cons(i,j,k,iene) = rholoc*(eloc+(uvel**2+vvel**2+wvel**2)/2)
 
           enddo
        enddo

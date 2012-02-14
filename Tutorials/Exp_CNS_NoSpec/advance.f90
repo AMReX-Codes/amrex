@@ -7,21 +7,26 @@
 
   private
 
-  integer, parameter :: irho = 1
-  integer, parameter :: imx  = 2
-  integer, parameter :: imy  = 3
-  integer, parameter :: imz  = 4
-  integer, parameter :: iene = 5
+  integer, parameter, public :: irho = 1
+  integer, parameter, public :: imx  = 2
+  integer, parameter, public :: imy  = 3
+  integer, parameter, public :: imz  = 4
+  integer, parameter, public :: iene = 5
 
   integer, parameter :: qu    = 2
   integer, parameter :: qv    = 3
   integer, parameter :: qw    = 4
   integer, parameter :: qpres = 5
 
+  double precision, parameter :: ALP =  0.8d0
+  double precision, parameter :: BET = -0.2d0
+  double precision, parameter :: GAM =  4.d0/105.d0
+  double precision, parameter :: DEL = -1.d0/280.d0
+
   public :: advance
 
 contains
-  
+
   subroutine advance (U,dt,dx)
 
     type(multifab),   intent(inout) :: U
@@ -58,10 +63,10 @@ contains
     !
     call multifab_fill_boundary(U)
 
-    call multifab_build(D,    la, nc, 0)
-    call multifab_build(F,    la, nc, 0)
-    call multifab_build(Q,    la, nc, ng+1)
-    call multifab_build(Unew, la, nc, ng)
+    call multifab_build(D,    la, nc,   0)
+    call multifab_build(F,    la, nc,   0)
+    call multifab_build(Q,    la, nc+1, ng)
+    call multifab_build(Unew, la, nc,   ng)
     !
     ! Calculate primitive variables based on U.
     !
@@ -159,13 +164,6 @@ contains
 
        call ctoprim(lo,hi,up,qp,courno_proc,dx,ng)
     end do
-
-    !call parallel_reduce(courno, courno_proc, MPI_MAX)
-
-    !if ( parallel_IOProcessor() ) then
-    !   print*, "courno = ", courno
-    !end if
-
     !
     ! Calculate D at time N+1/3.
     !
@@ -240,13 +238,6 @@ contains
 
        call ctoprim(lo,hi,up,qp,courno_proc,dx,ng)
     end do
-
-    !call parallel_reduce(courno, courno_proc, MPI_MAX)
-
-    !if ( parallel_IOProcessor() ) then
-    !   print*, "courno = ", courno
-    !end if
-
     !
     ! Calculate D at time N+2/3.
     !
@@ -345,7 +336,7 @@ contains
           do i = lo(1)-ng,hi(1)+ng
 
              eint =  u(i,j,k,5)/u(i,j,k,1)      & 
-                  - 0.5d0*( q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4) **2)
+                  - 0.5d0*( q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4)**2)
              q(i,j,k,5) = (GAMMA-1.d0)*eint*u(i,j,k,1)
              q(i,j,k,6) = eint/CV
 
@@ -360,12 +351,6 @@ contains
           do i = lo(1),hi(1)
 
              c     = sqrt(GAMMA*q(i,j,k,5)/q(i,j,k,1))
-
-             if (i .eq. 1 .and. j .eq. 1 .and. k .eq. 1) then
-                print*, 'c = ', c
-                print*, 'q(1), q(5)', q(i,j,k,1), q(i,j,k,5)
-             end if
-
              courx = ( c+abs(q(i,j,k,2)) ) / dx(1)
              coury = ( c+abs(q(i,j,k,3)) ) / dx(2)
              courz = ( c+abs(q(i,j,k,4)) ) / dx(3)
@@ -386,11 +371,6 @@ contains
   end subroutine ctoprim
 
   subroutine hypterm (lo,hi,ng,dx,cons,q,flux)
-
-    double precision, parameter :: ALP =  0.8d0
-    double precision, parameter :: BET = -0.2d0
-    double precision, parameter :: GAM =  4.d0/105.d0
-    double precision, parameter :: DEL = -1.d0/280.d0
 
     ! inputs:  lo,hi,ng,cons,q
     ! cons --  rho, rho u , rho v, rho w, rho E
@@ -576,20 +556,6 @@ contains
 
   subroutine diffterm (lo,hi,ng,dx,q,difflux,eta,alam)
 
-    double precision, parameter :: TWOTHIRDS  = 2.0d0/3.0d0
-    double precision, parameter :: FOURTHIRDS = 4.0d0/3.0d0
-
-    double precision, parameter :: CENTER = -205.d0/72.d0
-    double precision, parameter :: OFF1   =    8.d0/5.d0
-    double precision, parameter :: OFF2   =   -0.2d0
-    double precision, parameter :: OFF3   =    8.d0/315.d0
-    double precision, parameter :: OFF4   =   -1.d0/560.d0
-
-    double precision, parameter :: ALP =  0.8d0
-    double precision, parameter :: BET = -0.2d0
-    double precision, parameter :: GAM =  4.d0/105.d0
-    double precision, parameter :: DEL = -1.d0/280.d0
-
     integer,          intent(in ) :: lo(3),hi(3),ng
     double precision, intent(in ) :: dx(3)
     double precision, intent(in ) :: q(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,6)
@@ -601,8 +567,16 @@ contains
     double precision :: tauxx,tauyy,tauzz,tauxy,tauxz,tauyz
     double precision :: divu, uxx,uyy,uzz,vxx,vyy,vzz,wxx,wyy,wzz,txx,tyy,tzz
     double precision :: mechwork, uxy,uxz,vyz,wzx,wzy,vyx
+    integer          :: i,j,k
 
-    integer :: i,j,k
+    double precision, parameter :: TWOTHIRDS  = 2.0d0/3.0d0
+    double precision, parameter :: FOURTHIRDS = 4.0d0/3.0d0
+
+    double precision, parameter :: CENTER = -205.d0/72.d0
+    double precision, parameter :: OFF1   =    8.d0/5.d0
+    double precision, parameter :: OFF2   =   -0.2d0
+    double precision, parameter :: OFF3   =    8.d0/315.d0
+    double precision, parameter :: OFF4   =   -1.d0/560.d0
 
     allocate(ux(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng))
     allocate(uy(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng))
@@ -803,9 +777,7 @@ contains
              tauxz = uz(i,j,k)+wx(i,j,k)
              tauyz = vz(i,j,k)+wy(i,j,k)
 
-             mechwork = tauxx *ux(i,j,k) +          &
-                  tauyy*vy(i,j,k)+tauzz*wz(i,j,k) + &
-                  tauxy**2+tauxz**2+tauyz**2
+             mechwork = tauxx*ux(i,j,k) + tauyy*vy(i,j,k)+tauzz*wz(i,j,k) + tauxy**2+tauxz**2+tauyz**2
 
              mechwork = eta*mechwork + difflux(i,j,k,imx)*q(i,j,k,qu) &
                   + difflux(i,j,k,imy)*q(i,j,k,qv)                    &

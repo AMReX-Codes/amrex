@@ -108,7 +108,6 @@ program main
 
   istep = 0
   time  = 0.d0
-  dt    = 0.1d0*dx(1)
 
   call write_plotfile(la,data,istep,dx,time,prob_lo,prob_hi)
 
