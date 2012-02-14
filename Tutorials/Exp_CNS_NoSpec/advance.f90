@@ -31,6 +31,11 @@ contains
     double precision, parameter :: TwoThirds     = 2.d0/3.d0
     double precision, parameter :: OneQuarter    = 1.d0/4.d0
     double precision, parameter :: ThreeQuarters = 3.d0/4.d0
+    !
+    ! Hardwire our diffusion coefficients.
+    !
+    double precision, parameter :: ETA  = 1.0d0
+    double precision, parameter :: ALAM = 1.0d0
 
     integer          :: lo(U%dim), hi(U%dim)
     integer          :: i, j, k, m, n, nc, ng
@@ -80,14 +85,13 @@ contains
     do n=1,nboxes(D)
        if ( remote(D,n) ) cycle
 
+       qp => dataptr(Q,n)
        dp => dataptr(D,n)
 
        lo = lwb(get_box(D,n))
        hi = upb(get_box(D,n))
-       !
-       ! Use U.
-       !
-       dp = 0.0d0
+
+       call diffterm(lo,hi,ng,dx,qp,dp,ETA,ALAM)
     end do
     !
     ! Calculate F at time N.
@@ -161,14 +165,13 @@ contains
     do n=1,nboxes(D)
        if ( remote(D,n) ) cycle
 
+       qp => dataptr(Q,n)
        dp => dataptr(D,n)
 
        lo = lwb(get_box(D,n))
        hi = upb(get_box(D,n))
-       !
-       ! Use Unew.
-       !
-       dp = 0.0d0
+
+       call diffterm(lo,hi,ng,dx,qp,dp,ETA,ALAM)
     end do
     !
     ! Calculate F at time N+1/3.
@@ -243,14 +246,13 @@ contains
     do n=1,nboxes(D)
        if ( remote(D,n) ) cycle
 
+       qp => dataptr(Q,n)
        dp => dataptr(D,n)
 
        lo = lwb(get_box(D,n))
        hi = upb(get_box(D,n))
-       !
-       ! Use Unew.
-       !
-       dp = 0.0d0
+
+       call diffterm(lo,hi,ng,dx,qp,dp,ETA,ALAM)
     end do
     !
     ! Calculate F at time N+2/3.
@@ -559,32 +561,30 @@ contains
 
   end subroutine hypterm
 
-  subroutine diffterm(lo,hi,ng,dx,cons,q,difflux,eta,alam)
+  subroutine diffterm(lo,hi,ng,dx,q,difflux,eta,alam)
 
-    double precision, parameter :: center = -205.d0/72.d0
-    double precision, parameter :: off1   =    8.d0/5.d0
-    double precision, parameter :: off2   =   -0.2d0
-    double precision, parameter :: off3   =    8.d0/315.d0
-    double precision, parameter :: off4   =   -1.d0/560.d0
+    double precision, parameter :: CENTER = -205.d0/72.d0
+    double precision, parameter :: OFF1   =    8.d0/5.d0
+    double precision, parameter :: OFF2   =   -0.2d0
+    double precision, parameter :: OFF3   =    8.d0/315.d0
+    double precision, parameter :: OFF4   =   -1.d0/560.d0
 
-    double precision, parameter :: alp =  0.8d0
-    double precision, parameter :: bet = -0.2d0
-    double precision, parameter :: gam =  4.d0/105.d0
-    double precision, parameter :: del = -1.d0/280.d0
+    double precision, parameter :: ALP =  0.8d0
+    double precision, parameter :: BET = -0.2d0
+    double precision, parameter :: GAM =  4.d0/105.d0
+    double precision, parameter :: DEL = -1.d0/280.d0
 
     integer,          intent(in ) :: lo(3),hi(3),ng
     double precision, intent(in ) :: dx(3)
-    double precision, intent(in ) :: cons(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,5)
-    double precision, intent(in ) ::    q(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,6)
+    double precision, intent(in ) :: q(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,6)
     double precision, intent(out) :: difflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5)
+    double precision, intent(in ) :: eta, alam
 
-    double precision :: eta, alam
-
-    double precision, allocatable, dimension(:,:,:) :: ux, uy, uz, vx, vy, vz, wx, wy, wz
+    double precision, allocatable, dimension(:,:,:) :: ux,uy,uz,vx,vy,vz,wx,wy,wz
 
     double precision :: tauxx,tauyy,tauzz,tauxy,tauxz,tauyz,tauyx,tauzx
     double precision :: divu, uxx,uyy,uzz,vxx,vyy,vzz,wxx,wyy,wzz,txx,tyy,tzz
-    double precision :: mechwork, uxy,uxz,v,cyx,vyz,wzx,wzy,vyx
+    double precision :: mechwork, uxy,uxz,vyz,wzx,wzy,vyx
 
     integer :: i,j,k
 
@@ -598,24 +598,26 @@ contains
     allocate(wy(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng))
     allocate(wz(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng))
 
+    difflux(:,:,:,irho) = 0.0d0
+
     do k=lo(3)-ng,hi(3)+ng
        do j=lo(2)-ng,hi(2)+ng
           do i=lo(1),hi(1)
 
-             ux(i,j,k)= (alp*(q(i+1,j,k,qu)-q(i-1,j,k,qu)) &
-                  + bet*(q(i+2,j,k,qu)-q(i-2,j,k,qu))      &
-                  + gam*(q(i+3,j,k,qu)-q(i-3,j,k,qu))      &
-                  + del*(q(i+4,j,k,qu)-q(i-4,j,k,qu)))/dx(1)
+             ux(i,j,k)= (ALP*(q(i+1,j,k,qu)-q(i-1,j,k,qu)) &
+                  + BET*(q(i+2,j,k,qu)-q(i-2,j,k,qu))      &
+                  + GAM*(q(i+3,j,k,qu)-q(i-3,j,k,qu))      &
+                  + DEL*(q(i+4,j,k,qu)-q(i-4,j,k,qu)))/dx(1)
 
-             vx(i,j,k)= (alp*(q(i+1,j,k,qv)-q(i-1,j,k,qv)) &
-                  + bet*(q(i+2,j,k,qv)-q(i-2,j,k,qv))      &
-                  + gam*(q(i+3,j,k,qv)-q(i-3,j,k,qv))      &
-                  + del*(q(i+4,j,k,qv)-q(i-4,j,k,qv)))/dx(1)
+             vx(i,j,k)= (ALP*(q(i+1,j,k,qv)-q(i-1,j,k,qv)) &
+                  + BET*(q(i+2,j,k,qv)-q(i-2,j,k,qv))      &
+                  + GAM*(q(i+3,j,k,qv)-q(i-3,j,k,qv))      &
+                  + DEL*(q(i+4,j,k,qv)-q(i-4,j,k,qv)))/dx(1)
 
-             wx(i,j,k)= (alp*(q(i+1,j,k,qw)-q(i-1,j,k,qw)) &
-                  + bet*(q(i+2,j,k,qw)-q(i-2,j,k,qw))      &
-                  + gam*(q(i+3,j,k,qw)-q(i-3,j,k,qw))      &
-                  + del*(q(i+4,j,k,qw)-q(i-4,j,k,qw)))/dx(1)
+             wx(i,j,k)= (ALP*(q(i+1,j,k,qw)-q(i-1,j,k,qw)) &
+                  + BET*(q(i+2,j,k,qw)-q(i-2,j,k,qw))      &
+                  + GAM*(q(i+3,j,k,qw)-q(i-3,j,k,qw))      &
+                  + DEL*(q(i+4,j,k,qw)-q(i-4,j,k,qw)))/dx(1)
           enddo
        enddo
     enddo
@@ -624,20 +626,20 @@ contains
        do j=lo(2)   ,hi(2)   
           do i=lo(1)-ng,hi(1)+ng
 
-             vy(i,j,k)= (alp*(q(i,j+1,k,qv)-q(i,j-1,k,qv)) &
-                  + bet*(q(i,j+2,k,qv)-q(i,j-2,k,qv))      &
-                  + gam*(q(i,j+3,k,qv)-q(i,j-3,k,qv))      &
-                  + del*(q(i,j+4,k,qv)-q(i,j-4,k,qv)))/dx(2)
+             vy(i,j,k)= (ALP*(q(i,j+1,k,qv)-q(i,j-1,k,qv)) &
+                  + BET*(q(i,j+2,k,qv)-q(i,j-2,k,qv))      &
+                  + GAM*(q(i,j+3,k,qv)-q(i,j-3,k,qv))      &
+                  + DEL*(q(i,j+4,k,qv)-q(i,j-4,k,qv)))/dx(2)
 
-             uy(i,j,k)= (alp*(q(i,j+1,k,qu)-q(i,j-1,k,qu)) &
-                  + bet*(q(i,j+2,k,qu)-q(i,j-2,k,qu))      &
-                  + gam*(q(i,j+3,k,qu)-q(i,j-3,k,qu))      &
-                  + del*(q(i,j+4,k,qu)-q(i,j-4,k,qu)))/dx(2)
+             uy(i,j,k)= (ALP*(q(i,j+1,k,qu)-q(i,j-1,k,qu)) &
+                  + BET*(q(i,j+2,k,qu)-q(i,j-2,k,qu))      &
+                  + GAM*(q(i,j+3,k,qu)-q(i,j-3,k,qu))      &
+                  + DEL*(q(i,j+4,k,qu)-q(i,j-4,k,qu)))/dx(2)
 
-             wy(i,j,k)= (alp*(q(i,j+1,k,qw)-q(i,j-1,k,qw)) &
-                  + bet*(q(i,j+2,k,qw)-q(i,j-2,k,qw))      &
-                  + gam*(q(i,j+3,k,qw)-q(i,j-3,k,qw))      &
-                  + del*(q(i,j+4,k,qw)-q(i,j-4,k,qw)))/dx(2)
+             wy(i,j,k)= (ALP*(q(i,j+1,k,qw)-q(i,j-1,k,qw)) &
+                  + BET*(q(i,j+2,k,qw)-q(i,j-2,k,qw))      &
+                  + GAM*(q(i,j+3,k,qw)-q(i,j-3,k,qw))      &
+                  + DEL*(q(i,j+4,k,qw)-q(i,j-4,k,qw)))/dx(2)
           enddo
        enddo
     enddo
@@ -646,20 +648,20 @@ contains
        do j=lo(2)-ng,hi(2)+ng
           do i=lo(1)-ng,hi(1)+ng
 
-             wz(i,j,k)= (alp*(q(i,j,k+1,qw)-q(i,j,k-1,qw)) &
-                  + bet*(q(i,j,k+2,qw)-q(i,j,k-2,qw))      &
-                  + gam*(q(i,j,k+3,qw)-q(i,j,k-3,qw))      &
-                  + del*(q(i,j,k+4,qw)-q(i,j,k-4,qw)))/dx(3)
+             wz(i,j,k)= (ALP*(q(i,j,k+1,qw)-q(i,j,k-1,qw)) &
+                  + BET*(q(i,j,k+2,qw)-q(i,j,k-2,qw))      &
+                  + GAM*(q(i,j,k+3,qw)-q(i,j,k-3,qw))      &
+                  + DEL*(q(i,j,k+4,qw)-q(i,j,k-4,qw)))/dx(3)
 
-             uz(i,j,k)= (alp*(q(i,j,k+1,qu)-q(i,j,k-1,qu)) &
-                  + bet*(q(i,j,k+2,qu)-q(i,j,k-2,qu))      &
-                  + gam*(q(i,j,k+3,qu)-q(i,j,k-3,qu))      &
-                  + del*(q(i,j,k+4,qu)-q(i,j,k-4,qu)))/dx(3)
+             uz(i,j,k)= (ALP*(q(i,j,k+1,qu)-q(i,j,k-1,qu)) &
+                  + BET*(q(i,j,k+2,qu)-q(i,j,k-2,qu))      &
+                  + GAM*(q(i,j,k+3,qu)-q(i,j,k-3,qu))      &
+                  + DEL*(q(i,j,k+4,qu)-q(i,j,k-4,qu)))/dx(3)
 
-             vz(i,j,k)= (alp*(q(i,j,k+1,qv)-q(i,j,k-1,qv)) &
-                  + bet*(q(i,j,k+2,qv)-q(i,j,k-2,qv))      &
-                  + gam*(q(i,j,k+3,qv)-q(i,j,k-3,qv))      &
-                  + del*(q(i,j,k+4,qv)-q(i,j,k-4,qv)))/dx(3)
+             vz(i,j,k)= (ALP*(q(i,j,k+1,qv)-q(i,j,k-1,qv)) &
+                  + BET*(q(i,j,k+2,qv)-q(i,j,k-2,qv))      &
+                  + GAM*(q(i,j,k+3,qv)-q(i,j,k-3,qv))      &
+                  + DEL*(q(i,j,k+4,qv)-q(i,j,k-4,qv)))/dx(3)
           enddo
        enddo
     enddo
@@ -668,89 +670,89 @@ contains
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
 
-             uxx = (center*q(i,j,k,qu)                 &
-                  + off1*(q(i+1,j,k,qu)+q(i-1,j,k,qu)) &
-                  + off2*(q(i+2,j,k,qu)+q(i-2,j,k,qu)) &
-                  + off3*(q(i+3,j,k,qu)+q(i-3,j,k,qu)) &
-                  + off4*(q(i+4,j,k,qu)+q(i-4,j,k,qu)))/dx(1)**2
+             uxx = (CENTER*q(i,j,k,qu)                 &
+                  + OFF1*(q(i+1,j,k,qu)+q(i-1,j,k,qu)) &
+                  + OFF2*(q(i+2,j,k,qu)+q(i-2,j,k,qu)) &
+                  + OFF3*(q(i+3,j,k,qu)+q(i-3,j,k,qu)) &
+                  + OFF4*(q(i+4,j,k,qu)+q(i-4,j,k,qu)))/dx(1)**2
 
-             uyy = (center*q(i,j,k,qu)                 &
-                  + off1*(q(i,j+1,k,qu)+q(i,j-1,k,qu)) &
-                  + off2*(q(i,j+2,k,qu)+q(i,j-2,k,qu)) &
-                  + off3*(q(i,j+3,k,qu)+q(i,j-3,k,qu)) &
-                  + off4*(q(i,j+4,k,qu)+q(i,j-4,k,qu)))/dx(2)**2
+             uyy = (CENTER*q(i,j,k,qu)                 &
+                  + OFF1*(q(i,j+1,k,qu)+q(i,j-1,k,qu)) &
+                  + OFF2*(q(i,j+2,k,qu)+q(i,j-2,k,qu)) &
+                  + OFF3*(q(i,j+3,k,qu)+q(i,j-3,k,qu)) &
+                  + OFF4*(q(i,j+4,k,qu)+q(i,j-4,k,qu)))/dx(2)**2
 
-             uzz = (center*q(i,j,k,qu)                 &
-                  + off1*(q(i,j,k+1,qu)+q(i,j,k-1,qu)) &
-                  + off2*(q(i,j,k+2,qu)+q(i,j,k-2,qu)) &
-                  + off3*(q(i,j,k+3,qu)+q(i,j,k-3,qu)) &
-                  + off4*(q(i,j,k+4,qu)+q(i,j,k-4,qu)))/dx(3)**2
+             uzz = (CENTER*q(i,j,k,qu)                 &
+                  + OFF1*(q(i,j,k+1,qu)+q(i,j,k-1,qu)) &
+                  + OFF2*(q(i,j,k+2,qu)+q(i,j,k-2,qu)) &
+                  + OFF3*(q(i,j,k+3,qu)+q(i,j,k-3,qu)) &
+                  + OFF4*(q(i,j,k+4,qu)+q(i,j,k-4,qu)))/dx(3)**2
 
-             vxx = (center*q(i,j,k,qv)                 &
-                  + off1*(q(i+1,j,k,qv)+q(i-1,j,k,qv)) &
-                  + off2*(q(i+2,j,k,qv)+q(i-2,j,k,qv)) &
-                  + off3*(q(i+3,j,k,qv)+q(i-3,j,k,qv)) &
-                  + off4*(q(i+4,j,k,qv)+q(i-4,j,k,qv)))/dx(1)**2
+             vxx = (CENTER*q(i,j,k,qv)                 &
+                  + OFF1*(q(i+1,j,k,qv)+q(i-1,j,k,qv)) &
+                  + OFF2*(q(i+2,j,k,qv)+q(i-2,j,k,qv)) &
+                  + OFF3*(q(i+3,j,k,qv)+q(i-3,j,k,qv)) &
+                  + OFF4*(q(i+4,j,k,qv)+q(i-4,j,k,qv)))/dx(1)**2
 
-             vyy = (center*q(i,j,k,qv)                 &
-                  + off1*(q(i,j+1,k,qv)+q(i,j-1,k,qv)) &
-                  + off2*(q(i,j+2,k,qv)+q(i,j-2,k,qv)) &
-                  + off3*(q(i,j+3,k,qv)+q(i,j-3,k,qv)) &
-                  + off4*(q(i,j+4,k,qv)+q(i,j-4,k,qv)))/dx(2)**2
+             vyy = (CENTER*q(i,j,k,qv)                 &
+                  + OFF1*(q(i,j+1,k,qv)+q(i,j-1,k,qv)) &
+                  + OFF2*(q(i,j+2,k,qv)+q(i,j-2,k,qv)) &
+                  + OFF3*(q(i,j+3,k,qv)+q(i,j-3,k,qv)) &
+                  + OFF4*(q(i,j+4,k,qv)+q(i,j-4,k,qv)))/dx(2)**2
 
-             vzz = (center*q(i,j,k,qv)                 &
-                  + off1*(q(i,j,k+1,qv)+q(i,j,k-1,qv)) &
-                  + off2*(q(i,j,k+2,qv)+q(i,j,k-2,qv)) &
-                  + off3*(q(i,j,k+3,qv)+q(i,j,k-3,qv)) &
-                  + off4*(q(i,j,k+4,qv)+q(i,j,k-4,qv)))/dx(3)**2
+             vzz = (CENTER*q(i,j,k,qv)                 &
+                  + OFF1*(q(i,j,k+1,qv)+q(i,j,k-1,qv)) &
+                  + OFF2*(q(i,j,k+2,qv)+q(i,j,k-2,qv)) &
+                  + OFF3*(q(i,j,k+3,qv)+q(i,j,k-3,qv)) &
+                  + OFF4*(q(i,j,k+4,qv)+q(i,j,k-4,qv)))/dx(3)**2
 
-             wxx = (center*q(i,j,k,qw)                 &
-                  + off1*(q(i+1,j,k,qw)+q(i-1,j,k,qw)) &
-                  + off2*(q(i+2,j,k,qw)+q(i-2,j,k,qw)) &
-                  + off3*(q(i+3,j,k,qw)+q(i-3,j,k,qw)) &
-                  + off4*(q(i+4,j,k,qw)+q(i-4,j,k,qw)))/dx(1)**2
+             wxx = (CENTER*q(i,j,k,qw)                 &
+                  + OFF1*(q(i+1,j,k,qw)+q(i-1,j,k,qw)) &
+                  + OFF2*(q(i+2,j,k,qw)+q(i-2,j,k,qw)) &
+                  + OFF3*(q(i+3,j,k,qw)+q(i-3,j,k,qw)) &
+                  + OFF4*(q(i+4,j,k,qw)+q(i-4,j,k,qw)))/dx(1)**2
 
-             wyy = (center*q(i,j,k,qw)                 &
-                  + off1*(q(i,j+1,k,qw)+q(i,j-1,k,qw)) &
-                  + off2*(q(i,j+2,k,qw)+q(i,j-2,k,qw)) &
-                  + off3*(q(i,j+3,k,qw)+q(i,j-3,k,qw)) &
-                  + off4*(q(i,j+4,k,qw)+q(i,j-4,k,qw)))/dx(2)**2
+             wyy = (CENTER*q(i,j,k,qw)                 &
+                  + OFF1*(q(i,j+1,k,qw)+q(i,j-1,k,qw)) &
+                  + OFF2*(q(i,j+2,k,qw)+q(i,j-2,k,qw)) &
+                  + OFF3*(q(i,j+3,k,qw)+q(i,j-3,k,qw)) &
+                  + OFF4*(q(i,j+4,k,qw)+q(i,j-4,k,qw)))/dx(2)**2
 
-             wzz = (center*q(i,j,k,qw)                 &
-                  + off1*(q(i,j,k+1,qw)+q(i,j,k-1,qw)) &
-                  + off2*(q(i,j,k+2,qw)+q(i,j,k-2,qw)) &
-                  + off3*(q(i,j,k+3,qw)+q(i,j,k-3,qw)) &
-                  + off4*(q(i,j,k+4,qw)+q(i,j,k-4,qw)))/dx(3)**2
+             wzz = (CENTER*q(i,j,k,qw)                 &
+                  + OFF1*(q(i,j,k+1,qw)+q(i,j,k-1,qw)) &
+                  + OFF2*(q(i,j,k+2,qw)+q(i,j,k-2,qw)) &
+                  + OFF3*(q(i,j,k+3,qw)+q(i,j,k-3,qw)) &
+                  + OFF4*(q(i,j,k+4,qw)+q(i,j,k-4,qw)))/dx(3)**2
 
-             vyx= (alp*(vy(i+1,j,k)-vy(i-1,j,k))  &
-                  + bet*(vy(i+2,j,k)-vy(i-2,j,k)) &
-                  + gam*(vy(i+3,j,k)-vy(i-3,j,k)) &
-                  + del*(vy(i+4,j,k)-vy(i-4,j,k)))/dx(1)
+             vyx= (ALP*(vy(i+1,j,k)-vy(i-1,j,k))  &
+                  + BET*(vy(i+2,j,k)-vy(i-2,j,k)) &
+                  + GAM*(vy(i+3,j,k)-vy(i-3,j,k)) &
+                  + DEL*(vy(i+4,j,k)-vy(i-4,j,k)))/dx(1)
 
-             wzx= (alp*(wz(i+1,j,k)-wz(i-1,j,k))  &
-                  + bet*(wz(i+2,j,k)-wz(i-2,j,k)) &
-                  + gam*(wz(i+3,j,k)-wz(i-3,j,k)) &
-                  + del*(wz(i+4,j,k)-wz(i-4,j,k)))/dx(1)
+             wzx= (ALP*(wz(i+1,j,k)-wz(i-1,j,k))  &
+                  + BET*(wz(i+2,j,k)-wz(i-2,j,k)) &
+                  + GAM*(wz(i+3,j,k)-wz(i-3,j,k)) &
+                  + DEL*(wz(i+4,j,k)-wz(i-4,j,k)))/dx(1)
 
-             uxy = (alp*(ux(i,j+1,k)-ux(i,j-1,k)) &
-                  + bet*(ux(i,j+2,k)-ux(i,j-2,k)) &
-                  + gam*(ux(i,j+3,k)-ux(i,j-3,k)) &
-                  + del*(ux(i,j+4,k)-ux(i,j-4,k)))/dx(2)
+             uxy = (ALP*(ux(i,j+1,k)-ux(i,j-1,k)) &
+                  + BET*(ux(i,j+2,k)-ux(i,j-2,k)) &
+                  + GAM*(ux(i,j+3,k)-ux(i,j-3,k)) &
+                  + DEL*(ux(i,j+4,k)-ux(i,j-4,k)))/dx(2)
 
-             wzy = (alp*(wz(i,j+1,k)-wz(i,j-1,k)) &
-                  + bet*(wz(i,j+2,k)-wz(i,j-2,k)) &
-                  + gam*(wz(i,j+3,k)-wz(i,j-3,k)) &
-                  + del*(wz(i,j+4,k)-wz(i,j-4,k)))/dx(2)
+             wzy = (ALP*(wz(i,j+1,k)-wz(i,j-1,k)) &
+                  + BET*(wz(i,j+2,k)-wz(i,j-2,k)) &
+                  + GAM*(wz(i,j+3,k)-wz(i,j-3,k)) &
+                  + DEL*(wz(i,j+4,k)-wz(i,j-4,k)))/dx(2)
 
-             uxz= (alp*(ux(i,j,k+1)-ux(i,j,k-1))  &
-                  + bet*(ux(i,j,k+2)-ux(i,j,k-2)) &
-                  + gam*(ux(i,j,k+3)-ux(i,j,k-3)) &
-                  + del*(ux(i,j,k+4)-ux(i,j,k-4)))/dx(3)
+             uxz= (ALP*(ux(i,j,k+1)-ux(i,j,k-1))  &
+                  + BET*(ux(i,j,k+2)-ux(i,j,k-2)) &
+                  + GAM*(ux(i,j,k+3)-ux(i,j,k-3)) &
+                  + DEL*(ux(i,j,k+4)-ux(i,j,k-4)))/dx(3)
 
-             vyz= (alp*(vy(i,j,k+1)-vy(i,j,k-1))  &
-                  + bet*(vy(i,j,k+2)-vy(i,j,k-2)) &
-                  + gam*(vy(i,j,k+3)-vy(i,j,k-3)) &
-                  + del*(vy(i,j,k+4)-vy(i,j,k-4)))/dx(3)
+             vyz= (ALP*(vy(i,j,k+1)-vy(i,j,k-1))  &
+                  + BET*(vy(i,j,k+2)-vy(i,j,k-2)) &
+                  + GAM*(vy(i,j,k+3)-vy(i,j,k-3)) &
+                  + DEL*(vy(i,j,k+4)-vy(i,j,k-4)))/dx(3)
 
              difflux(i,j,k,imx) = eta * (4.d0*uxx/3.d0 + uyy + uzz + (vyx+wzx)/3.d0)
 
@@ -758,25 +760,25 @@ contains
 
              difflux(i,j,k,imz) = eta * (wxx + wyy + 4.d0*wzz/3.d0 + (uxz+vyz)/3.d0)
 
-             txx = (center*Temp(i,j,k)                 &
-                  + off1*(Temp(i+1,j,k)+Temp(i-1,j,k)) &
-                  + off2*(Temp(i+2,j,k)+Temp(i-2,j,k)) &
-                  + off3*(Temp(i+3,j,k)+Temp(i-3,j,k)) &
-                  + off4*(Temp(i+4,j,k)+Temp(i-4,j,k)))/dx(1)**2
+             txx = (CENTER*q(i,j,k,6)                &
+                  + OFF1*(q(i+1,j,k,6)+q(i-1,j,k,6)) &
+                  + OFF2*(q(i+2,j,k,6)+q(i-2,j,k,6)) &
+                  + OFF3*(q(i+3,j,k,6)+q(i-3,j,k,6)) &
+                  + OFF4*(q(i+4,j,k,6)+q(i-4,j,k,6)))/dx(1)**2
 
-             tyy = (center*Temp(i,j,k)                 &
-                  + off1*(Temp(i,j+1,k)+Temp(i,j-1,k)) &
-                  + off2*(Temp(i,j+2,k)+Temp(i,j-2,k)) &
-                  + off3*(Temp(i,j+3,k)+Temp(i,j-3,k)) &
-                  + off4*(Temp(i,j+4,k)+Temp(i,j-4,k)))/dx(2)**2
+             tyy = (CENTER*q(i,j,k,6)                &
+                  + OFF1*(q(i,j+1,k,6)+q(i,j-1,k,6)) &
+                  + OFF2*(q(i,j+2,k,6)+q(i,j-2,k,6)) &
+                  + OFF3*(q(i,j+3,k,6)+q(i,j-3,k,6)) &
+                  + OFF4*(q(i,j+4,k,6)+q(i,j-4,k,6)))/dx(2)**2
 
-             tzz = (center*Temp(i,j,k)                 &
-                  + off1*(Temp(i,j,k+1)+Temp(i,j,k-1)) &
-                  + off2*(Temp(i,j,k+2)+Temp(i,j,k-2)) &
-                  + off3*(Temp(i,j,k+3)+Temp(i,j,k-3)) &
-                  + off4*(Temp(i,j,k+4)+Temp(i,j,k-4)))/dx(3)**2
+             tzz = (CENTER*q(i,j,k,6)                &
+                  + OFF1*(q(i,j,k+1,6)+q(i,j,k-1,6)) &
+                  + OFF2*(q(i,j,k+2,6)+q(i,j,k-2,6)) &
+                  + OFF3*(q(i,j,k+3,6)+q(i,j,k-3,6)) &
+                  + OFF4*(q(i,j,k+4,6)+q(i,j,k-4,6)))/dx(3)**2
 
-             difflux(i,j,k,iene)= alam*(txx+tyy+tzz)
+             difflux(i,j,k,iene) = alam*(txx+tyy+tzz)
 
              !    differentiate out \nabla \cdot \tau u
              !    this is rather horrific
@@ -796,11 +798,11 @@ contains
              mechwork = eta*mechwork + difflux(i,j,k,imx)*q(i,j,k,qu) &
                   + difflux(i,j,k,imy)*q(i,j,k,qv)                    &
                   + difflux(i,j,k,imz)*q(i,j,k,qw)
+
+             difflux(i,j,k,iene) = difflux(i,j,k,iene) + mechwork
           enddo
        enddo
     enddo
-
-    call deallocate(ux,uy,uz,vx,vy,vz,wx,wy,wz)
 
   end subroutine diffterm
 
