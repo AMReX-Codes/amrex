@@ -39,7 +39,7 @@ contains
 
     call multifab_build(plotdata(1),la,nc,0)
 
-    call multifab_copy_c(plotdata(1),1,data,1,5)
+    call multifab_copy_c(plotdata(1),1,data,1,nc)
 
     write(unit=plotfile_name,fmt='("plt",i5.5)') istep
 
