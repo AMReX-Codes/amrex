@@ -1709,7 +1709,32 @@ td.date {background-color: #666666; color: white; opacity: 0.8; font-weight: bol
 
 
 table {border-collapse: separate;
-       border-spacing: 2px;}
+       border-spacing: 2px;
+       margin-left: auto;
+       margin-right: auto;}
+
+/* http://blog.petermares.com/2010/10/27/vertical-text-in-html-table-headers-for-webkitmozilla-browsers-without-using-images/ */
+
+div.verticaltext {text-align: center;
+                  vertical-align: middle;
+                  width: 20px;
+                  margin: 0px;
+                  padding: 0px;
+                  padding-left: 3px;
+                  padding-right: 3px;
+                  padding-top: 10px;
+                  white-space: nowrap;
+                  -webkit-transform: rotate(-90deg); 
+                  -moz-transform: rotate(-90deg);}
+
+th {background-color: grey;
+    color: yellow;
+    text-align: center;
+    vertical-align: bottom;
+    height: 14em;
+    padding-bottom: 3px;
+    padding-left: 5px;
+    padding-right: 5px;}
 
 """
 
@@ -2036,9 +2061,8 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, no_update,
     # generate the HTML page for this run of the test suite
     #--------------------------------------------------------------------------
 
-    # check to see if the CSS file is present, if not, write it
-    if (not os.path.isfile("tests.css")):
-        create_css()
+    # always create the css (in case it changes)
+    create_css()
 
 
     # create the master filename
@@ -2212,8 +2236,7 @@ def reportAllRuns(suite, webTopDir):
 
     os.chdir(webTopDir)
 
-    if (not os.path.isfile("tests.css")):
-        create_css()
+    create_css()
 
     validDirs = []
     allTests = []
@@ -2274,9 +2297,9 @@ def reportAllRuns(suite, webTopDir):
     hf.write("<P><TABLE class='maintable'>\n")
 
     # write out the header
-    hf.write("<TR><TH ALIGN=CENTER>date</TH>")
+    hf.write("<TR><TH ALIGN=CENTER>date</TH>\n")
     for test in allTests:
-        hf.write("<TH ALIGN=CENTER>%s</TH>" % (test))
+        hf.write("<TH><div class='verticaltext'>%s</div></TH>\n" % (test))
     
     hf.write("</TR>\n")
 
@@ -2319,11 +2342,11 @@ def reportAllRuns(suite, webTopDir):
                 
             # write out this test's status
             if (status == 1):
-                hf.write("<TD ALIGN=CENTER class=\"passed\"><H3>PASSED</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"passed\"><H3>:)</H3></TD>\n")
             elif (status == -1):
-                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3>FAILED</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3>!</H3></TD>\n")
             elif (status == 10):
-                hf.write("<TD ALIGN=CENTER class=\"benchmade\"><H3>UPDATED</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"benchmade\"><H3>U</H3></TD>\n")
             else:
                 hf.write("<TD>&nbsp;</TD>\n")
 
