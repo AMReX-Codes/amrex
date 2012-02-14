@@ -22,39 +22,37 @@ program main
   ! We have five components (no species).
   !
   integer, parameter :: NC  = 5
-  !
-  ! Stuff you can set with the inputs file (otherwise use default values below).
-  !
-  integer :: nsteps, plot_int, n_cell, max_grid_size
 
-  integer :: un, farg, narg
-  logical :: need_inputs_file, found_inputs_file
+  integer            :: nsteps, plot_int, n_cell, max_grid_size
+  integer            :: un, farg, narg
+  logical            :: need_inputs_file, found_inputs_file
   character(len=128) :: inputs_file_name
-
-  integer :: i, lo(DM), hi(DM), istep
-
-  double precision :: prob_lo(DM), prob_hi(DM)
-  double precision :: dx(DM), dt, time, start_time, end_time
-  
-  logical :: is_periodic(DM)
-
-  type(box)      :: bx
-  type(boxarray) :: ba
-  type(layout)   :: la
-  type(multifab) :: data
-
-  namelist /probin/ nsteps, plot_int, n_cell, max_grid_size
+  integer            :: i, lo(DM), hi(DM), istep
+  double precision   :: prob_lo(DM), prob_hi(DM), cfl, eta, alam
+  double precision   :: dx(DM), dt, time, start_time, end_time
+  logical            :: is_periodic(DM)
+  type(box)          :: bx
+  type(boxarray)     :: ba
+  type(layout)       :: la
+  type(multifab)     :: data
+  !
+  ! What's settable via an inputs file.
+  !
+  namelist /probin/ nsteps, plot_int, n_cell, max_grid_size, cfl, eta, alam
 
   call boxlib_initialize()
 
   start_time = parallel_wtime()
   !
-  ! Default values - will get overwritten by the inputs file.
+  ! Namelist default values -- overwritable via inputs file.
   !
-  nsteps        = 10
-  plot_int      = 1
+  nsteps        = 100
+  plot_int      = 10
   n_cell        = 32
   max_grid_size = 32
+  cfl           = 0.5d0
+  eta           = 1.8d-4 ! Diffusion coefficient.
+  alam          = 1.5d2  ! Diffusion coefficient.
   !
   ! Read inputs file and overwrite any default values.
   !
@@ -72,6 +70,10 @@ program main
         close(unit=un)
         need_inputs_file = .false.
      end if
+  end if
+
+  if ( parallel_IOProcessor() ) then
+     write(6,probin)
   end if
   !
   ! Physical problem is a box on (-1,-1) to (1,1), periodic on all sides.
@@ -117,7 +119,7 @@ program main
         print*,'Advancing time step',istep,'time = ',time
      end if
      
-     call advance(data,dt,dx)
+     call advance(data,dt,dx,cfl,eta,alam)
 
      time = time + dt
 

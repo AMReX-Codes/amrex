@@ -40,6 +40,8 @@ contains
     ! define the name of the plotfile that will be written
     write(unit=plotfile_name,fmt='("plt",i5.5)') istep
 
+    if ( parallel_IOProcessor() ) print*, 'Writing ' // plotfile_name // ' ...'
+
     ! write the plotfile
     call fabio_ml_multifab_write_d(plotdata, rr, plotfile_name, variable_names, &
                                    la%lap%pd, prob_lo, prob_hi, time, dx)
