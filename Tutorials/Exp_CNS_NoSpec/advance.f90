@@ -129,6 +129,7 @@ contains
        hi = upb(get_box(U,n))
 
        do m = 1, nc
+          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 do i = lo(1),hi(1)
@@ -136,6 +137,7 @@ contains
                 end do
              end do
           end do
+          !$OMP END PARALLEL DO
        end do
     end do
     !
@@ -202,6 +204,7 @@ contains
        hi = upb(get_box(U,n))
 
        do m = 1, nc
+          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 do i = lo(1),hi(1)
@@ -210,6 +213,7 @@ contains
                 end do
              end do
           end do
+          !$OMP END PARALLEL DO
        end do
     end do
     !
@@ -276,6 +280,7 @@ contains
        hi = upb(get_box(U,n))
 
        do m = 1, nc
+          !$OMP PARALLEL DO PRIVATE(i,j,k)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
                 do i = lo(1),hi(1)
@@ -284,6 +289,7 @@ contains
                 end do
              end do
           end do
+          !$OMP END PARALLEL DO
        end do
     end do
 
@@ -323,13 +329,12 @@ contains
     enddo
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,eint)
     do k = lo(3)-ng,hi(3)+ng
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
 
-             eint =  u(i,j,k,5)/u(i,j,k,1)      & 
-                  - 0.5d0*( q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4)**2)
+             eint = u(i,j,k,5)/u(i,j,k,1) - 0.5d0*(q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4)**2)
              q(i,j,k,5) = (GAMMA-1.d0)*eint*u(i,j,k,1)
              q(i,j,k,6) = eint/CV
 
@@ -338,7 +343,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,courx,coury,courz) REDUCTION(max:courmx,courmy,courmz)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,c,courx,coury,courz) REDUCTION(max:courmx,courmy,courmz)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -589,7 +594,8 @@ contains
 
     difflux(:,:,:,irho) = 0.0d0
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL PRIVATE(i,j,k)
+    !$OMP DO
     do k=lo(3)-ng,hi(3)+ng
        do j=lo(2)-ng,hi(2)+ng
           do i=lo(1),hi(1)
@@ -614,9 +620,9 @@ contains
           enddo
        enddo
     enddo
-    !$OMP END PARALLEL DO
+    !$OMP END DO NOWAIT
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP DO
     do k=lo(3)-ng,hi(3)+ng
        do j=lo(2),hi(2)   
           do i=lo(1)-ng,hi(1)+ng
@@ -641,9 +647,9 @@ contains
           enddo
        enddo
     enddo
-    !$OMP END PARALLEL DO
+    !$OMP END DO NOWAIT
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP DO
     do k=lo(3),hi(3)
        do j=lo(2)-ng,hi(2)+ng
           do i=lo(1)-ng,hi(1)+ng
@@ -668,7 +674,8 @@ contains
           enddo
        enddo
     enddo
-    !$OMP END PARALLEL DO
+    !$OMP END DO
+    !$OMP END PARALLEL
 
     !$OMP PARALLEL DO PRIVATE(i,j,k,uxx,uyy,uzz,vxx,vyy,vzz,wxx,wyy,wzz) &
     !$OMP PRIVATE(vyx,wzx,uxy,wzy,uxz,vyz,txx,tyy,tzz) &
