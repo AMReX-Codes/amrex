@@ -370,11 +370,6 @@ contains
 
   subroutine hypterm (lo,hi,ng,dx,cons,q,flux)
 
-    ! inputs:  lo,hi,ng,cons,q
-    ! cons --  rho, rho u , rho v, rho w, rho E
-    ! cons --  rho, u ,  v,  w, p, T
-    ! outputs: flux
-
     integer,          intent(in ) :: lo(3),hi(3),ng
     double precision, intent(in ) :: dx(3)
     double precision, intent(in ) :: cons(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,5)
@@ -738,12 +733,12 @@ contains
                   + OFF3*(q(i,j,k+3,qw)+q(i,j,k-3,qw)) &
                   + OFF4*(q(i,j,k+4,qw)+q(i,j,k-4,qw)))/dx(3)**2
 
-             vyx= (ALP*(vy(i+1,j,k)-vy(i-1,j,k))  &
+             vyx = (ALP*(vy(i+1,j,k)-vy(i-1,j,k)) &
                   + BET*(vy(i+2,j,k)-vy(i-2,j,k)) &
                   + GAM*(vy(i+3,j,k)-vy(i-3,j,k)) &
                   + DEL*(vy(i+4,j,k)-vy(i-4,j,k)))/dx(1)
 
-             wzx= (ALP*(wz(i+1,j,k)-wz(i-1,j,k))  &
+             wzx = (ALP*(wz(i+1,j,k)-wz(i-1,j,k)) &
                   + BET*(wz(i+2,j,k)-wz(i-2,j,k)) &
                   + GAM*(wz(i+3,j,k)-wz(i-3,j,k)) &
                   + DEL*(wz(i+4,j,k)-wz(i-4,j,k)))/dx(1)
