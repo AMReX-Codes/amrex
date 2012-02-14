@@ -18,7 +18,7 @@ contains
 
     ! local variables
     character(len=8)  :: plotfile_name
-    character(len=20) :: variable_names(2)
+    character(len=20) :: variable_names(5)
 
     ! dimensioned as an array of size 1 for fabio_ml_multifab_write_d
     type(multifab) :: plotdata(1)
@@ -28,11 +28,14 @@ contains
 
     variable_names(1) = "Variable 1"
     variable_names(2) = "Variable 2"
+    variable_names(3) = "Variable 3"
+    variable_names(4) = "Variable 4"
+    variable_names(5) = "Variable 5"
 
-    ! build plotdata with 2 components and 0 ghost cells
-    call multifab_build(plotdata(1),la,2,0)
+    ! build plotdata with 5 components and 0 ghost cells
+    call multifab_build(plotdata(1),la,5,0)
     ! copy the state into plotdata
-    call multifab_copy_c(plotdata(1),1,data,1,2)
+    call multifab_copy_c(plotdata(1),1,data,1,5)
 
     ! define the name of the plotfile that will be written
     write(unit=plotfile_name,fmt='("plt",i5.5)') istep
