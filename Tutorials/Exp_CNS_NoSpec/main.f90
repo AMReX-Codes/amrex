@@ -19,6 +19,10 @@ program main
   !
   integer, parameter :: NG  = 4
   !
+  ! We have five components (no species).
+  !
+  integer, parameter :: NC  = 5
+  !
   ! Stuff you can set with the inputs file (otherwise use default values below).
   !
   integer :: nsteps, plot_int, n_cell, max_grid_size
@@ -81,9 +85,7 @@ program main
   lo = 0
   hi = n_cell-1
   bx = make_box(lo,hi)
-  !
-  ! The grid spacing is the same in each direction.
-  !
+
   do i = 1,DM
      dx(i) = (prob_hi(i)-prob_lo(i)) / n_cell
   end do
@@ -100,10 +102,9 @@ program main
 
   call destroy(ba)
 
-  ! build multifab with 2 components and 6 ghost cells
-  call multifab_build(data,la,2,6)
+  call multifab_build(data,la,NC,NG)
   
-  call init_data(data,dx,prob_lo)
+  call init_data(data,dx,prob_lo,prob_hi)
 
   istep = 0
   time  = 0.d0
