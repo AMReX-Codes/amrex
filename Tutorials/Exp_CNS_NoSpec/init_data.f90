@@ -62,11 +62,11 @@ contains
           do i=lo(1),hi(1)
              xloc = dfloat(i)*dx(1)
 
-             uvel   = sin(xloc/scale)*sin(2*yloc/scale)*sin(3*zloc/scale)
-             vvel   = sin(2*xloc/scale)*sin(4*yloc/scale)*sin(zloc/scale)
+             uvel   = sin(1*xloc/scale)*sin(2*yloc/scale)*sin(3*zloc/scale)
+             vvel   = sin(2*xloc/scale)*sin(4*yloc/scale)*sin(1*zloc/scale)
              wvel   = sin(3*xloc/scale)*cos(2*yloc/scale)*sin(2*zloc/scale)
-             rholoc = 1.0d-3+1.0d-5*sin(xloc/scale)*cos(2*yloc/scale)*cos(3*zloc/scale)
-             eloc   = 2.5d9+1.0d-3*sin(2*xloc/scale)*cos(2*yloc/scale)*sin(2*zloc/scale)
+             rholoc = 1.0d-3 + 1.0d-5*sin(1*xloc/scale)*cos(2*yloc/scale)*cos(3*zloc/scale)
+             eloc   = 2.5d9  + 1.0d-3*sin(2*xloc/scale)*cos(2*yloc/scale)*sin(2*zloc/scale)
 
              cons(i,j,k,irho) = rholoc
              cons(i,j,k,imx)  = rholoc*uvel
