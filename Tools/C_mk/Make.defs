@@ -267,8 +267,8 @@ FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 #
 ifeq ($(findstring gcc, $(COMP)), gcc)
     CXXPRFF    := -p
-    CXXOPTF    += -g -O3 -fno-exceptions
-    CXXDEBF    += -g -O1 -fno-exceptions -Wall -Wno-sign-compare
+    CXXOPTF    += -g -O3 -ffast-math
+    CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
     CC	       := $(COMP)
@@ -289,8 +289,8 @@ endif
 
 ifeq ($(findstring g++, $(COMP)), g++)
     CXXPRFF    := -p
-    CXXOPTF    += -g -O3 -fno-exceptions
-    CXXDEBF    += -g -O1 -fno-exceptions -Wall -Wno-sign-compare
+    CXXOPTF    += -g -O3 -ffast-math
+    CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := $(COMP) -ftemplate-depth-64 -Wno-deprecated
     CC	       := gcc
@@ -333,8 +333,8 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     fFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
     override XTRALIBS += $(_f95_lib)
-    FOPTF += -ffixed-line-length-132 -g -O2
-    fOPTF += -ffixed-line-length-132 -g -O2
+    FOPTF += -ffixed-line-length-132 -g -O3 -ffast-math
+    fOPTF += -ffixed-line-length-132 -g -O3 -ffast-math
 #    FDEBF += -g -O0 -ffixed-line-length-132 -fbounds-check -Wall
 #    fDEBF += -g -O0 -ffixed-line-length-132 -fbounds-check -Wall
     FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
@@ -389,8 +389,8 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
-   CXXOPTF += -g -O2 #-fno-exceptions
-   CXXDEBF += -g -O0 #-fno-exceptions
+   CXXOPTF += -g -O2
+   CXXDEBF += -g -O0
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
