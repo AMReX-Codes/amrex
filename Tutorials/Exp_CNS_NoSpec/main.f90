@@ -91,13 +91,9 @@ program main
   do i = 1,DM
      dx(i) = (prob_hi(i)-prob_lo(i)) / n_cell
   end do
-  !
-  ! Initialize the boxarray to be one single box.
-  !
+
   call boxarray_build_bx(ba,bx)
-  !
-  ! Overwrite the boxarray to respect max_grid_size.
-  !
+
   call boxarray_maxsize(ba,max_grid_size)
 
   call layout_build_ba(la,ba,pmask=is_periodic)
@@ -111,7 +107,9 @@ program main
   istep = 0
   time  = 0.d0
 
-  call write_plotfile(U,istep,dx,time,prob_lo,prob_hi)
+  if (plot_int > 0) then
+     call write_plotfile(U,istep,dx,time,prob_lo,prob_hi)
+  end if
 
   do istep=1,nsteps
 
@@ -123,8 +121,10 @@ program main
 
      time = time + dt
 
-     if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
-        call write_plotfile(U,istep,dx,time,prob_lo,prob_hi)
+     if (plot_int > 0) then
+        if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
+           call write_plotfile(U,istep,dx,time,prob_lo,prob_hi)
+        end if
      end if
 
   end do
