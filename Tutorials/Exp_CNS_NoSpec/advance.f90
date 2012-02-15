@@ -64,7 +64,9 @@ contains
     !
     ! Calculate primitive variables based on U.
     !
-    courno_proc = 1.0e-50
+    ! Also calculate courno so we can set "dt".
+    !
+    courno_proc = 1.0d-50
 
     do n=1,nboxes(Q)
        if ( remote(Q,n) ) cycle
@@ -75,7 +77,7 @@ contains
        lo = lwb(get_box(Q,n))
        hi = upb(get_box(Q,n))
 
-       call ctoprim(lo,hi,up,qp,courno_proc,dx,ng)
+       call ctoprim(lo,hi,up,qp,dx,ng,courno=courno_proc)
     end do
 
     call parallel_reduce(courno, courno_proc, MPI_MAX)
@@ -147,8 +149,6 @@ contains
     !
     ! Calculate primitive variables based on U^1/3.
     !
-    courno_proc = 1.0e-50
-
     do n=1,nboxes(Q)
        if ( remote(Q,n) ) cycle
 
@@ -158,7 +158,7 @@ contains
        lo = lwb(get_box(Q,n))
        hi = upb(get_box(Q,n))
 
-       call ctoprim(lo,hi,up,qp,courno_proc,dx,ng)
+       call ctoprim(lo,hi,up,qp,dx,ng)
     end do
     !
     ! Calculate D at time N+1/3.
@@ -223,8 +223,6 @@ contains
     !
     ! Calculate primitive variables based on U^2/3.
     !
-    courno_proc = 1.0e-50
-
     do n=1,nboxes(Q)
        if ( remote(Q,n) ) cycle
 
@@ -234,7 +232,7 @@ contains
        lo = lwb(get_box(Q,n))
        hi = upb(get_box(Q,n))
 
-       call ctoprim(lo,hi,up,qp,courno_proc,dx,ng)
+       call ctoprim(lo,hi,up,qp,dx,ng)
     end do
     !
     ! Calculate D at time N+2/3.
@@ -300,32 +298,33 @@ contains
 
   end subroutine advance
 
-  subroutine ctoprim (lo,hi,u,q,courno,dx,ng)
+  subroutine ctoprim (lo,hi,u,q,dx,ng,courno)
 
-    integer,          intent(in   ) :: lo(3), hi(3), ng
-    double precision, intent(in   ) :: u(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,5)
-    double precision, intent(in   ) :: dx(3)
-    double precision, intent(out  ) :: q(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,6)
-    double precision, intent(inout) :: courno
+    integer,          intent(in ) :: lo(3), hi(3), ng
+    double precision, intent(in ) :: u(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,5)
+    double precision, intent(in ) :: dx(3)
+    double precision, intent(out) :: q(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,6)
+
+    double precision, intent(inout), optional :: courno
 
     integer          :: i, j, k
-    double precision :: c, eint, courx, coury, courz, courmx, courmy, courmz
+    double precision :: c, eint, courx, coury, courz, courmx, courmy, courmz, rhoinv
 
     double precision, parameter :: GAMMA = 1.4d0
     double precision, parameter :: CV    = 8.3333333333d6
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,eint)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,eint,rhoinv)
     do k = lo(3)-ng,hi(3)+ng
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
 
+             rhoinv     = 1.0d0/u(i,j,k,1)
              q(i,j,k,1) = u(i,j,k,1)
-             q(i,j,k,2) = u(i,j,k,2)/u(i,j,k,1)
-             q(i,j,k,3) = u(i,j,k,3)/u(i,j,k,1)
-             q(i,j,k,4) = u(i,j,k,4)/u(i,j,k,1)
+             q(i,j,k,2) = u(i,j,k,2)*rhoinv
+             q(i,j,k,3) = u(i,j,k,3)*rhoinv
+             q(i,j,k,4) = u(i,j,k,4)*rhoinv
 
-             eint = u(i,j,k,5)/u(i,j,k,1) - &
-                  0.5d0*(q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4)**2)
+             eint = u(i,j,k,5)*rhoinv - 0.5d0*(q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4)**2)
 
              q(i,j,k,5) = (GAMMA-1.d0)*eint*u(i,j,k,1)
              q(i,j,k,6) = eint/CV
@@ -335,28 +334,32 @@ contains
     enddo
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,c,courx,coury,courz) REDUCTION(max:courmx,courmy,courmz)
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
+    if ( present(courno) ) then
 
-             c     = sqrt(GAMMA*q(i,j,k,5)/q(i,j,k,1))
-             courx = ( c+abs(q(i,j,k,2)) ) / dx(1)
-             coury = ( c+abs(q(i,j,k,3)) ) / dx(2)
-             courz = ( c+abs(q(i,j,k,4)) ) / dx(3)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,c,courx,coury,courz) REDUCTION(max:courmx,courmy,courmz)
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+             do i = lo(1),hi(1)
 
-             courmx = max( courmx, courx )
-             courmy = max( courmy, coury )
-             courmz = max( courmz, courz )
+                c     = sqrt(GAMMA*q(i,j,k,5)/q(i,j,k,1))
+                courx = ( c+abs(q(i,j,k,2)) ) / dx(1)
+                coury = ( c+abs(q(i,j,k,3)) ) / dx(2)
+                courz = ( c+abs(q(i,j,k,4)) ) / dx(3)
 
+                courmx = max( courmx, courx )
+                courmy = max( courmy, coury )
+                courmz = max( courmz, courz )
+
+             enddo
           enddo
        enddo
-    enddo
-    !$OMP END PARALLEL DO
-    !
-    ! Compute running max of Courant number over grids.
-    !
-    courno = max( courmx, courmy, courmz , courno )
+       !$OMP END PARALLEL DO
+       !
+       ! Compute running max of Courant number over grids.
+       !
+       courno = max( courmx, courmy, courmz , courno )
+
+    end if
 
   end subroutine ctoprim
 
