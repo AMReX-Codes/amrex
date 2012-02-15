@@ -934,63 +934,123 @@ contains
              if (bc_neumann(mm(ir(1)*ii,ir(2)*j,ir(3)*k),3,+1))       hi_k_neu = .true.
           end if
 
-          if (lo_k_not) then
-             if (lo_j_not) then
+          if (lo_k_not) then ! lo-k: coarse-fine
+             if (lo_j_not) then  ! lo-j: coarse-fine
                 crse_flux = THIRD*cell_pp
-             else if (lo_j_neu) then
+             else if (lo_j_neu) then 
                 crse_flux = cell_pp
+                if (lo_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux - uc(i,j-1,k,2)/dx(2)
+                end if
              else if (hi_j_not) then
                 crse_flux = THIRD*cell_mp
              else if (hi_j_neu) then
                 crse_flux = cell_mp
+                if (hi_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux + uc(i,j,k,2)/dx(2)
+                end if
              else
                 crse_flux = HALF*(cell_pp + cell_mp)
              end if
           else if (lo_k_neu) then
              if (lo_j_not) then
                 crse_flux = cell_pp
+                if (lo_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux - uc(i,j,k-1,3)/dx(3)
+                end if
              else if (lo_j_neu) then
                 crse_flux = FOUR*cell_pp
+                if (lo_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i,j-1,k,2)/dx(2)
+                end if
+                if (lo_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i,j,k-1,3)/dx(3)
+                end if
              else if (hi_j_not) then
                 crse_flux = cell_mp
+                if (lo_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux - uc(i,j-1,k-1,3)/dx(3)
+                end if
              else if (hi_j_neu) then
                 crse_flux = FOUR*cell_mp
+                if (hi_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i,j,k,2)/dx(2)
+                end if
+                if (lo_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i,j-1,k-1,3)/dx(3)
+                end if
              else
                 crse_flux = TWO*(cell_pp + cell_mp)
+                if (lo_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux - TWO*(uc(i,j,k-1,3) + uc(i,j-1,k-1,3))/dx(3)
+                end if
              end if
           else if (hi_k_not) then
              if (lo_j_not) then
                 crse_flux = THIRD*cell_pm
              else if (lo_j_neu) then
                 crse_flux = cell_pm
+                if (lo_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux - uc(i,j-1,k-1,2)/dx(2)
+                end if
              else if (hi_j_not) then
                 crse_flux = THIRD*cell_mm
              else if (hi_j_neu) then
                 crse_flux = cell_mm
+                if (hi_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux + uc(i,j,k-1,2)/dx(2)
+                end if
              else
                 crse_flux = HALF*(cell_pm  + cell_mm)
              end if
           else if (hi_k_neu) then
              if (lo_j_not) then
                 crse_flux = cell_pm
+                if (hi_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux + uc(i,j,k,3)/dx(3)
+                end if
              else if (lo_j_neu) then
                 crse_flux = FOUR*cell_pm
+                if (lo_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i,j-1,k-1,2)/dx(2)
+                end if
+                if (hi_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i,j,k,3)/dx(3)
+                end if
              else if (hi_j_not) then
                 crse_flux = cell_mm
+                if (hi_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux + uc(i,j-1,k,3)/dx(3)
+                end if
              else if (hi_j_neu) then
                 crse_flux = FOUR*cell_mm
+                if (hi_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i,j,k-1,2)/dx(2)
+                end if
+                if (hi_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i,j-1,k,3)/dx(3)
+                end if
              else
                 crse_flux = TWO*(cell_pm  + cell_mm)
+                if (hi_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux + TWO*(uc(i,j,k,3)+uc(i,j-1,k,3))/dx(3)
+                end if
              end if
           else
              if (lo_j_not) then
                 crse_flux = HALF*(cell_pm  + cell_pp)
              else if (lo_j_neu) then
                 crse_flux = TWO*(cell_pm  + cell_pp)
+                if (lo_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux - TWO*(uc(i,j-1,k-1,2)+uc(i,j-1,k,2))/dx(2)
+                end if
              else if (hi_j_not) then
                 crse_flux = HALF*(cell_mm  + cell_mp)
              else if (hi_j_neu) then
                 crse_flux = TWO*(cell_mm  + cell_mp)
+                if (hi_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux + TWO*(uc(i,j,k-1,2)+uc(i,j,k,2))/dx(2)
+                end if
              else
                 crse_flux = cell_mm  + cell_mp + cell_pm + cell_pp
              end if
@@ -1068,58 +1128,118 @@ contains
                 crse_flux = THIRD*cell_pp
              else if (lo_i_neu) then
                 crse_flux = cell_pp
+                if (lo_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux - uc(i-1,j,k,1)/dx(1)
+                end if
              else if (hi_i_not) then
                 crse_flux = THIRD*cell_mp
              else if (hi_i_neu) then
                 crse_flux = cell_mp
+                if (hi_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux + uc(i,j,k,1)/dx(1)
+                end if
              else
                 crse_flux = HALF*(cell_pp + cell_mp)
              end if
           else if (lo_k_neu) then
              if (lo_i_not) then
                 crse_flux = cell_pp
+                if (lo_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux - uc(i,j,k-1,3)/dx(3)
+                end if
              else if (lo_i_neu) then
                 crse_flux = FOUR*cell_pp
+                if (lo_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i-1,j,k,1)/dx(1)
+                end if
+                if (lo_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i,j,k-1,3)/dx(3)
+                end if
              else if (hi_i_not) then
                 crse_flux = cell_mp
+                if (lo_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux - uc(i-1,j,k-1,3)/dx(3)
+                end if
              else if (hi_i_neu) then
                 crse_flux = FOUR*cell_mp
+                if (hi_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i,j,k,1)/dx(1)
+                end if
+                if (lo_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i-1,j,k-1,3)/dx(3)
+                end if
              else
                 crse_flux = TWO*(cell_pp + cell_mp)
+                if (lo_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux - TWO*(uc(i,j,k-1,3)+uc(i-1,j,k-1,3))/dx(3)
+                end if
              end if
           else if (hi_k_not) then
              if (lo_i_not) then
                 crse_flux = THIRD*cell_pm
              else if (lo_i_neu) then
                 crse_flux = cell_pm
+                if (lo_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux - uc(i-1,j,k-1,1)/dx(1)
+                end if
              else if (hi_i_not) then
                 crse_flux = THIRD*cell_mm
              else if (hi_i_neu) then
                 crse_flux = cell_mm
+                if (hi_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux + uc(i,j,k-1,1)/dx(1)
+                end if
              else
                 crse_flux = HALF*(cell_pm  + cell_mm)
              end if
           else if (hi_k_neu) then
              if (lo_i_not) then
                 crse_flux = cell_pm
+                if (hi_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux + uc(i,j,k,3)/dx(3)
+                end if
              else if (lo_i_neu) then
                 crse_flux = FOUR*cell_pm
+                if (lo_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i-1,j,k-1,1)/dx(1)
+                end if
+                if (hi_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i,j,k,3)/dx(3)
+                end if
              else if (hi_i_not) then
                 crse_flux = cell_mm
+                if (hi_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux + uc(i-1,j,k,3)/dx(3)
+                end if
              else if (hi_i_neu) then
                 crse_flux = FOUR*cell_mm
+                if (hi_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i,j,k-1,1)/dx(1)
+                end if
+                if (hi_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i-1,j,k,3)/dx(3)
+                end if
              else
                 crse_flux = TWO*(cell_pm  + cell_mm)
+                if (hi_inflow(3) .eq. 1) then
+                   crse_flux = crse_flux + TWO*(uc(i,j,k,3)+uc(i-1,j,k,3))/dx(3)
+                end if
              end if
           else
              if (lo_i_not) then
                 crse_flux = HALF*(cell_pm  + cell_pp)
              else if (lo_i_neu) then
                 crse_flux = TWO*(cell_pm  + cell_pp)
+                if (lo_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux -TWO*(uc(i-1,j,k-1,1)+uc(i-1,j,k,1))/dx(1)
+                end if
              else if (hi_i_not) then
                 crse_flux = HALF*(cell_mm  + cell_mp)
              else if (hi_i_neu) then
                 crse_flux = TWO*(cell_mm  + cell_mp)
+                if (hi_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux + TWO*(uc(i,j,k-1,1)+uc(i,j,k,1))/dx(1)
+                end if
              else
                 crse_flux = cell_mm  + cell_mp + cell_pm + cell_pp
              end if
@@ -1198,58 +1318,118 @@ contains
                 crse_flux = THIRD*cell_pp
              else if (lo_i_neu) then
                 crse_flux = cell_pp
+                if (lo_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux - uc(i-1,j,k,1)/dx(1)
+                end if
              else if (hi_i_not) then
                 crse_flux = THIRD*cell_mp
              else if (hi_i_neu) then
                 crse_flux = cell_mp
+                if (hi_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux + uc(i,j,k,1)/dx(1)
+                end if
              else
                 crse_flux = HALF*(cell_pp + cell_mp)
              end if
           else if (lo_j_neu) then
              if (lo_i_not) then
                 crse_flux = cell_pp
+                if (lo_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux - uc(i,j-1,k,2)/dx(2)
+                end if
              else if (lo_i_neu) then
                 crse_flux = FOUR*cell_pp
+                if (lo_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i-1,j,k,1)/dx(1)
+                end if
+                if (lo_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i,j-1,k,2)/dx(2)
+                end if
              else if (hi_i_not) then
                 crse_flux = cell_mp
+                if (lo_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux - uc(i-1,j-1,k,2)/dx(2)
+                end if
              else if (hi_i_neu) then
                 crse_flux = FOUR*cell_mp
+                if (hi_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i,j,k,1)/dx(1)
+                end if
+                if (lo_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i-1,j-1,k,2)/dx(2)
+                end if
              else
                 crse_flux = TWO*(cell_pp + cell_mp)
+                if (lo_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux - TWO*(uc(i,j-1,k,2)+uc(i-1,j-1,k,2))/dx(2)
+                end if
              end if
           else if (hi_j_not) then
              if (lo_i_not) then
                 crse_flux = THIRD*cell_pm
              else if (lo_i_neu) then
                 crse_flux = cell_pm
+                if (lo_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux - uc(i-1,j-1,k,1)/dx(1)
+                end if
              else if (hi_i_not) then
                 crse_flux = THIRD*cell_mm
              else if (hi_i_neu) then
                 crse_flux = cell_mm
+                if (hi_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux + uc(i,j-1,k,1)/dx(1)
+                end if
              else
                 crse_flux = HALF*(cell_pm  + cell_mm)
              end if
           else if (hi_j_neu) then
              if (lo_i_not) then
                 crse_flux = cell_pm
+                if (hi_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux + uc(i,j,k,2)/dx(2)
+                end if
              else if (lo_i_neu) then
                 crse_flux = FOUR*cell_pm
+                if (lo_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux - FOUR*uc(i-1,j-1,k,1)/dx(1)
+                end if
+                if (hi_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i,j,k,2)/dx(2)
+                end if
              else if (hi_i_not) then
                 crse_flux = cell_mm
+                if (hi_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux + uc(i-1,j,k,2)/dx(2)
+                end if
              else if (hi_i_neu) then
                 crse_flux = FOUR*cell_mm
+                if (hi_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i,j-1,k,1)/dx(1)
+                end if
+                if (hi_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux + FOUR*uc(i-1,j,k,2)/dx(2)
+                end if
              else
                 crse_flux = TWO*(cell_pm  + cell_mm)
+                if (hi_inflow(2) .eq. 1) then
+                   crse_flux = crse_flux + TWO*(uc(i,j,k,2)+uc(i-1,j,k,2))/dx(2)
+                end if
              end if
           else
              if (lo_i_not) then
                 crse_flux = HALF*(cell_pm  + cell_pp)
              else if (lo_i_neu) then
                 crse_flux = TWO*(cell_pm  + cell_pp)
+                if (lo_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux - TWO*(uc(i-1,j-1,k,1)+uc(i-1,j,k,1))/dx(1)
+                end if
              else if (hi_i_not) then
                 crse_flux = HALF*(cell_mm  + cell_mp)
              else if (hi_i_neu) then
                 crse_flux = TWO*(cell_mm  + cell_mp)
+                if (hi_inflow(1) .eq. 1) then
+                   crse_flux = crse_flux + TWO*(uc(i,j-1,k,1)+uc(i,j,k,1))/dx(1)
+                end if
              else
                 crse_flux = cell_mm  + cell_mp + cell_pm + cell_pp
              end if
