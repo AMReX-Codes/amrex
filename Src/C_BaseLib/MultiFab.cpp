@@ -572,6 +572,28 @@ MultiFab::maxIndex (int comp,
 }
 
 Real
+MultiFab::norm0 (int comp, const BoxArray& ba) const
+{
+    Real nm0 = -std::numeric_limits<Real>::max();
+ 
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+        std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.validbox());
+        if (!isects.empty())
+        {
+            for (int i = 0, N = isects.size(); i < N; i++)
+            {
+                nm0 = std::max(nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
+            }
+        }
+    }
+ 
+    ParallelDescriptor::ReduceRealMax(nm0);
+ 
+    return nm0;
+}
+
+Real
 MultiFab::norm0 (int comp) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
