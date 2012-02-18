@@ -1,0 +1,33 @@
+To use any of these modules in python, you need to set your PYTHONPATH
+environment variable so that it knows where to find them:
+
+export PYTHONPATH="/home/username/development/MAESTRO/fParallel/data_processing/python"
+
+you can check this in python:
+
+>> import sys
+>> print sys.path
+
+this should show the data_processing/python directory in python's search
+path.
+
+####
+parseparticles.py
+####
+This module parses a particle file from MAESTRO when use_particles is
+turned on.  This module should be imported in another script that
+actually works with the data, e.g. plotting.  A sample of such a
+script can be found in test_parseparticles.py
+
+
+####
+helmeos.py
+####
+This module builds a python wrapper around the fortran helmeos.f90
+routine using f2py.  It also provides an eos() method similar to the
+"subroutine eos" in eos_stuff.f90.  This module should be imported
+into another script that actually wants to call the EOS.  Information
+about the location of fParallel - either passed as an argumentn to the
+helmeos.fwrap() method or through the environment variable FPARALLEL -
+is needed to build the python wrapper using f2py.  An example of how
+to use this module can be found in test_helmeos.py.
