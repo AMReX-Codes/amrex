@@ -17,3 +17,5 @@ on a single-communication step per RK-stage.
 
 The directory includes a makefile and a sample inputs file.  Plotfiles are generated
 that can be viewed with amrvis3d (CCSE's native vis / spreadsheet tool) or with visit.
+
+To build the code you need to specify the location where you have placed BoxLib
