@@ -1671,18 +1671,33 @@ cssContents = \
 r"""
 body {font-family: "Arial", san-serif;}
 
-h1 {font-family: "Arial", sans-serif;}
+h1 {font-family: "Tahoma","Arial", sans-serif;
+    color: #333333;}
 
 h3 {display: inline;}
 
 h3.passed {text-decoration: none; display: inline;
            color: black; background-color: lime; padding: 2px}
 
+a.passed:link {color: black; text-decoration: none;}
+a.passed:visited {color: black; text-decoration: none;}
+a.passed:hover {color: #ee00ee; text-decoration: underline;}
+
 h3.failed {text-decoration: none; display: inline; 
            color: black; background-color: red; padding: 2px}
 
+a.failed:link {color: yellow; text-decoration: none;}
+a.failed:visited {color: yellow; text-decoration: none;}
+a.failed:hover {color: #00ffff; text-decoration: underline;}
+
+
 h3.benchmade {text-decoration: none; display: inline; 
               color: black; background-color: orange; padding: 2px}
+
+a.benchmade:link {color: black; text-decoration: none;}
+a.benchmade:visited {color: black; text-decoration: none;}
+a.benchmade:hover {color: #00ffff; text-decoration: underline;}
+
 
 span.nobreak {white-space: nowrap;}
 
@@ -1711,7 +1726,11 @@ td.date {background-color: #666666; color: white; opacity: 0.8; font-weight: bol
 table {border-collapse: separate;
        border-spacing: 2px;
        margin-left: auto;
-       margin-right: auto;}
+       margin-right: auto;
+       border-width: 1px;
+       border-color: gray;
+       border-style: solid;
+       box-shadow: 10px 10px 5px #888888;}
 
 /* http://blog.petermares.com/2010/10/27/vertical-text-in-html-table-headers-for-webkitmozilla-browsers-without-using-images/ */
 
@@ -2342,9 +2361,9 @@ def reportAllRuns(suite, webTopDir):
                 
             # write out this test's status
             if (status == 1):
-                hf.write("<TD ALIGN=CENTER class=\"passed\"><H3>:)</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"passed\"><H3><a href=\"%s/%s.html\" class=\"passed\">:)</a></H3></TD>\n" % (dir, test))
             elif (status == -1):
-                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3>!</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3><a href=\"%s/%s.html\" class=\"failed\">!</a></H3></TD>\n" % (dir, test))
             elif (status == 10):
                 hf.write("<TD ALIGN=CENTER class=\"benchmade\"><H3>U</H3></TD>\n")
             else:

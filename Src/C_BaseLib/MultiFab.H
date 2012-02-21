@@ -115,6 +115,13 @@ public:
     //
     Real norm0 (int comp = 0) const;
     //
+    // Returns the maximum *absolute* value contained in 
+    // component comp of the MultiFab in the intersection of the BoxArray
+    // and the valid regions of the MultiFab.  No ghost cells are used.
+    //
+    Real norm0 (int comp, const BoxArray& ba) const;
+
+    //
     // Returns the L2 norm of component "comp" over the MultiFab.
     // No ghost cells are used.
     //
