@@ -1,6 +1,6 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
 #    then the line below will be ignored
-BOXLIB_HOME ?= ../..
+BOXLIB_HOME ?= ../../..
 
 # HYPRE_DIR defines the directory in which you can find hypre -- if this is already defined 
 #    then the line below will be ignored
@@ -18,15 +18,15 @@ HYPRE_DIR ?= $(HOME)/lib/hypre
 
 PRECISION = DOUBLE
 
-DEBUG	= TRUE
 DEBUG	= FALSE
+DEBUG	= TRUE
 
 DIM	= 3
 
 COMP =gcc
 FCOMP=gfortran
 
-USE_HYPRE = TRUE
+USE_HYPRE = FALSE
 
 # Make BoxLib_C bottom CG solver use the old convergence criteria for comparison with BoxLib_F
 CPPFLAGS += -DCG_USE_OLD_CONVERGENCE_CRITERIA
