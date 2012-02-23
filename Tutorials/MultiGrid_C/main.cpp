@@ -540,12 +540,8 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
 
   Array< PArray<MultiFab> > bcoeffs(BL_SPACEDIM);
   for (int n = 0; n < BL_SPACEDIM ; n++) {
-    BoxArray edge_boxes(bs);
-    edge_boxes.surroundingNodes(n);
-
-    bcoeffs[n].resize(1,PArrayManage);
-    bcoeffs[n].set(0, new MultiFab(edge_boxes,Ncomp,0,Fab_allocate));
-    bcoeffs[n][0].copy(beta[n]);
+    bcoeffs[n].resize(1,PArrayNoManage);
+    bcoeffs[n].set(0, &beta[n]);
   }
 
   // The coefficients are set such that we will solve
