@@ -43,29 +43,6 @@ BndryRegister::init (const BndryRegister& src)
     }
 }
 
-BndryRegister::BndryRegister (const BndryRegister& src)
-{
-    init(src);
-}
-
-BndryRegister&
-BndryRegister::operator= (const BndryRegister& src)
-{
-    if (this != &src)
-    {
-        if (grids.size() > 0)
-        {
-            grids.clear();
-
-            for (int i = 0; i < 2*BL_SPACEDIM; i++)
-                bndry[i].clear();
-        }
-
-        init(src);
-    }
-    return *this;
-}
-
 void
 BndryRegister::define (const Orientation& _face,
                        const IndexType&   _typ,

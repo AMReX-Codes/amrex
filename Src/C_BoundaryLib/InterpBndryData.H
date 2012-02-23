@@ -51,14 +51,7 @@ public:
     InterpBndryData (const BoxArray& _grids,
                      int             _ncomp,
                      const Geometry& geom);
-    //
-    // Copy constructor.
-    //
-    InterpBndryData (const InterpBndryData& rhs);
-    //
-    // Copy assignment operator.
-    //
-    InterpBndryData& operator= (const InterpBndryData& rhs);
+
     //
     // interpret user BCs to those expected by LinOp: takes integer ratio and
     // is a wrapper to the IntVect version
@@ -107,6 +100,13 @@ public:
     static int IBD_max_order_DEF;
 
     static int maxOrderDEF() {return IBD_max_order_DEF;}
+
+private:
+    //
+    // Disabled!
+    //
+    InterpBndryData (const InterpBndryData& rhs);
+    InterpBndryData& operator= (const InterpBndryData& rhs);
 };
 
 inline
