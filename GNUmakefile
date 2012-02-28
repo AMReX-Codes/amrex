@@ -9,7 +9,7 @@ COMP := gfortran
 NEED_EOS_NETWORK := 
 
 # define the location of the fParallel root directory
-FPARALLEL := ..
+FPARALLEL ?= ../../MAESTRO/fParallel/
 
 
 # include the main Makefile stuff
