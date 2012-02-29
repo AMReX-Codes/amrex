@@ -298,7 +298,7 @@ FArrayBox::setFormat (FABio::Format fmt)
         fio = new FABio_binary(FPC::NativeRealDescriptor().clone());
         break;
     case FABio::FAB_IEEE:
-        BoxLib::Warning("FABio::FAB_IEEE has been deprecated");
+        //BoxLib::Warning("FABio::FAB_IEEE has been deprecated");
         //
         // Fall through ...
         //
@@ -415,7 +415,7 @@ FArrayBox::Initialize ()
             if (fmt == "IEEE")
             {
                 FArrayBox::format = FABio::FAB_IEEE;
-                BoxLib::Warning("IEEE fmt in ParmParse files is deprecated");
+                //BoxLib::Warning("IEEE fmt in ParmParse files is deprecated");
             }
             else
             {
