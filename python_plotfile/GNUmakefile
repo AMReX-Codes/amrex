@@ -5,10 +5,6 @@ MKVERBOSE :=t
 COMP := gfortran
 
 
-# some routines need an eos/network (i.e. to compute thermodynamic 
-# quantities.  If that is the case, set NEED_EOS_NETWORK := t
-NEED_EOS_NETWORK := 
-
 # define the location of the fParallel root directory
 FPARALLEL := ../..
 
@@ -25,19 +21,12 @@ CFLAGS += -fPIC
 BOXLIB_CORE := Src/F_BaseLib
 
 # other packages needed for data_processing
-Fmdirs := extern/constants 
+Fmdirs :=  
 
 
 # directories containing files that are 'include'-d via Fortran
 Fmincludes := 
 
-ifdef NEED_EOS_NETWORK
-  Fmdirs += extern/EOS/helmeos \
-            extern/networks/ignition \
-            extern/VODE
-
-  Fmincludes += extern/helmeos
-endif
 
 Fmpack := $(foreach dir, $(Fmdirs), $(FPARALLEL)/$(dir)/GPackage.mak)
 Fmlocs := $(foreach dir, $(Fmdirs), $(FPARALLEL)/$(dir))
