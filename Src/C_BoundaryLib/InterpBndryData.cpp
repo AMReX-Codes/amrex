@@ -67,21 +67,6 @@ InterpBndryData::InterpBndryData ()
     BndryData()
 {}
 
-InterpBndryData::InterpBndryData (const InterpBndryData& rhs)
-    :
-    BndryData(rhs)
-{}
-
-InterpBndryData&
-InterpBndryData::operator= (const InterpBndryData& rhs)
-{
-    if (!(this == &rhs))
-    {
-        BndryData::operator=(rhs);
-    }
-    return *this;
-}
-
 InterpBndryData::InterpBndryData (const BoxArray& _grids,
                                   int             _ncomp,
                                   const Geometry& geom)
