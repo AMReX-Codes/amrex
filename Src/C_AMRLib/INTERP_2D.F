@@ -795,11 +795,12 @@ c
 
                   do 400 i = fb_l1, fb_h1 
                      fn = i-fslo(1)+1
-                     fine(i,j,n) = fdat(fn) + voff(fn)*fslope(fn,1)
-     &                    + voff(fn)*voff(fn)*fslope(fn,3)
-     &                    + yoff*fslope(fn,2)
-     &                    + yoff*yoff*fslope(fn,4)
-     &                    + voff(fn)*yoff*fslope(fn,5)
+                     fine(i,j,n) = fdat(fn) 
+     &                    + voff(fn)              *fslope(fn,1)
+     &                    + yoff                  *fslope(fn,2)
+     &                    + half*voff(fn)*voff(fn)*fslope(fn,3)
+     &                    + half*yoff    *yoff    *fslope(fn,4)
+     &                    + voff(fn)*yoff         *fslope(fn,5)
 400               continue
 390            continue
 360         continue

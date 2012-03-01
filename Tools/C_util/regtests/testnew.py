@@ -59,6 +59,9 @@ class testObj:
 
         self.compareFile = ""
 
+        self.addToCompileString = ""
+
+        self.reClean = 0    # set automatically, not by users
 
     def __cmp__(self, other):
         return cmp(self.value(), other.value())
@@ -309,6 +312,9 @@ def LoadParams(file):
             elif (opt == "compareFile"):
                 mytest.compareFile = value
 
+            elif (opt == "addToCompileString"):
+                mytest.addToCompileString = value
+
             else:
                 warning("   WARNING: unrecognized parameter %s for test %s" % (opt, sec))
 
@@ -438,11 +444,26 @@ def findBuildDirs(testList):
         directories"""
     
     buildDirs = []
+    reClean = []
+
     for obj in testList:
 
-        currentBuildDir = obj.buildDir
-        if (buildDirs.count(currentBuildDir) == 0):
-            buildDirs.append(currentBuildDir)
+        # first find the list of unique build directories
+        if (buildDirs.count(obj.buildDir) == 0):
+            buildDirs.append(obj.buildDir)
+
+        # sometimes a problem will specify an extra argument to the
+        # compile line.  If this is the case, then we want to re-make
+        # "clean" for ALL tests that use this build directory, just to
+        # make sure that any unique build commands are seen.
+        if (not obj.addToCompileString == ""):
+            reClean.append(obj.buildDir)
+
+
+    for bdir in reClean:
+        for obj in testList:
+            if (obj.buildDir == bdir):
+                obj.reClean = 1
 
     return buildDirs
 
@@ -526,9 +547,9 @@ def doCVSUpdate(topDir, root, outDir):
    print "\n"
    bold("cvs update %s" % (root))
 
-   # we need to be tricky here to make sure that the stdin is presented to      
-   # the user to get the password.  Therefore, we use the subprocess            
-   # class instead of os.system                                                 
+   # we need to be tricky here to make sure that the stdin is
+   # presented to the user to get the password.  Therefore, we use the
+   # subprocess class instead of os.system
    prog = ["cvs", "update", "%s" % (root)]
    p = subprocess.Popen(prog, stdin=subprocess.PIPE,
                         stdout=subprocess.PIPE,
@@ -1188,6 +1209,17 @@ def testSuite(argv):
         # compile the code
         #----------------------------------------------------------------------
         os.chdir(suite.sourceDir + test.buildDir)
+
+        if (test.reClean == 1):
+            # for one reason or another, multiple tests use different
+            # build options, make clean again to be safe
+            print "  re-making clean..."
+
+            if (suite.sourceTree == "Parallel"):
+                systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+            else:
+                systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+
         
         print "  building..."
 
@@ -1195,15 +1227,15 @@ def testSuite(argv):
 
 	    if (test.useMPI):
 	       executable = "%s%dd.MPI.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 
             else:
 	       executable = "%s%dd.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 	       
@@ -1211,14 +1243,14 @@ def testSuite(argv):
         elif (suite.sourceTree == "fParallel"):
 
             if (test.useMPI):
-                compString = "%s -j%s BOXLIB_HOME=%s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
             else:
-                compString = "%s -j%s BOXLIB_HOME=%s MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
