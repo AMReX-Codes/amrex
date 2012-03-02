@@ -126,7 +126,20 @@ contains
        Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels),fine_mask(n)),Anorm)
     end do
 
-    !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
+    !   First we must restrict the final solution onto coarser levels, because those coarse
+    !   cells may be used to construct slopes in the interpolation of the boundary conditions
+    do n = nlevs,2,-1
+       mglev      = mgt(n  )%nlevels
+       mglev_crse = mgt(n-1)%nlevels
+
+       pdc = layout_get_pd(mla%la(n-1))
+
+       call ml_restriction(full_soln(n-1), full_soln(n), &
+                           mgt(n)%mm(mglev),mgt(n-1)%mm(mglev_crse),  &
+                           ref_ratio(n-1,:))
+    enddo
+
+    !  Now make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
     do n = 2,nlevs
        ng_fill = nghost(full_soln(n))
@@ -570,6 +583,24 @@ contains
     end do
 
     if (need_grad_phi) then
+
+       !   First we must restrict the final solution onto coarser levels, because those coarse
+       !   cells may be used to construct slopes in the interpolation of the boundary conditions
+       do n = nlevs,2,-1
+          mglev      = mgt(n  )%nlevels
+          mglev_crse = mgt(n-1)%nlevels
+   
+          pdc = layout_get_pd(mla%la(n-1))
+   
+          call ml_restriction(full_soln(n-1), full_soln(n), &
+                              mgt(n)%mm(mglev),mgt(n-1)%mm(mglev_crse),  &
+                              ref_ratio(n-1,:))
+       enddo
+
+       !   Fill the ghost cells at each level from grids at that level
+       do n = 1,nlevs
+          call multifab_fill_boundary(full_soln(n), cross = lcross)
+       enddo
 
        !   Interpolate boundary conditions of soln in order to get correct grad(phi) at
        !   crse-fine boundaries
