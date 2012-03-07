@@ -663,7 +663,7 @@ std::vector< std::pair<int,Box> >
 BoxArray::intersections (const Box& bx) const
 {
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp critical(intersections_lock)
 #endif
     {

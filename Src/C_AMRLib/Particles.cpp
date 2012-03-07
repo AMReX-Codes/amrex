@@ -59,7 +59,7 @@ ParticleBase::NextID ()
 {
     int next;
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp critical(nextid_lock)
 #endif
     {
@@ -233,7 +233,7 @@ ParticleBase::Reset (ParticleBase& p,
 
         if (!ParticleBase::Where(p,amr))
         {
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp critical(reset_lock)
 #endif
             {
