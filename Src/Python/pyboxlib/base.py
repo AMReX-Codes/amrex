@@ -1,39 +1,26 @@
-"""Base class for interacting with the BoxLib/Python object store.
+"""Base class for interacting with the BoxLib/Python interface."""
 
-See also src/blobjects.py.
-"""
+from ctypes import *
+from pybl import bl
 
-from pyfboxlib import fboxlib
 
 class BLObject(object):
 
+
   def __init__(self):
-    self._oid = None
+    self.cptr = c_void_p(None)
+
 
   def __str__(self):
-    return 'pyboxlib type: %s, oid: %d' % (self.__class__.__name__, self.oid)
+    return 'pyboxlib type: %s, cptr: %s' % (self.__class__.__name__, self.cptr)
 
-  # XXX: delete method
 
   def echo(self):
-    pr = 'print_' + self.__class__.__name__
-    pr = getattr(fboxlib, pr, None)
+    pr = 'pybl_print_' + self.__class__.__name__
+    pr = getattr(bl, pr, None)
+    pr(self.cptr)
 
-    if pr:
-      pr(self.oid)
 
   @property
   def associated(self):
-    return self._oid is not None
-
-  @property
-  def oid(self):
-    if self._oid is None:
-      raise ValueError('PyBoxLib: OID not associated')
-    return self._oid
-
-  @oid.setter
-  def oid(self, value):
-    assert self._oid is None
-    assert isinstance(value, int)
-    self._oid = value
+    return self.cptr.value is not None

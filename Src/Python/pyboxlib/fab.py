@@ -1,6 +1,11 @@
+"""PyBoxLib fab class."""
 
-import pyfboxlib
-from pyfboxlib import fboxlib
+__all__ = [ 'fab' ]
+
+from ctypes import *
+
+import libpycboxlib as cbl
+from pybl import bl
 
 
 class fab(object):
@@ -31,23 +36,36 @@ class fab(object):
 
     self.mfab = mfab
     self.nbox = nbox
+    self.dim = c_int(0)
+    self.nc = c_int(0)
+    self.bx_lo = (3*c_int)()
+    self.bx_hi = (3*c_int)()
+    self.pbx_lo = (3*c_int)()
+    self.pbx_hi = (3*c_int)()
+    self.ibx_lo = (3*c_int)()
+    self.ibx_hi = (3*c_int)()
 
     assert 1 <= nbox <= mfab.nboxes
 
-    get_info = getattr(fboxlib, 'get_' + self.mfab.__class__.__name__ + '_fab_info')
-    get_array = getattr(pyfboxlib, self.mfab.__class__.__name__ + '_array')
+    mftype = self.mfab.__class__.__name__
+    get_info = getattr(bl, 'pybl_get_' + mftype + '_fab_info')
+    get_array = getattr(cbl, mftype + '_array')
 
-    (self.dim, self.nc, self.bx_lo, self.bx_hi, self.pbx_lo, self.pbx_hi,
-     self.ibx_lo, self.ibx_hi) = get_info(mfab.oid, nbox)
+    get_info(self.mfab.cptr, nbox, byref(self.dim), byref(self.nc), 
+             self.bx_lo, self.bx_hi, 
+             self.pbx_lo, self.pbx_hi, 
+             self.ibx_lo, self.ibx_hi)
 
-    intarray = lambda a: [ int(e) for e in a[:self.dim] ]
-    lohi = lambda lo, hi: (intarray(lo), intarray(hi))
+    ints = lambda arr: [ int(x) for x in arr[:self.dim.value] ]
+    lohi = lambda lo, hi: (ints(lo), ints(hi))
 
     self.bx  = lohi(self.bx_lo,  self.bx_hi)
     self.ibx = lohi(self.ibx_lo, self.ibx_hi)
     self.pbx = lohi(self.pbx_lo, self.pbx_hi)
 
-    self.array = get_array(self.mfab.oid, nbox).squeeze()
+    cptr = addressof(self.mfab.cptr)
+
+    self.array = get_array(cptr, nbox).squeeze()
 
 
   @property

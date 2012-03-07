@@ -1,6 +1,8 @@
 PYBOXLIB ?= $(BOXLIB_HOME)/Src/Python
 
-pybl_sources := $(PYBOXLIB)/src/fboxlib.f90
-pybl_pyfs = $(patsubst %.f90,%.pyf,$(addprefix $(tdir)/, $(notdir $(pybl_sources))))
+f90sources += blobjects.f90
+f90sources += fboxlib.f90
+f90sources += boxlib_numpy.f90
 
+PYBOXLIBS= libpyfboxlib.so libpycboxlib.so
 VPATH_LOCATIONS += $(PYBOXLIB)/src
