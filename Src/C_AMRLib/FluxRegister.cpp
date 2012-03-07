@@ -1198,7 +1198,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
 {
     const int N = mflx.IndexMap().size();
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++)
@@ -1219,7 +1219,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
 {
     const int N = mflx.IndexMap().size();
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++)

@@ -255,7 +255,7 @@ LinOp::applyBC (MultiFab&      inout,
 
     const int N = inout.IndexMap().size();
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++)

@@ -18,7 +18,7 @@
 #include <Utility.H>
 #include <MultiFab.H>
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
@@ -232,7 +232,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     }
 #endif
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
     if (ParallelDescriptor::IOProcessor())
     {
         std::cout << "OMP initialized with "

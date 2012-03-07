@@ -19,7 +19,7 @@
 #include <VisMF.H>
 #include <Particles_F.H>
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 
@@ -859,7 +859,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
         const int        n       = pbox.size();
         const FArrayBox& dfab    = mf[grid];
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
@@ -1146,7 +1146,7 @@ ParticleContainer<N>::MoveRandom (int lev)
         //
         int tnum = 1;
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
         tnum = omp_get_max_threads();
 #endif
         rn.resize(tnum);
@@ -1171,7 +1171,7 @@ ParticleContainer<N>::MoveRandom (int lev)
         PBox&     pbox = pmap_it->second;
         const int n    = pbox.size();
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
@@ -1180,7 +1180,7 @@ ParticleContainer<N>::MoveRandom (int lev)
 
             if (p.m_id <= 0) continue;
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
             int tid = omp_get_thread_num();
 #else
             int tid = 0;
@@ -1261,7 +1261,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
     const PMap&     pmap             = m_particles[lev];
     int             tnum             = 1;
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
     tnum = omp_get_max_threads();
 #endif
 
@@ -1278,7 +1278,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
         num_particles_at_level += n;
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
@@ -1314,7 +1314,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
             int tid = 0;
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
             tid = omp_get_thread_num();
 #endif
             ldt[tid] = std::min(dt_part, ldt[tid]);
@@ -1406,7 +1406,7 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
 
         Real mom_0 = 0, mom_1 = 0, mom_2 = 0;
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+:mom_0,mom_1,mom_2)
 #endif
         for (int i = 0; i < n; i++)
@@ -1472,7 +1472,7 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
         pbxs[j++] = &(pmap_it->second);
     }
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic,1) if (n > 1)
 #endif
     for (int i = 0; i < n; i++)
@@ -1800,7 +1800,7 @@ ParticleContainer<N>::MultiplyParticleMass (int lev, Real mult)
        PBox&     pbox = pmap_it->second;
        const int n    = pbox.size();
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
        for (int i = 0; i < n; i++)
@@ -1838,7 +1838,7 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
         const int        n    = pbox.size();
         const FArrayBox& gfab = gv[grid];
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
@@ -1903,7 +1903,7 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
         const FArrayBox& gfab_old = gv_old[grid];
         const Real       half_dt  = 0.5 * dt;
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
@@ -1992,7 +1992,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
         const int        n    = pbox.size();
         const FArrayBox& gfab = grav_vector[grid];
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
@@ -2094,7 +2094,7 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
         const int        n    = pbox.size();
         const FArrayBox& gfab = grav_vector[grid];
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
@@ -2192,7 +2192,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
 
         const FArrayBox* gfab[BL_SPACEDIM] = { D_DECL(&grav_vector[0][grid],&grav_vector[1][grid],&grav_vector[2][grid]) };
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
@@ -2307,7 +2307,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
 
         const FArrayBox* gfab[BL_SPACEDIM] = { D_DECL(&grav_vector[0][grid],&grav_vector[1][grid],&grav_vector[2][grid]) };
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < n; i++)
@@ -2462,7 +2462,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
             const FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&umac[0][grid],&umac[1][grid],&umac[2][grid]) };
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < n; i++)
