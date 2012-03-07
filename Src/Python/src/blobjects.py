@@ -1,11 +1,4 @@
-"""BoxLib/Python object store for various F90 types.
-
-For each BoxLib type in *types*, an object store is created along with
-routines for adding and retrieving objects.  Objects in each store are
-identified by an object id(oid).
-
-The current implementation for a store is simply a fixed sized array.
-"""
+"""BoxLib/Python object store for various F90 types."""
 
 types = [ 'lmultifab', 'multifab', 'ml_layout', 'layout', 'boxarray' ]
 
@@ -14,52 +7,40 @@ module blobjects
   use multifab_module
   use layout_module
   use ml_layout_module
-  integer, parameter :: PYBL_MAX_STORE = 256
-  {stores}
 contains
   {routines}
 end module blobjects
 '''
 
-store = '''
-type {type}_store
-  integer :: oid = -1
-  type({type}), pointer :: ptr
-end type {type}_store
-type({type}_store), save :: pybl_{type}_store(PYBL_MAX_STORE)
-integer, save :: pybl_{type}_count = 0
-'''
-
 get = '''
-subroutine pybl_{type}_get(oid,object)
-  integer, intent(in) :: oid
-  type({type}), pointer, intent(out) :: object
+subroutine pybl_{type}_get(cptr,fptr)
+  use iso_c_binding
+  type(c_ptr), intent(in), value :: cptr
+  type({type}), pointer, intent(out) :: fptr
 
-  object => pybl_{type}_store(oid)%ptr
+  call c_f_pointer(cptr, fptr)
 end subroutine pybl_{type}_get'''
 
 new = '''
-subroutine pybl_{type}_new(oid,object)
-  integer, intent(out) :: oid
-  type({type}), pointer, intent(out) :: object
+subroutine pybl_{type}_new(cptr,fptr)
+  use iso_c_binding
+  type(c_ptr), intent(out) :: cptr
+  type({type}), pointer, intent(out) :: fptr
 
-  pybl_{type}_count = pybl_{type}_count + 1
-  oid = pybl_{type}_count
-
-  allocate(pybl_{type}_store(oid)%ptr)
-  object => pybl_{type}_store(oid)%ptr
+  allocate(fptr)
+  cptr = c_loc(fptr)
 end subroutine pybl_{type}_new
 '''
 
-stores = []
+# stores = []
 routines = []
 
 for t in types:
-    stores.append(store.format(type=t))
+    # stores.append(store.format(type=t))
     routines.append(get.format(type=t))
     routines.append(new.format(type=t))
 
 with open('blobjects.f90', 'w') as f:
     f.write(module.format(
-        stores='\n'.join(stores),
+        # stores='\n'.join(stores),
         routines='\n'.join(routines)))
