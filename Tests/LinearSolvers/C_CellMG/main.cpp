@@ -330,7 +330,6 @@ main (int argc, char* argv[])
 		      bd.setValue(Orientation(n, Orientation::high),i,2.0);
                   }
               }
-	      lp.bndryData(bd);
 	      mg.solve(soln, rhs, tolerance, tolerance_abs);
           }
 
@@ -359,7 +358,6 @@ main (int argc, char* argv[])
 		      bd.setValue(Orientation(n, Orientation::high),i,4.0);
                   }
               }
-	      lp.bndryData(bd);
 	      res  = cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      std::cout << "CG (new_bc) Result = " << res << std::endl;
           }
@@ -381,7 +379,6 @@ main (int argc, char* argv[])
 		      bd.setValue(Orientation(n, Orientation::high),i,4.0);
                   }
               }
-	      lp.bndryData(bd);
 	      res = cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      std::cout << "BiCGStab (new_bc) Result = " << res << std::endl;
           }
@@ -482,7 +479,6 @@ main (int argc, char* argv[])
 			  bd.setValue(Orientation(n, Orientation::high),i,2.0);
                       } 
                   }
-		  lp.bndryData(bd);
 		  mg.solve(soln, rhs, tolerance, tolerance_abs);
               }
 
@@ -509,7 +505,6 @@ main (int argc, char* argv[])
 			  bd.setValue(Orientation(n, Orientation::high),i,4.0);
                       }
                   }
-		  lp.bndryData(bd);
 		  cg.solve(soln, rhs, tolerance, tolerance_abs);
               }
           }
@@ -528,7 +523,6 @@ main (int argc, char* argv[])
 			  bd.setValue(Orientation(n, Orientation::high),i,4.0);
                       }
                   }
-		  lp.bndryData(bd);
 		  cg.solve(soln, rhs, tolerance, tolerance_abs);
               }
           }
