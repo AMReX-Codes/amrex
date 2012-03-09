@@ -219,11 +219,6 @@ LinOp::applyBC (MultiFab&      inout,
     //
     BL_ASSERT(inout.nGrow() >= LinOp_grow);
     //
-    // The inout MultiFab must have at least Periodic_BC_grow cells for the
-    // algorithms taking care of periodic boundary conditions.
-    //
-    BL_ASSERT(inout.nGrow() >= LinOp_grow);
-    //
     // No coarsened boundary values, cannot apply inhomog at lev>0.
     //
     BL_ASSERT(!(level > 0 && bc_mode == Inhomogeneous_BC));
