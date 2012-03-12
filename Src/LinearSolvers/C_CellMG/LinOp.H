@@ -148,6 +148,10 @@ public:
     //
     const BndryData& bndryData () const;
     //
+    // Set the boundary data object.
+    //
+    void bndryData (const BndryData& bd);
+    //
     // Return the box array.
     //
     const BoxArray& boxArray (int level = 0) const;
@@ -265,7 +269,7 @@ protected:
     //
     // boundary data class
     //
-    const BndryData& bgb;
+    BndryData bgb;
     //
     // Array (on level) of geometry objects.  Needed for determining
     // whether stuff intersects on periodic domains
@@ -303,7 +307,7 @@ private:
     // Not implemented.
     //
     LinOp (const LinOp& rhs);
-    LinOp& operator= (const LinOp& rhs);
+    void operator = (const LinOp& rhs);
 };
 
 inline
@@ -311,6 +315,14 @@ const BndryData&
 LinOp::bndryData () const
 {
     return bgb;
+}
+
+inline
+void
+LinOp::bndryData (const BndryData& bd)
+{
+    BL_ASSERT(gbox[0] == bd.boxes());
+    bgb = bd;
 }
 
 inline

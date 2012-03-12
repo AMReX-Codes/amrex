@@ -69,7 +69,14 @@ public:
     // destructor
     //
     virtual ~BndryData ();
-
+    //
+    // copy constructor
+    //
+    BndryData (const BndryData& src);
+    //
+    // copy assignment operator
+    //
+    BndryData& operator= (const BndryData& src);
     //
     // alocate bndry fabs along given face
     //
@@ -190,11 +197,6 @@ private:
     void clear_masks ();
 
     static int NTangHalfWidth;
-    //
-    // Disabled!
-    //
-    BndryData (const BndryData& src);
-    BndryData& operator= (const BndryData& src);
 };
 
 inline

@@ -57,6 +57,25 @@ BndryData::init (const BndryData& src)
     }
 }
 
+BndryData::BndryData (const BndryData& src)
+    :
+    BndryRegister(src)
+{
+    init(src);
+}
+
+BndryData&
+BndryData::operator= (const BndryData& src)
+{
+    if (this != &src)
+    {
+        BndryRegister::operator=(src);
+        clear_masks();
+        init(src);
+    }
+    return *this;
+}
+
 BndryData::~BndryData ()
 {
     //
