@@ -237,12 +237,6 @@ protected:
                int             dcomp,
                int             ncomp,
                How             how);
-private:
-    //
-    // Disabled!
-    //
-    FabSet (const FabSet&);
-    FabSet& operator= (const FabSet&);
 };
 
 //

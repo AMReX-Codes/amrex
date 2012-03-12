@@ -32,6 +32,7 @@ class Orientation;
 
 class BndryRegister
 {
+
 public:
     //
     // The default constructor.
@@ -45,7 +46,14 @@ public:
                    int             out_rad,
                    int             extent_rad,
                    int             ncomp);
-
+    //
+    // The copy constructor.
+    //
+    BndryRegister (const BndryRegister& src);
+    //
+    // The copy assignment operator.
+    //
+    BndryRegister& operator= (const BndryRegister& src);
     //
     // The destructor.
     //
@@ -145,12 +153,6 @@ protected:
     //
     FabSet    bndry[2*BL_SPACEDIM];
     BoxArray  grids;
-private:
-    //
-    // Disabled!
-    //
-    BndryRegister (const BndryRegister& src);
-    BndryRegister& operator= (const BndryRegister& src);
 };
 
 inline
