@@ -738,7 +738,7 @@ contains
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
     if ( stat /= 0 ) then
-       if ( parallel_IOProcessor() ) then
+       if ( parallel_IOProcessor() .and. mgt%verbose > 0 ) then
           call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
        end if
        do i = 1, 20
