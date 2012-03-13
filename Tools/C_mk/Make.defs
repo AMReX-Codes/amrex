@@ -495,12 +495,12 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(ICC_MAJOR_VERSION),12)
-     CXXOPTF += -mp1
+     CXXOPTF += -ip
    else
       ifeq ($(ICC_MAJOR_VERSION),11)
-        CXXOPTF += -mp1
+        CXXOPTF += -ip
       else
-        CXXOPTF += -mp
+        CXXOPTF += -ip
       endif
    endif
 
@@ -658,8 +658,8 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -g
    endif
 
-   FOPTF += -O2 -fpconstant
-   fOPTF += -O2 -fpconstant
+   FOPTF += -O2 -fpconstant -ip
+   fOPTF += -O2 -fpconstant -ip
 
    ifeq ($(IFC_MAJOR_VERSION),12)
      FOPTF += -mp1
@@ -669,8 +669,8 @@ ifeq ($(FCOMP),Intel)
          FOPTF += -mp1 -fltconsistency
          fOPTF += -mp1 -fltconsistency
       else
-         FOPTF += -mp
-         fOPTF += -mp
+         FOPTF +=
+         fOPTF +=
       endif
    endif
 
