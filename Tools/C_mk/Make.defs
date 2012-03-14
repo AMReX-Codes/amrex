@@ -265,34 +265,13 @@ FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 #
 # Generic setup for using gcc/g++ ...
 #
-ifeq ($(COMP),gcc)
+ifeq ($(findstring gcc, $(COMP)), gcc)
     CXXPRFF    := -p
-    CXXOPTF    += -g -O3 -fno-exceptions
-    CXXDEBF    += -g -O1 -fno-exceptions -Wall -Wno-sign-compare
+    CXXOPTF    += -g -O3 
+    CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
-    __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
-    __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
-    __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-    CC	       := gcc
-    DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
-    DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
-    DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
-    ifeq ($(__gcc_major_version),2)
-       GNU_STD_INCL = $(BOXLIB_HOME)/BoxLib/std
-    endif
-    ifeq ($(USE_OMP),TRUE)
-      CXXOPTF += -fopenmp
-      CXXDEBF += -fopenmp
-    endif
-endif
-ifeq ($(COMP),g++)
-    CXXPRFF    := -p
-    CXXOPTF    += -g -O3 -fno-exceptions
-    CXXDEBF    += -g -O1 -fno-exceptions -Wall -Wno-sign-compare
-    FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
-    CC	       := gcc
+    CC	       := $(COMP)
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -307,8 +286,31 @@ ifeq ($(COMP),g++)
       CXXDEBF += -fopenmp
     endif
 endif
+
+ifeq ($(findstring g++, $(COMP)), g++)
+    CXXPRFF    := -p
+    CXXOPTF    += -g -O3 
+    CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
+    FULLWARN   := -pedantic -Wall -Wno-sign-compare
+    CXX	       := $(COMP) -ftemplate-depth-64 -Wno-deprecated
+    CC	       := gcc
+    __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
+    __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
+    __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+    DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
+    DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
+    DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
+    ifeq ($(__gcc_major_version),2)
+       GNU_STD_INCL = $(BOXLIB_HOME)/BoxLib/std
+    endif
+    ifeq ($(USE_OMP),TRUE)
+      CXXOPTF += -fopenmp
+      CXXDEBF += -fopenmp
+    endif
+endif
+
 ifeq ($(FCOMP),g77)
-    FC := g77
+    FC := $(FCOMP)
     fC := $(FC)
     FFLAGS = -fno-second-underscore
     fFLAGS = -fno-second-underscore
@@ -323,9 +325,10 @@ ifeq ($(FCOMP),g77)
     fDEBF += -Wimplicit
     fDEBF +=   -ffortran-bounds-check
 endif
-ifeq ($(FCOMP),gfortran)
-    FC = gfortran
-    fC = $(FC)
+
+ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
+    FC := $(FCOMP)
+    fC := $(FC)
     FFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     fFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
@@ -344,9 +347,10 @@ ifeq ($(FCOMP),gfortran)
     fDEBF += -fopenmp
    endif
 endif
+
 ifeq ($(FCOMP),g95)
-    FC = g95
-    fC = $(FC)
+    FC := g95
+    fC := $(FC)
     FFLAGS = -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
     fFLAGS = -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell g95 -print-file-name=libf95.a)
@@ -385,8 +389,8 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
-   CXXOPTF += -g -O2 #-fno-exceptions
-   CXXDEBF += -g -O0 #-fno-exceptions
+   CXXOPTF += -g -O2
+   CXXDEBF += -g -O0
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
@@ -491,12 +495,12 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(ICC_MAJOR_VERSION),12)
-     CXXOPTF += -mp1
+     CXXOPTF += -ip
    else
       ifeq ($(ICC_MAJOR_VERSION),11)
-        CXXOPTF += -mp1
+        CXXOPTF += -ip
       else
-        CXXOPTF += -mp
+        CXXOPTF += -ip
       endif
    endif
 
@@ -654,8 +658,8 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -g
    endif
 
-   FOPTF += -O2 -fpconstant
-   fOPTF += -O2 -fpconstant
+   FOPTF += -O2 -fpconstant -ip
+   fOPTF += -O2 -fpconstant -ip
 
    ifeq ($(IFC_MAJOR_VERSION),12)
      FOPTF += -mp1
@@ -665,8 +669,8 @@ ifeq ($(FCOMP),Intel)
          FOPTF += -mp1 -fltconsistency
          fOPTF += -mp1 -fltconsistency
       else
-         FOPTF += -mp
-         fOPTF += -mp
+         FOPTF +=
+         fOPTF +=
       endif
    endif
 
@@ -734,10 +738,10 @@ else
 endif
 
 ifeq ($(GPROF),TRUE)
-   FFLAGS += -pg
+   FFLAGS   += -pg
    CXXFLAGS += -pg
-   fFLAGS += -pg
-   CFLAGS += -pg
+   fFLAGS   += -pg
+   CFLAGS   += -pg
 endif
 
 ifeq ($(PROFILE),TRUE)

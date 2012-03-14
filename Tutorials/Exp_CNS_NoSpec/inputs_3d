@@ -1,0 +1,15 @@
+&probin
+
+ nsteps = 5
+ plot_int = 5
+ n_cell = 128
+ max_grid_size = 64
+
+ cfl = 0.5d0
+ !
+ ! Diffusion coefficients.
+ !
+ eta = 1.8d-4
+ alam = 1.5d2
+
+/

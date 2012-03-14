@@ -674,7 +674,7 @@ MultiGrid::interpolate (MultiFab&       f,
     //
     const int N = f.IndexMap().size();
 
-#ifdef BL_USE_OMP
+#ifdef _OPENMP
 #pragma omp parallel for
 #endif
     for (int i = 0; i < N; i++)

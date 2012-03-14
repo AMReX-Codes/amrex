@@ -3,3 +3,11 @@ PyBoxLib
 
 PyBoxLib is a Python wrapper of the Fortran version of BoxLib, and is
 authored by Matthew Emmett <memmett@unc.edu>.
+
+The `pyboxlib`_ repository on github.com is a mirror of the
+``Src/Python`` directory of the official `BoxLib`_ respository.
+
+.. _`pyboxlib`: https://github.com/memmett/pyboxlib
+.. _`BoxLib`: https://ccse.lbl.gov/BoxLib/index.html
+
+

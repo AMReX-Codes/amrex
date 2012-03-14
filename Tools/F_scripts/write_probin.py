@@ -111,7 +111,7 @@ def parseParamFile(paramsList, paramFile, otherList=None):
         currentParam.value = fields[2]
 
         # check to see if this parameter is defined in the current list
-        # of otherList
+        # or otherList
         index = getParamIndex(paramsList, currentParam.var)
         index2 = getParamIndex(otherList, currentParam.var)
 
@@ -129,9 +129,9 @@ def parseParamFile(paramsList, paramFile, otherList=None):
 
 
 #=============================================================================
-# abort exits when there is an error.  A dumy stub file is written out, which
-# will cause a compilation failure
-#=============================================================================
+# abort exits when there is an error.  A dummy stub file is written
+# out, which will cause a compilation failure
+# =============================================================================
 def abort(outfile):
 
     fout = open(outfile, "w")
@@ -180,7 +180,7 @@ def write_probin(probinTemplate, paramAFiles, paramBFiles,
     #-------------------------------------------------------------------------
     try: ftemplate = open(probinTemplate, "r")
     except IOError:
-        print("write_probin.py: ERROR: file "+str(ftemplate)+" does not exist")
+        print("write_probin.py: ERROR: file "+str(probinTemplate)+" does not exist")
         sys.exit(2)
     else:
         ftemplate.close()
