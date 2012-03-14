@@ -3,8 +3,8 @@
 # to compile mt19937ar.f90, we need -fno-range-check, since that
 # routine relies on overflows when doing initializations
 
-  FC  := gfortran
-  F90 := gfortran
+  FC  := $(COMP)
+  F90 := $(COMP)
   CC  := gcc
 
   F90FLAGS += -J$(mdir) -I $(mdir)
@@ -16,9 +16,9 @@
     FFLAGS   += -O2 -fno-range-check
     CFLAGS   += -O2
   else
-    F90FLAGS += -g -fno-range-check -O -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
-    FFLAGS   += -g -fno-range-check -O -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
-    CFLAGS   += -g -O
+    F90FLAGS += -g -fno-range-check -O1 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    FFLAGS   += -g -fno-range-check -O1 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    CFLAGS   += -g -O1
   endif
 
   ifdef OMP

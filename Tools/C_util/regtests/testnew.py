@@ -57,6 +57,17 @@ class testObj:
         self.doVis = 0
         self.visVar = ""
 
+        self.compareFile = ""
+
+        self.addToCompileString = ""
+
+        self.reClean = 0    # set automatically, not by users
+
+    def __cmp__(self, other):
+        return cmp(self.value(), other.value())
+
+    def value(self):
+        return self.name
 
 
 class suiteObj:
@@ -173,7 +184,7 @@ def LoadParams(file):
             mysuite.testTopDir = checkTestDir(value)
 
         elif (opt == "webTopDir"):
-            mysuite.webTopDir = value
+            mysuite.webTopDir = os.path.normpath(value) + "/"
 
         elif (opt == "compareToolDir"):
             mysuite.compareToolDir = checkTestDir(value)
@@ -235,6 +246,9 @@ def LoadParams(file):
         # create the test object for this test
         mytest = testObj(sec)
 
+
+        invalid = 0
+
         # set the test object data by looking at all the options in
         # the current section of the parameter file
         for opt in cp.options(sec):
@@ -243,6 +257,11 @@ def LoadParams(file):
             value = convertType(cp.get(sec, opt))
 
             if (opt == "buildDir"):
+                # make sure that the build directory actually exists
+                if (not os.path.isdir(mysuite.sourceDir + value)):
+                    warning("   WARNING: invalid build directory: %s" % (value))
+                    invalid = 1
+
                 mytest.buildDir = value
 
             elif (opt == "inputFile"):
@@ -290,19 +309,36 @@ def LoadParams(file):
             elif (opt == "visVar"):
                 mytest.visVar = value
 
+            elif (opt == "compareFile"):
+                mytest.compareFile = value
+
+            elif (opt == "addToCompileString"):
+                mytest.addToCompileString = value
+
             else:
                 warning("   WARNING: unrecognized parameter %s for test %s" % (opt, sec))
 
 
 
-        invalid = 0
-
         # make sure all the require parameters are present
-        if (mytest.buildDir == "" or mytest.inputFile == "" or
-            (mysuite.sourceTree == "Parallel" and mytest.probinFile == "") or 
-            mytest.dim == -1 or mytest.needsHelmEOS == -1):
-            warning("   WARNING: manditory runtime parameters for test %s not set" % (sec))
-            invalid = 1
+        if (mytest.compileTest):
+            if (mytest.buildDir == ""):
+                warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
+                invalid = 1
+
+        else:
+            if (mytest.buildDir == "" or mytest.inputFile == "" or
+                (mysuite.sourceTree == "Parallel" and mytest.probinFile == "") or 
+                mytest.dim == -1 or mytest.needsHelmEOS == -1):
+                warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
+                warning("            buildDir = %s" % (mytest.buildDir))
+                warning("            inputFile = %s" % (mytest.inputFile))
+                if (mysuite.sourceTree == "Parallel"):
+                    warning("            probinFile = %s" % (mytest.probinFile))
+                warning("            dim = %s" % (mytest.dim))
+                warning("            needsHelmEOS = %s" % (mytest.needsHelmEOS))
+
+                invalid = 1
 
 
         # check the optional parameters
@@ -345,6 +381,7 @@ def LoadParams(file):
     if (anyMPI and mysuite.MPIcommand == ""):
         fail("ERROR: one or more tests are parallel, but MPIcommand is not defined")
 
+    testList.sort()
 
     return mysuite, testList
 
@@ -407,11 +444,26 @@ def findBuildDirs(testList):
         directories"""
     
     buildDirs = []
+    reClean = []
+
     for obj in testList:
 
-        currentBuildDir = obj.buildDir
-        if (buildDirs.count(currentBuildDir) == 0):
-            buildDirs.append(currentBuildDir)
+        # first find the list of unique build directories
+        if (buildDirs.count(obj.buildDir) == 0):
+            buildDirs.append(obj.buildDir)
+
+        # sometimes a problem will specify an extra argument to the
+        # compile line.  If this is the case, then we want to re-make
+        # "clean" for ALL tests that use this build directory, just to
+        # make sure that any unique build commands are seen.
+        if (not obj.addToCompileString == ""):
+            reClean.append(obj.buildDir)
+
+
+    for bdir in reClean:
+        for obj in testList:
+            if (obj.buildDir == bdir):
+                obj.reClean = 1
 
     return buildDirs
 
@@ -495,9 +547,9 @@ def doCVSUpdate(topDir, root, outDir):
    print "\n"
    bold("cvs update %s" % (root))
 
-   # we need to be tricky here to make sure that the stdin is presented to      
-   # the user to get the password.  Therefore, we use the subprocess            
-   # class instead of os.system                                                 
+   # we need to be tricky here to make sure that the stdin is
+   # presented to the user to get the password.  Therefore, we use the
+   # subprocess class instead of os.system
    prog = ["cvs", "update", "%s" % (root)]
    p = subprocess.Popen(prog, stdin=subprocess.PIPE,
                         stdout=subprocess.PIPE,
@@ -622,19 +674,33 @@ def makeCVSChangeLog(suite, root, outDir):
 # makeGITChangeLog
 #==============================================================================
 def makeGITChangeLog(suite, root, outDir):
-   """ generate a ChangeLog git repository named root.  outDir is the
-       full path to the directory where we will store the git output"""
+    """ generate a ChangeLog git repository named root.  outDir is the
+        full path to the directory where we will store the git output"""
 
-   os.chdir(suite.boxLibDir)
+    os.chdir(suite.boxLibDir)
 
 
-   print "\n"
-   bold("generating ChangeLog for %s/" % (root))
+    print "\n"
+    bold("generating ChangeLog for %s/" % (root))
     
-   systemCall("git log --name-only >& ChangeLog.%s" % (root) )
+    systemCall("git log --name-only >& ChangeLog.%s" % (root) )
+    
+    shutil.copy("ChangeLog.%s" % (root), outDir)
 
-   shutil.copy("ChangeLog.%s" % (root), outDir)
 
+#==============================================================================
+# allAreCompileTests
+#==============================================================================
+def allAreCompileTests(testList):
+    """ return 1 if all the tests in the list are compile tests """
+
+    allCompile = 1
+    for test in testList:
+        if (not test.compileTest):
+            allCompile = 0
+            break
+            
+    return allCompile
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -708,6 +774,7 @@ def testSuite(argv):
             doVis = < 0 for no visualization, 1 if we do visualization >
             visVar = < string of the variable to visualize >
 
+            compareFile = < explicit output file to do the comparison with >
 
           Here, [main] lists the parameters for the test suite as a
           whole and [Sod-x] is a single test.  There can be many more
@@ -812,6 +879,11 @@ def testSuite(argv):
             to 1 will determine success by searching for the string
             stSuccessString in the execution output.
 
+            compareFile is the name of the plotfile that is output that
+            should be used for the comparison.  Normally this is not
+            specified and the suite uses the last plotfile output by the
+            test.
+
           Each test problem should get its own [testname] block
           defining the problem.  The name between the [..] will be how
           the test is referred to on the webpages.
@@ -908,7 +980,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # read in the test information
     #--------------------------------------------------------------------------
-    bold("loading" + testFile)
+    bold("loading " + testFile)
 
     suite, testList = LoadParams(testFile)
 
@@ -918,18 +990,6 @@ def testSuite(argv):
     # store the full path to the testFile
     testFilePath = os.getcwd() + '/' + testFile
 
-
-    #--------------------------------------------------------------------------
-    # get the name of the benchmarks directory
-    #--------------------------------------------------------------------------
-    benchDir = suite.testTopDir + suite.suiteName + "-benchmarks/"
-    if (not os.path.isdir(benchDir)):
-        if (make_benchmarks):
-            os.mkdir(benchDir)
-        else:
-            fail("ERROR: benchmark directory, %s, does not exist" % (benchDir))
-
-    
 
     #--------------------------------------------------------------------------
     # if we are doing a single test, remove all other tests
@@ -947,6 +1007,20 @@ def testSuite(argv):
         else:
             testList = newTestList
         
+
+    #--------------------------------------------------------------------------
+    # get the name of the benchmarks directory
+    #--------------------------------------------------------------------------
+    allCompile = allAreCompileTests(testList)
+
+    if (not allCompile):
+        benchDir = suite.testTopDir + suite.suiteName + "-benchmarks/"
+        if (not os.path.isdir(benchDir)):
+            if (make_benchmarks):
+                os.mkdir(benchDir)
+            else:
+                fail("ERROR: benchmark directory, %s, does not exist" % (benchDir))
+    
 
     #--------------------------------------------------------------------------
     # create the output directories
@@ -1048,6 +1122,7 @@ def testSuite(argv):
 
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
 
+    print "\n"
     bold("building the visualization tools...")
 
     compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
@@ -1134,6 +1209,17 @@ def testSuite(argv):
         # compile the code
         #----------------------------------------------------------------------
         os.chdir(suite.sourceDir + test.buildDir)
+
+        if (test.reClean == 1):
+            # for one reason or another, multiple tests use different
+            # build options, make clean again to be safe
+            print "  re-making clean..."
+
+            if (suite.sourceTree == "Parallel"):
+                systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+            else:
+                systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+
         
         print "  building..."
 
@@ -1141,15 +1227,15 @@ def testSuite(argv):
 
 	    if (test.useMPI):
 	       executable = "%s%dd.MPI.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 
             else:
 	       executable = "%s%dd.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 	       
@@ -1157,14 +1243,14 @@ def testSuite(argv):
         elif (suite.sourceTree == "fParallel"):
 
             if (test.useMPI):
-                compString = "%s -j%s BOXLIB_HOME=%s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
             else:
-                compString = "%s -j%s BOXLIB_HOME=%s MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
@@ -1383,7 +1469,11 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         if (not test.selfTest):
 
-            compareFile = getLastPlotfile(outputDir, test)
+            if (test.compareFile == ""):
+                compareFile = getLastPlotfile(outputDir, test)
+            else:
+                compareFile = test.compareFile
+
 
             if (not make_benchmarks):
 
@@ -1584,7 +1674,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     print "\n"
     bold("creating new test report...")
-    reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, 
+    reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, no_update,
                       testList, testDir, testFile, fullWebDir)
 
 
@@ -1613,18 +1703,33 @@ cssContents = \
 r"""
 body {font-family: "Arial", san-serif;}
 
-h1 {font-family: "Arial", sans-serif;}
+h1 {font-family: "Tahoma","Arial", sans-serif;
+    color: #333333;}
 
 h3 {display: inline;}
 
 h3.passed {text-decoration: none; display: inline;
            color: black; background-color: lime; padding: 2px}
 
+a.passed:link {color: black; text-decoration: none;}
+a.passed:visited {color: black; text-decoration: none;}
+a.passed:hover {color: #ee00ee; text-decoration: underline;}
+
 h3.failed {text-decoration: none; display: inline; 
            color: black; background-color: red; padding: 2px}
 
+a.failed:link {color: yellow; text-decoration: none;}
+a.failed:visited {color: yellow; text-decoration: none;}
+a.failed:hover {color: #00ffff; text-decoration: underline;}
+
+
 h3.benchmade {text-decoration: none; display: inline; 
               color: black; background-color: orange; padding: 2px}
+
+a.benchmade:link {color: black; text-decoration: none;}
+a.benchmade:visited {color: black; text-decoration: none;}
+a.benchmade:hover {color: #00ffff; text-decoration: underline;}
+
 
 span.nobreak {white-space: nowrap;}
 
@@ -1651,7 +1756,36 @@ td.date {background-color: #666666; color: white; opacity: 0.8; font-weight: bol
 
 
 table {border-collapse: separate;
-       border-spacing: 2px;}
+       border-spacing: 2px;
+       margin-left: auto;
+       margin-right: auto;
+       border-width: 1px;
+       border-color: gray;
+       border-style: solid;
+       box-shadow: 10px 10px 5px #888888;}
+
+/* http://blog.petermares.com/2010/10/27/vertical-text-in-html-table-headers-for-webkitmozilla-browsers-without-using-images/ */
+
+div.verticaltext {text-align: center;
+                  vertical-align: middle;
+                  width: 20px;
+                  margin: 0px;
+                  padding: 0px;
+                  padding-left: 3px;
+                  padding-right: 3px;
+                  padding-top: 10px;
+                  white-space: nowrap;
+                  -webkit-transform: rotate(-90deg); 
+                  -moz-transform: rotate(-90deg);}
+
+th {background-color: grey;
+    color: yellow;
+    text-align: center;
+    vertical-align: bottom;
+    height: 14em;
+    padding-bottom: 3px;
+    padding-left: 5px;
+    padding-right: 5px;}
 
 """
 
@@ -1797,6 +1931,8 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
     hf.write(newHead)
 
+    hf.write("<P><b>build directory:</b> %s\n" % (test.buildDir) )
+    hf.write("<P>&nbsp;\n")
 
     if (not test.compileTest):
 
@@ -1814,8 +1950,6 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         hf.write("<P>&nbsp;\n")       
 
         # write out the information about the test
-        hf.write("<P><b>build directory:</b> %s\n" % (test.buildDir) )
-
         hf.write("<P><b>input file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
                  (test.name, test.inputFile, test.inputFile) )
 
@@ -1842,7 +1976,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     else:
         hf.write("<P><H3 CLASS=\"failed\">Compilation Failed</H3></P>\n")
 
-    hf.write("<P>compliation command:\n %s\n" % (compileCommand) )
+    hf.write("<P>compliation command:<BR>\n&nbsp; %s\n" % (compileCommand) )
     hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
 
     hf.write("<P>&nbsp;\n")
@@ -1958,7 +2092,7 @@ def reportTestFailure(message, test, testDir, fullWebDir, compString=None):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, 
+def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, no_update,
                       testList, testDir, testFile, fullWebDir):
     """ generate the master page for a single run of the test suite """
     
@@ -1978,9 +2112,8 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime,
     # generate the HTML page for this run of the test suite
     #--------------------------------------------------------------------------
 
-    # check to see if the CSS file is present, if not, write it
-    if (not os.path.isfile("tests.css")):
-        create_css()
+    # always create the css (in case it changes)
+    create_css()
 
 
     # create the master filename
@@ -2006,27 +2139,30 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime,
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (testFile, testFile) )
 
-    hf.write("<p>&nbsp;\n")
-    hf.write("<p><b>CVS update was done at: </b>%s\n" % (cvsTime) )
+    if (not no_update):
+        hf.write("<p>&nbsp;\n")
+        hf.write("<p><b>CVS update was done at: </b>%s\n" % (cvsTime) )
 
-    if (suite.sourceTree == "Parallel"):
-        hf.write("<p>&nbsp;&nbsp;<b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
-                 ("cvs.Parallel.out", "cvs.Parallel.out") )
+        if (suite.sourceTree == "Parallel"):
+            hf.write("<p>&nbsp;&nbsp;<b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
+                     ("cvs.Parallel.out", "cvs.Parallel.out") )
 
-    hf.write("<p>&nbsp;&nbsp;<b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
-             ("cvs.fParallel.out", "cvs.fParallel.out") )        
-    hf.write("<p>&nbsp;\n")
+        hf.write("<p>&nbsp;&nbsp;<b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
+                 ("cvs.fParallel.out", "cvs.fParallel.out") )        
+        hf.write("<p>&nbsp;\n")
 
 
-    if (suite.sourceTree == "Parallel"):
+        if (suite.sourceTree == "Parallel"):
             hf.write("<p>&nbsp;&nbsp;<b>Parallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
                      ("ChangeLog.Parallel", "ChangeLog.Parallel") )
             
-    hf.write("<p>&nbsp;&nbsp;<b>fParallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-             ("ChangeLog.fParallel", "ChangeLog.fParallel") )        
+        hf.write("<p>&nbsp;&nbsp;<b>fParallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                 ("ChangeLog.fParallel", "ChangeLog.fParallel") )        
 
-    hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-             ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
+        hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                 ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
+    else:
+        hf.write("<p>No CVS / git update done\n")
 
     hf.write("<p>&nbsp;\n")    
 
@@ -2151,8 +2287,7 @@ def reportAllRuns(suite, webTopDir):
 
     os.chdir(webTopDir)
 
-    if (not os.path.isfile("tests.css")):
-        create_css()
+    create_css()
 
     validDirs = []
     allTests = []
@@ -2213,9 +2348,9 @@ def reportAllRuns(suite, webTopDir):
     hf.write("<P><TABLE class='maintable'>\n")
 
     # write out the header
-    hf.write("<TR><TH ALIGN=CENTER>date</TH>")
+    hf.write("<TR><TH ALIGN=CENTER>date</TH>\n")
     for test in allTests:
-        hf.write("<TH ALIGN=CENTER>%s</TH>" % (test))
+        hf.write("<TH><div class='verticaltext'>%s</div></TH>\n" % (test))
     
     hf.write("</TR>\n")
 
@@ -2258,11 +2393,11 @@ def reportAllRuns(suite, webTopDir):
                 
             # write out this test's status
             if (status == 1):
-                hf.write("<TD ALIGN=CENTER class=\"passed\"><H3>PASSED</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"passed\"><H3><a href=\"%s/%s.html\" class=\"passed\">:)</a></H3></TD>\n" % (dir, test))
             elif (status == -1):
-                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3>FAILED</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3><a href=\"%s/%s.html\" class=\"failed\">!</a></H3></TD>\n" % (dir, test))
             elif (status == 10):
-                hf.write("<TD ALIGN=CENTER class=\"benchmade\"><H3>UPDATED</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER class=\"benchmade\"><H3>U</H3></TD>\n")
             else:
                 hf.write("<TD>&nbsp;</TD>\n")
 

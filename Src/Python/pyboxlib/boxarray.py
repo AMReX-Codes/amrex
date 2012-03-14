@@ -1,9 +1,9 @@
-
-import numpy as np
-
-from pyfboxlib import fboxlib
+"""PyBoxLib boxarray class."""
 
 import base
+
+from pybl import bl
+
 
 class boxarray(base.BLObject):
   """BoxArray."""

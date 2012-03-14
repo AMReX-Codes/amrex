@@ -15,14 +15,6 @@ endif()
 # all add_test commands are ignored unless this is called!
 enable_testing()
 
-# must be set prior to any project definition
-if (ENABLE_MPI)
-  set(CMAKE_C_COMPILER "${MPI_PREFIX}/bin/mpicc")
-  set(CMAKE_CXX_COMPILER "${MPI_PREFIX}/bin/mpic++")
-  set(CMAKE_Fortran_COMPILER "${MPI_PREFIX}/bin/mpif90")
-endif()
-
-
 # Useful variables pointing to directories in the source tree
 set(CCSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CCSE_TOOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Tools")

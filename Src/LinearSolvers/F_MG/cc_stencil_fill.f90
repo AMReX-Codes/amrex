@@ -419,7 +419,9 @@ contains
        case (1)
            call bl_error("simple_1d_const not yet implemented")
        case (2)
-           call bl_error("simple_2d_const not yet implemented")
+           call simple_2d_const(sp(:,:,:,1),alpha_const,beta_const,&
+                                dh,mp(:,:,1,1), &
+                                bx%lo, bx%hi, lxa, lxb, order)
        case (3)
            call simple_3d_const(sp(:,:,:,:),alpha_const,beta_const,&
                                 dh,mp(:,:,:,1), &

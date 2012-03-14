@@ -1,28 +1,27 @@
 
 from pyboxlib import *
 
-fboxlib.open()
+pybl.open()
+
+N = 8
+n = N / pybl.mpi_size()
+
+boxes = []
+for k in range(pybl.mpi_size()):
+    boxes.append( ((1,k*n+1), (N,(k+1)*n)) )
 
 la = layout()
-la.create(boxes=[ [(1,1), (3,3)],
-                  [(4,1), (6,3)],
-                  ])
+la.create(boxes=boxes)
 
-mfab1 = multifab()
-mfab1.create(la)
+mfab = multifab()
+mfab.create(la, components=1, ghost_cells=2, interleave=False)
 
-fab = mfab1.fab(1)
-fab[0,0] = 22.0
+if pybl.mpi_rank() == 1:
+    for b in la.local_boxes:
+        fab = mfab.fab(b)
+        fab[2,5] = 22.0
 
-fab = mfab1.fab(2)
-fab[-1,-1] = 44.0
+mfab.fill_boundary()
+mfab.echo()
 
-mfab2 = multifab()
-mfab2.create_from_bbox(mfab1)
-
-mfab1.copy(mfab2)
-
-mfab1.echo()
-mfab2.echo()
-
-fboxlib.close()
+pybl.close()
