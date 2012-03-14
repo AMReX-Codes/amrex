@@ -24,7 +24,7 @@ TAGS:	$(sources)
 	etags $^
 
 tags:	$(sources)
-	ctags --verbose=yes $^
+	ctags --verbose=yes --fortran-kinds=+i $^
 
 # should prevent deletion of .o files
 .SECONDARY: $(objects)
