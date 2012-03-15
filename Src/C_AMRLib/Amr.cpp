@@ -2443,12 +2443,14 @@ Amr::grid_places (int              lbase,
                 const int ChunkSize = max_grid_size[i]/cnt;
 
                 IntVect chunk(D_DECL(ChunkSize,ChunkSize,ChunkSize));
-
-                for (int j = 0; j < BL_SPACEDIM; j++)
+                //
+                // We go from Z -> Y -> X to promote cache-efficiency.
+                //
+                for (int j = BL_SPACEDIM-1; j >= 0 ; j--)
                 {
                     chunk[j] /= 2;
 
-                    if ((new_grids[i].size() < NProcs) && (chunk[j]%blocking_factor[i] == 0))
+                    if ( (new_grids[i].size() < NProcs) && (chunk[j]%blocking_factor[i] == 0) )
                     {
                         new_grids[i].maxSize(chunk);
                     }
