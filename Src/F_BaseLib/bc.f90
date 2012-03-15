@@ -26,4 +26,72 @@ module bc_module
   integer, parameter, public :: EXT_DIR      =  23
   integer, parameter, public :: HOEXTRAP     =  24
 
+contains
+
+  function bc_string_to_integer(str) result (bc_int)
+
+    character (len=*), intent(in) :: str
+
+    integer :: bc_int
+
+    select case (str)
+
+    case ("periodic")
+       bc_int = PERIODIC
+
+    case ("inlet")
+       bc_int = INLET
+
+    case ("outlet")
+       bc_int = OUTLET
+
+    case ("symmetry")
+       bc_int = SYMMETRY
+
+    case ("slip wall")
+       bc_int = SLIP_WALL
+
+    case ("no slip wall")
+       bc_int = NO_SLIP_WALL
+      
+    case default 
+       bc_int = UNDEFINED
+
+    end select
+
+  end function bc_string_to_integer
+
+  function bc_integer_to_string(int) result (str)
+
+    integer, intent(in) :: int
+
+    character (len=20) :: str
+
+    select case (int)
+
+    case (PERIODIC)
+       str = "periodic"
+
+    case (INLET)
+       str = "inlet"
+
+    case (OUTLET)
+       str = "outlet"
+
+    case (SYMMETRY)
+       str = "symmetry"
+
+    case (SLIP_WALL)
+       str = "slip wall"
+    
+    case (NO_SLIP_WALL)
+       str = "no slip wall"
+      
+    case default 
+       str = "undefined"
+
+    end select
+
+  end function bc_integer_to_string
+
 end module bc_module
