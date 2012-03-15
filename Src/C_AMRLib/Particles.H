@@ -406,6 +406,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             {
                 ifs >> p.m_pos[d];
             }
+
             //
             // If particle is right on a domain boundary then move it just inside the boundary.
             //
@@ -455,24 +456,28 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             howmany++;
             howmany_read++;
 
-            const Real domain_size_x  = (geom.ProbHi(0) - geom.ProbLo(0)) / float(lNrep[0]);
-            const Real domain_size_y  = (geom.ProbHi(1) - geom.ProbLo(1)) / float(lNrep[1]);
-            const Real domain_size_z  = (geom.ProbHi(2) - geom.ProbLo(2)) / float(lNrep[2]);
+            Real domain_size[BL_SPACEDIM];
+            for (int d=0; d<BL_SPACEDIM; ++d) {
+                domain_size[d]  = (geom.ProbHi(d) - geom.ProbLo(d)) / float(lNrep[d]);
+            }
 
-            for (int repz = 1; repz <= lNrep[2]; repz++)
+            int rep[BL_SPACEDIM];
+#if BL_SPACEDIM==3
+            for (rep[2] = 1; rep[2] <= lNrep[2]; rep[2]++)
             {
-                for (int repy = 1; repy <= lNrep[1]; repy++)
+#endif
+                for (rep[1] = 1; rep[1] <= lNrep[1]; rep[1]++)
                 {
-                    for (int repx = 1; repx <= lNrep[0]; repx++) 
+                    for (rep[0] = 1; rep[0] <= lNrep[0]; rep[0]++) 
                     {
-                        if (!( (repx == 1) && (repy == 1) && (repz == 1) ) )
+                        if (!(D_TERM( (rep[0] == 1), && (rep[1] == 1), && (rep[2] == 1) ) ) )
                         {
                             //
                             // Shift the position.
                             //
-                            p_rep.m_pos[0] = p.m_pos[0] + float(repx-1)*domain_size_x;
-                            p_rep.m_pos[1] = p.m_pos[1] + float(repy-1)*domain_size_y;
-                            p_rep.m_pos[2] = p.m_pos[2] + float(repz-1)*domain_size_z;
+                            for (int d=0; d<BL_SPACEDIM; ++d) {
+                                p_rep.m_pos[d] = p.m_pos[d] + float(rep[d]-1)*domain_size[d];
+                            }
                             //
                             // Copy the mass and velocity.
                             //
@@ -503,7 +508,9 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
                         }
                     }
                 }
+#if BL_SPACEDIM==3
             }
+#endif
         }
     }
     //
@@ -580,7 +587,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
         ParallelDescriptor::ReduceLongSum(num_particles, IOProcNumber);
 
-        if (lNrep[0] == 1 && lNrep[1] == 1 && lNrep[2] == 1)
+        if (D_TERM(lNrep[0] == 1, && lNrep[1] == 1, && lNrep[2] == 1))
         {
             if (ParallelDescriptor::IOProcessor())
                 std::cout << "Total number of particles: " << num_particles << std::endl;
@@ -593,8 +600,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
             if (ParallelDescriptor::IOProcessor())
             {
-                std::cout << "Replication the domain with vector           " << 
-                              lNrep[0] << " " << lNrep[1] << " " << lNrep[2] << '\n';
+                std::cout << "Replication the domain with vector           ";
+                for (int d=0; d<BL_SPACEDIM; ++d) {
+                    std::cout << lNrep[d] << " ";
+                }
+                std::cout << '\n';
                 std::cout << "Total number of particles read in          : " << num_particles_read << '\n';
                 std::cout << "Total number of particles after replication: " << num_particles      << std::endl;
             }
