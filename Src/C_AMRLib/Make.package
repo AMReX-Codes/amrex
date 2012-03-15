@@ -45,7 +45,7 @@ ifeq ($(USE_ARRAYVIEW),TRUE)
 endif
 
 ifeq ($(USE_PARTICLES), TRUE)
-  DEFINES += -DUSE_PARTICLES
+  DEFINES += -DUSE_PARTICLES -DPARTICLES
   CEXE_sources += Particles.cpp
   CEXE_headers += Particles.H
   FEXE_headers += Particles_F.H
