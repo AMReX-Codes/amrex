@@ -1256,11 +1256,10 @@ AmrLevel::derive (const std::string& name,
     {
         rec->getRange(0,index,scomp,ncomp);
 
+        // Assert because we do not know how to un-convert the destination
+        //   and also, implicitly assume the convert in fact is trivial
+        BL_ASSERT(mf.boxArray()[0].ixType()==IndexType::TheCellType());
         BoxArray srcBA(mf.boxArray());
-        BoxArray dstBA(mf.boxArray());
-
-        srcBA.convert(state[index].boxArray()[0].ixType());
-        BL_ASSERT(rec->deriveType() == dstBA[0].ixType());
 
         MultiFab srcMF(srcBA,rec->numState(),ngrow);
 
