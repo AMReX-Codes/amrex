@@ -1260,6 +1260,7 @@ AmrLevel::derive (const std::string& name,
         //   and also, implicitly assume the convert in fact is trivial
         BL_ASSERT(mf.boxArray()[0].ixType()==IndexType::TheCellType());
         BoxArray srcBA(mf.boxArray());
+        srcBA.convert(rec->boxMap());
 
         MultiFab srcMF(srcBA,rec->numState(),ngrow);
 
