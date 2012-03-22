@@ -11,8 +11,29 @@ from fab import fab
 class multifab(base.BLObject):
   """MultiFAB."""
 
+  def __init__(self, *args, **kwargs):
+
+    super(multifab, self).__init__(*args, **kwargs)
+
+    self.dim = c_int(0)
+    self.nboxes = c_int(0)
+    self.nc = c_int(0)
+    self.ng = c_int(0)
+    self.interleaved = c_int(0)
+
+
+
   def create(self, layout, components=1, ghost_cells=0, interleave=False):
     """Create a multifab from a layout."""
+
+    mftype = self.__class__.__name__
+    create = getattr(bl, 'pybl_create_' + mftype + '_from_layout')
+    create(layout.cptr, components, ghost_cells, interleave, byref(self.cptr))
+
+    self.get_info()
+
+
+  def get_info(self):
 
     self.dim = c_int(0)
     self.nboxes = c_int(0)
@@ -21,22 +42,20 @@ class multifab(base.BLObject):
     self.interleaved = c_int(0)
 
     mftype = self.__class__.__name__
-    create = getattr(bl, 'pybl_create_' + mftype + '_from_layout')
-    create(layout.cptr, components, ghost_cells, interleave, byref(self.cptr))
 
     if self.associated:
       get_info = getattr(bl, 'pybl_get_' + mftype + '_info')
       get_info(self.cptr,
-               byref(self.dim), 
-               byref(self.nboxes), 
-               byref(self.nc), 
+               byref(self.dim),
+               byref(self.nboxes),
+               byref(self.nc),
                byref(self.ng))
 
 
   def create_from_bbox(self, mf, components=1, ghost_cells=0, interleave=False):
     """Creat a multifab from the bounding box of the existing mf multifab."""
 
-    mftype = self.__class__.__name__ 
+    mftype = self.__class__.__name__
 
     create   = getattr(bl, 'create_' + mftype + '_from_bbox')
     get_info = getattr(bl, 'get_' + mftype + '_info')

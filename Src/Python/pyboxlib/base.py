@@ -17,7 +17,7 @@ class BLObject(object):
 
   def echo(self):
     pr = 'pybl_print_' + self.__class__.__name__
-    pr = getattr(bl, pr, None)
+    pr = getattr(bl, pr)
     pr(self.cptr)
 
 
