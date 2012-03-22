@@ -310,8 +310,6 @@ ifeq ($(HOST),posse)
   mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),mothra)
-  F90 = ifort
-  CXX = icc
   MPIHOME=/usr/local/mpich2
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
