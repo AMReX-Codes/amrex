@@ -316,8 +316,6 @@ ifeq ($(HOST),mothra)
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
 ifeq ($(HOST),gimantis)
-  F90 = ifort
-  CXX = icc
   MPIHOME=/usr/local/mpich2
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
@@ -329,20 +327,33 @@ ifeq ($(HOST),angilas)
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
-ifeq ($(findstring donev, $(HOSTNAME)), donev)
-   ifeq ($(MPIVENDOR),OpenMPI)
+ifeq ($(findstring donev, $(HOSTNAME)), donev) # TEMP FIXME
+   ifeq ($(MPIVENDOR),OpenMPIv1)
+      MPIHOME=/usr/lib64/compat-openmpi
+      mpi_include_dir = /usr/include/compat-openmpi-x86_64
+      mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
+      mpi_lib_dir = $(MPIHOME)/lib
+   else ifeq ($(MPIVENDOR),OpenMPI) # Latest version
       MPIHOME=$(HOME)/HPC/Libraries/OMPI
-      mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90      
+      mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
+      mpi_include_dir = $(MPIHOME)/include
+      mpi_lib_dir = $(MPIHOME)/lib
    else
       MPIHOME=$(HOME)/HPC/Libraries/MPI
-      mpi_libraries += -lmpich -lmpichf90 -lpthread    
+      mpi_libraries += -lmpich -lmpichf90 -lpthread
+      mpi_include_dir = $(MPIHOME)/include
+      mpi_lib_dir = $(MPIHOME)/lib
    endif
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
 else ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
-   MPIHOME=/usr/lib64/openmpi
+   # TEMP FIXME
+   # OpenMPI v2
+   #MPIHOME=/usr/lib64/openmpi
+   #mpi_include_dir = /usr/include/openmpi-x86_64
+   # OpenMPI v1
+   MPIHOME=/usr/lib64/compat-openmpi
+   mpi_include_dir = /usr/include/compat-openmpi-x86_64
+   # Generic stuff:
    mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
-   mpi_include_dir = /usr/include/openmpi-x86_64
    mpi_lib_dir = $(MPIHOME)/lib
 endif
 
