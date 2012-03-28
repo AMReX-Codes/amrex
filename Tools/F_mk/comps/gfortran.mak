@@ -5,7 +5,11 @@
 
   FC  := $(COMP)
   F90 := $(COMP)
-  CC  := gcc
+  ifdef CCOMP
+    CC  := $(CCOMP)
+  else
+    CC  := gcc
+  endif
 
   F90FLAGS += -J$(mdir) -I $(mdir)
   FFLAGS   += -J$(mdir) -I $(mdir)
