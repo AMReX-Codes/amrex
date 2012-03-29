@@ -1611,7 +1611,7 @@ FabArray<FAB>::copy (FAB&       dest,
         return;
     }
 
-    FArrayBox ovlp;
+    FAB ovlp;
 
     for (int i = 0, N = size(); i < N; i++)
     {
