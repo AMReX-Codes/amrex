@@ -30,11 +30,14 @@ const int maxGrid(64);
 const int pdHi(127);
 const int nComp(5);
 const int nGhost(2);
+const int nFiles(64);
 
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
     BoxLib::Initialize(argc,argv);    
+
+    VisMF::SetNOutFiles(nFiles);  // ---- this will enforce the range [1, nprocs]
 
     // ---- make a box, then a boxarray with maxSize
     Box bDomain(IntVect(0,0,0), IntVect(pdHi,pdHi,pdHi));
@@ -103,6 +106,9 @@ int main(int argc, char *argv[]) {
     VisMF::Write(mfNewMap, mfnmoutfile);
 
     // ---- all three multifabs should be the same
+
+    // ---- this will fill the ghost regions from intersecting fabs
+    mf.FillBoundary();
 
     BoxLib::Finalize();
     return 0;
