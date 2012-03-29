@@ -46,9 +46,6 @@ public:
     // A pointer to function taking and returning a Box. 
     //
     typedef Box (*DeriveBoxMap)(const Box&);
-
-    static Box TheSameBox (const Box& box);
-    static Box GrowBoxByOne (const Box& box);
     //
     // The destructor.
     //
@@ -118,8 +115,8 @@ protected:
     //
     DeriveRec (const std::string& name,
                IndexType      result_type,
-               int            nvar_derive,
-               DeriveRec::DeriveBoxMap box_map);
+               int            nvar_derive);
+    //
     //
     // Constructor.
     //
@@ -231,8 +228,7 @@ public:
     //
     void add (const std::string&      name,
               IndexType               result_type,
-              int                     nvar_derive,
-              DeriveRec::DeriveBoxMap box_map = &DeriveRec::TheSameBox );
+              int                     nvar_derive);
     //
     //
     // Adds another entry to the registry.
