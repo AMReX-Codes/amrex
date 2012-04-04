@@ -151,7 +151,6 @@ module define_bc_module
     integer :: igrid,d,lohi
 
     adv_bc_level = default_value
-    print *,'DEFAULT ',default_value
 
     dm = size(adv_bc_level,dim=2)
 
