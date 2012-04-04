@@ -92,7 +92,8 @@ program main
   call boxarray_maxsize(ba,max_grid_size)
 
   ! build the layout, la
-  call layout_build_ba(la,ba,pmask=is_periodic)
+  ! the third argument is the problem domain, which in this case is bx
+  call layout_build_ba(la,ba,bx,pmask=is_periodic)
 
   call destroy(ba)
 
