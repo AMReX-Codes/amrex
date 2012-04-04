@@ -4,7 +4,7 @@
 block-structured adaptive mesh refinement (AMR) applications.
 \BoxLib\ was developed at the Center for Computational Sciences and Engineering (CCSE) at 
 Lawrence Berkeley National Laboratory.  Further information can be found by contacting 
-Mike Lijewski of CCSE at {\tt MJLijewski@lbl.gov} or by visiting our webpage
+Ann Almgren of CCSE at {\tt ASAlmgren@lbl.gov} or by visiting our website
 at {\tt https://ccse.lbl.gov/}.  Key features of \BoxLib\ include:
 
 \begin{itemize}
@@ -12,12 +12,12 @@ at {\tt https://ccse.lbl.gov/}.  Key features of \BoxLib\ include:
 \item Optional subcycling in time (C++ only)
 \item Support for cell-centered, face-centered, edge-centered, and nodal data
 \item Support for hyperbolic, parabolic, and elliptic solves on hierarchical grid structure
-\item Supports hybrid programming model with MPI and OpenMP
+\item Supports hybrid MPI/OpenMP parallel programming model
 \item Demonstrated scaling of linear solvers (parabolic and elliptic solvers) to 100,000 processors and 
       hydrodynamics (hyperbolic solvers) to over 200,000 processors
-\item The plotfile format generated can be read by {\tt VisIt}, {\tt AmrVis}, and {\tt yt}
+\item Plotfile format can be read by {\tt VisIt}, {\tt yt}, and {\tt AmrVis}
 \item Basis of mature applications in combustion, astrophysics, cosmology, and porous media
-\item Freely available to interested users on our website
+\item Publicly available on our website at {\tt https://ccse.lbl.gov/}
 \end{itemize}
 
 \section{Parallel Programming Model}
@@ -63,7 +63,7 @@ cores using OpenMP.
 Data for checkpoints and analysis are written in a self-describing format that consists 
 of a directory for each time step written. Checkpoint directories contain all necessary 
 data to restart the calculation from that time step. Plotfile directories contain data 
-for postprocessing, visualization, and analytics, which can be read using {\tt VisIt}, {\tt yt}, or
+for post-processing, visualization, and analytics, which can be read using {\tt VisIt}, {\tt yt}, or
 {\tt AmrVis} (a customized visualization package developed at CCSE for visualizing 
 data on AMR grids).  Within each checkpoint or plotfile directory is an ASCII header file and 
 subdirectories for each AMR level.  The header describes the AMR hierarchy, including 
