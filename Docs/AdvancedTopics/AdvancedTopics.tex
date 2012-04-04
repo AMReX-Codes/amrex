@@ -1,11 +1,13 @@
 In this chapter, we develop a Fortran90 \BoxLib\ code to solve the heat equation,
 \begin{equation}
-\frac{\partial\phi}{\partial t} = \nabla^2 \phi.
+\frac{\partial\phi}{\partial t} = \nabla^2 \phi; \quad \phi(t=0) = e^{-100r^2},
 \end{equation}
-We begin with a simple single-level, forward Euler discretization and work up to
+on a domain from -1 to 1 in each spatial direction, where $r$ is the distance
+from the a cell-center to the center of the computational domain.  We will
+assume that $\Delta x = \Delta y = \Delta z$.  We begin with a simple single-level, 
+forward Euler discretization and work up to
 a full AMR code with many bells and whistles.  Below is an outline of how we will 
-proceed.  Each of these Sections contains an accompanying tutoral directory.
-
+proceed.  Each of these sections contains an accompanying tutoral directory.
 \begin{itemize}
 
 \item In Section \ref{Sec:OpenMP}, we develop a single-level code similar to the
@@ -27,22 +29,23 @@ equation implicitly, using the linear solver libraries.
 checkpoints for restarting simulations.
 
 \end{itemize}
-
 The basic time-advancement strategy uses the following temporal discretization:
 \begin{equation}
 \frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t} = \left[\nabla\cdot(\nabla\phi)\right]_{ij}.
 \end{equation}
-In the explicit case,
+In the explicit case, we first compute $\nabla\phi$, at faces using:
 \begin{equation}
-(\nabla\phi)_{i+\myhalf,j} = \frac{\phi_{i+1,j}-\phi_{ij}}{\Delta x}
+(\nabla\phi)_{i+\myhalf,j} = \frac{\phi_{i+1,j}^n-\phi_{ij}^n}{\Delta x}.
 \end{equation}
+We will refer to these face-centered gradients as ``fluxes''.
+Next, we compute the update by taking the divergence of these fluxes,
 \begin{equation}
 \left[\nabla\cdot(\nabla\phi)\right]_{ij} = \frac{(\nabla\phi)_{i+\myhalf,j}-(\nabla\phi)_{i-\myhalf,j}}{\Delta x} + \frac{(\nabla\phi)_{i,j+\myhalf}-(\nabla\phi)_{i,j-\myhalf}}{\Delta y}.
 \end{equation}
-Note that in this explicit case, if $\Delta x = \Delta y$, the Laplacian reduces
-to the standard five (seven) point stencil two (three) dimensions.  Here we use this flux 
-divergence formulation because it will enable a natural extension to multiple levels of 
-refinement.
+We use a flux divergence formulation because it will enable a more natural 
+extension to multiple levels of refinement, where we will be concerned with
+conservation across levels.  Note that in this explicit case, if $\Delta x = \Delta y$, 
+the Laplacian reduces to the standard five (seven) point stencil two (three) dimensions.  
 
 \section{OpenMP}\label{Sec:OpenMP}
 
