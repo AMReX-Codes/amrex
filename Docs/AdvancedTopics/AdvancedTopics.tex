@@ -1,10 +1,57 @@
-\section{Boundary Conditions}
+In this chapter, we develop a Fortran90 \BoxLib\ code to solve the heat equation,
+\begin{equation}
+\frac{\partial\phi}{\partial t} = \nabla^2 \phi.
+\end{equation}
+We begin with a simple single-level, forward Euler discretization and work up to
+a full AMR code with many bells and whistles.  Below is an outline of how we will 
+proceed.  Each of these Sections contains an accompanying tutoral directory.
+
+\begin{itemize}
+
+\item In Section \ref{Sec:OpenMP}, we develop a single-level code similar to the
+previously discussed {\tt WaveEquation\_F} example, but add support for OpenMP.
+
+\item In Section \ref{Sec:Boundary Conditions} we develop the capability to handle
+other (non-periodic) boundary condition types.
+
+\item In Section \ref{Sec:Refinement} we develop the capabilitly to have multiple
+levels of refinement using a fixed, multilevel grid structure.
+
+\item In Section \ref{Sec:AMR} we develop the capability to adaptively change the
+refined grid structure.
+
+\item In Section \ref{Sec:Linear Solvers} we develop the capability to solve the
+equation implicitly, using the linear solver libraries.
+
+\item In Section \ref{Sec:Checkpoints} we develop the capability to write and read
+checkpoints for restarting simulations.
+
+\end{itemize}
+
+The basic time-advancement strategy uses the following temporal discretization:
+\begin{equation}
+\frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t} = \left[\nabla\cdot(\nabla\phi)\right]_{ij}.
+\end{equation}
+In the explicit case,
+\begin{equation}
+(\nabla\phi)_{i+\myhalf,j} = \frac{\phi_{i+1,j}-\phi_{ij}}{\Delta x}
+\end{equation}
+\begin{equation}
+\left[\nabla\cdot(\nabla\phi)\right]_{ij} = \frac{(\nabla\phi)_{i+\myhalf,j}-(\nabla\phi)_{i-\myhalf,j}}{\Delta x} + \frac{(\nabla\phi)_{i,j+\myhalf}-(\nabla\phi)_{i,j-\myhalf}}{\Delta y}.
+\end{equation}
+Note that in this explicit case, if $\Delta x = \Delta y$, the Laplacian reduces
+to the standard five (seven) point stencil two (three) dimensions.  Here we use this flux 
+divergence formulation because it will enable a natural extension to multiple levels of 
+refinement.
+
+\section{OpenMP}\label{Sec:OpenMP}
+
+\section{Boundary Conditions}\label{Sec:Boundary Conditions}
 In order to understand how to implement boundary conditions, we shall 
 first describe the general principles behind working with boundary conditions.
 Then, we will provide simple examples in the tutorial directory that can be 
 adapted to other applications.
 
-\subsection{General Principles}
 The basic idea is that every grid has knowledge of the
 boundary condition type at the low and high side edge in each direction.
 Common boundary condition types are {\tt INFLOW}, {\tt OUTFLOW}, {\tt SLIP\_WALL},
@@ -62,14 +109,9 @@ resolution than the base grid.}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Fortran90 Tutorial}
+\section{Multiple Levels of Refinement}\label{Sec:Refinement}
+\section{Adaptive Mesh Refinement}\label{Sec:AMR}
+\section{Linear Solvers}\label{Sec:Linear Solvers}
+\section{Checkpoints and Restarting}\label{Sec:Checkpoints}
 
-\section{Nodal Data}
 
-\section{Checkpoints and Restarting}
-
-\section{Linear Solvers}
-
-\section{Adaptive Mesh Refinement}
-
-\section{OpenMP and Threads}
