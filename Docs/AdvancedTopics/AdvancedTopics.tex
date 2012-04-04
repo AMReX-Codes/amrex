@@ -149,16 +149,15 @@ The numbers refer to the grid number.}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Figure \ref{fig:bc_example2} demonstrates a problem with periodicity.  In this case,
-the low-x boundary condition for grid 1 is {\tt PERIODIC}.  Note there are some
+Figure \ref{fig:bc_example2} demonstrates a problem with periodicity in the x-direction.
+In this case, the low-x boundary condition for grid 1 is {\tt PERIODIC}.  Note there are some
 similarities between {\tt PERIODIC} and {\tt INTERIOR} boundary conditions when
-it comes to filling ghost cells.  In fact, one can think of {\tt PERIODIC} as just
+it comes to filling ghost cells in that ghost cell values are simply copied in from the valid
+region of another grid.  In fact, one can think of {\tt PERIODIC} as just
 a special type of {\tt INTERIOR} boundary condition.
-In both of these cases, when filling ghost cells,
-data from the valid region of another grid is copied into ghost cells of the neighboring 
-grid.  For the other boundary conditions types, the user can write custom boundary 
+For the other boundary conditions types, the user can write custom boundary 
 conditions routines to fill ghost cells, which can involve setting ghost cell values 
-directly, or extrapolating values from interior points using some stencil.
+directly, or using interior points and/or physical boundary conditions in some stencil operation.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[tb]
 \centering
