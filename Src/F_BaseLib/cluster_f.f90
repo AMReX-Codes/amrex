@@ -748,7 +748,7 @@ contains
     ! I'm playing a little fast & loose here.
     ! I'm assuming all we really need to get right is the mapping.
     !
-    call build(cla, cba, explicit_mapping = get_proc(get_layout(tagboxes)))
+    call build(cla, cba, boxarray_bbox(cba), explicit_mapping = get_proc(get_layout(tagboxes)))
 
     call destroy(cba)
 

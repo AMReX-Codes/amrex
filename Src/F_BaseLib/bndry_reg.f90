@@ -111,7 +111,7 @@ contains
     end do
     call build(bac, blc, sort = .false.)
     call destroy(blc)
-    call build(latmp, bac, explicit_mapping = get_proc(lac))
+    call build(latmp, bac, boxarray_bbox(bac), explicit_mapping = get_proc(lac))
     call destroy(bac)
 
     do i = 1, dm
@@ -157,7 +157,7 @@ contains
           end do
 
           call build(baa, bxs, sort = .false.)
-          call build(br%laf(i,f), baa, explicit_mapping = get_proc(la))
+          call build(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
           call build(br%bmf(i,f), br%laf(i,f), nc = lnc, ng = 0)
           call destroy(baa)
 
@@ -183,7 +183,7 @@ contains
                 deallocate(bi)
              end do
              call build(baa, bxsc, sort = .false.)
-             call build(br%olaf(i,f), baa, explicit_mapping = prcc)
+             call build(br%olaf(i,f), baa, boxarray_bbox(baa), explicit_mapping = prcc)
              deallocate(bxsc, prcc)
              call destroy(baa)
              call build(br%obmf(i,f), br%olaf(i,f), nc = lnc, ng = 0)
@@ -254,7 +254,7 @@ contains
           end do
 
           call build(baa, bxs, sort = .false.)
-          call build(br%laf(i,f), baa, explicit_mapping = get_proc(la))
+          call build(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
           call build(br%bmf(i,f), br%laf(i,f), nc = lnc, ng = 0)
           call destroy(baa)
 

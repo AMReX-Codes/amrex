@@ -261,7 +261,7 @@ contains
 
     call build(tmpba, bl, sort = .false.)
     call destroy(bl)
-    call build(tmpla, tmpba, explicit_mapping = get_proc(get_layout(pcrse)))
+    call build(tmpla, tmpba, boxarray_bbox(tmpba), explicit_mapping = get_proc(get_layout(pcrse)))
     call destroy(tmpba)
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 

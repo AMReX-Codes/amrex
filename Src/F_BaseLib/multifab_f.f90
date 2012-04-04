@@ -2326,7 +2326,7 @@ contains
        !
        call copy(batmp, get_boxarray(get_layout(mf)))
        call boxarray_nodalize(batmp, nodal_flags(mf))
-       call build(latmp, batmp, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+       call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
        call boxarray_destroy(batmp)
     endif
 
