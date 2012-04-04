@@ -87,6 +87,11 @@ program main
      end if
   end if
 
+  if (nlevs > 3) then
+     print *,'Code is currently not set up to define grids for nlevs > 3'
+     stop
+  end if
+
   allocate(bx(nlevs))
   allocate(ba(nlevs))
   allocate(pd(nlevs))
