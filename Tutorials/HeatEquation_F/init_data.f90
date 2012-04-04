@@ -61,14 +61,15 @@ contains
     integer          :: i,j
     double precision :: x,y,dist
 
-    U(:,:) = -1.d0
-
     do j = lo(2),hi(2)
        y = (dble(j)+0.5d0) * dx - 0.5d0
+
        do i = lo(1),hi(1)
           x = (dble(i)+0.5d0) * dx - 0.5d0
+
           dist = sqrt(x*x + y*y)
           U(i,j) = 0.5d0 * (1.d0 - tanh((dist-0.2d0)/0.025d0))
+
          end do
     end do
 
@@ -83,7 +84,23 @@ contains
  
     ! local varables
     integer          :: i,j,k
-    double precision :: x,y,z,r2
+    double precision :: x,y,z,dist
+
+    do k = lo(3),hi(3)
+       z = (dble(k)+0.5d0) * dx - 0.5d0
+
+       do j = lo(2),hi(2)
+          y = (dble(j)+0.5d0) * dx - 0.5d0
+
+          do i = lo(1),hi(1)
+             x = (dble(i)+0.5d0) * dx - 0.5d0
+
+             dist = sqrt(x*x + y*y + z*z)
+             U(i,j,k) = 0.5d0 * (1.d0 - tanh((dist-0.2d0)/0.025d0))
+
+          end do
+       end do
+    end do
 
   end subroutine init_data_3d
 
