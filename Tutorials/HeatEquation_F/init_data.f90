@@ -86,6 +86,7 @@ contains
     integer          :: i,j,k
     double precision :: x,y,z,dist
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k,x,y,z,dist)
     do k = lo(3),hi(3)
        z = (dble(k)+0.5d0) * dx - 0.5d0
 
@@ -101,6 +102,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine init_data_3d
 
