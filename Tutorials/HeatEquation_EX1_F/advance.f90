@@ -18,24 +18,31 @@ contains
     real(kind=dp_t), intent(in   ) :: dt
 
     ! local variables
-    type(multifab) :: flux(phi%dim)
-
-    logical :: nodal(phi%dim)
-
     integer i,dm
+
+    ! an array of multifabs; one for each direction
+    type(multifab) :: flux(phi%dim) 
+
+    ! used to build face
+    logical :: nodal(phi%dim) 
 
     dm = phi%dim
 
+    ! build the flux(:) multifabs
     do i=1,dm
        nodal(:) = .false.
        nodal(i) = .true.
+       ! flux(i) has one component, zero ghost cells, and is nodal in direction i
        call multifab_build(flux(i),phi%la,1,0,nodal)
     end do
 
+    ! compute the face-centered gradients in each direction
     call compute_flux(phi,flux,dx)
     
+    ! update phi using forward Euler discretization
     call update_phi(phi,flux,dx,dt)
 
+    ! make sure to destroy the multifab or you'll leak memory
     do i=1,dm
        call multifab_destroy(flux(i))
     end do
@@ -57,7 +64,6 @@ contains
     real(kind=dp_t), pointer :: fyp(:,:,:,:)
     real(kind=dp_t), pointer :: fzp(:,:,:,:)
 
-    ! set these here so we don't have to pass them into the subroutine
     dm   = phi%dim
     ng_p = phi%ng
     ng_f = flux(1)%ng
@@ -174,7 +180,6 @@ contains
     real(kind=dp_t), pointer :: fyp(:,:,:,:)
     real(kind=dp_t), pointer :: fzp(:,:,:,:)
 
-    ! set these here so we don't have to pass them into the subroutine
     dm   = phi%dim
     ng_p = phi%ng
     ng_f = flux(1)%ng

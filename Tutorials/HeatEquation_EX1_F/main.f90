@@ -96,7 +96,7 @@ program main
 
   call destroy(ba)
 
-  ! build multifab with 1 component and 1 ghost cells
+  ! build multifab with 1 component and 1 ghost cell
   call multifab_build(phi,la,1,1)
   
   ! initialze phi
@@ -105,6 +105,7 @@ program main
   istep = 0
   time = 0.d0
 
+  ! choose a time step with a diffusive CFL of 0.1
   dt = 0.1d0*dx**2/(2.d0*dim)
 
   ! write out plotfile 0
