@@ -22,6 +22,17 @@
 \raggedright\tiny\sffamily
 \hrule\smallskip{\color{red}#1}\par\smallskip\hrule}}
 
+\newcommand{\sfrac}[2]{\mathchoice
+  {\kern0em\raise.5ex\hbox{\the\scriptfont0 #1}\kern-.15em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptfont0 #2}}
+  {\kern0em\raise.5ex\hbox{\the\scriptfont0 #1}\kern-.15em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptfont0 #2}}
+  {\kern0em\raise.5ex\hbox{\the\scriptscriptfont0 #1}\kern-.2em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptscriptfont0 #2}}
+  {#1\!/#2}}
+
+\newcommand{\myhalf}{\sfrac{1}{2}}
+
 % special colors and definitions for framing source code listings
 \usepackage{listings}
 
@@ -89,7 +100,7 @@
 \chapter{Getting Started}
 \input GettingStarted/GettingStarted
 
-\chapter{Advanced Topics}
+\chapter{Advanced Topics With Fortran90 \BoxLib}
 \input AdvancedTopics/AdvancedTopics
 
 \end{document}
