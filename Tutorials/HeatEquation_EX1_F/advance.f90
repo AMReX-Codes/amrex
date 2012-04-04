@@ -23,7 +23,7 @@ contains
     ! an array of multifabs; one for each direction
     type(multifab) :: flux(phi%dim) 
 
-    ! used to build face
+    ! used to build face-centered multifabs
     logical :: nodal(phi%dim) 
 
     dm = phi%dim
