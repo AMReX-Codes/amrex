@@ -124,12 +124,6 @@ program main
   ! The grid spacing is the same in each direction
   dx(1) = (prob_hi(1)-prob_lo(1)) / n_cell
 
-  if ( parallel_IOProcessor() ) then
-     print * 'Prob_lo / Prob_hi ',prob_lo(1), prob_hi(1)
-     print * '           nlevs  ',nlevs
-     print * ' Level 0   n_cell ',n_cell
-  end if
-
   ! These boxes cover the entire domain
   bx(1) = make_box(lo,hi)
   do n = 2,nlevs
@@ -200,6 +194,14 @@ program main
 
   dt = 0.1d0 * dx(nlevs)**2
 
+  if ( parallel_IOProcessor() ) then
+     print *, 'Prob_lo / Prob_hi ',prob_lo(1), prob_hi(1)
+     print *, '           nlevs  ',nlevs
+     print *, ' Level 0   n_cell ',n_cell
+     print *, '  dt              ',dt
+     print *, '  '
+  end if
+
   ! Write out the initial plotfile 
   call write_plotfile(nlevs,ref_ratio(:,1),la,data,istep,dx,time,prob_lo,prob_hi)
 
@@ -234,8 +236,10 @@ program main
      ! Test for NaNs and write out plotfile
      if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
         test = contains_nan(data(n)%fbs(1),1,1)
-        if ( test && parallel_IOProcessor() ) &
-           print *,'data contains nan at level ',n
+        if ( parallel_IOProcessor() ) then
+           if (test) &
+              print *,'data contains nan at level ',n
+        end if
         call write_plotfile(nlevs,ref_ratio(:,1),la,data,istep,dx,time,prob_lo,prob_hi)
      end if
 
