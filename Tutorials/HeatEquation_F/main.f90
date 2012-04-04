@@ -267,6 +267,10 @@ program main
   deallocate(data,dx,la,ba,bx)
   deallocate(lo,hi,pmask,prob_lo,prob_hi)
 
+  call bc_tower_destroy(the_bc_tower)
+
+  call layout_flush_copyassoc_cache ()
+
   ! parallel_wtime() returns the number of wallclock-time seconds since
   ! the program began
   end_time = parallel_wtime()
