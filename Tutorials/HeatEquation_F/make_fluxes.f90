@@ -45,10 +45,10 @@ contains
           hi = upb(get_box(data(n),i))
           select case(dm)
           case (2)
-             call make_flux_2d(dp(:,:,1,1), ng, fluxx, fluxy, ng_f, lo, hi, dx(n))
+             call make_flux_2d(dp(:,:,1,1), ng, fluxx(:,:,1,1), fluxy(:,:,1,1), ng_f, lo, hi, dx(n))
           case (3)
              fluxz => dataptr(flux(n,3),i)
-             call make_flux_3d(dp(:,:,:,1), ng, fluxx, fluxy, fluxz, ng_f, lo, hi, dx(n))
+             call make_flux_3d(dp(:,:,:,1), ng, fluxx(:,:,:,1), fluxy(:,:,:,1), fluxz(:,:,:,1), ng_f, lo, hi, dx(n))
           end select
        end do
     end do
@@ -64,9 +64,9 @@ contains
   subroutine make_flux_2d(U, ng, fluxx, fluxy, ng_f, lo, hi, dx)
 
     integer          :: lo(2), hi(2), ng, ng_f
-    double precision ::     U(lo(1)-ng  :hi(1)+ng    ,lo(2)-ng  :hi(2)+ng)
-    double precision :: fluxx(lo(1)-ng_f:hi(1)+ng_f+1,lo(2)-ng_f:hi(2)+ng_f  )
-    double precision :: fluxy(lo(1)-ng_f:hi(1)+ng_f  ,lo(2)-ng_f:hi(2)+ng_f+1)
+    double precision ::     U(lo(1)-ng  :,lo(2)-ng  :)
+    double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:)
+    double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:)
     double precision :: dx
     
     integer          :: i,j
@@ -90,35 +90,35 @@ contains
   subroutine make_flux_3d(U, ng, fluxx, fluxy, fluxz, ng_f, lo, hi, dx)
 
     integer          :: lo(3), hi(3), ng, ng_f
-    double precision ::     U(lo(1)-ng  :hi(1)+ng    ,lo(2)-ng  :hi(2)+ng    ,lo(3)-ng  :hi(3)+ng)
-    double precision :: fluxx(lo(1)-ng_f:hi(1)+ng_f+1,lo(2)-ng_f:hi(2)+ng_f  ,lo(3)-ng_f:hi(3)+ng_f  )
-    double precision :: fluxy(lo(1)-ng_f:hi(1)+ng_f  ,lo(2)-ng_f:hi(2)+ng_f+1,lo(3)-ng_f:hi(3)+ng_f  )
-    double precision :: fluxz(lo(1)-ng_f:hi(1)+ng_f  ,lo(2)-ng_f:hi(2)+ng_f  ,lo(3)-ng_f:hi(3)+ng_f+1)
+    double precision ::     U(lo(1)-ng  :,lo(2)-ng  :,lo(3)-ng  :)
+    double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
+    double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
+    double precision :: fluxz(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
     double precision :: dx
     
     integer          :: i,j,k
 
     do k = lo(3),hi(3)
     do j = lo(2),hi(2)
-       do i = lo(1),hi(1)+1
-          fluxx(i,j,k) = (U(i,j,k) - U(i-1,j,k))/dx
-       end do
+    do i = lo(1),hi(1)+1
+       fluxx(i,j,k) = (U(i,j,k) - U(i-1,j,k))/dx
     end do
-    end do
-
-    do k = lo(3),hi(3)
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)+1
-          fluxy(i,j,k) = (U(i,j,k) - U(i,j-1,k))/dx
-       end do
     end do
     end do
 
     do k = lo(3),hi(3)
+    do j = lo(2),hi(2)+1
+    do i = lo(1),hi(1)
+       fluxy(i,j,k) = (U(i,j,k) - U(i,j-1,k))/dx
+    end do
+    end do
+    end do
+
+    do k = lo(3),hi(3)+1
     do j = lo(2),hi(2)
-       do i = lo(1),hi(1)+1
-          fluxz(i,j,k) = (U(i,j,k) - U(i,j,k-1))/dx
-       end do
+    do i = lo(1),hi(1)
+       fluxz(i,j,k) = (U(i,j,k) - U(i,j,k-1))/dx
+    end do
     end do
     end do
 

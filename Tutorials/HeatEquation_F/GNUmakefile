@@ -1,11 +1,13 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code
 # If you set BOXLIB_HOME as an environment variable, this line will be ignored
-BOXLIB_HOME ?= $(HOME)/Desktop/droplet/AMR/BoxLib/
+BOXLIB_HOME ?= $(HOME)/AMR/BoxLib/
 
-NDEBUG    := t
 NDEBUG    :=  
+NDEBUG    := t
+
 MPI       :=
 OMP       :=
+
 PROF      :=
 COMP      := gfortran
 MKVERBOSE := t
