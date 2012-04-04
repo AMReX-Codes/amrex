@@ -52,7 +52,7 @@ contains
   subroutine init_data_2d(U, ng, lo, hi, prob_lo, dx)
 
     integer          :: lo(2), hi(2), ng
-    double precision :: U(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,2)
+    double precision :: U(lo(1)-ng:,lo(2)-ng:,:)
     double precision :: prob_lo(2)
     double precision :: dx
  
@@ -77,7 +77,7 @@ contains
     subroutine init_data_3d(U, ng, lo, hi, prob_lo, dx)
 
     integer          :: lo(3), hi(3), ng
-    double precision :: U(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,2)
+    double precision :: U(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:,:)
     double precision :: prob_lo(3)
     double precision :: dx
  

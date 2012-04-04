@@ -52,7 +52,7 @@ contains
   subroutine advance_2d(U, ng, lo, hi, dx, dt)
 
     integer          :: lo(2), hi(2), ng
-    double precision :: U(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,2)
+    double precision :: U(lo(1)-ng:,lo(2)-ng:,:)
     double precision :: dx, dt
 
     double precision, allocatable :: dU(:,:,:), Unew(:,:,:)
@@ -148,7 +148,7 @@ contains
   subroutine advance_3d(U, ng, lo, hi, dx, dt)
 
     integer          :: lo(3), hi(3), ng
-    double precision :: U(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,2)
+    double precision :: U(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:,:)
     double precision :: dx, dt
 
     double precision, allocatable :: dU(:,:,:,:), Unew(:,:,:,:)
