@@ -619,17 +619,12 @@ contains
     logical, intent(in), optional :: pmask(:)
     integer, intent(in), optional :: mapping
     integer, intent(in), optional :: explicit_mapping(:)
-    type(box) :: lpd
+
     logical :: lpmask(get_dim(ba))
     lpmask = .false.; if ( present(pmask) ) lpmask = pmask
-    if ( present(pd) ) then
-       lpd = pd
-    else
-       lpd = boxarray_bbox(ba)
-    end if
     allocate(la%lap)
     la%la_type = LA_BASE
-    call layout_rep_build(la%lap, ba, lpd, lpmask, mapping, explicit_mapping)
+    call layout_rep_build(la%lap, ba, pd, lpmask, mapping, explicit_mapping)
     call mem_stats_alloc(la_ms)
   end subroutine layout_build_ba
 
@@ -1201,7 +1196,7 @@ contains
        !
        call copy(batmp, bxa)
        call boxarray_nodalize(batmp, nodal)
-       call build(latmp, batmp, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+       call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
        call destroy(batmp)
     end if
 
@@ -1457,7 +1452,7 @@ contains
     call copy(batmp, bxa)
     call boxarray_nodalize(batmp, nodal)
     if ( lall ) call boxarray_grow(batmp,ng)
-    call build(latmp, batmp, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+    call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(batmp)
 
     allocate(filled(nboxes(bxa)))
@@ -1797,7 +1792,7 @@ contains
     !
     call copy(batmp, cpasc%ba_src)
     call boxarray_nodalize(batmp, nd_src)
-    call build(lasrctmp, batmp, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+    call build(lasrctmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(batmp)
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
@@ -1975,6 +1970,8 @@ contains
     logical                        :: anynodal
     type(bl_prof_timer), save      :: bpt
 
+    type(box)                      :: lpd
+
     if ( built_q(flasc) ) call bl_error("fluxassoc_build(): already built")
 
     call build(bpt, "fluxassoc_build")
@@ -2018,7 +2015,7 @@ contains
        !
        call copy(batmp, bxa_src)
        call boxarray_nodalize(batmp, nd_src)
-       call build(lasrctmp, batmp, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+       call build(lasrctmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
        call destroy(batmp)
     end if
 

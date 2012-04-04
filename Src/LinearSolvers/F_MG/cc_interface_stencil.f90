@@ -77,7 +77,7 @@ contains
           call set_box(ba, i, fbox)
        end if
     end do
-    call build(la, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+    call build(la, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(ba)
 
     dm = get_dim(res)
@@ -165,7 +165,7 @@ contains
 
     call build(ba, bl, sort = .false.)
     call destroy(bl)
-    call build(la, ba, pmask = pmask, explicit_mapping = dataptr(procmap, 1, size(procmap)))
+    call build(la, ba, boxarray_bbox(ba), pmask = pmask, explicit_mapping = dataptr(procmap, 1, size(procmap)))
     call destroy(ba)
     call build(tflux, la, nc = ncomp(flux), ng = 0)
     call copy(tflux, 1, flux, cf)  ! parallel copy
