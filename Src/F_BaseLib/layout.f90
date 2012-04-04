@@ -613,9 +613,9 @@ contains
   end subroutine layout_rep_destroy
 
   subroutine layout_build_ba(la, ba, pd, pmask, mapping, explicit_mapping)
-    type(layout), intent(out) :: la
-    type(boxarray), intent(in) :: ba
-    type(box), intent(in), optional :: pd
+    type(layout)  , intent(  out) :: la
+    type(boxarray), intent(in   ) :: ba
+    type(box)     , intent(in   ) :: pd
     logical, intent(in), optional :: pmask(:)
     integer, intent(in), optional :: mapping
     integer, intent(in), optional :: explicit_mapping(:)
