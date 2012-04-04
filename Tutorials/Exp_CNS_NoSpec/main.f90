@@ -96,7 +96,7 @@ program main
 
   call boxarray_maxsize(ba,max_grid_size)
 
-  call layout_build_ba(la,ba,pmask=is_periodic)
+  call layout_build_ba(la,ba,boxarray_bbox(ba),pmask=is_periodic)
 
   call destroy(ba)
 
