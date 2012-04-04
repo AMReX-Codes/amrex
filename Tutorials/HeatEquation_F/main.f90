@@ -101,27 +101,37 @@ program main
   allocate(prob_lo(dim),prob_hi(dim))
   allocate(ref_ratio(nlevs-1,dim))
 
-  ! physical problem is a box on (-1,-1) to (1,1), periodic on all sides
+  ! Physical problem is a box on (0,0) to (1,1)
   prob_lo(:) = 0.d0
   prob_hi(:) =  1.d0
-  pmask(1) = .true.
-  pmask(2) = .true.
 
+  ! We define periodic boundary conditions in all directions
+  pmask(1:dim) = .true.
+
+  ! The refinement ratio between levels is 2
   ref_ratio(:,:) = 2
 
-  ! create a box from (0,0) to (n_cell-1,n_cell-1)
+  ! Create a box from (0,0) to (n_cell-1,n_cell-1)
   lo(:) = 0
   hi(:) = n_cell-1
-  bx(1) = make_box(lo,hi)
-  pd(1) = bx(1)
 
-  ! the grid spacing is the same in each direction
+  ! Build the problem domains to use in defining the layouts
+  pd(1) = make_box(lo,hi)
+  do n = 2,nlevs
+     pd(n) = refine(pd(n-1),ref_ratio(n-1,:))
+  end do
+
+  ! The grid spacing is the same in each direction
   dx(1) = (prob_hi(1)-prob_lo(1)) / n_cell
-  write(*,*) 'Prob_lo / Prob_hi ',prob_lo(1), prob_hi(1)
-  write(*,*) '           nlevs  ',nlevs
-  write(*,*) ' Level 0   n_cell ',n_cell
+
+  if ( parallel_IOProcessor() ) then
+     print * 'Prob_lo / Prob_hi ',prob_lo(1), prob_hi(1)
+     print * '           nlevs  ',nlevs
+     print * ' Level 0   n_cell ',n_cell
+  end if
 
   ! These boxes cover the entire domain
+  bx(1) = make_box(lo,hi)
   do n = 2,nlevs
      bx(n) = refine(bx(n-1),ref_ratio(n-1,:))
      pd(n) = bx(n)
@@ -145,36 +155,42 @@ program main
      dx(n) = dx(n-1) / dble(ref_ratio(n-1,1))
   end do
 
-  ! Initialize the boxarray at each level to be one single box, 
-  !   then divide it into pieces no larger than max_grid_size
+  ! Initialize the boxarray at each level to be one single box
   do n = 1,nlevs
-     print *,'At level ',n, 'we have box ' 
-     call print(bx(n))
-
      call boxarray_build_bx(ba(n),bx(n))
+  end do
 
-     ! overwrite the boxarray to respect max_grid_size
+  ! Then divide it into pieces no larger than max_grid_size
+  do n = 1,nlevs
      call boxarray_maxsize(ba(n),max_grid_size)
   end do
 
-  ! build the layout, la
+  ! Build the layouts, la(n), then get rid of ba(n)
   do n = 1,nlevs
-     call print(pd(n),'PD AT N')
      call layout_build_ba(la(n),ba(n),pd(n),pmask=pmask)
      call destroy(ba(n))
   end do
 
+  ! Set up the data structures which handle the boundary conditions for each grid
   call initialize_bc(dim,the_bc_tower,nlevs,pmask)
   do n = 1,nlevs
      call bc_tower_level_build(the_bc_tower,n,la(n))
   end do
 
-  ! build multifab with 1 component and 6 ghost cells
+  ! Build the flux arrays
+  do n = 1,nlevs
+     do i = 1,dim
+        call multifab_build_edge( flux(n,i),la(n),nc=1,ng=0,dir=i)
+        call setval( flux(n,i),1.d20, all=.true.)
+     end do
+  end do
+
+  ! Build a multifab with 1 component and 1 ghost cell
   do n = 1,nlevs
      call multifab_build(data(n),la(n),1,1)
   end do
 
-  ! initialize data
+  ! Initialize the data
   do n = 1,nlevs
      call init_data(n,data(n),dx(n),prob_lo)
   end do
@@ -184,16 +200,8 @@ program main
 
   dt = 0.1d0 * dx(nlevs)**2
 
-  ! write out plotfile 0
+  ! Write out the initial plotfile 
   call write_plotfile(nlevs,ref_ratio(:,1),la,data,istep,dx,time,prob_lo,prob_hi)
-
-  ! Build the flux arrays
-  do n = 1,nlevs
-     do i = 1,dim
-        call multifab_build_edge( flux(n,i),la(n),nc=1,ng=0,dir=i)
-        call setval( flux(n,i),1.d20, all=.true.)
-     end do
-  end do
 
   do istep = 1,nsteps
 
@@ -223,16 +231,17 @@ program main
 
      time = time + dt
 
+     ! Test for NaNs and write out plotfile
      if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
-        ! write out plotfile
         test = contains_nan(data(n)%fbs(1),1,1)
-        print *,'Testing data n = ',n,' test = ',test
+        if ( test && parallel_IOProcessor() ) &
+           print *,'data contains nan at level ',n
         call write_plotfile(nlevs,ref_ratio(:,1),la,data,istep,dx,time,prob_lo,prob_hi)
      end if
 
   end do
 
-  ! make sure to destroy the multifab or you'll leak memory
+  ! Make sure to destroy the multifab or you'll leak memory
   do n = 1,nlevs
      call destroy(data(n))
      call destroy(la(n))
