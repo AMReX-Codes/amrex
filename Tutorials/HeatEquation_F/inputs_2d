@@ -1,0 +1,16 @@
+&probin
+
+ nlevs = 2
+ n_cell = 128
+
+ nlevs = 3
+ n_cell = 64
+
+ dim   = 2
+ nsteps = 2000
+ plot_int = 10000
+
+ max_grid_size = 32
+ max_grid_size = 128
+ verbose = 1
+/
