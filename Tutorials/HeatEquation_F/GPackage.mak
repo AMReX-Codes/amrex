@@ -7,5 +7,4 @@ f90sources += main.f90
 f90sources += make_fluxes.f90
 f90sources += multifab_fill_ghost_cells.f90
 f90sources += multifab_physbc.f90
-f90sources += setbc.f90
 f90sources += write_plotfile.f90
