@@ -133,7 +133,6 @@ program main
   bx(1) = make_box(lo,hi)
   do n = 2,nlevs
      bx(n) = refine(bx(n-1),ref_ratio(n-1,:))
-     pd(n) = bx(n)
   end do
 
   if (nlevs > 1) &
