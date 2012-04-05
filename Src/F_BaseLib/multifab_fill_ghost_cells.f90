@@ -9,7 +9,6 @@ contains
   subroutine multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc, &
                                        fill_crse_input,stencil_width_input,fourth_order_input)
 
-    use setbc_module
     use layout_module
     use bl_constants_module
     use multifab_physbc_module

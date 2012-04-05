@@ -12,7 +12,6 @@ contains
                        fill_crse_input, stencil_width_input, fourth_order_input)
 
     use bc_module
-    use setbc_module
     use layout_module
     use interp_module
     use bl_constants_module
