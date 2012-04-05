@@ -214,7 +214,7 @@ contains
      !
      call copy(ba, get_boxarray(get_layout(mask)))
      call boxarray_nodalize(ba, nodal_flags(mask))
-     call build(la, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+     call build(la, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
      call destroy(ba)
      !
      !   Note :          mm_fine is  in fine space
