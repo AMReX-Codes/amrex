@@ -8,19 +8,22 @@ program main
   use init_phi_module
   use write_plotfile_module
   use advance_module
+  use define_bc_module
 
   implicit none
 
   ! stuff you can set with the inputs file (otherwise use default values below)
   integer :: dim, nsteps, plot_int, n_cell, max_grid_size
+  integer :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! dummy indices using for reading in inputs file
   integer :: un, farg, narg
   logical :: need_inputs_file, found_inputs_file
   character(len=128) :: inputs_file_name
 
+  integer, allocatable :: phys_bc(:,:)
   integer, allocatable :: lo(:), hi(:)
-  integer :: istep
+  integer :: istep,i
 
   real(dp_t), allocatable :: prob_lo(:), prob_hi(:)
   real(dp_t) :: dx, dt, time, start_time, end_time
@@ -32,7 +35,10 @@ program main
   type(layout)   :: la
   type(multifab) :: phi
 
-  namelist /probin/ dim, nsteps, plot_int, n_cell, max_grid_size
+  type(bc_tower) :: the_bc_tower
+
+  namelist /probin/ dim, nsteps, plot_int, n_cell, max_grid_size, &
+       bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! if running in parallel, this will print out the number of MPI 
   ! processes and OpenMP threads
@@ -42,12 +48,28 @@ program main
   ! the program began
   start_time = parallel_wtime()
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! default values - will get overwritten by the inputs file
+
   dim           = 2
   nsteps        = 1000
   plot_int      = 100
   n_cell        = 256
   max_grid_size = 64
+
+
+  ! allowable options for this example are
+  ! -1 = PERIODIC
+  ! 12 = OUTLET (dphi/dn=0 at boundary)
+  ! 15 = NO_SLIP_WALL (wall with fixed phi=1)
+  bc_x_lo       = -1 ! PERIODIC
+  bc_x_hi       = -1 ! PERIODIC
+  bc_y_lo       = -1 ! PERIODIC
+  bc_y_hi       = -1 ! PERIODIC
+  bc_z_lo       = -1 ! PERIODIC
+  bc_z_hi       = -1 ! PERIODIC
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   ! read inputs file and overwrite any default values
   narg = command_argument_count()
@@ -68,13 +90,37 @@ program main
 
   ! now that we have dim, we can allocate these
   allocate(lo(dim),hi(dim))
+  allocate(phys_bc(dim,2))
   allocate(is_periodic(dim))
   allocate(prob_lo(dim),prob_hi(dim))
 
-  ! physical problem is a box on (-1,-1) to (1,1), periodic on all sides
+  ! physical problem is a box on (-1,-1) to (1,1)
   prob_lo(:) = -1.d0
   prob_hi(:) =  1.d0
-  is_periodic(:) = .true.
+
+  ! build a single array to hold domain boundary conditions
+  phys_bc(1,1) = bc_x_lo
+  phys_bc(1,2) = bc_x_hi
+  phys_bc(2,1) = bc_y_lo
+  phys_bc(2,2) = bc_y_hi
+  if (dim .eq. 3) then
+     phys_bc(3,1) = bc_z_lo
+     phys_bc(3,2) = bc_z_hi
+  end if
+
+  ! build an array indicating periodicity in each direction
+  is_periodic(:) = .false.
+  do i=1,dim
+     if (phys_bc(i,1) .eq. -1 .and. phys_bc(i,2) .ne. -1) then
+        call bl_error("Invalid BC's - both lo and hi need to be periodic")
+     end if
+     if (phys_bc(i,2) .eq. -1 .and. phys_bc(i,1) .ne. -1) then
+        call bl_error("Invalid BC's - both lo and hi need to be periodic")
+     end if
+     if (phys_bc(i,1) .eq. -1 .and. phys_bc(i,2) .eq. -1) then
+        is_periodic(i) = .true.
+     end if
+  end do
 
   ! create a box from (0,0) to (n_cell-1,n_cell-1)
   lo(:) = 0
@@ -95,6 +141,10 @@ program main
   call layout_build_ba(la,ba,bx,pmask=is_periodic)
 
   call destroy(ba)
+
+  ! build boundary conditions
+  call bc_tower_init(the_bc_tower,1,dim,phys_bc)
+  call bc_tower_level_build(the_bc_tower,1,la)
 
   ! build multifab with 1 component and 1 ghost cell
   call multifab_build(phi,la,1,1)
