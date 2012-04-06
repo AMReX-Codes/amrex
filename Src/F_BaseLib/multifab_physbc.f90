@@ -18,7 +18,7 @@ contains
     type(bc_level) , intent(in   ) :: the_bc_level
 
     ! Local
-    integer                  :: lo(get_dim(s))
+    integer                  :: lo(get_dim(s)), hi(get_dim(s))
     integer                  :: i,ng,dm
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     
@@ -29,32 +29,30 @@ contains
        if ( multifab_remote(s,i) ) cycle
        sp => dataptr(s,i)
        lo = lwb(get_box(s,i))
+       hi = upb(get_box(s,i))
        select case (dm)
        case (2)
-          call physbc_2d(sp(:,:,1,icomp), lo, ng, &
+          call physbc_2d(sp(:,:,1,icomp), lo, hi, ng, &
                          the_bc_level%adv_bc_level_array(i,:,:,bccomp))
        case (3)
-          call physbc_3d(sp(:,:,:,icomp), lo, ng, &
+          call physbc_3d(sp(:,:,:,icomp), lo, hi, ng, &
                          the_bc_level%adv_bc_level_array(i,:,:,bccomp))
        end select
     end do
  
   end subroutine multifab_physbc
 
-  subroutine physbc_2d(s,lo,ng,bc)
+  subroutine physbc_2d(s,lo,hi,ng,bc)
 
     use bl_constants_module
     use bc_module
 
-    integer        , intent(in   ) :: lo(:),ng
+    integer        , intent(in   ) :: lo(:),hi(:),ng
     real(kind=dp_t), intent(inout) :: s(lo(1)-ng:,lo(2)-ng:)
     integer        , intent(in   ) :: bc(:,:)
 
     ! Local variables
-    integer :: i,j,hi(2)
-
-    hi(1) = lo(1) + size(s,dim=1) - (2*ng+1)
-    hi(2) = lo(2) + size(s,dim=2) - (2*ng+1)
+    integer :: i,j
 
     !!!!!!!!!!!!!
     ! LO-X SIDE
@@ -213,21 +211,17 @@ contains
 
   end subroutine physbc_2d
 
-  subroutine physbc_3d(s,lo,ng,bc)
+  subroutine physbc_3d(s,lo,hi,ng,bc)
 
     use bl_constants_module
     use bc_module
 
-    integer        , intent(in   ) :: lo(:),ng
+    integer        , intent(in   ) :: lo(:),hi(:),ng
     real(kind=dp_t), intent(inout) :: s(lo(1)-ng:, lo(2)-ng:, lo(3)-ng:)
     integer        , intent(in   ) :: bc(:,:)
 
     ! Local variables
-    integer :: i,j,k,hi(3)
-
-    hi(1) = lo(1) + size(s,dim=1) - (2*ng+1)
-    hi(2) = lo(2) + size(s,dim=2) - (2*ng+1)
-    hi(3) = lo(3) + size(s,dim=3) - (2*ng+1)
+    integer :: i,j,k
 
     !!!!!!!!!!!!!
     ! LO-X SIDE
