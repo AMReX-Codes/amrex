@@ -2,8 +2,8 @@ In this chapter, we develop a Fortran90 \BoxLib\ code to solve the heat equation
 \begin{equation}
 \frac{\partial\phi}{\partial t} = \nabla^2 \phi; \quad \phi(t=0) = e^{-100r^2},
 \end{equation}
-on a domain from -1 to 1 in each spatial direction, where $r$ is the distance
-from the a cell-center to the center of the computational domain.  We will
+on a domain from [-1,1] in each spatial direction, where $r$ is the distance
+to the point $(x,y,z) = (0.5,0.5,0.5)$.  We will
 assume that $\Delta x = \Delta y = \Delta z$.  We begin with a simple single-level, 
 forward Euler discretization and work up to
 a full AMR code with many bells and whistles.  Below is an outline of how we will 
@@ -45,8 +45,9 @@ Next, we compute the update by taking the divergence of these fluxes,
 \end{equation}
 We use a flux divergence formulation because it will enable a more natural 
 extension to multiple levels of refinement, where we will be concerned with
-conservation across levels.  Note that in this explicit case, if $\Delta x = \Delta y$, 
-the Laplacian reduces to the standard five (seven) point stencil two (three) dimensions.  
+conservation across levels.  Note that in this explicit case, since $\Delta x = \Delta y$, 
+the Laplacian reduces to the standard five point stencil two dimensions
+(seven point stencil in three dimensions).  
 
 \section{OpenMP}\label{Sec:OpenMP}
 

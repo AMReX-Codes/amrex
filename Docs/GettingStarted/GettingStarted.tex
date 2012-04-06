@@ -403,12 +403,12 @@ In this example, we advance the equations:
 \frac{\partial\phi_1}{\partial t} &=& \phi_2, \\
 \frac{\partial\phi_2}{\partial t} &=& \nabla^2\phi_1,
 \end{eqnarray}
-on a domain from -1 to 1 in each spatial direction with initial conditions
+on a domain from [-1,1] in each spatial direction with initial conditions
 \begin{eqnarray}
 \phi_1(t=0) &=& 0 \\
 \phi_2(t=0) &=& e^{-100r^2},
 \end{eqnarray}
-where $r$ is the distance from the cell-center to the center of the domain.
+where $r$ is the distance to the center of the domain, $(x,y,z) = (0,0,0)$.
 We use uniform grid spacing in each direction, i.e., $\Delta x = \Delta y = \Delta z$,
 and for this example, we used a fixed time step with $\Delta t = 0.1\Delta x$.
 To advance these equations, we use a Runge-Kutta temporal discretization and a 
