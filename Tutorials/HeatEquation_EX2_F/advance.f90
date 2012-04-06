@@ -381,14 +381,11 @@ contains
        end select
     end do
     
-    ! fill ghost cells
-    ! this only fills periodic ghost cells and ghost cells for neighboring
-    ! grids at the same level.  Physical boundary ghost cells are filled
-    ! using multifab_physbc.  But this problem is periodic, so this
-    ! call is sufficient.
+    ! fill ghost cells for two adjacent grids at the same level
+    ! this includes periodic domain boundary ghost cells
     call multifab_fill_boundary(phi)
 
-    ! physical domain boundary ghost cells
+    ! fill non-periodic domain boundary ghost cells
     call multifab_physbc(phi,1,1,1,the_bc_tower%bc_tower_array(1))
 
   end subroutine update_phi

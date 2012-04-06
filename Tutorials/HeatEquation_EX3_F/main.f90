@@ -21,27 +21,28 @@ program main
   logical :: need_inputs_file, found_inputs_file
   character(len=128) :: inputs_file_name
 
-  integer, allocatable :: phys_bc(:,:)
-  integer, allocatable :: lo(:), hi(:)
-  integer :: istep,i,n
+  ! will be allocated with dim components
+  integer       , allocatable :: lo(:), hi(:)
+  logical       , allocatable :: is_periodic(:)
+  real(dp_t)    , allocatable :: prob_lo(:), prob_hi(:)
 
-  real(dp_t), allocatable :: prob_lo(:), prob_hi(:)
-  real(dp_t) :: dt, time, start_time, end_time
+  ! will be allocated with (dim,2) components
+  integer       , allocatable :: phys_bc(:,:)
+
+  ! will be allocated with nlevs components
+  real(dp_t)    , allocatable :: dx(:)
+  type(multifab), allocatable :: phi(:)
+
+  integer    :: istep,i,n,n_cell_level
+  real(dp_t) :: dt,time,start_time,end_time
   
-  real(dp_t), allocatable :: dx(:)
-
-  logical, allocatable :: is_periodic(:)
-
-  type(box)      :: bx
-
+  type(box)         :: bx
   type(ml_boxarray) :: mba
   type(ml_layout)   :: mla
 
-  type(multifab), allocatable :: phi(:)
-
   type(bc_tower) :: the_bc_tower
 
-  namelist /probin/ dim, nsteps, plot_int, n_cell, max_grid_size, &
+  namelist /probin/ nlevs, dim, nsteps, plot_int, n_cell, max_grid_size, &
        bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! if running in parallel, this will print out the number of MPI 
@@ -94,11 +95,11 @@ program main
 
   ! now that we have dim, we can allocate these
   allocate(lo(dim),hi(dim))
-  allocate(phys_bc(dim,2))
   allocate(is_periodic(dim))
   allocate(prob_lo(dim),prob_hi(dim))
+  allocate(phys_bc(dim,2))
 
-  ! now that we have nlevs, we can allocat these
+  ! now that we have nlevs, we can allocate these
   allocate(dx(nlevs))
   allocate(phi(nlevs))
 
@@ -106,7 +107,7 @@ program main
   prob_lo(:) = -1.d0
   prob_hi(:) =  1.d0
 
-  ! build a single array to hold domain boundary conditions
+  ! put all the domain boundary conditions into phys_bc
   phys_bc(1,1) = bc_x_lo
   phys_bc(1,2) = bc_x_hi
   phys_bc(2,1) = bc_y_lo
@@ -130,37 +131,57 @@ program main
      end if
   end do
 
+  ! tell mba how many levels and dimensionality of problem
+  call ml_boxarray_build_n(mba,nlevs,dim)
+
   ! create a box from (0,0) to (n_cell-1,n_cell-1)
   lo(:) = 0
   hi(:) = n_cell-1
   bx = make_box(lo,hi)
 
-  call ml_boxarray_build_n(mba,nlevs,dim)
-
-  ! set ref_ratio, mba%rr
+  ! tell mba about the ref_ratio between levels
   ! mba%rr(n-1,i) is the refinement ratio between levels n-1 and n in direction i
   ! we use refinement ratio of 2 in every direction between all levels
   do n=2,nlevs
      mba%rr(n-1,:) = 2
   enddo
 
-  ! set problem domain, mba%pd
+  ! tell mba about the problem domain at each level
   mba%pd(1) = bx
   do n=2,nlevs
      mba%pd(n) = refine(mba%pd(n-1),mba%rr((n-1),:))
   enddo
 
-  do n=1,nlevs
-     ! initialize the boxarray to be one single box
+  ! initialize the boxarray at level 1 to be one single box
+  call boxarray_build_bx(mba%bas(1),bx)
+
+  ! overwrite the boxarray at level 1 to respect max_grid_size
+  call boxarray_maxsize(mba%bas(1),max_grid_size)
+
+  ! now build the boxarray at other levels
+  n_cell_level = n_cell
+  do n=2,nlevs
+
+     ! length of the problem domain at this level
+     n_cell_level = n_cell_level * mba%rr(n-1,1)
+
+     ! logic to refine the central n_cell x n_cell regio
+     lo(:) = n_cell_level/2-n_cell/2
+     hi(:) = n_cell_level/2+n_cell/2-1
+     bx = make_box(lo,hi)
+
+     ! initialize the boxarray at level n to be one single box
      call boxarray_build_bx(mba%bas(n),bx)
 
-     ! overwrite the boxarray to respect max_grid_size
+     ! overwrite the boxarray at level n to respect max_grid_size
      call boxarray_maxsize(mba%bas(n),max_grid_size)
+
   end do
 
   ! build the ml_layout, mla
   call ml_layout_build(mla,mba,is_periodic)
 
+  ! don't need this anymore - free up memory
   call destroy(mba)
 
   ! the grid spacing is the same in each direction
