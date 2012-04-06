@@ -102,6 +102,7 @@ contains
     ! local variables
     integer i,j
 
+    ! x-fluxes
     !$omp parallel do private(i,j)
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)+1
@@ -110,6 +111,7 @@ contains
     end do
     !$omp end parallel do
 
+    ! y-fluxes
     !$omp parallel do private(i,j)
     do j=lo(2),hi(2)+1
        do i=lo(1),hi(1)
@@ -132,6 +134,7 @@ contains
     ! local variables
     integer i,j,k
 
+    ! x-fluxes
     !$omp parallel do private(i,j,k)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -142,6 +145,7 @@ contains
     end do
     !$omp end parallel do
 
+    ! y-fluxes
     !$omp parallel do private(i,j,k)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)+1
@@ -152,6 +156,7 @@ contains
     end do
     !$omp end parallel do
 
+    ! z-fluxes
     !$omp parallel do private(i,j,k)
     do k=lo(3),hi(3)+1
        do j=lo(2),hi(2)
