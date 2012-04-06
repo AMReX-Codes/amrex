@@ -321,6 +321,13 @@ subroutine physbc_2d(s,lo,hi,ng,bc)
 \BoxLib.  These will be described in Section \ref{Sec:Linear Solvers}.
 
 \section{Multiple Levels of Refinement}\label{Sec:Refinement}
+In the {\tt BoxLib/Tutorials/HeatEquation\_EX3\_F/} tutorial, we have expanded our example
+to the cases of multiple levels of refinement, with the grids fixed in space.  Note that there is
+currently no subcycling support for Fortran90 \BoxLib, so in this example we advance all the grids
+with the same time step, and perform synchronization operations between levels.
+
+The tutorial code is complete and ready to run.  More documentation on this tutorial coming soon.
+
 \section{Adaptive Mesh Refinement}\label{Sec:AMR}
 \section{Linear Solvers}\label{Sec:Linear Solvers}
 \section{Checkpoints and Restarting}\label{Sec:Checkpoints}
