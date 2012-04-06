@@ -185,11 +185,11 @@ module define_bc_module
 
        else if (phys_bc_level(igrid,d,lohi) == SLIP_WALL) then
 
-          adv_bc_level(igrid,d,lohi,1) = EXT_DIR
+          call bl_error("define_bc_tower.f90: SLIP_WALL not supported for this example")
 
        else if (phys_bc_level(igrid,d,lohi) == NO_SLIP_WALL) then
 
-          call bl_error("define_bc_tower.f90: NO_SLIP_WALL not supported for this example")
+          adv_bc_level(igrid,d,lohi,1) = EXT_DIR
 
        end if
 
@@ -235,11 +235,11 @@ module define_bc_module
 
        else if (phys_bc_level(igrid,d,lohi) == SLIP_WALL) then
 
-          ell_bc_level(igrid,d,lohi,1) = BC_NEU
+          call bl_error("define_bc_tower.f90: SLIP_WALL not supported for this example")
 
        else if (phys_bc_level(igrid,d,lohi) == NO_SLIP_WALL) then
 
-          call bl_error("define_bc_tower.f90: NO_SLIP_WALL not supported for this example")
+          ell_bc_level(igrid,d,lohi,1) = BC_DIR
 
        else if (phys_bc_level(igrid,d,lohi) == PERIODIC) then
 

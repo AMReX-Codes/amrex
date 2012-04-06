@@ -105,8 +105,8 @@ program main
   istep = 0
   time = 0.d0
 
-  ! choose a time step with a diffusive CFL of 0.1
-  dt = 0.1d0*dx**2/(2.d0*dim)
+  ! choose a time step with a diffusive CFL of 0.9
+  dt = 0.9d0*dx**2/(2.d0*dim)
 
   ! write out plotfile 0
   call write_plotfile(la,phi,istep,dx,time,prob_lo,prob_hi)

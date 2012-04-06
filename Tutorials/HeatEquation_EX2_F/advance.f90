@@ -2,6 +2,9 @@ module advance_module
 
   use multifab_module
   use layout_module
+  use define_bc_module
+  use bc_module
+  use multifab_physbc_module
 
   implicit none
 
@@ -11,11 +14,12 @@ module advance_module
 
 contains
   
-  subroutine advance(phi,dx,dt)
+  subroutine advance(phi,dx,dt,the_bc_tower)
 
     type(multifab) , intent(inout) :: phi
     real(kind=dp_t), intent(in   ) :: dx
     real(kind=dp_t), intent(in   ) :: dt
+    type(bc_tower) , intent(in   ) :: the_bc_tower
 
     ! local variables
     integer i,dm
@@ -37,10 +41,10 @@ contains
     end do
 
     ! compute the face-centered gradients in each direction
-    call compute_flux(phi,flux,dx)
+    call compute_flux(phi,flux,dx,the_bc_tower)
     
     ! update phi using forward Euler discretization
-    call update_phi(phi,flux,dx,dt)
+    call update_phi(phi,flux,dx,dt,the_bc_tower)
 
     ! make sure to destroy the multifab or you'll leak memory
     do i=1,dm
@@ -49,11 +53,12 @@ contains
 
   end subroutine advance
 
-  subroutine compute_flux(phi,flux,dx)
+  subroutine compute_flux(phi,flux,dx,the_bc_tower)
 
     type(multifab) , intent(in   ) :: phi
     type(multifab) , intent(inout) :: flux(:)
     real(kind=dp_t), intent(in   ) :: dx
+    type(bc_tower) , intent(in   ) :: the_bc_tower
 
     ! local variables
     integer :: lo(phi%dim), hi(phi%dim)
@@ -79,7 +84,8 @@ contains
        case (2)
           call compute_flux_2d(pp(:,:,1,1), ng_p, &
                                fxp(:,:,1,1),  fyp(:,:,1,1), ng_f, &
-                               lo, hi, dx)
+                               lo, hi, dx, &
+                               the_bc_tower%bc_tower_array(1)%adv_bc_level_array(i,:,:,1))
        case (3)
           fzp => dataptr(flux(3),i)
           call compute_flux_3d(pp(:,:,:,1), ng_p, &
@@ -90,14 +96,14 @@ contains
 
   end subroutine compute_flux
 
-
-  subroutine compute_flux_2d(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx)
+  subroutine compute_flux_2d(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx, adv_bc)
 
     integer          :: lo(2), hi(2), ng_p, ng_f
     double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:)
     double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:)
     double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:)
     double precision :: dx
+    integer          :: adv_bc(:,:)
 
     ! local variables
     integer i,j
@@ -110,6 +116,16 @@ contains
     end do
     !$omp end parallel do
 
+    ! lo-x boundary conditions
+    if (adv_bc(1,1) .eq. EXT_DIR) then
+       i=lo(1)
+       do j=lo(2),hi(2)
+          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
+       end do
+    else if (adv_bc(1,1) .eq. FOEXTRAP) then
+       fluxx(lo(1),lo(2):hi(2)) = 0.d0
+    end if
+
     !$omp parallel do private(i,j)
     do j=lo(2),hi(2)+1
        do i=lo(1),hi(1)
@@ -118,6 +134,16 @@ contains
     end do
     !$omp end parallel do
 
+    ! hi-x boundary conditions
+    if (adv_bc(1,2) .eq. EXT_DIR) then
+       i=hi(1)+1
+       do j=lo(2),hi(2)
+          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
+       end do
+    else if (adv_bc(1,2) .eq. FOEXTRAP) then
+       fluxx(hi(1)+1,lo(2):hi(2)) = 0.d0
+    end if
+    
   end subroutine compute_flux_2d
 
   subroutine compute_flux_3d(phi, ng_p, fluxx, fluxy, fluxz, ng_f, lo, hi, dx)
@@ -164,12 +190,13 @@ contains
 
   end subroutine compute_flux_3d
 
-  subroutine update_phi(phi,flux,dx,dt)
+  subroutine update_phi(phi,flux,dx,dt,the_bc_tower)
 
     type(multifab) , intent(inout) :: phi
     type(multifab) , intent(in   ) :: flux(:)
     real(kind=dp_t), intent(in   ) :: dx
     real(kind=dp_t), intent(in   ) :: dt
+    type(bc_tower) , intent(in   ) :: the_bc_tower
 
     ! local variables
     integer :: lo(phi%dim), hi(phi%dim)
@@ -210,6 +237,8 @@ contains
     ! using multifab_physbc.  But this problem is periodic, so this
     ! call is sufficient.
     call multifab_fill_boundary(phi)
+
+    call multifab_physbc(phi,1,1,1,the_bc_tower%bc_tower_array(1))
 
   end subroutine update_phi
 
