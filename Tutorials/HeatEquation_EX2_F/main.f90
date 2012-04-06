@@ -150,13 +150,13 @@ program main
   call multifab_build(phi,la,1,1)
   
   ! initialze phi
-  call init_phi(phi,dx,prob_lo)
+  call init_phi(phi,dx,prob_lo,the_bc_tower)
 
   istep = 0
   time = 0.d0
 
-  ! choose a time step with a diffusive CFL of 0.1
-  dt = 0.1d0*dx**2/(2.d0*dim)
+  ! choose a time step with a diffusive CFL of 0.9
+  dt = 0.9d0*dx**2/(2.d0*dim)
 
   ! write out plotfile 0
   call write_plotfile(la,phi,istep,dx,time,prob_lo,prob_hi)
@@ -169,7 +169,7 @@ program main
      end if
      
      ! advance phi
-     call advance(phi,dx,dt)
+     call advance(phi,dx,dt,the_bc_tower)
 
      time = time + dt
 

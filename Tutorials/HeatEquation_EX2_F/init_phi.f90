@@ -2,6 +2,8 @@ module init_phi_module
 
   use multifab_module
   use layout_module
+  use define_bc_module
+  use multifab_physbc_module
 
   implicit none
 
@@ -11,11 +13,12 @@ module init_phi_module
 
 contains
   
-  subroutine init_phi(phi,dx,prob_lo)
+  subroutine init_phi(phi,dx,prob_lo,the_bc_tower)
 
     type(multifab) , intent(inout) :: phi
     real(kind=dp_t), intent(in   ) :: dx
     real(kind=dp_t), intent(in   ) :: prob_lo(phi%dim)
+    type(bc_tower) , intent(in   ) :: the_bc_tower
 
     ! local variables
     integer :: lo(phi%dim), hi(phi%dim)
@@ -47,6 +50,9 @@ contains
     ! call is sufficient.
     call multifab_fill_boundary(phi)
 
+    ! physical domain boundary ghost cells
+    call multifab_physbc(phi,1,1,1,the_bc_tower%bc_tower_array(1))
+
   end subroutine init_phi
 
   subroutine init_phi_2d(phi, ng, lo, hi, prob_lo, dx)
@@ -62,16 +68,16 @@ contains
 
     !$omp parallel do private(i,j,x,y,r2)
     do j=lo(2),hi(2)
-         y = prob_lo(2) + (dble(j)+0.5d0) * dx
-         do i=lo(1),hi(1)
-            x = prob_lo(1) + (dble(i)+0.5d0) * dx
+       y = prob_lo(2) + (dble(j)+0.5d0) * dx
+       do i=lo(1),hi(1)
+          x = prob_lo(1) + (dble(i)+0.5d0) * dx
 
-            r2 = (x*x + y*y) / 0.01
-            phi(i,j) = exp(-r2)
+          r2 = ((x-0.5d0)**2 + (y-0.5d0)**2) / 0.01d0
+          phi(i,j) = exp(-r2)
 
-         end do
-      end do
-      !$omp end parallel do
+       end do
+    end do
+    !$omp end parallel do
 
     end subroutine init_phi_2d
 
@@ -94,7 +100,7 @@ contains
           do i=lo(1),hi(1)
              x = prob_lo(1) + (dble(i)+0.5d0) * dx
 
-             r2 = (x*x + y*y + z*z) / 0.01
+             r2 = ((x-0.5d0)**2 + (y-0.5d0)**2 + (z-0.5d0)**2) / 0.01d0
              phi(i,j,k) = exp(-r2)
 
           end do
