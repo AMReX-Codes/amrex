@@ -1,7 +1,10 @@
 module advance_module
 
   use multifab_module
-  use layout_module
+  use ml_layout_module
+  use define_bc_module
+  use bc_module
+  use multifab_physbc_module
 
   implicit none
 
@@ -11,110 +14,461 @@ module advance_module
 
 contains
   
-  subroutine advance(nlevs,data,flux,dx,dt,coef)
+  subroutine advance(mla,phi,dx,dt,the_bc_tower)
 
-    integer        , intent(in   ) :: nlevs
-    type(multifab) , intent(inout) :: data(:)
-    type(multifab) , intent(in   ) :: flux(:,:)
+    type(ml_layout), intent(in   ) :: mla
+    type(multifab) , intent(inout) :: phi(:)
     real(kind=dp_t), intent(in   ) :: dx(:)
     real(kind=dp_t), intent(in   ) :: dt
-    real(kind=dp_t), intent(in   ) :: coef
+    type(bc_tower) , intent(in   ) :: the_bc_tower
 
     ! local variables
-    integer :: lo(data(1)%dim), hi(data(1)%dim)
-    integer :: dm, ng, ng_f, i, n
+    integer i,dm,n,nlevs
 
-    real(kind=dp_t), pointer ::    dp(:,:,:,:)
-    real(kind=dp_t), pointer :: fluxx(:,:,:,:)
-    real(kind=dp_t), pointer :: fluxy(:,:,:,:)
-    real(kind=dp_t), pointer :: fluxz(:,:,:,:)
+    ! an array of multifabs; one for each direction
+    type(multifab) :: flux(mla%nlevel,mla%dim) 
 
-    ! Set these here so we don't have to pass them into the subroutine
-    dm   = data(1)%dim
-    ng   = data(1)%ng
-    ng_f = flux(1,1)%ng
+    ! used to build face-centered multifabs
+    logical :: nodal(mla%dim) 
 
-    do n = 1, nlevs
-     do i=1,nboxes(data(n))
-       if ( multifab_remote(data(n),i) ) cycle
-       dp => dataptr(data(n),i)
-       fluxx => dataptr(flux(n,1),i)
-       fluxy => dataptr(flux(n,2),i)
-       lo = lwb(get_box(data(n),i))
-       hi = upb(get_box(data(n),i))
-       select case(dm)
-       case (2)
-          call advance_2d(dp(:,:,1,1), ng, fluxx(:,:,1,1), fluxy(:,:,1,1), ng_f, lo, hi, dx(n), dt, coef)
-       case (3)
-          fluxz => dataptr(flux(n,3),i)
-          call advance_3d(dp(:,:,:,1), ng, fluxx(:,:,:,1), fluxy(:,:,:,1), fluxz(:,:,:,1), ng_f, lo, hi, dx(n), dt, coef)
-       end select
-     end do
+    dm = mla%dim
+    nlevs = mla%nlevel
+
+    ! build the flux(:) multifabs
+    do n=1,nlevs
+       do i=1,dm
+          nodal(:) = .false.
+          nodal(i) = .true.
+          ! flux(n,i) has one component, zero ghost cells, and is nodal in direction i
+          call multifab_build(flux(n,i),mla%la(n),1,0,nodal)
+       end do
     end do
+
+    ! compute the face-centered gradients in each direction
+    call compute_flux(mla,phi,flux,dx,the_bc_tower)
     
-    ! fill ghost cells
-    ! this only fills periodic ghost cells and ghost cells for neighboring
-    ! grids at the same level.  Physical boundary ghost cells are filled
-    ! using multifab_physbc.  But this problem is periodic, so this
-    ! call is sufficient.
-    do n = 1, nlevs
-       call multifab_fill_boundary(data(n))
+    ! update phi using forward Euler discretization
+    call update_phi(mla,phi,flux,dx,dt,the_bc_tower)
+
+    ! make sure to destroy the multifab or you'll leak memory
+    do n=1,nlevs
+       do i=1,dm
+          call multifab_destroy(flux(n,i))
+       end do
     end do
 
   end subroutine advance
 
-  subroutine advance_2d(U, ng, fluxx, fluxy, ng_f, lo, hi, dx, dt, coef)
+  subroutine compute_flux(mla,phi,flux,dx,the_bc_tower)
 
-    integer          :: lo(2), hi(2), ng, ng_f
-    double precision ::     U(lo(1)-ng  :,lo(2)-ng  :)
-    double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:)
-    double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:)
-    double precision :: dx, dt, coef
-    
-    integer          :: i,j
-    
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
+    type(ml_layout), intent(in   ) :: mla
+    type(multifab) , intent(in   ) :: phi(:)
+    type(multifab) , intent(inout) :: flux(:,:)
+    real(kind=dp_t), intent(in   ) :: dx(:)
+    type(bc_tower) , intent(in   ) :: the_bc_tower
 
-          U(i,j) = U(i,j) + coef * dt * ( &
-              (fluxx(i+1,j)-fluxx(i,j)) / dx + &
-              (fluxy(i,j+1)-fluxy(i,j)) / dx )  
+    ! local variables
+    integer :: lo(mla%dim), hi(mla%dim)
+    integer :: dm, ng_p, ng_f, i, n, nlevs
 
+    real(kind=dp_t), pointer ::  pp(:,:,:,:)
+    real(kind=dp_t), pointer :: fxp(:,:,:,:)
+    real(kind=dp_t), pointer :: fyp(:,:,:,:)
+    real(kind=dp_t), pointer :: fzp(:,:,:,:)
+
+    dm    = mla%dim
+    nlevs = mla%nlevel
+
+    ng_p = phi(1)%ng
+    ng_f = flux(1,1)%ng
+
+    do n=1,nlevs
+       do i=1,nboxes(phi(n))
+          if ( multifab_remote(phi(n),i) ) cycle
+          pp  => dataptr(phi(n),i)
+          fxp => dataptr(flux(n,1),i)
+          fyp => dataptr(flux(n,2),i)
+          lo = lwb(get_box(phi(n),i))
+          hi = upb(get_box(phi(n),i))
+          select case(dm)
+          case (2)
+             call compute_flux_2d(pp(:,:,1,1), ng_p, &
+                                  fxp(:,:,1,1),  fyp(:,:,1,1), ng_f, &
+                                  lo, hi, dx(n), &
+                                  the_bc_tower%bc_tower_array(n)%adv_bc_level_array(i,:,:,1))
+          case (3)
+             fzp => dataptr(flux(n,3),i)
+             call compute_flux_3d(pp(:,:,:,1), ng_p, &
+                                  fxp(:,:,:,1),  fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
+                                  lo, hi, dx(n), &
+                                  the_bc_tower%bc_tower_array(n)%adv_bc_level_array(i,:,:,1))
+          end select
        end do
     end do
 
-  end subroutine advance_2d
+    ! EDGE RESTRICTION ON FLUXES
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine advance_3d(U, ng, fluxx, fluxy, fluxz, ng_f, lo, hi, dx, dt, coef)
+  end subroutine compute_flux
 
-    integer          :: lo(3), hi(3), ng, ng_f
-    double precision ::     U(lo(1)-ng  :,lo(2)-ng  :,lo(3)-ng:  )
+  subroutine compute_flux_2d(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx, adv_bc)
+
+    integer          :: lo(2), hi(2), ng_p, ng_f
+    double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:)
+    double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:)
+    double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:)
+    double precision :: dx
+    integer          :: adv_bc(:,:)
+
+    ! local variables
+    integer i,j
+
+    ! x-fluxes
+    !$omp parallel do private(i,j)
+    do j=lo(2),hi(2)
+       do i=lo(1),hi(1)+1
+          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / dx
+       end do
+    end do
+    !$omp end parallel do
+
+    ! lo-x boundary conditions
+    if (adv_bc(1,1) .eq. EXT_DIR) then
+       i=lo(1)
+       !$omp parallel do private(j)
+       do j=lo(2),hi(2)
+          ! divide by 0.5*dx since the ghost cell value represents
+          ! the value at the wall, not the ghost cell-center
+          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
+       end do
+       !$omp end parallel do
+    else if (adv_bc(1,1) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxx(lo(1),lo(2):hi(2)) = 0.d0
+    end if
+
+    ! hi-x boundary conditions
+    if (adv_bc(1,2) .eq. EXT_DIR) then
+       i=hi(1)+1
+       !$omp parallel do private(j)
+       do j=lo(2),hi(2)
+          ! divide by 0.5*dx since the ghost cell value represents
+          ! the value at the wall, not the ghost cell-center
+          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
+       end do
+       !$omp end parallel do
+    else if (adv_bc(1,2) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxx(hi(1)+1,lo(2):hi(2)) = 0.d0
+    end if
+
+    ! y-fluxes
+    !$omp parallel do private(i,j)
+    do j=lo(2),hi(2)+1
+       do i=lo(1),hi(1)
+          fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / dx
+       end do
+    end do
+    !$omp end parallel do
+
+    ! lo-y boundary conditions
+    if (adv_bc(2,1) .eq. EXT_DIR) then
+       j=lo(2)
+       !$omp parallel do private(i)
+       do i=lo(1),hi(1)
+          ! divide by 0.5*dx since the ghost cell value represents
+          ! the value at the wall, not the ghost cell-center
+          fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / (0.5d0*dx)
+       end do
+       !$omp end parallel do
+    else if (adv_bc(2,1) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxy(lo(1):hi(1),lo(2)) = 0.d0
+    end if
+
+    ! hi-y boundary conditions
+    if (adv_bc(2,2) .eq. EXT_DIR) then
+       j=hi(2)+1
+       !$omp parallel do private(i)
+       do i=lo(1),hi(1)
+          ! divide by 0.5*dx since the ghost cell value represents
+          ! the value at the wall, not the ghost cell-center
+          fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / (0.5d0*dx)
+       end do
+       !$omp end parallel do
+    else if (adv_bc(2,2) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxy(lo(1):hi(1),hi(2)+1) = 0.d0
+    end if
+    
+  end subroutine compute_flux_2d
+
+  subroutine compute_flux_3d(phi, ng_p, fluxx, fluxy, fluxz, ng_f, &
+                             lo, hi, dx, adv_bc)
+
+    integer          :: lo(3), hi(3), ng_p, ng_f
+    double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:,lo(3)-ng_p:)
     double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
     double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
     double precision :: fluxz(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
-    double precision :: dx, dt, coef
+    double precision :: dx
+    integer          :: adv_bc(:,:)
+
+    ! local variables
+    integer i,j,k
+
+    ! x-fluxes
+    !$omp parallel do private(i,j,k)
+    do k=lo(3),hi(3)
+       do j=lo(2),hi(2)
+          do i=lo(1),hi(1)+1
+             fluxx(i,j,k) = ( phi(i,j,k) - phi(i-1,j,k) ) / dx
+          end do
+       end do
+    end do
+    !$omp end parallel do
+
+    ! lo-x boundary conditions
+    if (adv_bc(1,1) .eq. EXT_DIR) then
+       i=lo(1)
+       !$omp parallel do private(j,k)
+       do k=lo(3),hi(3)
+          do j=lo(2),hi(2)
+             ! divide by 0.5*dx since the ghost cell value represents
+             ! the value at the wall, not the ghost cell-center
+             fluxx(i,j,k) = ( phi(i,j,k) - phi(i-1,j,k) ) / (0.5d0*dx)
+          end do
+       end do
+       !$omp end parallel do
+    else if (adv_bc(1,1) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxx(lo(1),lo(2):hi(2),lo(3):hi(3)) = 0.d0
+    end if
+
+    ! hi-x boundary conditions
+    if (adv_bc(1,2) .eq. EXT_DIR) then
+       i=hi(1)+1
+       !$omp parallel do private(j,k)
+       do k=lo(3),hi(3)
+          do j=lo(2),hi(2)
+             ! divide by 0.5*dx since the ghost cell value represents
+             ! the value at the wall, not the ghost cell-center
+             fluxx(i,j,k) = ( phi(i,j,k) - phi(i-1,j,k) ) / (0.5d0*dx)
+          end do
+       end do
+       !$omp end parallel do
+    else if (adv_bc(1,2) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxx(hi(1)+1,lo(2):hi(2),lo(3):hi(3)) = 0.d0
+    end if
+
+    ! y-fluxes
+    !$omp parallel do private(i,j,k)
+    do k=lo(3),hi(3)
+       do j=lo(2),hi(2)+1
+          do i=lo(1),hi(1)
+             fluxy(i,j,k) = ( phi(i,j,k) - phi(i,j-1,k) ) / dx
+          end do
+       end do
+    end do
+    !$omp end parallel do
+
+    ! lo-y boundary conditions
+    if (adv_bc(2,1) .eq. EXT_DIR) then
+       j=lo(2)
+       !$omp parallel do private(i,k)
+       do k=lo(3),hi(3)
+          do i=lo(1),hi(1)
+             ! divide by 0.5*dx since the ghost cell value represents
+             ! the value at the wall, not the ghost cell-center
+             fluxy(i,j,k) = ( phi(i,j,k) - phi(i,j-1,k) ) / (0.5d0*dx)
+          end do
+       end do
+       !$omp end parallel do
+    else if (adv_bc(2,1) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxy(lo(1):hi(1),lo(2),lo(3):hi(3)) = 0.d0
+    end if
+
+    ! hi-y boundary conditions
+    if (adv_bc(2,2) .eq. EXT_DIR) then
+       j=hi(2)+1
+       !$omp parallel do private(i,k)
+       do k=lo(3),hi(3)
+          do i=lo(1),hi(1)
+             ! divide by 0.5*dx since the ghost cell value represents
+             ! the value at the wall, not the ghost cell-center
+             fluxy(i,j,k) = ( phi(i,j,k) - phi(i,j-1,k) ) / (0.5d0*dx)
+          end do
+       end do
+       !$omp end parallel do
+    else if (adv_bc(2,2) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxy(lo(1):hi(1),hi(2)+1,lo(3):hi(3)) = 0.d0
+    end if
+
+    ! z-fluxes
+    !$omp parallel do private(i,j,k)
+    do k=lo(3),hi(3)+1
+       do j=lo(2),hi(2)
+          do i=lo(1),hi(1)
+             fluxz(i,j,k) = ( phi(i,j,k) - phi(i,j,k-1) ) / dx
+          end do
+       end do
+    end do
+    !$omp end parallel do
+
+    ! lo-z boundary conditions
+    if (adv_bc(3,1) .eq. EXT_DIR) then
+       k=lo(3)
+       !$omp parallel do private(i,j)
+       do j=lo(2),hi(2)
+          do i=lo(1),hi(1)
+             ! divide by 0.5*dx since the ghost cell value represents
+             ! the value at the wall, not the ghost cell-center
+             fluxz(i,j,k) = ( phi(i,j,k) - phi(i,j,k-1) ) / (0.5d0*dx)
+          end do
+       end do
+       !$omp end parallel do
+    else if (adv_bc(3,1) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxz(lo(1):hi(1),lo(2):lo(3),lo(3)) = 0.d0
+    end if
+
+    ! hi-z boundary conditions
+    if (adv_bc(3,2) .eq. EXT_DIR) then
+       k=hi(3)+1
+       !$omp parallel do private(i,j)
+       do j=lo(2),hi(2)
+          do i=lo(1),hi(1)
+             ! divide by 0.5*dx since the ghost cell value represents
+             ! the value at the wall, not the ghost cell-center
+             fluxz(i,j,k) = ( phi(i,j,k) - phi(i,j,k-1) ) / (0.5d0*dx)
+          end do
+       end do
+       !$omp end parallel do
+    else if (adv_bc(3,2) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxz(lo(1):hi(1),lo(2):hi(2),hi(3)+1) = 0.d0
+    end if
+
+  end subroutine compute_flux_3d
+
+  subroutine update_phi(mla,phi,flux,dx,dt,the_bc_tower)
+
+    type(ml_layout), intent(in   ) :: mla
+    type(multifab) , intent(inout) :: phi(:)
+    type(multifab) , intent(in   ) :: flux(:,:)
+    real(kind=dp_t), intent(in   ) :: dx(:)
+    real(kind=dp_t), intent(in   ) :: dt
+    type(bc_tower) , intent(in   ) :: the_bc_tower
+
+    ! local variables
+    integer :: lo(mla%dim), hi(mla%dim)
+    integer :: dm, ng_p, ng_f, i, n, nlevs
+
+    real(kind=dp_t), pointer ::  pp(:,:,:,:)
+    real(kind=dp_t), pointer :: fxp(:,:,:,:)
+    real(kind=dp_t), pointer :: fyp(:,:,:,:)
+    real(kind=dp_t), pointer :: fzp(:,:,:,:)
+
+    dm    = mla%dim
+    nlevs = mla%nlevel
+
+    ng_p = phi(1)%ng
+    ng_f = flux(1,1)%ng
+
+    do n=1,nlevs
+    do i=1,nboxes(phi(n))
+       if ( multifab_remote(phi(n),i) ) cycle
+       pp  => dataptr(phi(n),i)
+       fxp => dataptr(flux(n,1),i)
+       fyp => dataptr(flux(n,2),i)
+       lo = lwb(get_box(phi(n),i))
+       hi = upb(get_box(phi(n),i))
+       select case(dm)
+       case (2)
+          call update_phi_2d(pp(:,:,1,1), ng_p, &
+                             fxp(:,:,1,1),  fyp(:,:,1,1), ng_f, &
+                             lo, hi, dx(n), dt)
+       case (3)
+          fzp => dataptr(flux(n,3),i)
+          call update_phi_3d(pp(:,:,:,1), ng_p, &
+                             fxp(:,:,:,1),  fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
+                             lo, hi, dx(n), dt)
+       end select
+    end do
+    end do
     
-    integer          :: i,j,k
+    do n=1,nlevs
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
-    do k = lo(3),hi(3)
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
+       ! fill ghost cells
+       ! this only fills periodic ghost cells and ghost cells for neighboring
+       ! grids at the same level.  Physical boundary ghost cells are filled
+       ! using multifab_physbc.  But this problem is periodic, so this
+       ! call is sufficient.
+       call multifab_fill_boundary(phi(n))
 
-          U(i,j,k) = U(i,j,k) + coef * dt * ( &
-              (fluxx(i+1,j,k)-fluxx(i,j,k)) / dx + &
-              (fluxy(i,j+1,k)-fluxy(i,j,k)) / dx + &
-              (fluxz(i,j,k+1)-fluxz(i,j,k)) / dx )  
+       ! physical domain boundary ghost cells
+       call multifab_physbc(phi(n),1,1,1,the_bc_tower%bc_tower_array(n))
+
+    end do
+    
+
+  end subroutine update_phi
+
+  subroutine update_phi_2d(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx, dt)
+
+    integer          :: lo(2), hi(2), ng_p, ng_f
+    double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:)
+    double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:)
+    double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:)
+    double precision :: dx, dt
+
+    ! local variables
+    integer i,j
+
+    !$omp parallel do private(i,j)
+    do j=lo(2),hi(2)
+       do i=lo(1),hi(1)
+
+          phi(i,j) = phi(i,j) + dt * &
+               ( fluxx(i+1,j)-fluxx(i,j) + fluxy(i,j+1)-fluxy(i,j) ) / dx
 
        end do
     end do
+    !$omp end parallel do
+
+  end subroutine update_phi_2d
+
+  subroutine update_phi_3d(phi, ng_p, fluxx, fluxy, fluxz, ng_f, lo, hi, dx, dt)
+
+    integer          :: lo(3), hi(3), ng_p, ng_f
+    double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:,lo(3)-ng_p:)
+    double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
+    double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
+    double precision :: fluxz(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
+    double precision :: dx, dt
+
+    ! local variables
+    integer i,j,k
+
+    !$omp parallel do private(i,j,k)
+    do k=lo(3),hi(3)
+       do j=lo(2),hi(2)
+          do i=lo(1),hi(1)
+
+             phi(i,j,k) = phi(i,j,k) + dt * &
+                  ( fluxx(i+1,j,k)-fluxx(i,j,k) &
+                   +fluxy(i,j+1,k)-fluxy(i,j,k) &
+                   +fluxz(i,j,k+1)-fluxz(i,j,k) ) / dx
+
+          end do
+       end do
     end do
-    !$OMP END PARALLEL DO
+    !$omp end parallel do
 
-  end subroutine advance_3d
-
+  end subroutine update_phi_3d
 
 end module advance_module
 
