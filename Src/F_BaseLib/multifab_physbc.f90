@@ -11,15 +11,16 @@ module multifab_physbc_module
 
 contains
 
-  subroutine multifab_physbc(s,icomp,bccomp,ncomp,the_bc_level)
+  subroutine multifab_physbc(s,start_scomp,start_bccomp,ncomp,the_bc_level)
 
-    integer        , intent(in   ) :: icomp,bccomp,ncomp
+    integer        , intent(in   ) :: start_scomp,start_bccomp,ncomp
     type(multifab) , intent(inout) :: s
     type(bc_level) , intent(in   ) :: the_bc_level
 
     ! Local
     integer                  :: lo(get_dim(s)), hi(get_dim(s))
     integer                  :: i,ng,dm
+    integer                  :: scomp,bccomp
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     
     ng = nghost(s)
@@ -32,11 +33,17 @@ contains
        hi = upb(get_box(s,i))
        select case (dm)
        case (2)
-          call physbc_2d(sp(:,:,1,icomp), lo, hi, ng, &
-                         the_bc_level%adv_bc_level_array(i,:,:,bccomp))
+          do scomp=start_scomp,start_scomp+ncomp-1
+             bccomp = start_bccomp + scomp - start_scomp
+             call physbc_2d(sp(:,:,1,scomp), lo, hi, ng, &
+                            the_bc_level%adv_bc_level_array(i,:,:,bccomp))
+          end do
        case (3)
-          call physbc_3d(sp(:,:,:,icomp), lo, hi, ng, &
-                         the_bc_level%adv_bc_level_array(i,:,:,bccomp))
+          do scomp=start_scomp,start_scomp+ncomp-1
+             bccomp = start_bccomp + scomp - start_scomp
+             call physbc_3d(sp(:,:,:,scomp), lo, hi, ng, &
+                            the_bc_level%adv_bc_level_array(i,:,:,bccomp))
+          end do
        end select
     end do
  
