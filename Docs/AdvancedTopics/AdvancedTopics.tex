@@ -70,7 +70,7 @@ logical :: nodal(phi%dim)
 do i=1,dm
    nodal(:) = .false.
    nodal(i) = .true.
-   ! flux(i) has one component, zero ghost cells, and is nodal in direction i
+   ! flux(i) has 1 component, 0 ghost cells, and is nodal in direction i
    call multifab_build(flux(i),phi%la,1,0,nodal)
 end do
 \end{lstlisting}
@@ -127,18 +127,32 @@ In order to understand how to implement boundary conditions, we shall
 first describe the general principles behind working with boundary conditions.
 The {\tt BoxLib/Tutorials/HeatEquation\_EX2\_F/} tutorial continues our heat
 equation example, but now with some non-periodic boundary condition support.  The boundary
-condition modules in {\tt BoxLib/Src/F\_BaseLib/} can be used as a springboard
-for developing your own customized boundary conditions.
+condition modules in {\tt BoxLib/Src/F\_BaseLib/define\_bc\_tower.f90} and {\tt multifab\_physbc.f90} 
+can be used as a springboard for developing your own customized boundary conditions.
 
+\subsection{General Principles}
 The basic idea is that every grid has knowledge of the
 boundary condition type at the low and high side edge in each direction.
-Common boundary condition types are {\tt INFLOW}, {\tt OUTFLOW}, {\tt SLIP\_WALL},
-{\tt NO\_SLIP\_WALL}, and {\tt PERIODIC}.
+The ``physical'' boundary condition types supported by default are {\tt INLET}, {\tt OUTLET},
+{\tt SYMMETRY}, {\tt SLIP\_WALL}, {\tt NO\_SLIP\_WALL}, and {\tt PERIODIC}.
 There is also an {\tt INTERIOR} boundary condition type, which 
-will be explained below.  We use an integer mapping, e.g., {\tt INFLOW}=1,
-{\tt OUTFLOW=2}, etc., that is listed in {\tt BoxLib/Src/F\_BaseLib/bc.f90}.
-Consider grid 1 in Figure \ref{fig:bc_example1}.  The
-low-x boundary condition is {\tt INFLOW}, and the high-y boundary condition is
+will be explained below.  We use an integer mapping that is 
+contained in {\tt BoxLib/Src/F\_BaseLib/bc.f90}:
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
+integer, parameter, public :: PERIODIC     = -1
+integer, parameter, public :: INTERIOR     =  0
+
+integer, parameter, public :: INLET        = 11
+integer, parameter, public :: OUTLET       = 12
+integer, parameter, public :: SYMMETRY     = 13
+integer, parameter, public ::    SLIP_WALL = 14
+integer, parameter, public :: NO_SLIP_WALL = 15
+\end{lstlisting}
+
+{\bf Examples:}
+\begin{itemize}
+\item Consider grid 1 in Figure \ref{fig:bc_example1}.  The
+low-x boundary condition is {\tt INLET}, and the high-y boundary condition is
 {\tt NO\_SLIP\_WALL}.  The high-x and low-y boundary conditions are {\tt INTERIOR}, which
 means that the ghost cells share the same physical space as cells in the valid region of 
 another grid.  Note that for grids 6, 7, 10, and 11, the boundary condition type for
@@ -148,12 +162,12 @@ every side is {\tt INTERIOR}.
 \centering
 \includegraphics[width=4in]{./AdvancedTopics/bc_example1}
 \caption{\label{fig:bc_example1}Two-dimensional example with 16 - 4$^2$grids with
-{\tt INFLOW}, {\tt OUTFLOW}, and {\tt NO\_SLIP\_WALL} boundary conditions.
+{\tt INLET}, {\tt OUTLET}, and {\tt NO\_SLIP\_WALL} boundary conditions.
 The numbers refer to the grid number.}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Figure \ref{fig:bc_example2} demonstrates a problem with periodicity in the x-direction.
+\item Figure \ref{fig:bc_example2} demonstrates a problem with periodicity in the x-direction.
 In this case, the low-x boundary condition for grid 1 is {\tt PERIODIC}.  Note there are some
 similarities between {\tt PERIODIC} and {\tt INTERIOR} boundary conditions when
 it comes to filling ghost cells in that ghost cell values are simply copied in from the valid
@@ -172,12 +186,11 @@ The numbers refer to the grid number.}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Now, consider an example with refined grids.  Figure \ref{fig:bc_example3}
+\item Now, consider an example with refined grids.  Figure \ref{fig:bc_example3}
 contains three grids at the next level of refinement.  In this case, for grid 1,
 all of the boundary condition types are {\tt INTERIOR}, even though the neighboring
 valid region data is at a coarser level of refinement.  For grid 2, the low-y
-boundary condition is {\tt NO\_SLIP\_WALL}, and the low-x, high-x, and hi-y
-boundary condition types are {\tt INTERIOR}.
+boundary condition is {\tt NO\_SLIP\_WALL}, and the other three walls are {\tt INTERIOR}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[tb]
 \centering
@@ -186,6 +199,126 @@ boundary condition types are {\tt INTERIOR}.
 resolution than the base grid.}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{itemize}
+\cleardoublepage
+
+\subsection{Implementation}
+Typically, we read in integer values from the inputs file for {\tt bc\_x\_lo}, 
+{\tt bc\_x\_hi}, {\tt bc\_y\_lo}, etc., that correspond to the physical boundary condition types.
+We then build a {\tt bc\_tower} object which is an array of {\tt bc\_level} objects, one for
+each level of refinement.  The {\tt bc\_level} contains several integer array data structures,
+as can be seen in {\tt BoxLib/Src/F\_BaseLib/define\_bc\_tower.f90}:
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
+type bc_level
+
+   ! 1st index is the grid number (grid "0" corresponds to the prob domain)
+   ! 2nd index is the direction (1=x, 2=y, 3=z)
+   ! 3rd index is the side (1=lo, 2=hi)
+   ! 4th index is the variable (only assuming 1 variable here)
+   integer, pointer :: phys_bc_level_array(:,:,:) => Null()
+   integer, pointer ::  adv_bc_level_array(:,:,:,:) => Null()
+   integer, pointer ::  ell_bc_level_array(:,:,:,:) => Null()
+
+end type bc_level
+\end{lstlisting}
+Each level has a {\tt phys\_bc\_level\_array(0:ngrids,dim,2)} array, where {\tt ngrids} is the number of
+grids on that level, {\tt dim} is the dimensionality of the simulation, and the third index refers to
+the lower or upper edge of the grid in that coordinate direction.  This stores the {\it physical description}
+of the boundary type ({\tt INLET}, {\tt OUTLET}, etc.), which is independen of the variables that live on
+the grid.  The {\tt phys\_bc\_level\_array(0,:,:)} refers to the entire domain.  If an edge of a grid is not
+a physical boundary, then it is set to a default value, typically {\tt INTERIOR}.  These boundary condition
+types are used to interpret the actual method to fill the ghost cells for each variable, as described
+in {\tt adv\_bc\_level\_array} and {\tt ell\_bc\_level\_array}.
+
+Whereas {\tt phys\_bc\_level\_array} provides a physical description of the type of boundary, the array
+{\tt adv\_bc\_level\_array} describes the action taken (e.g. reflect, extrapolate, etc.) for each 
+variable when filling physical ghost cells on domain boundaries.  The prefix ``{\tt adv\_}'' is somewhat
+of a misnomer, as this data structure was originally intended to tell advection (or hyperbolic) solvers
+how to fill ghost cells, but now are generally used to fill physical domain boundary ghost cells in any
+instance where the user needs to set them.
+The form of this array is {\tt adv\_bc\_level\_array(0:ngrids,dim,2,nvar)}
+where the additional component, nvar, allows for different state variable that lives on a grid to have 
+different boundary condition actions associated with it.  For example, you could have {\tt nvar=1}
+correspond to the x-velocity, {\tt nvar=2} correspond to density, and {\tt nvar=3} correspond to pressure.
+In the {\tt BoxLib/Tutorials/HeatEquation\_EX2\_F/} tutorial, there is only one variable, $\phi$, so
+obviously {\tt nvar=1} shall correspond to $\phi$.  When we build the {\tt adv\_bc\_level\_array},
+we first set all values to {\tt INTERIOR}, and then overwrite any physical domain boundary condition types,
+as given in {\tt phys\_bc\_level\_array}.  The {\tt adv\_bc\_level\_array} types supported by default are:
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
+integer, parameter, public :: INTERIOR     =  0
+
+integer, parameter, public :: REFLECT_ODD  =  20
+integer, parameter, public :: REFLECT_EVEN =  21
+integer, parameter, public :: FOEXTRAP     =  22
+integer, parameter, public :: EXT_DIR      =  23
+integer, parameter, public :: HOEXTRAP     =  24
+\end{lstlisting}
+
+To manually fill ghost cells, we call {\tt multifab\_physbc}, passing in the state multifab
+along with the {\tt adv\_bc\_level\_array}.  The subroutines {\tt physbc\_1d/2d/3d} in
+{\tt multifab\_physbc.f90}, indicate how to fill ghost cells.  For example,
+\begin{lstlisting}[backgroundcolor=\color{light-green}]
+subroutine multifab_physbc(s,start_scomp,start_bccomp,ncomp,the_bc_level)
+
+  integer        , intent(in   ) :: start_scomp,start_bccomp,ncomp
+  type(multifab) , intent(inout) :: s
+  type(bc_level) , intent(in   ) :: the_bc_level
+
+  ! Local
+  integer                  :: lo(get_dim(s)), hi(get_dim(s))
+  integer                  :: i,ng,dm
+  integer                  :: scomp,bccomp
+  real(kind=dp_t), pointer :: sp(:,:,:,:)
+    
+  ng = nghost(s)
+  dm = get_dim(s)
+    
+  do i=1,nboxes(s)
+     if ( multifab_remote(s,i) ) cycle
+     sp => dataptr(s,i)
+     lo = lwb(get_box(s,i))
+     hi = upb(get_box(s,i))
+     select case (dm)
+     case (2)
+        do scomp=start_scomp,start_scomp+ncomp-1
+           bccomp = start_bccomp + scomp - start_scomp
+           call physbc_2d(sp(:,:,1,scomp), lo, hi, ng, &
+                          the_bc_level%adv_bc_level_array(i,:,:,bccomp))
+        end do
+...
+
+subroutine physbc_2d(s,lo,hi,ng,bc)
+
+  use bl_constants_module
+  use bc_module
+
+  integer        , intent(in   ) :: lo(:),hi(:),ng
+  real(kind=dp_t), intent(inout) :: s(lo(1)-ng:,lo(2)-ng:)
+  integer        , intent(in   ) :: bc(:,:)
+
+  ! Local variables
+  integer :: i,j
+
+  !!!!!!!!!!!!!
+  ! LO-X SIDE
+  !!!!!!!!!!!!!
+
+  if (bc(1,1) .eq. EXT_DIR) then
+     ! set all ghost cell values to a prescribed dirichlet
+     ! value; in this example, we have chosen 1
+     do j = lo(2)-ng, hi(2)+ng
+        s(lo(1)-ng:lo(1)-1,j) = 1.d0
+     end do
+  else if (bc(1,1) .eq. FOEXTRAP) then
+     ! set all ghost cell values to first interior value
+     do j = lo(2)-ng, hi(2)+ng
+        s(lo(1)-ng:lo(1)-1,j) = s(lo(1),j)
+     end do
+...
+\end{lstlisting}
+
+{\tt ell\_bc\_level\_array} is the analog to {\tt adv\_bc\_level\_array} for the linear solvers in
+\BoxLib.  These will be described in Section \ref{Sec:Linear Solvers}.
 
 \section{Multiple Levels of Refinement}\label{Sec:Refinement}
 \section{Adaptive Mesh Refinement}\label{Sec:AMR}
