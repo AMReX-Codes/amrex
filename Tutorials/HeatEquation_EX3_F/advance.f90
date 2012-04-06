@@ -5,6 +5,8 @@ module advance_module
   use define_bc_module
   use bc_module
   use multifab_physbc_module
+  use multifab_fill_ghost_module
+!  use ml_restriction_module
 
   implicit none
 
@@ -106,8 +108,11 @@ contains
        end do
     end do
 
-    ! EDGE RESTRICTION ON FLUXES
-
+!    do n=nlevs,2,-1
+!       do i=1,dm
+!          call ml_edge_restriction_c(flux(n-1,i),1,flux(n,i),1,mla%mba%rr(n-1,:),i,1)
+!       end do
+!    end do
 
   end subroutine compute_flux
 
@@ -379,28 +384,26 @@ contains
     ng_f = flux(1,1)%ng
 
     do n=1,nlevs
-    do i=1,nboxes(phi(n))
-       if ( multifab_remote(phi(n),i) ) cycle
-       pp  => dataptr(phi(n),i)
-       fxp => dataptr(flux(n,1),i)
-       fyp => dataptr(flux(n,2),i)
-       lo = lwb(get_box(phi(n),i))
-       hi = upb(get_box(phi(n),i))
-       select case(dm)
-       case (2)
-          call update_phi_2d(pp(:,:,1,1), ng_p, &
-                             fxp(:,:,1,1),  fyp(:,:,1,1), ng_f, &
-                             lo, hi, dx(n), dt)
-       case (3)
-          fzp => dataptr(flux(n,3),i)
-          call update_phi_3d(pp(:,:,:,1), ng_p, &
-                             fxp(:,:,:,1),  fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
-                             lo, hi, dx(n), dt)
-       end select
-    end do
-    end do
-    
-    do n=1,nlevs
+
+       do i=1,nboxes(phi(n))
+          if ( multifab_remote(phi(n),i) ) cycle
+          pp  => dataptr(phi(n),i)
+          fxp => dataptr(flux(n,1),i)
+          fyp => dataptr(flux(n,2),i)
+          lo = lwb(get_box(phi(n),i))
+          hi = upb(get_box(phi(n),i))
+          select case(dm)
+          case (2)
+             call update_phi_2d(pp(:,:,1,1), ng_p, &
+                                fxp(:,:,1,1), fyp(:,:,1,1), ng_f, &
+                                lo, hi, dx(n), dt)
+          case (3)
+             fzp => dataptr(flux(n,3),i)
+             call update_phi_3d(pp(:,:,:,1), ng_p, &
+                                fxp(:,:,:,1), fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
+                                lo, hi, dx(n), dt)
+          end select
+       end do
 
        ! fill ghost cells
        ! this only fills periodic ghost cells and ghost cells for neighboring
@@ -414,6 +417,16 @@ contains
 
     end do
     
+!    do n=nlevs,2,-1
+!       call ml_cc_restriction(phi(n-1),phi(n),mla%mba%rr(n-1,:))
+!    end do
+
+    do n=2,nlevs
+       call multifab_fill_ghost_cells(phi(n),phi(n-1),ng_p,mla%mba%rr(n-1,:), &
+                                      the_bc_tower%bc_tower_array(n-1), &
+                                      the_bc_tower%bc_tower_array(n), &
+                                      1,1,1)
+    end do
 
   end subroutine update_phi
 
