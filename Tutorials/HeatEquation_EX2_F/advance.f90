@@ -120,10 +120,26 @@ contains
     if (adv_bc(1,1) .eq. EXT_DIR) then
        i=lo(1)
        do j=lo(2),hi(2)
+          ! divide by 0.5*dx since the ghost cell value represents
+          ! the value at the wall, not the ghost cell-center
           fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
        end do
     else if (adv_bc(1,1) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
        fluxx(lo(1),lo(2):hi(2)) = 0.d0
+    end if
+
+    ! hi-x boundary conditions
+    if (adv_bc(1,2) .eq. EXT_DIR) then
+       i=hi(1)+1
+       do j=lo(2),hi(2)
+          ! divide by 0.5*dx since the ghost cell value represents
+          ! the value at the wall, not the ghost cell-center
+          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
+       end do
+    else if (adv_bc(1,2) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxx(hi(1)+1,lo(2):hi(2)) = 0.d0
     end if
 
     !$omp parallel do private(i,j)
@@ -134,14 +150,30 @@ contains
     end do
     !$omp end parallel do
 
-    ! hi-x boundary conditions
-    if (adv_bc(1,2) .eq. EXT_DIR) then
-       i=hi(1)+1
-       do j=lo(2),hi(2)
-          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
+    ! lo-y boundary conditions
+    if (adv_bc(2,1) .eq. EXT_DIR) then
+       j=lo(2)
+       do i=lo(1),hi(1)
+          ! divide by 0.5*dx since the ghost cell value represents
+          ! the value at the wall, not the ghost cell-center
+          fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / (0.5d0*dx)
        end do
-    else if (adv_bc(1,2) .eq. FOEXTRAP) then
-       fluxx(hi(1)+1,lo(2):hi(2)) = 0.d0
+    else if (adv_bc(2,1) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxy(lo(1):hi(1),lo(2)) = 0.d0
+    end if
+
+    ! hi-y boundary conditions
+    if (adv_bc(2,2) .eq. EXT_DIR) then
+       j=hi(2)+1
+       do i=lo(1),hi(1)
+          ! divide by 0.5*dx since the ghost cell value represents
+          ! the value at the wall, not the ghost cell-center
+          fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / (0.5d0*dx)
+       end do
+    else if (adv_bc(2,2) .eq. FOEXTRAP) then
+       ! dphi/dn = 0
+       fluxy(lo(1):hi(1),hi(2)+1) = 0.d0
     end if
     
   end subroutine compute_flux_2d
@@ -238,6 +270,7 @@ contains
     ! call is sufficient.
     call multifab_fill_boundary(phi)
 
+    ! physical domain boundary ghost cells
     call multifab_physbc(phi,1,1,1,the_bc_tower%bc_tower_array(1))
 
   end subroutine update_phi
