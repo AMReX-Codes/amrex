@@ -73,6 +73,12 @@ struct ParticleBase
     //
     static void NextID (int nextid);
     //
+    // Used by AssignDensity.  We want to know whether or not updating
+    // with a particle at "cell", whose valid box is "vbx", will we cross a
+    // fine->crse boundary of the level with BoxArray "ba".
+    //
+    static bool FineToCrse(const IntVect& cell, const Box& vbx, const BoxArray& ba);
+    //
     // Used for partitioning particles into valid & invalid groups.
     //
     class Invalid
@@ -1456,6 +1462,7 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
     const Geometry& gm   = m_amr->Geom(lev);
     const PMap&     pmap = m_particles[lev];
     const int       n    = pmap.size();
+    const BoxArray& ba   = mf.boxArray();
 
     if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
         BoxLib::Error("AssignDensityDoit: problem must be periodic in no or all directions");
@@ -1487,6 +1494,7 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
 #endif
     for (int i = 0; i < n; i++)
     {
+        const Box&  vbx  = mf.boxArray()[n];
         const PBox& pbox = *pbxs[i];
         FArrayBox&  fab  = mf[pgrd[i]];
 
@@ -1524,6 +1532,8 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
             if (!gm.isAllPeriodic())
                 if (!gm.Domain().contains(cell))
                     BoxLib::Error("AssignDensityDoit: if not periodic, all particles must stay away from the domain boundary");
+
+            bool finetocrse = ParticleBase::FineToCrse(cell,vbx,ba);
 
 #if (BL_SPACEDIM == 1)
             // High
