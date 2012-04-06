@@ -183,6 +183,7 @@ program main
   ! make sure to destroy the multifab or you'll leak memory
   call destroy(phi)
   call destroy(la)
+  call bc_tower_destroy(the_bc_tower)
 
   deallocate(lo,hi,is_periodic,prob_lo,prob_hi)
 
