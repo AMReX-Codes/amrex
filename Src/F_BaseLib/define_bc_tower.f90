@@ -11,8 +11,14 @@ module define_bc_module
      integer   :: dim    = 0
      integer   :: ngrids = 0
      type(box) :: domain 
+
+     ! 1st index is the grid number (grid "0" corresponds to the entire problem domain)
+     ! 2nd index is the direction (1=x, 2=y, 3=z)
+     ! 3rd index is the side (1=lo, 2=hi)
+     ! 4th index is the variable (only assuming 1 variable here)
      integer, pointer :: phys_bc_level_array(:,:,:) => Null()
      integer, pointer ::  adv_bc_level_array(:,:,:,:) => Null()
+     integer, pointer ::  ell_bc_level_array(:,:,:,:) => Null()
 
   end type bc_level
 
@@ -21,7 +27,12 @@ module define_bc_module
      integer :: dim     = 0
      integer :: nlevels = 0
      integer :: max_level_built = 0
+
+     ! an array of bc_levels, one for each level of refinement
      type(bc_level), pointer :: bc_tower_array(:) => Null()
+
+     ! 1st index is the direction (1=x, 2=y, 3=z)
+     ! 2nd index is the side (1=lo, 2=hi)
      integer       , pointer :: domain_bc(:,:) => Null()
 
   end type bc_tower
@@ -31,6 +42,8 @@ module define_bc_module
   public :: bc_level, bc_tower, bc_tower_init, bc_tower_level_build, bc_tower_destroy
 
   contains
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine bc_tower_init(bct,num_levs,dm,phys_bc_in)
 
@@ -56,6 +69,8 @@ module define_bc_module
 
   end subroutine bc_tower_init
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine bc_tower_level_build(bct,n,la)
 
     type(bc_tower ), intent(inout) :: bct
@@ -63,11 +78,14 @@ module define_bc_module
     type(layout)   , intent(in   ) :: la
 
     integer :: ngrids
-    integer :: default_value
+    integer :: ncomp
+
+    ncomp = 1
 
     if (bct%bc_tower_array(n)%ngrids > 0) then
       deallocate(bct%bc_tower_array(n)%phys_bc_level_array)
       deallocate(bct%bc_tower_array(n)%adv_bc_level_array)
+      deallocate(bct%bc_tower_array(n)%ell_bc_level_array)
     end if
 
     ngrids = layout_nboxes(la)
@@ -76,19 +94,166 @@ module define_bc_module
     bct%bc_tower_array(n)%domain = layout_get_pd(la)
 
     allocate(bct%bc_tower_array(n)%phys_bc_level_array(0:ngrids,bct%dim,2))
-    default_value = INTERIOR
     call phys_bc_level_build(bct%bc_tower_array(n)%phys_bc_level_array,la, &
-                             bct%domain_bc,default_value)
+                             bct%domain_bc)
 
-    ! Here we allocate 1 component and set the default to be interior
-    allocate(bct%bc_tower_array(n)%adv_bc_level_array(0:ngrids,bct%dim,2,1))
-    default_value = INTERIOR
+    ! Here we allocate 1 component and set the default to be INTERIOR
+    allocate(bct%bc_tower_array(n)%adv_bc_level_array(0:ngrids,bct%dim,2,ncomp))
     call adv_bc_level_build(bct%bc_tower_array(n)%adv_bc_level_array, &
-                            bct%bc_tower_array(n)%phys_bc_level_array,default_value)
+                            bct%bc_tower_array(n)%phys_bc_level_array)
+
+    ! Here we allocate 1 component and set the default to be BC_INT
+    allocate(bct%bc_tower_array(n)%ell_bc_level_array(0:ngrids,bct%dim,2,ncomp))
+    call ell_bc_level_build(bct%bc_tower_array(n)%ell_bc_level_array, &
+                            bct%bc_tower_array(n)%phys_bc_level_array)
 
      bct%max_level_built = n
 
   end subroutine bc_tower_level_build
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine phys_bc_level_build(phys_bc_level,la_level,domain_bc)
+
+    implicit none
+
+    integer     , intent(inout) :: phys_bc_level(0:,:,:)
+    integer     , intent(in   ) :: domain_bc(:,:)
+    type(layout), intent(in   ) :: la_level
+
+    ! local
+    type(box) :: bx,pd
+    integer :: d,i
+
+    pd = layout_get_pd(la_level) 
+
+    ! set to interior everywhere, then overwrite with physical bc's where appropriate
+    phys_bc_level = INTERIOR
+
+    ! grid 0 corresponds to the problem domain
+    do d = 1,layout_dim(la_level)
+       phys_bc_level(0,d,1) = domain_bc(d,1)
+       phys_bc_level(0,d,2) = domain_bc(d,2)
+    end do
+
+    ! loop over individual grids
+    do i = 1,layout_nboxes(la_level)    ! loop over grids
+       bx = layout_get_box(la_level,i)  ! grab box associated with the grid
+       do d = 1,layout_dim(la_level)    ! loop over directions
+          ! if one side of a grid is a domain boundary, set the 
+          ! physical boundary condition
+          if (lwb(bx,d) == lwb(pd,d)) phys_bc_level(i,d,1) = domain_bc(d,1)
+          if (upb(bx,d) == upb(pd,d)) phys_bc_level(i,d,2) = domain_bc(d,2)
+       end do
+    end do
+
+  end subroutine phys_bc_level_build
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine adv_bc_level_build(adv_bc_level,phys_bc_level)
+
+    implicit none
+
+    integer  , intent(inout) ::  adv_bc_level(0:,:,:,:)
+    integer  , intent(in   ) :: phys_bc_level(0:,:,:)
+
+    integer :: dm
+    integer :: igrid,d,lohi
+
+    adv_bc_level = INTERIOR
+
+    dm = size(adv_bc_level,dim=2)
+
+    ! if the physical boundary conditions is something other than
+    ! INTERIOR or PERIODIC, then overwrite the default value
+    do igrid=0,size(adv_bc_level,dim=1)-1   ! loop over grids
+    do d=1,dm                               ! loop over directions
+    do lohi=1,2                             ! loop over lo/hi side
+
+       if (phys_bc_level(igrid,d,lohi) == INLET) then
+
+          adv_bc_level(igrid,d,lohi,1) = EXT_DIR
+
+       else if (phys_bc_level(igrid,d,lohi) == OUTLET) then
+
+          adv_bc_level(igrid,d,lohi,1) = FOEXTRAP
+
+       else if (phys_bc_level(igrid,d,lohi) == SYMMETRY) then
+
+          adv_bc_level(igrid,d,lohi,1) = REFLECT_EVEN
+
+       else if (phys_bc_level(igrid,d,lohi) == SLIP_WALL) then
+
+          adv_bc_level(igrid,d,lohi,1) = FOEXTRAP
+
+       else if (phys_bc_level(igrid,d,lohi) == NO_SLIP_WALL) then
+
+          adv_bc_level(igrid,d,lohi,1) = FOEXTRAP
+
+       end if
+
+    end do
+    end do
+    end do
+
+  end subroutine adv_bc_level_build
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine ell_bc_level_build(ell_bc_level,phys_bc_level)
+
+    implicit none
+
+    integer  , intent(inout) ::  ell_bc_level(0:,:,:,:)
+    integer  , intent(in   ) :: phys_bc_level(0:,:,:)
+
+    integer :: dm
+    integer :: igrid,d,lohi
+
+    ell_bc_level = BC_INT
+ 
+    dm = size(ell_bc_level,dim=2)
+
+    ! if the physical boundary conditions is something other than
+    ! INTERIOR, then overwrite the default value
+    do igrid=0,size(ell_bc_level,dim=1)-1   ! loop over grids
+    do d=1,dm                               ! loop over directions
+    do lohi=1,2                             ! loop over lo/hi side
+
+       if (phys_bc_level(igrid,d,lohi) == INLET) then
+
+          ell_bc_level(igrid,d,lohi,1) = BC_DIR
+
+       else if (phys_bc_level(igrid,d,lohi) == OUTLET) then
+
+          ell_bc_level(igrid,d,lohi,1) = BC_NEU
+
+       else if (phys_bc_level(igrid,d,lohi) == SYMMETRY) then
+
+          ell_bc_level(igrid,d,lohi,1) = BC_NEU
+
+       else if (phys_bc_level(igrid,d,lohi) == SLIP_WALL) then
+
+          ell_bc_level(igrid,d,lohi,1) = BC_NEU
+
+       else if (phys_bc_level(igrid,d,lohi) == NO_SLIP_WALL) then
+
+          ell_bc_level(igrid,d,lohi,1) = BC_NEU
+
+       else if (phys_bc_level(igrid,d,lohi) == PERIODIC) then
+
+          ell_bc_level(igrid,d,lohi,1) = BC_PER
+
+       end if
+
+    end do
+    end do
+    end do
+
+  end subroutine ell_bc_level_build
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine bc_tower_destroy(bct)
 
@@ -101,6 +266,7 @@ module define_bc_module
     do n = 1,bct%max_level_built
        deallocate(bct%bc_tower_array(n)%phys_bc_level_array)
        deallocate(bct%bc_tower_array(n)%adv_bc_level_array)
+       deallocate(bct%bc_tower_array(n)%ell_bc_level_array)
     end do
     deallocate(bct%bc_tower_array)
 
@@ -108,70 +274,6 @@ module define_bc_module
 
   end subroutine bc_tower_destroy
 
-  subroutine phys_bc_level_build(phys_bc_level,la_level,domain_bc,default_value)
-
-    implicit none
-
-    integer     , intent(inout) :: phys_bc_level(0:,:,:)
-    integer     , intent(in   ) :: domain_bc(:,:)
-    type(layout), intent(in   ) :: la_level
-    integer     , intent(in   ) :: default_value
-    type(box) :: bx,pd
-    integer :: d,i
-
-    pd = layout_get_pd(la_level) 
-
-    phys_bc_level = default_value
-
-    i = 0
-    do d = 1,layout_dim(la_level)
-       phys_bc_level(i,d,1) = domain_bc(d,1)
-       phys_bc_level(i,d,2) = domain_bc(d,2)
-    end do
-
-    do i = 1,layout_nboxes(la_level)
-       bx = layout_get_box(la_level,i)
-       do d = 1,layout_dim(la_level)
-          if (lwb(bx,d) == lwb(pd,d)) phys_bc_level(i,d,1) = domain_bc(d,1)
-          if (upb(bx,d) == upb(pd,d)) phys_bc_level(i,d,2) = domain_bc(d,2)
-       end do
-    end do
-
-  end subroutine phys_bc_level_build
-
-  subroutine adv_bc_level_build(adv_bc_level,phys_bc_level,default_value)
-
-    implicit none
-
-    integer  , intent(inout) ::  adv_bc_level(0:,:,:,:)
-    integer  , intent(in   ) :: phys_bc_level(0:,:,:)
-    integer  , intent(in   ) :: default_value
-
-    integer :: dm
-    integer :: igrid,d,lohi
-
-    adv_bc_level = default_value
-
-    dm = size(adv_bc_level,dim=2)
-
-    do igrid = 0, size(adv_bc_level,dim=1)-1
-    do d = 1, dm
-    do lohi = 1, 2
-
-       if (phys_bc_level(igrid,d,lohi) == OUTLET) then
-
-          adv_bc_level(igrid,d,lohi,1) = FOEXTRAP
-
-       else if (phys_bc_level(igrid,d,lohi) == SYMMETRY) then
-
-          adv_bc_level(igrid,d,lohi,1) = REFLECT_EVEN
-
-       end if
-
-    end do
-    end do
-    end do
-
-  end subroutine adv_bc_level_build
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 end module define_bc_module

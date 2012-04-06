@@ -56,8 +56,14 @@ contains
     hi(1) = lo(1) + size(s,dim=1) - (2*ng+1)
     hi(2) = lo(2) + size(s,dim=2) - (2*ng+1)
 
+    !!!!!!!!!!!!!
+    ! LO-X SIDE
+    !!!!!!!!!!!!!
+
     if (bc(1,1) .eq. EXT_DIR) then
-       call bl_error('BC(1,1) = EXT_DIR NOT YET SUPPORTED')
+       do j = lo(2)-ng, hi(2)+ng
+          s(lo(1)-ng:lo(1)-1,j) = 0.d0
+       end do
     else if (bc(1,1) .eq. FOEXTRAP) then
        do j = lo(2)-ng, hi(2)+ng
           s(lo(1)-ng:lo(1)-1,j) = s(lo(1),j)
@@ -65,7 +71,7 @@ contains
     else if (bc(1,1) .eq. HOEXTRAP) then
        do j = lo(2)-ng, hi(2)+ng
           s(lo(1)-ng:lo(1)-1,j) = EIGHTH* &
-               (15.0_dp_t*s(lo(1),j) - 10.0_dp_t*s(lo(1)+1,j) + 3.0_dp_t*s(lo(1)+2,j))
+               (15.d0*s(lo(1),j) - 10.d0*s(lo(1)+1,j) + 3.d0*s(lo(1)+2,j))
        end do
     else if (bc(1,1) .eq. REFLECT_EVEN) then
        do j = lo(2)-ng, hi(2)+ng
@@ -86,8 +92,14 @@ contains
        call bl_error('BC(1,1) = NOT YET SUPPORTED')
     end if
 
+    !!!!!!!!!!!!!
+    ! HI-X SIDE
+    !!!!!!!!!!!!!
+
     if (bc(1,2) .eq. EXT_DIR) then
-       call bl_error('BC(1,1) = EXT_DIR NOT YET SUPPORTED')
+       do j = lo(2)-ng, hi(2)+ng
+          s(hi(1)+1:hi(1)+ng,j) = 0.d0
+       end do
     else if (bc(1,2) .eq. FOEXTRAP) then
        do j = lo(2)-ng, hi(2)+ng
           s(hi(1)+1:hi(1)+ng,j) = s(hi(1),j)
@@ -95,7 +107,7 @@ contains
     else if (bc(1,2) .eq. HOEXTRAP) then
        do j = lo(2)-ng, hi(2)+ng
           s(hi(1)+1:hi(1)+ng,j) = EIGHTH* &
-               (15.0_dp_t * s(hi(1)  ,j) - 10.0_dp_t*s(hi(1)-1,j) + 3.0_dp_t*s(hi(1)-2,j))
+               (15.d0*s(hi(1),j) - 10.d0*s(hi(1)-1,j) + 3.d0*s(hi(1)-2,j))
        end do
     else if (bc(1,2) .eq. REFLECT_EVEN) then
        do j = lo(2)-ng, hi(2)+ng
@@ -116,8 +128,14 @@ contains
        call bl_error('BC(1,2) = NOT YET SUPPORTED')
     end if
 
+    !!!!!!!!!!!!!
+    ! LO-Y SIDE
+    !!!!!!!!!!!!!
+
     if (bc(2,1) .eq. EXT_DIR) then
-       call bl_error('BC(1,1) = EXT_DIR NOT YET SUPPORTED')
+       do i = lo(1)-ng, hi(1)+ng
+          s(i,lo(2)-ng:lo(2)-1) = 0.d0
+       end do
     else if (bc(2,1) .eq. FOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
           s(i,lo(2)-ng:lo(2)-1) = s(i,lo(2))
@@ -125,7 +143,7 @@ contains
     else if (bc(2,1) .eq. HOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
           s(i,lo(2)-ng:lo(2)-1) = EIGHTH* &
-               (15.0_dp_t*s(i,lo(2)) - 10.0_dp_t*s(i,lo(2)+1) + 3.0_dp_t*s(i,lo(2)+2))
+               (15.d0*s(i,lo(2)) - 10.d0*s(i,lo(2)+1) + 3.d0*s(i,lo(2)+2))
        end do
     else if (bc(2,1) .eq. REFLECT_EVEN) then
        do i = lo(1)-ng, hi(1)+ng
@@ -146,8 +164,14 @@ contains
        call bl_error('BC(2,1) = NOT YET SUPPORTED')
     end if
 
+    !!!!!!!!!!!!!
+    ! HI-Y SIDE
+    !!!!!!!!!!!!!
+
     if (bc(2,2) .eq. EXT_DIR) then
-       call bl_error('BC(1,1) = EXT_DIR NOT YET SUPPORTED')
+       do i = lo(1)-ng, hi(1)+ng
+          s(i,hi(2)+1:hi(2)+ng) = 0.d0
+       end do
     else if (bc(2,2) .eq. FOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
           s(i,hi(2)+1:hi(2)+ng) = s(i,hi(2))
@@ -155,7 +179,7 @@ contains
     else if (bc(2,2) .eq. HOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
           s(i,hi(2)+1:hi(2)+ng) = EIGHTH* &
-               (15.0_dp_t*s(i,hi(2)) - 10.0_dp_t*s(i,hi(2)-1) + 3.0_dp_t*s(i,hi(2)-2))
+               (15.d0*s(i,hi(2)) - 10.d0*s(i,hi(2)-1) + 3.d0*s(i,hi(2)-2))
        end do
     else if (bc(2,2) .eq. REFLECT_EVEN) then
        do i = lo(1)-ng, hi(1)+ng
@@ -194,8 +218,62 @@ contains
     hi(2) = lo(2) + size(s,dim=2) - (2*ng+1)
     hi(3) = lo(3) + size(s,dim=3) - (2*ng+1)
 
-    if (bc(1,1) .eq. EXT_DIR) then
+    !!!!!!!!!!!!!
+    ! LO-X SIDE
+    !!!!!!!!!!!!!
 
+    if (bc(1,1) .eq. EXT_DIR) then
+       do k = lo(3)-ng,hi(3)+ng
+          do j = lo(2)-ng,hi(2)+ng
+             s(lo(1)-ng:lo(1)-1,j,k) = 0.d0
+          end do
+       end do
+    else if (bc(1,1) .eq. FOEXTRAP) then
+       do k = lo(3)-ng,hi(3)+ng
+          do j = lo(2)-ng,hi(2)+ng
+             s(lo(1)-ng:lo(1)-1,j,k) = s(lo(1),j,k)
+          end do
+       end do
+    else if (bc(1,1) .eq. HOEXTRAP) then
+       do k = lo(3)-ng,hi(3)+ng
+          do j = lo(2)-ng,hi(2)+ng
+             s(lo(1)-ng:lo(1)-1,j,k) = EIGHTH* &
+                  (15.d0*s(lo(1),j,k) - 10.d0*s(lo(1)+1,j,k) + 3.d0*s(lo(1)+2,j,k))
+          end do
+       end do
+    else if (bc(1,1) .eq. REFLECT_EVEN) then
+       do k = lo(3)-ng,hi(3)+ng
+          do j = lo(2)-ng,hi(2)+ng
+             do i = 1,ng
+                s(lo(1)-i,j,k) = s(lo(1)+i-1,j,k)
+             end do
+          end do
+       end do
+    else if (bc(1,1) .eq. REFLECT_ODD) then
+       do k = lo(3)-ng,hi(3)+ng
+          do j = lo(2)-ng,hi(2)+ng
+             do i = 1,ng
+                s(lo(1)-i,j,k) = -s(lo(1)+i-1,j,k)
+             end do
+          end do
+       end do
+    else if (bc(1,1) .eq. INTERIOR) then
+       ! do nothing
+    else 
+       print *,'bc(1,1) = ',bc(1,1)
+       call bl_error('BC(1,1) = NOT YET SUPPORTED')
+    end if
+
+    !!!!!!!!!!!!!
+    ! HI-X SIDE
+    !!!!!!!!!!!!!
+
+    if (bc(1,2) .eq. EXT_DIR) then
+       do k = lo(3)-ng,hi(3)+ng
+          do j = lo(2)-ng,hi(2)+ng
+             s(hi(1)+1:hi(1)+ng,j,k) = 0.d0
+          end do
+       end do
     else if (bc(1,2) .eq. FOEXTRAP) then
        do k = lo(3)-ng,hi(3)+ng
           do j = lo(2)-ng,hi(2)+ng
@@ -205,10 +283,8 @@ contains
     else if (bc(1,2) .eq. HOEXTRAP) then
        do k = lo(3)-ng,hi(3)+ng
           do j = lo(2)-ng,hi(2)+ng
-             s(hi(1)+1:hi(1)+ng,j,k) = &
-                  ( 15.0_dp_t * s(hi(1)  ,j,k) &
-                  -10.0_dp_t * s(hi(1)-1,j,k) &
-                  + 3.0_dp_t * s(hi(1)-2,j,k) ) * EIGHTH
+             s(hi(1)+1:hi(1)+ng,j,k) = EIGHTH* &
+                  (15.d0*s(hi(1),j,k) - 10.d0*s(hi(1)-1,j,k) + 3.d0*s(hi(1)-2,j,k))
           end do
        end do
     else if (bc(1,2) .eq. REFLECT_EVEN) then
@@ -234,8 +310,16 @@ contains
        call bl_error('BC(1,2) = NOT YET SUPPORTED')
     end if
 
-    if (bc(2,1) .eq. EXT_DIR) then
+    !!!!!!!!!!!!!
+    ! LO-Y SIDE
+    !!!!!!!!!!!!!
 
+    if (bc(2,1) .eq. EXT_DIR) then
+       do k = lo(3)-ng,hi(3)+ng
+          do i = lo(1)-ng,hi(1)+ng
+             s(i,lo(2)-ng:lo(2)-1,k) = 0.d0
+          end do
+       end do
     else if (bc(2,1) .eq. FOEXTRAP .or. bc(2,1) .eq. REFLECT_EVEN) then
        do k = lo(3)-ng,hi(3)+ng
           do i = lo(1)-ng,hi(1)+ng
@@ -245,10 +329,8 @@ contains
     else if (bc(2,1) .eq. HOEXTRAP) then
        do k = lo(3)-ng,hi(3)+ng
           do i = lo(1)-ng,hi(1)+ng
-             s(i,lo(2)-ng:lo(2)-1,k) = &
-                  ( 15.0_dp_t * s(i,lo(2)  ,k) &
-                  -10.0_dp_t * s(i,lo(2)+1,k) &
-                  + 3.0_dp_t * s(i,lo(2)+2,k) ) * EIGHTH
+             s(i,lo(2)-ng:lo(2)-1,k) = EIGHTH* &
+                  (15.d0*s(i,lo(2),k) - 10.d0*s(i,lo(2)+1,k) + 3.d0*s(i,lo(2)+2,k))
           end do
        end do
     else if (bc(2,1) .eq. REFLECT_EVEN) then
@@ -274,7 +356,16 @@ contains
        call bl_error('BC(2,1) = NOT YET SUPPORTED')
     end if
 
+    !!!!!!!!!!!!!
+    ! HI-Y SIDE
+    !!!!!!!!!!!!!
+
     if (bc(2,2) .eq. EXT_DIR) then
+       do k = lo(3)-ng,hi(3)+ng
+          do i = lo(1)-ng,hi(1)+ng
+             s(i,hi(2)+1:hi(2)+ng,k) = 0.d0
+          end do
+       end do
     else if (bc(2,2) .eq. FOEXTRAP .or. bc(2,2) .eq. REFLECT_EVEN) then
        do k = lo(3)-ng,hi(3)+ng
           do i = lo(1)-ng,hi(1)+ng
@@ -284,10 +375,8 @@ contains
     else if (bc(2,2) .eq. HOEXTRAP) then
        do k = lo(3)-ng,hi(3)+ng
           do i = lo(1)-ng,hi(1)+ng
-             s(i,hi(2)+1:hi(2)+ng,k) = &
-                  ( 15.0_dp_t * s(i,hi(2)  ,k) &
-                  -10.0_dp_t * s(i,hi(2)-1,k) &
-                  + 3.0_dp_t * s(i,hi(2)-2,k) ) * EIGHTH
+             s(i,hi(2)+1:hi(2)+ng,k) = EIGHTH* &
+                  (15.d0*s(i,hi(2),k) - 10.d0*s(i,hi(2)-1,k) + 3.d0*s(i,hi(2)-2,k))
           end do
        end do
     else if (bc(2,2) .eq. REFLECT_EVEN) then
@@ -313,7 +402,16 @@ contains
        call bl_error('BC(2,2) = NOT YET SUPPORTED')
     end if
 
+    !!!!!!!!!!!!!
+    ! LO-Z SIDE
+    !!!!!!!!!!!!!
+
     if (bc(3,1) .eq. EXT_DIR) then
+       do j = lo(2)-ng,hi(2)+ng
+          do i = lo(1)-ng,hi(1)+ng
+             s(i,j,lo(3)-ng:lo(3)-1) = 0.d0
+          end do
+       end do
     else if (bc(3,1) .eq. FOEXTRAP .or. bc(3,1) .eq. REFLECT_EVEN) then
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
@@ -323,10 +421,8 @@ contains
     else if (bc(3,1) .eq. HOEXTRAP) then
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
-             s(i,j,lo(3)-ng:lo(3)-1) = &
-                  ( 15.0_dp_t * s(i,j,lo(3)  ) &
-                  -10.0_dp_t * s(i,j,lo(3)+1) &
-                  + 3.0_dp_t * s(i,j,lo(3)+2) ) * EIGHTH
+             s(i,j,lo(3)-ng:lo(3)-1) = EIGHTH* &
+                  (15.d0*s(i,j,lo(3)) - 10.d0*s(i,j,lo(3)+1) + 3.d0*s(i,j,lo(3)+2))
           end do
        end do
     else if (bc(3,1) .eq. REFLECT_EVEN) then
@@ -352,7 +448,16 @@ contains
        call bl_error('BC(3,1) = NOT YET SUPPORTED')
     end if
 
+    !!!!!!!!!!!!!
+    ! HI-Z SIDE
+    !!!!!!!!!!!!!
+
     if (bc(3,2) .eq. EXT_DIR) then
+       do j = lo(2)-ng,hi(2)+ng
+          do i = lo(1)-ng,hi(1)+ng
+             s(i,j,hi(3)+1:hi(3)+ng) = 0.d0
+          end do
+       end do
     else if (bc(3,2) .eq. FOEXTRAP .or. bc(3,2) .eq. REFLECT_EVEN) then
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
@@ -362,10 +467,8 @@ contains
     else if (bc(3,2) .eq. HOEXTRAP) then
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
-             s(i,j,hi(3)+1:hi(3)+ng) = &
-                  ( 15.0_dp_t * s(i,j,hi(3)  ) &
-                  -10.0_dp_t * s(i,j,hi(3)-1) &
-                  + 3.0_dp_t * s(i,j,hi(3)-2) ) * EIGHTH
+             s(i,j,hi(3)+1:hi(3)+ng) = EIGHTH* &
+                  (15.d0*s(i,j,hi(3)) - 10.d0*s(i,j,hi(3)-1) + 3.d0*s(i,j,hi(3)-2))
           end do
        end do
     else if (bc(3,2) .eq. REFLECT_EVEN) then
