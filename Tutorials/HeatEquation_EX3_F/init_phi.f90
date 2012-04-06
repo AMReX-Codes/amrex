@@ -5,7 +5,7 @@ module init_phi_module
   use define_bc_module
   use multifab_physbc_module
   use multifab_fill_ghost_module
-!  use ml_restriction_module
+  use ml_restriction_module
 
   implicit none
 
@@ -29,9 +29,7 @@ contains
 
     real(kind=dp_t), pointer :: dp(:,:,:,:)
 
-    ! set these here so we don't have to pass them into the subroutine
     ng = phi(1)%ng
-
     dm = mla%dim
     nlevs = mla%nlevel
 
@@ -50,22 +48,24 @@ contains
           end select
        end do
 
-       ! fill ghost cells
-       ! this only fills periodic ghost cells and ghost cells for neighboring
-       ! grids at the same level.  Physical boundary ghost cells are filled
-       ! using multifab_physbc.  But this problem is periodic, so this
-       ! call is sufficient.
+       ! fill ghost cells for two adjacent grids at the same level
+       ! this includes periodic domain boundary ghost cells
        call multifab_fill_boundary(phi(n))
-       
-       ! physical domain boundary ghost cells
+
+       ! fill non-periodic domain boundary ghost cells
        call multifab_physbc(phi(n),1,1,1,the_bc_tower%bc_tower_array(n))
        
     end do
 
-!    do n=nlevs,2,-1
-!       call ml_cc_restriction(phi(n-1),phi(n),mla%mba%rr(n-1,:))
-!    end do
+    ! set level n-1 data to be the average of the level n data covering it
+    ! the loop over nlevs must count backwards to make sure the finer grids are done first
+    do n=nlevs,2,-1
+       call ml_cc_restriction(phi(n-1),phi(n),mla%mba%rr(n-1,:))
+    end do
 
+    ! fill level n ghost cells using interpolation from level n-1 data
+    ! note that multifab_fill_boundary and multifab_physbc are called for
+    ! both levels n-1 and n
     do n=2,nlevs
        call multifab_fill_ghost_cells(phi(n),phi(n-1),ng,mla%mba%rr(n-1,:), &
                                       the_bc_tower%bc_tower_array(n-1), &
