@@ -51,7 +51,7 @@ the Laplacian reduces to the standard five (seven) point stencil two (three) dim
 \section{OpenMP}\label{Sec:OpenMP}
 
 A hybrid MPI/OpenMP version of the algorithm described above sits in 
-{\tt BoxLib/Tutorials/HeatEquation\_EX1\_F}.  It is very similar to the
+{\tt BoxLib/Tutorials/HeatEquation\_EX1\_F/}.  It is very similar to the
 {\tt WaveEquation\_F} example in Chapter \ref{Chap:Getting Started}, so we shall
 only highlight some key additional features.
 
@@ -111,7 +111,7 @@ Finally, to tell the compiler that we would like to run with OpenMP, we make sur
 set {\tt OMP=t} in the {\tt GNUmakefile}.  Note that you must have you 
 {\tt OMP\_NUM\_THREADS} environment variable set properly in order for threads to work.
 Also, note that you can enable/disable MPI independently from the OMP flag.  Finally,
-here is a sample hopper script for a hybrid MPI/OpenMP job:
+here is a sample hopper script (tcsh) for a hybrid MPI/OpenMP job:
 \lstinputlisting[backgroundcolor=\color{light-red}]{./AdvancedTopics/hopper_omp.run}
 \begin{itemize}
 \item ``mppwidth'': how many total cores requested
@@ -124,16 +124,19 @@ here is a sample hopper script for a hybrid MPI/OpenMP job:
 \section{Boundary Conditions}\label{Sec:Boundary Conditions}
 In order to understand how to implement boundary conditions, we shall 
 first describe the general principles behind working with boundary conditions.
-Then, we will provide simple examples in the tutorial directory that can be 
-adapted to other applications.
+The {\tt BoxLib/Tutorials/HeatEquation\_EX2\_F/} tutorial continues our heat
+equation example, but now with some non-periodic boundary condition support.  The boundary
+condition modules in {\tt BoxLib/Src/F\_BaseLib/} can be used as a springboard
+for developing your own customized boundary conditions.
 
 The basic idea is that every grid has knowledge of the
 boundary condition type at the low and high side edge in each direction.
 Common boundary condition types are {\tt INFLOW}, {\tt OUTFLOW}, {\tt SLIP\_WALL},
 {\tt NO\_SLIP\_WALL}, and {\tt PERIODIC}.
 There is also an {\tt INTERIOR} boundary condition type, which 
-will be explained below.  There is typically an integer mapping, e.g., {\tt INFLOW}=1,
-{\tt OUTFLOW=2}, etc.  Consider grid 1 in Figure \ref{fig:bc_example1}.  The
+will be explained below.  We use an integer mapping, e.g., {\tt INFLOW}=1,
+{\tt OUTFLOW=2}, etc., that is listed in {\tt BoxLib/Src/F\_BaseLib/bc.f90}.
+Consider grid 1 in Figure \ref{fig:bc_example1}.  The
 low-x boundary condition is {\tt INFLOW}, and the high-y boundary condition is
 {\tt NO\_SLIP\_WALL}.  The high-x and low-y boundary conditions are {\tt INTERIOR}, which
 means that the ghost cells share the same physical space as cells in the valid region of 
