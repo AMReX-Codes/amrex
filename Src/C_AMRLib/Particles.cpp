@@ -2,6 +2,101 @@
 #include <ParmParse.H>
 #include <limits>
 
+bool
+ParticleBase::FineToCrse(const IntVect&  cell,
+                         const Box&      vbx,
+                         const BoxArray& ba)
+{
+    BL_ASSERT(vbx.contains(cell));
+    //
+    // We're in AssignDensity. We want to know whether or not updating
+    // with a particle at "cell", whose valid box is "vbx", will we cross a
+    // fine->crse boundary of the level with BoxArray "ba".
+    //
+    Box ibx = BoxLib::grow(vbx,-1);
+
+    BL_ASSERT(ibx.ok());
+
+    if (ibx.contains(cell))
+    {
+        //
+        // We're strictly contained in our valid box.
+        // We can't cross a fine->crse boundary.
+        //
+        return false;
+    }
+    else
+    {
+        //
+        // We test all the permutations of "iv" from AssignDensityDoit()
+        // to see whether or not they're contained in our valid region BoxArray "ba".
+        //
+        bool    valid = true;
+        IntVect iv    = cell;
+
+#if (BL_SPACEDIM == 1)
+        // High
+        valid = valid && ba.contains(iv);
+
+        // Low
+        iv[0]  = iv[0] - 1;
+        valid = valid && ba.contains(iv);
+
+#elif (BL_SPACEDIM == 2)
+        // HH
+        valid = valid && ba.contains(iv);
+    
+        // LH
+        iv[0]  = iv[0] - 1;
+        valid = valid && ba.contains(iv);
+    
+        // LL
+        iv[1]  = iv[1] - 1;
+        valid = valid && ba.contains(iv);
+    
+        // HL
+        iv[0]  = iv[0] + 1;
+        valid = valid && ba.contains(iv);
+
+#elif (BL_SPACEDIM == 3)
+        // HHH
+        valid = valid && ba.contains(iv);
+
+        // LHH
+        iv[0]  = iv[0] - 1;
+        valid = valid && ba.contains(iv);
+
+        // LLH
+        iv[1]  = iv[1] - 1;
+        valid = valid && ba.contains(iv);
+    
+        // HLH
+        iv[0]  = iv[0] + 1;
+        valid = valid && ba.contains(iv);
+
+        iv     = cell;
+        iv[2]  = iv[2] - 1;
+
+        // HHL
+        valid = valid && ba.contains(iv);
+    
+        // LHL
+        iv[0]  = iv[0] - 1;
+        valid = valid && ba.contains(iv);
+
+        // LLL
+        iv[1]  = iv[1] - 1;
+        valid = valid && ba.contains(iv);
+    
+        // HLL
+        iv[0]  = iv[0] + 1;
+        valid = valid && ba.contains(iv);
+#endif
+
+        return !valid;
+    }
+}
+
 int
 ParticleBase::MaxReaders ()
 {
