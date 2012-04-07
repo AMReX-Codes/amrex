@@ -30,70 +30,57 @@ ParticleBase::FineToCrse(const IntVect&  cell,
         //
         // We test all the permutations of "iv" from AssignDensityDoit()
         // to see whether or not they're contained in our valid region BoxArray "ba".
+        // Note that we don't need to test "High" since "cell" is already contained
+        // in "vbx".
         //
-        bool    valid = true;
-        IntVect iv    = cell;
+        IntVect iv = cell;
 
 #if (BL_SPACEDIM == 1)
         // High
-        valid = valid && ba.contains(iv);
 
         // Low
-        iv[0]  = iv[0] - 1;
-        valid = valid && ba.contains(iv);
+        iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
 
 #elif (BL_SPACEDIM == 2)
         // HH
-        valid = valid && ba.contains(iv);
     
         // LH
-        iv[0]  = iv[0] - 1;
-        valid = valid && ba.contains(iv);
+        iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
     
         // LL
-        iv[1]  = iv[1] - 1;
-        valid = valid && ba.contains(iv);
+        iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
     
         // HL
-        iv[0]  = iv[0] + 1;
-        valid = valid && ba.contains(iv);
+        iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
 
 #elif (BL_SPACEDIM == 3)
         // HHH
-        valid = valid && ba.contains(iv);
 
         // LHH
-        iv[0]  = iv[0] - 1;
-        valid = valid && ba.contains(iv);
+        iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
 
         // LLH
-        iv[1]  = iv[1] - 1;
-        valid = valid && ba.contains(iv);
+        iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
     
         // HLH
-        iv[0]  = iv[0] + 1;
-        valid = valid && ba.contains(iv);
+        iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
 
-        iv     = cell;
-        iv[2]  = iv[2] - 1;
+        iv = cell;
 
         // HHL
-        valid = valid && ba.contains(iv);
+        iv[2] = iv[2] - 1; if (!ba.contains(iv)) return true;
     
         // LHL
-        iv[0]  = iv[0] - 1;
-        valid = valid && ba.contains(iv);
+        iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
 
         // LLL
-        iv[1]  = iv[1] - 1;
-        valid = valid && ba.contains(iv);
+        iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
     
         // HLL
-        iv[0]  = iv[0] + 1;
-        valid = valid && ba.contains(iv);
+        iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
 #endif
 
-        return !valid;
+        return false;
     }
 }
 
