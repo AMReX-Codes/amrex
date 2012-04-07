@@ -18,70 +18,67 @@ ParticleBase::FineToCrse(const IntVect&  cell,
     BL_ASSERT(ibx.ok());
 
     if (ibx.contains(cell))
-    {
         //
         // We're strictly contained in our valid box.
         // We can't cross a fine->crse boundary.
         //
         return false;
-    }
-    else
-    {
-        //
-        // We test all the permutations of "iv" from AssignDensityDoit()
-        // to see whether or not they're contained in our valid region BoxArray "ba".
-        // Note that we don't need to test "High" since "cell" is already contained
-        // in "vbx".
-        //
-        IntVect iv = cell;
+    //
+    // Otherwise ...
+    //
+    // We test all the permutations of "iv" from AssignDensityDoit()
+    // to see whether or not they're contained in our valid region BoxArray "ba".
+    // Note that we don't need to test "High" since "cell" is already contained
+    // in "vbx".
+    //
+    IntVect iv = cell;
 
 #if (BL_SPACEDIM == 1)
-        // High
+    // High
 
-        // Low
-        iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
+    // Low
+    iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
 
 #elif (BL_SPACEDIM == 2)
-        // HH
+    // HH
     
-        // LH
-        iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
+    // LH
+    iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
     
-        // LL
-        iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
+    // LL
+    iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
     
-        // HL
-        iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
+    // HL
+    iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
 
 #elif (BL_SPACEDIM == 3)
-        // HHH
+    // HHH
 
-        // LHH
-        iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
+    // LHH
+    iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
 
-        // LLH
-        iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
+    // LLH
+    iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
     
-        // HLH
-        iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
+    // HLH
+    iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
 
-        iv = cell;
+    iv = cell;
 
-        // HHL
-        iv[2] = iv[2] - 1; if (!ba.contains(iv)) return true;
+    // HHL
+    iv[2] = iv[2] - 1; if (!ba.contains(iv)) return true;
     
-        // LHL
-        iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
+    // LHL
+    iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
 
-        // LLL
-        iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
+    // LLL
+    iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
     
-        // HLL
-        iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
+    // HLL
+    iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
 #endif
 
-        return false;
-    }
+    return false;
 }
 
 int
