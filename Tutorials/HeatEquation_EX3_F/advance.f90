@@ -30,19 +30,14 @@ contains
     ! an array of multifabs; one for each direction
     type(multifab) :: flux(mla%nlevel,mla%dim) 
 
-    ! used to build face-centered multifabs
-    logical :: nodal(mla%dim) 
-
     dm = mla%dim
     nlevs = mla%nlevel
 
     ! build the flux(:,:) multifabs
     do n=1,nlevs
        do i=1,dm
-          nodal(:) = .false.
-          nodal(i) = .true.
           ! flux(n,i) has one component, zero ghost cells, and is nodal in direction i
-          call multifab_build(flux(n,i),mla%la(n),1,0,nodal)
+          call multifab_build_edge(flux(n,i),mla%la(n),1,0,i)
        end do
     end do
 
