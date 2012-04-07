@@ -23,17 +23,12 @@ contains
     ! an array of multifabs; one for each direction
     type(multifab) :: flux(phi%dim) 
 
-    ! used to build face-centered multifabs
-    logical :: nodal(phi%dim) 
-
     dm = phi%dim
 
     ! build the flux(:) multifabs
     do i=1,dm
-       nodal(:) = .false.
-       nodal(i) = .true.
        ! flux(i) has one component, zero ghost cells, and is nodal in direction i
-       call multifab_build(flux(i),phi%la,1,0,nodal)
+       call multifab_build_edge(flux(i),phi%la,1,0,i)
     end do
 
     ! compute the face-centered gradients in each direction

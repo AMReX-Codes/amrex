@@ -3,10 +3,19 @@
 \BoxLib\ is a software library containing all the functionality to write massively parallel, 
 block-structured adaptive mesh refinement (AMR) applications.
 \BoxLib\ was developed at the Center for Computational Sciences and Engineering (CCSE) at 
-Lawrence Berkeley National Laboratory.  Further information can be found by contacting 
-Ann Almgren of CCSE at {\tt ASAlmgren@lbl.gov} or by visiting our website
-at {\tt https://ccse.lbl.gov/}.  Key features of \BoxLib\ include:
+Lawrence Berkeley National Laboratory and is freely available on our website
+at {\tt https://ccse.lbl.gov}.  The most current version of this User's Guide
+can be found in the \BoxLib\ git repository at {\tt BoxLib/Docs}.  Any questions,
+comments, suggestions, etc., regarding this User's Guide should be directed
+to Andy Nonaka of CCSE at {\tt AJNonaka@lbl.gov}.  Further information 
+about \BoxLib\ can be found by contacting Ann Almgren of CCSE at 
+{\tt ASAlmgren@lbl.gov} or by visiting our website.\\
 
+If you are new to \BoxLib, we recommend you read the first three Chapters of this User's 
+Guide and run the accompanying tutorial codes.  These chapters are designed to give a 
+good introduction to the most important features of our source code.\\
+
+Key features of \BoxLib\ include:
 \begin{itemize}
 \item C++/Fortran90 and pure Fortran90 versions
 \item Optional subcycling in time (C++ only)
@@ -16,31 +25,34 @@ at {\tt https://ccse.lbl.gov/}.  Key features of \BoxLib\ include:
 \item Demonstrated scaling of linear solvers (parabolic and elliptic solvers) to 100,000 processors and 
       hydrodynamics (hyperbolic solvers) to over 200,000 processors
 \item Plotfile format can be read by {\tt VisIt}, {\tt yt}, and {\tt AmrVis}
-\item Basis of mature applications in combustion, astrophysics, cosmology, and porous media
-\item Publicly available on our website at {\tt https://ccse.lbl.gov/}
+\item Basis of mature applications in combustion, astrophysics, cosmology, porous media, and fluctuating hydrodynamics
+\item Freely available on our website at {\tt https://ccse.lbl.gov}
 \end{itemize}
 
-\section{Parallel Programming Model}
+\section{High-Level Overview}
+
+\subsection{Parallel Programming Model}
 
 The fundamental parallel abstraction in \BoxLib\ is the \MultiFab, which holds the data on the 
-union of grids at a level of refinement.  A \MultiFab\ is composed of ``Fortran array boxes''
-(i.e., \FArrayBox es or \Fab s); each \Fab\ is an array of data on a single grid. 
+union of grids at a level of refinement.  A \MultiFab\ is composed of multiple ``Fortran array boxes''
+(i.e., \FArrayBox es or \Fab s); each \Fab\ is a multidimensional array of data on a single grid. 
 Whenever ``work'' needs to be done using data from a \MultiFab, the 
-\Fab s composing that \MultiFab\ are distributed 
-among the cores.  \Fab s at each level of refinement are distributed 
+\Fab s composing that \MultiFab\ are distributed among different processors 
+to be worked on simultaneously.  \Fab s at each level of refinement are distributed 
 independently.  The software supports two data distribution schemes, as well as a 
 dynamic switching scheme that decides which approach to use based on the number of 
 grids at a level and the number of processors.  The first scheme is based on a 
-heuristic knapsack algorithm, which focuses on load balancing; the second is based on 
-the use of a Morton-ordering space-filling curve, which focuses on data locality. 
- \MultiFab\ operations are performed with an ``owner computes'' rule 
+heuristic knapsack algorithm, which emphasizes load balancing; the second is based on 
+the use of a Morton-ordering space-filling curve, which emphasizes on data locality for
+faster grid-to-grid communication. 
+\MultiFab\ operations are performed with an ``owner computes'' rule 
 with each processor operating independently on its local data.  For operations that 
 require data owned by other processors, the \MultiFab\ operations are preceded by a 
 data exchange between processors to fill ghost cells.  Each processor contains 
 meta-data that is needed 
 to fully specify the data locality and processor assignments of the \Fab s. At a 
 minimum, this requires the storage of an array of coordinates specifying the index space 
-region for each box at AMR level of refinement.  The meta-data can thus be used to 
+region for each box at each level of refinement.  The meta-data can thus be used to 
 dynamically evaluate the necessary communication patterns for sharing data amongst 
 processors, enabling us to optimize communications patterns within the algorithm.
 By using a hybrid MPI-OpenMP approach to parallelization (see below), we are able to 
@@ -53,7 +65,7 @@ The basic parallelization strategy uses a hierarchical programming approach for
 multicore architectures based on both MPI and OpenMP.  In the pure-MPI instantiation, 
 each \Fab\ is is assigned to a core, and each core communicates 
 with every other core using only MPI.  In the hybrid approach, where on each socket/node 
-there are $n$ cores which all access the same memory, we can divide our domain into
+there are $n$ cores that all access the same memory, we can divide our domain into
 fewer, larger grids, and assign each \Fab\ to a socket/node, 
 with the work associated with that grid distributed among the $n$ 
 cores using OpenMP.
@@ -63,27 +75,28 @@ cores using OpenMP.
 Data for checkpoints and analysis are written in a self-describing format that consists 
 of a directory for each time step written. Checkpoint directories contain all necessary 
 data to restart the calculation from that time step. Plotfile directories contain data 
-for post-processing, visualization, and analytics, which can be read using {\tt VisIt}, {\tt yt}, or
-{\tt AmrVis} (a customized visualization package developed at CCSE for visualizing 
-data on AMR grids).  Within each checkpoint or plotfile directory is an ASCII header file and 
-subdirectories for each AMR level.  The header describes the AMR hierarchy, including 
+for post-processing, visualization, and analytics, which can be read using {\tt VisIt}, 
+{\tt yt}, or {\tt AmrVis} (a customized visualization package developed at CCSE for 
+visualizing data on AMR grids, also freely available on our website).  Within each 
+checkpoint or plotfile directory is an ASCII header file and a
+subdirectory for each AMR level.  The header describes the AMR hierarchy, including 
 number of levels, the grids at each level, the problem size, refinement ratio 
 between levels, time step, time, etc.  Each of the subdirectories contains the data 
 associated with the \MultiFab\ for that level, which is stored in multiple files.
-Checkpoint and plotfile directories are written at user-specified intervals. 
+Checkpoint and plotfile directories are written at user-specified intervals.\\
 
 Restarting a calculation can present some difficult issues for reading data efficiently. 
 In the worst case, all processors would need data from all files. If multiple processors 
 try to read from the same file at the same time, performance problems can result, with 
-extreme cases causing file system thrashing. Since the number of files is generally not 
+extreme cases causing file system thrashing.  Since the number of files is generally not 
 equal to the number of processors and each processor may need data from multiple files, 
 input during restart is coordinated to efficiently read the data. Each data file is only 
 opened by one processor at a time. The {\tt IOProcessor} creates a database for mapping files 
-to processors, coordinates the read queues, and interleaves reading its own data. Each 
-processor reads all data it needs from the file it currently has open. The code tries to 
+to processors, coordinates the read queues, and interleaves reading its own data.  Each 
+processor reads all data it needs from the file it currently has open.  The code tries to 
 maintain the number of input streams to be equal to the number of files at all times. 
 Checkpoint and plotfiles are portable to machines with a different byte ordering and 
-precision from the machine that wrote the files. Byte order and precision translations 
+precision from the machine that wrote the files.  Byte order and precision translations 
 are done automatically, if required, when the data is read.
 
 \subsection{Scaling}
@@ -130,9 +143,12 @@ A schematic of the \BoxLib\ directory structure is shown in Figure
 
 \item {\tt Docs/}
 
-Contains the \BoxLib\ User's Guide.
+Contains this \BoxLib\ User's Guide.
 
 \item {\tt Src/}
+
+  \BoxLib\ source code.  The C++ source code is split into several directories.
+  The Fortran90 source code is contained in one directory.
 
   \begin{itemize}
 
@@ -140,10 +156,9 @@ Contains the \BoxLib\ User's Guide.
     \item {\tt C\_BaseLib/}
     \item {\tt C\_BoundaryLib/}
     \item {\tt F\_BaseLib/}
-
-    Fortran90 \BoxLib\ source code.
-
     \item {\tt LinearSolvers/}
+
+    Source code for various linear solvers in C++ and Fortran90.
 
     \begin{itemize}
 
@@ -153,13 +168,13 @@ Contains the \BoxLib\ User's Guide.
       \item {\tt C\_to\_F\_MG/}
       \item {\tt F\_MG/}
 
-      Fortran90 multigrid solver source code.
-
     \end{itemize}
 
   \end{itemize}
 
 \item {\tt Tests/}
+
+  Various tests used by \BoxLib\ developers.
 
   \begin{itemize}
 
@@ -184,7 +199,11 @@ Contains the \BoxLib\ User's Guide.
   maintaining codes in C++.
 
   \item {\tt C\_Util/}
+
+  Various utility codes for analyzing plotfiles.
+
   \item {\tt F\_mk/}
+
   The generic Makefiles that store the Fortran90 compilation flags for
   various platforms.
 
