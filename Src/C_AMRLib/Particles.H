@@ -73,11 +73,9 @@ struct ParticleBase
     //
     static void NextID (int nextid);
     //
-    // Used by AssignDensity.  We want to know whether or not updating
-    // with a particle at "cell", whose valid box is "vbx", will we cross a
-    // fine->crse boundary of the level with BoxArray "ba".
+    // Used by AssignDensity.
     //
-    static bool FineToCrse(const IntVect& cell, const Box& vbx, const BoxArray& ba);
+    static bool FineToCrse (const IntVect& cell, const IntVect& csect, const Box& vbx, const BoxArray& ba, Array<int>& which);
     //
     // Used for partitioning particles into valid & invalid groups.
     //
@@ -1465,14 +1463,20 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
     const BoxArray& ba   = mf.boxArray();
 
     if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
+    {
         BoxLib::Error("AssignDensityDoit: problem must be periodic in no or all directions");
+    }
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
         mf[mfi].setVal(0);
+    }
 
-    const Real problo[BL_SPACEDIM] = {D_DECL(gm.ProbLo(0), gm.ProbLo(1), gm.ProbLo(2))};
+    const Real problo[BL_SPACEDIM] = { D_DECL(gm.ProbLo(0), gm.ProbLo(1), gm.ProbLo(2)) };
 
     const Real* dx = gm.CellSize();
+
+    Array<int> which(D_TERM(2,+2,+4));
     //
     // This is a little funky.  What in effect this'll do is force
     // each thread to work on a single (separate) grid at a time.  That
@@ -1494,7 +1498,7 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
 #endif
     for (int i = 0; i < n; i++)
     {
-        const Box&  vbx  = mf.boxArray()[n];
+        const Box&  vbx  = mf.boxArray()[pgrd[i]];
         const PBox& pbox = *pbxs[i];
         FArrayBox&  fab  = mf[pgrd[i]];
 
@@ -1514,9 +1518,7 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
 
             const IntVect csect(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-            Real frac[BL_SPACEDIM] = { D_DECL(len[0]-csect[0],
-                                              len[1]-csect[1],
-                                              len[2]-csect[2]) };
+            Real frac[BL_SPACEDIM] = { D_DECL(len[0]-csect[0], len[1]-csect[1], len[2]-csect[2]) };
 
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
@@ -1533,66 +1535,317 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
                 if (!gm.Domain().contains(cell))
                     BoxLib::Error("AssignDensityDoit: if not periodic, all particles must stay away from the domain boundary");
 
-            bool finetocrse = ParticleBase::FineToCrse(cell,vbx,ba);
+            const bool finetocrse = lev > 0 ? ParticleBase::FineToCrse(p.m_cell,csect,vbx,ba,which) : false;
 
+            if (!finetocrse)
+            {
 #if (BL_SPACEDIM == 1)
-            // High
-            fab(cell) += p.m_data[0] * frac[0];
+                // High
+                fab(cell) += p.m_data[0] * frac[0];
 
-            // Low
-            cell[0]     = cell[0] - 1;
-            fab(cell)  += p.m_data[0] * (1-frac[0]);
+                // Low
+                cell[0]     = cell[0] - 1;
+                fab(cell)  += p.m_data[0] * (1-frac[0]);
 
 #elif (BL_SPACEDIM == 2)
-            // HH
-            fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
+                // HH
+                fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
     
-            // LH
-            cell[0]    = cell[0] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
+                // LH
+                cell[0]    = cell[0] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
     
-            // LL
-            cell[1]    = cell[1] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
+                // LL
+                cell[1]    = cell[1] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
     
-            // HL
-            cell[0]    = cell[0] + 1;
-            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
+                // HL
+                cell[0]    = cell[0] + 1;
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
 
 #elif (BL_SPACEDIM == 3)
-            // HHH
-            fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
+                // HHH
+                fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
 
-            // LHH
-            cell[0]    = cell[0] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
+                // LHH
+                cell[0]    = cell[0] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
 
-            // LLH
-            cell[1]    = cell[1] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * frac[2] ;
+                // LLH
+                cell[1]    = cell[1] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * frac[2] ;
     
-            // HLH
-            cell[0]    = cell[0] + 1;
-            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) *    frac[2] ;
+                // HLH
+                cell[0]    = cell[0] + 1;
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * frac[2] ;
 
-            cell     = csect;
-            cell[2]  = cell[2] - 1;
+                cell = csect;
 
-            // HHL
-            fab(cell) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
+                // HHL
+                cell[2]  = cell[2] - 1;
+                fab(cell) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
     
-            // LHL
-            cell[0]    = cell[0] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
+                // LHL
+                cell[0]    = cell[0] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
 
-            // LLL
-            cell[1]    = cell[1] - 1;
-            fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
+                // LLL
+                cell[1]    = cell[1] - 1;
+                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
     
-            // HLL
-            cell[0]    = cell[0] + 1;
-            fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
+                // HLL
+                cell[0]    = cell[0] + 1;
+                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
 #endif
+            }
+            else
+            {
+                //
+                // This code assumes that ref ratio is 2 !!!
+                //
+                const Real len_crse[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-problo[0])/(2*dx[0]) + 0.5,
+                                                            (p.m_pos[1]-problo[1])/(2*dx[1]) + 0.5,
+                                                            (p.m_pos[2]-problo[2])/(2*dx[2]) + 0.5) };
+
+                const IntVect csect_crse(D_DECL(floor(len_crse[0]), floor(len_crse[1]), floor(len_crse[2])));
+
+                Real frac_crse[BL_SPACEDIM] = { D_DECL(len_crse[0]-csect_crse[0],
+                                                       len_crse[1]-csect_crse[1],
+                                                       len_crse[2]-csect_crse[2]) };
+
+                for (int d = 0; d < BL_SPACEDIM; d++)
+                {
+                    if (frac_crse[d] > 1) frac_crse[d] = 1;
+                    if (frac_crse[d] < 0) frac_crse[d] = 0;
+                }
+
+                Real sum_crse = 0;
+                //
+                // We first update only those fine ghost cells that cross fine->crse
+                // boundary using frac_crse[] instead of frac[].
+                //
+#if (BL_SPACEDIM == 1)
+                // High
+                if (which[0])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0];
+                    sum_crse  += p.m_data[0] * frac_crse[0];
+                }
+
+                // Low
+                cell[0] = cell[0] - 1;
+                if (which[1])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]);
+                    sum_crse  += p.m_data[0] * (1-frac_crse[0]);
+                }
+
+#elif (BL_SPACEDIM == 2)
+                // HH
+                if (which[0])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1] ;
+                    sum_crse  += p.m_data[0] * frac_crse[0] * frac_crse[1] ;
+                }
+    
+                // LH
+                cell[0] = cell[0] - 1;
+                if (which[1])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] ;
+                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] ;
+                }
+    
+                // LL
+                cell[1] = cell[1] - 1;
+                if (which[2])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]);
+                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]);
+                }
+    
+                // HL
+                cell[0] = cell[0] + 1;
+                if (which[3])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]);
+                    sum_crse  += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]);
+                }
+
+#elif (BL_SPACEDIM == 3)
+                // HHH
+                if (which[0])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1] * frac_crse[2] ;
+                    sum_crse  += p.m_data[0] * frac_crse[0] * frac_crse[1] * frac_crse[2] ;
+                }
+
+                // LHH
+                cell[0] = cell[0] - 1;
+                if (which[1])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * frac_crse[2] ;
+                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * frac_crse[2] ;
+                }
+
+                // LLH
+                cell[1] = cell[1] - 1;
+                if (which[2])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * frac_crse[2] ;
+                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * frac_crse[2] ;
+                }
+    
+                // HLH
+                cell[0] = cell[0] + 1;
+                if (which[3])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * frac_crse[2] ;
+                    sum_crse  += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * frac_crse[2] ;
+                }
+
+                cell = csect;
+
+                // HHL
+                cell[2] = cell[2] - 1;
+                if (which[4])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1] * (1-frac_crse[2]);
+                    sum_crse  += p.m_data[0] * frac_crse[0] * frac_crse[1] * (1-frac_crse[2]);
+                }
+    
+                // LHL
+                cell[0] = cell[0] - 1;
+                if (which[5])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * (1-frac_crse[2]);
+                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * (1-frac_crse[2]);
+                }
+
+                // LLL
+                cell[1] = cell[1] - 1;
+                if (which[6])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * (1-frac_crse[2]);
+                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * (1-frac_crse[2]);
+                }
+    
+                // HLL
+                cell[0] = cell[0] + 1;
+                if (which[7])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * (1-frac_crse[2]);
+                    sum_crse  += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * (1-frac_crse[2]);
+                }
+#endif
+                //
+                // Next update all cells that don't extend across fine->crse boundary using the following multiplier.
+                //
+                const Real mult = (1 - sum_crse/p.m_data[0]);
+
+                cell = csect;
+
+#if (BL_SPACEDIM == 1)
+                // High
+                if (!which[0])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * mult;
+                }
+
+                // Low
+                cell[0] = cell[0] - 1;
+                if (!which[1])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * mult;
+                }
+
+#elif (BL_SPACEDIM == 2)
+                // HH
+                if (!which[0])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1 * mult;
+                }
+    
+                // LH
+                cell[0] = cell[0] - 1;
+                if (!which[1])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * mult;
+                }
+    
+                // LL
+                cell[1] = cell[1] - 1;
+                if (!which[2])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * mult;
+                }
+    
+                // HL
+                cell[0] = cell[0] + 1;
+                if (!which[3])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * mult;
+                }
+
+#elif (BL_SPACEDIM == 3)
+                // HHH
+                if (!which[0])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1] * frac_crse[2] * mult;
+                }
+
+                // LHH
+                cell[0] = cell[0] - 1;
+                if (!which[1])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * frac_crse[2] * mult;
+                }
+
+                // LLH
+                cell[1] = cell[1] - 1;
+                if (!which[2])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * frac_crse[2] * mult;
+                }
+    
+                // HLH
+                cell[0] = cell[0] + 1;
+                if (!which[3])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * frac_crse[2] * mult;
+                }
+
+                cell = csect;
+
+                // HHL
+                cell[2] = cell[2] - 1;
+                if (!which[4])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1] * (1-frac_crse[2]) * mult;
+                }
+    
+                // LHL
+                cell[0] = cell[0] - 1;
+                if (!which[5])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * (1-frac_crse[2]) * mult;
+                }
+
+                // LLL
+                cell[1] = cell[1] - 1;
+                if (!which[6])
+                {
+                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * (1-frac_crse[2]) * mult;
+                }
+    
+                // HLL
+                cell[0] = cell[0] + 1;
+                if (!which[7])
+                {
+                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * (1-frac_crse[2]) * mult;
+                }
+#endif
+            }
         }
     }
 

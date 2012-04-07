@@ -3,15 +3,17 @@
 #include <limits>
 
 bool
-ParticleBase::FineToCrse(const IntVect&  cell,
-                         const Box&      vbx,
-                         const BoxArray& ba)
+ParticleBase::FineToCrse (const IntVect&  cell,
+                          const IntVect&  csect,
+                          const Box&      vbx,
+                          const BoxArray& ba,
+                          Array<int>&     which)
 {
-    BL_ASSERT(vbx.contains(cell));
     //
-    // We're in AssignDensity. We want to know whether or not updating
+    // We're in AssignDensity(). We want to know whether or not updating
     // with a particle at "cell", whose valid box is "vbx", will we cross a
-    // fine->crse boundary of the level with BoxArray "ba".
+    // fine->crse boundary of the level with BoxArray "ba".  "csect" is as
+    // calculated in AssignDensity().
     //
     Box ibx = BoxLib::grow(vbx,-1);
 
@@ -26,57 +28,73 @@ ParticleBase::FineToCrse(const IntVect&  cell,
     //
     // Otherwise ...
     //
-    // We test all the permutations of "iv" from AssignDensityDoit()
+    // We test all the permutations of "csect" from AssignDensityDoit()
     // to see whether or not they're contained in our valid region BoxArray "ba".
-    // Note that we don't need to test "High" since "cell" is already contained
-    // in "vbx".
     //
-    IntVect iv = cell;
+    IntVect iv = csect;
 
 #if (BL_SPACEDIM == 1)
     // High
+    which[0] = !ba.contains(iv);
 
     // Low
-    iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
+    iv[0]    = iv[0] - 1;
+    which[1] = !ba.contains(iv);
 
 #elif (BL_SPACEDIM == 2)
     // HH
+    which[0] = !ba.contains(iv);
     
     // LH
-    iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
+    iv[0]    = iv[0] - 1;
+    which[1] = !ba.contains(iv);
     
     // LL
-    iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
+    iv[1]    = iv[1] - 1;
+    which[2] = !ba.contains(iv);
     
     // HL
-    iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
+    iv[0]    = iv[0] + 1;
+    which[3] = !ba.contains(iv);
 
 #elif (BL_SPACEDIM == 3)
     // HHH
+    which[0] = !ba.contains(iv);
 
     // LHH
-    iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
+    iv[0]    = iv[0] - 1;
+    which[1] = !ba.contains(iv);
 
     // LLH
-    iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
+    iv[1]    = iv[1] - 1;
+    which[2] = !ba.contains(iv);
     
     // HLH
-    iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
+    iv[0]    = iv[0] + 1;
+    which[3] = !ba.contains(iv);
 
-    iv = cell;
+    iv = csect;
 
     // HHL
-    iv[2] = iv[2] - 1; if (!ba.contains(iv)) return true;
+    iv[2]    = iv[2] - 1;
+    which[4] = !ba.contains(iv);
     
     // LHL
-    iv[0] = iv[0] - 1; if (!ba.contains(iv)) return true;
+    iv[0]    = iv[0] - 1;
+    which[5] = !ba.contains(iv);
 
     // LLL
-    iv[1] = iv[1] - 1; if (!ba.contains(iv)) return true;
+    iv[1]    = iv[1] - 1;
+    which[6] = !ba.contains(iv);
     
     // HLL
-    iv[0] = iv[0] + 1; if (!ba.contains(iv)) return true;
+    iv[0]    = iv[0] + 1;
+    which[7] = !ba.contains(iv);
 #endif
+
+    for (int i = 0, N = which.size(); i < N; i++)
+        if (which[i])
+            return true;
 
     return false;
 }
