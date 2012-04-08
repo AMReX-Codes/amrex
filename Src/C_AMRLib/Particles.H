@@ -52,6 +52,8 @@ struct ParticleBase
 
     static void Interp (const ParticleBase& prt, const Amr* amr, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
+    static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
+
     static const std::string& Version ();
 
     static const std::string& DataPrefix ();
@@ -75,7 +77,7 @@ struct ParticleBase
     //
     // Used by AssignDensity.
     //
-    static bool FineToCrse (const IntVect& cell, const IntVect& csect, const Box& vbx, const BoxArray& ba, Array<int>& which);
+    static bool FineToCrse (const IntVect& cell, const IntVect& csect, const Box& vbx, const BoxArray& ba, int* which);
     //
     // Used for partitioning particles into valid & invalid groups.
     //
@@ -1472,11 +1474,15 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
         mf[mfi].setVal(0);
     }
 
-    const Real problo[BL_SPACEDIM] = { D_DECL(gm.ProbLo(0), gm.ProbLo(1), gm.ProbLo(2)) };
+    const Real plo[BL_SPACEDIM] = { D_DECL(gm.ProbLo(0), gm.ProbLo(1), gm.ProbLo(2)) };
 
     const Real* dx = gm.CellSize();
 
-    Array<int> which(D_TERM(2,+2,+4));
+    const int M = D_TERM(2,+2,+4);
+
+    int     which[M];
+    Real    fracs[M], fracs_crse[M];
+    IntVect cells[M], cells_crse[M];
     //
     // This is a little funky.  What in effect this'll do is force
     // each thread to work on a single (separate) grid at a time.  That
@@ -1487,10 +1493,10 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
     Array<const PBox*> pbxs(n);
 
     int j = 0;
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it, ++j)
     {
-        pgrd[j]   =   pmap_it->first;
-        pbxs[j++] = &(pmap_it->second);
+        pgrd[j] =   pmap_it->first;
+        pbxs[j] = &(pmap_it->second);
     }
 
 #ifdef _OPENMP
@@ -1498,9 +1504,9 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
 #endif
     for (int i = 0; i < n; i++)
     {
-        const Box&  vbx  = mf.boxArray()[pgrd[i]];
         const PBox& pbox = *pbxs[i];
         FArrayBox&  fab  = mf[pgrd[i]];
+        const Box&  vbx  = mf.boxArray()[pgrd[i]];
 
         for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
         {
@@ -1512,339 +1518,64 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
                 //
                 continue;
 
-            const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-problo[0])/dx[0] + 0.5,
-                                                   (p.m_pos[1]-problo[1])/dx[1] + 0.5,
-                                                   (p.m_pos[2]-problo[2])/dx[2] + 0.5) };
-
-            const IntVect csect(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
-
-            Real frac[BL_SPACEDIM] = { D_DECL(len[0]-csect[0], len[1]-csect[1], len[2]-csect[2]) };
-
-            for (int d = 0; d < BL_SPACEDIM; d++)
-            {
-                if (frac[d] > 1) frac[d] = 1;
-                if (frac[d] < 0) frac[d] = 0;
-            }
-
-            IntVect cell = csect;
+            ParticleBase::AssignDensityCoeffs(p, plo, dx, fracs, cells);
             //
             // If this is not fully periodic then we have to be careful that no
             // particles go within one cell of the domain boundary.
             //
+            const IntVect& csect = cells[0];
+
             if (!gm.isAllPeriodic())
-                if (!gm.Domain().contains(cell))
+                if (!gm.Domain().contains(csect))
                     BoxLib::Error("AssignDensityDoit: if not periodic, all particles must stay away from the domain boundary");
 
             const bool finetocrse = lev > 0 ? ParticleBase::FineToCrse(p.m_cell,csect,vbx,ba,which) : false;
 
             if (!finetocrse)
             {
-#if (BL_SPACEDIM == 1)
-                // High
-                fab(cell) += p.m_data[0] * frac[0];
-
-                // Low
-                cell[0]     = cell[0] - 1;
-                fab(cell)  += p.m_data[0] * (1-frac[0]);
-
-#elif (BL_SPACEDIM == 2)
-                // HH
-                fab(cell) += p.m_data[0] * frac[0] * frac[1] ;
-    
-                // LH
-                cell[0]    = cell[0] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] ;
-    
-                // LL
-                cell[1]    = cell[1] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]);
-    
-                // HL
-                cell[0]    = cell[0] + 1;
-                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]);
-
-#elif (BL_SPACEDIM == 3)
-                // HHH
-                fab(cell) += p.m_data[0] * frac[0] * frac[1] * frac[2] ;
-
-                // LHH
-                cell[0]    = cell[0] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * frac[2] ;
-
-                // LLH
-                cell[1]    = cell[1] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * frac[2] ;
-    
-                // HLH
-                cell[0]    = cell[0] + 1;
-                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * frac[2] ;
-
-                cell = csect;
-
-                // HHL
-                cell[2]  = cell[2] - 1;
-                fab(cell) += p.m_data[0] * frac[0] * frac[1] * (1-frac[2]);
-    
-                // LHL
-                cell[0]    = cell[0] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * frac[1] * (1-frac[2]);
-
-                // LLL
-                cell[1]    = cell[1] - 1;
-                fab(cell) += p.m_data[0] * (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
-    
-                // HLL
-                cell[0]    = cell[0] + 1;
-                fab(cell) += p.m_data[0] * frac[0] * (1-frac[1]) * (1-frac[2]);
-#endif
+                for (int i = 0; i < M; i++)
+                {
+                    fab(cells[i]) += p.m_data[0] * fracs[i];
+                }
             }
             else
             {
                 //
-                // This code assumes that ref ratio is 2 !!!
-                //
-                const Real len_crse[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-problo[0])/(2*dx[0]) + 0.5,
-                                                            (p.m_pos[1]-problo[1])/(2*dx[1]) + 0.5,
-                                                            (p.m_pos[2]-problo[2])/(2*dx[2]) + 0.5) };
-
-                const IntVect csect_crse(D_DECL(floor(len_crse[0]), floor(len_crse[1]), floor(len_crse[2])));
-
-                Real frac_crse[BL_SPACEDIM] = { D_DECL(len_crse[0]-csect_crse[0],
-                                                       len_crse[1]-csect_crse[1],
-                                                       len_crse[2]-csect_crse[2]) };
-
-                for (int d = 0; d < BL_SPACEDIM; d++)
-                {
-                    if (frac_crse[d] > 1) frac_crse[d] = 1;
-                    if (frac_crse[d] < 0) frac_crse[d] = 0;
-                }
-
-                Real sum_crse = 0;
+                // We have some fine->crse action.
                 //
                 // We first update only those fine ghost cells that cross fine->crse
-                // boundary using frac_crse[] instead of frac[].
+                // boundary using fracs_crse based on crse dx.
                 //
-#if (BL_SPACEDIM == 1)
-                // High
-                if (which[0])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0];
-                    sum_crse  += p.m_data[0] * frac_crse[0];
-                }
+                // This code assumes that ref ratio is 2 !!!
+                //
+                Real dx_crse[BL_SPACEDIM] = { D_DECL(2*dx[0], 2*dx[1], 2*dx[2]) };
+                //
+                // "cells_crse" won't be used since we always use "cells" giving we're indexing into fine cells.
+                //
+                ParticleBase::AssignDensityCoeffs(p, plo, dx_crse, fracs_crse, cells_crse);
 
-                // Low
-                cell[0] = cell[0] - 1;
-                if (which[1])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]);
-                    sum_crse  += p.m_data[0] * (1-frac_crse[0]);
-                }
+                Real sum_crse = 0;
 
-#elif (BL_SPACEDIM == 2)
-                // HH
-                if (which[0])
+                for (int i = 0; i < M; i++)
                 {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1] ;
-                    sum_crse  += p.m_data[0] * frac_crse[0] * frac_crse[1] ;
+                    if (which[i])
+                    {
+                        fab(cells[i]) += p.m_data[0] * fracs_crse[i];
+                        sum_crse      += p.m_data[0] * fracs_crse[i];
+                    }
                 }
-    
-                // LH
-                cell[0] = cell[0] - 1;
-                if (which[1])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] ;
-                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] ;
-                }
-    
-                // LL
-                cell[1] = cell[1] - 1;
-                if (which[2])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]);
-                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]);
-                }
-    
-                // HL
-                cell[0] = cell[0] + 1;
-                if (which[3])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]);
-                    sum_crse  += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]);
-                }
-
-#elif (BL_SPACEDIM == 3)
-                // HHH
-                if (which[0])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1] * frac_crse[2] ;
-                    sum_crse  += p.m_data[0] * frac_crse[0] * frac_crse[1] * frac_crse[2] ;
-                }
-
-                // LHH
-                cell[0] = cell[0] - 1;
-                if (which[1])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * frac_crse[2] ;
-                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * frac_crse[2] ;
-                }
-
-                // LLH
-                cell[1] = cell[1] - 1;
-                if (which[2])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * frac_crse[2] ;
-                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * frac_crse[2] ;
-                }
-    
-                // HLH
-                cell[0] = cell[0] + 1;
-                if (which[3])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * frac_crse[2] ;
-                    sum_crse  += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * frac_crse[2] ;
-                }
-
-                cell = csect;
-
-                // HHL
-                cell[2] = cell[2] - 1;
-                if (which[4])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1] * (1-frac_crse[2]);
-                    sum_crse  += p.m_data[0] * frac_crse[0] * frac_crse[1] * (1-frac_crse[2]);
-                }
-    
-                // LHL
-                cell[0] = cell[0] - 1;
-                if (which[5])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * (1-frac_crse[2]);
-                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * (1-frac_crse[2]);
-                }
-
-                // LLL
-                cell[1] = cell[1] - 1;
-                if (which[6])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * (1-frac_crse[2]);
-                    sum_crse  += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * (1-frac_crse[2]);
-                }
-    
-                // HLL
-                cell[0] = cell[0] + 1;
-                if (which[7])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * (1-frac_crse[2]);
-                    sum_crse  += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * (1-frac_crse[2]);
-                }
-#endif
                 //
                 // Next update all cells that don't extend across fine->crse boundary using the following multiplier.
                 //
                 const Real mult = (1 - sum_crse/p.m_data[0]);
 
-                cell = csect;
-
-#if (BL_SPACEDIM == 1)
-                // High
-                if (!which[0])
+                for (int i = 0; i < M; i++)
                 {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * mult;
+                    if (!which[i])
+                    {
+                        fab(cells[i]) += p.m_data[0] * fracs[i] * mult;
+                    }
                 }
-
-                // Low
-                cell[0] = cell[0] - 1;
-                if (!which[1])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * mult;
-                }
-
-#elif (BL_SPACEDIM == 2)
-                // HH
-                if (!which[0])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1 * mult;
-                }
-    
-                // LH
-                cell[0] = cell[0] - 1;
-                if (!which[1])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * mult;
-                }
-    
-                // LL
-                cell[1] = cell[1] - 1;
-                if (!which[2])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * mult;
-                }
-    
-                // HL
-                cell[0] = cell[0] + 1;
-                if (!which[3])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * mult;
-                }
-
-#elif (BL_SPACEDIM == 3)
-                // HHH
-                if (!which[0])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1] * frac_crse[2] * mult;
-                }
-
-                // LHH
-                cell[0] = cell[0] - 1;
-                if (!which[1])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * frac_crse[2] * mult;
-                }
-
-                // LLH
-                cell[1] = cell[1] - 1;
-                if (!which[2])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * frac_crse[2] * mult;
-                }
-    
-                // HLH
-                cell[0] = cell[0] + 1;
-                if (!which[3])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * frac_crse[2] * mult;
-                }
-
-                cell = csect;
-
-                // HHL
-                cell[2] = cell[2] - 1;
-                if (!which[4])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * frac_crse[1] * (1-frac_crse[2]) * mult;
-                }
-    
-                // LHL
-                cell[0] = cell[0] - 1;
-                if (!which[5])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * frac_crse[1] * (1-frac_crse[2]) * mult;
-                }
-
-                // LLL
-                cell[1] = cell[1] - 1;
-                if (!which[6])
-                {
-                    fab(cell) += p.m_data[0] * (1-frac_crse[0]) * (1-frac_crse[1]) * (1-frac_crse[2]) * mult;
-                }
-    
-                // HLL
-                cell[0] = cell[0] + 1;
-                if (!which[7])
-                {
-                    fab(cell) += p.m_data[0] * frac_crse[0] * (1-frac_crse[1]) * (1-frac_crse[2]) * mult;
-                }
-#endif
             }
         }
     }
