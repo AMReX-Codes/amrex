@@ -102,6 +102,91 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
 }
 
 bool
+ParticleBase::CrseToFine (const IntVect&  csect,
+                          const BoxArray& cfba,
+                          int*            which)
+{
+    //
+    // We're in AssignDensity(). We want to know whether or not updating
+    // with a particle at "cell", will we cross a  crse->fine boundary of
+    // the level with coarsened fine BoxArray "cfba".
+    // "csect" is as calculated in AssignDensity().
+    //
+    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
+        which[i] = 0;
+    //
+    // We test all the permutations of "csect" from AssignDensityDoit()
+    // to see whether or not they're contained in our valid region BoxArray "ba".
+    //
+    IntVect iv = csect;
+
+#if (BL_SPACEDIM == 1)
+    // High
+    which[0] = !cfba.contains(iv);
+
+    // Low
+    iv[0]    = iv[0] - 1;
+    which[1] = !cfba.contains(iv);
+
+#elif (BL_SPACEDIM == 2)
+    // HH
+    which[0] = !cfba.contains(iv);
+    
+    // LH
+    iv[0]    = iv[0] - 1;
+    which[1] = !cfba.contains(iv);
+    
+    // LL
+    iv[1]    = iv[1] - 1;
+    which[2] = !cfba.contains(iv);
+    
+    // HL
+    iv[0]    = iv[0] + 1;
+    which[3] = !cfba.contains(iv);
+
+#elif (BL_SPACEDIM == 3)
+    // HHH
+    which[0] = !cfba.contains(iv);
+
+    // LHH
+    iv[0]    = iv[0] - 1;
+    which[1] = !cfba.contains(iv);
+
+    // LLH
+    iv[1]    = iv[1] - 1;
+    which[2] = !cfba.contains(iv);
+    
+    // HLH
+    iv[0]    = iv[0] + 1;
+    which[3] = !cfba.contains(iv);
+
+    iv = csect;
+
+    // HHL
+    iv[2]    = iv[2] - 1;
+    which[4] = !cfba.contains(iv);
+    
+    // LHL
+    iv[0]    = iv[0] - 1;
+    which[5] = !cfba.contains(iv);
+
+    // LLL
+    iv[1]    = iv[1] - 1;
+    which[6] = !cfba.contains(iv);
+    
+    // HLL
+    iv[0]    = iv[0] + 1;
+    which[7] = !cfba.contains(iv);
+#endif
+
+    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
+        if (which[i])
+            return true;
+
+    return false;
+}
+
+bool
 ParticleBase::FineToCrse (const IntVect&  cell,
                           const IntVect&  csect,
                           const Box&      vbx,
@@ -114,6 +199,9 @@ ParticleBase::FineToCrse (const IntVect&  cell,
     // fine->crse boundary of the level with BoxArray "ba".  "csect" is as
     // calculated in AssignDensity().
     //
+    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
+        which[i] = 0;
+
     Box ibx = BoxLib::grow(vbx,-1);
 
     BL_ASSERT(ibx.ok());
