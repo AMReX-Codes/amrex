@@ -2,12 +2,111 @@
 #include <ParmParse.H>
 #include <limits>
 
+void
+ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
+                                   const Real*         plo,
+                                   const Real*         dx,
+                                   Real*               fracs,
+                                   IntVect*            cells)
+{
+    const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + 0.5,
+                                           (p.m_pos[1]-plo[1])/dx[1] + 0.5,
+                                           (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
+
+    const IntVect csect(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+
+    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-csect[0], len[1]-csect[1], len[2]-csect[2]) };
+
+    for (int d = 0; d < BL_SPACEDIM; d++)
+    {
+        if (frac[d] > 1) frac[d] = 1;
+        if (frac[d] < 0) frac[d] = 0;
+    }
+
+    IntVect cell = csect;
+    //
+    // Note the cells[0] contains csect.
+    //
+#if (BL_SPACEDIM == 1)
+    // High
+    cells[0] = cell;
+    fracs[0] = frac[0];
+
+    // Low
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+    fracs[1] = (1-frac[0]);
+
+#elif (BL_SPACEDIM == 2)
+    // HH
+    cells[0] = cell;
+    fracs[0] = frac[0] * frac[1] ;
+    
+    // LH
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+    fracs[1] = (1-frac[0]) * frac[1];
+    
+    // LL
+    cell[1]  = cell[1] - 1;
+    cells[2] = cell;
+    fracs[2] = (1-frac[0]) * (1-frac[1]);
+    
+    // HL
+    cell[0]  = cell[0] + 1;
+    cells[3] = cell;
+    fracs[3] = frac[0] * (1-frac[1]);
+
+#elif (BL_SPACEDIM == 3)
+    // HHH
+    cells[0] = cell;
+    fracs[0] = frac[0] * frac[1] * frac[2];
+
+    // LHH
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+    fracs[1] = (1-frac[0]) * frac[1] * frac[2];
+
+    // LLH
+    cell[1]  = cell[1] - 1;
+    cells[2] = cell;
+    fracs[2] = (1-frac[0]) * (1-frac[1]) * frac[2];
+    
+    // HLH
+    cell[0]  = cell[0] + 1;
+    cells[3] = cell;
+    fracs[3] = frac[0] * (1-frac[1]) * frac[2];
+
+    cell = csect;
+
+    // HHL
+    cell[2]  = cell[2] - 1;
+    cells[4] = cell;
+    fracs[4] = frac[0] * frac[1] * (1-frac[2]);
+    
+    // LHL
+    cell[0]  = cell[0] - 1;
+    cells[5] = cell;
+    fracs[5] = (1-frac[0]) * frac[1] * (1-frac[2]);
+
+    // LLL
+    cell[1]  = cell[1] - 1;
+    cells[6] = cell;
+    fracs[6] = (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
+    
+    // HLL
+    cell[0]  = cell[0] + 1;
+    cells[7] = cell;
+    fracs[7] = frac[0] * (1-frac[1]) * (1-frac[2]);
+#endif
+}
+
 bool
 ParticleBase::FineToCrse (const IntVect&  cell,
                           const IntVect&  csect,
                           const Box&      vbx,
                           const BoxArray& ba,
-                          Array<int>&     which)
+                          int*            which)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
@@ -92,7 +191,7 @@ ParticleBase::FineToCrse (const IntVect&  cell,
     which[7] = !ba.contains(iv);
 #endif
 
-    for (int i = 0, N = which.size(); i < N; i++)
+    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
         if (which[i])
             return true;
 
