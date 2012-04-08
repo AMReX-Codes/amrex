@@ -1548,6 +1548,11 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
 
             if (!finetocrse)
             {
+                //
+                // Note that this may do the "wrong" thing at Crse->Fine boundaries.
+                // We'll fix this up later by zeroing any cells covered by fine grid
+                // and by giving the Crse->Fine weigths to the appropriate fine cell.
+                //
                 for (int i = 0; i < M; i++)
                 {
                     fab(cells[i]) += p.m_data[0] * fracs[i];
@@ -1620,6 +1625,9 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
             }
         }
     }
+    //
+    // Pass Crse->Fine data to Fine.
+    //
 
     mf.SumBoundary();
     gm.SumPeriodicBoundary(mf);
