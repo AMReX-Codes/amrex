@@ -52,8 +52,6 @@ struct ParticleBase
 
     static void Interp (const ParticleBase& prt, const Amr* amr, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
-    static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
-
     static const std::string& Version ();
 
     static const std::string& DataPrefix ();
@@ -77,7 +75,11 @@ struct ParticleBase
     //
     // Used by AssignDensity.
     //
+    static bool CrseToFine (const IntVect& csect, const BoxArray& cfba, int* which);
+
     static bool FineToCrse (const IntVect& cell, const IntVect& csect, const Box& vbx, const BoxArray& ba, int* which);
+
+    static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
     //
     // Used for partitioning particles into valid & invalid groups.
     //
@@ -1459,10 +1461,14 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
     BL_ASSERT(mf.boxArray() == m_amr->boxArray(lev));
 
-    const Geometry& gm   = m_amr->Geom(lev);
-    const PMap&     pmap = m_particles[lev];
-    const int       n    = pmap.size();
-    const BoxArray& ba   = mf.boxArray();
+    const Geometry& gm               = m_amr->Geom(lev);
+    const Real*     dx               = gm.CellSize();
+    const PMap&     pmap             = m_particles[lev];
+    const int       n                = pmap.size();
+    const int       M                = D_TERM(2,+2,+4);
+    const BoxArray& ba               = mf.boxArray();
+    const Real      plo[BL_SPACEDIM] = { D_DECL(gm.ProbLo(0), gm.ProbLo(1), gm.ProbLo(2)) };
+    const int       finest_level     = m_amr->finestLevel();
 
     if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
     {
@@ -1474,15 +1480,19 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
         mf[mfi].setVal(0);
     }
 
-    const Real plo[BL_SPACEDIM] = { D_DECL(gm.ProbLo(0), gm.ProbLo(1), gm.ProbLo(2)) };
+    BoxArray cfba;
 
-    const Real* dx = gm.CellSize();
+    if (lev < finest_level)
+    {
+        //
+        // Build a coarsened fine BoxArray for Crse->Fine issue.
+        //
+        cfba = m_amr->boxArray(lev+1);
 
-    const int M = D_TERM(2,+2,+4);
+        cfba.coarsen(m_amr->refRatio(lev));
 
-    int     which[M];
-    Real    fracs[M], fracs_crse[M];
-    IntVect cells[M], cells_crse[M];
+        BL_ASSERT(mf.boxArray().contains(cfba));
+    }
     //
     // This is a little funky.  What in effect this'll do is force
     // each thread to work on a single (separate) grid at a time.  That
@@ -1499,14 +1509,19 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
         pbxs[j] = &(pmap_it->second);
     }
 
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic,1) if (n > 1)
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel for schedule(dynamic,1) if (n > 1)
+//#endif
     for (int i = 0; i < n; i++)
     {
-        const PBox& pbox = *pbxs[i];
-        FArrayBox&  fab  = mf[pgrd[i]];
-        const Box&  vbx  = mf.boxArray()[pgrd[i]];
+        const PBox& pbox          = *pbxs[i];
+        FArrayBox&  fab           = mf[pgrd[i]];
+        const Box&  vbx           = mf.boxArray()[pgrd[i]];
+        bool        anycrsetofine = false;
+
+        int     which[M];
+        Real    fracs[M], fracs_crse[M];
+        IntVect cells[M], cells_crse[M];
 
         for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
         {
@@ -1577,6 +1592,32 @@ ParticleContainer<N>::AssignDensityDoit (MultiFab& mf,
                     }
                 }
             }
+
+            const bool crsetofine = lev < finest_level ? ParticleBase::CrseToFine(csect,cfba,which) : false;
+
+            if (crsetofine)
+            {
+                //
+                // Here we need to deal with Crse->Fine.
+                //
+                anycrsetofine = true;
+
+            }
+        }
+
+        if (anycrsetofine)
+        {
+            //
+            // Zero out any region covered by fine grid.
+            //
+            BL_ASSERT(lev < finest_level);
+
+            std::vector< std::pair<int,Box> > isects = cfba.intersections(fab.box());
+
+            for (int ii = 0, NN = isects.size(); ii < NN; ii++)
+            {
+                fab.setVal(0,isects[ii].second,0,fab.nComp());
+            }
         }
     }
 
@@ -1641,11 +1682,15 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
     mf.resize(finest_level+1, PArrayManage);
     //
-    // Build the MultiFabs level by level.
+    // Build the MultiFabs level by level before calling AssignDensityDoit().
     //
     for (int i = 0; i <= finest_level; i++)
     {
         mf.set(i, new MultiFab(m_amr->boxArray(i), 1, 1));
+    }
+
+    for (int i = 0; i <= finest_level; i++)
+    {
         //
         // This assigns all the particle masses.
         //
@@ -1653,6 +1698,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         //
         AssignDensityDoit(mf[i],i);
     }
+
+#if 0
     //
     // Next we have to sum up from coarse to fine on any
     // coarse valid region covered by fine valid region.
@@ -1683,6 +1730,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                  ratio.getVect());
         }
     }
+#endif
     //
     // Next we have to sum down from fine to coarse only over
     // fine ghost cells that are not covered by fine valid region.
