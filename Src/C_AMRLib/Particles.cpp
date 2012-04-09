@@ -109,14 +109,13 @@ ParticleBase::CrseToFine (const IntVect&  csect,
     //
     // We're in AssignDensity(). We want to know whether or not updating
     // with a particle at "cell", will we cross a  crse->fine boundary of
-    // the level with coarsened fine BoxArray "cfba".
-    // "csect" is as calculated in AssignDensity().
+    // the level with coarsened fine BoxArray "cfba".  "csect" is as calculated
+    // in AssignDensity().
     //
     for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
         which[i] = 0;
     //
-    // We test all the permutations of "csect" from AssignDensityDoit()
-    // to see whether or not they're contained in our valid region BoxArray "ba".
+    // We test all the permutations of "csect" from AssignDensityDoit().
     //
     IntVect iv = csect;
 
