@@ -106,17 +106,17 @@ ParticleBase::CrseToFine (const ParticleBase& p,
                           const Real*         plo,
                           const Real*         dx,
                           const BoxArray&     cfba,
+                          const IntVect*      cells,
                           bool*               which,
                           int*                fgrid)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
     // with a particle, will we cross a  crse->fine boundary of the level
-    // with coarsened fine BoxArray "cfba".
+    // with coarsened fine BoxArray "cfba".  "cells" are calculated from
+    // AssignDensityCoeffs().
     //
     const int M = D_TERM(2,+2,+4);
-
-    bool result = false;
 
     for (int i = 0; i < M; i++)
     {
@@ -124,10 +124,7 @@ ParticleBase::CrseToFine (const ParticleBase& p,
         which[i] =  false;
     }
 
-    Real    fracs[M];
-    IntVect cells[M];
-
-    ParticleBase::AssignDensityCoeffs(p, plo, dx, fracs, cells);
+    bool result = false;
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -141,7 +138,7 @@ ParticleBase::CrseToFine (const ParticleBase& p,
 
             result   = true;
             which[i] = true;
-            fgrid[i] = isects[0].first;  // The grid ID at fine level we hit.
+            fgrid[i] = isects[0].first;  // The grid ID at fine level that we hit.
         }
     }
 
@@ -154,12 +151,14 @@ ParticleBase::FineToCrse (const ParticleBase& p,
                           const Real*         dx,
                           const Box&          vbx,
                           const BoxArray&     ba,
+                          const IntVect*      cells,
                           bool*               which)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
     // with a particle at "cell", whose valid box is "vbx", will we cross a
-    // fine->crse boundary of the level with BoxArray "ba".
+    // fine->crse boundary of the level with BoxArray "ba".  "cells" are
+    // calculated from AssignDensityCoeffs().
     //
     const int M = D_TERM(2,+2,+4);
 
@@ -180,11 +179,6 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     // Otherwise ...
     //
     bool result = false;
-
-    Real    fracs[M];
-    IntVect cells[M];
-
-    ParticleBase::AssignDensityCoeffs(p, plo, dx, fracs, cells);
 
     for (int i = 0; i < M; i++)
     {
