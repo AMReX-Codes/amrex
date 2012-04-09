@@ -25,7 +25,7 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
 
     IntVect cell = csect;
     //
-    // Note the cells[0] contains csect.
+    // Note that cells[0] contains csect.
     //
 #if (BL_SPACEDIM == 1)
     // High
@@ -102,110 +102,75 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
 }
 
 bool
-ParticleBase::CrseToFine (const IntVect&  csect,
-                          const BoxArray& cfba,
-                          int*            which)
+ParticleBase::CrseToFine (const ParticleBase& p,
+                          const Real*         plo,
+                          const Real*         dx,
+                          const BoxArray&     cfba,
+                          bool*               which,
+                          int*                fgrid)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
-    // with a particle at "cell", will we cross a  crse->fine boundary of
-    // the level with coarsened fine BoxArray "cfba".  "csect" is as calculated
-    // in AssignDensity().
+    // with a particle, will we cross a  crse->fine boundary of the level
+    // with coarsened fine BoxArray "cfba".
     //
-    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
-        which[i] = 0;
-    //
-    // We test all the permutations of "csect" from AssignDensityDoit().
-    //
-    IntVect iv = csect;
+    const int M = D_TERM(2,+2,+4);
 
-#if (BL_SPACEDIM == 1)
-    // High
-    which[0] = !cfba.contains(iv);
+    bool result = false;
 
-    // Low
-    iv[0]    = iv[0] - 1;
-    which[1] = !cfba.contains(iv);
+    for (int i = 0; i < M; i++)
+    {
+        fgrid[i] = -1;
+        which[i] =  false;
+    }
 
-#elif (BL_SPACEDIM == 2)
-    // HH
-    which[0] = !cfba.contains(iv);
-    
-    // LH
-    iv[0]    = iv[0] - 1;
-    which[1] = !cfba.contains(iv);
-    
-    // LL
-    iv[1]    = iv[1] - 1;
-    which[2] = !cfba.contains(iv);
-    
-    // HL
-    iv[0]    = iv[0] + 1;
-    which[3] = !cfba.contains(iv);
+    Real    fracs[M];
+    IntVect cells[M];
 
-#elif (BL_SPACEDIM == 3)
-    // HHH
-    which[0] = !cfba.contains(iv);
+    ParticleBase::AssignDensityCoeffs(p, plo, dx, fracs, cells);
 
-    // LHH
-    iv[0]    = iv[0] - 1;
-    which[1] = !cfba.contains(iv);
+    std::vector< std::pair<int,Box> > isects;
 
-    // LLH
-    iv[1]    = iv[1] - 1;
-    which[2] = !cfba.contains(iv);
-    
-    // HLH
-    iv[0]    = iv[0] + 1;
-    which[3] = !cfba.contains(iv);
+    for (int i = 0; i < M; i++)
+    {
+        isects = cfba.intersections(Box(cells[i],cells[i]));
 
-    iv = csect;
+        if (!isects.empty())
+        {
+            BL_ASSERT(isects.size() == 1);
 
-    // HHL
-    iv[2]    = iv[2] - 1;
-    which[4] = !cfba.contains(iv);
-    
-    // LHL
-    iv[0]    = iv[0] - 1;
-    which[5] = !cfba.contains(iv);
+            result   = true;
+            which[i] = true;
+            fgrid[i] = isects[0].first;  // The grid ID at fine level we hit.
+        }
+    }
 
-    // LLL
-    iv[1]    = iv[1] - 1;
-    which[6] = !cfba.contains(iv);
-    
-    // HLL
-    iv[0]    = iv[0] + 1;
-    which[7] = !cfba.contains(iv);
-#endif
-
-    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
-        if (which[i])
-            return true;
-
-    return false;
+    return result;
 }
 
 bool
-ParticleBase::FineToCrse (const IntVect&  cell,
-                          const IntVect&  csect,
-                          const Box&      vbx,
-                          const BoxArray& ba,
-                          int*            which)
+ParticleBase::FineToCrse (const ParticleBase& p,
+                          const Real*         plo,
+                          const Real*         dx,
+                          const Box&          vbx,
+                          const BoxArray&     ba,
+                          bool*               which)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
     // with a particle at "cell", whose valid box is "vbx", will we cross a
-    // fine->crse boundary of the level with BoxArray "ba".  "csect" is as
-    // calculated in AssignDensity().
+    // fine->crse boundary of the level with BoxArray "ba".
     //
-    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
-        which[i] = 0;
+    const int M = D_TERM(2,+2,+4);
+
+    for (int i = 0; i < M; i++)
+        which[i] = false;
 
     Box ibx = BoxLib::grow(vbx,-1);
 
     BL_ASSERT(ibx.ok());
 
-    if (ibx.contains(cell))
+    if (ibx.contains(p.m_cell))
         //
         // We're strictly contained in our valid box.
         // We can't cross a fine->crse boundary.
@@ -214,75 +179,23 @@ ParticleBase::FineToCrse (const IntVect&  cell,
     //
     // Otherwise ...
     //
-    // We test all the permutations of "csect" from AssignDensityDoit()
-    // to see whether or not they're contained in our valid region BoxArray "ba".
-    //
-    IntVect iv = csect;
+    bool result = false;
 
-#if (BL_SPACEDIM == 1)
-    // High
-    which[0] = !ba.contains(iv);
+    Real    fracs[M];
+    IntVect cells[M];
 
-    // Low
-    iv[0]    = iv[0] - 1;
-    which[1] = !ba.contains(iv);
+    ParticleBase::AssignDensityCoeffs(p, plo, dx, fracs, cells);
 
-#elif (BL_SPACEDIM == 2)
-    // HH
-    which[0] = !ba.contains(iv);
-    
-    // LH
-    iv[0]    = iv[0] - 1;
-    which[1] = !ba.contains(iv);
-    
-    // LL
-    iv[1]    = iv[1] - 1;
-    which[2] = !ba.contains(iv);
-    
-    // HL
-    iv[0]    = iv[0] + 1;
-    which[3] = !ba.contains(iv);
+    for (int i = 0; i < M; i++)
+    {
+        if (!ba.contains(cells[i]))
+        {
+            result   = true;
+            which[i] = true;
+        }
+    }
 
-#elif (BL_SPACEDIM == 3)
-    // HHH
-    which[0] = !ba.contains(iv);
-
-    // LHH
-    iv[0]    = iv[0] - 1;
-    which[1] = !ba.contains(iv);
-
-    // LLH
-    iv[1]    = iv[1] - 1;
-    which[2] = !ba.contains(iv);
-    
-    // HLH
-    iv[0]    = iv[0] + 1;
-    which[3] = !ba.contains(iv);
-
-    iv = csect;
-
-    // HHL
-    iv[2]    = iv[2] - 1;
-    which[4] = !ba.contains(iv);
-    
-    // LHL
-    iv[0]    = iv[0] - 1;
-    which[5] = !ba.contains(iv);
-
-    // LLL
-    iv[1]    = iv[1] - 1;
-    which[6] = !ba.contains(iv);
-    
-    // HLL
-    iv[0]    = iv[0] + 1;
-    which[7] = !ba.contains(iv);
-#endif
-
-    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
-        if (which[i])
-            return true;
-
-    return false;
+    return result;
 }
 
 int

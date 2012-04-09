@@ -75,9 +75,9 @@ struct ParticleBase
     //
     // Used by AssignDensity.
     //
-    static bool CrseToFine (const IntVect& csect, const BoxArray& cfba, int* which);
+    static bool CrseToFine (const ParticleBase& p, const Real* plo, const Real* dx, const BoxArray& cfba, bool* which, int* fgrid);
 
-    static bool FineToCrse (const IntVect& cell, const IntVect& csect, const Box& vbx, const BoxArray& ba, int* which);
+    static bool FineToCrse (const ParticleBase& p, const Real* plo, const Real* dx, const Box& vbx, const BoxArray& ba, bool* which);
 
     static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
     //
@@ -1492,7 +1492,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
         const PBox& pbx = *pbxs[i];
         FArrayBox&  fab = mf[pgrd[i]];
 
-        int     which[M];
+        bool    which[M];
         Real    fracs[M];
         IntVect cells[M];
 
@@ -1628,7 +1628,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             const Box&  vbx     = ba[pgrd[i]];
             bool        AnyCtoF = false;
 
-            int     which[M];
+            int     fgrid[M];
+            bool    which[M];
             Real    fracs[M], fracs_crse[M];
             IntVect cells[M], cells_crse[M];
 
@@ -1653,7 +1654,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     if (!gm.Domain().contains(csect))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
-                const bool finetocrse = lev > 0 ? ParticleBase::FineToCrse(p.m_cell,csect,vbx,ba,which) : false;
+                const bool finetocrse = lev > 0 ? ParticleBase::FineToCrse(p,plo,dx,vbx,ba,which) : false;
 
                 if (!finetocrse)
                 {
@@ -1680,7 +1681,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     //
                     Real dx_crse[BL_SPACEDIM] = { D_DECL(2*dx[0], 2*dx[1], 2*dx[2]) };
                     //
-                    // "cells_crse" won't be used since we always use "cells" giving
+                    // "cells_crse" won't be used since we always use "cells" given
                     // we're indexing into fine cells.
                     //
                     ParticleBase::AssignDensityCoeffs(p, plo, dx_crse, fracs_crse, cells_crse);
@@ -1710,7 +1711,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     }
                 }
 
-                const bool crsetofine = lev < finest_level ? ParticleBase::CrseToFine(csect,cfba,which) : false;
+                const bool crsetofine = lev < finest_level ? ParticleBase::CrseToFine(p,plo,dx,cfba,which,fgrid) : false;
 
                 if (crsetofine)
                 {
@@ -1719,6 +1720,17 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     //
                     AnyCtoF = true;
 
+                    for (int i = 0; i < M; i++)
+                    {
+                        if (which[i])
+                        {
+
+
+
+
+//                            fab(cells[i]) += p.m_data[0] * fracs[i] * mult;
+                        }
+                    }
                 }
             }
 
