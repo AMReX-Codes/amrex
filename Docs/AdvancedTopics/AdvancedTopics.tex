@@ -74,33 +74,20 @@ end do
 \end{lstlisting}
 
 To ``thread'' the code, we simply add OpenMP directives (using the {\tt !\$omp parallel do} construct) to any i/j/k loops
-we are interested in threading:
+we are interested in threading.  For example, in {\tt init\_phi.f90}:
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
-subroutine init_phi_2d(phi, ng, lo, hi, prob_lo, dx)
+!$omp parallel do private(i,j,x,y,r2)
+do j=lo(2),hi(2)
+   y = prob_lo(2) + (dble(j)+0.5d0) * dx
+   do i=lo(1),hi(1)
+      x = prob_lo(1) + (dble(i)+0.5d0) * dx
 
-  integer          :: lo(2), hi(2), ng
-  double precision :: phi(lo(1)-ng:,lo(2)-ng:)
-  double precision :: prob_lo(2)
-  double precision :: dx
- 
-  ! local varables
-  integer          :: i,j
-  double precision :: x,y,r2
+      r2 = (x*x + y*y) / 0.01
+      phi(i,j) = exp(-r2)
 
-  !$omp parallel do private(i,j,x,y,r2)
-  do j=lo(2),hi(2)
-     y = prob_lo(2) + (dble(j)+0.5d0) * dx
-     do i=lo(1),hi(1)
-        x = prob_lo(1) + (dble(i)+0.5d0) * dx
-
-        r2 = (x*x + y*y) / 0.01
-        phi(i,j) = exp(-r2)
-
-     end do
-  end do
-  !$omp end parallel do
-
-end subroutine init_phi_2d
+   end do
+end do
+!$omp end parallel do
 \end{lstlisting}
 This User's Guide is not a manual on OpenMP, so simply note that this particular 
 construct tells each thread to work on different values of {\tt j}, with each 
@@ -242,7 +229,8 @@ correspond to the x-velocity, {\tt nvar=2} correspond to density, and {\tt nvar=
 In the {\tt BoxLib/Tutorials/HeatEquation\_EX2\_F/} tutorial, there is only one variable, $\phi$, so
 obviously {\tt nvar=1} shall correspond to $\phi$.  When we build the {\tt adv\_bc\_level\_array},
 we first set all values to {\tt INTERIOR}, and then overwrite any physical domain boundary condition types,
-as given in {\tt phys\_bc\_level\_array}.  The {\tt adv\_bc\_level\_array} types supported by default are:
+as given in {\tt phys\_bc\_level\_array}.  The {\tt adv\_bc\_level\_array} types supported by default are
+(as listed in {\tt BoxLib/Src/F\_BaseLib/bc.f90}):
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
 integer, parameter, public :: INTERIOR     =  0
 
@@ -255,7 +243,7 @@ integer, parameter, public :: HOEXTRAP     =  24
 
 To manually fill ghost cells, we call {\tt multifab\_physbc}, passing in the state multifab
 along with the {\tt adv\_bc\_level\_array}.  The subroutines {\tt physbc\_1d/2d/3d} in
-{\tt multifab\_physbc.f90}, indicate how to fill ghost cells.  For example,
+{\tt BoxLib/Src/F\_BaseLib/multifab\_physbc.f90}, indicate how to fill ghost cells.  For example,
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
 subroutine multifab_physbc(s,start_scomp,start_bccomp,ncomp,the_bc_level)
 
