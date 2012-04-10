@@ -1585,11 +1585,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         const PMap&     pmap = m_particles[lev];
         const int       n    = pmap.size();
         const BoxArray& ba   = mf[lev].boxArray();
+        BoxArray        cfba;
 
         if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
             BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
-
-        BoxArray cfba;
 
         if (lev < lfinest)
         {
@@ -1627,8 +1626,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
             int      fgrid[M],  cgrid[M];
             bool    cwhich[M], fwhich[M];
-            Real     fracs[M], cfracs[M], ffracs[M];
-            IntVect  cells[M], ccells[M], fcells[M];
+            Real     fracs[M];
+            IntVect  cells[M];
 
             for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end(); it != End; ++it)
             {
@@ -1664,9 +1663,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     // Just do it ...
                     //
                     for (int i = 0; i < M; i++)
-                    {
                         fab(cells[i]) += p.m_data[0] * fracs[i];
-                    }
                 }
 
                 if (finetocrse)
@@ -1679,11 +1676,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     //
                     // This code assumes that ref ratio is 2 !!!
                     //
-                    Real cdx[BL_SPACEDIM] = { D_DECL(2*dx[0], 2*dx[1], 2*dx[2]) };
+                    Real     sum_crse = 0, sum_fine = 0;;
+                    Real     cfracs[M];
+                    Real     cdx[BL_SPACEDIM] = { D_DECL(2*dx[0], 2*dx[1], 2*dx[2]) };
+                    IntVect  ccells[M];
 
                     ParticleBase::AssignDensityCoeffs(p, plo, cdx, cfracs, ccells);
-
-                    Real sum_crse = 0;
 
                     for (int i = 0; i < M; i++)
                     {
@@ -1691,6 +1689,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         {
                             //
                             // Here we need to update the crse region.
+                            // The coarse region is always going to be
+                            // updated if we have a particle in a cell
+                            // bordering a Fine->Crse boundary.  This
+                            // is regardless of whether or not the particle
+                            // is within dx/2 of the boundary.
                             //
                             // NOTE: This won't work in parallel.
                             //
@@ -1703,60 +1706,147 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             // using cfracs and ccells.
                             //
                             cfab(ccells[i]) += p.m_data[0] * cfracs[i];
-                            sum_crse        += p.m_data[0] * cfracs[i];
+                            sum_crse        +=               cfracs[i];
+                        }
+                    }
+                    //
+                    // We've updated the Crse cells.  Now we have to update the fine
+                    // cells in such a way that the total amount of mass we move
+                    // around is precisely p.m_data[0]. In other words, the fractions
+                    // we use at crse and fine have to sum to zero.  In the fine
+                    // case, we have to account for the case where one or more of the
+                    // cells indices is not in the valid region of the cell.
+                    //
+                    for (int i = 0; i < M; i++)
+                    {
+                        if (vbx.contains(cells[i]))
+                        {
+                            fwhich[i] = true;
+                            sum_fine += fracs[i];
+                        }
+                        else
+                        {
+                            fwhich[i] = false;
                         }
                     }
 
-                    const Real mult = (1 - (sum_crse / p.m_data[0]));
+                    BL_ASSERT(sum_fine > 0);
+
+                    const Real mult = (1 - sum_crse) / sum_fine;
+
+                    sum_fine = 0;
 
                     for (int i = 0; i < M; i++)
                     {
-                        if (!fwhich[i])
+                        if (fwhich[i])
                         {
                             fab(cells[i]) += p.m_data[0] * fracs[i] * mult;
+                            sum_fine      +=               fracs[i] * mult;
                         }
                     }
+
+                    BL_ASSERT(std::abs(1-(sum_crse+sum_fine)) < 1.e-7);
                 }
 
                 if (crsetofine)
                 {
+                    //
+                    // Deposit stuff on Crse grid as usual.
+                    //
+                    Real sum_crse = 0;
+
                     for (int i = 0; i < M; i++)
                     {
                         if (!cwhich[i])
                         {
-                            //
-                            // The usual ...
-                            //
                             fab(cells[i]) += p.m_data[0] * fracs[i];
+                            sum_crse      += p.m_data[0] * fracs[i];
+
+//                            std::cout << "good: cells[" << i << "] = " << cells[i] << '\n';
                         }
-                        else
+//                        else
+//                        {
+//                            std::cout << "bad:  cells[" << i << "] = " << cells[i] << '\n';
+//                        }
+                    }
+
+                    const Real mult = (1 - (sum_crse / p.m_data[0]));
+                    //
+                    // Next we have to find the Fine cells that need updating.
+                    //
+                    // NOTE: we may not own the Fine cells in parallel.
+                    //
+//                    Real            ffracs[M];
+//                    IntVect         fcells[M];
+//                    const Real*     fdx = m_amr->Geom(lev+1).CellSize();
+                    const BoxArray& fba = mf[lev+1].boxArray();
+
+//                    std::cout << "fba:\n" << fba << '\n';
+
+//                    ParticleBase::AssignDensityCoeffs(p, plo, fdx, ffracs, fcells);
+
+                    std::vector< std::pair<int,Box> > isects;
+
+                    Real sum_fine = 0;
+
+                    for (int i = 0; i < M; i++)
+                    {
+                        if (cwhich[i])
                         {
-                            //
-                            // Here we need to update the fine region.
-                            //
-                            BL_ASSERT(fgrid[i] >= 0);
-                            BL_ASSERT(fgrid[i] < mf[lev+1].boxArray().size());
+//                            std::cout << "fcells[" << i << "] = " << cells[i] << '\n';
 
-                            FArrayBox&  ffab = mf[lev+1][fgrid[i]];
-                            const Box&  vfbx = mf[lev+1].boxArray()[fgrid[i]];
-                            const Real* fdx  = m_amr->Geom(lev+1).CellSize();
-                            //
-                            // AssignDensityCoeffs() only uses the position from "p".
-                            // We can thus act like the particle is on the finer level.
-                            // We only update the particle if the particle would touch
-                            // the valid region of the fine cell.
-                            //
-                            ParticleBase::AssignDensityCoeffs(p, plo, fdx, ffracs, fcells);
+                            isects = fba.intersections(BoxLib::refine(Box(cells[i],cells[i]),2));
 
-                            for (int j = 0; j < M; j++)
+                            BL_ASSERT(!isects.empty());
+
+                            std::vector<Box> bxs;
+                            std::vector<int> grd;
+
+                            long npts = 0;
+
+                            for (int j = 0; j < isects.size(); j++)
                             {
-                                if (vfbx.contains(fcells[j]))
+                                Box svbx = BoxLib::grow(fba[isects[j].first],-1);
+
+                                BoxArray compBA = BoxLib::boxComplement(isects[j].second,svbx);
+
+                                BL_ASSERT(compBA.size() > 0);
+
+                                for (int k = 0; k < compBA.size(); k++)
                                 {
-                                    ffab(fcells[j]) += p.m_data[0] * ffracs[j];
+                                    bxs.push_back(compBA[k]);
+                                    grd.push_back(isects[j].first);
+                                    npts += compBA[k].numPts();
+                                }
+                            }
+
+                            BL_ASSERT(npts > 0);
+                            //
+                            // How much we'll weight each cell in bxs.
+                            //
+                            const Real wgt = fracs[i] / npts;
+
+                            BL_ASSERT(bxs.size() == grd.size());
+
+                            for (int j = 0; j < bxs.size(); j++)
+                            {
+                                FArrayBox& ffab = mf[lev+1][grd[j]];
+
+                                for (IntVect iv = bxs[j].smallEnd(); iv <= bxs[j].bigEnd(); bxs[j].next(iv))
+                                {
+                                    ffab(iv) += p.m_data[0] * wgt;
+                                    sum_fine += p.m_data[0] * wgt;
                                 }
                             }
                         }
                     }
+
+//                    std::cout << "diff: " << (sum_crse-sum_fine) << '\n';
+
+//                    std::cout << "*** c f : " << sum_crse << ' '
+//                              << sum_fine << ' ' << p.m_data[0] << '\n';
+
+//                    BoxLib::Abort();
                 }
             }
         }
