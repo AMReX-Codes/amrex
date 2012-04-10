@@ -150,20 +150,24 @@ ParticleBase::FineToCrse (const ParticleBase& p,
                           const Real*         plo,
                           const Real*         dx,
                           const Box&          vbx,
-                          const BoxArray&     ba,
-                          const IntVect*      cells,
-                          bool*               which)
+                          const BoxArray&     fba,
+                          const BoxArray&     cba,
+                          bool*               which,
+                          int*                cgrid)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
     // with a particle at "cell", whose valid box is "vbx", will we cross a
-    // fine->crse boundary of the level with BoxArray "ba".  "cells" are
-    // calculated from AssignDensityCoeffs().
+    // fine->crse boundary of the level with BoxArray "fba". "cba" is the
+    // crse BoxArray.
     //
     const int M = D_TERM(2,+2,+4);
 
     for (int i = 0; i < M; i++)
+    {
+        cgrid[i] = -1;
         which[i] = false;
+    }
 
     Box ibx = BoxLib::grow(vbx,-1);
 
@@ -178,14 +182,40 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     //
     // Otherwise ...
     //
+    // We got to use crse dx here ...
+    //
+    // We're assuming ref_ratio == 2.
+    //
+    Real dx_crse[BL_SPACEDIM] = { D_DECL(2*dx[0], 2*dx[1], 2*dx[2]) };
+
+    Real     fracs_crse[M];
+    IntVect  cells_crse[M];
+
+    ParticleBase::AssignDensityCoeffs(p, plo, dx_crse, fracs_crse, cells_crse);
+
     bool result = false;
+
+    std::vector< std::pair<int,Box> > isects;
 
     for (int i = 0; i < M; i++)
     {
-        if (!ba.contains(cells[i]))
+        IntVect iv = cells_crse[i] * 2;
+
+        if (!fba.contains(iv))
         {
             result   = true;
             which[i] = true;
+            //
+            // Which grid at the crse level do we need to update?
+            //
+            isects = cba.intersections(Box(cells_crse[i],cells_crse[i]));
+
+            if (!isects.empty())
+            {
+                BL_ASSERT(isects.size() == 1);
+
+                cgrid[i] = isects[0].first;  // The grid ID at crse level that we hit.
+            }
         }
     }
 
