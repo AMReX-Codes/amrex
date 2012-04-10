@@ -102,43 +102,29 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
 }
 
 bool
-ParticleBase::CrseToFine (const ParticleBase& p,
-                          const Real*         plo,
-                          const Real*         dx,
-                          const BoxArray&     cfba,
-                          const IntVect*      cells,
-                          bool*               which,
-                          int*                fgrid)
+ParticleBase::CrseToFine (const BoxArray& cfba,
+                          const IntVect*  cells,
+                          bool*           which)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
     // with a particle, will we cross a  crse->fine boundary of the level
-    // with coarsened fine BoxArray "cfba".  "cells" are calculated from
+    // with coarsened fine BoxArray "cfba".  "cells" are as calculated from
     // AssignDensityCoeffs().
     //
     const int M = D_TERM(2,+2,+4);
 
     for (int i = 0; i < M; i++)
-    {
-        fgrid[i] = -1;
         which[i] =  false;
-    }
 
     bool result = false;
 
-    std::vector< std::pair<int,Box> > isects;
-
     for (int i = 0; i < M; i++)
     {
-        isects = cfba.intersections(Box(cells[i],cells[i]));
-
-        if (!isects.empty())
+        if (cfba.contains(cells[i]))
         {
-            BL_ASSERT(isects.size() == 1);
-
             result   = true;
             which[i] = true;
-            fgrid[i] = isects[0].first;  // The grid ID at fine level that we hit.
         }
     }
 
@@ -186,12 +172,11 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     //
     // We're assuming ref_ratio == 2.
     //
-    Real dx_crse[BL_SPACEDIM] = { D_DECL(2*dx[0], 2*dx[1], 2*dx[2]) };
+    Real     cdx[BL_SPACEDIM] = { D_DECL(2*dx[0], 2*dx[1], 2*dx[2]) };
+    Real     cfracs[M];
+    IntVect  ccells[M];
 
-    Real     fracs_crse[M];
-    IntVect  cells_crse[M];
-
-    ParticleBase::AssignDensityCoeffs(p, plo, dx_crse, fracs_crse, cells_crse);
+    ParticleBase::AssignDensityCoeffs(p, plo, cdx, cfracs, ccells);
 
     bool result = false;
 
@@ -199,7 +184,7 @@ ParticleBase::FineToCrse (const ParticleBase& p,
 
     for (int i = 0; i < M; i++)
     {
-        IntVect iv = cells_crse[i] * 2;
+        IntVect iv = ccells[i] * 2;
 
         if (!fba.contains(iv))
         {
@@ -208,7 +193,7 @@ ParticleBase::FineToCrse (const ParticleBase& p,
             //
             // Which grid at the crse level do we need to update?
             //
-            isects = cba.intersections(Box(cells_crse[i],cells_crse[i]));
+            isects = cba.intersections(Box(ccells[i],ccells[i]));
 
             if (!isects.empty())
             {
