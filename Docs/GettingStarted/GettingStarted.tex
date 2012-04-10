@@ -353,7 +353,7 @@ int main()
   {
     const Box& bx = mfi.validbox();
     FORT_WORK_ON_DATA((*data)[mfi].dataPtr(),
-                      &Ncomp, &Nghost, bx.loVect(), bx.hiVect());
+                      &Nghost, &Ncomp, bx.loVect(), bx.hiVect());
   }
   // fill periodic domain boundary and neighboring grid ghost cells
   data->FillBoundary();
