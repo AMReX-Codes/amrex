@@ -18,6 +18,7 @@
 #include <Geometry.H>
 #include <VisMF.H>
 #include <Particles_F.H>
+#include <RealBox.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -75,7 +76,7 @@ struct ParticleBase
     //
     // Used by AssignDensity.
     //
-    static bool CrseToFine (const ParticleBase& p, const Real* plo, const Real* dx, const BoxArray& cfba, const IntVect* cells, bool* which, int* fgrid);
+    static bool CrseToFine (const BoxArray& cfba, const IntVect* cells, bool* which);
 
     static bool FineToCrse (const ParticleBase& p, const Real* plo, const Real* dx, const Box& vbx, const BoxArray& fba, const BoxArray& cba, bool* which, int* cgrid);
 
@@ -1624,7 +1625,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             FArrayBox&  fab =  mf[lev][pgrd[i]];
             const Box&  vbx =  ba[pgrd[i]];
 
-            int      fgrid[M],  cgrid[M];
+            int      cgrid[M],  fgrid[M];
             bool    cwhich[M], fwhich[M];
             Real     fracs[M];
             IntVect  cells[M];
@@ -1650,7 +1651,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     if (!gm.Domain().contains(cells[0]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
-                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(p,plo,dx,cfba,cells,cwhich,fgrid) : false;
+                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich) : false;
                 const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,plo,dx,vbx,ba,m_amr->boxArray(lev-1),fwhich,cgrid) : false;
                 //
                 // Can crsetofine and finetocrse both be true simultaneously?
@@ -1750,103 +1751,92 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                 if (crsetofine)
                 {
-                    //
-                    // Deposit stuff on Crse grid as usual.
-                    //
-                    Real sum_crse = 0;
+                    Real sum_crse = 0, sum_fine = 0;
 
                     for (int i = 0; i < M; i++)
                     {
                         if (!cwhich[i])
                         {
                             fab(cells[i]) += p.m_data[0] * fracs[i];
-                            sum_crse      += p.m_data[0] * fracs[i];
-
-//                            std::cout << "good: cells[" << i << "] = " << cells[i] << '\n';
+                            sum_crse      +=               fracs[i];
                         }
-//                        else
-//                        {
-//                            std::cout << "bad:  cells[" << i << "] = " << cells[i] << '\n';
-//                        }
                     }
-
-                    const Real mult = (1 - (sum_crse / p.m_data[0]));
                     //
                     // Next we have to find the Fine cells that need updating.
                     //
                     // NOTE: we may not own the Fine cells in parallel.
                     //
-//                    Real            ffracs[M];
-//                    IntVect         fcells[M];
-//                    const Real*     fdx = m_amr->Geom(lev+1).CellSize();
+                    Real    ffracs[M];
+                    IntVect fcells[M];
+
+                    const Real*     fdx = m_amr->Geom(lev+1).CellSize();
                     const BoxArray& fba = mf[lev+1].boxArray();
+                    //
+                    // I want to use AssignDensityCoeffs() to find which fine
+                    // cells need to be updated.  To do this I need to tweak
+                    // the particle to within fine dx/2 of the C-F boundary.
+                    //
+                    ParticleBase pb = p;
 
-//                    std::cout << "fba:\n" << fba << '\n';
+                    RealBox rb(Box(pb.m_cell,pb.m_cell),dx,plo);
 
-//                    ParticleBase::AssignDensityCoeffs(p, plo, fdx, ffracs, fcells);
+                    for (int i = 0; i < BL_SPACEDIM; i++)
+                    {
+                        if ((pb.m_pos[i] - rb.lo(i)) <= dx[i]/2)
+                            //
+                            // Put it close to the lo end so it sees fine grid.
+                            //
+                            pb.m_pos[i] = rb.lo(i) + fdx[i]/10;
+                        else
+                            //
+                            // Put it close to the hi end so it sees fine grid.
+                            //
+                            pb.m_pos[i] = rb.hi(i) - fdx[i]/10;
+                    }
+
+                    ParticleBase::AssignDensityCoeffs(pb, plo, fdx, ffracs, fcells);
 
                     std::vector< std::pair<int,Box> > isects;
 
-                    Real sum_fine = 0;
-
                     for (int i = 0; i < M; i++)
                     {
-                        if (cwhich[i])
+                        //
+                        // Which grid at the fine level do we need to update?
+                        //
+                        isects = fba.intersections(Box(fcells[i],fcells[i]));
+
+                        fwhich[i] = false;
+
+                        if (!isects.empty())
                         {
-//                            std::cout << "fcells[" << i << "] = " << cells[i] << '\n';
-
-                            isects = fba.intersections(BoxLib::refine(Box(cells[i],cells[i]),2));
-
-                            BL_ASSERT(!isects.empty());
-
-                            std::vector<Box> bxs;
-                            std::vector<int> grd;
-
-                            long npts = 0;
-
-                            for (int j = 0; j < isects.size(); j++)
-                            {
-                                Box svbx = BoxLib::grow(fba[isects[j].first],-1);
-
-                                BoxArray compBA = BoxLib::boxComplement(isects[j].second,svbx);
-
-                                BL_ASSERT(compBA.size() > 0);
-
-                                for (int k = 0; k < compBA.size(); k++)
-                                {
-                                    bxs.push_back(compBA[k]);
-                                    grd.push_back(isects[j].first);
-                                    npts += compBA[k].numPts();
-                                }
-                            }
-
-                            BL_ASSERT(npts > 0);
-                            //
-                            // How much we'll weight each cell in bxs.
-                            //
-                            const Real wgt = fracs[i] / npts;
-
-                            BL_ASSERT(bxs.size() == grd.size());
-
-                            for (int j = 0; j < bxs.size(); j++)
-                            {
-                                FArrayBox& ffab = mf[lev+1][grd[j]];
-
-                                for (IntVect iv = bxs[j].smallEnd(); iv <= bxs[j].bigEnd(); bxs[j].next(iv))
-                                {
-                                    ffab(iv) += p.m_data[0] * wgt;
-                                    sum_fine += p.m_data[0] * wgt;
-                                }
-                            }
+                            BL_ASSERT(isects.size() == 1);
+                            fwhich[i] = true;
+                            sum_fine += ffracs[i];
+                            fgrid[i]  = isects[0].first;
                         }
                     }
 
-//                    std::cout << "diff: " << (sum_crse-sum_fine) << '\n';
+                    BL_ASSERT(sum_fine > 0);
 
-//                    std::cout << "*** c f : " << sum_crse << ' '
-//                              << sum_fine << ' ' << p.m_data[0] << '\n';
+                    const Real mult = (1 - sum_crse) / sum_fine;
 
-//                    BoxLib::Abort();
+                    sum_fine = 0;
+
+                    for (int i = 0; i < M; i++)
+                    {
+                        if (fwhich[i])
+                        {
+                            BL_ASSERT(fgrid[i] >= 0);
+                            BL_ASSERT(fgrid[i] < mf[lev+1].size());
+
+                            FArrayBox& ffab  = mf[lev+1][fgrid[i]];
+
+                            ffab(fcells[i]) += p.m_data[0] * ffracs[i] * mult;
+                            sum_fine        +=               ffracs[i] * mult;
+                        }
+                    }
+
+                    BL_ASSERT(std::abs(1-(sum_crse+sum_fine)) < 1.e-7);
                 }
             }
         }
