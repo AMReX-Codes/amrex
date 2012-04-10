@@ -77,7 +77,7 @@ struct ParticleBase
     //
     static bool CrseToFine (const ParticleBase& p, const Real* plo, const Real* dx, const BoxArray& cfba, const IntVect* cells, bool* which, int* fgrid);
 
-    static bool FineToCrse (const ParticleBase& p, const Real* plo, const Real* dx, const Box& vbx, const BoxArray& ba, const IntVect* cells, bool* which);
+    static bool FineToCrse (const ParticleBase& p, const Real* plo, const Real* dx, const Box& vbx, const BoxArray& fba, const BoxArray& cba, bool* which, int* cgrid);
 
     static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
     //
@@ -1562,13 +1562,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
     const Real  strttime = ParallelDescriptor::second();
 
-    const int   finest_level = m_amr->finestLevel();
-    const Real* plo          = m_amr->Geom(0).ProbLo();
-    const int   M            = D_TERM(2,+2,+4);
+    const int   lfinest = m_amr->finestLevel();
+    const Real* plo     = m_amr->Geom(0).ProbLo();
+    const int   M       = D_TERM(2,+2,+4);
 
-    mf.resize(finest_level+1, PArrayManage);
+    mf.resize(lfinest+1, PArrayManage);
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = 0; lev <= lfinest; lev++)
     {
         mf.set(lev, new MultiFab(m_amr->boxArray(lev), 1, 1));
 
@@ -1578,7 +1578,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         }
     }
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = 0; lev <= lfinest; lev++)
     {
         const Geometry& gm   = m_amr->Geom(lev);
         const Real*     dx   = gm.CellSize();
@@ -1591,15 +1591,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
         BoxArray cfba;
 
-        if (lev < finest_level)
+        if (lev < lfinest)
         {
             //
             // Build a coarsened fine BoxArray for Crse->Fine issue.
             //
             cfba = m_amr->boxArray(lev+1);
-
             cfba.coarsen(m_amr->refRatio(lev));
-
             BL_ASSERT(mf[lev].boxArray().contains(cfba));
         }
         //
@@ -1623,17 +1621,16 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 //#endif
         for (int i = 0; i < n; i++)
         {
-            const PBox& pbox    = *pbxs[i];
-            FArrayBox&  fab     = mf[lev][pgrd[i]];
-            const Box&  vbx     = ba[pgrd[i]];
-            bool        AnyCtoF = false;
+            const PBox& pbx = *pbxs[i];
+            FArrayBox&  fab =  mf[lev][pgrd[i]];
+            const Box&  vbx =  ba[pgrd[i]];
 
-            int      fgrid[M];
-            bool    cwhich[M],     fwhich[M];
-            Real     fracs[M], fracs_crse[M];
-            IntVect  cells[M], cells_crse[M];
+            int      fgrid[M],  cgrid[M];
+            bool    cwhich[M], fwhich[M];
+            Real     fracs[M], cfracs[M], ffracs[M];
+            IntVect  cells[M], ccells[M], fcells[M];
 
-            for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
+            for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end(); it != End; ++it)
             {
                 const ParticleType& p = *it;
 
@@ -1643,7 +1640,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     //
                     continue;
                 //
-                // Get "fracs" and "cells".
+                // Get "fracs" and "cells" for the particle "p" at this level.
                 //
                 ParticleBase::AssignDensityCoeffs(p, plo, dx, fracs, cells);
                 //
@@ -1654,9 +1651,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     if (!gm.Domain().contains(cells[0]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
-                const bool crsetofine = lev < finest_level ? ParticleBase::CrseToFine(p,plo,dx,cfba,cells,cwhich,fgrid) : false;
-
-                const bool finetocrse = lev > 0 ? ParticleBase::FineToCrse(p,plo,dx,vbx,ba,cells,fwhich) : false;
+                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(p,plo,dx,cfba,cells,cwhich,fgrid) : false;
+                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,plo,dx,vbx,ba,m_amr->boxArray(lev-1),fwhich,cgrid) : false;
+                //
+                // Can crsetofine and finetocrse both be true simultaneously?
+                //
+                BL_ASSERT(!(crsetofine && finetocrse));
 
                 if (!crsetofine && !finetocrse)
                 {
@@ -1675,16 +1675,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     // We have some fine->crse action.
                     //
                     // We first update only those fine ghost cells that cross
-                    // fine->crse boundary using fracs_crse based on crse dx.
+                    // fine->crse boundary using cfracs based on crse dx.
                     //
                     // This code assumes that ref ratio is 2 !!!
                     //
-                    Real dx_crse[BL_SPACEDIM] = { D_DECL(2*dx[0], 2*dx[1], 2*dx[2]) };
-                    //
-                    // "cells_crse" won't be used since we always use "cells" given
-                    // we're indexing into fine cells.
-                    //
-                    ParticleBase::AssignDensityCoeffs(p, plo, dx_crse, fracs_crse, cells_crse);
+                    Real cdx[BL_SPACEDIM] = { D_DECL(2*dx[0], 2*dx[1], 2*dx[2]) };
+
+                    ParticleBase::AssignDensityCoeffs(p, plo, cdx, cfracs, ccells);
 
                     Real sum_crse = 0;
 
@@ -1692,14 +1689,24 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     {
                         if (fwhich[i])
                         {
-                            fab(cells[i]) += p.m_data[0] * fracs_crse[i];
-                            sum_crse      += p.m_data[0] * fracs_crse[i];
+                            //
+                            // Here we need to update the crse region.
+                            //
+                            // NOTE: This won't work in parallel.
+                            //
+                            BL_ASSERT(cgrid[i] >= 0);
+                            BL_ASSERT(cgrid[i] < mf[lev-1].size());
+
+                            FArrayBox& cfab = mf[lev-1][cgrid[i]];
+                            //
+                            // Here we need to update the crse region directly
+                            // using cfracs and ccells.
+                            //
+                            cfab(ccells[i]) += p.m_data[0] * cfracs[i];
+                            sum_crse        += p.m_data[0] * cfracs[i];
                         }
                     }
-                    //
-                    // Next update all cells that don't extend across
-                    // fine->crse boundary using the following multiplier.
-                    //
+
                     const Real mult = (1 - (sum_crse / p.m_data[0]));
 
                     for (int i = 0; i < M; i++)
@@ -1713,17 +1720,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                 if (crsetofine)
                 {
-                    //
-                    // Here we need to deal with Crse->Fine.
-                    //
-                    AnyCtoF = true;
-
                     for (int i = 0; i < M; i++)
                     {
                         if (!cwhich[i])
                         {
                             //
-                            // The usual
+                            // The usual ...
                             //
                             fab(cells[i]) += p.m_data[0] * fracs[i];
                         }
@@ -1732,25 +1734,43 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             //
                             // Here we need to update the fine region.
                             //
+                            BL_ASSERT(fgrid[i] >= 0);
+                            BL_ASSERT(fgrid[i] < mf[lev+1].boxArray().size());
+
+                            FArrayBox&  ffab = mf[lev+1][fgrid[i]];
+                            const Box&  vfbx = mf[lev+1].boxArray()[fgrid[i]];
+                            const Real* fdx  = m_amr->Geom(lev+1).CellSize();
+                            //
+                            // AssignDensityCoeffs() only uses the position from "p".
+                            // We can thus act like the particle is on the finer level.
+                            // We only update the particle if the particle would touch
+                            // the valid region of the fine cell.
+                            //
+                            ParticleBase::AssignDensityCoeffs(p, plo, fdx, ffracs, fcells);
+
+                            for (int j = 0; j < M; j++)
+                            {
+                                if (vfbx.contains(fcells[j]))
+                                {
+                                    ffab(fcells[j]) += p.m_data[0] * ffracs[j];
+                                }
+                            }
                         }
                     }
                 }
-            }
-
-            if (AnyCtoF)
-            {
-
             }
         }
 
         mf[lev].SumBoundary();
         gm.SumPeriodicBoundary(mf[lev]);
     }
+
+#if 0
     //
     // Next we have to sum down from fine to coarse only over
     // fine ghost cells that are not covered by fine valid region.
     //
-    for (int i = finest_level; i > 0; i--)
+    for (int i = lfinest; i > 0; i--)
     {
         //
         // First we make a temporary copy of the fine region
@@ -1834,8 +1854,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         //
         m_amr->Geom(i-1).SumPeriodicBoundary(mf[i-1], new_cmf);
     }
+#endif
 
-    for (int i = 0; i <= finest_level; i++)
+    for (int i = 0; i <= lfinest; i++)
     {
         const Real* dx       = m_amr->Geom(i).CellSize();
         const Real  cell_vol = D_TERM(dx[0], *dx[1], *dx[2]);
