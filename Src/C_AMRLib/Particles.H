@@ -1567,6 +1567,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     const Real* plo     = m_amr->Geom(0).ProbLo();
     const int   M       = D_TERM(2,+2,+4);
 
+    if (lfinest > 0 && ParallelDescriptor::NProcs() > 1)
+        BoxLib::Abort("AssignDensity (PArray<MultiFab>&) NOT parallel yet");
+
     mf.resize(lfinest+1, PArrayManage);
 
     for (int lev = 0; lev <= lfinest; lev++)
@@ -1574,9 +1577,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         mf.set(lev, new MultiFab(m_amr->boxArray(lev), 1, 1));
 
         for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
-        {
             mf[lev][mfi].setVal(0);
-        }
     }
 
     for (int lev = 0; lev <= lfinest; lev++)
@@ -1598,6 +1599,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             //
             cfba = m_amr->boxArray(lev+1);
             cfba.coarsen(m_amr->refRatio(lev));
+
             BL_ASSERT(mf[lev].boxArray().contains(cfba));
         }
         //
@@ -1776,6 +1778,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     // cells need to be updated.  To do this I need to tweak
                     // the particle to within fine dx/2 of the C-F boundary.
                     //
+                    // NOTE: this is NOT correct!!!
+                    //
                     ParticleBase pb = p;
 
                     RealBox rb(Box(pb.m_cell,pb.m_cell),dx,plo);
@@ -1810,6 +1814,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         if (!isects.empty())
                         {
                             BL_ASSERT(isects.size() == 1);
+
                             fwhich[i] = true;
                             sum_fine += ffracs[i];
                             fgrid[i]  = isects[0].first;
@@ -1844,97 +1849,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         mf[lev].SumBoundary();
         gm.SumPeriodicBoundary(mf[lev]);
     }
-
-#if 0
-    //
-    // Next we have to sum down from fine to coarse only over
-    // fine ghost cells that are not covered by fine valid region.
-    //
-    for (int i = lfinest; i > 0; i--)
-    {
-        //
-        // First we make a temporary copy of the fine region
-        // in which we set the valid region and any ghost cells
-        // covered by valid region to zero.
-        //
-        MultiFab fmf(mf[i].boxArray(), 1, m_amr->MaxRefRatio(i-1));
-
-        fmf.setVal(0);
-
-        for (MFIter mfi(fmf); mfi.isValid(); ++mfi)
-        {
-            fmf[mfi].copy(mf[i][mfi]);
-
-            fmf[mfi].setVal(0, mfi.validbox(), 0, 1);
-        }
-
-        fmf.FillBoundary();
-        m_amr->Geom(i).FillPeriodicBoundary(fmf);
-        //
-        // Now sum down to a coarsen()d version of fmf.
-        //
-        // The only non-zero stuff in fmf is precisely what needs to be summed down.
-        //
-        BoxArray cba = fmf.boxArray();
-
-        cba.coarsen(m_amr->refRatio(i-1));
-
-        BL_ASSERT(mf[i-1].boxArray().contains(cba));
-
-        cba.grow(1);
-
-        MultiFab cmf(cba, 1, 0);
-
-        cmf.setVal(0);
-
-        for (MFIter mfi(cmf); mfi.isValid(); ++mfi)
-        {
-            FArrayBox&       cfab  = cmf[mfi];
-            const Box&       ovlp  = cfab.box();
-            const FArrayBox& ffab  = fmf[mfi];
-            IntVect          ratio = m_amr->refRatio(i-1);
-
-            BL_FORT_PROC_CALL(PART_SUMMASSDOWN,part_summassdown)
-                (BL_TO_FORTRAN(cfab), 
-                 BL_TO_FORTRAN(ffab),
-                 ovlp.loVect(),ovlp.hiVect(),
-                 ratio.getVect());
-        }
-
-        fmf.clear();
-        //
-        // We now have to sum cmf into mf[i-1].
-        //
-        MultiFab tcmf(mf[i-1].boxArray(), 1, 0);
-
-        tcmf.setVal(0);
-
-        tcmf.copy(cmf,FabArrayBase::ADD);
-
-        for (MFIter mfi(tcmf); mfi.isValid(); ++mfi)
-        {
-            mf[i-1][mfi].plus(tcmf[mfi], mfi.validbox(), 0, 0, 1);
-        }
-        //
-        // Make a version of cmf that does not have a grown boxArray but does have a ghost cell.
-        // We need this in order to do SumPeriodicBoundary.
-        //
-        cba = mf[i].boxArray();
-
-        cba.coarsen(m_amr->refRatio(i-1));
-
-        MultiFab new_cmf(cba, 1, 1, Fab_allocate);
-
-        for (MFIter mfi(new_cmf); mfi.isValid(); ++mfi)
-        {
-            new_cmf[mfi].copy(cmf[mfi]);
-        }
-        //
-        // We now shift new_cmf periodically and sum into mf[i-1].
-        //
-        m_amr->Geom(i-1).SumPeriodicBoundary(mf[i-1], new_cmf);
-    }
-#endif
 
     for (int i = 0; i <= lfinest; i++)
     {
