@@ -209,6 +209,109 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     return result;
 }
 
+void
+ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
+                                         int                 lev,
+                                         const Amr*          amr,
+                                         const IntVect&      ccell,
+                                         Array<int>&         fgrid,
+                                         Array<Real>&        ffrac,
+                                         Array<IntVect>&     fcells)
+{
+    BL_ASSERT(lev >= 0);
+    BL_ASSERT(lev < amr->finestLevel());
+
+    const Box fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
+
+    const BoxArray& fba = amr->boxArray(lev+1);
+    const Real*     plo = amr->Geom(lev).ProbLo();
+    const Real*     dx  = amr->Geom(lev).CellSize();
+    const Real*     fdx = amr->Geom(lev+1).CellSize();
+
+    BL_ASSERT(fba.contains(fbx));
+
+    fgrid.clear();
+    ffrac.clear();
+    fcells.clear();
+    //
+    // Which fine cells does particle "p" that wants to update "ccell" do we touch at the finer level?
+    //
+    for (IntVect iv = fbx.smallEnd(); iv <= fbx.bigEnd(); fbx.next(iv))
+    {
+        bool touches = true;
+
+        for (int k = 0; k < BL_SPACEDIM; k++)
+        {
+            const Real celllo = iv[k]  * fdx[k] + plo[k];
+            const Real cellhi = celllo + fdx[k];
+
+            if ((p.m_pos[k] < celllo) && (celllo > (p.m_pos[k] + dx[k]/2)))
+                touches = false;
+
+            if ((p.m_pos[k] > cellhi) && (cellhi < (p.m_pos[k] - dx[k]/2)))
+                touches = false;
+        }
+
+        if (touches)
+            fcells.push_back(iv);
+    }
+
+    std::vector< std::pair<int,Box> > isects;
+
+    Real sum_fine = 0;
+    //
+    // We need to figure out the fine fractions.
+    //
+    for (int j = 0; j < fcells.size(); j++)
+    {
+        const IntVect& iv = fcells[j];
+
+        isects = fba.intersections(Box(iv,iv));
+
+        BL_ASSERT(!isects.empty());
+        BL_ASSERT(isects.size() == 1);
+
+        fgrid.push_back(isects[0].first);
+
+        Real the_frac = 1;
+
+        for (int k = 0; k < BL_SPACEDIM; k++)
+        {
+            const Real celllo = (iv[k] * fdx[k] + plo[k]);
+
+            if (p.m_pos[k] <= celllo)
+            {
+                const Real isecthi = p.m_pos[k] + dx[k]/2;
+
+                the_frac *= std::min((isecthi - celllo),fdx[k]);
+            }
+            else
+            {
+                const Real cellhi  = (iv[k]+1) * fdx[k] + plo[k];
+                const Real isectlo = p.m_pos[k] - dx[k]/2;
+
+                the_frac *= std::min((cellhi - isectlo),fdx[k]);
+            }
+        }
+
+        ffrac.push_back(the_frac);
+
+        sum_fine += the_frac;
+    }
+
+    BL_ASSERT(ffrac.size() == fcells.size());
+    BL_ASSERT(fgrid.size() == fcells.size());
+    //
+    // Now adjust the fine fractions so they sum to one.
+    //
+    for (int j = 0; j < ffrac.size(); j++)
+    {
+        ffrac[j] /= sum_fine;
+        if (ffrac[j] > 1)
+            ffrac[j] = 1;
+    }
+}
+
 int
 ParticleBase::MaxReaders ()
 {
