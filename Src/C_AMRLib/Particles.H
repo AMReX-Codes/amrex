@@ -1493,7 +1493,6 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
         const PBox& pbx = *pbxs[i];
         FArrayBox&  fab = mf[pgrd[i]];
 
-        bool    which[M];
         Real    fracs[M];
         IntVect cells[M];
 
@@ -1627,7 +1626,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             FArrayBox&  fab =  mf[lev][pgrd[i]];
             const Box&  vbx =  ba[pgrd[i]];
 
-            int      cgrid[M],  fgrid[M];
+            int      cgrid[M];
             bool    cwhich[M], fwhich[M];
             Real     fracs[M];
             IntVect  cells[M];
@@ -1804,16 +1803,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                                 for (int k = 0; k < BL_SPACEDIM; k++)
                                 {
-                                    const Real celllo = ( iv[k]    * fdx[k] - plo[k]);
-                                    const Real cellhi = ((iv[k]+1) * fdx[k] - plo[k]);
+                                    const Real celllo  = (iv[k] * fdx[k] - plo[k]);
 
-                                    if (p.m_pos[k] < celllo)
+                                    if (p.m_pos[k] <= celllo)
                                     {
-                                        ffrac[j] *= ((p.m_pos[k] + dx[k]/2) - celllo);
+                                        const Real isecthi = p.m_pos[k] + dx[k]/2;
+
+                                        ffrac[j] *= std::min((isecthi - celllo),fdx[k]);
                                     }
                                     else
                                     {
-                                        ffrac[j] *= (cellhi - (p.m_pos[k] - dx[k]/2));
+                                        const Real cellhi  = (iv[k]+1) * fdx[k] - plo[k];
+                                        const Real isectlo = p.m_pos[k] - dx[k]/2;
+
+                                        ffrac[j] *= std::min((cellhi - isectlo),fdx[k]);
                                     }
                                 }
 
