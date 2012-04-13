@@ -133,19 +133,16 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
 
 bool
 ParticleBase::FineToCrse (const ParticleBase& p,
-                          const Real*         plo,
-                          const Real*         dx,
-                          const Box&          vbx,
-                          const BoxArray&     fba,
-                          const BoxArray&     cba,
+                          int                 flev,
+                          const Amr*          amr,
                           bool*               which,
                           int*                cgrid)
 {
+    BL_ASSERT(amr != 0);
+    BL_ASSERT(flev > 0);
     //
     // We're in AssignDensity(). We want to know whether or not updating
-    // with a particle at "cell", whose valid box is "vbx", will we cross a
-    // fine->crse boundary of the level with BoxArray "fba". "cba" is the
-    // crse BoxArray.
+    // with a particle we'll cross a fine->crse boundary.
     //
     const int M = D_TERM(2,+2,+4);
 
@@ -155,7 +152,10 @@ ParticleBase::FineToCrse (const ParticleBase& p,
         which[i] = false;
     }
 
-    Box ibx = BoxLib::grow(vbx,-1);
+    const BoxArray& fba = amr->boxArray(flev);
+    const BoxArray& cba = amr->boxArray(flev-1);
+
+    const Box ibx = BoxLib::grow(fba[p.m_grid],-1);
 
     BL_ASSERT(ibx.ok());
 
@@ -170,11 +170,11 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     //
     // We got to use crse dx here ...
     //
-    // We're assuming ref_ratio == 2.
-    //
-    Real     cdx[BL_SPACEDIM] = { D_DECL(2*dx[0], 2*dx[1], 2*dx[2]) };
     Real     cfracs[M];
     IntVect  ccells[M];
+
+    const Real* plo = amr->Geom(flev).ProbLo();
+    const Real* cdx = amr->Geom(flev-1).CellSize();
 
     ParticleBase::AssignDensityCoeffs(p, plo, cdx, cfracs, ccells);
 
@@ -182,9 +182,11 @@ ParticleBase::FineToCrse (const ParticleBase& p,
 
     std::vector< std::pair<int,Box> > isects;
 
+    const IntVect& rr = amr->refRatio(flev-1);
+
     for (int i = 0; i < M; i++)
     {
-        IntVect iv = ccells[i] * 2;
+        IntVect iv = ccells[i] * rr;
 
         if (!fba.contains(iv))
         {
