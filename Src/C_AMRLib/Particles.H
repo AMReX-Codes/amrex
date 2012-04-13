@@ -1758,14 +1758,17 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                     std::vector< std::pair<int,Box> > isects;
 
-                    int  fgrid[4];
-                    Real ffrac[4];
+                    int  fgrid[4];  // Assumes ref_ratio == 2
+                    Real ffrac[4];  // Assumes ref_ratio == 2
+
+                    Real sum = 0;
 
                     for (int i = 0; i < M; i++)
                     {
                         if (!cwhich[i])
                         {
                             fab(cells[i]) += p.m_data[0] * fracs[i];
+                            sum           +=               fracs[i];
                         }
                         else
                         {
@@ -1777,15 +1780,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             Box fbx = BoxLib::refine(Box(cells[i],cells[i]),2);
 
                             BL_ASSERT(fba.contains(fbx));
-                            //
-                            // Not all the cells in fbx should be updated.
-                            //
+
                             fbx &= BoxLib::grow(BoxLib::refine(Box(p.m_cell,p.m_cell),2),1);
 
                             BL_ASSERT(fbx.ok());
                             BL_ASSERT(fbx.numPts() <= 4);
 
-                            Real fine_sum = 0;
+                            Real sum_fine = 0;
                             //
                             // We need to figure out the fine fractions.
                             //
@@ -1816,14 +1817,14 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                                     }
                                 }
 
-                                fine_sum += ffrac[j];
+                                sum_fine += ffrac[j];
                             }
                             //
                             // Now adjust ffrac so they sum to one.
                             //
                             for (int k = 0; k < j; k++)
                             {
-                                ffrac[k] /= fine_sum;
+                                ffrac[k] /= sum_fine;
                                 if (ffrac[k] > 1)
                                     ffrac[k] = 1;
                             }
@@ -1834,9 +1835,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                                 FArrayBox& ffab = mf[lev+1][fgrid[j]];
 
                                 ffab(iv) += p.m_data[0] * fracs[i] * ffrac[j];
+                                sum      +=               fracs[i] * ffrac[j];
                             }
                         }
                     }
+
+                    BL_ASSERT(std::abs(1-sum) < 1.e-7);
                 }
             }
         }
