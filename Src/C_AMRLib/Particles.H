@@ -78,7 +78,7 @@ struct ParticleBase
     //
     static bool CrseToFine (const BoxArray& cfba, const IntVect* cells, bool* which);
 
-    static bool FineToCrse (const ParticleBase& p, const Real* plo, const Real* dx, const Box& vbx, const BoxArray& fba, const BoxArray& cba, bool* which, int* cgrid);
+    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, bool* which, int* cgrid);
 
     static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
     //
@@ -1659,8 +1659,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     if (!gm.Domain().contains(cells[0]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
-                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich)                                   : false;
-                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,plo,dx,vbx,ba,m_amr->boxArray(lev-1),fwhich,cgrid) : false;
+                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich)          : false;
+                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,fwhich,cgrid) : false;
                 //
                 // Can crsetofine and finetocrse both be true simultaneously?
                 //
@@ -1684,8 +1684,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     //
                     // We first update only those fine ghost cells that cross
                     // fine->crse boundary using cfracs based on crse dx.
-                    //
-                    // This code assumes that ref ratio is 2 !!!
                     //
                     Real sum_crse = 0, sum_fine = 0;
 
@@ -1776,11 +1774,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         else
                         {
                             //
-                            // More ref_ratio == 2 assumptions!
-                            //
                             // NOTE: this code is NOT parallel safe.
                             //
-                            Box fbx = BoxLib::refine(Box(cells[i],cells[i]),2);
+                            const Box fbx = BoxLib::refine(Box(cells[i],cells[i]),m_amr->refRatio(lev));
 
                             BL_ASSERT(fba.contains(fbx));
 
@@ -1873,7 +1869,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             }
                         }
                     }
-
+                    //
+                    // Make sure the fractions sum to one.
+                    //
                     BL_ASSERT(std::abs(1-sum) < 1.e-7);
                 }
             }
