@@ -165,9 +165,9 @@ program main
      ! length of the problem domain at this level
      n_cell_level = n_cell_level * mba%rr(n-1,1)
 
-     ! logic to refine the central n_cell x n_cell regio
-     lo(:) = n_cell_level/2-n_cell/2
-     hi(:) = n_cell_level/2+n_cell/2-1
+     ! logic to refine about the center of the Gaussian at [0.25,0.25]
+     lo(:) = 5*n_cell_level/8-n_cell/2
+     hi(:) = 5*n_cell_level/8+n_cell/2-1
      bx = make_box(lo,hi)
 
      ! initialize the boxarray at level n to be one single box
