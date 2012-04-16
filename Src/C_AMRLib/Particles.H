@@ -1562,8 +1562,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 {
     BL_ASSERT(N >= 1);
 
-    const Real  strttime = ParallelDescriptor::second();
-
+    const Real  stime   = ParallelDescriptor::second();
     const int   lfinest = m_amr->finestLevel();
     const Real* plo     = m_amr->Geom(0).ProbLo();
     const int   M       = D_TERM(2,+2,+4);
@@ -1583,11 +1582,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
     for (int lev = 0; lev <= lfinest; lev++)
     {
-        const Geometry& gm   = m_amr->Geom(lev);
-        const Real*     dx   = gm.CellSize();
-        const PMap&     pmap = m_particles[lev];
-        const int       n    = pmap.size();
-        const BoxArray& ba   = mf[lev].boxArray();
+        const Geometry& gm = m_amr->Geom(lev);
+        const Real*     dx = gm.CellSize();
+        const BoxArray& ba = mf[lev].boxArray();
 
         if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
             BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
@@ -1604,30 +1601,15 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
             BL_ASSERT(mf[lev].boxArray().contains(cfba));
         }
-        //
-        // This is a little funky.  What in effect this'll do is force
-        // each thread to work on a single (separate) grid at a time.  That
-        // way no thread will step on any other.  If there's only one grid per CPU,
-        // then oh well ....
-        //
-        Array<int>         pgrd(n);
-        Array<const PBox*> pbxs(n);
 
-        int j = 0;
-        for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it, ++j)
+        for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
+                 pmapEnd = m_particles[lev].end();
+             pmap_it != pmapEnd;
+             ++pmap_it)
         {
-            pgrd[j] =   pmap_it->first;
-            pbxs[j] = &(pmap_it->second);
-        }
-
-//#ifdef _OPENMP
-//#pragma omp parallel for schedule(dynamic,1) if (n > 1)
-//#endif
-        for (int i = 0; i < n; i++)
-        {
-            const PBox& pbx = *pbxs[i];
-            FArrayBox&  fab =  mf[lev][pgrd[i]];
-            const Box&  vbx =  ba[pgrd[i]];
+            const PBox& pbx = pmap_it->second;
+            FArrayBox&  fab = mf[lev][pmap_it->first];
+            const Box&  vbx = ba[pmap_it->first];
 
             int      cgrid[M];
             bool    cwhich[M], fwhich[M];
@@ -1640,7 +1622,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
             std::vector< std::pair<int,Box> > isects;
 
-            for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end(); it != End; ++it)
+            for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end();
+                 it != End;
+                 ++it)
             {
                 const ParticleType& p = *it;
 
@@ -1810,13 +1794,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
     if (m_verbose > 1)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real etime = ParallelDescriptor::second() - stime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealMax(etime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "ParticleContainer<N>::AssignDensity(multi-level) time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<N>::AssignDensity(multi-level) time: " << etime << '\n';
         }
     }
 }
