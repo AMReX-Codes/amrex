@@ -3,9 +3,11 @@ In this chapter, we develop a Fortran90 \BoxLib\ code to solve the heat equation
 \frac{\partial\phi}{\partial t} = \nabla^2 \phi; \quad \phi(t=0) = e^{-100r^2},
 \end{equation}
 on a domain from [-1,1] in each spatial direction, where $r$ is the distance
-to the point $(x,y,z) = (0.5,0.5,0.5)$.  We will
-assume that $\Delta x = \Delta y = \Delta z$.  We begin with a simple single-level, 
-forward Euler discretization and work up to
+to the point $(x,y,z) = (0.25,0.25,0.25)$.  Note that we are placing the
+initial Gaussian profile slightly off-center.  This asymmetry will be important
+in later sections when we examine the effects of non-periodic boundary conditions.
+We will assume that $\Delta x = \Delta y = \Delta z$.  We begin with a simple 
+single-level,  forward Euler discretization and work up to
 a full AMR code with many bells and whistles.  Below is an outline of how we will 
 proceed.  Each of these sections contains an accompanying tutoral directory.
 \begin{itemize}
