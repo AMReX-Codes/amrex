@@ -2763,8 +2763,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     BL_ASSERT(notowned.size() == owner.size());
 
-    for (std::deque<int>::const_iterator it = owner.begin(), End = owner.end(); it != End; ++it)
+    for (std::deque<int>::const_iterator it = owner.begin(), End = owner.end();
+         it != End;
+         ++it)
+    {
         Snds[*it]++;
+    }
 
     long maxsendcount = 0;
     for (int i = 0; i < NProcs; i++)
@@ -2801,6 +2805,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     PBox nparticles;
 
+    Array<int>   offset(NProcs);
+    Array<int>  sdispls(NProcs);
+    Array<int>  rdispls(NProcs);
+    Array<int> sendcnts(NProcs);
+    Array<int> recvcnts(NProcs);
+
     {
         //
         // The "int" data.
@@ -2810,9 +2820,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         Array<int> recvdata (NumRcvs*iChunkSize);
         Array<int> senddata (NumSnds*iChunkSize);
 
-        Array<int> sendcnts(NProcs), recvcnts(NProcs);
-
-        Array<int> sdispls(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
+        offset[0] = sdispls[0] = rdispls[0] = 0;
 
         for (int i = 0; i < NProcs; i++)
         {
@@ -2829,7 +2837,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
         int i = 0;
 
-        for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
+        for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end();
+             it != End;
+             ++it)
         {
             int& ioff = offset[owner[i]];
 
@@ -2898,9 +2908,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         Array<Real> recvdata (NumRcvs*rChunkSize);
         Array<Real> senddata (NumSnds*rChunkSize);
 
-        Array<int> sendcnts(NProcs), recvcnts(NProcs);
-
-        Array<int> sdispls(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
+        offset[0] = sdispls[0] = rdispls[0] = 0;
 
         for (int i = 0; i < NProcs; i++)
         {
@@ -2917,7 +2925,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
         int i = 0;
 
-        for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
+        for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end();
+             it != End;
+             ++it)
         {
             int& ioff = offset[owner[i]];
 
