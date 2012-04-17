@@ -312,6 +312,226 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
     }
 }
 
+//
+// Used by AssignDensity (PArray<MultiFab>& mf).
+//
+// Passes data needed by Crse->Fine or Fine->Crse to CPU that needs it.
+//
+// We store the data that needs to be sent in "data".
+//
+
+void
+ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
+                                 std::deque<ParticleBase>& data)
+{
+    const int MyProc = ParallelDescriptor::MyProc();
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    if (NProcs == 1)
+    {
+        BL_ASSERT(data.empty());
+        return;
+    }
+
+#if BL_USE_MPI
+    //
+    // We may have data that needs to be sent to another CPU.
+    //
+    Array<int> Snds(NProcs,0);
+    Array<int> Rcvs(NProcs,0);
+
+    for (std::deque<ParticleBase>::const_iterator it = data.begin(), End = data.end();
+         it != End;
+         ++it)
+    {
+        const int lev = it->m_lev;
+        const int grd = it->m_grid;
+
+        BL_ASSERT(lev >= 0 && lev < mf.size());
+        BL_ASSERT(grd >= 0 && grd < mf[lev].size());
+
+        const int who = mf[lev].DistributionMap()[grd];
+
+        BL_ASSERT(who != MyProc);
+
+        Snds[who]++;
+    }
+
+    BL_ASSERT(Snds[MyProc] == 0);
+
+    long maxsendcount = 0;
+    for (int i = 0; i < NProcs; i++)
+        maxsendcount += Snds[i];
+    ParallelDescriptor::ReduceLongMax(maxsendcount);
+
+    if (maxsendcount == 0)
+    {
+        //
+        // There's no parallel work to do.
+        //
+        BL_ASSERT(data.empty());
+        return;
+    }
+
+    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<int>::type(),
+                                 Rcvs.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<int>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    BL_ASSERT(Rcvs[MyProc] == 0);
+
+    int NumRcvs = 0;
+    for (int i = 0; i < NProcs; i++)
+        NumRcvs += Rcvs[i];
+
+    int NumSnds = 0;
+    for (int i = 0; i < NProcs; i++)
+        NumSnds += Snds[i];
+
+    BL_ASSERT(data.size() == NumSnds);
+    //
+    // The data we receive from ParticleBases.
+    //
+    // We only use: m_lev, m_grid, m_cell & m_pos[0].
+    //
+    const int iChunkSize = 2 + BL_SPACEDIM;
+    const int rChunkSize = 1;
+
+    Array<int>  irecvdata (NumRcvs*iChunkSize);
+    Array<Real> rrecvdata (NumRcvs*rChunkSize);
+
+    {
+        //
+        // First do the "int" data.
+        //
+        Array<int> senddata (NumSnds*iChunkSize);
+
+        Array<int> sendcnts(NProcs), recvcnts(NProcs);
+
+        Array<int> sdispls(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
+
+        for (int i = 0; i < NProcs; i++)
+        {
+            recvcnts[i] = Rcvs[i] * iChunkSize;
+            sendcnts[i] = Snds[i] * iChunkSize;
+
+            if (i > 0)
+            {
+                offset [i] = offset [i-1] + sendcnts[i-1];
+                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
+                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+            }
+        }
+
+        for (std::deque<ParticleBase>::const_iterator it = data.begin(), End = data.end();
+             it != End;
+             ++it)
+        {
+            const int lev  = it->m_lev;
+            const int grd  = it->m_grid;
+            const int who  = mf[lev].DistributionMap()[grd];
+            const int ioff = offset[who];
+
+            senddata[ioff+0] = it->m_lev;
+            senddata[ioff+1] = it->m_grid;
+
+            D_TERM(senddata[ioff+2] = it->m_cell[0];,
+                   senddata[ioff+3] = it->m_cell[1];,
+                   senddata[ioff+4] = it->m_cell[2];);
+
+            offset[who] += iChunkSize;
+        }
+
+        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
+                                      sendcnts.dataPtr(),
+                                      sdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<int>::type(),
+                                      NumRcvs == 0 ? 0 : irecvdata.dataPtr(),
+                                      recvcnts.dataPtr(),
+                                      rdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<int>::type(),
+                                      ParallelDescriptor::Communicator()) );
+    }
+
+    {
+        //
+        // Now send/recv the Real data.
+        //
+        Array<Real> senddata (NumSnds*rChunkSize);
+
+        Array<int> sendcnts(NProcs), recvcnts(NProcs);
+
+        Array<int> sdispls(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
+
+        for (int i = 0; i < NProcs; i++)
+        {
+            recvcnts[i] = Rcvs[i] * rChunkSize;
+            sendcnts[i] = Snds[i] * rChunkSize;
+
+            if (i > 0)
+            {
+                offset [i] = offset [i-1] + sendcnts[i-1];
+                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
+                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+            }
+        }
+
+        for (std::deque<ParticleBase>::const_iterator it = data.begin(), End = data.end();
+             it != End;
+             ++it)
+        {
+            const int lev  = it->m_lev;
+            const int grd  = it->m_grid;
+            const int who  = mf[lev].DistributionMap()[grd];
+            const int ioff = offset[who];
+
+            senddata[ioff+0] = it->m_pos[0];
+
+            offset[who]++;
+        }
+        //
+        // We can free up memory held by "data" -- don't need it anymore.
+        //
+        std::deque<ParticleBase>().swap(data);
+
+        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
+                                      sendcnts.dataPtr(),
+                                      sdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
+                                      NumRcvs == 0 ? 0 : rrecvdata.dataPtr(),
+                                      recvcnts.dataPtr(),
+                                      rdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
+                                      ParallelDescriptor::Communicator()) );
+    }
+    //
+    // Now update "mf".
+    //
+    if (NumRcvs > 0)
+    {
+        const int*  idata = irecvdata.dataPtr();
+        const Real* rdata = rrecvdata.dataPtr();
+
+        for (int i = 0; i < NumRcvs; i++)
+        {
+            const int     lev  = idata[0];
+            const int     grd  = idata[1];
+            const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
+
+            BL_ASSERT(mf[lev].DistributionMap()[grd] == MyProc);
+
+            mf[lev][grd](cell) += *rdata;
+
+            idata += iChunkSize;
+
+            rdata++;
+        }
+    }
+#endif
+}
+
 int
 ParticleBase::MaxReaders ()
 {

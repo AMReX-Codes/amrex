@@ -83,6 +83,8 @@ struct ParticleBase
     static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells);
 
     static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
+
+    static void AssignDensityDoit (PArray<MultiFab>& mf, std::deque<ParticleBase>& data);
     //
     // Used for partitioning particles into valid & invalid groups.
     //
@@ -1566,9 +1568,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     const int   lfinest = m_amr->finestLevel();
     const Real* plo     = m_amr->Geom(0).ProbLo();
     const int   M       = D_TERM(2,+2,+4);
-
-    if (lfinest > 0 && ParallelDescriptor::NProcs() > 1)
-        BoxLib::Abort("AssignDensity (PArray<MultiFab>&) NOT parallel yet");
+    const int   MyProc  = ParallelDescriptor::MyProc();
 
     mf.resize(lfinest+1, PArrayManage);
 
@@ -1579,6 +1579,16 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
             mf[lev][mfi].setVal(0);
     }
+    //
+    // I'll use ParticleBases to hold all the info I need for parallel.
+    //
+    // What I'll use: m_lev, m_grid, m_cell & m_pos[0].
+    //
+    // This is the "data" needed by other MPI procs.
+    //
+    std::deque<ParticleBase> data;
+
+    ParticleBase pb;
 
     for (int lev = 0; lev <= lfinest; lev++)
     {
@@ -1658,9 +1668,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     // Just do it ...
                     //
                     for (int i = 0; i < M; i++)
-                    {
                         fab(cells[i]) += p.m_data[0] * fracs[i];
-                    }
                 }
 
                 if (finetocrse)
@@ -1686,26 +1694,31 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     {
                         if (fwhich[i])
                         {
-                            //
-                            // Here we need to update the crse region.
-                            // The coarse region is always going to be
-                            // updated if we have a particle in a cell
-                            // bordering a Fine->Crse boundary.  This
-                            // is regardless of whether or not the particle
-                            // is within dx/2 of the boundary.
-                            //
-                            // NOTE: accessing "cfab" here is NOT parallel safe.
-                            //
                             BL_ASSERT(cgrid[i] >= 0);
                             BL_ASSERT(cgrid[i] < mf[lev-1].size());
+                            //
+                            // Here we need to update the crse region.  The coarse
+                            // region is always going to be updated if we have a
+                            // particle in a cell bordering a Fine->Crse boundary.
+                            //
+                            if (mf[lev-1].DistributionMap()[cgrid[i]] == MyProc)
+                            {
+                                //
+                                // We own that coarse cell.
+                                //
+                                mf[lev-1][cgrid[i]](ccells[i]) += p.m_data[0] * cfracs[i];
+                            }
+                            else
+                            {
+                                pb.m_lev    = lev-1;
+                                pb.m_grid   = cgrid[i];
+                                pb.m_cell   = ccells[i];
+                                pb.m_pos[0] = p.m_data[0] * cfracs[i];
 
-                            FArrayBox& cfab = mf[lev-1][cgrid[i]];
-                            //
-                            // Here we need to update the crse region directly
-                            // using cfracs and ccells.
-                            //
-                            cfab(ccells[i]) += p.m_data[0] * cfracs[i];
-                            sum_crse        +=               cfracs[i];
+                                data.push_back(pb);
+                            }
+
+                            sum_crse += cfracs[i];
                         }
                     }
                     //
@@ -1758,17 +1771,28 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         }
                         else
                         {
-                            //
-                            // NOTE: accessing "ffab" here is NOT parallel safe.
-                            //
                             ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], fgrid, ffrac, fcells);
 
                             for (int j = 0; j < fcells.size(); j++)
                             {
-                                FArrayBox& ffab = mf[lev+1][fgrid[j]];
+                                if (mf[lev+1].DistributionMap()[fgrid[j]] == MyProc)
+                                {
+                                    //
+                                    // We own that fine cell.
+                                    //
+                                    mf[lev+1][fgrid[j]](fcells[j]) += p.m_data[0] * fracs[i] * ffrac[j];
+                                }
+                                else
+                                {
+                                    pb.m_lev    = lev+1;
+                                    pb.m_grid   = fgrid[j];
+                                    pb.m_cell   = fcells[j];
+                                    pb.m_pos[0] = p.m_data[0] * fracs[i] * ffrac[j];
 
-                                ffab(fcells[j]) += p.m_data[0] * fracs[i] * ffrac[j];
-                                sum             +=               fracs[i] * ffrac[j];
+                                    data.push_back(pb);
+                                }
+
+                                sum += fracs[i] * ffrac[j];
                             }
                         }
                     }
@@ -1783,6 +1807,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         mf[lev].SumBoundary();
         gm.SumPeriodicBoundary(mf[lev]);
     }
+    //
+    // Send any needed data to other MPI processes.
+    //
+    ParticleBase::AssignDensityDoit(mf,data);
 
     for (int i = 0; i <= lfinest; i++)
     {
