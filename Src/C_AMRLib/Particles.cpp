@@ -324,7 +324,6 @@ void
 ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
                                  std::deque<ParticleBase>& data)
 {
-    const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
     if (NProcs == 1)
@@ -337,6 +336,8 @@ ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
     //
     // We may have data that needs to be sent to another CPU.
     //
+    const int MyProc = ParallelDescriptor::MyProc();
+
     Array<int> Snds(NProcs,0);
     Array<int> Rcvs(NProcs,0);
 
@@ -353,6 +354,7 @@ ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
         const int who = mf[lev].DistributionMap()[grd];
 
         BL_ASSERT(who != MyProc);
+        BL_ASSERT(mf[lev].fabbox(grd).contains(it->m_cell));
 
         Snds[who]++;
     }
@@ -402,15 +404,19 @@ ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
     Array<int>  irecvdata (NumRcvs*iChunkSize);
     Array<Real> rrecvdata (NumRcvs*rChunkSize);
 
+    Array<int>   offset(NProcs);
+    Array<int>  sdispls(NProcs);
+    Array<int>  rdispls(NProcs);
+    Array<int> sendcnts(NProcs);
+    Array<int> recvcnts(NProcs);
+
     {
         //
-        // First do the "int" data.
+        // First send/recv "int" data.
         //
         Array<int> senddata (NumSnds*iChunkSize);
 
-        Array<int> sendcnts(NProcs), recvcnts(NProcs);
-
-        Array<int> sdispls(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
+        offset[0] = sdispls[0] = rdispls[0] = 0;
 
         for (int i = 0; i < NProcs; i++)
         {
@@ -429,9 +435,7 @@ ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
              it != End;
              ++it)
         {
-            const int lev  = it->m_lev;
-            const int grd  = it->m_grid;
-            const int who  = mf[lev].DistributionMap()[grd];
+            const int who  = mf[it->m_lev].DistributionMap()[it->m_grid];
             const int ioff = offset[who];
 
             senddata[ioff+0] = it->m_lev;
@@ -461,9 +465,7 @@ ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
         //
         Array<Real> senddata (NumSnds*rChunkSize);
 
-        Array<int> sendcnts(NProcs), recvcnts(NProcs);
-
-        Array<int> sdispls(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
+        offset[0] = sdispls[0] = rdispls[0] = 0;
 
         for (int i = 0; i < NProcs; i++)
         {
@@ -482,12 +484,9 @@ ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
              it != End;
              ++it)
         {
-            const int lev  = it->m_lev;
-            const int grd  = it->m_grid;
-            const int who  = mf[lev].DistributionMap()[grd];
-            const int ioff = offset[who];
+            const int who = mf[it->m_lev].DistributionMap()[it->m_grid];
 
-            senddata[ioff+0] = it->m_pos[0];
+            senddata[offset[who]] = it->m_pos[0];
 
             offset[who]++;
         }
@@ -521,6 +520,7 @@ ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
             const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
 
             BL_ASSERT(mf[lev].DistributionMap()[grd] == MyProc);
+            BL_ASSERT(mf[lev][grd].box().contains(cell));
 
             mf[lev][grd](cell) += *rdata;
 
