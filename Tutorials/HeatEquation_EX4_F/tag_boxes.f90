@@ -53,36 +53,43 @@ contains
 
     ! local variables
     integer :: i,j
+    real(kind=dp_t) :: gradx,grady
 
     ! initially say that we do not want to tag any cells for refinement
     tagbox = .false.
 
     select case(lev)
     case (1)
-       ! tag all boxes with a density >= 1.01
+       ! level 1 tagging criteria
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             if (mf(i,j) .gt. 1.01d0) then
+
+             if (mf(i,j) .gt. 0.1d0) then
                 tagbox(i,j) = .true.
              end if
+
           end do
        enddo
     case (2)
-       ! for level 2 tag all boxes with a density >= 1.1
+       ! level 2 tagging criteria
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             if (mf(i,j) .gt. 1.1d0) then
+
+             if (mf(i,j) .gt. 0.2d0) then
                 tagbox(i,j) = .true.
              end if
+
           end do
        end do
     case default
-       ! for level 3 or greater tag all boxes with a density >= 1.5
+       ! level 3 and greater tagging criteria
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             if (mf(i,j) .gt. 1.5d0) then
+
+             if (mf(i,j) .gt. 0.4d0) then
                 tagbox(i,j) = .true.
              end if
+
           end do
        end do
     end select
@@ -105,35 +112,29 @@ contains
 
     select case(lev)
     case (1)
-       ! tag all boxes with a density >= 1.01
+       ! level 1 tagging criteria
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                if (mf(i,j,k) .gt. 1.01d0) then
-                   tagbox(i,j,k) = .true.
-                end if
+
              end do
           enddo
        end do
     case (2)
-       ! for level 2 tag all boxes with a density >= 1.1
+       ! level 2 tagging criteria
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                if (mf(i,j,k) .gt. 1.1d0) then
-                   tagbox(i,j,k) = .true.
-                end if
+
              end do
           end do
        end do
     case default
-       ! for level 3 or greater tag all boxes with a density >= 1.5
+       ! level 3 and greater tagging criteria
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                if (mf(i,j,k) .gt. 1.5d0) then
-                   tagbox(i,j,k) = .true.
-                end if
+
              end do
           end do
        end do
