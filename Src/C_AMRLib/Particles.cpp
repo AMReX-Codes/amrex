@@ -174,7 +174,7 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     Real     cfracs[M];
     IntVect  ccells[M];
 
-    const Real* plo = amr->Geom(flev).ProbLo();
+    const Real* plo = amr->Geom(flev  ).ProbLo();
     const Real* cdx = amr->Geom(flev-1).CellSize();
 
     ParticleBase::AssignDensityCoeffs(p, plo, cdx, cfracs, ccells);
@@ -187,7 +187,7 @@ ParticleBase::FineToCrse (const ParticleBase& p,
 
     for (int i = 0; i < M; i++)
     {
-        IntVect iv = ccells[i] * rr;
+        const IntVect iv = ccells[i] * rr;
 
         if (!fba.contains(iv))
         {
