@@ -1,8 +1,5 @@
 module init_data_module
 
-  use multifab_module
-  use layout_module
-
   implicit none
 
   private
@@ -12,6 +9,8 @@ module init_data_module
 contains
   
   subroutine init_data(data,dx,prob_lo)
+
+    use multifab_module
 
     type(multifab) , intent(inout) :: data
     real(kind=dp_t), intent(in   ) :: dx

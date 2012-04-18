@@ -1,7 +1,6 @@
 module advance_module
 
   use multifab_module
-  use layout_module
   use define_bc_module
   use bc_module
   use multifab_physbc_module
