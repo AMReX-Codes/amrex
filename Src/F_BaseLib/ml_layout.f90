@@ -176,9 +176,10 @@ contains
   end subroutine ml_layout_build_la_array
 
   subroutine ml_layout_build(mla, mba, pmask)
-    type(ml_layout), intent(inout) :: mla
-    type(ml_boxarray), intent(in) :: mba
-    logical, optional :: pmask(:)
+
+    type(ml_layout)  , intent(inout) :: mla
+    type(ml_boxarray), intent(in   ) :: mba
+    logical, optional                :: pmask(:)
 
     type(boxarray) :: bac
     integer :: n
@@ -195,10 +196,10 @@ contains
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
     call build(mla%la(1), mba%bas(1), mba%pd(1), pmask=lpmask)
-    do n = 2, mba%nlevel
+    do n = 2, mla%nlevel
        call layout_build_pn(mla%la(n), mla%la(n-1), mba%bas(n), mba%rr(n-1,:))
     end do
-    do n = mba%nlevel-1,  1, -1
+    do n = mla%nlevel-1,  1, -1
        call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
        call setval(mla%mask(n), val = .TRUE.)
        call copy(bac, mba%bas(n+1))
@@ -206,9 +207,13 @@ contains
        call setval(mla%mask(n), .false., bac)
        call destroy(bac)
     end do
+
   end subroutine ml_layout_build
 
   subroutine ml_layout_restricted_build(mla, mba, nlevs, pmask)
+
+    ! this subroutine is the same thing as ml_layout_build except that
+    ! the mla will only have nlevs instead of mba%nlevel
 
     type(ml_layout)  , intent(inout) :: mla
     type(ml_boxarray), intent(in   ) :: mba
@@ -229,14 +234,12 @@ contains
 !   Have to copy only nlevs of the mba
 !   Replace 
 !   call copy(mla%mba, mba)
-!   by this...
+!   by these lines
     call build(mla%mba,nlevs,mla%dim)
-
     mla%mba%pd(1:nlevs) = mba%pd(1:nlevs)
     do n = 1, mla%nlevel-1
       mla%mba%rr(n,:) = mba%rr(n,:)
     end do
-
     do n = 1, mla%nlevel
       call copy(mla%mba%bas(n),mba%bas(n))
     end do
@@ -255,6 +258,7 @@ contains
        call setval(mla%mask(n), .false., bac)
        call destroy(bac)
     end do
+
   end subroutine ml_layout_restricted_build
 
   subroutine ml_layout_destroy(mla)
