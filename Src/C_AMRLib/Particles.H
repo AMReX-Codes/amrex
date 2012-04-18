@@ -78,7 +78,9 @@ struct ParticleBase
     //
     static bool CrseToFine (const BoxArray& cfba, const IntVect* cells, bool* which);
 
-    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, bool* which, int* cgrid);
+    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, bool have_periodic_issue, const IntVect* fcells, const BoxArray& leftovers, bool* which, int* cgrid);
+
+    static bool FineToCrsePeriodic (const Amr* amr, const PArray<MultiFab>& mf, BoxArray& pba);
 
     static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells);
 
@@ -1597,20 +1599,32 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         const BoxArray& ba = mf[lev].boxArray();
 
         if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
+        {
             BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
-
-        BoxArray cfba;
+        }
+        //
+        // If we're at a lev > 0 this is the coarsed fine BoxArray.
+        // We use this for figuring out Crse->Fine issues.
+        //
+        BoxArray cfba;      
+        //
+        // If we're at level 1 and we have fine grid touching a periodic boundary,
+        // this is the collection of ghost boxes outside the domain that cannot
+        // be periodically shifted into the valid region at level 1.  If a particle
+        // wants to update something in here at level 1, instead we need to update
+        // a coarse cell at level 0.
+        //
+        BoxArray leftovers;
 
         if (lev < lfinest)
         {
-            //
-            // Build a coarsened fine BoxArray for Crse->Fine issue.
-            //
             cfba = m_amr->boxArray(lev+1);
             cfba.coarsen(m_amr->refRatio(lev));
 
             BL_ASSERT(mf[lev].boxArray().contains(cfba));
         }
+
+        const bool have_periodic_issue = (lev == 1) ? ParticleBase::FineToCrsePeriodic(m_amr,mf,leftovers) : false;
 
         for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
                  pmapEnd = m_particles[lev].end();
@@ -1655,11 +1669,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     if (!gm.Domain().contains(cells[0]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
-                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich)        : false;
-                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,fwhich,cgrid) : false;
-                //
-                // Can crsetofine and finetocrse both be true simultaneously?
-                //
+                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich) : false;
+                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,have_periodic_issue,cells,leftovers,fwhich,cgrid) : false;
+
                 BL_ASSERT(!(crsetofine && finetocrse));
 
                 if (!crsetofine && !finetocrse)
@@ -1676,9 +1688,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     //
                     // We have some fine->crse action.
                     //
-                    // We first update only those fine ghost cells that cross
-                    // fine->crse boundary using cfracs based on crse dx.
-                    //
                     Real sum_crse = 0, sum_fine = 0;
 
                     Real    cfracs[M];
@@ -1694,6 +1703,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     {
                         if (fwhich[i])
                         {
+                            //
+                            // We're at a Fine->Crse boundary.
+                            //
                             BL_ASSERT(cgrid[i] >= 0);
                             BL_ASSERT(cgrid[i] < mf[lev-1].size());
                             //
@@ -1799,6 +1811,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         }
                         else
                         {
+                            //
+                            // We're at a Crse->Fine boundary.
+                            //
                             ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], fgrid, ffrac, fcells);
 
                             for (int j = 0; j < fcells.size(); j++)

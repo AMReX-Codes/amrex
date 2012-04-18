@@ -101,6 +101,7 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
 #endif
 }
 
+
 bool
 ParticleBase::CrseToFine (const BoxArray& cfba,
                           const IntVect*  cells,
@@ -135,6 +136,9 @@ bool
 ParticleBase::FineToCrse (const ParticleBase& p,
                           int                 flev,
                           const Amr*          amr,
+                          bool                have_periodic_issue,
+                          const IntVect*      fcells,
+                          const BoxArray&     leftovers,
                           bool*               which,
                           int*                cgrid)
 {
@@ -142,7 +146,9 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     BL_ASSERT(flev > 0);
     //
     // We're in AssignDensity(). We want to know whether or not updating
-    // with a particle we'll cross a fine->crse boundary.
+    // with a particle we'll cross a fine->crse boundary.  Note that crossing
+    // a periodic boundary, where the periodic shift lies in our valid region,
+    // is not considered a Fine->Crse crossing.
     //
     const int M = D_TERM(2,+2,+4);
 
@@ -168,13 +174,12 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     //
     // Otherwise ...
     //
-    // We got to use crse dx here ...
-    //
-    Real     cfracs[M];
-    IntVect  ccells[M];
+    Real    cfracs[M];
+    IntVect ccells[M];
 
-    const Real* plo = amr->Geom(flev).ProbLo();
-    const Real* cdx = amr->Geom(flev-1).CellSize();
+    const Real* plo  = amr->Geom(flev  ).ProbLo();
+    const Box&  fdmn = amr->Geom(flev  ).Domain();
+    const Real* cdx  = amr->Geom(flev-1).CellSize();
 
     ParticleBase::AssignDensityCoeffs(p, plo, cdx, cfracs, ccells);
 
@@ -182,13 +187,39 @@ ParticleBase::FineToCrse (const ParticleBase& p,
 
     std::vector< std::pair<int,Box> > isects;
 
-    const IntVect& rr = amr->refRatio(flev-1);
-
     for (int i = 0; i < M; i++)
     {
-        IntVect iv = ccells[i] * rr;
+        bool update_crse_cell = false;
 
-        if (!fba.contains(iv))
+        if (!fdmn.contains(fcells[i]))
+        {
+            BL_ASSERT(amr->Geom(flev).isAllPeriodic());
+            //
+            // We assume we're periodic.  Otherwise we can't have cells
+            // this close to the boundary.  We may or may not be able to
+            // directly update our fine cell and have SumPeriodicBoundary()
+            // fix it up at the end.
+            //
+            if (have_periodic_issue && leftovers.contains(fcells[i]))
+            {
+                //
+                // This cell won't be properly updated by SumPeriodicBoundary().
+                // We have to update the requisite coarse cell instead.
+                //
+                update_crse_cell = true;
+            }
+            else
+            {
+                //
+                // All's well with this fine cell.
+                //
+                continue;
+            }
+        }
+
+        const IntVect iv = ccells[i] * amr->refRatio(flev-1);
+
+        if (update_crse_cell || !fba.contains(iv))
         {
             result   = true;
             which[i] = true;
@@ -197,16 +228,102 @@ ParticleBase::FineToCrse (const ParticleBase& p,
             //
             isects = cba.intersections(Box(ccells[i],ccells[i]));
 
-            if (!isects.empty())
-            {
-                BL_ASSERT(isects.size() == 1);
+            BL_ASSERT(!isects.empty());
+            BL_ASSERT(isects.size() == 1);
 
-                cgrid[i] = isects[0].first;  // The grid ID at crse level that we hit.
-            }
+            cgrid[i] = isects[0].first;  // The grid ID at crse level that we hit.
         }
     }
 
     return result;
+}
+
+//
+// This is a very special case.  Do we have any level one grids, abutting a periodic
+// boundary, whose periodically shifted ghost cells do NOT intersect other level
+// one grids?  That is to say, do we have any level one ghost cells on a periodic
+// boundary, that when shifted back into the valid region, do not overlap grids at
+// level one?  If true we have a more specialized type of Fine->Crse boundary issue
+// to deal with. "pba" will be the BoxArray of ghost cells, outside the domain, that
+// can't be periodically shifted into a valid level one region.
+//
+
+bool
+ParticleBase::FineToCrsePeriodic (const Amr*              amr,
+                                  const PArray<MultiFab>& mmf,
+                                  BoxArray&               pba)
+{
+    BL_ASSERT(amr != 0);
+
+    if (mmf.size() < 2 || mmf[1].nGrow() < 1) return false;
+
+    const MultiFab& mf = mmf[1];
+    const Geometry& gm = amr->Geom(1);
+
+    Array<IntVect> pshifts(27);
+
+    BoxList leftovers;
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        const Box& dest = mf[mfi].box();
+
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            BL_ASSERT(dest.ixType()[n] == IndexType::CELL);
+
+        BL_ASSERT(dest == BoxLib::grow(mfi.validbox(), mf.nGrow()));
+
+        if (!gm.Domain().contains(dest))
+        {
+            const BoxArray& grids = mf.boxArray();
+            //
+            // This'll contain the pieces of "dest" that can be successfully
+            // periodically shifted into valid region at this level.
+            //
+            BoxList pieces;
+
+            for (int j = 0, N = grids.size(); j < N; j++)
+            {
+                Box src = grids[j] & gm.Domain();
+
+                gm.periodicShift(dest, src, pshifts);
+
+                for (int i = 0, M = pshifts.size(); i < M; i++)
+                {
+                    const Box shftbox = src + pshifts[i];
+                    const Box dbx     = dest & shftbox;
+                    //
+                    // These are the pieces of "dest" that can be
+                    // shifted into valid region at our level.
+                    //
+                    pieces.push_back(dbx);
+                }
+            }
+            //
+            // What's in "dest" but not in the domain?
+            //
+            BoxList ovlp = BoxLib::boxDiff(dest,gm.Domain());
+
+            for (BoxList::const_iterator bli = ovlp.begin(), End = ovlp.end(); bli != End; ++bli)
+            {
+                //
+                // Parts of "dest" that can't be successfully covered when shifted.
+                //
+                BoxList remainder = BoxLib::complementIn(*bli, pieces);
+
+                if (!remainder.isEmpty())
+                {
+                    leftovers.catenate(remainder);
+                }
+            }
+        }
+    }
+
+    pba.define(leftovers);
+
+    pba.removeOverlap();
+
+    return pba.size() > 0;
 }
 
 void
