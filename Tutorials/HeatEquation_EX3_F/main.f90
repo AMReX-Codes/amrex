@@ -133,17 +133,23 @@ program main
   ! tell mba how many levels and dimensionality of problem
   call ml_boxarray_build_n(mba,nlevs,dim)
 
-  ! create a box from (0,0) to (n_cell-1,n_cell-1)
-  lo(:) = 0
-  hi(:) = n_cell-1
-  bx = make_box(lo,hi)
-
   ! tell mba about the ref_ratio between levels
   ! mba%rr(n-1,i) is the refinement ratio between levels n-1 and n in direction i
   ! we use refinement ratio of 2 in every direction between all levels
   do n=2,nlevs
      mba%rr(n-1,:) = 2
   enddo
+
+  ! the grid spacing is the same in each direction
+  dx(1) = (prob_hi(1)-prob_lo(1)) / n_cell
+  do n=2,nlevs
+     dx(n) = dx(n-1) / mba%rr(n-1,1)
+  end do
+
+  ! create a box from (0,0) to (n_cell-1,n_cell-1)
+  lo(:) = 0
+  hi(:) = n_cell-1
+  bx = make_box(lo,hi)
 
   ! tell mba about the problem domain at each level
   mba%pd(1) = bx
@@ -182,12 +188,6 @@ program main
 
   ! don't need this anymore - free up memory
   call destroy(mba)
-
-  ! the grid spacing is the same in each direction
-  dx(1) = (prob_hi(1)-prob_lo(1)) / n_cell
-  do n=2,nlevs
-     dx(n) = dx(n-1) / mla%mba%rr(n-1,1)
-  end do
 
   ! build boundary conditions
   call bc_tower_init(the_bc_tower,nlevs,dim,phys_bc)
