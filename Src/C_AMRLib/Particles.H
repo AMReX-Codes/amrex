@@ -80,6 +80,8 @@ struct ParticleBase
 
     static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, bool* which, int* cgrid);
 
+    static bool FineToCrsePeriodic (const Amr* amr, const PArray<MultiFab>& mf, BoxArray& pba);
+
     static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells);
 
     static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
@@ -1599,7 +1601,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
             BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
 
-        BoxArray cfba;
+        BoxArray cfba, leftovers;
 
         if (lev < lfinest)
         {
@@ -1611,6 +1613,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
             BL_ASSERT(mf[lev].boxArray().contains(cfba));
         }
+
+        const bool have_periodic_issue = (lev == 1) ? ParticleBase::FineToCrsePeriodic(m_amr,mf,leftovers) : false;
 
         for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
                  pmapEnd = m_particles[lev].end();
@@ -1657,9 +1661,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                 const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich)        : false;
                 const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,fwhich,cgrid) : false;
-                //
-                // Can crsetofine and finetocrse both be true simultaneously?
-                //
+
                 BL_ASSERT(!(crsetofine && finetocrse));
 
                 if (!crsetofine && !finetocrse)
