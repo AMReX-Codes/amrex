@@ -1,6 +1,6 @@
 &probin
 
- nlevs = 3
+ nlevs = 4
  dim = 3
  nsteps = 1000
  plot_int = 100
@@ -17,5 +17,10 @@
  bc_y_hi = -1
  bc_z_lo = -1
  bc_z_hi = -1
+
+ amr_buf_width = 2
+ cluster_minwidth = 2
+ cluster_blocking_factor = 4
+ cluster_min_eff = 0.7d0
 
 /

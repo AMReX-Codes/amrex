@@ -119,8 +119,8 @@ contains
     if ( nghost(tagboxes) /= 0 ) &
        call bl_error("CLUSTER: tagboxes must have NG = 0")
 
-    if ( minwidth < 1 ) &
-       call bl_error("CLUSTER: minwidth  must be > 0; ", minwidth)
+    if (mod(minwidth,blocking_factor) .ne. 0) &
+         call bl_error("CLUSTER: minwidth must be an integer multiple of blocking_factor")
 
     if ( min_eff < 0 .or. min_eff > 1.0_dp_t ) &
        call bl_error("CLUSTER: min_eff must be >= 0 and <= 1: ", min_eff)
@@ -484,11 +484,11 @@ contains
 
       llo = ll
       hho = hh
-      do while ( sig(llo) == 0  .and.  hho-llo >= minwidth )
+      do while ( sig(llo) == 0  .and.  hho-llo >= minwidth/blocking_factor )
          llo = llo + 1
       end do
 
-      do while ( sig(hho) ==  0  .and. hho-llo >= minwidth )
+      do while ( sig(hho) ==  0  .and. hho-llo >= minwidth/blocking_factor )
          hho = hho - 1
       end do
 
@@ -659,7 +659,7 @@ contains
     return
 
     i = maxloc(extent(bx),dim=1)
-    if ( extent(bx,i) >= 2*minwidth ) then
+    if ( extent(bx,i) >= 2*minwidth/blocking_factor ) then
        call box_chop(bx, b1, b2, i, lwb(bx,i) + extent(bx,i)/2)
        if ( verbose ) then
           call print(bx, 'bx;fallback')
@@ -679,7 +679,7 @@ contains
       type(box), intent(out) :: b1, b2
 
       r  = .false.
-      do i = ll + minwidth, hh - minwidth
+      do i = ll + minwidth/blocking_factor, hh - minwidth/blocking_factor
          if ( sig(i)  ==  0 ) then
             call box_chop(bx, b1, b2, dim, i)
             b2 = grow(b2, -1, dim, -1)
@@ -703,7 +703,7 @@ contains
 
       hiv  = 0
       infp = -1
-      do i = ll + minwidth, hh - max(minwidth,1)
+      do i = ll + minwidth/blocking_factor, hh - max(minwidth/blocking_factor,1)
          if( (lp(i) > 0 .and. lp(i+1) < 0)  .or. (lp(i) < 0 .and. lp(i+1) > 0) ) then
             tmp = abs(lp(i)-lp(i+1))
             if ( tmp  >  hiv ) then
