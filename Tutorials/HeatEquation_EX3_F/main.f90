@@ -12,7 +12,7 @@ program main
   implicit none
 
   ! stuff you can set with the inputs file (otherwise use default values below)
-  integer :: nlevs, dim, nsteps, plot_int, n_cell, max_grid_size
+  integer :: max_levs, dim, nsteps, plot_int, n_cell, max_grid_size
   integer :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! dummy indices using for reading in inputs file
@@ -28,11 +28,11 @@ program main
   ! will be allocated with (dim,2) components
   integer       , allocatable :: phys_bc(:,:)
 
-  ! will be allocated with nlevs components
+  ! will be allocated with max_levs components
   real(dp_t)    , allocatable :: dx(:)
   type(multifab), allocatable :: phi(:)
 
-  integer    :: istep,i,n,n_cell_level
+  integer    :: istep,i,n,n_cell_level,nlevs
   real(dp_t) :: dt,time,start_time,end_time
   
   type(box)         :: bx
@@ -41,7 +41,7 @@ program main
 
   type(bc_tower) :: the_bc_tower
 
-  namelist /probin/ nlevs, dim, nsteps, plot_int, n_cell, max_grid_size, &
+  namelist /probin/ max_levs, dim, nsteps, plot_int, n_cell, max_grid_size, &
        bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! if running in parallel, this will print out the number of MPI 
@@ -55,7 +55,7 @@ program main
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! default values - will get overwritten by the inputs file
 
-  nlevs         = 3
+  max_levs      = 3
   dim           = 2
   nsteps        = 1000
   plot_int      = 100
@@ -91,6 +91,11 @@ program main
         need_inputs_file = .false.
      end if
   end if
+
+  ! in this example we fix nlevs to be max_levs
+  ! for adaptive simulations where the grids change, cells at finer
+  ! resolution don't necessarily exist depending on your tagging criteria
+  nlevs = max_levs
 
   ! now that we have dim, we can allocate these
   allocate(lo(dim),hi(dim))
