@@ -141,6 +141,21 @@ program main
 
   call boxlib_finalize()
 
+  ! check for memory that should have been deallocated
+  if ( parallel_IOProcessor() ) then
+     print*, 'MEMORY STATS AT END OF PROGRAM'
+     print*, ' '
+  end if
+  call print(multifab_mem_stats(),    "    multifab")
+  call print(fab_mem_stats(),         "         fab")
+  call print(boxarray_mem_stats(),    "    boxarray")
+  call print(layout_mem_stats(),      "      layout")
+  call print(boxassoc_mem_stats(),    "    boxassoc")
+  call print(fgassoc_mem_stats(),     "     fgassoc")
+  call print(syncassoc_mem_stats(),   "   syncassoc")
+  call print(copyassoc_mem_stats(),   "   copyassoc")
+  call print(fluxassoc_mem_stats(),   "   fluxassoc")
+
   if ( parallel_IOProcessor() ) then
      print*,"Run time (s) =",end_time-start_time
   end if

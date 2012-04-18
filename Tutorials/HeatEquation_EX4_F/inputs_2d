@@ -1,6 +1,6 @@
 &probin
 
- nlevs = 4
+ max_levs = 4
  dim = 2
  nsteps = 10000
  plot_int = 1000
@@ -17,8 +17,8 @@
  bc_y_hi = -1
 
  amr_buf_width = 2
- cluster_minwidth = 2
- cluster_blocking_factor = 4
+ cluster_minwidth = 16
+ cluster_blocking_factor = 8
  cluster_min_eff = 0.7d0
 
 /
