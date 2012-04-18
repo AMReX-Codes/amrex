@@ -24,7 +24,8 @@ contains
     real(dp_t)              , intent(in   ) :: dx
     integer                 , intent(in   ) :: lev
     type(multifab), optional, intent(in   ) :: aux_tag_mf
-
+    ! aux_tag_mf allows user to pass in additional multifabs for tagging logic
+    
     real(kind = dp_t), pointer :: sp(:,:,:,:)
     logical          , pointer :: tp(:,:,:,:)
     integer           :: i, lo(get_dim(mf)), hi(get_dim(mf)), ng
