@@ -1,8 +1,5 @@
 module advance_module
 
-  use multifab_module
-  use layout_module
-
   implicit none
 
   private
@@ -12,6 +9,8 @@ module advance_module
 contains
   
   subroutine advance(data,dx,dt)
+
+    use multifab_module
 
     type(multifab) , intent(inout) :: data
     real(kind=dp_t), intent(in   ) :: dx

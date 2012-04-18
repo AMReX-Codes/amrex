@@ -1,7 +1,6 @@
 program main
 
   use boxlib
-  use parallel
   use multifab_module
   use bl_IO_module
   use layout_module
