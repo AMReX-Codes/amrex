@@ -1727,25 +1727,53 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     // around is precisely p.m_data[0]. In other words, the fractions
                     // we use at crse and fine have to sum to zero.  In the fine
                     // case, we have to account for the case where one or more of the
-                    // cell indices is not in the valid region of the cell.
-                    //
-                    for (int i = 0; i < M; i++)
-                    {
+                    // cell indices is not in the valid region of the box containing 
+                    // the particle.
+
+                    // First create the box of "inner" cells 
+                    const Box ibx = BoxLib::grow(vbx,-1);
+                    BL_ASSERT(ibx.ok());
+
+                    sum_fine = 0;
+
+                    for (int i = 0; i < M; i++) 
+                    {       
                         fwhich[i] = false;
 
-                        if (vbx.contains(cells[i]))
-                        {
-                            fwhich[i] = true;
+                        // Test on the inner box, not the entire valid region
+                        // Go ahead and add the full correct amount to these cells
+                        if (ibx.contains(cells[i]))
+                        {       
+                            fwhich[i] = true; 
+                            sum_fine += fracs[i];
+                            fab(cells[i]) += p.m_data[0] * fracs[i];
+                        }       
+                    }       
+  
+                    Real sum_so_far = sum_crse + sum_fine; 
+
+                    // Reset sum_fine to zero so we see how many cells are left to put  
+                    //  the remaining mass in 
+                    sum_fine = 0;
+
+                    for (int i = 0; i < M; i++) 
+                    {       
+                        fwhich[i] = false;
+
+                        // Find cells that are in vbx but *not* in ibx
+                        if (vbx.contains(cells[i]) && !ibx.contains(cells[i]))
+                        {       
+                            fwhich[i] = true; 
                             sum_fine += fracs[i];
                         }
                     }
 
-                    BL_ASSERT(sum_fine > 0);
+                    const Real mult = (1. - sum_so_far) / sum_fine;
 
-                    const Real mult = (1 - sum_crse) / sum_fine;
-
+                    // Reset sum_fine to zero just so we can use it as a sanity check below
                     sum_fine = 0;
 
+                    // Now add the weighted amount to the fine cells touching the c-f interface
                     for (int i = 0; i < M; i++)
                     {
                         if (fwhich[i])
