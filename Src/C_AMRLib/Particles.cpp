@@ -101,6 +101,7 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
 #endif
 }
 
+
 bool
 ParticleBase::CrseToFine (const BoxArray& cfba,
                           const IntVect*  cells,
@@ -207,6 +208,94 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     }
 
     return result;
+}
+
+//
+// This is a very special case.  Do we have any level one grids, abutting a periodic
+// boundary, whose periodically shifted ghost cells do NOT intersect other level
+// one grids?  That is to say, do we have any level one ghost cells on a periodic
+// boundary, that when shifted back into the valid region, do not overlap grids at
+// level one?  If true we have a more specialized type of Fine->Crse boundary issue
+// to deal with. "pba" will be the BoxArray of ghost cells, outside the domain, that
+// can't be periodically shifted into a valid level one region.
+//
+
+bool
+ParticleBase::FineToCrsePeriodic (const Amr*              amr,
+                                  const PArray<MultiFab>& mmf,
+                                  BoxArray&               pba)
+{
+    BL_ASSERT(amr != 0);
+
+    if (mmf.size() < 2 || mmf[1].nGrow() < 1) return false;
+
+    const MultiFab& mf = mmf[1];
+    const Geometry& gm = amr->Geom(1);
+
+    Array<IntVect> pshifts(27);
+
+    BoxList leftovers;
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        const Box& dest = mf[mfi].box();
+
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            BL_ASSERT(dest.ixType()[n] == IndexType::CELL);
+
+        BL_ASSERT(dest == BoxLib::grow(mfi.validbox(), mf.nGrow()));
+
+        if (!gm.Domain().contains(dest))
+        {
+            const BoxArray& grids = mf.boxArray();
+            //
+            // This'll contain the pieces of "dest" that can be successfully
+            // periodically shifted into valid region at this level.
+            //
+            BoxList pieces;
+
+            for (int j = 0, N = grids.size(); j < N; j++)
+            {
+                Box src = grids[j] & gm.Domain();
+
+                gm.periodicShift(dest, src, pshifts);
+
+                for (int i = 0, M = pshifts.size(); i < M; i++)
+                {
+                    const Box shftbox = src + pshifts[i];
+                    const Box dbx     = dest & shftbox;
+                    //
+                    // These are the pieces of "dest" that can be
+                    // shifted into valid region at our level.
+                    //
+                    pieces.push_back(dbx);
+                }
+            }
+            //
+            // What's in "dest" but not in the domain?
+            //
+            BoxList ovlp = BoxLib::boxDiff(dest,gm.Domain());
+
+            for (BoxList::const_iterator bli = ovlp.begin(), End = ovlp.end(); bli != End; ++bli)
+            {
+                //
+                // Parts of "dest" that can't be successfully covered when shifted.
+                //
+                BoxList remainder = BoxLib::complementIn(*bli, pieces);
+
+                if (!remainder.isEmpty())
+                {
+                    leftovers.catenate(remainder);
+                }
+            }
+        }
+    }
+
+    pba.define(leftovers);
+
+    pba.removeOverlap();
+
+    return pba.size() > 0;
 }
 
 void
