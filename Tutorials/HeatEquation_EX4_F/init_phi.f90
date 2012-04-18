@@ -11,9 +11,44 @@ module init_phi_module
 
   private
 
-  public :: init_phi
+  public :: init_phi_on_level, init_phi
 
 contains
+
+  subroutine init_phi_on_level(phi,dx,prob_lo,the_bc_level)
+
+    type(multifab) , intent(inout) :: phi
+    real(kind=dp_t), intent(in   ) :: dx
+    real(kind=dp_t), intent(in   ) :: prob_lo(phi%dim)
+    type(bc_level) , intent(in   ) :: the_bc_level
+
+    ! local
+    integer i,ng,dm
+    integer :: lo(phi%dim), hi(phi%dim)
+
+    real(kind=dp_t), pointer :: dp(:,:,:,:)
+
+    ng = phi%ng
+    dm = phi%dim
+
+    do i=1,phi%nboxes
+       if ( multifab_remote(phi,i) ) cycle
+       dp => dataptr(phi,i)
+       lo = lwb(get_box(phi,i))
+       hi = upb(get_box(phi,i))
+       select case(dm)
+       case (2)
+          call init_phi_2d(dp(:,:,1,1), ng, lo, hi, prob_lo, dx)
+       case (3)
+          call init_phi_3d(dp(:,:,:,1), ng, lo, hi, prob_lo, dx)
+       end select
+    end do
+
+    call multifab_fill_boundary(phi)
+    
+    call multifab_physbc(phi,1,1,1,the_bc_level)
+
+  end subroutine init_phi_on_level
   
   subroutine init_phi(mla,phi,dx,prob_lo,the_bc_tower)
 
