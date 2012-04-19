@@ -1596,17 +1596,37 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     {
         const Geometry& gm = m_amr->Geom(lev);
         const Real*     dx = gm.CellSize();
-        const BoxArray& ba = mf[lev].boxArray();
 
         if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
         {
             BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
         }
         //
-        // If we're at a lev > 0 this is the coarsed fine BoxArray.
+        // If we're at a lev < finestLevel, this is the coarsed fine BoxArray.
         // We use this for figuring out Crse->Fine issues.
         //
-        BoxArray cfba;      
+        BoxArray cfba;
+
+        if (lev < lfinest)
+        {
+            cfba = m_amr->boxArray(lev+1);
+            cfba.coarsen(m_amr->refRatio(lev));
+
+            BL_ASSERT(mf[lev].boxArray().contains(cfba));
+        }
+        //
+        // If we're at a lev > 0 this is the complement of the BoxArray, then
+        // grown by one.  Any cells in this BoxArray are within one cell of a
+        // Fine->Crse boundary.
+        //
+        BoxArray compfba;
+
+        if (lev > 0)
+        {
+            compfba = BoxLib::complementIn(gm.Domain(), mf[lev].boxArray());
+            compfba.grow(1);
+            compfba.removeOverlap();
+        }
         //
         // If we're at level 1 and we have fine grid touching a periodic boundary,
         // this is the collection of ghost boxes outside the domain that cannot
@@ -1616,15 +1636,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         //
         BoxArray leftovers;
 
-        if (lev < lfinest)
-        {
-            cfba = m_amr->boxArray(lev+1);
-            cfba.coarsen(m_amr->refRatio(lev));
-
-            BL_ASSERT(mf[lev].boxArray().contains(cfba));
-        }
-
         const bool have_periodic_issue = (lev == 1) ? ParticleBase::FineToCrsePeriodic(m_amr,mf,leftovers) : false;
+        //
+        // have_periodic_issue hasn't been integrated into finetocrse stuff below ...
+        //
+        BL_ASSERT(have_periodic_issue == false);
 
         for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
                  pmapEnd = m_particles[lev].end();
@@ -1633,7 +1649,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         {
             const PBox& pbx = pmap_it->second;
             FArrayBox&  fab = mf[lev][pmap_it->first];
-            const Box&  vbx = ba[pmap_it->first];
 
             int      cgrid[M];
             bool    cwhich[M], fwhich[M];
@@ -1741,51 +1756,49 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     // case, we have to account for the case where one or more of the
                     // cell indices is not in the valid region of the box containing 
                     // the particle.
-
-                    // First create the box of "inner" cells 
-                    const Box ibx = BoxLib::grow(vbx,-1);
-                    BL_ASSERT(ibx.ok());
-
+                    //
                     sum_fine = 0;
 
                     for (int i = 0; i < M; i++) 
-                    {       
-                        fwhich[i] = false;
+                    {
+                        //
+                        // Reusing "fwhich" to indicate fine cells that need massaging.
+                        //
+                        fwhich[i] = true;
 
-                        // Test on the inner box, not the entire valid region
-                        // Go ahead and add the full correct amount to these cells
-                        if (ibx.contains(cells[i]))
-                        {       
-                            fwhich[i] = true; 
-                            sum_fine += fracs[i];
+                        if (!compfba.contains(cells[i]))
+                        {
+                            //
+                            // Go ahead and add the full correct amount to these cells.
+                            // They can't touch a Fine->Crse boundary.
+                            //
+                            sum_fine      += fracs[i];
                             fab(cells[i]) += p.m_data[0] * fracs[i];
-                        }       
-                    }       
-  
-                    Real sum_so_far = sum_crse + sum_fine; 
-
-                    // Reset sum_fine to zero so we see how many cells are left to put  
-                    //  the remaining mass in 
-                    sum_fine = 0;
-
-                    for (int i = 0; i < M; i++) 
-                    {       
-                        fwhich[i] = false;
-
-                        // Find cells that are in vbx but *not* in ibx
-                        if (vbx.contains(cells[i]) && !ibx.contains(cells[i]))
-                        {       
-                            fwhich[i] = true; 
-                            sum_fine += fracs[i];
+                            fwhich[i]      = false;
                         }
                     }
 
-                    const Real mult = (1. - sum_so_far) / sum_fine;
+                    const Real sum_so_far = sum_crse + sum_fine; 
 
-                    // Reset sum_fine to zero just so we can use it as a sanity check below
+                    BL_ASSERT(sum_so_far > 0 && sum_so_far < 1);
+
                     sum_fine = 0;
 
-                    // Now add the weighted amount to the fine cells touching the c-f interface
+                    for (int i = 0; i < M; i++) 
+                    {       
+                        if (fwhich[i])
+                            //
+                            // Got to weight cells in this direction differently.
+                            //
+                            sum_fine += fracs[i];
+                    }
+
+                    const Real mult = (1 - sum_so_far) / sum_fine;
+
+                    sum_fine = 0;
+                    //
+                    // Now add the weighted amount to the fine cells touching the c-f interface.
+                    //
                     for (int i = 0; i < M; i++)
                     {
                         if (fwhich[i])
@@ -1795,7 +1808,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         }
                     }
 
-                    BL_ASSERT(std::abs(1-(sum_crse+sum_fine)) < 1.e-9);
+                    BL_ASSERT(std::abs(1-(sum_fine+sum_so_far)) < 1.e-9);
                 }
 
                 if (crsetofine)
