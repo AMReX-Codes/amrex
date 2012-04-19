@@ -1485,7 +1485,9 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
     Array<const PBox*> pbxs(n);
 
     int j = 0;
-    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it, ++j)
+    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
+         pmap_it != pmapEnd;
+         ++pmap_it, ++j)
     {
         pgrd[j] =   pmap_it->first;
         pbxs[j] = &(pmap_it->second);
@@ -1502,7 +1504,9 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
         Real    fracs[M];
         IntVect cells[M];
 
-        for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end(); it != End; ++it)
+        for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end();
+             it != End;
+             ++it)
         {
             const ParticleType& p = *it;
 
@@ -1521,7 +1525,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
             if (!gm.isAllPeriodic())
                 if (!gm.Domain().contains(csect))
-                    BoxLib::Error("AssignDensityDoit: if not periodic, all particles must stay away from the domain boundary");
+                    BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
             for (int i = 0; i < M; i++)
             {
@@ -1590,7 +1594,16 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     //
     std::deque<ParticleBase> data;
 
-    ParticleBase pb;
+    int            cgrid[M];
+    bool           cwhich[M], fwhich[M];
+    Real           fracs[M],  cfracs[M];
+    IntVect        cells[M],  ccells[M];
+    Array<int>     fgrid;
+    Array<Real>    ffrac;
+    Array<IntVect> fcells;
+    ParticleBase   pb;
+
+    std::vector< std::pair<int,Box> > isects;
 
     for (int lev = 0; lev <= lfinest; lev++)
     {
@@ -1602,7 +1615,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
         }
         //
-        // If we're at a lev < finestLevel, this is the coarsed fine BoxArray.
+        // If we're at a lev < finestLevel, this is the coarsened fine BoxArray.
         // We use this for figuring out Crse->Fine issues.
         //
         BoxArray cfba;
@@ -1615,17 +1628,18 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             BL_ASSERT(mf[lev].boxArray().contains(cfba));
         }
         //
-        // If we're at a lev > 0 this is the complement of the BoxArray, then
-        // grown by one.  Any cells in this BoxArray are within one cell of a
-        // Fine->Crse boundary.
+        // If we're at a lev > 0 this is the complement of the BoxArray, and
+        // the complement of the BwxArray, then grown by one.  Any cells in this
+        // BoxArray are within one cell of a Fine->Crse boundary.
         //
-        BoxArray compfba;
+        BoxArray compfba, compfba_grown;
 
         if (lev > 0)
         {
-            compfba = BoxLib::complementIn(gm.Domain(), mf[lev].boxArray());
-            compfba.grow(1);
-            compfba.removeOverlap();
+            compfba       = BoxLib::complementIn(gm.Domain(), mf[lev].boxArray());
+            compfba_grown = compfba;
+            compfba_grown.grow(1);
+            compfba_grown.removeOverlap();
         }
         //
         // If we're at level 1 and we have fine grid touching a periodic boundary,
@@ -1649,17 +1663,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         {
             const PBox& pbx = pmap_it->second;
             FArrayBox&  fab = mf[lev][pmap_it->first];
-
-            int      cgrid[M];
-            bool    cwhich[M], fwhich[M];
-            Real     fracs[M];
-            IntVect  cells[M];
-
-            Array<int>     fgrid;
-            Array<Real>    ffrac;
-            Array<IntVect> fcells;
-
-            std::vector< std::pair<int,Box> > isects;
 
             for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end();
                  it != End;
@@ -1704,9 +1707,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     // We have some fine->crse action.
                     //
                     Real sum_crse = 0, sum_fine = 0;
-
-                    Real    cfracs[M];
-                    IntVect ccells[M];
 
                     const Real* cdx = m_amr->Geom(lev-1).CellSize();
                     //
@@ -1766,7 +1766,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         //
                         fwhich[i] = true;
 
-                        if (!compfba.contains(cells[i]))
+                        if (!compfba_grown.contains(cells[i]))
                         {
                             //
                             // Go ahead and add the full correct amount to these cells.
@@ -1775,6 +1775,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             sum_fine      += fracs[i];
                             fab(cells[i]) += p.m_data[0] * fracs[i];
                             fwhich[i]      = false;
+                        }
+                        else if (compfba.contains(cells[i]))
+                        {
+                            fwhich[i] = false;
                         }
                     }
 
@@ -1859,19 +1863,22 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                 }
             }
         }
-
-        mf[lev].SumBoundary();
-        gm.SumPeriodicBoundary(mf[lev]);
     }
     //
     // Send any needed data to other MPI processes.
+    // This "may" touch ghost cells so we want to do it before
+    // the SumBoundary() and SumPeriodicBoundary() stuff.
     //
     ParticleBase::AssignDensityDoit(mf,data);
 
     for (int i = 0; i <= lfinest; i++)
     {
-        const Real* dx       = m_amr->Geom(i).CellSize();
-        const Real  cell_vol = D_TERM(dx[0], *dx[1], *dx[2]);
+        const Geometry& gm       = m_amr->Geom(i);
+        const Real*     dx       = gm.CellSize();
+        const Real      cell_vol = D_TERM(dx[0], *dx[1], *dx[2]);
+
+        mf[i].SumBoundary();
+        gm.SumPeriodicBoundary(mf[i]);
 
         mf[i].mult(1/cell_vol);
     }
