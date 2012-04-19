@@ -96,10 +96,9 @@ contains
 
     else
 
+       ! the loop over nlevs must count backwards to make sure the finer grids are done first
        do n=nlevs,2,-1
           ! set level n-1 data to be the average of the level n data covering it
-          ! the loop over nlevs must count backwards to make sure the finer grids 
-          ! are done first
           call ml_cc_restriction(phi(n-1),phi(n),mla%mba%rr(n-1,:))
 
           ! fill level n ghost cells using interpolation from level n-1 data

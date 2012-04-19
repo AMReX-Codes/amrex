@@ -22,5 +22,6 @@
  cluster_minwidth = 16
  cluster_blocking_factor = 8
  cluster_min_eff = 0.9d0
+ regrid_int = 4
 
 /
