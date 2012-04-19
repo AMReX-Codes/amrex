@@ -72,7 +72,7 @@ contains
        ! level 2 tagging criteria
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             if (mf(i,j) .gt. 0.3d0) then
+             if (mf(i,j) .gt. 0.4d0) then
                 tagbox(i,j) = .true.
              end if
           end do
@@ -81,7 +81,7 @@ contains
        ! level 3 and greater tagging criteria
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             if (mf(i,j) .gt. 0.5d0) then
+             if (mf(i,j) .gt. 0.7d0) then
                 tagbox(i,j) = .true.
              end if
           end do
@@ -121,7 +121,7 @@ contains
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                if (mf(i,j,k) .gt. 0.3d0) then
+                if (mf(i,j,k) .gt. 0.4d0) then
                    tagbox(i,j,k) = .true.
                 end if
              end do
@@ -132,7 +132,7 @@ contains
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                if (mf(i,j,k) .gt. 0.5d0) then
+                if (mf(i,j,k) .gt. 0.7d0) then
                    tagbox(i,j,k) = .true.
                 end if
              end do
