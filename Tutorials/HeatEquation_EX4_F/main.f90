@@ -282,7 +282,7 @@ program main
      if ( istep > 1 .and. max_levs > 1 .and. regrid_int > 0 .and. &
           (mod(istep-1,regrid_int) .eq. 0) ) then
 
-        call regrid(mla,phi,dx,the_bc_tower,max_levs,amr_buf_width,max_grid_size)
+        call regrid(mla,phi,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
 
      end if
 
