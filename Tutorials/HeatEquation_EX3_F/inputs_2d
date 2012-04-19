@@ -1,6 +1,6 @@
 &probin
 
- nlevs = 3
+ max_levs = 3
  dim = 2
  nsteps = 10000
  plot_int = 1000
