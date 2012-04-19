@@ -22,7 +22,7 @@ program main
   integer :: istep
 
   real(dp_t), allocatable :: prob_lo(:), prob_hi(:)
-  real(dp_t) :: dx, dt, time, start_time, end_time
+  real(dp_t) :: dx, dt, time, start_time, run_time,run_time_IOproc 
   
   logical, allocatable :: is_periodic(:)
 
@@ -135,11 +135,8 @@ program main
 
   deallocate(lo,hi,is_periodic,prob_lo,prob_hi)
 
-  ! parallel_wtime() returns the number of wallclock-time seconds since
-  ! the program began
-  end_time = parallel_wtime()
-
-  call boxlib_finalize()
+  ! deallocate temporary boxarrays and communication mappings
+  call layout_flush_copyassoc_cache()
 
   ! check for memory that should have been deallocated
   if ( parallel_IOProcessor() ) then
@@ -156,8 +153,18 @@ program main
   call print(copyassoc_mem_stats(),   "   copyassoc")
   call print(fluxassoc_mem_stats(),   "   fluxassoc")
 
+  ! parallel_wtime() returns the number of wallclock-time seconds since
+  ! the program began
+  run_time = parallel_wtime() - start_time
+
+  ! collect run_time from each processor and store the maximum
+  call parallel_reduce(run_time_IOproc, run_time, MPI_MAX, &
+                       proc = parallel_IOProcessorNode())
+
   if ( parallel_IOProcessor() ) then
-     print*,"Run time (s) =",end_time-start_time
+     print*,"Run time (s) =",run_time_IOproc
   end if
+
+  call boxlib_finalize()
 
 end program main
