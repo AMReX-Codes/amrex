@@ -9,6 +9,7 @@ program main
   use advance_module
   use define_bc_module
   use make_new_grids_module
+  use regrid_module
 
   implicit none
 
@@ -16,6 +17,7 @@ program main
   integer    :: max_levs, dim, nsteps, plot_int, n_cell, max_grid_size
   integer    :: amr_buf_width, cluster_minwidth, cluster_blocking_factor
   real(dp_t) :: cluster_min_eff
+  integer    :: regrid_int
   integer    :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! dummy indices using for reading in inputs file
@@ -47,7 +49,7 @@ program main
   type(bc_tower) :: the_bc_tower
 
   namelist /probin/ max_levs, dim, nsteps, plot_int, n_cell, max_grid_size, amr_buf_width, &
-       cluster_minwidth, cluster_blocking_factor, cluster_min_eff, &
+       cluster_minwidth, cluster_blocking_factor, cluster_min_eff, regrid_int, &
        bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! if running in parallel, this will print out the number of MPI 
@@ -72,6 +74,7 @@ program main
   cluster_minwidth = 16
   cluster_blocking_factor = 8
   cluster_min_eff = 0.7d0
+  regrid_int = 4
 
   ! allowable options for this example are
   ! -1 = PERIODIC
@@ -274,6 +277,14 @@ program main
   call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
 
   do istep=1,nsteps
+
+     ! regrid
+     if ( istep > 1 .and. max_levs > 1 .and. regrid_int > 0 .and. &
+          (mod(istep-1,regrid_int) .eq. 0) ) then
+
+        call regrid(mla,phi,dx,the_bc_tower,max_levs,amr_buf_width,max_grid_size)
+
+     end if
 
      ! we only want one processor to write to screen
      if ( parallel_IOProcessor() ) then
