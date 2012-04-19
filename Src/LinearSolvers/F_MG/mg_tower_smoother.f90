@@ -31,7 +31,7 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: i, k, n, nn, stat, npts
+    integer :: i, k, n, ng, nn, stat, npts
     integer :: lo(mgt%dim)
     type(bl_prof_timer), save :: bpt
     logical :: lcross, pmask(mgt%dim), singular_test
@@ -42,6 +42,9 @@ contains
     end if
 
     pmask = get_pmask(get_layout(uu))
+
+    ! Make sure to define this here so we don't assume a certain number of ghost cells for uu
+    ng = nghost(uu)
 
     call build(bpt, "mgt_smoother")
 
@@ -72,7 +75,7 @@ contains
              lo =  lwb(get_box(ss, i))
              do n = 1, mgt%nc
                 call gs_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                                      mp(:,1,1,1), lo, mgt%ng)
+                                      mp(:,1,1,1), lo, ng)
              end do
           end do
 
@@ -105,6 +108,7 @@ contains
           case ( MG_SMOOTHER_GS_RB )
 
              do nn = 0, 1
+
                 call multifab_fill_boundary(uu, cross = lcross)
 
                 do i = 1, mgt%nboxes
@@ -118,15 +122,15 @@ contains
                       select case ( mgt%dim)
                       case (1)
                          call gs_rb_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), &
-                                                fp(:,1,1,n), mp(:,1,1,1), lo, mgt%ng, nn, &
+                                                fp(:,1,1,n), mp(:,1,1,1), lo, ng, nn, &
                                                 mgt%skewed(lev,i))
                       case (2)
                          call gs_rb_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                                fp(:,:,1,n), mp(:,:,1,1), lo, mgt%ng, nn, &
+                                                fp(:,:,1,n), mp(:,:,1,1), lo, ng, nn, &
                                                 mgt%skewed(lev,i))
                       case (3)
                          call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                                fp(:,:,:,n), mp(:,:,:,1), lo, mgt%ng, nn, &
+                                                fp(:,:,:,n), mp(:,:,:,1), lo, ng, nn, &
                                                 mgt%skewed(lev,i))
                       end select
                    end do
@@ -148,24 +152,24 @@ contains
                    select case ( mgt%dim)
                    case (1)
                       call gs_rb_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), &
-                                             fp(:,1,1,n), mp(:,1,1,1), lo, mgt%ng, 0, &
+                                             fp(:,1,1,n), mp(:,1,1,1), lo, ng, 0, &
                                              mgt%skewed(lev,i))
                       call gs_rb_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), &
-                                             fp(:,1,1,n), mp(:,1,1,1), lo, mgt%ng, 1, &
+                                             fp(:,1,1,n), mp(:,1,1,1), lo, ng, 1, &
                                              mgt%skewed(lev,i))
                    case (2)
                       call gs_rb_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                             fp(:,:,1,n), mp(:,:,1,1), lo, mgt%ng, 0, &
+                                             fp(:,:,1,n), mp(:,:,1,1), lo, ng, 0, &
                                              mgt%skewed(lev,i))
                       call gs_rb_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                             fp(:,:,1,n), mp(:,:,1,1), lo, mgt%ng, 1, &
+                                             fp(:,:,1,n), mp(:,:,1,1), lo, ng, 1, &
                                              mgt%skewed(lev,i))
                    case (3)
                       call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                             fp(:,:,:,n), mp(:,:,:,1), lo, mgt%ng, 0, &
+                                             fp(:,:,:,n), mp(:,:,:,1), lo, ng, 0, &
                                              mgt%skewed(lev,i))
                       call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                             fp(:,:,:,n), mp(:,:,:,1), lo, mgt%ng, 1, &
+                                             fp(:,:,:,n), mp(:,:,:,1), lo, ng, 1, &
                                              mgt%skewed(lev,i))
                    end select
                 end do
@@ -187,10 +191,10 @@ contains
                       select case ( mgt%dim)
                       case (2)
                          call fourth_order_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,1), &
-                                                       fp(:,:,1,1), lo, mgt%ng, nn)
+                                                       fp(:,:,1,1), lo, ng, nn)
                       case (3)
                          call fourth_order_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                                       fp(:,:,:,1), lo, mgt%ng, nn)
+                                                       fp(:,:,:,1), lo, ng, nn)
                       end select
                    end do
                 end do
@@ -211,10 +215,10 @@ contains
                    select case ( mgt%dim)
                       case (2)
                          call fourth_order_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,1), &
-                                                       fp(:,:,1,1), lo, mgt%ng, n)
+                                                       fp(:,:,1,1), lo, ng, n)
                       case (3)
                          call fourth_order_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                                       fp(:,:,:,1), lo, mgt%ng, n) 
+                                                       fp(:,:,:,1), lo, ng, n) 
                       end select
                    end do
                 end do
@@ -233,10 +237,10 @@ contains
                    select case ( mgt%dim)
                    case (2)
                       call jac_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), fp(:,:,1,n), &
-                                           mp(:,:,1,1), mgt%ng)
+                                           mp(:,:,1,1), ng)
                    case (3)
                       call jac_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                                           mp(:,:,:,1), mgt%ng)
+                                           mp(:,:,:,1), ng)
                    end select
                 end do
              end do
@@ -253,10 +257,10 @@ contains
                    select case ( mgt%dim)
                    case (2)
                       call gs_lex_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                              fp(:,:,1,n), mgt%ng)
+                                              fp(:,:,1,n), ng)
                    case (3)
                       call gs_lex_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                              fp(:,:,:,n), mgt%ng)
+                                              fp(:,:,:,n), ng)
                    end select
                 end do
              end do
@@ -283,7 +287,7 @@ contains
                    select case ( mgt%dim)
                    case (1)
                       call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                                               mp(:,1,1,1), lo, mgt%ng)
+                                               mp(:,1,1,1), lo, ng)
                    end select
                 end do
              end do
@@ -304,16 +308,16 @@ contains
                    select case ( mgt%dim)
                    case (1)
 !                     call nodal_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-!                                            mp(:,1,1,1), lo, mgt%ng, k)
+!                                            mp(:,1,1,1), lo, ng, k)
                       if (k.eq.0) &
                       call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                                               mp(:,1,1,1), lo, mgt%ng)
+                                               mp(:,1,1,1), lo, ng)
                    case (2)
                       call nodal_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                             fp(:,:,1,n), mp(:,:,1,1), lo, mgt%ng, pmask, k)
+                                             fp(:,:,1,n), mp(:,:,1,1), lo, ng, pmask, k)
                    case (3)
                       call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                             fp(:,:,:,n), mp(:,:,:,1), lo, mgt%ng, &
+                                             fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
                                              mgt%uniform_dh, pmask, k)
                    end select
                 end do
@@ -335,15 +339,15 @@ contains
                 select case ( mgt%dim)
                 case (1)
 !                  call nodal_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-!                                         mp(:,1,1,1), lo, mgt%ng, k)
+!                                         mp(:,1,1,1), lo, ng, k)
                    call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                                            mp(:,1,1,1), lo, mgt%ng)
+                                            mp(:,1,1,1), lo, ng)
                 case (2)
                    call nodal_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), fp(:,:,1,n), &
-                                          mp(:,:,1,1), lo, mgt%ng, pmask, k)
+                                          mp(:,:,1,1), lo, ng, pmask, k)
                 case (3)
                    call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                                          mp(:,:,:,1), lo, mgt%ng, mgt%uniform_dh, pmask, k)
+                                          mp(:,:,:,1), lo, ng, mgt%uniform_dh, pmask, k)
                 end select
              end do
           end do
@@ -371,13 +375,15 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: i, n, iter
+    integer :: i, n, ng, iter
     type(bl_prof_timer), save :: bpt
     logical :: lcross
 
     call build(bpt, "mgt_jacobi_smoother")
 
     lcross = ( (ncomp(ss) == 5) .or. (ncomp(ss) == 7) )
+
+    ng = nghost(uu)
 
     if (mgt%skewed_not_set(lev)) then 
        do i = 1, mgt%nboxes
@@ -404,13 +410,13 @@ contains
              select case ( mgt%dim)
              case (1)
                 call jac_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                                     mp(:,1,1,1), mgt%ng)
+                                     mp(:,1,1,1), ng)
              case (2)
                 call jac_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), fp(:,:,1,n), &
-                                     mp(:,:,1,1), mgt%ng)
+                                     mp(:,:,1,1), ng)
              case (3)
                 call jac_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                                     mp(:,:,:,1), mgt%ng)
+                                     mp(:,:,:,1), ng)
              end select
           end do
        end do
