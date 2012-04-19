@@ -12,7 +12,7 @@ program main
   implicit none
 
   ! stuff you can set with the inputs file (otherwise use default values below)
-  integer :: nlevs, dim, nsteps, plot_int, n_cell, max_grid_size
+  integer :: max_levs, dim, nsteps, plot_int, n_cell, max_grid_size
   integer :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! dummy indices using for reading in inputs file
@@ -28,12 +28,12 @@ program main
   ! will be allocated with (dim,2) components
   integer       , allocatable :: phys_bc(:,:)
 
-  ! will be allocated with nlevs components
+  ! will be allocated with max_levs components
   real(dp_t)    , allocatable :: dx(:)
   type(multifab), allocatable :: phi(:)
 
-  integer    :: istep,i,n,n_cell_level
-  real(dp_t) :: dt,time,start_time,end_time
+  integer    :: istep,i,n,n_cell_level,nlevs
+  real(dp_t) :: dt,time,start_time,run_time,run_time_IOproc
   
   type(box)         :: bx
   type(ml_boxarray) :: mba
@@ -41,7 +41,7 @@ program main
 
   type(bc_tower) :: the_bc_tower
 
-  namelist /probin/ nlevs, dim, nsteps, plot_int, n_cell, max_grid_size, &
+  namelist /probin/ max_levs, dim, nsteps, plot_int, n_cell, max_grid_size, &
        bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! if running in parallel, this will print out the number of MPI 
@@ -55,7 +55,7 @@ program main
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! default values - will get overwritten by the inputs file
 
-  nlevs         = 3
+  max_levs      = 3
   dim           = 2
   nsteps        = 1000
   plot_int      = 100
@@ -91,6 +91,11 @@ program main
         need_inputs_file = .false.
      end if
   end if
+
+  ! in this example we fix nlevs to be max_levs
+  ! for adaptive simulations where the grids change, cells at finer
+  ! resolution don't necessarily exist depending on your tagging criteria
+  nlevs = max_levs
 
   ! now that we have dim, we can allocate these
   allocate(lo(dim),hi(dim))
@@ -140,6 +145,7 @@ program main
      mba%rr(n-1,:) = 2
   enddo
 
+  ! set grid spacing at each level
   ! the grid spacing is the same in each direction
   dx(1) = (prob_hi(1)-prob_lo(1)) / n_cell
   do n=2,nlevs
@@ -189,9 +195,10 @@ program main
   ! don't need this anymore - free up memory
   call destroy(mba)
 
-  ! build boundary conditions
+  ! tell the_bc_tower about max_levs, dim, and phys_bc
   call bc_tower_init(the_bc_tower,nlevs,dim,phys_bc)
   do n=1,nlevs
+     ! define level n of the_bc_tower
      call bc_tower_level_build(the_bc_tower,n,mla%la(n))
   end do
 
@@ -240,14 +247,36 @@ program main
 
   deallocate(lo,hi,is_periodic,prob_lo,prob_hi)
 
+  ! deallocate temporary boxarrays and communication mappings
+  call layout_flush_copyassoc_cache()
+
+  ! check for memory that should have been deallocated
+  if ( parallel_IOProcessor() ) then
+     print*, 'MEMORY STATS AT END OF PROGRAM'
+     print*, ' '
+  end if
+  call print(multifab_mem_stats(),    "    multifab")
+  call print(fab_mem_stats(),         "         fab")
+  call print(boxarray_mem_stats(),    "    boxarray")
+  call print(layout_mem_stats(),      "      layout")
+  call print(boxassoc_mem_stats(),    "    boxassoc")
+  call print(fgassoc_mem_stats(),     "     fgassoc")
+  call print(syncassoc_mem_stats(),   "   syncassoc")
+  call print(copyassoc_mem_stats(),   "   copyassoc")
+  call print(fluxassoc_mem_stats(),   "   fluxassoc")
+
   ! parallel_wtime() returns the number of wallclock-time seconds since
   ! the program began
-  end_time = parallel_wtime()
+  run_time = parallel_wtime() - start_time
 
-  call boxlib_finalize()
+  ! collect run_time from each processor and store the maximum
+  call parallel_reduce(run_time_IOproc, run_time, MPI_MAX, &
+                       proc = parallel_IOProcessorNode())
 
   if ( parallel_IOProcessor() ) then
-     print*,"Run time (s) =",end_time-start_time
+     print*,"Run time (s) =",run_time_IOproc
   end if
+
+  call boxlib_finalize()
 
 end program main
