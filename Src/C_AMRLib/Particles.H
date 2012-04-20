@@ -78,9 +78,7 @@ struct ParticleBase
     //
     static bool CrseToFine (const BoxArray& cfba, const IntVect* cells, bool* which);
 
-    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, bool have_periodic_issue, const IntVect* fcells, const BoxArray& leftovers, bool* which, int* cgrid);
-
-    static bool FineToCrsePeriodic (const Amr* amr, const PArray<MultiFab>& mf, BoxArray& pba);
+    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, const IntVect* fcells, const BoxArray& fba, bool* which, int* cgrid);
 
     static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells);
 
@@ -1628,33 +1626,83 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             BL_ASSERT(mf[lev].boxArray().contains(cfba));
         }
         //
-        // If we're at a lev > 0 this is the complement of the BoxArray, and
-        // the complement of the BwxArray, then grown by one.  Any cells in this
-        // BoxArray are within one cell of a Fine->Crse boundary.
+        // "fvalid" contains all the valid region of the MultiFab at this level, together
+        // with any ghost cells lying outside the domain, that can be periodically shifted into the
+        // valid region.  "compfba" is the complement of the "fvalid", while "compfba_grown" is 
+        // "compfba" grown by one.  Using these we can figure out whether or not a cell is in the
+        // valid region of our MultiFab as well as whether or not we're at a Fine->Crse boundary.
         //
-        BoxArray compfba, compfba_grown;
+        BoxArray compfba, compfba_grown, fvalid;
 
         if (lev > 0)
         {
-            compfba       = BoxLib::complementIn(gm.Domain(), mf[lev].boxArray());
+            fvalid = mf[lev].boxArray();
+
+            if (lev == 1)
+            {
+                //
+                // Do we have Fine->Crse overlap on a periodic boundary?
+                //
+                // We want to add all ghost cells that can be shifted into valid region.
+                //
+                BoxList valid;
+
+                Array<IntVect> pshifts(27);
+
+                const Box&      dm    = gm.Domain();
+                const BoxArray& grids = mf[lev].boxArray();
+
+                for (int i = 0; i < grids.size(); i++)
+                {
+                    if (gm.isAnyPeriodic())
+                    {
+                        const Box dest = mf[lev].fabbox(i);
+
+                        BL_ASSERT(dest == BoxLib::grow(grids[i], mf[lev].nGrow()));
+
+                        if (!dm.contains(dest))
+                        {
+                            for (int j = 0; j < grids.size(); j++)
+                            {
+                                BL_ASSERT(dm.contains(grids[j]));
+
+                                gm.periodicShift(dest, grids[j], pshifts);
+
+                                for (int k = 0; k < pshifts.size(); k++)
+                                {
+                                    const Box sbx = grids[j] + pshifts[k];
+                                    const Box dbx = dest & sbx;
+
+                                    BL_ASSERT(dbx.ok());
+
+                                    valid.push_back(dbx);
+
+                                    std::cout << "*** Got one: " << dbx << '\n';
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (valid.isNotEmpty())
+                {
+                    //
+                    // We've got some Fine->Crse periodic overlap.
+                    // Don't forget to add the valid boxes too.
+                    //
+                    for (int i = 0; i < grids.size(); i++)
+                        valid.push_back(grids[i]);
+                    fvalid = BoxArray(valid);
+                    fvalid.removeOverlap();
+                }
+            }
+
+            compfba = BoxLib::complementIn(BoxLib::grow(gm.Domain(),mf[lev].nGrow()), fvalid);
+
             compfba_grown = compfba;
             compfba_grown.grow(1);
             compfba_grown.removeOverlap();
         }
-        //
-        // If we're at level 1 and we have fine grid touching a periodic boundary,
-        // this is the collection of ghost boxes outside the domain that cannot
-        // be periodically shifted into the valid region at level 1.  If a particle
-        // wants to update something in here at level 1, instead we need to update
-        // a coarse cell at level 0.
-        //
-        BoxArray leftovers;
-
-        const bool have_periodic_issue = (lev == 1) ? ParticleBase::FineToCrsePeriodic(m_amr,mf,leftovers) : false;
-        //
-        // have_periodic_issue hasn't been integrated into finetocrse stuff below ...
-        //
-        BL_ASSERT(have_periodic_issue == false);
 
         for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
                  pmapEnd = m_particles[lev].end();
@@ -1687,8 +1735,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     if (!gm.Domain().contains(cells[0]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
-                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich) : false;
-                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,have_periodic_issue,cells,leftovers,fwhich,cgrid) : false;
+                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich)                     : false;
+                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,fwhich,cgrid) : false;
 
                 BL_ASSERT(!(crsetofine && finetocrse));
 
