@@ -1631,8 +1631,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         // valid region.  "compfba" is the complement of the "fvalid", while "compfba_grown" is 
         // "compfba" grown by one.  Using these we can figure out whether or not a cell is in the
         // valid region of our MultiFab as well as whether or not we're at a Fine->Crse boundary.
+        // "cfvalid" is the coarsed version of "fvalid".
         //
-        BoxArray compfba, compfba_grown, fvalid;
+        BoxArray compfba, compfba_grown, fvalid, cfvalid;
 
         if (lev > 0)
         {
@@ -1676,8 +1677,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                                     BL_ASSERT(dbx.ok());
 
                                     valid.push_back(dbx);
-
-                                    std::cout << "*** Got one: " << dbx << '\n';
                                 }
                             }
                         }
@@ -1702,6 +1701,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             compfba_grown = compfba;
             compfba_grown.grow(1);
             compfba_grown.removeOverlap();
+
+            cfvalid = fvalid;
+            cfvalid.coarsen(m_amr->refRatio(lev-1));
         }
 
         for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
@@ -1735,8 +1737,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     if (!gm.Domain().contains(cells[0]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
-                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich)                     : false;
-                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,fwhich,cgrid) : false;
+                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich)                      : false;
+                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,cells,cfvalid,fwhich,cgrid) : false;
 
                 BL_ASSERT(!(crsetofine && finetocrse));
 
@@ -1832,7 +1834,17 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                     const Real sum_so_far = sum_crse + sum_fine; 
 
-                    BL_ASSERT(sum_so_far > 0 && sum_so_far < 1);
+                    if (sum_so_far >= 1)
+                    {
+                        std::cout << "sum_crse, sum_fine: " << sum_crse << ", " << sum_fine << '\n';
+                        std::cout << "sum_so_far: " << sum_so_far << '\n';
+                        std::cout << "p.m_cell: "   << p.m_cell   << '\n';
+                    }
+
+                    BL_ASSERT(sum_so_far > 0);
+                    BL_ASSERT(sum_so_far < 1);
+
+
 
                     sum_fine = 0;
 
