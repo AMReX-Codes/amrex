@@ -137,7 +137,7 @@ ParticleBase::FineToCrse (const ParticleBase& p,
                           int                 flev,
                           const Amr*          amr,
                           const IntVect*      fcells,
-                          const BoxArray&     fvalid,
+                          const BoxArray&     cfvalid,
                           bool*               which,
                           int*                cgrid)
 {
@@ -173,6 +173,8 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     Real    cfracs[M];
     IntVect ccells[M];
 
+    const IntVect special(0,0,0);
+
     const Geometry& cgm = amr->Geom(flev-1);
 
     ParticleBase::AssignDensityCoeffs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
@@ -185,14 +187,7 @@ ParticleBase::FineToCrse (const ParticleBase& p,
 
     for (int i = 0; i < M; i++)
     {
-        const IntVect iv = ccells[i] * amr->refRatio(flev-1);
-        //
-        // Note that "fvalid" may not equal the valid BoxArray.  It will
-        // also include any ghost regions outside the valid domain, that can be
-        // periodically shifted back into the valid region of the BoxArray
-        // at this level.
-        //
-        if (!fvalid.contains(iv))
+        if (!cfvalid.contains(ccells[i]))
         {
             result   = true;
             which[i] = true;
