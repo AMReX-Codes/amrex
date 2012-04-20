@@ -4,8 +4,8 @@ subroutine compute_flux(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx)
 
   integer lo(2),hi(2),ng_p,ng_f
   double precision   phi(lo(1)-ng_p:hi(1)+ng_p,lo(2)-ng_p:hi(2)+ng_p)
-  double precision fluxx(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f)
-  double precision fluxy(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f)
+  double precision fluxx(lo(1)-ng_f:hi(1)+ng_f+1,lo(2)-ng_f:hi(2)+ng_f)
+  double precision fluxy(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f+1)
   double precision dx
 
   ! local variables
@@ -36,8 +36,8 @@ subroutine update_phi(phiold, phinew, ng_p, fluxx, fluxy, ng_f, lo, hi, dx, dt)
   integer          :: lo(2), hi(2), ng_p, ng_f
   double precision :: phiold(lo(1)-ng_p:hi(1)+ng_p,lo(2)-ng_p:hi(2)+ng_p)
   double precision :: phinew(lo(1)-ng_p:hi(1)+ng_p,lo(2)-ng_p:hi(2)+ng_p)
-  double precision ::  fluxx(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f)
-  double precision ::  fluxy(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f)
+  double precision ::  fluxx(lo(1)-ng_f:hi(1)+ng_f+1,lo(2)-ng_f:hi(2)+ng_f)
+  double precision ::  fluxy(lo(1)-ng_f:hi(1)+ng_f,lo(2)-ng_f:hi(2)+ng_f+1)
   double precision :: dx, dt
 
   ! local variables
