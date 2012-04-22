@@ -27,34 +27,34 @@
 
 extern "C"
 {
-  void FORT_INIT_PHI
-  (Real* data, const int* lo, const int* hi, const int* ng, 
-   const Real* dx, const Real* prob_lo, const Real* prob_hi);
+  void FORT_INIT_PHI (Real* data, const int* lo, const int* hi, const int* ng, 
+		      const Real* dx, const Real* prob_lo, const Real* prob_hi);
 
-  void FORT_COMPUTE_FLUX
-  (Real* phi, const int* ng_p,
-   Real* fluxx, 
-   Real* fluxy,
+  void FORT_COMPUTE_FLUX (Real* phi, const int* ng_p,
+			  Real* fluxx, 
+			  Real* fluxy,
 #if (BL_SPACEDIM == 3)   
-   Real* fluxz,
+			  Real* fluxz,
 #endif
    const int* ng_f, const int* lo, const int* hi, const Real* dx);
   
-  void FORT_UPDATE_PHI
-  (Real* phiold, Real* phinew, const int* ng_p,
-   Real* fluxx, 
-   Real* fluxy,
+  void FORT_UPDATE_PHI (Real* phiold, Real* phinew, const int* ng_p,
+			Real* fluxx, 
+			Real* fluxy,
 #if (BL_SPACEDIM == 3)   
-   Real* fluxz,
+			Real* fluxz,
 #endif
-   const int* ng_f, const int* lo, const int* hi, const Real* dx, const Real* dt);
+			const int* ng_f, const int* lo, const int* hi, const Real* dx, const Real* dt);
 }
 
 static
-void advance(MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Real dt)
+void advance (MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Real dt, Geometry geom)
 {
   // Fill the ghost cells of each grid from the other grids
   old_phi->FillBoundary();
+
+  // Fill periodic boundary ghost cells
+  geom.FillPeriodicBoundary(*old_phi);
 
   int Ncomp = old_phi->nComp();
   int ng_p = old_phi->nGrow();
@@ -93,7 +93,7 @@ void advance(MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Rea
 }
 
 static
-Real compute_dt(Real dx)
+Real compute_dt (Real dx)
 {
   return 0.9*dx*dx / (2.0*BL_SPACEDIM);
 }
@@ -225,7 +225,7 @@ main (int argc, char* argv[])
      std::swap(old_phi, new_phi);
 
      // new_phi = old_phi + dt * (something)
-     advance(old_phi, new_phi, flux, dx, dt); 
+     advance(old_phi, new_phi, flux, dx, dt, geom); 
 
      // Tell the I/O Processor to write out which step we're doing
      if (ParallelDescriptor::IOProcessor())
