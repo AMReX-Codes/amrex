@@ -182,6 +182,8 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     //
     const int M = D_TERM(2,+2,+4);
 
+    const IntVect special(0,0,0);
+
     for (int i = 0; i < M; i++)
     {
         cgrid[i] = -1;
