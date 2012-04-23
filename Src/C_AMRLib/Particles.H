@@ -1648,8 +1648,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             {
                 //
                 // Do we have Fine->Crse overlap on a periodic boundary?
-                //
                 // We want to add all ghost cells that can be shifted into valid region.
+                // This can only happen at level one.
                 //
                 BoxList valid;
 
@@ -1698,32 +1698,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                 }
             }
 
-#if 0
-            Box       dmg   = m_amr->Geom(lev).Domain();
-            const int ngrow = mf[lev].nGrow();
-
-            bool lotouch[BL_SPACEDIM] = {D_DECL(false,false,false)};
-            bool hitouch[BL_SPACEDIM] = {D_DECL(false,false,false)};
-
-            if (fvalid.size() > m_amr->boxArray(lev).size())
-            {
-                for (int i = 0; i < fvalid.size(); i++)
-                {
-                    for (int j = 0; j < BL_SPACEDIM; j++)
-                    {
-                        if (fvalid[i].smallEnd(j) == dm.smallEnd(j)) lotouch[j] = true;
-                        if (fvalid[i].bigEnd(j)   == dm.bigEnd(j)  ) hitouch[j] = true;
-                    }
-                }
-                for (int j = 0; j < BL_SPACEDIM; j++)
-                {
-                    if (lotouch[j]) dmg.grow(j,-ngrow);
-                    if (hitouch[j]) dmg.grow(j,+ngrow);
-                }
-            }
-#else
-            Box dmg   = BoxLib::grow(m_amr->Geom(lev).Domain(),1);
-#endif
+            Box dmg   = BoxLib::grow(dm,2);
 
             std::cout << "dmg = " << dmg << '\n';
 
@@ -1739,6 +1714,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
             std::cout << "compfba_grown:\n" << compfba_grown << '\n';
         }
+        //
+        // Do the grids at this level cover the full domain? If they do
+        // there can be no Fine->Crse interactions at this level.
+        //
+        const bool grid_covers_domain = fvalid.contains(m_amr->Geom(lev).Domain());
 
         for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
                  pmapEnd = m_particles[lev].end();
@@ -1771,12 +1751,23 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     if (!gm.Domain().contains(cells[0]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
-                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts) : false;
-                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,ccells,cfracs,fwhich,cgrid,pshifts) : false;
+                bool anycrsetofine = false;
 
-                BL_ASSERT(!(crsetofine && finetocrse));
+                if (lev < lfinest)
+                {
+                    anycrsetofine = ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
+                }
 
-                if (!crsetofine && !finetocrse)
+                bool anyfinetocrse = false;
+
+                if (lev > 0 && !grid_covers_domain)
+                {
+                    anyfinetocrse = ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,ccells,cfracs,fwhich,cgrid,pshifts);
+                }
+
+                BL_ASSERT(!(anycrsetofine && anyfinetocrse));
+
+                if (!anycrsetofine && !anyfinetocrse)
                 {
                     //
                     // Just do it ...
@@ -1785,7 +1776,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         fab(cells[i]) += p.m_data[0] * fracs[i];
                 }
 
-                if (finetocrse)
+                if (anyfinetocrse)
                 {
                     //
                     // We have some fine->crse action.
@@ -1866,6 +1857,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                     const Real sum_so_far = sum_crse + sum_fine; 
 
+//                    std::cout << "p.m_cell: " << p.m_cell << '\n';
+
                     BL_ASSERT(sum_so_far > 0);
                     BL_ASSERT(sum_so_far < 1);
 
@@ -1898,7 +1891,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     BL_ASSERT(std::abs(1-(sum_fine+sum_so_far)) < 1.e-9);
                 }
 
-                if (crsetofine)
+                if (anycrsetofine)
                 {
                     Real sum = 0;
 
