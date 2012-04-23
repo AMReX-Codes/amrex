@@ -101,11 +101,13 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
 #endif
 }
 
-
 bool
 ParticleBase::CrseToFine (const BoxArray& cfba,
                           const IntVect*  cells,
-                          bool*           which)
+                          IntVect*        cfshifts,
+                          const Geometry& gm,
+                          bool*           which,
+                          Array<IntVect>& pshifts)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
@@ -124,8 +126,34 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
     {
         if (cfba.contains(cells[i]))
         {
-            result   = true;
-            which[i] = true;
+            result      = true;
+            which[i]    = true;
+            cfshifts[i] = IntVect::TheZeroVector();
+        }
+        else if (!gm.Domain().contains(cells[i]))
+        {
+            //
+            // Can they can be shifted into cfba?
+            //
+            const Box bx(cells[i],cells[i]);
+
+            gm.periodicShift(bx, gm.Domain(), pshifts);
+
+            if (!pshifts.empty())
+            {
+                BL_ASSERT(pshifts.size() == 1);
+
+                const Box dbx = bx - pshifts[0];
+
+                BL_ASSERT(dbx.ok());
+
+                if (cfba.contains(dbx))
+                {
+                    result      = true;
+                    which[i]    = true;
+                    cfshifts[i] = pshifts[0];
+                }
+            }
         }
     }
 
@@ -141,7 +169,8 @@ ParticleBase::FineToCrse (const ParticleBase& p,
                           IntVect*            ccells,
                           Real*               cfracs,
                           bool*               which,
-                          int*                cgrid)
+                          int*                cgrid,
+                          Array<IntVect>&     pshifts)
 {
     BL_ASSERT(amr != 0);
     BL_ASSERT(flev > 0);
@@ -180,11 +209,11 @@ ParticleBase::FineToCrse (const ParticleBase& p,
 
     std::vector< std::pair<int,Box> > isects;
 
-    Array<IntVect> pshifts(27);
+    const IntVect rr = amr->refRatio(flev-1);
 
     for (int i = 0; i < M; i++)
     {
-        if (!fvalid.contains(ccells[i]*amr->refRatio(flev-1)))
+        if (!fvalid.contains(ccells[i]*rr))
         {
             result   = true;
             which[i] = true;
@@ -228,6 +257,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
                                          int                 lev,
                                          const Amr*          amr,
                                          const IntVect&      ccell,
+                                         const IntVect&      shift,
                                          Array<int>&         fgrid,
                                          Array<Real>&        ffrac,
                                          Array<IntVect>&     fcells)
@@ -242,7 +272,8 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
     const Real*     dx  = amr->Geom(lev).CellSize();
     const Real*     fdx = amr->Geom(lev+1).CellSize();
 
-    BL_ASSERT(fba.contains(fbx));
+    if (shift == IntVect::TheZeroVector())
+        BL_ASSERT(fba.contains(fbx));
 
     fgrid.clear();
     ffrac.clear();
@@ -267,25 +298,20 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
         }
 
         if (touches)
+        {
             fcells.push_back(iv);
+        }
     }
 
     std::vector< std::pair<int,Box> > isects;
 
     Real sum_fine = 0;
     //
-    // We need to figure out the fine fractions.
+    // We need to figure out the fine fractions and the fine grid needed updating.
     //
     for (int j = 0; j < fcells.size(); j++)
     {
-        const IntVect& iv = fcells[j];
-
-        isects = fba.intersections(Box(iv,iv));
-
-        BL_ASSERT(!isects.empty());
-        BL_ASSERT(isects.size() == 1);
-
-        fgrid.push_back(isects[0].first);
+        IntVect& iv = fcells[j];
 
         Real the_frac = 1;
 
@@ -311,6 +337,19 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
         ffrac.push_back(the_frac);
 
         sum_fine += the_frac;
+
+        if (shift != IntVect::TheZeroVector())
+            //
+            // Update to the correct fine cell needing updating.
+            //
+            iv -= shift;
+
+        isects = fba.intersections(Box(iv,iv));
+
+        BL_ASSERT(!isects.empty());
+        BL_ASSERT(isects.size() == 1);
+
+        fgrid.push_back(isects[0].first);
     }
 
     BL_ASSERT(ffrac.size() == fcells.size());

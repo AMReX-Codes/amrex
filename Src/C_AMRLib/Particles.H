@@ -76,11 +76,11 @@ struct ParticleBase
     //
     // Used by AssignDensity.
     //
-    static bool CrseToFine (const BoxArray& cfba, const IntVect* cells, bool* which);
+    static bool CrseToFine (const BoxArray& cfba, const IntVect* cells, IntVect* cfshifts, const Geometry& gm, bool* which, Array<IntVect>& pshifts);
 
-    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, const IntVect* fcells, const BoxArray& fvalid, IntVect* ccells, Real* cfracs, bool* which, int* cgrid);
+    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, const IntVect* fcells, const BoxArray& fvalid, IntVect* ccells, Real* cfracs, bool* which, int* cgrid, Array<IntVect>& pshifts);
 
-    static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells);
+    static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, const IntVect& shift, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells);
 
     static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
 
@@ -1595,11 +1595,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     int            cgrid[M];
     bool           cwhich[M], fwhich[M];
     Real           fracs[M],  cfracs[M];
-    IntVect        cells[M],  ccells[M];
+    IntVect        cells[M],  ccells[M], cfshifts[M];
     Array<int>     fgrid;
     Array<Real>    ffrac;
     Array<IntVect> fcells;
     ParticleBase   pb;
+
+    Array<IntVect> pshifts(27);
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -1622,6 +1624,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         {
             cfba = m_amr->boxArray(lev+1);
             cfba.coarsen(m_amr->refRatio(lev));
+
+            std::cout << "cfba:\n" << cfba << '\n';
 
             BL_ASSERT(mf[lev].boxArray().contains(cfba));
         }
@@ -1648,8 +1652,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                 // We want to add all ghost cells that can be shifted into valid region.
                 //
                 BoxList valid;
-
-                Array<IntVect> pshifts(27);
 
                 const BoxArray& grids = mf[lev].boxArray();
 
@@ -1769,8 +1771,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     if (!gm.Domain().contains(cells[0]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
-                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich)                      : false;
-                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,ccells,cfracs,fwhich,cgrid) : false;
+                const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts) : false;
+                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,ccells,cfracs,fwhich,cgrid,pshifts) : false;
 
                 BL_ASSERT(!(crsetofine && finetocrse));
 
@@ -1790,16 +1792,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     //
                     Real sum_crse = 0, sum_fine = 0;
 
-                    const IntVect special(10,10,0);
-
-                    const IntVect cspecial = BoxLib::coarsen(special,m_amr->refRatio(lev-1));
-
                     for (int i = 0; i < M; i++)
                     {
                         if (fwhich[i])
                         {
-                            if (cells[i] == special) std::cout << "*** Got Here 1, p.m_cell = " << p.m_cell  << '\n';
-                            if (cells[i] == special) std::cout << "***                ccell = " << ccells[i] << '\n';
                             //
                             // We're at a Fine->Crse boundary.
                             //
@@ -1848,11 +1844,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         //
                         fwhich[i] = true;
 
-                        if (cells[i] == special) std::cout << "*** Got Here 2, cells[i] = " << cells[i] << ", p.m_cell = " << p.m_cell << '\n';;
-
                         if (!compfba_grown.contains(cells[i]))
                         {
-                            if (cells[i] == special) std::cout << "*** Got Here 3 -- must be F->F\n";
                             //
                             // Go ahead and add the full correct amount to these cells.
                             // They can't touch a Fine->Crse boundary.
@@ -1863,23 +1856,15 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         }
                         else if (compfba.contains(cells[i]))
                         {
-                            if (cells[i] == special) std::cout << "*** Got Here 4 -- looks like F->C\n";
                             fwhich[i] = false;
                         }
-                        else
+                        else if (!gm.Domain().contains(cells[i]))
                         {
-                            if (cells[i] == special) std::cout << "*** Got Here 5 -- some overlap\n";
+                            fwhich[i] = false;
                         }
                     }
 
                     const Real sum_so_far = sum_crse + sum_fine; 
-
-                    if (sum_so_far >= 1)
-                    {
-                        std::cout << "sum_crse, sum_fine: " << sum_crse << ", " << sum_fine << '\n';
-                        std::cout << "sum_so_far: " << sum_so_far << '\n';
-                        std::cout << "p.m_cell: "   << p.m_cell   << '\n';
-                    }
 
                     BL_ASSERT(sum_so_far > 0);
                     BL_ASSERT(sum_so_far < 1);
@@ -1929,7 +1914,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             //
                             // We're at a Crse->Fine boundary.
                             //
-                            ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], fgrid, ffrac, fcells);
+                            ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], cfshifts[i], fgrid, ffrac, fcells);
 
                             for (int j = 0; j < fcells.size(); j++)
                             {
