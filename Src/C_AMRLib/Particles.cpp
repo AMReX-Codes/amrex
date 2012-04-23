@@ -137,7 +137,9 @@ ParticleBase::FineToCrse (const ParticleBase& p,
                           int                 flev,
                           const Amr*          amr,
                           const IntVect*      fcells,
-                          const BoxArray&     cfvalid,
+                          const BoxArray&     fvalid,
+                          IntVect*            ccells,
+                          Real*               cfracs,
                           bool*               which,
                           int*                cgrid)
 {
@@ -170,11 +172,6 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     //
     // Otherwise ...
     //
-    Real    cfracs[M];
-    IntVect ccells[M];
-
-    const IntVect special(0,0,0);
-
     const Geometry& cgm = amr->Geom(flev-1);
 
     ParticleBase::AssignDensityCoeffs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
@@ -187,7 +184,7 @@ ParticleBase::FineToCrse (const ParticleBase& p,
 
     for (int i = 0; i < M; i++)
     {
-        if (!cfvalid.contains(ccells[i]))
+        if (!fvalid.contains(ccells[i]*amr->refRatio(flev-1)))
         {
             result   = true;
             which[i] = true;

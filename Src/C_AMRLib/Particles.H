@@ -78,7 +78,7 @@ struct ParticleBase
     //
     static bool CrseToFine (const BoxArray& cfba, const IntVect* cells, bool* which);
 
-    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, const IntVect* fcells, const BoxArray& fba, bool* which, int* cgrid);
+    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, const IntVect* fcells, const BoxArray& fvalid, IntVect* ccells, Real* cfracs, bool* which, int* cgrid);
 
     static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells);
 
@@ -1631,13 +1631,14 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         // valid region.  "compfba" is the complement of the "fvalid", while "compfba_grown" is 
         // "compfba" grown by one.  Using these we can figure out whether or not a cell is in the
         // valid region of our MultiFab as well as whether or not we're at a Fine->Crse boundary.
-        // "cfvalid" is the coarsed version of "fvalid".
         //
-        BoxArray compfba, compfba_grown, fvalid, cfvalid;
+        BoxArray compfba, compfba_grown, fvalid;
 
         if (lev > 0)
         {
             fvalid = mf[lev].boxArray();
+
+            const Box& dm = gm.Domain();
 
             if (lev == 1)
             {
@@ -1650,7 +1651,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                 Array<IntVect> pshifts(27);
 
-                const Box&      dm    = gm.Domain();
                 const BoxArray& grids = mf[lev].boxArray();
 
                 for (int i = 0; i < grids.size(); i++)
@@ -1696,14 +1696,46 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                 }
             }
 
-            compfba = BoxLib::complementIn(BoxLib::grow(gm.Domain(),mf[lev].nGrow()), fvalid);
+#if 0
+            Box       dmg   = m_amr->Geom(lev).Domain();
+            const int ngrow = mf[lev].nGrow();
+
+            bool lotouch[BL_SPACEDIM] = {D_DECL(false,false,false)};
+            bool hitouch[BL_SPACEDIM] = {D_DECL(false,false,false)};
+
+            if (fvalid.size() > m_amr->boxArray(lev).size())
+            {
+                for (int i = 0; i < fvalid.size(); i++)
+                {
+                    for (int j = 0; j < BL_SPACEDIM; j++)
+                    {
+                        if (fvalid[i].smallEnd(j) == dm.smallEnd(j)) lotouch[j] = true;
+                        if (fvalid[i].bigEnd(j)   == dm.bigEnd(j)  ) hitouch[j] = true;
+                    }
+                }
+                for (int j = 0; j < BL_SPACEDIM; j++)
+                {
+                    if (lotouch[j]) dmg.grow(j,-ngrow);
+                    if (hitouch[j]) dmg.grow(j,+ngrow);
+                }
+            }
+#else
+            Box dmg   = BoxLib::grow(m_amr->Geom(lev).Domain(),1);
+#endif
+
+            std::cout << "dmg = " << dmg << '\n';
+
+            std::cout << "fvalid:\n" << fvalid << '\n';
+
+            compfba = BoxLib::complementIn(dmg, fvalid);
+
+            std::cout << "compfba:\n" << compfba << '\n';
 
             compfba_grown = compfba;
             compfba_grown.grow(1);
             compfba_grown.removeOverlap();
 
-            cfvalid = fvalid;
-            cfvalid.coarsen(m_amr->refRatio(lev-1));
+            std::cout << "compfba_grown:\n" << compfba_grown << '\n';
         }
 
         for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
@@ -1738,7 +1770,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
                 const bool crsetofine = (lev < lfinest) ? ParticleBase::CrseToFine(cfba,cells,cwhich)                      : false;
-                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,cells,cfvalid,fwhich,cgrid) : false;
+                const bool finetocrse = (lev > 0      ) ? ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,ccells,cfracs,fwhich,cgrid) : false;
 
                 BL_ASSERT(!(crsetofine && finetocrse));
 
@@ -1758,16 +1790,16 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     //
                     Real sum_crse = 0, sum_fine = 0;
 
-                    const Real* cdx = m_amr->Geom(lev-1).CellSize();
-                    //
-                    // Get "cfracs" and "cells" for equivalent coarse cell.
-                    //
-                    ParticleBase::AssignDensityCoeffs(p, plo, cdx, cfracs, ccells);
+                    const IntVect special(10,10,0);
+
+                    const IntVect cspecial = BoxLib::coarsen(special,m_amr->refRatio(lev-1));
 
                     for (int i = 0; i < M; i++)
                     {
                         if (fwhich[i])
                         {
+                            if (cells[i] == special) std::cout << "*** Got Here 1, p.m_cell = " << p.m_cell  << '\n';
+                            if (cells[i] == special) std::cout << "***                ccell = " << ccells[i] << '\n';
                             //
                             // We're at a Fine->Crse boundary.
                             //
@@ -1816,8 +1848,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         //
                         fwhich[i] = true;
 
+                        if (cells[i] == special) std::cout << "*** Got Here 2, cells[i] = " << cells[i] << ", p.m_cell = " << p.m_cell << '\n';;
+
                         if (!compfba_grown.contains(cells[i]))
                         {
+                            if (cells[i] == special) std::cout << "*** Got Here 3 -- must be F->F\n";
                             //
                             // Go ahead and add the full correct amount to these cells.
                             // They can't touch a Fine->Crse boundary.
@@ -1828,7 +1863,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         }
                         else if (compfba.contains(cells[i]))
                         {
+                            if (cells[i] == special) std::cout << "*** Got Here 4 -- looks like F->C\n";
                             fwhich[i] = false;
+                        }
+                        else
+                        {
+                            if (cells[i] == special) std::cout << "*** Got Here 5 -- some overlap\n";
                         }
                     }
 
@@ -1843,8 +1883,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                     BL_ASSERT(sum_so_far > 0);
                     BL_ASSERT(sum_so_far < 1);
-
-
 
                     sum_fine = 0;
 
