@@ -166,6 +166,7 @@ ParticleBase::FineToCrse (const ParticleBase& p,
                           const Amr*          amr,
                           const IntVect*      fcells,
                           const BoxArray&     fvalid,
+                          const BoxArray&     compfvalid_grown,
                           IntVect*            ccells,
                           Real*               cfracs,
                           bool*               which,
@@ -182,8 +183,6 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     //
     const int M = D_TERM(2,+2,+4);
 
-    const IntVect special(0,0,0);
-
     for (int i = 0; i < M; i++)
     {
         cgrid[i] = -1;
@@ -198,6 +197,14 @@ ParticleBase::FineToCrse (const ParticleBase& p,
         //
         // We're strictly contained in our valid box.
         // We can't cross a fine->crse boundary.
+        //
+        return false;
+
+    if (!compfvalid_grown.contains(p.m_cell))
+        //
+        // We're strictly contained in our "valid" region. Note that the valid
+        // region contains any periodically shifted ghost cells that intersect
+        // valid region.
         //
         return false;
     //
