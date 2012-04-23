@@ -78,7 +78,7 @@ struct ParticleBase
     //
     static bool CrseToFine (const BoxArray& cfba, const IntVect* cells, IntVect* cfshifts, const Geometry& gm, bool* which, Array<IntVect>& pshifts);
 
-    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, const IntVect* fcells, const BoxArray& fvalid, IntVect* ccells, Real* cfracs, bool* which, int* cgrid, Array<IntVect>& pshifts);
+    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, const IntVect* fcells, const BoxArray& fvalid, const BoxArray& compfvalid_grown, IntVect* ccells, Real* cfracs, bool* which, int* cgrid, Array<IntVect>& pshifts);
 
     static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, const IntVect& shift, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells);
 
@@ -1608,6 +1608,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     for (int lev = 0; lev <= lfinest; lev++)
     {
         const Geometry& gm = m_amr->Geom(lev);
+        const Box&      dm = gm.Domain();
         const Real*     dx = gm.CellSize();
 
         if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
@@ -1632,17 +1633,15 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         //
         // "fvalid" contains all the valid region of the MultiFab at this level, together
         // with any ghost cells lying outside the domain, that can be periodically shifted into the
-        // valid region.  "compfba" is the complement of the "fvalid", while "compfba_grown" is 
-        // "compfba" grown by one.  Using these we can figure out whether or not a cell is in the
+        // valid region.  "compfvalid" is the complement of the "fvalid", while "compfvalid_grown" is 
+        // "compfvalid" grown by one.  Using these we can figure out whether or not a cell is in the
         // valid region of our MultiFab as well as whether or not we're at a Fine->Crse boundary.
         //
-        BoxArray compfba, compfba_grown, fvalid;
+        BoxArray compfvalid, compfvalid_grown, fvalid;
 
         if (lev > 0)
         {
             fvalid = mf[lev].boxArray();
-
-            const Box& dm = gm.Domain();
 
             if (lev == 1)
             {
@@ -1697,22 +1696,17 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     fvalid.removeOverlap();
                 }
             }
+            //
+            // The "2" is so we enclose the valid region together with any
+            //  ghost cells that can be periodically shifted into valid.
+            //
+            const Box dmg = BoxLib::grow(dm,2);
 
-            Box dmg   = BoxLib::grow(dm,2);
+            compfvalid = BoxLib::complementIn(dmg, fvalid);
 
-            std::cout << "dmg = " << dmg << '\n';
-
-            std::cout << "fvalid:\n" << fvalid << '\n';
-
-            compfba = BoxLib::complementIn(dmg, fvalid);
-
-            std::cout << "compfba:\n" << compfba << '\n';
-
-            compfba_grown = compfba;
-            compfba_grown.grow(1);
-            compfba_grown.removeOverlap();
-
-            std::cout << "compfba_grown:\n" << compfba_grown << '\n';
+            compfvalid_grown = compfvalid;
+            compfvalid_grown.grow(1);
+            compfvalid_grown.removeOverlap();
         }
         //
         // Do the grids at this level cover the full domain? If they do
@@ -1751,23 +1745,17 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     if (!gm.Domain().contains(cells[0]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
-                bool anycrsetofine = false;
-
+                bool AnyCrseToFine = false;
                 if (lev < lfinest)
-                {
-                    anycrsetofine = ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
-                }
+                    AnyCrseToFine = ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
 
-                bool anyfinetocrse = false;
-
+                bool AnyFineToCrse = false;
                 if (lev > 0 && !grid_covers_domain)
-                {
-                    anyfinetocrse = ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,ccells,cfracs,fwhich,cgrid,pshifts);
-                }
+                    AnyFineToCrse = ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,compfvalid_grown,ccells,cfracs,fwhich,cgrid,pshifts);
 
-                BL_ASSERT(!(anycrsetofine && anyfinetocrse));
+                BL_ASSERT(!(AnyCrseToFine && AnyFineToCrse));
 
-                if (!anycrsetofine && !anyfinetocrse)
+                if (!AnyCrseToFine && !AnyFineToCrse)
                 {
                     //
                     // Just do it ...
@@ -1776,7 +1764,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         fab(cells[i]) += p.m_data[0] * fracs[i];
                 }
 
-                if (anyfinetocrse)
+                if (AnyFineToCrse)
                 {
                     //
                     // We have some fine->crse action.
@@ -1835,7 +1823,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                         //
                         fwhich[i] = true;
 
-                        if (!compfba_grown.contains(cells[i]))
+                        if (!compfvalid_grown.contains(cells[i]))
                         {
                             //
                             // Go ahead and add the full correct amount to these cells.
@@ -1845,19 +1833,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             fab(cells[i]) += p.m_data[0] * fracs[i];
                             fwhich[i]      = false;
                         }
-                        else if (compfba.contains(cells[i]))
-                        {
-                            fwhich[i] = false;
-                        }
-                        else if (!gm.Domain().contains(cells[i]))
+                        else if (compfvalid.contains(cells[i]))
                         {
                             fwhich[i] = false;
                         }
                     }
 
                     const Real sum_so_far = sum_crse + sum_fine; 
-
-//                    std::cout << "p.m_cell: " << p.m_cell << '\n';
 
                     BL_ASSERT(sum_so_far > 0);
                     BL_ASSERT(sum_so_far < 1);
@@ -1891,7 +1873,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     BL_ASSERT(std::abs(1-(sum_fine+sum_so_far)) < 1.e-9);
                 }
 
-                if (anycrsetofine)
+                if (AnyCrseToFine)
                 {
                     Real sum = 0;
 
