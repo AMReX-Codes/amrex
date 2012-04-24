@@ -132,8 +132,9 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
         }
         else if (!gm.Domain().contains(cells[i]))
         {
+            BL_ASSERT(gm.isAnyPeriodic());
             //
-            // Can they can be shifted into cfba?
+            // Can the cell be shifted into cfba?
             //
             const Box bx(cells[i],cells[i]);
 
@@ -149,11 +150,13 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
 
                 if (cfba.contains(dbx))
                 {
+                    //
+                    // Note that pshifts[0] is from the coarse perspective.
+                    // We'll later need to multiply it by ref ratio to use
+                    // at the fine level.
+                    //
                     result      = true;
                     which[i]    = true;
-                    //
-                    // Note that pshifts[0] is from the Crse perspective.
-                    //
                     cfshifts[i] = pshifts[0];
                 }
             }
@@ -291,7 +294,8 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
     ffrac.clear();
     fcells.clear();
     //
-    // Which fine cells does particle "p" that wants to update "ccell" do we touch at the finer level?
+    // Which fine cells does particle "p" that wants to update "ccell" do we
+    // touch at the finer level?
     //
     for (IntVect iv = fbx.smallEnd(); iv <= fbx.bigEnd(); fbx.next(iv))
     {
@@ -355,7 +359,9 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
             // Note that "cshift" is from the coarse perspective.
             //
             const IntVect fshift = cshift * amr->refRatio(lev);
-
+            //
+            // Update fcells[j] to indicate a shifted fine cell needing updating.
+            //
             iv -= fshift;
         }
 
@@ -373,11 +379,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
     // Now adjust the fine fractions so they sum to one.
     //
     for (int j = 0; j < ffrac.size(); j++)
-    {
         ffrac[j] /= sum_fine;
-        if (ffrac[j] > 1)
-            ffrac[j] = 1;
-    }
 }
 
 //
