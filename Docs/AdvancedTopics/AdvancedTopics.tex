@@ -250,7 +250,21 @@ Each of these involves a coarse level and a fine level:
 \end{itemize}
 
 \section{Adaptive Mesh Refinement}\label{Sec:AMR}
-Now fully implemented in {\tt BoxLib/Tutorials/HeatEquation\_EX4\_F/}.  Documentation coming soon!
+Now fully implemented in {\tt BoxLib/Tutorials/HeatEquation\_EX4\_F/}.  The basic idea is
+to ``tag'' the cells you with to refine in {\tt BoxLib/Src/F\_BaseLim\b/tag\_boxes.f90}.  To write
+your own customized tagging criteria, copy {\tt tag\_boxes.f90} into your local directory and modify
+it, since this copy will take precedence over the version in the \BoxLib~source.
+
+There are several new
+parameters that can be set via an inputs file:
+\begin{itemize}
+\item {\tt amr\_buf\_width}: radius (in cells) of tagged cells in addition to those already tagged due to the criteria in {\tt tag\_boxes.f90}.
+\item {\tt cluster\_minwidth}: any newly created grids must be at least this many cells in each direction.
+\item {\tt cluster\_blocking\_factor}: any newly created grids must have an integer multiple of this many cells in each direction.
+\item {\tt cluster\_min\_eff}: This is a real number between 0 and 1 that controls how tightly the newly created grids match the tagged cells.  As this value approaches 1, you will have more, smaller grids.  Another way to think of this is that during the grid creation process, at least 100$\times${\tt cluster\_min\_eff}: percent of the cells in each grid at which the grid creation occurs must be tagged cells.
+\item {\tt regrid\_int}: frequency, in time steps, on when to regrid the simulation.
+\end{itemize}
+It is worth playing around with the inputs files to see what effect these parameters have on the grid structure.
 
 \section{Linear Solvers}\label{Sec:Linear Solvers}
 Coming soon, a linear solver example that uses multigrid to implicitly solve the heat equation.

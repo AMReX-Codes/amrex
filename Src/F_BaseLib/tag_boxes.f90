@@ -59,7 +59,7 @@ contains
 
     select case(lev)
     case (1)
-       ! tag all boxes with a density >= 1.01
+       ! tag all boxes where the first component of mf >= 1.01
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
              if (mf(i,j) .gt. 1.01d0) then
@@ -68,7 +68,7 @@ contains
           end do
        enddo
     case (2)
-       ! for level 2 tag all boxes with a density >= 1.1
+       ! for level 2 tag all boxes where the first component of mf >= 1.1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
              if (mf(i,j) .gt. 1.1d0) then
@@ -77,7 +77,7 @@ contains
           end do
        end do
     case default
-       ! for level 3 or greater tag all boxes with a density >= 1.5
+       ! for level 3 or greater tag all boxes where the first component of mf >= 1.5
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
              if (mf(i,j) .gt. 1.5d0) then
@@ -105,7 +105,7 @@ contains
 
     select case(lev)
     case (1)
-       ! tag all boxes with a density >= 1.01
+       ! tag all boxes where the first component of mf >= 1.01
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -116,7 +116,7 @@ contains
           enddo
        end do
     case (2)
-       ! for level 2 tag all boxes with a density >= 1.1
+       ! for level 2 tag all boxes where the first component of mf >= 1.1
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -127,7 +127,7 @@ contains
           end do
        end do
     case default
-       ! for level 3 or greater tag all boxes with a density >= 1.5
+       ! for level 3 or greater tag all boxes where the first component of mf >= 1.5
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)

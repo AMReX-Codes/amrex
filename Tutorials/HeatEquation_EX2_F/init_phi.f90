@@ -68,7 +68,7 @@ contains
           x = prob_lo(1) + (dble(i)+0.5d0) * dx
 
           r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
-          phi(i,j) = exp(-r2)
+          phi(i,j) = 1.d0 + exp(-r2)
 
        end do
     end do
@@ -96,7 +96,7 @@ contains
              x = prob_lo(1) + (dble(i)+0.5d0) * dx
 
              r2 = ((x-0.25d0)**2 + (y-0.25d0)**2 + (z-0.25d0)**2) / 0.01d0
-             phi(i,j,k) = exp(-r2)
+             phi(i,j,k) = 1.d0 + exp(-r2)
 
           end do
        end do
