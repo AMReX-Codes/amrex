@@ -1583,6 +1583,15 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
             mf[lev][mfi].setVal(0);
     }
+    if (lfinest == 0)
+    {
+        //
+        // Just use the far simpler single-level version.
+        //
+        AssignDensity (mf[0],0);
+        return;
+    }
+        
     //
     // I'll use ParticleBases to hold all the info I need for parallel.
     //
@@ -1625,8 +1634,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         {
             cfba = m_amr->boxArray(lev+1);
             cfba.coarsen(m_amr->refRatio(lev));
-
-            std::cout << "cfba:\n" << cfba << '\n';
 
             BL_ASSERT(mf[lev].boxArray().contains(cfba));
         }
