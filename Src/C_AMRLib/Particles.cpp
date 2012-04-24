@@ -164,17 +164,18 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
 }
 
 bool
-ParticleBase::FineToCrse (const ParticleBase& p,
-                          int                 flev,
-                          const Amr*          amr,
-                          const IntVect*      fcells,
-                          const BoxArray&     fvalid,
-                          const BoxArray&     compfvalid_grown,
-                          IntVect*            ccells,
-                          Real*               cfracs,
-                          bool*               which,
-                          int*                cgrid,
-                          Array<IntVect>&     pshifts)
+ParticleBase::FineToCrse (const ParticleBase&                p,
+                          int                                flev,
+                          const Amr*                         amr,
+                          const IntVect*                     fcells,
+                          const BoxArray&                    fvalid,
+                          const BoxArray&                    compfvalid_grown,
+                          IntVect*                           ccells,
+                          Real*                              cfracs,
+                          bool*                              which,
+                          int*                               cgrid,
+                          Array<IntVect>&                    pshifts,
+                          std::vector< std::pair<int,Box> >& isects)
 {
     BL_ASSERT(amr != 0);
     BL_ASSERT(flev > 0);
@@ -214,14 +215,12 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     // Otherwise ...
     //
     const Geometry& cgm = amr->Geom(flev-1);
+    const IntVect   rr  = amr->refRatio(flev-1);
+    const BoxArray& cba = amr->boxArray(flev-1);
 
     ParticleBase::AssignDensityCoeffs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
 
     bool result = false;
-
-    std::vector< std::pair<int,Box> > isects;
-
-    const IntVect rr = amr->refRatio(flev-1);
 
     for (int i = 0; i < M; i++)
     {
@@ -252,7 +251,7 @@ ParticleBase::FineToCrse (const ParticleBase& p,
             //
             // Which grid at the crse level do we need to update?
             //
-            isects = amr->boxArray(flev-1).intersections(cbx);
+            isects = cba.intersections(cbx);
 
             BL_ASSERT(!isects.empty());
             BL_ASSERT(isects.size() == 1);
@@ -265,20 +264,20 @@ ParticleBase::FineToCrse (const ParticleBase& p,
 }
 
 void
-ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
-                                         int                 lev,
-                                         const Amr*          amr,
-                                         const IntVect&      ccell,
-                                         const IntVect&      cshift,
-                                         Array<int>&         fgrid,
-                                         Array<Real>&        ffrac,
-                                         Array<IntVect>&     fcells)
+ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
+                                         int                                lev,
+                                         const Amr*                         amr,
+                                         const IntVect&                     ccell,
+                                         const IntVect&                     cshift,
+                                         Array<int>&                        fgrid,
+                                         Array<Real>&                       ffrac,
+                                         Array<IntVect>&                    fcells,
+                                         std::vector< std::pair<int,Box> >& isects)
 {
     BL_ASSERT(lev >= 0);
     BL_ASSERT(lev < amr->finestLevel());
 
-    const Box fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
-
+    const Box       fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
     const BoxArray& fba = amr->boxArray(lev+1);
     const Real*     plo = amr->Geom(lev).ProbLo();
     const Real*     dx  = amr->Geom(lev).CellSize();
@@ -288,7 +287,6 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
     {
         BL_ASSERT(fba.contains(fbx));
     }
-
     fgrid.clear();
     ffrac.clear();
     fcells.clear();
@@ -316,8 +314,6 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
             fcells.push_back(iv);
         }
     }
-
-    std::vector< std::pair<int,Box> > isects;
 
     Real sum_fine = 0;
     //

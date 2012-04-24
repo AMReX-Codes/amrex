@@ -78,9 +78,9 @@ struct ParticleBase
     //
     static bool CrseToFine (const BoxArray& cfba, const IntVect* cells, IntVect* cfshifts, const Geometry& gm, bool* which, Array<IntVect>& pshifts);
 
-    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, const IntVect* fcells, const BoxArray& fvalid, const BoxArray& compfvalid_grown, IntVect* ccells, Real* cfracs, bool* which, int* cgrid, Array<IntVect>& pshifts);
+    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, const IntVect* fcells, const BoxArray& fvalid, const BoxArray& compfvalid_grown, IntVect* ccells, Real* cfracs, bool* which, int* cgrid, Array<IntVect>& pshifts, std::vector< std::pair<int,Box> >& isects);
 
-    static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, const IntVect& cshift, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells);
+    static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, const IntVect& cshift, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells, std::vector< std::pair<int,Box> >& isects);
 
     static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
 
@@ -1588,10 +1588,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         //
         // Just use the far simpler single-level version.
         //
-        AssignDensity (mf[0],0);
+        AssignDensity(mf[0],0);
         return;
     }
-        
     //
     // I'll use ParticleBases to hold all the info I need for parallel.
     //
@@ -1601,17 +1600,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     //
     std::deque<ParticleBase> data;
 
-    int            cgrid[M];
-    bool           cwhich[M], fwhich[M];
-    Real           fracs[M],  cfracs[M];
-    IntVect        cells[M],  ccells[M], cfshifts[M];
-    Array<int>     fgrid;
-    Array<Real>    ffrac;
-    Array<IntVect> fcells;
-    ParticleBase   pb;
+    int     cgrid[M];
+    bool   cwhich[M],  fwhich[M];
+    Real    fracs[M],  cfracs[M];
+    IntVect cells[M],  ccells[M], cfshifts[M];
 
-    Array<IntVect> pshifts(27);
-
+    ParticleBase pb;
+    //
+    // I'm going to allocate these badboys here & pass'm into routines that use'm.
+    // This should greatly cut down on memory allocation/deallocation.
+    //
+    Array<int>                        fgrid;
+    Array<Real>                       ffrac;
+    Array<IntVect>                    fcells;
+    Array<IntVect>                    pshifts(27);
     std::vector< std::pair<int,Box> > isects;
 
     for (int lev = 0; lev <= lfinest; lev++)
@@ -1681,9 +1683,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                                 {
                                     const Box sbx = grids[j] + pshifts[k];
                                     const Box dbx = dest & sbx;
-
                                     BL_ASSERT(dbx.ok());
-
                                     valid.push_back(dbx);
                                 }
                             }
@@ -1758,7 +1758,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                 bool AnyFineToCrse = false;
                 if (lev > 0 && !grid_covers_domain)
-                    AnyFineToCrse = ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,compfvalid_grown,ccells,cfracs,fwhich,cgrid,pshifts);
+                    AnyFineToCrse = ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,compfvalid_grown,ccells,cfracs,fwhich,cgrid,pshifts,isects);
 
                 BL_ASSERT(!(AnyCrseToFine && AnyFineToCrse));
 
@@ -1896,7 +1896,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             //
                             // We're at a Crse->Fine boundary.
                             //
-                            ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], cfshifts[i], fgrid, ffrac, fcells);
+                            ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], cfshifts[i], fgrid, ffrac, fcells, isects);
 
                             for (int j = 0; j < fcells.size(); j++)
                             {
