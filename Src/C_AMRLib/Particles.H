@@ -1716,7 +1716,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         // Do the grids at this level cover the full domain? If they do
         // there can be no Fine->Crse interactions at this level.
         //
-        const bool grid_covers_domain = fvalid.contains(m_amr->Geom(lev).Domain());
+        const bool GridsCoverDomain = fvalid.contains(m_amr->Geom(lev).Domain());
 
         for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
                  pmapEnd = m_particles[lev].end();
@@ -1732,11 +1732,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             {
                 const ParticleType& p = *it;
 
-                if (p.m_id <= 0)
-                    //
-                    // Skip invalid particles.
-                    //
-                    continue;
+                if (p.m_id <= 0) continue; // Skip invalid particles.
                 //
                 // Get "fracs" and "cells" for the particle "p" at this level.
                 //
@@ -1754,7 +1750,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     AnyCrseToFine = ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
 
                 bool AnyFineToCrse = false;
-                if (lev > 0 && !grid_covers_domain)
+                if (lev > 0 && !GridsCoverDomain)
                     AnyFineToCrse = ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,compfvalid_grown,ccells,cfracs,fwhich,cgrid,pshifts,isects);
 
                 BL_ASSERT(!(AnyCrseToFine && AnyFineToCrse));
@@ -1785,9 +1781,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             //
                             if (mf[lev-1].DistributionMap()[cgrid[i]] == ParallelDescriptor::MyProc())
                             {
-                                //
-                                // We own that coarse cell.
-                                //
                                 mf[lev-1][cgrid[i]](ccells[i]) += p.m_data[0] * cfracs[i];
                             }
                             else
@@ -1843,7 +1836,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     BL_ASSERT(sum_so_far < 1);
 
                     sum_fine = 0;
-
                     for (int i = 0; i < M; i++) 
                     {       
                         if (fwhich[i])
@@ -1854,11 +1846,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     }
 
                     const Real mult = (1 - sum_so_far) / sum_fine;
-
-                    sum_fine = 0;
                     //
                     // Now add the weighted amount to the fine cells touching the c-f interface.
                     //
+                    sum_fine = 0;
                     for (int i = 0; i < M; i++)
                     {
                         if (fwhich[i])
@@ -1893,9 +1884,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             {
                                 if (mf[lev+1].DistributionMap()[fgrid[j]] == ParallelDescriptor::MyProc())
                                 {
-                                    //
-                                    // We own that fine cell.
-                                    //
                                     mf[lev+1][fgrid[j]](fcells[j]) += p.m_data[0] * fracs[i] * ffrac[j];
                                 }
                                 else
@@ -1955,7 +1943,9 @@ void
 ParticleContainer<N>::MultiplyParticleMass (int lev, Real mult)
 {
    BL_ASSERT(lev == 0);
+
    PMap& pmap = m_particles[lev];
+
    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
    {
        PBox&     pbx = pmap_it->second;
