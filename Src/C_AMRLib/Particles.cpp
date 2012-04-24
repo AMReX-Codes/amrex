@@ -151,6 +151,9 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
                 {
                     result      = true;
                     which[i]    = true;
+                    //
+                    // Note that pshifts[0] is from the Crse perspective.
+                    //
                     cfshifts[i] = pshifts[0];
                 }
             }
@@ -266,7 +269,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
                                          int                 lev,
                                          const Amr*          amr,
                                          const IntVect&      ccell,
-                                         const IntVect&      shift,
+                                         const IntVect&      cshift,
                                          Array<int>&         fgrid,
                                          Array<Real>&        ffrac,
                                          Array<IntVect>&     fcells)
@@ -281,8 +284,10 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
     const Real*     dx  = amr->Geom(lev).CellSize();
     const Real*     fdx = amr->Geom(lev+1).CellSize();
 
-    if (shift == IntVect::TheZeroVector())
+    if (cshift == IntVect::TheZeroVector())
+    {
         BL_ASSERT(fba.contains(fbx));
+    }
 
     fgrid.clear();
     ffrac.clear();
@@ -347,11 +352,16 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
 
         sum_fine += the_frac;
 
-        if (shift != IntVect::TheZeroVector())
+        if (cshift != IntVect::TheZeroVector())
+        {
             //
             // Update to the correct fine cell needing updating.
+            // Note that "cshift" is from the coarse perspective.
             //
-            iv -= shift;
+            const IntVect fshift = cshift * amr->refRatio(lev);
+
+            iv -= fshift;
+        }
 
         isects = fba.intersections(Box(iv,iv));
 
