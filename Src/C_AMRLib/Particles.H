@@ -1732,7 +1732,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             {
                 const ParticleType& p = *it;
 
-                if (p.m_id <= 0) continue; // Skip invalid particles.
+                if (p.m_id <= 0)
+                    //
+                    // Skip invalid particles.
+                    //
+                    continue;
                 //
                 // Get "fracs" and "cells" for the particle "p" at this level.
                 //
@@ -1757,11 +1761,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                 if (!AnyCrseToFine && !AnyFineToCrse)
                 {
+                    //
+                    // By far the most common case.  Just do it!
+                    //
                     for (int i = 0; i < M; i++)
                         fab(cells[i]) += p.m_data[0] * fracs[i];
                 }
-
-                if (AnyFineToCrse)
+                else if (AnyFineToCrse)
                 {
                     Real sum_crse = 0, sum_fine = 0;
 
@@ -1861,8 +1867,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
                     BL_ASSERT(std::abs(1-(sum_fine+sum_so_far)) < 1.e-9);
                 }
-
-                if (AnyCrseToFine)
+                else if (AnyCrseToFine)
                 {
                     Real sum = 0;
 
