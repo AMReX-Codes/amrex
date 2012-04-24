@@ -25,7 +25,7 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
 
     IntVect cell = csect;
     //
-    // Note the cells[0] contains csect.
+    // Note that cells[0] contains csect.
     //
 #if (BL_SPACEDIM == 1)
     // High
@@ -102,187 +102,502 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
 }
 
 bool
-ParticleBase::CrseToFine (const IntVect&  csect,
-                          const BoxArray& cfba,
-                          int*            which)
+ParticleBase::CrseToFine (const BoxArray& cfba,
+                          const IntVect*  cells,
+                          IntVect*        cfshifts,
+                          const Geometry& gm,
+                          bool*           which,
+                          Array<IntVect>& pshifts)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
-    // with a particle at "cell", will we cross a  crse->fine boundary of
-    // the level with coarsened fine BoxArray "cfba".  "csect" is as calculated
-    // in AssignDensity().
+    // with a particle, will we cross a  crse->fine boundary of the level
+    // with coarsened fine BoxArray "cfba".  "cells" are as calculated from
+    // AssignDensityCoeffs().
     //
-    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
-        which[i] = 0;
-    //
-    // We test all the permutations of "csect" from AssignDensityDoit().
-    //
-    IntVect iv = csect;
+    const int M = D_TERM(2,+2,+4);
 
-#if (BL_SPACEDIM == 1)
-    // High
-    which[0] = !cfba.contains(iv);
+    for (int i = 0; i < M; i++)
+        which[i] =  false;
 
-    // Low
-    iv[0]    = iv[0] - 1;
-    which[1] = !cfba.contains(iv);
+    bool result = false;
 
-#elif (BL_SPACEDIM == 2)
-    // HH
-    which[0] = !cfba.contains(iv);
-    
-    // LH
-    iv[0]    = iv[0] - 1;
-    which[1] = !cfba.contains(iv);
-    
-    // LL
-    iv[1]    = iv[1] - 1;
-    which[2] = !cfba.contains(iv);
-    
-    // HL
-    iv[0]    = iv[0] + 1;
-    which[3] = !cfba.contains(iv);
+    for (int i = 0; i < M; i++)
+    {
+        if (cfba.contains(cells[i]))
+        {
+            result      = true;
+            which[i]    = true;
+            cfshifts[i] = IntVect::TheZeroVector();
+        }
+        else if (!gm.Domain().contains(cells[i]))
+        {
+            //
+            // Can they can be shifted into cfba?
+            //
+            const Box bx(cells[i],cells[i]);
 
-#elif (BL_SPACEDIM == 3)
-    // HHH
-    which[0] = !cfba.contains(iv);
+            gm.periodicShift(bx, gm.Domain(), pshifts);
 
-    // LHH
-    iv[0]    = iv[0] - 1;
-    which[1] = !cfba.contains(iv);
+            if (!pshifts.empty())
+            {
+                BL_ASSERT(pshifts.size() == 1);
 
-    // LLH
-    iv[1]    = iv[1] - 1;
-    which[2] = !cfba.contains(iv);
-    
-    // HLH
-    iv[0]    = iv[0] + 1;
-    which[3] = !cfba.contains(iv);
+                const Box dbx = bx - pshifts[0];
 
-    iv = csect;
+                BL_ASSERT(dbx.ok());
 
-    // HHL
-    iv[2]    = iv[2] - 1;
-    which[4] = !cfba.contains(iv);
-    
-    // LHL
-    iv[0]    = iv[0] - 1;
-    which[5] = !cfba.contains(iv);
+                if (cfba.contains(dbx))
+                {
+                    result      = true;
+                    which[i]    = true;
+                    //
+                    // Note that pshifts[0] is from the Crse perspective.
+                    //
+                    cfshifts[i] = pshifts[0];
+                }
+            }
+        }
+    }
 
-    // LLL
-    iv[1]    = iv[1] - 1;
-    which[6] = !cfba.contains(iv);
-    
-    // HLL
-    iv[0]    = iv[0] + 1;
-    which[7] = !cfba.contains(iv);
-#endif
-
-    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
-        if (which[i])
-            return true;
-
-    return false;
+    return result;
 }
 
 bool
-ParticleBase::FineToCrse (const IntVect&  cell,
-                          const IntVect&  csect,
-                          const Box&      vbx,
-                          const BoxArray& ba,
-                          int*            which)
+ParticleBase::FineToCrse (const ParticleBase&                p,
+                          int                                flev,
+                          const Amr*                         amr,
+                          const IntVect*                     fcells,
+                          const BoxArray&                    fvalid,
+                          const BoxArray&                    compfvalid_grown,
+                          IntVect*                           ccells,
+                          Real*                              cfracs,
+                          bool*                              which,
+                          int*                               cgrid,
+                          Array<IntVect>&                    pshifts,
+                          std::vector< std::pair<int,Box> >& isects)
 {
+    BL_ASSERT(amr != 0);
+    BL_ASSERT(flev > 0);
     //
     // We're in AssignDensity(). We want to know whether or not updating
-    // with a particle at "cell", whose valid box is "vbx", will we cross a
-    // fine->crse boundary of the level with BoxArray "ba".  "csect" is as
-    // calculated in AssignDensity().
+    // with a particle we'll cross a fine->crse boundary.  Note that crossing
+    // a periodic boundary, where the periodic shift lies in our valid region,
+    // is not considered a Fine->Crse crossing.
     //
-    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
-        which[i] = 0;
+    const int M = D_TERM(2,+2,+4);
 
-    Box ibx = BoxLib::grow(vbx,-1);
+    for (int i = 0; i < M; i++)
+    {
+        cgrid[i] = -1;
+        which[i] = false;
+    }
+
+    const Box ibx = BoxLib::grow(amr->boxArray(flev)[p.m_grid],-1);
 
     BL_ASSERT(ibx.ok());
 
-    if (ibx.contains(cell))
+    if (ibx.contains(p.m_cell))
         //
         // We're strictly contained in our valid box.
         // We can't cross a fine->crse boundary.
         //
         return false;
+
+    if (!compfvalid_grown.contains(p.m_cell))
+        //
+        // We're strictly contained in our "valid" region. Note that the valid
+        // region contains any periodically shifted ghost cells that intersect
+        // valid region.
+        //
+        return false;
     //
     // Otherwise ...
     //
-    // We test all the permutations of "csect" from AssignDensityDoit()
-    // to see whether or not they're contained in our valid region BoxArray "ba".
+    const Geometry& cgm = amr->Geom(flev-1);
+    const IntVect   rr  = amr->refRatio(flev-1);
+    const BoxArray& cba = amr->boxArray(flev-1);
+
+    ParticleBase::AssignDensityCoeffs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
+
+    bool result = false;
+
+    for (int i = 0; i < M; i++)
+    {
+        if (!fvalid.contains(ccells[i]*rr))
+        {
+            result   = true;
+            which[i] = true;
+
+            Box cbx(ccells[i],ccells[i]);
+
+            if (!cgm.Domain().contains(ccells[i]))
+            {
+                //
+                // We must be at a periodic boundary.
+                // Find valid box into which we can be periodically shifted.
+                //
+                BL_ASSERT(cgm.isAnyPeriodic());
+
+                cgm.periodicShift(cbx, cgm.Domain(), pshifts);
+
+                BL_ASSERT(pshifts.size() == 1);
+
+                cbx -= pshifts[0];
+
+                BL_ASSERT(cbx.ok());
+                BL_ASSERT(cgm.Domain().contains(cbx));
+            }
+            //
+            // Which grid at the crse level do we need to update?
+            //
+            isects = cba.intersections(cbx);
+
+            BL_ASSERT(!isects.empty());
+            BL_ASSERT(isects.size() == 1);
+
+            cgrid[i] = isects[0].first;  // The grid ID at crse level that we hit.
+        }
+    }
+
+    return result;
+}
+
+void
+ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
+                                         int                                lev,
+                                         const Amr*                         amr,
+                                         const IntVect&                     ccell,
+                                         const IntVect&                     cshift,
+                                         Array<int>&                        fgrid,
+                                         Array<Real>&                       ffrac,
+                                         Array<IntVect>&                    fcells,
+                                         std::vector< std::pair<int,Box> >& isects)
+{
+    BL_ASSERT(lev >= 0);
+    BL_ASSERT(lev < amr->finestLevel());
+
+    const Box       fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
+    const BoxArray& fba = amr->boxArray(lev+1);
+    const Real*     plo = amr->Geom(lev).ProbLo();
+    const Real*     dx  = amr->Geom(lev).CellSize();
+    const Real*     fdx = amr->Geom(lev+1).CellSize();
+
+    if (cshift == IntVect::TheZeroVector())
+    {
+        BL_ASSERT(fba.contains(fbx));
+    }
+    fgrid.clear();
+    ffrac.clear();
+    fcells.clear();
     //
-    IntVect iv = csect;
+    // Which fine cells does particle "p" that wants to update "ccell" do we touch at the finer level?
+    //
+    for (IntVect iv = fbx.smallEnd(); iv <= fbx.bigEnd(); fbx.next(iv))
+    {
+        bool touches = true;
 
-#if (BL_SPACEDIM == 1)
-    // High
-    which[0] = !ba.contains(iv);
+        for (int k = 0; k < BL_SPACEDIM; k++)
+        {
+            const Real celllo = iv[k]  * fdx[k] + plo[k];
+            const Real cellhi = celllo + fdx[k];
 
-    // Low
-    iv[0]    = iv[0] - 1;
-    which[1] = !ba.contains(iv);
+            if ((p.m_pos[k] < celllo) && (celllo > (p.m_pos[k] + dx[k]/2)))
+                touches = false;
 
-#elif (BL_SPACEDIM == 2)
-    // HH
-    which[0] = !ba.contains(iv);
-    
-    // LH
-    iv[0]    = iv[0] - 1;
-    which[1] = !ba.contains(iv);
-    
-    // LL
-    iv[1]    = iv[1] - 1;
-    which[2] = !ba.contains(iv);
-    
-    // HL
-    iv[0]    = iv[0] + 1;
-    which[3] = !ba.contains(iv);
+            if ((p.m_pos[k] > cellhi) && (cellhi < (p.m_pos[k] - dx[k]/2)))
+                touches = false;
+        }
 
-#elif (BL_SPACEDIM == 3)
-    // HHH
-    which[0] = !ba.contains(iv);
+        if (touches)
+        {
+            fcells.push_back(iv);
+        }
+    }
 
-    // LHH
-    iv[0]    = iv[0] - 1;
-    which[1] = !ba.contains(iv);
+    Real sum_fine = 0;
+    //
+    // We need to figure out the fine fractions and the fine grid needed updating.
+    //
+    for (int j = 0; j < fcells.size(); j++)
+    {
+        IntVect& iv = fcells[j];
 
-    // LLH
-    iv[1]    = iv[1] - 1;
-    which[2] = !ba.contains(iv);
-    
-    // HLH
-    iv[0]    = iv[0] + 1;
-    which[3] = !ba.contains(iv);
+        Real the_frac = 1;
 
-    iv = csect;
+        for (int k = 0; k < BL_SPACEDIM; k++)
+        {
+            const Real celllo = (iv[k] * fdx[k] + plo[k]);
 
-    // HHL
-    iv[2]    = iv[2] - 1;
-    which[4] = !ba.contains(iv);
-    
-    // LHL
-    iv[0]    = iv[0] - 1;
-    which[5] = !ba.contains(iv);
+            if (p.m_pos[k] <= celllo)
+            {
+                const Real isecthi = p.m_pos[k] + dx[k]/2;
 
-    // LLL
-    iv[1]    = iv[1] - 1;
-    which[6] = !ba.contains(iv);
-    
-    // HLL
-    iv[0]    = iv[0] + 1;
-    which[7] = !ba.contains(iv);
+                the_frac *= std::min((isecthi - celllo),fdx[k]);
+            }
+            else
+            {
+                const Real cellhi  = (iv[k]+1) * fdx[k] + plo[k];
+                const Real isectlo = p.m_pos[k] - dx[k]/2;
+
+                the_frac *= std::min((cellhi - isectlo),fdx[k]);
+            }
+        }
+
+        ffrac.push_back(the_frac);
+
+        sum_fine += the_frac;
+
+        if (cshift != IntVect::TheZeroVector())
+        {
+            //
+            // Update to the correct fine cell needing updating.
+            // Note that "cshift" is from the coarse perspective.
+            //
+            const IntVect fshift = cshift * amr->refRatio(lev);
+
+            iv -= fshift;
+        }
+
+        isects = fba.intersections(Box(iv,iv));
+
+        BL_ASSERT(!isects.empty());
+        BL_ASSERT(isects.size() == 1);
+
+        fgrid.push_back(isects[0].first);
+    }
+
+    BL_ASSERT(ffrac.size() == fcells.size());
+    BL_ASSERT(fgrid.size() == fcells.size());
+    //
+    // Now adjust the fine fractions so they sum to one.
+    //
+    for (int j = 0; j < ffrac.size(); j++)
+    {
+        ffrac[j] /= sum_fine;
+        if (ffrac[j] > 1)
+            ffrac[j] = 1;
+    }
+}
+
+//
+// Used by AssignDensity (PArray<MultiFab>& mf).
+//
+// Passes data needed by Crse->Fine or Fine->Crse to CPU that needs it.
+//
+// We store the data that needs to be sent in "data".
+//
+
+void
+ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
+                                 std::deque<ParticleBase>& data)
+{
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    if (NProcs == 1)
+    {
+        BL_ASSERT(data.empty());
+        return;
+    }
+
+#if BL_USE_MPI
+    //
+    // We may have data that needs to be sent to another CPU.
+    //
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    Array<int> Snds(NProcs,0);
+    Array<int> Rcvs(NProcs,0);
+
+    for (std::deque<ParticleBase>::const_iterator it = data.begin(), End = data.end();
+         it != End;
+         ++it)
+    {
+        const int lev = it->m_lev;
+        const int grd = it->m_grid;
+
+        BL_ASSERT(lev >= 0 && lev < mf.size());
+        BL_ASSERT(grd >= 0 && grd < mf[lev].size());
+
+        const int who = mf[lev].DistributionMap()[grd];
+
+        BL_ASSERT(who != MyProc);
+        BL_ASSERT(mf[lev].fabbox(grd).contains(it->m_cell));
+
+        Snds[who]++;
+    }
+
+    BL_ASSERT(Snds[MyProc] == 0);
+
+    long maxsendcount = 0;
+    for (int i = 0; i < NProcs; i++)
+        maxsendcount += Snds[i];
+    ParallelDescriptor::ReduceLongMax(maxsendcount);
+
+    if (maxsendcount == 0)
+    {
+        //
+        // There's no parallel work to do.
+        //
+        BL_ASSERT(data.empty());
+        return;
+    }
+
+    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<int>::type(),
+                                 Rcvs.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<int>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    BL_ASSERT(Rcvs[MyProc] == 0);
+
+    int NumRcvs = 0;
+    for (int i = 0; i < NProcs; i++)
+        NumRcvs += Rcvs[i];
+
+    int NumSnds = 0;
+    for (int i = 0; i < NProcs; i++)
+        NumSnds += Snds[i];
+
+    BL_ASSERT(data.size() == NumSnds);
+    //
+    // The data we receive from ParticleBases.
+    //
+    // We only use: m_lev, m_grid, m_cell & m_pos[0].
+    //
+    const int iChunkSize = 2 + BL_SPACEDIM;
+    const int rChunkSize = 1;
+
+    Array<int>  irecvdata (NumRcvs*iChunkSize);
+    Array<Real> rrecvdata (NumRcvs*rChunkSize);
+
+    Array<int>   offset(NProcs);
+    Array<int>  sdispls(NProcs);
+    Array<int>  rdispls(NProcs);
+    Array<int> sendcnts(NProcs);
+    Array<int> recvcnts(NProcs);
+
+    {
+        //
+        // First send/recv "int" data.
+        //
+        Array<int> senddata (NumSnds*iChunkSize);
+
+        offset[0] = sdispls[0] = rdispls[0] = 0;
+
+        for (int i = 0; i < NProcs; i++)
+        {
+            recvcnts[i] = Rcvs[i] * iChunkSize;
+            sendcnts[i] = Snds[i] * iChunkSize;
+
+            if (i > 0)
+            {
+                offset [i] = offset [i-1] + sendcnts[i-1];
+                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
+                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+            }
+        }
+
+        for (std::deque<ParticleBase>::const_iterator it = data.begin(), End = data.end();
+             it != End;
+             ++it)
+        {
+            const int who  = mf[it->m_lev].DistributionMap()[it->m_grid];
+            const int ioff = offset[who];
+
+            senddata[ioff+0] = it->m_lev;
+            senddata[ioff+1] = it->m_grid;
+
+            D_TERM(senddata[ioff+2] = it->m_cell[0];,
+                   senddata[ioff+3] = it->m_cell[1];,
+                   senddata[ioff+4] = it->m_cell[2];);
+
+            offset[who] += iChunkSize;
+        }
+
+        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
+                                      sendcnts.dataPtr(),
+                                      sdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<int>::type(),
+                                      NumRcvs == 0 ? 0 : irecvdata.dataPtr(),
+                                      recvcnts.dataPtr(),
+                                      rdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<int>::type(),
+                                      ParallelDescriptor::Communicator()) );
+    }
+
+    {
+        //
+        // Now send/recv the Real data.
+        //
+        Array<Real> senddata (NumSnds*rChunkSize);
+
+        offset[0] = sdispls[0] = rdispls[0] = 0;
+
+        for (int i = 0; i < NProcs; i++)
+        {
+            recvcnts[i] = Rcvs[i] * rChunkSize;
+            sendcnts[i] = Snds[i] * rChunkSize;
+
+            if (i > 0)
+            {
+                offset [i] = offset [i-1] + sendcnts[i-1];
+                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
+                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+            }
+        }
+
+        for (std::deque<ParticleBase>::const_iterator it = data.begin(), End = data.end();
+             it != End;
+             ++it)
+        {
+            const int who = mf[it->m_lev].DistributionMap()[it->m_grid];
+
+            senddata[offset[who]] = it->m_pos[0];
+
+            offset[who]++;
+        }
+        //
+        // We can free up memory held by "data" -- don't need it anymore.
+        //
+        std::deque<ParticleBase>().swap(data);
+
+        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
+                                      sendcnts.dataPtr(),
+                                      sdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
+                                      NumRcvs == 0 ? 0 : rrecvdata.dataPtr(),
+                                      recvcnts.dataPtr(),
+                                      rdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
+                                      ParallelDescriptor::Communicator()) );
+    }
+    //
+    // Now update "mf".
+    //
+    if (NumRcvs > 0)
+    {
+        const int*  idata = irecvdata.dataPtr();
+        const Real* rdata = rrecvdata.dataPtr();
+
+        for (int i = 0; i < NumRcvs; i++)
+        {
+            const int     lev  = idata[0];
+            const int     grd  = idata[1];
+            const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
+
+            BL_ASSERT(mf[lev].DistributionMap()[grd] == MyProc);
+            BL_ASSERT(mf[lev][grd].box().contains(cell));
+
+            mf[lev][grd](cell) += *rdata;
+
+            idata += iChunkSize;
+
+            rdata++;
+        }
+    }
 #endif
-
-    for (int i = 0, M = D_TERM(2,+2,+4); i < M; i++)
-        if (which[i])
-            return true;
-
-    return false;
 }
 
 int

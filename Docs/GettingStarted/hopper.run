@@ -7,6 +7,6 @@ cd $PBS_O_WORKDIR
 
 echo Starting `date`
 
-aprun -n 48 ./main2d.Linux.g++.gfortran.MPI.ex inputs_2d
+aprun -n 48 ./main2d.Linux.gfortran.mpi.ex inputs_2d
 
 echo Ending `date`

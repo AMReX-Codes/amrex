@@ -1,7 +1,6 @@
 module init_phi_module
 
   use multifab_module
-  use layout_module
   use define_bc_module
   use multifab_physbc_module
 
@@ -68,7 +67,7 @@ contains
        do i=lo(1),hi(1)
           x = prob_lo(1) + (dble(i)+0.5d0) * dx
 
-          r2 = ((x-0.5d0)**2 + (y-0.5d0)**2) / 0.01d0
+          r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
           phi(i,j) = exp(-r2)
 
        end do
@@ -96,7 +95,7 @@ contains
           do i=lo(1),hi(1)
              x = prob_lo(1) + (dble(i)+0.5d0) * dx
 
-             r2 = ((x-0.5d0)**2 + (y-0.5d0)**2 + (z-0.5d0)**2) / 0.01d0
+             r2 = ((x-0.25d0)**2 + (y-0.25d0)**2 + (z-0.25d0)**2) / 0.01d0
              phi(i,j,k) = exp(-r2)
 
           end do
