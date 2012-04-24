@@ -8,12 +8,17 @@ program main
   use write_plotfile_module
   use advance_module
   use define_bc_module
+  use make_new_grids_module
+  use regrid_module
 
   implicit none
 
   ! stuff you can set with the inputs file (otherwise use default values below)
-  integer :: max_levs, dim, nsteps, plot_int, n_cell, max_grid_size
-  integer :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
+  integer    :: max_levs, dim, nsteps, plot_int, n_cell, max_grid_size
+  integer    :: amr_buf_width, cluster_minwidth, cluster_blocking_factor
+  real(dp_t) :: cluster_min_eff
+  integer    :: regrid_int
+  integer    :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! dummy indices using for reading in inputs file
   integer :: un, farg, narg
@@ -32,16 +37,19 @@ program main
   real(dp_t)    , allocatable :: dx(:)
   type(multifab), allocatable :: phi(:)
 
-  integer    :: istep,i,n,n_cell_level,nlevs
+  integer    :: istep,i,n,nl,nlevs
+  logical    :: new_grid
   real(dp_t) :: dt,time,start_time,run_time,run_time_IOproc
   
   type(box)         :: bx
   type(ml_boxarray) :: mba
   type(ml_layout)   :: mla
+  type(layout), allocatable :: la_array(:)
 
   type(bc_tower) :: the_bc_tower
 
-  namelist /probin/ max_levs, dim, nsteps, plot_int, n_cell, max_grid_size, &
+  namelist /probin/ max_levs, dim, nsteps, plot_int, n_cell, max_grid_size, amr_buf_width, &
+       cluster_minwidth, cluster_blocking_factor, cluster_min_eff, regrid_int, &
        bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
 
   ! if running in parallel, this will print out the number of MPI 
@@ -61,6 +69,12 @@ program main
   plot_int      = 100
   n_cell        = 256
   max_grid_size = 64
+  amr_buf_width = 2
+
+  cluster_minwidth = 16
+  cluster_blocking_factor = 8
+  cluster_min_eff = 0.7d0
+  regrid_int = 4
 
   ! allowable options for this example are
   ! -1 = PERIODIC
@@ -92,24 +106,16 @@ program main
      end if
   end if
 
-  ! in this example we fix nlevs to be max_levs
-  ! for adaptive simulations where the grids change, cells at finer
-  ! resolution don't necessarily exist depending on your tagging criteria
-  nlevs = max_levs
-
   ! now that we have dim, we can allocate these
   allocate(lo(dim),hi(dim))
   allocate(is_periodic(dim))
   allocate(prob_lo(dim),prob_hi(dim))
   allocate(phys_bc(dim,2))
 
-  ! now that we have nlevs, we can allocate these
-  allocate(dx(nlevs))
-  allocate(phi(nlevs))
-
-  ! physical problem is a box on (-1,-1) to (1,1)
-  prob_lo(:) = -1.d0
-  prob_hi(:) =  1.d0
+  ! now that we have max_levs, we can allocate these
+  allocate(dx(max_levs))
+  allocate(phi(max_levs))
+  allocate(la_array(max_levs))
 
   ! put all the domain boundary conditions into phys_bc
   phys_bc(1,1) = bc_x_lo
@@ -135,22 +141,33 @@ program main
      end if
   end do
 
-  ! tell mba how many levels and dimensionality of problem
-  call ml_boxarray_build_n(mba,nlevs,dim)
+  call cluster_set_minwidth(cluster_minwidth)
+  call cluster_set_blocking_factor(cluster_blocking_factor)
+  call cluster_set_min_eff(cluster_min_eff)
+
+  ! tell mba about max_levs and dimensionality of problem
+  call ml_boxarray_build_n(mba,max_levs,dim)
 
   ! tell mba about the ref_ratio between levels
   ! mba%rr(n-1,i) is the refinement ratio between levels n-1 and n in direction i
   ! we use refinement ratio of 2 in every direction between all levels
-  do n=2,nlevs
+  do n=2,max_levs
      mba%rr(n-1,:) = 2
   enddo
+
+  ! physical problem is a box on (-1,-1) to (1,1)
+  prob_lo(:) = -1.d0
+  prob_hi(:) =  1.d0
 
   ! set grid spacing at each level
   ! the grid spacing is the same in each direction
   dx(1) = (prob_hi(1)-prob_lo(1)) / n_cell
-  do n=2,nlevs
+  do n=2,max_levs
      dx(n) = dx(n-1) / mba%rr(n-1,1)
   end do
+
+  ! tell the_bc_tower about max_levs, dim, and phys_bc
+  call bc_tower_init(the_bc_tower,max_levs,dim,phys_bc)
 
   ! create a box from (0,0) to (n_cell-1,n_cell-1)
   lo(:) = 0
@@ -159,7 +176,7 @@ program main
 
   ! tell mba about the problem domain at each level
   mba%pd(1) = bx
-  do n=2,nlevs
+  do n=2,max_levs
      mba%pd(n) = refine(mba%pd(n-1),mba%rr((n-1),:))
   enddo
 
@@ -169,57 +186,105 @@ program main
   ! overwrite the boxarray at level 1 to respect max_grid_size
   call boxarray_maxsize(mba%bas(1),max_grid_size)
 
-  ! now build the boxarray at other levels
-  n_cell_level = n_cell
-  do n=2,nlevs
+  ! build the level 1 layout
+  call layout_build_ba(la_array(1),mba%bas(1),mba%pd(1),is_periodic)
 
-     ! length of the problem domain at this level
-     n_cell_level = n_cell_level * mba%rr(n-1,1)
+  ! build the level 1 multifab with 1 component and 1 ghost cell
+  call multifab_build(phi(1),la_array(1),1,1)
 
-     ! logic to refine about the center of the Gaussian at [0.25,0.25]
-     lo(:) = 5*n_cell_level/8-n_cell/2
-     hi(:) = 5*n_cell_level/8+n_cell/2-1
-     bx = make_box(lo,hi)
+  ! define level 1 of the_bc_tower
+  call bc_tower_level_build(the_bc_tower,1,la_array(1))
 
-     ! initialize the boxarray at level n to be one single box
-     call boxarray_build_bx(mba%bas(n),bx)
+  ! initialize phi on level 1
+  call init_phi_on_level(phi(1),dx(1),prob_lo,the_bc_tower%bc_tower_array(1))
 
-     ! overwrite the boxarray at level n to respect max_grid_size
-     call boxarray_maxsize(mba%bas(n),max_grid_size)
+  nl = 1
+  new_grid = .true.
+
+  do while ( (nl .lt. max_levs) .and. (new_grid) )
+
+     ! determine whether we need finer grids based on tagging criteria
+     ! if so, return new_grid=T and the la_array(nl+1)
+     call make_new_grids(new_grid,la_array(nl),la_array(nl+1),phi(nl),dx(nl), &
+                         amr_buf_width,mba%rr(nl,1),nl,max_grid_size)
+     
+     if (new_grid) then
+
+        ! tell mba about the finer level boxarray
+        call copy(mba%bas(nl+1),get_boxarray(la_array(nl+1)))
+
+        ! Build the level nl+1 data
+        call multifab_build(phi(nl+1),la_array(nl+1),1,1)
+        
+        ! define level nl+1 of the_bc_tower
+        call bc_tower_level_build(the_bc_tower,nl+1,la_array(nl+1))
+            
+        ! initialize phi on level nl+1
+        call init_phi_on_level(phi(nl+1),dx(nl+1),prob_lo,the_bc_tower%bc_tower_array(nl+1))
+
+        ! increment current level counter
+        nl = nl+1
+
+     endif
 
   end do
 
-  ! build the ml_layout, mla
-  call ml_layout_build(mla,mba,is_periodic)
+  ! the current number of levels in the simulation is nlevs, not necessarily max_levs
+  nlevs = nl
 
-  ! don't need this anymore - free up memory
-  call destroy(mba)
-
-  ! tell the_bc_tower about max_levs, dim, and phys_bc
-  call bc_tower_init(the_bc_tower,nlevs,dim,phys_bc)
+  ! destroy phi - we are going to build it again using the new multilevel
+  ! layout after we have tested and reconfigured the grids due to proper nesting
   do n=1,nlevs
-     ! define level n of the_bc_tower
-     call bc_tower_level_build(the_bc_tower,n,mla%la(n))
+     call multifab_destroy(phi(n))
   end do
 
-  ! build multifab with 1 component and 1 ghost cell
+  if (nlevs .ge. 3) then
+
+     ! check for proper nesting
+     call enforce_proper_nesting(mba,la_array,max_grid_size)
+
+     ! enforce_proper_nesting can create new grids at coarser levels
+     ! this makes sure the boundary conditions are properly defined everywhere
+     do n = 2,nlevs
+        call bc_tower_level_build(the_bc_tower,n,la_array(n))
+     end do
+
+  end if
+
+  do n=1,nlevs
+     call destroy(la_array(n))
+  end do
+
+  ! tell mla that there are nlevs levels, not max_levs
+  call ml_layout_restricted_build(mla,mba,nlevs,is_periodic)
+     
   do n=1,nlevs
      call multifab_build(phi(n),mla%la(n),1,1)
   end do
-  
-  ! initialze phi
+
   call init_phi(mla,phi,dx,prob_lo,the_bc_tower)
+
+  call destroy(mba)
 
   istep = 0
   time = 0.d0
 
-  ! choose a time step with a diffusive CFL of 0.9
-  dt = 0.9d0*dx(nlevs)**2/(2.d0*dim)
+  ! choose a time step with a diffusive CFL of 0.9 base on resolution
+  ! at max_levs, even if nlevs < max_levs
+  dt = 0.9d0*dx(max_levs)**2/(2.d0*dim)
 
   ! write out plotfile 0
   call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
 
   do istep=1,nsteps
+
+     ! regrid
+     if ( istep > 1 .and. max_levs > 1 .and. regrid_int > 0 .and. &
+          (mod(istep-1,regrid_int) .eq. 0) ) then
+
+        call regrid(mla,phi,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
+
+     end if
 
      ! we only want one processor to write to screen
      if ( parallel_IOProcessor() ) then
@@ -248,7 +313,7 @@ program main
   deallocate(lo,hi,is_periodic,prob_lo,prob_hi)
 
   ! deallocate temporary boxarrays and communication mappings
-  call layout_flush_copyassoc_cache()
+  call layout_flush_copyassoc_cache ()
 
   ! check for memory that should have been deallocated
   if ( parallel_IOProcessor() ) then

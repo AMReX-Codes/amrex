@@ -1,18 +1,7 @@
-In this chapter, we develop a Fortran90 \BoxLib\ code to solve the heat equation,
-\begin{equation}
-\frac{\partial\phi}{\partial t} = \nabla^2 \phi; \quad \phi(t=0) = e^{-100r^2},
-\end{equation}
-on a domain from [-1,1] in each spatial direction, where $r$ is the distance
-to the point $(x,y,z) = (0.5,0.5,0.5)$.  We will
-assume that $\Delta x = \Delta y = \Delta z$.  We begin with a simple single-level, 
-forward Euler discretization and work up to
-a full AMR code with many bells and whistles.  Below is an outline of how we will 
-proceed.  Each of these sections contains an accompanying tutoral directory.
+We now enhance our heat equation example from the previous section.
+Below is an outline of how we will proceed.  Each of these sections contains an 
+accompanying tutoral code that builds upon the previous example.
 \begin{itemize}
-
-\item In Section \ref{Sec:OpenMP}, we develop a single-level code similar to the
-{\tt WaveEquation\_F} example in Chapter \ref{Chap:Getting Started}, but add 
-support for OpenMP.
 
 \item In Section \ref{Sec:Boundary Conditions} we develop the capability to handle
 other (non-periodic) boundary condition types.
@@ -21,7 +10,7 @@ other (non-periodic) boundary condition types.
 levels of refinement using a fixed, multilevel grid structure.
 
 \item In Section \ref{Sec:AMR} we develop the capability to adaptively change the
-refined grid structure.
+multilevel grid structure.
 
 \item In Section \ref{Sec:Linear Solvers} we develop the capability to solve the
 equation implicitly, using the linear solver libraries.
@@ -33,81 +22,7 @@ checkpoints for restarting simulations.
 with timers.
 
 \end{itemize}
-The basic time-advancement strategy uses the following temporal discretization:
-\begin{equation}
-\frac{\phi_{ij}^{n+1} - \phi_{ij}^n}{\Delta t} = \left[\nabla\cdot(\nabla\phi)\right]_{ij}.
-\end{equation}
-In the explicit case, we first compute $\nabla\phi$, at faces using:
-\begin{equation}
-(\nabla\phi)_{i+\myhalf,j} = \frac{\phi_{i+1,j}^n-\phi_{ij}^n}{\Delta x}.
-\end{equation}
-We will refer to these face-centered gradients as ``fluxes''.
-Next, we compute the update by taking the divergence of these fluxes,
-\begin{equation}
-\left[\nabla\cdot(\nabla\phi)\right]_{ij} = \frac{(\nabla\phi)_{i+\myhalf,j}-(\nabla\phi)_{i-\myhalf,j}}{\Delta x} + \frac{(\nabla\phi)_{i,j+\myhalf}-(\nabla\phi)_{i,j-\myhalf}}{\Delta y}.
-\end{equation}
-We use a flux divergence formulation because it will enable a more natural 
-extension to multiple levels of refinement, where we will be concerned with
-conservation across levels.  Note that in this explicit case, since $\Delta x = \Delta y$, 
-the Laplacian reduces to the standard five point stencil two dimensions
-(seven point stencil in three dimensions).  
 
-\section{OpenMP}\label{Sec:OpenMP}
-
-A hybrid MPI/OpenMP version of the algorithm described above sits in 
-{\tt BoxLib/Tutorials/HeatEquation\_EX1\_F/}.  It is very similar to the
-{\tt WaveEquation\_F} example in Chapter \ref{Chap:Getting Started}, so we shall
-only highlight some key additional features.\\
-
-Since the fluxes live on faces, we need face-centered \MultiFab s, i.e.,
-\MultiFab s that are nodal in one spatial direction.  In {\tt advance.f90},
-we build them as follows:
-\begin{lstlisting}[backgroundcolor=\color{light-green}]
-! an array of multifabs; one for each direction
-type(multifab) :: flux(phi%dim) 
-
-! build the flux(:) multifabs
-do i=1,dm
-   ! flux(i) has 1 component, 0 ghost cells, and is nodal in direction i
-   call multifab_build_edge(flux(i),phi%la,1,0,i)
-end do
-\end{lstlisting}
-
-To ``thread'' the code, we simply add OpenMP directives (using the {\tt !\$omp parallel do} construct) to any i/j/k loops
-we are interested in threading.  For example, in {\tt init\_phi.f90}:
-\begin{lstlisting}[backgroundcolor=\color{light-green}]
-!$omp parallel do private(i,j,x,y,r2)
-do j=lo(2),hi(2)
-   y = prob_lo(2) + (dble(j)+0.5d0) * dx
-   do i=lo(1),hi(1)
-      x = prob_lo(1) + (dble(i)+0.5d0) * dx
-
-      r2 = (x*x + y*y) / 0.01
-      phi(i,j) = exp(-r2)
-
-   end do
-end do
-!$omp end parallel do
-\end{lstlisting}
-This User's Guide is not a manual on OpenMP, so simply note that this particular 
-construct tells each thread to work on different values of {\tt j}, with each 
-thread getting its own local copy of {\tt i}, {\tt x}, {\tt y}, and {\tt r2}.\\
-
-Finally, to tell the compiler that we would like to run with OpenMP, we make sure to
-set {\tt OMP=t} in the {\tt GNUmakefile}.  Otherwise, all OpenMP directive are
-simply ignored.  Note that at runtime you must have you 
-{\tt OMP\_NUM\_THREADS} environment variable set properly in order for threads to work.
-Also, note that you can enable/disable MPI independently from the OMP flag.  Finally,
-here is a sample hopper script (tcsh) for a hybrid MPI/OpenMP job:
-\lstinputlisting[backgroundcolor=\color{light-red}]{./AdvancedTopics/hopper_omp.run}
-\begin{itemize}
-\item ``mppwidth'': how many total cores requested
-\item ``-n'': total number of MPI tasks
-\item ``-N'': number of MPI tasks per hopper node
-\item ``-S'': number of MPI tasks per NUMA node
-\item ``-ss'': demands strict memory containment per NUMA node
-\item ``-d'': number of OpenMP threads per MPI task
-\end{itemize}
 \section{Boundary Conditions}\label{Sec:Boundary Conditions}
 In order to understand how to implement boundary conditions, we shall 
 first describe the general principles behind working with boundary conditions.
@@ -335,7 +250,12 @@ Each of these involves a coarse level and a fine level:
 \end{itemize}
 
 \section{Adaptive Mesh Refinement}\label{Sec:AMR}
+Now fully implemented in {\tt BoxLib/Tutorials/HeatEquation\_EX4\_F/}.  Documentation coming soon!
+
 \section{Linear Solvers}\label{Sec:Linear Solvers}
+Coming soon, a linear solver example that uses multigrid to implicitly solve the heat equation.
+
+
 \section{Checkpoints and Restarting}\label{Sec:Checkpoints}
 \section{Timers}\label{Sec:Timers}
 

@@ -1,7 +1,6 @@
 module advance_module
 
   use multifab_module
-  use layout_module
 
   implicit none
 
