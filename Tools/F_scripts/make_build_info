@@ -10,13 +10,18 @@
 #
 # build_info.f90: 
 #       $(BOXLIB_HOME)/Tools/F_scripts/make_build_info \
-#            "$(Fmdirs)" "$(COMPILE.f90)" "$(COMPILE.f)" \
+#            "$(Fmdirs)" "$(COMP)" "$(FCOMP_VERSION)" "$(COMPILE.f90)" "$(COMPILE.f)" \
 #            "$(COMPILE.c)" "$(LINK.f90)" "$(BOXLIB_HOME)"
 #
 # where:
 #
 #  Fmdirs is a string containing the list of directories used to
 #  assemble the code
+#
+#  COMP is the Fortran compiler name (as expected by BoxLib)
+#
+#  FCOMP_VERSION is the Fortran compiler version number, as returned by the
+#     compiler itself (usually via -v)
 #
 #  COMPILE.f90 is a string giving the Fortran 90 compile line
 #
@@ -55,19 +60,23 @@ BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
 MODULES1=`echo $1 | cut -c 1-$DBL_STRING_LINE_LENGTH`
 MODULES2=`echo $1 | cut -c $s2-$f2`
 
-F90COMPILE1=`echo $2 | cut -c 1-$DBL_STRING_LINE_LENGTH`
-F90COMPILE2=`echo $2 | cut -c $s2-$f2`
+FCOMP=`echo $2 | cut -c 1-$MAX_STRING_LENGTH`
 
-FCOMPILE1=`echo $3 | cut -c 1-$DBL_STRING_LINE_LENGTH`
-FCOMPILE2=`echo $3 | cut -c $s2-$f2`
+FCOMP_VERSION=`echo $3 | cut -c 1-$MAX_STRING_LENGTH`
 
-CCOMPILE1=`echo $4 | cut -c 1-$DBL_STRING_LINE_LENGTH`
-CCOMPILE2=`echo $4 | cut -c $s2-$f2`
+F90COMPILE1=`echo $4 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+F90COMPILE2=`echo $4 | cut -c $s2-$f2`
 
-LINK1=`echo $5 | cut -c 1-$DBL_STRING_LINE_LENGTH`
-LINK2=`echo $5 | cut -c $s2-$f2`
+FCOMPILE1=`echo $5 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+FCOMPILE2=`echo $5 | cut -c $s2-$f2`
 
-BOXLIB_DIR=`echo $6 | cut -c 1-$MAX_STRING_LENGTH`
+CCOMPILE1=`echo $6 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+CCOMPILE2=`echo $6 | cut -c $s2-$f2`
+
+LINK1=`echo $7 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+LINK2=`echo $7 | cut -c $s2-$f2`
+
+BOXLIB_DIR=`echo $8 | cut -c 1-$MAX_STRING_LENGTH`
 
 
 
@@ -91,6 +100,12 @@ module build_info_module
   character (len=$DBL_STRING_LENGTH), save :: module_list = &
 "$MODULES1" //&
 "$MODULES2"
+
+  character (len=$MAX_STRING_LENGTH), save :: FCOMP = &
+"$FCOMP"
+
+  character (len=$MAX_STRING_LENGTH), save :: FCOMP_version = &
+"$FCOMP_VERSION"
 
   character (len=$DBL_STRING_LENGTH), save :: f90_compile_line = &
 "$F90COMPILE1" //&
