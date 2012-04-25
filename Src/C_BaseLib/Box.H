@@ -838,4 +838,19 @@ Box::index (const IntVect& v) const
     return result;
 }
 
+inline
+bool
+Box::contains (const IntVect& p) const
+{
+    return p >= smallend && p <= bigend;
+}
+
+inline
+bool
+Box::contains (const Box& b) const
+{
+    BL_ASSERT(sameType(b));
+    return b.smallend >= smallend && b.bigend <= bigend;
+}
+
 #endif /*BL_BOX_H*/
