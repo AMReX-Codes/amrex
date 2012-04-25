@@ -3,6 +3,8 @@
 # to compile mt19937ar.f90, we need -fno-range-check, since that
 # routine relies on overflows when doing initializations
 
+  FCOMP_VERSION := $(shell $(COMP) -v 2>&1 | grep 'version')
+
   FC  := $(COMP)
   F90 := $(COMP)
   ifdef CCOMP
