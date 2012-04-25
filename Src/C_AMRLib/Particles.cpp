@@ -227,7 +227,16 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
 
     for (int i = 0; i < M; i++)
     {
-        if (!fvalid.contains(ccells[i]*rr))
+        IntVect ccell_refined = ccells[i]*rr;
+        //
+        // We've got to protect against the case when we're at the low
+        // end of the domain because coarsening & refining don't work right
+        // when indices go negative.
+        //
+        for (int dm = 0; dm < BL_SPACEDIM; dm++)
+            ccell_refined[dm] = std::max(ccell_refined[dm], -1);
+
+        if (!fvalid.contains(ccell_refined))
         {
             result   = true;
             which[i] = true;
