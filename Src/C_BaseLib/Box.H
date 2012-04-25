@@ -853,4 +853,32 @@ Box::contains (const Box& b) const
     return b.smallend >= smallend && b.bigend <= bigend;
 }
 
+inline
+Box&
+Box::operator&= (const Box& b)
+{
+    BL_ASSERT(sameType(b));
+    smallend.max(b.smallend);
+    bigend.min(b.bigend);
+    return *this;
+}
+
+inline
+const Box
+Box::operator& (const Box& rhs) const
+{
+    Box lhs = *this;
+    lhs &= rhs;
+    return lhs;
+}
+
+inline
+bool
+Box::intersects (const Box& b) const
+{
+    Box isect = *this;
+    isect &= b;
+    return isect.ok();
+}
+
 #endif /*BL_BOX_H*/
