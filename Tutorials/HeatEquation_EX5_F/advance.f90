@@ -78,7 +78,7 @@ contains
        ! (I - Delta t * lap) phi^n+1 = phi^n
        ! thus,
        ! alpha = 1.0
-       ! beta (on all faces) = -Delta t
+       ! beta (on all faces) = Delta t
        ! rhs = phi^n
 
        do n=1,nlevs
@@ -91,10 +91,10 @@ contains
           call multifab_build(  rhs(n), mla%la(n),  1, 0)
           call multifab_copy_c(rhs(n),1,phi(n),1,1,0)
 
-          ! set beta=-dt, including ghost cells
+          ! set beta=dt, including ghost cells
           do i=1,dm
              call multifab_build_edge(beta(n,i), mla%la(n), 1, 1, i)
-             call setval(beta(n,i), -dt, all=.true.)
+             call setval(beta(n,i), dt, all=.true.)
           end do
 
        end do
@@ -127,7 +127,7 @@ contains
 
           pd = layout_get_pd(mla%la(n))
 
-          dx_vector(n,:) = dx(:)
+          dx_vector(n,:) = dx(n)
 
           if (n .eq. 1) then
              max_nlevel = mgt(nlevs)%max_nlevel
@@ -171,11 +171,11 @@ contains
           la = mla%la(n)
 
           call multifab_build(cell_coeffs(mgt(n)%nlevels), la, 1, 1)
-          call multifab_copy_c(cell_coeffs(mgt(n)%nlevels),1,alpha(n),1, 1,ng=alpha(n)%ng)
+          call multifab_copy_c(cell_coeffs(mgt(n)%nlevels),1,alpha(n),1,1,alpha(n)%ng)
 
           do i=1,dm
              call multifab_build_edge(edge_coeffs(mgt(n)%nlevels,i),la,1,1,i)
-             call multifab_copy_c(edge_coeffs(mgt(n)%nlevels,i),1,beta(n,i),1,1,ng=beta(n,i)%ng)
+             call multifab_copy_c(edge_coeffs(mgt(n)%nlevels,i),1,beta(n,i),1,1,beta(n,i)%ng)
           end do
 
           if (n > 1) then
