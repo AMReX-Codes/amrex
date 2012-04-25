@@ -19,6 +19,7 @@ program main
   real(dp_t) :: cluster_min_eff
   integer    :: regrid_int
   integer    :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
+  logical    :: do_implicit_solve
 
   ! dummy indices using for reading in inputs file
   integer :: un, farg, narg
@@ -50,7 +51,7 @@ program main
 
   namelist /probin/ max_levs, dim, nsteps, plot_int, n_cell, max_grid_size, amr_buf_width, &
        cluster_minwidth, cluster_blocking_factor, cluster_min_eff, regrid_int, &
-       bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
+       bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi, do_implicit_solve
 
   ! if running in parallel, this will print out the number of MPI 
   ! processes and OpenMP threads
@@ -86,6 +87,8 @@ program main
   bc_y_hi       = -1 ! PERIODIC
   bc_z_lo       = -1 ! PERIODIC
   bc_z_hi       = -1 ! PERIODIC
+
+  do_implicit_solve = .true.
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -292,7 +295,7 @@ program main
      end if
      
      ! advance phi
-     call advance(mla,phi,dx,dt,the_bc_tower)
+     call advance(mla,phi,dx,dt,the_bc_tower,do_implicit_solve)
 
      time = time + dt
 

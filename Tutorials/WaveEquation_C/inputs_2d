@@ -1,9 +1,0 @@
-Nsteps = 1000
-
-plot_int = 100
-
-n_cell = 256
-
-max_grid_size = 64
-
-verbose = 1

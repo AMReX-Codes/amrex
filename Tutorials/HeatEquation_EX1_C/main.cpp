@@ -10,56 +10,92 @@
 #include <writePlotFile.H>
 
 #if    defined(BL_FORT_USE_UPPERCASE)
-#define FORT_INIT_DATA            INIT_DATA
-#define FORT_ADVANCE              ADVANCE
+#define FORT_INIT_PHI            INIT_PHI
+#define FORT_COMPUTE_FLUX        COMPUTE_FLUX
+#define FORT_UPDATE_PHI          UPDATE_PHI
 #elif  defined(BL_FORT_USE_LOWERCASE)
-#define FORT_INIT_DATA            init_data
-#define FORT_ADVANCE              advance
+#define FORT_INIT_PHI            init_phi
+#define FORT_COMPUTE_FLUX        compute_flux
+#define FORT_UPDATE_PHI          update_phi
 #elif  defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_INIT_DATA            init_data_
-#define FORT_ADVANCE              advance_
+#define FORT_INIT_PHI            init_phi_
+#define FORT_COMPUTE_FLUX        compute_flux_
+#define FORT_UPDATE_PHI          update_phi_
 #endif
 
 #include <ArrayLim.H>
 
 extern "C"
 {
-    void FORT_INIT_DATA (
-        Real* data, const int* lo, const int* hi,
-        const int* Ncomp,  const int* ng, 
-        const Real* dx, const Real* prob_lo, const Real* prob_hi);
+  void FORT_INIT_PHI (Real* data, const int* lo, const int* hi, const int* ng, 
+		      const Real* dx, const Real* prob_lo, const Real* prob_hi);
 
-    void FORT_ADVANCE (
-        Real* old_data , Real* new_data, const int* lo, const int* hi, 
-        const int* Ncomp, const int* ng, const Real* dx, const Real* dt);
+  void FORT_COMPUTE_FLUX (Real* phi, const int* ng_p,
+			  Real* fluxx, 
+			  Real* fluxy,
+#if (BL_SPACEDIM == 3)   
+			  Real* fluxz,
+#endif
+   const int* ng_f, const int* lo, const int* hi, const Real* dx);
+  
+  void FORT_UPDATE_PHI (Real* phiold, Real* phinew, const int* ng_p,
+			Real* fluxx, 
+			Real* fluxy,
+#if (BL_SPACEDIM == 3)   
+			Real* fluxz,
+#endif
+			const int* ng_f, const int* lo, const int* hi, const Real* dx, const Real* dt);
 }
 
 static
-void advance(MultiFab* old_data, MultiFab* new_data, Real* dx, Real dt)
+void advance (MultiFab* old_phi, MultiFab* new_phi, MultiFab* flux, Real* dx, Real dt, Geometry geom)
 {
   // Fill the ghost cells of each grid from the other grids
-  old_data->FillBoundary();
+  old_phi->FillBoundary();
 
-  int Ncomp = old_data->nComp();
+  // Fill periodic boundary ghost cells
+  geom.FillPeriodicBoundary(*old_phi);
 
-  int ng = old_data->nGrow();
+  int Ncomp = old_phi->nComp();
+  int ng_p = old_phi->nGrow();
+  int ng_f = flux->nGrow();
 
-  // Advance the solution one grid at a time
-  for ( MFIter mfi(*new_data); mfi.isValid(); ++mfi )
+  // Compute fluxes one grid at a time
+  for ( MFIter mfi(*old_phi); mfi.isValid(); ++mfi )
   {
     const Box& bx = mfi.validbox();
 
-    FORT_ADVANCE((*old_data)[mfi].dataPtr(),
-                 (*new_data)[mfi].dataPtr(),
-                  bx.loVect(),bx.hiVect(),&Ncomp, &ng,
-                  &(dx[0]),&dt);
+    FORT_COMPUTE_FLUX((*old_phi)[mfi].dataPtr(),
+		      &ng_p,
+		      flux[0][mfi].dataPtr(),
+		      flux[1][mfi].dataPtr(),
+#if (BL_SPACEDIM == 3)   
+		      flux[2][mfi].dataPtr(),
+#endif
+		      &ng_f, bx.loVect(), bx.hiVect(), &(dx[0]));
+  }
+
+  // Advance the solution one grid at a time
+  for ( MFIter mfi(*old_phi); mfi.isValid(); ++mfi )
+  {
+    const Box& bx = mfi.validbox();
+
+    FORT_UPDATE_PHI((*old_phi)[mfi].dataPtr(),
+		    (*new_phi)[mfi].dataPtr(),
+		    &ng_p,
+		    flux[0][mfi].dataPtr(),
+		    flux[1][mfi].dataPtr(),
+#if (BL_SPACEDIM == 3)   
+		    flux[2][mfi].dataPtr(),
+#endif
+		    &ng_f, bx.loVect(), bx.hiVect(), &(dx[0]) , &dt);
   }
 }
 
 static
-Real compute_dt(Real dx)
+Real compute_dt (Real dx)
 {
-   return 0.1 * dx;
+  return 0.9*dx*dx / (2.0*BL_SPACEDIM);
 }
 
 int
@@ -80,7 +116,7 @@ main (int argc, char* argv[])
   int n_cell;
   pp.get("n_cell",n_cell);
 
-  // Default Nsteps to 0, allow us to set it to something else in the inputs file
+  // Default nsteps to 0, allow us to set it to something else in the inputs file
   int max_grid_size;
   pp.get("max_grid_size",max_grid_size);
 
@@ -89,13 +125,9 @@ main (int argc, char* argv[])
   int plot_int = 1;
   pp.query("plot_int",plot_int);
 
-  // Default Nsteps to 0, allow us to set it to something else in the inputs file
-  int Nsteps   = 0;
-  pp.query("Nsteps",Nsteps);
-
-  // Default verbose to 0, allow us to set it to 1 i the inputs file
-  int verbose   = 0;
-  pp.query("verbose",verbose);
+  // Default nsteps to 0, allow us to set it to something else in the inputs file
+  int nsteps   = 0;
+  pp.query("nsteps",nsteps);
 
   // Define a single box covering the domain
 #if (BL_SPACEDIM == 2)
@@ -137,32 +169,32 @@ main (int argc, char* argv[])
       dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/domain.length(n);
 
   // Nghost = number of ghost cells for each array 
-  int Nghost = 6;
+  int Nghost = 1;
 
   // Ncomp = number of components for each array
-  int Ncomp  = 2;
+  int Ncomp  = 1;
 
   // Make sure we can fill the ghost cells from the adjacent grid
   if (Nghost > max_grid_size)
     std::cout <<  "NGHOST < MAX_GRID_SIZE --  grids are too small! " << std::endl;
 
-  // Allocate space for the old_data and new_data -- we define old_data and new_data as
+  // Allocate space for the old_phi and new_phi -- we define old_phi and new_phi as
   //   pointers to the MultiFabs
-  MultiFab* old_data = new MultiFab(bs, Ncomp, Nghost);
-  MultiFab* new_data = new MultiFab(bs, Ncomp, Nghost);
+  MultiFab* old_phi = new MultiFab(bs, Ncomp, Nghost);
+  MultiFab* new_phi = new MultiFab(bs, Ncomp, Nghost);
 
   // Initialize both to zero (just because)
-  old_data->setVal(0.0);
-  new_data->setVal(0.0);
+  old_phi->setVal(0.0);
+  new_phi->setVal(0.0);
 
-  // Initialize the old_data by calling a Fortran routine.
+  // Initialize the old_phi by calling a Fortran routine.
   // MFIter = MultiFab Iterator
-  for ( MFIter mfi(*new_data); mfi.isValid(); ++mfi )
+  for ( MFIter mfi(*new_phi); mfi.isValid(); ++mfi )
   {
     const Box& bx = mfi.validbox();
 
-    FORT_INIT_DATA((*new_data)[mfi].dataPtr(),
-                     bx.loVect(),bx.hiVect(), &Ncomp, &Nghost,
+    FORT_INIT_PHI((*new_phi)[mfi].dataPtr(),
+                     bx.loVect(),bx.hiVect(), &Nghost,
                      dx,geom.ProbLo(),geom.ProbHi());
   }
 
@@ -174,26 +206,36 @@ main (int argc, char* argv[])
   {
      int n = 0;
      const std::string pltfile = BoxLib::Concatenate("plt",n,5);
-     writePlotFile(pltfile, *new_data, geom);
+     writePlotFile(pltfile, *new_phi, geom);
   }
 
-  for (int n = 1; n <= Nsteps; n++)
+  // build the flux multifabs
+  MultiFab* flux = new MultiFab[BL_SPACEDIM];
+  for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+      BoxArray edge_grids(bs);
+      // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
+      edge_grids.surroundingNodes(dir);
+      flux[dir].define(edge_grids,1,0,Fab_allocate);
+    }
+
+  for (int n = 1; n <= nsteps; n++)
   {
      // Swap the pointers so we don't have to allocate and de-allocate data
-     std::swap(old_data, new_data);
+     std::swap(old_phi, new_phi);
 
-     // new_data = old_data + dt * (something)
-     advance(old_data, new_data, dx, dt); 
+     // new_phi = old_phi + dt * (something)
+     advance(old_phi, new_phi, flux, dx, dt, geom); 
 
-     // Tell the I/O Processor to write out which step we're doing (verbose is defined in the inputs file)
-     if (verbose && ParallelDescriptor::IOProcessor())
+     // Tell the I/O Processor to write out which step we're doing
+     if (ParallelDescriptor::IOProcessor())
         std::cout << "Advanced step " << n << std::endl;
 
      // Write a plotfile of the current data (plot_int was defined in the inputs file)
      if (plot_int > 0 && n%plot_int == 0)
      {
         const std::string pltfile = BoxLib::Concatenate("plt",n,5);
-        writePlotFile(pltfile, *new_data, geom);
+        writePlotFile(pltfile, *new_phi, geom);
      }
   }
 

@@ -16,13 +16,14 @@ module advance_module
 
 contains
   
-  subroutine advance(mla,phi,dx,dt,the_bc_tower)
+  subroutine advance(mla,phi,dx,dt,the_bc_tower,do_implicit_solve)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(inout) :: phi(:)
     real(kind=dp_t), intent(in   ) :: dx(:)
     real(kind=dp_t), intent(in   ) :: dt
     type(bc_tower) , intent(in   ) :: the_bc_tower
+    logical        , intent(in   ) :: do_implicit_solve
 
     ! local variables
     integer i,dm,n,nlevs
@@ -30,29 +31,82 @@ contains
     ! an array of multifabs; one for each direction
     type(multifab) :: flux(mla%nlevel,mla%dim) 
 
+    type(multifab) :: alpha(mla%nlevel)
+    type(multifab) :: beta(mla%nlevel,mla%dim)
+    type(multifab) :: rhs(mla%nlevel)
+
     dm = mla%dim
     nlevs = mla%nlevel
 
-    ! build the flux(:,:) multifabs
-    do n=1,nlevs
-       do i=1,dm
-          ! flux(n,i) has one component, zero ghost cells, and is nodal in direction i
-          call multifab_build_edge(flux(n,i),mla%la(n),1,0,i)
-       end do
-    end do
+    if (do_implicit_solve) then
 
-    ! compute the face-centered gradients in each direction
-    call compute_flux(mla,phi,flux,dx,the_bc_tower)
-    
-    ! update phi using forward Euler discretization
-    call update_phi(mla,phi,flux,dx,dt,the_bc_tower)
+       ! Solve for phi using backward Euler discretization:
+       ! (phi^n+1 - phi^n) / Delta t = lap phi^n+1.
+       ! ml_cc_solve solves for phi in the equation:
+       ! (alpha - del dot beta grad) phi = rhs,
+       ! where alpha, phi, and rhs are cell-centered and beta is face-centered.
+       ! The backward Euler discretization can be rewritten as:
+       ! (I - Delta t * lap) phi^n+1 = phi^n
+       ! thus,
+       ! alpha = 1.0
+       ! beta (on all faces) = -Delta t
+       ! rhs = phi^n
 
-    ! make sure to destroy the multifab or you'll leak memory
-    do n=1,nlevs
-       do i=1,dm
-          call multifab_destroy(flux(n,i))
+       do n=1,nlevs
+
+          ! set alpha=1, including ghost cells
+          call multifab_build(alpha(n), mla%la(n),  1, 1)
+          call setval(alpha(n), 1.d0, all=.true.)
+
+          ! copy phi into rhs
+          call multifab_build(  rhs(n), mla%la(n),  1, 0)
+          call multifab_copy_c(rhs(n),1,phi(n),1,1,0)
+
+          ! set beta=-dt, including ghost cells
+          do i=1,dm
+             call multifab_build_edge(beta(n,i), mla%la(n), 1, 1, i)
+             call setval(beta(n,i), -dt, all=.true.)
+          end do
+
        end do
-    end do
+
+
+
+       do n=1,nlevs
+          call multifab_destroy(alpha(n))
+          call multifab_destroy(  rhs(n))
+          do i=1,dm
+             call multifab_destroy(beta(n,i))
+          end do
+       end do
+
+
+    else
+       
+       ! explicit time advancement
+
+       ! build the flux(:,:) multifabs
+       do n=1,nlevs
+          do i=1,dm
+             ! flux(n,i) has one component, zero ghost cells, and is nodal in direction i
+             call multifab_build_edge(flux(n,i),mla%la(n),1,0,i)
+          end do
+       end do
+
+       ! compute the face-centered gradients in each direction
+       call compute_flux(mla,phi,flux,dx,the_bc_tower)
+
+       ! update phi using forward Euler discretization
+       call update_phi(mla,phi,flux,dx,dt,the_bc_tower)
+
+       ! make sure to destroy the multifab or you'll leak memory
+       do n=1,nlevs
+          do i=1,dm
+             call multifab_destroy(flux(n,i))
+          end do
+       end do
+
+    end if
 
   end subroutine advance
 
