@@ -165,10 +165,10 @@ contains
     !
     buf_pd = get_pd(la_buf)
     call pd_mask(buf,buf_pd)
-    !
-    ! Make sure that all tagged cells in are properly replicated in the high indexed boxes.
-    !
+
     call internal_sync(buf, all = .true., filter = filter_lor)
+
+    call lmultifab_fill_boundary(buf)
 
     ratio = max(blocking_factor / ref_ratio, 1)
 
