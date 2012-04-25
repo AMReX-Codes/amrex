@@ -7,6 +7,10 @@ module advance_module
   use multifab_physbc_module
   use multifab_fill_ghost_module
   use ml_restriction_module
+  use mg_module
+  use bndry_reg_module
+  use cc_stencil_fill_module
+  use ml_solve_module
 
   implicit none
 
@@ -35,8 +39,33 @@ contains
     type(multifab) :: beta(mla%nlevel,mla%dim)
     type(multifab) :: rhs(mla%nlevel)
 
+    type(multifab), allocatable :: cell_coeffs(:)
+    type(multifab), allocatable :: edge_coeffs(:,:)
+
+    type(bndry_reg) :: fine_flx(2:mla%nlevel)
+
+    real(dp_t) ::  xa(mla%dim),  xb(mla%dim)
+    real(dp_t) :: pxa(mla%dim), pxb(mla%dim)
+
+    integer :: stencil_order,do_diagnostics
+
+    type(mg_tower)  :: mgt(mla%nlevel)
+
+    type(layout) :: la
+    type(box) :: pd
+
+    real(dp_t) :: dx_vector(mla%nlevel,mla%dim)
+
+    integer :: ns,smoother,nu1,nu2,nub,gamma,cycle_type
+    integer :: bottom_solver,bottom_max_iter,max_iter,max_nlevel
+    integer :: max_bottom_nlevel,min_width,verbose,cg_verbose
+    real(dp_t) :: omega,bottom_solver_eps,rel_solver_eps,abs_solver_eps
+
     dm = mla%dim
     nlevs = mla%nlevel
+
+    stencil_order = 2
+    do_diagnostics = 0
 
     if (do_implicit_solve) then
 
@@ -70,8 +99,114 @@ contains
 
        end do
 
+       do n = 2,nlevs
+          call bndry_reg_build(fine_flx(n),mla%la(n),ml_layout_get_pd(mla,n))
+       end do
 
+       ns = 1 + 3*dm
 
+       smoother          = mgt(nlevs)%smoother
+       nu1               = mgt(nlevs)%nu1
+       nu2               = mgt(nlevs)%nu2
+       nub               = mgt(nlevs)%nub
+       gamma             = mgt(nlevs)%gamma
+       cycle_type        = mgt(nlevs)%cycle_type
+       omega             = mgt(nlevs)%omega
+       bottom_solver     = mgt(nlevs)%bottom_solver
+       bottom_max_iter   = mgt(nlevs)%bottom_max_iter
+       bottom_solver_eps = mgt(nlevs)%bottom_solver_eps
+       max_iter          = mgt(nlevs)%max_iter
+       max_bottom_nlevel = mgt(nlevs)%max_bottom_nlevel
+       min_width         = mgt(nlevs)%min_width
+       rel_solver_eps    = mgt(nlevs)%eps
+       abs_solver_eps    = mgt(nlevs)%abs_eps
+       verbose           = mgt(nlevs)%verbose
+       cg_verbose        = mgt(nlevs)%cg_verbose
+
+       do n=1,nlevs
+
+          pd = layout_get_pd(mla%la(n))
+
+          dx_vector(n,:) = dx(:)
+
+          if (n .eq. 1) then
+             max_nlevel = mgt(nlevs)%max_nlevel
+          else
+             max_nlevel = 1
+          end if
+
+          call mg_tower_build(mgt(n), mla%la(n), pd, &
+                              the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
+                              dh = dx_vector(n,:), &
+                              ns = ns, &
+                              smoother = smoother, &
+                              nu1 = nu1, &
+                              nu2 = nu2, &
+                              nub = nub, &
+                              gamma = gamma, &
+                              cycle_type = cycle_type, &
+                              omega = omega, &
+                              bottom_solver = bottom_solver, &
+                              bottom_max_iter = bottom_max_iter, &
+                              bottom_solver_eps = bottom_solver_eps, &
+                              max_iter = max_iter, &
+                              max_nlevel = max_nlevel, &
+                              max_bottom_nlevel = max_bottom_nlevel, &
+                              min_width = min_width, &
+                              eps = rel_solver_eps, &
+                              abs_eps = abs_solver_eps, &
+                              verbose = verbose, &
+                              cg_verbose = cg_verbose, &
+                              nodal = nodal_flags(rhs(nlevs)), &
+                              is_singular = .false.)
+
+       end do
+
+       ! Fill coefficient array
+       do n = nlevs,1,-1
+
+          allocate(cell_coeffs(mgt(n)%nlevels))
+          allocate(edge_coeffs(mgt(n)%nlevels,dm))
+
+          la = mla%la(n)
+
+          call multifab_build(cell_coeffs(mgt(n)%nlevels), la, 1, 1)
+          call multifab_copy_c(cell_coeffs(mgt(n)%nlevels),1,alpha(n),1, 1,ng=alpha(n)%ng)
+
+          do i=1,dm
+             call multifab_build_edge(edge_coeffs(mgt(n)%nlevels,i),la,1,1,i)
+             call multifab_copy_c(edge_coeffs(mgt(n)%nlevels,i),1,beta(n,i),1,1,ng=beta(n,i)%ng)
+          end do
+
+          if (n > 1) then
+             xa = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
+             xb = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
+          else
+             xa = ZERO
+             xb = ZERO
+          end if
+
+          pxa = ZERO
+          pxb = ZERO
+
+          call stencil_fill_cc_all_mglevels(mgt(n), cell_coeffs, edge_coeffs, xa, xb, &
+                                            pxa, pxb, stencil_order, &
+                                            the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1))
+
+          call destroy(cell_coeffs(mgt(n)%nlevels))
+          deallocate(cell_coeffs)
+
+          do i=1,dm
+             call destroy(edge_coeffs(mgt(n)%nlevels,i))
+          end do
+          deallocate(edge_coeffs)
+
+       end do
+
+       call ml_cc_solve(mla, mgt, rhs, phi, fine_flx, mla%mba%rr, &
+                        do_diagnostics, rel_solver_eps)
+
+       ! deallocate memory
        do n=1,nlevs
           call multifab_destroy(alpha(n))
           call multifab_destroy(  rhs(n))
@@ -79,7 +214,13 @@ contains
              call multifab_destroy(beta(n,i))
           end do
        end do
+       do n = 2,nlevs
+          call bndry_reg_destroy(fine_flx(n))
+       end do
 
+       do n = 1, nlevs
+          call mg_tower_destroy(mgt(n))
+       end do
 
     else
        
