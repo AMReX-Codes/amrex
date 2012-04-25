@@ -2,6 +2,8 @@
     FC  := ftn -target=linux
     F90 := ftn -target=linux
 
+    FCOMP_VERSION := $(shell ftn -V 2>&1 | grep 'Version')
+
     FFLAGS   += -J $(mdir) -I $(mdir) -em
     F90FLAGS += -J $(mdir) -I $(mdir) -em
 
