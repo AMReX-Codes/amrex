@@ -207,14 +207,6 @@ Box::grow (const Orientation& face,
     return *this;
 }
 
-const Box
-Box::operator& (const Box& rhs) const
-{
-    Box lhs = *this;
-    lhs &= rhs;
-    return lhs;
-}
-
 bool
 Box::numPtsOK (long& N) const
 {
@@ -333,23 +325,6 @@ Box::shiftHalf (const IntVect& nz)
     for (int i = 0; i < BL_SPACEDIM; i++)
         shiftHalf(i,nz[i]);
    return *this;
-}
-
-Box&
-Box::operator&= (const Box& b)
-{
-    BL_ASSERT(sameType(b));
-    smallend.max(b.smallend);
-    bigend.min(b.bigend);
-    return *this;
-}
-
-bool
-Box::intersects (const Box& b) const
-{
-    Box isect = *this;
-    isect &= b;
-    return isect.ok();
 }
 
 void
