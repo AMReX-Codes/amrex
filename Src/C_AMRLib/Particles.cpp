@@ -101,11 +101,13 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
 #endif
 }
 
-
 bool
 ParticleBase::CrseToFine (const BoxArray& cfba,
                           const IntVect*  cells,
-                          bool*           which)
+                          IntVect*        cfshifts,
+                          const Geometry& gm,
+                          bool*           which,
+                          Array<IntVect>& pshifts)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
@@ -124,8 +126,40 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
     {
         if (cfba.contains(cells[i]))
         {
-            result   = true;
-            which[i] = true;
+            result      = true;
+            which[i]    = true;
+            cfshifts[i] = IntVect::TheZeroVector();
+        }
+        else if (!gm.Domain().contains(cells[i]))
+        {
+            BL_ASSERT(gm.isAnyPeriodic());
+            //
+            // Can the cell be shifted into cfba?
+            //
+            const Box bx(cells[i],cells[i]);
+
+            gm.periodicShift(bx, gm.Domain(), pshifts);
+
+            if (!pshifts.empty())
+            {
+                BL_ASSERT(pshifts.size() == 1);
+
+                const Box dbx = bx - pshifts[0];
+
+                BL_ASSERT(dbx.ok());
+
+                if (cfba.contains(dbx))
+                {
+                    //
+                    // Note that pshifts[0] is from the coarse perspective.
+                    // We'll later need to multiply it by ref ratio to use
+                    // at the fine level.
+                    //
+                    result      = true;
+                    which[i]    = true;
+                    cfshifts[i] = pshifts[0];
+                }
+            }
         }
     }
 
@@ -133,14 +167,18 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
 }
 
 bool
-ParticleBase::FineToCrse (const ParticleBase& p,
-                          int                 flev,
-                          const Amr*          amr,
-                          bool                have_periodic_issue,
-                          const IntVect*      fcells,
-                          const BoxArray&     leftovers,
-                          bool*               which,
-                          int*                cgrid)
+ParticleBase::FineToCrse (const ParticleBase&                p,
+                          int                                flev,
+                          const Amr*                         amr,
+                          const IntVect*                     fcells,
+                          const BoxArray&                    fvalid,
+                          const BoxArray&                    compfvalid_grown,
+                          IntVect*                           ccells,
+                          Real*                              cfracs,
+                          bool*                              which,
+                          int*                               cgrid,
+                          Array<IntVect>&                    pshifts,
+                          std::vector< std::pair<int,Box> >& isects)
 {
     BL_ASSERT(amr != 0);
     BL_ASSERT(flev > 0);
@@ -158,10 +196,7 @@ ParticleBase::FineToCrse (const ParticleBase& p,
         which[i] = false;
     }
 
-    const BoxArray& fba = amr->boxArray(flev);
-    const BoxArray& cba = amr->boxArray(flev-1);
-
-    const Box ibx = BoxLib::grow(fba[p.m_grid],-1);
+    const Box ibx = BoxLib::grow(amr->boxArray(flev)[p.m_grid],-1);
 
     BL_ASSERT(ibx.ok());
 
@@ -171,62 +206,55 @@ ParticleBase::FineToCrse (const ParticleBase& p,
         // We can't cross a fine->crse boundary.
         //
         return false;
+
+    if (!compfvalid_grown.contains(p.m_cell))
+        //
+        // We're strictly contained in our "valid" region. Note that the valid
+        // region contains any periodically shifted ghost cells that intersect
+        // valid region.
+        //
+        return false;
     //
     // Otherwise ...
     //
-    Real    cfracs[M];
-    IntVect ccells[M];
+    const Geometry& cgm = amr->Geom(flev-1);
+    const IntVect   rr  = amr->refRatio(flev-1);
+    const BoxArray& cba = amr->boxArray(flev-1);
 
-    const Real* plo  = amr->Geom(flev  ).ProbLo();
-    const Box&  fdmn = amr->Geom(flev  ).Domain();
-    const Real* cdx  = amr->Geom(flev-1).CellSize();
-
-    ParticleBase::AssignDensityCoeffs(p, plo, cdx, cfracs, ccells);
+    ParticleBase::AssignDensityCoeffs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
 
     bool result = false;
 
-    std::vector< std::pair<int,Box> > isects;
-
     for (int i = 0; i < M; i++)
     {
-        bool update_crse_cell = false;
-
-        if (!fdmn.contains(fcells[i]))
-        {
-            BL_ASSERT(amr->Geom(flev).isAllPeriodic());
-            //
-            // We assume we're periodic.  Otherwise we can't have cells
-            // this close to the boundary.  We may or may not be able to
-            // directly update our fine cell and have SumPeriodicBoundary()
-            // fix it up at the end.
-            //
-            if (have_periodic_issue && leftovers.contains(fcells[i]))
-            {
-                //
-                // This cell won't be properly updated by SumPeriodicBoundary().
-                // We have to update the requisite coarse cell instead.
-                //
-                update_crse_cell = true;
-            }
-            else
-            {
-                //
-                // All's well with this fine cell.
-                //
-                continue;
-            }
-        }
-
-        const IntVect iv = ccells[i] * amr->refRatio(flev-1);
-
-        if (update_crse_cell || !fba.contains(iv))
+        if (!fvalid.contains(ccells[i]*rr))
         {
             result   = true;
             which[i] = true;
+
+            Box cbx(ccells[i],ccells[i]);
+
+            if (!cgm.Domain().contains(ccells[i]))
+            {
+                //
+                // We must be at a periodic boundary.
+                // Find valid box into which we can be periodically shifted.
+                //
+                BL_ASSERT(cgm.isAnyPeriodic());
+
+                cgm.periodicShift(cbx, cgm.Domain(), pshifts);
+
+                BL_ASSERT(pshifts.size() == 1);
+
+                cbx -= pshifts[0];
+
+                BL_ASSERT(cbx.ok());
+                BL_ASSERT(cgm.Domain().contains(cbx));
+            }
             //
             // Which grid at the crse level do we need to update?
             //
-            isects = cba.intersections(Box(ccells[i],ccells[i]));
+            isects = cba.intersections(cbx);
 
             BL_ASSERT(!isects.empty());
             BL_ASSERT(isects.size() == 1);
@@ -238,120 +266,36 @@ ParticleBase::FineToCrse (const ParticleBase& p,
     return result;
 }
 
-//
-// This is a very special case.  Do we have any level one grids, abutting a periodic
-// boundary, whose periodically shifted ghost cells do NOT intersect other level
-// one grids?  That is to say, do we have any level one ghost cells on a periodic
-// boundary, that when shifted back into the valid region, do not overlap grids at
-// level one?  If true we have a more specialized type of Fine->Crse boundary issue
-// to deal with. "pba" will be the BoxArray of ghost cells, outside the domain, that
-// can't be periodically shifted into a valid level one region.
-//
-
-bool
-ParticleBase::FineToCrsePeriodic (const Amr*              amr,
-                                  const PArray<MultiFab>& mmf,
-                                  BoxArray&               pba)
-{
-    BL_ASSERT(amr != 0);
-
-    if (mmf.size() < 2 || mmf[1].nGrow() < 1) return false;
-
-    const MultiFab& mf = mmf[1];
-    const Geometry& gm = amr->Geom(1);
-
-    Array<IntVect> pshifts(27);
-
-    BoxList leftovers;
-
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        const Box& dest = mf[mfi].box();
-
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            BL_ASSERT(dest.ixType()[n] == IndexType::CELL);
-
-        BL_ASSERT(dest == BoxLib::grow(mfi.validbox(), mf.nGrow()));
-
-        if (!gm.Domain().contains(dest))
-        {
-            const BoxArray& grids = mf.boxArray();
-            //
-            // This'll contain the pieces of "dest" that can be successfully
-            // periodically shifted into valid region at this level.
-            //
-            BoxList pieces;
-
-            for (int j = 0, N = grids.size(); j < N; j++)
-            {
-                Box src = grids[j] & gm.Domain();
-
-                gm.periodicShift(dest, src, pshifts);
-
-                for (int i = 0, M = pshifts.size(); i < M; i++)
-                {
-                    const Box shftbox = src + pshifts[i];
-                    const Box dbx     = dest & shftbox;
-                    //
-                    // These are the pieces of "dest" that can be
-                    // shifted into valid region at our level.
-                    //
-                    pieces.push_back(dbx);
-                }
-            }
-            //
-            // What's in "dest" but not in the domain?
-            //
-            BoxList ovlp = BoxLib::boxDiff(dest,gm.Domain());
-
-            for (BoxList::const_iterator bli = ovlp.begin(), End = ovlp.end(); bli != End; ++bli)
-            {
-                //
-                // Parts of "dest" that can't be successfully covered when shifted.
-                //
-                BoxList remainder = BoxLib::complementIn(*bli, pieces);
-
-                if (!remainder.isEmpty())
-                {
-                    leftovers.catenate(remainder);
-                }
-            }
-        }
-    }
-
-    pba.define(leftovers);
-
-    pba.removeOverlap();
-
-    return pba.size() > 0;
-}
-
 void
-ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
-                                         int                 lev,
-                                         const Amr*          amr,
-                                         const IntVect&      ccell,
-                                         Array<int>&         fgrid,
-                                         Array<Real>&        ffrac,
-                                         Array<IntVect>&     fcells)
+ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
+                                         int                                lev,
+                                         const Amr*                         amr,
+                                         const IntVect&                     ccell,
+                                         const IntVect&                     cshift,
+                                         Array<int>&                        fgrid,
+                                         Array<Real>&                       ffrac,
+                                         Array<IntVect>&                    fcells,
+                                         std::vector< std::pair<int,Box> >& isects)
 {
     BL_ASSERT(lev >= 0);
     BL_ASSERT(lev < amr->finestLevel());
 
-    const Box fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
-
+    const Box       fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
     const BoxArray& fba = amr->boxArray(lev+1);
     const Real*     plo = amr->Geom(lev).ProbLo();
     const Real*     dx  = amr->Geom(lev).CellSize();
     const Real*     fdx = amr->Geom(lev+1).CellSize();
 
-    BL_ASSERT(fba.contains(fbx));
-
+    if (cshift == IntVect::TheZeroVector())
+    {
+        BL_ASSERT(fba.contains(fbx));
+    }
     fgrid.clear();
     ffrac.clear();
     fcells.clear();
     //
-    // Which fine cells does particle "p" that wants to update "ccell" do we touch at the finer level?
+    // Which fine cells does particle "p" that wants to update "ccell" do we
+    // touch at the finer level?
     //
     for (IntVect iv = fbx.smallEnd(); iv <= fbx.bigEnd(); fbx.next(iv))
     {
@@ -370,25 +314,18 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
         }
 
         if (touches)
+        {
             fcells.push_back(iv);
+        }
     }
-
-    std::vector< std::pair<int,Box> > isects;
 
     Real sum_fine = 0;
     //
-    // We need to figure out the fine fractions.
+    // We need to figure out the fine fractions and the fine grid needed updating.
     //
     for (int j = 0; j < fcells.size(); j++)
     {
-        const IntVect& iv = fcells[j];
-
-        isects = fba.intersections(Box(iv,iv));
-
-        BL_ASSERT(!isects.empty());
-        BL_ASSERT(isects.size() == 1);
-
-        fgrid.push_back(isects[0].first);
+        IntVect& iv = fcells[j];
 
         Real the_frac = 1;
 
@@ -414,6 +351,26 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
         ffrac.push_back(the_frac);
 
         sum_fine += the_frac;
+
+        if (cshift != IntVect::TheZeroVector())
+        {
+            //
+            // Update to the correct fine cell needing updating.
+            // Note that "cshift" is from the coarse perspective.
+            //
+            const IntVect fshift = cshift * amr->refRatio(lev);
+            //
+            // Update fcells[j] to indicate a shifted fine cell needing updating.
+            //
+            iv -= fshift;
+        }
+
+        isects = fba.intersections(Box(iv,iv));
+
+        BL_ASSERT(!isects.empty());
+        BL_ASSERT(isects.size() == 1);
+
+        fgrid.push_back(isects[0].first);
     }
 
     BL_ASSERT(ffrac.size() == fcells.size());
@@ -422,11 +379,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase& p,
     // Now adjust the fine fractions so they sum to one.
     //
     for (int j = 0; j < ffrac.size(); j++)
-    {
         ffrac[j] /= sum_fine;
-        if (ffrac[j] > 1)
-            ffrac[j] = 1;
-    }
 }
 
 //

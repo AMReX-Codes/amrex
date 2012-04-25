@@ -352,12 +352,14 @@ ifeq ($(MACHINE), Linux)
       endif
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
-    else ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
-      mpihome=/usr/lib64/openmpi
-      CPPFLAGS += -DOMPI_SKIP_MPICXX
-      BL_MPI_LIBS += -lmpi_f77 -lmpi      
-      LIBRARY_LOCATIONS += $(mpihome)/lib
-      INCLUDE_LOCATIONS += /usr/include/openmpi-x86_64
+    else
+      ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
+        mpihome=/usr/lib64/openmpi
+        CPPFLAGS += -DOMPI_SKIP_MPICXX
+        BL_MPI_LIBS += -lmpi_f77 -lmpi      
+        LIBRARY_LOCATIONS += $(mpihome)/lib
+        INCLUDE_LOCATIONS += /usr/include/openmpi-x86_64
+      endif
     endif
 
 # JFG 2006/05/04: CAR added the following ifeq block for the 64 bit
@@ -551,20 +553,19 @@ ifeq ($(MACHINE), Darwin)
 
        endif
 
-  # sane defaults for general mac; assumes MPIHOME env var defined
-  else ifdef MPIHOME
-    CXX := $(MPIHOME)/bin/mpic++
-    CC  := $(MPIHOME)/bin/mpicc
-    FC  := $(MPIHOME)/bin/mpif90
-    fC  := $(MPIHOME)/bin/mpif90
-    F90 := $(MPIHOME)/bin/mpif90
+  elifdef MPIHOME
+    #
+    # sane defaults for general mac; assumes MPIHOME env var defined
+    #
+      CXX := $(MPIHOME)/bin/mpic++
+      CC  := $(MPIHOME)/bin/mpicc
+      FC  := $(MPIHOME)/bin/mpif90
+      fC  := $(MPIHOME)/bin/mpif90
+      F90 := $(MPIHOME)/bin/mpif90
 
-    MPI_HOME=$(MPIHOME)
-
-  # otherwise bail
+      MPI_HOME=$(MPIHOME)
   else
     $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)
-
   endif
 
   LIBRARY_LOCATIONS += $(MPI_HOME)/lib
