@@ -283,6 +283,9 @@ module multifab_module
   interface sum_boundary
      module procedure multifab_sum_boundary
      module procedure multifab_sum_boundary_c
+
+     module procedure lmultifab_sum_boundary
+     module procedure lmultifab_sum_boundary_c
   end interface
 
   interface internal_sync
@@ -2372,6 +2375,94 @@ contains
     integer,        intent(in), optional  :: ng
     call multifab_sum_boundary_c(mf, 1, mf%nc, ng)
   end subroutine multifab_sum_boundary
+  !
+  ! This does a logical "or" of ghost cells that overlay valid cells with those valid cells.
+  !
+  subroutine lmultifab_sum_boundary_c(mf, c, nc, ng)
+    type(lmultifab), intent(inout)        :: mf
+    integer,        intent(in)            :: c, nc
+    integer,        intent(in), optional  :: ng
+
+    logical, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
+    type(boxarray)     :: bxai, batmp
+    type(box)          :: dbx
+    integer            :: i, j, ii, jj, proc, dm, lng
+    integer            :: shft(2*3**mf%dim,mf%dim),dims(MAX_SPACEDIM)
+    integer, parameter :: tag = 1713
+    type(layout)       :: latmp
+    logical            :: anynodal
+
+    type(box_intersector), pointer :: bi(:)
+    logical, allocatable           :: pt(:,:,:,:)
+
+    lng = mf%ng; if ( present(ng) ) lng = ng
+
+    if ( lng > mf%ng      ) call bl_error('LMULTIFAB_SUM_BOUNDARY_C: ng too large', lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('LMULTIFAB_SUM_BOUNDARY_C: nc too large', nc)
+    if ( lng < 1          ) return
+
+    dm       = get_dim(mf)
+    dims     = 1
+    anynodal = any( mf%nodal .eqv. .true. )
+
+    if ( anynodal ) then
+       !
+       ! Build a temporary layout to be used in intersection tests below.
+       !
+       call copy(batmp, get_boxarray(get_layout(mf)))
+       call boxarray_nodalize(batmp, nodal_flags(mf))
+       call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+       call boxarray_destroy(batmp)
+    endif
+
+    do i = 1, mf%nboxes
+       call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft, .false.)
+       do ii = 1, nboxes(bxai)
+          if ( anynodal ) then
+             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
+          else
+             bi => layout_get_box_intersector(mf%la, get_box(bxai,ii))
+          end if
+          do jj = 1, size(bi)
+             j = bi(jj)%i
+             if ( remote(mf,i) .and. remote(mf,j) ) cycle
+             dbx = bi(jj)%bx
+             if ( local(mf,i) .and. local(mf,j) ) then
+                pdst => dataptr(mf, j, dbx, c, nc)
+                psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
+                !
+                ! Use logical "or" instead of "+".
+                !
+                pdst = pdst .or. psrc
+             else if ( local(mf,j) ) then ! must recv
+                dims(1:dm) = extent(dbx)
+                allocate(pt(dims(1),dims(2),dims(3),nc))
+                pdst => dataptr(mf, j, dbx, c, nc)
+                proc = get_proc(mf%la, i)
+                call parallel_recv(pt, proc, tag)
+                !
+                ! Use logical "or" instead of "+".
+                !
+                pdst = pdst .or. pt
+                deallocate(pt)
+             else if ( local(mf,i) ) then  ! must send
+                psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
+                proc = get_proc(mf%la,j)
+                call parallel_send(psrc, proc, tag)
+             end if
+          end do
+          deallocate(bi)
+       end do
+       call destroy(bxai)
+    end do
+    if (anynodal) call destroy(latmp)
+  end subroutine lmultifab_sum_boundary_c
+
+  subroutine lmultifab_sum_boundary(mf, ng)
+    type(lmultifab), intent(inout)        :: mf
+    integer,        intent(in), optional  :: ng
+    call lmultifab_sum_boundary_c(mf, 1, mf%nc, ng)
+  end subroutine lmultifab_sum_boundary
 
   subroutine mf_internal_sync_fancy(mf, c, nc, lall, filter)
     type(multifab), intent(inout)               :: mf
