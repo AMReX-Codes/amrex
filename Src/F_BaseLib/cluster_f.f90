@@ -156,19 +156,17 @@ contains
           call buffer_3d(mb(:,:,:,1), mt(:,:,:,:), buf_wid)
        end select
     end do
-    !
-    ! Set any valid region that can be covered by a tagged periodically-shifted ghost cell.
-    !
-    call map_periodic(buf)
-    !
+
+    ! modify the valid region using logical or with ghost cells that
+    ! share the same physical space
+    call lmultifab_sum_boundary(buf)
+
+    ! make ghost cells consistent with valid region
+    call lmultifab_fill_boundary(buf)
+
     ! Remove any tags outside the problem domain.
-    !
     buf_pd = get_pd(la_buf)
     call pd_mask(buf,buf_pd)
-
-    call internal_sync(buf, all = .true., filter = filter_lor)
-
-    call lmultifab_fill_boundary(buf)
 
     ratio = max(blocking_factor / ref_ratio, 1)
 
@@ -183,83 +181,27 @@ contains
     cla = get_layout(cbuf)
 
     bx = coarsen(get_pd(la_buf),ratio)
+    !
+    ! The cluster algorithm is inherently serial.
+    ! We'll set up the problem to do on the IO processor.
+    !
+    allocate(iprocs(nboxes(cla)))
 
-    if ( parallel_nprocs() > 1 ) then
-       !
-       ! The cluster algorithm is inherently serial.
-       ! We'll set up the problem to do on the IO processor.
-       !
-       allocate(iprocs(nboxes(cla)))
+    iprocs = parallel_IOProcessorNode()
 
-       iprocs = parallel_IOProcessorNode()
+    call build(la, get_boxarray(cla), bx, get_pmask(cla), explicit_mapping = iprocs)
 
-       call build(la, get_boxarray(cla), bx, get_pmask(cla), explicit_mapping = iprocs)
+    call build(lbuf, la, nc = 1)
 
-       call build(lbuf, la, nc = 1)
+    call copy(lbuf, cbuf)  ! This is a parallel copy.
 
-       call copy(lbuf, cbuf)  ! This is a parallel copy.
+    call destroy(cbuf)
+    call destroy(cla)
 
-       call destroy(cbuf)
-       call destroy(cla)
-
-       if ( parallel_IOProcessor() ) then
-          call owner_mask(lbuf)
-          call cluster_mf_private_recursive(lboxes, bx, bx_eff, lbuf)
-          bxcnt = size(lboxes)
-
-          if (ratio > 1) then
-             bln => begin(lboxes)
-             do while ( associated(bln) )
-                bln = refine(value(bln),ratio)
-                bln => next(bln)
-             end do
-          end if
-       end if
-
-       call destroy(lbuf)
-       call destroy(la)
-       !
-       ! We now must broadcast the info in "lboxes" back to all CPUs.
-       !
-       ! First broadcast the number of boxes to expect.
-       !
-       call parallel_bcast(bxcnt, parallel_IOProcessorNode())
-       !
-       ! We'll pass 2*MAX_SPACEDIM integers for each box we need to send.
-       !
-       allocate(bxs(2*MAX_SPACEDIM*bxcnt))
-
-       if ( parallel_IOProcessor() ) then
-          i   =  1
-          bln => begin(lboxes)
-          do while (associated(bln))
-             bx = value(bln)
-             bxs(i:i+MAX_SPACEDIM-1) = bx%lo
-             i = i + MAX_SPACEDIM
-             bxs(i:i+MAX_SPACEDIM-1) = bx%hi
-             i = i + MAX_SPACEDIM
-             bln => next(bln)
-          end do
-       end if
-
-       call parallel_bcast(bxs, parallel_IOProcessorNode())
-
-       if ( .not. parallel_IOProcessor() ) then
-          i = 1
-          do k = 1, bxcnt
-             lo = bxs(i:i+MAX_SPACEDIM-1)
-             i  = i + MAX_SPACEDIM
-             hi = bxs(i:i+MAX_SPACEDIM-1)
-             i  = i + MAX_SPACEDIM
-             call push_back(lboxes, make_box(lo(1:dm), hi(1:dm)))
-          end do
-       end if
-
-    else
-
-       call owner_mask(cbuf)
-
-       call cluster_mf_private_recursive(lboxes, bx, bx_eff, cbuf)
+    if ( parallel_IOProcessor() ) then
+       call owner_mask(lbuf)
+       call cluster_mf_private_recursive(lboxes, bx, bx_eff, lbuf)
+       bxcnt = size(lboxes)
 
        if (ratio > 1) then
           bln => begin(lboxes)
@@ -268,9 +210,45 @@ contains
              bln => next(bln)
           end do
        end if
+    end if
 
-       call destroy(cbuf)
-       call destroy(cla)
+    call destroy(lbuf)
+    call destroy(la)
+    !
+    ! We now must broadcast the info in "lboxes" back to all CPUs.
+    !
+    ! First broadcast the number of boxes to expect.
+    !
+    call parallel_bcast(bxcnt, parallel_IOProcessorNode())
+    !
+    ! We'll pass 2*MAX_SPACEDIM integers for each box we need to send.
+    !
+    allocate(bxs(2*MAX_SPACEDIM*bxcnt))
+
+    if ( parallel_IOProcessor() ) then
+       i   =  1
+       bln => begin(lboxes)
+       do while (associated(bln))
+          bx = value(bln)
+          bxs(i:i+MAX_SPACEDIM-1) = bx%lo
+          i = i + MAX_SPACEDIM
+          bxs(i:i+MAX_SPACEDIM-1) = bx%hi
+          i = i + MAX_SPACEDIM
+          bln => next(bln)
+       end do
+    end if
+
+    call parallel_bcast(bxs, parallel_IOProcessorNode())
+
+    if ( .not. parallel_IOProcessor() ) then
+       i = 1
+       do k = 1, bxcnt
+          lo = bxs(i:i+MAX_SPACEDIM-1)
+          i  = i + MAX_SPACEDIM
+          hi = bxs(i:i+MAX_SPACEDIM-1)
+          i  = i + MAX_SPACEDIM
+          call push_back(lboxes, make_box(lo(1:dm), hi(1:dm)))
+       end do
     end if
 
     call build(boxes, lboxes)
@@ -586,7 +564,8 @@ contains
         logical, pointer :: tp(:,:,:,:)
         integer :: n
         type(box) :: bx1
-        r = 0
+        if (parallel_IOProcessor()) call print(bx,"*** bx ***")
+        r = 0.0_dp_t
         do n = 1, nboxes(tagboxes)
            bx1 = intersection(get_pbox(tagboxes, n), bx)
            if ( empty(bx1) ) cycle
@@ -725,9 +704,11 @@ contains
 
     integer          :: ii, i, j, k, ic, jc, kc, dm
     integer          :: flo(get_dim(tagboxes)), fhi(get_dim(tagboxes))
-    type(layout)     :: cla
+    type(layout)     :: cla, cla_grow
     type(boxarray)   :: cba
     logical, pointer :: fp(:,:,:,:), cp(:,:,:,:)
+    type(lmultifab)  :: ctagboxes_grow
+    type(box)        :: pbf, pbc
 
     call bl_assert(ncomp(tagboxes) == 1, 'tagboxes should only have one component')
     !
@@ -787,6 +768,51 @@ contains
           end do
        end select
     end do
+
+    call boxarray_build_copy(cba, get_boxarray(tagboxes))
+
+    call boxarray_coarsen(cba, ratio)
+
+    call build(cla_grow, cba, boxarray_bbox(cba), explicit_mapping = get_proc(get_layout(tagboxes)))
+
+    call destroy(cba)
+
+    call build(ctagboxes_grow, cla_grow, 1, nghost(tagboxes)/ratio + 1)
+
+    call setval(ctagboxes_grow, .false., all = .true.)
+
+    do ii = 1, nboxes(ctagboxes_grow)
+       if ( remote(ctagboxes_grow, ii) ) cycle
+
+       pbf = get_pbox(ctagboxes, ii)
+       pbc = get_pbox(ctagboxes_grow, ii)
+
+       call bl_assert(box_contains(pbc,pbf), 'pbc does not contain pbf')
+
+       fp  => dataptr(ctagboxes_grow,  ii, pbf)
+       cp  => dataptr(ctagboxes,       ii, pbf)
+
+       fp = cp
+    end do
+
+    call lmultifab_sum_boundary(ctagboxes_grow)
+
+    call lmultifab_fill_boundary(ctagboxes_grow)
+
+    do ii = 1, nboxes(ctagboxes_grow)
+       if ( remote(ctagboxes_grow, ii) ) cycle
+
+       pbf = get_pbox(ctagboxes, ii)
+       pbc = get_pbox(ctagboxes_grow, ii)
+
+       fp  => dataptr(ctagboxes_grow,  ii, pbf)
+       cp  => dataptr(ctagboxes,       ii, pbf)
+
+       cp = fp
+    end do
+
+    call destroy(ctagboxes_grow)
+    call destroy(cla_grow)
 
   end subroutine tagboxes_coarsen
 
