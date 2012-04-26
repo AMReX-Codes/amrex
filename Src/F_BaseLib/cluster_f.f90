@@ -564,7 +564,6 @@ contains
         logical, pointer :: tp(:,:,:,:)
         integer :: n
         type(box) :: bx1
-        if (parallel_IOProcessor()) call print(bx,"*** bx ***")
         r = 0.0_dp_t
         do n = 1, nboxes(tagboxes)
            bx1 = intersection(get_pbox(tagboxes, n), bx)
