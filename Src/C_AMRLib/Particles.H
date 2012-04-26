@@ -49,7 +49,9 @@ struct ParticleBase
 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
 
-    static Real InterpDoit (const FArrayBox& fab, const IntVect& hiidx, const Real* frac, int comp);
+    static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
+
+    static Real InterpDoit (const FArrayBox& fab, const IntVect& hi, const Real* frac, int comp);
 
     static void Interp (const ParticleBase& prt, const Amr* amr, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
@@ -82,7 +84,11 @@ struct ParticleBase
 
     static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, const IntVect& cshift, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells, std::vector< std::pair<int,Box> >& isects);
 
-    static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
+    static void CIC_Fracs (const Real* frac, Real* fracs);
+
+    static void CIC_Cells (const IntVect& hicell, IntVect* cells);
+
+    static void CIC_Cells_Fracs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
 
     static void AssignDensityDoit (PArray<MultiFab>& mf, std::deque<ParticleBase>& data);
     //
@@ -100,7 +106,6 @@ struct ParticleBase
 };
 
 std::ostream& operator<< (std::ostream& os, const ParticleBase& p);
-
 
 template <int N>
 struct Particle
@@ -1513,7 +1518,7 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
             if (p.m_id <= 0) continue;
 
-            ParticleBase::AssignDensityCoeffs(p, plo, dx, fracs, cells);
+            ParticleBase::CIC_Cells_Fracs(p, plo, dx, fracs, cells);
             //
             // If this is not fully periodic then we have to be careful that no
             // particles go within one cell of the domain boundary.
@@ -1739,7 +1744,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                 //
                 // Get "fracs" and "cells" for the particle "p" at this level.
                 //
-                ParticleBase::AssignDensityCoeffs(p, plo, dx, fracs, cells);
+                ParticleBase::CIC_Cells_Fracs(p, plo, dx, fracs, cells);
                 //
                 // If this is not fully periodic then we have to be careful that no
                 // particles go within one cell of the domain boundary.
@@ -2630,15 +2635,15 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                                                        (p.m_pos[1]-plo[1])/dx[1] + 0.5,
                                                        (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
 
-                const IntVect hi(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+                const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-                const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-hi[0], len[1]-hi[1], len[2]-hi[2]) };
+                const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    IntVect ehi = hi;
+                    IntVect ecell = cell;
 
-                    ehi[d] = p.m_cell[d] + 1;
+                    ecell[d] = p.m_cell[d] + 1;
 
                     Real efrac[BL_SPACEDIM] = { D_DECL(frac[0], frac[1], frac[2]) };
 
@@ -2650,7 +2655,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         if (efrac[j] < 0) efrac[j] = 0;
                     }
 
-                    const Real vel = ParticleBase::InterpDoit(*fab[d], ehi, efrac, 0);
+                    const Real vel = ParticleBase::InterpDoit(*fab[d], ecell, efrac, 0);
 
                     if (ipass == 0)
                     {
@@ -3095,8 +3100,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             nparticles.pop_front();
         }
     }
-
-    Sort();
 
     BL_ASSERT(OK());
 
