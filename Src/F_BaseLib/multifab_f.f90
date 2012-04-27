@@ -400,6 +400,11 @@ module multifab_module
   public  :: cpy_d, cpy_i, cpy_l, cpy_z
   public  :: reshape_d_4_1, reshape_d_1_4, reshape_i_4_1, reshape_i_1_4
 
+  private :: sum_d, logical_or, mf_internal_sync_fancy
+
+  private :: mf_fb_fancy_double, mf_fb_fancy_integer, mf_fb_fancy_logical, mf_fb_fancy_z
+  private :: mf_copy_fancy_double, mf_copy_fancy_integer, mf_copy_fancy_logical, mf_copy_fancy_z
+
 contains
 
   pure function multifab_nodal_flags(mf) result(r)
@@ -1561,6 +1566,44 @@ contains
     end do
   end subroutine zmultifab_setval_c
 
+  subroutine logical_or(out, in)
+     use bl_types
+     logical, intent(inout) :: out(:,:,:,:)
+     logical, intent(in   ) ::  in(:,:,:,:)
+     integer                :: i, j, k, n
+     !
+     ! out = out + in 
+     !
+     do n = 1, size(out,4)
+        do k = 1, size(out,3)
+           do j = 1, size(out,2)
+              do i = 1, size(out,1)
+                 out(i,j,k,n) = out(i,j,k,n) .or. in(i,j,k,n)
+              end do
+           end do
+        end do
+     end do
+   end subroutine logical_or
+
+  subroutine sum_d(out, in)
+     use bl_types
+     real(dp_t), intent(inout) :: out(:,:,:,:)
+     real(dp_t), intent(in   ) ::  in(:,:,:,:)
+     integer                   :: i, j, k, n
+     !
+     ! out = out + in 
+     !
+     do n = 1, size(out,4)
+        do k = 1, size(out,3)
+           do j = 1, size(out,2)
+              do i = 1, size(out,1)
+                 out(i,j,k,n) = out(i,j,k,n) + in(i,j,k,n)
+              end do
+           end do
+        end do
+     end do
+   end subroutine sum_d
+
   subroutine cpy_d(out, in, filter)
      real(dp_t), intent(inout) :: out(:,:,:,:)
      real(dp_t), intent(in   ) ::  in(:,:,:,:)
@@ -2348,14 +2391,14 @@ contains
              if ( local(mf,i) .and. local(mf,j) ) then
                 pdst => dataptr(mf, j, dbx, c, nc)
                 psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
-                pdst = pdst + psrc
+                call cpy_d(pdst,psrc,sum_d)
              else if ( local(mf,j) ) then ! must recv
                 dims(1:dm) = extent(dbx)
                 allocate(pt(dims(1),dims(2),dims(3),nc))
                 pdst => dataptr(mf, j, dbx, c, nc)
                 proc = get_proc(mf%la, i)
                 call parallel_recv(pt, proc, tag)
-                pdst = pdst + pt
+                call cpy_d(pdst,pt,sum_d)
                 deallocate(pt)
              else if ( local(mf,i) ) then  ! must send
                 psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
@@ -2433,7 +2476,7 @@ contains
                 !
                 ! Use logical "or" instead of "+".
                 !
-                pdst = pdst .or. psrc
+                call cpy_l(pdst,psrc,logical_or)
              else if ( local(mf,j) ) then ! must recv
                 dims(1:dm) = extent(dbx)
                 allocate(pt(dims(1),dims(2),dims(3),nc))
@@ -2443,7 +2486,7 @@ contains
                 !
                 ! Use logical "or" instead of "+".
                 !
-                pdst = pdst .or. pt
+                call cpy_l(pdst,pt,logical_or)
                 deallocate(pt)
              else if ( local(mf,i) ) then  ! must send
                 psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
@@ -2694,7 +2737,7 @@ contains
     if ( mf_out%nc < (c_out+lnc-1) ) call bl_error('MULTIFAB_COPY_ON_SHIFT: nc too large', lnc)
 
     call build(bpt, "mf_copy_on_shift")
-
+    
     do j = 1, mf_in%nboxes
        jbx = shift(get_ibox(mf_in,j), len, face)
        do i = 1, mf_out%nboxes
@@ -2702,8 +2745,8 @@ contains
           abx = intersection(get_ibox(mf_out,i), jbx)
           if ( empty(abx) ) cycle
           if ( local(mf_out, i) .and. local(mf_in, j) ) then
-             pdst => dataptr(mf_out, i, abx, c_out, lnc)
-             psrc => dataptr(mf_in, j, shift(abx,-len,face), c_in, lnc)
+             pdst => dataptr(mf_out, i, abx,                  c_out, lnc)
+             psrc => dataptr(mf_in,  j, shift(abx,-len,face), c_in,  lnc)
              call cpy_d(pdst, psrc)
           else if ( local(mf_in, j) ) then ! must send
              psrc => dataptr(mf_in, j, shift(abx,-len,face), c_in, lnc)
