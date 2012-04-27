@@ -49,7 +49,9 @@ struct ParticleBase
 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
 
-    static Real InterpDoit (const FArrayBox& fab, const IntVect& hiidx, const Real* frac, int comp);
+    static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
+
+    static Real InterpDoit (const FArrayBox& fab, const IntVect& hi, const Real* frac, int comp);
 
     static void Interp (const ParticleBase& prt, const Amr* amr, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
@@ -82,21 +84,28 @@ struct ParticleBase
 
     static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, const IntVect& cshift, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells, std::vector< std::pair<int,Box> >& isects);
 
-    static void AssignDensityCoeffs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
+    static void CIC_Fracs (const Real* frac, Real* fracs);
+
+    static void CIC_Cells (const IntVect& hicell, IntVect* cells);
+
+    static void CIC_Cells_Fracs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
 
     static void AssignDensityDoit (PArray<MultiFab>& mf, std::deque<ParticleBase>& data);
     //
-    // Used for partitioning particles into valid & invalid groups.
+    // Sorting particles into lexicographic order of their cell position.
     //
-    class Invalid
+    class Compare
     {
     public:
-        bool operator () (const ParticleBase& p) const { return p.m_id <= 0; }
+        bool operator () (const ParticleBase& lhs,
+                          const ParticleBase& rhs) const
+        {
+            return lhs.m_cell.lexLT(rhs.m_cell);
+        }
     };
 };
 
 std::ostream& operator<< (std::ostream& os, const ParticleBase& p);
-
 
 template <int N>
 struct Particle
@@ -532,7 +541,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     {
         if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
             std::cout << "Redistributing from processor " << nr*NRedist_chunk << " to " 
-                                                          << (nr+1)*NRedist_chunk-1 << std::endl;
+                                                          << (nr+1)*NRedist_chunk-1 << '\n';
         for (int which = nr*NRedist_chunk; which < (nr+1)*NRedist_chunk; which++)
         {
             if (which == MyProc)
@@ -562,7 +571,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     {
         if (NRedist*NRedist_chunk < NReaders)
             std::cout << "Redistributing from processor " << NRedist*NRedist_chunk << " to " 
-                                                          << NReaders << std::endl;
+                                                          << NReaders << '\n';
     }
     for (int which = NRedist*NRedist_chunk; which < NReaders; which++)
     {
@@ -599,7 +608,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         if (D_TERM(lNrep[0] == 1, && lNrep[1] == 1, && lNrep[2] == 1))
         {
             if (ParallelDescriptor::IOProcessor())
-                std::cout << "Total number of particles: " << num_particles << std::endl;
+                std::cout << "Total number of particles: " << num_particles << '\n';
         }
         else
         {
@@ -615,7 +624,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
                 }
                 std::cout << '\n';
                 std::cout << "Total number of particles read in          : " << num_particles_read << '\n';
-                std::cout << "Total number of particles after replication: " << num_particles      << std::endl;
+                std::cout << "Total number of particles after replication: " << num_particles      << '\n';
             }
         }
     }
@@ -630,7 +639,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor()) std::cout << "InitFromAsciiFile() time: " << runtime << std::endl;
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "InitFromAsciiFile() time: " << runtime << '\n';
     }
 }
 
@@ -772,12 +782,10 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 
     if ( !(n_part[0] == n_part[1] && n_part[1] == n_part[2]) )
     {
-	    std::cout << '\n';
-	    std::cout << '\n';
+	    std::cout << '\n' << '\n';
 	    std::cout << "Your particle lattice will have different spacings in the spatial directions!" << '\n';
 	    std::cout << "You might want to change the particle number or the algorithm... ;)" << '\n';
-	    std::cout << '\n';
-	    std::cout << std::endl;
+	    std::cout << '\n' << '\n';
     }
     //
     // Place the particles evenly spaced in the problem domain.
@@ -850,7 +858,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 
     if (ParallelDescriptor::IOProcessor() && m_verbose)
     {
-        std::cout << "Done with equidistant placement" << std::endl;
+        std::cout << "Done with equidistant placement" << '\n';
     }
     //
     // Let Redistribute() sort out where the particles belong.
@@ -859,7 +867,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 
     if (ParallelDescriptor::IOProcessor() && m_verbose)
     {
-        std::cout << "Redistribute done" << std::endl;
+        std::cout << "Redistribute done" << '\n';
     }
 
     BL_ASSERT(OK());
@@ -924,7 +932,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 
     if (ParallelDescriptor::IOProcessor() && m_verbose)
     {
-        std::cout << "Done with particle displacement" << std::endl;
+        std::cout << "Done with particle displacement" << '\n';
     }
 
     if (m_verbose > 1)
@@ -935,7 +943,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "InitCosmo() done time: " << runtime << std::endl;
+            std::cout << "InitCosmo() done time: " << runtime << '\n';
         }
     }
 }
@@ -1508,13 +1516,9 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
         {
             const ParticleType& p = *it;
 
-            if (p.m_id <= 0)
-                //
-                // Skip invalid particles.
-                //
-                continue;
+            if (p.m_id <= 0) continue;
 
-            ParticleBase::AssignDensityCoeffs(p, plo, dx, fracs, cells);
+            ParticleBase::CIC_Cells_Fracs(p, plo, dx, fracs, cells);
             //
             // If this is not fully periodic then we have to be careful that no
             // particles go within one cell of the domain boundary.
@@ -1590,7 +1594,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
     }
     //
     // I'll use ParticleBases to hold all the info I need for parallel.
+    //
     // What I'll use: m_lev, m_grid, m_cell & m_pos[0].
+    //
     // This is the "data" needed by other MPI procs.
     //
     std::deque<ParticleBase> data;
@@ -1682,7 +1688,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                                 {
                                     const Box sbx = grids[j] + pshifts[k];
                                     const Box dbx = dest & sbx;
+
                                     BL_ASSERT(dbx.ok());
+
                                     valid.push_back(dbx);
                                 }
                             }
@@ -1732,15 +1740,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
             {
                 const ParticleType& p = *it;
 
-                if (p.m_id <= 0)
-                    //
-                    // Skip invalid particles.
-                    //
-                    continue;
+                if (p.m_id <= 0) continue;
                 //
                 // Get "fracs" and "cells" for the particle "p" at this level.
                 //
-                ParticleBase::AssignDensityCoeffs(p, plo, dx, fracs, cells);
+                ParticleBase::CIC_Cells_Fracs(p, plo, dx, fracs, cells);
                 //
                 // If this is not fully periodic then we have to be careful that no
                 // particles go within one cell of the domain boundary.
@@ -2183,7 +2187,6 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             //
             // Now update x^new = x^old + dt grav^half / a^half
             //
-
             D_TERM(p.m_pos[0] += dt_a_half_inv * p.m_data[1];,
                    p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
@@ -2392,7 +2395,6 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
             //
             // Now update x^new = x^old + dt grav^half / a^half
             //
-
             D_TERM(p.m_pos[0] += dt_a_half_inv * p.m_data[1];,
                    p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
@@ -2633,15 +2635,15 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                                                        (p.m_pos[1]-plo[1])/dx[1] + 0.5,
                                                        (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
 
-                const IntVect hi(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+                const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-                const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-hi[0], len[1]-hi[1], len[2]-hi[2]) };
+                const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    IntVect ehi = hi;
+                    IntVect ecell = cell;
 
-                    ehi[d] = p.m_cell[d] + 1;
+                    ecell[d] = p.m_cell[d] + 1;
 
                     Real efrac[BL_SPACEDIM] = { D_DECL(frac[0], frac[1], frac[2]) };
 
@@ -2653,7 +2655,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         if (efrac[j] < 0) efrac[j] = 0;
                     }
 
-                    const Real vel = ParticleBase::InterpDoit(*fab[d], ehi, efrac, 0);
+                    const Real vel = ParticleBase::InterpDoit(*fab[d], ecell, efrac, 0);
 
                     if (ipass == 0)
                     {
@@ -2727,10 +2729,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     if (m_particles.size() < m_amr->finestLevel()+1)
     {
-       if (ParallelDescriptor::IOProcessor())
-           std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from " << 
-           m_particles.size() << " to " << m_amr->finestLevel()+1 << std::endl;
-       m_particles.resize(m_amr->finestLevel()+1);
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
+                      << m_particles.size()
+                      << " to "
+                      << m_amr->finestLevel()+1 << '\n';
+        m_particles.resize(m_amr->finestLevel()+1);
     }
     //
     // The valid particles that we don't own.
@@ -2833,7 +2837,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
                       << m_particles.size()
                       << " to "
-                      << m_amr->finestLevel()+1 << std::endl;
+                      << m_amr->finestLevel()+1 << '\n';
 
         BL_ASSERT(m_particles.size() >= 2);
 
@@ -2844,29 +2848,27 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
     const int NProcs = ParallelDescriptor::NProcs();
 
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        if (NProcs == 1)
-            ByteSpread();
-
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "ParticleContainer<N>::Redistribute()   scalar time: " << stoptime << '\n';
-    }
-
     if (NProcs == 1)
     {
         BL_ASSERT(OK());
         BL_ASSERT(notowned.empty());
+
+        if (m_verbose > 1)
+        {
+            Real stoptime = ParallelDescriptor::second() - strttime;
+
+            ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+
+            ByteSpread();
+
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "ParticleContainer<N>::Redistribute()   scalar time: " << stoptime << '\n';
+        }
+
         return;
     }
 
 #if BL_USE_MPI
-
-    strttime = ParallelDescriptor::second();
     //
     // We may now have particles that are rightfully owned by another CPU.
     //
