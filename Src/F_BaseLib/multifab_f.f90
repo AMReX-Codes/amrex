@@ -400,7 +400,7 @@ module multifab_module
   public  :: cpy_d, cpy_i, cpy_l, cpy_z
   public  :: reshape_d_4_1, reshape_d_1_4, reshape_i_4_1, reshape_i_1_4
 
-  private :: sum_d, logical_or, mf_internal_sync_fancy
+  private :: sum_d, logical_or, mf_internal_sync_fancy, lmf_internal_sync_fancy
 
   private :: mf_fb_fancy_double, mf_fb_fancy_integer, mf_fb_fancy_logical, mf_fb_fancy_z
   private :: mf_copy_fancy_double, mf_copy_fancy_integer, mf_copy_fancy_logical, mf_copy_fancy_z
@@ -2508,10 +2508,10 @@ contains
   end subroutine lmultifab_sum_boundary
 
   subroutine mf_internal_sync_fancy(mf, c, nc, lall, filter)
-    type(multifab), intent(inout)               :: mf
-    integer, intent(in)                         :: c
-    integer, intent(in)                         :: nc
-    logical, intent(in)                         :: lall
+    type(multifab), intent(inout)           :: mf
+    integer, intent(in)                     :: c
+    integer, intent(in)                     :: nc
+    logical, intent(in)                     :: lall
 
     type(box)                               :: sbx, dbx
     real(dp_t), dimension(:,:,:,:), pointer :: pdst, psrc, p
@@ -2602,9 +2602,9 @@ contains
     integer, intent(in)           :: c
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
-    integer                   :: lnc
-    logical                   :: lall
-    type(bl_prof_timer), save :: bpt
+    integer                       :: lnc
+    logical                       :: lall
+    type(bl_prof_timer), save     :: bpt
     interface
        subroutine filter(out, in)
          use bl_types
@@ -2634,6 +2634,90 @@ contains
     optional filter
     call multifab_internal_sync_c(mf, 1, mf%nc, all, filter)
   end subroutine multifab_internal_sync
+
+  subroutine lmf_internal_sync_fancy(mf, c, nc, lall, filter)
+    type(lmultifab), intent(inout)       :: mf
+    integer, intent(in)                  :: c
+    integer, intent(in)                  :: nc
+    logical, intent(in)                  :: lall
+
+    type(box)                            :: sbx, dbx
+    logical, dimension(:,:,:,:), pointer :: pdst, psrc, p
+    integer                              :: i, ii, jj, sh(MAX_SPACEDIM+1), np
+    integer, parameter                   :: tag = 1104
+    type(syncassoc)                      :: snasc
+    integer, allocatable                 :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    logical, allocatable                 :: g_snd_l(:), g_rcv_l(:)
+
+    interface
+       subroutine filter(out, in)
+         use bl_types
+         logical, intent(inout) :: out(:,:,:,:)
+         logical, intent(in   ) ::  in(:,:,:,:)
+       end subroutine filter
+    end interface
+
+    optional filter
+
+    snasc = layout_syncassoc(mf%la, mf%ng, mf%nodal, lall)
+
+    do i = 1, snasc%l_con%ncpy
+       ii   =  snasc%l_con%cpy(i)%nd
+       jj   =  snasc%l_con%cpy(i)%ns
+       sbx  =  snasc%l_con%cpy(i)%sbx
+       dbx  =  snasc%l_con%cpy(i)%dbx
+       pdst => dataptr(mf%fbs(ii), dbx, c, nc)
+       psrc => dataptr(mf%fbs(jj), sbx, c, nc)
+       call cpy_l(pdst, psrc, filter)
+    end do
+
+    np = parallel_nprocs()
+
+    if (np == 1) return
+
+    allocate(g_snd_l(nc*snasc%r_con%svol))
+    allocate(g_rcv_l(nc*snasc%r_con%rvol))
+
+    do i = 1, snasc%r_con%nsnd
+       p => dataptr(mf, snasc%r_con%snd(i)%ns, snasc%r_con%snd(i)%sbx, c, nc)
+       call reshape_l_4_1(g_snd_l, 1 + nc*snasc%r_con%snd(i)%pv, p)
+    end do
+
+    if ( Do_AllToAllV ) then
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, snasc%r_con%nsp
+          ii = snasc%r_con%str(i)%pr
+          scnt(ii) = nc*snasc%r_con%str(i)%sz
+          sdsp(ii) = nc*snasc%r_con%str(i)%pv
+       end do
+       do i = 1, snasc%r_con%nrp
+          ii = snasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*snasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*snasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
+    else
+       allocate(rst(snasc%r_con%nrp))
+       do i = 1, snasc%r_con%nrp
+          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*snasc%r_con%rtr(i)%pv:), &
+               nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, snasc%r_con%nsp
+          call parallel_send_lv(g_snd_l(1+nc*snasc%r_con%str(i)%pv), &
+               nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
+
+    do i = 1, snasc%r_con%nrcv
+       sh = snasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mf, snasc%r_con%rcv(i)%nd, snasc%r_con%rcv(i)%dbx, c, nc)
+       call reshape_l_1_4(p, g_rcv_l, 1 + nc*snasc%r_con%rcv(i)%pv, sh, filter)
+    end do
+
+  end subroutine lmf_internal_sync_fancy
   !!
   !! Internal Sync makes sure that any overlapped values are reconciled
   !! by coping values from the lower index number fabs to the higher index
@@ -2645,76 +2729,22 @@ contains
     integer, intent(in)            :: c
     integer, intent(in), optional  :: nc
     logical, intent(in), optional  :: all
-
-    type(box)                                :: ibx, jbx, abx
-    logical, dimension(:,:,:,:), pointer     :: pdst, psrc
-    logical, dimension(:,:,:,:), allocatable :: pt
-    integer                                  :: i, j, jj, proc, cnt, lnc
-    integer                                  :: shft(3**mf%dim,mf%dim)
-    integer, parameter                       :: tag = 1204
-    logical                                  :: lall
-    type(bl_prof_timer), save                :: bpt
-
+    integer                        :: lnc
+    logical                        :: lall
+    type(bl_prof_timer), save      :: bpt
     interface
        subroutine filter(out, in)
+         use bl_types
          logical, intent(inout) :: out(:,:,:,:)
          logical, intent(in   ) ::  in(:,:,:,:)
        end subroutine filter
     end interface
-
     optional filter
-
     lnc  = 1;        if ( present(nc)  ) lnc  = nc
     lall = .false. ; if ( present(all) ) lall = all
-
     if ( mf%nc < (c+lnc-1) ) call bl_error('LMULTIFAB_INTERNAL_SYNC_C: nc too large', lnc)
-
     call build(bpt, "lmf_internal_sync")
-
-    do j = 1, mf%nboxes
-       if ( lall ) then
-          jbx = get_pbox(mf,j)
-       else
-          jbx = get_ibox(mf,j)
-       end if
-       call box_internal_sync_shift(mf%la%lap%pd, jbx, mf%la%lap%pmask, mf%nodal, shft, cnt)
-       do jj = 1, cnt
-          do i = j, mf%nboxes
-             if ( remote(mf,j) .and. remote(mf,i) ) cycle
-             !
-             ! Do not overwrite ourselves.
-             !
-             if (i == j .and. .not. any(shft(jj,:) /= 0)) cycle
-             if ( lall ) then
-                ibx = get_pbox(mf,i)
-             else
-                ibx = get_ibox(mf,i)
-             end if
-             abx = intersection(ibx, shift(jbx,shft(jj,:)))
-             if ( empty(abx) ) cycle
-             if ( local(mf, i) .and. local(mf, j) ) then
-                pdst => dataptr(mf, i, abx, c, lnc)
-                psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
-                call cpy_l(pdst, psrc, filter)
-             else if ( local(mf, j) ) then ! must send
-                proc = get_proc(mf%la, i)
-                psrc => dataptr(mf, j, shift(abx,-shft(jj,:)), c, lnc)
-                call parallel_send(psrc, proc, tag)
-             else if ( local(mf, i) ) then  ! must recv
-                proc = get_proc(mf%la,j)
-                pdst => dataptr(mf, i, abx, c, lnc)
-                if ( present(filter) ) then
-                   allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
-                   call parallel_recv(pt, proc, tag)
-                   call filter(pdst, pt)
-                   deallocate(pt)
-                else
-                   call parallel_recv(pdst, proc, tag)
-                end if
-             end if
-          end do
-       end do
-    end do
+    call lmf_internal_sync_fancy(mf, c, lnc, lall, filter)
     call destroy(bpt)
   end subroutine lmultifab_internal_sync_c
 
