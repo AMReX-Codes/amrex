@@ -3,19 +3,147 @@
 #include <limits>
 
 void
-ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
-                                   const Real*         plo,
-                                   const Real*         dx,
-                                   Real*               fracs,
-                                   IntVect*            cells)
+ParticleBase::CIC_Fracs (const Real* frac, Real* fracs)
 {
+    //
+    // "frac"  should be dimensioned: Real frac[BL_SPACEDIM]
+    //
+    // "fracs" should be dimensioned: Real fracs[D_TERM(2,+2,+4)]
+    //
+#if (BL_SPACEDIM == 1)
+    // High
+    fracs[0] = frac[0];
+
+    // Low
+    fracs[1] = (1-frac[0]);
+
+#elif (BL_SPACEDIM == 2)
+    // HH
+    fracs[0] = frac[0] * frac[1] ;
+    
+    // LH
+    fracs[1] = (1-frac[0]) * frac[1];
+    
+    // LL
+    fracs[2] = (1-frac[0]) * (1-frac[1]);
+    
+    // HL
+    fracs[3] = frac[0] * (1-frac[1]);
+
+#elif (BL_SPACEDIM == 3)
+    // HHH
+    fracs[0] = frac[0] * frac[1] * frac[2];
+
+    // LHH
+    fracs[1] = (1-frac[0]) * frac[1] * frac[2];
+
+    // LLH
+    fracs[2] = (1-frac[0]) * (1-frac[1]) * frac[2];
+    
+    // HLH
+    fracs[3] = frac[0] * (1-frac[1]) * frac[2];
+
+    // HHL
+    fracs[4] = frac[0] * frac[1] * (1-frac[2]);
+    
+    // LHL
+    fracs[5] = (1-frac[0]) * frac[1] * (1-frac[2]);
+
+    // LLL
+    fracs[6] = (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
+    
+    // HLL
+    fracs[7] = frac[0] * (1-frac[1]) * (1-frac[2]);
+#endif
+}
+
+void
+ParticleBase::CIC_Cells (const IntVect& hicell, IntVect* cells)
+{
+    //
+    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
+    //
+    IntVect cell = hicell;
+
+#if (BL_SPACEDIM == 1)
+    // High
+    cells[0] = cell;
+
+    // Low
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+
+#elif (BL_SPACEDIM == 2)
+    // HH
+    cells[0] = cell;
+    
+    // LH
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+    
+    // LL
+    cell[1]  = cell[1] - 1;
+    cells[2] = cell;
+    
+    // HL
+    cell[0]  = cell[0] + 1;
+    cells[3] = cell;
+
+#elif (BL_SPACEDIM == 3)
+    // HHH
+    cells[0] = cell;
+
+    // LHH
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+
+    // LLH
+    cell[1]  = cell[1] - 1;
+    cells[2] = cell;
+    
+    // HLH
+    cell[0]  = cell[0] + 1;
+    cells[3] = cell;
+
+    cell = hicell;
+
+    // HHL
+    cell[2]  = cell[2] - 1;
+    cells[4] = cell;
+    
+    // LHL
+    cell[0]  = cell[0] - 1;
+    cells[5] = cell;
+
+    // LLL
+    cell[1]  = cell[1] - 1;
+    cells[6] = cell;
+    
+    // HLL
+    cell[0]  = cell[0] + 1;
+    cells[7] = cell;
+#endif
+}
+
+void
+ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
+                               const Real*         plo,
+                               const Real*         dx,
+                               Real*               fracs,
+                               IntVect*            cells)
+{
+    //
+    // "fracs" should be dimensioned: Real    fracs[D_TERM(2,+2,+4)]
+    //
+    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
+    //
     const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + 0.5,
                                            (p.m_pos[1]-plo[1])/dx[1] + 0.5,
                                            (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
 
-    const IntVect csect(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+    const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
-    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-csect[0], len[1]-csect[1], len[2]-csect[2]) };
+    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
     for (int d = 0; d < BL_SPACEDIM; d++)
     {
@@ -23,82 +151,8 @@ ParticleBase::AssignDensityCoeffs (const ParticleBase& p,
         if (frac[d] < 0) frac[d] = 0;
     }
 
-    IntVect cell = csect;
-    //
-    // Note that cells[0] contains csect.
-    //
-#if (BL_SPACEDIM == 1)
-    // High
-    cells[0] = cell;
-    fracs[0] = frac[0];
-
-    // Low
-    cell[0]  = cell[0] - 1;
-    cells[1] = cell;
-    fracs[1] = (1-frac[0]);
-
-#elif (BL_SPACEDIM == 2)
-    // HH
-    cells[0] = cell;
-    fracs[0] = frac[0] * frac[1] ;
-    
-    // LH
-    cell[0]  = cell[0] - 1;
-    cells[1] = cell;
-    fracs[1] = (1-frac[0]) * frac[1];
-    
-    // LL
-    cell[1]  = cell[1] - 1;
-    cells[2] = cell;
-    fracs[2] = (1-frac[0]) * (1-frac[1]);
-    
-    // HL
-    cell[0]  = cell[0] + 1;
-    cells[3] = cell;
-    fracs[3] = frac[0] * (1-frac[1]);
-
-#elif (BL_SPACEDIM == 3)
-    // HHH
-    cells[0] = cell;
-    fracs[0] = frac[0] * frac[1] * frac[2];
-
-    // LHH
-    cell[0]  = cell[0] - 1;
-    cells[1] = cell;
-    fracs[1] = (1-frac[0]) * frac[1] * frac[2];
-
-    // LLH
-    cell[1]  = cell[1] - 1;
-    cells[2] = cell;
-    fracs[2] = (1-frac[0]) * (1-frac[1]) * frac[2];
-    
-    // HLH
-    cell[0]  = cell[0] + 1;
-    cells[3] = cell;
-    fracs[3] = frac[0] * (1-frac[1]) * frac[2];
-
-    cell = csect;
-
-    // HHL
-    cell[2]  = cell[2] - 1;
-    cells[4] = cell;
-    fracs[4] = frac[0] * frac[1] * (1-frac[2]);
-    
-    // LHL
-    cell[0]  = cell[0] - 1;
-    cells[5] = cell;
-    fracs[5] = (1-frac[0]) * frac[1] * (1-frac[2]);
-
-    // LLL
-    cell[1]  = cell[1] - 1;
-    cells[6] = cell;
-    fracs[6] = (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
-    
-    // HLL
-    cell[0]  = cell[0] + 1;
-    cells[7] = cell;
-    fracs[7] = frac[0] * (1-frac[1]) * (1-frac[2]);
-#endif
+    ParticleBase::CIC_Fracs(frac, fracs);
+    ParticleBase::CIC_Cells(cell, cells);
 }
 
 bool
@@ -113,7 +167,7 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
     // We're in AssignDensity(). We want to know whether or not updating
     // with a particle, will we cross a  crse->fine boundary of the level
     // with coarsened fine BoxArray "cfba".  "cells" are as calculated from
-    // AssignDensityCoeffs().
+    // CIC_Cells_Fracs().
     //
     const int M = D_TERM(2,+2,+4);
 
@@ -221,13 +275,22 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
     const IntVect   rr  = amr->refRatio(flev-1);
     const BoxArray& cba = amr->boxArray(flev-1);
 
-    ParticleBase::AssignDensityCoeffs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
+    ParticleBase::CIC_Cells_Fracs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
 
     bool result = false;
 
     for (int i = 0; i < M; i++)
     {
-        if (!fvalid.contains(ccells[i]*rr))
+        IntVect ccell_refined = ccells[i]*rr;
+        //
+        // We've got to protect against the case when we're at the low
+        // end of the domain because coarsening & refining don't work right
+        // when indices go negative.
+        //
+        for (int dm = 0; dm < BL_SPACEDIM; dm++)
+            ccell_refined[dm] = std::max(ccell_refined[dm], -1);
+
+        if (!fvalid.contains(ccell_refined))
         {
             result   = true;
             which[i] = true;
@@ -849,75 +912,37 @@ ParticleBase::Reset (ParticleBase& p,
 
 Real
 ParticleBase::InterpDoit (const FArrayBox& fab,
-                          const IntVect&   hi,
-                          const Real*      frac,
+                          const Real*      fracs,
+                          const IntVect*   cells,
                           int              comp)
 {
-    IntVect cell = hi;
+    const int M = D_TERM(2,+2,+4);
 
     Real val = 0;
 
-    const Real ifrac[BL_SPACEDIM] = { D_DECL((1-frac[0]), (1-frac[1]), (1-frac[2])) };
+    for (int i = 0; i < M; i++)
+    {
+        val += fab(cells[i],comp) * fracs[i];
+    }
 
-#if (BL_SPACEDIM == 1)
-    // High
-    val += fab(cell,comp) * frac[0];
+    return val;
+}
 
-    // Low
-    cell[0] = cell[0] - 1;
-    val += fab(cell,comp) * ifrac[0];
+Real
+ParticleBase::InterpDoit (const FArrayBox& fab,
+                          const IntVect&   cell,
+                          const Real*      frac,
+                          int              comp)
+{
+    const int M = D_TERM(2,+2,+4);
 
-#elif (BL_SPACEDIM == 2)
-    // HH
-    val += fab(cell,comp) *    frac[0]  *    frac[1] ;
+    Real    fracs[M];
+    IntVect cells[M];
 
-    // LH
-    cell[0] = cell[0] - 1;
-    val += fab(cell,comp) * ifrac[0] *    frac[1] ;
+    ParticleBase::CIC_Fracs(frac, fracs);
+    ParticleBase::CIC_Cells(cell, cells);
 
-    // LL
-    cell[1]   = cell[1] - 1;
-    val += fab(cell,comp) * ifrac[0] * ifrac[1];
-
-    // HL
-    cell[0] = cell[0] + 1;
-    val += fab(cell,comp) *    frac[0]  * ifrac[1];
-
-#elif (BL_SPACEDIM == 3)
-    // HHH
-    val += fab(cell,comp) *    frac[0]  *    frac[1]  *    frac[2] ;
-   
-    // LHH
-    cell[0] = cell[0] - 1;
-    val += fab(cell,comp) * ifrac[0] *    frac[1]  *    frac[2] ;
-   
-    // LLH
-    cell[1] = cell[1] - 1;
-    val += fab(cell,comp) * ifrac[0] * ifrac[1] *    frac[2] ;
-   
-    // HLH
-    cell[0] = cell[0] + 1;
-    val += fab(cell,comp) *    frac[0]  * ifrac[1] *    frac[2] ;
-
-    cell    = hi;
-    cell[2] = cell[2] - 1;
-
-    // HHL
-    val += fab(cell,comp) *    frac[0]  *    frac[1]  *    ifrac[2] ;
-   
-    // LHL
-    cell[0] = cell[0] - 1;
-    val += fab(cell,comp) * ifrac[0] *    frac[1]  *    ifrac[2] ;
-   
-    // LLL
-    cell[1] = cell[1] - 1;
-    val += fab(cell,comp) * ifrac[0] * ifrac[1] *    ifrac[2] ;
-   
-    // HLL
-    cell[0] = cell[0] + 1;
-    val += fab(cell,comp) *    frac[0]  * ifrac[1] *    ifrac[2] ;
-
-#endif
+    Real val = ParticleBase::InterpDoit(fab,fracs,cells,comp);
 
     return val;
 }
@@ -934,30 +959,23 @@ ParticleBase::Interp (const ParticleBase& prt,
     BL_ASSERT(idx != 0);
     BL_ASSERT(val != 0);
 
-    const Geometry& gm = amr->Geom(prt.m_lev);
-    const Real*     dx = gm.CellSize();
+    const int       M   = D_TERM(2,+2,+4);
+    const Geometry& gm  = amr->Geom(prt.m_lev);
+    const Real*     plo = gm.ProbLo();
+    const Real*     dx  = gm.CellSize();
 
-    const Real len[BL_SPACEDIM] = { D_DECL((prt.m_pos[0]-gm.ProbLo(0))/dx[0] + 0.5,
-                                           (prt.m_pos[1]-gm.ProbLo(1))/dx[1] + 0.5,
-                                           (prt.m_pos[2]-gm.ProbLo(2))/dx[2] + 0.5) };
-
-    const IntVect hi(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
-
-    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-hi[0], len[1]-hi[1], len[2]-hi[2]) };
-
-    for (int d = 0; d < BL_SPACEDIM; d++)
-    {
-        if (frac[d] > 1) frac[d] = 1;
-        if (frac[d] < 0) frac[d] = 0;
-    }
+    Real    fracs[M];
+    IntVect cells[M];
+    //
+    // Get "fracs" and "cells".
+    //
+    ParticleBase::CIC_Cells_Fracs(prt, plo, dx, fracs, cells);
 
     for (int i = 0; i < cnt; i++)
     {
-        const int comp = idx[i];
+        BL_ASSERT(idx[i] >= 0 && idx[i] < fab.nComp());
 
-        BL_ASSERT(comp >= 0 && comp < fab.nComp());
-
-        val[i] = ParticleBase::InterpDoit(fab,hi,frac,comp);
+        val[i] = ParticleBase::InterpDoit(fab,fracs,cells,idx[i]);
     }
 }
 
