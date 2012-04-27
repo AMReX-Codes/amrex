@@ -81,10 +81,22 @@ int main(int argc, char *argv[]) {
     DistributionMapping dmap(mf.DistributionMap());
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "dmap = " << dmap << std::endl;
+      std::cout << "dmap.size() = " << dmap.size() << std::endl;
     }
 
-    // ---- initialize it to oldmap + 1 % nprocs
+    // ------------------------------------------------------------------
+    // ----- very important:  here we are copying a procmap,
+    // -----                  but if you just make your own Array<int>
+    // -----                  it must have an extra value at the end
+    // -----                  set to ParallelDescriptor::MyProc()
+    // -----                  see DistributionMapping.H
+    // ------------------------------------------------------------------
     const Array<int> procMap = dmap.ProcessorMap();
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "procMap.size() = " << procMap.size() << std::endl;
+    }
+
+    // ---- initialize it to (oldmap + 1) % nprocs
     Array<int> newMap(procMap.size());
     for(int i(0); i < procMap.size(); ++i) {
       newMap[i] = (procMap[i] + 1) % ParallelDescriptor::NProcs();
