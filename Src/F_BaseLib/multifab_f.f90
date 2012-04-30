@@ -1567,7 +1567,6 @@ contains
   end subroutine zmultifab_setval_c
 
   subroutine logical_or(out, in)
-     use bl_types
      logical, intent(inout) :: out(:,:,:,:)
      logical, intent(in   ) ::  in(:,:,:,:)
      integer                :: i, j, k, n
@@ -1969,7 +1968,6 @@ contains
     integer,    allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
     integer,    parameter   :: tag = 1102
     integer                 :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
-    type(box)               :: sbx, dbx
     type(boxassoc)          :: bxasc
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
 
@@ -1978,10 +1976,8 @@ contains
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
-       sbx =  bxasc%l_con%cpy(i)%sbx
-       dbx =  bxasc%l_con%cpy(i)%dbx
-       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
-       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_d(p1,p2)
     end do
 
@@ -2042,7 +2038,6 @@ contains
     integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
     integer, parameter   :: tag = 1102
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
-    type(box)            :: sbx, dbx
     type(boxassoc)       :: bxasc
     integer, allocatable :: g_snd_i(:), g_rcv_i(:)
 
@@ -2051,10 +2046,8 @@ contains
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
-       sbx =  bxasc%l_con%cpy(i)%sbx
-       dbx =  bxasc%l_con%cpy(i)%dbx
-       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
-       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_i(p1,p2)
     end do
 
@@ -2115,7 +2108,6 @@ contains
     integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
     integer, parameter   :: tag = 1102
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
-    type(box)            :: sbx, dbx
     type(boxassoc)       :: bxasc
     logical, allocatable :: g_snd_l(:), g_rcv_l(:)
 
@@ -2124,10 +2116,8 @@ contains
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
-       sbx =  bxasc%l_con%cpy(i)%sbx
-       dbx =  bxasc%l_con%cpy(i)%dbx
-       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
-       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_l(p1,p2)
     end do
 
@@ -2188,7 +2178,6 @@ contains
     integer, allocatable       :: rst(:)
     integer, parameter         :: tag = 1102
     integer                    :: i, ii, jj, sh(MAX_SPACEDIM+1)
-    type(box)                  :: sbx, dbx
     type(boxassoc)             :: bxasc
     complex(dp_t), allocatable :: g_snd_z(:), g_rcv_z(:)
 
@@ -2197,10 +2186,8 @@ contains
     do i = 1, bxasc%l_con%ncpy
        ii  =  bxasc%l_con%cpy(i)%nd
        jj  =  bxasc%l_con%cpy(i)%ns
-       sbx =  bxasc%l_con%cpy(i)%sbx
-       dbx =  bxasc%l_con%cpy(i)%dbx
-       p1  => dataptr(mf%fbs(ii), dbx, c, nc)
-       p2  => dataptr(mf%fbs(jj), sbx, c, nc)
+       p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_z(p1,p2)
     end do
 
@@ -2340,77 +2327,73 @@ contains
   end subroutine zmultifab_fill_boundary
 
   subroutine multifab_sum_boundary_c(mf, c, nc, ng)
-    type(multifab), intent(inout)         :: mf
-    integer,        intent(in)            :: c, nc
-    integer,        intent(in), optional  :: ng
+    type(multifab), intent(inout)        :: mf
+    integer,        intent(in)           :: c, nc
+    integer,        intent(in), optional :: ng
 
-    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
-    type(boxarray)      :: bxai, batmp
-    type(box)           :: dbx
-    integer             :: i, j, ii, jj, proc, dm, lng
-    integer             :: shft(2*3**mf%dim,mf%dim),dims(MAX_SPACEDIM)
-    integer, parameter  :: tag = 1713
-    type(layout)        :: latmp
-    logical             :: anynodal
+    real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
+    integer, allocatable    :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer, parameter      :: tag = 1713
+    integer                 :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
+    type(boxassoc)          :: bxasc
+    real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
 
-    type(box_intersector), pointer :: bi(:)
-    real(kind=dp_t), allocatable   :: pt(:,:,:,:)
+    call boxassoc_build(bxasc, mf%la%lap, ng, mf%nodal, .false., .true.)
 
-    lng = mf%ng; if ( present(ng) ) lng = ng
-
-    if ( lng > mf%ng      ) call bl_error('MULTIFAB_SUM_BOUNDARY_C: ng too large', lng)
-    if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_SUM_BOUNDARY_C: nc too large', nc)
-    if ( lng < 1          ) return
-
-    dm       = get_dim(mf)
-    dims     = 1
-    anynodal = any( mf%nodal .eqv. .true. )
-
-    if ( anynodal ) then
-       !
-       ! Build a temporary layout to be used in intersection tests below.
-       !
-       call copy(batmp, get_boxarray(get_layout(mf)))
-       call boxarray_nodalize(batmp, nodal_flags(mf))
-       call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-       call boxarray_destroy(batmp)
-    endif
-
-    do i = 1, mf%nboxes
-       call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft, .false.)
-       do ii = 1, nboxes(bxai)
-          if ( anynodal ) then
-             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
-          else
-             bi => layout_get_box_intersector(mf%la, get_box(bxai,ii))
-          end if
-          do jj = 1, size(bi)
-             j = bi(jj)%i
-             if ( remote(mf,i) .and. remote(mf,j) ) cycle
-             dbx = bi(jj)%bx
-             if ( local(mf,i) .and. local(mf,j) ) then
-                pdst => dataptr(mf, j, dbx, c, nc)
-                psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
-                call cpy_d(pdst,psrc,sum_d)
-             else if ( local(mf,j) ) then ! must recv
-                dims(1:dm) = extent(dbx)
-                allocate(pt(dims(1),dims(2),dims(3),nc))
-                pdst => dataptr(mf, j, dbx, c, nc)
-                proc = get_proc(mf%la, i)
-                call parallel_recv(pt, proc, tag)
-                call cpy_d(pdst,pt,sum_d)
-                deallocate(pt)
-             else if ( local(mf,i) ) then  ! must send
-                psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
-                proc = get_proc(mf%la,j)
-                call parallel_send(psrc, proc, tag)
-             end if
-          end do
-          deallocate(bi)
-       end do
-       call destroy(bxai)
+    do i = 1, bxasc%l_con%ncpy
+       ii  =  bxasc%l_con%cpy(i)%nd
+       jj  =  bxasc%l_con%cpy(i)%ns
+       p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
+       call sum_d(p1,p2)
     end do
-    if (anynodal) call destroy(latmp)
+
+    np = parallel_nprocs()
+
+    if (np == 1) return
+
+    allocate(g_snd_d(nc*bxasc%r_con%svol))
+    allocate(g_rcv_d(nc*bxasc%r_con%rvol))
+
+    do i = 1, bxasc%r_con%nsnd
+       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       call reshape_d_4_1(g_snd_d, 1 + nc*bxasc%r_con%snd(i)%pv, p)
+    end do
+
+    if ( Do_AllToAllV ) then
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, bxasc%r_con%nsp
+          ii = bxasc%r_con%str(i)%pr
+          scnt(ii) = nc*bxasc%r_con%str(i)%sz
+          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
+       end do
+       do i = 1, bxasc%r_con%nrp
+          ii = bxasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
+    else
+       allocate(rst(bxasc%r_con%nrp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
+
+    do i = 1, bxasc%r_con%nrcv
+       sh = bxasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       call reshape_d_1_4(p, g_rcv_d, 1 + nc*bxasc%r_con%rcv(i)%pv, sh, sum_d)
+    end do
+
   end subroutine multifab_sum_boundary_c
 
   subroutine multifab_sum_boundary(mf, ng)
@@ -2423,82 +2406,72 @@ contains
   !
   subroutine lmultifab_sum_boundary_c(mf, c, nc, ng)
     type(lmultifab), intent(inout)        :: mf
-    integer,        intent(in)            :: c, nc
-    integer,        intent(in), optional  :: ng
+    integer,         intent(in)           :: c, nc
+    integer,         intent(in), optional :: ng
 
-    logical, pointer   :: pdst(:,:,:,:), psrc(:,:,:,:)
-    type(boxarray)     :: bxai, batmp
-    type(box)          :: dbx
-    integer            :: i, j, ii, jj, proc, dm, lng
-    integer            :: shft(2*3**mf%dim,mf%dim),dims(MAX_SPACEDIM)
-    integer, parameter :: tag = 1713
-    type(layout)       :: latmp
-    logical            :: anynodal
+    logical, pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
+    integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer, parameter   :: tag = 1713
+    integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
+    type(boxassoc)       :: bxasc
+    logical, allocatable :: g_snd_l(:), g_rcv_l(:)
 
-    type(box_intersector), pointer :: bi(:)
-    logical, allocatable           :: pt(:,:,:,:)
+    call boxassoc_build(bxasc, mf%la%lap, ng, mf%nodal, .false., .true.)
 
-    lng = mf%ng; if ( present(ng) ) lng = ng
-
-    if ( lng > mf%ng      ) call bl_error('LMULTIFAB_SUM_BOUNDARY_C: ng too large', lng)
-    if ( mf%nc < (c+nc-1) ) call bl_error('LMULTIFAB_SUM_BOUNDARY_C: nc too large', nc)
-    if ( lng < 1          ) return
-
-    dm       = get_dim(mf)
-    dims     = 1
-    anynodal = any( mf%nodal .eqv. .true. )
-
-    if ( anynodal ) then
-       !
-       ! Build a temporary layout to be used in intersection tests below.
-       !
-       call copy(batmp, get_boxarray(get_layout(mf)))
-       call boxarray_nodalize(batmp, nodal_flags(mf))
-       call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-       call boxarray_destroy(batmp)
-    endif
-
-    do i = 1, mf%nboxes
-       call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft, .false.)
-       do ii = 1, nboxes(bxai)
-          if ( anynodal ) then
-             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
-          else
-             bi => layout_get_box_intersector(mf%la, get_box(bxai,ii))
-          end if
-          do jj = 1, size(bi)
-             j = bi(jj)%i
-             if ( remote(mf,i) .and. remote(mf,j) ) cycle
-             dbx = bi(jj)%bx
-             if ( local(mf,i) .and. local(mf,j) ) then
-                pdst => dataptr(mf, j, dbx, c, nc)
-                psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
-                !
-                ! Use logical "or" instead of "+".
-                !
-                call cpy_l(pdst,psrc,logical_or)
-             else if ( local(mf,j) ) then ! must recv
-                dims(1:dm) = extent(dbx)
-                allocate(pt(dims(1),dims(2),dims(3),nc))
-                pdst => dataptr(mf, j, dbx, c, nc)
-                proc = get_proc(mf%la, i)
-                call parallel_recv(pt, proc, tag)
-                !
-                ! Use logical "or" instead of "+".
-                !
-                call cpy_l(pdst,pt,logical_or)
-                deallocate(pt)
-             else if ( local(mf,i) ) then  ! must send
-                psrc => dataptr(mf, i, shift(dbx,-shft(ii,:)), c, nc)
-                proc = get_proc(mf%la,j)
-                call parallel_send(psrc, proc, tag)
-             end if
-          end do
-          deallocate(bi)
-       end do
-       call destroy(bxai)
+    do i = 1, bxasc%l_con%ncpy
+       ii  =  bxasc%l_con%cpy(i)%nd
+       jj  =  bxasc%l_con%cpy(i)%ns
+       p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
+       call logical_or(p1,p2)
     end do
-    if (anynodal) call destroy(latmp)
+
+    np = parallel_nprocs()
+
+    if (np == 1) return
+
+    allocate(g_snd_l(nc*bxasc%r_con%svol))
+    allocate(g_rcv_l(nc*bxasc%r_con%rvol))
+
+    do i = 1, bxasc%r_con%nsnd
+       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       call reshape_l_4_1(g_snd_l, 1 + nc*bxasc%r_con%snd(i)%pv, p)
+    end do
+
+    if ( Do_AllToAllV ) then
+       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
+       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
+       do i = 1, bxasc%r_con%nsp
+          ii = bxasc%r_con%str(i)%pr
+          scnt(ii) = nc*bxasc%r_con%str(i)%sz
+          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
+       end do
+       do i = 1, bxasc%r_con%nrp
+          ii = bxasc%r_con%rtr(i)%pr
+          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
+          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
+       end do
+       call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
+    else
+       allocate(rst(bxasc%r_con%nrp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
+
+    do i = 1, bxasc%r_con%nrcv
+       sh = bxasc%r_con%rcv(i)%sh
+       sh(4) = nc
+       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       call reshape_l_1_4(p, g_rcv_l, 1 + nc*bxasc%r_con%rcv(i)%pv, sh, logical_or)
+    end do
+
   end subroutine lmultifab_sum_boundary_c
 
   subroutine lmultifab_sum_boundary(mf, ng)
@@ -2513,7 +2486,6 @@ contains
     integer, intent(in)                     :: nc
     logical, intent(in)                     :: lall
 
-    type(box)                               :: sbx, dbx
     real(dp_t), dimension(:,:,:,:), pointer :: pdst, psrc, p
     integer                                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     integer, parameter                      :: tag = 1104
@@ -2536,10 +2508,8 @@ contains
     do i = 1, snasc%l_con%ncpy
        ii   =  snasc%l_con%cpy(i)%nd
        jj   =  snasc%l_con%cpy(i)%ns
-       sbx  =  snasc%l_con%cpy(i)%sbx
-       dbx  =  snasc%l_con%cpy(i)%dbx
-       pdst => dataptr(mf%fbs(ii), dbx, c, nc)
-       psrc => dataptr(mf%fbs(jj), sbx, c, nc)
+       pdst => dataptr(mf%fbs(ii), snasc%l_con%cpy(i)%dbx, c, nc)
+       psrc => dataptr(mf%fbs(jj), snasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_d(pdst, psrc, filter)
     end do
 
@@ -2641,7 +2611,6 @@ contains
     integer, intent(in)                  :: nc
     logical, intent(in)                  :: lall
 
-    type(box)                            :: sbx, dbx
     logical, dimension(:,:,:,:), pointer :: pdst, psrc, p
     integer                              :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     integer, parameter                   :: tag = 1104
@@ -2664,10 +2633,8 @@ contains
     do i = 1, snasc%l_con%ncpy
        ii   =  snasc%l_con%cpy(i)%nd
        jj   =  snasc%l_con%cpy(i)%ns
-       sbx  =  snasc%l_con%cpy(i)%sbx
-       dbx  =  snasc%l_con%cpy(i)%dbx
-       pdst => dataptr(mf%fbs(ii), dbx, c, nc)
-       psrc => dataptr(mf%fbs(jj), sbx, c, nc)
+       pdst => dataptr(mf%fbs(ii), snasc%l_con%cpy(i)%dbx, c, nc)
+       psrc => dataptr(mf%fbs(jj), snasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_l(pdst, psrc, filter)
     end do
 
@@ -3045,17 +3012,14 @@ contains
     integer, parameter      :: tag = 1102
     integer                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
-    type(box)               :: sbx, dbx
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
        ii   =  cpasc%l_con%cpy(i)%nd
        jj   =  cpasc%l_con%cpy(i)%ns
-       sbx  =  cpasc%l_con%cpy(i)%sbx
-       dbx  =  cpasc%l_con%cpy(i)%dbx
-       pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
-       psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
+       pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
+       psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_d(pdst, psrc, filter)
     end do
 
@@ -3127,18 +3091,15 @@ contains
     integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
     integer, parameter   :: tag = 1102
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
-    type(box)            :: sbx, dbx
     integer, allocatable :: g_snd_i(:), g_rcv_i(:)
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
-       ii   = cpasc%l_con%cpy(i)%nd
-       jj   = cpasc%l_con%cpy(i)%ns
-       sbx  = cpasc%l_con%cpy(i)%sbx
-       dbx  = cpasc%l_con%cpy(i)%dbx
-       pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
-       psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
+       ii   =  cpasc%l_con%cpy(i)%nd
+       jj   =  cpasc%l_con%cpy(i)%ns
+       pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
+       psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_i(pdst, psrc, filter)
     end do
 
@@ -3210,18 +3171,15 @@ contains
     integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
     integer, parameter   :: tag = 1102
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
-    type(box)            :: sbx, dbx
     logical, allocatable :: g_snd_l(:), g_rcv_l(:)
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
-       ii   = cpasc%l_con%cpy(i)%nd
-       jj   = cpasc%l_con%cpy(i)%ns
-       sbx  = cpasc%l_con%cpy(i)%sbx
-       dbx  = cpasc%l_con%cpy(i)%dbx
-       pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
-       psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
+       ii   =  cpasc%l_con%cpy(i)%nd
+       jj   =  cpasc%l_con%cpy(i)%ns
+       pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
+       psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_l(pdst, psrc, filter)
     end do
 
@@ -3293,18 +3251,15 @@ contains
     integer, allocatable       :: rst(:)
     integer, parameter         :: tag = 1102
     integer                    :: i, ii, jj, sh(MAX_SPACEDIM+1)
-    type(box)                  :: sbx, dbx
     complex(dp_t), allocatable :: g_snd_z(:), g_rcv_z(:)
 
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
-       ii   = cpasc%l_con%cpy(i)%nd
-       jj   = cpasc%l_con%cpy(i)%ns
-       sbx  = cpasc%l_con%cpy(i)%sbx
-       dbx  = cpasc%l_con%cpy(i)%dbx
-       pdst => dataptr(mdst%fbs(ii), dbx, dstcomp, nc)
-       psrc => dataptr(msrc%fbs(jj), sbx, srccomp, nc)
+       ii   =  cpasc%l_con%cpy(i)%nd
+       jj   =  cpasc%l_con%cpy(i)%ns
+       pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
+       psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_z(pdst, psrc, filter)
     end do
 
