@@ -333,10 +333,9 @@ contains
     real(dp_t)     , intent(in   ) :: alpha_const, beta_const
 
     ! Local variables
-    integer                     :: i, d, maxlev
+    integer                     :: i, maxlev
     real(dp_t)                  :: coarse_xa(mgt%dim),  coarse_xb(mgt%dim)
     real(dp_t)                  :: coarse_pxa(mgt%dim), coarse_pxb(mgt%dim)
-    real(dp_t), pointer :: sc_orig(:,:,:,:), sc_grown(:,:,:,:)
 
     maxlev = mgt%nlevels
 
@@ -382,7 +381,7 @@ contains
 
     real(kind=dp_t), pointer  ::  sp(:,:,:,:)
     integer        , pointer  ::  mp(:,:,:,:)
-    integer                   :: i,ns,id,dm
+    integer                   :: i,id,dm
     logical                   :: pmask(get_dim(ss))
 
     type(bl_prof_timer), save :: bpt
