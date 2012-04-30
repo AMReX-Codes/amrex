@@ -1143,66 +1143,29 @@ contains
 
   end subroutine boxarray_bndry_periodic
 
-  subroutine boxassoc_build(bxasc, lap, ng, nodal, cross)
-    use bl_prof_module
-    use bl_error_module
+  subroutine boxassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
+    type(boxassoc),   intent(inout) :: bxasc
+    type(layout),     intent(inout) :: la
+    type(layout_rep), intent(in)    :: lap
+    type(layout),     intent(inout) :: latmp
+    integer,          intent(in)    :: ng
+    logical,          intent(in)    :: anynodal
+    logical,          intent(in)    :: cross
+    integer,          intent(inout) :: lcnt_r, cnt_s, cnt_r
+    integer,          intent(inout) :: pvol(0:,:), parr(0:,:)
 
-    integer,          intent(in)         :: ng
-    logical,          intent(in)         :: nodal(:)
-    type(layout_rep), intent(in), target :: lap
-    type(boxassoc),   intent(inout)      :: bxasc
-    logical,          intent(in)         :: cross
-
-    integer                         :: pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
-    integer                         :: shft(2*3**lap%dim,lap%dim), sh(MAX_SPACEDIM+1)
+    integer                         :: i, j, ii, jj, i_r, i_s, li_r
+    type(boxarray)                  :: bxa, bxai
     type(box)                       :: abx
-    type(boxarray)                  :: bxa, bxai, batmp
-    type(layout)                    :: la, latmp
-    integer                         :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, np
-    integer                         :: i, j, ii, jj, lcnt_r_max, cnt_r_max, cnt_s_max
-    integer                         :: svol_max, rvol_max, ioproc
-    integer, parameter              :: ChunkSize = 50
-    integer, allocatable            :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer  :: n_cpy(:) => Null()
     type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
     type(box_intersector), pointer  :: bi(:)
-    logical                         :: anynodal
-    type(bl_prof_timer), save       :: bpt
+    integer                         :: shft(2*3**la%lap%dim,la%lap%dim), sh(MAX_SPACEDIM+1)
+    integer, parameter              :: ChunkSize = 50
 
-    if ( built_q(bxasc) ) call bl_error("boxassoc_build(): already built")
+    bxa = get_boxarray(la)
 
-    call build(bpt, "boxassoc_build")
-
-    la%lap       => lap
-    bxa          =  get_boxarray(la)
-    bxasc%dim    =  get_dim(bxa)
-    bxasc%grwth  =  ng
-    bxasc%nboxes =  nboxes(bxa)
-    bxasc%cross  =  cross
-    np           =  parallel_nprocs()
-    anynodal     =  any( nodal .eqv. .true. )
-
-    allocate(bxasc%nodal(bxasc%dim))
-    allocate(parr(0:np-1,2))
-    allocate(pvol(0:np-1,2))
-    allocate(ppvol(0:np-1,2))
-    allocate(bxasc%l_con%cpy(ChunkSize))
-    allocate(bxasc%r_con%snd(ChunkSize))
-    allocate(bxasc%r_con%rcv(ChunkSize))
-
-    if ( anynodal ) then
-       !
-       ! Build a temporary layout to be used in intersection tests below.
-       !
-       call copy(batmp, bxa)
-       call boxarray_nodalize(batmp, nodal)
-       call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-       call destroy(batmp)
-    end if
-
-    bxasc%nodal = nodal
-
-    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
+    li_r = 1; i_r = 1; i_s = 1
     !
     ! Consider all copies I <- J.
     !
@@ -1272,6 +1235,66 @@ contains
        end do
        call boxarray_destroy(bxai)
     end do
+  end subroutine boxassoc_build_innards
+
+  subroutine boxassoc_build(bxasc, lap, ng, nodal, cross)
+    use bl_prof_module
+    use bl_error_module
+
+    integer,          intent(in)         :: ng
+    logical,          intent(in)         :: nodal(:)
+    type(layout_rep), intent(in), target :: lap
+    type(boxassoc),   intent(inout)      :: bxasc
+    logical,          intent(in)         :: cross
+
+    integer                         :: pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    type(boxarray)                  :: bxa, batmp
+    type(layout)                    :: la, latmp
+    integer                         :: lcnt_r, cnt_r, cnt_s, i_r, i_s, np, i
+    integer, parameter              :: ChunkSize = 50
+    integer, allocatable            :: pvol(:,:), ppvol(:,:), parr(:,:)
+    type(local_copy_desc), pointer  :: n_cpy(:) => Null()
+    type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
+    logical                         :: anynodal
+    type(bl_prof_timer), save       :: bpt
+
+    if ( built_q(bxasc) ) call bl_error("boxassoc_build(): already built")
+
+    call build(bpt, "boxassoc_build")
+
+    la%lap       => lap
+    bxa          =  get_boxarray(la)
+    bxasc%dim    =  get_dim(bxa)
+    bxasc%grwth  =  ng
+    bxasc%nboxes =  nboxes(bxa)
+    bxasc%cross  =  cross
+    np           =  parallel_nprocs()
+    anynodal     =  any( nodal .eqv. .true. )
+
+    allocate(bxasc%nodal(bxasc%dim))
+    allocate(parr(0:np-1,2))
+    allocate(pvol(0:np-1,2))
+    allocate(ppvol(0:np-1,2))
+    allocate(bxasc%l_con%cpy(ChunkSize))
+    allocate(bxasc%r_con%snd(ChunkSize))
+    allocate(bxasc%r_con%rcv(ChunkSize))
+
+    if ( anynodal ) then
+       !
+       ! Build a temporary layout to be used in intersection tests below.
+       !
+       call copy(batmp, bxa)
+       call boxarray_nodalize(batmp, nodal)
+       call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+       call destroy(batmp)
+    end if
+
+    bxasc%nodal = nodal
+
+    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
+
+    call boxassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, cross, &
+         lcnt_r, cnt_s, cnt_r, pvol, parr)
 
     if ( anynodal ) call destroy(latmp)
 
@@ -1321,7 +1344,7 @@ contains
        ppvol(i,2) = ppvol(i,2) + pv
     end do
     !
-    ! Now compute the volume of data the each processor expects
+    ! Now compute the volume of data the each processor expects.
     !
     pcnt_r = count(parr(:,1) /= 0 )
     pcnt_s = count(parr(:,2) /= 0 )
@@ -1519,13 +1542,11 @@ contains
     type(syncassoc),  intent(inout)      :: snasc
     logical,          intent(in)         :: lall
 
-    integer                        :: i, j, ii, jj, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    integer                        :: i, j, ii, jj, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s, np
     type(box)                      :: dbx, sbx
     type(boxarray)                 :: bxa
     type(layout)                   :: la
-    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, np
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, sh(MAX_SPACEDIM+1)
-    integer                        :: svol_max, rvol_max, ioproc
     integer, parameter             :: ChunkSize = 50
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
@@ -1752,11 +1773,9 @@ contains
     type(boxarray)                 :: batmp
     type(layout)                   :: lasrctmp
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
-    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
-    integer                        :: svol_max, rvol_max, ioproc
     integer, parameter             :: ChunkSize = 50
     type(box_intersector), pointer :: bi(:)
     type(bl_prof_timer), save      :: bpt
@@ -1958,19 +1977,15 @@ contains
     type(box)                      :: fbox, isect
     type(layout)                   :: lasrctmp
     type(boxarray)                 :: bxa_src, bxa_dst, batmp
-    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, ii
-    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
+    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, ii
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:), mpvol(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
     type(box), pointer             :: pfbxs(:) => Null()
     type(box_intersector), pointer :: bi(:)
-    integer                        :: svol_max, rvol_max, ioproc
     integer, parameter             :: ChunkSize = 50
     logical                        :: anynodal
     type(bl_prof_timer), save      :: bpt
-
-    type(box)                      :: lpd
 
     if ( built_q(flasc) ) call bl_error("fluxassoc_build(): already built")
 
