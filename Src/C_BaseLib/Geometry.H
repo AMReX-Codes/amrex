@@ -552,6 +552,8 @@ namespace BoxLib
     {
         if (!geom.isAnyPeriodic() || mf.nGrow() == 0) return;
 
+        if (geom.Domain().contains(BoxLib::grow(mf.boxArray().minimalBox(), mf.nGrow()))) return;
+
 #ifndef NDEBUG
         //
         // Don't let folks ask for more grow cells than they have valid region.
