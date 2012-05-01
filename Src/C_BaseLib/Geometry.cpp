@@ -247,6 +247,68 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     }
 }
 
+static
+void
+SumPeriodicBoundaryInnards (const MultiFab&         dstmf,
+                            const MultiFab&         srcmf,
+                            const Geometry&         geom,
+                            MultiFabCopyDescriptor& mfcd,
+                            const FabArrayId&       mfid,
+                            Geometry::PIRMList&     pirm,
+                            int                     scomp,
+                            int                     ncomp)
+{
+    //
+    // Note that in the usual case dstmf == srcmf.
+    //
+    Array<IntVect> pshifts(27);
+
+    for (MFIter mfi(dstmf); mfi.isValid(); ++mfi)
+    {
+        const Box& dest = mfi.validbox();
+
+        Box TheDomain = geom.Domain();
+
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            if (dest.ixType()[n] == IndexType::NODE)
+                TheDomain.surroundingNodes(n);
+
+        if (TheDomain.contains(BoxLib::grow(dest,srcmf.nGrow()))) continue;
+        //
+        // We may overlap with the periodic boundary.  Some other ghost
+        // region(s) could be periodically-shiftable into our valid region.
+        //
+        const BoxArray& grids = srcmf.boxArray();
+
+        for (int j = 0, N = grids.size(); j < N; j++)
+        {
+            const Box src = BoxLib::grow(grids[j],srcmf.nGrow());
+
+            if (TheDomain.contains(src)) continue;
+
+            geom.periodicShift(dest, src, pshifts);
+
+            for (int i = 0, M = pshifts.size(); i < M; i++)
+            {
+                const Box shftbox = src + pshifts[i];
+                const Box dbx     = dest & shftbox;
+                const Box sbx     = dbx - pshifts[i];
+
+                pirm.push_back(Geometry::PIRec(mfi.index(),j,sbx,dbx));
+
+                pirm.back().fbid = mfcd.AddBox(mfid,
+                                               sbx,
+                                               0,
+                                               j,
+                                               scomp,
+                                               0,
+                                               ncomp,
+                                               false);
+            }
+        }
+    }
+}
+
 void
 Geometry::SumPeriodicBoundary (MultiFab& mf,
                                int       scomp,
@@ -264,54 +326,10 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
 #endif
 
     PIRMList               pirm;
-    Array<IntVect>         pshifts(27);
     MultiFabCopyDescriptor mfcd;
     const FabArrayId       mfid = mfcd.RegisterFabArray(&mf);
 
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        const Box& dest = mfi.validbox();
-
-        Box TheDomain = Domain();
-
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            if (dest.ixType()[n] == IndexType::NODE)
-                TheDomain.surroundingNodes(n);
-
-        if (TheDomain.contains(BoxLib::grow(dest,mf.nGrow()))) continue;
-        //
-        // We may overlap with the periodic boundary.  Some other ghost
-        // region(s) could be periodically-shiftable into our valid region.
-        //
-        const BoxArray& grids = mf.boxArray();
-
-        for (int j = 0, N = grids.size(); j < N; j++)
-        {
-            Box src = BoxLib::grow(grids[j],mf.nGrow());
-
-            if (TheDomain.contains(src)) continue;
-
-            periodicShift(dest, src, pshifts);
-
-            for (int i = 0, M = pshifts.size(); i < M; i++)
-            {
-                Box shftbox = src + pshifts[i];
-                Box dbx     = dest & shftbox;
-                Box sbx     = dbx - pshifts[i];
-
-                pirm.push_back(Geometry::PIRec(mfi.index(),j,sbx,dbx));
-
-                pirm.back().fbid = mfcd.AddBox(mfid,
-                                               sbx,
-                                               0,
-                                               j,
-                                               scomp,
-                                               0,
-                                               ncomp,
-                                               false);
-            }
-        }
-    }
+    SumPeriodicBoundaryInnards(mf,mf,*this,mfcd,mfid,pirm,scomp,ncomp);
 
     int nrecv = pirm.size();
     ParallelDescriptor::ReduceIntMax(nrecv);
@@ -363,54 +381,10 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
 #endif
 
     PIRMList               pirm;
-    Array<IntVect>         pshifts(27);
     MultiFabCopyDescriptor mfcd;
     const FabArrayId       mfid = mfcd.RegisterFabArray(const_cast<MultiFab*>(&srcmf));
 
-    for (MFIter mfi(dstmf); mfi.isValid(); ++mfi)
-    {
-        const Box& dest = mfi.validbox();
-
-        Box TheDomain = Domain();
-
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            if (dest.ixType()[n] == IndexType::NODE)
-                TheDomain.surroundingNodes(n);
-
-        if (TheDomain.contains(BoxLib::grow(dest,srcmf.nGrow()))) continue;
-        //
-        // We may overlap with the periodic boundary.  Some other ghost
-        // region(s) could be periodically-shiftable into our valid region.
-        //
-        const BoxArray& grids = srcmf.boxArray();
-
-        for (int j = 0, N = grids.size(); j < N; j++)
-        {
-            Box src = BoxLib::grow(grids[j],srcmf.nGrow());
-
-            if (TheDomain.contains(src)) continue;
-
-            periodicShift(dest, src, pshifts);
-
-            for (int i = 0, M = pshifts.size(); i < M; i++)
-            {
-                Box shftbox = src + pshifts[i];
-                Box dbx     = dest & shftbox;
-                Box sbx     = dbx - pshifts[i];
-
-                pirm.push_back(Geometry::PIRec(mfi.index(),j,sbx,dbx));
-
-                pirm.back().fbid = mfcd.AddBox(mfid,
-                                               sbx,
-                                               0,
-                                               j,
-                                               scomp,
-                                               0,
-                                               ncomp,
-                                               false);
-            }
-        }
-    }
+    SumPeriodicBoundaryInnards(dstmf,srcmf,*this,mfcd,mfid,pirm,scomp,ncomp);
 
     int nrecv = pirm.size();
     ParallelDescriptor::ReduceIntMax(nrecv);
