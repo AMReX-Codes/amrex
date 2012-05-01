@@ -186,8 +186,14 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 bool      corners,
                                 bool      local) const
 {
+    if (!isAnyPeriodic() || mf.size() == 0) return;
 
-    if (!isAnyPeriodic()) return;
+    Box TheDomain = Domain();
+    for (int n = 0; n < BL_SPACEDIM; n++)
+        if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
+            TheDomain.surroundingNodes(n);
+
+    if (TheDomain.contains(BoxLib::grow(mf.boxArray().minimalBox(), mf.nGrow()))) return;
 
     if ( local )
     {
@@ -201,11 +207,6 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
             const Box& dst = mf[mfidst].box();
 
             BL_ASSERT(dst == BoxLib::grow(mfidst.validbox(), mf.nGrow()));
-
-            Box TheDomain = Domain();
-            for (int n = 0; n < BL_SPACEDIM; n++)
-                if (dst.ixType()[n] == IndexType::NODE)
-                    TheDomain.surroundingNodes(n);
 
             if (!TheDomain.contains(dst))
             {
@@ -263,15 +264,16 @@ SumPeriodicBoundaryInnards (const MultiFab&         dstmf,
     //
     Array<IntVect> pshifts(27);
 
+    Box TheDomain = geom.Domain();
+    for (int n = 0; n < BL_SPACEDIM; n++)
+        if (srcmf.boxArray()[0].ixType()[n] == IndexType::NODE)
+            TheDomain.surroundingNodes(n);
+
+    if (TheDomain.contains(BoxLib::grow(srcmf.boxArray().minimalBox(), srcmf.nGrow()))) return;
+
     for (MFIter mfi(dstmf); mfi.isValid(); ++mfi)
     {
         const Box& dest = mfi.validbox();
-
-        Box TheDomain = geom.Domain();
-
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            if (dest.ixType()[n] == IndexType::NODE)
-                TheDomain.surroundingNodes(n);
 
         if (TheDomain.contains(BoxLib::grow(dest,srcmf.nGrow()))) continue;
         //
@@ -314,7 +316,7 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
                                int       scomp,
                                int       ncomp) const
 {
-    if (!isAnyPeriodic() || mf.nGrow() == 0) return;
+    if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
 #ifndef NDEBUG
     //
@@ -366,10 +368,11 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
                                int             scomp,
                                int             ncomp) const
 {
-    if (!isAnyPeriodic() || srcmf.nGrow() == 0) return;
+    if (!isAnyPeriodic() || srcmf.nGrow() == 0 || srcmf.size() == 0 || dstmf.size() == 0) return;
 
     BL_ASSERT(scomp+ncomp <= srcmf.nComp());
     BL_ASSERT(dcomp+ncomp <= dstmf.nComp());
+    BL_ASSERT(srcmf.boxArray()[0].ixType() == dstmf.boxArray()[0].ixType());
 
 #ifndef NDEBUG
     //
