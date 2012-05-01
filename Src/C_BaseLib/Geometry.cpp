@@ -313,6 +313,14 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
         }
     }
 
+    int nrecv = pirm.size();
+    ParallelDescriptor::ReduceIntMax(nrecv);
+    if (nrecv == 0)
+        //
+        // There's no parallel work to do.
+        //
+        return;
+
     mfcd.CollectData();
 
     FArrayBox fab;
@@ -403,6 +411,14 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
             }
         }
     }
+
+    int nrecv = pirm.size();
+    ParallelDescriptor::ReduceIntMax(nrecv);
+    if (nrecv == 0)
+        //
+        // There's no parallel work to do.
+        //
+        return;
 
     mfcd.CollectData();
 
