@@ -1202,13 +1202,13 @@ contains
                    bxasc%r_con%rcv => n_rcv
                 end if
                 cnt_r                    = cnt_r + 1
-                parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
-                pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(dbx)
+                parr(lap%prc(i), 1)      = parr(lap%prc(i), 1) + 1
+                pvol(lap%prc(i), 1)      = pvol(lap%prc(i), 1) + volume(dbx)
                 bxasc%r_con%rcv(i_r)%nd  = j
                 bxasc%r_con%rcv(i_r)%ns  = i
                 bxasc%r_con%rcv(i_r)%sbx = sbx
                 bxasc%r_con%rcv(i_r)%dbx = dbx
-                bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
+                bxasc%r_con%rcv(i_r)%pr  = get_proc(la, i)
                 sh                       = 1
                 sh(1:bxasc%dim)          = extent(dbx)
                 bxasc%r_con%rcv(i_r)%sh  = sh
@@ -1221,13 +1221,13 @@ contains
                    bxasc%r_con%snd => n_snd
                 end if
                 cnt_s                    = cnt_s + 1
-                parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
-                pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(dbx)
+                parr(lap%prc(j), 2)      = parr(lap%prc(j), 2) + 1
+                pvol(lap%prc(j), 2)      = pvol(lap%prc(j), 2) + volume(dbx)
                 bxasc%r_con%snd(i_s)%nd  = j
                 bxasc%r_con%snd(i_s)%ns  = i
                 bxasc%r_con%snd(i_s)%sbx = sbx
                 bxasc%r_con%snd(i_s)%dbx = dbx
-                bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
+                bxasc%r_con%snd(i_s)%pr  = get_proc(la, j)
                 i_s                      = i_s + 1
              end if
           end do
@@ -1447,7 +1447,7 @@ contains
        ppvol(i,2) = ppvol(i,2) + pv
     end do
     !
-    ! Now compute the volume of data the each processor expects.
+    ! Now compute the volume of data that each processor expects.
     !
     pcnt_r = count(parr(:,1) /= 0 )
     pcnt_s = count(parr(:,2) /= 0 )
