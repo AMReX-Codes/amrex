@@ -2331,21 +2331,27 @@ contains
     integer,        intent(in)           :: c, nc
     integer,        intent(in), optional :: ng
 
-    real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
+    real(dp_t), pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
     integer, allocatable    :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
     integer, parameter      :: tag = 1713
-    integer                 :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
+    integer                 :: i, ii, jj, np, sh(MAX_SPACEDIM+1), lng
     type(boxassoc)          :: bxasc
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
 
-    call boxassoc_build(bxasc, mf%la%lap, ng, mf%nodal, .false., .true.)
+    lng = mf%ng; if ( present(ng) ) lng = ng
+
+    if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_SUM_BOUNDARY_C: nc too large', nc)
+    if ( lng > mf%ng      ) call bl_error('MULTIFAB_SUM_BOUNDARY_C: ng too large', lng)
+    if ( lng < 1          ) return
+
+    call boxassoc_build(bxasc, mf%la%lap, lng, mf%nodal, .false., .true.)
 
     do i = 1, bxasc%l_con%ncpy
-       ii  =  bxasc%l_con%cpy(i)%nd
-       jj  =  bxasc%l_con%cpy(i)%ns
-       p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
-       p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
-       call sum_d(p1,p2)
+       ii   =  bxasc%l_con%cpy(i)%nd
+       jj   =  bxasc%l_con%cpy(i)%ns
+       pdst => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
+       psrc => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
+       call sum_d(pdst,psrc)
     end do
 
     np = parallel_nprocs()
@@ -2397,8 +2403,8 @@ contains
   end subroutine multifab_sum_boundary_c
 
   subroutine multifab_sum_boundary(mf, ng)
-    type(multifab), intent(inout)         :: mf
-    integer,        intent(in), optional  :: ng
+    type(multifab), intent(inout)        :: mf
+    integer,        intent(in), optional :: ng
     call multifab_sum_boundary_c(mf, 1, mf%nc, ng)
   end subroutine multifab_sum_boundary
   !
@@ -2409,26 +2415,35 @@ contains
     integer,         intent(in)           :: c, nc
     integer,         intent(in), optional :: ng
 
-    logical, pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
+    logical, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
     integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
     integer, parameter   :: tag = 1713
-    integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
+    integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1), lng
     type(boxassoc)       :: bxasc
     logical, allocatable :: g_snd_l(:), g_rcv_l(:)
 
-    call boxassoc_build(bxasc, mf%la%lap, ng, mf%nodal, .false., .true.)
+    lng = mf%ng; if ( present(ng) ) lng = ng
+
+    if ( mf%nc < (c+nc-1) ) call bl_error('LMULTIFAB_SUM_BOUNDARY_C: nc too large', nc)
+    if ( lng > mf%ng      ) call bl_error('LMULTIFAB_SUM_BOUNDARY_C: ng too large', lng)
+    if ( lng < 1          ) return
+
+    call boxassoc_build(bxasc, mf%la%lap, lng, mf%nodal, .false., .true.)
 
     do i = 1, bxasc%l_con%ncpy
-       ii  =  bxasc%l_con%cpy(i)%nd
-       jj  =  bxasc%l_con%cpy(i)%ns
-       p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
-       p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
-       call logical_or(p1,p2)
+       ii   =  bxasc%l_con%cpy(i)%nd
+       jj   =  bxasc%l_con%cpy(i)%ns
+       pdst => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
+       psrc => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
+       call logical_or(pdst,psrc)
     end do
 
     np = parallel_nprocs()
-
-    if (np == 1) return
+    
+    if (np == 1) then
+       call boxassoc_destroy(bxasc)
+       return
+    end if
 
     allocate(g_snd_l(nc*bxasc%r_con%svol))
     allocate(g_rcv_l(nc*bxasc%r_con%rvol))
@@ -2471,6 +2486,8 @@ contains
        p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_l_1_4(p, g_rcv_l, 1 + nc*bxasc%r_con%rcv(i)%pv, sh, logical_or)
     end do
+
+    call boxassoc_destroy(bxasc)
 
   end subroutine lmultifab_sum_boundary_c
 
