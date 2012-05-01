@@ -584,6 +584,14 @@ namespace BoxLib
                                    !corners);
         }
 
+        int nrecv = pirm.size();
+        ParallelDescriptor::ReduceIntMax(nrecv);
+        if (nrecv == 0)
+            //
+            // There's no parallel work to do.
+            //
+            return;
+
         mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
 
         for (Geometry::PIRMList::const_iterator it = pirm.begin(), End = pirm.end();
