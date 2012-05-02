@@ -421,24 +421,26 @@ namespace BoxLib
               const Geometry&      geom,
               const Geometry::FPB& fpb)
     {
-        const int key = mf.nGrow() + mf.size();
+        BL_ASSERT(mf.size()  > 0);
+        BL_ASSERT(mf.nGrow() > 0);
+        BL_ASSERT(geom.isAnyPeriodic());
 
-        Geometry::FPBMMapIter it = Geometry::m_FPBCache.insert(std::make_pair(key,fpb));
-
-        Geometry::PIRMList& pirm = it->second.m_pirm;
+        const int             key  = mf.nGrow() + mf.size();
+        Geometry::FPBMMapIter it   = Geometry::m_FPBCache.insert(std::make_pair(key,fpb));
+        Geometry::PIRMList&   pirm = it->second.m_pirm;
 
         Array<IntVect> pshifts(27);
+
+        Box TheDomain = geom.Domain();
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
+                TheDomain.surroundingNodes(n);
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
             const Box& dest = mf[mfi].box();
 
             BL_ASSERT(dest == BoxLib::grow(mfi.validbox(), mf.nGrow()));
-
-            Box TheDomain = geom.Domain();
-            for (int n = 0; n < BL_SPACEDIM; n++)
-                if (dest.ixType()[n] == IndexType::NODE)
-                    TheDomain.surroundingNodes(n);
 
             if (!TheDomain.contains(dest))
             {
@@ -550,9 +552,14 @@ namespace BoxLib
                           int             ncomp,
                           bool            corners=false)
     {
-        if (!geom.isAnyPeriodic() || mf.nGrow() == 0) return;
+        if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
-        if (geom.Domain().contains(BoxLib::grow(mf.boxArray().minimalBox(), mf.nGrow()))) return;
+        Box TheDomain = geom.Domain();
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
+                TheDomain.surroundingNodes(n);
+
+        if (TheDomain.contains(BoxLib::grow(mf.boxArray().minimalBox(), mf.nGrow()))) return;
 
 #ifndef NDEBUG
         //
