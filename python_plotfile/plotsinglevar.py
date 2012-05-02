@@ -21,7 +21,8 @@ import mpl_toolkits.axes_grid1
 # do_plot
 #==============================================================================
 def do_plot(plotfile, component, component2, outFile, log, 
-            minval, maxval, eps, dpi, origin, annotation):
+            minval, maxval, eps, dpi, origin, annotation, 
+            xmax_pass, ymax_pass, zmax_pass):
 
 
     #--------------------------------------------------------------------------
@@ -58,10 +59,15 @@ def do_plot(plotfile, component, component2, outFile, log,
     (xmin, xmax, ymin, ymax, zmin, zmax) = \
         fsnapshot.fplotfile_get_limits(plotfile)
 
-    x = xmin + numpy.arange( (nx), dtype=numpy.float64 )*(xmax - xmin)/nx
-    y = ymin + numpy.arange( (ny), dtype=numpy.float64 )*(ymax - ymin)/ny
+    dx = (xmax - xmin)/nx
+    x = xmin + numpy.arange( (nx), dtype=numpy.float64 )*dx
+
+    dy = (ymax - ymin)/ny
+    y = ymin + numpy.arange( (ny), dtype=numpy.float64 )*dy
+
     if (nz > 0):
-        z = zmin + numpy.arange( (nz), dtype=numpy.float64 )*(zmax - zmin)/nz
+        dz = (zmax - zmin)/nz
+        z = zmin + numpy.arange( (nz), dtype=numpy.float64 )*dz
 
 
     if (nz == -1):
@@ -69,7 +75,21 @@ def do_plot(plotfile, component, component2, outFile, log,
         #----------------------------------------------------------------------
         # 2-d plots
         #----------------------------------------------------------------------
-        extent = xmin, xmax, ymin, ymax
+        extent = [xmin, xmax, ymin, ymax]
+
+        if (not xmax_pass == None):
+            extent[1] = xmax_pass
+
+        if (not ymax_pass == None):
+            extent[3] = ymax_pass
+
+        ix = nx
+        if (not xmax_pass == None):
+            ix = int((xmax_pass - xmin)/dx)
+
+        iy = ny
+        if (not ymax_pass == None):
+            iy = int((ymax_pass - ymin)/dy)
 
         # read in the main component
         data = numpy.zeros( (nx, ny), dtype=numpy.float64)
@@ -112,7 +132,7 @@ def do_plot(plotfile, component, component2, outFile, log,
 
         divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)    
 
-        im=pylab.imshow(data,origin='lower', extent=extent, vmin=minval, vmax=maxval)
+        im=pylab.imshow(data[0:iy,0:ix],origin='lower', extent=extent, vmin=minval, vmax=maxval)
 
         pylab.title(component)
         pylab.xlabel("x")
@@ -168,7 +188,7 @@ def do_plot(plotfile, component, component2, outFile, log,
 
             divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
 
-            im = pylab.imshow(data2, origin='lower', extent=extent, 
+            im = pylab.imshow(data2[0:iy,0:ix], origin='lower', extent=extent, 
                               vmin=minval, vmax=maxval)
 
             pylab.title(component2)
@@ -207,17 +227,6 @@ def do_plot(plotfile, component, component2, outFile, log,
         # 3-d plot
         #----------------------------------------------------------------------
 
-
-        # figure out the maximum width -- we will plot xy, xz, and yz
-        w1 = xmax - xmin  # also w2
-        w3 = ymax - ymin
-
-        if (w3 > w1):
-            scale = w3
-        else:
-            scale = w1
-        
-
         # starting points for the figure positions
 
         # assume that the width of the plotting area is 0.05 to 0.95,
@@ -236,10 +245,26 @@ def do_plot(plotfile, component, component2, outFile, log,
 
 
         # x-y
-        extent = xmin, xmax, ymin, ymax
+        extent = [xmin, xmax, ymin, ymax]
+
+        if (not xmax_pass == None):
+            extent[1] = xmax_pass
+
+        if (not ymax_pass == None):
+            extent[3] = ymax_pass
+
+        ix = nx
+        if (not xmax_pass == None):
+            ix = int((xmax_pass - xmin)/dx)
+
+        iy = ny
+        if (not ymax_pass == None):
+            iy = int((ymax_pass - ymin)/dy)
+
 
         # read in the main component
         data = numpy.zeros( (nx, ny), dtype=numpy.float64)
+
 
         indir = 3
         (data, err) = \
@@ -260,7 +285,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         pylab.subplots_adjust(wspace=0.4)
         #fig.add_axes(pos1)
 
-        im=pylab.imshow(data,origin='lower', extent=extent, 
+        im=pylab.imshow(data[0:iy,0:ix],origin='lower', extent=extent, 
                         vmin=minval, vmax=maxval, axes=pos1)
 
         pylab.xlabel("x")
@@ -290,7 +315,22 @@ def do_plot(plotfile, component, component2, outFile, log,
 
 
         # x-z
-        extent = xmin, xmax, zmin, zmax
+        extent = [xmin, xmax, zmin, zmax]
+
+        if (not xmax_pass == None):
+            extent[1] = xmax_pass
+
+        if (not zmax_pass == None):
+            extent[3] = zmax_pass
+
+        ix = nx
+        if (not xmax_pass == None):
+            ix = int((xmax_pass - xmin)/dx)
+
+        iz = nz
+        if (not zmax_pass == None):
+            iz = int((zmax_pass - zmin)/dz)
+
 
         # read in the main component
         data = numpy.zeros( (nx, nz), dtype=numpy.float64)
@@ -311,7 +351,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         ax = pylab.subplot(1,3,2)
         #fig.add_axes(pos2)
 
-        im=pylab.imshow(data,origin='lower', extent=extent, 
+        im=pylab.imshow(data[0:iz,0:ix],origin='lower', extent=extent, 
                         vmin=minval, vmax=maxval, axes=pos2)
 
         pylab.xlabel("x")
@@ -332,7 +372,22 @@ def do_plot(plotfile, component, component2, outFile, log,
 
 
         # y-z
-        extent = ymin, ymax, zmin, zmax
+        extent = [ymin, ymax, zmin, zmax]
+
+        if (not ymax_pass == None):
+            extent[1] = ymax_pass
+
+        if (not zmax_pass == None):
+            extent[3] = zmax_pass
+
+        iy = ny
+        if (not ymax_pass == None):
+            iy = int((ymax_pass - ymin)/dy)
+
+        iz = nz
+        if (not zmax_pass == None):
+            iz = int((zmax_pass - zmin)/dz)
+
 
         # read in the main component
         data = numpy.zeros( (ny, nz), dtype=numpy.float64)
@@ -353,7 +408,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         ax = pylab.subplot(1,3,3)
         #fig.add_axes(pos3)
 
-        im=pylab.imshow(data,origin='lower', extent=extent, 
+        im=pylab.imshow(data[0:iz,0:iy],origin='lower', extent=extent, 
                         vmin=minval, vmax=maxval, axes=pos3)
 
         pylab.xlabel("y")
@@ -450,8 +505,11 @@ if __name__== "__main__":
     dpi = 100
     origin = 0
     annotation = ""
+    xmax = None
+    ymax = None
+    zmax = None
 
-    try: opts, next = getopt.getopt(sys.argv[1:], "o:m:M:", 
+    try: opts, next = getopt.getopt(sys.argv[1:], "o:m:M:X:Y:Z:", 
                                     ["log","eps","dpi=","origin","annotate="])
     except getopt.GetoptError:
         print "invalid calling sequence"
@@ -476,6 +534,24 @@ if __name__== "__main__":
                 print "invalid value for -M"
                 sys.exit(2)
 
+        if o == "-X":
+            try: xmax = float(a)
+            except ValueError:
+                print "invalid value for -X"
+                sys.exit(2)            
+
+        if o == "-Y":
+            try: ymax = float(a)
+            except ValueError:
+                print "invalid value for -Y"
+                sys.exit(2)            
+
+        if o == "-Z":
+            try: zmax = float(a)
+            except ValueError:
+                print "invalid value for -Z"
+                sys.exit(2)            
+ 
         if o == "--log":
             log = 1
 
@@ -513,4 +589,5 @@ if __name__== "__main__":
         component2 = ""
 
     do_plot(plotfile, component, component2, outFile, 
-            log, minvar, maxvar, eps, dpi, origin, annotation)
+            log, minvar, maxvar, eps, dpi, origin, annotation,
+            xmax, ymax, zmax)
