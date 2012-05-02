@@ -186,7 +186,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 bool      corners,
                                 bool      local) const
 {
-    if (!isAnyPeriodic() || mf.size() == 0) return;
+    if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
     Box TheDomain = Domain();
     for (int n = 0; n < BL_SPACEDIM; n++)
