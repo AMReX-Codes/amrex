@@ -1143,30 +1143,215 @@ contains
 
   end subroutine boxarray_bndry_periodic
 
-  subroutine boxassoc_build(bxasc, lap, ng, nodal, cross)
+  subroutine sumassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, lcnt_r, cnt_s, cnt_r, pvol, parr)
+    type(boxassoc),   intent(inout) :: bxasc
+    type(layout),     intent(inout) :: la
+    type(layout_rep), intent(in)    :: lap
+    type(layout),     intent(inout) :: latmp
+    integer,          intent(in)    :: ng
+    logical,          intent(in)    :: anynodal
+    integer,          intent(inout) :: lcnt_r, cnt_s, cnt_r
+    integer,          intent(inout) :: pvol(0:,:), parr(0:,:)
+
+    integer                         :: i, j, ii, jj, i_r, i_s, li_r
+    type(boxarray)                  :: bxa, bxai
+    type(box)                       :: sbx, dbx
+    type(local_copy_desc), pointer  :: n_cpy(:) => Null()
+    type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
+    type(box_intersector), pointer  :: bi(:)
+    integer                         :: shft(2*3**la%lap%dim,la%lap%dim), sh(MAX_SPACEDIM+1)
+    integer, parameter              :: ChunkSize = 50
+
+    bxa = get_boxarray(la)
+
+    li_r = 1; i_r = 1; i_s = 1
+    !
+    ! Consider all copies I <- J.
+    !
+    do i = 1, nboxes(bxa)
+       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, .false.)
+       do ii = 1, nboxes(bxai)
+          if ( anynodal ) then
+             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
+          else
+             bi => layout_get_box_intersector(la,    get_box(bxai,ii))
+          end if
+          do jj = 1, size(bi)
+             j   = bi(jj)%i
+             if ( remote(la,i) .and. remote(la,j) ) cycle
+             dbx = bi(jj)%bx
+             sbx = shift(dbx,-shft(ii,:))
+             if ( local(la,i) .and. local(la, j) ) then
+                if ( li_r > size(bxasc%l_con%cpy) ) then
+                   allocate(n_cpy(size(bxasc%l_con%cpy) + ChunkSize))
+                   n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
+                   deallocate(bxasc%l_con%cpy)
+                   bxasc%l_con%cpy => n_cpy
+                end if
+                lcnt_r                    = lcnt_r + 1
+                bxasc%l_con%cpy(li_r)%nd  = j
+                bxasc%l_con%cpy(li_r)%ns  = i
+                bxasc%l_con%cpy(li_r)%sbx = sbx
+                bxasc%l_con%cpy(li_r)%dbx = dbx
+                li_r                      = li_r + 1
+             else if ( local(la, j) ) then
+                if ( i_r > size(bxasc%r_con%rcv) ) then
+                   allocate(n_rcv(size(bxasc%r_con%rcv) + ChunkSize))
+                   n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
+                   deallocate(bxasc%r_con%rcv)
+                   bxasc%r_con%rcv => n_rcv
+                end if
+                cnt_r                    = cnt_r + 1
+                parr(lap%prc(i), 1)      = parr(lap%prc(i), 1) + 1
+                pvol(lap%prc(i), 1)      = pvol(lap%prc(i), 1) + volume(dbx)
+                bxasc%r_con%rcv(i_r)%nd  = j
+                bxasc%r_con%rcv(i_r)%ns  = i
+                bxasc%r_con%rcv(i_r)%sbx = sbx
+                bxasc%r_con%rcv(i_r)%dbx = dbx
+                bxasc%r_con%rcv(i_r)%pr  = get_proc(la, i)
+                sh                       = 1
+                sh(1:bxasc%dim)          = extent(dbx)
+                bxasc%r_con%rcv(i_r)%sh  = sh
+                i_r                      = i_r + 1
+             else if ( local(la, i) ) then
+                if ( i_s > size(bxasc%r_con%snd) ) then
+                   allocate(n_snd(size(bxasc%r_con%snd) + ChunkSize))
+                   n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
+                   deallocate(bxasc%r_con%snd)
+                   bxasc%r_con%snd => n_snd
+                end if
+                cnt_s                    = cnt_s + 1
+                parr(lap%prc(j), 2)      = parr(lap%prc(j), 2) + 1
+                pvol(lap%prc(j), 2)      = pvol(lap%prc(j), 2) + volume(dbx)
+                bxasc%r_con%snd(i_s)%nd  = j
+                bxasc%r_con%snd(i_s)%ns  = i
+                bxasc%r_con%snd(i_s)%sbx = sbx
+                bxasc%r_con%snd(i_s)%dbx = dbx
+                bxasc%r_con%snd(i_s)%pr  = get_proc(la, j)
+                i_s                      = i_s + 1
+             end if
+          end do
+          deallocate(bi)
+       end do
+       call boxarray_destroy(bxai)
+    end do
+  end subroutine sumassoc_build_innards
+
+  subroutine boxassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
+    type(boxassoc),   intent(inout) :: bxasc
+    type(layout),     intent(inout) :: la
+    type(layout_rep), intent(in)    :: lap
+    type(layout),     intent(inout) :: latmp
+    integer,          intent(in)    :: ng
+    logical,          intent(in)    :: anynodal
+    logical,          intent(in)    :: cross
+    integer,          intent(inout) :: lcnt_r, cnt_s, cnt_r
+    integer,          intent(inout) :: pvol(0:,:), parr(0:,:)
+
+    integer                         :: i, j, ii, jj, i_r, i_s, li_r
+    type(boxarray)                  :: bxa, bxai
+    type(box)                       :: sbx, dbx
+    type(local_copy_desc), pointer  :: n_cpy(:) => Null()
+    type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
+    type(box_intersector), pointer  :: bi(:)
+    integer                         :: shft(2*3**la%lap%dim,la%lap%dim), sh(MAX_SPACEDIM+1)
+    integer, parameter              :: ChunkSize = 50
+
+    bxa = get_boxarray(la)
+
+    li_r = 1; i_r = 1; i_s = 1
+    !
+    ! Consider all copies I <- J.
+    !
+    do i = 1, nboxes(bxa)
+       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, cross)
+       do ii = 1, nboxes(bxai)
+          if ( anynodal ) then
+             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
+          else
+             bi => layout_get_box_intersector(la,    get_box(bxai,ii))
+          end if
+          do jj = 1, size(bi)
+             j   = bi(jj)%i
+             if ( remote(la,i) .and. remote(la,j) ) cycle
+             sbx = bi(jj)%bx
+             dbx = shift(sbx,-shft(ii,:))
+             if ( local(la,i) .and. local(la, j) ) then
+                if ( li_r > size(bxasc%l_con%cpy) ) then
+                   allocate(n_cpy(size(bxasc%l_con%cpy) + ChunkSize))
+                   n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
+                   deallocate(bxasc%l_con%cpy)
+                   bxasc%l_con%cpy => n_cpy
+                end if
+                lcnt_r                    = lcnt_r + 1
+                bxasc%l_con%cpy(li_r)%nd  = i
+                bxasc%l_con%cpy(li_r)%ns  = j
+                bxasc%l_con%cpy(li_r)%sbx = sbx
+                bxasc%l_con%cpy(li_r)%dbx = dbx
+                li_r                      = li_r + 1
+             else if ( local(la, j) ) then
+                if ( i_s > size(bxasc%r_con%snd) ) then
+                   allocate(n_snd(size(bxasc%r_con%snd) + ChunkSize))
+                   n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
+                   deallocate(bxasc%r_con%snd)
+                   bxasc%r_con%snd => n_snd
+                end if
+                cnt_s                    = cnt_s + 1
+                parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
+                pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(sbx)
+                bxasc%r_con%snd(i_s)%nd  = i
+                bxasc%r_con%snd(i_s)%ns  = j
+                bxasc%r_con%snd(i_s)%sbx = sbx
+                bxasc%r_con%snd(i_s)%dbx = dbx
+                bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
+                i_s                      = i_s + 1
+             else if ( local(la, i) ) then
+                if ( i_r > size(bxasc%r_con%rcv) ) then
+                   allocate(n_rcv(size(bxasc%r_con%rcv) + ChunkSize))
+                   n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
+                   deallocate(bxasc%r_con%rcv)
+                   bxasc%r_con%rcv => n_rcv
+                end if
+                cnt_r                    = cnt_r + 1
+                parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
+                pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(sbx)
+                bxasc%r_con%rcv(i_r)%nd  = i
+                bxasc%r_con%rcv(i_r)%ns  = j
+                bxasc%r_con%rcv(i_r)%sbx = sbx
+                bxasc%r_con%rcv(i_r)%dbx = dbx
+                bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
+                sh                       = 1
+                sh(1:bxasc%dim)          = extent(sbx)
+                bxasc%r_con%rcv(i_r)%sh  = sh
+                i_r                      = i_r + 1
+             end if
+          end do
+          deallocate(bi)
+       end do
+       call boxarray_destroy(bxai)
+    end do
+  end subroutine boxassoc_build_innards
+
+  subroutine boxassoc_build(bxasc, lap, ng, nodal, cross, do_sum_boundary)
     use bl_prof_module
     use bl_error_module
 
-    integer,          intent(in)         :: ng
-    logical,          intent(in)         :: nodal(:)
-    type(layout_rep), intent(in), target :: lap
-    type(boxassoc),   intent(inout)      :: bxasc
-    logical,          intent(in)         :: cross
+    integer,          intent(in)           :: ng
+    logical,          intent(in)           :: nodal(:)
+    type(layout_rep), intent(in), target   :: lap
+    type(boxassoc),   intent(inout)        :: bxasc
+    logical,          intent(in)           :: cross
+    logical,          intent(in), optional :: do_sum_boundary
 
     integer                         :: pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
-    integer                         :: shft(2*3**lap%dim,lap%dim), sh(MAX_SPACEDIM+1)
-    type(box)                       :: abx
-    type(boxarray)                  :: bxa, bxai, batmp
+    type(boxarray)                  :: bxa, batmp
     type(layout)                    :: la, latmp
-    integer                         :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, np
-    integer                         :: i, j, ii, jj, lcnt_r_max, cnt_r_max, cnt_s_max
-    integer                         :: svol_max, rvol_max, ioproc
+    integer                         :: lcnt_r, cnt_r, cnt_s, i_r, i_s, np, i
     integer, parameter              :: ChunkSize = 50
     integer, allocatable            :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer  :: n_cpy(:) => Null()
     type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
-    type(box_intersector), pointer  :: bi(:)
-    logical                         :: anynodal
+    logical                         :: anynodal, ldsm
     type(bl_prof_timer), save       :: bpt
 
     if ( built_q(bxasc) ) call bl_error("boxassoc_build(): already built")
@@ -1181,6 +1366,8 @@ contains
     bxasc%cross  =  cross
     np           =  parallel_nprocs()
     anynodal     =  any( nodal .eqv. .true. )
+
+    ldsm = .false.; if ( present(do_sum_boundary) ) ldsm = do_sum_boundary
 
     allocate(bxasc%nodal(bxasc%dim))
     allocate(parr(0:np-1,2))
@@ -1202,76 +1389,15 @@ contains
 
     bxasc%nodal = nodal
 
-    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
-    !
-    ! Consider all copies I <- J.
-    !
-    do i = 1, nboxes(bxa)
-       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, cross)
-       do ii = 1, nboxes(bxai)
-          if ( anynodal ) then
-             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
-          else
-             bi => layout_get_box_intersector(la,    get_box(bxai,ii))
-          end if
-          do jj = 1, size(bi)
-             j   = bi(jj)%i
-             if ( remote(la,i) .and. remote(la,j) ) cycle
-             abx = bi(jj)%bx
-             if ( local(la,i) .and. local(la, j) ) then
-                if ( li_r > size(bxasc%l_con%cpy) ) then
-                   allocate(n_cpy(size(bxasc%l_con%cpy) + ChunkSize))
-                   n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
-                   deallocate(bxasc%l_con%cpy)
-                   bxasc%l_con%cpy => n_cpy
-                end if
-                lcnt_r                    = lcnt_r + 1
-                bxasc%l_con%cpy(li_r)%nd  = i
-                bxasc%l_con%cpy(li_r)%ns  = j
-                bxasc%l_con%cpy(li_r)%sbx = abx
-                bxasc%l_con%cpy(li_r)%dbx = shift(abx,-shft(ii,:))
-                li_r                      = li_r + 1
-             else if ( local(la, j) ) then
-                if ( i_s > size(bxasc%r_con%snd) ) then
-                   allocate(n_snd(size(bxasc%r_con%snd) + ChunkSize))
-                   n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
-                   deallocate(bxasc%r_con%snd)
-                   bxasc%r_con%snd => n_snd
-                end if
-                cnt_s                    = cnt_s + 1
-                parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
-                pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(abx)
-                bxasc%r_con%snd(i_s)%nd  = i
-                bxasc%r_con%snd(i_s)%ns  = j
-                bxasc%r_con%snd(i_s)%sbx = abx
-                bxasc%r_con%snd(i_s)%dbx = shift(abx,-shft(ii,:))
-                bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
-                i_s                      = i_s + 1
-             else if ( local(la, i) ) then
-                if ( i_r > size(bxasc%r_con%rcv) ) then
-                   allocate(n_rcv(size(bxasc%r_con%rcv) + ChunkSize))
-                   n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
-                   deallocate(bxasc%r_con%rcv)
-                   bxasc%r_con%rcv => n_rcv
-                end if
-                cnt_r                    = cnt_r + 1
-                parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
-                pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(abx)
-                bxasc%r_con%rcv(i_r)%nd  = i
-                bxasc%r_con%rcv(i_r)%ns  = j
-                bxasc%r_con%rcv(i_r)%sbx = abx
-                bxasc%r_con%rcv(i_r)%dbx = shift(abx,-shft(ii,:))
-                bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
-                sh                       = 1
-                sh(1:bxasc%dim)          = extent(abx)
-                bxasc%r_con%rcv(i_r)%sh  = sh
-                i_r                      = i_r + 1
-             end if
-          end do
-          deallocate(bi)
-       end do
-       call boxarray_destroy(bxai)
-    end do
+    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
+
+    if ( ldsm ) then
+       call sumassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, &
+            lcnt_r, cnt_s, cnt_r, pvol, parr)
+    else
+       call boxassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, cross, &
+            lcnt_r, cnt_s, cnt_r, pvol, parr)
+    end if
 
     if ( anynodal ) call destroy(latmp)
 
@@ -1321,7 +1447,7 @@ contains
        ppvol(i,2) = ppvol(i,2) + pv
     end do
     !
-    ! Now compute the volume of data the each processor expects
+    ! Now compute the volume of data that each processor expects.
     !
     pcnt_r = count(parr(:,1) /= 0 )
     pcnt_s = count(parr(:,2) /= 0 )
@@ -1519,13 +1645,11 @@ contains
     type(syncassoc),  intent(inout)      :: snasc
     logical,          intent(in)         :: lall
 
-    integer                        :: i, j, ii, jj, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    integer                        :: i, j, ii, jj, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s, np
     type(box)                      :: dbx, sbx
     type(boxarray)                 :: bxa
     type(layout)                   :: la
-    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, np
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, sh(MAX_SPACEDIM+1)
-    integer                        :: svol_max, rvol_max, ioproc
     integer, parameter             :: ChunkSize = 50
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
@@ -1752,11 +1876,9 @@ contains
     type(boxarray)                 :: batmp
     type(layout)                   :: lasrctmp
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
-    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
-    integer                        :: svol_max, rvol_max, ioproc
     integer, parameter             :: ChunkSize = 50
     type(box_intersector), pointer :: bi(:)
     type(bl_prof_timer), save      :: bpt
@@ -1958,19 +2080,15 @@ contains
     type(box)                      :: fbox, isect
     type(layout)                   :: lasrctmp
     type(boxarray)                 :: bxa_src, bxa_dst, batmp
-    integer                        :: lcnt_r_max, cnt_r_max, cnt_s_max, ii
-    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
+    integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, ii
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:), mpvol(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
     type(box), pointer             :: pfbxs(:) => Null()
     type(box_intersector), pointer :: bi(:)
-    integer                        :: svol_max, rvol_max, ioproc
     integer, parameter             :: ChunkSize = 50
     logical                        :: anynodal
     type(bl_prof_timer), save      :: bpt
-
-    type(box)                      :: lpd
 
     if ( built_q(flasc) ) call bl_error("fluxassoc_build(): already built")
 
