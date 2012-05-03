@@ -458,7 +458,7 @@ subroutine mgt_finalize_const_stencil_lev(lev, alpha_const, beta_const, xa, xb, 
   real(dp_t), intent(in) :: alpha_const, beta_const
   real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
     
-  integer        :: i, nlev, flev
+  integer        :: flev
 
   flev = lev + 1
   call mgt_verify_lev("MGT_FINALIZE_CONST_STENCIL_LEV", flev)
