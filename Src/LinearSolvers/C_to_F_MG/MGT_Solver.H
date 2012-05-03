@@ -93,6 +93,9 @@ public:
   void set_maxorder(const int max_order);
 
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+             const BndryData& bd, int need_grad_phi, Real& final_resnorm,int& status);
+
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, Real& final_resnorm);
 
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,

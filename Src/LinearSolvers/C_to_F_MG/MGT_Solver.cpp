@@ -142,7 +142,6 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
   :
   m_dmap(dmap), m_grids(grids), m_nodal(nodal), have_rhcc(_have_rhcc)
 {
-
    if (!initialized)
         initialize(nodal);
 
@@ -382,7 +381,6 @@ MGT_Solver::initialize(bool nodal)
     pp.query("bot_atol", def_atol_b);
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
 */
-
     {
         ParmParse pp("cg");
         pp.query("v", def_cg_verbose);
@@ -964,12 +962,20 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, Real& final_resnorm)
 {
-  solve(uu,rh,tol,abs_tol,bd,0,final_resnorm);
+    solve(uu,rh,tol,abs_tol,bd,0,final_resnorm);
 }
 
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, int need_grad_phi, Real& final_resnorm)
+{
+    int ignore;
+    solve(uu,rh,tol,abs_tol,bd,need_grad_phi,final_resnorm,ignore);
+}
+
+void 
+MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+                  const BndryData& bd, int need_grad_phi, Real& final_resnorm,int& status)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
@@ -1008,7 +1014,8 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+  mgt_solve_stat(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+  if (status == 1) return;
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
@@ -1071,7 +1078,8 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+  int ignore;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&ignore);
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
@@ -1118,7 +1126,8 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+  int ignore;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&ignore);
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;

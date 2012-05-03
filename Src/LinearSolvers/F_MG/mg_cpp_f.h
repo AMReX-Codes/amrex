@@ -26,6 +26,7 @@
 #define mgt_nodal_dealloc         MGT_NODAL_DEALLOC
 #define mgt_applyop               MGT_APPLYOP
 #define mgt_solve                 MGT_SOLVE
+#define mgt_solve_stat                 MGT_SOLVE_STAT
 #define mgt_compute_flux          MGT_COMPUTE_FLUX
 #define mgt_delete_flux           MGT_DELETE_FLUX
 #define mgt_compute_residual      MGT_COMPUTE_RESIDUAL
@@ -164,6 +165,7 @@
 #define mgt_dealloc               mgt_dealloc_
 #define mgt_nodal_dealloc         mgt_nodal_dealloc_
 #define mgt_solve                 mgt_solve_
+#define mgt_solve_stat                 mgt_solve_stat_
 #define mgt_applyop               mgt_applyop_
 #define mgt_compute_flux          mgt_compute_flux_
 #define mgt_delete_flux           mgt_delete_flux_
@@ -301,6 +303,7 @@
 #define mgt_dealloc               mgt_dealloc__
 #define mgt_nodal_dealloc         mgt_nodal_dealloc__
 #define mgt_solve                 mgt_solve__
+#define mgt_solve_stat                 mgt_solve_stat__
 #define mgt_applyop               mgt_applyop__
 #define mgt_compute_flux          mgt_compute_flux__
 #define mgt_delete_flux           mgt_delete_flux_
@@ -789,7 +792,8 @@ extern "C"
 
   void mgt_nodal_dealloc();
   
-  void mgt_solve(const Real& tol, const Real& abs_tol, const int* need_grad_phi, Real* final_resnorm);
+  void mgt_solve(const Real& tol, const Real& abs_tol, const int* need_grad_phi, Real* final_resnorm,int* status);
+  void mgt_solve_stat(const Real& tol, const Real& abs_tol, const int* need_grad_phi, Real* final_resnorm,int* status);
 
   void mgt_applyop();
   
