@@ -50,9 +50,7 @@ writePlotFile (const std::string& dir,
 
         HeaderFile << mf.nComp() << '\n';
 
-	for (int ivar = 1; ivar <= mf.nComp(); ivar++) {
-	  HeaderFile << "Variable " << ivar << "\n";
-	}
+	HeaderFile << "phi" << "\n";
 
         HeaderFile << BL_SPACEDIM << '\n';
         HeaderFile << 0 << '\n';
