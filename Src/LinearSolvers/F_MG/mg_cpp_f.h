@@ -792,8 +792,10 @@ extern "C"
 
   void mgt_nodal_dealloc();
   
-  void mgt_solve(const Real& tol, const Real& abs_tol, const int* need_grad_phi, Real* final_resnorm,int* status);
-  void mgt_solve_stat(const Real& tol, const Real& abs_tol, const int* need_grad_phi, Real* final_resnorm,int* status);
+  void mgt_solve(const Real& tol, const Real& abs_tol, const int* need_grad_phi, Real* final_resnorm, 
+                 int* status);
+  void mgt_solve_stat(const Real& tol, const Real& abs_tol, const int* need_grad_phi, Real* final_resnorm,
+                      int* status);
 
   void mgt_applyop();
   
@@ -813,6 +815,7 @@ extern "C"
                         const int* gamma, const Real* omega,
                         const int* max_iter, const int* bottom_max_iter,
                         const int* bottom_solver, const Real* bottom_solver_eps,
+                        const Real* max_L0_growth,
                         const int* verbose, const int* cg_verbose,
                         const int* max_nlevel, const int* min_width,
                         const int* cycle, const int* smoother, const int* stencil_type);
@@ -829,6 +832,7 @@ extern "C"
                         const int* gamma, const Real* omega,
                         const int* max_iter, const int* bottom_max_iter,
                         const int* bottom_solver,
+                        const Real* max_L0_growth,
                         const int* verbose, const int* cg_verbose,
                         const int* max_nlevel, const int* min_width,
                         const int* cycle, const int* smoother);

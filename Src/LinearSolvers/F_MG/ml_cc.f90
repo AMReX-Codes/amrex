@@ -55,11 +55,8 @@ contains
 
     real(dp_t) :: r1,r2
     logical :: solved, solver_making_progress
-    real(dp_t) :: max_L0_growth
 
     type(bl_prof_timer), save :: bpt
-
-    max_L0_growth = 1.001
     solved = .false.
 
     call build(bpt, "ml_cc")
@@ -548,21 +545,19 @@ contains
 
              fine_converged = .false.
 
-             if ( (max_L0_growth > 1) .or. (mgt(nlevs)%verbose > 1) ) then
-
+             ! Only compute this once if we're going to use it
+             if (mgt(nlevs)%max_L0_growth > 1 .or. mgt(nlevs)%verbose > 1 ) &
                 tres = norm_inf(res(nlevs))
 
-                if (tres/tres0 > max_L0_growth) then
-                   if ( mgt(nlevs)%verbose > 1  .and. parallel_IOProcessor() ) &
-                        write(unit=*, fmt='("F90mg: Iteration blowing up, bailing...")')
-                   solver_making_progress = .false.
-                endif
-
+             ! Test on growth only if max_L0_growth > 1
+             if ( (mgt(nlevs)%max_L0_growth > 1) .and. (tres/tres0 > mgt(nlevs)%max_L0_growth) ) then
+                if ( mgt(nlevs)%verbose > 1  .and. parallel_IOProcessor() ) &
+                     write(unit=*, fmt='("F90mg: Iteration blowing up, bailing...")')
+                solver_making_progress = .false.
              endif
 
-             ! Note: tres computed in above if block if reqd here
-             if ( ( mgt(nlevs)%verbose > 1 ) .and. ( parallel_IOProcessor() ) ) then
-                !               write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
+             if ( mgt(nlevs)%verbose > 1 .and. parallel_IOProcessor() ) then
+                ! write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
                 write(unit=*, fmt='("F90mg: Iteration   ",i3," Fine  resid/resid0 = ",g15.8)') iter,tres/tres0
              end if
 

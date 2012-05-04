@@ -134,6 +134,7 @@ public:
   static int def_maxiter, def_maxiter_b, def_bottom_solver;
   static int def_nu_1, def_nu_2, def_nu_b, def_nu_f, def_gamma;
   static Real def_omega, def_bottom_solver_eps;
+  static Real def_max_L0_growth;
   static int def_verbose, def_cg_verbose, def_min_width, def_max_nlevel;
   static int def_cycle, def_smoother;
   static int def_usecg, def_cg_solver;

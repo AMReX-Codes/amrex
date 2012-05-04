@@ -9,6 +9,7 @@ int   MGT_Solver::def_nu_b;
 int   MGT_Solver::def_nu_f;
 int   MGT_Solver::def_gamma;
 Real  MGT_Solver::def_omega;
+Real  MGT_Solver::def_max_L0_growth;
 int   MGT_Solver::def_maxiter;
 int   MGT_Solver::def_maxiter_b;
 int   MGT_Solver::def_verbose;
@@ -164,6 +165,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
     mgt_alloc(&dm, &m_nlevel, &i_nodal);
     mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
                      &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
+                     &def_max_L0_growth,
                      &def_verbose,&def_cg_verbose,&def_max_nlevel,
                      &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   }
@@ -256,6 +258,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
     mgt_alloc(&dm, &m_nlevel, &i_nodal);
     mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
                      &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
+                     &def_max_L0_growth,
                      &def_verbose,&def_cg_verbose,&def_max_nlevel,
                      &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   }
@@ -346,7 +349,7 @@ MGT_Solver::initialize(bool nodal)
       def_nu_b = 2;
     } else {
       mgt_get_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
-                       &def_maxiter,&def_maxiter_b,&def_bottom_solver,
+                       &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_max_L0_growth,
                        &def_verbose,&def_cg_verbose,&def_max_nlevel,&def_min_width,&def_cycle,&def_smoother);
     }
 
@@ -375,6 +378,7 @@ MGT_Solver::initialize(bool nodal)
     pp.query("numLevelsMAX", def_max_nlevel);
     pp.query("smoother", def_smoother);
     pp.query("stencil_type", stencil_type);
+    pp.query("max_L0_growth", def_max_L0_growth);
 
 /*
     pp.query("nu_0", def_nu_0);
