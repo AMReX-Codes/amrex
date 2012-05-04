@@ -15,6 +15,7 @@ module cpp_mg_module
      integer         :: nu1, nu2, nuf, nub
      integer         :: gamma
      real(dp_t)      :: omega
+     real(dp_t)      :: max_L0_growth
      integer         :: max_iter
      integer         :: max_nlevel
      integer         :: min_width
@@ -1528,13 +1529,13 @@ subroutine mgt_delete_flux(lev)
 end subroutine mgt_delete_flux
 
 subroutine mgt_set_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_iter, &
-                            bottom_solver,bottom_solver_eps, &
+                            bottom_solver,bottom_solver_eps,max_L0_growth, &
                             verbose,cg_verbose,max_nlevel,min_width,cycle_type,smoother)
   use cpp_mg_module
   implicit none
   integer   , intent(in) :: nu_1,nu_2,nu_b,nu_f,gamma,max_iter,bottom_max_iter,bottom_solver
   integer   , intent(in) :: verbose, cg_verbose, max_nlevel, min_width, cycle_type, smoother
-  real(dp_t), intent(in) :: omega, bottom_solver_eps
+  real(dp_t), intent(in) :: omega, bottom_solver_eps, max_L0_growth 
 
   call mgt_not_final("MGT_SET_DEFAULTS")
 
@@ -1555,16 +1556,18 @@ subroutine mgt_set_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_
   mgts%max_nlevel      = max_nlevel
   mgts%min_width       = min_width
 
+  mgts%max_L0_growth   = max_L0_growth
+
 end subroutine mgt_set_defaults
 
 subroutine mgt_get_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_iter, &
-                            bottom_solver, &
+                            bottom_solver,max_L0_growth, &
                             verbose,cg_verbose,max_nlevel,min_width,cycle_type,smoother)
   use cpp_mg_module
   implicit none
   integer   , intent(out) :: nu_1,nu_2,nu_b,nu_f,gamma,max_iter,bottom_max_iter,bottom_solver
   integer   , intent(out) :: verbose, cg_verbose, max_nlevel, min_width, cycle_type, smoother
-  real(dp_t), intent(out) :: omega
+  real(dp_t), intent(out) :: omega, max_L0_growth
 
   nu_1       = mgts%mg_tower_default%nu1
   nu_2       = mgts%mg_tower_default%nu2
@@ -1583,8 +1586,9 @@ subroutine mgt_get_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_
   max_nlevel      = mgts%mg_tower_default%max_nlevel
   min_width       = mgts%mg_tower_default%min_width
 
-end subroutine mgt_get_defaults
+  max_L0_growth   = mgts%mg_tower_default%max_L0_growth
 
+end subroutine mgt_get_defaults
 
 subroutine mgt_set_maxorder(max_order)
 
