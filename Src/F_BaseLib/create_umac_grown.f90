@@ -368,6 +368,7 @@ contains
 
     if (dir .eq. 1) then
 
+       !$OMP PARALLEL PRIVATE(i,j,k,jj,kk)
        do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)
@@ -380,9 +381,11 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL
 
     else if (dir .eq. 2) then
 
+       !$OMP PARALLEL PRIVATE(i,j,k,ii,kk)
        do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)
@@ -395,9 +398,11 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL
 
     else
 
+       !$OMP PARALLEL PRIVATE(i,j,k,ii,jj)
        do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)
@@ -410,6 +415,7 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL
 
     end if    
 
@@ -522,16 +528,25 @@ contains
     integer        , intent(in   ) :: lo(:),hi(:),dir,ng_f
     real(kind=dp_t), intent(inout) :: vel(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
 
-    ! local
     integer         :: i,j,k,signx,signy,signz
-    real(kind=dp_t) :: temp_velx_lo(lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-    real(kind=dp_t) :: temp_velx_hi(lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
-    real(kind=dp_t) :: temp_vely_lo(lo(1)-1:hi(1)+1,lo(3)-1:hi(3)+1)
-    real(kind=dp_t) :: temp_vely_hi(lo(1)-1:hi(1)+1,lo(3)-1:hi(3)+1)
-    real(kind=dp_t) :: temp_velz_lo(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1)
-    real(kind=dp_t) :: temp_velz_hi(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1)
+    ! real(kind=dp_t) :: temp_velx_lo(lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+    ! real(kind=dp_t) :: temp_velx_hi(lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+    ! real(kind=dp_t) :: temp_vely_lo(lo(1)-1:hi(1)+1,lo(3)-1:hi(3)+1)
+    ! real(kind=dp_t) :: temp_vely_hi(lo(1)-1:hi(1)+1,lo(3)-1:hi(3)+1)
+    ! real(kind=dp_t) :: temp_velz_lo(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1)
+    ! real(kind=dp_t) :: temp_velz_hi(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1)
+
+     real(kind=dp_t), allocatable :: temp_velx_lo(:,:)
+     real(kind=dp_t), allocatable :: temp_velx_hi(:,:)
+     real(kind=dp_t), allocatable :: temp_vely_lo(:,:)
+     real(kind=dp_t), allocatable :: temp_vely_hi(:,:)
+     real(kind=dp_t), allocatable :: temp_velz_lo(:,:)
+     real(kind=dp_t), allocatable :: temp_velz_hi(:,:)
 
     if (dir .eq. 1) then
+
+       allocate(temp_velx_lo(lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+       allocate(temp_velx_hi(lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
 
        ! for each normal velocity in the first fine ghost cell in the normal direction
        ! compute what the coarse velocity was that came from the first coarse ghost cell
@@ -596,6 +611,7 @@ contains
                   + EIGHTH*(vel(i,j,hi(3))+vel(i,j,hi(3)-1))
           end do
        end do
+
        do k=lo(3)-1,hi(3)+1
           do i=lo(1),hi(1)+1
              vel(i,lo(2)-1,k) = (3.d0/4.d0)*vel(i,lo(2)-1,k) &
@@ -605,7 +621,12 @@ contains
           end do
        end do
 
+       deallocate(temp_velx_lo, temp_velx_hi)
+
     else if (dir .eq. 2) then
+
+       allocate(temp_vely_lo(lo(1)-1:hi(1)+1,lo(3)-1:hi(3)+1))
+       allocate(temp_vely_hi(lo(1)-1:hi(1)+1,lo(3)-1:hi(3)+1))
 
        ! for each normal velocity in the first fine ghost cell in the normal direction
        ! compute what the coarse velocity was that came from the first coarse ghost cell
@@ -670,6 +691,7 @@ contains
                   + EIGHTH*(vel(i,j,hi(3))+vel(i,j,hi(3)-1))
           end do
        end do
+
        do k=lo(3)-1,hi(3)+1
           do j=lo(2),hi(2)+1
              vel(lo(1)-1,j,k) = (3.d0/4.d0)*vel(lo(1)-1,j,k) &
@@ -679,7 +701,12 @@ contains
           end do
        end do
 
+       deallocate(temp_vely_lo, temp_vely_hi)
+
     else
+
+       allocate(temp_velz_lo(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+       allocate(temp_velz_hi(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
 
        ! for each normal velocity in the first fine ghost cell in the normal direction
        ! compute what the coarse velocity was that came from the first coarse ghost cell
@@ -744,6 +771,7 @@ contains
                   + EIGHTH*(vel(i,hi(2),k)+vel(i,hi(2)-1,k))
           end do
        end do
+
        do k=lo(3),hi(3)+1
           do j=lo(2)-1,hi(2)+1
              vel(lo(1)-1,j,k) = (3.d0/4.d0)*vel(lo(1)-1,j,k) &
@@ -753,8 +781,9 @@ contains
           end do
        end do
 
-    end if
+       deallocate(temp_velz_lo, temp_velz_hi)
 
+    end if
 
   end subroutine correct_umac_grown_3d
 
