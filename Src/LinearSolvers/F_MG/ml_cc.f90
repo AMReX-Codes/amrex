@@ -251,6 +251,7 @@ contains
     r1 = parallel_wtime() 
 
     if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+       solved = .true.
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
 
@@ -683,7 +684,7 @@ contains
           status = 1
        endif
     endif
-    
+
   contains
 
     function ml_fine_converged(res, sol, bnorm, Anorm, rel_eps, abs_eps) result(r)
