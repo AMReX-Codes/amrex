@@ -152,9 +152,11 @@ public:
 
     long IncrementWithTotal (MultiFab& mf, int level);
 
-    void AssignDensity (MultiFab& mf, int level) const;
+    void AssignDensity (MultiFab& mf, int level, int ncomp=1) const;
 
-    void AssignDensity (PArray<MultiFab>& mf) const;
+    void AssignDensity (PArray<MultiFab>& mf, int ncomp = 1) const;
+
+    void AssignDensityAndVels (PArray<MultiFab>& mf) const;
 
     void MultiplyParticleMass (int lev, Real mult);
  
@@ -1461,9 +1463,11 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
 template <int N>
 void
 ParticleContainer<N>::AssignDensity (MultiFab& mf,
-                                     int       lev) const
+                                     int       lev,
+                                     int       ncomp) const
 {
     BL_ASSERT(N >= 1);
+    BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
     BL_ASSERT(lev == 0);
     BL_ASSERT(mf.boxArray() == m_amr->boxArray(lev));
 
@@ -1531,7 +1535,8 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
             for (int i = 0; i < M; i++)
             {
-                fab(cells[i]) += p.m_data[0] * fracs[i];
+                for (int n = 0; n < ncomp; n++)
+                   fab(cells[i],n) += p.m_data[n] * fracs[i];
             }
         }
     }
@@ -1568,9 +1573,17 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
+ParticleContainer<N>::AssignDensityAndVels (PArray<MultiFab>& mf) const
+{
+    AssignDensity(mf,BL_SPACEDIM+1);
+}
+
+template <int N>
+void
+ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
 {
     BL_ASSERT(N >= 1);
+    BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
     const int finest_level = m_amr->finestLevel();
 
@@ -1578,7 +1591,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
-        mf.set(lev, new MultiFab(m_amr->boxArray(lev), 1, 1));
+        mf.set(lev, new MultiFab(m_amr->boxArray(lev), ncomp, 1));
 
         for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
             mf[lev][mfi].setVal(0);
@@ -1589,7 +1602,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
         //
         // Just use the far simpler single-level version.
         //
-        AssignDensity(mf[0],0);
+        AssignDensity(mf[0],0,ncomp);
         return;
     }
     //
@@ -1769,7 +1782,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     // By far the most common case.  Just do it!
                     //
                     for (int i = 0; i < M; i++)
-                        fab(cells[i]) += p.m_data[0] * fracs[i];
+                        for (int n = 0; n < ncomp; n++)
+                            fab(cells[i],n) += p.m_data[n] * fracs[i];
                 }
                 else if (AnyFineToCrse)
                 {
@@ -1791,7 +1805,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             //
                             if (mf[lev-1].DistributionMap()[cgrid[i]] == ParallelDescriptor::MyProc())
                             {
-                                mf[lev-1][cgrid[i]](ccells[i]) += p.m_data[0] * cfracs[i];
+                                for (int n = 0; n < ncomp; n++)
+                                    mf[lev-1][cgrid[i]](ccells[i],n) += p.m_data[n] * cfracs[i];
                             }
                             else
                             {
@@ -1831,7 +1846,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             // They can't touch a Fine->Crse boundary.
                             //
                             sum_fine      += fracs[i];
-                            fab(cells[i]) += p.m_data[0] * fracs[i];
+                            for (int n = 0; n < ncomp; n++)
+                                fab(cells[i],n) += p.m_data[n] * fracs[i];
                             fwhich[i]      = false;
                         }
                         else if (compfvalid.contains(cells[i]))
@@ -1864,7 +1880,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     {
                         if (fwhich[i])
                         {
-                            fab(cells[i]) += p.m_data[0] * fracs[i] * mult;
+                            for (int n = 0; n < ncomp; n++)
+                                fab(cells[i],n) += p.m_data[n] * fracs[i] * mult;
                             sum_fine      +=               fracs[i] * mult;
                         }
                     }
@@ -1879,7 +1896,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                     {
                         if (!cwhich[i])
                         {
-                            fab(cells[i]) += p.m_data[0] * fracs[i];
+                            for (int n = 0; n < ncomp; n++)
+                                fab(cells[i],n) += p.m_data[n] * fracs[i];
                             sum           +=               fracs[i];
                         }
                         else
@@ -1893,7 +1911,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf) const
                             {
                                 if (mf[lev+1].DistributionMap()[fgrid[j]] == ParallelDescriptor::MyProc())
                                 {
-                                    mf[lev+1][fgrid[j]](fcells[j]) += p.m_data[0] * fracs[i] * ffrac[j];
+                                    for (int n = 0; n < ncomp; n++)
+                                        mf[lev+1][fgrid[j]](fcells[j],n) += p.m_data[n] * fracs[i] * ffrac[j];
                                 }
                                 else
                                 {
