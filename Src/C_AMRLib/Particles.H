@@ -90,7 +90,7 @@ struct ParticleBase
 
     static void CIC_Cells_Fracs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
 
-    static void AssignDensityDoit (PArray<MultiFab>& mf, std::deque<ParticleBase>& data);
+
     //
     // Sorting particles into lexicographic order of their cell position.
     //
@@ -133,6 +133,16 @@ public:
     // The type of Particles we hold.
     //
     typedef Particle<N> ParticleType;
+    //
+    // We want to store the particles on a level by level and grid by grid basis.  This will
+    // make accessing them and doing operations on them more memory efficient since most of our
+    // operations on particles are done on a level by level basis or grid by grid basis.
+    //
+    typedef typename std::deque<ParticleType> PBox;
+    //
+    // A level of particles is stored in a map indexed by the grid number.
+    //
+    typedef typename std::map<int,PBox> PMap;
 
     ParticleContainer (Amr* amr)
         :
@@ -157,6 +167,8 @@ public:
     void AssignDensity (PArray<MultiFab>& mf, int ncomp = 1) const;
 
     void AssignDensityAndVels (PArray<MultiFab>& mf) const;
+
+    void AssignDensityDoit (PArray<MultiFab>& mf, PBox& data, int ncomp) const;
 
     void MultiplyParticleMass (int lev, Real mult);
  
@@ -251,16 +263,7 @@ protected:
                                    int            grd,
                                    int            lev,
                                    std::ifstream& ifs);
-    //
-    // We want to store the particles on a level by level and grid by grid basis.  This will
-    // make accessing them and doing operations on them more memory efficient since most of our
-    // operations on particles are done on a level by level basis or grid by grid basis.
-    //
-    typedef typename std::deque<ParticleType> PBox;
-    //
-    // A level of particles is stored in a map indexed by the grid number.
-    //
-    typedef typename std::map<int,PBox> PMap;
+
     //
     // The data.
     //
@@ -1584,6 +1587,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
 {
     BL_ASSERT(N >= 1);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
+    if (ncomp == BL_SPACEDIM+1)
+        BL_ASSERT(N >= BL_SPACEDIM+1);
 
     const int finest_level = m_amr->finestLevel();
 
@@ -1606,13 +1611,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
         return;
     }
     //
-    // I'll use ParticleBases to hold all the info I need for parallel.
+    // This'll hold all the info I need for parallel.
     //
-    // What I'll use: m_lev, m_grid, m_cell & m_pos[0].
+    // What I'll use: m_lev, m_grid, m_cell & m_data[0..ncomp-1].
     //
     // This is the "data" needed by other MPI procs.
     //
-    std::deque<ParticleBase> data;
+    PBox data;
 
     const Real  stime = ParallelDescriptor::second();
     const int   M     = D_TERM(2,+2,+4);
@@ -1622,7 +1627,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
     Real    fracs[M],  cfracs[M];
     IntVect cells[M],  ccells[M], cfshifts[M];
 
-    ParticleBase pb;
+    ParticleType pb;
     //
     // I'm going to allocate these badboys here & pass'm into routines that use'm.
     // This should greatly cut down on memory allocation/deallocation.
@@ -1810,10 +1815,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                             }
                             else
                             {
-                                pb.m_lev    = lev-1;
-                                pb.m_grid   = cgrid[i];
-                                pb.m_cell   = ccells[i];
-                                pb.m_pos[0] = p.m_data[0] * cfracs[i];
+                                pb.m_lev  = lev-1;
+                                pb.m_grid = cgrid[i];
+                                pb.m_cell = ccells[i];
+
+                                for (int n = 0; n < ncomp; n++)
+                                    pb.m_data[n] = p.m_data[n] * cfracs[i];
 
                                 data.push_back(pb);
                             }
@@ -1845,10 +1852,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                             // Go ahead and add the full correct amount to these cells.
                             // They can't touch a Fine->Crse boundary.
                             //
-                            sum_fine      += fracs[i];
+                            sum_fine += fracs[i];
                             for (int n = 0; n < ncomp; n++)
                                 fab(cells[i],n) += p.m_data[n] * fracs[i];
-                            fwhich[i]      = false;
+                            fwhich[i] = false;
                         }
                         else if (compfvalid.contains(cells[i]))
                         {
@@ -1882,7 +1889,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                         {
                             for (int n = 0; n < ncomp; n++)
                                 fab(cells[i],n) += p.m_data[n] * fracs[i] * mult;
-                            sum_fine      +=               fracs[i] * mult;
+                            sum_fine += fracs[i] * mult;
                         }
                     }
 
@@ -1898,7 +1905,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                         {
                             for (int n = 0; n < ncomp; n++)
                                 fab(cells[i],n) += p.m_data[n] * fracs[i];
-                            sum           +=               fracs[i];
+                            sum += fracs[i];
                         }
                         else
                         {
@@ -1916,10 +1923,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                                 }
                                 else
                                 {
-                                    pb.m_lev    = lev+1;
-                                    pb.m_grid   = fgrid[j];
-                                    pb.m_cell   = fcells[j];
-                                    pb.m_pos[0] = p.m_data[0] * fracs[i] * ffrac[j];
+                                    pb.m_lev  = lev+1;
+                                    pb.m_grid = fgrid[j];
+                                    pb.m_cell = fcells[j];
+
+                                    for (int n = 0; n < ncomp; n++)
+                                        pb.m_data[n] = p.m_data[n] * fracs[i] * ffrac[j];
 
                                     data.push_back(pb);
                                 }
@@ -1939,7 +1948,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
     // This "may" touch ghost cells so we want to do it before
     // the SumBoundary() and SumPeriodicBoundary() stuff.
     //
-    ParticleBase::AssignDensityDoit(mf,data);
+    AssignDensityDoit(mf,data,ncomp);
 
     for (int i = 0; i <= finest_level; i++)
     {
@@ -1964,6 +1973,225 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
             std::cout << "ParticleContainer<N>::AssignDensity(multi-level) time: " << etime << '\n';
         }
     }
+}
+
+//
+// Used by AssignDensity (PArray<MultiFab>& mf).
+//
+// Passes data needed by Crse->Fine or Fine->Crse to CPU that needs it.
+//
+// We store the data that needs to be sent in "data".
+//
+
+template <int N>
+void
+ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
+                                         ParticleContainer<N>::PBox& data,
+                                         int                         ncomp) const
+{
+    BL_ASSERT(N >= ncomp);
+
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    if (NProcs == 1)
+    {
+        BL_ASSERT(data.empty());
+        return;
+    }
+
+#if BL_USE_MPI
+    //
+    // We may have data that needs to be sent to another CPU.
+    //
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    Array<int> Snds(NProcs,0);
+    Array<int> Rcvs(NProcs,0);
+
+    for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
+    {
+        const int lev = it->m_lev;
+        const int grd = it->m_grid;
+
+        BL_ASSERT(lev >= 0 && lev < mf.size());
+        BL_ASSERT(grd >= 0 && grd < mf[lev].size());
+
+        const int who = mf[lev].DistributionMap()[grd];
+
+        BL_ASSERT(who != MyProc);
+        BL_ASSERT(mf[lev].fabbox(grd).contains(it->m_cell));
+
+        Snds[who]++;
+    }
+
+    BL_ASSERT(Snds[MyProc] == 0);
+
+    long maxsendcount = 0;
+    for (int i = 0; i < NProcs; i++)
+        maxsendcount += Snds[i];
+    ParallelDescriptor::ReduceLongMax(maxsendcount);
+
+    if (maxsendcount == 0)
+    {
+        //
+        // There's no parallel work to do.
+        //
+        BL_ASSERT(data.empty());
+        return;
+    }
+
+    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<int>::type(),
+                                 Rcvs.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<int>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    BL_ASSERT(Rcvs[MyProc] == 0);
+
+    int NumRcvs = 0;
+    for (int i = 0; i < NProcs; i++)
+        NumRcvs += Rcvs[i];
+
+    int NumSnds = 0;
+    for (int i = 0; i < NProcs; i++)
+        NumSnds += Snds[i];
+
+    BL_ASSERT(data.size() == NumSnds);
+    //
+    // The data we receive from ParticleBases.
+    //
+    // We only use: m_lev, m_grid, m_cell & m_data[0..ncomp-1].
+    //
+    const int iChunkSize = 2 + BL_SPACEDIM;
+    const int rChunkSize = ncomp;
+
+    Array<int>  irecvdata (NumRcvs*iChunkSize);
+    Array<Real> rrecvdata (NumRcvs*rChunkSize);
+
+    Array<int>   offset(NProcs);
+    Array<int>  sdispls(NProcs);
+    Array<int>  rdispls(NProcs);
+    Array<int> sendcnts(NProcs);
+    Array<int> recvcnts(NProcs);
+
+    {
+        //
+        // First send/recv "int" data.
+        //
+        Array<int> senddata (NumSnds*iChunkSize);
+
+        offset[0] = sdispls[0] = rdispls[0] = 0;
+
+        for (int i = 0; i < NProcs; i++)
+        {
+            recvcnts[i] = Rcvs[i] * iChunkSize;
+            sendcnts[i] = Snds[i] * iChunkSize;
+
+            if (i > 0)
+            {
+                offset [i] = offset [i-1] + sendcnts[i-1];
+                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
+                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+            }
+        }
+
+        for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
+        {
+            const int who  = mf[it->m_lev].DistributionMap()[it->m_grid];
+            const int ioff = offset[who];
+
+            senddata[ioff+0] = it->m_lev;
+            senddata[ioff+1] = it->m_grid;
+
+            D_TERM(senddata[ioff+2] = it->m_cell[0];,
+                   senddata[ioff+3] = it->m_cell[1];,
+                   senddata[ioff+4] = it->m_cell[2];);
+
+            offset[who] += iChunkSize;
+        }
+
+        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
+                                      sendcnts.dataPtr(),
+                                      sdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<int>::type(),
+                                      NumRcvs == 0 ? 0 : irecvdata.dataPtr(),
+                                      recvcnts.dataPtr(),
+                                      rdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<int>::type(),
+                                      ParallelDescriptor::Communicator()) );
+    }
+
+    {
+        //
+        // Now send/recv the Real data.
+        //
+        Array<Real> senddata (NumSnds*rChunkSize);
+
+        offset[0] = sdispls[0] = rdispls[0] = 0;
+
+        for (int i = 0; i < NProcs; i++)
+        {
+            recvcnts[i] = Rcvs[i] * rChunkSize;
+            sendcnts[i] = Snds[i] * rChunkSize;
+
+            if (i > 0)
+            {
+                offset [i] = offset [i-1] + sendcnts[i-1];
+                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
+                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+            }
+        }
+
+        for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
+        {
+            const int who  = mf[it->m_lev].DistributionMap()[it->m_grid];
+            const int ioff = offset[who];
+
+            for (int n = 0; n < ncomp; n++)
+                senddata[ioff+n] = it->m_data[n];
+
+            offset[who] += rChunkSize;
+        }
+        //
+        // We can free up memory held by "data" -- don't need it anymore.
+        //
+        PBox().swap(data);
+
+        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
+                                      sendcnts.dataPtr(),
+                                      sdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
+                                      NumRcvs == 0 ? 0 : rrecvdata.dataPtr(),
+                                      recvcnts.dataPtr(),
+                                      rdispls.dataPtr(),
+                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
+                                      ParallelDescriptor::Communicator()) );
+    }
+    //
+    // Now update "mf".
+    //
+    if (NumRcvs > 0)
+    {
+        const int*  idata = irecvdata.dataPtr();
+        const Real* rdata = rrecvdata.dataPtr();
+
+        for (int i = 0; i < NumRcvs; i++)
+        {
+            const int     lev  = idata[0];
+            const int     grd  = idata[1];
+            const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
+
+            BL_ASSERT(mf[lev].DistributionMap()[grd] == MyProc);
+            BL_ASSERT(mf[lev][grd].box().contains(cell));
+
+            for (int n = 0; n < ncomp; n++)
+                mf[lev][grd](cell,n) += *rdata++;
+
+            idata += iChunkSize;
+        }
+    }
+#endif
 }
 
 template <int N>
