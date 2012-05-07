@@ -1586,9 +1586,8 @@ void
 ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
 {
     BL_ASSERT(N >= 1);
+    BL_ASSERT(N >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
-    if (ncomp == BL_SPACEDIM+1)
-        BL_ASSERT(N >= BL_SPACEDIM+1);
 
     const int finest_level = m_amr->finestLevel();
 
@@ -2186,9 +2185,10 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
             BL_ASSERT(mf[lev][grd].box().contains(cell));
 
             for (int n = 0; n < ncomp; n++)
-                mf[lev][grd](cell,n) += *rdata++;
+                mf[lev][grd](cell,n) += rdata[n];
 
             idata += iChunkSize;
+            rdata += rChunkSize;
         }
     }
 #endif
