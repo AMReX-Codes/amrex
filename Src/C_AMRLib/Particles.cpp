@@ -2,159 +2,6 @@
 #include <ParmParse.H>
 #include <limits>
 
-void
-ParticleBase::CIC_Fracs (const Real* frac, Real* fracs)
-{
-    //
-    // "frac"  should be dimensioned: Real frac[BL_SPACEDIM]
-    //
-    // "fracs" should be dimensioned: Real fracs[D_TERM(2,+2,+4)]
-    //
-#if (BL_SPACEDIM == 1)
-    // High
-    fracs[0] = frac[0];
-
-    // Low
-    fracs[1] = (1-frac[0]);
-
-#elif (BL_SPACEDIM == 2)
-    // HH
-    fracs[0] = frac[0] * frac[1] ;
-    
-    // LH
-    fracs[1] = (1-frac[0]) * frac[1];
-    
-    // LL
-    fracs[2] = (1-frac[0]) * (1-frac[1]);
-    
-    // HL
-    fracs[3] = frac[0] * (1-frac[1]);
-
-#elif (BL_SPACEDIM == 3)
-    // HHH
-    fracs[0] = frac[0] * frac[1] * frac[2];
-
-    // LHH
-    fracs[1] = (1-frac[0]) * frac[1] * frac[2];
-
-    // LLH
-    fracs[2] = (1-frac[0]) * (1-frac[1]) * frac[2];
-    
-    // HLH
-    fracs[3] = frac[0] * (1-frac[1]) * frac[2];
-
-    // HHL
-    fracs[4] = frac[0] * frac[1] * (1-frac[2]);
-    
-    // LHL
-    fracs[5] = (1-frac[0]) * frac[1] * (1-frac[2]);
-
-    // LLL
-    fracs[6] = (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
-    
-    // HLL
-    fracs[7] = frac[0] * (1-frac[1]) * (1-frac[2]);
-#endif
-}
-
-void
-ParticleBase::CIC_Cells (const IntVect& hicell, IntVect* cells)
-{
-    //
-    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
-    //
-    IntVect cell = hicell;
-
-#if (BL_SPACEDIM == 1)
-    // High
-    cells[0] = cell;
-
-    // Low
-    cell[0]  = cell[0] - 1;
-    cells[1] = cell;
-
-#elif (BL_SPACEDIM == 2)
-    // HH
-    cells[0] = cell;
-    
-    // LH
-    cell[0]  = cell[0] - 1;
-    cells[1] = cell;
-    
-    // LL
-    cell[1]  = cell[1] - 1;
-    cells[2] = cell;
-    
-    // HL
-    cell[0]  = cell[0] + 1;
-    cells[3] = cell;
-
-#elif (BL_SPACEDIM == 3)
-    // HHH
-    cells[0] = cell;
-
-    // LHH
-    cell[0]  = cell[0] - 1;
-    cells[1] = cell;
-
-    // LLH
-    cell[1]  = cell[1] - 1;
-    cells[2] = cell;
-    
-    // HLH
-    cell[0]  = cell[0] + 1;
-    cells[3] = cell;
-
-    cell = hicell;
-
-    // HHL
-    cell[2]  = cell[2] - 1;
-    cells[4] = cell;
-    
-    // LHL
-    cell[0]  = cell[0] - 1;
-    cells[5] = cell;
-
-    // LLL
-    cell[1]  = cell[1] - 1;
-    cells[6] = cell;
-    
-    // HLL
-    cell[0]  = cell[0] + 1;
-    cells[7] = cell;
-#endif
-}
-
-void
-ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
-                               const Real*         plo,
-                               const Real*         dx,
-                               Real*               fracs,
-                               IntVect*            cells)
-{
-    //
-    // "fracs" should be dimensioned: Real    fracs[D_TERM(2,+2,+4)]
-    //
-    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
-    //
-    const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + 0.5,
-                                           (p.m_pos[1]-plo[1])/dx[1] + 0.5,
-                                           (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
-
-    const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
-
-    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
-
-    for (int d = 0; d < BL_SPACEDIM; d++)
-    {
-        if (frac[d] > 1) frac[d] = 1;
-        if (frac[d] < 0) frac[d] = 0;
-    }
-
-    ParticleBase::CIC_Fracs(frac, fracs);
-    ParticleBase::CIC_Cells(cell, cells);
-}
-
 bool
 ParticleBase::CrseToFine (const BoxArray& cfba,
                           const IntVect*  cells,
@@ -558,7 +405,7 @@ ParticleBase::Where (ParticleBase& p,
         BL_ASSERT(p.m_id > 0);
         BL_ASSERT(p.m_grid >= 0 && p.m_grid < amr->boxArray(p.m_lev).size());
 
-        IntVect iv = Index(p,p.m_lev,amr);
+        IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
 
         if (p.m_cell == iv)
             //
@@ -582,7 +429,7 @@ ParticleBase::Where (ParticleBase& p,
 
     for (int lev = amr->finestLevel(); lev >= 0; lev--)
     {
-        IntVect iv = Index(p,lev,amr);
+        IntVect iv = ParticleBase::Index(p,lev,amr);
 
         isects = amr->boxArray(lev).intersections(Box(iv,iv));
 
@@ -614,7 +461,7 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     //
     const Geometry& geom = amr->Geom(0);
     const Box&      dmn  = geom.Domain();
-    IntVect         iv   = Index(p,0,amr);
+    IntVect         iv   = ParticleBase::Index(p,0,amr);
     const Real      eps  = 1.e-13;
 
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -692,24 +539,6 @@ ParticleBase::Reset (ParticleBase& p,
 
 Real
 ParticleBase::InterpDoit (const FArrayBox& fab,
-                          const Real*      fracs,
-                          const IntVect*   cells,
-                          int              comp)
-{
-    const int M = D_TERM(2,+2,+4);
-
-    Real val = 0;
-
-    for (int i = 0; i < M; i++)
-    {
-        val += fab(cells[i],comp) * fracs[i];
-    }
-
-    return val;
-}
-
-Real
-ParticleBase::InterpDoit (const FArrayBox& fab,
                           const IntVect&   cell,
                           const Real*      frac,
                           int              comp)
@@ -723,6 +552,24 @@ ParticleBase::InterpDoit (const FArrayBox& fab,
     ParticleBase::CIC_Cells(cell, cells);
 
     Real val = ParticleBase::InterpDoit(fab,fracs,cells,comp);
+
+    return val;
+}
+
+Real
+ParticleBase::InterpDoit (const FArrayBox& fab,
+                          const Real*      fracs,
+                          const IntVect*   cells,
+                          int              comp)
+{
+    const int M = D_TERM(2,+2,+4);
+
+    Real val = 0;
+
+    for (int i = 0; i < M; i++)
+    {
+        val += fab(cells[i],comp) * fracs[i];
+    }
 
     return val;
 }

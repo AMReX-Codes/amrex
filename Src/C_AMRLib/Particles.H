@@ -4427,4 +4427,160 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
     }
 }
 
+inline
+void
+ParticleBase::CIC_Fracs (const Real* frac, Real* fracs)
+{
+    //
+    // "frac"  should be dimensioned: Real frac[BL_SPACEDIM]
+    //
+    // "fracs" should be dimensioned: Real fracs[D_TERM(2,+2,+4)]
+    //
+#if (BL_SPACEDIM == 1)
+    // High
+    fracs[0] = frac[0];
+
+    // Low
+    fracs[1] = (1-frac[0]);
+
+#elif (BL_SPACEDIM == 2)
+    // HH
+    fracs[0] = frac[0] * frac[1] ;
+    
+    // LH
+    fracs[1] = (1-frac[0]) * frac[1];
+    
+    // LL
+    fracs[2] = (1-frac[0]) * (1-frac[1]);
+    
+    // HL
+    fracs[3] = frac[0] * (1-frac[1]);
+
+#elif (BL_SPACEDIM == 3)
+    // HHH
+    fracs[0] = frac[0] * frac[1] * frac[2];
+
+    // LHH
+    fracs[1] = (1-frac[0]) * frac[1] * frac[2];
+
+    // LLH
+    fracs[2] = (1-frac[0]) * (1-frac[1]) * frac[2];
+    
+    // HLH
+    fracs[3] = frac[0] * (1-frac[1]) * frac[2];
+
+    // HHL
+    fracs[4] = frac[0] * frac[1] * (1-frac[2]);
+    
+    // LHL
+    fracs[5] = (1-frac[0]) * frac[1] * (1-frac[2]);
+
+    // LLL
+    fracs[6] = (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
+    
+    // HLL
+    fracs[7] = frac[0] * (1-frac[1]) * (1-frac[2]);
+#endif
+}
+
+inline
+void
+ParticleBase::CIC_Cells (const IntVect& hicell, IntVect* cells)
+{
+    //
+    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
+    //
+    IntVect cell = hicell;
+
+#if (BL_SPACEDIM == 1)
+    // High
+    cells[0] = cell;
+
+    // Low
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+
+#elif (BL_SPACEDIM == 2)
+    // HH
+    cells[0] = cell;
+    
+    // LH
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+    
+    // LL
+    cell[1]  = cell[1] - 1;
+    cells[2] = cell;
+    
+    // HL
+    cell[0]  = cell[0] + 1;
+    cells[3] = cell;
+
+#elif (BL_SPACEDIM == 3)
+    // HHH
+    cells[0] = cell;
+
+    // LHH
+    cell[0]  = cell[0] - 1;
+    cells[1] = cell;
+
+    // LLH
+    cell[1]  = cell[1] - 1;
+    cells[2] = cell;
+    
+    // HLH
+    cell[0]  = cell[0] + 1;
+    cells[3] = cell;
+
+    cell = hicell;
+
+    // HHL
+    cell[2]  = cell[2] - 1;
+    cells[4] = cell;
+    
+    // LHL
+    cell[0]  = cell[0] - 1;
+    cells[5] = cell;
+
+    // LLL
+    cell[1]  = cell[1] - 1;
+    cells[6] = cell;
+    
+    // HLL
+    cell[0]  = cell[0] + 1;
+    cells[7] = cell;
+#endif
+}
+
+inline
+void
+ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
+                               const Real*         plo,
+                               const Real*         dx,
+                               Real*               fracs,
+                               IntVect*            cells)
+{
+    //
+    // "fracs" should be dimensioned: Real    fracs[D_TERM(2,+2,+4)]
+    //
+    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
+    //
+    const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + 0.5,
+                                           (p.m_pos[1]-plo[1])/dx[1] + 0.5,
+                                           (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
+
+    const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+
+    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
+
+    for (int d = 0; d < BL_SPACEDIM; d++)
+    {
+        if (frac[d] > 1) frac[d] = 1;
+        if (frac[d] < 0) frac[d] = 0;
+    }
+
+    ParticleBase::CIC_Fracs(frac, fracs);
+    ParticleBase::CIC_Cells(cell, cells);
+}
+
 #endif /*_PARTICLES_H_*/
