@@ -1538,14 +1538,25 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
             for (int i = 0; i < M; i++)
             {
-                for (int n = 0; n < ncomp; n++)
-                   fab(cells[i],n) += p.m_data[n] * fracs[i];
+                // Sum up mass in first component
+                fab(cells[i],0) += p.m_data[0] * fracs[i];
+
+                // Sum up momenta in next components
+                for (int n = 1; n < ncomp; n++)
+                   fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
             }
         }
     }
 
     mf.SumBoundary();
     gm.SumPeriodicBoundary(mf);
+
+    //
+    // If ncomp > 1, first divide the momenta (component n) 
+    // by the mass (component 0) in order to get velocities.
+    //
+    for (int n = 1; n < ncomp; n++)
+        MultiFab::Divide(mf,mf,0,n,1,0);
 
     const Real vol = D_TERM(dx[0], *dx[1], *dx[2]);
     //
@@ -1790,8 +1801,14 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                     // By far the most common case.  Just do it!
                     //
                     for (int i = 0; i < M; i++)
-                        for (int n = 0; n < ncomp; n++)
-                            fab(cells[i],n) += p.m_data[n] * fracs[i];
+                    {
+                        // Sum up mass in first component
+                        fab(cells[i],0) += p.m_data[0] * fracs[i];
+
+                        // Sum up momenta in next components
+                        for (int n = 1; n < ncomp; n++)
+                            fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+                    }
                 }
                 else if (AnyFineToCrse)
                 {
@@ -1813,8 +1830,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                             //
                             if (mf[lev-1].DistributionMap()[cgrid[i]] == ParallelDescriptor::MyProc())
                             {
-                                for (int n = 0; n < ncomp; n++)
-                                    mf[lev-1][cgrid[i]](ccells[i],n) += p.m_data[n] * cfracs[i];
+                                // Sum up mass in first component
+                                mf[lev-1][cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i];
+
+                                // Sum up momenta in next components
+                                for (int n = 1; n < ncomp; n++)
+                                    mf[lev-1][cgrid[i]](ccells[i],n) += p.m_data[n] * p.m_data[0] * cfracs[i];
                             }
                             else
                             {
@@ -1822,8 +1843,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                                 pb.m_grid = cgrid[i];
                                 pb.m_cell = ccells[i];
 
-                                for (int n = 0; n < ncomp; n++)
-                                    pb.m_data[n] = p.m_data[n] * cfracs[i];
+                                // Sum up mass in first component
+                                pb.m_data[0] = p.m_data[0] * cfracs[i];
+
+                                // Sum up momenta in next components
+                                for (int n = 1; n < ncomp; n++)
+                                    pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[i];
 
                                 data.push_back(pb);
                             }
@@ -1856,8 +1881,14 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                             // They can't touch a Fine->Crse boundary.
                             //
                             sum_fine += fracs[i];
-                            for (int n = 0; n < ncomp; n++)
-                                fab(cells[i],n) += p.m_data[n] * fracs[i];
+
+                            // Sum up mass in first component
+                            fab(cells[i],0) += p.m_data[0] * fracs[i];
+
+                            // Sum up momenta in next components
+                            for (int n = 1; n < ncomp; n++)
+                                fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+
                             fwhich[i] = false;
                         }
                         else if (compfvalid.contains(cells[i]))
@@ -1890,8 +1921,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                     {
                         if (fwhich[i])
                         {
-                            for (int n = 0; n < ncomp; n++)
-                                fab(cells[i],n) += p.m_data[n] * fracs[i] * mult;
+                            // Sum up mass in first component
+                            fab(cells[i],0) += p.m_data[0] * fracs[i] * mult;
+
+                            // Sum up momenta in next components
+                            for (int n = 1; n < ncomp; n++)
+                                fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i] * mult;
+
                             sum_fine += fracs[i] * mult;
                         }
                     }
@@ -1906,8 +1942,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                     {
                         if (!cwhich[i])
                         {
-                            for (int n = 0; n < ncomp; n++)
-                                fab(cells[i],n) += p.m_data[n] * fracs[i];
+                            // Sum up mass in first component
+                            fab(cells[i],0) += p.m_data[0] * fracs[i];
+
+                            // Sum up momenta in next components
+                            for (int n = 1; n < ncomp; n++)
+                                fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+
                             sum += fracs[i];
                         }
                         else
@@ -1921,8 +1962,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                             {
                                 if (mf[lev+1].DistributionMap()[fgrid[j]] == ParallelDescriptor::MyProc())
                                 {
-                                    for (int n = 0; n < ncomp; n++)
-                                        mf[lev+1][fgrid[j]](fcells[j],n) += p.m_data[n] * fracs[i] * ffrac[j];
+                                    // Sum up mass in first component
+                                    mf[lev+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffrac[j];
+
+                                    // Sum up momenta in next components
+                                    for (int n = 1; n < ncomp; n++)
+                                        mf[lev+1][fgrid[j]](fcells[j],n) += p.m_data[n] * p.m_data[0] * fracs[i] * ffrac[j];
                                 }
                                 else
                                 {
@@ -1930,8 +1975,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                                     pb.m_grid = fgrid[j];
                                     pb.m_cell = fcells[j];
 
-                                    for (int n = 0; n < ncomp; n++)
-                                        pb.m_data[n] = p.m_data[n] * fracs[i] * ffrac[j];
+                                    // Sum up mass in first component
+                                    pb.m_data[0] = p.m_data[0] * fracs[i] * ffrac[j];
+
+                                    // Sum up momenta in next components
+                                    for (int n = 1; n < ncomp; n++)
+                                        pb.m_data[n] = p.m_data[n] * p.m_data[0] * fracs[i] * ffrac[j];
 
                                     data.push_back(pb);
                                 }
@@ -1961,6 +2010,14 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
 
         mf[i].SumBoundary();
         gm.SumPeriodicBoundary(mf[i]);
+
+        //
+        // If ncomp > 1, first divide the momenta (component n) 
+        // by the mass (component 0) in order to get velocities.
+        //
+        for (int n = 1; n < ncomp; n++)
+            MultiFab::Divide(mf[i],mf[i],0,n,1,0);
+
         //
         // Only multiply the first component by (1/vol) because this converts mass
         // to density. If there are additional componentes (like velocity), we don't
