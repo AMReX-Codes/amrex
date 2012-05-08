@@ -1958,7 +1958,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
         mf[i].SumBoundary();
         gm.SumPeriodicBoundary(mf[i]);
 
-        mf[i].mult(1/vol);
+        // Only multiply the first component by (1/vol) because this converts mass to density
+        // If there are additional componentes (like velocity), we don't want to divide those by volume.
+        mf[i].mult(1/vol,0,1);
     }
 
     if (m_verbose > 1)
