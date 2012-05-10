@@ -256,6 +256,7 @@ subroutine mgt_finalize(dx,bc)
           min_width         = mgts%min_width, &
           verbose           = mgts%verbose, &
           cg_verbose        = mgts%cg_verbose, &
+          max_L0_growth     = mgts%max_L0_growth, &
           nodal             = nodal &
           )
 
@@ -349,6 +350,7 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
           min_width         = mgts%min_width, &
           verbose           = mgts%verbose, &
           cg_verbose        = mgts%cg_verbose, &
+          max_L0_growth     = mgts%max_L0_growth, &
           nodal             = nodal &
           )
   end do
