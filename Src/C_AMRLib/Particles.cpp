@@ -158,6 +158,8 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
 
                 cbx -= pshifts[0];
 
+                ccells[i] -= pshifts[0];
+
                 BL_ASSERT(cbx.ok());
                 BL_ASSERT(cgm.Domain().contains(cbx));
             }
