@@ -251,6 +251,7 @@ subroutine mgt_finalize(dx,bc)
           bottom_solver     = bottom_solver_in, &
           bottom_max_iter   = bottom_max_iter_in, &
           bottom_solver_eps = mgts%bottom_solver_eps, &
+          max_L0_growth     = mgts%max_L0_growth, &
           max_iter          = mgts%max_iter, &
           max_nlevel        = max_nlevel_in, &
           min_width         = mgts%min_width, &
@@ -345,6 +346,7 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
           bottom_solver     = bottom_solver_in, &
           bottom_max_iter   = bottom_max_iter_in, &
           bottom_solver_eps = mgts%bottom_solver_eps, &
+          max_L0_growth     = mgts%max_L0_growth, &
           max_iter          = mgts%max_iter, &
           max_nlevel        = max_nlevel_in, &
           min_width         = mgts%min_width, &

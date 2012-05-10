@@ -709,6 +709,46 @@ public:
                         int               destcomp,
                         int               numcomp=1);
     //
+    // Divide wherever "src" is "true" or "non-zero".
+    //
+    BaseFab<T>& protected_divide (const BaseFab<T>& src);
+    //
+    // Divide wherever "src" is "true" or "non-zero".
+    //
+    // This FAB is numerator, src FAB is denominator
+    // divide src components (srccomp:srccomp+numcomp-1) into
+    // this FABs components (destcomp:destcomp+numcomp-1)
+    // where the two FABs intersect.
+    //
+    BaseFab<T>& protected_divide (const BaseFab<T>& src,
+                                  int               srccomp,
+                                  int               destcomp,
+                                  int               numcomp=1);
+    //
+    // Divide wherever "src" is "true" or "non-zero".
+    //
+    // Same as above except division is restricted to
+    // intersection of subbox and src FAB.  NOTE: subbox must be
+    // contained in this FAB.
+    //
+    BaseFab<T>& protected_divide (const BaseFab<T>& src,
+                                  const Box&        subbox,
+                                  int               srccomp,
+                                  int               destcomp,
+                                  int               numcomp=1);
+    //
+    // Divide wherever "src" is "true" or "non-zero".
+    //
+    // destbox region of this FAB is numerator. srcbox regions of
+    // src FAB is denominator. srcbox and destbox must be same size.
+    //
+    BaseFab<T>& protected_divide (const BaseFab<T>& src,
+                                  const Box&        srcbox,
+                                  const Box&        destbox,
+                                  int               srccomp,
+                                  int               destcomp,
+                                  int               numcomp=1);
+    //
     // Linear interpolation / extrapolation.
     // Result is (t2-t)/(t2-t1)*f1 + (t-t1)/(t2-t1)*f2
     // Data is taken from b1 region of f1, b2 region of f2
@@ -1435,6 +1475,14 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
                        int                  srccomp,
                        int                  destcomp,
                        int                  numcomp);
+template <>
+BaseFab<Real>&
+BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
+                                 const Box&           srcbox,
+                                 const Box&           destbox,
+                                 int                  srccomp,
+                                 int                  destcomp,
+                                 int                  numcomp);
 #endif
 
 template <class T>
@@ -1873,7 +1921,6 @@ BaseFab<T>::divide (const BaseFab<T>& x)
     return operator/=(x);
 }
 
-
 template <class T>
 void
 BaseFab<T>::patternFill (int mark)
@@ -2292,6 +2339,58 @@ BaseFab<T>::divide (const BaseFab<T>& src,
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
         thisR /= srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::protected_divide (const BaseFab<T>& src)
+{
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,0,0,nvar) : *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::protected_divide (const BaseFab<T>& src,
+                              int               srccomp,
+                              int               destcomp,
+                              int               numcomp)
+{
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::protected_divide (const BaseFab<T>& src,
+                              const Box&        subbox,
+                              int               srccomp,
+                              int               destcomp,
+                              int               numcomp)
+{
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    ovlp &= subbox;
+    return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::protected_divide (const BaseFab<T>& src,
+                              const Box&        srcbox,
+                              const Box&        destbox,
+                              int               srccomp,
+                              int               destcomp,
+                              int               numcomp)
+{
+    ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
+    {
+        if (srcR)
+            thisR /= srcR;
     } EndForTX
     return *this;
 }
