@@ -730,11 +730,11 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
 
         long NP = 0;
         int  DM = 0;
-        int  XT = 0;
+        int  NX = 0;
 
         ifs.read((char*)&NP, sizeof(NP));
         ifs.read((char*)&DM, sizeof(DM));
-        ifs.read((char*)&XT, sizeof(XT));
+        ifs.read((char*)&NX, sizeof(NX));
         //
         // NP MUST be positive!
         //
@@ -746,15 +746,15 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
         if (DM != BL_SPACEDIM)
             BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): DM != BL_SPACEDIM");
         //
-        // XT MUST be in [0,N].
+        // NX MUST be in [0,N].
         //
-        if (XT < 0 || XT > N)
-            BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): XT < 0 || XT > N");
+        if (NX < 0 || NX > N)
+            BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): NX < 0 || NX > N");
         //
         // Can't ask for more data than exists in the file!
         //
-        if (extradata > XT)
-            BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): extradata > XT");
+        if (extradata > NX)
+            BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): extradata > NX");
 
         ParticleType p;
 
@@ -762,7 +762,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
         //
         // Skip to our place in the file.
         //
-        const std::streamoff NSKIP = MyProc * Chunk * (DM+XT) * sizeof(double);
+        const std::streamoff NSKIP = MyProc * Chunk * (DM+NX) * sizeof(double);
 
         if (NSKIP > 0)
         {
@@ -810,15 +810,15 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
             //
             if (extradata > 0)
             {
-                ifs.read((char*)&p.data[0], extradata*sizeof(double));
+                ifs.read((char*)&p.m_data[0], extradata*sizeof(double));
             }
             //
             // Read any remaining data for this particle.
             //
-            if ((XT-extradata) > 0)
+            if ((NX-extradata) > 0)
             {
                 double ignore[N*sizeof(double)];
-                ifs.read((char*)&ignore[0], (XT-extradata)*sizeof(double));
+                ifs.read((char*)&ignore[0], (NX-extradata)*sizeof(double));
             }
 
             if (!ifs.good())
@@ -934,7 +934,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "\nTotal number of particles read in : " << num_particles_read << '\n';
+            std::cout << "\nTotal number of particles: " << num_particles_read << '\n';
         }
     }
 
