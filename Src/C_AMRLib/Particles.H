@@ -230,7 +230,7 @@ public:
     //
     // **************************************************************************************************************** 
 
-    void AdvectWithUmac (const MultiFab* umac, int level, Real dt);
+    void AdvectWithUmac (const MultiFab* umac, int level, Real dt, const int vcomp = 0);
 
     void RemoveParticlesNotAtFinestLevel ();
 
@@ -238,7 +238,7 @@ public:
 
     void Restart (const std::string& dir, const std::string& file);
 
-    void Timestamp (const std::string& file, const MultiFab& mf, int lev, Real time, const std::vector<int>& idx);
+    void Timestamp (const std::string& file, const MultiFab& mf, int lev, Real time, const std::vector<int>& idx, const int vcomp = 0);
 
     void WriteAsciiFile (const std::string& file);
 
@@ -3238,7 +3238,8 @@ template <int N>
 void
 ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                                       int             lev,
-                                      Real            dt)
+                                      Real            dt,
+                                      const int       vcomp)
 {
     BL_ASSERT(OK());
     BL_ASSERT(N >= 2*BL_SPACEDIM);
@@ -3314,8 +3315,8 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         //
                         // Save old position and the vel & predict new time location.
                         //
-                        p.m_data[d]             = p.m_pos[d];
-                        p.m_data[d+BL_SPACEDIM] = vel;
+                        p.m_data[vcomp + d]             = p.m_pos[d];
+                        p.m_data[vcomp + d+BL_SPACEDIM] = vel;
 
                         p.m_pos[d] += dt*vel;
                     }
@@ -3328,9 +3329,9 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         //
                         // Save the velocity for use in Timestamp().
                         //
-                        p.m_pos[d]  = 0.5 * (p.m_data[d] + p.m_pos[d] + dt*vel);
+                        p.m_pos[d]  = 0.5 * (p.m_data[vcomp + d] + p.m_pos[d] + dt*vel);
 
-                        p.m_data[d] = 0.5 * (p.m_data[d+BL_SPACEDIM] + vel);
+                        p.m_data[vcomp + d] = 0.5 * (p.m_data[vcomp + d+BL_SPACEDIM] + vel);
                     }
                 }
 
@@ -3341,6 +3342,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                     // periodic in that direction and fix the position accordingly.
                     // This is a modified version of ParticleBase::PeriodicShift
                     //
+                    
 					const Geometry& top_geom = m_amr->Geom(0);
 					const Box&      dmn  = top_geom.Domain();
 					IntVect         iv   = ParticleBase::Index(p,0,m_amr);
@@ -3361,7 +3363,8 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 							
 							p.m_pos[d] -= top_geom.ProbLength(d);
 							
-							p.m_data[d] -= top_geom.ProbLength(d);
+                            if (ipass == 0)
+                                p.m_data[vcomp + d] -= top_geom.ProbLength(d);
 							
 							BL_ASSERT(p.m_pos[d] >= top_geom.ProbLo(d));
 						}
@@ -3377,7 +3380,8 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
 							p.m_pos[d] += top_geom.ProbLength(d);
 							
-							p.m_data[d] += top_geom.ProbLength(d);
+                            if (ipass == 0)
+                                p.m_data[vcomp + d] += top_geom.ProbLength(d);
 
 							BL_ASSERT(p.m_pos[d] <= top_geom.ProbHi(d));
 						}
@@ -4588,8 +4592,17 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                                  const MultiFab&         mf,
                                  int                     lev,
                                  Real                    time,
-                                 const std::vector<int>& indices)
+                                 const std::vector<int>& indices,
+                                 const int               vcomp)
 {
+    //
+    // basename -> base filename for the output file
+    // mf -> the multifab
+    // lev -> level to check for particles
+    // time -> simulation time (will be recorded in Timestamp file)
+    // indices ->
+    // vcomp -> the offset of velocity terms in the particle metadata
+    //
     BL_ASSERT(lev >= 0);
     BL_ASSERT(time >= 0);
     BL_ASSERT(!basename.empty());
@@ -4689,7 +4702,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                         //
                         // AdvectWithUmac stores the velocity in m_data ...
                         //
-                        for (int i = 0; i < BL_SPACEDIM; i++)
+                        for (int i = vcomp; i < vcomp + BL_SPACEDIM; i++)
                         {
                             TimeStampFile << ' ' << p.m_data[i];
                         }
