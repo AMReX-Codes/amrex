@@ -54,10 +54,9 @@ contains
     real(dp_t) :: sum, coeff_sum, coeff_max
 
     real(dp_t) :: r1,r2
-    logical :: solved, solver_making_progress
+    logical :: solved
 
     type(bl_prof_timer), save :: bpt
-    solved = .false.
 
     call build(bpt, "ml_cc")
 
@@ -247,8 +246,14 @@ contains
 
     r1 = parallel_wtime() 
 
+    solved = .false.
+
     if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+
        solved = .true.
+
+       if ( present(status) ) status = 0
+
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
 
@@ -262,13 +267,17 @@ contains
 
     else 
 
-       !do iter = 1, mgt(nlevs)%max_iter
-       solver_making_progress = .true.
-       iter = 1
-       do while (solver_making_progress  .and.  (iter .le. mgt(nlevs)%max_iter) )
+       do iter = 1, mgt(nlevs)%max_iter
 
           if ( fine_converged ) then
-             if ( ml_converged(res, soln, fine_mask, max_norm, Anorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) exit
+             if ( ml_converged(res, soln, fine_mask, max_norm, Anorm, rel_eps, &
+                  abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+
+                solved = .true.
+                if ( present(status) ) status = 0
+                exit
+
+             endif
           end if
 
           ! Set: uu = 0
@@ -553,7 +562,12 @@ contains
              if ( (mgt(nlevs)%max_L0_growth > 1) .and. (tres/tres0 > mgt(nlevs)%max_L0_growth) ) then
                 if ( mgt(nlevs)%verbose > 1  .and. parallel_IOProcessor() ) &
                      write(unit=*, fmt='("F90mg: Iteration blowing up, bailing...")')
-                solver_making_progress = .false.
+
+                solved = .false.
+
+                if ( present(status) ) status = 1
+                exit
+
              endif
 
              if ( mgt(nlevs)%verbose > 1 .and. parallel_IOProcessor() ) then
@@ -563,14 +577,17 @@ contains
 
           end if
 
-          iter = iter + 1;
+       enddo
 
-       end do
+       ! if status==0, but not solved then we ran out of iterations
+       if ( present(status) ) then 
+          if (status .eq. 0  .and.  .not. solved) then 
+             status = -iter
+          endif
+       endif
 
        ! ****************************************************************************
-
-       iter = iter-1
-       if (solver_making_progress .and. (iter < mgt(nlevs)%max_iter)) then
+       if (solved) then
           if ( mgt(nlevs)%verbose > 0 ) then
              tres = ml_norm_inf(res,fine_mask)
              if ( parallel_IOProcessor() ) then
@@ -583,9 +600,12 @@ contains
                 end if
              end if
           end if
-          solved = .true.
        else
-          if (.not. present(status)) then
+          if (present(status)) then
+             if (status .eq. 0) then
+                status = -iter
+             endif
+          else
              call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
           endif
        end if
@@ -670,14 +690,6 @@ contains
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             print*, 'Solve Time = ', r1
        
-    endif
-
-    if (present(status)) then
-       if (solved) then
-          status = 0
-       else
-          status = 1
-       endif
     endif
 
   contains
