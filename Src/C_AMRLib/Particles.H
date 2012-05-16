@@ -3256,6 +3256,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
     const Geometry& geom     = m_amr->Geom(lev);
     const Real*     dx       = geom.CellSize();
     const Real*     plo      = geom.ProbLo();
+    const Real      eps  = 1.e-13;
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
@@ -3314,7 +3315,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         // Save old position and the vel & predict new time location.
                         //
                         p.m_data[d]             = p.m_pos[d];
-                        p.m_data[d+BL_SPACEDIM] = p.m_pos[d];
+                        p.m_data[d+BL_SPACEDIM] = vel;
 
                         p.m_pos[d] += dt*vel;
                     }
@@ -3336,15 +3337,62 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                 if (!ParticleBase::Where(p,m_amr,true))
                 {
                     //
-                    // If the particle goes out of the domain we invalidate it.
-                    // Even if we're periodic in that direction.  Too much trouble
-                    // to think about the right thing to do right now.
+                    // If the particle has left the domain, we check if we are
+                    // periodic in that direction and fix the position accordingly.
+                    // This is a modified version of ParticleBase::PeriodicShift
                     //
-                    std::cout << "Invalidating out-of-domain particle: " << p << '\n';
+					const Geometry& top_geom = m_amr->Geom(0);
+					const Box&      dmn  = top_geom.Domain();
+					IntVect         iv   = ParticleBase::Index(p,0,m_amr);
 
-                    BL_ASSERT(p.m_id > 0);
+					for (int d = 0; d < BL_SPACEDIM; d++)
+					{
+						if (!top_geom.isPeriodic(d)) continue;
 
-                    p.m_id = -p.m_id;
+						if (iv[d] > dmn.bigEnd(d))
+						{
+							if (p.m_pos[d] == top_geom.ProbHi(d))
+								//
+								// Don't let particles lie exactly on the domain face.
+								// Force the particle to be outside the domain so the
+								// periodic shift will bring it back inside.
+								//
+								p.m_pos[d] += eps;
+							
+							p.m_pos[d] -= top_geom.ProbLength(d);
+							
+							p.m_data[d] -= top_geom.ProbLength(d);
+							
+							BL_ASSERT(p.m_pos[d] >= top_geom.ProbLo(d));
+						}
+						else if (iv[d] < dmn.smallEnd(d))
+						{
+							if (p.m_pos[d] == top_geom.ProbLo(d))
+								//
+								// Don't let particles lie exactly on the domain face.
+								// Force the particle to be outside the domain so the
+								// periodic shift will bring it back inside.
+								//
+								p.m_pos[d] -= eps;
+
+							p.m_pos[d] += top_geom.ProbLength(d);
+							
+							p.m_data[d] += top_geom.ProbLength(d);
+
+							BL_ASSERT(p.m_pos[d] <= top_geom.ProbHi(d));
+						}
+					}
+					//
+					// Is it inside the domain now?
+					//
+					if (!ParticleBase::Where(p,m_amr,true))
+					{
+						std::cout << "Invalidating out-of-domain particle: " << p << '\n';
+
+						BL_ASSERT(p.m_id > 0);
+
+						p.m_id = -p.m_id;
+					}
                 }
             }
         }
