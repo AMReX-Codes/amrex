@@ -3242,7 +3242,8 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                                       const int       vcomp)
 {
     BL_ASSERT(OK());
-    BL_ASSERT(N >= 2*BL_SPACEDIM);
+    BL_ASSERT(vcomp >= 0);
+    BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
@@ -4605,8 +4606,9 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     //
     BL_ASSERT(lev >= 0);
     BL_ASSERT(time >= 0);
+    BL_ASSERT(vcomp >= 0);
     BL_ASSERT(!basename.empty());
-    BL_ASSERT(N >= 2*BL_SPACEDIM);
+    BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
     BL_ASSERT(lev <= m_amr->finestLevel());
 
     const Real strttime = ParallelDescriptor::second();
