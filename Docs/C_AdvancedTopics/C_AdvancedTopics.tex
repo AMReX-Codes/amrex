@@ -18,7 +18,7 @@ the particle and the grids. These include methods that check the
 particle position, transfer the particle between grids, and 
 interpolate data appropriately.
 
-{\tt Particle} is a template class that adds a (real) metadata array of 
+{\tt Particle<N>} is a template class that adds a (real) metadata array of 
 user-specified size to the {\tt ParticleBase}. For instance, this 
 metadata might be 
 \begin{enumerate}
@@ -28,5 +28,9 @@ metadata might be
    \item particle z velocity
 \end{enumerate}
 \subsection{ParticleContainer}
-
+{\tt ParticleContainer} is a template class that stores a number of 
+{\tt Particle<N>}s. These particles are stored on a level by level and 
+grid by grid basis to make accessing and performing operations on them 
+more memory efficient. The class also provided methods that move and 
+redistribute the stored particles.
 \section{State Data}
