@@ -270,11 +270,12 @@ ifeq ($(findstring gcc, $(COMP)), gcc)
     CXXOPTF    += -g -O3 
     CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       := g++ -ftemplate-depth-64 -Wno-deprecated
+    CXX	       := g++
     CC	       := $(COMP)
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+    CXXFLAGS =  -ftemplate-depth-64 -Wno-deprecated
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
@@ -292,11 +293,12 @@ ifeq ($(findstring g++, $(COMP)), g++)
     CXXOPTF    += -g -O3 
     CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       := $(COMP) -ftemplate-depth-64 -Wno-deprecated
+    CXX	       := $(COMP)
     CC	       := gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+    CXXFLAGS = -ftemplate-depth-64 -Wno-deprecated
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
@@ -327,8 +329,10 @@ ifeq ($(FCOMP),g77)
 endif
 
 ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
-    FC = $(FCOMP) -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
-    fC = $(FCOMP) -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+    FC = $(FCOMP)
+    fC = $(FCOMP)
+    FFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+    fFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -ffixed-line-length-132 -g -O3
@@ -347,8 +351,10 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
 endif
 
 ifeq ($(FCOMP),g95)
-    FC = g95 -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
-    fC = g95 -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir)
+    FC = g95
+    fC = g95
+    FFLAGS = -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir) 
+    fFLAGS = -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir) 
     _f95_lib:=$(shell g95 -print-file-name=libf95.a)
     override XTRALIBS += $(_f95_lib)
     FOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra

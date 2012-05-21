@@ -295,3 +295,46 @@ c
       end do
 
       end
+c
+c     This function divides floating point numbers from one array by another
+c     wherever the denominator is non-zero.
+c
+      subroutine FORT_FASTPROTDIVIDE (dest,
+     &                                DIMS(dest),
+     &                                imin, imax,
+     &                                src,
+     &                                DIMS(src),
+     &                                imn,
+     &                                ncomp)
+
+      implicit none
+c
+c     Bounds to fill in dest
+c
+      integer imin, imax
+      integer DIMDEC(dest)
+c
+c     Bounds to fill from src
+c
+      integer imn
+      integer DIMDEC(src)
+      integer ncomp
+      
+      REAL_T  dest(DIMV(dest),ncomp)
+      REAL_T  src(DIMV(src),ncomp)
+c
+c     Local variables
+c
+      integer i,k,ioff
+
+      ioff=imn-imin
+
+      do k = 1, ncomp
+            do i = imin,imax
+               if (src(i+ioff,k) .ne. zero) then
+                  dest(i,k) = dest(i,k) / src(i+ioff,k)
+               endif
+            end do
+      end do
+
+      end
