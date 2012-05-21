@@ -12,23 +12,31 @@
 class MGT_Solver
 {
 public:
-      
-  MGT_Solver(const std::vector<Geometry>& geom,
-             int *bc, 
-	     const std::vector<BoxArray>& grids, 
-	     const std::vector<DistributionMapping>& dmap,
-	     bool nodal,
-	     int _stencil_type = -1,
-	     bool _have_rhcc = false);
 
-  MGT_Solver(const std::vector<Geometry>& geom,
-             int *bc, 
-	     const std::vector<BoxArray>& grids, 
-	     const std::vector<DistributionMapping>& dmap,
-	     bool nodal,
-	     int nc, 
-	     int ncomp,
-	     bool _have_rhcc = false);
+    MGT_Solver(const std::vector<Geometry>& geom, 
+               int* bc, 
+               const std::vector<BoxArray>& grids,
+               const std::vector<DistributionMapping>& dmap,
+               bool nodal,
+               int _stencil_type = -1,
+               bool _have_rhcc = false,
+               int nc = 0,
+               int ncomp = 1);
+
+    MGT_Solver(const std::vector<Geometry>& geom, 
+               int* bc, 
+               const std::vector<BoxArray>& grids,
+               const std::vector<DistributionMapping>& dmap,
+               bool nodal,
+               int nc, 
+               int ncomp,
+               bool _have_rhcc = false);
+
+    void Build(const std::vector<Geometry>& geom, 
+               int* bc, 
+               const std::vector<DistributionMapping>& dmap,
+               int nc,
+               int ncomp);
 
   static void initialize(bool nodal);
   static void Finalize();
@@ -107,6 +115,9 @@ public:
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
 	     int need_grad_phi, Real& final_resnorm);
 
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+	     int need_grad_phi, Real& final_resnorm,int& status);
+
   void applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd);
 
   void applyop(MultiFab* uu[], MultiFab* res[], const BndryData bd[]);
@@ -148,9 +159,8 @@ private:
   Real m_beta;
   int m_nlevel;
 
-  const std::vector<DistributionMapping> m_dmap;
-  const std::vector<BoxArray> m_grids;
-  const bool m_nodal;
+  std::vector<BoxArray> m_grids;
+  bool m_nodal;
   bool have_rhcc;
 
   static bool initialized;
