@@ -371,12 +371,6 @@ ifeq ($(findstring inf, $(UNAMEN)), inf)
   mpi_lib_dir = $(MPIHOME)/lib
 endif
 
-ifeq ($(findstring sn, $(UNAMEN)), sn)
-  MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90
-  CXX = mpicxx
-endif
-
 ifeq ($(findstring bender, $(UNAMEN)), bender)
   MPIHOME=/usr/lib64/mpich2
   F90 = mpif90 -f90=gfortran 
