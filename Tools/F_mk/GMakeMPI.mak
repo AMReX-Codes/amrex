@@ -390,8 +390,8 @@ ifeq ($(findstring xrb, $(UNAMEN)), xrb)
 endif
 
 # generic linux install with MPICH wrappers -- set the 
-# MAESTRO_USE_MPI_WRAPPERS environment variable for this
-ifdef MAESTRO_USE_MPI_WRAPPERS
+# BOXLIB_USE_MPI_WRAPPERS environment variable for this
+ifdef BOXLIB_USE_MPI_WRAPPERS
     F90 = mpif90
     CXX = mpicxx
 endif
