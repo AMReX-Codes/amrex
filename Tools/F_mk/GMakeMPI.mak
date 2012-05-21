@@ -383,12 +383,6 @@ ifeq ($(findstring bender, $(UNAMEN)), bender)
   CXX = mpicxx -cxx=gcc
 endif
 
-ifeq ($(findstring xrb, $(UNAMEN)), xrb)
-  MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90
-  CXX = mpicxx
-endif
-
 # generic linux install with MPICH wrappers -- set the 
 # BOXLIB_USE_MPI_WRAPPERS environment variable for this
 ifdef BOXLIB_USE_MPI_WRAPPERS
