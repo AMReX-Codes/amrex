@@ -1059,8 +1059,8 @@ contains
           call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
        end do
-       ! uu  += cc, done, by convention, using the prolongation routine.
 
+       ! uu  += cc, done, by convention, using the prolongation routine.
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
 
        if ( parallel_IOProcessor() .and. do_diag) &
