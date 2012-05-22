@@ -54,6 +54,9 @@ class testObj:
         self.useMPI = 0
         self.numprocs = -1
 
+        self.useOMP = 0
+        self.numthreads = -1
+
         self.doVis = 0
         self.visVar = ""
 
@@ -303,6 +306,12 @@ def LoadParams(file):
             elif (opt == "numprocs"):
                 mytest.numprocs = value
 
+            elif (opt == "useOMP"):
+                mytest.useOMP = value
+                
+            elif (opt == "numthreads"):
+                mytest.numthreads = value
+
             elif (opt == "doVis"):
                 mytest.doVis = value
 
@@ -351,7 +360,11 @@ def LoadParams(file):
             invalid = 1
 
         if (mytest.useMPI and mytest.numprocs == -1):
-            warning("   WARNING: test %s is a parallel test but numprocs not set" % (sec))
+            warning("   WARNING: test %s is an MPI parallel test but numprocs not set" % (sec))
+            invalid = 1
+
+        if (mytest.useOMP and mytest.numthreads == -1):
+            warning("   WARNING: test %s is an OpenMP parallel test but numthreads not set" % (sec))
             invalid = 1
 
         if (mytest.doVis and mytest.visVar == ""):
@@ -761,8 +774,11 @@ def testSuite(argv):
             restartTest = < is this a restart test? 0 for no, 1 for yes >
             restartFileNum = < # of file to restart from (if restart test) >
 
-            useMPI = <is this a parallel job? 0 for no, 1 for yes) >
+            useMPI = <is this a parallel (MPI) job? 0 for no, 1 for yes) >
             numprocs = < # of processors to run on (if parallel job) >
+
+            useOMP = <is this an OpenMP job? 0 for no, 1 for yes) >
+            numthreads = < # of threads to us with OpenMP (if OpenMP job) >
 
             compileTest = < 0 for normal run, 1 if we just test compilation >
 
@@ -868,8 +884,13 @@ def testSuite(argv):
             file from the original run and the last from the restart will
             be compared.
 
-            useMPI is set to 1 if the job is parallel.  In this case, you
-            also must specify the number of processors, via numprocs.
+            useMPI is set to 1 if the job is parallel (with MPI).  In
+            this case, you also must specify the number of processors,
+            via numprocs.
+
+            useOMP is set to 1 if the job uses OpenMP.  In this case,
+            you also must specify the number of threads, via
+            numthreads.
 
             compileTest is set to 0 for a normal test.  Setting to 1 will
             just test compilation, and not any subsequent output.
@@ -1248,8 +1269,15 @@ def testSuite(argv):
                 print "    " + compString
                 systemCall(compString)
 
+            elif (test.useOMP):
+                compString = "%s -j%s BOXLIB_HOME=%s %s MPI= OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                print "    " + compString
+                systemCall(compString)
+
+
             else:
-                compString = "%s -j%s BOXLIB_HOME=%s %s MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                compString = "%s -j%s BOXLIB_HOME=%s %s MPI= OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
                     (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
@@ -1424,6 +1452,20 @@ def testSuite(argv):
 	       print "    " + testRunCommand
                systemCall(testRunCommand)
 
+            elif (test.useOMP):
+
+                # keep around the checkpoint files only for the restart runs
+                if (test.restartTest):
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+                else:
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+
+                print "    " + testRunCommand
+                systemCall(testRunCommand)
+
+
             else:
 
                 # keep around the checkpoint files only for the restart runs
@@ -1436,7 +1478,6 @@ def testSuite(argv):
 
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
-
 
         # if it is a restart test, then rename the final output file and
         # restart the test
@@ -1458,10 +1499,18 @@ def testSuite(argv):
                 systemCall(testRunCommand)               
 
             elif (suite.sourceTree == "fParallel"):
-                testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
-                    (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
-                print "    " + testRunCommand
-                systemCall(testRunCommand)                
+
+                if (test.useOMP):
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)                
+
+                else:
+                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)                
            
             
         #----------------------------------------------------------------------
@@ -1782,7 +1831,7 @@ th {background-color: grey;
     color: yellow;
     text-align: center;
     vertical-align: bottom;
-    height: 14em;
+    height: 16em;
     padding-bottom: 3px;
     padding-left: 5px;
     padding-right: 5px;}
@@ -1938,7 +1987,13 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
         if (test.useMPI):
 
-            hf.write("<P><b>Parallel Run</b><br>numprocs = %d\n" % (test.numprocs) )
+            hf.write("<P><b>Parallel (MPI) Run</b><br>numprocs = %d\n" % (test.numprocs) )
+            hf.write("<P>&nbsp;\n")
+
+
+        if (test.useOMP):
+
+            hf.write("<P><b>OpenMP Run</b><br>numthreads = %d\n" % (test.numthreads) )
             hf.write("<P>&nbsp;\n")
        
 
