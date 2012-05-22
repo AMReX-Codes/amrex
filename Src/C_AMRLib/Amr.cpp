@@ -1738,15 +1738,15 @@ Amr::coarseTimeStep (Real stop_time)
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-#ifdef BL_USE_OLDPLOTPER
+#ifdef BL_USE_NEWPLOTPER
+      Real rN(0.0);
+      Real rR = modf(cumtime/plot_per, &rN);
+      if (rR < (dt_level[0]*0.001))
+#else
       const int num_per_old = (cumtime-dt_level[0]) / plot_per;
       const int num_per_new = (cumtime            ) / plot_per;
 
       if (num_per_old != num_per_new)
-#else
-      Real rN(0.0);
-      Real rR = modf(cumtime/plot_per, &rN);
-      if (rR < (dt_level[0]*0.001))
 #endif
 	{
 	  plot_test = 1;
