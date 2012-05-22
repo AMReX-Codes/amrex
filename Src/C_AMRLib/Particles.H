@@ -197,7 +197,13 @@ public:
                        int  lev_min = 0, 
                        int  nGrow = 0);
 
-    bool OK () const;
+    //
+    // OK checks that all particles are in the right places (for some value of right)
+    //
+    // These flags are used to do proper checking for subcycling particles
+    // the default values are fine for non-subcycling methods
+    //
+    bool OK (bool full_where = false, int lev_min = 0 , int ngrow = 0) const;
 
     void ByteSpread () const;
 
@@ -3259,7 +3265,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                                       Real            dt,
                                       const int       vcomp)
 {
-    BL_ASSERT(OK());
+    BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
     BL_ASSERT(vcomp >= 0);
     BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -3353,7 +3359,8 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         p.m_data[vcomp + d] = 0.5 * (p.m_data[vcomp + d+BL_SPACEDIM] + vel);
                     }
                 }
-                ParticleBase::RestrictedWhere(p,m_amr, 2);
+                //This assumes enough boundary cells in all directions, it shouldn't be a problem
+                ParticleBase::RestrictedWhere(p,m_amr, umac[0].nGrow()-1); 
             }
         }
     }
@@ -3421,12 +3428,13 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
                 if (p.m_id > 0)
                 {
                     if (!where_already_called)
-                        if (!ParticleBase::Where(p,m_amr))
+                        if (!ParticleBase::Where(p,m_amr, false, lev_min))
                             {
                                 if (full_where) //lengthier checks for subcycling
                                 {
-                                    if (!ParticleBase::PeriodicWhere(p, m_amr, lev_min) && !ParticleBase::RestrictedWhere(p, m_amr, nGrow))
-                                        BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle special");
+                                    if (!ParticleBase::PeriodicWhere(p, m_amr, lev_min))
+                                        if (!ParticleBase::RestrictedWhere(p, m_amr, nGrow))
+                                            BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle special");
                                 }
                                 else
                                 {
@@ -3514,7 +3522,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
 
     if (NProcs == 1)
     {
-        BL_ASSERT(OK());
+        BL_ASSERT(OK(full_where, lev_min, nGrow));
         BL_ASSERT(notowned.empty());
 
         if (m_verbose > 1)
@@ -3783,14 +3791,16 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
 
 template <int N>
 bool
-ParticleContainer<N>::OK () const
+ParticleContainer<N>::OK (bool full_where, int lev_min, int ngrow) const
 {
     //
     // Check that the integer data in each valid particle is what it should be.
     // This includes checking that particles are in the proper place in the particle
     // container based on what Where() says they should be.
     //
-    for (int lev = 0; lev < m_particles.size(); lev++)
+    // Particles are copied to avoid accidentally moving them with where.
+    //
+    for (int lev = lev_min; lev < m_particles.size(); lev++)
     {
         const PMap& pmap = m_particles[lev];
 
@@ -3812,9 +3822,19 @@ ParticleContainer<N>::OK () const
                     const int     lgrid = p.m_grid;
                     const IntVect cell  = p.m_cell;
 
-                    if (!ParticleBase::Where(p,m_amr))
-                        return false;
-
+                    if (!ParticleBase::Where(p,m_amr, false, lev_min))
+                    {
+                        if (full_where)
+                        {
+                            if (!ParticleBase::PeriodicWhere(p,m_amr, lev_min)) 
+                            {
+                                if (!ParticleBase::RestrictedWhere(p, m_amr, ngrow))
+                                    return false;
+                            }
+                        }
+                        else
+                            return false;
+                    }
                     if ((lev  != p.m_lev  || lev  != llev)  ||
                         (grid != p.m_grid || grid != lgrid) || cell != p.m_cell)
                     {
