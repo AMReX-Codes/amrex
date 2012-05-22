@@ -44,7 +44,22 @@ struct ParticleBase
 
     static IntVect Index (const ParticleBase& p, int lev, const Amr* amr);
 
-    static bool Where (ParticleBase& prt, const Amr* amr, bool update = false);
+    //
+    // Checks/sets a particles location on levels lev_min and higher
+    // Returns false if the particle does not exist on that level
+    //
+    static bool Where (ParticleBase& prt, const Amr* amr, bool update = false, int lev_min = 0);
+    
+    //
+    // Checks/sets whether the particle has crossed a periodic boundary in such a way
+    // that it is on levels lev_min and higher
+    //
+    static bool PeriodicWhere (ParticleBase& prt, const Amr* amr, int lev_min = 0);
+    
+    //
+    // Checks/sets whether a particle is within its grid (including grow cells)
+    //
+    static bool RestrictedWhere (ParticleBase& prt, const Amr* amr, int ngrow);
 
     static void Reset (ParticleBase& prt, const Amr* amr, bool update);
 
@@ -177,7 +192,10 @@ public:
  
     Real estTimestep (const MultiFab& grav_vector, Real a, int level, Real cfl) const;
 
-    void Redistribute (bool where_already_called = false);
+    void Redistribute (bool where_already_called = false,
+                       bool full_where = false,
+                       int  lev_min = 0, 
+                       int  nGrow = 0);
 
     bool OK () const;
 
@@ -3335,76 +3353,10 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         p.m_data[vcomp + d] = 0.5 * (p.m_data[vcomp + d+BL_SPACEDIM] + vel);
                     }
                 }
-
-                if (!ParticleBase::Where(p,m_amr,true))
-                {
-                    //
-                    // If the particle has left the domain, we check if we are
-                    // periodic in that direction and fix the position accordingly.
-                    // This is a modified version of ParticleBase::PeriodicShift
-                    //
-                    
-					const Geometry& top_geom = m_amr->Geom(0);
-					const Box&      dmn  = top_geom.Domain();
-					IntVect         iv   = ParticleBase::Index(p,0,m_amr);
-
-					for (int d = 0; d < BL_SPACEDIM; d++)
-					{
-						if (!top_geom.isPeriodic(d)) continue;
-
-						if (iv[d] > dmn.bigEnd(d))
-						{
-							if (p.m_pos[d] == top_geom.ProbHi(d))
-								//
-								// Don't let particles lie exactly on the domain face.
-								// Force the particle to be outside the domain so the
-								// periodic shift will bring it back inside.
-								//
-								p.m_pos[d] += eps;
-							
-							p.m_pos[d] -= top_geom.ProbLength(d);
-							
-                            if (ipass == 0)
-                                p.m_data[vcomp + d] -= top_geom.ProbLength(d);
-							
-							BL_ASSERT(p.m_pos[d] >= top_geom.ProbLo(d));
-						}
-						else if (iv[d] < dmn.smallEnd(d))
-						{
-							if (p.m_pos[d] == top_geom.ProbLo(d))
-								//
-								// Don't let particles lie exactly on the domain face.
-								// Force the particle to be outside the domain so the
-								// periodic shift will bring it back inside.
-								//
-								p.m_pos[d] -= eps;
-
-							p.m_pos[d] += top_geom.ProbLength(d);
-							
-                            if (ipass == 0)
-                                p.m_data[vcomp + d] += top_geom.ProbLength(d);
-
-							BL_ASSERT(p.m_pos[d] <= top_geom.ProbHi(d));
-						}
-					}
-					//
-					// Is it inside the domain now?
-					//
-					if (!ParticleBase::Where(p,m_amr,true))
-					{
-						std::cout << "Invalidating out-of-domain particle: " << p << '\n';
-
-						BL_ASSERT(p.m_id > 0);
-
-						p.m_id = -p.m_id;
-					}
-                }
+                ParticleBase::RestrictedWhere(p,m_amr, 2);
             }
         }
-
-        Redistribute(true);
     }
-
     if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
@@ -3424,7 +3376,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
 template <int N>
 void
-ParticleContainer<N>::Redistribute (bool where_already_called)
+ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, int lev_min, int nGrow)
 {
     const int MyProc   = ParallelDescriptor::MyProc();
     Real      strttime = ParallelDescriptor::second();
@@ -3447,7 +3399,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     //
     std::deque<int> owner;
 
-    for (int lev = 0; lev < m_particles.size(); lev++)
+    for (int lev = lev_min; lev < m_particles.size(); lev++)
     {
         PMap& pmap = m_particles[lev];
 
@@ -3470,7 +3422,17 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                 {
                     if (!where_already_called)
                         if (!ParticleBase::Where(p,m_amr))
-                            BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle");
+                            {
+                                if (full_where) //lengthier checks for subcycling
+                                {
+                                    if (!ParticleBase::PeriodicWhere(p, m_amr, lev_min) && !ParticleBase::RestrictedWhere(p, m_amr, nGrow))
+                                        BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle special");
+                                }
+                                else
+                                {
+                                    BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle special 2");
+                                }
+                            }
                     //
                     // The owner of the particle is the CPU owning the finest grid
                     // in state data that contains the particle.
@@ -4689,6 +4651,8 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                         const ParticleType& p = *it;
 
                         if (p.m_id <= 0) continue;
+                        
+                        if (!mf.boxArray().contains(ParticleBase::Index(p, lev, m_amr))) continue;
 
                         BL_ASSERT(p.m_lev == lev);
                         BL_ASSERT(p.m_grid == grid);
