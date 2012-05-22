@@ -521,7 +521,8 @@ List of local files needed to be included in the build.  The {\tt GNUmakefile} p
 
 \item {\tt main.f90}, {\tt init\_phi.f90}, {\tt advance.f90}, {\tt write\_plotfile.f90}
 
-Source code that is not within the {\tt BoxLib/Src/} tree.  Note: if a file that exists in the
+Source code that is not within the {\tt BoxLib/Src/} tree.  Note that 
+if a file that exists in the
 {\tt BoxLib/Src/} tree also exists in the local directory, the local copy takes precedence
 as long as the {\tt GNUmakefile} lists your local directory as a {\tt VPATH\_LOCATIONS} 
 before the \BoxLib\ source code directory, {\tt BoxLib/Src/F\_BaseLib}.
@@ -539,13 +540,10 @@ simply type, for example (terminal commands and non-source code files are shaded
 \begin{lstlisting}[backgroundcolor=\color{light-red}]
 ./main.Linux.gfortran.exe inputs_2d
 \end{lstlisting}
-The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, in the run directory.
-You can open these using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/}) by opening
-the {\tt Header} file within the plotfile directory.  (For the {\tt VisIt} novice, after you 
-``File'' $\rightarrow$ ``Open'' open the {\tt pltXXXXX/Header}
-file, select ``Add'' $\rightarrow$ ``Pseudocolor'' $\rightarrow$ ``Variable 2'' and then click ``Draw''.  
-To view the grid structure, use ``Add'' $\rightarrow$ ``Subset'' $\rightarrow$ ``Levels'' and enable
-the ``Wireframe'' option.)
+The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, 
+{\tt plt00100}, etc., in the run directory.  You can visualize the data 
+and make animations using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/});
+refer to Section \ref{Sec:VisIt}.
 
 \section{Simple Example - C++}
 The C++ version of this example is contained in {\tt BoxLib/Tutorials/HeatEquation\_EX1\_C/}.
@@ -614,7 +612,8 @@ List of local files needed to be included in the build.  The {\tt GNUmakefile} p
 \item {\tt main.f90}, {\tt writePlotFile.cpp}, {\tt writePlotFile.H}, {\tt init\_phi\_2d.f90},
       {\tt init\_phi\_3d.f90}, {\tt advance\_2d.f90}, {\tt advance\_3d.f90}
 
-Source code that is not within the {\tt BoxLib/Src/} tree.  Note: if a file that exists in the
+Source code that is not within the {\tt BoxLib/Src/} tree.  Note that if a file that 
+exists in the
 {\tt BoxLib/Src/} tree also exists in the local directory, the local copy takes precedence
 as long as the {\tt GNUmakefile} lists your local directory in the {\tt include} line before
 before the \BoxLib\ source code directories.
@@ -630,9 +629,60 @@ about what setting you used in the {\tt GNUmakefile}.  To run the code on one pr
 \begin{lstlisting}[backgroundcolor=\color{light-red}]
 ./main2d.Linux.g++.gfortran.ex inputs_2d
 \end{lstlisting}
-The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, in the run directory.  See notes above on how to open these using {\tt VisIt}.
+The program will complete and there will be a series of plotfiles, e.g., {\tt plt00000}, 
+{\tt plt00100}, etc., in the run directory.  You can visualize the data 
+and make animations using {\tt VisIt} (available at {\tt https://wci.llnl.gov/codes/visit/});
+refer to Section \ref{Sec:VisIt}.
 
-\section{Running in Parallel}
+\section{Visualization Using {\tt VisIt}}\label{Sec:VisIt}
+First, download and install {\tt VisIt} from {\tt https://wci.llnl.gov/codes/visit/}.
+To open a single plotfile, run {\tt VisIt}, then select ``File'' $\rightarrow$ ``Open file ...'',
+then select the {\tt Header} file associated the the plotfile of interest (e.g., {\tt plt00000/Header}).
+Assuming you ran the simulation in 2D, here are instructions for making a simple plot:
+\begin{itemize}
+\item To view the data, select ``Add'' $\rightarrow$ ``Pseudocolor'' $\rightarrow$ ``phi'', and then select
+``Draw''.
+\item To view the grid structure (not particularly interesting yet, but when we add AMR it will be), select
+`` $\rightarrow$ ``subset'' $\rightarrow$ ``levels''.  Then double-click the text ``Subset - levels'',
+enable the ``Wireframe'' option, select ``Apply'', select ``Dismiss'', and then select ``Draw''.
+\item To save the image, select ``File'' $\rightarrow$ ``Set save options'', then customize the image format
+to your liking, then click ``Save''.
+\end{itemize}
+Your image should look similar to the left side of Figure \ref{Fig:VisIt}.\\
+\begin{figure}[tb]
+\centering
+\includegraphics[width=3.1in]{./GettingStarted/VisIt_2D}
+\includegraphics[width=3.1in]{./GettingStarted/VisIt_3D}
+\caption{(Left) 2D image generated with VisIt.  (Right) 3D image generated with VisIt.}
+\label{Fig:VisIt}
+\end{figure}
+
+In 3D, you must apply the ``Operators'' $\rightarrow$ ``Slicing'' $\rightarrow$ ``ThreeSlice'', with the 
+``ThreeSlice operator attribute'' set to x=0.25, y=0.25, and z=0.25.  You can left-click and drag
+over the image to rotate the image to generate something similar to right side of Figure \ref{Fig:VisIt}.\\
+
+To make a movie, you must first create a text file named {\tt movie.visit} with a list of the {\tt Header} 
+files for the individual frames.  This can most easily be done using the command:
+\begin{lstlisting}[backgroundcolor=\color{light-red}].
+~/BoxLib/Tutorials/HeatEquation_EX1_F> ls -1 plt*/Header | tee movie.visit
+plt00000/Header
+plt01000/Header
+plt02000/Header
+plt03000/Header
+plt04000/Header
+plt05000/Header
+plt06000/Header
+plt07000/Header
+plt08000/Header
+plt09000/Header
+plt10000/Header
+\end{lstlisting}
+The next step is to run {\tt VisIt}, select ``File'' $\rightarrow$ ``Open file ...'',
+then select {\tt movie.visit}.  Create an image to your liking and press the ``play'' button
+on the VCR-like control panel to preview all the frames.  To save the movie, choose
+``File'' $\rightarrow$ ``Save movie ...'', and follow the on-screen instructions.
+
+\section{Running in Parallel with MPI}
 We will now demonstrate how to run the example in {\tt BoxLib/Tutorials/WaveEquation\_F/}
 using MPI parallism.  To run in parallel using C++ \BoxLib\ is analgous.
 On your local machine, if you have MPI installed, you must first configure
@@ -668,7 +718,7 @@ To run, simply type ``{\tt qsub hopper.run}''.  You can monitor the status of yo
 using ``{\tt qstat -u <username>}'' and view your position in the queue 
 using ``{\tt showq}''.
 
-\subsection{OpenMP}\label{Sec:OpenMP}
+\section{Running in Parallel with MPI/OpenMP}\label{Sec:OpenMP}
 Both the C++ and Fortran versions of this tutorial also support hybdir MPI/OpenMP parallelism.
 To ``thread'' the code, we have simply added OpenMP directives (using the {\tt !\$omp parallel do} 
 construct) to any i/j/k loops we were interested in threading.  For example, in {\tt init\_phi.f90}:
@@ -697,7 +747,7 @@ simply ignored.  Note that at runtime you must have you
 {\tt OMP\_NUM\_THREADS} environment variable set properly in order for threads to work.
 Also, note that you can enable/disable MPI independently from the OMP flag.  Finally,
 here is a sample hopper script (tcsh) for a hybrid MPI/OpenMP job:
-\lstinputlisting[backgroundcolor=\color{light-red}]{./AdvancedTopics/hopper_omp.run}
+\lstinputlisting[backgroundcolor=\color{light-red}]{./F_AdvancedTopics/hopper_omp.run}
 \begin{itemize}
 \item ``mppwidth'': how many total cores requested
 \item ``-n'': total number of MPI tasks

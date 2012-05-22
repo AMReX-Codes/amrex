@@ -63,6 +63,8 @@ module mg_tower_module
      real(kind=dp_t) ::     eps = 1.0e-10_dp_t
      real(kind=dp_t) :: abs_eps = -1.0_dp_t
 
+     real(kind=dp_t) :: max_L0_growth = -1.0_dp_t
+
      type(box), pointer :: pd(:) => Null()
      real(kind=dp_t), pointer :: dh(:,:) => Null()
      logical :: uniform_dh = .true.
@@ -93,7 +95,6 @@ module mg_tower_module
 
      integer ::    verbose = 0
      integer :: cg_verbose = 0
-     integer ::    st_type = 0
 
       type(mg_tower), pointer :: bottom_mgt => Null()
 

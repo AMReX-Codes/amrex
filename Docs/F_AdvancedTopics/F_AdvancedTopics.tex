@@ -15,12 +15,6 @@ multilevel grid structure.
 \item In Section \ref{Sec:Linear Solvers} we develop the capability to solve the
 equation implicitly, using the linear solver libraries.
 
-\item In Section \ref{Sec:Checkpoints} we develop the capability to write and read
-checkpoints for restarting simulations.
-
-\item In Section \ref{Sec:Timers}, we develop the capability to profile our code
-with timers.
-
 \end{itemize}
 
 \section{Boundary Conditions}\label{Sec:Boundary Conditions}
@@ -61,7 +55,7 @@ every side is {\tt INTERIOR}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[tb]
 \centering
-\includegraphics[width=4in]{./AdvancedTopics/bc_example1}
+\includegraphics[width=4in]{./F_AdvancedTopics/bc_example1}
 \caption{\label{fig:bc_example1}Two-dimensional example with 16 - 4$^2$grids with
 {\tt INLET}, {\tt OUTLET}, and {\tt NO\_SLIP\_WALL} boundary conditions.
 The numbers refer to the grid number.}
@@ -80,7 +74,7 @@ directly, or using interior points and/or physical boundary conditions in some s
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[tb]
 \centering
-\includegraphics[width=4in]{./AdvancedTopics/bc_example2}
+\includegraphics[width=4in]{./F_AdvancedTopics/bc_example2}
 \caption{\label{fig:bc_example2}Two-dimensional example with 16 - 4$^2$grids with
 {\tt PERIODIC} and {\tt NO\_SLIP\_WALL} boundary conditions.
 The numbers refer to the grid number.}
@@ -95,7 +89,7 @@ boundary condition is {\tt NO\_SLIP\_WALL}, and the other three walls are {\tt I
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}[tb]
 \centering
-\includegraphics[width=4in]{./AdvancedTopics/bc_example3}
+\includegraphics[width=4in]{./F_AdvancedTopics/bc_example3}
 \caption{\label{fig:bc_example3}Two-dimensional example with 3 grids at a finer
 resolution than the base grid.}
 \end{figure}
@@ -261,16 +255,32 @@ parameters that can be set via an inputs file:
 \item {\tt amr\_buf\_width}: radius (in cells) of tagged cells in addition to those already tagged due to the criteria in {\tt tag\_boxes.f90}.
 \item {\tt cluster\_minwidth}: any newly created grids must be at least this many cells in each direction.
 \item {\tt cluster\_blocking\_factor}: any newly created grids must have an integer multiple of this many cells in each direction.
-\item {\tt cluster\_min\_eff}: This is a real number between 0 and 1 that controls how tightly the newly created grids match the tagged cells.  As this value approaches 1, you will have more, smaller grids.  Another way to think of this is that during the grid creation process, at least 100$\times${\tt cluster\_min\_eff}: percent of the cells in each grid at which the grid creation occurs must be tagged cells.
+\item {\tt cluster\_min\_eff}: This is a real number between 0 and 1 that controls how tightly the newly created grids match the tagged cells.  As this value approaches 1, you will have more, smaller grids.  Another way to think of this is that during the grid creation process, at least 100$\times${\tt cluster\_min\_eff} percent of the cells in each grid at which the grid creation occurs must be tagged cells.
 \item {\tt regrid\_int}: frequency, in time steps, on when to regrid the simulation.
 \end{itemize}
 It is worth playing around with the inputs files to see what effect these parameters have on the grid structure.
 
 \section{Linear Solvers}\label{Sec:Linear Solvers}
-Now fully implemented in {\tt BoxLib/Tutorials/HeatEquation\_EX5\_F/}.  We use linear solvers
-to implicitly solve the heat equation.  More soon...
-
-\section{Checkpoints and Restarting}\label{Sec:Checkpoints}
-\section{Timers}\label{Sec:Timers}
-
-
+The tutorial code {\tt BoxLib/Tutorials/HeatEquation\_EX5\_F/} contains an implicit version of the heat equation 
+example.  Fortran90 \BoxLib contains a ``cell-centered'' multigrid solver that solves linear systems of the form:
+\begin{equation}
+(\alpha\mathcal{I} - \nabla\cdot\beta\nabla)\phi = \text{RHS},
+\end{equation}
+where $\alpha, \phi$, and RHS are cell-centered \MultiFab~s, and $\beta$ is an array of \MultiFab~s that 
+are nodal in exactly one direction (i.e., one face-centered \MultiFab for each spatial direction).
+The Laplacian-like term in the left-hand-side can be discretized in several ways.  The simplest discretization
+option is similar to a 5-point (7-point in 3D) Laplacian:
+\begin{eqnarray}
+\nabla\cdot\beta\nabla\phi_{ij} &=&
+\frac{1}{\Delta x} \left[\beta_{i+\myhalf,j}\frac{\phi_{i+1,j} - \phi_{ij}}{\Delta x} - \beta_{i-\myhalf,j}\frac{\phi_{ij} - \phi_{i-1,j}}{\Delta x}\right]\nonumber\\
+&&+ \frac{1}{\Delta y} \left[\beta_{i,j+\myhalf}\frac{\phi_{i,j+1} - \phi_{ij}}{\Delta y} - \beta_{i,j-\myhalf}\frac{\phi_{ij} - \phi_{i,j-1}}{\Delta y}\right].
+\end{eqnarray}
+A fully implicit discretization of the heat equation,
+\begin{equation}
+\frac{\phi^{n+1} - \phi^n}{\Delta t} = \left[\nabla\cdot(\nabla\phi)\right]^{n+1},
+\end{equation}
+is equivalent to
+\begin{equation}
+(\mathcal{I} - \Delta t\nabla\cdot\nabla)\phi^{n+1} = \phi^n.
+\end{equation}
+Thus, we will set $\alpha=1$, each $\beta=\Delta t$, and RHS = $\phi^n$.

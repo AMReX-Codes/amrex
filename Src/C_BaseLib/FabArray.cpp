@@ -338,11 +338,13 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
 
     cache.resize(ParallelDescriptor::NProcs(),0);
 
+    std::vector< std::pair<int,Box> > isects;
+
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         const int i = mfi.index();
 
-        std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.fabbox());
+        isects = ba.intersections(mfi.fabbox());
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {

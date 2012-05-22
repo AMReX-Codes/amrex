@@ -15,6 +15,7 @@ module cpp_mg_module
      integer         :: nu1, nu2, nuf, nub
      integer         :: gamma
      real(dp_t)      :: omega
+     real(dp_t)      :: max_L0_growth
      integer         :: max_iter
      integer         :: max_nlevel
      integer         :: min_width
@@ -236,6 +237,7 @@ subroutine mgt_finalize(dx,bc)
         bottom_solver_in = 0
         bottom_max_iter_in = mgts%nu1
      end if
+
      call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, &
           dh                = dx(n,:), &
           ns                = ns, &
@@ -249,6 +251,7 @@ subroutine mgt_finalize(dx,bc)
           bottom_solver     = bottom_solver_in, &
           bottom_max_iter   = bottom_max_iter_in, &
           bottom_solver_eps = mgts%bottom_solver_eps, &
+          max_L0_growth     = mgts%max_L0_growth, &
           max_iter          = mgts%max_iter, &
           max_nlevel        = max_nlevel_in, &
           min_width         = mgts%min_width, &
@@ -256,6 +259,7 @@ subroutine mgt_finalize(dx,bc)
           cg_verbose        = mgts%cg_verbose, &
           nodal             = nodal &
           )
+
   end do
 
 end subroutine mgt_finalize
@@ -341,6 +345,7 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
           bottom_solver     = bottom_solver_in, &
           bottom_max_iter   = bottom_max_iter_in, &
           bottom_solver_eps = mgts%bottom_solver_eps, &
+          max_L0_growth     = mgts%max_L0_growth, &
           max_iter          = mgts%max_iter, &
           max_nlevel        = max_nlevel_in, &
           min_width         = mgts%min_width, &
@@ -456,7 +461,7 @@ subroutine mgt_finalize_const_stencil_lev(lev, alpha_const, beta_const, xa, xb, 
   real(dp_t), intent(in) :: alpha_const, beta_const
   real(dp_t), intent(in) :: xa(dm), xb(dm), pxa(dm), pxb(dm)
     
-  integer        :: i, nlev, flev
+  integer        :: flev
 
   flev = lev + 1
   call mgt_verify_lev("MGT_FINALIZE_CONST_STENCIL_LEV", flev)
@@ -1372,7 +1377,7 @@ subroutine mgt_dealloc()
 
 end subroutine mgt_dealloc
 
-subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
+subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
   use cpp_mg_module
   use ml_cc_module
   use fabio_module
@@ -1380,43 +1385,72 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
   real(kind=dp_t), intent(in   ) :: tol, abs_tol
   integer        , intent(in   ), optional :: needgradphi
   real(kind=dp_t), intent(  out), optional :: final_resnorm
+  integer        , intent(  out), optional :: status
 
   integer :: do_diag
+  logical :: lneedgradphi
+  integer :: success_flag
 
   call mgt_verify("MGT_SOLVE")
   if ( .not. mgts%final ) then
      call bl_error("MGT_SOLVE: MGT not finalized")
   end if
 
+  lneedgradphi = .false.
+  if (present(needgradphi)) then
+     if (needgradphi == 1) lneedgradphi = .true.
+  endif
+
   do_diag = 0; if ( mgts%verbose >= 4 ) do_diag = 1
 
-  if (present(needgradphi)) then
-    if (needgradphi .eq. 1) then
-      call ml_cc(mgts%mla, mgts%mgt, &
-           mgts%rh, mgts%uu, &
-           mgts%mla%mask, mgts%rr, &
-           do_diag, tol, &
-           abs_eps_in = abs_tol, &
-           need_grad_phi_in = .true.,&
-           final_resnorm = final_resnorm)
-    else
-      call ml_cc(mgts%mla, mgts%mgt, &
-           mgts%rh, mgts%uu, &
-           mgts%mla%mask, mgts%rr, &
-           do_diag, tol, &
-           abs_eps_in = abs_tol, &
-           final_resnorm = final_resnorm )
-    end if
-  else
-    call ml_cc(mgts%mla, mgts%mgt, &
-         mgts%rh, mgts%uu, &
-         mgts%mla%mask, mgts%rr, &
-         do_diag, tol,&
-         abs_eps_in = abs_tol, &
-         final_resnorm = final_resnorm )
-  end if
+  call ml_cc(mgts%mla, mgts%mgt, &
+       mgts%rh, mgts%uu, &
+       mgts%mla%mask, mgts%rr, &
+       do_diag, tol, &
+       abs_eps_in = abs_tol, &
+       need_grad_phi_in = lneedgradphi,&
+       final_resnorm = final_resnorm,&
+       status = success_flag)
+
+  if (present(status)) then
+     status = success_flag
+  endif
 
 end subroutine mgt_solve
+
+subroutine mgt_solve_stat(tol,abs_tol,needgradphi,final_resnorm,status)
+  use cpp_mg_module
+  use ml_cc_module
+  use fabio_module
+  implicit none
+  real(kind=dp_t), intent(in   ) :: tol, abs_tol
+  integer        , intent(in   ) :: needgradphi
+  real(kind=dp_t), intent(  out) :: final_resnorm
+  integer        , intent(  out) :: status
+
+  integer :: do_diag
+  logical :: lneedgradphi
+
+  call mgt_verify("MGT_SOLVE")
+  if ( .not. mgts%final ) then
+     call bl_error("MGT_SOLVE: MGT not finalized")
+  end if
+
+  lneedgradphi = .false.
+  if (needgradphi == 1) lneedgradphi = .true.
+
+  do_diag = 0; if ( mgts%verbose >= 4 ) do_diag = 1
+
+  call ml_cc(mgts%mla, mgts%mgt, &
+       mgts%rh, mgts%uu, &
+       mgts%mla%mask, mgts%rr, &
+       do_diag, tol, &
+       abs_eps_in = abs_tol, &
+       need_grad_phi_in = lneedgradphi,&
+       final_resnorm = final_resnorm,&
+       status = status)
+
+end subroutine mgt_solve_stat
 
 subroutine mgt_applyop()
   use cpp_mg_module
@@ -1497,13 +1531,13 @@ subroutine mgt_delete_flux(lev)
 end subroutine mgt_delete_flux
 
 subroutine mgt_set_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_iter, &
-                            bottom_solver,bottom_solver_eps, &
+                            bottom_solver,bottom_solver_eps,max_L0_growth, &
                             verbose,cg_verbose,max_nlevel,min_width,cycle_type,smoother)
   use cpp_mg_module
   implicit none
   integer   , intent(in) :: nu_1,nu_2,nu_b,nu_f,gamma,max_iter,bottom_max_iter,bottom_solver
   integer   , intent(in) :: verbose, cg_verbose, max_nlevel, min_width, cycle_type, smoother
-  real(dp_t), intent(in) :: omega, bottom_solver_eps
+  real(dp_t), intent(in) :: omega, bottom_solver_eps, max_L0_growth 
 
   call mgt_not_final("MGT_SET_DEFAULTS")
 
@@ -1524,16 +1558,18 @@ subroutine mgt_set_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_
   mgts%max_nlevel      = max_nlevel
   mgts%min_width       = min_width
 
+  mgts%max_L0_growth   = max_L0_growth
+
 end subroutine mgt_set_defaults
 
 subroutine mgt_get_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_iter, &
-                            bottom_solver, &
+                            bottom_solver,max_L0_growth, &
                             verbose,cg_verbose,max_nlevel,min_width,cycle_type,smoother)
   use cpp_mg_module
   implicit none
   integer   , intent(out) :: nu_1,nu_2,nu_b,nu_f,gamma,max_iter,bottom_max_iter,bottom_solver
   integer   , intent(out) :: verbose, cg_verbose, max_nlevel, min_width, cycle_type, smoother
-  real(dp_t), intent(out) :: omega
+  real(dp_t), intent(out) :: omega, max_L0_growth
 
   nu_1       = mgts%mg_tower_default%nu1
   nu_2       = mgts%mg_tower_default%nu2
@@ -1552,8 +1588,9 @@ subroutine mgt_get_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_
   max_nlevel      = mgts%mg_tower_default%max_nlevel
   min_width       = mgts%mg_tower_default%min_width
 
-end subroutine mgt_get_defaults
+  max_L0_growth   = mgts%mg_tower_default%max_L0_growth
 
+end subroutine mgt_get_defaults
 
 subroutine mgt_set_maxorder(max_order)
 

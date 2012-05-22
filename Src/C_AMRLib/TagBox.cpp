@@ -385,6 +385,14 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
         }
     }
 
+    int nrecv = IDs.size();
+    ParallelDescriptor::ReduceIntMax(nrecv);
+    if (nrecv == 0)
+        //
+        // There's no parallel work to do.
+        //
+        return;
+
     facd.CollectData();
 
     TagBox src;
