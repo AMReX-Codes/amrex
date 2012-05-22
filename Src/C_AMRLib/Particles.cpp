@@ -415,21 +415,18 @@ ParticleBase::Where (ParticleBase& p,
             //
             return true;
 
-        if (p.m_lev == amr->finestLevel())
-        {
-            p.m_cell = iv;
+        p.m_cell = iv;
 
-            if (amr->boxArray(p.m_lev)[p.m_grid].contains(p.m_cell))
-                //
-                // It has left its cell but is still in the same grid.
-                //
-                return true;
-        }
+        if (amr->boxArray(p.m_lev)[p.m_grid].contains(p.m_cell))
+            //
+            // It has left its cell but is still in the same grid.
+            //
+            return true;
     }
 
     std::vector< std::pair<int,Box> > isects;
 
-    for (int lev = amr->finestLevel(); lev >= 0; lev--)
+    for (int lev = amr->finestLevel(); lev >= lev_min; lev--)
     {
         IntVect iv = ParticleBase::Index(p,lev,amr);
 
@@ -485,7 +482,6 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
             IntVect iv = ParticleBase::Index(p_prime,lev,amr);
 
             isects = amr->boxArray(lev).intersections(Box(iv,iv));
-
             if (!isects.empty())
             {
                 BL_ASSERT(isects.size() == 1);
@@ -494,7 +490,6 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
                 p.m_lev  = lev;
                 p.m_grid = isects[0].first;
                 p.m_cell = iv;
-
                 return true;
             }
         }
