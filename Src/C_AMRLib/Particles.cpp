@@ -206,7 +206,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
     ffrac.clear();
     fcells.clear();
     //
-    // Which fine cells does particle "p" that wants to update "ccell" do we
+    // Which fine cells does particle "p" (that wants to update "ccell") do we
     // touch at the finer level?
     //
     for (IntVect iv = fbx.smallEnd(); iv <= fbx.bigEnd(); fbx.next(iv))
