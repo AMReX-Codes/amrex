@@ -2,159 +2,6 @@
 #include <ParmParse.H>
 #include <limits>
 
-void
-ParticleBase::CIC_Fracs (const Real* frac, Real* fracs)
-{
-    //
-    // "frac"  should be dimensioned: Real frac[BL_SPACEDIM]
-    //
-    // "fracs" should be dimensioned: Real fracs[D_TERM(2,+2,+4)]
-    //
-#if (BL_SPACEDIM == 1)
-    // High
-    fracs[0] = frac[0];
-
-    // Low
-    fracs[1] = (1-frac[0]);
-
-#elif (BL_SPACEDIM == 2)
-    // HH
-    fracs[0] = frac[0] * frac[1] ;
-    
-    // LH
-    fracs[1] = (1-frac[0]) * frac[1];
-    
-    // LL
-    fracs[2] = (1-frac[0]) * (1-frac[1]);
-    
-    // HL
-    fracs[3] = frac[0] * (1-frac[1]);
-
-#elif (BL_SPACEDIM == 3)
-    // HHH
-    fracs[0] = frac[0] * frac[1] * frac[2];
-
-    // LHH
-    fracs[1] = (1-frac[0]) * frac[1] * frac[2];
-
-    // LLH
-    fracs[2] = (1-frac[0]) * (1-frac[1]) * frac[2];
-    
-    // HLH
-    fracs[3] = frac[0] * (1-frac[1]) * frac[2];
-
-    // HHL
-    fracs[4] = frac[0] * frac[1] * (1-frac[2]);
-    
-    // LHL
-    fracs[5] = (1-frac[0]) * frac[1] * (1-frac[2]);
-
-    // LLL
-    fracs[6] = (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
-    
-    // HLL
-    fracs[7] = frac[0] * (1-frac[1]) * (1-frac[2]);
-#endif
-}
-
-void
-ParticleBase::CIC_Cells (const IntVect& hicell, IntVect* cells)
-{
-    //
-    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
-    //
-    IntVect cell = hicell;
-
-#if (BL_SPACEDIM == 1)
-    // High
-    cells[0] = cell;
-
-    // Low
-    cell[0]  = cell[0] - 1;
-    cells[1] = cell;
-
-#elif (BL_SPACEDIM == 2)
-    // HH
-    cells[0] = cell;
-    
-    // LH
-    cell[0]  = cell[0] - 1;
-    cells[1] = cell;
-    
-    // LL
-    cell[1]  = cell[1] - 1;
-    cells[2] = cell;
-    
-    // HL
-    cell[0]  = cell[0] + 1;
-    cells[3] = cell;
-
-#elif (BL_SPACEDIM == 3)
-    // HHH
-    cells[0] = cell;
-
-    // LHH
-    cell[0]  = cell[0] - 1;
-    cells[1] = cell;
-
-    // LLH
-    cell[1]  = cell[1] - 1;
-    cells[2] = cell;
-    
-    // HLH
-    cell[0]  = cell[0] + 1;
-    cells[3] = cell;
-
-    cell = hicell;
-
-    // HHL
-    cell[2]  = cell[2] - 1;
-    cells[4] = cell;
-    
-    // LHL
-    cell[0]  = cell[0] - 1;
-    cells[5] = cell;
-
-    // LLL
-    cell[1]  = cell[1] - 1;
-    cells[6] = cell;
-    
-    // HLL
-    cell[0]  = cell[0] + 1;
-    cells[7] = cell;
-#endif
-}
-
-void
-ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
-                               const Real*         plo,
-                               const Real*         dx,
-                               Real*               fracs,
-                               IntVect*            cells)
-{
-    //
-    // "fracs" should be dimensioned: Real    fracs[D_TERM(2,+2,+4)]
-    //
-    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
-    //
-    const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + 0.5,
-                                           (p.m_pos[1]-plo[1])/dx[1] + 0.5,
-                                           (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
-
-    const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
-
-    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
-
-    for (int d = 0; d < BL_SPACEDIM; d++)
-    {
-        if (frac[d] > 1) frac[d] = 1;
-        if (frac[d] < 0) frac[d] = 0;
-    }
-
-    ParticleBase::CIC_Fracs(frac, fracs);
-    ParticleBase::CIC_Cells(cell, cells);
-}
-
 bool
 ParticleBase::CrseToFine (const BoxArray& cfba,
                           const IntVect*  cells,
@@ -311,6 +158,8 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
 
                 cbx -= pshifts[0];
 
+                ccells[i] -= pshifts[0];
+
                 BL_ASSERT(cbx.ok());
                 BL_ASSERT(cgm.Domain().contains(cbx));
             }
@@ -357,7 +206,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
     ffrac.clear();
     fcells.clear();
     //
-    // Which fine cells does particle "p" that wants to update "ccell" do we
+    // Which fine cells does particle "p" (that wants to update "ccell") do we
     // touch at the finer level?
     //
     for (IntVect iv = fbx.smallEnd(); iv <= fbx.bigEnd(); fbx.next(iv))
@@ -443,226 +292,6 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
     //
     for (int j = 0; j < ffrac.size(); j++)
         ffrac[j] /= sum_fine;
-}
-
-//
-// Used by AssignDensity (PArray<MultiFab>& mf).
-//
-// Passes data needed by Crse->Fine or Fine->Crse to CPU that needs it.
-//
-// We store the data that needs to be sent in "data".
-//
-
-void
-ParticleBase::AssignDensityDoit (PArray<MultiFab>&         mf,
-                                 std::deque<ParticleBase>& data)
-{
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    if (NProcs == 1)
-    {
-        BL_ASSERT(data.empty());
-        return;
-    }
-
-#if BL_USE_MPI
-    //
-    // We may have data that needs to be sent to another CPU.
-    //
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    Array<int> Snds(NProcs,0);
-    Array<int> Rcvs(NProcs,0);
-
-    for (std::deque<ParticleBase>::const_iterator it = data.begin(), End = data.end();
-         it != End;
-         ++it)
-    {
-        const int lev = it->m_lev;
-        const int grd = it->m_grid;
-
-        BL_ASSERT(lev >= 0 && lev < mf.size());
-        BL_ASSERT(grd >= 0 && grd < mf[lev].size());
-
-        const int who = mf[lev].DistributionMap()[grd];
-
-        BL_ASSERT(who != MyProc);
-        BL_ASSERT(mf[lev].fabbox(grd).contains(it->m_cell));
-
-        Snds[who]++;
-    }
-
-    BL_ASSERT(Snds[MyProc] == 0);
-
-    long maxsendcount = 0;
-    for (int i = 0; i < NProcs; i++)
-        maxsendcount += Snds[i];
-    ParallelDescriptor::ReduceLongMax(maxsendcount);
-
-    if (maxsendcount == 0)
-    {
-        //
-        // There's no parallel work to do.
-        //
-        BL_ASSERT(data.empty());
-        return;
-    }
-
-    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<int>::type(),
-                                 Rcvs.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<int>::type(),
-                                 ParallelDescriptor::Communicator()) );
-    BL_ASSERT(Rcvs[MyProc] == 0);
-
-    int NumRcvs = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumRcvs += Rcvs[i];
-
-    int NumSnds = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumSnds += Snds[i];
-
-    BL_ASSERT(data.size() == NumSnds);
-    //
-    // The data we receive from ParticleBases.
-    //
-    // We only use: m_lev, m_grid, m_cell & m_pos[0].
-    //
-    const int iChunkSize = 2 + BL_SPACEDIM;
-    const int rChunkSize = 1;
-
-    Array<int>  irecvdata (NumRcvs*iChunkSize);
-    Array<Real> rrecvdata (NumRcvs*rChunkSize);
-
-    Array<int>   offset(NProcs);
-    Array<int>  sdispls(NProcs);
-    Array<int>  rdispls(NProcs);
-    Array<int> sendcnts(NProcs);
-    Array<int> recvcnts(NProcs);
-
-    {
-        //
-        // First send/recv "int" data.
-        //
-        Array<int> senddata (NumSnds*iChunkSize);
-
-        offset[0] = sdispls[0] = rdispls[0] = 0;
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            recvcnts[i] = Rcvs[i] * iChunkSize;
-            sendcnts[i] = Snds[i] * iChunkSize;
-
-            if (i > 0)
-            {
-                offset [i] = offset [i-1] + sendcnts[i-1];
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
-            }
-        }
-
-        for (std::deque<ParticleBase>::const_iterator it = data.begin(), End = data.end();
-             it != End;
-             ++it)
-        {
-            const int who  = mf[it->m_lev].DistributionMap()[it->m_grid];
-            const int ioff = offset[who];
-
-            senddata[ioff+0] = it->m_lev;
-            senddata[ioff+1] = it->m_grid;
-
-            D_TERM(senddata[ioff+2] = it->m_cell[0];,
-                   senddata[ioff+3] = it->m_cell[1];,
-                   senddata[ioff+4] = it->m_cell[2];);
-
-            offset[who] += iChunkSize;
-        }
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      NumRcvs == 0 ? 0 : irecvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      ParallelDescriptor::Communicator()) );
-    }
-
-    {
-        //
-        // Now send/recv the Real data.
-        //
-        Array<Real> senddata (NumSnds*rChunkSize);
-
-        offset[0] = sdispls[0] = rdispls[0] = 0;
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            recvcnts[i] = Rcvs[i] * rChunkSize;
-            sendcnts[i] = Snds[i] * rChunkSize;
-
-            if (i > 0)
-            {
-                offset [i] = offset [i-1] + sendcnts[i-1];
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
-            }
-        }
-
-        for (std::deque<ParticleBase>::const_iterator it = data.begin(), End = data.end();
-             it != End;
-             ++it)
-        {
-            const int who = mf[it->m_lev].DistributionMap()[it->m_grid];
-
-            senddata[offset[who]] = it->m_pos[0];
-
-            offset[who]++;
-        }
-        //
-        // We can free up memory held by "data" -- don't need it anymore.
-        //
-        std::deque<ParticleBase>().swap(data);
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                      NumRcvs == 0 ? 0 : rrecvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                      ParallelDescriptor::Communicator()) );
-    }
-    //
-    // Now update "mf".
-    //
-    if (NumRcvs > 0)
-    {
-        const int*  idata = irecvdata.dataPtr();
-        const Real* rdata = rrecvdata.dataPtr();
-
-        for (int i = 0; i < NumRcvs; i++)
-        {
-            const int     lev  = idata[0];
-            const int     grd  = idata[1];
-            const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
-
-            BL_ASSERT(mf[lev].DistributionMap()[grd] == MyProc);
-            BL_ASSERT(mf[lev][grd].box().contains(cell));
-
-            mf[lev][grd](cell) += *rdata;
-
-            idata += iChunkSize;
-
-            rdata++;
-        }
-    }
-#endif
 }
 
 int
@@ -778,7 +407,7 @@ ParticleBase::Where (ParticleBase& p,
         BL_ASSERT(p.m_id > 0);
         BL_ASSERT(p.m_grid >= 0 && p.m_grid < amr->boxArray(p.m_lev).size());
 
-        IntVect iv = Index(p,p.m_lev,amr);
+        IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
 
         if (p.m_cell == iv)
             //
@@ -802,7 +431,7 @@ ParticleBase::Where (ParticleBase& p,
 
     for (int lev = amr->finestLevel(); lev >= 0; lev--)
     {
-        IntVect iv = Index(p,lev,amr);
+        IntVect iv = ParticleBase::Index(p,lev,amr);
 
         isects = amr->boxArray(lev).intersections(Box(iv,iv));
 
@@ -834,7 +463,7 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     //
     const Geometry& geom = amr->Geom(0);
     const Box&      dmn  = geom.Domain();
-    IntVect         iv   = Index(p,0,amr);
+    IntVect         iv   = ParticleBase::Index(p,0,amr);
     const Real      eps  = 1.e-13;
 
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -912,24 +541,6 @@ ParticleBase::Reset (ParticleBase& p,
 
 Real
 ParticleBase::InterpDoit (const FArrayBox& fab,
-                          const Real*      fracs,
-                          const IntVect*   cells,
-                          int              comp)
-{
-    const int M = D_TERM(2,+2,+4);
-
-    Real val = 0;
-
-    for (int i = 0; i < M; i++)
-    {
-        val += fab(cells[i],comp) * fracs[i];
-    }
-
-    return val;
-}
-
-Real
-ParticleBase::InterpDoit (const FArrayBox& fab,
                           const IntVect&   cell,
                           const Real*      frac,
                           int              comp)
@@ -943,6 +554,24 @@ ParticleBase::InterpDoit (const FArrayBox& fab,
     ParticleBase::CIC_Cells(cell, cells);
 
     Real val = ParticleBase::InterpDoit(fab,fracs,cells,comp);
+
+    return val;
+}
+
+Real
+ParticleBase::InterpDoit (const FArrayBox& fab,
+                          const Real*      fracs,
+                          const IntVect*   cells,
+                          int              comp)
+{
+    const int M = D_TERM(2,+2,+4);
+
+    Real val = 0;
+
+    for (int i = 0; i < M; i++)
+    {
+        val += fab(cells[i],comp) * fracs[i];
+    }
 
     return val;
 }

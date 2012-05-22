@@ -279,7 +279,7 @@ c
 
       end
 c
-c     This function divides floating point numbers from one array by another.
+c     This function divides floating point numbers from one array by another
 c
       subroutine FORT_FASTDIVIDE (dest,
      &                            DIMS(dest),
@@ -316,6 +316,52 @@ c
          do j = jmin,jmax
             do i = imin,imax
                dest(i,j,k) = dest(i,j,k) / src(i+ioff,j+joff,k)
+            end do
+         end do
+      end do
+
+      end
+c
+c     This function divides floating point numbers from one array by another
+c     wherever the denominator is non-zero.
+c
+      subroutine FORT_FASTPROTDIVIDE (dest,
+     &                                DIMS(dest),
+     &                                imin, jmin, imax, jmax,
+     &                                src,
+     &                                DIMS(src),
+     &                                imn,  jmn,
+     &                                ncomp)
+
+      implicit none
+c
+c     Bounds to fill in dest
+c
+      integer imin, jmin, imax, jmax
+      integer DIMDEC(dest)
+c
+c     Bounds to fill from src
+c
+      integer imn,  jmn
+      integer DIMDEC(src)
+      integer ncomp
+      
+      REAL_T  dest(DIMV(dest),ncomp)
+      REAL_T  src(DIMV(src),ncomp)
+c
+c     Local variables
+c
+      integer i,j,k,ioff,joff
+
+      ioff=imn-imin
+      joff=jmn-jmin
+
+      do k = 1, ncomp
+         do j = jmin,jmax
+            do i = imin,imax
+               if (src(i+ioff,j+joff,k) .ne. zero) then
+                  dest(i,j,k) = dest(i,j,k) / src(i+ioff,j+joff,k)
+               end if
             end do
          end do
       end do

@@ -101,8 +101,9 @@ contains
 
        end do
 
-
-       ! stores beta*grad phi on coarse-fine interfaces (some algorithms need to know this)
+       ! stores beta*grad phi/dx_fine on coarse-fine interfaces
+       ! this gets computed inside of ml_cc_solve
+       ! we pass it back out because some algorithms (like projection methods) use this information
        do n = 2,nlevs
           call bndry_reg_build(fine_flx(n),mla%la(n),ml_layout_get_pd(mla,n))
        end do

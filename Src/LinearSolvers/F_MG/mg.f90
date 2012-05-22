@@ -23,7 +23,7 @@ contains
                             max_nlevel, max_bottom_nlevel, min_width, &
                             max_iter, eps, abs_eps, &
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
-                            st_type, &
+                            max_L0_growth, &
                             verbose, cg_verbose, nodal, use_hypre, is_singular)
 
     use bl_IO_module
@@ -44,6 +44,7 @@ contains
     real(kind=dp_t), intent(in), optional :: eps
     real(kind=dp_t), intent(in), optional :: abs_eps
     real(kind=dp_t), intent(in), optional :: bottom_solver_eps
+    real(kind=dp_t), intent(in), optional :: max_L0_growth
 
     integer, intent(in), optional :: max_nlevel
     integer, intent(in), optional :: max_bottom_nlevel
@@ -53,7 +54,6 @@ contains
     integer, intent(in), optional :: bottom_max_iter
     integer, intent(in), optional :: verbose
     integer, intent(in), optional :: cg_verbose
-    integer, intent(in), optional :: st_type
     integer, intent(in), optional :: use_hypre
     logical, intent(in), optional :: is_singular
 
@@ -80,7 +80,6 @@ contains
     mgt%dim = get_dim(la)
 
     ! Paste in optional arguments
-    if ( present(st_type)           ) mgt%st_type           = st_type
     if ( present(ng)                ) mgt%ng                = ng
     if ( present(nc)                ) mgt%nc                = nc
     if ( present(max_nlevel)        ) mgt%max_nlevel        = max_nlevel
@@ -103,6 +102,8 @@ contains
     if ( present(verbose)           ) mgt%verbose           = verbose
     if ( present(cg_verbose)        ) mgt%cg_verbose        = cg_verbose
     if ( present(use_hypre)         ) mgt%use_hypre         = use_hypre 
+
+    if ( present(max_L0_growth)     ) mgt%max_L0_growth     = max_L0_growth 
 
     nodal_flag = .false.
     if ( present(nodal) ) then
@@ -344,6 +345,7 @@ contains
                            min_width = min_width, &
                            eps = eps, &
                            abs_eps = abs_eps, &
+                           max_L0_growth = max_L0_growth, &
                            verbose = verbose, &
                            cg_verbose = cg_verbose, &
                            nodal = nodal)
@@ -1057,8 +1059,8 @@ contains
           call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
        end do
-       ! uu  += cc, done, by convention, using the prolongation routine.
 
+       ! uu  += cc, done, by convention, using the prolongation routine.
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
 
        if ( parallel_IOProcessor() .and. do_diag) &

@@ -364,44 +364,17 @@ ifeq ($(HOST),greenstreet)
   mpi_libraries += -lmpich
 endif
 
-ifeq ($(findstring nan, $(UNAMEN)), nan)
-  MPIHOME=/usr/local/mpich2/
-  F90 = mpif90
-  CXX = mpicxx
-endif
-
-ifeq ($(findstring inf, $(UNAMEN)), inf)
-  MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90
-  CXX = mpicxx
-  mpi_lib_dir = $(MPIHOME)/lib
-endif
-
-ifeq ($(findstring sn, $(UNAMEN)), sn)
-  MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90
-  CXX = mpicxx
-endif
-
 ifeq ($(findstring bender, $(UNAMEN)), bender)
   MPIHOME=/usr/lib64/mpich2
   F90 = mpif90 -f90=gfortran 
   CXX = mpicxx -cxx=gcc
 endif
 
-ifeq ($(findstring xrb, $(UNAMEN)), xrb)
-  MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90
-  CXX = mpicxx
-endif
-
-# generic linux laptop install with MPICH -- assumes that the MPIHOME 
-# environment variable is set
-ifeq ($(findstring localhost, $(UNAMEN)), localhost)
-  ifeq ($(findstring mpich, $(MPIHOME)), mpich)
+# generic linux install with MPICH wrappers -- set the 
+# BOXLIB_USE_MPI_WRAPPERS environment variable for this
+ifdef BOXLIB_USE_MPI_WRAPPERS
     F90 = mpif90
     CXX = mpicxx
-  endif
 endif
 
 ifeq ($(HOST),lookfar)

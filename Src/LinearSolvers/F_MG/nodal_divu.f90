@@ -1732,10 +1732,6 @@ contains
     integer        , intent(in   ) :: ref_ratio(:)
     type(mg_tower) , intent(in   ) :: mgt(:)
 
-    real(kind=dp_t), pointer :: rhccp(:,:,:,:) 
-    real(kind=dp_t), pointer :: rhndp(:,:,:,:) 
-    real(kind=dp_t), pointer :: rhcrp(:,:,:,:) 
-
     type(multifab) :: temp_rhs_crse
     type(  layout) :: la_crse,la_fine
     type(     box) :: pdc
@@ -1848,7 +1844,7 @@ contains
     integer :: nxcc, nycc, nxf, nyf
     integer :: icc, jcc, iif, jjf
     integer :: istart, iend, jstart, jend
-    real (kind = dp_t) :: xc, yc, fac, rrfac, foo, fx, fy, freflect
+    real (kind = dp_t) :: xc, yc, rrfac, foo, fx, fy, freflect
 
     nxf = size(flx,dim=1)
     nyf = size(flx,dim=2)
@@ -1977,7 +1973,7 @@ contains
     integer :: nxcc, nycc, nzcc, nxf, nyf, nzf
     integer :: icc, jcc, kcc, iif, jjf, kkf
     integer :: istart, iend, jstart, jend, kstart, kend
-    real (kind = dp_t) :: xc, yc, zc, fac, rrfac, foo, fx, fy, fz, freflect
+    real (kind = dp_t) :: xc, yc, zc, rrfac, foo, fx, fy, fz, freflect
 
     nxf = size(flx,dim=1)
     nyf = size(flx,dim=2)
