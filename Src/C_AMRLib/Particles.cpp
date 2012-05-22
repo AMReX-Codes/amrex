@@ -394,10 +394,10 @@ ParticleBase::Index (const ParticleBase& p,
 bool
 ParticleBase::Where (ParticleBase& p,
                      const Amr*    amr,
-                     bool          update)
+                     bool          update,
+                     int           lev_min)
 {
     BL_ASSERT(amr != 0);
-
     if (update)
     {
         //
@@ -446,7 +446,77 @@ ParticleBase::Where (ParticleBase& p,
             return true;
         }
     }
+    return false;
+}
 
+bool
+ParticleBase::PeriodicWhere (ParticleBase& p,
+                     const Amr*    amr,
+                     int           lev_min)
+{
+    BL_ASSERT(amr != 0);
+    
+    //create a copy "dummy" particle to check for periodic outs
+    ParticleBase p_prime;
+    p_prime.m_grid = p.m_grid;
+    p_prime.m_lev = p.m_lev;
+    p_prime.m_cell = p.m_cell;
+    for (int d = 0; d < BL_SPACEDIM; d++)
+       p_prime.m_pos[d] = p.m_pos[d];
+    
+    ParticleBase::PeriodicShift(p_prime, amr);
+    
+    bool shifted = false; //this could be cleaned up
+    for (int d = 0; d < BL_SPACEDIM; d++)
+    {
+        if (p_prime.m_pos[d] != p.m_pos[d])
+        {
+            shifted = true;
+            break;
+        }
+    }
+    
+    if (shifted)
+    {
+        std::vector< std::pair<int,Box> > isects;
+
+        for (int lev = amr->finestLevel(); lev >= lev_min; lev--)
+        {
+            IntVect iv = ParticleBase::Index(p_prime,lev,amr);
+
+            isects = amr->boxArray(lev).intersections(Box(iv,iv));
+
+            if (!isects.empty())
+            {
+                BL_ASSERT(isects.size() == 1);
+                for (int d = 0; d < BL_SPACEDIM; d++)
+                    p.m_pos[d] = p_prime.m_pos[d];
+                p.m_lev  = lev;
+                p.m_grid = isects[0].first;
+                p.m_cell = iv;
+
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool
+ParticleBase::RestrictedWhere(ParticleBase& p,
+                     const Amr*    amr,
+                     int           ngrow)
+{
+    IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
+    
+
+    if (BoxLib::grow(amr->boxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
+    {
+        p.m_cell = iv;
+
+        return true;
+    }
     return false;
 }
 
@@ -465,7 +535,6 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     const Box&      dmn  = geom.Domain();
     IntVect         iv   = ParticleBase::Index(p,0,amr);
     const Real      eps  = 1.e-13;
-
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
         if (!geom.isPeriodic(i)) continue;
