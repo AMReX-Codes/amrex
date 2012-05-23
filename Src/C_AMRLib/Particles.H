@@ -3270,9 +3270,9 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
     BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
-           BL_ASSERT(umac[1].nGrow() >= 1);,
-           BL_ASSERT(umac[2].nGrow() >= 1););
+    D_TERM(BL_ASSERT(umac[0].nGrow() >= 2);,
+           BL_ASSERT(umac[1].nGrow() >= 2);,
+           BL_ASSERT(umac[2].nGrow() >= 2););
 
     D_TERM(BL_ASSERT(!umac[0].contains_nan());,
            BL_ASSERT(!umac[1].contains_nan());,
@@ -3433,12 +3433,22 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
                                 if (full_where) //lengthier checks for subcycling
                                 {
                                     if (!ParticleBase::PeriodicWhere(p, m_amr, lev_min))
-                                        if (!ParticleBase::RestrictedWhere(p, m_amr, nGrow))
-                                            BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle special");
+                                    {
+                                        if (lev_min != 0) // RestrictedWhere should be unnecessary at top level
+                                        {
+                                            if (!ParticleBase::RestrictedWhere(p, m_amr, nGrow))
+                                                BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle at non-coarse step");
+                                        }
+                                        else
+                                        {
+                                            //The particle has left the domain; invalidate it
+                                            p.m_id = -1;
+                                        }
+                                    }
                                 }
                                 else
                                 {
-                                    BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle special 2");
+                                    BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle in basic check");
                                 }
                             }
                     //
