@@ -415,13 +415,18 @@ ParticleBase::Where (ParticleBase& p,
             //
             return true;
 
-        p.m_cell = iv;
+        if (p.m_lev == amr->finestLevel())
+        {
+            // If the particle is at the finest level, we check if it has
+            // moved to a different point in the same grid.
+            p.m_cell = iv;
 
-        if (amr->boxArray(p.m_lev)[p.m_grid].contains(p.m_cell))
-            //
-            // It has left its cell but is still in the same grid.
-            //
-            return true;
+            if (amr->boxArray(p.m_lev)[p.m_grid].contains(p.m_cell))
+                //
+                // It has left its cell but is still in the same grid.
+                //
+                return true;
+        }
     }
 
     std::vector< std::pair<int,Box> > isects;
