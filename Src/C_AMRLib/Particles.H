@@ -226,28 +226,16 @@ public:
     // TODO: the methods should return a constraint on the timestep...
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
-    //   standard coordinates -- these rely on CELL-BASED gravity component
-    //
-    void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep);
-    void moveKick      (const MultiFab& grav_vector, int level, Real timestep);
-    //
-    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
-    //   standard coordinates -- these rely on EDGE-BASED gravity component
-    //
-    void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep);
-    void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep);
-    //
-    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
     //   comoving coordinates -- these rely on CELL-BASED gravity component
     //
-    void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep, Real a_old, Real a_half);
-    void moveKick      (const MultiFab& grav_vector, int level, Real timestep, Real a_new, Real a_half);
+    void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep, Real a_old = 1.0, Real a_half = 1.0);
+    void moveKick      (const MultiFab& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0);
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
     //   comoving coordinates -- these rely on EDGE-BASED gravity component
     //
-    void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_old, Real a_half);
-    void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_new, Real a_half);
+    void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_old = 1.0, Real a_half = 1.0);
+    void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0);
     //
     // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
     // so this scheme should work in the overall algorithm...
@@ -2789,21 +2777,6 @@ template <int N>
 void
 ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
                                      int             lev,
-                                     Real            dt)
-{
-    Real a_old  = 1.;
-    Real a_half = 1.;
-    moveKickDrift (grav_vector,lev,dt,a_old,a_half);
-}
-
-//
-// This version takes as input the gravity vector at cell centers
-//
-
-template <int N>
-void
-ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
-                                     int             lev,
                                      Real            dt,
                                      Real            a_old,
                                      Real            a_half) 
@@ -2887,16 +2860,6 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
 // This version takes as input the gravity vector at cell centers
 //
 
-template <int N>
-void
-ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
-                                int             lev,
-                                Real            dt)
-{
-    Real a_new  = 1.;
-    Real a_half = 1.;
-    moveKick (grav_vector,lev,dt,a_new,a_half);
-}
 
 //
 // This version takes as input the gravity vector at cell centers
@@ -2974,21 +2937,6 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
     //
     // No need for Redistribution(), we only change the velocity.
     //
-}
-
-//
-// This version takes as input the normal gravity component on each face
-//
-
-template <int N>
-void
-ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
-                                     int             lev,
-                                     Real            dt)
-{
-    Real a_old  = 1.;
-    Real a_half = 1.;
-    moveKickDrift (grav_vector,lev,dt,a_old,a_half);
 }
 
 //
@@ -3091,20 +3039,6 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     Redistribute(true);
 }
 
-//
-// This version takes as input the normal gravity component on each face
-//
-
-template <int N>
-void
-ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
-                                 int             lev,
-                                 Real            dt)
-{
-    Real a_new  = 1.;
-    Real a_half = 1.;
-    moveKick (grav_vector,lev,dt,a_new,a_half);
-}
 
 //
 // This version takes as input the normal gravity component on each face
@@ -3282,7 +3216,6 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
     const Geometry& geom     = m_amr->Geom(lev);
     const Real*     dx       = geom.CellSize();
     const Real*     plo      = geom.ProbLo();
-    const Real      eps  = 1.e-13;
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
@@ -3302,7 +3235,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
             for (int i = 0; i < n; i++)
             {
                 ParticleType& p = pbox[i];
-
+                
                 if (p.m_id <= 0) continue;
 
                 BL_ASSERT(p.m_grid == grid);
@@ -3359,6 +3292,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         p.m_data[vcomp + d] = 0.5 * (p.m_data[vcomp + d+BL_SPACEDIM] + vel);
                     }
                 }
+                
                 //This assumes enough boundary cells in all directions, it shouldn't be a problem
                 ParticleBase::RestrictedWhere(p,m_amr, umac[0].nGrow()-1); 
             }
@@ -3429,7 +3363,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
                 {
                     if (!where_already_called)
                         if (!ParticleBase::Where(p,m_amr, false, lev_min))
-                            {
+                            {                                
                                 if (full_where) //lengthier checks for subcycling
                                 {
                                     if (!ParticleBase::PeriodicWhere(p, m_amr, lev_min))
@@ -3442,6 +3376,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
                                         else
                                         {
                                             //The particle has left the domain; invalidate it
+                                            //This typically only happens on a coarse timestep
                                             p.m_id = -1;
                                         }
                                     }
@@ -3825,7 +3760,6 @@ ParticleContainer<N>::OK (bool full_where, int lev_min, int ngrow) const
                 // Yes I want to make a copy of the particle.
                 //
                 ParticleType p = *it;
-
                 if (p.m_id > 0)
                 {
                     const int     llev  = p.m_lev;
