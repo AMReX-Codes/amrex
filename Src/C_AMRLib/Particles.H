@@ -61,6 +61,10 @@ struct ParticleBase
     //
     static bool RestrictedWhere (ParticleBase& prt, const Amr* amr, int ngrow);
 
+    //
+    // Updates a particle's location (Where), tries to periodic shift any particles
+    // that have left the domain. May need work (see inline comments)
+    //
     static void Reset (ParticleBase& prt, const Amr* amr, bool update);
 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
@@ -180,11 +184,11 @@ public:
 
     long IncrementWithTotal (MultiFab& mf, int level);
 
-    void AssignDensity (MultiFab& mf, int level, int ncomp=1) const;
+    void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1) const;
 
-    void AssignDensity (PArray<MultiFab>& mf, int ncomp = 1) const;
+    void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1) const;
 
-    void AssignDensityAndVels (PArray<MultiFab>& mf) const;
+    void AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min = 0) const;
 
     void AssignDensityDoit (PArray<MultiFab>& mf, PBox& data, int ncomp) const;
 
@@ -212,6 +216,7 @@ public:
     void MoveRandom (int level);
 
     // **************************************************************************************************************** 
+    // Nyx Only Methods
     //
     // If the particles move only with self-gravity from themselves and the gas, then 
     // we can move them according to the schemes below.
@@ -240,6 +245,22 @@ public:
     // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
     // so this scheme should work in the overall algorithm...
     //
+    //
+    // The Following methods are for managing Nyx's Virtual and Ghost Particles.
+    //
+    // Removes all particles at a given level
+    //
+    void RemoveParticlesAtLevel (int level);
+    //
+    // Creates virtual particles for a given level that represent
+    // in some capacity all particles at finer levels
+    //
+    void CreateVirtualParticles (int level);
+    // 
+    // Create ghost particles for a given level that are copies of particles
+    // near coarse->fine boundaries in level-1
+    //
+    void CreateGhostParticles (int level);
     // **************************************************************************************************************** 
 
     void AdvectWithUmac (const MultiFab* umac, int level, Real dt, const int vcomp = 0);
@@ -1781,13 +1802,12 @@ ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensity (MultiFab& mf,
+ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf,
                                      int       lev,
                                      int       ncomp) const
 {
     BL_ASSERT(N >= 1);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
-    BL_ASSERT(lev == 0);
     BL_ASSERT(mf.boxArray() == m_amr->boxArray(lev));
 
     const Real strttime = ParallelDescriptor::second();
@@ -1915,14 +1935,14 @@ ParticleContainer<N>::AssignDensity (MultiFab& mf,
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensityAndVels (PArray<MultiFab>& mf) const
+ParticleContainer<N>::AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min) const
 {
-    AssignDensity(mf,BL_SPACEDIM+1);
+    AssignDensity(mf, lev_min, BL_SPACEDIM+1);
 }
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
+ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncomp) const
 {
     BL_ASSERT(N >= 1);
     BL_ASSERT(N >= ncomp);
@@ -1932,7 +1952,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
 
     mf.resize(finest_level+1, PArrayManage);
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = lev_min; lev <= finest_level; lev++)
     {
         mf.set(lev, new MultiFab(m_amr->boxArray(lev), ncomp, 1));
 
@@ -1945,7 +1965,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
         //
         // Just use the far simpler single-level version.
         //
-        AssignDensity(mf[0],0,ncomp);
+        AssignDensitySingleLevel(mf[0],0,ncomp);
         return;
     }
     //
@@ -1976,7 +1996,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
     Array<IntVect>                    pshifts(27);
     std::vector< std::pair<int,Box> > isects;
 
-    for (int lev = 0; lev <= finest_level; lev++)
+    for (int lev = lev_min; lev <= finest_level; lev++)
     {
         const Geometry& gm  = m_amr->Geom(lev);
         const Box&      dm  = gm.Domain();
@@ -2018,7 +2038,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
                 //
                 // Do we have Fine->Crse overlap on a periodic boundary?
                 // We want to add all ghost cells that can be shifted into valid region.
-                // This can only happen at level one.
+                // This can only happen at level one. //are we sure about this?
                 //
                 BoxList valid;
 
@@ -2347,7 +2367,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
     //
     AssignDensityDoit(mf,data,ncomp);
 
-    for (int i = 0; i <= finest_level; i++)
+    for (int i = lev_min; i <= finest_level; i++)
     {
         const Geometry& gm  = m_amr->Geom(i);
         const Real*     dx  = gm.CellSize();
@@ -2785,6 +2805,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
+    printf("DEBUG: MKD level %d\n",lev);
     const Real strttime      = ParallelDescriptor::second();
     const Real half_dt       = 0.5 * dt;
     const Real a_half_inv    = 1 / a_half;
@@ -2804,6 +2825,8 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
         for (int i = 0; i < n; i++)
         {
             ParticleType& p = pbox[i];
+            std::printf("DEBUG: Particle %d Pre-Pos: %f %f %f\n",p.m_id, p.m_pos[0], p.m_pos[1], p.m_pos[2]);
+            std::printf("DEBUG: Particle %d Pre-Vel: %f %f %f\n",p.m_id, p.m_data[1], p.m_data[2], p.m_data[3]);
 
             if (p.m_id <= 0) continue;
 
@@ -2823,6 +2846,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             //
             // Add adot/a and gravitational updates.
             //
+            std::printf("DEBUG: Particle %d Gravity: %f %f %f\n",p.m_id, grav[0], grav[1], grav[2]);
             D_TERM(p.m_data[1] += half_dt * grav[0];,
                    p.m_data[2] += half_dt * grav[1];,
                    p.m_data[3] += half_dt * grav[2];);
@@ -2833,16 +2857,22 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             //
             // Now update x^new = x^old + dt grav^half / a^half
             //
+            std::printf("DEBUG: Particle %d Mid-Vel: %f %f %f\n",p.m_id, p.m_data[1], p.m_data[2], p.m_data[3]);
             D_TERM(p.m_pos[0] += dt_a_half_inv * p.m_data[1];,
                    p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
 
-            ParticleBase::Reset(p,m_amr,true);
+            // We must now go through the regular redistribute channels
+            //ParticleBase::Reset(p,m_amr,true);
+            // Move the particle to the proper ghost cell.
+            std::printf("DEBUG: Particle %d Post-Pos: %f %f %f\n",p.m_id, p.m_pos[0], p.m_pos[1], p.m_pos[2]);
+            ParticleBase::RestrictedWhere(p,m_amr, grav_vector.nGrow() -1);
         }
     }
 
     if (m_verbose > 1)
     {
+        std::cout << "DEBUG: Verbose\n";
         Real stoptime = ParallelDescriptor::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
@@ -2853,12 +2883,9 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
         }
     }
 
-    Redistribute(true);
+    //Redistribute(true);
 }
 
-//
-// This version takes as input the gravity vector at cell centers
-//
 
 
 //
@@ -3020,7 +3047,10 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
                    p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
 
-            ParticleBase::Reset(p,m_amr,true);
+            // We must now go through the regular redistribute channels
+            //ParticleBase::Reset(p,m_amr,true);
+            // Move the particle to the proper ghost cell.
+            ParticleBase::RestrictedWhere(p,m_amr, grav_vector[0].nGrow() -1);
         }
     }
 
@@ -3036,7 +3066,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
         }
     }
 
-    Redistribute(true);
+    //Redistribute(true);
 }
 
 
@@ -3187,6 +3217,45 @@ ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
     }
 }
 
+template <int N>
+void
+ParticleContainer<N>::RemoveParticlesAtLevel (int level)
+{
+    PMap& pmap = m_particles[level];
+    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            PBox& pbox = pmap_it->second;
+
+            for (typename PBox::iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+            {
+                ParticleType& p = *it;
+
+                if (p.m_id > 0)
+                {
+                    //
+                    // Negate it so that it's no longer considered a valid particle.
+                    // It'll be removed on the next Redistribute().
+                    //
+                    p.m_id = -p.m_id;
+                }
+            }
+        }
+}
+
+template <int N>
+void
+ParticleContainer<N>::CreateVirtualParticles (int level)
+{
+    
+}
+
+template <int N>
+void
+ParticleContainer<N>::CreateGhostParticles (int level)
+{
+    // Not implemented yet
+}
+    
 //
 // Uses a predictor/corrector to advance particles using umac.
 //
