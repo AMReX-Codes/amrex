@@ -323,6 +323,15 @@ c     ::::: first fill sides
       ie = min(ARG_H1(q),domhi(1))
       js = max(ARG_L2(q),domlo(2))
       je = min(ARG_H2(q),domhi(2))
+      
+c
+c     Set these to invalid values, they shouldn't be used if not reset
+c
+      ilo = -10
+      jlo = -10
+      ihi = 100000000
+      jhi = 100000000
+
 c
 c     First fill sides.
 c
@@ -398,64 +407,72 @@ c
          end if
       end if
 
-      if (jlo+2 .le. je) then 
-         q(ilo-1,jlo-1) = half *
+      if ((nlft .gt. 0) .and. (nbot .gt. 0)) then
+          if (jlo+2 .le. je) then
+             q(ilo-1,jlo-1) = half *
      $      (3*q(ilo-1,jlo) - 3*q(ilo-1,jlo+1) + q(ilo-1,jlo+2))
-      else
-         q(ilo-1,jlo-1) = half * (2*q(ilo-1,jlo) - q(ilo-1,jlo+1))
-      end if
-      
-      if (ilo+2 .le. ie) then 
-         q(ilo-1,jlo-1) =  q(ilo-1,jlo-1) + half *
+          else
+             q(ilo-1,jlo-1) = half * (2*q(ilo-1,jlo) - q(ilo-1,jlo+1))
+          end if
+          
+          if (ilo+2 .le. ie) then 
+             q(ilo-1,jlo-1) =  q(ilo-1,jlo-1) + half *
      $      (3*q(ilo,jlo-1) - 3*q(ilo+1,jlo-1) + q(ilo+2,jlo-1)) 
-      else
-         q(ilo-1,jlo-1) =  q(ilo-1,jlo-1) + half *
+          else
+             q(ilo-1,jlo-1) =  q(ilo-1,jlo-1) + half *
      $        (2*q(ilo,jlo-1) - q(ilo+1,jlo-1))
+          end if
       end if
 
-      if (jhi-2 .ge. js) then 
-         q(ilo-1,jhi+1) = half *
+      if ((nlft .gt. 0) .and. (ntop .gt. 0)) then 
+          if (jhi-2 .ge. js) then 
+             q(ilo-1,jhi+1) = half *
      $      (3*q(ilo-1,jhi) - 3*q(ilo-1,jhi-1) + q(ilo-1,jhi-2))
-      else
-         q(ilo-1,jhi+1) = half * (2*q(ilo-1,jhi) - q(ilo-1,jhi-1))
-      end if
-      
-      if (ilo+2 .le. ie) then 
-         q(ilo-1,jhi+1) = q(ilo-1,jhi+1) + half *
+          else
+             q(ilo-1,jhi+1) = half * (2*q(ilo-1,jhi) - q(ilo-1,jhi-1))
+          end if
+          
+          if (ilo+2 .le. ie) then 
+             q(ilo-1,jhi+1) = q(ilo-1,jhi+1) + half *
      $      (3*q(ilo,jhi+1) - 3*q(ilo+1,jhi+1) + q(ilo+2,jhi+1))
-      else
-         q(ilo-1,jhi+1) = q(ilo-1,jhi+1) + half *
+          else
+             q(ilo-1,jhi+1) = q(ilo-1,jhi+1) + half *
      $        (2*q(ilo,jhi+1) - q(ilo+1,jhi+1))
+          end if
       end if
 
-      if (jlo+2 .le. je) then 
-         q(ihi+1,jlo-1) = half *
+      if ((nrgt .gt. 0) .and. (nbot .gt. 0)) then 
+          if (jlo+2 .le. je) then 
+             q(ihi+1,jlo-1) = half *
      $      (3*q(ihi+1,jlo) - 3*q(ihi+1,jlo+1) + q(ihi+1,jlo+2))
-      else
-         q(ihi+1,jlo-1) = half * (2*q(ihi+1,jlo) - q(ihi+1,jlo+1))
-      end if
-      
-      if (ihi-2 .ge. is) then 
-         q(ihi+1,jlo-1) = q(ihi+1,jlo-1) + half *
+          else
+             q(ihi+1,jlo-1) = half * (2*q(ihi+1,jlo) - q(ihi+1,jlo+1))
+          end if
+          
+          if (ihi-2 .ge. is) then 
+             q(ihi+1,jlo-1) = q(ihi+1,jlo-1) + half *
      $      (3*q(ihi,jlo-1) - 3*q(ihi-1,jlo-1) + q(ihi-2,jlo-1))
-      else
-         q(ihi+1,jlo-1) = q(ihi+1,jlo-1) + half *
+          else
+             q(ihi+1,jlo-1) = q(ihi+1,jlo-1) + half *
      $        (2*q(ihi,jlo-1) - q(ihi-1,jlo-1))
+          end if
       end if
 
-      if (jhi-2 .ge. js) then 
-         q(ihi+1,jhi+1) = half *
+      if ((nrgt .gt. 0) .and. (ntop .gt. 0)) then 
+          if (jhi-2 .ge. js) then 
+             q(ihi+1,jhi+1) = half *
      $      (3*q(ihi+1,jhi) - 3*q(ihi+1,jhi-1) + q(ihi+1,jhi-2))
-      else
-         q(ihi+1,jhi+1) = half * (2*q(ihi+1,jhi) - q(ihi+1,jhi-1))
-      end if
-      
-      if (ihi-2 .ge. is) then 
-         q(ihi+1,jhi+1) = q(ihi+1,jhi+1) + half *
+          else
+             q(ihi+1,jhi+1) = half * (2*q(ihi+1,jhi) - q(ihi+1,jhi-1))
+          end if
+          
+          if (ihi-2 .ge. is) then 
+             q(ihi+1,jhi+1) = q(ihi+1,jhi+1) + half *
      $      (3*q(ihi,jhi+1) - 3*q(ihi-1,jhi+1) + q(ihi-2,jhi+1))
-      else
-         q(ihi+1,jhi+1) = q(ihi+1,jhi+1) + half *
+          else
+             q(ihi+1,jhi+1) = q(ihi+1,jhi+1) + half *
      $        (2*q(ihi,jhi+1) - q(ihi-1,jhi+1))
+          end if
       end if
       
       end
