@@ -453,8 +453,8 @@ ParticleBase::Where (ParticleBase& p,
 
 bool
 ParticleBase::PeriodicWhere (ParticleBase& p,
-                     const Amr*    amr,
-                     int           lev_min)
+                             const Amr*    amr,
+                             int           lev_min)
 {
     BL_ASSERT(amr != 0);
     
@@ -508,6 +508,7 @@ ParticleBase::RestrictedWhere(ParticleBase& p,
                      const Amr*    amr,
                      int           ngrow)
 {
+    BL_ASSERT(amr != 0);
     IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
     
 
@@ -520,6 +521,30 @@ ParticleBase::RestrictedWhere(ParticleBase& p,
     return false;
 }
 
+bool 
+ParticleBase::SingleLevelWhere (ParticleBase& p, 
+                                const Amr*    amr,
+                                int           level)
+{
+    BL_ASSERT(amr != 0);
+    
+    std::vector< std::pair<int,Box> > isects;
+    IntVect iv = ParticleBase::Index(p,level,amr);
+
+    isects = amr->boxArray(level).intersections(Box(iv,iv));
+
+    if (!isects.empty())
+    {
+        BL_ASSERT(isects.size() == 1);
+
+        p.m_lev  = level;
+        p.m_grid = isects[0].first;
+        p.m_cell = iv;
+
+        return true;
+    }
+    return false;
+}
 void
 ParticleBase::PeriodicShift (ParticleBase& p,
                              const Amr*    amr)
