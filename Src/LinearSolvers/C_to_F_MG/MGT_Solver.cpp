@@ -183,7 +183,8 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
    if (!initialized)
         initialize(m_nodal);
 
-  BL_ASSERT( m_grids.size() == dmap.size() == m_nlevel);
+  BL_ASSERT(m_grids.size()==m_nlevel);
+  BL_ASSERT(   dmap.size()==m_nlevel);
   int dm = BL_SPACEDIM;
   int i_nodal = (m_nodal)?1:0;
 
