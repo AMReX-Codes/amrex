@@ -456,7 +456,15 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
     ifeq ($(WHICHLINUX), GENERICLINUX)
-      LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
+      ifdef BOXLIB_USE_MPI_WRAPPERS
+        CXX := mpic++
+        CC  := mpicc
+        FC  := mpif90
+        fC  := mpif90
+        F90 := mpif90
+      else        
+        LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
+      endif
     endif
   else
     ifdef LAMHOME
