@@ -87,6 +87,9 @@ class suiteObj:
         self.compareToolDir = ""
         self.helmeosDir = ""
 
+        self.useAstroDev = 0
+        self.astroDevDir = ""
+
         self.MPIcommand = ""
         self.MPIhost = ""
 
@@ -194,6 +197,10 @@ def LoadParams(file):
 
         elif (opt == "helmeosDir"):
             mysuite.helmeosDir = checkTestDir(value)
+
+        elif (opt == "AstroDevDir"):
+            mysuite.astroDevDir = checkTestDir(value)
+            mysuite.useAstroDev = 1
 
         elif (opt == "MPIcommand"):
             mysuite.MPIcommand = value
@@ -550,20 +557,30 @@ def checkTestDir(dirName):
 #==============================================================================
 # doCVSUpdate
 #==============================================================================
-def doCVSUpdate(topDir, root, outDir):
+def doCVSUpdate(topDir, root, outDir, name=""):
    """ do a CVS update of the repository named root.  topDir is the full path
        to the directory containing root.  outDir is the full path to the 
        directory where we will store the CVS output """
 
    os.chdir(topDir)
  
+   if (root == ""):
+       oname = name
+   else:
+       oname = root
+
+
    print "\n"
-   bold("cvs update %s" % (root))
+   bold("cvs update in %s" % (oname))
 
    # we need to be tricky here to make sure that the stdin is
    # presented to the user to get the password.  Therefore, we use the
    # subprocess class instead of os.system
-   prog = ["cvs", "update", "%s" % (root)]
+   if (root == ""):
+       prog = ["cvs", "update"]
+   else:
+       prog = ["cvs", "update", "%s" % (root)]
+
    p = subprocess.Popen(prog, stdin=subprocess.PIPE,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT)
@@ -578,8 +595,8 @@ def doCVSUpdate(topDir, root, outDir):
            cvsFailed = 1
            break
 
-   try:
-       cf = open("cvs.%s.out" % (root), 'w')
+   try:       
+       cf = open("cvs.%s.out" % (oname), 'w')
    
    except IOError:
        fail("  ERROR: unable to open file for writing")
@@ -592,10 +609,10 @@ def doCVSUpdate(topDir, root, outDir):
 
 
    if (cvsFailed or stdout == ""):
-       fail("  ERROR: cvs update was aborted. See cvs.%s.out for details" % (root))
+       fail("  ERROR: cvs update was aborted. See cvs.%s.out for details" % (oname))
        
         
-   shutil.copy("cvs.%s.out" % (root),  outDir)
+   shutil.copy("cvs.%s.out" % (oname),  outDir)
 
 
 
@@ -1105,6 +1122,10 @@ def testSuite(argv):
        # BoxLib
        doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir)
 
+       # AstroDev
+       if (suite.useAstroDev):
+           doCVSUpdate(suite.astroDevDir, "", fullWebDir, name="AstroDev")
+
 
     #--------------------------------------------------------------------------
     # generate the ChangeLogs
@@ -1183,9 +1204,11 @@ def testSuite(argv):
         os.chdir(suite.sourceDir + dir)
 
         if (suite.sourceTree == "Parallel"):
-            systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+            systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
+                       (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
         else:
-            systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+            systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
+                       (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
             
     os.chdir(suite.testTopDir)
     
@@ -1237,9 +1260,11 @@ def testSuite(argv):
             print "  re-making clean..."
 
             if (suite.sourceTree == "Parallel"):
-                systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+                systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
+                           (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
             else:
-                systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+                systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
+                           (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
 
         
         print "  building..."
@@ -1248,15 +1273,15 @@ def testSuite(argv):
 
 	    if (test.useMPI):
 	       executable = "%s%dd.MPI.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s %s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 
             else:
 	       executable = "%s%dd.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 	       
@@ -1264,21 +1289,21 @@ def testSuite(argv):
         elif (suite.sourceTree == "fParallel"):
 
             if (test.useMPI):
-                compString = "%s -j%s BOXLIB_HOME=%s %s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
             elif (test.useOMP):
-                compString = "%s -j%s BOXLIB_HOME=%s %s MPI= OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI= OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
 
             else:
-                compString = "%s -j%s BOXLIB_HOME=%s %s MPI= OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI= OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
