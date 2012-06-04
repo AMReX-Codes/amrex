@@ -561,19 +561,22 @@ ifeq ($(MACHINE), Darwin)
 
        endif
 
-  elifdef MPIHOME
-    #
-    # sane defaults for general mac; assumes MPIHOME env var defined
-    #
-      CXX := $(MPIHOME)/bin/mpic++
-      CC  := $(MPIHOME)/bin/mpicc
-      FC  := $(MPIHOME)/bin/mpif90
-      fC  := $(MPIHOME)/bin/mpif90
-      F90 := $(MPIHOME)/bin/mpif90
-
-      MPI_HOME=$(MPIHOME)
   else
-    $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)
+     ifdef MPIHOME
+        #
+        # sane defaults for general mac; assumes MPIHOME var defined
+        #
+        CXX := $(MPIHOME)/bin/mpic++
+        CC  := $(MPIHOME)/bin/mpicc
+        FC  := $(MPIHOME)/bin/mpif90
+        fC  := $(MPIHOME)/bin/mpif90
+        F90 := $(MPIHOME)/bin/mpif90
+
+        MPI_HOME=$(MPIHOME)
+     else
+        $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)
+     endif
+
   endif
 
   LIBRARY_LOCATIONS += $(MPI_HOME)/lib
