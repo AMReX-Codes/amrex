@@ -9,8 +9,6 @@ ifeq ($(UNAMEN), maudib.ucolick.org)
     fC  := gfortran
     F90 := gfortran
 
-    FFLAGS += -J$(fmoddir)
-    fFLAGS += -J$(fmoddir)
     INCLUDE_LOCATIONS += $(fmoddir)
 
     MAUDIB_LOC := /Users/cmalone/work/install/gcc/usr/local
