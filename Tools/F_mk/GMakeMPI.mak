@@ -241,10 +241,20 @@ ifeq ($(HOST), orga)
 endif
 
 ifeq ($(HOST),naphta)
-  MPIHOME=/home/car/mpich2
+  MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = -L$(MPIHOME)/lib
-  mpi_libraries += -lmpich
+  mpi_libraries += -lmpich -lmpl -lpthread
+  ifeq ($(COMP),g95)
+    $(error SORRY NO MPI WITH G95)
+  endif
+endif
+
+ifeq ($(HOST),battra)
+  MPIHOME=/usr/local
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = -L$(MPIHOME)/lib
+  mpi_libraries += -lmpich -lmpl -lpthread
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
