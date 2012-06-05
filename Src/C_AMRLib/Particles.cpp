@@ -395,9 +395,16 @@ bool
 ParticleBase::Where (ParticleBase& p,
                      const Amr*    amr,
                      bool          update,
-                     int           lev_min)
+                     int           lev_min,
+                     int           finest_level)
 {
     BL_ASSERT(amr != 0);
+
+    if (finest_level == -1)
+        finest_level = amr->finestLevel();
+
+    BL_ASSERT(finest_level <= amr->finestLevel());
+
     if (update)
     {
         //
@@ -417,8 +424,12 @@ ParticleBase::Where (ParticleBase& p,
 
         if (p.m_lev == amr->finestLevel())
         {
-            // If the particle is at the finest level, we check if it has
-            // moved to a different point in the same grid.
+            //
+            // If the particle is at the true finest level, we check if it has
+            // moved to a different point in the same grid.  This doesn't work
+            // for coarser levels, since coarse grids can be partially covered by
+            // finer grids.
+            //
             p.m_cell = iv;
 
             if (amr->boxArray(p.m_lev)[p.m_grid].contains(p.m_cell))
@@ -431,7 +442,7 @@ ParticleBase::Where (ParticleBase& p,
 
     std::vector< std::pair<int,Box> > isects;
 
-    for (int lev = amr->finestLevel(); lev >= lev_min; lev--)
+    for (int lev = finest_level; lev >= lev_min; lev--)
     {
         IntVect iv = ParticleBase::Index(p,lev,amr);
 
@@ -454,21 +465,24 @@ ParticleBase::Where (ParticleBase& p,
 bool
 ParticleBase::PeriodicWhere (ParticleBase& p,
                              const Amr*    amr,
-                             int           lev_min)
+                             int           lev_min,
+                             int           finest_level)
 {
     BL_ASSERT(amr != 0);
-    
-    //create a copy "dummy" particle to check for periodic outs
-    ParticleBase p_prime;
-    p_prime.m_grid = p.m_grid;
-    p_prime.m_lev = p.m_lev;
-    p_prime.m_cell = p.m_cell;
-    for (int d = 0; d < BL_SPACEDIM; d++)
-       p_prime.m_pos[d] = p.m_pos[d];
-    
+
+    if (finest_level == -1)
+        finest_level = amr->finestLevel();
+
+    BL_ASSERT(finest_level <= amr->finestLevel());
+    //
+    // Create a copy "dummy" particle to check for periodic outs.
+    //
+    ParticleBase p_prime = p;
+
     ParticleBase::PeriodicShift(p_prime, amr);
     
-    bool shifted = false; //this could be cleaned up
+    bool shifted = false;
+
     for (int d = 0; d < BL_SPACEDIM; d++)
     {
         if (p_prime.m_pos[d] != p.m_pos[d])
@@ -482,19 +496,24 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
     {
         std::vector< std::pair<int,Box> > isects;
 
-        for (int lev = amr->finestLevel(); lev >= lev_min; lev--)
+        for (int lev = finest_level; lev >= lev_min; lev--)
         {
             IntVect iv = ParticleBase::Index(p_prime,lev,amr);
 
             isects = amr->boxArray(lev).intersections(Box(iv,iv));
+
             if (!isects.empty())
             {
                 BL_ASSERT(isects.size() == 1);
-                for (int d = 0; d < BL_SPACEDIM; d++)
-                    p.m_pos[d] = p_prime.m_pos[d];
+
+                D_TERM(p.m_pos[0] = p_prime.m_pos[0];,
+                       p.m_pos[1] = p_prime.m_pos[1];,
+                       p.m_pos[2] = p_prime.m_pos[2];);
+
                 p.m_lev  = lev;
                 p.m_grid = isects[0].first;
                 p.m_cell = iv;
+
                 return true;
             }
         }
@@ -504,13 +523,12 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
 }
 
 bool
-ParticleBase::RestrictedWhere(ParticleBase& p,
-                     const Amr*    amr,
-                     int           ngrow)
+ParticleBase::RestrictedWhere (ParticleBase& p,
+                               const Amr*    amr,
+                               int           ngrow)
 {
     BL_ASSERT(amr != 0);
     IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
-    
 
     if (BoxLib::grow(amr->boxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
     {
