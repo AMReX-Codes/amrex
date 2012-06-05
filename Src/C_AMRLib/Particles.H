@@ -43,21 +43,18 @@ struct ParticleBase
         {}
 
     static IntVect Index (const ParticleBase& p, int lev, const Amr* amr);
-
     //
-    // Checks/sets a particles location on levels lev_min and higher
-    // Returns false if the particle does not exist on that level
+    // Checks/sets a particles location on levels lev_min and higher.
+    // Returns false if the particle does not exist on that level.
     //
-    static bool Where (ParticleBase& prt, const Amr* amr, bool update = false, int lev_min = 0);
-    
+    static bool Where (ParticleBase& prt, const Amr* amr, bool update = false, int lev_min = 0, int finest_level = -1);
     //
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
-    // that it is on levels lev_min and higher
+    // that it is on levels lev_min and higher.
     //
-    static bool PeriodicWhere (ParticleBase& prt, const Amr* amr, int lev_min = 0);
-    
+    static bool PeriodicWhere (ParticleBase& prt, const Amr* amr, int lev_min = 0, int finest_level = -1);
     //
-    // Checks/sets whether a particle is within its grid (including grow cells)
+    // Checks/sets whether a particle is within its grid (including grow cells).
     //
     static bool RestrictedWhere (ParticleBase& prt, const Amr* amr, int ngrow);
 
@@ -203,7 +200,7 @@ public:
     // These flags are used to do proper checking for subcycling particles
     // the default values are fine for non-subcycling methods
     //
-    bool OK (bool full_where = false, int lev_min = 0 , int ngrow = 0) const;
+    bool OK (bool full_where = false, int lev_min = 0 , int ngrow = 0, int finest_level = -1) const;
 
     void ByteSpread () const;
 
@@ -1928,7 +1925,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
     BL_ASSERT(N >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
-    const int finest_level = m_amr->finestLevel();
+    int finest_level = m_amr->finestLevel();
+    while (!m_amr->getAmrLevels().defined(finest_level))
+        finest_level--;
 
     mf.resize(finest_level+1, PArrayManage);
 
@@ -3317,19 +3316,30 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
 template <int N>
 void
-ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, int lev_min, int nGrow)
+ParticleContainer<N>::Redistribute (bool where_already_called,
+                                    bool full_where,
+                                    int  lev_min,
+                                    int  nGrow)
 {
     const int MyProc   = ParallelDescriptor::MyProc();
     Real      strttime = ParallelDescriptor::second();
+    //
+    // On startup there are cases where Redistribute() could be called
+    // with a given finestLevel() where that AmrLevel has yet to be defined.
+    //
+    int theEffectiveFinestLevel = m_amr->finestLevel();
 
-    if (m_particles.size() < m_amr->finestLevel()+1)
+    while (!m_amr->getAmrLevels().defined(theEffectiveFinestLevel))
+        theEffectiveFinestLevel--;
+
+    if (m_particles.size() < theEffectiveFinestLevel+1)
     {
         if (ParallelDescriptor::IOProcessor())
             std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
                       << m_particles.size()
                       << " to "
-                      << m_amr->finestLevel()+1 << '\n';
-        m_particles.resize(m_amr->finestLevel()+1);
+                      << theEffectiveFinestLevel+1 << '\n';
+        m_particles.resize(theEffectiveFinestLevel+1);
     }
     //
     // The valid particles that we don't own.
@@ -3362,30 +3372,34 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
                 if (p.m_id > 0)
                 {
                     if (!where_already_called)
-                        if (!ParticleBase::Where(p,m_amr, false, lev_min))
-                            {                                
-                                if (full_where) //lengthier checks for subcycling
+                    {
+                        if (!ParticleBase::Where(p,m_amr, false, lev_min, theEffectiveFinestLevel))
+                        {                                
+                            if (full_where) // Lengthier checks for subcycling.
+                            {
+                                if (!ParticleBase::PeriodicWhere(p, m_amr, lev_min, theEffectiveFinestLevel))
                                 {
-                                    if (!ParticleBase::PeriodicWhere(p, m_amr, lev_min))
+                                    if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
                                     {
-                                        if (lev_min != 0) // RestrictedWhere should be unnecessary at top level
-                                        {
-                                            if (!ParticleBase::RestrictedWhere(p, m_amr, nGrow))
-                                                BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle at non-coarse step");
-                                        }
-                                        else
-                                        {
-                                            //The particle has left the domain; invalidate it
-                                            //This typically only happens on a coarse timestep
-                                            p.m_id = -1;
-                                        }
+                                        if (!ParticleBase::RestrictedWhere(p, m_amr, nGrow))
+                                            BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle at non-coarse step");
+                                    }
+                                    else
+                                    {
+                                        //
+                                        // The particle has left the domain; invalidate it.
+                                        // This typically only happens on a coarse timestep.
+                                        //
+                                        p.m_id = -1;
                                     }
                                 }
-                                else
-                                {
-                                    BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle in basic check");
-                                }
                             }
+                            else
+                            {
+                                BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle in basic check");
+                            }
+                        }
+                    }
                     //
                     // The owner of the particle is the CPU owning the finest grid
                     // in state data that contains the particle.
@@ -3445,7 +3459,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
         }
     }
 
-    if (m_particles.size() > m_amr->finestLevel()+1)
+    if (m_particles.size() > theEffectiveFinestLevel+1)
     {
         //
         // Looks like we lost an AmrLevel on a regrid.
@@ -3454,20 +3468,20 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
             std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
                       << m_particles.size()
                       << " to "
-                      << m_amr->finestLevel()+1 << '\n';
+                      << theEffectiveFinestLevel+1 << '\n';
 
         BL_ASSERT(m_particles.size() >= 2);
 
         BL_ASSERT(m_particles[m_particles.size()-1].empty());
 
-        m_particles.resize(m_amr->finestLevel()+1);
+        m_particles.resize(theEffectiveFinestLevel+1);
     }
 
     const int NProcs = ParallelDescriptor::NProcs();
 
     if (NProcs == 1)
     {
-        BL_ASSERT(OK(full_where, lev_min, nGrow));
+        BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
         BL_ASSERT(notowned.empty());
 
         if (m_verbose > 1)
@@ -3511,7 +3525,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
         //
         // There's no parallel work to do.
         //
-        BL_ASSERT(OK());
+//        BL_ASSERT(OK());
+        BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
         return;
     }
 
@@ -3718,7 +3733,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
         }
     }
 
-    BL_ASSERT(OK());
+    BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
 
     if (m_verbose > 1)
     {
@@ -3736,8 +3751,15 @@ ParticleContainer<N>::Redistribute (bool where_already_called, bool full_where, 
 
 template <int N>
 bool
-ParticleContainer<N>::OK (bool full_where, int lev_min, int ngrow) const
+ParticleContainer<N>::OK (bool full_where,
+                          int  lev_min,
+                          int  ngrow,
+                          int  finest_level) const
 {
+    if (finest_level == -1)
+        finest_level = m_amr->finestLevel();
+
+    BL_ASSERT(finest_level <= m_amr->finestLevel());
     //
     // Check that the integer data in each valid particle is what it should be.
     // This includes checking that particles are in the proper place in the particle
@@ -3760,24 +3782,27 @@ ParticleContainer<N>::OK (bool full_where, int lev_min, int ngrow) const
                 // Yes I want to make a copy of the particle.
                 //
                 ParticleType p = *it;
+
                 if (p.m_id > 0)
                 {
                     const int     llev  = p.m_lev;
                     const int     lgrid = p.m_grid;
                     const IntVect cell  = p.m_cell;
 
-                    if (!ParticleBase::Where(p,m_amr, false, lev_min))
+                    if (!ParticleBase::Where(p,m_amr, false, lev_min, finest_level))
                     {
                         if (full_where)
                         {
-                            if (!ParticleBase::PeriodicWhere(p,m_amr, lev_min)) 
+                            if (!ParticleBase::PeriodicWhere(p, m_amr, lev_min, finest_level)) 
                             {
                                 if (!ParticleBase::RestrictedWhere(p, m_amr, ngrow))
                                     return false;
                             }
                         }
                         else
+                        {
                             return false;
+                        }
                     }
                     if ((lev  != p.m_lev  || lev  != llev)  ||
                         (grid != p.m_grid || grid != lgrid) || cell != p.m_cell)
