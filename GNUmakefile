@@ -19,8 +19,7 @@ include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 BOXLIB_CORE := Src/F_BaseLib
 
 # other packages needed for data_processing
-Fmdirs := MAESTRO/constants \
-          extern/random
+Fmdirs := 
 
 
 # directories containing files that are 'include'-d via Fortran
