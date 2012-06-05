@@ -267,11 +267,11 @@ public:
     // Create ghost particles for a given level that are copies of particles
     // near coarse->fine boundaries in level-1
     //
-    void CreateGhostParticles (int level);
+    PBox CreateGhostParticles (int level, int ngrow);
     //
     // Add particles from a pbox to the grid at this level
     //
-    void AddParticlesAtLevel (int level, PBox virts);
+    void AddParticlesAtLevel (int level, PBox virts, bool where_already_called = false);
     // **************************************************************************************************************** 
 
     void AdvectWithUmac (const MultiFab* umac, int level, Real dt, const int vcomp = 0);
@@ -1836,7 +1836,7 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf,
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         mf[mfi].setVal(0);
-    
+
     //
     // Setup particles
     //
@@ -1888,17 +1888,13 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf,
             //
             const IntVect& csect = cells[0];
 
-            /// Does this catch need to be added back somewhere?
             if (!gm.isAllPeriodic())
                 if (!gm.Domain().contains(csect))
                     BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
             for (int i = 0; i < M; i++)
             {
-                ///Is this right?
-                //If the portion is out of bounds (due to ghost cells), don't add it.
-                //if (!fab.box().contains(cells[i]))
-                    //continue;
+                if (!fab.contains(Box(cells[i],cells[i]))) continue;
                 //
                 // Sum up mass in first component.
                 //
@@ -2179,6 +2175,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                     //
                     for (int i = 0; i < M; i++)
                     {
+                        if (!fab.contains(Box(cells[i],cells[i]))) continue;
                         //
                         // Sum up mass in first component.
                         //
@@ -2210,6 +2207,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                             //
                             if (mf[lev_index-1].DistributionMap()[cgrid[i]] == ParallelDescriptor::MyProc())
                             {
+                                if (!mf[lev_index-1][cgrid[i]].contains(Box(ccells[i],ccells[i]))) continue;
                                 //
                                 // Sum up mass in first component.
                                 //
@@ -2891,10 +2889,14 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
                    p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
 
-            // We must now go through the regular redistribute channels
-            //ParticleBase::Reset(p,m_amr,true);
-            // Move the particle to the proper ghost cell.
-            ParticleBase::RestrictedWhere(p,m_amr, grav_vector.nGrow() -1);
+            // Move the particle to the proper ghost cell. 
+            ///TODO/DEBUG: -2 is wrong or is it?
+            if (!ParticleBase::RestrictedWhere(p,m_amr, grav_vector.nGrow() -2))
+            {
+                // The particle is no longer in relevant ghost cells for this grid; 
+                // invaldate it.
+                p.m_id = -1;
+            }
         }
     }
 
@@ -3269,7 +3271,7 @@ ParticleContainer<N>::RemoveParticlesAtLevel (int level)
 
 template <int N>
 void
-ParticleContainer<N>::AddParticlesAtLevel (int level, PBox virts)
+ParticleContainer<N>::AddParticlesAtLevel (int level, PBox virts, bool where_already_called)
 {
     if (m_particles.size() < level+1)
     {
@@ -3280,7 +3282,6 @@ ParticleContainer<N>::AddParticlesAtLevel (int level, PBox virts)
                       << level+1 << '\n';
         m_particles.resize(level + 1);
     }
-    PMap& pmap = m_particles[level];
     const int MyProc   = ParallelDescriptor::MyProc();
     //
     // The valid particles that we don't own.
@@ -3299,10 +3300,15 @@ ParticleContainer<N>::AddParticlesAtLevel (int level, PBox virts)
 
         if (p.m_id > 0)
         {
-            //Put the particle in this level
-            p.m_lev = level;
-            if (!ParticleBase::SingleLevelWhere(p, m_amr, level)) //Virtuals shouldn't be in Ghost cells
-                BoxLib::Abort("ParticleContainer<N>::AddParticlesAtLevel(): Can't add domain");
+            if (!where_already_called)
+            {
+                //Put the particle in this level
+                p.m_lev = level;
+                if (!ParticleBase::SingleLevelWhere(p, m_amr, level)) //Virtuals shouldn't be in Ghost cells
+                    BoxLib::Abort("ParticleContainer<N>::AddParticlesAtLevel(): Can't add outside of domain");
+            } else {
+                BL_ASSERT(p.m_lev == level);
+            }
             const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
             if (who == MyProc)
             {
@@ -3613,10 +3619,46 @@ ParticleContainer<N>::CreateVirtualParticles (int level)
 }
 
 template <int N>
-void
-ParticleContainer<N>::CreateGhostParticles (int level)
+std::deque< Particle<N> >
+ParticleContainer<N>::CreateGhostParticles (int level, int ngrow)
 {
-    // Not implemented yet
+    BL_ASSERT(level < m_amr->finestLevel());
+    
+    // Copy and grow the box array for the finer level
+    BoxArray fine_grown = BoxArray(m_amr->boxArray(level + 1));
+    fine_grown.grow(ngrow);
+    
+    std::vector< std::pair<int,Box> > isects;
+    PBox ghosts;
+    if (level >= m_particles.size()) //this level could exist and simply have no particles
+        return ghosts;
+    PMap& pmap = m_particles[level];
+    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    {
+        PBox& pbox = pmap_it->second;
+        for (typename PBox::iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+        {
+            // Find particle location on the finer level
+            IntVect iv = ParticleBase::Index(*it,level + 1,m_amr);
+            // Is it in the grown finer level?
+            isects = fine_grown.intersections(Box(iv,iv));
+            // Here we add the particle to each potential grid
+            for (int i = 0; i < isects.size(); i++)
+            {
+                // Create a copy
+                ParticleType p = *it;
+                // Set its id to 1 so it's clear there's no info there.
+                p.m_id = 1;
+                // Set its position
+                p.m_lev  = level + 1;
+                p.m_grid = isects[i].first;
+                p.m_cell = iv;
+                // Store it in the PBox 
+                ghosts.push_back(p);
+            }
+        }
+    }
+    return ghosts;
 }
     
 //
