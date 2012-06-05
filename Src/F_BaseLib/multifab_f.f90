@@ -585,6 +585,18 @@ contains
 
   end subroutine multifab_build_edge
 
+  subroutine multifab_build_nodal(mf, la, nc, ng)
+    type(multifab), intent(  out) :: mf
+    type(layout)  , intent(in   ) :: la
+    integer       , intent(in   ) :: nc, ng
+    logical                       :: nodal(MAX_SPACEDIM)
+
+    nodal = .true.
+
+    call multifab_build(mf, la, nc, ng, nodal)
+
+  end subroutine multifab_build_nodal
+
   subroutine multifab_build(mf, la, nc, ng, nodal, stencil)
     type(multifab), intent(out) :: mf
     type(layout), intent(in) :: la
