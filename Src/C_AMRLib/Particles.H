@@ -697,7 +697,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
     else if (NProcs <= 4096)
     {
        NReaders = std::max(NReaders,128);
-       NRedist  = 4;
+       NRedist  = 8;
     }
     else if (NProcs <= 8192)
     {
@@ -708,6 +708,17 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
     {
        NReaders = std::max(NReaders,512);
        NRedist  = 48;
+    }
+    else if (NProcs <= 32768)
+    {
+       NReaders = std::max(NReaders,512);
+       NRedist  = 128;
+    }
+
+    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+       std::cout << "Reading with " << NReaders  << " readers " << std::endl;
+       std::cout << "Redist  with " << NRedist   << " cores   " << std::endl;
     }
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
