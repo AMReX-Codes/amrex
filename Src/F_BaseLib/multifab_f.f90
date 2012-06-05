@@ -572,28 +572,32 @@ contains
     r = mf%la
   end function zmultifab_get_layout
 
-  subroutine multifab_build_edge(mf, la, nc, ng, dir)
+  subroutine multifab_build_edge(mf, la, nc, ng, dir, stencil)
     type(multifab), intent(  out) :: mf
     type(layout)  , intent(in   ) :: la
     integer       , intent(in   ) :: nc, ng, dir
-    logical                       :: nodal(MAX_SPACEDIM)
+    logical       , intent(in), optional :: stencil
+
+    logical :: nodal(MAX_SPACEDIM)
 
     nodal      = .false.
     nodal(dir) = .true.
 
-    call multifab_build(mf, la, nc, ng, nodal)
+    call multifab_build(mf, la, nc, ng, nodal, stencil)
 
   end subroutine multifab_build_edge
 
-  subroutine multifab_build_nodal(mf, la, nc, ng)
+  subroutine multifab_build_nodal(mf, la, nc, ng, stencil)
     type(multifab), intent(  out) :: mf
     type(layout)  , intent(in   ) :: la
     integer       , intent(in   ) :: nc, ng
-    logical                       :: nodal(MAX_SPACEDIM)
+    logical       , intent(in), optional :: stencil
+
+    logical :: nodal(MAX_SPACEDIM)
 
     nodal = .true.
 
-    call multifab_build(mf, la, nc, ng, nodal)
+    call multifab_build(mf, la, nc, ng, nodal, stencil)
 
   end subroutine multifab_build_nodal
 
