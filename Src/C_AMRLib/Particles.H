@@ -44,28 +44,15 @@ struct ParticleBase
 
     static IntVect Index (const ParticleBase& p, int lev, const Amr* amr);
     //
-<<<<<<< HEAD
-    // Checks/sets a particle's location on levels lev_min and higher
-    // Returns false if the particle does not exist on that level
-    //
-    static bool Where (ParticleBase& p, const Amr* amr, bool update = false, int lev_min = 0);
-    
-=======
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
     //
     static bool Where (ParticleBase& prt, const Amr* amr, bool update = false, int lev_min = 0, int finest_level = -1);
->>>>>>> 3b21290aa9d4a376291d042993990f95741829e0
     //
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
     //
-<<<<<<< HEAD
-    static bool PeriodicWhere (ParticleBase& p, const Amr* amr, int lev_min = 0);
-    
-=======
     static bool PeriodicWhere (ParticleBase& prt, const Amr* amr, int lev_min = 0, int finest_level = -1);
->>>>>>> 3b21290aa9d4a376291d042993990f95741829e0
     //
     // Checks/sets whether a particle is within its grid (including grow cells).
     //
