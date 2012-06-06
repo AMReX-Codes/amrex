@@ -54,6 +54,9 @@ class testObj:
         self.useMPI = 0
         self.numprocs = -1
 
+        self.useOMP = 0
+        self.numthreads = -1
+
         self.doVis = 0
         self.visVar = ""
 
@@ -83,6 +86,9 @@ class suiteObj:
         self.webTopDir = ""
         self.compareToolDir = ""
         self.helmeosDir = ""
+
+        self.useAstroDev = 0
+        self.astroDevDir = ""
 
         self.MPIcommand = ""
         self.MPIhost = ""
@@ -191,6 +197,10 @@ def LoadParams(file):
 
         elif (opt == "helmeosDir"):
             mysuite.helmeosDir = checkTestDir(value)
+
+        elif (opt == "AstroDevDir"):
+            mysuite.astroDevDir = checkTestDir(value)
+            mysuite.useAstroDev = 1
 
         elif (opt == "MPIcommand"):
             mysuite.MPIcommand = value
@@ -303,6 +313,12 @@ def LoadParams(file):
             elif (opt == "numprocs"):
                 mytest.numprocs = value
 
+            elif (opt == "useOMP"):
+                mytest.useOMP = value
+                
+            elif (opt == "numthreads"):
+                mytest.numthreads = value
+
             elif (opt == "doVis"):
                 mytest.doVis = value
 
@@ -351,7 +367,11 @@ def LoadParams(file):
             invalid = 1
 
         if (mytest.useMPI and mytest.numprocs == -1):
-            warning("   WARNING: test %s is a parallel test but numprocs not set" % (sec))
+            warning("   WARNING: test %s is an MPI parallel test but numprocs not set" % (sec))
+            invalid = 1
+
+        if (mytest.useOMP and mytest.numthreads == -1):
+            warning("   WARNING: test %s is an OpenMP parallel test but numthreads not set" % (sec))
             invalid = 1
 
         if (mytest.doVis and mytest.visVar == ""):
@@ -537,20 +557,30 @@ def checkTestDir(dirName):
 #==============================================================================
 # doCVSUpdate
 #==============================================================================
-def doCVSUpdate(topDir, root, outDir):
+def doCVSUpdate(topDir, root, outDir, name=""):
    """ do a CVS update of the repository named root.  topDir is the full path
        to the directory containing root.  outDir is the full path to the 
        directory where we will store the CVS output """
 
    os.chdir(topDir)
  
+   if (root == ""):
+       oname = name
+   else:
+       oname = root
+
+
    print "\n"
-   bold("cvs update %s" % (root))
+   bold("cvs update in %s" % (oname))
 
    # we need to be tricky here to make sure that the stdin is
    # presented to the user to get the password.  Therefore, we use the
    # subprocess class instead of os.system
-   prog = ["cvs", "update", "%s" % (root)]
+   if (root == ""):
+       prog = ["cvs", "update"]
+   else:
+       prog = ["cvs", "update", "%s" % (root)]
+
    p = subprocess.Popen(prog, stdin=subprocess.PIPE,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT)
@@ -565,8 +595,8 @@ def doCVSUpdate(topDir, root, outDir):
            cvsFailed = 1
            break
 
-   try:
-       cf = open("cvs.%s.out" % (root), 'w')
+   try:       
+       cf = open("cvs.%s.out" % (oname), 'w')
    
    except IOError:
        fail("  ERROR: unable to open file for writing")
@@ -579,10 +609,10 @@ def doCVSUpdate(topDir, root, outDir):
 
 
    if (cvsFailed or stdout == ""):
-       fail("  ERROR: cvs update was aborted. See cvs.%s.out for details" % (root))
+       fail("  ERROR: cvs update was aborted. See cvs.%s.out for details" % (oname))
        
         
-   shutil.copy("cvs.%s.out" % (root),  outDir)
+   shutil.copy("cvs.%s.out" % (oname),  outDir)
 
 
 
@@ -761,8 +791,11 @@ def testSuite(argv):
             restartTest = < is this a restart test? 0 for no, 1 for yes >
             restartFileNum = < # of file to restart from (if restart test) >
 
-            useMPI = <is this a parallel job? 0 for no, 1 for yes) >
+            useMPI = <is this a parallel (MPI) job? 0 for no, 1 for yes) >
             numprocs = < # of processors to run on (if parallel job) >
+
+            useOMP = <is this an OpenMP job? 0 for no, 1 for yes) >
+            numthreads = < # of threads to us with OpenMP (if OpenMP job) >
 
             compileTest = < 0 for normal run, 1 if we just test compilation >
 
@@ -868,8 +901,13 @@ def testSuite(argv):
             file from the original run and the last from the restart will
             be compared.
 
-            useMPI is set to 1 if the job is parallel.  In this case, you
-            also must specify the number of processors, via numprocs.
+            useMPI is set to 1 if the job is parallel (with MPI).  In
+            this case, you also must specify the number of processors,
+            via numprocs.
+
+            useOMP is set to 1 if the job uses OpenMP.  In this case,
+            you also must specify the number of threads, via
+            numthreads.
 
             compileTest is set to 0 for a normal test.  Setting to 1 will
             just test compilation, and not any subsequent output.
@@ -1084,6 +1122,10 @@ def testSuite(argv):
        # BoxLib
        doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir)
 
+       # AstroDev
+       if (suite.useAstroDev):
+           doCVSUpdate(suite.astroDevDir, "", fullWebDir, name="AstroDev")
+
 
     #--------------------------------------------------------------------------
     # generate the ChangeLogs
@@ -1162,9 +1204,11 @@ def testSuite(argv):
         os.chdir(suite.sourceDir + dir)
 
         if (suite.sourceTree == "Parallel"):
-            systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+            systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
+                       (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
         else:
-            systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+            systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
+                       (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
             
     os.chdir(suite.testTopDir)
     
@@ -1216,9 +1260,11 @@ def testSuite(argv):
             print "  re-making clean..."
 
             if (suite.sourceTree == "Parallel"):
-                systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+                systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
+                           (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
             else:
-                systemCall("%s BOXLIB_HOME=%s realclean >& /dev/null" % (suite.MAKE, suite.boxLibDir))
+                systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
+                           (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
 
         
         print "  building..."
@@ -1227,15 +1273,15 @@ def testSuite(argv):
 
 	    if (test.useMPI):
 	       executable = "%s%dd.MPI.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s %s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 
             else:
 	       executable = "%s%dd.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 	       
@@ -1243,14 +1289,21 @@ def testSuite(argv):
         elif (suite.sourceTree == "fParallel"):
 
             if (test.useMPI):
-                compString = "%s -j%s BOXLIB_HOME=%s %s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
+            elif (test.useOMP):
+                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI= OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                print "    " + compString
+                systemCall(compString)
+
+
             else:
-                compString = "%s -j%s BOXLIB_HOME=%s %s MPI= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI= OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
@@ -1424,6 +1477,20 @@ def testSuite(argv):
 	       print "    " + testRunCommand
                systemCall(testRunCommand)
 
+            elif (test.useOMP):
+
+                # keep around the checkpoint files only for the restart runs
+                if (test.restartTest):
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+                else:
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+
+                print "    " + testRunCommand
+                systemCall(testRunCommand)
+
+
             else:
 
                 # keep around the checkpoint files only for the restart runs
@@ -1436,7 +1503,6 @@ def testSuite(argv):
 
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
-
 
         # if it is a restart test, then rename the final output file and
         # restart the test
@@ -1458,10 +1524,18 @@ def testSuite(argv):
                 systemCall(testRunCommand)               
 
             elif (suite.sourceTree == "fParallel"):
-                testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
-                    (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
-                print "    " + testRunCommand
-                systemCall(testRunCommand)                
+
+                if (test.useOMP):
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)                
+
+                else:
+                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)                
            
             
         #----------------------------------------------------------------------
@@ -1782,7 +1856,7 @@ th {background-color: grey;
     color: yellow;
     text-align: center;
     vertical-align: bottom;
-    height: 14em;
+    height: 16em;
     padding-bottom: 3px;
     padding-left: 5px;
     padding-right: 5px;}
@@ -1938,7 +2012,13 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
         if (test.useMPI):
 
-            hf.write("<P><b>Parallel Run</b><br>numprocs = %d\n" % (test.numprocs) )
+            hf.write("<P><b>Parallel (MPI) Run</b><br>numprocs = %d\n" % (test.numprocs) )
+            hf.write("<P>&nbsp;\n")
+
+
+        if (test.useOMP):
+
+            hf.write("<P><b>OpenMP Run</b><br>numthreads = %d\n" % (test.numthreads) )
             hf.write("<P>&nbsp;\n")
        
 

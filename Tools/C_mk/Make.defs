@@ -333,8 +333,17 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     fC = $(FCOMP)
     FFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
     fFLAGS = -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+
+    # ask gfortran the name of the library to link in.  First check for the
+    # static version.  If it returns only the name w/o a path, then it
+    # was not found.  In that case, ask for the shared-object version.
     _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
+    ifeq ($(_f95_lib),libgfortran.a)
+      _f95_lib:=$(shell gfortran -print-file-name=libgfortran.so)
+    endif
+
     override XTRALIBS += $(_f95_lib)
+
     FOPTF += -ffixed-line-length-132 -g -O3
     fOPTF += -ffixed-line-length-132 -g -O3
 #    FDEBF += -g -O0 -ffixed-line-length-132 -fbounds-check -Wall

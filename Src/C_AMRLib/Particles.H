@@ -43,8 +43,20 @@ struct ParticleBase
         {}
 
     static IntVect Index (const ParticleBase& p, int lev, const Amr* amr);
-
-    static bool Where (ParticleBase& prt, const Amr* amr, bool update = false);
+    //
+    // Checks/sets a particles location on levels lev_min and higher.
+    // Returns false if the particle does not exist on that level.
+    //
+    static bool Where (ParticleBase& prt, const Amr* amr, bool update = false, int lev_min = 0, int finest_level = -1);
+    //
+    // Checks/sets whether the particle has crossed a periodic boundary in such a way
+    // that it is on levels lev_min and higher.
+    //
+    static bool PeriodicWhere (ParticleBase& prt, const Amr* amr, int lev_min = 0, int finest_level = -1);
+    //
+    // Checks/sets whether a particle is within its grid (including grow cells).
+    //
+    static bool RestrictedWhere (ParticleBase& prt, const Amr* amr, int ngrow);
 
     static void Reset (ParticleBase& prt, const Amr* amr, bool update);
 
@@ -177,9 +189,18 @@ public:
  
     Real estTimestep (const MultiFab& grav_vector, Real a, int level, Real cfl) const;
 
-    void Redistribute (bool where_already_called = false);
+    void Redistribute (bool where_already_called = false,
+                       bool full_where = false,
+                       int  lev_min = 0, 
+                       int  nGrow = 0);
 
-    bool OK () const;
+    //
+    // OK checks that all particles are in the right places (for some value of right)
+    //
+    // These flags are used to do proper checking for subcycling particles
+    // the default values are fine for non-subcycling methods
+    //
+    bool OK (bool full_where = false, int lev_min = 0 , int ngrow = 0, int finest_level = -1) const;
 
     void ByteSpread () const;
 
@@ -202,28 +223,16 @@ public:
     // TODO: the methods should return a constraint on the timestep...
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
-    //   standard coordinates -- these rely on CELL-BASED gravity component
-    //
-    void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep);
-    void moveKick      (const MultiFab& grav_vector, int level, Real timestep);
-    //
-    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
-    //   standard coordinates -- these rely on EDGE-BASED gravity component
-    //
-    void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep);
-    void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep);
-    //
-    // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
     //   comoving coordinates -- these rely on CELL-BASED gravity component
     //
-    void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep, Real a_old, Real a_half);
-    void moveKick      (const MultiFab& grav_vector, int level, Real timestep, Real a_new, Real a_half);
+    void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep, Real a_old = 1.0, Real a_half = 1.0);
+    void moveKick      (const MultiFab& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0);
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
     //   comoving coordinates -- these rely on EDGE-BASED gravity component
     //
-    void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_old, Real a_half);
-    void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_new, Real a_half);
+    void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_old = 1.0, Real a_half = 1.0);
+    void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0);
     //
     // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
     // so this scheme should work in the overall algorithm...
@@ -688,7 +697,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
     else if (NProcs <= 4096)
     {
        NReaders = std::max(NReaders,128);
-       NRedist  = 4;
+       NRedist  = 8;
     }
     else if (NProcs <= 8192)
     {
@@ -699,6 +708,17 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
     {
        NReaders = std::max(NReaders,512);
        NRedist  = 48;
+    }
+    else if (NProcs <= 32768)
+    {
+       NReaders = std::max(NReaders,512);
+       NRedist  = 128;
+    }
+
+    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+       std::cout << "Reading with " << NReaders  << " readers " << std::endl;
+       std::cout << "Redist  with " << NRedist   << " cores   " << std::endl;
     }
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
@@ -1916,7 +1936,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int ncomp) const
     BL_ASSERT(N >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
-    const int finest_level = m_amr->finestLevel();
+    int finest_level = m_amr->finestLevel();
+    while (!m_amr->getAmrLevels().defined(finest_level))
+        finest_level--;
 
     mf.resize(finest_level+1, PArrayManage);
 
@@ -2765,21 +2787,6 @@ template <int N>
 void
 ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
                                      int             lev,
-                                     Real            dt)
-{
-    Real a_old  = 1.;
-    Real a_half = 1.;
-    moveKickDrift (grav_vector,lev,dt,a_old,a_half);
-}
-
-//
-// This version takes as input the gravity vector at cell centers
-//
-
-template <int N>
-void
-ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
-                                     int             lev,
                                      Real            dt,
                                      Real            a_old,
                                      Real            a_half) 
@@ -2863,16 +2870,6 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
 // This version takes as input the gravity vector at cell centers
 //
 
-template <int N>
-void
-ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
-                                int             lev,
-                                Real            dt)
-{
-    Real a_new  = 1.;
-    Real a_half = 1.;
-    moveKick (grav_vector,lev,dt,a_new,a_half);
-}
 
 //
 // This version takes as input the gravity vector at cell centers
@@ -2950,21 +2947,6 @@ ParticleContainer<N>::moveKick (const MultiFab& grav_vector,
     //
     // No need for Redistribution(), we only change the velocity.
     //
-}
-
-//
-// This version takes as input the normal gravity component on each face
-//
-
-template <int N>
-void
-ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
-                                     int             lev,
-                                     Real            dt)
-{
-    Real a_old  = 1.;
-    Real a_half = 1.;
-    moveKickDrift (grav_vector,lev,dt,a_old,a_half);
 }
 
 //
@@ -3067,20 +3049,6 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     Redistribute(true);
 }
 
-//
-// This version takes as input the normal gravity component on each face
-//
-
-template <int N>
-void
-ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
-                                 int             lev,
-                                 Real            dt)
-{
-    Real a_new  = 1.;
-    Real a_half = 1.;
-    moveKick (grav_vector,lev,dt,a_new,a_half);
-}
 
 //
 // This version takes as input the normal gravity component on each face
@@ -3241,14 +3209,14 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                                       Real            dt,
                                       const int       vcomp)
 {
-    BL_ASSERT(OK());
+    BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
     BL_ASSERT(vcomp >= 0);
     BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
-           BL_ASSERT(umac[1].nGrow() >= 1);,
-           BL_ASSERT(umac[2].nGrow() >= 1););
+    D_TERM(BL_ASSERT(umac[0].nGrow() >= 2);,
+           BL_ASSERT(umac[1].nGrow() >= 2);,
+           BL_ASSERT(umac[2].nGrow() >= 2););
 
     D_TERM(BL_ASSERT(!umac[0].contains_nan());,
            BL_ASSERT(!umac[1].contains_nan());,
@@ -3258,7 +3226,6 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
     const Geometry& geom     = m_amr->Geom(lev);
     const Real*     dx       = geom.CellSize();
     const Real*     plo      = geom.ProbLo();
-    const Real      eps  = 1.e-13;
 
     for (int ipass = 0; ipass < 2; ipass++)
     {
@@ -3278,7 +3245,7 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
             for (int i = 0; i < n; i++)
             {
                 ParticleType& p = pbox[i];
-
+                
                 if (p.m_id <= 0) continue;
 
                 BL_ASSERT(p.m_grid == grid);
@@ -3335,76 +3302,12 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
                         p.m_data[vcomp + d] = 0.5 * (p.m_data[vcomp + d+BL_SPACEDIM] + vel);
                     }
                 }
-
-                if (!ParticleBase::Where(p,m_amr,true))
-                {
-                    //
-                    // If the particle has left the domain, we check if we are
-                    // periodic in that direction and fix the position accordingly.
-                    // This is a modified version of ParticleBase::PeriodicShift
-                    //
-                    
-					const Geometry& top_geom = m_amr->Geom(0);
-					const Box&      dmn  = top_geom.Domain();
-					IntVect         iv   = ParticleBase::Index(p,0,m_amr);
-
-					for (int d = 0; d < BL_SPACEDIM; d++)
-					{
-						if (!top_geom.isPeriodic(d)) continue;
-
-						if (iv[d] > dmn.bigEnd(d))
-						{
-							if (p.m_pos[d] == top_geom.ProbHi(d))
-								//
-								// Don't let particles lie exactly on the domain face.
-								// Force the particle to be outside the domain so the
-								// periodic shift will bring it back inside.
-								//
-								p.m_pos[d] += eps;
-							
-							p.m_pos[d] -= top_geom.ProbLength(d);
-							
-                            if (ipass == 0)
-                                p.m_data[vcomp + d] -= top_geom.ProbLength(d);
-							
-							BL_ASSERT(p.m_pos[d] >= top_geom.ProbLo(d));
-						}
-						else if (iv[d] < dmn.smallEnd(d))
-						{
-							if (p.m_pos[d] == top_geom.ProbLo(d))
-								//
-								// Don't let particles lie exactly on the domain face.
-								// Force the particle to be outside the domain so the
-								// periodic shift will bring it back inside.
-								//
-								p.m_pos[d] -= eps;
-
-							p.m_pos[d] += top_geom.ProbLength(d);
-							
-                            if (ipass == 0)
-                                p.m_data[vcomp + d] += top_geom.ProbLength(d);
-
-							BL_ASSERT(p.m_pos[d] <= top_geom.ProbHi(d));
-						}
-					}
-					//
-					// Is it inside the domain now?
-					//
-					if (!ParticleBase::Where(p,m_amr,true))
-					{
-						std::cout << "Invalidating out-of-domain particle: " << p << '\n';
-
-						BL_ASSERT(p.m_id > 0);
-
-						p.m_id = -p.m_id;
-					}
-                }
+                
+                //This assumes enough boundary cells in all directions, it shouldn't be a problem
+                ParticleBase::RestrictedWhere(p,m_amr, umac[0].nGrow()-1); 
             }
         }
-
-        Redistribute(true);
     }
-
     if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
@@ -3424,19 +3327,30 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
 
 template <int N>
 void
-ParticleContainer<N>::Redistribute (bool where_already_called)
+ParticleContainer<N>::Redistribute (bool where_already_called,
+                                    bool full_where,
+                                    int  lev_min,
+                                    int  nGrow)
 {
     const int MyProc   = ParallelDescriptor::MyProc();
     Real      strttime = ParallelDescriptor::second();
+    //
+    // On startup there are cases where Redistribute() could be called
+    // with a given finestLevel() where that AmrLevel has yet to be defined.
+    //
+    int theEffectiveFinestLevel = m_amr->finestLevel();
 
-    if (m_particles.size() < m_amr->finestLevel()+1)
+    while (!m_amr->getAmrLevels().defined(theEffectiveFinestLevel))
+        theEffectiveFinestLevel--;
+
+    if (m_particles.size() < theEffectiveFinestLevel+1)
     {
         if (ParallelDescriptor::IOProcessor())
             std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
                       << m_particles.size()
                       << " to "
-                      << m_amr->finestLevel()+1 << '\n';
-        m_particles.resize(m_amr->finestLevel()+1);
+                      << theEffectiveFinestLevel+1 << '\n';
+        m_particles.resize(theEffectiveFinestLevel+1);
     }
     //
     // The valid particles that we don't own.
@@ -3447,7 +3361,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
     //
     std::deque<int> owner;
 
-    for (int lev = 0; lev < m_particles.size(); lev++)
+    for (int lev = lev_min; lev < m_particles.size(); lev++)
     {
         PMap& pmap = m_particles[lev];
 
@@ -3469,8 +3383,34 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
                 if (p.m_id > 0)
                 {
                     if (!where_already_called)
-                        if (!ParticleBase::Where(p,m_amr))
-                            BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle");
+                    {
+                        if (!ParticleBase::Where(p,m_amr, false, lev_min, theEffectiveFinestLevel))
+                        {                                
+                            if (full_where) // Lengthier checks for subcycling.
+                            {
+                                if (!ParticleBase::PeriodicWhere(p, m_amr, lev_min, theEffectiveFinestLevel))
+                                {
+                                    if (lev_min != 0) // RestrictedWhere should be unnecessary at top level.
+                                    {
+                                        if (!ParticleBase::RestrictedWhere(p, m_amr, nGrow))
+                                            BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle at non-coarse step");
+                                    }
+                                    else
+                                    {
+                                        //
+                                        // The particle has left the domain; invalidate it.
+                                        // This typically only happens on a coarse timestep.
+                                        //
+                                        p.m_id = -1;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle in basic check");
+                            }
+                        }
+                    }
                     //
                     // The owner of the particle is the CPU owning the finest grid
                     // in state data that contains the particle.
@@ -3530,7 +3470,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         }
     }
 
-    if (m_particles.size() > m_amr->finestLevel()+1)
+    if (m_particles.size() > theEffectiveFinestLevel+1)
     {
         //
         // Looks like we lost an AmrLevel on a regrid.
@@ -3539,20 +3479,20 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
             std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
                       << m_particles.size()
                       << " to "
-                      << m_amr->finestLevel()+1 << '\n';
+                      << theEffectiveFinestLevel+1 << '\n';
 
         BL_ASSERT(m_particles.size() >= 2);
 
         BL_ASSERT(m_particles[m_particles.size()-1].empty());
 
-        m_particles.resize(m_amr->finestLevel()+1);
+        m_particles.resize(theEffectiveFinestLevel+1);
     }
 
     const int NProcs = ParallelDescriptor::NProcs();
 
     if (NProcs == 1)
     {
-        BL_ASSERT(OK());
+        BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
         BL_ASSERT(notowned.empty());
 
         if (m_verbose > 1)
@@ -3596,7 +3536,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         //
         // There's no parallel work to do.
         //
-        BL_ASSERT(OK());
+//        BL_ASSERT(OK());
+        BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
         return;
     }
 
@@ -3803,7 +3744,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
         }
     }
 
-    BL_ASSERT(OK());
+    BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
 
     if (m_verbose > 1)
     {
@@ -3821,14 +3762,23 @@ ParticleContainer<N>::Redistribute (bool where_already_called)
 
 template <int N>
 bool
-ParticleContainer<N>::OK () const
+ParticleContainer<N>::OK (bool full_where,
+                          int  lev_min,
+                          int  ngrow,
+                          int  finest_level) const
 {
+    if (finest_level == -1)
+        finest_level = m_amr->finestLevel();
+
+    BL_ASSERT(finest_level <= m_amr->finestLevel());
     //
     // Check that the integer data in each valid particle is what it should be.
     // This includes checking that particles are in the proper place in the particle
     // container based on what Where() says they should be.
     //
-    for (int lev = 0; lev < m_particles.size(); lev++)
+    // Particles are copied to avoid accidentally moving them with where.
+    //
+    for (int lev = lev_min; lev < m_particles.size(); lev++)
     {
         const PMap& pmap = m_particles[lev];
 
@@ -3850,9 +3800,21 @@ ParticleContainer<N>::OK () const
                     const int     lgrid = p.m_grid;
                     const IntVect cell  = p.m_cell;
 
-                    if (!ParticleBase::Where(p,m_amr))
-                        return false;
-
+                    if (!ParticleBase::Where(p,m_amr, false, lev_min, finest_level))
+                    {
+                        if (full_where)
+                        {
+                            if (!ParticleBase::PeriodicWhere(p, m_amr, lev_min, finest_level)) 
+                            {
+                                if (!ParticleBase::RestrictedWhere(p, m_amr, ngrow))
+                                    return false;
+                            }
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
                     if ((lev  != p.m_lev  || lev  != llev)  ||
                         (grid != p.m_grid || grid != lgrid) || cell != p.m_cell)
                     {
@@ -4689,6 +4651,8 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                         const ParticleType& p = *it;
 
                         if (p.m_id <= 0) continue;
+                        
+                        if (!mf.boxArray().contains(ParticleBase::Index(p, lev, m_amr))) continue;
 
                         BL_ASSERT(p.m_lev == lev);
                         BL_ASSERT(p.m_grid == grid);
