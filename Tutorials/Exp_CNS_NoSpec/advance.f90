@@ -309,9 +309,12 @@ contains
 
     integer          :: i, j, k
     double precision :: c, eint, courx, coury, courz, courmx, courmy, courmz, rhoinv
+    double precision :: dx1inv, dx2inv, dx3inv, CVinv
 
     double precision, parameter :: GAMMA = 1.4d0
     double precision, parameter :: CV    = 8.3333333333d6
+
+    CVinv = 1.0d0 / CV
 
     !$OMP PARALLEL DO PRIVATE(i,j,k,eint,rhoinv)
     do k = lo(3)-ng,hi(3)+ng
@@ -327,7 +330,7 @@ contains
              eint = u(i,j,k,5)*rhoinv - 0.5d0*(q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4)**2)
 
              q(i,j,k,5) = (GAMMA-1.d0)*eint*u(i,j,k,1)
-             q(i,j,k,6) = eint/CV
+             q(i,j,k,6) = eint * CVinv
 
           enddo
        enddo
@@ -336,15 +339,23 @@ contains
 
     if ( present(courno) ) then
 
+       courmx = -Huge(courmx)
+       courmy = -Huge(courmy)
+       courmz = -Huge(courmz)
+
+       dx1inv = 1.0d0 / dx(1)
+       dx2inv = 1.0d0 / dx(2)
+       dx3inv = 1.0d0 / dx(3)
+
        !$OMP PARALLEL DO PRIVATE(i,j,k,c,courx,coury,courz) REDUCTION(max:courmx,courmy,courmz)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
 
                 c     = sqrt(GAMMA*q(i,j,k,5)/q(i,j,k,1))
-                courx = ( c+abs(q(i,j,k,2)) ) / dx(1)
-                coury = ( c+abs(q(i,j,k,3)) ) / dx(2)
-                courz = ( c+abs(q(i,j,k,4)) ) / dx(3)
+                courx = ( c+abs(q(i,j,k,2)) ) * dx1inv
+                coury = ( c+abs(q(i,j,k,3)) ) * dx2inv
+                courz = ( c+abs(q(i,j,k,4)) ) * dx3inv
 
                 courmx = max( courmx, courx )
                 courmy = max( courmy, coury )
