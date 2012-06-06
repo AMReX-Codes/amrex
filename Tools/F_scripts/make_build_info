@@ -57,8 +57,8 @@ BUILD_DATE=`date | cut -c 1-$MAX_STRING_LENGTH`
 BUILD_DIR=`pwd | cut -c 1-$MAX_STRING_LENGTH`
 BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
 
-MODULES1=`echo $1 | cut -c 1-$DBL_STRING_LINE_LENGTH`
-MODULES2=`echo $1 | cut -c $s2-$f2`
+#MODULES1=`echo $1 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+#MODULES2=`echo $1 | cut -c $s2-$f2`
 
 FCOMP=`echo $2 | cut -c 1-$MAX_STRING_LENGTH`
 
@@ -97,10 +97,6 @@ module build_info_module
   character (len=$MAX_STRING_LENGTH), save :: boxlib_dir = &
 "$BOXLIB_DIR"
 
-  character (len=$DBL_STRING_LENGTH), save :: module_list = &
-"$MODULES1" //&
-"$MODULES2"
-
   character (len=$MAX_STRING_LENGTH), save :: FCOMP = &
 "$FCOMP"
 
@@ -123,10 +119,39 @@ module build_info_module
 "$LINK1" //&
 "$LINK2"
 
+EOF
+
+
+# deal with the modules
+N=0
+for module in $1
+do
+  N=$(($N+1))
+done
+
+echo "  "integer, parameter :: NUM_MODULES=$N >> build_info.f90
+echo "  "character \(len=$MAX_STRING_LENGTH\), save :: modules\(NUM_MODULES\) = \(/ \& >> build_info.f90
+
+M=0
+for module in $1
+do
+  M=$(($M+1))
+  smodule=`echo $module | cut -c 1-$MAX_STRING_LENGTH`
+  if [ $M -lt $N ]; then
+    printf "\"%-120s\",&\n" "$smodule" >> build_info.f90
+  else
+    printf "\"%-120s\" &\n" "$smodule" >> build_info.f90
+  fi     
+done
+echo "  "/\) >> build_info.f90
+
+
+# close
+cat >> build_info.f90 <<EOF 
 
 end module build_info_module
-
 EOF
+
 
 
 
