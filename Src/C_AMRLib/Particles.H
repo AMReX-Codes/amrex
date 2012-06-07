@@ -3153,7 +3153,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
 
             // Move the particle to the proper ghost cell. 
-            if (!ParticleBase::RestrictedWhere(p,m_amr, grav_vector.nGrow() -2))
+            if (m_amr->subCycle() && !ParticleBase::RestrictedWhere(p,m_amr, grav_vector.nGrow() -2))
             {
                 // The particle is no longer in relevant ghost cells for this grid; 
                 // invaldate it.
