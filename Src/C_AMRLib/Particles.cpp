@@ -4,10 +4,10 @@
 
 bool
 ParticleBase::CrseToFine (const BoxArray& cfba,
-                          const IntVect*  cells,
-                          IntVect*        cfshifts,
+                          const Array<IntVect>&  cells,
+                          Array<IntVect>&  cfshifts,
                           const Geometry& gm,
-                          bool*           which,
+                          Array<int>&     which,
                           Array<IntVect>& pshifts)
 {
     //
@@ -16,10 +16,13 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
     // with coarsened fine BoxArray "cfba".  "cells" are as calculated from
     // CIC_Cells_Fracs().
     //
-    const int M = D_TERM(2,+2,+4);
+    
+    const int M = cells.size();
+    cfshifts.resize(M);
+    which.resize(M);
 
     for (int i = 0; i < M; i++)
-        which[i] =  false;
+        which[i] =  0;
 
     bool result = false;
 
@@ -28,7 +31,7 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
         if (cfba.contains(cells[i]))
         {
             result      = true;
-            which[i]    = true;
+            which[i]    = 1;
             cfshifts[i] = IntVect::TheZeroVector();
         }
         else if (!gm.Domain().contains(cells[i]))
@@ -57,7 +60,7 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
                     // at the fine level.
                     //
                     result      = true;
-                    which[i]    = true;
+                    which[i]    = 1;
                     cfshifts[i] = pshifts[0];
                 }
             }
@@ -71,13 +74,13 @@ bool
 ParticleBase::FineToCrse (const ParticleBase&                p,
                           int                                flev,
                           const Amr*                         amr,
-                          const IntVect*                     fcells,
+                          const Array<IntVect>&              fcells,
                           const BoxArray&                    fvalid,
                           const BoxArray&                    compfvalid_grown,
-                          IntVect*                           ccells,
-                          Real*                              cfracs,
-                          bool*                              which,
-                          int*                               cgrid,
+                          Array<IntVect>&                     ccells,
+                          Array<Real>&                        cfracs,
+                          Array<int>&                        which,
+                          Array<int>&                         cgrid,
                           Array<IntVect>&                    pshifts,
                           std::vector< std::pair<int,Box> >& isects)
 {
@@ -89,12 +92,16 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
     // a periodic boundary, where the periodic shift lies in our valid region,
     // is not considered a Fine->Crse crossing.
     //
-    const int M = D_TERM(2,+2,+4);
+    const int M = fcells.size();
+    ccells.resize(M);
+    cfracs.resize(M);
+    which.resize(M);
+    cgrid.resize(M);
 
     for (int i = 0; i < M; i++)
     {
         cgrid[i] = -1;
-        which[i] = false;
+        which[i] = 0;
     }
 
     const Box ibx = BoxLib::grow(amr->boxArray(flev)[p.m_grid],-1);
@@ -140,7 +147,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
         if (!fvalid.contains(ccell_refined))
         {
             result   = true;
-            which[i] = true;
+            which[i] = 1;
 
             Box cbx(ccells[i],ccells[i]);
 
@@ -710,7 +717,7 @@ ParticleBase::Interp (const ParticleBase& prt,
     //
     // Get "fracs" and "cells".
     //
-    ParticleBase::CIC_Cells_Fracs(prt, plo, dx, fracs, cells);
+    ParticleBase::CIC_Cells_Fracs_Basic(prt, plo, dx, fracs, cells);
 
     for (int i = 0; i < cnt; i++)
     {
