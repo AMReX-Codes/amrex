@@ -2102,21 +2102,17 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
         int lev_index = lev - lev_min;
 
         BoxArray compfvalid, compfvalid_grown, fvalid;
-        
-            fvalid = mf[lev_index].boxArray();
+        fvalid = mf[lev_index].boxArray();
 
-        /// TODO/DEBUG: I'm really not sure about this lev==1
-        if (lev == 1)
+        //
+        // Do we have Fine->Crse overlap on a periodic boundary?
+        // We want to add all ghost cells that can be shifted into valid region.
+        // This can only happen at level one. //are we sure about this?
+        //
+        BoxList valid;
+        const BoxArray& grids = mf[lev_index].boxArray();
+        if (lev >=1)
         {
-            //
-            // Do we have Fine->Crse overlap on a periodic boundary?
-            // We want to add all ghost cells that can be shifted into valid region.
-            // This can only happen at level one. //are we sure about this?
-            //
-            BoxList valid;
-
-            const BoxArray& grids = mf[lev_index].boxArray();
-
             for (int i = 0; i < grids.size(); i++)
             {
                 if (gm.isAnyPeriodic())
@@ -2146,7 +2142,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                     }
                 }
             }
-
             if (valid.isNotEmpty())
             {
                 //
@@ -2159,6 +2154,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                 fvalid.removeOverlap();
             }
         }
+        
         //
         // The "2" is so we enclose the valid region together with any
         //  ghost cells that can be periodically shifted into valid.
@@ -2224,6 +2220,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
         // there can be no Fine->Crse interactions at this level.
         //
         const bool GridsCoverDomain = fvalid.contains(m_amr->Geom(lev).Domain());
+        
         for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
                  pmapEnd = m_particles[lev].end();
              pmap_it != pmapEnd;
@@ -2292,7 +2289,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                             //
                             // We're at a coarse->fine interface
                             //
-                            
                             // get fine cells/fracs
                             int MF = ParticleBase::CIC_Cells_Fracs(p, plo, dx_fine ,dx, ffracs, fcells);
                             for (int j = 0; j < MF; j++)
@@ -2319,7 +2315,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     continue;
                                 }
                                 int grid = isects[0].first; 
-                                
                                 if (mf[lev_index+1].DistributionMap()[grid] == ParallelDescriptor::MyProc())
                                 {
                                     //
@@ -2414,6 +2409,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                         }
                         else
                         {
+                            // The mass is below levels we care about. Ignore it.
                         }
                     }
                 }
