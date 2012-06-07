@@ -101,17 +101,55 @@ struct ParticleBase
     //
     // Used by AssignDensity.
     //
-    static bool CrseToFine (const BoxArray& cfba, const IntVect* cells, IntVect* cfshifts, const Geometry& gm, bool* which, Array<IntVect>& pshifts);
+    static bool CrseToFine (const BoxArray& cfba, 
+                            const Array<IntVect>& cells, 
+                            Array<IntVect>& cfshifts, 
+                            const Geometry& gm, 
+                            Array<int>& which, 
+                            Array<IntVect>& pshifts);
 
-    static bool FineToCrse (const ParticleBase& p, int flev, const Amr* amr, const IntVect* fcells, const BoxArray& fvalid, const BoxArray& compfvalid_grown, IntVect* ccells, Real* cfracs, bool* which, int* cgrid, Array<IntVect>& pshifts, std::vector< std::pair<int,Box> >& isects);
+    static bool FineToCrse (const ParticleBase& p, 
+                            int flev, 
+                            const Amr* amr, 
+                            const Array<IntVect>& fcells, 
+                            const BoxArray& fvalid, 
+                            const BoxArray& compfvalid_grown, 
+                            Array<IntVect>& ccells, 
+                            Array<Real>& cfracs, 
+                            Array<int>& which, 
+                            Array<int>& cgrid, 
+                            Array<IntVect>& pshifts, 
+                            std::vector< std::pair<int,Box> >& isects);
 
-    static void FineCellsToUpdateFromCrse (const ParticleBase& p, int lev, const Amr* amr, const IntVect& ccell, const IntVect& cshift, Array<int>& fgrid, Array<Real>& ffrac, Array<IntVect>& fcells, std::vector< std::pair<int,Box> >& isects);
+    static void FineCellsToUpdateFromCrse (const ParticleBase& p, 
+                                           int lev, const Amr* amr, 
+                                           const IntVect& ccell,
+                                           const IntVect& cshift, 
+                                           Array<int>& fgrid, 
+                                           Array<Real>& ffrac, 
+                                           Array<IntVect>& fcells, 
+                                           std::vector< std::pair<int,Box> >& isects);
 
     static void CIC_Fracs (const Real* frac, Real* fracs);
 
     static void CIC_Cells (const IntVect& hicell, IntVect* cells);
-
-    static void CIC_Cells_Fracs (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
+    
+    // Old, *-based CIC for use in Interp
+    static void CIC_Cells_Fracs_Basic (const ParticleBase& p, const Real* plo, const Real* dx, Real* fracs,  IntVect* cells);
+    
+    // wraps the arbitrary dx function
+    static int CIC_Cells_Fracs (const ParticleBase& p, 
+                                const Real* plo, 
+                                const Real* dx, 
+                                Array<Real>& fracs,  
+                                Array<IntVect>& cells);
+    // Does CIC computations for arbitrary particle/grid dx's
+    static int CIC_Cells_Fracs (const ParticleBase& p, 
+                                const Real* plo, 
+                                const Real* dx_geom, 
+                                const Real* dx_part, 
+                                Array<Real>& fracs,  
+                                Array<IntVect>& cells);
 
 
     //
@@ -187,7 +225,7 @@ public:
 
     long IncrementWithTotal (MultiFab& mf, int level);
 
-    void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1) const;
+    void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const;
 
     void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1) const;
 
@@ -1823,7 +1861,8 @@ template <int N>
 void
 ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf,
                                      int       lev,
-                                     int       ncomp) const
+                                     int       ncomp,
+                                     int particle_lvl_offset) const
 {
     BL_ASSERT(N >= 1);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
@@ -1835,8 +1874,9 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf,
     // Setup multifab
     //
     const Geometry& gm   = m_amr->Geom(lev);
-    const Real*     dx   = gm.CellSize();
-    const int       M    = D_TERM(2,+2,+4);
+    
+
+    //const int       M    = D_TERM(2,+2,+4);
     const Real*     plo  = gm.ProbLo();
 
     if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
@@ -1851,6 +1891,12 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf,
     // Dont do anything if there are no particles at this level    
     if (lev >= m_particles.size())
         return;
+        
+    // get geometry and particle dx
+    const Real*     dx_particle = m_amr->Geom(lev + particle_lvl_offset).CellSize();
+    const Real*     dx   = gm.CellSize();
+    
+    
     const PMap&     pmap = m_particles[lev];
     const int       n    = pmap.size();
     //
@@ -1879,8 +1925,8 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf,
         const PBox& pbx = *pbxs[i];
         FArrayBox&  fab = mf[pgrd[i]];
 
-        Real    fracs[M];
-        IntVect cells[M];
+        Array<Real>    fracs;
+        Array<IntVect> cells;
 
         for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end();
              it != End;
@@ -1889,15 +1935,14 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf,
             const ParticleType& p = *it;
             if (p.m_id <= 0) continue;
 
-            ParticleBase::CIC_Cells_Fracs(p, plo, dx, fracs, cells);
+            int M = ParticleBase::CIC_Cells_Fracs(p, plo, dx, dx_particle, fracs, cells);
             //
             // If this is not fully periodic then we have to be careful that no
-            // particles go within one cell of the domain boundary.
+            // particle's support leaves the domain. We test this by checking the low
+            // and high corners respectively.
             //
-            const IntVect& csect = cells[0];
-
             if (!gm.isAllPeriodic())
-                if (!gm.Domain().contains(csect))
+                if (!gm.Domain().contains(cells[0]) || !gm.Domain().contains(cells[M-1]))
                     BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
             for (int i = 0; i < M; i++)
@@ -2005,6 +2050,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
         AssignDensitySingleLevel(mf[0],0,ncomp);
         return;
     }
+    
+    const bool sub_cycle = m_amr->subCycle();
     //
     // This'll hold all the info I need for parallel.
     //
@@ -2013,44 +2060,146 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
     // This is the "data" needed by other MPI procs.
     //
     PBox data;
-
     const Real  stime = ParallelDescriptor::second();
-    const int   M     = D_TERM(2,+2,+4);
+    
+    //Minimum M required
+    int   M     = D_TERM(2,+2,+4);
 
-    int     cgrid[M];
-    bool   cwhich[M],  fwhich[M];
-    Real    fracs[M],  cfracs[M];
-    IntVect cells[M],  ccells[M], cfshifts[M];
+    Array<int>     cgrid(M);
+    // these should be bools, but bool vectors are silly.
+    Array<int>   cwhich(M),  fwhich(M);
+    Array<Real>    fracs(M),  cfracs(M);
+    Array<IntVect> cells(M),  ccells(M), cfshifts(M);
 
     ParticleType pb;
     //
     // I'm going to allocate these badboys here & pass'm into routines that use'm.
     // This should greatly cut down on memory allocation/deallocation.
     //
-    Array<int>                        fgrid;
-    Array<Real>                       ffrac;
-    Array<IntVect>                    fcells;
     Array<IntVect>                    pshifts(27);
     std::vector< std::pair<int,Box> > isects;
+    Array<int>                        fgrid(M);
+    Array<Real>                       ffracs(M);
+    Array<IntVect>                    fcells;
+    
+    //
+    // "fvalid" contains all the valid region of the MultiFab at this level, together
+    // with any ghost cells lying outside the domain, that can be periodically shifted into the
+    // valid region.  "compfvalid" is the complement of the "fvalid", while "compfvalid_grown" is 
+    // "compfvalid" grown by one.  Using these we can figure out whether or not a cell is in the
+    // valid region of our MultiFab as well as whether or not we're at a Fine->Crse boundary.
+    //
+    // We create these outside of the main loop so that we can check out other levels' as
+    // needed.
+    BoxArray compfvalids[finest_level-lev_min+1];
+    BoxArray compfvalid_growns[finest_level-lev_min+1];
+    BoxArray fvalids[finest_level-lev_min+1];
+    for (int lev = lev_min; lev <= finest_level; lev++)
+    {
+        const Geometry& gm  = m_amr->Geom(lev);
+        const Box&      dm  = gm.Domain();
+        
+        int lev_index = lev - lev_min;
+
+        BoxArray compfvalid, compfvalid_grown, fvalid;
+        
+            fvalid = mf[lev_index].boxArray();
+
+        /// TODO/DEBUG: I'm really not sure about this lev==1
+        if (lev == 1)
+        {
+            //
+            // Do we have Fine->Crse overlap on a periodic boundary?
+            // We want to add all ghost cells that can be shifted into valid region.
+            // This can only happen at level one. //are we sure about this?
+            //
+            BoxList valid;
+
+            const BoxArray& grids = mf[lev_index].boxArray();
+
+            for (int i = 0; i < grids.size(); i++)
+            {
+                if (gm.isAnyPeriodic())
+                {
+                    const Box dest = mf[lev_index].fabbox(i);
+
+                    BL_ASSERT(dest == BoxLib::grow(grids[i], mf[lev_index].nGrow()));
+
+                    if (!dm.contains(dest))
+                    {
+                        for (int j = 0; j < grids.size(); j++)
+                        {
+                            BL_ASSERT(dm.contains(grids[j]));
+
+                            gm.periodicShift(dest, grids[j], pshifts);
+
+                            for (int k = 0; k < pshifts.size(); k++)
+                            {
+                                const Box sbx = grids[j] + pshifts[k];
+                                const Box dbx = dest & sbx;
+
+                                BL_ASSERT(dbx.ok());
+
+                                valid.push_back(dbx);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (valid.isNotEmpty())
+            {
+                //
+                // We've got some Fine->Crse periodic overlap.
+                // Don't forget to add the valid boxes too.
+                //
+                for (int i = 0; i < grids.size(); i++)
+                    valid.push_back(grids[i]);
+                fvalid = BoxArray(valid);
+                fvalid.removeOverlap();
+            }
+        }
+        //
+        // The "2" is so we enclose the valid region together with any
+        //  ghost cells that can be periodically shifted into valid.
+        //
+        compfvalid = BoxLib::complementIn(BoxLib::grow(dm,2), fvalid);
+
+        compfvalid_grown = compfvalid;
+        compfvalid_grown.grow(1);
+        compfvalid_grown.removeOverlap();
+        
+        compfvalids[lev_index] = compfvalid; 
+        compfvalid_growns[lev_index] = compfvalid_grown;
+        fvalids[lev_index] = fvalid;
+    }
 
     for (int lev = lev_min; lev <= finest_level; lev++)
     {
         int lev_index = lev - lev_min;
         const Geometry& gm  = m_amr->Geom(lev);
-        const Box&      dm  = gm.Domain();
         const Real*     dx  = gm.CellSize();
         const Real*     plo = gm.ProbLo();
-
+        const Real* dx_fine = (lev < finest_level) ? m_amr->Geom(lev+1).CellSize() : dx;
+        const Real* dx_coarse = (lev > 0) ? m_amr->Geom(lev-1).CellSize() : dx;
+        const Geometry& gm_fine = (lev < finest_level) ? m_amr->Geom(lev+1) : gm;
+        const Geometry& gm_coarse = (lev > 0) ? m_amr->Geom(lev-1) : gm;
+            
         if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
         {
             BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
         }
+        
+        BoxArray compfvalid, compfvalid_grown, fvalid;
+        compfvalid = compfvalids[lev_index]; 
+        compfvalid_grown = compfvalid_growns[lev_index];
+        fvalid = fvalids[lev_index];
+        
         //
         // If we're at a lev < finestLevel, this is the coarsened fine BoxArray.
         // We use this for figuring out Crse->Fine issues.
         //
         BoxArray cfba;
-
         if (lev < finest_level)
         {
             cfba = m_amr->boxArray(lev+1);
@@ -2058,82 +2207,18 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
 
             BL_ASSERT(mf[lev_index].boxArray().contains(cfba));
         }
-        //
-        // "fvalid" contains all the valid region of the MultiFab at this level, together
-        // with any ghost cells lying outside the domain, that can be periodically shifted into the
-        // valid region.  "compfvalid" is the complement of the "fvalid", while "compfvalid_grown" is 
-        // "compfvalid" grown by one.  Using these we can figure out whether or not a cell is in the
-        // valid region of our MultiFab as well as whether or not we're at a Fine->Crse boundary.
-        //
-        BoxArray compfvalid, compfvalid_grown, fvalid;
         
+        //
+        // If we're at a lev > 0, this is the coarsened BoxArray.
+        // We use this for figuring out Fine->Crse issues.
+        //
+        BoxArray cba;
         if (lev > 0)
         {
-            fvalid = mf[lev_index].boxArray();
-
-            if (lev == 1)
-            {
-                //
-                // Do we have Fine->Crse overlap on a periodic boundary?
-                // We want to add all ghost cells that can be shifted into valid region.
-                // This can only happen at level one. //are we sure about this?
-                //
-                BoxList valid;
-
-                const BoxArray& grids = mf[lev_index].boxArray();
-
-                for (int i = 0; i < grids.size(); i++)
-                {
-                    if (gm.isAnyPeriodic())
-                    {
-                        const Box dest = mf[lev_index].fabbox(i);
-
-                        BL_ASSERT(dest == BoxLib::grow(grids[i], mf[lev_index].nGrow()));
-
-                        if (!dm.contains(dest))
-                        {
-                            for (int j = 0; j < grids.size(); j++)
-                            {
-                                BL_ASSERT(dm.contains(grids[j]));
-
-                                gm.periodicShift(dest, grids[j], pshifts);
-
-                                for (int k = 0; k < pshifts.size(); k++)
-                                {
-                                    const Box sbx = grids[j] + pshifts[k];
-                                    const Box dbx = dest & sbx;
-
-                                    BL_ASSERT(dbx.ok());
-
-                                    valid.push_back(dbx);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (valid.isNotEmpty())
-                {
-                    //
-                    // We've got some Fine->Crse periodic overlap.
-                    // Don't forget to add the valid boxes too.
-                    //
-                    for (int i = 0; i < grids.size(); i++)
-                        valid.push_back(grids[i]);
-                    fvalid = BoxArray(valid);
-                    fvalid.removeOverlap();
-                }
-            }
-            //
-            // The "2" is so we enclose the valid region together with any
-            //  ghost cells that can be periodically shifted into valid.
-            //
-            compfvalid = BoxLib::complementIn(BoxLib::grow(dm,2), fvalid);
-
-            compfvalid_grown = compfvalid;
-            compfvalid_grown.grow(1);
-            compfvalid_grown.removeOverlap();
+            cba = m_amr->boxArray(lev);
+            cba.coarsen(m_amr->refRatio(lev-1));
         }
+        
         //
         // Do the grids at this level cover the full domain? If they do
         // there can be no Fine->Crse interactions at this level.
@@ -2157,20 +2242,187 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                 //
                 // Get "fracs" and "cells" for the particle "p" at this level.
                 //
-                ParticleBase::CIC_Cells_Fracs(p, plo, dx, fracs, cells);
+                int M = ParticleBase::CIC_Cells_Fracs(p, plo, dx, fracs, cells);
                 //
                 // If this is not fully periodic then we have to be careful that no
-                // particles go within one cell of the domain boundary.
+                // particle's support leaves the domain. We test this by checking the low
+                // and high corners respectively.
                 //
                 if (!gm.isAllPeriodic())
-                    if (!gm.Domain().contains(cells[0]))
+                    if (!gm.Domain().contains(cells[0]) || !gm.Domain().contains(cells[M-1]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
+                
+                //
+                // This section is differs based on whether we subcycle.
+                // Without subcycling we use the "stretchy" support for particles.
+                // With subcycling a particles support is strictly defined 
+                // by its resident level.
+                if (sub_cycle)
+                {
+                    bool isBoundary = false;
+                    //
+                    // First sum the mass in the valid region
+                    //
+                    for (int i = 0; i < M; i++)
+                    {
+                        if (!fvalid.contains(cells[i]) || cfba.contains(cells[i]))
+                        {
+                            // Some part of the particles mass lies outside
+                            // the boundary region or in a finer region.
+                            isBoundary = true;
+                            continue;
+                        }
+                        //
+                        // Sum up mass in first component.
+                        //
+                        fab(cells[i],0) += p.m_data[0] * fracs[i];
+                        //
+                        // Sum up momenta in next components.
+                        //
+                        for (int n = 1; n < ncomp; n++)
+                            fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+                    }
+                    //
+                    // Deal with mass outside the valid region for this level.
+                    //
+                    if (isBoundary)
+                    {
+                        if (lev < finest_level && ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts))
+                        {
+                            //
+                            // We're at a coarse->fine interface
+                            //
+                            
+                            // get fine cells/fracs
+                            int MF = ParticleBase::CIC_Cells_Fracs(p, plo, dx_fine ,dx, ffracs, fcells);
+                            for (int j = 0; j < MF; j++)
+                            {
+                                // make sure this fine cell is valid.
+                                if (!fvalids[lev_index + 1].contains(fcells[j]))
+                                {
+                                    //check for periodicity
+                                    const Box bx(fcells[j],fcells[j]);
+                                    gm_fine.periodicShift(bx, gm_fine.Domain(), pshifts);
+                                    if (!pshifts.empty())
+                                    {
+                                        BL_ASSERT(pshifts.size() == 1);
+                                        fcells[j] = fcells[j] - pshifts[0];
+                                    }
+                                    else
+                                    {
+                                        continue;
+                                    }
+                                }
+                                isects = fvalids[lev_index + 1].intersections(Box(fcells[j],fcells[j]));
+                                if (isects.size() == 0)
+                                {
+                                    continue;
+                                }
+                                int grid = isects[0].first; 
+                                
+                                if (mf[lev_index+1].DistributionMap()[grid] == ParallelDescriptor::MyProc())
+                                {
+                                    //
+                                    // Sum up mass in first component.
+                                    //
+                                    mf[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j];
+                                    //
+                                    // Sum up momenta in next components.
+                                    //
+                                    for (int n = 1; n < ncomp; n++)
+                                        mf[lev_index+1][grid](fcells[j],n) += p.m_data[n] * p.m_data[0] * ffracs[j];
+                                }
+                                else
+                                {
+                                    pb.m_lev  = lev+1;
+                                    pb.m_grid = grid;
+                                    pb.m_cell = fcells[j];
+                                    //
+                                    // Sum up mass in first component.
+                                    //
+                                    pb.m_data[0] = p.m_data[0] *  ffracs[j];
+                                    //
+                                    // Sum up momenta in next components.
+                                    //
+                                    for (int n = 1; n < ncomp; n++)
+                                        pb.m_data[n] = p.m_data[n] * p.m_data[0] * ffracs[j];
 
+                                    data.push_back(pb);
+                                }
+                            }
+                        }
+                        else if (lev_index > 0)
+                        {
+                            //
+                            // We must be at a fine->coarse interface.
+                            //
+                            int MC = ParticleBase::CIC_Cells_Fracs(p, plo, dx_coarse, dx, cfracs, ccells);
+                            for (int j = 0; j < MC; j++)
+                            {
+                                // make sure this coarse cell isn't in this level's valid region
+                                if (cba.contains(ccells[j]))
+                                {
+                                    //check for periodicity
+                                    const Box bx(ccells[j],ccells[j]);
+                                    gm_coarse.periodicShift(bx, gm_coarse.Domain(), pshifts);
+
+                                    if (!pshifts.empty())
+                                    {
+                                        BL_ASSERT(pshifts.size() == 1);
+                                        ccells[j] = ccells[j] - pshifts[0];
+                                    }
+                                    else
+                                    {
+                                        continue;
+                                    }
+                                }
+                                // find its resident grid.
+                                isects = fvalids[lev_index - 1].intersections(Box(ccells[j],ccells[j]));
+                                if (isects.size() == 0)
+                                    continue;
+                                int grid = isects[0].first; 
+                                if (mf[lev_index-1].DistributionMap()[grid] == ParallelDescriptor::MyProc())
+                                {
+                                    //
+                                    // Sum up mass in first component.
+                                    //
+                                    mf[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j];
+                                    //
+                                    // Sum up momenta in next components.
+                                    //
+                                    for (int n = 1; n < ncomp; n++)
+                                        mf[lev_index-1][grid](ccells[j],n) += p.m_data[n] * p.m_data[0] * cfracs[j];
+                                }
+                                else
+                                {
+                                    pb.m_lev  = lev-1;
+                                    pb.m_grid = grid;
+                                    pb.m_cell = ccells[j];
+                                    //
+                                    // Sum up mass in first component.
+                                    //
+                                    pb.m_data[0] = p.m_data[0] * cfracs[j];
+                                    //
+                                    // Sum up momenta in next components.
+                                    //
+                                    for (int n = 1; n < ncomp; n++)
+                                        pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[j];
+
+                                    data.push_back(pb);
+                                }
+                            }
+                        }
+                        else
+                        {
+                        }
+                    }
+                }
+                else 
+                {
                 bool AnyCrseToFine = false;
                 if (lev < finest_level)
                     AnyCrseToFine = ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
 
-                // DEBUG/TODO/WARNING, THIS MAY NEED FIXING 
                 // lev_index > 0 means that we don't do F->C for lower levels
                 // This may mean that the mass fraction is off.
                 bool AnyFineToCrse = false;
@@ -2356,7 +2608,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                             //
                             // We're at a Crse->Fine boundary.
                             //
-                            ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], cfshifts[i], fgrid, ffrac, fcells, isects);
+                            ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], cfshifts[i], fgrid, ffracs, fcells, isects);
                             for (int j = 0; j < fcells.size(); j++)
                             {
                                 if (mf[lev_index+1].DistributionMap()[fgrid[j]] == ParallelDescriptor::MyProc())
@@ -2364,12 +2616,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     //
                                     // Sum up mass in first component.
                                     //
-                                    mf[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffrac[j];
+                                    mf[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++)
-                                        mf[lev_index+1][fgrid[j]](fcells[j],n) += p.m_data[n] * p.m_data[0] * fracs[i] * ffrac[j];
+                                        mf[lev_index+1][fgrid[j]](fcells[j],n) += p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
                                 }
                                 else
                                 {
@@ -2379,22 +2631,23 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     //
                                     // Sum up mass in first component.
                                     //
-                                    pb.m_data[0] = p.m_data[0] * fracs[i] * ffrac[j];
+                                    pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++)
-                                        pb.m_data[n] = p.m_data[n] * p.m_data[0] * fracs[i] * ffrac[j];
+                                        pb.m_data[n] = p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
 
                                     data.push_back(pb);
                                 }
 
-                                sum += fracs[i] * ffrac[j];
+                                sum += fracs[i] * ffracs[j];
                             }
                         }
                     }
 
                     BL_ASSERT(std::abs(1-sum) < 1.e-9);
+                }
                 }
             }
         }
@@ -2900,7 +3153,6 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
 
             // Move the particle to the proper ghost cell. 
-            ///TODO/DEBUG: -2 is wrong or is it?
             if (!ParticleBase::RestrictedWhere(p,m_amr, grav_vector.nGrow() -2))
             {
                 // The particle is no longer in relevant ghost cells for this grid; 
@@ -5457,8 +5709,93 @@ ParticleBase::CIC_Cells (const IntVect& hicell, IntVect* cells)
 }
 
 inline
-void
+int
 ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
+                               const Real*         plo,
+                               const Real*         dx_geom,
+                               const Real*         dx_part,
+                               Array<Real>&       fracs,
+                               Array<IntVect>&     cells)
+{
+    
+    //
+    // The first element in fracs and cells is the lowest corner, the last is the highest.
+    //
+    const Real hilen[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
+                                           (p.m_pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
+                                           (p.m_pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
+    const Real lolen[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
+                                           (p.m_pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
+                                           (p.m_pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
+
+    const IntVect hicell(D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
+    
+    const IntVect locell(D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
+
+    
+    const Real cell_density = D_TERM(dx_geom[0]/dx_part[0],*dx_geom[1]/dx_part[1],*dx_geom[2]/dx_part[2]);
+    
+    int M = D_TERM((hicell[0]-locell[0]+1),*(hicell[1]-locell[1]+1),*(hicell[2]-locell[2]+1));
+    fracs.resize(M);
+    cells.resize(M);
+
+    //This portion might be slightly inefficient. Feel free to redo it if need be.
+    int i = 0;
+#if (BL_SPACEDIM == 1)
+    for (int xi = locell[0]; xi <= hicell[0]; xi ++)
+    {
+        cells[i][0] = xi;
+        fracs[i] = (std::min(hilen[0]-xi,1.)-std::max(lolen[0]-xi,0.))*cell_density;
+        i++;
+    }
+#elif (BL_SPACEDIM == 2)
+    for (int yi = locell[1]; yi <= hicell[1]; yi ++)
+    {
+        Real yf = std::min(yhilen[1]-yi,1.)-std::max(lolen[1]-yi,0.);
+        for (int xi = locell[0]; xi <= hicell[0]; xi ++)
+        {
+            cells[i][0] = xi;
+            cells[i][1] = yi;
+            fracs[i] = yf * (std::min(hilen[0]-xi,1.)-std::max(lolen[0]-xi,0.))*cell_density;
+            i++;
+        }
+    }
+#elif (BL_SPACEDIM == 3)
+    for (int zi = locell[2]; zi <= hicell[2]; zi ++)
+    {
+        Real zf = std::min(hilen[2]-zi,1.)-std::max(lolen[2]-zi,0.);
+        for (int yi = locell[1]; yi <= hicell[1]; yi ++)
+        {
+            Real yf = std::min(hilen[1]-yi,1.)-std::max(lolen[1]-yi,0.);
+            for (int xi = locell[0]; xi <= hicell[0]; xi ++)
+            {
+                cells[i][0] = xi;
+                cells[i][1] = yi;
+                cells[i][2] = zi;
+                fracs[i] = zf * yf * (std::min(hilen[0]-xi,1.)-std::max(lolen[0]-xi,0.))*cell_density;
+                i++;
+            }
+        }
+    }
+    return M;
+#endif
+    
+}
+
+inline
+int
+ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
+                               const Real*         plo,
+                               const Real*         dx,
+                               Array<Real>&        fracs,
+                               Array<IntVect>&     cells)
+{
+    return ParticleBase::CIC_Cells_Fracs(p,plo,dx,dx,fracs,cells);
+}
+
+inline
+void
+ParticleBase::CIC_Cells_Fracs_Basic (const ParticleBase& p,
                                const Real*         plo,
                                const Real*         dx,
                                Real*               fracs,
