@@ -244,7 +244,7 @@ Amr::Amr ()
     {
         bool nosub;
         pp.query("nosub",nosub);
-        syb_cycle = !nosub;
+        sub_cycle = !nosub;
     }
 
         sub_cycle = false;
