@@ -2091,13 +2091,19 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
     //
     // We create these outside of the main loop so that we can check out other levels' as
     // needed.
-    BoxArray compfvalids[finest_level-lev_min+1];
-    BoxArray compfvalid_growns[finest_level-lev_min+1];
-    BoxArray fvalids[finest_level-lev_min+1];
     for (int lev = lev_min; lev <= finest_level; lev++)
     {
         const Geometry& gm  = m_amr->Geom(lev);
+        const Geometry& gm_fine = (lev < finest_level) ? m_amr->Geom(lev+1) : gm;
+        const Geometry& gm_coarse = (lev > 0) ? m_amr->Geom(lev-1) : gm;
+        
         const Box&      dm  = gm.Domain();
+        const Real*     dx  = gm.CellSize();
+        const Real*     plo = gm.ProbLo();
+        const Real* dx_fine = (lev < finest_level) ? m_amr->Geom(lev+1).CellSize() : dx;
+        const Real* dx_coarse = (lev > 0) ? m_amr->Geom(lev-1).CellSize() : dx;
+
+        
         
         int lev_index = lev - lev_min;
 
@@ -2107,89 +2113,49 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
         //
         // Do we have Fine->Crse overlap on a periodic boundary?
         // We want to add all ghost cells that can be shifted into valid region.
-        // This can only happen at level one. //are we sure about this?
         //
         BoxList valid;
         const BoxArray& grids = mf[lev_index].boxArray();
-        if (lev >=1)
+        for (int i = 0; i < grids.size(); i++)
         {
-            for (int i = 0; i < grids.size(); i++)
+            if (gm.isAnyPeriodic())
             {
-                if (gm.isAnyPeriodic())
+                const Box dest = mf[lev_index].fabbox(i);
+
+                BL_ASSERT(dest == BoxLib::grow(grids[i], mf[lev_index].nGrow()));
+
+                if (!dm.contains(dest))
                 {
-                    const Box dest = mf[lev_index].fabbox(i);
-
-                    BL_ASSERT(dest == BoxLib::grow(grids[i], mf[lev_index].nGrow()));
-
-                    if (!dm.contains(dest))
+                    for (int j = 0; j < grids.size(); j++)
                     {
-                        for (int j = 0; j < grids.size(); j++)
+                        BL_ASSERT(dm.contains(grids[j]));
+
+                        gm.periodicShift(dest, grids[j], pshifts);
+
+                        for (int k = 0; k < pshifts.size(); k++)
                         {
-                            BL_ASSERT(dm.contains(grids[j]));
+                            const Box sbx = grids[j] + pshifts[k];
+                            const Box dbx = dest & sbx;
 
-                            gm.periodicShift(dest, grids[j], pshifts);
+                            BL_ASSERT(dbx.ok());
 
-                            for (int k = 0; k < pshifts.size(); k++)
-                            {
-                                const Box sbx = grids[j] + pshifts[k];
-                                const Box dbx = dest & sbx;
-
-                                BL_ASSERT(dbx.ok());
-
-                                valid.push_back(dbx);
-                            }
+                            valid.push_back(dbx);
                         }
                     }
                 }
             }
-            if (valid.isNotEmpty())
-            {
-                //
-                // We've got some Fine->Crse periodic overlap.
-                // Don't forget to add the valid boxes too.
-                //
-                for (int i = 0; i < grids.size(); i++)
-                    valid.push_back(grids[i]);
-                fvalid = BoxArray(valid);
-                fvalid.removeOverlap();
-            }
         }
-        
-        //
-        // The "2" is so we enclose the valid region together with any
-        //  ghost cells that can be periodically shifted into valid.
-        //
-        compfvalid = BoxLib::complementIn(BoxLib::grow(dm,2), fvalid);
-
-        compfvalid_grown = compfvalid;
-        compfvalid_grown.grow(1);
-        compfvalid_grown.removeOverlap();
-        
-        compfvalids[lev_index] = compfvalid; 
-        compfvalid_growns[lev_index] = compfvalid_grown;
-        fvalids[lev_index] = fvalid;
-    }
-
-    for (int lev = lev_min; lev <= finest_level; lev++)
-    {
-        int lev_index = lev - lev_min;
-        const Geometry& gm  = m_amr->Geom(lev);
-        const Real*     dx  = gm.CellSize();
-        const Real*     plo = gm.ProbLo();
-        const Real* dx_fine = (lev < finest_level) ? m_amr->Geom(lev+1).CellSize() : dx;
-        const Real* dx_coarse = (lev > 0) ? m_amr->Geom(lev-1).CellSize() : dx;
-        const Geometry& gm_fine = (lev < finest_level) ? m_amr->Geom(lev+1) : gm;
-        const Geometry& gm_coarse = (lev > 0) ? m_amr->Geom(lev-1) : gm;
-            
-        if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
+        if (valid.isNotEmpty())
         {
-            BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+            //
+            // We've got some Fine->Crse periodic overlap.
+            // Don't forget to add the valid boxes too.
+            //
+            for (int i = 0; i < grids.size(); i++)
+                valid.push_back(grids[i]);
+            fvalid = BoxArray(valid);
+            fvalid.removeOverlap();
         }
-        
-        BoxArray compfvalid, compfvalid_grown, fvalid;
-        compfvalid = compfvalids[lev_index]; 
-        compfvalid_grown = compfvalid_growns[lev_index];
-        fvalid = fvalids[lev_index];
         
         //
         // If we're at a lev < finestLevel, this is the coarsened fine BoxArray.
@@ -2202,6 +2168,68 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
             cfba.coarsen(m_amr->refRatio(lev));
 
             BL_ASSERT(mf[lev_index].boxArray().contains(cfba));
+        }
+        
+        //
+        // This is cfba with any shifted ghost cells.
+        //
+        BoxArray cfvalid = cfba;
+        if (lev < finest_level)
+        {
+            BoxList cvalid;
+            const BoxArray& cgrids = mf[lev_index].boxArray();
+            for (int i = 0; i < cfba.size(); i++)
+            {
+                if (gm.isAnyPeriodic())
+                {
+                    Box dest = cfba[i];
+                    dest.grow(mf[lev_index].nGrow());
+
+
+                    if (!dm.contains(dest))
+                    {
+                        for (int j = 0; j < cgrids.size(); j++)
+                        {
+                            BL_ASSERT(dm.contains(cgrids[j]));
+
+                            gm.periodicShift(dest, cgrids[j], pshifts);
+
+                            for (int k = 0; k < pshifts.size(); k++)
+                            {
+                                const Box sbx = cfba[i] - pshifts[k];
+
+                                cvalid.push_back(sbx);
+                            }
+                        }
+                    }
+                }
+            }
+            if (cvalid.isNotEmpty())
+            {
+                //
+                // We've got some Fine->Crse periodic overlap.
+                // Don't forget to add the valid boxes too.
+                //
+                for (int i = 0; i < cfba.size(); i++)
+                    cvalid.push_back(cfba[i]);
+                cfvalid = BoxArray(cvalid);
+                cfvalid.removeOverlap();
+            }
+        }
+        
+        //
+        // The "2" is so we enclose the valid region together with any
+        //  ghost cells that can be periodically shifted into valid.
+        //
+        compfvalid = BoxLib::complementIn(BoxLib::grow(dm,2), fvalid);
+
+        compfvalid_grown = compfvalid;
+        compfvalid_grown.grow(1);
+        compfvalid_grown.removeOverlap();
+            
+        if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
+        {
+            BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
         }
         
         //
@@ -2221,6 +2249,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
         //
         const bool GridsCoverDomain = fvalid.contains(m_amr->Geom(lev).Domain());
         
+        
         for (typename PMap::const_iterator pmap_it = m_particles[lev].begin(),
                  pmapEnd = m_particles[lev].end();
              pmap_it != pmapEnd;
@@ -2234,6 +2263,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                  ++it)
             {
                 const ParticleType& p = *it;
+                //if (lev_min == 0) printf("DEBUG: Particle %d at %f %f %f\n",p.m_id, p.m_pos[0], p.m_pos[1], p.m_pos[2]);
+                Real sum = 0;
 
                 if (p.m_id <= 0) continue;
                 //
@@ -2250,22 +2281,30 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
                 
                 //
-                // This section is differs based on whether we subcycle.
+                // This section differs based on whether we subcycle.
                 // Without subcycling we use the "stretchy" support for particles.
                 // With subcycling a particles support is strictly defined 
                 // by its resident level.
                 if (sub_cycle)
                 {
                     bool isBoundary = false;
+                    bool isFiner = false;
                     //
                     // First sum the mass in the valid region
                     //
                     for (int i = 0; i < M; i++)
                     {
-                        if (!fvalid.contains(cells[i]) || cfba.contains(cells[i]))
+                        if (cfvalid.contains(cells[i]))
                         {
-                            // Some part of the particles mass lies outside
-                            // the boundary region or in a finer region.
+                            // Some part of the particle's mass lies in a 
+                            // finer region; we'll deal with it shortly.
+                            isFiner = true;
+                            isBoundary = true;
+                            continue;
+                        }
+                        if (!fvalid.contains(cells[i]))
+                        {
+                            // We're out of the valid region
                             isBoundary = true;
                             continue;
                         }
@@ -2273,6 +2312,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                         // Sum up mass in first component.
                         //
                         fab(cells[i],0) += p.m_data[0] * fracs[i];
+                        sum += p.m_data[0] * fracs[i];
                         //
                         // Sum up momenta in next components.
                         //
@@ -2280,12 +2320,15 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                             fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
                     }
                     //
-                    // Deal with mass outside the valid region for this level.
+                    // Deal with mass that doesn't belong at this level.
+                    // Here we assume proper nesting so that only one special case can
+                    // be true for a given particle.
                     //
                     if (isBoundary)
                     {
-                        if (lev < finest_level && ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts))
+                        if (isFiner)
                         {
+                            BL_ASSERT(lev < finest_level);
                             //
                             // We're at a coarse->fine interface
                             //
@@ -2294,22 +2337,16 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                             for (int j = 0; j < MF; j++)
                             {
                                 // make sure this fine cell is valid.
-                                if (!fvalids[lev_index + 1].contains(fcells[j]))
+                                //check for periodicity
+                                const Box bx(fcells[j],fcells[j]);
+                                gm_fine.periodicShift(bx, gm_fine.Domain(), pshifts);
+                                if (!pshifts.empty())
                                 {
-                                    //check for periodicity
-                                    const Box bx(fcells[j],fcells[j]);
-                                    gm_fine.periodicShift(bx, gm_fine.Domain(), pshifts);
-                                    if (!pshifts.empty())
-                                    {
-                                        BL_ASSERT(pshifts.size() == 1);
-                                        fcells[j] = fcells[j] - pshifts[0];
-                                    }
-                                    else
-                                    {
-                                        continue;
-                                    }
+                                    BL_ASSERT(pshifts.size() == 1);
+                                    fcells[j] = fcells[j] - pshifts[0];
+                                    std::cout << fcells[j] << "f\n";
                                 }
-                                isects = fvalids[lev_index + 1].intersections(Box(fcells[j],fcells[j]));
+                                isects = mf[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]));
                                 if (isects.size() == 0)
                                 {
                                     continue;
@@ -2321,6 +2358,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     mf[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j];
+                                    sum += p.m_data[0] * ffracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2336,6 +2374,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     pb.m_data[0] = p.m_data[0] *  ffracs[j];
+                                    sum += p.m_data[0] * ffracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2355,24 +2394,21 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                             for (int j = 0; j < MC; j++)
                             {
                                 // make sure this coarse cell isn't in this level's valid region
+                                // this may not matter.
                                 if (cba.contains(ccells[j]))
-                                {
-                                    //check for periodicity
-                                    const Box bx(ccells[j],ccells[j]);
-                                    gm_coarse.periodicShift(bx, gm_coarse.Domain(), pshifts);
+                                    continue;
+                                //check for periodicity
+                                const Box bx(ccells[j],ccells[j]);
+                                gm_coarse.periodicShift(bx, gm_coarse.Domain(), pshifts);
 
-                                    if (!pshifts.empty())
-                                    {
-                                        BL_ASSERT(pshifts.size() == 1);
-                                        ccells[j] = ccells[j] - pshifts[0];
-                                    }
-                                    else
-                                    {
-                                        continue;
-                                    }
+                                if (!pshifts.empty())
+                                {
+                                    BL_ASSERT(pshifts.size() == 1);
+                                    ccells[j] = ccells[j] - pshifts[0];
+                                    std::cout << ccells[j] << "c\n";
                                 }
                                 // find its resident grid.
-                                isects = fvalids[lev_index - 1].intersections(Box(ccells[j],ccells[j]));
+                                isects = mf[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]));
                                 if (isects.size() == 0)
                                     continue;
                                 int grid = isects[0].first; 
@@ -2382,6 +2418,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     mf[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j];
+                                    sum += p.m_data[0] * cfracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2397,6 +2434,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     pb.m_data[0] = p.m_data[0] * cfracs[j];
+                                    sum += p.m_data[0] * cfracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2410,7 +2448,14 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                         else
                         {
                             // The mass is below levels we care about. Ignore it.
+                            //if (lev_min == 0) printf("DEBUG: Ignoring Mass %d\n",p.m_lev);
                         }
+                    }
+                    ///TODO/DEBUG: remove this check and sum
+                    if (lev_min == 0 && sum-p.m_data[0] > 1e-7)
+                    {
+                        printf("DEBUG: Expected vs actual mass: %f / %f\n",sum, p.m_data[0]);
+                        BoxLib::Abort("ASSD FAILURE");
                     }
                 }
                 else 
@@ -2433,7 +2478,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                     //
                     for (int i = 0; i < M; i++)
                     {
-                        if (!fab.contains(Box(cells[i],cells[i]))) continue;
+                        //if (!fab.contains(Box(cells[i],cells[i]))) continue;
+                        // this line can be removed.
                         //
                         // Sum up mass in first component.
                         //
