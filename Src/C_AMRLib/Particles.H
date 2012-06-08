@@ -2263,7 +2263,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                  ++it)
             {
                 const ParticleType& p = *it;
-                //if (lev_min == 0) printf("DEBUG: Particle %d at %f %f %f\n",p.m_id, p.m_pos[0], p.m_pos[1], p.m_pos[2]);
                 Real sum = 0;
 
                 if (p.m_id <= 0) continue;
@@ -2344,7 +2343,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                 {
                                     BL_ASSERT(pshifts.size() == 1);
                                     fcells[j] = fcells[j] - pshifts[0];
-                                    std::cout << fcells[j] << "f\n";
                                 }
                                 isects = mf[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]));
                                 if (isects.size() == 0)
@@ -2405,7 +2403,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                 {
                                     BL_ASSERT(pshifts.size() == 1);
                                     ccells[j] = ccells[j] - pshifts[0];
-                                    std::cout << ccells[j] << "c\n";
                                 }
                                 // find its resident grid.
                                 isects = mf[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]));

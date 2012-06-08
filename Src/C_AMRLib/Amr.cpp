@@ -241,6 +241,12 @@ Amr::Amr ()
 
     sub_cycle = true;
     if (pp.contains("nosub"))
+    {
+        bool nosub;
+        pp.query("nosub",nosub);
+        syb_cycle = !nosub;
+    }
+
         sub_cycle = false;
 
     pp.query("regrid_file",grids_file);
