@@ -1377,7 +1377,7 @@ subroutine mgt_dealloc()
 
 end subroutine mgt_dealloc
 
-subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
+subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm)
   use cpp_mg_module
   use ml_cc_module
   use fabio_module
@@ -1385,7 +1385,6 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
   real(kind=dp_t), intent(in   ) :: tol, abs_tol
   integer        , intent(in   ), optional :: needgradphi
   real(kind=dp_t), intent(  out), optional :: final_resnorm
-  integer        , intent(  out), optional :: status
 
   integer :: do_diag
   logical :: lneedgradphi
@@ -1409,12 +1408,7 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
        do_diag, tol, &
        abs_eps_in = abs_tol, &
        need_grad_phi_in = lneedgradphi,&
-       final_resnorm = final_resnorm,&
-       status = success_flag)
-
-  if (present(status)) then
-     status = success_flag
-  endif
+       final_resnorm = final_resnorm)
 
 end subroutine mgt_solve
 
