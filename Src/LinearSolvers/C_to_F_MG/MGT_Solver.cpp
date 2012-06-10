@@ -920,6 +920,7 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, int need_grad_phi, Real& final_resnorm)
 {
+
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
   for (OrientationIter oitr; oitr; ++oitr)
@@ -955,7 +956,14 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+
+  // Pass in the status flag from here so we can know whehter the 
+  //      solver converged
+  int status = 0;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+
+  if (status != 0) 
+     BoxLib::Error("Multigrid did not converge!");
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
@@ -1003,7 +1011,13 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	}
     }
 
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+  // Pass in the status flag from here so we can know whehter the 
+  //      solver converged
+  int status = 0;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+
+  if (status != 0) 
+     BoxLib::Error("Multigrid did not converge!");
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
@@ -1066,7 +1080,14 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+
+  // Pass in the status flag from here so we can know whehter the 
+  //      solver converged
+  int status = 0;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+
+  if (status != 0) 
+     BoxLib::Error("Multigrid did not converge!");
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
@@ -1093,7 +1114,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  const BndryData& bd, int need_grad_phi, Real& final_resnorm,int& status)
+                  const BndryData& bd, int need_grad_phi, Real& final_resnorm, int& status)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
@@ -1130,7 +1151,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve_stat(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
   if (status == 1) return;
 
   int ng = 0;
@@ -1179,7 +1200,7 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	}
     }
 
-  mgt_solve_stat(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
   if (status == 1) return;
 
   int ng = 0;
