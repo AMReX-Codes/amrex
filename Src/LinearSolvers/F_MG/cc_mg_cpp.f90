@@ -1383,47 +1383,6 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
   use fabio_module
   implicit none
   real(kind=dp_t), intent(in   ) :: tol, abs_tol
-  integer        , intent(in   ), optional :: needgradphi
-  real(kind=dp_t), intent(  out), optional :: final_resnorm
-  integer        , intent(  out), optional :: status
-
-  integer :: do_diag
-  logical :: lneedgradphi
-  integer :: success_flag
-
-  call mgt_verify("MGT_SOLVE")
-  if ( .not. mgts%final ) then
-     call bl_error("MGT_SOLVE: MGT not finalized")
-  end if
-
-  lneedgradphi = .false.
-  if (present(needgradphi)) then
-     if (needgradphi == 1) lneedgradphi = .true.
-  endif
-
-  do_diag = 0; if ( mgts%verbose >= 4 ) do_diag = 1
-
-  call ml_cc(mgts%mla, mgts%mgt, &
-       mgts%rh, mgts%uu, &
-       mgts%mla%mask, mgts%rr, &
-       do_diag, tol, &
-       abs_eps_in = abs_tol, &
-       need_grad_phi_in = lneedgradphi,&
-       final_resnorm = final_resnorm,&
-       status = success_flag)
-
-  if (present(status)) then
-     status = success_flag
-  endif
-
-end subroutine mgt_solve
-
-subroutine mgt_solve_stat(tol,abs_tol,needgradphi,final_resnorm,status)
-  use cpp_mg_module
-  use ml_cc_module
-  use fabio_module
-  implicit none
-  real(kind=dp_t), intent(in   ) :: tol, abs_tol
   integer        , intent(in   ) :: needgradphi
   real(kind=dp_t), intent(  out) :: final_resnorm
   integer        , intent(  out) :: status
@@ -1450,7 +1409,7 @@ subroutine mgt_solve_stat(tol,abs_tol,needgradphi,final_resnorm,status)
        final_resnorm = final_resnorm,&
        status = status)
 
-end subroutine mgt_solve_stat
+end subroutine mgt_solve
 
 subroutine mgt_applyop()
   use cpp_mg_module

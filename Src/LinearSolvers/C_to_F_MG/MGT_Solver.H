@@ -100,8 +100,19 @@ public:
 
   void set_maxorder(const int max_order);
 
+  // *******************************************************************************
+  // These two take a status flag and pass the status flag to mgt_solve
+  // *******************************************************************************
+
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, int need_grad_phi, Real& final_resnorm,int& status);
+
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+	     int need_grad_phi, Real& final_resnorm,int& status);
+
+  // *******************************************************************************
+  // These four do *not* take a status flag but do pass an internal status flag to mgt_solve
+  // *******************************************************************************
 
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, Real& final_resnorm);
@@ -115,8 +126,9 @@ public:
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
 	     int need_grad_phi, Real& final_resnorm);
 
-  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-	     int need_grad_phi, Real& final_resnorm,int& status);
+  // *******************************************************************************
+  // End of solve options
+  // *******************************************************************************
 
   void applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd);
 
