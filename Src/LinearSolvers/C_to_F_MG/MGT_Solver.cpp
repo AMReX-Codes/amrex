@@ -905,6 +905,10 @@ MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
   mgt_finalize_nodal_stencil();
 }
 
+// *******************************************************************************
+// These four do *not* take a status flag
+// *******************************************************************************
+
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, Real& final_resnorm)
@@ -916,14 +920,7 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, int need_grad_phi, Real& final_resnorm)
 {
-    int ignore;
-    solve(uu,rh,tol,abs_tol,bd,need_grad_phi,final_resnorm,ignore);
-}
 
-void 
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  const BndryData& bd, int need_grad_phi, Real& final_resnorm,int& status)
-{
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
   for (OrientationIter oitr; oitr; ++oitr)
@@ -937,8 +934,6 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
   }
   uu[lev]->FillBoundary();
 
-  
-  
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
@@ -961,8 +956,68 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve_stat(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
-  if (status == 1) return;
+
+  // Pass in the status flag from here so we can know whehter the 
+  //      solver converged
+  int status = 0;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+
+  if (status != 0) 
+     BoxLib::Error("Multigrid did not converge!");
+
+  int ng = 0;
+  if (need_grad_phi == 1) ng = 1;
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  FArrayBox& sol = (*(uu[lev]))[umfi];
+	  Real* sd = sol.dataPtr();
+	  int n = umfi.index();
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+	  const int* plo = sol.box().loVect();
+	  const int* phi = sol.box().hiVect();
+	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
+	}
+    }
+}
+
+void 
+MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+                  int need_grad_phi, Real& final_resnorm)
+{
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  int n = umfi.index();
+
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+
+	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
+	  const Real* rd = rhs.dataPtr();
+	  const int* rlo = rhs.box().loVect();
+	  const int* rhi = rhs.box().hiVect();
+	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
+
+	  const FArrayBox& sol = (*(uu[lev]))[umfi];
+	  const Real* sd = sol.dataPtr();
+	  const int* slo = sol.box().loVect();
+	  const int* shi = sol.box().hiVect();
+	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
+	}
+    }
+
+  // Pass in the status flag from here so we can know whehter the 
+  //      solver converged
+  int status = 0;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+
+  if (status != 0) 
+     BoxLib::Error("Multigrid did not converge!");
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
@@ -1025,8 +1080,14 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  int ignore;
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&ignore);
+
+  // Pass in the status flag from here so we can know whehter the 
+  //      solver converged
+  int status = 0;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+
+  if (status != 0) 
+     BoxLib::Error("Multigrid did not converge!");
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
@@ -1047,18 +1108,27 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
     }
 }
  
-void 
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  int need_grad_phi, Real& final_resnorm)
-{
-    int ignore;
-    solve(uu,rh,tol,abs_tol,need_grad_phi,final_resnorm,ignore);
-}
+// *******************************************************************************
+// These two take a status flag
+// *******************************************************************************
 
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  int need_grad_phi, Real& final_resnorm,int& status)
+                  const BndryData& bd, int need_grad_phi, Real& final_resnorm, int& status)
 {
+  // Copy the boundary register values into the solution array to be copied into F90
+  int lev = 0;
+  for (OrientationIter oitr; oitr; ++oitr)
+  {
+      const FabSet& fs = bd.bndryValues(oitr());
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+      {
+        FArrayBox& dest = (*(uu[lev]))[umfi];
+        dest.copy(fs[umfi],fs[umfi].box());
+      }
+  }
+  uu[lev]->FillBoundary();
+
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
@@ -1102,6 +1172,59 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	}
     }
 }
+
+void 
+MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+                  int need_grad_phi, Real& final_resnorm,int& status)
+{
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  int n = umfi.index();
+
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+
+	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
+	  const Real* rd = rhs.dataPtr();
+	  const int* rlo = rhs.box().loVect();
+	  const int* rhi = rhs.box().hiVect();
+	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
+
+	  const FArrayBox& sol = (*(uu[lev]))[umfi];
+	  const Real* sd = sol.dataPtr();
+	  const int* slo = sol.box().loVect();
+	  const int* shi = sol.box().hiVect();
+	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
+	}
+    }
+
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+  if (status == 1) return;
+
+  int ng = 0;
+  if (need_grad_phi == 1) ng = 1;
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  FArrayBox& sol = (*(uu[lev]))[umfi];
+	  Real* sd = sol.dataPtr();
+	  int n = umfi.index();
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+	  const int* plo = sol.box().loVect();
+	  const int* phi = sol.box().hiVect();
+	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
+	}
+    }
+}
+ 
+// *******************************************************************************
+// End of solve options
+// *******************************************************************************
 
 void 
 MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)

@@ -471,14 +471,6 @@ ifeq ($(WHICHLINUX), HOMER)
   endif
 endif
 
-ifeq ($(WHICHLINUX), NAN)
-  ifeq ($(USE_MPI),TRUE)
-    CXX = mpicxx
-    FC = mpif90 -fno-range-check -fno-second-underscore 
-    fC = mpif90 -fno-range-check -fno-second-underscore 
-  endif
-endif
-
 ifeq ($(WHICHLINUX), COLUMBIA)
   FOPTF   = -O3
   fOPTF   = -O3
