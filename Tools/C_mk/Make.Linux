@@ -276,7 +276,7 @@ ifeq ($(WHICHLINUX), FRANKLIN)
     F90 := ftn -target=linux
     fC  := ftn -target=linux
   endif
-  ifdef IPM
+  ifdef USE_IPM
     ifeq ($(COMP),PGI)
       LIBRARIES += $(IPM)
     elif ($(COMP),PathScale)
@@ -333,11 +333,11 @@ ifeq ($(WHICHLINUX), HOPPER)
     F90 := ftn -target=linux
     fC  := ftn -target=linux
   endif
-  ifdef IPM
+  ifeq ($(USE_IPM),TRUE)
     ifeq ($(COMP),PGI)
       LIBRARIES += $(IPM)
-    elif ($(COMP),PathScale)
-      LIBRARIES += $(IPM_GNU)
+    #elif ($(COMP),PathScale)
+      #LIBRARIES += $(IPM_GNU)
     endif
   endif
 endif
