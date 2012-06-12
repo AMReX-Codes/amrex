@@ -373,12 +373,6 @@ ifeq ($(HOST),greenstreet)
   mpi_libraries += -lmpich
 endif
 
-ifeq ($(findstring bender, $(UNAMEN)), bender)
-  MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90 -f90=gfortran 
-  CXX = mpicxx -cxx=gcc
-endif
-
 # generic linux install with MPICH wrappers -- set the 
 # BOXLIB_USE_MPI_WRAPPERS environment variable for this
 ifdef BOXLIB_USE_MPI_WRAPPERS
