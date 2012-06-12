@@ -247,8 +247,6 @@ Amr::Amr ()
         sub_cycle = !nosub;
     }
 
-        sub_cycle = false;
-
     pp.query("regrid_file",grids_file);
     if (pp.contains("run_log"))
     {

@@ -2263,7 +2263,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                  ++it)
             {
                 const ParticleType& p = *it;
-                Real sum = 0;
 
                 if (p.m_id <= 0) continue;
                 //
@@ -2311,7 +2310,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                         // Sum up mass in first component.
                         //
                         fab(cells[i],0) += p.m_data[0] * fracs[i];
-                        sum += p.m_data[0] * fracs[i];
                         //
                         // Sum up momenta in next components.
                         //
@@ -2356,7 +2354,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     mf[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j];
-                                    sum += p.m_data[0] * ffracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2372,7 +2369,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     pb.m_data[0] = p.m_data[0] *  ffracs[j];
-                                    sum += p.m_data[0] * ffracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2415,7 +2411,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     mf[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j];
-                                    sum += p.m_data[0] * cfracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2431,7 +2426,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     pb.m_data[0] = p.m_data[0] * cfracs[j];
-                                    sum += p.m_data[0] * cfracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2445,14 +2439,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                         else
                         {
                             // The mass is below levels we care about. Ignore it.
-                            //if (lev_min == 0) printf("DEBUG: Ignoring Mass %d\n",p.m_lev);
                         }
-                    }
-                    ///TODO/DEBUG: remove this check and sum
-                    if (lev_min == 0 && sum-p.m_data[0] > 1e-7)
-                    {
-                        printf("DEBUG: Expected vs actual mass: %f / %f\n",sum, p.m_data[0]);
-                        BoxLib::Abort("ASSD FAILURE");
                     }
                 }
                 else 
