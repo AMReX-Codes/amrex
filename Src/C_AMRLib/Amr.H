@@ -36,7 +36,7 @@ public:
     //
     // The destructor.
     //
-    ~Amr ();
+    virtual ~Amr ();
     //
     // Init data after construction. Must be called before timestepping.
     //

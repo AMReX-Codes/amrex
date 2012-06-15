@@ -242,13 +242,26 @@ BoxLib::is_integer (const char* str)
     return true;
 }
 
+namespace {
+    bool tokenize_initialized = false;
+    char* line = 0;
+    void CleanupTokenizeStatics ()
+    {
+        delete [] line;
+    }
+}
+
 const std::vector<std::string>&
 BoxLib::Tokenize (const std::string& instr,
                   const std::string& separators)
 {
+    if (!tokenize_initialized) {
+        BoxLib::ExecOnFinalize(CleanupTokenizeStatics);
+        tokenize_initialized = true;
+    }
+
     static std::vector<char*>       ptr;
     static std::vector<std::string> tokens;
-    static char*                    line    = 0;
     static int                      linelen = 0;
     //
     // Make copy of line that we can modify.
@@ -287,7 +300,6 @@ BoxLib::Tokenize (const std::string& instr,
         tokens[i] = ptr[i];
 
     ptr.clear();
-
     return tokens;
 }
 

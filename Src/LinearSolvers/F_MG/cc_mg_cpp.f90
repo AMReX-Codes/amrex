@@ -252,7 +252,6 @@ subroutine mgt_finalize(dx,bc)
           bottom_max_iter   = bottom_max_iter_in, &
           bottom_solver_eps = mgts%bottom_solver_eps, &
           max_L0_growth     = mgts%max_L0_growth, &
-          omega             = mgts%omega, &
           max_iter          = mgts%max_iter, &
           max_nlevel        = max_nlevel_in, &
           min_width         = mgts%min_width, &
@@ -347,7 +346,6 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
           bottom_max_iter   = bottom_max_iter_in, &
           bottom_solver_eps = mgts%bottom_solver_eps, &
           max_L0_growth     = mgts%max_L0_growth, &
-          omega             = mgts%omega, &
           max_iter          = mgts%max_iter, &
           max_nlevel        = max_nlevel_in, &
           min_width         = mgts%min_width, &
@@ -1377,6 +1375,7 @@ subroutine mgt_dealloc()
   mgts%dim = 0
   mgts%final = .false.
 
+  call parallel_finalize(.false.) ! do not finalize MPI but free communicator
 end subroutine mgt_dealloc
 
 subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
