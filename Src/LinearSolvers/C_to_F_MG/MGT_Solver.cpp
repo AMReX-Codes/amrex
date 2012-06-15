@@ -322,7 +322,6 @@ MGT_Solver::initialize(bool nodal)
     pp.query("smoother", def_smoother);
     pp.query("stencil_type", stencil_type);
     pp.query("max_L0_growth", def_max_L0_growth);
-    pp.query("omega", def_omega);
 
 /*
     pp.query("nu_0", def_nu_0);
