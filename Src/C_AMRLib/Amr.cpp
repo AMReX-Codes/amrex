@@ -458,20 +458,34 @@ Amr::Amr ()
                 BoxLib::Error("First entry of subcycling_iterations must be 1");
             }
         }
-    } else if (subcycling_mode == "Auto")
+        for (i = 1; i < max_level + 1; i++)
+        {
+            if (n_cycle[i] > MaxRefRatio(i-1))
+                BoxLib::Error("subcycling iterations must always be <= ref_ratio");
+        }
+    } 
+    else if (subcycling_mode == "Auto")
     {
         n_cycle[0] = 1;
-        for (i = 1; i <= max_level; i++)
+        for (i = 1; i <= max_level + 1; i++)
         {
             n_cycle[i] = MaxRefRatio(i-1);
         } 
     }
-    // if subcycling mode is Optimal n_cycle is set dynamically.
-    /// TODO/DEBUG: we may need to do the same for Auto
+    else if (subcycling_mode == "Optimal")
+    {
+        // if subcycling mode is Optimal, n_cycle is set dynamically.
+        BoxLib::Error("Optimal subcycling not implemented yet. Sorry.");
+    }
+    else
+    {
+        std::string err_message = "Unrecognzied subcycling mode: " + subcycling_mode + "\n";
+        BoxLib::Error(err_message.c_str());
+    }
 
 
-    // These could guys could be method extracted...    
-    
+
+    // These could guys could be method extracted...        
     //
     // Read in max_grid_size.  Use defaults if not explicitly defined.
     //
