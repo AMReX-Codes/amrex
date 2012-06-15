@@ -239,14 +239,6 @@ Amr::Amr ()
 
     pp.query("file_name_digits", file_name_digits);
 
-    sub_cycle = true;
-    if (pp.contains("nosub"))
-    {
-        bool nosub;
-        pp.query("nosub",nosub);
-        sub_cycle = !nosub;
-    }
-
     pp.query("regrid_file",grids_file);
     if (pp.contains("run_log"))
     {
@@ -402,6 +394,84 @@ Amr::Amr ()
             BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
         }
     }
+    
+    //
+    // Setup subcycling variables.
+    //
+    sub_cycle = true;
+    if (pp.contains("nosub"))
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "Warning: The nosub flag has been deprecated.\n ";
+            std::cout << "... please use subcycling_mode to control subcycling.\n";
+        }
+        int nosub;
+        pp.query("nosub",nosub);
+        if (nosub > 0)
+            sub_cycle = false;
+        else
+            BoxLib::Error("nosub <= 0 not allowed.\n");
+        subcycling_mode = "None";
+    }
+    else 
+    {
+        subcycling_mode = "Auto";
+        pp.query("subcycling_mode",subcycling_mode);
+    }
+        
+    if (subcycling_mode == "None")
+    {
+        sub_cycle = false;
+        for (i = 0; i <= max_level; i++)
+        {
+            n_cycle[i] = 1;
+        }
+    }
+    else if (subcycling_mode == "Manual")
+    {
+        int cnt = pp.countval("subcycling_iterations");
+
+        if (cnt == 1)
+        {
+            //
+            // Set all values to the single available value.
+            //
+            int cycles = 0;
+
+            pp.get("subcycling_iterations",cycles);
+
+            n_cycle[0] = 1; // coarse level is always 1 cycle
+            for (i = 1; i <= max_level; i++)
+            {
+                n_cycle[i] = cycles;
+            }
+        }
+        else if (cnt > 1)
+        {
+            //
+            // Otherwise we expect a vector of max_grid_size values.
+            //
+            pp.getarr("subcycling_iterations",n_cycle,0,max_level+1);
+            if (n_cycle[0] != 1)
+            {
+                BoxLib::Error("First entry of subcycling_iterations must be 1");
+            }
+        }
+    } else if (subcycling_mode == "Auto")
+    {
+        n_cycle[0] = 1;
+        for (i = 1; i <= max_level; i++)
+        {
+            n_cycle[i] = MaxRefRatio(i-1);
+        } 
+    }
+    // if subcycling mode is Optimal n_cycle is set dynamically.
+    /// TODO/DEBUG: we may need to do the same for Auto
+
+
+    // These could guys could be method extracted...    
+    
     //
     // Read in max_grid_size.  Use defaults if not explicitly defined.
     //

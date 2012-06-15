@@ -66,6 +66,10 @@ public:
     //
     int subCycle () const;
     //
+    // How are we subcycling?
+    //
+    std::string subcyclingMode() const;
+    //
     // Maximum allowable level.
     //
     int maxLevel () const;
@@ -359,6 +363,7 @@ protected:
     Array<int>       level_steps;  // Number of time steps at this level.
     Array<int>       level_count;
     Array<int>       n_cycle;
+    std::string      subcycling_mode; //Type of subcycling to use.
     Array<Real>      dt_min;
     bool             isPeriodic[BL_SPACEDIM];  // Domain periodic?
     Array<int>       regrid_int;      // Interval between regridding.
@@ -572,6 +577,13 @@ int
 Amr::subCycle () const
 {
     return sub_cycle;
+}
+
+inline
+std::string
+Amr::subcyclingMode() const
+{
+    return subcycling_mode;
 }
 
 inline

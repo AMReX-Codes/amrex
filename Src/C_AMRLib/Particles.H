@@ -25,6 +25,13 @@
 #include <omp.h>
 #endif
 
+
+namespace
+{
+    std::string aggregation_type = "";
+    int aggregation_buffer = 1;
+}
+
 struct ParticleBase
 {
     int     m_id;
@@ -2089,8 +2096,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
     // "compfvalid" grown by one.  Using these we can figure out whether or not a cell is in the
     // valid region of our MultiFab as well as whether or not we're at a Fine->Crse boundary.
     //
-    // We create these outside of the main loop so that we can check out other levels' as
-    // needed.
     for (int lev = lev_min; lev <= finest_level; lev++)
     {
         const Geometry& gm  = m_amr->Geom(lev);
@@ -2120,9 +2125,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
         {
             if (gm.isAnyPeriodic())
             {
-                const Box dest = mf[lev_index].fabbox(i);
-
-                BL_ASSERT(dest == BoxLib::grow(grids[i], mf[lev_index].nGrow()));
+                int dgrow = 1;
+                if (lev > 0)
+                    dgrow = m_amr->MaxRefRatio(lev-1);
+                const Box dest = BoxLib::grow(grids[i],dgrow);
 
                 if (!dm.contains(dest))
                 {
@@ -2161,6 +2167,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
         // If we're at a lev < finestLevel, this is the coarsened fine BoxArray.
         // We use this for figuring out Crse->Fine issues.
         //
+        BoxArray ccba;
+        if (lev > 0)
+        {
+            ccba = m_amr->boxArray(lev);
+            ccba.coarsen(m_amr->refRatio(lev-1));
+        }
         BoxArray cfba;
         if (lev < finest_level)
         {
@@ -2285,6 +2297,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                 // by its resident level.
                 if (sub_cycle)
                 {
+                    Real sum = 0;
                     bool isBoundary = false;
                     bool isFiner = false;
                     //
@@ -2306,10 +2319,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                             isBoundary = true;
                             continue;
                         }
+                        
                         //
                         // Sum up mass in first component.
                         //
                         fab(cells[i],0) += p.m_data[0] * fracs[i];
+                        sum += p.m_data[0] * fracs[i];
                         //
                         // Sum up momenta in next components.
                         //
@@ -2354,6 +2369,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     mf[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j];
+                                    sum += p.m_data[0] * ffracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2411,6 +2427,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     mf[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j];
+                                    sum += p.m_data[0] * cfracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2444,236 +2461,240 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                 }
                 else 
                 {
-                bool AnyCrseToFine = false;
-                if (lev < finest_level)
-                    AnyCrseToFine = ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
+                    bool AnyCrseToFine = false;
+                    if (lev < finest_level)
+                        AnyCrseToFine = ParticleBase::CrseToFine(cfba,cells,cfshifts,gm,cwhich,pshifts);
 
-                // lev_index > 0 means that we don't do F->C for lower levels
-                // This may mean that the mass fraction is off.
-                bool AnyFineToCrse = false;
-                if (lev_index > 0 && !GridsCoverDomain)
-                    AnyFineToCrse = ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,compfvalid_grown,ccells,cfracs,fwhich,cgrid,pshifts,isects);
+                    // lev_index > 0 means that we don't do F->C for lower levels
+                    // This may mean that the mass fraction is off.
+                    bool AnyFineToCrse = false;
+                    if (lev_index > 0 && !GridsCoverDomain)
+                        AnyFineToCrse = ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,compfvalid_grown,ccells,cfracs,fwhich,cgrid,pshifts,isects);
 
-                BL_ASSERT(!(AnyCrseToFine && AnyFineToCrse));
-                if (!AnyCrseToFine && !AnyFineToCrse)
-                {
-                    //
-                    // By far the most common case.  Just do it!
-                    //
-                    for (int i = 0; i < M; i++)
+                    BL_ASSERT(!(AnyCrseToFine && AnyFineToCrse));
+                    if (!AnyCrseToFine && !AnyFineToCrse)
                     {
-                        //if (!fab.contains(Box(cells[i],cells[i]))) continue;
-                        // this line can be removed.
                         //
-                        // Sum up mass in first component.
+                        // By far the most common case.  Just do it!
                         //
-                        fab(cells[i],0) += p.m_data[0] * fracs[i];
-                        //
-                        // Sum up momenta in next components.
-                        //
-                        for (int n = 1; n < ncomp; n++)
-                            fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
-                    }
-                }
-                else if (AnyFineToCrse)
-                {
-                    Real sum_crse = 0, sum_fine = 0;
-
-                    for (int i = 0; i < M; i++)
-                    {
-                        if (fwhich[i])
+                        for (int i = 0; i < M; i++)
                         {
-                            //
-                            // We're at a Fine->Crse boundary.
-                            //
-                            BL_ASSERT(cgrid[i] >= 0);
-                            BL_ASSERT(cgrid[i] < mf[lev_index-1].size());
-                            //
-                            // Here we need to update the crse region.  The coarse
-                            // region is always going to be updated if we have a
-                            // particle in a cell bordering a Fine->Crse boundary.
-                            //
-                            if (mf[lev_index-1].DistributionMap()[cgrid[i]] == ParallelDescriptor::MyProc())
-                            {
-                                if (!mf[lev_index-1][cgrid[i]].contains(Box(ccells[i],ccells[i]))) continue;
-                                //
-                                // Sum up mass in first component.
-                                //
-                                mf[lev_index-1][cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i];
-                                //
-                                // Sum up momenta in next components.
-                                //
-                                for (int n = 1; n < ncomp; n++)
-                                    mf[lev_index-1][cgrid[i]](ccells[i],n) += p.m_data[n] * p.m_data[0] * cfracs[i];
-                            }
-                            else
-                            {
-                                pb.m_lev  = lev-1;
-                                pb.m_grid = cgrid[i];
-                                pb.m_cell = ccells[i];
-                                //
-                                // Sum up mass in first component.
-                                //
-                                pb.m_data[0] = p.m_data[0] * cfracs[i];
-                                //
-                                // Sum up momenta in next components.
-                                //
-                                for (int n = 1; n < ncomp; n++)
-                                    pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[i];
-
-                                data.push_back(pb);
-                            }
-
-                            sum_crse += cfracs[i];
-                        }
-                    }
-                    //
-                    // We've updated the Crse cells.  Now we have to update the fine
-                    // cells in such a way that the total amount of mass we move
-                    // around is precisely p.m_data[0]. In other words, the fractions
-                    // we use at crse and fine have to sum to zero.  In the fine
-                    // case, we have to account for the case where one or more of the
-                    // cell indices is not in the valid region of the box containing 
-                    // the particle.
-                    //
-                    sum_fine = 0;
-                    for (int i = 0; i < M; i++) 
-                    {
-                        //
-                        // Reusing "fwhich" to indicate fine cells that need massaging.
-                        //
-                        fwhich[i] = true;
-
-                        if (!compfvalid_grown.contains(cells[i]))
-                        {
-                            //
-                            // Go ahead and add the full correct amount to these cells.
-                            // They can't touch a Fine->Crse boundary.
-                            //
-                            sum_fine += fracs[i];
+                            //if (!fab.contains(Box(cells[i],cells[i]))) continue;
+                            // this line can be removed.
                             //
                             // Sum up mass in first component.
                             //
+                            if (lev == 0)
+                            {
+                            }
                             fab(cells[i],0) += p.m_data[0] * fracs[i];
                             //
                             // Sum up momenta in next components.
                             //
                             for (int n = 1; n < ncomp; n++)
                                 fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
-
-                            fwhich[i] = false;
-                        }
-                        else if (compfvalid.contains(cells[i]))
-                        {
-                            fwhich[i] = false;
                         }
                     }
-
-                    const Real sum_so_far = sum_crse + sum_fine; 
-
-                    BL_ASSERT(sum_so_far > 0);
-                    BL_ASSERT(sum_so_far < 1);
-
-                    sum_fine = 0;
-                    for (int i = 0; i < M; i++) 
-                    {       
-                        if (fwhich[i])
-                            //
-                            // Got to weight cells in this direction differently.
-                            //
-                            sum_fine += fracs[i];
-                    }
-
-                    const Real mult = (1 - sum_so_far) / sum_fine;
-                    //
-                    // Now add the weighted amount to the fine cells touching the c-f interface.
-                    //
-                    sum_fine = 0;
-                    for (int i = 0; i < M; i++)
+                    else if (AnyFineToCrse)
                     {
-                        if (fwhich[i])
+                        Real sum_crse = 0, sum_fine = 0;
+
+                        for (int i = 0; i < M; i++)
                         {
-                            //
-                            // Sum up mass in first component.
-                            //
-                            fab(cells[i],0) += p.m_data[0] * fracs[i] * mult;
-                            //
-                            // Sum up momenta in next components.
-                            //
-                            for (int n = 1; n < ncomp; n++)
-                                fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i] * mult;
-
-                            sum_fine += fracs[i] * mult;
-                        }
-                    }
-
-                    BL_ASSERT(std::abs(1-(sum_fine+sum_so_far)) < 1.e-9);
-                }
-                else if (AnyCrseToFine)
-                {
-                    Real sum = 0;
-
-                    for (int i = 0; i < M; i++)
-                    {
-                        if (!cwhich[i])
-                        {
-                            //
-                            // Sum up mass in first component.
-                            //
-                            fab(cells[i],0) += p.m_data[0] * fracs[i];
-                            //
-                            // Sum up momenta in next components.
-                            //
-                            for (int n = 1; n < ncomp; n++)
-                                fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
-
-                            sum += fracs[i];
-                        }
-                        else
-                        {
-                            //
-                            // We're at a Crse->Fine boundary.
-                            //
-                            ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], cfshifts[i], fgrid, ffracs, fcells, isects);
-                            for (int j = 0; j < fcells.size(); j++)
+                            if (fwhich[i])
                             {
-                                if (mf[lev_index+1].DistributionMap()[fgrid[j]] == ParallelDescriptor::MyProc())
+                                //
+                                // We're at a Fine->Crse boundary.
+                                //
+                                BL_ASSERT(cgrid[i] >= 0);
+                                BL_ASSERT(cgrid[i] < mf[lev_index-1].size());
+                                //
+                                // Here we need to update the crse region.  The coarse
+                                // region is always going to be updated if we have a
+                                // particle in a cell bordering a Fine->Crse boundary.
+                                //
+                                if (mf[lev_index-1].DistributionMap()[cgrid[i]] == ParallelDescriptor::MyProc())
                                 {
+                                    if (!mf[lev_index-1][cgrid[i]].contains(Box(ccells[i],ccells[i]))) continue;
                                     //
                                     // Sum up mass in first component.
                                     //
-                                    mf[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j];
+                                    mf[lev_index-1][cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i];
+                                    
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++)
-                                        mf[lev_index+1][fgrid[j]](fcells[j],n) += p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
+                                        mf[lev_index-1][cgrid[i]](ccells[i],n) += p.m_data[n] * p.m_data[0] * cfracs[i];
                                 }
                                 else
                                 {
-                                    pb.m_lev  = lev+1;
-                                    pb.m_grid = fgrid[j];
-                                    pb.m_cell = fcells[j];
+                                    pb.m_lev  = lev-1;
+                                    pb.m_grid = cgrid[i];
+                                    pb.m_cell = ccells[i];
                                     //
                                     // Sum up mass in first component.
                                     //
-                                    pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j];
+                                    pb.m_data[0] = p.m_data[0] * cfracs[i];
                                     //
                                     // Sum up momenta in next components.
                                     //
                                     for (int n = 1; n < ncomp; n++)
-                                        pb.m_data[n] = p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
+                                        pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[i];
 
                                     data.push_back(pb);
                                 }
 
-                                sum += fracs[i] * ffracs[j];
+                                sum_crse += cfracs[i];
                             }
                         }
-                    }
+                        //
+                        // We've updated the Crse cells.  Now we have to update the fine
+                        // cells in such a way that the total amount of mass we move
+                        // around is precisely p.m_data[0]. In other words, the fractions
+                        // we use at crse and fine have to sum to zero.  In the fine
+                        // case, we have to account for the case where one or more of the
+                        // cell indices is not in the valid region of the box containing 
+                        // the particle.
+                        //
+                        sum_fine = 0;
+                        for (int i = 0; i < M; i++) 
+                        {
+                            //
+                            // Reusing "fwhich" to indicate fine cells that need massaging.
+                            //
+                            fwhich[i] = true;
 
-                    BL_ASSERT(std::abs(1-sum) < 1.e-9);
-                }
+                            if (!compfvalid_grown.contains(cells[i]))
+                            {
+                                //
+                                // Go ahead and add the full correct amount to these cells.
+                                // They can't touch a Fine->Crse boundary.
+                                //
+                                sum_fine += fracs[i];
+                                //
+                                // Sum up mass in first component.
+                                //
+                                fab(cells[i],0) += p.m_data[0] * fracs[i];
+                                //
+                                // Sum up momenta in next components.
+                                //
+                                for (int n = 1; n < ncomp; n++)
+                                    fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+
+                                fwhich[i] = false;
+                            }
+                            else if (compfvalid.contains(cells[i]))
+                            {
+                                fwhich[i] = false;
+                            }
+                        }
+
+                        const Real sum_so_far = sum_crse + sum_fine; 
+
+                        BL_ASSERT(sum_so_far > 0);
+                        BL_ASSERT(sum_so_far < 1);
+
+                        sum_fine = 0;
+                        for (int i = 0; i < M; i++) 
+                        {       
+                            if (fwhich[i])
+                                //
+                                // Got to weight cells in this direction differently.
+                                //
+                                sum_fine += fracs[i];
+                        }
+
+                        const Real mult = (1 - sum_so_far) / sum_fine;
+                        //
+                        // Now add the weighted amount to the fine cells touching the c-f interface.
+                        //
+                        sum_fine = 0;
+                        for (int i = 0; i < M; i++)
+                        {
+                            if (fwhich[i])
+                            {
+                                //
+                                // Sum up mass in first component.
+                                //
+                                fab(cells[i],0) += p.m_data[0] * fracs[i] * mult;
+                                //
+                                // Sum up momenta in next components.
+                                //
+                                for (int n = 1; n < ncomp; n++)
+                                    fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i] * mult;
+
+                                sum_fine += fracs[i] * mult;
+                            }
+                        }
+
+                        BL_ASSERT(std::abs(1-(sum_fine+sum_so_far)) < 1.e-9);
+                    }
+                    else if (AnyCrseToFine)
+                    {
+                        Real sum = 0;
+
+                        for (int i = 0; i < M; i++)
+                        {
+                            if (!cwhich[i])
+                            {
+                                //
+                                // Sum up mass in first component.
+                                //
+                                fab(cells[i],0) += p.m_data[0] * fracs[i];
+                                //
+                                // Sum up momenta in next components.
+                                //
+                                for (int n = 1; n < ncomp; n++)
+                                    fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+
+                                sum += fracs[i];
+                            }
+                            else
+                            {
+                                //
+                                // We're at a Crse->Fine boundary.
+                                //
+                                ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], cfshifts[i], fgrid, ffracs, fcells, isects);
+                                for (int j = 0; j < fcells.size(); j++)
+                                {
+                                    if (mf[lev_index+1].DistributionMap()[fgrid[j]] == ParallelDescriptor::MyProc())
+                                    {
+                                        //
+                                        // Sum up mass in first component.
+                                        //
+                                        mf[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j];
+                                        //
+                                        // Sum up momenta in next components.
+                                        //
+                                        for (int n = 1; n < ncomp; n++)
+                                            mf[lev_index+1][fgrid[j]](fcells[j],n) += p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
+                                    }
+                                    else
+                                    {
+                                        pb.m_lev  = lev+1;
+                                        pb.m_grid = fgrid[j];
+                                        pb.m_cell = fcells[j];
+                                        //
+                                        // Sum up mass in first component.
+                                        //
+                                        pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j];
+                                        //
+                                        // Sum up momenta in next components.
+                                        //
+                                        for (int n = 1; n < ncomp; n++)
+                                            pb.m_data[n] = p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
+
+                                        data.push_back(pb);
+                                    }
+
+                                    sum += fracs[i] * ffracs[j];
+                                }
+                            }
+                        }
+
+                        BL_ASSERT(std::abs(1-sum) < 1.e-9);
+                    }
                 }
             }
         }
@@ -2694,6 +2715,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
 
         mf[lev_index].SumBoundary();
         gm.SumPeriodicBoundary(mf[lev_index]);
+        
+
         //
         // If ncomp > 1, first divide the momenta (component n) 
         // by the mass (component 0) in order to get velocities.
@@ -2713,7 +2736,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
         //
         mf[lev_index].mult(1/vol,0,1);
     }
-
+    
     if (m_verbose > 1)
     {
         Real etime = ParallelDescriptor::second() - stime;
@@ -3593,7 +3616,7 @@ ParticleContainer<N>::AddParticlesAtLevel (int level, PBox virts, bool where_alr
                 //Put the particle in this level
                 p.m_lev = level;
                 if (!ParticleBase::SingleLevelWhere(p, m_amr, level)) //Virtuals shouldn't be in Ghost cells
-                    BoxLib::Abort("ParticleContainer<N>::AddParticlesAtLevel(): Can't add outside of domain");
+                    BoxLib::Abort("ParticleContainer<N>::AddParticlesAtLevel(): Can't add outside of domain\n");
             } else {
                 BL_ASSERT(p.m_lev == level);
             }
@@ -3882,6 +3905,19 @@ std::deque< Particle<N> >
 ParticleContainer<N>::CreateVirtualParticles (int level)
 {
     BL_ASSERT(level > 0);
+    // Read these from the parm file if we haven't done so yet.
+    if (aggregation_type == "")
+    {
+        ParmParse pp("particles");
+        aggregation_type = "None";
+        pp.query("aggregation_type",aggregation_type);
+        aggregation_buffer = 2;
+        pp.query("aggregation_buffer",aggregation_buffer);
+    }
+    // Create a buffer so that particles near the cf border are not aggregated.
+    BoxArray buffer = BoxLib::complementIn(m_amr->Geom(level).Domain(), m_amr->boxArray(level));
+    std::cout << level << "\n";
+    buffer = buffer.grow(aggregation_buffer);
     PBox virts;
     if (level >= m_particles.size()) //this level could exist and simply have no particles
         return virts;
@@ -3889,18 +3925,80 @@ ParticleContainer<N>::CreateVirtualParticles (int level)
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
         PBox& pbox = pmap_it->second;
+        //map for use in Cell aggregation
+        std::map<IntVect,ParticleType, IntVect::Compare> agg_map;
         for (typename PBox::iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
         {
-            //
-            // This is the simplistic no-aggregation model, other models can 
-            // be implemented later
-            //
-            // Create a copy
-            ParticleType p = *it;
-            // Set its id to 1 so it's clear there's no info there.
-            p.m_id = 1;
-            // Store it in the PBox 
-            virts.push_back(p);
+            if (buffer.contains(it->m_cell))
+            {
+                // It's in the no-aggregation buffer
+                // Create a copy
+                ParticleType p = *it;
+                // Set its id to 1 so it's clear there's no info there.
+                p.m_id = 1;
+                virts.push_back(p);
+            }
+            else
+            {
+                if (aggregation_type == "None")
+                {
+                    // No aggregation, simply clone the particle
+                    // Create a copy
+                    ParticleType p = *it;
+                    // Set its id to 1 so it's clear there's no info there.
+                    p.m_id = 1;
+                    virts.push_back(p);
+                }
+                else if (aggregation_type == "Cell")
+                {
+                    // Note that Cell aggregation assumes that p.m_data[0] is mass
+                    // and that all other components should be combined in a mass-weighted average.
+                    if (agg_map.count(it->m_cell) == 0)
+                    {
+                        //Add the particle
+                        ParticleType p = *it;
+                        p.m_id = 1;
+                        agg_map[p.m_cell] = p;
+                    }
+                    else
+                    {
+                        ParticleType pnew = *it;
+                        ParticleType& pold = agg_map[pnew.m_cell];
+                        Real old_mass = pold.m_data[0];
+                        Real new_mass = pnew.m_data[0];
+                        Real total_mass = old_mass + new_mass;
+                        // Set the position to the center of mass
+                        for (int i = 0; i < BL_SPACEDIM; i++)
+                        {
+                            pold.m_pos[i] = (old_mass*pold.m_pos[i] + new_mass*pnew.m_pos[i])/total_mass;
+                        }
+                        BL_ASSERT(ParticleBase::Index(pold,level,m_amr)==it->m_cell);
+                        // Set the metadata (presumably velocity) to the mass-weighted average
+                        for (int i = 1; i < N; i++)
+                        {
+                            pold.m_data[i] = (old_mass*pold.m_data[i] + new_mass*pnew.m_data[i])/total_mass;
+                        }
+                        pold.m_data[0] = total_mass;
+                    }
+                }
+                else if (aggregation_type == "Flow")
+                {
+                    BoxLib::Abort("Flow aggregation not implemented");
+                }
+                else 
+                {
+                    BoxLib::Abort("Unknown Particle Aggregation mode");
+                }
+                
+            }
+        }
+        if (aggregation_type == "Cell")
+        {
+            //Add the aggregated particles to the virtuals
+            for (typename std::map<IntVect,ParticleType>::iterator agg_it = agg_map.begin(), aggEnd = agg_map.end(); agg_it != aggEnd; ++agg_it)
+            {
+                virts.push_back((*agg_it).second);
+            }
         }
     }
     return virts;
@@ -5777,7 +5875,7 @@ ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
 #elif (BL_SPACEDIM == 2)
     for (int yi = locell[1]; yi <= hicell[1]; yi ++)
     {
-        Real yf = std::min(yhilen[1]-yi,1.)-std::max(lolen[1]-yi,0.);
+        Real yf = std::min(hilen[1]-yi,1.)-std::max(lolen[1]-yi,0.);
         for (int xi = locell[0]; xi <= hicell[0]; xi ++)
         {
             cells[i][0] = xi;
@@ -5798,7 +5896,7 @@ ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
                 cells[i][0] = xi;
                 cells[i][1] = yi;
                 cells[i][2] = zi;
-                fracs[i] = zf * yf * (std::min(hilen[0]-xi,1.)-std::max(lolen[0]-xi,0.))*cell_density;
+                fracs[i] = zf * yf * (std::min(hilen[0]-xi,1.)-std::max(lolen[0]-xi,0.)) * cell_density;
                 i++;
             }
         }
