@@ -150,7 +150,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
             which[i] = 1;
 
             Box cbx(ccells[i],ccells[i]);
-
+    
             if (!cgm.Domain().contains(ccells[i]))
             {
                 //
@@ -166,7 +166,6 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
                 cbx -= pshifts[0];
 
                 ccells[i] -= pshifts[0];
-
                 BL_ASSERT(cbx.ok());
                 BL_ASSERT(cgm.Domain().contains(cbx));
             }

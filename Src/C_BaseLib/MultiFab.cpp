@@ -627,6 +627,23 @@ MultiFab::norm2 (int comp) const
 
     return nm2;
 }
+ 
+Real
+MultiFab::norm1 (int comp, int ngrow) const
+{
+
+    Real nm1 = 0.e0;
+
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
+        Box b = mfi.validbox();
+        b.grow(ngrow);
+        nm1 += get(mfi).norm(b, 1, comp, 1);
+    }
+
+    ParallelDescriptor::ReduceRealSum(nm1);
+
+    return nm1;
+}
 
 
 void
