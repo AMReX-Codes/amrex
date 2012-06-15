@@ -16,8 +16,6 @@
       HPCLINK_FLAGS_PATHSCALE = -g
     endif
 
-    ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-    endif
 
 #   F_C_LINK := DBL_UNDERSCORE
     ifndef NDEBUG
@@ -27,18 +25,9 @@
 #     F90FLAGS += -C
 #     FFLAGS += -C
     else
-      ifeq ($(findstring nid, $(HOST)), nid)
-      #
-      # franklin.nersc.gov
-      #
-        F90FLAGS += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        FFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        CFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-      else
-        F90FLAGS += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        FFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-        CFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
-      endif
+      F90FLAGS += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+      FFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+      CFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
     endif
 #   LDFLAGS += -static
     CPPFLAGS += -DBL_HAS_SECOND

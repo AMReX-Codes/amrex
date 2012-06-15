@@ -159,16 +159,22 @@ public:
     // Returns true if IntVect is less than argument IntVect.
     // All comparisons between analogous components must be satisfied.
     //
+    // NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
+    //
     bool operator< (const IntVect& p) const;
     //
     // Returns true if IntVect is less than or equal to argument
     // IntVect.  All comparisons between analogous components must
     // be satisfied.
     //
+    // NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
+    //
     bool operator<= (const IntVect& p) const;
     //
     // Returns true if IntVect is greater than argument IntVect.
     // All comparisons between analogous components must be satisfied.
+    //
+    // NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     //
     bool operator> (const IntVect& p) const;
     //
@@ -176,13 +182,17 @@ public:
     // IntVect.  All comparisons between analogous components must
     // be satisfied.
     //
+    // NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
+    //
     bool operator>= (const IntVect& p) const;
     //
     // Returns true if this IntVect is lexically less than the argument.
+    // This is a strict weak ordering usable by STL sorting algorithms.
     //
     bool lexLT (const IntVect& s) const;
     //
     // Returns true if this IntVect is lexically greater than the argument.
+    // This is a strict weak ordering usable by STL sorting algorithms.
     //
     bool lexGT (const IntVect& s) const;
     //

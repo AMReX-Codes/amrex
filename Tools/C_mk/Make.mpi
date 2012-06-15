@@ -138,12 +138,6 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include/
       BL_MPI_LIBS += -lmpichfarg
     endif
-    ifeq ($(WHICHLINUX), NAN)
-      MPI_HOME=/usr/local/mpich2-1.4
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include/
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-    endif
     ifeq ($(WHICHLINUX), HOMER)
       MPI_HOME=/usr/local/mpich2/
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
