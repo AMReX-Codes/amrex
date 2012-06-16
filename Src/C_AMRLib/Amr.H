@@ -9,6 +9,7 @@
 #include <BoxArray.H>
 #include <Array.H>
 #include <PArray.H>
+#include <ParmParse.H>
 #ifdef USE_STATIONDATA
 #include <StationData.H>
 #endif
@@ -349,6 +350,12 @@ protected:
     void setRecordRunInfoTerse (const std::string&);
 
     void setRecordDataInfo (int i, const std::string&);
+    
+    //
+    // The following methods contain the parmParse code for their section.
+    //
+    void initSubcycle(ParmParse * pp);
+    void initPltAndChk(ParmParse * pp);
     //
     // The data ...
     //
