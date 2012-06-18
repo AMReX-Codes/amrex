@@ -4,43 +4,20 @@
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
     ifeq ($(findstring Version 12, $(_ifc_version)), Version 12)
-      ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-        _ifc  := mpiifort
-        _icc  := mpiicc
-        _comp := Intel12
-      else
         _ifc  := ifort
         _comp := Intel12
-      endif
     else
     ifeq ($(findstring Version 11, $(_ifc_version)), Version 11)
-      ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-        _ifc  := mpiifort
-        _icc  := mpiicc
-        _comp := Intel11
-      else
         _ifc  := ifort
         _comp := Intel11
-      endif
     else
     ifeq ($(findstring Version 10, $(_ifc_version)), Version 10)
-      ifeq ($(findstring homer, $(UNAMEN)), homer)
-        _ifc  := mpif90
-        _icc  := mpicc
-        _comp := Intel10
-      else
         _ifc  := ifort
         _comp := Intel10
-      endif
     else
     ifeq ($(findstring Version 9, $(_ifc_version)), Version 9)
-      ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-        _ifc  := mpiifort
-        _comp := Intel9
-      else
         _ifc  := ifort
         _comp := Intel9
-      endif
     else
     ifeq ($(findstring Version 8, $(_ifc_version)), Version 8)
       _ifc  := ifort

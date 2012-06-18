@@ -1375,6 +1375,7 @@ subroutine mgt_dealloc()
   mgts%dim = 0
   mgts%final = .false.
 
+  call parallel_finalize(.false.) ! do not finalize MPI but free communicator
 end subroutine mgt_dealloc
 
 subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
