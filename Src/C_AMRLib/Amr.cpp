@@ -367,7 +367,6 @@ Amr::Amr ()
     //
     initSubcycle(& pp);
 
-    // These could guys could be method extracted...        
     //
     // Read in max_grid_size.  Use defaults if not explicitly defined.
     //
@@ -1130,12 +1129,8 @@ Amr::restart (const std::string& filename)
        {
            for (i = mx_lev+1; i <= max_level; i++)
            {
-               const int rat  = MaxRefRatio(i-1);
-               const int mult = sub_cycle ? rat : 1;
-   
-               dt_level[i]    = dt_level[i-1]/Real(mult);
-               //n_cycle[i]     = mult;
-               level_steps[i] = mult*level_steps[i-1];
+               dt_level[i]    = dt_level[i-1]/n_cycle[i];
+               level_steps[i] = n_cycle[i]*level_steps[i-1];
                level_count[i] = 0;
            }
 
