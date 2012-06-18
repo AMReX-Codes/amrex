@@ -2297,7 +2297,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                 // by its resident level.
                 if (sub_cycle)
                 {
-                    Real sum = 0;
                     bool isBoundary = false;
                     bool isFiner = false;
                     //
@@ -2324,7 +2323,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                         // Sum up mass in first component.
                         //
                         fab(cells[i],0) += p.m_data[0] * fracs[i];
-                        sum += p.m_data[0] * fracs[i];
                         //
                         // Sum up momenta in next components.
                         //
@@ -2369,7 +2367,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     mf[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j];
-                                    sum += p.m_data[0] * ffracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2427,7 +2424,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     // Sum up mass in first component.
                                     //
                                     mf[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j];
-                                    sum += p.m_data[0] * cfracs[j];
                                     //
                                     // Sum up momenta in next components.
                                     //
