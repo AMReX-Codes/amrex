@@ -67,7 +67,7 @@ struct ParticleBase
     
     //
     // Checks/sets a particle's location on a specific level.
-    // (Yes this is distint from the functionality provided above)
+    // (Yes this is distict from the functionality provided above)
     //
     static bool SingleLevelWhere (ParticleBase& p, const Amr* amr, int level);
 
