@@ -2,13 +2,87 @@
 #include <ParmParse.H>
 #include <limits>
 
+int
+ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
+                               const Real*         plo,
+                               const Real*         dx_geom,
+                               const Real*         dx_part,
+                               Array<Real>&        fracs,
+                               Array<IntVect>&     cells)
+{
+    //
+    // The first element in fracs and cells is the lowest corner, the last is the highest.
+    //
+    const Real hilen[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
+                                             (p.m_pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
+                                             (p.m_pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
+
+    const Real lolen[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
+                                             (p.m_pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
+                                             (p.m_pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
+
+    const IntVect hicell(D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
+    
+    const IntVect locell(D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
+    
+    const Real cell_density = D_TERM(dx_geom[0]/dx_part[0],*dx_geom[1]/dx_part[1],*dx_geom[2]/dx_part[2]);
+    
+    const int M = D_TERM((hicell[0]-locell[0]+1),*(hicell[1]-locell[1]+1),*(hicell[2]-locell[2]+1));
+
+    fracs.resize(M);
+    cells.resize(M);
+    //
+    // This portion might be slightly inefficient. Feel free to redo it if need be.
+    //
+    int i = 0;
+#if (BL_SPACEDIM == 1)
+    for (int xi = locell[0]; xi <= hicell[0]; xi++)
+    {
+        cells[i][0] = xi;
+        fracs[i] = (std::min(hilen[0]-xi,1.0)-std::max(lolen[0]-xi,0.0))*cell_density;
+        i++;
+    }
+#elif (BL_SPACEDIM == 2)
+    for (int yi = locell[1]; yi <= hicell[1]; yi++)
+    {
+        const Real yf = std::min(hilen[1]-yi,1.0)-std::max(lolen[1]-yi,0.0);
+        for (int xi = locell[0]; xi <= hicell[0]; xi ++)
+        {
+            cells[i][0] = xi;
+            cells[i][1] = yi;
+            fracs[i] = yf * (std::min(hilen[0]-xi,1.0)-std::max(lolen[0]-xi,0.0))*cell_density;
+            i++;
+        }
+    }
+#elif (BL_SPACEDIM == 3)
+    for (int zi = locell[2]; zi <= hicell[2]; zi++)
+    {
+        const Real zf = std::min(hilen[2]-zi,1.0)-std::max(lolen[2]-zi,0.0);
+        for (int yi = locell[1]; yi <= hicell[1]; yi++)
+        {
+            const Real yf = std::min(hilen[1]-yi,1.0)-std::max(lolen[1]-yi,0.0);
+            for (int xi = locell[0]; xi <= hicell[0]; xi++)
+            {
+                cells[i][0] = xi;
+                cells[i][1] = yi;
+                cells[i][2] = zi;
+                fracs[i] = zf * yf * (std::min(hilen[0]-xi,1.0)-std::max(lolen[0]-xi,0.0)) * cell_density;
+                i++;
+            }
+        }
+    }
+#endif
+
+    return M;
+}
+
 bool
-ParticleBase::CrseToFine (const BoxArray& cfba,
-                          const Array<IntVect>&  cells,
-                          Array<IntVect>&  cfshifts,
-                          const Geometry& gm,
-                          Array<int>&     which,
-                          Array<IntVect>& pshifts)
+ParticleBase::CrseToFine (const BoxArray&       cfba,
+                          const Array<IntVect>& cells,
+                          Array<IntVect>&       cfshifts,
+                          const Geometry&       gm,
+                          Array<int>&           which,
+                          Array<IntVect>&       pshifts)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
@@ -16,8 +90,8 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
     // with coarsened fine BoxArray "cfba".  "cells" are as calculated from
     // CIC_Cells_Fracs().
     //
-    
     const int M = cells.size();
+
     cfshifts.resize(M);
     which.resize(M);
 
@@ -77,10 +151,10 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
                           const Array<IntVect>&              fcells,
                           const BoxArray&                    fvalid,
                           const BoxArray&                    compfvalid_grown,
-                          Array<IntVect>&                     ccells,
-                          Array<Real>&                        cfracs,
+                          Array<IntVect>&                    ccells,
+                          Array<Real>&                       cfracs,
                           Array<int>&                        which,
-                          Array<int>&                         cgrid,
+                          Array<int>&                        cgrid,
                           Array<IntVect>&                    pshifts,
                           std::vector< std::pair<int,Box> >& isects)
 {
@@ -93,6 +167,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
     // is not considered a Fine->Crse crossing.
     //
     const int M = fcells.size();
+
     ccells.resize(M);
     cfracs.resize(M);
     which.resize(M);
