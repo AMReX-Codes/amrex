@@ -2,6 +2,36 @@
 #include <ParmParse.H>
 #include <limits>
 
+void
+ParticleBase::CIC_Cells_Fracs_Basic (const ParticleBase& p,
+                                     const Real*         plo,
+                                     const Real*         dx,
+                                     Real*               fracs,
+                                     IntVect*            cells)
+{
+    //
+    // "fracs" should be dimensioned: Real    fracs[D_TERM(2,+2,+4)]
+    //
+    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
+    //
+    const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + 0.5,
+                                           (p.m_pos[1]-plo[1])/dx[1] + 0.5,
+                                           (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
+
+    const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+
+    Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
+
+    for (int d = 0; d < BL_SPACEDIM; d++)
+    {
+        if (frac[d] > 1) frac[d] = 1;
+        if (frac[d] < 0) frac[d] = 0;
+    }
+
+    ParticleBase::CIC_Fracs(frac, fracs);
+    ParticleBase::CIC_Cells(cell, cells);
+}
+
 int
 ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
                                const Real*         plo,
@@ -10,6 +40,17 @@ ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
                                Array<Real>&        fracs,
                                Array<IntVect>&     cells)
 {
+    if (dx_geom == dx_part)
+    {
+        const int M = D_TERM(2,+2,+4);
+
+        fracs.resize(M);
+        cells.resize(M);
+
+        ParticleBase::CIC_Cells_Fracs_Basic(p,plo,dx_geom,fracs.dataPtr(),cells.dataPtr());
+
+        return M;
+    }
     //
     // The first element in fracs and cells is the lowest corner, the last is the highest.
     //
