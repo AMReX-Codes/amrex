@@ -302,16 +302,16 @@ public:
     // Creates virtual particles for a given level that represent
     // in some capacity all particles at finer levels
     //
-    void CreateVirtualParticles (int level, PBox virts);
+    void CreateVirtualParticles (int level, PBox& virts);
     // 
     // Create ghost particles for a given level that are copies of particles
     // near coarse->fine boundaries in level-1
     //
-    void CreateGhostParticles (int level, int ngrow, PBox ghosts);
+    void CreateGhostParticles (int level, int ngrow, PBox& ghosts);
     //
     // Add particles from a pbox to the grid at this level
     //
-    void AddParticlesAtLevel (int level, PBox virts, bool where_already_called = false);
+    void AddParticlesAtLevel (int level, PBox& virts, bool where_already_called = false);
     // **************************************************************************************************************** 
 
     void AdvectWithUmac (const MultiFab* umac, int level, Real dt, const int vcomp = 0);
@@ -3552,9 +3552,9 @@ ParticleContainer<N>::RemoveParticlesAtLevel (int level)
 
 template <int N>
 void
-ParticleContainer<N>::AddParticlesAtLevel (int  level,
-                                           PBox virts,
-                                           bool where_already_called)
+ParticleContainer<N>::AddParticlesAtLevel (int   level,
+                                           PBox& virts,
+                                           bool  where_already_called)
 {
     if (m_particles.size() < level+1)
     {
@@ -3581,8 +3581,8 @@ ParticleContainer<N>::AddParticlesAtLevel (int  level,
     while (!virts.empty())
     {
         // copy the last element, then remove it.
-        ParticleType& p = *virts.end();
-        virts.pop_back();
+        ParticleType p = virts.front();
+        virts.pop_front();
 
         if (p.m_id > 0)
         {
@@ -3877,9 +3877,12 @@ ParticleContainer<N>::AddParticlesAtLevel (int  level,
 
 template <int N>
 void
-ParticleContainer<N>::CreateVirtualParticles (int level, ParticleContainer<N>::PBox virts)
+ParticleContainer<N>::CreateVirtualParticles (int   level,
+                                              PBox& virts)
 {
     BL_ASSERT(level > 0);
+    BL_ASSERT(virts.empty());
+
     // Read these from the parm file if we haven't done so yet.
     if (aggregation_type == "")
     {
@@ -3974,13 +3977,15 @@ ParticleContainer<N>::CreateVirtualParticles (int level, ParticleContainer<N>::P
             }
         }
     }
-    return;
 }
 
 template <int N>
 void
-ParticleContainer<N>::CreateGhostParticles (int level, int ngrow, PBox ghosts)
+ParticleContainer<N>::CreateGhostParticles (int   level,
+                                            int   ngrow,
+                                            PBox& ghosts)
 {
+    BL_ASSERT(ghost.empty());
     BL_ASSERT(level < m_amr->finestLevel());
     
     // Copy and grow the box array for the finer level
@@ -4016,7 +4021,6 @@ ParticleContainer<N>::CreateGhostParticles (int level, int ngrow, PBox ghosts)
             }
         }
     }
-    return;
 }
     
 //
