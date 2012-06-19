@@ -220,12 +220,18 @@ contains
     call MPI_Comm_Rank(m_comm, m_myproc, ierr)
     call parallel_barrier()
   end subroutine parallel_initialize
-  subroutine parallel_finalize()
+  subroutine parallel_finalize(do_finalize_MPI)
+    logical, intent(in), optional :: do_finalize_MPI
     integer ierr
     external MPI_Comm_Free, MPI_Finalize
-    call MPI_Comm_Free(m_comm, ierr)
+    !call MPI_Comm_Free(m_comm, ierr)  !Note: This is *supposed* to be the right way to do this, but it crashes on Linux.  comment out leads to small mem leak
     m_comm = MPI_COMM_WORLD
-    call MPI_Finalize(ierr)
+    if (present(do_finalize_MPI) ) then
+       if (do_finalize_MPI) call MPI_Finalize(ierr)
+    else
+       call MPI_Finalize(ierr)
+    endif
+    
   end subroutine parallel_finalize
 
   subroutine parallel_abort(str)
