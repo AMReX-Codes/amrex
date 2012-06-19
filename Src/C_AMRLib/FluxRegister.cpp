@@ -235,12 +235,14 @@ FluxRegister::Reflux (MultiFab&       S,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
         //
         // Find flux register that intersect with this grid.
         //
-        isects = ba.intersections(mfi.validbox());
+        ba.intersections(mfi.validbox(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -452,12 +454,14 @@ FluxRegister::Reflux (MultiFab&       S,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
         //
         // Find flux register that intersect with this grid.
         //
-        isects = ba.intersections(mfi.validbox());
+        ba.intersections(mfi.validbox(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -632,9 +636,11 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
     {
-        isects = mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box());
+        mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -670,7 +676,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             fillBoxId_area.back().FabIndex(Orientation::low);
         }
 
-        isects = mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box());
+        mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -791,9 +797,11 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
     {
-        isects = mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box());
+        mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -816,7 +824,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             side.push_back(Orientation::low);
         }
 
-        isects = mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box());
+        mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -964,7 +972,11 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     
     const Orientation lo(dir,Orientation::low);
 
-    std::vector< std::pair<int,Box> > isects = bndry[lo].boxArray().intersections(subbox);
+    std::vector< std::pair<int,Box> > isects;
+
+    isects.reserve(27);
+
+    bndry[lo].boxArray().intersections(subbox,isects);
 
     for (int i = 0, N = isects.size(); i < N; i++)
     {
@@ -973,7 +985,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     const Orientation hi(dir,Orientation::high);
 
-    isects = bndry[hi].boxArray().intersections(subbox);
+    bndry[hi].boxArray().intersections(subbox,isects);
 
     for (int i = 0, N = isects.size(); i < N; i++)
     {

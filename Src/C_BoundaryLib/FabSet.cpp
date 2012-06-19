@@ -224,9 +224,11 @@ FabSet::DoIt (const MultiFab& src,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        isects = ba_src.intersections((*this)[fsi].box());
+        ba_src.intersections((*this)[fsi].box(),isects);
 
         for (int j = 0, N = isects.size(); j < N; j++)
         {
@@ -390,9 +392,11 @@ FabSet::linComb (Real            a,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        isects = ba_isects.intersections(get(fsi).box());
+        ba_isects.intersections(get(fsi).box(),isects);
 
         for (int j = 0, N = isects.size(); j < N; j++)
         {

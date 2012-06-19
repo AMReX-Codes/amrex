@@ -279,7 +279,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
             //
             // Which grid at the crse level do we need to update?
             //
-            isects = cba.intersections(cbx);
+            cba.intersections(cbx,isects);
 
             BL_ASSERT(!isects.empty());
             BL_ASSERT(isects.size() == 1);
@@ -395,7 +395,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
             iv -= fshift;
         }
 
-        isects = fba.intersections(Box(iv,iv));
+        fba.intersections(Box(iv,iv),isects);
 
         BL_ASSERT(!isects.empty());
         BL_ASSERT(isects.size() == 1);
@@ -564,7 +564,7 @@ ParticleBase::Where (ParticleBase& p,
     {
         const IntVect iv = ParticleBase::Index(p,lev,amr);
 
-        isects = amr->boxArray(lev).intersections(Box(iv,iv));
+        amr->boxArray(lev).intersections(Box(iv,iv),isects);
 
         if (!isects.empty())
         {
@@ -618,7 +618,7 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
         {
             const IntVect iv = ParticleBase::Index(p_prime,lev,amr);
 
-            isects = amr->boxArray(lev).intersections(Box(iv,iv));
+            amr->boxArray(lev).intersections(Box(iv,iv),isects);
 
             if (!isects.empty())
             {
@@ -668,7 +668,9 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 
     const IntVect iv = ParticleBase::Index(p,level,amr);
 
-    std::vector< std::pair<int,Box> > isects = amr->boxArray(level).intersections(Box(iv,iv));
+    std::vector< std::pair<int,Box> > isects;
+
+    amr->boxArray(level).intersections(Box(iv,iv),isects);
 
     if (!isects.empty())
     {

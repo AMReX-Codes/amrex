@@ -575,16 +575,18 @@ Real
 MultiFab::norm0 (int comp, const BoxArray& ba) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
+
+    std::vector< std::pair<int,Box> > isects;
+
+    isects.reserve(27);
  
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.validbox());
-        if (!isects.empty())
+        ba.intersections(mfi.validbox(),isects);
+
+        for (int i = 0, N = isects.size(); i < N; i++)
         {
-            for (int i = 0, N = isects.size(); i < N; i++)
-            {
-                nm0 = std::max(nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
-            }
+            nm0 = std::max(nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
         }
     }
  
@@ -984,11 +986,15 @@ MultiFab::FillBoundary (int  scomp,
         const DistributionMapping& DMap   = DistributionMap();
         const int                  MyProc = ParallelDescriptor::MyProc();
 
+        std::vector< std::pair<int,Box> > isects;
+
+        isects.reserve(27);
+
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
         {
             const int i = mfi.index();
 
-            std::vector< std::pair<int,Box> > isects = ba.intersections((*this)[mfi].box());
+            ba.intersections((*this)[mfi].box(),isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
@@ -1030,11 +1036,13 @@ MultiFab::SumBoundary (int  scomp,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         const int i = mfi.index();
 
-        isects = gba.intersections(mfi.validbox());
+        gba.intersections(mfi.validbox(),isects);
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {

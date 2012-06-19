@@ -340,11 +340,13 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
 
     std::vector< std::pair<int,Box> > isects;
 
+    isects.reserve(27);
+
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         const int i = mfi.index();
 
-        isects = ba.intersections(mfi.fabbox());
+        ba.intersections(mfi.fabbox(),isects);
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
