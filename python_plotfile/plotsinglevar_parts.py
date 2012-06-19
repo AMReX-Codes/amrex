@@ -1,9 +1,17 @@
-#!/usr/bin/env python
-
+# (plotsinglevar.py):
 # a simple script to plot 2-d or 3-d BoxLib data using the matplotlib
 # library
 #
 # 2011-12-02 M. Zingale
+#
+# (plotsinglevar_parts.py):
+# modify plotsinglevar.py routine to be a module for plotting 
+# component data and particle data. This routine will be imported into 
+# the particle plotting routine. Only intended to be used in 2-d, 
+# but it should be easy to adapt it to include 3-d.
+#
+# 2012-3-02 R. Orvedahl
+#
 
 import fsnapshot
 import numpy
@@ -15,15 +23,102 @@ import getopt
 import math
 import string
 import mpl_toolkits.axes_grid1
+import parseparticles
 
 
 #==============================================================================
 # do_plot
 #==============================================================================
 def do_plot(plotfile, component, component2, outFile, log, 
-            minval, maxval, eps, dpi, origin, annotation, 
-            xmax_pass, ymax_pass, zmax_pass):
+            minval, maxval, minval2, maxval2, eps, dpi, origin,
+            annotation, particles, time_ind):
 
+    # plotfile            plotfile to read data from
+    # component           first variable to plot
+    # component2          optional second variable to plot
+    # outFile             save plot as "outFile"
+    # log (= 1,0)         plot log (base 10) of the data
+    # minval (float)      specify minimum data range for plot 
+    # maxval (float)      specify maximum data range for plot
+    # eps (= 1,0)         make an EPS plot instead of PNG
+    # dpi (int)           (PNG only) make the plot with dpi value
+    # origin (= 1,0)      (3-d only) slice through origin (0,0,0)
+    # annotation          (2-d only) add annotation string under time
+    # particles           (2-d only) particle data
+    # time_ind            array index of time cooresponding to plotfile
+
+    #----------------------
+    # check incoming values:
+    #-----------------------
+    if (plotfile == ""):
+       print "\n---ERROR: plotfile not specified---"
+       print   "          (plotsinglevar_parts.py)\n"
+       usage()
+       sys.exit(2)
+
+    if (component == ""):
+       print "\n---ERROR: no component specified---"
+       print   "          (plotsinglevar_parts.py)\n"
+       usage()
+       sys.exit(2)
+
+    if ((log != 1) and (log != 0)):
+       print "\n---ERROR: invalid value for log (= 1,0)---"
+       print   "          (plotsinglevar_parts.py)\n"
+       usage()
+       sys.exit(2)
+
+    if ((eps != 1) and (eps != 0)):
+       print "\n---ERROR: invalid value for eps (= 1,0)---"
+       print   "          (plotsinglevar_parts.py)\n"
+       usage()
+       sys.exit(2)
+
+    if (minval != None):
+       try: minval = float(minval)
+       except ValueError:
+            print "\n---ERROR: invalid value for minval (= float)---"
+            print   "          (plotsinglevar_parts.py)\n"
+            usage()
+            sys.exit(2)
+
+    if (maxval != None):
+       try: maxval = float(maxval)
+       except ValueError:
+            print "\n---ERROR: invalid value for maxval (= float)---"
+            print   "          (plotsinglevar_parts.py)\n"
+            usage()
+            sys.exit(2)
+
+    if (minval2 != None):
+       try: minval2 = float(minval2)
+       except ValueError:
+            print "\n---ERROR: invalid value for minval2 (= float)---"
+            print   "          (plotsinglevar_parts.py)\n"
+            usage()
+            sys.exit(2)
+
+    if (maxval2 != None):
+       try: maxval2 = float(maxval2)
+       except ValueError:
+            print "\n---ERROR: invalid value for maxval2 (= float)---"
+            print   "          (plotsinglevar_parts.py)\n"
+            usage()
+            sys.exit(2)
+
+    if ((origin != 1) and (origin != 0)):
+       print "\n---ERROR: invalid value for origin (= 1,0)---"
+       print   "          (plotsinglevar_parts.py)\n"
+       usage()
+       sys.exit(2)
+
+    if (dpi != None):
+       try: dpi = int(dpi)
+       except ValueError:
+            print "\n---ERROR: invalid value for dpi (= int)---"
+            print   "          (plotsinglevar_parts.py)\n"
+            usage()
+            sys.exit(2)
 
     #--------------------------------------------------------------------------
     # construct the output file name
@@ -59,15 +154,10 @@ def do_plot(plotfile, component, component2, outFile, log,
     (xmin, xmax, ymin, ymax, zmin, zmax) = \
         fsnapshot.fplotfile_get_limits(plotfile)
 
-    dx = (xmax - xmin)/nx
-    x = xmin + numpy.arange( (nx), dtype=numpy.float64 )*dx
-
-    dy = (ymax - ymin)/ny
-    y = ymin + numpy.arange( (ny), dtype=numpy.float64 )*dy
-
+    x = xmin + numpy.arange( (nx), dtype=numpy.float64 )*(xmax - xmin)/nx
+    y = ymin + numpy.arange( (ny), dtype=numpy.float64 )*(ymax - ymin)/ny
     if (nz > 0):
-        dz = (zmax - zmin)/nz
-        z = zmin + numpy.arange( (nz), dtype=numpy.float64 )*dz
+        z = zmin + numpy.arange( (nz), dtype=numpy.float64 )*(zmax - zmin)/nz
 
 
     if (nz == -1):
@@ -75,21 +165,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         #----------------------------------------------------------------------
         # 2-d plots
         #----------------------------------------------------------------------
-        extent = [xmin, xmax, ymin, ymax]
-
-        if (not xmax_pass == None):
-            extent[1] = xmax_pass
-
-        if (not ymax_pass == None):
-            extent[3] = ymax_pass
-
-        ix = nx
-        if (not xmax_pass == None):
-            ix = int((xmax_pass - xmin)/dx)
-
-        iy = ny
-        if (not ymax_pass == None):
-            iy = int((ymax_pass - ymin)/dy)
+        extent = xmin, xmax, ymin, ymax
 
         # read in the main component
         data = numpy.zeros( (nx, ny), dtype=numpy.float64)
@@ -99,7 +175,8 @@ def do_plot(plotfile, component, component2, outFile, log,
             sys.exit(2)
 
         data = numpy.transpose(data)
-
+        if (minval == None): minval = numpy.min(data)
+        if (maxval == None): maxval = numpy.max(data)
 
         # read in the component #2, if present
         if (not component2 == ""):
@@ -110,13 +187,19 @@ def do_plot(plotfile, component, component2, outFile, log,
                 sys.exit(2)
 
             data2 = numpy.transpose(data2)
+            if (minval2 == None): minval2 = numpy.min(data2)
+            if (maxval2 == None): maxval2 = numpy.max(data2)
 
         if log:
             data = numpy.log10(data)
-            if (not component2 == ""): data2 = numpy.log10(data2)
+
+            if (not component2 == ""):
+                data2 = numpy.log10(data2)
+                minval2 = math.log10(minval2)
+                maxval2 = math.log10(maxval2)
                 
-            if (not minval == None): minval = math.log10(minval)
-            if (not maxval == None): maxval = math.log10(maxval)
+            minval = math.log10(minval)
+            maxval = math.log10(maxval)
 
 
         #----------------------------------------------------------------------
@@ -132,7 +215,20 @@ def do_plot(plotfile, component, component2, outFile, log,
 
         divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)    
 
-        im=pylab.imshow(data[0:iy,0:ix],origin='lower', extent=extent, vmin=minval, vmax=maxval)
+        im=pylab.imshow(data,origin='lower', extent=extent, vmin=minval, vmax=maxval)
+
+        #----------------------------------------------------------------------
+        # plot the particle data
+        #----------------------------------------------------------------------
+        n=0
+        while(n < len(particles)):
+
+            # sometimes the length of particle history is larger than index
+            if (time_ind < len(particles[n].history)):
+                pylab.scatter(particles[n].history[time_ind].xyz[0], 
+                           particles[n].history[time_ind].xyz[1], 
+                           s=0.5,c='black',marker='o') 
+            n += 1
 
         pylab.title(component)
         pylab.xlabel("x")
@@ -155,29 +251,6 @@ def do_plot(plotfile, component, component2, outFile, log,
         cb = pylab.colorbar(im, format=formatter, cax=ax_cb)
 
         # make the font size for the colorbar axis labels small.  Note
-        # the offsetText is the 10^N that appears at the top of the
-        # y-axis.
-        cl = pylab.getp(cb.ax, 'ymajorticklabels')
-        pylab.setp(cl, fontsize=10)
-        
-        cb.ax.yaxis.offsetText.set_fontsize("small")
-
-
-        # do a fixed offset in pixels from the (xmin,ymin) data point
-        trans=matplotlib.transforms.offset_copy(ax.transData, x=0, y=-0.5, 
-                                                fig=fig1, units='inches')
-
-        pylab.text(xmin, ymin, "time = %7.3g s" % (time), 
-                   verticalalignment="bottom", transform = trans, 
-                   clip_on=False, fontsize=10)
-
-        if (not annotation == ""):
-            trans=matplotlib.transforms.offset_copy(ax.transData, x=0, y=-0.65,
-                                                    fig=fig1, units='inches')
-
-            pylab.text(xmin, ymin, "%s" % (annotation), 
-                       verticalalignment="bottom", transform = trans, 
-                       clip_on=False, fontsize=10)            
 
 
         #----------------------------------------------------------------------
@@ -188,8 +261,21 @@ def do_plot(plotfile, component, component2, outFile, log,
 
             divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
 
-            im = pylab.imshow(data2[0:iy,0:ix], origin='lower', extent=extent, 
-                              vmin=minval, vmax=maxval)
+            im = pylab.imshow(data2, origin='lower', extent=extent, 
+                              vmin=minval2, vmax=maxval2)
+
+            #----------------------------------------------------------------
+            # plot the particle data
+            #----------------------------------------------------------------
+            n=0
+            while(n < len(particles)):
+
+                # sometimes the length of particle history is larger than index
+                if (time_ind < len(particles[n].history)):
+                   pylab.scatter(particles[n].history[time_ind].xyz[0], 
+                              particles[n].history[time_ind].xyz[1], 
+                              s=0.5,c='black',marker='o')
+                n += 1
 
             pylab.title(component2)
             pylab.xlabel("x")
@@ -227,6 +313,23 @@ def do_plot(plotfile, component, component2, outFile, log,
         # 3-d plot
         #----------------------------------------------------------------------
 
+        ###################################
+        #  NOT SUPPORTED YET
+        ###################################
+        print "\n\n--- ERROR: 3-d not yet implemented ---"
+        print     "          (plotsinglevar_parts.py)\n"
+        sys.exit(2)
+
+        # figure out the maximum width -- we will plot xy, xz, and yz
+        w1 = xmax - xmin  # also w2
+        w3 = ymax - ymin
+
+        if (w3 > w1):
+            scale = w3
+        else:
+            scale = w1
+        
+
         # starting points for the figure positions
 
         # assume that the width of the plotting area is 0.05 to 0.95,
@@ -245,26 +348,10 @@ def do_plot(plotfile, component, component2, outFile, log,
 
 
         # x-y
-        extent = [xmin, xmax, ymin, ymax]
-
-        if (not xmax_pass == None):
-            extent[1] = xmax_pass
-
-        if (not ymax_pass == None):
-            extent[3] = ymax_pass
-
-        ix = nx
-        if (not xmax_pass == None):
-            ix = int((xmax_pass - xmin)/dx)
-
-        iy = ny
-        if (not ymax_pass == None):
-            iy = int((ymax_pass - ymin)/dy)
-
+        extent = xmin, xmax, ymin, ymax
 
         # read in the main component
         data = numpy.zeros( (nx, ny), dtype=numpy.float64)
-
 
         indir = 3
         (data, err) = \
@@ -285,7 +372,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         pylab.subplots_adjust(wspace=0.4)
         #fig.add_axes(pos1)
 
-        im=pylab.imshow(data[0:iy,0:ix],origin='lower', extent=extent, 
+        im=pylab.imshow(data,origin='lower', extent=extent, 
                         vmin=minval, vmax=maxval, axes=pos1)
 
         pylab.xlabel("x")
@@ -315,22 +402,7 @@ def do_plot(plotfile, component, component2, outFile, log,
 
 
         # x-z
-        extent = [xmin, xmax, zmin, zmax]
-
-        if (not xmax_pass == None):
-            extent[1] = xmax_pass
-
-        if (not zmax_pass == None):
-            extent[3] = zmax_pass
-
-        ix = nx
-        if (not xmax_pass == None):
-            ix = int((xmax_pass - xmin)/dx)
-
-        iz = nz
-        if (not zmax_pass == None):
-            iz = int((zmax_pass - zmin)/dz)
-
+        extent = xmin, xmax, zmin, zmax
 
         # read in the main component
         data = numpy.zeros( (nx, nz), dtype=numpy.float64)
@@ -351,7 +423,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         ax = pylab.subplot(1,3,2)
         #fig.add_axes(pos2)
 
-        im=pylab.imshow(data[0:iz,0:ix],origin='lower', extent=extent, 
+        im=pylab.imshow(data,origin='lower', extent=extent, 
                         vmin=minval, vmax=maxval, axes=pos2)
 
         pylab.xlabel("x")
@@ -372,22 +444,7 @@ def do_plot(plotfile, component, component2, outFile, log,
 
 
         # y-z
-        extent = [ymin, ymax, zmin, zmax]
-
-        if (not ymax_pass == None):
-            extent[1] = ymax_pass
-
-        if (not zmax_pass == None):
-            extent[3] = zmax_pass
-
-        iy = ny
-        if (not ymax_pass == None):
-            iy = int((ymax_pass - ymin)/dy)
-
-        iz = nz
-        if (not zmax_pass == None):
-            iz = int((zmax_pass - zmin)/dz)
-
+        extent = ymin, ymax, zmin, zmax
 
         # read in the main component
         data = numpy.zeros( (ny, nz), dtype=numpy.float64)
@@ -408,7 +465,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         ax = pylab.subplot(1,3,3)
         #fig.add_axes(pos3)
 
-        im=pylab.imshow(data[0:iz,0:iy],origin='lower', extent=extent, 
+        im=pylab.imshow(data,origin='lower', extent=extent, 
                         vmin=minval, vmax=maxval, axes=pos3)
 
         pylab.xlabel("y")
@@ -442,6 +499,7 @@ def do_plot(plotfile, component, component2, outFile, log,
     #--------------------------------------------------------------------------
     # save the figure
     #--------------------------------------------------------------------------
+
     if (not eps):
         pylab.savefig(outFile, bbox_inches='tight', dpi=dpi, pad_inches=0.33)
     else:
@@ -454,35 +512,44 @@ def do_plot(plotfile, component, component2, outFile, log,
 #==============================================================================
 def usage():
     usageStr = """
-    ./plotsinglevar.py [options] plotfile component [component2]
+    do_plot(plotfile, component, component2, outFile, log, 
+            minval, maxval, minval2, maxval2, eps, dpi, origin,
+            annotation, particles, time_ind):
 
     Make a simple colormap plot of variable "component" from the
-    BoxLib plotfile "plotfile".  Support for 2-d and 3-d.
+    BoxLib plotfile "plotfile". Support for 3-d not yet implemented.
 
-    If two component names are specified after the plotfile name then
-    two side-by-side plots will be made, one for each specified
-    component.
+    If component2 is a non-empty string then two side-by-side plots 
+    will be made, one for each specified component.
 
-    Options:
+    Variables:
 
-       -o outfile   save the plot to the file outfile
+       outFile     save the plot to the file outFile
 
-       -m value     set the minimum data range for the plot to value
+       minval      set the minimum data range for the plot of component
 
-       -M value     set the maximum data range for the plot to value
+       maxval      set the maximum data range for the plot of component
 
-       --log        plot the logarithm (base-10) of the data
+       minval2     set the minimum data range for the plot of component2
 
-       --eps        make an EPS plot instead of a PNG
+       maxval2     set the maximum data range for the plot of component2
 
-       --dpi value  (PNG only) make the plot with the dpi specified by
-                    value
+       log         plot the logarithm (base-10) of the data
 
-       --origin     (3-d only) slice through the origin (0,0,0) instead
+       eps         make an EPS plot instead of a PNG
+
+       dpi         (PNG only) make the plot with the dpi specified by
+                     value
+
+       origin      (3-d only) slice through the origin (0,0,0) instead
                     of the center of the domain.
 
-       --annotate string (2-d only) add an annotation under the time
+       annotation  (2-d only) add text "annotation" under the time
 
+       particles   particle data
+
+       time_ind    array index of the time cooresponding to the time in 
+                    "plotfile"
 
     Note: this script requires the fsnapshot.so library, compiled with
     f2py using the GNUmakefile in data_processing/python_plotfile/
@@ -490,104 +557,3 @@ def usage():
     """              
     print usageStr
 
-
-
-#==============================================================================
-# main
-#==============================================================================
-if __name__== "__main__":
-
-    outFile = ""
-    log = 0
-    eps = 0
-    minvar = None
-    maxvar = None
-    dpi = 100
-    origin = 0
-    annotation = ""
-    xmax = None
-    ymax = None
-    zmax = None
-
-    try: opts, next = getopt.getopt(sys.argv[1:], "o:m:M:X:Y:Z:", 
-                                    ["log","eps","dpi=","origin","annotate="])
-    except getopt.GetoptError:
-        print "invalid calling sequence"
-        usage()
-        sys.exit(2) 
-               
-
-    for o, a in opts:
-
-        if o == "-o":
-            outFile = a
-
-        if o == "-m":
-            try: minvar = float(a)
-            except ValueError:
-                print "invalid value for -m"
-                sys.exit(2)
-
-        if o == "-M":
-            try: maxvar = float(a)
-            except ValueError:
-                print "invalid value for -M"
-                sys.exit(2)
-
-        if o == "-X":
-            try: xmax = float(a)
-            except ValueError:
-                print "invalid value for -X"
-                sys.exit(2)            
-
-        if o == "-Y":
-            try: ymax = float(a)
-            except ValueError:
-                print "invalid value for -Y"
-                sys.exit(2)            
-
-        if o == "-Z":
-            try: zmax = float(a)
-            except ValueError:
-                print "invalid value for -Z"
-                sys.exit(2)            
- 
-        if o == "--log":
-            log = 1
-
-        if o == "--eps":
-            eps = 1
-
-        if o == "--dpi":
-            try: dpi = int(a)
-            except ValueError:
-                print "invalid value for --dpi"
-                sys.exit(2)
-
-        if o == "--origin":
-            origin = 1
-
-        if o == "--annotate":
-            annotation = a
-
-
-
-    try: plotfile = next[0]
-    except IndexError:
-        print "ERROR: plotfile not specified"
-        usage()
-        sys.exit(2)
-
-    try: component = next[1]
-    except IndexError:
-        print "ERROR: no component specified"
-        usage()
-        sys.exit(2)    
-
-    try: component2 = next[2]
-    except IndexError:
-        component2 = ""
-
-    do_plot(plotfile, component, component2, outFile, 
-            log, minvar, maxvar, eps, dpi, origin, annotation,
-            xmax, ymax, zmax)
