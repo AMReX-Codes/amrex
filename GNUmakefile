@@ -1,7 +1,9 @@
 NDEBUG := t
 MPI    :=
 OMP    :=
+
 MKVERBOSE :=t 
+
 COMP := gfortran
 
 # some routines need an eos/network (i.e. to compute thermodynamic 
@@ -19,19 +21,18 @@ include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 BOXLIB_CORE := Src/F_BaseLib
 
 # other packages needed for data_processing
-Fmdirs := constants \
-          Util/random
+Fmdirs := 
 
 
 # directories containing files that are 'include'-d via Fortran
 Fmincludes := 
 
 ifdef NEED_EOS_NETWORK
-  Fmdirs += extern/EOS/helmeos \
-            extern/networks/ignition \
-            extern/VODE
+  Fmdirs += Microphysics/EOS/helmeos \
+            Microphysics/networks/ignition_simple \
+            Util/VODE
 
-  Fmincludes += extern/helmeos
+  Fmincludes += Microphysics/helmeos
 endif
 
 Fmpack := $(foreach dir, $(Fmdirs), $(MAESTRO_TOP_DIR)/$(dir)/GPackage.mak)
@@ -52,7 +53,7 @@ VPATH_LOCATIONS += $(Fmlocs)
 # list of directories to put in the Fortran include path
 FINCLUDE_LOCATIONS += $(Fmincs)
 
-#programs += faverage
+programs += faverage
 #programs += fcompare
 #programs += fextract
 #programs += fextrema
