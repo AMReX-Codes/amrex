@@ -3985,7 +3985,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
                                             int   ngrow,
                                             PBox& ghosts)
 {
-    BL_ASSERT(ghost.empty());
+    BL_ASSERT(ghosts.empty());
     BL_ASSERT(level < m_amr->finestLevel());
     
     // Copy and grow the box array for the finer level
