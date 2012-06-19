@@ -1268,9 +1268,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         std::vector< std::pair<int,Box> > isects;
 
+        isects.reserve(27);
+
         for (int i = 0, N = size(); i < N; i++)
         {
-            isects = src.boxarray.intersections(boxarray[i]);
+            src.boxarray.intersections(boxarray[i],isects);
 
             for (int ii = 0, M = isects.size(); ii < M; ii++)
             {
@@ -1832,7 +1834,11 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
         unfilledBoxDomain.add(destFabBox);
     }
 
-    std::vector< std::pair<int,Box> > isects = fabArrays[fabarrayid.Id()]->boxArray().intersections(destFabBox);
+    std::vector< std::pair<int,Box> > isects;
+
+    isects.reserve(27);
+
+    fabArrays[fabarrayid.Id()]->boxArray().intersections(destFabBox,isects);
 
     for (int ii = 0, N = isects.size(); ii < N; ii++)
     {

@@ -302,12 +302,12 @@ public:
     // Creates virtual particles for a given level that represent
     // in some capacity all particles at finer levels
     //
-    void CreateVirtualParticles (int level, PBox& virts);
+    void CreateVirtualParticles (int level, PBox& virts) const;
     // 
     // Create ghost particles for a given level that are copies of particles
     // near coarse->fine boundaries in level-1
     //
-    void CreateGhostParticles (int level, int ngrow, PBox& ghosts);
+    void CreateGhostParticles (int level, int ngrow, PBox& ghosts) const;
     //
     // Add particles from a pbox to the grid at this level
     //
@@ -2336,11 +2336,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     BL_ASSERT(pshifts.size() == 1);
                                     fcells[j] = fcells[j] - pshifts[0];
                                 }
-                                isects = mf[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]));
+                                mf[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects);
                                 if (isects.size() == 0)
-                                {
                                     continue;
-                                }
                                 const int grid = isects[0].first; 
                                 if (mf[lev_index+1].DistributionMap()[grid] == ParallelDescriptor::MyProc())
                                 {
@@ -2401,7 +2399,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                 //
                                 // Find its resident grid.
                                 //
-                                isects = mf[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]));
+                                mf[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects);
                                 if (isects.size() == 0)
                                     continue;
                                 const int grid = isects[0].first; 
@@ -2634,7 +2632,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                 //
                                 // We're at a Crse->Fine boundary.
                                 //
-                                ParticleBase::FineCellsToUpdateFromCrse(p, lev, m_amr, cells[i], cfshifts[i], fgrid, ffracs, fcells, isects);
+                                ParticleBase::FineCellsToUpdateFromCrse(p,lev,m_amr,cells[i],cfshifts[i],fgrid,ffracs,fcells,isects);
 
                                 for (int j = 0; j < fcells.size(); j++)
                                 {
@@ -3878,12 +3876,16 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
 template <int N>
 void
 ParticleContainer<N>::CreateVirtualParticles (int   level,
-                                              PBox& virts)
+                                              PBox& virts) const
 {
     BL_ASSERT(level > 0);
     BL_ASSERT(virts.empty());
 
+    if (level >= m_particles.size()) //this level could exist and simply have no particles
+        return;
+    //
     // Read these from the parm file if we haven't done so yet.
+    //
     if (aggregation_type == "")
     {
         ParmParse pp("particles");
@@ -3892,18 +3894,30 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
         aggregation_buffer = 2;
         pp.query("aggregation_buffer",aggregation_buffer);
     }
+    //
     // Create a buffer so that particles near the cf border are not aggregated.
+    //
     BoxArray buffer = BoxLib::complementIn(m_amr->Geom(level).Domain(), m_amr->boxArray(level));
+
     buffer = buffer.grow(aggregation_buffer);
-    if (level >= m_particles.size()) //this level could exist and simply have no particles
-        return;
-    PMap& pmap = m_particles[level];
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+
+    const PMap& pmap = m_particles[level];
+
+    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
+         pmap_it != pmapEnd;
+         ++pmap_it)
     {
-        PBox& pbox = pmap_it->second;
-        //map for use in Cell aggregation
-        std::map<IntVect,ParticleType, IntVect::Compare> agg_map;
-        for (typename PBox::iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+        const PBox& pbox = pmap_it->second;
+        //
+        // Map for use in Cell aggregation.
+        //
+        std::map<IntVect,ParticleType,IntVect::Compare> agg_map;
+
+        typename std::map<IntVect,ParticleType,IntVect::Compare>::iterator agg_map_it;
+
+        for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
+             it != pboxEnd;
+             ++it)
         {
             if (buffer.contains(it->m_cell))
             {
@@ -3927,9 +3941,14 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                 }
                 else if (aggregation_type == "Cell")
                 {
+                    //
                     // Note that Cell aggregation assumes that p.m_data[0] is mass
-                    // and that all other components should be combined in a mass-weighted average.
-                    if (agg_map.count(it->m_cell) == 0)
+                    // and that all other components should be combined in a mass-weighted
+                    // average.
+                    //
+                    agg_map_it = agg_map.find(it->m_cell);
+
+                    if (agg_map_it == agg_map.end())
                     {
                         //Add the particle
                         ParticleType p = *it;
@@ -3938,8 +3957,9 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                     }
                     else
                     {
-                        ParticleType pnew = *it;
-                        ParticleType& pold = agg_map[pnew.m_cell];
+                        BL_ASSERT(agg_map_it != agg_map.end());
+                        ParticleType  pnew = *it;
+                        ParticleType& pold = agg_map_it->second;
                         Real old_mass = pold.m_data[0];
                         Real new_mass = pnew.m_data[0];
                         Real total_mass = old_mass + new_mass;
@@ -3983,40 +4003,64 @@ template <int N>
 void
 ParticleContainer<N>::CreateGhostParticles (int   level,
                                             int   ngrow,
-                                            PBox& ghosts)
+                                            PBox& ghosts) const
 {
     BL_ASSERT(ghosts.empty());
     BL_ASSERT(level < m_amr->finestLevel());
-    
-    // Copy and grow the box array for the finer level
-    BoxArray fine_grown = BoxArray(m_amr->boxArray(level + 1));
+
+    if (level >= m_particles.size()) //this level could exist and simply have no particles
+        return;
+    //
+    // Copy and grow the box array for the finer level.
+    //
+    BoxArray fine_grown = m_amr->boxArray(level + 1);
+
     fine_grown.grow(ngrow);
     
     std::vector< std::pair<int,Box> > isects;
-    if (level >= m_particles.size()) //this level could exist and simply have no particles
-        return;
-    PMap& pmap = m_particles[level];
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+
+    const PMap& pmap = m_particles[level];
+
+    for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
+         pmap_it != pmapEnd;
+         ++pmap_it)
     {
-        PBox& pbox = pmap_it->second;
-        for (typename PBox::iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+        const PBox& pbox = pmap_it->second;
+
+        for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
+             it != pboxEnd;
+             ++it)
         {
-            // Find particle location on the finer level
-            IntVect iv = ParticleBase::Index(*it,level + 1,m_amr);
+            //
+            // Find particle location on the finer level.
+            //
+            const IntVect iv = ParticleBase::Index(*it,level+1,m_amr);
+            //
             // Is it in the grown finer level?
-            isects = fine_grown.intersections(Box(iv,iv));
-            // Here we add the particle to each potential grid
+            //
+            fine_grown.intersections(Box(iv,iv),isects);
+            //
+            // Here we add the particle to each potential grid.
+            //
             for (int i = 0; i < isects.size(); i++)
             {
-                // Create a copy
+                //
+                // Create a copy.
+                //
                 ParticleType p = *it;
+                //
                 // Set its id to 1 so it's clear there's no info there.
+                //
                 p.m_id = 1;
-                // Set its position
+                //
+                // Set its position.
+                //
                 p.m_lev  = level + 1;
                 p.m_grid = isects[i].first;
                 p.m_cell = iv;
-                // Store it in the PBox 
+                //
+                // Store it in the PBox.
+                //
                 ghosts.push_back(p);
             }
         }
@@ -4025,7 +4069,6 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
     
 //
 // Uses a predictor/corrector to advance particles using umac.
-//
 //
 
 template <int N>
