@@ -1145,7 +1145,7 @@ Amr::restart (const std::string& filename)
            }
        }
 
-       if (regrid_on_restart and max_level > 0)
+       if (regrid_on_restart && max_level > 0)
            level_count[0] = regrid_int[0];
 
        checkInput();
@@ -1207,7 +1207,7 @@ Amr::restart (const std::string& filename)
        for (i = 0          ; i <= max_level; i++) is >> level_count[i];
        for (i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
 
-       if (regrid_on_restart and max_level > 0)
+       if (regrid_on_restart && max_level > 0)
            level_count[0] = regrid_int[0];
 
        checkInput();
@@ -1406,7 +1406,7 @@ Amr::timeStep (int  level,
     //
     // Allow regridding of level 0 calculation on restart.
     //
-    if (finest_level == 0 && regrid_on_restart)
+    if (max_level == 0 && regrid_on_restart)
     {
         regrid_on_restart = 0;
         //
