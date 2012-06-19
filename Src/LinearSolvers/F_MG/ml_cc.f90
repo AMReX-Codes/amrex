@@ -248,11 +248,12 @@ contains
 
     solved = .false.
 
+    ! Set flag "optimistically", 0 indicates no problems (1: smoother failed, <0: too many mlmg iterations)
+    if ( present(status) ) status = 0
+
     if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
 
        solved = .true.
-
-       if ( present(status) ) status = 0
 
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
@@ -274,7 +275,6 @@ contains
                   abs_eps, ni_res, mgt(nlevs)%verbose) ) then
 
                 solved = .true.
-                if ( present(status) ) status = 0
                 exit
 
              endif
@@ -565,6 +565,7 @@ contains
 
                 solved = .false.
 
+                ! set flag to indicate that smoother failed
                 if ( present(status) ) status = 1
                 exit
 
@@ -580,6 +581,7 @@ contains
        enddo
 
        ! if status==0, but not solved then we ran out of iterations
+       ! Set status to (neg)num_iters
        if ( present(status) ) then 
           if (status .eq. 0  .and.  .not. solved) then 
              status = -iter
@@ -601,11 +603,7 @@ contains
              end if
           end if
        else
-          if (present(status)) then
-             if (status .eq. 0) then
-                status = -iter
-             endif
-          else
+          if (.not.  present(status)) then
              call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
           endif
        end if
