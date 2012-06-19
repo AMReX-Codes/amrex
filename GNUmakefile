@@ -8,8 +8,8 @@ COMP := gfortran
 # quantities.  If that is the case, set NEED_EOS_NETWORK := t
 NEED_EOS_NETWORK := 
 
-# define the location of the fParallel root directory
-FPARALLEL ?= ../../MAESTRO/fParallel/
+# define the location of the MAESTRO root directory
+MAESTRO_TOP_DIR := $(MAESTRO_HOME)
 
 
 # include the main Makefile stuff
@@ -19,8 +19,8 @@ include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 BOXLIB_CORE := Src/F_BaseLib
 
 # other packages needed for data_processing
-Fmdirs := MAESTRO/constants \
-          extern/random
+Fmdirs := constants \
+          Util/random
 
 
 # directories containing files that are 'include'-d via Fortran
@@ -34,9 +34,9 @@ ifdef NEED_EOS_NETWORK
   Fmincludes += extern/helmeos
 endif
 
-Fmpack := $(foreach dir, $(Fmdirs), $(FPARALLEL)/$(dir)/GPackage.mak)
-Fmlocs := $(foreach dir, $(Fmdirs), $(FPARALLEL)/$(dir))
-Fmincs := $(foreach dir, $(Fmincludes), $(FPARALLEL)/$(dir))
+Fmpack := $(foreach dir, $(Fmdirs), $(MAESTRO_TOP_DIR)/$(dir)/GPackage.mak)
+Fmlocs := $(foreach dir, $(Fmdirs), $(MAESTRO_TOP_DIR)/$(dir))
+Fmincs := $(foreach dir, $(Fmincludes), $(MAESTRO_TOP_DIR)/$(dir))
 
 Fmpack += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir)/GPackage.mak)
 Fmlocs += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir))
@@ -59,7 +59,7 @@ FINCLUDE_LOCATIONS += $(Fmincs)
 #programs += fIDLdump
 #programs += fsnapshot2d
 #programs += fsnapshot3d
-#programs += ftime
+programs += ftime
 
 all: $(pnames)
 
