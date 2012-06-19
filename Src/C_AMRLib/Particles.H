@@ -302,12 +302,12 @@ public:
     // Creates virtual particles for a given level that represent
     // in some capacity all particles at finer levels
     //
-    PBox CreateVirtualParticles (int level);
+    void CreateVirtualParticles (int level, PBox virts);
     // 
     // Create ghost particles for a given level that are copies of particles
     // near coarse->fine boundaries in level-1
     //
-    PBox CreateGhostParticles (int level, int ngrow);
+    void CreateGhostParticles (int level, int ngrow, PBox ghosts);
     //
     // Add particles from a pbox to the grid at this level
     //
@@ -3577,11 +3577,12 @@ ParticleContainer<N>::AddParticlesAtLevel (int  level,
     std::deque<int> owner;
     //
     // This code is mostly stolen from Redistribute.
-    // It is almost certainly not properly parallel.
     //
-    for (typename PBox::iterator it = virts.begin(), End = virts.end(); it != End; ++it)
+    while (!virts.empty())
     {
-        ParticleType& p = *it;
+        // copy the last element, then remove it.
+        ParticleType& p = *virts.end();
+        virts.pop_back();
 
         if (p.m_id > 0)
         {
@@ -3875,8 +3876,8 @@ ParticleContainer<N>::AddParticlesAtLevel (int  level,
 }
 
 template <int N>
-std::deque< Particle<N> >
-ParticleContainer<N>::CreateVirtualParticles (int level)
+void
+ParticleContainer<N>::CreateVirtualParticles (int level, ParticleContainer<N>::PBox virts)
 {
     BL_ASSERT(level > 0);
     // Read these from the parm file if we haven't done so yet.
@@ -3890,11 +3891,9 @@ ParticleContainer<N>::CreateVirtualParticles (int level)
     }
     // Create a buffer so that particles near the cf border are not aggregated.
     BoxArray buffer = BoxLib::complementIn(m_amr->Geom(level).Domain(), m_amr->boxArray(level));
-    std::cout << level << "\n";
     buffer = buffer.grow(aggregation_buffer);
-    PBox virts;
     if (level >= m_particles.size()) //this level could exist and simply have no particles
-        return virts;
+        return;
     PMap& pmap = m_particles[level];
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -3975,12 +3974,12 @@ ParticleContainer<N>::CreateVirtualParticles (int level)
             }
         }
     }
-    return virts;
+    return;
 }
 
 template <int N>
-std::deque< Particle<N> >
-ParticleContainer<N>::CreateGhostParticles (int level, int ngrow)
+void
+ParticleContainer<N>::CreateGhostParticles (int level, int ngrow, PBox ghosts)
 {
     BL_ASSERT(level < m_amr->finestLevel());
     
@@ -3989,9 +3988,8 @@ ParticleContainer<N>::CreateGhostParticles (int level, int ngrow)
     fine_grown.grow(ngrow);
     
     std::vector< std::pair<int,Box> > isects;
-    PBox ghosts;
     if (level >= m_particles.size()) //this level could exist and simply have no particles
-        return ghosts;
+        return;
     PMap& pmap = m_particles[level];
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
@@ -4018,7 +4016,7 @@ ParticleContainer<N>::CreateGhostParticles (int level, int ngrow)
             }
         }
     }
-    return ghosts;
+    return;
 }
     
 //

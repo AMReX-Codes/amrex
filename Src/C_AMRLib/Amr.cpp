@@ -2558,6 +2558,10 @@ Amr::initSubcycle (ParmParse * pp)
                 BoxLib::Error("First entry of subcycling_iterations must be 1");
             }
         }
+        else
+        {
+            BoxLib::Error("Must provide a valid subcycling_iterations if mode is Manual");
+        }
         for (i = 1; i <= max_level; i++)
         {
             if (n_cycle[i] > MaxRefRatio(i-1))
