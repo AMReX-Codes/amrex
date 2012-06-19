@@ -2088,24 +2088,21 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
         const Geometry& gm        = m_amr->Geom(lev);
         const Geometry& gm_fine   = (lev < finest_level) ? m_amr->Geom(lev+1) : gm;
         const Geometry& gm_coarse = (lev > 0) ? m_amr->Geom(lev-1) : gm;
-        
-        const Box&      dm    = gm.Domain();
-        const Real*     dx    = gm.CellSize();
-        const Real*     plo   = gm.ProbLo();
-        const Real* dx_fine   = (lev < finest_level) ? m_amr->Geom(lev+1).CellSize() : dx;
-        const Real* dx_coarse = (lev > 0) ? m_amr->Geom(lev-1).CellSize() : dx;
-        const int   lev_index = lev - lev_min;
+        const Box&      dm        = gm.Domain();
+        const Real*     dx        = gm.CellSize();
+        const Real*     plo       = gm.ProbLo();
+        const Real*     dx_fine   = (lev < finest_level) ? m_amr->Geom(lev+1).CellSize() : dx;
+        const Real*     dx_coarse = (lev > 0) ? m_amr->Geom(lev-1).CellSize() : dx;
+        const int       lev_index = lev - lev_min;
+        const BoxArray& grids     = mf[lev_index].boxArray();
+        const int       dgrow     = (lev == 0) ? 1 : m_amr->MaxRefRatio(lev-1);
 
-        BoxArray compfvalid, compfvalid_grown, fvalid;
-
-        fvalid = mf[lev_index].boxArray();
+        BoxArray compfvalid, compfvalid_grown, fvalid = mf[lev_index].boxArray();
         //
         // Do we have Fine->Crse overlap on a periodic boundary?
         // We want to add all ghost cells that can be shifted into valid region.
         //
         BoxList valid;
-        const BoxArray& grids = mf[lev_index].boxArray();
-        const int dgrow = (lev == 0) ? 1 : m_amr->MaxRefRatio(lev-1);
 
         for (int i = 0; i < grids.size(); i++)
         {
@@ -2171,6 +2168,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
         if (lev < finest_level)
         {
             BoxList cvalid;
+
             const BoxArray& cgrids = mf[lev_index].boxArray();
 
             for (int i = 0; i < cfba.size(); i++)
@@ -2271,6 +2269,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                 // Without subcycling we use the "stretchy" support for particles.
                 // With subcycling a particles support is strictly defined 
                 // by its resident level.
+                //
                 if (sub_cycle)
                 {
                     bool isFiner    = false;
@@ -3492,45 +3491,46 @@ ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
     {
         PMap& pmap = m_particles[lev];
 
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        if (!pmap.empty())
         {
-            PBox& pbox = pmap_it->second;
-
-            for (typename PBox::iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+            for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
+                 pmap_it != pmapEnd;
+                 ++pmap_it)
             {
-                ParticleType& p = *it;
-
-                if (p.m_id > 0)
-                {
-                    //
-                    // Negate it so that it's no longer considered a valid particle.
-                    // It'll be removed on the next Redistribute().
-                    //
-                    p.m_id = -p.m_id;
-                    cnt++;
-                }
+                cnt += pmap_it->second.size();
             }
+
+            PMap().swap(pmap);
+
+            BL_ASSERT(pmap.empty());
         }
     }
     //
-    // Print how many particles removed on each processor.
+    // Print how many particles removed on each processor if any were removed.
     //
     if (m_verbose > 1)
     {
-        for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+        int maxcnt = cnt;
+
+        ParallelDescriptor::ReduceIntMax(maxcnt);
+
+        if (maxcnt > 0)
         {
-            if (ParallelDescriptor::MyProc() == i)
+            for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
             {
-                if (cnt > 0)
+                if (ParallelDescriptor::MyProc() == i)
                 {
-                    std::cout << "Processor "
-                              << i
-                              << " removed "
-                              << cnt
-                              << " particles not in finest level" << std::endl;
+                    if (cnt > 0)
+                    {
+                        std::cout << "Processor "
+                                  << i
+                                  << " removed "
+                                  << cnt
+                                  << " particles not in finest level" << std::endl;
+                    }
                 }
+                ParallelDescriptor::Barrier();
             }
-            ParallelDescriptor::Barrier();
         }
     }
 }
@@ -3539,29 +3539,22 @@ template <int N>
 void
 ParticleContainer<N>::RemoveParticlesAtLevel (int level)
 {
-    //No particles at this level
     if (level >= m_particles.size())
         return;
-    //This may be simplifiable: ask Mike
-    PMap& pmap = m_particles[level];
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+
+    if (!m_particles[level].empty())
     {
-        PBox& pbox = pmap_it->second;
-        while(!pbox.empty())
-        {
-            pbox.pop_front();
-        }
+        PMap().swap(m_particles[level]);
     }
-    // Remove the empty boxes
-    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; )
-    {
-        pmap.erase(pmap_it++);
-    }
+
+    BL_ASSERT(m_particles[level].empty());
 }
 
 template <int N>
 void
-ParticleContainer<N>::AddParticlesAtLevel (int level, PBox virts, bool where_already_called)
+ParticleContainer<N>::AddParticlesAtLevel (int  level,
+                                           PBox virts,
+                                           bool where_already_called)
 {
     if (m_particles.size() < level+1)
     {
@@ -3572,7 +3565,8 @@ ParticleContainer<N>::AddParticlesAtLevel (int level, PBox virts, bool where_alr
                       << level+1 << '\n';
         m_particles.resize(level + 1);
     }
-    const int MyProc   = ParallelDescriptor::MyProc();
+
+    const int MyProc = ParallelDescriptor::MyProc();
     //
     // The valid particles that we don't own.
     //
@@ -3581,9 +3575,10 @@ ParticleContainer<N>::AddParticlesAtLevel (int level, PBox virts, bool where_alr
     // And who rightly owns those particles.
     //
     std::deque<int> owner;
-    
-    //This code is mostly stolen from Redistribute
-    //It is almost certainly not properly parallel
+    //
+    // This code is mostly stolen from Redistribute.
+    // It is almost certainly not properly parallel.
+    //
     for (typename PBox::iterator it = virts.begin(), End = virts.end(); it != End; ++it)
     {
         ParticleType& p = *it;
@@ -4198,7 +4193,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         {
             int   grid = pmap_it->first;
             PBox& pbox = pmap_it->second;
-
             //
             // Remove any invalid particles from front of container.
             //
