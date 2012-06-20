@@ -315,40 +315,53 @@ contains
 
        call boxarray_destroy(new_coarse_ba)
 
-       if (parallel_IOProcessor() .and. verbose > 1) then
-          print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
-          call print(layout_get_pd(old_coarse_la))
-          print *,'   ... Original boxes ',old_coarse_la%lap%nboxes
-          print *,'   ... New      boxes ',new_coarse_la%lap%nboxes
-!         print *,'# cells on each side  ',bottom_box_size
+       if (new_coarse_la%lap%nboxes .ge. old_coarse_la%lap%nboxes) then
+
+          mgt%bottom_solver = 1
+          deallocate(mgt%bottom_mgt)
+
+          if (parallel_IOProcessor() .and. verbose > 1) then
+              print *,'F90mg: Too many boxes with bottom_solver = 4'
+              print *,'F90mg: Using bottom_solver = 1 instead'
+          end if
+
+       else
+
+           if (parallel_IOProcessor() .and. verbose > 1) then
+              print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
+              call print(layout_get_pd(old_coarse_la))
+              print *,'   ... Original boxes ',old_coarse_la%lap%nboxes
+              print *,'   ... New      boxes ',new_coarse_la%lap%nboxes
+!             print *,'# cells on each side  ',bottom_box_size
+           end if
+
+           coarse_dx(:) = mgt%dh(:,1)
+
+           call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
+                               domain_bc, &
+                               dh = coarse_dx, &
+                               ns = ns, &
+                               nc = mgt%nc, &
+                               ng = mgt%ng, &
+                               smoother = smoother, &
+                               nu1 = nu1, &
+                               nu2 = nu2, &
+                               gamma = gamma, &
+                               cycle_type = cycle_type, &
+                               omega = omega, &
+                               bottom_solver = 1, &
+                               bottom_max_iter = bottom_max_iter, &
+                               bottom_solver_eps = bottom_solver_eps, &
+                               max_iter = max_iter, &
+                               max_nlevel = max_nlevel, &
+                               min_width = min_width, &
+                               eps = eps, &
+                               abs_eps = abs_eps, &
+                               max_L0_growth = max_L0_growth, &
+                               verbose = verbose, &
+                               cg_verbose = cg_verbose, &
+                               nodal = nodal)
        end if
-
-       coarse_dx(:) = mgt%dh(:,1)
-
-       call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
-                           domain_bc, &
-                           dh = coarse_dx, &
-                           ns = ns, &
-                           nc = mgt%nc, &
-                           ng = mgt%ng, &
-                           smoother = smoother, &
-                           nu1 = nu1, &
-                           nu2 = nu2, &
-                           gamma = gamma, &
-                           cycle_type = cycle_type, &
-                           omega = omega, &
-                           bottom_solver = 1, &
-                           bottom_max_iter = bottom_max_iter, &
-                           bottom_solver_eps = bottom_solver_eps, &
-                           max_iter = max_iter, &
-                           max_nlevel = max_nlevel, &
-                           min_width = min_width, &
-                           eps = eps, &
-                           abs_eps = abs_eps, &
-                           max_L0_growth = max_L0_growth, &
-                           verbose = verbose, &
-                           cg_verbose = cg_verbose, &
-                           nodal = nodal)
     end if
 
   end subroutine mg_tower_build
