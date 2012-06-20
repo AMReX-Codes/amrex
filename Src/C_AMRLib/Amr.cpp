@@ -2638,3 +2638,51 @@ Amr::initPltAndChk(ParmParse * pp)
     }
 }
 
+
+Real 
+Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, int* cycle_max)
+{
+    BL_ASSERT(cycle_max[0] == 1);
+    // internally these represent the total number of steps at a level, 
+    // not the number of cycles
+    int cycles[n];
+    Real best_ratio = 1e200;
+    Real best_dt = 0;
+    Real ratio;
+    Real dt;
+    Real work;
+    int limit = 1;
+    // This provides a memory efficient way to test all candidates
+    for (int i = 1; i < n; i++)
+        limit *= cycle_max[i];
+    for (int candidate = 0; candidate < limit; candidate++)
+    {
+        int temp_cand = candidate;
+        cycles[0] = 1;
+        dt = dt_max[0];
+        work = est_work[0];
+        for (int i  = 1; i < n; i++)
+        {
+            // grab the relevant "digit" and shift over.
+            cycles[i] = (1 + temp_cand%cycle_max[i]) * cycles[i-1];
+            temp_cand /= cycle_max[i];
+            dt = std::min(dt, cycles[i]*dt_max[i]);
+            work += cycles[i]*est_work[i];
+        }
+        ratio = work/dt;
+        if (ratio > best_ratio) 
+        {
+            for (int i  = 0; i < n; i++)
+                best[i] = cycles[i];
+            best_ratio = ratio;
+            best_dt = dt;
+        }
+    }
+    //
+    // Now we convert best back to n_cycles format
+    //
+    for (int i = n-1; i > 0; i--)
+        best[i] /= best[i-1];
+    return best_dt;
+}
+

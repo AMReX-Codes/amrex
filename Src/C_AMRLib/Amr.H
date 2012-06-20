@@ -274,6 +274,19 @@ public:
     // How many datalogs have been opened
     //
     int NumDataLogs ();
+    
+    //
+    // Compute the optimal subcycling pattern.
+    // This assumes that anything less than cycle_max[i] is a valid
+    // number of subcycles at level[i]. For example 
+    // if ref_ratio[i] = cycle_max[i] = 4, then 1,2,3,4 are all valid 
+    // values for n_cycles[i]
+    //
+    static Real computeOptimalSubcycling(int n, 
+                                         int* best,
+                                         Real* dt_max, 
+                                         Real* est_work, 
+                                         int* cycle_max);
 
 protected:
     //
