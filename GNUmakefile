@@ -1,15 +1,17 @@
 NDEBUG := t
 MPI    :=
 OMP    :=
+
 MKVERBOSE :=t 
+
 COMP := gfortran
 
 # some routines need an eos/network (i.e. to compute thermodynamic 
 # quantities.  If that is the case, set NEED_EOS_NETWORK := t
 NEED_EOS_NETWORK := 
 
-# define the location of the fParallel root directory
-FPARALLEL ?= ../../MAESTRO/fParallel/
+# define the location of the MAESTRO root directory
+MAESTRO_TOP_DIR := $(MAESTRO_HOME)
 
 
 # include the main Makefile stuff
@@ -26,16 +28,16 @@ Fmdirs :=
 Fmincludes := 
 
 ifdef NEED_EOS_NETWORK
-  Fmdirs += extern/EOS/helmeos \
-            extern/networks/ignition \
-            extern/VODE
+  Fmdirs += Microphysics/EOS/helmeos \
+            Microphysics/networks/ignition_simple \
+            Util/VODE
 
-  Fmincludes += extern/helmeos
+  Fmincludes += Microphysics/helmeos
 endif
 
-Fmpack := $(foreach dir, $(Fmdirs), $(FPARALLEL)/$(dir)/GPackage.mak)
-Fmlocs := $(foreach dir, $(Fmdirs), $(FPARALLEL)/$(dir))
-Fmincs := $(foreach dir, $(Fmincludes), $(FPARALLEL)/$(dir))
+Fmpack := $(foreach dir, $(Fmdirs), $(MAESTRO_TOP_DIR)/$(dir)/GPackage.mak)
+Fmlocs := $(foreach dir, $(Fmdirs), $(MAESTRO_TOP_DIR)/$(dir))
+Fmincs := $(foreach dir, $(Fmincludes), $(MAESTRO_TOP_DIR)/$(dir))
 
 Fmpack += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir)/GPackage.mak)
 Fmlocs += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir))
@@ -51,14 +53,14 @@ VPATH_LOCATIONS += $(Fmlocs)
 # list of directories to put in the Fortran include path
 FINCLUDE_LOCATIONS += $(Fmincs)
 
-#programs += faverage
+programs += faverage
 #programs += fcompare
 #programs += fextract
 #programs += fextrema
 #programs += fIDLdump
 #programs += fsnapshot2d
 #programs += fsnapshot3d
-#programs += ftime
+programs += ftime
 
 all: $(pnames)
 
