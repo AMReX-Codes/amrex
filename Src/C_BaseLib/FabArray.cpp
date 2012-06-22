@@ -9,6 +9,7 @@
 //
 bool FabArrayBase::verbose;
 bool FabArrayBase::do_alltoallv;
+bool FabArrayBase::do_async_sends;
 bool FabArrayBase::do_not_use_cache;
 
 namespace
@@ -32,6 +33,7 @@ FabArrayBase::Initialize ()
     //
     FabArrayBase::verbose          = false;
     FabArrayBase::do_alltoallv     = false;
+    FabArrayBase::do_async_sends   = false;
     FabArrayBase::do_not_use_cache = false;
 
     use_copy_cache      = true;
@@ -43,6 +45,7 @@ FabArrayBase::Initialize ()
 
     pp.query("verbose",          FabArrayBase::verbose);
     pp.query("do_alltoallv",     FabArrayBase::do_alltoallv);
+    pp.query("do_async_sends",   FabArrayBase::do_async_sends);
     pp.query("do_not_use_cache", FabArrayBase::do_not_use_cache);
 
     pp.query("use_copy_cache",      use_copy_cache);
