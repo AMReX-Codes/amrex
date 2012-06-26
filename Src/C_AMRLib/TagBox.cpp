@@ -5,6 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <climits>
+#include <deque>
 
 #include <TagBox.H>
 #include <Geometry.H>
@@ -345,7 +346,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
     const Box&     domain = geom.Domain();
     Array<IntVect> pshifts(27);
 
-    std::list< std::pair<FillBoxId,IntVect> > IDs;
+    std::deque< std::pair<FillBoxId,IntVect> > IDs;
 
     for (int i = 0, N = boxarray.size(); i < N; i++)
     {
@@ -397,7 +398,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     TagBox src;
 
-    for (std::list< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(), End = IDs.end();
+    for (std::deque< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(), End = IDs.end();
          it != End;
          ++it)
     {
