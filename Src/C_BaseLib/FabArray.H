@@ -231,6 +231,7 @@ public:
         BoxArray            m_srcba;
         DistributionMapping m_dstdm;
         DistributionMapping m_srcdm;
+        int                 m_rcvs_numpts;
         //
         // The cache of local and send/recv info per FabArray::copy().
         //
@@ -1310,7 +1311,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                     {
                         tag.box      = bx;
                         tag.fabIndex = i;
+
                         thecpc.m_RcvTags[src.distributionMap[iii]].push_back(tag);
+
+                        thecpc.m_rcvs_numpts += bx.numPts();
                     }
                 }
                 else
@@ -1319,6 +1323,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                     {
                         tag.box      = bx;
                         tag.fabIndex = iii;
+
                         thecpc.m_SndTags[distributionMap[i]].push_back(tag);
                     }
                 }
@@ -1472,11 +1477,15 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             send_reqs.resize(N_snds,MPI_REQUEST_NULL);
         }
         //
-        // Post receives.
+        // Post rcvs. Allocate one chunk of space to hold'm all.
         //
+        BL_ASSERT((thecpc.m_rcvs_numpts*ncomp*sizeof(value_type)) < std::numeric_limits<int>::max());
+
+        value_type* the_recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(thecpc.m_rcvs_numpts*ncomp*sizeof(value_type)));
+
         const int seqno = ParallelDescriptor::SeqNum();
 
-        int idx = 0;
+        int idx = 0, CheckSum = 0;
 
         for (std::map< int,std::deque<CopyComTag> >::const_iterator m_it = thecpc.m_RcvTags.begin(),
                  m_End = thecpc.m_RcvTags.end();
@@ -1493,10 +1502,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             }
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
-            recv_data[idx] = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+            recv_data[idx] = &the_recv_data[CheckSum];
             recv_from[idx] = m_it->first;
             recv_reqs[idx] = ParallelDescriptor::Arecv(recv_data[idx],N,m_it->first,seqno).req();
+
+            CheckSum += N;
         }
+
+        BL_ASSERT(CheckSum == thecpc.m_rcvs_numpts*ncomp);
 
         FAB fab;
         //
@@ -1585,10 +1598,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                     }
                     dptr += N;
                 }
-
-                BoxLib::The_Arena()->free(recv_data[index[k]]);
             }
         }
+
+        BoxLib::The_Arena()->free(the_recv_data);
 
         if (FabArrayBase::do_async_sends && N_snds > 0)
         {
