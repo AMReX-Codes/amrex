@@ -139,6 +139,9 @@ FabArrayBase::CPC::CPC (const CPC& rhs)
     m_srcba(rhs.m_srcba),
     m_dstdm(rhs.m_dstdm),
     m_srcdm(rhs.m_srcdm),
+    m_LocalTags(rhs.m_LocalTags),
+    m_SndTags(rhs.m_SndTags),
+    m_RcvTags(rhs.m_RcvTags),
     m_reused(rhs.m_reused)
 {}
 
@@ -336,7 +339,7 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
-    std::list<SIRec>&          sirec  = it->second.m_sirec;
+    std::deque<SIRec>&         sirec  = it->second.m_sirec;
     Array<int>&                cache  = it->second.m_cache;
 
     cache.resize(ParallelDescriptor::NProcs(),0);
