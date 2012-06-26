@@ -16,7 +16,7 @@ import getopt
 import math
 import string
 import mpl_toolkits.axes_grid1
-
+import matplotlib.lines
 
 #==============================================================================
 # do_plot
@@ -210,6 +210,32 @@ def do_plot(plotfile1, plotfile2, plotfile3, component, outFile,
     if (not plotfile3 == ""):
         cs3 = pylab.contour(x3, y3, data3, ncontours, colors='g', levels=levels)
 
+
+    # make the labels -- see http://www.scipy.org/Cookbook/Matplotlib/Legend
+    # for this technique
+    lines = []
+    labels = []
+
+    if (not label1 == None):
+        line1 = matplotlib.lines.Line2D(range(10), range(10), linestyle='-', color='k')
+        lines.append(line1)
+        labels.append(label1)
+
+    if (not label2 == None):
+        line2 = matplotlib.lines.Line2D(range(10), range(10), linestyle='-', color='r')
+        lines.append(line2)
+        labels.append(label2)
+
+
+    if (not label3 == None):
+        line3 = matplotlib.lines.Line2D(range(10), range(10), linestyle='-', color='g')
+        lines.append(line3)
+        labels.append(label3)
+
+        
+    pylab.legend(lines, labels)
+
+
     formatter = matplotlib.ticker.ScalarFormatter(useMathText=True)
     #pylab.clabel(cs, fontsize=9, inline=1)#, fmt=formatter)
 
@@ -225,32 +251,6 @@ def do_plot(plotfile1, plotfile2, plotfile3, component, outFile,
 
     pylab.xlabel("x")
     pylab.ylabel("y")
-
-    if (not label1 == None):
-        trans=matplotlib.transforms.offset_copy(ax.transData, x=0, y=-0.5,
-                                                fig=fig1, units='inches')
-        
-        pylab.text(xmin, ymin, "%s" % (label1), 
-                   verticalalignment="bottom", transform = trans, 
-                   clip_on=False, fontsize=10, color="k")            
-
-
-    if (not label2 == None):
-        trans=matplotlib.transforms.offset_copy(ax.transData, x=0, y=-0.65,
-                                                fig=fig1, units='inches')
-
-        pylab.text(xmin, ymin, "%s" % (label2), 
-                   verticalalignment="bottom", transform = trans, 
-                   clip_on=False, fontsize=10, color="r")            
-
-
-    if (not label3 == None):
-        trans=matplotlib.transforms.offset_copy(ax.transData, x=0, y=-0.8,
-                                                fig=fig1, units='inches')
-
-        pylab.text(xmin, ymin, "%s" % (label3), 
-                   verticalalignment="bottom", transform = trans, 
-                   clip_on=False, fontsize=10, color="g")            
 
 
     if (not eps):
