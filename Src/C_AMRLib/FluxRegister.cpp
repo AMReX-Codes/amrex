@@ -7,6 +7,7 @@
 #include <ParallelDescriptor.H>
 #include <ccse-mpi.H>
 
+#include <deque>
 #include <vector>
 
 FluxRegister::FluxRegister ()
@@ -224,7 +225,7 @@ FluxRegister::Reflux (MultiFab&       S,
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
     }
 
-    std::list<RF> RFs;
+    std::deque<RF> RFs;
 
     BoxArray ba(grids.size());
 
@@ -339,7 +340,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    for (std::list<RF>::const_iterator it = RFs.begin(), End = RFs.end();
+    for (std::deque<RF>::const_iterator it = RFs.begin(), End = RFs.end();
          it != End;
          ++it)
     {
@@ -443,7 +444,7 @@ FluxRegister::Reflux (MultiFab&       S,
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
     }
 
-    std::list<RF> RFs;
+    std::deque<RF> RFs;
 
     BoxArray ba(grids.size());
 
@@ -547,7 +548,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    for (std::list<RF>::const_iterator it = RFs.begin(), End = RFs.end();
+    for (std::deque<RF>::const_iterator it = RFs.begin(), End = RFs.end();
          it != End;
          ++it)
     {

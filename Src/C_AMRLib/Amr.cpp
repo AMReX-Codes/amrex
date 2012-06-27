@@ -1118,7 +1118,29 @@ Amr::restart (const std::string& filename)
            for (i = 0; i <= mx_lev; i++) dt_min[i] = dt_level[i];
        }
 
-       for (i = 0; i <= mx_lev; i++) is >> n_cycle[i];
+       Array<int>  n_cycle_in;
+       n_cycle_in.resize(mx_lev+1);  
+       for (i = 0; i <= mx_lev; i++) is >> n_cycle_in[i];
+       bool any_changed = false;
+
+       for (i = 0; i <= mx_lev; i++) 
+           if (n_cycle[i] != n_cycle_in[i])
+           {
+               any_changed = true;
+               if (verbose > 0 && ParallelDescriptor::IOProcessor())
+                   std::cout << "Warning: n_cycle has changed at level " << i << 
+                                " from " << n_cycle_in[i] << " to " << n_cycle[i] << std::endl;;
+           }
+
+       // If we change n_cycle then force a full regrid from level 0 up
+       if (max_level > 0 && any_changed)
+       {
+           level_count[0] = regrid_int[0];
+           if ((verbose > 0) && ParallelDescriptor::IOProcessor())
+               std::cout << "Warning: This forces a full regrid " << std::endl;
+       }
+
+
        for (i = 0; i <= mx_lev; i++) is >> level_steps[i];
        for (i = 0; i <= mx_lev; i++) is >> level_count[i];
 

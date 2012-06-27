@@ -237,7 +237,7 @@ public:
 
     void AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min = 0) const;
 
-    void AssignDensityDoit (PArray<MultiFab>& mf, PBox& data, int ncomp) const;
+    void AssignDensityDoit (PArray<MultiFab>& mf, PBox& data, int ncomp, int lev_min = 0) const;
 
     void MultiplyParticleMass (int lev, Real mult);
  
@@ -2682,7 +2682,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
     // This "may" touch ghost cells so we want to do it before
     // the SumBoundary() and SumPeriodicBoundary() stuff.
     //
-    AssignDensityDoit(mf,data,ncomp);
+    AssignDensityDoit(mf,data,ncomp, lev_min);
 
     for (int lev = lev_min; lev <= finest_level; lev++)
     {
@@ -2731,14 +2731,17 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
 //
 // Passes data needed by Crse->Fine or Fine->Crse to CPU that needs it.
 //
-// We store the data that needs to be sent in "data".
+// We store the data that needs to be sent in "data". Note that m_lev is the
+// real particle level, while mf may start at a fine level (e.g. lvls 1 and 2).
+// Consequently, we must subtract lev_min from m_lev to get the mf lev.
 //
 
 template <int N>
 void
 ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
                                          ParticleContainer<N>::PBox& data,
-                                         int                         ncomp) const
+                                         int                         ncomp,
+                                         int                         lev_min) const
 {
     BL_ASSERT(N >= ncomp);
 
@@ -2761,7 +2764,7 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
 
     for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
     {
-        const int lev = it->m_lev;
+        const int lev = it->m_lev - lev_min;
         const int grd = it->m_grid;
 
         BL_ASSERT(lev >= 0 && lev < mf.size());
@@ -2849,10 +2852,10 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
 
         for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
         {
-            const int who  = mf[it->m_lev].DistributionMap()[it->m_grid];
+            const int who  = mf[it->m_lev - lev_min].DistributionMap()[it->m_grid];
             const int ioff = offset[who];
 
-            senddata[ioff+0] = it->m_lev;
+            senddata[ioff+0] = it->m_lev  - lev_min;
             senddata[ioff+1] = it->m_grid;
 
             D_TERM(senddata[ioff+2] = it->m_cell[0];,
@@ -2896,7 +2899,7 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
 
         for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
         {
-            const int who  = mf[it->m_lev].DistributionMap()[it->m_grid];
+            const int who  = mf[it->m_lev - lev_min].DistributionMap()[it->m_grid];
             const int ioff = offset[who];
 
             for (int n = 0; n < ncomp; n++)
@@ -3663,8 +3666,8 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
     {
         //
         // There's no parallel work to do.
+        // (the state may not be "OK")
         //
-        BL_ASSERT(OK());
         return;
     }
 
@@ -3924,8 +3927,8 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                 // It's in the no-aggregation buffer
                 // Create a copy
                 ParticleType p = *it;
-                // Set its id to 1 so it's clear there's no info there.
-                p.m_id = 1;
+                // Set its id to 1 billion so it's clear this is a virt.
+                p.m_id = 1000000000;
                 virts.push_back(p);
             }
             else
@@ -3935,8 +3938,8 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                     // No aggregation, simply clone the particle
                     // Create a copy
                     ParticleType p = *it;
-                    // Set its id to 1 so it's clear there's no info there.
-                    p.m_id = 1;
+                    // Set its id to 1 billion so it's clear this is a virt.
+                    p.m_id = 1000000000;
                     virts.push_back(p);
                 }
                 else if (aggregation_type == "Cell")
@@ -3952,7 +3955,8 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                     {
                         //Add the particle
                         ParticleType p = *it;
-                        p.m_id = 1;
+                        // Set its id to 1 billion so it's clear this is a virt.
+                        p.m_id = 1000000000;
                         agg_map[p.m_cell] = p;
                     }
                     else
@@ -4049,9 +4053,9 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
                 //
                 ParticleType p = *it;
                 //
-                // Set its id to 1 so it's clear there's no info there.
+                // Set its id to 2 billion so it's clear that this is a ghost.
                 //
-                p.m_id = 1;
+                p.m_id = 2000000000;
                 //
                 // Set its position.
                 //
