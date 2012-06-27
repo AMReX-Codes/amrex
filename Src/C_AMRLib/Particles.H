@@ -3935,8 +3935,8 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                     // No aggregation, simply clone the particle
                     // Create a copy
                     ParticleType p = *it;
-                    // Set its id to 1 so it's clear there's no info there.
-                    p.m_id = 1;
+                    // Set its id to 1 billion so it's clear this is a virt.
+                    p.m_id = 1000000000;
                     virts.push_back(p);
                 }
                 else if (aggregation_type == "Cell")
@@ -3952,7 +3952,8 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                     {
                         //Add the particle
                         ParticleType p = *it;
-                        p.m_id = 1;
+                        // Set its id to 1 billion so it's clear this is a virt.
+                        p.m_id = 1000000000;
                         agg_map[p.m_cell] = p;
                     }
                     else
