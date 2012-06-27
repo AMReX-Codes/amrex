@@ -465,8 +465,14 @@ TagBoxArray::collate (long& numtags) const
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
 #if BL_USE_MPI
-    Array<int> nmtags(ParallelDescriptor::NProcs(),0);
-    Array<int> offset(ParallelDescriptor::NProcs(),0);
+    Array<int> nmtags(1,0);
+    Array<int> offset(1,0);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+         nmtags.resize(ParallelDescriptor::NProcs(),0);
+         offset.resize(ParallelDescriptor::NProcs(),0);
+    }
     //
     // Tell root CPU how many tags each CPU will be sending.
     //
