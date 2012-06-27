@@ -6,7 +6,6 @@
 #include <cstring>
 #include <limits>
 #include <map>
-#include <deque>
 #include <utility>
 #include <vector>
 
@@ -184,7 +183,7 @@ public:
 
         Array<int>          m_cache;    // Snds cached for CollectData().
         CommDataCache       m_commdata; // Yet another cache for CollectData().
-        std::deque<SIRec>   m_sirec;
+        std::vector<SIRec>  m_sirec;
         BoxArray            m_ba;
         DistributionMapping m_dm;
         int                 m_ngrow;
@@ -235,9 +234,10 @@ public:
         //
         // The cache of local and send/recv info per FabArray::copy().
         //
-        std::deque<CopyComTag>                  m_LocalTags;
-        std::map< int, std::deque<CopyComTag> > m_SndTags;
-        std::map< int, std::deque<CopyComTag> > m_RcvTags;
+        std::vector<CopyComTag>                  m_LocalTags;
+        std::map< int, std::vector<CopyComTag> > m_SndTags;
+        std::map< int, std::vector<CopyComTag> > m_RcvTags;
+
         //
         // Has this CPC ever been reused in the cache?
         //
@@ -1249,7 +1249,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         // All we need to do here are the local copy()s.
         //
-        for (std::deque<CopyComTag>::iterator it = thecpc.m_LocalTags.begin(),
+        for (std::vector<CopyComTag>::iterator it = thecpc.m_LocalTags.begin(),
                  End = thecpc.m_LocalTags.end();
              it != End;
              ++it)
@@ -1344,13 +1344,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         Array<int> sendcount(NProcs,0), recvcount(NProcs,0);
         Array<int> senddspls(NProcs,0), recvdspls(NProcs,0);
         
-        for (std::map< int,std::deque<CopyComTag> >::const_iterator m_it = thecpc.m_SndTags.begin(),
+        for (std::map< int,std::vector<CopyComTag> >::const_iterator m_it = thecpc.m_SndTags.begin(),
                  m_End = thecpc.m_SndTags.end();
              m_it != m_End;
              ++m_it)
         {
             int Ns = 0;
-            for (std::deque<CopyComTag>::const_iterator it = m_it->second.begin(),
+            for (std::vector<CopyComTag>::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1361,13 +1361,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             sendcount[m_it->first] = Ns;
         }
 
-        for (std::map< int,std::deque<CopyComTag> >::const_iterator m_it = thecpc.m_RcvTags.begin(),
+        for (std::map< int,std::vector<CopyComTag> >::const_iterator m_it = thecpc.m_RcvTags.begin(),
                  m_End = thecpc.m_RcvTags.end();
              m_it != m_End;
              ++m_it)
         {
             int Nr = 0;
-            for (std::deque<CopyComTag>::const_iterator it = m_it->second.begin(),
+            for (std::vector<CopyComTag>::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1394,12 +1394,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         value_type* senddptr = senddata;
 
-        for (std::map< int,std::deque<CopyComTag> >::const_iterator m_it = thecpc.m_SndTags.begin(),
+        for (std::map< int,std::vector<CopyComTag> >::const_iterator m_it = thecpc.m_SndTags.begin(),
                  m_End = thecpc.m_SndTags.end();
              m_it != m_End;
              ++m_it)
         {
-            for (std::deque<CopyComTag>::const_iterator it = m_it->second.begin(),
+            for (std::vector<CopyComTag>::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1429,12 +1429,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         value_type* recvdptr = recvdata;
 
-        for (std::map< int,std::deque<CopyComTag> >::const_iterator m_it = thecpc.m_RcvTags.begin(),
+        for (std::map< int,std::vector<CopyComTag> >::const_iterator m_it = thecpc.m_RcvTags.begin(),
                  m_End = thecpc.m_RcvTags.end();
              m_it != m_End;
              ++m_it)
         {
-            for (std::deque<CopyComTag>::const_iterator it = m_it->second.begin(),
+            for (std::vector<CopyComTag>::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1487,13 +1487,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         int idx = 0, CheckSum = 0;
 
-        for (std::map< int,std::deque<CopyComTag> >::const_iterator m_it = thecpc.m_RcvTags.begin(),
+        for (std::map< int,std::vector<CopyComTag> >::const_iterator m_it = thecpc.m_RcvTags.begin(),
                  m_End = thecpc.m_RcvTags.end();
              m_it != m_End;
              ++m_it, ++idx)
         {
             int N = 0;
-            for (std::deque<CopyComTag>::const_iterator it = m_it->second.begin(),
+            for (std::vector<CopyComTag>::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1515,13 +1515,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         // Stage the agglomerated FAB data.
         //
-        for (std::map< int,std::deque<CopyComTag> >::const_iterator m_it = thecpc.m_SndTags.begin(),
+        for (std::map< int,std::vector<CopyComTag> >::const_iterator m_it = thecpc.m_SndTags.begin(),
                  m_End = thecpc.m_SndTags.end();
              m_it != m_End;
              ++m_it)
         {
             int N = 0;
-            for (std::deque<CopyComTag>::const_iterator it = m_it->second.begin(),
+            for (std::vector<CopyComTag>::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1533,7 +1533,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
             value_type* dptr = data;
 
-            for (std::deque<CopyComTag>::const_iterator it = m_it->second.begin(),
+            for (std::vector<CopyComTag>::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1561,7 +1561,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         // Now receive and unpack FAB data as it becomes available.
         //
-        std::map< int,std::deque<CopyComTag> >::const_iterator m_it;
+        std::map< int,std::vector<CopyComTag> >::const_iterator m_it;
 
         for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
         {
@@ -1577,7 +1577,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
                 BL_ASSERT(m_it != thecpc.m_RcvTags.end());
 
-                for (std::deque<CopyComTag>::const_iterator it = m_it->second.begin(),
+                for (std::vector<CopyComTag>::const_iterator it = m_it->second.begin(),
                          End = m_it->second.end();
                      it != End;
                      ++it)
@@ -2586,7 +2586,7 @@ FabArray<FAB>::FillBoundary (int scomp,
     //
     // Add boxes we need to collect.
     //
-    for (std::deque<SIRec>::iterator it = si.m_sirec.begin(),
+    for (std::vector<SIRec>::iterator it = si.m_sirec.begin(),
              End = si.m_sirec.end();
          it != End;
          ++it)
@@ -2602,7 +2602,7 @@ FabArray<FAB>::FillBoundary (int scomp,
 
     mfcd.CollectData(&si.m_cache,&si.m_commdata);
 
-    for (std::deque<SIRec>::const_iterator it = si.m_sirec.begin(),
+    for (std::vector<SIRec>::const_iterator it = si.m_sirec.begin(),
              End = si.m_sirec.end();
          it != End;
          ++it)
