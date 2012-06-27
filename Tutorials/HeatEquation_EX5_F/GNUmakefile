@@ -22,5 +22,6 @@ VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
 
 main.$(suf).exe: $(objects) 
 	$(LINK.f90) -o main.$(suf).exe $(objects) $(libraries)
+	@echo SUCCESS
 
 include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak

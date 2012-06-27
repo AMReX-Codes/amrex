@@ -2,7 +2,7 @@
 #define _GEOMETRY_H_
 
 #include <iosfwd>
-#include <list>
+#include <deque>
 #include <map>
 
 #include <CoordSys.H>
@@ -220,7 +220,7 @@ public:
     //
     // A handy typedef.
     //
-    typedef std::list<PIRec> PIRMList;
+    typedef std::deque<PIRec> PIRMList;
     //
     // Used in caching PIRMLists && FabArrayBase::CommData.
     //

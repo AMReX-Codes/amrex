@@ -9,6 +9,7 @@
 //
 bool FabArrayBase::verbose;
 bool FabArrayBase::do_alltoallv;
+bool FabArrayBase::do_async_sends;
 bool FabArrayBase::do_not_use_cache;
 
 namespace
@@ -32,6 +33,7 @@ FabArrayBase::Initialize ()
     //
     FabArrayBase::verbose          = false;
     FabArrayBase::do_alltoallv     = false;
+    FabArrayBase::do_async_sends   = false;
     FabArrayBase::do_not_use_cache = false;
 
     use_copy_cache      = true;
@@ -43,6 +45,7 @@ FabArrayBase::Initialize ()
 
     pp.query("verbose",          FabArrayBase::verbose);
     pp.query("do_alltoallv",     FabArrayBase::do_alltoallv);
+    pp.query("do_async_sends",   FabArrayBase::do_async_sends);
     pp.query("do_not_use_cache", FabArrayBase::do_not_use_cache);
 
     pp.query("use_copy_cache",      use_copy_cache);
@@ -115,6 +118,7 @@ FabArrayBase::CopyComTag::CopyComTag (const FabArrayBase::CopyComTag& cct)
 
 FabArrayBase::CPC::CPC ()
     :
+    m_rcvs_numpts(0),
     m_reused(false)
 {}
 
@@ -127,6 +131,7 @@ FabArrayBase::CPC::CPC (const BoxArray&            dstba,
     m_srcba(srcba),
     m_dstdm(dstdm),
     m_srcdm(srcdm),
+    m_rcvs_numpts(0),
     m_reused(false)
 {}
 
@@ -136,6 +141,10 @@ FabArrayBase::CPC::CPC (const CPC& rhs)
     m_srcba(rhs.m_srcba),
     m_dstdm(rhs.m_dstdm),
     m_srcdm(rhs.m_srcdm),
+    m_rcvs_numpts(rhs.m_rcvs_numpts),
+    m_LocalTags(rhs.m_LocalTags),
+    m_SndTags(rhs.m_SndTags),
+    m_RcvTags(rhs.m_RcvTags),
     m_reused(rhs.m_reused)
 {}
 
@@ -333,7 +342,7 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
-    std::list<SIRec>&          sirec  = it->second.m_sirec;
+    std::deque<SIRec>&         sirec  = it->second.m_sirec;
     Array<int>&                cache  = it->second.m_cache;
 
     cache.resize(ParallelDescriptor::NProcs(),0);
