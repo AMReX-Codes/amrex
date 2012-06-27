@@ -282,7 +282,7 @@ public:
     // if ref_ratio[i] = cycle_max[i] = 4, then 1,2,3,4 are all valid 
     // values for n_cycles[i]
     //
-    static Real computeOptimalSubcycling(int n, 
+    static void computeOptimalSubcycling(int n, 
                                          int* best,
                                          Real* dt_max, 
                                          Real* est_work, 

@@ -2639,7 +2639,7 @@ Amr::initPltAndChk(ParmParse * pp)
 }
 
 
-Real 
+void
 Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, int* cycle_max)
 {
     BL_ASSERT(cycle_max[0] == 1);
