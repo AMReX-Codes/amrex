@@ -2682,7 +2682,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
     // This "may" touch ghost cells so we want to do it before
     // the SumBoundary() and SumPeriodicBoundary() stuff.
     //
-    AssignDensityDoit(mf,data,ncomp);
+    AssignDensityDoit(mf,data,ncomp, lev_min);
 
     for (int lev = lev_min; lev <= finest_level; lev++)
     {
