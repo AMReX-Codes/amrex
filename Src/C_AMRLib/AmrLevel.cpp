@@ -1431,3 +1431,9 @@ AmrLevel::which_time (int  indx,
     }
     return AmrOtherTime;
 }
+
+Real
+AmrLevel::estimateWork ()
+{
+    return 1.0*countCells();
+}

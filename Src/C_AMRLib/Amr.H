@@ -252,6 +252,10 @@ public:
     //
     void RegridOnly (Real time);
     //
+    // Should we regrid this level?
+    //
+    bool okToRegrid (int level);
+    //
     // Do a complete integration cycle.
     //
     virtual void coarseTimeStep (Real stop_time);
@@ -282,12 +286,12 @@ public:
     // if ref_ratio[i] = cycle_max[i] = 4, then 1,2,3,4 are all valid 
     // values for n_cycles[i]
     //
-    static void computeOptimalSubcycling(int n, 
+    static Real computeOptimalSubcycling(int n, 
                                          int* best,
                                          Real* dt_max, 
                                          Real* est_work, 
                                          int* cycle_max);
-
+                                         
 protected:
     //
     // Used by grid_places().
