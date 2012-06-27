@@ -474,24 +474,24 @@ This contains compiler settings and directories required by the make system to b
     Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
     as an environment variables on your system.
 
-    \item {\tt NDEBUG} ('{\tt t}' or '{\tt f}')
+    \item {\tt NDEBUG} ('{\tt t}' or '{\tt <blank>}') for TRUE or FALSE
       
     ``not debug'' (we know, confusing).  If '{\tt t}', modifies compiler flags to build a 
     more optimized version of the code.  The program will run faster, but have fewer 
     runtime error checks.
 
-    \item {\tt MPI} ('{\tt t}' or '{\tt f}')
+    \item {\tt MPI} ('{\tt t}' or '{\tt <blank>}')
 
     Indicate whether you want your executable to be MPI-compatible.  MPI must be installed on your
     machine in order to use this, and you must modify some of the make scripts, as will be 
     discussed later.
 
-    \item {\tt OMP} ('{\tt t}' or '{\tt f}')
+    \item {\tt OMP} ('{\tt t}' or '{\tt <blank>}')
 
     Turns on OpenMP compiler flags to compile in any OpenMP directives in the code.
     We will discuss OpenMP further in Section \ref{Sec:OpenMP}.
 
-    \item {\tt PROF} ('{\tt t}' or '{\tt f}')
+    \item {\tt PROF} ('{\tt t}' or '{\tt <blank>}')
 
     Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
     what subroutines are taking the most time and require more optimization.  Note that you still have 
@@ -509,7 +509,7 @@ This contains compiler settings and directories required by the make system to b
     because Cray bought out PathScale recently).  {\tt PGI} (available at OLCF and NERSC) 
     seems to work fine, but is slower than the others.
 
-    \item {\tt MKVERBOSE} ('{\tt t}' or '{\tt f}')
+    \item {\tt MKVERBOSE} ('{\tt t}' or '{\tt <blank>}')
 
     Verbosity of compile-time output.
 

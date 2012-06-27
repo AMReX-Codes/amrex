@@ -148,7 +148,11 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 		       bool _have_rhcc,
                        int nc,
                        int ncomp)
-    : m_nodal(nodal), have_rhcc(_have_rhcc), m_nlevel(grids.size()), m_grids(grids)
+    :
+    m_nlevel(grids.size()),
+    m_grids(grids),
+    m_nodal(nodal),
+    have_rhcc(_have_rhcc)
 {
     stencil_type =_stencil_type;
     BL_ASSERT(geom.size()==m_nlevel);
@@ -164,7 +168,11 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 		       int nc, 
 		       int ncomp,
 		       bool _have_rhcc)
-    : m_nodal(nodal), have_rhcc(_have_rhcc), m_nlevel(grids.size()), m_grids(grids)
+    :
+    m_nlevel(grids.size()),
+    m_grids(grids),
+    m_nodal(nodal),
+    have_rhcc(_have_rhcc)
 {
     stencil_type = -1;
     BL_ASSERT(geom.size()==m_nlevel);
