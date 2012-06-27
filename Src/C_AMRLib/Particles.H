@@ -3663,8 +3663,8 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
     {
         //
         // There's no parallel work to do.
+        // (the state may not be "OK")
         //
-        BL_ASSERT(OK());
         return;
     }
 
@@ -3924,8 +3924,8 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                 // It's in the no-aggregation buffer
                 // Create a copy
                 ParticleType p = *it;
-                // Set its id to 1 so it's clear there's no info there.
-                p.m_id = 1;
+                // Set its id to 1 billion so it's clear this is a virt.
+                p.m_id = 1000000000;
                 virts.push_back(p);
             }
             else
@@ -4049,9 +4049,9 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
                 //
                 ParticleType p = *it;
                 //
-                // Set its id to 1 so it's clear there's no info there.
+                // Set its id to 2 billion so it's clear that this is a ghost.
                 //
-                p.m_id = 1;
+                p.m_id = 2000000000;
                 //
                 // Set its position.
                 //
