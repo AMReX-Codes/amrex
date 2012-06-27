@@ -1491,7 +1491,7 @@ Amr::timeStep (int  level,
         {
             const int old_finest = finest_level;
 
-            if (level_count[i] >= regrid_int[i] && amr_level[i].okToRegrid())
+            if (okToRegrid(i))
             {
                 regrid(i,time);
 
@@ -2603,12 +2603,12 @@ Amr::initSubcycle (ParmParse * pp)
     else if (subcycling_mode == "Optimal")
     {
         // if subcycling mode is Optimal, n_cycle is set dynamically.
-        // We'll initialize it here to be non-subcycling.
-        for (i = 0; i <= max_level; i++)
+        // We'll initialize it to be Auto subcycling.
+        n_cycle[0] = 1;
+        for (i = 1; i <= max_level; i++)
         {
-            n_cycle[i] = 1;
-        }
-        BoxLib::Error("Optimal subcycling not implemented yet. Sorry.");
+            n_cycle[i] = MaxRefRatio(i-1);
+        } 
     }
     else
     {
@@ -2661,7 +2661,13 @@ Amr::initPltAndChk(ParmParse * pp)
 }
 
 
-void
+bool
+Amr::okToRegrid(int level)
+{
+    return level_count[level] >= regrid_int[level] && amr_level[level].okToRegrid();
+}
+
+Real
 Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, int* cycle_max)
 {
     BL_ASSERT(cycle_max[0] == 1);
@@ -2692,7 +2698,7 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
             work += cycles[i]*est_work[i];
         }
         ratio = work/dt;
-        if (ratio > best_ratio) 
+        if (ratio < best_ratio) 
         {
             for (int i  = 0; i < n; i++)
                 best[i] = cycles[i];
