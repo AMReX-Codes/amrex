@@ -5,7 +5,6 @@
 #include <iostream>
 #include <iomanip>
 #include <map>
-#include <deque>
 #include <limits>
 
 #include <BLassert.H>
@@ -1036,7 +1035,7 @@ MultiFab::SumBoundary (int  scomp,
 {
     if ( n_grow <= 0 ) return;
 
-    std::deque<SIRec>      sirec;
+    std::vector<SIRec>     sirec;
     MultiFabCopyDescriptor mfcd;
     const FabArrayId       mfid = mfcd.RegisterFabArray(this);
 
@@ -1078,7 +1077,7 @@ MultiFab::SumBoundary (int  scomp,
 
     FArrayBox fab;
 
-    for (std::deque<SIRec>::iterator it = sirec.begin(), End = sirec.end();
+    for (std::vector<SIRec>::iterator it = sirec.begin(), End = sirec.end();
          it != End;
          ++it)
     {

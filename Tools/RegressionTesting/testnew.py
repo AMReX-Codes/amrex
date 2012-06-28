@@ -555,68 +555,6 @@ def checkTestDir(dirName):
 
 
 #==============================================================================
-# doCVSUpdate
-#==============================================================================
-def doCVSUpdate(topDir, root, outDir, name=""):
-   """ do a CVS update of the repository named root.  topDir is the full path
-       to the directory containing root.  outDir is the full path to the 
-       directory where we will store the CVS output """
-
-   os.chdir(topDir)
- 
-   if (root == ""):
-       oname = name
-   else:
-       oname = root
-
-
-   print "\n"
-   bold("cvs update in %s" % (oname))
-
-   # we need to be tricky here to make sure that the stdin is
-   # presented to the user to get the password.  Therefore, we use the
-   # subprocess class instead of os.system
-   if (root == ""):
-       prog = ["cvs", "update"]
-   else:
-       prog = ["cvs", "update", "%s" % (root)]
-
-   p = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT)
-   stdout, stderr = p.communicate()
-
-
-   # check if CVS was successful and if so, write stdout (and error
-   # which was combined with stdout) into a log file
-   cvsFailed = 0
-   for line in stdout:
-       if (string.find(line, "update aborted") >= 0):
-           cvsFailed = 1
-           break
-
-   try:       
-       cf = open("cvs.%s.out" % (oname), 'w')
-   
-   except IOError:
-       fail("  ERROR: unable to open file for writing")
-
-   else:
-       for line in stdout:
-           cf.write(line)
-
-       cf.close()
-
-
-   if (cvsFailed or stdout == ""):
-       fail("  ERROR: cvs update was aborted. See cvs.%s.out for details" % (oname))
-       
-        
-   shutil.copy("cvs.%s.out" % (oname),  outDir)
-
-
-
-#==============================================================================
 # doGITUpdate
 #==============================================================================
 def doGITUpdate(topDir, root, outDir):
@@ -661,53 +599,13 @@ def doGITUpdate(topDir, root, outDir):
 
 
 #==============================================================================
-# makeCVSChangeLog
-#==============================================================================
-def makeCVSChangeLog(suite, root, outDir):
-   """ generate a ChangeLog for the CVS repository named root.  outDir
-       is the full path to the directory where we will store the CVS
-       output"""
-
-   os.chdir(suite.sourceDir)
-
-   have_cvs2cl = 0 
-
-   print "\n"
-   bold("generating ChangeLog for %s/" % (root))
-    
-   if (not os.path.isfile("%s/cvs2cl.pl" % (root) )):
-       if (not os.path.isfile("%s/Tools/F_scripts/cvs2cl.pl" % 
-                              (suite.boxLibDir) )):
-           warning("  WARNING: unable to locate cvs2cl.pl script.")
-           warning("           no ChangeLog will be generated")
-       else:
-           shutil.copy("%s/Tools/F_scripts/cvs2cl.pl" % (suite.boxLibDir), "%s/" % (root) )
-           have_cvs2cl = 1
-   else:
-       have_cvs2cl = 1
-
-   os.chdir("%s/" % (root) )
-
-   if (have_cvs2cl):
-       systemCall("./cvs2cl.pl -f ChangeLog.%s >& /dev/null" % (root) )
-   else:
-       cf = open("ChangeLog.%s" % (root), 'w')
-       cf.write("unable to generate ChangeLog")
-       cf.close()
-
-   os.chdir(suite.sourceDir)
-
-   shutil.copy("%s/ChangeLog.%s" % (root, root), outDir)
-
-
-#==============================================================================
 # makeGITChangeLog
 #==============================================================================
-def makeGITChangeLog(suite, root, outDir):
+def makeGITChangeLog(gitDir, root, outDir):
     """ generate a ChangeLog git repository named root.  outDir is the
         full path to the directory where we will store the git output"""
 
-    os.chdir(suite.boxLibDir)
+    os.chdir(gitDir)
 
 
     print "\n"
@@ -940,7 +838,7 @@ def testSuite(argv):
           future reference.
 
        --no_update
-          skip the cvs and git updates and run the suite on the code as it
+          skip the git updates and run the suite on the code as it
           exists now.
 
        --single_test mytest
@@ -1103,28 +1001,24 @@ def testSuite(argv):
 
 
     #--------------------------------------------------------------------------
-    # do the CVS updates
+    # do the source updates
     #--------------------------------------------------------------------------
     now = time.localtime(time.time())
-    cvsTime = time.strftime("%Y-%m-%d %H:%M:%S %Z", now)
+    updateTime = time.strftime("%Y-%m-%d %H:%M:%S %Z", now)
 
     os.chdir(suite.testTopDir)
     
     if (not no_update):
 
-       # Parallel
-       if (suite.sourceTree == "Parallel"):
-          doCVSUpdate(suite.sourceDir, "Parallel", fullWebDir)
-
-       # fParallel
-       doCVSUpdate(suite.sourceDir, "fParallel", fullWebDir)
+        # main suite
+        doGITUpdate(suite.sourceDir, suite.suiteName, fullWebDir)
     
-       # BoxLib
-       doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir)
+        # BoxLib
+        doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir)
 
-       # AstroDev
-       if (suite.useAstroDev):
-           doCVSUpdate(suite.astroDevDir, "", fullWebDir, name="AstroDev")
+        # AstroDev
+        if (suite.useAstroDev):
+            doGITUpdate(suite.astroDevDir, "AstroDev", fullWebDir)
 
 
     #--------------------------------------------------------------------------
@@ -1132,15 +1026,15 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     if (not no_update):
 
-       # Parallel
-       if (suite.sourceTree == "Parallel"):
-          makeCVSChangeLog(suite, "Parallel", fullWebDir)
-
-       # fParallel
-       makeCVSChangeLog(suite, "fParallel", fullWebDir)
+       # main suite 
+       makeGITChangeLog(suite.sourceDir, suite.suiteName, fullWebDir)
     
        # BoxLib
-       makeGITChangeLog(suite, "BoxLib", fullWebDir)
+       makeGITChangeLog(suite.boxLibDir, "BoxLib", fullWebDir)
+
+       # BoxLib
+       if (suite.useAstroDev):
+           makeGITChangeLog(suite.astroDevDir, "AstroDev", fullWebDir)
 
 
     #--------------------------------------------------------------------------
@@ -1748,7 +1642,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     print "\n"
     bold("creating new test report...")
-    reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, no_update,
+    reportThisTestRun(suite, make_benchmarks, comment, note, updateTime, no_update,
                       testList, testDir, testFile, fullWebDir)
 
 
@@ -2172,7 +2066,7 @@ def reportTestFailure(message, test, testDir, fullWebDir, compString=None):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, no_update,
+def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime, no_update,
                       testList, testDir, testFile, fullWebDir):
     """ generate the master page for a single run of the test suite """
     
@@ -2221,28 +2115,19 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, cvsTime, no_update,
 
     if (not no_update):
         hf.write("<p>&nbsp;\n")
-        hf.write("<p><b>CVS update was done at: </b>%s\n" % (cvsTime) )
+        hf.write("<p><b>source update was done at: </b>%s\n" % (updateTime) )
 
-        if (suite.sourceTree == "Parallel"):
-            hf.write("<p>&nbsp;&nbsp;<b>cvs update on Parallel/:</b> <A HREF=\"%s\">%s</A>\n" %
-                     ("cvs.Parallel.out", "cvs.Parallel.out") )
-
-        hf.write("<p>&nbsp;&nbsp;<b>cvs update on fParallel/:</b> <A HREF=\"%s\">%s</A>\n" %
-                 ("cvs.fParallel.out", "cvs.fParallel.out") )        
-        hf.write("<p>&nbsp;\n")
-
-
-        if (suite.sourceTree == "Parallel"):
-            hf.write("<p>&nbsp;&nbsp;<b>Parallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                     ("ChangeLog.Parallel", "ChangeLog.Parallel") )
-            
-        hf.write("<p>&nbsp;&nbsp;<b>fParallel/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                 ("ChangeLog.fParallel", "ChangeLog.fParallel") )        
+        hf.write("<p>&nbsp;&nbsp;<b>%s ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                 (suite.suiteName, "ChangeLog."+suite.suiteName, "ChangeLog."+suite.suiteName) )        
 
         hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
                  ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
+
+        if (suite.useAstroDev):
+            hf.write("<p>&nbsp;&nbsp;<b>AstroDev/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                     ("ChangeLog.AstroDev", "ChangeLog.AstroDev") )        
     else:
-        hf.write("<p>No CVS / git update done\n")
+        hf.write("<p>No git update done\n")
 
     hf.write("<p>&nbsp;\n")    
 

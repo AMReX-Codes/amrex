@@ -335,14 +335,12 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
     BL_ASSERT(mf.nGrow() == si.m_ngrow);
     BL_ASSERT(mf.boxArray() == si.m_ba);
 
-    const int key = mf.nGrow() + mf.size();
-
-    SIMMapIter it = SICache.insert(std::make_pair(key,si));
-
+    const int                  key    = mf.nGrow() + mf.size();
+    SIMMapIter                 it     = SICache.insert(std::make_pair(key,si));
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
-    std::deque<SIRec>&         sirec  = it->second.m_sirec;
+    std::vector<SIRec>&        sirec  = it->second.m_sirec;
     Array<int>&                cache  = it->second.m_cache;
 
     cache.resize(ParallelDescriptor::NProcs(),0);
