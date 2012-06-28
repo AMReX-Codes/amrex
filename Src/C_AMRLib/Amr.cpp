@@ -1491,7 +1491,7 @@ Amr::timeStep (int  level,
         {
             const int old_finest = finest_level;
 
-            if (level_count[i] >= regrid_int[i] && amr_level[i].okToRegrid())
+            if (okToRegrid(i))
             {
                 regrid(i,time);
 
@@ -1603,18 +1603,15 @@ Amr::coarseTimeStep (Real stop_time)
     //
     // Compute new dt.
     //
-    if (level_steps[0] > 0)
-    {
-        int post_regrid_flag = 0;
-        amr_level[0].computeNewDt(finest_level,
-                                  sub_cycle,
-                                  n_cycle,
-                                  ref_ratio,
-                                  dt_min,
-                                  dt_level,
-                                  stop_time,
-                                  post_regrid_flag);
-    }
+    int post_regrid_flag = 0;
+    amr_level[0].computeNewDt(finest_level,
+                              sub_cycle,
+                              n_cycle,
+                              ref_ratio,
+                              dt_min,
+                              dt_level,
+                              stop_time,
+                              post_regrid_flag);
     timeStep(0,cumtime,1,1,stop_time);
 
     cumtime += dt_level[0];
@@ -2603,12 +2600,12 @@ Amr::initSubcycle (ParmParse * pp)
     else if (subcycling_mode == "Optimal")
     {
         // if subcycling mode is Optimal, n_cycle is set dynamically.
-        // We'll initialize it here to be non-subcycling.
-        for (i = 0; i <= max_level; i++)
+        // We'll initialize it to be Auto subcycling.
+        n_cycle[0] = 1;
+        for (i = 1; i <= max_level; i++)
         {
-            n_cycle[i] = 1;
-        }
-        BoxLib::Error("Optimal subcycling not implemented yet. Sorry.");
+            n_cycle[i] = MaxRefRatio(i-1);
+        } 
     }
     else
     {
@@ -2658,5 +2655,59 @@ Amr::initPltAndChk(ParmParse * pp)
     {
         BoxLib::Error("Must only specify amr.plot_int OR amr.plot_per");
     }
+}
+
+
+bool
+Amr::okToRegrid(int level)
+{
+    return level_count[level] >= regrid_int[level] && amr_level[level].okToRegrid();
+}
+
+Real
+Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, int* cycle_max)
+{
+    BL_ASSERT(cycle_max[0] == 1);
+    // internally these represent the total number of steps at a level, 
+    // not the number of cycles
+    int cycles[n];
+    Real best_ratio = 1e200;
+    Real best_dt = 0;
+    Real ratio;
+    Real dt;
+    Real work;
+    int limit = 1;
+    // This provides a memory efficient way to test all candidates
+    for (int i = 1; i < n; i++)
+        limit *= cycle_max[i];
+    for (int candidate = 0; candidate < limit; candidate++)
+    {
+        int temp_cand = candidate;
+        cycles[0] = 1;
+        dt = dt_max[0];
+        work = est_work[0];
+        for (int i  = 1; i < n; i++)
+        {
+            // grab the relevant "digit" and shift over.
+            cycles[i] = (1 + temp_cand%cycle_max[i]) * cycles[i-1];
+            temp_cand /= cycle_max[i];
+            dt = std::min(dt, cycles[i]*dt_max[i]);
+            work += cycles[i]*est_work[i];
+        }
+        ratio = work/dt;
+        if (ratio < best_ratio) 
+        {
+            for (int i  = 0; i < n; i++)
+                best[i] = cycles[i];
+            best_ratio = ratio;
+            best_dt = dt;
+        }
+    }
+    //
+    // Now we convert best back to n_cycles format
+    //
+    for (int i = n-1; i > 0; i--)
+        best[i] /= best[i-1];
+    return best_dt;
 }
 
