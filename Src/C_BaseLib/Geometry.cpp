@@ -66,10 +66,10 @@ operator<< (std::ostream&          os,
 }
 
 std::ostream&
-operator<< (std::ostream&             os,
-	    const Geometry::PIRMList& pirm)
+operator<< (std::ostream&               os,
+	    const Geometry::PIRMVector& pirm)
 {
-    for (Geometry::PIRMList::const_iterator it = pirm.begin(), End = pirm.end();
+    for (Geometry::PIRMVector::const_iterator it = pirm.begin(), End = pirm.end();
          it != End;
          ++it)
     {
@@ -255,7 +255,7 @@ SumPeriodicBoundaryInnards (const MultiFab&         dstmf,
                             const Geometry&         geom,
                             MultiFabCopyDescriptor& mfcd,
                             const FabArrayId&       mfid,
-                            Geometry::PIRMList&     pirm,
+                            Geometry::PIRMVector&   pirm,
                             int                     scomp,
                             int                     ncomp)
 {
@@ -327,7 +327,7 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
             BL_ASSERT(mf.nGrow() <= Domain().length(n));
 #endif
 
-    PIRMList               pirm;
+    PIRMVector             pirm;
     MultiFabCopyDescriptor mfcd;
     const FabArrayId       mfid = mfcd.RegisterFabArray(&mf);
 
@@ -345,7 +345,7 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
 
     FArrayBox fab;
 
-    for (Geometry::PIRMList::const_iterator it = pirm.begin(), End = pirm.end();
+    for (Geometry::PIRMVector::const_iterator it = pirm.begin(), End = pirm.end();
          it != End;
          ++it)
     {
@@ -383,7 +383,7 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
             BL_ASSERT(srcmf.nGrow() <= Domain().length(n));
 #endif
 
-    PIRMList               pirm;
+    PIRMVector             pirm;
     MultiFabCopyDescriptor mfcd;
     const FabArrayId       mfid = mfcd.RegisterFabArray(const_cast<MultiFab*>(&srcmf));
 
@@ -401,7 +401,7 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
 
     FArrayBox fab;
 
-    for (Geometry::PIRMList::const_iterator it = pirm.begin(), End = pirm.end();
+    for (Geometry::PIRMVector::const_iterator it = pirm.begin(), End = pirm.end();
          it != End;
          ++it)
     {
