@@ -169,7 +169,7 @@ BndryData::define (const BoxArray& _grids,
             //
             // Turn mask off on intersection with grids at this level.
             //
-            isects = grids.intersections(face_box);
+            grids.intersections(face_box,isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
                 m->setVal(covered, isects[ii].second, 0);
@@ -184,7 +184,7 @@ BndryData::define (const BoxArray& _grids,
                 {
                     m->shift(pshifts[iiv]);
 
-                    isects = grids.intersections(m->box());
+                    grids.intersections(m->box(),isects);
 
                     for (int ii = 0, N = isects.size(); ii < N; ii++)
                         m->setVal(covered, isects[ii].second, 0);

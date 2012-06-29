@@ -333,6 +333,12 @@ public:
     // 
     virtual void setPlotVariables ();
     //
+    // Estimate the amount of work required to advance Just this level
+    // based on the number of cells.
+    // This estimate can be overwritten with different methods
+    //
+    virtual Real estimateWork();
+    //
     // Returns one the TimeLevel enums.
     // Asserts that time is between AmrOldTime and AmrNewTime.
     // 

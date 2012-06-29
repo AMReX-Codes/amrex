@@ -62,11 +62,6 @@ ifeq ($(ARCH),Linux)
   ifeq ($(COMP),PathScale)
     FC = mpif90
     F90 = mpif90
-    ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-      FC = mpipathf90
-      F90 = mpipathf90
-      CC = mpipathcc
-    endif
     ifdef MPIHOME
       mpi_include_dir = $(MPIHOME)/include
     endif
@@ -167,17 +162,6 @@ ifeq ($(findstring cvrsvc, $(HOST)), cvrsvc)
         CXX := mpiCC
         FC  := mpif90
         F90 := mpif90
-    endif
-endif
-ifeq ($(findstring nid, $(HOST)), nid)
-    #
-    # franklin.nersc.gov
-    #
-    ifdef MPI
-        CXX := CC -target=linux
-        CC  := cc -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
     endif
 endif
 ifeq ($(findstring grace, $(HOST)), grace)

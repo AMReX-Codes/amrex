@@ -184,10 +184,10 @@ DistributionMapping::Sort (std::vector<LIpair>& vec, bool reverse)
     }
 }
 
-Array<int>
-DistributionMapping::LeastUsedCPUs (int nprocs)
+void
+DistributionMapping::LeastUsedCPUs (int nprocs, Array<int>& result)
 {
-    Array<int> result(nprocs);
+    result.resize(nprocs);
 
 #ifdef BL_USE_MPI
     Array<long> bytes(nprocs);
@@ -221,8 +221,6 @@ DistributionMapping::LeastUsedCPUs (int nprocs)
         result[i] = i;
     }
 #endif
-
-    return result;
 }
 
 bool
@@ -377,7 +375,9 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                  nprocs,
                                      std::vector<LIpair>* LIpairV)
 {
-    Array<int> ord = LeastUsedCPUs(nprocs);
+    Array<int> ord;
+
+    LeastUsedCPUs(nprocs,ord);
 
     if (LIpairV)
     {
@@ -479,6 +479,7 @@ public:
         m_weight += bx.weight();
         m_lb->push_back(bx);
     }
+    int size () const { return m_lb->size(); }
     std::list<WeightedBox>::const_iterator begin () const { return m_lb->begin(); }
     std::list<WeightedBox>::iterator begin ()             { return m_lb->begin(); }
     std::list<WeightedBox>::const_iterator end () const   { return m_lb->end();   }
@@ -491,14 +492,16 @@ public:
 };
 
 static
-std::vector< std::list<int> >
-knapsack (const std::vector<long>& wgts, int nprocs)
+void
+knapsack (const std::vector<long>&         wgts,
+          int                              nprocs,
+          std::vector< std::vector<int> >& result)
 {
     const Real strttime = ParallelDescriptor::second();
     //
     // Sort balls by size largest first.
     //
-    std::vector< std::list<int> > result(nprocs);
+    result.resize(nprocs);
 
     std::vector<WeightedBox> lb;
     lb.reserve(wgts.size());
@@ -624,11 +627,16 @@ top:
     // Here I am "load-balanced".
     //
     std::list<WeightedBoxList>::const_iterator cit = wblqg.begin();
+
     for (int i = 0; i < nprocs; ++i)
     {
         const WeightedBoxList& wbl = *cit;
-        std::list<WeightedBox>::const_iterator it1 = wbl.begin(), end = wbl.end();
-        for ( ; it1 != end; ++it1)
+
+        result[i].reserve(wbl.size());
+
+        for (std::list<WeightedBox>::const_iterator it1 = wbl.begin(), End = wbl.end();
+            it1 != End;
+              ++it1)
         {
             result[i].push_back((*it1).boxid());
         }
@@ -648,17 +656,19 @@ top:
 
     for (int i  = 0; i < nprocs; i++)
         delete vbbs[i];
-
-    return result;
 }
 
 void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
                                    int                      nprocs)
 {
-    Array<int> ord = LeastUsedCPUs(nprocs);
+    Array<int> ord;
 
-    std::vector< std::list<int> > vec = knapsack(wgts,nprocs);
+    LeastUsedCPUs(nprocs,ord);
+
+    std::vector< std::vector<int> > vec;
+
+    knapsack(wgts,nprocs,vec);
 
     BL_ASSERT(vec.size() == nprocs);
 
@@ -666,7 +676,9 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     for (unsigned int i = 0, N = vec.size(); i < N; i++)
     {
-        for (std::list<int>::iterator lit = vec[i].begin(), End = vec[i].end(); lit != End; ++lit)
+        for (std::vector<int>::iterator lit = vec[i].begin(), End = vec[i].end();
+             lit != End;
+             ++lit)
         {
             wgts_per_cpu[i] += wgts[*lit];
         }
@@ -688,7 +700,9 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
         const int idx = LIpairV[i].second;
         const int cpu = ord[i%nprocs];
 
-        for (std::list<int>::iterator lit = vec[idx].begin(), End = vec[idx].end(); lit != End; ++lit)
+        for (std::vector<int>::iterator lit = vec[idx].begin(), End = vec[idx].end();
+             lit != End;
+             ++lit)
         {
             m_ref->m_pmap[*lit] = cpu;
         }
@@ -799,10 +813,11 @@ SFCToken::Compare::operator () (const SFCToken& lhs,
 }
 
 static
-std::vector< std::vector<int> >
-Distribute (const std::vector<SFCToken>& tokens,
-            int                          nprocs,
-            Real                         volpercpu)
+void
+Distribute (const std::vector<SFCToken>&     tokens,
+            int                              nprocs,
+            Real                             volpercpu,
+            std::vector< std::vector<int> >& v)
 
 {
     int  K        = 0;
@@ -810,7 +825,7 @@ Distribute (const std::vector<SFCToken>& tokens,
 
     const int Navg = tokens.size() / nprocs;
 
-    std::vector< std::vector<int> > v(nprocs);
+    v.resize(nprocs);
 
     for (int i = 0; i < nprocs; i++)
     {
@@ -846,8 +861,6 @@ Distribute (const std::vector<SFCToken>& tokens,
         cnt += v[i].size();
     BL_ASSERT(cnt == tokens.size());
 #endif
-
-    return v;
 }
 
 void
@@ -891,9 +904,13 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     //std::cout << "volpercpu = " << volpercpu << '\n';
 
-    std::vector< std::vector<int> > vec = Distribute(tokens,nprocs,volpercpu);
+    std::vector< std::vector<int> > vec;
 
-    Array<int> ord = LeastUsedCPUs(nprocs);
+    Distribute(tokens,nprocs,volpercpu,vec);
+
+    Array<int> ord;
+
+    LeastUsedCPUs(nprocs,ord);
 
     Array<long> wgts_per_cpu(nprocs,0);
 

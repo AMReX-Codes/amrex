@@ -10,7 +10,6 @@
 #include <TagBox.H>
 #include <Array.H>
 #include <CoordSys.H>
-#include <ParmParse.H>
 #include <BoxDomain.H>
 #include <Cluster.H>
 #include <LevelBld.H>
@@ -219,17 +218,6 @@ Amr::Amr ()
 
     pp.query("compute_new_dt_on_regrid",compute_new_dt_on_regrid);
 
-    pp.query("checkpoint_files_output", checkpoint_files_output);
-    pp.query("plot_files_output", plot_files_output);
-
-    pp.query("plot_nfiles", plot_nfiles);
-    pp.query("checkpoint_nfiles", checkpoint_nfiles);
-    //
-    // -1 ==> use ParallelDescriptor::NProcs().
-    //
-    if (plot_nfiles       == -1) plot_nfiles       = ParallelDescriptor::NProcs();
-    if (checkpoint_nfiles == -1) checkpoint_nfiles = ParallelDescriptor::NProcs();
-
     pp.query("refine_grid_layout", refine_grid_layout);
 
     pp.query("mffile_nstreams", mffile_nstreams);
@@ -238,10 +226,6 @@ Amr::Amr ()
     probinit_natonce = std::max(1, std::min(ParallelDescriptor::NProcs(), probinit_natonce));
 
     pp.query("file_name_digits", file_name_digits);
-
-    sub_cycle = true;
-    if (pp.contains("nosub"))
-        sub_cycle = false;
 
     pp.query("regrid_file",grids_file);
     if (pp.contains("run_log"))
@@ -326,33 +310,7 @@ Amr::Amr ()
     //
     // Read other amr specific values.
     //
-    check_file_root = "chk";
-    pp.query("check_file",check_file_root);
 
-    check_int = -1;
-    int got_check_int = pp.query("check_int",check_int);
-
-    check_per = -1.0;
-    int got_check_per = pp.query("check_per",check_per);
-
-    if (got_check_int == 1 && got_check_per == 1)
-    {
-        BoxLib::Error("Must only specify amr.check_int OR amr.check_per");
-    }
-
-    plot_file_root = "plt";
-    pp.query("plot_file",plot_file_root);
-
-    plot_int = -1;
-    int got_plot_int = pp.query("plot_int",plot_int);
-
-    plot_per = -1.0;
-    int got_plot_per = pp.query("plot_per",plot_per);
-
-    if (got_plot_int == 1 && got_plot_per == 1)
-    {
-        BoxLib::Error("Must only specify amr.plot_int OR amr.plot_per");
-    }
 
     pp.query("n_proper",n_proper);
     pp.query("grid_eff",grid_eff);
@@ -398,6 +356,17 @@ Amr::Amr ()
             BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
         }
     }
+    
+    //
+    // Setup plot and checkpoint controls.
+    //
+    initPltAndChk(& pp);
+    
+    //
+    // Setup subcycling controls.
+    //
+    initSubcycle(& pp);
+
     //
     // Read in max_grid_size.  Use defaults if not explicitly defined.
     //
@@ -1005,12 +974,9 @@ Amr::initialInit (Real strt_time,
 
     for (int lev = 1; lev <= max_level; lev++)
     {
-        const int fact = sub_cycle ? ref_ratio[lev-1][0] : 1;
-
-        dt0           /= Real(fact);
+        dt0           /= n_cycle[lev];
         dt_level[lev]  = dt0;
         dt_min[lev]    = dt_level[lev];
-        n_cycle[lev]   = fact;
     }
 
     if (max_level > 0)
@@ -1152,7 +1118,29 @@ Amr::restart (const std::string& filename)
            for (i = 0; i <= mx_lev; i++) dt_min[i] = dt_level[i];
        }
 
-       for (i = 0; i <= mx_lev; i++) is >> n_cycle[i];
+       Array<int>  n_cycle_in;
+       n_cycle_in.resize(mx_lev+1);  
+       for (i = 0; i <= mx_lev; i++) is >> n_cycle_in[i];
+       bool any_changed = false;
+
+       for (i = 0; i <= mx_lev; i++) 
+           if (n_cycle[i] != n_cycle_in[i])
+           {
+               any_changed = true;
+               if (verbose > 0 && ParallelDescriptor::IOProcessor())
+                   std::cout << "Warning: n_cycle has changed at level " << i << 
+                                " from " << n_cycle_in[i] << " to " << n_cycle[i] << std::endl;;
+           }
+
+       // If we change n_cycle then force a full regrid from level 0 up
+       if (max_level > 0 && any_changed)
+       {
+           level_count[0] = regrid_int[0];
+           if ((verbose > 0) && ParallelDescriptor::IOProcessor())
+               std::cout << "Warning: This forces a full regrid " << std::endl;
+       }
+
+
        for (i = 0; i <= mx_lev; i++) is >> level_steps[i];
        for (i = 0; i <= mx_lev; i++) is >> level_count[i];
 
@@ -1163,12 +1151,8 @@ Amr::restart (const std::string& filename)
        {
            for (i = mx_lev+1; i <= max_level; i++)
            {
-               const int rat  = MaxRefRatio(i-1);
-               const int mult = sub_cycle ? rat : 1;
-   
-               dt_level[i]    = dt_level[i-1]/Real(mult);
-               n_cycle[i]     = mult;
-               level_steps[i] = mult*level_steps[i-1];
+               dt_level[i]    = dt_level[i-1]/n_cycle[i];
+               level_steps[i] = n_cycle[i]*level_steps[i-1];
                level_count[i] = 0;
            }
 
@@ -1183,7 +1167,7 @@ Amr::restart (const std::string& filename)
            }
        }
 
-       if (regrid_on_restart and max_level > 0)
+       if (regrid_on_restart && max_level > 0)
            level_count[0] = regrid_int[0];
 
        checkInput();
@@ -1245,7 +1229,7 @@ Amr::restart (const std::string& filename)
        for (i = 0          ; i <= max_level; i++) is >> level_count[i];
        for (i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
 
-       if (regrid_on_restart and max_level > 0)
+       if (regrid_on_restart && max_level > 0)
            level_count[0] = regrid_int[0];
 
        checkInput();
@@ -1444,7 +1428,7 @@ Amr::timeStep (int  level,
     //
     // Allow regridding of level 0 calculation on restart.
     //
-    if (finest_level == 0 && regrid_on_restart)
+    if (max_level == 0 && regrid_on_restart)
     {
         regrid_on_restart = 0;
         //
@@ -1507,7 +1491,7 @@ Amr::timeStep (int  level,
         {
             const int old_finest = finest_level;
 
-            if (level_count[i] >= regrid_int[i] && amr_level[i].okToRegrid())
+            if (okToRegrid(i))
             {
                 regrid(i,time);
 
@@ -1538,9 +1522,7 @@ Amr::timeStep (int  level,
                     //
                     for (int k = old_finest+1; k <= finest_level; k++)
                     {
-                        const int fact = sub_cycle ? MaxRefRatio(k-1) : 1;
-                        dt_level[k]    = dt_level[k-1]/Real(fact);
-                        n_cycle[k]     = fact;
+                        dt_level[k]    = dt_level[k-1]/n_cycle[k];
                     }
                 }
             }
@@ -1621,7 +1603,8 @@ Amr::coarseTimeStep (Real stop_time)
     //
     // Compute new dt.
     //
-    if (level_steps[0] > 0)
+    
+    if (levelSteps(0) > 0)
     {
         int post_regrid_flag = 0;
         amr_level[0].computeNewDt(finest_level,
@@ -1632,6 +1615,15 @@ Amr::coarseTimeStep (Real stop_time)
                                   dt_level,
                                   stop_time,
                                   post_regrid_flag);
+    }
+    else
+    {
+        amr_level[0].computeInitialDt(finest_level,
+                                      sub_cycle,
+                                      n_cycle,
+                                      ref_ratio,
+                                      dt_level,
+                                      stop_time);
     }
     timeStep(0,cumtime,1,1,stop_time);
 
@@ -1835,7 +1827,7 @@ Amr::regrid (int  lbase,
       grid_places(lbase,time,new_finest, new_grid_places);
 
     bool regrid_level_zero =
-        lbase == 0 && new_grid_places[0] != amr_level[0].boxArray();
+        (lbase == 0 && new_grid_places[0] != amr_level[0].boxArray()) && (!initial);
 
     const int start = regrid_level_zero ? 0 : lbase+1;
 
@@ -2533,3 +2525,202 @@ Amr::bldFineLevels (Real strt_time)
 	while (!grids_the_same && count < MaxCnt);
       }
 }
+
+void
+Amr::initSubcycle (ParmParse * pp)
+{
+    int i;
+    sub_cycle = true;
+    if (pp->contains("nosub"))
+    {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "Warning: The nosub flag has been deprecated.\n ";
+            std::cout << "... please use subcycling_mode to control subcycling.\n";
+        }
+        int nosub;
+        pp->query("nosub",nosub);
+        if (nosub > 0)
+            sub_cycle = false;
+        else
+            BoxLib::Error("nosub <= 0 not allowed.\n");
+        subcycling_mode = "None";
+    }
+    else 
+    {
+        subcycling_mode = "Auto";
+        pp->query("subcycling_mode",subcycling_mode);
+    }
+    
+    if (subcycling_mode == "None")
+    {
+        sub_cycle = false;
+        for (i = 0; i <= max_level; i++)
+        {
+            n_cycle[i] = 1;
+        }
+    }
+    else if (subcycling_mode == "Manual")
+    {
+        int cnt = pp->countval("subcycling_iterations");
+
+        if (cnt == 1)
+        {
+            //
+            // Set all values to the single available value.
+            //
+            int cycles = 0;
+
+            pp->get("subcycling_iterations",cycles);
+
+            n_cycle[0] = 1; // coarse level is always 1 cycle
+            for (i = 1; i <= max_level; i++)
+            {
+                n_cycle[i] = cycles;
+            }
+        }
+        else if (cnt > 1)
+        {
+            //
+            // Otherwise we expect a vector of max_grid_size values.
+            //
+            pp->getarr("subcycling_iterations",n_cycle,0,max_level+1);
+            if (n_cycle[0] != 1)
+            {
+                BoxLib::Error("First entry of subcycling_iterations must be 1");
+            }
+        }
+        else
+        {
+            BoxLib::Error("Must provide a valid subcycling_iterations if mode is Manual");
+        }
+        for (i = 1; i <= max_level; i++)
+        {
+            if (n_cycle[i] > MaxRefRatio(i-1))
+                BoxLib::Error("subcycling iterations must always be <= ref_ratio");
+            if (n_cycle[i] <= 0)
+                BoxLib::Error("subcycling iterations must always be > 0");
+        }
+    }
+    else if (subcycling_mode == "Auto")
+    {
+        n_cycle[0] = 1;
+        for (i = 1; i <= max_level; i++)
+        {
+            n_cycle[i] = MaxRefRatio(i-1);
+        } 
+    }
+    else if (subcycling_mode == "Optimal")
+    {
+        // if subcycling mode is Optimal, n_cycle is set dynamically.
+        // We'll initialize it to be Auto subcycling.
+        n_cycle[0] = 1;
+        for (i = 1; i <= max_level; i++)
+        {
+            n_cycle[i] = MaxRefRatio(i-1);
+        } 
+    }
+    else
+    {
+        std::string err_message = "Unrecognzied subcycling mode: " + subcycling_mode + "\n";
+        BoxLib::Error(err_message.c_str());
+    }
+}
+
+void
+Amr::initPltAndChk(ParmParse * pp)
+{
+    pp->query("checkpoint_files_output", checkpoint_files_output);
+    pp->query("plot_files_output", plot_files_output);
+
+    pp->query("plot_nfiles", plot_nfiles);
+    pp->query("checkpoint_nfiles", checkpoint_nfiles);
+    //
+    // -1 ==> use ParallelDescriptor::NProcs().
+    //
+    if (plot_nfiles       == -1) plot_nfiles       = ParallelDescriptor::NProcs();
+    if (checkpoint_nfiles == -1) checkpoint_nfiles = ParallelDescriptor::NProcs();
+    
+    check_file_root = "chk";
+    pp->query("check_file",check_file_root);
+
+    check_int = -1;
+    int got_check_int = pp->query("check_int",check_int);
+
+    check_per = -1.0;
+    int got_check_per = pp->query("check_per",check_per);
+
+    if (got_check_int == 1 && got_check_per == 1)
+    {
+        BoxLib::Error("Must only specify amr.check_int OR amr.check_per");
+    }
+
+    plot_file_root = "plt";
+    pp->query("plot_file",plot_file_root);
+
+    plot_int = -1;
+    int got_plot_int = pp->query("plot_int",plot_int);
+
+    plot_per = -1.0;
+    int got_plot_per = pp->query("plot_per",plot_per);
+
+    if (got_plot_int == 1 && got_plot_per == 1)
+    {
+        BoxLib::Error("Must only specify amr.plot_int OR amr.plot_per");
+    }
+}
+
+
+bool
+Amr::okToRegrid(int level)
+{
+    return level_count[level] >= regrid_int[level] && amr_level[level].okToRegrid();
+}
+
+Real
+Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, int* cycle_max)
+{
+    BL_ASSERT(cycle_max[0] == 1);
+    // internally these represent the total number of steps at a level, 
+    // not the number of cycles
+    int cycles[n];
+    Real best_ratio = 1e200;
+    Real best_dt = 0;
+    Real ratio;
+    Real dt;
+    Real work;
+    int limit = 1;
+    // This provides a memory efficient way to test all candidates
+    for (int i = 1; i < n; i++)
+        limit *= cycle_max[i];
+    for (int candidate = 0; candidate < limit; candidate++)
+    {
+        int temp_cand = candidate;
+        cycles[0] = 1;
+        dt = dt_max[0];
+        work = est_work[0];
+        for (int i  = 1; i < n; i++)
+        {
+            // grab the relevant "digit" and shift over.
+            cycles[i] = (1 + temp_cand%cycle_max[i]) * cycles[i-1];
+            temp_cand /= cycle_max[i];
+            dt = std::min(dt, cycles[i]*dt_max[i]);
+            work += cycles[i]*est_work[i];
+        }
+        ratio = work/dt;
+        if (ratio < best_ratio) 
+        {
+            for (int i  = 0; i < n; i++)
+                best[i] = cycles[i];
+            best_ratio = ratio;
+            best_dt = dt;
+        }
+    }
+    //
+    // Now we convert best back to n_cycles format
+    //
+    for (int i = n-1; i > 0; i--)
+        best[i] /= best[i-1];
+    return best_dt;
+}
+
