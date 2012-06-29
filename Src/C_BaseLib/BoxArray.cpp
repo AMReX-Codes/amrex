@@ -303,8 +303,6 @@ BoxArray::contains (const IntVect& iv) const
     {
         std::vector< std::pair<int,Box> > isects;
 
-        isects.reserve(27);
-
         intersections(Box(iv,iv,get(0).ixType()),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
@@ -323,8 +321,6 @@ BoxArray::contains (const Box& b) const
         BL_ASSERT(get(0).sameType(b));
 
         std::vector< std::pair<int,Box> > isects;
-
-        isects.reserve(27);
 
         intersections(b,isects);
 
@@ -442,8 +438,6 @@ BoxArray::isDisjoint () const
     for (int i = 0, N = size(); i < N; i++)
     {
         std::vector< std::pair<int,Box> > isects;
-
-        isects.reserve(27);
 
         intersections(get(i),isects);
 
@@ -586,9 +580,7 @@ BoxLib::intersect (const BoxArray& ba,
 {
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
-
-    ba.intersections(b);
+    ba.intersections(b,isects);
 
     BoxArray r(isects.size());
 
@@ -645,8 +637,6 @@ BoxLib::GetBndryCells (const BoxArray& ba,
     //
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
-
     for (BoxList::const_iterator it = gcells.begin(), End = gcells.end(); it != End; ++it)
     {
         tba.intersections(*it,isects);
@@ -685,7 +675,6 @@ std::vector< std::pair<int,Box> >
 BoxArray::intersections (const Box& bx) const
 {
     std::vector< std::pair<int,Box> > isects;
-    isects.reserve(27);
     intersections(bx,isects);
     return isects;
 }
@@ -728,6 +717,8 @@ BoxArray::intersections (const Box&                         bx,
 
     isects.resize(0);
 
+    isects.reserve(27);
+
     if (m_ref->hash.isAllocated())
     {
         BL_ASSERT(bx.sameType(get(0)));
@@ -769,8 +760,6 @@ BoxArray::removeOverlap ()
     const Box EmptyBox;
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
     //
     // Note that "size()" can increase in this loop!!!
     //
