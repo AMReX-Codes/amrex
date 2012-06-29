@@ -336,8 +336,8 @@ ifeq ($(WHICHLINUX), HOPPER)
   ifeq ($(USE_IPM),TRUE)
     ifeq ($(COMP),PGI)
       LIBRARIES += $(IPM)
-    #elif ($(COMP),PathScale)
-      #LIBRARIES += $(IPM_GNU)
+    else
+      LIBRARIES += $(IPM_GNU)
     endif
   endif
 endif
