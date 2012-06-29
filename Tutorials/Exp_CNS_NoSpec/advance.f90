@@ -2,6 +2,7 @@
 
   use bl_error_module
   use multifab_module
+  use bl_prof_module
 
   implicit none
 
@@ -29,7 +30,10 @@
 
 contains
 
+
   subroutine advance (U,dt,dx,cfl,eta,alam)
+
+    use bl_prof_module
 
     type(multifab),   intent(inout) :: U
     double precision, intent(out  ) :: dt
@@ -49,12 +53,17 @@ contains
     double precision, parameter :: OneQuarter    = 1.d0/4.d0
     double precision, parameter :: ThreeQuarters = 3.d0/4.d0
 
+    type(bl_prof_timer), save :: bpt_advance
+
+    call build(bpt_advance, "bpt_advance")
+
     nc = ncomp(U)
     ng = nghost(U)
     la = get_layout(U)
     !
     ! Sync U prior to calculating D & F.
     !
+
     call multifab_fill_boundary(U)
 
     call multifab_build(D,    la, nc,   0)
@@ -67,6 +76,7 @@ contains
     ! Also calculate courno so we can set "dt".
     !
     courno_proc = 1.0d-50
+
 
     do n=1,nboxes(Q)
        if ( remote(Q,n) ) cycle
@@ -101,6 +111,7 @@ contains
 
        call diffterm(lo,hi,ng,dx,qp,dp,ETA,ALAM)
     end do
+
     !
     ! Calculate F at time N.
     !
@@ -116,6 +127,7 @@ contains
 
        call hypterm(lo,hi,ng,dx,up,qp,fp)
     end do
+
     !
     ! Calculate U at time N+1/3.
     !
@@ -296,9 +308,15 @@ contains
     call destroy(F)
     call destroy(D)
 
+    call destroy(bpt_advance)
+
   end subroutine advance
 
+
+
   subroutine ctoprim (lo,hi,u,q,dx,ng,courno)
+
+    use bl_prof_module
 
     integer,          intent(in ) :: lo(3), hi(3), ng
     double precision, intent(in ) :: u(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,5)
@@ -314,8 +332,13 @@ contains
     double precision, parameter :: GAMMA = 1.4d0
     double precision, parameter :: CV    = 8.3333333333d6
 
+    type(bl_prof_timer), save :: bpt_ctoprim, bpt_ctoprim_loop1, bpt_ctoprim_loop2
+
+    call build(bpt_ctoprim, "bpt_ctoprim")
+
     CVinv = 1.0d0 / CV
 
+    call build(bpt_ctoprim_loop1, "bpt_ctoprim_loop1")
     !$OMP PARALLEL DO PRIVATE(i,j,k,eint,rhoinv)
     do k = lo(3)-ng,hi(3)+ng
        do j = lo(2)-ng,hi(2)+ng
@@ -336,6 +359,7 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    call destroy(bpt_ctoprim_loop1)
 
     if ( present(courno) ) then
 
@@ -347,6 +371,7 @@ contains
        dx2inv = 1.0d0 / dx(2)
        dx3inv = 1.0d0 / dx(3)
 
+       call build(bpt_ctoprim_loop2, "bpt_ctoprim_loop2")
        !$OMP PARALLEL DO PRIVATE(i,j,k,c,courx,coury,courz) REDUCTION(max:courmx,courmy,courmz)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
@@ -365,6 +390,7 @@ contains
           enddo
        enddo
        !$OMP END PARALLEL DO
+       call destroy(bpt_ctoprim_loop2)
        !
        ! Compute running max of Courant number over grids.
        !
@@ -372,9 +398,15 @@ contains
 
     end if
 
+    call destroy(bpt_ctoprim)
+
   end subroutine ctoprim
 
+
+
   subroutine hypterm (lo,hi,ng,dx,cons,q,flux)
+
+    use bl_prof_module
 
     integer,          intent(in ) :: lo(3),hi(3),ng
     double precision, intent(in ) :: dx(3)
@@ -386,10 +418,17 @@ contains
     double precision :: unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4
     double precision :: dxinv(3)
 
+    type(bl_prof_timer), save :: bpt_hypterm, bpt_hypterm_loop1, bpt_hypterm_loop2, bpt_hypterm_loop3
+
+    call build(bpt_hypterm, "bpt_hypterm")
+
+
     do i=1,3
        dxinv(i) = 1.0d0 / dx(i)
     end do
 
+
+    call build(bpt_hypterm_loop1, "bpt_hypterm_loop1")
     !$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -446,7 +485,9 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    call destroy(bpt_hypterm_loop1)
 
+    call build(bpt_hypterm_loop2, "bpt_hypterm_loop2")
     !$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -503,7 +544,9 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    call destroy(bpt_hypterm_loop2)
 
+    call build(bpt_hypterm_loop3, "bpt_hypterm_loop3")
     !$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -560,10 +603,17 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    call destroy(bpt_hypterm_loop3)
+
+    call destroy(bpt_hypterm)
 
   end subroutine hypterm
 
+
+
   subroutine diffterm (lo,hi,ng,dx,q,difflux,eta,alam)
+
+    use bl_prof_module
 
     integer,          intent(in ) :: lo(3),hi(3),ng
     double precision, intent(in ) :: dx(3)
@@ -589,6 +639,12 @@ contains
     double precision, parameter :: OFF3   =    8.d0/315.d0
     double precision, parameter :: OFF4   =   -1.d0/560.d0
 
+    type(bl_prof_timer), save :: bpt_diffterm, bpt_diffterm_loop123, bpt_diffterm_loop4
+    type(bl_prof_timer), save :: bpt_diffterm_loop5, bpt_diffterm_loop6, bpt_diffterm_loop7
+
+
+    call build(bpt_diffterm, "bpt_diffterm")
+
     allocate(ux(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng))
     allocate(uy(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng))
     allocate(uz(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng))
@@ -605,6 +661,7 @@ contains
        dxinv(i) = 1.0d0 / dx(i)
     end do
 
+    call build(bpt_diffterm_loop123, "bpt_diffterm_loop123")
     !$OMP PARALLEL PRIVATE(i,j,k)
     !$OMP DO
     do k=lo(3)-ng,hi(3)+ng
@@ -687,7 +744,9 @@ contains
     enddo
     !$OMP END DO
     !$OMP END PARALLEL
+    call destroy(bpt_diffterm_loop123)
 
+    call build(bpt_diffterm_loop4, "bpt_diffterm_loop4")
     !$OMP PARALLEL DO PRIVATE(i,j,k,uxx,uyy,uzz,vyx,wzx)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -726,7 +785,9 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    call destroy(bpt_diffterm_loop4)
 
+    call build(bpt_diffterm_loop5, "bpt_diffterm_loop5")
     !$OMP PARALLEL DO PRIVATE(i,j,k,vxx,vyy,vzz,uxy,wzy)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -765,7 +826,9 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    call destroy(bpt_diffterm_loop5)
 
+    call build(bpt_diffterm_loop6, "bpt_diffterm_loop6")
     !$OMP PARALLEL DO PRIVATE(i,j,k,wxx,wyy,wzz,uxz,vyz)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -804,7 +867,9 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    call destroy(bpt_diffterm_loop6)
 
+    call build(bpt_diffterm_loop7, "bpt_diffterm_loop7")
     !$OMP PARALLEL DO PRIVATE(i,j,k,txx,tyy,tzz) &
     !$OMP PRIVATE(divu,tauxx,tauyy,tauzz,tauxy,tauxz,tauyz,mechwork)
     do k=lo(3),hi(3)
@@ -851,6 +916,9 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    call destroy(bpt_diffterm_loop7)
+
+    call destroy(bpt_diffterm)
 
   end subroutine diffterm
 
