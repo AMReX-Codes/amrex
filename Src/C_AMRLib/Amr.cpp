@@ -1603,15 +1603,28 @@ Amr::coarseTimeStep (Real stop_time)
     //
     // Compute new dt.
     //
-    int post_regrid_flag = 0;
-    amr_level[0].computeNewDt(finest_level,
-                              sub_cycle,
-                              n_cycle,
-                              ref_ratio,
-                              dt_min,
-                              dt_level,
-                              stop_time,
-                              post_regrid_flag);
+    
+    if (levelSteps(0) > 0)
+    {
+        int post_regrid_flag = 0;
+        amr_level[0].computeNewDt(finest_level,
+                                  sub_cycle,
+                                  n_cycle,
+                                  ref_ratio,
+                                  dt_min,
+                                  dt_level,
+                                  stop_time,
+                                  post_regrid_flag);
+    }
+    else
+    {
+        amr_level[0].computeInitialDt(finest_level,
+                                      sub_cycle,
+                                      n_cycle,
+                                      ref_ratio,
+                                      dt_level,
+                                      stop_time);
+    }
     timeStep(0,cumtime,1,1,stop_time);
 
     cumtime += dt_level[0];
