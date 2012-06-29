@@ -382,7 +382,7 @@ FabSet::linComb (Real            a,
     fbids_mfb.reserve(16);
 
     BoxArray ba_isects = bxa;
-    bxa.grow(ngrow);
+    ba_isects.grow(ngrow);
 
     std::vector< std::pair<int,Box> > isects;
 
