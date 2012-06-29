@@ -199,8 +199,13 @@ public:
     //
     struct CopyComTag
     {
-        CopyComTag ();
-        CopyComTag (const CopyComTag& cct);
+        CopyComTag () {}
+        CopyComTag (const CopyComTag& cct)
+            :
+            box(cct.box),
+            fabIndex(cct.fabIndex),
+            srcIndex(cct.srcIndex)
+            {}
 
         Box box;
         int fabIndex;

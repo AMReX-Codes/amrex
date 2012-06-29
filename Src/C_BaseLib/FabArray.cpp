@@ -105,15 +105,6 @@ FabArrayBase::CommDataCache::operator= (const Array<ParallelDescriptor::CommData
 // Stuff used for copy() caching.
 //
 
-FabArrayBase::CopyComTag::CopyComTag () {}
-
-FabArrayBase::CopyComTag::CopyComTag (const FabArrayBase::CopyComTag& cct)
-    :
-    box(cct.box),
-    fabIndex(cct.fabIndex),
-    srcIndex(cct.srcIndex)
-{}
-
 FabArrayBase::CPC::CPC ()
     :
     m_rcvs_numpts(0),
