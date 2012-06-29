@@ -445,8 +445,6 @@ FastContains (BoxArray& ba, const Box& bx)
 
         std::vector< std::pair<int,Box> > isects;
 
-        isects.reserve(27);
-
         ba.intersections(bx,isects);
 
         if (isects.size() > 0)

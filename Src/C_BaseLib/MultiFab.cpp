@@ -590,8 +590,6 @@ MultiFab::norm0 (int comp, const BoxArray& ba) const
 
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
- 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         ba.intersections(mfi.validbox(),isects);
@@ -997,8 +995,6 @@ MultiFab::FillBoundary (int  scomp,
 
         std::vector< std::pair<int,Box> > isects;
 
-        isects.reserve(27);
-
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
         {
             const int i = mfi.index();
@@ -1044,8 +1040,6 @@ MultiFab::SumBoundary (int  scomp,
     gba.grow(n_grow);
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
