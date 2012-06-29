@@ -224,8 +224,6 @@ FabSet::DoIt (const MultiFab& src,
 
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
-
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         ba_src.intersections((*this)[fsi].box(),isects);

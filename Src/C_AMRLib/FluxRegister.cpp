@@ -227,16 +227,10 @@ FluxRegister::Reflux (MultiFab&       S,
 
     std::deque<RF> RFs;
 
-    BoxArray ba(grids.size());
-
-    for (int i = 0, N = grids.size(); i < N; i++)
-    {
-        ba.set(i, BoxLib::grow(grids[i],1));
-    }
+    BoxArray ba = grids;
+    ba.grow(1);
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
@@ -446,16 +440,10 @@ FluxRegister::Reflux (MultiFab&       S,
 
     std::deque<RF> RFs;
 
-    BoxArray ba(grids.size());
-
-    for (int i = 0, N = grids.size(); i < N; i++)
-    {
-        ba.set(i, BoxLib::grow(grids[i],1));
-    }
+    BoxArray ba = grids;
+    ba.grow(1);
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
@@ -637,8 +625,6 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
-
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
     {
         mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box(),isects);
@@ -797,8 +783,6 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     fillBoxId.reserve(32);
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
     {
@@ -974,8 +958,6 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     const Orientation lo(dir,Orientation::low);
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     bndry[lo].boxArray().intersections(subbox,isects);
 

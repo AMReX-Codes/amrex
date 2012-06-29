@@ -293,8 +293,6 @@ BoxList::complementIn (const Box&     b,
 
         std::vector< std::pair<int,Box> > isects;
 
-        isects.reserve(27);
-
         for (BoxList::const_iterator bli = mesh.begin(), End = mesh.end(); bli != End; ++bli)
         {
             const Box bx = *bli & b;

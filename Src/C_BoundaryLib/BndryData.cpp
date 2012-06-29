@@ -118,8 +118,6 @@ BndryData::define (const BoxArray& _grids,
 
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
-
     for (OrientationIter fi; fi; ++fi)
     {
         const Orientation face      = fi();
