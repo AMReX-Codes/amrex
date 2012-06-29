@@ -394,8 +394,6 @@ LinOp::prepareForLevel (int level)
 
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
-
     for (OrientationIter oitr; oitr; ++oitr)
     {
         Orientation face = oitr();
