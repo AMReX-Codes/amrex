@@ -1814,7 +1814,7 @@ Amr::regrid (int  lbase,
       grid_places(lbase,time,new_finest, new_grid_places);
 
     bool regrid_level_zero =
-        lbase == 0 && new_grid_places[0] != amr_level[0].boxArray();
+        (lbase == 0 && new_grid_places[0] != amr_level[0].boxArray()) && (!initial);
 
     const int start = regrid_level_zero ? 0 : lbase+1;
 
