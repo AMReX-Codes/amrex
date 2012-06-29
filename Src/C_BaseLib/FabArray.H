@@ -137,8 +137,7 @@ public:
         SIRec ()
             :
             m_i(-1),
-            m_j(-1)
-            {}
+            m_j(-1) {}
 
         SIRec (int        i,
                int        j,
@@ -244,15 +243,15 @@ public:
         //
         // Some useful typedefs.
         //
-        typedef std::vector<CopyComTag> VectorOfCopyComTags;
+        typedef std::deque<CopyComTag> CopyComTagsContainer;
 
-        typedef std::map< int,std::vector<CopyComTag> > MapOfCopyComTagVectors;
+        typedef std::map< int,std::deque<CopyComTag> > MapOfCopyComTagContainers;
         //
         // The cache of local and send/recv info per FabArray::copy().
         //
-        VectorOfCopyComTags    m_LocTags;
-        MapOfCopyComTagVectors m_SndTags;
-        MapOfCopyComTagVectors m_RcvTags;
+        CopyComTagsContainer      m_LocTags;
+        MapOfCopyComTagContainers m_SndTags;
+        MapOfCopyComTagContainers m_RcvTags;
         //
         // Has this CPC ever been reused in the cache?
         //
@@ -1264,7 +1263,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         // All we need to do here are the local copy()s.
         //
-        for (CPC::VectorOfCopyComTags::iterator it = thecpc.m_LocTags.begin(),
+        for (CPC::CopyComTagsContainer::iterator it = thecpc.m_LocTags.begin(),
                  End = thecpc.m_LocTags.end();
              it != End;
              ++it)
@@ -1340,38 +1339,40 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 }
             }
         }
+#if 0
         //
         // Squish out any spare capacity.
         //
         if (!thecpc.m_LocTags.empty() && thecpc.m_LocTags.capacity() > thecpc.m_LocTags.size())
         {
-            CPC::VectorOfCopyComTags tmp(thecpc.m_LocTags);
+            CPC::CopyComTagsContainer tmp(thecpc.m_LocTags);
             tmp.swap(thecpc.m_LocTags);
         }
 
-        for (CPC::MapOfCopyComTagVectors::iterator m_it = thecpc.m_SndTags.begin(),
+        for (CPC::MapOfCopyComTagContainers::iterator m_it = thecpc.m_SndTags.begin(),
                  m_End = thecpc.m_SndTags.end();
              m_it != m_End;
              ++m_it)
         {
             if (!m_it->second.empty() && m_it->second.capacity() > m_it->second.size())
             {
-                CPC::VectorOfCopyComTags tmp(m_it->second);
+                CPC::CopyComTagsContainer tmp(m_it->second);
                 tmp.swap(m_it->second);
             }
         }
 
-        for (CPC::MapOfCopyComTagVectors::iterator m_it = thecpc.m_RcvTags.begin(),
+        for (CPC::MapOfCopyComTagContainers::iterator m_it = thecpc.m_RcvTags.begin(),
                  m_End = thecpc.m_RcvTags.end();
              m_it != m_End;
              ++m_it)
         {
             if (!m_it->second.empty() && m_it->second.capacity() > m_it->second.size())
             {
-                CPC::VectorOfCopyComTags tmp(m_it->second);
+                CPC::CopyComTagsContainer tmp(m_it->second);
                 tmp.swap(m_it->second);
             }
-        }
+       } 
+#endif
     }
     
     if (NProcs == 1) return;
@@ -1387,13 +1388,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         Array<int> sendcount(NProcs,0), recvcount(NProcs,0);
         Array<int> senddspls(NProcs,0), recvdspls(NProcs,0);
         
-        for (CPC::MapOfCopyComTagVectors::const_iterator m_it = thecpc.m_SndTags.begin(),
+        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
                  m_End = thecpc.m_SndTags.end();
              m_it != m_End;
              ++m_it)
         {
             int Ns = 0;
-            for (CPC::VectorOfCopyComTags::const_iterator it = m_it->second.begin(),
+            for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1404,13 +1405,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             sendcount[m_it->first] = Ns;
         }
 
-        for (CPC::MapOfCopyComTagVectors::const_iterator m_it = thecpc.m_RcvTags.begin(),
+        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
                  m_End = thecpc.m_RcvTags.end();
              m_it != m_End;
              ++m_it)
         {
             int Nr = 0;
-            for (CPC::VectorOfCopyComTags::const_iterator it = m_it->second.begin(),
+            for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1437,12 +1438,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         value_type* senddptr = senddata;
 
-        for (CPC::MapOfCopyComTagVectors::const_iterator m_it = thecpc.m_SndTags.begin(),
+        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
                  m_End = thecpc.m_SndTags.end();
              m_it != m_End;
              ++m_it)
         {
-            for (CPC::VectorOfCopyComTags::const_iterator it = m_it->second.begin(),
+            for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1472,12 +1473,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         value_type* recvdptr = recvdata;
 
-        for (CPC::MapOfCopyComTagVectors::const_iterator m_it = thecpc.m_RcvTags.begin(),
+        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
                  m_End = thecpc.m_RcvTags.end();
              m_it != m_End;
              ++m_it)
         {
-            for (CPC::VectorOfCopyComTags::const_iterator it = m_it->second.begin(),
+            for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1529,13 +1530,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         int idx = 0, offset = 0;
 
-        for (CPC::MapOfCopyComTagVectors::const_iterator m_it = thecpc.m_RcvTags.begin(),
+        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
                  m_End = thecpc.m_RcvTags.end();
              m_it != m_End;
              ++m_it, ++idx)
         {
             int N = 0;
-            for (CPC::VectorOfCopyComTags::const_iterator it = m_it->second.begin(),
+            for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1559,13 +1560,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         idx = 0;
 
-        for (CPC::MapOfCopyComTagVectors::const_iterator m_it = thecpc.m_SndTags.begin(),
+        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
                  m_End = thecpc.m_SndTags.end();
              m_it != m_End;
              ++m_it, ++idx)
         {
             int N = 0;
-            for (CPC::VectorOfCopyComTags::const_iterator it = m_it->second.begin(),
+            for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1577,7 +1578,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
             value_type* dptr = data;
 
-            for (CPC::VectorOfCopyComTags::const_iterator it = m_it->second.begin(),
+            for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
                  it != End;
                  ++it)
@@ -1605,7 +1606,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         // Now receive and unpack FAB data as it becomes available.
         //
-        CPC::MapOfCopyComTagVectors::const_iterator m_it;
+        CPC::MapOfCopyComTagContainers::const_iterator m_it;
 
         for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
         {
@@ -1621,7 +1622,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
                 BL_ASSERT(m_it != thecpc.m_RcvTags.end());
 
-                for (CPC::VectorOfCopyComTags::const_iterator it = m_it->second.begin(),
+                for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                          End = m_it->second.end();
                      it != End;
                      ++it)
