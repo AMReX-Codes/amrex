@@ -2,13 +2,119 @@
 #include <ParmParse.H>
 #include <limits>
 
+void
+ParticleBase::CIC_Cells_Fracs_Basic (const ParticleBase& p,
+                                     const Real*         plo,
+                                     const Real*         dx,
+                                     Real*               fracs,
+                                     IntVect*            cells)
+{
+    //
+    // "fracs" should be dimensioned: Real    fracs[D_TERM(2,+2,+4)]
+    //
+    // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
+    //
+    const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + 0.5,
+                                           (p.m_pos[1]-plo[1])/dx[1] + 0.5,
+                                           (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
+
+    const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+
+    const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
+
+    ParticleBase::CIC_Fracs(frac, fracs);
+    ParticleBase::CIC_Cells(cell, cells);
+}
+
+int
+ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
+                               const Real*         plo,
+                               const Real*         dx_geom,
+                               const Real*         dx_part,
+                               Array<Real>&        fracs,
+                               Array<IntVect>&     cells)
+{
+    if (dx_geom == dx_part)
+    {
+        const int M = D_TERM(2,+2,+4);
+        fracs.resize(M);
+        cells.resize(M);
+        ParticleBase::CIC_Cells_Fracs_Basic(p,plo,dx_geom,fracs.dataPtr(),cells.dataPtr());
+        return M;
+    }
+    //
+    // The first element in fracs and cells is the lowest corner, the last is the highest.
+    //
+    const Real hilen[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0]+dx_part[0]/2)/dx_geom[0],
+                                             (p.m_pos[1]-plo[1]+dx_part[1]/2)/dx_geom[1],
+                                             (p.m_pos[2]-plo[2]+dx_part[2]/2)/dx_geom[2]) };
+
+    const Real lolen[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0]-dx_part[0]/2)/dx_geom[0],
+                                             (p.m_pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
+                                             (p.m_pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
+
+    const IntVect hicell(D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
+    
+    const IntVect locell(D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
+    
+    const Real cell_density = D_TERM(dx_geom[0]/dx_part[0],*dx_geom[1]/dx_part[1],*dx_geom[2]/dx_part[2]);
+    
+    const int M = D_TERM((hicell[0]-locell[0]+1),*(hicell[1]-locell[1]+1),*(hicell[2]-locell[2]+1));
+
+    fracs.resize(M);
+    cells.resize(M);
+    //
+    // This portion might be slightly inefficient. Feel free to redo it if need be.
+    //
+    int i = 0;
+#if (BL_SPACEDIM == 1)
+    for (int xi = locell[0]; xi <= hicell[0]; xi++)
+    {
+        cells[i][0] = xi;
+        fracs[i] = (std::min(hilen[0]-xi,1.0)-std::max(lolen[0]-xi,0.0))*cell_density;
+        i++;
+    }
+#elif (BL_SPACEDIM == 2)
+    for (int yi = locell[1]; yi <= hicell[1]; yi++)
+    {
+        const Real yf = std::min(hilen[1]-yi,1.0)-std::max(lolen[1]-yi,0.0);
+        for (int xi = locell[0]; xi <= hicell[0]; xi ++)
+        {
+            cells[i][0] = xi;
+            cells[i][1] = yi;
+            fracs[i] = yf * (std::min(hilen[0]-xi,1.0)-std::max(lolen[0]-xi,0.0))*cell_density;
+            i++;
+        }
+    }
+#elif (BL_SPACEDIM == 3)
+    for (int zi = locell[2]; zi <= hicell[2]; zi++)
+    {
+        const Real zf = std::min(hilen[2]-zi,1.0)-std::max(lolen[2]-zi,0.0);
+        for (int yi = locell[1]; yi <= hicell[1]; yi++)
+        {
+            const Real yf = std::min(hilen[1]-yi,1.0)-std::max(lolen[1]-yi,0.0);
+            for (int xi = locell[0]; xi <= hicell[0]; xi++)
+            {
+                cells[i][0] = xi;
+                cells[i][1] = yi;
+                cells[i][2] = zi;
+                fracs[i] = zf * yf * (std::min(hilen[0]-xi,1.0)-std::max(lolen[0]-xi,0.0)) * cell_density;
+                i++;
+            }
+        }
+    }
+#endif
+
+    return M;
+}
+
 bool
-ParticleBase::CrseToFine (const BoxArray& cfba,
-                          const IntVect*  cells,
-                          IntVect*        cfshifts,
-                          const Geometry& gm,
-                          bool*           which,
-                          Array<IntVect>& pshifts)
+ParticleBase::CrseToFine (const BoxArray&       cfba,
+                          const Array<IntVect>& cells,
+                          Array<IntVect>&       cfshifts,
+                          const Geometry&       gm,
+                          Array<int>&           which,
+                          Array<IntVect>&       pshifts)
 {
     //
     // We're in AssignDensity(). We want to know whether or not updating
@@ -16,10 +122,13 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
     // with coarsened fine BoxArray "cfba".  "cells" are as calculated from
     // CIC_Cells_Fracs().
     //
-    const int M = D_TERM(2,+2,+4);
+    const int M = cells.size();
+
+    which.resize(M);
+    cfshifts.resize(M);
 
     for (int i = 0; i < M; i++)
-        which[i] =  false;
+        which[i] =  0;
 
     bool result = false;
 
@@ -28,7 +137,7 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
         if (cfba.contains(cells[i]))
         {
             result      = true;
-            which[i]    = true;
+            which[i]    = 1;
             cfshifts[i] = IntVect::TheZeroVector();
         }
         else if (!gm.Domain().contains(cells[i]))
@@ -57,7 +166,7 @@ ParticleBase::CrseToFine (const BoxArray& cfba,
                     // at the fine level.
                     //
                     result      = true;
-                    which[i]    = true;
+                    which[i]    = 1;
                     cfshifts[i] = pshifts[0];
                 }
             }
@@ -71,13 +180,13 @@ bool
 ParticleBase::FineToCrse (const ParticleBase&                p,
                           int                                flev,
                           const Amr*                         amr,
-                          const IntVect*                     fcells,
+                          const Array<IntVect>&              fcells,
                           const BoxArray&                    fvalid,
                           const BoxArray&                    compfvalid_grown,
-                          IntVect*                           ccells,
-                          Real*                              cfracs,
-                          bool*                              which,
-                          int*                               cgrid,
+                          Array<IntVect>&                    ccells,
+                          Array<Real>&                       cfracs,
+                          Array<int>&                        which,
+                          Array<int>&                        cgrid,
                           Array<IntVect>&                    pshifts,
                           std::vector< std::pair<int,Box> >& isects)
 {
@@ -89,12 +198,17 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
     // a periodic boundary, where the periodic shift lies in our valid region,
     // is not considered a Fine->Crse crossing.
     //
-    const int M = D_TERM(2,+2,+4);
+    const int M = fcells.size();
+
+    which.resize(M);
+    cgrid.resize(M);
+    ccells.resize(M);
+    cfracs.resize(M);
 
     for (int i = 0; i < M; i++)
     {
         cgrid[i] = -1;
-        which[i] = false;
+        which[i] =  0;
     }
 
     const Box ibx = BoxLib::grow(amr->boxArray(flev)[p.m_grid],-1);
@@ -140,10 +254,10 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
         if (!fvalid.contains(ccell_refined))
         {
             result   = true;
-            which[i] = true;
+            which[i] = 1;
 
             Box cbx(ccells[i],ccells[i]);
-
+    
             if (!cgm.Domain().contains(ccells[i]))
             {
                 //
@@ -159,14 +273,13 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
                 cbx -= pshifts[0];
 
                 ccells[i] -= pshifts[0];
-
                 BL_ASSERT(cbx.ok());
                 BL_ASSERT(cgm.Domain().contains(cbx));
             }
             //
             // Which grid at the crse level do we need to update?
             //
-            isects = cba.intersections(cbx);
+            cba.intersections(cbx,isects);
 
             BL_ASSERT(!isects.empty());
             BL_ASSERT(isects.size() == 1);
@@ -202,9 +315,14 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
     {
         BL_ASSERT(fba.contains(fbx));
     }
-    fgrid.clear();
-    ffrac.clear();
-    fcells.clear();
+    //
+    // Instead of clear()ing these we'll do a resize(0).
+    // This'll preserve their capacity so that we'll only need
+    // to do any memory allocation when their capacity needs to increase.
+    //
+    fgrid.resize(0);
+    ffrac.resize(0);
+    fcells.resize(0);
     //
     // Which fine cells does particle "p" (that wants to update "ccell") do we
     // touch at the finer level?
@@ -277,7 +395,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
             iv -= fshift;
         }
 
-        isects = fba.intersections(Box(iv,iv));
+        fba.intersections(Box(iv,iv),isects);
 
         BL_ASSERT(!isects.empty());
         BL_ASSERT(isects.size() == 1);
@@ -414,7 +532,7 @@ ParticleBase::Where (ParticleBase& p,
         BL_ASSERT(p.m_id > 0);
         BL_ASSERT(p.m_grid >= 0 && p.m_grid < amr->boxArray(p.m_lev).size());
 
-        IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
+        const IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
 
         if (p.m_cell == iv)
             //
@@ -444,9 +562,9 @@ ParticleBase::Where (ParticleBase& p,
 
     for (int lev = finest_level; lev >= lev_min; lev--)
     {
-        IntVect iv = ParticleBase::Index(p,lev,amr);
+        const IntVect iv = ParticleBase::Index(p,lev,amr);
 
-        isects = amr->boxArray(lev).intersections(Box(iv,iv));
+        amr->boxArray(lev).intersections(Box(iv,iv),isects);
 
         if (!isects.empty())
         {
@@ -498,9 +616,9 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
 
         for (int lev = finest_level; lev >= lev_min; lev--)
         {
-            IntVect iv = ParticleBase::Index(p_prime,lev,amr);
+            const IntVect iv = ParticleBase::Index(p_prime,lev,amr);
 
-            isects = amr->boxArray(lev).intersections(Box(iv,iv));
+            amr->boxArray(lev).intersections(Box(iv,iv),isects);
 
             if (!isects.empty())
             {
@@ -527,7 +645,9 @@ ParticleBase::RestrictedWhere (ParticleBase& p,
                                const Amr*    amr,
                                int           ngrow)
 {
-    IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
+    BL_ASSERT(amr != 0);
+
+    const IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
 
     if (BoxLib::grow(amr->boxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
     {
@@ -535,9 +655,36 @@ ParticleBase::RestrictedWhere (ParticleBase& p,
 
         return true;
     }
+
     return false;
 }
 
+bool 
+ParticleBase::SingleLevelWhere (ParticleBase& p, 
+                                const Amr*    amr,
+                                int           level)
+{
+    BL_ASSERT(amr != 0);
+
+    const IntVect iv = ParticleBase::Index(p,level,amr);
+
+    std::vector< std::pair<int,Box> > isects;
+
+    amr->boxArray(level).intersections(Box(iv,iv),isects);
+
+    if (!isects.empty())
+    {
+        BL_ASSERT(isects.size() == 1);
+
+        p.m_lev  = level;
+        p.m_grid = isects[0].first;
+        p.m_cell = iv;
+
+        return true;
+    }
+
+    return false;
+}
 void
 ParticleBase::PeriodicShift (ParticleBase& p,
                              const Amr*    amr)
@@ -551,8 +698,9 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     //
     const Geometry& geom = amr->Geom(0);
     const Box&      dmn  = geom.Domain();
-    IntVect         iv   = ParticleBase::Index(p,0,amr);
+    const IntVect   iv   = ParticleBase::Index(p,0,amr);
     const Real      eps  = 1.e-13;
+
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
         if (!geom.isPeriodic(i)) continue;
@@ -685,7 +833,7 @@ ParticleBase::Interp (const ParticleBase& prt,
     //
     // Get "fracs" and "cells".
     //
-    ParticleBase::CIC_Cells_Fracs(prt, plo, dx, fracs, cells);
+    ParticleBase::CIC_Cells_Fracs_Basic(prt, plo, dx, fracs, cells);
 
     for (int i = 0; i < cnt; i++)
     {

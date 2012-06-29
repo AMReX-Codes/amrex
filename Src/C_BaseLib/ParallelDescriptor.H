@@ -116,16 +116,25 @@ namespace ParallelDescriptor
     {
     public:
 
-	Message ();
-	Message (MPI_Request req_, MPI_Datatype type_);
-	Message (MPI_Status stat_, MPI_Datatype type_);
+	Message () :
+            m_finished(true),
+            m_type(MPI_DATATYPE_NULL),
+            m_req(MPI_REQUEST_NULL) {}
+	Message (MPI_Request req_, MPI_Datatype type_) :
+            m_finished(false),
+            m_type(type_),
+            m_req(req_) {}
+	Message (MPI_Status stat_, MPI_Datatype type_) :
+            m_finished(true),
+            m_type(type_),
+            m_req(MPI_REQUEST_NULL), m_stat(stat_) {}
 	void wait ();
 	bool test ();
 	size_t count () const;
 	int tag () const;
 	int pid () const;
-	MPI_Datatype type () const;
-	MPI_Request  req () const;
+	MPI_Datatype type () const { return m_type; }
+	MPI_Request  req () const { return m_req; }
 
     private:
 
@@ -191,19 +200,12 @@ namespace ParallelDescriptor
     {
         return m_comm;
     }
-    //
-    // 
-    //
-    void Barrier ();
 
+    void Barrier ();
     void Barrier (MPI_Comm comm);
-    //
-    // 
-    //
+
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
-    //
-    // 
-    //
+
     void Comm_dup (MPI_Comm comm, MPI_Comm& newcomm);
     //
     // Issue architecture specific Abort.
