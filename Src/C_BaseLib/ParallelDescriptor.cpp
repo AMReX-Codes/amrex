@@ -995,11 +995,6 @@ ParallelDescriptor::Gather (Real* sendbuf,
         recvbuf[i] = sendbuf[i];
 }
 
-ParallelDescriptor::Message::Message ()
-    :
-    m_finished(true)
-{}
-
 void
 ParallelDescriptor::Message::wait ()
 {}
@@ -1008,12 +1003,6 @@ bool
 ParallelDescriptor::Message::test ()
 {
     return m_finished;
-}
-
-MPI_Request
-ParallelDescriptor::Message::req () const
-{
-    return m_req;
 }
 
 void ParallelDescriptor::EndParallel () {}
