@@ -4279,6 +4279,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                             }
                             else
                             {
+                                std::cout << "Bad Particle: " << p << '\n';
                                 BoxLib::Abort("ParticleContainer<N>::Redistribute(): invalid particle in basic check");
                             }
                         }

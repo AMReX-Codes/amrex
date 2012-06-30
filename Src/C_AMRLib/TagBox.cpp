@@ -561,8 +561,6 @@ TagBoxArray::setVal (const BoxArray& ba,
 {
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
-
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         ba.intersections(fai.validbox(),isects);

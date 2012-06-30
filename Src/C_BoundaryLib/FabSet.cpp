@@ -224,8 +224,6 @@ FabSet::DoIt (const MultiFab& src,
 
     std::vector< std::pair<int,Box> > isects;
 
-    isects.reserve(27);
-
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         ba_src.intersections((*this)[fsi].box(),isects);
@@ -383,16 +381,10 @@ FabSet::linComb (Real            a,
     fbids_mfa.reserve(16);
     fbids_mfb.reserve(16);
 
-    BoxArray ba_isects(bxa.size());  // Temp BoxArray for intersections() usage below.
-
-    for (int i = 0, N = bxa.size(); i < N; i++)
-    {
-        ba_isects.set(i, BoxLib::grow(bxa[i],ngrow));
-    }
+    BoxArray ba_isects = bxa;
+    ba_isects.grow(ngrow);
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
