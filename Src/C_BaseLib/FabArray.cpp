@@ -1,7 +1,5 @@
 #include <winstd.H>
 
-#include <map>
-
 #include <FabArray.H>
 #include <ParmParse.H>
 //
@@ -107,15 +105,6 @@ FabArrayBase::CommDataCache::operator= (const Array<ParallelDescriptor::CommData
 // Stuff used for copy() caching.
 //
 
-FabArrayBase::CopyComTag::CopyComTag () {}
-
-FabArrayBase::CopyComTag::CopyComTag (const FabArrayBase::CopyComTag& cct)
-    :
-    box(cct.box),
-    fabIndex(cct.fabIndex),
-    srcIndex(cct.srcIndex)
-{}
-
 FabArrayBase::CPC::CPC ()
     :
     m_rcvs_numpts(0),
@@ -142,7 +131,7 @@ FabArrayBase::CPC::CPC (const CPC& rhs)
     m_dstdm(rhs.m_dstdm),
     m_srcdm(rhs.m_srcdm),
     m_rcvs_numpts(rhs.m_rcvs_numpts),
-    m_LocalTags(rhs.m_LocalTags),
+    m_LocTags(rhs.m_LocTags),
     m_SndTags(rhs.m_SndTags),
     m_RcvTags(rhs.m_RcvTags),
     m_reused(rhs.m_reused)
@@ -340,14 +329,12 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
-    std::vector<SIRec>&        sirec  = it->second.m_sirec;
+    SI::SIRecVector&           sirec  = it->second.m_sirec;
     Array<int>&                cache  = it->second.m_cache;
 
     cache.resize(ParallelDescriptor::NProcs(),0);
 
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -373,6 +360,15 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
         }
 
         BL_ASSERT(cache[DMap[i]] == 0);
+    }
+
+    if (!sirec.empty() && sirec.capacity() > sirec.size())
+    {
+        //
+        // Squish out any spare capacity.
+        //
+        SI::SIRecVector tmp(sirec);
+        tmp.swap(sirec);
     }
 
     return it->second;
@@ -449,4 +445,3 @@ FabArrayBase::TheFBsirec (int                 scomp,
 
     return BuildFBsirec(si,mf);
 }
-

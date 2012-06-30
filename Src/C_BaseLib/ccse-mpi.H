@@ -43,8 +43,9 @@ typedef int MPI_Comm;
 typedef int MPI_Datatype;
 struct MPI_Status {};
 typedef int MPI_Request;
-const int MPI_REQUEST_NULL = 0;
-const int MPI_COMM_WORLD   = 0;
+const int MPI_DATATYPE_NULL = 0;
+const int MPI_REQUEST_NULL  = 0;
+const int MPI_COMM_WORLD    = 0;
 
 namespace ParallelDescriptor
 {
