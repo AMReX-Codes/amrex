@@ -644,6 +644,12 @@ Amr::setDtLevel (const Array<Real>& dt_lev)
 }
 
 void
+Amr::setDtLevel (Real dt, int lev)
+{
+    dt_level[lev] = dt;
+}
+
+void
 Amr::setNCycle (const Array<int>& ns)
 {
     for (int i = 0; i <= finest_level; i++)
