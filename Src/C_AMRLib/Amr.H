@@ -47,6 +47,10 @@ public:
     //
     void setDtLevel (const Array<Real>& dt_lev);
     //
+    // Set the timestep at one level.
+    //
+    void setDtLevel (Real dt, int lev);
+    //
     // Set the dtmin on each level.
     //
     void setDtMin (const Array<Real>& dt_lev);
