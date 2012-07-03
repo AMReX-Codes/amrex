@@ -66,6 +66,8 @@ class testObj:
 
         self.compareFile = ""
 
+        self.diffDir = ""
+
         self.addToCompileString = ""
 
         self.reClean = 0    # set automatically, not by users
@@ -385,6 +387,9 @@ def LoadParams(file):
 
             elif (opt == "compareFile"):
                 mytest.compareFile = value
+
+            elif (opt == "diffDir"):
+                mytest.diffDir = value
 
             elif (opt == "addToCompileString"):
                 mytest.addToCompileString = value
@@ -768,6 +773,9 @@ def testSuite(argv):
 
             compareFile = < explicit output file to do the comparison with >
 
+            diffDir = <directory or file to do a plain text diff on 
+                       (recursive, if directory) >
+
           Here, [main] lists the parameters for the test suite as a
           whole and [Sod-x] is a single test.  There can be many more
           tests, each with their own unique name, following the format
@@ -884,6 +892,13 @@ def testSuite(argv):
             should be used for the comparison.  Normally this is not
             specified and the suite uses the last plotfile output by the
             test.
+
+            diffDir is the optional name of a directory (or single
+            file) output by the test that you wish to do a plain test
+            comparison on with a stored benchmark version of the
+            directory.  This is just a straight diff (recursively,
+            within the directory).  This is used, for example, for
+            particle output from some of the codes.
 
           Each test problem should get its own [testname] block
           defining the problem.  The name between the [..] will be how
@@ -1626,6 +1641,29 @@ def testSuite(argv):
                         cf.write("         unable to do a comparison\n")
                         cf.close()
 
+                if (not test.diffDir == ""):
+                    diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
+                    
+                    print "  doing the diff..."
+                    print "    diff dir: ", test.diffDir
+
+                    command = "diff -r %s %s >> %s.compare.out 2>&1" \
+                        % (diffDirBench, test.diffDir, test.name)
+
+                    cf = open("%s.compare.out" % (test.name), 'a')
+                    cf.write("\n\n")
+                    cf.write(command)
+                    cf.write("\n")
+                    cf.close()
+
+                    diffstatus = systemCall(command)
+
+                    if (diffstatus == 0):
+                        cf = open("%s.compare.out" % (test.name), 'a')
+                        cf.write("diff was SUCCESSFUL\n")
+                        cf.close()
+
+
             else:   # make_benchmarks
 
                 print "  storing output of %s as the new benchmark..." % (test.name)
@@ -1641,6 +1679,12 @@ def testSuite(argv):
                     cf = open("%s.status" % (test.name), 'w')
                     cf.write("benchmarks failed")
                     cf.close()
+
+                if (not test.diffDir == ""):
+                    diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
+                    systemCall("rm -rf %s" % (diffDirBench))
+                    systemCall("cp -r %s %s" % (test.diffDir, diffDirBench))
+
 
         else:   # selfTest
 
@@ -2017,6 +2061,14 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
                     string.find(line, "SELF TEST SUCCESSFUL") >= 0):
                     compareSuccessful = 1
                     break
+
+            if (compareSuccessful):
+                if (not test.diffDir == ""):
+                    compareSuccessful = 0
+                    for line in diffLines:
+                        if (string.find(line, "diff was SUCCESSFUL") >= 0):
+                            compareSuccessful = 1
+                            break
     
             cf.close()
 
