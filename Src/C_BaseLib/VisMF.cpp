@@ -256,8 +256,8 @@ operator>> (std::istream&  is,
     is >> how;
     switch (how)
     {
-    case VisMF::OneFilePerCPU:
-        hd.m_how = VisMF::OneFilePerCPU; break;
+    case VisMF::NFiles:
+        hd.m_how = VisMF::NFiles; break;
     default:
         BoxLib::Error("Bad case in switch");
     }
