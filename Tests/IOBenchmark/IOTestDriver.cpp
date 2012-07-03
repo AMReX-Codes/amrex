@@ -13,6 +13,7 @@ using std::ios;
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 #include <ParmParse.H>
+#include <MultiFab.H>
 #include <VisMF.H>
 
 using std::cout;
@@ -20,7 +21,8 @@ using std::cerr;
 using std::endl;
 
 
-void TestIONFiles(int nfiles, int maxgrid, int ncomps, int nboxes);
+void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes);
+void TestReadMF();
 
 
 // -------------------------------------------------------------
@@ -106,14 +108,28 @@ int main(int argc, char *argv[]) {
   for(int itimes(0); itimes < ntimes; ++itimes) {
     if(ParallelDescriptor::IOProcessor()) {
       cout << endl << "--------------------------------------------------" << endl;
-      cout << "Testing NFiles I/O" << endl;
+      cout << "Testing NFiles Write" << endl;
     }
 
-    TestIONFiles(nfiles, maxgrid, ncomps, nboxes);
+    TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes);
 
     if(ParallelDescriptor::IOProcessor()) {
       cout << "==================================================" << endl;
-      cout << endl << endl << endl;
+      cout << endl;
+    }
+  }
+
+  for(int itimes(0); itimes < ntimes; ++itimes) {
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << endl << "++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
+      cout << "Testing MF Read" << endl;
+    }
+
+    TestReadMF();
+
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "##################################################" << endl;
+      cout << endl;
     }
   }
 
