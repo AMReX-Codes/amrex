@@ -48,6 +48,7 @@ BoxArray MakeBoxArray(int maxgrid,  int nboxes) {
 // -------------------------------------------------------------
 void TestIONFiles(int nfiles, int maxgrid, int ncomps, int nboxes) {
   int myProc(ParallelDescriptor::MyProc());
+
   VisMF::SetNOutFiles(nfiles);
 
   BoxArray bArray(MakeBoxArray(maxgrid, nboxes));

@@ -13,6 +13,7 @@ using std::ios;
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 #include <ParmParse.H>
+#include <VisMF.H>
 
 using std::cout;
 using std::cerr;
@@ -45,6 +46,7 @@ static void PrintUsage(const char *progName) {
 int main(int argc, char *argv[]) {
 
   BoxLib::Initialize(argc,argv);
+  VisMF::Initialize();
 
   if(argc == 1) {
     PrintUsage(argv[0]);
