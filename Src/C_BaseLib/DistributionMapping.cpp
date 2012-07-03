@@ -26,7 +26,7 @@ namespace
     //
     // Set default values for these in Initialize()!!!
     //
-    int    verbose;
+    bool   verbose;
     int    sfc_threshold;
     double max_efficiency;
     bool   do_full_knapsack;
@@ -106,7 +106,7 @@ DistributionMapping::Initialize ()
     //
     // Set defaults here!!!
     //
-    verbose          = 1;
+    verbose          = false;
     sfc_threshold    = 4;
     max_efficiency   = 0.9;
     do_full_knapsack = false;
