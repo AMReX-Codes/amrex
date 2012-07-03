@@ -256,6 +256,12 @@ public:
     bool OK (bool full_where = false, int lev_min = 0 , int ngrow = 0, int finest_level = -1) const;
 
     void ByteSpread () const;
+    //
+    // Returns # of particles at specified the level.
+    //
+    // I "only_valid" is true it only counts valid particles.
+    //
+    long NumberOfParticlesAtLevel (int level, bool only_valid = true) const;
 
     void MoveRandom ();
 
@@ -357,6 +363,48 @@ protected:
     Amr*        m_amr;
     Array<PMap> m_particles;
 };
+
+template <int N>
+long
+ParticleContainer<N>::NumberOfParticlesAtLevel (int  lev,
+                                                bool only_valid) const
+{
+    long nparticles = 0;
+
+    if (lev >= 0 && lev < m_particles.size())
+    {
+        const PMap& pmap = m_particles[lev];
+
+        for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end();
+             pmap_it != End;
+             ++pmap_it)
+        {
+            const PBox& pbox = pmap_it->second;
+
+            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
+                 it != pboxEnd;
+                 ++it)
+            {
+                if (only_valid)
+                {
+                    if (it->m_id > 0)
+                        //
+                        // Only count (and checkpoint) valid particles.
+                        //
+                        nparticles++;
+                }
+                else
+                {
+                    nparticles++;
+                }
+            }
+        }
+    }
+
+    ParallelDescriptor::ReduceLongSum(nparticles);
+
+    return nparticles;
+}
 
 //
 // This includes both valid and invalid particles since invalid particles still take up space.

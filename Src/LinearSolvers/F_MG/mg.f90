@@ -60,9 +60,10 @@ contains
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
     integer :: n, i, id, vol, j
-    type(layout) :: la1, la2
-    type(boxarray) :: ba
-    logical :: nodal_flag
+    type(layout)    :: la1, la2
+    type(box)       :: bounding_box
+    type(boxarray)  :: ba
+    logical         :: nodal_flag
     real(kind=dp_t) :: dvol, dvol_pd
     type(bl_prof_timer), save :: bpt
 
@@ -297,13 +298,16 @@ contains
        ! This is the original layout
        old_coarse_la = get_layout(mgt%ss(1))
 
+       bounding_box = bbox(get_boxarray(old_coarse_la));
+
        ! Does the boxarray fill the entire bounding box? If not then don't use this bottom solver
-       if (.not. contains(get_boxarray(old_coarse_la),bbox(get_boxarray(old_coarse_la)))) then
+       if (.not. contains(get_boxarray(old_coarse_la),bounding_box) &
+            .or.  (old_coarse_la%lap%nboxes .le. 8) ) then
 
           mgt%bottom_solver = 1
 
           if (parallel_IOProcessor() .and. verbose > 1) then
-              print *,'F90mg: Cannot use bottom_solver = 4 with this boxarray'
+              print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
               print *,'F90mg: Using bottom_solver = 1 instead'
           end if
 
@@ -311,30 +315,31 @@ contains
 
            allocate(mgt%bottom_mgt)
 
-          ! Get the old/new coarse problem domain
-          coarse_pd = layout_get_pd(old_coarse_la)
+           ! Get the old/new coarse problem domain
+           coarse_pd = layout_get_pd(old_coarse_la)
 
-          ! Get the new coarse boxarray and layout
-          call box_build_2(bxs,coarse_pd%lo(1:mgt%dim),coarse_pd%hi(1:mgt%dim))
-          call boxarray_build_bx(new_coarse_ba,bxs)
-
-          ! compute the initial size of each of the boxes for the fancy
-          ! bottom solver.  Each box will have bottom_box_size**dm cells
-          call get_bottom_box_size(bottom_box_size,new_coarse_ba,min_width, &
-                                   mgt%max_bottom_nlevel)
-
-          call boxarray_maxsize(new_coarse_ba,bottom_box_size)
-          call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
-                               pmask=old_coarse_la%lap%pmask)
-   
-          call boxarray_destroy(new_coarse_ba)
-
+           ! Get the new coarse boxarray and layout
+           call box_build_2(bxs,bounding_box%lo(1:mgt%dim),bounding_box%hi(1:mgt%dim))
+           call boxarray_build_bx(new_coarse_ba,bxs)
+ 
+           ! compute the initial size of each of the boxes for the fancy
+           ! bottom solver.  Each box will have bottom_box_size**dm cells
+           call get_bottom_box_size(bottom_box_size,new_coarse_ba,min_width, &
+                                    mgt%max_bottom_nlevel)
+ 
+           call boxarray_maxsize(new_coarse_ba,bottom_box_size)
+           call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
+                                pmask=old_coarse_la%lap%pmask)
+    
+           call boxarray_destroy(new_coarse_ba)
+ 
            if (parallel_IOProcessor() .and. verbose > 1) then
               print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
-              call print(layout_get_pd(old_coarse_la))
+              print *,'   ... Bounding box is'
+              call print(bounding_box)
               print *,'   ... Original boxes ',old_coarse_la%lap%nboxes
               print *,'   ... New      boxes ',new_coarse_la%lap%nboxes
-!             print *,'# cells on each side  ',bottom_box_size
+              print *,'# cells on each side  ',bottom_box_size
            end if
 
            coarse_dx(:) = mgt%dh(:,1)
