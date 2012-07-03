@@ -7,10 +7,8 @@ There are several major sections to this source: the runtime parameter
 routines, the test suite routines, and the report generation routines.  They
 are separated as such in this file.
 
-This test framework understands source based out of the Parallel/ and
-fParallel/ frameworks.
-
-2011-09-23
+This test framework understands source based out of the F_Src and C_Src BoxLib
+frameworks.
 """
 
 import os
@@ -22,6 +20,11 @@ import time
 import string
 import tarfile
 import subprocess
+import smtplib
+import email
+import getpass
+import socket
+
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -33,6 +36,7 @@ class testObj:
 
         self.name = name
         self.buildDir = ""
+        self.testSrcTree = ""
 
         self.inputFile = ""
         self.probinFile = ""
@@ -61,6 +65,8 @@ class testObj:
         self.visVar = ""
 
         self.compareFile = ""
+
+        self.diffDir = ""
 
         self.addToCompileString = ""
 
@@ -98,6 +104,17 @@ class suiteObj:
 
         self.MAKE = "gmake"
         self.numMakeJobs = 1
+
+        self.goUpLink = 0
+        self.lenTestName = 0
+        
+        self.sendEmailWhenFail = 0
+        self.emailFrom = ""
+        self.emailTo = []
+        self.emailSubject = ""
+        self.emailBody = ""
+
+
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # R U N T I M E   P A R A M E T E R   R O U T I N E S
@@ -138,7 +155,6 @@ def convertType(string):
     return value
 
 
-
 #==============================================================================
 # LoadParams
 #==============================================================================
@@ -175,7 +191,7 @@ def LoadParams(file):
             mysuite.suiteName = value
 
         elif (opt == "sourceTree"):
-            if (not (value == "Parallel" or value == "fParallel")):
+            if (not (value == "C_Src" or value == "F_Src" or value == "BoxLib")):
                 fail("ERROR: invalid sourceTree")
             else:
                 mysuite.sourceTree = value
@@ -220,11 +236,45 @@ def LoadParams(file):
         elif (opt == "numMakeJobs"):
             mysuite.numMakeJobs = value
 
+        elif (opt == "goUpLink"):
+            mysuite.goUpLink = value
+
+        elif (opt == "sendEmailWhenFail"):
+            mysuite.sendEmailWhenFail = value
+
+        elif (opt == "emailFrom"):
+            mysuite.emailFrom = value
+
+        elif (opt == "emailTo"):
+            mysuite.emailTo = value.split(",")
+
+        elif (opt == "emailSubject"):
+            mysuite.emailSubject = value
+
+        elif (opt == "emailBody"):
+            mysuite.emailBody = value
+
         else:
             warning("WARNING: suite parameter %s not valid" % (opt))
-            
+
+
+    # BoxLib-only tests don't have a sourceDir and don't need helmEOS
+    if (mysuite.sourceTree == "BoxLib"):
+        mysuite.sourceDir = mysuite.boxLibDir
+        mysuite.helmeosDir = "/afakepath"
+
 
     # checks
+    if (mysuite.sendEmailWhenFail):
+        if (mysuite.emailTo == [] or mysuite.emailBody == ""):
+            fail("ERROR: when sendEmailWhenFail = 1, you must specify emailTo and emailBody\n")
+            
+        if (mysuite.emailFrom == ""):
+            mysuite.emailFrom = '@'.join((getpass.getuser(), socket.getfqdn()))
+
+        if (mysuite.emailSubject == ""):
+            mysuite.emailSubject = mysuite.suiteName+" Regression Test Failed"
+
     if (mysuite.sourceTree == "" or mysuite.boxLibDir == "" or
         mysuite.sourceDir == "" or mysuite.testTopDir == "" or
         mysuite.compareToolDir == "" or mysuite.helmeosDir == ""):
@@ -253,6 +303,12 @@ def LoadParams(file):
 
         print "  %s" % (sec)
 
+        
+        # lenTestName is the maximum test name length -- used for HTML
+        # formatting
+        mysuite.lenTestName = max(mysuite.lenTestName, len(sec))
+
+
         # create the test object for this test
         mytest = testObj(sec)
 
@@ -273,6 +329,10 @@ def LoadParams(file):
                     invalid = 1
 
                 mytest.buildDir = value
+
+
+            elif (opt == "testSrcTree"):
+                mytest.testSrcTree = value
 
             elif (opt == "inputFile"):
                 mytest.inputFile = value
@@ -328,6 +388,9 @@ def LoadParams(file):
             elif (opt == "compareFile"):
                 mytest.compareFile = value
 
+            elif (opt == "diffDir"):
+                mytest.diffDir = value
+
             elif (opt == "addToCompileString"):
                 mytest.addToCompileString = value
 
@@ -344,12 +407,12 @@ def LoadParams(file):
 
         else:
             if (mytest.buildDir == "" or mytest.inputFile == "" or
-                (mysuite.sourceTree == "Parallel" and mytest.probinFile == "") or 
+                (mysuite.sourceTree == "C_Src" and mytest.probinFile == "") or 
                 mytest.dim == -1 or mytest.needsHelmEOS == -1):
                 warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
                 warning("            buildDir = %s" % (mytest.buildDir))
                 warning("            inputFile = %s" % (mytest.inputFile))
-                if (mysuite.sourceTree == "Parallel"):
+                if (mysuite.sourceTree == "C_Src"):
                     warning("            probinFile = %s" % (mytest.probinFile))
                 warning("            dim = %s" % (mytest.dim))
                 warning("            needsHelmEOS = %s" % (mytest.needsHelmEOS))
@@ -378,6 +441,9 @@ def LoadParams(file):
             warning("   WARNING: test %s requested visualization visVar not set" % (sec))
             invalid = 1
 
+        if (mysuite.sourceTree == "BoxLib" and mytest.testSrcTree == ""):
+            warning("   WARNING: test %s is a BoxLib test but testSrcTree not set" % (sec))
+            invalid = 1
         
 
         # add the current test object to the master list
@@ -488,7 +554,6 @@ def findBuildDirs(testList):
     return buildDirs
 
 
-
 #==============================================================================
 # getLastPlotfile
 #==============================================================================
@@ -518,7 +583,7 @@ def getLastPlotfile(outputDir, test):
 # getRecentFileName
 #==============================================================================
 def getRecentFileName(dir,base,extension):
-    """ for fParallel builds, given the base and extension, find the
+    """ for F_Src builds, given the base and extension, find the
         most recent corresponding file"""
         
     # finding all files that are of type base.*.exe and store the
@@ -639,6 +704,7 @@ def testSuite(argv):
     usage = """
     ./test.py [--make_benchmarks comment,
                --no_update,
+               --no_boxlib_update,
                --single_test test,
                --note note]
         testfile.ini
@@ -652,12 +718,12 @@ def testSuite(argv):
 
             [main]
             boxLibDir      = < directory to the main BoxLib/ directory >
-            sourceDir      = < directory above Parallel/ and fParallel/ >
+            sourceDir      = < directory to the main Source directory >
             testTopDir     = < full path to test output directory >
-            compareToolDir = < full path to the fParallel/data_processing/ directory >
+            compareToolDir = < full path to the AmrPostprocessing/F_Src directory >
             helmeosDir     = < full path to helm_table.dat >
 
-            sourceTree = < Parallel or fParallel -- what type is it? >
+            sourceTree = < C_Src, F_Src, or BoxLib -- what type is it? >
 
             suiteName = < descriptive name (i.e. Castro) >
 
@@ -707,6 +773,9 @@ def testSuite(argv):
 
             compareFile = < explicit output file to do the comparison with >
 
+            diffDir = <directory or file to do a plain text diff on 
+                       (recursive, if directory) >
+
           Here, [main] lists the parameters for the test suite as a
           whole and [Sod-x] is a single test.  There can be many more
           tests, each with their own unique name, following the format
@@ -717,7 +786,8 @@ def testSuite(argv):
             boxLibDir is the full path to the BoxLib/ directory.
             
             sourceDir should be the full path to the directory where
-            the Parallel/ and fParallel/ source directories live.
+            the application source directories live.  For example, 
+            this could point to Castro/
 
             testTopDir is the full path to the directory that will
             contain the test run directories, the test web
@@ -727,14 +797,17 @@ def testSuite(argv):
 
             compareToolDir is the full path to the directory
             containing the comparison tool.  This resides in
-            Parallel/util/Convergence/
+            AmrPostprocesing/F_Src
 
             helmeosDir is the full path to the directory containing
             the helm_table.dat file needed by the general EOS.
 
-            sourceTree is either Parallel (for applications that live
-            in the Parallel/ tree) or fParallel (for applications that
-            live in the fParallel/ tree).
+            sourceTree is either C_Src for applications in the C++
+            BoxLib framework or F_Src for applications in the F90
+            BoxLib framework.  For internal BoxLib tests, sourceTree
+            is set to BoxLib.  In this case, each test will need to
+            specify what source tree to use for itself (through the
+            test parameter testSrcTree).
 
             suiteName is a descriptive name for the test run.  The
             output directories will be named suiteName-tests/ and
@@ -774,7 +847,7 @@ def testSuite(argv):
             
             inputFile and probinFile are the names of the input file
             and associated probin file, respectively.  Note, a
-            probinFile is only required for a Parallel (not fParallel)
+            probinFile is only required for a C_Src (not F_Src)
             sourceTree run.
 
             dim is the dimensionality for the problem.
@@ -820,6 +893,13 @@ def testSuite(argv):
             specified and the suite uses the last plotfile output by the
             test.
 
+            diffDir is the optional name of a directory (or single
+            file) output by the test that you wish to do a plain test
+            comparison on with a stored benchmark version of the
+            directory.  This is just a straight diff (recursively,
+            within the directory).  This is used, for example, for
+            particle output from some of the codes.
+
           Each test problem should get its own [testname] block
           defining the problem.  The name between the [..] will be how
           the test is referred to on the webpages.
@@ -840,6 +920,10 @@ def testSuite(argv):
        --no_update
           skip the git updates and run the suite on the code as it
           exists now.
+
+       --no_boxlib_update
+          skip only the BoxLib git update and run the suite with the
+          BoxLib code as it exists now.
 
        --single_test mytest
           run only the test named mytest
@@ -873,6 +957,7 @@ def testSuite(argv):
         opts, next = getopt.getopt(argv[1:], "",
                                    ["make_benchmarks=",
                                     "no_update",
+                                    "no_boxlib_update",
                                     "single_test=",
                                     "note="])
 
@@ -885,6 +970,7 @@ def testSuite(argv):
     # defaults
     make_benchmarks = 0
     no_update = 0
+    no_boxlib_update = 0
     single_test = ""
     comment = ""
     note = ""
@@ -897,6 +983,9 @@ def testSuite(argv):
 
         if o == "--no_update":
             no_update = 1
+
+        if o == "--no_boxlib_update":
+            no_boxlib_update = 1
 
         if o == "--single_test":
             single_test = a
@@ -1014,7 +1103,8 @@ def testSuite(argv):
         doGITUpdate(suite.sourceDir, suite.suiteName, fullWebDir)
     
         # BoxLib
-        doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir)
+        if ((not no_boxlib_update) and suite.sourceTree != "BoxLib"):
+            doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir)
 
         # AstroDev
         if (suite.useAstroDev):
@@ -1030,9 +1120,10 @@ def testSuite(argv):
        makeGITChangeLog(suite.sourceDir, suite.suiteName, fullWebDir)
     
        # BoxLib
-       makeGITChangeLog(suite.boxLibDir, "BoxLib", fullWebDir)
+       if ((not no_boxlib_update) and suite.sourceTree != "BoxLib"):
+           makeGITChangeLog(suite.boxLibDir, "BoxLib", fullWebDir)
 
-       # BoxLib
+       # AstroDev
        if (suite.useAstroDev):
            makeGITChangeLog(suite.astroDevDir, "AstroDev", fullWebDir)
 
@@ -1074,7 +1165,6 @@ def testSuite(argv):
     vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
     
 
-
     #--------------------------------------------------------------------------
     # output test list
     #--------------------------------------------------------------------------
@@ -1097,12 +1187,9 @@ def testSuite(argv):
         print "  %s" % (dir)
         os.chdir(suite.sourceDir + dir)
 
-        if (suite.sourceTree == "Parallel"):
-            systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
-                       (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
-        else:
-            systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
-                       (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
+        systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
+                   (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
+
             
     os.chdir(suite.testTopDir)
     
@@ -1153,21 +1240,31 @@ def testSuite(argv):
             # build options, make clean again to be safe
             print "  re-making clean..."
 
-            if (suite.sourceTree == "Parallel"):
-                systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
-                           (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
-            else:
-                systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
-                           (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
+            systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
+                       (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
 
         
         print "  building..."
 
-        if (suite.sourceTree == "Parallel"):
+        if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
 
-	    if (test.useMPI):
+	    if (test.useMPI and test.useOMP):
+	       executable = "%s%dd.MPI.OMP.ex" % (suite.suiteName, test.dim)
+               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=TRUE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               print "    " + compString
+               systemCall(compString)            
+
+            elif (test.useMPI):
 	       executable = "%s%dd.MPI.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=TRUE USE_OMP=FALSE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               print "    " + compString
+               systemCall(compString)
+
+            elif (test.useOMP):
+	       executable = "%s%dd.OMP.ex" % (suite.suiteName, test.dim)
+               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=FALSE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
@@ -1180,10 +1277,16 @@ def testSuite(argv):
                systemCall(compString)
 	       
             
-        elif (suite.sourceTree == "fParallel"):
+        elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
 
-            if (test.useMPI):
-                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+            if (test.useMPI and test.useOMP):
+                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI=t OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                print "    " + compString
+                systemCall(compString)
+
+            elif (test.useMPI):
+                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI=t OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
                     (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
@@ -1248,8 +1351,9 @@ def testSuite(argv):
 	   test.inputFile = test.inputFile[index+1:]
 
 
-        # if we are a "Parallel" build, we need the probin file
-        if (suite.sourceTree == "Parallel"):
+        # if we are a "C_Src" build, we need the probin file
+        if (suite.sourceTree == "C_Src" or \
+                (test.testSrcTree == "C_Src" and test.probinFile != "")):
             try: shutil.copy(test.probinFile, outputDir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy probin file: %s" % test.probinFile
@@ -1325,9 +1429,24 @@ def testSuite(argv):
 
         os.chdir(outputDir)
 
-        if (suite.sourceTree == "Parallel"):
+        if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
 
-	    if (test.useMPI):
+	    if (test.useMPI and test.useOMP):
+
+	       # create the MPI executable
+	       testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+
+	       command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out < /dev/null" % \
+			 (executable, test.inputFile, test.name, test.name, test.name)
+	       
+	       testRunCommand = testRunCommand.replace("@command@", command)
+
+	       print "    " + testRunCommand
+               systemCall(testRunCommand)
+
+	    elif (test.useMPI):
 
 	       # create the MPI executable
 	       testRunCommand = suite.MPIcommand
@@ -1341,17 +1460,45 @@ def testSuite(argv):
 
 	       print "    " + testRunCommand
                systemCall(testRunCommand)
+
+	    elif (test.useOMP):
+
+                testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out < /dev/null" % \
+                    (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+	       
+                print "    " + testRunCommand
+                systemCall(testRunCommand)
 	       
             else:
-               testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out" % \
-                   (executable, test.inputFile, test.name, test.name, test.name)
+                testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out" % \
+                    (executable, test.inputFile, test.name, test.name, test.name)
 
-               print "    " + testRunCommand
-               systemCall(testRunCommand)
+                print "    " + testRunCommand
+                systemCall(testRunCommand)
 
-        elif (suite.sourceTree == "fParallel"):
+        elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
 
-            if (test.useMPI):
+            if (test.useMPI and test.useOMP):
+
+                # create the MPI executable
+                testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+                testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+
+                # keep around the checkpoint files only for the restart runs
+                if (test.restartTest):
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, test.name)
+                else:
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, test.name)
+
+                testRunCommand = testRunCommand.replace("@command@", command)
+
+                print "    " + testRunCommand
+                systemCall(testRunCommand)
+
+            elif (test.useMPI):
 
 	       # create the MPI executable
 	       testRunCommand = suite.MPIcommand
@@ -1398,9 +1545,9 @@ def testSuite(argv):
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
 
+
         # if it is a restart test, then rename the final output file and
         # restart the test
-
         if (test.restartTest):
             lastFile = getLastPlotfile(outputDir, test)
             origLastFile = "orig_%s" % (lastFile)
@@ -1411,13 +1558,20 @@ def testSuite(argv):
 
             print "  restarting from %s ... " % (restartFile)
            
-            if (suite.sourceTree == "Parallel"):
-                testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.restart=%s >>  %s.run.out 2>&1" % \
-                    (executable, test.inputFile, test.name, test.name, restartFile, test.name)
-                print "    " + testRunCommand
-                systemCall(testRunCommand)               
+            if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
+                if (test.useOMP):
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.restart=%s >>  %s.run.out 2>&1" % \
+                    (test.numthreads, executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)               
 
-            elif (suite.sourceTree == "fParallel"):
+                else:
+                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.restart=%s >>  %s.run.out 2>&1" % \
+                    (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)               
+                    
+            elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
 
                 if (test.useOMP):
                     testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
@@ -1487,6 +1641,29 @@ def testSuite(argv):
                         cf.write("         unable to do a comparison\n")
                         cf.close()
 
+                if (not test.diffDir == ""):
+                    diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
+                    
+                    print "  doing the diff..."
+                    print "    diff dir: ", test.diffDir
+
+                    command = "diff -r %s %s >> %s.compare.out 2>&1" \
+                        % (diffDirBench, test.diffDir, test.name)
+
+                    cf = open("%s.compare.out" % (test.name), 'a')
+                    cf.write("\n\n")
+                    cf.write(command)
+                    cf.write("\n")
+                    cf.close()
+
+                    diffstatus = systemCall(command)
+
+                    if (diffstatus == 0):
+                        cf = open("%s.compare.out" % (test.name), 'a')
+                        cf.write("diff was SUCCESSFUL\n")
+                        cf.close()
+
+
             else:   # make_benchmarks
 
                 print "  storing output of %s as the new benchmark..." % (test.name)
@@ -1502,6 +1679,12 @@ def testSuite(argv):
                     cf = open("%s.status" % (test.name), 'w')
                     cf.write("benchmarks failed")
                     cf.close()
+
+                if (not test.diffDir == ""):
+                    diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
+                    systemCall("rm -rf %s" % (diffDirBench))
+                    systemCall("cp -r %s %s" % (test.diffDir, diffDirBench))
+
 
         else:   # selfTest
 
@@ -1582,7 +1765,7 @@ def testSuite(argv):
 
             shutil.copy(test.inputFile, "%s/%s.%s" % (fullWebDir, test.name, test.inputFile) )
 
-            if (suite.sourceTree == "Parallel"):
+            if (suite.sourceTree == "C_Src"):
                 shutil.copy(test.probinFile, "%s/%s.%s" % (fullWebDir, test.name, test.probinFile) )
 
             for file in test.auxFiles:
@@ -1642,8 +1825,9 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     print "\n"
     bold("creating new test report...")
-    reportThisTestRun(suite, make_benchmarks, comment, note, updateTime, no_update,
-                      testList, testDir, testFile, fullWebDir)
+    numFailed = reportThisTestRun(suite, make_benchmarks, comment, note, 
+                                  updateTime, no_update, no_boxlib_update,
+                                  testList, testDir, testFile, fullWebDir)
 
 
     # make sure that all of the files in the web directory are world readable
@@ -1659,7 +1843,23 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     print "\n"
     bold("creating suite report...")
-    reportAllRuns(suite, suite.webTopDir)
+    tableHeight = min(max(suite.lenTestName, 4), 16)
+    reportAllRuns(suite, suite.webTopDir, tableHeight=tableHeight)
+
+    def emailDevelopers():
+        msg = email.message_from_string(suite.emailBody)
+        msg['From'] = suite.emailFrom
+        msg['To'] = ",".join(suite.emailTo)
+        msg['Subject'] = suite.emailSubject
+
+        server = smtplib.SMTP('localhost')
+        server.sendmail(suite.emailFrom, suite.emailTo, msg.as_string())
+        server.quit()
+
+    if (numFailed > 0 and suite.sendEmailWhenFail):
+        print "\n"
+        bold("sending email...")
+        emailDevelopers()
 
 
 
@@ -1750,7 +1950,7 @@ th {background-color: grey;
     color: yellow;
     text-align: center;
     vertical-align: bottom;
-    height: 16em;
+    height: @TABLEHEIGHT@;
     padding-bottom: 3px;
     padding-left: 5px;
     padding-right: 5px;}
@@ -1777,6 +1977,7 @@ r"""
 <LINK REL="stylesheet" TYPE="text/css" HREF="tests.css">
 </HEAD>
 <BODY>
+<!--GOUPLINK-->
 <CENTER><H1>@TITLE@</H1></CENTER>
 """
 
@@ -1784,12 +1985,14 @@ r"""
 #==============================================================================
 # create_css
 #==============================================================================
-def create_css():
+def create_css(tableHeight=16):
     """ write the css file for the webpages """
     
+    cssC = cssContents.replace("@TABLEHEIGHT@", "%sem" % (tableHeight))
+
     cssFile = "tests.css"
     cf = open(cssFile, 'w')
-    cf.write(cssContents)
+    cf.write(cssC)
     cf.close()
 
 
@@ -1858,6 +2061,14 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
                     string.find(line, "SELF TEST SUCCESSFUL") >= 0):
                     compareSuccessful = 1
                     break
+
+            if (compareSuccessful):
+                if (not test.diffDir == ""):
+                    compareSuccessful = 0
+                    for line in diffLines:
+                        if (string.find(line, "diff was SUCCESSFUL") >= 0):
+                            compareSuccessful = 1
+                            break
     
             cf.close()
 
@@ -1927,7 +2138,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         hf.write("<P><b>input file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
                  (test.name, test.inputFile, test.inputFile) )
 
-        if (suite.sourceTree == "Parallel"):
+        if (suite.sourceTree == "C_Src"):
             hf.write("<P><b>probin file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
                      (test.name, test.probinFile, test.probinFile) )    
 
@@ -2067,7 +2278,7 @@ def reportTestFailure(message, test, testDir, fullWebDir, compString=None):
 # reportThisTestRun
 #==============================================================================
 def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime, no_update,
-                      testList, testDir, testFile, fullWebDir):
+                      no_boxlib_update, testList, testDir, testFile, fullWebDir):
     """ generate the master page for a single run of the test suite """
     
     # get the current directory
@@ -2113,17 +2324,18 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime, no_upda
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (testFile, testFile) )
 
-    if (not no_update):
+    if (not no_update or not no_boxlib_update):
         hf.write("<p>&nbsp;\n")
-        hf.write("<p><b>source update was done at: </b>%s\n" % (updateTime) )
+        hf.write("<p><b>Git update was done at: </b>%s\n" % (updateTime) )
 
-        hf.write("<p>&nbsp;&nbsp;<b>%s ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                 (suite.suiteName, "ChangeLog."+suite.suiteName, "ChangeLog."+suite.suiteName) )        
+        if (not no_update):
+            hf.write("<p>&nbsp;&nbsp;<b>%s ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                     (suite.suiteName, "ChangeLog."+suite.suiteName, "ChangeLog."+suite.suiteName) )        
+        if (not no_boxlib_update and suite.sourceTree != "BoxLib"):
+            hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                     ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
 
-        hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                 ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
-
-        if (suite.useAstroDev):
+        if (suite.useAstroDev and not no_update):
             hf.write("<p>&nbsp;&nbsp;<b>AstroDev/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
                      ("ChangeLog.AstroDev", "ChangeLog.AstroDev") )        
     else:
@@ -2244,15 +2456,17 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime, no_upda
     # switch back to the original directory
     os.chdir(currentDir)
 
+    return numFailed
+
 	
 #==============================================================================
 # reportAllRuns
 #==============================================================================
-def reportAllRuns(suite, webTopDir):
+def reportAllRuns(suite, webTopDir, tableHeight=16):
 
     os.chdir(webTopDir)
 
-    create_css()
+    create_css(tableHeight=tableHeight)
 
     validDirs = []
     allTests = []
@@ -2308,7 +2522,11 @@ def reportAllRuns(suite, webTopDir):
     hf = open(htmlFile, 'w')
 
     header = MainHeader.replace("@TITLE@", title)
-    hf.write(header)
+    if (suite.goUpLink):
+        header2 = header.replace("<!--GOUPLINK-->", '<a href="../">GO UP</a>')
+        hf.write(header2)
+    else:
+        hf.write(header)
 
     hf.write("<P><TABLE class='maintable'>\n")
 
