@@ -8,8 +8,13 @@ module cutcell_module
      ! For now we just contain our cell index.
      !
      integer :: cell(3)
+     double precision :: centroid(3)
 
   end type cutcell
+
+  interface build
+     module procedure cutcell_build
+  end interface build
 
   interface print
      module procedure cutcell_print
@@ -51,14 +56,22 @@ module cutcell_module
 
 contains
 
+  subroutine cutcell_build(d,a,c)
+    type(cutcell),    intent(inout) :: d
+    integer,          intent(in   ) :: a(:)
+    double precision, intent(in   ) :: c(:)
+    d%cell = a
+    d%centroid = c
+  end subroutine cutcell_build
+
   subroutine cutcell_print(p)
     type(cutcell), intent(in) :: p
-    print*, 'cell = ', p%cell
+    print*, '  cell = ', p%cell, 'centroid = ', p%centroid
   end subroutine cutcell_print
 
   subroutine cutcell_container_build(d,sz)
-    type(cutcell_container), intent(out) :: d
-    integer,                 intent(in ) :: sz
+    type(cutcell_container), intent(inout) :: d
+    integer,                 intent(in   ) :: sz
     if ( .not. associated(d%d) ) then
        d%size = sz
        allocate(d%d(d%size))
@@ -120,7 +133,7 @@ end module cutcell_module
 
 !   logical, allocatable :: own(:)
 
-!   type(cutcell_container), allocatable :: cells(:)
+!   type(cutcell_container), allocatable :: array_of_containers(:)
 
 !   type(cutcell), pointer :: r(:)
 
@@ -129,7 +142,7 @@ end module cutcell_module
 !   integer i,j
 
 !   allocate(own(ngrids))
-!   allocate(cells(ngrids))
+!   allocate(array_of_containers(ngrids))
 
 !   own = .false.
 !   !
@@ -140,42 +153,43 @@ end module cutcell_module
 !   own(9) = .true.
 
 !   do i = 1, ngrids
-!      if (.not. empty(cells(i))) print*, 'cutcell container should be empty'
+!      if (.not. empty(array_of_containers(i))) print*, 'cutcell container should be empty'
 
 !      if (own(i)) then
 !         !
-!         ! Allocate space for "i" cutcells in cells(i).
+!         ! Allocate space for "i" cutcells in array_of_containers(i).
 !         !
-!         call build(cells(i), i)
+!         call build(array_of_containers(i), 2*i)
 
-!         if (empty(cells(i))) print*, 'cutcell container should NOT be empty'
+!         if (empty(array_of_containers(i))) print*, 'cutcell container should NOT be empty'
 
-!         r => dataptr(cells(i))
+!         r => dataptr(array_of_containers(i))
 
-!         do j = 1,size(cells(i))
+!         do j = 1,size(array_of_containers(i))
 !            !
 !            ! Populate the container.
 !            !
-!            cell%cell(1) = j
-!            cell%cell(2) = j
-!            cell%cell(3) = j
+!            call build(r(j), (/j,j,j/) , (/ 1.d0,1.d0,1.d0 /))
+!            ! cell%cell(1) = j
+!            ! cell%cell(2) = j
+!            ! cell%cell(3) = j
 
-!            r(j) = cell
+!            ! r(j) = cell
 !         end do
 
 !         print*, 'cutcell container @ index = ', i
 
-!         call print(cells(i))
+!         call print(array_of_containers(i))
 
 !      end if
 
 !   end do
   
 !   do i = 1, ngrids
-!      call destroy(cells(i))
+!      call destroy(array_of_containers(i))
 !   end do
 
 !   deallocate(own)
-!   deallocate(cells)
+!   deallocate(array_of_containers)
 
 ! end program main
