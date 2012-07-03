@@ -5481,15 +5481,16 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 {
     //
     // basename -> base filename for the output file
-    // mf -> the multifab
-    // lev -> level to check for particles
-    // time -> simulation time (will be recorded in Timestamp file)
-    // indices ->
-    // vcomp -> the offset of velocity terms in the particle metadata
+    // mf       -> the multifab
+    // lev      -> level to check for particles
+    // time     -> simulation time (will be recorded in Timestamp file)
+    // indices  -> indices into mf that we output
+    // vcomp    -> the offset of velocity terms in the particle metadata
     //
     BL_ASSERT(lev >= 0);
     BL_ASSERT(time >= 0);
     BL_ASSERT(vcomp >= 0);
+    BL_ASSERT(mf.nGrow() >= 1);
     BL_ASSERT(!basename.empty());
     BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
     BL_ASSERT(lev <= m_amr->finestLevel());
@@ -5555,7 +5556,10 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                 if (!TimeStampFile.good())
                     BoxLib::FileOpenFailed(FileName);
 
-                std::vector<Real> vals(indices.size());
+                const int       M  = indices.size();
+                const BoxArray& ba = mf.boxArray();
+
+                std::vector<Real> vals(M);
 
                 for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
                      pmap_it != pmapEnd;
@@ -5563,6 +5567,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                 {
                     const int        grid = pmap_it->first;
                     const PBox&      pbox = pmap_it->second;
+                    const Box&       bx   = ba[grid];
                     const FArrayBox& fab  = mf[grid];
 
                     for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
@@ -5572,33 +5577,33 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                         const ParticleType& p = *it;
 
                         if (p.m_id <= 0) continue;
-                        
-                        if (!mf.boxArray().contains(ParticleBase::Index(p, lev, m_amr))) continue;
+
+                        const IntVect iv = ParticleBase::Index(p, lev, m_amr);
+
+                        if (!bx.contains(iv) && !ba.contains(iv)) continue;
 
                         BL_ASSERT(p.m_lev == lev);
                         BL_ASSERT(p.m_grid == grid);
 
                         TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
 
-                        for (int i = 0; i < BL_SPACEDIM; i++)
-                        {
-                            TimeStampFile << p.m_pos[i] << ' ';
-                        }
+                        D_TERM(TimeStampFile << p.m_pos[0] << ' ';,
+                               TimeStampFile << p.m_pos[1] << ' ';,
+                               TimeStampFile << p.m_pos[2] << ' ';);
 
                         TimeStampFile << time;
                         //
                         // AdvectWithUmac stores the velocity in m_data ...
                         //
-                        for (int i = vcomp; i < vcomp + BL_SPACEDIM; i++)
-                        {
-                            TimeStampFile << ' ' << p.m_data[i];
-                        }
+                        D_TERM(TimeStampFile << ' ' << p.m_data[vcomp+0];,
+                               TimeStampFile << ' ' << p.m_data[vcomp+1];,
+                               TimeStampFile << ' ' << p.m_data[vcomp+2];);
 
-                        if (!indices.empty())
+                        if (M > 0)
                         {
-                            ParticleBase::Interp(p,m_amr,fab,&indices[0],&vals[0],indices.size());
+                            ParticleBase::Interp(p,m_amr,fab,&indices[0],&vals[0],M);
 
-                            for (int i = 0; i < indices.size(); i++)
+                            for (int i = 0; i < M; i++)
                             {
                                 TimeStampFile << ' ' << vals[i];
                             }
