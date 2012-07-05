@@ -19,7 +19,7 @@ public:
     //
     // How we write out MultiFabs.
     //
-    enum How { OneFilePerCPU };
+    enum How { OneFilePerCPU, NFiles };
     //
     // Construct by reading in the on-disk VisMF of the specified name.
     // The MF on-disk is read lazily. The name here is the name of
@@ -129,7 +129,7 @@ public:
     //
     static long Write (const MultiFab&    mf,
                        const std::string& name,
-                       VisMF::How         how = OneFilePerCPU,
+                       VisMF::How         how = NFiles,
                        bool               set_ghost = false);
     //
     // Read a MultiFab from disk written using VisMF::Write().
