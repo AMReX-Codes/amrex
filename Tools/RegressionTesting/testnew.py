@@ -1683,6 +1683,7 @@ def testSuite(argv):
                 if (not test.diffDir == ""):
                     diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
                     systemCall("rm -rf %s" % (diffDirBench))
+                    print "     new diffDir: ", test.name + '_' + test.diffDir
                     systemCall("cp -r %s %s" % (test.diffDir, diffDirBench))
 
 
