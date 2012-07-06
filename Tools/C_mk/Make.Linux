@@ -27,7 +27,7 @@ ifeq ($(COMP),Cray)
   CXX = CC
   CC  = craycc
 
-  CXXOPTF +=
+  CXXOPTF += -h nomessage=7221
   CXXDEBF += -g -O0
 
   ifneq ($(USE_OMP),TRUE)
