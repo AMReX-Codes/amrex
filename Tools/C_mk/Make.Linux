@@ -27,7 +27,7 @@ ifeq ($(COMP),Cray)
   CXX = CC
   CC  = craycc
 
-  CXXOPTF += -O1
+  CXXOPTF +=
   CXXDEBF += -g -O0
 
   ifneq ($(USE_OMP),TRUE)
@@ -118,8 +118,8 @@ ifeq ($(FCOMP),Cray)
   FDEBF += -g -O0
   fDEBF += -g -O0
 
-  FOPTF += -O 1,vector0
-  fOPTF += -O 1,vector0
+  FOPTF +=
+  fOPTF +=
 
   ifneq ($(USE_OMP),TRUE)
     FOPTF += -h noomp
