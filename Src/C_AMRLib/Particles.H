@@ -381,22 +381,19 @@ ParticleContainer<N>::NumberOfParticlesAtLevel (int  lev,
         {
             const PBox& pbox = pmap_it->second;
 
-            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
-                 it != pboxEnd;
-                 ++it)
+            if (only_valid)
             {
-                if (only_valid)
+                for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
+                     it != pboxEnd;
+                     ++it)
                 {
                     if (it->m_id > 0)
-                        //
-                        // Only count (and checkpoint) valid particles.
-                        //
                         nparticles++;
                 }
-                else
-                {
-                    nparticles++;
-                }
+            }
+            else
+            {
+                nparticles += pbox.size();
             }
         }
     }
@@ -4814,12 +4811,10 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
             {
                 if (it->m_id > 0)
-                {
                     //
                     // Only count (and checkpoint) valid particles.
                     //
                     nparticles++;
-                }
             }
         }
     }
@@ -4884,23 +4879,27 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
     for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
     {
+        const bool gotsome = (NumberOfParticlesAtLevel(lev) > 0);
         //
         // We store the particles at each level in their own subdirectory.
         //
         std::string LevelDir = pdir;
 
-        if (!LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/')
-            LevelDir += '/';
+        if (gotsome)
+        {
+            if (!LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/')
+                LevelDir += '/';
 
-        LevelDir = BoxLib::Concatenate(LevelDir + "Level_", lev, 1);
+            LevelDir = BoxLib::Concatenate(LevelDir + "Level_", lev, 1);
 
-        if (ParallelDescriptor::IOProcessor())
-            if (!BoxLib::UtilCreateDirectory(LevelDir, 0755))
-                BoxLib::CreateDirectoryFailed(LevelDir);
-        //
-        // Force other processors to wait till directory is built.
-        //
-        ParallelDescriptor::Barrier();
+            if (ParallelDescriptor::IOProcessor())
+                if (!BoxLib::UtilCreateDirectory(LevelDir, 0755))
+                    BoxLib::CreateDirectoryFailed(LevelDir);
+            //
+            // Force other processors to wait till directory is built.
+            //
+            ParallelDescriptor::Barrier();
+        }
 
         const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
         //
@@ -4911,83 +4910,86 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         Array<int > count(state.size(),0);
         Array<long> where(state.size(),0);
 
-        const int   FileNumber   = MyProc % nOutFiles;
-        std::string FullFileName = LevelDir;
-
-        FullFileName += '/';
-        FullFileName += ParticleBase::DataPrefix();
-        FullFileName += BoxLib::Concatenate("", FileNumber, 4);
-
-        std::ofstream ParticleFile;
-
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
-        ParticleFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-        const int nSets = ((NProcs + (nOutFiles - 1)) / nOutFiles);
-        const int mySet = (MyProc / nOutFiles);
-
-        for (int iSet = 0; iSet < nSets; ++iSet)
+        if (gotsome)
         {
-            if (mySet == iSet)
+            const int   FileNumber   = MyProc % nOutFiles;
+            std::string FullFileName = LevelDir;
+
+            FullFileName += '/';
+            FullFileName += ParticleBase::DataPrefix();
+            FullFileName += BoxLib::Concatenate("", FileNumber, 4);
+
+            std::ofstream ParticleFile;
+
+            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+            ParticleFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+            const int nSets = ((NProcs + (nOutFiles - 1)) / nOutFiles);
+            const int mySet = (MyProc / nOutFiles);
+
+            for (int iSet = 0; iSet < nSets; ++iSet)
             {
-                //
-                // Write all the data at this level to the file.
-                //
-                if (iSet == 0)
-                    //
-                    // First set.
-                    //
-                    ParticleFile.open(FullFileName.c_str(),
-                                      std::ios::out|std::ios::trunc|std::ios::binary);
-                else
+                if (mySet == iSet)
                 {
-                    ParticleFile.open(FullFileName.c_str(),
-                                      std::ios::out|std::ios::app|std::ios::binary);
                     //
-                    // Set to the end of the file.
+                    // Write all the data at this level to the file.
                     //
-                    ParticleFile.seekp(0, std::ios::end);
+                    if (iSet == 0)
+                        //
+                        // First set.
+                        //
+                        ParticleFile.open(FullFileName.c_str(),
+                                          std::ios::out|std::ios::trunc|std::ios::binary);
+                    else
+                    {
+                        ParticleFile.open(FullFileName.c_str(),
+                                          std::ios::out|std::ios::app|std::ios::binary);
+                        //
+                        // Set to the end of the file.
+                        //
+                        ParticleFile.seekp(0, std::ios::end);
+                    }
+
+                    if (!ParticleFile.good())
+                        BoxLib::FileOpenFailed(FullFileName);
+                    //
+                    // Write out all the valid particles we own at the specified level.
+                    // Do it grid block by grid block remembering the seek offset
+                    // for the start of writing of each block of data.
+                    //
+                    WriteParticles(lev, ParticleFile, FileNumber, which, count, where);
+
+                    ParticleFile.flush();
+
+                    ParticleFile.close();
+
+                    if (!ParticleFile.good())
+                        BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing ParticleFile");
+
+                    int iBuff = 0, wakeUpPID = (MyProc + nOutFiles), tag = (MyProc % nOutFiles);
+
+                    if (wakeUpPID < NProcs)
+                    {
+                        ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+                    }
                 }
 
-                if (!ParticleFile.good())
-                    BoxLib::FileOpenFailed(FullFileName);
-                //
-                // Write out all the valid particles we own at the specified level.
-                // Do it grid block by grid block remembering the seek offset
-                // for the start of writing of each block of data.
-                //
-                WriteParticles(lev, ParticleFile, FileNumber, which, count, where);
-
-                ParticleFile.flush();
-
-                ParticleFile.close();
-
-                if (!ParticleFile.good())
-                    BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing ParticleFile");
-
-                int iBuff = 0, wakeUpPID = (MyProc + nOutFiles), tag = (MyProc % nOutFiles);
-
-                if (wakeUpPID < NProcs)
+                if (mySet == (iSet + 1))
                 {
-                    ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+                    //
+                    // Next set waits.
+                    //
+                    int iBuff, waitForPID = (MyProc - nOutFiles), tag = (MyProc % nOutFiles);
+
+                    ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
                 }
             }
 
-            if (mySet == (iSet + 1))
-            {
-                //
-                // Next set waits.
-                //
-                int iBuff, waitForPID = (MyProc - nOutFiles), tag = (MyProc % nOutFiles);
-
-                ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
-            }
+            ParallelDescriptor::ReduceIntSum (which.dataPtr(), which.size(), IOProc);
+            ParallelDescriptor::ReduceIntSum (count.dataPtr(), count.size(), IOProc);
+            ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProc);
         }
-
-        ParallelDescriptor::ReduceIntSum (which.dataPtr(), which.size(), IOProc);
-        ParallelDescriptor::ReduceIntSum (count.dataPtr(), count.size(), IOProc);
-        ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -5000,25 +5002,29 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
                 //
                 HdrFile << which[j] << ' ' << count[j] << ' ' << where[j] << '\n';
             }
-            //
-            // Unlink any zero-length data files.
-            //
-            Array<long> cnt(nOutFiles,0);
 
-            for (int i = 0; i < count.size(); i++)
-                cnt[which[i]] += count[i];
-
-            for (int i = 0; i < cnt.size(); i++)
+            if (gotsome)
             {
-                if (cnt[i] == 0)
+                //
+                // Unlink any zero-length data files.
+                //
+                Array<long> cnt(nOutFiles,0);
+
+                for (int i = 0; i < count.size(); i++)
+                    cnt[which[i]] += count[i];
+
+                for (int i = 0; i < cnt.size(); i++)
                 {
-                    std::string FullFileName = LevelDir;
+                    if (cnt[i] == 0)
+                    {
+                        std::string FullFileName = LevelDir;
 
-                    FullFileName += '/';
-                    FullFileName += ParticleBase::DataPrefix();
-                    FullFileName += BoxLib::Concatenate("", i, 4);
+                        FullFileName += '/';
+                        FullFileName += ParticleBase::DataPrefix();
+                        FullFileName += BoxLib::Concatenate("", i, 4);
 
-                    BoxLib::UnlinkFile(FullFileName.c_str());
+                        BoxLib::UnlinkFile(FullFileName.c_str());
+                    }
                 }
             }
         }
@@ -5068,9 +5074,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
         if (pmap_it != pmap.end())
         {
-            const PBox& pbox = pmap_it->second;
-
-            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+            for (typename PBox::const_iterator it = pmap_it->second.begin(), pboxEnd =  pmap_it->second.end();
+                 it != pboxEnd;
+                 ++it)
             {
                 if (it->m_id > 0)
                     cnt++;
