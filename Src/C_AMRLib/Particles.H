@@ -3182,7 +3182,6 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
     const Real dt_a_half_inv = dt * a_half_inv;
     PMap&      pmap          = m_particles[lev];
 
-    std:: cout << "DEBUG: Gonna Iterate!\n";
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
         const int        grid = pmap_it->first;
@@ -3971,7 +3970,6 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
              it != pboxEnd;
              ++it)
         {
-            std::cout << "DEBUG: Creating virtual particle for level " << level << "\n";
             if (buffer.contains(it->m_cell))
             {
                 // It's in the no-aggregation buffer
