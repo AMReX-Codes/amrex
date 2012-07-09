@@ -26,7 +26,7 @@ namespace
     //
     // Set default values for these in Initialize()!!!
     //
-    int    verbose;
+    bool   verbose;
     int    sfc_threshold;
     double max_efficiency;
     bool   do_full_knapsack;
@@ -106,7 +106,7 @@ DistributionMapping::Initialize ()
     //
     // Set defaults here!!!
     //
-    verbose          = 1;
+    verbose          = false;
     sfc_threshold    = 4;
     max_efficiency   = 0.9;
     do_full_knapsack = false;
@@ -171,7 +171,8 @@ DistributionMapping::Finalize ()
 std::map< int,LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
 
 void
-DistributionMapping::Sort (std::vector<LIpair>& vec, bool reverse)
+DistributionMapping::Sort (std::vector<LIpair>& vec,
+                           bool                 reverse)
 {
     if (vec.size() > 1)
     {
@@ -185,7 +186,8 @@ DistributionMapping::Sort (std::vector<LIpair>& vec, bool reverse)
 }
 
 void
-DistributionMapping::LeastUsedCPUs (int nprocs, Array<int>& result)
+DistributionMapping::LeastUsedCPUs (int         nprocs,
+                                    Array<int>& result)
 {
     result.resize(nprocs);
 
@@ -208,6 +210,8 @@ DistributionMapping::LeastUsedCPUs (int nprocs, Array<int>& result)
     {
         LIpairV.push_back(LIpair(bytes[i],i));
     }
+
+    bytes.clear();
 
     Sort(LIpairV, false);
 
@@ -495,9 +499,9 @@ static
 void
 knapsack (const std::vector<long>&         wgts,
           int                              nprocs,
-          std::vector< std::vector<int> >& result)
+          std::vector< std::vector<int> >& result,
+          double&                          efficiency)
 {
-    const Real strttime = ParallelDescriptor::second();
     //
     // Sort balls by size largest first.
     //
@@ -552,9 +556,7 @@ knapsack (const std::vector<long>&         wgts,
         max_weight = (wgt > max_weight) ? wgt : max_weight;
     }
 
-    int    npasses            = 0;
-    double efficiency         = sum_weight/(nprocs*max_weight);
-    double initial_efficiency = efficiency;
+    efficiency = sum_weight/(nprocs*max_weight);
 
 top:
 
@@ -567,8 +569,6 @@ top:
     std::list<WeightedBox>::iterator it_wb = wbl_top.begin();
 
     if (efficiency > max_efficiency || !do_full_knapsack) goto bottom;
-
-    npasses++;
 
     for ( ; it_wb != wbl_top.end(); ++it_wb )
     {
@@ -643,17 +643,6 @@ top:
         ++cit;
     }
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-    {
-        const Real stoptime    = ParallelDescriptor::second() - strttime;
-        const Real improvement =  (efficiency - initial_efficiency) / initial_efficiency * 100;
-
-        std::cout << "KNAPSACK efficiency: " << efficiency
-                  << ", passes: "            << npasses
-                  << ", improvement: "       << improvement
-                  << "%, time: "             << stoptime << '\n';
-    }
-
     for (int i  = 0; i < nprocs; i++)
         delete vbbs[i];
 }
@@ -662,13 +651,13 @@ void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
                                    int                      nprocs)
 {
-    Array<int> ord;
-
-    LeastUsedCPUs(nprocs,ord);
+    const Real strttime = ParallelDescriptor::second();
 
     std::vector< std::vector<int> > vec;
 
-    knapsack(wgts,nprocs,vec);
+    double efficiency = 0;
+
+    knapsack(wgts,nprocs,vec,efficiency);
 
     BL_ASSERT(vec.size() == nprocs);
 
@@ -695,10 +684,14 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     Sort(LIpairV, true);
 
+    Array<int> ord;
+
+    LeastUsedCPUs(nprocs,ord);
+
     for (unsigned int i = 0, N = vec.size(); i < N; i++)
     {
         const int idx = LIpairV[i].second;
-        const int cpu = ord[i%nprocs];
+        const int cpu = ord[i];
 
         for (std::vector<int>::iterator lit = vec[idx].begin(), End = vec[idx].end();
              lit != End;
@@ -711,6 +704,16 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
     // Set sentinel equal to our processor number.
     //
     m_ref->m_pmap[wgts.size()] = ParallelDescriptor::MyProc();
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        const Real stoptime = ParallelDescriptor::second() - strttime;
+
+        std::cout << "KNAPSACK efficiency: "
+                  << efficiency
+                  << ", time: "
+                  << stoptime << '\n';
+    }
 }
 
 void
@@ -747,14 +750,10 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
     }
     else
     {
-        std::vector<long> wgts;
-
-        wgts.reserve(boxes.size());
+        std::vector<long> wgts(boxes.size());
 
         for (unsigned int i = 0, N = boxes.size(); i < N; i++)
-        {
-            wgts.push_back(boxes[i].numPts());
-        }
+            wgts[i] = boxes[i].numPts();
 
         KnapSackDoIt(wgts, nprocs);
     }
@@ -795,8 +794,8 @@ SFCToken::Compare::operator () (const SFCToken& lhs,
 
         for (int j = BL_SPACEDIM-1; j >= 0; --j)
         {
-            int il = lhs.m_idx[j]/N;
-            int ir = rhs.m_idx[j]/N;
+            const int il = lhs.m_idx[j]/N;
+            const int ir = rhs.m_idx[j]/N;
 
             if (il < ir)
             {
@@ -820,12 +819,12 @@ Distribute (const std::vector<SFCToken>&     tokens,
             std::vector< std::vector<int> >& v)
 
 {
+    BL_ASSERT(v.size() == nprocs);
+
     int  K        = 0;
     Real totalvol = 0;
 
     const int Navg = tokens.size() / nprocs;
-
-    v.resize(nprocs);
 
     for (int i = 0; i < nprocs; i++)
     {
@@ -880,8 +879,11 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     {
         tokens.push_back(SFCToken(i,boxes[i].smallEnd(),wgts[i]));
 
-        for (int j = 0; j < BL_SPACEDIM; j++)
-            maxijk = std::max(maxijk, tokens[i].m_idx[j]);
+        const SFCToken& token = tokens.back();
+
+        D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
+               maxijk = std::max(maxijk, token.m_idx[1]);,
+               maxijk = std::max(maxijk, token.m_idx[2]););
     }
     //
     // Set SFCToken::MaxPower for BoxArray.
@@ -902,24 +904,20 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         volpercpu += tokens[i].m_vol;
     volpercpu /= nprocs;
 
-    //std::cout << "volpercpu = " << volpercpu << '\n';
-
-    std::vector< std::vector<int> > vec;
+    std::vector< std::vector<int> > vec(nprocs);
 
     Distribute(tokens,nprocs,volpercpu,vec);
 
-    Array<int> ord;
-
-    LeastUsedCPUs(nprocs,ord);
+    tokens.clear();
 
     Array<long> wgts_per_cpu(nprocs,0);
 
     for (unsigned int i = 0, N = vec.size(); i < N; i++)
     {
-        //std::cout << "vec[" << i << "]: wgt: ";
-        for (int j = 0, M = vec[i].size(); j < M; j++)
-            wgts_per_cpu[i] += wgts[vec[i][j]];
-        //std::cout << wgts_per_cpu[i] << '\n';
+        const std::vector<int>& vi = vec[i];
+
+        for (int j = 0, M = vi.size(); j < M; j++)
+            wgts_per_cpu[i] += wgts[vi[j]];
     }
 
     std::vector<LIpair> LIpairV;
@@ -933,14 +931,20 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     Sort(LIpairV, true);
 
+    Array<int> ord;
+
+    LeastUsedCPUs(nprocs,ord);
+
     for (int i = 0; i < nprocs; i++)
     {
-        const int cpu = ord[i%nprocs];
+        const int cpu = ord[i];
         const int idx = LIpairV[i].second;
 
-        for (int j = 0, N = vec[idx].size(); j < N; j++)
+        const std::vector<int>& vi = vec[idx];
+
+        for (int j = 0, N = vi.size(); j < N; j++)
         {
-            m_ref->m_pmap[vec[idx][j]] = cpu;
+            m_ref->m_pmap[vi[j]] = cpu;
         }
     }
     //
@@ -948,28 +952,23 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     //
     m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
 
-    if (verbose)
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         const Real stoptime = ParallelDescriptor::second() - strttime;
 
-        std::vector<Real> wgt(nprocs,0);
-
-        for (int i = 0, N = tokens.size(); i < N; i++)
-            wgt[m_ref->m_pmap[tokens[i].m_box]] += tokens[i].m_vol;
-
         Real sum_wgt = 0, max_wgt = 0;
-        for (int i = 0, N = wgt.size(); i < N; i++)
+        for (int i = 0, N = wgts_per_cpu.size(); i < N; i++)
         {
-            if (wgt[i] > max_wgt)
-                max_wgt = wgt[i];
-            sum_wgt += wgt[i];
+            const long W = wgts_per_cpu[i];
+            if (W > max_wgt)
+                max_wgt = W;
+            sum_wgt += W;
         }
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "SFC efficiency: " << (sum_wgt/(nprocs*max_wgt))
-                      << "\nSFC time: "     << stoptime << '\n';
-        }
+        std::cout << "SFC efficiency: "
+                  << (sum_wgt/(nprocs*max_wgt))
+                  << ", time: "
+                  << stoptime << '\n';
     }
 }
 

@@ -256,6 +256,12 @@ public:
     bool OK (bool full_where = false, int lev_min = 0 , int ngrow = 0, int finest_level = -1) const;
 
     void ByteSpread () const;
+    //
+    // Returns # of particles at specified the level.
+    //
+    // I "only_valid" is true it only counts valid particles.
+    //
+    long NumberOfParticlesAtLevel (int level, bool only_valid = true) const;
 
     void MoveRandom ();
 
@@ -357,6 +363,45 @@ protected:
     Amr*        m_amr;
     Array<PMap> m_particles;
 };
+
+template <int N>
+long
+ParticleContainer<N>::NumberOfParticlesAtLevel (int  lev,
+                                                bool only_valid) const
+{
+    long nparticles = 0;
+
+    if (lev >= 0 && lev < m_particles.size())
+    {
+        const PMap& pmap = m_particles[lev];
+
+        for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end();
+             pmap_it != End;
+             ++pmap_it)
+        {
+            const PBox& pbox = pmap_it->second;
+
+            if (only_valid)
+            {
+                for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
+                     it != pboxEnd;
+                     ++it)
+                {
+                    if (it->m_id > 0)
+                        nparticles++;
+                }
+            }
+            else
+            {
+                nparticles += pbox.size();
+            }
+        }
+    }
+
+    ParallelDescriptor::ReduceLongSum(nparticles);
+
+    return nparticles;
+}
 
 //
 // This includes both valid and invalid particles since invalid particles still take up space.
@@ -4771,12 +4816,10 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
             {
                 if (it->m_id > 0)
-                {
                     //
                     // Only count (and checkpoint) valid particles.
                     //
                     nparticles++;
-                }
             }
         }
     }
@@ -4841,23 +4884,27 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 
     for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
     {
+        const bool gotsome = (NumberOfParticlesAtLevel(lev) > 0);
         //
         // We store the particles at each level in their own subdirectory.
         //
         std::string LevelDir = pdir;
 
-        if (!LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/')
-            LevelDir += '/';
+        if (gotsome)
+        {
+            if (!LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/')
+                LevelDir += '/';
 
-        LevelDir = BoxLib::Concatenate(LevelDir + "Level_", lev, 1);
+            LevelDir = BoxLib::Concatenate(LevelDir + "Level_", lev, 1);
 
-        if (ParallelDescriptor::IOProcessor())
-            if (!BoxLib::UtilCreateDirectory(LevelDir, 0755))
-                BoxLib::CreateDirectoryFailed(LevelDir);
-        //
-        // Force other processors to wait till directory is built.
-        //
-        ParallelDescriptor::Barrier();
+            if (ParallelDescriptor::IOProcessor())
+                if (!BoxLib::UtilCreateDirectory(LevelDir, 0755))
+                    BoxLib::CreateDirectoryFailed(LevelDir);
+            //
+            // Force other processors to wait till directory is built.
+            //
+            ParallelDescriptor::Barrier();
+        }
 
         const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
         //
@@ -4868,83 +4915,86 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         Array<int > count(state.size(),0);
         Array<long> where(state.size(),0);
 
-        const int   FileNumber   = MyProc % nOutFiles;
-        std::string FullFileName = LevelDir;
-
-        FullFileName += '/';
-        FullFileName += ParticleBase::DataPrefix();
-        FullFileName += BoxLib::Concatenate("", FileNumber, 4);
-
-        std::ofstream ParticleFile;
-
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
-        ParticleFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-
-        const int nSets = ((NProcs + (nOutFiles - 1)) / nOutFiles);
-        const int mySet = (MyProc / nOutFiles);
-
-        for (int iSet = 0; iSet < nSets; ++iSet)
+        if (gotsome)
         {
-            if (mySet == iSet)
+            const int   FileNumber   = MyProc % nOutFiles;
+            std::string FullFileName = LevelDir;
+
+            FullFileName += '/';
+            FullFileName += ParticleBase::DataPrefix();
+            FullFileName += BoxLib::Concatenate("", FileNumber, 4);
+
+            std::ofstream ParticleFile;
+
+            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+            ParticleFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+            const int nSets = ((NProcs + (nOutFiles - 1)) / nOutFiles);
+            const int mySet = (MyProc / nOutFiles);
+
+            for (int iSet = 0; iSet < nSets; ++iSet)
             {
-                //
-                // Write all the data at this level to the file.
-                //
-                if (iSet == 0)
-                    //
-                    // First set.
-                    //
-                    ParticleFile.open(FullFileName.c_str(),
-                                      std::ios::out|std::ios::trunc|std::ios::binary);
-                else
+                if (mySet == iSet)
                 {
-                    ParticleFile.open(FullFileName.c_str(),
-                                      std::ios::out|std::ios::app|std::ios::binary);
                     //
-                    // Set to the end of the file.
+                    // Write all the data at this level to the file.
                     //
-                    ParticleFile.seekp(0, std::ios::end);
+                    if (iSet == 0)
+                        //
+                        // First set.
+                        //
+                        ParticleFile.open(FullFileName.c_str(),
+                                          std::ios::out|std::ios::trunc|std::ios::binary);
+                    else
+                    {
+                        ParticleFile.open(FullFileName.c_str(),
+                                          std::ios::out|std::ios::app|std::ios::binary);
+                        //
+                        // Set to the end of the file.
+                        //
+                        ParticleFile.seekp(0, std::ios::end);
+                    }
+
+                    if (!ParticleFile.good())
+                        BoxLib::FileOpenFailed(FullFileName);
+                    //
+                    // Write out all the valid particles we own at the specified level.
+                    // Do it grid block by grid block remembering the seek offset
+                    // for the start of writing of each block of data.
+                    //
+                    WriteParticles(lev, ParticleFile, FileNumber, which, count, where);
+
+                    ParticleFile.flush();
+
+                    ParticleFile.close();
+
+                    if (!ParticleFile.good())
+                        BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing ParticleFile");
+
+                    int iBuff = 0, wakeUpPID = (MyProc + nOutFiles), tag = (MyProc % nOutFiles);
+
+                    if (wakeUpPID < NProcs)
+                    {
+                        ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+                    }
                 }
 
-                if (!ParticleFile.good())
-                    BoxLib::FileOpenFailed(FullFileName);
-                //
-                // Write out all the valid particles we own at the specified level.
-                // Do it grid block by grid block remembering the seek offset
-                // for the start of writing of each block of data.
-                //
-                WriteParticles(lev, ParticleFile, FileNumber, which, count, where);
-
-                ParticleFile.flush();
-
-                ParticleFile.close();
-
-                if (!ParticleFile.good())
-                    BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing ParticleFile");
-
-                int iBuff = 0, wakeUpPID = (MyProc + nOutFiles), tag = (MyProc % nOutFiles);
-
-                if (wakeUpPID < NProcs)
+                if (mySet == (iSet + 1))
                 {
-                    ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+                    //
+                    // Next set waits.
+                    //
+                    int iBuff, waitForPID = (MyProc - nOutFiles), tag = (MyProc % nOutFiles);
+
+                    ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
                 }
             }
 
-            if (mySet == (iSet + 1))
-            {
-                //
-                // Next set waits.
-                //
-                int iBuff, waitForPID = (MyProc - nOutFiles), tag = (MyProc % nOutFiles);
-
-                ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
-            }
+            ParallelDescriptor::ReduceIntSum (which.dataPtr(), which.size(), IOProc);
+            ParallelDescriptor::ReduceIntSum (count.dataPtr(), count.size(), IOProc);
+            ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProc);
         }
-
-        ParallelDescriptor::ReduceIntSum (which.dataPtr(), which.size(), IOProc);
-        ParallelDescriptor::ReduceIntSum (count.dataPtr(), count.size(), IOProc);
-        ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -4957,25 +5007,29 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
                 //
                 HdrFile << which[j] << ' ' << count[j] << ' ' << where[j] << '\n';
             }
-            //
-            // Unlink any zero-length data files.
-            //
-            Array<long> cnt(nOutFiles,0);
 
-            for (int i = 0; i < count.size(); i++)
-                cnt[which[i]] += count[i];
-
-            for (int i = 0; i < cnt.size(); i++)
+            if (gotsome)
             {
-                if (cnt[i] == 0)
+                //
+                // Unlink any zero-length data files.
+                //
+                Array<long> cnt(nOutFiles,0);
+
+                for (int i = 0; i < count.size(); i++)
+                    cnt[which[i]] += count[i];
+
+                for (int i = 0; i < cnt.size(); i++)
                 {
-                    std::string FullFileName = LevelDir;
+                    if (cnt[i] == 0)
+                    {
+                        std::string FullFileName = LevelDir;
 
-                    FullFileName += '/';
-                    FullFileName += ParticleBase::DataPrefix();
-                    FullFileName += BoxLib::Concatenate("", i, 4);
+                        FullFileName += '/';
+                        FullFileName += ParticleBase::DataPrefix();
+                        FullFileName += BoxLib::Concatenate("", i, 4);
 
-                    BoxLib::UnlinkFile(FullFileName.c_str());
+                        BoxLib::UnlinkFile(FullFileName.c_str());
+                    }
                 }
             }
         }
@@ -5025,9 +5079,9 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
         if (pmap_it != pmap.end())
         {
-            const PBox& pbox = pmap_it->second;
-
-            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+            for (typename PBox::const_iterator it = pmap_it->second.begin(), pboxEnd =  pmap_it->second.end();
+                 it != pboxEnd;
+                 ++it)
             {
                 if (it->m_id > 0)
                     cnt++;
@@ -5438,15 +5492,16 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 {
     //
     // basename -> base filename for the output file
-    // mf -> the multifab
-    // lev -> level to check for particles
-    // time -> simulation time (will be recorded in Timestamp file)
-    // indices ->
-    // vcomp -> the offset of velocity terms in the particle metadata
+    // mf       -> the multifab
+    // lev      -> level to check for particles
+    // time     -> simulation time (will be recorded in Timestamp file)
+    // indices  -> indices into mf that we output
+    // vcomp    -> the offset of velocity terms in the particle metadata
     //
     BL_ASSERT(lev >= 0);
     BL_ASSERT(time >= 0);
     BL_ASSERT(vcomp >= 0);
+    BL_ASSERT(mf.nGrow() >= 1);
     BL_ASSERT(!basename.empty());
     BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
     BL_ASSERT(lev <= m_amr->finestLevel());
@@ -5512,7 +5567,10 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                 if (!TimeStampFile.good())
                     BoxLib::FileOpenFailed(FileName);
 
-                std::vector<Real> vals(indices.size());
+                const int       M  = indices.size();
+                const BoxArray& ba = mf.boxArray();
+
+                std::vector<Real> vals(M);
 
                 for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
                      pmap_it != pmapEnd;
@@ -5520,6 +5578,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                 {
                     const int        grid = pmap_it->first;
                     const PBox&      pbox = pmap_it->second;
+                    const Box&       bx   = ba[grid];
                     const FArrayBox& fab  = mf[grid];
 
                     for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
@@ -5529,33 +5588,33 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
                         const ParticleType& p = *it;
 
                         if (p.m_id <= 0) continue;
-                        
-                        if (!mf.boxArray().contains(ParticleBase::Index(p, lev, m_amr))) continue;
+
+                        const IntVect iv = ParticleBase::Index(p, lev, m_amr);
+
+                        if (!bx.contains(iv) && !ba.contains(iv)) continue;
 
                         BL_ASSERT(p.m_lev == lev);
                         BL_ASSERT(p.m_grid == grid);
 
                         TimeStampFile << p.m_id  << ' ' << p.m_cpu << ' ';
 
-                        for (int i = 0; i < BL_SPACEDIM; i++)
-                        {
-                            TimeStampFile << p.m_pos[i] << ' ';
-                        }
+                        D_TERM(TimeStampFile << p.m_pos[0] << ' ';,
+                               TimeStampFile << p.m_pos[1] << ' ';,
+                               TimeStampFile << p.m_pos[2] << ' ';);
 
                         TimeStampFile << time;
                         //
                         // AdvectWithUmac stores the velocity in m_data ...
                         //
-                        for (int i = vcomp; i < vcomp + BL_SPACEDIM; i++)
-                        {
-                            TimeStampFile << ' ' << p.m_data[i];
-                        }
+                        D_TERM(TimeStampFile << ' ' << p.m_data[vcomp+0];,
+                               TimeStampFile << ' ' << p.m_data[vcomp+1];,
+                               TimeStampFile << ' ' << p.m_data[vcomp+2];);
 
-                        if (!indices.empty())
+                        if (M > 0)
                         {
-                            ParticleBase::Interp(p,m_amr,fab,&indices[0],&vals[0],indices.size());
+                            ParticleBase::Interp(p,m_amr,fab,&indices[0],&vals[0],M);
 
-                            for (int i = 0; i < indices.size(); i++)
+                            for (int i = 0; i < M; i++)
                             {
                                 TimeStampFile << ' ' << vals[i];
                             }
