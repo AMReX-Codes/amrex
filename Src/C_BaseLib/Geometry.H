@@ -455,10 +455,8 @@ namespace BoxLib
                         {
                             if (!geom.isPeriodic(i))
                             {
-                                if (src.smallEnd(i) == geom.Domain().smallEnd(i))
-                                    src.growLo(i,mf.nGrow());
-                                if (src.bigEnd(i) == geom.Domain().bigEnd(i))
-                                    src.growHi(i,mf.nGrow());
+			      src.growLo(i,mf.nGrow());
+			      src.growHi(i,mf.nGrow());
                             }
                         }
                     }

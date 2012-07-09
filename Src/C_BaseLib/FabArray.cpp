@@ -51,6 +51,9 @@ FabArrayBase::Initialize ()
     pp.query("use_fb_cache",        use_fb_cache);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
 
+    if (do_alltoallv && do_async_sends)
+        BoxLib::Abort("At most one of 'do_alltoallv' and 'do_async_sends' can be true");
+
     BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
 
     initialized = true;
@@ -329,7 +332,7 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
-    SI::SIRecVector&           sirec  = it->second.m_sirec;
+    SI::SIRecContainer&        sirec  = it->second.m_sirec;
     Array<int>&                cache  = it->second.m_cache;
 
     cache.resize(ParallelDescriptor::NProcs(),0);
@@ -360,15 +363,6 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
         }
 
         BL_ASSERT(cache[DMap[i]] == 0);
-    }
-
-    if (!sirec.empty() && sirec.capacity() > sirec.size())
-    {
-        //
-        // Squish out any spare capacity.
-        //
-        SI::SIRecVector tmp(sirec);
-        tmp.swap(sirec);
     }
 
     return it->second;
