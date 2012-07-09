@@ -233,7 +233,7 @@ public:
 
     void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const;
 
-    void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1) const;
+    void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const;
 
     void AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min = 0) const;
 
@@ -2009,13 +2009,16 @@ ParticleContainer<N>::AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min) c
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncomp) const
+ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncomp, int finest_level) const
 {
     BL_ASSERT(N >= 1);
     BL_ASSERT(N >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
-    int finest_level = m_amr->finestLevel();
+    if (finest_level == -1)
+    {
+        finest_level = m_amr->finestLevel();
+    }
     while (!m_amr->getAmrLevels().defined(finest_level))
     {
         finest_level--;
@@ -3134,6 +3137,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
     const Real dt_a_half_inv = dt * a_half_inv;
     PMap&      pmap          = m_particles[lev];
 
+    std:: cout << "DEBUG: Gonna Iterate!\n";
     for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
         const int        grid = pmap_it->first;
@@ -3922,6 +3926,7 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
              it != pboxEnd;
              ++it)
         {
+            std::cout << "DEBUG: Creating virtual particle for level " << level << "\n";
             if (buffer.contains(it->m_cell))
             {
                 // It's in the no-aggregation buffer
