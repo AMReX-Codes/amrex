@@ -233,7 +233,7 @@ public:
 
     void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const;
 
-    void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1) const;
+    void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const;
 
     void AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min = 0) const;
 
@@ -2054,13 +2054,16 @@ ParticleContainer<N>::AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min) c
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncomp) const
+ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncomp, int finest_level) const
 {
     BL_ASSERT(N >= 1);
     BL_ASSERT(N >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
-    int finest_level = m_amr->finestLevel();
+    if (finest_level == -1)
+    {
+        finest_level = m_amr->finestLevel();
+    }
     while (!m_amr->getAmrLevels().defined(finest_level))
     {
         finest_level--;
