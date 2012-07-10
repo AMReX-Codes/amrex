@@ -1232,13 +1232,16 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     {
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
+            const Box& bx   = fai.validbox();
+            const FAB& sfab = src[fai];
+
             if (op == FabArrayBase::COPY)
             {
-                get(fai).copy(src[fai],fai.validbox(),scomp,fai.validbox(),dcomp,ncomp);
+                get(fai).copy(sfab,bx,scomp,bx,dcomp,ncomp);
             }
             else
             {
-                get(fai).plus(src[fai],fai.validbox(),fai.validbox(),scomp,dcomp,ncomp);
+                get(fai).plus(sfab,bx,bx,scomp,dcomp,ncomp);
             }
         }
         return;
@@ -1268,13 +1271,15 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
             BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
 
+            const FAB& sfab = src[tag.srcIndex];
+
             if (op == FabArrayBase::COPY)
             {
-                get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
+                get(tag.fabIndex).copy(sfab,tag.box,scomp,tag.box,dcomp,ncomp);
             }
             else
             {
-                get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
+                get(tag.fabIndex).plus(sfab,tag.box,tag.box,scomp,dcomp,ncomp);
             }
         }
     }
@@ -1297,13 +1302,15 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 {
                     if (src.distributionMap[iii] == MyProc)
                     {
+                        const FAB& sfab = src[iii];
+
                         if (op == FabArrayBase::COPY)
                         {
-                            get(i).copy(src[iii],bx,scomp,bx,dcomp,ncomp);
+                            get(i).copy(sfab,bx,scomp,bx,dcomp,ncomp);
                         }
                         else
                         {
-                            get(i).plus(src[iii],bx,bx,scomp,dcomp,ncomp);
+                            get(i).plus(sfab,bx,bx,scomp,dcomp,ncomp);
                         }
 
                         tag.box      = bx;
@@ -1470,7 +1477,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         const int N_rcvs = thecpc.m_RcvTags.size();
         const int N_snds = thecpc.m_SndTags.size();
 
-        Array<MPI_Status>  status(N_rcvs);
+        Array<MPI_Status>     status(N_rcvs);
         Array<int>         recv_from(N_rcvs), index(N_rcvs);
         Array<value_type*> recv_data(N_rcvs), send_data;
         Array<MPI_Request> recv_reqs(N_rcvs), send_reqs;
@@ -1547,9 +1554,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 const Box& bx = it->box;
                 fab.resize(bx, ncomp);
                 fab.copy(src[it->fabIndex],bx,scomp,bx,0,ncomp);
-                const int count = bx.numPts()*ncomp;
-                memcpy(dptr, fab.dataPtr(), count*sizeof(value_type));
-                dptr += count;
+                const int Count = bx.numPts()*ncomp;
+                memcpy(dptr, fab.dataPtr(), Count*sizeof(value_type));
+                dptr += Count;
             }
             BL_ASSERT(data+N == dptr);
 
@@ -2059,13 +2066,13 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
         BL_ASSERT(it->procThatNeedsData == MyProc);
         BL_ASSERT(it->procThatHasData   != MyProc);
 
-        const int count = (it->box.numPts())*(it->nComp);
+        const int Count = (it->box.numPts())*(it->nComp);
 
-        Total_Rcvs_Size += count;
+        Total_Rcvs_Size += Count;
 
         Rcvs[it->procThatHasData]++;
 
-        N_per_cpu[it->procThatHasData] += count;
+        N_per_cpu[it->procThatHasData] += Count;
     }
     BL_ASSERT(Rcvs[MyProc] == 0);
 
@@ -2187,11 +2194,9 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
         for (int i = 0; i < NProcs; i++)
         {
             int send_N = 0;
-            for (int j = 0; j < Snds[i]; j++)
-            {
-                const ParallelDescriptor::CommData& cd = cd_others_need[strt[i]+j];
-                send_N += cd.box().numPts()*cd.nComp();
-            }
+            const ParallelDescriptor::CommData* cd = &cd_others_need[strt[i]];
+            for (int j = 0; j < Snds[i]; j++, cd++)
+                send_N += cd->box().numPts()*cd->nComp();
             send_sz    += send_N;
             sendcnts[i] = send_N;
             if (i > 0)
@@ -2208,19 +2213,19 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
 
         for (int i = 0; i < NProcs; i++) 
         {
-            value_type* dptr = &sendbuf[sdispls[i]];
+            value_type*                         dptr = &sendbuf[sdispls[i]];
+            const ParallelDescriptor::CommData* cd   = &cd_others_need[strt[i]];
 
-            for (int j = 0; j < Snds[i]; j++)
+            for (int j = 0; j < Snds[i]; j++, cd++)
             {
-                const ParallelDescriptor::CommData& cd = cd_others_need[strt[i]+j];
-                fab.resize(cd.box(), cd.nComp());
+                fab.resize(cd->box(), cd->nComp());
                 const int N = fab.box().numPts()*fab.nComp();
-                fab.copy((*fabArrays[cd.fabarrayid()])[cd.fabindex()],
+                fab.copy((*fabArrays[cd->fabarrayid()])[cd->fabindex()],
                          fab.box(),
-                         cd.srcComp(),
+                         cd->srcComp(),
                          fab.box(),
                          0,
-                         cd.nComp());
+                         cd->nComp());
                 memcpy(dptr, fab.dataPtr(), N*sizeof(value_type));
                 dptr += N;
             }
@@ -2281,147 +2286,111 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
     }
     else
     {
-        int N_rcvs = 0;
-        for (int i = 0; i < NProcs; i++)
-            if (Rcvs[i] > 0)
-                N_rcvs++;
-
-        int N_snds = 0;
-        for (int i = 0; i < NProcs; i++)
-            if (Snds[i] > 0)
-                N_snds++;
-
-        Array<int> who_R(N_rcvs), n_R(N_rcvs), count_R(N_rcvs),   index(N_rcvs);
-        Array<int> who_S(N_snds), n_S(N_snds), count_S(N_snds), roffset(N_rcvs);
-
-        Array<MPI_Status>  status(N_rcvs);
+        Array<int>         roffset, who_R, index;
+        Array<MPI_Status>  stats;
+        Array<MPI_Request> recv_reqs, send_reqs;
         Array<value_type*> send_data;
-        Array<MPI_Request> recv_reqs(N_rcvs), send_reqs;
+        //
+        // Post receives.  Allocate data for rcvs as one big chunk.
+        //
+        value_type* recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Total_Rcvs_Size*sizeof(value_type)));
 
-        if (FabArrayBase::do_async_sends && N_snds > 0)
-        {
-            send_data.resize(N_snds);
-            send_reqs.resize(N_snds);
-        }
-
-        for (int i = 0, j = 0; i < NProcs; i++)
-        {
-            const int NR = Rcvs[i];
-
-            if (NR > 0)
-            {
-                n_R[j]     = NR;
-                who_R[j]   = i;
-                count_R[j] = N_per_cpu[i];
-                j++;
-            }
-        }
+        const int seqno = ParallelDescriptor::SeqNum();
 
         for (int i = 0, j = 0, idx = 0; i < NProcs; i++)
         {
-            const int NS = Snds[i];
+            if (Rcvs[i] <= 0) continue;
 
-            if (NS > 0)
-            {
-                n_S[j]   = NS;
-                who_S[j] = i;
+            who_R.push_back(i);
 
-                int N = 0;
-                for (int k = 0; k < NS; k++)
-                {
-                    const ParallelDescriptor::CommData& cd = cd_others_need[idx+k];
-                    N += cd.box().numPts()*cd.nComp();
-                }
-                BL_ASSERT(N < std::numeric_limits<int>::max());
-
-                count_S[j] = N;
-                idx       += NS;
-                j++;
-            }
-        }
-
-        Rcvs.clear(); Snds.clear(); N_per_cpu.clear();
-        //
-        // Allocate data for rcvs as one big chunk.
-        //
-        value_type* recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Total_Rcvs_Size*sizeof(value_type)));
-        //
-        // Post receives.
-        //
-        const int seqno = ParallelDescriptor::SeqNum();
-
-        for (int i = 0, idx = 0; i < N_rcvs; i++)
-        {
-            const int N = count_R[i];
+            const int N = N_per_cpu[i];
 
             BL_ASSERT(N > 0);
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
-            recv_reqs[i] = ParallelDescriptor::Arecv(&recv_data[idx],N,who_R[i],seqno).req();
-            roffset[i]   = idx;
-            idx         += N;
+            recv_reqs.push_back(ParallelDescriptor::Arecv(&recv_data[idx],N,i,seqno).req());
+
+            roffset.push_back(idx);
+
+            idx += N;
+            j++;
         }
         //
         // Send the FAB data.
         //
         FAB fab;
 
-        for (int i = 0, idx = 0; i < N_snds; i++)
+        for (int i = 0, j = 0, idx = 0; i < NProcs; i++)
         {
-            const int   N    = count_S[i];
-            const int   NS   = n_S[i];
-            const int   cpu  = who_S[i];
+            const int NS = Snds[i];
+
+            if (NS <= 0) continue;
+
+            int N = 0;
+            const ParallelDescriptor::CommData* cd = &cd_others_need[idx];
+            for (int k = 0; k < NS; k++, cd++)
+                N += cd->box().numPts()*cd->nComp();
+
+            BL_ASSERT(N < std::numeric_limits<int>::max());
+
             value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
             value_type* dptr = data;
 
-            for (int j = 0; j < NS; j++)
+            cd = &cd_others_need[idx];
+
+            for (int k = 0; k < NS; k++, cd++)
             {
-                const ParallelDescriptor::CommData& cd = cd_others_need[idx+j];
-                BL_ASSERT(cd.id() == 0);
-                BL_ASSERT(cd.fromproc() == cpu);
-                fab.resize(cd.box(), cd.nComp());
-                const int count = fab.box().numPts()*fab.nComp();
-                fab.copy((*fabArrays[cd.fabarrayid()])[cd.fabindex()],
+                BL_ASSERT(cd->id() == 0);
+                BL_ASSERT(cd->fromproc() == i);
+                fab.resize(cd->box(), cd->nComp());
+                const int Count = fab.box().numPts()*fab.nComp();
+                fab.copy((*fabArrays[cd->fabarrayid()])[cd->fabindex()],
                          fab.box(),
-                         cd.srcComp(),
+                         cd->srcComp(),
                          fab.box(),
                          0,
-                         cd.nComp());
-                memcpy(dptr, fab.dataPtr(), count*sizeof(value_type));
-                dptr += count;
+                         cd->nComp());
+                memcpy(dptr, fab.dataPtr(), Count*sizeof(value_type));
+                dptr += Count;
             }
-            BL_ASSERT(data+N == dptr);
 
-            idx += NS;
+            BL_ASSERT(data+N == dptr);
 
             if (FabArrayBase::do_async_sends)
             {
-                send_data[i] = data;
-                send_reqs[i] = ParallelDescriptor::Asend(data,N,cpu,seqno).req();
+                send_data.push_back(data);
+                send_reqs.push_back(ParallelDescriptor::Asend(data,N,i,seqno).req());
             }
             else
             {
-                ParallelDescriptor::Send(data,N,cpu,seqno);
+                ParallelDescriptor::Send(data,N,i,seqno);
                 BoxLib::The_Arena()->free(data);
             }
+
+            idx += NS;
+            j++;
         }
 
-        cd_others_need.clear();
+        N_per_cpu.clear(); Snds.clear(); cd_others_need.clear();
         //
         // Now receive and unpack FAB data as it becomes available.
         //
         std::pair<FCDMapIter,FCDMapIter> match;
 
+        const int N_rcvs = recv_reqs.size();
+
+        index.resize(N_rcvs);
+        stats.resize(N_rcvs);
+
         for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
         {
-            ParallelDescriptor::Waitsome(recv_reqs, completed, index, status);
+            ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
 
             for (int k = 0; k < completed; k++)
             {
-                const int    which    = index[k];
-                const int    recvfrom = who_R[which];
+                const int    recvfrom = who_R[index[k]];
                 int          howmany  = 0;
-                value_type*  dptr     = &recv_data[roffset[which]];
+                value_type*  dptr     = &recv_data[roffset[index[k]]];
 
                 BL_ASSERT(dptr != 0);
 
@@ -2456,22 +2425,24 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
                     }
                 }
 
-                BL_ASSERT(howmany == n_R[which]);
+                BL_ASSERT(howmany == Rcvs[who_R[index[k]]]);
             }
         }
 
         BoxLib::The_Arena()->free(recv_data);
 
-        if (FabArrayBase::do_async_sends && N_snds > 0)
+        if (FabArrayBase::do_async_sends && !send_reqs.empty())
         {
             //
             // Now grok the asynchronous send buffers.
             //
-            status.resize(N_snds);
+            const int N_snds = send_reqs.size();
+
+            stats.resize(N_snds);
 
             BL_MPI_REQUIRE( MPI_Waitall(N_snds,
                                         send_reqs.dataPtr(),
-                                        status.dataPtr()) );
+                                        stats.dataPtr()) );
             //
             // And free up send buffer space.
             //
