@@ -2297,7 +2297,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
 
         const int seqno = ParallelDescriptor::SeqNum();
 
-        for (int i = 0, j = 0, idx = 0; i < NProcs; i++)
+        for (int i = 0, idx = 0; i < NProcs; i++)
         {
             if (Rcvs[i] <= 0) continue;
 
@@ -2313,14 +2313,13 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
             roffset.push_back(idx);
 
             idx += N;
-            j++;
         }
         //
         // Send the FAB data.
         //
         FAB fab;
 
-        for (int i = 0, j = 0, idx = 0; i < NProcs; i++)
+        for (int i = 0, idx = 0; i < NProcs; i++)
         {
             const int NS = Snds[i];
 
@@ -2368,7 +2367,6 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
             }
 
             idx += NS;
-            j++;
         }
 
         N_per_cpu.clear(); Snds.clear(); cd_others_need.clear();
@@ -2388,9 +2386,9 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
 
             for (int k = 0; k < completed; k++)
             {
-                const int    recvfrom = who_R[index[k]];
-                int          howmany  = 0;
-                value_type*  dptr     = &recv_data[roffset[index[k]]];
+                const int         recvfrom = who_R[index[k]];
+                int               howmany  = 0;
+                const value_type* dptr     = &recv_data[roffset[index[k]]];
 
                 BL_ASSERT(dptr != 0);
 
@@ -2416,9 +2414,9 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
                             value_type* dataPtr = fcdp->localFabSource->dataPtr();
                             BL_ASSERT(dataPtr != 0);
                             BL_ASSERT(fcdp->localFabSource->box() == tag.box);
-                            const int N = tag.box.numPts()*tag.nComp;
-                            memcpy(dataPtr, dptr, N*sizeof(value_type));
-                            dptr += N;
+                            const int Count = tag.box.numPts()*tag.nComp;
+                            memcpy(dataPtr, dptr, Count*sizeof(value_type));
+                            dptr += Count;
                             howmany++;
                             break;
                         }
