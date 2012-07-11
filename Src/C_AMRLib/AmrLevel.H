@@ -300,10 +300,10 @@ public:
     //
     // Boundary condition access function.
     //
-    Array<int> getBCArray (int State_Type,
-                           int gridno,
-                           int scomp,
-                           int ncomp);
+     Array<int> getBCArray (int State_Type,
+                            int gridno,
+                            int scomp,
+                            int ncomp);
     //
     // Get state data at specified index and time.
     //

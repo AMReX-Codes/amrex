@@ -1301,9 +1301,12 @@ AmrLevel::getBCArray (int State_Type,
 {
     Array<int> bc(2*BL_SPACEDIM*ncomp);
 
+    BCRec bcr;
+
     for (int n = 0; n < ncomp; n++)
     {
-        const int* b_rec = state[State_Type].getBC(strt_comp+n,gridno).vect();
+        bcr = state[State_Type].getBC(strt_comp+n,gridno);
+        const int* b_rec = bcr.vect();
         for (int m = 0; m < 2*BL_SPACEDIM; m++)
             bc[2*BL_SPACEDIM*n + m] = b_rec[m];
     }

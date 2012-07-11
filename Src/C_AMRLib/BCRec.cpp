@@ -1,5 +1,6 @@
 
 #include <iostream>
+
 #include <BCRec.H>
 
 BCRec::BCRec () {}
@@ -17,11 +18,13 @@ BCRec::BCRec (const int* lo,
     BL_ASSERT(!(lo == 0));
     BL_ASSERT(!(hi == 0));
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
-    {
-        bc[i] = lo[i];
-        bc[i+BL_SPACEDIM] = hi[i];
-    }
+    D_TERM(bc[0] = lo[0];,
+           bc[1] = lo[1];,
+           bc[2] = lo[2];);
+
+    D_TERM(bc[BL_SPACEDIM+0] = hi[0];,
+           bc[BL_SPACEDIM+1] = hi[1];,
+           bc[BL_SPACEDIM+2] = hi[2];);
 }
 
 BCRec::BCRec (const Box&   bx,
@@ -57,9 +60,8 @@ BoxLib::setBC (const Box&          bx,
     for (int i = 0; i < ncomp; i++)
     {
         int dc = dest_comp + i;
-        int sc = src_comp + i;
-        int dir;
-        for (dir = 0; dir < BL_SPACEDIM; dir++)
+        int sc =  src_comp + i;
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
             bcr[dc].setLo(dir, ( bxlo[dir]<=dlo[dir]
                                  ? bc_dom[sc].lo(dir) : INT_DIR ));
