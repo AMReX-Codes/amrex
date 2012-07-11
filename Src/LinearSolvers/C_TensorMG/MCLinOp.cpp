@@ -215,12 +215,11 @@ MCLinOp::applyBC (MultiFab& inout,
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
-            const Array<Real> &r = bgb.bndryLocs(oitr());
             FabSet& f  = (*undrrelxr[level])[oitr()];
             FabSet& td = (*tangderiv[level])[oitr()];
             int cdr(oitr());
             const FabSet& fs = bgb.bndryValues(oitr());
-	    Real bcl(r[gn]);
+	    Real bcl = bgb.bndryLocs(oitr(),gn);
             const Array<BoundCond>& bc = bgb.bndryConds(oitr(),gn);
 	    const int *bct = (const int*) bc.dataPtr();
 	    const FArrayBox& fsfab = fs[gn];

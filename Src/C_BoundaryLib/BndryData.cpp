@@ -29,9 +29,15 @@ const Array<BoundCond>&
 BndryData::bndryConds (const Orientation& _face, int igrid) const
 {
     std::map< int,Array<BoundCond> >::const_iterator it = bcond[_face].find(igrid);
-
     BL_ASSERT(it != bcond[_face].end());
+    return it->second;
+}
 
+Real
+BndryData::bndryLocs (const Orientation& _face, int igrid) const
+{
+    std::map<int,Real>::const_iterator it = bcloc[_face].find(igrid);
+    BL_ASSERT(it != bcloc[_face].end());
     return it->second;
 }
 
@@ -140,7 +146,7 @@ BndryData::define (const BoxArray& _grids,
         const int         coord_dir = face.coordDir();
 
         masks[face].resize(ngrd);
-        bcloc[face].resize(ngrd);
+//        bcloc[face].resize(ngrd);
 
         BndryRegister::define(face,IndexType::TheCellType(),0,1,0,_ncomp);
         //
@@ -238,8 +244,7 @@ operator<< (std::ostream&    os,
 
             for (int i = 0; i < ncomp; ++i)
                 os << bc[i] << ' ';
-
-            os << " LOC = " << bd.bcloc[f][grd] << '\n';
+            os << " LOC = " << bd.bndryLocs(f,grd) << '\n';
             os << bd.masks[f][grd];
             os << bd.bndry[f][grd];
         }
@@ -279,7 +284,7 @@ BndryData::writeOn (std::ostream& os) const
                 os << bc[cmp] << ' ';
             os << '\n';
 
-            os << bcloc[f][grd] << '\n';
+            os << bndryLocs(f,grd) << '\n';
         }
     }
 

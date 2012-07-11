@@ -95,8 +95,9 @@ public:
     const FabSet& bndryValues (const Orientation& face) const;
     //
     // Return boundary location on given face for grids we own.
+    // It's an error if we don't own that grid.
     //
-    const Array<Real>& bndryLocs (const Orientation& face) const;
+    Real bndryLocs (const Orientation& face, int igrid) const;
     //
     // Return boundary type specifyer on given face for grids we own.
     // It's an error if we don't own that grid.
@@ -183,7 +184,7 @@ protected:
     //
     // Array (on orientation) of boundary condition locations.
     //
-    Array<Real> bcloc[2*BL_SPACEDIM];
+    std::map<int,Real> bcloc[2*BL_SPACEDIM];
     //
     // Array (on orientation) of boundary condition mask arrays (FAB-like)
     //
@@ -209,13 +210,6 @@ const FabSet&
 BndryData::bndryValues (const Orientation& _face) const
 {
     return bndry[_face];
-}
-
-inline
-const Array<Real>&
-BndryData::bndryLocs (const Orientation& _face) const
-{
-    return bcloc[_face];
 }
 
 inline
