@@ -38,8 +38,6 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
 
     for (OrientationIter fi; fi; ++fi)
     {
-        Array<Real>& bloc = bcloc[fi()];
-
         const int  dir   = fi().coordDir();
         const Real delta = dx[dir]*ratio[dir];
         const int  p_bc  = (fi().isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
@@ -50,6 +48,8 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
 
             const Box& grd = grids[i];
 
+            Real& bloc = bcloc[fi()][i];
+
             Array<BoundCond>& bctag = bcond[fi()][i];
 
             if (domain[fi()] == grd[fi()] && !geom.isPeriodic(dir))
@@ -58,7 +58,7 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
                 // All physical bc values are located on face.
                 //
                 bctag[comp] = (p_bc == Outflow) ? LO_DIRICHLET : LO_NEUMANN;
-                bloc[i]        = 0;
+                bloc        = 0;
             }
             else
             {
@@ -66,7 +66,7 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
                 // Internal bndry.
                 //
                 bctag[comp] = LO_DIRICHLET;
-		bloc[i] = 0.5*delta;
+		bloc        = 0.5*delta;
             }
         }
     }
