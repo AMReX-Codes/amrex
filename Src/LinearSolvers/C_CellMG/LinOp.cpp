@@ -263,14 +263,13 @@ LinOp::applyBC (MultiFab&      inout,
         {
             Orientation o(oitr());
 
-            const Array< Array<BoundCond> >& b   = bgb.bndryConds(o);
             const Array<Real>&               r   = bgb.bndryLocs(o);
             FabSet&                          f   = (*undrrelxr[level])[o];
             int                              cdr = o;
             const FabSet&                    fs  = bgb.bndryValues(o);
             const Mask&                      m   = local ? (*lmaskvals[level][gn][o]) : (*maskvals[level][gn][o]);
             Real                             bcl = r[gn];
-            int                              bct = b[gn][comp];
+            int                              bct = bgb.bndryConds(o,gn)[comp];
 
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
                          inout[gn].dataPtr(src_comp),
