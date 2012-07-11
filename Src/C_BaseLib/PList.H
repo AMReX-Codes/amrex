@@ -103,11 +103,11 @@ PList<T>::pop_back()
     if (managed)
     {
         delete ((T*)(this->back()));
-        this->pop_back();
+        this->std::list<T*>::pop_back();
     }
     else
     {
-        this->pop_back();
+        this->std::list<T*>::pop_back();
     }    
 }
 
@@ -130,7 +130,7 @@ template <class T>
 void
 PList<T>::clear ()
 {
-    while (this->size() > 0)
+    while (!this->empty())
     {
         this->pop_back();
     }
