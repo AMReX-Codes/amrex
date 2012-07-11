@@ -3,13 +3,7 @@
 #define _AmrLevel_H_ 
 
 #include <REAL.H>
-#include <Box.H>
-#include <RealBox.H>
 #include <Geometry.H>
-#include <FArrayBox.H>
-#include <BoxArray.H>
-#include <Array.H>
-#include <FabArray.H>
 #include <MultiFab.H>
 #include <Derive.H>
 #include <BCRec.H>
@@ -19,6 +13,8 @@
 #include <StateDescriptor.H>
 #include <StateData.H>
 #include <VisMF.H>
+
+#include <map>
 
 class TagBox;
 class TagBoxArray;
@@ -362,18 +358,18 @@ protected:
     //
     // The Data.
     //
-    int level;                        // AMR level (0 is coarsest).
-    Geometry geom;                    // Geom at this level.
-    BoxArray grids;                   // Cell-centered locations of grids.
-    Amr* parent;                      // Pointer to parent AMR structure.
-    IntVect crse_ratio;               // Refinement ratio to coarser level.
-    IntVect fine_ratio;               // Refinement ratio to finer level.
-    static DeriveList derive_lst;     // List of derived quantities.
-    static DescriptorList desc_lst;   // List of state variables.
+    int                   level;        // AMR level (0 is coarsest).
+    Geometry              geom;         // Geom at this level.
+    BoxArray              grids;        // Cell-centered locations of grids.
+    Amr*                  parent;       // Pointer to parent AMR structure.
+    IntVect               crse_ratio;   // Refinement ratio to coarser level.
+    IntVect               fine_ratio;   // Refinement ratio to finer level.
+    static DeriveList     derive_lst;   // List of derived quantities.
+    static DescriptorList desc_lst;     // List of state variables.
 #ifdef USE_SLABSTAT
-    static SlabStatList slabstat_lst; // List of SlabStats.
+    static SlabStatList   slabstat_lst; // List of SlabStats.
 #endif
-    Array<StateData> state;           // Array of state data.
+    Array<StateData>      state;        // Array of state data.
 
 private:
     //
@@ -414,10 +410,6 @@ class FillPatchIterator
     ~FillPatchIterator ();
 
     FArrayBox& operator() () { return m_fabs[index()]; }
-
-    bool isValid ();
-
-    void operator++ ();
 
     const Box& UngrownBox () const { return MFIter::validbox(); }
 
@@ -469,7 +461,7 @@ public:
 
     void fill (FArrayBox& fab, int dcomp, int idx);
 
-    bool isValid ();
+    bool isValid () { BL_ASSERT(m_init); return MFIter::isValid(); }
 
 private:
     //
@@ -481,22 +473,23 @@ private:
     //
     // The data.
     //
-    AmrLevel&                    m_amrlevel;
-    MultiFab&                    m_leveldata;
-    MultiFabCopyDescriptor       m_mfcd;
-    Array<Array<MultiFabId> >    m_mfid;     // [level][oldnew]
-    Interpolater*                m_map;
-    Array<Array<Array<Box> > >   m_finebox;  // [grid][level][validregion]
-    Array<Array<Array<Box> > >   m_crsebox;  // [grid][level][fillablesubbox]
-    Array<Array<Array<Array<FillBoxId> > > > m_fbid;// [grid][level][fillablesubbox][oldnew]
-    BoxArray                     m_ba;
-    Real                         m_time;
-    int                          m_growsize;
-    int                          m_index;
-    int                          m_scomp;
-    int                          m_ncomp;
-    bool                         m_init;
-    bool                         m_FixUpCorners;
+    AmrLevel&                  m_amrlevel;
+    MultiFab&                  m_leveldata;
+    MultiFabCopyDescriptor     m_mfcd;
+    Array< Array<MultiFabId> > m_mfid;     // [level][oldnew]
+    Interpolater*              m_map;
+    BoxArray                   m_ba;
+    Real                       m_time;
+    int                        m_growsize;
+    int                        m_index;
+    int                        m_scomp;
+    int                        m_ncomp;
+    bool                       m_init;
+    bool                       m_FixUpCorners;
+
+    std::map< int,Array< Array<Box> > >                m_finebox; // [grid][level][validregion]
+    std::map< int,Array< Array<Box> > >                m_crsebox; // [grid][level][fillablesubbox]
+    std::map< int,Array< Array< Array<FillBoxId> > > > m_fbid;    // [grid][level][fillablesubbox][oldnew]
 };
 
 inline
