@@ -312,9 +312,6 @@ FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel& amrlevel,
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
     m_mfid(m_amrlevel.level+1),
-    m_finebox(m_leveldata.boxArray().size()),
-    m_crsebox(m_leveldata.boxArray().size()),
-    m_fbid(m_leveldata.boxArray().size()),
     m_ba(m_leveldata.boxArray().size()),
     m_init(false)
 {}
@@ -341,9 +338,6 @@ FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel&     amrlevel,
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
     m_mfid(m_amrlevel.level+1),
-    m_finebox(m_leveldata.boxArray().size()),
-    m_crsebox(m_leveldata.boxArray().size()),
-    m_fbid(m_leveldata.boxArray().size()),
     m_ba(m_leveldata.boxArray().size()),
     m_time(time),
     m_growsize(boxGrow),
@@ -438,10 +432,11 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     }
     m_ba.grow(m_growsize);  // These are the ones we want to fillpatch.
 
-    BoxList unfillableThisLevel(boxType), tempUnfillable(boxType);
+    Array<IntVect> pshifts(27);
+
     std::vector<Box> unfilledThisLevel, crse_boxes;
 
-    Array<IntVect> pshifts(27);
+    BoxList unfillableThisLevel(boxType), tempUnfillable(boxType);
 
     for (int ibox = 0, N = m_ba.size(); ibox < N; ++ibox)
     {
@@ -473,9 +468,13 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                         for (int dir = 0; dir < BL_SPACEDIM; dir++)
                         {
                             if (pshifts[iiv][dir] > 0)
+                            {
                                 shbox.growHi(dir,-1);
+                            }
                             else if (pshifts[iiv][dir] < 0)
+                            {
                                 shbox.growLo(dir,-1);
+                            }
                         }
                     }
 
@@ -546,9 +545,13 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                                 for (int dir = 0; dir < BL_SPACEDIM; dir++)
                                 {
                                     if (pshifts[iiv][dir] > 0)
+                                    {
                                         shbox.growHi(dir,-1);
+                                    }
                                     else if (pshifts[iiv][dir] < 0)
+                                    {
                                         shbox.growLo(dir,-1);
+                                    }
                                 }
                             }
 
@@ -668,7 +671,7 @@ FillPatchIterator::Initialize (int  boxGrow,
         delete fph;
     }
     //
-    // Call hack to touch up fillPatched data
+    // Call hack to touch up fillPatched data.
     //
     m_amrlevel.set_preferred_boundary_values(m_fabs,
                                              index,
@@ -1040,28 +1043,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     {
         FixUpPhysCorners(fab,m_amrlevel,m_index,m_time,m_scomp,dcomp,m_ncomp);
     }
-}
-
-bool
-FillPatchIteratorHelper::isValid ()
-{
-    BL_ASSERT(m_init);
-
-    return MFIter::isValid();
-}
-
-void
-FillPatchIterator::operator++ ()
-{
-    MFIter::operator++();
-}
-
-bool
-FillPatchIterator::isValid ()
-{
-    BL_ASSERT(m_ncomp > 0);
-
-    return MFIter::isValid();
 }
 
 FillPatchIteratorHelper::~FillPatchIteratorHelper () {}
