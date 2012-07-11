@@ -1047,7 +1047,7 @@ FillPatchIteratorHelper::isValid ()
 {
     BL_ASSERT(m_init);
 
-    return MFIter::isValid() ? true : false;
+    return MFIter::isValid();
 }
 
 void
@@ -1061,9 +1061,7 @@ FillPatchIterator::isValid ()
 {
     BL_ASSERT(m_ncomp > 0);
 
-    if (!MFIter::isValid()) return false;
-
-    return true;
+    return MFIter::isValid();
 }
 
 FillPatchIteratorHelper::~FillPatchIteratorHelper () {}
