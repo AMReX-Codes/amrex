@@ -25,12 +25,12 @@ BndryData::BndryData (const BoxArray& _grids,
     define(_grids,_ncomp,_geom);
 }
 
-const Array<BoundCond>&
-BndryData::bndryConds (const Orientation& _face, int igrid) const
+const Array< Array<BoundCond> >&
+BndryData::bndryConds (int igrid) const
 {
     std::map< int, Array< Array<BoundCond> > >::const_iterator it = bcond.find(igrid);
     BL_ASSERT(it != bcond.end());
-    return it->second[_face];
+    return it->second;
 }
 
 const BndryData::RealTuple&
@@ -248,13 +248,15 @@ operator<< (std::ostream&    os,
     {
         const BndryData::RealTuple& bdl = bd.bndryLocs(grd);
 
+        const Array< Array<BoundCond> > & bcs = bd.bndryConds(grd);
+
         for (OrientationIter face; face; ++face)
         {
-            Orientation f = face();
+            const Orientation f = face();
 
             os << "::: face " << (int)(f) << " of grid " << grds[grd] << "\nBC = ";
 
-            const Array<BoundCond>& bc = bd.bndryConds(f,grd);
+            const Array<BoundCond>& bc = bcs[f];
 
             for (int i = 0; i < ncomp; ++i)
                 os << bc[i] << ' ';
@@ -290,11 +292,13 @@ BndryData::writeOn (std::ostream& os) const
     {
         const BndryData::RealTuple& bdl = bndryLocs(grd);
 
+        const Array< Array<BoundCond> >& bcs = bndryConds(grd);
+
         for (OrientationIter face; face; ++face)
         {
-            Orientation f = face();
+            const Orientation f = face();
 
-            const Array<BoundCond>& bc = bndryConds(f,grd);
+            const Array<BoundCond>& bc = bcs[f];
 
             for (int cmp = 0; cmp < ncomp; cmp++)
                 os << bc[cmp] << ' ';
