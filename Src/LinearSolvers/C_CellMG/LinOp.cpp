@@ -87,26 +87,26 @@ LinOp::~LinOp ()
 {
     for (int i = 0, N = maskvals.size(); i < N; ++i)
     {
-        for (std::map< int,Array<Mask*> >::iterator it = maskvals[i].begin(),
+        for (std::map<int,MaskTuple>::iterator it = maskvals[i].begin(),
                  End = maskvals[i].end();
              it != End;
              ++it)
         {
-            Array<Mask*>& a = it->second;
-            for (int k = 0, NNN = a.size(); k < NNN; ++k)
+            MaskTuple& a = it->second;
+            for (int k = 0; k < 2*BL_SPACEDIM; ++k)
                 delete a[k];
         }
     }
 
     for (int i = 0, N = lmaskvals.size(); i < N; ++i)
     {
-        for (std::map< int,Array<Mask*> >::iterator it = lmaskvals[i].begin(),
+        for (std::map<int,MaskTuple>::iterator it = lmaskvals[i].begin(),
                  End = lmaskvals[i].end();
              it != End;
              ++it)
         {
-            Array<Mask*>& a = it->second;
-            for (int k = 0, NNN = a.size(); k < NNN; ++k)
+            MaskTuple& a = it->second;
+            for (int k = 0; k < 2*BL_SPACEDIM; ++k)
                 delete a[k];
         }
     }
@@ -157,16 +157,12 @@ LinOp::initConstruct (const Real* _h)
          ++bndryfsi)
     {
         const int i = bndryfsi.index();
-        Array<Mask*>& ma  =  maskvals[level][i];
-        Array<Mask*>& lma = lmaskvals[level][i];
-         ma.resize(2*BL_SPACEDIM,0);
-        lma.resize(2*BL_SPACEDIM,0);
+        MaskTuple& ma  =  maskvals[level][i];
+        MaskTuple& lma = lmaskvals[level][i];
         for (OrientationIter oitr; oitr; ++oitr)
         {
             Orientation face = oitr();
             const PArray<Mask>& pam = bgb.bndryMasks(face);
-            BL_ASSERT( ma[face] == 0);
-            BL_ASSERT(lma[face] == 0);
              ma[face] = new Mask(pam[i].box(),1);
             lma[face] = new Mask(pam[i].box(),1);
              ma[face]->copy(pam[i]);
@@ -237,8 +233,8 @@ LinOp::applyBC (MultiFab&      inout,
     {
         const int gn = inout.IndexMap()[i];
 
-        const Array<Mask*>&  ma =  maskvals[level][gn];
-        const Array<Mask*>& lma = lmaskvals[level][gn];
+        const MaskTuple&  ma =  maskvals[level][gn];
+        const MaskTuple& lma = lmaskvals[level][gn];
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
@@ -383,16 +379,12 @@ LinOp::prepareForLevel (int level)
          ++bndryfsi)
     {
         const int gn = bndryfsi.index();
-        Array<Mask*>&  ma =  maskvals[level][gn];
-        Array<Mask*>& lma = lmaskvals[level][gn];
-         ma.resize(2*BL_SPACEDIM,0);
-        lma.resize(2*BL_SPACEDIM,0);
+        MaskTuple&  ma =  maskvals[level][gn];
+        MaskTuple& lma = lmaskvals[level][gn];
         for (OrientationIter oitr; oitr; ++oitr)
         {
             Orientation face = oitr();
             const Box bx_k = BoxLib::adjCell(gbox[level][gn], face, 1);
-            BL_ASSERT( ma[face] == 0);
-            BL_ASSERT(lma[face] == 0);
              ma[face] = new Mask(bx_k,1);
             lma[face] = new Mask(bx_k,1);
             Mask&  curmask = *( ma[face]);
@@ -574,7 +566,7 @@ operator<< (std::ostream& os,
         if (ParallelDescriptor::IOProcessor())
             os << "level = " << level << '\n';
 
-        const std::map< int,Array<Mask*> >& m = lp.maskvals[level];
+        const std::map<int,LinOp::MaskTuple>& m = lp.maskvals[level];
 
         for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
         {
@@ -586,7 +578,7 @@ operator<< (std::ostream& os,
                 {
                     Orientation face = oitr();
 
-                    for (std::map< int,Array<Mask*> >::const_iterator it = m.begin(),
+                    for (std::map<int,LinOp::MaskTuple>::const_iterator it = m.begin(),
                              End = m.end();
                          it != End;
                          ++it)
