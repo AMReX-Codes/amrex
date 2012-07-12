@@ -106,7 +106,7 @@ public:
     // Return boundary type specifier on given face for grids we own.
     // It's an error if we don't own that grid.
     //
-    const Array<BoundCond>& bndryConds (const Orientation& face, int igrid) const;
+    const Array< Array<BoundCond> >& bndryConds (int igrid) const;
     //
     // Return boundary mask on given face for grids we own.
     //

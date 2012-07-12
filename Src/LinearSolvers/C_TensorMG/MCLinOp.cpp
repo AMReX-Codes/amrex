@@ -217,6 +217,8 @@ MCLinOp::applyBC (MultiFab& inout,
 
         const BndryData::RealTuple& bdl = bgb.bndryLocs(gn);
 
+        const Array< Array<BoundCond> >& bdc = bgb.bndryConds(gn);
+
         for (OrientationIter oitr; oitr; ++oitr)
         {
             const Orientation face = oitr();
@@ -225,7 +227,7 @@ MCLinOp::applyBC (MultiFab& inout,
             int cdr(face);
             const FabSet& fs = bgb.bndryValues(face);
 	    Real bcl = bdl[face];
-            const Array<BoundCond>& bc = bgb.bndryConds(face,gn);
+            const Array<BoundCond>& bc = bdc[face];
 	    const int *bct = (const int*) bc.dataPtr();
 	    const FArrayBox& fsfab = fs[gn];
 	    const Real* bcvalptr = fsfab.dataPtr();
