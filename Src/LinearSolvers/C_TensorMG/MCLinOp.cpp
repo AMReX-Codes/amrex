@@ -138,8 +138,9 @@ MCLinOp::initConstruct (const Real* _h)
 
     for (OrientationIter oitr; oitr; ++oitr)
     {
-        Orientation face    = oitr();
-        const FabSet& bndry = bgb[face];
+        const Orientation face  = oitr();
+        const FabSet&     bndry = bgb[face];
+
         for (int i = 0; i < gbox[level].size(); i++)
         {
             if (bndry.DistributionMap()[i] == myproc)
@@ -211,16 +212,20 @@ MCLinOp::applyBC (MultiFab& inout,
     for (int i = 0; i < N; i++)
     {
         const int gn = inout.IndexMap()[i];
+
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
+
+        const BndryData::RealTuple& bdl = bgb.bndryLocs(gn);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
-            FabSet& f  = (*undrrelxr[level])[oitr()];
-            FabSet& td = (*tangderiv[level])[oitr()];
-            int cdr(oitr());
-            const FabSet& fs = bgb.bndryValues(oitr());
-	    Real bcl = bgb.bndryLocs(oitr(),gn);
-            const Array<BoundCond>& bc = bgb.bndryConds(oitr(),gn);
+            const Orientation face = oitr();
+            FabSet& f  = (*undrrelxr[level])[face];
+            FabSet& td = (*tangderiv[level])[face];
+            int cdr(face);
+            const FabSet& fs = bgb.bndryValues(face);
+	    Real bcl = bdl[face];
+            const Array<BoundCond>& bc = bgb.bndryConds(face,gn);
 	    const int *bct = (const int*) bc.dataPtr();
 	    const FArrayBox& fsfab = fs[gn];
 	    const Real* bcvalptr = fsfab.dataPtr();
@@ -234,7 +239,7 @@ MCLinOp::applyBC (MultiFab& inout,
 	    FArrayBox& denfab    = f[gn];
 	    FArrayBox& tdfab     = td[gn];
 #if BL_SPACEDIM==2
-            int cdir = oitr().coordDir(), perpdir = -1;
+            int cdir = face.coordDir(), perpdir = -1;
 	    if (cdir == 0)
                 perpdir = 1;
 	    else if (cdir == 1)
@@ -242,7 +247,7 @@ MCLinOp::applyBC (MultiFab& inout,
 	    else
                 BoxLib::Abort("MCLinOp::applyBC(): bad logic");
 
-	    const Mask& m    = *maskvals[level][gn][oitr()];
+	    const Mask& m    = *maskvals[level][gn][face];
 	    const Mask& mphi = *maskvals[level][gn][Orientation(perpdir,
 							Orientation::high)];
 	    const Mask& mplo = *maskvals[level][gn][Orientation(perpdir,
@@ -414,7 +419,7 @@ MCLinOp::prepareForLevel (int level)
 
     for (OrientationIter oitr; oitr; ++oitr)
     {
-        Orientation face = oitr();
+        const Orientation face = oitr();
         //
         // Use bgb's distribution map for masks.
         //
@@ -599,7 +604,7 @@ operator<< (std::ostream&  os,
 		os << "Processor " << nproc << std::endl;
 		for (OrientationIter oitr; oitr; ++oitr)
 		{
-		    Orientation face = oitr();
+		    const Orientation face = oitr();
 		    for (int i=0; i<lp.boxArray().size(); ++i)
 		    {
 			if (lp.maskvals[level][i][face])

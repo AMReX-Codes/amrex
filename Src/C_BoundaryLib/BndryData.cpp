@@ -33,12 +33,12 @@ BndryData::bndryConds (const Orientation& _face, int igrid) const
     return it->second[_face];
 }
 
-Real
-BndryData::bndryLocs (const Orientation& _face, int igrid) const
+const BndryData::RealTuple&
+BndryData::bndryLocs (int igrid) const
 {
     std::map<int,RealTuple>::const_iterator it = bcloc.find(igrid);
     BL_ASSERT(it != bcloc.end());
-    return it->second[_face];
+    return it->second;
 }
 
 void
@@ -246,6 +246,8 @@ operator<< (std::ostream&    os,
 
     for (int grd = 0; grd < ngrds; grd++)
     {
+        const BndryData::RealTuple& bdl = bd.bndryLocs(grd);
+
         for (OrientationIter face; face; ++face)
         {
             Orientation f = face();
@@ -256,7 +258,7 @@ operator<< (std::ostream&    os,
 
             for (int i = 0; i < ncomp; ++i)
                 os << bc[i] << ' ';
-            os << " LOC = " << bd.bndryLocs(f,grd) << '\n';
+            os << " LOC = " << bdl[f] << '\n';
             os << bd.masks[f][grd];
             os << bd.bndry[f][grd];
         }
@@ -286,6 +288,8 @@ BndryData::writeOn (std::ostream& os) const
 
     for (int grd = 0; grd < ngrds; grd++)
     {
+        const BndryData::RealTuple& bdl = bndryLocs(grd);
+
         for (OrientationIter face; face; ++face)
         {
             Orientation f = face();
@@ -296,7 +300,7 @@ BndryData::writeOn (std::ostream& os) const
                 os << bc[cmp] << ' ';
             os << '\n';
 
-            os << bndryLocs(f,grd) << '\n';
+            os << bdl[f] << '\n';
         }
     }
 

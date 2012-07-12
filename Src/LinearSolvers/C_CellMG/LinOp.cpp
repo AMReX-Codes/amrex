@@ -156,12 +156,13 @@ LinOp::initConstruct (const Real* _h)
          bndryfsi.isValid();
          ++bndryfsi)
     {
-        const int i = bndryfsi.index();
+        const int  i   = bndryfsi.index();
         MaskTuple& ma  =  maskvals[level][i];
         MaskTuple& lma = lmaskvals[level][i];
+
         for (OrientationIter oitr; oitr; ++oitr)
         {
-            Orientation face = oitr();
+            const Orientation face = oitr();
             const PArray<Mask>& pam = bgb.bndryMasks(face);
              ma[face] = new Mask(pam[i].box(),1);
             lma[face] = new Mask(pam[i].box(),1);
@@ -238,15 +239,17 @@ LinOp::applyBC (MultiFab&      inout,
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
+        const BndryData::RealTuple& bdl = bgb.bndryLocs(gn);
+
         for (OrientationIter oitr; oitr; ++oitr)
         {
-            Orientation o(oitr());
+            const Orientation o = oitr();
 
             FabSet&       f   = (*undrrelxr[level])[o];
             int           cdr = o;
             const FabSet& fs  = bgb.bndryValues(o);
             const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
-            Real          bcl = bgb.bndryLocs(o,gn);
+            Real          bcl = bdl[o];
             int           bct = bgb.bndryConds(o,gn)[comp];
 
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
@@ -383,7 +386,7 @@ LinOp::prepareForLevel (int level)
         MaskTuple& lma = lmaskvals[level][gn];
         for (OrientationIter oitr; oitr; ++oitr)
         {
-            Orientation face = oitr();
+            const Orientation face = oitr();
             const Box bx_k = BoxLib::adjCell(gbox[level][gn], face, 1);
              ma[face] = new Mask(bx_k,1);
             lma[face] = new Mask(bx_k,1);
@@ -576,7 +579,7 @@ operator<< (std::ostream& os,
 
                 for (OrientationIter oitr; oitr; ++oitr)
                 {
-                    Orientation face = oitr();
+                    const Orientation face = oitr();
 
                     for (std::map<int,LinOp::MaskTuple>::const_iterator it = m.begin(),
                              End = m.end();
