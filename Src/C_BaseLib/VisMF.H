@@ -129,7 +129,7 @@ public:
     //
     static long Write (const MultiFab&    mf,
                        const std::string& name,
-                       VisMF::How         how = NFiles,
+                       VisMF::How         how = OneFilePerCPU,
                        bool               set_ghost = false);
     //
     // Read a MultiFab from disk written using VisMF::Write().
