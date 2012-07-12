@@ -38,21 +38,19 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
 
     for (OrientationIter fi; fi; ++fi)
     {
-        const int  dir   = fi().coordDir();
-        const Real delta = dx[dir]*ratio[dir];
-        const int  p_bc  = (fi().isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
+        const Orientation face  = fi();
+        const int         dir   = face.coordDir();
+        const Real        delta = dx[dir]*ratio[dir];
+        const int         p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
 
-        for (FabSetIter fsi(bndry[fi()]); fsi.isValid(); ++fsi)
+        for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
         {
-            const int i = fsi.index();
+            const int         i     = fsi.index();
+            const Box&        grd   = grids[i];
+            Real&             bloc  = bcloc[i][face];
+            Array<BoundCond>& bctag = bcond[face][i];
 
-            const Box& grd = grids[i];
-
-            Real& bloc = bcloc[fi()][i];
-
-            Array<BoundCond>& bctag = bcond[fi()][i];
-
-            if (domain[fi()] == grd[fi()] && !geom.isPeriodic(dir))
+            if (domain[face] == grd[face] && !geom.isPeriodic(dir))
             {
                 //
                 // All physical bc values are located on face.
@@ -80,9 +78,11 @@ MacBndry::setHomogValues (const BCRec& bc,
  
     for (OrientationIter fi; fi; ++fi)
     {
-        for (FabSetIter fsi(bndry[fi()]); fsi.isValid(); ++fsi)
+        const Orientation face  = fi();
+        
+        for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
         {
-            bndry[fi()][fsi].setVal(0);
+            bndry[face][fsi].setVal(0);
         }
     }
 }
