@@ -49,10 +49,7 @@ public:
                  const StateDescriptor& d, 
                  Real                   cur_time,
                  Real                   dt);
-    //
-    // Sets up the boundary conditions.
-    //
-    void buildBC ();
+
     //
     // Allocates space for old timestep data.
     //
@@ -178,16 +175,9 @@ public:
     //
     FArrayBox& oldGrid (int i);
     //
-    // Returns an array of boundary condition records for the 
-    // specified component.  Each element in the array corresponds
-    // to a grid in the state.
+    // Returns boundary conditions of specified component on the specified grid.
     //
-    Array<BCRec>& getBCs (int comp);
-    //
-    // Returns boundary conditions of specified component on the
-    //         specified grid.
-    //
-    const BCRec& getBC (int comp, int i) const;
+    const BCRec getBC (int comp, int i) const;
     //
     // Prints out the time interval.
     //
@@ -236,10 +226,111 @@ private:
     // Pointer to previous time data.
     //
     MultiFab* old_data;
-    //
-    // Boundary conditions for the grids at this level.
-    //
-    Array< Array<BCRec> > bc;
 };
+
+inline
+void
+StateData::removeOldData ()
+{
+    delete old_data;
+    old_data = 0;
+}
+
+inline
+const StateDescriptor*
+StateData::descriptor () const
+{
+    return desc;
+}
+
+inline
+const Box&
+StateData::getDomain () const
+{
+    return domain;
+}
+
+inline
+const BoxArray&
+StateData::boxArray () const
+{
+    return grids;
+}
+
+inline
+Real
+StateData::curTime () const
+{
+    return 0.5*(new_time.start + new_time.stop);
+}
+
+inline
+Real
+StateData::prevTime () const
+{
+    return 0.5*(old_time.start + old_time.stop);
+}
+
+inline
+MultiFab&
+StateData::newData ()
+{
+    BL_ASSERT(new_data != 0);
+    return *new_data;
+}
+
+inline
+const MultiFab&
+StateData::newData () const
+{
+    BL_ASSERT(new_data != 0);
+    return *new_data;
+}
+
+inline
+MultiFab&
+StateData::oldData ()
+{
+    BL_ASSERT(old_data != 0);
+    return *old_data;
+}
+
+inline
+const MultiFab&
+StateData::oldData () const
+{
+    BL_ASSERT(old_data != 0);
+    return *old_data;
+}
+
+inline
+FArrayBox&
+StateData::newGrid (int i)
+{
+    BL_ASSERT(new_data != 0);
+    return (*new_data)[i];
+}
+
+inline
+FArrayBox&
+StateData::oldGrid (int i)
+{
+    BL_ASSERT(old_data != 0);
+    return (*old_data)[i];
+}
+
+inline
+bool
+StateData::hasOldData () const
+{
+    return old_data != 0;
+}
+
+inline
+bool
+StateData::hasNewData () const
+{
+    return new_data != 0;
+}
 
 #endif /*_StateData_H_*/
