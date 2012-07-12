@@ -100,7 +100,7 @@ public:
     //
     Real bndryLocs (const Orientation& face, int igrid) const;
     //
-    // Return boundary type specifyer on given face for grids we own.
+    // Return boundary type specifier on given face for grids we own.
     // It's an error if we don't own that grid.
     //
     const Array<BoundCond>& bndryConds (const Orientation& face, int igrid) const;
@@ -177,8 +177,9 @@ protected:
     BndryRegister::bndry;
     //
     // Map of boundary condition type specifiers.
+    // The outer Array dimension is over Orientation.
     //
-    std::map< int,Array<BoundCond> > bcond[2*BL_SPACEDIM];
+    std::map< int, Array< Array<BoundCond> > > bcond;
     //
     // Map of boundary condition locations.
     //
@@ -265,7 +266,7 @@ BndryData::setBoundCond (const Orientation& _face,
                          int                _comp,
                          const BoundCond&   _bcn)
 {
-    bcond[_face][_n][_comp] = _bcn;
+    bcond[_n][_face][_comp] = _bcn;
 }
 
 inline

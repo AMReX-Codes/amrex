@@ -35,36 +35,41 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
     const BoxArray& grids  = boxes();
     const Real*     dx     = geom.CellSize();
     const Box&      domain = geom.Domain();
-
-    for (OrientationIter fi; fi; ++fi)
+    //
+    // We note that all orientations of the FabSets have the same distribution.
+    // We'll use the low 0 side as the model.
+    //
+    for (FabSetIter fsi(bndry[Orientation(0,Orientation::low)]); fsi.isValid(); ++fsi)
     {
-        const Orientation face  = fi();
-        const int         dir   = face.coordDir();
-        const Real        delta = dx[dir]*ratio[dir];
-        const int         p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
+        const int                  i     = fsi.index();
+        const Box&                 grd   = grids[i];
+        RealTuple&                 bloc  = bcloc[i];
+        Array< Array<BoundCond> >& bctag = bcond[i];
 
-        for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
+        for (OrientationIter fi; fi; ++fi)
         {
-            const int         i     = fsi.index();
-            const Box&        grd   = grids[i];
-            Real&             bloc  = bcloc[i][face];
-            Array<BoundCond>& bctag = bcond[face][i];
+            const Orientation face  = fi();
+            const int         dir   = face.coordDir();
 
             if (domain[face] == grd[face] && !geom.isPeriodic(dir))
             {
                 //
                 // All physical bc values are located on face.
                 //
-                bctag[comp] = (p_bc == Outflow) ? LO_DIRICHLET : LO_NEUMANN;
-                bloc        = 0;
+                const int p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
+
+                bctag[face][comp] = (p_bc == Outflow) ? LO_DIRICHLET : LO_NEUMANN;
+                bloc[face]        = 0;
             }
             else
             {
                 //
                 // Internal bndry.
                 //
-                bctag[comp] = LO_DIRICHLET;
-		bloc        = 0.5*delta;
+                const Real delta = dx[dir]*ratio[dir];
+
+                bctag[face][comp] = LO_DIRICHLET;
+		bloc[face]        = 0.5*delta;
             }
         }
     }
