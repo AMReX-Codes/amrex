@@ -13,15 +13,32 @@ int BndryData::NTangHalfWidth = 5;
 
 BndryData::BndryData()
     :
-    BndryRegister () {}
+    m_ncomp(-1) {}
 
 BndryData::BndryData (const BoxArray& _grids,
                       int             _ncomp, 
                       const Geometry& _geom)
     :
-    geom(_geom)
+    geom(_geom),
+    m_ncomp(_ncomp)
 {
     define(_grids,_ncomp,_geom);
+}
+
+const Array<BoundCond>&
+BndryData::bndryConds (const Orientation& _face, int igrid) const
+{
+    std::map< int,Array<BoundCond> >::const_iterator it = bcond[_face].find(igrid);
+    BL_ASSERT(it != bcond[_face].end());
+    return it->second;
+}
+
+Real
+BndryData::bndryLocs (const Orientation& _face, int igrid) const
+{
+    std::map<int,Real>::const_iterator it = bcloc[_face].find(igrid);
+    BL_ASSERT(it != bcloc[_face].end());
+    return it->second;
 }
 
 void
@@ -30,6 +47,8 @@ BndryData::init (const BndryData& src)
     //
     // Got to save the geometric info.
     //
+    m_ncomp = src.m_ncomp;
+
     geom = src.geom;
     //
     // Redefine grids and bndry array.
@@ -59,7 +78,8 @@ BndryData::init (const BndryData& src)
 
 BndryData::BndryData (const BndryData& src)
     :
-    BndryRegister(src)
+    BndryRegister(src),
+    m_ncomp(src.m_ncomp)
 {
     init(src);
 }
@@ -106,6 +126,8 @@ BndryData::define (const BoxArray& _grids,
                    int             _ncomp,
                    const Geometry& _geom)
 {
+    m_ncomp = _ncomp;
+
     geom = _geom;
 
     BndryRegister::setBoxes(_grids);
@@ -124,20 +146,19 @@ BndryData::define (const BoxArray& _grids,
         const int         coord_dir = face.coordDir();
 
         masks[face].resize(ngrd);
-        bcloc[face].resize(ngrd);
-        bcond[face].resize(ngrd);
+//        bcloc[face].resize(ngrd);
 
-        for (int ig = 0; ig < ngrd; ++ig)
-        {
-            bcond[face][ig].resize(_ncomp);
-        }
         BndryRegister::define(face,IndexType::TheCellType(),0,1,0,_ncomp);
         //
         // Alloc mask and set to quad_interp value.
         //
         for (FabSetIter bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
         {
-            Box face_box = BoxLib::adjCell(grids[bfsi.index()], face, 1);
+            const int igrid = bfsi.index();
+
+            bcond[face][igrid].resize(_ncomp);
+
+            Box face_box = BoxLib::adjCell(grids[igrid], face, 1);
             //
             // Extend box in directions orthogonal to face normal.
             //
@@ -148,7 +169,7 @@ BndryData::define (const BoxArray& _grids,
             }
             Mask* m = new Mask(face_box);
             m->setVal(outside_domain,0);
-            Box dbox = geom.Domain() & face_box;
+            const Box dbox = geom.Domain() & face_box;
             m->setVal(not_covered,dbox,0);
             //
             // Now have to set as not_covered the periodic translates as well.
@@ -160,19 +181,21 @@ BndryData::define (const BoxArray& _grids,
                 for (int iiv = 0, N = pshifts.size(); iiv < N; iiv++)
                 {
                     m->shift(pshifts[iiv]);
-                    Box target = geom.Domain() & m->box();
+                    const Box target = geom.Domain() & m->box();
                     m->setVal(not_covered,target,0);
                     m->shift(-pshifts[iiv]);
                 }
             }
-            masks[face].set(bfsi.index(),m);
+            masks[face].set(igrid,m);
             //
             // Turn mask off on intersection with grids at this level.
             //
             grids.intersections(face_box,isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
+            {
                 m->setVal(covered, isects[ii].second, 0);
+            }
             //
             // Handle special cases if is periodic.
             //
@@ -205,7 +228,7 @@ operator<< (std::ostream&    os,
 
     const BoxArray& grds  = bd.boxes();
     const int       ngrds = grds.size();
-    const int       ncomp = bd.bcond[0][0].size();
+    const int       ncomp = bd.nComp();
 
     os << "[BndryData with " << ngrds << " grids and " << ncomp << " comps:\n";
 
@@ -217,14 +240,15 @@ operator<< (std::ostream&    os,
 
             os << "::: face " << (int)(f) << " of grid " << grds[grd] << "\nBC = ";
 
-            for (int i = 0; i < ncomp; ++i)
-                os << bd.bcond[f][grd][i] << ' ';
+            const Array<BoundCond>& bc = bd.bndryConds(f,grd);
 
-            os << " LOC = " << bd.bcloc[f][grd] << '\n';
+            for (int i = 0; i < ncomp; ++i)
+                os << bc[i] << ' ';
+            os << " LOC = " << bd.bndryLocs(f,grd) << '\n';
             os << bd.masks[f][grd];
             os << bd.bndry[f][grd];
         }
-        os << "------------------------------------------------" << std::endl;
+        os << "------------------------------------------------" << '\n';
     }
 
     return os;
@@ -233,17 +257,20 @@ operator<< (std::ostream&    os,
 void 
 BndryData::writeOn (std::ostream& os) const
 {
-    int ngrds = grids.size();
-    int ncomp = bcond[0][0].size();
+    if (ParallelDescriptor::NProcs() != 1)
+	BoxLib::Abort("BndryData::writeOn(): not implemented in parallel");
 
-    os << ngrds << " " << ncomp << std::endl;
+    int ngrds = grids.size();
+    int ncomp = nComp();
+
+    os << ngrds << " " << ncomp << '\n';
 
     for (int grd = 0; grd < ngrds; grd++)
     {
-        os << grids[grd] << std::endl;
+        os << grids[grd] << '\n';
     }
 
-    os << geom << std::endl;
+    os << geom << '\n';
 
     for (int grd = 0; grd < ngrds; grd++)
     {
@@ -251,11 +278,13 @@ BndryData::writeOn (std::ostream& os) const
         {
             Orientation f = face();
 
-            for (int cmp = 0; cmp < ncomp; cmp++)
-                os << bcond[f][grd][cmp] << " ";
-            os << std::endl;
+            const Array<BoundCond>& bc = bndryConds(f,grd);
 
-            os << bcloc[f][grd] << std::endl;
+            for (int cmp = 0; cmp < ncomp; cmp++)
+                os << bc[cmp] << ' ';
+            os << '\n';
+
+            os << bndryLocs(f,grd) << '\n';
         }
     }
 
@@ -274,6 +303,9 @@ BndryData::writeOn (std::ostream& os) const
 void 
 BndryData::readFrom (std::istream& is)
 {
+    if (ParallelDescriptor::NProcs() != 1)
+	BoxLib::Abort("BndryData::readFrom(): not implemented in parallel");
+
     int tmpNgrids, tmpNcomp;
     is >> tmpNgrids >> tmpNcomp;
 
