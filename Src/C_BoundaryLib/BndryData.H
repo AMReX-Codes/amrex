@@ -10,6 +10,7 @@
 #include <Mask.H>
 #include <BoundCond.H>
 #include <Geometry.H>
+#include <Tuple.H>
 
 #include <map>
 
@@ -175,22 +176,21 @@ protected:
     //
     BndryRegister::bndry;
     //
-    // The data.
-    //
-    // Array (on orientation)(on grid)(on component) of boundary
-    // condition type specifiers.
+    // Map of boundary condition type specifiers.
     //
     std::map< int,Array<BoundCond> > bcond[2*BL_SPACEDIM];
     //
-    // Array (on orientation) of boundary condition locations.
+    // Map of boundary condition locations.
     //
-    std::map<int,Real> bcloc[2*BL_SPACEDIM];
+    typedef Tuple<Real,2*BL_SPACEDIM> RealTuple;
+
+    std::map<int,RealTuple> bcloc;
     //
     // Array (on orientation) of boundary condition mask arrays (FAB-like)
     //
     PArray<Mask> masks[2*BL_SPACEDIM];
     //
-    // Domain used for mask defintions.
+    // Domain used for mask definitions.
     //
     Geometry geom;
 
@@ -274,7 +274,7 @@ BndryData::setBoundLoc (const Orientation& _face,
                         int                _n,
                         Real               _val)
 {
-    bcloc[_face][_n] = _val;
+    bcloc[_n][_face] = _val;
 }
 
 inline

@@ -36,9 +36,9 @@ BndryData::bndryConds (const Orientation& _face, int igrid) const
 Real
 BndryData::bndryLocs (const Orientation& _face, int igrid) const
 {
-    std::map<int,Real>::const_iterator it = bcloc[_face].find(igrid);
-    BL_ASSERT(it != bcloc[_face].end());
-    return it->second;
+    std::map<int,RealTuple>::const_iterator it = bcloc.find(igrid);
+    BL_ASSERT(it != bcloc.end());
+    return it->second[_face];
 }
 
 void
@@ -55,13 +55,13 @@ BndryData::init (const BndryData& src)
     //
     const int ngrd  = grids.size();
 
+    bcloc = src.bcloc;
+
     for (OrientationIter fi; fi; ++fi)
     {
         const Orientation face = fi();
 
         bcond[face] = src.bcond[face];
-
-        bcloc[face] = src.bcloc[face];
 
         masks[face].resize(ngrd);
 
@@ -146,7 +146,6 @@ BndryData::define (const BoxArray& _grids,
         const int         coord_dir = face.coordDir();
 
         masks[face].resize(ngrd);
-//        bcloc[face].resize(ngrd);
 
         BndryRegister::define(face,IndexType::TheCellType(),0,1,0,_ncomp);
         //
