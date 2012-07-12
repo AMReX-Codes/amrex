@@ -28,9 +28,9 @@ BndryData::BndryData (const BoxArray& _grids,
 const Array<BoundCond>&
 BndryData::bndryConds (const Orientation& _face, int igrid) const
 {
-    std::map< int,Array<BoundCond> >::const_iterator it = bcond[_face].find(igrid);
-    BL_ASSERT(it != bcond[_face].end());
-    return it->second;
+    std::map< int, Array< Array<BoundCond> > >::const_iterator it = bcond.find(igrid);
+    BL_ASSERT(it != bcond.end());
+    return it->second[_face];
 }
 
 Real
@@ -47,21 +47,19 @@ BndryData::init (const BndryData& src)
     //
     // Got to save the geometric info.
     //
+    geom    = src.geom;
     m_ncomp = src.m_ncomp;
-
-    geom = src.geom;
     //
     // Redefine grids and bndry array.
     //
     const int ngrd  = grids.size();
 
     bcloc = src.bcloc;
+    bcond = src.bcond;
 
     for (OrientationIter fi; fi; ++fi)
     {
         const Orientation face = fi();
-
-        bcond[face] = src.bcond[face];
 
         masks[face].resize(ngrd);
 
@@ -155,8 +153,6 @@ BndryData::define (const BoxArray& _grids,
         {
             const int igrid = bfsi.index();
 
-            bcond[face][igrid].resize(_ncomp);
-
             Box face_box = BoxLib::adjCell(grids[igrid], face, 1);
             //
             // Extend box in directions orthogonal to face normal.
@@ -215,6 +211,23 @@ BndryData::define (const BoxArray& _grids,
                 }
             }
         }
+    }
+    //
+    // Define "bcond".
+    //
+    // We note that all orientations of the FabSets have the same distribution.
+    // We'll use the low 0 side as the model.
+    //
+    for (FabSetIter bfsi(bndry[Orientation(0,Orientation::low)]);
+         bfsi.isValid();
+         ++bfsi)
+    {
+        Array< Array<BoundCond> >& abc = bcond[bfsi.index()];
+
+        abc.resize(2*BL_SPACEDIM);
+
+        for (OrientationIter fi; fi; ++fi)
+            abc[fi()].resize(_ncomp);
     }
 }
 
