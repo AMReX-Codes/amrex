@@ -64,6 +64,7 @@ class testObj:
         self.doVis = 0
         self.visVar = ""
 
+        self.outputFile = ""
         self.compareFile = ""
 
         self.diffDir = ""
@@ -385,6 +386,9 @@ def LoadParams(file):
             elif (opt == "visVar"):
                 mytest.visVar = value
 
+            elif (opt == "outputFile"):
+                mytest.outputFile = value
+
             elif (opt == "compareFile"):
                 mytest.compareFile = value
 
@@ -622,24 +626,50 @@ def checkTestDir(dirName):
 #==============================================================================
 # doGITUpdate
 #==============================================================================
-def doGITUpdate(topDir, root, outDir):
+def doGITUpdate(topDir, root, outDir, githash):
    """ do a git update of the repository in topDir.  root is the name
        of the directory (used for labeling).  outDir is the full path
-       to the directory where we will store the git output"""
+       to the directory where we will store the git output.  If githash
+       is not empty, then we will check out that version instead of
+       git-pulling."""
 
    os.chdir(topDir)
- 
-   print "\n"
-   bold("'git pull' in %s" % (topDir))
 
-   # we need to be tricky here to make sure that the stdin is presented to      
-   # the user to get the password.  Therefore, we use the subprocess            
-   # class instead of os.system                                                 
-   prog = ["git", "pull"]
-   p = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT)
-   stdout, stderr = p.communicate()
+   # find out current branch so that we can go back later if we need.
+   prog = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+   p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT)
+   stdout0, stderr0 = p0.communicate()
+   currentBranch = stdout0.rstrip('\n')
+   p0.stdout.close()
+
+   if currentBranch == "HEAD":  # detached state without a branch
+       subprocess.call(["git", "checkout", "master"])
+   
+
+   if githash == "":
+
+       print "\n"
+       bold("'git pull' in %s" % (topDir))
+
+       # we need to be tricky here to make sure that the stdin is presented to      
+       # the user to get the password.  Therefore, we use the subprocess            
+       # class instead of os.system                                                 
+       prog = ["git", "pull"]
+       p = subprocess.Popen(prog, stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+       stdout, stderr = p.communicate()
+       p.stdout.close()
+       p.stdin.close()
+
+   else:
+
+       prog = ["git", "checkout", githash]
+       p = subprocess.Popen(prog, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+       stdout, stderr = p.communicate()
+       p.stdout.close()
 
 
    try:
@@ -661,6 +691,51 @@ def doGITUpdate(topDir, root, outDir):
        
         
    shutil.copy("git.%s.out" % (root),  outDir)
+
+
+   # store HEAD
+   print "\n"
+   bold("saving git HEAD for %s/" % (root))
+
+   systemCall("git rev-parse HEAD >& git.%s.HEAD" % (root) )
+
+   shutil.copy("git.%s.HEAD" % (root),  outDir)
+
+
+   return currentBranch
+
+
+#==============================================================================
+# doGITback
+#==============================================================================
+def doGITback(topDir, root, gitbranch):
+   """ do a git checkout of gitbranch in topDir.  root is the name
+       of the directory (used for labeling). """
+
+   os.chdir(topDir)
+
+   print "\n"
+   bold("git checkout %s in %s" % (gitbranch, topDir))
+
+   prog = ["git", "checkout", gitbranch]
+   p = subprocess.Popen(prog, stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT)
+   stdout, stderr = p.communicate()
+   p.stdout.close()
+   p.stdin.close()
+
+   try:
+       cf = open("git.%s.out" % (root), 'w')   
+   except IOError:
+       fail("  ERROR: unable to open file for writing")
+   else:
+       for line in stdout:
+           cf.write(line)
+       cf.close()
+
+   if (stdout == ""):
+       fail("  ERROR: git checkout was unsuccessful")
 
 
 #==============================================================================
@@ -706,6 +781,9 @@ def testSuite(argv):
                --no_update,
                --no_boxlib_update,
                --single_test test,
+               --use_old_version
+               --boxLibGitHash boxlibhash
+               --sourceGitHash sourcehash
                --note note]
         testfile.ini
 
@@ -928,6 +1006,18 @@ def testSuite(argv):
        --single_test mytest
           run only the test named mytest
 
+       --use_old_version
+          Run old versions specified by boxLibGitHash and sourceGitHash.
+          This useful for finding out which commit broke regression
+          testing.
+
+       --boxLibGitHash boxlibhash
+          Git hash of a version of BoxLib.
+
+       --boxLibGitHash boxlibhash
+          Git hash of a version of the source code.  For BoxLib tests,
+          this will be ignored.
+
        --note \"note\"
           print the note on the resulting test webpages
           
@@ -949,7 +1039,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # parse the commandline arguments
     #--------------------------------------------------------------------------
-    if len(sys.argv) == 1:
+    if len(argv) == 1:
         print usage
         sys.exit(2)
 
@@ -959,6 +1049,9 @@ def testSuite(argv):
                                     "no_update",
                                     "no_boxlib_update",
                                     "single_test=",
+                                    "use_old_version",
+                                    "boxLibGitHash=",
+                                    "sourceGitHash=",
                                     "note="])
 
     except getopt.GetoptError:
@@ -973,6 +1066,9 @@ def testSuite(argv):
     no_boxlib_update = 0
     single_test = ""
     comment = ""
+    use_old_version = 0
+    boxLibGitHash = ""
+    sourceGitHash = ""
     note = ""
     
     for o, a in opts:
@@ -989,7 +1085,16 @@ def testSuite(argv):
 
         if o == "--single_test":
             single_test = a
+
+        if o == "--use_old_version":
+            use_old_version = 1
+
+        if o == "--boxLibGitHash":
+            boxLibGitHash = a
             
+        if o == "--sourceGitHash":
+            sourceGitHash = a
+
         if o == "--note":
             note = a
             
@@ -1011,6 +1116,18 @@ def testSuite(argv):
 
     if (len(testList) == 0):
         fail("No valid tests defined")
+
+
+    if use_old_version == 1:
+        no_update = 1
+        no_boxlib_update = 1
+        if suite.sourceTree == "BoxLib":
+            if boxLibGitHash == "":
+                fail("When --use_old_version, one must provide boxLibGitHash")
+        else:
+            if boxLibGitHash == "" or sourceGitHash == "":
+                fail("When --use_old_version, one must provide boxLibGitHash and sourceGitHash")
+
 
     # store the full path to the testFile
     testFilePath = os.getcwd() + '/' + testFile
@@ -1068,11 +1185,16 @@ def testSuite(argv):
         
     fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
 
-    i = 0
-    while (i < maxRuns-1 and os.path.isdir(fullTestDir)):
-        i = i + 1
-        testDir = today + "-" + ("%3.3d" % i) + "/"
+    if use_old_version:
+        testDir = "OLD-"+today + "/"
         fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
+        systemCall("rm -rf %s" % (fullTestDir))
+    else:
+        i = 0
+        while (i < maxRuns-1 and os.path.isdir(fullTestDir)):
+            i = i + 1
+            testDir = today + "-" + ("%3.3d" % i) + "/"
+            fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
 
     print "\n"
     bold("testing directory is: " + testDir)
@@ -1082,6 +1204,9 @@ def testSuite(argv):
     # make the web directory -- this is where all the output and HTML will be
     # put, so it is easy to move the entire test website to a different disk
     fullWebDir = "%s/%s/"  % (suite.webTopDir, testDir)
+
+    if use_old_version:
+        systemCall("rm -rf %s" % (fullWebDir))
         
     os.mkdir(fullWebDir)
 
@@ -1096,19 +1221,32 @@ def testSuite(argv):
     updateTime = time.strftime("%Y-%m-%d %H:%M:%S %Z", now)
 
     os.chdir(suite.testTopDir)
-    
-    if (not no_update):
+
+    # suite.suiteName could have a different name
+    srcName = os.path.basename(os.path.normpath(suite.sourceDir))
+
+    if (not no_update) or use_old_version:
 
         # main suite
-        doGITUpdate(suite.sourceDir, suite.suiteName, fullWebDir)
+        sourceGitBranch = doGITUpdate(suite.sourceDir, srcName, fullWebDir,
+                                      sourceGitHash)
     
-        # BoxLib
-        if ((not no_boxlib_update) and suite.sourceTree != "BoxLib"):
-            doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir)
-
+    if (not no_update):
+    #  if (not no_extsrc_update) or use_old_version==1:
+    # w.z. CCSE's LMC code depends on BoxLib and IAMR.  This is similar to
+    # to the situation of codes using AstrDev.  So we might want to make this
+    # not specfic for AstroDev by introducing soemthing called "useExtSrc" and
+    # "exSrcDir".
+    
         # AstroDev
         if (suite.useAstroDev):
-            doGITUpdate(suite.astroDevDir, "AstroDev", fullWebDir)
+            extSrcGitBranch = doGITUpdate(suite.astroDevDir, "AstroDev", fullWebDir,
+                                          "")
+
+    if ((not no_boxlib_update) and suite.sourceTree != "BoxLib") or use_old_version:
+        # BoxLib
+        boxLibGitBranch = doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir,
+                                      boxLibGitHash)
 
 
     #--------------------------------------------------------------------------
@@ -1117,15 +1255,16 @@ def testSuite(argv):
     if (not no_update):
 
        # main suite 
-       makeGITChangeLog(suite.sourceDir, suite.suiteName, fullWebDir)
+       makeGITChangeLog(suite.sourceDir, srcName, fullWebDir)
     
-       # BoxLib
-       if ((not no_boxlib_update) and suite.sourceTree != "BoxLib"):
-           makeGITChangeLog(suite.boxLibDir, "BoxLib", fullWebDir)
-
        # AstroDev
        if (suite.useAstroDev):
            makeGITChangeLog(suite.astroDevDir, "AstroDev", fullWebDir)
+
+
+    if ((not no_boxlib_update) and suite.sourceTree != "BoxLib"):
+        # BoxLib
+        makeGITChangeLog(suite.boxLibDir, "BoxLib", fullWebDir)
 
 
     #--------------------------------------------------------------------------
@@ -1591,10 +1730,15 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         if (not test.selfTest):
 
-            if (test.compareFile == ""):
-                compareFile = getLastPlotfile(outputDir, test)
+            if (test.outputFile == ""):
+                if (test.compareFile == ""):
+                    compareFile = getLastPlotfile(outputDir, test)
+                else:
+                    compareFile = test.compareFile
+                outputFile = compareFile
             else:
-                compareFile = test.compareFile
+                outputFile = test.outputFile
+                compareFile = test.name+'_'+outputFile
 
 
             if (not make_benchmarks):
@@ -1624,7 +1768,7 @@ def testSuite(argv):
 
                         print "    benchmark file: ", benchFile
                    
-                        command = "../fcompare.exe -n 0 --infile1 %s --infile2 %s >> %s.compare.out 2>&1" % (benchFile, compareFile, test.name)
+                        command = "../fcompare.exe -n 0 --infile1 %s --infile2 %s >> %s.compare.out 2>&1" % (benchFile, outputFile, test.name)
 
                         cf = open("%s.compare.out" % (test.name), 'w')
                         cf.write(command)
@@ -1670,7 +1814,11 @@ def testSuite(argv):
                 print "     new benchmark file: ", compareFile
 
                 if (not compareFile == ""):
-                    systemCall("cp -rf %s %s" % (compareFile, benchDir))
+                    if outputFile != compareFile:
+                        systemCall("rm -rf %s/%s" % (benchDir, compareFile))
+                        systemCall("cp -rf %s %s/%s" % (outputFile, benchDir, compareFile))
+                    else:
+                        systemCall("cp -rf %s %s" % (compareFile, benchDir))
 
                     cf = open("%s.status" % (test.name), 'w')
                     cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
@@ -1730,18 +1878,18 @@ def testSuite(argv):
         #---------------------------------------------------------------------- 
         if (test.doVis and not make_benchmarks):
 
-            if (not compareFile == ""):
+            if (not outputFile == ""):
 
                 print "  doing the visualization..."
 
                 if (test.dim == 2):
                     systemCall('%s/%s --palette %s/Palette -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis2dExecutable, suite.compareToolDir, 
-                               test.visVar, compareFile) )
+                               test.visVar, outputFile) )
                 elif (test.dim == 3):
                     systemCall('%s/%s --palette %s/Palette -n 1 -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis3dExecutable, suite.compareToolDir, 
-                               test.visVar, compareFile) )
+                               test.visVar, outputFile) )
                 else:
                     print "    Visualization not supported for dim = %d" % (test.dim)
                     
@@ -1840,6 +1988,17 @@ def testSuite(argv):
           
 
     #--------------------------------------------------------------------------
+    # For --use_old_version, back to original git states, then return
+    #--------------------------------------------------------------------------
+    if use_old_version:
+        doGITback(suite.sourceDir, srcName, sourceGitBranch)
+        if suite.sourceTree != "BoxLib":
+            doGITback(suite.boxLibDir, "BoxLib", boxLibGitBranch)
+        ## w.z. todo AstroDev
+        return numFailed
+
+
+    #--------------------------------------------------------------------------
     # generate the master report for all test instances 
     #--------------------------------------------------------------------------
     print "\n"
@@ -1862,6 +2021,8 @@ def testSuite(argv):
         bold("sending email...")
         emailDevelopers()
 
+
+    return numFailed
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
