@@ -14,13 +14,13 @@ contains
   end subroutine pybl_hello
 
   subroutine pybl_open() bind(c, name='pybl_open')
-    use parallel
-    call parallel_initialize()
+    use boxlib
+    call boxlib_initialize()
   end subroutine pybl_open
 
   subroutine pybl_close() bind(c, name='pybl_close')
-    use parallel
-    call parallel_finalize()
+    use boxlib
+    call boxlib_finalize()
   end subroutine pybl_close
 
   subroutine pybl_mpi_rank(r) bind(c, name='pybl_mpi_rank')
