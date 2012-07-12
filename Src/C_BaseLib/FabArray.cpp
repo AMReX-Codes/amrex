@@ -1,7 +1,5 @@
 #include <winstd.H>
 
-#include <map>
-
 #include <FabArray.H>
 #include <ParmParse.H>
 //
@@ -9,6 +7,7 @@
 //
 bool FabArrayBase::verbose;
 bool FabArrayBase::do_alltoallv;
+bool FabArrayBase::do_async_sends;
 bool FabArrayBase::do_not_use_cache;
 
 namespace
@@ -32,6 +31,7 @@ FabArrayBase::Initialize ()
     //
     FabArrayBase::verbose          = false;
     FabArrayBase::do_alltoallv     = false;
+    FabArrayBase::do_async_sends   = false;
     FabArrayBase::do_not_use_cache = false;
 
     use_copy_cache      = true;
@@ -43,12 +43,16 @@ FabArrayBase::Initialize ()
 
     pp.query("verbose",          FabArrayBase::verbose);
     pp.query("do_alltoallv",     FabArrayBase::do_alltoallv);
+    pp.query("do_async_sends",   FabArrayBase::do_async_sends);
     pp.query("do_not_use_cache", FabArrayBase::do_not_use_cache);
 
     pp.query("use_copy_cache",      use_copy_cache);
     pp.query("copy_cache_max_size", copy_cache_max_size);
     pp.query("use_fb_cache",        use_fb_cache);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
+
+    if (do_alltoallv && do_async_sends)
+        BoxLib::Abort("At most one of 'do_alltoallv' and 'do_async_sends' can be true");
 
     BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
 
@@ -104,15 +108,6 @@ FabArrayBase::CommDataCache::operator= (const Array<ParallelDescriptor::CommData
 // Stuff used for copy() caching.
 //
 
-FabArrayBase::CopyComTag::CopyComTag () {}
-
-FabArrayBase::CopyComTag::CopyComTag (const FabArrayBase::CopyComTag& cct)
-    :
-    box(cct.box),
-    fabIndex(cct.fabIndex),
-    srcIndex(cct.srcIndex)
-{}
-
 FabArrayBase::CPC::CPC ()
     :
     m_reused(false)
@@ -136,6 +131,11 @@ FabArrayBase::CPC::CPC (const CPC& rhs)
     m_srcba(rhs.m_srcba),
     m_dstdm(rhs.m_dstdm),
     m_srcdm(rhs.m_srcdm),
+    m_LocTags(rhs.m_LocTags),
+    m_SndTags(rhs.m_SndTags),
+    m_RcvTags(rhs.m_RcvTags),
+    m_SndVols(rhs.m_SndVols),
+    m_RcvVols(rhs.m_RcvVols),
     m_reused(rhs.m_reused)
 {}
 
@@ -326,23 +326,23 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
     BL_ASSERT(mf.nGrow() == si.m_ngrow);
     BL_ASSERT(mf.boxArray() == si.m_ba);
 
-    const int key = mf.nGrow() + mf.size();
-
-    SIMMapIter it = SICache.insert(std::make_pair(key,si));
-
+    const int                  key    = mf.nGrow() + mf.size();
+    SIMMapIter                 it     = SICache.insert(std::make_pair(key,si));
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
-    std::list<SIRec>&          sirec  = it->second.m_sirec;
+    SI::SIRecContainer&        sirec  = it->second.m_sirec;
     Array<int>&                cache  = it->second.m_cache;
 
     cache.resize(ParallelDescriptor::NProcs(),0);
+
+    std::vector< std::pair<int,Box> > isects;
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         const int i = mfi.index();
 
-        std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.fabbox());
+        ba.intersections(mfi.fabbox(),isects);
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
@@ -438,4 +438,3 @@ FabArrayBase::TheFBsirec (int                 scomp,
 
     return BuildFBsirec(si,mf);
 }
-

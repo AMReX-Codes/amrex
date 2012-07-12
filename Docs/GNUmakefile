@@ -5,14 +5,15 @@ ALL: UsersGuide.ps UsersGuide.pdf
 eps_source = $(wildcard Preface/*.eps) \
 	     $(wildcard Introduction/*.eps) \
 	     $(wildcard GettingStarted/*.eps) \
-	     $(wildcard AdvancedTopics/*.eps)
+	     $(wildcard F_AdvancedTopics/*.eps)
 
 pdf_source = $(eps_source:.eps=.pdf)
 
 section_sources = Preface/Preface.tex \
                   Introduction/Introduction.tex \
                   GettingStarted/GettingStarted.tex \
-                  AdvancedTopics/AdvancedTopics.tex
+                  F_AdvancedTopics/F_AdvancedTopics.tex \
+	          C_AdvancedTopics/C_AdvancedTopics.tex
 
 UsersGuide.dvi: UsersGuide.tex $(eps_source) $(section_sources) $(eps_source) 
 	latex UsersGuide.tex < /dev/null

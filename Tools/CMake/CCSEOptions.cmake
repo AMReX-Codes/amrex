@@ -70,11 +70,24 @@ endif()
 
 set(BL_MACHINE ${CMAKE_SYSTEM_NAME})
 
+
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+  set(BL_DEBUG 0)
+else()
+  set(BL_DEBUG 1)
+endif()
+
+if (BL_DEBUG)
+  list(APPEND BL_DEFINES BL_USE_MPI)
+endif()
+
+
 message(STATUS "   BL_SPACEDIM = ${BL_SPACEDIM} (1,2,3)")
 message(STATUS "   BL_MACHINE = ${BL_MACHINE} (<ARCH>)")
 message(STATUS "   BL_PRECISION = ${BL_PRECISION} (FLOAT, DOUBLE)")
 message(STATUS "   ENABLE_MPI = ${ENABLE_MPI} (0,1)")
 message(STATUS "   ENABLE_OpenMP = ${ENABLE_OpenMP} (0,1)")
+message(STATUS "   BL_DEBUG = ${BL_DEBUG} (0,1)")
 
 set(BL_DEFINES "BL_NOLINEVALUES;BL_PARALLEL_IO;BL_SPACEDIM=${BL_SPACEDIM};BL_FORT_USE_${BL_FORTLINK};BL_${BL_MACHINE};BL_USE_${BL_PRECISION}")
 
@@ -91,6 +104,10 @@ if (ENABLE_OpenMP)
   find_package(OpenMP REQUIRED)
   set(CMAKE_CC_FLAGS "${CMAKE_CC_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+
+if (NOT BL_DEBUG)
+  list(APPEND BL_DEFINES NDEBUG)
 endif()
 
 set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${BL_DEFINES}")

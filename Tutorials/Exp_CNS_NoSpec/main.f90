@@ -8,6 +8,7 @@ program main
   use init_data_module
   use write_plotfile_module
   use advance_module
+  use bl_prof_module
 
   implicit none
   !
@@ -35,14 +36,26 @@ program main
   type(boxarray)     :: ba
   type(layout)       :: la
   type(multifab)     :: U
+
+  type(bl_prof_timer), save :: bpt, bpt_init_data, bpt_sleep
+
   !
   ! What's settable via an inputs file.
   !
   namelist /probin/ nsteps, plot_int, n_cell, max_grid_size, cfl, eta, alam
 
   call boxlib_initialize()
+  call bl_prof_initialize(on = .true.)
+
+  call build(bpt, "bpt_main")
+
 
   start_time = parallel_wtime()
+
+  call build(bpt_sleep, "bpt_sleep")
+  call Sleep(5)
+  call destroy(bpt_sleep)
+
   !
   ! Namelist default values -- overwritable via inputs file.
   !
@@ -96,13 +109,15 @@ program main
 
   call boxarray_maxsize(ba,max_grid_size)
 
-  call layout_build_ba(la,ba,pmask=is_periodic)
+  call layout_build_ba(la,ba,boxarray_bbox(ba),pmask=is_periodic)
 
   call destroy(ba)
 
   call multifab_build(U,la,NC,NG)
   
+  call build(bpt_init_data, "bpt_init_data")
   call init_data(U,dx,prob_lo,prob_hi)
+  call destroy(bpt_init_data)
 
   istep = 0
   time  = 0.d0
@@ -137,6 +152,12 @@ program main
   if ( parallel_IOProcessor() ) then
      print*,"Run time (s) =",end_time-start_time
   end if
+
+
+  call destroy(bpt)
+  call bl_prof_glean("bl_prof_report")
+  call bl_prof_finalize()
+
 
   call boxlib_finalize()
 

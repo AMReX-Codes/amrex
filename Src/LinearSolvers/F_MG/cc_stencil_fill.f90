@@ -88,7 +88,7 @@ contains
        do d = 1, dm
           call boxarray_build_copy(ba_cc,get_boxarray(edge_coeffs(1,d)))
           call boxarray_grow(ba_cc,nghost(edge_coeffs(1,d)))
-          call layout_build_ba(old_la_grown,ba_cc,pmask = get_pmask(get_layout(mgt%ss(1))), &
+          call layout_build_ba(old_la_grown,ba_cc,boxarray_bbox(ba_cc),pmask = get_pmask(get_layout(mgt%ss(1))), &
                explicit_mapping = get_proc(get_layout(mgt%ss(1))))
           call destroy(ba_cc)
           call multifab_build_edge(old_edge_coeffs_grown,old_la_grown,ncomp(edge_coeffs(1,d)),0,d)
@@ -102,7 +102,7 @@ contains
 
           call boxarray_build_copy(ba_cc,get_boxarray(mgt%bottom_mgt%ss(maxlev_bottom)))
           call boxarray_grow(ba_cc,nghost(edge_coeffs(1,d)))
-          call layout_build_ba(new_la_grown,ba_cc,pmask = get_pmask(get_layout(mgt%ss(1))), &
+          call layout_build_ba(new_la_grown,ba_cc,boxarray_bbox(ba_cc),pmask = get_pmask(get_layout(mgt%ss(1))), &
                explicit_mapping = get_proc(get_layout(mgt%bottom_mgt%ss(maxlev_bottom))))
           call destroy(ba_cc)
           call multifab_build_edge(new_edge_coeffs_grown,new_la_grown,ncomp(edge_coeffs(1,d)),0,d)
@@ -333,10 +333,9 @@ contains
     real(dp_t)     , intent(in   ) :: alpha_const, beta_const
 
     ! Local variables
-    integer                     :: i, d, maxlev
+    integer                     :: i, maxlev
     real(dp_t)                  :: coarse_xa(mgt%dim),  coarse_xb(mgt%dim)
     real(dp_t)                  :: coarse_pxa(mgt%dim), coarse_pxb(mgt%dim)
-    real(dp_t), pointer :: sc_orig(:,:,:,:), sc_grown(:,:,:,:)
 
     maxlev = mgt%nlevels
 
@@ -382,7 +381,7 @@ contains
 
     real(kind=dp_t), pointer  ::  sp(:,:,:,:)
     integer        , pointer  ::  mp(:,:,:,:)
-    integer                   :: i,ns,id,dm
+    integer                   :: i,id,dm
     logical                   :: pmask(get_dim(ss))
 
     type(bl_prof_timer), save :: bpt

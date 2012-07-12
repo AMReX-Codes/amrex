@@ -263,14 +263,12 @@ LinOp::applyBC (MultiFab&      inout,
         {
             Orientation o(oitr());
 
-            const Array< Array<BoundCond> >& b   = bgb.bndryConds(o);
-            const Array<Real>&               r   = bgb.bndryLocs(o);
-            FabSet&                          f   = (*undrrelxr[level])[o];
-            int                              cdr = o;
-            const FabSet&                    fs  = bgb.bndryValues(o);
-            const Mask&                      m   = local ? (*lmaskvals[level][gn][o]) : (*maskvals[level][gn][o]);
-            Real                             bcl = r[gn];
-            int                              bct = b[gn][comp];
+            FabSet&       f   = (*undrrelxr[level])[o];
+            int           cdr = o;
+            const FabSet& fs  = bgb.bndryValues(o);
+            const Mask&   m   = local ? (*lmaskvals[level][gn][o]) : (*maskvals[level][gn][o]);
+            Real          bcl = bgb.bndryLocs(o,gn);
+            int           bct = bgb.bndryConds(o,gn)[comp];
 
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
                          inout[gn].dataPtr(src_comp),
@@ -408,7 +406,7 @@ LinOp::prepareForLevel (int level)
             maskvals[level][gn][face] = new Mask(bx_k, 1);
             Mask& curmask = *(maskvals[level][gn][face]);
             curmask.setVal(BndryData::not_covered);
-            isects = gbox[level].intersections(bx_k);
+            gbox[level].intersections(bx_k,isects);
             for (int ii = 0, N = isects.size(); ii < N; ii++)
                 if (isects[ii].first != gn)
                     curmask.setVal(BndryData::covered, isects[ii].second, 0);
@@ -424,7 +422,7 @@ LinOp::prepareForLevel (int level)
                 for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                 {
                     curmask.shift(pshifts[iiv]);
-                    isects = gbox[level].intersections(curmask.box());
+                    gbox[level].intersections(curmask.box(),isects);
                     for (int ii = 0, N = isects.size(); ii < N; ii++)
                         curmask.setVal(BndryData::covered, isects[ii].second, 0);
                     curmask.shift(-pshifts[iiv]);
@@ -457,7 +455,7 @@ LinOp::prepareForLevel (int level)
             lmaskvals[level][gn][face] = new Mask(bx_k, 1);
             Mask& curmask = *(lmaskvals[level][gn][face]);
             curmask.setVal(BndryData::not_covered);
-            isects = gbox[level].intersections(bx_k);
+            gbox[level].intersections(bx_k,isects);
             for (int ii = 0, N = isects.size(); ii < N; ii++)
                 if (isects[ii].first != gn && bgb[face].DistributionMap()[isects[ii].first] == MyProc)
                     curmask.setVal(BndryData::covered, isects[ii].second, 0);
@@ -473,7 +471,7 @@ LinOp::prepareForLevel (int level)
                 for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                 {
                     curmask.shift(pshifts[iiv]);
-                    isects = gbox[level].intersections(curmask.box());
+                    gbox[level].intersections(curmask.box(),isects);
                     for (int ii = 0, N = isects.size(); ii < N; ii++)
                         if (bgb[face].DistributionMap()[isects[ii].first] == MyProc)
                             curmask.setVal(BndryData::covered, isects[ii].second, 0);

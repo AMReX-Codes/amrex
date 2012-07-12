@@ -122,6 +122,12 @@ public:
     Real norm0 (int comp, const BoxArray& ba) const;
 
     //
+    // Returns the L1 norm of component "comp" over the MultiFab.
+    // ngrow ghost cells are used.
+    //
+    Real norm1 (int comp = 0, int ngrow = 0) const;
+    
+    //
     // Returns the L2 norm of component "comp" over the MultiFab.
     // No ghost cells are used.
     //

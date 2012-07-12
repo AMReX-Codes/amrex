@@ -17,6 +17,36 @@ class FluxRegister
 {
 public:
     //
+    // Used internally when doing some parallel operations on FluxRegisters.
+    //
+    struct Rec
+    {
+        Rec (Orientation face,
+             int         index);
+
+        Rec (Orientation    face,
+             int            index,
+             const IntVect& shift);
+
+        Rec (int         fabidx,
+             int         index,
+             Orientation face,
+             FillBoxId   fbid);
+
+        Rec (const IntVect& shift,
+             int            fabidx,
+             int            index,
+             Orientation    face,
+             FillBoxId      fbid);
+
+        IntVect     m_shift;
+        int         m_fabidx;
+        int         m_idx;
+        Orientation m_face;
+        FillBoxId   m_fbid;
+        bool        m_shifted;
+    };
+    //
     // The default constructor.
     //
     FluxRegister();
@@ -242,7 +272,6 @@ private:
     // Number of state components.
     //
     int ncomp;
-
 };
 
 #endif /*_FLUXREGISTER_H_*/

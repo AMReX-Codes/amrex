@@ -443,7 +443,9 @@ FastContains (BoxArray& ba, const Box& bx)
     {
         BL_ASSERT(ba[0].sameType(bx));
 
-        std::vector< std::pair<int,Box> > isects = ba.intersections(bx);
+        std::vector< std::pair<int,Box> > isects;
+
+        ba.intersections(bx,isects);
 
         if (isects.size() > 0)
         {

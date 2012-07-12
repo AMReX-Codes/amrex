@@ -2,7 +2,6 @@
 #define _GEOMETRY_H_
 
 #include <iosfwd>
-#include <list>
 #include <map>
 
 #include <CoordSys.H>
@@ -220,9 +219,9 @@ public:
     //
     // A handy typedef.
     //
-    typedef std::list<PIRec> PIRMList;
+    typedef std::vector<PIRec> PIRMVector;
     //
-    // Used in caching PIRMLists && FabArrayBase::CommData.
+    // Used in caching PIRMVectors && FabArrayBase::CommData.
     //
     struct FPB
     {
@@ -243,7 +242,7 @@ public:
 
         Array<int>                  m_cache;    // Snds cached for CollectData().
         FabArrayBase::CommDataCache m_commdata; // Yet another cache for CollectData().
-        PIRMList                    m_pirm;
+        PIRMVector                  m_pirm;
         BoxArray                    m_ba;
         DistributionMapping         m_dm;
         Box                         m_domain;
@@ -421,24 +420,26 @@ namespace BoxLib
               const Geometry&      geom,
               const Geometry::FPB& fpb)
     {
-        const int key = mf.nGrow() + mf.size();
+        BL_ASSERT(mf.size()  > 0);
+        BL_ASSERT(mf.nGrow() > 0);
+        BL_ASSERT(geom.isAnyPeriodic());
 
-        Geometry::FPBMMapIter it = Geometry::m_FPBCache.insert(std::make_pair(key,fpb));
-
-        Geometry::PIRMList& pirm = it->second.m_pirm;
+        const int             key  = mf.nGrow() + mf.size();
+        Geometry::FPBMMapIter it   = Geometry::m_FPBCache.insert(std::make_pair(key,fpb));
+        Geometry::PIRMVector& pirm = it->second.m_pirm;
 
         Array<IntVect> pshifts(27);
+
+        Box TheDomain = geom.Domain();
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
+                TheDomain.surroundingNodes(n);
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
             const Box& dest = mf[mfi].box();
 
             BL_ASSERT(dest == BoxLib::grow(mfi.validbox(), mf.nGrow()));
-
-            Box TheDomain = geom.Domain();
-            for (int n = 0; n < BL_SPACEDIM; n++)
-                if (dest.ixType()[n] == IndexType::NODE)
-                    TheDomain.surroundingNodes(n);
 
             if (!TheDomain.contains(dest))
             {
@@ -454,10 +455,8 @@ namespace BoxLib
                         {
                             if (!geom.isPeriodic(i))
                             {
-                                if (src.smallEnd(i) == geom.Domain().smallEnd(i))
-                                    src.growLo(i,mf.nGrow());
-                                if (src.bigEnd(i) == geom.Domain().bigEnd(i))
-                                    src.growHi(i,mf.nGrow());
+			      src.growLo(i,mf.nGrow());
+			      src.growHi(i,mf.nGrow());
                             }
                         }
                     }
@@ -474,6 +473,15 @@ namespace BoxLib
                     }
                 }
             }
+        }
+
+        if (!pirm.empty() && pirm.capacity() > pirm.size())
+        {
+            //
+            // Squish out any spare capacity.
+            //
+            Geometry::PIRMVector tmp(pirm);
+            tmp.swap(pirm);
         }
 
         return it->second;
@@ -501,10 +509,13 @@ namespace BoxLib
                 //
                 Array<ParallelDescriptor::CommData>& cd = it->second.m_commdata.theCommData();
 
-                for (int i = 0, N = cd.size(); i < N; i++)
+                if (!cd.empty() && (cd[0].nComp() != ncomp || cd[0].srcComp() != scomp))
                 {
-                    cd[i].nComp(ncomp);
-                    cd[i].srcComp(scomp);
+                    for (int i = 0, N = cd.size(); i < N; i++)
+                    {
+                        cd[i].nComp(ncomp);
+                        cd[i].srcComp(scomp);
+                    }
                 }
 
                 return it->second;
@@ -550,7 +561,14 @@ namespace BoxLib
                           int             ncomp,
                           bool            corners=false)
     {
-        if (!geom.isAnyPeriodic() || mf.nGrow() == 0) return;
+        if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+
+        Box TheDomain = geom.Domain();
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
+                TheDomain.surroundingNodes(n);
+
+        if (TheDomain.contains(BoxLib::grow(mf.boxArray().minimalBox(), mf.nGrow()))) return;
 
 #ifndef NDEBUG
         //
@@ -564,13 +582,13 @@ namespace BoxLib
 
         Geometry::FPB TheFPB(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
 
-        const FabArrayId    mfid = mfcd.RegisterFabArray(&mf);
-        Geometry::FPB&      fpb  = BoxLib::GetFPB(mf,geom,TheFPB,scomp,ncomp);
-        Geometry::PIRMList& pirm = fpb.m_pirm;
+        const FabArrayId      mfid = mfcd.RegisterFabArray(&mf);
+        Geometry::FPB&        fpb  = BoxLib::GetFPB(mf,geom,TheFPB,scomp,ncomp);
+        Geometry::PIRMVector& pirm = fpb.m_pirm;
         //
         // Add boxes we need to collect.
         //
-        for (Geometry::PIRMList::iterator it = pirm.begin(), End = pirm.end();
+        for (Geometry::PIRMVector::iterator it = pirm.begin(), End = pirm.end();
              it != End;
              ++it)
         {
@@ -584,9 +602,17 @@ namespace BoxLib
                                    !corners);
         }
 
+        int nrecv = pirm.size();
+        ParallelDescriptor::ReduceIntMax(nrecv);
+        if (nrecv == 0)
+            //
+            // There's no parallel work to do.
+            //
+            return;
+
         mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
 
-        for (Geometry::PIRMList::const_iterator it = pirm.begin(), End = pirm.end();
+        for (Geometry::PIRMVector::const_iterator it = pirm.begin(), End = pirm.end();
              it != End;
              ++it)
         {

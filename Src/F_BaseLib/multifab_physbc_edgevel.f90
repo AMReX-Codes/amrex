@@ -41,16 +41,16 @@ contains
        hi =  upb(get_box(uedge(1),i))
        select case (dm)
        case (1)
-          call setbc_edgevel_1d(utp(:,1,1,1), ng_ut, lo,hi, &
+          call physbc_edgevel_1d(utp(:,1,1,1), ng_ut, lo,hi, &
                                 the_bc_level%phys_bc_level_array(i,:,:))
        case (2)
           vtp => dataptr(uedge(2),i)
-          call setbc_edgevel_2d(utp(:,:,1,1), vtp(:,:,1,1), ng_ut, lo,hi, &
+          call physbc_edgevel_2d(utp(:,:,1,1), vtp(:,:,1,1), ng_ut, lo,hi, &
                                 the_bc_level%phys_bc_level_array(i,:,:))
        case (3)
           vtp => dataptr(uedge(2),i)
           wtp => dataptr(uedge(3),i)
-          call setbc_edgevel_3d(utp(:,:,:,1), vtp(:,:,:,1), wtp(:,:,:,1), ng_ut, &
+          call physbc_edgevel_3d(utp(:,:,:,1), vtp(:,:,:,1), wtp(:,:,:,1), ng_ut, &
                                 lo, hi, the_bc_level%phys_bc_level_array(i,:,:))
        end select
     end do
@@ -59,7 +59,7 @@ contains
 
   end subroutine multifab_physbc_edgevel
 
-  subroutine setbc_edgevel_1d(uedge,ng_ut,lo,hi,phys_bc)
+  subroutine physbc_edgevel_1d(uedge,ng_ut,lo,hi,phys_bc)
 
     use bc_module
 
@@ -81,7 +81,7 @@ contains
        uedge(is-1) = -uedge(is+1)
     case (INTERIOR, PERIODIC, INLET, SLIP_WALL, NO_SLIP_WALL)
     case  default 
-       call bl_error("setbc_edgevel_1d: invalid boundary type phys_bc(1,1)")
+       call bl_error("physbc_edgevel_1d: invalid boundary type phys_bc(1,1)")
     end select
 
     ! impose hi i side bc's
@@ -92,13 +92,13 @@ contains
        uedge(ie+2) = -uedge(ie)
     case (INTERIOR, PERIODIC, INLET, SLIP_WALL, NO_SLIP_WALL)
     case  default
-       call bl_error("setbc_edgevel_1d: invalid boundary type phys_bc(1,2)")
+       call bl_error("physbc_edgevel_1d: invalid boundary type phys_bc(1,2)")
     end select
 
-  end subroutine setbc_edgevel_1d
+  end subroutine physbc_edgevel_1d
 
 
-  subroutine setbc_edgevel_2d(uedge,vedge,ng_ut,lo,hi,phys_bc)
+  subroutine physbc_edgevel_2d(uedge,vedge,ng_ut,lo,hi,phys_bc)
 
     use bc_module
 
@@ -127,7 +127,7 @@ contains
        vedge(is-1,:) = vedge(is  ,:)
     case (INTERIOR, PERIODIC)
     case  default 
-       call bl_error("setbc_edgevel_2d: invalid boundary type phys_bc(1,1)")
+       call bl_error("physbc_edgevel_2d: invalid boundary type phys_bc(1,1)")
     end select
 
     ! impose hi i side bc's
@@ -142,7 +142,7 @@ contains
        vedge(ie+1,:) = vedge(ie,:)
     case (INTERIOR, PERIODIC)
     case  default
-       call bl_error("setbc_edgevel_2d: invalid boundary type phys_bc(1,2)")
+       call bl_error("physbc_edgevel_2d: invalid boundary type phys_bc(1,2)")
     end select
 
     ! impose lo j side bc's
@@ -157,7 +157,7 @@ contains
        vedge(:,js-1) = -vedge(:,js+1)
     case (INTERIOR, PERIODIC)
     case  default 
-       call bl_error("setbc_edgevel_2d: invalid boundary type phys_bc(2,1)")
+       call bl_error("physbc_edgevel_2d: invalid boundary type phys_bc(2,1)")
     end select
 
     ! impose hi j side bc's
@@ -172,13 +172,13 @@ contains
        vedge(:,je+2) = -vedge(:,je)
     case (INTERIOR, PERIODIC)
     case  default 
-       call bl_error("setbc_edgevel_2d: invalid boundary type phys_bc(2,2)")
+       call bl_error("physbc_edgevel_2d: invalid boundary type phys_bc(2,2)")
     end select
 
-  end subroutine setbc_edgevel_2d
+  end subroutine physbc_edgevel_2d
 
 
-  subroutine setbc_edgevel_3d(uedge,vedge,wedge,ng_ut,lo,hi,phys_bc)
+  subroutine physbc_edgevel_3d(uedge,vedge,wedge,ng_ut,lo,hi,phys_bc)
 
     use bc_module
 
@@ -214,7 +214,7 @@ contains
        wedge(is-1,:,:) = wedge(is  ,:,:)
     case (INTERIOR, PERIODIC)
     case  default
-       call bl_error("setbc_edgevel_3d: invalid boundary type phys_bc(1,1)")
+       call bl_error("physbc_edgevel_3d: invalid boundary type phys_bc(1,1)")
     end select
 
     ! impose hi i side bc's
@@ -232,7 +232,7 @@ contains
        wedge(ie+1,:,:) = wedge(ie,:,:)
     case (INTERIOR, PERIODIC)
     case  default
-       call bl_error("setbc_edgevel_3d: invalid boundary type phys_bc(1,2)")
+       call bl_error("physbc_edgevel_3d: invalid boundary type phys_bc(1,2)")
     end select
 
     ! impose lo j side bc's
@@ -250,7 +250,7 @@ contains
        wedge(:,js-1,:) = wedge(:,js  ,:)
     case (INTERIOR, PERIODIC)
     case  default
-       call bl_error("setbc_edgevel_3d: invalid boundary type phys_bc(2,1)")
+       call bl_error("physbc_edgevel_3d: invalid boundary type phys_bc(2,1)")
     end select
 
     ! impose hi j side bc's
@@ -268,7 +268,7 @@ contains
        wedge(:,je+1,:) = wedge(:,je,:)
     case (INTERIOR, PERIODIC)
     case  default
-       call bl_error("setbc_edgevel_3d: invalid boundary type phys_bc(2,2)")
+       call bl_error("physbc_edgevel_3d: invalid boundary type phys_bc(2,2)")
     end select
 
     ! impose lo k side bc's
@@ -286,7 +286,7 @@ contains
        wedge(:,:,ks-1) = -wedge(:,:,ks+1)
     case (INTERIOR, PERIODIC)
     case  default 
-       call bl_error("setbc_edgevel_3d: invalid boundary type phys_bc(3,1)")
+       call bl_error("physbc_edgevel_3d: invalid boundary type phys_bc(3,1)")
     end select
 
     ! impose hi k side bc's
@@ -304,9 +304,9 @@ contains
        wedge(:,:,ke+2) = -wedge(:,:,ke)
     case (INTERIOR, PERIODIC)
     case  default
-       call bl_error("setbc_edgevel_3d: invalid boundary type phys_bc(3,2)")
+       call bl_error("physbc_edgevel_3d: invalid boundary type phys_bc(3,2)")
     end select
 
-  end subroutine setbc_edgevel_3d
+  end subroutine physbc_edgevel_3d
   
 end module multifab_physbc_edgevel_module

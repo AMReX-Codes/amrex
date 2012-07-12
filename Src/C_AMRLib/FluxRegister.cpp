@@ -7,6 +7,7 @@
 #include <ParallelDescriptor.H>
 #include <ccse-mpi.H>
 
+#include <deque>
 #include <vector>
 
 FluxRegister::FluxRegister ()
@@ -164,46 +165,45 @@ FluxRegister::copyTo (FArrayBox& flx,
     hifabs.copyTo(flx,src_comp,dest_comp,num_comp);
 }
 
-//
-// Structure used by Reflux()s.
-//
+FluxRegister::Rec::Rec (Orientation face,
+                        int         index)
+    :
+    m_idx(index),
+    m_face(face),
+    m_shifted(false) {}
 
-namespace
-{
-    struct RF
-    {
-        RF (int         fabidx,
-            int         fridx,
-            Orientation face,
-            FillBoxId   fbid)
-            :
-            m_fabidx(fabidx),
-            m_fridx(fridx),
-            m_face(face),
-            m_fbid(fbid),
-            m_shifted(false) {}
+FluxRegister::Rec::Rec (Orientation    face,
+                        int            index,
+                        const IntVect& shift)
+    :
+    m_shift(shift),
+    m_idx(index),
+    m_face(face),
+    m_shifted(false) {}
 
-        RF (const IntVect& iv,
-            int            fabidx,
-            int            fridx,
-            Orientation    face,
-            FillBoxId      fbid)
-            :
-            m_iv(iv),
-            m_fabidx(fabidx),
-            m_fridx(fridx),
-            m_face(face),
-            m_fbid(fbid),
-            m_shifted(true) {}
+FluxRegister::Rec::Rec (int         fabidx,
+                        int         index,
+                        Orientation face,
+                        FillBoxId   fbid)
+    :
+    m_fabidx(fabidx),
+    m_idx(index),
+    m_face(face),
+    m_fbid(fbid),
+    m_shifted(false) {}
 
-        IntVect     m_iv;
-        int         m_fabidx;
-        int         m_fridx;
-        Orientation m_face;
-        FillBoxId   m_fbid;
-        bool        m_shifted;
-    };
-}
+FluxRegister::Rec::Rec (const IntVect& shift,
+                        int            fabidx,
+                        int            index,
+                        Orientation    face,
+                        FillBoxId      fbid)
+    :
+    m_shift(shift),
+    m_fabidx(fabidx),
+    m_idx(index),
+    m_face(face),
+    m_fbid(fbid),
+    m_shifted(true) {}
 
 void
 FluxRegister::Reflux (MultiFab&       S,
@@ -224,14 +224,10 @@ FluxRegister::Reflux (MultiFab&       S,
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
     }
 
-    std::list<RF> RFs;
+    std::deque<FluxRegister::Rec> Recs;
 
-    BoxArray ba(grids.size());
-
-    for (int i = 0, N = grids.size(); i < N; i++)
-    {
-        ba.set(i, BoxLib::grow(grids[i],1));
-    }
+    BoxArray ba = grids;
+    ba.grow(1);
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -240,7 +236,7 @@ FluxRegister::Reflux (MultiFab&       S,
         //
         // Find flux register that intersect with this grid.
         //
-        isects = ba.intersections(mfi.validbox());
+        ba.intersections(mfi.validbox(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -264,7 +260,7 @@ FluxRegister::Reflux (MultiFab&       S,
                                                  0,
                                                  num_comp);
 
-                    RFs.push_back(RF(mfi.index(),k,fi(),fbid));
+                    Recs.push_back(Rec(mfi.index(),k,fi(),fbid));
                 }
             }
         }
@@ -322,7 +318,7 @@ FluxRegister::Reflux (MultiFab&       S,
                                                              0,
                                                              num_comp);
 
-                                RFs.push_back(RF(iv,mfi.index(),k,fi(),fbid));
+                                Recs.push_back(Rec(iv,mfi.index(),k,fi(),fbid));
                             }
                         }
                         S[mfi].shift(-iv);
@@ -337,14 +333,15 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    for (std::list<RF>::const_iterator it = RFs.begin(), End = RFs.end();
+    for (std::deque<FluxRegister::Rec>::const_iterator it = Recs.begin(),
+             End = Recs.end();
          it != End;
          ++it)
     {
-        const RF&        rf   = *it;
+        const Rec&       rf   = *it;
         const FillBoxId& fbid = rf.m_fbid;
 
-        BL_ASSERT(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
+        BL_ASSERT(bndry[rf.m_face].box(rf.m_idx) == fbid.box());
         BL_ASSERT(S.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
         BL_ASSERT(volume.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
 
@@ -354,7 +351,7 @@ FluxRegister::Reflux (MultiFab&       S,
         const int*       slo        = fab_S.loVect();
         const int*       shi        = fab_S.hiVect();
         const Real*      vol_dat    = fab_volume.dataPtr();
-        Box              fine_face  = BoxLib::adjCell(grids[rf.m_fridx],rf.m_face);
+        Box              fine_face  = BoxLib::adjCell(grids[rf.m_idx],rf.m_face);
 	Real mult;
 	if (multf == 0)
 	  mult = rf.m_face.isLow() ? -scale : scale;
@@ -386,7 +383,7 @@ FluxRegister::Reflux (MultiFab&       S,
         }
         else
         {
-            fab_S.shift(rf.m_iv);
+            fab_S.shift(rf.m_shift);
             //
             // This is a funny situation.  I don't want to permanently
             // change vol, but I need to do a shift on it.  I'll shift
@@ -396,9 +393,9 @@ FluxRegister::Reflux (MultiFab&       S,
             //
             FArrayBox* cheatvol = const_cast<FArrayBox*>(&fab_volume);
             BL_ASSERT(cheatvol != 0);
-            cheatvol->shift(rf.m_iv);
+            cheatvol->shift(rf.m_shift);
             Box sftbox = S.box(rf.m_fabidx);
-            sftbox.shift(rf.m_iv);
+            sftbox.shift(rf.m_shift);
             Box ovlp = sftbox & fine_face;
 
             BL_ASSERT(ovlp.ok());
@@ -416,8 +413,8 @@ FluxRegister::Reflux (MultiFab&       S,
                           vol_dat,ARLIM(vlo),ARLIM(vhi),
                           reg_dat,ARLIM(rlo),ARLIM(rhi),lo,hi,
                           &num_comp,&mult);
-            fab_S.shift(-rf.m_iv);
-            cheatvol->shift(-rf.m_iv);
+            fab_S.shift(-rf.m_shift);
+            cheatvol->shift(-rf.m_shift);
         }
     }
 }
@@ -441,14 +438,10 @@ FluxRegister::Reflux (MultiFab&       S,
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
     }
 
-    std::list<RF> RFs;
+    std::deque<FluxRegister::Rec> Recs;
 
-    BoxArray ba(grids.size());
-
-    for (int i = 0, N = grids.size(); i < N; i++)
-    {
-        ba.set(i, BoxLib::grow(grids[i],1));
-    }
+    BoxArray ba = grids;
+    ba.grow(1);
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -457,7 +450,7 @@ FluxRegister::Reflux (MultiFab&       S,
         //
         // Find flux register that intersect with this grid.
         //
-        isects = ba.intersections(mfi.validbox());
+        ba.intersections(mfi.validbox(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -481,7 +474,7 @@ FluxRegister::Reflux (MultiFab&       S,
                                                  0,
                                                  num_comp);
 
-                    RFs.push_back(RF(mfi.index(),k,fi(),fbid));
+                    Recs.push_back(Rec(mfi.index(),k,fi(),fbid));
                 }
             }
         }
@@ -529,7 +522,7 @@ FluxRegister::Reflux (MultiFab&       S,
                                                              0,
                                                              num_comp);
 
-                                RFs.push_back(RF(iv,mfi.index(),k,fi(),fbid));
+                                Recs.push_back(Rec(iv,mfi.index(),k,fi(),fbid));
                             }
                         }
                         S[mfi].shift(-iv);
@@ -543,18 +536,19 @@ FluxRegister::Reflux (MultiFab&       S,
 
     FArrayBox reg;
 
-    for (std::list<RF>::const_iterator it = RFs.begin(), End = RFs.end();
+    for (std::deque<FluxRegister::Rec>::const_iterator it = Recs.begin(),
+             End = Recs.end();
          it != End;
          ++it)
     {
-        const RF& rf          = *it;
+        const Rec&       rf   = *it;
         const FillBoxId& fbid = rf.m_fbid;
 
-        BL_ASSERT(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
+        BL_ASSERT(bndry[rf.m_face].box(rf.m_idx) == fbid.box());
         BL_ASSERT(S.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
 
         FArrayBox& fab_S     = S[rf.m_fabidx];
-        Box        fine_face = BoxLib::adjCell(grids[rf.m_fridx],rf.m_face);
+        Box        fine_face = BoxLib::adjCell(grids[rf.m_idx],rf.m_face);
         Real       mult      = rf.m_face.isLow() ? -scale : scale;
         const int* rlo       = fine_face.loVect();
         const int* rhi       = fine_face.hiVect();
@@ -581,9 +575,9 @@ FluxRegister::Reflux (MultiFab&       S,
         }
         else
         {
-            fab_S.shift(rf.m_iv);
+            fab_S.shift(rf.m_shift);
             Box sftbox = S.box(rf.m_fabidx);
-            sftbox.shift(rf.m_iv);
+            sftbox.shift(rf.m_shift);
             Box ovlp = sftbox & fine_face;
 
             BL_ASSERT(ovlp.ok());
@@ -599,7 +593,7 @@ FluxRegister::Reflux (MultiFab&       S,
                             reg_dat,ARLIM(rlo),ARLIM(rhi),
                             lo,hi,&num_comp,&mult);
 
-            fab_S.shift(-rf.m_iv);
+            fab_S.shift(-rf.m_shift);
         }
     }
 }
@@ -634,7 +628,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
     {
-        isects = mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box());
+        mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -670,7 +664,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             fillBoxId_area.back().FabIndex(Orientation::low);
         }
 
-        isects = mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box());
+        mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -793,7 +787,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
     {
-        isects = mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box());
+        mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -816,7 +810,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             side.push_back(Orientation::low);
         }
 
-        isects = mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box());
+        mflx.boxArray().intersections(bndry[face_hi][mfi_lo].box(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -964,7 +958,9 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     
     const Orientation lo(dir,Orientation::low);
 
-    std::vector< std::pair<int,Box> > isects = bndry[lo].boxArray().intersections(subbox);
+    std::vector< std::pair<int,Box> > isects;
+
+    bndry[lo].boxArray().intersections(subbox,isects);
 
     for (int i = 0, N = isects.size(); i < N; i++)
     {
@@ -973,7 +969,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     const Orientation hi(dir,Orientation::high);
 
-    isects = bndry[hi].boxArray().intersections(subbox);
+    bndry[hi].boxArray().intersections(subbox,isects);
 
     for (int i = 0, N = isects.size(); i < N; i++)
     {

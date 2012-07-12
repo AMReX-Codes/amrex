@@ -15,7 +15,7 @@ subroutine t_cluster
   ratio = 2
 
   call build(ba,bx)
-  call build(la, ba)
+  call build(la, ba, bx)
   call destroy(ba)
   call build(tags,la,1,0)
   call setval(tags,.true.,all=.true.)
