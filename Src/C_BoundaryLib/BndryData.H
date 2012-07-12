@@ -97,8 +97,11 @@ public:
     //
     // Return boundary location on given face for grids we own.
     // It's an error if we don't own that grid.
+    // RealTuple is indexed with Orientation.
     //
-    Real bndryLocs (const Orientation& face, int igrid) const;
+    typedef Tuple<Real,2*BL_SPACEDIM> RealTuple;
+
+    const RealTuple& bndryLocs (int igrid) const;
     //
     // Return boundary type specifier on given face for grids we own.
     // It's an error if we don't own that grid.
@@ -109,7 +112,7 @@ public:
     //
     const PArray<Mask>& bndryMasks (const Orientation& face) const;
     //
-    // return number of components for which this object is inteded
+    // return number of components for which this object is intended
     //
     int nComp () const;
     //
@@ -180,10 +183,7 @@ protected:
     // The outer Array dimension is over Orientation.
     //
     std::map< int, Array< Array<BoundCond> > > bcond;
-    //
-    // Map of boundary condition locations.
-    //
-    typedef Tuple<Real,2*BL_SPACEDIM> RealTuple;
+
 
     std::map<int,RealTuple> bcloc;
     //
