@@ -873,7 +873,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
       dataGridsDefined[0][iComp].resize(1);
       dataGridsDefined[0][iComp][0] = true;
     }
-    const int N = 64;
+    const int N(64);
     char fabname[N];  // arbitrarily
     plotVars.resize(nComp);
     for(i = 0; i < nComp; ++i) {
@@ -1686,12 +1686,19 @@ bool AmrData::DefineFab(int level, int componentIndex, int fabIndex) {
 // ---------------------------------------------------------------
 void AmrData::FlushGrids(int componentIndex) {
 
-  for(int lev = 0; lev <= finestLevel; ++lev) {
-    dataGrids[lev][componentIndex]->clear();
-    for(MFIter mfi(*dataGrids[lev][componentIndex]);
-        mfi.isValid(); ++mfi)
-    {
-       dataGridsDefined[lev][componentIndex][mfi.index()] = false;
+  BL_ASSERT(componentIndex<nComp);
+  for(int lev(0); lev <= finestLevel; ++lev) {
+    if (dataGrids.size()>lev
+        && dataGrids[lev].size()>componentIndex
+        && dataGrids[lev][componentIndex]
+        && dataGrids[lev][componentIndex]->ok()) {
+      BoxArray ba = dataGrids[lev][componentIndex]->boxArray();
+      int nGrow = dataGrids[lev][componentIndex]->nGrow();
+      delete dataGrids[lev][componentIndex];
+      dataGrids[lev][componentIndex] = new MultiFab(ba, 1, nGrow, Fab_noallocate);
+      for(MFIter mfi(*dataGrids[lev][componentIndex]); mfi.isValid(); ++mfi) {
+          dataGridsDefined[lev][componentIndex][mfi.index()] = false;
+      }
     }
   }
 }

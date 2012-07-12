@@ -2,6 +2,7 @@ f90sources += bc_functions.f90
 f90sources += coarsen_coeffs.f90
 f90sources += ml_nd.f90
 f90sources += ml_cc.f90
+f90sources += ml_solve.f90
 f90sources += itsol.f90
 ifdef USE_MG_CPP
 f90sources += cc_mg_cpp.f90

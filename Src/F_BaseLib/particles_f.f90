@@ -1534,7 +1534,11 @@ contains
        !
        call bl_assert(size(idx) <= 99, 'timestamp: size(idx) too big')
 
-       write(unit=index, fmt='(I2)') (size(idx) + dm + 1)
+       if (print_vels) then
+          write(unit=index, fmt='(I2)') (size(idx) + 2*dm + 1)
+       else
+          write(unit=index, fmt='(I2)') (size(idx) + dm + 1)
+       endif
 
        index = adjustl(index)
 

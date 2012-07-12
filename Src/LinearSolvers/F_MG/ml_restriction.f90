@@ -475,11 +475,11 @@ contains
     !
     call copy(ba, get_boxarray(get_layout(dst)))
     call boxarray_nodalize(ba, nodal)
-    call build(dstla, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+    call build(dstla, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(ba)
     call copy(ba, get_boxarray(get_layout(src)))
     call boxarray_nodalize(ba, nodal)
-    call build(srcla, ba, mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+    call build(srcla, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
     call destroy(ba)
 
     do kdir = -1,1

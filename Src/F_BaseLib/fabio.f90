@@ -472,7 +472,7 @@ contains
       end do
       call bl_stream_expect(strm, ')')
       call build(ba, bxs)
-      call build(la, ba)
+      call build(la, ba, boxarray_bbox(ba))
       dm = get_dim(ba)
       call build(mf, la, nc = nc, ng = ng, nodal = nodal(1:dm))
       read(unit=lun, fmt=*) idummy
@@ -827,7 +827,7 @@ contains
          end do
          call bl_stream_expect(strm, ')')
          call build(ba, bxs)
-         call build(la, ba)
+         call build(la, ba, boxarray_bbox(ba))
          call build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
          read(unit=lun, fmt=*) idummy
          do j = 1, nboxes(i)
@@ -985,7 +985,7 @@ contains
 
 
       do i = 1, flevel
-         call build(la, balevs(i))
+         call build(la, balevs(i), boxarray_bbox(balevs(i)))
          call build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
       end do
 

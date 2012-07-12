@@ -242,6 +242,10 @@ holy_grail_amr_multigrid::holy_grail_amr_multigrid(const Array<BoxArray>& Mesh,
     line_solve_dim(-1),
     boundary(Boundary)
 {
+#if (BL_SPACEDIM == 2)
+    if (is_dense(stencil_))
+        BoxLib::Error("Dense stencil is no longer supported in 2D in C_NodalMG solvers");
+#endif
     build_mesh(fdomain);
 }
 

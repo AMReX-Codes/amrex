@@ -11,6 +11,8 @@
 #include <BoundCond.H>
 #include <Geometry.H>
 
+#include <map>
+
 //
 //  A BndryData stores and manipulates boundary data
 //  information on each side of each box in a BoxArray.
@@ -88,19 +90,21 @@ public:
     //
     friend std::ostream& operator<< (std::ostream& os, const BndryData& bd);
     //
-    // return FabSet on given face
+    // Return FabSet on given face.
     //
     const FabSet& bndryValues (const Orientation& face) const;
     //
-    // return boundary location on given face
+    // Return boundary location on given face for grids we own.
+    // It's an error if we don't own that grid.
     //
-    const Array<Real>& bndryLocs (const Orientation& face) const;
+    Real bndryLocs (const Orientation& face, int igrid) const;
     //
-    // return boundary type specifyer on given face
+    // Return boundary type specifyer on given face for grids we own.
+    // It's an error if we don't own that grid.
     //
-    const Array<Array<BoundCond> >& bndryConds (const Orientation& face) const;
+    const Array<BoundCond>& bndryConds (const Orientation& face, int igrid) const;
     //
-    // return boundary mask on given face
+    // Return boundary mask on given face for grids we own.
     //
     const PArray<Mask>& bndryMasks (const Orientation& face) const;
     //
@@ -176,11 +180,11 @@ protected:
     // Array (on orientation)(on grid)(on component) of boundary
     // condition type specifiers.
     //
-    Array< Array<BoundCond> > bcond[2*BL_SPACEDIM];
+    std::map< int,Array<BoundCond> > bcond[2*BL_SPACEDIM];
     //
     // Array (on orientation) of boundary condition locations.
     //
-    Array<Real> bcloc[2*BL_SPACEDIM];
+    std::map<int,Real> bcloc[2*BL_SPACEDIM];
     //
     // Array (on orientation) of boundary condition mask arrays (FAB-like)
     //
@@ -189,6 +193,8 @@ protected:
     // Domain used for mask defintions.
     //
     Geometry geom;
+
+    int m_ncomp;
 
 private:
     //
@@ -207,20 +213,6 @@ BndryData::bndryValues (const Orientation& _face) const
 }
 
 inline
-const Array<Real>&
-BndryData::bndryLocs (const Orientation& _face) const
-{
-    return bcloc[_face];
-}
-
-inline
-const Array<Array<BoundCond> >&
-BndryData::bndryConds (const Orientation& _face) const
-{
-    return bcond[_face];
-}
-
-inline
 const PArray<Mask>&
 BndryData::bndryMasks (const Orientation& _face) const
 {
@@ -231,7 +223,7 @@ inline
 int
 BndryData::nComp () const
 {
-    return bcond[0][0].size();
+    return m_ncomp;
 }
 
 inline

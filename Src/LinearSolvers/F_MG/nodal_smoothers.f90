@@ -134,7 +134,7 @@ contains
     logical :: x_is_odd
     real (kind = dp_t) :: dd
 
-    real (kind = dp_t), allocatable :: uu_temp(:,:)
+    real (kind = dp_t), allocatable :: wrk(:,:)
 
     type(bl_prof_timer), save :: bpt
 
@@ -175,30 +175,30 @@ contains
 
       if (x_is_odd .and. pmask(1)) then
          !
-         ! USE THIS FOR JACOBI ITERATION
+         ! Use this for Jacobi iteration.
          !
-         allocate(uu_temp(lo(1):hi(1),lo(2):hi(2)))
+         allocate(wrk(lo(1):hi(1),lo(2):hi(2)))
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                if (.not. bc_dirichlet(mm(i,j),1,0)) then
                   dd =   ss(0,i,j) * uu(i  ,j ) &
                        + ss(2,i,j) * uu(i-1,j  ) + ss(1,i,j) * uu(i+1,j  ) &
                        + ss(4,i,j) * uu(i  ,j-1) + ss(3,i,j) * uu(i  ,j+1) 
-                  uu_temp(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
+                  wrk(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
                end if
             end do
          end do
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                if (.not. bc_dirichlet(mm(i,j),1,0)) &
-                    uu(i,j) = uu_temp(i,j)
+                    uu(i,j) = wrk(i,j)
             end do
          end do
-         deallocate(uu_temp)
+         deallocate(wrk)
 
       else
          !
-         ! USE THIS FOR GAUSS-SEIDEL ITERATION
+         ! Use this for Gauss-Seidel iteration.
          !
          ipar = 1-red_black
          do j = lo(2),hi(2)
@@ -226,22 +226,21 @@ contains
     use bl_prof_module
     use impose_neumann_bcs_module
 
-    integer, intent(in) :: ng
-    integer, intent(in) :: lo(:)
-    logical, intent(in) :: pmask(:)
+    integer,            intent(in   ) :: ng
+    integer,            intent(in   ) :: lo(:)
+    logical,            intent(in   ) :: pmask(:)
     real (kind = dp_t), intent(in   ) :: omega
     real (kind = dp_t), intent(in   ) :: ff(lo(1)-1:,lo(2)-1:,lo(3)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
     real (kind = dp_t), intent(in   ) :: ss(0:,lo(1):,lo(2):,lo(3):)
-    integer            ,intent(in   ) :: mm(lo(1):,lo(2):,lo(3):)
-    logical, intent(in) :: uniform_dh
-    integer, intent(in) :: red_black
+    integer,            intent(in   ) :: mm(lo(1):,lo(2):,lo(3):)
+    logical,            intent(in   ) :: uniform_dh
+    integer,            intent(in   ) :: red_black
 
-    integer :: i, j, k, ipar, hi(size(lo)), half_x, half_y
-    logical :: x_is_odd, y_is_odd, jface, kface, doit
+    integer            :: i, j, k, ipar, hi(size(lo)), half_x, half_y
+    logical            :: x_is_odd, y_is_odd, jface, kface, doit
     real (kind = dp_t) :: dd
-
-    real (kind = dp_t), allocatable :: uu_temp(:,:,:)
+    real (kind = dp_t), allocatable :: wrk(:,:,:)
 
     type(bl_prof_timer), save :: bpt
 
@@ -271,9 +270,9 @@ contains
 
       if ( (x_is_odd .and. pmask(1)) .or. (y_is_odd .and. pmask(2)) ) then
          !
-         ! USE THIS FOR JACOBI ITERATION
+         ! Use this for Jacobi iteration.
          !
-         allocate(uu_temp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
+         allocate(wrk(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
 
          !$OMP PARALLEL DO PRIVATE(i,j,k,dd,jface,kface,doit) IF((hi(3)-lo(3)).ge.3)
          do k = lo(3),hi(3)
@@ -295,9 +294,9 @@ contains
                           + ss(2,i,j,k) * uu(i-1,j  ,k  ) + ss(1,i,j,k) * uu(i+1,j  ,k  ) &
                           + ss(4,i,j,k) * uu(i  ,j-1,k  ) + ss(3,i,j,k) * uu(i  ,j+1,k  ) &
                           + ss(6,i,j,k) * uu(i  ,j  ,k-1) + ss(5,i,j,k) * uu(i  ,j  ,k+1)
-                     uu_temp(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+                     wrk(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
                   else
-                     uu_temp(i,j,k) = uu(i,j,k)
+                     wrk(i,j,k) = uu(i,j,k)
                   end if
                end do
             end do
@@ -307,16 +306,16 @@ contains
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                do i = lo(1),hi(1)
-                  uu(i,j,k) = uu_temp(i,j,k)
+                  uu(i,j,k) = wrk(i,j,k)
                end do
             end do
          end do
 
-         deallocate(uu_temp)
+         deallocate(wrk)
 
       else
          !
-         ! USE THIS FOR GAUSS-SEIDEL ITERATION
+         ! Use this for Gauss-Seidel iteration.
          !
          !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit) IF((hi(3)-lo(3)).ge.3)
          do k = lo(3),hi(3)
@@ -352,48 +351,114 @@ contains
 
     else if ((size(ss,dim=1) .eq. 21) .or. (size(ss,dim=1) .eq. 27)) then
 
-      do k = lo(3),hi(3)
-         kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
+       if (.true.) then
+          !
+          ! Do Gauss-Seidel.
+          !
+          do k = lo(3),hi(3)
+             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
-         do j = lo(2),hi(2)
-             jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
+             do j = lo(2),hi(2)
+                jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
-            do i = lo(1),hi(1)
+                do i = lo(1),hi(1)
 
-               doit = .true.
+                   doit = .true.
 
-               if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
-                  if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
-               end if
+                   if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                      if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
+                   end if
 
-               if (doit) then
-                  dd = ss(0,i,j,k)*uu(i,j,k) &
-                       + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
-                       + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
-                       + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
-                       + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
-                       + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
-                       + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
-                       + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
-                       + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
-                       + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
-                       + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1) 
+                   if (doit) then
+                      dd = ss(0,i,j,k)*uu(i,j,k) &
+                           + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
+                           + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
+                           + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
+                           + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
+                           + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
+                           + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
+                           + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
+                           + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
+                           + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
+                           + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1) 
 
-                  if ((size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh) ) then
-                     !
-                     ! Add faces (only non-zero for non-uniform dx)
-                     !
-                     dd = dd + &
-                          ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
-                          + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
-                          + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
-                  end if
+                      if ((size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh) ) then
+                         !
+                         ! Add faces (only non-zero for non-uniform dx)
+                         !
+                         dd = dd + &
+                              ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
+                              + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
+                              + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
+                      end if
 
-                  uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
-               end if
-            end do
-         end do
-      end do
+                      uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+                   end if
+                end do
+             end do
+          end do
+       else
+          !
+          ! Do Jacobi.
+          !
+         allocate(wrk(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
+
+         !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface,doit,dd) IF((hi(3)-lo(3)).ge.3)
+          do k = lo(3),hi(3)
+             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
+
+             do j = lo(2),hi(2)
+                jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
+
+                do i = lo(1),hi(1)
+
+                   doit = .true.
+
+                   if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                      if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
+                   end if
+
+                   if (doit) then
+                      dd = ss(0,i,j,k)*uu(i,j,k) &
+                           + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
+                           + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
+                           + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
+                           + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
+                           + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
+                           + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
+                           + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
+                           + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
+                           + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
+                           + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1) 
+
+                      if ((size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh) ) then
+                         !
+                         ! Add faces (only non-zero for non-uniform dx)
+                         !
+                         dd = dd + &
+                              ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
+                              + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
+                              + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
+                      end if
+
+                      wrk(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+                   else
+                      wrk(i,j,k) = uu(i,j,k)
+                   end if
+                end do
+             end do
+          end do
+          !$OMP END PARALLEL DO
+
+          do k = lo(3),hi(3)
+             do j = lo(2),hi(2)
+                do i = lo(1),hi(1)
+                  uu(i,j,k) = wrk(i,j,k)
+                end do
+             end do
+          end do
+          deallocate(wrk)
+       end if
 
     else
       call bl_error('BAD SS IN NODAL_SMOOTHER ',size(ss,dim=1))

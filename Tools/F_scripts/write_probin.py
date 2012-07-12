@@ -220,20 +220,20 @@ def write_probin(probinTemplate, paramAFiles, paramBFiles,
                     type = paramsA[n].type
 
                     if (type == "real"):
-                        fout.write("%sreal (kind=dp_t), save, public :: %s\n" % 
-                                   (indent, paramsA[n].var))
+                        fout.write("%sreal (kind=dp_t), save, public :: %s = %s\n" % 
+                                   (indent, paramsA[n].var, paramsA[n].value))
 
                     elif (type == "character"):
-                        fout.write("%scharacter (len=256), save, public :: %s\n" % 
-                                   (indent, paramsA[n].var))
+                        fout.write("%scharacter (len=256), save, public :: %s = %s\n" % 
+                                   (indent, paramsA[n].var, paramsA[n].value))
 
                     elif (type == "integer"):
-                        fout.write("%sinteger, save, public :: %s\n" % 
-                                   (indent, paramsA[n].var))
+                        fout.write("%sinteger, save, public :: %s = %s\n" % 
+                                   (indent, paramsA[n].var, paramsA[n].value))
 
                     elif (type == "logical"):
-                        fout.write("%slogical, save, public :: %s\n" % 
-                                   (indent, paramsA[n].var))
+                        fout.write("%slogical, save, public :: %s = %s\n" % 
+                                   (indent, paramsA[n].var, paramsA[n].value))
 
                     else:
                         print("write_probin.py: invalid datatype for variable "+paramsA[n].var)
@@ -241,7 +241,7 @@ def write_probin(probinTemplate, paramAFiles, paramBFiles,
                     n += 1
 
                 if (len(paramsA) == 0):
-                    fout.write("%sinteger, save, public :: a_dummy_var\n" % (indent))
+                    fout.write("%sinteger, save, public :: a_dummy_var = 0\n" % (indent))
 
             elif (keyword == "declarationsB"):
 
@@ -254,20 +254,20 @@ def write_probin(probinTemplate, paramAFiles, paramBFiles,
                         type = paramsB[n].type
 
                         if (type == "real"):
-                            fout.write("%sreal (kind=dp_t), save, public :: %s\n" % 
-                                       (indent, paramsB[n].var))
+                            fout.write("%sreal (kind=dp_t), save, public :: %s = %s\n" % 
+                                       (indent, paramsB[n].var, paramsB[n].value))
 
                         elif (type == "character"):
-                            fout.write("%scharacter (len=256), save, public :: %s\n" % 
-                                       (indent, paramsB[n].var))
+                            fout.write("%scharacter (len=256), save, public :: %s = %s\n" % 
+                                       (indent, paramsB[n].var, paramsB[n].value))
 
                         elif (type == "integer"):
-                            fout.write("%sinteger, save, public :: %s\n" % 
-                                       (indent, paramsB[n].var))
+                            fout.write("%sinteger, save, public :: %s = %s\n" % 
+                                       (indent, paramsB[n].var, paramsB[n].value))
 
                         elif (type == "logical"):
-                            fout.write("%slogical, save, public :: %s\n" % 
-                                       (indent, paramsB[n].var))
+                            fout.write("%slogical, save, public :: %s = %s\n" % 
+                                       (indent, paramsB[n].var, paramsB[n].value))
 
                         else:
                             print("write_probin.py: invalid datatype for variable "+paramsB[n].var)

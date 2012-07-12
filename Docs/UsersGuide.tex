@@ -22,6 +22,17 @@
 \raggedright\tiny\sffamily
 \hrule\smallskip{\color{red}#1}\par\smallskip\hrule}}
 
+\newcommand{\sfrac}[2]{\mathchoice
+  {\kern0em\raise.5ex\hbox{\the\scriptfont0 #1}\kern-.15em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptfont0 #2}}
+  {\kern0em\raise.5ex\hbox{\the\scriptfont0 #1}\kern-.15em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptfont0 #2}}
+  {\kern0em\raise.5ex\hbox{\the\scriptscriptfont0 #1}\kern-.2em/
+   \kern-.15em\lower.25ex\hbox{\the\scriptscriptfont0 #2}}
+  {#1\!/#2}}
+
+\newcommand{\myhalf}{\sfrac{1}{2}}
+
 % special colors and definitions for framing source code listings
 \usepackage{listings}
 
@@ -42,7 +53,20 @@
 \renewcommand{\bottomfraction}{1.0}
 \renewcommand{\textfraction}{0.0}
 
-\title{\Huge \bf \BoxLib\ User's Guide}
+\title{\Huge{\bf \BoxLib\ User's Guide}\\
+       \vspace{0.5in}
+       \Large{Center for Computational Sciences and Engineering}\\
+       \Large{Lawrence Berkeley National Laboratory}\\
+       \Large{\tt https://ccse.lbl.gov}
+       \date{April 20, 2012}
+\begin{figure}[b]
+\centering
+\includegraphics[width=2in]{./Introduction/varden1}
+\includegraphics[width=2in]{./Introduction/varden2}\\
+\includegraphics[width=2in]{./Introduction/varden3}
+\includegraphics[width=2in]{./Introduction/varden4}
+\end{figure}
+}
 
 % don't put a header on blank pages, see
 % http://www.latex-community.org/forum/viewtopic.php?f=4&p=51559
@@ -59,6 +83,8 @@
 
 
 \begin{document}
+
+
 
 \frontmatter
 
@@ -83,13 +109,16 @@
 
 \mainmatter
 
-\chapter{Introduction}
+\chapter{Introduction}\label{Chap:Introduction}
 \input Introduction/Introduction
 
-\chapter{Getting Started}
+\chapter{Getting Started}\label{Chap:Getting Started}
 \input GettingStarted/GettingStarted
 
-\chapter{Advanced Topics}
-\input AdvancedTopics/AdvancedTopics
+\chapter{Advanced Topics With Fortran90 \BoxLib}\label{Chap:Advanced Topics F}
+\input F_AdvancedTopics/F_AdvancedTopics
+
+\chapter{Advanced Topics With C++ \BoxLib}\label{Chap:Advanced Topics C}
+\input C_AdvancedTopics/C_AdvancedTopics
 
 \end{document}

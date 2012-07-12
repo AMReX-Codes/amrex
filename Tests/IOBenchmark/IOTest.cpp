@@ -12,6 +12,7 @@
 #include <iostream>
 #include <strstream>
 #include <fstream>
+#include <iomanip>
 
 #include <unistd.h>
 
@@ -46,8 +47,9 @@ BoxArray MakeBoxArray(int maxgrid,  int nboxes) {
 
 
 // -------------------------------------------------------------
-void TestIONFiles(int nfiles, int maxgrid, int ncomps, int nboxes) {
+void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes) {
   int myProc(ParallelDescriptor::MyProc());
+
   VisMF::SetNOutFiles(nfiles);
 
   BoxArray bArray(MakeBoxArray(maxgrid, nboxes));
@@ -56,21 +58,21 @@ void TestIONFiles(int nfiles, int maxgrid, int ncomps, int nboxes) {
   }
 
   // make a MultiFab
-  MultiFab multifab0(bArray, ncomps, 0);
-  for(MFIter mfiset(multifab0); mfiset.isValid(); ++mfiset) {
+  MultiFab mfout(bArray, ncomps, 0);
+  for(MFIter mfiset(mfout); mfiset.isValid(); ++mfiset) {
     for(int invar(0); invar < ncomps; ++invar) {
-      multifab0[mfiset].setVal((100.0 * mfiset.index()) + invar, invar);
+      mfout[mfiset].setVal((100.0 * mfiset.index()) + invar, invar);
     }
   }
 
   long npts(bArray[0].numPts());
-  long totalNBytes = npts * ncomps * nboxes *sizeof(Real);
+  long totalNBytes(npts * ncomps * nboxes *sizeof(Real));
   std::string mfName("TestMF");
 
   ParallelDescriptor::Barrier();
-  double wallTimeStart = ParallelDescriptor::second();
+  double wallTimeStart(ParallelDescriptor::second());
 
-  VisMF::Write(multifab0, mfName); 
+  VisMF::Write(mfout, mfName); 
 
   double wallTime(ParallelDescriptor::second() - wallTimeStart);
 
@@ -81,6 +83,7 @@ void TestIONFiles(int nfiles, int maxgrid, int ncomps, int nboxes) {
   ParallelDescriptor::ReduceRealMax(wallTimeMax);
 
   if(ParallelDescriptor::IOProcessor()) {
+    cout << std::setprecision(5);
     cout << "  Total megabytes = " << ((Real) totalNBytes/1000000.0) << endl;
     cout << "  Megabytes/sec   = "
 	 << ((Real) totalNBytes/wallTimeMax)/1000000.0 << endl;
@@ -88,7 +91,49 @@ void TestIONFiles(int nfiles, int maxgrid, int ncomps, int nboxes) {
     cout << "  Min wall clock time = " << wallTimeMin << endl;
     cout << "  Max wall clock time = " << wallTimeMax << endl;
   }
+}
 
-}  // end TestIONFiles()
+
+// -------------------------------------------------------------
+void TestReadMF() {
+  int myProc(ParallelDescriptor::MyProc());
+
+  MultiFab mfin;
+  std::string mfName("TestMF");
+
+  ParallelDescriptor::Barrier();
+  double wallTimeStart(ParallelDescriptor::second());
+
+  VisMF::Read(mfin, mfName); 
+
+  double wallTime(ParallelDescriptor::second() - wallTimeStart);
+
+  double wallTimeMax(wallTime);
+  double wallTimeMin(wallTime);
+
+  ParallelDescriptor::ReduceRealMin(wallTimeMin);
+  ParallelDescriptor::ReduceRealMax(wallTimeMax);
+
+  long npts(mfin.boxArray()[0].numPts());
+  int  ncomps(mfin.nComp());
+  int  nboxes(mfin.boxArray().size());
+  long totalNBytes(npts * ncomps * nboxes *sizeof(Real));
+
+  if(ParallelDescriptor::IOProcessor()) {
+    cout << std::setprecision(5);
+    cout << "  ncomps = " << ncomps << endl;
+    cout << "  nboxes = " << nboxes << endl;
+    cout << "  Total megabytes = " << ((Real) totalNBytes/1000000.0) << endl;
+    cout << "  Megabytes/sec   = "
+	 << ((Real) totalNBytes/wallTimeMax)/1000000.0 << endl;
+    cout << "  Wall clock time = " << wallTimeMax << endl;
+    cout << "  Min wall clock time = " << wallTimeMin << endl;
+    cout << "  Max wall clock time = " << wallTimeMax << endl;
+  }
+}
 // -------------------------------------------------------------
 // -------------------------------------------------------------
+
+
+
+

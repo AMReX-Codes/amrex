@@ -121,7 +121,7 @@ contains
     if ( associated(timers) .or. associated(the_stack) ) then
        call bl_error("BL_PROF_INITIALIZE: must be called once only")
     end if
-    if ( parallel_q() ) wall = .false.
+!!    if ( parallel_q() ) wall = .false.
     !! Hand initialize the data structures
     allocate(timers(1))
     timers(1)%reg = 1

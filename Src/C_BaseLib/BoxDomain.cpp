@@ -74,10 +74,10 @@ BoxLib::complementIn (const Box&       b,
     return result;
 }
 
-BoxList
+const BoxList&
 BoxDomain::boxList () const
 {
-    return BoxList(*this);
+    return *this;
 }
 
 bool
