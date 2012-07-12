@@ -260,12 +260,12 @@ protected:
     //
     //  FIXME: This should really be an array of integer BndryRegisters
     //
-    Array< Array< Array< Mask*> > > maskvals;
+    Array< std::map< int,Array<Mask*> > > maskvals;
     //
     // Similar to maskvals, but only for "local" grids at level 0.
     // It's only made if it's needed.  Currently used only in applyBC().
     //
-    Array< Array< Array< Mask*> > > lmaskvals;
+    Array< std::map< int,Array<Mask*> > > lmaskvals;
     //
     // boundary data class
     //
