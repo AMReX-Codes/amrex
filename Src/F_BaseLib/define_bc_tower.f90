@@ -173,7 +173,7 @@ module define_bc_module
 
        if (phys_bc_level(igrid,d,lohi) == INLET) then
 
-          call bl_error("define_bc_tower.f90: INLET not supported for this example")
+           adv_bc_level(igrid,d,lohi,1) = EXT_DIR
 
        else if (phys_bc_level(igrid,d,lohi) == OUTLET) then
 
@@ -189,7 +189,7 @@ module define_bc_module
 
        else if (phys_bc_level(igrid,d,lohi) == NO_SLIP_WALL) then
 
-          adv_bc_level(igrid,d,lohi,1) = EXT_DIR
+         call bl_error("define_bc_tower.f90: NO_SLIP_WALL not supported for this example")
 
        end if
 
@@ -223,7 +223,7 @@ module define_bc_module
 
        if (phys_bc_level(igrid,d,lohi) == INLET) then
 
-          call bl_error("define_bc_tower.f90: INLET not supported for this example")
+          ell_bc_level(igrid,d,lohi,1) = BC_DIR
 
        else if (phys_bc_level(igrid,d,lohi) == OUTLET) then
 
