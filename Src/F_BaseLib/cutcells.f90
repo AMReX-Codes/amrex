@@ -5,6 +5,12 @@ module cutcell_module
 
   implicit none
 
+  ! for flagarray:
+  integer, parameter, public :: FLOW        = -9
+  integer, parameter, public :: IRRFLOW     = -3
+  integer, parameter, public :: SOLID       = -8
+  ! cut cells have index >=1
+
   type cutcell
      !
      ! For now we just contain our cell index.
