@@ -55,10 +55,6 @@ public:
     //
     const Real* hi () const;
     //
-    // Returns length in each direction.
-    //
-    const Real* length () const;
-    //
     // Returns length in specified direction.
     //
     Real lo (int dir) const;
@@ -113,15 +109,10 @@ private:
     //
     static Real eps;
     //
-    // Helper function.
-    //
-    void computeBoxLen ();
-    //
     // The data.
     //
     Real xlo[BL_SPACEDIM];
     Real xhi[BL_SPACEDIM];
-    Real len[BL_SPACEDIM];
 };
 //
 // Nice ASCII output.
@@ -161,13 +152,6 @@ RealBox::hi () const
 }
 
 inline
-const Real*
-RealBox::length () const
-{
-    return len;
-}
-
-inline
 Real
 RealBox::lo (int dir) const
 {
@@ -185,16 +169,7 @@ inline
 Real
 RealBox::length (int dir) const
 {
-    return len[dir];
-}
-
-inline
-void
-RealBox::computeBoxLen ()
-{
-    D_EXPR(len[0] = xhi[0]-xlo[0],
-           len[1] = xhi[1]-xlo[1],
-           len[2] = xhi[2]-xlo[2]);
+    return xhi[dir]-xlo[dir];
 }
 
 inline
@@ -202,7 +177,6 @@ void
 RealBox::setLo (const Real* lo)
 {
     D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
-    computeBoxLen();
 }
 
 inline
@@ -210,7 +184,6 @@ void
 RealBox::setLo (const Array<Real> &lo)
 {
     D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
-    computeBoxLen();
 }
 
 inline
@@ -218,7 +191,6 @@ void
 RealBox::setHi (const Real* hi)
 {
     D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
-    computeBoxLen();
 }
 
 inline
@@ -226,7 +198,6 @@ void
 RealBox::setHi (const Array<Real>& hi)
 {
     D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
-    computeBoxLen();
 }
 
 inline
@@ -236,7 +207,6 @@ RealBox::setLo (int  indx,
 {
    BL_ASSERT(indx >= 0 && indx < BL_SPACEDIM);
    xlo[indx] = lo;
-   computeBoxLen();
 }
 
 inline
@@ -246,7 +216,6 @@ RealBox::setHi (int  indx,
 {
     BL_ASSERT(indx >= 0 && indx < BL_SPACEDIM);
     xhi[indx] = hi;
-    computeBoxLen();
 }
 
 #endif /*_RealBox_H_*/
