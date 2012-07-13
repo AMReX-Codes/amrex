@@ -22,7 +22,8 @@ class testObj2:
         self.lastFailure = ''
         self.lastSuccess = ''
         self.BoxLibHeads = ['','']
-        self.thisCodeHeads = ['','']
+        self.sourceHeads = ['','']
+        self.extSrcHeads = ['','']
 
 def reg_test_blame(argv):
     usage = """
@@ -70,6 +71,10 @@ def reg_test_blame(argv):
     if (len(testList) == 0):
         reg_test.fail("No valid tests defined")
 
+
+    #--------------------------------------------------------------------------
+    # if we are doing a single test, remove all other tests
+    #--------------------------------------------------------------------------
     if not single_test == "":
         found = 0
         for obj in testList:
@@ -85,6 +90,7 @@ def reg_test_blame(argv):
 
     webDirs = buildWebDirs(suite)
 
+    # build list of failed tests
     failedTestList = []
     for obj in testList:
         to2 = check_test_status(obj, suite, webDirs)
@@ -113,16 +119,20 @@ def reg_test_blame(argv):
         coms = bad[0]
         oldestFailed = bad[1]
         print "\n"
-        print obj.name, "first failed at BoxLib", ', '.join(coms[0][:-1])
-        if suite.sourceTree != "BoxLib":
-            print "     plus", suite.suiteName, ', '.join(coms[1][:-1])
+        print obj.name, "first failed at"
+        for src in coms.keys():
+            print "      ", src, ', '.join(coms[src][:-1])
         if oldestFailed:
             print "   The strang thing is the above test was successful last time with the same source code."
         else:
-            if suite.sourceTree == "BoxLib" or coms[0][-1] > coms[1][-1] :
-                print "Regtester blames BoxLib!"
-            else:
-                print "Regtester blames", suite.suiteName+"!"
+            last_commit_time = 0
+            failed_src = ''
+            for src in coms.keys():
+                if coms[src][-1] > last_commit_time:
+                    last_commit_time = coms[src][-1]
+                    failed_src = src
+            print "\n"
+            reg_test.bold("Regtester blames "+failed_src+"!")
 
 
 def buildWebDirs(suite):
@@ -157,22 +167,31 @@ def check_test_status(tobj, suite, webDirs):
             elif testPassed:
                 tobj2.lastSuccess = d
                 f = open(d+'/git.BoxLib.HEAD', 'r')
-                tobj2.BoxLibHeads[0] = f.readline().rstrip('\n').strip()
+                tobj2.BoxLibHeads[0] = f.readline().rstrip('\n')
                 f.close()
-                f = open(d+'/git.'+suite.suiteName+'.HEAD', 'r')
-                tobj2.thisCodeHeads[0] = f.readline().rstrip('\n').strip()
-                f.close()
+                if suite.sourceTree != "BoxLib":
+                    f = open(d+'/git.'+suite.srcName+'.HEAD', 'r')
+                    tobj2.sourceHeads[0] = f.readline().rstrip('\n')
+                    f.close()
+                if suite.useExtSrc:
+                    f = open(d+'/git.'+suite.extSrcName+'.HEAD', 'r')
+                    tobj2.extSrcHeads[0] = f.readline().rstrip('\n')
+                    f.close()
                 break
             else:
                 tobj2.passed = False
-                if tobj2.lastFailure == '':
-                    tobj2.lastFailure = d
+                tobj2.lastFailure = d
                 f = open(d+'/git.BoxLib.HEAD', 'r')
                 tobj2.BoxLibHeads[1] = f.readline().rstrip('\n')
                 f.close()
-                f = open(d+'/git.'+suite.suiteName+'.HEAD', 'r')
-                tobj2.thisCodeHeads[1] = f.readline().rstrip('\n')
-                f.close()
+                if suite.sourceTree != "BoxLib":
+                    f = open(d+'/git.'+suite.srcName+'.HEAD', 'r')
+                    tobj2.sourceHeads[1] = f.readline().rstrip('\n')
+                    f.close()
+                if suite.useExtSrc:
+                    f = open(d+'/git.'+suite.extSrcName+'.HEAD', 'r')
+                    tobj2.extSrcHeads[1] = f.readline().rstrip('\n')
+                    f.close()
     return tobj2
 
 def buildGITCommits(topDir, heads):
@@ -190,35 +209,64 @@ def buildGITCommits(topDir, heads):
     return commits    
 
 def find_someone_to_blame(to2, suite, testFile, origdir):
-    boxLibCommits = buildGITCommits(suite.boxLibDir, to2.BoxLibHeads)
-    LboxLib = len(boxLibCommits)
+
+    codes = []
+    commits = {}
+
+    codes = ['BoxLib']
+    commits['BoxLib'] = buildGITCommits(suite.boxLibDir, to2.BoxLibHeads)
 
     if suite.sourceTree != "BoxLib":
-        thisCodeCommits = buildGITCommits(suite.sourceDir, to2.thisCodeHeads)
-        LthisCode = len(thisCodeCommits)
+        codes.append(suite.srcName)
+        commits[suite.srcName] = buildGITCommits(suite.sourceDir, to2.sourceHeads)
 
-    if suite.sourceTree == "BoxLib":
-        allCommits = []
-        for bc in boxlibcommits:
-            allCommits.append((bc,))
-    else:
-        ib = 0
-        ic = 0
-        allCommits = [(boxLibCommits[ib], thisCodeCommits[ic])]
-        while ib < LboxLib-1 or ic < LthisCode-1 :
-            tbnext = 0
-            tcnext = 0
-            if ib < LboxLib-1:
-                tbnext = boxLibCommits[ib+1][-1]
-            if ic < LthisCode-1:
-                tcnext = thisCodeCommits[ic+1][-1]
-            if tbnext > tcnext:
-                ib = ib+1
+    if suite.useExtSrc:
+        codes.append(suite.extSrcName)
+        commits[suite.extSrcName] = buildGITCommits(suite.extSrcDir, to2.extSrcHeads)
+
+    # merge commits so that we have a linear history
+    icommits = {}
+    for code in codes:
+        icommits[code] = 0
+
+    linCommits = [{}]
+    for code in codes:
+        icom = icommits[code]
+        linCommits[0][code] = commits[code][icom]
+
+    def still_more_commits(icommits):
+        for code in codes:
+            icom = icommits[code]
+            if icom < len(commits[code]) - 1:
+                return True
+        return False
+
+    while still_more_commits(icommits):
+        tnext = {}
+        for code in codes:
+            icom = icommits[code]
+            if icom < len(commits[code]) - 1:
+                tnext[code] = commits[code][icom][-1]
             else:
-                ic = ic+1
-            allCommits.append((boxLibCommits[ib], thisCodeCommits[ic]))
+                tnext[code] = 0
+                
+        whichcode = ''
+        tlatest = 0
+        for code in codes:
+            if tnext[code] > tlatest:
+                tlatest = tnext[code]
+                whichcode = code
 
-    iSuccess = len(allCommits)-1
+        icommits[whichcode] += 1
+
+        tempcommits = {}
+        for code in codes:
+            icom = icommits[code]
+            tempcommits[code] = commits[code][icom]
+
+        linCommits.append(tempcommits)
+
+    iSuccess = len(linCommits)-1
     iFail = 0 
     
     if iFail >= iSuccess:
@@ -226,38 +274,45 @@ def find_someone_to_blame(to2, suite, testFile, origdir):
 
     while iFail != iSuccess-1:
         iTry = (iSuccess + iFail) / 2
-        status = run_old_version(allCommits[iTry], to2, suite, testFile, origdir)
+        status = run_old_version(linCommits[iTry], to2, suite, testFile, origdir)
         if status == 0:
             iSuccess = iTry
         else:
             iFail = iTry
     
     oldestFailed = False
-    if iSuccess == len(allCommits)-1: 
+    if iSuccess == len(linCommits)-1: 
         # make sure the last succsssful test still works. 
         # If it doesn't work anymore, maybe we should blame things like upgraded compiler.
-        status = run_old_version(allCommits[iSuccess], to2, suite, testFile, origdir)
+        status = run_old_version(linCommits[iSuccess], to2, suite, testFile, origdir)
         if status > 0:
             oldestFailed = True
 
-    return allCommits[iFail], oldestFailed
+    return linCommits[iFail], oldestFailed
 
 def run_old_version(coms, test2, suite, testFile, origdir):
 
     os.chdir(origdir)
 
-    bhash = coms[0][0]
-    if suite.sourceTree == "BoxLib":
-        chash = coms[0][0]
-    else:
-        chash = coms[1][0]        
-    print " \n"
-    print "  Try BoxLib", coms[0][0:-1]
+    bhash = coms['BoxLib'][0]
+
     if suite.sourceTree != "BoxLib":
-        print "    plus", suite.suiteName, coms[1][0:-1]
+        mhash = coms[suite.srcName][0]
+    else:
+        mhash = ""
+
+    if suite.useExtSrc:
+        ehash = coms[suite.extSrcName][0]
+    else:
+        ehash = ""
+        
+    print " \n"
+    print "  Try ...." 
+    for code in coms.keys():
+        print "   ", code, coms[code][0:-1] 
     print "\n"
 
-    testargv = ['', '--use_old_version', '--boxLibGitHash', bhash, '--sourceGitHash', chash, '--single_test', test2.name, testFile]
+    testargv = ['', '--do_temp_run', '--boxLibGitHash', bhash, '--sourceGitHash', mhash, '--extSrcGitHash', ehash, '--single_test', test2.name, testFile]
     return reg_test.testSuite(testargv)
 
 
