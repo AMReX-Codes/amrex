@@ -76,10 +76,6 @@ public:
     //
     static Real ProbHi (int dir);
     //
-    // Returns length of problem domain in each dimension.
-    //
-    static const Real* ProbLength ();
-    //
     // Returns the overall size of the domain by multiplying the ProbLength's together
     //
     static Real ProbSize ();
@@ -380,13 +376,6 @@ Real
 Geometry::ProbHi (int dir)
 {
     return prob_domain.hi(dir);
-}
-
-inline
-const Real*
-Geometry::ProbLength ()
-{
-    return prob_domain.length();
 }
 
 inline

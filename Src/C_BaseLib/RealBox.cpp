@@ -20,14 +20,12 @@ RealBox::RealBox (const Box&  bx,
         int shft = (bx.type(i) == IndexType::CELL ? 1 : 0);
         xhi[i] = base[i] + dx[i]*(hi[i]+ shft);
     }   
-    computeBoxLen();
 }
 
 RealBox::RealBox ()
 {
     D_TERM(xlo[0] , = xlo[1] , = xlo[2] ) = 0.;
     D_TERM(xhi[0] , = xhi[1] , = xhi[2] ) = -1.;
-    computeBoxLen();
 }
 
 RealBox::RealBox (const Real* lo,
@@ -35,7 +33,6 @@ RealBox::RealBox (const Real* lo,
 {
     D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
     D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
-    computeBoxLen() ;
 }
 
 RealBox::RealBox (D_DECL(Real x0, Real y0, Real z0),
@@ -43,7 +40,6 @@ RealBox::RealBox (D_DECL(Real x0, Real y0, Real z0),
 {
     D_EXPR(xlo[0] = x0 , xlo[1] = y0 , xlo[2] = z0);
     D_EXPR(xhi[0] = x1 , xhi[1] = y1 , xhi[2] = z1);
-    computeBoxLen() ;
 }
 
 bool
@@ -55,12 +51,12 @@ RealBox::contains (const RealBox& rb) const
 bool
 RealBox::ok () const
 {
-    return (len[0] > eps)
+    return (length(0) > eps)
 #if (BL_SPACEDIM > 1)
-        && (len[1] > eps)
+        && (length(1) > eps)
 #endif   
 #if (BL_SPACEDIM > 2)
-        && (len[2] > eps)
+        && (length(2) > eps)
 #endif
    ;
 }
