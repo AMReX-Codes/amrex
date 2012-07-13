@@ -40,8 +40,7 @@ public:
     //
     FabSet ();
     //
-    // Construct a FabSet of specified number of components on 
-    //         the grids.
+    // Construct a FabSet of specified number of components on the grids.
     //
     FabSet (const BoxArray& grids, int ncomp);
     //
@@ -219,11 +218,11 @@ public:
     //
     // Write (used for writing to checkpoint)
     //
-    void write(const std::string& name) const;
+    void write (const std::string& name) const;
     //
     // Read (used for reading from checkpoint)
     //
-    void read(const std::string& name);
+    void read (const std::string& name);
 
 protected:
     //
@@ -252,14 +251,10 @@ class FabSetIter
     public MFIter
 {
 public:
-    //
-    // The constructor.
-    //
-    FabSetIter (const FabSet& fabset);
-    //
-    // The destructor.
-    //
-    ~FabSetIter ();
+
+    FabSetIter (const FabSet& fabset)
+        :
+        MFIter(fabset) {}
 };
 
 typedef FabArrayId FabSetId;
@@ -274,7 +269,7 @@ public:
 
     ~FabSetCopyDescriptor ();
 
-    FabSetId RegisterFabSet (FabSet* fabset);
+    FabSetId RegisterFabSet (FabSet* fabset) { return RegisterMultiFab(fabset); }
 
 private:
     //

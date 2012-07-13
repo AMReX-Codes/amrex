@@ -470,14 +470,11 @@ class MultiFabCopyDescriptor
 {
   public:
 
-    MultiFabCopyDescriptor ()
-        :
-        FabArrayCopyDescriptor<FArrayBox>() {}
+    MultiFabCopyDescriptor ();
 
-    MultiFabId RegisterMultiFab (MultiFab* mf)
-    {
-        return RegisterFabArray(mf);
-    }
+    ~MultiFabCopyDescriptor ();
+
+    MultiFabId RegisterMultiFab (MultiFab* mf) { return RegisterFabArray(mf); }
 
   private:
     //

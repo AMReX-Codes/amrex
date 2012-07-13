@@ -24,6 +24,12 @@ namespace
     bool initialized = false;
 }
 
+MultiFabCopyDescriptor::MultiFabCopyDescriptor ()
+    :
+    FabArrayCopyDescriptor<FArrayBox>() {}
+
+MultiFabCopyDescriptor::~MultiFabCopyDescriptor () {}
+
 void
 MultiFab::Add (MultiFab&       dst,
 	       const MultiFab& src,

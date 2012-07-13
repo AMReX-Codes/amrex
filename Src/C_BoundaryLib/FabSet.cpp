@@ -6,24 +6,11 @@
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 
-FabSetIter::FabSetIter (const FabSet& fabset)
-    :
-    MFIter(fabset)
-{}
-
-FabSetIter::~FabSetIter () {}
-
 FabSetCopyDescriptor::FabSetCopyDescriptor ()
     :
     MultiFabCopyDescriptor() {}
 
 FabSetCopyDescriptor::~FabSetCopyDescriptor () {}
-
-FabSetId
-FabSetCopyDescriptor::RegisterFabSet (FabSet* fabset)
-{
-    return RegisterMultiFab(fabset);
-}
 
 FabSet::FabSet () {}
 
