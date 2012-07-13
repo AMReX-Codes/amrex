@@ -2565,14 +2565,14 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
         if updateSource:
             hf.write("<p>&nbsp;&nbsp;<b>%s ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                     (suite.suiteName, "ChangeLog."+suite.suiteName, "ChangeLog."+suite.suiteName) )        
+                     (suite.srcName, "ChangeLog."+suite.srcName, "ChangeLog."+suite.srcName) )        
 
         if updateBoxLib:
-            hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+            hf.write("<p>&nbsp;&nbsp;<b>BoxLib ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
                      ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
 
         if updateExtSrc:
-            hf.write("<p>&nbsp;&nbsp;<b>%s/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+            hf.write("<p>&nbsp;&nbsp;<b>%s ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
                      (suite.extSrcName, "ChangeLog."+suite.extSrcName, "ChangeLog."+suite.extSrcName) )        
     else:
         hf.write("<p>No git update done\n")
