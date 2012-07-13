@@ -3,8 +3,6 @@
 
 #include <BCRec.H>
 
-BCRec::BCRec () {}
-
 BCRec::BCRec (D_DECL(int loX, int loY, int loZ),
               D_DECL(int hiX, int hiY, int hiZ))
 {
