@@ -95,12 +95,16 @@ public:
     //
     const FabSet& bndryValues (const Orientation& face) const;
     //
+    // Some useful typedefs
+    //
+    typedef Tuple<Real,2*BL_SPACEDIM> RealTuple;
+
+    typedef Tuple<Mask*,2*BL_SPACEDIM> MaskTuple;
+    //
     // Return boundary location on given face for grids we own.
     // It's an error if we don't own that grid.
     // RealTuple is indexed with Orientation.
     //
-    typedef Tuple<Real,2*BL_SPACEDIM> RealTuple;
-
     const RealTuple& bndryLocs (int igrid) const;
     //
     // Return boundary type specifier on given face for grids we own.
@@ -108,9 +112,10 @@ public:
     //
     const Array< Array<BoundCond> >& bndryConds (int igrid) const;
     //
-    // Return boundary mask on given face for grids we own.
+    // Return boundary masks for grids we own.
+    // It's an error if we don't own that grid.
     //
-    const PArray<Mask>& bndryMasks (const Orientation& face) const;
+    const MaskTuple& bndryMasks (int igrid) const;
     //
     // return number of components for which this object is intended
     //
@@ -184,12 +189,11 @@ protected:
     //
     std::map< int, Array< Array<BoundCond> > > bcond;
 
-
     std::map<int,RealTuple> bcloc;
     //
-    // Array (on orientation) of boundary condition mask arrays (FAB-like)
+    // Map boundary condition mask arrays (FAB-like).
     //
-    PArray<Mask> masks[2*BL_SPACEDIM];
+    std::map<int,MaskTuple> masks;
     //
     // Domain used for mask definitions.
     //
@@ -211,13 +215,6 @@ const FabSet&
 BndryData::bndryValues (const Orientation& _face) const
 {
     return bndry[_face];
-}
-
-inline
-const PArray<Mask>&
-BndryData::bndryMasks (const Orientation& _face) const
-{
-    return masks[_face];
 }
 
 inline
@@ -256,7 +253,7 @@ BndryData::setMaskValue (const Orientation& _face,
                          int                _n,
                          int                _val)
 {
-    masks[_face][_n].setVal(_val);
+    masks[_n][_face]->setVal(_val);
 }
 
 inline
