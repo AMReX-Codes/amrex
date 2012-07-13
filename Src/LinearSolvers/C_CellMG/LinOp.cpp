@@ -156,18 +156,19 @@ LinOp::initConstruct (const Real* _h)
          bndryfsi.isValid();
          ++bndryfsi)
     {
-        const int  i   = bndryfsi.index();
-        MaskTuple& ma  =  maskvals[level][i];
-        MaskTuple& lma = lmaskvals[level][i];
+        const int        i   = bndryfsi.index();
+        MaskTuple&       ma  =  maskvals[level][i];
+        MaskTuple&       lma = lmaskvals[level][i];
+        const MaskTuple& bdm = bgb.bndryMasks(i);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
             const Orientation face = oitr();
-            const PArray<Mask>& pam = bgb.bndryMasks(face);
-             ma[face] = new Mask(pam[i].box(),1);
-            lma[face] = new Mask(pam[i].box(),1);
-             ma[face]->copy(pam[i]);
-            lma[face]->copy(pam[i]);
+            const Mask*       m    = bdm[face];
+             ma[face] = new Mask(m->box(),1);
+            lma[face] = new Mask(m->box(),1);
+             ma[face]->copy(*m);
+            lma[face]->copy(*m);
         }
     }
 }
@@ -234,13 +235,11 @@ LinOp::applyBC (MultiFab&      inout,
     {
         const int gn = inout.IndexMap()[i];
 
-        const MaskTuple&  ma =  maskvals[level][gn];
-        const MaskTuple& lma = lmaskvals[level][gn];
-
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
-        const BndryData::RealTuple& bdl = bgb.bndryLocs(gn);
-
+        const MaskTuple&                 ma  =  maskvals[level][gn];
+        const MaskTuple&                 lma = lmaskvals[level][gn];
+        const BndryData::RealTuple&      bdl = bgb.bndryLocs(gn);
         const Array< Array<BoundCond> >& bdc = bgb.bndryConds(gn);
 
         for (OrientationIter oitr; oitr; ++oitr)
@@ -383,13 +382,14 @@ LinOp::prepareForLevel (int level)
          bndryfsi.isValid();
          ++bndryfsi)
     {
-        const int gn = bndryfsi.index();
+        const int   gn = bndryfsi.index();
         MaskTuple&  ma =  maskvals[level][gn];
         MaskTuple& lma = lmaskvals[level][gn];
+
         for (OrientationIter oitr; oitr; ++oitr)
         {
             const Orientation face = oitr();
-            const Box bx_k = BoxLib::adjCell(gbox[level][gn], face, 1);
+            const Box         bx_k = BoxLib::adjCell(gbox[level][gn], face, 1);
              ma[face] = new Mask(bx_k,1);
             lma[face] = new Mask(bx_k,1);
             Mask&  curmask = *( ma[face]);
