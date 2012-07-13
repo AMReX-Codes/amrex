@@ -165,46 +165,6 @@ FluxRegister::copyTo (FArrayBox& flx,
     hifabs.copyTo(flx,src_comp,dest_comp,num_comp);
 }
 
-FluxRegister::Rec::Rec (Orientation face,
-                        int         index)
-    :
-    m_idx(index),
-    m_face(face),
-    m_shifted(false) {}
-
-FluxRegister::Rec::Rec (Orientation    face,
-                        int            index,
-                        const IntVect& shift)
-    :
-    m_shift(shift),
-    m_idx(index),
-    m_face(face),
-    m_shifted(false) {}
-
-FluxRegister::Rec::Rec (int         fabidx,
-                        int         index,
-                        Orientation face,
-                        FillBoxId   fbid)
-    :
-    m_fabidx(fabidx),
-    m_idx(index),
-    m_face(face),
-    m_fbid(fbid),
-    m_shifted(false) {}
-
-FluxRegister::Rec::Rec (const IntVect& shift,
-                        int            fabidx,
-                        int            index,
-                        Orientation    face,
-                        FillBoxId      fbid)
-    :
-    m_shift(shift),
-    m_fabidx(fabidx),
-    m_idx(index),
-    m_face(face),
-    m_fbid(fbid),
-    m_shifted(true) {}
-
 void
 FluxRegister::Reflux (MultiFab&       S,
                       const MultiFab& volume,
