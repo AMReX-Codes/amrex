@@ -94,8 +94,12 @@ class suiteObj:
         self.compareToolDir = ""
         self.helmeosDir = ""
 
-        self.useAstroDev = 0
-        self.astroDevDir = ""
+        self.useExtSrc = 0
+        self.extSrcDir = ""
+        self.extSrcCompString = ""
+
+        self.srcName = ""
+        self.extSrcName = ""
 
         self.MPIcommand = ""
         self.MPIhost = ""
@@ -215,9 +219,12 @@ def LoadParams(file):
         elif (opt == "helmeosDir"):
             mysuite.helmeosDir = checkTestDir(value)
 
-        elif (opt == "AstroDevDir"):
-            mysuite.astroDevDir = checkTestDir(value)
-            mysuite.useAstroDev = 1
+        elif (opt == "extSrcDir"):
+            mysuite.extSrcDir = checkTestDir(value)
+            mysuite.useExtSrc = 1
+
+        elif (opt == "extSrcCompString"):
+            mysuite.extSrcCompString = value
 
         elif (opt == "MPIcommand"):
             mysuite.MPIcommand = value
@@ -257,6 +264,16 @@ def LoadParams(file):
 
         else:
             warning("WARNING: suite parameter %s not valid" % (opt))
+
+
+    mysuite.srcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
+
+    if mysuite.useExtSrc:
+
+        mysuite.extSrcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
+
+        if mysuite.extSrcCompString != "":
+            mysuite.extSrcCompString += "="+mysuite.extSrcDir
 
 
     # BoxLib-only tests don't have a sourceDir and don't need helmEOS
@@ -635,6 +652,7 @@ def doGITUpdate(topDir, root, outDir, githash):
 
    os.chdir(topDir)
 
+
    # find out current branch so that we can go back later if we need.
    prog = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
    p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
@@ -642,6 +660,7 @@ def doGITUpdate(topDir, root, outDir, githash):
    stdout0, stderr0 = p0.communicate()
    currentBranch = stdout0.rstrip('\n')
    p0.stdout.close()
+
 
    if currentBranch == "HEAD":  # detached state without a branch
        subprocess.call(["git", "checkout", "master"])
@@ -692,17 +711,20 @@ def doGITUpdate(topDir, root, outDir, githash):
         
    shutil.copy("git.%s.out" % (root),  outDir)
 
+   return currentBranch
 
-   # store HEAD
+
+#==============================================================================
+def saveGITHEAD(topDir, root, outDir):
+
+   os.chdir(topDir)
+
    print "\n"
    bold("saving git HEAD for %s/" % (root))
 
    systemCall("git rev-parse HEAD >& git.%s.HEAD" % (root) )
 
    shutil.copy("git.%s.HEAD" % (root),  outDir)
-
-
-   return currentBranch
 
 
 #==============================================================================
@@ -778,12 +800,12 @@ def testSuite(argv):
 
     usage = """
     ./test.py [--make_benchmarks comment,
-               --no_update,
-               --no_boxlib_update,
+               --no_update  none or all or List_Of_Codes_Excluded_From_Update,
                --single_test test,
-               --use_old_version
+               --do_temp_run
                --boxLibGitHash boxlibhash
                --sourceGitHash sourcehash
+               --extSrcGitHash extsourcehash
                --note note]
         testfile.ini
 
@@ -996,25 +1018,24 @@ def testSuite(argv):
           future reference.
 
        --no_update
-          skip the git updates and run the suite on the code as it
-          exists now.
-
-       --no_boxlib_update
-          skip only the BoxLib git update and run the suite with the
-          BoxLib code as it exists now.
+          None or All or a list of codes seperated by "," to be excluded
+          from update. Default is None.
 
        --single_test mytest
           run only the test named mytest
 
-       --use_old_version
-          Run old versions specified by boxLibGitHash and sourceGitHash.
-          This useful for finding out which commit broke regression
-          testing.
+       --do_temp_run
+          Temporary run without updating the web.
 
        --boxLibGitHash boxlibhash
-          Git hash of a version of BoxLib.
+          Git hash of a version of BoxLib.  If provided, this version
+          will be used to run tests.
 
-       --boxLibGitHash boxlibhash
+       --sourceGitHash sourcehash
+          Git hash of a version of the source code.  For BoxLib tests,
+          this will be ignored.
+
+       --extSrcGitHash extsourcehash
           Git hash of a version of the source code.  For BoxLib tests,
           this will be ignored.
 
@@ -1046,12 +1067,12 @@ def testSuite(argv):
     try:
         opts, next = getopt.getopt(argv[1:], "",
                                    ["make_benchmarks=",
-                                    "no_update",
-                                    "no_boxlib_update",
+                                    "no_update=",
                                     "single_test=",
-                                    "use_old_version",
+                                    "do_temp_run",
                                     "boxLibGitHash=",
                                     "sourceGitHash=",
+                                    "extSrcGitHash=",
                                     "note="])
 
     except getopt.GetoptError:
@@ -1062,13 +1083,13 @@ def testSuite(argv):
 
     # defaults
     make_benchmarks = 0
-    no_update = 0
-    no_boxlib_update = 0
+    no_update = "None"
     single_test = ""
     comment = ""
-    use_old_version = 0
+    do_temp_run = False
     boxLibGitHash = ""
     sourceGitHash = ""
+    extSrcGitHash = ""
     note = ""
     
     for o, a in opts:
@@ -1078,22 +1099,22 @@ def testSuite(argv):
             comment = a
 
         if o == "--no_update":
-            no_update = 1
-
-        if o == "--no_boxlib_update":
-            no_boxlib_update = 1
+            no_update = a
 
         if o == "--single_test":
             single_test = a
 
-        if o == "--use_old_version":
-            use_old_version = 1
+        if o == "--do_temp_run":
+            do_temp_run = True
 
         if o == "--boxLibGitHash":
             boxLibGitHash = a
             
         if o == "--sourceGitHash":
             sourceGitHash = a
+
+        if o == "--extSrcGitHash":
+            extSrcGitHash = a
 
         if o == "--note":
             note = a
@@ -1106,7 +1127,6 @@ def testSuite(argv):
         print usage
         sys.exit(2)
 
-        
     #--------------------------------------------------------------------------
     # read in the test information
     #--------------------------------------------------------------------------
@@ -1117,17 +1137,48 @@ def testSuite(argv):
     if (len(testList) == 0):
         fail("No valid tests defined")
 
-
-    if use_old_version == 1:
-        no_update = 1
-        no_boxlib_update = 1
-        if suite.sourceTree == "BoxLib":
-            if boxLibGitHash == "":
-                fail("When --use_old_version, one must provide boxLibGitHash")
+    no_update_low = no_update.lower()
+    if no_update_low == "none":
+        updateBoxLib = True
+        updateSource = True
+        updateExtSrc = True
+    elif no_update_low == "all":
+        updateBoxLib = False
+        updateSource = False
+        updateExtSrc = False
+    else:
+        nouplist = no_update_low.split(",")
+        if "boxlib" in nouplist:
+            updateBoxLib = False
         else:
-            if boxLibGitHash == "" or sourceGitHash == "":
-                fail("When --use_old_version, one must provide boxLibGitHash and sourceGitHash")
+            updateBoxLib = True
 
+        if suite.srcName.lower() in nouplist:
+            updateSource = False
+        else:
+            updateSource = True
+
+        if suite.extSrcName.lower() in nouplist:
+            updateExtSrc = False
+        else:
+            updateExtSrc = True
+
+    if not suite.useExtSrc:
+        updateExtSrc = False
+    
+    if suite.sourceTree == "BoxLib":
+        updateSource = False # to avoid updating BoxLib twice.
+                             # The update of BoxLib is controlled by updateBoxLib
+        sourceGitHash = ""
+
+    if boxLibGitHash:
+        updateBoxLib = False 
+
+    if sourceGitHash:
+        updateSource = False 
+
+    if extSrcGitHash:
+        updateExtSrc = False 
 
     # store the full path to the testFile
     testFilePath = os.getcwd() + '/' + testFile
@@ -1185,8 +1236,8 @@ def testSuite(argv):
         
     fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
 
-    if use_old_version:
-        testDir = "OLD-"+today + "/"
+    if do_temp_run:
+        testDir = "TEMP_RUN/"
         fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
         systemCall("rm -rf %s" % (fullTestDir))
     else:
@@ -1200,12 +1251,11 @@ def testSuite(argv):
     bold("testing directory is: " + testDir)
     os.mkdir(fullTestDir)
 
-
     # make the web directory -- this is where all the output and HTML will be
     # put, so it is easy to move the entire test website to a different disk
     fullWebDir = "%s/%s/"  % (suite.webTopDir, testDir)
 
-    if use_old_version:
+    if do_temp_run:
         systemCall("rm -rf %s" % (fullWebDir))
         
     os.mkdir(fullWebDir)
@@ -1222,47 +1272,53 @@ def testSuite(argv):
 
     os.chdir(suite.testTopDir)
 
-    # suite.suiteName could have a different name
-    srcName = os.path.basename(os.path.normpath(suite.sourceDir))
-
-    if (not no_update) or use_old_version:
+    if updateSource or sourceGitHash:
 
         # main suite
-        sourceGitBranch = doGITUpdate(suite.sourceDir, srcName, fullWebDir,
+        sourceGitBranch = doGITUpdate(suite.sourceDir, suite.srcName, fullWebDir,
                                       sourceGitHash)
     
-    if (not no_update):
-    #  if (not no_extsrc_update) or use_old_version==1:
-    # w.z. CCSE's LMC code depends on BoxLib and IAMR.  This is similar to
-    # to the situation of codes using AstrDev.  So we might want to make this
-    # not specfic for AstroDev by introducing soemthing called "useExtSrc" and
-    # "exSrcDir".
-    
-        # AstroDev
-        if (suite.useAstroDev):
-            extSrcGitBranch = doGITUpdate(suite.astroDevDir, "AstroDev", fullWebDir,
-                                          "")
+    if updateExtSrc or extSrcGitHash:
 
-    if ((not no_boxlib_update) and suite.sourceTree != "BoxLib") or use_old_version:
+        # extra source
+        if (suite.useExtSrc):
+            extSrcGitBranch = doGITUpdate(suite.extSrcDir, suite.extSrcName, fullWebDir,
+                                          extSrcGitHash)
+
+    if updateBoxLib or boxLibGitHash:
+
         # BoxLib
         boxLibGitBranch = doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir,
                                       boxLibGitHash)
+
+    #--------------------------------------------------------------------------
+    # Save git HEADs
+    #--------------------------------------------------------------------------
+    saveGITHEAD(suite.boxLibDir, "BoxLib", fullWebDir)
+    
+    if suite.sourceTree != "BoxLib":
+        saveGITHEAD(suite.sourceDir, suite.srcName, fullWebDir)
+
+    if suite.useExtSrc:
+        saveGITHEAD(suite.extSrcDir, suite.extSrcName, fullWebDir)
 
 
     #--------------------------------------------------------------------------
     # generate the ChangeLogs
     #--------------------------------------------------------------------------
-    if (not no_update):
+    if updateSource:
 
-       # main suite 
-       makeGITChangeLog(suite.sourceDir, srcName, fullWebDir)
-    
-       # AstroDev
-       if (suite.useAstroDev):
-           makeGITChangeLog(suite.astroDevDir, "AstroDev", fullWebDir)
+        # main suite
+        makeGITChangeLog(suite.sourceDir, srcName, fullWebDir)
+        
+    if updateExtSrc:
 
+        # extra source
+        if (suite.useExtSrc):
+            makeGITChangeLog(suite.extSrcDir, extSrcName, fullWebDir)
 
-    if ((not no_boxlib_update) and suite.sourceTree != "BoxLib"):
+    if updateBoxLib:
+
         # BoxLib
         makeGITChangeLog(suite.boxLibDir, "BoxLib", fullWebDir)
 
@@ -1288,20 +1344,32 @@ def testSuite(argv):
 
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
 
-    print "\n"
-    bold("building the visualization tools...")
 
-    compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
-    print "  " + compString
-    systemCall(compString)
-    vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
-    
-    compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
-    print "  " + compString
-    systemCall(compString)
-    vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
+    anyDoVis = {'2D':0, '3D':0}
+    for test in testList:
+        if test.doVis:
+            if test.dim == 2:
+                anyDoVis['2D'] += 1
+            elif test.dim == 3:
+                anyDoVis['3D'] += 1
+
+    if anyDoVis['2D'] or anyDoVis['3D']:
+        print "\n"
+        bold("building the visualization tools...")
+
+        if anyDoVis['2D']:
+            compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
+                         (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
+            print "  " + compString
+            systemCall(compString)
+            vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
+
+        if anyDoVis['3D']:
+            compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % \
+                         (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
+            print "  " + compString
+            systemCall(compString)
+            vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
     
 
     #--------------------------------------------------------------------------
@@ -1326,8 +1394,8 @@ def testSuite(argv):
         print "  %s" % (dir)
         os.chdir(suite.sourceDir + dir)
 
-        systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
-                   (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
+        systemCall("%s BOXLIB_HOME=%s %s realclean >& /dev/null" % 
+                   (suite.MAKE, suite.boxLibDir, suite.extSrcCompString))
 
             
     os.chdir(suite.testTopDir)
@@ -1379,8 +1447,8 @@ def testSuite(argv):
             # build options, make clean again to be safe
             print "  re-making clean..."
 
-            systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
-                       (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
+            systemCall("%s BOXLIB_HOME=%s %s realclean >& /dev/null" % 
+                       (suite.MAKE, suite.boxLibDir, suite.extSrcCompString))
 
         
         print "  building..."
@@ -1389,29 +1457,29 @@ def testSuite(argv):
 
 	    if (test.useMPI and test.useOMP):
 	       executable = "%s%dd.MPI.OMP.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=TRUE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=TRUE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)            
 
             elif (test.useMPI):
 	       executable = "%s%dd.MPI.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=TRUE USE_OMP=FALSE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=TRUE USE_OMP=FALSE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 
             elif (test.useOMP):
 	       executable = "%s%dd.OMP.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=FALSE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=FALSE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 
             else:
 	       executable = "%s%dd.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 	       
@@ -1419,27 +1487,27 @@ def testSuite(argv):
         elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
 
             if (test.useMPI and test.useOMP):
-                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI=t OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI=t OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
             elif (test.useMPI):
-                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI=t OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI=t OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
             elif (test.useOMP):
-                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI= OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI= OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
 
             else:
-                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI= OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI= OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
@@ -1967,7 +2035,6 @@ def testSuite(argv):
             print "  creating problem test report ..."
             reportSingleTest(suite, test, compString, testRunCommand, testDir, fullWebDir)
 
-
         
     #--------------------------------------------------------------------------
     # write the report for this instance of the test suite
@@ -1975,7 +2042,8 @@ def testSuite(argv):
     print "\n"
     bold("creating new test report...")
     numFailed = reportThisTestRun(suite, make_benchmarks, comment, note, 
-                                  updateTime, no_update, no_boxlib_update,
+                                  updateTime,  updateBoxLib,
+                                  updateSource, updateExtSrc,
                                   testList, testDir, testFile, fullWebDir)
 
 
@@ -1986,15 +2054,19 @@ def testSuite(argv):
        if (os.path.isfile(currentFile)):
           os.chmod(currentFile, 0644)
           
+    if boxLibGitHash:
+        doGITback(suite.boxLibDir, "BoxLib", boxLibGitBranch)
 
+    if sourceGitHash:
+        doGITback(suite.sourceDir, suite.srcName, sourceGitBranch)
+
+    if extSrcGitHash:
+        doGITback(suite.extSrcDir, suite.extSrcName, extSrcGitHash)
+            
     #--------------------------------------------------------------------------
-    # For --use_old_version, back to original git states, then return
+    # For temporary run, return now without creating suote report.
     #--------------------------------------------------------------------------
-    if use_old_version:
-        doGITback(suite.sourceDir, srcName, sourceGitBranch)
-        if suite.sourceTree != "BoxLib":
-            doGITback(suite.boxLibDir, "BoxLib", boxLibGitBranch)
-        ## w.z. todo AstroDev
+    if do_temp_run:
         return numFailed
 
 
@@ -2267,7 +2339,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
     newHead = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
-    newHead = newHead.replace("@TESTDIR@", testDir)
+    newHead = newHead.replace("@TESTDIR@", os.path.normpath(testDir))
     newHead = newHead.replace("@TESTNAME@", test.name)
 
     hf.write(newHead)
@@ -2439,8 +2511,9 @@ def reportTestFailure(message, test, testDir, fullWebDir, compString=None):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime, no_update,
-                      no_boxlib_update, testList, testDir, testFile, fullWebDir):
+def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
+                      updateBoxLib, updateSource, updateExtSrc,
+                      testList, testDir, testFile, fullWebDir):
     """ generate the master page for a single run of the test suite """
     
     # get the current directory
@@ -2486,20 +2559,21 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime, no_upda
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (testFile, testFile) )
 
-    if (not no_update or not no_boxlib_update):
+    if updateBoxLib or updateSource or updateExtSrc:
         hf.write("<p>&nbsp;\n")
         hf.write("<p><b>Git update was done at: </b>%s\n" % (updateTime) )
 
-        if (not no_update):
+        if updateSource:
             hf.write("<p>&nbsp;&nbsp;<b>%s ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
                      (suite.suiteName, "ChangeLog."+suite.suiteName, "ChangeLog."+suite.suiteName) )        
-        if (not no_boxlib_update and suite.sourceTree != "BoxLib"):
+
+        if updateBoxLib:
             hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
                      ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
 
-        if (suite.useAstroDev and not no_update):
-            hf.write("<p>&nbsp;&nbsp;<b>AstroDev/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                     ("ChangeLog.AstroDev", "ChangeLog.AstroDev") )        
+        if updateExtSrc:
+            hf.write("<p>&nbsp;&nbsp;<b>%s/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                     (suite.extSrcName, "ChangeLog."+suite.extSrcName, "ChangeLog."+suite.extSrcName) )        
     else:
         hf.write("<p>No git update done\n")
 
@@ -2740,7 +2814,7 @@ def reportAllRuns(suite, webTopDir, tableHeight=16):
             if (status == 1):
                 hf.write("<TD ALIGN=CENTER class=\"passed\"><H3><a href=\"%s/%s.html\" class=\"passed\">:)</a></H3></TD>\n" % (dir, test))
             elif (status == -1):
-                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3><a href=\"%s/%s.html\" class=\"failed\">!</a></H3></TD>\n" % (dir, test))
+                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3><a href=\"%s/%s.html\" class=\"failed\">&nbsp;!&nbsp;</a></H3></TD>\n" % (dir, test))
             elif (status == 10):
                 hf.write("<TD ALIGN=CENTER class=\"benchmade\"><H3>U</H3></TD>\n")
             else:
