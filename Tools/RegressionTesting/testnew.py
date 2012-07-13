@@ -1309,13 +1309,13 @@ def testSuite(argv):
     if updateSource:
 
         # main suite
-        makeGITChangeLog(suite.sourceDir, srcName, fullWebDir)
+        makeGITChangeLog(suite.sourceDir, suite.srcName, fullWebDir)
         
     if updateExtSrc:
 
         # extra source
         if (suite.useExtSrc):
-            makeGITChangeLog(suite.extSrcDir, extSrcName, fullWebDir)
+            makeGITChangeLog(suite.extSrcDir, suite.extSrcName, fullWebDir)
 
     if updateBoxLib:
 
