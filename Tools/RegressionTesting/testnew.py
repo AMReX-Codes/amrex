@@ -270,7 +270,7 @@ def LoadParams(file):
 
     if mysuite.useExtSrc:
 
-        mysuite.extSrcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
+        mysuite.extSrcName = os.path.basename(os.path.normpath(mysuite.extSrcDir))
 
         if mysuite.extSrcCompString != "":
             mysuite.extSrcCompString += "="+mysuite.extSrcDir
