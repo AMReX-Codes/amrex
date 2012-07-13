@@ -25,6 +25,31 @@ BndryData::BndryData (const BoxArray& _grids,
     define(_grids,_ncomp,_geom);
 }
 
+void
+BndryData::setMaskValue (Orientation _face,
+                         int         _n,
+                         int         _val)
+{
+    masks[_n][_face]->setVal(_val);
+}
+
+void
+BndryData::setBoundCond (Orientation     _face,
+                         int              _n,
+                         int              _comp,
+                         const BoundCond& _bcn)
+{
+    bcond[_n][_face][_comp] = _bcn;
+}
+
+void
+BndryData::setBoundLoc (Orientation _face,
+                        int         _n,
+                        Real        _val)
+{
+    bcloc[_n][_face] = _val;
+}
+
 const Array< Array<BoundCond> >&
 BndryData::bndryConds (int igrid) const
 {
