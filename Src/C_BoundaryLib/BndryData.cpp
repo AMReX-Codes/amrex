@@ -41,35 +41,44 @@ BndryData::bndryLocs (int igrid) const
     return it->second;
 }
 
+const BndryData::MaskTuple&
+BndryData::bndryMasks (int igrid) const
+{
+    std::map<int,MaskTuple>::const_iterator it = masks.find(igrid);
+    BL_ASSERT(it != masks.end());
+    return it->second;
+}
+
 void
 BndryData::init (const BndryData& src)
 {
-    //
-    // Got to save the geometric info.
-    //
     geom    = src.geom;
     m_ncomp = src.m_ncomp;
+    bcloc   = src.bcloc;
+    bcond   = src.bcond;
     //
-    // Redefine grids and bndry array.
+    // Define "masks".
     //
-    const int ngrd  = grids.size();
-
-    bcloc = src.bcloc;
-    bcond = src.bcond;
-
-    for (OrientationIter fi; fi; ++fi)
+    // We note that all orientations of the FabSets have the same distribution.
+    // We'll use the low 0 side as the model.
+    //
+    for (FabSetIter bfsi(bndry[Orientation(0,Orientation::low)]);
+         bfsi.isValid();
+         ++bfsi)
     {
-        const Orientation face = fi();
+        std::map<int,MaskTuple>::const_iterator sit = src.masks.find(bfsi.index());
 
-        masks[face].resize(ngrd);
+        BL_ASSERT(sit != src.masks.end());
 
-        for (FabSetIter bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
+        MaskTuple&       dmask = masks[bfsi.index()];
+        const MaskTuple& smask = sit->second;
+
+        for (OrientationIter fi; fi; ++fi)
         {
-            const int grd        = bfsi.index();
-            const Mask& src_mask = src.masks[face][grd];
-            Mask* m = new Mask(src_mask.box(),src_mask.nComp());
-            m->copy(src_mask);
-            masks[face].set(grd,m);
+            const Mask* src_mask = smask[fi()];
+            Mask* m = new Mask(src_mask->box(),src_mask->nComp());
+            m->copy(*src_mask);
+            dmask[fi()] = m;
         }
     }
 }
@@ -105,17 +114,13 @@ BndryData::~BndryData ()
 void
 BndryData::clear_masks ()
 {
-    for (OrientationIter oitr; oitr; oitr++)
+    for (std::map<int,MaskTuple>::iterator it = masks.begin(), End = masks.end();
+         it != End;
+         ++it)
     {
-        const Orientation face = oitr();
-
-        for (int k = 0, N = masks[face].size(); k < N; k++)
-        {
-            if (masks[face].defined(k))
-            {
-                delete masks[face].remove(k);
-            }
-        }
+        MaskTuple& m = it->second;
+        for (int i = 0; i < 2*BL_SPACEDIM; i++)
+            delete m[i];
     }
 }
 
@@ -124,15 +129,10 @@ BndryData::define (const BoxArray& _grids,
                    int             _ncomp,
                    const Geometry& _geom)
 {
+    geom    = _geom;
     m_ncomp = _ncomp;
 
-    geom = _geom;
-
     BndryRegister::setBoxes(_grids);
-
-    const int ngrd = grids.size();
-
-    BL_ASSERT(ngrd > 0);
 
     Array<IntVect> pshifts(27);
 
@@ -140,10 +140,8 @@ BndryData::define (const BoxArray& _grids,
 
     for (OrientationIter fi; fi; ++fi)
     {
-        const Orientation face      = fi();
-        const int         coord_dir = face.coordDir();
-
-        masks[face].resize(ngrd);
+        const Orientation face = fi();
+        const int         cdir = face.coordDir();
 
         BndryRegister::define(face,IndexType::TheCellType(),0,1,0,_ncomp);
         //
@@ -158,10 +156,9 @@ BndryData::define (const BoxArray& _grids,
             // Extend box in directions orthogonal to face normal.
             //
             for (int dir = 0; dir < BL_SPACEDIM; dir++)
-            {
-                if (dir == coord_dir) continue;
-                face_box.grow(dir,NTangHalfWidth);
-            }
+                if (dir != cdir)
+                    face_box.grow(dir,NTangHalfWidth);
+
             Mask* m = new Mask(face_box);
             m->setVal(outside_domain,0);
             const Box dbox = geom.Domain() & face_box;
@@ -181,16 +178,14 @@ BndryData::define (const BoxArray& _grids,
                     m->shift(-pshifts[iiv]);
                 }
             }
-            masks[face].set(igrid,m);
+            masks[igrid][face] = m;
             //
             // Turn mask off on intersection with grids at this level.
             //
             grids.intersections(face_box,isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
-            {
                 m->setVal(covered, isects[ii].second, 0);
-            }
             //
             // Handle special cases if is periodic.
             //
@@ -223,9 +218,7 @@ BndryData::define (const BoxArray& _grids,
          ++bfsi)
     {
         Array< Array<BoundCond> >& abc = bcond[bfsi.index()];
-
         abc.resize(2*BL_SPACEDIM);
-
         for (OrientationIter fi; fi; ++fi)
             abc[fi()].resize(_ncomp);
     }
@@ -250,6 +243,8 @@ operator<< (std::ostream&    os,
 
         const Array< Array<BoundCond> > & bcs = bd.bndryConds(grd);
 
+        const BndryData::MaskTuple& msk = bd.bndryMasks(grd);
+
         for (OrientationIter face; face; ++face)
         {
             const Orientation f = face();
@@ -261,7 +256,7 @@ operator<< (std::ostream&    os,
             for (int i = 0; i < ncomp; ++i)
                 os << bc[i] << ' ';
             os << " LOC = " << bdl[f] << '\n';
-            os << bd.masks[f][grd];
+            os << msk[f];
             os << bd.bndry[f][grd];
         }
         os << "------------------------------------------------" << '\n';
@@ -276,8 +271,8 @@ BndryData::writeOn (std::ostream& os) const
     if (ParallelDescriptor::NProcs() != 1)
 	BoxLib::Abort("BndryData::writeOn(): not implemented in parallel");
 
-    int ngrds = grids.size();
-    int ncomp = nComp();
+    const int ngrds = grids.size();
+    const int ncomp = nComp();
 
     os << ngrds << " " << ncomp << '\n';
 
@@ -308,13 +303,17 @@ BndryData::writeOn (std::ostream& os) const
         }
     }
 
+    std::map<int,MaskTuple>::const_iterator it;
+
     for (OrientationIter face; face; ++face)
     {
-        Orientation f = face();
+        const Orientation f = face();
 
         for (int grd = 0; grd < ngrds; grd++)
         {
-            masks[f][grd].writeOn(os);
+            it = masks.find(ngrds);
+            BL_ASSERT(it != masks.end());
+            it->second[f]->writeOn(os);
             bndry[f][grd].writeOn(os);
         }
     }
@@ -361,13 +360,17 @@ BndryData::readFrom (std::istream& is)
         }
     }
 
+    std::map<int,MaskTuple>::const_iterator it;
+
     for (OrientationIter face; face; ++face)
     {
-        Orientation f = face();
+        const Orientation f = face();
 
         for (int grd = 0; grd < tmpNgrids; grd++)
         {
-            masks[f][grd].readFrom(is);
+            it = masks.find(tmpNgrids);
+            BL_ASSERT(it != masks.end());
+            it->second[f]->readFrom(is);
             bndry[f][grd].readFrom(is);
         }
     }
