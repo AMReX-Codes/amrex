@@ -14,9 +14,9 @@ class BCRec
 {
 public:
     //
-    // The default constructor -- sets to invalid boundary types.
+    // The default constructor. Does NOT set valid boundary types.
     //
-    BCRec ();
+    BCRec () {}
     //
     // The constructor.
     //

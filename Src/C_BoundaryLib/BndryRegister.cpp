@@ -67,12 +67,12 @@ BndryRegister::operator= (const BndryRegister& src)
 }
 
 void
-BndryRegister::define (const Orientation& _face,
-                       const IndexType&   _typ,
-                       int                _in_rad,
-                       int                _out_rad,
-                       int                _extent_rad,
-                       int                _ncomp)
+BndryRegister::define (Orientation _face,
+                       IndexType   _typ,
+                       int         _in_rad,
+                       int         _out_rad,
+                       int         _extent_rad,
+                       int         _ncomp)
 {
     BL_ASSERT(grids.size() > 0);
 
@@ -149,8 +149,8 @@ BndryRegister::define (const Orientation& _face,
 }
 
 void
-BndryRegister::define (const Orientation&         _face,
-                       const IndexType&           _typ,
+BndryRegister::define (Orientation                _face,
+                       IndexType                  _typ,
                        int                        _in_rad,
                        int                        _out_rad,
                        int                        _extent_rad,

@@ -5,6 +5,7 @@
 #include <vector>
 #include <cmath>
 #include <climits>
+#include <deque>
 
 #include <TagBox.H>
 #include <Geometry.H>
@@ -345,7 +346,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
     const Box&     domain = geom.Domain();
     Array<IntVect> pshifts(27);
 
-    std::list< std::pair<FillBoxId,IntVect> > IDs;
+    std::deque< std::pair<FillBoxId,IntVect> > IDs;
 
     for (int i = 0, N = boxarray.size(); i < N; i++)
     {
@@ -397,7 +398,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     TagBox src;
 
-    for (std::list< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(), End = IDs.end();
+    for (std::deque< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(), End = IDs.end();
          it != End;
          ++it)
     {
@@ -464,8 +465,14 @@ TagBoxArray::collate (long& numtags) const
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
 #if BL_USE_MPI
-    Array<int> nmtags(ParallelDescriptor::NProcs(),0);
-    Array<int> offset(ParallelDescriptor::NProcs(),0);
+    Array<int> nmtags(1,0);
+    Array<int> offset(1,0);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+         nmtags.resize(ParallelDescriptor::NProcs(),0);
+         offset.resize(ParallelDescriptor::NProcs(),0);
+    }
     //
     // Tell root CPU how many tags each CPU will be sending.
     //
@@ -553,8 +560,6 @@ TagBoxArray::setVal (const BoxArray& ba,
                      TagBox::TagVal  val)
 {
     std::vector< std::pair<int,Box> > isects;
-
-    isects.reserve(27);
 
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {

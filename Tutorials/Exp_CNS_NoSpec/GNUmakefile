@@ -1,10 +1,10 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code
 # If you set BOXLIB_HOME as an environment variable, this line will be ignored
-BOXLIB_HOME ?= /path/to/BoxLib/
+BOXLIB_HOME ?= $(HOME)/Development/BoxLib/
 
 NDEBUG    := t
-MPI       :=
-OMP       :=
+MPI       := t
+OMP       := t
 PROF      :=
 COMP      := gfortran
 MKVERBOSE := t
@@ -16,6 +16,8 @@ VPATH_LOCATIONS += .
 
 include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
 VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
+
+#libraries += $(IPM)
 
 main.$(suf).exe: $(objects) 
 	$(LINK.f90) -o main.$(suf).exe $(objects) $(libraries)

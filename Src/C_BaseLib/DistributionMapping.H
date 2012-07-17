@@ -172,7 +172,7 @@ private:
     //
     // Least used ordering of CPUs (by # of bytes of FAB data).
     //
-    static Array<int> LeastUsedCPUs (int nprocs);
+    static void LeastUsedCPUs (int nprocs, Array<int>& result);
     //
     // Look for a cached processor map.
     //

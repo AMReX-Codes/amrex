@@ -69,11 +69,11 @@ public:
     //
     // Return const set of FABs bounding the domain grid boxes on a given orientation
     //
-    const FabSet& operator[] (const Orientation& face) const;
+    const FabSet& operator[] (Orientation face) const;
     //
     // Return set of FABs bounding the domain grid boxes on a given orientation
     //
-    FabSet& operator[] (const Orientation& face);
+    FabSet& operator[] (Orientation face);
     //
     // Set all boundary FABs to given value.
     //
@@ -117,17 +117,17 @@ public:
     //
     // Build FABs along given face.
     //
-    void define (const Orientation& face,
-                 const IndexType&   typ,
-                 int                in_rad,
-                 int                out_rad,
-                 int                extent_rad,
-                 int                ncomp);
+    void define (Orientation face,
+                 IndexType   typ,
+                 int         in_rad,
+                 int         out_rad,
+                 int         extent_rad,
+                 int         ncomp);
     //
     // Build FABs along given face, specifying the DistributionMapping.
     //
-    void define (const Orientation&         face,
-                 const IndexType&           typ,
+    void define (Orientation               face,
+                 IndexType                 typ,
                  int                        in_rad,
                  int                        out_rad,
                  int                        extent_rad,
@@ -178,14 +178,14 @@ BndryRegister::size () const
 
 inline
 const FabSet&
-BndryRegister::operator[] (const Orientation& _face) const
+BndryRegister::operator[] (Orientation _face) const
 {
     return bndry[_face];
 }
 
 inline
 FabSet&
-BndryRegister::operator[] (const Orientation& _face)
+BndryRegister::operator[] (Orientation _face)
 {
     return bndry[_face];
 }

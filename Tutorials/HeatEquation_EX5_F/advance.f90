@@ -85,13 +85,13 @@ contains
 
        do n=1,nlevs
 
-          ! set alpha=1, including ghost cells
-          call multifab_build(alpha(n),mla%la(n),1,1)
+          ! set alpha=1
+          call multifab_build(alpha(n),mla%la(n),1,0)
           call setval(alpha(n),1.d0,all=.true.)
 
-          ! set beta=dt, including ghost cells
+          ! set beta=dt
           do i=1,dm
-             call multifab_build_edge(beta(n,i),mla%la(n),1,1,i)
+             call multifab_build_edge(beta(n,i),mla%la(n),1,0,i)
              call setval(beta(n,i), dt, all=.true.)
           end do
 

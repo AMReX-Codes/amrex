@@ -15,6 +15,8 @@ class layout(base.BLObject):
   def create(self, boxarray=None, boxes=None):
     """Create a layout from a list of boxes."""
 
+    # XXX: pmask etc
+
     if boxarray is not None and boxes is not None:
       raise ValueError('both boxarray and boxes specified')
 

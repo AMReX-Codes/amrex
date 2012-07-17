@@ -47,6 +47,10 @@ public:
     //
     void setDtLevel (const Array<Real>& dt_lev);
     //
+    // Set the timestep at one level.
+    //
+    void setDtLevel (Real dt, int lev);
+    //
     // Set the dtmin on each level.
     //
     void setDtMin (const Array<Real>& dt_lev);
@@ -252,6 +256,10 @@ public:
     //
     void RegridOnly (Real time);
     //
+    // Should we regrid this level?
+    //
+    bool okToRegrid (int level);
+    //
     // Do a complete integration cycle.
     //
     virtual void coarseTimeStep (Real stop_time);
@@ -274,7 +282,20 @@ public:
     // How many datalogs have been opened
     //
     int NumDataLogs ();
-
+    
+    //
+    // Compute the optimal subcycling pattern.
+    // This assumes that anything less than cycle_max[i] is a valid
+    // number of subcycles at level[i]. For example 
+    // if ref_ratio[i] = cycle_max[i] = 4, then 1,2,3,4 are all valid 
+    // values for n_cycles[i]
+    //
+    static Real computeOptimalSubcycling(int n, 
+                                         int* best,
+                                         Real* dt_max, 
+                                         Real* est_work, 
+                                         int* cycle_max);
+                                         
 protected:
     //
     // Used by grid_places().

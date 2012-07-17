@@ -243,7 +243,7 @@ protected:
     //
     // Array (on level) of Tuples (on dimension) of grid spacings
     //
-    std::vector< Tuple< Real, BL_SPACEDIM > > h;
+    std::vector< Tuple<Real,BL_SPACEDIM> > h;
     //
     // Array (on level) of BoxArray's of LinOp's domain
     //
@@ -254,18 +254,20 @@ protected:
     //
     std::vector< LnClassPtr<BndryRegister> > undrrelxr;
     //
+    // A useful typedef.
+    //
+    typedef BndryData::MaskTuple MaskTuple;
+    //
     // Array (on level) of Arrays (on grid) of Arrays (on orientation)
     // of pointers to Masks for whether boundary Fabs are covered,
     // not_covered, outside_domain
     //
-    //  FIXME: This should really be an array of integer BndryRegisters
-    //
-    Array< Array< Array< Mask*> > > maskvals;
+    Array< std::map<int,MaskTuple> > maskvals;
     //
     // Similar to maskvals, but only for "local" grids at level 0.
     // It's only made if it's needed.  Currently used only in applyBC().
     //
-    Array< Array< Array< Mask*> > > lmaskvals;
+    Array< std::map<int,MaskTuple> > lmaskvals;
     //
     // boundary data class
     //

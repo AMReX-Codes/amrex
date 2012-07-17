@@ -3,9 +3,9 @@
 __all__ = [ 'fab' ]
 
 from ctypes import *
+from pybl import bl
 
 import libpycboxlib as cbl
-from pybl import bl
 
 
 class fab(object):
@@ -34,12 +34,12 @@ class fab(object):
 
   def __init__(self, mfab, nbox):
 
-    self.mfab = mfab
-    self.nbox = nbox
-    self.dim = c_int(0)
-    self.nc = c_int(0)
-    self.bx_lo = (3*c_int)()
-    self.bx_hi = (3*c_int)()
+    self.mfab   = mfab
+    self.nbox   = nbox
+    self.dim    = c_int(0)
+    self.nc     = c_int(0)
+    self.bx_lo  = (3*c_int)()
+    self.bx_hi  = (3*c_int)()
     self.pbx_lo = (3*c_int)()
     self.pbx_hi = (3*c_int)()
     self.ibx_lo = (3*c_int)()
@@ -47,9 +47,9 @@ class fab(object):
 
     assert 1 <= nbox <= mfab.nboxes
 
-    mftype = self.mfab.__class__.__name__
-    get_info = getattr(bl, 'pybl_get_' + mftype + '_fab_info')
-    get_array = getattr(cbl, mftype + '_array')
+    mftype    = self.mfab.__class__.__name__
+    get_info  = getattr(bl, 'pybl_get_' + mftype + '_fab_info')
+    get_array = getattr(cbl, mftype + '_as_numpy')
 
     get_info(self.mfab.cptr, nbox, byref(self.dim), byref(self.nc), 
              self.bx_lo, self.bx_hi, 
@@ -64,7 +64,6 @@ class fab(object):
     self.pbx = lohi(self.pbx_lo, self.pbx_hi)
 
     cptr = addressof(self.mfab.cptr)
-
     self.array = get_array(cptr, nbox).squeeze()
 
 

@@ -17,6 +17,59 @@ class FluxRegister
 {
 public:
     //
+    // Used internally when doing some parallel operations on FluxRegisters.
+    // SyncRegisters in IAMR also use'm.
+    //
+    struct Rec
+    {
+        Rec (Orientation face,
+             int         index)
+            :
+            m_idx(index),
+            m_face(face),
+            m_shifted(false) {}
+
+        Rec (Orientation    face,
+             int            index,
+             const IntVect& shift)
+            :
+            m_shift(shift),
+            m_idx(index),
+            m_face(face),
+            m_shifted(false) {}
+
+        Rec (int         fabidx,
+             int         index,
+             Orientation face,
+             FillBoxId   fbid)
+            :
+            m_fabidx(fabidx),
+            m_idx(index),
+            m_face(face),
+            m_fbid(fbid),
+            m_shifted(false) {}
+
+        Rec (const IntVect& shift,
+             int            fabidx,
+             int            index,
+             Orientation    face,
+             FillBoxId      fbid)
+            :
+            m_shift(shift),
+            m_fabidx(fabidx),
+            m_idx(index),
+            m_face(face),
+            m_fbid(fbid),
+            m_shifted(true) {}
+
+        IntVect     m_shift;
+        int         m_fabidx;
+        int         m_idx;
+        Orientation m_face;
+        FillBoxId   m_fbid;
+        bool        m_shifted;
+    };
+    //
     // The default constructor.
     //
     FluxRegister();
@@ -242,7 +295,6 @@ private:
     // Number of state components.
     //
     int ncomp;
-
 };
 
 #endif /*_FLUXREGISTER_H_*/
