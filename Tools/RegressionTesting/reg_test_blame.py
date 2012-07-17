@@ -197,15 +197,25 @@ def check_test_status(tobj, suite, webDirs):
 def buildGITCommits(topDir, heads):
     commits = []
     os.chdir(topDir)
-    prog = ["git", "log", heads[0]+'~..'+heads[1], '--format="%h|%cd|%cn|%ce|%ct"']
-    p = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                         stdout=subprocess.PIPE,
+
+    prog = ["git", "log", heads[0]+'..'+heads[1], '--format="%h|%cd|%cn|%ce|%ct"']
+    p = subprocess.Popen(prog, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT)
     stdout, stderr = p.communicate()
     for line in stdout.split('\n'):
         if line:
             words = line.strip('"').split('|')
             commits.append((words[0], words[1], words[2], words[3], int(words[4])))
+    
+    prog = ["git", "log", heads[0], '-n', '1', '--format="%h|%cd|%cn|%ce|%ct"']
+    p = subprocess.Popen(prog, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    for line in stdout.split('\n'):
+        if line:
+            words = line.strip('"').split('|')
+            commits.append((words[0], words[1], words[2], words[3], int(words[4])))
+
     return commits    
 
 def find_someone_to_blame(to2, suite, testFile, origdir):
