@@ -478,7 +478,7 @@ private:
     MultiFabCopyDescriptor     m_mfcd;
     Array< Array<MultiFabId> > m_mfid;     // [level][oldnew]
     Interpolater*              m_map;
-    BoxArray                   m_ba;
+    std::map<int,Box>          m_ba;
     Real                       m_time;
     int                        m_growsize;
     int                        m_index;
