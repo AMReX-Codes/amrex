@@ -338,3 +338,24 @@ c
       end do
 
       end
+
+      subroutine FORT_FASTINVERT (src,DIMS(src),imin,imax,val,ncomp)
+
+      implicit none
+
+      integer ncomp
+      integer imin,imax
+      integer DIMDEC(src)
+      REAL_T  src(DIMV(src),ncomp), val
+c
+c     Local variables.
+c
+      integer i,j
+
+      do j = 1,ncomp
+         do i = imin,imax
+            src(i,j) = val / src(i,j)
+         end do
+      end do
+
+      end

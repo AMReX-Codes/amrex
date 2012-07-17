@@ -32,39 +32,44 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
     // ALL BCLOC VALUES ARE NOW DEFINED AS A LENGTH IN PHYSICAL
     // DIMENSIONS *RELATIVE* TO THE FACE, NOT IN ABSOLUTE PHYSICAL SPACE
     //
-    const BoxArray& grids      = boxes();
-    const int ngrds            = grids.size();
-    const Real* dx             = geom.CellSize();
-    const Box& domain          = geom.Domain();
-
-    for (OrientationIter fi; fi; ++fi)
+    const BoxArray& grids  = boxes();
+    const Real*     dx     = geom.CellSize();
+    const Box&      domain = geom.Domain();
+    //
+    // We note that all orientations of the FabSets have the same distribution.
+    // We'll use the low 0 side as the model.
+    //
+    for (FabSetIter fsi(bndry[Orientation(0,Orientation::low)]); fsi.isValid(); ++fsi)
     {
-        Array<Real>& bloc                = bcloc[fi()];
-        Array< Array<BoundCond> >& bctag = bcond[fi()];
+        const int                  i     = fsi.index();
+        const Box&                 grd   = grids[i];
+        RealTuple&                 bloc  = bcloc[i];
+        Array< Array<BoundCond> >& bctag = bcond[i];
 
-        int dir    = fi().coordDir();
-        Real delta = dx[dir]*ratio[dir];
-        int p_bc   = (fi().isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
-
-        for (int i = 0; i < ngrds; i++)
+        for (OrientationIter fi; fi; ++fi)
         {
-            const Box& grd = grids[i];
+            const Orientation face  = fi();
+            const int         dir   = face.coordDir();
 
-            if (domain[fi()] == grd[fi()] && !geom.isPeriodic(dir))
+            if (domain[face] == grd[face] && !geom.isPeriodic(dir))
             {
                 //
                 // All physical bc values are located on face.
                 //
-                bctag[i][comp] = (p_bc == Outflow) ? LO_DIRICHLET : LO_NEUMANN;
-                bloc[i]        = 0;
+                const int p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
+
+                bctag[face][comp] = (p_bc == Outflow) ? LO_DIRICHLET : LO_NEUMANN;
+                bloc[face]        = 0;
             }
             else
             {
                 //
                 // Internal bndry.
                 //
-                bctag[i][comp] = LO_DIRICHLET;
-		bloc[i] = 0.5*delta;
+                const Real delta = dx[dir]*ratio[dir];
+
+                bctag[face][comp] = LO_DIRICHLET;
+		bloc[face]        = 0.5*delta;
             }
         }
     }
@@ -78,9 +83,11 @@ MacBndry::setHomogValues (const BCRec& bc,
  
     for (OrientationIter fi; fi; ++fi)
     {
-        for (FabSetIter fsi(bndry[fi()]); fsi.isValid(); ++fsi)
+        const Orientation face  = fi();
+        
+        for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
         {
-            bndry[fi()][fsi].setVal(0);
+            bndry[face][fsi].setVal(0);
         }
     }
 }

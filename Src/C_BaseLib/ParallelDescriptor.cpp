@@ -74,18 +74,21 @@ ParallelDescriptor::CommData::CommData (int        face,
 
     const IntVect& sm = box.smallEnd();
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[7+i] = sm[i];
+    D_TERM(m_data[7] = sm[0];,
+           m_data[8] = sm[1];,
+           m_data[9] = sm[2];);
 
     const IntVect& bg = box.bigEnd();
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[7+BL_SPACEDIM+i] = bg[i];
+    D_TERM(m_data[7+BL_SPACEDIM] = bg[0];,
+           m_data[8+BL_SPACEDIM] = bg[1];,
+           m_data[9+BL_SPACEDIM] = bg[2];);
 
     IntVect typ = box.type();
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[7+2*BL_SPACEDIM+i] = typ[i];
+    D_TERM(m_data[7+2*BL_SPACEDIM] = typ[0];,
+           m_data[8+2*BL_SPACEDIM] = typ[1];,
+           m_data[9+2*BL_SPACEDIM] = typ[2];);
 }
 
 ParallelDescriptor::CommData::CommData (const CommData& rhs)
@@ -213,27 +216,6 @@ ParallelDescriptor::ErrorString (int errorcode)
     return msg;
 }
 
-ParallelDescriptor::Message::Message ()
-    :
-    m_finished(true),
-    m_type(MPI_DATATYPE_NULL),
-    m_req(MPI_REQUEST_NULL)
-{}
-
-ParallelDescriptor::Message::Message (MPI_Request req_, MPI_Datatype type_)
-    :
-    m_finished(false),
-    m_type(type_),
-    m_req(req_)
-{}
-
-ParallelDescriptor::Message::Message (MPI_Status stat_, MPI_Datatype type_)
-    :
-    m_finished(true),
-    m_type(type_),
-    m_req(MPI_REQUEST_NULL), m_stat(stat_)
-{}
-
 void
 ParallelDescriptor::Message::wait ()
 {
@@ -271,18 +253,6 @@ ParallelDescriptor::Message::count () const
     int cnt;
     BL_MPI_REQUIRE( MPI_Get_count(&m_stat, m_type, &cnt) );
     return cnt;
-}
-
-MPI_Datatype
-ParallelDescriptor::Message::type () const
-{
-    return m_type;
-}
-
-MPI_Request
-ParallelDescriptor::Message::req () const
-{
-    return m_req;
 }
 
 void
@@ -1025,11 +995,6 @@ ParallelDescriptor::Gather (Real* sendbuf,
         recvbuf[i] = sendbuf[i];
 }
 
-ParallelDescriptor::Message::Message ()
-    :
-    m_finished(true)
-{}
-
 void
 ParallelDescriptor::Message::wait ()
 {}
@@ -1038,12 +1003,6 @@ bool
 ParallelDescriptor::Message::test ()
 {
     return m_finished;
-}
-
-MPI_Request
-ParallelDescriptor::Message::req () const
-{
-    return m_req;
 }
 
 void ParallelDescriptor::EndParallel () {}

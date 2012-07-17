@@ -138,6 +138,33 @@ BaseFab<Real>::performSetVal (Real       val,
 }
 
 template<>
+BaseFab<Real>&
+BaseFab<Real>::invert (Real       val,
+                       const Box& bx,
+                       int        comp,
+                       int        ncomp)
+{
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+
+    const int* _box_lo = bx.loVect();            
+    const int* _box_hi = bx.hiVect();            
+    const int* _datalo = loVect();                           
+    const int* _datahi = hiVect();
+
+    const Real* _data = dataPtr(comp);
+
+    FORT_FASTINVERT(_data,
+                    ARLIM(_datalo),
+                    ARLIM(_datahi),
+                    _box_lo,
+                    _box_hi,
+                    &val,
+                    &ncomp);
+    return *this;
+}
+
+template<>
 Real
 BaseFab<Real>::norm (const Box& bx,
                      int        p,
