@@ -145,6 +145,15 @@ public:
 
 protected:
     //
+    // Helper for define() functions.
+    //
+    void defineDoit (Orientation face,
+                     IndexType   typ,
+                     int         in_rad,
+                     int         out_rad,
+                     int         extent_rad,
+                     BoxArray&   fsba);
+    //
     // Used by the copy constructor and assignment operator.
     //
     void init (const BndryRegister& src);
