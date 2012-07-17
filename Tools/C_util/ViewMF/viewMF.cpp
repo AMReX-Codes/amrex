@@ -3,6 +3,7 @@
 #include <unistd.h>
 #endif
 
+#include <TagBox.H>
 #include <MultiFab.H>
 #include <ArrayView.H>
 #include <ParmParse.H>
