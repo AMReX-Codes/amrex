@@ -30,3 +30,11 @@ ifeq ($(UNAMEN), maudib.ucolick.org)
   INCLUDE_LOCATIONS += $(MAUDIB_LOC)/include
 
 endif
+JUNKKK=$(UNAMEN)
+
+ifeq ($(UNAMEN), MarcsLaptop)
+  ifeq ($(FCOMP), gfortran)
+    override XTRALIBS += -lquadmath
+  endif
+endif
+
