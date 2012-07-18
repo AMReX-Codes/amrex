@@ -91,19 +91,25 @@ BndryData::init (const BndryData& src)
          bfsi.isValid();
          ++bfsi)
     {
-        std::map<int,MaskTuple>::const_iterator sit = src.masks.find(bfsi.index());
+        const int idx = bfsi.index();
 
+        std::map<int,MaskTuple>::const_iterator sit = src.masks.find(idx);
         BL_ASSERT(sit != src.masks.end());
-
-        MaskTuple&       dmask = masks[bfsi.index()];
         const MaskTuple& smask = sit->second;
+        //
+        // Insert with a hint since we know the indices are increasing.
+        //
+        std::map<int,MaskTuple>::value_type v(idx,MaskTuple());
+
+        MaskTuple& dmask = masks.insert(masks.end(),v)->second;
 
         for (OrientationIter fi; fi; ++fi)
         {
-            const Mask* src_mask = smask[fi()];
+            const Orientation face = fi();
+            const Mask* src_mask = smask[face];
             Mask* m = new Mask(src_mask->box(),src_mask->nComp());
             m->copy(*src_mask);
-            dmask[fi()] = m;
+            dmask[face] = m;
         }
     }
 }
@@ -233,19 +239,32 @@ BndryData::define (const BoxArray& _grids,
         }
     }
     //
-    // Define "bcond".
+    // Define "bcond" and "bcloc".
     //
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
+    //
     //
     for (FabSetIter bfsi(bndry[Orientation(0,Orientation::low)]);
          bfsi.isValid();
          ++bfsi)
     {
-        Array< Array<BoundCond> >& abc = bcond[bfsi.index()];
+        const int idx = bfsi.index();
+        //
+        // Insert with a hint since we know the indices are increasing.
+        //
+        bcloc.insert(bcloc.end(),std::map<int,RealTuple>::value_type(idx,RealTuple()));
+
+        std::map< int, Array< Array<BoundCond> > >::value_type v(idx,Array< Array<BoundCond> >());
+
+        Array< Array<BoundCond> >& abc = bcond.insert(bcond.end(),v)->second;
+
         abc.resize(2*BL_SPACEDIM);
+
         for (OrientationIter fi; fi; ++fi)
+        {
             abc[fi()].resize(_ncomp);
+        }
     }
 }
 
