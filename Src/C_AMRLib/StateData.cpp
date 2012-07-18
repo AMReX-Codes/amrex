@@ -69,7 +69,6 @@ StateData::define (const Box&             p_domain,
     new_data = new MultiFab(grids,ncomp,desc->nExtra(),Fab_allocate);
 
     old_data = 0;
-    buildBC();
 }
 
 void
@@ -87,10 +86,10 @@ StateData::restart (std::istream&          is,
                     bool                   bReadSpecial)
 {
     if (bReadSpecial)
-      {
+    {
 	std::cerr << "StateData:: restart:: w/bReadSpecial not implemented" << std::endl;
         ParallelDescriptor::Abort();  // not implemented
-      }
+    }
 
     desc = &d;
 
@@ -115,10 +114,11 @@ StateData::restart (std::istream&          is,
 
     old_data = 0;
     new_data = 0;
-
+    //
     // If no data is written then we just allocate the MF instead of reading it in. 
     // This assumes that the application will do something with it.
     // We set it to zero in case a compiler complains about uninitialized data.
+    //
     if (nsets == 0)
     {
        new_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
@@ -127,8 +127,9 @@ StateData::restart (std::istream&          is,
 
     std::string mf_name;
     std::string FullPathName;
-
-    // This reads the "new" data, if it's there
+    //
+    // This reads the "new" data, if it's there.
+    //
     if (nsets >= 1)
     {
         new_data = new MultiFab;
@@ -143,8 +144,9 @@ StateData::restart (std::istream&          is,
         FullPathName += mf_name;
         VisMF::Read(*new_data, FullPathName);
     }
-
-    // This reads the "old" data, if it's there
+    //
+    // This reads the "old" data, if it's there.
+    //
     if (nsets == 2)
     {
         old_data = new MultiFab;
@@ -158,25 +160,6 @@ StateData::restart (std::istream&          is,
             FullPathName += '/';
         FullPathName += mf_name;
         VisMF::Read(*old_data, FullPathName);
-    }
-
-    buildBC();
-}
-
-void
-StateData::buildBC ()
-{
-    int ncomp = desc->nComp();
-    bc.resize(ncomp);
-    for (int i = 0; i < ncomp; i++)
-    {
-        bc[i].resize(grids.size());
-        for (int j = 0; j < grids.size(); j++)
-        {
-            BCRec bcr;
-            BoxLib::setBC(grids[j],domain,desc->getBC(i),bcr);
-            bc[i].set(j,bcr);
-        }
     }
 }
 
@@ -196,107 +179,12 @@ StateData::allocOldData ()
     }
 }
 
-void
-StateData::removeOldData ()
-{
-    delete old_data;
-    old_data = 0;
-}
-
-const StateDescriptor*
-StateData::descriptor () const
-{
-    return desc;
-}
-
-const Box&
-StateData::getDomain () const
-{
-    return domain;
-}
-
-const BoxArray&
-StateData::boxArray () const
-{
-    return grids;
-}
-
-Real
-StateData::curTime () const
-{
-    return 0.5*(new_time.start + new_time.stop);
-}
-
-Real
-StateData::prevTime () const
-{
-    return 0.5*(old_time.start + old_time.stop);
-}
-
-MultiFab&
-StateData::newData ()
-{
-    BL_ASSERT(new_data != 0);
-    return *new_data;
-}
-
-const MultiFab&
-StateData::newData () const
-{
-    BL_ASSERT(new_data != 0);
-    return *new_data;
-}
-
-MultiFab&
-StateData::oldData ()
-{
-    BL_ASSERT(old_data != 0);
-    return *old_data;
-}
-
-const MultiFab&
-StateData::oldData () const
-{
-    BL_ASSERT(old_data != 0);
-    return *old_data;
-}
-
-FArrayBox&
-StateData::newGrid (int i)
-{
-    BL_ASSERT(new_data != 0);
-    return (*new_data)[i];
-}
-
-FArrayBox&
-StateData::oldGrid (int i)
-{
-    BL_ASSERT(old_data != 0);
-    return (*old_data)[i];
-}
-
-Array<BCRec>&
-StateData::getBCs (int comp)
-{
-    return bc[comp];
-}
-
-const BCRec&
+const BCRec
 StateData::getBC (int comp, int i) const
 {
-    return bc[comp][i];
-}
-
-bool
-StateData::hasOldData () const
-{
-    return old_data != 0;
-}
-
-bool
-StateData::hasNewData () const
-{
-    return new_data != 0;
+    BCRec bcr;
+    BoxLib::setBC(grids[i],domain,desc->getBC(comp),bcr);
+    return bcr;
 }
 
 void
@@ -496,7 +384,7 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
     }
     else
     {
-        Real teps = (new_time.start - old_time.start)/1000.0;
+        const Real teps = (new_time.start - old_time.start)/1000.0;
 
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {
@@ -507,9 +395,10 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
                                                             src_comp,
                                                             dest_comp,
                                                             num_comp);
-        } else if (old_data != 0 &&
-                   time > old_time.start-teps &&
-                   time < old_time.stop+teps)
+        }
+        else if (old_data != 0              &&
+                 time > old_time.start-teps &&
+                 time < old_time.stop+teps)
         {
             returnedFillBoxIds.resize(1);
             returnedFillBoxIds[0] = multiFabCopyDesc.AddBox(mfid[MFOLDDATA],
@@ -561,13 +450,13 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
     }
     else
     {
-        Real teps = (new_time.start - old_time.start)/1000.0;
+        const Real teps = (new_time.start - old_time.start)/1000.0;
 
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {
             multiFabCopyDesc.FillFab(mfid[MFNEWDATA], fillBoxIds[0], dest);
         }
-        else if (old_data != 0 &&
+        else if (old_data != 0              &&
                  time > old_time.start-teps &&
                  time < old_time.stop+teps)
         {
@@ -622,7 +511,9 @@ StateData::checkPoint (const std::string& name,
            {
                os << 1 << '\n' << mf_name_new << '\n';
            }
-        } else {
+        }
+        else
+        {
                os << 0 << '\n';
         }
     }
@@ -691,4 +582,3 @@ BoxLib::readBoxArray (BoxArray&     ba,
             BoxLib::Error("readBoxArray(BoxArray&,istream&,int) failed");
     }
 }
-

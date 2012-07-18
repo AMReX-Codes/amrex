@@ -21,10 +21,10 @@ deppairs: $(f90sources) $(fsources)
 	perl $(MODDEP) --tsort $^ > deppairs
 
 TAGS:	$(sources)
-	etags $^
+	ctags -e --verbose=yes --fortran-kinds=+i $^
 
 tags:	$(sources)
-	ctags --verbose=yes $^
+	ctags --verbose=yes --fortran-kinds=+i $^
 
 # should prevent deletion of .o files
 .SECONDARY: $(objects)

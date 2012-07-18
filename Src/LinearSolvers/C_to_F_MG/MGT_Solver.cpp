@@ -9,6 +9,7 @@ int   MGT_Solver::def_nu_b;
 int   MGT_Solver::def_nu_f;
 int   MGT_Solver::def_gamma;
 Real  MGT_Solver::def_omega;
+Real  MGT_Solver::def_max_L0_growth;
 int   MGT_Solver::def_maxiter;
 int   MGT_Solver::def_maxiter_b;
 int   MGT_Solver::def_verbose;
@@ -132,95 +133,6 @@ mgt_get     mgt_get_sync_res   = mgt_get_sync_res_3d;
 mgt_set     mgt_set_rhcc_nodal = mgt_set_rhcc_nodal_3d;
 #endif
 
-MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
-                       int* bc, 
-		       const std::vector<BoxArray>& grids,
-		       const std::vector<DistributionMapping>& dmap,
-		       bool nodal,
-		       int _stencil_type,
-		       bool _have_rhcc)
-  :
-  m_dmap(dmap), m_grids(grids), m_nodal(nodal), have_rhcc(_have_rhcc)
-{
-
-   if (!initialized)
-        initialize(nodal);
-
-   if (_stencil_type >= 0) {
-     stencil_type = _stencil_type;
-   }
-
-  BL_ASSERT( m_grids.size() == dmap.size() );
-  m_nlevel = grids.size();
-  int dm = BL_SPACEDIM;
-  int i_nodal = (m_nodal)?1:0;
-
-  if (nodal) {
-    mgt_nodal_alloc(&dm, &m_nlevel, &i_nodal, &stencil_type);
-    mgt_set_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
-                           &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
-                           &def_verbose,&def_cg_verbose,&def_max_nlevel,
-                           &def_min_width,&def_cycle,&def_smoother,&stencil_type);
-  } else {
-    mgt_alloc(&dm, &m_nlevel, &i_nodal);
-    mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
-                     &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
-                     &def_verbose,&def_cg_verbose,&def_max_nlevel,
-                     &def_min_width,&def_cycle,&def_smoother,&stencil_type);
-  }
-
-  Array<int> pm(dm);
-  for ( int i = 0; i < dm; ++i ) 
-    {
-      pm[i] = geom[0].isPeriodic(i)? 1 : 0;
-    }
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-      const Array<int>& pmap = dmap[lev].ProcessorMap();
-      Box domain = geom[lev].Domain();
-
-      int nb = grids[lev].size();
-      std::vector<int> lo(nb*dm);
-      std::vector<int> hi(nb*dm);
-
-      for ( int i = 0; i < nb; ++i )
-      {
-        for ( int j = 0; j < dm; ++j )
-	{
-	  lo[i + j*nb] = m_grids[lev][i].smallEnd(j);
-	  hi[i + j*nb] = m_grids[lev][i].bigEnd(j);
-	}
-      }
-
-      if (nodal) {
-        mgt_set_nodal_level(&lev, &nb, &dm, &lo[0], &hi[0], 
-  		            domain.loVect(), domain.hiVect(), pm.dataPtr(), &pmap[0]);
-      } else {
-        mgt_set_level(&lev, &nb, &dm, &lo[0], &hi[0], 
-  		      domain.loVect(), domain.hiVect(), pm.dataPtr(), &pmap[0]);
-      }
-    }
-
-  std::vector<Real> dx(m_nlevel*dm);
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-      for ( int j = 0; j < dm; ++j )
-	{
-	  dx[lev + j*m_nlevel] = geom[lev].CellSize()[j];
-	}
-    }
-
-  if (nodal) {
-    mgt_nodal_finalize(&dx[0],&bc[0]);
-    if (have_rhcc) {
-      mgt_alloc_rhcc_nodal();
-    }
-  } else {
-    mgt_finalize(&dx[0],&bc[0]);
-  }
-}
-
 
 //
 // Constructing a solver for the following operator: 
@@ -232,22 +144,59 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 		       const std::vector<BoxArray>& grids,
 		       const std::vector<DistributionMapping>& dmap,
 		       bool nodal,
+		       int _stencil_type,
+		       bool _have_rhcc,
+                       int nc,
+                       int ncomp)
+    :
+    m_nlevel(grids.size()),
+    m_grids(grids),
+    m_nodal(nodal),
+    have_rhcc(_have_rhcc)
+{
+    stencil_type =_stencil_type;
+    BL_ASSERT(geom.size()==m_nlevel);
+    BL_ASSERT(dmap.size()==m_nlevel);
+    Build(geom,bc,dmap,nc,ncomp);
+}
+
+MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
+                       int* bc, 
+		       const std::vector<BoxArray>& grids,
+		       const std::vector<DistributionMapping>& dmap,
+		       bool nodal,
 		       int nc, 
 		       int ncomp,
 		       bool _have_rhcc)
-  :
-  m_dmap(dmap), m_grids(grids), m_nodal(nodal), have_rhcc(_have_rhcc)
+    :
+    m_nlevel(grids.size()),
+    m_grids(grids),
+    m_nodal(nodal),
+    have_rhcc(_have_rhcc)
 {
+    stencil_type = -1;
+    BL_ASSERT(geom.size()==m_nlevel);
+    BL_ASSERT(dmap.size()==m_nlevel);
+    Build(geom,bc,dmap,nc,ncomp);
+}
 
+void
+MGT_Solver::Build(const std::vector<Geometry>& geom, 
+                  int* bc, 
+                  const std::vector<DistributionMapping>& dmap,
+                  int nc,
+                  int ncomp)
+    
+{
    if (!initialized)
-        initialize(nodal);
+        initialize(m_nodal);
 
-  BL_ASSERT( m_grids.size() == dmap.size() );
-  m_nlevel = grids.size();
+  BL_ASSERT(m_grids.size()==m_nlevel);
+  BL_ASSERT(   dmap.size()==m_nlevel);
   int dm = BL_SPACEDIM;
   int i_nodal = (m_nodal)?1:0;
 
-  if (nodal) {
+  if (m_nodal) {
     mgt_nodal_alloc(&dm, &m_nlevel, &i_nodal, &stencil_type);
     mgt_set_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
                            &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
@@ -257,6 +206,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
     mgt_alloc(&dm, &m_nlevel, &i_nodal);
     mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
                      &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
+                     &def_max_L0_growth,
                      &def_verbose,&def_cg_verbose,&def_max_nlevel,
                      &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   }
@@ -272,7 +222,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
       const Array<int>& pmap = dmap[lev].ProcessorMap();
       Box domain = geom[lev].Domain();
 
-      int nb = grids[lev].size();
+      int nb = m_grids[lev].size();
       std::vector<int> lo(nb*dm);
       std::vector<int> hi(nb*dm);
 
@@ -285,7 +235,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 	}
       }
 
-      if (nodal) {
+      if (m_nodal) {
         mgt_set_nodal_level(&lev, &nb, &dm, &lo[0], &hi[0], 
   		            domain.loVect(), domain.hiVect(), pm.dataPtr(), &pmap[0]);
       } else {
@@ -303,8 +253,11 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 	}
     }
 
-  if (nodal) {
+  if (m_nodal) {
     mgt_nodal_finalize(&dx[0],&bc[0]);
+    if (have_rhcc) {
+      mgt_alloc_rhcc_nodal();
+    }
   } else {
     //mgt_finalize_n(&dx[0],&bc[0],&nc,&ncomp);
     mgt_finalize(&dx[0],&bc[0]);
@@ -347,7 +300,7 @@ MGT_Solver::initialize(bool nodal)
       def_nu_b = 2;
     } else {
       mgt_get_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
-                       &def_maxiter,&def_maxiter_b,&def_bottom_solver,
+                       &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_max_L0_growth,
                        &def_verbose,&def_cg_verbose,&def_max_nlevel,&def_min_width,&def_cycle,&def_smoother);
     }
 
@@ -376,13 +329,13 @@ MGT_Solver::initialize(bool nodal)
     pp.query("numLevelsMAX", def_max_nlevel);
     pp.query("smoother", def_smoother);
     pp.query("stencil_type", stencil_type);
+    pp.query("max_L0_growth", def_max_L0_growth);
 
 /*
     pp.query("nu_0", def_nu_0);
     pp.query("bot_atol", def_atol_b);
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
 */
-
     {
         ParmParse pp("cg");
         pp.query("v", def_cg_verbose);
@@ -960,17 +913,22 @@ MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
   mgt_finalize_nodal_stencil();
 }
 
+// *******************************************************************************
+// These four do *not* take a status flag
+// *******************************************************************************
+
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, Real& final_resnorm)
 {
-  solve(uu,rh,tol,abs_tol,bd,0,final_resnorm);
+    solve(uu,rh,tol,abs_tol,bd,0,final_resnorm);
 }
 
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, int need_grad_phi, Real& final_resnorm)
 {
+
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
   for (OrientationIter oitr; oitr; ++oitr)
@@ -984,8 +942,6 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
   }
   uu[lev]->FillBoundary();
 
-  
-  
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
@@ -1008,7 +964,68 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+
+  // Pass in the status flag from here so we can know whehter the 
+  //      solver converged
+  int status = 0;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+
+  if (status != 0) 
+     BoxLib::Error("Multigrid did not converge!");
+
+  int ng = 0;
+  if (need_grad_phi == 1) ng = 1;
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  FArrayBox& sol = (*(uu[lev]))[umfi];
+	  Real* sd = sol.dataPtr();
+	  int n = umfi.index();
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+	  const int* plo = sol.box().loVect();
+	  const int* phi = sol.box().hiVect();
+	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
+	}
+    }
+}
+
+void 
+MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+                  int need_grad_phi, Real& final_resnorm)
+{
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  int n = umfi.index();
+
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+
+	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
+	  const Real* rd = rhs.dataPtr();
+	  const int* rlo = rhs.box().loVect();
+	  const int* rhi = rhs.box().hiVect();
+	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
+
+	  const FArrayBox& sol = (*(uu[lev]))[umfi];
+	  const Real* sd = sol.dataPtr();
+	  const int* slo = sol.box().loVect();
+	  const int* shi = sol.box().hiVect();
+	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
+	}
+    }
+
+  // Pass in the status flag from here so we can know whehter the 
+  //      solver converged
+  int status = 0;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+
+  if (status != 0) 
+     BoxLib::Error("Multigrid did not converge!");
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
@@ -1071,7 +1088,14 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+
+  // Pass in the status flag from here so we can know whehter the 
+  //      solver converged
+  int status = 0;
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+
+  if (status != 0) 
+     BoxLib::Error("Multigrid did not converge!");
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
@@ -1092,9 +1116,74 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
     }
 }
  
+// *******************************************************************************
+// These two take a status flag
+// *******************************************************************************
+
 void 
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  int need_grad_phi, Real& final_resnorm)
+                  const BndryData& bd, int need_grad_phi, Real& final_resnorm, int& status)
+{
+  // Copy the boundary register values into the solution array to be copied into F90
+  int lev = 0;
+  for (OrientationIter oitr; oitr; ++oitr)
+  {
+      const FabSet& fs = bd.bndryValues(oitr());
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+      {
+        FArrayBox& dest = (*(uu[lev]))[umfi];
+        dest.copy(fs[umfi],fs[umfi].box());
+      }
+  }
+  uu[lev]->FillBoundary();
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  int n = umfi.index();
+
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+
+	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
+	  const Real* rd = rhs.dataPtr();
+	  const int* rlo = rhs.box().loVect();
+	  const int* rhi = rhs.box().hiVect();
+	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
+
+	  const FArrayBox& sol = (*(uu[lev]))[umfi];
+	  const Real* sd = sol.dataPtr();
+	  const int* slo = sol.box().loVect();
+	  const int* shi = sol.box().hiVect();
+	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
+	}
+    }
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+  if (status == 1) return;
+
+  int ng = 0;
+  if (need_grad_phi == 1) ng = 1;
+
+  for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	  FArrayBox& sol = (*(uu[lev]))[umfi];
+	  Real* sd = sol.dataPtr();
+	  int n = umfi.index();
+	  const int* lo = umfi.validbox().loVect();
+	  const int* hi = umfi.validbox().hiVect();
+	  const int* plo = sol.box().loVect();
+	  const int* phi = sol.box().hiVect();
+	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
+	}
+    }
+}
+
+void 
+MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+                  int need_grad_phi, Real& final_resnorm,int& status)
 {
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -1118,7 +1207,9 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
 	}
     }
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm);
+
+  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
+  if (status == 1) return;
 
   int ng = 0;
   if (need_grad_phi == 1) ng = 1;
@@ -1138,6 +1229,10 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& a
 	}
     }
 }
+ 
+// *******************************************************************************
+// End of solve options
+// *******************************************************************************
 
 void 
 MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)

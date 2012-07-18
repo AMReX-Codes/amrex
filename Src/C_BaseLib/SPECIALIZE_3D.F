@@ -373,3 +373,93 @@ c
 !$omp end parallel
 
       end
+c
+c     This function divides floating point numbers from one array by another
+c     wherever the denominator is non-zero.
+c
+      subroutine FORT_FASTPROTDIVIDE (dst,
+     &                                DIMS(dst),
+     &                                imin, jmin, kmin, imax, jmax, kmax,
+     &                                src,
+     &                                DIMS(src),
+     &                                imn,  jmn,  kmn,
+     &                                ncomp)
+
+      implicit none
+c
+c     Bounds to fill in dst 
+c
+      integer imin, jmin, kmin, imax, jmax, kmax
+      integer DIMDEC(dst)
+c
+c     Bounds to fill from src
+c
+      integer imn,  jmn,  kmn
+      integer DIMDEC(src)
+      integer ncomp
+
+      REAL_T  dst(DIMV(dst),ncomp)
+      REAL_T  src(DIMV(src),ncomp)
+c
+c     Local variables
+c
+      integer i,j,k,l,ioff,joff,koff
+
+      ioff=imn-imin
+      joff=jmn-jmin
+      koff=kmn-kmin
+
+!$omp parallel private(i,j,k,l)
+      do l = 1, ncomp
+!$omp do
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  if (src(i+ioff,j+joff,k+koff,l) .ne. zero) then
+                     dst(i,j,k,l) = dst(i,j,k,l) / src(i+ioff,j+joff,k+koff,l)
+                  end if
+               end do
+            end do
+         end do
+!$omp end do nowait
+      end do
+!$omp end parallel
+
+      end
+
+      subroutine FORT_FASTINVERT (src,DIMS(src),lo,hi,val,ncomp)
+
+      implicit none
+
+      integer ncomp
+      integer lo(3), hi(3)
+      integer DIMDEC(src)
+      REAL_T  src(DIMV(src),ncomp), val
+c
+c     Local variables.
+c
+      integer i,j,k,l
+      integer imin,jmin,kmin,imax,jmax,kmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
+
+!$omp parallel private(i,j,k,l)
+      do l = 1, ncomp
+!$omp do 
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  src(i,j,k,l) = val / src(i,j,k,l)
+               end do
+            end do
+         end do
+!$omp end do nowait
+      end do
+!$omp end parallel
+
+      end

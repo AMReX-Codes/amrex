@@ -25,21 +25,6 @@ public:
     //
     BoundCond (int _bctype) : bctype(_bctype) {}
     //
-    // Copy constructor.
-    //
-    BoundCond (const BoundCond& rhs) : bctype(rhs.bctype) {}
-    //
-    // Copy assignment operator.
-    //
-    BoundCond& operator= (const BoundCond& rhs)
-    {
-        if (!(this == &rhs))
-        {
-            bctype = rhs.bctype;
-        }
-        return *this;
-    }
-    //
     // Return index of boundary condition type.
     //
     operator int () const

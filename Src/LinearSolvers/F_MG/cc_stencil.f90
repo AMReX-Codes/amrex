@@ -1130,10 +1130,10 @@ contains
     
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          ss(1,i,j) = ss(1,i,j) - betax(i+1,j,1)
-          ss(2,i,j) = ss(2,i,j) - betax(i  ,j,2)
-          ss(3,i,j) = ss(3,i,j) - betay(i,j+1,1) 
-          ss(4,i,j) = ss(4,i,j) - betay(i,j  ,2) 
+          ss(1,i,j) = ss(1,i,j) - betax(i,j,1)
+          ss(2,i,j) = ss(2,i,j) - betax(i,j,2)
+          ss(3,i,j) = ss(3,i,j) - betay(i,j,1) 
+          ss(4,i,j) = ss(4,i,j) - betay(i,j,2) 
        end do
     end do
 
@@ -1167,7 +1167,7 @@ contains
           if (bchi .eq. BC_INT) then
              ss(0,i,j) = ss(0,i,j) - betax(i,j,3)
           elseif (bchi .eq. BC_NEU) then
-             ss(0,i,j) = ss(0,i,j) - betax(i,j,3) - betax(i+1,j,1)
+             ss(0,i,j) = ss(0,i,j) - betax(i,j,3) - betax(i,j,1)
              ss(1,i,j) = 0.d0
              ss(XBC,i,j) = 0.d0
           elseif (bchi .eq. BC_DIR) then
@@ -1207,7 +1207,7 @@ contains
           if (bchi .eq. BC_INT) then
              ss(0,i,j) = ss(0,i,j) - betay(i,j,3)
           elseif (bchi .eq. BC_NEU) then
-             ss(0,i,j) = ss(0,i,j) - betay(i,j,3) - betay(i,j+1,1)
+             ss(0,i,j) = ss(0,i,j) - betay(i,j,3) - betay(i,j,1)
              ss(3,i,j) = 0.d0
              ss(YBC,i,j) = 0.d0
           elseif (bchi .eq. BC_DIR) then
@@ -1432,12 +1432,12 @@ contains
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
              ss(0,i,j,k)   = ZERO
-             ss(1,i,j,k)   = -betax(i+1, j  , k  , 1)
-             ss(2,i,j,k)   = -betax(i  , j  , k  , 2)
-             ss(3,i,j,k)   = -betay(i  , j+1, k  , 1)
-             ss(4,i,j,k)   = -betay(i  , j  , k  , 2)
-             ss(5,i,j,k)   = -betaz(i  , j  , k+1, 1)
-             ss(6,i,j,k)   = -betaz(i  , j  , k  , 2)
+             ss(1,i,j,k)   = -betax(i,j,k,1)
+             ss(2,i,j,k)   = -betax(i,j,k,2)
+             ss(3,i,j,k)   = -betay(i,j,k,1)
+             ss(4,i,j,k)   = -betay(i,j,k,2)
+             ss(5,i,j,k)   = -betaz(i,j,k,1)
+             ss(6,i,j,k)   = -betaz(i,j,k,2)
              ss(XBC,i,j,k) = ZERO
              ss(YBC,i,j,k) = ZERO
              ss(ZBC,i,j,k) = ZERO
@@ -1488,7 +1488,7 @@ contains
              if (bchi .eq. BC_INT) then
                 ss(0,i,j,k) = ss(0,i,j,k) - betax(i,j,k,3)
              elseif (bchi .eq. BC_NEU) then
-                ss(0,i,j,k) = ss(0,i,j,k) - betax(i,j,k,3) - betax(i+1,j,k,1)
+                ss(0,i,j,k) = ss(0,i,j,k) - betax(i,j,k,3) - betax(i,j,k,1)
                 ss(1,i,j,k) = 0.d0
                 ss(XBC,i,j,k) = 0.d0
              elseif (bchi .eq. BC_DIR) then
@@ -1537,7 +1537,7 @@ contains
              if (bchi .eq. BC_INT) then
                 ss(0,i,j,k) = ss(0,i,j,k) - betay(i,j,k,3)
              elseif (bchi .eq. BC_NEU) then
-                ss(0,i,j,k)   = ss(0,i,j,k) - betay(i,j,k,3) - betay(i,j+1,k,1)
+                ss(0,i,j,k)   = ss(0,i,j,k) - betay(i,j,k,3) - betay(i,j,k,1)
                 ss(3,i,j,k)   = 0.d0
                 ss(YBC,i,j,k) = 0.d0
              elseif (bchi .eq. BC_DIR) then
@@ -1586,7 +1586,7 @@ contains
              if (bchi .eq. BC_INT) then
                 ss(0,i,j,k) = ss(0,i,j,k) - betaz(i,j,k,3)
              elseif (bchi .eq. BC_NEU) then
-                ss(0,i,j,k)   = ss(0,i,j,k) - betaz(i,j,k,3) - betaz(i,j,k+1,1)
+                ss(0,i,j,k)   = ss(0,i,j,k) - betaz(i,j,k,3) - betaz(i,j,k,1)
                 ss(5,i,j,k)   = 0.d0
                 ss(ZBC,i,j,k) = 0.d0
              elseif (bchi .eq. BC_DIR) then

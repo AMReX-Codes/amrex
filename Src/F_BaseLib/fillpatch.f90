@@ -12,7 +12,6 @@ contains
                        fill_crse_input, stencil_width_input, fourth_order_input)
 
     use bc_module
-    use setbc_module
     use layout_module
     use interp_module
     use bl_constants_module
@@ -261,7 +260,7 @@ contains
 
     call build(tmpba, bl, sort = .false.)
     call destroy(bl)
-    call build(tmpla, tmpba, explicit_mapping = get_proc(get_layout(pcrse)))
+    call build(tmpla, tmpba, boxarray_bbox(tmpba), explicit_mapping = get_proc(get_layout(pcrse)))
     call destroy(tmpba)
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 

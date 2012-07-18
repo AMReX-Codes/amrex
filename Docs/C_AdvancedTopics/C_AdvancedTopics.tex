@@ -1,0 +1,36 @@
+Here we will discuss some features of the C++ in greater detail. In 
+particular we will examine \BoxLib's passively advected particles.
+
+\section{Particles}\label{Sec:Particles}
+[Note from Ethan: This section is currently being expanded. Expect information to be 
+incomplete and occasionally inaccurate]
+
+\subsection{ParticleBase and Particle}
+{\tt ParticleBase} provides the data {\tt struct} upon which all 
+particles are built. Each particle has integer values {\tt m\_id}, {\tt 
+m\_cpu}, {\tt m\_lev}, and {\tt m\_grid} that store the particles id, 
+host cpu, grid level and grid id respectively. It also has an {\tt 
+IntVect} that stores its cell position and a $d$ length real vector 
+storing its spatial position.
+
+{\tt ParticleBase} also provides basic methods and methods for interfacing between 
+the particle and the grids. These include methods that check the 
+particle position, transfer the particle between grids, and 
+interpolate data appropriately.
+
+{\tt Particle<N>} is a template class that adds a (real) metadata array of 
+user-specified size to the {\tt ParticleBase}. For instance, this 
+metadata might be 
+\begin{enumerate}
+   \item particle mass
+   \item particle x velocity
+   \item particle y velocity
+   \item particle z velocity
+\end{enumerate}
+\subsection{ParticleContainer}
+{\tt ParticleContainer} is a template class that stores a number of 
+{\tt Particle<N>}s. These particles are stored on a level by level and 
+grid by grid basis to make accessing and performing operations on them 
+more memory efficient. The class also provided methods that move and 
+redistribute the stored particles.
+\section{State Data}

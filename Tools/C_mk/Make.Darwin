@@ -1,6 +1,10 @@
 
 FORT_CPP := cpp -E -traditional
 
+ifeq ($(FCOMP), gfortran)
+  LIBRARIES += -lquadmath
+endif
+
 ifeq ($(UNAMEN), maudib.ucolick.org)
   ifeq ($(FCOMP), gfortran)
     CXX := g++
@@ -9,12 +13,10 @@ ifeq ($(UNAMEN), maudib.ucolick.org)
     fC  := gfortran
     F90 := gfortran
 
-    FFLAGS += -J$(fmoddir)
-    fFLAGS += -J$(fmoddir)
     INCLUDE_LOCATIONS += $(fmoddir)
 
     MAUDIB_LOC := /Users/cmalone/work/install/gcc/usr/local
-    LIBRARIES += -lquadmath 
+#    LIBRARIES += -lquadmath 
     _f95_lib:=$(shell $(F90) -print-file-name=libgfortran.a | sed 's/[ ]/\\ /g')
   else
     CXX := icpc

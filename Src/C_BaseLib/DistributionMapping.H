@@ -36,7 +36,11 @@ class DistributionMapping
     //
     DistributionMapping ();
     //
-    // Create object with specified mapping.  The sentinel is already included.
+    // Create an object with the specified mapping.
+    // VERY IMPORTANT:  The size of pmap must be (yourboxarray.size() + 1).
+    //                  The value in pmap[yourboxarray.size()] is a sentinel used
+    //                  in boxlib and its value must be set to
+    //                  ParallelDescriptor::MyProc() by the caller.
     //
     DistributionMapping (const Array<int>& pmap);
     //
@@ -168,7 +172,7 @@ private:
     //
     // Least used ordering of CPUs (by # of bytes of FAB data).
     //
-    static Array<int> LeastUsedCPUs (int nprocs);
+    static void LeastUsedCPUs (int nprocs, Array<int>& result);
     //
     // Look for a cached processor map.
     //

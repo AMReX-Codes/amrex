@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <deque>
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
 //
@@ -257,6 +258,8 @@ operator>> (std::istream&  is,
     {
     case VisMF::OneFilePerCPU:
         hd.m_how = VisMF::OneFilePerCPU; break;
+    case VisMF::NFiles:
+        hd.m_how = VisMF::NFiles; break;
     default:
         BoxLib::Error("Bad case in switch");
     }
@@ -1001,7 +1004,7 @@ VisMF::Read (MultiFab&          mf,
 
     if(ParallelDescriptor::IOProcessor()) {  // manage the file locks
       int reqsPending(0), iopFileIndex;
-      std::list<int> iopReads;
+      std::deque<int> iopReads;
       MPI_Status status;
       int doneFlag;
       while(totalIOReqs > 0) {
@@ -1055,8 +1058,7 @@ VisMF::Read (MultiFab&          mf,
         }  // end while(aFilesIter...)
 
 	while( ! iopReads.empty()) {
-	  std::list<int>::iterator iopIter = iopReads.begin();
-	  int index(*iopIter);
+	  int index = iopReads.front();
           mf.setFab(index, VisMF::readFAB(index, mf_name, hdr));
 	  --totalIOReqs;
 	  iopReads.pop_front();

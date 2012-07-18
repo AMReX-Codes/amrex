@@ -5,6 +5,19 @@
 #include <Derive.H>
 #include <StateDescriptor.H>
 
+Box
+DeriveRec::TheSameBox (const Box& box)
+{
+    return box;
+}
+
+Box
+DeriveRec::GrowBoxByOne (const Box& box)
+{
+    return BoxLib::grow(box,1);
+}
+
+
 DeriveRec::DeriveRec (const std::string& name,
                       IndexType      result_type,
                       int            nvar_derive,
@@ -26,9 +39,10 @@ DeriveRec::DeriveRec (const std::string& name,
 {}
 
 // This version doesn't take a Fortran function name, it is entirely defined by the C++
-DeriveRec::DeriveRec (const std::string& name,
-                      IndexType      result_type,
-                      int            nvar_derive)
+DeriveRec::DeriveRec (const std::string&      name,
+                      IndexType               result_type,
+                      int                     nvar_derive,
+                      DeriveRec::DeriveBoxMap box_map)
     :
     derive_name(name),
     variable_names(),
@@ -36,7 +50,7 @@ DeriveRec::DeriveRec (const std::string& name,
     n_derive(nvar_derive),
     func(NULL),
     mapper(NULL),
-    bx_map(NULL),
+    bx_map(box_map),
     n_state(0),
     nsr(0),
     rng(0),
@@ -231,9 +245,10 @@ DeriveList::add (const std::string&      name,
 void
 DeriveList::add (const std::string&      name,
                  IndexType               result_type,
-                 int                     nvar_der)
+                 int                     nvar_der,
+                 DeriveRec::DeriveBoxMap box_map)
 {
-    lst.push_back(DeriveRec(name,result_type,nvar_der));
+    lst.push_back(DeriveRec(name,result_type,nvar_der,box_map));
 }
 
 void

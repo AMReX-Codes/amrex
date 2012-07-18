@@ -12,23 +12,31 @@
 class MGT_Solver
 {
 public:
-      
-  MGT_Solver(const std::vector<Geometry>& geom,
-             int *bc, 
-	     const std::vector<BoxArray>& grids, 
-	     const std::vector<DistributionMapping>& dmap,
-	     bool nodal,
-	     int _stencil_type = -1,
-	     bool _have_rhcc = false);
 
-  MGT_Solver(const std::vector<Geometry>& geom,
-             int *bc, 
-	     const std::vector<BoxArray>& grids, 
-	     const std::vector<DistributionMapping>& dmap,
-	     bool nodal,
-	     int nc, 
-	     int ncomp,
-	     bool _have_rhcc = false);
+    MGT_Solver(const std::vector<Geometry>& geom, 
+               int* bc, 
+               const std::vector<BoxArray>& grids,
+               const std::vector<DistributionMapping>& dmap,
+               bool nodal,
+               int _stencil_type = -1,
+               bool _have_rhcc = false,
+               int nc = 0,
+               int ncomp = 1);
+
+    MGT_Solver(const std::vector<Geometry>& geom, 
+               int* bc, 
+               const std::vector<BoxArray>& grids,
+               const std::vector<DistributionMapping>& dmap,
+               bool nodal,
+               int nc, 
+               int ncomp,
+               bool _have_rhcc = false);
+
+    void Build(const std::vector<Geometry>& geom, 
+               int* bc, 
+               const std::vector<DistributionMapping>& dmap,
+               int nc,
+               int ncomp);
 
   static void initialize(bool nodal);
   static void Finalize();
@@ -92,6 +100,20 @@ public:
 
   void set_maxorder(const int max_order);
 
+  // *******************************************************************************
+  // These two take a status flag and pass the status flag to mgt_solve
+  // *******************************************************************************
+
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+             const BndryData& bd, int need_grad_phi, Real& final_resnorm,int& status);
+
+  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
+	     int need_grad_phi, Real& final_resnorm,int& status);
+
+  // *******************************************************************************
+  // These four do *not* take a status flag but do pass an internal status flag to mgt_solve
+  // *******************************************************************************
+
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
              const BndryData& bd, Real& final_resnorm);
 
@@ -103,6 +125,10 @@ public:
 
   void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
 	     int need_grad_phi, Real& final_resnorm);
+
+  // *******************************************************************************
+  // End of solve options
+  // *******************************************************************************
 
   void applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd);
 
@@ -131,6 +157,7 @@ public:
   static int def_maxiter, def_maxiter_b, def_bottom_solver;
   static int def_nu_1, def_nu_2, def_nu_b, def_nu_f, def_gamma;
   static Real def_omega, def_bottom_solver_eps;
+  static Real def_max_L0_growth;
   static int def_verbose, def_cg_verbose, def_min_width, def_max_nlevel;
   static int def_cycle, def_smoother;
   static int def_usecg, def_cg_solver;
@@ -144,9 +171,8 @@ private:
   Real m_beta;
   int m_nlevel;
 
-  const std::vector<DistributionMapping> m_dmap;
-  const std::vector<BoxArray> m_grids;
-  const bool m_nodal;
+  std::vector<BoxArray> m_grids;
+  bool m_nodal;
   bool have_rhcc;
 
   static bool initialized;

@@ -137,6 +137,10 @@ public:
     //
     const BndryData& bndryData () const;
     //
+    // set the boundary data object
+    //
+    void bndryData (const BndryData& bd);
+    //
     // return the box array
     //
     const BoxArray& boxArray (int level = 0) const;
@@ -237,13 +241,17 @@ protected:
     //
     Array< LnClassPtr< BndryRegister > > tangderiv;
     //
+    // A useful typedef.
+    //
+    typedef BndryData::MaskTuple MaskTuple;
+    //
     // Array (on level) of Arrays (on grid) of Arrays (on orientation) of pointers to Masks for whether boundary Fabs are covered, not_covered, outside_domain
     //
-    Array< Array< Array< Mask*> > > maskvals;
+    Array< std::map<int,MaskTuple> > maskvals;
     //
     // boundary data class
     //
-    const BndryData& bgb;
+    BndryData bgb;
     //
     // Array (on level) of geometry objects.  Needed for determining whether stuff intersects on periodic domains
     //
@@ -279,6 +287,14 @@ const BndryData&
 MCLinOp::bndryData () const
 {
     return bgb;
+}
+
+inline
+void
+MCLinOp::bndryData (const BndryData& bd)
+{
+    BL_ASSERT(gbox[0] == bd.boxes());
+    bgb = bd;
 }
 
 inline

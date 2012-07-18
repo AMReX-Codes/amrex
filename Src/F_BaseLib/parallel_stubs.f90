@@ -224,7 +224,8 @@ contains
     g_init = .True.
   end subroutine parallel_initialize
 
-  subroutine parallel_finalize()
+  subroutine parallel_finalize(do_finalize_MPI)
+    logical, intent(in), optional :: do_finalize_MPI
     g_init = .False.
   end subroutine parallel_finalize
 

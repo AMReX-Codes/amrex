@@ -218,7 +218,7 @@ subroutine mgt_nodal_finalize(dx,bc)
      else if (dm .eq. 2) then
        ns = 9
      end if
-     if ( parallel_ioprocessor() ) print *,'SETTING UP DENSE STENCIL WITH NS = ',ns
+     if ( parallel_ioprocessor() .and. mgts%verbose > 0 ) print *,'SETTING UP DENSE STENCIL WITH NS = ',ns
   else
     ns = 2*dm+1
     do n = nlev, 2, -1
@@ -731,6 +731,8 @@ subroutine mgt_nodal_dealloc()
   deallocate(mgts%amr_coeffs)
   deallocate(mgts%one_sided_ss)
   deallocate(mgts%fine_mask)
+
+  call parallel_finalize(.false.) ! do not finalize MPI but free communicator
 
 end subroutine mgt_nodal_dealloc
 

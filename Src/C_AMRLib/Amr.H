@@ -9,6 +9,7 @@
 #include <BoxArray.H>
 #include <Array.H>
 #include <PArray.H>
+#include <ParmParse.H>
 #ifdef USE_STATIONDATA
 #include <StationData.H>
 #endif
@@ -36,7 +37,7 @@ public:
     //
     // The destructor.
     //
-    ~Amr ();
+    virtual ~Amr ();
     //
     // Init data after construction. Must be called before timestepping.
     //
@@ -45,6 +46,10 @@ public:
     // Set the timestep on each level.
     //
     void setDtLevel (const Array<Real>& dt_lev);
+    //
+    // Set the timestep at one level.
+    //
+    void setDtLevel (Real dt, int lev);
     //
     // Set the dtmin on each level.
     //
@@ -65,6 +70,10 @@ public:
     // Subcycle in time?
     //
     int subCycle () const;
+    //
+    // How are we subcycling?
+    //
+    std::string subcyclingMode() const;
     //
     // Maximum allowable level.
     //
@@ -247,6 +256,10 @@ public:
     //
     void RegridOnly (Real time);
     //
+    // Should we regrid this level?
+    //
+    bool okToRegrid (int level);
+    //
     // Do a complete integration cycle.
     //
     virtual void coarseTimeStep (Real stop_time);
@@ -269,7 +282,20 @@ public:
     // How many datalogs have been opened
     //
     int NumDataLogs ();
-
+    
+    //
+    // Compute the optimal subcycling pattern.
+    // This assumes that anything less than cycle_max[i] is a valid
+    // number of subcycles at level[i]. For example 
+    // if ref_ratio[i] = cycle_max[i] = 4, then 1,2,3,4 are all valid 
+    // values for n_cycles[i]
+    //
+    static Real computeOptimalSubcycling(int n, 
+                                         int* best,
+                                         Real* dt_max, 
+                                         Real* est_work, 
+                                         int* cycle_max);
+                                         
 protected:
     //
     // Used by grid_places().
@@ -345,6 +371,12 @@ protected:
     void setRecordRunInfoTerse (const std::string&);
 
     void setRecordDataInfo (int i, const std::string&);
+    
+    //
+    // The following methods contain the parmParse code for their section.
+    //
+    void initSubcycle(ParmParse * pp);
+    void initPltAndChk(ParmParse * pp);
     //
     // The data ...
     //
@@ -359,6 +391,7 @@ protected:
     Array<int>       level_steps;  // Number of time steps at this level.
     Array<int>       level_count;
     Array<int>       n_cycle;
+    std::string      subcycling_mode; //Type of subcycling to use.
     Array<Real>      dt_min;
     bool             isPeriodic[BL_SPACEDIM];  // Domain periodic?
     Array<int>       regrid_int;      // Interval between regridding.
@@ -572,6 +605,13 @@ int
 Amr::subCycle () const
 {
     return sub_cycle;
+}
+
+inline
+std::string
+Amr::subcyclingMode() const
+{
+    return subcycling_mode;
 }
 
 inline

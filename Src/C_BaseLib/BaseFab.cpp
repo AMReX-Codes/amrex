@@ -14,7 +14,7 @@
 long BoxLib::total_bytes_allocated_in_fabs     = 0;
 long BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
 
-int  BoxLib::BF_init::m_cnt = 0;
+int BoxLib::BF_init::m_cnt = 0;
 
 namespace
 {
@@ -138,6 +138,33 @@ BaseFab<Real>::performSetVal (Real       val,
 }
 
 template<>
+BaseFab<Real>&
+BaseFab<Real>::invert (Real       val,
+                       const Box& bx,
+                       int        comp,
+                       int        ncomp)
+{
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+
+    const int* _box_lo = bx.loVect();            
+    const int* _box_hi = bx.hiVect();            
+    const int* _datalo = loVect();                           
+    const int* _datahi = hiVect();
+
+    const Real* _data = dataPtr(comp);
+
+    FORT_FASTINVERT(_data,
+                    ARLIM(_datalo),
+                    ARLIM(_datahi),
+                    _box_lo,
+                    _box_hi,
+                    &val,
+                    &ncomp);
+    return *this;
+}
+
+template<>
 Real
 BaseFab<Real>::norm (const Box& bx,
                      int        p,
@@ -220,7 +247,6 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
                   ARLIM(_x_phi),
                   D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
                   &numcomp);
-
     return *this;
 }
 
@@ -260,7 +286,6 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
                   ARLIM(_x_phi),
                   D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
                   &numcomp);
-
     return *this;
 }
 
@@ -300,7 +325,6 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
                    ARLIM(_x_phi),
                    D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
                    &numcomp);
-
     return *this;
 }
 
@@ -340,7 +364,45 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
                     ARLIM(_x_phi),
                     D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
                     &numcomp);
+    return *this;
+}
 
+template<>
+BaseFab<Real>&
+BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
+                                 const Box&           srcbox,
+                                 const Box&           destbox,
+                                 int                  srccomp,
+                                 int                  destcomp,
+                                 int                  numcomp)
+{
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(destbox.sameSize(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+
+    const int* destboxlo  = destbox.loVect();
+    const int* destboxhi  = destbox.hiVect();
+    const int* _th_plo    = loVect();
+    const int* _th_phi    = hiVect();
+    const int* _x_lo      = srcbox.loVect();
+    const int* _x_plo     = src.loVect();
+    const int* _x_phi     = src.hiVect();
+    Real*       _th_p     = dataPtr(destcomp);
+    const Real* _x_p      = src.dataPtr(srccomp);
+
+    FORT_FASTPROTDIVIDE(_th_p,
+                        ARLIM(_th_plo),
+                        ARLIM(_th_phi),
+                        D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
+                        D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
+                        _x_p,
+                        ARLIM(_x_plo),
+                        ARLIM(_x_phi),
+                        D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
+                        &numcomp);
     return *this;
 }
 #endif

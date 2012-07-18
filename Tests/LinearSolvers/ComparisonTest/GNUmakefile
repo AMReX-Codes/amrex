@@ -97,5 +97,6 @@ vpath %.f   : . $(vpathdir)
 vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
+	@echo SUCCESS
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules

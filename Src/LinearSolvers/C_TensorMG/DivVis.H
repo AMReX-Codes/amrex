@@ -206,11 +206,11 @@ private:
     //
     // Flag, can a coeffs be trusted at a level.
     //
-    std::vector<bool> a_valid;
+    Array<int> a_valid;
     //
     // Flag, can b coeffs be trusted at a level.
     //
-    std::vector<bool> b_valid;
+    Array<int> b_valid;
     //
     // Default value for a (MultiFab) coeficient.
     //

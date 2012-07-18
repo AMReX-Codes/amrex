@@ -152,9 +152,9 @@ public:
     //
     using BoxList::shiftHalf;
     //
-    // Create a BoxList from this BoxDomain.
+    // Return a const reference to the underlying BoxList of this BoxDomain.
     //
-    BoxList boxList () const;
+    const BoxList& boxList () const;
     //
     // Are the BoxDomains equal?
     //
