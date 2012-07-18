@@ -24,6 +24,12 @@ namespace
     bool initialized = false;
 }
 
+MultiFabCopyDescriptor::MultiFabCopyDescriptor ()
+    :
+    FabArrayCopyDescriptor<FArrayBox>() {}
+
+MultiFabCopyDescriptor::~MultiFabCopyDescriptor () {}
+
 void
 MultiFab::Add (MultiFab&       dst,
 	       const MultiFab& src,
@@ -449,7 +455,7 @@ MultiFab::max (const Box& region,
     return mn;
 }
 
-IntVect 
+IntVect
 MultiFab::minIndex (int comp,
                     int nghost) const
 {
@@ -475,8 +481,14 @@ MultiFab::minIndex (int comp,
 
     if (NProcs > 1)
     {
-        Array<Real> mns(NProcs);
-        Array<int>  locs(NProcs*BL_SPACEDIM);
+        Array<Real> mns(1);
+        Array<int>  locs(1);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            mns.resize(NProcs);
+            locs.resize(NProcs*BL_SPACEDIM);
+        }
 
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -497,7 +509,7 @@ MultiFab::minIndex (int comp,
                 {
                     mn = mns[i];
 
-                    int j = BL_SPACEDIM * i;
+                    const int j = BL_SPACEDIM * i;
 
                     loc = IntVect(D_DECL(locs[j+0],locs[j+1],locs[j+2]));
                 }
@@ -536,8 +548,14 @@ MultiFab::maxIndex (int comp,
 
     if (NProcs > 1)
     {
-        Array<Real> mxs(NProcs);
-        Array<int>  locs(NProcs*BL_SPACEDIM);
+        Array<Real> mxs(1);
+        Array<int>  locs(1);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            mxs.resize(NProcs);
+            locs.resize(NProcs*BL_SPACEDIM);
+        }
 
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -558,7 +576,7 @@ MultiFab::maxIndex (int comp,
                 {
                     mx = mxs[i];
 
-                    int j = BL_SPACEDIM * i;
+                    const int j = BL_SPACEDIM * i;
 
                     loc = IntVect(D_DECL(locs[j+0],locs[j+1],locs[j+2]));
                 }
@@ -574,17 +592,17 @@ MultiFab::maxIndex (int comp,
 Real
 MultiFab::norm0 (int comp, const BoxArray& ba) const
 {
-    Real nm0 = -std::numeric_limits<Real>::max();
- 
+    Real nm0 = std::numeric_limits<Real>::min();
+
+    std::vector< std::pair<int,Box> > isects;
+
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        std::vector< std::pair<int,Box> > isects = ba.intersections(mfi.validbox());
-        if (!isects.empty())
+        ba.intersections(mfi.validbox(),isects);
+
+        for (int i = 0, N = isects.size(); i < N; i++)
         {
-            for (int i = 0, N = isects.size(); i < N; i++)
-            {
-                nm0 = std::max(nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
-            }
+            nm0 = std::max(nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
         }
     }
  
@@ -596,7 +614,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba) const
 Real
 MultiFab::norm0 (int comp) const
 {
-    Real nm0 = -std::numeric_limits<Real>::max();
+    Real nm0 = std::numeric_limits<Real>::min();
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -611,13 +629,12 @@ MultiFab::norm0 (int comp) const
 Real
 MultiFab::norm2 (int comp) const
 {
-
     Real nm2 = 0.e0;
 
-    Real nm_grid;
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+        const Real nm_grid = get(mfi).norm(mfi.validbox(), 2, comp, 1);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-        nm_grid = get(mfi).norm(mfi.validbox(), 2, comp, 1);
         nm2 += nm_grid*nm_grid;
     }
 
@@ -626,6 +643,21 @@ MultiFab::norm2 (int comp) const
     nm2 = std::sqrt(nm2);
 
     return nm2;
+}
+ 
+Real
+MultiFab::norm1 (int comp, int ngrow) const
+{
+    Real nm1 = 0.e0;
+
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+        nm1 += get(mfi).norm(BoxLib::grow(mfi.validbox(),ngrow), 1, comp, 1);
+    }
+
+    ParallelDescriptor::ReduceRealSum(nm1);
+
+    return nm1;
 }
 
 
@@ -843,8 +875,8 @@ BoxLib::linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
                          BoxList*                returnUnfilledBoxes,
                          Array<FillBoxId>&       returnedFillBoxIds,
                          const Box&              subbox,
-                         const MultiFabId&       faid1,
-                         const MultiFabId&       faid2,
+                         MultiFabId              faid1,
+                         MultiFabId              faid2,
                          Real                    t1,
                          Real                    t2,
                          Real                    t,
@@ -903,8 +935,8 @@ BoxLib::linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 void
 BoxLib::linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                           const Array<FillBoxId>& fillBoxIds,
-                          const MultiFabId&       faid1,
-                          const MultiFabId&       faid2,
+                          MultiFabId              faid1,
+                          MultiFabId              faid2,
                           FArrayBox&              dest,
                           Real                    t1,
                           Real                    t2,
@@ -967,11 +999,13 @@ MultiFab::FillBoundary (int  scomp,
         const DistributionMapping& DMap   = DistributionMap();
         const int                  MyProc = ParallelDescriptor::MyProc();
 
+        std::vector< std::pair<int,Box> > isects;
+
         for (MFIter mfi(*this); mfi.isValid(); ++mfi)
         {
             const int i = mfi.index();
 
-            std::vector< std::pair<int,Box> > isects = ba.intersections((*this)[mfi].box());
+            ba.intersections((*this)[mfi].box(),isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
@@ -1003,7 +1037,7 @@ MultiFab::SumBoundary (int  scomp,
 {
     if ( n_grow <= 0 ) return;
 
-    std::list<SIRec>       sirec;
+    std::vector<SIRec>     sirec;
     MultiFabCopyDescriptor mfcd;
     const FabArrayId       mfid = mfcd.RegisterFabArray(this);
 
@@ -1017,7 +1051,7 @@ MultiFab::SumBoundary (int  scomp,
     {
         const int i = mfi.index();
 
-        isects = gba.intersections(mfi.validbox());
+        gba.intersections(mfi.validbox(),isects);
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
@@ -1043,7 +1077,7 @@ MultiFab::SumBoundary (int  scomp,
 
     FArrayBox fab;
 
-    for (std::list<SIRec>::iterator it = sirec.begin(), End = sirec.end();
+    for (std::vector<SIRec>::iterator it = sirec.begin(), End = sirec.end();
          it != End;
          ++it)
     {

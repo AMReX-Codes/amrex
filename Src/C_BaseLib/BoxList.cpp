@@ -299,7 +299,7 @@ BoxList::complementIn (const Box&     b,
 
             if (!bx.ok()) continue;
 
-            isects = ba.intersections(bx);
+            ba.intersections(bx,isects);
 
             if (isects.empty())
             {

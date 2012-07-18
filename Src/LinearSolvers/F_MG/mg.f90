@@ -23,7 +23,7 @@ contains
                             max_nlevel, max_bottom_nlevel, min_width, &
                             max_iter, eps, abs_eps, &
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
-                            st_type, &
+                            max_L0_growth, &
                             verbose, cg_verbose, nodal, use_hypre, is_singular)
 
     use bl_IO_module
@@ -44,6 +44,7 @@ contains
     real(kind=dp_t), intent(in), optional :: eps
     real(kind=dp_t), intent(in), optional :: abs_eps
     real(kind=dp_t), intent(in), optional :: bottom_solver_eps
+    real(kind=dp_t), intent(in), optional :: max_L0_growth
 
     integer, intent(in), optional :: max_nlevel
     integer, intent(in), optional :: max_bottom_nlevel
@@ -53,16 +54,16 @@ contains
     integer, intent(in), optional :: bottom_max_iter
     integer, intent(in), optional :: verbose
     integer, intent(in), optional :: cg_verbose
-    integer, intent(in), optional :: st_type
     integer, intent(in), optional :: use_hypre
     logical, intent(in), optional :: is_singular
 
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
     integer :: n, i, id, vol, j
-    type(layout) :: la1, la2
-    type(boxarray) :: ba
-    logical :: nodal_flag
+    type(layout)    :: la1, la2
+    type(box)       :: bounding_box
+    type(boxarray)  :: ba
+    logical         :: nodal_flag
     real(kind=dp_t) :: dvol, dvol_pd
     type(bl_prof_timer), save :: bpt
 
@@ -80,7 +81,6 @@ contains
     mgt%dim = get_dim(la)
 
     ! Paste in optional arguments
-    if ( present(st_type)           ) mgt%st_type           = st_type
     if ( present(ng)                ) mgt%ng                = ng
     if ( present(nc)                ) mgt%nc                = nc
     if ( present(max_nlevel)        ) mgt%max_nlevel        = max_nlevel
@@ -103,6 +103,8 @@ contains
     if ( present(verbose)           ) mgt%verbose           = verbose
     if ( present(cg_verbose)        ) mgt%cg_verbose        = cg_verbose
     if ( present(use_hypre)         ) mgt%use_hypre         = use_hypre 
+
+    if ( present(max_L0_growth)     ) mgt%max_L0_growth     = max_L0_growth 
 
     nodal_flag = .false.
     if ( present(nodal) ) then
@@ -293,60 +295,80 @@ contains
 
     if (mgt%bottom_solver == 4 .and. mgt%use_hypre == 0) then
 
-       allocate(mgt%bottom_mgt)
-
-       ! Get the old/new coarse problem domain
+       ! This is the original layout
        old_coarse_la = get_layout(mgt%ss(1))
-       coarse_pd = layout_get_pd(old_coarse_la)
 
-       ! Get the new coarse boxarray and layout
-       call box_build_2(bxs,coarse_pd%lo(1:mgt%dim),coarse_pd%hi(1:mgt%dim))
-       call boxarray_build_bx(new_coarse_ba,bxs)
+       bounding_box = bbox(get_boxarray(old_coarse_la));
 
-       ! compute the initial size of each of the boxes for the fancy
-       ! bottom solver.  Each box will have bottom_box_size**dm cells
-       call get_bottom_box_size(bottom_box_size,new_coarse_ba,min_width, &
-                                mgt%max_bottom_nlevel)
+       ! Does the boxarray fill the entire bounding box? If not then don't use this bottom solver
+       if (.not. contains(get_boxarray(old_coarse_la),bounding_box) &
+            .or.  (old_coarse_la%lap%nboxes .le. 8) ) then
 
-       call boxarray_maxsize(new_coarse_ba,bottom_box_size)
-       call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
-                            pmask=old_coarse_la%lap%pmask)
+          mgt%bottom_solver = 1
 
-       call boxarray_destroy(new_coarse_ba)
+          if (parallel_IOProcessor() .and. verbose > 1) then
+              print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
+              print *,'F90mg: Using bottom_solver = 1 instead'
+          end if
 
-       if (parallel_IOProcessor() .and. verbose > 1) then
-          print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
-          call print(layout_get_pd(old_coarse_la))
-          print *,'   ... Original boxes ',old_coarse_la%lap%nboxes
-          print *,'   ... New      boxes ',new_coarse_la%lap%nboxes
-!         print *,'# cells on each side  ',bottom_box_size
+       else
+
+           allocate(mgt%bottom_mgt)
+
+           ! Get the old/new coarse problem domain
+           coarse_pd = layout_get_pd(old_coarse_la)
+
+           ! Get the new coarse boxarray and layout
+           call box_build_2(bxs,bounding_box%lo(1:mgt%dim),bounding_box%hi(1:mgt%dim))
+           call boxarray_build_bx(new_coarse_ba,bxs)
+ 
+           ! compute the initial size of each of the boxes for the fancy
+           ! bottom solver.  Each box will have bottom_box_size**dm cells
+           call get_bottom_box_size(bottom_box_size,new_coarse_ba,min_width, &
+                                    mgt%max_bottom_nlevel)
+ 
+           call boxarray_maxsize(new_coarse_ba,bottom_box_size)
+           call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
+                                pmask=old_coarse_la%lap%pmask)
+    
+           call boxarray_destroy(new_coarse_ba)
+ 
+           if (parallel_IOProcessor() .and. verbose > 1) then
+              print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
+              print *,'   ... Bounding box is'
+              call print(bounding_box)
+              print *,'   ... Original boxes ',old_coarse_la%lap%nboxes
+              print *,'   ... New      boxes ',new_coarse_la%lap%nboxes
+              print *,'# cells on each side  ',bottom_box_size
+           end if
+
+           coarse_dx(:) = mgt%dh(:,1)
+
+           call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
+                               domain_bc, &
+                               dh = coarse_dx, &
+                               ns = ns, &
+                               nc = mgt%nc, &
+                               ng = mgt%ng, &
+                               smoother = smoother, &
+                               nu1 = nu1, &
+                               nu2 = nu2, &
+                               gamma = gamma, &
+                               cycle_type = cycle_type, &
+                               omega = omega, &
+                               bottom_solver = 1, &
+                               bottom_max_iter = bottom_max_iter, &
+                               bottom_solver_eps = bottom_solver_eps, &
+                               max_iter = max_iter, &
+                               max_nlevel = max_nlevel, &
+                               min_width = min_width, &
+                               eps = eps, &
+                               abs_eps = abs_eps, &
+                               max_L0_growth = max_L0_growth, &
+                               verbose = verbose, &
+                               cg_verbose = cg_verbose, &
+                               nodal = nodal)
        end if
-
-       coarse_dx(:) = mgt%dh(:,1)
-
-       call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
-                           domain_bc, &
-                           dh = coarse_dx, &
-                           ns = ns, &
-                           nc = mgt%nc, &
-                           ng = mgt%ng, &
-                           smoother = smoother, &
-                           nu1 = nu1, &
-                           nu2 = nu2, &
-                           gamma = gamma, &
-                           cycle_type = cycle_type, &
-                           omega = omega, &
-                           bottom_solver = 1, &
-                           bottom_max_iter = bottom_max_iter, &
-                           bottom_solver_eps = bottom_solver_eps, &
-                           max_iter = max_iter, &
-                           max_nlevel = max_nlevel, &
-                           min_width = min_width, &
-                           eps = eps, &
-                           abs_eps = abs_eps, &
-                           verbose = verbose, &
-                           cg_verbose = cg_verbose, &
-                           nodal = nodal)
     end if
 
   end subroutine mg_tower_build
@@ -738,7 +760,7 @@ contains
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
     if ( stat /= 0 ) then
-       if ( parallel_IOProcessor() ) then
+       if ( parallel_IOProcessor() .and. mgt%verbose > 0 ) then
           call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
        end if
        do i = 1, 20
@@ -1057,8 +1079,8 @@ contains
           call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
        end do
-       ! uu  += cc, done, by convention, using the prolongation routine.
 
+       ! uu  += cc, done, by convention, using the prolongation routine.
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
 
        if ( parallel_IOProcessor() .and. do_diag) &

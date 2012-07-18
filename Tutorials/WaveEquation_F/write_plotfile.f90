@@ -1,14 +1,14 @@
 module write_plotfile_module
 
-  use layout_module
-  use multifab_module
-  use fabio_module
-
   implicit none
 
 contains
   
   subroutine write_plotfile(la,data,istep,dx,time,prob_lo,prob_hi)
+
+    use layout_module
+    use multifab_module
+    use fabio_module
 
     type(layout)   , intent(in   ) :: la
     type(multifab) , intent(in   ) :: data

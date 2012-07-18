@@ -62,11 +62,6 @@ ifeq ($(ARCH),Linux)
   ifeq ($(COMP),PathScale)
     FC = mpif90
     F90 = mpif90
-    ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-      FC = mpipathf90
-      F90 = mpipathf90
-      CC = mpipathcc
-    endif
     ifdef MPIHOME
       mpi_include_dir = $(MPIHOME)/include
     endif
@@ -169,17 +164,6 @@ ifeq ($(findstring cvrsvc, $(HOST)), cvrsvc)
         F90 := mpif90
     endif
 endif
-ifeq ($(findstring nid, $(HOST)), nid)
-    #
-    # franklin.nersc.gov
-    #
-    ifdef MPI
-        CXX := CC -target=linux
-        CC  := cc -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
-    endif
-endif
 ifeq ($(findstring grace, $(HOST)), grace)
     #
     # grace.nersc.gov
@@ -241,10 +225,20 @@ ifeq ($(HOST), orga)
 endif
 
 ifeq ($(HOST),naphta)
-  MPIHOME=/home/car/mpich2
+  MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = -L$(MPIHOME)/lib
-  mpi_libraries += -lmpich
+  mpi_libraries += -lmpich -lmpl -lpthread
+  ifeq ($(COMP),g95)
+    $(error SORRY NO MPI WITH G95)
+  endif
+endif
+
+ifeq ($(HOST),battra)
+  MPIHOME=/usr/local
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = -L$(MPIHOME)/lib
+  mpi_libraries += -lmpich -lmpl -lpthread
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
@@ -310,16 +304,12 @@ ifeq ($(HOST),posse)
   mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),mothra)
-  F90 = ifort
-  CXX = icc
   MPIHOME=/usr/local/mpich2
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
 ifeq ($(HOST),gimantis)
-  F90 = ifort
-  CXX = icc
   MPIHOME=/usr/local/mpich2
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
@@ -331,20 +321,32 @@ ifeq ($(HOST),angilas)
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
-ifeq ($(findstring donev, $(HOSTNAME)), donev)
-   ifeq ($(MPIVENDOR),OpenMPI)
+ifeq ($(findstring donev, $(HOSTNAME)), donev) # TEMP FIXME
+   ifeq ($(MPIVENDOR),OpenMPIv1)
+      MPIHOME=/usr/lib64/compat-openmpi
+      mpi_include_dir = /usr/include/compat-openmpi-x86_64
+      mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
+      mpi_lib_dir = $(MPIHOME)/lib
+   else ifeq ($(MPIVENDOR),OpenMPI) # Latest version
       MPIHOME=$(HOME)/HPC/Libraries/OMPI
-      mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90      
+      mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
+      mpi_include_dir = $(MPIHOME)/include
+      mpi_lib_dir = $(MPIHOME)/lib
    else
       MPIHOME=$(HOME)/HPC/Libraries/MPI
-      mpi_libraries += -lmpich -lmpichf90 -lpthread    
+      mpi_libraries += -lmpich -lmpichf90 -lpthread
+      mpi_include_dir = $(MPIHOME)/include
+      mpi_lib_dir = $(MPIHOME)/lib
    endif
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
 else ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
+   # OpenMPI v2
    MPIHOME=/usr/lib64/openmpi
-   mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
    mpi_include_dir = /usr/include/openmpi-x86_64
+   # OpenMPI v1
+   #MPIHOME=/usr/lib64/compat-openmpi
+   #mpi_include_dir = /usr/include/compat-openmpi-x86_64
+   # Generic stuff:
+   mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
    mpi_lib_dir = $(MPIHOME)/lib
 endif
 
@@ -355,44 +357,11 @@ ifeq ($(HOST),greenstreet)
   mpi_libraries += -lmpich
 endif
 
-ifeq ($(findstring nan, $(UNAMEN)), nan)
-  MPIHOME=/usr/local/mpich2/
-  F90 = mpif90
-  CXX = mpicxx
-endif
-
-ifeq ($(findstring inf, $(UNAMEN)), inf)
-  MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90
-  CXX = mpicxx
-  mpi_lib_dir = $(MPIHOME)/lib
-endif
-
-ifeq ($(findstring sn, $(UNAMEN)), sn)
-  MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90
-  CXX = mpicxx
-endif
-
-ifeq ($(findstring bender, $(UNAMEN)), bender)
-  MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90 -f90=gfortran 
-  CXX = mpicxx -cxx=gcc
-endif
-
-ifeq ($(findstring xrb, $(UNAMEN)), xrb)
-  MPIHOME=/usr/lib64/mpich2
-  F90 = mpif90
-  CXX = mpicxx
-endif
-
-# generic linux laptop install with MPICH -- assumes that the MPIHOME 
-# environment variable is set
-ifeq ($(findstring localhost, $(UNAMEN)), localhost)
-  ifeq ($(findstring mpich, $(MPIHOME)), mpich)
+# generic linux install with MPICH wrappers -- set the 
+# BOXLIB_USE_MPI_WRAPPERS environment variable for this
+ifdef BOXLIB_USE_MPI_WRAPPERS
     F90 = mpif90
     CXX = mpicxx
-  endif
 endif
 
 ifeq ($(HOST),lookfar)

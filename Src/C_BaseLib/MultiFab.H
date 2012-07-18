@@ -22,8 +22,8 @@ namespace BoxLib
                           BoxList*                returnUnfilledBoxes,
                           Array<FillBoxId>&       returnedFillBoxIds,
                           const Box&              subbox,
-                          const MultiFabId&       faid1,
-                          const MultiFabId&       faid2,
+                          MultiFabId              faid1,
+                          MultiFabId              faid2,
                           Real                    t1,
                           Real                    t2,
                           Real                    t,
@@ -34,8 +34,8 @@ namespace BoxLib
 
     void linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                            const Array<FillBoxId>& fillBoxIds,
-                           const MultiFabId&       faid1,
-                           const MultiFabId&       faid2,
+                           MultiFabId              faid1,
+                           MultiFabId              faid2,
                            FArrayBox&              dest,
                            Real                    t1,
                            Real                    t2,
@@ -121,6 +121,12 @@ public:
     //
     Real norm0 (int comp, const BoxArray& ba) const;
 
+    //
+    // Returns the L1 norm of component "comp" over the MultiFab.
+    // ngrow ghost cells are used.
+    //
+    Real norm1 (int comp = 0, int ngrow = 0) const;
+    
     //
     // Returns the L2 norm of component "comp" over the MultiFab.
     // No ghost cells are used.
@@ -464,14 +470,11 @@ class MultiFabCopyDescriptor
 {
   public:
 
-    MultiFabCopyDescriptor ()
-        :
-        FabArrayCopyDescriptor<FArrayBox>() {}
+    MultiFabCopyDescriptor ();
 
-    MultiFabId RegisterMultiFab (MultiFab* mf)
-    {
-        return RegisterFabArray(mf);
-    }
+    ~MultiFabCopyDescriptor ();
+
+    MultiFabId RegisterMultiFab (MultiFab* mf) { return RegisterFabArray(mf); }
 
   private:
     //

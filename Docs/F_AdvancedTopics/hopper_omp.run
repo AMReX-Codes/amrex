@@ -1,0 +1,14 @@
+#PBS -q debug
+#PBS -l mppwidth=48
+#PBS -l walltime=00:05:00
+#PBS -j eo
+
+setenv OMP_NUM_THREADS 6
+
+cd $PBS_O_WORKDIR
+
+echo Starting `date`
+
+aprun -n 8 -N 4 -S 1 -ss -d 6 ./main.Linux.gfortran.mpi.omp.exe inputs_2d
+
+echo Ending `date`

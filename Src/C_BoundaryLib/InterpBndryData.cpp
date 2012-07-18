@@ -41,22 +41,22 @@ static
 void
 bdfunc_init ()
 {
-    Orientation xloface(0,Orientation::low);
-    Orientation xhiface(0,Orientation::high);
+    const Orientation xloface(0,Orientation::low);
+    const Orientation xhiface(0,Orientation::high);
 
     bdfunc[xloface] = FORT_BDINTERPXLO;
     bdfunc[xhiface] = FORT_BDINTERPXHI;
 
 #if (BL_SPACEDIM > 1)
-    Orientation yloface(1,Orientation::low);
-    Orientation yhiface(1,Orientation::high);
+    const Orientation yloface(1,Orientation::low);
+    const Orientation yhiface(1,Orientation::high);
     bdfunc[yloface] = FORT_BDINTERPYLO;
     bdfunc[yhiface] = FORT_BDINTERPYHI;
 #endif
 
 #if (BL_SPACEDIM > 2)
-    Orientation zloface(2,Orientation::low);
-    Orientation zhiface(2,Orientation::high);
+    const Orientation zloface(2,Orientation::low);
+    const Orientation zhiface(2,Orientation::high);
     bdfunc[zloface] = FORT_BDINTERPZLO;
     bdfunc[zhiface] = FORT_BDINTERPZHI;
 #endif
@@ -66,6 +66,21 @@ InterpBndryData::InterpBndryData ()
     :
     BndryData()
 {}
+
+InterpBndryData::InterpBndryData (const InterpBndryData& rhs)
+    :
+    BndryData(rhs)
+{}
+
+InterpBndryData&
+InterpBndryData::operator= (const InterpBndryData& rhs)
+{
+    if (!(this == &rhs))
+    {
+        BndryData::operator=(rhs);
+    }
+    return *this;
+}
 
 InterpBndryData::InterpBndryData (const BoxArray& _grids,
                                   int             _ncomp,
@@ -101,6 +116,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
     BL_ASSERT(grids == mf.boxArray());
 
     IntVect ref_ratio = IntVect::TheUnitVector();
+
     for (int n = bnd_start; n < bnd_start+num_comp; ++n)
 	setBndryConds(bc, ref_ratio, n);
 
@@ -112,7 +128,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
 
         for (OrientationIter fi; fi; ++fi)
         {
-            Orientation face(fi());
+            const Orientation face = fi();
 
             if (bx[face]==geom.Domain()[face] && !geom.isPeriodic(face.coordDir()))
             {
@@ -177,6 +193,8 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
             const int* cblo    = crse_bx.loVect();
             const int* cbhi    = crse_bx.hiVect();
             int mxlen          = crse_bx.longside() + 2;
+
+            const MaskTuple& msk = masks[fine_mfi.index()];
             
             if (max_order > 1)
             {
@@ -193,14 +211,14 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
 
             for (OrientationIter fi; fi; ++fi)
             {
-                Orientation face(fi());
-                int dir = face.coordDir();
+                const Orientation face = fi();
+                const int         dir  = face.coordDir();
                 if (fine_bx[face] != fine_domain[face] || geom.isPeriodic(dir))
                 {
                     //
                     // Internal or periodic edge, interpolate from crse data.
                     //
-                    const Mask& mask          = masks[face][fine_mfi.index()];
+                    const Mask& mask          = *(msk[face]);
                     const int* mlo            = mask.loVect();
                     const int* mhi            = mask.hiVect();
                     const int* mdat           = mask.dataPtr();

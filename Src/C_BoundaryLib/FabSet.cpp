@@ -6,24 +6,11 @@
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 
-FabSetIter::FabSetIter (const FabSet& fabset)
-    :
-    MFIter(fabset)
-{}
-
-FabSetIter::~FabSetIter () {}
-
 FabSetCopyDescriptor::FabSetCopyDescriptor ()
     :
     MultiFabCopyDescriptor() {}
 
 FabSetCopyDescriptor::~FabSetCopyDescriptor () {}
-
-FabSetId
-FabSetCopyDescriptor::RegisterFabSet (FabSet* fabset)
-{
-    return RegisterMultiFab(fabset);
-}
 
 FabSet::FabSet () {}
 
@@ -226,7 +213,7 @@ FabSet::DoIt (const MultiFab& src,
 
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        isects = ba_src.intersections((*this)[fsi].box());
+        ba_src.intersections((*this)[fsi].box(),isects);
 
         for (int j = 0, N = isects.size(); j < N; j++)
         {
@@ -381,18 +368,14 @@ FabSet::linComb (Real            a,
     fbids_mfa.reserve(16);
     fbids_mfb.reserve(16);
 
-    BoxArray ba_isects(bxa.size());  // Temp BoxArray for intersections() usage below.
-
-    for (int i = 0, N = bxa.size(); i < N; i++)
-    {
-        ba_isects.set(i, BoxLib::grow(bxa[i],ngrow));
-    }
+    BoxArray ba_isects = bxa;
+    ba_isects.grow(ngrow);
 
     std::vector< std::pair<int,Box> > isects;
 
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        isects = ba_isects.intersections(get(fsi).box());
+        ba_isects.intersections(get(fsi).box(),isects);
 
         for (int j = 0, N = isects.size(); j < N; j++)
         {

@@ -12,6 +12,8 @@ F90FLAGS :=
 FFLAGS   :=
 CFLAGS   :=
 
+FCOMP_VERSION :=
+
 VPATH_LOCATIONS :=
 INCLUDE_LOCATIONS :=
 
@@ -205,3 +207,8 @@ COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 
 LINK.f      = $(FC)  $(FFLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 LINK.f90    = $(F90) $(F90FLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
+
+
+# some pretty printing stuff
+bold=`tput bold`
+normal=`tput sgr0`

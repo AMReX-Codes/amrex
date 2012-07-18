@@ -280,7 +280,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
     //    HYPRE_StructPFMGSetRelChange(solver, 0);    // default: 0
     HYPRE_StructPFMGSetTol(solver, reltol);           // default: 1.e-6
     if (pfmg_rap_type >= 0) {
-      HYPRE_StructPFMGSetRelaxType(solver, pfmg_rap_type);  // default: 1
+      HYPRE_StructPFMGSetRAPType(solver, pfmg_rap_type);  // default: 1
     }
     if (pfmg_relax_type >= 0) {
       HYPRE_StructPFMGSetRelaxType(solver, pfmg_relax_type);  // default: 1

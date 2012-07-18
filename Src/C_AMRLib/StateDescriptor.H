@@ -244,7 +244,7 @@ private:
     Array<std::string> names;    // Printable names of components
     Array<BCRec>       bc;       // Array of bndry types for entire level
     PArray<BndryFunc>  bc_func;  // PArray of pointers to bndry fill functions
-    std::vector<bool>  m_master; // Are we a master or slave?
+    Array<int>         m_master; // Are we a master or slave? (true or false)
     Array<int>         m_groupsize; // Groupsize if we're a master
     //
     // If mapper_comp[icomp] != 0, that map is used instead of mapper

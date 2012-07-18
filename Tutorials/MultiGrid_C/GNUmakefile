@@ -1,6 +1,6 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
 #    then the line below will be ignored
-BOXLIB_HOME ?= ../../..
+BOXLIB_HOME ?= ../../
 
 # HYPRE_DIR defines the directory in which you can find hypre -- if this is already defined 
 #    then the line below will be ignored
@@ -95,5 +95,6 @@ vpath %.f   : . $(vpathdir)
 vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
+	@echo SUCCESS
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules

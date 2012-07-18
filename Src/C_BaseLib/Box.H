@@ -102,7 +102,7 @@ namespace BoxLib
     // Similar to bdryLo and bdryHi except that it operates on the
     // given face of  box b.
     //
-    const Box bdryNode (const Box& b, const Orientation& face, int len=1);
+    const Box bdryNode (const Box& b, Orientation face, int len=1);
     //
     // Return the cell centered Box of length len adjacent
     // to b on the low end along the coordinate direction dir.
@@ -123,7 +123,7 @@ namespace BoxLib
     //
     // Similar to adjCellLo and adjCellHi; operates on given face.
     //
-    const Box adjCell (const Box& b, const Orientation& face, int len=1);
+    const Box adjCell (const Box& b, Orientation face, int len=1);
     //
     // Modify Box to that of the minimum Box containing both
     // the original Box and the argument.
@@ -186,9 +186,9 @@ public:
     //
     // Construct dimension specific Boxes.
     //
-    Box (const IntVect&   small,
-         const IntVect&   big,
-         const IndexType& t);
+    Box (const IntVect& small,
+         const IntVect& big,
+         IndexType      t);
     //
     // Get the smallend of the box.
     //
@@ -238,7 +238,7 @@ public:
     //
     // Returns the coordinate normal to given face.
     //
-    int operator[] (const Orientation& face) const;
+    int operator[] (Orientation face) const;
     //
     // Checks if it is a proper box (including a valid type).
     //
@@ -494,8 +494,8 @@ public:
     //
     // Grow in the direction of the given face.
     //
-    Box& grow (const Orientation& face,
-               int                n_cell=1);
+    Box& grow (Orientation face,
+               int         n_cell=1);
     //
     // Refine Box by given (positive) refinement ratio.
     // NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
@@ -638,7 +638,7 @@ Box::hiVect () const
 
 inline
 int
-Box::operator[] (const Orientation& face) const
+Box::operator[] (Orientation face) const
 {
     const int dir = face.coordDir();
     return face.isLow() ? smallend[dir] : bigend[dir];
@@ -836,6 +836,49 @@ Box::index (const IntVect& v) const
                       +(v[2]-smallend[2])*length(1));
 #endif
     return result;
+}
+
+inline
+bool
+Box::contains (const IntVect& p) const
+{
+    return p >= smallend && p <= bigend;
+}
+
+inline
+bool
+Box::contains (const Box& b) const
+{
+    BL_ASSERT(sameType(b));
+    return b.smallend >= smallend && b.bigend <= bigend;
+}
+
+inline
+Box&
+Box::operator&= (const Box& b)
+{
+    BL_ASSERT(sameType(b));
+    smallend.max(b.smallend);
+    bigend.min(b.bigend);
+    return *this;
+}
+
+inline
+const Box
+Box::operator& (const Box& rhs) const
+{
+    Box lhs = *this;
+    lhs &= rhs;
+    return lhs;
+}
+
+inline
+bool
+Box::intersects (const Box& b) const
+{
+    Box isect = *this;
+    isect &= b;
+    return isect.ok();
 }
 
 #endif /*BL_BOX_H*/

@@ -11,3 +11,21 @@ The `pyboxlib`_ repository on github.com is a mirror of the
 .. _`BoxLib`: https://ccse.lbl.gov/BoxLib/index.html
 
 
+Overview
+========
+
+BoxLib routines are called from Python through the various wrappers in
+``src/fboxlib.f90``.  These wrappers are called from Python using the
+``ctypes`` Python module (which allows one to load a shared library
+and call C callable routines directly).  The wrappers are made C
+callable using the ``iso_c_binding`` Fortran module.  Breifly:
+
+1. Python: PyBoxLib: ``pyboxlib/multifab.py`` etc
+2. Python: ctypes
+3. Fortran: iso_c_binding
+4. Fortran: PyBoxLib wrappers: ``src/fboxlib.f90`` etc
+5. Fortran: BoxLib
+
+Finally, PyBoxLib exposes FAB arrays as NumPy arrays.  This is done
+through the routines in ``src/boxlib_numpy_*``.
+

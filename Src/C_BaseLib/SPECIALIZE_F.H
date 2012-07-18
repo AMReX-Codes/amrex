@@ -6,14 +6,16 @@
 
 #if defined(BL_LANG_FORT)
 
-#define FORT_FASTCOPY     fastcopy
-#define FORT_FASTSETVAL   fastsetval
-#define FORT_FASTZERONORM fastzeronorm
-#define FORT_FASTONENORM  fastonenorm
-#define FORT_FASTPLUS     fastplus
-#define FORT_FASTMULT     fastmult
-#define FORT_FASTMINUS    fastminus
-#define FORT_FASTDIVIDE   fastdivide
+#define FORT_FASTCOPY       fastcopy
+#define FORT_FASTSETVAL     fastsetval
+#define FORT_FASTZERONORM   fastzeronorm
+#define FORT_FASTONENORM    fastonenorm
+#define FORT_FASTPLUS       fastplus
+#define FORT_FASTMULT       fastmult
+#define FORT_FASTMINUS      fastminus
+#define FORT_FASTDIVIDE     fastdivide
+#define FORT_FASTPROTDIVIDE fastprotdivide
+#define FORT_FASTINVERT     fastinvert
 #else
 
 #if defined(BL_FORT_USE_UPPERCASE)
@@ -25,6 +27,8 @@
 #define FORT_FASTMULT       FASTMULT
 #define FORT_FASTMINUS      FASTMINUS
 #define FORT_FASTDIVIDE     FASTDIVIDE
+#define FORT_FASTPROTDIVIDE FASTPROTDIVIDE
+#define FORT_FASTINVERT     FASTINVERT
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_FASTCOPY       fastcopy
 #define FORT_FASTSETVAL     fastsetval
@@ -34,6 +38,8 @@
 #define FORT_FASTMULT       fastmult
 #define FORT_FASTMINUS      fastminus
 #define FORT_FASTDIVIDE     fastdivide
+#define FORT_FASTPROTDIVIDE fastprotdivide
+#define FORT_FASTINVERT     fastinvert
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_FASTCOPY       fastcopy_
 #define FORT_FASTSETVAL     fastsetval_
@@ -43,6 +49,8 @@
 #define FORT_FASTMULT       fastmult_
 #define FORT_FASTMINUS      fastminus_
 #define FORT_FASTDIVIDE     fastdivide_
+#define FORT_FASTPROTDIVIDE fastprotdivide_
+#define FORT_FASTINVERT     fastinvert_
 #endif
 
 extern "C"
@@ -112,6 +120,22 @@ extern "C"
                           ARLIM_P(slo), ARLIM_P(shi),
                           D_DECL(const int&,const int&,const int&),
                           const int* ncomp);
+
+    void FORT_FASTPROTDIVIDE (Real* dest,
+                              ARLIM_P(dlo), ARLIM_P(dhi),
+                              D_DECL(const int&,const int&,const int&),
+                              D_DECL(const int&,const int&,const int&),
+                              const Real* src,
+                              ARLIM_P(slo), ARLIM_P(shi),
+                              D_DECL(const int&,const int&,const int&),
+                              const int* ncomp);
+
+    void FORT_FASTINVERT (const Real* dest,
+                          ARLIM_P(dlo), ARLIM_P(dhi),
+                          const int*  lo,
+                          const int*  hi,
+                          const Real* val,
+                          const int*  ncomp);
 }
 
 #endif

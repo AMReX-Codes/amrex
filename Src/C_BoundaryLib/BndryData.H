@@ -10,6 +10,9 @@
 #include <Mask.H>
 #include <BoundCond.H>
 #include <Geometry.H>
+#include <Tuple.H>
+
+#include <map>
 
 //
 //  A BndryData stores and manipulates boundary data
@@ -69,7 +72,14 @@ public:
     // destructor
     //
     virtual ~BndryData ();
-
+    //
+    // copy constructor
+    //
+    BndryData (const BndryData& src);
+    //
+    // copy assignment operator
+    //
+    BndryData& operator= (const BndryData& src);
     //
     // alocate bndry fabs along given face
     //
@@ -81,23 +91,33 @@ public:
     //
     friend std::ostream& operator<< (std::ostream& os, const BndryData& bd);
     //
-    // return FabSet on given face
+    // Return FabSet on given face.
     //
-    const FabSet& bndryValues (const Orientation& face) const;
+    const FabSet& bndryValues (Orientation face) const;
     //
-    // return boundary location on given face
+    // Some useful typedefs
     //
-    const Array<Real>& bndryLocs (const Orientation& face) const;
+    typedef Tuple<Real,2*BL_SPACEDIM> RealTuple;
+
+    typedef Tuple<Mask*,2*BL_SPACEDIM> MaskTuple;
     //
-    // return boundary type specifyer on given face
+    // Return boundary location on given face for grids we own.
+    // It's an error if we don't own that grid.
+    // RealTuple is indexed with Orientation.
     //
-    const Array<Array<BoundCond> >& bndryConds (const Orientation& face) const;
+    const RealTuple& bndryLocs (int igrid) const;
     //
-    // return boundary mask on given face
+    // Return boundary type specifier on given face for grids we own.
+    // It's an error if we don't own that grid.
     //
-    const PArray<Mask>& bndryMasks (const Orientation& face) const;
+    const Array< Array<BoundCond> >& bndryConds (int igrid) const;
     //
-    // return number of components for which this object is inteded
+    // Return boundary masks for grids we own.
+    // It's an error if we don't own that grid.
+    //
+    const MaskTuple& bndryMasks (int igrid) const;
+    //
+    // return number of components for which this object is intended
     //
     int nComp () const;
     //
@@ -111,36 +131,36 @@ public:
     //
     // set values of boundary Fab for given orientation on nth grid
     //
-    void setValue (const Orientation& face,
-                   int                n,
-                   Real               val);
+    void setValue (Orientation face,
+                   int         n,
+                   Real        val);
     //
     // set mask values for given orientation on nth grid
     //
-    void setMaskValue (const Orientation& face,
-                       int                n,
-                       int                val);
+    void setMaskValue (Orientation face,
+                       int         n,
+                       int         val);
     //
     // set boundary type specifier for given orientation on nth grid
     //
-    void setBoundCond (const Orientation& face,
-                       int                n,
-                       int                comp,
-                       const BoundCond&   bcn);
+    void setBoundCond (Orientation     face,
+                       int              n,
+                       int              comp,
+                       const BoundCond& bcn);
     //
     // set boundary location for given orientation on nth grid
     //
-    void setBoundLoc (const Orientation& face,
-                      int                n,
-                      Real               val);
+    void setBoundLoc (Orientation face,
+                      int         n,
+                      Real        val);
     //
     // implement public access to const BndryRegister::operator[]
     //
-    const FabSet& operator[] (const Orientation& face) const;
+    const FabSet& operator[] (Orientation face) const;
     //
     // implement public access to BndryRegister::operator[]
     //
-    FabSet& operator[] (const Orientation& face);
+    FabSet& operator[] (Orientation face);
     //
     // write the boundary data object to an ostream
     //
@@ -164,24 +184,22 @@ protected:
     //
     BndryRegister::bndry;
     //
-    // The data.
+    // Map of boundary condition type specifiers.
+    // The outer Array dimension is over Orientation.
     //
-    // Array (on orientation)(on grid)(on component) of boundary
-    // condition type specifiers.
+    std::map< int, Array< Array<BoundCond> > > bcond;
+
+    std::map<int,RealTuple> bcloc;
     //
-    Array< Array<BoundCond> > bcond[2*BL_SPACEDIM];
+    // Map boundary condition mask arrays (FAB-like).
     //
-    // Array (on orientation) of boundary condition locations.
+    std::map<int,MaskTuple> masks;
     //
-    Array<Real> bcloc[2*BL_SPACEDIM];
-    //
-    // Array (on orientation) of boundary condition mask arrays (FAB-like)
-    //
-    PArray<Mask> masks[2*BL_SPACEDIM];
-    //
-    // Domain used for mask defintions.
+    // Domain used for mask definitions.
     //
     Geometry geom;
+
+    int m_ncomp;
 
 private:
     //
@@ -190,46 +208,20 @@ private:
     void clear_masks ();
 
     static int NTangHalfWidth;
-    //
-    // Disabled!
-    //
-    BndryData (const BndryData& src);
-    BndryData& operator= (const BndryData& src);
 };
 
 inline
 const FabSet&
-BndryData::bndryValues (const Orientation& _face) const
+BndryData::bndryValues (Orientation _face) const
 {
     return bndry[_face];
-}
-
-inline
-const Array<Real>&
-BndryData::bndryLocs (const Orientation& _face) const
-{
-    return bcloc[_face];
-}
-
-inline
-const Array<Array<BoundCond> >&
-BndryData::bndryConds (const Orientation& _face) const
-{
-    return bcond[_face];
-}
-
-inline
-const PArray<Mask>&
-BndryData::bndryMasks (const Orientation& _face) const
-{
-    return masks[_face];
 }
 
 inline
 int
 BndryData::nComp () const
 {
-    return bcond[0][0].size();
+    return m_ncomp;
 }
 
 inline
@@ -248,51 +240,23 @@ BndryData::getGeom () const
 
 inline
 void
-BndryData::setValue (const Orientation& _face,
-                     int                _n,
-                     Real               _val)
+BndryData::setValue (Orientation _face,
+                     int         _n,
+                     Real        _val)
 {
     bndry[_face][_n].setVal(_val);
 }
 
 inline
-void
-BndryData::setMaskValue (const Orientation& _face,
-                         int                _n,
-                         int                _val)
-{
-    masks[_face][_n].setVal(_val);
-}
-
-inline
-void
-BndryData::setBoundCond (const Orientation& _face,
-                         int                _n,
-                         int                _comp,
-                         const BoundCond&   _bcn)
-{
-    bcond[_face][_n][_comp] = _bcn;
-}
-
-inline
-void
-BndryData::setBoundLoc (const Orientation& _face,
-                        int                _n,
-                        Real               _val)
-{
-    bcloc[_face][_n] = _val;
-}
-
-inline
 const FabSet&
-BndryData::operator[] (const Orientation& _face) const
+BndryData::operator[] (Orientation _face) const
 {
     return BndryRegister::bndry[_face];
 }
 
 inline
 FabSet&
-BndryData::operator[] (const Orientation& _face)
+BndryData::operator[] (Orientation _face)
 {
     return BndryRegister::bndry[_face];
 }
