@@ -1,0 +1,41 @@
+#!/bin/sh -f
+
+# the basic build strings will be MAX_STRING_LENGTH long
+MAX_STRING_LENGTH=128
+
+rm -f build_info.f90
+
+BUILD_DATE=`date | cut -c 1-$MAX_STRING_LENGTH`
+BUILD_DIR=`pwd | cut -c 1-$MAX_STRING_LENGTH`
+BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
+
+BOXLIB_DIR=`echo $1 | cut -c 1-$MAX_STRING_LENGTH`
+
+
+cat > buildInfo.cpp << EOF
+
+const char* buildInfoGetBuildDate() {
+
+  static const char BUILD_DATE[] = "$BUILD_DATE";
+  return BUILD_DATE;
+}
+
+const char* buildInfoGetBuildDir() {
+
+  static const char BUILD_DIR[] = "$BUILD_DIR";
+  return BUILD_DIR;
+}
+
+const char* buildInfoGetBuildMachine() {
+
+  static const char BUILD_MACHINE[] = "$BUILD_MACHINE";
+  return BUILD_MACHINE;
+}
+
+const char* buildInfoGetBoxlibDir() {
+
+  static const char BOXLIB_DIR[] = "$BOXLIB_DIR";
+  return BOXLIB_DIR;
+}
+
+EOF
