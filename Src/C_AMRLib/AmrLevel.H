@@ -487,9 +487,9 @@ private:
     bool                       m_init;
     bool                       m_FixUpCorners;
 
-    std::map< int,Array< Array<Box> > >                m_finebox; // [grid][level][validregion]
-    std::map< int,Array< Array<Box> > >                m_crsebox; // [grid][level][fillablesubbox]
-    std::map< int,Array< Array< Array<FillBoxId> > > > m_fbid;    // [grid][level][fillablesubbox][oldnew]
+    std::map< int,Array< Array<Box> > >                m_fbox; // [grid][level][validregion]
+    std::map< int,Array< Array<Box> > >                m_cbox; // [grid][level][fillablesubbox]
+    std::map< int,Array< Array< Array<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldnew]
 };
 
 inline
