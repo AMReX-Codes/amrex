@@ -1171,7 +1171,7 @@ FabArray<FAB>::AllocFabs ()
 {
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        Box tmp = BoxLib::grow(fai.validbox(), n_grow);
+        const Box tmp = BoxLib::grow(fai.validbox(), n_grow);
 
         m_fabs.insert(m_fabs.end(),ValueType(fai.index(),new FAB(tmp, n_comp)));
     }
@@ -1327,13 +1327,15 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
                         const int vol = bx.numPts();
 
-                        if (thecpc.m_RcvVols.empty())
+                        std::map<int,int>::iterator it = thecpc.m_RcvVols.find(s_owner);
+
+                        if (it == thecpc.m_RcvVols.end())
                         {
-                            thecpc.m_RcvVols[s_owner]  = vol;
+                            thecpc.m_RcvVols.insert(std::map<int,int>::value_type(s_owner,vol));
                         }
                         else
                         {
-                            thecpc.m_RcvVols[s_owner] += vol;
+                            it->second += vol;
                         }
                     }
                 }
@@ -1346,13 +1348,15 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
                     thecpc.m_SndTags[d_owner].push_back(tag);
 
-                    if (thecpc.m_SndVols.empty())
+                    std::map<int,int>::iterator it = thecpc.m_SndVols.find(d_owner);
+
+                    if (it == thecpc.m_SndVols.end())
                     {
-                        thecpc.m_SndVols[d_owner]  = vol;
+                        thecpc.m_SndVols.insert(std::map<int,int>::value_type(d_owner,vol));
                     }
                     else
                     {
-                        thecpc.m_SndVols[d_owner] += vol;
+                        it->second += vol;
                     }
                 }
             }
