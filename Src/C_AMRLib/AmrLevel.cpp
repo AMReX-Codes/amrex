@@ -420,17 +420,28 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     }
     for (int i = 0, N = m_leveldata.boxArray().size(); i < N; ++i)
     {
+        //
+        // A couple typedefs we'll use in the next code segment.
+        //
+        typedef std::map<int,Array<Array<Box> > >::value_type IntAABoxMapValType;
+
+        typedef std::map<int,Array<Array<Array<FillBoxId> > > >::value_type IntAAAFBIDMapValType;
+
         if (m_leveldata.DistributionMap()[i] == MyProc)
         {
-            m_fbid[i].resize(m_amrlevel.level + 1);
-            m_fbox[i].resize(m_amrlevel.level + 1);
-            m_cbox[i].resize(m_amrlevel.level + 1);
             //
-            // The boxes we need to fill.
+            // Insert with a hint since the indices are ordered lowest to highest.
             //
-            // Insert with a hint since we know "i"s are ordered lowest to highest.
-            //
-            m_ba.insert(m_ba.end(),std::make_pair<int,Box>(i,BoxLib::grow(m_leveldata.boxArray()[i],m_growsize)));
+            IntAAAFBIDMapValType v1(i,Array<Array<Array<FillBoxId> > >());
+
+            m_fbid.insert(m_fbid.end(),v1)->second.resize(m_amrlevel.level+1);
+
+            IntAABoxMapValType v2(i,Array<Array<Box> >());
+
+            m_fbox.insert(m_fbox.end(),v2)->second.resize(m_amrlevel.level+1);
+            m_cbox.insert(m_cbox.end(),v2)->second.resize(m_amrlevel.level+1);
+
+            m_ba.insert(m_ba.end(),std::map<int,Box>::value_type(i,BoxLib::grow(m_leveldata.boxArray()[i],m_growsize)));
         }
     }
 
