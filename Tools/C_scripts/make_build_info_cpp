@@ -1,5 +1,14 @@
 #!/bin/sh -f
 
+# create a file buildInfo.cpp with various functions returning build
+# information.
+#
+# arguments:
+#
+#   boxlib directory
+#   C++ compiler
+#   Fortran compiler
+
 # the basic build strings will be MAX_STRING_LENGTH long
 MAX_STRING_LENGTH=128
 
@@ -10,6 +19,9 @@ BUILD_DIR=`pwd | cut -c 1-$MAX_STRING_LENGTH`
 BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
 
 BOXLIB_DIR=`echo $1 | cut -c 1-$MAX_STRING_LENGTH`
+
+COMP=`echo $2 | cut -c 1-$MAX_STRING_LENGTH`
+FCOMP=`echo $3 | cut -c 1-$MAX_STRING_LENGTH`
 
 
 cat > buildInfo.cpp << EOF
@@ -36,6 +48,18 @@ const char* buildInfoGetBoxlibDir() {
 
   static const char BOXLIB_DIR[] = "$BOXLIB_DIR";
   return BOXLIB_DIR;
+}
+
+const char* buildInfoGetComp() {
+
+  static const char COMP[] = "$COMP";
+  return COMP;
+}
+
+const char* buildInfoGetFcomp() {
+
+  static const char FCOMP[] = "$FCOMP";
+  return FCOMP;
 }
 
 EOF
