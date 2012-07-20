@@ -205,9 +205,9 @@ FabSet::DoIt (const MultiFab& src,
     //
     // Calculate and cache intersection info.
     //
-    BoxArray ba_src(src.size());
-    for (int i = 0, N = src.size(); i < N; i++)
-        ba_src.set(i, BoxLib::grow(src.boxArray()[i],ngrow));
+    BoxArray ba_src = src.boxArray();
+
+    ba_src.grow(ngrow);
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -240,6 +240,8 @@ FabSet::DoIt (const MultiFab& src,
 
     fbids.reserve(boxes.size());
 
+    const int DCOMP = (how == COPYFROM) ? dcomp : 0;
+
     for (int i = 0, N = boxes.size(); i < N; i++)
     {
         fbids.push_back(fscd.AddBox(mfid,
@@ -247,7 +249,7 @@ FabSet::DoIt (const MultiFab& src,
                                     0,
                                     mfidx[i],
                                     scomp,
-                                    how == COPYFROM ? dcomp : 0,
+                                    DCOMP,
                                     ncomp,
                                     false));
 
@@ -262,21 +264,25 @@ FabSet::DoIt (const MultiFab& src,
 
     FArrayBox tmp;
 
-    for (int i = 0, N = fbids.size(); i < N; i++)
+    for (std::vector<FillBoxId>::const_iterator it = fbids.begin(), End = fbids.end();
+         it != End;
+         ++it)
     {
-        BL_ASSERT(DistributionMap()[fbids[i].FabIndex()] == ParallelDescriptor::MyProc());
+        const FillBoxId& fbid = *it;
+
+        BL_ASSERT(DistributionMap()[fbid.FabIndex()] == ParallelDescriptor::MyProc());
 
         if (how == COPYFROM)
         {
-            fscd.FillFab(mfid,fbids[i],(*this)[fbids[i].FabIndex()]);
+            fscd.FillFab(mfid,fbid,(*this)[fbid.FabIndex()]);
         }
         else
         {
-            tmp.resize(fbids[i].box(), ncomp);
+            tmp.resize(fbid.box(), ncomp);
 
-            fscd.FillFab(mfid, fbids[i], tmp);
+            fscd.FillFab(mfid, fbid, tmp);
 
-            (*this)[fbids[i].FabIndex()].plus(tmp,tmp.box(),0,dcomp,ncomp);
+            (*this)[fbid.FabIndex()].plus(tmp,tmp.box(),0,dcomp,ncomp);
         }
     }
 }
