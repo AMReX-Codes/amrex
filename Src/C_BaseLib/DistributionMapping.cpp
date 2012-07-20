@@ -997,8 +997,8 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 
         wgts.reserve(boxes.size());
 
-        for (int i = 0, N = boxes.size(); i < N; i++)
-            wgts.push_back(boxes[i].volume());
+        for (BoxArray::const_iterator it = boxes.begin(), End = boxes.end(); it != End; ++it)
+            wgts.push_back(it->volume());
 
         SFCProcessorMapDoIt(boxes,wgts,nprocs);
     }
