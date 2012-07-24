@@ -33,6 +33,7 @@ for n in la.local_boxes:
 
             fab[i, j, 0] = np.sin(x)
 
+q.fill_boundary()
 
 fab = q.fab(1)
 plt.imshow(fab.array[:, :, 0])
