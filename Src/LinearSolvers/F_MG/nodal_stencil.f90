@@ -243,67 +243,74 @@ contains
 
   end subroutine s_simple_2d_one_sided
 
-  subroutine s_dense_2d_nodal(ss, sg, mm, face_type, dh)
-    real (kind = dp_t), intent(inout) :: ss(0:,:,:)
-    real (kind = dp_t), intent(inout) :: sg(0:,0:)
-    integer           , intent(in   ) :: mm(:,:)
+  subroutine s_dense_2d_nodal(ss, sg, ng_s, mm, face_type, dh, lo, hi)
+
+    integer           , intent(in   ) :: lo(:),hi(:),ng_s 
+    real (kind = dp_t), intent(inout) :: ss(0:,lo(1):,lo(2):)
+    real (kind = dp_t), intent(inout) :: sg(lo(1)-ng_s:,lo(2)-ng_s:,:)
+    integer           , intent(in   ) :: mm(lo(1):,lo(2):)
     integer           , intent(in   ) :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer :: i, j, nx, ny
-
-    nx = size(ss,dim=2)
-    ny = size(ss,dim=3)
+    integer            :: i, j
 
     ! Set sg on edges at a Neumann boundary.
-    do i = 1,nx-1
-       if (bc_neumann(mm(i, 1),2,-1)) sg(i, 0) = sg(i,1)
-       if (bc_neumann(mm(i,ny),2,+1)) sg(i,ny) = sg(i,ny-1)
+    do i = lo(1),hi(1)
+       if (bc_neumann(mm(i,lo(2)  ),2,-1)) sg(i,lo(2)-1,:) = sg(i,lo(2),:) 
+       if (bc_neumann(mm(i,hi(2)+1),2,+1)) sg(i,hi(2)+1,:) = sg(i,hi(2),:) 
     end do
 
-    do j = 1,ny-1
-       if (bc_neumann(mm( 1,j),1,-1)) sg( 0,j) = sg(   1,j)
-       if (bc_neumann(mm(nx,j),1,+1)) sg(nx,j) = sg(nx-1,j)
+    do j = lo(2),hi(2)
+       if (bc_neumann(mm(lo(1)  ,j),1,-1)) sg(lo(1)-1,j,:) = sg(lo(1),j,:)
+       if (bc_neumann(mm(hi(1)+1,j),1,+1)) sg(hi(1)+1,j,:) = sg(hi(1),j,:)
     end do
 
     ! Note: we do the corners *after* each of the edge has been done.
+    ! Lo i
     if (face_type(1,1) == BC_NEU) then
-       sg(0, 0) = sg(1, 0)
-       sg(0,ny) = sg(1,ny)
-    end if
-    if (face_type(1,2) == BC_NEU) then
-       sg(nx, 0) = sg(nx-1,0)
-       sg(nx,ny) = sg(nx-1,ny)
-    end if
-    if (face_type(2,1) == BC_NEU) then
-       sg( 0,0) = sg( 0,1)
-       sg(nx,0) = sg(nx,1)
-    end if
-    if (face_type(2,2) == BC_NEU) then
-       sg( 0,ny) = sg( 0,ny-1)
-       sg(nx,ny) = sg(nx,ny-1)
+       sg(lo(1)-1,lo(2)-1,:) = sg(lo(1),lo(2)-1,:)
+       sg(lo(1)-1,hi(2)+1,:) = sg(lo(1),hi(2)+1,:)
     end if
 
-    do j = 1,ny
-      do i = 1,nx
+    ! Hi i
+    if (face_type(1,2) == BC_NEU) then
+       sg(hi(1)+1,lo(2)-1,:) = sg(hi(1),lo(2)-1,:)
+       sg(hi(1)+1,hi(2)+1,:) = sg(hi(1),hi(2)+1,:)
+    end if
+
+    ! Lo j
+    if (face_type(2,1) == BC_NEU) then
+       sg(lo(1)-1,lo(2)-1,:) = sg(lo(1)-1,lo(2),:)
+       sg(hi(1)+1,lo(2)-1,:) = sg(hi(1)+1,lo(2),:)
+    end if
+
+    ! Hi j
+    if (face_type(2,2) == BC_NEU) then
+       sg(lo(1)-1,hi(2)+1,:) = sg(lo(1)-1,hi(2),:)
+       sg(hi(1)+1,hi(2)+1,:) = sg(hi(1)+1,hi(2),:)
+    end if
+
+    do j = lo(2),hi(2)+1
+      do i = lo(1),hi(1)+1
 
           ! Faces
-          ss(2,i,j) = HALF * (sg(i  ,j-1) + sg(i-1,j-1))
-          ss(4,i,j) = HALF * (sg(i-1,j  ) + sg(i-1,j-1))
-          ss(5,i,j) = HALF * (sg(i  ,j  ) + sg(i  ,j-1))
-          ss(7,i,j) = HALF * (sg(i  ,j  ) + sg(i-1,j  ))
+          ss(2,i,j) = HALF * (sg(i  ,j-1,1) + sg(i-1,j-1,1))
+          ss(4,i,j) = HALF * (sg(i-1,j  ,1) + sg(i-1,j-1,1))
+          ss(5,i,j) = HALF * (sg(i  ,j  ,1) + sg(i  ,j-1,1))
+          ss(7,i,j) = HALF * (sg(i  ,j  ,1) + sg(i-1,j  ,1))
 
           ! Corners
-          ss(1,i,j) = sg(i-1,j-1)
-          ss(3,i,j) = sg(i  ,j-1)
-          ss(6,i,j) = sg(i-1,j  ) 
-          ss(8,i,j) = sg(i,  j  )
+          ss(1,i,j) = sg(i-1,j-1,1)
+          ss(3,i,j) = sg(i  ,j-1,1)
+          ss(6,i,j) = sg(i-1,j  ,1)
+          ss(8,i,j) = sg(i,  j  ,1)
  
           ss(0,i,j) = -(ss(1,i,j) + ss(2,i,j) + ss(3,i,j) + ss(4,i,j) &
                       + ss(5,i,j) + ss(6,i,j) + ss(7,i,j) + ss(8,i,j) ) 
 
       end do
     end do
+
 
     ss = ss * (THIRD / (dh(1))**2)
 
