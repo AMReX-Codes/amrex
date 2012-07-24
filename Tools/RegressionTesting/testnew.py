@@ -45,7 +45,7 @@ class testObj:
 
         self.dim = -1
 
-        self.needsHelmEOS = -1
+        self.needsHelmEOS = 0
 
         self.restartTest = 0
         self.restartFileNum = -1
@@ -276,10 +276,9 @@ def LoadParams(file):
             mysuite.extSrcCompString += "="+mysuite.extSrcDir
 
 
-    # BoxLib-only tests don't have a sourceDir and don't need helmEOS
+    # BoxLib-only tests don't have a sourceDir
     if (mysuite.sourceTree == "BoxLib"):
         mysuite.sourceDir = mysuite.boxLibDir
-        mysuite.helmeosDir = "/afakepath"
 
 
     # checks
@@ -295,9 +294,9 @@ def LoadParams(file):
 
     if (mysuite.sourceTree == "" or mysuite.boxLibDir == "" or
         mysuite.sourceDir == "" or mysuite.testTopDir == "" or
-        mysuite.compareToolDir == "" or mysuite.helmeosDir == ""):
+        mysuite.compareToolDir == ""):
         fail("ERROR: required suite-wide directory not specified\n" + \
-                 "(sourceTree, boxLibDir, sourceDir, testTopDir, compareToolDir, helmeosDir)")
+                 "(sourceTree, boxLibDir, sourceDir, testTopDir, compareToolDir)")
 
 
     # if no webTopDir was specified, use the default.  In either case, make
@@ -429,14 +428,13 @@ def LoadParams(file):
         else:
             if (mytest.buildDir == "" or mytest.inputFile == "" or
                 (mysuite.sourceTree == "C_Src" and mytest.probinFile == "") or 
-                mytest.dim == -1 or mytest.needsHelmEOS == -1):
+                mytest.dim == -1):
                 warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
                 warning("            buildDir = %s" % (mytest.buildDir))
                 warning("            inputFile = %s" % (mytest.inputFile))
                 if (mysuite.sourceTree == "C_Src"):
                     warning("            probinFile = %s" % (mytest.probinFile))
                 warning("            dim = %s" % (mytest.dim))
-                warning("            needsHelmEOS = %s" % (mytest.needsHelmEOS))
 
                 invalid = 1
 
@@ -487,6 +485,17 @@ def LoadParams(file):
 
     if (anyMPI and mysuite.MPIcommand == ""):
         fail("ERROR: one or more tests are parallel, but MPIcommand is not defined")
+
+    # if any runs use helmeos, make sure that the suite-wide
+    # helmeosDir is defined
+    anyhelmeos = 0
+    for test in testList:
+        if (test.needsHelmEOS == 1):
+            anyhelmeos = 1
+            break
+
+    if (anyhelmeos and mysuite.helmeosDir == ""):
+        fail("ERROR: one or more tests use helmeos, but helmeosDir is not defined")
 
     testList.sort()
 
@@ -799,14 +808,14 @@ def allAreCompileTests(testList):
 def testSuite(argv):
 
     usage = """
-    ./test.py [--make_benchmarks comment,
-               --no_update  none or all or List_Of_Codes_Excluded_From_Update,
-               --single_test test,
-               --do_temp_run
-               --boxLibGitHash boxlibhash
-               --sourceGitHash sourcehash
-               --extSrcGitHash extsourcehash
-               --note note]
+    ./testnew.py [--make_benchmarks comment,
+                  --no_update  none or all or a list of codes excluded from update,
+                  --single_test test,
+                  --do_temp_run
+                  --boxLibGitHash boxlibhash
+                  --sourceGitHash sourcehash
+                  --extSrcGitHash extsourcehash
+                  --note note]
         testfile.ini
 
 
@@ -817,15 +826,23 @@ def testSuite(argv):
           suite knows about.  It has the format
 
             [main]
-            boxLibDir      = < directory to the main BoxLib/ directory >
+            boxLibDir      = < directory to the BoxLib/ directory >
             sourceDir      = < directory to the main Source directory >
             testTopDir     = < full path to test output directory >
+            webTopDir      = < full path to test web directory >
             compareToolDir = < full path to the AmrPostprocessing/F_Src directory >
-            helmeosDir     = < full path to helm_table.dat >
+            helmeosDir     = < full path to helm_table.dat, 
+                               no need to set this if not using helmeos>
+            extSrcDir      = < directory to an extra source directory other than
+                               BoxLib and the main source, if there is one >
+            extSrcCompString = < a string.  If both extSrcCompString and extSrcDir
+                                 are set, they will be used by make as follows,
+                                 make extSrcCompString=extSrcDir > 
 
             sourceTree = < C_Src, F_Src, or BoxLib -- what type is it? >
 
             suiteName = < descriptive name (i.e. Castro) >
+
 
             FCOMP = < name of Fortran compiler >
             COMP  = < name of C/C++ compiler >
@@ -840,7 +857,13 @@ def testSuite(argv):
                            
             MPIhost = < host for MPI job -- depends on MPI implementation >
 
-            
+            goUpLink = <If 1, add "Go UP" link at top of the web page.>
+
+            sendEmailWhenFail = < If 1, send email when any tests fail>
+            emailTo           = < list of email addresses separated by commas, 
+                                  such as,
+                                  foo@example.com, bar@example.com >
+            emailBody         = < email body >
 
             [Sod-x]
             buildDir = < relative path (from sourceDir) for this problem >
@@ -938,7 +961,6 @@ def testSuite(argv):
 
                The number of processors is problem dependent and will be
                set in the problem specific blocks described below.
-
 
           For a test problem (e.g. [Sod-x]),  
 
