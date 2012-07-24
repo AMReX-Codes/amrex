@@ -38,15 +38,17 @@ contains
     type(boxarray)                 :: ba_cc
     type(  layout)                 :: old_la_grown, new_la_grown
     integer                        :: i, maxlev, maxlev_bottom
+    integer                        :: sg_ncomp
     real(dp_t), pointer            :: sc_orig(:,:,:,:), sc_grown(:,:,:,:)
 
     maxlev = mgt%nlevels
+    sg_ncomp = ncomp(sg(maxlev))
 
     ! NOTE: sg(maxlev) comes in built and filled, but the other levels
     !       are not even built yet
     do i = maxlev-1, 1, -1
-       call multifab_build(sg(i), get_layout(mgt%ss(i)), 1, 1)
-       call setval(sg(i), ZERO, 1, 1, all=.true.)
+       call multifab_build(sg(i), get_layout(mgt%ss(i)), sg_ncomp, 1)
+       call setval(sg(i), ZERO, all=.true.)
        call coarsen_cell_coeffs(sg(i+1),sg(i))
        call multifab_fill_boundary(sg(i))
     end do
@@ -134,6 +136,8 @@ contains
     type(boxarray)           :: bxa_periodic, bxa_temp
     integer                  :: i, ib, jb, kb, ib_lo, jb_lo, kb_lo, dm
     integer                  :: shift_vect(get_dim(ss))
+    integer                  :: lo(get_dim(ss)), hi(get_dim(ss))
+    integer                  :: ng_sg
     type(list_box)           :: lb,nbxs
     type(box), allocatable   :: bxs(:)
     logical                  :: pmask(get_dim(ss))
@@ -234,6 +238,8 @@ contains
 
     end if
 
+    ng_sg = nghost(sg)
+
     do i = 1, nboxes(ss)
        if ( remote(ss,i) ) cycle
 
@@ -245,13 +251,16 @@ contains
        nbx = get_ibox(ss, i)
        call stencil_set_bc_nodal(dm, bx, nbx, i, mask, face_type, pd_periodic, bxa_periodic)
 
+       lo = lwb(get_box(sg,i))
+       hi = upb(get_box(sg,i))
+
        select case (dm)
        case (1)
           call s_simple_1d_nodal(sp(:,:,1,1), cp(:,1,1,1), mp(:,1,1,1), dh)
        case (2)
           if (stencil_type == ST_DENSE) then
-            call s_dense_2d_nodal(sp(:,:,:,1), cp(:,:,1,1), mp(:,:,1,1), &
-                                  face_type(i,:,:), dh)
+            call s_dense_2d_nodal(sp(:,:,:,1), cp(:,:,1,:), ng_sg, mp(:,:,1,1), &
+                                  face_type(i,:,:), dh, lo, hi)
           else if (stencil_type == ST_CROSS) then
             call s_cross_2d_nodal(sp(:,:,:,1), cp(:,:,1,1), mp(:,:,1,1), &
                                    face_type(i,:,:), dh)
