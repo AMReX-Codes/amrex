@@ -24,7 +24,7 @@ bl.pybl_get_multifab_info.argtypes = [
 
 bl.pybl_create_layout_from_boxes.restype = None
 bl.pybl_create_layout_from_boxes.argtypes = [
-    c_void_p, c_int, c_int, c_void_p ]
+    c_void_p, c_int, c_int, c_void_p, c_void_p ]
 
 bl.pybl_multifab_write.argtypes = [
     c_void_p, c_char_p, c_int, c_char_p, c_int ]
