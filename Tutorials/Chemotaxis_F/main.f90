@@ -1,17 +1,20 @@
 program main
   
   use boxlib
+  use bl_io_module
   use multifab_module
   use chemotaxis_module
-  use bl_io_module
+  use sdcquad_module
+
 
   implicit none
 
-  integer :: un, farg, narg
+  integer :: un, narg
   character(len=128) :: inputs_file_name
 
-  type(cht_params_t) :: params
-  type(cht_opts_t)   :: options
+  type(cht_ctx_t)  :: ctx
+  type(cht_opts_t) :: opts
+  type(sdcquad)    :: sdc
 
   real(dp_t) :: start_time, run_time, max_run_time
 
@@ -20,18 +23,19 @@ program main
 
   ! read input files
   narg = command_argument_count()
-  farg = 1
   if ( narg >= 1 ) then
-     call get_command_argument(farg, value=inputs_file_name)
-     farg = farg + 1
+     call get_command_argument(1, value=inputs_file_name)
      un   = unit_new()
      open(unit=un, file=inputs_file_name, status='old', action='read')
-     call cht_read_inputs(un, params, options)
+     call cht_read_inputs(un, ctx, opts)
+     if (opts%method == "sdc") then
+        call build(sdc, un)
+     end if
      close(unit=un)
   end if
 
   ! run chemotaxis solver
-  call cht_main(params, options)
+  call cht_main(ctx, opts, sdc)
 
   ! deallocate temporary boxarrays and communication mappings, display memory stats
   call layout_flush_copyassoc_cache()
