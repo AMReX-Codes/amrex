@@ -215,6 +215,8 @@ FabSet::DoIt (const MultiFab& src,
     {
         ba_src.intersections((*this)[fsi].box(),isects);
 
+        const int index = fsi.index();
+
         for (int j = 0, N = isects.size(); j < N; j++)
         {
             boxes.push_back(isects[j].second);
@@ -225,7 +227,7 @@ FabSet::DoIt (const MultiFab& src,
             //
             // Maintain parallel array of indices into FabSet.
             //
-            fsidx.push_back(fsi.index());
+            fsidx.push_back(index);
         }
     }
 
@@ -383,6 +385,8 @@ FabSet::linComb (Real            a,
     {
         ba_isects.intersections(get(fsi).box(),isects);
 
+        const int index = fsi.index();
+
         for (int j = 0, N = isects.size(); j < N; j++)
         {
             const int  grd  = isects[j].first;
@@ -401,7 +405,7 @@ FabSet::linComb (Real            a,
             //
             // Also save the index of the FAB in the FabSet.
             //
-            fbids_mfa.back().FabIndex(fsi.index());
+            fbids_mfa.back().FabIndex(index);
 
             fbids_mfb.push_back(mfcd.AddBox(mfid_mfb,
                                             ovlp,

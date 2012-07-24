@@ -565,9 +565,11 @@ TagBoxArray::setVal (const BoxArray& ba,
     {
         ba.intersections(fai.validbox(),isects);
 
+        TagBox& tags = get(fai);
+
         for (int i = 0, N = isects.size(); i < N; i++)
         {
-            get(fai).setVal(val,isects[i].second,0);
+            tags.setVal(val,isects[i].second,0);
         }
     } 
 }
