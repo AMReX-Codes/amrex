@@ -28,19 +28,50 @@ Fmdirs :=
 Fmincludes := 
 
 ifdef NEED_EOS_NETWORK
-  Fmdirs += Microphysics/EOS/helmeos \
-            Microphysics/networks/ignition_simple \
-            Util/VODE
+  EOS_TOP_DIR := $(MAESTRO_TOP_DIR)/Microphysics/EOS
+  NETWORK_TOP_DIR := $(MAESTRO_TOP_DIR)/Microphysics/networks
 
-  Fmincludes += Microphysics/helmeos
+  EOS_DIR := helmeos
+  NETWORK_DIR := ignition_simple
+
+  MICROPHYS_CORE := $(MAESTRO_TOP_DIR)/Microphysics/EOS
+
+  MICROPHYS_CORE += $(EOS_TOP_DIR)/$(EOS_DIR) \
+                    $(NETWORK_TOP_DIR)/$(NETWORK_DIR)
+
+  ifeq ($(findstring helmeos, $(EOS_DIR)), helmeos)
+    Fmincludes += Microphysics/helmeos
+  endif
+
+  f90sources += probin.f90
+
+  include $(NETWORK_TOP_DIR)/$(strip $(NETWORK_DIR))/NETWORK_REQUIRES
+
+  ifdef NEED_VODE
+    Fmdirs += Util/VODE
+  endif
+
+  ifdef NEED_BLAS
+    Fmdirs += Util/BLAS
+  endif
+
 endif
 
+
+# any MAESTRO stuff
 Fmpack := $(foreach dir, $(Fmdirs), $(MAESTRO_TOP_DIR)/$(dir)/GPackage.mak)
 Fmlocs := $(foreach dir, $(Fmdirs), $(MAESTRO_TOP_DIR)/$(dir))
-Fmincs := $(foreach dir, $(Fmincludes), $(MAESTRO_TOP_DIR)/$(dir))
 
+# BoxLib stuff
 Fmpack += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir)/GPackage.mak)
 Fmlocs += $(foreach dir, $(BOXLIB_CORE), $(BOXLIB_HOME)/$(dir))
+
+# Microphysics
+Fmpack += $(foreach dir, $(MICROPHYS_CORE), $(dir)/GPackage.mak)
+Fmlocs += $(foreach dir, $(MICROPHYS_CORE), $(dir))
+
+# any include files
+Fmincs := $(foreach dir, $(Fmincludes), $(MAESTRO_TOP_DIR)/$(dir))
 
 
 
@@ -64,6 +95,21 @@ programs += ftime
 
 all: $(pnames)
 
+
+# probin stuff
+PROBIN_PARAMETER_DIRS :=
+EXTERN_PARAMETER_DIRS += $(MICROPHYS_CORE)
+EXTERN_PARAMETERS := $(shell $(BOXLIB_HOME)/Tools/F_scripts/findparams.py $(EXTERN_PARAMETER_DIRS))
+
+PROBIN_TEMPLATE := $(MAESTRO_TOP_DIR)/Util/parameters/dummy.probin.template
+
+probin.f90: $(PROBIN_PARAMETERS) $(EXTERN_PARAMETERS) $(PROBIN_TEMPLATE)
+	@echo " "
+	$(BOXLIB_HOME)/Tools/F_scripts/write_probin.py \
+           -t $(PROBIN_TEMPLATE) -o probin.f90 -n probin \
+           --pa "$(PROBIN_PARAMETERS)" --pb "$(EXTERN_PARAMETERS)"
+
+
 include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
 
 
@@ -74,6 +120,12 @@ else
 	@echo "Linking $@ ... "
 	@$(LINK.f90) -o $@ $< $(objects) $(libraries)
 endif
+
+
+# for debugging.  To see the value of a Makefile variable,                                                          
+# e.g. Fmlocs, simply do "make print-Fmlocs".  This will                                                            
+# print out the value.                                                                                              
+print-%: ; @echo $* is $($*)
 
 
 
