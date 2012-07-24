@@ -116,7 +116,7 @@ contains
        ! initialize these to the default values in the mgt object
        smoother          = mgt(nlevs)%smoother           ! smoother type
        nu1               = mgt(nlevs)%nu1                ! # of smooths at each level on the way down
-       nu2               = mgt(nlevs)%nu2                ! # of smooths at each level on the way down
+       nu2               = mgt(nlevs)%nu2                ! # of smooths at each level on the way up
        nub               = mgt(nlevs)%nub                ! # of smooths before and after bottom solver
        gamma             = mgt(nlevs)%gamma              ! allows control over 'shape' of V or W cycle
        cycle_type        = mgt(nlevs)%cycle_type         ! choose between V-cycle, W-cycle, etc.
