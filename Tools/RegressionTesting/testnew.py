@@ -1193,6 +1193,7 @@ def testSuite(argv):
                              # The update of BoxLib is controlled by updateBoxLib
         sourceGitHash = ""
 
+
     if boxLibGitHash:
         updateBoxLib = False 
 
@@ -1667,12 +1668,17 @@ def testSuite(argv):
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
 
-	       command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out < /dev/null" % \
-			 (executable, test.inputFile, test.name, test.name, test.name)
-	       
-	       testRunCommand = testRunCommand.replace("@command@", command)
-
-	       print "    " + testRunCommand
+               # keep around the checkpoint files only for the restart runs
+               if (test.restartTest):
+                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
+                       (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+               else:
+                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
+                       (executable, test.inputFile, test.name, test.name, test.name)
+                   
+               testRunCommand = testRunCommand.replace("@command@", command)
+                   
+               print "    " + testRunCommand
                systemCall(testRunCommand)
 
 	    elif (test.useMPI):
@@ -1682,8 +1688,13 @@ def testSuite(argv):
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
 
-	       command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out < /dev/null" % \
-			 (executable, test.inputFile, test.name, test.name, test.name)
+                # keep around the checkpoint files only for the restart runs
+	       if (test.restartTest):               
+                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
+                       (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+               else:
+                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
+                       (executable, test.inputFile, test.name, test.name, test.name)
 	       
 	       testRunCommand = testRunCommand.replace("@command@", command)
 
@@ -1692,15 +1703,26 @@ def testSuite(argv):
 
 	    elif (test.useOMP):
 
-                testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out < /dev/null" % \
-                    (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+                # keep around the checkpoint files only for the restart runs
+                if (test.restartTest):
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                else:
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
 	       
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
 	       
             else:
-                testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out" % \
-                    (executable, test.inputFile, test.name, test.name, test.name)
+
+                # keep around the checkpoint files only for the restart runs
+                if (test.restartTest):
+                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                else:
+                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, test.name)
 
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
@@ -1788,31 +1810,102 @@ def testSuite(argv):
             print "  restarting from %s ... " % (restartFile)
            
             if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
-                if (test.useOMP):
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.restart=%s >>  %s.run.out 2>&1" % \
-                    (test.numthreads, executable, test.inputFile, test.name, test.name, restartFile, test.name)
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)               
+  
+                if (test.useMPI and test.useOMP):
 
-                else:
-                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.restart=%s >>  %s.run.out 2>&1" % \
-                    (executable, test.inputFile, test.name, test.name, restartFile, test.name)
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)               
+                    # create the MPI executable
+                    testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
                     
+                    command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                    
+                    testRunCommand = testRunCommand.replace("@command@", command)
+                    
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+
+                elif (test.useMPI):
+
+                    # create the MPI executable
+                    testRunCommand = suite.MPIcommand
+                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                    
+                    command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                    
+                    testRunCommand = testRunCommand.replace("@command@", command)
+
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+
+                elif (test.useOMP):
+
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >>  %s.run.out 2>&1" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, restartFile, test.name)
+	       
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+                    
+                else:
+                    
+                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                    
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+
             elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
 
-                if (test.useOMP):
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                if (test.useMPI and test.useOMP):
+
+                    # create the MPI executable
+                    testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+
+                    testRunCommand = testRunCommand.replace("@command@", command)
+                    
                     print "    " + testRunCommand
-                    systemCall(testRunCommand)                
+                    systemCall(testRunCommand)
+
+                elif (test.useMPI):
+
+                    # create the MPI executable
+                    testRunCommand = suite.MPIcommand
+                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                    
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+
+                    testRunCommand = testRunCommand.replace("@command@", command)
+                    
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+
+                elif (test.useOMP):
+
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+
 
                 else:
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
+
+                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
                         (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+
                     print "    " + testRunCommand
-                    systemCall(testRunCommand)                
+                    systemCall(testRunCommand)
+
            
             
         #----------------------------------------------------------------------
@@ -1834,7 +1927,7 @@ def testSuite(argv):
             if (not make_benchmarks):
 
                 print "  doing the comparison..."
-                print "    comparison file: ", compareFile
+                print "    comparison file: ", outputFile
 
                 if (not test.restartTest):
                     benchFile = benchDir + compareFile
