@@ -59,6 +59,8 @@ f90EXE_sources += nodal_stencil.f90
 f90EXE_sources += nodal_stencil_fill.f90
 f90EXE_sources += nodal_smoothers.f90
 
+f90EXE_sources += stencil_types.f90
+
 #f90EXE_sources += mg_hypre_solve.f90
 f90EXE_sources += nodal_mg_cpp.f90
 f90EXE_sources += nodal_sync_resid.f90
