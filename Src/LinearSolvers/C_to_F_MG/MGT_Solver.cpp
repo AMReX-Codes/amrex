@@ -157,7 +157,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
     stencil_type =_stencil_type;
     BL_ASSERT(geom.size()==m_nlevel);
     BL_ASSERT(dmap.size()==m_nlevel);
-    Build(geom,bc,dmap,nc,ncomp);
+    Build(geom,bc,stencil_type,dmap,nc,ncomp);
 }
 
 MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
@@ -177,12 +177,13 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
     stencil_type = -1;
     BL_ASSERT(geom.size()==m_nlevel);
     BL_ASSERT(dmap.size()==m_nlevel);
-    Build(geom,bc,dmap,nc,ncomp);
+    Build(geom,bc,stencil_type,dmap,nc,ncomp);
 }
 
 void
 MGT_Solver::Build(const std::vector<Geometry>& geom, 
                   int* bc, 
+                  int stencil_type,
                   const std::vector<DistributionMapping>& dmap,
                   int nc,
                   int ncomp)
@@ -194,16 +195,15 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
   BL_ASSERT(m_grids.size()==m_nlevel);
   BL_ASSERT(   dmap.size()==m_nlevel);
   int dm = BL_SPACEDIM;
-  int i_nodal = (m_nodal)?1:0;
 
   if (m_nodal) {
-    mgt_nodal_alloc(&dm, &m_nlevel, &i_nodal, &stencil_type);
+    mgt_nodal_alloc(&dm, &m_nlevel, &stencil_type);
     mgt_set_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
                            &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
                            &def_verbose,&def_cg_verbose,&def_max_nlevel,
                            &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   } else {
-    mgt_alloc(&dm, &m_nlevel, &i_nodal);
+    mgt_cc_alloc(&dm, &m_nlevel, &stencil_type);
     mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
                      &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
                      &def_max_L0_growth,
