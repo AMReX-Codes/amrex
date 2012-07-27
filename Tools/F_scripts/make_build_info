@@ -131,13 +131,13 @@ module build_info_module
 "$LINK1" //&
 "$LINK2"
 
-  character \(len=$MAX_STRING_LENGTH\), save :: boxlib_git_hash = &
+  character (len=$MAX_STRING_LENGTH\), save :: boxlib_git_hash = &
 "$BOXLIB_GIT_HASH"
 
-  character \(len=$MAX_STRING_LENGTH\), save :: source_git_hash = &
+  character (len=$MAX_STRING_LENGTH\), save :: source_git_hash = &
 "$SOURCE_GIT_HASH"
 
-  character \(len=$MAX_STRING_LENGTH\), save :: extra_git_hash = &
+  character (len=$MAX_STRING_LENGTH\), save :: extra_git_hash = &
 "$EXTRA_GIT_HASH"
 
 
