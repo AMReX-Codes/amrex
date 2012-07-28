@@ -1039,7 +1039,7 @@ def testSuite(argv):
           update and will be appended to the web output for
           future reference.
 
-       --no_update
+       --no_update ?
           None or All or a list of codes seperated by "," to be excluded
           from update. Default is None.
 
