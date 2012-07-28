@@ -3,21 +3,35 @@
 # create a file buildInfo.cpp with various functions returning build
 # information.
 #
-# arguments:
+# To call it from the makefile, you would do something like:
 #
-#   boxlib directory
-#   C++ compiler
-#   Fortran compiler
-#   auxillary data 1
-#   auxillary data 2
+# CEXE_sources += buildInfo.cpp
+# CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
+# INCLUDE_LOCATIONS +=  $(BOXLIB_HOME)/Tools/C_scripts
+# 
+# buildInfo.cpp: $(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp
+#         $(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp "$(BOXLIB_HOME)" \
+#             "$(COMP)" "$(FCOMP)" \
+#             "AUX=$(AUXNAME1)" "AUX=$(AUXNAME2)" \
+#             "GIT=$(TOP)" "GIT=$(BOXLIB_HOME)" "GIT=$(ASTRODEV_DIR)" 
 #
-# here the auxillary data is any string -- different codes may have
-# different needs.
+# where:
+#
+#  BOXLIB_HOME is a string giving the path to the BoxLib directory
+#
+#  COMP is the C++ compiler name (as expected by BoxLib)
+#
+#  FCOMP is the Fortran compiler name (as expected by BoxLib)
+#
+#  AUXNAME? is something like EOS_PATH, NETWORK_PATH, and CHEMICAL_MODEL.
+#  There can be zero or up to three AUX=$().  
+#  If necessary, this script can be modified to increase the number of slots for AUX.
+#
+#  GIT=$() is used for obtaining git hash of the code.
+#  There can be zero or up to three GIT=$().  
+#  If necessary, this script can be modified to increase the number of slots for GIT.
+#
 
-if [ -z "IN_BASH" ]; then
-  export IN_BASH=1
-  exec bash -f "$0" "$@"
-fi
 
 # the basic build strings will be MAX_STRING_LENGTH long
 MAX_STRING_LENGTH=128
