@@ -677,12 +677,13 @@ contains
 
   end subroutine s_dense_3d_nodal
 
-  subroutine stencil_apply_1d_nodal(ss, dd, uu, mm, ng)
+  subroutine stencil_apply_1d_nodal(ss, dd, uu, mm, ng, stencil_type)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in   ) :: ss(0:,:)
     real (kind = dp_t), intent(inout) :: dd(0:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
     integer           , intent(in   ) :: mm(:)
+    integer           , intent(in   ) :: stencil_type
     integer i,lo(1)
  
     dd = ZERO
@@ -706,12 +707,13 @@ contains
 
   end subroutine stencil_apply_1d_nodal
 
-  subroutine stencil_apply_2d_nodal(ss, dd, uu, mm, ng)
+  subroutine stencil_apply_2d_nodal(ss, dd, uu, mm, ng, stencil_type)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
     real (kind = dp_t), intent(inout) :: dd(0:,0:)
     real (kind = dp_t), intent(in   ) :: ss(0:,:,:)
     integer           , intent(in   ) :: mm(:,:)
+    integer           , intent(in   ) :: stencil_type
 
     integer :: i,j,lo(2),nx,ny
     logical :: zeroit,iface,jface
@@ -722,7 +724,7 @@ contains
     nx = size(ss,dim=2)
     ny = size(ss,dim=3)
 
-    if (size(ss,dim=1) .eq. 5) then
+    if (stencil_type .eq. ND_CROSS_STENCIL) then
 
        do j = 1,ny
           jface = .false. ; if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
@@ -746,7 +748,7 @@ contains
           end do
        end do
 
-    else if (size(ss,dim=1) .eq. 9) then
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
 
        do j = 1,ny
           jface = .false. ; if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
@@ -774,16 +776,19 @@ contains
           end do
        end do
 
+    else
+       call bl_error("stencil_apply_2d_nodal: dont know this stencil_type")
     end if
 
   end subroutine stencil_apply_2d_nodal
 
-  subroutine stencil_apply_3d_nodal(ss, dd, uu, mm, ng, uniform_dh)
+  subroutine stencil_apply_3d_nodal(ss, dd, uu, mm, ng, stencil_type, uniform_dh)
     integer           , intent(in   ) :: ng
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), intent(inout) :: dd(0:,0:,0:)
     real (kind = dp_t), intent(in   ) :: ss(0:,:,:,:)
     integer           , intent(in   ) :: mm(:,:,:)
+    integer           , intent(in   ) :: stencil_type
     logical           , intent(in   ) :: uniform_dh
 
     integer i,j,k,lo(3),nx,ny,nz
@@ -798,7 +803,7 @@ contains
     ny = size(ss,dim=3)
     nx = size(ss,dim=2)
 
-    if (size(ss,dim=1) .eq. 7) then
+    if (stencil_type .eq. ND_CROSS_STENCIL) then
 
        !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
@@ -833,7 +838,7 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-    else if ((size(ss,dim=1) .eq. 21) .or. (size(ss,dim=1) .eq. 27)) then
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
 
        !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
@@ -880,10 +885,8 @@ contains
           end do
        end do
        !$OMP END PARALLEL DO
-    else 
-      print*,'BAD STENCIL SIZE IN APPLY_3D_NODAL ',size(ss,dim=1)
-      call bl_error(' ')
-
+    else
+       call bl_error("stencil_apply_3d_nodal: dont know this stencil_type")
     end if
 
   end subroutine stencil_apply_3d_nodal

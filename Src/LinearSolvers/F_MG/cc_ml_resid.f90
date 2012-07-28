@@ -311,18 +311,18 @@ contains
           select case(get_dim(ss))
           case (1)
              call stencil_flux_1d(sp(:,:,1,1), fp(:,1,1,n), up(:,1,1,n), &
-                  mp(:,1,1,1), ng, ratio, face, dim)
+                                  mp(:,1,1,1), ng, ratio, face, dim)
           case (2)
              if ( ncomp(flux) > 1 ) then
                 call stencil_flux_n_2d(sp(:,:,:,1), fp(:,:,1,:), up(:,:,1,n), &
-                     mp(:,:,1,1), ng, ratio, face, dim)
+                                     mp(:,:,1,1), ng, ratio, face, dim)
              else
                 call stencil_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
-                     mp(:,:,1,1), ng, ratio, face, dim)
+                                     mp(:,:,1,1), ng, ratio, face, dim)
              end if
           case (3)
              call stencil_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
-                  mp(:,:,:,1), ng, ratio, face, dim)
+                                  mp(:,:,:,1), ng, ratio, face, dim)
           end select
        end do
     end do
