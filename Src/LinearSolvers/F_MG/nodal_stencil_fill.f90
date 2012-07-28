@@ -258,10 +258,10 @@ contains
        case (1)
           call s_simple_1d_nodal(sp(:,:,1,1), cp(:,1,1,1), mp(:,1,1,1), dh)
        case (2)
-          if (stencil_type == ST_DENSE) then
+          if (stencil_type == ND_DENSE_STENCIL) then
             call s_dense_2d_nodal(sp(:,:,:,1), cp(:,:,1,:), ng_sg, mp(:,:,1,1), &
                                   face_type(i,:,:), dh, lo, hi)
-          else if (stencil_type == ST_CROSS) then
+          else if (stencil_type == ND_CROSS_STENCIL) then
             call s_cross_2d_nodal(sp(:,:,:,1), cp(:,:,1,1), mp(:,:,1,1), &
                                    face_type(i,:,:), dh)
           else 
@@ -269,9 +269,9 @@ contains
             call bl_error('stencil_fill_nodal')
           end if
        case (3)
-          if (stencil_type == ST_DENSE) then
+          if (stencil_type == ND_DENSE_STENCIL) then
             call s_dense_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), dh)
-          else if (stencil_type == ST_CROSS) then
+          else if (stencil_type == ND_CROSS_STENCIL) then
             call s_cross_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), dh)
           else 
             print*,'DONT KNOW THIS NODAL STENCIL TYPE ',stencil_type

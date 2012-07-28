@@ -1010,7 +1010,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
     type(imultifab), intent(in   ) :: mm
 
     integer :: dim, i, ngu, ngf
-    logical :: lcross
 
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
@@ -1022,13 +1021,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
     ngu = nghost(uu)
 
-    lcross = ( (ncomp(ss) == 5) .or. (ncomp(ss) == 7) )
-
     if ( ncomp(uu) /= ncomp(flux(1)) ) then
        call bl_error("ML_FILL_ALL_FLUXES: uu%nc /= flux%nc")
     end if
 
-    call multifab_fill_boundary(uu, cross = lcross)
+    call multifab_fill_boundary(uu)
 
     do dim = 1, get_dim(uu)
        do i = 1, nboxes(flux(dim))

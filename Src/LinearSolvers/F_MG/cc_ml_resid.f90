@@ -147,7 +147,8 @@ contains
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev))
+       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
+                      mgt(n)%stencil_type,mgt(n)%lcross)
     end do
 
     do n = nlevs,2,-1
@@ -226,7 +227,7 @@ contains
 !
 ! ******************************************************************************************
 !
-  subroutine ml_fill_fluxes_c(ss, flux, cf, uu, cu, mm, ratio, face, dim)
+  subroutine ml_fill_fluxes_c(ss, flux, cf, uu, cu, mm, ratio, face, dim, lcross)
 
     use bl_prof_module
     use cc_stencil_apply_module
@@ -236,22 +237,21 @@ contains
     type(multifab), intent(inout) :: uu
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: cf, cu
-    integer :: ratio
-    integer :: face, dim
-    integer :: i
+    integer, intent(in) :: ratio
+    integer, intent(in) :: face, dim
+    logical, intent(in) :: lcross
+
+    integer                   :: i,ng
+    type(bl_prof_timer), save :: bpt
+
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: ng
-    logical :: lcross
-    type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_fill_fluxes_c")
 
     ng = nghost(uu)
-
-    lcross = ( (ncomp(ss) == 5) .or. (ncomp(ss) == 7) )
 
     call multifab_fill_boundary(uu, cross = lcross)
 

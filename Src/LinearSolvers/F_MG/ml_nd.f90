@@ -50,7 +50,6 @@ contains
     integer :: n, dm
     integer :: mglev, mglev_crse, iter
     logical :: fine_converged
-    logical :: lcross
 
     real(dp_t) :: Anorm, bnorm
     real(dp_t) :: fac
@@ -115,9 +114,6 @@ contains
 
     bnorm = ml_norm_inf(rh,fine_mask)
 
-    lcross = ((ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 5) .or. &
-              (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
-
     Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
     do n = 1, nlevs-1
        Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels), fine_mask(n)), Anorm)
@@ -125,7 +121,8 @@ contains
 
     do n = nlevs,1,-1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
+       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
+                      mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
     end do
 
     do n = 1,nlevs
@@ -200,7 +197,8 @@ contains
 
              ! Compute COARSE Res = Rh - Lap(Soln)
              call mg_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
-                  rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse),mgt(n-1)%uniform_dh)
+                  rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse), &
+                  mgt(n-1)%stencil_type, mgt(n-1)%lcross, mgt(n-1)%uniform_dh)
 
              if ( dm .eq. 3 ) then
                 fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
@@ -213,7 +211,8 @@ contains
              ! Compute FINE Res = Res - Lap(uu)
              mglev = mgt(n)%nlevels
              call mg_defect(mgt(n)%ss(mglev), temp_res(n), &
-                  res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
+                  res(n),uu(n),mgt(n)%mm(mglev), &
+                  mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
              call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
 
              if ( do_diagnostics == 1 ) then
@@ -248,7 +247,8 @@ contains
           else
 
              if (do_diagnostics == 1 ) then
-                call mg_defect(mgt(n)%ss(mglev),temp_res(n), res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
+                call mg_defect(mgt(n)%ss(mglev),temp_res(n), res(n),uu(n),mgt(n)%mm(mglev), &
+                               mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
                 tres = norm_inf(temp_res(n))
                 if ( parallel_ioprocessor() ) then
                    print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, tres
@@ -281,7 +281,8 @@ contains
           if (n < nlevs) call plus_plus(uu_hold(n), uu(n), nghost(uu(n)))
 
           ! Compute Res = Res - Lap(uu)
-          call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
+          call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev), &
+                         mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
           call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
 
           if ( do_diagnostics == 1 ) then
@@ -299,7 +300,8 @@ contains
                uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
 
           ! Compute Res = Res - Lap(uu)
-          call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
+          call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev), &
+                         mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
           call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
 
           if ( do_diagnostics == 1 ) then
@@ -327,7 +329,7 @@ contains
        end do
 
         do n = 1,nlevs
-           call multifab_fill_boundary(soln(n), cross = lcross)
+           call multifab_fill_boundary(soln(n), cross = mgt(n)%lcross)
         end do
 
        !    Optimization so don't have to do multilevel convergence test each time
@@ -335,7 +337,8 @@ contains
        !    Compute the residual on just the finest level
         n = nlevs
         mglev = mgt(n)%nlevels
-        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
+        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
+                       mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
 
         if ( ml_fine_converged(res, soln, bnorm, Anorm, rel_eps, abs_eps) ) then
 
@@ -344,7 +347,8 @@ contains
           !      Compute the residual on every level
           do n = 1,nlevs-1
              mglev = mgt(n)%nlevels
-             call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev),mgt(n)%uniform_dh)
+             call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
+                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
           end do
 
           do n = nlevs,2,-1
@@ -482,10 +486,12 @@ contains
 
       if (ncomp(mgt(n)%ss(mglev_fine)) .eq. (2*dm+1) ) then ! cross stencil
         call grid_res(one_sided_ss,temp_res, &
-             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type,mgt(n)%uniform_dh)
+             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type, &
+             mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
       else
         call grid_res(mgt(n)%ss(mglev_fine),temp_res, &
-             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type,mgt(n)%uniform_dh)
+             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type, &
+             mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
       end if
 
       !    Zero out the flux registers which will hold the fine contributions
@@ -572,13 +578,16 @@ contains
 
   end subroutine ml_nd
 
-  subroutine grid_res(ss, dd, ff, uu, mm, face_type, uniform_dh)
+  subroutine grid_res(ss, dd, ff, uu, mm, face_type, stencil_type, lcross, uniform_dh)
 
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
     integer, intent(in) :: face_type(:,:,:)
+    integer, intent(in) :: stencil_type
+    logical, intent(in) :: lcross
     logical, intent(in) :: uniform_dh
+
     integer :: i, n
     real(kind=dp_t), pointer :: dp(:,:,:,:)
     real(kind=dp_t), pointer :: fp(:,:,:,:)
@@ -586,7 +595,6 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: dm,nodal_ng
-    logical :: lcross
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "grid_res")
@@ -594,7 +602,6 @@ contains
     nodal_ng = 0; if ( nodal_q(uu) ) nodal_ng = 1
 
     dm = get_dim(uu)
-    lcross = (ncomp(ss) == (2*dm+1))
 
     call multifab_fill_boundary(uu, cross = lcross)
 
