@@ -4,11 +4,9 @@ module nodal_stencil_module
   use multifab_module
   use bc_functions_module
   use impose_neumann_bcs_module
+  use stencil_types_module
 
   implicit none
-
-  integer, parameter :: ST_CROSS  = 1
-  integer, parameter :: ST_DENSE  = 2
 
   real (kind = dp_t), private, parameter :: ZERO  = 0.0_dp_t
   real (kind = dp_t), private, parameter :: ONE   = 1.0_dp_t
