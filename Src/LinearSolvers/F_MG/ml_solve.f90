@@ -64,9 +64,11 @@ contains
        mglev = mgt(n)%nlevels
        do i = 1, dm
           call ml_fill_fine_fluxes(mgt(n)%ss(mglev), fine_flx(n)%bmf(i,0), &
-                                   full_soln(n), mgt(n)%mm(mglev), -1, i)
+                                   full_soln(n), mgt(n)%mm(mglev), -1, i, &
+                                   mgt(n)%stencil_type, mgt(n)%lcross)
           call ml_fill_fine_fluxes(mgt(n)%ss(mglev), fine_flx(n)%bmf(i,1), &
-                                   full_soln(n), mgt(n)%mm(mglev),  1, i)
+                                   full_soln(n), mgt(n)%mm(mglev),  1, i, &
+                                   mgt(n)%stencil_type, mgt(n)%lcross)
        end do
     end do
 
@@ -76,30 +78,30 @@ contains
 
    end subroutine ml_cc_solve
 
-   subroutine ml_fill_fine_fluxes(ss, flux, uu, mm, face, dim)
+   subroutine ml_fill_fine_fluxes(ss, flux, uu, mm, face, dim, stencil_type, lcross)
 
      use bl_prof_module
      use cc_stencil_apply_module
 
-     type(multifab), intent(inout) :: flux
-     type(multifab), intent(in) :: ss
-     type(multifab), intent(inout) :: uu
-     type(imultifab), intent(in) :: mm
-     integer :: face, dim
+     type(multifab) , intent(inout) :: flux
+     type(multifab) , intent(in   ) :: ss
+     type(multifab) , intent(inout) :: uu
+     type(imultifab), intent(in   ) :: mm
+     integer        , intent(in   ) :: face, dim
+     integer        , intent(in   ) :: stencil_type
+     logical        , intent(in   ) :: lcross
+
      integer :: i, n
      real(kind=dp_t), pointer :: fp(:,:,:,:)
      real(kind=dp_t), pointer :: up(:,:,:,:)
      real(kind=dp_t), pointer :: sp(:,:,:,:)
      integer        , pointer :: mp(:,:,:,:)
      integer :: ng
-     logical :: lcross
      type(bl_prof_timer), save :: bpt
 
      call build(bpt, "ml_fill_fine_fluxes")
 
      ng = nghost(uu)
-
-     lcross = ( (ncomp(ss) == 5) .or. (ncomp(ss) == 7) )
 
      if ( ncomp(uu) /= ncomp(flux) ) then
         call bl_error("ML_FILL_FINE_FLUXES: uu%nc /= flux%nc")
