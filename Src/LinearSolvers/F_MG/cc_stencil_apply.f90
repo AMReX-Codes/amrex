@@ -3,6 +3,7 @@ module cc_stencil_apply_module
   use bl_types
   use bc_module
   use bc_functions_module
+  use stencil_types_module
   use multifab_module
 
   implicit none
@@ -16,14 +17,15 @@ module cc_stencil_apply_module
 
 contains
 
-  subroutine stencil_apply_1d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
+  subroutine stencil_apply_1d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, skwd)
 
     integer, intent(in) :: ng_d, ng_u, lo(:), hi(:)
     real (kind = dp_t), intent(in)  :: ss(0:,lo(1) :)
     real (kind = dp_t), intent(out) :: dd(lo(1)-ng_d:)
     real (kind = dp_t), intent(in)  :: uu(lo(1)-ng_u:)
     integer           , intent(in)  :: mm(lo(1):)
-    logical, intent(in), optional   :: skwd
+    integer           , intent(in)  :: stencil_type
+    logical           , intent(in), optional   :: skwd
 
     integer, parameter :: XBC = 3
     logical :: lskwd
@@ -52,6 +54,7 @@ contains
   end subroutine stencil_apply_1d
 
   subroutine stencil_flux_1d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
+
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in)  :: ss(0:,:)
     real (kind = dp_t), intent(out) :: flux(:)
@@ -104,12 +107,14 @@ contains
 
   end subroutine stencil_flux_1d
 
-  subroutine stencil_apply_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
+  subroutine stencil_apply_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, skwd)
+
     integer           , intent(in   ) :: ng_d, ng_u, lo(:), hi(:)
     real (kind = dp_t), intent(in   ) :: ss(0:,lo(1):,lo(2):)
     real (kind = dp_t), intent(  out) :: dd(lo(1)-ng_d:,lo(2)-ng_d:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng_u:,lo(2)-ng_u:)
-    integer           , intent(in   )  :: mm(lo(1):,lo(2):)
+    integer           , intent(in   ) :: mm(lo(1):,lo(2):)
+    integer           , intent(in   ) :: stencil_type
     logical           , intent(in   ), optional :: skwd
 
     integer i,j
@@ -205,12 +210,14 @@ contains
 
   end subroutine stencil_apply_2d
 
-subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
+subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, skwd)
+
     integer           , intent(in   ) :: ng_d, ng_u, lo(:), hi(:)
     real (kind = dp_t), intent(in   ) :: ss(0:,lo(1):,lo(2):)
     real (kind = dp_t), intent(  out) :: dd(lo(1)-ng_d:,lo(2)-ng_d:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng_u:,lo(2)-ng_u:)
     integer           , intent(in   )  :: mm(lo(1):,lo(2):)
+    integer           , intent(in   ) :: stencil_type
     logical           , intent(in   ), optional :: skwd
 
     integer i,j,n,nc,dm,nm1,nedge,nset
@@ -516,13 +523,14 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
   end subroutine stencil_flux_n_2d
 
-  subroutine stencil_apply_3d(ss, dd, ng_d, uu, ng_u, mm, skwd)
+  subroutine stencil_apply_3d(ss, dd, ng_d, uu, ng_u, mm, stencil_type, skwd)
 
     integer           , intent(in ) :: ng_d,ng_u
     real (kind = dp_t), intent(in ) :: ss(0:,:,:,:)
     real (kind = dp_t), intent(out) :: dd(1-ng_d:,1-ng_d:,1-ng_d:)
     real (kind = dp_t), intent(in ) :: uu(1-ng_u:,1-ng_u:,1-ng_u:)
     integer           , intent(in ) :: mm(:,:,:)
+    integer           , intent(in ) :: stencil_type
     logical           , intent(in ), optional :: skwd
 
     integer nx,ny,nz,i,j,k

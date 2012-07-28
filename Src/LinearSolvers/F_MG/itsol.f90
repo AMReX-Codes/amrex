@@ -293,8 +293,9 @@ contains
     call destroy(bpt)
   end function itsol_converged
 
-  ! computes rr = aa * uu
+  ! Computes rr = aa * uu
   subroutine itsol_stencil_apply(aa, rr, uu, mm, stencil_type, lcross, uniform_dh)
+
     use bl_prof_module
 
     use nodal_stencil_module, only: stencil_apply_1d_nodal, stencil_apply_2d_nodal,  stencil_apply_3d_nodal
@@ -339,26 +340,26 @@ contains
           case (1)
              if ( .not. nodal_flag) then
                 call stencil_apply_1d(ap(:,:,1,1), rp(:,1,1,n), nghost(rr), up(:,1,1,n), nghost(uu),  &
-                                      mp(:,1,1,1), lo, hi)
+                                      mp(:,1,1,1), lo, hi, stencil_type)
              else
                 call stencil_apply_1d_nodal(ap(:,:,1,1), rp(:,1,1,n), up(:,1,1,n),  &
-                     mp(:,1,1,1), nghost(uu))
+                     mp(:,1,1,1), nghost(uu), stencil_type)
              end if
           case (2)
              if ( .not. nodal_flag) then
                 call stencil_apply_2d(ap(:,:,:,1), rp(:,:,1,n), nghost(rr), up(:,:,1,n), nghost(uu),  &
-                     mp(:,:,1,1), lo, hi)
+                     mp(:,:,1,1), lo, hi, stencil_type)
              else
                 call stencil_apply_2d_nodal(ap(:,:,:,1), rp(:,:,1,n), up(:,:,1,n),  &
-                     mp(:,:,1,1), nghost(uu))
+                     mp(:,:,1,1), nghost(uu), stencil_type)
              end if
           case (3)
              if ( .not. nodal_flag) then
                 call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), nghost(rr), up(:,:,:,n), nghost(uu),  &
-                     mp(:,:,:,1))
+                                      mp(:,:,:,1), stencil_type)
              else
                 call stencil_apply_3d_nodal(ap(:,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
-                     mp(:,:,:,1), nghost(uu), luniform_dh)
+                     mp(:,:,:,1), nghost(uu), stencil_type, luniform_dh)
              end if
           end select
        end do
