@@ -164,7 +164,7 @@ contains
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
-            mgt(n)%mm(mglev))
+                      mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
     end do
 
     do n = nlevs,2,-1
@@ -350,11 +350,13 @@ contains
 
                 ! Compute COARSE Res = Rh - Lap(Soln)
                 call mg_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
-                     rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse))
+                               rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse), &
+                               mgt(n-1)%stencil_type, mgt(n-1)%lcross)
 
                 ! Compute FINE Res = Res - Lap(uu)
                 call mg_defect(mgt(n)%ss(mglev),temp_res(n), &
-                     res(n),uu(n),mgt(n)%mm(mglev))
+                               res(n),uu(n),mgt(n)%mm(mglev), &
+                               mgt(n)%stencil_type, mgt(n)%lcross)
                 call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
 
                 if (do_diagnostics == 1 ) then
@@ -385,7 +387,7 @@ contains
 
                 if (do_diagnostics == 1 ) then
                    call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
-                        mgt(n)%mm(mglev))
+                        mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
                    tres = norm_inf(temp_res(n))
                    if ( parallel_ioprocessor()) then
                       print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, tres
@@ -431,7 +433,7 @@ contains
 
              ! Compute Res = Res - Lap(uu)
              call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
-                  mgt(n)%mm(mglev))
+                            mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
              call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
 
              if (do_diagnostics == 1 ) then
@@ -452,7 +454,7 @@ contains
 
              if (do_diagnostics == 1 ) then
                 call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
-                     mgt(n)%mm(mglev))
+                               mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
                 call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
                 tres = norm_inf(res(n))
                 if ( parallel_ioprocessor() ) then
@@ -506,7 +508,8 @@ contains
           !    Compute the residual on just the finest level
           n = nlevs
           mglev = mgt(n)%nlevels
-          call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev))
+          call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n), &
+                         mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
 
           if ( ml_fine_converged(res, soln, max_norm, Anorm, rel_eps, abs_eps) ) then
 
@@ -516,7 +519,7 @@ contains
              do n = 1,nlevs-1
                 mglev = mgt(n)%nlevels
                 call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n), &
-                     mgt(n)%mm(mglev))
+                               mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
              end do
 
              !      Compute the coarse-fine residual 

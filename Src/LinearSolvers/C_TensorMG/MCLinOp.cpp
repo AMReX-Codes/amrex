@@ -305,15 +305,18 @@ MCLinOp::residual (MultiFab&       residL,
 
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
-	int nc = residL.nComp();
+	int              nc     = residL.nComp();
+        const Box&       vbox   = solnLmfi.validbox();
+        FArrayBox&       resfab = residL[solnLmfi];
+        const FArrayBox& rhsfab = rhsL[solnLmfi];
 	FORT_RESIDL(
-	    residL[solnLmfi].dataPtr(), 
-            ARLIM(residL[solnLmfi].loVect()), ARLIM(residL[solnLmfi].hiVect()),
-	    rhsL[solnLmfi].dataPtr(), 
-            ARLIM(rhsL[solnLmfi].loVect()), ARLIM(rhsL[solnLmfi].hiVect()),
-	    residL[solnLmfi].dataPtr(), 
-            ARLIM(residL[solnLmfi].loVect()), ARLIM(residL[solnLmfi].hiVect()),
-	    solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(), &nc);
+	    resfab.dataPtr(), 
+            ARLIM(resfab.loVect()), ARLIM(resfab.hiVect()),
+	    rhsfab.dataPtr(), 
+            ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
+	    resfab.dataPtr(), 
+            ARLIM(resfab.loVect()), ARLIM(resfab.hiVect()),
+	    vbox.loVect(), vbox.hiVect(), &nc);
     }
 }
 
@@ -514,16 +517,20 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
 
     for (MFIter csmfi(cs); csmfi.isValid(); ++csmfi)
     {
+        const Box&       grd   = grids[csmfi.index()];
+        FArrayBox&       csfab = cs[csmfi];
+        const FArrayBox& fnfab = fn[csmfi];
+
 	switch(cdir)
         {
 	case -1:
 	    FORT_AVERAGECC(
-		cs[csmfi].dataPtr(),
-                ARLIM(cs[csmfi].loVect()), ARLIM(cs[csmfi].hiVect()),
-		fn[csmfi].dataPtr(),
-                ARLIM(fn[csmfi].loVect()), ARLIM(fn[csmfi].hiVect()),
-		grids[csmfi.index()].loVect(),
-                grids[csmfi.index()].hiVect(), &nc);
+		csfab.dataPtr(),
+                ARLIM(csfab.loVect()), ARLIM(csfab.hiVect()),
+		fnfab.dataPtr(),
+                ARLIM(fnfab.loVect()), ARLIM(fnfab.hiVect()),
+		grd.loVect(),
+                grd.hiVect(), &nc);
 	    break;
 	case 0:
 	case 1:
@@ -531,22 +538,22 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
 	    if ( harmavg )
             {
 		FORT_HARMONIC_AVERAGEEC(
-		    cs[csmfi].dataPtr(), 
-                    ARLIM(cs[csmfi].loVect()), ARLIM(cs[csmfi].hiVect()),
-		    fn[csmfi].dataPtr(), 
-                    ARLIM(fn[csmfi].loVect()), ARLIM(fn[csmfi].hiVect()),
-		    grids[csmfi.index()].loVect(),
-                    grids[csmfi.index()].hiVect(), &nc, &cdir);
+		    csfab.dataPtr(), 
+                    ARLIM(csfab.loVect()), ARLIM(csfab.hiVect()),
+		    fnfab.dataPtr(), 
+                    ARLIM(fnfab.loVect()), ARLIM(fnfab.hiVect()),
+		    grd.loVect(),
+                    grd.hiVect(), &nc, &cdir);
 	    }
             else
             {
 		FORT_AVERAGEEC(
-		    cs[csmfi].dataPtr(), 
-                    ARLIM(cs[csmfi].loVect()), ARLIM(cs[csmfi].hiVect()),
-		    fn[csmfi].dataPtr(), 
-                    ARLIM(fn[csmfi].loVect()), ARLIM(fn[csmfi].hiVect()),
-		    grids[csmfi.index()].loVect(),
-                    grids[csmfi.index()].hiVect(), &nc, &cdir);
+		    csfab.dataPtr(), 
+                    ARLIM(csfab.loVect()), ARLIM(csfab.hiVect()),
+		    fnfab.dataPtr(), 
+                    ARLIM(fnfab.loVect()), ARLIM(fnfab.hiVect()),
+		    grd.loVect(),
+                    grd.hiVect(), &nc, &cdir);
 	    }
 	    break;
 	default:
