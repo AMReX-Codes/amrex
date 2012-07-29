@@ -47,7 +47,7 @@ contains
     type(layout) :: la, lac
     integer :: i, n, dm, ng_fill
     integer :: mglev, mglev_crse, iter
-    logical :: fine_converged,need_grad_phi,lcross
+    logical :: fine_converged,need_grad_phi
 
     real(dp_t) :: Anorm, bnorm, abs_eps, ni_res
     real(dp_t) :: tres, tres0, max_norm
@@ -119,9 +119,6 @@ contains
             mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     end do
     bnorm = ml_norm_inf(rh,fine_mask)
-
-    lcross = ((ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 5) .or. &
-         (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
 
     Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
     do n = 1, nlevs-1
@@ -394,7 +391,7 @@ contains
                    end if
                 else
                    ! Seem to need this in periodic case to get right answer...
-                   call multifab_fill_boundary(uu(n), cross = lcross)
+                   call multifab_fill_boundary(uu(n), cross = mgt(n)%lcross)
                 end if
 
              end if
@@ -485,7 +482,7 @@ contains
           end do
 
           do n = 1,nlevs
-             call multifab_fill_boundary(soln(n), cross = lcross)
+             call multifab_fill_boundary(soln(n), cross = mgt(n)%lcross)
           end do
 
           ! Interpolate soln to supply boundary conditions 
@@ -643,7 +640,7 @@ contains
 
        !   Fill the ghost cells at each level from grids at that level
        do n = 1,nlevs
-          call multifab_fill_boundary(full_soln(n), cross = lcross)
+          call multifab_fill_boundary(full_soln(n), cross = mgt(n)%lcross)
        enddo
 
        !   Interpolate boundary conditions of soln in order to get correct grad(phi) at
