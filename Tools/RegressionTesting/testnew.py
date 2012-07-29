@@ -1801,6 +1801,12 @@ def testSuite(argv):
         # restart the test
         if (test.restartTest):
             lastFile = getLastPlotfile(outputDir, test)
+
+            if (lastFile == ""):
+                errorMsg = "ERROR: test did not produce output.  Restart test not possible"
+                reportTestFailure(errorMsg, test, testDir, fullWebDir)
+                continue
+
             origLastFile = "orig_%s" % (lastFile)
             shutil.move(lastFile, origLastFile)
 
