@@ -3,6 +3,7 @@ module cpp_mg_module
   use mg_module
   use multifab_module
   use ml_layout_module
+  use stencil_types_module
 
   implicit none
 
@@ -11,6 +12,7 @@ module cpp_mg_module
      logical         :: nodal
      integer         :: dim  = 0
      integer         :: nlevel
+     integer         :: stencil_type
      integer         :: stencil_order = 2
      integer         :: nu1, nu2, nuf, nub
      integer         :: gamma
@@ -110,17 +112,20 @@ subroutine mgt_use_alltoallv ()
   call multifab_set_alltoallv(.true.)
 end subroutine mgt_use_alltoallv
 
-subroutine mgt_alloc(dm, nlevel, nodal)
+subroutine mgt_cc_alloc(dm, nlevel, stencil_type_in)
+
   use cpp_mg_module
   implicit none
   integer, intent(in) :: dm, nlevel
-  integer :: nodal
+  integer, intent(in) :: stencil_type_in
 
   if ( mgts%dim == 0 ) then
      mgts%dim = dm
      mgts%nlevel = nlevel
-     mgts%nodal = (nodal /= 0)
+     mgts%nodal = .false.
   end if
+
+  mgts%stencil_type = stencil_type_in
 
   allocate(mgts%rr(nlevel-1,dm))
   allocate(mgts%rh(nlevel))
@@ -133,7 +138,7 @@ subroutine mgt_alloc(dm, nlevel, nodal)
 
   call build(mgts%mla, nlevel, dm)
 
-end subroutine mgt_alloc
+end subroutine mgt_cc_alloc
 
 subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
   use cpp_mg_module
@@ -238,7 +243,7 @@ subroutine mgt_finalize(dx,bc)
         bottom_max_iter_in = mgts%nu1
      end if
 
-     call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, &
+     call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, mgts%stencil_type, &
           dh                = dx(n,:), &
           ns                = ns, &
           smoother          = mgts%smoother, &
@@ -332,7 +337,7 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
         bottom_solver_in = 0
         bottom_max_iter_in = mgts%nu1
      end if
-     call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, &
+     call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, mgts%stencil_type, &
           dh                = dx(n,:), &
           ns                = ns, &
           smoother          = mgts%smoother, &

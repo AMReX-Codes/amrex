@@ -6,7 +6,7 @@ NDEBUG    := t
 MPI       := t
 OMP       := t
 PROF      :=
-COMP      := PGI
+COMP      := gfortran
 MKVERBOSE := t
 
 include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak

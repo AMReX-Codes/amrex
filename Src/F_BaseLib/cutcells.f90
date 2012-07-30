@@ -189,26 +189,26 @@ contains
     print*, ' splitIndex = ', p%splitIndex
     print*, ' x face:'
     print*, ' face exist = ',p%FaceExist(1,1), p%FaceExist(1,2)
-    write(*,'(A,es12.2,es12.2,es12.2)'), '  face centroid = ', p%FaceCentroid(1,1,1), &
+    write(*,'(A,es12.2,es12.2,es12.2)') '  face centroid = ', p%FaceCentroid(1,1,1), &
                              p%FaceCentroid(1,1,2), p%FaceCentroid(1,1,3)
-    write(*,'(A,es12.2,es12.2,es12.2)'), '  face centroid = ',p%FaceCentroid(1,2,1), &
+    write(*,'(A,es12.2,es12.2,es12.2)') '  face centroid = ',p%FaceCentroid(1,2,1), &
                              p%FaceCentroid(1,2,2),p%FaceCentroid(1,2,3)
-    write(*,'(A,es12.2,es12.2)'), '  face area = ',p%FaceArea(1,1), p%FaceArea(1,2)
+    write(*,'(A,es12.2,es12.2)') '  face area = ',p%FaceArea(1,1), p%FaceArea(1,2)
     print*, ' y face:'
     print*, ' face exist = ',p%FaceExist(2,1), p%FaceExist(2,2)
-    write(*,'(A,es12.2,es12.2,es12.2)'), '  face centroid = ', p%FaceCentroid(2,1,1), &
+    write(*,'(A,es12.2,es12.2,es12.2)') '  face centroid = ', p%FaceCentroid(2,1,1), &
                              p%FaceCentroid(2,1,2), p%FaceCentroid(2,1,3)
-    write(*,'(A,es12.2,es12.2,es12.2)'), '  face centroid = ',p%FaceCentroid(2,2,1), &
+    write(*,'(A,es12.2,es12.2,es12.2)') '  face centroid = ',p%FaceCentroid(2,2,1), &
                              p%FaceCentroid(2,2,2),p%FaceCentroid(2,2,3)
-    write(*,'(A,es12.2,es12.2)'), '  face area = ',p%FaceArea(2,1), p%FaceArea(2,2)
+    write(*,'(A,es12.2,es12.2)') '  face area = ',p%FaceArea(2,1), p%FaceArea(2,2)
     print*, ' z face:'
     print*, ' face exist = ',p%FaceExist(3,1), p%FaceExist(3,2)
 
-    write(*,'(A,es12.2,es12.2,es12.2)'), '  face centroid = ', p%FaceCentroid(3,1,1), &
+    write(*,'(A,es12.2,es12.2,es12.2)') '  face centroid = ', p%FaceCentroid(3,1,1), &
                              p%FaceCentroid(3,1,2), p%FaceCentroid(3,1,3)
-    write(*,'(A,es12.2,es12.2,es12.2)'), '  face centroid = ',p%FaceCentroid(3,2,1), &
+    write(*,'(A,es12.2,es12.2,es12.2)') '  face centroid = ',p%FaceCentroid(3,2,1), &
                              p%FaceCentroid(3,2,2),p%FaceCentroid(3,2,3)
-    write(*,'(A,es12.2,es12.2)'), '  face area = ',p%FaceArea(3,1), p%FaceArea(3,2)
+    write(*,'(A,es12.2,es12.2)') '  face area = ',p%FaceArea(3,1), p%FaceArea(3,2)
     print*,''
   end subroutine cutcell_print
 

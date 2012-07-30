@@ -1344,7 +1344,7 @@ Amr::checkPoint ()
         if (!HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
 
-        old_prec = HeaderFile.precision(15);
+        old_prec = HeaderFile.precision(17);
 
         HeaderFile << CheckPointVersion << '\n'
                    << BL_SPACEDIM       << '\n'

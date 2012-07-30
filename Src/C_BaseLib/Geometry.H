@@ -76,10 +76,6 @@ public:
     //
     static Real ProbHi (int dir);
     //
-    // Returns length of problem domain in each dimension.
-    //
-    static const Real* ProbLength ();
-    //
     // Returns the overall size of the domain by multiplying the ProbLength's together
     //
     static Real ProbSize ();
@@ -383,13 +379,6 @@ Geometry::ProbHi (int dir)
 }
 
 inline
-const Real*
-Geometry::ProbLength ()
-{
-    return prob_domain.length();
-}
-
-inline
 Real
 Geometry::ProbLength (int dir)
 {
@@ -455,10 +444,8 @@ namespace BoxLib
                         {
                             if (!geom.isPeriodic(i))
                             {
-                                if (src.smallEnd(i) == geom.Domain().smallEnd(i))
-                                    src.growLo(i,mf.nGrow());
-                                if (src.bigEnd(i) == geom.Domain().bigEnd(i))
-                                    src.growHi(i,mf.nGrow());
+			      src.growLo(i,mf.nGrow());
+			      src.growHi(i,mf.nGrow());
                             }
                         }
                     }

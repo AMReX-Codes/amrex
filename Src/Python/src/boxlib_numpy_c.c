@@ -1,5 +1,10 @@
 /*
- * BoxLib to NumPy routines
+ * BoxLib to NumPy routines.
+ *
+ * This is complied into its own Python extension module (instead of
+ * being rolled into the libpyfboxlib.so shared library) so that the
+ * NumPy API can be properly initialized (see import_array() below).
+ * Slightly annoying, but it works.
  */
 
 #include <stdlib.h>
@@ -17,14 +22,14 @@ PyObject *
 multifab_as_numpy (PyObject * self, PyObject * args)
 {
   int nbox, n1, n2, n3, n4;
-  int cptr;
+  long cptr;
   double *ptr;
 
   PyObject *arr = NULL;
   int ndim = 4;
   npy_intp dims[4];
 
-  if (!PyArg_ParseTuple (args, "ii", &cptr, &nbox))
+  if (!PyArg_ParseTuple (args, "li", &cptr, &nbox))
     return NULL;
 
   multifab_as_numpy_f((void *) cptr, &nbox, &ptr, &n1, &n2, &n3, &n4);
@@ -72,14 +77,13 @@ multifab_as_numpy (PyObject * self, PyObject * args)
 /* } */
 
 static PyMethodDef libpycboxlib_methods[] = {
-  {"multifab_array", multifab_as_numpy, METH_VARARGS, 
+  {"multifab_as_numpy", multifab_as_numpy, METH_VARARGS,
    "Return NumPy array associated with a BoxLib multifab."},
   /* {"lmultifab_array", lmultifab_as_numpy, METH_VARARGS,  */
   /*  "Return NumPy array associated with a BoxLib lmultifab."}, */
   {NULL, NULL},
 };
 
-//PyMODINITFUN
 void
 initlibpycboxlib(void)
 {

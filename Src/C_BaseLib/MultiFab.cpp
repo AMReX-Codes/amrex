@@ -24,6 +24,12 @@ namespace
     bool initialized = false;
 }
 
+MultiFabCopyDescriptor::MultiFabCopyDescriptor ()
+    :
+    FabArrayCopyDescriptor<FArrayBox>() {}
+
+MultiFabCopyDescriptor::~MultiFabCopyDescriptor () {}
+
 void
 MultiFab::Add (MultiFab&       dst,
 	       const MultiFab& src,
@@ -869,8 +875,8 @@ BoxLib::linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
                          BoxList*                returnUnfilledBoxes,
                          Array<FillBoxId>&       returnedFillBoxIds,
                          const Box&              subbox,
-                         const MultiFabId&       faid1,
-                         const MultiFabId&       faid2,
+                         MultiFabId              faid1,
+                         MultiFabId              faid2,
                          Real                    t1,
                          Real                    t2,
                          Real                    t,
@@ -929,8 +935,8 @@ BoxLib::linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 void
 BoxLib::linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                           const Array<FillBoxId>& fillBoxIds,
-                          const MultiFabId&       faid1,
-                          const MultiFabId&       faid2,
+                          MultiFabId              faid1,
+                          MultiFabId              faid2,
                           FArrayBox&              dest,
                           Real                    t1,
                           Real                    t2,

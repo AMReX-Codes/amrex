@@ -29,9 +29,9 @@ Box::Box (const IntVect& small,
                   small[2]+vec_len[2]-1))
 {}
 
-Box::Box (const IntVect&   small,
-          const IntVect&   big,
-          const IndexType& t)
+Box::Box (const IntVect& small,
+          const IntVect& big,
+          IndexType      t)
     :
     smallend(small),
     bigend(big),
@@ -196,8 +196,8 @@ BoxLib::grow (const Box&     b,
 }
 
 Box&
-Box::grow (const Orientation& face,
-           int                n_cell)
+Box::grow (Orientation face,
+           int         n_cell)
 {
     int idir = face.coordDir();
     if (face.isLow())
@@ -701,9 +701,9 @@ BoxLib::bdryHi (const Box& b,
 }
 
 const Box
-BoxLib::bdryNode (const Box&         b,
-                  const Orientation& face,
-                  int                len)
+BoxLib::bdryNode (const Box&  b,
+                  Orientation face,
+                  int         len)
 {
     int dir = face.coordDir();
     IntVect low(b.smallEnd());
@@ -768,9 +768,9 @@ BoxLib::adjCellHi (const Box& b,
 }
 
 const Box
-BoxLib::adjCell (const Box&         b,
-                 const Orientation& face,
-                 int                len)
+BoxLib::adjCell (const Box&  b,
+                 Orientation face,
+                 int         len)
 {
     BL_ASSERT(len > 0);
     IntVect low(b.smallEnd());

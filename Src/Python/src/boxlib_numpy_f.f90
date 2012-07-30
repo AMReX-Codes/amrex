@@ -1,5 +1,6 @@
 module boxlib_numpy
 
+  use iso_c_binding
   use blobjects
 
 contains

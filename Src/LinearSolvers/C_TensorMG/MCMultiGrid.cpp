@@ -411,11 +411,13 @@ MCMultiGrid::average (MultiFab&       c,
     //
     for (MFIter cmfi(c); cmfi.isValid(); ++cmfi)
     {
-        const Box& bx = cmfi.validbox();
-	int nc = c.nComp();
+        const Box&       bx   = cmfi.validbox();
+	int              nc   = c.nComp();
+        FArrayBox&       cfab = c[cmfi];
+        const FArrayBox& ffab = f[cmfi];
 	FORT_AVERAGE(
-	    c[cmfi].dataPtr(),ARLIM(c[cmfi].loVect()),ARLIM(c[cmfi].hiVect()),
-	    f[cmfi].dataPtr(),ARLIM(f[cmfi].loVect()),ARLIM(f[cmfi].hiVect()),
+	    cfab.dataPtr(),ARLIM(cfab.loVect()),ARLIM(cfab.hiVect()),
+	    ffab.dataPtr(),ARLIM(ffab.loVect()),ARLIM(ffab.hiVect()),
 	    bx.loVect(), bx.hiVect(), &nc);
     }
 }
@@ -430,11 +432,13 @@ MCMultiGrid::interpolate (MultiFab&       f,
     //
     for (MFIter fmfi(f); fmfi.isValid(); ++fmfi)
     {
-        const Box& bx = c.boxArray()[fmfi.index()];
-	int nc = f.nComp();
+        const Box&       bx   = c.boxArray()[fmfi.index()];
+	int              nc   = f.nComp();
+        const FArrayBox& cfab = c[fmfi];
+        FArrayBox&       ffab = f[fmfi];
 	FORT_INTERP(
-	    f[fmfi].dataPtr(),ARLIM(f[fmfi].loVect()),ARLIM(f[fmfi].hiVect()),
-	    c[fmfi].dataPtr(),ARLIM(c[fmfi].loVect()),ARLIM(c[fmfi].hiVect()),
+	    ffab.dataPtr(),ARLIM(ffab.loVect()),ARLIM(ffab.hiVect()),
+	    cfab.dataPtr(),ARLIM(cfab.loVect()),ARLIM(cfab.hiVect()),
 	    bx.loVect(), bx.hiVect(), &nc);
     }
 }

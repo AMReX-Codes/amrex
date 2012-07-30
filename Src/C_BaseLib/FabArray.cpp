@@ -110,7 +110,6 @@ FabArrayBase::CommDataCache::operator= (const Array<ParallelDescriptor::CommData
 
 FabArrayBase::CPC::CPC ()
     :
-    m_rcvs_numpts(0),
     m_reused(false)
 {}
 
@@ -123,7 +122,6 @@ FabArrayBase::CPC::CPC (const BoxArray&            dstba,
     m_srcba(srcba),
     m_dstdm(dstdm),
     m_srcdm(srcdm),
-    m_rcvs_numpts(0),
     m_reused(false)
 {}
 
@@ -133,10 +131,11 @@ FabArrayBase::CPC::CPC (const CPC& rhs)
     m_srcba(rhs.m_srcba),
     m_dstdm(rhs.m_dstdm),
     m_srcdm(rhs.m_srcdm),
-    m_rcvs_numpts(rhs.m_rcvs_numpts),
     m_LocTags(rhs.m_LocTags),
     m_SndTags(rhs.m_SndTags),
     m_RcvTags(rhs.m_RcvTags),
+    m_SndVols(rhs.m_SndVols),
+    m_RcvVols(rhs.m_RcvVols),
     m_reused(rhs.m_reused)
 {}
 

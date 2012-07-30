@@ -177,6 +177,8 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
         const int* cbhi    = crse_bx.hiVect();
         int mxlen          = crse_bx.longside() + 2;
 
+        const MaskTuple& msk = masks[finemfi.index()];
+
         if (std::pow((double)mxlen,(double)BL_SPACEDIM-1) > tmplen)
         {
             delete [] derives;
@@ -195,19 +197,17 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 
 	for (OrientationIter fi; fi; ++fi)
         {
-	    Orientation face(fi());
-	    int dir = face.coordDir();
+	    const Orientation face(fi());
+	    const int         dir = face.coordDir();
             //
 	    // Load up hfine with perpindicular h's.
             //
 	    Real hfine[BL_SPACEDIM];
 	    int kdir = 0;
 	    for (int idir = 0; idir < BL_SPACEDIM; ++idir)
-            {
-	      if (idir == dir)
-                  continue;
-	      hfine[kdir++] = h[idir];
-	    }
+	      if (idir != dir)
+                  hfine[kdir++] = h[idir];
+
 	    FArrayBox& bnd_fab = bndry[face][finemfi.index()];
 	    const int* blo     = bnd_fab.loVect();
 	    const int* bhi     = bnd_fab.hiVect();
@@ -218,7 +218,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 		//
                 // Internal or periodic edge, interpolate from crse data.
                 //
-                const Mask& mask = masks[face][finemfi.index()];
+                const Mask& mask = *(msk[face]);
                 const int* mlo   = mask.loVect();
                 const int* mhi   = mask.hiVect();
                 const int* mdat  = mask.dataPtr();

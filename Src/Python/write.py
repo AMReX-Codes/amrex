@@ -14,14 +14,15 @@ la = layout()
 la.create(boxes=boxes)
 
 mfab = multifab()
-mfab.create(la, components=1, ghost_cells=2, interleave=False)
+mfab.create(la, components=1, ghost_cells=2)
 
 if pybl.mpi_rank() == 1:
-    for b in la.local_boxes:
-        fab = mfab.fab(b)
+    for n in la.local_boxes:
+        fab = mfab.fab(n)
         fab[2,5] = 22.0
 
 mfab.fill_boundary()
 mfab.echo()
+mfab.write('pltTEST', 'test')
 
 pybl.close()
