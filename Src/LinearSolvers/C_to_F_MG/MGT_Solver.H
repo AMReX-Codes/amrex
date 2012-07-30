@@ -18,19 +18,10 @@ public:
                const std::vector<BoxArray>& grids,
                const std::vector<DistributionMapping>& dmap,
                bool nodal,
-               int _stencil_type = -1,
+               int stencil_type,
                bool _have_rhcc = false,
                int nc = 0,
                int ncomp = 1);
-
-    MGT_Solver(const std::vector<Geometry>& geom, 
-               int* bc, 
-               const std::vector<BoxArray>& grids,
-               const std::vector<DistributionMapping>& dmap,
-               bool nodal,
-               int nc, 
-               int ncomp,
-               bool _have_rhcc = false);
 
     void Build(const std::vector<Geometry>& geom, 
                int* bc, int  stencil_type,
@@ -161,7 +152,6 @@ public:
   static int def_verbose, def_cg_verbose, def_min_width, def_max_nlevel;
   static int def_cycle, def_smoother;
   static int def_usecg, def_cg_solver;
-  static int stencil_type;
   
 private:
 
