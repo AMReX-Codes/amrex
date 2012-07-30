@@ -14,7 +14,7 @@ module mg_module
 
 contains
 
-  recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, &
+  recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, stencil_type_in, &
                             nu1, nu2, nuf, nub, gamma, cycle_type, &
                             smoother, omega, &
                             dh, &
@@ -32,6 +32,7 @@ contains
     type(layout), intent(in   ) :: la
     type(box), intent(in) :: pd
     integer, intent(in) :: domain_bc(:,:)
+    integer, intent(in) :: stencil_type_in
 
     integer, intent(in), optional :: ns
     integer, intent(in), optional :: nc
@@ -113,6 +114,27 @@ contains
        else if ( any(nodal) ) then
           call bl_error("mixed nodal/not nodal forbidden")
        end if
+    end if
+
+    mgt%stencil_type = stencil_type_in
+
+    ! "lcross" is used in the call to multifab_fill_boundary -- when true it means
+    !   that the corner cells do *not* need to be filled
+    if (mgt%stencil_type .eq. CC_CROSS_STENCIL .or. &
+        mgt%stencil_type .eq. ND_CROSS_STENCIL) then
+
+        mgt%lcross = .true.
+
+    else if (mgt%stencil_type .eq. ND_DENSE_STENCIL) then
+
+        mgt%lcross = .false.
+
+    else 
+
+       print *,'The stencil_type must be specified '
+       print *, mgt%stencil_type,' is not a valid option'
+       call bl_error("")
+
     end if
 
     if ( present(ns) ) then
@@ -345,7 +367,7 @@ contains
            coarse_dx(:) = mgt%dh(:,1)
 
            call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
-                               domain_bc, &
+                               domain_bc, mgt%stencil_type, &
                                dh = coarse_dx, &
                                ns = ns, &
                                nc = mgt%nc, &
@@ -710,7 +732,7 @@ contains
 
     if (do_diag) then
        ! compute mgt%cc(lev) = ss * uu - rh
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
        nrm = norm_inf(mgt%cc(lev))
        if ( parallel_IOProcessor() ) &
           print *,' BOT: Norm before bottom         ',nrm
@@ -726,14 +748,18 @@ contains
        if (nodal_q(rh)) then
           call itsol_bicgstab_solve(ss, uu, rh, mm, &
                                     mgt%bottom_solver_eps, mgt%bottom_max_iter, &
-                                    mgt%cg_verbose, stat = stat, &
+                                    mgt%cg_verbose, &
+                                    mgt%stencil_type, mgt%lcross, &
+                                    stat = stat, &
                                     singular_in = mgt%bottom_singular, &
                                     uniform_dh = mgt%uniform_dh,&
                                     nodal_mask = mgt%nodal_mask)
        else
           call itsol_bicgstab_solve(ss, uu, rh, mm, &
                                     mgt%bottom_solver_eps, mgt%bottom_max_iter, &
-                                    mgt%cg_verbose, stat = stat, &
+                                    mgt%cg_verbose,  &
+                                    mgt%stencil_type, mgt%lcross, &
+                                    stat = stat, &
                                     singular_in = singular_test, &
                                     uniform_dh = mgt%uniform_dh)
        end if
@@ -744,11 +770,13 @@ contains
        if (nodal_q(rh)) then
           call itsol_cg_solve(ss, uu, rh, mm, &
                               mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
+                              mgt%stencil_type, mgt%lcross, &
                               stat = stat, singular_in = mgt%bottom_singular, &
                               uniform_dh = mgt%uniform_dh, nodal_mask=mgt%nodal_mask)
        else
           call itsol_cg_solve(ss, uu, rh, mm, &
                               mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
+                              mgt%stencil_type, mgt%lcross, &
                               stat = stat, singular_in = singular_test, &
                               uniform_dh = mgt%uniform_dh)
        end if
@@ -770,7 +798,7 @@ contains
 
     if (do_diag) then
        ! compute mgt%cc(lev) = ss * uu - rh
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
        nrm = norm_inf(mgt%cc(lev))
        if ( parallel_IOProcessor() ) &
           print *,' BOT: Norm  after bottom         ',nrm
@@ -781,7 +809,7 @@ contains
   end subroutine mg_tower_bottom_solve
 
   ! computes dd = ff - ss * uu
-  subroutine mg_defect(ss, dd, ff, uu, mm, uniform_dh)
+  subroutine mg_defect(ss, dd, ff, uu, mm, stencil_type, lcross, uniform_dh)
 
     use bl_prof_module
     use itsol_module, only: itsol_stencil_apply
@@ -789,11 +817,13 @@ contains
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
+    integer, intent(in)           :: stencil_type
+    logical, intent(in)           :: lcross
     logical, intent(in), optional :: uniform_dh
     type(bl_prof_timer), save     :: bpt
 
     call build(bpt, "mg_defect")
-    call itsol_stencil_apply(ss, dd, uu, mm, uniform_dh)
+    call itsol_stencil_apply(ss, dd, uu, mm, stencil_type, lcross, uniform_dh)
     call saxpy(dd, ff, -1.0_dp_t, dd)
     call destroy(bpt)
   end subroutine mg_defect
@@ -1007,7 +1037,7 @@ contains
        call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
 
        ! compute mgt%cc(lev) = ss * uu - rh
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
        if (do_diag) then
           nrm = norm_inf(mgt%cc(lev))
@@ -1020,7 +1050,7 @@ contains
        if (associated(mgt%bottom_mgt)) then
           if (do_diag) then
              ! compute mgt%cc(lev) = ss * uu - rh
-             call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+             call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
              nrm = norm_inf(mgt%cc(lev))
              if ( parallel_IOProcessor() ) &
                 print *,'  DN: Norm before bottom         ',nrm
@@ -1030,7 +1060,7 @@ contains
 
           if (do_diag) then
              ! compute mgt%cc(lev) = ss * uu - rh
-             call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+             call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
              nrm = norm_inf(mgt%cc(lev))
              if ( parallel_IOProcessor() ) &
                 print *,'  UP: Norm after  bottom         ',nrm
@@ -1055,7 +1085,7 @@ contains
        end do
 
        ! compute mgt%cc(lev) = ss * uu - rh
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
        if (do_diag) then
           nrm = norm_inf(mgt%cc(lev))
@@ -1088,7 +1118,7 @@ contains
 
        if (do_diag) then
           ! compute mgt%cc(lev) = ss * uu - rh
-          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
              print *,'  UP: Norm after  interp         ',nrm
@@ -1101,7 +1131,7 @@ contains
 
        if (do_diag) then
           ! compute mgt%cc(lev) = ss * uu - rh
-          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
              print *,'  UP: Norm after  smooth         ',nrm
@@ -1150,7 +1180,7 @@ contains
     end do
 
     ! compute mgt%cc(lev) = ss * uu - rh
-    call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+    call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
     if (do_diag) then
        nrm = norm_inf(mgt%cc(lev))
@@ -1163,7 +1193,7 @@ contains
     if ( lev > 1 ) then
 
        ! compute mgt%cc(lev) = ss * uu - rh
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
        call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
@@ -1190,7 +1220,8 @@ contains
        end do
 
        if (do_diag) then
-          call mg_defect(mgt%ss(lev-1), mgt%cc(lev-1), mgt%dd(lev-1), mgt%uu(lev-1), mgt%mm(lev-1), mgt%uniform_dh)
+          call mg_defect(mgt%ss(lev-1), mgt%cc(lev-1), mgt%dd(lev-1), mgt%uu(lev-1), mgt%mm(lev-1), &
+                         mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev-1))
           if ( parallel_IOProcessor() ) &
              print *,'MINI_CRSE: Norm  after smooth         ',nrm
@@ -1202,7 +1233,7 @@ contains
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
 
        if (do_diag) then
-          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
              print *,'MINI_FINE: Norm before smooth         ',nrm
@@ -1213,7 +1244,7 @@ contains
        end do
 
        if (do_diag) then
-          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%uniform_dh)
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
              print *,'MINI_FINE: Norm before smooth         ',nrm
@@ -1272,7 +1303,8 @@ contains
 
     ! compute mgt%dd(mgt%nlevels) = mgt%ss(mgt%nlevels) * uu - rh
     call mg_defect(mgt%ss(mgt%nlevels), &
-                   mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), mgt%uniform_dh)
+                   mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), &
+                   mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
     if ( i_qq < n_qq ) then
        qq(i_qq) = norm_l2(mgt%dd(mgt%nlevels))
        i_qq = i_qq + 1
@@ -1304,7 +1336,8 @@ contains
                            uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, gamma)
        ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(mgt%ss(mgt%nlevels), &
-                      mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), mgt%uniform_dh)
+                      mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), &
+                      mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
        if ( mgt%verbose > 0 ) then
           nrm(1) = norm_inf(mgt%dd(mgt%nlevels))
           if ( parallel_IOProcessor() ) then

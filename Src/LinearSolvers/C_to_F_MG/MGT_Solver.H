@@ -33,7 +33,7 @@ public:
                bool _have_rhcc = false);
 
     void Build(const std::vector<Geometry>& geom, 
-               int* bc, 
+               int* bc, int  stencil_type,
                const std::vector<DistributionMapping>& dmap,
                int nc,
                int ncomp);
