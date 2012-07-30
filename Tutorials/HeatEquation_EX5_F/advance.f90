@@ -56,7 +56,7 @@ contains
 
     real(dp_t) :: dx_vector(mla%nlevel,mla%dim)
 
-    integer :: ns,smoother,nu1,nu2,nub,gamma,cycle_type
+    integer :: stencil_type,ns,smoother,nu1,nu2,nub,gamma,cycle_type
     integer :: bottom_solver,bottom_max_iter,max_iter,max_nlevel
     integer :: max_bottom_nlevel,min_width,verbose,cg_verbose
     real(dp_t) :: omega,bottom_solver_eps,rel_solver_eps,abs_solver_eps
@@ -148,9 +148,12 @@ contains
              max_nlevel = 1
           end if
 
+          stencil_type = CC_CROSS_STENCIL
+
           ! build the mg_tower object at level n
           call mg_tower_build(mgt(n), mla%la(n), pd, &
                               the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
+                              stencil_type, &
                               dh = dx_vector(n,:), &
                               ns = ns, &
                               smoother = smoother, &
