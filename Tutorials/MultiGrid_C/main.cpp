@@ -15,9 +15,12 @@
 #include <ParallelDescriptor.H>
 #include <MacBndry.H>
 #include <MGT_Solver.H>
+#include <stencil_types.H>
+
 #ifdef USEHYPRE
 #include <HypreABecLap.H>
 #endif
+
 #include <COEF_F.H>
 #include <RHS_F.H>
 #include <writePlotFile.H>
@@ -528,7 +531,7 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
     }
   }
 
-  MGT_Solver mgt_solver(fgeom, mg_bc, bav, dmv, false);
+  MGT_Solver mgt_solver(fgeom, mg_bc, bav, dmv, false, CC_CROSS_STENCIL);
 
   MultiFab* soln_p[1]; soln_p[0] = &soln;
   MultiFab*  rhs_p[1];  rhs_p[0] = &rhs;

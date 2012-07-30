@@ -7,6 +7,7 @@
 
 #include <MacBndry.H>
 #include <MGT_Solver.H>
+#include <stencil_types.H>
 
 #include <COEF_F.H>
 
@@ -142,7 +143,8 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
   if (composite_solve) {
 
     bool nodal = false;
-    MGT_Solver mgt_solver(geom, mg_bc, grids, dmap, nodal);
+    int stencil = CC_CROSS_STENCIL;
+    MGT_Solver mgt_solver(geom, mg_bc, grids, dmap, nodal, stencil);
 
     int index_order = 1; // because of bcoeffs[nlevel][BL_SPACEDIM]
     mgt_solver.set_visc_coefficients(acoeffs, bcoeffs, b, xa, xb, index_order);
@@ -171,7 +173,8 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
       std::vector<DistributionMapping> dmap_l(1, dmap[ilev]);
 
       bool nodal = false;
-      MGT_Solver mgt_solver(geom_l, mg_bc, grids_l, dmap_l, nodal);
+      int stencil = CC_CROSS_STENCIL;
+      MGT_Solver mgt_solver(geom_l, mg_bc, grids_l, dmap_l, nodal, stencil);
 
       MultiFab* acoeffs_l[1];
       acoeffs_l[0] = &acoeffs[ilev];
