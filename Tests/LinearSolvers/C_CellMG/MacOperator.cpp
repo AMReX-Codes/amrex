@@ -15,6 +15,7 @@
 
 #ifdef MG_USE_F90_SOLVERS
 #include <MGT_Solver.H>
+#include <stencil_types.H>
 #include <mg_cpp_f.h>
 #endif
 
@@ -415,6 +416,7 @@ mac_level_driver (Amr*            parent,
         std::vector<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
+	int stencil = CC_CROSS_STENCIL;
         std::vector<Geometry> geom(1);
         geom[0] = mac_bndry.getGeom();
 
@@ -432,7 +434,7 @@ mac_level_driver (Amr*            parent,
                 mg_bc[i*2 + 1] = phys_bc.hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
             }
         }
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
+        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
 
         // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
         Array< Array<Real> > xa(1);
@@ -553,6 +555,7 @@ mac_sync_driver (Amr*            parent,
         std::vector<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
+	int stencil = CC_CROSS_STENCIL;
         std::vector<Geometry> geom(1);
         geom[0] = mac_bndry.getGeom();
 
@@ -571,7 +574,7 @@ mac_sync_driver (Amr*            parent,
             }
         }
 
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal);
+        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
 
         // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
         Array< Array<Real> > xa(1);

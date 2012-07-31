@@ -13,6 +13,9 @@ FCOMP=gfortran
 
 USE_MPI=FALSE
 
+#USE_F90_SOLVERS=TRUE
+USE_F90_SOLVERS=FALSE
+
 EBASE = main
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
@@ -39,6 +42,22 @@ vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
 
 CEXE_sources += BCRec.cpp 
 CEXE_headers += BCRec.H BC_TYPES.H
+
+ifeq ($(USE_F90_SOLVERS),TRUE)
+  DEFINES += -DMG_USE_F90_SOLVERS
+
+  include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
+  vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
+ 
+  include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
+  vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
+
+  include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
+  vpathdir          += $(BOXLIB_HOME)/Src/F_BaseLib
+endif
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
