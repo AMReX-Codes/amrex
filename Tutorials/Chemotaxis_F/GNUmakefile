@@ -17,7 +17,11 @@ VPATH_LOCATIONS += .
 include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
 VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
 
+#include $(BOXLIB_HOME)/Src/Python/GPackage.mak
+#all: $(PYBOXLIBS)
+
 main.$(suf).exe: $(objects) 
 	$(LINK.f90) -o main.$(suf).exe $(objects) $(libraries)
 
 include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
+#include $(BOXLIB_HOME)/Src/Python/GMakerules.mak
