@@ -27,7 +27,7 @@ program main
      call get_command_argument(1, value=inputs_file_name)
      un   = unit_new()
      open(unit=un, file=inputs_file_name, status='old', action='read')
-     call cht_read_inputs(un, ctx, opts)
+     call read_namelists(un, ctx, opts)
      if (opts%method == "sdc") then
         call build(sdc, un)
      end if
@@ -35,7 +35,7 @@ program main
   end if
 
   ! run chemotaxis solver
-  call cht_main(ctx, opts, sdc)
+  call chemotaxis(ctx, opts, sdc)
 
   ! deallocate temporary boxarrays and communication mappings, display memory stats
   call layout_flush_copyassoc_cache()

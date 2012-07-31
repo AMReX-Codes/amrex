@@ -14,7 +14,7 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine cht_main(ctx, opts, sdc)
+  subroutine chemotaxis(ctx, opts, sdc)
     type(cht_ctx_t),  intent(inout) :: ctx
     type(cht_opts_t), intent(inout) :: opts
     type(sdcquad),    intent(in)    :: sdc
@@ -41,37 +41,41 @@ contains
     prob_hi     =  1.d0
     is_periodic = .true.
 
+    dt = 0.01d0
+
     ! create a box from (0,0) to (n_cell-1,n_cell-1)
     lo = 0
     hi = ctx%n_cell-1
     bx = make_box(lo,hi)
 
-    ctx%dx = (prob_hi(1)-prob_lo(1)) / ctx%n_cell
+    ctx%dx    = (prob_hi(1)-prob_lo(1)) / ctx%n_cell
+    ctx%invdx = 1.0d0 / ctx%dx
 
     ! build layout
     call build(ba,bx)
     call build(la,ba,bx,pmask=is_periodic)
 
-    ctx%la = la
-
     ! build q (solution) multifab
     call build(q,la,ctx%nc,ctx%ng)
     
     ! set initial condition and write plot 0
-    call cht_initial(q,ctx)
+    call initial(q,ctx)
     call write_plotfile(la,q,0,ctx%dx,0.0d0,prob_lo,prob_hi)
 
     ! run
+    time = 0.0d0
+
     select case(opts%method)
-    ! case("rk")
-    !    call advance_rk(q,dt,ctx)
     case("fe")
-       time = 0.0d0
-       do n = 1, 100
+
+       do n = 1, opts%nsteps
           call advance_fe(q,dt,ctx)
+
           time = time + dt
+          if (mod(n, opts%plot_int) .eq. 0 .or. n .eq. opts%nsteps) then
+             call write_plotfile(la,q,n,ctx%dx,time,prob_lo,prob_hi)
+          end if
        end do
-       call write_plotfile(la,q,n,ctx%dx,time,prob_lo,prob_hi)
 
     case("sdc")
        call advance_sdc(q,dt,ctx,sdc)
@@ -84,18 +88,20 @@ contains
 
     deallocate(lo,hi,prob_lo,prob_hi,is_periodic)
 
-  end subroutine cht_main
+  end subroutine chemotaxis
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine cht_initial(q,ctx)
+  subroutine initial(q,ctx)
     type(multifab),  intent(inout) :: q
     type(cht_ctx_t), intent(in)    :: ctx
 
     integer        :: n, i, j, lo(2), hi(2)
 
-    double precision :: x, y
+    double precision :: x, y, d
     double precision, pointer, dimension(:,:,:,:) :: qp
+
+    ! double precision, parameter :: pi = 3.141592653589793d0
 
     do n=1, nboxes(q)
        if ( remote(q,n) ) cycle
@@ -110,14 +116,15 @@ contains
           do i = lo(1), hi(2)
              x = -1.0d0 + i * ctx%dx
 
-             qp(i,j,1,1) = 1.0d0 + sin(x)
+             qp(i,j,1,iu) = 1.0d0
+
+             d = (x)**2 + (y)**2
+             qp(i,j,1,iv) = 1.0d0 + 0.1d0 * dexp(-10.0d0 * d)
           end do
        end do
 
     end do
 
-  end subroutine cht_initial
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  end subroutine initial
 
 end module chemotaxis_module
