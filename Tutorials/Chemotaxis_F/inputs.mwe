@@ -1,11 +1,20 @@
 &options
 
-	method = "fe"
+	method = "sdc"
 	plot_int = 10
 	nsteps = 100
 
 /
 
 &parameters
+
+/
+
+&sdc
+	
+	nnodes = 3
+	qtype = "Gauss-Lobatto"
+	iters = 50
+	tol_residual = 1.0d-10
 
 /
