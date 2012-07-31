@@ -6,12 +6,9 @@ __all__ = [ 'bl', 'open', 'mpi_size', 'mpi_rank', 'close' ]
 ###############################################################################
 # load libpyfboxlib, set prototypes etc
 
-import os
 from ctypes import *
 
-path = os.path.dirname(os.path.abspath(__file__))
-bl   = CDLL(path + os.sep + 'libpyfboxlib.so')
-
+bl = CDLL('libpyfboxlib.so')
 c_int_p = POINTER(c_int)
 
 bl.pybl_create_multifab_from_layout.restype = None
