@@ -3,6 +3,12 @@ module cutcell_module
 
   implicit none
 
+  ! for flagarray:
+  integer, parameter, public :: FLOW        = -9
+  integer, parameter, public :: IRRFLOW     = -3
+  integer, parameter, public :: SOLID       = -8
+  ! cut cells have index >=1
+
   type cutcell
      !
      ! For now we just contain our cell index.
@@ -11,7 +17,7 @@ module cutcell_module
      integer          :: cutDim           ! Dimension of cutcell         
      integer          :: cutIndex(3)      ! its Cartesian index (i,j,k)
      double precision :: centroid(3)      ! centroid coordinates (x,y,z)
-     double precision :: volume           ! colume of cell
+     double precision :: volume           ! volume of cell
      double precision :: bdyArea          ! area of boundary face (the actual cut face)
      double precision :: bdyNormal(3)     ! normalized normal vector for boundary face
      double precision :: bdyCentroid(3)   ! centroid of boundary face
