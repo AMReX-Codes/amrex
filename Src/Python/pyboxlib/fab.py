@@ -87,12 +87,22 @@ class fab(object):
 
 
   def __getitem__(self, key):
-    key = adjust_indexes(self.ibx[0], key)
+    lbound = list(self.pbx[0])
+    if self.nc > 1:
+      lbound.append(0)
+
+    key = adjust_indexes(lbound, key)
+
     return self.array[key] 
 
 
   def __setitem__(self, key, value):
-    key = adjust_indexes(self.pbx[0], key)
+    lbound = list(self.pbx[0])
+    if self.nc > 1:
+      lbound.append(0)
+
+    key = adjust_indexes(lbound, key)
+
     self.array[key] = value
 
 

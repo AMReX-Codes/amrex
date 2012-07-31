@@ -19,25 +19,14 @@ CFLAGS   += -fPIC
 
 include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
 VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
-VPATH_LOCATIONS += src
 
-f90sources += blobjects.f90
-f90sources += fboxlib.f90
-f90sources += boxlib_numpy_f.f90
-
-PYFBOXLIB = pyboxlib/libpyfboxlib.so
-PYCBOXLIB = pyboxlib/libpycboxlib.so
-PYBOXLIBS = $(PYFBOXLIB) $(PYCBOXLIB)
+include $(BOXLIB_HOME)/Src/Python/GPackage.mak
+# VPATH_LOCATIONS += src
 
 all: $(PYBOXLIBS)
 
-NPINCLUDE:=-I$(shell python -c 'import distutils.sysconfig; print distutils.sysconfig.get_python_inc()')
-NPINCLUDE+=-I$(shell python -c 'import numpy; print numpy.get_include()')/numpy
-
-$(PYFBOXLIB): $(objects)
-	$(F90) $(F90FLAGS) -shared -o $@ $^
-
-$(PYCBOXLIB): boxlib_numpy_c.c
-	cd pyboxlib && $(CC) $(CFLAGS) $(NPINCLUDE) -shared -o libpycboxlib.so ../src/boxlib_numpy_c.c -L. -lpyfboxlib
 
 include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
+include $(BOXLIB_HOME)/Src/Python/GMakerules.mak
+
+
