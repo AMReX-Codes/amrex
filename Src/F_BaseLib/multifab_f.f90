@@ -680,6 +680,20 @@ contains
     call mem_stats_alloc(lmultifab_ms, volume(mf, all = .TRUE.))
   end subroutine lmultifab_build
 
+  subroutine lmultifab_build_edge(mf, la, nc, ng, dir)
+    type(lmultifab), intent(  out) :: mf
+    type(layout)   , intent(in   ) :: la
+    integer        , intent(in   ) :: nc, ng, dir
+
+    logical :: nodal(MAX_SPACEDIM)
+
+    nodal      = .false.
+    nodal(dir) = .true.
+
+    call lmultifab_build(mf, la, nc, ng, nodal)
+
+  end subroutine lmultifab_build_edge
+
   subroutine zmultifab_build(mf, la, nc, ng, nodal)
     type(zmultifab), intent(out) :: mf
     type(layout), intent(in) :: la
