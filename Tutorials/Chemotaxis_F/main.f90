@@ -30,6 +30,7 @@ program main
      call read_namelists(un, ctx, opts)
      if (opts%method == "sdc") then
         call build(sdc, un)
+        call mk_imex_smats(sdc)
      end if
      close(unit=un)
   end if

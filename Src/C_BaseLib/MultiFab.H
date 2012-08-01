@@ -440,9 +440,9 @@ public:
     //
     // Set ghost cells that are covered by valid cells to the value of valid cells.
     //
-    void FillBoundary (bool local = false);
+    void FillBoundary (bool local = false, bool cross = false);
 
-    void FillBoundary (int scomp, int ncomp, bool local = false);
+    void FillBoundary (int scomp, int ncomp, bool local = false, bool cross = false);
     //
     // Sum ghost cells that are covered by valid cells into the valid cells.
     //
