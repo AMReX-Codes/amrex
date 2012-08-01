@@ -168,13 +168,37 @@ public:
     //
     struct SI
     {
-        SI ();
+        SI ()
+            :
+            m_ngrow(-1),
+            m_cross(false),
+            m_reused(false) {}
 
         SI (const BoxArray&            ba,
             const DistributionMapping& dm,
-            int                        ngrow);
+            int                        ngrow,
+            bool                       cross)
+            :
+            m_ba(ba),
+            m_dm(dm),
+            m_ngrow(ngrow),
+            m_cross(cross),
+            m_reused(false)
+            {
+                BL_ASSERT(ngrow >= 0);
+            }
 
-        SI (const SI& rhs);
+        SI (const SI& rhs)
+            :
+            m_cache(rhs.m_cache),
+            m_commdata(rhs.m_commdata),
+            m_sirec(rhs.m_sirec),
+            m_ba(rhs.m_ba),
+            m_dm(rhs.m_dm),
+            m_ngrow(rhs.m_ngrow),
+            m_cross(rhs.m_cross),
+            m_reused(rhs.m_reused)
+            {}
 
         ~SI ();
 
@@ -191,6 +215,7 @@ public:
         BoxArray            m_ba;
         DistributionMapping m_dm;
         int                 m_ngrow;
+        bool                m_cross;
         bool                m_reused;
     };
     //
@@ -285,7 +310,7 @@ public:
     //
     // Returns cached self-intersection records or builds them.
     //
-    static SI& TheFBsirec (int scomp, int ncomp, const FabArrayBase& mf);
+    static SI& TheFBsirec (int scomp, int ncomp, bool cross, const FabArrayBase& mf);
     //
     // Use MPI_Alltoallv() instead of MPI_IRecv()/MPI_Send().
     //
@@ -637,11 +662,11 @@ public:
     // purpose is to fill in the boundary regions of each FAB in
     // the FabArray.
     //
-    void FillBoundary ();
+    void FillBoundary (bool cross = false);
     //
     // Same as FillBoundary(), but only copies ncomp components starting at scomp.
     //
-    void FillBoundary (int scomp, int ncomp);
+    void FillBoundary (int scomp, int ncomp, bool cross = false);
 
 protected:
 
@@ -2522,20 +2547,21 @@ FabArrayCopyDescriptor<FAB>::PrintStats () const
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary ()
+FabArray<FAB>::FillBoundary (bool cross)
 {
-    FillBoundary(0, nComp());
+    FillBoundary(0, nComp(), cross);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (int scomp,
-                             int ncomp)
+FabArray<FAB>::FillBoundary (int  scomp,
+                             int  ncomp,
+                             bool cross)
 {
     if ( n_grow <= 0 ) return;
 
     FabArrayCopyDescriptor<FAB> mfcd;
-    FabArrayBase::SI&           si   = FabArrayBase::TheFBsirec(scomp,ncomp,*this);
+    FabArrayBase::SI&           si   = FabArrayBase::TheFBsirec(scomp,ncomp,cross,*this);
     const FabArrayId            mfid = mfcd.RegisterFabArray(this);
     //
     // Add boxes we need to collect.
