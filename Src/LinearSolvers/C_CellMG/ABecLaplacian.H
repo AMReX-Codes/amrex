@@ -80,10 +80,12 @@ public:
     // Compute extensive (area-weighted) flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC);
+			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC,
+			   int sComp=0, int dComp=0, int nComp=1);
 
     void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-                   MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC);
+                   MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC,
+		   int sComp=0, int dComp=0, int nComp=1);
     //
     // Set scalar coefficients.
     //
