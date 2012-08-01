@@ -1027,7 +1027,7 @@ MultiFab::FillBoundary (int  scomp,
 }
 
 void
-MultiFab::FillBoundary (bool cross, bool local)
+MultiFab::FillBoundary (bool local, bool cross)
 {
     FillBoundary(0, n_comp, local, cross);
 }
