@@ -355,7 +355,7 @@ BndryData::writeOn (std::ostream& os) const
 
         for (int grd = 0; grd < ngrds; grd++)
         {
-            it = masks.find(grds);
+            it = masks.find(grd);
             BL_ASSERT(it != masks.end());
             it->second[f]->writeOn(os);
             bndry[f][grd].writeOn(os);
