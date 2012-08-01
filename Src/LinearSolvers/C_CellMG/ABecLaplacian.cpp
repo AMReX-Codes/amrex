@@ -252,18 +252,19 @@ ABecLaplacian::invalidate_b_to_level (int lev)
 
 void
 ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-			 MultiFab& in, const BC_Mode& bc_mode)
+			 MultiFab& in, const BC_Mode& bc_mode,
+			 int sComp, int dComp, int nComp)
 {
-    compFlux(D_DECL(xflux, yflux, zflux), in, bc_mode, true);
+    compFlux(D_DECL(xflux, yflux, zflux), in, bc_mode, true, sComp, dComp, nComp);
 }
 
 void
 ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-                         MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC)
+                         MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC,
+			 int src_comp, int dst_comp, int num_comp)
 {
-    const int level    = 0;
-    const int src_comp = 0;
-    const int num_comp = 1;
+    const int level = 0;
+
     if (do_ApplyBC)
         applyBC(in,src_comp,num_comp,level,bc_mode);
 
@@ -272,8 +273,6 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
     D_TERM(const MultiFab& bX = bCoefficients(0,level);,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
-
-    const int nc = in.nComp();
 
     for (MFIter inmfi(in); inmfi.isValid(); ++inmfi)
     {
@@ -302,7 +301,7 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 		  ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
 #endif
 #endif
-		  vbx.loVect(), vbx.hiVect(), &nc,
+		  vbx.loVect(), vbx.hiVect(), &num_comp,
 		  h[level],
 		  xfluxfab.dataPtr(),
 		  ARLIM(xfluxfab.loVect()), ARLIM(xfluxfab.hiVect())
