@@ -810,7 +810,8 @@ def testSuite(argv):
     usage = """
     ./testnew.py [--make_benchmarks comment,
                   --no_update  none or all or a list of codes excluded from update,
-                  --single_test test,
+                  --single_test test
+                  --tests "test1 test2 test3 ..."
                   --do_temp_run
                   --boxLibGitHash boxlibhash
                   --sourceGitHash sourcehash
@@ -1046,6 +1047,9 @@ def testSuite(argv):
        --single_test mytest
           run only the test named mytest
 
+       --tests test1 test2 test3
+          run only the tests listsed
+
        --do_temp_run
           Temporary run without updating the web.
 
@@ -1091,6 +1095,7 @@ def testSuite(argv):
                                    ["make_benchmarks=",
                                     "no_update=",
                                     "single_test=",
+                                    "tests=",
                                     "do_temp_run",
                                     "boxLibGitHash=",
                                     "sourceGitHash=",
@@ -1107,6 +1112,7 @@ def testSuite(argv):
     make_benchmarks = 0
     no_update = "None"
     single_test = ""
+    tests = ""
     comment = ""
     do_temp_run = False
     boxLibGitHash = ""
@@ -1125,6 +1131,9 @@ def testSuite(argv):
 
         if o == "--single_test":
             single_test = a
+
+        if o == "--tests":
+            tests = a
 
         if o == "--do_temp_run":
             do_temp_run = True
@@ -1209,7 +1218,12 @@ def testSuite(argv):
 
     #--------------------------------------------------------------------------
     # if we are doing a single test, remove all other tests
+    # if we specified a list of tests, check each one
+    # if we did both --single_test and --tests, complain
     #--------------------------------------------------------------------------
+    if (not single_test == "" and not tests == ""):
+        fail("ERROR: specify tests either by --single_test or --tests, not both")
+
     if (not single_test == ""):
         found = 0
         for obj in testList:
@@ -1223,6 +1237,22 @@ def testSuite(argv):
         else:
             testList = newTestList
         
+    elif (not tests == ""):
+        testsFind = string.split(tests)
+        newTestList = []
+        for test in testsFind:
+            found = 0
+            for obj in testList:
+                if (obj.name == test):
+                    found = 1
+                    newTestList.append(obj)
+                    break
+            
+            if (not found):
+                fail("ERROR: %s is not a valid test" % (test))
+        
+        testList = newTestList
+    
 
     #--------------------------------------------------------------------------
     # get the name of the benchmarks directory
