@@ -24,7 +24,7 @@ import smtplib
 import email
 import getpass
 import socket
-
+import time
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -94,7 +94,7 @@ class suiteObj:
         self.compareToolDir = ""
         self.helmeosDir = ""
 
-        self.useExtSrc = 0
+        self.useExtSrc = 0     # set automatically -- not by users
         self.extSrcDir = ""
         self.extSrcCompString = ""
 
@@ -118,6 +118,8 @@ class suiteObj:
         self.emailTo = []
         self.emailSubject = ""
         self.emailBody = ""
+
+        self.wallTime = 0      # set automatically, not by users
 
 
 
@@ -1689,6 +1691,8 @@ def testSuite(argv):
 
         os.chdir(outputDir)
 
+        test.wallTime = time.time()
+
         if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
 
 	    if (test.useMPI and test.useOMP):
@@ -1942,6 +1946,8 @@ def testSuite(argv):
                     print "    " + testRunCommand
                     systemCall(testRunCommand)
 
+
+        test.wallTime = time.time() - test.wallTime
            
             
         #----------------------------------------------------------------------
@@ -2510,7 +2516,11 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
             hf.write("<P><b>OpenMP Run</b><br>numthreads = %d\n" % (test.numthreads) )
             hf.write("<P>&nbsp;\n")
-       
+
+
+        hf.write("<p><b>Execution Time</b> (seconds) = %f\n" % (test.wallTime))
+        hf.write("<P>&nbsp;\n")
+
 
         # is this a restart test?
         if (test.restartTest):
