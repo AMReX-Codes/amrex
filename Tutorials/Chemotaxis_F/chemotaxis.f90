@@ -64,22 +64,19 @@ contains
 
     ! run
     time = 0.0d0
-
-    select case(opts%method)
-    case("fe")
-
-       do n = 1, opts%nsteps
+    do n = 1, opts%nsteps
+       select case(opts%method)
+       case("fe")
           call advance_fe(q,dt,ctx)
+       case("sdc")
+          call advance_sdc(q,dt,ctx,sdc)
+       end select
 
-          time = time + dt
-          if (mod(n, opts%plot_int) .eq. 0 .or. n .eq. opts%nsteps) then
-             call write_plotfile(la,q,n,ctx%dx,time,prob_lo,prob_hi)
-          end if
-       end do
-
-    case("sdc")
-       call advance_sdc(q,dt,ctx,sdc)
-    end select
+       time = time + dt
+       if (mod(n, opts%plot_int) .eq. 0 .or. n .eq. opts%nsteps) then
+          call write_plotfile(la,q,n,ctx%dx,time,prob_lo,prob_hi)
+       end if
+    end do
 
     ! destroy/deallocate
     call destroy(ba)
