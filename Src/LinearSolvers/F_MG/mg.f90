@@ -121,11 +121,13 @@ contains
     ! "lcross" is used in the call to multifab_fill_boundary -- when true it means
     !   that the corner cells do *not* need to be filled
     if (mgt%stencil_type .eq. CC_CROSS_STENCIL .or. &
+        mgt%stencil_type .eq. HO_CROSS_STENCIL .or. &
         mgt%stencil_type .eq. ND_CROSS_STENCIL) then
 
         mgt%lcross = .true.
 
-    else if (mgt%stencil_type .eq. ND_DENSE_STENCIL) then
+    else if (mgt%stencil_type .eq. ND_DENSE_STENCIL .or. &
+             mgt%stencil_type .eq. HO_DENSE_STENCIL) then
 
         mgt%lcross = .false.
 
