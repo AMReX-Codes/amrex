@@ -287,7 +287,7 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
                FArrayBox& yfluxfab = yflux[inmfi];,
                FArrayBox& zfluxfab = zflux[inmfi];);
 
-        FORT_FLUX(infab.dataPtr(),
+        FORT_FLUX(infab.dataPtr(src_comp),
 		  ARLIM(infab.loVect()), ARLIM(infab.hiVect()),
 		  &alpha, &beta, a[inmfi].dataPtr(), 
 		  ARLIM(a[inmfi].loVect()), ARLIM(a[inmfi].hiVect()),
@@ -303,14 +303,14 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 #endif
 		  vbx.loVect(), vbx.hiVect(), &num_comp,
 		  h[level],
-		  xfluxfab.dataPtr(),
+		  xfluxfab.dataPtr(dst_comp),
 		  ARLIM(xfluxfab.loVect()), ARLIM(xfluxfab.hiVect())
 #if (BL_SPACEDIM >= 2)
-		  ,yfluxfab.dataPtr(),
+		  ,yfluxfab.dataPtr(dst_comp),
 		  ARLIM(yfluxfab.loVect()), ARLIM(yfluxfab.hiVect())
 #endif
 #if (BL_SPACEDIM == 3)
-		  ,zfluxfab.dataPtr(),
+		  ,zfluxfab.dataPtr(dst_comp),
 		  ARLIM(zfluxfab.loVect()), ARLIM(zfluxfab.hiVect())
 #endif
 		  );
