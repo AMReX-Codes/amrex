@@ -214,7 +214,9 @@ LinOp::applyBC (MultiFab&      inout,
     //
     BL_ASSERT(num_comp == 1);
 
-    inout.FillBoundary(src_comp,num_comp,local);
+    const bool cross = true;
+
+    inout.FillBoundary(src_comp,num_comp,local,cross);
 
     prepareForLevel(level);
     //
