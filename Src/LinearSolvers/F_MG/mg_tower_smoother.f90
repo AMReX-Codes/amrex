@@ -184,10 +184,10 @@ contains
                       select case ( mgt%dim)
                       case (2)
                          call fourth_order_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,1), &
-                                                       fp(:,:,1,1), lo, ng, nn)
+                                                       fp(:,:,1,1), lo, ng, mgt%stencil_type, nn)
                       case (3)
                          call fourth_order_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                                       fp(:,:,:,1), lo, ng, nn)
+                                                       fp(:,:,:,1), lo, ng, mgt%stencil_type, nn)
                       end select
                    end do
                 end do
@@ -208,10 +208,10 @@ contains
                    select case ( mgt%dim)
                       case (2)
                          call fourth_order_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,1), &
-                                                       fp(:,:,1,1), lo, ng, n)
+                                                       fp(:,:,1,1), lo, ng, mgt%stencil_type, n)
                       case (3)
                          call fourth_order_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                                       fp(:,:,:,1), lo, ng, n) 
+                                                       fp(:,:,:,1), lo, ng, mgt%stencil_type, nn)
                       end select
                    end do
                 end do
@@ -301,18 +301,19 @@ contains
                 do n = 1, mgt%nc
                    select case ( mgt%dim)
                    case (1)
-!                     call nodal_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-!                                            mp(:,1,1,1), lo, ng, k)
+!                     call nodal_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), &
+!                                            fp(:,1,1,n), mp(:,1,1,1), lo, ng, k)
                       if (k.eq.0) &
-                      call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                                               mp(:,1,1,1), lo, ng)
+                      call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
+                                               fp(:,1,1,n), mp(:,1,1,1), lo, ng)
                    case (2)
                       call nodal_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                             fp(:,:,1,n), mp(:,:,1,1), lo, ng, pmask, k)
+                                             fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
+                                             pmask, mgt%stencil_type, k)
                    case (3)
                       call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
                                              fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
-                                             mgt%uniform_dh, pmask, k)
+                                             mgt%uniform_dh, pmask, mgt%stencil_type, k)
                    end select
                 end do
              end do
@@ -332,16 +333,18 @@ contains
              do n = 1, mgt%nc
                 select case ( mgt%dim)
                 case (1)
-!                  call nodal_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-!                                         mp(:,1,1,1), lo, ng, k)
-                   call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                                            mp(:,1,1,1), lo, ng)
+!                  call nodal_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), &
+!                                         fp(:,1,1,n), mp(:,1,1,1), lo, ng, k)
+                   call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
+                                            fp(:,1,1,n), mp(:,1,1,1), lo, ng)
                 case (2)
-                   call nodal_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), fp(:,:,1,n), &
-                                          mp(:,:,1,1), lo, ng, pmask, k)
+                   call nodal_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
+                                          fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
+                                          pmask, mgt%stencil_type, k)
                 case (3)
-                   call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                                          mp(:,:,:,1), lo, ng, mgt%uniform_dh, pmask, k)
+                   call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
+                                          fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
+                                          mgt%uniform_dh, pmask, mgt%stencil_type, k)
                 end select
              end do
           end do

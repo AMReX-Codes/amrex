@@ -24,7 +24,7 @@ import smtplib
 import email
 import getpass
 import socket
-
+import time
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -68,6 +68,7 @@ class testObj:
         self.compareFile = ""
 
         self.diffDir = ""
+        self.diffOpts = ""
 
         self.addToCompileString = ""
 
@@ -94,7 +95,7 @@ class suiteObj:
         self.compareToolDir = ""
         self.helmeosDir = ""
 
-        self.useExtSrc = 0
+        self.useExtSrc = 0     # set automatically -- not by users
         self.extSrcDir = ""
         self.extSrcCompString = ""
 
@@ -118,6 +119,8 @@ class suiteObj:
         self.emailTo = []
         self.emailSubject = ""
         self.emailBody = ""
+
+        self.wallTime = 0      # set automatically, not by users
 
 
 
@@ -410,6 +413,9 @@ def LoadParams(file):
 
             elif (opt == "diffDir"):
                 mytest.diffDir = value
+
+            elif (opt == "diffOpts"):
+                mytest.diffOpts = value
 
             elif (opt == "addToCompileString"):
                 mytest.addToCompileString = value
@@ -897,8 +903,11 @@ def testSuite(argv):
 
             compareFile = < explicit output file to do the comparison with >
 
-            diffDir = <directory or file to do a plain text diff on 
+            diffDir = < directory or file to do a plain text diff on 
                        (recursive, if directory) >
+
+            diffOpts = < options to use with the diff command for the diffDir
+                        comparison >
 
           Here, [main] lists the parameters for the test suite as a
           whole and [Sod-x] is a single test.  There can be many more
@@ -1021,7 +1030,10 @@ def testSuite(argv):
             comparison on with a stored benchmark version of the
             directory.  This is just a straight diff (recursively,
             within the directory).  This is used, for example, for
-            particle output from some of the codes.
+            particle output from some of the codes.  diffOpts is
+            a string providing options to the diff command.  For
+            example: '-I "^#"' to ignore command lines in 
+            Maestro diag files.
 
           Each test problem should get its own [testname] block
           defining the problem.  The name between the [..] will be how
@@ -1689,6 +1701,8 @@ def testSuite(argv):
 
         os.chdir(outputDir)
 
+        test.wallTime = time.time()
+
         if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
 
 	    if (test.useMPI and test.useOMP):
@@ -1942,6 +1956,8 @@ def testSuite(argv):
                     print "    " + testRunCommand
                     systemCall(testRunCommand)
 
+
+        test.wallTime = time.time() - test.wallTime
            
             
         #----------------------------------------------------------------------
@@ -2010,8 +2026,8 @@ def testSuite(argv):
                     print "  doing the diff..."
                     print "    diff dir: ", test.diffDir
 
-                    command = "diff -r %s %s >> %s.compare.out 2>&1" \
-                        % (diffDirBench, test.diffDir, test.name)
+                    command = "diff %s -r %s %s >> %s.compare.out 2>&1" \
+                        % (test.diffOpts, diffDirBench, test.diffDir, test.name)
 
                     cf = open("%s.compare.out" % (test.name), 'a')
                     cf.write("\n\n")
@@ -2510,7 +2526,11 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
             hf.write("<P><b>OpenMP Run</b><br>numthreads = %d\n" % (test.numthreads) )
             hf.write("<P>&nbsp;\n")
-       
+
+
+        hf.write("<p><b>Execution Time</b> (seconds) = %f\n" % (test.wallTime))
+        hf.write("<P>&nbsp;\n")
+
 
         # is this a restart test?
         if (test.restartTest):
