@@ -484,7 +484,7 @@ contains
       !    First compute a residual which only takes contributions from the
       !       grid on which it is calculated.
 
-      if (ncomp(mgt(n)%ss(mglev_fine)) .eq. (2*dm+1) ) then ! cross stencil
+      if (mgt(n)%lcross) then
         call grid_res(one_sided_ss,temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type, &
              mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
