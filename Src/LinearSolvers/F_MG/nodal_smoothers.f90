@@ -114,7 +114,7 @@ contains
 
   end subroutine nodal_smoother_1d
 
-  subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng, pmask, red_black)
+  subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng, pmask, stencil_type, red_black)
 
     use bl_prof_module
     use impose_neumann_bcs_module
@@ -127,6 +127,7 @@ contains
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
     real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
+    integer            ,intent(in) :: stencil_type
     integer            ,intent(in) :: red_black
 
     integer :: j, i, ipar, half_x
@@ -145,7 +146,7 @@ contains
 
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
 
-    if (size(ss,dim=1) .eq. 9) then
+    if (stencil_type .eq. ND_DENSE_STENCIL) then
 
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -164,7 +165,7 @@ contains
           end do
        end do
 
-    else if (size(ss,dim=1) .eq. 5) then
+    else if (stencil_type .eq. ND_CROSS_STENCIL) then
 
       half_x = (hi(1)-lo(1))/2
       if ( 2*half_x .eq. ( hi(1)-lo(1) ) ) then
@@ -215,13 +216,15 @@ contains
 
       end if
 
+    else
+      call bl_error('BAD STENCIL_TYPE IN NODAL_SMOOTHER ',stencil_type)
     end if
 
     call destroy(bpt)
 
   end subroutine nodal_smoother_2d
 
-  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, pmask, red_black)
+  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, pmask, stencil_type, red_black)
 
     use bl_prof_module
     use impose_neumann_bcs_module
@@ -235,6 +238,7 @@ contains
     real (kind = dp_t), intent(in   ) :: ss(0:,lo(1):,lo(2):,lo(3):)
     integer,            intent(in   ) :: mm(lo(1):,lo(2):,lo(3):)
     logical,            intent(in   ) :: uniform_dh
+    integer            ,intent(in   ) :: stencil_type
     integer,            intent(in   ) :: red_black
 
     integer            :: i, j, k, ipar, hi(size(lo)), half_x, half_y
@@ -252,7 +256,7 @@ contains
 
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
 
-    if (size(ss,dim=1) .eq. 7) then
+    if (stencil_type .eq. ND_CROSS_STENCIL) then
 
       half_x = (hi(1)-lo(1))/2
       if ( 2*half_x .eq. ( hi(1)-lo(1) ) ) then
@@ -349,7 +353,7 @@ contains
 
       end if
 
-    else if ((size(ss,dim=1) .eq. 21) .or. (size(ss,dim=1) .eq. 27)) then
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
 
        if (.true.) then
           !
@@ -461,7 +465,7 @@ contains
        end if
 
     else
-      call bl_error('BAD SS IN NODAL_SMOOTHER ',size(ss,dim=1))
+      call bl_error('BAD STENCIL_TYPE IN NODAL_SMOOTHER ',stencil_type)
     end if
 
     call destroy(bpt)
