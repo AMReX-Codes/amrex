@@ -119,7 +119,7 @@ The computational domain is divided into non-overlapping grids.
 The collection of grids at the same resolution comprise a level.
 Figure~\ref{fig:boxes} shows three grids at the same level of
 refinement.  Note that this figure cannot represent the base level of refinement,
-since it would required that the grids span the problem domain.
+since it would require that the grids span the problem domain.
 The position of the grids is with respect to a global
 index space that covers the entire domain at that level and uses 0-based indexing.
 For example, the \BoxType\ associated with grid 1 
@@ -132,7 +132,7 @@ in the figure has {\tt lo} = (2,6) and {\tt hi} = (5,13).
 At this level of refinement, the domain is 16$\times$16 cells and
 the global index space runs from 0 to 15 in each coordinate direction.
 Note that these grids cannot be at the coarsest level,
-since it would required that the grids span the problem domain.}
+since it would require that the grids span the problem domain.}
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -151,7 +151,7 @@ space running from 0 to 127 in each coordinate direction
 
 A \BoxArray\ is an array of \BoxType es.  The size of the array is the 
 number of \BoxType es in the \BoxArray.  Suppose your problem domain
-has lo indicies (0,0) and hi indices (15,15), and you want to define
+has lo indices (0,0) and hi indices (15,15), and you want to define
 a \BoxArray\ to contain four $8\times 8$ boxes to cover the problem domain.
 In Fortran90, you could do the following:
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
@@ -368,7 +368,7 @@ based on {\tt DIM}.\\
 
 The {\tt multifab\_fill\_boundary} and {\tt FillBoundary} functions 
 fill all ghost cells on periodic domain boundaries, as well as interior
-ghost cells values that can simply be copied from the valid region of a neighboring
+ghost cells with values that can simply be copied from the valid region of a neighboring
 grid at the same level of refinement.  For single-level problems that are periodic
 in all directions, these functions fill all ghost cells.  We will discuss
 non-periodic domain boundaries and fine grid ghost cells near coarse-fine interfaces
@@ -444,7 +444,7 @@ Next, we compute the update by taking the divergence of these fluxes,
 We use a flux divergence formulation because it will enable a more natural 
 extension to multiple levels of refinement, where we will be concerned with
 conservation across levels.  Note that in this explicit case, since $\Delta x = \Delta y$, 
-the Laplacian reduces to the standard five point stencil two dimensions
+the Laplacian reduces to the standard five point stencil in two dimensions
 (seven point stencil in three dimensions).\\
 
 Since the fluxes live on faces, we need face-centered \MultiFab s, i.e.,
@@ -472,7 +472,7 @@ This contains compiler settings and directories required by the make system to b
     \item {\tt BOXLIB\_HOME}
 
     Change this to point to the \BoxLib\ home directory.  Alternatively, you can define {\tt BOXLIB\_HOME}
-    as an environment variables on your system.
+    as an environment variable on your system.
 
     \item {\tt NDEBUG} ('{\tt t}' or '{\tt <blank>}') for TRUE or FALSE
       
@@ -684,7 +684,7 @@ on the VCR-like control panel to preview all the frames.  To save the movie, cho
 
 \section{Running in Parallel with MPI}
 We will now demonstrate how to run the example in {\tt BoxLib/Tutorials/WaveEquation\_F/}
-using MPI parallism.  To run in parallel using C++ \BoxLib\ is analgous.
+using MPI parallelism.  To run in parallel using C++ \BoxLib\ is analogous.
 On your local machine, if you have MPI installed, you must first configure
 {\tt BoxLib/Tools/F\_mk/GMakeMPI.mak} and {\tt BoxLib/Tools/C\_mk/Make.mpi}
 to your MPI installation.  Then, you 
@@ -719,7 +719,7 @@ using ``{\tt qstat -u <username>}'' and view your position in the queue
 using ``{\tt showq}''.
 
 \section{Running in Parallel with MPI/OpenMP}\label{Sec:OpenMP}
-Both the C++ and Fortran versions of this tutorial also support hybdir MPI/OpenMP parallelism.
+Both the C++ and Fortran versions of this tutorial also support hybrid MPI/OpenMP parallelism.
 To ``thread'' the code, we have simply added OpenMP directives (using the {\tt !\$omp parallel do} 
 construct) to any i/j/k loops we were interested in threading.  For example, in {\tt init\_phi.f90}:
 \begin{lstlisting}[backgroundcolor=\color{light-green}]
@@ -743,8 +743,8 @@ thread getting its own local copy of {\tt i}, {\tt x}, {\tt y}, and {\tt r2}.\\
 Finally, to tell the compiler that we would like to run with OpenMP, we make sure to
 set {\tt OMP=t} (in Fortran) or {\tt USE\_OMP=TURE} (in C++) in the {\tt GNUmakefile}.
 Otherwise, all OpenMP directive are
-simply ignored.  Note that at runtime you must have you 
-{\tt OMP\_NUM\_THREADS} environment variable set properly in order for threads to work.
+simply ignored.  Note that at runtime you must have set the 
+{\tt OMP\_NUM\_THREADS} environment variable properly in order for threads to work.
 Also, note that you can enable/disable MPI independently from the OMP flag.  Finally,
 here is a sample hopper script (tcsh) for a hybrid MPI/OpenMP job:
 \lstinputlisting[backgroundcolor=\color{light-red}]{./F_AdvancedTopics/hopper_omp.run}

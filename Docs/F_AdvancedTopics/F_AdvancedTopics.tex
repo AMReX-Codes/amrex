@@ -1,12 +1,12 @@
 We now enhance our heat equation example from the previous section.
 Below is an outline of how we will proceed.  Each of these sections contains an 
-accompanying tutoral code that builds upon the previous example.
+accompanying tutorial code that builds upon the previous example.
 \begin{itemize}
 
 \item In Section \ref{Sec:Boundary Conditions} we develop the capability to handle
 other (non-periodic) boundary condition types.
 
-\item In Section \ref{Sec:Refinement} we develop the capabilitly to have multiple
+\item In Section \ref{Sec:Refinement} we develop the capability to have multiple
 levels of refinement using a fixed, multilevel grid structure.
 
 \item In Section \ref{Sec:AMR} we develop the capability to adaptively change the
@@ -119,17 +119,17 @@ end type bc_level
 Each level has a {\tt phys\_bc\_level\_array(0:ngrids,dim,2)} array, where {\tt ngrids} is the number of
 grids on that level, {\tt dim} is the dimensionality of the simulation, and the third index refers to
 the lower or upper edge of the grid in that coordinate direction.  This stores the {\it physical description}
-of the boundary type ({\tt INLET}, {\tt OUTLET}, etc.), which is independen of the variables that live on
+of the boundary type ({\tt INLET}, {\tt OUTLET}, etc.), which is independent of the variables that live on
 the grid.  The {\tt phys\_bc\_level\_array(0,:,:)} refers to the entire domain.  If an edge of a grid is not
 a physical boundary, then it is set to a default value, typically {\tt INTERIOR}.  These boundary condition
 types are used to interpret the actual method to fill the ghost cells for each variable, as described
 in {\tt adv\_bc\_level\_array} and {\tt ell\_bc\_level\_array}.
 
 Whereas {\tt phys\_bc\_level\_array} provides a physical description of the type of boundary, the array
-{\tt adv\_bc\_level\_array} describes the action taken (e.g. reflect, extrapolate, etc.) for each 
+{\tt adv\_bc\_level\_array} describes the action to be taken (e.g. reflect, extrapolate, etc.) for each 
 variable when filling physical ghost cells on domain boundaries.  The prefix ``{\tt adv\_}'' is somewhat
 of a misnomer, as this data structure was originally intended to tell advection (or hyperbolic) solvers
-how to fill ghost cells, but now are generally used to fill physical domain boundary ghost cells in any
+how to fill ghost cells, but now is generally used to fill physical domain boundary ghost cells in any
 instance where the user needs to set them.
 The form of this array is {\tt adv\_bc\_level\_array(0:ngrids,dim,2,nvar)}
 where the additional component, nvar, allows for different state variable that lives on a grid to have 
