@@ -21,7 +21,7 @@ deppairs: $(f90sources) $(fsources)
 	perl $(MODDEP) --tsort $^ > deppairs
 
 TAGS:	$(sources)
-	ctags -e --verbose=yes --fortran-kinds=+i $^
+	ctags -e --verbose=yes --fortran-kinds=+i $(abspath $^)
 
 tags:	$(sources)
 	ctags --verbose=yes --fortran-kinds=+i $^
