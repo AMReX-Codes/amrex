@@ -584,8 +584,7 @@ contains
             file = trim(dirname) // "/" // trim(header), &
             form = "formatted", access = "sequential", &
             status = "replace", action = "write")
-!       write(unit=un, fmt='("NavierStokes-V1.1")')
-       write(unit=un, fmt='("CartGrid-V1.2")')
+       write(unit=un, fmt='("NavierStokes-V1.1")')
        write(unit=un, fmt='(i0)') nc
        if ( present(names) ) then
           do i = 1, nc
@@ -620,7 +619,6 @@ contains
           write(unit=un, fmt='(3es25.15e3)') ldx
           if ( i < nl ) ldx = ldx/rrs(i)
        end do
-       write(unit=un, fmt='("1.E-10")')   ! epsilon for Cartesian grid option 
        write(unit=un, fmt='(i0)') idummy
        write(unit=un, fmt='(i0)') idummy
        ! SOME STUFF
