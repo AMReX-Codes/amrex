@@ -11,16 +11,17 @@
 //
 int BndryData::NTangHalfWidth = 5;
 
-BndryData::BndryData()
+BndryData::BndryData ()
     :
-    m_ncomp(-1) {}
+    m_ncomp(-1), m_defined(false) {}
 
 BndryData::BndryData (const BoxArray& _grids,
                       int             _ncomp, 
                       const Geometry& _geom)
     :
     geom(_geom),
-    m_ncomp(_ncomp)
+    m_ncomp(_ncomp),
+    m_defined(false)
 {
     define(_grids,_ncomp,_geom);
 }
@@ -77,10 +78,11 @@ BndryData::bndryMasks (int igrid) const
 void
 BndryData::init (const BndryData& src)
 {
-    geom    = src.geom;
-    m_ncomp = src.m_ncomp;
-    bcloc   = src.bcloc;
-    bcond   = src.bcond;
+    geom      = src.geom;
+    m_ncomp   = src.m_ncomp;
+    m_defined = src.m_defined;
+    bcloc     = src.bcloc;
+    bcond     = src.bcond;
     //
     // Define "masks".
     //
@@ -160,6 +162,18 @@ BndryData::define (const BoxArray& _grids,
                    int             _ncomp,
                    const Geometry& _geom)
 {
+    if (m_defined)
+    {
+        if (_grids == boxes() && m_ncomp == _ncomp && _geom.Domain() == geom.Domain())
+            //
+            // We want to allow reuse of BndryData objects that were define()d exactly as a previous call.
+            //
+            return;
+        //
+        // Otherwise we'll just abort.  We could make this work but it's just as easy to start with a fresh Bndrydata object.
+        //
+        BoxLib::Abort("BndryData::define(): object already built");
+    }
     geom    = _geom;
     m_ncomp = _ncomp;
 
@@ -266,6 +280,8 @@ BndryData::define (const BoxArray& _grids,
             abc[fi()].resize(_ncomp);
         }
     }
+
+    m_defined = true;
 }
 
 std::ostream&
