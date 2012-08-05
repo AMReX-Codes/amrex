@@ -198,8 +198,8 @@ protected:
     // Domain used for mask definitions.
     //
     Geometry geom;
-
-    int m_ncomp;
+    int      m_ncomp;
+    bool     m_defined;
 
 private:
     //
