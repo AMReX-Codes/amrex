@@ -2,6 +2,7 @@ module chemotaxis_module
 
   use boxlib
   use multifab_module
+  use mt19937_module
 
   use dtypes_module
   use advance_module
@@ -41,8 +42,6 @@ contains
     prob_hi     =  1.d0
     is_periodic = .true.
 
-    dt = 0.01d0
-
     ! create a box from (0,0) to (n_cell-1,n_cell-1)
     lo = 0
     hi = ctx%n_cell-1
@@ -63,6 +62,7 @@ contains
     call write_plotfile(la,q,0,ctx%dx,0.0d0,prob_lo,prob_hi)
 
     ! run
+    dt = ctx%dt
     time = 0.0d0
     do n = 1, opts%nsteps
        select case(opts%method)
@@ -95,10 +95,12 @@ contains
 
     integer        :: n, i, j, lo(2), hi(2)
 
-    double precision :: x, y, d
+    double precision :: x, y, d, a
     double precision, pointer, dimension(:,:,:,:) :: qp
 
-    ! double precision, parameter :: pi = 3.141592653589793d0
+    double precision, parameter :: pi = 3.141592653589793d0
+
+    call init_genrand(36478)
 
     do n=1, nboxes(q)
        if ( remote(q,n) ) cycle
@@ -116,7 +118,9 @@ contains
              qp(i,j,1,iu) = 1.0d0
 
              d = (x)**2 + (y)**2
-             qp(i,j,1,iv) = 1.0d0 + 0.1d0 * dexp(-10.0d0 * d)
+             call mt_random_number(a)
+             qp(i,j,1,iv) = 1.0d0 + 0.1d0 * a! * dexp(-4.0d0 * d) 
+             ! qp(i,j,1,iv) = 1.0d0 + 0.1*dsin(2*pi*x)*dsin(pi*y)
           end do
        end do
 
