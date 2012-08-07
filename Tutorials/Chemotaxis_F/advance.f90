@@ -212,10 +212,11 @@ contains
        ! XXX: pass invdx here instead of dx
 
        call cell_motility           (fp(:,:,1,iu), qp(:,:,1,iu),               lo, hi, ng, ctx%dx, ctx%diff)
-       call chemotactic_sensitivity (fp(:,:,1,iu), qp(:,:,1,iu), qp(:,:,1,iv), lo, hi, ng, ctx%dx, ctx%chi)
-       call signal_diffusion        (fp(:,:,1,iv), qp(:,:,1,iv),               lo, hi, ng, ctx%dx)
-       call signal_production       (fp(:,:,1,iv), qp(:,:,1,iu), qp(:,:,1,iv), lo, hi, ng, ctx%dx)
+       call chemotactic_sensitivity (fp(:,:,1,iu), qp(:,:,1,iu), qp(:,:,1,iv), lo, hi, ng, ctx%dx, ctx%chi, ctx%alpha, ctx%gamma)
+       call signal_diffusion        (fp(:,:,1,iv),               qp(:,:,1,iv), lo, hi, ng, ctx%dx)
+       call signal_production       (fp(:,:,1,iv), qp(:,:,1,iu), qp(:,:,1,iv), lo, hi, ng, ctx%dx, ctx%phi)
        call signal_degradation      (fp(:,:,1,iv), qp(:,:,1,iu), qp(:,:,1,iv), lo, hi, ng, ctx%dx)
+
     end do
 
   end subroutine dqdt
