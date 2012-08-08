@@ -14,14 +14,18 @@ module dtypes_module
      integer(c_int) :: &
           dim = 2, &            ! number of dimensions
           nc = 2, &             ! number of components
-          ng = 4, &             ! number of ghost cells
-          n_cell = 32           ! number of grid cells
+          ng = 2, &             ! number of ghost cells
+          n_cell = 64           ! number of grid cells
 
      real(c_double) :: dx, invdx
 
      real(c_double) :: &
+          dt = 0.1d0, &         ! time step
           diff = 0.1d0, &       ! diffusion constant
-          chi  = 5.0d0          ! sensitivity constant
+          chi  = 5.0d0, &       ! sensitivity constant
+          alpha = 0.5d0, &      ! receptor binding constant
+          gamma = 10.0d0, &     ! volume filling constant
+          phi = 1.0d0           ! saturating chemical production constant
      
   end type cht_ctx_t
 
@@ -47,9 +51,10 @@ contains
 
     character(len=8) :: method
     integer :: n_cell, nsteps, plot_int
+    real(8) :: dt
 
     namelist /options/ method, nsteps, plot_int
-    namelist /parameters/ n_cell
+    namelist /parameters/ n_cell, dt
 
     ! read options
     method = opts%method
@@ -62,7 +67,9 @@ contains
 
     ! read parameters
     n_cell = ctx%n_cell
+    dt = ctx%dt
     read(unit=unitno, nml=parameters)
+    ctx%dt = dt
     ctx%n_cell = n_cell
 
   end subroutine read_namelists
