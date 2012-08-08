@@ -62,10 +62,17 @@ LinOp::Finalize ()
     initialized = false;
 }
 
+void
+LinOp::bndryData (const BndryData& bd)
+{
+    BL_ASSERT(gbox[0] == bd.boxes());
+    *bgb = bd;
+}
+
 LinOp::LinOp (const BndryData& _bgb,
               const Real       _h)
     :
-    bgb(_bgb)
+    bgb(new BndryData(_bgb))
 {
     Real __h[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -78,6 +85,14 @@ LinOp::LinOp (const BndryData& _bgb,
 LinOp::LinOp (const BndryData& _bgb,
               const Real*      _h)
     :
+    bgb(new BndryData(_bgb))
+{
+    initConstruct(_h);
+}
+
+LinOp::LinOp (BndryData*  _bgb,
+              const Real* _h)
+    :
     bgb(_bgb)
 {
     initConstruct(_h);
@@ -85,6 +100,8 @@ LinOp::LinOp (const BndryData& _bgb,
 
 LinOp::~LinOp ()
 {
+    delete bgb;
+
     for (int i = 0, N = maskvals.size(); i < N; ++i)
     {
         for (std::map<int,MaskTuple>::iterator it = maskvals[i].begin(),
@@ -132,9 +149,9 @@ LinOp::initConstruct (const Real* _h)
     verbose = def_verbose;
     gbox.resize(1);
     const int level = 0;
-    gbox[level] = bgb.boxes();
+    gbox[level] = bgb->boxes();
     geomarray.resize(1);
-    geomarray[level] = bgb.getGeom();
+    geomarray[level] = bgb->getGeom();
     h.resize(1);
     maxorder = def_maxorder;
 
@@ -152,14 +169,14 @@ LinOp::initConstruct (const Real* _h)
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
     //
-    for (FabSetIter bndryfsi(bgb[Orientation(0,Orientation::low)]);
+    for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)
     {
         const int        i   = bndryfsi.index();
         MaskTuple&       ma  =  maskvals[level][i];
         MaskTuple&       lma = lmaskvals[level][i];
-        const MaskTuple& bdm = bgb.bndryMasks(i);
+        const MaskTuple& bdm = bgb->bndryMasks(i);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
@@ -241,8 +258,8 @@ LinOp::applyBC (MultiFab&      inout,
 
         const MaskTuple&                 ma  =  maskvals[level][gn];
         const MaskTuple&                 lma = lmaskvals[level][gn];
-        const BndryData::RealTuple&      bdl = bgb.bndryLocs(gn);
-        const Array< Array<BoundCond> >& bdc = bgb.bndryConds(gn);
+        const BndryData::RealTuple&      bdl = bgb->bndryLocs(gn);
+        const Array< Array<BoundCond> >& bdc = bgb->bndryConds(gn);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
@@ -250,7 +267,7 @@ LinOp::applyBC (MultiFab&      inout,
 
             FabSet&       f   = (*undrrelxr[level])[o];
             int           cdr = o;
-            const FabSet& fs  = bgb.bndryValues(o);
+            const FabSet& fs  = bgb->bndryValues(o);
             const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
             Real          bcl = bdl[o];
             int           bct = bdc[o][comp];
@@ -392,7 +409,7 @@ LinOp::prepareForLevel (int level)
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
     //
-    for (FabSetIter bndryfsi(bgb[Orientation(0,Orientation::low)]);
+    for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)
     {
