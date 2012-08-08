@@ -2,21 +2,21 @@
 
 	method = "sdc"
 	plot_int = 10
-	nsteps = 1000
+	nsteps = 300
 
 /
 
 &parameters
 
-	dt = 0.1d0
+	dt = 0.0125d0
 
 /
 
 &sdc
 	
-	nnodes = 3
+	nnodes = 5
 	qtype = "Gauss-Lobatto"
-	iters = 12
+	iters = 20
 	tol_residual = 1.0d-10
 
 /

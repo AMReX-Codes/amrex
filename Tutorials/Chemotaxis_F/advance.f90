@@ -42,12 +42,12 @@ contains
   subroutine advance_sdc(q, dt, ctx, sdc)
 
     type(multifab),  intent(inout) :: q
-    real(dp_t),      intent(in)    :: dt
+    real(dp_t),      intent(inout) :: dt
     type(cht_ctx_t), intent(inout) :: ctx
     type(sdcquad),   intent(in)    :: sdc
 
     integer          :: k, m, nc, ng
-    double precision :: res
+    double precision :: res, res_local
     type(layout)     :: la
     type(multifab)   :: qSDC(sdc%nnodes), fSDC(sdc%nnodes)
 
@@ -69,22 +69,24 @@ contains
        call copy(fSDC(m), fSDC(1))
     end do
 
+    res = 0.0d0
+
     ! perform sdc iterations
     do k = 1, sdc%iters
        call sdc_sweep(qSDC, fSDC, dt, ctx, sdc)
 
        if (sdc%tol_residual > 0.d0) then
-          res = sdc_residual(qSDC, fSDC, dt, sdc)
-
-          print *, 'SDC iteration', k, 'residual = ', res
+          res_local = sdc_residual(qSDC, fSDC, dt, sdc)
+          call parallel_reduce(res, res_local, MPI_MAX)
 
           if (res < sdc%tol_residual) then
-             print *, 'SDC RESIDUAL CONDITION MET'
              exit
           end if
        end if
     end do
 
+    print *, "SDC: iters:", k, "residual:", res
+ 
     call copy(q, qSDC(sdc%nnodes))
     
     do m = 1, sdc%nnodes
@@ -186,8 +188,8 @@ contains
 
 
   subroutine dqdt(q,ctx,f)
-    type(multifab),  intent(inout) :: q, f
-    type(cht_ctx_t), intent(in)    :: ctx
+    type(multifab),   intent(inout) :: q, f
+    type(cht_ctx_t),  intent(in)    :: ctx
 
     integer        :: n, ng, lo(2), hi(2)
 
