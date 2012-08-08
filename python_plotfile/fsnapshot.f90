@@ -28,7 +28,19 @@ subroutine fplotfile_get_size(pltfile, nx, ny, nz)
 
   max_level = pf%flevel
 
-  if (pf%dim == 2) then
+  if (pf%dim == 1) then
+     
+     ! 1-d -- return maximum size of finest level
+     allocate(flo(1), fhi(1))
+
+     flo = lwb(plotfile_get_pd_box(pf, max_level))
+     fhi = upb(plotfile_get_pd_box(pf, max_level))
+
+     nx = fhi(1) - flo(1) + 1
+     ny = -1
+     nz = -1
+
+  else if (pf%dim == 2) then
      
      ! 2-d -- return maximum size of finest level
      allocate(flo(2), fhi(2))
@@ -119,8 +131,15 @@ subroutine fplotfile_get_limits(pltfile, xmin, xmax, ymin, ymax, zmin, zmax)
 
   xmin = pf%plo(1)
   xmax = pf%phi(1)
-  ymin = pf%plo(2)
-  ymax = pf%phi(2)
+
+  if (pf%dim >= 2) then
+     ymin = pf%plo(2)
+     ymax = pf%phi(2)
+  else
+     ymin = -1.0
+     ymax = -1.0
+  endif
+
   if (pf%dim == 3) then
      zmin = pf%plo(3)
      zmax = pf%phi(3)
@@ -132,6 +151,170 @@ subroutine fplotfile_get_limits(pltfile, xmin, xmax, ymin, ymax, zmin, zmax)
   call destroy(pf)
 
 end subroutine fplotfile_get_limits
+
+
+!------------------------------------------------------------------------------
+! fplotfile_get_data_1d
+!------------------------------------------------------------------------------
+subroutine fplotfile_get_data_1d(pltfile, component, mydata, x, nx_max, nx, ierr)
+
+  ! return a single variable in mydata with coordinate locations x --
+  ! it may not be evenly gridded due to AMR.  nx_max is the size of
+  ! the mydata and x arrays as allocated (hidden in this interface)
+  ! while nx is the number of points actually stored, since some may
+  ! be at lower resolution.
+
+  use bl_space
+  use bl_constants_module, ONLY: ZERO, HALF
+  use bl_IO_module
+  use plotfile_module
+  use filler_module
+  use sort_d_module
+
+  implicit none
+
+  character (len=*), intent(in) :: pltfile
+  character (len=*), intent(in) :: component
+  integer          , intent(in) :: nx_max
+  double precision , intent(inout) :: mydata(nx_max)
+  double precision , intent(inout) :: x(nx_max)
+  integer          , intent(out) :: nx
+  integer, intent(out) :: ierr
+
+!f2py intent(in) :: pltfile, component
+!f2py intent(in,out) :: mydata
+!f2py intent(in,out) :: x
+!f2py intent(hide) :: nx_max
+!f2py intent(out) :: nx
+!f2py intent(out) :: ierr
+
+  type(plotfile) :: pf
+  integer :: unit
+
+  integer :: comp
+
+  integer :: flo(1), fhi(1)
+
+  integer :: max_level
+  
+  integer :: i, j, ii
+
+  integer :: cnt
+
+  real(kind=dp_t), pointer :: p(:,:,:,:)
+  real(kind=dp_t), allocatable :: x_tmp(:), mydata_tmp(:)
+  logical, allocatable :: imask(:)
+  integer, allocatable :: isv(:)
+ 
+  integer :: r1, rr
+  real(kind=dp_t) :: dx(MAX_SPACEDIM)
+  real(kind=dp_t) :: xmin
+
+  ierr = 0
+
+  ! build the plotfile to get the level and component information
+  unit = unit_new()
+  call build(pf, pltfile, unit)
+
+  ! figure out the variable indices
+  comp = plotfile_var_index(pf, component)
+  if (comp < 0) then
+     print *, "ERROR: component ", trim(component), " not found in plotfile"
+     ierr = 1
+     return
+  endif
+
+  max_level = pf%flevel
+
+
+  ! get dx for the coarse level
+  dx = plotfile_get_dx(pf, 1)
+
+
+  ! domain limit
+  xmin = pf%plo(1)
+    
+
+  ! domain index limits on the fine level
+  flo = lwb(plotfile_get_pd_box(pf, max_level))
+  fhi = upb(plotfile_get_pd_box(pf, max_level))
+
+
+  ! imask will be set to false if we've already output the data.                
+  ! Note, imask is defined in terms of the finest level.  As we loop            
+  ! over levels, we will compare to the finest level index space to             
+  ! determine if we've already output here  
+  allocate(imask(flo(1):fhi(1)))
+  imask = .true.
+
+
+  ! in general, we can get the data out of order.  Allocate an array
+  ! of indices for sorting later
+  allocate(isv(nx_max))
+
+
+  ! temporary storage for the unsorted data
+  allocate(x_tmp(nx_max))
+  allocate(mydata_tmp(nx_max))
+
+  cnt = 0
+
+  ! r1 is the factor between the current level grid spacing and the             
+  ! FINEST level                                                                
+  r1  = 1
+
+  do i = pf%flevel, 1, -1
+
+     ! rr is the factor between the COARSEST level grid spacing and             
+     ! the current level                                                        
+     rr = product(pf%refrat(1:i-1,1))
+
+     do j = 1, nboxes(pf, i)
+
+        ! read in the data 1 patch at a time, single component only
+        call fab_bind_comp_vec(pf, i, j, (/comp/) )
+
+        p => dataptr(pf, i, j)
+
+        do ii = lbound(p,dim=1), ubound(p,dim=1)
+           if ( any(imask(ii*r1:(ii+1)*r1-1) ) ) then
+
+              cnt = cnt + 1
+
+              x_tmp(cnt) = xmin + (ii + HALF)*dx(1)/rr
+              mydata_tmp(cnt) = p(ii,1,1,1)
+
+              imask(ii*r1:(ii+1)*r1-1) = .false.
+           endif
+        enddo
+
+        call fab_unbind(pf, i, j)
+
+     enddo
+
+     ! adjust r1 for the next lowest level                                      
+     if ( i /= 1 ) r1 = r1*pf%refrat(i-1,1)
+
+  enddo
+
+  ! sort the data based on the coordinates
+  call sort(x_tmp(1:cnt),isv(1:cnt))
+
+  x(:) = ZERO
+  mydata(:) = ZERO
+
+  do i = 1, cnt
+     x(i)      = x_tmp(isv(i))
+     mydata(i) = mydata_tmp(isv(i))
+  enddo
+
+  nx = cnt
+
+  deallocate(x_tmp,mydata_tmp)
+
+  call destroy(pf)
+
+end subroutine fplotfile_get_data_1d
 
 
 !------------------------------------------------------------------------------
