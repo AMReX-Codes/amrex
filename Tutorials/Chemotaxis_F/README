@@ -1,0 +1,52 @@
+Chemotaxis
+==========
+
+The description of the chemotaxis model presented here follows Hillen
+and Painter's "A user's guide to PDE models for chemotaxis",
+J. Math. Biol., vol. 58, no. 1, pp. 183-217, 2009.
+
+The general form of the chemotaxis model that we will consider here
+is
+
+  u_t = ∇·( D(u) ∇u - A(u) B(v) ∇v ) + f(u), 
+  v_t = ∇·( ∇v ) + u g(u) - v
+
+where u is the cell (organism) density and v is the concentration of
+the chemical signal.  The minimal model is given by 
+
+  D(u) = 1, A(u) = u, B(v) = Χ, f(u) = 0, and g(u) = 1
+
+so that the resulting system is
+
+  u_t = ∇·( ∇u - Χ u ∇v ), 
+  v_t = ∇·( ∇v ) + u - v.
+
+More complicated models are constructed by adding:
+
+1. Signal dependent sensitivity (receptor binding)
+
+   B(v) = Χ / (1 + α v)**2 
+
+2. Density dependent sensitivity (volume-filling)
+
+   A(u) = u (1 - u/γ)
+
+3. Non-linear diffusion 
+
+   D(u) = D u^n
+
+4. Non-linear signal kinetics (saturating chemical production)
+
+   g(u) = 1 / (1 + φ u)
+
+5. Cell growth (logistic growth)
+
+   f(u) = r u (1 - u)
+
+
+Both the cell density u and chemical concentration v can be zero, and
+therefore any high-order finite-volume discretization used must
+preserve positivity.  As such, we will use a first-order scheme to
+avoid introducing new extrema and/or negative values into the
+solution.
+

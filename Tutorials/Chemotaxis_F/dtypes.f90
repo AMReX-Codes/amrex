@@ -5,6 +5,8 @@ module dtypes_module
 
   implicit none
 
+  integer, parameter :: dim = 2
+
   integer, parameter :: iu = 1  ! index of population density u
   integer, parameter :: iv = 2  ! index of chemical signal v
 
@@ -12,15 +14,15 @@ module dtypes_module
   type, bind(c) :: cht_ctx_t
 
      integer(c_int) :: &
-          dim = 2, &            ! number of dimensions
           nc = 2, &             ! number of components
           ng = 2, &             ! number of ghost cells
-          n_cell = 64           ! number of grid cells
+          n_cell = 128          ! number of grid cells
 
-     real(c_double) :: dx, invdx
+     real(c_double) :: dt, dx, invdx
+
+     real(c_double) :: prob_lo(dim), prob_hi(dim)
 
      real(c_double) :: &
-          dt = 0.1d0, &         ! time step
           diff = 0.1d0, &       ! diffusion constant
           chi  = 5.0d0, &       ! sensitivity constant
           alpha = 0.5d0, &      ! receptor binding constant
