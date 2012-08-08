@@ -29,6 +29,16 @@ ABecLaplacian::ABecLaplacian (const BndryData& _bd,
     initCoefficients(_bd.boxes());
 }
 
+ABecLaplacian::ABecLaplacian (BndryData*  _bd,
+                              const Real* _h)
+    :
+    LinOp(_bd,_h),
+    alpha(alpha_def),
+    beta(beta_def)
+{
+    initCoefficients(_bd->boxes());
+}
+
 ABecLaplacian::~ABecLaplacian ()
 {
     clearToLevel(-1);

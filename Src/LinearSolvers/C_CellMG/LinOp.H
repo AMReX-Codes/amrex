@@ -93,6 +93,13 @@ public:
     LinOp (const BndryData& mgb,
            const Real*      _h);
     //
+    // Allocate a LinOp for this box array, boundary data and spacing array info.
+    //
+    // LinOp assumes ownership of the pointer.
+    //
+    LinOp (BndryData*  mgb,
+           const Real* _h);
+    //
     // The destructor.
     //
     virtual ~LinOp ();
@@ -272,7 +279,7 @@ protected:
     //
     // boundary data class
     //
-    BndryData bgb;
+    BndryData* bgb;
     //
     // Array (on level) of geometry objects.  Needed for determining
     // whether stuff intersects on periodic domains
@@ -317,15 +324,7 @@ inline
 const BndryData&
 LinOp::bndryData () const
 {
-    return bgb;
-}
-
-inline
-void
-LinOp::bndryData (const BndryData& bd)
-{
-    BL_ASSERT(gbox[0] == bd.boxes());
-    bgb = bd;
+    return *bgb;
 }
 
 inline

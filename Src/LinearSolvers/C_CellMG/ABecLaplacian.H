@@ -73,6 +73,13 @@ public:
     ABecLaplacian (const BndryData& bd,
                    const Real*      _h);
     //
+    // constructor for box array, boundary data and vector mesh spacing
+    //
+    // The ABecLaplacian assumes ownership of the pointer.
+    //
+    ABecLaplacian (BndryData*   bd,
+                   const Real* _h);
+    //
     // destructor
     //
     virtual ~ABecLaplacian ();
