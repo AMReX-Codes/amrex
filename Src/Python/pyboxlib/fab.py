@@ -88,7 +88,7 @@ class fab(object):
 
   def __getitem__(self, key):
     lbound = list(self.pbx[0])
-    if self.nc > 1:
+    if self.nc.value > 1:
       lbound.append(0)
 
     key = adjust_indexes(lbound, key)
@@ -98,7 +98,7 @@ class fab(object):
 
   def __setitem__(self, key, value):
     lbound = list(self.pbx[0])
-    if self.nc > 1:
+    if self.nc.value > 1:
       lbound.append(0)
 
     key = adjust_indexes(lbound, key)
