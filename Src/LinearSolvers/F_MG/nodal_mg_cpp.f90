@@ -728,7 +728,7 @@ subroutine mgt_nodal_dealloc()
   do i = 1,mgts%nlevel-1
      call destroy(mgts%fine_mask(i))
   end do
-  if (mgts%stencil_type .eq. 1) then
+  if (mgts%stencil_type .eq. ND_CROSS_STENCIL) then
      do i = 2,mgts%nlevel
         call destroy(mgts%one_sided_ss(i))
      end do
