@@ -104,6 +104,86 @@ end subroutine fplotfile_get_time
 
 
 !------------------------------------------------------------------------------
+! fplotfile_get_time
+!------------------------------------------------------------------------------
+subroutine fplotfile_get_nvar(pltfile, nvar)
+
+  use bl_IO_module
+  use plotfile_module
+
+  implicit none
+
+  character (len=*), intent(in) :: pltfile
+  integer, intent(out) :: nvar
+
+!f2py intent(in) :: pltfile
+!f2py intent(out) :: nvar
+
+  type(plotfile) :: pf
+  integer :: unit
+
+
+  ! build the plotfile to get the level information
+  unit = unit_new()
+  call build(pf, pltfile, unit)
+
+  nvar = pf%nvars
+
+  call destroy(pf)
+
+end subroutine fplotfile_get_nvar
+
+
+!------------------------------------------------------------------------------
+! fplotfile_get_varnames
+!------------------------------------------------------------------------------
+subroutine fplotfile_get_varinfo(pltfile, ivar, varname, varmin, varmax, ierr)
+
+  use bl_IO_module
+  use plotfile_module
+
+  implicit none
+
+  character (len=*) , intent(in) :: pltfile
+  integer           , intent(in ) :: ivar
+  character (len=64), intent(out) :: varname
+  real              , intent(out) :: varmin
+  real              , intent(out) :: varmax
+  integer           , intent(out) :: ierr
+
+!f2py intent(in) :: pltfile
+!f2py intent(in) :: ivar
+!f2py intent(out) :: varname
+!f2py intent(out) :: varmin
+!f2py intent(out) :: varmax
+!f2py intent(out) :: ierr
+
+  type(plotfile) :: pf
+  integer :: unit
+
+  ierr = 0
+
+  ! build the plotfile to get the level information
+  unit = unit_new()
+  call build(pf, pltfile, unit)
+
+  if (ivar > pf%nvars .or. ivar < 1) then
+     print *, "ERROR: component ", ivar, " outside of valid range."
+     ierr = 1
+     return
+  endif
+
+  varname = pf%names(ivar)
+
+  varmin = plotfile_minval(pf,ivar,pf%flevel)
+  varmax = plotfile_maxval(pf,ivar,pf%flevel)
+
+  call destroy(pf)
+
+end subroutine fplotfile_get_varinfo
+
+
+!------------------------------------------------------------------------------
 ! fplotfile_get_limits
 !------------------------------------------------------------------------------
 subroutine fplotfile_get_limits(pltfile, xmin, xmax, ymin, ymax, zmin, zmax)
