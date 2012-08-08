@@ -155,6 +155,7 @@ BndryData::clear_masks ()
         for (int i = 0; i < 2*BL_SPACEDIM; i++)
             delete m[i];
     }
+    masks.clear();
 }
 
 void

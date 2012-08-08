@@ -6,7 +6,9 @@
 MacBndry::MacBndry ()
     :
     InterpBndryData()
-{}
+{
+    BoxLib::Abort("*** Calling default constructor for MacBndry()");
+}
 
 MacBndry::MacBndry (const BoxArray& _grids,
                     int             _ncomp,
@@ -15,18 +17,20 @@ MacBndry::MacBndry (const BoxArray& _grids,
     InterpBndryData(_grids,_ncomp,_geom)
 {}
 
+MacBndry::~MacBndry () {}
+
 void
 MacBndry::setBndryConds (const BCRec& phys_bc,
                          int          ratio)
 {
-    IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryConds(phys_bc, ratio_vect);
 }
 
 void
-MacBndry::setBndryConds (const BCRec& phys_bc,
-                         IntVect&     ratio,
-			 int          comp)
+MacBndry::setBndryConds (const BCRec&   phys_bc,
+                         const IntVect& ratio,
+			 int            comp)
 {
     //
     // ALL BCLOC VALUES ARE NOW DEFINED AS A LENGTH IN PHYSICAL
@@ -76,8 +80,8 @@ MacBndry::setBndryConds (const BCRec& phys_bc,
 }
 
 void
-MacBndry::setHomogValues (const BCRec& bc,
-                          /*const*/ IntVect& ratio)
+MacBndry::setHomogValues (const BCRec&   bc,
+                          const IntVect& ratio)
 {
     setBndryConds(bc, ratio);
  
