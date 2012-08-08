@@ -16,14 +16,16 @@ public:
               int             _ncomp,
               const Geometry& _geom);
 
+    ~MacBndry ();
+
     virtual void setBndryConds (const BCRec& phys_bc,
                                 int          ratio);
 
-    virtual void setBndryConds (const BCRec& phys_bc,
-                                IntVect&     ratio,
-                                int          comp=0);
-    void setHomogValues (const BCRec& bc,
-                         /*const*/ IntVect& ratio);
+    virtual void setBndryConds (const BCRec&   phys_bc,
+                                const IntVect& ratio,
+                                int            comp=0);
+    void setHomogValues (const BCRec&   bc,
+                         const IntVect& ratio);
 };
 
 #endif
