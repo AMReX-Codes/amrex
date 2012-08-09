@@ -104,7 +104,7 @@ end subroutine fplotfile_get_time
 
 
 !------------------------------------------------------------------------------
-! fplotfile_get_time
+! fplotfile_get_nvar
 !------------------------------------------------------------------------------
 subroutine fplotfile_get_nvar(pltfile, nvar)
 
@@ -390,6 +390,8 @@ subroutine fplotfile_get_data_1d(pltfile, component, mydata, x, nx_max, nx, ierr
 
   nx = cnt
 
+  deallocate(imask)
+  deallocate(isv)
   deallocate(x_tmp,mydata_tmp)
 
   call destroy(pf)
