@@ -376,6 +376,47 @@ contains
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! plotfile
+
+  subroutine pybl_create_plotfile(dname, dlen, cptr) &
+       bind(c, name='pybl_create_plotfile')
+    use bl_io_module
+    use plotfile_module
+
+    type(c_ptr),    intent(in), value :: dname
+    integer(c_int), intent(in), value :: dlen
+    type(c_ptr),    intent(out)       :: cptr
+
+    character(len=dlen), pointer :: root
+
+    type(plotfile), pointer :: pf
+    integer :: un
+
+    call c_f_pointer(dname, root)
+
+    call pybl_plotfile_new(cptr, pf)
+
+    un = unit_new()
+    call build(pf, root, un)
+  end subroutine pybl_create_plotfile
+
+  subroutine pybl_get_plotfile_info(cptr, dim, nvars, flevel) &
+       bind(c, name='pybl_get_plotfile_info')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(out)       :: dim, nvars, flevel
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+
+    dim    = pf%dim
+    nvars  = pf%nvars
+    flevel = pf%flevel
+  end subroutine pybl_get_plotfile_info
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! regrid
 
   subroutine pybl_regrid(tags_cptr, buffer_width, boxes_cptr) &
