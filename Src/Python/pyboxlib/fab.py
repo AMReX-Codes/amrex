@@ -45,18 +45,21 @@ class fab(object):
     self.ibx_lo = (3*c_int)()
     self.ibx_hi = (3*c_int)()
 
+    self.c_int_attrs = [ 'dim', 'nc' ]
+    self.init_c_int_attrs()
+
     assert 1 <= nbox <= mfab.nboxes
 
     mftype    = self.mfab.__class__.__name__
     get_info  = getattr(bl, 'pybl_get_' + mftype + '_fab_info')
     get_array = getattr(cbl, mftype + '_as_numpy')
 
-    get_info(self.mfab.cptr, nbox, byref(self.dim), byref(self.nc), 
+    get_info(self.mfab.cptr, nbox, byref(self._dim), byref(self._nc), 
              self.bx_lo, self.bx_hi, 
              self.pbx_lo, self.pbx_hi, 
              self.ibx_lo, self.ibx_hi)
 
-    ints = lambda arr: [ int(x) for x in arr[:self.dim.value] ]
+    ints = lambda arr: [ int(x) for x in arr[:self.dim] ]
     lohi = lambda lo, hi: (ints(lo), ints(hi))
 
     self.bx  = lohi(self.bx_lo,  self.bx_hi)
@@ -88,7 +91,7 @@ class fab(object):
 
   def __getitem__(self, key):
     lbound = list(self.pbx[0])
-    if self.nc.value > 1:
+    if self.nc > 1:
       lbound.append(0)
 
     key = adjust_indexes(lbound, key)
@@ -98,7 +101,7 @@ class fab(object):
 
   def __setitem__(self, key, value):
     lbound = list(self.pbx[0])
-    if self.nc.value > 1:
+    if self.nc > 1:
       lbound.append(0)
 
     key = adjust_indexes(lbound, key)

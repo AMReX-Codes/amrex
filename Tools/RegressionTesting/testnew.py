@@ -2228,7 +2228,7 @@ def testSuite(argv):
         doGITback(suite.sourceDir, suite.srcName, sourceGitBranch)
 
     if extSrcGitHash:
-        doGITback(suite.extSrcDir, suite.extSrcName, extSrcGitHash)
+        doGITback(suite.extSrcDir, suite.extSrcName, extSrcGitBranch)
             
     #--------------------------------------------------------------------------
     # For temporary run, return now without creating suote report.
