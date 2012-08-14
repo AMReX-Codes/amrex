@@ -39,7 +39,16 @@ module define_bc_module
 
   private
 
-  public :: bc_level, bc_tower, bc_tower_init, bc_tower_level_build, bc_tower_destroy
+  interface build
+     module procedure bc_tower_init
+     module procedure bc_tower_level_build
+  end interface build
+
+  interface destroy
+     module procedure bc_tower_destroy
+  end interface destroy
+
+  public :: bc_level, bc_tower, bc_tower_init, bc_tower_level_build, bc_tower_destroy, build, destroy
 
   contains
 
