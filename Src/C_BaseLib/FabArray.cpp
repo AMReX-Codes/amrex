@@ -35,9 +35,9 @@ FabArrayBase::Initialize ()
     FabArrayBase::do_not_use_cache = false;
 
     use_copy_cache      = true;
-    copy_cache_max_size = 10;   // -1 ==> no maximum size
+    copy_cache_max_size = 30;   // -1 ==> no maximum size
     use_fb_cache        = true;
-    fb_cache_max_size   = 20;   // -1 ==> no maximum size
+    fb_cache_max_size   = 30;   // -1 ==> no maximum size
 
     ParmParse pp("fabarray");
 
@@ -205,10 +205,12 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
             }
 
             if (TheCopyCache.size() >= copy_cache_max_size)
+            {
                 //
                 // Get rid of entry with the smallest key.
                 //
                 TheCopyCache.erase(TheCopyCache.begin());
+            }
         }
     }
     else
@@ -302,10 +304,9 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
+    const int                  NProcs = ParallelDescriptor::NProcs();
     SI::SIRecContainer&        sirec  = it->second.m_sirec;
-    Array<int>&                cache  = it->second.m_cache;
-
-    cache.resize(ParallelDescriptor::NProcs(),0);
+    std::map<int,int>&         cache  = it->second.m_cache;
 
     std::vector<Box> boxes;
 
@@ -341,7 +342,8 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
             boxes.push_back(mfi.fabbox());
         }
 
-        for (std::vector<Box>::const_iterator it = boxes.begin(), End = boxes.end();
+        for (std::vector<Box>::const_iterator it = boxes.begin(),
+                 End = boxes.end();
              it != End;
              ++it)
         {
@@ -356,16 +358,27 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
                 {
                     sirec.push_back(SIRec(i,k,bx));
 
-                    if (DMap[k] != MyProc)
+                    const int who = DMap[k];
+
+                    if (who != MyProc)
+                    {
                         //
                         // If we intersect them then they'll intersect us.
                         //
-                        cache[DMap[k]] += 1;
+                        if (cache.find(who) == cache.end())
+                        {
+                            cache[who]  = 1;
+                        }
+                        else
+                        {
+                            cache[who] += 1;
+                        }
+                    }
                 }
             }
         }
 
-        BL_ASSERT(cache[DMap[i]] == 0);
+        BL_ASSERT(cache.find(DMap[i]) == cache.end());
     }
 
     return it->second;
@@ -430,10 +443,12 @@ FabArrayBase::TheFBsirec (int                 scomp,
             }
 
             if (SICache.size() >= fb_cache_max_size)
+            {
                 //
                 // Get rid of entry with the smallest key.
                 //
                 SICache.erase(SICache.begin());
+            }
         }
     }
     else
