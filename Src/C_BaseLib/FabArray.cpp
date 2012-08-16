@@ -304,7 +304,6 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
-    const int                  NProcs = ParallelDescriptor::NProcs();
     SI::SIRecContainer&        sirec  = it->second.m_sirec;
     std::map<int,int>&         cache  = it->second.m_cache;
 
