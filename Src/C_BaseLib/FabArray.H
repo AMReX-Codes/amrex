@@ -209,7 +209,7 @@ public:
         //
         typedef std::deque<SIRec> SIRecContainer;
 
-        Array<int>          m_cache;    // Snds cached for CollectData().
+        std::map<int,int>   m_cache;    // Snds cached for CollectData().
         CommDataCache       m_commdata; // Yet another cache for CollectData().
         SIRecContainer      m_sirec;
         BoxArray            m_ba;
@@ -2580,7 +2580,17 @@ FabArray<FAB>::FillBoundary (int  scomp,
                                  ncomp);
     }
 
-    mfcd.CollectData(&si.m_cache,&si.m_commdata);
+    Array<int> snds(ParallelDescriptor::NProcs(),0);
+
+    for (std::map<int,int>::const_iterator it = si.m_cache.begin(),
+             End = si.m_cache.end();
+         it != End;
+         ++it)
+    {
+        snds[it->first] = it->second;
+    }
+
+    mfcd.CollectData(&snds,&si.m_commdata);
 
     for (SI::SIRecContainer::const_iterator it = si.m_sirec.begin(),
              End = si.m_sirec.end();

@@ -236,7 +236,7 @@ public:
         bool operator== (const FPB& rhs) const;
         bool operator!= (const FPB& rhs) const;
 
-        Array<int>                  m_cache;    // Snds cached for CollectData().
+        std::map<int,int>           m_cache;    // Snds cached for CollectData().
         FabArrayBase::CommDataCache m_commdata; // Yet another cache for CollectData().
         PIRMVector                  m_pirm;
         BoxArray                    m_ba;
@@ -599,7 +599,30 @@ namespace BoxLib
             //
             return;
 
-        mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
+        Array<int> snds;
+
+        if (fpb.m_cache.empty())
+        {
+            mfcd.CollectData(&snds,&fpb.m_commdata);
+
+            for (int i = 0, N = snds.size(); i < N; i++)
+                if (snds[i] > 0)
+                    fpb.m_cache[i] = snds[i];
+        }
+        else
+        {
+            snds.resize(ParallelDescriptor::NProcs(),0);
+
+            for (std::map<int,int>::const_iterator it = fpb.m_cache.begin(),
+                     End = fpb.m_cache.end();
+                 it != End;
+                 ++it)
+            {
+                snds[it->first] = it->second;
+            }
+
+            mfcd.CollectData(&snds,&fpb.m_commdata);
+        }
 
         for (Geometry::PIRMVector::const_iterator it = pirm.begin(), End = pirm.end();
              it != End;
