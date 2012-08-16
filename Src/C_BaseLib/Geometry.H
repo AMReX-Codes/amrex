@@ -599,30 +599,7 @@ namespace BoxLib
             //
             return;
 
-        Array<int> snds;
-
-        if (fpb.m_cache.empty())
-        {
-            mfcd.CollectData(&snds,&fpb.m_commdata);
-
-            for (int i = 0, N = snds.size(); i < N; i++)
-                if (snds[i] > 0)
-                    fpb.m_cache[i] = snds[i];
-        }
-        else
-        {
-            snds.resize(ParallelDescriptor::NProcs(),0);
-
-            for (std::map<int,int>::const_iterator it = fpb.m_cache.begin(),
-                     End = fpb.m_cache.end();
-                 it != End;
-                 ++it)
-            {
-                snds[it->first] = it->second;
-            }
-
-            mfcd.CollectData(&snds,&fpb.m_commdata);
-        }
+        mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata,fpb.m_reused);
 
         for (Geometry::PIRMVector::const_iterator it = pirm.begin(), End = pirm.end();
              it != End;
