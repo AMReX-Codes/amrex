@@ -816,8 +816,9 @@ class FabArrayCopyDescriptor
                       int        numcomp,
                       bool       bUseValidBox = true);
 
-    void CollectData (Array<int>*                  snd_cache = 0,
-                      FabArrayBase::CommDataCache* cd_cache  = 0);
+    void CollectData (std::map<int,int>*           send_cache          = 0,
+                      FabArrayBase::CommDataCache* cd_cache            = 0,
+                      bool                         send_cache_is_valid = false);
 
     void FillFab (FabArrayId       fabarrayid,
                   const FillBoxId& fillboxid,
@@ -2055,8 +2056,9 @@ FabArrayCopyDescriptor<FAB>::clear ()
 
 template <class FAB>
 void
-FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache,
-                                          FabArrayBase::CommDataCache* cd_cache)
+FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cache,
+                                          FabArrayBase::CommDataCache* cd_cache,
+                                          bool                         send_cache_is_valid)
 {
     typedef typename FAB::value_type value_type;
 
@@ -2101,7 +2103,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
 
     BL_ASSERT((Total_Rcvs_Size*sizeof(value_type)) < std::numeric_limits<int>::max());
 
-    if (snd_cache == 0 || snd_cache->size() == 0 || FabArrayBase::do_not_use_cache)
+    if (send_cache == 0 || !send_cache_is_valid || FabArrayBase::do_not_use_cache)
     {
         BL_MPI_REQUIRE( MPI_Alltoall(Rcvs.dataPtr(),
                                      1,
@@ -2112,14 +2114,22 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*                  snd_cache
                                      ParallelDescriptor::Communicator()) );
         BL_ASSERT(Snds[MyProc] == 0);
 
-        if (snd_cache && !FabArrayBase::do_not_use_cache)
+        if (send_cache && !FabArrayBase::do_not_use_cache)
         {
-            *snd_cache = Snds;
+            for (int i = 0; i < NProcs; i++)
+                if (Snds[i] > 0)
+                    (*send_cache)[i] = Snds[i];
         }
     }
     else
     {
-        Snds = *snd_cache;
+        for (std::map<int,int>::const_iterator it = send_cache->begin(),
+                 End = send_cache->end();
+             it != End;
+             ++it)
+        {
+            Snds[it->first] = it->second;
+        }
     }
 
     Array<ParallelDescriptor::CommData> cd_others_need, cd_that_i_need;
@@ -2580,17 +2590,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
                                  ncomp);
     }
 
-    Array<int> snds(ParallelDescriptor::NProcs(),0);
-
-    for (std::map<int,int>::const_iterator it = si.m_cache.begin(),
-             End = si.m_cache.end();
-         it != End;
-         ++it)
-    {
-        snds[it->first] = it->second;
-    }
-
-    mfcd.CollectData(&snds,&si.m_commdata);
+    mfcd.CollectData(&si.m_cache,&si.m_commdata,true);
 
     for (SI::SIRecContainer::const_iterator it = si.m_sirec.begin(),
              End = si.m_sirec.end();
