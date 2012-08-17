@@ -679,6 +679,15 @@ protected:
                      int                        ngrow,
                      FabAlloc                   mem_mode,
                      const DistributionMapping* dm);
+    //
+    // Helper function for copy().
+    //
+    void copyAllToAll (const FabArray<FAB>& src,
+                       int                  scomp,
+                       int                  dcomp,
+                       int                  ncomp,
+                       FabArrayBase::CpOp   op,
+                       FabArrayBase::CPC&   thecpc);
 
     std::map<int,FAB*> m_fabs;
 
@@ -1265,6 +1274,131 @@ FabArray<FAB>::setBndry (value_type val,
 
 template <class FAB>
 void
+FabArray<FAB>::copyAllToAll (const FabArray<FAB>& src,
+                             int                  scomp,
+                             int                  dcomp,
+                             int                  ncomp,
+                             FabArrayBase::CpOp   op,
+                             FabArrayBase::CPC&   thecpc)
+{
+#ifdef BL_USE_MPI
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    BL_ASSERT(FabArrayBase::do_alltoallv);
+
+    int Nsend = 0, Nrecv = 0;
+
+    Array<int> sendcount(NProcs,0), recvcount(NProcs,0);
+    Array<int> senddspls(NProcs,0), recvdspls(NProcs,0);
+        
+    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
+             m_End = thecpc.m_SndTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        const int Ns = thecpc.m_SndVols[m_it->first]*ncomp;
+
+        Nsend                 += Ns;
+        sendcount[m_it->first] = Ns;
+    }
+
+    for (int i = 1; i < NProcs; i++)
+        senddspls[i] = senddspls[i-1] + sendcount[i-1];
+
+    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
+             m_End = thecpc.m_RcvTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        const int Nr = thecpc.m_RcvVols[m_it->first]*ncomp;
+
+        Nrecv                 += Nr;
+        recvcount[m_it->first] = Nr;
+    }
+
+    for (int i = 1; i < NProcs; i++)
+        recvdspls[i] = recvdspls[i-1] + recvcount[i-1];
+
+    BL_ASSERT((Nsend*sizeof(value_type)) < std::numeric_limits<int>::max());
+    BL_ASSERT((Nrecv*sizeof(value_type)) < std::numeric_limits<int>::max());
+
+    value_type* senddata = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Nsend*sizeof(value_type)));
+    value_type* recvdata = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Nrecv*sizeof(value_type)));
+
+    FAB fab;
+
+    value_type* senddptr = senddata;
+
+    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
+             m_End = thecpc.m_SndTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
+                 End = m_it->second.end();
+             it != End;
+             ++it)
+        {
+            const Box& bx = it->box;
+            fab.resize(bx, ncomp);
+            fab.copy(src[it->fabIndex],bx,scomp,bx,0,ncomp);
+            const int Count = bx.numPts() * ncomp;
+            memcpy(senddptr, fab.dataPtr(), Count*sizeof(value_type));
+            senddptr += Count;
+        }
+    }
+
+    BL_ASSERT(senddata+Nsend == senddptr);
+
+    BL_MPI_REQUIRE( MPI_Alltoallv(senddata,
+                                  sendcount.dataPtr(),
+                                  senddspls.dataPtr(),
+                                  ParallelDescriptor::Mpi_typemap<value_type>::type(),
+                                  recvdata,
+                                  recvcount.dataPtr(),
+                                  recvdspls.dataPtr(),
+                                  ParallelDescriptor::Mpi_typemap<value_type>::type(),
+                                  ParallelDescriptor::Communicator()) );
+
+    BoxLib::The_Arena()->free(senddata);
+
+    value_type* recvdptr = recvdata;
+
+    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
+             m_End = thecpc.m_RcvTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
+                 End = m_it->second.end();
+             it != End;
+             ++it)
+        {
+            const Box& bx = it->box;
+            fab.resize(bx, ncomp);
+            const int Count = bx.numPts()*ncomp;
+            memcpy(fab.dataPtr(), recvdptr, Count*sizeof(value_type));
+
+            if (op == FabArrayBase::COPY)
+            {
+                get(it->fabIndex).copy(fab,bx,0,bx,dcomp,ncomp);
+            }
+            else
+            {
+                get(it->fabIndex).plus(fab,bx,bx,0,dcomp,ncomp);
+            }
+            recvdptr += Count;
+        }
+    }
+
+    BL_ASSERT(recvdata+Nrecv == recvdptr);
+
+    BoxLib::The_Arena()->free(recvdata);
+#endif
+}
+
+template <class FAB>
+void
 FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  scomp,
                      int                  dcomp,
@@ -1415,114 +1549,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     if (FabArrayBase::do_alltoallv)
     {
-        int Nsend = 0, Nrecv = 0;
-
-        Array<int> sendcount(NProcs,0), recvcount(NProcs,0);
-        Array<int> senddspls(NProcs,0), recvdspls(NProcs,0);
-        
-        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
-                 m_End = thecpc.m_SndTags.end();
-             m_it != m_End;
-             ++m_it)
-        {
-            const int Ns = thecpc.m_SndVols[m_it->first]*ncomp;
-
-            Nsend                 += Ns;
-            sendcount[m_it->first] = Ns;
-        }
-
-        for (int i = 1; i < NProcs; i++)
-            senddspls[i] = senddspls[i-1] + sendcount[i-1];
-
-        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
-                 m_End = thecpc.m_RcvTags.end();
-             m_it != m_End;
-             ++m_it)
-        {
-            const int Nr = thecpc.m_RcvVols[m_it->first]*ncomp;
-
-            Nrecv                 += Nr;
-            recvcount[m_it->first] = Nr;
-        }
-
-        for (int i = 1; i < NProcs; i++)
-            recvdspls[i] = recvdspls[i-1] + recvcount[i-1];
-
-        BL_ASSERT((Nsend*sizeof(value_type)) < std::numeric_limits<int>::max());
-        BL_ASSERT((Nrecv*sizeof(value_type)) < std::numeric_limits<int>::max());
-
-        value_type* senddata = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Nsend*sizeof(value_type)));
-        value_type* recvdata = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Nrecv*sizeof(value_type)));
-
-        FAB fab;
-
-        value_type* senddptr = senddata;
-
-        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
-                 m_End = thecpc.m_SndTags.end();
-             m_it != m_End;
-             ++m_it)
-        {
-            for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                     End = m_it->second.end();
-                 it != End;
-                 ++it)
-            {
-                const Box& bx = it->box;
-                fab.resize(bx, ncomp);
-                fab.copy(src[it->fabIndex],bx,scomp,bx,0,ncomp);
-                const int Count = bx.numPts() * ncomp;
-                memcpy(senddptr, fab.dataPtr(), Count*sizeof(value_type));
-                senddptr += Count;
-            }
-        }
-
-        BL_ASSERT(senddata+Nsend == senddptr);
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(senddata,
-                                      sendcount.dataPtr(),
-                                      senddspls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<value_type>::type(),
-                                      recvdata,
-                                      recvcount.dataPtr(),
-                                      recvdspls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<value_type>::type(),
-                                      ParallelDescriptor::Communicator()) );
-
-        BoxLib::The_Arena()->free(senddata);
-
-        value_type* recvdptr = recvdata;
-
-        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
-                 m_End = thecpc.m_RcvTags.end();
-             m_it != m_End;
-             ++m_it)
-        {
-            for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                     End = m_it->second.end();
-                 it != End;
-                 ++it)
-            {
-                const Box& bx = it->box;
-                fab.resize(bx, ncomp);
-                const int Count = bx.numPts()*ncomp;
-                memcpy(fab.dataPtr(), recvdptr, Count*sizeof(value_type));
-
-                if (op == FabArrayBase::COPY)
-                {
-                    get(it->fabIndex).copy(fab,bx,0,bx,dcomp,ncomp);
-                }
-                else
-                {
-                    get(it->fabIndex).plus(fab,bx,bx,0,dcomp,ncomp);
-                }
-                recvdptr += Count;
-            }
-        }
-
-        BL_ASSERT(recvdata+Nrecv == recvdptr);
-
-        BoxLib::The_Arena()->free(recvdata);
+        copyAllToAll(src,scomp,dcomp,ncomp,op,thecpc);
     }
     else
     {
