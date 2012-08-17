@@ -2073,12 +2073,16 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
     // Make sure we can treat CommData as a stream of integers.
     //
     BL_ASSERT(sizeof(ParallelDescriptor::CommData) == ParallelDescriptor::CommData::DIM*sizeof(int));
+    //
+    // A typedef to simplify typing.
+    //
+    typedef std::map<int,int> IntIntMap;
 
     const int MyProc = ParallelDescriptor::MyProc();
 
     int Total_Rcvs_Size = 0;
 
-    std::map<int,int> Snds, Rcvs, N_per_cpu;
+    IntIntMap Snds, Rcvs, Npts;
     //
     // Set Rcvs[i] to # of blocks needed from CPU i
     //
@@ -2096,26 +2100,22 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
 
         Total_Rcvs_Size += Cnt;
 
-        std::map<int,int>::iterator rit = Rcvs.find(Who);
-
-        if (rit != Rcvs.end())
+        if (Rcvs.count(Who) > 0)
         {
-            rit->second += 1;
+            Rcvs[Who] += 1;
         }
         else
         {
             Rcvs[Who] = 1;
         }
 
-        std::map<int,int>::iterator nit = N_per_cpu.find(Who);
-
-        if (nit != N_per_cpu.end())
+        if (Npts.count(Who) > 0)
         {
-            nit->second += Cnt;
+            Npts[Who] += Cnt;
         }
         else
         {
-            N_per_cpu[Who] = Cnt;
+            Npts[Who] = Cnt;
         }
     }
     BL_ASSERT(Rcvs.count(MyProc) == 0);
@@ -2124,27 +2124,25 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
 
     if (send_cache == 0 || !send_cache_is_valid || FabArrayBase::do_not_use_cache)
     {
-        Array<int> tSnds(NProcs,0), tRcvs(NProcs,0);
+        Array<int> SndsArray(NProcs,0), RcvsArray(NProcs,0);
 
-        for (std::map<int,int>::const_iterator it = Rcvs.begin(), End = Rcvs.end();
-             it != End;
-             ++it)
+        for (IntIntMap::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
         {
-            tRcvs[it->first] = it->second;
+            RcvsArray[it->first] = it->second;
         }
 
-        BL_MPI_REQUIRE( MPI_Alltoall(tRcvs.dataPtr(),
+        BL_MPI_REQUIRE( MPI_Alltoall(RcvsArray.dataPtr(),
                                      1,
                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                     tSnds.dataPtr(),
+                                     SndsArray.dataPtr(),
                                      1,
                                      ParallelDescriptor::Mpi_typemap<int>::type(),
                                      ParallelDescriptor::Communicator()) );
-        BL_ASSERT(tSnds[MyProc] == 0);
+        BL_ASSERT(SndsArray[MyProc] == 0);
 
         for (int i = 0; i < NProcs; i++)
-            if (tSnds[i] > 0)
-                Snds[i] = tSnds[i];
+            if (SndsArray[i] > 0)
+                Snds[i] = SndsArray[i];
 
         if (send_cache && !FabArrayBase::do_not_use_cache)
         {
@@ -2160,47 +2158,25 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
 
     if (cd_cache == 0 || !cd_cache->isValid() || FabArrayBase::do_not_use_cache)
     {
-        Array<int> sdispls(NProcs,0), rdispls(NProcs,0);
+        Array<int> sdispls(NProcs,0), rdispls(NProcs,0), scnts(NProcs,0), rcnts(NProcs,0);
 
         int RcvCnt = 0;
-        for (std::map<int,int>::iterator it = Snds.begin(), End = Snds.end();
-             it != End;
-             ++it)
+        for (IntIntMap::iterator it = Snds.begin(), End = Snds.end(); it != End; ++it)
         {
-            RcvCnt += it->second;
+            RcvCnt          += it->second;
+            rcnts[it->first] = it->second;
         }
-
         for (int i = 1; i < NProcs; i++)
-        {
-            if (Snds.count(i-1) > 0)
-            {
-                rdispls[i] = rdispls[i-1] + Snds[i-1];
-            }
-            else
-            {
-                rdispls[i] = rdispls[i-1];
-            }
-        }
+            rdispls[i] = rdispls[i-1] + rcnts[i-1];
 
         int SndCnt = 0;
-        for (std::map<int,int>::iterator it = Rcvs.begin(), End = Rcvs.end();
-             it != End;
-             ++it)
+        for (IntIntMap::iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
         {
-            SndCnt += it->second;
+            SndCnt          += it->second;
+            scnts[it->first] = it->second;
         }
-
         for (int i = 1; i < NProcs; i++)
-        {
-            if (Rcvs.count(i-1) > 0)
-            {
-                sdispls[i] = sdispls[i-1] + Rcvs[i-1];
-            }
-            else
-            {
-                sdispls[i] = sdispls[i-1];
-            }
-        }
+            sdispls[i] = sdispls[i-1] + scnts[i-1];
 
         Array<int> index(sdispls);
 
@@ -2224,24 +2200,8 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
             cd_that_i_need[index[it->procThatHasData]++] = data;
         }
         //
-        // Now increment displacements to indicate integers not CommData.
+        // Increment displacements to indicate integers not CommData.
         //
-        Array<int> scnts(NProcs,0), rcnts(NProcs,0);
-
-        for (std::map<int,int>::const_iterator it = Rcvs.begin(), End = Rcvs.end();
-             it != End;
-             ++it)
-        {
-            scnts[it->first] = it->second;
-        }
-
-        for (std::map<int,int>::const_iterator it = Snds.begin(), End = Snds.end();
-             it != End;
-             ++it)
-        {
-            rcnts[it->first] = it->second;
-        }
-
         for (int i = 0; i < NProcs; i++)   scnts[i] *= ParallelDescriptor::CommData::DIM;
         for (int i = 0; i < NProcs; i++)   rcnts[i] *= ParallelDescriptor::CommData::DIM;
         for (int i = 1; i < NProcs; i++) sdispls[i] *= ParallelDescriptor::CommData::DIM;
@@ -2256,7 +2216,6 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
                                       rdispls.dataPtr(),
                                       ParallelDescriptor::Mpi_typemap<int>::type(),
                                       ParallelDescriptor::Communicator()) );
-        cd_that_i_need.clear();
 
         if (cd_cache && !FabArrayBase::do_not_use_cache)
         {
@@ -2270,49 +2229,46 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
 
     if (FabArrayBase::do_alltoallv)
     {
-        std::map<int,int>::iterator mapit;
-
         Array<int> sendcnts(NProcs,0), sdispls(NProcs,0);
         Array<int> recvcnts(NProcs,0), rdispls(NProcs,0), strt(NProcs,0);
 
         int RcvCnt = 0;
-        for (int i = 0; i < NProcs; i++)
+
+        for (IntIntMap::iterator it = Npts.begin(), End = Npts.end(); it != End; ++it)
         {
-            mapit = N_per_cpu.find(i);
-            if (mapit != N_per_cpu.end())
-            {
-                RcvCnt     += mapit->second;
-                recvcnts[i] = mapit->second;
-            }
-            if (i > 0)
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
+            RcvCnt             += it->second;
+            recvcnts[it->first] = it->second;
         }
 
         for (int i = 1; i < NProcs; i++)
+            rdispls[i] = rdispls[i-1] + recvcnts[i-1];
+
+        for (int i = 1; i < NProcs; i++)
         {
-            strt[i] = strt[i-1];
-            mapit   = Snds.find(i-1);
-            if (mapit != Snds.end())
-                strt[i] += mapit->second;
+            if (Snds.count(i-1) > 0)
+            {
+                strt[i] = strt[i-1] + Snds[i-1];
+            }
+            else
+            {
+                strt[i] = strt[i-1];
+            }
         }
 
         int SndCnt = 0;
-        for (int i = 0; i < NProcs; i++)
-        {
-            int send_N = 0;
-            const ParallelDescriptor::CommData* cd = &cd_others_need[strt[i]];
-            mapit = Snds.find(i);
-            if (mapit != Snds.end())
-            {
-                for (int j = 0, NS = mapit->second; j < NS; j++, cd++)
-                    send_N += cd->box().numPts()*cd->nComp();
-                SndCnt     += send_N;
-                sendcnts[i] = send_N;
-            }
 
-            if (i > 0)
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
+        for (IntIntMap::iterator it = Snds.begin(), End = Snds.end(); it != End; ++it)
+        {
+            int i = it->first, N = 0;
+            const ParallelDescriptor::CommData* cd = &cd_others_need[strt[i]];
+            for (int j = 0, NS = it->second; j < NS; j++, cd++)
+                N += cd->box().numPts()*cd->nComp();
+            SndCnt     += N;
+            sendcnts[i] = N;
         }
+
+        for (int i = 1; i < NProcs; i++)
+            sdispls[i] = sdispls[i-1] + sendcnts[i-1];
 
         FAB fab;
 
@@ -2322,9 +2278,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
         value_type* sendbuf = static_cast<value_type*>(BoxLib::The_Arena()->alloc(SndCnt*sizeof(value_type)));
         value_type* recvbuf = static_cast<value_type*>(BoxLib::The_Arena()->alloc(RcvCnt*sizeof(value_type)));
 
-        for (std::map<int,int>::const_iterator it = Snds.begin(), End = Snds.end();
-             it != End;
-             ++it)
+        for (IntIntMap::const_iterator it = Snds.begin(), End = Snds.end(); it != End; ++it)
         {
             const int                           i    = it->first;
             value_type*                         dptr = &sendbuf[sdispls[i]];
@@ -2359,9 +2313,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
 
         std::pair<FCDMapIter,FCDMapIter> match;
 
-        for (std::map<int,int>::const_iterator it = Rcvs.begin(), End = Rcvs.end();
-             it != End;
-             ++it)
+        for (IntIntMap::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
         {
             const int   i    = it->first;
             value_type* dptr = &recvbuf[rdispls[i]];
@@ -2412,12 +2364,10 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
         const int   seqno     = ParallelDescriptor::SeqNum();
         value_type* recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Total_Rcvs_Size*sizeof(value_type)));
 
-        for (std::map<int,int>::const_iterator it = Rcvs.begin(), End = Rcvs.end();
-             it != End;
-             ++it)
+        for (IntIntMap::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
         {
             const int i = it->first;
-            const int N = N_per_cpu[i];
+            const int N = Npts[i];
             BL_ASSERT(N > 0);
             BL_ASSERT(N < std::numeric_limits<int>::max());
             who_R.push_back(i);
@@ -2432,9 +2382,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
 
         idx = 0;
 
-        for (std::map<int,int>::const_iterator it = Snds.begin(), End = Snds.end();
-             it != End;
-             ++it)
+        for (IntIntMap::const_iterator it = Snds.begin(), End = Snds.end(); it != End; ++it)
         {
             const int i  = it->first;
             const int NS = it->second;
