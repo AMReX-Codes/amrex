@@ -54,6 +54,9 @@ FabArrayBase::Initialize ()
     if (fb_cache_max_size <= 0 && fb_cache_max_size != -1)
         use_fb_cache = false;
 
+    if (copy_cache_max_size <= 0 && copy_cache_max_size != -1)
+        use_copy_cache = false;
+
     if (do_alltoallv && do_async_sends)
         BoxLib::Abort("At most one of 'do_alltoallv' and 'do_async_sends' can be true");
 
