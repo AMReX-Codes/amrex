@@ -253,7 +253,11 @@ public:
         ~CPC ();
 
         bool operator== (const CPC& rhs) const;
-        bool operator!= (const CPC& rhs) const;
+
+        bool operator!= (const CPC& rhs) const
+        {
+            return !operator==(rhs);
+        }
 
         static CPC& TheCPC (const CPC& cpc, bool& got_from_cache);
 
