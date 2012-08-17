@@ -157,10 +157,8 @@ typedef CPCCache::iterator CPCCacheIter;
 static CPCCache TheCopyCache;
 
 FabArrayBase::CPC&
-FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
+FabArrayBase::CPC::TheCPC (const CPC& cpc)
 {
-    got_from_cache = false;
-
     const int key = cpc.m_dstba.size() + cpc.m_srcba.size();
 
     if (use_copy_cache)
@@ -172,7 +170,7 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
             if (it->second == cpc)
             {
                 it->second.m_reused = true;
-                got_from_cache = true;
+
                 return it->second;
             }
         }
@@ -187,10 +185,12 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
                 if (!it->second.m_reused)
                 {
                     TheCopyCache.erase(it++);
-                    //
-                    // Only delete enough entries to stay under limit.
-                    //
-                    if (TheCopyCache.size() < copy_cache_max_size) break;
+
+                    if (TheCopyCache.size() < copy_cache_max_size)
+                        //
+                        // Only delete enough entries to stay under limit.
+                        //
+                        break;
                 }
                 else
                 {
@@ -213,8 +213,78 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
     }
 
     CPCCacheIter it = TheCopyCache.insert(std::make_pair(key,cpc));
+    //
+    // Got to build it.
+    //
+    CPC& thecpc = it->second;
 
-    return it->second;
+    CopyComTag tag;
+
+    std::vector< std::pair<int,Box> > isects;
+
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    for (int i = 0, N = thecpc.m_dstba.size(); i < N; i++)
+    {
+        thecpc.m_srcba.intersections(thecpc.m_dstba[i],isects);
+
+        const int d_owner = thecpc.m_dstdm[i];
+
+        for (int j = 0, M = isects.size(); j < M; j++)
+        {
+            const Box& bx      = isects[j].second;
+            const int  k       = isects[j].first;
+            const int  s_owner = thecpc.m_srcdm[k];
+
+            if (d_owner == MyProc)
+            {
+                tag.box      = bx;
+                tag.fabIndex = i;
+
+                if (s_owner == MyProc)
+                {
+                    tag.srcIndex = k;
+
+                    thecpc.m_LocTags.push_back(tag);
+                }
+                else
+                {
+                    thecpc.m_RcvTags[s_owner].push_back(tag);
+
+                    const int vol = bx.numPts();
+
+                    if (thecpc.m_RcvVols.count(s_owner) > 0)
+                    {
+                        thecpc.m_RcvVols[s_owner] += vol;
+                    }
+                    else
+                    {
+                        thecpc.m_RcvVols[s_owner] = vol;
+                    }
+                }
+            }
+            else if (s_owner == MyProc)
+            {
+                tag.box      = bx;
+                tag.fabIndex = k;
+
+                const int vol = bx.numPts();
+
+                thecpc.m_SndTags[d_owner].push_back(tag);
+
+                if (thecpc.m_SndVols.count(d_owner) > 0)
+                {
+                    thecpc.m_SndVols[d_owner] += vol;
+                }
+                else
+                {
+                    thecpc.m_SndVols[d_owner] = vol;
+                }
+            }
+        }
+    }
+
+    return thecpc;
 }
 
 void
