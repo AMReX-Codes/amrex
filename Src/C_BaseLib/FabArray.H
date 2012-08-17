@@ -259,7 +259,7 @@ public:
             return !operator==(rhs);
         }
 
-        static CPC& TheCPC (const CPC& cpc, bool& got_from_cache);
+        static CPC& TheCPC (const CPC& cpc);
 
         static void FlushCache ();
 
@@ -1431,113 +1431,29 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
-    bool got_from_cache = false;
-
-    CPC& thecpc = CPC::TheCPC(cpc, got_from_cache);
-
-    if (got_from_cache)
+    CPC& thecpc = CPC::TheCPC(cpc);
+    //
+    // Do local copy()s.
+    //
+    for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags.begin(),
+             End = thecpc.m_LocTags.end();
+         it != End;
+         ++it)
     {
-        for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags.begin(),
-                 End = thecpc.m_LocTags.end();
-             it != End;
-             ++it)
+        const CopyComTag& tag = *it;
+
+        BL_ASSERT(    distributionMap[tag.fabIndex] == MyProc);
+        BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
+
+        const FAB& sfab = src[tag.srcIndex];
+
+        if (op == FabArrayBase::COPY)
         {
-            const CopyComTag& tag = *it;
-
-            BL_ASSERT(    distributionMap[tag.fabIndex] == MyProc);
-            BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
-
-            const FAB& sfab = src[tag.srcIndex];
-
-            if (op == FabArrayBase::COPY)
-            {
-                get(tag.fabIndex).copy(sfab,tag.box,scomp,tag.box,dcomp,ncomp);
-            }
-            else
-            {
-                get(tag.fabIndex).plus(sfab,tag.box,tag.box,scomp,dcomp,ncomp);
-            }
+            get(tag.fabIndex).copy(sfab,tag.box,scomp,tag.box,dcomp,ncomp);
         }
-    }
-    else
-    {
-        CopyComTag tag;
-
-        std::vector< std::pair<int,Box> > isects;
-
-        for (int i = 0, N = size(); i < N; i++)
+        else
         {
-            src.boxarray.intersections(boxarray[i],isects);
-
-            const int d_owner = distributionMap[i];
-
-            for (int j = 0, M = isects.size(); j < M; j++)
-            {
-                const Box& bx      = isects[j].second;
-                const int  k       = isects[j].first;
-                const int  s_owner = src.distributionMap[k];
-
-                if (d_owner == MyProc)
-                {
-                    tag.box      = bx;
-                    tag.fabIndex = i;
-
-                    if (s_owner == MyProc)
-                    {
-                        const FAB& sfab = src[k];
-
-                        if (op == FabArrayBase::COPY)
-                        {
-                            get(i).copy(sfab,bx,scomp,bx,dcomp,ncomp);
-                        }
-                        else
-                        {
-                            get(i).plus(sfab,bx,bx,scomp,dcomp,ncomp);
-                        }
-
-                        tag.srcIndex = k;
-
-                        thecpc.m_LocTags.push_back(tag);
-                    }
-                    else
-                    {
-                        thecpc.m_RcvTags[s_owner].push_back(tag);
-
-                        const int vol = bx.numPts();
-
-                        std::map<int,int>::iterator it = thecpc.m_RcvVols.find(s_owner);
-
-                        if (it == thecpc.m_RcvVols.end())
-                        {
-                            thecpc.m_RcvVols.insert(std::map<int,int>::value_type(s_owner,vol));
-                        }
-                        else
-                        {
-                            it->second += vol;
-                        }
-                    }
-                }
-                else if (s_owner == MyProc)
-                {
-                    tag.box      = bx;
-                    tag.fabIndex = k;
-
-                    const int vol = bx.numPts();
-
-                    thecpc.m_SndTags[d_owner].push_back(tag);
-
-                    std::map<int,int>::iterator it = thecpc.m_SndVols.find(d_owner);
-
-                    if (it == thecpc.m_SndVols.end())
-                    {
-                        thecpc.m_SndVols.insert(std::map<int,int>::value_type(d_owner,vol));
-                    }
-                    else
-                    {
-                        it->second += vol;
-                    }
-                }
-            }
+            get(tag.fabIndex).plus(sfab,tag.box,tag.box,scomp,dcomp,ncomp);
         }
     }
     
