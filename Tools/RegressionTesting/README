@@ -1,2 +1,8 @@
-test.py is a simple, self-contained routine for running regression tests.
-Typing ./test.py will show the usage.
+testnew.py is a simple, self-contained routine for running regression tests.
+Typing ./testnew.py will show the usage.
+
+reg_test_blame.py can help find out which git commit to blame if a
+regression test fails.  It depends on testnew.py.  Typing
+./reg_test_blame.py will show the usage.
+
+test.py is an old version of the regression testing script.

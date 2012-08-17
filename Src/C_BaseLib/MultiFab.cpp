@@ -24,6 +24,12 @@ namespace
     bool initialized = false;
 }
 
+MultiFabCopyDescriptor::MultiFabCopyDescriptor ()
+    :
+    FabArrayCopyDescriptor<FArrayBox>() {}
+
+MultiFabCopyDescriptor::~MultiFabCopyDescriptor () {}
+
 void
 MultiFab::Add (MultiFab&       dst,
 	       const MultiFab& src,
@@ -869,8 +875,8 @@ BoxLib::linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
                          BoxList*                returnUnfilledBoxes,
                          Array<FillBoxId>&       returnedFillBoxIds,
                          const Box&              subbox,
-                         const MultiFabId&       faid1,
-                         const MultiFabId&       faid2,
+                         MultiFabId              faid1,
+                         MultiFabId              faid2,
                          Real                    t1,
                          Real                    t2,
                          Real                    t,
@@ -929,8 +935,8 @@ BoxLib::linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 void
 BoxLib::linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                           const Array<FillBoxId>& fillBoxIds,
-                          const MultiFabId&       faid1,
-                          const MultiFabId&       faid2,
+                          MultiFabId              faid1,
+                          MultiFabId              faid2,
                           FArrayBox&              dest,
                           Real                    t1,
                           Real                    t2,
@@ -980,7 +986,8 @@ BoxLib::linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 void
 MultiFab::FillBoundary (int  scomp,
                         int  ncomp,
-                        bool local)
+                        bool local,
+                        bool cross)
 {
     if ( n_grow <= 0 ) return;
 
@@ -1015,14 +1022,14 @@ MultiFab::FillBoundary (int  scomp,
     }
     else
     {
-        FabArray<FArrayBox>::FillBoundary(scomp,ncomp);
+        FabArray<FArrayBox>::FillBoundary(scomp,ncomp,cross);
     }
 }
 
 void
-MultiFab::FillBoundary (bool local)
+MultiFab::FillBoundary (bool local, bool cross)
 {
-    FillBoundary(0, n_comp, local);
+    FillBoundary(0, n_comp, local, cross);
 }
 
 void

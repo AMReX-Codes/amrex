@@ -35,9 +35,9 @@ FabArrayBase::Initialize ()
     FabArrayBase::do_not_use_cache = false;
 
     use_copy_cache      = true;
-    copy_cache_max_size = 10;   // -1 ==> no maximum size
+    copy_cache_max_size = 30;   // -1 ==> no maximum size
     use_fb_cache        = true;
-    fb_cache_max_size   = 20;   // -1 ==> no maximum size
+    fb_cache_max_size   = 30;   // -1 ==> no maximum size
 
     ParmParse pp("fabarray");
 
@@ -110,7 +110,6 @@ FabArrayBase::CommDataCache::operator= (const Array<ParallelDescriptor::CommData
 
 FabArrayBase::CPC::CPC ()
     :
-    m_rcvs_numpts(0),
     m_reused(false)
 {}
 
@@ -123,7 +122,6 @@ FabArrayBase::CPC::CPC (const BoxArray&            dstba,
     m_srcba(srcba),
     m_dstdm(dstdm),
     m_srcdm(srcdm),
-    m_rcvs_numpts(0),
     m_reused(false)
 {}
 
@@ -133,10 +131,11 @@ FabArrayBase::CPC::CPC (const CPC& rhs)
     m_srcba(rhs.m_srcba),
     m_dstdm(rhs.m_dstdm),
     m_srcdm(rhs.m_srcdm),
-    m_rcvs_numpts(rhs.m_rcvs_numpts),
     m_LocTags(rhs.m_LocTags),
     m_SndTags(rhs.m_SndTags),
     m_RcvTags(rhs.m_RcvTags),
+    m_SndVols(rhs.m_SndVols),
+    m_RcvVols(rhs.m_RcvVols),
     m_reused(rhs.m_reused)
 {}
 
@@ -145,16 +144,10 @@ FabArrayBase::CPC::~CPC () {}
 bool
 FabArrayBase::CPC::operator== (const CPC& rhs) const
 {
-    return m_dstba == rhs.m_dstba &&
-           m_srcba == rhs.m_srcba &&
-           m_dstdm == rhs.m_dstdm &&
-           m_srcdm == rhs.m_srcdm;
-}
-
-bool
-FabArrayBase::CPC::operator!= (const CPC& rhs) const
-{
-    return !operator==(rhs);
+    return BoxArray::SameRefs(m_dstba,rhs.m_dstba)            &&
+           BoxArray::SameRefs(m_srcba,rhs.m_srcba)            &&
+           DistributionMapping::SameRefs(m_dstdm,rhs.m_dstdm) &&
+           DistributionMapping::SameRefs(m_srcdm,rhs.m_srcdm);
 }
 
 typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
@@ -206,10 +199,12 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
             }
 
             if (TheCopyCache.size() >= copy_cache_max_size)
+            {
                 //
                 // Get rid of entry with the smallest key.
                 //
                 TheCopyCache.erase(TheCopyCache.begin());
+            }
         }
     }
     else
@@ -238,41 +233,16 @@ FabArrayBase::CPC::FlushCache ()
     TheCopyCache.clear();
 }
 
-FabArrayBase::SI::SI ()
-    :
-    m_ngrow(-1),
-    m_reused(false)
-{}
-
-FabArrayBase::SI::SI (const BoxArray&            ba,
-                      const DistributionMapping& dm,
-                      int                        ngrow)
-    :
-    m_ba(ba),
-    m_dm(dm),
-    m_ngrow(ngrow),
-    m_reused(false)
-{
-    BL_ASSERT(ngrow >= 0);
-}
-
-FabArrayBase::SI::SI (const FabArrayBase::SI& rhs)
-    :
-    m_cache(rhs.m_cache),
-    m_commdata(rhs.m_commdata),
-    m_sirec(rhs.m_sirec),
-    m_ba(rhs.m_ba),
-    m_dm(rhs.m_dm),
-    m_ngrow(rhs.m_ngrow),
-    m_reused(rhs.m_reused)
-{}
-
 FabArrayBase::SI::~SI () {}
 
 bool
 FabArrayBase::SI::operator== (const FabArrayBase::SI& rhs) const
 {
-    return m_ngrow == rhs.m_ngrow && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
+    return
+        m_ngrow == rhs.m_ngrow            &&
+        m_cross == rhs.m_cross            &&
+        BoxArray::SameRefs(m_ba,rhs.m_ba) &&
+        DistributionMapping::SameRefs(m_dm,rhs.m_dm);
 }
 
 bool
@@ -333,9 +303,11 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
     SI::SIRecContainer&        sirec  = it->second.m_sirec;
-    Array<int>&                cache  = it->second.m_cache;
+    std::map<int,int>&         cache  = it->second.m_cache;
 
-    cache.resize(ParallelDescriptor::NProcs(),0);
+    std::vector<Box> boxes;
+
+    boxes.reserve(si.m_cross ? 2*BL_SPACEDIM : 1);
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -343,26 +315,67 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
     {
         const int i = mfi.index();
 
-        ba.intersections(mfi.fabbox(),isects);
+        boxes.resize(0);
 
-        for (int ii = 0, N = isects.size(); ii < N; ii++)
+        if (si.m_cross)
         {
-            const Box& bx  = isects[ii].second;
-            const int  iii = isects[ii].first;
+            const Box vbx = mfi.validbox();
 
-            if (i != iii)
+            for (int dir = 0; dir < BL_SPACEDIM; dir++)
             {
-                sirec.push_back(SIRec(i,iii,bx));
+                Box lo = vbx;
+                lo.setSmall(dir, vbx.smallEnd(dir) - si.m_ngrow);
+                lo.setBig  (dir, vbx.smallEnd(dir) - 1);
+                boxes.push_back(lo);
 
-                if (DMap[iii] != MyProc)
-                    //
-                    // If we intersect them then they'll intersect us.
-                    //
-                    cache[DMap[iii]] += 1;
+                Box hi = vbx;
+                hi.setSmall(dir, vbx.bigEnd(dir) + 1);
+                hi.setBig  (dir, vbx.bigEnd(dir) + si.m_ngrow);
+                boxes.push_back(hi);
+            }
+        }
+        else
+        {
+            boxes.push_back(mfi.fabbox());
+        }
+
+        for (std::vector<Box>::const_iterator it = boxes.begin(),
+                 End = boxes.end();
+             it != End;
+             ++it)
+        {
+            ba.intersections(*it,isects);
+
+            for (int j = 0, N = isects.size(); j < N; j++)
+            {
+                const Box& bx = isects[j].second;
+                const int  k  = isects[j].first;
+
+                if (i != k)
+                {
+                    sirec.push_back(SIRec(i,k,bx));
+
+                    const int who = DMap[k];
+
+                    if (who != MyProc)
+                    {
+                        //
+                        // If we intersect them then they'll intersect us.
+                        //
+                        if (cache.find(who) == cache.end())
+                        {
+                            cache[who]  = 1;
+                        }
+                        else
+                        {
+                            cache[who] += 1;
+                        }
+                    }
+                }
             }
         }
 
-        BL_ASSERT(cache[DMap[i]] == 0);
+        BL_ASSERT(cache.find(DMap[i]) == cache.end());
     }
 
     return it->second;
@@ -371,12 +384,13 @@ FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
 FabArrayBase::SI&
 FabArrayBase::TheFBsirec (int                 scomp,
                           int                 ncomp,
+                          bool                cross,
                           const FabArrayBase& mf)
 {
     BL_ASSERT(ncomp >  0);
     BL_ASSERT(scomp >= 0);
 
-    const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow());
+    const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), cross);
 
     const int key = mf.nGrow() + mf.size();
 
@@ -426,10 +440,12 @@ FabArrayBase::TheFBsirec (int                 scomp,
             }
 
             if (SICache.size() >= fb_cache_max_size)
+            {
                 //
                 // Get rid of entry with the smallest key.
                 //
                 SICache.erase(SICache.begin());
+            }
         }
     }
     else

@@ -6,24 +6,11 @@
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 
-FabSetIter::FabSetIter (const FabSet& fabset)
-    :
-    MFIter(fabset)
-{}
-
-FabSetIter::~FabSetIter () {}
-
 FabSetCopyDescriptor::FabSetCopyDescriptor ()
     :
     MultiFabCopyDescriptor() {}
 
 FabSetCopyDescriptor::~FabSetCopyDescriptor () {}
-
-FabSetId
-FabSetCopyDescriptor::RegisterFabSet (FabSet* fabset)
-{
-    return RegisterMultiFab(fabset);
-}
 
 FabSet::FabSet () {}
 
@@ -218,15 +205,17 @@ FabSet::DoIt (const MultiFab& src,
     //
     // Calculate and cache intersection info.
     //
-    BoxArray ba_src(src.size());
-    for (int i = 0, N = src.size(); i < N; i++)
-        ba_src.set(i, BoxLib::grow(src.boxArray()[i],ngrow));
+    BoxArray ba_src = src.boxArray();
+
+    ba_src.grow(ngrow);
 
     std::vector< std::pair<int,Box> > isects;
 
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         ba_src.intersections((*this)[fsi].box(),isects);
+
+        const int index = fsi.index();
 
         for (int j = 0, N = isects.size(); j < N; j++)
         {
@@ -238,7 +227,7 @@ FabSet::DoIt (const MultiFab& src,
             //
             // Maintain parallel array of indices into FabSet.
             //
-            fsidx.push_back(fsi.index());
+            fsidx.push_back(index);
         }
     }
 
@@ -253,6 +242,8 @@ FabSet::DoIt (const MultiFab& src,
 
     fbids.reserve(boxes.size());
 
+    const int DCOMP = (how == COPYFROM) ? dcomp : 0;
+
     for (int i = 0, N = boxes.size(); i < N; i++)
     {
         fbids.push_back(fscd.AddBox(mfid,
@@ -260,7 +251,7 @@ FabSet::DoIt (const MultiFab& src,
                                     0,
                                     mfidx[i],
                                     scomp,
-                                    how == COPYFROM ? dcomp : 0,
+                                    DCOMP,
                                     ncomp,
                                     false));
 
@@ -275,21 +266,25 @@ FabSet::DoIt (const MultiFab& src,
 
     FArrayBox tmp;
 
-    for (int i = 0, N = fbids.size(); i < N; i++)
+    for (std::vector<FillBoxId>::const_iterator it = fbids.begin(), End = fbids.end();
+         it != End;
+         ++it)
     {
-        BL_ASSERT(DistributionMap()[fbids[i].FabIndex()] == ParallelDescriptor::MyProc());
+        const FillBoxId& fbid = *it;
+
+        BL_ASSERT(DistributionMap()[fbid.FabIndex()] == ParallelDescriptor::MyProc());
 
         if (how == COPYFROM)
         {
-            fscd.FillFab(mfid,fbids[i],(*this)[fbids[i].FabIndex()]);
+            fscd.FillFab(mfid,fbid,(*this)[fbid.FabIndex()]);
         }
         else
         {
-            tmp.resize(fbids[i].box(), ncomp);
+            tmp.resize(fbid.box(), ncomp);
 
-            fscd.FillFab(mfid, fbids[i], tmp);
+            fscd.FillFab(mfid, fbid, tmp);
 
-            (*this)[fbids[i].FabIndex()].plus(tmp,tmp.box(),0,dcomp,ncomp);
+            (*this)[fbid.FabIndex()].plus(tmp,tmp.box(),0,dcomp,ncomp);
         }
     }
 }
@@ -390,6 +385,8 @@ FabSet::linComb (Real            a,
     {
         ba_isects.intersections(get(fsi).box(),isects);
 
+        const int index = fsi.index();
+
         for (int j = 0, N = isects.size(); j < N; j++)
         {
             const int  grd  = isects[j].first;
@@ -408,7 +405,7 @@ FabSet::linComb (Real            a,
             //
             // Also save the index of the FAB in the FabSet.
             //
-            fbids_mfa.back().FabIndex(fsi.index());
+            fbids_mfa.back().FabIndex(index);
 
             fbids_mfb.push_back(mfcd.AddBox(mfid_mfb,
                                             ovlp,

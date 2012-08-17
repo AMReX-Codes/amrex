@@ -41,22 +41,22 @@ static
 void
 bdfunc_init ()
 {
-    Orientation xloface(0,Orientation::low);
-    Orientation xhiface(0,Orientation::high);
+    const Orientation xloface(0,Orientation::low);
+    const Orientation xhiface(0,Orientation::high);
 
     bdfunc[xloface] = FORT_BDINTERPXLO;
     bdfunc[xhiface] = FORT_BDINTERPXHI;
 
 #if (BL_SPACEDIM > 1)
-    Orientation yloface(1,Orientation::low);
-    Orientation yhiface(1,Orientation::high);
+    const Orientation yloface(1,Orientation::low);
+    const Orientation yhiface(1,Orientation::high);
     bdfunc[yloface] = FORT_BDINTERPYLO;
     bdfunc[yhiface] = FORT_BDINTERPYHI;
 #endif
 
 #if (BL_SPACEDIM > 2)
-    Orientation zloface(2,Orientation::low);
-    Orientation zhiface(2,Orientation::high);
+    const Orientation zloface(2,Orientation::low);
+    const Orientation zhiface(2,Orientation::high);
     bdfunc[zloface] = FORT_BDINTERPZLO;
     bdfunc[zhiface] = FORT_BDINTERPZHI;
 #endif
@@ -89,12 +89,14 @@ InterpBndryData::InterpBndryData (const BoxArray& _grids,
     BndryData(_grids,_ncomp,geom)
 {}
 
+InterpBndryData::~InterpBndryData () {}
+
 void
 InterpBndryData::setBndryConds (const BCRec& phys_bc,
                                 int          ratio)
 {
 
-    IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryConds(phys_bc, ratio_vect);
 }
 
@@ -116,6 +118,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
     BL_ASSERT(grids == mf.boxArray());
 
     IntVect ref_ratio = IntVect::TheUnitVector();
+
     for (int n = bnd_start; n < bnd_start+num_comp; ++n)
 	setBndryConds(bc, ref_ratio, n);
 
@@ -127,7 +130,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
 
         for (OrientationIter fi; fi; ++fi)
         {
-            Orientation face(fi());
+            const Orientation face = fi();
 
             if (bx[face]==geom.Domain()[face] && !geom.isPeriodic(face.coordDir()))
             {
@@ -156,7 +159,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                                  int             f_start,
                                  int             bnd_start,
                                  int             num_comp,
-                                 IntVect&        ratio,
+                                 const IntVect&  ratio,
                                  const BCRec&    bc,
                                  int             max_order)
 {
@@ -192,6 +195,8 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
             const int* cblo    = crse_bx.loVect();
             const int* cbhi    = crse_bx.hiVect();
             int mxlen          = crse_bx.longside() + 2;
+
+            const MaskTuple& msk = masks[fine_mfi.index()];
             
             if (max_order > 1)
             {
@@ -208,14 +213,14 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
 
             for (OrientationIter fi; fi; ++fi)
             {
-                Orientation face(fi());
-                int dir = face.coordDir();
+                const Orientation face = fi();
+                const int         dir  = face.coordDir();
                 if (fine_bx[face] != fine_domain[face] || geom.isPeriodic(dir))
                 {
                     //
                     // Internal or periodic edge, interpolate from crse data.
                     //
-                    const Mask& mask          = masks[face][fine_mfi.index()];
+                    const Mask& mask          = *(msk[face]);
                     const int* mlo            = mask.loVect();
                     const int* mhi            = mask.hiVect();
                     const int* mdat           = mask.dataPtr();
@@ -262,4 +267,19 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
     {
         BoxLib::Abort("InterpBndryData::setBndryValues supports only max_order=1 or 3");
     }
+}
+
+void
+InterpBndryData::setBndryValues (::BndryRegister&  crse,
+                                 int             c_start,
+                                 const MultiFab& fine,
+                                 int             f_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 int             ratio,
+                                 const BCRec&    bc,
+                                 int             max_order)
+{
+    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    setBndryValues(crse,c_start,fine,f_start,bnd_start,num_comp,ratio_vect,bc,max_order);
 }

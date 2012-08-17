@@ -22,8 +22,8 @@ namespace BoxLib
                           BoxList*                returnUnfilledBoxes,
                           Array<FillBoxId>&       returnedFillBoxIds,
                           const Box&              subbox,
-                          const MultiFabId&       faid1,
-                          const MultiFabId&       faid2,
+                          MultiFabId              faid1,
+                          MultiFabId              faid2,
                           Real                    t1,
                           Real                    t2,
                           Real                    t,
@@ -34,8 +34,8 @@ namespace BoxLib
 
     void linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                            const Array<FillBoxId>& fillBoxIds,
-                           const MultiFabId&       faid1,
-                           const MultiFabId&       faid2,
+                           MultiFabId              faid1,
+                           MultiFabId              faid2,
                            FArrayBox&              dest,
                            Real                    t1,
                            Real                    t2,
@@ -440,9 +440,9 @@ public:
     //
     // Set ghost cells that are covered by valid cells to the value of valid cells.
     //
-    void FillBoundary (bool local = false);
+    void FillBoundary (bool local = false, bool cross = false);
 
-    void FillBoundary (int scomp, int ncomp, bool local = false);
+    void FillBoundary (int scomp, int ncomp, bool local = false, bool cross = false);
     //
     // Sum ghost cells that are covered by valid cells into the valid cells.
     //
@@ -470,14 +470,11 @@ class MultiFabCopyDescriptor
 {
   public:
 
-    MultiFabCopyDescriptor ()
-        :
-        FabArrayCopyDescriptor<FArrayBox>() {}
+    MultiFabCopyDescriptor ();
 
-    MultiFabId RegisterMultiFab (MultiFab* mf)
-    {
-        return RegisterFabArray(mf);
-    }
+    ~MultiFabCopyDescriptor ();
+
+    MultiFabId RegisterMultiFab (MultiFab* mf) { return RegisterFabArray(mf); }
 
   private:
     //

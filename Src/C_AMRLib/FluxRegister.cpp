@@ -165,46 +165,6 @@ FluxRegister::copyTo (FArrayBox& flx,
     hifabs.copyTo(flx,src_comp,dest_comp,num_comp);
 }
 
-FluxRegister::Rec::Rec (Orientation face,
-                        int         index)
-    :
-    m_idx(index),
-    m_face(face),
-    m_shifted(false) {}
-
-FluxRegister::Rec::Rec (Orientation    face,
-                        int            index,
-                        const IntVect& shift)
-    :
-    m_shift(shift),
-    m_idx(index),
-    m_face(face),
-    m_shifted(false) {}
-
-FluxRegister::Rec::Rec (int         fabidx,
-                        int         index,
-                        Orientation face,
-                        FillBoxId   fbid)
-    :
-    m_fabidx(fabidx),
-    m_idx(index),
-    m_face(face),
-    m_fbid(fbid),
-    m_shifted(false) {}
-
-FluxRegister::Rec::Rec (const IntVect& shift,
-                        int            fabidx,
-                        int            index,
-                        Orientation    face,
-                        FillBoxId      fbid)
-    :
-    m_shift(shift),
-    m_fabidx(fabidx),
-    m_idx(index),
-    m_face(face),
-    m_fbid(fbid),
-    m_shifted(true) {}
-
 void
 FluxRegister::Reflux (MultiFab&       S,
                       const MultiFab& volume,
@@ -233,10 +193,12 @@ FluxRegister::Reflux (MultiFab&       S,
 
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
+        const int  idx = mfi.index();
+        const Box& vbx = mfi.validbox();
         //
         // Find flux register that intersect with this grid.
         //
-        ba.intersections(mfi.validbox(),isects);
+        ba.intersections(vbx,isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -248,19 +210,21 @@ FluxRegister::Reflux (MultiFab&       S,
                 // low (high) face of fine grid => high (low)
                 // face of the exterior coarse grid cell updated.
                 //
-                Box ovlp = mfi.validbox() & BoxLib::adjCell(grids[k],fi());
+                const Orientation face = fi();
+
+                const Box ovlp = vbx & BoxLib::adjCell(grids[k],face);
 
                 if (ovlp.ok())
                 {
-                    FillBoxId fbid = fscd.AddBox(fsid[fi()],
-                                                 bndry[fi()].box(k),
+                    FillBoxId fbid = fscd.AddBox(fsid[face],
+                                                 bndry[face].box(k),
                                                  0,
                                                  k,
                                                  src_comp,
                                                  0,
                                                  num_comp);
 
-                    Recs.push_back(Rec(mfi.index(),k,fi(),fbid));
+                    Recs.push_back(Rec(idx,k,face,fbid));
                 }
             }
         }
@@ -274,18 +238,25 @@ FluxRegister::Reflux (MultiFab&       S,
 
         for (MFIter mfi(S); mfi.isValid(); ++mfi)
         {
+            const int        idx  = mfi.index();
+            const Box&       vbx  = mfi.validbox();
+            FArrayBox&       sfab = S[mfi];
+            const FArrayBox& vfab = volume[mfi];
+
             for (int k = 0, N = grids.size(); k < N; k++)
             {
                 const Box& bx = ba[k];
 
                 if (!geom.Domain().contains(bx))
                 {
-                    geom.periodicShift(bx,mfi.validbox(),pshifts);
+                    geom.periodicShift(bx,vbx,pshifts);
+
+                    const Box& kgrid = grids[k];
 
                     for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                     {
                         const IntVect& iv = pshifts[iiv];
-                        S[mfi].shift(iv);
+                        sfab.shift(iv);
                         //
                         // This is a funny situation.  I don't want to permanently
                         // change vol, but I need to do a shift on it.  I'll shift
@@ -293,10 +264,10 @@ FluxRegister::Reflux (MultiFab&       S,
                         // this, I have to cheat and do a cast.  This is pretty 
                         // disgusting.
                         //
-                        FArrayBox* cheatvol = const_cast<FArrayBox*>(&volume[mfi]);
+                        FArrayBox* cheatvol = const_cast<FArrayBox*>(&vfab);
                         BL_ASSERT(cheatvol != 0);
                         cheatvol->shift(iv);
-                        Box sftbox = mfi.validbox();
+                        Box sftbox = vbx;
                         sftbox.shift(iv);
                         BL_ASSERT(bx.intersects(sftbox));
 
@@ -306,22 +277,24 @@ FluxRegister::Reflux (MultiFab&       S,
                             // low (high)  face of fine grid => high (low)
                             // face of the exterior coarse grid cell updated.
                             //
-                            Box ovlp = sftbox & BoxLib::adjCell(grids[k],fi());
+                            const Orientation face = fi();
+
+                            const Box ovlp = sftbox & BoxLib::adjCell(kgrid,face);
 
                             if (ovlp.ok())
                             {
-                                FillBoxId fbid = fscd.AddBox(fsid[fi()],
-                                                             bndry[fi()].box(k),
+                                FillBoxId fbid = fscd.AddBox(fsid[face],
+                                                             bndry[face].box(k),
                                                              0,
                                                              k,
                                                              src_comp,
                                                              0,
                                                              num_comp);
 
-                                Recs.push_back(Rec(iv,mfi.index(),k,fi(),fbid));
+                                Recs.push_back(Rec(iv,idx,k,face,fbid));
                             }
                         }
-                        S[mfi].shift(-iv);
+                        sfab.shift(-iv);
                         cheatvol->shift(-iv);
                     }
                 }
@@ -352,18 +325,18 @@ FluxRegister::Reflux (MultiFab&       S,
         const int*       shi        = fab_S.hiVect();
         const Real*      vol_dat    = fab_volume.dataPtr();
         Box              fine_face  = BoxLib::adjCell(grids[rf.m_idx],rf.m_face);
+        const int*       rlo        = fine_face.loVect();
+        const int*       rhi        = fine_face.hiVect();
+
 	Real mult;
 	if (multf == 0)
 	  mult = rf.m_face.isLow() ? -scale : scale;
 	else
 	  mult = (*multf)*scale;
 	  
-        const int*       rlo        = fine_face.loVect();
-        const int*       rhi        = fine_face.hiVect();
-
         if (!rf.m_shifted)
         {
-            Box ovlp = S.box(rf.m_fabidx) & fine_face;
+            const Box ovlp = S.box(rf.m_fabidx) & fine_face;
 
             BL_ASSERT(ovlp.ok());
 
@@ -452,9 +425,13 @@ FluxRegister::Reflux (MultiFab&       S,
         //
         ba.intersections(mfi.validbox(),isects);
 
+        const int  idx = mfi.index();
+        const Box& vbx = mfi.validbox();
+
         for (int i = 0, N = isects.size(); i < N; i++)
         {
-            const int k = isects[i].first;
+            const int  k     = isects[i].first;
+            const Box& kgrid = grids[k];
 
             for (OrientationIter fi; fi; ++fi)
             {
@@ -462,7 +439,7 @@ FluxRegister::Reflux (MultiFab&       S,
                 // low (high) face of fine grid => high (low)
                 // face of the exterior coarse grid cell updated.
                 //
-                Box ovlp = mfi.validbox() & BoxLib::adjCell(grids[k],fi());
+                const Box ovlp = vbx & BoxLib::adjCell(kgrid,fi());
 
                 if (ovlp.ok())
                 {
@@ -474,7 +451,7 @@ FluxRegister::Reflux (MultiFab&       S,
                                                  0,
                                                  num_comp);
 
-                    Recs.push_back(Rec(mfi.index(),k,fi(),fbid));
+                    Recs.push_back(Rec(idx,k,fi(),fbid));
                 }
             }
         }
@@ -488,19 +465,23 @@ FluxRegister::Reflux (MultiFab&       S,
 
         for (MFIter mfi(S); mfi.isValid(); ++mfi)
         {
+            const int  idx = mfi.index();
+            const Box& vbx = mfi.validbox();
+            FArrayBox& sfab = S[mfi];
+
             for (int k = 0, N = grids.size(); k < N; k++)
             {
                 const Box& bx = ba[k];
 
                 if (!geom.Domain().contains(bx))
                 {
-                    geom.periodicShift(bx,mfi.validbox(),pshifts);
+                    geom.periodicShift(bx,vbx,pshifts);
 
                     for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                     {
                         const IntVect& iv = pshifts[iiv];
-                        S[mfi].shift(iv);
-                        Box sftbox = mfi.validbox();
+                        sfab.shift(iv);
+                        Box sftbox = vbx;
                         sftbox.shift(iv);
                         BL_ASSERT(bx.intersects(sftbox));
 
@@ -510,7 +491,7 @@ FluxRegister::Reflux (MultiFab&       S,
                             // low (high) face of fine grid => high (low)
                             // face of the exterior coarse grid cell updated.
                             //
-                            Box ovlp = sftbox & BoxLib::adjCell(grids[k],fi());
+                            const Box ovlp = sftbox & BoxLib::adjCell(grids[k],fi());
 
                             if (ovlp.ok())
                             {
@@ -522,10 +503,10 @@ FluxRegister::Reflux (MultiFab&       S,
                                                              0,
                                                              num_comp);
 
-                                Recs.push_back(Rec(iv,mfi.index(),k,fi(),fbid));
+                                Recs.push_back(Rec(iv,idx,k,fi(),fbid));
                             }
                         }
-                        S[mfi].shift(-iv);
+                        sfab.shift(-iv);
                     }
                 }
             }
@@ -558,7 +539,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
         if (!rf.m_shifted)
         {
-            Box ovlp = S.box(rf.m_fabidx) & fine_face;
+            const Box ovlp = S.box(rf.m_fabidx) & fine_face;
 
             BL_ASSERT(ovlp.ok());
 
@@ -628,6 +609,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     for (FabSetIter mfi_lo(bndry[face_lo]); mfi_lo.isValid(); ++mfi_lo)
     {
+        const int index = mfi_lo.index();
+
         mflx.boxArray().intersections(bndry[face_lo][mfi_lo].box(),isects);
 
         for (int i = 0, N = isects.size(); i < N; i++)
@@ -647,7 +630,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             //
             // Here we'll save the index into the FabSet.
             //
-            fillBoxId_mflx.back().FabIndex(mfi_lo.index());
+            fillBoxId_mflx.back().FabIndex(index);
 
             fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
                                                  lobox,
@@ -683,7 +666,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             //
             // Here we'll save the index into the FabSet.
             //
-            fillBoxId_mflx.back().FabIndex(mfi_lo.index());
+            fillBoxId_mflx.back().FabIndex(index);
 
             fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
                                                  hibox,
@@ -716,13 +699,13 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
         BL_ASSERT(fbid_mflx.box() == fbid_area.box());
 
-        Orientation the_face(dir,Orientation::Side(fbid_area.FabIndex()));
+        const Orientation the_face(dir,Orientation::Side(fbid_area.FabIndex()));
 
         BL_ASSERT(the_face == face_lo || the_face == face_hi);
 
         mflx_fab.resize(fbid_mflx.box(), numcomp);
-        mfcd.FillFab(mfid_mflx, fbid_mflx, mflx_fab);
         area_fab.resize(fbid_mflx.box(), 1);
+        mfcd.FillFab(mfid_mflx, fbid_mflx, mflx_fab);
         mfcd.FillFab(mfid_area, fbid_area, area_fab);
 
         FabSet&   fabset   = bndry[the_face];

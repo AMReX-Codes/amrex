@@ -93,6 +93,13 @@ public:
     LinOp (const BndryData& mgb,
            const Real*      _h);
     //
+    // Allocate a LinOp for this box array, boundary data and spacing array info.
+    //
+    // LinOp assumes ownership of the pointer.
+    //
+    LinOp (BndryData*  mgb,
+           const Real* _h);
+    //
     // The destructor.
     //
     virtual ~LinOp ();
@@ -142,7 +149,8 @@ public:
     // Compute flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC) = 0;
+			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC,
+			   int sComp=0, int dComp=0, int nComp=1) = 0;
     //
     // Return the boundary data object.
     //
@@ -243,7 +251,7 @@ protected:
     //
     // Array (on level) of Tuples (on dimension) of grid spacings
     //
-    std::vector< Tuple< Real, BL_SPACEDIM > > h;
+    std::vector< Tuple<Real,BL_SPACEDIM> > h;
     //
     // Array (on level) of BoxArray's of LinOp's domain
     //
@@ -254,22 +262,24 @@ protected:
     //
     std::vector< LnClassPtr<BndryRegister> > undrrelxr;
     //
+    // A useful typedef.
+    //
+    typedef BndryData::MaskTuple MaskTuple;
+    //
     // Array (on level) of Arrays (on grid) of Arrays (on orientation)
     // of pointers to Masks for whether boundary Fabs are covered,
     // not_covered, outside_domain
     //
-    //  FIXME: This should really be an array of integer BndryRegisters
-    //
-    Array< Array< Array< Mask*> > > maskvals;
+    Array< std::map<int,MaskTuple> > maskvals;
     //
     // Similar to maskvals, but only for "local" grids at level 0.
     // It's only made if it's needed.  Currently used only in applyBC().
     //
-    Array< Array< Array< Mask*> > > lmaskvals;
+    Array< std::map<int,MaskTuple> > lmaskvals;
     //
     // boundary data class
     //
-    BndryData bgb;
+    BndryData* bgb;
     //
     // Array (on level) of geometry objects.  Needed for determining
     // whether stuff intersects on periodic domains
@@ -314,15 +324,7 @@ inline
 const BndryData&
 LinOp::bndryData () const
 {
-    return bgb;
-}
-
-inline
-void
-LinOp::bndryData (const BndryData& bd)
-{
-    BL_ASSERT(gbox[0] == bd.boxes());
-    bgb = bd;
+    return *bgb;
 }
 
 inline

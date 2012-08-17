@@ -65,7 +65,7 @@ reduced.
 
 The basic parallelization strategy uses a hierarchical programming approach for 
 multicore architectures based on both MPI and OpenMP.  In the pure-MPI instantiation, 
-each \Fab\ is is assigned to a core, and each core communicates 
+each \Fab\ is assigned to a core, and each core communicates 
 with every other core using only MPI.  In the hybrid approach, where on each socket/node 
 there are $n$ cores that all access the same memory, we can divide our domain into
 fewer, larger grids, and assign each \Fab\ to a socket/node, 

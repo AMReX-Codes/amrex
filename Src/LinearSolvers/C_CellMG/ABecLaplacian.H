@@ -73,6 +73,13 @@ public:
     ABecLaplacian (const BndryData& bd,
                    const Real*      _h);
     //
+    // constructor for box array, boundary data and vector mesh spacing
+    //
+    // The ABecLaplacian assumes ownership of the pointer.
+    //
+    ABecLaplacian (BndryData*   bd,
+                   const Real* _h);
+    //
     // destructor
     //
     virtual ~ABecLaplacian ();
@@ -80,10 +87,12 @@ public:
     // Compute extensive (area-weighted) flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC);
+			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC,
+			   int sComp=0, int dComp=0, int nComp=1);
 
     void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-                   MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC);
+                   MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC,
+		   int sComp=0, int dComp=0, int nComp=1);
     //
     // Set scalar coefficients.
     //
@@ -190,11 +199,11 @@ private:
     //
     // Flag, can a coeffs be trusted at a level.
     //
-    std::vector<bool> a_valid;
+    Array<int> a_valid;
     //
     // Flag, can b coeffs be trusted at a level.
     //
-    std::vector<bool> b_valid;
+    Array<int> b_valid;
     //
     // Default value for a (MultiFab) coefficient.
     //

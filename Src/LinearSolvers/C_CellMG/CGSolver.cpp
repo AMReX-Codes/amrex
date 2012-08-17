@@ -176,14 +176,20 @@ sxay (MultiFab&       ss,
     for (MFIter mfi(ss); mfi.isValid(); ++mfi)
     {
         const int k = mfi.index();
-        FORT_CGSXAY(ss[k].dataPtr(),
-                    ARLIM(ss[k].loVect()), ARLIM(ss[k].hiVect()),
-                    xx[k].dataPtr(),
-                    ARLIM(xx[k].loVect()), ARLIM(xx[k].hiVect()),
+
+        const Box&       ssbx  = ss.box(k);
+        FArrayBox&       ssfab = ss[k];
+        const FArrayBox& xxfab = xx[k];
+        const FArrayBox& yyfab = yy[k];
+
+        FORT_CGSXAY(ssfab.dataPtr(),
+                    ARLIM(ssfab.loVect()), ARLIM(ssfab.hiVect()),
+                    xxfab.dataPtr(),
+                    ARLIM(xxfab.loVect()), ARLIM(xxfab.hiVect()),
                     &a,
-                    yy[k].dataPtr(),
-                    ARLIM(yy[k].loVect()), ARLIM(yy[k].hiVect()),
-                    ss.box(k).loVect(), ss.box(k).hiVect(),
+                    yyfab.dataPtr(),
+                    ARLIM(yyfab.loVect()), ARLIM(yyfab.hiVect()),
+                    ssbx.loVect(), ssbx.hiVect(),
                     &ncomp);
     }
 }
@@ -194,19 +200,25 @@ dotxy (const MultiFab& r,
        const MultiFab& z,
        bool            local = false)
 {
-    int  ncomp = z.nComp();
-    Real rho   = 0.0;
+    const int ncomp = z.nComp();
+
+    Real rho = 0.0;
 
     for (MFIter mfi(r); mfi.isValid(); ++mfi)
     {
         const int k = mfi.index();
         Real trho;
+
+        const Box&       rbx  = r.box(k);
+        const FArrayBox& rfab = r[k];
+        const FArrayBox& zfab = z[k];
+
         FORT_CGXDOTY(&trho,
-                     z[k].dataPtr(),
-                     ARLIM(z[k].loVect()),ARLIM(z[k].hiVect()),
-                     r[k].dataPtr(),
-                     ARLIM(r[k].loVect()),ARLIM(r[k].hiVect()),
-                     r.box(k).loVect(),r.box(k).hiVect(),
+                     zfab.dataPtr(),
+                     ARLIM(zfab.loVect()),ARLIM(zfab.hiVect()),
+                     rfab.dataPtr(),
+                     ARLIM(rfab.loVect()),ARLIM(rfab.hiVect()),
+                     rbx.loVect(),rbx.hiVect(),
                      &ncomp);
         rho += trho;
     }

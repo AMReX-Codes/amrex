@@ -282,71 +282,97 @@ DivVis::Fsmooth (MultiFab&       solnL,
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
 	oitr.rewind();
+
         const int gn = solnLmfi.index();
 
-	D_TERM(const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;);
+        const MCLinOp::MaskTuple& mtuple = maskvals[level][gn];
 
-	D_TERM(const Mask& me = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;);
+	D_TERM(const Mask& mw = *mtuple[oitr()]; oitr++;,
+               const Mask& ms = *mtuple[oitr()]; oitr++;,
+               const Mask& mb = *mtuple[oitr()]; oitr++;);
+
+	D_TERM(const Mask& me = *mtuple[oitr()]; oitr++;,
+               const Mask& mn = *mtuple[oitr()]; oitr++;,
+               const Mask& mt = *mtuple[oitr()]; oitr++;);
+
+        FArrayBox&       solfab = solnL[gn];
+        const FArrayBox& rhsfab = rhsL[gn];
+        const FArrayBox& afab   = a[gn];
+        const FArrayBox& fnfab  = fn[gn];
+        const FArrayBox& fefab  = fe[gn];
+        const FArrayBox& fwfab  = fw[gn];
+        const FArrayBox& fsfab  = fs[gn];
+        const FArrayBox& tdnfab = tdn[gn];
+        const FArrayBox& tdefab = tde[gn];
+        const FArrayBox& tdwfab = tdw[gn];
+        const FArrayBox& tdsfab = tds[gn];
+
+#if BL_SPACEDIM>2
+        const FArrayBox& ftfab  = ft[gn];
+        const FArrayBox& fbfab  = fb[gn];
+        const FArrayBox& tdtfab = tdt[gn];
+        const FArrayBox& tdbfab = tdb[gn];
+#endif
+
+        D_TERM(const FArrayBox& bxfab = bX[gn];,
+               const FArrayBox& byfab = bY[gn];,
+               const FArrayBox& bzfab = bZ[gn];);
 
 	FORT_GSRB(
-	    solnL[solnLmfi].dataPtr(), 
-            ARLIM(solnL[solnLmfi].loVect()),ARLIM(solnL[solnLmfi].hiVect()),
-	    rhsL[solnLmfi].dataPtr(),
-            ARLIM(rhsL[solnLmfi].loVect()), ARLIM(rhsL[solnLmfi].hiVect()),
+	    solfab.dataPtr(), 
+            ARLIM(solfab.loVect()),ARLIM(solfab.hiVect()),
+	    rhsfab.dataPtr(),
+            ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
 	    &alpha, &beta,
-	    a[solnLmfi].dataPtr(),
-            ARLIM(a[solnLmfi].loVect()),    ARLIM(a[solnLmfi].hiVect()),
-	    bX[solnLmfi].dataPtr(),
-            ARLIM(bX[solnLmfi].loVect()),   ARLIM(bX[solnLmfi].hiVect()),
-	    bY[solnLmfi].dataPtr(),
-            ARLIM(bY[solnLmfi].loVect()),   ARLIM(bY[solnLmfi].hiVect()),
+	    afab.dataPtr(),
+            ARLIM(afab.loVect()),    ARLIM(afab.hiVect()),
+	    bxfab.dataPtr(),
+            ARLIM(bxfab.loVect()),   ARLIM(bxfab.hiVect()),
+	    byfab.dataPtr(),
+            ARLIM(byfab.loVect()),   ARLIM(byfab.hiVect()),
 #if BL_SPACEDIM>2
-	    bZ[solnLmfi].dataPtr(),
-            ARLIM(bZ[solnLmfi].loVect()),   ARLIM(bZ[solnLmfi].hiVect()),
+	    bzfab.dataPtr(),
+            ARLIM(bzfab.loVect()),   ARLIM(bzfab.hiVect()),
 #endif
 	    mn.dataPtr(),
 	    ARLIM(mn.loVect()),ARLIM(mn.hiVect()),
-	    fn[solnLmfi].dataPtr(),
-            ARLIM(fn[solnLmfi].loVect()),   ARLIM(fn[solnLmfi].hiVect()),
+	    fnfab.dataPtr(),
+            ARLIM(fnfab.loVect()),   ARLIM(fnfab.hiVect()),
 	    me.dataPtr(),
 	    ARLIM(me.loVect()),ARLIM(me.hiVect()),
-	    fe[solnLmfi].dataPtr(),
-            ARLIM(fe[solnLmfi].loVect()),   ARLIM(fe[solnLmfi].hiVect()),
+	    fefab.dataPtr(),
+            ARLIM(fefab.loVect()),   ARLIM(fefab.hiVect()),
 	    mw.dataPtr(),
 	    ARLIM(mw.loVect()),ARLIM(mw.hiVect()),
-	    fw[solnLmfi].dataPtr(),
-            ARLIM(fw[solnLmfi].loVect()),   ARLIM(fw[solnLmfi].hiVect()),
+	    fwfab.dataPtr(),
+            ARLIM(fwfab.loVect()),   ARLIM(fwfab.hiVect()),
 	    ms.dataPtr(),
 	    ARLIM(ms.loVect()),ARLIM(ms.hiVect()),
-	    fs[solnLmfi].dataPtr(),
-            ARLIM(fs[solnLmfi].loVect()),   ARLIM(fs[solnLmfi].hiVect()),
+	    fsfab.dataPtr(),
+            ARLIM(fsfab.loVect()),   ARLIM(fsfab.hiVect()),
 #if BL_SPACEDIM>2
 	    mt.dataPtr(),
 	    ARLIM(mt.loVect()),ARLIM(mt.hiVect()),
-	    ft[solnLmfi].dataPtr(),
-            ARLIM(ft[solnLmfi].loVect()),   ARLIM(ft[solnLmfi].hiVect()),
+	    ftfab.dataPtr(),
+            ARLIM(ftfab.loVect()),   ARLIM(ftfab.hiVect()),
 	    mb.dataPtr(),
 	    ARLIM(mb.loVect()),ARLIM(mb.hiVect()),
-	    fb[solnLmfi].dataPtr(),
-            ARLIM(fb[solnLmfi].loVect()),   ARLIM(fb[solnLmfi].hiVect()),
+	    fbfab.dataPtr(),
+            ARLIM(fbfab.loVect()),   ARLIM(fbfab.hiVect()),
 #endif
-	    tdn[solnLmfi].dataPtr(),
-	    ARLIM(tdn[solnLmfi].loVect()),ARLIM(tdn[solnLmfi].hiVect()),
-	    tde[solnLmfi].dataPtr(),
-	    ARLIM(tde[solnLmfi].loVect()),ARLIM(tde[solnLmfi].hiVect()),
-	    tdw[solnLmfi].dataPtr(),
-	    ARLIM(tdw[solnLmfi].loVect()),ARLIM(tdw[solnLmfi].hiVect()),
-	    tds[solnLmfi].dataPtr(),
-	    ARLIM(tds[solnLmfi].loVect()),ARLIM(tds[solnLmfi].hiVect()),
+	    tdnfab.dataPtr(),
+	    ARLIM(tdnfab.loVect()),ARLIM(tdnfab.hiVect()),
+	    tdefab.dataPtr(),
+	    ARLIM(tdefab.loVect()),ARLIM(tdefab.hiVect()),
+	    tdwfab.dataPtr(),
+	    ARLIM(tdwfab.loVect()),ARLIM(tdwfab.hiVect()),
+	    tdsfab.dataPtr(),
+	    ARLIM(tdsfab.loVect()),ARLIM(tdsfab.hiVect()),
 #if BL_SPACEDIM>2
-	    tdt[solnLmfi].dataPtr(),
-	    ARLIM(tdt[solnLmfi].loVect()),ARLIM(tdt[solnLmfi].hiVect()),
-	    tdb[solnLmfi].dataPtr(),
-	    ARLIM(tdb[solnLmfi].loVect()),ARLIM(tdb[solnLmfi].hiVect()),
+	    tdtfab.dataPtr(),
+	    ARLIM(tdtfab.loVect()),ARLIM(tdtfab.hiVect()),
+	    tdbfab.dataPtr(),
+	    ARLIM(tdbfab.loVect()),ARLIM(tdbfab.hiVect()),
 #endif
 	    solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(),
 	    h[level], nc, phaseflag);
@@ -357,7 +383,7 @@ void
 DivVis::compFlux (D_DECL(MultiFab& xflux, 
                          MultiFab& yflux, 
                          MultiFab& zflux), 
-		  MultiFab& x)
+                  MultiFab& x)
 {
     const int level   = 0;
     MCBC_Mode bc_mode = MCInhomogeneous_BC;
@@ -382,37 +408,60 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
     for (MFIter xmfi(x); xmfi.isValid(); ++xmfi)
     {
 	oitr.rewind();
+
         const int gn = xmfi.index();
 
-	D_TERM(const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;);
+        const MCLinOp::MaskTuple& mtuple = maskvals[level][gn];
 
-	D_TERM(const Mask& me = *maskvals[level][gn][oitr()]; oitr++;,
-	       const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;);
+	D_TERM(const Mask& mw = *mtuple[oitr()]; oitr++;,
+               const Mask& ms = *mtuple[oitr()]; oitr++;,
+               const Mask& mb = *mtuple[oitr()]; oitr++;);
+
+	D_TERM(const Mask& me = *mtuple[oitr()]; oitr++;,
+	       const Mask& mn = *mtuple[oitr()]; oitr++;,
+               const Mask& mt = *mtuple[oitr()]; oitr++;);
+
+        FArrayBox&       xfab = x[gn];
+        const FArrayBox& afab = a[gn];
+        const FArrayBox& tdnfab = tdn[gn];
+        const FArrayBox& tdefab = tde[gn];
+        const FArrayBox& tdwfab = tdw[gn];
+        const FArrayBox& tdsfab = tds[gn];
+
+#if BL_SPACEDIM>2
+        const FArrayBox& tdtfab = tdt[gn];
+        const FArrayBox& tdbfab = tdb[gn];
+#endif
+
+        D_TERM(const FArrayBox& bxfab = bX[gn];,
+               const FArrayBox& byfab = bY[gn];,
+               const FArrayBox& bzfab = bZ[gn];);
+
+        D_TERM(FArrayBox& xfluxfab = xflux[gn];,
+               FArrayBox& yfluxfab = yflux[gn];,
+               FArrayBox& zfluxfab = zflux[gn];);
 
 	FORT_DVFLUX(
-	    x[xmfi].dataPtr(), 
-	    ARLIM(x[xmfi].loVect()), ARLIM(x[xmfi].hiVect()),
+	    xfab.dataPtr(), 
+	    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
 	    &alpha, &beta,
-	    a[xmfi].dataPtr(), 
-	    ARLIM(a[xmfi].loVect()), ARLIM(a[xmfi].hiVect()),
-	    bX[xmfi].dataPtr(), 
-	    ARLIM(bX[xmfi].loVect()), ARLIM(bX[xmfi].hiVect()),
-	    bY[xmfi].dataPtr(), 
-	    ARLIM(bY[xmfi].loVect()), ARLIM(bY[xmfi].hiVect()),
+	    afab.dataPtr(), 
+	    ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
+	    bxfab.dataPtr(), 
+	    ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
+	    byfab.dataPtr(), 
+	    ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
 #if BL_SPACEDIM>2
-	    bZ[xmfi].dataPtr(), 
-	    ARLIM(bZ[xmfi].loVect()), ARLIM(bZ[xmfi].hiVect()),
+	    bzfab.dataPtr(), 
+	    ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
 #endif
-	    xflux[xmfi].dataPtr(), 
-	    ARLIM(xflux[xmfi].loVect()), ARLIM(xflux[xmfi].hiVect()),
-	    yflux[xmfi].dataPtr(), 
-	    ARLIM(yflux[xmfi].loVect()), ARLIM(yflux[xmfi].hiVect()),
+	    xfluxfab.dataPtr(), 
+	    ARLIM(xfluxfab.loVect()), ARLIM(xfluxfab.hiVect()),
+	    yfluxfab.dataPtr(), 
+	    ARLIM(yfluxfab.loVect()), ARLIM(yfluxfab.hiVect()),
 #if BL_SPACEDIM>2
-	    zflux[xmfi].dataPtr(), 
-	    ARLIM(zflux[xmfi].loVect()), ARLIM(zflux[xmfi].hiVect()),
+	    zfluxfab.dataPtr(), 
+	    ARLIM(zfluxfab.loVect()), ARLIM(zfluxfab.hiVect()),
 #endif
 	    mn.dataPtr(),
 	    ARLIM(mn.loVect()),ARLIM(mn.hiVect()),
@@ -428,19 +477,19 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
 	    mb.dataPtr(),
 	    ARLIM(mb.loVect()),ARLIM(mb.hiVect()),
 #endif
-	    tdn[xmfi].dataPtr(),
-	    ARLIM(tdn[xmfi].loVect()),ARLIM(tdn[xmfi].hiVect()),
-	    tde[xmfi].dataPtr(),
-	    ARLIM(tde[xmfi].loVect()),ARLIM(tde[xmfi].hiVect()),
-	    tdw[xmfi].dataPtr(),
-	    ARLIM(tdw[xmfi].loVect()),ARLIM(tdw[xmfi].hiVect()),
-	    tds[xmfi].dataPtr(),
-	    ARLIM(tds[xmfi].loVect()),ARLIM(tds[xmfi].hiVect()),
+	    tdnfab.dataPtr(),
+	    ARLIM(tdnfab.loVect()),ARLIM(tdnfab.hiVect()),
+	    tdefab.dataPtr(),
+	    ARLIM(tdefab.loVect()),ARLIM(tdefab.hiVect()),
+	    tdwfab.dataPtr(),
+	    ARLIM(tdwfab.loVect()),ARLIM(tdwfab.hiVect()),
+	    tdsfab.dataPtr(),
+	    ARLIM(tdsfab.loVect()),ARLIM(tdsfab.hiVect()),
 #if BL_SPACEDIM>2
-	    tdt[xmfi].dataPtr(),
-	    ARLIM(tdt[xmfi].loVect()),ARLIM(tdt[xmfi].hiVect()),
-	    tdb[xmfi].dataPtr(),
-	    ARLIM(tdb[xmfi].loVect()),ARLIM(tdb[xmfi].hiVect()),
+	    tdtfab.dataPtr(),
+	    ARLIM(tdtfab.loVect()),ARLIM(tdtfab.hiVect()),
+	    tdbfab.dataPtr(),
+	    ARLIM(tdbfab.loVect()),ARLIM(tdbfab.hiVect()),
 #endif
 	    xmfi.validbox().loVect(), xmfi.validbox().hiVect(),
 	    h[level]);
@@ -471,32 +520,52 @@ DivVis::Fapply (MultiFab&       y,
     for (MFIter xmfi(x); xmfi.isValid(); ++xmfi)
     {
         oitr.rewind();
+
         const int gn = xmfi.index();
 
-	D_TERM(const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;);
+        const MCLinOp::MaskTuple& mtuple = maskvals[level][gn];
 
-	D_TERM(const Mask& me = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;,
-               const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;);
+	D_TERM(const Mask& mw = *mtuple[oitr()]; oitr++;,
+               const Mask& ms = *mtuple[oitr()]; oitr++;,
+               const Mask& mb = *mtuple[oitr()]; oitr++;);
+
+	D_TERM(const Mask& me = *mtuple[oitr()]; oitr++;,
+               const Mask& mn = *mtuple[oitr()]; oitr++;,
+               const Mask& mt = *mtuple[oitr()]; oitr++;);
+
+        FArrayBox&       yfab = y[gn];
+        const FArrayBox& xfab = x[gn];
+
+        const FArrayBox& afab = a[gn];
+        const FArrayBox& tdnfab = tdn[gn];
+        const FArrayBox& tdefab = tde[gn];
+        const FArrayBox& tdwfab = tdw[gn];
+        const FArrayBox& tdsfab = tds[gn];
+
+#if BL_SPACEDIM>2
+        const FArrayBox& tdtfab = tdt[gn];
+        const FArrayBox& tdbfab = tdb[gn];
+#endif
+        D_TERM(const FArrayBox& bxfab = bX[gn];,
+               const FArrayBox& byfab = bY[gn];,
+               const FArrayBox& bzfab = bZ[gn];);
 
 	FORT_DVAPPLY(
-	    x[xmfi].dataPtr(), 
-            ARLIM(x[xmfi].loVect()), ARLIM(x[xmfi].hiVect()),
+	    xfab.dataPtr(), 
+            ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
 	    &alpha, &beta,
-	    a[xmfi].dataPtr(), 
-            ARLIM(a[xmfi].loVect()), ARLIM(a[xmfi].hiVect()),
-	    bX[xmfi].dataPtr(), 
-            ARLIM(bX[xmfi].loVect()), ARLIM(bX[xmfi].hiVect()),
-	    bY[xmfi].dataPtr(), 
-            ARLIM(bY[xmfi].loVect()), ARLIM(bY[xmfi].hiVect()),
+	    afab.dataPtr(), 
+            ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
+	    bxfab.dataPtr(), 
+            ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
+	    byfab.dataPtr(), 
+            ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
 #if BL_SPACEDIM>2
-	    bZ[xmfi].dataPtr(), 
-            ARLIM(bZ[xmfi].loVect()), ARLIM(bZ[xmfi].hiVect()),
+	    bzfab.dataPtr(), 
+            ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
 #endif
-	    y[xmfi].dataPtr(), 
-            ARLIM(y[xmfi].loVect()), ARLIM(y[xmfi].hiVect()),
+	    yfab.dataPtr(), 
+            ARLIM(yfab.loVect()), ARLIM(yfab.hiVect()),
 	    mn.dataPtr(),
 	    ARLIM(mn.loVect()),ARLIM(mn.hiVect()),
 	    me.dataPtr(),
@@ -511,19 +580,19 @@ DivVis::Fapply (MultiFab&       y,
 	    mb.dataPtr(),
 	    ARLIM(mb.loVect()),ARLIM(mb.hiVect()),
 #endif
-	    tdn[xmfi].dataPtr(),
-	    ARLIM(tdn[xmfi].loVect()),ARLIM(tdn[xmfi].hiVect()),
-	    tde[xmfi].dataPtr(),
-	    ARLIM(tde[xmfi].loVect()),ARLIM(tde[xmfi].hiVect()),
-	    tdw[xmfi].dataPtr(),
-	    ARLIM(tdw[xmfi].loVect()),ARLIM(tdw[xmfi].hiVect()),
-	    tds[xmfi].dataPtr(),
-	    ARLIM(tds[xmfi].loVect()),ARLIM(tds[xmfi].hiVect()),
+	    tdnfab.dataPtr(),
+	    ARLIM(tdnfab.loVect()),ARLIM(tdnfab.hiVect()),
+	    tdefab.dataPtr(),
+	    ARLIM(tdefab.loVect()),ARLIM(tdefab.hiVect()),
+	    tdwfab.dataPtr(),
+	    ARLIM(tdwfab.loVect()),ARLIM(tdwfab.hiVect()),
+	    tdsfab.dataPtr(),
+	    ARLIM(tdsfab.loVect()),ARLIM(tdsfab.hiVect()),
 #if BL_SPACEDIM>2
-	    tdt[xmfi].dataPtr(),
-	    ARLIM(tdt[xmfi].loVect()),ARLIM(tdt[xmfi].hiVect()),
-	    tdb[xmfi].dataPtr(),
-	    ARLIM(tdb[xmfi].loVect()),ARLIM(tdb[xmfi].hiVect()),
+	    tdtfab.dataPtr(),
+	    ARLIM(tdtfab.loVect()),ARLIM(tdtfab.hiVect()),
+	    tdbfab.dataPtr(),
+	    ARLIM(tdbfab.loVect()),ARLIM(tdbfab.hiVect()),
 #endif
             xmfi.validbox().loVect(), xmfi.validbox().hiVect(),
 	    h[level]);

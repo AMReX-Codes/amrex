@@ -22,7 +22,7 @@ namespace
     bool verbose;
 }
 
-const int fpb_cache_max_size_def = 20; // -1 ==> no maximum size
+const int fpb_cache_max_size_def = 30; // -1 ==> no maximum size
 
 int Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
 
