@@ -1424,6 +1424,12 @@ BaseFab<T>::performSetVal (T          val,
 // Definitions are found in BaseFab.cpp.
 //
 template <>
+BaseFab<Real>&
+BaseFab<Real>::invert (Real       val,
+                       const Box& subbox,
+                       int        comp,
+                       int        numcomp);
+template <>
 void
 BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                             const Box&           srcbox,

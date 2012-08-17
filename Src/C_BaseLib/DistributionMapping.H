@@ -123,7 +123,7 @@ class DistributionMapping
     bool operator!= (const DistributionMapping& rhs) const;
 
     void SFCProcessorMap        (const BoxArray& boxes, const std::vector<long>& wgts, int nprocs);
-    void KnapSackProcessorMap   (const std::vector<long>& wgts, int nprocs);
+    void KnapSackProcessorMap   (const std::vector<long>& wgts, int nprocs, double* efficiency = 0);
     void RoundRobinProcessorMap (int nboxes, int nprocs);
     //
     // Initializes distribution strategy from ParmParse.
@@ -137,6 +137,8 @@ class DistributionMapping
     static void Initialize ();
 
     static void Finalize ();
+
+    static bool SameRefs (const DistributionMapping& lhs, const DistributionMapping& rhs) { return lhs.m_ref == rhs.m_ref; }
 
 private:
     //
@@ -164,7 +166,8 @@ private:
                          std::vector<LIpair>* LIpairV = 0);
 
     void KnapSackDoIt (const std::vector<long>& wgts,
-                       int                      nprocs);
+                       int                      nprocs,
+                       double&                  efficiency);
 
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,

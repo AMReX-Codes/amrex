@@ -12,23 +12,36 @@ class layout(base.BLObject):
   """BoxLib layout."""
 
 
-  def create(self, boxarray=None, boxes=None):
+  def create(self, boxarray=None, boxes=None, is_periodic=True):
     """Create a layout from a list of boxes."""
+
+    # XXX: pmask etc
 
     if boxarray is not None and boxes is not None:
       raise ValueError('both boxarray and boxes specified')
 
-    nboxes = len(boxes)
-    dim    = len(boxes[0][0])
-
-    cboxes = (2*dim*nboxes*c_int)()
-    for b, box in enumerate(boxes):
-      for t in (0, 1):
-        for c, comp in enumerate(boxes[b][t]):
-          cboxes[c*2*nboxes+t*nboxes+b] = boxes[b][t][c]
-
     if boxes is not None:
-      bl.pybl_create_layout_from_boxes(cboxes, nboxes, dim, byref(self.cptr))
+      nboxes = len(boxes)
+      dim    = len(boxes[0][0])
+
+      # create C boxes
+      cboxes = (2*dim*nboxes*c_int)()
+      for b, box in enumerate(boxes):
+        for t in (0, 1):
+          for c, comp in enumerate(boxes[b][t]):
+            cboxes[c*2*nboxes+t*nboxes+b] = boxes[b][t][c]
+
+      # create C periodic masks
+      pmask = (dim*c_int)()
+
+      if not isinstance(is_periodic, list): 
+        is_periodic = dim * [ is_periodic ]
+
+      for i, periodic in enumerate(is_periodic):
+        pmask[i] = 1 if periodic else 0
+
+      # create the layout
+      bl.pybl_create_layout_from_boxes(cboxes, nboxes, dim, pmask, byref(self.cptr))
 
     if boxarray is not None:
       raise NotImplementedError

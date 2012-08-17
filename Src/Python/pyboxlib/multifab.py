@@ -15,56 +15,44 @@ class multifab(base.BLObject):
 
     super(multifab, self).__init__(*args, **kwargs)
 
-    self.dim = c_int(0)
-    self.nboxes = c_int(0)
-    self.nc = c_int(0)
-    self.ng = c_int(0)
-    self.interleaved = c_int(0)
+    self.c_int_attrs = [ 'dim', 'nboxes', 'nc', 'ng' ]
+    self.init_c_int_attrs()
 
 
-
-  def create(self, layout, components=1, ghost_cells=0, interleave=False):
+  def create(self, layout, components=1, ghost_cells=0):
     """Create a multifab from a layout."""
+
+    # XXX: nodal?
 
     mftype = self.__class__.__name__
     create = getattr(bl, 'pybl_create_' + mftype + '_from_layout')
-    create(layout.cptr, components, ghost_cells, interleave, byref(self.cptr))
+    create(layout.cptr, components, ghost_cells, byref(self.cptr))
 
     self.get_info()
 
 
   def get_info(self):
 
-    self.dim = c_int(0)
-    self.nboxes = c_int(0)
-    self.nc = c_int(0)
-    self.ng = c_int(0)
-    self.interleaved = c_int(0)
-
     mftype = self.__class__.__name__
 
     if self.associated:
       get_info = getattr(bl, 'pybl_get_' + mftype + '_info')
       get_info(self.cptr,
-               byref(self.dim),
-               byref(self.nboxes),
-               byref(self.nc),
-               byref(self.ng))
+               byref(self._dim),
+               byref(self._nboxes),
+               byref(self._nc),
+               byref(self._ng))
 
 
-  def create_from_bbox(self, mf, components=1, ghost_cells=0, interleave=False):
+  def create_from_bbox(self, mf, components=1, ghost_cells=0):
     """Creat a multifab from the bounding box of the existing mf multifab."""
 
     mftype = self.__class__.__name__
 
-    create   = getattr(bl, 'create_' + mftype + '_from_bbox')
-    get_info = getattr(bl, 'get_' + mftype + '_info')
+    create    = getattr(bl, 'pybl_create_' + mftype + '_from_bbox')
+    self.cptr = create(mf.cptr, components, ghost_cells, byref(self.cptr))
 
-    self.cptr = create(mf.cptr, components, ghost_cells, interleave)
-    self.interleaved = interleave
-
-    if self.associated:
-      self.dim, self.nboxes, self.nc, self.ng = get_info(self.cptr)
+    self.get_info()
 
 
   def copy(self, dest):
@@ -86,11 +74,15 @@ class multifab(base.BLObject):
 
 
   def write(self, dirname, header):
-    bl.pybl_multifab_write(self.cptr, dirname, header)
+    bl.pybl_multifab_write(self.cptr, 
+                           dirname, len(dirname), 
+                           header, len(header))
 
 
   def read(self, dirname, header):
-    self.cptr = bl.pybl_multifab_read(dirname, header)
+    bl.pybl_multifab_read(dirname, len(dirname), header, len(header),
+                          byref(self.cptr))
+    self.get_info()
 
 
 class lmultifab(multifab):

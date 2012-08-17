@@ -600,7 +600,8 @@ subroutine mgt_compute_sync_resid_crse()
        mgts%mgt(1)%face_type, mgts%stencil_type)
 
   call itsol_stencil_apply(mgts%mgt(1)%ss(mglev), mgts%sync_res(1), mgts%uu(1), &
-       mgts%mgt(1)%mm(mglev), mgts%mgt(1)%uniform_dh)
+                           mgts%mgt(1)%mm(mglev), mgts%mgt(1)%stencil_type, &
+                           mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
 
   sign_res = -ONE
   call comp_sync_res(mgts%sync_res(1), divuo, mgts%sync_msk(1), sign_res)
@@ -639,18 +640,20 @@ subroutine mgt_compute_sync_resid_fine()
      call divuo_add_rhcc(divuo, mgts%rhcc(1), mgts%sync_msk(1), mgts%mgt(1)%face_type)
   end if
 
-  if (mgts%stencil_type .eq. ST_CROSS) then
+  if (mgts%stencil_type .eq. ND_CROSS_STENCIL) then
      call multifab_build(ss1, mgts%mla%la(1), 2*dm+1, 0, nodal, stencil=.true.)
      call stencil_fill_one_sided(ss1, mgts%amr_coeffs(1), mgts%mgt(1)%dh(:,mglev), &
           mgts%mgt(1)%mm(mglev), mgts%mgt(1)%face_type)
 
      call grid_res(ss1, &
           mgts%sync_res(1), rh0, mgts%uu(1), mgts%mgt(1)%mm(mglev), &
-          mgts%mgt(1)%face_type, mgts%mgt(1)%uniform_dh)
+          mgts%mgt(1)%face_type, mgts%mgt(1)%stencil_type, &
+          mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
   else
      call grid_res(mgts%mgt(1)%ss(mglev), &
           mgts%sync_res(1), rh0, mgts%uu(1), mgts%mgt(1)%mm(mglev), &
-          mgts%mgt(1)%face_type, mgts%mgt(1)%uniform_dh)
+          mgts%mgt(1)%face_type, mgts%mgt(1)%stencil_type, &
+          mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
   endif
 
   sign_res = ONE
@@ -658,7 +661,7 @@ subroutine mgt_compute_sync_resid_fine()
 
   call sync_res_fine_bndry(mgts%sync_res(1), mgts%mgt(1)%face_type)
 
-  if (mgts%stencil_type .eq. ST_CROSS) then
+  if (mgts%stencil_type .eq. ND_CROSS_STENCIL) then
      call destroy(ss1)
   endif
 

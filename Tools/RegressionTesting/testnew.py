@@ -24,7 +24,7 @@ import smtplib
 import email
 import getpass
 import socket
-
+import time
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -45,7 +45,7 @@ class testObj:
 
         self.dim = -1
 
-        self.needsHelmEOS = -1
+        self.needsHelmEOS = 0
 
         self.restartTest = 0
         self.restartFileNum = -1
@@ -64,9 +64,11 @@ class testObj:
         self.doVis = 0
         self.visVar = ""
 
+        self.outputFile = ""
         self.compareFile = ""
 
         self.diffDir = ""
+        self.diffOpts = ""
 
         self.addToCompileString = ""
 
@@ -93,8 +95,12 @@ class suiteObj:
         self.compareToolDir = ""
         self.helmeosDir = ""
 
-        self.useAstroDev = 0
-        self.astroDevDir = ""
+        self.useExtSrc = 0     # set automatically -- not by users
+        self.extSrcDir = ""
+        self.extSrcCompString = ""
+
+        self.srcName = ""
+        self.extSrcName = ""
 
         self.MPIcommand = ""
         self.MPIhost = ""
@@ -113,6 +119,8 @@ class suiteObj:
         self.emailTo = []
         self.emailSubject = ""
         self.emailBody = ""
+
+        self.wallTime = 0      # set automatically, not by users
 
 
 
@@ -214,9 +222,12 @@ def LoadParams(file):
         elif (opt == "helmeosDir"):
             mysuite.helmeosDir = checkTestDir(value)
 
-        elif (opt == "AstroDevDir"):
-            mysuite.astroDevDir = checkTestDir(value)
-            mysuite.useAstroDev = 1
+        elif (opt == "extSrcDir"):
+            mysuite.extSrcDir = checkTestDir(value)
+            mysuite.useExtSrc = 1
+
+        elif (opt == "extSrcCompString"):
+            mysuite.extSrcCompString = value
 
         elif (opt == "MPIcommand"):
             mysuite.MPIcommand = value
@@ -258,10 +269,19 @@ def LoadParams(file):
             warning("WARNING: suite parameter %s not valid" % (opt))
 
 
-    # BoxLib-only tests don't have a sourceDir and don't need helmEOS
+    mysuite.srcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
+
+    if mysuite.useExtSrc:
+
+        mysuite.extSrcName = os.path.basename(os.path.normpath(mysuite.extSrcDir))
+
+        if mysuite.extSrcCompString != "":
+            mysuite.extSrcCompString += "="+mysuite.extSrcDir
+
+
+    # BoxLib-only tests don't have a sourceDir
     if (mysuite.sourceTree == "BoxLib"):
         mysuite.sourceDir = mysuite.boxLibDir
-        mysuite.helmeosDir = "/afakepath"
 
 
     # checks
@@ -277,9 +297,9 @@ def LoadParams(file):
 
     if (mysuite.sourceTree == "" or mysuite.boxLibDir == "" or
         mysuite.sourceDir == "" or mysuite.testTopDir == "" or
-        mysuite.compareToolDir == "" or mysuite.helmeosDir == ""):
+        mysuite.compareToolDir == ""):
         fail("ERROR: required suite-wide directory not specified\n" + \
-                 "(sourceTree, boxLibDir, sourceDir, testTopDir, compareToolDir, helmeosDir)")
+                 "(sourceTree, boxLibDir, sourceDir, testTopDir, compareToolDir)")
 
 
     # if no webTopDir was specified, use the default.  In either case, make
@@ -385,11 +405,17 @@ def LoadParams(file):
             elif (opt == "visVar"):
                 mytest.visVar = value
 
+            elif (opt == "outputFile"):
+                mytest.outputFile = value
+
             elif (opt == "compareFile"):
                 mytest.compareFile = value
 
             elif (opt == "diffDir"):
                 mytest.diffDir = value
+
+            elif (opt == "diffOpts"):
+                mytest.diffOpts = value
 
             elif (opt == "addToCompileString"):
                 mytest.addToCompileString = value
@@ -408,14 +434,13 @@ def LoadParams(file):
         else:
             if (mytest.buildDir == "" or mytest.inputFile == "" or
                 (mysuite.sourceTree == "C_Src" and mytest.probinFile == "") or 
-                mytest.dim == -1 or mytest.needsHelmEOS == -1):
+                mytest.dim == -1):
                 warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
                 warning("            buildDir = %s" % (mytest.buildDir))
                 warning("            inputFile = %s" % (mytest.inputFile))
                 if (mysuite.sourceTree == "C_Src"):
                     warning("            probinFile = %s" % (mytest.probinFile))
                 warning("            dim = %s" % (mytest.dim))
-                warning("            needsHelmEOS = %s" % (mytest.needsHelmEOS))
 
                 invalid = 1
 
@@ -466,6 +491,17 @@ def LoadParams(file):
 
     if (anyMPI and mysuite.MPIcommand == ""):
         fail("ERROR: one or more tests are parallel, but MPIcommand is not defined")
+
+    # if any runs use helmeos, make sure that the suite-wide
+    # helmeosDir is defined
+    anyhelmeos = 0
+    for test in testList:
+        if (test.needsHelmEOS == 1):
+            anyhelmeos = 1
+            break
+
+    if (anyhelmeos and mysuite.helmeosDir == ""):
+        fail("ERROR: one or more tests use helmeos, but helmeosDir is not defined")
 
     testList.sort()
 
@@ -622,24 +658,52 @@ def checkTestDir(dirName):
 #==============================================================================
 # doGITUpdate
 #==============================================================================
-def doGITUpdate(topDir, root, outDir):
+def doGITUpdate(topDir, root, outDir, githash):
    """ do a git update of the repository in topDir.  root is the name
        of the directory (used for labeling).  outDir is the full path
-       to the directory where we will store the git output"""
+       to the directory where we will store the git output.  If githash
+       is not empty, then we will check out that version instead of
+       git-pulling."""
 
    os.chdir(topDir)
- 
-   print "\n"
-   bold("'git pull' in %s" % (topDir))
 
-   # we need to be tricky here to make sure that the stdin is presented to      
-   # the user to get the password.  Therefore, we use the subprocess            
-   # class instead of os.system                                                 
-   prog = ["git", "pull"]
-   p = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT)
-   stdout, stderr = p.communicate()
+
+   # find out current branch so that we can go back later if we need.
+   prog = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+   p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT)
+   stdout0, stderr0 = p0.communicate()
+   currentBranch = stdout0.rstrip('\n')
+   p0.stdout.close()
+
+
+   if currentBranch == "HEAD":  # detached state without a branch
+       subprocess.call(["git", "checkout", "master"])
+   
+
+   if githash == "":
+
+       print "\n"
+       bold("'git pull' in %s" % (topDir))
+
+       # we need to be tricky here to make sure that the stdin is presented to      
+       # the user to get the password.  Therefore, we use the subprocess            
+       # class instead of os.system                                                 
+       prog = ["git", "pull"]
+       p = subprocess.Popen(prog, stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+       stdout, stderr = p.communicate()
+       p.stdout.close()
+       p.stdin.close()
+
+   else:
+
+       prog = ["git", "checkout", githash]
+       p = subprocess.Popen(prog, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+       stdout, stderr = p.communicate()
+       p.stdout.close()
 
 
    try:
@@ -661,6 +725,54 @@ def doGITUpdate(topDir, root, outDir):
        
         
    shutil.copy("git.%s.out" % (root),  outDir)
+
+   return currentBranch
+
+
+#==============================================================================
+def saveGITHEAD(topDir, root, outDir):
+
+   os.chdir(topDir)
+
+   print "\n"
+   bold("saving git HEAD for %s/" % (root))
+
+   systemCall("git rev-parse HEAD >& git.%s.HEAD" % (root) )
+
+   shutil.copy("git.%s.HEAD" % (root),  outDir)
+
+
+#==============================================================================
+# doGITback
+#==============================================================================
+def doGITback(topDir, root, gitbranch):
+   """ do a git checkout of gitbranch in topDir.  root is the name
+       of the directory (used for labeling). """
+
+   os.chdir(topDir)
+
+   print "\n"
+   bold("git checkout %s in %s" % (gitbranch, topDir))
+
+   prog = ["git", "checkout", gitbranch]
+   p = subprocess.Popen(prog, stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT)
+   stdout, stderr = p.communicate()
+   p.stdout.close()
+   p.stdin.close()
+
+   try:
+       cf = open("git.%s.out" % (root), 'w')   
+   except IOError:
+       fail("  ERROR: unable to open file for writing")
+   else:
+       for line in stdout:
+           cf.write(line)
+       cf.close()
+
+   if (stdout == ""):
+       fail("  ERROR: git checkout was unsuccessful")
 
 
 #==============================================================================
@@ -702,11 +814,15 @@ def allAreCompileTests(testList):
 def testSuite(argv):
 
     usage = """
-    ./test.py [--make_benchmarks comment,
-               --no_update,
-               --no_boxlib_update,
-               --single_test test,
-               --note note]
+    ./testnew.py [--make_benchmarks comment,
+                  --no_update  none or all or a list of codes excluded from update,
+                  --single_test test
+                  --tests "test1 test2 test3 ..."
+                  --do_temp_run
+                  --boxLibGitHash boxlibhash
+                  --sourceGitHash sourcehash
+                  --extSrcGitHash extsourcehash
+                  --note note]
         testfile.ini
 
 
@@ -717,15 +833,23 @@ def testSuite(argv):
           suite knows about.  It has the format
 
             [main]
-            boxLibDir      = < directory to the main BoxLib/ directory >
+            boxLibDir      = < directory to the BoxLib/ directory >
             sourceDir      = < directory to the main Source directory >
             testTopDir     = < full path to test output directory >
+            webTopDir      = < full path to test web directory >
             compareToolDir = < full path to the AmrPostprocessing/F_Src directory >
-            helmeosDir     = < full path to helm_table.dat >
+            helmeosDir     = < full path to helm_table.dat, 
+                               no need to set this if not using helmeos>
+            extSrcDir      = < directory to an extra source directory other than
+                               BoxLib and the main source, if there is one >
+            extSrcCompString = < a string.  If both extSrcCompString and extSrcDir
+                                 are set, they will be used by make as follows,
+                                 make extSrcCompString=extSrcDir > 
 
             sourceTree = < C_Src, F_Src, or BoxLib -- what type is it? >
 
             suiteName = < descriptive name (i.e. Castro) >
+
 
             FCOMP = < name of Fortran compiler >
             COMP  = < name of C/C++ compiler >
@@ -740,7 +864,13 @@ def testSuite(argv):
                            
             MPIhost = < host for MPI job -- depends on MPI implementation >
 
-            
+            goUpLink = <If 1, add "Go UP" link at top of the web page.>
+
+            sendEmailWhenFail = < If 1, send email when any tests fail>
+            emailTo           = < list of email addresses separated by commas, 
+                                  such as,
+                                  foo@example.com, bar@example.com >
+            emailBody         = < email body >
 
             [Sod-x]
             buildDir = < relative path (from sourceDir) for this problem >
@@ -773,8 +903,11 @@ def testSuite(argv):
 
             compareFile = < explicit output file to do the comparison with >
 
-            diffDir = <directory or file to do a plain text diff on 
+            diffDir = < directory or file to do a plain text diff on 
                        (recursive, if directory) >
+
+            diffOpts = < options to use with the diff command for the diffDir
+                        comparison >
 
           Here, [main] lists the parameters for the test suite as a
           whole and [Sod-x] is a single test.  There can be many more
@@ -839,7 +972,6 @@ def testSuite(argv):
                The number of processors is problem dependent and will be
                set in the problem specific blocks described below.
 
-
           For a test problem (e.g. [Sod-x]),  
 
             buildDir is the relative path (wrt sourceDir) where the
@@ -898,7 +1030,10 @@ def testSuite(argv):
             comparison on with a stored benchmark version of the
             directory.  This is just a straight diff (recursively,
             within the directory).  This is used, for example, for
-            particle output from some of the codes.
+            particle output from some of the codes.  diffOpts is
+            a string providing options to the diff command.  For
+            example: '-I "^#"' to ignore command lines in 
+            Maestro diag files.
 
           Each test problem should get its own [testname] block
           defining the problem.  The name between the [..] will be how
@@ -917,16 +1052,30 @@ def testSuite(argv):
           update and will be appended to the web output for
           future reference.
 
-       --no_update
-          skip the git updates and run the suite on the code as it
-          exists now.
-
-       --no_boxlib_update
-          skip only the BoxLib git update and run the suite with the
-          BoxLib code as it exists now.
+       --no_update ?
+          None or All or a list of codes seperated by "," to be excluded
+          from update. Default is None.
 
        --single_test mytest
           run only the test named mytest
+
+       --tests \"test1 test2 test3\"
+          run only the tests listsed
+
+       --do_temp_run
+          Temporary run without updating the web.
+
+       --boxLibGitHash boxlibhash
+          Git hash of a version of BoxLib.  If provided, this version
+          will be used to run tests.
+
+       --sourceGitHash sourcehash
+          Git hash of a version of the source code.  For BoxLib tests,
+          this will be ignored.
+
+       --extSrcGitHash extsourcehash
+          Git hash of a version of the source code.  For BoxLib tests,
+          this will be ignored.
 
        --note \"note\"
           print the note on the resulting test webpages
@@ -949,16 +1098,20 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # parse the commandline arguments
     #--------------------------------------------------------------------------
-    if len(sys.argv) == 1:
+    if len(argv) == 1:
         print usage
         sys.exit(2)
 
     try:
         opts, next = getopt.getopt(argv[1:], "",
                                    ["make_benchmarks=",
-                                    "no_update",
-                                    "no_boxlib_update",
+                                    "no_update=",
                                     "single_test=",
+                                    "tests=",
+                                    "do_temp_run",
+                                    "boxLibGitHash=",
+                                    "sourceGitHash=",
+                                    "extSrcGitHash=",
                                     "note="])
 
     except getopt.GetoptError:
@@ -969,10 +1122,14 @@ def testSuite(argv):
 
     # defaults
     make_benchmarks = 0
-    no_update = 0
-    no_boxlib_update = 0
+    no_update = "None"
     single_test = ""
+    tests = ""
     comment = ""
+    do_temp_run = False
+    boxLibGitHash = ""
+    sourceGitHash = ""
+    extSrcGitHash = ""
     note = ""
     
     for o, a in opts:
@@ -982,14 +1139,26 @@ def testSuite(argv):
             comment = a
 
         if o == "--no_update":
-            no_update = 1
-
-        if o == "--no_boxlib_update":
-            no_boxlib_update = 1
+            no_update = a
 
         if o == "--single_test":
             single_test = a
+
+        if o == "--tests":
+            tests = a
+
+        if o == "--do_temp_run":
+            do_temp_run = True
+
+        if o == "--boxLibGitHash":
+            boxLibGitHash = a
             
+        if o == "--sourceGitHash":
+            sourceGitHash = a
+
+        if o == "--extSrcGitHash":
+            extSrcGitHash = a
+
         if o == "--note":
             note = a
             
@@ -1001,7 +1170,6 @@ def testSuite(argv):
         print usage
         sys.exit(2)
 
-        
     #--------------------------------------------------------------------------
     # read in the test information
     #--------------------------------------------------------------------------
@@ -1012,13 +1180,62 @@ def testSuite(argv):
     if (len(testList) == 0):
         fail("No valid tests defined")
 
+    no_update_low = no_update.lower()
+    if no_update_low == "none":
+        updateBoxLib = True
+        updateSource = True
+        updateExtSrc = True
+    elif no_update_low == "all":
+        updateBoxLib = False
+        updateSource = False
+        updateExtSrc = False
+    else:
+        nouplist = no_update_low.split(",")
+        if "boxlib" in nouplist:
+            updateBoxLib = False
+        else:
+            updateBoxLib = True
+
+        if suite.srcName.lower() in nouplist:
+            updateSource = False
+        else:
+            updateSource = True
+
+        if suite.extSrcName.lower() in nouplist:
+            updateExtSrc = False
+        else:
+            updateExtSrc = True
+
+    if not suite.useExtSrc:
+        updateExtSrc = False
+    
+    if suite.sourceTree == "BoxLib":
+        updateSource = False # to avoid updating BoxLib twice.
+                             # The update of BoxLib is controlled by updateBoxLib
+        sourceGitHash = ""
+
+
+    if boxLibGitHash:
+        updateBoxLib = False 
+
+    if sourceGitHash:
+        updateSource = False 
+
+    if extSrcGitHash:
+        updateExtSrc = False 
+
     # store the full path to the testFile
     testFilePath = os.getcwd() + '/' + testFile
 
 
     #--------------------------------------------------------------------------
     # if we are doing a single test, remove all other tests
+    # if we specified a list of tests, check each one
+    # if we did both --single_test and --tests, complain
     #--------------------------------------------------------------------------
+    if (not single_test == "" and not tests == ""):
+        fail("ERROR: specify tests either by --single_test or --tests, not both")
+
     if (not single_test == ""):
         found = 0
         for obj in testList:
@@ -1032,6 +1249,22 @@ def testSuite(argv):
         else:
             testList = newTestList
         
+    elif (not tests == ""):
+        testsFind = string.split(tests)
+        newTestList = []
+        for test in testsFind:
+            found = 0
+            for obj in testList:
+                if (obj.name == test):
+                    found = 1
+                    newTestList.append(obj)
+                    break
+            
+            if (not found):
+                fail("ERROR: %s is not a valid test" % (test))
+        
+        testList = newTestList
+    
 
     #--------------------------------------------------------------------------
     # get the name of the benchmarks directory
@@ -1068,20 +1301,27 @@ def testSuite(argv):
         
     fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
 
-    i = 0
-    while (i < maxRuns-1 and os.path.isdir(fullTestDir)):
-        i = i + 1
-        testDir = today + "-" + ("%3.3d" % i) + "/"
+    if do_temp_run:
+        testDir = "TEMP_RUN/"
         fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
+        systemCall("rm -rf %s" % (fullTestDir))
+    else:
+        i = 0
+        while (i < maxRuns-1 and os.path.isdir(fullTestDir)):
+            i = i + 1
+            testDir = today + "-" + ("%3.3d" % i) + "/"
+            fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
 
     print "\n"
     bold("testing directory is: " + testDir)
     os.mkdir(fullTestDir)
 
-
     # make the web directory -- this is where all the output and HTML will be
     # put, so it is easy to move the entire test website to a different disk
     fullWebDir = "%s/%s/"  % (suite.webTopDir, testDir)
+
+    if do_temp_run:
+        systemCall("rm -rf %s" % (fullWebDir))
         
     os.mkdir(fullWebDir)
 
@@ -1096,36 +1336,56 @@ def testSuite(argv):
     updateTime = time.strftime("%Y-%m-%d %H:%M:%S %Z", now)
 
     os.chdir(suite.testTopDir)
-    
-    if (not no_update):
+
+    if updateSource or sourceGitHash:
 
         # main suite
-        doGITUpdate(suite.sourceDir, suite.suiteName, fullWebDir)
+        sourceGitBranch = doGITUpdate(suite.sourceDir, suite.srcName, fullWebDir,
+                                      sourceGitHash)
     
-        # BoxLib
-        if ((not no_boxlib_update) and suite.sourceTree != "BoxLib"):
-            doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir)
+    if updateExtSrc or extSrcGitHash:
 
-        # AstroDev
-        if (suite.useAstroDev):
-            doGITUpdate(suite.astroDevDir, "AstroDev", fullWebDir)
+        # extra source
+        if (suite.useExtSrc):
+            extSrcGitBranch = doGITUpdate(suite.extSrcDir, suite.extSrcName, fullWebDir,
+                                          extSrcGitHash)
+
+    if updateBoxLib or boxLibGitHash:
+
+        # BoxLib
+        boxLibGitBranch = doGITUpdate(suite.boxLibDir, "BoxLib", fullWebDir,
+                                      boxLibGitHash)
+
+    #--------------------------------------------------------------------------
+    # Save git HEADs
+    #--------------------------------------------------------------------------
+    saveGITHEAD(suite.boxLibDir, "BoxLib", fullWebDir)
+    
+    if suite.sourceTree != "BoxLib":
+        saveGITHEAD(suite.sourceDir, suite.srcName, fullWebDir)
+
+    if suite.useExtSrc:
+        saveGITHEAD(suite.extSrcDir, suite.extSrcName, fullWebDir)
 
 
     #--------------------------------------------------------------------------
     # generate the ChangeLogs
     #--------------------------------------------------------------------------
-    if (not no_update):
+    if updateSource:
 
-       # main suite 
-       makeGITChangeLog(suite.sourceDir, suite.suiteName, fullWebDir)
-    
-       # BoxLib
-       if ((not no_boxlib_update) and suite.sourceTree != "BoxLib"):
-           makeGITChangeLog(suite.boxLibDir, "BoxLib", fullWebDir)
+        # main suite
+        makeGITChangeLog(suite.sourceDir, suite.srcName, fullWebDir)
+        
+    if updateExtSrc:
 
-       # AstroDev
-       if (suite.useAstroDev):
-           makeGITChangeLog(suite.astroDevDir, "AstroDev", fullWebDir)
+        # extra source
+        if (suite.useExtSrc):
+            makeGITChangeLog(suite.extSrcDir, suite.extSrcName, fullWebDir)
+
+    if updateBoxLib:
+
+        # BoxLib
+        makeGITChangeLog(suite.boxLibDir, "BoxLib", fullWebDir)
 
 
     #--------------------------------------------------------------------------
@@ -1149,20 +1409,32 @@ def testSuite(argv):
 
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
 
-    print "\n"
-    bold("building the visualization tools...")
 
-    compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
-    print "  " + compString
-    systemCall(compString)
-    vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
-    
-    compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
-    print "  " + compString
-    systemCall(compString)
-    vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
+    anyDoVis = {'2D':0, '3D':0}
+    for test in testList:
+        if test.doVis:
+            if test.dim == 2:
+                anyDoVis['2D'] += 1
+            elif test.dim == 3:
+                anyDoVis['3D'] += 1
+
+    if anyDoVis['2D'] or anyDoVis['3D']:
+        print "\n"
+        bold("building the visualization tools...")
+
+        if anyDoVis['2D']:
+            compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
+                         (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
+            print "  " + compString
+            systemCall(compString)
+            vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
+
+        if anyDoVis['3D']:
+            compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % \
+                         (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
+            print "  " + compString
+            systemCall(compString)
+            vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
     
 
     #--------------------------------------------------------------------------
@@ -1187,8 +1459,8 @@ def testSuite(argv):
         print "  %s" % (dir)
         os.chdir(suite.sourceDir + dir)
 
-        systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
-                   (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
+        systemCall("%s BOXLIB_HOME=%s %s realclean >& /dev/null" % 
+                   (suite.MAKE, suite.boxLibDir, suite.extSrcCompString))
 
             
     os.chdir(suite.testTopDir)
@@ -1240,8 +1512,8 @@ def testSuite(argv):
             # build options, make clean again to be safe
             print "  re-making clean..."
 
-            systemCall("%s BOXLIB_HOME=%s ASTRODEV_DIR=%s realclean >& /dev/null" % 
-                       (suite.MAKE, suite.boxLibDir, suite.astroDevDir))
+            systemCall("%s BOXLIB_HOME=%s %s realclean >& /dev/null" % 
+                       (suite.MAKE, suite.boxLibDir, suite.extSrcCompString))
 
         
         print "  building..."
@@ -1250,29 +1522,29 @@ def testSuite(argv):
 
 	    if (test.useMPI and test.useOMP):
 	       executable = "%s%dd.MPI.OMP.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=TRUE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=TRUE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)            
 
             elif (test.useMPI):
 	       executable = "%s%dd.MPI.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=TRUE USE_OMP=FALSE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=TRUE USE_OMP=FALSE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 
             elif (test.useOMP):
 	       executable = "%s%dd.OMP.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=FALSE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=FALSE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 
             else:
 	       executable = "%s%dd.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
+               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
                print "    " + compString
                systemCall(compString)
 	       
@@ -1280,27 +1552,27 @@ def testSuite(argv):
         elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
 
             if (test.useMPI and test.useOMP):
-                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI=t OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI=t OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
             elif (test.useMPI):
-                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI=t OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI=t OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
             elif (test.useOMP):
-                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI= OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI= OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
 
             else:
-                compString = "%s -j%s BOXLIB_HOME=%s ASTRODEV_DIR=%s %s MPI= OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.astroDevDir, test.addToCompileString, suite.FCOMP, outputDir, test.name)
+                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI= OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
+                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
                 print "    " + compString
                 systemCall(compString)
 
@@ -1429,6 +1701,8 @@ def testSuite(argv):
 
         os.chdir(outputDir)
 
+        test.wallTime = time.time()
+
         if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
 
 	    if (test.useMPI and test.useOMP):
@@ -1438,12 +1712,17 @@ def testSuite(argv):
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
 
-	       command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out < /dev/null" % \
-			 (executable, test.inputFile, test.name, test.name, test.name)
-	       
-	       testRunCommand = testRunCommand.replace("@command@", command)
-
-	       print "    " + testRunCommand
+               # keep around the checkpoint files only for the restart runs
+               if (test.restartTest):
+                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
+                       (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+               else:
+                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
+                       (executable, test.inputFile, test.name, test.name, test.name)
+                   
+               testRunCommand = testRunCommand.replace("@command@", command)
+                   
+               print "    " + testRunCommand
                systemCall(testRunCommand)
 
 	    elif (test.useMPI):
@@ -1453,8 +1732,13 @@ def testSuite(argv):
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
 
-	       command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out < /dev/null" % \
-			 (executable, test.inputFile, test.name, test.name, test.name)
+                # keep around the checkpoint files only for the restart runs
+	       if (test.restartTest):               
+                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
+                       (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+               else:
+                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
+                       (executable, test.inputFile, test.name, test.name, test.name)
 	       
 	       testRunCommand = testRunCommand.replace("@command@", command)
 
@@ -1463,15 +1747,26 @@ def testSuite(argv):
 
 	    elif (test.useOMP):
 
-                testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out < /dev/null" % \
-                    (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+                # keep around the checkpoint files only for the restart runs
+                if (test.restartTest):
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                else:
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
 	       
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
 	       
             else:
-                testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk >&  %s.run.out" % \
-                    (executable, test.inputFile, test.name, test.name, test.name)
+
+                # keep around the checkpoint files only for the restart runs
+                if (test.restartTest):
+                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                else:
+                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, test.name)
 
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
@@ -1550,6 +1845,12 @@ def testSuite(argv):
         # restart the test
         if (test.restartTest):
             lastFile = getLastPlotfile(outputDir, test)
+
+            if (lastFile == ""):
+                errorMsg = "ERROR: test did not produce output.  Restart test not possible"
+                reportTestFailure(errorMsg, test, testDir, fullWebDir)
+                continue
+
             origLastFile = "orig_%s" % (lastFile)
             shutil.move(lastFile, origLastFile)
 
@@ -1559,31 +1860,104 @@ def testSuite(argv):
             print "  restarting from %s ... " % (restartFile)
            
             if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
-                if (test.useOMP):
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.restart=%s >>  %s.run.out 2>&1" % \
-                    (test.numthreads, executable, test.inputFile, test.name, test.name, restartFile, test.name)
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)               
+  
+                if (test.useMPI and test.useOMP):
 
-                else:
-                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.restart=%s >>  %s.run.out 2>&1" % \
-                    (executable, test.inputFile, test.name, test.name, restartFile, test.name)
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)               
+                    # create the MPI executable
+                    testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
                     
+                    command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                    
+                    testRunCommand = testRunCommand.replace("@command@", command)
+                    
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+
+                elif (test.useMPI):
+
+                    # create the MPI executable
+                    testRunCommand = suite.MPIcommand
+                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                    
+                    command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                    
+                    testRunCommand = testRunCommand.replace("@command@", command)
+
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+
+                elif (test.useOMP):
+
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >>  %s.run.out 2>&1" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, restartFile, test.name)
+	       
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+                    
+                else:
+                    
+                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                    
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+
             elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
 
-                if (test.useOMP):
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                if (test.useMPI and test.useOMP):
+
+                    # create the MPI executable
+                    testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+
+                    testRunCommand = testRunCommand.replace("@command@", command)
+                    
                     print "    " + testRunCommand
-                    systemCall(testRunCommand)                
+                    systemCall(testRunCommand)
+
+                elif (test.useMPI):
+
+                    # create the MPI executable
+                    testRunCommand = suite.MPIcommand
+                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                    
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+
+                    testRunCommand = testRunCommand.replace("@command@", command)
+                    
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+
+                elif (test.useOMP):
+
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+
+                    print "    " + testRunCommand
+                    systemCall(testRunCommand)
+
 
                 else:
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --restart %d >> %s.run.out 2>&1" % \
+
+                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
                         (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+
                     print "    " + testRunCommand
-                    systemCall(testRunCommand)                
+                    systemCall(testRunCommand)
+
+
+        test.wallTime = time.time() - test.wallTime
            
             
         #----------------------------------------------------------------------
@@ -1591,16 +1965,21 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         if (not test.selfTest):
 
-            if (test.compareFile == ""):
-                compareFile = getLastPlotfile(outputDir, test)
+            if (test.outputFile == ""):
+                if (test.compareFile == ""):
+                    compareFile = getLastPlotfile(outputDir, test)
+                else:
+                    compareFile = test.compareFile
+                outputFile = compareFile
             else:
-                compareFile = test.compareFile
+                outputFile = test.outputFile
+                compareFile = test.name+'_'+outputFile
 
 
             if (not make_benchmarks):
 
                 print "  doing the comparison..."
-                print "    comparison file: ", compareFile
+                print "    comparison file: ", outputFile
 
                 if (not test.restartTest):
                     benchFile = benchDir + compareFile
@@ -1624,7 +2003,7 @@ def testSuite(argv):
 
                         print "    benchmark file: ", benchFile
                    
-                        command = "../fcompare.exe -n 0 --infile1 %s --infile2 %s >> %s.compare.out 2>&1" % (benchFile, compareFile, test.name)
+                        command = "../fcompare.exe -n 0 --infile1 %s --infile2 %s >> %s.compare.out 2>&1" % (benchFile, outputFile, test.name)
 
                         cf = open("%s.compare.out" % (test.name), 'w')
                         cf.write(command)
@@ -1647,8 +2026,8 @@ def testSuite(argv):
                     print "  doing the diff..."
                     print "    diff dir: ", test.diffDir
 
-                    command = "diff -r %s %s >> %s.compare.out 2>&1" \
-                        % (diffDirBench, test.diffDir, test.name)
+                    command = "diff %s -r %s %s >> %s.compare.out 2>&1" \
+                        % (test.diffOpts, diffDirBench, test.diffDir, test.name)
 
                     cf = open("%s.compare.out" % (test.name), 'a')
                     cf.write("\n\n")
@@ -1670,7 +2049,11 @@ def testSuite(argv):
                 print "     new benchmark file: ", compareFile
 
                 if (not compareFile == ""):
-                    systemCall("cp -rf %s %s" % (compareFile, benchDir))
+                    if outputFile != compareFile:
+                        systemCall("rm -rf %s/%s" % (benchDir, compareFile))
+                        systemCall("cp -rf %s %s/%s" % (outputFile, benchDir, compareFile))
+                    else:
+                        systemCall("cp -rf %s %s" % (compareFile, benchDir))
 
                     cf = open("%s.status" % (test.name), 'w')
                     cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
@@ -1683,6 +2066,7 @@ def testSuite(argv):
                 if (not test.diffDir == ""):
                     diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
                     systemCall("rm -rf %s" % (diffDirBench))
+                    print "     new diffDir: ", test.name + '_' + test.diffDir
                     systemCall("cp -r %s %s" % (test.diffDir, diffDirBench))
 
 
@@ -1729,18 +2113,18 @@ def testSuite(argv):
         #---------------------------------------------------------------------- 
         if (test.doVis and not make_benchmarks):
 
-            if (not compareFile == ""):
+            if (not outputFile == ""):
 
                 print "  doing the visualization..."
 
                 if (test.dim == 2):
                     systemCall('%s/%s --palette %s/Palette -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis2dExecutable, suite.compareToolDir, 
-                               test.visVar, compareFile) )
+                               test.visVar, outputFile) )
                 elif (test.dim == 3):
                     systemCall('%s/%s --palette %s/Palette -n 1 -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis3dExecutable, suite.compareToolDir, 
-                               test.visVar, compareFile) )
+                               test.visVar, outputFile) )
                 else:
                     print "    Visualization not supported for dim = %d" % (test.dim)
                     
@@ -1818,7 +2202,6 @@ def testSuite(argv):
             print "  creating problem test report ..."
             reportSingleTest(suite, test, compString, testRunCommand, testDir, fullWebDir)
 
-
         
     #--------------------------------------------------------------------------
     # write the report for this instance of the test suite
@@ -1826,7 +2209,8 @@ def testSuite(argv):
     print "\n"
     bold("creating new test report...")
     numFailed = reportThisTestRun(suite, make_benchmarks, comment, note, 
-                                  updateTime, no_update, no_boxlib_update,
+                                  updateTime,  updateBoxLib,
+                                  updateSource, updateExtSrc,
                                   testList, testDir, testFile, fullWebDir)
 
 
@@ -1837,6 +2221,21 @@ def testSuite(argv):
        if (os.path.isfile(currentFile)):
           os.chmod(currentFile, 0644)
           
+    if boxLibGitHash:
+        doGITback(suite.boxLibDir, "BoxLib", boxLibGitBranch)
+
+    if sourceGitHash:
+        doGITback(suite.sourceDir, suite.srcName, sourceGitBranch)
+
+    if extSrcGitHash:
+        doGITback(suite.extSrcDir, suite.extSrcName, extSrcGitBranch)
+            
+    #--------------------------------------------------------------------------
+    # For temporary run, return now without creating suote report.
+    #--------------------------------------------------------------------------
+    if do_temp_run:
+        return numFailed
+
 
     #--------------------------------------------------------------------------
     # generate the master report for all test instances 
@@ -1861,6 +2260,8 @@ def testSuite(argv):
         bold("sending email...")
         emailDevelopers()
 
+
+    return numFailed
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -2105,7 +2506,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
     newHead = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
-    newHead = newHead.replace("@TESTDIR@", testDir)
+    newHead = newHead.replace("@TESTDIR@", os.path.normpath(testDir))
     newHead = newHead.replace("@TESTNAME@", test.name)
 
     hf.write(newHead)
@@ -2125,7 +2526,11 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
             hf.write("<P><b>OpenMP Run</b><br>numthreads = %d\n" % (test.numthreads) )
             hf.write("<P>&nbsp;\n")
-       
+
+
+        hf.write("<p><b>Execution Time</b> (seconds) = %f\n" % (test.wallTime))
+        hf.write("<P>&nbsp;\n")
+
 
         # is this a restart test?
         if (test.restartTest):
@@ -2277,8 +2682,9 @@ def reportTestFailure(message, test, testDir, fullWebDir, compString=None):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime, no_update,
-                      no_boxlib_update, testList, testDir, testFile, fullWebDir):
+def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
+                      updateBoxLib, updateSource, updateExtSrc,
+                      testList, testDir, testFile, fullWebDir):
     """ generate the master page for a single run of the test suite """
     
     # get the current directory
@@ -2324,20 +2730,21 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime, no_upda
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (testFile, testFile) )
 
-    if (not no_update or not no_boxlib_update):
+    if updateBoxLib or updateSource or updateExtSrc:
         hf.write("<p>&nbsp;\n")
         hf.write("<p><b>Git update was done at: </b>%s\n" % (updateTime) )
 
-        if (not no_update):
+        if updateSource:
             hf.write("<p>&nbsp;&nbsp;<b>%s ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                     (suite.suiteName, "ChangeLog."+suite.suiteName, "ChangeLog."+suite.suiteName) )        
-        if (not no_boxlib_update and suite.sourceTree != "BoxLib"):
-            hf.write("<p>&nbsp;&nbsp;<b>BoxLib/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                     (suite.srcName, "ChangeLog."+suite.srcName, "ChangeLog."+suite.srcName) )        
+
+        if updateBoxLib:
+            hf.write("<p>&nbsp;&nbsp;<b>BoxLib ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
                      ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )        
 
-        if (suite.useAstroDev and not no_update):
-            hf.write("<p>&nbsp;&nbsp;<b>AstroDev/ ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                     ("ChangeLog.AstroDev", "ChangeLog.AstroDev") )        
+        if updateExtSrc:
+            hf.write("<p>&nbsp;&nbsp;<b>%s ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
+                     (suite.extSrcName, "ChangeLog."+suite.extSrcName, "ChangeLog."+suite.extSrcName) )        
     else:
         hf.write("<p>No git update done\n")
 
@@ -2578,7 +2985,7 @@ def reportAllRuns(suite, webTopDir, tableHeight=16):
             if (status == 1):
                 hf.write("<TD ALIGN=CENTER class=\"passed\"><H3><a href=\"%s/%s.html\" class=\"passed\">:)</a></H3></TD>\n" % (dir, test))
             elif (status == -1):
-                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3><a href=\"%s/%s.html\" class=\"failed\">!</a></H3></TD>\n" % (dir, test))
+                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3><a href=\"%s/%s.html\" class=\"failed\">&nbsp;!&nbsp;</a></H3></TD>\n" % (dir, test))
             elif (status == 10):
                 hf.write("<TD ALIGN=CENTER class=\"benchmade\"><H3>U</H3></TD>\n")
             else:

@@ -85,6 +85,16 @@ public:
     //
     ~BoxArray ();
     //
+    // BoxArray can be used like an const STL container.
+    // We ONLY supply const_iterators.  We do this because
+    // BoxArrays are reference counted and we don't want folks
+    // to modify without going through the non-STL BoxArray interface.
+    //
+    typedef Array<Box>::const_iterator const_iterator;
+
+    const_iterator begin () const { return m_ref->m_abox.begin(); }
+    const_iterator   end () const { return m_ref->m_abox.end();   }
+    //
     // Initialize the BoxArray from the supplied BoxList.
     // It is an error if the BoxArray has already been initialized.
     //
@@ -267,6 +277,8 @@ public:
     // Also tries to "simplify" the BoxArray within reason.
     //
     void removeOverlap ();
+
+    static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
 private:
 

@@ -426,3 +426,40 @@ c
 !$omp end parallel
 
       end
+
+      subroutine FORT_FASTINVERT (src,DIMS(src),lo,hi,val,ncomp)
+
+      implicit none
+
+      integer ncomp
+      integer lo(3), hi(3)
+      integer DIMDEC(src)
+      REAL_T  src(DIMV(src),ncomp), val
+c
+c     Local variables.
+c
+      integer i,j,k,l
+      integer imin,jmin,kmin,imax,jmax,kmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
+
+!$omp parallel private(i,j,k,l)
+      do l = 1, ncomp
+!$omp do 
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  src(i,j,k,l) = val / src(i,j,k,l)
+               end do
+            end do
+         end do
+!$omp end do nowait
+      end do
+!$omp end parallel
+
+      end

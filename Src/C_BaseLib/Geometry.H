@@ -76,10 +76,6 @@ public:
     //
     static Real ProbHi (int dir);
     //
-    // Returns length of problem domain in each dimension.
-    //
-    static const Real* ProbLength ();
-    //
     // Returns the overall size of the domain by multiplying the ProbLength's together
     //
     static Real ProbSize ();
@@ -240,7 +236,7 @@ public:
         bool operator== (const FPB& rhs) const;
         bool operator!= (const FPB& rhs) const;
 
-        Array<int>                  m_cache;    // Snds cached for CollectData().
+        std::map<int,int>           m_cache;    // Snds cached for CollectData().
         FabArrayBase::CommDataCache m_commdata; // Yet another cache for CollectData().
         PIRMVector                  m_pirm;
         BoxArray                    m_ba;
@@ -383,13 +379,6 @@ Geometry::ProbHi (int dir)
 }
 
 inline
-const Real*
-Geometry::ProbLength ()
-{
-    return prob_domain.length();
-}
-
-inline
 Real
 Geometry::ProbLength (int dir)
 {
@@ -455,10 +444,8 @@ namespace BoxLib
                         {
                             if (!geom.isPeriodic(i))
                             {
-                                if (src.smallEnd(i) == geom.Domain().smallEnd(i))
-                                    src.growLo(i,mf.nGrow());
-                                if (src.bigEnd(i) == geom.Domain().bigEnd(i))
-                                    src.growHi(i,mf.nGrow());
+			      src.growLo(i,mf.nGrow());
+			      src.growHi(i,mf.nGrow());
                             }
                         }
                     }
@@ -612,7 +599,7 @@ namespace BoxLib
             //
             return;
 
-        mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
+        mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata,fpb.m_reused);
 
         for (Geometry::PIRMVector::const_iterator it = pirm.begin(), End = pirm.end();
              it != End;

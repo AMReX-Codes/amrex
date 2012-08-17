@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+
+# create a file buildInfo.cpp with various functions returning build
+# information.
+#
+# To call it from the makefile, you would do something like:
+#
+# CEXE_sources += buildInfo.cpp
+# CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
+# INCLUDE_LOCATIONS +=  $(BOXLIB_HOME)/Tools/C_scripts
+# 
+# buildInfo.cpp: $(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp
+#         $(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp "$(BOXLIB_HOME)" \
+#             "$(COMP)" "$(FCOMP)" \
+#             "AUX=$(AUXNAME1)" "AUX=$(AUXNAME2)" \
+#             "GIT=$(TOP)" "GIT=$(BOXLIB_HOME)" "GIT=$(ASTRODEV_DIR)" 
+#
+# where:
+#
+#  BOXLIB_HOME is a string giving the path to the BoxLib directory
+#
+#  COMP is the C++ compiler name (as expected by BoxLib)
+#
+#  FCOMP is the Fortran compiler name (as expected by BoxLib)
+#
+#  AUXNAME? is something like EOS_PATH, NETWORK_PATH, and CHEMICAL_MODEL.
+#  There can be zero or up to three AUX=$().  
+#  If necessary, this script can be modified to increase the number of slots for AUX.
+#
+#  GIT=$() is used for obtaining git hash of the code.
+#  There can be zero or up to three GIT=$().  
+#  If necessary, this script can be modified to increase the number of slots for GIT.
+#
+
+
+# the basic build strings will be MAX_STRING_LENGTH long
+MAX_STRING_LENGTH=128
+
+rm -f build_info.f90
+
+BUILD_DATE=`date | cut -c 1-$MAX_STRING_LENGTH`
+BUILD_DIR=`pwd | cut -c 1-$MAX_STRING_LENGTH`
+BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
+
+BOXLIB_DIR=`echo $1 | cut -c 1-$MAX_STRING_LENGTH`
+shift
+
+COMP=`echo $1 | cut -c 1-$MAX_STRING_LENGTH`
+shift
+
+FCOMP=`echo $1 | cut -c 1-$MAX_STRING_LENGTH`
+shift
+
+naux=0
+ngit=0
+while [ $# -gt 0 ] ; do
+  INFOTYPE=`echo $1 | cut -c 1-3`
+  INFOPATH=`echo $1 | cut -c 5-$MAX_STRING_LENGTH`
+  if [ "$INFOTYPE" = "AUX" ] ; then
+      naux=$((naux+1))
+      AUX[$naux]="$INFOPATH"
+  elif [ "$INFOTYPE" = "GIT" ] ; then
+      ngit=$((ngit+1))
+      if [ -d "$INFOPATH" ] ; then
+	  GIT[$ngit]=`cd "$INFOPATH"; git rev-parse HEAD | cut -c 1-$MAX_STRING_LENGTH`
+      fi
+  fi
+
+  shift
+done
+
+
+cat > buildInfo.cpp << EOF
+
+const char* buildInfoGetBuildDate() {
+
+  static const char BUILD_DATE[] = "$BUILD_DATE";
+  return BUILD_DATE;
+}
+
+const char* buildInfoGetBuildDir() {
+
+  static const char BUILD_DIR[] = "$BUILD_DIR";
+  return BUILD_DIR;
+}
+
+const char* buildInfoGetBuildMachine() {
+
+  static const char BUILD_MACHINE[] = "$BUILD_MACHINE";
+  return BUILD_MACHINE;
+}
+
+const char* buildInfoGetBoxlibDir() {
+
+  static const char BOXLIB_DIR[] = "$BOXLIB_DIR";
+  return BOXLIB_DIR;
+}
+
+const char* buildInfoGetComp() {
+
+  static const char COMP[] = "$COMP";
+  return COMP;
+}
+
+const char* buildInfoGetFcomp() {
+
+  static const char FCOMP[] = "$FCOMP";
+  return FCOMP;
+}
+
+const char* buildInfoGetAux(int i) {
+
+  static const char AUX1[] = "${AUX[1]}";
+  static const char AUX2[] = "${AUX[2]}";
+  static const char AUX3[] = "${AUX[3]}";
+  static const char EMPT[] = "";
+
+  switch(i)
+  {
+    case 1: return AUX1;
+    case 2: return AUX2;
+    case 3: return AUX3;
+    default: return EMPT;
+  }
+}
+
+const char* buildInfoGetGitHash(int i) {
+
+  static const char HASH1[] = "${GIT[1]}";
+  static const char HASH2[] = "${GIT[2]}";
+  static const char HASH3[] = "${GIT[3]}";
+  static const char EMPT[] = "";
+
+  switch(i)
+  {
+    case 1: return HASH1;
+    case 2: return HASH2;
+    case 3: return HASH3;
+    default: return EMPT;
+  }
+}
+
+EOF

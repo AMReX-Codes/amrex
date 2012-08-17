@@ -475,6 +475,7 @@ LnPtr<T>::isNull () const
 }
 
 template <class T>
+inline
 bool
 LnPtr<T>::operator== (const LnPtr<T>& rhs) const
 {
@@ -482,6 +483,7 @@ LnPtr<T>::operator== (const LnPtr<T>& rhs) const
 }
 
 template <class T>
+inline
 bool
 LnPtr<T>::operator!= (const LnPtr<T>& rhs) const
 {

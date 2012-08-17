@@ -242,13 +242,16 @@ MCCGSolver::solve (MultiFab&       sol,
         for (MFIter rmfi(*r); rmfi.isValid(); ++rmfi)
 	{
             Real trho;
+            const Box& vbox = rmfi.validbox();
+            FArrayBox& zfab = (*z)[rmfi];
+            FArrayBox& rfab = (*r)[rmfi];
 	    FORT_CGXDOTY(
 		&trho,
-		(*z)[rmfi].dataPtr(), 
-                ARLIM((*z)[rmfi].loVect()), ARLIM((*z)[rmfi].hiVect()),
-		(*r)[rmfi].dataPtr(), 
-                ARLIM((*r)[rmfi].loVect()), ARLIM((*r)[rmfi].hiVect()),
-		rmfi.validbox().loVect(), rmfi.validbox().hiVect(), &ncomp);
+		zfab.dataPtr(), 
+                ARLIM(zfab.loVect()), ARLIM(zfab.hiVect()),
+		rfab.dataPtr(), 
+                ARLIM(rfab.loVect()), ARLIM(rfab.hiVect()),
+		vbox.loVect(), vbox.hiVect(), &ncomp);
 	    rho += trho;
 	}
         ParallelDescriptor::ReduceRealSum(rho);
@@ -364,13 +367,15 @@ MCCGSolver::advance (MultiFab&       p,
 
     for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
     {
-        const Box& bx = zbox[pmfi.index()];
+        const Box&       bx   = zbox[pmfi.index()];
+        FArrayBox&       pfab = p[pmfi];
+        const FArrayBox& zfab = z[pmfi];
 
 	FORT_CGADVCP(
-	    p[pmfi].dataPtr(),
-            ARLIM(p[pmfi].loVect()), ARLIM(p[pmfi].hiVect()),
-	    z[pmfi].dataPtr(),
-            ARLIM(z[pmfi].loVect()), ARLIM(z[pmfi].hiVect()),
+	    pfab.dataPtr(),
+            ARLIM(pfab.loVect()), ARLIM(pfab.hiVect()),
+	    zfab.dataPtr(),
+            ARLIM(zfab.loVect()), ARLIM(zfab.hiVect()),
 	    &beta, bx.loVect(), bx.hiVect(),&ncomp);
     }
 }
@@ -388,17 +393,25 @@ MCCGSolver::update (MultiFab&       sol,
     int ncomp = r.nComp();
     for (MFIter solmfi(sol); solmfi.isValid(); ++solmfi)
     {
+        const int gn = solmfi.index();
+
+        const Box&       vbox = solmfi.validbox();
+        FArrayBox&       sfab = sol[gn];
+        FArrayBox&       rfab = r[gn];
+        const FArrayBox& wfab = w[gn];
+        const FArrayBox& pfab = p[gn];
+
 	FORT_CGUPDATE(
-	    sol[solmfi].dataPtr(),
-            ARLIM(sol[solmfi].loVect()),ARLIM(sol[solmfi].hiVect()),
-	    r[solmfi].dataPtr(),
-            ARLIM(r[solmfi].loVect()),ARLIM(r[solmfi].hiVect()),
+	    sfab.dataPtr(),
+            ARLIM(sfab.loVect()),ARLIM(sfab.hiVect()),
+	    rfab.dataPtr(),
+            ARLIM(rfab.loVect()),ARLIM(rfab.hiVect()),
 	    &alpha,
-	    w[solmfi].dataPtr(),
-            ARLIM(w[solmfi].loVect()),ARLIM(w[solmfi].hiVect()),
-	    p[solmfi].dataPtr(),
-            ARLIM(p[solmfi].loVect()), ARLIM(p[solmfi].hiVect()),
-	    solmfi.validbox().loVect(), solmfi.validbox().hiVect(),&ncomp);
+	    wfab.dataPtr(),
+            ARLIM(wfab.loVect()),ARLIM(wfab.hiVect()),
+	    pfab.dataPtr(),
+            ARLIM(pfab.loVect()), ARLIM(pfab.hiVect()),
+	    vbox.loVect(), vbox.hiVect(),&ncomp);
     }
 }
 
@@ -416,11 +429,14 @@ MCCGSolver::axp (MultiFab& w,
     for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
     {
 	Real tpw;
+        const Box& vbox = pmfi.validbox();
+        FArrayBox& pfab = p[pmfi];
+        FArrayBox& wfab = w[pmfi];
 	FORT_CGXDOTY(
 	    &tpw,
-	    p[pmfi].dataPtr(),ARLIM(p[pmfi].loVect()),ARLIM(p[pmfi].hiVect()),
-	    w[pmfi].dataPtr(),ARLIM(w[pmfi].loVect()),ARLIM(w[pmfi].hiVect()),
-	    pmfi.validbox().loVect(), pmfi.validbox().hiVect(),&ncomp);
+	    pfab.dataPtr(),ARLIM(pfab.loVect()),ARLIM(pfab.hiVect()),
+	    wfab.dataPtr(),ARLIM(wfab.loVect()),ARLIM(wfab.hiVect()),
+	    vbox.loVect(), vbox.hiVect(),&ncomp);
 	pw += tpw;
     }
     ParallelDescriptor::ReduceRealSum(pw);

@@ -635,7 +635,7 @@ contains
     logical, intent(in), optional :: nodal(:)
     integer :: i
     integer :: lnc, lng
-    if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
+    if ( built_q(mf) ) call bl_error("IMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
     mf%dim = get_dim(la)
@@ -644,7 +644,7 @@ contains
     mf%nc = lnc
     mf%ng = lng
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(mf%nboxes))
     do i = 1, mf%nboxes
        call build(mf%fbs(i), get_box(mf%la, i), &
@@ -661,7 +661,7 @@ contains
     logical, intent(in),optional :: nodal(:)
     integer :: i
     integer :: lnc, lng
-    if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
+    if ( built_q(mf) ) call bl_error("LMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
     mf%dim = get_dim(la)
@@ -670,7 +670,7 @@ contains
     mf%nc = lnc
     mf%ng = lng
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(mf%nboxes))
     do i = 1, mf%nboxes
        call build(mf%fbs(i), get_box(mf%la, i), &
@@ -680,6 +680,20 @@ contains
     call mem_stats_alloc(lmultifab_ms, volume(mf, all = .TRUE.))
   end subroutine lmultifab_build
 
+  subroutine lmultifab_build_edge(mf, la, nc, ng, dir)
+    type(lmultifab), intent(  out) :: mf
+    type(layout)   , intent(in   ) :: la
+    integer        , intent(in   ) :: nc, ng, dir
+
+    logical :: nodal(MAX_SPACEDIM)
+
+    nodal      = .false.
+    nodal(dir) = .true.
+
+    call lmultifab_build(mf, la, nc, ng, nodal)
+
+  end subroutine lmultifab_build_edge
+
   subroutine zmultifab_build(mf, la, nc, ng, nodal)
     type(zmultifab), intent(out) :: mf
     type(layout), intent(in) :: la
@@ -688,7 +702,7 @@ contains
     integer :: i
     integer :: lnc, lng
 
-    if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
+    if ( built_q(mf) ) call bl_error("ZMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
     mf%dim = get_dim(la)
@@ -697,7 +711,7 @@ contains
     mf%nc = lnc
     mf%ng = lng
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(mf%nboxes))
     do i = 1, mf%nboxes
        call build(mf%fbs(i), get_box(mf%la, i), &
