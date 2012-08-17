@@ -90,7 +90,7 @@ DistributionMapping::SFC_Threshold ()
 bool
 DistributionMapping::operator== (const DistributionMapping& rhs) const
 {
-    return m_ref->m_pmap == rhs.m_ref->m_pmap;
+    return m_ref == rhs.m_ref || m_ref->m_pmap == rhs.m_ref->m_pmap;
 }
 
 bool

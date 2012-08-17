@@ -278,6 +278,8 @@ public:
     //
     void removeOverlap ();
 
+    static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
+
 private:
 
     class Ref
