@@ -2081,6 +2081,10 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
     const int MyProc = ParallelDescriptor::MyProc();
 
     int Total_Rcvs_Size = 0;
+    //
+    // We use this to make finding matching FabComTags more efficient.
+    //
+    std::map< int,std::deque<FabComTagContainer::const_iterator> > RcvTags;
 
     IntIntMap Snds, Rcvs, Npts;
     //
@@ -2097,6 +2101,8 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
 
         const int Who = it->procThatHasData;
         const int Cnt = (it->box.numPts())*(it->nComp);
+
+        RcvTags[Who].push_back(it);
 
         Total_Rcvs_Size += Cnt;
 
@@ -2309,14 +2315,17 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
             const int   Who  = it->first;
             value_type* dptr = &recvbuf[rdispls[Who]];
 
-            for (FabComTagContainer::const_iterator it = fabComTagList.begin(),
-                     End = fabComTagList.end();
+            BL_ASSERT(RcvTags.count(Who) > 0);
+
+            std::deque<FabComTagContainer::const_iterator>& tags = RcvTags[Who];
+
+            for (std::deque<FabComTagContainer::const_iterator>::const_iterator it = tags.begin(), End = tags.end();
                  it != End;
                  ++it)
             {
-                if (it->procThatHasData != Who) continue;
+                const FabArrayBase::FabComTag& tag = **it;
 
-                const FabArrayBase::FabComTag& tag = *it;
+                BL_ASSERT(tag.procThatHasData == Who);
 
                 match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
 
@@ -2436,20 +2445,22 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
 
             for (int k = 0; k < completed; k++)
             {
-                const int         recvfrom = who_R[index[k]];
-                int               howmany  = 0;
-                const value_type* dptr     = &recv_data[roffset[index[k]]];
+                const int         Who     = who_R[index[k]];
+                int               howmany = 0;
+                const value_type* dptr    = &recv_data[roffset[index[k]]];
 
                 BL_ASSERT(dptr != 0);
+                BL_ASSERT(RcvTags.count(Who) > 0);
 
-                for (FabComTagContainer::const_iterator it = fabComTagList.begin(),
-                         End = fabComTagList.end();
+                std::deque<FabComTagContainer::const_iterator>& tags = RcvTags[Who];
+
+                for (std::deque<FabComTagContainer::const_iterator>::const_iterator it = tags.begin(), End = tags.end();
                      it != End;
                      ++it)
                 {
-                    if (it->procThatHasData != recvfrom) continue;
+                    const FabArrayBase::FabComTag& tag = **it;                  
 
-                    const FabArrayBase::FabComTag& tag = *it;
+                    BL_ASSERT(tag.procThatHasData == Who);
 
                     match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
 
