@@ -51,6 +51,9 @@ FabArrayBase::Initialize ()
     pp.query("use_fb_cache",        use_fb_cache);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
 
+    if (fb_cache_max_size <= 0 && fb_cache_max_size != -1)
+        use_fb_cache = false;
+
     if (do_alltoallv && do_async_sends)
         BoxLib::Abort("At most one of 'do_alltoallv' and 'do_async_sends' can be true");
 
@@ -140,15 +143,6 @@ FabArrayBase::CPC::CPC (const CPC& rhs)
 {}
 
 FabArrayBase::CPC::~CPC () {}
-
-bool
-FabArrayBase::CPC::operator== (const CPC& rhs) const
-{
-    return BoxArray::SameRefs(m_dstba,rhs.m_dstba)            &&
-           BoxArray::SameRefs(m_srcba,rhs.m_srcba)            &&
-           DistributionMapping::SameRefs(m_dstdm,rhs.m_dstdm) &&
-           DistributionMapping::SameRefs(m_srcdm,rhs.m_srcdm);
-}
 
 typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
 
@@ -305,22 +299,6 @@ FabArrayBase::CPC::FlushCache ()
 
 FabArrayBase::SI::~SI () {}
 
-bool
-FabArrayBase::SI::operator== (const FabArrayBase::SI& rhs) const
-{
-    return
-        m_ngrow == rhs.m_ngrow            &&
-        m_cross == rhs.m_cross            &&
-        BoxArray::SameRefs(m_ba,rhs.m_ba) &&
-        DistributionMapping::SameRefs(m_dm,rhs.m_dm);
-}
-
-bool
-FabArrayBase::SI::operator!= (const FabArrayBase::SI& rhs) const
-{
-    return !operator==(rhs);
-}
-
 typedef std::multimap<int,FabArrayBase::SI> SIMMap;
 
 typedef SIMMap::iterator SIMMapIter;
@@ -350,6 +328,7 @@ FabArrayBase::FlushSICache ()
 
         std::cout << "FabArrayBase::SICache.size() = " << SICache.size() << ", # reused = " << reused << '\n';
     }
+
     SICache.clear();
 }
 
@@ -360,129 +339,22 @@ FabArrayBase::SICacheSize ()
 }
 
 FabArrayBase::SI&
-FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
-                            const FabArrayBase&     mf)
-{
-    BL_ASSERT(si.m_ngrow >= 0);
-    BL_ASSERT(mf.nGrow() == si.m_ngrow);
-    BL_ASSERT(mf.boxArray() == si.m_ba);
-
-    const int                  key    = mf.nGrow() + mf.size();
-    SIMMapIter                 it     = SICache.insert(std::make_pair(key,si));
-    const BoxArray&            ba     = mf.boxArray();
-    const DistributionMapping& DMap   = mf.DistributionMap();
-    const int                  MyProc = ParallelDescriptor::MyProc();
-    SI::SIRecContainer&        sirec  = it->second.m_sirec;
-    std::map<int,int>&         cache  = it->second.m_cache;
-
-    std::vector<Box> boxes;
-
-    boxes.reserve(si.m_cross ? 2*BL_SPACEDIM : 1);
-
-    std::vector< std::pair<int,Box> > isects;
-
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        const int i = mfi.index();
-
-        boxes.resize(0);
-
-        if (si.m_cross)
-        {
-            const Box vbx = mfi.validbox();
-
-            for (int dir = 0; dir < BL_SPACEDIM; dir++)
-            {
-                Box lo = vbx;
-                lo.setSmall(dir, vbx.smallEnd(dir) - si.m_ngrow);
-                lo.setBig  (dir, vbx.smallEnd(dir) - 1);
-                boxes.push_back(lo);
-
-                Box hi = vbx;
-                hi.setSmall(dir, vbx.bigEnd(dir) + 1);
-                hi.setBig  (dir, vbx.bigEnd(dir) + si.m_ngrow);
-                boxes.push_back(hi);
-            }
-        }
-        else
-        {
-            boxes.push_back(mfi.fabbox());
-        }
-
-        for (std::vector<Box>::const_iterator it = boxes.begin(),
-                 End = boxes.end();
-             it != End;
-             ++it)
-        {
-            ba.intersections(*it,isects);
-
-            for (int j = 0, N = isects.size(); j < N; j++)
-            {
-                const Box& bx = isects[j].second;
-                const int  k  = isects[j].first;
-
-                if (i != k)
-                {
-                    sirec.push_back(SIRec(i,k,bx));
-
-                    const int who = DMap[k];
-
-                    if (who != MyProc)
-                    {
-                        //
-                        // If we intersect them then they'll intersect us.
-                        //
-                        if (cache.find(who) == cache.end())
-                        {
-                            cache[who]  = 1;
-                        }
-                        else
-                        {
-                            cache[who] += 1;
-                        }
-                    }
-                }
-            }
-        }
-
-        BL_ASSERT(cache.find(DMap[i]) == cache.end());
-    }
-
-    return it->second;
-}
-
-FabArrayBase::SI&
-FabArrayBase::TheFBsirec (int                 scomp,
-                          int                 ncomp,
-                          bool                cross,
+FabArrayBase::TheFBsirec (bool                cross,
                           const FabArrayBase& mf)
 {
-    BL_ASSERT(ncomp >  0);
-    BL_ASSERT(scomp >= 0);
-
     const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), cross);
 
-    const int key = mf.nGrow() + mf.size();
+    const int Key = mf.size() + mf.nGrow() + cross;
 
     if (use_fb_cache)
     {
-        std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(key);
+        std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(Key);
     
         for (SIMMapIter it = er_it.first; it != er_it.second; ++it)
         {
             if (it->second == si)
             {
                 it->second.m_reused = true;
-                //
-                // Adjust the ncomp & scomp in CommData.
-                //
-                Array<ParallelDescriptor::CommData>& cd = it->second.m_commdata.theCommData();
-
-                for (int i = 0, N = cd.size(); i < N; i++)
-                {
-                    cd[i].nComp(ncomp);
-                    cd[i].srcComp(scomp);
-                }
 
                 return it->second;
             }
@@ -498,10 +370,12 @@ FabArrayBase::TheFBsirec (int                 scomp,
                 if (!it->second.m_reused)
                 {
                     SICache.erase(it++);
-                    //
-                    // Only delete enough entries to stay under limit.
-                    //
-                    if (SICache.size() < fb_cache_max_size) break;
+
+                    if (SICache.size() < fb_cache_max_size)
+                        //
+                        // Only delete enough entries to stay under limit.
+                        //
+                        break;
                 }
                 else
                 {
@@ -522,6 +396,110 @@ FabArrayBase::TheFBsirec (int                 scomp,
     {
         SICache.clear();
     }
+    //
+    // Got to build one.
+    //
+    SIMMapIter                 it     = SICache.insert(std::make_pair(Key,si));
+    const BoxArray&            ba     = mf.boxArray();
+    const DistributionMapping& dm     = mf.DistributionMap();
+    const int                  MyProc = ParallelDescriptor::MyProc();
+    SI&                        TheSI  = it->second;
 
-    return BuildFBsirec(si,mf);
+    CopyComTag                        tag;
+    std::vector<Box>                  boxes;
+    std::vector< std::pair<int,Box> > isects;
+
+    boxes.resize(si.m_cross ? 2*BL_SPACEDIM : 1);
+
+    for (int i = 0, N = ba.size(); i < N; i++)
+    {
+        if (si.m_cross)
+        {
+            const Box& vbx = ba[i];
+
+            for (int dir = 0; dir < BL_SPACEDIM; dir++)
+            {
+                Box lo = vbx;
+                lo.setSmall(dir, vbx.smallEnd(dir) - si.m_ngrow);
+                lo.setBig  (dir, vbx.smallEnd(dir) - 1);
+                boxes[2*dir+0] = lo;
+
+                Box hi = vbx;
+                hi.setSmall(dir, vbx.bigEnd(dir) + 1);
+                hi.setBig  (dir, vbx.bigEnd(dir) + si.m_ngrow);
+                boxes[2*dir+1] = hi;
+            }
+        }
+        else
+        {
+            boxes[0] = BoxLib::grow(ba[i],si.m_ngrow);
+        }
+
+        const int d_owner = dm[i];
+
+        for (std::vector<Box>::const_iterator it = boxes.begin(),
+                 End = boxes.end();
+             it != End;
+             ++it)
+        {
+            ba.intersections(*it,isects);
+
+            for (int j = 0, M = isects.size(); j < M; j++)
+            {
+                const Box& bx      = isects[j].second;
+                const int  k       = isects[j].first;
+                const int  s_owner = dm[k];
+
+                if (k == i) continue;
+
+                if (d_owner == MyProc)
+                {
+                    tag.box      = bx;
+                    tag.fabIndex = i;
+
+                    if (s_owner == MyProc)
+                    {
+                        tag.srcIndex = k;
+
+                        TheSI.m_LocTags.push_back(tag);
+                    }
+                    else
+                    {
+                        TheSI.m_RcvTags[s_owner].push_back(tag);
+
+                        const int vol = bx.numPts();
+
+                        if (TheSI.m_RcvVols.count(s_owner) > 0)
+                        {
+                            TheSI.m_RcvVols[s_owner] += vol;
+                        }
+                        else
+                        {
+                            TheSI.m_RcvVols[s_owner] = vol;
+                        }
+                    }
+                }
+                else if (s_owner == MyProc)
+                {
+                    tag.box      = bx;
+                    tag.fabIndex = k;
+
+                    const int vol = bx.numPts();
+
+                    TheSI.m_SndTags[d_owner].push_back(tag);
+
+                    if (TheSI.m_SndVols.count(d_owner) > 0)
+                    {
+                        TheSI.m_SndVols[d_owner] += vol;
+                    }
+                    else
+                    {
+                        TheSI.m_SndVols[d_owner] = vol;
+                    }
+                }
+            }
+        }
+    }
+
+    return TheSI;
 }

@@ -130,7 +130,23 @@ public:
         bool                                m_valid;
     };
     //
-    // Holds single grid intersection record.
+    // Used in copy() and FillBoundary().
+    //
+    struct CopyComTag
+    {
+        CopyComTag () {}
+        CopyComTag (const CopyComTag& cct)
+            :
+            box(cct.box),
+            fabIndex(cct.fabIndex),
+            srcIndex(cct.srcIndex) {}
+
+        Box box;
+        int fabIndex;
+        int srcIndex;
+    };
+    //
+    // Holds single grid intersection record. Used by SumBoundary().
     //
     struct SIRec
     {
@@ -188,51 +204,40 @@ public:
                 BL_ASSERT(ngrow >= 0);
             }
 
-        SI (const SI& rhs)
-            :
-            m_cache(rhs.m_cache),
-            m_commdata(rhs.m_commdata),
-            m_sirec(rhs.m_sirec),
-            m_ba(rhs.m_ba),
-            m_dm(rhs.m_dm),
-            m_ngrow(rhs.m_ngrow),
-            m_cross(rhs.m_cross),
-            m_reused(rhs.m_reused)
-            {}
-
         ~SI ();
 
-        bool operator== (const SI& rhs) const;
-        bool operator!= (const SI& rhs) const;
-        //
-        // A handy typedef.
-        //
-        typedef std::deque<SIRec> SIRecContainer;
+        bool operator== (const SI& rhs) const
+        {
+            return
+                m_ngrow == rhs.m_ngrow &&
+                m_cross == rhs.m_cross &&
+                BoxArray::SameRefs(m_ba,rhs.m_ba) &&
+                DistributionMapping::SameRefs(m_dm,rhs.m_dm);
+        }
 
-        std::map<int,int>   m_cache;    // Snds cached for CollectData().
-        CommDataCache       m_commdata; // Yet another cache for CollectData().
-        SIRecContainer      m_sirec;
+        bool operator!= (const SI& rhs) const { return !operator==(rhs); }
+        //
+        // Some useful typedefs.
+        //
+        typedef std::deque<CopyComTag> CopyComTagsContainer;
+
+        typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+        //
+        // Basic data.
+        //
         BoxArray            m_ba;
         DistributionMapping m_dm;
         int                 m_ngrow;
         bool                m_cross;
         bool                m_reused;
-    };
-    //
-    // Used in copy()
-    //
-    struct CopyComTag
-    {
-        CopyComTag () {}
-        CopyComTag (const CopyComTag& cct)
-            :
-            box(cct.box),
-            fabIndex(cct.fabIndex),
-            srcIndex(cct.srcIndex) {}
-
-        Box box;
-        int fabIndex;
-        int srcIndex;
+        //
+        // The cache of local and send/recv info.
+        //
+        CopyComTagsContainer      m_LocTags;
+        MapOfCopyComTagContainers m_SndTags;
+        MapOfCopyComTagContainers m_RcvTags;
+        std::map<int,int>         m_SndVols;
+        std::map<int,int>         m_RcvVols;
     };
     //
     // When copy()ing from one FabArray to another we can do a copy or an add.
@@ -252,12 +257,16 @@ public:
 
         ~CPC ();
 
-        bool operator== (const CPC& rhs) const;
-
-        bool operator!= (const CPC& rhs) const
+        bool operator== (const CPC& rhs) const
         {
-            return !operator==(rhs);
+            return
+                BoxArray::SameRefs(m_dstba,rhs.m_dstba) &&
+                BoxArray::SameRefs(m_srcba,rhs.m_srcba) &&
+                DistributionMapping::SameRefs(m_dstdm,rhs.m_dstdm) &&
+                DistributionMapping::SameRefs(m_srcdm,rhs.m_srcdm);
         }
+
+        bool operator!= (const CPC& rhs) const { return !operator==(rhs); }
 
         static CPC& TheCPC (const CPC& cpc);
 
@@ -308,13 +317,9 @@ public:
         FabComTag ();
     };
     //
-    // Builds self-intersection records.
-    //
-    static SI& BuildFBsirec (const SI& si, const FabArrayBase& mf);
-    //
     // Returns cached self-intersection records or builds them.
     //
-    static SI& TheFBsirec (int scomp, int ncomp, bool cross, const FabArrayBase& mf);
+    static SI& TheFBsirec (bool cross, const FabArrayBase& mf);
     //
     // Use MPI_Alltoallv() instead of MPI_IRecv()/MPI_Send().
     //
@@ -2582,39 +2587,172 @@ FabArray<FAB>::FillBoundary (int  scomp,
 {
     if ( n_grow <= 0 ) return;
 
-    FabArrayCopyDescriptor<FAB> mfcd;
-    FabArrayBase::SI&           si   = FabArrayBase::TheFBsirec(scomp,ncomp,cross,*this);
-    const FabArrayId            mfid = mfcd.RegisterFabArray(this);
+    const int MyProc = ParallelDescriptor::MyProc();
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    FabArrayBase::SI& TheSI = FabArrayBase::TheFBsirec(cross,*this);
     //
-    // Add boxes we need to collect.
+    // Do local copy()s.
     //
-    for (SI::SIRecContainer::iterator it = si.m_sirec.begin(),
-             End = si.m_sirec.end();
+    for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags.begin(),
+             End = TheSI.m_LocTags.end();
          it != End;
          ++it)
     {
-        it->m_fbid = mfcd.AddBox(mfid,
-                                 it->m_bx,
-                                 0,
-                                 it->m_j,
-                                 scomp,
-                                 scomp,
-                                 ncomp);
+        const CopyComTag& tag = *it;
+
+        BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
+        BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
+
+        get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
     }
+    
+    if (NProcs == 1) return;
 
-    mfcd.CollectData(&si.m_cache,&si.m_commdata,true);
+#ifdef BL_USE_MPI
 
-    for (SI::SIRecContainer::const_iterator it = si.m_sirec.begin(),
-             End = si.m_sirec.end();
+    Array<MPI_Status>  stats;
+    Array<int>         recv_from, index;
+    Array<value_type*> recv_data, send_data;
+    Array<MPI_Request> recv_reqs, send_reqs;
+    //
+    // Post rcvs. Allocate one chunk of space to hold'm all.
+    //
+    int TotalRcvsVolume = 0;
+
+    for (std::map<int,int>::const_iterator it = TheSI.m_RcvVols.begin(),
+             End = TheSI.m_RcvVols.end();
          it != End;
          ++it)
     {
-        BL_ASSERT(DistributionMap()[it->m_i] == ParallelDescriptor::MyProc());
-        //
-        // Directly fill the FAB.
-        //
-        mfcd.FillFab(mfid,it->m_fbid,(*this)[it->m_i]);
+        TotalRcvsVolume += it->second;
     }
+
+    TotalRcvsVolume *= ncomp;
+
+    BL_ASSERT((TotalRcvsVolume*sizeof(value_type)) < std::numeric_limits<int>::max());
+
+    value_type* the_recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(value_type)));
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
+
+    int offset = 0;
+
+    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags.begin(),
+             m_End = TheSI.m_RcvTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        const int N = TheSI.m_RcvVols[m_it->first]*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        recv_data.push_back(&the_recv_data[offset]);
+        recv_from.push_back(m_it->first);
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+
+        offset += N;
+    }
+    //
+    // Send the FAB data.
+    //
+    FAB fab;
+
+    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags.begin(),
+             m_End = TheSI.m_SndTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        const int N = TheSI.m_SndVols[m_it->first]*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+        value_type* dptr = data;
+
+        for (SI::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
+                 End = m_it->second.end();
+             it != End;
+             ++it)
+        {
+            BL_ASSERT(distributionMap[it->fabIndex] == MyProc);
+            const Box& bx = it->box;
+            fab.resize(bx,ncomp);
+            fab.copy(get(it->fabIndex),bx,scomp,bx,0,ncomp);
+            const int Cnt = bx.numPts()*ncomp;
+            memcpy(dptr, fab.dataPtr(), Cnt*sizeof(value_type));
+            dptr += Cnt;
+        }
+        BL_ASSERT(data+N == dptr);
+
+        if (FabArrayBase::do_async_sends)
+        {
+            send_data.push_back(data);
+            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
+        }
+        else
+        {
+            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
+            BoxLib::The_Arena()->free(data);
+        }
+    }
+    //
+    // Now receive and unpack FAB data as it becomes available.
+    //
+    SI::MapOfCopyComTagContainers::const_iterator m_it;
+
+    const int N_rcvs = TheSI.m_RcvTags.size();
+
+    index.resize(N_rcvs);
+    stats.resize(N_rcvs);
+
+    for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
+    {
+        ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
+
+        for (int k = 0; k < completed; k++)
+        {
+            const value_type* dptr = recv_data[index[k]];
+
+            BL_ASSERT(dptr != 0);
+
+            m_it = TheSI.m_RcvTags.find(recv_from[index[k]]);
+
+            BL_ASSERT(m_it != TheSI.m_RcvTags.end());
+
+            for (SI::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
+                     End = m_it->second.end();
+                 it != End;
+                 ++it)
+            {
+                const Box& bx = it->box;
+                fab.resize(bx, ncomp);
+                const int Cnt = bx.numPts()*ncomp;
+                memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
+                get(it->fabIndex).copy(fab,bx,0,bx,scomp,ncomp);
+                dptr += Cnt;
+            }
+        }
+    }
+
+    BoxLib::The_Arena()->free(the_recv_data);
+
+    if (FabArrayBase::do_async_sends && !TheSI.m_SndTags.empty())
+    {
+        //
+        // Now grok the asynchronous send buffers & free up send buffer space.
+        //
+        const int N_snds = TheSI.m_SndTags.size();
+
+        stats.resize(N_snds);
+
+        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+
+        for (int i = 0; i < N_snds; i++)
+            BoxLib::The_Arena()->free(send_data[i]);
+    }
+
+#endif /*BL_USE_MPI*/
 }
 
 #endif /*BL_FABARRAY_H*/
