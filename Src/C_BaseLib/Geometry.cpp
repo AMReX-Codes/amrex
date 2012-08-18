@@ -102,37 +102,7 @@ Geometry::FPB::FPB (const BoxArray&            ba,
     BL_ASSERT(domain.ok());
 }
 
-Geometry::FPB::FPB (const FPB& rhs)
-    :
-    m_cache(rhs.m_cache),
-    m_commdata(rhs.m_commdata),
-    m_pirm(rhs.m_pirm),
-    m_ba(rhs.m_ba),
-    m_dm(rhs.m_dm),
-    m_domain(rhs.m_domain),
-    m_ngrow(rhs.m_ngrow),
-    m_do_corners(rhs.m_do_corners),
-    m_reused(rhs.m_reused)
-{}
-
 Geometry::FPB::~FPB () {}
-
-bool
-Geometry::FPB::operator== (const FPB& rhs) const
-{
-    return
-        m_ngrow      == rhs.m_ngrow      &&
-        m_do_corners == rhs.m_do_corners &&
-        m_domain     == rhs.m_domain     &&
-        m_ba         == rhs.m_ba         &&
-        m_dm         == rhs.m_dm;
-}
-
-bool
-Geometry::FPB::operator!= (const FPB& rhs) const
-{
-    return !operator==(rhs);
-}
 
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
@@ -691,4 +661,123 @@ Geometry::periodicShift (const Box&      target,
         if (ri != 0 && is_periodic[0])
             locsrc.shift(0,-ri*domain.length(0));
     }
+}
+
+Geometry::FPB&
+Geometry::GetFPB (const Geometry&      geom,
+                  const Geometry::FPB& fpb,
+                  int                  scomp,
+                  int                  ncomp)
+{
+    BL_ASSERT(fpb.m_ba.size()  > 0);
+    BL_ASSERT(fpb.m_ngrow > 0);
+    BL_ASSERT(geom.isAnyPeriodic());
+
+    const int Key = fpb.m_ngrow + fpb.m_ba.size();
+
+    std::pair<Geometry::FPBMMapIter,Geometry::FPBMMapIter> er_it = Geometry::m_FPBCache.equal_range(Key);
+    
+    for (Geometry::FPBMMapIter it = er_it.first; it != er_it.second; ++it)
+    {
+        if (it->second == fpb)
+        {
+            it->second.m_reused = true;
+
+            return it->second;
+        }
+    }
+
+    if (Geometry::m_FPBCache.size() >= Geometry::fpb_cache_max_size && Geometry::fpb_cache_max_size != -1)
+    {
+        //
+        // Don't let the size of the cache get too big.
+        //
+        for (Geometry::FPBMMapIter it = Geometry::m_FPBCache.begin(); it != Geometry::m_FPBCache.end(); )
+        {
+            if (!it->second.m_reused)
+            {
+                Geometry::m_FPBCache.erase(it++);
+
+                if (Geometry::m_FPBCache.size() < Geometry::fpb_cache_max_size)
+                    //
+                    // Only delete enough entries to stay under limit.
+                    //
+                    break;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        if (Geometry::m_FPBCache.size() >= Geometry::fpb_cache_max_size)
+            //
+            // Get rid of first entry which is the one with the smallest key.
+            //
+            Geometry::m_FPBCache.erase(Geometry::m_FPBCache.begin());
+    }
+    //
+    // Got to build one.
+    //
+    Geometry::FPBMMapIter it     = Geometry::m_FPBCache.insert(std::make_pair(Key,fpb));
+    Geometry::PIRMVector& pirm   = it->second.m_pirm;
+    const int             MyProc = ParallelDescriptor::MyProc();
+
+    Array<IntVect> pshifts(27);
+
+    Box TheDomain = geom.Domain();
+    for (int n = 0; n < BL_SPACEDIM; n++)
+        if (fpb.m_ba[0].ixType()[n] == IndexType::NODE)
+            TheDomain.surroundingNodes(n);
+
+    for (int i = 0, N = fpb.m_ba.size(); i < N; i++)
+    {
+        if (fpb.m_dm[i] != MyProc) continue;
+
+        const Box dest = BoxLib::grow(fpb.m_ba[i],fpb.m_ngrow);
+
+        if (!TheDomain.contains(dest))
+        {
+            const BoxArray& grids = fpb.m_ba;
+
+            for (int j = 0, N = grids.size(); j < N; j++)
+            {
+                Box src = grids[j] & TheDomain;
+
+                if (fpb.m_do_corners)
+                {
+                    for (int i = 0; i < BL_SPACEDIM; i++)
+                    {
+                        if (!geom.isPeriodic(i))
+                        {
+                            src.growLo(i,fpb.m_ngrow);
+                            src.growHi(i,fpb.m_ngrow);
+                        }
+                    }
+                }
+
+                geom.periodicShift(dest, src, pshifts);
+
+                for (int ii = 0, M = pshifts.size(); ii < M; ii++)
+                {
+                    Box shftbox = src + pshifts[ii];
+                    Box dbx     = dest & shftbox;
+                    Box sbx     = dbx - pshifts[ii];
+
+                    pirm.push_back(Geometry::PIRec(i,j,sbx,dbx));
+                }
+            }
+        }
+    }
+
+    if (!pirm.empty() && pirm.capacity() > pirm.size())
+    {
+        //
+        // Squish out any spare capacity.
+        //
+        Geometry::PIRMVector tmp(pirm);
+        tmp.swap(pirm);
+    }
+
+    return it->second;
 }

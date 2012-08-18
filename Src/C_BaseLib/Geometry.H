@@ -229,23 +229,33 @@ public:
              int                        ngrow,
              bool                       do_corners);
 
-        FPB (const FPB& rhs);
-
         ~FPB ();
 
-        bool operator== (const FPB& rhs) const;
-        bool operator!= (const FPB& rhs) const;
+        bool operator== (const FPB& rhs) const
+        {
+            return
+                m_ngrow == rhs.m_ngrow &&
+                m_do_corners == rhs.m_do_corners &&
+                m_domain == rhs.m_domain &&
+                BoxArray::SameRefs(m_ba,rhs.m_ba) &&
+                DistributionMapping::SameRefs(m_dm,rhs.m_dm);
+        }
 
-        std::map<int,int>           m_cache;    // Snds cached for CollectData().
-        FabArrayBase::CommDataCache m_commdata; // Yet another cache for CollectData().
-        PIRMVector                  m_pirm;
-        BoxArray                    m_ba;
-        DistributionMapping         m_dm;
-        Box                         m_domain;
-        int                         m_ngrow;
-        bool                        m_do_corners;
-        bool                        m_reused;
+        bool operator!= (const FPB& rhs) const { return !operator==(rhs); }
+
+        PIRMVector          m_pirm;
+        BoxArray            m_ba;
+        DistributionMapping m_dm;
+        Box                 m_domain;
+        int                 m_ngrow;
+        bool                m_do_corners;
+        bool                m_reused;
     };
+
+    static Geometry::FPB& GetFPB (const Geometry&      geom,
+                                  const Geometry::FPB& fpb,
+                                  int                  scomp,
+                                  int                  ncomp);
 
     typedef std::multimap<int,Geometry::FPB> FPBMMap;
 
@@ -400,148 +410,6 @@ Geometry::ProbSize ()
 
 namespace BoxLib
 {
-    //
-    // Template functions used in implementing FillPeriodicBoundary().
-    //
-    template <class FAB>
-    Geometry::FPB&
-    BuildFPB (FabArray<FAB>&       mf,
-              const Geometry&      geom,
-              const Geometry::FPB& fpb)
-    {
-        BL_ASSERT(mf.size()  > 0);
-        BL_ASSERT(mf.nGrow() > 0);
-        BL_ASSERT(geom.isAnyPeriodic());
-
-        const int             key  = mf.nGrow() + mf.size();
-        Geometry::FPBMMapIter it   = Geometry::m_FPBCache.insert(std::make_pair(key,fpb));
-        Geometry::PIRMVector& pirm = it->second.m_pirm;
-
-        Array<IntVect> pshifts(27);
-
-        Box TheDomain = geom.Domain();
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
-                TheDomain.surroundingNodes(n);
-
-        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-        {
-            const Box& dest = mf[mfi].box();
-
-            BL_ASSERT(dest == BoxLib::grow(mfi.validbox(), mf.nGrow()));
-
-            if (!TheDomain.contains(dest))
-            {
-                const BoxArray& grids = mf.boxArray();
-
-                for (int j = 0, N = grids.size(); j < N; j++)
-                {
-                    Box src = grids[j] & TheDomain;
-
-                    if (fpb.m_do_corners)
-                    {
-                        for (int i = 0; i < BL_SPACEDIM; i++)
-                        {
-                            if (!geom.isPeriodic(i))
-                            {
-			      src.growLo(i,mf.nGrow());
-			      src.growHi(i,mf.nGrow());
-                            }
-                        }
-                    }
-
-                    geom.periodicShift(dest, src, pshifts);
-
-                    for (int i = 0, M = pshifts.size(); i < M; i++)
-                    {
-                        Box shftbox = src + pshifts[i];
-                        Box dbx     = dest & shftbox;
-                        Box sbx     = dbx - pshifts[i];
-
-                        pirm.push_back(Geometry::PIRec(mfi.index(),j,sbx,dbx));
-                    }
-                }
-            }
-        }
-
-        if (!pirm.empty() && pirm.capacity() > pirm.size())
-        {
-            //
-            // Squish out any spare capacity.
-            //
-            Geometry::PIRMVector tmp(pirm);
-            tmp.swap(pirm);
-        }
-
-        return it->second;
-    }
-
-    template <class FAB>
-    Geometry::FPB&
-    GetFPB (FabArray<FAB>&       mf,
-            const Geometry&      geom,
-            const Geometry::FPB& fpb,
-            int                  scomp,
-            int                  ncomp)
-    {
-        const int key = mf.nGrow() + mf.size();
-
-        std::pair<Geometry::FPBMMapIter,Geometry::FPBMMapIter> er_it = Geometry::m_FPBCache.equal_range(key);
-    
-        for (Geometry::FPBMMapIter it = er_it.first; it != er_it.second; ++it)
-        {
-            if (it->second == fpb)
-            {
-                it->second.m_reused = true;
-                //
-                // Adjust the ncomp & scomp in CommData.
-                //
-                Array<ParallelDescriptor::CommData>& cd = it->second.m_commdata.theCommData();
-
-                if (!cd.empty() && (cd[0].nComp() != ncomp || cd[0].srcComp() != scomp))
-                {
-                    for (int i = 0, N = cd.size(); i < N; i++)
-                    {
-                        cd[i].nComp(ncomp);
-                        cd[i].srcComp(scomp);
-                    }
-                }
-
-                return it->second;
-            }
-        }
-
-        if (Geometry::m_FPBCache.size() >= Geometry::fpb_cache_max_size && Geometry::fpb_cache_max_size != -1)
-        {
-            //
-            // Don't let the size of the cache get too big.
-            //
-            for (Geometry::FPBMMapIter it = Geometry::m_FPBCache.begin(); it != Geometry::m_FPBCache.end(); )
-            {
-                if (!it->second.m_reused)
-                {
-                    Geometry::m_FPBCache.erase(it++);
-                    //
-                    // Only delete enough entries to stay under limit.
-                    //
-                    if (Geometry::m_FPBCache.size() < Geometry::fpb_cache_max_size) break;
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-
-            if (Geometry::m_FPBCache.size() >= Geometry::fpb_cache_max_size)
-                //
-                // Get rid of first entry which is the one with the smallest key.
-                //
-                Geometry::m_FPBCache.erase(Geometry::m_FPBCache.begin());
-        }
-
-        return BoxLib::BuildFPB(mf,geom,fpb);
-    }
-
     template <class FAB>
     void
     FillPeriodicBoundary (const Geometry& geom,
@@ -572,7 +440,7 @@ namespace BoxLib
         Geometry::FPB TheFPB(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
 
         const FabArrayId      mfid = mfcd.RegisterFabArray(&mf);
-        Geometry::FPB&        fpb  = BoxLib::GetFPB(mf,geom,TheFPB,scomp,ncomp);
+        Geometry::FPB&        fpb  = Geometry::GetFPB(geom,TheFPB,scomp,ncomp);
         Geometry::PIRMVector& pirm = fpb.m_pirm;
         //
         // Add boxes we need to collect.
@@ -599,7 +467,7 @@ namespace BoxLib
             //
             return;
 
-        mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata,fpb.m_reused);
+        mfcd.CollectData();
 
         for (Geometry::PIRMVector::const_iterator it = pirm.begin(), End = pirm.end();
              it != End;
