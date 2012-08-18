@@ -669,11 +669,14 @@ Geometry::GetFPB (const Geometry&      geom,
                   int                  scomp,
                   int                  ncomp)
 {
-    BL_ASSERT(fpb.m_ba.size()  > 0);
+    const BoxArray&            ba     = fpb.m_ba;
+    const DistributionMapping& dm     = fpb.m_dm;
+    const int                  Key    = fpb.m_ngrow + ba.size();
+    const int                  MyProc = ParallelDescriptor::MyProc();
+
+    BL_ASSERT(ba.size()  > 0);
     BL_ASSERT(fpb.m_ngrow > 0);
     BL_ASSERT(geom.isAnyPeriodic());
-
-    const int Key = fpb.m_ngrow + fpb.m_ba.size();
 
     std::pair<Geometry::FPBMMapIter,Geometry::FPBMMapIter> er_it = Geometry::m_FPBCache.equal_range(Key);
     
@@ -720,64 +723,98 @@ Geometry::GetFPB (const Geometry&      geom,
     // Got to build one.
     //
     Geometry::FPBMMapIter it     = Geometry::m_FPBCache.insert(std::make_pair(Key,fpb));
-    Geometry::PIRMVector& pirm   = it->second.m_pirm;
-    const int             MyProc = ParallelDescriptor::MyProc();
+    FPB&                  TheFPB = it->second;
 
     Array<IntVect> pshifts(27);
 
     Box TheDomain = geom.Domain();
     for (int n = 0; n < BL_SPACEDIM; n++)
-        if (fpb.m_ba[0].ixType()[n] == IndexType::NODE)
+        if (ba[0].ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
 
-    for (int i = 0, N = fpb.m_ba.size(); i < N; i++)
+    FPBComTag tag;
+
+    for (int i = 0, N = ba.size(); i < N; i++)
     {
-        if (fpb.m_dm[i] != MyProc) continue;
+        const int d_owner = dm[i];
 
-        const Box dest = BoxLib::grow(fpb.m_ba[i],fpb.m_ngrow);
+        const Box dest = BoxLib::grow(ba[i],fpb.m_ngrow);
 
-        if (!TheDomain.contains(dest))
+        if (TheDomain.contains(dest)) continue;
+
+        for (int j = 0, N = ba.size(); j < N; j++)
         {
-            const BoxArray& grids = fpb.m_ba;
+            const int s_owner = dm[j];
 
-            for (int j = 0, N = grids.size(); j < N; j++)
+            if (d_owner != MyProc && s_owner != MyProc) continue;
+
+            Box src = ba[j] & TheDomain;
+
+            if (fpb.m_do_corners)
             {
-                Box src = grids[j] & TheDomain;
-
-                if (fpb.m_do_corners)
+                for (int i = 0; i < BL_SPACEDIM; i++)
                 {
-                    for (int i = 0; i < BL_SPACEDIM; i++)
+                    if (!geom.isPeriodic(i))
                     {
-                        if (!geom.isPeriodic(i))
+                        src.growLo(i,fpb.m_ngrow);
+                        src.growHi(i,fpb.m_ngrow);
+                    }
+                }
+            }
+
+            geom.periodicShift(dest, src, pshifts);
+
+            for (int ii = 0, M = pshifts.size(); ii < M; ii++)
+            {
+                const Box shftbox = src + pshifts[ii];
+
+                tag.dbox = dest & shftbox;
+                tag.sbox = tag.dbox - pshifts[ii];
+
+                const int vol = tag.dbox.numPts();
+
+                if (d_owner == MyProc)
+                {
+                    tag.dstIndex = i;
+
+                    if (s_owner == MyProc)
+                    {
+                        tag.srcIndex = j;
+
+                        TheFPB.m_LocTags.push_back(tag);
+                    }
+                    else
+                    {
+                        TheFPB.m_RcvTags[s_owner].push_back(tag);
+
+                        if (TheFPB.m_RcvVols.count(s_owner) > 0)
                         {
-                            src.growLo(i,fpb.m_ngrow);
-                            src.growHi(i,fpb.m_ngrow);
+                            TheFPB.m_RcvVols[s_owner] += vol;
+                        }
+                        else
+                        {
+                            TheFPB.m_RcvVols[s_owner] = vol;
                         }
                     }
                 }
-
-                geom.periodicShift(dest, src, pshifts);
-
-                for (int ii = 0, M = pshifts.size(); ii < M; ii++)
+                else if (s_owner == MyProc)
                 {
-                    Box shftbox = src + pshifts[ii];
-                    Box dbx     = dest & shftbox;
-                    Box sbx     = dbx - pshifts[ii];
+                    tag.srcIndex = j;
 
-                    pirm.push_back(Geometry::PIRec(i,j,sbx,dbx));
+                    TheFPB.m_SndTags[d_owner].push_back(tag);
+
+                    if (TheFPB.m_SndVols.count(d_owner) > 0)
+                    {
+                        TheFPB.m_SndVols[d_owner] += vol;
+                    }
+                    else
+                    {
+                        TheFPB.m_SndVols[d_owner] = vol;
+                    }
                 }
             }
         }
     }
 
-    if (!pirm.empty() && pirm.capacity() > pirm.size())
-    {
-        //
-        // Squish out any spare capacity.
-        //
-        Geometry::PIRMVector tmp(pirm);
-        tmp.swap(pirm);
-    }
-
-    return it->second;
+    return TheFPB;
 }

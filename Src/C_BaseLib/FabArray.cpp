@@ -233,9 +233,14 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc)
             const int  k       = isects[j].first;
             const int  s_owner = thecpc.m_srcdm[k];
 
+            if (d_owner != MyProc && s_owner != MyProc) continue;
+
+            tag.box = bx;
+
+            const int vol = bx.numPts();
+
             if (d_owner == MyProc)
             {
-                tag.box      = bx;
                 tag.fabIndex = i;
 
                 if (s_owner == MyProc)
@@ -247,8 +252,6 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc)
                 else
                 {
                     thecpc.m_RcvTags[s_owner].push_back(tag);
-
-                    const int vol = bx.numPts();
 
                     if (thecpc.m_RcvVols.count(s_owner) > 0)
                     {
@@ -262,10 +265,7 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc)
             }
             else if (s_owner == MyProc)
             {
-                tag.box      = bx;
                 tag.fabIndex = k;
-
-                const int vol = bx.numPts();
 
                 thecpc.m_SndTags[d_owner].push_back(tag);
 
@@ -455,9 +455,14 @@ FabArrayBase::TheFBsirec (bool                cross,
 
                 if (k == i) continue;
 
+                if (d_owner != MyProc && s_owner != MyProc) continue;
+
+                const int vol = bx.numPts();
+
+                tag.box = bx;
+
                 if (d_owner == MyProc)
                 {
-                    tag.box      = bx;
                     tag.fabIndex = i;
 
                     if (s_owner == MyProc)
@@ -469,8 +474,6 @@ FabArrayBase::TheFBsirec (bool                cross,
                     else
                     {
                         TheSI.m_RcvTags[s_owner].push_back(tag);
-
-                        const int vol = bx.numPts();
 
                         if (TheSI.m_RcvVols.count(s_owner) > 0)
                         {
@@ -484,10 +487,7 @@ FabArrayBase::TheFBsirec (bool                cross,
                 }
                 else if (s_owner == MyProc)
                 {
-                    tag.box      = bx;
                     tag.fabIndex = k;
-
-                    const int vol = bx.numPts();
 
                     TheSI.m_SndTags[d_owner].push_back(tag);
 

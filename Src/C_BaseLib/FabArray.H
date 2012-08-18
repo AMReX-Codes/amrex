@@ -834,11 +834,7 @@ class FabArrayCopyDescriptor
                       int        numcomp,
                       bool       bUseValidBox = true);
 
-    void CollectData (std::map<int,int>*           send_cache          = 0,
-                      FabArrayBase::CommDataCache* cd_cache            = 0,
-                      bool                         send_cache_is_valid = false);
-
-
+    void CollectData ();
 
     void FillFab (FabArrayId       fabarrayid,
                   const FillBoxId& fillboxid,
@@ -2159,9 +2155,7 @@ FabArrayCopyDescriptor<FAB>::CollectDataAllToAll (const IntIntMap& Snds,
 
 template <class FAB>
 void
-FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cache,
-                                          FabArrayBase::CommDataCache* cd_cache,
-                                          bool                         send_cache_is_valid)
+FabArrayCopyDescriptor<FAB>::CollectData ()
 {
     typedef typename FAB::value_type value_type;
 
@@ -2227,14 +2221,11 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
 
     BL_ASSERT((Total_Rcvs_Size*sizeof(value_type)) < std::numeric_limits<int>::max());
 
-    if (send_cache == 0 || !send_cache_is_valid || FabArrayBase::do_not_use_cache)
     {
         Array<int> SndsArray(NProcs,0), RcvsArray(NProcs,0);
 
         for (IntIntMap::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
-        {
             RcvsArray[it->first] = it->second;
-        }
 
         BL_MPI_REQUIRE( MPI_Alltoall(RcvsArray.dataPtr(),
                                      1,
@@ -2248,20 +2239,10 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
         for (int i = 0; i < NProcs; i++)
             if (SndsArray[i] > 0)
                 Snds[i] = SndsArray[i];
-
-        if (send_cache && !FabArrayBase::do_not_use_cache)
-        {
-            *send_cache = Snds;
-        }
-    }
-    else
-    {
-        Snds = *send_cache;
     }
 
     Array<ParallelDescriptor::CommData> cd_others_need, cd_that_i_need;
 
-    if (cd_cache == 0 || !cd_cache->isValid() || FabArrayBase::do_not_use_cache)
     {
         Array<int> sdispls(NProcs,0), rdispls(NProcs,0), scnts(NProcs,0), rcnts(NProcs,0);
 
@@ -2321,15 +2302,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (std::map<int,int>*           send_cach
                                       rdispls.dataPtr(),
                                       ParallelDescriptor::Mpi_typemap<int>::type(),
                                       ParallelDescriptor::Communicator()) );
-
-        if (cd_cache && !FabArrayBase::do_not_use_cache)
-        {
-            *cd_cache = cd_others_need;
-        }
-    }
-    else
-    {
-        cd_others_need = cd_cache->theCommData();
+        cd_that_i_need.clear();
     }
 
     if (FabArrayBase::do_alltoallv)
