@@ -299,9 +299,9 @@ FabArrayBase::TheCPC (const CPC& cpc)
 void
 FabArrayBase::CPC::FlushCache ()
 {
-    if (!FabArrayBase::m_TheCopyCache.empty() && FabArrayBase::verbose)
+    if (FabArrayBase::verbose)
     {
-        int stats[3] = {0}; // size, reused, bytes
+        int stats[3] = {0,0,0}; // size, reused, bytes
 
         stats[0] = FabArrayBase::m_TheCopyCache.size();
 
@@ -314,7 +314,7 @@ FabArrayBase::CPC::FlushCache ()
 
         ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
+        if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
         {
             std::cout << "CPC::m_TheCopyCache: max size: "
                       << stats[0]
@@ -397,9 +397,9 @@ FabArrayBase::Finalize ()
 void
 FabArrayBase::FlushSICache ()
 {
-    if (!FabArrayBase::m_TheFBCache.empty() && FabArrayBase::verbose)
+    if (FabArrayBase::verbose)
     {
-        int stats[3] = {0}; // size, reused, bytes
+        int stats[3] = {0,0,0}; // size, reused, bytes
 
         stats[0] = FabArrayBase::m_TheFBCache.size();
 
@@ -412,7 +412,7 @@ FabArrayBase::FlushSICache ()
 
         ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
+        if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
         {
             std::cout << "SI::TheFBCache: max size: "
                       << stats[0]

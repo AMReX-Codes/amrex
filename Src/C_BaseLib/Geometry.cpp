@@ -164,9 +164,9 @@ Geometry::PIRMCacheSize ()
 void
 Geometry::FlushPIRMCache ()
 {
-    if (!m_FPBCache.empty() && verbose)
+    if (verbose)
     {
-        int stats[3] = {0}; // size, reused, bytes
+        int stats[3] = {0,0,0}; // size, reused, bytes
 
         stats[0] = m_FPBCache.size();
 
@@ -179,7 +179,7 @@ Geometry::FlushPIRMCache ()
 
         ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
 
-        if (ParallelDescriptor::IOProcessor())
+        if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
         {
             std::cout << "Geometry::TheFPBCache: max size: "
                       << stats[0]
