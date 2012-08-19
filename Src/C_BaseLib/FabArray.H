@@ -245,6 +245,14 @@ public:
         std::map<int,int>*         m_RcvVols;
     };
     //
+    // Some useful typedefs for the FillBoundary() cache.
+    //
+    typedef std::multimap<int,FabArrayBase::SI> FBCache;
+
+    typedef FBCache::iterator FBCacheIter;
+
+    static FBCache m_TheFBCache;
+    //
     // When copy()ing from one FabArray to another we can do a copy or an add.
     //
     enum CpOp { COPY = 0, ADD = 1 };
@@ -310,7 +318,7 @@ public:
 
     };
     //
-    // Some useful typedefs for the FPB cache.
+    // Some useful typedefs for the copy() cache.
     //
     typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
 
@@ -357,7 +365,7 @@ public:
     //
     // Returns cached self-intersection records or builds them.
     //
-    static SI& TheFBsirec (bool cross, const FabArrayBase& mf);
+    static FBCacheIter TheFB (bool cross, const FabArrayBase& mf);
     //
     // Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
     //
@@ -2307,26 +2315,45 @@ FabArray<FAB>::FillBoundary (int  scomp,
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
-    FabArrayBase::SI& TheSI = FabArrayBase::TheFBsirec(cross,*this);
-    //
-    // Do local copy()s.
-    //
-    for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
-             End = TheSI.m_LocTags->end();
-         it != End;
-         ++it)
+    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(cross,*this);
+
+    if (cache_it != FabArrayBase::m_TheFBCache.end())
     {
-        const CopyComTag& tag = *it;
+        //
+        // Do local copy()s.
+        //
+        const FabArrayBase::SI& TheSI = cache_it->second;
 
-        BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
-        BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
+        for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
+                 End = TheSI.m_LocTags->end();
+             it != End;
+             ++it)
+        {
+            const CopyComTag& tag = *it;
 
-        get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+            BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
+            BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
+
+            get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+        }
     }
     
     if (NProcs == 1) return;
 
 #ifdef BL_USE_MPI
+    //
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    //
+    const int SeqNum = ParallelDescriptor::SeqNum();
+
+    if (cache_it != FabArrayBase::m_TheFBCache.end())
+        //
+        // No parallel work to do.
+        //
+        return;
+
+    const FabArrayBase::SI& TheSI = cache_it->second;
 
     Array<MPI_Status>  stats;
     Array<int>         recv_from, index;
@@ -2350,8 +2377,6 @@ FabArray<FAB>::FillBoundary (int  scomp,
     BL_ASSERT((TotalRcvsVolume*sizeof(value_type)) < std::numeric_limits<int>::max());
 
     value_type* the_recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(value_type)));
-
-    const int SeqNum = ParallelDescriptor::SeqNum();
 
     int offset = 0;
 

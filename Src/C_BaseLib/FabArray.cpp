@@ -382,16 +382,12 @@ FabArrayBase::SI::bytes () const
     return cnt;
 }
 
-typedef std::multimap<int,FabArrayBase::SI> SIMMap;
-
-typedef SIMMap::iterator SIMMapIter;
-
-static SIMMap SICache;
+FabArrayBase::FBCache FabArrayBase::m_TheFBCache;
 
 void
 FabArrayBase::Finalize ()
 {
-    SICache.clear();
+    FabArrayBase::m_TheFBCache.clear();
 
     FabArrayBase::m_TheCopyCache.clear();
 
@@ -401,13 +397,13 @@ FabArrayBase::Finalize ()
 void
 FabArrayBase::FlushSICache ()
 {
-    if (!SICache.empty() && FabArrayBase::verbose)
+    if (!FabArrayBase::m_TheFBCache.empty() && FabArrayBase::verbose)
     {
         int stats[3] = {0}; // size, reused, bytes
 
-        stats[0] = SICache.size();
+        stats[0] = FabArrayBase::m_TheFBCache.size();
 
-        for (SIMMapIter it = SICache.begin(), End = SICache.end(); it != End; ++it)
+        for (FBCacheIter it = FabArrayBase::m_TheFBCache.begin(), End = FabArrayBase::m_TheFBCache.end(); it != End; ++it)
         {
             stats[2] += it->second.bytes();
             if (it->second.m_reused)
@@ -428,18 +424,18 @@ FabArrayBase::FlushSICache ()
         }
     }
 
-    SICache.clear();
+    FabArrayBase::m_TheFBCache.clear();
 }
 
 int
 FabArrayBase::SICacheSize ()
 {
-    return SICache.size();
+    return FabArrayBase::m_TheFBCache.size();
 }
 
-FabArrayBase::SI&
-FabArrayBase::TheFBsirec (bool                cross,
-                          const FabArrayBase& mf)
+FabArrayBase::FBCacheIter
+FabArrayBase::TheFB (bool                cross,
+                     const FabArrayBase& mf)
 {
     const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), cross);
 
@@ -447,30 +443,30 @@ FabArrayBase::TheFBsirec (bool                cross,
 
     if (use_fb_cache)
     {
-        std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(Key);
+        std::pair<FBCacheIter,FBCacheIter> er_it = FabArrayBase::m_TheFBCache.equal_range(Key);
     
-        for (SIMMapIter it = er_it.first; it != er_it.second; ++it)
+        for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
         {
             if (it->second == si)
             {
                 it->second.m_reused = true;
 
-                return it->second;
+                return it;
             }
         }
 
-        if (SICache.size() >= fb_cache_max_size && fb_cache_max_size != -1)
+        if (FabArrayBase::m_TheFBCache.size() >= fb_cache_max_size && fb_cache_max_size != -1)
         {
             //
             // Don't let the size of the cache get too big.
             //
-            for (SIMMapIter it = SICache.begin(); it != SICache.end(); )
+            for (FBCacheIter it = FabArrayBase::m_TheFBCache.begin(); it != FabArrayBase::m_TheFBCache.end(); )
             {
                 if (!it->second.m_reused)
                 {
-                    SICache.erase(it++);
+                    FabArrayBase::m_TheFBCache.erase(it++);
 
-                    if (SICache.size() < fb_cache_max_size)
+                    if (FabArrayBase::m_TheFBCache.size() < fb_cache_max_size)
                         //
                         // Only delete enough entries to stay under limit.
                         //
@@ -482,35 +478,35 @@ FabArrayBase::TheFBsirec (bool                cross,
                 }
             }
 
-            if (SICache.size() >= fb_cache_max_size)
+            if (FabArrayBase::m_TheFBCache.size() >= fb_cache_max_size)
             {
                 //
                 // Get rid of entry with the smallest key.
                 //
-                SICache.erase(SICache.begin());
+                FabArrayBase::m_TheFBCache.erase(FabArrayBase::m_TheFBCache.begin());
             }
         }
     }
     else
     {
-        SICache.clear();
+        FabArrayBase::m_TheFBCache.clear();
     }
     //
     // Got to build one.
     //
-    SIMMapIter                 it     = SICache.insert(std::make_pair(Key,si));
+    FBCacheIter                it     = FabArrayBase::m_TheFBCache.insert(std::make_pair(Key,si));
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& dm     = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
-    SI&                        TheSI  = it->second;
+    SI&                        theFB  = it->second;
     //
     // Here is where we allocate space for the stuff used in the cache.
     //
-    TheSI.m_LocTags = new SI::CopyComTagsContainer;
-    TheSI.m_SndTags = new SI::MapOfCopyComTagContainers;
-    TheSI.m_RcvTags = new SI::MapOfCopyComTagContainers;
-    TheSI.m_SndVols = new std::map<int,int>;
-    TheSI.m_RcvVols = new std::map<int,int>;
+    theFB.m_LocTags = new SI::CopyComTagsContainer;
+    theFB.m_SndTags = new SI::MapOfCopyComTagContainers;
+    theFB.m_RcvTags = new SI::MapOfCopyComTagContainers;
+    theFB.m_SndVols = new std::map<int,int>;
+    theFB.m_RcvVols = new std::map<int,int>;
 
     CopyComTag                        tag;
     std::vector<Box>                  boxes;
@@ -573,19 +569,19 @@ FabArrayBase::TheFBsirec (bool                cross,
                     {
                         tag.srcIndex = k;
 
-                        TheSI.m_LocTags->push_back(tag);
+                        theFB.m_LocTags->push_back(tag);
                     }
                     else
                     {
-                        (*TheSI.m_RcvTags)[s_owner].push_back(tag);
+                        (*theFB.m_RcvTags)[s_owner].push_back(tag);
 
-                        if (TheSI.m_RcvVols->count(s_owner) > 0)
+                        if (theFB.m_RcvVols->count(s_owner) > 0)
                         {
-                            (*TheSI.m_RcvVols)[s_owner] += vol;
+                            (*theFB.m_RcvVols)[s_owner] += vol;
                         }
                         else
                         {
-                            (*TheSI.m_RcvVols)[s_owner] = vol;
+                            (*theFB.m_RcvVols)[s_owner] = vol;
                         }
                     }
                 }
@@ -593,20 +589,30 @@ FabArrayBase::TheFBsirec (bool                cross,
                 {
                     tag.fabIndex = k;
 
-                    (*TheSI.m_SndTags)[d_owner].push_back(tag);
+                    (*theFB.m_SndTags)[d_owner].push_back(tag);
 
-                    if (TheSI.m_SndVols->count(d_owner) > 0)
+                    if (theFB.m_SndVols->count(d_owner) > 0)
                     {
-                        (*TheSI.m_SndVols)[d_owner] += vol;
+                        (*theFB.m_SndVols)[d_owner] += vol;
                     }
                     else
                     {
-                        (*TheSI.m_SndVols)[d_owner] = vol;
+                        (*theFB.m_SndVols)[d_owner] = vol;
                     }
                 }
             }
         }
     }
 
-    return TheSI;
+    if (theFB.m_LocTags->empty() && theFB.m_SndTags->empty() && theFB.m_RcvTags->empty())
+    {
+        //
+        // This MPI proc has no work to do.  Don't store in the cache.
+        //
+        FabArrayBase::m_TheFBCache.erase(it);
+
+        return FabArrayBase::m_TheFBCache.end();
+    }
+
+    return it;
 }
