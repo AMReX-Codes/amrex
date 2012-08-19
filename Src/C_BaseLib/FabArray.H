@@ -188,7 +188,12 @@ public:
             :
             m_ngrow(-1),
             m_cross(false),
-            m_reused(false) {}
+            m_reused(false),
+            m_LocTags(0),
+            m_SndTags(0),
+            m_RcvTags(0),
+            m_SndVols(0),
+            m_RcvVols(0) {}
 
         SI (const BoxArray&            ba,
             const DistributionMapping& dm,
@@ -199,7 +204,12 @@ public:
             m_dm(dm),
             m_ngrow(ngrow),
             m_cross(cross),
-            m_reused(false)
+            m_reused(false),
+            m_LocTags(0),
+            m_SndTags(0),
+            m_RcvTags(0),
+            m_SndVols(0),
+            m_RcvVols(0)
             {
                 BL_ASSERT(ngrow >= 0);
             }
@@ -231,13 +241,13 @@ public:
         bool                m_cross;
         bool                m_reused;
         //
-        // The cache of local and send/recv info.
+        // The cache of local and send/recv per FillBoundary().
         //
-        CopyComTagsContainer      m_LocTags;
-        MapOfCopyComTagContainers m_SndTags;
-        MapOfCopyComTagContainers m_RcvTags;
-        std::map<int,int>         m_SndVols;
-        std::map<int,int>         m_RcvVols;
+        CopyComTagsContainer*      m_LocTags;
+        MapOfCopyComTagContainers* m_SndTags;
+        MapOfCopyComTagContainers* m_RcvTags;
+        std::map<int,int>*         m_SndVols;
+        std::map<int,int>*         m_RcvVols;
     };
     //
     // When copy()ing from one FabArray to another we can do a copy or an add.
@@ -246,14 +256,32 @@ public:
 
     struct CPC
     {
-        CPC ();
+        CPC ()
+            :
+            m_reused(false),
+            m_LocTags(0),
+            m_SndTags(0),
+            m_RcvTags(0),
+            m_SndVols(0),
+            m_RcvVols(0)
+            {}
 
         CPC (const BoxArray&            dstba,
              const BoxArray&            srcba,
              const DistributionMapping& dstdm,
-             const DistributionMapping& srcdm);
-
-        CPC (const CPC& rhs);
+             const DistributionMapping& srcdm)
+            :
+            m_dstba(dstba),
+            m_srcba(srcba),
+            m_dstdm(dstdm),
+            m_srcdm(srcdm),
+            m_reused(false),
+            m_LocTags(0),
+            m_SndTags(0),
+            m_RcvTags(0),
+            m_SndVols(0),
+            m_RcvVols(0)
+            {}
 
         ~CPC ();
 
@@ -276,6 +304,7 @@ public:
         BoxArray            m_srcba;
         DistributionMapping m_dstdm;
         DistributionMapping m_srcdm;
+        bool                m_reused;
         //
         // Some useful typedefs.
         //
@@ -285,15 +314,12 @@ public:
         //
         // The cache of local and send/recv info per FabArray::copy().
         //
-        CopyComTagsContainer      m_LocTags;
-        MapOfCopyComTagContainers m_SndTags;
-        MapOfCopyComTagContainers m_RcvTags;
-        std::map<int,int>         m_SndVols;
-        std::map<int,int>         m_RcvVols;
-        //
-        // Has this CPC ever been reused in the cache?
-        //
-        bool m_reused;
+        CopyComTagsContainer*      m_LocTags;
+        MapOfCopyComTagContainers* m_SndTags;
+        MapOfCopyComTagContainers* m_RcvTags;
+        std::map<int,int>*         m_SndVols;
+        std::map<int,int>*         m_RcvVols;
+
     };
     //
     // Used for collecting information used in communicating FABs.
@@ -1292,12 +1318,12 @@ FabArray<FAB>::copyAllToAll (const FabArray<FAB>& src,
     Array<int> sendcount(NProcs,0), recvcount(NProcs,0);
     Array<int> senddspls(NProcs,0), recvdspls(NProcs,0);
         
-    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
-             m_End = thecpc.m_SndTags.end();
+    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
+             m_End = thecpc.m_SndTags->end();
          m_it != m_End;
          ++m_it)
     {
-        const int Ns = thecpc.m_SndVols[m_it->first]*ncomp;
+        const int Ns = (*thecpc.m_SndVols)[m_it->first]*ncomp;
 
         Nsend                 += Ns;
         sendcount[m_it->first] = Ns;
@@ -1306,12 +1332,12 @@ FabArray<FAB>::copyAllToAll (const FabArray<FAB>& src,
     for (int i = 1; i < NProcs; i++)
         senddspls[i] = senddspls[i-1] + sendcount[i-1];
 
-    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
-             m_End = thecpc.m_RcvTags.end();
+    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->begin(),
+             m_End = thecpc.m_RcvTags->end();
          m_it != m_End;
          ++m_it)
     {
-        const int Nr = thecpc.m_RcvVols[m_it->first]*ncomp;
+        const int Nr = (*thecpc.m_RcvVols)[m_it->first]*ncomp;
 
         Nrecv                 += Nr;
         recvcount[m_it->first] = Nr;
@@ -1330,8 +1356,8 @@ FabArray<FAB>::copyAllToAll (const FabArray<FAB>& src,
 
     value_type* senddptr = senddata;
 
-    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
-             m_End = thecpc.m_SndTags.end();
+    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
+             m_End = thecpc.m_SndTags->end();
          m_it != m_End;
          ++m_it)
     {
@@ -1365,8 +1391,8 @@ FabArray<FAB>::copyAllToAll (const FabArray<FAB>& src,
 
     value_type* recvdptr = recvdata;
 
-    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
-             m_End = thecpc.m_RcvTags.end();
+    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->begin(),
+             m_End = thecpc.m_RcvTags->end();
          m_it != m_End;
          ++m_it)
     {
@@ -1436,8 +1462,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     // Do local copy()s.
     //
-    for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags.begin(),
-             End = thecpc.m_LocTags.end();
+    for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
+             End = thecpc.m_LocTags->end();
          it != End;
          ++it)
     {
@@ -1479,8 +1505,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         int total_rcvs_volume = 0;
 
-        for (std::map<int,int>::const_iterator it = thecpc.m_RcvVols.begin(),
-                 End = thecpc.m_RcvVols.end();
+        for (std::map<int,int>::const_iterator it = thecpc.m_RcvVols->begin(),
+                 End = thecpc.m_RcvVols->end();
              it != End;
              ++it)
         {
@@ -1497,12 +1523,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         int offset = 0;
 
-        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
-                 m_End = thecpc.m_RcvTags.end();
+        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->begin(),
+                 m_End = thecpc.m_RcvTags->end();
              m_it != m_End;
              ++m_it)
         {
-            const int N = thecpc.m_RcvVols[m_it->first]*ncomp;
+            const int N = (*thecpc.m_RcvVols)[m_it->first]*ncomp;
 
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
@@ -1517,12 +1543,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         FAB fab;
 
-        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
-                 m_End = thecpc.m_SndTags.end();
+        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
+                 m_End = thecpc.m_SndTags->end();
              m_it != m_End;
              ++m_it)
         {
-            const int N = thecpc.m_SndVols[m_it->first]*ncomp;
+            const int N = (*thecpc.m_SndVols)[m_it->first]*ncomp;
 
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
@@ -1559,7 +1585,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         CPC::MapOfCopyComTagContainers::const_iterator m_it;
 
-        const int N_rcvs = thecpc.m_RcvTags.size();
+        const int N_rcvs = thecpc.m_RcvTags->size();
 
         index.resize(N_rcvs);
         stats.resize(N_rcvs);
@@ -1574,9 +1600,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
                 BL_ASSERT(dptr != 0);
 
-                m_it = thecpc.m_RcvTags.find(recv_from[index[k]]);
+                m_it = thecpc.m_RcvTags->find(recv_from[index[k]]);
 
-                BL_ASSERT(m_it != thecpc.m_RcvTags.end());
+                BL_ASSERT(m_it != thecpc.m_RcvTags->end());
 
                 for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                          End = m_it->second.end();
@@ -1603,12 +1629,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         BoxLib::The_Arena()->free(the_recv_data);
 
-        if (FabArrayBase::do_async_sends && !thecpc.m_SndTags.empty())
+        if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty())
         {
             //
             // Now grok the asynchronous send buffers & free up send buffer space.
             //
-            const int N_snds = thecpc.m_SndTags.size();
+            const int N_snds = thecpc.m_SndTags->size();
 
             stats.resize(N_snds);
 
@@ -2567,8 +2593,8 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     // Do local copy()s.
     //
-    for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags.begin(),
-             End = TheSI.m_LocTags.end();
+    for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
+             End = TheSI.m_LocTags->end();
          it != End;
          ++it)
     {
@@ -2593,8 +2619,8 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     int TotalRcvsVolume = 0;
 
-    for (std::map<int,int>::const_iterator it = TheSI.m_RcvVols.begin(),
-             End = TheSI.m_RcvVols.end();
+    for (std::map<int,int>::const_iterator it = TheSI.m_RcvVols->begin(),
+             End = TheSI.m_RcvVols->end();
          it != End;
          ++it)
     {
@@ -2611,12 +2637,12 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     int offset = 0;
 
-    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags.begin(),
-             m_End = TheSI.m_RcvTags.end();
+    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->begin(),
+             m_End = TheSI.m_RcvTags->end();
          m_it != m_End;
          ++m_it)
     {
-        const int N = TheSI.m_RcvVols[m_it->first]*ncomp;
+        const int N = (*TheSI.m_RcvVols)[m_it->first]*ncomp;
 
         BL_ASSERT(N < std::numeric_limits<int>::max());
 
@@ -2631,12 +2657,12 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     FAB fab;
 
-    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags.begin(),
-             m_End = TheSI.m_SndTags.end();
+    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
+             m_End = TheSI.m_SndTags->end();
          m_it != m_End;
          ++m_it)
     {
-        const int N = TheSI.m_SndVols[m_it->first]*ncomp;
+        const int N = (*TheSI.m_SndVols)[m_it->first]*ncomp;
 
         BL_ASSERT(N < std::numeric_limits<int>::max());
 
@@ -2674,7 +2700,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     SI::MapOfCopyComTagContainers::const_iterator m_it;
 
-    const int N_rcvs = TheSI.m_RcvTags.size();
+    const int N_rcvs = TheSI.m_RcvTags->size();
 
     index.resize(N_rcvs);
     stats.resize(N_rcvs);
@@ -2689,9 +2715,9 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
             BL_ASSERT(dptr != 0);
 
-            m_it = TheSI.m_RcvTags.find(recv_from[index[k]]);
+            m_it = TheSI.m_RcvTags->find(recv_from[index[k]]);
 
-            BL_ASSERT(m_it != TheSI.m_RcvTags.end());
+            BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 
             for (SI::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
@@ -2710,12 +2736,12 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     BoxLib::The_Arena()->free(the_recv_data);
 
-    if (FabArrayBase::do_async_sends && !TheSI.m_SndTags.empty())
+    if (FabArrayBase::do_async_sends && !TheSI.m_SndTags->empty())
     {
         //
         // Now grok the asynchronous send buffers & free up send buffer space.
         //
-        const int N_snds = TheSI.m_SndTags.size();
+        const int N_snds = TheSI.m_SndTags->size();
 
         stats.resize(N_snds);
 

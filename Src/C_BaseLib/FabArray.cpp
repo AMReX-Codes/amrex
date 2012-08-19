@@ -114,38 +114,14 @@ FabArrayBase::CommDataCache::operator= (const Array<ParallelDescriptor::CommData
 // Stuff used for copy() caching.
 //
 
-FabArrayBase::CPC::CPC ()
-    :
-    m_reused(false)
-{}
-
-FabArrayBase::CPC::CPC (const BoxArray&            dstba,
-                        const BoxArray&            srcba,
-                        const DistributionMapping& dstdm,
-                        const DistributionMapping& srcdm)
-    :
-    m_dstba(dstba),
-    m_srcba(srcba),
-    m_dstdm(dstdm),
-    m_srcdm(srcdm),
-    m_reused(false)
-{}
-
-FabArrayBase::CPC::CPC (const CPC& rhs)
-    :
-    m_dstba(rhs.m_dstba),
-    m_srcba(rhs.m_srcba),
-    m_dstdm(rhs.m_dstdm),
-    m_srcdm(rhs.m_srcdm),
-    m_LocTags(rhs.m_LocTags),
-    m_SndTags(rhs.m_SndTags),
-    m_RcvTags(rhs.m_RcvTags),
-    m_SndVols(rhs.m_SndVols),
-    m_RcvVols(rhs.m_RcvVols),
-    m_reused(rhs.m_reused)
-{}
-
-FabArrayBase::CPC::~CPC () {}
+FabArrayBase::CPC::~CPC ()
+{
+    delete m_LocTags;
+    delete m_SndTags;
+    delete m_RcvTags;
+    delete m_SndVols;
+    delete m_RcvVols;
+}
 
 typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
 
@@ -156,11 +132,11 @@ static CPCCache TheCopyCache;
 FabArrayBase::CPC&
 FabArrayBase::CPC::TheCPC (const CPC& cpc)
 {
-    const int key = cpc.m_dstba.size() + cpc.m_srcba.size();
+    const int Key = cpc.m_dstba.size() + cpc.m_srcba.size();
 
     if (use_copy_cache)
     {
-        std::pair<CPCCacheIter,CPCCacheIter> er_it = TheCopyCache.equal_range(key);
+        std::pair<CPCCacheIter,CPCCacheIter> er_it = TheCopyCache.equal_range(Key);
 
         for (CPCCacheIter it = er_it.first; it != er_it.second; ++it)
         {
@@ -208,30 +184,35 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc)
     {
         TheCopyCache.clear();
     }
-
-    CPCCacheIter it = TheCopyCache.insert(std::make_pair(key,cpc));
     //
     // Got to build it.
     //
-    CPC& thecpc = it->second;
+    const int    MyProc = ParallelDescriptor::MyProc();
+    CPCCacheIter it     = TheCopyCache.insert(std::make_pair(Key,cpc));
+    CPC&         TheCPC = it->second;
+    //
+    // Here is where we allocate space for the stuff used in the cache.
+    //
+    TheCPC.m_LocTags = new CPC::CopyComTagsContainer;
+    TheCPC.m_SndTags = new CPC::MapOfCopyComTagContainers;
+    TheCPC.m_RcvTags = new CPC::MapOfCopyComTagContainers;
+    TheCPC.m_SndVols = new std::map<int,int>;
+    TheCPC.m_RcvVols = new std::map<int,int>;
 
-    CopyComTag tag;
-
+    CopyComTag                        tag;
     std::vector< std::pair<int,Box> > isects;
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    for (int i = 0, N = thecpc.m_dstba.size(); i < N; i++)
+    for (int i = 0, N = TheCPC.m_dstba.size(); i < N; i++)
     {
-        thecpc.m_srcba.intersections(thecpc.m_dstba[i],isects);
+        TheCPC.m_srcba.intersections(TheCPC.m_dstba[i],isects);
 
-        const int d_owner = thecpc.m_dstdm[i];
+        const int d_owner = TheCPC.m_dstdm[i];
 
         for (int j = 0, M = isects.size(); j < M; j++)
         {
             const Box& bx      = isects[j].second;
             const int  k       = isects[j].first;
-            const int  s_owner = thecpc.m_srcdm[k];
+            const int  s_owner = TheCPC.m_srcdm[k];
 
             if (d_owner != MyProc && s_owner != MyProc) continue;
 
@@ -247,19 +228,19 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc)
                 {
                     tag.srcIndex = k;
 
-                    thecpc.m_LocTags.push_back(tag);
+                    TheCPC.m_LocTags->push_back(tag);
                 }
                 else
                 {
-                    thecpc.m_RcvTags[s_owner].push_back(tag);
+                    (*TheCPC.m_RcvTags)[s_owner].push_back(tag);
 
-                    if (thecpc.m_RcvVols.count(s_owner) > 0)
+                    if (TheCPC.m_RcvVols->count(s_owner) > 0)
                     {
-                        thecpc.m_RcvVols[s_owner] += vol;
+                        (*TheCPC.m_RcvVols)[s_owner] += vol;
                     }
                     else
                     {
-                        thecpc.m_RcvVols[s_owner] = vol;
+                        (*TheCPC.m_RcvVols)[s_owner] = vol;
                     }
                 }
             }
@@ -267,21 +248,21 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc)
             {
                 tag.fabIndex = k;
 
-                thecpc.m_SndTags[d_owner].push_back(tag);
+                (*TheCPC.m_SndTags)[d_owner].push_back(tag);
 
-                if (thecpc.m_SndVols.count(d_owner) > 0)
+                if (TheCPC.m_SndVols->count(d_owner) > 0)
                 {
-                    thecpc.m_SndVols[d_owner] += vol;
+                    (*TheCPC.m_SndVols)[d_owner] += vol;
                 }
                 else
                 {
-                    thecpc.m_SndVols[d_owner] = vol;
+                    (*TheCPC.m_SndVols)[d_owner] = vol;
                 }
             }
         }
     }
 
-    return thecpc;
+    return TheCPC;
 }
 
 void
@@ -300,7 +281,14 @@ FabArrayBase::CPC::FlushCache ()
     TheCopyCache.clear();
 }
 
-FabArrayBase::SI::~SI () {}
+FabArrayBase::SI::~SI ()
+{
+    delete m_LocTags;
+    delete m_SndTags;
+    delete m_RcvTags;
+    delete m_SndVols;
+    delete m_RcvVols;
+}
 
 typedef std::multimap<int,FabArrayBase::SI> SIMMap;
 
@@ -407,6 +395,14 @@ FabArrayBase::TheFBsirec (bool                cross,
     const DistributionMapping& dm     = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
     SI&                        TheSI  = it->second;
+    //
+    // Here is where we allocate space for the stuff used in the cache.
+    //
+    TheSI.m_LocTags = new SI::CopyComTagsContainer;
+    TheSI.m_SndTags = new SI::MapOfCopyComTagContainers;
+    TheSI.m_RcvTags = new SI::MapOfCopyComTagContainers;
+    TheSI.m_SndVols = new std::map<int,int>;
+    TheSI.m_RcvVols = new std::map<int,int>;
 
     CopyComTag                        tag;
     std::vector<Box>                  boxes;
@@ -453,9 +449,9 @@ FabArrayBase::TheFBsirec (bool                cross,
                 const int  k       = isects[j].first;
                 const int  s_owner = dm[k];
 
-                if (k == i) continue;
-
                 if (d_owner != MyProc && s_owner != MyProc) continue;
+
+                if (k == i) continue;
 
                 const int vol = bx.numPts();
 
@@ -469,19 +465,19 @@ FabArrayBase::TheFBsirec (bool                cross,
                     {
                         tag.srcIndex = k;
 
-                        TheSI.m_LocTags.push_back(tag);
+                        TheSI.m_LocTags->push_back(tag);
                     }
                     else
                     {
-                        TheSI.m_RcvTags[s_owner].push_back(tag);
+                        (*TheSI.m_RcvTags)[s_owner].push_back(tag);
 
-                        if (TheSI.m_RcvVols.count(s_owner) > 0)
+                        if (TheSI.m_RcvVols->count(s_owner) > 0)
                         {
-                            TheSI.m_RcvVols[s_owner] += vol;
+                            (*TheSI.m_RcvVols)[s_owner] += vol;
                         }
                         else
                         {
-                            TheSI.m_RcvVols[s_owner] = vol;
+                            (*TheSI.m_RcvVols)[s_owner] = vol;
                         }
                     }
                 }
@@ -489,15 +485,15 @@ FabArrayBase::TheFBsirec (bool                cross,
                 {
                     tag.fabIndex = k;
 
-                    TheSI.m_SndTags[d_owner].push_back(tag);
+                    (*TheSI.m_SndTags)[d_owner].push_back(tag);
 
-                    if (TheSI.m_SndVols.count(d_owner) > 0)
+                    if (TheSI.m_SndVols->count(d_owner) > 0)
                     {
-                        TheSI.m_SndVols[d_owner] += vol;
+                        (*TheSI.m_SndVols)[d_owner] += vol;
                     }
                     else
                     {
-                        TheSI.m_SndVols[d_owner] = vol;
+                        (*TheSI.m_SndVols)[d_owner] = vol;
                     }
                 }
             }
