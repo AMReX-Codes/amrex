@@ -294,12 +294,9 @@ public:
         std::map<int,int>*        m_SndVols;
         std::map<int,int>*        m_RcvVols;
     };
-
-    static Geometry::FPB& GetFPB (const Geometry&      geom,
-                                  const Geometry::FPB& fpb,
-                                  int                  scomp,
-                                  int                  ncomp);
-
+    //
+    // Some useful typedefs for the FPB cache.
+    //
     typedef std::multimap<int,Geometry::FPB> FPBMMap;
 
     typedef FPBMMap::iterator FPBMMapIter;
@@ -307,7 +304,13 @@ public:
     static FPBMMap m_FPBCache;
 
     static int fpb_cache_max_size;
-
+    //
+    // See if we're got an approprite FPB cached.
+    //
+    static Geometry::FPBMMapIter GetFPB (const Geometry&      geom,
+                                         const Geometry::FPB& fpb,
+                                         int                  scomp,
+                                         int                  ncomp);
 private:
     //
     // Helper functions.
@@ -478,28 +481,46 @@ namespace BoxLib
             if (geom.isPeriodic(n))
                 BL_ASSERT(mf.nGrow() <= geom.Domain().length(n));
 #endif
-        Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
+        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
 
-        Geometry::FPB& TheFPB = Geometry::GetFPB(geom,fpb,scomp,ncomp);
-        //
-        // Do local work.
-        //
-        for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
-                 End = TheFPB.m_LocTags->end();
-             it != End;
-             ++it)
+        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,scomp,ncomp);
+
+        if (cache_it != Geometry::m_FPBCache.end())
         {
-            const Geometry::FPBComTag& tag = *it;
+            Geometry::FPB& TheFPB = cache_it->second;
+            //
+            // Do local work.
+            //
+            for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
+                     End = TheFPB.m_LocTags->end();
+                 it != End;
+                 ++it)
+            {
+                const Geometry::FPBComTag& tag = *it;
 
-            BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
+                BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
+                BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
 
-            mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+                mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+            }
         }
     
         if (ParallelDescriptor::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
+        //
+        // Do this before prematurely exiting if running in parallel.
+        // Otherwise sequence numbers will not match across MPI processes.
+        //
+        const int SeqNum = ParallelDescriptor::SeqNum();
+
+        if (cache_it == Geometry::m_FPBCache.end())
+            //
+            // No parallel work to do.
+            //
+            return;
+
+        Geometry::FPB& TheFPB = cache_it->second;
 
         typedef typename FAB::value_type value_type;
 
@@ -526,7 +547,7 @@ namespace BoxLib
 
         value_type* the_recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(total_rcvs_volume*sizeof(value_type)));
 
-        const int seqno = ParallelDescriptor::SeqNum();
+
 
         int offset = 0;
 
@@ -541,7 +562,7 @@ namespace BoxLib
 
             recv_data.push_back(&the_recv_data[offset]);
             recv_from.push_back(m_it->first);
-            recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,seqno).req());
+            recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
 
             offset += N;
         }
@@ -579,11 +600,11 @@ namespace BoxLib
             if (FabArrayBase::do_async_sends)
             {
                 send_data.push_back(data);
-                send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,seqno).req());
+                send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
             }
             else
             {
-                ParallelDescriptor::Send(data,N,m_it->first,seqno);
+                ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
                 BoxLib::The_Arena()->free(data);
             }
         }
