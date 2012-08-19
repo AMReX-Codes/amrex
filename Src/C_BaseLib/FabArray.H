@@ -340,7 +340,21 @@ public:
         int procThatHasData;
         Box box;
 
-        FabComTag ();
+        FabComTag ()
+            :
+            fromProc(0),
+            toProc(0),
+            fabIndex(0),
+            fineIndex(0),
+            srcComp(0),
+            destComp(0),
+            nComp(0),
+            face(0),
+            fabArrayId(0),
+            fillBoxId(0),
+            procThatNeedsData(0),
+            procThatHasData(0)
+            {}
     };
     //
     // Returns cached self-intersection records or builds them.
