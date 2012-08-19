@@ -708,7 +708,7 @@ Geometry::periodicShift (const Box&      target,
     }
 }
 
-Geometry::FPB&
+Geometry::FPBMMapIter
 Geometry::GetFPB (const Geometry&      geom,
                   const Geometry::FPB& fpb,
                   int                  scomp,
@@ -731,7 +731,7 @@ Geometry::GetFPB (const Geometry&      geom,
         {
             it->second.m_reused = true;
 
-            return it->second;
+            return it;
         }
     }
 
@@ -869,5 +869,15 @@ Geometry::GetFPB (const Geometry&      geom,
         }
     }
 
-    return TheFPB;
+    if (TheFPB.m_LocTags->empty() && TheFPB.m_SndTags->empty() &&  TheFPB.m_RcvTags->empty())
+    {
+        //
+        // This MPI proc has no work to do.  Don't store in the cache.
+        //
+        Geometry::m_FPBCache.erase(it);
+
+        return Geometry::m_FPBCache.end();
+    }
+
+    return it;
 }
