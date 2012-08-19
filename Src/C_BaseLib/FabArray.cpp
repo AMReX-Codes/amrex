@@ -28,7 +28,7 @@ FabArrayBase::Initialize ()
     //
     // Set default values here!!!
     //
-    FabArrayBase::verbose          = false;
+    FabArrayBase::verbose          = true;
     FabArrayBase::do_async_sends   = false;
     FabArrayBase::do_not_use_cache = false;
 
@@ -105,6 +105,44 @@ bool
 FabArrayBase::CPC::operator== (const CPC& rhs) const
 {
     return m_dstba == rhs.m_dstba && m_srcba == rhs.m_srcba && m_dstdm == rhs.m_dstdm && m_srcdm == rhs.m_srcdm;
+}
+
+int
+FabArrayBase::CPC::bytes () const
+{
+    //
+    // Get a rough estimate of number of bytes used by a CPC.
+    //
+    int cnt = 0;
+
+    if (m_LocTags)
+    {
+        //
+        // If m_LocTags is defined then they're all defined.
+        //
+        cnt += m_LocTags->size()*sizeof(CopyComTag);
+
+        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
+                 m_End = m_SndTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += it->second.size()*sizeof(CopyComTag);
+        }
+
+        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
+                 m_End = m_RcvTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += it->second.size()*sizeof(CopyComTag);
+        }
+
+        cnt += 2*m_SndVols->size()*sizeof(int);
+        cnt += 2*m_RcvVols->size()*sizeof(int);
+    }
+
+    return cnt;
 }
 
 typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
@@ -252,16 +290,33 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc)
 void
 FabArrayBase::CPC::FlushCache ()
 {
-    if (ParallelDescriptor::IOProcessor() && !TheCopyCache.empty() && FabArrayBase::verbose)
+    if (!TheCopyCache.empty() && FabArrayBase::verbose)
     {
-        int reused = 0;
+        int stats[3] = {0}; // size, reused, bytes
+
+        stats[0] = TheCopyCache.size();
 
         for (CPCCacheIter it = TheCopyCache.begin(), End = TheCopyCache.end(); it != End; ++it)
+        {
+            stats[2] += it->second.bytes();
             if (it->second.m_reused)
-                reused++;
+                stats[1]++;
+        }
 
-        std::cout << "CPC::TheCopyCache.size() = " << TheCopyCache.size() << ", # reused = " << reused << '\n';
+        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "CPC::TheCopyCache: max size: "
+                      << stats[0]
+                      << ", max # reused: "
+                      << stats[1]
+                      << ", max bytes used: "
+                      << stats[2]
+                      << std::endl;
+        }
     }
+
     TheCopyCache.clear();
 }
 
@@ -278,6 +333,44 @@ bool
 FabArrayBase::SI::operator== (const SI& rhs) const
 {
     return m_ngrow == rhs.m_ngrow && m_cross == rhs.m_cross && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
+}
+
+int
+FabArrayBase::SI::bytes () const
+{
+    //
+    // Get a rough estimate of number of bytes used by a CPC.
+    //
+    int cnt = 0;
+
+    if (m_LocTags)
+    {
+        //
+        // If m_LocTags is defined then they're all defined.
+        //
+        cnt += m_LocTags->size()*sizeof(CopyComTag);
+
+        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
+                 m_End = m_SndTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += it->second.size()*sizeof(CopyComTag);
+        }
+
+        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
+                 m_End = m_RcvTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += it->second.size()*sizeof(CopyComTag);
+        }
+
+        cnt += 2*m_SndVols->size()*sizeof(int);
+        cnt += 2*m_RcvVols->size()*sizeof(int);
+    }
+
+    return cnt;
 }
 
 typedef std::multimap<int,FabArrayBase::SI> SIMMap;
@@ -299,15 +392,31 @@ FabArrayBase::Finalize ()
 void
 FabArrayBase::FlushSICache ()
 {
-    if (ParallelDescriptor::IOProcessor() && !SICache.empty() && FabArrayBase::verbose)
+    if (!SICache.empty() && FabArrayBase::verbose)
     {
-        int reused = 0;
+        int stats[3] = {0}; // size, reused, bytes
+
+        stats[0] = SICache.size();
 
         for (SIMMapIter it = SICache.begin(), End = SICache.end(); it != End; ++it)
+        {
+            stats[2] += it->second.bytes();
             if (it->second.m_reused)
-                reused++;
+                stats[1]++;
+        }
 
-        std::cout << "FabArrayBase::SICache.size() = " << SICache.size() << ", # reused = " << reused << '\n';
+        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "SI::TheFBCache: max size: "
+                      << stats[0]
+                      << ", max # reused: "
+                      << stats[1]
+                      << ", max bytes used: "
+                      << stats[2]
+                      << std::endl;
+        }
     }
 
     SICache.clear();

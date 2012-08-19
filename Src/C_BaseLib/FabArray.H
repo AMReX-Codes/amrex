@@ -219,6 +219,8 @@ public:
         bool operator== (const SI& rhs) const;
 
         bool operator!= (const SI& rhs) const { return !operator==(rhs); }
+
+        int bytes () const;
         //
         // Some useful typedefs.
         //
@@ -281,6 +283,8 @@ public:
         bool operator== (const CPC& rhs) const;
 
         bool operator!= (const CPC& rhs) const { return !operator==(rhs); }
+
+        int bytes () const;
 
         static CPC& TheCPC (const CPC& cpc);
 
@@ -1342,8 +1346,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 #ifdef BL_USE_MPI
 
-    const Real strt = ParallelDescriptor::second();
-
     Array<MPI_Status>  stats;
     Array<int>         recv_from, index;
     Array<value_type*> recv_data, send_data;
@@ -1490,17 +1492,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         for (int i = 0; i < N_snds; i++)
             BoxLib::The_Arena()->free(send_data[i]);
-    }
-
-    if (verbose)
-    {
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-        Real      tot    = ParallelDescriptor::second() - strt;
-
-        ParallelDescriptor::ReduceRealMax(tot,IOProc);
-
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "FabArray::copy() time = " << tot << std::endl;
     }
 
 #endif /*BL_USE_MPI*/

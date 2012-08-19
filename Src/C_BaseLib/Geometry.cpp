@@ -94,6 +94,44 @@ Geometry::FPB::operator== (const FPB& rhs) const
         m_ngrow == rhs.m_ngrow && m_do_corners == rhs.m_do_corners && m_domain == rhs.m_domain && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
 }
 
+int
+Geometry::FPB::bytes () const
+{
+    //
+    // Get a rough estimate of number of bytes used by a FPB.
+    //
+    int cnt = 0;
+
+    if (m_LocTags)
+    {
+        //
+        // If m_LocTags is defined then they're all defined.
+        //
+        cnt += m_LocTags->size()*sizeof(FPBComTag);
+
+        for (FPB::MapOfFPBComTagContainers::const_iterator it = m_SndTags->begin(),
+                 m_End = m_SndTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += it->second.size()*sizeof(FPBComTag);
+        }
+
+        for (FPB::MapOfFPBComTagContainers::const_iterator it = m_RcvTags->begin(),
+                 m_End = m_RcvTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += it->second.size()*sizeof(FPBComTag);
+        }
+
+        cnt += 2*m_SndVols->size()*sizeof(int);
+        cnt += 2*m_RcvVols->size()*sizeof(int);
+    }
+
+    return cnt;
+}
+
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 bool      do_corners,
@@ -126,16 +164,33 @@ Geometry::PIRMCacheSize ()
 void
 Geometry::FlushPIRMCache ()
 {
-    if (ParallelDescriptor::IOProcessor() && !m_FPBCache.empty() && verbose)
+    if (!m_FPBCache.empty() && verbose)
     {
-        int reused = 0;
+        int stats[3] = {0}; // size, reused, bytes
+
+        stats[0] = m_FPBCache.size();
 
         for (FPBMMapIter it = m_FPBCache.begin(), End = m_FPBCache.end(); it != End; ++it)
+        {
+            stats[2] += it->second.bytes();
             if (it->second.m_reused)
-                reused++;
+                stats[1]++;
+        }
 
-        std::cout << "Geometry::PIRMCache.size() = " << m_FPBCache.size() << ", # reused = " << reused << '\n';
+        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "Geometry::TheFPBCache: max size: "
+                      << stats[0]
+                      << ", max # reused: "
+                      << stats[1]
+                      << ", max bytes used: "
+                      << stats[2]
+                      << std::endl;
+        }
     }
+
     m_FPBCache.clear();
 }
 
@@ -481,7 +536,7 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     //
     // Set default values here!!!
     //
-    verbose                        = false;
+    verbose                        = true;
     Geometry::spherical_origin_fix = 0;
     Geometry::fpb_cache_max_size   = fpb_cache_max_size_def;
 
