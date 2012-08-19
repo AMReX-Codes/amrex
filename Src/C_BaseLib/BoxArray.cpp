@@ -12,8 +12,6 @@ BoxArray::reserve (long _truesize)
     m_ref->m_abox.reserve(_truesize);
 }
 
-BoxArray::Ref::Ref () {}
-
 BoxArray::BoxArray ()
     :
     m_ref(new BoxArray::Ref)
@@ -41,11 +39,6 @@ BoxArray::Ref::Ref (std::istream& is)
     define(is);
 }
 
-BoxArray::BoxArray (const BoxArray& rhs)
-    :
-    m_ref(rhs.m_ref)
-{}
-
 BoxArray::Ref::Ref (size_t size)
     :
     m_abox(size)
@@ -69,13 +62,6 @@ BoxArray::Ref::Ref (const Ref& rhs)
     :
     m_abox(rhs.m_abox)
 {}
-
-BoxArray&
-BoxArray::operator= (const BoxArray& rhs)
-{
-    m_ref = rhs.m_ref;
-    return *this;
-}
 
 void
 BoxArray::uniqify ()
