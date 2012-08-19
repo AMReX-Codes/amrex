@@ -869,7 +869,7 @@ Geometry::GetFPB (const Geometry&      geom,
         }
     }
 
-    if (TheFPB.m_LocTags->empty() && TheFPB.m_SndTags->empty() &&  TheFPB.m_RcvTags->empty())
+    if (TheFPB.m_LocTags->empty() && TheFPB.m_SndTags->empty() && TheFPB.m_RcvTags->empty())
     {
         //
         // This MPI proc has no work to do.  Don't store in the cache.

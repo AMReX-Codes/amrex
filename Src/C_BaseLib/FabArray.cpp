@@ -208,9 +208,9 @@ FabArrayBase::TheCPC (const CPC& cpc)
     //
     // Got to build it.
     //
-    const int    MyProc = ParallelDescriptor::MyProc();
-    CPCCacheIter it     = FabArrayBase::m_TheCopyCache.insert(std::make_pair(Key,cpc));
-    CPC&         TheCPC = it->second;
+    const int    MyProc   = ParallelDescriptor::MyProc();
+    CPCCacheIter cache_it = FabArrayBase::m_TheCopyCache.insert(std::make_pair(Key,cpc));
+    CPC&         TheCPC   = cache_it->second;
     //
     // Here is where we allocate space for the stuff used in the cache.
     //
@@ -288,12 +288,12 @@ FabArrayBase::TheCPC (const CPC& cpc)
         //
         // This MPI proc has no work to do.  Don't store in the cache.
         //
-        FabArrayBase::m_TheCopyCache.erase(it);
+        FabArrayBase::m_TheCopyCache.erase(cache_it);
 
         return FabArrayBase::m_TheCopyCache.end();
     }
 
-    return it;
+    return cache_it;
 }
 
 void
@@ -494,11 +494,11 @@ FabArrayBase::TheFB (bool                cross,
     //
     // Got to build one.
     //
-    FBCacheIter                it     = FabArrayBase::m_TheFBCache.insert(std::make_pair(Key,si));
-    const BoxArray&            ba     = mf.boxArray();
-    const DistributionMapping& dm     = mf.DistributionMap();
-    const int                  MyProc = ParallelDescriptor::MyProc();
-    SI&                        theFB  = it->second;
+    FBCacheIter                cache_it = FabArrayBase::m_TheFBCache.insert(std::make_pair(Key,si));
+    const BoxArray&            ba       = mf.boxArray();
+    const DistributionMapping& dm       = mf.DistributionMap();
+    const int                  MyProc   = ParallelDescriptor::MyProc();
+    SI&                        theFB    = cache_it->second;
     //
     // Here is where we allocate space for the stuff used in the cache.
     //
@@ -609,10 +609,10 @@ FabArrayBase::TheFB (bool                cross,
         //
         // This MPI proc has no work to do.  Don't store in the cache.
         //
-        FabArrayBase::m_TheFBCache.erase(it);
+        FabArrayBase::m_TheFBCache.erase(cache_it);
 
         return FabArrayBase::m_TheFBCache.end();
     }
 
-    return it;
+    return cache_it;
 }

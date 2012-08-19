@@ -2347,7 +2347,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (cache_it != FabArrayBase::m_TheFBCache.end())
+    if (cache_it == FabArrayBase::m_TheFBCache.end())
         //
         // No parallel work to do.
         //
