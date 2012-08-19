@@ -145,20 +145,19 @@ FabArrayBase::CPC::bytes () const
     return cnt;
 }
 
-typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
+//
+// The copy() cache.
+//
+FabArrayBase::CPCCache FabArrayBase::m_TheCopyCache;
 
-typedef CPCCache::iterator CPCCacheIter;
-
-static CPCCache TheCopyCache;
-
-FabArrayBase::CPC&
-FabArrayBase::CPC::TheCPC (const CPC& cpc)
+FabArrayBase::CPCCacheIter
+FabArrayBase::TheCPC (const CPC& cpc)
 {
     const int Key = cpc.m_dstba.size() + cpc.m_srcba.size();
 
     if (use_copy_cache)
     {
-        std::pair<CPCCacheIter,CPCCacheIter> er_it = TheCopyCache.equal_range(Key);
+        std::pair<CPCCacheIter,CPCCacheIter> er_it = FabArrayBase::m_TheCopyCache.equal_range(Key);
 
         for (CPCCacheIter it = er_it.first; it != er_it.second; ++it)
         {
@@ -166,22 +165,22 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc)
             {
                 it->second.m_reused = true;
 
-                return it->second;
+                return it;
             }
         }
 
-        if (TheCopyCache.size() >= copy_cache_max_size && copy_cache_max_size != -1)
+        if (FabArrayBase::m_TheCopyCache.size() >= copy_cache_max_size && copy_cache_max_size != -1)
         {
             //
             // Don't let the size of the cache get too big.
             //
-            for (CPCCacheIter it = TheCopyCache.begin(); it != TheCopyCache.end(); )
+            for (CPCCacheIter it = FabArrayBase::m_TheCopyCache.begin(); it != FabArrayBase::m_TheCopyCache.end(); )
             {
                 if (!it->second.m_reused)
                 {
-                    TheCopyCache.erase(it++);
+                    FabArrayBase::m_TheCopyCache.erase(it++);
 
-                    if (TheCopyCache.size() < copy_cache_max_size)
+                    if (FabArrayBase::m_TheCopyCache.size() < copy_cache_max_size)
                         //
                         // Only delete enough entries to stay under limit.
                         //
@@ -193,24 +192,24 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc)
                 }
             }
 
-            if (TheCopyCache.size() >= copy_cache_max_size)
+            if (FabArrayBase::m_TheCopyCache.size() >= copy_cache_max_size)
             {
                 //
                 // Get rid of entry with the smallest key.
                 //
-                TheCopyCache.erase(TheCopyCache.begin());
+                FabArrayBase::m_TheCopyCache.erase(FabArrayBase::m_TheCopyCache.begin());
             }
         }
     }
     else
     {
-        TheCopyCache.clear();
+        FabArrayBase::m_TheCopyCache.clear();
     }
     //
     // Got to build it.
     //
     const int    MyProc = ParallelDescriptor::MyProc();
-    CPCCacheIter it     = TheCopyCache.insert(std::make_pair(Key,cpc));
+    CPCCacheIter it     = FabArrayBase::m_TheCopyCache.insert(std::make_pair(Key,cpc));
     CPC&         TheCPC = it->second;
     //
     // Here is where we allocate space for the stuff used in the cache.
@@ -284,19 +283,29 @@ FabArrayBase::CPC::TheCPC (const CPC& cpc)
         }
     }
 
-    return TheCPC;
+    if (TheCPC.m_LocTags->empty() && TheCPC.m_SndTags->empty() && TheCPC.m_RcvTags->empty())
+    {
+        //
+        // This MPI proc has no work to do.  Don't store in the cache.
+        //
+        FabArrayBase::m_TheCopyCache.erase(it);
+
+        return FabArrayBase::m_TheCopyCache.end();
+    }
+
+    return it;
 }
 
 void
 FabArrayBase::CPC::FlushCache ()
 {
-    if (!TheCopyCache.empty() && FabArrayBase::verbose)
+    if (!FabArrayBase::m_TheCopyCache.empty() && FabArrayBase::verbose)
     {
         int stats[3] = {0}; // size, reused, bytes
 
-        stats[0] = TheCopyCache.size();
+        stats[0] = FabArrayBase::m_TheCopyCache.size();
 
-        for (CPCCacheIter it = TheCopyCache.begin(), End = TheCopyCache.end(); it != End; ++it)
+        for (CPCCacheIter it = FabArrayBase::m_TheCopyCache.begin(), End = FabArrayBase::m_TheCopyCache.end(); it != End; ++it)
         {
             stats[2] += it->second.bytes();
             if (it->second.m_reused)
@@ -307,7 +316,7 @@ FabArrayBase::CPC::FlushCache ()
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "CPC::TheCopyCache: max size: "
+            std::cout << "CPC::m_TheCopyCache: max size: "
                       << stats[0]
                       << ", max # reused: "
                       << stats[1]
@@ -317,7 +326,7 @@ FabArrayBase::CPC::FlushCache ()
         }
     }
 
-    TheCopyCache.clear();
+    FabArrayBase::m_TheCopyCache.clear();
 }
 
 FabArrayBase::SI::~SI ()
@@ -384,7 +393,7 @@ FabArrayBase::Finalize ()
 {
     SICache.clear();
 
-    TheCopyCache.clear();
+    FabArrayBase::m_TheCopyCache.clear();
 
     initialized = false;
 }
