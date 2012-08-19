@@ -6,7 +6,6 @@
 // Set default values in Initialize()!!!
 //
 bool FabArrayBase::verbose;
-bool FabArrayBase::do_alltoallv;
 bool FabArrayBase::do_async_sends;
 bool FabArrayBase::do_not_use_cache;
 
@@ -30,7 +29,6 @@ FabArrayBase::Initialize ()
     // Set default values here!!!
     //
     FabArrayBase::verbose          = false;
-    FabArrayBase::do_alltoallv     = false;
     FabArrayBase::do_async_sends   = false;
     FabArrayBase::do_not_use_cache = false;
 
@@ -42,7 +40,6 @@ FabArrayBase::Initialize ()
     ParmParse pp("fabarray");
 
     pp.query("verbose",          FabArrayBase::verbose);
-    pp.query("do_alltoallv",     FabArrayBase::do_alltoallv);
     pp.query("do_async_sends",   FabArrayBase::do_async_sends);
     pp.query("do_not_use_cache", FabArrayBase::do_not_use_cache);
 
@@ -56,9 +53,6 @@ FabArrayBase::Initialize ()
 
     if (copy_cache_max_size <= 0 && copy_cache_max_size != -1)
         use_copy_cache = false;
-
-    if (do_alltoallv && do_async_sends)
-        BoxLib::Abort("At most one of 'do_alltoallv' and 'do_async_sends' can be true");
 
     BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
 
