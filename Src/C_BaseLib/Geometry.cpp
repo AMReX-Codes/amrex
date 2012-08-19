@@ -78,31 +78,14 @@ operator<< (std::ostream&               os,
     return os;
 }
 
-Geometry::FPB::FPB ()
-    :
-    m_ngrow(-1),
-    m_do_corners(false),
-    m_reused(false)
-{}
-
-Geometry::FPB::FPB (const BoxArray&            ba,
-                    const DistributionMapping& dm,
-                    const Box&                 domain,
-                    int                        ngrow,
-                    bool                       do_corners)
-    :
-    m_ba(ba),
-    m_dm(dm),
-    m_domain(domain),
-    m_ngrow(ngrow),
-    m_do_corners(do_corners),
-    m_reused(false)
+Geometry::FPB::~FPB ()
 {
-    BL_ASSERT(ngrow >= 0);
-    BL_ASSERT(domain.ok());
+    delete m_LocTags;
+    delete m_SndTags;
+    delete m_RcvTags;
+    delete m_SndVols;
+    delete m_RcvVols;
 }
-
-Geometry::FPB::~FPB () {}
 
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
@@ -724,6 +707,14 @@ Geometry::GetFPB (const Geometry&      geom,
     //
     Geometry::FPBMMapIter it     = Geometry::m_FPBCache.insert(std::make_pair(Key,fpb));
     FPB&                  TheFPB = it->second;
+    //
+    // Here is where we allocate space for the stuff used in the cache.
+    //
+    TheFPB.m_LocTags = new FPB::FPBComTagsContainer;
+    TheFPB.m_SndTags = new FPB::MapOfFPBComTagContainers;
+    TheFPB.m_RcvTags = new FPB::MapOfFPBComTagContainers;
+    TheFPB.m_SndVols = new std::map<int,int>;
+    TheFPB.m_RcvVols = new std::map<int,int>;
 
     Array<IntVect> pshifts(27);
 
@@ -781,19 +772,19 @@ Geometry::GetFPB (const Geometry&      geom,
                     {
                         tag.srcIndex = j;
 
-                        TheFPB.m_LocTags.push_back(tag);
+                        TheFPB.m_LocTags->push_back(tag);
                     }
                     else
                     {
-                        TheFPB.m_RcvTags[s_owner].push_back(tag);
+                        (*TheFPB.m_RcvTags)[s_owner].push_back(tag);
 
-                        if (TheFPB.m_RcvVols.count(s_owner) > 0)
+                        if (TheFPB.m_RcvVols->count(s_owner) > 0)
                         {
-                            TheFPB.m_RcvVols[s_owner] += vol;
+                            (*TheFPB.m_RcvVols)[s_owner] += vol;
                         }
                         else
                         {
-                            TheFPB.m_RcvVols[s_owner] = vol;
+                            (*TheFPB.m_RcvVols)[s_owner] = vol;
                         }
                     }
                 }
@@ -801,15 +792,15 @@ Geometry::GetFPB (const Geometry&      geom,
                 {
                     tag.srcIndex = j;
 
-                    TheFPB.m_SndTags[d_owner].push_back(tag);
+                    (*TheFPB.m_SndTags)[d_owner].push_back(tag);
 
-                    if (TheFPB.m_SndVols.count(d_owner) > 0)
+                    if (TheFPB.m_SndVols->count(d_owner) > 0)
                     {
-                        TheFPB.m_SndVols[d_owner] += vol;
+                        (*TheFPB.m_SndVols)[d_owner] += vol;
                     }
                     else
                     {
-                        TheFPB.m_SndVols[d_owner] = vol;
+                        (*TheFPB.m_SndVols)[d_owner] = vol;
                     }
                 }
             }

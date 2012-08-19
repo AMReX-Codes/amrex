@@ -231,13 +231,39 @@ public:
     //
     struct FPB
     {
-        FPB ();
+        FPB ()
+            :
+            m_ngrow(-1),
+            m_do_corners(false),
+            m_reused(false),
+            m_LocTags(0),
+            m_SndTags(0),
+            m_RcvTags(0),
+            m_SndVols(0),
+            m_RcvVols(0)
+            {}
 
         FPB (const BoxArray&            ba,
              const DistributionMapping& dm,
              const Box&                 domain,
              int                        ngrow,
-             bool                       do_corners);
+             bool                       do_corners)
+            :
+            m_ba(ba),
+            m_dm(dm),
+            m_domain(domain),
+            m_ngrow(ngrow),
+            m_do_corners(do_corners),
+            m_reused(false),
+            m_LocTags(0),
+            m_SndTags(0),
+            m_RcvTags(0),
+            m_SndVols(0),
+            m_RcvVols(0)
+            {
+                BL_ASSERT(ngrow >= 0);
+                BL_ASSERT(domain.ok());
+            }
 
         ~FPB ();
 
@@ -268,11 +294,11 @@ public:
         //
         // The cache of local and send/recv info per FabArray::copy().
         //
-        FPBComTagsContainer      m_LocTags;
-        MapOfFPBComTagContainers m_SndTags;
-        MapOfFPBComTagContainers m_RcvTags;
-        std::map<int,int>        m_SndVols;
-        std::map<int,int>        m_RcvVols;
+        FPBComTagsContainer*      m_LocTags;
+        MapOfFPBComTagContainers* m_SndTags;
+        MapOfFPBComTagContainers* m_RcvTags;
+        std::map<int,int>*        m_SndVols;
+        std::map<int,int>*        m_RcvVols;
     };
 
     static Geometry::FPB& GetFPB (const Geometry&      geom,
@@ -464,8 +490,8 @@ namespace BoxLib
         //
         // Do local work.
         //
-        for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags.begin(),
-                 End = TheFPB.m_LocTags.end();
+        for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
+                 End = TheFPB.m_LocTags->end();
              it != End;
              ++it)
         {
@@ -492,8 +518,8 @@ namespace BoxLib
         //
         int total_rcvs_volume = 0;
 
-        for (std::map<int,int>::const_iterator it = TheFPB.m_RcvVols.begin(),
-                 End = TheFPB.m_RcvVols.end();
+        for (std::map<int,int>::const_iterator it = TheFPB.m_RcvVols->begin(),
+                 End = TheFPB.m_RcvVols->end();
              it != End;
              ++it)
         {
@@ -510,12 +536,12 @@ namespace BoxLib
 
         int offset = 0;
 
-        for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags.begin(),
-                 m_End = TheFPB.m_RcvTags.end();
+        for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->begin(),
+                 m_End = TheFPB.m_RcvTags->end();
              m_it != m_End;
              ++m_it)
         {
-            const int N = TheFPB.m_RcvVols[m_it->first]*ncomp;
+            const int N = (*TheFPB.m_RcvVols)[m_it->first]*ncomp;
 
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
@@ -530,12 +556,12 @@ namespace BoxLib
         //
         FAB fab;
 
-        for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags.begin(),
-                 m_End = TheFPB.m_SndTags.end();
+        for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->begin(),
+                 m_End = TheFPB.m_SndTags->end();
              m_it != m_End;
              ++m_it)
         {
-            const int N = TheFPB.m_SndVols[m_it->first]*ncomp;
+            const int N = (*TheFPB.m_SndVols)[m_it->first]*ncomp;
 
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
@@ -572,7 +598,7 @@ namespace BoxLib
         //
         Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it;
 
-        const int N_rcvs = TheFPB.m_RcvTags.size();
+        const int N_rcvs = TheFPB.m_RcvTags->size();
 
         index.resize(N_rcvs);
         stats.resize(N_rcvs);
@@ -587,9 +613,9 @@ namespace BoxLib
 
                 BL_ASSERT(dptr != 0);
 
-                m_it = TheFPB.m_RcvTags.find(recv_from[index[k]]);
+                m_it = TheFPB.m_RcvTags->find(recv_from[index[k]]);
 
-                BL_ASSERT(m_it != TheFPB.m_RcvTags.end());
+                BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
 
                 for (Geometry::FPB::FPBComTagsContainer::const_iterator it = m_it->second.begin(),
                          End = m_it->second.end();
@@ -608,12 +634,12 @@ namespace BoxLib
 
         BoxLib::The_Arena()->free(the_recv_data);
 
-        if (FabArrayBase::do_async_sends && !TheFPB.m_SndTags.empty())
+        if (FabArrayBase::do_async_sends && !TheFPB.m_SndTags->empty())
         {
             //
             // Now grok the asynchronous send buffers & free up send buffer space.
             //
-            const int N_snds = TheFPB.m_SndTags.size();
+            const int N_snds = TheFPB.m_SndTags->size();
 
             stats.resize(N_snds);
 
