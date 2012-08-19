@@ -286,8 +286,6 @@ public:
 
         int bytes () const;
 
-        static CPC& TheCPC (const CPC& cpc);
-
         static void FlushCache ();
 
         BoxArray            m_dstba;
@@ -311,6 +309,16 @@ public:
         std::map<int,int>*         m_RcvVols;
 
     };
+    //
+    // Some useful typedefs for the FPB cache.
+    //
+    typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
+
+    typedef CPCCache::iterator CPCCacheIter;
+
+    static CPCCache m_TheCopyCache;
+
+    static CPCCacheIter TheCPC (const CPC& cpc);
     //
     // Used for collecting information used in communicating FABs.
     //
@@ -1314,37 +1322,55 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
-    CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
+    const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
-    CPC& thecpc = CPC::TheCPC(cpc);
-    //
-    // Do local copy()s.
-    //
-    for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
-             End = thecpc.m_LocTags->end();
-         it != End;
-         ++it)
+    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc);
+
+    if (cache_it != FabArrayBase::m_TheCopyCache.end())
     {
-        const CopyComTag& tag = *it;
-
-        BL_ASSERT(    distributionMap[tag.fabIndex] == MyProc);
-        BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
-
-        const FAB& sfab = src[tag.srcIndex];
-
-        if (op == FabArrayBase::COPY)
+        const CPC& thecpc = cache_it->second;
+        //
+        // Do local copy()s.
+        //
+        for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
+                 End = thecpc.m_LocTags->end();
+             it != End;
+             ++it)
         {
-            get(tag.fabIndex).copy(sfab,tag.box,scomp,tag.box,dcomp,ncomp);
-        }
-        else
-        {
-            get(tag.fabIndex).plus(sfab,tag.box,tag.box,scomp,dcomp,ncomp);
+            const CopyComTag& tag = *it;
+
+            BL_ASSERT(    distributionMap[tag.fabIndex] == MyProc);
+            BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
+
+            const FAB& sfab = src[tag.srcIndex];
+
+            if (op == FabArrayBase::COPY)
+            {
+                get(tag.fabIndex).copy(sfab,tag.box,scomp,tag.box,dcomp,ncomp);
+            }
+            else
+            {
+                get(tag.fabIndex).plus(sfab,tag.box,tag.box,scomp,dcomp,ncomp);
+            }
         }
     }
     
     if (NProcs == 1) return;
 
 #ifdef BL_USE_MPI
+    //
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    //
+    const int SeqNum = ParallelDescriptor::SeqNum();
+
+    if (cache_it == FabArrayBase::m_TheCopyCache.end())
+        //
+        // No parallel work to do.
+        //
+        return;
+
+    const CPC& thecpc = cache_it->second;
 
     Array<MPI_Status>  stats;
     Array<int>         recv_from, index;
@@ -1369,8 +1395,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     value_type* the_recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(total_rcvs_volume*sizeof(value_type)));
 
-    const int seqno = ParallelDescriptor::SeqNum();
-
     int offset = 0;
 
     for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->begin(),
@@ -1384,7 +1408,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         recv_data.push_back(&the_recv_data[offset]);
         recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,seqno).req());
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
 
         offset += N;
     }
@@ -1422,11 +1446,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         if (FabArrayBase::do_async_sends)
         {
             send_data.push_back(data);
-            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,seqno).req());
+            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
         }
         else
         {
-            ParallelDescriptor::Send(data,N,m_it->first,seqno);
+            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
             BoxLib::The_Arena()->free(data);
         }
     }
