@@ -216,14 +216,7 @@ public:
 
         ~SI ();
 
-        bool operator== (const SI& rhs) const
-        {
-            return
-                m_ngrow == rhs.m_ngrow &&
-                m_cross == rhs.m_cross &&
-                BoxArray::SameRefs(m_ba,rhs.m_ba) &&
-                DistributionMapping::SameRefs(m_dm,rhs.m_dm);
-        }
+        bool operator== (const SI& rhs) const;
 
         bool operator!= (const SI& rhs) const { return !operator==(rhs); }
         //
@@ -285,14 +278,7 @@ public:
 
         ~CPC ();
 
-        bool operator== (const CPC& rhs) const
-        {
-            return
-                BoxArray::SameRefs(m_dstba,rhs.m_dstba) &&
-                BoxArray::SameRefs(m_srcba,rhs.m_srcba) &&
-                DistributionMapping::SameRefs(m_dstdm,rhs.m_dstdm) &&
-                DistributionMapping::SameRefs(m_srcdm,rhs.m_srcdm);
-        }
+        bool operator== (const CPC& rhs) const;
 
         bool operator!= (const CPC& rhs) const { return !operator==(rhs); }
 

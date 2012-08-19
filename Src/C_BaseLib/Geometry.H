@@ -267,15 +267,7 @@ public:
 
         ~FPB ();
 
-        bool operator== (const FPB& rhs) const
-        {
-            return
-                m_ngrow == rhs.m_ngrow &&
-                m_do_corners == rhs.m_do_corners &&
-                m_domain == rhs.m_domain &&
-                BoxArray::SameRefs(m_ba,rhs.m_ba) &&
-                DistributionMapping::SameRefs(m_dm,rhs.m_dm);
-        }
+        bool operator== (const FPB& rhs) const;
 
         bool operator!= (const FPB& rhs) const { return !operator==(rhs); }
 

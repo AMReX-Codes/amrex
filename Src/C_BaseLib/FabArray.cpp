@@ -33,9 +33,9 @@ FabArrayBase::Initialize ()
     FabArrayBase::do_not_use_cache = false;
 
     use_copy_cache      = true;
-    copy_cache_max_size = 30;   // -1 ==> no maximum size
+    copy_cache_max_size = 50;   // -1 ==> no maximum size
     use_fb_cache        = true;
-    fb_cache_max_size   = 30;   // -1 ==> no maximum size
+    fb_cache_max_size   = 50;   // -1 ==> no maximum size
 
     ParmParse pp("fabarray");
 
@@ -99,6 +99,12 @@ FabArrayBase::CPC::~CPC ()
     delete m_RcvTags;
     delete m_SndVols;
     delete m_RcvVols;
+}
+
+bool
+FabArrayBase::CPC::operator== (const CPC& rhs) const
+{
+    return m_dstba == rhs.m_dstba && m_srcba == rhs.m_srcba && m_dstdm == rhs.m_dstdm && m_srcdm == rhs.m_srcdm;
 }
 
 typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
@@ -266,6 +272,12 @@ FabArrayBase::SI::~SI ()
     delete m_RcvTags;
     delete m_SndVols;
     delete m_RcvVols;
+}
+
+bool
+FabArrayBase::SI::operator== (const SI& rhs) const
+{
+    return m_ngrow == rhs.m_ngrow && m_cross == rhs.m_cross && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
 }
 
 typedef std::multimap<int,FabArrayBase::SI> SIMMap;

@@ -22,7 +22,7 @@ namespace
     bool verbose;
 }
 
-const int fpb_cache_max_size_def = 30; // -1 ==> no maximum size
+const int fpb_cache_max_size_def = 50; // -1 ==> no maximum size
 
 int Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
 
@@ -85,6 +85,13 @@ Geometry::FPB::~FPB ()
     delete m_RcvTags;
     delete m_SndVols;
     delete m_RcvVols;
+}
+
+bool
+Geometry::FPB::operator== (const FPB& rhs) const
+{
+    return
+        m_ngrow == rhs.m_ngrow && m_do_corners == rhs.m_do_corners && m_domain == rhs.m_domain && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
 }
 
 void
