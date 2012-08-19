@@ -271,6 +271,8 @@ public:
 
         bool operator!= (const FPB& rhs) const { return !operator==(rhs); }
 
+        int bytes () const;
+
         BoxArray            m_ba;
         DistributionMapping m_dm;
         Box                 m_domain;
