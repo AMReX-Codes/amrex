@@ -281,10 +281,8 @@ public:
     //
     // See if we're got an approprite FPB cached.
     //
-    static Geometry::FPBMMapIter GetFPB (const Geometry&      geom,
-                                         const Geometry::FPB& fpb,
-                                         int                  scomp,
-                                         int                  ncomp);
+    static Geometry::FPBMMapIter GetFPB (const Geometry& geom, const Geometry::FPB& fpb);
+
 private:
     //
     // Helper functions.
@@ -457,7 +455,7 @@ namespace BoxLib
 #endif
         const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
 
-        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,scomp,ncomp);
+        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb);
 
         if (cache_it != Geometry::m_FPBCache.end())
         {
