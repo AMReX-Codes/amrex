@@ -22,7 +22,7 @@ namespace
     bool verbose;
 }
 
-const int fpb_cache_max_size_def = 50; // -1 ==> no maximum size
+const int fpb_cache_max_size_def = 50;
 
 int Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
 
@@ -561,6 +561,11 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     pp.query("spherical_origin_fix", Geometry::spherical_origin_fix);
     pp.query("fpb_cache_max_size",   Geometry::fpb_cache_max_size);
     //
+    // Don't let the cache size get too small.  This simplifies some logic later.
+    //
+    if (Geometry::fpb_cache_max_size < 1)
+        Geometry::fpb_cache_max_size = 1;
+    //
     // Now get periodicity info.
     //
     if (isper == 0)
@@ -750,7 +755,7 @@ Geometry::GetFPB (const Geometry&      geom,
         }
     }
 
-    if (m_FPBCache.size() >= Geometry::fpb_cache_max_size && Geometry::fpb_cache_max_size != -1)
+    if (m_FPBCache.size() >= Geometry::fpb_cache_max_size)
     {
         //
         // Don't let the size of the cache get too big.
@@ -785,15 +790,13 @@ Geometry::GetFPB (const Geometry&      geom,
             //
             Geometry::FPBMMapIter it = m_FPBCache.begin();
 
-            if (it != m_FPBCache.end())
-            {
-                //
-                // Don't forget to delete the pointer!
-                //
-                delete it->second;
+            BL_ASSERT(it != m_FPBCache.end());
+            //
+            // Don't forget to delete the pointer!
+            //
+            delete it->second;
 
-                m_FPBCache.erase(it);
-            }
+            m_FPBCache.erase(it);
         }
     }
     //
@@ -801,21 +804,19 @@ Geometry::GetFPB (const Geometry&      geom,
     //
     Geometry::FPBMMapIter cache_it = m_FPBCache.insert(std::make_pair(Key,new FPB(fpb)));
 
-    FPB& TheFPB = *cache_it->second;
-
-    Array<IntVect> pshifts(27);
-
     Box TheDomain = geom.Domain();
     for (int n = 0; n < BL_SPACEDIM; n++)
         if (ba[0].ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
 
+    FPB&                        TheFPB = *cache_it->second;
     FPBComTag                   tag;
+    Array<IntVect>              pshifts(27);
     std::map<int,int>::iterator vol_it;
 
     for (int i = 0, N = ba.size(); i < N; i++)
     {
-        const int d_owner = dm[i];
+        const int dst_owner = dm[i];
 
         const Box dest = BoxLib::grow(ba[i],fpb.m_ngrow);
 
@@ -823,9 +824,9 @@ Geometry::GetFPB (const Geometry&      geom,
 
         for (int j = 0, N = ba.size(); j < N; j++)
         {
-            const int s_owner = dm[j];
+            const int src_owner = dm[j];
 
-            if (d_owner != MyProc && s_owner != MyProc) continue;
+            if (dst_owner != MyProc && src_owner != MyProc) continue;
 
             Box src = ba[j] & TheDomain;
 
@@ -852,11 +853,11 @@ Geometry::GetFPB (const Geometry&      geom,
 
                 const int vol = tag.dbox.numPts();
 
-                if (d_owner == MyProc)
+                if (dst_owner == MyProc)
                 {
                     tag.dstIndex = i;
 
-                    if (s_owner == MyProc)
+                    if (src_owner == MyProc)
                     {
                         tag.srcIndex = j;
 
@@ -864,9 +865,9 @@ Geometry::GetFPB (const Geometry&      geom,
                     }
                     else
                     {
-                        TheFPB.m_RcvTags[s_owner].push_back(tag);
+                        TheFPB.m_RcvTags[src_owner].push_back(tag);
 
-                        vol_it = TheFPB.m_RcvVols.find(s_owner);
+                        vol_it = TheFPB.m_RcvVols.find(src_owner);
 
                         if (vol_it != TheFPB.m_RcvVols.end())
                         {
@@ -874,17 +875,17 @@ Geometry::GetFPB (const Geometry&      geom,
                         }
                         else
                         {
-                            TheFPB.m_RcvVols[s_owner] = vol;
+                            TheFPB.m_RcvVols[src_owner] = vol;
                         }
                     }
                 }
-                else if (s_owner == MyProc)
+                else if (src_owner == MyProc)
                 {
                     tag.srcIndex = j;
 
-                    TheFPB.m_SndTags[d_owner].push_back(tag);
+                    TheFPB.m_SndTags[dst_owner].push_back(tag);
 
-                    vol_it = TheFPB.m_SndVols.find(d_owner);
+                    vol_it = TheFPB.m_SndVols.find(dst_owner);
 
                     if (vol_it != TheFPB.m_SndVols.end())
                     {
@@ -892,7 +893,7 @@ Geometry::GetFPB (const Geometry&      geom,
                     }
                     else
                     {
-                        TheFPB.m_SndVols[d_owner] = vol;
+                        TheFPB.m_SndVols[dst_owner] = vol;
                     }
                 }
             }

@@ -15,10 +15,8 @@ namespace
     //
     // Set default values in Initialize()!!!
     //
-    bool use_copy_cache;
-    int  copy_cache_max_size;
-    bool use_fb_cache;
-    int  fb_cache_max_size;
+    int copy_cache_max_size;
+    int fb_cache_max_size;
 }
 
 void
@@ -32,9 +30,7 @@ FabArrayBase::Initialize ()
     FabArrayBase::do_async_sends   = false;
     FabArrayBase::do_not_use_cache = false;
 
-    use_copy_cache      = true;
     copy_cache_max_size = 50;   // -1 ==> no maximum size
-    use_fb_cache        = true;
     fb_cache_max_size   = 50;   // -1 ==> no maximum size
 
     ParmParse pp("fabarray");
@@ -43,16 +39,15 @@ FabArrayBase::Initialize ()
     pp.query("do_async_sends",   FabArrayBase::do_async_sends);
     pp.query("do_not_use_cache", FabArrayBase::do_not_use_cache);
 
-    pp.query("use_copy_cache",      use_copy_cache);
     pp.query("copy_cache_max_size", copy_cache_max_size);
-    pp.query("use_fb_cache",        use_fb_cache);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
-
-    if (fb_cache_max_size <= 0 && fb_cache_max_size != -1)
-        use_fb_cache = false;
-
-    if (copy_cache_max_size <= 0 && copy_cache_max_size != -1)
-        use_copy_cache = false;
+    //
+    // Don't let the caches get too small. This simplifies some logic later.
+    //
+    if (fb_cache_max_size < 1)
+        fb_cache_max_size = 1;
+    if (copy_cache_max_size < 1)
+        copy_cache_max_size = 1;
 
     BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
 
@@ -158,105 +153,97 @@ FabArrayBase::TheCPC (const CPC& cpc)
 {
     const int Key = cpc.m_dstba.size() + cpc.m_srcba.size();
 
-    if (use_copy_cache)
+    std::pair<CPCCacheIter,CPCCacheIter> er_it = m_TheCopyCache.equal_range(Key);
+
+    for (CPCCacheIter it = er_it.first; it != er_it.second; ++it)
     {
-        std::pair<CPCCacheIter,CPCCacheIter> er_it = m_TheCopyCache.equal_range(Key);
-
-        for (CPCCacheIter it = er_it.first; it != er_it.second; ++it)
+        if (it->second->operator==(cpc))
         {
-            if (it->second->operator==(cpc))
-            {
-                it->second->m_reused = true;
+            it->second->m_reused = true;
 
-                return it;
-            }
-        }
-
-        if (m_TheCopyCache.size() >= copy_cache_max_size && copy_cache_max_size != -1)
-        {
-            //
-            // Don't let the size of the cache get too big.
-            //
-            for (CPCCacheIter it = m_TheCopyCache.begin(); it != m_TheCopyCache.end(); )
-            {
-                if (!it->second->m_reused)
-                {
-                    //
-                    // Don't forget to delete the pointer!
-                    //
-                    delete it->second;
-
-                    m_TheCopyCache.erase(it++);
-
-                    if (m_TheCopyCache.size() < copy_cache_max_size)
-                        //
-                        // Only delete enough entries to stay under limit.
-                        //
-                        break;
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-
-            if (m_TheCopyCache.size() >= copy_cache_max_size)
-            {
-                //
-                // Get rid of first entry which is the one with the smallest key.
-                //
-                CPCCacheIter it = m_TheCopyCache.begin();
-
-                if (it != m_TheCopyCache.end())
-                {
-                    //
-                    // Don't forget to delete the pointer!
-                    //
-                    delete it->second;
-
-                    m_TheCopyCache.erase(it);
-                }
-            }
+            return it;
         }
     }
-    else
+
+    if (m_TheCopyCache.size() >= copy_cache_max_size)
     {
-        m_TheCopyCache.clear();
+        //
+        // Don't let the size of the cache get too big.
+        //
+        for (CPCCacheIter it = m_TheCopyCache.begin(); it != m_TheCopyCache.end(); )
+        {
+            if (!it->second->m_reused)
+            {
+                //
+                // Don't forget to delete the pointer!
+                //
+                delete it->second;
+
+                m_TheCopyCache.erase(it++);
+
+                if (m_TheCopyCache.size() < copy_cache_max_size)
+                    //
+                    // Only delete enough entries to stay under limit.
+                    //
+                    break;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        if (m_TheCopyCache.size() >= copy_cache_max_size)
+        {
+            //
+            // Get rid of first entry which is the one with the smallest key.
+            //
+            CPCCacheIter it = m_TheCopyCache.begin();
+
+            BL_ASSERT(it != m_TheCopyCache.end());
+            //
+            // Don't forget to delete the pointer!
+            //
+            delete it->second;
+
+            m_TheCopyCache.erase(it);
+        }
     }
     //
     // Got to build one.  Here's where we allocate memory for the cache.
     //
-    const int    MyProc   = ParallelDescriptor::MyProc();
     CPCCacheIter cache_it = m_TheCopyCache.insert(std::make_pair(Key,new CPC(cpc)));
-    CPC&         TheCPC   = *cache_it->second;
+
+    const int MyProc = ParallelDescriptor::MyProc();
+    CPC&      TheCPC = *cache_it->second;
 
     CopyComTag                        tag;
-    std::vector< std::pair<int,Box> > isects;
     std::map<int,int>::iterator       vol_it;
+    std::vector< std::pair<int,Box> > isects;
 
     for (int i = 0, N = TheCPC.m_dstba.size(); i < N; i++)
     {
         TheCPC.m_srcba.intersections(TheCPC.m_dstba[i],isects);
 
-        const int d_owner = TheCPC.m_dstdm[i];
+        const int dst_owner = TheCPC.m_dstdm[i];
 
         for (int j = 0, M = isects.size(); j < M; j++)
         {
-            const Box& bx      = isects[j].second;
-            const int  k       = isects[j].first;
-            const int  s_owner = TheCPC.m_srcdm[k];
+            const Box& bx        = isects[j].second;
+            const int  k         = isects[j].first;
+            const int  src_owner = TheCPC.m_srcdm[k];
 
-            if (d_owner != MyProc && s_owner != MyProc) continue;
+            if (dst_owner != MyProc && src_owner != MyProc) continue;
 
             tag.box = bx;
 
             const int vol = bx.numPts();
 
-            if (d_owner == MyProc)
+            if (dst_owner == MyProc)
             {
                 tag.fabIndex = i;
 
-                if (s_owner == MyProc)
+                if (src_owner == MyProc)
                 {
                     tag.srcIndex = k;
 
@@ -264,9 +251,9 @@ FabArrayBase::TheCPC (const CPC& cpc)
                 }
                 else
                 {
-                    TheCPC.m_RcvTags[s_owner].push_back(tag);
+                    TheCPC.m_RcvTags[src_owner].push_back(tag);
 
-                    vol_it = TheCPC.m_RcvVols.find(s_owner);
+                    vol_it = TheCPC.m_RcvVols.find(src_owner);
 
                     if (vol_it != TheCPC.m_RcvVols.end())
                     {
@@ -274,17 +261,17 @@ FabArrayBase::TheCPC (const CPC& cpc)
                     }
                     else
                     {
-                        TheCPC.m_RcvVols[s_owner] = vol;
+                        TheCPC.m_RcvVols[src_owner] = vol;
                     }
                 }
             }
-            else if (s_owner == MyProc)
+            else if (src_owner == MyProc)
             {
                 tag.fabIndex = k;
 
-                TheCPC.m_SndTags[d_owner].push_back(tag);
+                TheCPC.m_SndTags[dst_owner].push_back(tag);
 
-                vol_it = TheCPC.m_SndVols.find(d_owner);
+                vol_it = TheCPC.m_SndVols.find(dst_owner);
 
                 if (vol_it != TheCPC.m_SndVols.end())
                 {
@@ -292,7 +279,7 @@ FabArrayBase::TheCPC (const CPC& cpc)
                 }
                 else
                 {
-                    TheCPC.m_SndVols[d_owner] = vol;
+                    TheCPC.m_SndVols[dst_owner] = vol;
                 }
             }
         }
@@ -322,8 +309,7 @@ FabArrayBase::CPC::FlushCache ()
 
     stats[0] = m_TheCopyCache.size();
 
-    for (CPCCacheIter it = m_TheCopyCache.begin(),
-             End = m_TheCopyCache.end();
+    for (CPCCacheIter it = m_TheCopyCache.begin(), End = m_TheCopyCache.end();
          it != End;
          ++it)
     {
@@ -434,8 +420,7 @@ FabArrayBase::FlushSICache ()
 
     stats[0] = m_TheFBCache.size();
 
-    for (FBCacheIter it = m_TheFBCache.begin(),
-             End = m_TheFBCache.end();
+    for (FBCacheIter it = m_TheFBCache.begin(), End = m_TheFBCache.end();
          it != End;
          ++it)
     {
@@ -481,94 +466,85 @@ FabArrayBase::TheFB (bool                cross,
 
     const int Key = mf.size() + mf.nGrow() + cross;
 
-    if (use_fb_cache)
-    {
-        std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(Key);
+    std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(Key);
     
-        for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
-        {
-            if (it->second->operator==(si))
-            {
-                it->second->m_reused = true;
-
-                return it;
-            }
-        }
-
-        if (m_TheFBCache.size() >= fb_cache_max_size && fb_cache_max_size != -1)
-        {
-            //
-            // Don't let the size of the cache get too big.
-            //
-            for (FBCacheIter it = m_TheFBCache.begin(); it != m_TheFBCache.end(); )
-            {
-                if (!it->second->m_reused)
-                {
-                    //
-                    // Don't forget to delete the pointer!
-                    //
-                    delete it->second;
-
-                    m_TheFBCache.erase(it++);
-
-                    if (m_TheFBCache.size() < fb_cache_max_size)
-                        //
-                        // Only delete enough entries to stay under limit.
-                        //
-                        break;
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-
-            if (m_TheFBCache.size() >= fb_cache_max_size)
-            {
-                //
-                // Get rid of first entry which is the one with the smallest key.
-                //
-                FBCacheIter it = m_TheFBCache.begin();
-
-                if (it != m_TheFBCache.end())
-                {
-                    //
-                    // Don't forget to delete the pointer!
-                    //
-                    delete it->second;
-
-                    m_TheFBCache.erase(it);
-                }
-
-            }
-        }
-    }
-    else
+    for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
     {
-        m_TheFBCache.clear();
+        if (it->second->operator==(si))
+        {
+            it->second->m_reused = true;
+
+            return it;
+        }
+    }
+
+    if (m_TheFBCache.size() >= fb_cache_max_size)
+    {
+        //
+        // Don't let the size of the cache get too big.
+        //
+        for (FBCacheIter it = m_TheFBCache.begin(); it != m_TheFBCache.end(); )
+        {
+            if (!it->second->m_reused)
+            {
+                //
+                // Don't forget to delete the pointer!
+                //
+                delete it->second;
+
+                m_TheFBCache.erase(it++);
+
+                if (m_TheFBCache.size() < fb_cache_max_size)
+                    //
+                    // Only delete enough entries to stay under limit.
+                    //
+                    break;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        if (m_TheFBCache.size() >= fb_cache_max_size)
+        {
+            //
+            // Get rid of first entry which is the one with the smallest key.
+            //
+            FBCacheIter it = m_TheFBCache.begin();
+
+            BL_ASSERT(it != m_TheFBCache.end());
+            //
+            // Don't forget to delete the pointer!
+            //
+            delete it->second;
+
+            m_TheFBCache.erase(it);
+        }
     }
     //
-    // Got to build one.
+    // Got to build one.  Here's where we allocate memory for the cache.
     //
-    FBCacheIter                cache_it = m_TheFBCache.insert(std::make_pair(Key,new SI(si)));
-    const BoxArray&            ba       = mf.boxArray();
-    const DistributionMapping& dm       = mf.DistributionMap();
-    const int                  MyProc   = ParallelDescriptor::MyProc();
-    SI&                        theFB    = *cache_it->second;
+    FBCacheIter cache_it = m_TheFBCache.insert(std::make_pair(Key,new SI(si)));
+
+    SI&                        theFB  = *cache_it->second;
+    const int                  MyProc = ParallelDescriptor::MyProc();
+    const BoxArray&            ba     = mf.boxArray();
+    const DistributionMapping& dm     = mf.DistributionMap();
 
     CopyComTag                        tag;
     std::vector<Box>                  boxes;
-    std::vector< std::pair<int,Box> > isects;
     std::map<int,int>::iterator       vol_it;
+    std::vector< std::pair<int,Box> > isects;
 
     boxes.resize(si.m_cross ? 2*BL_SPACEDIM : 1);
 
     for (int i = 0, N = ba.size(); i < N; i++)
     {
+        const Box& vbx = ba[i];
+
         if (si.m_cross)
         {
-            const Box& vbx = ba[i];
-
             for (int dir = 0; dir < BL_SPACEDIM; dir++)
             {
                 Box lo = vbx;
@@ -584,10 +560,10 @@ FabArrayBase::TheFB (bool                cross,
         }
         else
         {
-            boxes[0] = BoxLib::grow(ba[i],si.m_ngrow);
+            boxes[0] = BoxLib::grow(vbx,si.m_ngrow);
         }
 
-        const int d_owner = dm[i];
+        const int dst_owner = dm[i];
 
         for (std::vector<Box>::const_iterator it = boxes.begin(),
                  End = boxes.end();
@@ -598,11 +574,11 @@ FabArrayBase::TheFB (bool                cross,
 
             for (int j = 0, M = isects.size(); j < M; j++)
             {
-                const Box& bx      = isects[j].second;
-                const int  k       = isects[j].first;
-                const int  s_owner = dm[k];
+                const Box& bx        = isects[j].second;
+                const int  k         = isects[j].first;
+                const int  src_owner = dm[k];
 
-                if (d_owner != MyProc && s_owner != MyProc) continue;
+                if (dst_owner != MyProc && src_owner != MyProc) continue;
 
                 if (k == i) continue;
 
@@ -610,11 +586,11 @@ FabArrayBase::TheFB (bool                cross,
 
                 tag.box = bx;
 
-                if (d_owner == MyProc)
+                if (dst_owner == MyProc)
                 {
                     tag.fabIndex = i;
 
-                    if (s_owner == MyProc)
+                    if (src_owner == MyProc)
                     {
                         tag.srcIndex = k;
 
@@ -622,9 +598,9 @@ FabArrayBase::TheFB (bool                cross,
                     }
                     else
                     {
-                        theFB.m_RcvTags[s_owner].push_back(tag);
+                        theFB.m_RcvTags[src_owner].push_back(tag);
 
-                        vol_it = theFB.m_RcvVols.find(s_owner);
+                        vol_it = theFB.m_RcvVols.find(src_owner);
 
                         if (vol_it != theFB.m_RcvVols.end())
                         {
@@ -632,17 +608,17 @@ FabArrayBase::TheFB (bool                cross,
                         }
                         else
                         {
-                            theFB.m_RcvVols[s_owner] = vol;
+                            theFB.m_RcvVols[src_owner] = vol;
                         }
                     }
                 }
-                else if (s_owner == MyProc)
+                else if (src_owner == MyProc)
                 {
                     tag.fabIndex = k;
 
-                    theFB.m_SndTags[d_owner].push_back(tag);
+                    theFB.m_SndTags[dst_owner].push_back(tag);
 
-                    vol_it = theFB.m_SndVols.find(d_owner);
+                    vol_it = theFB.m_SndVols.find(dst_owner);
 
                     if (vol_it != theFB.m_SndVols.end())
                     {
@@ -650,7 +626,7 @@ FabArrayBase::TheFB (bool                cross,
                     }
                     else
                     {
-                        theFB.m_SndVols[d_owner] = vol;
+                        theFB.m_SndVols[dst_owner] = vol;
                     }
                 }
             }
