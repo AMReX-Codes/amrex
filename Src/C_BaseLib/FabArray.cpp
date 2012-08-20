@@ -7,7 +7,6 @@
 //
 bool FabArrayBase::verbose;
 bool FabArrayBase::do_async_sends;
-bool FabArrayBase::do_not_use_cache;
 
 namespace
 {
@@ -15,8 +14,8 @@ namespace
     //
     // Set default values in Initialize()!!!
     //
-    int copy_cache_max_size;
     int fb_cache_max_size;
+    int copy_cache_max_size;
 }
 
 void
@@ -28,19 +27,16 @@ FabArrayBase::Initialize ()
     //
     FabArrayBase::verbose          = true;
     FabArrayBase::do_async_sends   = false;
-    FabArrayBase::do_not_use_cache = false;
 
-    copy_cache_max_size = 50;   // -1 ==> no maximum size
-    fb_cache_max_size   = 50;   // -1 ==> no maximum size
+    copy_cache_max_size = 75;
+    fb_cache_max_size   = 75;
 
     ParmParse pp("fabarray");
 
-    pp.query("verbose",          FabArrayBase::verbose);
-    pp.query("do_async_sends",   FabArrayBase::do_async_sends);
-    pp.query("do_not_use_cache", FabArrayBase::do_not_use_cache);
-
-    pp.query("copy_cache_max_size", copy_cache_max_size);
+    pp.query("verbose",             FabArrayBase::verbose);
+    pp.query("do_async_sends",      FabArrayBase::do_async_sends);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
+    pp.query("copy_cache_max_size", copy_cache_max_size);
     //
     // Don't let the caches get too small. This simplifies some logic later.
     //
@@ -115,7 +111,8 @@ int
 FabArrayBase::CPC::bytes () const
 {
     //
-    // Get a rough estimate on number of bytes used by a CPC.
+    // Get a estimate on number of bytes used by a CPC.
+    // This doesn't count any "overhead" in the STL containers.
     //
     int cnt = 0;
 
@@ -374,7 +371,8 @@ int
 FabArrayBase::SI::bytes () const
 {
     //
-    // Get a rough estimate of number of bytes used by a CPC.
+    // Get a estimate of number of bytes used by a CPC.
+    // This doesn't count any "overhead" in the STL containers.
     //
     int cnt = 0;
 

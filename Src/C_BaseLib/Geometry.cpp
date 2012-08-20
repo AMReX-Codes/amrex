@@ -9,20 +9,18 @@
 #include <MultiFab.H>
 #include <FArrayBox.H>
 //
-// The definition of static data members.
+// The definition of some static data members.
 //
 int     Geometry::spherical_origin_fix;
 RealBox Geometry::prob_domain;
 bool    Geometry::is_periodic[BL_SPACEDIM];
-
-Geometry::FPBMMap Geometry::m_FPBCache;
 
 namespace
 {
     bool verbose;
 }
 
-const int fpb_cache_max_size_def = 50;
+const int fpb_cache_max_size_def = 75;
 
 int Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
 
@@ -115,7 +113,8 @@ int
 Geometry::FPB::bytes () const
 {
     //
-    // Get a rough estimate of number of bytes used by a FPB.
+    // Get a estimate of number of bytes used by a FPB.
+    // This doesn't count any "overhead" in the STL containers.
     //
     int cnt = 0;
 
@@ -164,49 +163,6 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
     BL_ASSERT(dstmf.nComp() >= srcmf.nComp());
 
     SumPeriodicBoundary(dstmf, srcmf, 0, 0, srcmf.nComp());
-}
-
-int
-Geometry::PIRMCacheSize ()
-{
-    return m_FPBCache.size();
-}
-
-void
-Geometry::FlushPIRMCache ()
-{
-    int stats[3] = {0,0,0}; // size, reused, bytes
-
-    stats[0] = m_FPBCache.size();
-
-    for (FPBMMapIter it = m_FPBCache.begin(), End = m_FPBCache.end(); it != End; ++it)
-    {
-        stats[2] += it->second->bytes();
-        if (it->second->m_reused)
-            stats[1]++;
-        //
-        // Don't forget to delete the pointer!
-        //
-        delete it->second;
-    }
-
-    if (verbose)
-    {
-        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
-
-        if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "Geometry::TheFPBCache: max size: "
-                      << stats[0]
-                      << ", max # reused: "
-                      << stats[1]
-                      << ", max bytes used: "
-                      << stats[2]
-                      << std::endl;
-        }
-    }
-
-    m_FPBCache.clear();
 }
 
 void
@@ -728,11 +684,14 @@ Geometry::periodicShift (const Box&      target,
     }
 }
 
+//
+// The cache.
+//
+Geometry::FPBMMap Geometry::m_FPBCache;
+
 Geometry::FPBMMapIter
 Geometry::GetFPB (const Geometry&      geom,
-                  const Geometry::FPB& fpb,
-                  int                  scomp,
-                  int                  ncomp)
+                  const Geometry::FPB& fpb)
 {
     const BoxArray&            ba     = fpb.m_ba;
     const DistributionMapping& dm     = fpb.m_dm;
@@ -915,4 +874,47 @@ Geometry::GetFPB (const Geometry&      geom,
     }
 
     return cache_it;
+}
+
+void
+Geometry::FlushPIRMCache ()
+{
+    int stats[3] = {0,0,0}; // size, reused, bytes
+
+    stats[0] = m_FPBCache.size();
+
+    for (FPBMMapIter it = m_FPBCache.begin(), End = m_FPBCache.end(); it != End; ++it)
+    {
+        stats[2] += it->second->bytes();
+        if (it->second->m_reused)
+            stats[1]++;
+        //
+        // Don't forget to delete the pointer!
+        //
+        delete it->second;
+    }
+
+    if (verbose)
+    {
+        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+
+        if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "Geometry::TheFPBCache: max size: "
+                      << stats[0]
+                      << ", max # reused: "
+                      << stats[1]
+                      << ", max bytes used: "
+                      << stats[2]
+                      << std::endl;
+        }
+    }
+
+    m_FPBCache.clear();
+}
+
+int
+Geometry::PIRMCacheSize ()
+{
+    return m_FPBCache.size();
 }

@@ -331,14 +331,6 @@ public:
     //
     static bool do_async_sends;
     //
-    // Do not use the CollectData() cache.
-    //
-    // Turn on via ParmParse using "fabarray.do_not_use_cache=1" in inputs file.
-    //
-    // Default is false.
-    //
-    static bool do_not_use_cache;
-    //
     // Print out some stuff; default is false.
     //
     static bool verbose;
