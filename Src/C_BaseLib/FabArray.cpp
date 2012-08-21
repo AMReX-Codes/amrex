@@ -64,22 +64,6 @@ FabArrayBase::fabbox (int K) const
 }
 
 //
-// Used to cache some CommData stuff in CollectData().
-//
-
-FabArrayBase::CommDataCache::CommDataCache ()
-    :
-    m_valid(false)
-{}
-
-void
-FabArrayBase::CommDataCache::operator= (const Array<ParallelDescriptor::CommData>& rhs)
-{
-    m_commdata = rhs;
-    m_valid    = true;
-}
-
-//
 // Stuff used for copy() caching.
 //
 
