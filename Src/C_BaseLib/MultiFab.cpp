@@ -1032,64 +1032,256 @@ MultiFab::FillBoundary (bool local, bool cross)
     FillBoundary(0, n_comp, local, cross);
 }
 
+//
+// Some useful typedefs.
+//
+typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
+
+typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+
 void
-MultiFab::SumBoundary (int  scomp,
-                       int  ncomp)
+MultiFab::SumBoundary (int scomp,
+                       int ncomp)
 {
     if ( n_grow <= 0 ) return;
 
-    std::vector<SIRec>     sirec;
-    MultiFabCopyDescriptor mfcd;
-    const FabArrayId       mfid = mfcd.RegisterFabArray(this);
-
-    BoxArray gba = boxArray();
-
-    gba.grow(n_grow);
-
+    FArrayBox                         fab;
+    FabArrayBase::CopyComTag          tag;
+    MapOfCopyComTagContainers         m_SndTags, m_RcvTags;
+    std::map<int,int>                 m_SndVols, m_RcvVols;
+    std::map<int,int>::iterator       vol_it;
     std::vector< std::pair<int,Box> > isects;
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-    {
-        const int i = mfi.index();
+    const int                  MyProc = ParallelDescriptor::MyProc();
+    const DistributionMapping& DMap   = DistributionMap();
+    const BoxArray&            ba     = boxArray();
+    MultiFab&                  mf     = *this;
 
-        gba.intersections(mfi.validbox(),isects);
+    BoxArray gba = boxArray();
+    gba.grow(n_grow);
+
+    for (int i = 0, M = ba.size(); i < M; i++)
+    {
+        const int dst_owner = DMap[i];
+
+        gba.intersections(ba[i],isects);
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
-            const int  j      = isects[ii].first;
-            const Box& isect  = isects[ii].second;
+            const int  j         = isects[ii].first;
+            const Box& bx        = isects[ii].second;
+            const int  src_owner = DMap[j];
+
+            if (dst_owner != MyProc && src_owner != MyProc) continue;
 
             if (i == j) continue;
 
-            sirec.push_back(SIRec(i,j,isect));
+            tag.box = bx;
 
-            sirec.back().m_fbid = mfcd.AddBox(mfid,
-                                              isect,
-                                              0,
-                                              j,
-                                              scomp,
-                                              scomp,
-                                              ncomp,
-                                              false);
+            const int vol = bx.numPts();
+
+            if (dst_owner == MyProc)
+            {
+                tag.fabIndex = i;
+
+                if (src_owner == MyProc)
+                {
+                    //
+                    // Do the local work right here.
+                    //
+                    mf[i].plus(mf[j],bx,scomp,scomp,ncomp);
+                }
+                else
+                {
+                    m_RcvTags[src_owner].push_back(tag);
+
+                    vol_it = m_RcvVols.find(src_owner);
+
+                    if (vol_it != m_RcvVols.end())
+                    {
+                        vol_it->second += vol;
+                    }
+                    else
+                    {
+                        m_RcvVols[src_owner] = vol;
+                    }
+                }
+            }
+            else if (src_owner == MyProc)
+            {
+                tag.fabIndex = j;
+
+                m_SndTags[dst_owner].push_back(tag);
+
+                vol_it = m_SndVols.find(dst_owner);
+
+                if (vol_it != m_SndVols.end())
+                {
+                    vol_it->second += vol;
+                }
+                else
+                {
+                    m_SndVols[dst_owner] = vol;
+                }
+            }
         }
     }
 
-    mfcd.CollectData();
+#ifdef BL_USE_MPI
+    if (ParallelDescriptor::NProcs() == 1) return;
+    //
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    //
+    const int SeqNum = ParallelDescriptor::SeqNum();
 
-    FArrayBox fab;
+    if (m_SndTags.empty() && m_RcvTags.empty())
+        //
+        // No parallel work for this MPI process to do.
+        //
+        return;
 
-    for (std::vector<SIRec>::iterator it = sirec.begin(), End = sirec.end();
+    Array<MPI_Status>  stats;
+    Array<int>         recv_from, index;
+    Array<double*>     recv_data, send_data;
+    Array<MPI_Request> recv_reqs, send_reqs;
+    //
+    // Post rcvs. Allocate one chunk of space to hold'm all.
+    //
+    int TotalRcvsVolume = 0;
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
          it != End;
          ++it)
     {
-        BL_ASSERT(DistributionMap()[it->m_i] == ParallelDescriptor::MyProc());
-
-        fab.resize(it->m_bx,ncomp);
-
-        mfcd.FillFab(mfid, it->m_fbid, fab);
-
-        (*this)[it->m_i].plus(fab,fab.box(), 0, scomp, ncomp);
+        TotalRcvsVolume += it->second;
     }
+    TotalRcvsVolume *= ncomp;
+
+    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
+
+    double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
+
+    int Offset = 0;
+    for (MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.begin(),
+             m_End = m_RcvTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        vol_it = m_RcvVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_RcvVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        recv_data.push_back(&the_recv_data[Offset]);
+        recv_from.push_back(m_it->first);
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+
+        Offset += N;
+    }
+    //
+    // Send the data.
+    //
+    for (MapOfCopyComTagContainers::const_iterator m_it = m_SndTags.begin(),
+             m_End = m_SndTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        vol_it = m_SndVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_SndVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        double* data = static_cast<double*>(BoxLib::The_Arena()->alloc(N*sizeof(double)));
+        double* dptr = data;
+
+        for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
+                 End = m_it->second.end();
+             it != End;
+             ++it)
+        {
+            const Box& bx = it->box;
+            fab.resize(bx, ncomp);
+            fab.copy(mf[it->fabIndex],bx,scomp,bx,0,ncomp);
+            const int Cnt = bx.numPts()*ncomp;
+            memcpy(dptr,fab.dataPtr(),Cnt*sizeof(double));
+            dptr += Cnt;
+        }
+        BL_ASSERT(data+N == dptr);
+
+        if (FabArrayBase::do_async_sends)
+        {
+            send_data.push_back(data);
+            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
+        }
+        else
+        {
+            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
+            BoxLib::The_Arena()->free(data);
+        }
+    }
+    //
+    // Now receive and unpack FAB data as it becomes available.
+    //
+    MapOfCopyComTagContainers::const_iterator m_it;
+
+    const int N_rcvs = m_RcvTags.size();
+
+    index.resize(N_rcvs);
+    stats.resize(N_rcvs);
+
+    for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
+    {
+        ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
+
+        for (int k = 0; k < completed; k++)
+        {
+            const double* dptr = recv_data[index[k]];
+
+            BL_ASSERT(dptr != 0);
+
+            m_it = m_RcvTags.find(recv_from[index[k]]);
+
+            BL_ASSERT(m_it != m_RcvTags.end());
+
+            for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
+                     End = m_it->second.end();
+                 it != End;
+                 ++it)
+            {
+                const Box& bx = it->box;
+                fab.resize(bx,ncomp);
+                const int Cnt = bx.numPts()*ncomp;
+                memcpy(fab.dataPtr(),dptr,Cnt*sizeof(double));
+                mf[it->fabIndex].plus(fab,bx,0,scomp,ncomp);
+                dptr += Cnt;
+            }
+        }
+    }
+
+    BoxLib::The_Arena()->free(the_recv_data);
+
+    if (FabArrayBase::do_async_sends && !m_SndTags.empty())
+    {
+        //
+        // Now grok the asynchronous send buffers & free up send buffer space.
+        //
+        const int N_snds = m_SndTags.size();
+
+        stats.resize(N_snds);
+
+        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+
+        for (int i = 0; i < N_snds; i++)
+            BoxLib::The_Arena()->free(send_data[i]);
+    }
+#endif /*BL_USE_MPI*/
 }
 
 void
