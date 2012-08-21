@@ -9,12 +9,6 @@
 
 #include <deque>
 #include <vector>
-//
-// Some useful typedefs.
-//
-typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
-
-typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
 
 FluxRegister::FluxRegister ()
 {
@@ -584,6 +578,16 @@ FluxRegister::Reflux (MultiFab&       S,
         }
     }
 }
+
+//
+// Some useful typedefs.
+// These are used by the two CrseInit() routines that take a MultiFab.
+// These types are also used by FabArray::copy() and FillBoundary().
+// I'm trying to keep the number of data structures under control.
+//
+typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
+
+typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
 
 void
 FluxRegister::CrseInit (const MultiFab& mflx,
