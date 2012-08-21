@@ -1,0 +1,139 @@
+// --------------------------------------------------------------------
+// HyptermOnly.cpp
+// --------------------------------------------------------------------
+#include <winstd.H>
+
+#include <new>
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cmath>
+using std::ios;
+using std::cout;
+using std::endl;
+
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
+#include <IntVect.H>
+#include <Box.H>
+#include <FArrayBox.H>
+#include <MultiFab.H>
+#include <ParallelDescriptor.H>
+#include <Utility.H>
+#include <VisMF.H>
+#include <HyptermOnly_F.H>
+
+#ifdef SHOWVAL
+#undef SHOWVAL
+#endif
+#define SHOWVAL(val) { cout << #val << " = " << val << endl; }
+
+#ifdef BL_USE_SETBUF
+#define pubsetbuf setbuf
+#endif
+
+
+// --------------------------------------------------------------------
+int main(int argc, char *argv[]) {
+    BoxLib::Initialize(argc,argv);    
+
+    int maxgrid(64), nComps(5), nGhost(4);
+    int ioProc(ParallelDescriptor::IOProcessorNumber());
+
+    FArrayBox::setFormat(FABio::FAB_NATIVE);
+
+    IntVect ivlo(0, 0, 0);
+    IntVect ivhi(maxgrid-1, maxgrid-1, maxgrid-1);
+    Box probDomain(ivlo, ivhi);
+    BoxArray pdBoxArray(probDomain);
+    MultiFab mfFlux(pdBoxArray, nComps, 0, Fab_allocate);
+    MultiFab mfU(pdBoxArray, nComps, nGhost, Fab_allocate);
+    MultiFab mfQ(pdBoxArray, nComps+1, nGhost, Fab_allocate);
+
+    mfU.setVal(-42);
+
+    Array<Real> probLo(BL_SPACEDIM), probHi(BL_SPACEDIM);
+    for(int i(0); i < BL_SPACEDIM; ++i) {
+        probLo[i] = -1.0;
+        probHi[i] =  1.0;
+    }
+    
+
+    Real dx[BL_SPACEDIM];
+
+    for(int i(0); i < BL_SPACEDIM; ++i) {
+      dx[i] = (probHi[i] - probLo[i]) / (static_cast<Real> (probDomain.length(i)));
+    }
+
+    for(MFIter mfi(mfU); mfi.isValid(); ++mfi) {
+
+      FArrayBox &myFabU = mfU[mfi];
+      FArrayBox &myFabQ = mfQ[mfi];
+      FArrayBox &myFabFlux = mfFlux[mfi];
+
+      int idx = mfi.index();
+
+      const Real *dataPtrU = myFabU.dataPtr();
+      const int  *dlo     = myFabU.loVect();
+      const int  *dhi     = myFabU.hiVect();
+      const Real *dxptr   = dx;
+
+      FORT_INITDATA(dataPtrU, ARLIM(dlo), ARLIM(dhi), dxptr, &nComps);
+    }
+
+    VisMF::Write(mfU, "mfUInit");
+
+
+    {
+      double tstart = BoxLib::wsecond();
+      sleep(1);
+      double tend = BoxLib::wsecond();
+      if(ParallelDescriptor::IOProcessor()) {
+        cout << "sleep(1) time = " << tend - tstart << endl;
+      }
+    }
+
+    double tstart = BoxLib::wsecond();
+
+    int nSteps(10);
+    for(int iStep(0); iStep < nSteps; ++iStep) {
+    for(MFIter mfi(mfU); mfi.isValid(); ++mfi) {
+
+      FArrayBox &myFabU = mfU[mfi];
+      FArrayBox &myFabQ = mfQ[mfi];
+      FArrayBox &myFabFlux = mfFlux[mfi];
+
+      int idx = mfi.index();
+      cout << "myproc idx = " << ParallelDescriptor::MyProc() << "  " << idx << endl;
+
+      const Real *dataPtrU = myFabU.dataPtr();
+      const Real *dataPtrQ = myFabQ.dataPtr();
+      const Real *dataPtrFlux = myFabFlux.dataPtr();
+      const int  *dlo     = myFabU.loVect();
+      const int  *dhi     = myFabU.hiVect();
+      const int  *lo      = mfU.boxArray()[idx].loVect();
+      const int  *hi      = mfU.boxArray()[idx].hiVect();
+      const Real *dxptr   = dx;
+
+      FORT_HYPTERM(dataPtrU, ARLIM(dlo), ARLIM(dhi), ARLIM(lo), ARLIM(hi),
+                   dataPtrQ, dataPtrFlux, dxptr, &nComps);
+      //FORT_HYPTERM_UNOPT(dataPtrU, ARLIM(dlo), ARLIM(dhi), ARLIM(lo), ARLIM(hi),
+                   //dataPtrQ, dataPtrFlux, dxptr, &nComps);
+    }
+    }
+
+    double tend = BoxLib::wsecond();
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "Hypterm time    =  " << tend - tstart << endl;
+      cout << "Hypterm time/it =  " << (tend - tstart) / (static_cast<double> (nSteps)) << endl;
+    }
+
+    VisMF::Write(mfU, "mfUFinal");
+
+    BoxLib::Finalize();
+    return 0;
+}
+// --------------------------------------------------------------------
