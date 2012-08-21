@@ -1,0 +1,7 @@
+
+cEXE_sources   += timer_c.c
+
+ifeq ($(DIM),3)
+FEXE_sources +=
+endif
+
