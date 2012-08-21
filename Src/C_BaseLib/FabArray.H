@@ -112,24 +112,6 @@ public:
     //
     static int SICacheSize ();
     //
-    // Used to cache some CommData stuff in CollectData().
-    //
-    struct CommDataCache
-    {
-        CommDataCache ();
-
-        void operator= (const Array<ParallelDescriptor::CommData>& rhs);
-
-        bool isValid () const { return m_valid; }
-
-        Array<ParallelDescriptor::CommData>& theCommData () { return m_commdata; }
-
-        const Array<ParallelDescriptor::CommData>& theCommData () const { return m_commdata; }
-
-        Array<ParallelDescriptor::CommData> m_commdata;
-        bool                                m_valid;
-    };
-    //
     // Used in copy() and FillBoundary().
     //
     struct CopyComTag
