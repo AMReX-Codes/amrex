@@ -221,12 +221,6 @@ contains
        la1 = la2
     end do
 
-    if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. mgt%bottom_solver == 2) ) then
-       la2 = get_layout(mgt%cc(1))
-       call layout_build_derived(la1, la2)
-       call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
-    end if
-
     mgt%uniform_dh = .true.
     if ( present(dh) ) then
        mgt%dh(:,mgt%nlevels) = dh(:)
@@ -394,6 +388,11 @@ contains
                                nodal = nodal)
        end if
     end if
+
+    ! We do this *after* the test on bottom_solver == 4 in case we redefine bottom_solver
+    !    to be 1 or 2 in that test.
+    if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. mgt%bottom_solver == 2) ) &
+       call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
 
   end subroutine mg_tower_build
 
