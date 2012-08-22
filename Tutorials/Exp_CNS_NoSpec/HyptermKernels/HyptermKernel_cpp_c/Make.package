@@ -1,0 +1,9 @@
+
+cEXE_sources   += timer_c.c
+cEXE_sources   += timer.x86.c
+cEXE_sources   += hyptermbench.c
+
+ifeq ($(DIM),3)
+FEXE_sources +=
+endif
+
