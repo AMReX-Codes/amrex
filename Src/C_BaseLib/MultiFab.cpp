@@ -1035,9 +1035,9 @@ MultiFab::FillBoundary (bool local, bool cross)
 //
 // Some useful typedefs.
 //
-typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
+typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
 
-typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
 
 void
 MultiFab::SumBoundary (int scomp,

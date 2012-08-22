@@ -413,13 +413,10 @@ FluxRegister::Reflux (MultiFab&       S,
 
 //
 // Some useful typedefs.
-// These are used by the two CrseInit() routines that take a MultiFab.
-// These types are also used by FabArray::copy() and FillBoundary().
-// I'm trying to keep the number of data structures under control.
 //
-typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
+typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
 
-typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
 
 void
 FluxRegister::CrseInitDoit (const MultiFab& mflx,
