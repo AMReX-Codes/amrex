@@ -130,6 +130,7 @@ FabArrayBase::CopyComTag::GrokAsyncSends (const MapOfCopyComTagContainers& m_Snd
                                           Array<double*>&                  send_data,
                                           Array<MPI_Status>&               stats)
 {
+#ifdef BL_USE_MPI
     BL_ASSERT(FabArrayBase::do_async_sends && !m_SndTags.empty());
 
     const int N_snds = m_SndTags.size();
@@ -143,6 +144,7 @@ FabArrayBase::CopyComTag::GrokAsyncSends (const MapOfCopyComTagContainers& m_Snd
 
     for (int i = 0; i < N_snds; i++)
         BoxLib::The_Arena()->free(send_data[i]);
+#endif /*BL_USE_MPI*/
 }
 
 void
