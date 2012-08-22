@@ -84,13 +84,6 @@ FabArrayBase::CPC::CPC (const BoxArray&            dstba,
 
 FabArrayBase::CPC::~CPC () {}
 
-bool
-FabArrayBase::CPC::operator== (const CPC& rhs) const
-{
-    return
-        m_dstba == rhs.m_dstba && m_srcba == rhs.m_srcba && m_dstdm == rhs.m_dstdm && m_srcdm == rhs.m_srcdm;
-}
-
 int
 FabArrayBase::CPC::bytes () const
 {
@@ -434,13 +427,6 @@ FabArrayBase::SI::SI (const BoxArray&            ba,
 }
 
 FabArrayBase::SI::~SI () {}
-
-bool
-FabArrayBase::SI::operator== (const SI& rhs) const
-{
-    return
-        m_ngrow == rhs.m_ngrow && m_cross == rhs.m_cross && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
-}
 
 int
 FabArrayBase::SI::bytes () const
