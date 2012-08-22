@@ -142,6 +142,15 @@ public:
                                     Array<MPI_Request>&              send_reqs,
                                     Array<double*>&                  send_data,
                                     Array<MPI_Status>&               stats);
+
+        static void PostRcvs (const MapOfCopyComTagContainers& m_RcvTags,
+                              const std::map<int,int>&         m_RcvVols,
+                              double*&                         the_recv_data,
+                              Array<double*>&                  recv_data,
+                              Array<int>&                      recv_from,
+                              Array<MPI_Request>&              recv_reqs,
+                              int                              ncomp,
+                              int                              SeqNum);
     };
     //
     // Used in caching self-intersection info for FillBoundary().
