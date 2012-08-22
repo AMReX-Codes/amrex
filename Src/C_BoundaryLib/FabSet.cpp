@@ -182,13 +182,6 @@ FabSet::copyFrom (const FArrayBox& src,
     return *this;
 }
 
-//
-// Some useful typedefs.
-//
-typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
-
-typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
-
 void
 FabSet::DoIt (const MultiFab& src,
               int             ngrow,
@@ -201,6 +194,12 @@ FabSet::DoIt (const MultiFab& src,
     BL_ASSERT((dcomp+ncomp) <= nComp());
     BL_ASSERT((scomp+ncomp) <= src.nComp());
     BL_ASSERT(how == FabSet::COPYFROM || how == FabSet::PLUSFROM);
+    //
+    // Some shorthand.
+    //
+    typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
+
+    typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
 
     const int                  MyProc  = ParallelDescriptor::MyProc();
     const DistributionMapping& srcDMap = src.DistributionMap();
@@ -257,36 +256,14 @@ FabSet::DoIt (const MultiFab& src,
                 }
                 else
                 {
-                    m_RcvTags[src_owner].push_back(tag);
-
-                    vol_it = m_RcvVols.find(src_owner);
-
-                    if (vol_it != m_RcvVols.end())
-                    {
-                        vol_it->second += vol;
-                    }
-                    else
-                    {
-                        m_RcvVols[src_owner] = vol;
-                    }
+                    FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                 }
             }
             else if (src_owner == MyProc)
             {
                 tag.fabIndex = k;
 
-                m_SndTags[dst_owner].push_back(tag);
-
-                vol_it = m_SndVols.find(dst_owner);
-
-                if (vol_it != m_SndVols.end())
-                {
-                    vol_it->second += vol;
-                }
-                else
-                {
-                    m_SndVols[dst_owner] = vol;
-                }
+                FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
             }
         }
     }

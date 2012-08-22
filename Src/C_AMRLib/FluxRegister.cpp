@@ -672,36 +672,14 @@ FluxRegister::CrseInitDoit (const MultiFab& mflx,
                     }
                     else
                     {
-                        m_RcvTags[src_owner].push_back(tag);
-
-                        vol_it = m_RcvVols.find(src_owner);
-
-                        if (vol_it != m_RcvVols.end())
-                        {
-                            vol_it->second += vol;
-                        }
-                        else
-                        {
-                            m_RcvVols[src_owner] = vol;
-                        }
+                        FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                     }
                 }
                 else if (src_owner == MyProc)
                 {
                     tag.fabIndex = k;
 
-                    m_SndTags[dst_owner].push_back(tag);
-
-                    vol_it = m_SndVols.find(dst_owner);
-
-                    if (vol_it != m_SndVols.end())
-                    {
-                        vol_it->second += vol;
-                    }
-                    else
-                    {
-                        m_SndVols[dst_owner] = vol;
-                    }
+                    FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                 }
             }
         }

@@ -112,20 +112,31 @@ public:
     //
     static int SICacheSize ();
     //
-    // Used in copy() and FillBoundary().
+    // Used by a bunch of routines when communicating via MPI.
     //
     struct CopyComTag
     {
-        CopyComTag () {}
-        CopyComTag (const CopyComTag& cct)
-            :
-            box(cct.box),
-            fabIndex(cct.fabIndex),
-            srcIndex(cct.srcIndex) {}
-
         Box box;
         int fabIndex;
         int srcIndex;
+        //
+        // Some typedefs & helper functions used throughout the code.
+        //
+        typedef std::deque<CopyComTag> CopyComTagsContainer;
+
+        typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+
+        static void SetRecvTag (MapOfCopyComTagContainers& m_RcvTags,
+                                int                        src_owner,
+                                CopyComTag&                tag,
+                                std::map<int,int>&         m_RcvVols,
+                                int                        vol);
+
+        static void SetSendTag (MapOfCopyComTagContainers& m_SndTags,
+                                int                        dst_owner,
+                                CopyComTag&                tag,
+                                std::map<int,int>&         m_SndVols,
+                                int                        vol);
     };
     //
     // Holds single grid intersection record. Used by SumBoundary().

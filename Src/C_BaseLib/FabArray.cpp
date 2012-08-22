@@ -124,6 +124,48 @@ FabArrayBase::CPC::bytes () const
     return cnt;
 }
 
+void
+FabArrayBase::CopyComTag::SetRecvTag (MapOfCopyComTagContainers& m_RcvTags,
+                                      int                        src_owner,
+                                      CopyComTag&                tag,
+                                      std::map<int,int>&         m_RcvVols,
+                                      int                        vol)
+{
+    m_RcvTags[src_owner].push_back(tag);
+
+    std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
+
+    if (vol_it != m_RcvVols.end())
+    {
+        vol_it->second += vol;
+    }
+    else
+    {
+        m_RcvVols[src_owner] = vol;
+    }
+}
+
+void
+FabArrayBase::CopyComTag::SetSendTag (MapOfCopyComTagContainers& m_SndTags,
+                                      int                        dst_owner,
+                                      CopyComTag&                tag,
+                                      std::map<int,int>&         m_SndVols,
+                                      int                        vol)
+{
+    m_SndTags[dst_owner].push_back(tag);
+
+    std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
+
+    if (vol_it != m_SndVols.end())
+    {
+        vol_it->second += vol;
+    }
+    else
+    {
+        m_SndVols[dst_owner] = vol;
+    }
+}
+
 //
 // The copy() cache.
 //
@@ -232,36 +274,14 @@ FabArrayBase::TheCPC (const CPC& cpc)
                 }
                 else
                 {
-                    TheCPC.m_RcvTags[src_owner].push_back(tag);
-
-                    vol_it = TheCPC.m_RcvVols.find(src_owner);
-
-                    if (vol_it != TheCPC.m_RcvVols.end())
-                    {
-                        vol_it->second += vol;
-                    }
-                    else
-                    {
-                        TheCPC.m_RcvVols[src_owner] = vol;
-                    }
+                    FabArrayBase::CopyComTag::SetRecvTag(TheCPC.m_RcvTags,src_owner,tag,TheCPC.m_RcvVols,vol);
                 }
             }
             else if (src_owner == MyProc)
             {
                 tag.fabIndex = k;
 
-                TheCPC.m_SndTags[dst_owner].push_back(tag);
-
-                vol_it = TheCPC.m_SndVols.find(dst_owner);
-
-                if (vol_it != TheCPC.m_SndVols.end())
-                {
-                    vol_it->second += vol;
-                }
-                else
-                {
-                    TheCPC.m_SndVols[dst_owner] = vol;
-                }
+                FabArrayBase::CopyComTag::SetSendTag(TheCPC.m_SndTags,dst_owner,tag,TheCPC.m_SndVols,vol);
             }
         }
     }
@@ -580,36 +600,14 @@ FabArrayBase::TheFB (bool                cross,
                     }
                     else
                     {
-                        theFB.m_RcvTags[src_owner].push_back(tag);
-
-                        vol_it = theFB.m_RcvVols.find(src_owner);
-
-                        if (vol_it != theFB.m_RcvVols.end())
-                        {
-                            vol_it->second += vol;
-                        }
-                        else
-                        {
-                            theFB.m_RcvVols[src_owner] = vol;
-                        }
+                        FabArrayBase::CopyComTag::SetRecvTag(theFB.m_RcvTags,src_owner,tag,theFB.m_RcvVols,vol);
                     }
                 }
                 else if (src_owner == MyProc)
                 {
                     tag.fabIndex = k;
 
-                    theFB.m_SndTags[dst_owner].push_back(tag);
-
-                    vol_it = theFB.m_SndVols.find(dst_owner);
-
-                    if (vol_it != theFB.m_SndVols.end())
-                    {
-                        vol_it->second += vol;
-                    }
-                    else
-                    {
-                        theFB.m_SndVols[dst_owner] = vol;
-                    }
+                    FabArrayBase::CopyComTag::SetSendTag(theFB.m_SndTags,dst_owner,tag,theFB.m_SndVols,vol);
                 }
             }
         }
