@@ -856,19 +856,7 @@ FluxRegister::CrseInitDoit (const MultiFab& mflx,
     BoxLib::The_Arena()->free(the_recv_data);
 
     if (FabArrayBase::do_async_sends && !m_SndTags.empty())
-    {
-        //
-        // Now grok the asynchronous send buffers & free up send buffer space.
-        //
-        const int N_snds = m_SndTags.size();
-
-        stats.resize(N_snds);
-
-        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-        for (int i = 0; i < N_snds; i++)
-            BoxLib::The_Arena()->free(send_data[i]);
-    }
+        FabArrayBase::CopyComTag::GrokAsyncSends(m_SndTags,send_reqs,send_data,stats);
 #endif /*BL_USE_MPI*/
 }
 

@@ -137,6 +137,11 @@ public:
                                 CopyComTag&                tag,
                                 std::map<int,int>&         m_SndVols,
                                 int                        vol);
+
+        static void GrokAsyncSends (const MapOfCopyComTagContainers& m_SndTags,
+                                    Array<MPI_Request>&              send_reqs,
+                                    Array<double*>&                  send_data,
+                                    Array<MPI_Status>&               stats);
     };
     //
     // Holds single grid intersection record. Used by SumBoundary().
