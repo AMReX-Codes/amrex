@@ -178,9 +178,9 @@ public:
         //
         // Some useful typedefs.
         //
-        typedef std::deque<CopyComTag> CopyComTagsContainer;
+        typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
 
-        typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+        typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
         //
         // Basic data.
         //
@@ -242,9 +242,9 @@ public:
         //
         // Some useful typedefs.
         //
-        typedef std::deque<CopyComTag> CopyComTagsContainer;
+        typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
 
-        typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+        typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
         //
         // The cache of local and send/recv info per FabArray::copy().
         //
