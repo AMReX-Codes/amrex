@@ -187,6 +187,55 @@ FabArrayBase::CopyComTag::SetSendTag (MapOfCopyComTagContainers& m_SndTags,
     }
 }
 
+void
+FabArrayBase::CopyComTag::PostRcvs (const MapOfCopyComTagContainers& m_RcvTags,
+                                    const std::map<int,int>&         m_RcvVols,
+                                    double*&                         the_recv_data,
+                                    Array<double*>&                  recv_data,
+                                    Array<int>&                      recv_from,
+                                    Array<MPI_Request>&              recv_reqs,
+                                    int                              ncomp,
+                                    int                              SeqNum)
+{
+    int TotalRcvsVolume = 0;
+
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
+         it != End;
+         ++it)
+    {
+        TotalRcvsVolume += it->second;
+    }
+
+    TotalRcvsVolume *= ncomp;
+
+    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
+
+    the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
+
+    int Offset = 0;
+
+    for (MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.begin(),
+             m_End = m_RcvTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_RcvVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        recv_data.push_back(&the_recv_data[Offset]);
+        recv_from.push_back(m_it->first);
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+
+        Offset += N;
+    }
+}
+
 //
 // The copy() cache.
 //
@@ -262,7 +311,6 @@ FabArrayBase::TheCPC (const CPC& cpc)
     CPC&      TheCPC = *cache_it->second;
 
     CopyComTag                        tag;
-    std::map<int,int>::iterator       vol_it;
     std::vector< std::pair<int,Box> > isects;
 
     for (int i = 0, N = TheCPC.m_dstba.size(); i < N; i++)
@@ -557,7 +605,6 @@ FabArrayBase::TheFB (bool                cross,
 
     CopyComTag                        tag;
     std::vector<Box>                  boxes;
-    std::map<int,int>::iterator       vol_it;
     std::vector< std::pair<int,Box> > isects;
 
     boxes.resize(si.m_cross ? 2*BL_SPACEDIM : 1);
