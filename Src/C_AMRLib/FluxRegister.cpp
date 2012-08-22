@@ -402,9 +402,11 @@ FluxRegister::Reflux (MultiFab&       S,
 {
     const Real* dx = geom.CellSize();
 
-    MultiFab volume(S.boxArray(), 1, 1);
+    const int ngrow = S.nGrow();
 
-    volume.setVal(D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, 1);
+    MultiFab volume(S.boxArray(), 1, ngrow);
+
+    volume.setVal(D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, ngrow);
 
     Reflux(S,volume,scale,src_comp,dest_comp,num_comp,geom);
 }
