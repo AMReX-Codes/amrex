@@ -192,16 +192,16 @@ public:
         //
         // The cache of local and send/recv per FillBoundary().
         //
-        CopyComTagsContainer      m_LocTags;
-        MapOfCopyComTagContainers m_SndTags;
-        MapOfCopyComTagContainers m_RcvTags;
-        std::map<int,int>         m_SndVols;
-        std::map<int,int>         m_RcvVols;
+        CopyComTagsContainer*      m_LocTags;
+        MapOfCopyComTagContainers* m_SndTags;
+        MapOfCopyComTagContainers* m_RcvTags;
+        std::map<int,int>*         m_SndVols;
+        std::map<int,int>*         m_RcvVols;
     };
     //
     // Some useful typedefs for the FillBoundary() cache.
     //
-    typedef std::multimap<int,FabArrayBase::SI*> FBCache;
+    typedef std::multimap<int,FabArrayBase::SI> FBCache;
 
     typedef FBCache::iterator FBCacheIter;
 
@@ -248,16 +248,16 @@ public:
         //
         // The cache of local and send/recv info per FabArray::copy().
         //
-        CopyComTagsContainer      m_LocTags;
-        MapOfCopyComTagContainers m_SndTags;
-        MapOfCopyComTagContainers m_RcvTags;
-        std::map<int,int>         m_SndVols;
-        std::map<int,int>         m_RcvVols;
+        CopyComTagsContainer*      m_LocTags;
+        MapOfCopyComTagContainers* m_SndTags;
+        MapOfCopyComTagContainers* m_RcvTags;
+        std::map<int,int>*         m_SndVols;
+        std::map<int,int>*         m_RcvVols;
     };
     //
     // Some useful typedefs for the copy() cache.
     //
-    typedef std::multimap<int,FabArrayBase::CPC*> CPCCache;
+    typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
 
     typedef CPCCache::iterator CPCCacheIter;
 
@@ -296,8 +296,7 @@ public:
             fabArrayId(0),
             fillBoxId(0),
             procThatNeedsData(0),
-            procThatHasData(0)
-            {}
+            procThatHasData(0) {}
     };
     //
     // Returns cached self-intersection records or builds them.
@@ -1265,12 +1264,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     if (cache_it != FabArrayBase::m_TheCopyCache.end())
     {
-        const CPC& thecpc = *cache_it->second;
+        const CPC& thecpc = cache_it->second;
         //
         // Do local copy()s.
         //
-        for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags.begin(),
-                 End = thecpc.m_LocTags.end();
+        for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
+                 End = thecpc.m_LocTags->end();
              it != End;
              ++it)
         {
@@ -1307,7 +1306,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         return;
 
-    const CPC& thecpc = *cache_it->second;
+    const CPC& thecpc = cache_it->second;
 
     Array<MPI_Status>  stats;
     Array<int>         recv_from, index;
@@ -1318,8 +1317,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     int total_rcvs_volume = 0;
 
-    for (std::map<int,int>::const_iterator it = thecpc.m_RcvVols.begin(),
-             End = thecpc.m_RcvVols.end();
+    for (std::map<int,int>::const_iterator it = thecpc.m_RcvVols->begin(),
+             End = thecpc.m_RcvVols->end();
          it != End;
          ++it)
     {
@@ -1336,14 +1335,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     std::map<int,int>::const_iterator vol_it;
 
-    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags.begin(),
-             m_End = thecpc.m_RcvTags.end();
+    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->begin(),
+             m_End = thecpc.m_RcvTags->end();
          m_it != m_End;
          ++m_it)
     {
-        vol_it = thecpc.m_RcvVols.find(m_it->first);
+        vol_it = thecpc.m_RcvVols->find(m_it->first);
 
-        BL_ASSERT(vol_it != thecpc.m_RcvVols.end());
+        BL_ASSERT(vol_it != thecpc.m_RcvVols->end());
 
         const int N = vol_it->second*ncomp;
 
@@ -1360,14 +1359,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     FAB fab;
 
-    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags.begin(),
-             m_End = thecpc.m_SndTags.end();
+    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
+             m_End = thecpc.m_SndTags->end();
          m_it != m_End;
          ++m_it)
     {
-        vol_it = thecpc.m_SndVols.find(m_it->first);
+        vol_it = thecpc.m_SndVols->find(m_it->first);
 
-        BL_ASSERT(vol_it != thecpc.m_SndVols.end());
+        BL_ASSERT(vol_it != thecpc.m_SndVols->end());
 
         const int N = vol_it->second*ncomp;
 
@@ -1406,7 +1405,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     CPC::MapOfCopyComTagContainers::const_iterator m_it;
 
-    const int N_rcvs = thecpc.m_RcvTags.size();
+    const int N_rcvs = thecpc.m_RcvTags->size();
 
     index.resize(N_rcvs);
     stats.resize(N_rcvs);
@@ -1421,9 +1420,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             BL_ASSERT(dptr != 0);
 
-            m_it = thecpc.m_RcvTags.find(recv_from[index[k]]);
+            m_it = thecpc.m_RcvTags->find(recv_from[index[k]]);
 
-            BL_ASSERT(m_it != thecpc.m_RcvTags.end());
+            BL_ASSERT(m_it != thecpc.m_RcvTags->end());
 
             for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
@@ -1450,12 +1449,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     BoxLib::The_Arena()->free(the_recv_data);
 
-    if (FabArrayBase::do_async_sends && !thecpc.m_SndTags.empty())
+    if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty())
     {
         //
         // Now grok the asynchronous send buffers & free up send buffer space.
         //
-        const int N_snds = thecpc.m_SndTags.size();
+        const int N_snds = thecpc.m_SndTags->size();
 
         stats.resize(N_snds);
 
@@ -2261,10 +2260,10 @@ FabArray<FAB>::FillBoundary (int  scomp,
         //
         // Do local copy()s.
         //
-        const FabArrayBase::SI& TheSI = *cache_it->second;
+        const FabArrayBase::SI& TheSI = cache_it->second;
 
-        for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags.begin(),
-                 End = TheSI.m_LocTags.end();
+        for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
+                 End = TheSI.m_LocTags->end();
              it != End;
              ++it)
         {
@@ -2292,7 +2291,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
         //
         return;
 
-    const FabArrayBase::SI& TheSI = *cache_it->second;
+    const FabArrayBase::SI& TheSI = cache_it->second;
 
     Array<MPI_Status>  stats;
     Array<int>         recv_from, index;
@@ -2303,8 +2302,8 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     int TotalRcvsVolume = 0;
 
-    for (std::map<int,int>::const_iterator it = TheSI.m_RcvVols.begin(),
-             End = TheSI.m_RcvVols.end();
+    for (std::map<int,int>::const_iterator it = TheSI.m_RcvVols->begin(),
+             End = TheSI.m_RcvVols->end();
          it != End;
          ++it)
     {
@@ -2321,14 +2320,14 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     std::map<int,int>::const_iterator vol_it;
 
-    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags.begin(),
-             m_End = TheSI.m_RcvTags.end();
+    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->begin(),
+             m_End = TheSI.m_RcvTags->end();
          m_it != m_End;
          ++m_it)
     {
-        vol_it = TheSI.m_RcvVols.find(m_it->first);
+        vol_it = TheSI.m_RcvVols->find(m_it->first);
 
-        BL_ASSERT(vol_it != TheSI.m_RcvVols.end());
+        BL_ASSERT(vol_it != TheSI.m_RcvVols->end());
 
         const int N = vol_it->second*ncomp;
 
@@ -2345,14 +2344,14 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     FAB fab;
 
-    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags.begin(),
-             m_End = TheSI.m_SndTags.end();
+    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
+             m_End = TheSI.m_SndTags->end();
          m_it != m_End;
          ++m_it)
     {
-        vol_it = TheSI.m_SndVols.find(m_it->first);
+        vol_it = TheSI.m_SndVols->find(m_it->first);
 
-        BL_ASSERT(vol_it != TheSI.m_SndVols.end());
+        BL_ASSERT(vol_it != TheSI.m_SndVols->end());
 
         const int N = vol_it->second*ncomp;
 
@@ -2392,7 +2391,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     SI::MapOfCopyComTagContainers::const_iterator m_it;
 
-    const int N_rcvs = TheSI.m_RcvTags.size();
+    const int N_rcvs = TheSI.m_RcvTags->size();
 
     index.resize(N_rcvs);
     stats.resize(N_rcvs);
@@ -2407,9 +2406,9 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
             BL_ASSERT(dptr != 0);
 
-            m_it = TheSI.m_RcvTags.find(recv_from[index[k]]);
+            m_it = TheSI.m_RcvTags->find(recv_from[index[k]]);
 
-            BL_ASSERT(m_it != TheSI.m_RcvTags.end());
+            BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 
             for (SI::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
@@ -2428,12 +2427,12 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     BoxLib::The_Arena()->free(the_recv_data);
 
-    if (FabArrayBase::do_async_sends && !TheSI.m_SndTags.empty())
+    if (FabArrayBase::do_async_sends && !TheSI.m_SndTags->empty())
     {
         //
         // Now grok the asynchronous send buffers & free up send buffer space.
         //
-        const int N_snds = TheSI.m_SndTags.size();
+        const int N_snds = TheSI.m_SndTags->size();
 
         stats.resize(N_snds);
 

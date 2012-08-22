@@ -51,8 +51,12 @@ Geometry::FPB::FPB ()
     :
     m_ngrow(-1),
     m_do_corners(false),
-    m_reused(false)
-{}
+    m_reused(false),
+    m_LocTags(0),
+    m_SndTags(0),
+    m_RcvTags(0),
+    m_SndVols(0),
+    m_RcvVols(0) {}
 
 Geometry::FPB::FPB (const BoxArray&            ba,
                     const DistributionMapping& dm,
@@ -65,13 +69,25 @@ Geometry::FPB::FPB (const BoxArray&            ba,
     m_domain(domain),
     m_ngrow(ngrow),
     m_do_corners(do_corners),
-    m_reused(false)
+    m_reused(false),
+    m_LocTags(0),
+    m_SndTags(0),
+    m_RcvTags(0),
+    m_SndVols(0),
+    m_RcvVols(0)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(domain.ok());
 }
 
-Geometry::FPB::~FPB () {}
+Geometry::FPB::~FPB ()
+{
+    delete m_LocTags;
+    delete m_SndTags;
+    delete m_RcvTags;
+    delete m_SndVols;
+    delete m_RcvVols;
+}
 
 int
 Geometry::FPB::bytes () const
@@ -82,26 +98,26 @@ Geometry::FPB::bytes () const
     //
     int cnt = 0;
 
-    cnt += m_LocTags.size()*sizeof(FPBComTag);
+    cnt += m_LocTags->size()*sizeof(FPBComTag);
 
-    for (FPB::MapOfFPBComTagContainers::const_iterator it = m_SndTags.begin(),
-             m_End = m_SndTags.end();
+    for (FPB::MapOfFPBComTagContainers::const_iterator it = m_SndTags->begin(),
+             m_End = m_SndTags->end();
          it != m_End;
          ++it)
     {
         cnt += it->second.size()*sizeof(FPBComTag);
     }
 
-    for (FPB::MapOfFPBComTagContainers::const_iterator it = m_RcvTags.begin(),
-             m_End = m_RcvTags.end();
+    for (FPB::MapOfFPBComTagContainers::const_iterator it = m_RcvTags->begin(),
+             m_End = m_RcvTags->end();
          it != m_End;
          ++it)
     {
         cnt += it->second.size()*sizeof(FPBComTag);
     }
 
-    cnt += 2*m_SndVols.size()*sizeof(int);
-    cnt += 2*m_RcvVols.size()*sizeof(int);
+    cnt += 2*m_SndVols->size()*sizeof(int);
+    cnt += 2*m_RcvVols->size()*sizeof(int);
 
     return cnt;
 }
@@ -742,9 +758,9 @@ Geometry::GetFPB (const Geometry&      geom,
     
     for (Geometry::FPBMMapIter it = er_it.first; it != er_it.second; ++it)
     {
-        if (it->second->operator==(fpb))
+        if (it->second == fpb)
         {
-            it->second->m_reused = true;
+            it->second.m_reused = true;
 
             return it;
         }
@@ -757,13 +773,8 @@ Geometry::GetFPB (const Geometry&      geom,
         //
         for (Geometry::FPBMMapIter it = m_FPBCache.begin(); it != m_FPBCache.end(); )
         {
-            if (!it->second->m_reused)
+            if (!it->second.m_reused)
             {
-                //
-                // Don't forget to delete the pointer!
-                //
-                delete it->second;
-
                 m_FPBCache.erase(it++);
 
                 if (m_FPBCache.size() < Geometry::fpb_cache_max_size)
@@ -778,42 +789,42 @@ Geometry::GetFPB (const Geometry&      geom,
             }
         }
 
-        if (m_FPBCache.size() >= Geometry::fpb_cache_max_size)
-        {
+        if (m_FPBCache.size() >= Geometry::fpb_cache_max_size && !m_FPBCache.empty())
             //
             // Get rid of first entry which is the one with the smallest key.
             //
-            Geometry::FPBMMapIter it = m_FPBCache.begin();
-
-            BL_ASSERT(it != m_FPBCache.end());
-            //
-            // Don't forget to delete the pointer!
-            //
-            delete it->second;
-
-            m_FPBCache.erase(it);
-        }
+            m_FPBCache.erase(m_FPBCache.begin());
     }
     //
-    // Got to build one.  Here's where we allocate memory for the cache.
+    // Got to insert one & then build it.
     //
-    Geometry::FPBMMapIter cache_it = m_FPBCache.insert(std::make_pair(Key,new FPB(fpb)));
+    Geometry::FPBMMapIter cache_it = m_FPBCache.insert(std::make_pair(Key,fpb));
+    FPB&                  TheFPB   = cache_it->second;
+    //
+    // Here's where we allocate memory for the cache innards.
+    // We do this so we don't have to build objects of these types
+    // each time we search the cache.  Otherwise we'd be constructing
+    // and destroying said objects quite frequently.
+    //
+    TheFPB.m_LocTags = new FPB::FPBComTagsContainer;
+    TheFPB.m_SndTags = new FPB::MapOfFPBComTagContainers;
+    TheFPB.m_RcvTags = new FPB::MapOfFPBComTagContainers;
+    TheFPB.m_SndVols = new std::map<int,int>;
+    TheFPB.m_RcvVols = new std::map<int,int>;
 
     Box TheDomain = geom.Domain();
     for (int n = 0; n < BL_SPACEDIM; n++)
         if (ba[0].ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
 
-    FPB&                        TheFPB = *cache_it->second;
     FPBComTag                   tag;
     Array<IntVect>              pshifts(27);
     std::map<int,int>::iterator vol_it;
 
     for (int i = 0, N = ba.size(); i < N; i++)
     {
+        const Box dst       = BoxLib::grow(ba[i],fpb.m_ngrow);
         const int dst_owner = dm[i];
-
-        const Box dst = BoxLib::grow(ba[i],fpb.m_ngrow);
 
         if (TheDomain.contains(dst)) continue;
 
@@ -856,21 +867,21 @@ Geometry::GetFPB (const Geometry&      geom,
                     {
                         tag.srcIndex = j;
 
-                        TheFPB.m_LocTags.push_back(tag);
+                        TheFPB.m_LocTags->push_back(tag);
                     }
                     else
                     {
-                        TheFPB.m_RcvTags[src_owner].push_back(tag);
+                        (*TheFPB.m_RcvTags)[src_owner].push_back(tag);
 
-                        vol_it = TheFPB.m_RcvVols.find(src_owner);
+                        vol_it = TheFPB.m_RcvVols->find(src_owner);
 
-                        if (vol_it != TheFPB.m_RcvVols.end())
+                        if (vol_it != TheFPB.m_RcvVols->end())
                         {
                             vol_it->second += vol;
                         }
                         else
                         {
-                            TheFPB.m_RcvVols[src_owner] = vol;
+                            (*TheFPB.m_RcvVols)[src_owner] = vol;
                         }
                     }
                 }
@@ -878,32 +889,28 @@ Geometry::GetFPB (const Geometry&      geom,
                 {
                     tag.srcIndex = j;
 
-                    TheFPB.m_SndTags[dst_owner].push_back(tag);
+                    (*TheFPB.m_SndTags)[dst_owner].push_back(tag);
 
-                    vol_it = TheFPB.m_SndVols.find(dst_owner);
+                    vol_it = TheFPB.m_SndVols->find(dst_owner);
 
-                    if (vol_it != TheFPB.m_SndVols.end())
+                    if (vol_it != TheFPB.m_SndVols->end())
                     {
                         vol_it->second += vol;
                     }
                     else
                     {
-                        TheFPB.m_SndVols[dst_owner] = vol;
+                        (*TheFPB.m_SndVols)[dst_owner] = vol;
                     }
                 }
             }
         }
     }
 
-    if (TheFPB.m_LocTags.empty() && TheFPB.m_SndTags.empty() && TheFPB.m_RcvTags.empty())
+    if (TheFPB.m_LocTags->empty() && TheFPB.m_SndTags->empty() && TheFPB.m_RcvTags->empty())
     {
         //
-        // This MPI proc has no work to do.
-        // Don't store in the cache.
-        // And don't forget to delete the pointer!
+        // This MPI proc has no work to do.  Don't store in the cache.
         //
-        delete cache_it->second;
-
         m_FPBCache.erase(cache_it);
 
         return m_FPBCache.end();
@@ -921,13 +928,9 @@ Geometry::FlushPIRMCache ()
 
     for (FPBMMapIter it = m_FPBCache.begin(), End = m_FPBCache.end(); it != End; ++it)
     {
-        stats[2] += it->second->bytes();
-        if (it->second->m_reused)
+        stats[2] += it->second.bytes();
+        if (it->second.m_reused)
             stats[1]++;
-        //
-        // Don't forget to delete the pointer!
-        //
-        delete it->second;
     }
 
     if (verbose)
