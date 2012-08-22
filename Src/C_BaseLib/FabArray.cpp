@@ -112,7 +112,7 @@ FabArrayBase::CPC::bytes () const
 
     cnt += m_LocTags->size()*sizeof(CopyComTag);
 
-    for (CPC::MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
+    for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
              m_End = m_SndTags->end();
          it != m_End;
          ++it)
@@ -120,7 +120,7 @@ FabArrayBase::CPC::bytes () const
         cnt += it->second.size()*sizeof(CopyComTag);
     }
 
-    for (CPC::MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
+    for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
              m_End = m_RcvTags->end();
          it != m_End;
          ++it)
