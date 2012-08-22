@@ -144,40 +144,6 @@ public:
                                     Array<MPI_Status>&               stats);
     };
     //
-    // Holds single grid intersection record. Used by SumBoundary().
-    //
-    struct SIRec
-    {
-        SIRec ()
-            :
-            m_i(-1),
-            m_j(-1) {}
-
-        SIRec (int        i,
-               int        j,
-               const Box& bx)
-            :
-            m_i(i),
-            m_j(j),
-            m_bx(bx)
-            {
-                BL_ASSERT(i >= 0);
-                BL_ASSERT(j >= 0);
-            }
-
-        SIRec (const SIRec& rhs)
-            :
-            m_i(rhs.m_i),
-            m_j(rhs.m_j),
-            m_bx(rhs.m_bx),
-            m_fbid(rhs.m_fbid) {}
-
-        int       m_i;
-        int       m_j;
-        Box       m_bx;
-        FillBoxId m_fbid;
-    };
-    //
     // Used in caching self-intersection info for FillBoundary().
     //
     struct SI
