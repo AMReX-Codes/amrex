@@ -217,9 +217,9 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 //
 // Some useful typedefs.
 //
-typedef std::deque<FabArrayBase::CopyComTag> CopyComTagsContainer;
+typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
 
-typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
+typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
 
 static
 void
