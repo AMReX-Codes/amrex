@@ -125,6 +125,27 @@ FabArrayBase::CPC::bytes () const
 }
 
 void
+FabArrayBase::CopyComTag::GrokAsyncSends (const MapOfCopyComTagContainers& m_SndTags,
+                                          Array<MPI_Request>&              send_reqs,
+                                          Array<double*>&                  send_data,
+                                          Array<MPI_Status>&               stats)
+{
+    BL_ASSERT(FabArrayBase::do_async_sends && !m_SndTags.empty());
+
+    const int N_snds = m_SndTags.size();
+
+    stats.resize(N_snds);
+
+    BL_ASSERT(send_reqs.size() == N_snds);
+    BL_ASSERT(send_data.size() == N_snds);
+
+    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+
+    for (int i = 0; i < N_snds; i++)
+        BoxLib::The_Arena()->free(send_data[i]);
+}
+
+void
 FabArrayBase::CopyComTag::SetRecvTag (MapOfCopyComTagContainers& m_RcvTags,
                                       int                        src_owner,
                                       CopyComTag&                tag,
