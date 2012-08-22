@@ -194,29 +194,6 @@ public:
     //
     static int PIRMCacheSize ();
     //
-    // Used by SumPeriodicBoundary().
-    //
-    struct PIRec
-    {
-        PIRec ()
-            :
-            mfid(-1), srcId(-1) {}
-
-        PIRec (int _mfid, int _srcId, const Box& _srcBox, const Box& _dstBox)
-            :
-            mfid(_mfid), srcId(_srcId), srcBox(_srcBox), dstBox(_dstBox) {}
-
-        int       mfid;
-        int       srcId;
-        Box       srcBox;
-        Box       dstBox;
-        FillBoxId fbid;
-    };
-    //
-    // A handy typedef.
-    //
-    typedef std::vector<PIRec> PIRMVector;
-    //
     // Used by FillPeriodicBoundary().
     //
     struct FPBComTag
@@ -279,7 +256,7 @@ public:
 
     static int fpb_cache_max_size;
     //
-    // See if we're got an approprite FPB cached.
+    // See if we've got an approprite FPB cached.
     //
     static Geometry::FPBMMapIter GetFPB (const Geometry& geom, const Geometry::FPB& fpb);
 

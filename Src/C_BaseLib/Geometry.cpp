@@ -47,35 +47,6 @@ operator>> (std::istream& is,
     return is;
 }
 
-std::ostream&
-operator<< (std::ostream&          os,
-            const Geometry::PIRec& pir)
-{
-    os << "mfi: "
-       << pir.mfid
-       << " from (Box "
-       << pir.srcId
-       << ") "
-       << pir.srcBox
-       << " to "
-       << pir.dstBox;
-
-    return os;
-}
-
-std::ostream&
-operator<< (std::ostream&               os,
-	    const Geometry::PIRMVector& pirm)
-{
-    for (Geometry::PIRMVector::const_iterator it = pirm.begin(), End = pirm.end();
-         it != End;
-         ++it)
-    {
-        os << *it << '\n';
-    }
-    return os;
-}
-
 Geometry::FPB::FPB ()
     :
     m_ngrow(-1),
