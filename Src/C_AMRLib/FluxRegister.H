@@ -18,26 +18,9 @@ class FluxRegister
 public:
     //
     // Used internally when doing some parallel operations on FluxRegisters.
-    // SyncRegisters in IAMR also use'm.
     //
     struct Rec
     {
-        Rec (Orientation face,
-             int         index)
-            :
-            m_idx(index),
-            m_face(face),
-            m_shifted(false) {}
-
-        Rec (Orientation    face,
-             int            index,
-             const IntVect& shift)
-            :
-            m_shift(shift),
-            m_idx(index),
-            m_face(face),
-            m_shifted(false) {}
-
         Rec (int         fabidx,
              int         index,
              Orientation face,
@@ -46,8 +29,7 @@ public:
             m_fabidx(fabidx),
             m_idx(index),
             m_face(face),
-            m_fbid(fbid),
-            m_shifted(false) {}
+            m_fbid(fbid) {}
 
         Rec (const IntVect& shift,
              int            fabidx,
@@ -59,15 +41,13 @@ public:
             m_fabidx(fabidx),
             m_idx(index),
             m_face(face),
-            m_fbid(fbid),
-            m_shifted(true) {}
+            m_fbid(fbid) {}
 
         IntVect     m_shift;
         int         m_fabidx;
         int         m_idx;
         Orientation m_face;
         FillBoxId   m_fbid;
-        bool        m_shifted;
     };
     //
     // The default constructor.
