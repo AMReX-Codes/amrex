@@ -41,6 +41,7 @@ extern "C"
 			const Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
 			const Real* reg, ARLIM_P(rlo), ARLIM_P(rhi),
 			const int* lo, const int* hi,
+			const int* shft,
 			const int* numcomp, const Real* mult);
 }
 #endif

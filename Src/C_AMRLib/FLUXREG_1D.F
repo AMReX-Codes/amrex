@@ -135,27 +135,28 @@ c :: numcomp      =>  number of components to update
 c :: mult         =>  multiplative factor (+1 or -1 depending on nomal)
 c :: --------------------------------------------------------------
 c ::
-      subroutine FORT_FRREFLUX (s,DIMS(s),vol,DIMS(vol),reg,DIMS(reg),lo,hi,
-     &                          numcomp,mult)
+      subroutine FORT_FRREFLUX (s,DIMS(s),vol,DIMS(vol),reg,DIMS(reg),
+     &                          lo,hi,shft,numcomp,mult)
 
       implicit none
 
       integer    DIMDEC(s)
       integer    DIMDEC(vol)
       integer    DIMDEC(reg)
-      integer    lo(SDIM), hi(SDIM)
+      integer    lo(SDIM), hi(SDIM), shft(SDIM)
       integer    numcomp
       REAL_T     mult
       REAL_T     reg(DIMV(reg),numcomp)
-c :: For Multifluid reg is defined as: REAL_T reg(DIMV(reg),numcomp+FLUX_EXTRA)
       REAL_T       s(DIMV(s),numcomp)
       REAL_T     vol(DIMV(vol))
 
-      integer n, i
+      integer n, i, ilo
+
+      ilo = shft(1)
 
       do n = 1, numcomp
          do i = lo(1), hi(1)
-            s(i,n) = s(i,n) + mult*reg(i,n)/vol(i)
+            s(i-ilo,n) = s(i-ilo,n) + mult*reg(i,n)/vol(i-ilo)
          end do
       end do
 

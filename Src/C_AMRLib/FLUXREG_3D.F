@@ -286,34 +286,35 @@ c :: mult         =>  multiplative factor (+1 or -1 depending on nomal)
 c :: --------------------------------------------------------------
 c :: 
       subroutine FORT_FRREFLUX (s,DIMS(s),vol,DIMS(vol),reg,DIMS(reg),
-     &                          lo,hi,numcomp,mult)
+     &                          lo,hi,shft,numcomp,mult)
 
       implicit none
 
       integer    DIMDEC(s)
       integer    DIMDEC(vol)
       integer    DIMDEC(reg)
-      integer    lo(SDIM), hi(SDIM)
+      integer    lo(SDIM), hi(SDIM), shft(SDIM)
       integer    numcomp
       REAL_T     mult
       REAL_T       s(DIMV(s),numcomp)
       REAL_T     vol(DIMV(vol))
       REAL_T     reg(DIMV(reg),numcomp)
       
-      integer    n, i, j, k
+      integer    n, i, j, k, ilo, jlo, klo
 
-!$omp parallel private(i,j,k)
+      ilo = shft(1)
+      jlo = shft(2)
+      klo = shft(3)
+
       do n = 1, numcomp
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol(i,j,k)
+                  s(i-ilo,j-jlo,k-klo,n) = s(i-ilo,j-jlo,k-klo,n)
+     &                 + mult*reg(i,j,k,n)/vol(i-ilo,j-jlo,k-klo)
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
       
       end
