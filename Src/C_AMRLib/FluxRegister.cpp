@@ -175,21 +175,15 @@ FluxRegister::Reflux (MultiFab&       S,
                       const Geometry& geom,
 		      const Real*     multf)
 {
-    FabSetCopyDescriptor fscd;
+    BoxArray ba = grids; ba.grow(1);
 
-    FabSetId fsid[2*BL_SPACEDIM];
+    FabSetId                          fsid[2*BL_SPACEDIM];
+    FabSetCopyDescriptor              fscd;
+    std::deque<FluxRegister::Rec>     Recs;
+    std::vector< std::pair<int,Box> > isects;
 
     for (OrientationIter fi; fi; ++fi)
-    {
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
-    }
-
-    std::deque<FluxRegister::Rec> Recs;
-
-    BoxArray ba = grids;
-    ba.grow(1);
-
-    std::vector< std::pair<int,Box> > isects;
 
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
@@ -210,21 +204,19 @@ FluxRegister::Reflux (MultiFab&       S,
                 // low (high) face of fine grid => high (low)
                 // face of the exterior coarse grid cell updated.
                 //
-                const Orientation face = fi();
-
-                const Box ovlp = vbx & BoxLib::adjCell(grids[k],face);
+                const Box ovlp = vbx & BoxLib::adjCell(grids[k],fi());
 
                 if (ovlp.ok())
                 {
-                    FillBoxId fbid = fscd.AddBox(fsid[face],
-                                                 bndry[face].box(k),
+                    FillBoxId fbid = fscd.AddBox(fsid[fi()],
+                                                 bndry[fi()].box(k),
                                                  0,
                                                  k,
                                                  src_comp,
                                                  0,
                                                  num_comp);
 
-                    Recs.push_back(Rec(idx,k,face,fbid));
+                    Recs.push_back(Rec(idx,k,fi(),fbid));
                 }
             }
         }
@@ -234,14 +226,12 @@ FluxRegister::Reflux (MultiFab&       S,
     //
     if (geom.isAnyPeriodic())
     {
-        Array<IntVect>  pshifts(27);
+        Array<IntVect> pshifts(27);
 
         for (MFIter mfi(S); mfi.isValid(); ++mfi)
         {
-            const int        idx  = mfi.index();
-            const Box&       vbx  = mfi.validbox();
-            FArrayBox&       sfab = S[mfi];
-            const FArrayBox& vfab = volume[mfi];
+            const int  idx  = mfi.index();
+            const Box& vbx  = mfi.validbox();
 
             for (int k = 0, N = grids.size(); k < N; k++)
             {
@@ -255,20 +245,8 @@ FluxRegister::Reflux (MultiFab&       S,
 
                     for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                     {
-                        const IntVect& iv = pshifts[iiv];
-                        sfab.shift(iv);
-                        //
-                        // This is a funny situation.  I don't want to permanently
-                        // change vol, but I need to do a shift on it.  I'll shift
-                        // it back later, so the overall change is nil.  But to do
-                        // this, I have to cheat and do a cast.  This is pretty 
-                        // disgusting.
-                        //
-                        FArrayBox* cheatvol = const_cast<FArrayBox*>(&vfab);
-                        BL_ASSERT(cheatvol != 0);
-                        cheatvol->shift(iv);
-                        Box sftbox = vbx;
-                        sftbox.shift(iv);
+                        const Box sftbox = vbx + pshifts[iiv];
+
                         BL_ASSERT(bx.intersects(sftbox));
 
                         for (OrientationIter fi; fi; ++fi)
@@ -277,25 +255,21 @@ FluxRegister::Reflux (MultiFab&       S,
                             // low (high)  face of fine grid => high (low)
                             // face of the exterior coarse grid cell updated.
                             //
-                            const Orientation face = fi();
-
-                            const Box ovlp = sftbox & BoxLib::adjCell(kgrid,face);
+                            const Box ovlp = sftbox & BoxLib::adjCell(kgrid,fi());
 
                             if (ovlp.ok())
                             {
-                                FillBoxId fbid = fscd.AddBox(fsid[face],
-                                                             bndry[face].box(k),
+                                FillBoxId fbid = fscd.AddBox(fsid[fi()],
+                                                             bndry[fi()].box(k),
                                                              0,
                                                              k,
                                                              src_comp,
                                                              0,
                                                              num_comp);
 
-                                Recs.push_back(Rec(iv,idx,k,face,fbid));
+                                Recs.push_back(Rec(pshifts[iiv],idx,k,fi(),fbid));
                             }
                         }
-                        sfab.shift(-iv);
-                        cheatvol->shift(-iv);
                     }
                 }
             }
@@ -357,19 +331,11 @@ FluxRegister::Reflux (MultiFab&       S,
         else
         {
             fab_S.shift(rf.m_shift);
-            //
-            // This is a funny situation.  I don't want to permanently
-            // change vol, but I need to do a shift on it.  I'll shift
-            // it back later, so the overall change is nil.  But to do
-            // this, I have to cheat and do a cast.  This is pretty 
-            // disgusting.
-            //
             FArrayBox* cheatvol = const_cast<FArrayBox*>(&fab_volume);
             BL_ASSERT(cheatvol != 0);
             cheatvol->shift(rf.m_shift);
-            Box sftbox = S.box(rf.m_fabidx);
-            sftbox.shift(rf.m_shift);
-            Box ovlp = sftbox & fine_face;
+            const Box sftbox = S.box(rf.m_fabidx) + rf.m_shift;
+            const Box ovlp   = sftbox & fine_face;
 
             BL_ASSERT(ovlp.ok());
 
@@ -377,10 +343,10 @@ FluxRegister::Reflux (MultiFab&       S,
             fscd.FillFab(fsid[rf.m_face], fbid, reg);
 
             const Real* reg_dat = reg.dataPtr(0);
-            const int*  vlo      = cheatvol->loVect();
-            const int*  vhi      = cheatvol->hiVect();
-            const int*  lo       = ovlp.loVect();
-            const int*  hi       = ovlp.hiVect();
+            const int*  vlo     = cheatvol->loVect();
+            const int*  vhi     = cheatvol->hiVect();
+            const int*  lo      = ovlp.loVect();
+            const int*  hi      = ovlp.hiVect();
 
             FORT_FRREFLUX(s_dat,ARLIM(slo),ARLIM(shi),
                           vol_dat,ARLIM(vlo),ARLIM(vhi),
@@ -402,11 +368,9 @@ FluxRegister::Reflux (MultiFab&       S,
 {
     const Real* dx = geom.CellSize();
 
-    const int ngrow = S.nGrow();
+    MultiFab volume(S.boxArray(), 1, S.nGrow());
 
-    MultiFab volume(S.boxArray(), 1, ngrow);
-
-    volume.setVal(D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, ngrow);
+    volume.setVal(D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, S.nGrow());
 
     Reflux(S,volume,scale,src_comp,dest_comp,num_comp,geom);
 }
