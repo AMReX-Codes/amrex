@@ -284,9 +284,6 @@ FluxRegister::Reflux (MultiFab&       S,
                     tag.m_dIndex = idx;
                     tag.m_sIndex = k;
 
-                    const Box bx  = bndry[tag.m_face].box(tag.m_sIndex);
-                    const int vol = bx.numPts();
-
                     if (dst_owner == MyProc)
                     {
                         if (src_owner == MyProc)
@@ -298,6 +295,9 @@ FluxRegister::Reflux (MultiFab&       S,
                         }
                         else
                         {
+                            const Box bx  = bndry[tag.m_face].box(tag.m_sIndex);
+                            const int vol = bx.numPts();
+
                             m_RcvTags[src_owner].push_back(tag);
 
                             std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
@@ -314,6 +314,8 @@ FluxRegister::Reflux (MultiFab&       S,
                     }
                     else if (src_owner == MyProc)
                     {
+                        const int vol = bndry[tag.m_face][tag.m_sIndex].box().numPts();
+
                         m_SndTags[dst_owner].push_back(tag);
 
                         std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
@@ -381,9 +383,6 @@ FluxRegister::Reflux (MultiFab&       S,
                                 tag.m_dIndex = idx;
                                 tag.m_sIndex = k;
 
-                                const Box bx  = bndry[tag.m_face].box(tag.m_sIndex);
-                                const int vol = bx.numPts();
-
                                 if (dst_owner == MyProc)
                                 {
                                     if (src_owner == MyProc)
@@ -395,6 +394,9 @@ FluxRegister::Reflux (MultiFab&       S,
                                     }
                                     else
                                     {
+                                        const Box bx  = bndry[tag.m_face].box(tag.m_sIndex);
+                                        const int vol = bx.numPts();
+
                                         m_RcvTags[src_owner].push_back(tag);
 
                                         std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
@@ -411,6 +413,8 @@ FluxRegister::Reflux (MultiFab&       S,
                                 }
                                 else if (src_owner == MyProc)
                                 {
+                                    const int vol = bndry[tag.m_face][tag.m_sIndex].box().numPts();
+
                                     m_SndTags[dst_owner].push_back(tag);
 
                                     std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
@@ -661,8 +665,6 @@ FluxRegister::CrseInitDoit (const MultiFab& mflx,
                 tag.box      = bx;
                 tag.srcIndex = face;
 
-                const int vol = bx.numPts();
-
                 if (dst_owner == MyProc)
                 {
                     tag.fabIndex = i;
@@ -697,12 +699,16 @@ FluxRegister::CrseInitDoit (const MultiFab& mflx,
                     }
                     else
                     {
+                        const int vol = bx.numPts();
+
                         FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                     }
                 }
                 else if (src_owner == MyProc)
                 {
                     tag.fabIndex = k;
+
+                    const int vol = bx.numPts();
 
                     FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                 }
