@@ -165,6 +165,55 @@ FluxRegister::copyTo (FArrayBox& flx,
     hifabs.copyTo(flx,src_comp,dest_comp,num_comp);
 }
 
+static
+void
+RefluxIt (const FluxRegister::Rec& rf,
+          Real                     scale,
+          const Real*              multf,
+          const BoxArray&          grids,
+          MultiFab&                S,
+          const MultiFab&          volume,
+          const FabSet*            bndry,
+          const FArrayBox&         reg,
+          int                      src_comp,
+          int                      dest_comp,
+          int                      num_comp)
+{
+    BL_ASSERT(S.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
+    BL_ASSERT(volume.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
+
+    Real mult;
+    if (multf == 0)
+        mult = rf.m_face.isLow() ? -scale : scale;
+    else
+        mult = (*multf)*scale;
+
+    FArrayBox&       fab_S      = S[rf.m_fabidx];
+    const FArrayBox& fab_volume = volume[rf.m_fabidx];
+    Real*            s_dat      = fab_S.dataPtr(dest_comp);
+    const int*       slo        = fab_S.loVect();
+    const int*       shi        = fab_S.hiVect();
+    const Real*      vol_dat    = fab_volume.dataPtr();
+    const Box        fine_face  = BoxLib::adjCell(grids[rf.m_idx],rf.m_face);
+    const Box        sftbox     = S.box(rf.m_fabidx) + rf.m_shift;
+    const Box        ovlp       = sftbox & fine_face;
+    const int*       lo         = ovlp.loVect();
+    const int*       hi         = ovlp.hiVect();
+    const int*       rlo        = fine_face.loVect();
+    const int*       rhi        = fine_face.hiVect();
+    const int*       shft       = rf.m_shift.getVect();
+    const int*       vlo        = fab_volume.loVect();
+    const int*       vhi        = fab_volume.hiVect();
+    const Real*      reg_dat    = reg.dataPtr(src_comp);
+
+    BL_ASSERT(ovlp.ok());
+
+    FORT_FRREFLUX(s_dat,ARLIM(slo),ARLIM(shi),
+                  vol_dat,ARLIM(vlo),ARLIM(vhi),
+                  reg_dat,ARLIM(rlo),ARLIM(rhi),
+                  lo,hi,shft,&num_comp,&mult);
+}
+
 void
 FluxRegister::Reflux (MultiFab&       S,
                       const MultiFab& volume,
@@ -285,47 +334,16 @@ FluxRegister::Reflux (MultiFab&       S,
          it != End;
          ++it)
     {
-        const Rec&       rf   = *it;
+        const Rec& rf = *it;
+
         const FillBoxId& fbid = rf.m_fbid;
 
         BL_ASSERT(bndry[rf.m_face].box(rf.m_idx) == fbid.box());
-        BL_ASSERT(S.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
-        BL_ASSERT(volume.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
-
-	Real mult; 
-	if (multf == 0)
-	  mult = rf.m_face.isLow() ? -scale : scale;
-	else
-	  mult = (*multf)*scale;
-
-        FArrayBox&       fab_S      = S[rf.m_fabidx];
-        const FArrayBox& fab_volume = volume[rf.m_fabidx];
-        Real*            s_dat      = fab_S.dataPtr(dest_comp);
-        const int*       slo        = fab_S.loVect();
-        const int*       shi        = fab_S.hiVect();
-        const Real*      vol_dat    = fab_volume.dataPtr();
-        const Box        fine_face  = BoxLib::adjCell(grids[rf.m_idx],rf.m_face);
-        const Box        sftbox     = S.box(rf.m_fabidx) + rf.m_shift;
-        const Box        ovlp       = sftbox & fine_face;
-        const int*       lo         = ovlp.loVect();
-        const int*       hi         = ovlp.hiVect();
-        const int*       rlo        = fine_face.loVect();
-        const int*       rhi        = fine_face.hiVect();
-        const int*       shft       = rf.m_shift.getVect();
-        const int*       vlo        = fab_volume.loVect();
-        const int*       vhi        = fab_volume.hiVect();
 
         reg.resize(fbid.box(),num_comp);
         fscd.FillFab(fsid[rf.m_face],fbid,reg);
 
-        const Real* reg_dat = reg.dataPtr(0);
-
-        BL_ASSERT(ovlp.ok());
-
-        FORT_FRREFLUX(s_dat,ARLIM(slo),ARLIM(shi),
-                      vol_dat,ARLIM(vlo),ARLIM(vhi),
-                      reg_dat,ARLIM(rlo),ARLIM(rhi),
-                      lo,hi,shft,&num_comp,&mult);
+        RefluxIt(rf,scale,multf,grids,S,volume,bndry,reg,0,dest_comp,num_comp);
     }
 }
 
