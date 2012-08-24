@@ -298,36 +298,14 @@ FluxRegister::Reflux (MultiFab&       S,
                             const Box bx  = bndry[tag.m_face].box(tag.m_sIndex);
                             const int vol = bx.numPts();
 
-                            m_RcvTags[src_owner].push_back(tag);
-
-                            std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
-
-                            if (vol_it != m_RcvVols.end())
-                            {
-                                vol_it->second += vol;
-                            }
-                            else
-                            {
-                                m_RcvVols[src_owner] = vol;
-                            }
+                            FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                         }
                     }
                     else if (src_owner == MyProc)
                     {
                         const int vol = bndry[tag.m_face][tag.m_sIndex].box().numPts();
 
-                        m_SndTags[dst_owner].push_back(tag);
-
-                        std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
-
-                        if (vol_it != m_SndVols.end())
-                        {
-                            vol_it->second += vol;
-                        }
-                        else
-                        {
-                            m_SndVols[dst_owner] = vol;
-                        }
+                        FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                     }
                 }
             }
@@ -397,36 +375,14 @@ FluxRegister::Reflux (MultiFab&       S,
                                     const Box bx  = bndry[tag.m_face].box(tag.m_sIndex);
                                     const int vol = bx.numPts();
 
-                                    m_RcvTags[src_owner].push_back(tag);
-
-                                    std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
-
-                                    if (vol_it != m_RcvVols.end())
-                                    {
-                                        vol_it->second += vol;
-                                    }
-                                    else
-                                    {
-                                        m_RcvVols[src_owner] = vol;
-                                    }
+                                    FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                                 }
                             }
                             else if (src_owner == MyProc)
                             {
                                 const int vol = bndry[tag.m_face][tag.m_sIndex].box().numPts();
 
-                                m_SndTags[dst_owner].push_back(tag);
-
-                                std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
-
-                                if (vol_it != m_SndVols.end())
-                                {
-                                    vol_it->second += vol;
-                                }
-                                else
-                                {
-                                    m_SndVols[dst_owner] = vol;
-                                }
+                                FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                             }
                         }
                     }
@@ -456,43 +412,9 @@ FluxRegister::Reflux (MultiFab&       S,
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    int TotalRcvsVolume = 0;
+    double* the_recv_data = 0;
 
-    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-             End = m_RcvVols.end();
-         it != End;
-         ++it)
-    {
-        TotalRcvsVolume += it->second;
-    }
-
-    TotalRcvsVolume *= ncomp;
-
-    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
-
-    double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
-
-    int Offset = 0;
-
-    for (MapOfRFComTagContainers::const_iterator m_it = m_RcvTags.begin(),
-             m_End = m_RcvTags.end();
-         m_it != m_End;
-         ++m_it)
-    {
-        std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != m_RcvVols.end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        recv_data.push_back(&the_recv_data[Offset]);
-        recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
-
-        Offset += N;
-    }
+    FabArrayBase::PostRcvs(m_RcvTags,m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
     //
     // Send the data.
     //
@@ -576,21 +498,7 @@ FluxRegister::Reflux (MultiFab&       S,
     BoxLib::The_Arena()->free(the_recv_data);
 
     if (FabArrayBase::do_async_sends && !m_SndTags.empty())
-    {
-        BL_ASSERT(FabArrayBase::do_async_sends && !m_SndTags.empty());
-
-        const int N_snds = m_SndTags.size();
-
-        stats.resize(N_snds);
-
-        BL_ASSERT(send_reqs.size() == N_snds);
-        BL_ASSERT(send_data.size() == N_snds);
-
-        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-        for (int i = 0; i < N_snds; i++)
-            BoxLib::The_Arena()->free(send_data[i]);
-    }
+        FabArrayBase::GrokAsyncSends(m_SndTags.size(),send_reqs,send_data,stats);
 #endif /*BL_USE_MPI*/
 }
 
@@ -700,7 +608,7 @@ FluxRegister::CrseInitDoit (const MultiFab& mflx,
 
                         const int vol = bx.numPts();
 
-                        FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
+                        FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                     }
                 }
                 else if (src_owner == MyProc)
@@ -709,7 +617,7 @@ FluxRegister::CrseInitDoit (const MultiFab& mflx,
 
                     const int vol = bx.numPts();
 
-                    FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
+                    FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                 }
             }
         }
@@ -742,7 +650,7 @@ FluxRegister::CrseInitDoit (const MultiFab& mflx,
     //
     double* the_recv_data = 0;
 
-    FabArrayBase::CopyComTag::PostRcvs(m_RcvTags,m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,NumCompArea,SeqNum);
+    FabArrayBase::PostRcvs(m_RcvTags,m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,NumCompArea,SeqNum);
     //
     // Send the data.
     //
@@ -853,7 +761,7 @@ FluxRegister::CrseInitDoit (const MultiFab& mflx,
     BoxLib::The_Arena()->free(the_recv_data);
 
     if (FabArrayBase::do_async_sends && !m_SndTags.empty())
-        FabArrayBase::CopyComTag::GrokAsyncSends(m_SndTags,send_reqs,send_data,stats);
+        FabArrayBase::GrokAsyncSends(m_SndTags.size(),send_reqs,send_data,stats);
 #endif /*BL_USE_MPI*/
 }
 

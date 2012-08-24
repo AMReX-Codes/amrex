@@ -484,45 +484,9 @@ namespace BoxLib
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
-        int total_rcvs_volume = 0;
+        double* the_recv_data = 0;
 
-        for (std::map<int,int>::const_iterator it = TheFPB.m_RcvVols->begin(),
-                 End = TheFPB.m_RcvVols->end();
-             it != End;
-             ++it)
-        {
-            total_rcvs_volume += it->second;
-        }
-
-        total_rcvs_volume *= ncomp;
-
-        BL_ASSERT((total_rcvs_volume*sizeof(value_type)) < std::numeric_limits<int>::max());
-
-        value_type* the_recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(total_rcvs_volume*sizeof(value_type)));
-
-        int offset = 0;
-
-        std::map<int,int>::const_iterator vol_it;
-
-        for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->begin(),
-                 m_End = TheFPB.m_RcvTags->end();
-             m_it != m_End;
-             ++m_it)
-        {
-            vol_it = TheFPB.m_RcvVols->find(m_it->first);
-
-            BL_ASSERT(vol_it != TheFPB.m_RcvVols->end());
-
-            const int N = vol_it->second*ncomp;
-
-            BL_ASSERT(N < std::numeric_limits<int>::max());
-
-            recv_data.push_back(&the_recv_data[offset]);
-            recv_from.push_back(m_it->first);
-            recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
-
-            offset += N;
-        }
+        FabArrayBase::PostRcvs(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
         //
         // Send the FAB data.
         //
@@ -533,7 +497,7 @@ namespace BoxLib
              m_it != m_End;
              ++m_it)
         {
-            vol_it = TheFPB.m_SndVols->find(m_it->first);
+            std::map<int,int>::const_iterator vol_it = TheFPB.m_SndVols->find(m_it->first);
 
             BL_ASSERT(vol_it != TheFPB.m_SndVols->end());
 
@@ -611,20 +575,7 @@ namespace BoxLib
         BoxLib::The_Arena()->free(the_recv_data);
 
         if (FabArrayBase::do_async_sends && !TheFPB.m_SndTags->empty())
-        {
-            //
-            // Now grok the asynchronous send buffers & free up send buffer space.
-            //
-            const int N_snds = TheFPB.m_SndTags->size();
-
-            stats.resize(N_snds);
-
-            BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-            for (int i = 0; i < N_snds; i++)
-                BoxLib::The_Arena()->free(send_data[i]);
-        }
-
+            FabArrayBase::GrokAsyncSends(TheFPB.m_SndTags->size(),send_reqs,send_data,stats);
 #endif /*BL_USE_MPI*/
     }
 }

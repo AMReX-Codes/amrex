@@ -134,6 +134,7 @@ FabArrayBase::CPC::bytes () const
     return cnt;
 }
 
+#if 0
 void
 FabArrayBase::CopyComTag::GrokAsyncSends (const MapOfCopyComTagContainers& m_SndTags,
                                           Array<MPI_Request>&              send_reqs,
@@ -247,6 +248,7 @@ FabArrayBase::CopyComTag::PostRcvs (const MapOfCopyComTagContainers& m_RcvTags,
         Offset += N;
     }
 }
+#endif
 
 //
 // The copy() cache.
@@ -350,7 +352,7 @@ FabArrayBase::TheCPC (const CPC& cpc)
                 {
                     const int vol = bx.numPts();
 
-                    FabArrayBase::CopyComTag::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,vol);
+                    FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,vol);
                 }
             }
             else if (src_owner == MyProc)
@@ -359,7 +361,7 @@ FabArrayBase::TheCPC (const CPC& cpc)
 
                 const int vol = bx.numPts();
 
-                FabArrayBase::CopyComTag::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,vol);
+                FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,vol);
             }
         }
     }
@@ -670,7 +672,7 @@ FabArrayBase::TheFB (bool                cross,
                     {
                         const int vol = bx.numPts();
 
-                        FabArrayBase::CopyComTag::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,vol);
+                        FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,vol);
                     }
                 }
                 else if (src_owner == MyProc)
@@ -679,7 +681,7 @@ FabArrayBase::TheFB (bool                cross,
 
                     const int vol = bx.numPts();
 
-                    FabArrayBase::CopyComTag::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,vol);
+                    FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,vol);
                 }
             }
         }

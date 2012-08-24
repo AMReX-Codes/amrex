@@ -71,21 +71,21 @@ public:
     //
     // Returns the grow factor that defines the region of definition.
     //
-    int nGrow () const;
+    int nGrow () const { return n_grow; }
     //
     // Returns number of variables associated with each point (nvar).
     //
-    int nComp () const;
+    int nComp () const { return n_comp; }
     //
     // Returns a constant reference to the BoxArray that defines the
     // valid region associated with this FabArray.
     //
-    const BoxArray& boxArray () const;
+    const BoxArray& boxArray () const { return boxarray; }
     //
     // Returns a constant reference to the Kth Box in the BoxArray.
     // That is, the valid region of the Kth grid.
     //
-    const Box& box (int K) const;
+    const Box& box (int K) const { return boxarray[K]; }
     //
     // Returns the Kth FABs Box in the FabArray.
     // That is, the region the Kth fab is actually defined on.
@@ -94,15 +94,15 @@ public:
     //
     // Returns the number of FABs in the FabArray..
     //
-    int size () const;
+    int size () const { return boxarray.size(); }
     //
     // Returns constant reference to associated DistributionMapping.
     //
-    const DistributionMapping& DistributionMap () const;
+    const DistributionMapping& DistributionMap () const { return distributionMap; }
     //
     // Returns constant reference to indices in the FabArray that we own.
     //
-    const Array<int>& IndexMap () const;
+    const Array<int>& IndexMap () const { return indexMap; }
     //
     // Flush the cache of self-intersection info used by FillBoundary.
     //
@@ -111,6 +111,38 @@ public:
     // The size of the cache of self-intersection info.
     //
     static int SICacheSize ();
+    //
+    // Some static member templates used throughout the code.
+    //
+    template<typename T>
+    static void SetRecvTag (std::map< int,std::deque<T> >& m_RcvTags,
+                            int                            src_owner,
+                            const T&                       tag,
+                            std::map<int,int>&             m_RcvVols,
+                            int                            vol);
+
+    template<typename T>
+    static void SetSendTag (std::map< int,std::deque<T> >& m_SndTags,
+                            int                            dst_owner,
+                            const T&                       tag,
+                            std::map<int,int>&             m_SndVols,
+                            int                            vol);
+
+    template<typename T>
+    static void GrokAsyncSends (int                 N_snds,
+                                Array<MPI_Request>& send_reqs,
+                                Array<T*>&          send_data,
+                                Array<MPI_Status>&  stats);
+
+    template<typename T1, typename T2>
+    static void PostRcvs (const std::map< int,std::deque<T1> >& m_RcvTags,
+                          const std::map<int,int>&              m_RcvVols,
+                          T2*&                                  the_recv_data,
+                          Array<T2*>&                           recv_data,
+                          Array<int>&                           recv_from,
+                          Array<MPI_Request>&                   recv_reqs,
+                          int                                   ncomp,
+                          int                                   SeqNum);
     //
     // Used by a bunch of routines when communicating via MPI.
     //
@@ -125,32 +157,6 @@ public:
         typedef std::deque<CopyComTag> CopyComTagsContainer;
 
         typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
-
-        static void SetRecvTag (MapOfCopyComTagContainers& m_RcvTags,
-                                int                        src_owner,
-                                CopyComTag&                tag,
-                                std::map<int,int>&         m_RcvVols,
-                                int                        vol);
-
-        static void SetSendTag (MapOfCopyComTagContainers& m_SndTags,
-                                int                        dst_owner,
-                                CopyComTag&                tag,
-                                std::map<int,int>&         m_SndVols,
-                                int                        vol);
-
-        static void GrokAsyncSends (const MapOfCopyComTagContainers& m_SndTags,
-                                    Array<MPI_Request>&              send_reqs,
-                                    Array<double*>&                  send_data,
-                                    Array<MPI_Status>&               stats);
-
-        static void PostRcvs (const MapOfCopyComTagContainers& m_RcvTags,
-                              const std::map<int,int>&         m_RcvVols,
-                              double*&                         the_recv_data,
-                              Array<double*>&                  recv_data,
-                              Array<int>&                      recv_from,
-                              Array<MPI_Request>&              recv_reqs,
-                              int                              ncomp,
-                              int                              SeqNum);
     };
     //
     // Used in caching self-intersection info for FillBoundary().
@@ -337,31 +343,34 @@ public:
     //
     // Construct a MFIter.
     //
-    explicit MFIter (const FabArrayBase& fabarray);
+    explicit MFIter (const FabArrayBase& fabarray)
+        :
+        fabArray(fabarray),
+        currentIndex(0) {}
     //
     // Returns the Box at the current index in the underlying BoxArray.
     //
-    const Box& validbox () const;
+    const Box& validbox () const { return fabArray.box(fabArray.IndexMap()[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    const Box fabbox () const;
+    const Box fabbox () const { return fabArray.fabbox(fabArray.IndexMap()[currentIndex]); }
     //
     // Increments iterator to the next FAB in the FabArray that we own.
     //
-    void operator++ ();
+    void operator++ () { ++currentIndex;}
     //
     // Is the iterator valid i.e. is it associated with a FAB?
     //
-    bool isValid ();
+    bool isValid () { return currentIndex < fabArray.IndexMap().size(); }
     //
     // The index into the underlying BoxArray of the current FAB.
     //
-    int index () const;
+    int index () const { return fabArray.IndexMap()[currentIndex]; }
     //
     // Constant reference to FabArray over which we're iterating.
     //
-    const FabArrayBase& theFabArrayBase () const;
+    const FabArrayBase& theFabArrayBase () const { return fabArray; }
 
 private:
 
@@ -498,25 +507,25 @@ public:
     //
     const FAB& operator[] (const MFIter& mfi) const;
 
-    const FAB& get (const MFIter& mfi) const;
+    const FAB& get (const MFIter& mfi) const { return this->operator[](mfi); }
     //
     // Returns a reference to the FAB associated with the Kth element.
     //
     FAB& operator[] (const MFIter& mfi);
 
-    FAB& get (const MFIter& mfi);
+    FAB& get (const MFIter& mfi) { return this->operator[](mfi); }
     //
     // Returns a constant reference to the FAB associated with the Kth element.
     //
     const FAB& operator[] (int K) const;
 
-    const FAB& get (int K) const;
+    const FAB& get (int K) const { return this->operator[](K); }
     //
     // Returns a reference to the FAB associated with the Kth element.
     //
     FAB& operator[] (int K);
 
-    FAB& get (int K);
+    FAB& get (int K)  { return this->operator[](K); }
     //
     // Explicitly set the Kth FAB in the FabArray to point to elem.
     //
@@ -854,102 +863,120 @@ private:
     bool                        dataAvailable;
 };
 
-inline
-int
-FabArrayBase::nGrow () const
-{
-    return n_grow;
-}
-
-inline
-const BoxArray&
-FabArrayBase::boxArray () const
-{
-    return boxarray;
-}
-
-inline
-const Box&
-FabArrayBase::box (int K) const
-{
-    return boxarray[K];
-}
-
-inline
-int
-FabArrayBase::size () const
-{
-    return boxarray.size();
-}
-
-inline
-int
-FabArrayBase::nComp () const
-{
-    return n_comp;
-}
-
-inline
-const DistributionMapping&
-FabArrayBase::DistributionMap () const
-{
-    return distributionMap;
-}
-
-inline
-const Array<int>&
-FabArrayBase::IndexMap () const
-{
-    return indexMap;
-}
-
-inline
-MFIter::MFIter (const FabArrayBase& fabarray)
-    :
-    fabArray(fabarray),
-    currentIndex(0)
-{}
-
-inline
-const FabArrayBase&
-MFIter::theFabArrayBase () const
-{
-    return fabArray;
-}
-
-inline
-int
-MFIter::index () const
-{
-    return fabArray.IndexMap()[currentIndex];
-}
-
-inline
+template<typename T>
 void
-MFIter::operator++ ()
+FabArrayBase::SetRecvTag (std::map< int,std::deque<T> >& m_RcvTags,
+                          int                            src_owner,
+                          const T&                       tag,
+                          std::map<int,int>&             m_RcvVols,
+                          int                            vol)
 {
-    ++currentIndex;
+    m_RcvTags[src_owner].push_back(tag);
+
+    std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
+
+    if (vol_it != m_RcvVols.end())
+    {
+        vol_it->second += vol;
+    }
+    else
+    {
+        m_RcvVols[src_owner] = vol;
+    }
 }
 
-inline
-bool
-MFIter::isValid ()
+template<typename T>
+void
+FabArrayBase::SetSendTag (std::map< int,std::deque<T> >& m_SndTags,
+                          int                            dst_owner,
+                          const T&                       tag,
+                          std::map<int,int>&             m_SndVols,
+                          int                            vol)
 {
-    return currentIndex < fabArray.IndexMap().size();
+    m_SndTags[dst_owner].push_back(tag);
+
+    std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
+
+    if (vol_it != m_SndVols.end())
+    {
+        vol_it->second += vol;
+    }
+    else
+    {
+        m_SndVols[dst_owner] = vol;
+    }
 }
 
-inline
-const Box&
-MFIter::validbox () const
+template<typename T1, typename T2>
+void
+FabArrayBase::PostRcvs (const std::map< int,std::deque<T1> >& m_RcvTags,
+                        const std::map<int,int>&              m_RcvVols,
+                        T2*&                                  the_recv_data,
+                        Array<T2*>&                           recv_data,
+                        Array<int>&                           recv_from,
+                        Array<MPI_Request>&                   recv_reqs,
+                        int                                   ncomp,
+                        int                                   SeqNum)
 {
-    return fabArray.box(fabArray.IndexMap()[currentIndex]);
+    int TotalRcvsVolume = 0;
+
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
+         it != End;
+         ++it)
+    {
+        TotalRcvsVolume += it->second;
+    }
+
+    TotalRcvsVolume *= ncomp;
+
+    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
+
+    the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
+
+    int Offset = 0;
+
+    for (typename std::map< int,std::deque<T1> >::const_iterator m_it = m_RcvTags.begin(),
+             m_End = m_RcvTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_RcvVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        recv_data.push_back(&the_recv_data[Offset]);
+        recv_from.push_back(m_it->first);
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+
+        Offset += N;
+    }
 }
 
-inline
-const Box
-MFIter::fabbox () const
+template<typename T>
+void
+FabArrayBase::GrokAsyncSends (int                 N_snds,
+                              Array<MPI_Request>& send_reqs,
+                              Array<T*>&          send_data,
+                              Array<MPI_Status>&  stats)
 {
-    return fabArray.fabbox(fabArray.IndexMap()[currentIndex]);
+#ifdef BL_USE_MPI
+    BL_ASSERT(FabArrayBase::do_async_sends && N_snds > 0);
+
+    stats.resize(N_snds);
+
+    BL_ASSERT(send_reqs.size() == N_snds);
+    BL_ASSERT(send_data.size() == N_snds);
+
+    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+
+    for (int i = 0; i < N_snds; i++)
+        BoxLib::The_Arena()->free(send_data[i]);
+#endif /*BL_USE_MPI*/
 }
 
 template <class FAB>
@@ -977,14 +1004,6 @@ FabArray<FAB>::operator[] (const MFIter& mfi) const
 }
 
 template <class FAB>
-inline
-const FAB&
-FabArray<FAB>::get (const MFIter& mfi) const
-{
-    return this->operator[](mfi);
-}
-
-template <class FAB>
 FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
@@ -993,14 +1012,6 @@ FabArray<FAB>::operator[] (const MFIter& mfi)
     BL_ASSERT(it != m_fabs.end());
 
     return *(it->second);
-}
-
-template <class FAB>
-inline
-FAB&
-FabArray<FAB>::get (const MFIter& mfi)
-{
-    return this->operator[](mfi);
 }
 
 template <class FAB>
@@ -1023,22 +1034,6 @@ FabArray<FAB>::operator[] (int K)
     BL_ASSERT(it != m_fabs.end());
 
     return *(it->second);
-}
-
-template <class FAB>
-inline
-const FAB&
-FabArray<FAB>::get (int K) const
-{
-    return this->operator[](K);
-}
-
-template <class FAB>
-inline
-FAB&
-FabArray<FAB>::get (int K)
-{
-    return this->operator[](K);
 }
 
 template <class FAB>
@@ -1563,7 +1558,6 @@ FabArray<FAB>::setVal (value_type val)
 }
 
 template <class FAB>
-inline
 void
 FabArray<FAB>::operator= (const value_type& val)
 {
