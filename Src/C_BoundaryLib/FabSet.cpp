@@ -254,7 +254,7 @@ FabSet::DoIt (const MultiFab& src,
 
                     const int vol = bx.numPts();
 
-                    FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
+                    FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                 }
             }
             else if (src_owner == MyProc)
@@ -264,7 +264,7 @@ FabSet::DoIt (const MultiFab& src,
 
                 const int vol = bx.numPts();
 
-                FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
+                FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
             }
         }
     }
@@ -292,7 +292,7 @@ FabSet::DoIt (const MultiFab& src,
     //
     double* the_recv_data = 0;
 
-    FabArrayBase::CopyComTag::PostRcvs(m_RcvTags,m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+    FabArrayBase::PostRcvs(m_RcvTags,m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
     //
     // Send the data.
     //
@@ -386,7 +386,7 @@ FabSet::DoIt (const MultiFab& src,
     BoxLib::The_Arena()->free(the_recv_data);
 
     if (FabArrayBase::do_async_sends && !m_SndTags.empty())
-        FabArrayBase::CopyComTag::GrokAsyncSends(m_SndTags,send_reqs,send_data,stats);
+        FabArrayBase::GrokAsyncSends(m_SndTags.size(),send_reqs,send_data,stats);
 #endif /*BL_USE_MPI*/
 }
 
