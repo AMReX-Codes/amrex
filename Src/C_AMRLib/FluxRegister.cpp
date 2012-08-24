@@ -152,35 +152,50 @@ FluxRegister::SumReg (int comp) const
 void
 FluxRegister::copyTo (FArrayBox& flx,
                       int        dir,
-                      int        src_comp,
-                      int        dest_comp,
-                      int        num_comp)
+                      int        scomp,
+                      int        dcomp,
+                      int        ncomp)
 {
     BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
 
     const FabSet& lofabs = bndry[Orientation(dir,Orientation::low)];
     const FabSet& hifabs = bndry[Orientation(dir,Orientation::high)];
 
-    lofabs.copyTo(flx,src_comp,dest_comp,num_comp);
-    hifabs.copyTo(flx,src_comp,dest_comp,num_comp);
+    lofabs.copyTo(flx,scomp,dcomp,ncomp);
+    hifabs.copyTo(flx,scomp,dcomp,ncomp);
 }
+
+//
+// For Reflux()ing.
+//
+struct RFComTag
+{
+    IntVect     m_shift;
+    int         m_dIndex;
+    int         m_sIndex;
+    Orientation m_face;
+};
+
+typedef std::deque<RFComTag> RFComTagsContainer;
+
+typedef std::map<int,RFComTagsContainer> MapOfRFComTagContainers;
 
 static
 void
-RefluxIt (const FluxRegister::Rec& rf,
-          Real                     scale,
-          const Real*              multf,
-          const BoxArray&          grids,
-          MultiFab&                S,
-          const MultiFab&          volume,
-          const FabSet*            bndry,
-          const FArrayBox&         reg,
-          int                      src_comp,
-          int                      dest_comp,
-          int                      num_comp)
+RefluxIt (const RFComTag&  rf,
+          Real             scale,
+          const Real*      multf,
+          const BoxArray&  grids,
+          MultiFab&        S,
+          const MultiFab&  volume,
+          const FabSet*    bndry,
+          const FArrayBox& reg,
+          int              scomp,
+          int              dcomp,
+          int              ncomp)
 {
-    BL_ASSERT(S.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
-    BL_ASSERT(volume.DistributionMap()[rf.m_fabidx] == ParallelDescriptor::MyProc());
+    BL_ASSERT(S.DistributionMap()[rf.m_dIndex] == ParallelDescriptor::MyProc());
+    BL_ASSERT(volume.DistributionMap()[rf.m_dIndex] == ParallelDescriptor::MyProc());
 
     Real mult;
     if (multf == 0)
@@ -188,14 +203,14 @@ RefluxIt (const FluxRegister::Rec& rf,
     else
         mult = (*multf)*scale;
 
-    FArrayBox&       fab_S      = S[rf.m_fabidx];
-    const FArrayBox& fab_volume = volume[rf.m_fabidx];
-    Real*            s_dat      = fab_S.dataPtr(dest_comp);
+    FArrayBox&       fab_S      = S[rf.m_dIndex];
+    const FArrayBox& fab_volume = volume[rf.m_dIndex];
+    Real*            s_dat      = fab_S.dataPtr(dcomp);
     const int*       slo        = fab_S.loVect();
     const int*       shi        = fab_S.hiVect();
     const Real*      vol_dat    = fab_volume.dataPtr();
-    const Box        fine_face  = BoxLib::adjCell(grids[rf.m_idx],rf.m_face);
-    const Box        sftbox     = S.box(rf.m_fabidx) + rf.m_shift;
+    const Box        fine_face  = BoxLib::adjCell(grids[rf.m_sIndex],rf.m_face);
+    const Box        sftbox     = S.box(rf.m_dIndex) + rf.m_shift;
     const Box        ovlp       = sftbox & fine_face;
     const int*       lo         = ovlp.loVect();
     const int*       hi         = ovlp.hiVect();
@@ -204,40 +219,41 @@ RefluxIt (const FluxRegister::Rec& rf,
     const int*       shft       = rf.m_shift.getVect();
     const int*       vlo        = fab_volume.loVect();
     const int*       vhi        = fab_volume.hiVect();
-    const Real*      reg_dat    = reg.dataPtr(src_comp);
+    const Real*      reg_dat    = reg.dataPtr(scomp);
 
     BL_ASSERT(ovlp.ok());
 
     FORT_FRREFLUX(s_dat,ARLIM(slo),ARLIM(shi),
                   vol_dat,ARLIM(vlo),ARLIM(vhi),
                   reg_dat,ARLIM(rlo),ARLIM(rhi),
-                  lo,hi,shft,&num_comp,&mult);
+                  lo,hi,shft,&ncomp,&mult);
 }
 
 void
 FluxRegister::Reflux (MultiFab&       S,
                       const MultiFab& volume,
                       Real            scale,
-                      int             src_comp,
-                      int             dest_comp,
-                      int             num_comp, 
+                      int             scomp,
+                      int             dcomp,
+                      int             ncomp, 
                       const Geometry& geom,
 		      const Real*     multf)
 {
     BoxArray ba = grids; ba.grow(1);
 
-    FabSetId                          fsid[2*BL_SPACEDIM];
-    FabSetCopyDescriptor              fscd;
-    std::deque<FluxRegister::Rec>     Recs;
+    RFComTag                          tag;
+    FArrayBox                         fab;
+    std::map<int,int>                 m_SndVols, m_RcvVols;
+    MapOfRFComTagContainers           m_SndTags, m_RcvTags;
     std::vector< std::pair<int,Box> > isects;
 
-    for (OrientationIter fi; fi; ++fi)
-        fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
+    const int                  MyProc  = ParallelDescriptor::MyProc();
+    const DistributionMapping& dstDMap = S.DistributionMap();
 
-    for (MFIter mfi(S); mfi.isValid(); ++mfi)
+    for (int idx = 0, M = S.size(); idx < M; ++idx)
     {
-        const int  idx = mfi.index();
-        const Box& vbx = mfi.validbox();
+        const Box& vbx       = S.boxArray()[idx];
+        const int  dst_owner = dstDMap[idx];
         //
         // Find flux register that intersects with this grid.
         //
@@ -246,6 +262,12 @@ FluxRegister::Reflux (MultiFab&       S,
         for (int i = 0, N = isects.size(); i < N; i++)
         {
             const int k = isects[i].first;
+            //
+            // The FabSets in bndry all have the same distribution.  Use the first one.
+            //
+            const int src_owner = bndry[0].DistributionMap()[k];
+
+            if (dst_owner != MyProc && src_owner != MyProc) continue;
 
             for (OrientationIter fi; fi; ++fi)
             {
@@ -257,15 +279,54 @@ FluxRegister::Reflux (MultiFab&       S,
 
                 if (ovlp.ok())
                 {
-                    FillBoxId fbid = fscd.AddBox(fsid[fi()],
-                                                 bndry[fi()].box(k),
-                                                 0,
-                                                 k,
-                                                 src_comp,
-                                                 0,
-                                                 num_comp);
+                    tag.m_shift  = IntVect(D_DECL(0,0,0));
+                    tag.m_face   = fi();
+                    tag.m_dIndex = idx;
+                    tag.m_sIndex = k;
 
-                    Recs.push_back(Rec(idx,k,fi(),fbid));
+                    const Box bx  = bndry[tag.m_face].box(tag.m_sIndex);
+                    const int vol = bx.numPts();
+
+                    if (dst_owner == MyProc)
+                    {
+                        if (src_owner == MyProc)
+                        {
+                            //
+                            // Do the local work right here.
+                            //
+                            RefluxIt(tag,scale,multf,grids,S,volume,bndry,bndry[tag.m_face][tag.m_sIndex],scomp,dcomp,ncomp);
+                        }
+                        else
+                        {
+                            m_RcvTags[src_owner].push_back(tag);
+
+                            std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
+
+                            if (vol_it != m_RcvVols.end())
+                            {
+                                vol_it->second += vol;
+                            }
+                            else
+                            {
+                                m_RcvVols[src_owner] = vol;
+                            }
+                        }
+                    }
+                    else if (src_owner == MyProc)
+                    {
+                        m_SndTags[dst_owner].push_back(tag);
+
+                        std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
+
+                        if (vol_it != m_SndVols.end())
+                        {
+                            vol_it->second += vol;
+                        }
+                        else
+                        {
+                            m_SndVols[dst_owner] = vol;
+                        }
+                    }
                 }
             }
         }
@@ -277,13 +338,20 @@ FluxRegister::Reflux (MultiFab&       S,
     {
         Array<IntVect> pshifts(27);
 
-        for (MFIter mfi(S); mfi.isValid(); ++mfi)
+        for (int idx = 0, M = S.size(); idx < M; ++idx)
         {
-            const int  idx  = mfi.index();
-            const Box& vbx  = mfi.validbox();
+            const Box& vbx       = S.boxArray()[idx];
+            const int  dst_owner = dstDMap[idx];
 
             for (int k = 0, N = grids.size(); k < N; k++)
             {
+                //
+                // The FabSets in bndry all have the same distribution.  Use the first one.
+                //
+                const int src_owner = bndry[0].DistributionMap()[k];
+
+                if (dst_owner != MyProc && src_owner != MyProc) continue;
+
                 const Box& bx = ba[k];
 
                 if (!geom.Domain().contains(bx))
@@ -308,15 +376,54 @@ FluxRegister::Reflux (MultiFab&       S,
 
                             if (ovlp.ok())
                             {
-                                FillBoxId fbid = fscd.AddBox(fsid[fi()],
-                                                             bndry[fi()].box(k),
-                                                             0,
-                                                             k,
-                                                             src_comp,
-                                                             0,
-                                                             num_comp);
+                                tag.m_shift  = pshifts[iiv];
+                                tag.m_face   = fi();
+                                tag.m_dIndex = idx;
+                                tag.m_sIndex = k;
 
-                                Recs.push_back(Rec(pshifts[iiv],idx,k,fi(),fbid));
+                                const Box bx  = bndry[tag.m_face].box(tag.m_sIndex);
+                                const int vol = bx.numPts();
+
+                                if (dst_owner == MyProc)
+                                {
+                                    if (src_owner == MyProc)
+                                    {
+                                        //
+                                        // Do the local work right here.
+                                        //
+                                        RefluxIt(tag,scale,multf,grids,S,volume,bndry,bndry[tag.m_face][tag.m_sIndex],scomp,dcomp,ncomp);
+                                    }
+                                    else
+                                    {
+                                        m_RcvTags[src_owner].push_back(tag);
+
+                                        std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
+
+                                        if (vol_it != m_RcvVols.end())
+                                        {
+                                            vol_it->second += vol;
+                                        }
+                                        else
+                                        {
+                                            m_RcvVols[src_owner] = vol;
+                                        }
+                                    }
+                                }
+                                else if (src_owner == MyProc)
+                                {
+                                    m_SndTags[dst_owner].push_back(tag);
+
+                                    std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
+
+                                    if (vol_it != m_SndVols.end())
+                                    {
+                                        vol_it->second += vol;
+                                    }
+                                    else
+                                    {
+                                        m_SndVols[dst_owner] = vol;
+                                    }
+                                }
                             }
                         }
                     }
@@ -325,34 +432,171 @@ FluxRegister::Reflux (MultiFab&       S,
         }
     }
 
-    fscd.CollectData();
+#ifdef BL_USE_MPI
+    if (ParallelDescriptor::NProcs() == 1) return;
+    //
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    //
+    const int SeqNum = ParallelDescriptor::SeqNum();
 
-    FArrayBox reg;
+    if (m_SndTags.empty() && m_RcvTags.empty())
+        //
+        // No parallel work for this MPI process to do.
+        //
+        return;
 
-    for (std::deque<FluxRegister::Rec>::const_iterator it = Recs.begin(),
-             End = Recs.end();
+    Array<MPI_Status>  stats;
+    Array<int>         recv_from, index;
+    Array<double*>     recv_data, send_data;
+    Array<MPI_Request> recv_reqs, send_reqs;
+    //
+    // Post rcvs. Allocate one chunk of space to hold'm all.
+    //
+    int TotalRcvsVolume = 0;
+
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
          it != End;
          ++it)
     {
-        const Rec& rf = *it;
-
-        const FillBoxId& fbid = rf.m_fbid;
-
-        BL_ASSERT(bndry[rf.m_face].box(rf.m_idx) == fbid.box());
-
-        reg.resize(fbid.box(),num_comp);
-        fscd.FillFab(fsid[rf.m_face],fbid,reg);
-
-        RefluxIt(rf,scale,multf,grids,S,volume,bndry,reg,0,dest_comp,num_comp);
+        TotalRcvsVolume += it->second;
     }
+
+    TotalRcvsVolume *= ncomp;
+
+    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
+
+    double* the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
+
+    int Offset = 0;
+
+    for (MapOfRFComTagContainers::const_iterator m_it = m_RcvTags.begin(),
+             m_End = m_RcvTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_RcvVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        recv_data.push_back(&the_recv_data[Offset]);
+        recv_from.push_back(m_it->first);
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+
+        Offset += N;
+    }
+    //
+    // Send the data.
+    //
+    for (MapOfRFComTagContainers::const_iterator m_it = m_SndTags.begin(),
+             m_End = m_SndTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        std::map<int,int>::const_iterator vol_it = m_SndVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_SndVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        double* data = static_cast<double*>(BoxLib::The_Arena()->alloc(N*sizeof(double)));
+        double* dptr = data;
+
+        for (RFComTagsContainer::const_iterator it = m_it->second.begin(),
+                 End = m_it->second.end();
+             it != End;
+             ++it)
+        {
+            const FArrayBox& sfab = bndry[it->m_face][it->m_sIndex];
+            const Box& bx = sfab.box();
+            const int Cnt = bx.numPts()*ncomp;
+            memcpy(dptr,sfab.dataPtr(),Cnt*sizeof(double));
+            dptr += Cnt;
+        }
+        BL_ASSERT(data+N == dptr);
+
+        if (FabArrayBase::do_async_sends)
+        {
+            send_data.push_back(data);
+            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
+        }
+        else
+        {
+            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
+            BoxLib::The_Arena()->free(data);
+        }
+    }
+    //
+    // Now receive and unpack FAB data as it becomes available.
+    //
+    const int N_rcvs = m_RcvTags.size();
+
+    index.resize(N_rcvs);
+    stats.resize(N_rcvs);
+
+    for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
+    {
+        ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
+
+        for (int k = 0; k < completed; k++)
+        {
+            const double* dptr = recv_data[index[k]];
+
+            BL_ASSERT(dptr != 0);
+
+            MapOfRFComTagContainers::const_iterator m_it = m_RcvTags.find(recv_from[index[k]]);
+
+            BL_ASSERT(m_it != m_RcvTags.end());
+
+            for (RFComTagsContainer::const_iterator it = m_it->second.begin(),
+                     End = m_it->second.end();
+                 it != End;
+                 ++it)
+            {
+                const Box bx = bndry[it->m_face].box(it->m_sIndex);
+                fab.resize(bx,ncomp);
+                const int Cnt = bx.numPts()*ncomp;
+                memcpy(fab.dataPtr(),dptr,Cnt*sizeof(double));
+                RefluxIt(*it,scale,multf,grids,S,volume,bndry,fab,0,dcomp,ncomp);
+                dptr += Cnt;
+            }
+        }
+    }
+
+    BoxLib::The_Arena()->free(the_recv_data);
+
+    if (FabArrayBase::do_async_sends && !m_SndTags.empty())
+    {
+        BL_ASSERT(FabArrayBase::do_async_sends && !m_SndTags.empty());
+
+        const int N_snds = m_SndTags.size();
+
+        stats.resize(N_snds);
+
+        BL_ASSERT(send_reqs.size() == N_snds);
+        BL_ASSERT(send_data.size() == N_snds);
+
+        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+
+        for (int i = 0; i < N_snds; i++)
+            BoxLib::The_Arena()->free(send_data[i]);
+    }
+#endif /*BL_USE_MPI*/
 }
 
 void
 FluxRegister::Reflux (MultiFab&       S,
                       Real            scale,
-                      int             src_comp,
-                      int             dest_comp,
-                      int             num_comp, 
+                      int             scomp,
+                      int             dcomp,
+                      int             ncomp, 
                       const Geometry& geom)
 {
     const Real* dx = geom.CellSize();
@@ -361,11 +605,11 @@ FluxRegister::Reflux (MultiFab&       S,
 
     volume.setVal(D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, S.nGrow());
 
-    Reflux(S,volume,scale,src_comp,dest_comp,num_comp,geom);
+    Reflux(S,volume,scale,scomp,dcomp,ncomp,geom);
 }
 
 //
-// Some useful typedefs.
+// Some useful typedefs for CrseInit()ing.
 //
 typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
 
