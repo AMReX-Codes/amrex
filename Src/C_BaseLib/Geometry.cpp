@@ -664,8 +664,9 @@ Geometry::periodicShift (const Box&      target,
                          const Box&      src, 
                          Array<IntVect>& out) const
 {
-    Box locsrc(src);
     out.resize(0);
+
+    Box locsrc(src);
 
     int nist,njst,nkst;
     int niend,njend,nkend;
@@ -715,12 +716,9 @@ Geometry::periodicShift (const Box&      target,
                 //
                 if (target.intersects(locsrc))
                 {
-                    IntVect sh;
-                    D_TERM(sh.setVal(0,ri*domain.length(0));,
-                           sh.setVal(1,rj*domain.length(1));,
-                           sh.setVal(2,rk*domain.length(2));)
-                    out.resize(out.size()+1); 
-                    out[out.size()-1] = sh;
+                    out.push_back(IntVect(D_DECL(ri*domain.length(0),
+                                                 rj*domain.length(1),
+                                                 rk*domain.length(2))));
                 }
                 if (rk != 0
 #if (BL_SPACEDIM == 3)
