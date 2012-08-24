@@ -356,77 +356,76 @@ FluxRegister::Reflux (MultiFab&       S,
 
                 const Box& bx = ba[k];
 
-                if (!geom.Domain().contains(bx))
+                if (geom.Domain().contains(bx)) continue;
+
+                geom.periodicShift(bx,vbx,pshifts);
+
+                const Box& kgrid = grids[k];
+
+                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
                 {
-                    geom.periodicShift(bx,vbx,pshifts);
+                    const Box sftbox = vbx + pshifts[iiv];
 
-                    const Box& kgrid = grids[k];
+                    BL_ASSERT(bx.intersects(sftbox));
 
-                    for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
+                    for (OrientationIter fi; fi; ++fi)
                     {
-                        const Box sftbox = vbx + pshifts[iiv];
+                        //
+                        // low (high)  face of fine grid => high (low)
+                        // face of the exterior coarse grid cell updated.
+                        //
+                        const Box ovlp = sftbox & BoxLib::adjCell(kgrid,fi());
 
-                        BL_ASSERT(bx.intersects(sftbox));
-
-                        for (OrientationIter fi; fi; ++fi)
+                        if (ovlp.ok())
                         {
-                            //
-                            // low (high)  face of fine grid => high (low)
-                            // face of the exterior coarse grid cell updated.
-                            //
-                            const Box ovlp = sftbox & BoxLib::adjCell(kgrid,fi());
+                            tag.m_shift  = pshifts[iiv];
+                            tag.m_face   = fi();
+                            tag.m_dIndex = idx;
+                            tag.m_sIndex = k;
 
-                            if (ovlp.ok())
+                            if (dst_owner == MyProc)
                             {
-                                tag.m_shift  = pshifts[iiv];
-                                tag.m_face   = fi();
-                                tag.m_dIndex = idx;
-                                tag.m_sIndex = k;
-
-                                if (dst_owner == MyProc)
+                                if (src_owner == MyProc)
                                 {
-                                    if (src_owner == MyProc)
-                                    {
-                                        //
-                                        // Do the local work right here.
-                                        //
-                                        RefluxIt(tag,scale,multf,grids,S,volume,bndry,bndry[tag.m_face][tag.m_sIndex],scomp,dcomp,ncomp);
-                                    }
-                                    else
-                                    {
-                                        const Box bx  = bndry[tag.m_face].box(tag.m_sIndex);
-                                        const int vol = bx.numPts();
-
-                                        m_RcvTags[src_owner].push_back(tag);
-
-                                        std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
-
-                                        if (vol_it != m_RcvVols.end())
-                                        {
-                                            vol_it->second += vol;
-                                        }
-                                        else
-                                        {
-                                            m_RcvVols[src_owner] = vol;
-                                        }
-                                    }
+                                    //
+                                    // Do the local work right here.
+                                    //
+                                    RefluxIt(tag,scale,multf,grids,S,volume,bndry,bndry[tag.m_face][tag.m_sIndex],scomp,dcomp,ncomp);
                                 }
-                                else if (src_owner == MyProc)
+                                else
                                 {
-                                    const int vol = bndry[tag.m_face][tag.m_sIndex].box().numPts();
+                                    const Box bx  = bndry[tag.m_face].box(tag.m_sIndex);
+                                    const int vol = bx.numPts();
 
-                                    m_SndTags[dst_owner].push_back(tag);
+                                    m_RcvTags[src_owner].push_back(tag);
 
-                                    std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
+                                    std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
 
-                                    if (vol_it != m_SndVols.end())
+                                    if (vol_it != m_RcvVols.end())
                                     {
                                         vol_it->second += vol;
                                     }
                                     else
                                     {
-                                        m_SndVols[dst_owner] = vol;
+                                        m_RcvVols[src_owner] = vol;
                                     }
+                                }
+                            }
+                            else if (src_owner == MyProc)
+                            {
+                                const int vol = bndry[tag.m_face][tag.m_sIndex].box().numPts();
+
+                                m_SndTags[dst_owner].push_back(tag);
+
+                                std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
+
+                                if (vol_it != m_SndVols.end())
+                                {
+                                    vol_it->second += vol;
+                                }
+                                else
+                                {
+                                    m_SndVols[dst_owner] = vol;
                                 }
                             }
                         }
@@ -667,8 +666,6 @@ FluxRegister::CrseInitDoit (const MultiFab& mflx,
 
                 if (dst_owner == MyProc)
                 {
-                    tag.fabIndex = i;
-
                     if (src_owner == MyProc)
                     {
                         //
@@ -699,6 +696,8 @@ FluxRegister::CrseInitDoit (const MultiFab& mflx,
                     }
                     else
                     {
+                        tag.fabIndex = i;
+
                         const int vol = bx.numPts();
 
                         FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);

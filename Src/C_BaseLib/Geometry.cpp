@@ -287,13 +287,9 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
                 const Box shft = src + pshifts[ii];
                 const Box dbx  = dst & shft;
                 const Box sbx  = dbx - pshifts[ii];
-                const int vol  = sbx.numPts();
 
                 if (dst_owner == MyProc)
                 {
-                    tag.box      = dbx;
-                    tag.fabIndex = i;
-
                     if (src_owner == MyProc)
                     {
                         //
@@ -303,6 +299,11 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
                     }
                     else
                     {
+                        tag.box      = dbx;
+                        tag.fabIndex = i;
+
+                        const int vol = sbx.numPts();
+
                         FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                     }
                 }
@@ -310,6 +311,8 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
                 {
                     tag.box      = sbx;
                     tag.fabIndex = j;
+
+                    const int vol = sbx.numPts();
 
                     FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
                 }
@@ -857,8 +860,6 @@ Geometry::GetFPB (const Geometry&      geom,
                 tag.dbox = dst & shft;
                 tag.sbox = tag.dbox - pshifts[ii];
 
-                const int vol = tag.dbox.numPts();
-
                 if (dst_owner == MyProc)
                 {
                     tag.dstIndex = i;
@@ -871,6 +872,8 @@ Geometry::GetFPB (const Geometry&      geom,
                     }
                     else
                     {
+                        const int vol = tag.dbox.numPts();
+
                         (*TheFPB.m_RcvTags)[src_owner].push_back(tag);
 
                         vol_it = TheFPB.m_RcvVols->find(src_owner);
@@ -887,6 +890,8 @@ Geometry::GetFPB (const Geometry&      geom,
                 }
                 else if (src_owner == MyProc)
                 {
+                    const int vol = tag.dbox.numPts();
+
                     tag.srcIndex = j;
 
                     (*TheFPB.m_SndTags)[dst_owner].push_back(tag);
