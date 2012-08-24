@@ -1075,14 +1075,8 @@ MultiFab::SumBoundary (int scomp,
 
             if (i == j) continue;
 
-            tag.box = bx;
-
-            const int vol = bx.numPts();
-
             if (dst_owner == MyProc)
             {
-                tag.fabIndex = i;
-
                 if (src_owner == MyProc)
                 {
                     //
@@ -1092,12 +1086,20 @@ MultiFab::SumBoundary (int scomp,
                 }
                 else
                 {
+                    tag.box      = bx;
+                    tag.fabIndex = i;
+
+                    const int vol = bx.numPts();
+
                     FabArrayBase::CopyComTag::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
                 }
             }
             else if (src_owner == MyProc)
             {
+                tag.box      = bx;
                 tag.fabIndex = j;
+
+                const int vol = bx.numPts();
 
                 FabArrayBase::CopyComTag::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
             }

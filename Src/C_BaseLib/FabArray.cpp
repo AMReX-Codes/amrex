@@ -336,8 +336,6 @@ FabArrayBase::TheCPC (const CPC& cpc)
 
             tag.box = bx;
 
-            const int vol = bx.numPts();
-
             if (dst_owner == MyProc)
             {
                 tag.fabIndex = i;
@@ -350,12 +348,16 @@ FabArrayBase::TheCPC (const CPC& cpc)
                 }
                 else
                 {
+                    const int vol = bx.numPts();
+
                     FabArrayBase::CopyComTag::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,vol);
                 }
             }
             else if (src_owner == MyProc)
             {
                 tag.fabIndex = k;
+
+                const int vol = bx.numPts();
 
                 FabArrayBase::CopyComTag::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,vol);
             }
@@ -652,8 +654,6 @@ FabArrayBase::TheFB (bool                cross,
 
                 if (k == i) continue;
 
-                const int vol = bx.numPts();
-
                 tag.box = bx;
 
                 if (dst_owner == MyProc)
@@ -668,12 +668,16 @@ FabArrayBase::TheFB (bool                cross,
                     }
                     else
                     {
+                        const int vol = bx.numPts();
+
                         FabArrayBase::CopyComTag::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,vol);
                     }
                 }
                 else if (src_owner == MyProc)
                 {
                     tag.fabIndex = k;
+
+                    const int vol = bx.numPts();
 
                     FabArrayBase::CopyComTag::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,vol);
                 }
