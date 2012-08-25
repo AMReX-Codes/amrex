@@ -340,9 +340,12 @@ FluxRegister::Reflux (MultiFab&       S,
 
                 const Box& kgrid = grids[k];
 
-                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
+                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                     it != End;
+                     ++it)
                 {
-                    const Box sftbox = vbx + pshifts[iiv];
+                    const IntVect& iv     = *it;
+                    const Box      sftbox = vbx + iv;
 
                     BL_ASSERT(bx.intersects(sftbox));
 
@@ -356,7 +359,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
                         if (ovlp.ok())
                         {
-                            tag.m_shift  = pshifts[iiv];
+                            tag.m_shift  = iv;
                             tag.m_face   = fi();
                             tag.m_dIndex = idx;
                             tag.m_sIndex = k;
