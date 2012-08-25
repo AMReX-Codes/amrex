@@ -216,12 +216,15 @@ BndryData::define (const BoxArray& _grids,
             {
                 geom.periodicShift(geom.Domain(), face_box, pshifts);
 
-                for (int iiv = 0, N = pshifts.size(); iiv < N; iiv++)
+                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                     it != End;
+                     ++it)
                 {
-                    m->shift(pshifts[iiv]);
+                    const IntVect& iv = *it;
+                    m->shift(iv);
                     const Box target = geom.Domain() & m->box();
                     m->setVal(not_covered,target,0);
-                    m->shift(-pshifts[iiv]);
+                    m->shift(-iv);
                 }
             }
             masks[igrid][face] = m;
@@ -232,16 +235,23 @@ BndryData::define (const BoxArray& _grids,
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
                 m->setVal(covered, isects[ii].second, 0);
-            //
-            // Handle special cases if periodic: "face_box" hasn't changed; reuse pshifts from above.
-            //
-            for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
+
+            if (geom.isAnyPeriodic() && !geom.Domain().contains(face_box))
             {
-                m->shift(pshifts[iiv]);
-                grids.intersections(m->box(),isects);
-                for (int ii = 0, N = isects.size(); ii < N; ii++)
-                    m->setVal(covered, isects[ii].second, 0);
-                m->shift(-pshifts[iiv]);
+                //
+                // Handle special cases if periodic: "face_box" hasn't changed; reuse pshifts from above.
+                //
+                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                     it != End;
+                     ++it)
+                {
+                    const IntVect& iv = *it;
+                    m->shift(iv);
+                    grids.intersections(m->box(),isects);
+                    for (int ii = 0, N = isects.size(); ii < N; ii++)
+                        m->setVal(covered, isects[ii].second, 0);
+                    m->shift(-iv);
+                }
             }
         }
     }
