@@ -196,11 +196,15 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
                     periodicShift(dst, src, pshifts);
 
-                    for (int i = 0, N = pshifts.size(); i < N; i++)
+                    for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                         it != End;
+                         ++it)
                     {
-                        const Box shft = src + pshifts[i];
+                        const IntVect& iv = *it;
+
+                        const Box shft = src + iv;
                         const Box dbx  = dst & shft;
-                        const Box sbx  = dbx - pshifts[i];
+                        const Box sbx  = dbx - iv;
 
                         mf[mfidst].copy(mf[mfisrc],sbx,scomp,dbx,scomp,ncomp);
                     }
@@ -282,11 +286,14 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
 
             geom.periodicShift(dst, src, pshifts);
 
-            for (int ii = 0, M = pshifts.size(); ii < M; ii++)
+            for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                 it != End;
+                 ++it)
             {
-                const Box shft = src + pshifts[ii];
-                const Box dbx  = dst & shft;
-                const Box sbx  = dbx - pshifts[ii];
+                const IntVect& iv  = *it;
+                const Box     shft = src + iv;
+                const Box     dbx  = dst & shft;
+                const Box     sbx  = dbx - iv;
 
                 if (dst_owner == MyProc)
                 {
@@ -851,12 +858,15 @@ Geometry::GetFPB (const Geometry&      geom,
 
             geom.periodicShift(dst, src, pshifts);
 
-            for (int ii = 0, M = pshifts.size(); ii < M; ii++)
+            for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                 it != End;
+                 ++it)
             {
-                const Box shft = src + pshifts[ii];
+                const IntVect& iv   = *it;
+                const Box      shft = src + iv;
 
                 tag.dbox = dst & shft;
-                tag.sbox = tag.dbox - pshifts[ii];
+                tag.sbox = tag.dbox - iv;
 
                 if (dst_owner == MyProc)
                 {
