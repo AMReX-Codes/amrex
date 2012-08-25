@@ -17,39 +17,6 @@ class FluxRegister
 {
 public:
     //
-    // Used internally when doing some parallel operations on FluxRegisters.
-    //
-    struct Rec
-    {
-        Rec (int         fabidx,
-             int         index,
-             Orientation face,
-             FillBoxId   fbid)
-            :
-            m_fabidx(fabidx),
-            m_idx(index),
-            m_face(face),
-            m_fbid(fbid) {}
-
-        Rec (const IntVect& shift,
-             int            fabidx,
-             int            index,
-             Orientation    face,
-             FillBoxId      fbid)
-            :
-            m_shift(shift),
-            m_fabidx(fabidx),
-            m_idx(index),
-            m_face(face),
-            m_fbid(fbid) {}
-
-        IntVect     m_shift;
-        int         m_fabidx;
-        int         m_idx;
-        Orientation m_face;
-        FillBoxId   m_fbid;
-    };
-    //
     // The default constructor.
     //
     FluxRegister();
