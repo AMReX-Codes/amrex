@@ -140,11 +140,11 @@ FabArrayBase::CPC::bytes () const
 FabArrayBase::CPCCache FabArrayBase::m_TheCopyCache;
 
 FabArrayBase::CPCCacheIter
-FabArrayBase::TheCPC (const CPC& cpc)
+FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
 {
     const int Key = cpc.m_dstba.size() + cpc.m_srcba.size();
 
-    std::pair<CPCCacheIter,CPCCacheIter> er_it = m_TheCopyCache.equal_range(Key);
+    std::pair<CPCCacheIter,CPCCacheIter> er_it = TheCopyCache.equal_range(Key);
 
     for (CPCCacheIter it = er_it.first; it != er_it.second; ++it)
     {
@@ -156,18 +156,18 @@ FabArrayBase::TheCPC (const CPC& cpc)
         }
     }
 
-    if (m_TheCopyCache.size() >= copy_cache_max_size)
+    if (TheCopyCache.size() >= copy_cache_max_size)
     {
         //
         // Don't let the size of the cache get too big.
         //
-        for (CPCCacheIter it = m_TheCopyCache.begin(); it != m_TheCopyCache.end(); )
+        for (CPCCacheIter it = TheCopyCache.begin(); it != TheCopyCache.end(); )
         {
             if (!it->second.m_reused)
             {
-                m_TheCopyCache.erase(it++);
+                TheCopyCache.erase(it++);
 
-                if (m_TheCopyCache.size() < copy_cache_max_size)
+                if (TheCopyCache.size() < copy_cache_max_size)
                     //
                     // Only delete enough entries to stay under limit.
                     //
@@ -179,16 +179,16 @@ FabArrayBase::TheCPC (const CPC& cpc)
             }
         }
 
-        if (m_TheCopyCache.size() >= copy_cache_max_size && !m_TheCopyCache.empty())
+        if (TheCopyCache.size() >= copy_cache_max_size && !TheCopyCache.empty())
             //
             // Get rid of first entry which is the one with the smallest key.
             //
-            m_TheCopyCache.erase(m_TheCopyCache.begin());
+            TheCopyCache.erase(TheCopyCache.begin());
     }
     //
     // Got to insert one & then build it.
     //
-    CPCCacheIter cache_it = m_TheCopyCache.insert(std::make_pair(Key,cpc));
+    CPCCacheIter cache_it = TheCopyCache.insert(std::make_pair(Key,cpc));
     CPC&         TheCPC   = cache_it->second;
     const int    MyProc   = ParallelDescriptor::MyProc();
     //
@@ -220,16 +220,14 @@ FabArrayBase::TheCPC (const CPC& cpc)
 
             if (dst_owner != MyProc && src_owner != MyProc) continue;
 
-            tag.box = bx;
+            tag.box      = bx;
+            tag.fabIndex = i;
+            tag.srcIndex = k;
 
             if (dst_owner == MyProc)
             {
-                tag.fabIndex = i;
-
                 if (src_owner == MyProc)
                 {
-                    tag.srcIndex = k;
-
                     TheCPC.m_LocTags->push_back(tag);
                 }
                 else
@@ -241,8 +239,6 @@ FabArrayBase::TheCPC (const CPC& cpc)
             }
             else if (src_owner == MyProc)
             {
-                tag.fabIndex = k;
-
                 const int vol = bx.numPts();
 
                 FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,vol);
@@ -255,9 +251,9 @@ FabArrayBase::TheCPC (const CPC& cpc)
         //
         // This MPI proc has no work to do.  Don't store in the cache.
         //
-        m_TheCopyCache.erase(cache_it);
+        TheCopyCache.erase(cache_it);
 
-        return m_TheCopyCache.end();
+        return TheCopyCache.end();
     }
 
     return cache_it;
@@ -372,55 +368,6 @@ FabArrayBase::SI::bytes () const
 
 FabArrayBase::FBCache FabArrayBase::m_TheFBCache;
 
-void
-FabArrayBase::Finalize ()
-{
-    FabArrayBase::FlushSICache();
-    FabArrayBase::CPC::FlushCache();
-
-    initialized = false;
-}
-
-void
-FabArrayBase::FlushSICache ()
-{
-    int stats[3] = {0,0,0}; // size, reused, bytes
-
-    stats[0] = m_TheFBCache.size();
-
-    for (FBCacheIter it = m_TheFBCache.begin(), End = m_TheFBCache.end();
-         it != End;
-         ++it)
-    {
-        stats[2] += it->second.bytes();
-        if (it->second.m_reused)
-            stats[1]++;
-    }
-
-    if (FabArrayBase::verbose)
-    {
-        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
-
-        if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "SI::TheFBCache: max size: "
-                      << stats[0]
-                      << ", max # reused: "
-                      << stats[1]
-                      << ", max bytes used: "
-                      << stats[2]
-                      << std::endl;
-        }
-    }
-
-    m_TheFBCache.clear();
-}
-
-int
-FabArrayBase::SICacheSize ()
-{
-    return m_TheFBCache.size();
-}
 
 FabArrayBase::FBCacheIter
 FabArrayBase::TheFB (bool                cross,
@@ -540,16 +487,14 @@ FabArrayBase::TheFB (bool                cross,
 
                 if (k == i) continue;
 
-                tag.box = bx;
+                tag.box      = bx;
+                tag.fabIndex = i;
+                tag.srcIndex = k;
 
                 if (dst_owner == MyProc)
                 {
-                    tag.fabIndex = i;
-
                     if (src_owner == MyProc)
                     {
-                        tag.srcIndex = k;
-
                         TheFB.m_LocTags->push_back(tag);
                     }
                     else
@@ -561,8 +506,6 @@ FabArrayBase::TheFB (bool                cross,
                 }
                 else if (src_owner == MyProc)
                 {
-                    tag.fabIndex = k;
-
                     const int vol = bx.numPts();
 
                     FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,vol);
@@ -583,3 +526,54 @@ FabArrayBase::TheFB (bool                cross,
 
     return cache_it;
 }
+
+void
+FabArrayBase::Finalize ()
+{
+    FabArrayBase::FlushSICache();
+    FabArrayBase::CPC::FlushCache();
+
+    initialized = false;
+}
+
+void
+FabArrayBase::FlushSICache ()
+{
+    int stats[3] = {0,0,0}; // size, reused, bytes
+
+    stats[0] = m_TheFBCache.size();
+
+    for (FBCacheIter it = m_TheFBCache.begin(), End = m_TheFBCache.end();
+         it != End;
+         ++it)
+    {
+        stats[2] += it->second.bytes();
+        if (it->second.m_reused)
+            stats[1]++;
+    }
+
+    if (FabArrayBase::verbose)
+    {
+        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+
+        if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "SI::TheFBCache: max size: "
+                      << stats[0]
+                      << ", max # reused: "
+                      << stats[1]
+                      << ", max bytes used: "
+                      << stats[2]
+                      << std::endl;
+        }
+    }
+
+    m_TheFBCache.clear();
+}
+
+int
+FabArrayBase::SICacheSize ()
+{
+    return m_TheFBCache.size();
+}
+

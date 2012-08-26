@@ -269,7 +269,7 @@ public:
 
     static CPCCache m_TheCopyCache;
 
-    static CPCCacheIter TheCPC (const CPC& cpc);
+    static CPCCacheIter TheCPC (const CPC& cpc, CPCCache& TheCopyCache);
     //
     // Used for collecting information used in communicating FABs.
     //
@@ -1256,7 +1256,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc);
+    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, FabArrayBase::m_TheCopyCache);
 
     if (NProcs == 1)
     {
@@ -1274,19 +1274,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             {
                 const CopyComTag& tag = *it;
 
-                BL_ASSERT(    distributionMap[tag.fabIndex] == MyProc);
-                BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
-
-                const FAB& sfab = src[tag.srcIndex];
-                FAB&       dfab = get(tag.fabIndex);
-
                 if (op == FabArrayBase::COPY)
                 {
-                    dfab.copy(sfab,tag.box,scomp,tag.box,dcomp,ncomp);
+                    get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
                 }
                 else
                 {
-                    dfab.plus(sfab,tag.box,tag.box,scomp,dcomp,ncomp);
+                    get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
                 }
             }
         }
@@ -1347,7 +1341,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         {
             const Box& bx = it->box;
             fab.resize(bx, ncomp);
-            fab.copy(src[it->fabIndex],bx,scomp,bx,0,ncomp);
+            fab.copy(src[it->srcIndex],bx,scomp,bx,0,ncomp);
             const int Count = bx.numPts()*ncomp;
             memcpy(dptr, fab.dataPtr(), Count*sizeof(value_type));
             dptr += Count;
@@ -1378,16 +1372,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         BL_ASSERT(    distributionMap[tag.fabIndex] == MyProc);
         BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
 
-        const FAB& sfab = src[tag.srcIndex];
-        FAB&       dfab = get(tag.fabIndex);
-
         if (op == FabArrayBase::COPY)
         {
-            dfab.copy(sfab,tag.box,scomp,tag.box,dcomp,ncomp);
+            get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
         }
         else
         {
-            dfab.plus(sfab,tag.box,tag.box,scomp,dcomp,ncomp);
+            get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
         }
     }
     //
@@ -1430,6 +1421,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 {
                     get(it->fabIndex).plus(fab,bx,bx,0,dcomp,ncomp);
                 }
+
                 dptr += Count;
             }
         }
@@ -2307,10 +2299,10 @@ FabArray<FAB>::FillBoundary (int  scomp,
              it != End;
              ++it)
         {
-            BL_ASSERT(distributionMap[it->fabIndex] == MyProc);
+            BL_ASSERT(distributionMap[it->srcIndex] == MyProc);
             const Box& bx = it->box;
             fab.resize(bx,ncomp);
-            fab.copy(get(it->fabIndex),bx,scomp,bx,0,ncomp);
+            fab.copy(get(it->srcIndex),bx,scomp,bx,0,ncomp);
             const int Cnt = bx.numPts()*ncomp;
             memcpy(dptr, fab.dataPtr(), Cnt*sizeof(value_type));
             dptr += Cnt;
