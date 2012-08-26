@@ -231,17 +231,6 @@ private:
     //
     void increment (const FArrayBox& fab, int dir);
     //
-    // Helper function for CrseInit()s.
-    //
-    void CrseInitDoit (const MultiFab& mflx,
-                       const MultiFab* area,
-                       int             dir,
-                       int             srccomp,
-                       int             destcomp,
-                       int             numcomp,
-                       Real            mult,
-                       FrOp            op);
-    //
     // Refinement ratio
     //
     IntVect ratio;
