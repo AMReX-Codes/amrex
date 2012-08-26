@@ -438,27 +438,31 @@ namespace BoxLib
 
         Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb);
 
-        if (cache_it != Geometry::m_FPBCache.end())
+        if (ParallelDescriptor::NProcs() == 1)
         {
-            const Geometry::FPB& TheFPB = cache_it->second;
             //
-            // Do local work.
+            // There can only be local work to do.
             //
-            for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
-                     End = TheFPB.m_LocTags->end();
-                 it != End;
-                 ++it)
+            if (cache_it != Geometry::m_FPBCache.end())
             {
-                const Geometry::FPBComTag& tag = *it;
+                const Geometry::FPB& TheFPB = cache_it->second;
 
-                BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
-                BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
+                for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
+                         End = TheFPB.m_LocTags->end();
+                     it != End;
+                     ++it)
+                {
+                    const Geometry::FPBComTag& tag = *it;
 
-                mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+                    BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
+                    BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
+
+                    mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+                }
             }
+
+            return;
         }
-    
-        if (ParallelDescriptor::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
         //
@@ -534,10 +538,23 @@ namespace BoxLib
             }
         }
         //
+        // Do the local work.  Hope for a bit of communication/computation overlap.
+        //
+        for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
+                 End = TheFPB.m_LocTags->end();
+             it != End;
+             ++it)
+        {
+            const Geometry::FPBComTag& tag = *it;
+
+            BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
+            BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
+
+            mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+        }
+        //
         // Now receive and unpack FAB data as it becomes available.
         //
-        Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it;
-
         const int N_rcvs = TheFPB.m_RcvTags->size();
 
         index.resize(N_rcvs);
@@ -553,7 +570,7 @@ namespace BoxLib
 
                 BL_ASSERT(dptr != 0);
 
-                m_it = TheFPB.m_RcvTags->find(recv_from[index[k]]);
+                Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->find(recv_from[index[k]]);
 
                 BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
 
@@ -576,6 +593,7 @@ namespace BoxLib
 
         if (FabArrayBase::do_async_sends && !TheFPB.m_SndTags->empty())
             FabArrayBase::GrokAsyncSends(TheFPB.m_SndTags->size(),send_reqs,send_data,stats);
+
 #endif /*BL_USE_MPI*/
     }
 }
