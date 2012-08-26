@@ -1310,45 +1310,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    int total_rcvs_volume = 0;
+    double* the_recv_data = 0;
 
-    for (std::map<int,int>::const_iterator it = thecpc.m_RcvVols->begin(),
-             End = thecpc.m_RcvVols->end();
-         it != End;
-         ++it)
-    {
-        total_rcvs_volume += it->second;
-    }
-
-    total_rcvs_volume *= ncomp;
-
-    BL_ASSERT((total_rcvs_volume*sizeof(value_type)) < std::numeric_limits<int>::max());
-
-    value_type* the_recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(total_rcvs_volume*sizeof(value_type)));
-
-    int offset = 0;
-
-    std::map<int,int>::const_iterator vol_it;
-
-    for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->begin(),
-             m_End = thecpc.m_RcvTags->end();
-         m_it != m_End;
-         ++m_it)
-    {
-        vol_it = thecpc.m_RcvVols->find(m_it->first);
-
-        BL_ASSERT(vol_it != thecpc.m_RcvVols->end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        recv_data.push_back(&the_recv_data[offset]);
-        recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
-
-        offset += N;
-    }
+    FabArrayBase::PostRcvs(*thecpc.m_RcvTags,*thecpc.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
     //
     // Send the FAB data.
     //
@@ -1359,7 +1323,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
          m_it != m_End;
          ++m_it)
     {
-        vol_it = thecpc.m_SndVols->find(m_it->first);
+        std::map<int,int>::const_iterator vol_it = thecpc.m_SndVols->find(m_it->first);
 
         BL_ASSERT(vol_it != thecpc.m_SndVols->end());
 
@@ -1398,8 +1362,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     // Now receive and unpack FAB data as it becomes available.
     //
-    CPC::MapOfCopyComTagContainers::const_iterator m_it;
-
     const int N_rcvs = thecpc.m_RcvTags->size();
 
     index.resize(N_rcvs);
@@ -1415,7 +1377,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             BL_ASSERT(dptr != 0);
 
-            m_it = thecpc.m_RcvTags->find(recv_from[index[k]]);
+            CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[index[k]]);
 
             BL_ASSERT(m_it != thecpc.m_RcvTags->end());
 
@@ -1445,20 +1407,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     BoxLib::The_Arena()->free(the_recv_data);
 
     if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty())
-    {
-        //
-        // Now grok the asynchronous send buffers & free up send buffer space.
-        //
-        const int N_snds = thecpc.m_SndTags->size();
-
-        stats.resize(N_snds);
-
-        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-        for (int i = 0; i < N_snds; i++)
-            BoxLib::The_Arena()->free(send_data[i]);
-    }
-
+        FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
 #endif /*BL_USE_MPI*/
 }
 
@@ -2294,45 +2243,9 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    int TotalRcvsVolume = 0;
+    double* the_recv_data = 0;
 
-    for (std::map<int,int>::const_iterator it = TheSI.m_RcvVols->begin(),
-             End = TheSI.m_RcvVols->end();
-         it != End;
-         ++it)
-    {
-        TotalRcvsVolume += it->second;
-    }
-
-    TotalRcvsVolume *= ncomp;
-
-    BL_ASSERT((TotalRcvsVolume*sizeof(value_type)) < std::numeric_limits<int>::max());
-
-    value_type* the_recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(value_type)));
-
-    int offset = 0;
-
-    std::map<int,int>::const_iterator vol_it;
-
-    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->begin(),
-             m_End = TheSI.m_RcvTags->end();
-         m_it != m_End;
-         ++m_it)
-    {
-        vol_it = TheSI.m_RcvVols->find(m_it->first);
-
-        BL_ASSERT(vol_it != TheSI.m_RcvVols->end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        recv_data.push_back(&the_recv_data[offset]);
-        recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
-
-        offset += N;
-    }
+    FabArrayBase::PostRcvs(*TheSI.m_RcvTags,*TheSI.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
     //
     // Send the FAB data.
     //
@@ -2343,7 +2256,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
          m_it != m_End;
          ++m_it)
     {
-        vol_it = TheSI.m_SndVols->find(m_it->first);
+        std::map<int,int>::const_iterator vol_it = TheSI.m_SndVols->find(m_it->first);
 
         BL_ASSERT(vol_it != TheSI.m_SndVols->end());
 
@@ -2383,8 +2296,6 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     // Now receive and unpack FAB data as it becomes available.
     //
-    SI::MapOfCopyComTagContainers::const_iterator m_it;
-
     const int N_rcvs = TheSI.m_RcvTags->size();
 
     index.resize(N_rcvs);
@@ -2400,7 +2311,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
             BL_ASSERT(dptr != 0);
 
-            m_it = TheSI.m_RcvTags->find(recv_from[index[k]]);
+            SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(recv_from[index[k]]);
 
             BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 
@@ -2422,20 +2333,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     BoxLib::The_Arena()->free(the_recv_data);
 
     if (FabArrayBase::do_async_sends && !TheSI.m_SndTags->empty())
-    {
-        //
-        // Now grok the asynchronous send buffers & free up send buffer space.
-        //
-        const int N_snds = TheSI.m_SndTags->size();
-
-        stats.resize(N_snds);
-
-        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-        for (int i = 0; i < N_snds; i++)
-            BoxLib::The_Arena()->free(send_data[i]);
-    }
-
+        FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),send_reqs,send_data,stats);
 #endif /*BL_USE_MPI*/
 }
 
