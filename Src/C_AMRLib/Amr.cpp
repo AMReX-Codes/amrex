@@ -1873,6 +1873,7 @@ Amr::regrid (int  lbase,
     if (lbase == 0)
     {
         FabArrayBase::CPC::FlushCache();
+        FabSet::FlushCache();
         MultiFab::FlushSICache();
         Geometry::FlushPIRMCache();
         DistributionMapping::FlushCache();
