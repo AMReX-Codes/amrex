@@ -1247,6 +1247,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 get(fai).plus(sfab,bx,bx,scomp,dcomp,ncomp);
             }
         }
+
         return;
     }
 
@@ -1257,36 +1258,41 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc);
 
-    if (cache_it != FabArrayBase::m_TheCopyCache.end())
+    if (NProcs == 1)
     {
-        const CPC& thecpc = cache_it->second;
         //
-        // Do local copy()s.
+        // There can only be local work to do.
         //
-        for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
-                 End = thecpc.m_LocTags->end();
-             it != End;
-             ++it)
+        if (cache_it != FabArrayBase::m_TheCopyCache.end())
         {
-            const CopyComTag& tag = *it;
+            const CPC& thecpc = cache_it->second;
 
-            BL_ASSERT(    distributionMap[tag.fabIndex] == MyProc);
-            BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
-
-            const FAB& sfab = src[tag.srcIndex];
-
-            if (op == FabArrayBase::COPY)
+            for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
+                     End = thecpc.m_LocTags->end();
+                 it != End;
+                 ++it)
             {
-                get(tag.fabIndex).copy(sfab,tag.box,scomp,tag.box,dcomp,ncomp);
-            }
-            else
-            {
-                get(tag.fabIndex).plus(sfab,tag.box,tag.box,scomp,dcomp,ncomp);
+                const CopyComTag& tag = *it;
+
+                BL_ASSERT(    distributionMap[tag.fabIndex] == MyProc);
+                BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
+
+                const FAB& sfab = src[tag.srcIndex];
+                FAB&       dfab = get(tag.fabIndex);
+
+                if (op == FabArrayBase::COPY)
+                {
+                    dfab.copy(sfab,tag.box,scomp,tag.box,dcomp,ncomp);
+                }
+                else
+                {
+                    dfab.plus(sfab,tag.box,tag.box,scomp,dcomp,ncomp);
+                }
             }
         }
+
+        return;
     }
-    
-    if (NProcs == 1) return;
 
 #ifdef BL_USE_MPI
     //
@@ -1360,6 +1366,31 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         }
     }
     //
+    // Do the local work.  Hope for a bit of communication/computation overlap.
+    //
+    for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
+             End = thecpc.m_LocTags->end();
+         it != End;
+         ++it)
+    {
+        const CopyComTag& tag = *it;
+
+        BL_ASSERT(    distributionMap[tag.fabIndex] == MyProc);
+        BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
+
+        const FAB& sfab = src[tag.srcIndex];
+        FAB&       dfab = get(tag.fabIndex);
+
+        if (op == FabArrayBase::COPY)
+        {
+            dfab.copy(sfab,tag.box,scomp,tag.box,dcomp,ncomp);
+        }
+        else
+        {
+            dfab.plus(sfab,tag.box,tag.box,scomp,dcomp,ncomp);
+        }
+    }
+    //
     // Now receive and unpack FAB data as it becomes available.
     //
     const int N_rcvs = thecpc.m_RcvTags->size();
@@ -1408,6 +1439,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty())
         FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
+
 #endif /*BL_USE_MPI*/
 }
 
@@ -2198,28 +2230,31 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(cross,*this);
 
-    if (cache_it != FabArrayBase::m_TheFBCache.end())
+    if (NProcs == 1)
     {
         //
-        // Do local copy()s.
+        // There can only be local work to do.
         //
-        const FabArrayBase::SI& TheSI = cache_it->second;
-
-        for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
-                 End = TheSI.m_LocTags->end();
-             it != End;
-             ++it)
+        if (cache_it != FabArrayBase::m_TheFBCache.end())
         {
-            const CopyComTag& tag = *it;
+            const FabArrayBase::SI& TheSI = cache_it->second;
 
-            BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
-            BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
+            for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
+                     End = TheSI.m_LocTags->end();
+                 it != End;
+                 ++it)
+            {
+                const CopyComTag& tag = *it;
 
-            get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+                BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
+                BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
+
+                get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+            }
         }
+
+        return;
     }
-    
-    if (NProcs == 1) return;
 
 #ifdef BL_USE_MPI
     //
@@ -2294,6 +2329,21 @@ FabArray<FAB>::FillBoundary (int  scomp,
         }
     }
     //
+    // Do the local work.  Hope for a bit of communication/computation overlap.
+    //
+    for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
+             End = TheSI.m_LocTags->end();
+         it != End;
+         ++it)
+    {
+        const CopyComTag& tag = *it;
+
+        BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
+        BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
+
+        get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+    }
+    //
     // Now receive and unpack FAB data as it becomes available.
     //
     const int N_rcvs = TheSI.m_RcvTags->size();
@@ -2334,6 +2384,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     if (FabArrayBase::do_async_sends && !TheSI.m_SndTags->empty())
         FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),send_reqs,send_data,stats);
+
 #endif /*BL_USE_MPI*/
 }
 
