@@ -6,6 +6,12 @@
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 
+
+namespace
+{
+    bool initialized = false;
+}
+
 FabSetCopyDescriptor::FabSetCopyDescriptor ()
     :
     MultiFabCopyDescriptor() {}
@@ -19,7 +25,14 @@ FabSet::~FabSet () {}
 FabSet::FabSet (const BoxArray& grids, int ncomp)
     :
     MultiFab(grids,ncomp,0,Fab_allocate)
-{}
+{
+    if (!initialized)
+    {
+        BoxLib::ExecOnFinalize(FabSet::Finalize);
+
+        initialized = true;
+    }
+}
 
 void
 FabSet::define (const BoxArray& grids, int ncomp)
@@ -27,6 +40,13 @@ FabSet::define (const BoxArray& grids, int ncomp)
     MultiFab* tmp = this;
 
     tmp->define(grids, ncomp, 0, Fab_allocate);
+
+    if (!initialized)
+    {
+        BoxLib::ExecOnFinalize(FabSet::Finalize);
+
+        initialized = true;
+    }
 }
 
 void
@@ -37,6 +57,13 @@ FabSet::define (const BoxArray&            grids,
     MultiFab* tmp = this;
 
     tmp->define(grids, ncomp, 0, dm, Fab_allocate);
+
+    if (!initialized)
+    {
+        BoxLib::ExecOnFinalize(FabSet::Finalize);
+
+        initialized = true;
+    }
 }
 
 const FabSet&
@@ -182,6 +209,8 @@ FabSet::copyFrom (const FArrayBox& src,
     return *this;
 }
 
+FabArrayBase::CPCCache FabSet::m_TheCopyCache;
+
 void
 FabSet::DoIt (const MultiFab& src,
               int             ngrow,
@@ -190,6 +219,7 @@ FabSet::DoIt (const MultiFab& src,
               int             ncomp,
               How             how)
 {
+    BL_ASSERT(nGrow() == 0);                 // FabSets don't have grow cells.
     BL_ASSERT(ngrow <= src.nGrow());
     BL_ASSERT((dcomp+ncomp) <= nComp());
     BL_ASSERT((scomp+ncomp) <= src.nComp());
@@ -201,87 +231,63 @@ FabSet::DoIt (const MultiFab& src,
 
     typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
 
-    const int                  MyProc  = ParallelDescriptor::MyProc();
+    const int                  NProcs  = ParallelDescriptor::NProcs();
     const DistributionMapping& srcDMap = src.DistributionMap();
     const DistributionMapping& dstDMap = DistributionMap();
 
-    BoxArray ba_src = src.boxArray();
-
-    ba_src.grow(ngrow);
+    BoxArray ba_src = src.boxArray(); ba_src.grow(ngrow);
 
     FArrayBox                         fab;
-    FabArrayBase::CopyComTag          tag;
-    MapOfCopyComTagContainers         m_SndTags, m_RcvTags;
-    std::map<int,int>                 m_SndVols, m_RcvVols;
     std::vector< std::pair<int,Box> > isects;
 
-    for (int i = 0, N = size(); i < N; i++)
+    const FabArrayBase::CPC cpc(boxArray(), ba_src, dstDMap, srcDMap);
+
+    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, FabSet::m_TheCopyCache);
+
+    if (NProcs == 1)
     {
-        ba_src.intersections(this->fabbox(i),isects);
-
-        const int dst_owner = dstDMap[i];
-
-        for (int j = 0, M = isects.size(); j < M; j++)
+        //
+        // There can only be local work to do.
+        //
+        if (cache_it != FabSet::m_TheCopyCache.end())
         {
-            const Box& bx        = isects[j].second;
-            const int  k         = isects[j].first;
-            const int  src_owner = srcDMap[k];
+            const CPC& thecpc = cache_it->second;
 
-            if (dst_owner != MyProc && src_owner != MyProc) continue;
-
-            if (dst_owner == MyProc)
+            for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
+                     End = thecpc.m_LocTags->end();
+                 it != End;
+                 ++it)
             {
-                if (src_owner == MyProc)
+                const CopyComTag& tag = *it;
+
+                if (how == COPYFROM)
                 {
-                    //
-                    // Do the local work right here.
-                    //
-                    if (how == COPYFROM)
-                    {
-                        (*this)[i].copy(src[k],bx,scomp,bx,dcomp,ncomp);
-                    }
-                    else
-                    {
-                        fab.resize(bx,ncomp);
-                        fab.copy(src[k],bx,scomp,bx,0,ncomp);
-                        (*this)[i].plus(fab,bx,0,dcomp,ncomp);
-                    }
+                    (*this)[tag.fabIndex].copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
                 }
                 else
                 {
-                    tag.box      = bx;
-                    tag.fabIndex = i;
-
-                    const int vol = bx.numPts();
-
-                    FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
+                    (*this)[tag.fabIndex].plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
                 }
             }
-            else if (src_owner == MyProc)
-            {
-                tag.box      = bx;
-                tag.fabIndex = k;
-
-                const int vol = bx.numPts();
-
-                FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
-            }
         }
+
+        return;
     }
 
 #ifdef BL_USE_MPI
-    if (ParallelDescriptor::NProcs() == 1) return;
     //
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (m_SndTags.empty() && m_RcvTags.empty())
+    if (cache_it == FabSet::m_TheCopyCache.end())
         //
-        // No parallel work for this MPI process to do.
+        // No parallel work to do.
         //
         return;
+
+    const FabArrayBase::CPC& thecpc = cache_it->second;
 
     Array<MPI_Status>  stats;
     Array<int>         recv_from, index;
@@ -292,18 +298,18 @@ FabSet::DoIt (const MultiFab& src,
     //
     double* the_recv_data = 0;
 
-    FabArrayBase::PostRcvs(m_RcvTags,m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+    FabArrayBase::PostRcvs(*thecpc.m_RcvTags,*thecpc.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
     //
     // Send the data.
     //
-    for (MapOfCopyComTagContainers::const_iterator m_it = m_SndTags.begin(),
-             m_End = m_SndTags.end();
+    for (MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
+             m_End = thecpc.m_SndTags->end();
          m_it != m_End;
          ++m_it)
     {
-        std::map<int,int>::const_iterator vol_it = m_SndVols.find(m_it->first);
+        std::map<int,int>::const_iterator vol_it = thecpc.m_SndVols->find(m_it->first);
 
-        BL_ASSERT(vol_it != m_SndVols.end());
+        BL_ASSERT(vol_it != thecpc.m_SndVols->end());
 
         const int N = vol_it->second*ncomp;
 
@@ -318,8 +324,8 @@ FabSet::DoIt (const MultiFab& src,
              ++it)
         {
             const Box& bx = it->box;
-            fab.resize(bx, ncomp);
-            fab.copy(src[it->fabIndex],bx,scomp,bx,0,ncomp);
+            fab.resize(bx,ncomp);
+            fab.copy(src[it->srcIndex],bx,scomp,bx,0,ncomp);
             const int Cnt = bx.numPts()*ncomp;
             memcpy(dptr,fab.dataPtr(),Cnt*sizeof(double));
             dptr += Cnt;
@@ -338,9 +344,31 @@ FabSet::DoIt (const MultiFab& src,
         }
     }
     //
+    // Do the local work.  Hope for a bit of communication/computation overlap.
+    //
+    for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
+             End = thecpc.m_LocTags->end();
+         it != End;
+         ++it)
+    {
+        const CopyComTag& tag = *it;
+
+        BL_ASSERT(dstDMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+        BL_ASSERT(srcDMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+
+        if (how == COPYFROM)
+        {
+            (*this)[tag.fabIndex].copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
+        }
+        else
+        {
+            (*this)[tag.fabIndex].plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
+        }
+    }
+    //
     // Now receive and unpack FAB data as it becomes available.
     //
-    const int N_rcvs = m_RcvTags.size();
+    const int N_rcvs = thecpc.m_RcvTags->size();
 
     index.resize(N_rcvs);
     stats.resize(N_rcvs);
@@ -355,9 +383,9 @@ FabSet::DoIt (const MultiFab& src,
 
             BL_ASSERT(dptr != 0);
 
-            MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.find(recv_from[index[k]]);
+            MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[index[k]]);
 
-            BL_ASSERT(m_it != m_RcvTags.end());
+            BL_ASSERT(m_it != thecpc.m_RcvTags->end());
 
             for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                      End = m_it->second.end();
@@ -375,7 +403,7 @@ FabSet::DoIt (const MultiFab& src,
                 }
                 else
                 {
-                    (*this)[it->fabIndex].plus(fab,bx,0,dcomp,ncomp);
+                    (*this)[it->fabIndex].plus(fab,bx,bx,0,dcomp,ncomp);
                 }
 
                 dptr += Cnt;
@@ -385,9 +413,53 @@ FabSet::DoIt (const MultiFab& src,
 
     BoxLib::The_Arena()->free(the_recv_data);
 
-    if (FabArrayBase::do_async_sends && !m_SndTags.empty())
-        FabArrayBase::GrokAsyncSends(m_SndTags.size(),send_reqs,send_data,stats);
+    if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty())
+        FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
+
 #endif /*BL_USE_MPI*/
+}
+
+void
+FabSet::FlushCache ()
+{
+    int stats[3] = {0,0,0}; // size, reused, bytes
+
+    stats[0] = FabSet::m_TheCopyCache.size();
+
+    for (CPCCacheIter it = FabSet::m_TheCopyCache.begin(), End = FabSet::m_TheCopyCache.end();
+         it != End;
+         ++it)
+    {
+        stats[2] += it->second.bytes();
+        if (it->second.m_reused)
+            stats[1]++;
+    }
+
+    if (FabArrayBase::verbose)
+    {
+        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+
+        if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "FabSet::m_TheCopyCache: max size: "
+                      << stats[0]
+                      << ", max # reused: "
+                      << stats[1]
+                      << ", max bytes used: "
+                      << stats[2]
+                      << std::endl;
+        }
+    }
+
+    FabSet::m_TheCopyCache.clear();
+}
+
+void
+FabSet::Finalize ()
+{
+     FabSet::FlushCache();
+
+    initialized = false;
 }
 
 FabSet&
