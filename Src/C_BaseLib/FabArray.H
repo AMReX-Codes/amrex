@@ -1229,22 +1229,32 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  ncomp,
                      CpOp                 op)
 {
-    BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
+    if (size() == 0 || src.size() == 0) return;
 
-    if (boxarray == src.boxarray && distributionMap == src.distributionMap)
+    BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
+    BL_ASSERT(boxArray()[0].ixType() == src.boxArray()[0].ixType());
+
+    const IndexType ityp = src.boxArray()[0].ixType();
+
+    if ((src.boxArray()[0].cellCentered() || op == FabArrayBase::COPY) &&
+        (boxarray == src.boxarray && distributionMap == src.distributionMap))
     {
+        //
+        // Short-circuit full intersection code if we're doing copy()s or if
+        // we're doing plus()s on cell-centered data.  Don't do plus()s on
+        // non-cell-centered data this simplistic way.
+        //
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
-            const Box& bx   = fai.validbox();
-            const FAB& sfab = src[fai];
+            const Box& bx = fai.validbox();
 
             if (op == FabArrayBase::COPY)
             {
-                get(fai).copy(sfab,bx,scomp,bx,dcomp,ncomp);
+                get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
             }
             else
             {
-                get(fai).plus(sfab,bx,bx,scomp,dcomp,ncomp);
+                get(fai).plus(src[fai],bx,bx,scomp,dcomp,ncomp);
             }
         }
 
@@ -1340,11 +1350,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
              ++it)
         {
             const Box& bx = it->box;
-            fab.resize(bx, ncomp);
+            fab.resize(bx,ncomp);
             fab.copy(src[it->srcIndex],bx,scomp,bx,0,ncomp);
-            const int Count = bx.numPts()*ncomp;
-            memcpy(dptr, fab.dataPtr(), Count*sizeof(value_type));
-            dptr += Count;
+            const int Cnt = bx.numPts()*ncomp;
+            memcpy(dptr, fab.dataPtr(), Cnt*sizeof(value_type));
+            dptr += Cnt;
         }
         BL_ASSERT(data+N == dptr);
 
@@ -1409,9 +1419,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                  ++it)
             {
                 const Box& bx = it->box;
-                fab.resize(bx, ncomp);
-                const int Count = bx.numPts()*ncomp;
-                memcpy(fab.dataPtr(), dptr, Count*sizeof(value_type));
+                fab.resize(bx,ncomp);
+                const int Cnt = bx.numPts()*ncomp;
+                memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
 
                 if (op == FabArrayBase::COPY)
                 {
@@ -1422,7 +1432,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                     get(it->fabIndex).plus(fab,bx,bx,0,dcomp,ncomp);
                 }
 
-                dptr += Count;
+                dptr += Cnt;
             }
         }
     }
@@ -2018,7 +2028,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         {
             BL_ASSERT(cd->id() == 0);
             BL_ASSERT(cd->fromproc() == Who);
-            fab.resize(cd->box(), cd->nComp());
+            fab.resize(cd->box(),cd->nComp());
             const int Cnt = fab.box().numPts()*fab.nComp();
             fab.copy((*fabArrays[cd->fabarrayid()])[cd->fabindex()],
                      fab.box(),
@@ -2363,7 +2373,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
                  ++it)
             {
                 const Box& bx = it->box;
-                fab.resize(bx, ncomp);
+                fab.resize(bx,ncomp);
                 const int Cnt = bx.numPts()*ncomp;
                 memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
                 get(it->fabIndex).copy(fab,bx,0,bx,scomp,ncomp);

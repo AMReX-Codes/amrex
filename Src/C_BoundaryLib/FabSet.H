@@ -224,10 +224,6 @@ public:
     //
     void read (const std::string& name);
 
-    static void FlushCache ();
-
-    static void Finalize ();
-
 protected:
     //
     // copyFrom(MultiFab) and plusFrom(MultiFab) use common function.
@@ -240,12 +236,6 @@ protected:
                int             dcomp,
                int             ncomp,
                How             how);
-    //
-    // Useful stuff for the copy cache.
-    //
-    typedef FabArrayBase::CPCCache::iterator CPCCacheIter;
-
-    static FabArrayBase::CPCCache m_TheCopyCache;
 };
 
 //
