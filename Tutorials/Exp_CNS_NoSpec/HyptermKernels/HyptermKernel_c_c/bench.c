@@ -29,6 +29,7 @@
 
 //------------------------------------------------------------------------------------------------------------------------------
 #include "timer.h"
+#include "FakeWriteMultifab.h"
 //------------------------------------------------------------------------------------------------------------------------------
 uint64_t _total_run_time;
 uint64_t _total_time_hypterm;
@@ -37,48 +38,94 @@ uint64_t _total_time_hypterm_L2;
 uint64_t _total_time_hypterm_L3;
 
 //------------------------------------------------------------------------------------------------------------------------------
-void init_data(int lo[3], int hi[3], int ng, double dx[3], double ** __restrict__ _cons){
+void init_data(int lo[3], int hi[3], int fablo[3], int fabhi[3], int ng, double dx[3],
+               double ** __restrict__ _cons, double ** __restrict__ _q)
+{
 
+  int ncomp = 5;
   int c;
-  int lo0=lo[0];int hi0=hi[0];
-  int lo1=lo[1];int hi1=hi[1];
-  int lo2=lo[2];int hi2=hi[2];
-  int pencilg =  (hi0-lo0)+2*ng;
-  int  planeg = ((hi1-lo1)+2*ng)*pencilg;
+  int lo0=fablo[0]; int hi0=fabhi[0];
+  int lo1=fablo[1]; int hi1=fabhi[1];
+  int lo2=fablo[2]; int hi2=fabhi[2];
+  int pencil = (hi0-lo0+1);
+  int  plane = (hi1-lo1+1)*pencil;
+  //int pencilg =  (hi0-lo0+1)+2*ng;
+  //int  planeg = ((hi1-lo1+1)+2*ng)*pencilg;
 
-  double * __restrict__ cons[5];for(c=0;c<5;c++){cons[c] = _cons[c] + (ng+ng*pencilg+ng*planeg);}
+  /* we have to initialize the entire arrays, including ghost cells */
+  double * __restrict__ cons[5]; for(c=0;c<5;c++) { cons[c] = _cons[c]; }
+  double * __restrict__ q[5]; for(c=0;c<6;c++) { q[c] = _q[c]; }
 
   int i, j, k;
   double scale, xloc, yloc, zloc, rholoc, uvel, vvel, wvel, eloc;
 
-  printf("lo = %d %d %d\n", lo[0], lo[1], lo[2]);
-  printf("hi = %d %d %d\n", hi[0], hi[1], hi[2]);
+  double GAMMA, CV, CVinv, rhoinv;
+  scale = 1.0e0;
 
-  scale = 3.14e0;
-
-  #pragma omp parallel for private(i,j,k) reduction(+ : L1iters)
   for(k=lo2;k<=hi2;k++){
-         zloc = k*dx[3]/scale;
+    zloc = ((double) k)*dx[2]/scale;
     for(j=lo1;j<=hi1;j++){
-            yloc = j*dx[2]/scale;
+      yloc = ((double) j)*dx[1]/scale;
       for(i=lo0;i<=hi0;i++){
-               xloc = i*dx[1]/scale;
+        xloc = ((double) i)*dx[0]/scale;
 
-               uvel   = 1.1e4*sin(1*xloc)*sin(2*yloc)*sin(3*zloc);
-               vvel   = 1.0e4*sin(2*xloc)*sin(4*yloc)*sin(1*zloc);
-               wvel   = 1.2e4*sin(3*xloc)*cos(2*yloc)*sin(2*zloc);
-               rholoc = 1.0e-3 + 1.0e-5*sin(1*xloc)*cos(2*yloc)*cos(3*zloc);
-               eloc   = 2.5e9  + 1.0e-3*sin(2*xloc)*cos(2*yloc)*sin(2*zloc);
+        uvel   = 1.1e4*sin(1.0*xloc)*sin(2.0*yloc)*sin(3.0*zloc);
+        vvel   = 1.0e4*sin(2.0*xloc)*sin(4.0*yloc)*sin(1.0*zloc);
+        wvel   = 1.2e4*sin(3.0*xloc)*cos(2.0*yloc)*sin(2.0*zloc);
+        rholoc = 1.0e-3 + 1.0e-5*sin(1.0*xloc)*cos(2.0*yloc)*cos(3.0*zloc);
+        eloc   = 2.5e9  + 1.0e-3*sin(2.0*xloc)*cos(2.0*yloc)*sin(2.0*zloc);
 
-        int ijkg = i + j*pencilg + k*planeg;
-        cons[irho][ijkg] = rholoc;
-        cons[irho][ijkg] = rholoc*uvel;
-        cons[irho][ijkg] = rholoc*vvel;
-        cons[irho][ijkg] = rholoc*wvel;
-        cons[irho][ijkg] = rholoc*(eloc + (uvel*uvel+vvel*vvel+wvel*wvel)/2.0);
+        int ijk = (i-fablo[0]) + (j-fablo[1])*pencil + (k-fablo[2])*plane;
+        cons[irho][ijk] = rholoc;
+        cons[imx][ijk]  = rholoc*uvel;
+        cons[imy][ijk]  = rholoc*vvel;
+        cons[imz][ijk]  = rholoc*wvel;
+        cons[iene][ijk] = rholoc*(eloc + (uvel*uvel+vvel*vvel+wvel*wvel)/2.0);
       }
     }
   }
+
+
+  GAMMA = 1.4e0;
+  CV    = 8.3333333333e6;
+  CVinv = 1.0e0 / CV;
+
+  for(k=lo2;k<=hi2;k++){
+    for(j=lo1;j<=hi1;j++){
+      for(i=lo0;i<=hi0;i++){
+        int ijk = (i-fablo[0]) + (j-fablo[1])*pencil + (k-fablo[2])*plane;
+        rhoinv     = 1.0e0/cons[irho][ijk];
+        q[irho][ijk] = cons[irho][ijk];
+        q[imx][ijk]  = cons[imx][ijk] * rhoinv;
+        q[imy][ijk]  = cons[imy][ijk] * rhoinv;
+        q[imz][ijk]  = cons[imz][ijk] * rhoinv;
+
+        eloc = cons[iene][ijk]*rhoinv -
+               0.5e0*((q[imx][ijk]*q[imx][ijk]) + (q[imy][ijk]*q[imy][ijk]) + (q[imz][ijk]*q[imz][ijk]));
+
+        q[iene][ijk]   = (GAMMA-1.0e0)*eloc*cons[irho][ijk];
+        q[iene+1][ijk] = eloc * CVinv;
+      }
+    }
+  }
+
+  double dmin[ncomp], dmax[ncomp];
+  for(c = 0; c < ncomp; ++c) {
+    dmin[c] = cons[c][0];
+    dmax[c] = cons[c][0];
+  }
+  for(c = 0; c < ncomp; ++c) {
+    for(k=lo2;k<=hi2;k++){
+      for(j=lo1;j<=hi1;j++){
+        for(i=lo0;i<=hi0;i++){
+          int ijk = (i-fablo[0]) + (j-fablo[1])*pencil + (k-fablo[2])*plane;
+          dmin[c] = fmin(dmin[c], cons[c][ijk]);
+          dmax[c] = fmax(dmax[c], cons[c][ijk]);
+        }
+      }
+    }
+  }
+
 }
 
 
@@ -89,6 +136,7 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   //    double precision, intent(out) :: flux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5)
   uint64_t _time_start      = CycleTime();
   int c;
+  double dmin[5], dmax[5];
   double dxinv0=1.0/dx[0];
   double dxinv1=1.0/dx[1];
   double dxinv2=1.0/dx[2];
@@ -96,10 +144,10 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   int lo1=lo[1];int hi1=hi[1];
   int lo2=lo[2];int hi2=hi[2];
 
-  int pencil  =  (hi0-lo0);
-  int  plane  = ((hi1-lo1))*pencil;
-  int pencilg =  (hi0-lo0)+2*ng;
-  int  planeg = ((hi1-lo1)+2*ng)*pencilg;
+  int pencil  =  (hi0-lo0+1);
+  int  plane  = ((hi1-lo1+1))*pencil;
+  int pencilg =  (hi0-lo0+1)+2*ng;
+  int  planeg = ((hi1-lo1+1)+2*ng)*pencilg;
 
   double * __restrict__ cons[5];for(c=0;c<5;c++){cons[c] = _cons[c] + (ng+ng*pencilg+ng*planeg);}
   double * __restrict__    q[6];for(c=0;c<6;c++){   q[c] =    _q[c] + (ng+ng*pencilg+ng*planeg);}
@@ -109,9 +157,13 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   int jb,JBlocks;
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   int L1iters = 0;
+  int L2iters = 0;
+  int L3iters = 0;
+
   printf("lo0 hi0 = %d %d\n", lo0, hi0);
   printf("lo1 hi1 = %d %d\n", lo1, hi1);
   printf("lo2 hi2 = %d %d\n", lo2, hi2);
+
   #pragma omp parallel for private(i,j,k) reduction(+ : L1iters)
   for(k=lo2;k<=hi2;k++){
     for(j=lo1;j<=hi1;j++){
@@ -161,15 +213,40 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   }}}
   uint64_t _time_L1 = CycleTime();
   _total_time_hypterm_L1 += (_time_L1 - _time_start);
-  printf("L1 iters = %d\n",L1iters    );
+
+  
+  for(c = 0; c < 5; ++c) {
+    dmin[c] = flux[c][0];
+    dmax[c] = flux[c][0];
+  }
+
+  for(k=lo2;k<=hi2;k++){
+    for(j=lo1;j<=hi1;j++){
+      for(i=lo0;i<=hi0;i++){
+        int ijk  = i + j*pencil  + k*plane;
+        for(c = 0; c < 5; ++c) {
+          dmin[c] = fmin(dmin[c], flux[c][ijk]);
+          dmax[c] = fmax(dmax[c], flux[c][ijk]);
+        }
+      }
+    }
+  }
+  printf("-----------------\n");
+  for(c = 0; c < 5; ++c) {
+    printf("hypterm:  minmax flux[%d] = %e %e\n", c, dmin[c], dmax[c]);
+  }
+  printf("-----------------\n");
+
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   int pencilg2 = pencilg*2;
   int pencilg3 = pencilg*3;
   int pencilg4 = pencilg*4;
-  #pragma omp parallel for private(i,j,k)
+  #pragma omp parallel for private(i,j,k)  reduction(+ : L2iters)
   for(k=lo2;k<=hi2;k++){
     for(j=lo1;j<=hi1;j++){
       for(i=lo0;i<=hi0;i++){
+
+	++L2iters;
 
         int ijk  = i + j*pencil  + k*plane;
         int ijkg = i + j*pencilg + k*planeg;
@@ -280,8 +357,8 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   int planeg2 = planeg*2;
   int planeg3 = planeg*3;
   int planeg4 = planeg*4;
-  JBlocks = (hi1-lo1 + JBlockSize-1 )/JBlockSize;
-  #pragma omp parallel for private(i,j,k,jb) schedule(static,1)
+  JBlocks = (hi1-lo1+1 + JBlockSize-1 )/JBlockSize;
+  #pragma omp parallel for private(i,j,k,jb) schedule(static,1)  reduction(+ : L3iters)
   for(jb=0;jb<JBlocks;jb++){
     for(k=lo2;k<=hi2;k++){
       for(j=jb*JBlockSize;j<(jb+1)*JBlockSize;j++)if(j<=hi1){
@@ -291,6 +368,8 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
 
       for(i=lo0;i<=hi0;i++){
   
+	++L3iters;
+
         int ijk  = i + j*pencil  + k*plane;
         int ijkg = i + j*pencilg + k*planeg;
 
@@ -399,6 +478,32 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   _total_time_hypterm_L3 += (_time_L3 - _time_L2);
   _total_time_hypterm    += (_time_L3 - _time_start);
 
+  printf("L1 iters = %d\n",L1iters    );
+  printf("L2 iters = %d\n",L2iters    );
+  printf("L3 iters = %d\n",L3iters    );
+
+  
+  for(c = 0; c < 5; ++c) {
+    dmin[c] = flux[c][0];
+    dmax[c] = flux[c][0];
+  }
+
+  for(k=lo2;k<=hi2;k++){
+    for(j=lo1;j<=hi1;j++){
+      for(i=lo0;i<=hi0;i++){
+        int ijk  = i + j*pencil  + k*plane;
+        for(c = 0; c < 5; ++c) {
+          dmin[c] = fmin(dmin[c], flux[c][ijk]);
+          dmax[c] = fmax(dmax[c], flux[c][ijk]);
+        }
+      }
+    }
+  }
+  printf("-----------------\n");
+  for(c = 0; c < 5; ++c) {
+    printf("hypterm:  minmax flux[%d] = %e %e\n", c, dmin[c], dmax[c]);
+  }
+  printf("-----------------\n");
 
 }
 //------------------------------------------------------------------------------------------------------------------------------
@@ -422,7 +527,8 @@ int main(int argc, char **argv){
 
   int lo[3] = {0,0,0};
   int hi[3] = {max_grid_size-1,max_grid_size-1,max_grid_size-1};
-  double dx[3] = {1.0,1.0,1.0};
+  int fablo[3], fabhi[3];
+  double dx[3], probLo[3], probHi[3];
   double * tmpbuf;
   int volume,c;
 
@@ -433,13 +539,13 @@ int main(int argc, char **argv){
   for(c=0;c<NC;c++){
     U[c] = tmpbuf + c*volume;
   }
-  double **D = (double**)malloc(NC*sizeof(double*)); // NC, 0
-  posix_memalign((void**)&D,64,NC*sizeof(double*));
-  volume = max_grid_size*max_grid_size*max_grid_size;
-  posix_memalign((void**)&tmpbuf,64,volume*(NC)*sizeof(double));memset(tmpbuf,0,volume*(NC)*sizeof(double));
+  printf("U = %u\n", U);
+  printf("U[0] = %u\n", U[0]);
+  printf("tmpbuf = %u\n", tmpbuf);
   for(c=0;c<NC;c++){
-    D[c] = tmpbuf + c*volume;
+    printf("U[%d] = %u\n", c, U[c]);
   }
+
   double **F = (double**)malloc(NC*sizeof(double*)); // NC, 0
   posix_memalign((void**)&F,64,NC*sizeof(double*));
   volume = max_grid_size*max_grid_size*max_grid_size;
@@ -447,21 +553,29 @@ int main(int argc, char **argv){
   for(c=0;c<NC;c++){
     F[c] = tmpbuf + c*volume;
   }
+
   double **Q = (double**)malloc((NC+1)*sizeof(double*)); // NC+1, NG
   volume = (max_grid_size+2*NG)*(max_grid_size+2*NG)*(max_grid_size+2*NG);
   posix_memalign((void**)&tmpbuf,64,volume*(NC+1)*sizeof(double));memset(tmpbuf,0,volume*(NC+1)*sizeof(double));
   for(c=0;c<NC+1;c++){
     Q[c] = tmpbuf + c*volume;
   }
-  double **Unew = (double**)malloc(NC*sizeof(double*)); // NC, NG
-  volume = (max_grid_size+2*NG)*(max_grid_size+2*NG)*(max_grid_size+2*NG);
-  posix_memalign((void**)&tmpbuf,64,volume*(NC)*sizeof(double));memset(tmpbuf,0,volume*(NC)*sizeof(double));
-  for(c=0;c<NC;c++){
-    Unew[c] = tmpbuf + c*volume;
+
+
+  for(c = 0; c < 3; ++c) {
+    probLo[c] = -2.3;
+    probHi[c] =  2.3;
+    dx[c] = (probHi[c] - probLo[c]) / ((double) (hi[c] - lo[c] + 1));
+    printf("dx = %f\n", dx[c]);
+
+    fablo[c] = lo[c] - NG;
+    fabhi[c] = hi[c] + NG;
   }
 
 
-  init_data(lo,hi,NG,dx,U);
+  init_data(lo, hi, fablo, fabhi, NG, dx, U, Q);
+
+  FakeWriteMultifab(lo, hi, fablo, fabhi, NG, NC, U, "mfUInit");
 
   uint64_t t0 = CycleTime();
   sleep(1);
@@ -473,7 +587,7 @@ int main(int argc, char **argv){
   _total_time_hypterm_L1 = 0;
   _total_time_hypterm_L2 = 0;
   _total_time_hypterm_L3 = 0;
-  int iteration,NIterations = 10;
+  int iteration,NIterations = 1;
   uint64_t _run_time_start      = CycleTime();
   for(iteration=0;iteration<NIterations;iteration++){
    // for all boxes...
@@ -482,15 +596,17 @@ int main(int argc, char **argv){
   uint64_t _run_time_end = CycleTime();
   _total_run_time += (_run_time_end - _run_time_start);
 
+  FakeWriteMultifab(lo, hi, lo, hi, 0, NC, F, "mfFluxFinal");
+
   #ifdef JBlockSize
   printf("JBlockSize = %d\n",JBlockSize);
   printf("volume     = %d\n",volume    );
   #endif
   printf("frequency = %6.6e\n",frequency);
-  printf("runtime = %9.6fs\n",(double)_total_run_time   /frequency);
-  printf("hypterm = %9.6fs\n",(double)_total_time_hypterm   /(double)NIterations/frequency);
   printf("     L1 = %9.6fs\n",(double)_total_time_hypterm_L1/(double)NIterations/frequency);
   printf("     L2 = %9.6fs\n",(double)_total_time_hypterm_L2/(double)NIterations/frequency);
   printf("     L3 = %9.6fs\n",(double)_total_time_hypterm_L3/(double)NIterations/frequency);
+  printf("hypterm = %9.6fs\n",(double)_total_time_hypterm   /(double)NIterations/frequency);
+  printf("runtime = %9.6fs\n",(double)_total_run_time   /frequency);
 
 }

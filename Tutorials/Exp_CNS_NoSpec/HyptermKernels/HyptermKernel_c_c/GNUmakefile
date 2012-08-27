@@ -24,6 +24,9 @@ HERE = .
 INCLUDE_LOCATIONS += $(HERE)
 
 cEXE_sources += bench.c timer.x86.c
+cEXE_sources += FakeWriteMultifab.c
+
+COPTF += -O3
 
 vpath %.cpp $(HERE)
 vpath %.a $(LIBRARY_LOCATIONS)
