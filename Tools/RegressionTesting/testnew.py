@@ -633,6 +633,7 @@ def getRecentFileName(dir,base,extension):
           fileInfo = os.stat(file)
           fileCreationTime = fileInfo.st_ctime
           if (fileCreationTime > ctime):
+             ctime = fileCreationTime
              executableFile = file
 
     return executableFile
