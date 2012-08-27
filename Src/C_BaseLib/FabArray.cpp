@@ -28,8 +28,8 @@ FabArrayBase::Initialize ()
     FabArrayBase::verbose          = true;
     FabArrayBase::do_async_sends   = false;
 
-    copy_cache_max_size = 75;
-    fb_cache_max_size   = 75;
+    copy_cache_max_size = 100;
+    fb_cache_max_size   = 100;
 
     ParmParse pp("fabarray");
 
@@ -104,32 +104,48 @@ FabArrayBase::CPC::~CPC ()
 int
 FabArrayBase::CPC::bytes () const
 {
-    //
-    // Get a estimate on number of bytes used by a CPC.
-    // This doesn't count any "overhead" in the STL containers.
-    //
-    int cnt = 0;
+    int cnt = sizeof(FabArrayBase::CPC);
 
-    cnt += m_LocTags->size()*sizeof(CopyComTag);
-
-    for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
-             m_End = m_SndTags->end();
-         it != m_End;
-         ++it)
+    if (m_LocTags)
     {
-        cnt += it->second.size()*sizeof(CopyComTag);
+        cnt += sizeof(CopyComTagsContainer) + m_LocTags->size()*sizeof(CopyComTag);
     }
 
-    for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
-             m_End = m_RcvTags->end();
-         it != m_End;
-         ++it)
+    if (m_SndTags)
     {
-        cnt += it->second.size()*sizeof(CopyComTag);
+        cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
+
+        for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
+                 m_End = m_SndTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += sizeof(CopyComTagsContainer) + it->second.size()*sizeof(CopyComTag);
+        }
     }
 
-    cnt += 2*m_SndVols->size()*sizeof(int);
-    cnt += 2*m_RcvVols->size()*sizeof(int);
+    if (m_RcvTags)
+    {
+        cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
+
+        for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
+                 m_End = m_RcvTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += sizeof(CopyComTagsContainer) + it->second.size()*sizeof(CopyComTag);
+        }
+    }
+
+    if (m_SndVols)
+    {
+        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
+    }
+
+    if (m_RcvVols)
+    {
+        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
+    }
 
     return cnt;
 }
@@ -336,32 +352,48 @@ FabArrayBase::SI::~SI ()
 int
 FabArrayBase::SI::bytes () const
 {
-    //
-    // Get a estimate of number of bytes used by an SI.
-    // This doesn't count any "overhead" in the STL containers.
-    //
-    int cnt = 0;
+    int cnt = sizeof(FabArrayBase::SI);
 
-    cnt += m_LocTags->size()*sizeof(CopyComTag);
-
-    for (CPC::MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
-             m_End = m_SndTags->end();
-         it != m_End;
-         ++it)
+    if (m_LocTags)
     {
-        cnt += it->second.size()*sizeof(CopyComTag);
+        cnt += sizeof(CopyComTagsContainer) + m_LocTags->size()*sizeof(CopyComTag);
     }
 
-    for (CPC::MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
-             m_End = m_RcvTags->end();
-         it != m_End;
-         ++it)
+    if (m_SndTags)
     {
-        cnt += it->second.size()*sizeof(CopyComTag);
+        cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
+
+        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
+                 m_End = m_SndTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += sizeof(CopyComTagsContainer) + it->second.size()*sizeof(CopyComTag);
+        }
     }
 
-    cnt += 2*m_SndVols->size()*sizeof(int);
-    cnt += 2*m_RcvVols->size()*sizeof(int);
+    if (m_RcvTags)
+    {
+        cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
+
+        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
+                 m_End = m_RcvTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += sizeof(CopyComTagsContainer) + it->second.size()*sizeof(CopyComTag);
+        }
+    }
+
+    if (m_SndVols)
+    {
+        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
+    }
+
+    if (m_RcvVols)
+    {
+        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
+    }
 
     return cnt;
 }

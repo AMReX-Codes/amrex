@@ -20,7 +20,7 @@ namespace
     bool verbose;
 }
 
-const int fpb_cache_max_size_def = 75;
+const int fpb_cache_max_size_def = 10;
 
 int Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
 
@@ -92,32 +92,48 @@ Geometry::FPB::~FPB ()
 int
 Geometry::FPB::bytes () const
 {
-    //
-    // Get a estimate of number of bytes used by a FPB.
-    // This doesn't count any "overhead" in the STL containers.
-    //
-    int cnt = 0;
+    int cnt = sizeof(Geometry::FPB);
 
-    cnt += m_LocTags->size()*sizeof(FPBComTag);
-
-    for (FPB::MapOfFPBComTagContainers::const_iterator it = m_SndTags->begin(),
-             m_End = m_SndTags->end();
-         it != m_End;
-         ++it)
+    if (m_LocTags)
     {
-        cnt += it->second.size()*sizeof(FPBComTag);
+        cnt += sizeof(FPBComTagsContainer) + m_LocTags->size()*sizeof(FPBComTag);
     }
 
-    for (FPB::MapOfFPBComTagContainers::const_iterator it = m_RcvTags->begin(),
-             m_End = m_RcvTags->end();
-         it != m_End;
-         ++it)
+    if (m_SndTags)
     {
-        cnt += it->second.size()*sizeof(FPBComTag);
+        cnt += m_SndTags->size()*sizeof(MapOfFPBComTagContainers::value_type);
+
+        for (FPB::MapOfFPBComTagContainers::const_iterator it = m_SndTags->begin(),
+                 m_End = m_SndTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += sizeof(FPBComTagsContainer) + it->second.size()*sizeof(FPBComTag);
+        }
     }
 
-    cnt += 2*m_SndVols->size()*sizeof(int);
-    cnt += 2*m_RcvVols->size()*sizeof(int);
+    if (m_RcvTags)
+    {
+        cnt += m_SndTags->size()*sizeof(MapOfFPBComTagContainers::value_type);
+
+        for (FPB::MapOfFPBComTagContainers::const_iterator it = m_RcvTags->begin(),
+                 m_End = m_RcvTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += sizeof(FPBComTagsContainer) + it->second.size()*sizeof(FPBComTag);
+        }
+    }
+
+    if (m_SndVols)
+    {
+        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
+    }
+
+    if (m_RcvVols)
+    {
+        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
+    }
 
     return cnt;
 }
