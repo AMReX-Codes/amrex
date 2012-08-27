@@ -1056,8 +1056,7 @@ MultiFab::SumBoundary (int scomp,
     const BoxArray&            ba     = boxArray();
     MultiFab&                  mf     = *this;
 
-    BoxArray gba = boxArray();
-    gba.grow(n_grow);
+    BoxArray gba = boxArray(); gba.grow(n_grow);
 
     for (int i = 0, M = ba.size(); i < M; i++)
     {
@@ -1071,9 +1070,11 @@ MultiFab::SumBoundary (int scomp,
             const Box& bx        = isects[ii].second;
             const int  src_owner = DMap[j];
 
-            if (dst_owner != MyProc && src_owner != MyProc) continue;
+            if ( (i == j) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
 
-            if (i == j) continue;
+            tag.box      = bx;
+            tag.fabIndex = i;
+            tag.srcIndex = j;
 
             if (dst_owner == MyProc)
             {
@@ -1086,22 +1087,12 @@ MultiFab::SumBoundary (int scomp,
                 }
                 else
                 {
-                    tag.box      = bx;
-                    tag.fabIndex = i;
-
-                    const int vol = bx.numPts();
-
-                    FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,vol);
+                    FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,bx);
                 }
             }
             else if (src_owner == MyProc)
             {
-                tag.box      = bx;
-                tag.fabIndex = j;
-
-                const int vol = bx.numPts();
-
-                FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,vol);
+                FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,bx);
             }
         }
     }
@@ -1155,8 +1146,8 @@ MultiFab::SumBoundary (int scomp,
              ++it)
         {
             const Box& bx = it->box;
-            fab.resize(bx, ncomp);
-            fab.copy(mf[it->fabIndex],bx,scomp,bx,0,ncomp);
+            fab.resize(bx,ncomp);
+            fab.copy(mf[it->srcIndex],bx,scomp,bx,0,ncomp);
             const int Cnt = bx.numPts()*ncomp;
             memcpy(dptr,fab.dataPtr(),Cnt*sizeof(double));
             dptr += Cnt;
@@ -1215,6 +1206,7 @@ MultiFab::SumBoundary (int scomp,
 
     if (FabArrayBase::do_async_sends && !m_SndTags.empty())
         FabArrayBase::GrokAsyncSends(m_SndTags.size(),send_reqs,send_data,stats);
+
 #endif /*BL_USE_MPI*/
 }
 

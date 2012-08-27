@@ -119,14 +119,14 @@ public:
                             int                            src_owner,
                             const T&                       tag,
                             std::map<int,int>&             m_RcvVols,
-                            int                            vol);
+                            const Box&                     bx);
 
     template<typename T>
     static void SetSendTag (std::map< int,std::deque<T> >& m_SndTags,
                             int                            dst_owner,
                             const T&                       tag,
                             std::map<int,int>&             m_SndVols,
-                            int                            vol);
+                            const Box&                     bx);
 
     template<typename T>
     static void GrokAsyncSends (int                 N_snds,
@@ -869,11 +869,13 @@ FabArrayBase::SetRecvTag (std::map< int,std::deque<T> >& m_RcvTags,
                           int                            src_owner,
                           const T&                       tag,
                           std::map<int,int>&             m_RcvVols,
-                          int                            vol)
+                          const Box&                     bx)
 {
     m_RcvTags[src_owner].push_back(tag);
 
     std::map<int,int>::iterator vol_it = m_RcvVols.find(src_owner);
+
+    const int vol = bx.numPts();
 
     if (vol_it != m_RcvVols.end())
     {
@@ -891,11 +893,13 @@ FabArrayBase::SetSendTag (std::map< int,std::deque<T> >& m_SndTags,
                           int                            dst_owner,
                           const T&                       tag,
                           std::map<int,int>&             m_SndVols,
-                          int                            vol)
+                          const Box&                     bx)
 {
     m_SndTags[dst_owner].push_back(tag);
 
     std::map<int,int>::iterator vol_it = m_SndVols.find(dst_owner);
+
+    const int vol = bx.numPts();
 
     if (vol_it != m_SndVols.end())
     {
