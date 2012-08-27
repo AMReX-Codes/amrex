@@ -248,16 +248,12 @@ FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
                 }
                 else
                 {
-                    const int vol = bx.numPts();
-
-                    FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,vol);
+                    FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,bx);
                 }
             }
             else if (src_owner == MyProc)
             {
-                const int vol = bx.numPts();
-
-                FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,vol);
+                FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,bx);
             }
         }
     }
@@ -515,9 +511,7 @@ FabArrayBase::TheFB (bool                cross,
                 const int  k         = isects[j].first;
                 const int  src_owner = dm[k];
 
-                if (dst_owner != MyProc && src_owner != MyProc) continue;
-
-                if (k == i) continue;
+                if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
 
                 tag.box      = bx;
                 tag.fabIndex = i;
@@ -531,16 +525,12 @@ FabArrayBase::TheFB (bool                cross,
                     }
                     else
                     {
-                        const int vol = bx.numPts();
-
-                        FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,vol);
+                        FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,bx);
                     }
                 }
                 else if (src_owner == MyProc)
                 {
-                    const int vol = bx.numPts();
-
-                    FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,vol);
+                    FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,bx);
                 }
             }
         }
