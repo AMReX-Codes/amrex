@@ -101,6 +101,13 @@ FabArrayBase::CPC::~CPC ()
     delete m_RcvVols;
 }
 
+bool
+FabArrayBase::CPC::operator== (const CPC& rhs) const
+{
+    return
+        m_dstba == rhs.m_dstba && m_srcba == rhs.m_srcba && m_dstdm == rhs.m_dstdm && m_srcdm == rhs.m_srcdm;
+}
+
 int
 FabArrayBase::CPC::bytes () const
 {
@@ -158,12 +165,38 @@ FabArrayBase::CPCCache FabArrayBase::m_TheCopyCache;
 FabArrayBase::CPCCacheIter
 FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
 {
-    const int Key = cpc.m_dstba.size() + cpc.m_srcba.size();
+    BL_ASSERT(cpc.m_dstba.size() > 0 && cpc.m_srcba.size() > 0);
+    //
+    // We want to choose our keys wisely to minimize search time.
+    // We'd like to distinguish between copies of the same length
+    // but with different edgeness of boxes.  We also want to
+    // differentiate dst.copy(src) from src.copy(dst).
+    //
+    const IntVect Typ   = cpc.m_dstba[0].type();
+    const int     Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+
+    int Key = 0;
+
+    Key += 1*(cpc.m_dstba.size() + cpc.m_dstba[0].numPts() + cpc.m_dstba[cpc.m_dstba.size()-1].numPts());
+    Key += 7*(cpc.m_srcba.size() + cpc.m_srcba[0].numPts() + cpc.m_srcba[cpc.m_srcba.size()-1].numPts());
+    Key += 1*(cpc.m_dstdm[cpc.m_dstdm.size()-1]);
+    Key += 7*(cpc.m_srcdm[cpc.m_srcdm.size()-1]);
+    Key += Scale;
 
     std::pair<CPCCacheIter,CPCCacheIter> er_it = TheCopyCache.equal_range(Key);
 
+//    static int maxlen = 0;
+
+//    int distance = 0;
+
     for (CPCCacheIter it = er_it.first; it != er_it.second; ++it)
     {
+//        if (++distance > maxlen)
+//        {
+//            maxlen = distance;
+//            std::cout << "CPC search length = " << maxlen << " KEY = " << Key<< '\n';
+//        }
+
         if (it->second == cpc)
         {
             it->second.m_reused = true;
@@ -274,7 +307,7 @@ FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
 void
 FabArrayBase::CPC::FlushCache ()
 {
-    int stats[3] = {0,0,0}; // size, reused, bytes
+    long stats[3] = {0,0,0}; // size, reused, bytes
 
     stats[0] = m_TheCopyCache.size();
 
@@ -289,7 +322,7 @@ FabArrayBase::CPC::FlushCache ()
 
     if (FabArrayBase::verbose)
     {
-        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
 
         if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
         {
@@ -345,6 +378,13 @@ FabArrayBase::SI::~SI ()
     delete m_RcvVols;
 }
 
+bool
+FabArrayBase::SI::operator== (const SI& rhs) const
+{
+    return
+        m_ngrow == rhs.m_ngrow && m_cross == rhs.m_cross && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
+}
+
 int
 FabArrayBase::SI::bytes () const
 {
@@ -396,17 +436,20 @@ FabArrayBase::SI::bytes () const
 
 FabArrayBase::FBCache FabArrayBase::m_TheFBCache;
 
-
 FabArrayBase::FBCacheIter
 FabArrayBase::TheFB (bool                cross,
                      const FabArrayBase& mf)
 {
+    BL_ASSERT(mf.size() > 0);
+
     const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), cross);
 
-    const int Key = mf.size() + mf.nGrow() + cross;
+    const IntVect Typ   = mf.boxArray()[0].type();
+    const int     Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+    const int     Key   = mf.size() + mf.boxArray()[0].numPts() + mf.nGrow() + Scale + cross;
 
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(Key);
-    
+
     for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
     {
         if (it->second == si)
@@ -561,7 +604,7 @@ FabArrayBase::Finalize ()
 void
 FabArrayBase::FlushSICache ()
 {
-    int stats[3] = {0,0,0}; // size, reused, bytes
+    long stats[3] = {0,0,0}; // size, reused, bytes
 
     stats[0] = m_TheFBCache.size();
 
@@ -576,7 +619,7 @@ FabArrayBase::FlushSICache ()
 
     if (FabArrayBase::verbose)
     {
-        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
 
         if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
         {
