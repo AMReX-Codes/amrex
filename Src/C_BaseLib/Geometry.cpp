@@ -855,6 +855,8 @@ Geometry::GetFPB (const Geometry&      geom,
 
             Box src = ba[j] & TheDomain;
 
+            if (TheDomain.contains(BoxLib::grow(src,fpb.m_ngrow))) continue;
+
             if (fpb.m_do_corners)
             {
                 for (int i = 0; i < BL_SPACEDIM; i++)
