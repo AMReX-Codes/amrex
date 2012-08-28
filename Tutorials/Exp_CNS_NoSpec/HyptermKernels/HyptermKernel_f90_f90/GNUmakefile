@@ -3,8 +3,8 @@
 BOXLIB_HOME ?= $(HOME)/Development/BoxLib/
 
 NDEBUG    := t
-MPI       := t
-OMP       := t
+MPI       := 
+OMP       := 
 PROF      := t
 COMP      := gfortran
 MKVERBOSE := t
@@ -16,7 +16,7 @@ include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 f90sources += advance.f90
 f90sources += main.f90
 
-F90FLAGS += -msse3
+F90FLAGS += -msse3 -O3
 
 VPATH_LOCATIONS += .
 

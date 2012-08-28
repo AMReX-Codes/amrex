@@ -11,6 +11,7 @@ EBASE = HyptermOnly
 
 BL_HAS_FORT = TRUE
 
+DEFINES += -DBL_NOBENCHMAIN
 
 DEBUG	  = TRUE
 DEBUG	  = FALSE
@@ -36,6 +37,8 @@ USE_MPI     =FALSE
 #CDEBF += -g
 #CPPDEBF += -g
 
+COPTF += -O3
+
 HERE = .
 
 ifeq ($(EBASE), HyptermOnly)
@@ -56,6 +59,7 @@ DEFINES += -DBL_PARALLEL_IO
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 
 INCLUDE_LOCATIONS += $(HERE)
+#INCLUDE_LOCATIONS += ../HyptermKernel_c_c
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/amrdata
