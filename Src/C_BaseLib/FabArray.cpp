@@ -185,18 +185,8 @@ FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
 
     std::pair<CPCCacheIter,CPCCacheIter> er_it = TheCopyCache.equal_range(Key);
 
-//    static int maxlen = 0;
-
-//    int distance = 0;
-
     for (CPCCacheIter it = er_it.first; it != er_it.second; ++it)
     {
-//        if (++distance > maxlen)
-//        {
-//            maxlen = distance;
-//            std::cout << "CPC search length = " << maxlen << " KEY = " << Key<< '\n';
-//        }
-
         if (it->second == cpc)
         {
             it->second.m_reused = true;
