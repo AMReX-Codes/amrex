@@ -18,7 +18,7 @@
       end
 
 
-      subroutine FORT_INITDATA(cons, DIMS(cons), dx, nvars)
+      subroutine FORT_INITDATA(cons, DIMS(cons), q, dx, nvars)
 
       implicit none
 
@@ -27,11 +27,15 @@
       integer nvars
       REAL_T  dx(SDIM)
       REAL_T  cons(DIMV(cons), nvars)
+      REAL_T  q(DIMV(cons), nvars+1)
 
-      REAL_T  scale, xloc, yloc, zloc, rholoc, uvel, vvel, wvel, eloc
+      REAL_T  scale, xloc, yloc, zloc, rholoc, uvel, vvel, wvel, eloc, rhoinv
       integer irho, imx, imy, imz, iene, qu, qv, qw, qpres
       integer lo(SDIM),hi(SDIM)
       integer i, j, k
+
+      REAL_T GAMMA, CV, CVinv
+
 
 
       irho = 1
@@ -40,14 +44,19 @@
       imz  = 4
       iene = 5
 
-      scale = 3.14d0
-
       lo(1) = cons_l1
       lo(2) = cons_l2
       lo(3) = cons_l3
       hi(1) = cons_h1
       hi(2) = cons_h2
       hi(3) = cons_h3
+
+      scale = 1.0d0
+
+      print *, "_here 0:  INITDATA"
+      print *,lo(1),hi(1)
+      print *,lo(2),hi(2)
+      print *,lo(3),hi(3)
 
 !$OMP PARALLEL DO PRIVATE(i,j,k,xloc,yloc,zloc,
 !$OMP&uvel,vvel,wvel,rholoc,eloc)
@@ -72,6 +81,32 @@
 
             enddo
          enddo
+      enddo
+!$OMP END PARALLEL DO
+
+
+      GAMMA = 1.4d0
+      CV    = 8.3333333333d6
+      CVinv = 1.0d0 / CV
+
+!$OMP PARALLEL DO PRIVATE(i,j,k,eint,rhoinv)
+      do k = lo(3),hi(3)
+        do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+
+             rhoinv     = 1.0d0/cons(i,j,k,1)
+             q(i,j,k,1) = cons(i,j,k,1)
+             q(i,j,k,2) = cons(i,j,k,2)*rhoinv
+             q(i,j,k,3) = cons(i,j,k,3)*rhoinv
+             q(i,j,k,4) = cons(i,j,k,4)*rhoinv
+
+             eloc = cons(i,j,k,5)*rhoinv-0.5d0*(q(i,j,k,2)**2+q(i,j,k,3)**2+q(i,j,k,4)**2)
+
+             q(i,j,k,5) = (GAMMA-1.d0)*eloc*cons(i,j,k,1)
+             q(i,j,k,6) = eloc * CVinv
+
+          enddo
+        enddo
       enddo
 !$OMP END PARALLEL DO
 
@@ -106,7 +141,8 @@
       REAL_T t, parallel_wtime
 
       integer lo(SDIM),hi(SDIM)
-      integer JBlocks, JBlockSize, jb, L1iters
+      integer JBlocks, JBlockSize, jb
+      integer L1iters, L2iters, L3iters
       integer i, j, k
 
 
@@ -147,6 +183,8 @@
 
 
       L1iters = 0
+      L2iters = 0
+      L3iters = 0
       bIOP = .true.
 
 
@@ -167,12 +205,12 @@
 ! OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,
 ! OMP&unm1,unm2,unm3,unm4) reduction(+ : L1iters)
 !$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,
-!$OMP&unm1,unm2,unm3,unm4)
+!$OMP&unm1,unm2,unm3,unm4)  reduction(+ : L1iters)
       do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
 
-!            L1iters = L1iters + 1
+             L1iters = L1iters + 1
 
              unm4 = q(i-4,j,k,qu)
              unm3 = q(i-3,j,k,qu)
@@ -227,16 +265,14 @@
 !$OMP END PARALLEL DO
       L1_end = parallel_wtime()
 
-      if ( bIOP ) then
-       print*, "L1iters = ", L1iters
-      end if
-
       L2_start = parallel_wtime()
 !$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,
-!$OMP&unm1,unm2,unm3,unm4)
+!$OMP&unm1,unm2,unm3,unm4) reduction(+ : L2iters)
       do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
+
+             L2iters = L2iters + 1
 
              unp1 = q(i,j+1,k,qv)
              unp2 = q(i,j+2,k,qv)
@@ -349,13 +385,15 @@
       L3_start = parallel_wtime()
 
 !$OMP PARALLEL DO PRIVATE(jb,i,j,k,unp1,unp2,unp3,unp4,
-!$OMP&unm1,unm2,unm3,unm4)  schedule(static,1)
-      do jb=1,JBlocks
+!$OMP&unm1,unm2,unm3,unm4)  schedule(static,1)  reduction(+ : L3iters)
+      do jb=0,JBlocks-1
       do k=lo(3),hi(3)
        !!!do j=lo(2),hi(2)
-       do j=jb*JBlockSize, (jb+1)*JBlockSize
+       do j=jb*JBlockSize, ((jb+1)*JBlockSize)-1
          if(j.le.hi(2)) then
           do i=lo(1),hi(1)
+
+             L3iters = L3iters + 1
 
              unp1 = q(i,j,k+1,qw)
              unp2 = q(i,j,k+2,qw)
@@ -465,6 +503,12 @@
       L3_end = parallel_wtime()
 
       if ( bIOP ) then
+       print*, "L1iters = ", L1iters
+       print*, "L2iters = ", L2iters
+       print*, "L3iters = ", L3iters
+      end if
+
+      if ( bIOP ) then
        write(6,42),"L1 time     (s) =",L1_end-L1_start
        write(6,42),"L2 time     (s) =",L2_end-L2_start
        write(6,42),"L3 time     (s) =",L3_end-L3_start
@@ -503,7 +547,8 @@
       REAL_T t, parallel_wtime
 
       integer lo(SDIM),hi(SDIM)
-      integer JBlocks, JBlockSize, jb, L1iters
+      integer JBlocks, JBlockSize, jb
+      integer L1iters, L2iters, L3iters
       integer i, j, k
 
 
@@ -544,6 +589,8 @@
 
 
       L1iters = 0
+      L2iters = 0
+      L3iters = 0
       bIOP = .true.
 
 
@@ -621,15 +668,13 @@
 !$OMP END PARALLEL DO
       L1_end = parallel_wtime()
 
-      if ( bIOP ) then
-       print*, "L1iters = ", L1iters
-      end if
-
       L2_start = parallel_wtime()
-!$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)
+!$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4) reduction(+ : L2iters)
       do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
+
+             L2iters = L2iters + 1
 
              unp1 = q(i,j+1,k,qv)
              unp2 = q(i,j+2,k,qv)
@@ -688,10 +733,12 @@
       L3_start = parallel_wtime()
 
 !$OMP PARALLEL DO PRIVATE(jb,i,j,k,unp1,unp2,unp3,unp4,
-!$OMP&unm1,unm2,unm3,unm4)  schedule(static,1)
+!$OMP&unm1,unm2,unm3,unm4)  schedule(static,1) reduction(+ : L3iters)
       do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
+
+             L3iters = L3iters + 1
 
              unp1 = q(i,j,k+1,qw)
              unp2 = q(i,j,k+2,qw)
@@ -745,6 +792,12 @@
       enddo
 !$OMP END PARALLEL DO
       L3_end = parallel_wtime()
+
+      if ( bIOP ) then
+       print*, "L1iters = ", L1iters
+       print*, "L2iters = ", L2iters
+       print*, "L3iters = ", L3iters
+      end if
 
       if ( bIOP ) then
        write(6,42),"L1 time     (s) =",L1_end-L1_start

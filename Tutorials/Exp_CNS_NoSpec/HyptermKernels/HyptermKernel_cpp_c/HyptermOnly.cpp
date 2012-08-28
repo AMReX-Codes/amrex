@@ -23,6 +23,7 @@ using std::endl;
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
+#include <VisMF.H>
 #include <HyptermOnly_F.H>
 
 #ifdef SHOWVAL
@@ -57,11 +58,10 @@ int main(int argc, char *argv[]) {
 
     Array<Real> probLo(BL_SPACEDIM), probHi(BL_SPACEDIM);
     for(int i(0); i < BL_SPACEDIM; ++i) {
-        probLo[i] = -1.0;
-        probHi[i] =  1.0;
+        probLo[i] = -2.3;
+        probHi[i] =  2.3;
     }
     
-
     Real dx[BL_SPACEDIM];
 
     for(int i(0); i < BL_SPACEDIM; ++i) {
@@ -69,20 +69,17 @@ int main(int argc, char *argv[]) {
     }
 
     for(MFIter mfi(mfU); mfi.isValid(); ++mfi) {
-
       FArrayBox &myFabU = mfU[mfi];
       FArrayBox &myFabQ = mfQ[mfi];
-      FArrayBox &myFabFlux = mfFlux[mfi];
-
-      int idx = mfi.index();
-
       const Real *dataPtrU = myFabU.dataPtr();
+      const Real *dataPtrQ = myFabQ.dataPtr();
       const int  *dlo     = myFabU.loVect();
       const int  *dhi     = myFabU.hiVect();
       const Real *dxptr   = dx;
-
-      FORT_INITDATA(dataPtrU, ARLIM(dlo), ARLIM(dhi), dxptr, &nComps);
+      FORT_INITDATA(dataPtrU, ARLIM(dlo), ARLIM(dhi), dataPtrQ, dxptr, &nComps);
     }
+
+    VisMF::Write(mfU, "mfUInit");
 
 
     {
@@ -96,7 +93,7 @@ int main(int argc, char *argv[]) {
 
     double tstart = BoxLib::wsecond();
 
-    int nSteps(10);
+    int nSteps(1);
     for(int iStep(0); iStep < nSteps; ++iStep) {
     for(MFIter mfi(mfU); mfi.isValid(); ++mfi) {
 
@@ -107,19 +104,10 @@ int main(int argc, char *argv[]) {
       int idx = mfi.index();
       cout << "myproc idx = " << ParallelDescriptor::MyProc() << "  " << idx << endl;
 
-      //const Real *dataPtrU = myFabU.dataPtr();
-      //const Real *dataPtrQ = myFabQ.dataPtr();
-      //const Real *dataPtrFlux = myFabFlux.dataPtr();
       const int  *dlo     = myFabU.loVect();
       const int  *dhi     = myFabU.hiVect();
-      //const int  *lo      = mfU.boxArray()[idx].loVect();
-      //const int  *hi      = mfU.boxArray()[idx].hiVect();
       const Real *dxptr   = dx;
 
-      //FORT_HYPTERM(dataPtrU, ARLIM(dlo), ARLIM(dhi), ARLIM(lo), ARLIM(hi),
-                   //dataPtrQ, dataPtrFlux, dxptr, &nComps);
-      //FORT_HYPTERM_UNOPT(dataPtrU, ARLIM(dlo), ARLIM(dhi), ARLIM(lo), ARLIM(hi),
-                   //dataPtrQ, dataPtrFlux, dxptr, &nComps);
 
       int lo[BL_SPACEDIM], hi[BL_SPACEDIM];
       for(int i(0); i < BL_SPACEDIM; ++i) {
@@ -127,9 +115,6 @@ int main(int argc, char *argv[]) {
         hi[i] = mfU.boxArray()[idx].hiVect()[i];
       }
       int NG(nGhost);
-      //double **U = reinterpret_cast<double **> (dataPtrU);
-      //double **Q = reinterpret_cast<double **> (dataPtrQ);
-      //double **F = reinterpret_cast<double **> (dataPtrFlux);
       double *U[nComps];
       double *Q[nComps+1];
       double *F[nComps];
@@ -146,10 +131,12 @@ int main(int argc, char *argv[]) {
 
     double tend = BoxLib::wsecond();
     if(ParallelDescriptor::IOProcessor()) {
+      tstart += (static_cast<double> (nSteps));  // adjust sleep time from bench.c
       cout << "Hypterm time    =  " << tend - tstart << endl;
       cout << "Hypterm time/it =  " << (tend - tstart) / (static_cast<double> (nSteps)) << endl;
     }
 
+    VisMF::Write(mfFlux, "mfFluxFinal");
 
     BoxLib::Finalize();
     return 0;

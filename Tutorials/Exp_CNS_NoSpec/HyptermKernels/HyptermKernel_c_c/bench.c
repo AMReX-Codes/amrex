@@ -29,7 +29,9 @@
 
 //------------------------------------------------------------------------------------------------------------------------------
 #include "timer.h"
+#ifndef BL_NOBENCHMAIN
 #include "FakeWriteMultifab.h"
+#endif
 //------------------------------------------------------------------------------------------------------------------------------
 uint64_t _total_run_time;
 uint64_t _total_time_hypterm;
@@ -134,7 +136,6 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   //    double precision, intent(in ) :: cons(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,5)
   //    double precision, intent(in ) ::    q(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,6)
   //    double precision, intent(out) :: flux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5)
-  uint64_t _time_start      = CycleTime();
   int c;
   double dmin[5], dmax[5];
   double dxinv0=1.0/dx[0];
@@ -160,9 +161,18 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   int L2iters = 0;
   int L3iters = 0;
 
+#ifdef BL_NOBENCHMAIN
+  uint64_t t0 = CycleTime();
+  sleep(1);
+  uint64_t t1 = CycleTime();
+  double frequency = (double)(t1-t0);
+#endif
+
   printf("lo0 hi0 = %d %d\n", lo0, hi0);
   printf("lo1 hi1 = %d %d\n", lo1, hi1);
   printf("lo2 hi2 = %d %d\n", lo2, hi2);
+
+  uint64_t _time_start      = CycleTime();
 
   #pragma omp parallel for private(i,j,k) reduction(+ : L1iters)
   for(k=lo2;k<=hi2;k++){
@@ -482,6 +492,11 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   printf("L2 iters = %d\n",L2iters    );
   printf("L3 iters = %d\n",L3iters    );
 
+#ifdef BL_NOBENCHMAIN
+  printf("     L1 = %9.6fs\n",(double)(_time_L1 - _time_start)/frequency);
+  printf("     L2 = %9.6fs\n",(double)(_time_L2 - _time_L1)/frequency);
+  printf("     L3 = %9.6fs\n",(double)(_time_L3 - _time_L2)/frequency);
+#endif
   
   for(c = 0; c < 5; ++c) {
     dmin[c] = flux[c][0];
@@ -506,6 +521,8 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   printf("-----------------\n");
 
 }
+
+#ifndef BL_NOBENCHMAIN
 //------------------------------------------------------------------------------------------------------------------------------
 int main(int argc, char **argv){
   int MPI_Rank=0;
@@ -610,3 +627,4 @@ int main(int argc, char **argv){
   printf("runtime = %9.6fs\n",(double)_total_run_time   /frequency);
 
 }
+#endif
