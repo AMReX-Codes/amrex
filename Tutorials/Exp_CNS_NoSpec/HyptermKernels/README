@@ -1,0 +1,8 @@
+
+These are test codes for optimizing the hypterm kernel.  The names
+show what language the code is in for _memory allocation_hypterm kernel.
+
+HyptermKernel_c_c
+HyptermKernel_cpp_c
+HyptermKernel_cpp_F
+HyptermKernel_f90_f90
