@@ -28,11 +28,11 @@ public:
     //
     // The default constructor.  The wrapped pointer is null.
     //
-    CpPtr ();
+    CpPtr () : ptr(0) {}
     //
     // Construct a CpPtr<T> setting the wrapped pointer to rhs.
     //
-    explicit CpPtr (T* rhs);
+    explicit CpPtr (T* rhs) : ptr(rhs) {}
     //
     // The destructor.  Deletes the wrapped pointer.
     //
@@ -67,11 +67,11 @@ public:
     // dereferenced wrapped pointer.  It is an error if the wrapped
     // pointer is null.
     //
-    T& operator* () const;
+    T& operator* () const { BL_ASSERT(ptr != 0); return *ptr; }
     //
     // Returns true if the wrapped pointer null.
     //
-    bool isNull () const;
+    bool isNull () const { return ptr == 0; }
     //
     // Sets the wrapped pointer to null and returns the previous value.
     //
@@ -79,11 +79,11 @@ public:
     //
     // Are the two pointers (not the values to which they point) equal?
     //
-    bool operator== (const CpPtr<T>& rhs) const;
+    bool operator== (const CpPtr<T>& rhs) const { return ptr == rhs.ptr; }
     //
     // Are the two pointers not equal?
     //
-    bool operator!= (const CpPtr<T>& rhs) const;
+    bool operator!= (const CpPtr<T>& rhs) const { return ptr != rhs.ptr; }
 
 protected:
 
@@ -109,11 +109,11 @@ public:
     //
     // The default constructor.  The wrapped pointer is null.
     //
-    CpClassPtr ();
+    CpClassPtr () : CpPtr<T>() {}
     //
     // Construct a CpPtr<T> setting the wrapped pointer to rhs.
     //
-    explicit CpClassPtr (T* rhs);
+    explicit CpClassPtr (T* rhs) : CpPtr<T>(rhs) {}
     //
     // The copy constructor.  If the pointer wrapped by rhs is null,
     // the wrapped pointer is null here as well.  Otherwise,
@@ -127,7 +127,7 @@ public:
     //
     // Sets the wrapped pointer to rhs.  Deletes the previously wrapped pointer.
     //
-    CpClassPtr<T>& operator= (T* rhs);
+    CpClassPtr<T>& operator= (T* rhs) { CpPtr<T>::operator= (rhs); return *this; }
     //
     // The copy assignment operator.  If the pointer wrapped by rhs
     // is null, the wrapped pointer is null here as well.  Otherwise,
@@ -137,11 +137,11 @@ public:
     // constructor.  T must also be a concrete type, not a abstract
     // type.
     //
-    CpClassPtr<T>& operator= (const CpClassPtr<T>& rhs);
+    CpClassPtr<T>& operator= (const CpClassPtr<T>& rhs) { CpPtr<T>::operator= (rhs); return *this; }
     //
     // Applies operator-> to the wrapped pointer.
     //
-    T* operator-> () const;
+    T* operator-> () const { return CpPtr<T>::ptr; }
 };
 
 /*
@@ -188,30 +188,30 @@ public:
     //
     // Returns true if only one reference to the wrapped pointer.
     //
-    bool unique () const;
+    bool unique () const { return ucnt.unique(); }
     //
     // Returns the number of references to the wrapped pointer.
     //
-    int linkCount () const;
+    int linkCount () const { return ucnt.linkCount(); }
     //
     // Returns a reference to the value pointed to by the wrapped
     // pointer; i.e. dereferencing this LnPtr<T>, returns the
     // dereferenced wrapped pointer.  It is an error if the wrapped
     // pointer is null.
     //
-    T& operator* () const;
+    T& operator* () const { BL_ASSERT(ptr != 0); return *ptr; }
     //
     // Returns true if the wrapped pointer is null.
     //
-    bool isNull () const;
+    bool isNull () const { return ptr == 0; }
     //
     // Are the two pointers (not the values to which they point) equal?
     //
-    bool operator== (const LnPtr<T>& rhs) const;
+    bool operator== (const LnPtr<T>& rhs) const { return ptr == rhs.ptr; }
     //
     // Are the two pointers not equal?
     //
-     bool operator!= (const LnPtr<T>& rhs) const;
+    bool operator!= (const LnPtr<T>& rhs) const { return ptr != rhs.ptr; }
 
 protected:
     T*       ptr;
@@ -255,39 +255,17 @@ public:
     // on the previously wrapped pointer and deletes it if there
     // was only one reference.
     //
-    LnClassPtr<T>& operator= (T* rhs);
+    LnClassPtr<T>& operator= (T* rhs) { LnPtr<T>::operator=(rhs); return *this; }
     //
     // Applies operator-> to the wrapped pointer.
     //
-    T* operator->() const;
+    T* operator->() const { return LnPtr<T>::ptr; }
 };
-
-template <class T>
-inline
-CpPtr<T>::CpPtr ()
-    :
-    ptr(0)
-{}
-
-template <class T>
-inline
-CpPtr<T>::CpPtr (T* rhs)
-    :
-    ptr(rhs)
-{}
 
 template <class T>
 CpPtr<T>::~CpPtr()
 {
     delete ptr;
-}
-
-template <class T>
-inline
-bool
-CpPtr<T>::isNull () const
-{
-    return ptr == 0;
 }
 
 template <class T>
@@ -318,15 +296,6 @@ CpPtr<T>::operator= (T* rhs)
 }
 
 template <class T>
-inline
-T&
-CpPtr<T>::operator* () const
-{
-    BL_ASSERT(ptr != 0);
-    return *ptr;
-}
-
-template <class T>
 T*
 CpPtr<T>::release ()
 {
@@ -336,66 +305,10 @@ CpPtr<T>::release ()
 }
 
 template <class T>
-inline
-bool
-CpPtr<T>::operator== (const CpPtr<T>& rhs) const
-{
-    return ptr == rhs.ptr;
-}
-
-template <class T>
-inline
-bool
-CpPtr<T>::operator!= (const CpPtr<T>& rhs) const
-{
-    return ptr != rhs.ptr;
-}
-
-template <class T>
-inline
-CpClassPtr<T>::CpClassPtr ()
-    :
-    CpPtr<T>()
-{}
-
-template <class T>
-inline
-CpClassPtr<T>::CpClassPtr (T* rhs)
-    :
-    CpPtr<T>(rhs)
-{}
-
-template <class T>
 CpClassPtr<T>::CpClassPtr (const CpClassPtr<T>& rhs)
     :
     CpPtr<T>(rhs)
 {}
-
-template <class T>
-inline
-CpClassPtr<T>&
-CpClassPtr<T>::operator= (T* rhs)
-{
-    CpPtr<T>::operator= (rhs);
-    return *this;
-}
-
-template <class T>
-inline
-CpClassPtr<T>&
-CpClassPtr<T>::operator= (const CpClassPtr<T>& rhs)
-{
-    CpPtr<T>::operator= (rhs);
-    return *this;
-}
-
-template <class T>
-inline
-T*
-CpClassPtr<T>::operator-> () const
-{
-    return CpPtr<T>::ptr;
-}
 
 template <class T>
 LnPtr<T>::LnPtr ()
@@ -421,14 +334,6 @@ LnPtr<T>::operator= (T* rhs)
 }
 
 template <class T>
-inline
-bool
-LnPtr<T>::unique () const
-{ 
-    return ucnt.unique();
-}
-
-template <class T>
 LnPtr<T>::~LnPtr ()
 { 
     if (ucnt.unique())
@@ -450,47 +355,6 @@ LnPtr<T>::operator= (const LnPtr<T>& rhs)
 }
 
 template <class T>
-inline
-int
-LnPtr<T>::linkCount () const
-{ 
-    return ucnt.linkCount();
-}
-
-template <class T>
-inline
-T&
-LnPtr<T>::operator* () const
-{
-    BL_ASSERT(ptr != 0);
-    return *ptr;
-}
-
-template <class T>
-inline
-bool
-LnPtr<T>::isNull () const
-{
-    return ptr == 0;
-}
-
-template <class T>
-inline
-bool
-LnPtr<T>::operator== (const LnPtr<T>& rhs) const
-{
-    return ptr == rhs.ptr;
-}
-
-template <class T>
-inline
-bool
-LnPtr<T>::operator!= (const LnPtr<T>& rhs) const
-{
-    return ptr != rhs.ptr;
-}
-
-template <class T>
 LnClassPtr<T>::LnClassPtr ()
 {}
 
@@ -506,23 +370,6 @@ LnClassPtr<T>::operator= (const LnClassPtr<T>& rhs)
 {
     LnPtr<T>::operator=(rhs);
     return *this;
-}
-
-template <class T>
-inline
-LnClassPtr<T>&
-LnClassPtr<T>::operator= (T* rhs)
-{
-    LnPtr<T>::operator=(rhs);
-    return *this;
-}
-
-template <class T>
-inline
-T*
-LnClassPtr<T>::operator->() const
-{
-    return LnPtr<T>::ptr;
 }
 
 #endif /*BL_POINTERS_H*/

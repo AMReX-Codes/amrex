@@ -78,118 +78,45 @@ public:
     Array (const T* vec,
            size_t   len);
 
-    int size () const;
+    int size () const { return this->std::vector<T>::size(); }
     //
     // Returns a reference to the K'th element in this Array<T>.
     // The element can be modified through this reference.  The
     // result can be used as an L-value.
     //
-    T& operator[] (size_t i);
+    T& operator[] (size_t i) { BL_ASSERT(i < size()); return this->std::vector<T>::operator[](i); }
     //
     // Same as above, except acts on const Array's.
     //
-    const T& operator[] (size_t i) const;
+    const T& operator[] (size_t i) const  { BL_ASSERT(i < size()); return this->std::vector<T>::operator[](i); }
     //
     // Different syntax for operator[].
     //
-    T& get (size_t i);
+    T& get (size_t i) { return this->operator[](i); }
     //
     // Different syntax for const operator[].
     //
-    const T& get (size_t i) const;
+    const T& get (size_t i) const { return this->operator[](i); }
     //
     // Returns pointer to vector of data.  This function breaks object
     // encapsulation and should only be used for interfacing to
     // Fortran subroutines.
     //
-    T* dataPtr ();
+    T* dataPtr () { return &this->operator[](0); }
     //
     // Same as above for constant arrays.
     //
-    const T* dataPtr () const;
+    const T* dataPtr () const { return &this->operator[](0); }
     //
     // Changes the i'th element of this Array<T> to elem.
     //
-    void set (size_t   i,
-              const T& elem);
+    void set (size_t i, const T& elem) { get(i) = elem; }
 private:
     //
     // This is disallowed.
     //
     Array<T>& operator= (int);
 };
-
-template <class T>
-inline
-int
-Array<T>::size () const
-{
-    const std::vector<T>& a = *this;
-    return a.size();
-}
-
-template <class T>
-inline
-T&
-Array<T>::operator[] (size_t i)
-{
-    BL_ASSERT(i < size());
-    std::vector<T>& a = *this;
-    return a[i];
-}
-
-template <class T>
-inline
-const T&
-Array<T>::operator[] (size_t i) const
-{
-    BL_ASSERT(i < size());
-    const std::vector<T>& a = *this;
-    return a[i];
-}
-
-template <class T>
-inline
-T&
-Array<T>::get (size_t i)
-{
-    BL_ASSERT(i < size());
-    return this->operator[](i);
-}
-
-template <class T>
-inline
-const T&
-Array<T>::get (size_t i) const
-{
-    BL_ASSERT(i < size());
-    return std::vector<T>::operator[](i);
-}
-
-template <class T>
-inline
-void
-Array<T>::set (size_t     i,
-               const T& elem)
-{
-    get(i) = elem;
-}
-
-template <class T>
-inline
-T*
-Array<T>::dataPtr ()
-{
-    return &this->operator[](0);
-}
-
-template <class T>
-inline
-const T*
-Array<T>::dataPtr () const
-{
-    return &this->operator[](0);
-}
 
 template <class T>
 Array<T>::Array ()

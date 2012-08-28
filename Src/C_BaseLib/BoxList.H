@@ -91,17 +91,17 @@ public:
     //
     // Append a Box to this BoxList.
     //
-    void push_back (const Box& bn);
+    void push_back (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); lbox.push_back(bn); }
     //
     //  Prepend a Box to this BoxList.
     //
-    void push_front (const Box& bn);
+    void push_front (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); lbox.push_front(bn); }
 
-    Box& front ();
+    Box& front () { BL_ASSERT(!lbox.empty()); return lbox.front(); }
 
-    const Box& front () const;
+    const Box& front () const { BL_ASSERT(!lbox.empty()); return lbox.front(); }
 
-    void pop_front ();
+    void pop_front () { BL_ASSERT(!lbox.empty()); lbox.pop_front(); }
     //
     // Join the BoxList to ourselves.
     //
@@ -117,13 +117,13 @@ public:
     //
     // The number of Boxes in this BoxList.
     //
-    int size () const;
+    int size () const { return lbox.size(); }
 
-    iterator begin ();
-    const_iterator begin () const;
+    iterator begin () { return lbox.begin(); }
+    const_iterator begin () const { return lbox.begin(); }
 
-    iterator end ();
-    const_iterator end () const;
+    iterator end () { return lbox.end(); }
+    const_iterator end () const { return lbox.end(); }
     //
     // True if this BoxList is valid; i.e. all the Boxes are
     // valid and they all have the same IndexType.  Also returns
@@ -141,11 +141,11 @@ public:
     //
     // Is this BoxList empty?
     //
-    bool isEmpty () const;
+    bool isEmpty () const { return lbox.empty(); }
     //
     // Is this BoxList not empty?
     //
-    bool isNotEmpty () const;
+    bool isNotEmpty () const { return !lbox.empty(); }
     //
     // True if the set of intersecting Boxes is empty.
     //
@@ -254,11 +254,11 @@ public:
     //
     // Returns the IndexType of Boxes in this BoxList.
     //
-    IndexType ixType () const;
+    IndexType ixType () const { return btype; }
     //
     // Set the type of the BoxList.  It's an error if the BoxList isn't empty.
     //
-    void set (IndexType);
+    void set (IndexType ixtyp) { BL_ASSERT(lbox.empty()); btype = ixtyp; }
     //
     // Applies surroundingNodes(Box) to each Box in BoxArray.
     // See the documentation of Box for details.
@@ -299,134 +299,16 @@ private:
     //
     // Returns a reference to the List<Box>.
     //
-    std::list<Box>& listBox();
+    std::list<Box>& listBox() { return lbox; }
     //
     // Returns a constant reference to the List<Box>.
     //
-    const std::list<Box>& listBox() const;
+    const std::list<Box>& listBox() const { return lbox; }
     //
     // The IndexType of Boxes in the BoxList.
     //
     IndexType btype;
 
 };
-
-inline
-BoxList::iterator
-BoxList::begin()
-{
-    return lbox.begin();
-}
-
-inline
-BoxList::const_iterator
-BoxList::begin() const
-{
-    return lbox.begin();
-}
-
-inline
-BoxList::iterator
-BoxList::end()
-{
-    return lbox.end();
-}
-
-inline
-BoxList::const_iterator
-BoxList::end() const
-{
-    return lbox.end();
-}
-
-inline
-IndexType
-BoxList::ixType () const
-{
-    return btype;
-}
-
-inline
-void
-BoxList::set (IndexType ixtyp)
-{
-    BL_ASSERT(lbox.empty());
-    btype = ixtyp;
-}
-
-inline
-void
-BoxList::push_back (const Box& bn)
-{
-    BL_ASSERT(ixType() == bn.ixType());
-    lbox.push_back(bn);
-}
-
-inline
-void
-BoxList::push_front (const Box& bn)
-{
-    BL_ASSERT(ixType() == bn.ixType());
-    lbox.push_front(bn);
-}
-
-inline
-Box&
-BoxList::front ()
-{
-    BL_ASSERT(!lbox.empty());
-    return lbox.front();
-}
-
-inline
-const Box&
-BoxList::front () const
-{
-    BL_ASSERT(!lbox.empty());
-    return lbox.front();
-}
-
-inline
-void
-BoxList::pop_front ()
-{
-    BL_ASSERT(!lbox.empty());
-    lbox.pop_front();
-}
-
-inline
-bool
-BoxList::isEmpty () const
-{
-    return lbox.empty();
-}
-
-inline
-int
-BoxList::size () const
-{
-    return lbox.size();
-}
-
-inline
-bool
-BoxList::isNotEmpty () const
-{
-    return !lbox.empty();
-}
-
-inline
-std::list<Box>&
-BoxList::listBox()
-{
-    return lbox;
-}
-
-inline
-const std::list<Box>&
-BoxList::listBox() const
-{
-    return lbox;
-}
 
 #endif /*BL_BOXLIST_H*/

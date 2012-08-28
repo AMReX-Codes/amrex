@@ -47,19 +47,19 @@ public:
     // counting from zero.  Performs range checking when the library
     // is compiled in debug mode.
     //
-    T& operator[] (int i);
+    T& operator[] (int i) { BL_ASSERT(0 <= i && i < N); return vect[i]; }
     //
     // Returns a constant reference to the i'th element in the Tuple,
     // counting from zero.  Performs range checking when the library
     // is compiled in debug mode.
     //
-    const T& operator[] (int i) const;
+    const T& operator[] (int i) const { BL_ASSERT(0 <= i && i < N); return vect[i]; }
     //
     // Returns the address of the underlying vector of T
     // representation.  This should ONLY be used when interfacing
     // to Fortran as it breaks the encapsulation of the class.
     //
-    operator const T* () const;
+    operator const T* () const { return &vect[0]; }
 
 protected:
     //
@@ -67,31 +67,6 @@ protected:
     //
     T vect[N];
 };
-
-template <class T, std::size_t N>
-inline
-T&
-Tuple<T,N>::operator[] (int i)
-{
-    BL_ASSERT(0 <= i && i < N);
-    return vect[i];
-}
-
-template <class T, std::size_t N>
-inline
-const T&
-Tuple<T,N>::operator[] (int i) const
-{
-    BL_ASSERT(0 <= i && i < N);
-    return vect[i];
-}
-
-template <class T, std::size_t N>
-inline
-Tuple<T,N>::operator const T* () const
-{
-    return &vect[0];
-}
 
 template <class T, std::size_t N>
 Tuple<T,N>::Tuple (const T* v)
