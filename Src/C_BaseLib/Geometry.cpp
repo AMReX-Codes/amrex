@@ -89,6 +89,13 @@ Geometry::FPB::~FPB ()
     delete m_RcvVols;
 }
 
+bool
+Geometry::FPB::operator== (const FPB& rhs) const
+{
+    return
+        m_ngrow == rhs.m_ngrow && m_do_corners == rhs.m_do_corners && m_domain == rhs.m_domain && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
+}
+
 int
 Geometry::FPB::bytes () const
 {
@@ -765,14 +772,16 @@ Geometry::FPBMMapIter
 Geometry::GetFPB (const Geometry&      geom,
                   const Geometry::FPB& fpb)
 {
+    BL_ASSERT(fpb.m_ngrow > 0);
+    BL_ASSERT(fpb.m_ba.size() > 0);
+    BL_ASSERT(geom.isAnyPeriodic());
+
     const BoxArray&            ba     = fpb.m_ba;
     const DistributionMapping& dm     = fpb.m_dm;
-    const int                  Key    = fpb.m_ngrow + ba.size();
     const int                  MyProc = ParallelDescriptor::MyProc();
-
-    BL_ASSERT(ba.size()  > 0);
-    BL_ASSERT(fpb.m_ngrow > 0);
-    BL_ASSERT(geom.isAnyPeriodic());
+    const IntVect              Typ    = ba[0].type();
+    const int                  Scale  = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+    const int                  Key    = ba.size() + ba[0].numPts() + Scale + fpb.m_ngrow;
 
     std::pair<Geometry::FPBMMapIter,Geometry::FPBMMapIter> er_it = m_FPBCache.equal_range(Key);
     
@@ -918,7 +927,7 @@ Geometry::GetFPB (const Geometry&      geom,
 void
 Geometry::FlushPIRMCache ()
 {
-    int stats[3] = {0,0,0}; // size, reused, bytes
+    long stats[3] = {0,0,0}; // size, reused, bytes
 
     stats[0] = m_FPBCache.size();
 
@@ -931,7 +940,7 @@ Geometry::FlushPIRMCache ()
 
     if (verbose)
     {
-        ParallelDescriptor::ReduceIntMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
 
         if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
         {
