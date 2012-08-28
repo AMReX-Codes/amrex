@@ -46,7 +46,7 @@ public:
     //
     // Set the CoordType.
     //
-    static void SetCoord (CoordType coord);
+    static void SetCoord (CoordType coord) { c_sys = coord; }
     //
     // Returns the CoordType.
     //
@@ -62,7 +62,7 @@ public:
     //
     // Is CoordType == cartesion?
     //
-    static bool IsCartesian ();
+    static bool IsCartesian () { BL_ASSERT(c_sys != undef); return (c_sys == cartesian); }
     //
     // Sets the offset for each coordinate direction.
     //
@@ -70,23 +70,23 @@ public:
     //
     // Returns the offset.
     //
-    static const Real* Offset ();
+    static const Real* Offset ()  { return offset; }
     //
     // Returns the offset for the specified coordinate direction.
     //
-    static Real Offset (int dir);
+    static Real Offset (int dir) { return offset[dir]; }
     //
     // Returns the cellsize for each coordinate direction.
     //
-    const Real* CellSize () const;
+    const Real* CellSize () const { BL_ASSERT(ok); return dx; }
     //
     // Returns the cellsize for the specified coordinate direction.
     //
-    Real CellSize (int dir) const;
+    Real CellSize (int dir) const { BL_ASSERT(ok); return dx[dir]; }
     //
     // Returns location of cell center in specified direction.
     //
-    Real CellCenter (int point, int dir) const;
+    Real CellCenter (int point, int dir) const { BL_ASSERT(ok); return offset[dir] + dx[dir]*(0.5+ (Real)point); }
     //
     // Return location of cell center.
     //
@@ -98,19 +98,19 @@ public:
     //
     // Returns location of lo edge in specified direction.
     //
-    Real LoEdge (int point, int dir) const;
+    Real LoEdge (int point, int dir) const { BL_ASSERT(ok); return offset[dir] + dx[dir]*point; }
     //
     // Equivalent to LoEdge(point[dir], dir).
     //
-    Real LoEdge (const IntVect& point, int dir) const;
+    Real LoEdge (const IntVect& point, int dir) const { BL_ASSERT(ok); return offset[dir] + dx[dir]*point[dir]; }
     //
     // Returns location of hi edge in specified direction.
     //
-    Real HiEdge (int point, int dir) const;
+    Real HiEdge (int point, int dir) const { BL_ASSERT(ok); return offset[dir] + dx[dir]*(point + 1); }
     //
     // Equivalent to HiEdge(point[dir], dir).
     //
-    Real HiEdge (const IntVect& point, int dir) const;
+    Real HiEdge (const IntVect& point, int dir) const { BL_ASSERT(ok); return offset[dir] + dx[dir]*(point[dir] + 1); }
     //
     // Sets location of lo face into loc.
     //
@@ -244,43 +244,6 @@ protected:
 };
 
 inline
-const Real*
-CoordSys::Offset ()
-{
-    return offset;
-}
-
-inline
-Real
-CoordSys::Offset (int dir)
-{
-    return offset[dir];
-}
-
-inline
-const Real*
-CoordSys::CellSize () const
-{
-    BL_ASSERT(ok);
-    return dx;
-}
-
-inline
-Real
-CoordSys::CellSize (int dir) const
-{
-    BL_ASSERT(ok);
-    return dx[dir];
-}
-
-inline
-void
-CoordSys::SetCoord (CoordType coord)
-{
-    c_sys = coord;
-}
-
-inline
 bool
 CoordSys::IsSPHERICAL ()
 {
@@ -304,59 +267,6 @@ CoordSys::IsRZ ()
 #if (BL_SPACEDIM == 3)
     return false;
 #endif    
-}
-
-inline
-bool
-CoordSys::IsCartesian ()
-{
-    BL_ASSERT(c_sys != undef);
-    return (c_sys == cartesian);
-}
-
-inline
-Real
-CoordSys::CellCenter (int point,
-                      int dir) const
-{
-    BL_ASSERT(ok);
-    return offset[dir] + dx[dir]*(0.5+ (Real)point);
-}
-
-inline
-Real
-CoordSys::LoEdge (int point,
-                  int dir) const
-{
-    BL_ASSERT(ok);
-    return offset[dir] + dx[dir]*point;
-}
-
-inline
-Real
-CoordSys::LoEdge (const IntVect& point,
-                  int            dir) const
-{
-    BL_ASSERT(ok);
-    return offset[dir] + dx[dir]*point[dir];
-}
-
-inline
-Real
-CoordSys::HiEdge (int point,
-                  int dir) const
-{
-    BL_ASSERT(ok);
-    return offset[dir] + dx[dir]*(point + 1);
-}
-
-inline
-Real
-CoordSys::HiEdge (const IntVect& point,
-                  int            dir) const
-{
-    BL_ASSERT(ok);
-    return offset[dir] + dx[dir]*(point[dir] + 1);
 }
 
 #endif /*_COORDSYS_H_*/

@@ -192,49 +192,54 @@ public:
     //
     // Get the smallend of the box.
     //
-    const IntVect& smallEnd () const;
+    const IntVect& smallEnd () const { return smallend; }
     //
     // Return the coordinate of the low end in the given direction.
     //
-    int smallEnd (int dir) const;
+    int smallEnd (int dir) const { return smallend[dir]; }
     //
     // Get the bigend.
     //
-    const IntVect& bigEnd () const;
+    const IntVect& bigEnd () const { return bigend; }
     //
     // Return the coordinate of the high end in the given direction.
     //
-    int bigEnd (int dir) const;
+    int bigEnd (int dir) const { return bigend[dir]; }
     //
     // Return the indexing type.
     //
-    IndexType ixType () const;
+    IndexType ixType () const { return btype; }
     //
     // Return the indexing type.
     //
-    const IntVect type () const;
+    const IntVect type () const { return btype.ixType(); }
     //
     // Return the indexing type in the specified direction.
     //
-    IndexType::CellIndex type (int dir) const;
+    IndexType::CellIndex type (int dir) const { return btype.ixType(dir); }
     //
     // Return the length of the Box.
     //
-    const IntVect size () const;
+    const IntVect size () const
+    {
+        return IntVect(D_DECL(bigend[0]-smallend[0] + 1,
+                              bigend[1]-smallend[1] + 1,
+                              bigend[2]-smallend[2] + 1));
+    }
     //
     // Return the length of the Box in given direction.
     //
-    int length (int dir) const;
+    int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
     //
     // Returns a constant pointer the array of low end coordinates.
     // Useful for calls to FORTRAN.
     //
-    const int* loVect () const;
+    const int* loVect () const { return smallend.getVect(); }
     //
     // Returns a constant pointer the array of high end coordinates.
     // Useful for calls to FORTRAN.
     //
-    const int* hiVect () const;
+    const int* hiVect () const { return bigend.getVect(); }
     //
     // Returns the coordinate normal to given face.
     //
@@ -246,21 +251,21 @@ public:
     //
     // Checks if it is a proper Box (including a valid type).
     //
-    bool ok () const;
+    bool ok () const { return (bigend >= smallend) && btype.ok(); }
     //
     // Returns true if argument is contained within Box.
     //
-    bool contains (const IntVect& p) const;
+    bool contains (const IntVect& p) const { return p >= smallend && p <= bigend; }
     //
     // Returns true if argument is contained within Box.
     // It is an error if the Boxes have different types.
     //
-    bool contains (const Box& b) const;
+    bool contains (const Box& b) const { BL_ASSERT(sameType(b)); return b.smallend >= smallend && b.bigend <= bigend; }
     //
     // Returns true if Boxes have non-null intersections.
     // It is an error if the Boxes have different types.
     //
-    bool intersects (const Box& b) const;
+    bool intersects (const Box& b) const { Box isect(*this); isect &= b; return isect.ok(); }
     //
     // Returns true is Boxes same size, ie translates of each other,.
     // It is an error if they have different types.
@@ -269,19 +274,19 @@ public:
     //
     // Returns true if Boxes have same type.
     //
-    bool sameType (const Box &b) const;
+    bool sameType (const Box &b) const { return btype == b.btype; }
     //
     // Returns true if Boxes are identical (including type).
     //
-    bool operator== (const Box& b) const;
+    bool operator== (const Box& b) const { return smallend == b.smallend && bigend == b.bigend && b.btype == btype; }
     //
     // Returns true if Boxes differ (including type).
     //
-    bool operator!= (const Box& b) const;
+    bool operator!= (const Box& b) const { return !operator==(b); }
     //
     // Returns true if Box is cell-centered in all indexing directions.
     //
-    bool cellCentered () const;
+    bool cellCentered () const { return !btype.any(); }
     //
     // Is the number calculated by numPts() representable in a long?
     //
@@ -337,21 +342,19 @@ public:
     //
     // Redefine the small end of the Box.
     //
-    Box& setSmall (const IntVect& sm);
+    Box& setSmall (const IntVect& sm) { smallend = sm; return *this; }
     //
     // Redefine the small end of the Box.
     //
-    Box& setSmall (int dir,
-                   int sm_index);
+    Box& setSmall (int dir, int sm_index)  { smallend.setVal(dir,sm_index); return *this; }
     //
     // Redefine the big end of the Box.
     //
-    Box& setBig (const IntVect& bg);
+    Box& setBig (const IntVect& bg) { bigend = bg; return *this; }
     //
     // Redefine the big end of the Box.
     //
-    Box& setBig (int dir,
-                 int bg_index);
+    Box& setBig (int dir, int bg_index) { bigend.setVal(dir,bg_index); return *this; }
     //
     // Set the entire range in a given direction, starting at
     // sm_index with length n_cells.  NOTE: This will yield an
@@ -364,12 +367,11 @@ public:
     // Shift this Box nzones indexing positions in coordinate
     // direction dir.
     //
-    Box& shift (int dir,
-                int nzones);
+    Box& shift (int dir, int nzones) { smallend.shift(dir,nzones); bigend.shift(dir,nzones); return *this; }
     //
     // Equivalent to b.shift(0,iv[0]).shift(1,iv[1]) ....
     //
-    Box& shift (const IntVect& iv);
+    Box& shift (const IntVect& iv) { smallend.shift(iv); bigend.shift(iv); return *this; }
     //
     // This member shifts the Box by "half" indicies, thereby
     // converting the Box from type CELL to NODE and visa-versa.
@@ -379,8 +381,7 @@ public:
     // zones and hence will not change the type.
     // This is: b.shifthalf(4) == b.shift(2).
     //
-    Box& shiftHalf (int dir,
-                    int num_halfs);
+    Box& shiftHalf (int dir, int num_halfs);
     //
     // Equivalent to b.shiftHalf(0,iv[0]).shiftHalf(1,iv[1]) ...
     //
@@ -421,34 +422,40 @@ public:
     // Return Box that is intersection of this Box
     // and argument.  The Boxes MUST be of same type.
     //
-    const Box operator& (const Box&) const;
+    const Box operator& (const Box& rhs) const { Box lhs(*this); lhs &= rhs; return lhs; }
     //
     // Intersect this Box with its argument.
     // The Boxes MUST be of the same type.
     //
-    Box& operator&= (const Box&);
+    Box& operator&= (const Box& rhs)
+    {
+        BL_ASSERT(sameType(rhs));
+        smallend.max(rhs.smallend);
+        bigend.min(rhs.bigend);
+        return *this;
+    }
     //
     // Modify Box to that of the minimum Box containing both
     // the original Box and the argument.
     // Both Boxes must have identical type.
     //
-    Box& minBox (const Box &);
+    Box& minBox (const Box&);
     //
     // Shift Box (relative) by given IntVect.
     //
-    Box& operator+= (const IntVect& v);
+    Box& operator+= (const IntVect& v) { smallend += v; bigend   += v; return *this; }
     //
     // Shift Box (relative) by given IntVect.
     //
-    const Box  operator+  (const IntVect& v) const;
+    const Box operator+ (const IntVect& v) const { Box r(*this); r += v; return r; }
     //
     // Shift Box (relative) by given IntVect.
     //
-    Box& operator-= (const IntVect& v);
+    Box& operator-= (const IntVect& v) { smallend -= v; bigend -= v; return *this; }
     //
     // Shift Box (relative) by given IntVect.
     //
-    const Box  operator-  (const IntVect& v) const;
+    const Box operator- (const IntVect& v) const { Box r(*this); r -= v; return r; }
     //
     // Chop the Box at the chop_pnt in the dir direction
     // returns one Box, modifies the object Box.
@@ -467,35 +474,31 @@ public:
     // Grow Box in all directions by given amount.
     // NOTE: n_cell negative shrinks the Box by that number of cells.
     //
-    Box& grow (int i);
+    Box& grow (int i) { smallend.diagShift(-i); bigend.diagShift(i); return *this; }
     //
     // Grow Box in each direction by specified amount.
     //
-    Box& grow (const IntVect& v);
+    Box& grow (const IntVect& v) { smallend -= v; bigend += v; return *this;}
     //
     // Grow the Box on the low and high end by n_cell cells
     // in direction idir.
     //
-    Box& grow (int idir,
-               int n_cell);
+    Box& grow (int idir, int n_cell) { smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell); return *this; }
     //
     // Grow the Box on the low end by n_cell cells in direction idir.
     // NOTE: n_cell negative shrinks the Box by that number of cells.
     //
-    Box& growLo (int idir,
-                 int n_cell=1);
+    Box& growLo (int idir, int n_cell = 1) { smallend.shift(idir, -n_cell); return *this; }
     //
     // Grow the Box on the high end by n_cell cells in
     // direction idir.  NOTE: n_cell negative shrinks the Box by that
     // number of cells.
     //
-    Box& growHi (int idir,
-                 int n_cell=1);
+    Box& growHi (int idir, int n_cell = 1) { bigend.shift(idir,n_cell); return *this; }
     //
     // Grow in the direction of the given face.
     //
-    Box& grow (Orientation face,
-               int         n_cell=1);
+    Box& grow (Orientation face, int n_cell = 1);
     //
     // Refine Box by given (positive) refinement ratio.
     // NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
@@ -567,264 +570,6 @@ private:
 };
 
 inline
-const IntVect&
-Box::smallEnd () const
-{
-    return smallend;
-}
-
-inline
-int
-Box::smallEnd (int dir) const
-{
-    return smallend[dir];
-}
-
-inline
-const IntVect&
-Box::bigEnd () const
-{
-    return bigend;
-}
-
-inline
-int
-Box::bigEnd (int dir) const
-{
-    return bigend[dir];
-}
-
-inline
-IndexType
-Box::ixType () const
-{
-    return btype;
-}
-
-inline
-const IntVect
-Box::type () const
-{
-    return btype.ixType();
-}
-
-inline
-IndexType::CellIndex
-Box::type (int dir) const
-{
-    return btype.ixType(dir);
-}
-
-inline
-int
-Box::length (int dir) const
-{
-    return bigend[dir] - smallend[dir] + 1;
-}
-
-inline
-const int*
-Box::loVect () const
-{
-    return smallend.getVect();
-}
-
-inline
-const int*
-Box::hiVect () const
-{
-    return bigend.getVect();
-}
-
-inline
-int
-Box::operator[] (Orientation face) const
-{
-    const int dir = face.coordDir();
-    return face.isLow() ? smallend[dir] : bigend[dir];
-}
-
-inline
-bool
-Box::numPtsOK () const
-{
-    long ignore;
-    return numPtsOK(ignore);
-}
-
-inline
-bool
-Box::isEmpty () const
-{
-    return numPts() == 0;
-}
-
-inline
-bool
-Box::sameType (const Box &b) const
-{
-    return btype == b.btype;
-}
-inline
-bool
-Box::cellCentered () const
-{
-    return !btype.any();
-}
-
-inline
-bool
-Box::ok () const
-{
-    return (bigend >= smallend) && btype.ok();
-}
-
-inline
-const IntVect
-Box::size () const
-{
-    return IntVect(D_DECL(bigend[0]-smallend[0] + 1,
-                          bigend[1]-smallend[1] + 1,
-                          bigend[2]-smallend[2] + 1));
-}
-
-inline
-bool
-Box::volumeOK () const
-{
-    long ignore;
-    return volumeOK(ignore);
-}
-
-inline
-Box&
-Box::setSmall (const IntVect& sm)
-{
-    smallend = sm;
-    return *this;
-}
-
-inline
-Box&
-Box::setSmall (int dir,
-               int sm_index)
-{
-    smallend.setVal(dir,sm_index);
-    return *this;
-}
-
-inline
-Box&
-Box::setBig (const IntVect& bg)
-{
-    bigend = bg;
-    return *this;
-}
-
-inline
-Box&
-Box::setBig (int dir,
-             int bg_index)
-{
-    bigend.setVal(dir,bg_index);
-    return *this;
-}
-
-inline
-Box&
-Box::setRange (int dir,
-               int sm_index,
-               int n_cells)
-{
-    smallend.setVal(dir,sm_index);
-    bigend.setVal(dir,sm_index+n_cells-1);
-    return *this;
-}
-
-inline
-Box&
-Box::shift (int dir,
-            int nzones)
-{
-    smallend.shift(dir,nzones);
-    bigend.shift(dir,nzones);
-    return *this;
-}
-
-inline
-Box&
-Box::shift (const IntVect& iv)
-{
-    smallend.shift(iv);
-    bigend.shift(iv);
-    return *this;
-}
-
-inline
-Box&
-Box::operator+= (const IntVect& v)
-{
-    smallend += v;
-    bigend   += v;
-    return *this;
-}
-
-inline
-Box&
-Box::operator-= (const IntVect& v)
-{
-    smallend -= v;
-    bigend   -= v;
-    return *this;
-}
-
-inline
-Box&
-Box::grow (int i)
-{
-    smallend.diagShift(-i);
-    bigend.diagShift(i);
-    return *this;
-}
-
-inline
-Box&
-Box::grow (const IntVect& v)
-{
-    smallend -= v;
-    bigend   += v;
-    return *this;
-}
-
-inline
-Box&
-Box::grow (int idir,
-           int n_cell)
-{
-    smallend.shift(idir, -n_cell);
-    bigend.shift(idir, n_cell);
-    return *this;
-}
-
-inline
-Box&
-Box::growLo (int idir,
-             int n_cell)
-{
-    smallend.shift(idir, -n_cell);
-    return *this;
-}
-
-inline
-Box&
-Box::growHi (int idir,
-             int n_cell)
-{
-    bigend.shift(idir,n_cell);
-    return *this;
-}
-
-inline
 long
 Box::index (const IntVect& v) const
 {
@@ -833,52 +578,9 @@ Box::index (const IntVect& v) const
     result += length(0)*(v[1]-smallend[1]);
 #elif BL_SPACEDIM==3
     result += length(0)*(v[1]-smallend[1]
-                      +(v[2]-smallend[2])*length(1));
+                         +(v[2]-smallend[2])*length(1));
 #endif
     return result;
-}
-
-inline
-bool
-Box::contains (const IntVect& p) const
-{
-    return p >= smallend && p <= bigend;
-}
-
-inline
-bool
-Box::contains (const Box& b) const
-{
-    BL_ASSERT(sameType(b));
-    return b.smallend >= smallend && b.bigend <= bigend;
-}
-
-inline
-Box&
-Box::operator&= (const Box& b)
-{
-    BL_ASSERT(sameType(b));
-    smallend.max(b.smallend);
-    bigend.min(b.bigend);
-    return *this;
-}
-
-inline
-const Box
-Box::operator& (const Box& rhs) const
-{
-    Box lhs = *this;
-    lhs &= rhs;
-    return lhs;
-}
-
-inline
-bool
-Box::intersects (const Box& b) const
-{
-    Box isect = *this;
-    isect &= b;
-    return isect.ok();
 }
 
 #endif /*BL_BOX_H*/

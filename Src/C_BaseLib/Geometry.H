@@ -54,43 +54,43 @@ public:
     //
     // Returns the problem domain.
     //
-    static const RealBox& ProbDomain ();
+    static const RealBox& ProbDomain () { return prob_domain; }
     //
     // Sets the problem domain.
     //
-    static void ProbDomain (const RealBox& rb);
+    static void ProbDomain (const RealBox& rb) { prob_domain = rb; }
     //
     // Returns the lo end of the problem domain in each dimension.
     //
-    static const Real* ProbLo ();
+    static const Real* ProbLo ()  { return prob_domain.lo(); }
     //
     // Returns the hi end of the problem domain in each dimension.
     //
-    static const Real* ProbHi ();
+    static const Real* ProbHi () { return prob_domain.hi(); }
     //
     // Returns the lo end of the problem domain in specified direction.
     //
-    static Real ProbLo (int dir);
+    static Real ProbLo (int dir) { return prob_domain.lo(dir); }
     //
     // Returns the hi end of the problem domain in specified direction.
     //
-    static Real ProbHi (int dir);
+    static Real ProbHi (int dir) { return prob_domain.hi(dir); }
     //
     // Returns the overall size of the domain by multiplying the ProbLength's together
     //
-    static Real ProbSize ();
+    static Real ProbSize () { return D_TERM(prob_domain.length(0),*prob_domain.length(1),*prob_domain.length(2)); }
     //
     // Returns length of problem domain in specified dimension.
     //
-    static Real ProbLength (int dir);
+    static Real ProbLength (int dir) { return prob_domain.length(dir); }
     //
     // Returns our rectangular domain.
     //
-    const Box& Domain () const;
+    const Box& Domain () const { return domain; }
     //
     // Sets our rectangular domain.
     //
-    void Domain (const Box& bx);
+    void Domain (const Box& bx) { domain = bx; }
     //
     // Define a multifab of areas and volumes with given grow factor.
     //
@@ -127,19 +127,19 @@ public:
     //
     // Is the domain periodic in the specified direction?
     //
-    static bool isPeriodic (int dir);
+    static bool isPeriodic (int dir) { return is_periodic[dir] != 0; }
     //
     // Is domain periodic in any direction?
     //
-    static bool isAnyPeriodic ();
+    static bool isAnyPeriodic () { return D_TERM(isPeriodic(0),||isPeriodic(1),||isPeriodic(2)); }
     //
     // Is domain periodic in all directions?
     //
-    static bool isAllPeriodic ();
+    static bool isAllPeriodic () { return D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2)); }
     //
     // What's period in specified direction?
     //
-    int period (int dir) const;
+    int period (int dir) const { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
     //
     // Compute Array of shifts which will translate src so that it will
     // intersect target with non-zero intersection.  the array will be
@@ -283,124 +283,6 @@ std::ostream& operator<< (std::ostream&, const Geometry&);
 // Nice ASCII input.
 //
 std::istream& operator>> (std::istream&, Geometry&);
-
-inline
-const RealBox&
-Geometry::ProbDomain ()
-{
-    return prob_domain;
-}
-
-inline
-void
-Geometry::ProbDomain (const RealBox& rb)
-{
-    prob_domain = rb;
-}
-
-inline
-const Box&
-Geometry::Domain () const
-{
-    return domain;
-}
-
-inline
-void
-Geometry::Domain (const Box& bx)
-{
-    domain = bx;
-}
-
-inline
-bool
-Geometry::isPeriodic (int dir)
-{
-    return is_periodic[dir] != 0;
-}
-
-inline
-bool
-Geometry::isAnyPeriodic ()
-{
-    return isPeriodic(0)
-#if BL_SPACEDIM>1
-        ||   isPeriodic(1)
-#endif
-#if BL_SPACEDIM>2
-        ||   isPeriodic(2)
-#endif
-        ;
-}
-
-inline
-bool
-Geometry::isAllPeriodic ()
-{
-#if BL_SPACEDIM==1
-    return isPeriodic(0);
-#elif BL_SPACEDIM==2
-    return (isPeriodic(0) && isPeriodic(1));
-#elif BL_SPACEDIM==3
-    return (isPeriodic(0) && isPeriodic(1) && isPeriodic(2));
-#endif
-}
-
-inline
-int
-Geometry::period (int dir) const
-{
-    BL_ASSERT(is_periodic[dir]);
-    return domain.length(dir);
-}
-
-inline
-const Real*
-Geometry::ProbLo ()
-{
-    return prob_domain.lo();
-}
-
-inline
-const Real*
-Geometry::ProbHi ()
-{
-    return prob_domain.hi();
-}
-
-inline
-Real
-Geometry::ProbLo (int dir)
-{
-    return prob_domain.lo(dir);
-}
-
-inline
-Real
-Geometry::ProbHi (int dir)
-{
-    return prob_domain.hi(dir);
-}
-
-inline
-Real
-Geometry::ProbLength (int dir)
-{
-    return prob_domain.length(dir);
-}
-
-inline
-Real
-Geometry::ProbSize ()
-{
-#if (BL_SPACEDIM == 1) 
-    return prob_domain.length(0);
-#elif (BL_SPACEDIM == 2) 
-    return prob_domain.length(0)*prob_domain.length(1);
-#elif (BL_SPACEDIM == 3) 
-    return prob_domain.length(0)*prob_domain.length(1)*prob_domain.length(2);
-#endif
-}
 
 namespace BoxLib
 {
