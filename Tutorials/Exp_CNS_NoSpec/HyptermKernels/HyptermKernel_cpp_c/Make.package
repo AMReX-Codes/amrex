@@ -1,7 +1,7 @@
 
-cEXE_sources   += timer_c.c
-cEXE_sources   += timer.x86.c
-cEXE_sources   += hyptermbench.c
+cEXE_sources   += $(HERE)/timer_c.c
+cEXE_sources   += $(HERE)/timer.x86.c
+cEXE_sources   += $(HERE)/bench.c
 
 ifeq ($(DIM),3)
 FEXE_sources +=

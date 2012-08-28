@@ -2,6 +2,7 @@
 
   use bl_error_module
   use multifab_module
+  use fabio_module
 
   implicit none
 
@@ -39,7 +40,7 @@ contains
     type(multifab)   :: D, F, Unew, Q
 
     double precision, pointer, dimension(:,:,:,:) :: up, dp, fp, unp, qp
-    !
+
     double precision, parameter :: OneThird      = 1.d0/3.d0
     double precision, parameter :: TwoThirds     = 2.d0/3.d0
     double precision, parameter :: OneQuarter    = 1.d0/4.d0
@@ -50,11 +51,28 @@ contains
     ng = nghost(U)
     la = get_layout(U)
 
-    call multifab_build(D,    la, nc,   0)
     call multifab_build(F,    la, nc,   0)
     call multifab_build(Q,    la, nc+1, ng)
     call multifab_build(Unew, la, nc,   ng)
-    !
+
+    call setval(Q, 0.0d0)
+    call setval(F, 0.0d0)
+
+
+    !!! ------------------------ initialize Q
+    do n=1,nboxes(F)
+       if ( remote(F,n) ) cycle
+
+       up => dataptr(U,n)
+       qp => dataptr(Q,n)
+
+       lo = lwb(get_box(F,n))
+       hi = upb(get_box(F,n))
+
+       call init_q(lo, hi, ng, dx, up, qp)
+    end do
+
+
     courno_proc = 1.0d-50
 
     dt = cfl / courno
@@ -73,18 +91,56 @@ contains
        call hypterm_opt(lo,hi,ng,dx,up,qp,fp)
     end do
 
+    call fabio_multifab_write_d(F, ".", "mfFluxFinal", nOutfiles = 1)
+
+
     call destroy(Unew)
     call destroy(Q)
     call destroy(F)
-    call destroy(D)
 
 
   end subroutine advance
 
 
 
-  subroutine hypterm (lo,hi,ng,dx,cons,q,flux)
+  subroutine init_q(lo,hi,ng,dx,u,q)
 
+    integer,          intent(in ) :: lo(3),hi(3),ng
+    double precision, intent(in ) :: dx(3)
+    double precision, intent(in ) :: u(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,5)
+    double precision, intent(out) :: q(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,6)
+
+    double precision, parameter :: GAMMA = 1.4d0
+    double precision, parameter :: CV    = 8.3333333333d6
+    double precision, parameter :: CVinv = 1.0d0 / CV
+    double precision :: rhoinv, eint
+    integer          :: i,j,k
+
+    do k = lo(3)-ng,hi(3)+ng
+       do j = lo(2)-ng,hi(2)+ng
+          do i = lo(1)-ng,hi(1)+ng
+
+             rhoinv     = 1.0d0/u(i,j,k,1)
+             q(i,j,k,1) = u(i,j,k,1)
+             q(i,j,k,2) = u(i,j,k,2)*rhoinv
+             q(i,j,k,3) = u(i,j,k,3)*rhoinv
+             q(i,j,k,4) = u(i,j,k,4)*rhoinv
+
+             eint = u(i,j,k,5)*rhoinv - 0.5d0*(q(i,j,k,2)**2 + q(i,j,k,3)**2 + q(i,j,k,4)**2)
+
+             q(i,j,k,5) = (GAMMA-1.d0)*eint*u(i,j,k,1)
+             q(i,j,k,6) = eint * CVinv
+
+          enddo
+       enddo
+    enddo
+
+
+  end subroutine init_q
+
+
+
+  subroutine hypterm (lo,hi,ng,dx,cons,q,flux)
 
     integer,          intent(in ) :: lo(3),hi(3),ng
     double precision, intent(in ) :: dx(3)
@@ -298,9 +354,11 @@ contains
     double precision :: L2_start_time, L2_end_time
     double precision :: L3_start_time, L3_end_time
 
-    integer          :: L1iters
+    integer          :: L1iters, L2iters, L3iters
 
     L1iters = 0
+    L2iters = 0
+    L3iters = 0
 
 
     do i=1,3
@@ -375,15 +433,13 @@ contains
     !$OMP END PARALLEL DO
     L1_end_time = parallel_wtime()
 
-    if ( parallel_IOProcessor() ) then
-     print*, "L1iters = ", L1iters
-    end if
-
     L2_start_time = parallel_wtime()
-    !$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)  reduction(+ : L2iters)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
+
+             L2iters = L2iters + 1
 
              unp1 = q(i,j+1,k,qv)
              unp2 = q(i,j+2,k,qv)
@@ -493,13 +549,15 @@ contains
     JBlockSize=11
     JBlocks = ((hi(2)-lo(2) + JBlockSize-1)/JBlockSize)
     L3_start_time = parallel_wtime()
-    !$OMP PARALLEL DO PRIVATE(jb,i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)  schedule(static,1)
-    do jb=1,JBlocks
+    !$OMP PARALLEL DO PRIVATE(jb,i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)  schedule(static,1)  reduction(+ : L3iters)
+    do jb=0,JBlocks-1
     do k=lo(3),hi(3)
        !!!do j=lo(2),hi(2)
-       do j=jb*JBlockSize, (jb+1)*JBlockSize
+       do j=jb*JBlockSize, ((jb+1)*JBlockSize)-1
          if(j.le.hi(2)) then
           do i=lo(1),hi(1)
+
+             L3iters = L3iters + 1
 
              unp1 = q(i,j,k+1,qw)
              unp2 = q(i,j,k+2,qw)
@@ -609,9 +667,16 @@ contains
     L3_end_time = parallel_wtime()
 
     if ( parallel_IOProcessor() ) then
+     print*, "L1iters = ", L1iters
+     print*, "L2iters = ", L2iters
+     print*, "L3iters = ", L3iters
+    end if
+
+    if ( parallel_IOProcessor() ) then
        write(6,42),"L1 time  (s) =",L1_end_time-L1_start_time
        write(6,42),"L2 time  (s) =",L2_end_time-L2_start_time
        write(6,42),"L3 time  (s) =",L3_end_time-L3_start_time
+       write(6,42),"hypterm  (s) =",L3_end_time-L1_start_time
     end if
 
 42  format(a,f12.8)

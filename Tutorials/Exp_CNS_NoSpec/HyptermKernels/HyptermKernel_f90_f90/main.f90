@@ -4,6 +4,7 @@ program main
   use parallel
   use multifab_module
   use advance_module
+  use fabio_module
 
   implicit none
   integer, parameter :: DM = 3
@@ -47,8 +48,8 @@ program main
   eta           = 1.8d-4
   alam          = 1.5d2
 
-  prob_lo     = -0.1d0
-  prob_hi     =  0.1d0
+  prob_lo     = -2.3d0
+  prob_hi     =  2.3d0
   is_periodic = .true.
   !
   lo = 0
@@ -68,7 +69,7 @@ program main
   call destroy(ba)
 
   call multifab_build(U,la,NC,NG)
-  
+
 !--------------------------------------------------------------
 
     ngrids = U%ng
@@ -80,13 +81,15 @@ program main
        lo = lwb(get_box(U,ib))
        hi = upb(get_box(U,ib))
 
-      scale = (prob_hi(1)-prob_lo(1))/6.28d0
+      scale = 1.0d0
 
-      do k=lo(3),hi(3)
+      print *,"lo, hi = ", lo(1), hi(1)
+
+      do k=lo(3)-ng,hi(3)+ng
          zloc = dfloat(k)*dx(3)/scale
-         do j=lo(2),hi(2)
+         do j=lo(2)-ng,hi(2)+ng
             yloc = dfloat(j)*dx(2)/scale
-            do i=lo(1),hi(1)
+            do i=lo(1)-ng,hi(1)+ng
                xloc = dfloat(i)*dx(1)/scale
 
                uvel   = 1.1d4*sin(1*xloc)*sin(2*yloc)*sin(3*zloc)
@@ -108,6 +111,8 @@ program main
 
 !--------------------------------------------------------------
 
+
+  call fabio_multifab_write_d(U, ".", "mfUInit", nOutfiles = 1)
 
   istep = 0
   time  = 0.d0

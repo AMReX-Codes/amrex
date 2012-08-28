@@ -40,7 +40,7 @@ extern "C" {
                       const int *nComp);
 
     void FORT_INITDATA(const Real *cons, ARLIM_P(cons_lo), ARLIM_P(cons_hi),
-                       const Real *dx, const int *nComp);
+                       const Real *q, const Real *dx, const int *nComp);
 }
 #endif
 
