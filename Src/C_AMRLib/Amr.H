@@ -61,51 +61,51 @@ public:
     //
     // return blocking_factor
     //
-    int blockingFactor (int lev) const;
+    int blockingFactor (int lev) const { return blocking_factor[lev]; }
     //
     // Largest allowable grid.
     //
-    int maxGridSize (int lev) const;
+    int maxGridSize (int lev) const { return max_grid_size[lev]; }
     //
     // Subcycle in time?
     //
-    int subCycle () const;
+    int subCycle () const { return sub_cycle; }
     //
     // How are we subcycling?
     //
-    std::string subcyclingMode() const;
+    std::string subcyclingMode() const { return subcycling_mode; }
     //
     // Maximum allowable level.
     //
-    int maxLevel () const;
+    int maxLevel () const { return max_level; }
     //
     // Finest currently existing level.
     //
-    int finestLevel () const;
+    int finestLevel () const { return finest_level; }
     //
     // Physical time.
     //
-    Real cumTime () const;
+    Real cumTime () const { return cumtime; }
     //
     // Time step at specified level.
     //
-    Real dtLevel (int level) const;
+    Real dtLevel (int level) const { return dt_level[level]; }
     //
     // Array of time steps at all levels.
     //
-    const Array<Real>& dtLevel () const;
+    const Array<Real>& dtLevel () const { return dt_level; }
     //
     // Geometry object.
     //
-    const Geometry& Geom (int level) const;
+    const Geometry& Geom (int level) const { return geom[level]; }
     //
     // Number of subcycled time steps.
     //
-    int nCycle (int level) const;
+    int nCycle (int level) const { return n_cycle[level]; }
     //
     // Refinement ratio.
     //
-    IntVect refRatio (int coarse_level) const;
+    IntVect refRatio (int _level) const { return ref_ratio[_level]; }
     //
     // Maximum refinement ratio in any direction.
     //
@@ -113,15 +113,15 @@ public:
     //
     // Refinement ratios between all levels.
     //
-    const Array<IntVect>& refRatio () const;
+    const Array<IntVect>& refRatio () const { return ref_ratio; }
     //
     // Number of time steps at specified level.
     //
-    int levelSteps (int lev) const;
+    int levelSteps (int lev) const { return level_steps[lev]; }
     //
     // Which step are we at for the specified level?
     //
-    int levelCount (int lev) const;
+    int levelCount (int lev) const { return level_count[lev]; }
     //
     // Whether to regrid right after restart
     //
@@ -129,29 +129,29 @@ public:
     //
     // Interval between regridding.
     //
-    int regridInt (int lev) const;
+    int regridInt (int lev) const { return regrid_int[lev]; }
     //
     // Number of time steps between checkpoint files.
     //
-    int checkInt () const;
+    int checkInt () const { return check_int; }
     //
     // Time between checkpoint files.
     //
-    Real checkPer() const;
+    Real checkPer() const { return check_per; }
     //
     // Number of time steps between plot files.
     //
-    int plotInt () const;
+    int plotInt () const { return plot_int; }
     //
     // Time between plot files.
     //
-    Real plotPer () const;
+    Real plotPer () const { return plot_per; }
     //
     // The names of state variables to output in the
     // plotfile.  They can be set using the amr.plot_vars variable
     // in a ParmParse inputs file. 
     //
-    static const std::list<std::string>& statePlotVars ();
+    static const std::list<std::string>& statePlotVars () { return state_plot_vars; }
     //
     // Is the string the name of a variable in state_plot_vars?
     //
@@ -182,7 +182,7 @@ public:
     // plotfile.  They can be set using the amr.derive_plot_vars 
     // variable in a ParmParse inputs file.
     //
-    static const std::list<std::string>& derivePlotVars ();
+    static const std::list<std::string>& derivePlotVars () { return derive_plot_vars; }
     //
     // Is the string the name of a variable in derive_plot_vars?
     //
@@ -210,15 +210,15 @@ public:
     //
     // Number of buffer cells in error estimator.
     //
-    int nErrorBuf (int lev) const;
+    int nErrorBuf (int lev) const { return n_error_buf[lev]; }
     //
     // Minimum allowable grid efficiency.
     //
-    Real gridEff () const;
+    Real gridEff () const { return grid_eff; }
     //
     // Number of cells to define proper nesting 
     //
-    int nProper () const;
+    int nProper () const { return n_proper; }
     //
     // List of grids at each level.
     //
@@ -226,7 +226,7 @@ public:
     //
     // AmrLevel lev.
     //
-    AmrLevel&  getLevel (int lev);
+    AmrLevel&  getLevel (int lev) { return amr_level[lev]; }
     //
     // PArray of AmrLevels.
     //
@@ -273,7 +273,7 @@ public:
     //
     // Name of the restart file.
     //
-    const std::string& theRestartFile () const;
+    const std::string& theRestartFile () const { return restart_file; }
     //
     // The ith datalog file.  Do with it what you want.
     //
@@ -282,7 +282,6 @@ public:
     // How many datalogs have been opened
     //
     int NumDataLogs ();
-    
     //
     // Compute the optimal subcycling pattern.
     // This assumes that anything less than cycle_max[i] is a valid
@@ -290,12 +289,11 @@ public:
     // if ref_ratio[i] = cycle_max[i] = 4, then 1,2,3,4 are all valid 
     // values for n_cycles[i]
     //
-    static Real computeOptimalSubcycling(int n, 
-                                         int* best,
-                                         Real* dt_max, 
-                                         Real* est_work, 
-                                         int* cycle_max);
-                                         
+    static Real computeOptimalSubcycling (int   n, 
+                                          int*  best,
+                                          Real* dt_max, 
+                                          Real* est_work, 
+                                          int*  cycle_max);
 protected:
     //
     // Used by grid_places().
@@ -438,194 +436,5 @@ private:
     Amr (const Amr& rhs);
     Amr& operator= (const Amr& rhs);
 };
-
-inline
-AmrLevel&
-Amr::getLevel (int lev)
-{
-    return amr_level[lev];
-}
-
-inline
-int
-Amr::blockingFactor (int lev) const
-{
-    return blocking_factor[lev];
-}
-
-inline
-int
-Amr::maxGridSize (int lev) const
-{
-    return max_grid_size[lev];
-}
-
-inline
-int
-Amr::maxLevel () const
-{
-    return max_level;
-}
-
-inline
-int
-Amr::finestLevel () const
-{
-    return finest_level;
-}
-
-inline
-IntVect
-Amr::refRatio (int level) const
-{
-    return ref_ratio[level];
-}
-
-inline
-const Array<IntVect>&
-Amr::refRatio () const
-{
-    return ref_ratio;
-}
-
-inline
-Real
-Amr::dtLevel (int level) const
-{
-    return dt_level[level];
-}
-
-inline
-const Array<Real>&
-Amr::dtLevel () const
-{
-    return dt_level;
-}
-
-inline
-const Geometry&
-Amr::Geom (int level) const
-{
-    return geom[level];
-}
-
-inline
-int
-Amr::checkInt () const
-{
-    return check_int;
-}
-
-inline
-Real
-Amr::checkPer () const
-{
-    return check_per;
-}
-
-inline
-int
-Amr::plotInt () const
-{
-    return plot_int;
-}
-
-inline
-Real
-Amr::plotPer () const
-{
-    return plot_per;
-}
-
-inline
-const std::list<std::string>&
-Amr::statePlotVars ()
-{
-    return state_plot_vars;
-}
-
-inline
-const std::list<std::string>&
-Amr::derivePlotVars ()
-{
-    return derive_plot_vars;
-}
-
-inline
-int
-Amr::nCycle (int level) const
-{
-    return n_cycle[level];
-}
-
-inline
-int
-Amr::levelSteps (int i) const
-{
-    return level_steps[i];
-}
-
-inline
-int
-Amr::levelCount (int i) const
-{
-    return level_count[i];
-}
-
-inline
-Real
-Amr::cumTime () const
-{
-    return cumtime;
-}
-
-inline
-int
-Amr::regridInt (int lev) const
-{
-    return regrid_int[lev];
-}
-
-inline
-int
-Amr::nErrorBuf (int lev) const
-{
-    return n_error_buf[lev];
-}
-
-inline
-Real
-Amr::gridEff () const
-{
-    return grid_eff;
-}
-
-inline
-int
-Amr::subCycle () const
-{
-    return sub_cycle;
-}
-
-inline
-std::string
-Amr::subcyclingMode() const
-{
-    return subcycling_mode;
-}
-
-inline
-int
-Amr::nProper () const
-{
-    return n_proper;
-}
-
-inline
-const std::string&
-Amr::theRestartFile () const
-{
-    return restart_file;
-}
 
 #endif /*_Amr_H_*/
