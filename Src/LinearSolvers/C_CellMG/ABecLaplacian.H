@@ -96,16 +96,15 @@ public:
     //
     // Set scalar coefficients.
     //
-    void setScalars (Real _alpha,
-                     Real _beta);
+    void setScalars (Real _alpha, Real _beta) { alpha = _alpha; beta = _beta;}
     //
     // get scalar alpha coefficient
     //
-    Real get_alpha () const;
+    Real get_alpha () const { return alpha; }
     //
     // get scalar beta coefficient
     //
-    Real get_beta () const;
+    Real get_beta () const { return beta; }
     //
     // return reference to "a" coefficients for base level
     //
@@ -226,28 +225,5 @@ private:
     ABecLaplacian (const ABecLaplacian&);
     ABecLaplacian& operator= (const ABecLaplacian&);
 };
-
-inline
-Real
-ABecLaplacian::get_alpha () const
-{
-    return alpha;
-}
-
-inline
-Real
-ABecLaplacian::get_beta () const
-{
-    return beta;
-}
-
-inline
-void
-ABecLaplacian::setScalars (Real _alpha,
-                           Real _beta)
-{
-    alpha = _alpha;
-    beta  = _beta;
-}
 
 #endif /*_ABecLAPLACIAN_H_*/
