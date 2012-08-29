@@ -83,7 +83,7 @@
       CV    = 8.3333333333d6
       CVinv = 1.0d0 / CV
 
-!$OMP PARALLEL DO PRIVATE(i,j,k,eint,rhoinv)
+!$OMP PARALLEL DO PRIVATE(i,j,k,eloc,rhoinv)
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
           do i = lo(1),hi(1)
