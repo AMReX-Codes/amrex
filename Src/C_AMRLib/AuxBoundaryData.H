@@ -28,7 +28,10 @@ public:
                    int             dst_comp,
                    int             num_comp);
 
-    size_t size () const;
+    size_t size () const
+    {
+        BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.size();
+    }
 
     void copy (const AuxBoundaryData& src,
                int                    src_comp,
@@ -40,20 +43,34 @@ public:
                      int             n_comp,
                      const Geometry& geom);
     
-    const BoxArray& equivBoxArray () const;
+    const BoxArray& equivBoxArray () const
+    {
+        BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.boxArray();
+    }
 
-    void setVal (Real r);
+    void setVal (Real r) { BL_ASSERT(m_initialized); if (!m_empty) m_fabs.setVal(r); }
 
-    const DistributionMapping& DistributionMap () const;
+    const DistributionMapping& DistributionMap () const
+    {
+        BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.DistributionMap();
+    }
 
-    FArrayBox&       operator[] (const MFIter& mfi);
-    const FArrayBox& operator[] (const MFIter& mfi) const;
+    FArrayBox&       operator[] (const MFIter& mfi)
+    {
+        BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs[mfi];
+    }
+    const FArrayBox& operator[] (const MFIter& mfi) const
+    {
+        BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs[mfi];
+    }
+    int nGrow () const { BL_ASSERT(m_initialized); return m_ngrow; }
 
-    int nGrow () const;
+    int nComp () const
+    {
+        BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.nComp();
+    }
 
-    int nComp () const;
-
-    bool isEmpty () const;
+    bool isEmpty () const { return m_empty; }
 
 private:
 
@@ -66,82 +83,5 @@ private:
     // 
     AuxBoundaryData& operator= (const AuxBoundaryData& rhs);
 };
-
-inline
-bool
-AuxBoundaryData::isEmpty () const
-{
-    return m_empty;
-}
-
-inline
-void
-AuxBoundaryData::setVal (Real r)
-{
-    BL_ASSERT(m_initialized);
-    if (!m_empty) m_fabs.setVal(r);
-}
-
-inline
-const DistributionMapping&
-AuxBoundaryData::DistributionMap () const
-{
-    BL_ASSERT(!m_empty);
-    BL_ASSERT(m_initialized);
-    return m_fabs.DistributionMap();
-}
-
-inline
-int
-AuxBoundaryData::nComp () const
-{
-    BL_ASSERT(!m_empty);
-    BL_ASSERT(m_initialized);
-    return m_fabs.nComp();
-}
-
-inline
-size_t
-AuxBoundaryData::size () const
-{
-    BL_ASSERT(!m_empty);
-    BL_ASSERT(m_initialized);
-    return m_fabs.size();
-}
-
-inline
-int
-AuxBoundaryData::nGrow () const
-{
-    BL_ASSERT(m_initialized);
-    return m_ngrow;
-}
-
-inline
-const BoxArray&
-AuxBoundaryData::equivBoxArray () const
-{
-    BL_ASSERT(!m_empty);
-    BL_ASSERT(m_initialized);
-    return m_fabs.boxArray();
-}
-
-inline
-FArrayBox&
-AuxBoundaryData::operator[] (const MFIter& mfi)
-{
-    BL_ASSERT(!m_empty);
-    BL_ASSERT(m_initialized);
-    return m_fabs[mfi];
-}
-
-inline
-const FArrayBox&
-AuxBoundaryData::operator[] (const MFIter& mfi) const
-{
-    BL_ASSERT(!m_empty);
-    BL_ASSERT(m_initialized);
-    return m_fabs[mfi];
-}
 
 #endif
