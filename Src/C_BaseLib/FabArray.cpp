@@ -175,13 +175,9 @@ FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
     const IntVect Typ   = cpc.m_dstba[0].type();
     const int     Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
 
-    int Key = 0;
-
-    Key += 1*(cpc.m_dstba.size() + cpc.m_dstba[0].numPts() + cpc.m_dstba[cpc.m_dstba.size()-1].numPts());
-    Key += 7*(cpc.m_srcba.size() + cpc.m_srcba[0].numPts() + cpc.m_srcba[cpc.m_srcba.size()-1].numPts());
-    Key += 1*(cpc.m_dstdm[cpc.m_dstdm.size()-1]);
-    Key += 7*(cpc.m_srcdm[cpc.m_srcdm.size()-1]);
-    Key += Scale;
+    int Key = cpc.m_dstba.size() + cpc.m_srcba.size() + Scale;
+    Key    += cpc.m_dstba[0].numPts() + cpc.m_dstba[cpc.m_dstba.size()-1].numPts();
+    Key    += cpc.m_dstdm[0] + cpc.m_dstdm[cpc.m_dstdm.size()-1];
 
     std::pair<CPCCacheIter,CPCCacheIter> er_it = TheCopyCache.equal_range(Key);
 
