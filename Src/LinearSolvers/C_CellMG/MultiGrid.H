@@ -101,15 +101,15 @@ public:
     //
     // return the linear operator
     //
-    LinOp& linOp ();
+    LinOp& linOp () { return Lp; }
     //
     // set the maximum permitted multigrid iterations
     //
-    void setMaxIter (int _maxiter);
+    void setMaxIter (int _maxiter) { maxiter = _maxiter; }
     //
     // return the maximum permitted multigrid iterations
     //
-    int getMaxIter () const;
+    int getMaxIter () const { return maxiter; }
     //
     // return the number of multigrid iterations
     //
@@ -117,11 +117,11 @@ public:
     //
     // set the flag for whether to use CGSolver at coarsest level
     //
-    void setUseCG (int _usecg);
+    void setUseCG (int _usecg) { usecg = _usecg; }
     //
     // return the flag for whether to use CGSolver at coarsest level
     //
-    int getUseCG () const;
+    int getUseCG () const { return usecg; }
     //
     // set/return the number of multigrid levels
     //
@@ -129,80 +129,81 @@ public:
     //
     // return the number of multigrid levels
     //
-    int getNumLevels () const;
+    int getNumLevels () const { return numlevels; }
     //
     // set the verbosity value
     //
-    void setVerbose (int _verbose);
+    void setVerbose (int _verbose) { verbose = _verbose; }
     //
     // return the verbosity value
     //
-    int getVerbose ();
+    int getVerbose () { return verbose; }
     //
     // set the number of passes of the pre-smoother
     //
-    void set_preSmooth (int pre_smooth);
+    void set_preSmooth (int pre_smooth) { nu_1 = pre_smooth; }
     //
     // set the number of passes of the post-smoother
     //
-    void set_postSmooth (int post_smooth);
+    void set_postSmooth (int post_smooth) { nu_2 = post_smooth; }
     //
     // set the number of passes of the coarse-grid smoother/mg iteration
     //
-    void set_cntRelax (int cnt_relax);
+    void set_cntRelax (int cnt_relax) { nu_0 = cnt_relax; }
     //
     // set the number of passes of the bottom mg relaxer
     //
-    void set_finalSmooth (int final_smooth);
+    void set_finalSmooth (int final_smooth) { nu_f = final_smooth; }
     //
     // Return the number of pre-smooth iterations at the level
     //
-    int preSmooth () const;
+    int preSmooth () const { return nu_1; }
     //
     // Return the number of post-smooth iterations at the level
     //
-    int postSmooth () const;
+    int postSmooth () const { return nu_2; }
     //
     // Return the number of level relaxations (not implemented)
     //
-    int cntRelax () const;
+    int cntRelax () const { return nu_0; }
     //
     // Return the number of smoothing passes at bottom of MG (if no cg)
     //
-    int finalSmooth () const;
+    int finalSmooth () const { return nu_f; }
     //
     // set the maximum permitted absolute tolerance (<0 bypasses test)
     //
-    void set_atol_b (Real atol);
+    void set_atol_b (Real atol) { atol_b = atol; }
     //
     // get the maximum permitted absolute tolerance
     //
-    Real get_atol_b () const;
+    Real get_atol_b () const { return atol_b; }
     //
     // set the maximum permitted relative tolerance (<0 bypasses test)
     //
-    void set_rtol_b (Real rtol);
+    void set_rtol_b (Real rtol) { rtol_b = rtol; }
     //
     // get the maximum permitted relative tolerance
     //
-    Real get_rtol_b () const;
+    Real get_rtol_b () const { return rtol_b; }
     //
     // set the number of post-cg relax passes
     //
-    void set_nu_b (int _nu_b);
+    void set_nu_b (int _nu_b) { nu_b = _nu_b; }
     //
     // set the number of post-cg relax passes
     //
-    int get_nu_b () const;
+    int get_nu_b () const { return nu_b; }
 
-    CGSolver::Solver getCGSolver () const;
-    void setCGSolver (CGSolver::Solver solver_);
+    CGSolver::Solver getCGSolver () const { return cg_solver; }
 
-    void set_maxiter_b (int n);
+    void setCGSolver (CGSolver::Solver solver_) { cg_solver = solver_; }
+
+    void set_maxiter_b (int n) { maxiter_b = n; }
     //
     // get the maximum permitted relative tolerance
     //
-    int  get_maxiter_b () const;
+    int  get_maxiter_b () const { return maxiter_b; }
 
 protected:
     //
@@ -375,187 +376,5 @@ private:
     MultiGrid (const MultiGrid&);
     MultiGrid& operator= (const MultiGrid&);
 };
-
-inline
-LinOp&
-MultiGrid::linOp ()
-{
-    return Lp;
-}
-
-inline
-void
-MultiGrid::setMaxIter (int _maxiter)
-{
-    maxiter = _maxiter;
-}
-
-inline
-int
-MultiGrid::getMaxIter () const
-{
-    return maxiter;
-}
-
-inline
-void
-MultiGrid::setUseCG (int _usecg)
-{
-    usecg = _usecg;
-}
-
-inline
-int
-MultiGrid::getUseCG () const
-{
-    return usecg;
-}
-
-inline
-int
-MultiGrid::getNumLevels () const
-{
-    return numlevels;
-}
-
-inline
-void
-MultiGrid::setVerbose (int _verbose)
-{
-    verbose = _verbose;
-}
-
-inline
-int
-MultiGrid::getVerbose ()
-{
-    return verbose;
-}
-
-inline
-void
-MultiGrid::set_preSmooth (int pre_smooth)
-{
-    nu_1 = pre_smooth;
-}
-
-inline
-void
-MultiGrid::set_postSmooth (int post_smooth)
-{
-    nu_2 = post_smooth;
-}
-
-inline
-void
-MultiGrid::set_cntRelax (int cnt_relax)
-{
-    nu_0 = cnt_relax;
-}
-
-inline
-void
-MultiGrid::set_finalSmooth (int final_smooth)
-{
-    nu_f = final_smooth;
-}
-
-inline
-int
-MultiGrid::preSmooth () const
-{
-    return nu_1;
-}
-
-inline
-int
-MultiGrid::postSmooth () const
-{
-    return nu_2;
-}
-
-inline
-int
-MultiGrid::cntRelax () const
-{
-    return nu_0;
-}
-
-inline
-int
-MultiGrid::finalSmooth () const
-{
-    return nu_f;
-}
-
-inline
-void
-MultiGrid::set_atol_b (Real atol)
-{
-    atol_b = atol;
-}
-
-inline
-Real
-MultiGrid::get_atol_b () const
-{
-    return atol_b;
-}
-
-inline
-void
-MultiGrid::set_rtol_b (Real rtol)
-{
-    rtol_b = rtol;
-}
-
-inline
-Real
-MultiGrid::get_rtol_b () const
-{
-    return rtol_b;
-}
-
-inline
-void
-MultiGrid::set_maxiter_b (int n)
-{
-    maxiter_b = n;
-}
-
-inline
-int
-MultiGrid::get_maxiter_b () const
-{
-  return maxiter_b;
-}
-
-inline
-void
-MultiGrid::set_nu_b (int _nu_b)
-{
-    nu_b = _nu_b;
-}
-
-inline
-int
-MultiGrid::get_nu_b () const
-{
-    return nu_b;
-}
-
-inline
-void
-MultiGrid::setCGSolver (CGSolver::Solver cg_solver_)
-{
-   cg_solver = cg_solver_;
-}
-
-inline
-CGSolver::Solver
-MultiGrid::getCGSolver () const
-{
-    return cg_solver;
-}
 
 #endif /*_MULTIGRID_H_*/
