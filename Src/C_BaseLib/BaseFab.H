@@ -155,7 +155,10 @@ public:
     // Returns true if the domain of fab is totally contained within
     // the domain of this BaseFab.
     //
-    bool contains (const BaseFab<T>& fab) const { return box().contains(fab.box()) && nvar <= fab.nvar; }
+    bool contains (const BaseFab<T>& fab) const
+    {
+        return box().contains(fab.box()) && nvar <= fab.nvar;
+    }
     //
     // Returns true if bx is totally contained
     // within the domain of this BaseFab.

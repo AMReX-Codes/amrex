@@ -19,76 +19,7 @@
 // C++ array.  In addition, the basic arithmetic operators have been overloaded
 // to implement scaling and translation operations.
 //
-
-class IntVect;
-
-namespace BoxLib
-{
-    //
-    // Returns a basis vector in the given coordinate direction;
-    // eg.  IntVect BASISV(1) == (0,1,0).  Note that the coordinate
-    // directions are zero based.
-    //
-    const IntVect BASISV (int dir);
-    //
-    // Returns the IntVect that is the component-wise minimum of two
-    // argument IntVects.
-    //
-    const IntVect min (const IntVect& p1, const IntVect& p2);
-    //
-    // Returns the IntVect that is the component-wise maximum of two
-    // argument IntVects.
-    //
-    const IntVect max (const IntVect& p1, const IntVect& p2);
-    //
-    // Returns a IntVect obtained by multiplying each of the
-    // components of this IntVect by s.
-    //
-    const IntVect scale (const IntVect& p, int s);
-    //
-    // Returns an IntVect that is the reflection of input in the
-    // plane which passes through ref_ix and normal to the
-    // coordinate direction idir.
-    //
-    const IntVect reflect(const IntVect& a, int ref_ix, int idir);
-    //
-    // Returns IntVect obtained by adding s to each of the
-    // components of this IntVect.
-    //
-    const IntVect diagShift (const IntVect& p, int s);
-    //
-    // Returns an IntVect that is the component-wise integer
-    // projection of p by s.
-    //
-    const IntVect coarsen (const IntVect& p, int s);
-    //
-    // Returns an IntVect which is the component-wise integer
-    // projection of IntVect p1 by IntVect p2.
-    //
-    const IntVect coarsen (const IntVect& p1, const IntVect& p2);
-}
-//
-// Returns p + s.
-//
-const IntVect operator+ (int s, const IntVect& p);
-//
-// Returns -p + s.
-//
-const IntVect operator- (int s, const IntVect& p);
-//
-// Returns p * s.
-//
-const IntVect operator* (int s, const IntVect& p);
-//
-// Print the IntVect to given output stream in ASCII.
-//
-std::ostream& operator<< (std::ostream&  os, const IntVect& iv);
-//
-// Read next IntVect from given input stream.
-//
-std::istream& operator>> (std::istream& os, IntVect& iv);
 	
-
 class IntVect
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();
@@ -383,7 +314,10 @@ public:
     //
     // Modify IntVect by adding s to each coordinate.
     //
-    IntVect& diagShift (int s) { D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this; }
+    IntVect& diagShift (int s)
+    {
+        D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
+    }
     //
     // Modify IntVect by component-wise integer projection.
     //
@@ -424,37 +358,82 @@ private:
     int vect[BL_SPACEDIM];
 };
 
-inline
-const IntVect
-BoxLib::scale (const IntVect& p, int s)
+namespace BoxLib
 {
-    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+    //
+    // Returns a basis vector in the given coordinate direction;
+    // eg.  IntVect BASISV(1) == (0,1,0).  Note that the coordinate
+    // directions are zero based.
+    //
+    const IntVect BASISV (int dir);
+    //
+    // Returns the IntVect that is the component-wise minimum of two
+    // argument IntVects.
+    //
+    const IntVect min (const IntVect& p1, const IntVect& p2);
+    //
+    // Returns the IntVect that is the component-wise maximum of two
+    // argument IntVects.
+    //
+    const IntVect max (const IntVect& p1, const IntVect& p2);
+    //
+    // Returns a IntVect obtained by multiplying each of the
+    // components of this IntVect by s.
+    //
+    const IntVect scale (const IntVect& p, int s);
+    //
+    // Returns an IntVect that is the reflection of input in the
+    // plane which passes through ref_ix and normal to the
+    // coordinate direction idir.
+    //
+    const IntVect reflect(const IntVect& a, int ref_ix, int idir);
+    //
+    // Returns IntVect obtained by adding s to each of the
+    // components of this IntVect.
+    //
+    const IntVect diagShift (const IntVect& p, int s);
+    //
+    // Returns an IntVect that is the component-wise integer
+    // projection of p by s.
+    //
+    const IntVect coarsen (const IntVect& p, int s);
+    //
+    // Returns an IntVect which is the component-wise integer
+    // projection of IntVect p1 by IntVect p2.
+    //
+    const IntVect coarsen (const IntVect& p1, const IntVect& p2);
 }
-
+//
+// Returns p + s.
+//
 inline
-const IntVect
-BoxLib::diagShift (const IntVect& p, int s)
+const IntVect operator+ (int s, const IntVect& p)
 {
     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
-
-inline
-const IntVect
-operator+ (int s, const IntVect& p)
-{
-    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
-}
-
+//
+// Returns -p + s.
+//
 inline
 const IntVect operator- (int s, const IntVect& p)
 {
     return IntVect(D_DECL(s - p[0], s - p[1], s - p[2]));
 }
-
+//
+// Returns p * s.
+//
 inline
 const IntVect operator* (int s, const IntVect& p)
 {
     return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }
+//
+// Print the IntVect to given output stream in ASCII.
+//
+std::ostream& operator<< (std::ostream&  os, const IntVect& iv);
+//
+// Read next IntVect from given input stream.
+//
+std::istream& operator>> (std::istream& os, IntVect& iv);
 
 #endif /*BL_INTVECT_H*/

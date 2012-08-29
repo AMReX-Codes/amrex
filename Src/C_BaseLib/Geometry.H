@@ -78,7 +78,10 @@ public:
     //
     // Returns the overall size of the domain by multiplying the ProbLength's together
     //
-    static Real ProbSize () { return D_TERM(prob_domain.length(0),*prob_domain.length(1),*prob_domain.length(2)); }
+    static Real ProbSize ()
+    {
+        return D_TERM(prob_domain.length(0),*prob_domain.length(1),*prob_domain.length(2));
+    }
     //
     // Returns length of problem domain in specified dimension.
     //
@@ -131,11 +134,17 @@ public:
     //
     // Is domain periodic in any direction?
     //
-    static bool isAnyPeriodic () { return D_TERM(isPeriodic(0),||isPeriodic(1),||isPeriodic(2)); }
+    static bool isAnyPeriodic ()
+    {
+        return D_TERM(isPeriodic(0),||isPeriodic(1),||isPeriodic(2));
+    }
     //
     // Is domain periodic in all directions?
     //
-    static bool isAllPeriodic () { return D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2)); }
+    static bool isAllPeriodic ()
+    {
+        return D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
+    }
     //
     // What's period in specified direction?
     //

@@ -86,7 +86,10 @@ public:
     //
     // Returns location of cell center in specified direction.
     //
-    Real CellCenter (int point, int dir) const { BL_ASSERT(ok); return offset[dir] + dx[dir]*(0.5+ (Real)point); }
+    Real CellCenter (int point, int dir) const
+    {
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*(0.5+ (Real)point);
+    }
     //
     // Return location of cell center.
     //
@@ -98,19 +101,31 @@ public:
     //
     // Returns location of lo edge in specified direction.
     //
-    Real LoEdge (int point, int dir) const { BL_ASSERT(ok); return offset[dir] + dx[dir]*point; }
+    Real LoEdge (int point, int dir) const
+    {
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*point;
+    }
     //
     // Equivalent to LoEdge(point[dir], dir).
     //
-    Real LoEdge (const IntVect& point, int dir) const { BL_ASSERT(ok); return offset[dir] + dx[dir]*point[dir]; }
+    Real LoEdge (const IntVect& point, int dir) const
+    {
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*point[dir];
+    }
     //
     // Returns location of hi edge in specified direction.
     //
-    Real HiEdge (int point, int dir) const { BL_ASSERT(ok); return offset[dir] + dx[dir]*(point + 1); }
+    Real HiEdge (int point, int dir) const
+    {
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*(point + 1);
+    }
     //
     // Equivalent to HiEdge(point[dir], dir).
     //
-    Real HiEdge (const IntVect& point, int dir) const { BL_ASSERT(ok); return offset[dir] + dx[dir]*(point[dir] + 1); }
+    Real HiEdge (const IntVect& point, int dir) const
+    {
+        BL_ASSERT(ok); return offset[dir] + dx[dir]*(point[dir] + 1);
+    }
     //
     // Sets location of lo face into loc.
     //

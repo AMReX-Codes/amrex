@@ -137,7 +137,10 @@ public:
     // constructor.  T must also be a concrete type, not a abstract
     // type.
     //
-    CpClassPtr<T>& operator= (const CpClassPtr<T>& rhs) { CpPtr<T>::operator= (rhs); return *this; }
+    CpClassPtr<T>& operator= (const CpClassPtr<T>& rhs)
+    {
+        CpPtr<T>::operator= (rhs); return *this;
+    }
     //
     // Applies operator-> to the wrapped pointer.
     //
