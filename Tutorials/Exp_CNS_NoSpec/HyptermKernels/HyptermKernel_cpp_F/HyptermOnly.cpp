@@ -68,7 +68,6 @@ int main(int argc, char *argv[]) {
 
     for(int i(0); i < BL_SPACEDIM; ++i) {
       dx[i] = (probHi[i] - probLo[i]) / (static_cast<Real> (probDomain.length(i)));
-      cout << "dx[" << i << "] = " << dx[i] << endl;
     }
 
     for(MFIter mfi(mfU); mfi.isValid(); ++mfi) {
@@ -90,12 +89,15 @@ int main(int argc, char *argv[]) {
     VisMF::Write(mfU, "mfUInit");
 
 
-    {
-      double tstart = BoxLib::wsecond();
-      sleep(1);
-      double tend = BoxLib::wsecond();
-      if(ParallelDescriptor::IOProcessor()) {
-        cout << "sleep(1) time = " << tend - tstart << endl;
+    double tsleepstart = BoxLib::wsecond();
+    sleep(1);
+    double tsleepend = BoxLib::wsecond();
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "sleep(1) time = " << tsleepend - tsleepstart << endl;
+    }
+    if(ParallelDescriptor::IOProcessor()) {
+      for(int i(0); i < BL_SPACEDIM; ++i) {
+        cout << "dx[" << i << "] = " << dx[i] << endl;
       }
     }
 
@@ -103,40 +105,41 @@ int main(int argc, char *argv[]) {
 
     int nSteps(1);
     for(int iStep(0); iStep < nSteps; ++iStep) {
-    for(MFIter mfi(mfU); mfi.isValid(); ++mfi) {
+      for(MFIter mfi(mfU); mfi.isValid(); ++mfi) {
+        int idx = mfi.index();
+        FArrayBox &myFabU = mfU[mfi];
+        FArrayBox &myFabQ = mfQ[mfi];
+        FArrayBox &myFabFlux = mfFlux[mfi];
 
-      FArrayBox &myFabU = mfU[mfi];
-      FArrayBox &myFabQ = mfQ[mfi];
-      FArrayBox &myFabFlux = mfFlux[mfi];
+        const Real *dataPtrU = myFabU.dataPtr();
+        const Real *dataPtrQ = myFabQ.dataPtr();
+        const Real *dataPtrFlux = myFabFlux.dataPtr();
+        const int  *dlo     = myFabU.loVect();
+        const int  *dhi     = myFabU.hiVect();
+        const int  *lo      = mfU.boxArray()[idx].loVect();
+        const int  *hi      = mfU.boxArray()[idx].hiVect();
+        const Real *dxptr   = dx;
 
-      int idx = mfi.index();
-      cout << "myproc idx = " << ParallelDescriptor::MyProc() << "  " << idx << endl;
+        FORT_HYPTERM(dataPtrU, ARLIM(dlo), ARLIM(dhi), ARLIM(lo), ARLIM(hi),
+                     dataPtrQ, dataPtrFlux, dxptr, &nComps);
+        //FORT_HYPTERM_UNOPT(dataPtrU, ARLIM(dlo), ARLIM(dhi), ARLIM(lo), ARLIM(hi),
+                     //dataPtrQ, dataPtrFlux, dxptr, &nComps);
 
-      const Real *dataPtrU = myFabU.dataPtr();
-      const Real *dataPtrQ = myFabQ.dataPtr();
-      const Real *dataPtrFlux = myFabFlux.dataPtr();
-      const int  *dlo     = myFabU.loVect();
-      const int  *dhi     = myFabU.hiVect();
-      const int  *lo      = mfU.boxArray()[idx].loVect();
-      const int  *hi      = mfU.boxArray()[idx].hiVect();
-      const Real *dxptr   = dx;
-
-      cout << "_here 0:  calling hypterm." << endl;
-      FORT_HYPTERM(dataPtrU, ARLIM(dlo), ARLIM(dhi), ARLIM(lo), ARLIM(hi),
-                   dataPtrQ, dataPtrFlux, dxptr, &nComps);
-      //cout << endl;
-      //cout << endl;
-      //cout << endl;
-      //cout << "_here 1:  calling hypterm_unopt." << endl;
-      //FORT_HYPTERM_UNOPT(dataPtrU, ARLIM(dlo), ARLIM(dhi), ARLIM(lo), ARLIM(hi),
-                   //dataPtrQ, dataPtrFlux, dxptr, &nComps);
-    }
+        if(ParallelDescriptor::IOProcessor()) {
+	  for(int icomp(0); icomp < nComps; ++icomp) {
+            cout << "minmax flux[" << icomp << "] = "
+	         << myFabFlux.min(icomp) << "  " << myFabFlux.max(icomp) << endl;
+	  }
+        }
+      }
     }
 
     double tend = BoxLib::wsecond();
     if(ParallelDescriptor::IOProcessor()) {
+      cout << "-----------------" << endl;
       cout << "Hypterm time    =  " << tend - tstart << endl;
       cout << "Hypterm time/it =  " << (tend - tstart) / (static_cast<double> (nSteps)) << endl;
+      cout << "-----------------" << endl;
     }
 
     VisMF::Write(mfFlux, "mfFluxFinal");

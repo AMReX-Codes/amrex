@@ -36,8 +36,6 @@
 
       REAL_T GAMMA, CV, CVinv
 
-
-
       irho = 1
       imx  = 2
       imy  = 3
@@ -53,10 +51,6 @@
 
       scale = 1.0d0
 
-      print *, "_here 0:  INITDATA"
-      print *,lo(1),hi(1)
-      print *,lo(2),hi(2)
-      print *,lo(3),hi(3)
 
 !$OMP PARALLEL DO PRIVATE(i,j,k,xloc,yloc,zloc,
 !$OMP&uvel,vvel,wvel,rholoc,eloc)
@@ -509,10 +503,13 @@
       end if
 
       if ( bIOP ) then
+       print *,"-----------------"
        write(6,42),"L1 time     (s) =",L1_end-L1_start
        write(6,42),"L2 time     (s) =",L2_end-L2_start
        write(6,42),"L3 time     (s) =",L3_end-L3_start
+       print *,"-----------------"
        write(6,42),"Total time  (s) =",L3_end-L1_start
+       print *,"-----------------"
       end if
 
 42    format(a,f12.8)
