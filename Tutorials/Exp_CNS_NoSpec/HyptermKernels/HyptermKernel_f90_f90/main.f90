@@ -58,6 +58,7 @@ program main
 
   do i = 1,DM
      dx(i) = (prob_hi(i)-prob_lo(i)) / n_cell
+     write(6,42),"dx = ", dx(i)
   end do
 
   call boxarray_build_bx(ba,bx)
@@ -70,20 +71,16 @@ program main
 
   call multifab_build(U,la,NC,NG)
 
-!--------------------------------------------------------------
-
+!------------------------------------------------- initialize U
     ngrids = U%ng
 
     do ib=1,nboxes(U)
-       if ( multifab_remote(U,ib) ) cycle
+      if ( multifab_remote(U,ib) ) cycle
 
-       dp => dataptr(U,ib)
-       lo = lwb(get_box(U,ib))
-       hi = upb(get_box(U,ib))
-
+      dp => dataptr(U,ib)
+      lo = lwb(get_box(U,ib))
+      hi = upb(get_box(U,ib))
       scale = 1.0d0
-
-      print *,"lo, hi = ", lo(1), hi(1)
 
       do k=lo(3)-ng,hi(3)+ng
          zloc = dfloat(k)*dx(3)/scale
@@ -109,10 +106,8 @@ program main
       enddo
     end do
 
-!--------------------------------------------------------------
-
-
   call fabio_multifab_write_d(U, ".", "mfUInit", nOutfiles = 1)
+!--------------------------------------------------------------
 
   istep = 0
   time  = 0.d0
@@ -136,6 +131,7 @@ program main
   if ( parallel_IOProcessor() ) then
      write(6,42),"Run time (s) =",end_time-start_time
      write(6,42),"Run time per iteration (s) =",(end_time-start_time) / nsteps
+     print *,"-----------------"
   end if
 
 42  format(a,f12.8)

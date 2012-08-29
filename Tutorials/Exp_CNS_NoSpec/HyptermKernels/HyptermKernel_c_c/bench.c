@@ -39,6 +39,17 @@ uint64_t _total_time_hypterm_L1;
 uint64_t _total_time_hypterm_L2;
 uint64_t _total_time_hypterm_L3;
 
+double frequency = -1.0;
+
+//------------------------------------------------------------------------------------------------------------------------------
+void init_timer() {
+  uint64_t t0 = CycleTime();
+  sleep(1);
+  uint64_t t1 = CycleTime();
+  frequency = (double)(t1-t0);
+}
+
+
 //------------------------------------------------------------------------------------------------------------------------------
 void init_data(int lo[3], int hi[3], int fablo[3], int fabhi[3], int ng, double dx[3],
                double ** __restrict__ _cons, double ** __restrict__ _q)
@@ -51,8 +62,6 @@ void init_data(int lo[3], int hi[3], int fablo[3], int fabhi[3], int ng, double 
   int lo2=fablo[2]; int hi2=fabhi[2];
   int pencil = (hi0-lo0+1);
   int  plane = (hi1-lo1+1)*pencil;
-  //int pencilg =  (hi0-lo0+1)+2*ng;
-  //int  planeg = ((hi1-lo1+1)+2*ng)*pencilg;
 
   /* we have to initialize the entire arrays, including ghost cells */
   double * __restrict__ cons[5]; for(c=0;c<5;c++) { cons[c] = _cons[c]; }
@@ -103,27 +112,12 @@ void init_data(int lo[3], int hi[3], int fablo[3], int fabhi[3], int ng, double 
         q[imz][ijk]  = cons[imz][ijk] * rhoinv;
 
         eloc = cons[iene][ijk]*rhoinv -
-               0.5e0*((q[imx][ijk]*q[imx][ijk]) + (q[imy][ijk]*q[imy][ijk]) + (q[imz][ijk]*q[imz][ijk]));
+               0.5e0*((q[imx][ijk]*q[imx][ijk]) +
+	       (q[imy][ijk]*q[imy][ijk]) +
+	       (q[imz][ijk]*q[imz][ijk]));
 
         q[iene][ijk]   = (GAMMA-1.0e0)*eloc*cons[irho][ijk];
         q[iene+1][ijk] = eloc * CVinv;
-      }
-    }
-  }
-
-  double dmin[ncomp], dmax[ncomp];
-  for(c = 0; c < ncomp; ++c) {
-    dmin[c] = cons[c][0];
-    dmax[c] = cons[c][0];
-  }
-  for(c = 0; c < ncomp; ++c) {
-    for(k=lo2;k<=hi2;k++){
-      for(j=lo1;j<=hi1;j++){
-        for(i=lo0;i<=hi0;i++){
-          int ijk = (i-fablo[0]) + (j-fablo[1])*pencil + (k-fablo[2])*plane;
-          dmin[c] = fmin(dmin[c], cons[c][ijk]);
-          dmax[c] = fmax(dmax[c], cons[c][ijk]);
-        }
       }
     }
   }
@@ -161,16 +155,9 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   int L2iters = 0;
   int L3iters = 0;
 
-#ifdef BL_NOBENCHMAIN
-  uint64_t t0 = CycleTime();
-  sleep(1);
-  uint64_t t1 = CycleTime();
-  double frequency = (double)(t1-t0);
-#endif
-
-  printf("lo0 hi0 = %d %d\n", lo0, hi0);
-  printf("lo1 hi1 = %d %d\n", lo1, hi1);
-  printf("lo2 hi2 = %d %d\n", lo2, hi2);
+  if(frequency < 0.0) {
+    init_timer();
+  }
 
   uint64_t _time_start      = CycleTime();
 
@@ -241,11 +228,6 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
       }
     }
   }
-  printf("-----------------\n");
-  for(c = 0; c < 5; ++c) {
-    printf("hypterm:  minmax flux[%d] = %e %e\n", c, dmin[c], dmax[c]);
-  }
-  printf("-----------------\n");
 
   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   int pencilg2 = pencilg*2;
@@ -493,9 +475,10 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   printf("L3 iters = %d\n",L3iters    );
 
 #ifdef BL_NOBENCHMAIN
-  printf("     L1 = %9.6fs\n",(double)(_time_L1 - _time_start)/frequency);
-  printf("     L2 = %9.6fs\n",(double)(_time_L2 - _time_L1)/frequency);
-  printf("     L3 = %9.6fs\n",(double)(_time_L3 - _time_L2)/frequency);
+  printf("-----------------\n");
+  printf("     L1 = %9.6f s\n",(double)(_time_L1 - _time_start)/frequency);
+  printf("     L2 = %9.6f s\n",(double)(_time_L2 - _time_L1)/frequency);
+  printf("     L3 = %9.6f s\n",(double)(_time_L3 - _time_L2)/frequency);
 #endif
   
   for(c = 0; c < 5; ++c) {
@@ -556,12 +539,6 @@ int main(int argc, char **argv){
   for(c=0;c<NC;c++){
     U[c] = tmpbuf + c*volume;
   }
-  printf("U = %u\n", U);
-  printf("U[0] = %u\n", U[0]);
-  printf("tmpbuf = %u\n", tmpbuf);
-  for(c=0;c<NC;c++){
-    printf("U[%d] = %u\n", c, U[c]);
-  }
 
   double **F = (double**)malloc(NC*sizeof(double*)); // NC, 0
   posix_memalign((void**)&F,64,NC*sizeof(double*));
@@ -594,10 +571,7 @@ int main(int argc, char **argv){
 
   FakeWriteMultifab(lo, hi, fablo, fabhi, NG, NC, U, "mfUInit");
 
-  uint64_t t0 = CycleTime();
-  sleep(1);
-  uint64_t t1 = CycleTime();
-  double frequency = (double)(t1-t0);
+  init_timer();
 
   _total_run_time        = 0;
   _total_time_hypterm    = 0;
@@ -617,14 +591,15 @@ int main(int argc, char **argv){
 
   #ifdef JBlockSize
   printf("JBlockSize = %d\n",JBlockSize);
-  printf("volume     = %d\n",volume    );
   #endif
-  printf("frequency = %6.6e\n",frequency);
-  printf("     L1 = %9.6fs\n",(double)_total_time_hypterm_L1/(double)NIterations/frequency);
-  printf("     L2 = %9.6fs\n",(double)_total_time_hypterm_L2/(double)NIterations/frequency);
-  printf("     L3 = %9.6fs\n",(double)_total_time_hypterm_L3/(double)NIterations/frequency);
-  printf("hypterm = %9.6fs\n",(double)_total_time_hypterm   /(double)NIterations/frequency);
-  printf("runtime = %9.6fs\n",(double)_total_run_time   /frequency);
+  printf("-----------------\n");
+  printf("     L1 = %9.6f s\n",(double)_total_time_hypterm_L1/(double)NIterations/frequency);
+  printf("     L2 = %9.6f s\n",(double)_total_time_hypterm_L2/(double)NIterations/frequency);
+  printf("     L3 = %9.6f s\n",(double)_total_time_hypterm_L3/(double)NIterations/frequency);
+  printf("-----------------\n");
+  printf("hypterm = %9.6f s\n",(double)_total_time_hypterm   /(double)NIterations/frequency);
+  printf("runtime = %9.6f s\n",(double)_total_run_time   /frequency);
+  printf("-----------------\n");
 
 }
 #endif

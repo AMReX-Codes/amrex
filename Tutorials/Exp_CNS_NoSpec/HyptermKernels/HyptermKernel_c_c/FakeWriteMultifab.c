@@ -1,5 +1,7 @@
 /* ------------------------------------------------------------------------- */
-/* this will only work in serial with one grid. */
+/* FakeWriteMultifab.c                                                       */
+/*                                                                           */
+/* this will only work in serial with one grid.                              */
 /* ------------------------------------------------------------------------- */
 #include <stdio.h>
 #include <math.h>
@@ -17,10 +19,6 @@ void FakeWriteMultifab(int lo[3], int hi[3], int fablo[3], int fabhi[3],
   int pencilg =  (hi0-lo0+1)+2*ng;
   int planeg  = ((hi1-lo1+1)+2*ng)*pencilg;
 
-  printf("FWMF:  pencilg = %d\n", pencilg);
-  printf("FWMF:  planeg  = %d\n", planeg );
-  printf("FWMF:  _cons = %u\n", _cons);
-  printf("FWMF:  _cons[0] = %u\n", _cons[0]);
   double * __restrict__ cons[5];
   for(c = 0; c < ncomp; ++c) {
     cons[c] = _cons[c];
@@ -52,8 +50,6 @@ void FakeWriteMultifab(int lo[3], int hi[3], int fablo[3], int fabhi[3],
   char fnameH[64], fnameD[64];
   sprintf(fnameH, "%s%s", name, "_H");
   sprintf(fnameD, "%s%s", name, "_D_0000");
-  printf("fnameH = %s\n", fnameH);
-  printf("fnameD = %s\n", fnameD);
   outfileH = fopen(fnameH, "w");
 
   fprintf(outfileH, "1\n0\n%d\n0\n", ncomp);
@@ -88,12 +84,5 @@ void FakeWriteMultifab(int lo[3], int hi[3], int fablo[3], int fabhi[3],
   }
 
   fclose(outfileD);
-
-
-  printf("lo = %d %d %d\n", lo[0], lo[1], lo[2]);
-  printf("hi = %d %d %d\n", hi[0], hi[1], hi[2]);
-  printf("volume = %d\n", volume);
-  printf("\n\n");
-
 }
 
