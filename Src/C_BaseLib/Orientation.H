@@ -160,19 +160,31 @@ public:
     //
     // Post-decrement.
     //
-    OrientationIter operator-- (int) { BL_ASSERT(ok()); OrientationIter it(face); --face; return it; }
+    OrientationIter operator-- (int)
+    {
+        BL_ASSERT(ok()); OrientationIter it(face); --face; return it;
+    }
     //
     // Post-increment.
     //
-    OrientationIter operator++ (int) { BL_ASSERT(ok()); OrientationIter it(face); ++face; return it; }
+    OrientationIter operator++ (int)
+    {
+        BL_ASSERT(ok()); OrientationIter it(face); ++face; return it;
+    }
     //
     // The equality operator.
     //
-    bool operator== (const OrientationIter& oi) const { BL_ASSERT(ok() && oi.ok()); return face == oi.face; }
+    bool operator== (const OrientationIter& oi) const
+    {
+        BL_ASSERT(ok() && oi.ok()); return face == oi.face;
+    }
     //
     // The inequality operator.
     //
-    bool operator!= (const OrientationIter& oi) const { BL_ASSERT(ok() && oi.ok()); return face != oi.face; }
+    bool operator!= (const OrientationIter& oi) const
+    {
+        BL_ASSERT(ok() && oi.ok()); return face != oi.face;
+    }
 
 private:
 

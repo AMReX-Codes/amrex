@@ -84,11 +84,17 @@ public:
     // The element can be modified through this reference.  The
     // result can be used as an L-value.
     //
-    T& operator[] (size_t i) { BL_ASSERT(i < size()); return this->std::vector<T>::operator[](i); }
+    T& operator[] (size_t i)
+    {
+        BL_ASSERT(i < size()); return this->std::vector<T>::operator[](i);
+    }
     //
     // Same as above, except acts on const Array's.
     //
-    const T& operator[] (size_t i) const  { BL_ASSERT(i < size()); return this->std::vector<T>::operator[](i); }
+    const T& operator[] (size_t i) const
+    {
+        BL_ASSERT(i < size()); return this->std::vector<T>::operator[](i);
+    }
     //
     // Different syntax for operator[].
     //
