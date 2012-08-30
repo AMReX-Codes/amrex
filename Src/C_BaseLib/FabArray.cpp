@@ -223,7 +223,7 @@ FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
     //
     // Got to insert one & then build it.
     //
-    CPCCacheIter cache_it = TheCopyCache.insert(std::make_pair(Key,cpc));
+    CPCCacheIter cache_it = TheCopyCache.insert(CPCCache::value_type(Key,cpc));
     CPC&         TheCPC   = cache_it->second;
     const int    MyProc   = ParallelDescriptor::MyProc();
     //
@@ -238,7 +238,6 @@ FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
     TheCPC.m_SndVols = new std::map<int,int>;
     TheCPC.m_RcvVols = new std::map<int,int>;
 
-    CopyComTag                        tag;
     std::vector< std::pair<int,Box> > isects;
 
     for (int i = 0, N = TheCPC.m_dstba.size(); i < N; i++)
@@ -254,6 +253,8 @@ FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
             const int  src_owner = TheCPC.m_srcdm[k];
 
             if (dst_owner != MyProc && src_owner != MyProc) continue;
+
+            CopyComTag tag;
 
             tag.box      = bx;
             tag.fabIndex = i;
@@ -275,16 +276,6 @@ FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
                 FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,bx);
             }
         }
-    }
-
-    if (TheCPC.m_LocTags->empty() && TheCPC.m_SndTags->empty() && TheCPC.m_RcvTags->empty())
-    {
-        //
-        // This MPI proc has no work to do.  Don't store in the cache.
-        //
-        TheCopyCache.erase(cache_it);
-
-        return TheCopyCache.end();
     }
 
     return cache_it;
@@ -478,7 +469,7 @@ FabArrayBase::TheFB (bool                cross,
     //
     // Got to insert one & then build it.
     //
-    FBCacheIter                cache_it = m_TheFBCache.insert(std::make_pair(Key,si));
+    FBCacheIter                cache_it = m_TheFBCache.insert(FBCache::value_type(Key,si));
     SI&                        TheFB    = cache_it->second;
     const int                  MyProc   = ParallelDescriptor::MyProc();
     const BoxArray&            ba       = mf.boxArray();
@@ -495,7 +486,6 @@ FabArrayBase::TheFB (bool                cross,
     TheFB.m_SndVols = new std::map<int,int>;
     TheFB.m_RcvVols = new std::map<int,int>;
 
-    CopyComTag                        tag;
     std::vector<Box>                  boxes;
     std::vector< std::pair<int,Box> > isects;
 
@@ -542,6 +532,8 @@ FabArrayBase::TheFB (bool                cross,
 
                 if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
 
+                CopyComTag tag;
+
                 tag.box      = bx;
                 tag.fabIndex = i;
                 tag.srcIndex = k;
@@ -563,16 +555,6 @@ FabArrayBase::TheFB (bool                cross,
                 }
             }
         }
-    }
-
-    if (TheFB.m_LocTags->empty() && TheFB.m_SndTags->empty() && TheFB.m_RcvTags->empty())
-    {
-        //
-        // This MPI proc has no work to do.  Don't store in the cache.
-        //
-        m_TheFBCache.erase(cache_it);
-
-        return m_TheFBCache.end();
     }
 
     return cache_it;
