@@ -276,7 +276,6 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
     if (TheDomain.contains(BoxLib::grow(srcmf.boxArray().minimalBox(),srcmf.nGrow()))) return;
 
     FArrayBox                  fab;
-    FabArrayBase::CopyComTag   tag;
     MapOfCopyComTagContainers  m_SndTags, m_RcvTags;
     std::map<int,int>          m_SndVols, m_RcvVols;
     Array<IntVect>             pshifts(27);
@@ -317,6 +316,8 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
                 const Box     shft = src + iv;
                 const Box     dbx  = dst & shft;
                 const Box     sbx  = dbx - iv;
+
+                FabArrayBase::CopyComTag tag;
 
                 if (dst_owner == MyProc)
                 {
@@ -455,6 +456,7 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
 
     if (FabArrayBase::do_async_sends && !m_SndTags.empty())
         FabArrayBase::GrokAsyncSends(m_SndTags.size(),send_reqs,send_data,stats);
+
 #endif /*BL_USE_MPI*/
 }
 
@@ -827,7 +829,7 @@ Geometry::GetFPB (const Geometry&      geom,
     //
     // Got to insert one & then build it.
     //
-    Geometry::FPBMMapIter cache_it = m_FPBCache.insert(std::make_pair(Key,fpb));
+    Geometry::FPBMMapIter cache_it = m_FPBCache.insert(FPBMMap::value_type(Key,fpb));
     FPB&                  TheFPB   = cache_it->second;
     //
     // Here's where we allocate memory for the cache innards.
@@ -846,7 +848,6 @@ Geometry::GetFPB (const Geometry&      geom,
         if (ba[0].ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
 
-    FPBComTag      tag;
     Array<IntVect> pshifts(27);
 
     for (int i = 0, N = ba.size(); i < N; i++)
@@ -887,6 +888,8 @@ Geometry::GetFPB (const Geometry&      geom,
                 const IntVect& iv   = *it;
                 const Box      shft = src + iv;
 
+                FPBComTag tag;
+
                 tag.dbox     = dst & shft;
                 tag.sbox     = tag.dbox - iv;
                 tag.dstIndex = i;
@@ -909,16 +912,6 @@ Geometry::GetFPB (const Geometry&      geom,
                 }
             }
         }
-    }
-
-    if (TheFPB.m_LocTags->empty() && TheFPB.m_SndTags->empty() && TheFPB.m_RcvTags->empty())
-    {
-        //
-        // This MPI proc has no work to do.  Don't store in the cache.
-        //
-        m_FPBCache.erase(cache_it);
-
-        return m_FPBCache.end();
     }
 
     return cache_it;

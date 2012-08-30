@@ -1262,30 +1262,29 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, FabArrayBase::m_TheCopyCache);
 
+    BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
+
+    const CPC& thecpc = cache_it->second;
+
     if (NProcs == 1)
     {
         //
         // There can only be local work to do.
         //
-        if (cache_it != FabArrayBase::m_TheCopyCache.end())
+        for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
+                 End = thecpc.m_LocTags->end();
+             it != End;
+             ++it)
         {
-            const CPC& thecpc = cache_it->second;
+            const CopyComTag& tag = *it;
 
-            for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
-                     End = thecpc.m_LocTags->end();
-                 it != End;
-                 ++it)
+            if (op == FabArrayBase::COPY)
             {
-                const CopyComTag& tag = *it;
-
-                if (op == FabArrayBase::COPY)
-                {
-                    get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
-                }
-                else
-                {
-                    get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
-                }
+                get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
+            }
+            else
+            {
+                get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
             }
         }
 
@@ -1299,13 +1298,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (cache_it == FabArrayBase::m_TheCopyCache.end())
+    if (thecpc.m_LocTags->empty() && thecpc.m_RcvTags->empty() && thecpc.m_SndTags->empty())
         //
-        // No parallel work to do.
+        // No work to do.
         //
         return;
-
-    const CPC& thecpc = cache_it->second;
 
     Array<MPI_Status>  stats;
     Array<int>         recv_from, index;
@@ -2226,27 +2223,26 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(cross,*this);
 
+    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
+
+    const FabArrayBase::SI& TheSI = cache_it->second;
+
     if (NProcs == 1)
     {
         //
         // There can only be local work to do.
         //
-        if (cache_it != FabArrayBase::m_TheFBCache.end())
+        for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
+                 End = TheSI.m_LocTags->end();
+             it != End;
+             ++it)
         {
-            const FabArrayBase::SI& TheSI = cache_it->second;
+            const CopyComTag& tag = *it;
 
-            for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
-                     End = TheSI.m_LocTags->end();
-                 it != End;
-                 ++it)
-            {
-                const CopyComTag& tag = *it;
+            BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
+            BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
 
-                BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
-                BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
-
-                get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
-            }
+            get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
         }
 
         return;
@@ -2259,13 +2255,11 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (cache_it == FabArrayBase::m_TheFBCache.end())
+    if (TheSI.m_LocTags->empty() && TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
         //
-        // No parallel work to do.
+        // No work to do.
         //
         return;
-
-    const FabArrayBase::SI& TheSI = cache_it->second;
 
     Array<MPI_Status>  stats;
     Array<int>         recv_from, index;

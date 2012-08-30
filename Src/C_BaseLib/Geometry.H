@@ -324,27 +324,23 @@ namespace BoxLib
 
         Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb);
 
+        BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
+
+        const Geometry::FPB& TheFPB = cache_it->second;
+
         if (ParallelDescriptor::NProcs() == 1)
         {
             //
             // There can only be local work to do.
             //
-            if (cache_it != Geometry::m_FPBCache.end())
+            for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
+                     End = TheFPB.m_LocTags->end();
+                 it != End;
+                 ++it)
             {
-                const Geometry::FPB& TheFPB = cache_it->second;
+                const Geometry::FPBComTag& tag = *it;
 
-                for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
-                         End = TheFPB.m_LocTags->end();
-                     it != End;
-                     ++it)
-                {
-                    const Geometry::FPBComTag& tag = *it;
-
-                    BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
-                    BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-                    mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
-                }
+                mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
             }
 
             return;
@@ -357,13 +353,11 @@ namespace BoxLib
         //
         const int SeqNum = ParallelDescriptor::SeqNum();
 
-        if (cache_it == Geometry::m_FPBCache.end())
+        if (TheFPB.m_LocTags->empty() && TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
             //
-            // No parallel work to do.
+            // No work to do.
             //
             return;
-
-        const Geometry::FPB& TheFPB = cache_it->second;
 
         typedef typename FAB::value_type value_type;
 
