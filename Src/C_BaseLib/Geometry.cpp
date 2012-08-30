@@ -108,6 +108,8 @@ Geometry::FPB::bytes () const
 
     if (m_SndTags)
     {
+        cnt += sizeof(MapOfFPBComTagContainers);
+
         cnt += m_SndTags->size()*sizeof(MapOfFPBComTagContainers::value_type);
 
         for (FPB::MapOfFPBComTagContainers::const_iterator it = m_SndTags->begin(),
@@ -115,12 +117,14 @@ Geometry::FPB::bytes () const
              it != m_End;
              ++it)
         {
-            cnt += sizeof(FPBComTagsContainer) + it->second.size()*sizeof(FPBComTag);
+            cnt += it->second.size()*sizeof(FPBComTag);
         }
     }
 
     if (m_RcvTags)
     {
+        cnt += sizeof(MapOfFPBComTagContainers);
+
         cnt += m_SndTags->size()*sizeof(MapOfFPBComTagContainers::value_type);
 
         for (FPB::MapOfFPBComTagContainers::const_iterator it = m_RcvTags->begin(),
@@ -128,7 +132,7 @@ Geometry::FPB::bytes () const
              it != m_End;
              ++it)
         {
-            cnt += sizeof(FPBComTagsContainer) + it->second.size()*sizeof(FPBComTag);
+            cnt += it->second.size()*sizeof(FPBComTag);
         }
     }
 

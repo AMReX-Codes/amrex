@@ -120,6 +120,8 @@ FabArrayBase::CPC::bytes () const
 
     if (m_SndTags)
     {
+        cnt += sizeof(MapOfCopyComTagContainers);
+
         cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
 
         for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
@@ -127,12 +129,14 @@ FabArrayBase::CPC::bytes () const
              it != m_End;
              ++it)
         {
-            cnt += sizeof(CopyComTagsContainer) + it->second.size()*sizeof(CopyComTag);
+            cnt += it->second.size()*sizeof(CopyComTag);
         }
     }
 
     if (m_RcvTags)
     {
+        cnt += sizeof(MapOfCopyComTagContainers);
+
         cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
 
         for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
@@ -140,7 +144,7 @@ FabArrayBase::CPC::bytes () const
              it != m_End;
              ++it)
         {
-            cnt += sizeof(CopyComTagsContainer) + it->second.size()*sizeof(CopyComTag);
+            cnt += it->second.size()*sizeof(CopyComTag);
         }
     }
 
@@ -374,6 +378,8 @@ FabArrayBase::SI::bytes () const
 
     if (m_SndTags)
     {
+        cnt += sizeof(MapOfCopyComTagContainers);
+
         cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
 
         for (CPC::MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
@@ -381,12 +387,14 @@ FabArrayBase::SI::bytes () const
              it != m_End;
              ++it)
         {
-            cnt += sizeof(CopyComTagsContainer) + it->second.size()*sizeof(CopyComTag);
+            cnt += it->second.size()*sizeof(CopyComTag);
         }
     }
 
     if (m_RcvTags)
     {
+        cnt += sizeof(MapOfCopyComTagContainers);
+
         cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
 
         for (CPC::MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
@@ -394,7 +402,7 @@ FabArrayBase::SI::bytes () const
              it != m_End;
              ++it)
         {
-            cnt += sizeof(CopyComTagsContainer) + it->second.size()*sizeof(CopyComTag);
+            cnt += it->second.size()*sizeof(CopyComTag);
         }
     }
 
