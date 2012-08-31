@@ -160,6 +160,8 @@ DistributionMapping::Finalize ()
 {
     initialized = false;
 
+    DistributionMapping::FlushCache();
+
     DistributionMapping::m_BuildMap = 0;
 
     DistributionMapping::m_Cache.clear();
