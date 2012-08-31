@@ -479,6 +479,7 @@ void hypterm_naive(int lo[3], int hi[3], int ng, double dx[3], double ** __restr
   printf("     L1 = %9.6f s\n",(double)(_time_L1 - _time_start)/frequency);
   printf("     L2 = %9.6f s\n",(double)(_time_L2 - _time_L1)/frequency);
   printf("     L3 = %9.6f s\n",(double)(_time_L3 - _time_L2)/frequency);
+  printf("hypterm = %9.6f s\n",(double)(_time_L3 - _time_start)/frequency);
 #endif
   
   for(c = 0; c < 5; ++c) {

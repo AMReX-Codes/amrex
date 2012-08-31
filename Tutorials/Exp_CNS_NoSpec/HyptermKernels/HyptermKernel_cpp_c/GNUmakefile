@@ -29,23 +29,22 @@ FCOMP     = gfortran
 USE_ARRAYVIEW = FALSE
 USE_OMP = TRUE
 
-#DEBUG	  = TRUE
-USE_OMP = FALSE
-USE_MPI     =FALSE
-#FDEBF += -g
-#fDEBF += -g
-#CDEBF += -g
-#CPPDEBF += -g
-
-COPTF += -O3
-
 HERE = .
-
-ifeq ($(EBASE), HyptermOnly)
-endif
 
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+
+override CXXOPTF = -O3 -msse3
+override COPTF   = -O3 -msse3
+override FOPTF   = -O3 -msse3
+override fOPTF   = -O3 -msse3
+
+ifeq ($(USE_OMP),TRUE)
+  override CXXOPTF += -fopenmp
+  override COPTF   += -fopenmp
+  override FOPTF   += -fopenmp
+  override fOPTF   += -fopenmp
+endif
 
 
 CEXE_sources += $(EBASE).cpp
