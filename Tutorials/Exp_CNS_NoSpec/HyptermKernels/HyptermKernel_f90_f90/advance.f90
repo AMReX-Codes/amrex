@@ -46,6 +46,7 @@ contains
     double precision, parameter :: OneQuarter    = 1.d0/4.d0
     double precision, parameter :: ThreeQuarters = 3.d0/4.d0
 
+    double precision :: fluxmin, fluxmax
 
     nc = ncomp(U)
     ng = nghost(U)
@@ -89,7 +90,15 @@ contains
 
        !call hypterm(lo,hi,ng,dx,up,qp,fp)
        call hypterm_opt(lo,hi,ng,dx,up,qp,fp)
+
     end do
+
+    do n = 1, nc
+      fluxmin = min_val(F, n)
+      fluxmax = max_val(F, n)
+      write(6,43), "minmax flux = ", fluxmin, fluxmax
+    end do
+    print *,"-----------------"
 
     call fabio_multifab_write_d(F, ".", "mfFluxFinal", nOutfiles = 1)
 
@@ -98,6 +107,7 @@ contains
     call destroy(Q)
     call destroy(F)
 
+43  format(a,E20.8,E20.8)
 
   end subroutine advance
 
@@ -680,12 +690,6 @@ contains
      print*, "L3iters = ", L3iters
     end if
 
-    print *,"-----------------"
-    do icomp=1,5
-      write(6,43), "minmax flux = ", fluxmin(icomp), fluxmax(icomp)
-    enddo
-    print *,"-----------------"
-
     if ( parallel_IOProcessor() ) then
        print *,"-----------------"
        write(6,42),"     L1  (s) =",L1_end_time-L1_start_time
@@ -696,7 +700,6 @@ contains
     end if
 
 42  format(a,f12.8)
-43  format(a,E20.8,E20.8)
 
   end subroutine hypterm_opt
 
