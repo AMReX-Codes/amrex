@@ -148,15 +148,25 @@ int main(int argc, char *argv[]) {
         if(ParallelDescriptor::IOProcessor()) {
 	  cout << "-----------------" << endl;
 	}
+
+        double tstart = BoxLib::wsecond();
+
         hypterm_naive(lo,hi,NG,dx,U,Q,F);
+
+        double tend = BoxLib::wsecond();
+        if(ParallelDescriptor::IOProcessor()) {
+	  cout << "-----------------" << endl;
+          cout << "hypterm =  " << tend - tstart << endl;
+	}
+
       }
     }
 
     double tend = BoxLib::wsecond();
     if(ParallelDescriptor::IOProcessor()) {
       cout << "-----------------" << endl;
-      cout << "Hypterm time    =  " << tend - tstart << endl;
-      cout << "Hypterm time/it =  " << (tend - tstart) / (static_cast<double> (nSteps)) << endl;
+      cout << "runtime tot =  " << tend - tstart << endl;
+      cout << "runtime /it =  " << (tend - tstart) / (static_cast<double> (nSteps)) << endl;
       cout << "-----------------" << endl;
     }
 

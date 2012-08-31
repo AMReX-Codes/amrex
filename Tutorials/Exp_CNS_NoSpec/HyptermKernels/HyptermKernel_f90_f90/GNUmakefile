@@ -3,8 +3,8 @@
 BOXLIB_HOME ?= $(HOME)/Development/BoxLib/
 
 NDEBUG    := t
-MPI       := 
-OMP       := 
+MPI       := t
+OMP       := t
 PROF      := t
 COMP      := gfortran
 MKVERBOSE := t
@@ -16,7 +16,24 @@ include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 f90sources += advance.f90
 f90sources += main.f90
 
-F90FLAGS += -msse3 -O3
+
+ifdef OMP
+
+override CXXOPTF  = -O3 -msse3 -fopenmp
+override COPTF    = -O3 -msse3 -fopenmp
+override FOPTF    = -J$(mdir) -I $(mdir) -O3 -msse3 -fno-range-check -fopenmp
+override fOPTF    = -J$(mdir) -I $(mdir) -O3 -msse3 -fno-range-check -fopenmp
+override F90FLAGS = -J$(mdir) -I $(mdir) -O3 -msse3 -fno-range-check -fopenmp
+
+else
+
+override CXXOPTF  = -O3 -msse3
+override COPTF    = -O3 -msse3
+override FOPTF    = -J$(mdir) -I $(mdir) -O3 -msse3 -fno-range-check
+override fOPTF    = -J$(mdir) -I $(mdir) -O3 -msse3 -fno-range-check
+override F90FLAGS = -J$(mdir) -I $(mdir) -O3 -msse3 -fno-range-check
+endif
+
 
 VPATH_LOCATIONS += .
 
