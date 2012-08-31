@@ -309,9 +309,6 @@ namespace BoxLib
         for (int n = 0; n < BL_SPACEDIM; n++)
             if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
                 TheDomain.surroundingNodes(n);
-
-        if (TheDomain.contains(BoxLib::grow(mf.boxArray().minimalBox(), mf.nGrow()))) return;
-
 #ifndef NDEBUG
         //
         // Don't let folks ask for more grow cells than they have valid region.

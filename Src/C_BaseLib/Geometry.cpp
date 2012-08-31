@@ -186,8 +186,6 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
         if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
 
-    if (TheDomain.contains(BoxLib::grow(mf.boxArray().minimalBox(), mf.nGrow()))) return;
-
     if ( local )
     {
         //
@@ -201,40 +199,41 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
             BL_ASSERT(dst == BoxLib::grow(mfidst.validbox(), mf.nGrow()));
 
-            if (!TheDomain.contains(dst))
-            {
-                for (MFIter mfisrc(mf); mfisrc.isValid(); ++mfisrc)
-                {
-                    Box src = mfisrc.validbox() & TheDomain;
+            if (TheDomain.contains(dst)) continue;
 
-                    if (corners)
+            for (MFIter mfisrc(mf); mfisrc.isValid(); ++mfisrc)
+            {
+                Box src = mfisrc.validbox() & TheDomain;
+
+                if (corners)
+                {
+                    for (int i = 0; i < BL_SPACEDIM; i++)
                     {
-                        for (int i = 0; i < BL_SPACEDIM; i++)
+                        if (!isPeriodic(i))
                         {
-                            if (!isPeriodic(i))
-                            {
-                                if (src.smallEnd(i) == Domain().smallEnd(i))
-                                    src.growLo(i,mf.nGrow());
-                                if (src.bigEnd(i) == Domain().bigEnd(i))
-                                    src.growHi(i,mf.nGrow());
-                            }
+                            if (src.smallEnd(i) == Domain().smallEnd(i))
+                                src.growLo(i,mf.nGrow());
+                            if (src.bigEnd(i) == Domain().bigEnd(i))
+                                src.growHi(i,mf.nGrow());
                         }
                     }
+                }
 
-                    periodicShift(dst, src, pshifts);
+                if (TheDomain.contains(src)) continue;
 
-                    for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-                         it != End;
-                         ++it)
-                    {
-                        const IntVect& iv = *it;
+                periodicShift(dst, src, pshifts);
 
-                        const Box shft = src + iv;
-                        const Box dbx  = dst & shft;
-                        const Box sbx  = dbx - iv;
+                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                     it != End;
+                     ++it)
+                {
+                    const IntVect& iv = *it;
 
-                        mf[mfidst].copy(mf[mfisrc],sbx,scomp,dbx,scomp,ncomp);
-                    }
+                    const Box shft = src + iv;
+                    const Box dbx  = dst & shft;
+                    const Box sbx  = dbx - iv;
+
+                    mf[mfidst].copy(mf[mfisrc],sbx,scomp,dbx,scomp,ncomp);
                 }
             }
         }
@@ -277,13 +276,10 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
         if (srcmf.boxArray()[0].ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
 
-    if (TheDomain.contains(BoxLib::grow(srcmf.boxArray().minimalBox(),srcmf.nGrow()))) return;
-
     FArrayBox                  fab;
     MapOfCopyComTagContainers  m_SndTags, m_RcvTags;
     std::map<int,int>          m_SndVols, m_RcvVols;
     Array<IntVect>             pshifts(27);
-
     const int                  ngrow  = srcmf.nGrow();
     const int                  MyProc = ParallelDescriptor::MyProc();
     const BoxArray&            srcba  = srcmf.boxArray();
@@ -303,10 +299,11 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
         //
         for (int j = 0, N = srcba.size(); j < N; j++)
         {
-            const Box src       = BoxLib::grow(srcba[j],ngrow);
             const int src_owner = srcdm[j];
 
             if (dst_owner != MyProc && src_owner != MyProc) continue;
+
+            const Box src = BoxLib::grow(srcba[j],ngrow);
 
             if (TheDomain.contains(src)) continue;
 
