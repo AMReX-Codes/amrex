@@ -45,6 +45,11 @@ ifeq ($(USE_OMP),TRUE)
   override fOPTF   += -fopenmp
 endif
 
+CXXOPTF = -O1
+COPTF   = -O1
+FOPTF   = -O1
+fOPTF   = -O1
+# FFLAGS  = -O1
 
 CEXE_sources += $(EBASE).cpp
 
