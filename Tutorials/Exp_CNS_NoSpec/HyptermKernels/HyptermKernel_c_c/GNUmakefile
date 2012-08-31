@@ -1,7 +1,7 @@
 
 BOXLIB_HOME ?= $(HOME)/Development/BoxLib
 
-EBASE = htccc
+EBASE = HyptermOnly
 
 PRECISION = DOUBLE
 PROFILE   = TRUE
@@ -14,10 +14,25 @@ DEBUG     = TRUE
 DEBUG     = FALSE
 DIM       = 3
 
-USE_MPI=FALSE
+USE_MPI=TRUE
+USE_OMP=TRUE
 
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+
+
+override CXXOPTF = -O3 -msse3
+override COPTF   = -O3 -msse3
+override FOPTF   = -O3 -msse3
+override fOPTF   = -O3 -msse3
+
+ifeq ($(USE_OMP),TRUE)
+  override CXXOPTF += -fopenmp
+  override COPTF   += -fopenmp
+  override FOPTF   += -fopenmp
+  override fOPTF   += -fopenmp
+endif
+
 
 HERE = .
 
