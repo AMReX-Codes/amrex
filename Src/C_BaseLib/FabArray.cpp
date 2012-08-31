@@ -28,7 +28,7 @@ FabArrayBase::Initialize ()
     FabArrayBase::verbose          = true;
     FabArrayBase::do_async_sends   = false;
 
-    copy_cache_max_size = 100;
+    copy_cache_max_size = 200;
     fb_cache_max_size   = 100;
 
     ParmParse pp("fabarray");
