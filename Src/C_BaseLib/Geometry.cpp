@@ -773,7 +773,8 @@ Geometry::FPBMMap Geometry::m_FPBCache;
 
 Geometry::FPBMMapIter
 Geometry::GetFPB (const Geometry&      geom,
-                  const Geometry::FPB& fpb)
+                  const Geometry::FPB& fpb,
+                  const FabArrayBase&  mf)
 {
     BL_ASSERT(fpb.m_ngrow > 0);
     BL_ASSERT(fpb.m_ba.size() > 0);
@@ -843,6 +844,12 @@ Geometry::GetFPB (const Geometry&      geom,
     TheFPB.m_RcvTags = new FPB::MapOfFPBComTagContainers;
     TheFPB.m_SndVols = new std::map<int,int>;
     TheFPB.m_RcvVols = new std::map<int,int>;
+
+    if (mf.IndexMap().empty())
+        //
+        // We don't own any of the relevant FABs so can't possibly have any work to do.
+        //
+        return cache_it;
 
     Box TheDomain = geom.Domain();
     for (int n = 0; n < BL_SPACEDIM; n++)

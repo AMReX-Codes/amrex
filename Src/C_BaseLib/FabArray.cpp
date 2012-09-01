@@ -167,7 +167,10 @@ FabArrayBase::CPC::bytes () const
 FabArrayBase::CPCCache FabArrayBase::m_TheCopyCache;
 
 FabArrayBase::CPCCacheIter
-FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
+FabArrayBase::TheCPC (const CPC&          cpc,
+                      const FabArrayBase& dst,
+                      const FabArrayBase& src,
+                      CPCCache&           TheCopyCache)
 {
     BL_ASSERT(cpc.m_dstba.size() > 0 && cpc.m_srcba.size() > 0);
     //
@@ -241,6 +244,12 @@ FabArrayBase::TheCPC (const CPC& cpc, CPCCache& TheCopyCache)
     TheCPC.m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
     TheCPC.m_SndVols = new std::map<int,int>;
     TheCPC.m_RcvVols = new std::map<int,int>;
+
+    if (dst.IndexMap().empty() && src.IndexMap().empty())
+        //
+        // We don't own any of the relevant FABs so can't possibly have any work to do.
+        //
+        return cache_it;
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -493,6 +502,12 @@ FabArrayBase::TheFB (bool                cross,
     TheFB.m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
     TheFB.m_SndVols = new std::map<int,int>;
     TheFB.m_RcvVols = new std::map<int,int>;
+
+    if (mf.IndexMap().empty())
+        //
+        // We don't own any of the relevant FABs so can't possibly have any work to do.
+        //
+        return cache_it;
 
     std::vector<Box>                  boxes;
     std::vector< std::pair<int,Box> > isects;

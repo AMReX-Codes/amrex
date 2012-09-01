@@ -1056,24 +1056,23 @@ MultiFab::SumBoundary (int scomp,
     const int                 NProcs   = ParallelDescriptor::NProcs();
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(false,mf);
 
+    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
+
+    const FabArrayBase::SI& TheSI = cache_it->second;
+
     if (NProcs == 1)
     {
         //
         // There can only be local work to do.
         //
-        if (cache_it != FabArrayBase::m_TheFBCache.end())
+        for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
+                 End = TheSI.m_LocTags->end();
+             it != End;
+             ++it)
         {
-            const FabArrayBase::SI& TheSI = cache_it->second;
+            const CopyComTag& tag = *it;
 
-            for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
-                     End = TheSI.m_LocTags->end();
-                 it != End;
-                 ++it)
-            {
-                const CopyComTag& tag = *it;
-
-                mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
-            }
+            mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
         }
 
         return;
@@ -1086,13 +1085,11 @@ MultiFab::SumBoundary (int scomp,
     //
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (cache_it == FabArrayBase::m_TheFBCache.end())
+    if (TheSI.m_LocTags->empty() && TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
         //
         // No work to do.
         //
         return;
-
-    const FabArrayBase::SI& TheSI = cache_it->second;
 
     Array<MPI_Status>  stats;
     Array<int>         recv_from, index;
