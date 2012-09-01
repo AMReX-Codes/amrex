@@ -259,7 +259,10 @@ public:
 
     static CPCCache m_TheCopyCache;
 
-    static CPCCacheIter TheCPC (const CPC& cpc, CPCCache& TheCopyCache);
+    static CPCCacheIter TheCPC (const CPC&          cpc,
+                                const FabArrayBase& dst,
+                                const FabArrayBase& src,
+                                CPCCache&           TheCopyCache);
     //
     // Used for collecting information used in communicating FABs.
     //
@@ -1260,7 +1263,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, FabArrayBase::m_TheCopyCache);
+    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src, FabArrayBase::m_TheCopyCache);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
 
