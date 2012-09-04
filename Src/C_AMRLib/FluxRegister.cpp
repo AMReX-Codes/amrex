@@ -414,98 +414,39 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    const Orientation                 face_lo(dir,Orientation::low), face_hi(dir,Orientation::high);
-    MultiFabCopyDescriptor            mfcd;
-    std::deque<FillBoxId>             fillBoxId_mflx, fillBoxId_area;
-    std::vector< std::pair<int,Box> > isects;
-
-    MultiFabId mfid_mflx = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mflx));
-    MultiFabId mfid_area = mfcd.RegisterFabArray(const_cast<MultiFab*>(&area));
+    const Orientation face_lo(dir,Orientation::low);
+    const Orientation face_hi(dir,Orientation::high);
 
     for (int pass = 0; pass < 2; pass++)
     {
-        const Orientation       face = ((pass == 0) ? face_lo          : face_hi);
-        const Orientation::Side side = ((pass == 0) ? Orientation::low : Orientation::high);
+        const Orientation face = ((pass == 0) ? face_lo : face_hi);
 
-        for (FabSetIter mfi(bndry[face]); mfi.isValid(); ++mfi)
+        MultiFab mf(mflx.boxArray(),numcomp,0);
+
+        for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
         {
-            mflx.boxArray().intersections(bndry[face][mfi].box(),isects);
+            mf[mfi].copy(mflx[mfi],srccomp,0,numcomp);
 
-            for (int i = 0, N = isects.size(); i < N; i++)
-            {
-                const int  k     = isects[i].first;
-                const Box& lobox = isects[i].second;
+            mf[mfi].mult(mult,0,numcomp);
 
-                fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
-                                                     lobox,
-                                                     0,
-                                                     k,
-                                                     srccomp,
-                                                     0,
-                                                     numcomp));
-
-                BL_ASSERT(fillBoxId_mflx.back().box() == lobox);
-                //
-                // Here we'll save the index into the FabSet.
-                //
-                fillBoxId_mflx.back().FabIndex(mfi.index());
-
-                fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
-                                                     lobox,
-                                                     0,
-                                                     k,
-                                                     0,
-                                                     0,
-                                                     1));
-
-                BL_ASSERT(fillBoxId_area.back().box() == lobox);
-                //
-                // Here we'll save the direction.
-                //
-                fillBoxId_area.back().FabIndex(side);
-            }
+            for (int i = 0; i < numcomp; i++)
+                mf[mfi].mult(area[mfi],0,i,1);
         }
-    }
-
-    mfcd.CollectData();
-
-    BL_ASSERT(fillBoxId_mflx.size() == fillBoxId_area.size());
-
-    FArrayBox mflx_fab, area_fab;
-
-    for (int i = 0, N = fillBoxId_mflx.size(); i < N; i++)
-    {
-        const FillBoxId& fbid_mflx = fillBoxId_mflx[i];
-        const FillBoxId& fbid_area = fillBoxId_area[i];
-
-        BL_ASSERT(fbid_mflx.box() == fbid_area.box());
-
-        const Orientation the_face(dir,Orientation::Side(fbid_area.FabIndex()));
-
-        BL_ASSERT(the_face == face_lo || the_face == face_hi);
-
-        mflx_fab.resize(fbid_mflx.box(), numcomp);
-        area_fab.resize(fbid_mflx.box(), 1);
-
-        mfcd.FillFab(mfid_mflx, fbid_mflx, mflx_fab);
-        mfcd.FillFab(mfid_area, fbid_area, area_fab);
-
-        FabSet&   fabset   = bndry[the_face];
-        const int fabindex = fbid_mflx.FabIndex();
-
-        BL_ASSERT(fabset.DistributionMap()[fabindex] == ParallelDescriptor::MyProc());
-
-        mflx_fab.mult(mult,0,numcomp);
-        for (int n = 0; n < numcomp; n++)
-            mflx_fab.mult(area_fab,0,n,1);
 
         if (op == COPY)
         {
-            bndry[the_face][fabindex].copy(mflx_fab,fbid_mflx.box(),0,fbid_mflx.box(),destcomp,numcomp);
+            bndry[face].copyFrom(mf,0,0,destcomp,numcomp);
         }
         else
         {
-            bndry[the_face][fabindex].plus(mflx_fab,fbid_mflx.box(),0,destcomp,numcomp);
+            FabSet fs(bndry[face].boxArray(),numcomp);
+
+            fs.setVal(0);
+
+            fs.copyFrom(mf,0,0,0,numcomp);
+
+            for (FabSetIter mfi(fs); mfi.isValid(); ++mfi)
+                bndry[face][mfi].plus(fs[mfi],0,destcomp,numcomp);
         }
     }
 }
