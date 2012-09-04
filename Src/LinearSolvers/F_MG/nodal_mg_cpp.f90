@@ -248,9 +248,9 @@ subroutine mgt_nodal_finalize(dx,bc)
         bottom_solver_in = mgts%bottom_solver
         bottom_max_iter_in = mgts%bottom_max_iter
      else
-        if ( all(mgts%rr == 2) ) then
+        if ( all(mgts%rr(n-1,:) == 2) ) then
            max_nlevel_in = 1
-        else if ( all(mgts%rr == 4) ) then
+        else if ( all(mgts%rr(n-1,:) == 4) ) then
            max_nlevel_in = 2
         else
            call bl_error("MGT_FINALIZE: confused about ref_ratio")
