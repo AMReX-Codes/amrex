@@ -474,10 +474,10 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 // Helper function and data for CrseInit()/CrseInitFinish().
 //
 
-static Array<int>                           CIMsgs;
-static std::vector<FabArrayBase::FabComTag> CITags;
-static std::vector<FArrayBox*>              CIFabs;
-static BArena                               CIArena;
+static Array<int>                          CIMsgs;
+static std::deque<FabArrayBase::FabComTag> CITags;
+static std::deque<FArrayBox*>              CIFabs;
+static BArena                              CIArena;
 
 static
 void
@@ -490,11 +490,10 @@ DoIt (Orientation        face,
       int                destcomp,
       int                numcomp,
       Real               mult,
+      FArrayBox&         tmp,
       FluxRegister::FrOp op = FluxRegister::COPY)
 {
     const DistributionMapping& dMap = bndry[face].DistributionMap();
-
-    FArrayBox tmp;
 
     if (ParallelDescriptor::MyProc() == dMap[k])
     {
@@ -533,7 +532,7 @@ DoIt (Orientation        face,
         CITags.push_back(tag);
         CIFabs.push_back(fab);
 
-        if (CIMsgs.size() == 0)
+        if (CIMsgs.empty())
             CIMsgs.resize(ParallelDescriptor::NProcs(), 0);
 
         CIMsgs[dMap[k]]++;
@@ -544,19 +543,21 @@ void
 FluxRegister::CrseInit (const FArrayBox& flux,
                         const Box&       subbox,
                         int              dir,
-                        int              srccomp,
-                        int              destcomp,
-                        int              numcomp,
+                        int              scomp,
+                        int              dcomp,
+                        int              ncomp,
                         Real             mult,
                         FrOp             op)
 {
     BL_ASSERT(flux.box().contains(subbox));
-    BL_ASSERT(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
+    BL_ASSERT(scomp  >= 0 && scomp+ncomp  <= flux.nComp());
+    BL_ASSERT(dcomp >= 0 && dcomp+ncomp <= ncomp);
 
     if (ParallelDescriptor::IOProcessor())
         BoxLib::Warning("\n*** FluxRegister::CrseInit(const FArrayBox&,...) is deprecated; please use CrseInit(MultiFab&,...) instead!!");
-    
+ 
+    FArrayBox tmp;
+
     const Orientation lo(dir,Orientation::low);
 
     std::vector< std::pair<int,Box> > isects;
@@ -565,7 +566,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     for (int i = 0, N = isects.size(); i < N; i++)
     {
-        DoIt(lo,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,op);
+        DoIt(lo,isects[i].first,bndry,isects[i].second,flux,scomp,dcomp,ncomp,mult,tmp,op);
     }
 
     const Orientation hi(dir,Orientation::high);
@@ -574,7 +575,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     for (int i = 0, N = isects.size(); i < N; i++)
     {
-        DoIt(hi,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,op);
+        DoIt(hi,isects[i].first,bndry,isects[i].second,flux,scomp,dcomp,ncomp,mult,tmp,op);
     }
 }
 
@@ -590,28 +591,9 @@ FluxRegister::CrseInitFinish (FrOp op)
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
-    const bool verbose = false;
-
-    if (verbose)
-    {
-        long count = 0;
-
-        for (int i = 0, N = CIFabs.size(); i < N; i++)
-        {
-            count += CIFabs[i]->box().numPts()*CIFabs[i]->nComp()*sizeof(Real);
-        }
-
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-        ParallelDescriptor::ReduceLongMax(count,IOProc);
-
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "FluxRegister::CrseInitFinish(): HWM = " << count << std::endl;
-    }
-
     BL_ASSERT(CITags.size() == CIFabs.size());
 
-    if (CIMsgs.size() == 0)
+    if (CIMsgs.empty())
         CIMsgs.resize(ParallelDescriptor::NProcs(),0);
 
     BL_ASSERT(CIMsgs[MyProc] == 0);
@@ -778,19 +760,21 @@ FluxRegister::CrseInitFinish (FrOp op)
 
     BoxLib::The_Arena()->free(recvbuf);
 
-    CIFabs.erase(CIFabs.begin(), CIFabs.end());
-    CITags.erase(CITags.begin(), CITags.end());
+    CIFabs.clear();
+    CITags.clear();
 
-    for (int i = 0; i < NProcs; i++) CIMsgs[i] = 0;
+    for (int i = 0; i < NProcs; i++)
+        CIMsgs[i] = 0;
+
 #endif /*BL_USE_MPI*/
 }
 
 void
 FluxRegister::FineAdd (const MultiFab& mflx,
                        int             dir,
-                       int             srccomp,
-                       int             destcomp,
-                       int             numcomp,
+                       int             scomp,
+                       int             dcomp,
+                       int             ncomp,
                        Real            mult)
 {
     const int N = mflx.IndexMap().size();
@@ -801,7 +785,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
     for (int i = 0; i < N; i++)
     {
         const int k = mflx.IndexMap()[i];
-        FineAdd(mflx[k],dir,k,srccomp,destcomp,numcomp,mult);
+        FineAdd(mflx[k],dir,k,scomp,dcomp,ncomp,mult);
     }
 }
 
@@ -809,9 +793,9 @@ void
 FluxRegister::FineAdd (const MultiFab& mflx,
                        const MultiFab& area,
                        int             dir,
-                       int             srccomp,
-                       int             destcomp,
-                       int             numcomp,
+                       int             scomp,
+                       int             dcomp,
+                       int             ncomp,
                        Real            mult)
 {
     const int N = mflx.IndexMap().size();
@@ -822,7 +806,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
     for (int i = 0; i < N; i++)
     {
         const int k = mflx.IndexMap()[i];
-        FineAdd(mflx[k],area[k],dir,k,srccomp,destcomp,numcomp,mult);
+        FineAdd(mflx[k],area[k],dir,k,scomp,dcomp,ncomp,mult);
     }
 }
 
@@ -830,40 +814,40 @@ void
 FluxRegister::FineAdd (const FArrayBox& flux,
                        int              dir,
                        int              boxno,
-                       int              srccomp,
-                       int              destcomp,
-                       int              numcomp,
+                       int              scomp,
+                       int              dcomp,
+                       int              ncomp,
                        Real             mult)
 {
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
+    BL_ASSERT(scomp >= 0 && scomp+ncomp <= flux.nComp());
+    BL_ASSERT(dcomp >= 0 && dcomp+ncomp <= ncomp);
 #ifndef NDEBUG
     Box cbox = BoxLib::coarsen(flux.box(),ratio);
 #endif
     const Box&  flxbox = flux.box();
     const int*  flo    = flxbox.loVect();
     const int*  fhi    = flxbox.hiVect();
-    const Real* flxdat = flux.dataPtr(srccomp);
+    const Real* flxdat = flux.dataPtr(scomp);
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
     BL_ASSERT(cbox.contains(loreg.box()));
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
-    Real* lodat = loreg.dataPtr(destcomp);
+    Real* lodat = loreg.dataPtr(dcomp);
     FORT_FRFINEADD(lodat,ARLIM(rlo),ARLIM(rhi),
                    flxdat,ARLIM(flo),ARLIM(fhi),
-                   &numcomp,&dir,ratio.getVect(),&mult);
+                   &ncomp,&dir,ratio.getVect(),&mult);
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
 
     BL_ASSERT(cbox.contains(hireg.box()));
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
-    Real* hidat = hireg.dataPtr(destcomp);
+    Real* hidat = hireg.dataPtr(dcomp);
     FORT_FRFINEADD(hidat,ARLIM(rlo),ARLIM(rhi),
                    flxdat,ARLIM(flo),ARLIM(fhi),
-                   &numcomp,&dir,ratio.getVect(),&mult);
+                   &ncomp,&dir,ratio.getVect(),&mult);
 }
 
 void
@@ -871,13 +855,13 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        const FArrayBox& area,
                        int              dir,
                        int              boxno,
-                       int              srccomp,
-                       int              destcomp,
-                       int              numcomp,
+                       int              scomp,
+                       int              dcomp,
+                       int              ncomp,
                        Real             mult)
 {
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
+    BL_ASSERT(scomp >= 0 && scomp+ncomp <= flux.nComp());
+    BL_ASSERT(dcomp >= 0 && dcomp+ncomp <= ncomp);
 #ifndef NDEBUG
     Box cbox = BoxLib::coarsen(flux.box(),ratio);
 #endif
@@ -887,29 +871,29 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     const Box&  flxbox   = flux.box();
     const int*  flo      = flxbox.loVect();
     const int*  fhi      = flxbox.hiVect();
-    const Real* flxdat   = flux.dataPtr(srccomp);
+    const Real* flxdat   = flux.dataPtr(scomp);
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
     BL_ASSERT(cbox.contains(loreg.box()));
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
-    Real* lodat = loreg.dataPtr(destcomp);
+    Real* lodat = loreg.dataPtr(dcomp);
     FORT_FRFAADD(lodat,ARLIM(rlo),ARLIM(rhi),
                  flxdat,ARLIM(flo),ARLIM(fhi),
                  area_dat,ARLIM(alo),ARLIM(ahi),
-                 &numcomp,&dir,ratio.getVect(),&mult);
+                 &ncomp,&dir,ratio.getVect(),&mult);
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
 
     BL_ASSERT(cbox.contains(hireg.box()));
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
-    Real* hidat = hireg.dataPtr(destcomp);
+    Real* hidat = hireg.dataPtr(dcomp);
     FORT_FRFAADD(hidat,ARLIM(rlo),ARLIM(rhi),
                  flxdat,ARLIM(flo),ARLIM(fhi),
                  area_dat,ARLIM(alo),ARLIM(ahi),
-                 &numcomp,&dir,ratio.getVect(),&mult);
+                 &ncomp,&dir,ratio.getVect(),&mult);
 }
 
 void
