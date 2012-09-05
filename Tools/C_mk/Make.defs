@@ -860,7 +860,7 @@ ifeq ($(ARCH),CRAY)
 DEFINES += -DBL_ARCH_CRAY
 endif
 
-includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
+includes	= $(addprefix -I , $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
 
