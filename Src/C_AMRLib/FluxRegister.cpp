@@ -416,24 +416,24 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     const Orientation face_lo(dir,Orientation::low);
     const Orientation face_hi(dir,Orientation::high);
+ 
+    MultiFab mf(mflx.boxArray(),numcomp,0);
+
+    for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
+    {
+        mf[mfi].copy(mflx[mfi],srccomp,0,numcomp);
+
+        mf[mfi].mult(mult,0,numcomp);
+
+        for (int i = 0; i < numcomp; i++)
+            mf[mfi].mult(area[mfi],0,i,1);
+    }
 
     for (int pass = 0; pass < 2; pass++)
     {
         const Orientation face = ((pass == 0) ? face_lo : face_hi);
 
-        MultiFab mf(mflx.boxArray(),numcomp,0);
-
-        for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
-        {
-            mf[mfi].copy(mflx[mfi],srccomp,0,numcomp);
-
-            mf[mfi].mult(mult,0,numcomp);
-
-            for (int i = 0; i < numcomp; i++)
-                mf[mfi].mult(area[mfi],0,i,1);
-        }
-
-        if (op == COPY)
+        if (op == FluxRegister::COPY)
         {
             bndry[face].copyFrom(mf,0,0,destcomp,numcomp);
         }
