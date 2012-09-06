@@ -860,8 +860,9 @@ ifeq ($(ARCH),CRAY)
 DEFINES += -DBL_ARCH_CRAY
 endif
 
-includes	= $(addprefix -I , $(INCLUDE_LOCATIONS))
+includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
+f_includes	= $(addprefix -I , $(INCLUDE_LOCATIONS))
 fmoddir         = $(objEXETempDir)
 
 CPPFLAGS	+= $(DEFINES) $(includes)
