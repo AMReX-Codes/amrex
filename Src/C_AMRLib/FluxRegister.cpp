@@ -493,9 +493,9 @@ DoIt (Orientation        face,
       FArrayBox&         tmp,
       FluxRegister::FrOp op = FluxRegister::COPY)
 {
-    const DistributionMapping& dMap = bndry[face].DistributionMap();
+    const int owner = bndry[face].DistributionMap()[k];
 
-    if (ParallelDescriptor::MyProc() == dMap[k])
+    if (ParallelDescriptor::MyProc() == owner)
     {
         //
         // Local data.
@@ -517,7 +517,7 @@ DoIt (Orientation        face,
     {
         FabArrayBase::FabComTag tag;
 
-        tag.toProc   = dMap[k];
+        tag.toProc   = owner;
         tag.fabIndex = k;
         tag.box      = bx;
         tag.face     = face;
@@ -535,7 +535,7 @@ DoIt (Orientation        face,
         if (CIMsgs.empty())
             CIMsgs.resize(ParallelDescriptor::NProcs(), 0);
 
-        CIMsgs[dMap[k]]++;
+        CIMsgs[owner]++;
     }
 }
 
@@ -543,21 +543,21 @@ void
 FluxRegister::CrseInit (const FArrayBox& flux,
                         const Box&       subbox,
                         int              dir,
-                        int              scomp,
-                        int              dcomp,
-                        int              ncomp,
+                        int              srccomp,
+                        int              destcomp,
+                        int              numcomp,
                         Real             mult,
                         FrOp             op)
 {
     BL_ASSERT(flux.box().contains(subbox));
-    BL_ASSERT(scomp  >= 0 && scomp+ncomp  <= flux.nComp());
-    BL_ASSERT(dcomp >= 0 && dcomp+ncomp <= ncomp);
+    BL_ASSERT(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
     if (ParallelDescriptor::IOProcessor())
         BoxLib::Warning("\n*** FluxRegister::CrseInit(const FArrayBox&,...) is deprecated; please use CrseInit(MultiFab&,...) instead!!");
- 
-    FArrayBox tmp;
 
+    FArrayBox tmp;
+    
     const Orientation lo(dir,Orientation::low);
 
     std::vector< std::pair<int,Box> > isects;
@@ -566,7 +566,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     for (int i = 0, N = isects.size(); i < N; i++)
     {
-        DoIt(lo,isects[i].first,bndry,isects[i].second,flux,scomp,dcomp,ncomp,mult,tmp,op);
+        DoIt(lo,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,tmp,op);
     }
 
     const Orientation hi(dir,Orientation::high);
@@ -575,7 +575,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     for (int i = 0, N = isects.size(); i < N; i++)
     {
-        DoIt(hi,isects[i].first,bndry,isects[i].second,flux,scomp,dcomp,ncomp,mult,tmp,op);
+        DoIt(hi,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,tmp,op);
     }
 }
 
@@ -765,16 +765,15 @@ FluxRegister::CrseInitFinish (FrOp op)
 
     for (int i = 0; i < NProcs; i++)
         CIMsgs[i] = 0;
-
 #endif /*BL_USE_MPI*/
 }
 
 void
 FluxRegister::FineAdd (const MultiFab& mflx,
                        int             dir,
-                       int             scomp,
-                       int             dcomp,
-                       int             ncomp,
+                       int             srccomp,
+                       int             destcomp,
+                       int             numcomp,
                        Real            mult)
 {
     const int N = mflx.IndexMap().size();
@@ -785,7 +784,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
     for (int i = 0; i < N; i++)
     {
         const int k = mflx.IndexMap()[i];
-        FineAdd(mflx[k],dir,k,scomp,dcomp,ncomp,mult);
+        FineAdd(mflx[k],dir,k,srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -793,9 +792,9 @@ void
 FluxRegister::FineAdd (const MultiFab& mflx,
                        const MultiFab& area,
                        int             dir,
-                       int             scomp,
-                       int             dcomp,
-                       int             ncomp,
+                       int             srccomp,
+                       int             destcomp,
+                       int             numcomp,
                        Real            mult)
 {
     const int N = mflx.IndexMap().size();
@@ -806,7 +805,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
     for (int i = 0; i < N; i++)
     {
         const int k = mflx.IndexMap()[i];
-        FineAdd(mflx[k],area[k],dir,k,scomp,dcomp,ncomp,mult);
+        FineAdd(mflx[k],area[k],dir,k,srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -814,40 +813,40 @@ void
 FluxRegister::FineAdd (const FArrayBox& flux,
                        int              dir,
                        int              boxno,
-                       int              scomp,
-                       int              dcomp,
-                       int              ncomp,
+                       int              srccomp,
+                       int              destcomp,
+                       int              numcomp,
                        Real             mult)
 {
-    BL_ASSERT(scomp >= 0 && scomp+ncomp <= flux.nComp());
-    BL_ASSERT(dcomp >= 0 && dcomp+ncomp <= ncomp);
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 #ifndef NDEBUG
     Box cbox = BoxLib::coarsen(flux.box(),ratio);
 #endif
     const Box&  flxbox = flux.box();
     const int*  flo    = flxbox.loVect();
     const int*  fhi    = flxbox.hiVect();
-    const Real* flxdat = flux.dataPtr(scomp);
+    const Real* flxdat = flux.dataPtr(srccomp);
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
     BL_ASSERT(cbox.contains(loreg.box()));
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
-    Real* lodat = loreg.dataPtr(dcomp);
+    Real* lodat = loreg.dataPtr(destcomp);
     FORT_FRFINEADD(lodat,ARLIM(rlo),ARLIM(rhi),
                    flxdat,ARLIM(flo),ARLIM(fhi),
-                   &ncomp,&dir,ratio.getVect(),&mult);
+                   &numcomp,&dir,ratio.getVect(),&mult);
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
 
     BL_ASSERT(cbox.contains(hireg.box()));
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
-    Real* hidat = hireg.dataPtr(dcomp);
+    Real* hidat = hireg.dataPtr(destcomp);
     FORT_FRFINEADD(hidat,ARLIM(rlo),ARLIM(rhi),
                    flxdat,ARLIM(flo),ARLIM(fhi),
-                   &ncomp,&dir,ratio.getVect(),&mult);
+                   &numcomp,&dir,ratio.getVect(),&mult);
 }
 
 void
@@ -855,13 +854,13 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        const FArrayBox& area,
                        int              dir,
                        int              boxno,
-                       int              scomp,
-                       int              dcomp,
-                       int              ncomp,
+                       int              srccomp,
+                       int              destcomp,
+                       int              numcomp,
                        Real             mult)
 {
-    BL_ASSERT(scomp >= 0 && scomp+ncomp <= flux.nComp());
-    BL_ASSERT(dcomp >= 0 && dcomp+ncomp <= ncomp);
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 #ifndef NDEBUG
     Box cbox = BoxLib::coarsen(flux.box(),ratio);
 #endif
@@ -871,29 +870,29 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     const Box&  flxbox   = flux.box();
     const int*  flo      = flxbox.loVect();
     const int*  fhi      = flxbox.hiVect();
-    const Real* flxdat   = flux.dataPtr(scomp);
+    const Real* flxdat   = flux.dataPtr(srccomp);
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
     BL_ASSERT(cbox.contains(loreg.box()));
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
-    Real* lodat = loreg.dataPtr(dcomp);
+    Real* lodat = loreg.dataPtr(destcomp);
     FORT_FRFAADD(lodat,ARLIM(rlo),ARLIM(rhi),
                  flxdat,ARLIM(flo),ARLIM(fhi),
                  area_dat,ARLIM(alo),ARLIM(ahi),
-                 &ncomp,&dir,ratio.getVect(),&mult);
+                 &numcomp,&dir,ratio.getVect(),&mult);
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
 
     BL_ASSERT(cbox.contains(hireg.box()));
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
-    Real* hidat = hireg.dataPtr(dcomp);
+    Real* hidat = hireg.dataPtr(destcomp);
     FORT_FRFAADD(hidat,ARLIM(rlo),ARLIM(rhi),
                  flxdat,ARLIM(flo),ARLIM(fhi),
                  area_dat,ARLIM(alo),ARLIM(ahi),
-                 &ncomp,&dir,ratio.getVect(),&mult);
+                 &numcomp,&dir,ratio.getVect(),&mult);
 }
 
 void
