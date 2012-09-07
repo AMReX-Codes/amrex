@@ -10,46 +10,50 @@ module multifab_module
 
   type multifab
      !private
-     integer :: dim = 0
-     integer :: nboxes = 0
-     integer :: nc = 1
-     integer :: ng = 0
-     logical, pointer :: nodal(:) => Null()
+     integer      :: dim = 0
+     integer      :: nboxes = 0  ! number of local boxes we own
+     integer      :: nc = 1
+     integer      :: ng = 0
      type(layout) :: la
-     type(fab), pointer :: fbs(:) => Null()
+     logical,   pointer :: nodal(:) => Null()
+     type(fab), pointer :: fbs(:)   => Null()
+     integer,   pointer :: idx(:)   => Null()  ! index in full boxarray of corresponding fab.
   end type multifab
 
   type zmultifab
      !private
-     integer :: dim = 0
-     integer :: nboxes = 0
-     integer :: nc = 1
-     integer :: ng = 0
-     logical, pointer :: nodal(:) => Null()
+     integer      :: dim = 0
+     integer      :: nboxes = 0  ! number of local boxes we own
+     integer      :: nc = 1
+     integer      :: ng = 0
      type(layout) :: la
-     type(zfab), pointer :: fbs(:) => Null()
+     logical,    pointer :: nodal(:) => Null()
+     type(zfab), pointer :: fbs(:)   => Null()
+     integer,    pointer :: idx(:)   => Null()  ! index in full boxarray of corresponding fab.
   end type zmultifab
 
   type imultifab
      !private
-     integer :: dim = 0
-     integer :: nboxes = 0
-     integer :: nc = 1
-     integer :: ng = 0
-     logical, pointer :: nodal(:) => Null()
+     integer      :: dim = 0
+     integer      :: nboxes = 0  ! number of local boxes we own
+     integer      :: nc = 1
+     integer      :: ng = 0
      type(layout) :: la
-     type(ifab), pointer :: fbs(:) => Null()
+     logical,    pointer :: nodal(:) => Null()
+     type(ifab), pointer :: fbs(:)   => Null()
+     integer,    pointer :: idx(:)   => Null()  ! index in full boxarray of corresponding fab.
   end type imultifab
 
   type lmultifab
      !private
-     integer :: dim = 0
-     integer :: nboxes = 0
-     integer :: nc = 1
-     integer :: ng = 0
-     logical, pointer :: nodal(:) => Null()
+     integer      :: dim = 0
+     integer      :: nboxes = 0  ! number of local boxes we own
+     integer      :: nc = 1
+     integer      :: ng = 0
      type(layout) :: la
-     type(lfab), pointer :: fbs(:) => Null()
+     logical,    pointer :: nodal(:) => Null()
+     type(lfab), pointer :: fbs(:)   => Null()
+     integer,    pointer :: idx(:)   => Null()  ! index in full boxarray of corresponding fab.
   end type lmultifab
 
   interface cell_centered_q
@@ -225,20 +229,6 @@ module multifab_module
      module procedure imultifab_volume
      module procedure lmultifab_volume
      module procedure zmultifab_volume
-  end interface
-
-  interface local
-     module procedure multifab_local
-     module procedure imultifab_local
-     module procedure lmultifab_local
-     module procedure zmultifab_local
-  end interface
-
-  interface remote
-     module procedure multifab_remote
-     module procedure imultifab_remote
-     module procedure lmultifab_remote
-     module procedure zmultifab_remote
   end interface
 
   interface get_layout
@@ -601,24 +591,35 @@ contains
     type(layout), intent(in) :: la
     integer, intent(in), optional :: nc, ng
     logical, intent(in), optional :: nodal(:), stencil
-    integer :: i
-    integer :: lnc, lng
+    integer :: lnc, lng, i, j, myproc
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
+    myproc = parallel_myproc()
     mf%dim = get_dim(la)
-    mf%la = la
-    mf%nboxes = layout_nboxes(la)
-    mf%nc = lnc
-    mf%ng = lng
+    mf%la  = la
+    mf%nc  = lnc
+    mf%ng  = lng
+    mf%nboxes = 0
+    do i = 1, layout_nboxes(la)
+       if (myproc == la%lap%prc(i)) mf%nboxes = mf%nboxes + 1
+    end do
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(mf%nboxes))
+    allocate(mf%idx(mf%nboxes))
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
+    j = 1
+    do i = 1, layout_nboxes(la)
+       if (myproc == la%lap%prc(i)) then
+          mf%idx(j) = i
+          j = j + 1
+       end if
+    end do
     do i = 1, mf%nboxes
       call build( &
-           mf%fbs(i), get_box(mf%la, i), &
+           mf%fbs(i), get_box(mf%la, mf%idx(i)), &
            mf%nc, mf%ng, mf%nodal,  &
-           alloc = local(mf, i), stencil = stencil)
+           alloc = .true., stencil = stencil)
     end do
     call mem_stats_alloc(multifab_ms, volume(mf, all = .TRUE.))
   end subroutine multifab_build
@@ -628,23 +629,33 @@ contains
     type(layout), intent(in) :: la
     integer, intent(in), optional :: nc, ng
     logical, intent(in), optional :: nodal(:)
-    integer :: i
-    integer :: lnc, lng
+    integer :: lnc, lng, i, j, myproc
     if ( built_q(mf) ) call bl_error("IMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
+    myproc = parallel_myproc()
     mf%dim = get_dim(la)
-    mf%la = la
-    mf%nboxes = layout_nboxes(la)
-    mf%nc = lnc
-    mf%ng = lng
+    mf%la  = la
+    mf%nc  = lnc
+    mf%ng  = lng
+    mf%nboxes = 0
+    do i = 1, layout_nboxes(la)
+       if (myproc == la%lap%prc(i)) mf%nboxes = mf%nboxes + 1
+    end do
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(mf%nboxes))
+    allocate(mf%idx(mf%nboxes))
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
+    j = 1
+    do i = 1, layout_nboxes(la)
+       if (myproc == la%lap%prc(i)) then
+          mf%idx(j) = i
+          j = j + 1
+       end if
+    end do
     do i = 1, mf%nboxes
-       call build(mf%fbs(i), get_box(mf%la, i), &
-            mf%nc, mf%ng, mf%nodal, &
-            alloc = local(mf, i))
+       call build(mf%fbs(i), get_box(mf%la, mf%idx(i)), &
+            mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
     call mem_stats_alloc(imultifab_ms, volume(mf, all = .TRUE.))
   end subroutine imultifab_build
@@ -654,23 +665,33 @@ contains
     type(layout), intent(in) :: la
     integer, intent(in),optional :: nc, ng
     logical, intent(in),optional :: nodal(:)
-    integer :: i
-    integer :: lnc, lng
+    integer :: lnc, lng, i, j, myproc
     if ( built_q(mf) ) call bl_error("LMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
+    myproc = parallel_myproc()
     mf%dim = get_dim(la)
-    mf%la = la
-    mf%nboxes = layout_nboxes(la)
-    mf%nc = lnc
-    mf%ng = lng
+    mf%la  = la
+    mf%nc  = lnc
+    mf%ng  = lng
+    mf%nboxes = 0
+    do i = 1, layout_nboxes(la)
+       if (myproc == la%lap%prc(i)) mf%nboxes = mf%nboxes + 1
+    end do
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(mf%nboxes))
+    allocate(mf%idx(mf%nboxes))
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
+    j = 1
+    do i = 1, layout_nboxes(la)
+       if (myproc == la%lap%prc(i)) then
+          mf%idx(j) = i
+          j = j + 1
+       end if
+    end do
     do i = 1, mf%nboxes
-       call build(mf%fbs(i), get_box(mf%la, i), &
-            mf%nc, mf%ng, mf%nodal, &
-            alloc = local(mf, i))
+       call build(mf%fbs(i), get_box(mf%la, mf%idx(i)), &
+            mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
     call mem_stats_alloc(lmultifab_ms, volume(mf, all = .TRUE.))
   end subroutine lmultifab_build
@@ -694,24 +715,33 @@ contains
     type(layout), intent(in) :: la
     integer, intent(in),optional :: nc, ng
     logical, intent(in),optional :: nodal(:)
-    integer :: i
-    integer :: lnc, lng
-
+    integer :: lnc, lng, i, j, myproc
     if ( built_q(mf) ) call bl_error("ZMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
+    myproc = parallel_myproc()
     mf%dim = get_dim(la)
-    mf%la = la
-    mf%nboxes = layout_nboxes(la)
-    mf%nc = lnc
-    mf%ng = lng
+    mf%la  = la
+    mf%nc  = lnc
+    mf%ng  = lng
+    mf%nboxes = 0
+    do i = 1, layout_nboxes(la)
+       if (myproc == la%lap%prc(i)) mf%nboxes = mf%nboxes + 1
+    end do
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(mf%nboxes))
+    allocate(mf%idx(mf%nboxes))
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
+    j = 1
+    do i = 1, layout_nboxes(la)
+       if (myproc == la%lap%prc(i)) then
+          mf%idx(j) = i
+          j = j + 1
+       end if
+    end do
     do i = 1, mf%nboxes
-       call build(mf%fbs(i), get_box(mf%la, i), &
-            mf%nc, mf%ng, mf%nodal, &
-            alloc = local(mf, i))
+       call build(mf%fbs(i), get_box(mf%la, mf%idx(i)), &
+            mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
     call mem_stats_alloc(zmultifab_ms, volume(mf, all = .TRUE.))
   end subroutine zmultifab_build
@@ -724,17 +754,18 @@ contains
     integer :: i
     if ( built_q(m1) ) call bl_error("MULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call destroy(m1)
-    m1%dim = m2%dim
-    m1%la = m2%la
+    m1%dim    = m2%dim
+    m1%la     = m2%la
     m1%nboxes = m2%nboxes
-    m1%nc = m2%nc
-    m1%ng = m2%ng
+    m1%nc     = m2%nc
+    m1%ng     = m2%ng
     allocate(m1%nodal(m1%dim))
-    m1%nodal = m2%nodal
     allocate(m1%fbs(m1%nboxes))
+    allocate(m1%idx(m1%nboxes))
+    m1%nodal = m2%nodal
+    m1%idx   = m2%idx
     do i = 1, m1%nboxes
-       if ( remote(m1, i) ) cycle
-       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_d(m1p,m2p)
@@ -749,17 +780,18 @@ contains
     integer :: i
     if ( built_q(m1) ) call bl_error("IMULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call destroy(m1)
-    m1%dim = m2%dim
-    m1%la = m2%la
+    m1%dim    = m2%dim
+    m1%la     = m2%la
     m1%nboxes = m2%nboxes
-    m1%nc = m2%nc
-    m1%ng = m2%ng
+    m1%nc     = m2%nc
+    m1%ng     = m2%ng
     allocate(m1%nodal(m1%dim))
-    m1%nodal = m2%nodal
     allocate(m1%fbs(m1%nboxes))
+    allocate(m1%idx(m1%nboxes))
+    m1%nodal = m2%nodal
+    m1%idx   = m2%idx
     do i = 1, m1%nboxes
-       if ( remote(m1, i) ) cycle
-       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_i(m1p,m2p)
@@ -774,17 +806,18 @@ contains
     integer :: i
     if ( built_q(m1) ) call bl_error("LMULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call destroy(m1)
-    m1%dim = m2%dim
-    m1%la = m2%la
+    m1%dim    = m2%dim
+    m1%la     = m2%la
     m1%nboxes = m2%nboxes
-    m1%nc = m2%nc
-    m1%ng = m2%ng
+    m1%nc     = m2%nc
+    m1%ng     = m2%ng
     allocate(m1%nodal(m1%dim))
-    m1%nodal = m2%nodal
     allocate(m1%fbs(m1%nboxes))
+    allocate(m1%idx(m1%nboxes))
+    m1%nodal = m2%nodal
+    m1%idx   = m2%idx
     do i = 1, m1%nboxes
-       if ( remote(m1, i) ) cycle
-       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_l(m1p,m2p)
@@ -799,17 +832,18 @@ contains
     integer :: i
     if ( built_q(m1) ) call bl_error("ZMULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call destroy(m1)
-    m1%dim = m2%dim
-    m1%la = m2%la
+    m1%dim    = m2%dim
+    m1%la     = m2%la
     m1%nboxes = m2%nboxes
-    m1%nc = m2%nc
-    m1%ng = m2%ng
+    m1%nc     = m2%nc
+    m1%ng     = m2%ng
     allocate(m1%nodal(m1%dim))
-    m1%nodal = m2%nodal
     allocate(m1%fbs(m1%nboxes))
+    allocate(m1%idx(m1%nboxes))
+    m1%nodal = m2%nodal
+    m1%idx   = m2%idx
     do i = 1, m1%nboxes
-       if ( remote(m1, i) ) cycle
-       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_z(m1p,m2p)
@@ -825,6 +859,7 @@ contains
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
+    deallocate(mf%idx)
     deallocate(mf%nodal)
     mf%dim = 0
     mf%nc  = 0
@@ -839,6 +874,7 @@ contains
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
+    deallocate(mf%idx)
     deallocate(mf%nodal)
     mf%dim = 0
     mf%nc  = 0
@@ -853,6 +889,7 @@ contains
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
+    deallocate(mf%idx)
     deallocate(mf%nodal)
     mf%dim = 0
     mf%nc  = 0
@@ -867,6 +904,7 @@ contains
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
+    deallocate(mf%idx)
     deallocate(mf%nodal)
     mf%dim = 0
     mf%nc  = 0
@@ -1005,56 +1043,6 @@ contains
     integer :: r
     r = mf%ng
   end function zmultifab_nghost
-
-  pure function multifab_remote(mf, i) result(r)
-    type(multifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_remote(mf%la, i)
-  end function multifab_remote
-  pure function imultifab_remote(mf, i) result(r)
-    type(imultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_remote(mf%la, i)
-  end function imultifab_remote
-  pure function lmultifab_remote(mf, i) result(r)
-    type(lmultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_remote(mf%la, i)
-  end function lmultifab_remote
-  pure function zmultifab_remote(mf, i) result(r)
-    type(zmultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_remote(mf%la, i)
-  end function zmultifab_remote
-
-  pure function multifab_local(mf, i) result(r)
-    type(multifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_local(mf%la, i)
-  end function multifab_local
-  pure function imultifab_local(mf, i) result(r)
-    type(imultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_local(mf%la, i)
-  end function imultifab_local
-  pure function lmultifab_local(mf, i) result(r)
-    type(lmultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_local(mf%la, i)
-  end function lmultifab_local
-  pure function zmultifab_local(mf, i) result(r)
-    type(zmultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_local(mf%la, i)
-  end function zmultifab_local
 
   function multifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
