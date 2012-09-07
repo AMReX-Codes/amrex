@@ -433,6 +433,7 @@ contains
   ! index "r" at which that index is stored in mf%idx(:).
   ! It's an error if the multifab does not "own" index "r"
   ! or if the index "i" is not in the range of boxes for mf%la.
+  ! nboxes is the number of boxes in the associated layout.
   !
   function local_index_doit(i, nboxes, idx) result(r)
     integer, intent(in) :: i, nboxes, idx(:)
@@ -448,7 +449,7 @@ contains
        ! TODO -- use bisection search?
        !
        r = -1
-       do j = 1, nboxes
+       do j = 1, size(idx)
           if (idx(j) == i) r = j
        end do
        call bl_assert(r >= 1, "local_index: no corresponding local index")
