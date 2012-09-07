@@ -176,10 +176,9 @@ contains
     mgt%nlevels = min(n,mgt%max_nlevel) 
 
     n = mgt%nlevels
-    mgt%nboxes = nboxes(la)
 
-    allocate(mgt%face_type(mgt%nboxes,mgt%dim,2))
-    allocate(mgt%skewed(mgt%nlevels,mgt%nboxes))
+    allocate(mgt%face_type(nboxes(la),mgt%dim,2))
+    allocate(mgt%skewed(mgt%nlevels,nboxes(la)))
     allocate(mgt%skewed_not_set(mgt%nlevels))
     mgt%skewed_not_set = .true.
 
@@ -206,8 +205,7 @@ contains
        call setval(mgt%dd(i), zero, all = .TRUE.)
 
        ! Set the stencil to zero; gotta do it by hand as multifab routines won't work.
-       do j = 1, mgt%ss(i)%nboxes
-          if ( remote(mgt%ss(i),j) ) cycle
+       do j = 1, nboxes(mgt%ss(i))
           p => dataptr(mgt%ss(i), j)
           p = zero
        end do
@@ -247,11 +245,11 @@ contains
     do id = 1,mgt%dim
        lo_dom = lwb(pd,id)
        hi_dom = upb(pd,id)
-       do i = 1,mgt%nboxes
-          lo_grid =  lwb(get_box(mgt%ss(mgt%nlevels), i),id)
+       do i = 1,nboxes(la)
+          lo_grid =  lwb(get_box(mgt%ss(mgt%nlevels)%la, i),id)
           if (lo_grid == lo_dom) mgt%face_type(i,id,1) = domain_bc(id,1)
 
-          hi_grid = upb(get_box(mgt%ss(mgt%nlevels), i),id)
+          hi_grid = upb(get_box(mgt%ss(mgt%nlevels)%la, i),id)
           if (hi_grid == hi_dom) mgt%face_type(i,id,2) = domain_bc(id,2)
        end do
     end do
@@ -867,8 +865,7 @@ contains
        mg_restriction_mode = 1
     end if
 
-    do i = 1, mgt%nboxes
-       if ( remote(crse, i) ) cycle
+    do i = 1, nboxes(crse)
 
        cp       => dataptr(crse, i)
        fp       => dataptr(fine, i)
@@ -941,8 +938,7 @@ contains
     nodal_flag = nodal_q(uu)
 
     if ( .not.nodal_flag ) then
-       do i = 1, mgt%nboxes
-          if ( remote(mgt%ff(lev), i) ) cycle
+       do i = 1, nboxes(uu)
           fp => dataptr(uu,  i, get_box(uu,i))
           cp => dataptr(uu1, i, get_box(uu1,i))
           do n = 1, mgt%nc
@@ -957,8 +953,7 @@ contains
           end do
        end do
     else
-       do i = 1, mgt%nboxes
-          if ( remote(mgt%ff(lev), i) ) cycle
+       do i = 1, nboxes(uu)
           nbox  = box_grow_n_f(get_box(uu,i),1,1)
           nbox1 = box_grow_n_f(get_box(uu1,i),1,1)
           fp => dataptr(uu,  i, nbox )

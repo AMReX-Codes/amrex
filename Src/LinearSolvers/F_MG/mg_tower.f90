@@ -47,7 +47,7 @@ module mg_tower_module
      ! This must be true in order to enforce solvability
      logical :: coeffs_sum_to_zero = .false.
 
-     integer :: nboxes =  0
+!     integer :: nboxes =  0
      integer :: nlevels =  0
 
      ! use hypre instead of mg_tower's multigrid for the solve itself

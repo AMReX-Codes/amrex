@@ -135,10 +135,9 @@ contains
        ng = nghost(res(n))
        
        do i=1, nboxes(res(n))
-          if (remote(res(n),i)) cycle
           resp  => dataptr(res(n),i)
-          lo =  lwb(get_box(res(n), i))
-          hi =  upb(get_box(res(n), i))
+          lo    =  lwb(get_box(res(n), i))
+          hi    =  upb(get_box(res(n), i))
           select case (dm)
           case (1)
              call scale_residual_1d(lo,hi,ng,resp(:,1,1,1))
@@ -296,10 +295,9 @@ contains
        ng = nghost(res(n))
        
        do i=1, nboxes(res(n))
-          if (remote(res(n),i)) cycle
           resp  => dataptr(res(n),i)
-          lo =  lwb(get_box(res(n), i))
-          hi =  upb(get_box(res(n), i))
+          lo    =  lwb(get_box(res(n), i))
+          hi    =  upb(get_box(res(n), i))
           select case (dm)
           case (1)
              call scale_residual_1d(lo,hi,ng,resp(:,1,1,1))

@@ -328,7 +328,6 @@ contains
     nodal_flag = nodal_q(uu)
 
     do i = 1, nboxes(rr)
-       if ( remote(rr, i) ) cycle
        rp => dataptr(rr, i)
        up => dataptr(uu, i)
        ap => dataptr(aa, i)
@@ -458,7 +457,6 @@ contains
 
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
     do i = 1, aa%nboxes
-       if ( remote(aa,i) ) cycle
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
@@ -761,7 +759,6 @@ contains
 
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
     do i = 1, aa%nboxes
-       if ( remote(aa,i) ) cycle
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
@@ -961,7 +958,6 @@ contains
        call copy(uu, rh)
     case (1)
        do i = 1, nboxes(rh)
-          if ( remote(uu, i) ) cycle
           rp => dataptr(rh, i)
           up => dataptr(uu, i)
           ap => dataptr(aa, i)
@@ -1020,7 +1016,6 @@ contains
     dm = get_dim(rh)
 
     do i = 1, nboxes(rh)
-       if ( remote(rh, i) ) cycle
        rp => dataptr(rh, i)
        ap => dataptr(aa, i)
        mp => dataptr(mm, i)

@@ -1224,7 +1224,6 @@ contains
     dm    = get_dim(flux)
 
     do i = 1, nboxes(flux)
-       if ( remote(flux, i) ) cycle
        fbox   = get_ibox(flux,i)
        lof = lwb(fbox)
        fp => dataptr(flux, i)

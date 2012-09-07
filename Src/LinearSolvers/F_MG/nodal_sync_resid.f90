@@ -21,7 +21,6 @@ contains
     dm = get_dim(vold)
 
     do i = 1, nboxes(divuo)
-       if (remote(divuo, i)) cycle
        dvo => dataptr(divuo, i)
        msk => dataptr(mask , i)
        vo  => dataptr(vold , i)
@@ -137,7 +136,6 @@ contains
     dm = get_dim(sync_res)
 
     do i = 1, nboxes(sync_res)
-       if (remote(sync_res, i)) cycle
        res => dataptr(sync_res, i)
        dvo => dataptr(divuo   , i)
        msk => dataptr(mask    , i)
@@ -220,7 +218,6 @@ contains
     dm = get_dim(rhcc)
 
     do i = 1, nboxes(divuo)
-       if (remote(divuo, i)) cycle
        dvo => dataptr(divuo, i)
        msk => dataptr(mask , i)
        rc  => dataptr(rhcc , i)
@@ -351,7 +348,6 @@ contains
     dm = get_dim(res_fine)
 
     do i = 1, nboxes(res_fine)
-       if (remote(res_fine, i)) cycle
        resp => dataptr(res_fine, i)
        select case (dm)
        case (1)

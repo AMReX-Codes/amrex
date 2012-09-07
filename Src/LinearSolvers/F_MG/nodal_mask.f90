@@ -51,7 +51,6 @@ module nodal_mask_module
   call setval(cfmask,.true.)
 
   do j = 1,nboxes(cfmask)
-     if ( remote(cfmask,j) ) cycle
      cbox = get_ibox(cfmask,j)
      lo   = lwb(cbox)
      hi   = upb(cbox)
@@ -73,7 +72,6 @@ module nodal_mask_module
   call lmultifab_destroy(cfmask)
 
   do j = 1,nboxes(mask)
-     if ( remote(mask,j) ) cycle
      cbox =  get_ibox(mask,j)
      lo   =  lwb(cbox)
      hi   =  upb(cbox)
