@@ -1322,7 +1322,6 @@ contains
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
        do i = 1, mf%nboxes
-          if ( remote(mf, i) ) cycle
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1344,7 +1343,6 @@ contains
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
        do i = 1, mf%nboxes
-          if ( remote(mf, i) ) cycle
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1366,7 +1364,6 @@ contains
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
        do i = 1, mf%nboxes
-          if ( remote(mf, i) ) cycle
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1388,7 +1385,6 @@ contains
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
        do i = 1, mf%nboxes
-          if ( remote(mf, i) ) cycle
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1411,7 +1407,6 @@ contains
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
     do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1432,7 +1427,6 @@ contains
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
     do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1453,7 +1447,6 @@ contains
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
     do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1474,7 +1467,6 @@ contains
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
     do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1499,7 +1491,6 @@ contains
 
     lall = .FALSE.; if ( present(all) ) lall = all
     do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -1524,7 +1515,6 @@ contains
 
     lall = .FALSE.; if ( present(all) ) lall = all
     do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -1548,7 +1538,6 @@ contains
     call build(bpt, "lmf_setval_c")
     lall = .FALSE.; if ( present(all) ) lall = all
     do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -1569,7 +1558,6 @@ contains
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
     do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -2724,8 +2712,8 @@ contains
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-             write(unit=fn, fmt='(i6)') i
+          do i = 1, mf%nboxes
+             write(unit=fn, fmt='(i6)') mf%idx(i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
           end do
@@ -2769,8 +2757,8 @@ contains
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-             write(unit=fn, fmt='(i6)') i
+          do i = 1, mf%nboxes
+             write(unit=fn, fmt='(i6)') mf%idx(i)
              call fab_print(mf%fbs(i), comp, str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
           end do
@@ -2813,8 +2801,8 @@ contains
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-             write(unit=fn, fmt='(i6)') i
+          do i = 1, mf%nboxes
+             write(unit=fn, fmt='(i6)') mf%idx(i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
           end do
@@ -2856,8 +2844,8 @@ contains
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-             write(unit=fn, fmt='(i6)') i
+          do i = 1, mf%nboxes
+             write(unit=fn, fmt='(i6)') mf%idx(i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
           end do
@@ -2899,8 +2887,8 @@ contains
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-             write(unit=fn, fmt='(i6)') i
+          do i = 1, mf%nboxes
+             write(unit=fn, fmt='(i6)') mf%idx(i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
           end do
@@ -3189,7 +3177,6 @@ contains
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
     if ( mdst%la == msrc%la ) then
        do i = 1, mdst%nboxes
-          if ( remote(mdst,i) ) cycle
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3248,7 +3235,6 @@ contains
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in imultifab_copy_c")
     if ( mdst%la == msrc%la ) then
        do i = 1, mdst%nboxes
-          if ( remote(mdst,i) ) cycle
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3307,7 +3293,6 @@ contains
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in lmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
        do i = 1, mdst%nboxes
-          if ( remote(mdst,i) ) cycle
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3364,7 +3349,6 @@ contains
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in zmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
        do i = 1, mdst%nboxes
-          if ( remote(mdst,i) ) cycle
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3407,7 +3391,7 @@ contains
 
     call build(mask, mf%la, 1, 0, mf%nodal)
     do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
+
        full_box = get_ibox(mf,i)
 
        select case ( full_box%dim )
@@ -3473,21 +3457,17 @@ contains
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
        if ( cell_centered_q(mf) ) then
           do n = 1, mf%nboxes
-             if ( remote(mf,n) ) cycle
-             mp => dataptr(mf, n, get_ibox(mf, n), comp)
-             mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
+             mp  => dataptr(mf,   n, get_ibox(mf,   n), comp)
+             mp1 => dataptr(mf1,  n, get_ibox(mf1,  n), comp1)
              lmp => dataptr(mask, n, get_ibox(mask, n), 1)
              r1 = r1 + sum(mp*mp1, mask = lmp)
           end do
        else if ( nodal_q(mf) ) then
           call build_nodal_dot_mask(tmask, mf)
           do n = 1, mf%nboxes
-             if ( remote(mf,n) ) cycle
-
-             mp => dataptr(mf, n, get_ibox(mf, n), comp)
-             mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
-             ma => dataptr(tmask, n, get_ibox(tmask, n))
-
+             mp  => dataptr(mf,    n, get_ibox(mf,    n), comp)
+             mp1 => dataptr(mf1,   n, get_ibox(mf1,   n), comp1)
+             ma  => dataptr(tmask, n, get_ibox(tmask, n))
              r1 = r1 + sum(ma*mp*mp1)
           end do
           call destroy(tmask)
@@ -3497,7 +3477,6 @@ contains
     else
        if ( cell_centered_q(mf) ) then
           do n = 1, mf%nboxes
-             if ( remote(mf,n) ) cycle
              mp  => dataptr(mf , n, get_box(mf ,n), comp)
              mp1 => dataptr(mf1, n, get_box(mf1,n), comp1)
              do k = 1, ubound(mp,3)
@@ -3511,10 +3490,9 @@ contains
        else if ( nodal_q(mf) ) then
           call build_nodal_dot_mask(tmask, mf)
           do n = 1, mf%nboxes 
-             if ( remote(mf,n) ) cycle
-             mp => dataptr(mf, n, get_ibox(mf, n), comp)
-             mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
-             ma => dataptr(tmask, n, get_ibox(tmask, n))
+             mp  => dataptr(mf,    n, get_ibox(mf,    n), comp)
+             mp1 => dataptr(mf1,   n, get_ibox(mf1,   n), comp1)
+             ma  => dataptr(tmask, n, get_ibox(tmask, n))
              r1 = r1 + sum(ma*mp*mp1)
           end do
           call destroy(tmask)
@@ -3542,15 +3520,13 @@ contains
     r1 = 0.0_dp_t
     if ( cell_centered_q(mf) ) then
        do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
           mp  => dataptr(mf , i, get_box(mf, i), comp)
           mp1 => dataptr(mf1, i, get_box(mf1, i), comp)
           r1 = r1 + sum(mp*mp1)
        end do
     else if (nodal_q(mf) ) then
-       if (present(nodal_mask)) then
+       if ( present(nodal_mask) ) then
           do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
              mp  => dataptr(mf        , i, get_ibox(mf, i), comp)
              mp1 => dataptr(mf1       , i, get_ibox(mf1, i), comp)
              ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
@@ -3559,7 +3535,6 @@ contains
        else
           call build_nodal_dot_mask(mask, mf)
           do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
              mp  => dataptr(mf  , i, get_ibox(mf  , i), comp)
              mp1 => dataptr(mf1 , i, get_ibox(mf1 , i), comp)
              ma  => dataptr(mask, i, get_ibox(mask, i))
@@ -3590,24 +3565,21 @@ contains
     if ( cell_centered_q(mf) ) then
 
        do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
           mp  => dataptr(mf , i, get_box(mf , i))
           mp1 => dataptr(mf1, i, get_box(mf1, i))
           r1 = r1 + sum(mp*mp1)
        end do
     else if ( nodal_q(mf) ) then
-       if (present(nodal_mask)) then
+       if ( present(nodal_mask) ) then
           do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
-             mp  => dataptr(mf        , i, get_ibox(mf  , i))
-             mp1 => dataptr(mf1       , i, get_ibox(mf1 , i))
+             mp  => dataptr(mf        , i, get_ibox(mf,         i))
+             mp1 => dataptr(mf1       , i, get_ibox(mf1,        i))
              ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
        else
           call build_nodal_dot_mask(mask, mf)
           do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
              mp  => dataptr(mf  , i, get_ibox(mf  , i))
              mp1 => dataptr(mf1 , i, get_ibox(mf1 , i))
              ma  => dataptr(mask, i, get_ibox(mask, i))
@@ -3672,7 +3644,6 @@ contains
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i
     do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
        mp => dataptr(mf, i, get_ibox(mf, i), c)
        if ( present(off) ) then
           mp = mp*val + off
@@ -3688,7 +3659,6 @@ contains
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i
     do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
        mp => dataptr(mf, i, get_ibox(mf, i))
        if ( present(off) ) then
           mp = mp*val + off
@@ -3707,7 +3677,6 @@ contains
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        ap => dataptr(a, i, get_ibox(a, i))
        bp => dataptr(b, i, get_ibox(b, i))
        cp => dataptr(c, i, get_ibox(c, i))
@@ -3726,7 +3695,6 @@ contains
     integer :: ii, i, j, k, n
 
     do ii = 1, a%nboxes
-       if ( remote(a,ii) ) cycle
 
        ap => dataptr(a, ii, get_ibox(a,ii))
        bp => dataptr(b, ii, get_ibox(b,ii))
@@ -3788,8 +3756,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
 
     do ii = 1, a%nboxes
-       if ( remote(a,ii) ) cycle
-       if (lall) then
+       if ( lall ) then
           ap => dataptr(a,ii)
           bp => dataptr(b,ii)
        else
@@ -3815,8 +3782,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
 
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
-       if (lall) then
+       if ( lall ) then
           ap => dataptr(a,i,ia)
           bp => dataptr(b,i)
        else
@@ -3842,8 +3808,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
 
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
-       if (lall) then
+       if ( lall ) then
           ap => dataptr(a, i, ia, nc)
           bp => dataptr(b, i, ib, nc)
        else
@@ -3870,7 +3835,6 @@ contains
     r1 = 0.0_dp_t
     if ( present(mask) ) then
        do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -3887,7 +3851,6 @@ contains
        end do
     else
        do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -3922,7 +3885,6 @@ contains
     r1 = 0.0_dp_t
     if ( present(mask) ) then
        do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -3939,7 +3901,6 @@ contains
        end do
     else
        do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -3977,7 +3938,6 @@ contains
     r1 = 0.0_dp_t
     if ( present(mask) ) then
        do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -3994,7 +3954,6 @@ contains
        end do
     else
        do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -4077,8 +4036,6 @@ contains
 
     if ( present(mask) ) then
        do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
-
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -4095,14 +4052,11 @@ contains
        end do
     else
        do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
-
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
              mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
           end if
-
           r1 = max(r1, multifab_norm_inf_doit(mp))
        end do
     end if
@@ -4132,7 +4086,6 @@ contains
 
     r1 = 0
     do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
        else
@@ -4162,7 +4115,6 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
        else
@@ -4190,7 +4142,6 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
     do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i))
        else
@@ -4262,7 +4213,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_div_div")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng) )
           bp => dataptr(b, i, grow(get_ibox(b,i),lng) )
@@ -4290,7 +4240,6 @@ contains
        call bl_error("MULTIFAB_DIV_DIV_S: divide by zero")
     end if
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
        else
@@ -4313,7 +4262,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_c")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), targ, nc)
           bp => dataptr(b, i, grow(get_ibox(b,i),lng), src, nc)
@@ -4343,7 +4291,6 @@ contains
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), targ, nc)
        else
@@ -4369,7 +4316,6 @@ contains
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i), lng), ia, nc)
           bp => dataptr(a, i, grow(get_ibox(b, i), lng), ib, nc)
@@ -4441,7 +4387,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
           bp => dataptr(b, i, grow(get_ibox(b, i),lng))
@@ -4461,7 +4406,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
        else
@@ -4483,7 +4427,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_c")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng), targ, nc)
           bp => dataptr(b, i, grow(get_ibox(b, i),lng), src, nc)
@@ -4506,7 +4449,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s_c")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng), targ, nc)
        else
@@ -4528,7 +4470,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_s_c")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i), lng), ia, nc)
           bp => dataptr(a, i, grow(get_ibox(b, i), lng), ib, nc)
@@ -4600,7 +4541,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng))
           bp => dataptr(b, i, grow(get_ibox(b, i),ng))
@@ -4621,7 +4561,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng))
        else
@@ -4643,7 +4582,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub_c")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng), targ, nc)
           bp => dataptr(b, i, grow(get_ibox(b, i),ng), src, nc)
@@ -4666,7 +4604,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s_c")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng), targ, nc)
        else
@@ -4738,7 +4675,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_plus_plus_c")
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), dst, nc)
           bp => dataptr(b, i, grow(get_ibox(b,i),lng), src, nc)
@@ -4771,7 +4707,6 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), dst, nc)
        else
@@ -4815,7 +4750,7 @@ contains
        call bl_error("MULTIFAB_FAB_COPY: mf extent to small")
     end if
 
-    do i = 1, nboxes(mf); if ( remote(mf,i) ) cycle
+    do i = 1, nboxes(mf)
        mp => dataptr(mf, i, get_ibox(mf,i), cm, nc)
        xo = lwb(get_ibox(mf,i))
        select case ( mf%dim ) 
@@ -4871,7 +4806,7 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = +Huge(r1)
-    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+    do i = 1, nboxes(mf)
        r1 = min(r1,min_val(mf%fbs(i), all))
     end do
     call parallel_reduce(r, r1, MPI_MIN)
@@ -4885,7 +4820,7 @@ contains
     real(kind=dp_t) :: r1
     integer :: i
     r1 = +Huge(r1)
-    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+    do i = 1, nboxes(mf)
        r1 = min(r1, min_val(mf%fbs(i), c, nc, all))
     end do
     call parallel_reduce(r, r1, MPI_MIN)
@@ -4898,7 +4833,7 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = -Huge(r1)
-    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+    do i = 1, nboxes(mf)
        r1 = max(r1, max_val(mf%fbs(i), all))
     end do
     call parallel_reduce(r, r1, MPI_MAX)
@@ -4912,7 +4847,7 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = -Huge(r1)
-    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+    do i = 1, nboxes(mf)
        r1 = max(r1, max_val(mf%fbs(i), c, nc, all))
     end do
     call parallel_reduce(r, r1, MPI_MAX)
