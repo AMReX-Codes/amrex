@@ -78,7 +78,6 @@ contains
        call multifab_build(stored_coeffs_grown,old_la_grown,1,ng=0)
 
        do i = 1, nboxes(stored_coeffs_grown)
-          if (remote(stored_coeffs_grown,i)) cycle
           sc_orig  => dataptr(stored_coeffs      ,i,get_pbox(stored_coeffs_grown,i),1,1)
           sc_grown => dataptr(stored_coeffs_grown,i,get_pbox(stored_coeffs_grown,i),1,1)
           sc_grown = sc_orig
@@ -93,7 +92,6 @@ contains
        call multifab_copy_c(new_coeffs_grown,1,stored_coeffs_grown,1,1)
 
        do i = 1, nboxes(new_coeffs_grown)
-          if (remote(new_coeffs_grown,i)) cycle
           sc_orig  => dataptr(coarse_coeffs(maxlev_bottom),i,get_pbox(new_coeffs_grown,i),1,1)
           sc_grown => dataptr(new_coeffs_grown    ,i,get_pbox(new_coeffs_grown,i),1,1)
           sc_orig = sc_grown
@@ -241,7 +239,6 @@ contains
     ng_sg = nghost(sg)
 
     do i = 1, nboxes(ss)
-       if ( remote(ss,i) ) cycle
 
        sp => dataptr(ss,   i)
        cp => dataptr(sg,   i)
@@ -301,7 +298,6 @@ contains
     dm = get_dim(ss)
 
     do i = 1, nboxes(ss)
-       if ( remote(ss,i) ) cycle
 
        sp => dataptr(ss,   i)
        cp => dataptr(sg,   i)

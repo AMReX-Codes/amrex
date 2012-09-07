@@ -125,9 +125,9 @@ module ml_multifab_module
      module procedure ml_multifab_nboxes
   end interface
 
-  interface remote
-     module procedure ml_multifab_remote
-  end interface
+!  interface remote
+!     module procedure ml_multifab_remote
+!  end interface
 
   interface print
      module procedure ml_multifab_print
@@ -135,12 +135,12 @@ module ml_multifab_module
 
 contains
 
-  function ml_multifab_remote(mmf, lev, n) result(r)
-    logical :: r
-    type(ml_multifab), intent(in) :: mmf
-    integer, intent(in) :: lev, n
-    r = remote(mmf%mf(lev), n)
-  end function ml_multifab_remote
+!  function ml_multifab_remote(mmf, lev, n) result(r)
+!    logical :: r
+!    type(ml_multifab), intent(in) :: mmf
+!    integer, intent(in) :: lev, n
+!    r = remote(mmf%mf(lev), n)
+!  end function ml_multifab_remote
     
   function ml_multifab_nboxes(mmf, lev) result(r)
     integer :: r

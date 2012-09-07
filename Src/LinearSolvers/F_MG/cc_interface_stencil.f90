@@ -20,9 +20,9 @@ contains
     type(multifab), intent(in   ) :: flux
     type(multifab), intent(in   ) :: crse
     type(multifab), intent(in   ) :: ss
-    type(box), intent(in) :: crse_domain
-    integer, intent(in) :: face, dim
-    real(kind=dp_t), intent(in) :: efactor
+    type(box),      intent(in   ) :: crse_domain
+    integer,        intent(in   ) :: face, dim
+    real(kind=dp_t),intent(in   ) :: efactor
     type(bl_prof_timer), save :: bpt
     call build(bpt, "ml_interf")
     call ml_interface_c(res, 1, flux, 1, crse, ss, crse_domain, face, dim, efactor)
@@ -52,7 +52,7 @@ contains
     type(layout)   :: la
     type(vector_i) :: procmap, indxmap, shftmap
 
-    type(box_intersector), pointer   :: bi(:)
+    type(box_intersector), pointer :: bi(:)
 
     real(kind=dp_t), pointer :: rp(:,:,:,:), fp(:,:,:,:), cp(:,:,:,:), sp(:,:,:,:)
 
@@ -66,9 +66,9 @@ contains
     !
     call copy(ba, get_boxarray(flux))
 
-    do i = 1, nboxes(flux)
-       fbox = get_ibox(flux,i)
-       if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
+    do i = 1, nboxes(flux%la)
+       fbox = box_nodalize(get_box(flux%la,i))
+       if ( pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
           if ( face .eq. -1 ) then
              fbox = shift(fbox,  extent(crse_domain,dim), dim)
           else
@@ -77,14 +77,14 @@ contains
           call set_box(ba, i, fbox)
        end if
     end do
+
     call build(la, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
+
     call destroy(ba)
 
     dm = get_dim(res)
 
     do j = 1, nboxes(crse)
-       if ( remote(crse,j) ) cycle
-
        cbox =  get_ibox(crse,j)
        loc  =  lwb(get_pbox(crse,j))
        lor  =  lwb(get_pbox(res,j))
@@ -119,9 +119,9 @@ contains
     call build(indxmap)
     call build(shftmap)
 
-    do j = 1, nboxes(crse)
-       cbox =  get_ibox(crse,   j)
-       proc =  get_proc(get_layout(crse),j)
+    do j = 1, nboxes(crse%la)
+       cbox = box_nodalize(get_box(crse%la,j))
+       proc =  get_proc(crse%la,j)
        bi   => layout_get_box_intersector(la, cbox)
 
        do k = 1, size(bi)
@@ -129,7 +129,7 @@ contains
           isect = bi(k)%bx
           fbox  = get_ibox(flux,bi(k)%i)
 
-          if ( pmask(dim) .and.  .not. contains(crse_domain,fbox) ) then
+          if ( pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
              !
              ! We need to remember the original flux box & whether or not it needs to be shifted.
              !
@@ -172,9 +172,7 @@ contains
 
     do i = 1, nboxes(tflux)
 
-       if ( remote(tflux,i) ) cycle
-
-       j    =  at(indxmap,i)
+       j    =  local_index(crse,at(indxmap,i))
        cbox =  get_ibox(crse,j)
        loc  =  lwb(get_pbox(crse,j))
        lor  =  lwb(get_pbox(res,j))

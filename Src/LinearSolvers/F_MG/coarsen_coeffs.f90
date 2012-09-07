@@ -38,7 +38,6 @@ contains
     ng = nghost(cc)
 
     do i = 1, nboxes(cf)
-       if ( remote(cf,i) ) cycle
        cfp => dataptr(cf, i)
        ccp => dataptr(cc, i)
 
@@ -87,7 +86,6 @@ contains
     ng = nghost(cc(1))
 
     do i = 1, nboxes(cf(1))
-       if ( remote(cf(1),i) ) cycle
 
        select case (dm)
        case (1)

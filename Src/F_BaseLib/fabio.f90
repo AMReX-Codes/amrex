@@ -232,7 +232,7 @@ contains
     type(layout) :: mf_la
     character(len=128) :: fname
     integer :: un
-    integer :: nc, nb, i, fd, j, ng
+    integer :: nc, nb, i, fd, j, ng, ii
     integer, allocatable :: offset(:), loffset(:)
     type(box) :: bx
     real(kind=dp_t), allocatable :: mx(:,:), mn(:,:)
@@ -260,7 +260,7 @@ contains
     nOutFilesLoc = max(1, min(nOutFilesLoc, parallel_nprocs()))
 
     nc = multifab_ncomp(mf)
-    nb = nboxes(mf)
+    nb = nboxes(mf%la)
     ng = 0
     if ( lall ) ng = nghost(mf)
     allocate(offset(nb),loffset(nb))
@@ -276,7 +276,7 @@ contains
        write(unit=un, fmt='(i0/i0/i0/i0)') 1, 0, nc, ng
        write(unit=un, fmt='("(",i0," 0")') nb
        do i = 1, nb
-          bx = get_box(mf, i)
+          bx = get_box(mf%la, i)
           call box_print(bx, unit = un, legacy = .True., nodal = nodalflags)
        end do
        write(unit=un, fmt='(")")')
@@ -284,7 +284,9 @@ contains
     call parallel_barrier()
 
     offset = -Huge(offset)
-    ! Each processor writes his own FABS
+    !
+    ! Each processor writes his own FABS.
+    !
     if ( lUsingNFilesLoc ) then
       write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), mod(parallel_myproc(), nOutFilesLoc)
 
@@ -299,8 +301,7 @@ contains
             call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_APPEND)
           end if
 
-          do i = 1, nb
-             if ( remote(mf, i) ) cycle
+          do i = 1, nboxes(mf)
              call fabio_write(fd, offset(i), mf, i, nodal = nodalflags, all = all, prec = prec)
           end do
 
@@ -325,7 +326,7 @@ contains
     else
       write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), parallel_myproc()
       call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_WRONLY)
-      do i = 1, nb; if ( remote(mf, i) ) cycle
+      do i = 1, nboxes(mf)
          call fabio_write(fd, offset(i), mf, i, nodal = nodalflags, all = all, prec = prec)
       end do
       call fabio_close(fd)
@@ -334,19 +335,20 @@ contains
     call parallel_reduce(loffset, offset, MPI_MAX, parallel_IOProcessorNode())
 
     do i = 1, nb
-       if ( local(mf, i) ) then
+       if ( local(mf%la,i) ) then
+          ii = local_index(mf,i)
           do j = 1, nc
              if ( lall ) then
-                dp => dataptr(mf, i, get_pbox(mf,i), j, 1)
+                dp => dataptr(mf, ii, get_pbox(mf,ii), j, 1)
              else
-                dp => dataptr(mf, i, get_ibox(mf,i), j, 1)
+                dp => dataptr(mf, ii, get_ibox(mf,ii), j, 1)
              end if
              mnl(j) = minval(dp)
              mxl(j) = maxval(dp)
           end do
        end if
        if ( parallel_IOProcessor() ) then
-          if ( remote(mf, i) ) then
+          if ( remote(mf%la, i) ) then
              call parallel_recv(mn(:,i), get_proc(mf_la,i), MSG_TAG)
              call parallel_recv(mx(:,i), get_proc(mf_la,i), MSG_TAG + 1)
           else
@@ -354,7 +356,7 @@ contains
              mn(:,i) = mnl
           end if
        else
-          if ( local(mf, i) ) then
+          if ( local(mf%la, i) ) then
             call parallel_send(mnl, parallel_IOProcessorNode(), MSG_TAG)
             call parallel_send(mxl, parallel_IOProcessorNode(), MSG_TAG + 1)
           end if
@@ -740,18 +742,15 @@ contains
 
     subroutine build_ns_plotfile_old()
       use bl_error_module
-      integer :: i, n, k
-      integer :: j, nc
+      integer :: i, n, k, j, nc, jj
       character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
-      integer :: offset
-      integer :: idummy, sz, fd, llng
+      integer :: offset, idummy, sz, fd, llng
       real(kind=dp_t) :: rdummy, tm
       integer :: nvars, dm, flevel
       integer, allocatable :: refrat(:,:), nboxes(:)
       real(kind=dp_t), allocatable :: dxlev(:,:)
       type(box), allocatable :: bxs(:)
-      type(box) :: bx_dummy
-      type(box) :: bx
+      type(box) :: bx_dummy, bx
       type(boxarray) :: ba
       type(layout) :: la
       character(len=256), allocatable :: fileprefix(:)
@@ -833,14 +832,15 @@ contains
          do j = 1, nboxes(i)
             read(unit=lun, fmt=*) cdummy, &
                  filename, offset
-            if (multifab_remote(mmf(i),j)) cycle
+            if (remote(mmf(i)%la,j)) cycle
             call fabio_open(fd,                         &
                trim(root) // "/" //                &
                trim(fileprefix(i)) // "/" // &
                trim(filename))
-            bx = grow(get_ibox(mmf(i), j), lng)
-            pp => dataptr(mmf(i), j, bx)
-            sz = volume(get_ibox(mmf(i),j))
+            jj = local_index(mmf(i),j)
+            bx = grow(get_ibox(mmf(i), jj), lng)
+            pp => dataptr(mmf(i), jj, bx)
+            sz = volume(get_ibox(mmf(i),jj))
             call fabio_read_d(fd, offset, pp(:,:,:,:), sz*nvars)
             call fabio_close(fd)
          end do
@@ -857,21 +857,16 @@ contains
 
     end subroutine build_ns_plotfile_old
 
-
     subroutine build_ns_plotfile()
       use bl_error_module
-      integer :: i, n, k
-      integer :: j, nc
+      integer :: i, n, k, j, nc, offset, idummy, sz, fd, llng
       character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
-      integer :: offset
-      integer :: idummy, sz, fd, llng
       real(kind=dp_t) :: rdummy, tm
-      integer :: nvars, dm, flevel
+      integer :: nvars, dm, flevel, jj
       integer, allocatable :: refrat(:,:), nboxes(:)
       real(kind=dp_t), allocatable :: dxlev(:,:)
       type(box), allocatable :: bxs(:)
-      type(box) :: bx_dummy
-      type(box) :: bx
+      type(box) :: bx_dummy, bx
       type(boxarray) :: ba
       type(boxarray), allocatable :: balevs(:)
       type(layout) :: la
@@ -884,7 +879,6 @@ contains
       nAtOnce = min(parallel_nprocs(), 64)
       nSets = (parallel_nprocs() + (nAtOnce - 1)) / nAtOnce
       mySet = parallel_myproc() / nAtOnce
-
 
       do iSet = 0, nSets - 1
         if (mySet == iSet) then
@@ -983,7 +977,6 @@ contains
         end if
       enddo     !  iSet
 
-
       do i = 1, flevel
          call build(la, balevs(i), boxarray_bbox(balevs(i)))
          call build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
@@ -1016,14 +1009,15 @@ contains
              do j = 1, nboxes(i)
                 read(unit=lun, fmt=*) cdummy, &
                      filename, offset
-                if (multifab_remote(mmf(i),j)) cycle
+                if (remote(mmf(i)%la,j)) cycle
                 call fabio_open(fd,                         &
                    trim(root) // "/" //                &
                    trim(fileprefix(i)) // "/" // &
                    trim(filename))
-                bx = grow(get_ibox(mmf(i), j), lng)
-                pp => dataptr(mmf(i), j, bx)
-                sz = volume(get_ibox(mmf(i),j))
+                jj = local_index(mmf(i),j)
+                bx = grow(get_ibox(mmf(i), jj), lng)
+                pp => dataptr(mmf(i), jj, bx)
+                sz = volume(get_ibox(mmf(i),jj))
                 call fabio_read_d(fd, offset, pp(:,:,:,:), sz*nvars)
                 call fabio_close(fd)
              end do

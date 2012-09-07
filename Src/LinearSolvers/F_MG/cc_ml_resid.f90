@@ -203,7 +203,6 @@ contains
     dm = get_dim(ss)
 
     do i = 1, nboxes(flux)
-       if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
        sp => dataptr(ss, i)
@@ -256,7 +255,6 @@ contains
     call multifab_fill_boundary(uu, cross = lcross)
 
     do i = 1, nboxes(flux)
-       if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i, cf)
        up => dataptr(uu, i, cu)
        sp => dataptr(ss, i)
@@ -302,7 +300,6 @@ contains
     ng = nghost(uu)
 
     do i = 1, nboxes(flux)
-       if ( remote(flux, i) ) cycle
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
        sp => dataptr(ss, i)

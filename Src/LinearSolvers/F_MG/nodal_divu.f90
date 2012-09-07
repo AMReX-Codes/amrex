@@ -40,7 +40,6 @@ contains
          mglev_fine = mgt(n)%nlevels
          call multifab_fill_boundary(unew(n))
          do i = 1, nboxes(unew(n))
-            if ( remote(unew(n), i) ) cycle
             unp => dataptr(unew(n), i)
             rhp => dataptr(rh(n)  , i)
             mp  => dataptr(mgt(n)%mm(mglev_fine),i)
@@ -242,7 +241,6 @@ contains
 !     First compute a residual which only takes contributions from the
 !        grid on which it is calculated.
        do i = 1, nboxes(u(n_fine))
-          if ( remote(u(n_fine), i) ) cycle
           unp => dataptr(u(n_fine), i)
           rhp => dataptr( temp_rhs, i)
           select case (dm)
@@ -473,7 +471,7 @@ contains
 
      integer   :: lo (get_dim(rh)), hi (get_dim(rh)), lou(get_dim(rh)), dims(4), dm
      integer   :: lof(get_dim(rh)), hif(get_dim(rh)), lor(get_dim(rh)), lom(get_dim(rh))
-     integer   :: lodom(get_dim(rh)), hidom(get_dim(rh)), dir, i, j, k, proc
+     integer   :: lodom(get_dim(rh)), hidom(get_dim(rh)), dir, i, j, k, proc, li, lj
      logical   :: nodal(get_dim(rh))
      logical   :: pmask(get_dim(rh))
 
@@ -489,6 +487,8 @@ contains
 
      if ( .not. cell_centered_q(flux) ) call bl_error('ml_crse_divu_contrib(): flux NOT cell centered')
 
+     if ( .not. cell_centered_q(u)    ) call bl_error('ml_crse_divu_contrib(): u NOT cell centered')
+
      dims    = 1;
      nodal   = .true.
      dir     = iabs(side)
@@ -498,103 +498,106 @@ contains
      dm      = get_dim(rh)
      pmask   = get_pmask(get_layout(rh))
 
-     do j = 1, nboxes(u)
-       ubox = box_nodalize(get_ibox(u,j),nodal)
-       lou  = lwb(get_pbox(u,j))
-       lor  = lwb(get_pbox(rh,j))
+     do j = 1, nboxes(u%la)
 
-       bi => layout_get_box_intersector(flux_la, ubox)
+        ubox = box_nodalize(get_box(u%la,j),nodal)
+        lou  = lwb(grow(get_box(u%la, j), u%ng))
+        lor  = lwb(grow(get_box(rh%la,j),rh%ng))
 
-       do k = 1, size(bi)
+        bi => layout_get_box_intersector(flux_la, ubox)
 
-          i = bi(k)%i
+        do k = 1, size(bi)
 
-          if ( remote(flux,i) .and. remote(u,j) ) cycle
-          
-          fbox  = get_ibox(flux,i)
-          isect = bi(k)%bx
-          lof   = lwb(fbox)
-          hif   = upb(fbox)
+           i = bi(k)%i
 
-          if ( (lof(dir) == lodom(dir) .or. lof(dir) == hidom(dir)) .and. &
-               .not. pmask(dir) ) cycle
+           if ( remote(flux%la,i) .and. remote(u%la,j) ) cycle
 
-          lo = lwb(isect)
-          hi = upb(isect)
+           fbox  = get_box(flux%la,i)
+           isect = bi(k)%bx
+           lof   = lwb(fbox)
+           hif   = upb(fbox)
 
-          if ( local(flux,i) .and. local(u,j) ) then
-             lom  =  lwb(get_pbox(mm,i))
-             fp   => dataptr(flux,i)
-             mp   => dataptr(mm  ,i)
-             up   => dataptr(u   ,j)
-             rp   => dataptr(rh  ,j)
-             select case (dm)
-             case (1)
-                call ml_interface_1d_divu(rp(:,1,1,1), lor, &
-                     fp(:,1,1,1), lof, &
-                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, ir, side, dx, &
-                     lo_inflow, hi_inflow)
-             case (2)
-                call ml_interface_2d_divu(rp(:,:,1,1), lor, &
-                     fp(:,:,1,1), lof, lof, hif, &
-                     up(:,:,1,:), lou, mp(:,:,1,1), lom, lo, hi, ir, side, dx, &
-                     lo_inflow, hi_inflow)
-             case (3)
-                call ml_interface_3d_divu(rp(:,:,:,1), lor, &
-                     fp(:,:,:,1), lof, lof, hif,  &
-                     up(:,:,:,:), lou, mp(:,:,:,1), lom, lo, hi, ir, side, dx, &
-                     lo_inflow, hi_inflow)
-             end select
+           if ( (lof(dir) == lodom(dir) .or. lof(dir) == hidom(dir)) .and. &
+                .not. pmask(dir) ) cycle
 
-          else if ( local(flux,i) ) then
-             !
-             ! Must send flux & mm.
-             !
-             mbox =  intersection(refine(isect,ir), get_pbox(mm,i))
-             fp   => dataptr(flux, i, isect, 1, ncomp(flux))
-             mp   => dataptr(mm,   i, mbox,  1, ncomp(mm))
-             proc =  get_proc(get_layout(u), j)
-             call parallel_send(fp, proc, tag)
-             call parallel_send(mp, proc, tag)
+           lo = lwb(isect)
+           hi = upb(isect)
 
-          else if ( local(u,j) ) then
-             !
-             ! Must receive flux & mm.
-             !
-             proc = get_proc(flux_la, i)
-             mbox = intersection(refine(isect,ir), get_pbox(mm,i))
-             lom  = lwb(mbox)
-             dims(1:dm) = extent(isect)
-             allocate(fp(dims(1),dims(2),dims(3),ncomp(flux)))
-             dims(1:dm) = extent(mbox)
-             allocate(mp(dims(1),dims(2),dims(3),ncomp(mm)))
-             call parallel_recv(fp, proc, tag)
-             call parallel_recv(mp, proc, tag)
-             up => dataptr(u  ,j)
-             rp => dataptr(rh ,j)
-             select case (dm)
-             case (1)
-                call ml_interface_1d_divu(rp(:,1,1,1), lor, &
-                     fp(:,1,1,1), lo, &
-                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, ir, side, dx, &
-                     lo_inflow, hi_inflow)
-             case (2)
-                call ml_interface_2d_divu(rp(:,:,1,1), lor, &
-                     fp(:,:,1,1), lo, lof, hif, &
-                     up(:,:,1,:), lou, mp(:,:,1,1), lom, lo, hi, ir, side, dx, &
-                     lo_inflow, hi_inflow)
-             case (3)
-                call ml_interface_3d_divu(rp(:,:,:,1), lor, &
-                     fp(:,:,:,1), lo, lof, hif, &
-                     up(:,:,:,:), lou, mp(:,:,:,1), lom, lo, hi, ir, side, dx, &
-                     lo_inflow, hi_inflow)
-             end select
-             deallocate(fp,mp)
-          end if
-       end do
-       deallocate(bi)
-    end do
-    call destroy(bpt)
+           if ( local(flux%la,i) .and. local(u%la,j) ) then
+              li   =  local_index(flux,i)
+              lj   =  local_index(u,   j)
+              lom  =  lwb(get_pbox(mm,li))
+              fp   => dataptr(flux,li)
+              mp   => dataptr(mm  ,li)
+              up   => dataptr(u   ,lj)
+              rp   => dataptr(rh  ,lj)
+              select case (dm)
+              case (1)
+                 call ml_interface_1d_divu(rp(:,1,1,1), lor, &
+                      fp(:,1,1,1), lof, &
+                      up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, ir, side, dx, &
+                      lo_inflow, hi_inflow)
+              case (2)
+                 call ml_interface_2d_divu(rp(:,:,1,1), lor, &
+                      fp(:,:,1,1), lof, lof, hif, &
+                      up(:,:,1,:), lou, mp(:,:,1,1), lom, lo, hi, ir, side, dx, &
+                      lo_inflow, hi_inflow)
+              case (3)
+                 call ml_interface_3d_divu(rp(:,:,:,1), lor, &
+                      fp(:,:,:,1), lof, lof, hif,  &
+                      up(:,:,:,:), lou, mp(:,:,:,1), lom, lo, hi, ir, side, dx, &
+                      lo_inflow, hi_inflow)
+              end select
+           else if ( local(flux%la,i) ) then
+              !
+              ! Must send flux & mm.
+              !
+              li   =  local_index(flux,i)
+              mbox =  intersection(refine(isect,ir), get_pbox(mm,li))
+              fp   => dataptr(flux, li, isect, 1, ncomp(flux))
+              mp   => dataptr(mm,   li, mbox,  1, ncomp(mm))
+              proc =  get_proc(get_layout(u), j)
+              call parallel_send(fp, proc, tag)
+              call parallel_send(mp, proc, tag)
+           else if ( local(u%la,j) ) then
+              !
+              ! Must receive flux & mm.
+              !
+              lj   = local_index(u,j)
+              proc = get_proc(flux_la, i)
+              mbox = intersection(refine(isect,ir), grow(get_box(mm%la,i),mm%ng))
+              lom  = lwb(mbox)
+              dims(1:dm) = extent(isect)
+              allocate(fp(dims(1),dims(2),dims(3),ncomp(flux)))
+              dims(1:dm) = extent(mbox)
+              allocate(mp(dims(1),dims(2),dims(3),ncomp(mm)))
+              call parallel_recv(fp, proc, tag)
+              call parallel_recv(mp, proc, tag)
+              up => dataptr(u, lj)
+              rp => dataptr(rh,lj)
+              select case (dm)
+              case (1)
+                 call ml_interface_1d_divu(rp(:,1,1,1), lor, &
+                      fp(:,1,1,1), lo, &
+                      up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, ir, side, dx, &
+                      lo_inflow, hi_inflow)
+              case (2)
+                 call ml_interface_2d_divu(rp(:,:,1,1), lor, &
+                      fp(:,:,1,1), lo, lof, hif, &
+                      up(:,:,1,:), lou, mp(:,:,1,1), lom, lo, hi, ir, side, dx, &
+                      lo_inflow, hi_inflow)
+              case (3)
+                 call ml_interface_3d_divu(rp(:,:,:,1), lor, &
+                      fp(:,:,:,1), lo, lof, hif, &
+                      up(:,:,:,:), lou, mp(:,:,:,1), lom, lo, hi, ir, side, dx, &
+                      lo_inflow, hi_inflow)
+              end select
+              deallocate(fp,mp)
+           end if
+        end do
+        deallocate(bi)
+     end do
+     call destroy(bpt)
 
    end subroutine ml_crse_divu_contrib
 
@@ -1469,7 +1472,6 @@ contains
       do n = 1, nlevs
          mglev_fine = mgt(n)%nlevels
          do i = 1, nboxes(rh(n))
-            if ( remote(rh(n), i) ) cycle
             rp => dataptr(rh(n)      , i)
             dp => dataptr(divu_rhs(n), i)
             mp => dataptr(mgt(n)%mm(mglev_fine),i)
@@ -1595,7 +1597,6 @@ contains
        mglev_fine = mgt(n)%nlevels
        call multifab_fill_boundary(rhcc(n))
        do i = 1, nboxes(rhcc(n))
-          if ( remote(rhcc(n), i) ) cycle
           rcp => dataptr(rhcc(n), i)
           rhp => dataptr(rh(n)  , i)
           mp  => dataptr(mgt(n)%mm(mglev_fine),i)
@@ -1812,14 +1813,12 @@ contains
     dm    = get_dim(flux)
 
     do i = 1, nboxes(flux)
-      if ( remote(flux, i) ) cycle
-       fbox   = get_ibox(flux,i)
-       lof = lwb(fbox)
-       fp => dataptr(flux, i)
-       rp => dataptr(rhcc, i)
-       mp => dataptr(mm, i)
-       if ( pmask(dir) .or. &
-            (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
+       fbox =  get_ibox(flux,i)
+       lof  =  lwb(fbox)
+       fp   => dataptr(flux, i)
+       rp   => dataptr(rhcc, i)
+       mp   => dataptr(mm, i)
+       if ( pmask(dir) .or. ((lof(dir) /= lo_dom(dir)) .and. (lof(dir) /= hi_dom(dir))) ) then
           select case(dm)
           case (1)
              call bl_error("ml_fine_rhcc_contrib_1d not implemented");
@@ -2233,7 +2232,7 @@ contains
 
     integer   :: lo (get_dim(rh)), hi (get_dim(rh)), lorc(get_dim(rh)), dims(4), dm
     integer   :: lof(get_dim(rh)), hif(get_dim(rh)), lorh(get_dim(rh)), lom(get_dim(rh))
-    integer   :: lodom(get_dim(rh)), hidom(get_dim(rh)), dir, i, j, k, proc
+    integer   :: lodom(get_dim(rh)), hidom(get_dim(rh)), dir, i, j, k, proc, li, lj
     logical   :: nodal(get_dim(rh))
     logical   :: pmask(get_dim(rh))
 
@@ -2256,11 +2255,11 @@ contains
     dm      = get_dim(rh)
     pmask   = get_pmask(get_layout(rh))
 
-    do j = 1, nboxes(rhcc)
+    do j = 1, nboxes(rhcc%la)
 
-       rcbox = box_nodalize(get_ibox(rhcc,j),nodal)
-       lorc  = lwb(get_pbox(rhcc,j))
-       lorh  = lwb(get_pbox(rh  ,j))
+       rcbox = box_nodalize(get_box(rhcc%la,j),nodal)
+       lorc  = lwb(grow(get_box(rhcc%la,j),rhcc%ng))
+       lorh  = lwb(grow(get_box(rh%la  ,j),rh%ng  ))
        
        bi => layout_get_box_intersector(flux_la, rcbox)
 
@@ -2268,9 +2267,9 @@ contains
           
           i = bi(k)%i
           
-          if ( remote(flux,i) .and. remote(rhcc,j) ) cycle
+          if ( remote(flux%la,i) .and. remote(rhcc%la,j) ) cycle
           
-          fbox  = get_ibox(flux,i)
+          fbox  = get_box(flux%la,i)
           isect = bi(k)%bx
           lof   = lwb(fbox)
           hif   = upb(fbox)
@@ -2281,13 +2280,14 @@ contains
           lo = lwb(isect)
           hi = upb(isect)
 
-          if ( local(flux,i) .and. local(rhcc,j) ) then
-
-             lom  =  lwb(get_pbox(mm,i))
-             fp   => dataptr(flux,i)
-             mp   => dataptr(mm  ,i)
-             rcp  => dataptr(rhcc,j)
-             rhp  => dataptr(rh  ,j)
+          if ( local(flux%la,i) .and. local(rhcc%la,j) ) then
+             li   =  local_index(flux,i)
+             lj   =  local_index(rh,  j)
+             lom  =  lwb(get_pbox(mm,li))
+             fp   => dataptr(flux,li)
+             mp   => dataptr(mm  ,li)
+             rcp  => dataptr(rhcc,lj)
+             rhp  => dataptr(rh  ,lj)
              select case (dm)
              case (1)
                 call bl_error("ml_interface_rhcc_1d not done")
@@ -2300,24 +2300,24 @@ contains
                      fp(:,:,:,1), lof, lof, hif, &
                      rcp(:,:,:,1), lorh, mp(:,:,:,1), lom, lo, hi, ir, side)
              end select
-
-          else if ( local(flux,i) ) then
+          else if ( local(flux%la,i) ) then
              !
              ! Must send flux & mm.
              !
-             mbox =  intersection(refine(isect,ir), get_pbox(mm,i))
-             fp   => dataptr(flux, i, isect, 1, ncomp(flux))
-             mp   => dataptr(mm,   i, mbox,  1, ncomp(mm))
+             li   =  local_index(flux,i)
+             mbox =  intersection(refine(isect,ir), get_pbox(mm,li))
+             fp   => dataptr(flux, li, isect, 1, ncomp(flux))
+             mp   => dataptr(mm,   li, mbox,  1, ncomp(mm))
              proc =  get_proc(get_layout(rhcc), j)
              call parallel_send(fp, proc, tag)
              call parallel_send(mp, proc, tag)
-             
           else
              !
              ! Must receive flux & mm.
              !
+             lj   = local_index(rh,j)
              proc = get_proc(flux_la, i)
-             mbox = intersection(refine(isect,ir), get_pbox(mm,i))
+             mbox = intersection(refine(isect,ir), grow(get_box(mm%la,i),mm%ng))
              lom  = lwb(mbox)
              dims(1:dm) = extent(isect)
              allocate(fp(dims(1),dims(2),dims(3),ncomp(flux)))
@@ -2326,8 +2326,8 @@ contains
              call parallel_recv(fp, proc, tag)
              call parallel_recv(mp, proc, tag)
 
-             rcp => dataptr(rhcc,j)
-             rhp => dataptr(rh  ,j)
+             rcp => dataptr(rhcc,lj)
+             rhp => dataptr(rh  ,lj)
              select case (dm)
              case (1)
                 call bl_error("ml_interface_rhcc_1d not done")
@@ -2342,13 +2342,10 @@ contains
              end select
 
              deallocate(fp,mp)
-
           end if
-
        end do
 
        deallocate(bi)
-
     end do
 
     call destroy(bpt)
