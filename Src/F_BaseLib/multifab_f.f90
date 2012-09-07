@@ -430,9 +430,9 @@ contains
   !
   ! Given a global index "i" into the boxarray on which
   ! the multifab is built, returns the corresponding local
-  ! index "r" in mf%idx(:) It's an error if the multifab
-  ! does not "own" index "r" or if the index "i" is not
-  ! in the range of boxes for mf%la.
+  ! index "r" at which that index is stored in mf%idx(:).
+  ! It's an error if the multifab does not "own" index "r"
+  ! or if the index "i" is not in the range of boxes for mf%la.
   !
   function local_index_doit(i, nboxes, idx) result(r)
     integer, intent(in) :: i, nboxes, idx(:)
@@ -970,23 +970,23 @@ contains
     mf%nboxes = 0
   end subroutine zmultifab_destroy
 
-   function multifab_volume(mf, all) result(r)
-     integer(kind=ll_t) :: r
-     type(multifab), intent(in) :: mf
-     logical, optional :: all
-     integer :: i
-     logical :: lall
-     lall = .false.; if (present(all) ) lall = all
-     if ( lall ) then
-        r = 0_ll_t
-        do i = 1, mf%nboxes
-           r = r + volume(get_pbox(mf, i))
-        end do
-     else
-        r = volume(get_boxarray(mf))
-     end if
-     r = r * mf%nc
-   end function multifab_volume
+  function multifab_volume(mf, all) result(r)
+    integer(kind=ll_t) :: r
+    type(multifab), intent(in) :: mf
+    logical, optional :: all
+    integer :: i
+    logical :: lall
+    lall = .false.; if (present(all) ) lall = all
+    if ( lall ) then
+       r = 0_ll_t
+       do i = 1, nboxes(mf%la)
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
+       end do
+    else
+       r = volume(get_boxarray(mf))
+    end if
+    r = r * mf%nc
+  end function multifab_volume
   function imultifab_volume(mf, all) result(r)
     integer(kind=ll_t) :: r
     type(imultifab), intent(in) :: mf
@@ -997,12 +997,12 @@ contains
     if ( lall ) then
        r = 0_ll_t
        do i = 1, mf%nboxes
-          r = r + volume(get_pbox(mf, i))
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
        end do
     else
        r = volume(get_boxarray(mf))
     end if
-     r = r * mf%nc
+    r = r * mf%nc
   end function imultifab_volume
   function lmultifab_volume(mf, all) result(r)
     integer(kind=ll_t) :: r
@@ -1014,12 +1014,12 @@ contains
     if ( lall ) then
        r = 0_ll_t
        do i = 1, mf%nboxes
-          r = r + volume(get_pbox(mf, i))
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
        end do
     else
        r = volume(get_boxarray(mf))
     end if
-     r = r * mf%nc
+    r = r * mf%nc
   end function lmultifab_volume
   function zmultifab_volume(mf, all) result(r)
     integer(kind=ll_t) :: r
@@ -1031,12 +1031,12 @@ contains
     if ( lall ) then
        r = 0_ll_t
        do i = 1, mf%nboxes
-          r = r + volume(get_pbox(mf, i))
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
        end do
     else
        r = volume(get_boxarray(mf))
     end if
-     r = r * mf%nc
+    r = r * mf%nc
   end function zmultifab_volume
 
   pure function multifab_get_dim(mf) result(r)
@@ -1127,25 +1127,25 @@ contains
     type(multifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = get_box(mf%la, i)
+    r = get_box(mf%fbs(i))
   end function multifab_get_box
   pure function imultifab_get_box(mf, i) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = get_box(mf%la, i)
+    r = get_box(mf%fbs(i))
   end function imultifab_get_box
   pure function lmultifab_get_box(mf, i) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = get_box(mf%la, i)
+    r = get_box(mf%fbs(i))
   end function lmultifab_get_box
   pure function zmultifab_get_box(mf, i) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = get_box(mf%la, i)
+    r = get_box(mf%fbs(i))
   end function zmultifab_get_box
 
   pure function multifab_get_ibox(mf, i) result(r)
@@ -1541,7 +1541,6 @@ contains
     real(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
-    type(box) :: bx
     logical lall
     type(bl_prof_timer), save :: bpt
 
@@ -1552,8 +1551,7 @@ contains
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx, c, nc)
+          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
        end if
     end do
     call destroy(bpt)
@@ -1565,7 +1563,6 @@ contains
     integer, intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
-    type(box) :: bx
     logical lall
     type(bl_prof_timer), save :: bpt
 
@@ -1576,8 +1573,7 @@ contains
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx, c, nc)
+          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
        end if
     end do
     call destroy(bpt)
@@ -1589,7 +1585,6 @@ contains
     logical, intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
-    type(box) :: bx
     logical lall
     type(bl_prof_timer), save :: bpt
 
@@ -1599,8 +1594,7 @@ contains
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx, c, nc)
+          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
        end if
     end do
     call destroy(bpt)
@@ -1612,15 +1606,13 @@ contains
     complex(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
-    type(box) :: bx
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
     do i = 1, mf%nboxes
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx, c, nc)
+          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
        end if
     end do
   end subroutine zmultifab_setval_c
@@ -3578,23 +3570,23 @@ contains
     r1 = 0.0_dp_t
     if ( cell_centered_q(mf) ) then
        do i = 1, mf%nboxes
-          mp  => dataptr(mf , i, get_box(mf, i), comp)
+          mp  => dataptr(mf,  i, get_box(mf,  i), comp)
           mp1 => dataptr(mf1, i, get_box(mf1, i), comp)
           r1 = r1 + sum(mp*mp1)
        end do
     else if (nodal_q(mf) ) then
        if ( present(nodal_mask) ) then
           do i = 1, mf%nboxes
-             mp  => dataptr(mf        , i, get_ibox(mf, i), comp)
-             mp1 => dataptr(mf1       , i, get_ibox(mf1, i), comp)
+             mp  => dataptr(mf,         i, get_ibox(mf,         i), comp)
+             mp1 => dataptr(mf1,        i, get_ibox(mf1,        i), comp)
              ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
        else
           call build_nodal_dot_mask(mask, mf)
           do i = 1, mf%nboxes
-             mp  => dataptr(mf  , i, get_ibox(mf  , i), comp)
-             mp1 => dataptr(mf1 , i, get_ibox(mf1 , i), comp)
+             mp  => dataptr(mf,   i, get_ibox(mf  , i), comp)
+             mp1 => dataptr(mf1,  i, get_ibox(mf1 , i), comp)
              ma  => dataptr(mask, i, get_ibox(mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
@@ -3623,23 +3615,23 @@ contains
     if ( cell_centered_q(mf) ) then
 
        do i = 1, mf%nboxes
-          mp  => dataptr(mf , i, get_box(mf , i))
-          mp1 => dataptr(mf1, i, get_box(mf1, i))
+          mp  => dataptr(mf,  i, get_box(mf, i))
+          mp1 => dataptr(mf1, i, get_box(mf1,i))
           r1 = r1 + sum(mp*mp1)
        end do
     else if ( nodal_q(mf) ) then
        if ( present(nodal_mask) ) then
           do i = 1, mf%nboxes
-             mp  => dataptr(mf        , i, get_ibox(mf,         i))
-             mp1 => dataptr(mf1       , i, get_ibox(mf1,        i))
+             mp  => dataptr(mf,         i, get_ibox(mf,         i))
+             mp1 => dataptr(mf1,        i, get_ibox(mf1,        i))
              ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
        else
           call build_nodal_dot_mask(mask, mf)
           do i = 1, mf%nboxes
-             mp  => dataptr(mf  , i, get_ibox(mf  , i))
-             mp1 => dataptr(mf1 , i, get_ibox(mf1 , i))
+             mp  => dataptr(mf,   i, get_ibox(mf,   i))
+             mp1 => dataptr(mf1,  i, get_ibox(mf1,  i))
              ma  => dataptr(mask, i, get_ibox(mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
