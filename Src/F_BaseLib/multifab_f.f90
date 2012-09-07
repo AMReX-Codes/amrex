@@ -98,6 +98,10 @@ module multifab_module
      module procedure zmultifab_build_copy
   end interface
 
+  interface local_index
+     module procedure multifab_local_index
+  end interface
+
   interface destroy
      module procedure multifab_destroy
      module procedure imultifab_destroy
@@ -417,6 +421,27 @@ contains
   subroutine multifab_set_alltoallv(val)
     logical val
   end subroutine multifab_set_alltoallv
+
+  !
+  ! Given a global index "i" into the boxarray on which
+  ! the multifab is built, returns the corresponding local
+  ! index "r" in mf%idx(:) It's an error if the multifab
+  ! does not "own" index "r" or if the index "i" is not
+  ! in the range of boxes for mf%la.
+  !
+  function multifab_local_index(mf,i) result(r)
+    integer ::i, j, r
+    type(multifab), intent(in) :: mf
+    !
+    ! TODO -- use bisection search?
+    !
+    call bl_assert(i >= 0 .and. i <= nboxes(mf%la),"multifab_local_index: invalid global index")
+    r = -1
+    do j = 1, mf%nboxes
+       if (mf%idx(j) == i) r = j
+    end do
+    call bl_assert(r >= 1, "multifab_local_index: no corresponding local index")
+  end function multifab_local_index
 
   pure function multifab_ncomp(mf) result(r)
     integer :: r
@@ -2640,22 +2665,22 @@ contains
     if ( mf_out%nc < (c_out+lnc-1) ) call bl_error('MULTIFAB_COPY_ON_SHIFT: nc too large', lnc)
 
     call build(bpt, "mf_copy_on_shift")
-    
-    do j = 1, mf_in%nboxes
-       jbx = shift(get_ibox(mf_in,j), len, face)
-       do i = 1, mf_out%nboxes
-          if ( remote(mf_in,j) .and. remote(mf_out,i) ) cycle
-          abx = intersection(get_ibox(mf_out,i), jbx)
+
+    do j = 1, nboxes(mf_in%la)
+       jbx = shift(box_nodalize(get_box(mf_in%la,j), mf_in%nodal), len, face)
+       do i = 1, nboxes(mf_out%la)
+          if ( remote(mf_in%la,j) .and. remote(mf_out%la,i) ) cycle
+          abx = intersection(box_nodalize(get_box(mf_out%la,i), mf_out%nodal), jbx)
           if ( empty(abx) ) cycle
-          if ( local(mf_out, i) .and. local(mf_in, j) ) then
-             pdst => dataptr(mf_out, i, abx,                  c_out, lnc)
-             psrc => dataptr(mf_in,  j, shift(abx,-len,face), c_in,  lnc)
+          if ( local(mf_out%la, i) .and. local(mf_in%la, j) ) then
+             pdst => dataptr(mf_out, local_index(mf_out,i), abx,                  c_out, lnc)
+             psrc => dataptr(mf_in,  local_index(mf_in, j), shift(abx,-len,face), c_in,  lnc)
              call cpy_d(pdst, psrc)
-          else if ( local(mf_in, j) ) then ! must send
-             psrc => dataptr(mf_in, j, shift(abx,-len,face), c_in, lnc)
-             call parallel_send(psrc, get_proc(mf_out%la, i), tag)
-          else if ( local(mf_out, i) ) then  ! must recv
-             pdst => dataptr(mf_out, i, abx, c_out, lnc)
+          else if ( local(mf_in%la,j) ) then ! must send
+             psrc => dataptr(mf_in, local_index(mf_in,j), shift(abx,-len,face), c_in, lnc)
+             call parallel_send(psrc, get_proc(mf_out%la,i), tag)
+          else if ( local(mf_out%la,i) ) then  ! must recv
+             pdst => dataptr(mf_out, local_index(mf_out,i), abx, c_out, lnc)
              call parallel_recv(pdst, get_proc(mf_in%la,j), tag)
           end if
        end do
