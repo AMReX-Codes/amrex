@@ -13,7 +13,7 @@ contains
     real(kind=dp_t), intent(in   ) :: dx(:)
     integer        , intent(in   ) :: face_type(:,:,:)
 
-    integer :: i, dm
+    integer :: i, dm, gid
     real(kind=dp_t), pointer :: msk(:,:,:,:) 
     real(kind=dp_t), pointer :: vo(:,:,:,:) 
     real(kind=dp_t), pointer :: dvo(:,:,:,:) 
@@ -21,6 +21,7 @@ contains
     dm = get_dim(vold)
 
     do i = 1, nboxes(divuo)
+       gid =  divuo%idx(i)
        dvo => dataptr(divuo, i)
        msk => dataptr(mask , i)
        vo  => dataptr(vold , i)
@@ -28,9 +29,9 @@ contains
        case (1)
           call bl_error('divuo: 1d not done')
        case (2)
-          call divuo_2d(dvo(:,:,1,1), msk(:,:,1,1), vo(:,:,1,:), dx, face_type(i,:,:))
+          call divuo_2d(dvo(:,:,1,1), msk(:,:,1,1), vo(:,:,1,:), dx, face_type(gid,:,:))
        case (3)
-          call divuo_3d(dvo(:,:,:,1), msk(:,:,:,1), vo(:,:,:,:), dx, face_type(i,:,:))
+          call divuo_3d(dvo(:,:,:,1), msk(:,:,:,1), vo(:,:,:,:), dx, face_type(gid,:,:))
        end select
     end do
 
@@ -210,7 +211,7 @@ contains
     type(multifab) , intent(in   ) :: mask
     integer        , intent(in   ) :: face_type(:,:,:)
     
-    integer :: i, dm
+    integer :: i, dm, gid
     real(kind=dp_t), pointer :: msk(:,:,:,:) 
     real(kind=dp_t), pointer :: dvo(:,:,:,:) 
     real(kind=dp_t), pointer :: rc(:,:,:,:) 
@@ -218,6 +219,7 @@ contains
     dm = get_dim(rhcc)
 
     do i = 1, nboxes(divuo)
+       gid =  divuo%idx(i)
        dvo => dataptr(divuo, i)
        msk => dataptr(mask , i)
        rc  => dataptr(rhcc , i)
@@ -225,9 +227,9 @@ contains
        case (1)
           call bl_error('divuo_rhcc_1d: 1d not done')
        case (2)
-          call divuo_rhcc_2d(dvo(:,:,1,1), msk(:,:,1,1), rc(:,:,1,1), face_type(i,:,:))
+          call divuo_rhcc_2d(dvo(:,:,1,1), msk(:,:,1,1), rc(:,:,1,1), face_type(gid,:,:))
        case (3)
-          call divuo_rhcc_3d(dvo(:,:,:,1), msk(:,:,:,1), rc(:,:,:,1), face_type(i,:,:))
+          call divuo_rhcc_3d(dvo(:,:,:,1), msk(:,:,:,1), rc(:,:,:,1), face_type(gid,:,:))
        end select
     end do
 
@@ -342,20 +344,21 @@ contains
     type(multifab), intent(inout) :: res_fine
     integer, intent(in) :: face_type(:,:,:)
 
-    integer :: i, dm
+    integer :: i, dm, gid
     real(kind=dp_t), pointer :: resp(:,:,:,:) 
 
     dm = get_dim(res_fine)
 
     do i = 1, nboxes(res_fine)
+       gid  =  res_fine%idx(i)
        resp => dataptr(res_fine, i)
        select case (dm)
        case (1)
           call bl_error('sync_res_fine_bndry: 1d not done')
        case (2)
-          call res_fine_bndry_2d(resp(:,:,1,1), face_type(i,:,:))
+          call res_fine_bndry_2d(resp(:,:,1,1), face_type(gid,:,:))
        case (3)
-          call res_fine_bndry_3d(resp(:,:,:,1), face_type(i,:,:))
+          call res_fine_bndry_3d(resp(:,:,:,1), face_type(gid,:,:))
        end select
     end do
 
@@ -441,7 +444,7 @@ subroutine mgt_set_sync_msk_1d(lev, n, msk_in, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  mskp => dataptr(mgts%sync_msk(flev), fn)
+  mskp => dataptr(mgts%sync_msk(flev), local_index(mgts%sync_msk(flev),fn))
   mskp(plo(1):phi(1),1,1,1) = msk_in(plo(1):phi(1))
 end subroutine mgt_set_sync_msk_1d
 
@@ -455,7 +458,7 @@ subroutine mgt_set_sync_msk_2d(lev, n, msk_in, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  mskp => dataptr(mgts%sync_msk(flev), fn)
+  mskp => dataptr(mgts%sync_msk(flev), local_index(mgts%sync_msk(flev),fn))
   mskp(plo(1):phi(1),plo(2):phi(2),1,1) = msk_in(plo(1):phi(1),plo(2):phi(2))
 end subroutine mgt_set_sync_msk_2d
 
@@ -469,7 +472,7 @@ subroutine mgt_set_sync_msk_3d(lev, n, msk_in, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  mskp => dataptr(mgts%sync_msk(flev), fn)
+  mskp => dataptr(mgts%sync_msk(flev), local_index(mgts%sync_msk(flev),fn))
   mskp(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3),1) = &
        msk_in(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
 end subroutine mgt_set_sync_msk_3d
@@ -484,7 +487,7 @@ subroutine mgt_set_vold_1d(lev, n, v_in, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  vp => dataptr(mgts%vold(flev), fn)
+  vp => dataptr(mgts%vold(flev), local_index(mgts%vold(flev),fn))
   vp(lo(1)-1:hi(1)+1,1,1,1) = v_in(lo(1)-1:hi(1)+1)
 end subroutine mgt_set_vold_1d
 
@@ -498,7 +501,7 @@ subroutine mgt_set_vold_2d(lev, n, v_in, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  vp => dataptr(mgts%vold(flev), fn)
+  vp => dataptr(mgts%vold(flev), local_index(mgts%vold(flev),fn))
   vp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,1,1:2) =   &
        v_in(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,1:2)
 end subroutine mgt_set_vold_2d
@@ -513,7 +516,7 @@ subroutine mgt_set_vold_3d(lev, n, v_in, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  vp => dataptr(mgts%vold(flev), fn)
+  vp => dataptr(mgts%vold(flev), local_index(mgts%vold(flev),fn))
   vp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1,1:3) = &
        v_in(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1,1:3)
 end subroutine mgt_set_vold_3d
@@ -528,7 +531,7 @@ subroutine mgt_get_sync_res_1d(lev, n, res, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  rp => dataptr(mgts%sync_res(flev), fn)
+  rp => dataptr(mgts%sync_res(flev), local_index(mgts%sync_res(flev),fn))
   res(lo(1):hi(1)) = rp(lo(1):hi(1), 1, 1, 1)
 
 end subroutine mgt_get_sync_res_1d
@@ -543,7 +546,7 @@ subroutine mgt_get_sync_res_2d(lev, n, res, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  rp => dataptr(mgts%sync_res(flev), fn)
+  rp => dataptr(mgts%sync_res(flev), local_index(mgts%sync_res(flev),fn))
   res(lo(1):hi(1), lo(2):hi(2)) = rp(lo(1):hi(1), lo(2):hi(2), 1, 1)
 
 end subroutine mgt_get_sync_res_2d
@@ -558,7 +561,7 @@ subroutine mgt_get_sync_res_3d(lev, n, res, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
 
-  rp => dataptr(mgts%sync_res(flev), fn)
+  rp => dataptr(mgts%sync_res(flev), local_index(mgts%sync_res(flev),fn))
   res(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)) =  &
        rp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1)
 
