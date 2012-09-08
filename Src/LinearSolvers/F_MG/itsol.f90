@@ -456,7 +456,7 @@ contains
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
 
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
-    do i = 1, aa%nboxes
+    do i = 1, nboxes(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
@@ -758,7 +758,7 @@ contains
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
 
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
-    do i = 1, aa%nboxes
+    do i = 1, nboxes(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)

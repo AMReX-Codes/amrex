@@ -24,7 +24,7 @@ contains
 
       dm = unew%dim
 
-      do i = 1, unew%nboxes
+      do i = 1, nboxes(unew)
          up => dataptr(unew, i)
          pp => dataptr(phi, i)
          rp  => dataptr(coeff, i)
