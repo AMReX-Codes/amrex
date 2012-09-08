@@ -318,7 +318,7 @@ contains
 
        ! Does the boxarray fill the entire bounding box? If not then don't use this bottom solver
        if (.not. contains(get_boxarray(old_coarse_la),bounding_box) &
-            .or.  (old_coarse_la%lap%nboxes .le. 8) ) then
+            .or.  (nboxes(old_coarse_la) .le. 8) ) then
 
           mgt%bottom_solver = 1
 
@@ -353,8 +353,8 @@ contains
               print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
               print *,'   ... Bounding box is'
               call print(bounding_box)
-              print *,'   ... Original boxes ',old_coarse_la%lap%nboxes
-              print *,'   ... New      boxes ',new_coarse_la%lap%nboxes
+              print *,'   ... Original boxes ',nboxes(old_coarse_la)
+              print *,'   ... New      boxes ',nboxes(new_coarse_la)
               print *,'# cells on each side  ',bottom_box_size
            end if
 
