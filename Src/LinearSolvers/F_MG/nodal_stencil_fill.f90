@@ -135,7 +135,7 @@ contains
     integer                  :: i, ib, jb, kb, ib_lo, jb_lo, kb_lo, dm
     integer                  :: shift_vect(get_dim(ss))
     integer                  :: lo(get_dim(ss)), hi(get_dim(ss))
-    integer                  :: ng_sg,gid
+    integer                  :: ng_sg
     type(list_box)           :: lb,nbxs
     type(box), allocatable   :: bxs(:)
     logical                  :: pmask(get_dim(ss))
@@ -240,7 +240,6 @@ contains
 
     do i = 1, nboxes(ss)
 
-       gid =  ss%idx(i)
        sp  => dataptr(ss,   i)
        cp  => dataptr(sg,   i)
        mp  => dataptr(mask, i)
@@ -259,10 +258,10 @@ contains
        case (2)
           if (stencil_type == ND_DENSE_STENCIL) then
             call s_dense_2d_nodal(sp(:,:,:,1), cp(:,:,1,:), ng_sg, mp(:,:,1,1), &
-                                  face_type(gid,:,:), dh, lo, hi)
+                                  face_type(i,:,:), dh, lo, hi)
           else if (stencil_type == ND_CROSS_STENCIL) then
             call s_cross_2d_nodal(sp(:,:,:,1), cp(:,:,1,1), mp(:,:,1,1), &
-                                   face_type(gid,:,:), dh)
+                                   face_type(i,:,:), dh)
           else 
             print *,'DONT KNOW THIS NODAL STENCIL TYPE ',stencil_type
             call bl_error('stencil_fill_nodal')
@@ -295,13 +294,12 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer                  :: i, dm, gid
+    integer                  :: i, dm
 
     dm = get_dim(ss)
 
     do i = 1, nboxes(ss)
 
-       gid =  ss%idx(i)
        sp  => dataptr(ss,   i)
        cp  => dataptr(sg,   i)
        mp  => dataptr(mask, i)
@@ -311,7 +309,7 @@ contains
          call bl_error('s_simple_1d_one_sided() not implemented')
        case (2)
           call s_simple_2d_one_sided(sp(:,:,:,1), cp(:,:,1,1), mp(:,:,1,1), &
-                                     face_type(gid,:,:), dh)
+                                     face_type(i,:,:), dh)
        case (3)
           call s_simple_3d_one_sided(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), dh)
        end select

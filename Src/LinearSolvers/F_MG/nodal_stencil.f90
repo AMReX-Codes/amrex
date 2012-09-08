@@ -40,10 +40,8 @@ contains
     integer, pointer :: mp(:,:,:,:)
     type(box)        :: bx1
     type(boxarray)   :: ba
-    integer          :: ii, dm, ib, jb, kb, jb_lo, kb_lo, gid
+    integer          :: ii, dm, ib, jb, kb, jb_lo, kb_lo
     logical          :: nodal(sdim)
-
-    gid = mask%idx(idx)
 
     nodal = .true.
     !
@@ -56,16 +54,16 @@ contains
        bx1 = nbx
        bx1%hi(dm) = bx1%lo(dm)
        mp => dataptr(mask, idx, bx1)
-       if (face_type(gid,dm,1) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, -1))
-       if (face_type(gid,dm,1) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+       if (face_type(idx,dm,1) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, -1))
+       if (face_type(idx,dm,1) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
        !
        ! Hi side
        !
        bx1 = nbx
        bx1%lo(dm) = bx1%hi(dm)
        mp => dataptr(mask, idx, bx1)
-       if (face_type(gid,dm,2) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, +1))
-       if (face_type(gid,dm,2) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
+       if (face_type(idx,dm,2) == BC_NEU) mp = ibset(mp, BC_BIT(BC_NEU, dm, +1))
+       if (face_type(idx,dm,2) == BC_DIR) mp = ibset(mp, BC_BIT(BC_DIR,  1,  0))
     end do
     !
     ! Set the mask to BC_DIR at coarse-fine boundaries.
