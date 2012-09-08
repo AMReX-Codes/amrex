@@ -24,7 +24,7 @@ contains
       real(kind=dp_t), pointer :: rhp(:,:,:,:) 
       integer        , pointer ::  mp(:,:,:,:) 
 
-      integer         :: i,n,dm,ng,gid,mglev_fine
+      integer         :: i,n,dm,ng,mglev_fine
       type(      box) :: pdc
       type(   layout) :: la_crse,la_fine
       type(bndry_reg) :: brs_flx
@@ -37,7 +37,6 @@ contains
          mglev_fine = mgt(n)%nlevels
          call multifab_fill_boundary(unew(n))
          do i = 1, nboxes(unew(n))
-            gid =  unew(n)%idx(i)
             unp => dataptr(unew(n), i)
             rhp => dataptr(rh(n)  , i)
             mp  => dataptr(mgt(n)%mm(mglev_fine),i)
@@ -45,15 +44,15 @@ contains
                case (1)
                  call divu_1d(unp(:,1,1,1), rhp(:,1,1,1), &
                                mp(:,1,1,1), mgt(n)%dh(:,mglev_fine), &
-                              mgt(n)%face_type(gid,:,:), ng)
+                              mgt(n)%face_type(i,:,:), ng)
                case (2)
                  call divu_2d(unp(:,:,1,:), rhp(:,:,1,1), &
                                mp(:,:,1,1), mgt(n)%dh(:,mglev_fine), &
-                              mgt(n)%face_type(gid,:,:), ng)
+                              mgt(n)%face_type(i,:,:), ng)
                case (3)
                  call divu_3d(unp(:,:,:,:), rhp(:,:,:,1), &
                                mp(:,:,:,1), mgt(n)%dh(:,mglev_fine), &
-                              mgt(n)%face_type(gid,:,:), ng)
+                              mgt(n)%face_type(i,:,:), ng)
             end select
          end do
       end do
@@ -204,9 +203,8 @@ contains
       type(multifab) :: temp_rhs, temp_rhs_crse
       type(  layout) :: la_crse,la_fine
       type(     box) :: pdc
-      integer :: i,dm,n_crse,ng,gid
-      integer :: mglev_fine, mglev_crse
-      logical :: nodal(get_dim(u(n_fine)))
+      integer        :: i,dm,n_crse,ng,mglev_fine, mglev_crse
+      logical        :: nodal(get_dim(u(n_fine)))
 
       dm     = get_dim(u(n_fine))
       n_crse = n_fine-1
@@ -231,19 +229,18 @@ contains
 !     First compute a residual which only takes contributions from the
 !        grid on which it is calculated.
       do i = 1, nboxes(u(n_fine))
-          gid =  u(n_fine)%idx(i)
           unp => dataptr(u(n_fine), i)
           rhp => dataptr( temp_rhs, i)
           select case (dm)
              case (1)
                call grid_divu_1d(unp(:,1,1,1), rhp(:,1,1,1), mgt(n_fine)%dh(:,mglev_fine), &
-                                 mgt(n_fine)%face_type(gid,:,:), ng, lo_inflow, hi_inflow)
+                                 mgt(n_fine)%face_type(i,:,:), ng, lo_inflow, hi_inflow)
              case (2)
                call grid_divu_2d(unp(:,:,1,:), rhp(:,:,1,1), mgt(n_fine)%dh(:,mglev_fine), &
-                                 mgt(n_fine)%face_type(gid,:,:), ng, lo_inflow, hi_inflow)
+                                 mgt(n_fine)%face_type(i,:,:), ng, lo_inflow, hi_inflow)
              case (3)
                call grid_divu_3d(unp(:,:,:,:), rhp(:,:,:,1), mgt(n_fine)%dh(:,mglev_fine), &
-                                 mgt(n_fine)%face_type(gid,:,:), ng, lo_inflow, hi_inflow)
+                                 mgt(n_fine)%face_type(i,:,:), ng, lo_inflow, hi_inflow)
           end select
       end do
 
@@ -1550,7 +1547,7 @@ contains
     real(kind=dp_t), pointer :: rhp(:,:,:,:) 
     integer        , pointer ::  mp(:,:,:,:) 
     
-    integer         :: i,n,dm,ng,mglev_fine,gid
+    integer         :: i,n,dm,ng,mglev_fine
     type(      box) :: pdc
     type(   layout) :: la_crse,la_fine
     type(bndry_reg) :: brs_flx
@@ -1563,7 +1560,6 @@ contains
        mglev_fine = mgt(n)%nlevels
        call multifab_fill_boundary(rhcc(n))
        do i = 1, nboxes(rhcc(n))
-          gid =  rhcc(n)%idx(i)
           rcp => dataptr(rhcc(n), i)
           rhp => dataptr(rh(n)  , i)
           mp  => dataptr(mgt(n)%mm(mglev_fine),i)
@@ -1572,10 +1568,10 @@ contains
              call bl_error('divucc_1d not implemented')
           case (2)
              call divucc_2d(rcp(:,:,1,1), rhp(:,:,1,1), &
-                  &          mp(:,:,1,1), mgt(n)%face_type(gid,:,:), ng)
+                  &          mp(:,:,1,1), mgt(n)%face_type(i,:,:), ng)
           case (3)
              call divucc_3d(rcp(:,:,:,1), rhp(:,:,:,1), &
-                  &          mp(:,:,:,1), mgt(n)%face_type(gid,:,:), ng)
+                  &          mp(:,:,:,1), mgt(n)%face_type(i,:,:), ng)
           end select
        end do
     end do

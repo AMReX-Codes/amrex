@@ -177,11 +177,6 @@ contains
 
     n = mgt%nlevels
 
-    allocate(mgt%face_type(nboxes(la),mgt%dim,2))
-    allocate(mgt%skewed(mgt%nlevels,nboxes(la)))
-    allocate(mgt%skewed_not_set(mgt%nlevels))
-    mgt%skewed_not_set = .true.
-
     allocate(mgt%cc(n), mgt%ff(n), mgt%dd(n), mgt%uu(n-1), mgt%ss(n), mgt%mm(n))
     allocate(mgt%pd(n),mgt%dh(mgt%dim,n))
     allocate(mgt%tm(n))
@@ -240,16 +235,21 @@ contains
        mgt%dh(:,i) = mgt%dh(:,i+1)*2.0_dp_t
     end do
 
+    allocate(mgt%face_type(nboxes(mgt%cc(n)),mgt%dim,2))
+    allocate(mgt%skewed(mgt%nlevels,nboxes(mgt%cc(n))))
+    allocate(mgt%skewed_not_set(mgt%nlevels))
+    mgt%skewed_not_set = .true.
+
     !   Set the face_type array to be BC_DIR or BC_NEU depending on domain_bc
     mgt%face_type = BC_INT
     do id = 1,mgt%dim
        lo_dom = lwb(pd,id)
        hi_dom = upb(pd,id)
-       do i = 1,nboxes(la)
-          lo_grid =  lwb(get_box(mgt%ss(mgt%nlevels)%la, i),id)
+       do i = 1,nboxes(mgt%ss(mgt%nlevels))
+          lo_grid =  lwb(get_box(mgt%ss(mgt%nlevels), i),id)
           if (lo_grid == lo_dom) mgt%face_type(i,id,1) = domain_bc(id,1)
 
-          hi_grid = upb(get_box(mgt%ss(mgt%nlevels)%la, i),id)
+          hi_grid = upb(get_box(mgt%ss(mgt%nlevels), i),id)
           if (hi_grid == hi_dom) mgt%face_type(i,id,2) = domain_bc(id,2)
        end do
     end do
