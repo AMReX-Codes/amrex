@@ -547,7 +547,7 @@ contains
              !
              jj   = local_index(u,j)
              proc = get_proc(flux_la, i)
-             mbox = intersection(refine(isect,ir), grow(get_box(mm%la,i),mm%ng))
+             mbox = intersection(refine(isect,ir), grow(box_nodalize(get_box(mm%la,i),mm%nodal),mm%ng))
              lom  = lwb(mbox)
              dims(1:dm) = extent(isect)
              allocate(fp(dims(1),dims(2),dims(3),ncomp(flux)))
@@ -555,8 +555,8 @@ contains
              allocate(mp(dims(1),dims(2),dims(3),ncomp(mm)))
              call parallel_recv(fp, proc, tag)
              call parallel_recv(mp, proc, tag)
-             up => dataptr(u  ,jj)
-             rp => dataptr(rh ,jj)
+             up => dataptr(u, jj)
+             rp => dataptr(rh,jj)
              select case (dm)
              case (1)
                 call ml_interface_1d_divu(rp(:,1,1,1), lor, &
@@ -2206,7 +2206,7 @@ contains
 
     type(layout) :: flux_la
     
-    integer,               parameter :: tag = 1371
+    integer,               parameter :: tag = 1731
     real(kind=dp_t),       pointer   :: rhp(:,:,:,:), fp(:,:,:,:), rcp(:,:,:,:)
     integer,               pointer   :: mp(:,:,:,:)
     type(box_intersector), pointer   :: bi(:)
@@ -2284,7 +2284,7 @@ contains
              !
              jj   =  local_index(rh,j)
              proc = get_proc(flux_la, i)
-             mbox = intersection(refine(isect,ir), grow(get_box(mm%la,i),mm%ng))
+             mbox = intersection(refine(isect,ir), grow(box_nodalize(get_box(mm%la,i),mm%nodal),mm%ng))
              lom  = lwb(mbox)
              dims(1:dm) = extent(isect)
              allocate(fp(dims(1),dims(2),dims(3),ncomp(flux)))
