@@ -2210,6 +2210,8 @@ contains
     
     call build(bpt, "ml_crse_rhcc_contrib")
 
+    if ( .not. cell_centered_q(flux) ) call bl_error('ml_crse_rhcc_contrib(): flux NOT cell centered')
+
     dims    = 1;
     nodal   = .true.
     dir     = iabs(side)
