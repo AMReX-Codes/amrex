@@ -594,7 +594,7 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: dm,nodal_ng
+    integer :: dm,nodal_ng, gid
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "grid_res")
@@ -606,11 +606,12 @@ contains
     call multifab_fill_boundary(uu, cross = lcross)
 
     do i = 1, nboxes(uu)
-       dp => dataptr(dd, i)
-       fp => dataptr(ff, i)
-       up => dataptr(uu, i)
-       sp => dataptr(ss, i)
-       mp => dataptr(mm, i)
+       gid =  dd%idx(i)
+       dp  => dataptr(dd, i)
+       fp  => dataptr(ff, i)
+       up  => dataptr(uu, i)
+       sp  => dataptr(ss, i)
+       mp  => dataptr(mm, i)
        do n = 1, ncomp(uu)
           select case(dm)
           case (1)
@@ -618,10 +619,10 @@ contains
                                   mp(:,1,1,1),nghost(uu))
           case (2)
              call grid_laplace_2d(sp(:,:,:,1), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
-                                  mp(:,:,1,1), nghost(uu), face_type(i,:,:))
+                                  mp(:,:,1,1), nghost(uu), face_type(gid,:,:))
           case (3)
              call grid_laplace_3d(sp(:,:,:,:), dp(:,:,:,n), fp(:,:,:,n), up(:,:,:,n), &
-                                  mp(:,:,:,1), nghost(uu), face_type(i,:,:), uniform_dh)
+                                  mp(:,:,:,1), nghost(uu), face_type(gid,:,:), uniform_dh)
           end select
        end do
     end do
