@@ -446,21 +446,42 @@ contains
     integer, intent(in) :: i, nboxes, idx(:)
     integer             :: j, r
 
-    call bl_assert(i >= 0 .and. i <= nboxes, "local_index: invalid global index")
+    call bl_assert(i >= 1 .and. i <= nboxes, "local_index: invalid global index")
 
     if (parallel_nprocs() == 1) then
        call bl_assert(idx(i) == i, "local_index: how did this happen?")
        r = i
     else
-       !
-       ! TODO -- use bisection search?
-       !
-       r = -1
-       do j = 1, size(idx)
-          if (idx(j) == i) r = j
-       end do
+       r = bsearch(idx,i)
        call bl_assert(r >= 1, "local_index: no corresponding local index")
     endif
+  contains
+      !
+      ! Returns -1 if "val" is not found in array "arr".
+      !
+      ! "arr" is assumed to be sorted from smallest to largest.
+      !
+      pure function bsearch (arr,val) result (r)
+        integer, intent(in) :: arr(:), val
+        integer             :: r, lo, hi, mid
+
+        r  = -1
+        lo = lbound(arr,1)
+        hi = ubound(arr,1)
+
+        do while (lo <= hi)
+           mid = (lo + hi) / 2
+           if (arr(mid) == val) then
+              r = mid
+              exit
+           else if (arr(mid) > val) then
+              hi = mid - 1
+           else
+              lo = mid + 1
+           end if
+        end do
+      end function bsearch
+
   end function local_index_doit
 
   function multifab_local_index(mf,i) result(r)
