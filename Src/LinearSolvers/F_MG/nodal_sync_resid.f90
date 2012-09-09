@@ -13,7 +13,7 @@ contains
     real(kind=dp_t), intent(in   ) :: dx(:)
     integer        , intent(in   ) :: face_type(:,:,:)
 
-    integer :: i, dm, gid
+    integer :: i, dm
     real(kind=dp_t), pointer :: msk(:,:,:,:) 
     real(kind=dp_t), pointer :: vo(:,:,:,:) 
     real(kind=dp_t), pointer :: dvo(:,:,:,:) 
@@ -21,7 +21,6 @@ contains
     dm = get_dim(vold)
 
     do i = 1, nfabs(divuo)
-       gid =  divuo%idx(i)
        dvo => dataptr(divuo, i)
        msk => dataptr(mask , i)
        vo  => dataptr(vold , i)
@@ -29,9 +28,9 @@ contains
        case (1)
           call bl_error('divuo: 1d not done')
        case (2)
-          call divuo_2d(dvo(:,:,1,1), msk(:,:,1,1), vo(:,:,1,:), dx, face_type(gid,:,:))
+          call divuo_2d(dvo(:,:,1,1), msk(:,:,1,1), vo(:,:,1,:), dx, face_type(i,:,:))
        case (3)
-          call divuo_3d(dvo(:,:,:,1), msk(:,:,:,1), vo(:,:,:,:), dx, face_type(gid,:,:))
+          call divuo_3d(dvo(:,:,:,1), msk(:,:,:,1), vo(:,:,:,:), dx, face_type(i,:,:))
        end select
     end do
 
@@ -211,7 +210,7 @@ contains
     type(multifab) , intent(in   ) :: mask
     integer        , intent(in   ) :: face_type(:,:,:)
     
-    integer :: i, dm, gid
+    integer :: i, dm
     real(kind=dp_t), pointer :: msk(:,:,:,:) 
     real(kind=dp_t), pointer :: dvo(:,:,:,:) 
     real(kind=dp_t), pointer :: rc(:,:,:,:) 
@@ -219,7 +218,6 @@ contains
     dm = get_dim(rhcc)
 
     do i = 1, nfabs(divuo)
-       gid =  divuo%idx(i)
        dvo => dataptr(divuo, i)
        msk => dataptr(mask , i)
        rc  => dataptr(rhcc , i)
@@ -227,9 +225,9 @@ contains
        case (1)
           call bl_error('divuo_rhcc_1d: 1d not done')
        case (2)
-          call divuo_rhcc_2d(dvo(:,:,1,1), msk(:,:,1,1), rc(:,:,1,1), face_type(gid,:,:))
+          call divuo_rhcc_2d(dvo(:,:,1,1), msk(:,:,1,1), rc(:,:,1,1), face_type(i,:,:))
        case (3)
-          call divuo_rhcc_3d(dvo(:,:,:,1), msk(:,:,:,1), rc(:,:,:,1), face_type(gid,:,:))
+          call divuo_rhcc_3d(dvo(:,:,:,1), msk(:,:,:,1), rc(:,:,:,1), face_type(i,:,:))
        end select
     end do
 
@@ -344,21 +342,20 @@ contains
     type(multifab), intent(inout) :: res_fine
     integer, intent(in) :: face_type(:,:,:)
 
-    integer :: i, dm, gid
+    integer :: i, dm
     real(kind=dp_t), pointer :: resp(:,:,:,:) 
 
     dm = get_dim(res_fine)
 
     do i = 1, nfabs(res_fine)
-       gid  =  res_fine%idx(i)
        resp => dataptr(res_fine, i)
        select case (dm)
        case (1)
           call bl_error('sync_res_fine_bndry: 1d not done')
        case (2)
-          call res_fine_bndry_2d(resp(:,:,1,1), face_type(gid,:,:))
+          call res_fine_bndry_2d(resp(:,:,1,1), face_type(i,:,:))
        case (3)
-          call res_fine_bndry_3d(resp(:,:,:,1), face_type(gid,:,:))
+          call res_fine_bndry_3d(resp(:,:,:,1), face_type(i,:,:))
        end select
     end do
 

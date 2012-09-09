@@ -105,6 +105,13 @@ module multifab_module
      module procedure zmultifab_local_index
   end interface
 
+  interface global_index
+     module procedure  multifab_global_index
+     module procedure imultifab_global_index
+     module procedure lmultifab_global_index
+     module procedure zmultifab_global_index
+  end interface
+
   interface destroy
      module procedure multifab_destroy
      module procedure imultifab_destroy
@@ -457,25 +464,54 @@ contains
   end function local_index_doit
 
   function multifab_local_index(mf,i) result(r)
-    integer ::i, j, r
-    type(multifab), intent(in) :: mf
+    integer,         intent(in) :: i
+    type(multifab),  intent(in) :: mf
+    integer                     :: r
     r = local_index_doit(i,nboxes(mf%la),mf%idx)
   end function multifab_local_index
   function imultifab_local_index(mf,i) result(r)
-    integer ::i, j, r
+    integer,         intent(in) :: i
     type(imultifab), intent(in) :: mf
+    integer                     :: r
     r = local_index_doit(i,nboxes(mf%la),mf%idx)
   end function imultifab_local_index
   function lmultifab_local_index(mf,i) result(r)
-    integer ::i, j, r
+    integer,         intent(in) :: i
     type(lmultifab), intent(in) :: mf
+    integer                     :: r
     r = local_index_doit(i,nboxes(mf%la),mf%idx)
   end function lmultifab_local_index
   function zmultifab_local_index(mf,i) result(r)
-    integer ::i, j, r
+    integer,         intent(in) :: i
     type(zmultifab), intent(in) :: mf
+    integer                     :: r
     r = local_index_doit(i,nboxes(mf%la),mf%idx)
   end function zmultifab_local_index
+
+  pure function multifab_global_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(multifab),  intent(in) :: mf
+    integer                     :: r
+    r = mf%idx(i)
+  end function multifab_global_index
+  pure function imultifab_global_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(imultifab), intent(in) :: mf
+    integer                     :: r
+    r = mf%idx(i)
+  end function imultifab_global_index
+  pure function lmultifab_global_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(lmultifab), intent(in) :: mf
+    integer                     :: r
+    r = mf%idx(i)
+  end function lmultifab_global_index
+  pure function zmultifab_global_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(zmultifab), intent(in) :: mf
+    integer                     :: r
+    r = mf%idx(i)
+  end function zmultifab_global_index
 
   pure function multifab_ncomp(mf) result(r)
     integer :: r
