@@ -84,7 +84,7 @@ contains
 
     dm = get_dim(res)
 
-    do j = 1, nboxes(crse)
+    do j = 1, nfabs(crse)
        cbox =  get_ibox(crse,j)
        loc  =  lwb(get_pbox(crse,j))
        lor  =  lwb(get_pbox(res,j))
@@ -170,7 +170,7 @@ contains
     call build(tflux, la, nc = ncomp(flux), ng = 0)
     call copy(tflux, 1, flux, cf)  ! parallel copy
 
-    do i = 1, nboxes(tflux)
+    do i = 1, nfabs(tflux)
 
        j    =  local_index(crse,at(indxmap,i))
        cbox =  get_ibox(crse,j)

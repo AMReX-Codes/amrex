@@ -605,7 +605,7 @@ contains
 
     call multifab_fill_boundary(uu, cross = lcross)
 
-    do i = 1, nboxes(uu)
+    do i = 1, nfabs(uu)
        dp  => dataptr(dd, i)
        fp  => dataptr(ff, i)
        up  => dataptr(uu, i)

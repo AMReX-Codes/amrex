@@ -134,7 +134,7 @@ contains
     do n=1,nlevs
        ng = nghost(res(n))
        
-       do i=1, nboxes(res(n))
+       do i=1, nfabs(res(n))
           resp  => dataptr(res(n),i)
           lo    =  lwb(get_box(res(n), i))
           hi    =  upb(get_box(res(n), i))
@@ -294,7 +294,7 @@ contains
     do n=1,nlevs
        ng = nghost(res(n))
        
-       do i=1, nboxes(res(n))
+       do i=1, nfabs(res(n))
           resp  => dataptr(res(n),i)
           lo    =  lwb(get_box(res(n), i))
           hi    =  upb(get_box(res(n), i))

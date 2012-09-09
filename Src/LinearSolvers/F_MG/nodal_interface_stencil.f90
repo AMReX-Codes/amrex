@@ -1223,7 +1223,7 @@ contains
     pmask = get_pmask(get_layout(res))
     dm    = get_dim(flux)
 
-    do i = 1, nboxes(flux)
+    do i = 1, nfabs(flux)
        fbox   = get_ibox(flux,i)
        lof = lwb(fbox)
        fp => dataptr(flux, i)

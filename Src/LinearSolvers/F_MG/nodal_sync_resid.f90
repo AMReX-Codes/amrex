@@ -20,7 +20,7 @@ contains
     
     dm = get_dim(vold)
 
-    do i = 1, nboxes(divuo)
+    do i = 1, nfabs(divuo)
        gid =  divuo%idx(i)
        dvo => dataptr(divuo, i)
        msk => dataptr(mask , i)
@@ -136,7 +136,7 @@ contains
 
     dm = get_dim(sync_res)
 
-    do i = 1, nboxes(sync_res)
+    do i = 1, nfabs(sync_res)
        res => dataptr(sync_res, i)
        dvo => dataptr(divuo   , i)
        msk => dataptr(mask    , i)
@@ -218,7 +218,7 @@ contains
     
     dm = get_dim(rhcc)
 
-    do i = 1, nboxes(divuo)
+    do i = 1, nfabs(divuo)
        gid =  divuo%idx(i)
        dvo => dataptr(divuo, i)
        msk => dataptr(mask , i)
@@ -349,7 +349,7 @@ contains
 
     dm = get_dim(res_fine)
 
-    do i = 1, nboxes(res_fine)
+    do i = 1, nfabs(res_fine)
        gid  =  res_fine%idx(i)
        resp => dataptr(res_fine, i)
        select case (dm)

@@ -45,7 +45,7 @@ contains
     r1 = -Huge(r1)
 
     if ( present(mask) ) then
-       do b = 1, nboxes(ss)
+       do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
@@ -65,7 +65,7 @@ contains
           !$OMP END PARALLEL DO
        end do
     else
-       do b = 1, nboxes(ss)
+       do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lbound(sp,dim=4), ubound(sp,dim=4)
@@ -104,7 +104,7 @@ contains
     call build(bpt, "st_sum")
     r1 = -Huge(r1)
     if ( present(mask) ) then
-       do b = 1, nboxes(ss)
+       do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
           do k = lbound(sp,dim=4), ubound(sp,dim=4)
@@ -122,7 +122,7 @@ contains
           end do
        end do
     else
-       do b = 1, nboxes(ss)
+       do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           do k = lbound(sp,dim=4), ubound(sp,dim=4)
              do j = lbound(sp,dim=3), ubound(sp,dim=3)
@@ -258,7 +258,7 @@ contains
                 !
                 ldom = extent(pd, i)
                 call boxarray_build_bx(ba, bx1)
-                do k = 1, nboxes(st)
+                do k = 1, nfabs(st)
                    src = shift(get_box(st, k), j*ldom, i)
                    if ( intersects(bx1, src) ) then
                       call boxarray_build_bx(sba, src)

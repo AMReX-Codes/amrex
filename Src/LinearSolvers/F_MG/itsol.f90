@@ -327,7 +327,7 @@ contains
 
     nodal_flag = nodal_q(uu)
 
-    do i = 1, nboxes(rr)
+    do i = 1, nfabs(rr)
        rp => dataptr(rr, i)
        up => dataptr(uu, i)
        ap => dataptr(aa, i)
@@ -456,7 +456,7 @@ contains
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
 
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
-    do i = 1, nboxes(aa)
+    do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
@@ -758,7 +758,7 @@ contains
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
 
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
-    do i = 1, nboxes(aa)
+    do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
@@ -957,7 +957,7 @@ contains
     case (0)
        call copy(uu, rh)
     case (1)
-       do i = 1, nboxes(rh)
+       do i = 1, nfabs(rh)
           rp => dataptr(rh, i)
           up => dataptr(uu, i)
           ap => dataptr(aa, i)
@@ -1015,7 +1015,7 @@ contains
 
     dm = get_dim(rh)
 
-    do i = 1, nboxes(rh)
+    do i = 1, nfabs(rh)
        rp => dataptr(rh, i)
        ap => dataptr(aa, i)
        mp => dataptr(mm, i)
