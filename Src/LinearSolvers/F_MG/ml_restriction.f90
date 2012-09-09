@@ -36,7 +36,7 @@ contains
 
     dm = get_dim(cfine)
 
-    do i = 1, nboxes(fine)
+    do i = 1, nfabs(fine)
        lof = lwb(get_pbox(fine, i))
        lo  = lwb(get_ibox(cfine,i))
        hi  = upb(get_ibox(cfine,i))
@@ -105,7 +105,7 @@ contains
 
     call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
 
-    do i = 1, nboxes(fine)
+    do i = 1, nfabs(fine)
        lo  = lwb(get_ibox(cfine,i))
        hi  = upb(get_ibox(cfine,i))
        loc = lwb(get_pbox(cfine,i))
@@ -164,7 +164,7 @@ contains
           call layout_build_coarse(lacfine_lo, la_lo, ir)
           call multifab_build(cfine, lacfine_lo, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
    
-          do i = 1, nboxes(fine_lo)
+          do i = 1, nfabs(fine_lo)
              lo  = lwb(get_ibox(cfine,i))
              hi  = upb(get_ibox(cfine,i))
              hi(face) = lo(face)
@@ -216,7 +216,7 @@ contains
           call layout_build_coarse(lacfine_hi, la_hi, ir)
           call multifab_build(cfine, lacfine_hi, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
 
-          do i = 1, nboxes(fine_hi)
+          do i = 1, nfabs(fine_hi)
              lo  = lwb(get_ibox(cfine,i))
              hi  = upb(get_ibox(cfine,i))
              lo(face) = hi(face)
@@ -326,7 +326,7 @@ contains
     dm = get_dim(fine)
 
     if ( .not. linject ) then
-       do i = 1, nboxes(fine)
+       do i = 1, nfabs(fine)
           lo       = lwb(get_ibox(cfine,   i))
           hi       = upb(get_ibox(cfine,   i))
           loc      = lwb(get_pbox(cfine,   i))
@@ -352,7 +352,7 @@ contains
        rmode = 0
        call imultifab_build(mm_cfine, lacfine, nc = ncomp(mm_crse), ng = 0, nodal = nodal_flags(mm_crse))
        call copy(mm_cfine, mm_crse)
-       do i = 1, nboxes(fine)
+       do i = 1, nfabs(fine)
           lo       = lwb(get_ibox(cfine,   i))
           hi       = upb(get_ibox(cfine,   i))
           lof      = lwb(get_pbox(fine,    i))

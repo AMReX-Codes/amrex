@@ -320,7 +320,7 @@ contains
        call destroy(ba)
        call build(tmf, la, nc = ncomp(mf), ng = 0)
 
-       do i = 1, nboxes(mf)
+       do i = 1, nfabs(mf)
           src => dataptr(mf,  i)
           dst => dataptr(tmf, i)
           dst =  src

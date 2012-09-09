@@ -301,8 +301,8 @@ contains
             call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_APPEND)
           end if
 
-          do i = 1, nboxes(mf)
-             call fabio_write(fd, offset(i), mf, i, nodal = nodalflags, all = all, prec = prec)
+          do i = 1, nfabs(mf)
+             call fabio_write(fd, offset(mf%idx(i)), mf, mf%idx(i), nodal = nodalflags, all = all, prec = prec)
           end do
 
           call fabio_close(fd)
@@ -326,8 +326,8 @@ contains
     else
       write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), parallel_myproc()
       call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_WRONLY)
-      do i = 1, nboxes(mf)
-         call fabio_write(fd, offset(i), mf, i, nodal = nodalflags, all = all, prec = prec)
+      do i = 1, nfabs(mf)
+         call fabio_write(fd, offset(mf%idx(i)), mf, mf%idx(i), nodal = nodalflags, all = all, prec = prec)
       end do
       call fabio_close(fd)
     end if
@@ -348,7 +348,7 @@ contains
           end do
        end if
        if ( parallel_IOProcessor() ) then
-          if ( remote(mf%la, i) ) then
+          if ( remote(mf%la,i) ) then
              call parallel_recv(mn(:,i), get_proc(mf_la,i), MSG_TAG)
              call parallel_recv(mx(:,i), get_proc(mf_la,i), MSG_TAG + 1)
           else
@@ -356,7 +356,7 @@ contains
              mn(:,i) = mnl
           end if
        else
-          if ( local(mf%la, i) ) then
+          if ( local(mf%la,i) ) then
             call parallel_send(mnl, parallel_IOProcessorNode(), MSG_TAG)
             call parallel_send(mxl, parallel_IOProcessorNode(), MSG_TAG + 1)
           end if
@@ -626,17 +626,12 @@ contains
        ! SOME STUFF
        do i = 1, nl
           write(unit=un, fmt='(i1)', advance = 'no') i-1
-          write(unit=un, fmt='(i6)', advance = 'no') nboxes(mfs(i))
+          write(unit=un, fmt='(i6)', advance = 'no') nboxes(mfs(i)%la)
           write(unit=un, fmt='(i6)') rdummy
           write(unit=un, fmt='(i1)') idummy
-          do j = 1, nboxes(mfs(i))
-!             plo =  lwb(get_box(mfs(i),j))    
-!             phi = (upb(get_box(mfs(i),j))+1)
-
-             gridlo = plo + ldxlev*lwb(get_box(mfs(i),j))
-
-             gridhi = plo + ldxlev*(upb(get_box(mfs(i),j))+1)
-
+          do j = 1, nboxes(mfs(i)%la)
+             gridlo = plo + ldxlev*lwb(get_box(mfs(i)%la,j))
+             gridhi = plo + ldxlev*(upb(get_box(mfs(i)%la,j))+1)
              do k = 1, dm
                 write(unit=un, fmt='(2es27.17e3)') gridlo(k), gridhi(k)
              end do

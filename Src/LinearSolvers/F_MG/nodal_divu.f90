@@ -36,7 +36,7 @@ contains
       do n = 1, nlevs
          mglev_fine = mgt(n)%nlevels
          call multifab_fill_boundary(unew(n))
-         do i = 1, nboxes(unew(n))
+         do i = 1, nfabs(unew(n))
             unp => dataptr(unew(n), i)
             rhp => dataptr(rh(n)  , i)
             mp  => dataptr(mgt(n)%mm(mglev_fine),i)
@@ -228,7 +228,7 @@ contains
 
 !     First compute a residual which only takes contributions from the
 !        grid on which it is calculated.
-      do i = 1, nboxes(u(n_fine))
+      do i = 1, nfabs(u(n_fine))
           unp => dataptr(u(n_fine), i)
           rhp => dataptr( temp_rhs, i)
           select case (dm)
@@ -1444,7 +1444,7 @@ contains
 !     Create the regular single-level divergence.
       do n = 1, nlevs
          mglev_fine = mgt(n)%nlevels
-         do i = 1, nboxes(rh(n))
+         do i = 1, nfabs(rh(n))
             rp => dataptr(rh(n)      , i)
             dp => dataptr(divu_rhs(n), i)
             mp => dataptr(mgt(n)%mm(mglev_fine),i)
@@ -1559,7 +1559,7 @@ contains
     do n = 1, nlevs
        mglev_fine = mgt(n)%nlevels
        call multifab_fill_boundary(rhcc(n))
-       do i = 1, nboxes(rhcc(n))
+       do i = 1, nfabs(rhcc(n))
           rcp => dataptr(rhcc(n), i)
           rhp => dataptr(rh(n)  , i)
           mp  => dataptr(mgt(n)%mm(mglev_fine),i)
@@ -1775,7 +1775,7 @@ contains
     pmask = get_pmask(get_layout(rhcc))
     dm    = get_dim(flux)
 
-    do i = 1, nboxes(flux)
+    do i = 1, nfabs(flux)
        fbox   = get_ibox(flux,i)
        lof = lwb(fbox)
        fp => dataptr(flux, i)

@@ -200,7 +200,7 @@ contains
        call setval(mgt%dd(i), zero, all = .TRUE.)
 
        ! Set the stencil to zero; gotta do it by hand as multifab routines won't work.
-       do j = 1, nboxes(mgt%ss(i))
+       do j = 1, nfabs(mgt%ss(i))
           p => dataptr(mgt%ss(i), j)
           p = zero
        end do
@@ -235,8 +235,8 @@ contains
        mgt%dh(:,i) = mgt%dh(:,i+1)*2.0_dp_t
     end do
 
-    allocate(mgt%face_type(nboxes(mgt%cc(n)),mgt%dim,2))
-    allocate(mgt%skewed(mgt%nlevels,nboxes(mgt%cc(n))))
+    allocate(mgt%face_type(nfabs(mgt%cc(n)),mgt%dim,2))
+    allocate(mgt%skewed(mgt%nlevels,nfabs(mgt%cc(n))))
     allocate(mgt%skewed_not_set(mgt%nlevels))
     mgt%skewed_not_set = .true.
 
@@ -245,7 +245,7 @@ contains
     do id = 1,mgt%dim
        lo_dom = lwb(pd,id)
        hi_dom = upb(pd,id)
-       do i = 1,nboxes(mgt%ss(mgt%nlevels))
+       do i = 1,nfabs(mgt%ss(mgt%nlevels))
           lo_grid =  lwb(get_box(mgt%ss(mgt%nlevels), i),id)
           if (lo_grid == lo_dom) mgt%face_type(i,id,1) = domain_bc(id,1)
 
@@ -448,7 +448,7 @@ contains
        print *,'F90MG: ',mgt%nlevels,' levels created for this solve'
        do i = mgt%nlevels,1,-1
           write(unit=un,fmt= '(" Level",i2)') i
-          do ii = 1,nboxes(mgt%cc(i))
+          do ii = 1,nfabs(mgt%cc(i))
              bb = get_box(mgt%cc(i),ii)
              if (mgt%dim == 1) then
                 write(unit=un,fmt= '("  [",i4,"]: (",i4,") (",i4,")",i4 )') &
@@ -865,7 +865,7 @@ contains
        mg_restriction_mode = 1
     end if
 
-    do i = 1, nboxes(crse)
+    do i = 1, nfabs(crse)
 
        cp       => dataptr(crse, i)
        fp       => dataptr(fine, i)
@@ -938,7 +938,7 @@ contains
     nodal_flag = nodal_q(uu)
 
     if ( .not.nodal_flag ) then
-       do i = 1, nboxes(uu)
+       do i = 1, nfabs(uu)
           fp => dataptr(uu,  i, get_box(uu,i))
           cp => dataptr(uu1, i, get_box(uu1,i))
           do n = 1, mgt%nc
@@ -953,7 +953,7 @@ contains
           end do
        end do
     else
-       do i = 1, nboxes(uu)
+       do i = 1, nfabs(uu)
           nbox  = box_grow_n_f(get_box(uu,i),1,1)
           nbox1 = box_grow_n_f(get_box(uu1,i),1,1)
           fp => dataptr(uu,  i, nbox )

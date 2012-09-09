@@ -10,10 +10,10 @@ module multifab_module
 
   type multifab
      !private
-     integer      :: dim = 0
-     integer      :: nboxes = 0  ! number of local boxes we own
-     integer      :: nc = 1
-     integer      :: ng = 0
+     integer      :: dim   = 0
+     integer      :: nfabs = 0  ! number of local FABs we own
+     integer      :: nc    = 1
+     integer      :: ng    = 0
      type(layout) :: la
      logical,   pointer :: nodal(:) => Null()
      type(fab), pointer :: fbs(:)   => Null()
@@ -22,10 +22,10 @@ module multifab_module
 
   type zmultifab
      !private
-     integer      :: dim = 0
-     integer      :: nboxes = 0  ! number of local boxes we own
-     integer      :: nc = 1
-     integer      :: ng = 0
+     integer      :: dim   = 0
+     integer      :: nfabs = 0  ! number of local FABs we own
+     integer      :: nc    = 1
+     integer      :: ng    = 0
      type(layout) :: la
      logical,    pointer :: nodal(:) => Null()
      type(zfab), pointer :: fbs(:)   => Null()
@@ -34,10 +34,10 @@ module multifab_module
 
   type imultifab
      !private
-     integer      :: dim = 0
-     integer      :: nboxes = 0  ! number of local boxes we own
-     integer      :: nc = 1
-     integer      :: ng = 0
+     integer      :: dim   = 0
+     integer      :: nfabs = 0  ! number of local FABs we own
+     integer      :: nc    = 1
+     integer      :: ng    = 0
      type(layout) :: la
      logical,    pointer :: nodal(:) => Null()
      type(ifab), pointer :: fbs(:)   => Null()
@@ -46,10 +46,10 @@ module multifab_module
 
   type lmultifab
      !private
-     integer      :: dim = 0
-     integer      :: nboxes = 0  ! number of local boxes we own
-     integer      :: nc = 1
-     integer      :: ng = 0
+     integer      :: dim   = 0
+     integer      :: nfabs = 0  ! number of local FABs we own
+     integer      :: nc    = 1
+     integer      :: ng    = 0
      type(layout) :: la
      logical,    pointer :: nodal(:) => Null()
      type(lfab), pointer :: fbs(:)   => Null()
@@ -217,11 +217,11 @@ module multifab_module
      module procedure zmultifab_get_dim
   end interface
 
-  interface nboxes
-     module procedure multifab_nboxes
-     module procedure imultifab_nboxes
-     module procedure lmultifab_nboxes
-     module procedure zmultifab_nboxes
+  interface nfabs
+     module procedure multifab_nfabs
+     module procedure imultifab_nfabs
+     module procedure lmultifab_nfabs
+     module procedure zmultifab_nfabs
   end interface
 
   interface nghost
@@ -654,18 +654,18 @@ contains
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
-    myproc = parallel_myproc()
-    mf%dim = get_dim(la)
-    mf%la  = la
-    mf%nc  = lnc
-    mf%ng  = lng
-    mf%nboxes = 0
+    myproc   = parallel_myproc()
+    mf%dim   = get_dim(la)
+    mf%la    = la
+    mf%nc    = lnc
+    mf%ng    = lng
+    mf%nfabs = 0
     do i = 1, layout_nboxes(la)
-       if (myproc == la%lap%prc(i)) mf%nboxes = mf%nboxes + 1
+       if (myproc == la%lap%prc(i)) mf%nfabs = mf%nfabs + 1
     end do
     allocate(mf%nodal(mf%dim))
-    allocate(mf%fbs(mf%nboxes))
-    allocate(mf%idx(mf%nboxes))
+    allocate(mf%fbs(mf%nfabs))
+    allocate(mf%idx(mf%nfabs))
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     j = 1
     do i = 1, layout_nboxes(la)
@@ -674,7 +674,7 @@ contains
           j = j + 1
        end if
     end do
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
       call build( &
            mf%fbs(i), get_box(mf%la, mf%idx(i)), &
            mf%nc, mf%ng, mf%nodal,  &
@@ -692,18 +692,18 @@ contains
     if ( built_q(mf) ) call bl_error("IMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
-    myproc = parallel_myproc()
-    mf%dim = get_dim(la)
-    mf%la  = la
-    mf%nc  = lnc
-    mf%ng  = lng
-    mf%nboxes = 0
+    myproc   = parallel_myproc()
+    mf%dim   = get_dim(la)
+    mf%la    = la
+    mf%nc    = lnc
+    mf%ng    = lng
+    mf%nfabs = 0
     do i = 1, layout_nboxes(la)
-       if (myproc == la%lap%prc(i)) mf%nboxes = mf%nboxes + 1
+       if (myproc == la%lap%prc(i)) mf%nfabs = mf%nfabs + 1
     end do
     allocate(mf%nodal(mf%dim))
-    allocate(mf%fbs(mf%nboxes))
-    allocate(mf%idx(mf%nboxes))
+    allocate(mf%fbs(mf%nfabs))
+    allocate(mf%idx(mf%nfabs))
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     j = 1
     do i = 1, layout_nboxes(la)
@@ -712,7 +712,7 @@ contains
           j = j + 1
        end if
     end do
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        call build(mf%fbs(i), get_box(mf%la, mf%idx(i)), &
             mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
@@ -728,18 +728,18 @@ contains
     if ( built_q(mf) ) call bl_error("LMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
-    myproc = parallel_myproc()
-    mf%dim = get_dim(la)
-    mf%la  = la
-    mf%nc  = lnc
-    mf%ng  = lng
-    mf%nboxes = 0
+    myproc   = parallel_myproc()
+    mf%dim   = get_dim(la)
+    mf%la    = la
+    mf%nc    = lnc
+    mf%ng    = lng
+    mf%nfabs = 0
     do i = 1, layout_nboxes(la)
-       if (myproc == la%lap%prc(i)) mf%nboxes = mf%nboxes + 1
+       if (myproc == la%lap%prc(i)) mf%nfabs = mf%nfabs + 1
     end do
     allocate(mf%nodal(mf%dim))
-    allocate(mf%fbs(mf%nboxes))
-    allocate(mf%idx(mf%nboxes))
+    allocate(mf%fbs(mf%nfabs))
+    allocate(mf%idx(mf%nfabs))
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     j = 1
     do i = 1, layout_nboxes(la)
@@ -748,7 +748,7 @@ contains
           j = j + 1
        end if
     end do
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        call build(mf%fbs(i), get_box(mf%la, mf%idx(i)), &
             mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
@@ -778,18 +778,18 @@ contains
     if ( built_q(mf) ) call bl_error("ZMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
-    myproc = parallel_myproc()
-    mf%dim = get_dim(la)
-    mf%la  = la
-    mf%nc  = lnc
-    mf%ng  = lng
-    mf%nboxes = 0
+    myproc   = parallel_myproc()
+    mf%dim   = get_dim(la)
+    mf%la    = la
+    mf%nc    = lnc
+    mf%ng    = lng
+    mf%nfabs = 0
     do i = 1, layout_nboxes(la)
-       if (myproc == la%lap%prc(i)) mf%nboxes = mf%nboxes + 1
+       if (myproc == la%lap%prc(i)) mf%nfabs = mf%nfabs + 1
     end do
     allocate(mf%nodal(mf%dim))
-    allocate(mf%fbs(mf%nboxes))
-    allocate(mf%idx(mf%nboxes))
+    allocate(mf%fbs(mf%nfabs))
+    allocate(mf%idx(mf%nfabs))
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     j = 1
     do i = 1, layout_nboxes(la)
@@ -798,7 +798,7 @@ contains
           j = j + 1
        end if
     end do
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        call build(mf%fbs(i), get_box(mf%la, mf%idx(i)), &
             mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
@@ -815,15 +815,15 @@ contains
     if ( built_q(m1) ) call destroy(m1)
     m1%dim    = m2%dim
     m1%la     = m2%la
-    m1%nboxes = m2%nboxes
+    m1%nfabs  = m2%nfabs
     m1%nc     = m2%nc
     m1%ng     = m2%ng
     allocate(m1%nodal(m1%dim))
-    allocate(m1%fbs(m1%nboxes))
-    allocate(m1%idx(m1%nboxes))
+    allocate(m1%fbs(m1%nfabs))
+    allocate(m1%idx(m1%nfabs))
     m1%nodal = m2%nodal
     m1%idx   = m2%idx
-    do i = 1, m1%nboxes
+    do i = 1, m1%nfabs
        call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
@@ -841,15 +841,15 @@ contains
     if ( built_q(m1) ) call destroy(m1)
     m1%dim    = m2%dim
     m1%la     = m2%la
-    m1%nboxes = m2%nboxes
+    m1%nfabs  = m2%nfabs
     m1%nc     = m2%nc
     m1%ng     = m2%ng
     allocate(m1%nodal(m1%dim))
-    allocate(m1%fbs(m1%nboxes))
-    allocate(m1%idx(m1%nboxes))
+    allocate(m1%fbs(m1%nfabs))
+    allocate(m1%idx(m1%nfabs))
     m1%nodal = m2%nodal
     m1%idx   = m2%idx
-    do i = 1, m1%nboxes
+    do i = 1, m1%nfabs
        call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
@@ -867,15 +867,15 @@ contains
     if ( built_q(m1) ) call destroy(m1)
     m1%dim    = m2%dim
     m1%la     = m2%la
-    m1%nboxes = m2%nboxes
+    m1%nfabs  = m2%nfabs
     m1%nc     = m2%nc
     m1%ng     = m2%ng
     allocate(m1%nodal(m1%dim))
-    allocate(m1%fbs(m1%nboxes))
-    allocate(m1%idx(m1%nboxes))
+    allocate(m1%fbs(m1%nfabs))
+    allocate(m1%idx(m1%nfabs))
     m1%nodal = m2%nodal
     m1%idx   = m2%idx
-    do i = 1, m1%nboxes
+    do i = 1, m1%nfabs
        call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
@@ -893,15 +893,15 @@ contains
     if ( built_q(m1) ) call destroy(m1)
     m1%dim    = m2%dim
     m1%la     = m2%la
-    m1%nboxes = m2%nboxes
+    m1%nfabs = m2%nfabs
     m1%nc     = m2%nc
     m1%ng     = m2%ng
     allocate(m1%nodal(m1%dim))
-    allocate(m1%fbs(m1%nboxes))
-    allocate(m1%idx(m1%nboxes))
+    allocate(m1%fbs(m1%nfabs))
+    allocate(m1%idx(m1%nfabs))
     m1%nodal = m2%nodal
     m1%idx   = m2%idx
-    do i = 1, m1%nboxes
+    do i = 1, m1%nfabs
        call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
@@ -914,61 +914,61 @@ contains
     type(multifab), intent(inout) :: mf
     integer :: i
     call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
     deallocate(mf%idx)
     deallocate(mf%nodal)
-    mf%dim = 0
-    mf%nc  = 0
-    mf%ng  = 0
-    mf%nboxes = 0
+    mf%dim   = 0
+    mf%nc    = 0
+    mf%ng    = 0
+    mf%nfabs = 0
   end subroutine multifab_destroy
   subroutine imultifab_destroy(mf)
     type(imultifab), intent(inout) :: mf
     integer :: i
     call mem_stats_dealloc(imultifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
     deallocate(mf%idx)
     deallocate(mf%nodal)
-    mf%dim = 0
-    mf%nc  = 0
-    mf%ng  = 0
-    mf%nboxes = 0
+    mf%dim   = 0
+    mf%nc    = 0
+    mf%ng    = 0
+    mf%nfabs = 0
   end subroutine imultifab_destroy
   subroutine lmultifab_destroy(mf)
     type(lmultifab), intent(inout) :: mf
     integer :: i
     call mem_stats_dealloc(lmultifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
     deallocate(mf%idx)
     deallocate(mf%nodal)
-    mf%dim = 0
-    mf%nc  = 0
-    mf%ng  = 0
-    mf%nboxes = 0
+    mf%dim   = 0
+    mf%nc    = 0
+    mf%ng    = 0
+    mf%nfabs = 0
   end subroutine lmultifab_destroy
   subroutine zmultifab_destroy(mf)
     type(zmultifab), intent(inout) :: mf
     integer :: i
     call mem_stats_dealloc(zmultifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
     deallocate(mf%idx)
     deallocate(mf%nodal)
-    mf%dim = 0
-    mf%nc  = 0
-    mf%ng  = 0
-    mf%nboxes = 0
+    mf%dim   = 0
+    mf%nc    = 0
+    mf%ng    = 0
+    mf%nfabs = 0
   end subroutine zmultifab_destroy
 
   function multifab_volume(mf, all) result(r)
@@ -977,7 +977,7 @@ contains
     logical, optional :: all
     integer :: i
     logical :: lall
-    lall = .false.; if (present(all) ) lall = all
+    lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
        do i = 1, nboxes(mf%la)
@@ -994,10 +994,10 @@ contains
     logical, optional :: all
     integer :: i
     logical :: lall
-    lall = .false.; if (present(all) ) lall = all
+    lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
-       do i = 1, mf%nboxes
+       do i = 1, nboxes(mf%la)
           r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
        end do
     else
@@ -1011,10 +1011,10 @@ contains
     logical, optional :: all
     integer :: i
     logical :: lall
-    lall = .false.; if (present(all) ) lall = all
+    lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
-       do i = 1, mf%nboxes
+       do i = 1, nboxes(mf%la)
           r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
        end do
     else
@@ -1028,10 +1028,10 @@ contains
     logical, optional :: all
     integer :: i
     logical :: lall
-    lall = .false.; if (present(all) ) lall = all
+    lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
-       do i = 1, mf%nboxes
+       do i = 1, nboxes(mf%la)
           r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
        end do
     else
@@ -1061,26 +1061,26 @@ contains
     r = mf%dim
   end function zmultifab_get_dim
 
-  pure function multifab_nboxes(mf) result(r)
+  pure function multifab_nfabs(mf) result(r)
     type(multifab), intent(in) :: mf
     integer :: r
-    r = mf%nboxes
-  end function multifab_nboxes
-  pure function imultifab_nboxes(mf) result(r)
+    r = mf%nfabs
+  end function multifab_nfabs
+  pure function imultifab_nfabs(mf) result(r)
     type(imultifab), intent(in) :: mf
     integer :: r
-    r = mf%nboxes
-  end function imultifab_nboxes
-  pure function lmultifab_nboxes(mf) result(r)
+    r = mf%nfabs
+  end function imultifab_nfabs
+  pure function lmultifab_nfabs(mf) result(r)
     type(lmultifab), intent(in) :: mf
     integer :: r
-    r = mf%nboxes
-  end function lmultifab_nboxes
-  pure function zmultifab_nboxes(mf) result(r)
+    r = mf%nfabs
+  end function lmultifab_nfabs
+  pure function zmultifab_nfabs(mf) result(r)
     type(zmultifab), intent(in) :: mf
     integer :: r
-    r = mf%nboxes
-  end function zmultifab_nboxes
+    r = mf%nfabs
+  end function zmultifab_nfabs
 
   pure function multifab_nghost(mf) result(r)
     type(multifab), intent(in) :: mf
@@ -1380,7 +1380,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1401,7 +1401,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1422,7 +1422,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1443,7 +1443,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1465,7 +1465,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1485,7 +1485,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1505,7 +1505,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1525,7 +1525,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1548,7 +1548,7 @@ contains
     call build(bpt, "mf_setval_c")
 
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -1570,7 +1570,7 @@ contains
     call build(bpt, "imf_setval_c")
 
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -1591,7 +1591,7 @@ contains
 
     call build(bpt, "lmf_setval_c")
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -1609,7 +1609,7 @@ contains
     integer :: i
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
@@ -2758,12 +2758,12 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf%la)
     end if
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes
+          do i = 1, mf%nfabs
              write(unit=fn, fmt='(i6)') mf%idx(i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
@@ -2803,12 +2803,12 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf%la)
     end if
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes
+          do i = 1, mf%nfabs
              write(unit=fn, fmt='(i6)') mf%idx(i)
              call fab_print(mf%fbs(i), comp, str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
@@ -2847,12 +2847,12 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf%la)
     end if
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes
+          do i = 1, mf%nfabs
              write(unit=fn, fmt='(i6)') mf%idx(i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
@@ -2890,12 +2890,12 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf%la)
     end if
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes
+          do i = 1, mf%nfabs
              write(unit=fn, fmt='(i6)') mf%idx(i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
@@ -2933,12 +2933,12 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf%la)
     end if
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes
+          do i = 1, mf%nfabs
              write(unit=fn, fmt='(i6)') mf%idx(i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
@@ -3227,7 +3227,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       do i = 1, mdst%nboxes
+       do i = 1, mdst%nfabs
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3285,7 +3285,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in imultifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       do i = 1, mdst%nboxes
+       do i = 1, mdst%nfabs
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3343,7 +3343,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in lmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       do i = 1, mdst%nboxes
+       do i = 1, mdst%nfabs
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3399,7 +3399,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in zmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       do i = 1, mdst%nboxes
+       do i = 1, mdst%nfabs
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3441,7 +3441,7 @@ contains
     call build(bpt, "build_nodal_dot_mask")
 
     call build(mask, mf%la, 1, 0, mf%nodal)
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
 
        full_box = get_ibox(mf,i)
 
@@ -3507,7 +3507,7 @@ contains
     if ( present(mask) ) then
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
        if ( cell_centered_q(mf) ) then
-          do n = 1, mf%nboxes
+          do n = 1, mf%nfabs
              mp  => dataptr(mf,   n, get_ibox(mf,   n), comp)
              mp1 => dataptr(mf1,  n, get_ibox(mf1,  n), comp1)
              lmp => dataptr(mask, n, get_ibox(mask, n), 1)
@@ -3515,7 +3515,7 @@ contains
           end do
        else if ( nodal_q(mf) ) then
           call build_nodal_dot_mask(tmask, mf)
-          do n = 1, mf%nboxes
+          do n = 1, mf%nfabs
              mp  => dataptr(mf,    n, get_ibox(mf,    n), comp)
              mp1 => dataptr(mf1,   n, get_ibox(mf1,   n), comp1)
              ma  => dataptr(tmask, n, get_ibox(tmask, n))
@@ -3527,7 +3527,7 @@ contains
        end if
     else
        if ( cell_centered_q(mf) ) then
-          do n = 1, mf%nboxes
+          do n = 1, mf%nfabs
              mp  => dataptr(mf , n, get_box(mf ,n), comp)
              mp1 => dataptr(mf1, n, get_box(mf1,n), comp1)
              do k = 1, ubound(mp,3)
@@ -3540,7 +3540,7 @@ contains
           end do
        else if ( nodal_q(mf) ) then
           call build_nodal_dot_mask(tmask, mf)
-          do n = 1, mf%nboxes 
+          do n = 1, mf%nfabs 
              mp  => dataptr(mf,    n, get_ibox(mf,    n), comp)
              mp1 => dataptr(mf1,   n, get_ibox(mf1,   n), comp1)
              ma  => dataptr(tmask, n, get_ibox(tmask, n))
@@ -3570,14 +3570,14 @@ contains
 
     r1 = 0.0_dp_t
     if ( cell_centered_q(mf) ) then
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           mp  => dataptr(mf,  i, get_box(mf,  i), comp)
           mp1 => dataptr(mf1, i, get_box(mf1, i), comp)
           r1 = r1 + sum(mp*mp1)
        end do
     else if (nodal_q(mf) ) then
        if ( present(nodal_mask) ) then
-          do i = 1, mf%nboxes
+          do i = 1, mf%nfabs
              mp  => dataptr(mf,         i, get_ibox(mf,         i), comp)
              mp1 => dataptr(mf1,        i, get_ibox(mf1,        i), comp)
              ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
@@ -3585,7 +3585,7 @@ contains
           end do
        else
           call build_nodal_dot_mask(mask, mf)
-          do i = 1, mf%nboxes
+          do i = 1, mf%nfabs
              mp  => dataptr(mf,   i, get_ibox(mf  , i), comp)
              mp1 => dataptr(mf1,  i, get_ibox(mf1 , i), comp)
              ma  => dataptr(mask, i, get_ibox(mask, i))
@@ -3615,14 +3615,14 @@ contains
     r1 = 0.0_dp_t
     if ( cell_centered_q(mf) ) then
 
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           mp  => dataptr(mf,  i, get_box(mf, i))
           mp1 => dataptr(mf1, i, get_box(mf1,i))
           r1 = r1 + sum(mp*mp1)
        end do
     else if ( nodal_q(mf) ) then
        if ( present(nodal_mask) ) then
-          do i = 1, mf%nboxes
+          do i = 1, mf%nfabs
              mp  => dataptr(mf,         i, get_ibox(mf,         i))
              mp1 => dataptr(mf1,        i, get_ibox(mf1,        i))
              ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
@@ -3630,7 +3630,7 @@ contains
           end do
        else
           call build_nodal_dot_mask(mask, mf)
-          do i = 1, mf%nboxes
+          do i = 1, mf%nfabs
              mp  => dataptr(mf,   i, get_ibox(mf,   i))
              mp1 => dataptr(mf1,  i, get_ibox(mf1,  i))
              ma  => dataptr(mask, i, get_ibox(mask, i))
@@ -3669,7 +3669,7 @@ contains
     lxmin = 0.0_dp_t ; if ( present(xmin) ) lxmin = xmin
     lxmax = 1.0_dp_t ; if ( present(xmax) ) lxmax = xmax
     if ( lclip ) then
-       do i = 1, nboxes(mf)
+       do i = 1, mf%nfabs
           mp => dataptr(mf, i, get_ibox(mf, i), c)
           where ( mp < lmin )
              mp = lxmin
@@ -3680,7 +3680,7 @@ contains
           end where
        end do
     else
-       do i = 1, nboxes(mf)
+       do i = 1, mf%nfabs
           mp => dataptr(mf, i, get_ibox(mf, i), c)
           mp = lxmax*(mp-lmin)/(lmax-lmin) + lxmin
        end do
@@ -3694,7 +3694,7 @@ contains
     type(multifab), intent(inout) :: mf
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        mp => dataptr(mf, i, get_ibox(mf, i), c)
        if ( present(off) ) then
           mp = mp*val + off
@@ -3709,7 +3709,7 @@ contains
     type(multifab), intent(inout) :: mf
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        mp => dataptr(mf, i, get_ibox(mf, i))
        if ( present(off) ) then
           mp = mp*val + off
@@ -3727,7 +3727,7 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        ap => dataptr(a, i, get_ibox(a, i))
        bp => dataptr(b, i, get_ibox(b, i))
        cp => dataptr(c, i, get_ibox(c, i))
@@ -3745,7 +3745,7 @@ contains
 
     integer :: ii, i, j, k, n
 
-    do ii = 1, a%nboxes
+    do ii = 1, a%nfabs
 
        ap => dataptr(a, ii, get_ibox(a,ii))
        bp => dataptr(b, ii, get_ibox(b,ii))
@@ -3806,7 +3806,7 @@ contains
 
     lall = .false.; if ( present(all) ) lall = all
 
-    do ii = 1, a%nboxes
+    do ii = 1, a%nfabs
        if ( lall ) then
           ap => dataptr(a,ii)
           bp => dataptr(b,ii)
@@ -3832,7 +3832,7 @@ contains
 
     lall = .false.; if ( present(all) ) lall = all
 
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lall ) then
           ap => dataptr(a,i,ia)
           bp => dataptr(b,i)
@@ -3858,7 +3858,7 @@ contains
 
     lall = .false.; if ( present(all) ) lall = all
 
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lall ) then
           ap => dataptr(a, i, ia, nc)
           bp => dataptr(b, i, ib, nc)
@@ -3885,7 +3885,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
     if ( present(mask) ) then
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -3901,7 +3901,7 @@ contains
           end do
        end do
     else
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -3935,7 +3935,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
     if ( present(mask) ) then
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -3951,7 +3951,7 @@ contains
           end do
        end do
     else
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -3988,7 +3988,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
     if ( present(mask) ) then
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -4004,7 +4004,7 @@ contains
           end do
        end do
     else
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -4086,7 +4086,7 @@ contains
     r1 = 0.0_dp_t
 
     if ( present(mask) ) then
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -4102,7 +4102,7 @@ contains
           end do
        end do
     else
-       do i = 1, mf%nboxes
+       do i = 1, mf%nfabs
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -4136,7 +4136,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
 
     r1 = 0
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
        else
@@ -4165,7 +4165,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
        else
@@ -4192,7 +4192,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    do i = 1, mf%nboxes
+    do i = 1, mf%nfabs
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i))
        else
@@ -4263,7 +4263,7 @@ contains
 
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_div_div")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng) )
           bp => dataptr(b, i, grow(get_ibox(b,i),lng) )
@@ -4290,7 +4290,7 @@ contains
     if ( b == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S: divide by zero")
     end if
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
        else
@@ -4312,7 +4312,7 @@ contains
 
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_c")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), targ, nc)
           bp => dataptr(b, i, grow(get_ibox(b,i),lng), src, nc)
@@ -4341,7 +4341,7 @@ contains
     if ( b == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), targ, nc)
        else
@@ -4366,7 +4366,7 @@ contains
     if ( val == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i), lng), ia, nc)
           bp => dataptr(a, i, grow(get_ibox(b, i), lng), ib, nc)
@@ -4437,7 +4437,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
           bp => dataptr(b, i, grow(get_ibox(b, i),lng))
@@ -4456,7 +4456,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
        else
@@ -4477,7 +4477,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_c")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng), targ, nc)
           bp => dataptr(b, i, grow(get_ibox(b, i),lng), src, nc)
@@ -4499,7 +4499,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s_c")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng), targ, nc)
        else
@@ -4520,7 +4520,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_s_c")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i), lng), ia, nc)
           bp => dataptr(a, i, grow(get_ibox(b, i), lng), ib, nc)
@@ -4591,7 +4591,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng))
           bp => dataptr(b, i, grow(get_ibox(b, i),ng))
@@ -4611,7 +4611,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng))
        else
@@ -4632,7 +4632,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub_c")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng), targ, nc)
           bp => dataptr(b, i, grow(get_ibox(b, i),ng), src, nc)
@@ -4654,7 +4654,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s_c")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng), targ, nc)
        else
@@ -4725,7 +4725,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_plus_plus_c")
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), dst, nc)
           bp => dataptr(b, i, grow(get_ibox(b,i),lng), src, nc)
@@ -4757,7 +4757,7 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    do i = 1, a%nboxes
+    do i = 1, a%nfabs
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), dst, nc)
        else
@@ -4801,7 +4801,7 @@ contains
        call bl_error("MULTIFAB_FAB_COPY: mf extent to small")
     end if
 
-    do i = 1, nboxes(mf)
+    do i = 1, mf%nfabs
        mp => dataptr(mf, i, get_ibox(mf,i), cm, nc)
        xo = lwb(get_ibox(mf,i))
        select case ( mf%dim ) 
@@ -4857,7 +4857,7 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = +Huge(r1)
-    do i = 1, nboxes(mf)
+    do i = 1, mf%nfabs
        r1 = min(r1,min_val(mf%fbs(i), all))
     end do
     call parallel_reduce(r, r1, MPI_MIN)
@@ -4871,7 +4871,7 @@ contains
     real(kind=dp_t) :: r1
     integer :: i
     r1 = +Huge(r1)
-    do i = 1, nboxes(mf)
+    do i = 1, mf%nfabs
        r1 = min(r1, min_val(mf%fbs(i), c, nc, all))
     end do
     call parallel_reduce(r, r1, MPI_MIN)
@@ -4884,7 +4884,7 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = -Huge(r1)
-    do i = 1, nboxes(mf)
+    do i = 1, mf%nfabs
        r1 = max(r1, max_val(mf%fbs(i), all))
     end do
     call parallel_reduce(r, r1, MPI_MAX)
@@ -4898,7 +4898,7 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = -Huge(r1)
-    do i = 1, nboxes(mf)
+    do i = 1, mf%nfabs
        r1 = max(r1, max_val(mf%fbs(i), c, nc, all))
     end do
     call parallel_reduce(r, r1, MPI_MAX)

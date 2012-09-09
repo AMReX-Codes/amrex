@@ -49,7 +49,7 @@ contains
     call build(bpt, "mgt_smoother")
 
     if (mgt%skewed_not_set(lev)) then 
-       do i = 1, nboxes(mm)
+       do i = 1, nfabs(mm)
           mp => dataptr(mm, i)
           mgt%skewed(lev,i) = skewed_q(mp)
        end do
@@ -63,7 +63,7 @@ contains
           call multifab_fill_boundary(uu, cross = mgt%lcross)
 
           ! We do these line solves as a preconditioner
-          do i = 1, nboxes(ff)
+          do i = 1, nfabs(ff)
              up => dataptr(uu, i)
              fp => dataptr(ff, i)
              sp => dataptr(ss, i)
@@ -102,7 +102,7 @@ contains
 
                 call multifab_fill_boundary(uu, cross = mgt%lcross)
 
-                do i = 1, nboxes(ff)
+                do i = 1, nfabs(ff)
                    up => dataptr(uu, i)
                    fp => dataptr(ff, i)
                    sp => dataptr(ss, i)
@@ -131,7 +131,7 @@ contains
           case ( MG_SMOOTHER_EFF_RB )
 
              call multifab_fill_boundary(uu, cross = mgt%lcross)
-             do i = 1, nboxes(ff)
+             do i = 1, nfabs(ff)
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
                 sp => dataptr(ss, i)
@@ -169,7 +169,7 @@ contains
              do nn = 0, 1
                 call multifab_fill_boundary(uu, cross = mgt%lcross)
 
-                do i = 1, nboxes(ff)
+                do i = 1, nfabs(ff)
                    up => dataptr(uu, i)
                    fp => dataptr(ff, i)
                    sp => dataptr(ss, i)
@@ -192,7 +192,7 @@ contains
 
              do nn = 0, 1
                 call multifab_fill_boundary(uu, cross = mgt%lcross)
-                do i = 1, nboxes(ff)
+                do i = 1, nfabs(ff)
                    up => dataptr(uu, i)
                    fp => dataptr(ff, i)
                    sp => dataptr(ss, i)
@@ -213,7 +213,7 @@ contains
 
           case ( MG_SMOOTHER_JACOBI )
              call multifab_fill_boundary(uu, cross = mgt%lcross)
-             do i = 1, nboxes(ff)
+             do i = 1, nfabs(ff)
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
                 sp => dataptr(ss, i)
@@ -232,7 +232,7 @@ contains
              end do
           case ( MG_SMOOTHER_GS_LEX )
              call multifab_fill_boundary(uu, cross = mgt%lcross)
-             do i = 1, nboxes(ff)
+             do i = 1, nfabs(ff)
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
                 sp => dataptr(ss, i)
@@ -262,7 +262,7 @@ contains
         if ( get_dim(ff) == 1 ) then
 
              call multifab_fill_boundary(uu, cross = mgt%lcross)
-             do i = 1, nboxes(ff)
+             do i = 1, nfabs(ff)
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
                 sp => dataptr(ss, i)
@@ -282,7 +282,7 @@ contains
           ! k is the red-black parameter
           do k = 0, 1
              call multifab_fill_boundary(uu, cross = mgt%lcross)
-             do i = 1, nboxes(ff)
+             do i = 1, nfabs(ff)
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
                 sp => dataptr(ss, i)
@@ -313,7 +313,7 @@ contains
           call multifab_fill_boundary(uu, cross = mgt%lcross)
           ! This value of k isn't used
           k = 0
-          do i = 1, nboxes(ff)
+          do i = 1, nfabs(ff)
              up => dataptr(uu, i)
              fp => dataptr(ff, i)
              sp => dataptr(ss, i)
@@ -369,7 +369,7 @@ contains
     ng = nghost(uu)
 
     if (mgt%skewed_not_set(lev)) then 
-       do i = 1, nboxes(mm)
+       do i = 1, nfabs(mm)
           mp => dataptr(mm, i)
           mgt%skewed(lev,i) = skewed_q(mp)
        end do
@@ -382,7 +382,7 @@ contains
 
     do iter = 1, mgt%nu1
        call multifab_fill_boundary(uu, cross = mgt%lcross)
-       do i = 1, nboxes(ff)
+       do i = 1, nfabs(ff)
           up => dataptr(uu, i)
           fp => dataptr(ff, i)
           sp => dataptr(ss, i)
