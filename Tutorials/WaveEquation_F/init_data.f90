@@ -26,8 +26,7 @@ contains
     dm = data%dim
     ng = data%ng
 
-    do i=1,nboxes(data)
-       if ( multifab_remote(data,i) ) cycle
+    do i=1,nfabs(data)
        dp => dataptr(data,i)
        lo = lwb(get_box(data,i))
        hi = upb(get_box(data,i))
