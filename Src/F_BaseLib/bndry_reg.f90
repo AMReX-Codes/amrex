@@ -332,8 +332,8 @@ contains
           end do
        end do
 
-       call destroy(la)
        call destroy(tmf)
+       call destroy(la)
     else
        do i = 1, br%dim
           do f = 0, 1
