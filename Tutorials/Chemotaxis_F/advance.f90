@@ -200,8 +200,7 @@ contains
     ! sync q and fill ghost cells
     call fill_boundary(q)
 
-    do n=1, nboxes(q)
-       if ( remote(q,n) ) cycle
+    do n=1, nfabs(q)
 
        qp => dataptr(q,n)
        fp => dataptr(f,n)

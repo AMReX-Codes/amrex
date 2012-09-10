@@ -31,8 +31,7 @@ contains
     ng = phi%ng
     dm = phi%dim
 
-    do i=1,phi%nboxes
-       if ( multifab_remote(phi,i) ) cycle
+    do i=1,phi%nfabs
        dp => dataptr(phi,i)
        lo = lwb(get_box(phi,i))
        hi = upb(get_box(phi,i))
@@ -70,8 +69,7 @@ contains
 
     do n=1,nlevs
 
-       do i=1,nboxes(phi(n))
-          if ( multifab_remote(phi(n),i) ) cycle
+       do i=1,nfabs(phi(n))
           dp => dataptr(phi(n),i)
           lo = lwb(get_box(phi(n),i))
           hi = upb(get_box(phi(n),i))
