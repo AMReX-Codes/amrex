@@ -109,8 +109,7 @@ contains
 
      call multifab_fill_boundary(uu, cross = lcross)
 
-     do i = 1, nboxes(flux)
-        if ( remote(flux, i) ) cycle
+     do i = 1, nfabs(flux)
         fp => dataptr(flux, i)
         up => dataptr(uu, i)
         sp => dataptr(ss, i)
@@ -242,7 +241,7 @@ contains
            lo    = lwb(isect)
            hi    = upb(isect)
 
-           if ( local(mask,j) .and. local(mm_fine,i) ) then
+           if ( local(mask%la,j) .and. local(mm_fine%la,i) ) then
               ii  =  local_index(mm_fine,i)
               jj  =  local_index(mask,j)
               lof =  lwb(fbox)
@@ -258,7 +257,7 @@ contains
               case (3)
                  call create_nodal_mask_3d(mkp(:,:,:,1),cmp(:,:,:,1),loc,fmp(:,:,:,1),lof,lo,hi,ir)
               end select
-           else if ( local(mm_fine,i) ) then
+           else if ( local(mm_fine%la,i) ) then
               !
               ! Must send mm_fine.
               !
@@ -267,7 +266,7 @@ contains
               fmp   => dataptr(mm_fine, ii, isect)
               proc  =  get_proc(get_layout(mask), j)
               call parallel_send(fmp, proc, tag)
-           else if ( local(mask,j) ) then
+           else if ( local(mask%la,j) ) then
               !
               ! Must receive mm_fine.
               !
