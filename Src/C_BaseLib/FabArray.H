@@ -1258,9 +1258,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         return;
     }
 
-    const int MyProc = ParallelDescriptor::MyProc();
-    const int NProcs = ParallelDescriptor::NProcs();
-
     const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
     FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src, FabArrayBase::m_TheCopyCache);
@@ -1269,7 +1266,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     const CPC& thecpc = cache_it->second;
 
-    if (NProcs == 1)
+    if (ParallelDescriptor::NProcs() == 1)
     {
         //
         // There can only be local work to do.
@@ -1373,8 +1370,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     {
         const CopyComTag& tag = *it;
 
-        BL_ASSERT(    distributionMap[tag.fabIndex] == MyProc);
-        BL_ASSERT(src.distributionMap[tag.srcIndex] == MyProc);
+        BL_ASSERT(    distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+        BL_ASSERT(src.distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
         if (op == FabArrayBase::COPY)
         {
@@ -1829,9 +1826,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
     dataAvailable = true;
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    if (NProcs == 1) return;
+    if (ParallelDescriptor::NProcs() == 1) return;
 
 #if BL_USE_MPI
     //
@@ -1888,6 +1883,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     BL_ASSERT(Rcvs.count(MyProc) == 0);
 
     BL_ASSERT((Total_Rcvs_Size*sizeof(value_type)) < std::numeric_limits<int>::max());
+
+    const int NProcs = ParallelDescriptor::NProcs();
 
     {
         Array<int> SndsArray(NProcs,0), RcvsArray(NProcs,0);
@@ -2221,16 +2218,13 @@ FabArray<FAB>::FillBoundary (int  scomp,
 {
     if ( n_grow <= 0 ) return;
 
-    const int MyProc = ParallelDescriptor::MyProc();
-    const int NProcs = ParallelDescriptor::NProcs();
-
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(cross,*this);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
 
     const FabArrayBase::SI& TheSI = cache_it->second;
 
-    if (NProcs == 1)
+    if (ParallelDescriptor::NProcs() == 1)
     {
         //
         // There can only be local work to do.
@@ -2242,8 +2236,8 @@ FabArray<FAB>::FillBoundary (int  scomp,
         {
             const CopyComTag& tag = *it;
 
-            BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
-            BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
+            BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+            BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
             get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
         }
@@ -2300,7 +2294,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
              it != End;
              ++it)
         {
-            BL_ASSERT(distributionMap[it->srcIndex] == MyProc);
+            BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
             const Box& bx = it->box;
             fab.resize(bx,ncomp);
             fab.copy(get(it->srcIndex),bx,scomp,bx,0,ncomp);
@@ -2331,8 +2325,8 @@ FabArray<FAB>::FillBoundary (int  scomp,
     {
         const CopyComTag& tag = *it;
 
-        BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
-        BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
+        BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
         get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
     }

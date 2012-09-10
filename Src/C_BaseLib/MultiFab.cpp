@@ -1052,15 +1052,13 @@ MultiFab::SumBoundary (int scomp,
     // in the CopyComTags.
     //
     MultiFab&                 mf       = *this;
-    const int                 MyProc   = ParallelDescriptor::MyProc();
-    const int                 NProcs   = ParallelDescriptor::NProcs();
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(false,mf);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
 
     const FabArrayBase::SI& TheSI = cache_it->second;
 
-    if (NProcs == 1)
+    if (ParallelDescriptor::NProcs() == 1)
     {
         //
         // There can only be local work to do.
@@ -1127,7 +1125,7 @@ MultiFab::SumBoundary (int scomp,
              it != End;
              ++it)
         {
-            BL_ASSERT(distributionMap[it->fabIndex] == MyProc);
+            BL_ASSERT(distributionMap[it->fabIndex] == ParallelDescriptor::MyProc());
             const Box& bx = it->box;
             fab.resize(bx,ncomp);
             fab.copy(mf[it->fabIndex],bx,scomp,bx,0,ncomp);
@@ -1158,8 +1156,8 @@ MultiFab::SumBoundary (int scomp,
     {
         const CopyComTag& tag = *it;
 
-        BL_ASSERT(distributionMap[tag.fabIndex] == MyProc);
-        BL_ASSERT(distributionMap[tag.srcIndex] == MyProc);
+        BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
         mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
     }
@@ -1190,7 +1188,7 @@ MultiFab::SumBoundary (int scomp,
                  it != End;
                  ++it)
             {
-                BL_ASSERT(distributionMap[it->srcIndex] == MyProc);
+                BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
                 const Box& bx = it->box;
                 fab.resize(bx,ncomp);
                 const int Cnt = bx.numPts()*ncomp;
