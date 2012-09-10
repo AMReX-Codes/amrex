@@ -347,10 +347,8 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
 
     FOPTF += -ffixed-line-length-132 -g -O3
     fOPTF += -ffixed-line-length-132 -g -O3
-#    FDEBF += -g -O0 -ffixed-line-length-132 -fbounds-check -Wall
-#    fDEBF += -g -O0 -ffixed-line-length-132 -fbounds-check -Wall
-    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
-    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
+    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
