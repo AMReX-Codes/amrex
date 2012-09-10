@@ -171,15 +171,13 @@ contains
     call copy(tflux, 1, flux, cf)  ! parallel copy
 
     do i = 1, nfabs(tflux)
+       j    = at(indxmap,global_index(tflux,i))
+       cbox = box_nodalize(get_box(crse%la,j),crse%nodal)
+       lor  =  lwb(get_pbox(res,local_index(res,j)))
+       rp   => dataptr(res, local_index(res,j), cr)
+       fbox =  get_ibox(tflux,i)
 
-       j    =  local_index(crse,at(indxmap,i))
-       cbox =  get_ibox(crse,j)
-       loc  =  lwb(get_pbox(crse,j))
-       lor  =  lwb(get_pbox(res,j))
-       rp   => dataptr(res, j, cr)
-       fbox = get_ibox(tflux,i)
-
-       if ( at(shftmap,i) .eq. 1 ) then
+       if ( at(shftmap,global_index(tflux,i)) .eq. 1 ) then
           if (face .eq. -1) then
              fbox = shift(fbox,  extent(crse_domain,dim), dim)
           else
