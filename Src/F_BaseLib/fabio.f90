@@ -302,7 +302,7 @@ contains
           end if
 
           do i = 1, nfabs(mf)
-             call fabio_write(fd, offset(global_index(mf,i)), mf, global_index(mf,i), nodal = nodalflags, all = all, prec = prec)
+             call fabio_write(fd, offset(global_index(mf,i)), mf, i, nodal = nodalflags, all = all, prec = prec)
           end do
 
           call fabio_close(fd)
@@ -327,7 +327,7 @@ contains
       write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), parallel_myproc()
       call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_WRONLY)
       do i = 1, nfabs(mf)
-         call fabio_write(fd, offset(global_index(mf,i)), mf, global_index(mf,i), nodal = nodalflags, all = all, prec = prec)
+         call fabio_write(fd, offset(global_index(mf,i)), mf, i, nodal = nodalflags, all = all, prec = prec)
       end do
       call fabio_close(fd)
     end if

@@ -127,7 +127,7 @@ contains
        do k = 1, size(bi)
           shft  = 0
           isect = bi(k)%bx
-          fbox  = get_ibox(flux,bi(k)%i)
+          fbox  = box_nodalize(get_box(flux%la,bi(k)%i),flux%nodal)
 
           if ( pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
              !
@@ -177,7 +177,6 @@ contains
        loc  =  lwb(get_pbox(crse,j))
        lor  =  lwb(get_pbox(res,j))
        rp   => dataptr(res, j, cr)
-
        fbox = get_ibox(tflux,i)
 
        if ( at(shftmap,i) .eq. 1 ) then

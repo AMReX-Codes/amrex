@@ -93,8 +93,8 @@ contains
     ! We want to copy the valid region of ghost -> valid + ghost region of fine.
     ! Got to do it in two stages since copy()s only go from valid -> valid.
     !
-    do i = 1, nboxes(fine)
-       call push_back(bl, grow(get_ibox(fine,i),ng))
+    do i = 1, nboxes(fine%la)
+       call push_back(bl, grow(box_nodalize(get_box(fine%la,i),fine%nodal),ng))
     end do
 
     call build(ba, bl, sort = .false.)
@@ -106,8 +106,7 @@ contains
 
     call copy(tmpfine, 1, ghost, 1, nc)  ! parallel copy
 
-    do i = 1, nboxes(fine)
-       if ( remote(fine, i) ) cycle
+    do i = 1, nfabs(fine)
        call boxarray_box_diff(ba, get_ibox(tmpfine,i), get_ibox(fine,i))
        do j = 1, nboxes(ba)
           bx  =  get_box(ba,j)
