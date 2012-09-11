@@ -67,7 +67,7 @@ contains
     call copy(ba, get_boxarray(flux))
 
     do i = 1, nboxes(flux%la)
-       fbox = box_nodalize(get_box(flux%la,i))
+       fbox = box_nodalize(get_box(flux%la,i),flux%nodal)
        if ( pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
           if ( face .eq. -1 ) then
              fbox = shift(fbox,  extent(crse_domain,dim), dim)
@@ -120,7 +120,7 @@ contains
     call build(shftmap)
 
     do j = 1, nboxes(crse%la)
-       cbox = box_nodalize(get_box(crse%la,j))
+       cbox = box_nodalize(get_box(crse%la,j),crse%nodal)
        proc =  get_proc(crse%la,j)
        bi   => layout_get_box_intersector(la, cbox)
 
