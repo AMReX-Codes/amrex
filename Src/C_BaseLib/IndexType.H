@@ -29,82 +29,89 @@ public:
     //
     // The default constructor
     //
-    IndexType ();
+    IndexType ()
+        :
+        itype(0) {}
     //
     // Construct an IndexType identical to an IntVect.
     //
-    explicit IndexType (const IntVect& iv);
+    explicit IndexType (const IntVect& iv)
+    {
+        itype = D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2));
+    }
     //
     // Construct an IndexType given an explicit CellIndex for
     // each direction.  D_DECL is a macro that sets the constructor
     // to take BL_SPACEDIM arguments.
     //
-    IndexType (D_DECL(CellIndex i, CellIndex j, CellIndex k));
+    IndexType (D_DECL(CellIndex i, CellIndex j, CellIndex k))
+    {
+        itype = D_TERM(i, | (j<<1), | (k<<2));
+    }
     //
     // Set IndexType to be NODE based in direction dir.
     //
-    void set (int dir);
+    void set (int dir) { itype |= mask(dir); }
     //
     // Set IndexType to be CELL based in direction dir.
     //
-    void unset (int dir);
+    void unset (int dir) { itype &= ~mask(dir); }
     //
     // True if IndexType is NODE based in direction dir.
     //
-    bool test (int dir) const;
+    bool test (int dir) const { return (itype & mask(dir)) != 0; }
     //
     // Set NODE based in all directions.
     //
-    void setall ();
+    void setall () { itype = (1 << BL_SPACEDIM) - 1; }
     //
     // Set CELL based in all directions.
     //
-    void clear ();
+    void clear () { itype = 0; }
     //
     // True if this IndexType is NODE based in any direction.
     //
-    bool any () const;
+    bool any () const { return itype != 0; }
     //
     // True if IndexType is valid.
     //
-    bool ok () const;
+    bool ok () const { return itype < (1 << BL_SPACEDIM); }
     //
     // Change from CELL to NODE or NODE to CELL in direction dir.
     //
-    void flip (int i);
+    void flip (int i) { itype ^= mask(i); }
     //
     // True if IndexTypes are identical.
     //
-    bool operator== (const IndexType& t) const;
+    bool operator== (const IndexType& t) const { return t.itype == itype; }
     //
     // True if IndexTypes are not identical.
     //
-    bool operator!= (const IndexType& t) const;
+    bool operator!= (const IndexType& t) const { return t.itype != itype; }
     //
     // True if the IndexType is CELL based in all directions.
     //
-    bool cellCentered () const;
+    bool cellCentered () const { return itype == 0; }
     //
     // True if the IndexType is NODE based in all directions.
     //
-    bool nodeCentered () const;
+    bool nodeCentered () const { return itype == (1<<BL_SPACEDIM)-1; }
     //
     // Set IndexType to CellIndex type t in direction dir.
     //
-    void setType (int       dir,
-                  CellIndex t);
+    void setType (int dir, CellIndex t);
     //
     // Returns  the CellIndex in direction dir.
     //
-    CellIndex ixType (int dir) const;
+    CellIndex ixType (int dir) const { return (CellIndex) ((itype & (1<<dir)) >> dir); }
     //
     // Return an integer representing the IndexType in direction dir.
     //
-    int operator[] (int dir) const;
+    int operator[] (int dir) const { return test(dir); }
     //
     // Fill an IntVect of size BL_SPACEDIM with IndexTypes.
     //
-    IntVect ixType () const;
+    IntVect ixType () const { return IntVect(D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1)); }
     //
     // This static member function returns an IndexType object of value
     // IndexType::CELL.  It is provided as a convenience to our users
@@ -124,7 +131,7 @@ private:
     //
     // Returns 1<<k.
     //
-    static int mask (int k);
+    static int mask (int k) { return 1<<k; }
     //
     // An integer holding the CellIndex in bits 0 - BL_SPACEDIM-1.
     //
@@ -139,135 +146,5 @@ std::ostream& operator<< (std::ostream& os, const IndexType& itype);
 // Read an IndexType from an istream.
 //
 std::istream& operator>> (std::istream& is, IndexType& itype);
-
-inline
-int
-IndexType::mask (int k)
-{
-    return 1<<k;
-}
-
-inline
-IndexType::IndexType ()
-    :
-    itype(0)
-{}
-
-inline
-IndexType::IndexType (const IntVect& iv)
-{
-    itype = D_TERM((iv[0]?1:0), | ((iv[1]?1:0)<<1), | ((iv[2]?1:0)<<2));
-}
-
-inline
-IndexType::IndexType (D_DECL(CellIndex i, CellIndex j, CellIndex k))
-{
-    itype = D_TERM(i, | (j<<1), | (k<<2));
-}
-
-inline
-IndexType::CellIndex
-IndexType::ixType (int dir) const
-{
-    return (CellIndex) ((itype & (1<<dir)) >> dir);
-}
-
-inline
-IntVect
-IndexType::ixType () const
-{
-    return IntVect(D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1));
-}
-
-inline
-void
-IndexType::set (int dir)
-{
-    itype |= mask(dir);
-}
-
-inline
-void
-IndexType::unset (int dir)
-{
-    itype &= ~mask(dir);
-}
-
-inline
-bool
-IndexType::test (int dir) const
-{
-    return (itype & mask(dir)) != 0;
-}
-
-inline
-void
-IndexType::setall ()
-{
-    itype = (1 << BL_SPACEDIM) - 1;
-}
-
-inline
-void
-IndexType::clear ()
-{
-    itype = 0;
-}
-
-inline
-bool
-IndexType::any () const
-{
-    return itype != 0;
-}
-
-inline
-bool
-IndexType::ok () const
-{
-    return itype < (1 << BL_SPACEDIM);
-}
-
-inline
-void
-IndexType::flip (int i)
-{
-    itype ^= mask(i);
-}
-
-inline
-bool
-IndexType::operator== (const IndexType& t) const
-{
-    return t.itype == itype;
-}
-
-inline
-bool
-IndexType::operator!= (const IndexType& t) const
-{
-    return t.itype != itype;
-}
-
-inline
-bool
-IndexType::cellCentered () const
-{
-    return itype == 0;
-}
-
-inline
-bool
-IndexType::nodeCentered () const
-{
-    return itype == (1<<BL_SPACEDIM)-1;
-}
-
-inline
-int
-IndexType::operator[] (int dir) const
-{
-    return test(dir);
-}
 
 #endif /*BL_INDEXTYPE_H*/

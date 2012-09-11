@@ -93,8 +93,7 @@ contains
           call destroy(ba_cc)
           call multifab_build_edge(old_edge_coeffs_grown,old_la_grown,ncomp(edge_coeffs(1,d)),0,d)
 
-          do i = 1, nboxes(old_edge_coeffs_grown)
-             if (remote(old_edge_coeffs_grown,i)) cycle
+          do i = 1, nfabs(old_edge_coeffs_grown)
              sc_orig  => dataptr(edge_coeffs(1,d)     ,i,get_pbox(old_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
              sc_grown => dataptr(old_edge_coeffs_grown,i,get_pbox(old_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
              sc_grown = sc_orig
@@ -111,8 +110,7 @@ contains
           call destroy(old_edge_coeffs_grown)
           call destroy(old_la_grown)
 
-          do i = 1, nboxes(new_edge_coeffs_grown)
-             if (remote(new_edge_coeffs_grown,i)) cycle
+          do i = 1, nfabs(new_edge_coeffs_grown)
              sc_orig  => dataptr(coarse_edge_coeffs(maxlev_bottom,d),i,get_pbox(new_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
              sc_grown => dataptr(new_edge_coeffs_grown              ,i,get_pbox(new_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
              sc_orig = sc_grown
@@ -201,8 +199,7 @@ contains
 
     dm = get_dim(ss)
 
-    do i = 1, nboxes(ss)
-       if ( remote(ss,i) ) cycle
+    do i = 1, nfabs(ss)
        bx = get_box(ss,i)
        call stencil_set_bc(ss, i, mask, bc_face)
        lxa = xa
@@ -394,8 +391,7 @@ contains
 
     dm = get_dim(ss)
 
-    do i = 1, nboxes(ss)
-       if ( remote(ss,i) ) cycle
+    do i = 1, nfabs(ss)
        bx = get_box(ss,i)
        call stencil_set_bc(ss, i, mask, bc_face)
        lxa = xa

@@ -1036,8 +1036,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
     call multifab_fill_boundary(uu)
 
     do dim = 1, get_dim(uu)
-       do i = 1, nboxes(flux(dim))
-          if ( remote(flux(dim), i) ) cycle
+       do i = 1, nfabs(flux(dim))
           ngf = nghost(flux(dim))
           fp => dataptr(flux(dim), i)
           up => dataptr(uu, i)

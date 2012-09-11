@@ -32,62 +32,71 @@ public:
     //
     // The default constructor.
     //
-    Orientation ();
+    Orientation ()
+        :
+        val(-1) {}
     //
     // Set the orientation of a side.
     //
-    Orientation (int  dir,
-                 Side side);
+    Orientation (int dir, Side side)
+        :
+        val(BL_SPACEDIM*side + dir)
+    {
+        BL_ASSERT(0 <= dir && dir < BL_SPACEDIM);
+    }
     //
     // Logical equality.
     //
-    bool operator== (const Orientation& o) const;
+    bool operator== (const Orientation& o) const { return val == o.val; }
     //
     // Logical inequality.
     //
-    bool operator!= (const Orientation& o) const;
+    bool operator!= (const Orientation& o) const { return val != o.val; }
     //
     // Less-than.
     //
-    bool operator<  (const Orientation& o) const;
+    bool operator<  (const Orientation& o) const { return val < o.val; }
     //
     // Less-than or equal.
     //
-    bool operator<= (const Orientation& o) const;
+    bool operator<= (const Orientation& o) const { return val <= o.val; }
     //
     // Greater-than.
     //
-    bool operator>  (const Orientation& o) const;
+    bool operator>  (const Orientation& o) const { return val > o.val; }
     //
     // Greater-than or equal.
     //
-    bool operator>= (const Orientation& o) const;
+    bool operator>= (const Orientation& o) const { return val >= o.val; }
     //
     // This conversion operator maps an orientation into a
     // unique integer in the range [0 .. 2*BL_SPACEDIM-1]
     // according to the above ordering.
     //
-    operator int () const;
+    operator int () const { return val; }
     //
     // Return opposite orientation.
     //
-    const Orientation flip () const;
+    const Orientation flip () const
+    {
+        return Orientation(val < BL_SPACEDIM ? val+BL_SPACEDIM : val-BL_SPACEDIM);
+    }
     //
     // Returns the coordinate direction.
     //
-    int coordDir () const;
+    int coordDir () const { return val%BL_SPACEDIM; }
     //
     // Returns the orientation of the face -- low or high.
     //
-    Side faceDir () const;
+    Side faceDir () const { return Side(val/BL_SPACEDIM); }
     //
     // Returns true if Orientation is low.
     //
-    bool isLow () const;
+    bool isLow () const { return val < BL_SPACEDIM; }
     //
     // Returns true if Orientation is high.
     //
-    bool isHigh () const;
+    bool isHigh () const { return val >= BL_SPACEDIM; }
     //
     // Read from an istream.
     //
@@ -97,7 +106,7 @@ private:
     //
     // Used internally.
     //
-    Orientation (int val);
+    Orientation (int v) : val(v) {}
     //
     // The data.
     //
@@ -112,7 +121,6 @@ std::ostream& operator<< (std::ostream& os, const Orientation& o);
 //
 // An Iterator over the Orientation of Faces of a Box
 //
-
 class OrientationIter
 {
 
@@ -120,47 +128,63 @@ public:
     //
     // The default constructor.
     //
-    OrientationIter ();
+    OrientationIter ()
+        :
+        face(0) {}
     //
     // Construct an iterator on the Orientation.
     //
-    OrientationIter (const Orientation& _face);
+    OrientationIter (const Orientation& _face)
+        :
+        face(_face) {}
     //
     // Reset (rewind) the iterator.
     //
-    void rewind ();
+    void rewind () { face = 0; }
     //
     // Return the orientation of the face.
     //
-    Orientation operator() () const;
+    Orientation operator() () const { BL_ASSERT(ok()); return Orientation(face); }
     //
     // Cast to void*.  Used to test if iterator is valid.
     //
-    operator void* ();
+    operator void* () { return 0 <= face && face < 2*BL_SPACEDIM ? this : 0; }
     //
     // Pre-decrement.
     //
-    OrientationIter& operator-- ();
+    OrientationIter& operator-- () { BL_ASSERT(ok()); --face; return *this; }
     //
     // Pre-increment.
     //
-    OrientationIter& operator++ ();
+    OrientationIter& operator++ () { BL_ASSERT(ok()); ++face; return *this; }
     //
     // Post-decrement.
     //
-    OrientationIter operator-- (int);
+    OrientationIter operator-- (int)
+    {
+        BL_ASSERT(ok()); OrientationIter it(face); --face; return it;
+    }
     //
     // Post-increment.
     //
-    OrientationIter operator++ (int);
+    OrientationIter operator++ (int)
+    {
+        BL_ASSERT(ok()); OrientationIter it(face); ++face; return it;
+    }
     //
     // The equality operator.
     //
-    bool operator== (const OrientationIter& oi) const;
+    bool operator== (const OrientationIter& oi) const
+    {
+        BL_ASSERT(ok() && oi.ok()); return face == oi.face;
+    }
     //
     // The inequality operator.
     //
-    bool operator!= (const OrientationIter& oi) const;
+    bool operator!= (const OrientationIter& oi) const
+    {
+        BL_ASSERT(ok() && oi.ok()); return face != oi.face;
+    }
 
 private:
 
@@ -168,215 +192,11 @@ private:
     //
     // Construct an iterator on the face.
     //
-    OrientationIter (int _face);
+    OrientationIter (int _face) : face(_face) {}
     //
     // Is the iterator valid?
     //
-    bool ok () const;
+    bool ok () const { return 0 <= face && face < 2*BL_SPACEDIM; }
 };
-
-inline
-Orientation::Orientation (int _val)
-    :
-    val(_val)
-{}
-
-inline
-Orientation::Orientation ()
-    :
-    val(-1)
-{}
-
-inline
-Orientation::Orientation (int  _dir,
-                          Side _side)
-    :
-    val(BL_SPACEDIM*_side + _dir)
-{
-    BL_ASSERT(0 <= _dir && _dir < BL_SPACEDIM);
-}
-
-inline
-bool
-Orientation::operator== (const Orientation& o) const
-{
-    return val == o.val;
-}
-
-inline
-bool
-Orientation::operator!= (const Orientation& o) const
-{
-    return val != o.val;
-}
-
-inline
-bool
-Orientation::operator<  (const Orientation& o) const
-{
-    return val < o.val;
-}
-
-inline
-bool
-Orientation::operator<= (const Orientation& o) const
-{
-    return val <= o.val;
-}
-
-inline
-bool
-Orientation::operator>  (const Orientation& o) const
-{
-    return val > o.val;
-}
-
-inline
-bool
-Orientation::operator>= (const Orientation& o) const
-{
-    return val >= o.val;
-}
-
-inline
-Orientation::operator int () const
-{
-    return val;
-}
-
-inline
-int
-Orientation::coordDir () const
-{
-    return val%BL_SPACEDIM;
-}
-
-inline
-Orientation::Side
-Orientation::faceDir () const
-{
-    return Side(val/BL_SPACEDIM);
-}
-
-inline
-bool
-Orientation::isLow () const
-{
-    return val < BL_SPACEDIM;
-}
-
-inline
-bool
-Orientation::isHigh () const
-{
-    return val >= BL_SPACEDIM;
-}
-
-inline
-const Orientation
-Orientation::flip () const
-{
-    return Orientation(val < BL_SPACEDIM ? val+BL_SPACEDIM : val-BL_SPACEDIM);
-}
-
-inline
-OrientationIter::OrientationIter (int _face)
-    :
-    face(_face)
-{}
-
-inline
-OrientationIter::OrientationIter ()
-    :
-    face(0)
-{}
-
-inline
-OrientationIter::OrientationIter (const Orientation& _face)
-    :
-    face(_face)
-{}
-
-inline
-bool
-OrientationIter::ok () const
-{
-    return 0 <= face && face < 2*BL_SPACEDIM;
-}
-
-inline
-void
-OrientationIter::rewind ()
-{
-    face = 0;
-}
-
-inline
-Orientation
-OrientationIter::operator() () const
-{
-    BL_ASSERT(ok());
-    return Orientation(face);
-}
-
-inline
-OrientationIter::operator void* ()
-{
-    return 0 <= face && face < 2*BL_SPACEDIM ? this : 0;
-}
-
-inline
-OrientationIter&
-OrientationIter::operator-- ()
-{
-    BL_ASSERT(ok());
-    --face;
-    return *this;
-}
-
-inline
-OrientationIter&
-OrientationIter::operator++ ()
-{
-    BL_ASSERT(ok());
-    ++face;
-    return *this;
-}
-
-inline
-OrientationIter
-OrientationIter::operator-- (int)
-{
-    BL_ASSERT(ok());
-    OrientationIter it(face);
-    --face;
-    return it;
-}
-
-inline
-OrientationIter
-OrientationIter::operator++ (int)
-{
-    BL_ASSERT(ok());
-    OrientationIter it(face);
-    ++face;
-    return it;
-}
-
-inline
-bool
-OrientationIter::operator== (const OrientationIter& oi) const
-{
-    BL_ASSERT(ok() && oi.ok());
-    return face == oi.face;
-}
-
-inline
-bool
-OrientationIter::operator!= (const OrientationIter& oi) const
-{
-    BL_ASSERT(ok() && oi.ok());
-    return face != oi.face;
-}
 
 #endif /*BL_ORIENTATION_H*/

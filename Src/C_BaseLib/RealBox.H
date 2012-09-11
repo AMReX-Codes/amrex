@@ -41,55 +41,55 @@ public:
     //
     // Set epsilon used by contains() function when comparing floating point numbers.
     //
-    static void setEpsilon (Real epsilon);
+    static void setEpsilon (Real epsilon) { eps = epsilon; }
     //
     // Returns epsilon.
     //
-    static Real epsilon ();
+    static Real epsilon () { return eps; }
     //
     // Returns lo side.
     //
-    const Real* lo () const;
+    const Real* lo () const { return xlo; }
     //
     // Returns hide side.
     //
-    const Real* hi () const;
+    const Real* hi () const { return xhi; }
     //
     // Returns length in specified direction.
     //
-    Real lo (int dir) const;
+    Real lo (int dir) const { return xlo[dir]; }
     //
     // Returns hi side in specified direction.
     //
-    Real hi (int dir) const;
+    Real hi (int dir) const { return xhi[dir]; }
     //
     // Returns length in specified direction.
     //
-    Real length (int dir) const;
+    Real length (int dir) const { return xhi[dir]-xlo[dir]; }
     //
     // Sets lo side.
     //
-    void setLo (const Real* lo);
+    void setLo (const Real* lo) { D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]); }
     //
     // Sets lo side.
     //
-    void setLo (const Array<Real>& lo);
+    void setLo (const Array<Real>& lo) { D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]); }
     //
     // Sets lo side in specified direction.
     //
-    void setLo (int dir, Real lo);
+    void setLo (int dir, Real lo) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xlo[dir] = lo; }
     //
     // Sets hi side.
     //
-    void setHi (const Real* hi);
+    void setHi (const Real* hi) { D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]); }
     //
     // Sets hi side.
     //
-    void setHi (const Array<Real>& hi);
+    void setHi (const Array<Real>& hi) { D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]); }
     //
     // Sets hi side in specified direction.
     //
-    void setHi (int dir, Real hi);
+    void setHi (int dir, Real hi) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xhi[dir] = hi; }
     //
     // Is the RealBox OK; i.e. does it have positive volume?
     //
@@ -122,100 +122,5 @@ std::ostream& operator<< (std::ostream&, const RealBox&);
 // Nice ASCII input.
 //
 std::istream& operator>> (std::istream&, RealBox&);
-
-inline
-void
-RealBox::setEpsilon (Real epsilon)
-{
-    eps = epsilon;
-}
-
-inline
-Real
-RealBox::epsilon ()
-{
-    return eps;
-}
-
-inline
-const Real*
-RealBox::lo () const
-{
-    return xlo;
-}
-
-inline
-const Real*
-RealBox::hi () const
-{
-    return xhi;
-}
-
-inline
-Real
-RealBox::lo (int dir) const
-{
-    return xlo[dir];
-}
-
-inline
-Real
-RealBox::hi (int dir) const
-{
-    return xhi[dir];
-}
-
-inline
-Real
-RealBox::length (int dir) const
-{
-    return xhi[dir]-xlo[dir];
-}
-
-inline
-void
-RealBox::setLo (const Real* lo)
-{
-    D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
-}
-
-inline
-void
-RealBox::setLo (const Array<Real> &lo)
-{
-    D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
-}
-
-inline
-void
-RealBox::setHi (const Real* hi)
-{
-    D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
-}
-
-inline
-void
-RealBox::setHi (const Array<Real>& hi)
-{
-    D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
-}
-
-inline
-void
-RealBox::setLo (int  indx,
-                Real lo)
-{
-   BL_ASSERT(indx >= 0 && indx < BL_SPACEDIM);
-   xlo[indx] = lo;
-}
-
-inline
-void
-RealBox::setHi (int  indx,
-                Real hi)
-{
-    BL_ASSERT(indx >= 0 && indx < BL_SPACEDIM);
-    xhi[indx] = hi;
-}
 
 #endif /*_RealBox_H_*/

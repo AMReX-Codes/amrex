@@ -633,6 +633,7 @@ def getRecentFileName(dir,base,extension):
           fileInfo = os.stat(file)
           fileCreationTime = fileInfo.st_ctime
           if (fileCreationTime > ctime):
+             ctime = fileCreationTime
              executableFile = file
 
     return executableFile
@@ -1059,7 +1060,7 @@ def testSuite(argv):
        --single_test mytest
           run only the test named mytest
 
-       --tests test1 test2 test3
+       --tests \"test1 test2 test3\"
           run only the tests listsed
 
        --do_temp_run

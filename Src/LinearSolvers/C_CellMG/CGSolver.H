@@ -111,30 +111,34 @@ public:
     //
     // Set maximum allowed number of CG iterations.
     //
-    void setMaxIter (int _maxiter);
+    void setMaxIter (int _maxiter) { maxiter = _maxiter; }
     //
     // Get maximum allowed number of CG iterations.
     //
-    int getMaxIter () const;
+    int getMaxIter () const { return maxiter; }
     //
     // Set flag determining whether MG preconditioning is used.
     //
-    void setUseMGPrecond (bool _use_mg_precond);
+    void setUseMGPrecond (bool _use_mg_precond)
+    {
+        use_mg_precond = _use_mg_precond; set_mg_precond();
+    }
     //
     // Get  flag determining whether MG preconditioning is used.
     //
-    bool getUseMGPrecond () const;
+    bool getUseMGPrecond () const { return use_mg_precond; }
     //
     // Set the verbosity value.
     //
-    void setVerbose (int _verbose);
+    void setVerbose (int _verbose) { verbose = _verbose; }
     //
     // Return the verbosity value.
     //
-    int getVerbose () const;
+    int getVerbose () const { return verbose; }
 
-    void   setCGSolver (Solver cg_solver_);
-    Solver getCGSolver () const;
+    void   setCGSolver (Solver cg_solver_) { cg_solver = cg_solver_; }
+
+    Solver getCGSolver () const { return cg_solver; }
 
 protected:
 
@@ -195,63 +199,5 @@ private:
     CGSolver (const CGSolver&);
     CGSolver& operator= (const CGSolver&);
 };
-
-inline
-void
-CGSolver::setMaxIter (int _maxiter)
-{
-    maxiter = _maxiter;
-}
-
-inline
-int
-CGSolver::getMaxIter () const
-{
-    return maxiter;
-}
-
-inline
-void
-CGSolver::setUseMGPrecond (bool _use_mg_precond)
-{
-    use_mg_precond = _use_mg_precond;
-    set_mg_precond();
-}
-
-inline
-bool
-CGSolver::getUseMGPrecond () const
-{
-    return use_mg_precond;
-}
-
-inline
-void
-CGSolver::setVerbose (int _verbose)
-{
-    verbose = _verbose;
-}
-
-inline
-int
-CGSolver::getVerbose () const
-{
-    return verbose;
-}
-
-inline
-void
-CGSolver::setCGSolver (Solver cg_solver_)
-{
-    cg_solver = cg_solver_;
-}
-
-inline
-CGSolver::Solver
-CGSolver::getCGSolver () const
-{
-    return cg_solver;
-}
-
 
 #endif /*_CGSOLVER_H_*/

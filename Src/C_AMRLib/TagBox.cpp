@@ -156,21 +156,20 @@ TagBox::merge (const TagBox& src)
     //
     // Compute intersections.
     //
-    Box bx = domain & src.domain;
+    const Box bx = domain & src.domain;
 
     if (bx.ok())
     {
-        const int* dlo  = domain.loVect();
-        IntVect d_length = domain.size();
-        const int* dlen = d_length.getVect();
-        const int* slo  = src.domain.loVect();
-        IntVect src_length = src.domain.size();
-        const int* slen = src_length.getVect();
-        const int* lo   = bx.loVect();
-        const int* hi   = bx.hiVect();
-
-        const TagType* ds0 = src.dataPtr();
-        TagType* dd0       = dataPtr();
+        const int*     dlo        = domain.loVect();
+        IntVect        d_length   = domain.size();
+        const int*     dlen       = d_length.getVect();
+        const int*     slo        = src.domain.loVect();
+        IntVect        src_length = src.domain.size();
+        const int*     slen       = src_length.getVect();
+        const int*     lo         = bx.loVect();
+        const int*     hi         = bx.hiVect();
+        const TagType* ds0        = src.dataPtr();
+        TagType*       dd0        = dataPtr();
 
         int klo = 0, khi = 0, jlo = 0, jhi = 0, ilo, ihi;
         D_TERM(ilo=lo[0]; ihi=hi[0]; ,
@@ -339,70 +338,63 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 {
     if (!geom.isAnyPeriodic()) return;
 
+    Array<IntVect>                 pshifts(27);
     FabArrayCopyDescriptor<TagBox> facd;
-
-    FabArrayId     faid   = facd.RegisterFabArray(this);
-    const int      MyProc = ParallelDescriptor::MyProc();
-    const Box&     domain = geom.Domain();
-    Array<IntVect> pshifts(27);
+    FabArrayId                     faid       = facd.RegisterFabArray(this);
+    bool                           work_to_do = false;
+    const Box&                     dmn        = geom.Domain();
 
     std::deque< std::pair<FillBoxId,IntVect> > IDs;
 
     for (int i = 0, N = boxarray.size(); i < N; i++)
     {
-        if (!domain.contains(boxarray[i]))
+        if (dmn.contains(boxarray[i])) continue;
+
+        work_to_do = true;
+
+        geom.periodicShift(dmn, boxarray[i], pshifts);
+
+        for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+             it != End;
+             ++it)
         {
-            geom.periodicShift(domain, boxarray[i], pshifts);
+            const IntVect& iv   = *it;
+            const Box      shft = boxarray[i] + iv;
 
-            for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
+            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
-                Box shiftbox(boxarray[i]);
+                Box isect = mfi.validbox() & shft;
 
-                shiftbox.shift(pshifts[iiv]);
-
-                for (int j = 0; j < N; j++)
+                if (isect.ok())
                 {
-                    if (distributionMap[j] == MyProc)
-                    {
-                        Box isect = boxarray[j] & shiftbox;
+                    isect -= iv;
 
-                        if (isect.ok())
-                        {
-                            isect.shift(-pshifts[iiv]);
+                    FillBoxId fbid = facd.AddBox(faid, isect, 0, i, 0, 0, n_comp);
 
-                            FillBoxId fbid = facd.AddBox(faid, isect, 0, i, 0, 0, n_comp);
+                    BL_ASSERT(fbid.box() == isect);
+                    //
+                    // Here we'll save the fab index.
+                    //
+                    fbid.FabIndex(mfi.index());
 
-                            BL_ASSERT(fbid.box() == isect);
-                            //
-                            // Here we'll save the fab index.
-                            //
-                            fbid.FabIndex(j);
-
-                            IDs.push_back(std::pair<FillBoxId,IntVect>(fbid,pshifts[iiv]));
-                        }
-                    }
+                    IDs.push_back(std::pair<FillBoxId,IntVect>(fbid,iv));
                 }
             }
         }
     }
 
-    int nrecv = IDs.size();
-    ParallelDescriptor::ReduceIntMax(nrecv);
-    if (nrecv == 0)
-        //
-        // There's no parallel work to do.
-        //
-        return;
+    if (!work_to_do) return;
 
     facd.CollectData();
 
     TagBox src;
 
-    for (std::deque< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(), End = IDs.end();
+    for (std::deque< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(),
+             End = IDs.end();
          it != End;
          ++it)
     {
-        BL_ASSERT(distributionMap[it->first.FabIndex()] == MyProc);
+        BL_ASSERT(distributionMap[it->first.FabIndex()] == ParallelDescriptor::MyProc());
 
         src.resize(it->first.box(), n_comp);
 

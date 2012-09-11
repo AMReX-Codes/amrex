@@ -95,8 +95,7 @@ contains
 
     call init_genrand(368)
 
-    do n=1, nboxes(q)
-       if ( remote(q,n) ) cycle
+    do n=1, nfabs(q)
 
        qp => dataptr(q,n)
 

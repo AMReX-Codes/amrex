@@ -77,8 +77,7 @@ contains
        call destroy(ba_cc)
        call multifab_build(stored_coeffs_grown,old_la_grown,1,ng=0)
 
-       do i = 1, nboxes(stored_coeffs_grown)
-          if (remote(stored_coeffs_grown,i)) cycle
+       do i = 1, nfabs(stored_coeffs_grown)
           sc_orig  => dataptr(stored_coeffs      ,i,get_pbox(stored_coeffs_grown,i),1,1)
           sc_grown => dataptr(stored_coeffs_grown,i,get_pbox(stored_coeffs_grown,i),1,1)
           sc_grown = sc_orig
@@ -92,8 +91,7 @@ contains
        call multifab_build(new_coeffs_grown,new_la_grown,1,ng=0)
        call multifab_copy_c(new_coeffs_grown,1,stored_coeffs_grown,1,1)
 
-       do i = 1, nboxes(new_coeffs_grown)
-          if (remote(new_coeffs_grown,i)) cycle
+       do i = 1, nfabs(new_coeffs_grown)
           sc_orig  => dataptr(coarse_coeffs(maxlev_bottom),i,get_pbox(new_coeffs_grown,i),1,1)
           sc_grown => dataptr(new_coeffs_grown    ,i,get_pbox(new_coeffs_grown,i),1,1)
           sc_orig = sc_grown
@@ -240,15 +238,15 @@ contains
 
     ng_sg = nghost(sg)
 
-    do i = 1, nboxes(ss)
-       if ( remote(ss,i) ) cycle
+    do i = 1, nfabs(ss)
 
-       sp => dataptr(ss,   i)
-       cp => dataptr(sg,   i)
-       mp => dataptr(mask, i)
+       sp  => dataptr(ss,   i)
+       cp  => dataptr(sg,   i)
+       mp  => dataptr(mask, i)
 
        bx  = get_box(ss,i)
        nbx = get_ibox(ss, i)
+
        call stencil_set_bc_nodal(dm, bx, nbx, i, mask, face_type, pd_periodic, bxa_periodic)
 
        lo = lwb(get_box(sg,i))
@@ -300,12 +298,11 @@ contains
 
     dm = get_dim(ss)
 
-    do i = 1, nboxes(ss)
-       if ( remote(ss,i) ) cycle
+    do i = 1, nfabs(ss)
 
-       sp => dataptr(ss,   i)
-       cp => dataptr(sg,   i)
-       mp => dataptr(mask, i)
+       sp  => dataptr(ss,   i)
+       cp  => dataptr(sg,   i)
+       mp  => dataptr(mask, i)
 
        select case (dm)
        case (1)
