@@ -130,6 +130,9 @@ LinOp::~LinOp ()
 }
 
 void
+LinOp::clearToLevel (int level) {}
+
+void
 LinOp::initConstruct (const Real* _h)
 {
     Initialize();

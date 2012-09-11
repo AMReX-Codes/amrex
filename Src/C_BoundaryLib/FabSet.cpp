@@ -190,102 +190,30 @@ FabSet::DoIt (const MultiFab& src,
               int             ncomp,
               How             how)
 {
+    BL_ASSERT(nGrow() == 0);
+    BL_ASSERT(ngrow <= src.nGrow());
     BL_ASSERT((dcomp+ncomp) <= nComp());
     BL_ASSERT((scomp+ncomp) <= src.nComp());
-
     BL_ASSERT(how == FabSet::COPYFROM || how == FabSet::PLUSFROM);
 
-    std::vector<Box> boxes;
-    std::vector<int> mfidx;
-    std::vector<int> fsidx;
+    FabArrayBase::CpOp op = (how == FabSet::COPYFROM) ? FabArrayBase::COPY : FabArrayBase::ADD;
 
-    boxes.reserve(32);
-    mfidx.reserve(32);
-    fsidx.reserve(32);
-    //
-    // Calculate and cache intersection info.
-    //
-    BoxArray ba_src = src.boxArray();
-
-    ba_src.grow(ngrow);
-
-    std::vector< std::pair<int,Box> > isects;
-
-    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
+    if (ngrow == 0)
     {
-        ba_src.intersections((*this)[fsi].box(),isects);
-
-        const int index = fsi.index();
-
-        for (int j = 0, N = isects.size(); j < N; j++)
-        {
-            boxes.push_back(isects[j].second);
-            //
-            // Maintain parallel array of indices into MultiFab.
-            //
-            mfidx.push_back(isects[j].first);
-            //
-            // Maintain parallel array of indices into FabSet.
-            //
-            fsidx.push_back(index);
-        }
+        this->copy(src,scomp,dcomp,ncomp,op);
     }
-
-    FabSetCopyDescriptor fscd;
-
-    MultiFabId mfid = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
-
-    BL_ASSERT(boxes.size() == mfidx.size());
-    BL_ASSERT(boxes.size() == fsidx.size());
-
-    std::vector<FillBoxId> fbids;
-
-    fbids.reserve(boxes.size());
-
-    const int DCOMP = (how == COPYFROM) ? dcomp : 0;
-
-    for (int i = 0, N = boxes.size(); i < N; i++)
+    else
     {
-        fbids.push_back(fscd.AddBox(mfid,
-                                    boxes[i],
-                                    0,
-                                    mfidx[i],
-                                    scomp,
-                                    DCOMP,
-                                    ncomp,
-                                    false));
+        BoxArray ba = src.boxArray();
 
-        BL_ASSERT(fbids.back().box() == boxes[i]);
-        //
-        // Also save the index of our FAB needing filling.
-        //
-        fbids.back().FabIndex(fsidx[i]);
-    }
+        ba.grow(ngrow);
 
-    fscd.CollectData();
+        MultiFab tmpsrc(ba, ncomp, 0);
 
-    FArrayBox tmp;
+        for (MFIter mfi(src); mfi.isValid(); ++mfi)
+            tmpsrc[mfi].copy(src[mfi], ba[mfi.index()], scomp, ba[mfi.index()], 0, ncomp);
 
-    for (std::vector<FillBoxId>::const_iterator it = fbids.begin(), End = fbids.end();
-         it != End;
-         ++it)
-    {
-        const FillBoxId& fbid = *it;
-
-        BL_ASSERT(DistributionMap()[fbid.FabIndex()] == ParallelDescriptor::MyProc());
-
-        if (how == COPYFROM)
-        {
-            fscd.FillFab(mfid,fbid,(*this)[fbid.FabIndex()]);
-        }
-        else
-        {
-            tmp.resize(fbid.box(), ncomp);
-
-            fscd.FillFab(mfid, fbid, tmp);
-
-            (*this)[fbid.FabIndex()].plus(tmp,tmp.box(),0,dcomp,ncomp);
-        }
+        this->copy(tmpsrc,0,dcomp,ncomp,op);
     }
 }
 

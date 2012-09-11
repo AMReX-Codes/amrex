@@ -116,25 +116,25 @@ public:
     //
     // Returns the number of components.
     //
-    int nComp () const;
+    int nComp () const { return nvar; }
     //
     // Returns the domain (box) where the array is defined.
     //
-    const Box& box () const;
+    const Box& box () const { return domain; }
     //
     // Returns a pointer to an array of SPACEDIM integers
     // giving the length of the domain in each direction.
     //
-    const int* length () const;
+    const int* length () const { return dlen.getVect(); }
     //
     // Returns the lower corner of the domain.
     // See class Box for analogue.
     //
-    const IntVect& smallEnd () const;
+    const IntVect& smallEnd () const { return domain.smallEnd(); }
     //
     //  Returns the upper corner of the domain.  See class Box for analogue.
     //
-    const IntVect& bigEnd () const;
+    const IntVect& bigEnd () const { return domain.bigEnd(); }
     //
     // Returns the lower corner of the domain.  Instead of
     // returning them in the form of INTVECTs, as in smallEnd and
@@ -142,7 +142,7 @@ public:
     // constant integers.  This is useful when interfacing to
     // Fortran subroutines.
     //
-    const int* loVect () const;
+    const int* loVect () const { return domain.loVect(); }
     //
     // Returns the upper corner of the domain.  Instead of
     // returning them in the form of INTVECTs, as in smallEnd and
@@ -150,17 +150,20 @@ public:
     // constant integers.  This is useful when interfacing to
     // Fortran subroutines.
     //
-    const int* hiVect () const;
+    const int* hiVect () const { return domain.hiVect(); }
     //
     // Returns true if the domain of fab is totally contained within
     // the domain of this BaseFab.
     //
-    bool contains (const BaseFab<T>& fab) const;
+    bool contains (const BaseFab<T>& fab) const
+    {
+        return box().contains(fab.box()) && nvar <= fab.nvar;
+    }
     //
     // Returns true if bx is totally contained
     // within the domain of this BaseFab.
     //
-    bool contains (const Box& bx) const;
+    bool contains (const Box& bx) const { return box().contains(bx); }
     //
     // Returns a pointer to an object of type T that is the
     // value of the Nth component associated with the cell at the
@@ -170,23 +173,22 @@ public:
     // order, with the component index coming last.   In other words,
     // dataPtr returns a pointer to all the Nth components.
     //
-    T* dataPtr (int N = 0);
+    T* dataPtr (int n = 0) { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
     //
     // Same as above except works on const FABs.
     //
-    const T* dataPtr (int N = 0) const;
+    const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
     //
     // Returns true if the data for the FAB has been allocated.
     //
-    bool isAllocated () const;
+    bool isAllocated () const { return dptr != 0; }
     //
     // Returns a reference to the Nth component value
     // defined at position p in the domain.  This operator may be
     // inefficient if the C++ compiler is unable to optimize the
     // C++ code.
     //
-    T& operator() (const IntVect& p,
-                   int            N);
+    T& operator() (const IntVect& p, int N);
     //
     // Same as above, except returns component 0.
     //
@@ -194,8 +196,7 @@ public:
     //
     // Same as above except works on const FABs.
     //
-     const T& operator() (const IntVect& p,
-                          int            N) const;
+     const T& operator() (const IntVect& p, int N) const;
     //
     // Same as above, except returns component 0.
     //
@@ -828,102 +829,6 @@ private:
     BaseFab (const BaseFab&);
     BaseFab& operator= (const BaseFab&);
 };
-
-template <class T>
-inline
-int
-BaseFab<T>::nComp () const
-{
-    return nvar;
-}
-
-template <class T>
-inline
-const Box&
-BaseFab<T>::box () const
-{
-    return domain;
-}
-
-template <class T>
-inline
-const int*
-BaseFab<T>::length () const
-{
-    return dlen.getVect();
-}
-
-template <class T>
-inline
-const IntVect&
-BaseFab<T>::smallEnd () const
-{
-    return domain.smallEnd();
-}
-
-template <class T>
-inline
-const IntVect&
-BaseFab<T>::bigEnd () const
-{
-    return domain.bigEnd();
-}
-
-template <class T>
-inline
-const int*
-BaseFab<T>::loVect () const
-{
-    return domain.loVect();
-}
-
-template <class T>
-inline
-const int*
-BaseFab<T>::hiVect () const
-{
-    return domain.hiVect();
-}
-
-template <class T>
-bool
-BaseFab<T>::contains (const BaseFab<T>& fab) const
-{
-    return box().contains(fab.box()) && nvar <= fab.nvar;
-}
-
-template <class T>
-bool
-BaseFab<T>::contains (const Box& bx) const
-{
-    return box().contains(bx);
-}
-
-template <class T>
-inline
-T*
-BaseFab<T>::dataPtr (int n)
-{
-    BL_ASSERT(!(dptr == 0));
-    return &dptr[n*numpts];
-}
-
-template <class T>
-inline
-const T*
-BaseFab<T>::dataPtr (int n) const
-{
-    BL_ASSERT(!(dptr == 0));
-    return &dptr[n*numpts];
-}
-
-template <class T>
-inline
-bool
-BaseFab<T>::isAllocated () const
-{
-    return dptr != 0;
-}
 
 template <class T>
 inline

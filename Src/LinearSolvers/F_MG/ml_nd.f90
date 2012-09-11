@@ -605,13 +605,12 @@ contains
 
     call multifab_fill_boundary(uu, cross = lcross)
 
-    do i = 1, nboxes(uu)
-       if ( remote(dd, i) ) cycle
-       dp => dataptr(dd, i)
-       fp => dataptr(ff, i)
-       up => dataptr(uu, i)
-       sp => dataptr(ss, i)
-       mp => dataptr(mm, i)
+    do i = 1, nfabs(uu)
+       dp  => dataptr(dd, i)
+       fp  => dataptr(ff, i)
+       up  => dataptr(uu, i)
+       sp  => dataptr(ss, i)
+       mp  => dataptr(mm, i)
        do n = 1, ncomp(uu)
           select case(dm)
           case (1)

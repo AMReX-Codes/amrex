@@ -232,9 +232,9 @@ subroutine mgt_finalize(dx,bc)
         bottom_solver_in = mgts%bottom_solver
         bottom_max_iter_in = mgts%bottom_max_iter
      else
-        if ( all(mgts%rr == 2) ) then
+        if ( all(mgts%rr(n-1,:) == 2) ) then
            max_nlevel_in = 1
-        else if ( all(mgts%rr == 4) ) then
+        else if ( all(mgts%rr(n-1,:) == 4) ) then
            max_nlevel_in = 2
         else
            call bl_error("MGT_FINALIZE: confused about ref_ratio")
@@ -522,7 +522,7 @@ subroutine mgt_set_rh_1d(lev, n, rh, plo, phi, lo, hi)
   flev = lev+1
   call mgt_verify_n("MGT_SET_RH_1D", flev, fn, lo, hi)
 
-  rp => dataptr(mgts%rh(flev), fn)
+  rp => dataptr(mgts%rh(flev), local_index(mgts%rh(flev),fn))
   rp(lo(1):hi(1), 1,1,1) = rh(lo(1):hi(1))
 
 end subroutine mgt_set_rh_1d
@@ -539,7 +539,7 @@ subroutine mgt_set_rh_2d(lev, n, rh, plo, phi, lo, hi)
   
   call mgt_verify_n("MGT_SET_RH_2D", flev, fn, lo, hi)
 
-  rp => dataptr(mgts%rh(flev), fn)
+  rp => dataptr(mgts%rh(flev), local_index(mgts%rh(flev),fn))
   rp(lo(1):hi(1), lo(2):hi(2),1,1) = rh(lo(1):hi(1), lo(2):hi(2))
 
 end subroutine mgt_set_rh_2d
@@ -556,7 +556,7 @@ subroutine mgt_set_rh_3d(lev, n, rh, plo, phi, lo, hi)
   
   call mgt_verify_n("MGT_SET_RH_3D", flev, fn, lo, hi)
 
-  rp => dataptr(mgts%rh(flev), fn)
+  rp => dataptr(mgts%rh(flev), local_index(mgts%rh(flev),fn))
   rp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3),1) = rh(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
 
 end subroutine mgt_set_rh_3d
@@ -615,7 +615,7 @@ subroutine mgt_set_cfa_1d(lev, n, cf, plo, phi, lo, hi)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%cell_coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
   cp(lo(1):hi(1), 1, 1, 1) = cf(lo(1):hi(1), 1)
 
 end subroutine mgt_set_cfa_1d
@@ -634,7 +634,7 @@ subroutine mgt_set_cfa2_1d(lev, n, cf, plo, phi, lo, hi, nc)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%cell_coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
   cp(lo(1):hi(1), 1, 1, 2:nc+1) = cf(lo(1):hi(1), 1:nc)
 
 end subroutine mgt_set_cfa2_1d
@@ -652,7 +652,7 @@ subroutine mgt_set_cfa_1d_const(lev, n, lo, hi, coeff_value)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%cell_coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
   cp(lo(1):hi(1), 1, 1, 1) = coeff_value
 
 end subroutine mgt_set_cfa_1d_const
@@ -671,7 +671,7 @@ subroutine mgt_set_cfa_2d(lev, n, cf, plo, phi, lo, hi)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%cell_coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2), 1)
 
 end subroutine mgt_set_cfa_2d
@@ -690,7 +690,7 @@ subroutine mgt_set_cfa2_2d(lev, n, cf, plo, phi, lo, hi, nc)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%cell_coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
   cp(lo(1):hi(1), lo(2):hi(2), 1, 2:nc+1) = cf(lo(1):hi(1), lo(2):hi(2), 1:nc)
 
 end subroutine mgt_set_cfa2_2d
@@ -709,7 +709,7 @@ subroutine mgt_set_cfa_2d_const(lev, n, lo, hi, coeff_value)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%cell_coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = coeff_value
 
 end subroutine mgt_set_cfa_2d_const
@@ -727,7 +727,7 @@ subroutine mgt_set_cfa_3d(lev, n, cf, plo, phi, lo, hi)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%cell_coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
 
 end subroutine mgt_set_cfa_3d
@@ -745,7 +745,7 @@ subroutine mgt_set_cfa2_3d(lev, n, cf, plo, phi, lo, hi, nc)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%cell_coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 2:nc+1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1:nc)
 
 end subroutine mgt_set_cfa2_3d
@@ -763,7 +763,7 @@ subroutine mgt_set_cfa_3d_const(lev, n, lo, hi, coeff_value)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%cell_coeffs(nlev), fn)
+  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = coeff_value
 
 end subroutine mgt_set_cfa_3d_const
@@ -787,7 +787,7 @@ subroutine mgt_set_cfbx_1d(lev, n, cf, b, plo, phi, lo, hi)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,1), local_index(mgts%edge_coeffs(nlev,1),fn))
   cp(lo(1):hi(1)+1, 1, 1, 1) = b * cf(lo(1):hi(1)+1)
 
 end subroutine mgt_set_cfbx_1d
@@ -807,7 +807,7 @@ subroutine mgt_set_cfbnx_1d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,1), local_index(mgts%edge_coeffs(nlev,1),fn))
   cp(lo(1):hi(1)+1, 1, 1, 1:nc) = b * cf(lo(1):hi(1)+1,1:nc)
 
 end subroutine mgt_set_cfbnx_1d
@@ -826,7 +826,7 @@ subroutine mgt_set_cfbx_1d_const(lev, n, lo, hi, coeff_value)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,1), local_index(mgts%edge_coeffs(nlev,1),fn))
   cp(lo(1):hi(1)+1, 1, 1, 1) = coeff_value
 
 end subroutine mgt_set_cfbx_1d_const
@@ -846,7 +846,7 @@ subroutine mgt_set_cfbx_2d(lev, n, cf, b, plo, phi, lo, hi)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,1), local_index(mgts%edge_coeffs(nlev,1),fn))
   cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 1) = b * cf(lo(1):hi(1)+1, lo(2):hi(2))
 
 end subroutine mgt_set_cfbx_2d
@@ -865,7 +865,7 @@ subroutine mgt_set_cfbnx_2d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,1), local_index(mgts%edge_coeffs(nlev,1),fn))
   cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 1:nc) = b * cf(lo(1):hi(1)+1, lo(2):hi(2),1:nc)
 
 end subroutine mgt_set_cfbnx_2d
@@ -884,7 +884,7 @@ subroutine mgt_set_cfbx_2d_const(lev, n, lo, hi, coeff_value)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,1), local_index(mgts%edge_coeffs(nlev,1),fn))
   cp(lo(1):hi(1)+1, lo(2):hi(2), 1, 1) = coeff_value
 
 end subroutine mgt_set_cfbx_2d_const
@@ -903,7 +903,7 @@ subroutine mgt_set_cfbx_3d(lev, n, cf, b, plo, phi, lo, hi)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,1), local_index(mgts%edge_coeffs(nlev,1),fn))
   cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 1) = b * cf(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3))
 
 end subroutine mgt_set_cfbx_3d
@@ -922,7 +922,7 @@ subroutine mgt_set_cfbnx_3d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,1), local_index(mgts%edge_coeffs(nlev,1),fn))
   cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 1:nc) = &
      b * cf(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 1:nc)
 
@@ -941,7 +941,7 @@ subroutine mgt_set_cfbx_3d_const(lev, n, lo, hi, coeff_value)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,1), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,1), local_index(mgts%edge_coeffs(nlev,1),fn))
   cp(lo(1):hi(1)+1, lo(2):hi(2), lo(3):hi(3), 1) = coeff_value
 
 end subroutine mgt_set_cfbx_3d_const
@@ -964,7 +964,7 @@ subroutine mgt_set_cfby_2d(lev, n, cf, b, plo, phi, lo, hi)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,2), local_index(mgts%edge_coeffs(nlev,2),fn))
   cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 1) = b * cf(lo(1):hi(1), lo(2):hi(2)+1)
 
 end subroutine mgt_set_cfby_2d
@@ -984,7 +984,7 @@ subroutine mgt_set_cfbny_2d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,2), local_index(mgts%edge_coeffs(nlev,2),fn))
   cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 1:nc) = b * cf(lo(1):hi(1), lo(2):hi(2)+1, 1:nc)
 
 end subroutine mgt_set_cfbny_2d
@@ -1002,7 +1002,7 @@ subroutine mgt_set_cfby_2d_const(lev, n, lo, hi, coeff_value)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,2), local_index(mgts%edge_coeffs(nlev,2),fn))
   cp(lo(1):hi(1), lo(2):hi(2)+1, 1, 1) = coeff_value
 
 end subroutine mgt_set_cfby_2d_const
@@ -1021,7 +1021,7 @@ subroutine mgt_set_cfby_3d(lev, n, cf, b, plo, phi, lo, hi)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,2), local_index(mgts%edge_coeffs(nlev,2),fn))
   cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 1) = b * cf(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3))
 
 end subroutine mgt_set_cfby_3d
@@ -1040,7 +1040,7 @@ subroutine mgt_set_cfbny_3d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,2), local_index(mgts%edge_coeffs(nlev,2),fn))
   cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 1:nc) = &
       b * cf(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 1:nc)
 
@@ -1059,7 +1059,7 @@ subroutine mgt_set_cfby_3d_const(lev, n, lo, hi, coeff_value)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,2), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,2), local_index(mgts%edge_coeffs(nlev,2),fn))
   cp(lo(1):hi(1), lo(2):hi(2)+1, lo(3):hi(3), 1) = coeff_value
 
 end subroutine mgt_set_cfby_3d_const
@@ -1082,7 +1082,7 @@ subroutine mgt_set_cfbz_3d(lev, n, cf, b, plo, phi, lo, hi)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,3), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,3), local_index(mgts%edge_coeffs(nlev,3),fn))
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 1) = b * cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1)
 
 end subroutine mgt_set_cfbz_3d
@@ -1101,7 +1101,7 @@ subroutine mgt_set_cfbnz_3d(lev, n, cf, b, plo, phi, lo, hi, nc)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,3), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,3), local_index(mgts%edge_coeffs(nlev,3),fn))
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 1:nc) = &
       b * cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 1:nc)
 
@@ -1120,7 +1120,7 @@ subroutine mgt_set_cfbz_3d_const(lev, n, lo, hi, coeff_value)
 
   nlev = mgts%mgt(flev)%nlevels
 
-  cp => dataptr(mgts%edge_coeffs(nlev,3), fn)
+  cp => dataptr(mgts%edge_coeffs(nlev,3), local_index(mgts%edge_coeffs(nlev,3),fn))
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)+1, 1) = coeff_value
 
 end subroutine mgt_set_cfbz_3d_const
@@ -1141,7 +1141,7 @@ subroutine mgt_set_uu_1d(lev, n, uu, plo, phi, lo, hi)
 
   call mgt_verify_n("MGT_SET_UU_1D", flev, fn, lo, hi)
 
-  up => dataptr(mgts%uu(flev), fn)
+  up => dataptr(mgts%uu(flev), local_index(mgts%uu(flev),fn))
   up(lo(1)-1:hi(1)+1,1,1,1) = uu(lo(1)-1:hi(1)+1)
 
 end subroutine mgt_set_uu_1d
@@ -1158,7 +1158,7 @@ subroutine mgt_set_uu_2d(lev, n, uu, plo, phi, lo, hi)
 
   call mgt_verify_n("MGT_SET_UU_2D", flev, fn, lo, hi)
 
-  up => dataptr(mgts%uu(flev), fn)
+  up => dataptr(mgts%uu(flev), local_index(mgts%uu(flev),fn))
   up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1,1,1) = &
   uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1    )
 
@@ -1176,7 +1176,7 @@ subroutine mgt_set_uu_3d(lev, n, uu, plo, phi, lo, hi)
   
   call mgt_verify_n("MGT_SET_UU_3D", flev, fn, lo, hi)
 
-  up => dataptr(mgts%uu(flev), fn)
+  up => dataptr(mgts%uu(flev), local_index(mgts%uu(flev),fn))
   up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, 1) = &
   uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1   )
 
@@ -1198,7 +1198,7 @@ subroutine mgt_get_uu_1d(lev, n, uu, plo, phi, lo, hi, ng)
   
   call mgt_verify_n("MGT_GET_UU_1D", flev, fn, lo, hi)
 
-  up => dataptr(mgts%uu(flev), fn)
+  up => dataptr(mgts%uu(flev), local_index(mgts%uu(flev),fn))
   uu(lo(1)-ng:hi(1)+ng) = up(lo(1)-ng:hi(1)+ng, 1,1,1)
 
 end subroutine mgt_get_uu_1d
@@ -1214,7 +1214,7 @@ subroutine mgt_get_uu_2d(lev, n, uu, plo, phi, lo, hi, ng)
   
   call mgt_verify_n("MGT_GET_UU_2D", flev, fn, lo, hi)
 
-  up => dataptr(mgts%uu(flev), fn)
+  up => dataptr(mgts%uu(flev), local_index(mgts%uu(flev),fn))
 
   uu(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng) = up(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,1,1)
 
@@ -1231,7 +1231,7 @@ subroutine mgt_get_uu_3d(lev, n, uu, plo, phi, lo, hi ,ng)
   
   call mgt_verify_n("MGT_GET_UU_3D", flev, fn, lo, hi)
 
-  up => dataptr(mgts%uu(flev), fn)
+  up => dataptr(mgts%uu(flev), local_index(mgts%uu(flev),fn))
   uu(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng) = &
   up(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,1)
 
@@ -1252,7 +1252,7 @@ subroutine mgt_get_gp_1d(lev, dir, n, gp, plo, phi, lo, hi)
   flev = lev+1
   fdir = dir+1
 
-  gpp => dataptr(mgts%gp(flev,fdir), fn)
+  gpp => dataptr(mgts%gp(flev,fdir), local_index(mgts%gp(flev,fdir),fn))
   gp(lo(1):hi(1)) = gpp(lo(1):hi(1),1,1,1)
 
 end subroutine mgt_get_gp_1d
@@ -1268,7 +1268,7 @@ subroutine mgt_get_gp_2d(lev, dir, n, gp, plo, phi, lo, hi)
   flev = lev+1
   fdir = dir+1
 
-  gpp => dataptr(mgts%gp(flev,fdir), fn)
+  gpp => dataptr(mgts%gp(flev,fdir), local_index(mgts%gp(flev,fdir),fn))
   gp(lo(1):hi(1),lo(2):hi(2)) = gpp(lo(1):hi(1),lo(2):hi(2),1,1)
 
 end subroutine mgt_get_gp_2d
@@ -1284,7 +1284,7 @@ subroutine mgt_get_gp_3d(lev, dir, n, gp, plo, phi, lo, hi)
   flev = lev+1
   fdir = dir+1
 
-  gpp => dataptr(mgts%gp(flev,fdir), fn)
+  gpp => dataptr(mgts%gp(flev,fdir), local_index(mgts%gp(flev,fdir),fn))
   gp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)) = &
          gpp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1)
 
@@ -1306,7 +1306,7 @@ subroutine mgt_get_res_1d(lev, n, res, rlo, rhi, lo, hi)
 
   call mgt_verify_n("MGT_GET_RES_1D", flev, fn, lo, hi)
 
-  rp => dataptr(mgts%res(flev), fn)
+  rp => dataptr(mgts%res(flev), local_index(mgts%res(flev),fn))
   res(lo(1):hi(1)) = rp(lo(1):hi(1),1,1,1)
 
 end subroutine mgt_get_res_1d
@@ -1323,7 +1323,7 @@ subroutine mgt_get_res_2d(lev, n, res, rlo, rhi, lo, hi)
 
   call mgt_verify_n("MGT_GET_RES_2D", flev, fn, lo, hi)
 
-  rp => dataptr(mgts%res(flev), fn)
+  rp => dataptr(mgts%res(flev), local_index(mgts%res(flev),fn))
   res(lo(1):hi(1),lo(2):hi(2)) = rp(lo(1):hi(1),lo(2):hi(2),1,1)
 
 end subroutine mgt_get_res_2d
@@ -1339,7 +1339,7 @@ subroutine mgt_get_res_3d(lev, n, res, rlo, rhi, lo, hi)
 
   call mgt_verify_n("MGT_GET_RES_3D", flev, fn, lo, hi)
 
-  rp => dataptr(mgts%res(flev), fn)
+  rp => dataptr(mgts%res(flev), local_index(mgts%res(flev),fn))
   res(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)) = rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1)
 
 end subroutine mgt_get_res_3d

@@ -154,7 +154,7 @@ public:
     //
     // Return the boundary data object.
     //
-    const BndryData& bndryData () const;
+    const BndryData& bndryData () const { return *bgb; }
     //
     // Set the boundary data object.
     //
@@ -162,19 +162,22 @@ public:
     //
     // Return the box array.
     //
-    const BoxArray& boxArray (int level = 0) const;
+    const BoxArray& boxArray (int level = 0) const
+    {
+        BL_ASSERT(level < numLevels()); return gbox[level];
+    }
     //
     // Return the number of grids.
     //
-    int numGrids () const;
+    int numGrids () const { return gbox[0].size(); }
     //
     // Return the number of levels.
     //
-    int numLevels () const;
+    int numLevels () const { return h.size(); }
     //
     // Return the order of the boundary condition interpolant.
     //
-    int maxOrder () const;
+    int maxOrder () const { return maxorder; }
     //
     // Set the order of the boundary condition interpolant.
     //
@@ -211,7 +214,7 @@ protected:
     //
     // Remove internal data necessary for a level and all higher.
     //
-    virtual void clearToLevel (int level) {}
+    virtual void clearToLevel (int level);
     //
     // Virtual to apply the level operator to the internal nodes of
     // "in", return result in "out"
@@ -319,41 +322,5 @@ private:
     LinOp (const LinOp& rhs);
     void operator = (const LinOp& rhs);
 };
-
-inline
-const BndryData&
-LinOp::bndryData () const
-{
-    return *bgb;
-}
-
-inline
-int
-LinOp::numLevels () const
-{
-    return h.size();
-}
-
-inline
-const BoxArray&
-LinOp::boxArray (int level) const
-{
-    BL_ASSERT(level < numLevels());
-    return gbox[level];
-}
-
-inline
-int
-LinOp::numGrids () const
-{
-    return gbox[0].size();
-}
-
-inline
-int
-LinOp::maxOrder () const
-{
-    return maxorder;
-}
 
 #endif /*_LINOP_H_*/

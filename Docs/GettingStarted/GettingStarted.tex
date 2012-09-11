@@ -284,10 +284,8 @@ dm = data%dim   ! dm is dimensionality
 ng = data%ng    ! ng is number of ghost cells
 nc = data%nc    ! nc is number of components
 
-do i=1,nboxes(data)
-   ! if associated fab is not local to processor, then
-   ! 'cycle', i.e., go to the next box
-   if ( multifab_remote(data,i) ) cycle
+! loop over the grids owned by this processor
+do i=1,nfabs(data)
    dp => dataptr(data,i)          ! dp points to data inside fab
    lo = lwb(get_box(data,i))      ! get lo indices of box
    hi = upb(get_box(data,i))      ! get hi indices of box

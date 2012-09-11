@@ -6,9 +6,7 @@
 // Set default values in Initialize()!!!
 //
 bool FabArrayBase::verbose;
-bool FabArrayBase::do_alltoallv;
 bool FabArrayBase::do_async_sends;
-bool FabArrayBase::do_not_use_cache;
 
 namespace
 {
@@ -16,10 +14,8 @@ namespace
     //
     // Set default values in Initialize()!!!
     //
-    bool use_copy_cache;
-    int  copy_cache_max_size;
-    bool use_fb_cache;
-    int  fb_cache_max_size;
+    int fb_cache_max_size;
+    int copy_cache_max_size;
 }
 
 void
@@ -29,30 +25,25 @@ FabArrayBase::Initialize ()
     //
     // Set default values here!!!
     //
-    FabArrayBase::verbose          = false;
-    FabArrayBase::do_alltoallv     = false;
+    FabArrayBase::verbose          = true;
     FabArrayBase::do_async_sends   = false;
-    FabArrayBase::do_not_use_cache = false;
 
-    use_copy_cache      = true;
-    copy_cache_max_size = 10;   // -1 ==> no maximum size
-    use_fb_cache        = true;
-    fb_cache_max_size   = 20;   // -1 ==> no maximum size
+    copy_cache_max_size = 200;
+    fb_cache_max_size   = 100;
 
     ParmParse pp("fabarray");
 
-    pp.query("verbose",          FabArrayBase::verbose);
-    pp.query("do_alltoallv",     FabArrayBase::do_alltoallv);
-    pp.query("do_async_sends",   FabArrayBase::do_async_sends);
-    pp.query("do_not_use_cache", FabArrayBase::do_not_use_cache);
-
-    pp.query("use_copy_cache",      use_copy_cache);
-    pp.query("copy_cache_max_size", copy_cache_max_size);
-    pp.query("use_fb_cache",        use_fb_cache);
+    pp.query("verbose",             FabArrayBase::verbose);
+    pp.query("do_async_sends",      FabArrayBase::do_async_sends);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
-
-    if (do_alltoallv && do_async_sends)
-        BoxLib::Abort("At most one of 'do_alltoallv' and 'do_async_sends' can be true");
+    pp.query("copy_cache_max_size", copy_cache_max_size);
+    //
+    // Don't let the caches get too small. This simplifies some logic later.
+    //
+    if (fb_cache_max_size < 1)
+        fb_cache_max_size = 1;
+    if (copy_cache_max_size < 1)
+        copy_cache_max_size = 1;
 
     BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
 
@@ -72,46 +63,18 @@ FabArrayBase::fabbox (int K) const
     return BoxLib::grow(boxarray[K], n_grow);
 }
 
-FabArrayBase::FabComTag::FabComTag ()
-{
-    fromProc          = 0;
-    toProc            = 0;
-    fabIndex          = 0;
-    fineIndex         = 0;
-    srcComp           = 0;
-    destComp          = 0;
-    nComp             = 0;
-    face              = 0;
-    fabArrayId        = 0;
-    fillBoxId         = 0;
-    procThatNeedsData = 0;
-    procThatHasData   = 0;
-}
-
-//
-// Used to cache some CommData stuff in CollectData().
-//
-
-FabArrayBase::CommDataCache::CommDataCache ()
-    :
-    m_valid(false)
-{}
-
-void
-FabArrayBase::CommDataCache::operator= (const Array<ParallelDescriptor::CommData>& rhs)
-{
-    m_commdata = rhs;
-    m_valid    = true;
-}
-
 //
 // Stuff used for copy() caching.
 //
 
 FabArrayBase::CPC::CPC ()
     :
-    m_reused(false)
-{}
+    m_reused(false),
+    m_LocTags(0),
+    m_SndTags(0),
+    m_RcvTags(0),
+    m_SndVols(0),
+    m_RcvVols(0) {}
 
 FabArrayBase::CPC::CPC (const BoxArray&            dstba,
                         const BoxArray&            srcba,
@@ -122,147 +85,509 @@ FabArrayBase::CPC::CPC (const BoxArray&            dstba,
     m_srcba(srcba),
     m_dstdm(dstdm),
     m_srcdm(srcdm),
-    m_reused(false)
-{}
+    m_reused(false),
+    m_LocTags(0),
+    m_SndTags(0),
+    m_RcvTags(0),
+    m_SndVols(0),
+    m_RcvVols(0) {}
 
-FabArrayBase::CPC::CPC (const CPC& rhs)
-    :
-    m_dstba(rhs.m_dstba),
-    m_srcba(rhs.m_srcba),
-    m_dstdm(rhs.m_dstdm),
-    m_srcdm(rhs.m_srcdm),
-    m_LocTags(rhs.m_LocTags),
-    m_SndTags(rhs.m_SndTags),
-    m_RcvTags(rhs.m_RcvTags),
-    m_SndVols(rhs.m_SndVols),
-    m_RcvVols(rhs.m_RcvVols),
-    m_reused(rhs.m_reused)
-{}
-
-FabArrayBase::CPC::~CPC () {}
+FabArrayBase::CPC::~CPC ()
+{
+    delete m_LocTags;
+    delete m_SndTags;
+    delete m_RcvTags;
+    delete m_SndVols;
+    delete m_RcvVols;
+}
 
 bool
 FabArrayBase::CPC::operator== (const CPC& rhs) const
 {
-    return m_dstba == rhs.m_dstba &&
-           m_srcba == rhs.m_srcba &&
-           m_dstdm == rhs.m_dstdm &&
-           m_srcdm == rhs.m_srcdm;
+    return
+        m_dstba == rhs.m_dstba && m_srcba == rhs.m_srcba && m_dstdm == rhs.m_dstdm && m_srcdm == rhs.m_srcdm;
 }
 
-bool
-FabArrayBase::CPC::operator!= (const CPC& rhs) const
+int
+FabArrayBase::CPC::bytes () const
 {
-    return !operator==(rhs);
-}
+    int cnt = sizeof(FabArrayBase::CPC);
 
-typedef std::multimap<int,FabArrayBase::CPC> CPCCache;
-
-typedef CPCCache::iterator CPCCacheIter;
-
-static CPCCache TheCopyCache;
-
-FabArrayBase::CPC&
-FabArrayBase::CPC::TheCPC (const CPC& cpc, bool& got_from_cache)
-{
-    got_from_cache = false;
-
-    const int key = cpc.m_dstba.size() + cpc.m_srcba.size();
-
-    if (use_copy_cache)
+    if (m_LocTags)
     {
-        std::pair<CPCCacheIter,CPCCacheIter> er_it = TheCopyCache.equal_range(key);
+        cnt += sizeof(CopyComTagsContainer) + m_LocTags->size()*sizeof(CopyComTag);
+    }
 
-        for (CPCCacheIter it = er_it.first; it != er_it.second; ++it)
+    if (m_SndTags)
+    {
+        cnt += sizeof(MapOfCopyComTagContainers);
+
+        cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
+
+        for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
+                 m_End = m_SndTags->end();
+             it != m_End;
+             ++it)
         {
-            if (it->second == cpc)
-            {
-                it->second.m_reused = true;
-                got_from_cache = true;
-                return it->second;
-            }
+            cnt += it->second.size()*sizeof(CopyComTag);
         }
+    }
 
-        if (TheCopyCache.size() >= copy_cache_max_size && copy_cache_max_size != -1)
+    if (m_RcvTags)
+    {
+        cnt += sizeof(MapOfCopyComTagContainers);
+
+        cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
+
+        for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
+                 m_End = m_RcvTags->end();
+             it != m_End;
+             ++it)
         {
-            //
-            // Don't let the size of the cache get too big.
-            //
-            for (CPCCacheIter it = TheCopyCache.begin(); it != TheCopyCache.end(); )
+            cnt += it->second.size()*sizeof(CopyComTag);
+        }
+    }
+
+    if (m_SndVols)
+    {
+        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
+    }
+
+    if (m_RcvVols)
+    {
+        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
+    }
+
+    return cnt;
+}
+
+//
+// The copy() cache.
+//
+FabArrayBase::CPCCache FabArrayBase::m_TheCopyCache;
+
+FabArrayBase::CPCCacheIter
+FabArrayBase::TheCPC (const CPC&          cpc,
+                      const FabArrayBase& dst,
+                      const FabArrayBase& src,
+                      CPCCache&           TheCopyCache)
+{
+    BL_ASSERT(cpc.m_dstba.size() > 0 && cpc.m_srcba.size() > 0);
+    //
+    // We want to choose our keys wisely to minimize search time.
+    // We'd like to distinguish between copies of the same length
+    // but with different edgeness of boxes.  We also want to
+    // differentiate dst.copy(src) from src.copy(dst).
+    //
+    const IntVect Typ   = cpc.m_dstba[0].type();
+    const int     Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+
+    int Key = cpc.m_dstba.size() + cpc.m_srcba.size() + Scale;
+    Key    += cpc.m_dstba[0].numPts() + cpc.m_dstba[cpc.m_dstba.size()-1].numPts();
+    Key    += cpc.m_dstdm[0] + cpc.m_dstdm[cpc.m_dstdm.size()-1];
+
+    std::pair<CPCCacheIter,CPCCacheIter> er_it = TheCopyCache.equal_range(Key);
+
+    for (CPCCacheIter it = er_it.first; it != er_it.second; ++it)
+    {
+        if (it->second == cpc)
+        {
+            it->second.m_reused = true;
+
+            return it;
+        }
+    }
+
+    if (TheCopyCache.size() >= copy_cache_max_size)
+    {
+        //
+        // Don't let the size of the cache get too big.
+        //
+        for (CPCCacheIter it = TheCopyCache.begin(); it != TheCopyCache.end(); )
+        {
+            if (!it->second.m_reused)
             {
-                if (!it->second.m_reused)
-                {
-                    TheCopyCache.erase(it++);
+                TheCopyCache.erase(it++);
+
+                if (TheCopyCache.size() < copy_cache_max_size)
                     //
                     // Only delete enough entries to stay under limit.
                     //
-                    if (TheCopyCache.size() < copy_cache_max_size) break;
+                    break;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        if (TheCopyCache.size() >= copy_cache_max_size && !TheCopyCache.empty())
+            //
+            // Get rid of first entry which is the one with the smallest key.
+            //
+            TheCopyCache.erase(TheCopyCache.begin());
+    }
+    //
+    // Got to insert one & then build it.
+    //
+    CPCCacheIter cache_it = TheCopyCache.insert(CPCCache::value_type(Key,cpc));
+    CPC&         TheCPC   = cache_it->second;
+    const int    MyProc   = ParallelDescriptor::MyProc();
+    //
+    // Here's where we allocate memory for the cache innards.
+    // We do this so we don't have to build objects of these types
+    // each time we search the cache.  Otherwise we'd be constructing
+    // and destroying said objects quite frequently.
+    //
+    TheCPC.m_LocTags = new CopyComTag::CopyComTagsContainer;
+    TheCPC.m_SndTags = new CopyComTag::MapOfCopyComTagContainers;
+    TheCPC.m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
+    TheCPC.m_SndVols = new std::map<int,int>;
+    TheCPC.m_RcvVols = new std::map<int,int>;
+
+    if (dst.IndexMap().empty() && src.IndexMap().empty())
+        //
+        // We don't own any of the relevant FABs so can't possibly have any work to do.
+        //
+        return cache_it;
+
+    std::vector< std::pair<int,Box> > isects;
+
+    for (int i = 0, N = TheCPC.m_dstba.size(); i < N; i++)
+    {
+        TheCPC.m_srcba.intersections(TheCPC.m_dstba[i],isects);
+
+        const int dst_owner = TheCPC.m_dstdm[i];
+
+        for (int j = 0, M = isects.size(); j < M; j++)
+        {
+            const Box& bx        = isects[j].second;
+            const int  k         = isects[j].first;
+            const int  src_owner = TheCPC.m_srcdm[k];
+
+            if (dst_owner != MyProc && src_owner != MyProc) continue;
+
+            CopyComTag tag;
+
+            tag.box      = bx;
+            tag.fabIndex = i;
+            tag.srcIndex = k;
+
+            if (dst_owner == MyProc)
+            {
+                if (src_owner == MyProc)
+                {
+                    TheCPC.m_LocTags->push_back(tag);
                 }
                 else
                 {
-                    ++it;
+                    FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,bx);
                 }
             }
-
-            if (TheCopyCache.size() >= copy_cache_max_size)
-                //
-                // Get rid of entry with the smallest key.
-                //
-                TheCopyCache.erase(TheCopyCache.begin());
+            else if (src_owner == MyProc)
+            {
+                FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,bx);
+            }
         }
     }
-    else
-    {
-        TheCopyCache.clear();
-    }
 
-    CPCCacheIter it = TheCopyCache.insert(std::make_pair(key,cpc));
-
-    return it->second;
+    return cache_it;
 }
 
 void
 FabArrayBase::CPC::FlushCache ()
 {
-    if (ParallelDescriptor::IOProcessor() && !TheCopyCache.empty() && FabArrayBase::verbose)
+    long stats[3] = {0,0,0}; // size, reused, bytes
+
+    stats[0] = m_TheCopyCache.size();
+
+    for (CPCCacheIter it = m_TheCopyCache.begin(), End = m_TheCopyCache.end();
+         it != End;
+         ++it)
     {
-        int reused = 0;
-
-        for (CPCCacheIter it = TheCopyCache.begin(), End = TheCopyCache.end(); it != End; ++it)
-            if (it->second.m_reused)
-                reused++;
-
-        std::cout << "CPC::TheCopyCache.size() = " << TheCopyCache.size() << ", # reused = " << reused << '\n';
+        stats[2] += it->second.bytes();
+        if (it->second.m_reused)
+            stats[1]++;
     }
-    TheCopyCache.clear();
+
+    if (FabArrayBase::verbose)
+    {
+        ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+
+        if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "CPC::m_TheCopyCache: max size: "
+                      << stats[0]
+                      << ", max # reused: "
+                      << stats[1]
+                      << ", max bytes used: "
+                      << stats[2]
+                      << std::endl;
+        }
+    }
+
+    m_TheCopyCache.clear();
 }
 
-FabArrayBase::SI::~SI () {}
+FabArrayBase::SI::SI ()
+    :
+    m_ngrow(-1),
+    m_cross(false),
+    m_reused(false),
+    m_LocTags(0),
+    m_SndTags(0),
+    m_RcvTags(0),
+    m_SndVols(0),
+    m_RcvVols(0) {}
+
+FabArrayBase::SI::SI (const BoxArray&            ba,
+                      const DistributionMapping& dm,
+                      int                        ngrow,
+                      bool                       cross)
+    :
+    m_ba(ba),
+    m_dm(dm),
+    m_ngrow(ngrow),
+    m_cross(cross),
+    m_reused(false),
+    m_LocTags(0),
+    m_SndTags(0),
+    m_RcvTags(0),
+    m_SndVols(0),
+    m_RcvVols(0)
+{
+    BL_ASSERT(ngrow >= 0);
+}
+
+FabArrayBase::SI::~SI ()
+{
+    delete m_LocTags;
+    delete m_SndTags;
+    delete m_RcvTags;
+    delete m_SndVols;
+    delete m_RcvVols;
+}
 
 bool
-FabArrayBase::SI::operator== (const FabArrayBase::SI& rhs) const
+FabArrayBase::SI::operator== (const SI& rhs) const
 {
-    return m_ngrow == rhs.m_ngrow && m_cross == rhs.m_cross && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
+    return
+        m_ngrow == rhs.m_ngrow && m_cross == rhs.m_cross && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
 }
 
-bool
-FabArrayBase::SI::operator!= (const FabArrayBase::SI& rhs) const
+int
+FabArrayBase::SI::bytes () const
 {
-    return !operator==(rhs);
+    int cnt = sizeof(FabArrayBase::SI);
+
+    if (m_LocTags)
+    {
+        cnt += sizeof(CopyComTagsContainer) + m_LocTags->size()*sizeof(CopyComTag);
+    }
+
+    if (m_SndTags)
+    {
+        cnt += sizeof(MapOfCopyComTagContainers);
+
+        cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
+
+        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
+                 m_End = m_SndTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += it->second.size()*sizeof(CopyComTag);
+        }
+    }
+
+    if (m_RcvTags)
+    {
+        cnt += sizeof(MapOfCopyComTagContainers);
+
+        cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
+
+        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
+                 m_End = m_RcvTags->end();
+             it != m_End;
+             ++it)
+        {
+            cnt += it->second.size()*sizeof(CopyComTag);
+        }
+    }
+
+    if (m_SndVols)
+    {
+        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
+    }
+
+    if (m_RcvVols)
+    {
+        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
+    }
+
+    return cnt;
 }
 
-typedef std::multimap<int,FabArrayBase::SI> SIMMap;
+FabArrayBase::FBCache FabArrayBase::m_TheFBCache;
 
-typedef SIMMap::iterator SIMMapIter;
+FabArrayBase::FBCacheIter
+FabArrayBase::TheFB (bool                cross,
+                     const FabArrayBase& mf)
+{
+    BL_ASSERT(mf.size() > 0);
 
-static SIMMap SICache;
+    const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), cross);
+
+    const IntVect Typ   = mf.boxArray()[0].type();
+    const int     Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+    const int     Key   = mf.size() + mf.boxArray()[0].numPts() + mf.nGrow() + Scale + cross;
+
+    std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(Key);
+
+    for (FBCacheIter it = er_it.first; it != er_it.second; ++it)
+    {
+        if (it->second == si)
+        {
+            it->second.m_reused = true;
+
+            return it;
+        }
+    }
+
+    if (m_TheFBCache.size() >= fb_cache_max_size)
+    {
+        //
+        // Don't let the size of the cache get too big.
+        //
+        for (FBCacheIter it = m_TheFBCache.begin(); it != m_TheFBCache.end(); )
+        {
+            if (!it->second.m_reused)
+            {
+                m_TheFBCache.erase(it++);
+
+                if (m_TheFBCache.size() < fb_cache_max_size)
+                    //
+                    // Only delete enough entries to stay under limit.
+                    //
+                    break;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        if (m_TheFBCache.size() >= fb_cache_max_size && !m_TheFBCache.empty())
+            //
+            // Get rid of first entry which is the one with the smallest key.
+            //
+            m_TheFBCache.erase(m_TheFBCache.begin());
+    }
+    //
+    // Got to insert one & then build it.
+    //
+    FBCacheIter                cache_it = m_TheFBCache.insert(FBCache::value_type(Key,si));
+    SI&                        TheFB    = cache_it->second;
+    const int                  MyProc   = ParallelDescriptor::MyProc();
+    const BoxArray&            ba       = mf.boxArray();
+    const DistributionMapping& dm       = mf.DistributionMap();
+    //
+    // Here's where we allocate memory for the cache innards.
+    // We do this so we don't have to build objects of these types
+    // each time we search the cache.  Otherwise we'd be constructing
+    // and destroying said objects quite frequently.
+    //
+    TheFB.m_LocTags = new CopyComTag::CopyComTagsContainer;
+    TheFB.m_SndTags = new CopyComTag::MapOfCopyComTagContainers;
+    TheFB.m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
+    TheFB.m_SndVols = new std::map<int,int>;
+    TheFB.m_RcvVols = new std::map<int,int>;
+
+    if (mf.IndexMap().empty())
+        //
+        // We don't own any of the relevant FABs so can't possibly have any work to do.
+        //
+        return cache_it;
+
+    std::vector<Box>                  boxes;
+    std::vector< std::pair<int,Box> > isects;
+
+    boxes.resize(si.m_cross ? 2*BL_SPACEDIM : 1);
+
+    for (int i = 0, N = ba.size(); i < N; i++)
+    {
+        const Box& vbx = ba[i];
+
+        if (si.m_cross)
+        {
+            for (int dir = 0; dir < BL_SPACEDIM; dir++)
+            {
+                Box lo = vbx;
+                lo.setSmall(dir, vbx.smallEnd(dir) - si.m_ngrow);
+                lo.setBig  (dir, vbx.smallEnd(dir) - 1);
+                boxes[2*dir+0] = lo;
+
+                Box hi = vbx;
+                hi.setSmall(dir, vbx.bigEnd(dir) + 1);
+                hi.setBig  (dir, vbx.bigEnd(dir) + si.m_ngrow);
+                boxes[2*dir+1] = hi;
+            }
+        }
+        else
+        {
+            boxes[0] = BoxLib::grow(vbx,si.m_ngrow);
+        }
+
+        const int dst_owner = dm[i];
+
+        for (std::vector<Box>::const_iterator it = boxes.begin(),
+                 End = boxes.end();
+             it != End;
+             ++it)
+        {
+            ba.intersections(*it,isects);
+
+            for (int j = 0, M = isects.size(); j < M; j++)
+            {
+                const Box& bx        = isects[j].second;
+                const int  k         = isects[j].first;
+                const int  src_owner = dm[k];
+
+                if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
+
+                CopyComTag tag;
+
+                tag.box      = bx;
+                tag.fabIndex = i;
+                tag.srcIndex = k;
+
+                if (dst_owner == MyProc)
+                {
+                    if (src_owner == MyProc)
+                    {
+                        TheFB.m_LocTags->push_back(tag);
+                    }
+                    else
+                    {
+                        FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,bx);
+                    }
+                }
+                else if (src_owner == MyProc)
+                {
+                    FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,bx);
+                }
+            }
+        }
+    }
+
+    return cache_it;
+}
 
 void
 FabArrayBase::Finalize ()
 {
-    SICache.clear();
-
-    TheCopyCache.clear();
+    FabArrayBase::FlushSICache();
+    FabArrayBase::CPC::FlushCache();
 
     initialized = false;
 }
@@ -270,176 +595,41 @@ FabArrayBase::Finalize ()
 void
 FabArrayBase::FlushSICache ()
 {
-    if (ParallelDescriptor::IOProcessor() && !SICache.empty() && FabArrayBase::verbose)
+    long stats[3] = {0,0,0}; // size, reused, bytes
+
+    stats[0] = m_TheFBCache.size();
+
+    for (FBCacheIter it = m_TheFBCache.begin(), End = m_TheFBCache.end();
+         it != End;
+         ++it)
     {
-        int reused = 0;
-
-        for (SIMMapIter it = SICache.begin(), End = SICache.end(); it != End; ++it)
-            if (it->second.m_reused)
-                reused++;
-
-        std::cout << "FabArrayBase::SICache.size() = " << SICache.size() << ", # reused = " << reused << '\n';
+        stats[2] += it->second.bytes();
+        if (it->second.m_reused)
+            stats[1]++;
     }
-    SICache.clear();
+
+    if (FabArrayBase::verbose)
+    {
+        ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
+
+        if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "SI::TheFBCache: max size: "
+                      << stats[0]
+                      << ", max # reused: "
+                      << stats[1]
+                      << ", max bytes used: "
+                      << stats[2]
+                      << std::endl;
+        }
+    }
+
+    m_TheFBCache.clear();
 }
 
 int
 FabArrayBase::SICacheSize ()
 {
-    return SICache.size();
+    return m_TheFBCache.size();
 }
 
-FabArrayBase::SI&
-FabArrayBase::BuildFBsirec (const FabArrayBase::SI& si,
-                            const FabArrayBase&     mf)
-{
-    BL_ASSERT(si.m_ngrow >= 0);
-    BL_ASSERT(mf.nGrow() == si.m_ngrow);
-    BL_ASSERT(mf.boxArray() == si.m_ba);
-
-    const int                  key    = mf.nGrow() + mf.size();
-    SIMMapIter                 it     = SICache.insert(std::make_pair(key,si));
-    const BoxArray&            ba     = mf.boxArray();
-    const DistributionMapping& DMap   = mf.DistributionMap();
-    const int                  MyProc = ParallelDescriptor::MyProc();
-    SI::SIRecContainer&        sirec  = it->second.m_sirec;
-    Array<int>&                cache  = it->second.m_cache;
-
-    cache.resize(ParallelDescriptor::NProcs(),0);
-
-    std::vector<Box> boxes;
-
-    boxes.reserve(si.m_cross ? 2*BL_SPACEDIM : 1);
-
-    std::vector< std::pair<int,Box> > isects;
-
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        const int i = mfi.index();
-
-        boxes.resize(0);
-
-        if (si.m_cross)
-        {
-            const Box vbx = mfi.validbox();
-
-            for (int dir = 0; dir < BL_SPACEDIM; dir++)
-            {
-                Box lo = vbx;
-                lo.setSmall(dir, vbx.smallEnd(dir) - si.m_ngrow);
-                lo.setBig  (dir, vbx.smallEnd(dir) - 1);
-                boxes.push_back(lo);
-
-                Box hi = vbx;
-                hi.setSmall(dir, vbx.bigEnd(dir) + 1);
-                hi.setBig  (dir, vbx.bigEnd(dir) + si.m_ngrow);
-                boxes.push_back(hi);
-            }
-        }
-        else
-        {
-            boxes.push_back(mfi.fabbox());
-        }
-
-        for (std::vector<Box>::const_iterator it = boxes.begin(), End = boxes.end();
-             it != End;
-             ++it)
-        {
-            ba.intersections(*it,isects);
-
-            for (int j = 0, N = isects.size(); j < N; j++)
-            {
-                const Box& bx = isects[j].second;
-                const int  k  = isects[j].first;
-
-                if (i != k)
-                {
-                    sirec.push_back(SIRec(i,k,bx));
-
-                    if (DMap[k] != MyProc)
-                        //
-                        // If we intersect them then they'll intersect us.
-                        //
-                        cache[DMap[k]] += 1;
-                }
-            }
-        }
-
-        BL_ASSERT(cache[DMap[i]] == 0);
-    }
-
-    return it->second;
-}
-
-FabArrayBase::SI&
-FabArrayBase::TheFBsirec (int                 scomp,
-                          int                 ncomp,
-                          bool                cross,
-                          const FabArrayBase& mf)
-{
-    BL_ASSERT(ncomp >  0);
-    BL_ASSERT(scomp >= 0);
-
-    const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), cross);
-
-    const int key = mf.nGrow() + mf.size();
-
-    if (use_fb_cache)
-    {
-        std::pair<SIMMapIter,SIMMapIter> er_it = SICache.equal_range(key);
-    
-        for (SIMMapIter it = er_it.first; it != er_it.second; ++it)
-        {
-            if (it->second == si)
-            {
-                it->second.m_reused = true;
-                //
-                // Adjust the ncomp & scomp in CommData.
-                //
-                Array<ParallelDescriptor::CommData>& cd = it->second.m_commdata.theCommData();
-
-                for (int i = 0, N = cd.size(); i < N; i++)
-                {
-                    cd[i].nComp(ncomp);
-                    cd[i].srcComp(scomp);
-                }
-
-                return it->second;
-            }
-        }
-
-        if (SICache.size() >= fb_cache_max_size && fb_cache_max_size != -1)
-        {
-            //
-            // Don't let the size of the cache get too big.
-            //
-            for (SIMMapIter it = SICache.begin(); it != SICache.end(); )
-            {
-                if (!it->second.m_reused)
-                {
-                    SICache.erase(it++);
-                    //
-                    // Only delete enough entries to stay under limit.
-                    //
-                    if (SICache.size() < fb_cache_max_size) break;
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-
-            if (SICache.size() >= fb_cache_max_size)
-                //
-                // Get rid of entry with the smallest key.
-                //
-                SICache.erase(SICache.begin());
-        }
-    }
-    else
-    {
-        SICache.clear();
-    }
-
-    return BuildFBsirec(si,mf);
-}

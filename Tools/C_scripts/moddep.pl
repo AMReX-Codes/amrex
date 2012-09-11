@@ -223,7 +223,7 @@ sub print {
 	    print "#\t\ttesting path = $path\n" if $debug;
 	    if ( -f "$path" ) {
 		print "#\t\t\t$path works\n" if $debug;
-		print "$target: \"$path\"\n";
+		print "$target: $path\n";
 		last;
 	    }
 	}

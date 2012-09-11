@@ -109,8 +109,7 @@ contains
 
      call multifab_fill_boundary(uu, cross = lcross)
 
-     do i = 1, nboxes(flux)
-        if ( remote(flux, i) ) cycle
+     do i = 1, nfabs(flux)
         fp => dataptr(flux, i)
         up => dataptr(uu, i)
         sp => dataptr(ss, i)
@@ -199,7 +198,7 @@ contains
      type(boxarray)                   :: ba
      type(layout)                     :: la
      logical,               pointer   :: mkp(:,:,:,:)
-     integer                          :: loc(get_dim(mask)), lof(get_dim(mask)), i, j, k, dims(4), proc, dm
+     integer                          :: loc(get_dim(mask)), lof(get_dim(mask)), i, j, k, dims(4), proc, dm, ii, jj
      integer,               pointer   :: cmp(:,:,:,:), fmp(:,:,:,:)
      integer                          :: lo(get_dim(mask)), hi(get_dim(mask))
      integer,               parameter :: tag = 1071
@@ -226,27 +225,29 @@ contains
 
      dm = get_dim(mask)
 
-     do i = 1, nboxes(mm_fine)
+     do i = 1, nboxes(mm_fine%la)
 
-        fbox =  get_ibox(mm_fine,i)
+        fbox =  box_nodalize(get_box(mm_fine%la,i),mm_fine%nodal)
         bi   => layout_get_box_intersector(la, coarsen(fbox,ir))
 
         do k = 1, size(bi)
            j = bi(k)%i
 
-           if ( remote(mask,j) .and. remote(mm_fine,i) ) cycle
+           if ( remote(mask%la,j) .and. remote(mm_fine%la,i) ) cycle
 
-           cbox  = get_ibox(mask,j)
+           cbox  = box_nodalize(get_box(mask%la,j),mask%nodal)
            loc   = lwb(cbox)
            isect = bi(k)%bx
            lo    = lwb(isect)
            hi    = upb(isect)
 
-           if ( local(mask,j) .and. local(mm_fine,i) ) then
+           if ( local(mask%la,j) .and. local(mm_fine%la,i) ) then
+              ii  =  local_index(mm_fine,i)
+              jj  =  local_index(mask,j)
               lof =  lwb(fbox)
-              mkp => dataptr(mask,j)
-              cmp => dataptr(mm_crse,j)
-              fmp => dataptr(mm_fine,i)
+              mkp => dataptr(mask,jj)
+              cmp => dataptr(mm_crse,jj)
+              fmp => dataptr(mm_fine,ii)
 
               select case (dm)
               case (1)
@@ -256,22 +257,24 @@ contains
               case (3)
                  call create_nodal_mask_3d(mkp(:,:,:,1),cmp(:,:,:,1),loc,fmp(:,:,:,1),lof,lo,hi,ir)
               end select
-           else if ( local(mm_fine,i) ) then
+           else if ( local(mm_fine%la,i) ) then
               !
               ! Must send mm_fine.
               !
-              isect =  intersection(refine(isect,ir),get_ibox(mm_fine,i))
-              fmp   => dataptr(mm_fine, i, isect)
+              ii    =  local_index(mm_fine,i)
+              isect =  intersection(refine(isect,ir),fbox)
+              fmp   => dataptr(mm_fine, ii, isect)
               proc  =  get_proc(get_layout(mask), j)
               call parallel_send(fmp, proc, tag)
-           else if ( local(mask,j) ) then
+           else if ( local(mask%la,j) ) then
               !
               ! Must receive mm_fine.
               !
-              isect =  intersection(refine(isect,ir),get_ibox(mm_fine,i))
+              jj    =  local_index(mask,j)
+              isect =  intersection(refine(isect,ir),fbox)
               lof   =  lwb(isect)
-              mkp   => dataptr(mask,j)
-              cmp   => dataptr(mm_crse,j)
+              mkp   => dataptr(mask,jj)
+              cmp   => dataptr(mm_crse,jj)
               proc  =  get_proc(get_layout(mm_fine),i)
 
               dims(1:dm) = extent(isect)

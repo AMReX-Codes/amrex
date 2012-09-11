@@ -1872,12 +1872,11 @@ Amr::regrid (int  lbase,
 
     if (lbase == 0)
     {
-        FabArrayBase::CPC::FlushCache();
         MultiFab::FlushSICache();
         Geometry::FlushPIRMCache();
+        FabArrayBase::CPC::FlushCache();
         DistributionMapping::FlushCache();
     }
-
     //
     // Define the new grids from level start up to new_finest.
     //
