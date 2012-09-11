@@ -479,8 +479,8 @@ contains
      do j = 1, nboxes(u%la)
 
        ubox = box_nodalize(get_box(u%la,j),nodal)
-       lou  = lwb(grow(get_box( u%la,j), u%ng))
-       lor  = lwb(grow(get_box(rh%la,j),rh%ng))
+       lou  = lwb(grow(box_nodalize(get_box( u%la,j), u%nodal), u%ng))
+       lor  = lwb(grow(box_nodalize(get_box(rh%la,j),rh%nodal),rh%ng))
 
        bi => layout_get_box_intersector(flux_la, ubox)
 
@@ -490,7 +490,7 @@ contains
 
           if ( remote(flux%la,i) .and. remote(u%la,j) ) cycle
 
-          fbox  = get_box(flux%la,i)
+          fbox  = box_nodalize(get_box(flux%la,i),flux%nodal)
           isect = bi(k)%bx
           lof   = lwb(fbox)
           hif   = upb(fbox)
@@ -1770,17 +1770,16 @@ contains
 
     lo_dom = lwb(crse_domain)
     hi_dom = upb(crse_domain) + 1
-
-    dir   = iabs(side)
-    pmask = get_pmask(get_layout(rhcc))
-    dm    = get_dim(flux)
+    dir    = iabs(side)
+    pmask  = get_pmask(get_layout(rhcc))
+    dm     = get_dim(flux)
 
     do i = 1, nfabs(flux)
-       fbox   = get_ibox(flux,i)
-       lof = lwb(fbox)
-       fp => dataptr(flux, i)
-       rp => dataptr(rhcc, i)
-       mp => dataptr(mm, i)
+       fbox =  get_ibox(flux,i)
+       lof  =  lwb(fbox)
+       fp   => dataptr(flux, i)
+       rp   => dataptr(rhcc, i)
+       mp   => dataptr(mm, i)
        if ( pmask(dir) .or. &
             (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) ) then
           select case(dm)
@@ -2224,8 +2223,8 @@ contains
     do j = 1, nboxes(rhcc%la)
 
        rcbox = box_nodalize(get_box(rhcc%la,j),nodal)
-       lorc  = lwb(grow(get_box(rhcc%la,j),rhcc%ng))
-       lorh  = lwb(grow(get_box(rh%la  ,j),  rh%ng))
+       lorc  = lwb(grow(rcbox,rhcc%ng))
+       lorh  = lwb(grow(box_nodalize(get_box(rh%la,j),rh%nodal),rh%ng))
        
        bi => layout_get_box_intersector(flux_la, rcbox)
 
@@ -2280,7 +2279,7 @@ contains
              !
              ! Must receive flux & mm.
              !
-             jj   =  local_index(rh,j)
+             jj   = local_index(rh,j)
              proc = get_proc(flux_la, i)
              mbox = intersection(refine(isect,ir), grow(box_nodalize(get_box(mm%la,i),mm%nodal),mm%ng))
              lom  = lwb(mbox)
@@ -2310,6 +2309,7 @@ contains
        end do
        deallocate(bi)
     end do
+
     call destroy(bpt)
   end subroutine ml_crse_rhcc_contrib
 
