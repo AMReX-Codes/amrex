@@ -258,8 +258,8 @@ contains
                 !
                 ldom = extent(pd, i)
                 call boxarray_build_bx(ba, bx1)
-                do k = 1, nfabs(st)
-                   src = shift(get_box(st, k), j*ldom, i)
+                do k = 1, nboxes(st%la)
+                   src = shift(get_box(st%la, k), j*ldom, i)
                    if ( intersects(bx1, src) ) then
                       call boxarray_build_bx(sba, src)
                       call boxarray_diff(ba, sba)
