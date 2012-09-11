@@ -31,7 +31,7 @@ contains
     ng = phi%ng
     dm = phi%dim
 
-    do i=1,phi%nfabs
+    do i=1,nfabs(phi)
        dp => dataptr(phi,i)
        lo = lwb(get_box(phi,i))
        hi = upb(get_box(phi,i))
