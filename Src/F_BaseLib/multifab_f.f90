@@ -1038,7 +1038,7 @@ contains
     if ( lall ) then
        r = 0_ll_t
        do i = 1, nboxes(mf%la)
-          r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
     else
        r = volume(get_boxarray(mf))
@@ -1055,7 +1055,7 @@ contains
     if ( lall ) then
        r = 0_ll_t
        do i = 1, nboxes(mf%la)
-          r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
     else
        r = volume(get_boxarray(mf))
@@ -1072,7 +1072,7 @@ contains
     if ( lall ) then
        r = 0_ll_t
        do i = 1, nboxes(mf%la)
-          r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
     else
        r = volume(get_boxarray(mf))
@@ -1089,7 +1089,7 @@ contains
     if ( lall ) then
        r = 0_ll_t
        do i = 1, nboxes(mf%la)
-          r = r + volume(grow(box_nodalize(get_box(mf%la,i)),mf%ng))
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
     else
        r = volume(get_boxarray(mf))
