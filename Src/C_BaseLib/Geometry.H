@@ -366,7 +366,7 @@ namespace BoxLib
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
-        double* the_recv_data = 0;
+        value_type* the_recv_data = 0;
 
         FabArrayBase::PostRcvs(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
         //
