@@ -88,32 +88,38 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! layout routines
 
-  subroutine pybl_create_layout_from_boxarray(ba_cptr,cptr) &
+  subroutine pybl_create_layout_from_boxarray(ba_cptr,dim,pmask,cptr) &
        bind(c, name='pybl_create_layout_from_boxarray')
     implicit none
-    type(c_ptr), intent(in), value :: ba_cptr
-    type(c_ptr), intent(out) :: cptr
+    type(c_ptr),    intent(in),  value :: ba_cptr
+    type(c_ptr),    intent(out)        :: cptr
+    integer(c_int), intent(in),  value :: dim
+    integer(c_int), intent(in)         :: pmask(dim)
 
     type(boxarray), pointer :: ba
-    type(layout), pointer :: la
+    type(layout), pointer   :: la
+    logical                 :: lpmask(dim)
 
     call pybl_boxarray_get(ba_cptr, ba)
     call pybl_layout_new(cptr, la)
 
-    call build(la, ba, boxarray_bbox(ba))
+    lpmask = pmask == 1
+    call build(la, ba, boxarray_bbox(ba), pmask=lpmask)
   end subroutine pybl_create_layout_from_boxarray
 
-  subroutine pybl_create_layout_from_boxes(boxes,nboxes,dim,cptr) &
+  subroutine pybl_create_layout_from_boxes(boxes,nboxes,dim,pmask,cptr) &
        bind(c, name='pybl_create_layout_from_boxes')
     implicit none
-    integer(c_int), intent(in), value :: dim, nboxes
-    integer(c_int), intent(in) :: boxes(nboxes,2,dim)
-    type(c_ptr), intent(out) :: cptr
+    integer(c_int), intent(in),  value :: dim, nboxes
+    integer(c_int), intent(in)         :: boxes(nboxes,2,dim), pmask(dim)
+    type(c_ptr),    intent(out)        :: cptr
 
-    integer :: i
-    type(box) :: bs(nboxes)
+    integer        :: i
+    type(box)      :: bs(nboxes)
     type(boxarray) :: ba
+    logical        :: lpmask(dim)
     type(layout), pointer :: la
+
 
     do i=1,nboxes
        bs(i) = make_box(boxes(i,1,:), boxes(i,2,:))
@@ -122,7 +128,9 @@ contains
     call pybl_layout_new(cptr,la)
 
     call build(ba, bs)
-    call build(la, ba, boxarray_bbox(ba))
+
+    lpmask = pmask == 1
+    call build(la, ba, boxarray_bbox(ba), pmask=lpmask)
   end subroutine pybl_create_layout_from_boxes
 
   subroutine pybl_create_ml_layout_from_layouts(lacptrs,nlevels,cptr) &
@@ -307,7 +315,7 @@ contains
 
     call pybl_multifab_get(cptr, mfab)
 
-    call fill_boundary(mfab, 1, ncomp(mfab))
+    call fill_boundary(mfab)
   end subroutine pybl_multifab_fill_boundary
 
   subroutine pybl_multifab_write(cptr, dirname, dlen, header, hlen) &
@@ -365,6 +373,47 @@ contains
 
     call copy(dmfab, 1, smfab, 1, ncomp(smfab))
   end subroutine pybl_multifab_copy
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! plotfile
+
+  subroutine pybl_create_plotfile(dname, dlen, cptr) &
+       bind(c, name='pybl_create_plotfile')
+    use bl_io_module
+    use plotfile_module
+
+    type(c_ptr),    intent(in), value :: dname
+    integer(c_int), intent(in), value :: dlen
+    type(c_ptr),    intent(out)       :: cptr
+
+    character(len=dlen), pointer :: root
+
+    type(plotfile), pointer :: pf
+    integer :: un
+
+    call c_f_pointer(dname, root)
+
+    call pybl_plotfile_new(cptr, pf)
+
+    un = unit_new()
+    call build(pf, root, un)
+  end subroutine pybl_create_plotfile
+
+  subroutine pybl_get_plotfile_info(cptr, dim, nvars, flevel) &
+       bind(c, name='pybl_get_plotfile_info')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(out)       :: dim, nvars, flevel
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+
+    dim    = pf%dim
+    nvars  = pf%nvars
+    flevel = pf%flevel
+  end subroutine pybl_get_plotfile_info
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

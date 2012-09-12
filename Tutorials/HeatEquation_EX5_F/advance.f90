@@ -56,7 +56,7 @@ contains
 
     real(dp_t) :: dx_vector(mla%nlevel,mla%dim)
 
-    integer :: ns,smoother,nu1,nu2,nub,gamma,cycle_type
+    integer :: stencil_type,ns,smoother,nu1,nu2,nub,gamma,cycle_type
     integer :: bottom_solver,bottom_max_iter,max_iter,max_nlevel
     integer :: max_bottom_nlevel,min_width,verbose,cg_verbose
     real(dp_t) :: omega,bottom_solver_eps,rel_solver_eps,abs_solver_eps
@@ -116,7 +116,7 @@ contains
        ! initialize these to the default values in the mgt object
        smoother          = mgt(nlevs)%smoother           ! smoother type
        nu1               = mgt(nlevs)%nu1                ! # of smooths at each level on the way down
-       nu2               = mgt(nlevs)%nu2                ! # of smooths at each level on the way down
+       nu2               = mgt(nlevs)%nu2                ! # of smooths at each level on the way up
        nub               = mgt(nlevs)%nub                ! # of smooths before and after bottom solver
        gamma             = mgt(nlevs)%gamma              ! allows control over 'shape' of V or W cycle
        cycle_type        = mgt(nlevs)%cycle_type         ! choose between V-cycle, W-cycle, etc.
@@ -148,9 +148,12 @@ contains
              max_nlevel = 1
           end if
 
+          stencil_type = CC_CROSS_STENCIL
+
           ! build the mg_tower object at level n
           call mg_tower_build(mgt(n), mla%la(n), pd, &
                               the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
+                              stencil_type, &
                               dh = dx_vector(n,:), &
                               ns = ns, &
                               smoother = smoother, &
@@ -298,8 +301,7 @@ contains
     ng_f = flux(1,1)%ng
 
     do n=1,nlevs
-       do i=1,nboxes(phi(n))
-          if ( multifab_remote(phi(n),i) ) cycle
+       do i=1,nfabs(phi(n))
           pp  => dataptr(phi(n),i)
           fxp => dataptr(flux(n,1),i)
           fyp => dataptr(flux(n,2),i)
@@ -600,8 +602,7 @@ contains
 
     do n=1,nlevs
 
-       do i=1,nboxes(phi(n))
-          if ( multifab_remote(phi(n),i) ) cycle
+       do i=1,nfabs(phi(n))
           pp  => dataptr(phi(n),i)
           fxp => dataptr(flux(n,1),i)
           fyp => dataptr(flux(n,2),i)

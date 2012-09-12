@@ -36,8 +36,7 @@ contains
 
     dm = get_dim(cfine)
 
-    do i = 1, nboxes(fine)
-       if ( remote(fine, i) ) cycle
+    do i = 1, nfabs(fine)
        lof = lwb(get_pbox(fine, i))
        lo  = lwb(get_ibox(cfine,i))
        hi  = upb(get_ibox(cfine,i))
@@ -106,8 +105,7 @@ contains
 
     call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
 
-    do i = 1, nboxes(fine)
-       if ( remote(fine,i) ) cycle
+    do i = 1, nfabs(fine)
        lo  = lwb(get_ibox(cfine,i))
        hi  = upb(get_ibox(cfine,i))
        loc = lwb(get_pbox(cfine,i))
@@ -144,8 +142,8 @@ contains
        !
        ! First copy from lo edges to hi edges.
        !
-       do i = 1, nboxes(fine)
-          bx = get_box(fine,i)
+       do i = 1, nboxes(fine%la)
+          bx = get_box(fine%la,i)
           if (bx%lo(face) == fine_domain%lo(face)) then
              bx = shift(bx, len, face)
              bx = intersection(bx,grow(fine_domain,1,face,+1))
@@ -166,8 +164,7 @@ contains
           call layout_build_coarse(lacfine_lo, la_lo, ir)
           call multifab_build(cfine, lacfine_lo, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
    
-          do i = 1, nboxes(fine_lo)
-             if ( remote(fine_lo,i) ) cycle
+          do i = 1, nfabs(fine_lo)
              lo  = lwb(get_ibox(cfine,i))
              hi  = upb(get_ibox(cfine,i))
              hi(face) = lo(face)
@@ -197,8 +194,8 @@ contains
        !
        ! Next copy from hi edges to lo edges.
        !
-       do i = 1, nboxes(fine)
-          bx = get_box(fine,i)
+       do i = 1, nboxes(fine%la)
+          bx = get_box(fine%la,i)
           if (bx%hi(face) == fine_domain%hi(face)) then
              bx = shift(bx, -len, face)
              bx = intersection(bx,grow(fine_domain,1,face,-1))
@@ -219,8 +216,7 @@ contains
           call layout_build_coarse(lacfine_hi, la_hi, ir)
           call multifab_build(cfine, lacfine_hi, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
 
-          do i = 1, nboxes(fine_hi)
-             if ( remote(fine_hi,i) ) cycle
+          do i = 1, nfabs(fine_hi)
              lo  = lwb(get_ibox(cfine,i))
              hi  = upb(get_ibox(cfine,i))
              lo(face) = hi(face)
@@ -330,8 +326,7 @@ contains
     dm = get_dim(fine)
 
     if ( .not. linject ) then
-       do i = 1, nboxes(fine)
-          if ( remote(fine, i) ) cycle
+       do i = 1, nfabs(fine)
           lo       = lwb(get_ibox(cfine,   i))
           hi       = upb(get_ibox(cfine,   i))
           loc      = lwb(get_pbox(cfine,   i))
@@ -357,8 +352,7 @@ contains
        rmode = 0
        call imultifab_build(mm_cfine, lacfine, nc = ncomp(mm_crse), ng = 0, nodal = nodal_flags(mm_crse))
        call copy(mm_cfine, mm_crse)
-       do i = 1, nboxes(fine)
-          if ( remote(fine, i) ) cycle
+       do i = 1, nfabs(fine)
           lo       = lwb(get_ibox(cfine,   i))
           hi       = upb(get_ibox(cfine,   i))
           lof      = lwb(get_pbox(fine,    i))
@@ -518,29 +512,28 @@ contains
                 bisrc => layout_get_box_intersector(srcla, domain_edge_src)
                 do ii = 1, size(bisrc)
                    i = bisrc(ii)%i
-                   if ( remote(dst,j) .and. remote(src,i) ) cycle
+                   if ( remote(dst%la,j) .and. remote(src%la,i) ) cycle
                    bxi     = shift(bisrc(ii)%bx,-shift_vector)
                    bx_from = intersection(bxi,bxj)
                    if ( empty(bx_from) ) cycle
                    bx_to   = bx_from
                    bx_from = shift(bx_from,shift_vector)
-                   if ( local(dst,j) .and. local(src,i) ) then
+                   if ( local(dst%la,j) .and. local(src%la,i) ) then
                       if ( synced ) then
-                         ap => dataptr(temp_dst,j,bx_to)
-                         bp => dataptr(src,i,bx_from)
+                         ap => dataptr(temp_dst,local_index(temp_dst,j),bx_to)
+                         bp => dataptr(src,     local_index(src,     i), bx_from)
                          call cpy_d(ap,bp) ! ap = bp
                       else
-                         ap => dataptr(dst,j,bx_to)
-                         bp => dataptr(src,i,bx_from)
+                         ap => dataptr(dst,local_index(dst,j),bx_to)
+                         bp => dataptr(src,local_index(src,i),bx_from)
                          call cpy_d(ap,bp,filter=ml_restrict_copy_sum) ! ap = ap + bp
                       end if
-                   else if ( local(src,i) ) then
+                   else if ( local(src%la,i) ) then
                       !
                       ! We own src.
                       !
-                      bp   => dataptr(src,i,bx_from)
-                      proc =  get_proc(get_layout(dst),j)
-                      call parallel_send(bp, proc, TAG)
+                      bp => dataptr(src,local_index(src,i),bx_from)
+                      call parallel_send(bp, get_proc(get_layout(dst),j), TAG)
                    else
                       !
                       ! We own dst.
@@ -550,10 +543,10 @@ contains
                       allocate(pt(dims(1),dims(2),dims(3),nc))
                       call parallel_recv(pt, proc, TAG)
                       if ( synced ) then
-                         ap => dataptr(temp_dst,j,bx_to)
+                         ap => dataptr(temp_dst,local_index(temp_dst,j),bx_to)
                          call cpy_d(ap,pt) ! ap = pt
                       else
-                         ap => dataptr(dst,j,bx_to)
+                         ap => dataptr(dst,local_index(dst,j),bx_to)
                          call cpy_d(ap,pt,filter=ml_restrict_copy_sum) ! ap = ap + pt
                       end if
                       deallocate(pt)

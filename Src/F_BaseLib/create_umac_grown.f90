@@ -117,7 +117,7 @@ contains
        ! Update c_mf with valid and ghost regions from crse.
        call boxarray_build_copy(tba, get_boxarray(crse(i)))
        do j=1,nboxes(tba)
-          call set_box(tba,j,grow(get_box(crse(i),j),1))
+          call set_box(tba,j,grow(get_box(crse(i)%la,j),1))
        end do
        call build(tla, tba, get_pd(get_layout(crse(i))), get_pmask(get_layout(crse(i))), &
                   explicit_mapping = get_proc(get_layout(crse(i))))
@@ -127,8 +127,7 @@ contains
        if (nghost(crse(i)) .lt. 1) &
            call bl_error("Need at least one ghost cell in crse in create_umac_grown")
        
-       do j=1,nboxes(tcrse)
-          if ( remote(tcrse,j) ) cycle
+       do j=1,nfabs(tcrse)
           fp => dataptr(tcrse,  j)
           cp => dataptr(crse(i),j, get_ibox(tcrse,j))
           fp = cp
@@ -143,8 +142,7 @@ contains
        ng_c = nghost(c_mf)
 
        ! Fill in some of the fine ghost cells from crse.
-       do j=1,nboxes(f_mf)
-          if ( remote(f_mf,j) ) cycle
+       do j=1,nfabs(f_mf)
           fp => dataptr(f_mf,j)
           cp => dataptr(c_mf,j)
           f_lo = lwb(get_box(f_mf,j))
@@ -161,8 +159,7 @@ contains
        call copy(f_mf,fine(i))
 
        ! Fill in the rest of the fine ghost cells.
-       do j=1,nboxes(f_mf)
-          if ( remote(f_mf,j) ) cycle
+       do j=1,nfabs(f_mf)
           fp => dataptr(f_mf,j)
           f_lo = lwb(get_box(f_mf,j))
           c_lo = lwb(get_box(c_mf,j))
@@ -181,7 +178,7 @@ contains
        ! Update ghost regions of fine where they overlap with f_mf.
        call boxarray_build_copy(tba, get_boxarray(fine(i)))
        do j = 1, nboxes(tba)
-          call set_box(tba,j,grow(get_box(fine(i),j),nghost(fine(i))))
+          call set_box(tba,j,grow(get_box(fine(i)%la,j),nghost(fine(i))))
        end do
        call build(tla, tba, get_pd(get_layout(fine(i))), get_pmask(get_layout(fine(i))), &
                   explicit_mapping=get_proc(get_layout(fine(i))))
@@ -193,8 +190,7 @@ contains
        call destroy(f_mf)
        call destroy(f_la)
  
-       do j=1,nboxes(tfine)
-          if ( remote(tfine,j) ) cycle
+       do j=1,nfabs(tfine)
           call boxarray_box_diff(tba, get_ibox(tfine,j), get_ibox(fine(i),j))
           do k = 1, nboxes(tba)
              fp => dataptr(fine(i), j, get_box(tba,k))
@@ -212,8 +208,7 @@ contains
        call multifab_fill_boundary(fine(i))
 
        ! now fix up umac grown due to the low order interpolation we used
-       do j=1, nboxes(fine(i))
-          if ( multifab_remote(fine(i), j) ) cycle
+       do j=1, nfabs(fine(i))
           fp => dataptr(fine(i), j)
           f_lo = lwb(get_box(fine(i), j))
           f_hi = upb(get_box(fine(i), j))

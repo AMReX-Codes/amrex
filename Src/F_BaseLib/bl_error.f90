@@ -5,6 +5,7 @@
 module bl_error_module
 
   use bl_types
+  use bl_prof_module, only: print_stack
 
   implicit none
 
@@ -53,6 +54,7 @@ contains
     else
        write(*,*) "BOXLIB ERROR"
     end if
+    call print_stack()
     call parallel_abort()
   end subroutine bl_error0
 
@@ -60,6 +62,7 @@ contains
     use parallel
     character(len=*), intent(in) :: str, str1
     write(*,fmt=*) "BOXLIB ERROR: ", str, str1
+    call print_stack()
     call parallel_abort()
   end subroutine bl_error1_ch
 
@@ -68,6 +71,7 @@ contains
     character(len=*), intent(in) :: str
     integer, intent(in) :: val
     write(*,fmt=*) "BOXLIB ERROR: ", str, val
+    call print_stack()
     call parallel_abort()
   end subroutine bl_error1_i
 
@@ -76,6 +80,7 @@ contains
     character(len=*), intent(in) :: str
     real(kind=dp_t), intent(in) :: val
     write(*,fmt=*) "BOXLIB ERROR: ", str, val
+    call print_stack()
     call parallel_abort()
   end subroutine bl_error1_d
 
@@ -84,6 +89,7 @@ contains
     character(len=*), intent(in) :: str
     real(kind=sp_t), intent(in) :: val
     write(*,fmt=*) "BOXLIB ERROR: ", str, val
+    call print_stack()
     call parallel_abort()
   end subroutine bl_error1_s
 
@@ -92,6 +98,7 @@ contains
     character(len=*), intent(in) :: str
     complex(kind=dp_t), intent(in) :: val
     write(*,fmt=*) "BOXLIB ERROR: ", str, val
+    call print_stack()
     call parallel_abort()
   end subroutine bl_error1_z
 
@@ -100,6 +107,7 @@ contains
     character(len=*), intent(in) :: str
     complex(kind=sp_t), intent(in) :: val
     write(*,fmt=*) "BOXLIB ERROR: ", str, val
+    call print_stack()
     call parallel_abort()
   end subroutine bl_error1_c
 

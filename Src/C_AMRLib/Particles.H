@@ -3172,6 +3172,8 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0);
+    BL_ASSERT(grav_vector.nGrow() >= 2);
+
     //If there are no particles at this level
     if (lev >= m_particles.size())
         return;
@@ -3229,10 +3231,13 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
 
             // Move the particle to the proper ghost cell. 
-            if (m_amr->subCycle() && !ParticleBase::RestrictedWhere(p,m_amr, grav_vector.nGrow() -2))
+            //      and remove any *ghost* particles that have gone too far
+            // Note that this should only negate ghost particles, not real particles.
+            if (m_amr->subCycle() && !ParticleBase::RestrictedWhere(p,m_amr, grav_vector.nGrow()-2))
             {
-                // The particle is no longer in relevant ghost cells for this grid; 
-                // invaldate it.
+                // Assert that the particle being removed is a ghost particle;
+                // the ghost particle is no longer in relevant ghost cells for this grid.
+                BL_ASSERT(p.m_id == 2000000000);
                 p.m_id = -1;
             }
         }

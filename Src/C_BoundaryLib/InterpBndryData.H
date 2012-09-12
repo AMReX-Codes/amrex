@@ -55,6 +55,8 @@ public:
     // Copy constructor.
     //
     InterpBndryData (const InterpBndryData& rhs);
+
+    ~InterpBndryData ();
     //
     // Copy assignment operator.
     //
@@ -68,9 +70,9 @@ public:
     //
     // interpret user BCs to those expected by LinOp: takes IntVect ratio
     //
-    virtual void setBndryConds (const BCRec& phys_bc,
-                                IntVect&     ratio,
-				int          comp = 0) = 0;
+    virtual void setBndryConds (const BCRec&   phys_bc,
+                                const IntVect& ratio,
+				int            comp = 0) = 0;
     //
     // set bndry values at coarse level (non interpolation performed)
     //
@@ -100,7 +102,7 @@ public:
                                  int             f_start,
                                  int             bnd_start,
                                  int             num_comp,
-                                 IntVect&        ratio, 
+                                 const IntVect&  ratio, 
                                  const BCRec&    phys_bc,
                                  int             max_order = IBD_max_order_DEF);
     
@@ -108,22 +110,6 @@ public:
 
     static int maxOrderDEF() {return IBD_max_order_DEF;}
 };
-
-inline
-void
-InterpBndryData::setBndryValues (::BndryRegister&  crse,
-                                 int             c_start,
-                                 const MultiFab& fine,
-                                 int             f_start,
-                                 int             bnd_start,
-                                 int             num_comp,
-                                 int             ratio,
-                                 const BCRec&    bc,
-                                 int             max_order)
-{
-    IntVect ratio_vect = ratio * IntVect::TheUnitVector();
-    setBndryValues(crse,c_start,fine,f_start,bnd_start,num_comp,ratio_vect,bc,max_order);
-}
 
 #endif /*_INTERPBNDRYDATA_H_*/
 

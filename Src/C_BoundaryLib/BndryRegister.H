@@ -61,19 +61,19 @@ public:
     //
     // Get box domain (as an array of boxes).
     //
-    const BoxArray& boxes () const;
+    const BoxArray& boxes () const { return grids; }
     //
     // Return the number of grids in this domain.
     //
-    int size () const;
+    int size () const { return grids.size(); }
     //
     // Return const set of FABs bounding the domain grid boxes on a given orientation
     //
-    const FabSet& operator[] (Orientation face) const;
+    const FabSet& operator[] (Orientation face) const { return bndry[face]; }
     //
     // Return set of FABs bounding the domain grid boxes on a given orientation
     //
-    FabSet& operator[] (Orientation face);
+    FabSet& operator[] (Orientation face) { return bndry[face]; }
     //
     // Set all boundary FABs to given value.
     //
@@ -113,7 +113,7 @@ public:
     //
     // Returns constant reference to associated DistributionMapping.
     //
-    const DistributionMapping& DistributionMap () const;
+    const DistributionMapping& DistributionMap () const { return bndry[0].DistributionMap(); }
     //
     // Build FABs along given face.
     //
@@ -163,40 +163,5 @@ protected:
     FabSet    bndry[2*BL_SPACEDIM];
     BoxArray  grids;
 };
-
-inline
-const DistributionMapping&
-BndryRegister::DistributionMap () const
-{
-    return bndry[0].DistributionMap();
-}
-
-inline
-const BoxArray&
-BndryRegister::boxes () const
-{
-    return grids;
-}
-
-inline
-int
-BndryRegister::size () const
-{
-    return grids.size();
-}
-
-inline
-const FabSet&
-BndryRegister::operator[] (Orientation _face) const
-{
-    return bndry[_face];
-}
-
-inline
-FabSet&
-BndryRegister::operator[] (Orientation _face)
-{
-    return bndry[_face];
-}
 
 #endif /*_BNDRYREGISTER_H_*/

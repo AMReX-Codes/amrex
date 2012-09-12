@@ -11,16 +11,17 @@
 //
 int BndryData::NTangHalfWidth = 5;
 
-BndryData::BndryData()
+BndryData::BndryData ()
     :
-    m_ncomp(-1) {}
+    m_ncomp(-1), m_defined(false) {}
 
 BndryData::BndryData (const BoxArray& _grids,
                       int             _ncomp, 
                       const Geometry& _geom)
     :
     geom(_geom),
-    m_ncomp(_ncomp)
+    m_ncomp(_ncomp),
+    m_defined(false)
 {
     define(_grids,_ncomp,_geom);
 }
@@ -77,10 +78,11 @@ BndryData::bndryMasks (int igrid) const
 void
 BndryData::init (const BndryData& src)
 {
-    geom    = src.geom;
-    m_ncomp = src.m_ncomp;
-    bcloc   = src.bcloc;
-    bcond   = src.bcond;
+    geom      = src.geom;
+    m_ncomp   = src.m_ncomp;
+    m_defined = src.m_defined;
+    bcloc     = src.bcloc;
+    bcond     = src.bcond;
     //
     // Define "masks".
     //
@@ -91,19 +93,25 @@ BndryData::init (const BndryData& src)
          bfsi.isValid();
          ++bfsi)
     {
-        std::map<int,MaskTuple>::const_iterator sit = src.masks.find(bfsi.index());
+        const int idx = bfsi.index();
 
+        std::map<int,MaskTuple>::const_iterator sit = src.masks.find(idx);
         BL_ASSERT(sit != src.masks.end());
-
-        MaskTuple&       dmask = masks[bfsi.index()];
         const MaskTuple& smask = sit->second;
+        //
+        // Insert with a hint since we know the indices are increasing.
+        //
+        std::map<int,MaskTuple>::value_type v(idx,MaskTuple());
+
+        MaskTuple& dmask = masks.insert(masks.end(),v)->second;
 
         for (OrientationIter fi; fi; ++fi)
         {
-            const Mask* src_mask = smask[fi()];
+            const Orientation face = fi();
+            const Mask* src_mask = smask[face];
             Mask* m = new Mask(src_mask->box(),src_mask->nComp());
             m->copy(*src_mask);
-            dmask[fi()] = m;
+            dmask[face] = m;
         }
     }
 }
@@ -147,6 +155,7 @@ BndryData::clear_masks ()
         for (int i = 0; i < 2*BL_SPACEDIM; i++)
             delete m[i];
     }
+    masks.clear();
 }
 
 void
@@ -154,6 +163,18 @@ BndryData::define (const BoxArray& _grids,
                    int             _ncomp,
                    const Geometry& _geom)
 {
+    if (m_defined)
+    {
+        if (_grids == boxes() && m_ncomp == _ncomp && _geom.Domain() == geom.Domain())
+            //
+            // We want to allow reuse of BndryData objects that were define()d exactly as a previous call.
+            //
+            return;
+        //
+        // Otherwise we'll just abort.  We could make this work but it's just as easy to start with a fresh Bndrydata object.
+        //
+        BoxLib::Abort("BndryData::define(): object already built");
+    }
     geom    = _geom;
     m_ncomp = _ncomp;
 
@@ -191,16 +212,19 @@ BndryData::define (const BoxArray& _grids,
             //
             // Now have to set as not_covered the periodic translates as well.
             //
-            if (geom.isAnyPeriodic())
+            if (geom.isAnyPeriodic() && !geom.Domain().contains(face_box))
             {
                 geom.periodicShift(geom.Domain(), face_box, pshifts);
 
-                for (int iiv = 0, N = pshifts.size(); iiv < N; iiv++)
+                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                     it != End;
+                     ++it)
                 {
-                    m->shift(pshifts[iiv]);
+                    const IntVect& iv = *it;
+                    m->shift(iv);
                     const Box target = geom.Domain() & m->box();
                     m->setVal(not_covered,target,0);
-                    m->shift(-pshifts[iiv]);
+                    m->shift(-iv);
                 }
             }
             masks[igrid][face] = m;
@@ -211,42 +235,56 @@ BndryData::define (const BoxArray& _grids,
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
                 m->setVal(covered, isects[ii].second, 0);
-            //
-            // Handle special cases if is periodic.
-            //
+
             if (geom.isAnyPeriodic() && !geom.Domain().contains(face_box))
             {
-                geom.periodicShift(geom.Domain(), face_box, pshifts);
-
-                for (int iiv = 0, M = pshifts.size(); iiv < M; iiv++)
+                //
+                // Handle special cases if periodic: "face_box" hasn't changed; reuse pshifts from above.
+                //
+                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+                     it != End;
+                     ++it)
                 {
-                    m->shift(pshifts[iiv]);
-
+                    const IntVect& iv = *it;
+                    m->shift(iv);
                     grids.intersections(m->box(),isects);
-
                     for (int ii = 0, N = isects.size(); ii < N; ii++)
                         m->setVal(covered, isects[ii].second, 0);
-
-                    m->shift(-pshifts[iiv]);
+                    m->shift(-iv);
                 }
             }
         }
     }
     //
-    // Define "bcond".
+    // Define "bcond" and "bcloc".
     //
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
+    //
     //
     for (FabSetIter bfsi(bndry[Orientation(0,Orientation::low)]);
          bfsi.isValid();
          ++bfsi)
     {
-        Array< Array<BoundCond> >& abc = bcond[bfsi.index()];
+        const int idx = bfsi.index();
+        //
+        // Insert with a hint since we know the indices are increasing.
+        //
+        bcloc.insert(bcloc.end(),std::map<int,RealTuple>::value_type(idx,RealTuple()));
+
+        std::map< int, Array< Array<BoundCond> > >::value_type v(idx,Array< Array<BoundCond> >());
+
+        Array< Array<BoundCond> >& abc = bcond.insert(bcond.end(),v)->second;
+
         abc.resize(2*BL_SPACEDIM);
+
         for (OrientationIter fi; fi; ++fi)
+        {
             abc[fi()].resize(_ncomp);
+        }
     }
+
+    m_defined = true;
 }
 
 std::ostream&
@@ -336,7 +374,7 @@ BndryData::writeOn (std::ostream& os) const
 
         for (int grd = 0; grd < ngrds; grd++)
         {
-            it = masks.find(ngrds);
+            it = masks.find(grd);
             BL_ASSERT(it != masks.end());
             it->second[f]->writeOn(os);
             bndry[f][grd].writeOn(os);
@@ -393,7 +431,7 @@ BndryData::readFrom (std::istream& is)
 
         for (int grd = 0; grd < tmpNgrids; grd++)
         {
-            it = masks.find(tmpNgrids);
+            it = masks.find(grd);
             BL_ASSERT(it != masks.end());
             it->second[f]->readFrom(is);
             bndry[f][grd].readFrom(is);

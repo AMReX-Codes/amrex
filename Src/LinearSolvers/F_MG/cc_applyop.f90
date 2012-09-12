@@ -111,8 +111,8 @@ contains
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
-                      mgt(n)%mm(mglev))
+       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), mgt(n)%mm(mglev), &
+                      mgt(n)%stencil_type, mgt(n)%lcross)
     end do
 
     ! Make sure to correct the coarse cells immediately next to fine grids
@@ -134,11 +134,10 @@ contains
     do n=1,nlevs
        ng = nghost(res(n))
        
-       do i=1, nboxes(res(n))
-          if (remote(res(n),i)) cycle
+       do i=1, nfabs(res(n))
           resp  => dataptr(res(n),i)
-          lo =  lwb(get_box(res(n), i))
-          hi =  upb(get_box(res(n), i))
+          lo    =  lwb(get_box(res(n), i))
+          hi    =  upb(get_box(res(n), i))
           select case (dm)
           case (1)
              call scale_residual_1d(lo,hi,ng,resp(:,1,1,1))
@@ -273,8 +272,8 @@ contains
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
-                      mgt(n)%mm(mglev))
+       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), mgt(n)%mm(mglev), &
+                      mgt(n)%stencil_type, mgt(n)%lcross) 
     end do
 
     ! Make sure to correct the coarse cells immediately next to fine grids
@@ -295,11 +294,10 @@ contains
     do n=1,nlevs
        ng = nghost(res(n))
        
-       do i=1, nboxes(res(n))
-          if (remote(res(n),i)) cycle
+       do i=1, nfabs(res(n))
           resp  => dataptr(res(n),i)
-          lo =  lwb(get_box(res(n), i))
-          hi =  upb(get_box(res(n), i))
+          lo    =  lwb(get_box(res(n), i))
+          hi    =  upb(get_box(res(n), i))
           select case (dm)
           case (1)
              call scale_residual_1d(lo,hi,ng,resp(:,1,1,1))
