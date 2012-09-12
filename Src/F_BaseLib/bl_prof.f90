@@ -546,6 +546,9 @@ contains
     end do
   end subroutine p_activation
 
+  subroutine print_stack()
+    ! does nothing -- this is needed by the backtrace version
+  end subroutine print_stack
 
 
 end module bl_prof_module
