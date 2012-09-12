@@ -80,8 +80,7 @@ contains
     ng_f = flux(1,1)%ng
 
     do n=1,nlevs
-       do i=1,nboxes(phi(n))
-          if ( multifab_remote(phi(n),i) ) cycle
+       do i=1,nfabs(phi(n))
           pp  => dataptr(phi(n),i)
           fxp => dataptr(flux(n,1),i)
           fyp => dataptr(flux(n,2),i)
@@ -382,8 +381,7 @@ contains
 
     do n=1,nlevs
 
-       do i=1,nboxes(phi(n))
-          if ( multifab_remote(phi(n),i) ) cycle
+       do i=1,nfabs(phi(n))
           pp  => dataptr(phi(n),i)
           fxp => dataptr(flux(n,1),i)
           fyp => dataptr(flux(n,2),i)

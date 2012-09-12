@@ -78,8 +78,7 @@ contains
     courno_proc = 1.0d-50
 
 
-    do n=1,nboxes(Q)
-       if ( remote(Q,n) ) cycle
+    do n=1,nfabs(Q)
 
        up => dataptr(U,n)
        qp => dataptr(Q,n)
@@ -100,8 +99,7 @@ contains
     !
     ! Calculate D at time N.
     !
-    do n=1,nboxes(D)
-       if ( remote(D,n) ) cycle
+    do n=1,nfabs(D)
 
        qp => dataptr(Q,n)
        dp => dataptr(D,n)
@@ -115,8 +113,7 @@ contains
     !
     ! Calculate F at time N.
     !
-    do n=1,nboxes(F)
-       if ( remote(F,n) ) cycle
+    do n=1,nfabs(F)
 
        up => dataptr(U,n)
        qp => dataptr(Q,n)
@@ -131,8 +128,7 @@ contains
     !
     ! Calculate U at time N+1/3.
     !
-    do n=1,nboxes(U)
-       if ( remote(U,n) ) cycle
+    do n=1,nfabs(U)
 
        dp  => dataptr(D,   n)
        fp  => dataptr(F,   n)
@@ -161,8 +157,7 @@ contains
     !
     ! Calculate primitive variables based on U^1/3.
     !
-    do n=1,nboxes(Q)
-       if ( remote(Q,n) ) cycle
+    do n=1,nfabs(Q)
 
        up => dataptr(Unew,n)
        qp => dataptr(Q,   n)
@@ -175,8 +170,7 @@ contains
     !
     ! Calculate D at time N+1/3.
     !
-    do n=1,nboxes(D)
-       if ( remote(D,n) ) cycle
+    do n=1,nfabs(D)
 
        qp => dataptr(Q,n)
        dp => dataptr(D,n)
@@ -189,8 +183,7 @@ contains
     !
     ! Calculate F at time N+1/3.
     !
-    do n=1,nboxes(F)
-       if ( remote(F,n) ) cycle
+    do n=1,nfabs(F)
 
        up => dataptr(Unew,n)
        qp => dataptr(Q,   n)
@@ -204,8 +197,7 @@ contains
     !
     ! Calculate U at time N+2/3.
     !
-    do n=1,nboxes(U)
-       if ( remote(U,n) ) cycle
+    do n=1,nfabs(U)
 
        dp  => dataptr(D,   n)
        fp  => dataptr(F,   n)
@@ -235,8 +227,7 @@ contains
     !
     ! Calculate primitive variables based on U^2/3.
     !
-    do n=1,nboxes(Q)
-       if ( remote(Q,n) ) cycle
+    do n=1,nfabs(Q)
 
        up => dataptr(Unew,n)
        qp => dataptr(Q,   n)
@@ -249,8 +240,7 @@ contains
     !
     ! Calculate D at time N+2/3.
     !
-    do n=1,nboxes(D)
-       if ( remote(D,n) ) cycle
+    do n=1,nfabs(D)
 
        qp => dataptr(Q,n)
        dp => dataptr(D,n)
@@ -263,8 +253,7 @@ contains
     !
     ! Calculate F at time N+2/3.
     !
-    do n=1,nboxes(F)
-       if ( remote(F,n) ) cycle
+    do n=1,nfabs(F)
 
        up => dataptr(Unew,n)
        qp => dataptr(Q,   n)
@@ -278,8 +267,7 @@ contains
     !
     ! Calculate U at time N+1.
     !
-    do n=1,nboxes(U)
-       if ( remote(U,n) ) cycle
+    do n=1,nfabs(U)
 
        dp  => dataptr(D,   n)
        fp  => dataptr(F,   n)

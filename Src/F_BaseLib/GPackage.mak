@@ -4,10 +4,14 @@ f90sources += f2kcli$(f2kcli_suf).f90
 f90sources += bl_constants.f90
 f90sources += bl_error.f90
 f90sources += bl_IO.f90
+ifdef BACKTRACE
+  f90sources += bl_prof_backtrace.f90
+else
 ifdef PROF
   f90sources += bl_prof.f90
 else
   f90sources += bl_prof_stubs.f90
+endif
 endif
 f90sources += bl_mem_stat.f90
 f90sources += bl_parmparse.f90

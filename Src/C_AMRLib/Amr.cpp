@@ -1344,7 +1344,7 @@ Amr::checkPoint ()
         if (!HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
 
-        old_prec = HeaderFile.precision(15);
+        old_prec = HeaderFile.precision(17);
 
         HeaderFile << CheckPointVersion << '\n'
                    << BL_SPACEDIM       << '\n'
@@ -1872,12 +1872,11 @@ Amr::regrid (int  lbase,
 
     if (lbase == 0)
     {
-        FabArrayBase::CPC::FlushCache();
         MultiFab::FlushSICache();
         Geometry::FlushPIRMCache();
+        FabArrayBase::CPC::FlushCache();
         DistributionMapping::FlushCache();
     }
-
     //
     // Define the new grids from level start up to new_finest.
     //

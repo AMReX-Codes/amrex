@@ -9,6 +9,8 @@ PROF      :=
 COMP      := gfortran
 MKVERBOSE := t
 
+#USE_IPM   := t
+
 include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 
 include ./GPackage.mak
@@ -17,7 +19,7 @@ VPATH_LOCATIONS += .
 include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
 VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
 
-#libraries += $(IPM)
+#libraries += $(IPM_GNU)
 
 main.$(suf).exe: $(objects) 
 	$(LINK.f90) -o main.$(suf).exe $(objects) $(libraries)

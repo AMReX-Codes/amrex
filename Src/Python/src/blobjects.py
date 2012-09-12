@@ -1,11 +1,12 @@
 """BoxLib/Python object store for various F90 types."""
 
-types = [ 'lmultifab', 'multifab', 'ml_layout', 'layout', 'boxarray' ]
+types = [ 'lmultifab', 'multifab', 'ml_layout', 'layout', 'boxarray', 'plotfile' ]
 
 module = '''\
 module blobjects
   use multifab_module
   use layout_module
+  use plotfile_module
   use ml_layout_module
 contains
   {routines}

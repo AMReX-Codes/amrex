@@ -69,11 +69,12 @@ contains
     ! copy the level 1 boxarray
     call copy(mba%bas(1),mla_old%mba%bas(1))
 
-    ! copy the problem domain at all levels
-    do n=1,max_levs
-       mba%pd(n) = mla_old%mba%pd(n)
+    ! set the problem domain at all levels
+    mba%pd(1) = mla_old%mba%pd(1)
+    do n=2,max_levs
+       mba%pd(n) = refine(mba%pd(n-1),mba%rr((n-1),:))
     end do
-    
+
     ! build the level 1 layout.
     call layout_build_ba(la_array(1),mba%bas(1),mba%pd(1),mla_old%pmask)
 

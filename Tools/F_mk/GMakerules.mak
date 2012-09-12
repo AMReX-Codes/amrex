@@ -21,7 +21,7 @@ deppairs: $(f90sources) $(fsources)
 	perl $(MODDEP) --tsort $^ > deppairs
 
 TAGS:	$(sources)
-	ctags -e --verbose=yes --fortran-kinds=+i $^
+	ctags -e --verbose=yes --fortran-kinds=+i $(abspath $^)
 
 tags:	$(sources)
 	ctags --verbose=yes --fortran-kinds=+i $^
@@ -78,10 +78,10 @@ ${hdir}/%.html: %.f
 $(tdir)/f90.depends: $(fsources) $(f90sources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
 ifdef MKVERBOSE
-	perl $(MODDEP) --odir $(odir) $^ > $(tdir)/f90.depends 
+	perl $(MODDEP) $(f_includes) --odir $(odir)  $^ > $(tdir)/f90.depends 
 else
 	@echo "Building f90/f dependency File ..."
-	@perl $(MODDEP) --odir $(odir) $^ > $(tdir)/f90.depends 
+	@perl $(MODDEP) $(f_includes) --odir $(odir) $^ > $(tdir)/f90.depends 
 endif
 
 

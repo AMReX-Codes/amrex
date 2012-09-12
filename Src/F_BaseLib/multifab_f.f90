@@ -7,53 +7,45 @@ module multifab_module
   use bl_prof_module
 
   implicit none
-  !
-  ! Controls whether routines use alltoall() or send()/recv().
-  !
-  logical, private :: Do_AllToAllV = .false.
 
   type multifab
      !private
-     integer :: dim = 0
-     integer :: nboxes = 0
-     integer :: nc = 1
-     integer :: ng = 0
-     logical, pointer :: nodal(:) => Null()
+     integer      :: dim   = 0
+     integer      :: nc    = 1
+     integer      :: ng    = 0
      type(layout) :: la
-     type(fab), pointer :: fbs(:) => Null()
+     logical,   pointer :: nodal(:) => Null()
+     type(fab), pointer :: fbs(:)   => Null()
   end type multifab
 
   type zmultifab
      !private
-     integer :: dim = 0
-     integer :: nboxes = 0
-     integer :: nc = 1
-     integer :: ng = 0
-     logical, pointer :: nodal(:) => Null()
+     integer      :: dim   = 0
+     integer      :: nc    = 1
+     integer      :: ng    = 0
      type(layout) :: la
-     type(zfab), pointer :: fbs(:) => Null()
+     logical,    pointer :: nodal(:) => Null()
+     type(zfab), pointer :: fbs(:)   => Null()
   end type zmultifab
 
   type imultifab
      !private
-     integer :: dim = 0
-     integer :: nboxes = 0
-     integer :: nc = 1
-     integer :: ng = 0
-     logical, pointer :: nodal(:) => Null()
+     integer      :: dim   = 0
+     integer      :: nc    = 1
+     integer      :: ng    = 0
      type(layout) :: la
-     type(ifab), pointer :: fbs(:) => Null()
+     logical,    pointer :: nodal(:) => Null()
+     type(ifab), pointer :: fbs(:)   => Null()
   end type imultifab
 
   type lmultifab
      !private
-     integer :: dim = 0
-     integer :: nboxes = 0
-     integer :: nc = 1
-     integer :: ng = 0
-     logical, pointer :: nodal(:) => Null()
+     integer      :: dim   = 0
+     integer      :: nc    = 1
+     integer      :: ng    = 0
      type(layout) :: la
-     type(lfab), pointer :: fbs(:) => Null()
+     logical,    pointer :: nodal(:) => Null()
+     type(lfab), pointer :: fbs(:)   => Null()
   end type lmultifab
 
   interface cell_centered_q
@@ -96,6 +88,20 @@ module multifab_module
 
      module procedure zmultifab_build
      module procedure zmultifab_build_copy
+  end interface
+
+  interface local_index
+     module procedure  multifab_local_index
+     module procedure imultifab_local_index
+     module procedure lmultifab_local_index
+     module procedure zmultifab_local_index
+  end interface
+
+  interface global_index
+     module procedure  multifab_global_index
+     module procedure imultifab_global_index
+     module procedure lmultifab_global_index
+     module procedure zmultifab_global_index
   end interface
 
   interface destroy
@@ -210,11 +216,11 @@ module multifab_module
      module procedure zmultifab_get_dim
   end interface
 
-  interface nboxes
-     module procedure multifab_nboxes
-     module procedure imultifab_nboxes
-     module procedure lmultifab_nboxes
-     module procedure zmultifab_nboxes
+  interface nfabs
+     module procedure multifab_nfabs
+     module procedure imultifab_nfabs
+     module procedure lmultifab_nfabs
+     module procedure zmultifab_nfabs
   end interface
 
   interface nghost
@@ -229,20 +235,6 @@ module multifab_module
      module procedure imultifab_volume
      module procedure lmultifab_volume
      module procedure zmultifab_volume
-  end interface
-
-  interface local
-     module procedure multifab_local
-     module procedure imultifab_local
-     module procedure lmultifab_local
-     module procedure zmultifab_local
-  end interface
-
-  interface remote
-     module procedure multifab_remote
-     module procedure imultifab_remote
-     module procedure lmultifab_remote
-     module procedure zmultifab_remote
   end interface
 
   interface get_layout
@@ -430,8 +422,57 @@ contains
 
   subroutine multifab_set_alltoallv(val)
     logical val
-    Do_AllToAllV = val
   end subroutine multifab_set_alltoallv
+
+  function multifab_local_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(multifab),  intent(in) :: mf
+    integer                     :: r
+    r = layout_local_index(mf%la,i)
+  end function multifab_local_index
+  function imultifab_local_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(imultifab), intent(in) :: mf
+    integer                     :: r
+    r = layout_local_index(mf%la,i)
+  end function imultifab_local_index
+  function lmultifab_local_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(lmultifab), intent(in) :: mf
+    integer                     :: r
+    r = layout_local_index(mf%la,i)
+  end function lmultifab_local_index
+  function zmultifab_local_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(zmultifab), intent(in) :: mf
+    integer                     :: r
+    r = layout_local_index(mf%la,i)
+  end function zmultifab_local_index
+
+  pure function multifab_global_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(multifab),  intent(in) :: mf
+    integer                     :: r
+    r = layout_global_index(mf%la,i)
+  end function multifab_global_index
+  pure function imultifab_global_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(imultifab), intent(in) :: mf
+    integer                     :: r
+    r = layout_global_index(mf%la,i)
+  end function imultifab_global_index
+  pure function lmultifab_global_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(lmultifab), intent(in) :: mf
+    integer                     :: r
+    r = layout_global_index(mf%la,i)
+  end function lmultifab_global_index
+  pure function zmultifab_global_index(mf,i) result(r)
+    integer,         intent(in) :: i
+    type(zmultifab), intent(in) :: mf
+    integer                     :: r
+    r = layout_global_index(mf%la,i)
+  end function zmultifab_global_index
 
   pure function multifab_ncomp(mf) result(r)
     integer :: r
@@ -577,14 +618,10 @@ contains
     type(layout)  , intent(in   ) :: la
     integer       , intent(in   ) :: nc, ng, dir
     logical       , intent(in), optional :: stencil
-
     logical :: nodal(MAX_SPACEDIM)
-
     nodal      = .false.
     nodal(dir) = .true.
-
     call multifab_build(mf, la, nc, ng, nodal, stencil)
-
   end subroutine multifab_build_edge
 
   subroutine multifab_build_nodal(mf, la, nc, ng, stencil)
@@ -592,117 +629,116 @@ contains
     type(layout)  , intent(in   ) :: la
     integer       , intent(in   ) :: nc, ng
     logical       , intent(in), optional :: stencil
-
     logical :: nodal(MAX_SPACEDIM)
-
     nodal = .true.
-
     call multifab_build(mf, la, nc, ng, nodal, stencil)
-
   end subroutine multifab_build_nodal
 
   subroutine multifab_build(mf, la, nc, ng, nodal, stencil)
-    type(multifab), intent(out) :: mf
-    type(layout), intent(in) :: la
+    type(multifab), intent(out)   :: mf
+    type(layout),   intent(in )   :: la
     integer, intent(in), optional :: nc, ng
     logical, intent(in), optional :: nodal(:), stencil
-    integer :: i
-    integer :: lnc, lng
+    integer :: i, lnc, lng
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
     mf%dim = get_dim(la)
-    mf%la = la
-    mf%nboxes = layout_nboxes(la)
-    mf%nc = lnc
-    mf%ng = lng
+    mf%la  = la
+    mf%nc  = lnc
+    mf%ng  = lng
     allocate(mf%nodal(mf%dim))
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
-    allocate(mf%fbs(mf%nboxes))
-    do i = 1, mf%nboxes
+    allocate(mf%fbs(nlocal(mf%la)))
+
+    do i = 1, nlocal(mf%la)
       call build( &
-           mf%fbs(i), get_box(mf%la, i), &
+           mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
            mf%nc, mf%ng, mf%nodal,  &
-           alloc = local(mf, i), stencil = stencil)
+           alloc = .true., stencil = stencil)
     end do
     call mem_stats_alloc(multifab_ms, volume(mf, all = .TRUE.))
   end subroutine multifab_build
 
   subroutine imultifab_build(mf, la, nc, ng, nodal)
-    type(imultifab), intent(out) :: mf
-    type(layout), intent(in) :: la
+    type(imultifab), intent(out)  :: mf
+    type(layout),    intent(in )  :: la
     integer, intent(in), optional :: nc, ng
     logical, intent(in), optional :: nodal(:)
-    integer :: i
-    integer :: lnc, lng
-    if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
+    integer :: i, lnc, lng
+    if ( built_q(mf) ) call bl_error("IMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
     mf%dim = get_dim(la)
-    mf%la = la
-    mf%nboxes = layout_nboxes(la)
-    mf%nc = lnc
-    mf%ng = lng
+    mf%la  = la
+    mf%nc  = lnc
+    mf%ng  = lng
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
-    allocate(mf%fbs(mf%nboxes))
-    do i = 1, mf%nboxes
-       call build(mf%fbs(i), get_box(mf%la, i), &
-            mf%nc, mf%ng, mf%nodal, &
-            alloc = local(mf, i))
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
+    allocate(mf%fbs(nlocal(mf%la)))
+    do i = 1, nlocal(mf%la)
+       call build(mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
+            mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
     call mem_stats_alloc(imultifab_ms, volume(mf, all = .TRUE.))
   end subroutine imultifab_build
 
   subroutine lmultifab_build(mf, la, nc, ng, nodal)
     type(lmultifab), intent(out) :: mf
-    type(layout), intent(in) :: la
+    type(layout),    intent(in ) :: la
     integer, intent(in),optional :: nc, ng
     logical, intent(in),optional :: nodal(:)
-    integer :: i
-    integer :: lnc, lng
-    if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
+    integer :: i, lnc, lng
+    if ( built_q(mf) ) call bl_error("LMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
     mf%dim = get_dim(la)
-    mf%la = la
-    mf%nboxes = layout_nboxes(la)
-    mf%nc = lnc
-    mf%ng = lng
+    mf%la  = la
+    mf%nc  = lnc
+    mf%ng  = lng
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
-    allocate(mf%fbs(mf%nboxes))
-    do i = 1, mf%nboxes
-       call build(mf%fbs(i), get_box(mf%la, i), &
-            mf%nc, mf%ng, mf%nodal, &
-            alloc = local(mf, i))
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
+    allocate(mf%fbs(nlocal(mf%la)))
+    do i = 1, nlocal(mf%la)
+       call build(mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
+            mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
     call mem_stats_alloc(lmultifab_ms, volume(mf, all = .TRUE.))
   end subroutine lmultifab_build
 
+  subroutine lmultifab_build_edge(mf, la, nc, ng, dir)
+    type(lmultifab), intent(  out) :: mf
+    type(layout)   , intent(in   ) :: la
+    integer        , intent(in   ) :: nc, ng, dir
+
+    logical :: nodal(MAX_SPACEDIM)
+
+    nodal      = .false.
+    nodal(dir) = .true.
+
+    call lmultifab_build(mf, la, nc, ng, nodal)
+
+  end subroutine lmultifab_build_edge
+
   subroutine zmultifab_build(mf, la, nc, ng, nodal)
     type(zmultifab), intent(out) :: mf
-    type(layout), intent(in) :: la
+    type(layout),    intent(in ) :: la
     integer, intent(in),optional :: nc, ng
     logical, intent(in),optional :: nodal(:)
-    integer :: i
-    integer :: lnc, lng
-
-    if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
+    integer :: i, lnc, lng
+    if ( built_q(mf) ) call bl_error("ZMULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
     mf%dim = get_dim(la)
-    mf%la = la
-    mf%nboxes = layout_nboxes(la)
-    mf%nc = lnc
-    mf%ng = lng
+    mf%la  = la
+    mf%nc  = lnc
+    mf%ng  = lng
     allocate(mf%nodal(mf%dim))
-    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal
-    allocate(mf%fbs(mf%nboxes))
-    do i = 1, mf%nboxes
-       call build(mf%fbs(i), get_box(mf%la, i), &
-            mf%nc, mf%ng, mf%nodal, &
-            alloc = local(mf, i))
+    mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
+    allocate(mf%fbs(nlocal(mf%la)))
+    do i = 1, nlocal(mf%la)
+       call build(mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
+            mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
     call mem_stats_alloc(zmultifab_ms, volume(mf, all = .TRUE.))
   end subroutine zmultifab_build
@@ -716,16 +752,14 @@ contains
     if ( built_q(m1) ) call bl_error("MULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call destroy(m1)
     m1%dim = m2%dim
-    m1%la = m2%la
-    m1%nboxes = m2%nboxes
-    m1%nc = m2%nc
-    m1%ng = m2%ng
+    m1%la  = m2%la
+    m1%nc  = m2%nc
+    m1%ng  = m2%ng
     allocate(m1%nodal(m1%dim))
     m1%nodal = m2%nodal
-    allocate(m1%fbs(m1%nboxes))
-    do i = 1, m1%nboxes
-       if ( remote(m1, i) ) cycle
-       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+    allocate(m1%fbs(nlocal(m1%la)))
+    do i = 1, nlocal(m1%la)
+       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_d(m1p,m2p)
@@ -741,16 +775,14 @@ contains
     if ( built_q(m1) ) call bl_error("IMULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call destroy(m1)
     m1%dim = m2%dim
-    m1%la = m2%la
-    m1%nboxes = m2%nboxes
-    m1%nc = m2%nc
-    m1%ng = m2%ng
+    m1%la  = m2%la
+    m1%nc  = m2%nc
+    m1%ng  = m2%ng
     allocate(m1%nodal(m1%dim))
     m1%nodal = m2%nodal
-    allocate(m1%fbs(m1%nboxes))
-    do i = 1, m1%nboxes
-       if ( remote(m1, i) ) cycle
-       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+    allocate(m1%fbs(nlocal(m1%la)))
+    do i = 1, nlocal(m1%la)
+       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_i(m1p,m2p)
@@ -766,16 +798,14 @@ contains
     if ( built_q(m1) ) call bl_error("LMULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call destroy(m1)
     m1%dim = m2%dim
-    m1%la = m2%la
-    m1%nboxes = m2%nboxes
-    m1%nc = m2%nc
-    m1%ng = m2%ng
+    m1%la  = m2%la
+    m1%nc  = m2%nc
+    m1%ng  = m2%ng
     allocate(m1%nodal(m1%dim))
     m1%nodal = m2%nodal
-    allocate(m1%fbs(m1%nboxes))
-    do i = 1, m1%nboxes
-       if ( remote(m1, i) ) cycle
-       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+    allocate(m1%fbs(nlocal(m1%la)))
+    do i = 1, nlocal(m1%la)
+       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_l(m1p,m2p)
@@ -791,16 +821,14 @@ contains
     if ( built_q(m1) ) call bl_error("ZMULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call destroy(m1)
     m1%dim = m2%dim
-    m1%la = m2%la
-    m1%nboxes = m2%nboxes
-    m1%nc = m2%nc
-    m1%ng = m2%ng
+    m1%la  = m2%la
+    m1%nc  = m2%nc
+    m1%ng  = m2%ng
     allocate(m1%nodal(m1%dim))
     m1%nodal = m2%nodal
-    allocate(m1%fbs(m1%nboxes))
-    do i = 1, m1%nboxes
-       if ( remote(m1, i) ) cycle
-       call build(m1%fbs(i), get_box(m1%la, i), m1%nc, m1%ng, m1%nodal)
+    allocate(m1%fbs(nlocal(m1%la)))
+    do i = 1, nlocal(m1%la)
+       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_z(m1p,m2p)
@@ -812,7 +840,7 @@ contains
     type(multifab), intent(inout) :: mf
     integer :: i
     call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes
+    do i = 1, nlocal(mf%la)
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
@@ -820,13 +848,12 @@ contains
     mf%dim = 0
     mf%nc  = 0
     mf%ng  = 0
-    mf%nboxes = 0
   end subroutine multifab_destroy
   subroutine imultifab_destroy(mf)
     type(imultifab), intent(inout) :: mf
     integer :: i
     call mem_stats_dealloc(imultifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes
+    do i = 1, nlocal(mf%la)
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
@@ -834,13 +861,12 @@ contains
     mf%dim = 0
     mf%nc  = 0
     mf%ng  = 0
-    mf%nboxes = 0
   end subroutine imultifab_destroy
   subroutine lmultifab_destroy(mf)
     type(lmultifab), intent(inout) :: mf
     integer :: i
     call mem_stats_dealloc(lmultifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes
+    do i = 1, nlocal(mf%la)
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
@@ -848,13 +874,12 @@ contains
     mf%dim = 0
     mf%nc  = 0
     mf%ng  = 0
-    mf%nboxes = 0
   end subroutine lmultifab_destroy
   subroutine zmultifab_destroy(mf)
     type(zmultifab), intent(inout) :: mf
     integer :: i
     call mem_stats_dealloc(zmultifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes
+    do i = 1, nlocal(mf%la)
        call destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
@@ -862,42 +887,41 @@ contains
     mf%dim = 0
     mf%nc  = 0
     mf%ng  = 0
-    mf%nboxes = 0
   end subroutine zmultifab_destroy
 
-   function multifab_volume(mf, all) result(r)
-     integer(kind=ll_t) :: r
-     type(multifab), intent(in) :: mf
-     logical, optional :: all
-     integer :: i
-     logical :: lall
-     lall = .false.; if (present(all) ) lall = all
-     if ( lall ) then
-        r = 0_ll_t
-        do i = 1, mf%nboxes
-           r = r + volume(get_pbox(mf, i))
-        end do
-     else
-        r = volume(get_boxarray(mf))
-     end if
-     r = r * mf%nc
-   end function multifab_volume
+  function multifab_volume(mf, all) result(r)
+    integer(kind=ll_t) :: r
+    type(multifab), intent(in) :: mf
+    logical, optional :: all
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    if ( lall ) then
+       r = 0_ll_t
+       do i = 1, nboxes(mf%la)
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
+       end do
+    else
+       r = volume(get_boxarray(mf))
+    end if
+    r = r * mf%nc
+  end function multifab_volume
   function imultifab_volume(mf, all) result(r)
     integer(kind=ll_t) :: r
     type(imultifab), intent(in) :: mf
     logical, optional :: all
     integer :: i
     logical :: lall
-    lall = .false.; if (present(all) ) lall = all
+    lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
-       do i = 1, mf%nboxes
-          r = r + volume(get_pbox(mf, i))
+       do i = 1, nboxes(mf%la)
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
     else
        r = volume(get_boxarray(mf))
     end if
-     r = r * mf%nc
+    r = r * mf%nc
   end function imultifab_volume
   function lmultifab_volume(mf, all) result(r)
     integer(kind=ll_t) :: r
@@ -905,16 +929,16 @@ contains
     logical, optional :: all
     integer :: i
     logical :: lall
-    lall = .false.; if (present(all) ) lall = all
+    lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
-       do i = 1, mf%nboxes
-          r = r + volume(get_pbox(mf, i))
+       do i = 1, nboxes(mf%la)
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
     else
        r = volume(get_boxarray(mf))
     end if
-     r = r * mf%nc
+    r = r * mf%nc
   end function lmultifab_volume
   function zmultifab_volume(mf, all) result(r)
     integer(kind=ll_t) :: r
@@ -922,16 +946,16 @@ contains
     logical, optional :: all
     integer :: i
     logical :: lall
-    lall = .false.; if (present(all) ) lall = all
+    lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
-       do i = 1, mf%nboxes
-          r = r + volume(get_pbox(mf, i))
+       do i = 1, nboxes(mf%la)
+          r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
     else
        r = volume(get_boxarray(mf))
     end if
-     r = r * mf%nc
+    r = r * mf%nc
   end function zmultifab_volume
 
   pure function multifab_get_dim(mf) result(r)
@@ -955,26 +979,26 @@ contains
     r = mf%dim
   end function zmultifab_get_dim
 
-  pure function multifab_nboxes(mf) result(r)
+  pure function multifab_nfabs(mf) result(r)
     type(multifab), intent(in) :: mf
     integer :: r
-    r = mf%nboxes
-  end function multifab_nboxes
-  pure function imultifab_nboxes(mf) result(r)
+    r = nlocal(mf%la)
+  end function multifab_nfabs
+  pure function imultifab_nfabs(mf) result(r)
     type(imultifab), intent(in) :: mf
     integer :: r
-    r = mf%nboxes
-  end function imultifab_nboxes
-  pure function lmultifab_nboxes(mf) result(r)
+    r = nlocal(mf%la)
+  end function imultifab_nfabs
+  pure function lmultifab_nfabs(mf) result(r)
     type(lmultifab), intent(in) :: mf
     integer :: r
-    r = mf%nboxes
-  end function lmultifab_nboxes
-  pure function zmultifab_nboxes(mf) result(r)
+    r = nlocal(mf%la)
+  end function lmultifab_nfabs
+  pure function zmultifab_nfabs(mf) result(r)
     type(zmultifab), intent(in) :: mf
     integer :: r
-    r = mf%nboxes
-  end function zmultifab_nboxes
+    r = nlocal(mf%la)
+  end function zmultifab_nfabs
 
   pure function multifab_nghost(mf) result(r)
     type(multifab), intent(in) :: mf
@@ -996,56 +1020,6 @@ contains
     integer :: r
     r = mf%ng
   end function zmultifab_nghost
-
-  pure function multifab_remote(mf, i) result(r)
-    type(multifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_remote(mf%la, i)
-  end function multifab_remote
-  pure function imultifab_remote(mf, i) result(r)
-    type(imultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_remote(mf%la, i)
-  end function imultifab_remote
-  pure function lmultifab_remote(mf, i) result(r)
-    type(lmultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_remote(mf%la, i)
-  end function lmultifab_remote
-  pure function zmultifab_remote(mf, i) result(r)
-    type(zmultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_remote(mf%la, i)
-  end function zmultifab_remote
-
-  pure function multifab_local(mf, i) result(r)
-    type(multifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_local(mf%la, i)
-  end function multifab_local
-  pure function imultifab_local(mf, i) result(r)
-    type(imultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_local(mf%la, i)
-  end function imultifab_local
-  pure function lmultifab_local(mf, i) result(r)
-    type(lmultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_local(mf%la, i)
-  end function lmultifab_local
-  pure function zmultifab_local(mf, i) result(r)
-    type(zmultifab), intent(in) :: mf
-    integer, intent(in) :: i
-    logical :: r
-    r = layout_local(mf%la, i)
-  end function zmultifab_local
 
   function multifab_get_boxarray(mf) result(r)
     type(boxarray) :: r
@@ -1072,25 +1046,25 @@ contains
     type(multifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = get_box(mf%la, i)
+    r = get_box(mf%fbs(i))
   end function multifab_get_box
   pure function imultifab_get_box(mf, i) result(r)
     type(imultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = get_box(mf%la, i)
+    r = get_box(mf%fbs(i))
   end function imultifab_get_box
   pure function lmultifab_get_box(mf, i) result(r)
     type(lmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = get_box(mf%la, i)
+    r = get_box(mf%fbs(i))
   end function lmultifab_get_box
   pure function zmultifab_get_box(mf, i) result(r)
     type(zmultifab), intent(in) :: mf
     integer, intent(in) :: i
     type(box) :: r
-    r = get_box(mf%la, i)
+    r = get_box(mf%fbs(i))
   end function zmultifab_get_box
 
   pure function multifab_get_ibox(mf, i) result(r)
@@ -1324,8 +1298,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
-       do i = 1, mf%nboxes
-          if ( remote(mf, i) ) cycle
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1346,8 +1319,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
-       do i = 1, mf%nboxes
-          if ( remote(mf, i) ) cycle
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1368,8 +1340,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
-       do i = 1, mf%nboxes
-          if ( remote(mf, i) ) cycle
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1390,8 +1361,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
-       do i = 1, mf%nboxes
-          if ( remote(mf, i) ) cycle
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              bx1 = intersection(bx, get_pbox(mf, i))
           else
@@ -1413,8 +1383,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1434,8 +1403,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1455,8 +1423,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1476,8 +1443,7 @@ contains
     type(box) :: bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           bx1 = intersection(bx, get_pbox(mf, i))
        else
@@ -1494,20 +1460,17 @@ contains
     real(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
-    type(box) :: bx
     logical lall
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mf_setval_c")
 
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx, c, nc)
+          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
        end if
     end do
     call destroy(bpt)
@@ -1519,20 +1482,17 @@ contains
     integer, intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
-    type(box) :: bx
     logical lall
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "imf_setval_c")
 
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx, c, nc)
+          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
        end if
     end do
     call destroy(bpt)
@@ -1544,19 +1504,16 @@ contains
     logical, intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
-    type(box) :: bx
     logical lall
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "lmf_setval_c")
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx, c, nc)
+          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
        end if
     end do
     call destroy(bpt)
@@ -1568,16 +1525,13 @@ contains
     complex(dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i
-    type(box) :: bx
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, mf%nboxes
-       if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           call setval(mf%fbs(i), val, c, nc)
        else
-          bx = get_ibox(mf, i)
-          call setval(mf%fbs(i), val, bx, c, nc)
+          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
        end if
     end do
   end subroutine zmultifab_setval_c
@@ -1981,7 +1935,7 @@ contains
     logical,        intent(in)    :: lcross
 
     real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
-    integer,    allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer,    allocatable :: rst(:)
     integer,    parameter   :: tag = 1102
     integer                 :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     type(boxassoc)          :: bxasc
@@ -1990,8 +1944,8 @@ contains
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
     do i = 1, bxasc%l_con%ncpy
-       ii  =  bxasc%l_con%cpy(i)%nd
-       jj  =  bxasc%l_con%cpy(i)%ns
+       ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
+       jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
        p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_d(p1,p2)
@@ -2005,41 +1959,25 @@ contains
     allocate(g_rcv_d(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, bxasc%r_con%nsp
-          ii = bxasc%r_con%str(i)%pr
-          scnt(ii) = nc*bxasc%r_con%str(i)%sz
-          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-       end do
-       do i = 1, bxasc%r_con%nrp
-          ii = bxasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
-    else
-       allocate(rst(bxasc%r_con%nrp))
-       do i = 1, bxasc%r_con%nrp
-          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
-               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, bxasc%r_con%nsp
-          call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
-               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rst(bxasc%r_con%nrp))
+    do i = 1, bxasc%r_con%nrp
+       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
+            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+    end do
+    do i = 1, bxasc%r_con%nsp
+       call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
+            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+    end do
+    call parallel_wait(rst)
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
 
@@ -2051,7 +1989,7 @@ contains
     logical,         intent(in)    :: lcross
 
     integer, pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
-    integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer, allocatable :: rst(:)
     integer, parameter   :: tag = 1102
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     type(boxassoc)       :: bxasc
@@ -2060,8 +1998,8 @@ contains
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
     do i = 1, bxasc%l_con%ncpy
-       ii  =  bxasc%l_con%cpy(i)%nd
-       jj  =  bxasc%l_con%cpy(i)%ns
+       ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
+       jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
        p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_i(p1,p2)
@@ -2075,41 +2013,25 @@ contains
     allocate(g_rcv_i(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_i_4_1(g_snd_i, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, bxasc%r_con%nsp
-          ii = bxasc%r_con%str(i)%pr
-          scnt(ii) = nc*bxasc%r_con%str(i)%sz
-          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-       end do
-       do i = 1, bxasc%r_con%nrp
-          ii = bxasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
-    else
-       allocate(rst(bxasc%r_con%nrp))
-       do i = 1, bxasc%r_con%nrp
-          rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv:), &
-               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, bxasc%r_con%nsp
-          call parallel_send_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv), &
-               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rst(bxasc%r_con%nrp))
+    do i = 1, bxasc%r_con%nrp
+       rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv:), &
+            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+    end do
+    do i = 1, bxasc%r_con%nsp
+       call parallel_send_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv), &
+            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+    end do
+    call parallel_wait(rst)
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_i_1_4(p, g_rcv_i, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
 
@@ -2121,7 +2043,7 @@ contains
     logical,         intent(in)    :: lcross
 
     logical, pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
-    integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer, allocatable :: rst(:)
     integer, parameter   :: tag = 1102
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     type(boxassoc)       :: bxasc
@@ -2130,8 +2052,8 @@ contains
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
     do i = 1, bxasc%l_con%ncpy
-       ii  =  bxasc%l_con%cpy(i)%nd
-       jj  =  bxasc%l_con%cpy(i)%ns
+       ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
+       jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
        p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_l(p1,p2)
@@ -2145,41 +2067,25 @@ contains
     allocate(g_rcv_l(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_l_4_1(g_snd_l, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, bxasc%r_con%nsp
-          ii = bxasc%r_con%str(i)%pr
-          scnt(ii) = nc*bxasc%r_con%str(i)%sz
-          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-       end do
-       do i = 1, bxasc%r_con%nrp
-          ii = bxasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
-    else
-       allocate(rst(bxasc%r_con%nrp))
-       do i = 1, bxasc%r_con%nrp
-          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
-               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, bxasc%r_con%nsp
-          call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
-               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rst(bxasc%r_con%nrp))
+    do i = 1, bxasc%r_con%nrp
+       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
+            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+    end do
+    do i = 1, bxasc%r_con%nsp
+       call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
+            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+    end do
+    call parallel_wait(rst)
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_l_1_4(p, g_rcv_l, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
 
@@ -2200,8 +2106,8 @@ contains
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
     do i = 1, bxasc%l_con%ncpy
-       ii  =  bxasc%l_con%cpy(i)%nd
-       jj  =  bxasc%l_con%cpy(i)%ns
+       ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
+       jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
        p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_z(p1,p2)
@@ -2211,7 +2117,7 @@ contains
     allocate(g_rcv_z(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_z_4_1(g_snd_z, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
@@ -2229,7 +2135,7 @@ contains
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_z_1_4(p, g_rcv_z, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
 
@@ -2348,7 +2254,7 @@ contains
     integer,        intent(in), optional :: ng
 
     real(dp_t), pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
-    integer, allocatable    :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer, allocatable    :: rst(:)
     integer, parameter      :: tag = 1713
     integer                 :: i, ii, jj, np, sh(MAX_SPACEDIM+1), lng
     type(boxassoc)          :: bxasc
@@ -2363,8 +2269,8 @@ contains
     call boxassoc_build(bxasc, mf%la%lap, lng, mf%nodal, .false., .true.)
 
     do i = 1, bxasc%l_con%ncpy
-       ii   =  bxasc%l_con%cpy(i)%nd
-       jj   =  bxasc%l_con%cpy(i)%ns
+       ii   =  local_index(mf,bxasc%l_con%cpy(i)%nd)
+       jj   =  local_index(mf,bxasc%l_con%cpy(i)%ns)
        pdst => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        psrc => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call sum_d(pdst,psrc)
@@ -2378,41 +2284,25 @@ contains
     allocate(g_rcv_d(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, bxasc%r_con%nsp
-          ii = bxasc%r_con%str(i)%pr
-          scnt(ii) = nc*bxasc%r_con%str(i)%sz
-          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-       end do
-       do i = 1, bxasc%r_con%nrp
-          ii = bxasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
-    else
-       allocate(rst(bxasc%r_con%nrp))
-       do i = 1, bxasc%r_con%nrp
-          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
-               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, bxasc%r_con%nsp
-          call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
-               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rst(bxasc%r_con%nrp))
+    do i = 1, bxasc%r_con%nrp
+       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
+            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+    end do
+    do i = 1, bxasc%r_con%nsp
+       call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
+            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+    end do
+    call parallel_wait(rst)
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*bxasc%r_con%rcv(i)%pv, sh, sum_d)
     end do
 
@@ -2432,7 +2322,7 @@ contains
     integer,         intent(in), optional :: ng
 
     logical, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
-    integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer, allocatable :: rst(:)
     integer, parameter   :: tag = 1713
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1), lng
     type(boxassoc)       :: bxasc
@@ -2447,8 +2337,8 @@ contains
     call boxassoc_build(bxasc, mf%la%lap, lng, mf%nodal, .false., .true.)
 
     do i = 1, bxasc%l_con%ncpy
-       ii   =  bxasc%l_con%cpy(i)%nd
-       jj   =  bxasc%l_con%cpy(i)%ns
+       ii   =  local_index(mf,bxasc%l_con%cpy(i)%nd)
+       jj   =  local_index(mf,bxasc%l_con%cpy(i)%ns)
        pdst => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        psrc => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call logical_or(pdst,psrc)
@@ -2465,41 +2355,25 @@ contains
     allocate(g_rcv_l(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, bxasc%r_con%snd(i)%ns, bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_l_4_1(g_snd_l, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, bxasc%r_con%nsp
-          ii = bxasc%r_con%str(i)%pr
-          scnt(ii) = nc*bxasc%r_con%str(i)%sz
-          sdsp(ii) = nc*bxasc%r_con%str(i)%pv
-       end do
-       do i = 1, bxasc%r_con%nrp
-          ii = bxasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*bxasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*bxasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
-    else
-       allocate(rst(bxasc%r_con%nrp))
-       do i = 1, bxasc%r_con%nrp
-          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
-               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, bxasc%r_con%nsp
-          call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
-               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rst(bxasc%r_con%nrp))
+    do i = 1, bxasc%r_con%nrp
+       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
+            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+    end do
+    do i = 1, bxasc%r_con%nsp
+       call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
+            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+    end do
+    call parallel_wait(rst)
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, bxasc%r_con%rcv(i)%nd, bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_l_1_4(p, g_rcv_l, 1 + nc*bxasc%r_con%rcv(i)%pv, sh, logical_or)
     end do
 
@@ -2523,7 +2397,7 @@ contains
     integer                                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     integer, parameter                      :: tag = 1104
     type(syncassoc)                         :: snasc
-    integer,    allocatable                 :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer,    allocatable                 :: rst(:)
     real(dp_t), allocatable                 :: g_snd_d(:), g_rcv_d(:)
 
     interface
@@ -2539,8 +2413,8 @@ contains
     snasc = layout_syncassoc(mf%la, mf%ng, mf%nodal, lall)
 
     do i = 1, snasc%l_con%ncpy
-       ii   =  snasc%l_con%cpy(i)%nd
-       jj   =  snasc%l_con%cpy(i)%ns
+       ii   =  local_index(mf,snasc%l_con%cpy(i)%nd)
+       jj   =  local_index(mf,snasc%l_con%cpy(i)%ns)
        pdst => dataptr(mf%fbs(ii), snasc%l_con%cpy(i)%dbx, c, nc)
        psrc => dataptr(mf%fbs(jj), snasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_d(pdst, psrc, filter)
@@ -2554,41 +2428,25 @@ contains
     allocate(g_rcv_d(nc*snasc%r_con%rvol))
 
     do i = 1, snasc%r_con%nsnd
-       p => dataptr(mf, snasc%r_con%snd(i)%ns, snasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, local_index(mf,snasc%r_con%snd(i)%ns), snasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*snasc%r_con%snd(i)%pv, p)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, snasc%r_con%nsp
-          ii = snasc%r_con%str(i)%pr
-          scnt(ii) = nc*snasc%r_con%str(i)%sz
-          sdsp(ii) = nc*snasc%r_con%str(i)%pv
-       end do
-       do i = 1, snasc%r_con%nrp
-          ii = snasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*snasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*snasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
-    else
-       allocate(rst(snasc%r_con%nrp))
-       do i = 1, snasc%r_con%nrp
-          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*snasc%r_con%rtr(i)%pv:), &
-               nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, snasc%r_con%nsp
-          call parallel_send_dv(g_snd_d(1+nc*snasc%r_con%str(i)%pv), &
-               nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rst(snasc%r_con%nrp))
+    do i = 1, snasc%r_con%nrp
+       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*snasc%r_con%rtr(i)%pv:), &
+            nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
+    end do
+    do i = 1, snasc%r_con%nsp
+       call parallel_send_dv(g_snd_d(1+nc*snasc%r_con%str(i)%pv), &
+            nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
+    end do
+    call parallel_wait(rst)
 
     do i = 1, snasc%r_con%nrcv
        sh = snasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, snasc%r_con%rcv(i)%nd, snasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, local_index(mf,snasc%r_con%rcv(i)%nd), snasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*snasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
@@ -2648,7 +2506,7 @@ contains
     integer                              :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     integer, parameter                   :: tag = 1104
     type(syncassoc)                      :: snasc
-    integer, allocatable                 :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer, allocatable                 :: rst(:)
     logical, allocatable                 :: g_snd_l(:), g_rcv_l(:)
 
     interface
@@ -2664,8 +2522,8 @@ contains
     snasc = layout_syncassoc(mf%la, mf%ng, mf%nodal, lall)
 
     do i = 1, snasc%l_con%ncpy
-       ii   =  snasc%l_con%cpy(i)%nd
-       jj   =  snasc%l_con%cpy(i)%ns
+       ii   =  local_index(mf,snasc%l_con%cpy(i)%nd)
+       jj   =  local_index(mf,snasc%l_con%cpy(i)%ns)
        pdst => dataptr(mf%fbs(ii), snasc%l_con%cpy(i)%dbx, c, nc)
        psrc => dataptr(mf%fbs(jj), snasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_l(pdst, psrc, filter)
@@ -2679,41 +2537,25 @@ contains
     allocate(g_rcv_l(nc*snasc%r_con%rvol))
 
     do i = 1, snasc%r_con%nsnd
-       p => dataptr(mf, snasc%r_con%snd(i)%ns, snasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, local_index(mf,snasc%r_con%snd(i)%ns), snasc%r_con%snd(i)%sbx, c, nc)
        call reshape_l_4_1(g_snd_l, 1 + nc*snasc%r_con%snd(i)%pv, p)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, snasc%r_con%nsp
-          ii = snasc%r_con%str(i)%pr
-          scnt(ii) = nc*snasc%r_con%str(i)%sz
-          sdsp(ii) = nc*snasc%r_con%str(i)%pv
-       end do
-       do i = 1, snasc%r_con%nrp
-          ii = snasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*snasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*snasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
-    else
-       allocate(rst(snasc%r_con%nrp))
-       do i = 1, snasc%r_con%nrp
-          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*snasc%r_con%rtr(i)%pv:), &
-               nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, snasc%r_con%nsp
-          call parallel_send_lv(g_snd_l(1+nc*snasc%r_con%str(i)%pv), &
-               nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rst(snasc%r_con%nrp))
+    do i = 1, snasc%r_con%nrp
+       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*snasc%r_con%rtr(i)%pv:), &
+            nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
+    end do
+    do i = 1, snasc%r_con%nsp
+       call parallel_send_lv(g_snd_l(1+nc*snasc%r_con%str(i)%pv), &
+            nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
+    end do
+    call parallel_wait(rst)
 
     do i = 1, snasc%r_con%nrcv
        sh = snasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, snasc%r_con%rcv(i)%nd, snasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, local_index(mf,snasc%r_con%rcv(i)%nd), snasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_l_1_4(p, g_rcv_l, 1 + nc*snasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
@@ -2767,22 +2609,22 @@ contains
     if ( mf_out%nc < (c_out+lnc-1) ) call bl_error('MULTIFAB_COPY_ON_SHIFT: nc too large', lnc)
 
     call build(bpt, "mf_copy_on_shift")
-    
-    do j = 1, mf_in%nboxes
-       jbx = shift(get_ibox(mf_in,j), len, face)
-       do i = 1, mf_out%nboxes
-          if ( remote(mf_in,j) .and. remote(mf_out,i) ) cycle
-          abx = intersection(get_ibox(mf_out,i), jbx)
+
+    do j = 1, nboxes(mf_in%la)
+       jbx = shift(box_nodalize(get_box(mf_in%la,j), mf_in%nodal), len, face)
+       do i = 1, nboxes(mf_out%la)
+          if ( remote(mf_in%la,j) .and. remote(mf_out%la,i) ) cycle
+          abx = intersection(box_nodalize(get_box(mf_out%la,i), mf_out%nodal), jbx)
           if ( empty(abx) ) cycle
-          if ( local(mf_out, i) .and. local(mf_in, j) ) then
-             pdst => dataptr(mf_out, i, abx,                  c_out, lnc)
-             psrc => dataptr(mf_in,  j, shift(abx,-len,face), c_in,  lnc)
+          if ( local(mf_out%la, i) .and. local(mf_in%la, j) ) then
+             pdst => dataptr(mf_out, local_index(mf_out,i), abx,                  c_out, lnc)
+             psrc => dataptr(mf_in,  local_index(mf_in, j), shift(abx,-len,face), c_in,  lnc)
              call cpy_d(pdst, psrc)
-          else if ( local(mf_in, j) ) then ! must send
-             psrc => dataptr(mf_in, j, shift(abx,-len,face), c_in, lnc)
-             call parallel_send(psrc, get_proc(mf_out%la, i), tag)
-          else if ( local(mf_out, i) ) then  ! must recv
-             pdst => dataptr(mf_out, i, abx, c_out, lnc)
+          else if ( local(mf_in%la,j) ) then ! must send
+             psrc => dataptr(mf_in, local_index(mf_in,j), shift(abx,-len,face), c_in, lnc)
+             call parallel_send(psrc, get_proc(mf_out%la,i), tag)
+          else if ( local(mf_out%la,i) ) then  ! must recv
+             pdst => dataptr(mf_out, local_index(mf_out,i), abx, c_out, lnc)
              call parallel_recv(pdst, get_proc(mf_in%la,j), tag)
           end if
        end do
@@ -2834,13 +2676,13 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf%la)
     end if
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-             write(unit=fn, fmt='(i6)') i
+          do i = 1, nlocal(mf%la)
+             write(unit=fn, fmt='(i6)') global_index(mf%la,i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
           end do
@@ -2879,13 +2721,13 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf%la)
     end if
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-             write(unit=fn, fmt='(i6)') i
+          do i = 1, nlocal(mf%la)
+             write(unit=fn, fmt='(i6)') global_index(mf%la,i)
              call fab_print(mf%fbs(i), comp, str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
           end do
@@ -2923,13 +2765,13 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf%la)
     end if
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-             write(unit=fn, fmt='(i6)') i
+          do i = 1, nlocal(mf%la)
+             write(unit=fn, fmt='(i6)') global_index(mf%la,i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
           end do
@@ -2966,13 +2808,13 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf%la)
     end if
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-             write(unit=fn, fmt='(i6)') i
+          do i = 1, nlocal(mf%la)
+             write(unit=fn, fmt='(i6)') global_index(mf%la,i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
           end do
@@ -3009,13 +2851,13 @@ contains
        call unit_skip(un, skip)
        write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
        call unit_skip(un, skip)
-       write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+       write(unit=un, fmt='(" NBOXES  = ",i2)') nboxes(mf%la)
     end if
 
     do ii = 0, parallel_nprocs()
        if ( ii == parallel_myproc() ) then
-          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-             write(unit=fn, fmt='(i6)') i
+          do i = 1, nlocal(mf%la)
+             write(unit=fn, fmt='(i6)') global_index(mf%la,i)
              call print(mf%fbs(i), str = fn, unit = unit, all = all, data = data, &
                   skip = unit_get_skip(skip) + 2)
           end do
@@ -3041,7 +2883,7 @@ contains
 
     type(copyassoc)         :: cpasc
     real(dp_t), pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
-    integer, allocatable    :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer, allocatable    :: rst(:)
     integer, parameter      :: tag = 1102
     integer                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
@@ -3049,8 +2891,8 @@ contains
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
-       ii   =  cpasc%l_con%cpy(i)%nd
-       jj   =  cpasc%l_con%cpy(i)%ns
+       ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
+       jj   =  local_index(msrc,cpasc%l_con%cpy(i)%ns)
        pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_d(pdst, psrc, filter)
@@ -3064,41 +2906,25 @@ contains
     allocate(g_rcv_d(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
-       p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       p => dataptr(msrc, local_index(msrc,cpasc%r_con%snd(i)%ns), cpasc%r_con%snd(i)%sbx, srccomp, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, cpasc%r_con%nsp
-          ii = cpasc%r_con%str(i)%pr
-          scnt(ii) = nc*cpasc%r_con%str(i)%sz
-          sdsp(ii) = nc*cpasc%r_con%str(i)%pv
-       end do
-       do i = 1, cpasc%r_con%nrp
-          ii = cpasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_d, rcnt, rdsp, g_snd_d, scnt, sdsp)
-    else
-       allocate(rst(cpasc%r_con%nrp))
-       do i = 1, cpasc%r_con%nrp
-          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*cpasc%r_con%rtr(i)%pv:), &
-               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, cpasc%r_con%nsp
-          call parallel_send_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv), &
-               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rst(cpasc%r_con%nrp))
+    do i = 1, cpasc%r_con%nrp
+       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*cpasc%r_con%rtr(i)%pv:), &
+            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+    end do
+    do i = 1, cpasc%r_con%nsp
+       call parallel_send_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv), &
+            nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+    end do
+    call parallel_wait(rst)
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p => dataptr(mdst, local_index(mdst,cpasc%r_con%rcv(i)%nd), cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
@@ -3121,7 +2947,7 @@ contains
 
     type(copyassoc)      :: cpasc
     integer, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
-    integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer, allocatable :: rst(:)
     integer, parameter   :: tag = 1102
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     integer, allocatable :: g_snd_i(:), g_rcv_i(:)
@@ -3129,8 +2955,8 @@ contains
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
-       ii   =  cpasc%l_con%cpy(i)%nd
-       jj   =  cpasc%l_con%cpy(i)%ns
+       ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
+       jj   =  local_index(msrc,cpasc%l_con%cpy(i)%ns)
        pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_i(pdst, psrc, filter)
@@ -3144,41 +2970,25 @@ contains
     allocate(g_rcv_i(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
-       p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       p => dataptr(msrc, local_index(msrc,cpasc%r_con%snd(i)%ns), cpasc%r_con%snd(i)%sbx, srccomp, nc)
        call reshape_i_4_1(g_snd_i, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, cpasc%r_con%nsp
-          ii = cpasc%r_con%str(i)%pr
-          scnt(ii) = nc*cpasc%r_con%str(i)%sz
-          sdsp(ii) = nc*cpasc%r_con%str(i)%pv
-       end do
-       do i = 1, cpasc%r_con%nrp
-          ii = cpasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_i, rcnt, rdsp, g_snd_i, scnt, sdsp)
-    else
-       allocate(rst(cpasc%r_con%nrp))
-       do i = 1, cpasc%r_con%nrp
-          rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*cpasc%r_con%rtr(i)%pv:), &
-               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, cpasc%r_con%nsp
-          call parallel_send_iv(g_snd_i(1+nc*cpasc%r_con%str(i)%pv), &
-               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rst(cpasc%r_con%nrp))
+    do i = 1, cpasc%r_con%nrp
+       rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*cpasc%r_con%rtr(i)%pv:), &
+            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+    end do
+    do i = 1, cpasc%r_con%nsp
+       call parallel_send_iv(g_snd_i(1+nc*cpasc%r_con%str(i)%pv), &
+            nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+    end do
+    call parallel_wait(rst)
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p => dataptr(mdst, local_index(mdst,cpasc%r_con%rcv(i)%nd), cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
        call reshape_i_1_4(p, g_rcv_i, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
@@ -3201,7 +3011,7 @@ contains
 
     type(copyassoc)      :: cpasc
     logical, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
-    integer, allocatable :: rst(:), rcnt(:), rdsp(:), scnt(:), sdsp(:)
+    integer, allocatable :: rst(:)
     integer, parameter   :: tag = 1102
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     logical, allocatable :: g_snd_l(:), g_rcv_l(:)
@@ -3209,8 +3019,8 @@ contains
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
-       ii   =  cpasc%l_con%cpy(i)%nd
-       jj   =  cpasc%l_con%cpy(i)%ns
+       ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
+       jj   =  local_index(msrc,cpasc%l_con%cpy(i)%ns)
        pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_l(pdst, psrc, filter)
@@ -3224,41 +3034,25 @@ contains
     allocate(g_rcv_l(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
-       p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       p => dataptr(msrc, local_index(msrc,cpasc%r_con%snd(i)%ns), cpasc%r_con%snd(i)%sbx, srccomp, nc)
        call reshape_l_4_1(g_snd_l, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
-    if ( Do_AllToAllV ) then
-       allocate(rcnt(0:np-1), rdsp(0:np-1), scnt(0:np-1), sdsp(0:np-1))
-       rcnt = 0; scnt = 0; rdsp = 0; sdsp = 0
-       do i = 1, cpasc%r_con%nsp
-          ii = cpasc%r_con%str(i)%pr
-          scnt(ii) = nc*cpasc%r_con%str(i)%sz
-          sdsp(ii) = nc*cpasc%r_con%str(i)%pv
-       end do
-       do i = 1, cpasc%r_con%nrp
-          ii = cpasc%r_con%rtr(i)%pr
-          rcnt(ii) = nc*cpasc%r_con%rtr(i)%sz
-          rdsp(ii) = nc*cpasc%r_con%rtr(i)%pv
-       end do
-       call parallel_alltoall(g_rcv_l, rcnt, rdsp, g_snd_l, scnt, sdsp)
-    else
-       allocate(rst(cpasc%r_con%nrp))
-       do i = 1, cpasc%r_con%nrp
-          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*cpasc%r_con%rtr(i)%pv:), &
-               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-       end do
-       do i = 1, cpasc%r_con%nsp
-          call parallel_send_lv(g_snd_l(1+nc*cpasc%r_con%str(i)%pv), &
-               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
-       end do
-       call parallel_wait(rst)
-    end if
+    allocate(rst(cpasc%r_con%nrp))
+    do i = 1, cpasc%r_con%nrp
+       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*cpasc%r_con%rtr(i)%pv:), &
+            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+    end do
+    do i = 1, cpasc%r_con%nsp
+       call parallel_send_lv(g_snd_l(1+nc*cpasc%r_con%str(i)%pv), &
+            nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+    end do
+    call parallel_wait(rst)
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p => dataptr(mdst, local_index(mdst,cpasc%r_con%rcv(i)%nd), cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
        call reshape_l_1_4(p, g_rcv_l, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
@@ -3289,8 +3083,8 @@ contains
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
-       ii   =  cpasc%l_con%cpy(i)%nd
-       jj   =  cpasc%l_con%cpy(i)%ns
+       ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
+       jj   =  local_index(msrc,cpasc%l_con%cpy(i)%ns)
        pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_z(pdst, psrc, filter)
@@ -3302,7 +3096,7 @@ contains
     allocate(g_rcv_z(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
-       p => dataptr(msrc, cpasc%r_con%snd(i)%ns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       p => dataptr(msrc, local_index(msrc,cpasc%r_con%snd(i)%ns), cpasc%r_con%snd(i)%sbx, srccomp, nc)
        call reshape_z_4_1(g_snd_z, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
@@ -3320,7 +3114,7 @@ contains
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mdst, cpasc%r_con%rcv(i)%nd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p => dataptr(mdst, local_index(mdst,cpasc%r_con%rcv(i)%nd), cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
        call reshape_z_1_4(p, g_rcv_z, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
@@ -3351,8 +3145,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       do i = 1, mdst%nboxes
-          if ( remote(mdst,i) ) cycle
+       do i = 1, nlocal(mdst%la)
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3410,8 +3203,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in imultifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       do i = 1, mdst%nboxes
-          if ( remote(mdst,i) ) cycle
+       do i = 1, nlocal(mdst%la)
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3469,8 +3261,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in lmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       do i = 1, mdst%nboxes
-          if ( remote(mdst,i) ) cycle
+       do i = 1, nlocal(mdst%la)
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3526,8 +3317,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in zmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
-       do i = 1, mdst%nboxes
-          if ( remote(mdst,i) ) cycle
+       do i = 1, nlocal(mdst%la)
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
              psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
@@ -3569,8 +3359,8 @@ contains
     call build(bpt, "build_nodal_dot_mask")
 
     call build(mask, mf%la, 1, 0, mf%nodal)
-    do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
+    do i = 1, nlocal(mf%la)
+
        full_box = get_ibox(mf,i)
 
        select case ( full_box%dim )
@@ -3635,22 +3425,18 @@ contains
     if ( present(mask) ) then
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
        if ( cell_centered_q(mf) ) then
-          do n = 1, mf%nboxes
-             if ( remote(mf,n) ) cycle
-             mp => dataptr(mf, n, get_ibox(mf, n), comp)
-             mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
+          do n = 1, nlocal(mf%la)
+             mp  => dataptr(mf,   n, get_ibox(mf,   n), comp)
+             mp1 => dataptr(mf1,  n, get_ibox(mf1,  n), comp1)
              lmp => dataptr(mask, n, get_ibox(mask, n), 1)
              r1 = r1 + sum(mp*mp1, mask = lmp)
           end do
        else if ( nodal_q(mf) ) then
           call build_nodal_dot_mask(tmask, mf)
-          do n = 1, mf%nboxes
-             if ( remote(mf,n) ) cycle
-
-             mp => dataptr(mf, n, get_ibox(mf, n), comp)
-             mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
-             ma => dataptr(tmask, n, get_ibox(tmask, n))
-
+          do n = 1, nlocal(mf%la)
+             mp  => dataptr(mf,    n, get_ibox(mf,    n), comp)
+             mp1 => dataptr(mf1,   n, get_ibox(mf1,   n), comp1)
+             ma  => dataptr(tmask, n, get_ibox(tmask, n))
              r1 = r1 + sum(ma*mp*mp1)
           end do
           call destroy(tmask)
@@ -3659,8 +3445,7 @@ contains
        end if
     else
        if ( cell_centered_q(mf) ) then
-          do n = 1, mf%nboxes
-             if ( remote(mf,n) ) cycle
+          do n = 1, nlocal(mf%la)
              mp  => dataptr(mf , n, get_box(mf ,n), comp)
              mp1 => dataptr(mf1, n, get_box(mf1,n), comp1)
              do k = 1, ubound(mp,3)
@@ -3673,11 +3458,10 @@ contains
           end do
        else if ( nodal_q(mf) ) then
           call build_nodal_dot_mask(tmask, mf)
-          do n = 1, mf%nboxes 
-             if ( remote(mf,n) ) cycle
-             mp => dataptr(mf, n, get_ibox(mf, n), comp)
-             mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
-             ma => dataptr(tmask, n, get_ibox(tmask, n))
+          do n = 1, nlocal(mf%la) 
+             mp  => dataptr(mf,    n, get_ibox(mf,    n), comp)
+             mp1 => dataptr(mf1,   n, get_ibox(mf1,   n), comp1)
+             ma  => dataptr(tmask, n, get_ibox(tmask, n))
              r1 = r1 + sum(ma*mp*mp1)
           end do
           call destroy(tmask)
@@ -3704,27 +3488,24 @@ contains
 
     r1 = 0.0_dp_t
     if ( cell_centered_q(mf) ) then
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
-          mp  => dataptr(mf , i, get_box(mf, i), comp)
+       do i = 1, nlocal(mf%la)
+          mp  => dataptr(mf,  i, get_box(mf,  i), comp)
           mp1 => dataptr(mf1, i, get_box(mf1, i), comp)
           r1 = r1 + sum(mp*mp1)
        end do
     else if (nodal_q(mf) ) then
-       if (present(nodal_mask)) then
-          do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
-             mp  => dataptr(mf        , i, get_ibox(mf, i), comp)
-             mp1 => dataptr(mf1       , i, get_ibox(mf1, i), comp)
+       if ( present(nodal_mask) ) then
+          do i = 1, nlocal(mf%la)
+             mp  => dataptr(mf,         i, get_ibox(mf,         i), comp)
+             mp1 => dataptr(mf1,        i, get_ibox(mf1,        i), comp)
              ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
        else
           call build_nodal_dot_mask(mask, mf)
-          do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
-             mp  => dataptr(mf  , i, get_ibox(mf  , i), comp)
-             mp1 => dataptr(mf1 , i, get_ibox(mf1 , i), comp)
+          do i = 1, nlocal(mf%la)
+             mp  => dataptr(mf,   i, get_ibox(mf  , i), comp)
+             mp1 => dataptr(mf1,  i, get_ibox(mf1 , i), comp)
              ma  => dataptr(mask, i, get_ibox(mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
@@ -3752,27 +3533,24 @@ contains
     r1 = 0.0_dp_t
     if ( cell_centered_q(mf) ) then
 
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
-          mp  => dataptr(mf , i, get_box(mf , i))
-          mp1 => dataptr(mf1, i, get_box(mf1, i))
+       do i = 1, nlocal(mf%la)
+          mp  => dataptr(mf,  i, get_box(mf, i))
+          mp1 => dataptr(mf1, i, get_box(mf1,i))
           r1 = r1 + sum(mp*mp1)
        end do
     else if ( nodal_q(mf) ) then
-       if (present(nodal_mask)) then
-          do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
-             mp  => dataptr(mf        , i, get_ibox(mf  , i))
-             mp1 => dataptr(mf1       , i, get_ibox(mf1 , i))
+       if ( present(nodal_mask) ) then
+          do i = 1, nlocal(mf%la)
+             mp  => dataptr(mf,         i, get_ibox(mf,         i))
+             mp1 => dataptr(mf1,        i, get_ibox(mf1,        i))
              ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
        else
           call build_nodal_dot_mask(mask, mf)
-          do i = 1, mf%nboxes
-             if ( remote(mf,i) ) cycle
-             mp  => dataptr(mf  , i, get_ibox(mf  , i))
-             mp1 => dataptr(mf1 , i, get_ibox(mf1 , i))
+          do i = 1, nlocal(mf%la)
+             mp  => dataptr(mf,   i, get_ibox(mf,   i))
+             mp1 => dataptr(mf1,  i, get_ibox(mf1,  i))
              ma  => dataptr(mask, i, get_ibox(mask, i))
              r1 = r1 + sum(ma*mp*mp1)
           end do
@@ -3809,7 +3587,7 @@ contains
     lxmin = 0.0_dp_t ; if ( present(xmin) ) lxmin = xmin
     lxmax = 1.0_dp_t ; if ( present(xmax) ) lxmax = xmax
     if ( lclip ) then
-       do i = 1, nboxes(mf)
+       do i = 1, nlocal(mf%la)
           mp => dataptr(mf, i, get_ibox(mf, i), c)
           where ( mp < lmin )
              mp = lxmin
@@ -3820,7 +3598,7 @@ contains
           end where
        end do
     else
-       do i = 1, nboxes(mf)
+       do i = 1, nlocal(mf%la)
           mp => dataptr(mf, i, get_ibox(mf, i), c)
           mp = lxmax*(mp-lmin)/(lmax-lmin) + lxmin
        end do
@@ -3834,8 +3612,7 @@ contains
     type(multifab), intent(inout) :: mf
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i
-    do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
+    do i = 1, nlocal(mf%la)
        mp => dataptr(mf, i, get_ibox(mf, i), c)
        if ( present(off) ) then
           mp = mp*val + off
@@ -3850,8 +3627,7 @@ contains
     type(multifab), intent(inout) :: mf
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i
-    do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
+    do i = 1, nlocal(mf%la)
        mp => dataptr(mf, i, get_ibox(mf, i))
        if ( present(off) ) then
           mp = mp*val + off
@@ -3869,8 +3645,7 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        ap => dataptr(a, i, get_ibox(a, i))
        bp => dataptr(b, i, get_ibox(b, i))
        cp => dataptr(c, i, get_ibox(c, i))
@@ -3888,8 +3663,7 @@ contains
 
     integer :: ii, i, j, k, n
 
-    do ii = 1, a%nboxes
-       if ( remote(a,ii) ) cycle
+    do ii = 1, nlocal(a%la)
 
        ap => dataptr(a, ii, get_ibox(a,ii))
        bp => dataptr(b, ii, get_ibox(b,ii))
@@ -3950,9 +3724,8 @@ contains
 
     lall = .false.; if ( present(all) ) lall = all
 
-    do ii = 1, a%nboxes
-       if ( remote(a,ii) ) cycle
-       if (lall) then
+    do ii = 1, nlocal(a%la)
+       if ( lall ) then
           ap => dataptr(a,ii)
           bp => dataptr(b,ii)
        else
@@ -3977,9 +3750,8 @@ contains
 
     lall = .false.; if ( present(all) ) lall = all
 
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
-       if (lall) then
+    do i = 1, nlocal(a%la)
+       if ( lall ) then
           ap => dataptr(a,i,ia)
           bp => dataptr(b,i)
        else
@@ -4004,9 +3776,8 @@ contains
 
     lall = .false.; if ( present(all) ) lall = all
 
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
-       if (lall) then
+    do i = 1, nlocal(a%la)
+       if ( lall ) then
           ap => dataptr(a, i, ia, nc)
           bp => dataptr(b, i, ib, nc)
        else
@@ -4032,8 +3803,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
     if ( present(mask) ) then
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -4049,8 +3819,7 @@ contains
           end do
        end do
     else
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -4084,8 +3853,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
     if ( present(mask) ) then
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -4101,8 +3869,7 @@ contains
           end do
        end do
     else
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -4139,8 +3906,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
     if ( present(mask) ) then
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -4156,8 +3922,7 @@ contains
           end do
        end do
     else
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
@@ -4239,9 +4004,7 @@ contains
     r1 = 0.0_dp_t
 
     if ( present(mask) ) then
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
-
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
@@ -4257,15 +4020,12 @@ contains
           end do
        end do
     else
-       do i = 1, mf%nboxes
-          if ( remote(mf,i) ) cycle
-
+       do i = 1, nlocal(mf%la)
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
              mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
           end if
-
           r1 = max(r1, multifab_norm_inf_doit(mp))
        end do
     end if
@@ -4294,8 +4054,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
 
     r1 = 0
-    do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
        else
@@ -4324,8 +4083,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
        else
@@ -4352,8 +4110,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    do i = 1, mf%nboxes
-       if ( remote(mf,i) ) cycle
+    do i = 1, nlocal(mf%la)
        if ( lall ) then
           mp => dataptr(mf, i, get_pbox(mf, i))
        else
@@ -4424,8 +4181,7 @@ contains
 
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_div_div")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng) )
           bp => dataptr(b, i, grow(get_ibox(b,i),lng) )
@@ -4452,8 +4208,7 @@ contains
     if ( b == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S: divide by zero")
     end if
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
        else
@@ -4475,8 +4230,7 @@ contains
 
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_c")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), targ, nc)
           bp => dataptr(b, i, grow(get_ibox(b,i),lng), src, nc)
@@ -4505,8 +4259,7 @@ contains
     if ( b == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), targ, nc)
        else
@@ -4531,8 +4284,7 @@ contains
     if ( val == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i), lng), ia, nc)
           bp => dataptr(a, i, grow(get_ibox(b, i), lng), ib, nc)
@@ -4603,8 +4355,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
           bp => dataptr(b, i, grow(get_ibox(b, i),lng))
@@ -4623,8 +4374,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
        else
@@ -4645,8 +4395,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_c")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng), targ, nc)
           bp => dataptr(b, i, grow(get_ibox(b, i),lng), src, nc)
@@ -4668,8 +4417,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s_c")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng), targ, nc)
        else
@@ -4690,8 +4438,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_s_c")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i), lng), ia, nc)
           bp => dataptr(a, i, grow(get_ibox(b, i), lng), ib, nc)
@@ -4762,8 +4509,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng))
           bp => dataptr(b, i, grow(get_ibox(b, i),ng))
@@ -4783,8 +4529,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng))
        else
@@ -4805,8 +4550,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub_c")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng), targ, nc)
           bp => dataptr(b, i, grow(get_ibox(b, i),ng), src, nc)
@@ -4828,8 +4572,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s_c")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng), targ, nc)
        else
@@ -4900,8 +4643,7 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_plus_plus_c")
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), dst, nc)
           bp => dataptr(b, i, grow(get_ibox(b,i),lng), src, nc)
@@ -4933,8 +4675,7 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    do i = 1, a%nboxes
-       if ( remote(a,i) ) cycle
+    do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), dst, nc)
        else
@@ -4978,7 +4719,7 @@ contains
        call bl_error("MULTIFAB_FAB_COPY: mf extent to small")
     end if
 
-    do i = 1, nboxes(mf); if ( remote(mf,i) ) cycle
+    do i = 1, nlocal(mf%la)
        mp => dataptr(mf, i, get_ibox(mf,i), cm, nc)
        xo = lwb(get_ibox(mf,i))
        select case ( mf%dim ) 
@@ -5034,7 +4775,7 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = +Huge(r1)
-    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        r1 = min(r1,min_val(mf%fbs(i), all))
     end do
     call parallel_reduce(r, r1, MPI_MIN)
@@ -5048,7 +4789,7 @@ contains
     real(kind=dp_t) :: r1
     integer :: i
     r1 = +Huge(r1)
-    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        r1 = min(r1, min_val(mf%fbs(i), c, nc, all))
     end do
     call parallel_reduce(r, r1, MPI_MIN)
@@ -5061,7 +4802,7 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = -Huge(r1)
-    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        r1 = max(r1, max_val(mf%fbs(i), all))
     end do
     call parallel_reduce(r, r1, MPI_MAX)
@@ -5075,7 +4816,7 @@ contains
     integer :: i
     real(kind=dp_t) :: r1
     r1 = -Huge(r1)
-    do i = 1, nboxes(mf); if ( remote(mf, i) ) cycle
+    do i = 1, nlocal(mf%la)
        r1 = max(r1, max_val(mf%fbs(i), c, nc, all))
     end do
     call parallel_reduce(r, r1, MPI_MAX)

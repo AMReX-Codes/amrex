@@ -89,12 +89,14 @@ InterpBndryData::InterpBndryData (const BoxArray& _grids,
     BndryData(_grids,_ncomp,geom)
 {}
 
+InterpBndryData::~InterpBndryData () {}
+
 void
 InterpBndryData::setBndryConds (const BCRec& phys_bc,
                                 int          ratio)
 {
 
-    IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryConds(phys_bc, ratio_vect);
 }
 
@@ -157,7 +159,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                                  int             f_start,
                                  int             bnd_start,
                                  int             num_comp,
-                                 IntVect&        ratio,
+                                 const IntVect&  ratio,
                                  const BCRec&    bc,
                                  int             max_order)
 {
@@ -265,4 +267,19 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
     {
         BoxLib::Abort("InterpBndryData::setBndryValues supports only max_order=1 or 3");
     }
+}
+
+void
+InterpBndryData::setBndryValues (::BndryRegister&  crse,
+                                 int             c_start,
+                                 const MultiFab& fine,
+                                 int             f_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 int             ratio,
+                                 const BCRec&    bc,
+                                 int             max_order)
+{
+    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    setBndryValues(crse,c_start,fine,f_start,bnd_start,num_comp,ratio_vect,bc,max_order);
 }

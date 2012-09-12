@@ -144,7 +144,7 @@ contains
     !
     ! Buffer the cells.
     !
-    do b = 1, nboxes(buf); if ( remote(buf, b) ) cycle
+    do b = 1, nfabs(buf)
        mt => dataptr(tagboxes, b, get_box(tagboxes,b))
        mb => dataptr(buf, b)
        select case (dm)
@@ -273,7 +273,7 @@ contains
       type(boxarray) :: ba
       logical, pointer :: lp(:,:,:,:)
 
-      do i = 1, nboxes(mask); if ( remote(mask, i) ) cycle
+      do i = 1, nfabs(mask)
          bxi = get_pbox(mask, i)
          call boxarray_box_diff(ba, bxi, pd)
          do j = 1, nboxes(ba)
@@ -290,7 +290,7 @@ contains
       type(box) :: bxi, bxj, bxij
       logical, pointer :: lp(:,:,:,:)
 
-      do i = 1, nboxes(mask); if ( remote(mask, i) ) cycle
+      do i = 1, nfabs(mask)
          bxi = get_pbox(mask, i)
          do j = 1, i-1
             bxj = get_pbox(mask, j)
@@ -338,8 +338,8 @@ contains
 
     type(lmultifab), intent(inout) :: mask
 
-    integer                        :: i, j, ii, jj, cnt, shft(3**get_dim(mask), get_dim(mask))
-    type(box)                      :: pd, bxs(3**get_dim(mask)), bx_from, bx_to
+    integer                        :: i, j, ii, jj, cnt, shft(3**get_dim(mask), get_dim(mask)), li, lj
+    type(box)                      :: pd, bxs(3**get_dim(mask)), bx_from, bx_to, ibx
     logical                        :: pmask(get_dim(mask))
     logical, pointer               :: ap(:,:,:,:), bp(:,:,:,:)
     logical, allocatable           :: pt(:,:,:,:)
@@ -359,8 +359,11 @@ contains
        return
     end if
 
-    do i = 1, nboxes(mask)
-       call box_periodic_shift(pd, get_ibox(mask,i), nodal_flags(mask), pmask, nghost(mask), shft, cnt, bxs)
+    do i = 1, nboxes(mask%la)
+
+       ibx = box_nodalize(get_box(mask%la,i),mask%nodal)
+
+       call box_periodic_shift(pd, ibx, nodal_flags(mask), pmask, nghost(mask), shft, cnt, bxs)
 
        do jj = 1, cnt
           bi => layout_get_box_intersector(la, bxs(jj))
@@ -368,26 +371,30 @@ contains
           do ii = 1, size(bi)
              j = bi(ii)%i
 
-             if ( remote(mask,i) .and. remote(mask,j) ) cycle
+             if ( remote(mask%la,i) .and. remote(mask%la,j) ) cycle
 
              bx_to   = bi(ii)%bx
              bx_from = shift(bx_to, -shft(jj,:))
 
-             if ( local(mask,i) .and. local(mask,j) ) then
-                ap => dataptr(mask,j,bx_to)
-                bp => dataptr(mask,i,bx_from)
+             if ( local(mask%la,i) .and. local(mask%la,j) ) then
+                li =  local_index(mask,i)
+                lj =  local_index(mask,j)
+                ap => dataptr(mask,lj,bx_to)
+                bp => dataptr(mask,li,bx_from)
                 ap = ap .or. bp
-             else if ( local(mask,i) ) then
+             else if ( local(mask%la,i) ) then
                 !
                 ! We own index i.  Got to send it to processor owning index j.
                 !
-                bp => dataptr(mask,i,bx_from)
+                li =  local_index(mask,i)
+                bp => dataptr(mask,li,bx_from)
                 call parallel_send(bp, get_proc(get_layout(mask),j), tag)
              else
                 !
                 ! We own index j.  Got to get index i data from processor owning it.
                 !
-                ap => dataptr(mask,j,bx_to)
+                lj =  local_index(mask,j)
+                ap => dataptr(mask,lj,bx_to)
                 allocate(pt(1:size(ap,1),1:size(ap,2),1:size(ap,3),1))
                 call parallel_recv(pt, get_proc(get_layout(mask),i), tag)
                 ap = ap .or. pt
@@ -413,7 +420,7 @@ contains
     integer :: n, ii, jj, kk, i, j, k
     logical, pointer :: tp(:,:,:,:)
     integer :: dm
-    type(box) :: bx1
+    type(box) :: bx1,pbx
     integer :: llo(3), hho(3)
 
     dm = get_dim(tagboxes)
@@ -422,8 +429,9 @@ contains
     ty = 0
     tz = 0
 
-    do n = 1, nboxes(tagboxes); if ( remote(tagboxes, n) ) cycle
-       bx1 = intersection(get_pbox(tagboxes, n), bx)
+    do n = 1, nfabs(tagboxes)
+       pbx = grow(box_nodalize(get_box(tagboxes%la,n),tagboxes%nodal),tagboxes%ng)
+       bx1 = intersection(pbx, bx)
        if ( empty(bx1) ) cycle
        tp => dataptr(tagboxes, n, bx1)
 
@@ -563,10 +571,11 @@ contains
         type(lmultifab), intent(in) :: tagboxes
         logical, pointer :: tp(:,:,:,:)
         integer :: n
-        type(box) :: bx1
+        type(box) :: bx1, pbx
         r = 0.0_dp_t
-        do n = 1, nboxes(tagboxes)
-           bx1 = intersection(get_pbox(tagboxes, n), bx)
+        do n = 1, nboxes(tagboxes%la)
+           pbx = grow(box_nodalize(get_box(tagboxes%la,n),tagboxes%nodal),tagboxes%ng)
+           bx1 = intersection(pbx,bx)
            if ( empty(bx1) ) cycle
            tp => dataptr(tagboxes, n, bx1)
            r = r + real(count(tp),dp_t)
@@ -736,8 +745,7 @@ contains
 
     call setval(ctagboxes, .false., all = .true.)
 
-    do ii = 1, nboxes(tagboxes)
-       if ( remote(tagboxes, ii) ) cycle
+    do ii = 1, nfabs(tagboxes)
 
        fp  => dataptr(tagboxes,  ii)
        cp  => dataptr(ctagboxes, ii)
@@ -780,8 +788,7 @@ contains
 
     call setval(ctagboxes_grow, .false., all = .true.)
 
-    do ii = 1, nboxes(ctagboxes_grow)
-       if ( remote(ctagboxes_grow, ii) ) cycle
+    do ii = 1, nfabs(ctagboxes_grow)
 
        pbf = get_pbox(ctagboxes, ii)
        pbc = get_pbox(ctagboxes_grow, ii)
@@ -798,8 +805,7 @@ contains
 
     call lmultifab_fill_boundary(ctagboxes_grow)
 
-    do ii = 1, nboxes(ctagboxes_grow)
-       if ( remote(ctagboxes_grow, ii) ) cycle
+    do ii = 1, nfabs(ctagboxes_grow)
 
        pbf = get_pbox(ctagboxes, ii)
        pbc = get_pbox(ctagboxes_grow, ii)

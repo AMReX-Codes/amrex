@@ -2,6 +2,7 @@ module cc_smoothers_module
 
   use bl_constants_module
   use cc_stencil_module
+  use stencil_types_module
 
   implicit none
 
@@ -416,14 +417,15 @@ contains
 
   end subroutine gs_rb_smoother_3d
 
-  subroutine fourth_order_smoother_2d(omega, ss, uu, ff, lo, ng, n)
+  subroutine fourth_order_smoother_2d(omega, ss, uu, ff, lo, ng, stencil_type, n)
     use bl_prof_module
     integer           , intent(in) :: ng, n
     integer           , intent(in) :: lo(:)
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
-    real (kind = dp_t), intent(in) :: ss(0:,lo(1):, lo(2):)
+    real (kind = dp_t), intent(in   ) :: ss(0:,lo(1):, lo(2):)
+    integer           , intent(in   ) :: stencil_type
 
     integer            :: i, j, hi(size(lo)), ioff
     real (kind = dp_t) :: dd
@@ -434,7 +436,7 @@ contains
 
     hi = ubound(ff)
 
-    if (size(ss,dim=1) .eq. 9) then
+    if (stencil_type .eq. HO_CROSS_STENCIL) then
 
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
@@ -450,7 +452,7 @@ contains
           end do
        end do
 
-    else if (size(ss,dim=1) .eq. 25) then
+    else if (stencil_type .eq. HO_DENSE_STENCIL) then
 
        do j = lo(2),hi(2)
           do i = lo(1), hi(1)
@@ -483,7 +485,7 @@ contains
 
   end subroutine fourth_order_smoother_2d
 
-  subroutine fourth_order_smoother_3d(omega, ss, uu, ff, lo, ng, n)
+  subroutine fourth_order_smoother_3d(omega, ss, uu, ff, lo, ng, stencil_type, n)
     use bl_prof_module
     integer           , intent(in   ) :: ng, n
     integer           , intent(in   ) :: lo(:)
@@ -491,6 +493,7 @@ contains
     real (kind = dp_t), intent(in   ) :: ff(lo(1):, lo(2):, lo(3):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:,lo(3)-ng:)
     real (kind = dp_t), intent(in   ) :: ss(0:, lo(1):, lo(2):, lo(3):)
+    integer           , intent(in   ) :: stencil_type
 
     integer            :: i, j, k, hi(size(lo))
     real (kind = dp_t) :: dd
@@ -502,7 +505,7 @@ contains
     hi = ubound(ff)
 
     ! This is the fourth order stencil for constant coefficients.
-    if (size(ss,dim=1) .eq. 13) then
+    if (stencil_type .eq. HO_CROSS_STENCIL) then
 
        do k = lo(3),hi(3)
        do j = lo(2),hi(2)
@@ -522,7 +525,7 @@ contains
        end do
 
     ! This is the fourth order stencil for variable coefficients.
-    else if (size(ss,dim=1) .eq. 61) then
+    else if (stencil_type .eq. HO_DENSE_STENCIL) then
 
        do k = lo(3),hi(3)
        do j = lo(2),hi(2)

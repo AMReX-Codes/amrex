@@ -110,6 +110,12 @@ BoxLib::BASISV (int dir)
 }
 
 const IntVect
+BoxLib::scale (const IntVect& p, int s)
+{
+    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+}
+
+const IntVect
 BoxLib::reflect (const IntVect& a,
 		 int            ref_ix,
 		 int            idir)
@@ -118,6 +124,12 @@ BoxLib::reflect (const IntVect& a,
     IntVect b(a);
     b[idir] = -b[idir] + 2*ref_ix;
     return b;
+}
+
+const IntVect
+BoxLib::diagShift (const IntVect& p, int s)
+{
+    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
 const IntVect

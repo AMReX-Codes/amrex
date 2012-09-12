@@ -75,15 +75,27 @@ public:
     //
     // The copy constructor.
     //
-    BoxArray (const BoxArray& bs);
+    BoxArray (const BoxArray& rhs)
+        :
+        m_ref(rhs.m_ref) {}
     //
     // The assignment operator.
     //
-    BoxArray& operator= (const BoxArray& rhs);
+    BoxArray& operator= (const BoxArray& rhs) { m_ref = rhs.m_ref; return *this; }
     //
     // The destructor.
     //
     ~BoxArray ();
+    //
+    // BoxArray can be used like an const STL container.
+    // We ONLY supply const_iterators.  We do this because
+    // BoxArrays are reference counted and we don't want folks
+    // to modify without going through the non-STL BoxArray interface.
+    //
+    typedef Array<Box>::const_iterator const_iterator;
+
+    const_iterator begin () const { return m_ref->m_abox.begin(); }
+    const_iterator   end () const { return m_ref->m_abox.end();   }
     //
     // Initialize the BoxArray from the supplied BoxList.
     // It is an error if the BoxArray has already been initialized.
@@ -105,7 +117,7 @@ public:
     //
     // Returns the number of elements in the BoxArray.
     //
-    int size () const;
+    int size () const { return m_ref->m_abox.size(); }
 
     long numPts() const;
     //
@@ -220,11 +232,11 @@ public:
     //
     // Returns element index of this BoxArray.
     //
-    const Box& operator[] (int index) const;
+    const Box& operator[] (int index) const { return m_ref->m_abox.get(index); }
     //
     // Returns element index of this BoxArray.
     //
-    const Box& get (int index) const;
+    const Box& get (int index) const { return m_ref->m_abox.get(index); }
     //
     // Returns true if Box is valid and they all have the same
     // IndexType.  Is true by default if the BoxArray is empty.
@@ -268,6 +280,8 @@ public:
     //
     void removeOverlap ();
 
+    static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
+
 private:
 
     class Ref
@@ -276,7 +290,7 @@ private:
         //
         // Constructors to match those in BoxArray ....
         //
-        Ref ();
+        Ref () {}
 
         Ref (size_t size);
 
@@ -309,26 +323,5 @@ private:
     //
     LnClassPtr<Ref> m_ref;
 };
-
-inline
-int
-BoxArray::size () const
-{
-    return m_ref->m_abox.size();
-}
-
-inline
-const Box&
-BoxArray::operator[] (int index) const
-{
-    return m_ref->m_abox.get(index);
-}
-
-inline
-const Box&
-BoxArray::get (int index) const
-{
-    return m_ref->m_abox.get(index);
-}
 
 #endif /*BL_BOXARRAY_H*/

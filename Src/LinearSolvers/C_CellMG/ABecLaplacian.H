@@ -73,6 +73,13 @@ public:
     ABecLaplacian (const BndryData& bd,
                    const Real*      _h);
     //
+    // constructor for box array, boundary data and vector mesh spacing
+    //
+    // The ABecLaplacian assumes ownership of the pointer.
+    //
+    ABecLaplacian (BndryData*   bd,
+                   const Real* _h);
+    //
     // destructor
     //
     virtual ~ABecLaplacian ();
@@ -80,23 +87,24 @@ public:
     // Compute extensive (area-weighted) flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC);
+			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC,
+			   int sComp=0, int dComp=0, int nComp=1);
 
     void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-                   MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC);
+                   MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC,
+		   int sComp=0, int dComp=0, int nComp=1);
     //
     // Set scalar coefficients.
     //
-    void setScalars (Real _alpha,
-                     Real _beta);
+    void setScalars (Real _alpha, Real _beta) { alpha = _alpha; beta = _beta;}
     //
     // get scalar alpha coefficient
     //
-    Real get_alpha () const;
+    Real get_alpha () const { return alpha; }
     //
     // get scalar beta coefficient
     //
-    Real get_beta () const;
+    Real get_beta () const { return beta; }
     //
     // return reference to "a" coefficients for base level
     //
@@ -217,28 +225,5 @@ private:
     ABecLaplacian (const ABecLaplacian&);
     ABecLaplacian& operator= (const ABecLaplacian&);
 };
-
-inline
-Real
-ABecLaplacian::get_alpha () const
-{
-    return alpha;
-}
-
-inline
-Real
-ABecLaplacian::get_beta () const
-{
-    return beta;
-}
-
-inline
-void
-ABecLaplacian::setScalars (Real _alpha,
-                           Real _beta)
-{
-    alpha = _alpha;
-    beta  = _beta;
-}
 
 #endif /*_ABecLAPLACIAN_H_*/

@@ -100,14 +100,15 @@ contains
     fine_la = get_layout(fine)
     fdomain = get_pd(fine_la)
 
-    do i = 1, nboxes(fine)
+    do i = 1, nboxes(fine%la)
        !
        ! We don't use get_pbox here as we only want to fill ng ghost cells of 
        ! fine & it may have more ghost cells than that.
        !
        ! Note: we let bl contain empty boxes so that we keep the same number of boxes
-       !       in bl as in fine, but in the interpolation later we cycle if it's empty
-       bx = intersection(grow(get_ibox(fine,i),ng),fdomain)
+       !       in bl as in fine, but in the interpolation later we cycle if it's empty.
+       !
+       bx = intersection(grow(box_nodalize(get_box(fine%la,i),fine%nodal),ng),fdomain)
        call push_back(bl, bx)
     end do
 
@@ -119,8 +120,8 @@ contains
        !
        nodalflags = nodal_flags(fine)
 
-       do i = 1, nboxes(fine)
-          bx = get_ibox(fine,i)
+       do i = 1, nboxes(fine%la)
+          bx = box_nodalize(get_box(fine%la,i),fine%nodal)
           call box_periodic_shift(fdomain, bx, nodalflags, pmask, ng, shft, cnt, bxs)
           if ( cnt > 0 ) have_periodic_gcells = .true.
           do j = 1, cnt
@@ -153,9 +154,9 @@ contains
     !
     ! Force first nboxes(fine) in 'tmpfine' to have the same distribution as 'fine'.
     !
-    allocate(procmap(1:nboxes(fine)+n_extra_valid_regions))
+    allocate(procmap(1:nboxes(fine%la)+n_extra_valid_regions))
 
-    procmap(1:nboxes(fine)) = get_proc(fine_la)
+    procmap(1:nboxes(fine%la)) = get_proc(fine_la)
 
     if ( n_extra_valid_regions > 0 ) then
        np = parallel_nprocs()
@@ -163,13 +164,13 @@ contains
           !
           ! Distribute extra boxes round-robin.
           !
-          procmap(nboxes(fine)+i) = mod(i,np)
+          procmap(nboxes(fine%la)+i) = mod(i,np)
        end do
        !
        ! tmpfine looks like fine with extra boxes added.
        !
-       do i = 1, nboxes(fine)
-          call push_back(pbl, get_ibox(fine,i))
+       do i = 1, nboxes(fine%la)
+          call push_back(pbl, box_nodalize(get_box(fine%la,i),fine%nodal))
        end do
        bln => begin(extra)
        do while (associated(bln))
@@ -254,8 +255,8 @@ contains
 
     call destroy(ba)
 
-    do i = 1, nboxes(pcrse)
-       call push_back(bl, get_pbox(pcrse,i))
+    do i = 1, nboxes(pcrse%la)
+       call push_back(bl, grow(box_nodalize(get_box(pcrse%la,i),pcrse%nodal),pcrse%ng))
     end do
 
     call build(tmpba, bl, sort = .false.)
@@ -264,8 +265,7 @@ contains
     call destroy(tmpba)
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 
-    do i = 1, nboxes(pcrse)
-       if ( remote(pcrse, i) ) cycle
+    do i = 1, nfabs(pcrse)
        src => dataptr(pcrse,   i, icomp_crse, nc)
        dst => dataptr(tmpcrse, i, 1         , nc)
        ! dst = src failed using Intel compiler 9.1.043
@@ -289,8 +289,7 @@ contains
 
     cdomain = get_pd(get_layout(crse))
 
-    do i = 1, nboxes(cfine)
-       if ( remote(cfine, i) ) cycle
+    do i = 1, nfabs(cfine)
 
        cbx = get_ibox(cfine,i)
 
@@ -411,8 +410,7 @@ contains
     if ( have_periodic_gcells ) then
        if ( n_extra_valid_regions > 0 ) then
           call fill_boundary(tmpfine, 1, nc, ng)
-          do i = 1, nboxes(fine)
-             if ( remote(fine, i) ) cycle
+          do i = 1, nfabs(fine)
              bx  =  grow(get_ibox(fine,i), ng)
              dst => dataptr(fine,    i, bx, icomp_fine, nc)
              src => dataptr(tmpfine, i, bx, 1         , nc)
