@@ -304,12 +304,12 @@ public:
     // Write the plot file to be used for visualization.
     //
     void writePlotFile ();
-    int stepOfLastPlotFile () const;
+    int stepOfLastPlotFile () const {return last_plotfile;}
     //
     // Write current state into a chk* file.
     //
     void checkPoint ();
-    int stepOfLastCheckPoint () const;
+    int stepOfLastCheckPoint () const {return last_checkpoint;}
 
 protected:
     //

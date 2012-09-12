@@ -927,9 +927,9 @@ FabArrayBase::PostRcvs (const std::map< int,std::deque<T1> >& m_RcvTags,
 
     TotalRcvsVolume *= ncomp;
 
-    BL_ASSERT((TotalRcvsVolume*sizeof(double)) < std::numeric_limits<int>::max());
+    BL_ASSERT((TotalRcvsVolume*sizeof(T2)) < std::numeric_limits<int>::max());
 
-    the_recv_data = static_cast<double*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(double)));
+    the_recv_data = static_cast<T2*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T2)));
 
     int Offset = 0;
 
@@ -1311,7 +1311,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    double* the_recv_data = 0;
+    value_type* the_recv_data = 0;
 
     FabArrayBase::PostRcvs(*thecpc.m_RcvTags,*thecpc.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
     //
@@ -2265,7 +2265,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    double* the_recv_data = 0;
+    value_type* the_recv_data = 0;
 
     FabArrayBase::PostRcvs(*TheSI.m_RcvTags,*TheSI.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
     //
