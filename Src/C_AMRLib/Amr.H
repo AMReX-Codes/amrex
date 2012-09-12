@@ -9,7 +9,7 @@
 #include <BoxArray.H>
 #include <Array.H>
 #include <PArray.H>
-#include <ParmParse.H>
+
 #ifdef USE_STATIONDATA
 #include <StationData.H>
 #endif
@@ -86,6 +86,12 @@ public:
     // Physical time.
     //
     Real cumTime () const { return cumtime; }
+    void setCumTime (Real t) {cumtime = t;}
+    //
+    // Physical time this simulation started
+    //
+    Real startTime () const { return start_time; }
+    void setStartTime (Real t) {start_time = t;}
     //
     // Time step at specified level.
     //
@@ -294,16 +300,23 @@ public:
                                           Real* dt_max, 
                                           Real* est_work, 
                                           int*  cycle_max);
+    //
+    // Write the plot file to be used for visualization.
+    //
+    void writePlotFile ();
+    int stepOfLastPlotFile () const;
+    //
+    // Write current state into a chk* file.
+    //
+    void checkPoint ();
+    int stepOfLastCheckPoint () const;
+
 protected:
     //
     // Used by grid_places().
     //
     static void ProjPeriodic (BoxList&        bd,
                               const Geometry& geom);
-    //
-    // Write the plot file to be used for visualization.
-    //
-    void writePlotFile (const std::string& root, int num);
     //
     // Initialize grid hierarchy.
     //
@@ -316,10 +329,6 @@ protected:
     // Check for valid input.
     //
     void checkInput ();
-    //
-    // Write current state into a chk* file.
-    //
-    void checkPoint ();
     //
     // Restart from a checkpoint file.
     //
@@ -370,11 +379,8 @@ protected:
 
     void setRecordDataInfo (int i, const std::string&);
     
-    //
-    // The following methods contain the parmParse code for their section.
-    //
-    void initSubcycle(ParmParse * pp);
-    void initPltAndChk(ParmParse * pp);
+    void initSubcycle();
+    void initPltAndChk();
     //
     // The data ...
     //
@@ -385,6 +391,7 @@ protected:
     PArray<AmrLevel> amr_level;    // Array of levels
     Array<Geometry>  geom;         // Index extent of domain at all levels.
     Real             cumtime;      // Physical time variable.
+    Real             start_time;   // Physical time this simulation started.
     Array<Real>      dt_level;     // Timestep at this level.
     Array<int>       level_steps;  // Number of time steps at this level.
     Array<int>       level_count;
