@@ -6,7 +6,10 @@ from ctypes import *
 from base import BLObject
 from pybl import bl
 
-import libpycboxlib as cbl
+try:
+  import libpycboxlib as cbl
+except:
+  print "WARNING: Update to load libpycboxlib.so"
 
 
 class fab(BLObject):
