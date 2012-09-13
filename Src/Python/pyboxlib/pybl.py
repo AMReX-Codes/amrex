@@ -3,7 +3,7 @@
 __all__ = [ 'bl', 'open', 'mpi_size', 'mpi_rank', 'close' ]
 
 
-have_pybl = None
+bl = None
 
 ###############################################################################
 # load libpyfboxlib, set prototypes etc
@@ -32,14 +32,12 @@ try:
     bl.pybl_multifab_read.argtypes = [
         c_char_p, c_int, c_char_p, c_int, c_void_p ]
 
-    have_pybl = True
-
 except:
 
-    if have_pybl is None:
+    if have_pybl is not False:
         print "WARNING: Update to load libpyboxlib.so"
     
-    have_pybl = False
+    bl = False
 
 
 ###############################################################################
