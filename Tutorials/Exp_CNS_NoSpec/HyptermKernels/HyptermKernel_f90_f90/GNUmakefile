@@ -3,8 +3,8 @@
 BOXLIB_HOME ?= $(HOME)/Development/BoxLib/
 
 NDEBUG    := t
-MPI       := t
-OMP       := t
+MPI       := 
+OMP       := 
 PROF      := t
 COMP      := gfortran
 MKVERBOSE := t

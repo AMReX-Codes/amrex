@@ -74,9 +74,7 @@ program main
 !------------------------------------------------- initialize U
     ngrids = U%ng
 
-    do ib=1,nboxes(U)
-      if ( multifab_remote(U,ib) ) cycle
-
+    do ib=1,nfabs(U)
       dp => dataptr(U,ib)
       lo = lwb(get_box(U,ib))
       hi = upb(get_box(U,ib))

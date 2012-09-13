@@ -61,9 +61,7 @@ contains
 
 
     !!! ------------------------ initialize Q
-    do n=1,nboxes(F)
-       if ( remote(F,n) ) cycle
-
+    do n=1,nfabs(F)
        up => dataptr(U,n)
        qp => dataptr(Q,n)
 
@@ -78,9 +76,7 @@ contains
 
     dt = cfl / courno
 
-    do n=1,nboxes(F)
-       if ( remote(F,n) ) cycle
-
+    do n=1,nfabs(F)
        up => dataptr(U,n)
        qp => dataptr(Q,n)
        fp => dataptr(F,n)
