@@ -8,10 +8,6 @@ module define_bc_module
 
   type bc_level
 
-     integer   :: dim    = 0
-     integer   :: ngrids = 0
-     type(box) :: domain 
-
      ! 1st index is the grid number (grid "0" corresponds to the entire problem domain)
      ! 2nd index is the direction (1=x, 2=y, 3=z)
      ! 3rd index is the side (1=lo, 2=hi)
@@ -24,8 +20,6 @@ module define_bc_module
 
   type bc_tower
 
-     integer :: dim     = 0
-     integer :: nlevels = 0
      integer :: max_level_built = 0
 
      ! an array of bc_levels, one for each level of refinement
@@ -56,23 +50,13 @@ module define_bc_module
 
   subroutine bc_tower_init(bct,num_levs,dm,phys_bc_in)
 
-    implicit none
-
     type(bc_tower ), intent(  out) :: bct
     integer        , intent(in   ) :: num_levs
     integer        , intent(in   ) :: dm
     integer        , intent(in   ) :: phys_bc_in(:,:)
 
-    integer :: n
-
-    bct%nlevels = num_levs
-    bct%dim     = dm
-    allocate(bct%bc_tower_array(bct%nlevels))
+    allocate(bct%bc_tower_array(num_levs))
     allocate(bct%domain_bc(dm,2))
-
-    do n = 1, num_levs
-      bct%bc_tower_array(n)%ngrids = -1
-    end do
 
     bct%domain_bc(:,:) = phys_bc_in(:,:)
 
@@ -86,33 +70,33 @@ module define_bc_module
     integer        , intent(in   ) :: n
     type(layout)   , intent(in   ) :: la
 
-    integer :: ngrids
-    integer :: ncomp
+    integer :: ngrids,ncomp,dm
 
     ncomp = 1
+    dm = layout_dim(la)
 
-    if (bct%bc_tower_array(n)%ngrids > 0) then
+    if (associated(bct%bc_tower_array(n)%phys_bc_level_array)) then
       deallocate(bct%bc_tower_array(n)%phys_bc_level_array)
       deallocate(bct%bc_tower_array(n)%adv_bc_level_array)
       deallocate(bct%bc_tower_array(n)%ell_bc_level_array)
+      bct%bc_tower_array(n)%phys_bc_level_array => NULL()
+      bct%bc_tower_array(n)%adv_bc_level_array => NULL()
+      bct%bc_tower_array(n)%ell_bc_level_array => NULL()
     end if
 
     ngrids = layout_nboxes(la)
-    bct%bc_tower_array(n)%dim    = bct%dim
-    bct%bc_tower_array(n)%ngrids = ngrids
-    bct%bc_tower_array(n)%domain = layout_get_pd(la)
 
-    allocate(bct%bc_tower_array(n)%phys_bc_level_array(0:ngrids,bct%dim,2))
+    allocate(bct%bc_tower_array(n)%phys_bc_level_array(0:ngrids,dm,2))
     call phys_bc_level_build(bct%bc_tower_array(n)%phys_bc_level_array,la, &
                              bct%domain_bc)
 
     ! Here we allocate 1 component and set the default to be INTERIOR
-    allocate(bct%bc_tower_array(n)%adv_bc_level_array(0:ngrids,bct%dim,2,ncomp))
+    allocate(bct%bc_tower_array(n)%adv_bc_level_array(0:ngrids,dm,2,ncomp))
     call adv_bc_level_build(bct%bc_tower_array(n)%adv_bc_level_array, &
                             bct%bc_tower_array(n)%phys_bc_level_array)
 
     ! Here we allocate 1 component and set the default to be BC_INT
-    allocate(bct%bc_tower_array(n)%ell_bc_level_array(0:ngrids,bct%dim,2,ncomp))
+    allocate(bct%bc_tower_array(n)%ell_bc_level_array(0:ngrids,dm,2,ncomp))
     call ell_bc_level_build(bct%bc_tower_array(n)%ell_bc_level_array, &
                             bct%bc_tower_array(n)%phys_bc_level_array)
 
@@ -123,8 +107,6 @@ module define_bc_module
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine phys_bc_level_build(phys_bc_level,la_level,domain_bc)
-
-    implicit none
 
     integer     , intent(inout) :: phys_bc_level(0:,:,:)
     integer     , intent(in   ) :: domain_bc(:,:)
@@ -161,8 +143,6 @@ module define_bc_module
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine adv_bc_level_build(adv_bc_level,phys_bc_level)
-
-    implicit none
 
     integer  , intent(inout) ::  adv_bc_level(0:,:,:,:)
     integer  , intent(in   ) :: phys_bc_level(0:,:,:)
@@ -211,8 +191,6 @@ module define_bc_module
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine ell_bc_level_build(ell_bc_level,phys_bc_level)
-
-    implicit none
 
     integer  , intent(inout) ::  ell_bc_level(0:,:,:,:)
     integer  , intent(in   ) :: phys_bc_level(0:,:,:)
@@ -266,8 +244,6 @@ module define_bc_module
 
   subroutine bc_tower_destroy(bct)
 
-    implicit none
-
     type(bc_tower), intent(inout) :: bct
 
     integer :: n
@@ -276,6 +252,9 @@ module define_bc_module
        deallocate(bct%bc_tower_array(n)%phys_bc_level_array)
        deallocate(bct%bc_tower_array(n)%adv_bc_level_array)
        deallocate(bct%bc_tower_array(n)%ell_bc_level_array)
+       bct%bc_tower_array(n)%phys_bc_level_array => NULL()
+       bct%bc_tower_array(n)%adv_bc_level_array => NULL()
+       bct%bc_tower_array(n)%ell_bc_level_array => NULL()
     end do
     deallocate(bct%bc_tower_array)
 

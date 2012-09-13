@@ -170,7 +170,7 @@ contains
        ! tmpfine looks like fine with extra boxes added.
        !
        do i = 1, nboxes(fine%la)
-          call push_back(pbl, box_nodalize(get_box(fine,i),fine%nodal))
+          call push_back(pbl, box_nodalize(get_box(fine%la,i),fine%nodal))
        end do
        bln => begin(extra)
        do while (associated(bln))
