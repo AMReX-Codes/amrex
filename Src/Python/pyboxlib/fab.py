@@ -3,12 +3,13 @@
 __all__ = [ 'fab' ]
 
 from ctypes import *
+from base import BLObject
 from pybl import bl
 
 import libpycboxlib as cbl
 
 
-class fab(object):
+class fab(BLObject):
   """FAB.
 
   Here we assume that a fab is attached to a multifab.
@@ -32,12 +33,10 @@ class fab(object):
 
   """
 
-  def __init__(self, mfab, nbox):
+  def __init__(self, mfab, nbox, level=None):
 
     self.mfab   = mfab
     self.nbox   = nbox
-    self.dim    = c_int(0)
-    self.nc     = c_int(0)
     self.bx_lo  = (3*c_int)()
     self.bx_hi  = (3*c_int)()
     self.pbx_lo = (3*c_int)()
@@ -54,10 +53,14 @@ class fab(object):
     get_info  = getattr(bl, 'pybl_get_' + mftype + '_fab_info')
     get_array = getattr(cbl, mftype + '_as_numpy')
 
-    get_info(self.mfab.cptr, nbox, byref(self._dim), byref(self._nc), 
-             self.bx_lo, self.bx_hi, 
-             self.pbx_lo, self.pbx_hi, 
-             self.ibx_lo, self.ibx_hi)
+    if level:
+      get_info(self.mfab.cptr, level, nbox, byref(self._dim), byref(self._nc), 
+               self.pbx_lo, self.pbx_hi)
+    else:
+      get_info(self.mfab.cptr, nbox, byref(self._dim), byref(self._nc), 
+               self.bx_lo, self.bx_hi, 
+               self.pbx_lo, self.pbx_hi, 
+               self.ibx_lo, self.ibx_hi)
 
     ints = lambda arr: [ int(x) for x in arr[:self.dim] ]
     lohi = lambda lo, hi: (ints(lo), ints(hi))
@@ -67,7 +70,10 @@ class fab(object):
     self.pbx = lohi(self.pbx_lo, self.pbx_hi)
 
     cptr = addressof(self.mfab.cptr)
-    self.array = get_array(cptr, nbox).squeeze()
+    if level:
+      self.array = get_array(cptr, level, nbox).squeeze()
+    else:
+      self.array = get_array(cptr, nbox).squeeze()
 
 
   @property
