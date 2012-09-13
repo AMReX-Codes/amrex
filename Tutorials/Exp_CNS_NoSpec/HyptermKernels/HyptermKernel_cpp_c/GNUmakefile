@@ -1,11 +1,7 @@
+
 BOXLIB_HOME ?= ../../../../../BoxLib
 
 BL_NOFAST=TRUE
-
-#
-# Variables for the user to set ...
-#
-########## define EBASE and BL_HAS_FORT here
 
 EBASE = HyptermOnly
 
@@ -52,8 +48,6 @@ CEXE_sources += $(EBASE).cpp
 include ./Make.package
 
 DEFINES += -DBL_PARALLEL_IO
-
-#FOPTF += -msse3
 
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 

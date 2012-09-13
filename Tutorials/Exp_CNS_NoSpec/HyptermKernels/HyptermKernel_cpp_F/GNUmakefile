@@ -1,11 +1,7 @@
+
 BOXLIB_HOME ?= ../../../../../BoxLib
 
 BL_NOFAST=TRUE
-
-#
-# Variables for the user to set ...
-#
-########## define EBASE and BL_HAS_FORT here
 
 EBASE = HyptermOnly
 
@@ -45,11 +41,6 @@ ifeq ($(USE_OMP),TRUE)
   override fOPTF   += -fopenmp
 endif
 
-CXXOPTF = -O1
-COPTF   = -O1
-FOPTF   = -O1
-fOPTF   = -O1
-# FFLAGS  = -O1
 
 CEXE_sources += $(EBASE).cpp
 
