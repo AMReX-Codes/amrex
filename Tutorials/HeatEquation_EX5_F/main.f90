@@ -242,16 +242,8 @@ program main
   end do
 
   if (nlevs .ge. 3) then
-
      ! check for proper nesting
      call enforce_proper_nesting(mba,la_array,max_grid_size)
-
-     ! enforce_proper_nesting can create new grids at coarser levels
-     ! this makes sure the boundary conditions are properly defined everywhere
-     do n = 2,nlevs
-        call bc_tower_level_build(the_bc_tower,n,la_array(n))
-     end do
-
   end if
 
   do n=1,nlevs
@@ -260,7 +252,12 @@ program main
 
   ! tell mla that there are nlevs levels, not max_levs
   call ml_layout_restricted_build(mla,mba,nlevs,is_periodic)
-     
+
+  ! this makes sure the boundary conditions are properly defined everywhere
+  do n = 1,nlevs
+     call bc_tower_level_build(the_bc_tower,n,mla%la(n))
+  end do
+  
   do n=1,nlevs
      call multifab_build(phi(n),mla%la(n),1,1)
   end do
