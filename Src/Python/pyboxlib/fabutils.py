@@ -10,7 +10,6 @@ import os
 
 from fabric.api import *
 from fabric.colors import *
-from pyboxlib.utils import *
 
 
 def submit(exe, dname, probin):
