@@ -25,7 +25,7 @@ contains
     real(kind=dp_t), pointer :: vtp(:,:,:,:)
     real(kind=dp_t), pointer :: wtp(:,:,:,:)
     integer                  :: lo(get_dim(uedge(1))),hi(get_dim(uedge(1)))
-    integer                  :: i,ng_ut,dm,gid
+    integer                  :: i,ng_ut,dm
 
     type(bl_prof_timer), save :: bpt
 
@@ -35,23 +35,22 @@ contains
     ng_ut = nghost(uedge(1))
 
     do i=1,nfabs(uedge(1))
-       gid = global_index(uedge(1),i)
        utp => dataptr(uedge(1),i)
        lo =  lwb(get_box(uedge(1),i))
        hi =  upb(get_box(uedge(1),i))
        select case (dm)
        case (1)
           call physbc_edgevel_1d(utp(:,1,1,1), ng_ut, lo,hi, &
-                                the_bc_level%phys_bc_level_array(gid,:,:))
+                                the_bc_level%phys_bc_level_array(i,:,:))
        case (2)
           vtp => dataptr(uedge(2),i)
           call physbc_edgevel_2d(utp(:,:,1,1), vtp(:,:,1,1), ng_ut, lo,hi, &
-                                the_bc_level%phys_bc_level_array(gid,:,:))
+                                the_bc_level%phys_bc_level_array(i,:,:))
        case (3)
           vtp => dataptr(uedge(2),i)
           wtp => dataptr(uedge(3),i)
           call physbc_edgevel_3d(utp(:,:,:,1), vtp(:,:,:,1), wtp(:,:,:,1), ng_ut, &
-                                lo, hi, the_bc_level%phys_bc_level_array(gid,:,:))
+                                lo, hi, the_bc_level%phys_bc_level_array(i,:,:))
        end select
     end do
 

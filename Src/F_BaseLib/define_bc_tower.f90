@@ -84,7 +84,7 @@ module define_bc_module
       bct%bc_tower_array(n)%ell_bc_level_array => NULL()
     end if
 
-    ngrids = layout_nboxes(la)
+    ngrids = layout_nlocal(la)
 
     allocate(bct%bc_tower_array(n)%phys_bc_level_array(0:ngrids,dm,2))
     call phys_bc_level_build(bct%bc_tower_array(n)%phys_bc_level_array,la, &
@@ -128,8 +128,8 @@ module define_bc_module
     end do
 
     ! loop over individual grids
-    do i = 1,layout_nboxes(la_level)    ! loop over grids
-       bx = layout_get_box(la_level,i)  ! grab box associated with the grid
+    do i = 1,layout_nlocal(la_level)    ! loop over grids
+       bx = layout_get_box(la_level,global_index(la_level,i))  ! grab box associated with the grid
        do d = 1,layout_dim(la_level)    ! loop over directions
           ! if one side of a grid is a domain boundary, set the 
           ! physical boundary condition
