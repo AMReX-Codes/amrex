@@ -90,17 +90,6 @@ class lmultifab(multifab):
 
   pass
 
-  # def create(self, layout):
-  #   """Create a logical (boolean) multifab from a layout."""
-
-  #   self.cptr = pybl.create_lmultifab_from_layout(layout.cptr)
-
-  #   if self.cptr:
-  #     self.dim, self.nboxes = pybl.get_lmultifab_info(self.cptr)
-
-  # # # XXX: add a more fancy get/set
-  # # def array(self, box):
-  # #   return lmultifab_array(self.cptr, box)
 
 
 

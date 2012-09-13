@@ -222,7 +222,7 @@ contains
 
     call pybl_multifab_get(cptr,mfab)
     dim = mfab%dim
-    nboxes = mfab%nboxes
+    nboxes = nfabs(mfab)
     nc = mfab%nc
     ng = mfab%ng
   end subroutine pybl_get_multifab_info
@@ -415,6 +415,81 @@ contains
     flevel = pf%flevel
   end subroutine pybl_get_plotfile_info
 
+  subroutine pybl_get_plotfile_grid_info(cptr, level, nboxes) &
+       bind(c, name='pybl_get_plotfile_grid_info')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(in), value :: level
+    integer(c_int), intent(out)       :: nboxes
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+
+    nboxes = plotfile_nboxes_n(pf, level)
+  end subroutine pybl_get_plotfile_grid_info
+
+  subroutine pybl_get_plotfile_name(cptr, nvar, nlen, nameptr) &
+       bind(c, name='pybl_get_plotfile_name')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(in), value :: nvar, nlen
+    type(c_ptr),    intent(in), value :: nameptr
+
+    character(len=nlen), pointer :: name
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+    call c_f_pointer(nameptr, name)
+
+    name = pf%names(nvar)
+  end subroutine pybl_get_plotfile_name
+
+  subroutine pybl_plotfile_bind(cptr, i, j, c) &
+       bind(c, name='pybl_plotfile_bind')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(in), value :: i, j, c
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+    call fab_bind_comp_vec(pf, i, j, (/ c /) )
+  end subroutine pybl_plotfile_bind
+
+  subroutine pybl_plotfile_unbind(cptr, i, j) &
+       bind(c, name='pybl_plotfile_unbind')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(in), value :: i, j
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+    call fab_unbind(pf, i, j)
+  end subroutine pybl_plotfile_unbind
+
+  subroutine pybl_get_plotfile_fab_info(cptr, level, nbox, dim, nc, &
+       pbx_lo, pbx_hi) &
+       bind(c, name='pybl_get_plotfile_fab_info')
+    use plotfile_module
+    implicit none
+    type(c_ptr), intent(in), value :: cptr
+    integer(c_int), intent(in), value :: level, nbox
+    integer(c_int), intent(out) :: dim, nc
+    integer(c_int), intent(out), dimension(3) :: pbx_lo, pbx_hi
+
+    type(plotfile), pointer :: pf
+    type(box) :: bx
+    call pybl_plotfile_get(cptr, pf)
+    dim = pf%dim
+    nc  = pf%nvars
+
+    bx = get_box(pf, level, nbox)
+    pbx_lo = bx%lo
+    pbx_hi = bx%hi
+  end subroutine pybl_get_plotfile_fab_info
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! regrid
