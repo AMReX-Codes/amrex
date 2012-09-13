@@ -34,7 +34,7 @@ try:
 
 except:
 
-    if have_pybl is not False:
+    if bl is not False:
         print "WARNING: Update to load libpyboxlib.so"
     
     bl = False
