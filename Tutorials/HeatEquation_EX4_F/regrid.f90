@@ -78,6 +78,9 @@ contains
     ! build the level 1 layout.
     call layout_build_ba(la_array(1),mba%bas(1),mba%pd(1),mla_old%pmask)
 
+    ! This makes sure the boundary conditions are properly defined everywhere
+    call bc_tower_level_build(the_bc_tower,1,la_array(1))
+
     ! build level 1 multifab
     call multifab_build(phi(1),la_array(1),1,1)
     
