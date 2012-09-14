@@ -84,7 +84,7 @@ contains
        lo = lwb(get_box(F,n))
        hi = upb(get_box(F,n))
 
-       !call hypterm(lo,hi,ng,dx,up,qp,fp)
+       ! call hypterm(lo,hi,ng,dx,up,qp,fp)
        call hypterm_opt(lo,hi,ng,dx,up,qp,fp)
 
     end do
@@ -153,16 +153,27 @@ contains
     double precision, intent(in ) ::    q(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,6)
     double precision, intent(out) :: flux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),5)
 
-    integer          :: i,j,k
+    integer          :: i,j,k,icomp
     double precision :: unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4
     double precision :: dxinv(3)
 
+    double precision :: L1_start_time, L1_end_time
+    double precision :: L2_start_time, L2_end_time
+    double precision :: L3_start_time, L3_end_time
+
+    double precision :: fluxmin(3), fluxmax(3)
+    integer          :: L1iters, L2iters, L3iters
+
+    L1iters = 0
+    L2iters = 0
+    L3iters = 0
 
     do i=1,3
        dxinv(i) = 1.0d0 / dx(i)
     end do
 
 
+    L1_start_time = parallel_wtime()
     !$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -219,8 +230,9 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    L1_end_time = parallel_wtime()
 
-
+    L2_start_time = parallel_wtime()
     !$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -277,7 +289,9 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    L2_end_time = parallel_wtime()
 
+    L3_start_time = parallel_wtime()
     !$OMP PARALLEL DO PRIVATE(i,j,k,unp1,unp2,unp3,unp4,unm1,unm2,unm3,unm4)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -334,7 +348,39 @@ contains
        enddo
     enddo
     !$OMP END PARALLEL DO
+    L3_end_time = parallel_wtime()
 
+    do icomp=1,5
+      fluxmin(icomp) = flux(lo(1), lo(2), lo(3), icomp)
+      fluxmax(icomp) = flux(lo(1), lo(2), lo(3), icomp)
+    enddo
+    do icomp=1,5
+      do k=lo(3),hi(3)
+         do j=lo(2),hi(2)
+            do i=lo(1),hi(1)
+              fluxmin(icomp) = min(fluxmin(icomp), flux(i,j,k,icomp))
+              fluxmax(icomp) = max(fluxmax(icomp), flux(i,j,k,icomp))
+            enddo
+         enddo
+      enddo
+    enddo
+
+    if ( parallel_IOProcessor() ) then
+     print*, "L1iters = ", L1iters
+     print*, "L2iters = ", L2iters
+     print*, "L3iters = ", L3iters
+    end if
+
+    if ( parallel_IOProcessor() ) then
+       print *,"-----------------"
+       write(6,42),"     L1  (s) =",L1_end_time-L1_start_time
+       write(6,42),"     L2  (s) =",L2_end_time-L2_start_time
+       write(6,42),"     L3  (s) =",L3_end_time-L3_start_time
+       write(6,42),"hypterm  (s) =",L3_end_time-L1_start_time
+       print *,"-----------------"
+    end if
+
+42  format(a,f12.8)
 
   end subroutine hypterm
 
