@@ -311,15 +311,15 @@ public:
     void copyToMem (const Box& srcbox,
                     int        srccomp,
                     int        numcomp,
-                    T*         dest) const;
+                    T*         dst) const;
     //
     // A specialized version of copy() that copies from raw memory to a FAB.
     // Basically a memcpy() that works with a FAB as destination.
     //
-//    BaseFab<T>& copyFromMem (const Box& box,
-//                             int        srccomp,
-//                             int        numcomp,
-//                             T*         dest);
+    void copyFromMem (const Box& dstbox,
+                      int        dstcomp,
+                      int        numcomp,
+                      const T*   src);
     //
     // Perform shifts upon the domain of the BaseFab. They are
     // completely analogous to the corresponding Box functions.
@@ -1346,11 +1346,10 @@ void
 BaseFab<T>::copyToMem (const Box& srcbox,
                        int        srccomp,
                        int        numcomp,
-                       T*         dest) const
+                       T*         dst) const
 {
     BL_ASSERT(box().contains(srcbox));
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
-    BL_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= nComp());
 
     if (srcbox.ok()) 
     { 
@@ -1359,7 +1358,7 @@ BaseFab<T>::copyToMem (const Box& srcbox,
         IntVect    _subbox_length = srcbox.size();
         const int* _subbox_len    = _subbox_length.getVect(); 
         const int* _bx_lo         = (srcbox).loVect(); 
-        T*         _th_p          = dest;
+        T*         _th_p          = dst;
         const T*   _x_p           = dataPtr(srccomp); 
 
 #if (BL_SPACEDIM == 1)
@@ -1409,6 +1408,77 @@ BaseFab<T>::copyToMem (const Box& srcbox,
                     for (int _i = 0; _i < _subbox_len[0]; ++_i)
                     {
                         *_th_p++ = *_x_pp++;
+                    }
+                }
+            }
+        }
+#endif
+    }
+}
+
+template <class T>
+void
+BaseFab<T>::copyFromMem (const Box& dstbox,
+                         int        dstcomp,
+                         int        numcomp,
+                         const T*   src)
+{
+    BL_ASSERT(box().contains(dstbox));
+    BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
+
+    if (dstbox.ok()) 
+    { 
+        const int* _x_plo         = loVect(); 
+        const int* _x_plen        = length(); 
+        IntVect    _subbox_length = dstbox.size();
+        const int* _subbox_len    = _subbox_length.getVect(); 
+        const int* _bx_lo         = (dstbox).loVect(); 
+        const T*   _th_p          = src;
+        T*         _x_p           = dataPtr(dstcomp); 
+
+#if (BL_SPACEDIM == 1)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            T* _x_pp = _x_p + ((_bx_lo[0]-_x_plo[0])+_n*_x_plen[0]);
+
+            for (int _i = 0; _i < _subbox_len[0]; ++_i)
+            { 
+                *_x_pp++ = *_th_p++;
+            }
+        }
+
+#elif (BL_SPACEDIM == 2)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            for (int _j = 0; _j < _subbox_len[1]; ++_j)
+            { 
+                const int jxR   = _j + _bx_lo[1]; 
+                T*        _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) + _x_plen[0]*((jxR - _x_plo[1]) + _n * _x_plen[1])); 
+                for (int _i = 0; _i < _subbox_len[0]; ++_i)
+                {  
+                    *_x_pp++ = *_th_p++;
+                }
+            }
+        }
+
+#elif (BL_SPACEDIM == 3)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            for (int _k = 0; _k < _subbox_len[2]; ++_k)
+            { 
+                const int kxR = _k + _bx_lo[2];
+                for(int _j = 0; _j < _subbox_len[1]; ++_j)
+                { 
+                    const int jxR   = _j + _bx_lo[1]; 
+                    T*        _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
+                                              + _x_plen[0]*((jxR - _x_plo[1]) 
+                                                            + _x_plen[1]*( (kxR - _x_plo[2]) + _n * _x_plen[2])));
+                    for (int _i = 0; _i < _subbox_len[0]; ++_i)
+                    {
+                        *_x_pp++ = *_th_p++;
                     }
                 }
             }
