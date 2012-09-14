@@ -101,6 +101,62 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
     }
 }
 
+template <>
+void
+BaseFab<Real>::copyToMem (const Box& srcbox,
+                          int        srccomp,
+                          int        numcomp,
+                          Real*      dst) const
+{
+    BL_ASSERT(box().contains(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
+
+    if (srcbox.ok())
+    {
+        const Real* data   = dataPtr(srccomp);
+        const int* _box_lo = srcbox.loVect(); 
+        const int* _box_hi = srcbox.hiVect(); 
+        const int* _th_plo = loVect(); 
+        const int* _th_phi = hiVect(); 
+
+        FORT_FASTCOPYTOMEM(_box_lo,
+                           _box_hi,
+                           data,
+                           ARLIM(_th_plo),
+                           ARLIM(_th_phi),
+                           &numcomp,
+                           dst);
+    }
+}
+
+template <>
+void
+BaseFab<Real>::copyFromMem (const Box&  dstbox,
+                            int         dstcomp,
+                            int         numcomp,
+                            const Real* src)
+{
+    BL_ASSERT(box().contains(dstbox));
+    BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
+
+    if (dstbox.ok()) 
+    {
+        Real*      data    = dataPtr(dstcomp);
+        const int* _box_lo = dstbox.loVect(); 
+        const int* _box_hi = dstbox.hiVect(); 
+        const int* _th_plo = loVect(); 
+        const int* _th_phi = hiVect(); 
+
+        FORT_FASTCOPYFROMMEM(_box_lo,
+                             _box_hi,
+                             data,
+                             ARLIM(_th_plo),
+                             ARLIM(_th_phi),
+                             &numcomp,
+                             src);
+    }
+}
+
 template<>
 void
 BaseFab<Real>::performSetVal (Real       val,
@@ -122,10 +178,10 @@ BaseFab<Real>::performSetVal (Real       val,
     }
     else
     {
-        const int* _box_lo = bx.loVect();            
-        const int* _box_hi = bx.hiVect();            
-        const int* _th_plo = loVect();                           
-        const int* _th_phi = hiVect();
+        const int* _box_lo = bx.loVect(); 
+        const int* _box_hi = bx.hiVect(); 
+        const int* _th_plo = loVect(); 
+        const int* _th_phi = hiVect(); 
 
         FORT_FASTSETVAL(&val,
                         _box_lo,
