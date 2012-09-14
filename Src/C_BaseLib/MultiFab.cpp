@@ -1127,10 +1127,8 @@ MultiFab::SumBoundary (int scomp,
         {
             BL_ASSERT(distributionMap[it->fabIndex] == ParallelDescriptor::MyProc());
             const Box& bx = it->box;
-            fab.resize(bx,ncomp);
-            fab.copy(mf[it->fabIndex],bx,scomp,bx,0,ncomp);
+            mf[it->fabIndex].copyToMem(bx,scomp,ncomp,dptr);
             const int Cnt = bx.numPts()*ncomp;
-            memcpy(dptr, fab.dataPtr(), Cnt*sizeof(double));
             dptr += Cnt;
         }
         BL_ASSERT(data+N == dptr);
