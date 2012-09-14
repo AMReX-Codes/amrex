@@ -397,10 +397,8 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
              ++it)
         {
             const Box& bx = it->box;
-            fab.resize(bx,ncomp);
-            fab.copy(srcmf[it->fabIndex],bx,scomp,bx,0,ncomp);
+            srcmf[it->fabIndex].copyToMem(bx,scomp,ncomp,dptr);
             const int Cnt = bx.numPts()*ncomp;
-            memcpy(dptr,fab.dataPtr(),Cnt*sizeof(double));
             dptr += Cnt;
         }
         BL_ASSERT(data+N == dptr);

@@ -396,10 +396,8 @@ namespace BoxLib
                  ++it)
             {
                 const Box& bx = it->sbox;
-                fab.resize(bx, ncomp);
-                fab.copy(mf[it->srcIndex],bx,scomp,bx,0,ncomp);
+                mf[it->srcIndex].copyToMem(bx,scomp,ncomp,dptr);
                 const int Cnt = bx.numPts()*ncomp;
-                memcpy(dptr, fab.dataPtr(), Cnt*sizeof(value_type));
                 dptr += Cnt;
             }
             BL_ASSERT(data+N == dptr);

@@ -1341,10 +1341,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
              ++it)
         {
             const Box& bx = it->box;
-            fab.resize(bx,ncomp);
-            fab.copy(src[it->srcIndex],bx,scomp,bx,0,ncomp);
+            src[it->srcIndex].copyToMem(bx,scomp,ncomp,dptr);
             const int Cnt = bx.numPts()*ncomp;
-            memcpy(dptr, fab.dataPtr(), Cnt*sizeof(value_type));
             dptr += Cnt;
         }
         BL_ASSERT(data+N == dptr);
@@ -2019,15 +2017,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         {
             BL_ASSERT(cd->id() == 0);
             BL_ASSERT(cd->fromproc() == Who);
-            fab.resize(cd->box(),cd->nComp());
-            const int Cnt = fab.box().numPts()*fab.nComp();
-            fab.copy((*fabArrays[cd->fabarrayid()])[cd->fabindex()],
-                     fab.box(),
-                     cd->srcComp(),
-                     fab.box(),
-                     0,
-                     cd->nComp());
-            memcpy(dptr, fab.dataPtr(), Cnt*sizeof(value_type));
+            const int Cnt = cd->box().numPts()*cd->nComp();
+            (*fabArrays[cd->fabarrayid()])[cd->fabindex()].copyToMem(cd->box(),cd->srcComp(),cd->nComp(),dptr);
             dptr += Cnt;
         }
 
@@ -2296,10 +2287,8 @@ FabArray<FAB>::FillBoundary (int  scomp,
         {
             BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
             const Box& bx = it->box;
-            fab.resize(bx,ncomp);
-            fab.copy(get(it->srcIndex),bx,scomp,bx,0,ncomp);
+            get(it->srcIndex). copyToMem(bx,scomp,ncomp,dptr);
             const int Cnt = bx.numPts()*ncomp;
-            memcpy(dptr, fab.dataPtr(), Cnt*sizeof(value_type));
             dptr += Cnt;
         }
         BL_ASSERT(data+N == dptr);
