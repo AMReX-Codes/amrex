@@ -20,14 +20,13 @@ contains
     ! Local
     integer                  :: lo(get_dim(s)), hi(get_dim(s))
     integer                  :: i,ng,dm
-    integer                  :: scomp,bccomp,gid
+    integer                  :: scomp,bccomp
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     
     ng = nghost(s)
     dm = get_dim(s)
     
     do i=1,nfabs(s)
-       gid = global_index(s,i)
        sp => dataptr(s,i)
        lo = lwb(get_box(s,i))
        hi = upb(get_box(s,i))
@@ -36,13 +35,13 @@ contains
           do scomp=start_scomp,start_scomp+ncomp-1
              bccomp = start_bccomp + scomp - start_scomp
              call physbc_2d(sp(:,:,1,scomp), lo, hi, ng, &
-                            the_bc_level%adv_bc_level_array(gid,:,:,bccomp))
+                            the_bc_level%adv_bc_level_array(i,:,:,bccomp))
           end do
        case (3)
           do scomp=start_scomp,start_scomp+ncomp-1
              bccomp = start_bccomp + scomp - start_scomp
              call physbc_3d(sp(:,:,:,scomp), lo, hi, ng, &
-                            the_bc_level%adv_bc_level_array(gid,:,:,bccomp))
+                            the_bc_level%adv_bc_level_array(i,:,:,bccomp))
           end do
        end select
     end do

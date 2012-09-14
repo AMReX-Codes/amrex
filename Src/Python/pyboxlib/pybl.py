@@ -3,31 +3,41 @@
 __all__ = [ 'bl', 'open', 'mpi_size', 'mpi_rank', 'close' ]
 
 
+bl = None
+
 ###############################################################################
 # load libpyfboxlib, set prototypes etc
 
 from ctypes import *
 
-bl = CDLL('libpyfboxlib.so')
-c_int_p = POINTER(c_int)
+try:
+    bl = CDLL('libpyfboxlib.so')
+    c_int_p = POINTER(c_int)
 
-bl.pybl_create_multifab_from_layout.restype = None
-bl.pybl_create_multifab_from_layout.argtypes = [
-    c_void_p, c_int, c_int, c_void_p ]
+    bl.pybl_create_multifab_from_layout.restype = None
+    bl.pybl_create_multifab_from_layout.argtypes = [
+        c_void_p, c_int, c_int, c_void_p ]
 
-bl.pybl_get_multifab_info.restype = None
-bl.pybl_get_multifab_info.argtypes = [
-    c_void_p, c_int_p, c_int_p, c_int_p, c_int_p ]
+    bl.pybl_get_multifab_info.restype = None
+    bl.pybl_get_multifab_info.argtypes = [
+        c_void_p, c_int_p, c_int_p, c_int_p, c_int_p ]
 
-bl.pybl_create_layout_from_boxes.restype = None
-bl.pybl_create_layout_from_boxes.argtypes = [
-    c_void_p, c_int, c_int, c_void_p, c_void_p ]
+    bl.pybl_create_layout_from_boxes.restype = None
+    bl.pybl_create_layout_from_boxes.argtypes = [
+        c_void_p, c_int, c_int, c_void_p, c_void_p ]
 
-bl.pybl_multifab_write.argtypes = [
-    c_void_p, c_char_p, c_int, c_char_p, c_int ]
+    bl.pybl_multifab_write.argtypes = [
+        c_void_p, c_char_p, c_int, c_char_p, c_int ]
 
-bl.pybl_multifab_read.argtypes = [
-    c_char_p, c_int, c_char_p, c_int, c_void_p ]
+    bl.pybl_multifab_read.argtypes = [
+        c_char_p, c_int, c_char_p, c_int, c_void_p ]
+
+except:
+
+    if bl is not False:
+        print "WARNING: Update to load libpyboxlib.so"
+    
+    bl = False
 
 
 ###############################################################################
