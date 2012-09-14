@@ -303,6 +303,17 @@ public:
     //
     BaseFab<T>& copy (const BaseFab<T>& src);
     //
+    // A specialized version of copy() that copies from a FAB to a raw memory
+    // destination.  Basically a memcpy() that works with a FAB as source.
+    // It is the user's responsibility to ensure that dest has enough space
+    // to hold the copy.  Minimum space needed is srcbox.numPts()*numcomp.
+    //
+    static void MemCopy (const BaseFab<T>& src,
+                         const Box&        srcbox,
+                         int               srccomp,
+                         int               numcomp,
+                         T*                dest);
+    //
     // Perform shifts upon the domain of the BaseFab. They are
     // completely analogous to the corresponding Box functions.
     // There is no effect upon the array memory.
@@ -1320,6 +1331,83 @@ BaseFab<T>::performSetVal (T          val,
         {
             thisR = val;
         } EndFor
+    }
+}
+
+template <class T>
+void
+BaseFab<T>::MemCopy (const BaseFab<T>& src,
+                     const Box&        srcbox,
+                     int               srccomp,
+                     int               numcomp,
+                     T*                dest)
+{
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());
+
+    if (srcbox.ok()) 
+    { 
+        const int* _x_plo         = (src).loVect(); 
+        const int* _x_plen        = (src).length(); 
+        IntVect    _subbox_length = srcbox.size();
+        const int* _subbox_len    = _subbox_length.getVect(); 
+        const int* _bx_lo         = (srcbox).loVect(); 
+        T*         _th_p          = dest;
+        const T*   _x_p           = (src).dataPtr(srccomp); 
+
+#if (BL_SPACEDIM == 1)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            const T* _x_pp = _x_p + ((_bx_lo[0]-_x_plo[0])+_n*_x_plen[0]);
+
+            for (int _i = 0; _i < _subbox_len[0]; ++_i)
+            { 
+                *_th_p++ = *_x_pp++;
+            }
+        }
+
+#elif (BL_SPACEDIM == 2)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            for (int _j = 0; _j < _subbox_len[1]; ++_j)
+            { 
+                const int jxR   = _j + _bx_lo[1]; 
+                const T*  _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
+                                          + _x_plen[0]*((jxR - _x_plo[1]) 
+                                                        + _n * _x_plen[1])); 
+                for (int _i = 0; _i < _subbox_len[0]; ++_i)
+                {  
+                    *_th_p++ = *_x_pp++;
+                }
+            }
+        }
+
+#elif (BL_SPACEDIM == 3)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            for (int _k = 0; _k < _subbox_len[2]; ++_k)
+            { 
+                const int kxR = _k + _bx_lo[2];
+                for(int _j = 0; _j < _subbox_len[1]; ++_j)
+                { 
+                    const int jxR   = _j + _bx_lo[1]; 
+                    const T*  _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
+                                              + _x_plen[0]*((jxR - _x_plo[1]) 
+                                                           + _x_plen[1]*( 
+                                                               (kxR - _x_plo[2])
+                                                            + _n * _x_plen[2])));
+                    for (int _i = 0; _i < _subbox_len[0]; ++_i)
+                    {
+                        *_th_p++ = *_x_pp++;
+                    }
+                }
+            }
+        }
+#endif
     }
 }
 
