@@ -55,6 +55,8 @@ class testObj:
         self.selfTest = 0
         self.stSuccessString = ""
 
+        self.debug = 0
+
         self.useMPI = 0
         self.numprocs = -1
 
@@ -387,6 +389,9 @@ def LoadParams(file):
             elif (opt == "stSuccessString"):
                 mytest.stSuccessString = value
                 
+            elif (opt == "debug"):
+                mytest.debug = value
+
             elif (opt == "useMPI"):
                 mytest.useMPI = value
                 
@@ -892,6 +897,8 @@ def testSuite(argv):
             useOMP = <is this an OpenMP job? 0 for no, 1 for yes) >
             numthreads = < # of threads to us with OpenMP (if OpenMP job) >
 
+            debug = < 0 for normal run, 1 if we want debugging options on >
+
             compileTest = < 0 for normal run, 1 if we just test compilation >
 
             selfTest = < 0 for normal run, 1 if test self-diagnoses if it 
@@ -1012,6 +1019,9 @@ def testSuite(argv):
             useOMP is set to 1 if the job uses OpenMP.  In this case,
             you also must specify the number of threads, via
             numthreads.
+
+            debug is set to 1 if we want to turn on the debugging
+            options defined in the problem's makefile.
 
             compileTest is set to 0 for a normal test.  Setting to 1 will
             just test compilation, and not any subsequent output.
@@ -1521,61 +1531,65 @@ def testSuite(argv):
 
         if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
 
-	    if (test.useMPI and test.useOMP):
-	       executable = "%s%dd.MPI.OMP.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=TRUE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
-               print "    " + compString
-               systemCall(compString)            
+            buildOptions = ""
+            exeSuffix = ""
 
-            elif (test.useMPI):
-	       executable = "%s%dd.MPI.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=TRUE USE_OMP=FALSE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
-               print "    " + compString
-               systemCall(compString)
-
-            elif (test.useOMP):
-	       executable = "%s%dd.OMP.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=FALSE USE_OMP=TRUE COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
-               print "    " + compString
-               systemCall(compString)
-
+            if (test.debug):
+                buildOptions += "DEBUG=TRUE "
+                exeSuffix += ".DEBUG"
             else:
-	       executable = "%s%dd.ex" % (suite.suiteName, test.dim)
-               compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d USE_MPI=false COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, test.dim, suite.COMP, suite.FCOMP, executable, outputDir, test.name)
-               print "    " + compString
-               systemCall(compString)
+                buildOptions += "DEBUG=FALSE "
+
+            if (test.useMPI):
+                buildOptions += "USE_MPI=TRUE "
+                exeSuffix += ".MPI"
+            else:
+                buildOptions += "USE_MPI=FALSE "
+
+            if (test.useOMP):
+                buildOptions += "USE_OMP=TRUE "
+                exeSuffix += ".OMP"
+            else:
+                buildOptions += "USE_OMP=FALSE "
+
+            executable = "%s%dd" + exeSuffix + ".ex" % (suite.suiteName, test.dim)
+
+            compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d %s COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+                (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, 
+                 suite.extSrcCompString, test.addToCompileString, 
+                 buildOptions, test.dim, suite.COMP, suite.FCOMP, 
+                 executable, outputDir, test.name)
+
+            print "    " + compString
+            systemCall(compString)            
 	       
             
         elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
 
-            if (test.useMPI and test.useOMP):
-                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI=t OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
-                print "    " + compString
-                systemCall(compString)
+            buildOptions = ""
 
-            elif (test.useMPI):
-                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI=t OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
-                print "    " + compString
-                systemCall(compString)
-
-            elif (test.useOMP):
-                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI= OMP=t NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
-                print "    " + compString
-                systemCall(compString)
-
-
+            if (test.debug):
+                buildOptions += "NDEBUG= "
             else:
-                compString = "%s -j%s BOXLIB_HOME=%s %s %s MPI= OMP= NDEBUG=t COMP=%s >& %s/%s.make.out" % \
-                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.extSrcCompString, test.addToCompileString, suite.FCOMP, outputDir, test.name)
-                print "    " + compString
-                systemCall(compString)
+                buildOptions += "NDEBUG=t "
+
+            if (test.useMPI):
+                buildOptions += "MPI=t "
+            else:
+                buildOptions += "MPI= "
+
+            if (test.useOMP):
+                buildOptions += "OMP=t "
+            else:
+                buildOptions += "OMP= "
+            
+            compString = "%s -j%s BOXLIB_HOME=%s %s %s %s COMP=%s >& %s/%s.make.out" % \
+                (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, 
+                 suite.extSrcCompString, test.addToCompileString, 
+                 buildOptions, suite.FCOMP, outputDir, test.name)
+
+            print "    " + compString
+            systemCall(compString)
 
 
             # we need a better way to get the executable name here
@@ -2516,6 +2530,10 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     hf.write("<P>&nbsp;\n")
 
     if (not test.compileTest):
+
+        if (test.debug):
+            hf.write("<p><b>Debug test</b>\n")
+            hf.write("<p>&nbsp;\n")
 
         if (test.useMPI):
 
