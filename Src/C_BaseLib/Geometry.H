@@ -455,11 +455,9 @@ namespace BoxLib
                      it != End;
                      ++it)
                 {
-                    const Box& bx = it->dbox;
-                    fab.resize(bx,ncomp);
-                    const int Cnt = bx.numPts()*ncomp;
-                    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
-                    mf[it->dstIndex].copy(fab,bx,0,bx,scomp,ncomp);
+                    const Box& bx  = it->dbox;
+                    const int  Cnt = bx.numPts()*ncomp;
+                    mf[it->dstIndex].copyFromMem(bx,scomp,ncomp,dptr);
                     dptr += Cnt;
                 }
             }

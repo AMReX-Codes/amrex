@@ -1407,17 +1407,18 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                  it != End;
                  ++it)
             {
-                const Box& bx = it->box;
-                fab.resize(bx,ncomp);
-                const int Cnt = bx.numPts()*ncomp;
-                memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
+                const Box& bx  = it->box;
+                const int  Cnt = bx.numPts()*ncomp;
 
                 if (op == FabArrayBase::COPY)
                 {
-                    get(it->fabIndex).copy(fab,bx,0,bx,dcomp,ncomp);
+                    get(it->fabIndex).copyFromMem(bx,dcomp,ncomp,dptr);
                 }
                 else
                 {
+                    fab.resize(bx,ncomp);
+                    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
+
                     get(it->fabIndex).plus(fab,bx,bx,0,dcomp,ncomp);
                 }
 
@@ -2084,11 +2085,10 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
                     if (fcdp->subBox == tag.box)
                     {
-                        value_type* dataPtr = fcdp->localFabSource->dataPtr();
-                        BL_ASSERT(dataPtr != 0);
+                        BL_ASSERT(fcdp->localFabSource->dataPtr() != 0);
                         BL_ASSERT(fcdp->localFabSource->box() == tag.box);
                         const int Cnt = tag.box.numPts()*tag.nComp;
-                        memcpy(dataPtr, dptr, Cnt*sizeof(value_type));
+                        fcdp->localFabSource->copyFromMem(tag.box,0,tag.nComp,dptr);
                         dptr += Cnt;
                         howmany++;
                         break;
@@ -2346,11 +2346,9 @@ FabArray<FAB>::FillBoundary (int  scomp,
                  it != End;
                  ++it)
             {
-                const Box& bx = it->box;
-                fab.resize(bx,ncomp);
-                const int Cnt = bx.numPts()*ncomp;
-                memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
-                get(it->fabIndex).copy(fab,bx,0,bx,scomp,ncomp);
+                const Box& bx  = it->box;
+                const int  Cnt = bx.numPts()*ncomp;
+                get(it->fabIndex).copyFromMem(bx,scomp,ncomp,dptr);
                 dptr += Cnt;
             }
         }
