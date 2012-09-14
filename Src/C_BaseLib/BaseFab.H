@@ -306,13 +306,20 @@ public:
     // A specialized version of copy() that copies from a FAB to a raw memory
     // destination.  Basically a memcpy() that works with a FAB as source.
     // It is the user's responsibility to ensure that dest has enough space
-    // to hold the copy.  Minimum space needed is srcbox.numPts()*numcomp.
+    // to hold the copy.
     //
-    static void MemCopy (const BaseFab<T>& src,
-                         const Box&        srcbox,
-                         int               srccomp,
-                         int               numcomp,
-                         T*                dest);
+    void copyToMem (const Box& srcbox,
+                    int        srccomp,
+                    int        numcomp,
+                    T*         dest) const;
+    //
+    // A specialized version of copy() that copies from raw memory to a FAB.
+    // Basically a memcpy() that works with a FAB as destination.
+    //
+//    BaseFab<T>& copyFromMem (const Box& box,
+//                             int        srccomp,
+//                             int        numcomp,
+//                             T*         dest);
     //
     // Perform shifts upon the domain of the BaseFab. They are
     // completely analogous to the corresponding Box functions.
@@ -1336,25 +1343,24 @@ BaseFab<T>::performSetVal (T          val,
 
 template <class T>
 void
-BaseFab<T>::MemCopy (const BaseFab<T>& src,
-                     const Box&        srcbox,
-                     int               srccomp,
-                     int               numcomp,
-                     T*                dest)
+BaseFab<T>::copyToMem (const Box& srcbox,
+                       int        srccomp,
+                       int        numcomp,
+                       T*         dest) const
 {
-    BL_ASSERT(src.box().contains(srcbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BL_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());
+    BL_ASSERT(box().contains(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
+    BL_ASSERT((srccomp) >= 0 && (srccomp) + (numcomp) <= nComp());
 
     if (srcbox.ok()) 
     { 
-        const int* _x_plo         = (src).loVect(); 
-        const int* _x_plen        = (src).length(); 
+        const int* _x_plo         = loVect(); 
+        const int* _x_plen        = length(); 
         IntVect    _subbox_length = srcbox.size();
         const int* _subbox_len    = _subbox_length.getVect(); 
         const int* _bx_lo         = (srcbox).loVect(); 
         T*         _th_p          = dest;
-        const T*   _x_p           = (src).dataPtr(srccomp); 
+        const T*   _x_p           = dataPtr(srccomp); 
 
 #if (BL_SPACEDIM == 1)
 
