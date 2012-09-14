@@ -48,6 +48,64 @@ c
       end do
 
       end
+
+      subroutine FORT_FASTCOPYTOMEM (lo,hi,data,DIMS(data),ncomp,dst)
+
+      implicit none
+
+      integer ncomp
+      integer lo(1), hi(1)
+      integer DIMDEC(data)
+      REAL_T  data(DIMV(data),ncomp), dst(*)
+c
+c     Local variables.
+c
+      integer i,k,cnt
+      integer imin,imax
+
+      imin = lo(1)
+      imax = hi(1)
+
+      cnt = 1
+
+      do k = 1, ncomp
+         do i = imin,imax
+            dst(cnt) = data(i,k)
+            cnt = cnt + 1
+         end do
+      end do
+
+      end
+c
+c     This function copies from a 1D array into a 2D array.
+c
+      subroutine FORT_FASTCOPYFROMMEM (lo,hi,data,DIMS(data),ncomp,src)
+
+      implicit none
+
+      integer ncomp
+      integer lo(1), hi(1)
+      integer DIMDEC(data)
+      REAL_T  data(DIMV(data),ncomp), src(*)
+c
+c     Local variables.
+c
+      integer i,k,cnt
+      integer imin,imax
+
+      imin = lo(1)
+      imax = hi(1)
+
+      cnt = 1
+
+      do k = 1, ncomp
+         do i = imin,imax
+            data(i,k) = src(cnt)
+            cnt = cnt + 1
+         end do
+      end do
+
+      end
 c
 c     This function sets a section of an array to a value.
 c

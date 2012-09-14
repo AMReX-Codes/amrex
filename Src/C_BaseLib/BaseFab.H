@@ -1508,6 +1508,18 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                             int                  numcomp);
 template <>
 void
+BaseFab<Real>::copyToMem (const Box& srcbox,
+                          int        srccomp,
+                          int        numcomp,
+                          Real*      dst) const;
+template <>
+void
+BaseFab<Real>::copyFromMem (const Box&  dstbox,
+                            int         dstcomp,
+                            int         numcomp,
+                            const Real* src);
+template <>
+void
 BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
                               int        ns,
