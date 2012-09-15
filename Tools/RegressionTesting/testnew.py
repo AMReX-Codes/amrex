@@ -1552,12 +1552,12 @@ def testSuite(argv):
             else:
                 buildOptions += "USE_OMP=FALSE "
 
-            executable = "%s%dd" + exeSuffix + ".ex" % (suite.suiteName, test.dim)
+            executable = "%s%dd" % (suite.suiteName, test.dim) + exeSuffix + ".ex"
 
             compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d %s COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
                 (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, 
                  suite.extSrcCompString, test.addToCompileString, 
-                 buildOptions, test.dim, suite.COMP, suite.FCOMP, 
+                 test.dim, buildOptions, suite.COMP, suite.FCOMP, 
                  executable, outputDir, test.name)
 
             print "    " + compString
