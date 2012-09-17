@@ -20,6 +20,7 @@ using std::string;
 #include <Derive_F.H>
 #include <VisMF.H>
 #include <TagBox.H>
+#include <ParmParse.H>
 
 #ifdef DIFFUSION
 #include "Diffusion.H"
