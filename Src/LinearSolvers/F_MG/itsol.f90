@@ -149,12 +149,15 @@ contains
 
       nc = size(a,dim=1)-1
 
+      ! Protect against divide by zero -- necessary for embedded boundary problems.
       do j = lo(2),hi(2)
          do i = lo(1),hi(1)
-            denom = 1.d0 / a(0,i,j)
-            r(i,j     ) = r(i,j     ) * denom
-            a(1:nc,i,j) = a(1:nc,i,j) * denom
-            a(0,i,j   ) = 1.d0
+            if (abs(a(0,i,j)) .gt. 0.d0) then
+               denom = 1.d0 / a(0,i,j)
+               r(i,j     ) = r(i,j     ) * denom
+               a(1:nc,i,j) = a(1:nc,i,j) * denom
+               a(0,i,j   ) = 1.d0
+            end if
          end do
       end do
 
