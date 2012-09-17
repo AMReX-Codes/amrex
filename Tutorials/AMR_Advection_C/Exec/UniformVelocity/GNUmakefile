@@ -1,5 +1,4 @@
-PBOXLIB_HOME= ../../..
-FBOXLIB_HOME= ../../../../fParallel
+BOXLIB_HOME ?= /path/to/BoxLib
 
 PRECISION  = DOUBLE
 PROFILE    = FALSE
