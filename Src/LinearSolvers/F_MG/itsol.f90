@@ -129,11 +129,14 @@ contains
 
       nc = size(a,dim=1)-1
 
+      ! Protect against divide by zero -- necessary for embedded boundary problems.
       do i = lo(1),hi(1)
-         denom = 1.d0 / a(0,i)
-         r(i     ) = r(i     ) * denom
-         a(1:nc,i) = a(1:nc,i) * denom
-         a(0,i   ) = 1.d0
+         if (abs(a(0,i)) .gt. 0.d0) then
+            denom = 1.d0 / a(0,i)
+            r(i     ) = r(i     ) * denom
+            a(1:nc,i) = a(1:nc,i) * denom
+            a(0,i   ) = 1.d0
+         end if
       end do
 
     end subroutine diag_init_cc_1d
@@ -175,13 +178,16 @@ contains
       nc = size(a,dim=1)-1
 
       !$OMP PARALLEL DO PRIVATE(j,i,k,denom)
+      ! Protect against divide by zero -- necessary for embedded boundary problems.
       do k = lo(3),hi(3)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
-               denom = 1.d0 / a(0,i,j,k)
-               r(i,j,k     ) = r(i,j,k     ) * denom
-               a(1:nc,i,j,k) = a(1:nc,i,j,k) * denom
-               a(0,i,j,k   ) = 1.d0
+               if (abs(a(0,i,j,k)) .gt. 0.d0) then
+                  denom = 1.d0 / a(0,i,j,k)
+                  r(i,j,k     ) = r(i,j,k     ) * denom
+                  a(1:nc,i,j,k) = a(1:nc,i,j,k) * denom
+                  a(0,i,j,k   ) = 1.d0
+               end if
             end do
          end do
       end do
