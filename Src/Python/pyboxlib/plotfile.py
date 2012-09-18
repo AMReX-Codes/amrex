@@ -2,7 +2,6 @@
 
 from ctypes import *
 
-import numpy as np
 import base
 
 from pybl import bl
@@ -83,9 +82,8 @@ def compare(dname1, dname2):
   if p1.flevel != p2.flevel:
     raise ValueError("Number of levels don't match: %s, %s" % (dname1, dname2))
 
+  errors = {}
   
-  errors = { 'PLOTFILES': (dname1, dname2) }
-
   for variable in sorted(p1.variables):
 
     errors[variable] = {}
@@ -109,20 +107,18 @@ def compare(dname1, dname2):
         a2 = p2.fab(i, j)
 
         aerror += abs(a1.array - a2.array).max()
-        rerror += (abs(a1.array - a2.array) / abs(a1.array)).max()
+        rerror += aerror / abs(a1.array).max()
 
         p1.unbind(i, j)
         p2.unbind(i, j)
 
     errors[variable] = (aerror, rerror)
 
-  return errors
+  return errors, (dname1, dname2)
 
-def print_compare(errors):
+def print_compare(errors, plotfiles):
 
-  errors = dict(errors)
-  dname1, dname2 = errors['PLOTFILES']
-  del errors['PLOTFILES']
+  dname1, dname2 = plotfiles
 
   print ''
   print '=== error between %s and %s ===' % (dname1, dname2)
