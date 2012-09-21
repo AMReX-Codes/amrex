@@ -47,173 +47,10 @@ class MacroHandleError(Exception):
     def __str__(self):
         return repr(self.msg)
 
+
 ######################################################################
 # Helper routines
 ######################################################################
-def insideIfndef(mindex):
-    """
-We are inside an #ifndef block.  Find all slices between here and the
-corresponding #endif macro.  This may include #else macros for the #ifndef 
-section and/or other cleanWord blocks, which are handled via calls to 
-insideCWBlock calls.
-"""
-    mkey = sortedMatchKeys[mindex]
-
-    # output
-    outSlices = []
-    outSkip = 0
-    
-    # locals
-    lSlices = []
-    lSkip = 0
-
-    openIfs = 1
-    skip = 0
-
-    # start looking for the next action macro
-    for key in sortedMatchKeys[mindex+1:]:
-        if skip > 0:
-            skip -= 1
-            continue
-
-        lSkip += 1
-        slices = []
-        match = allMatches[key]; pattern = match.re.pattern
-
-        # is this match a cleanWord?; clean it up with insideCWBlock
-        if any([cw in match.group() for cw in cleanWords]):
-            slices,skip = insideCWBlock(sortedMatchKeys.index(key))
-
-            for thisSlice in slices:
-                lSlices.append(thisSlice)
-            lSkip += skip
-            continue
-
-        # is this an #if?; just count
-        elif "#if" in pattern:
-            openIfs += 1
-            continue
-
-        # is this an #else?
-        elif "#else" in pattern:
-            # if it is the original #ifndef's #else, then we need to cut it
-            # this is equivalent to being inside a cleanWord block
-            if openIfs is 1:
-                slices,skip = insideCWBlock(sortedMatchKeys.index(key))
-
-                for thisSlice in slices:
-                    lSlices.append(thisSlice)
-                lSkip += skip
-                # break b/c we have hit the end of the block
-                break
-            else: # we don't care
-                continue
-
-        # is this an #endif?; check count and break if done
-        elif "#endif" in pattern:
-            openIfs-=1
-
-            # this is the end; slice this line
-            if openIfs is 0:
-                lSlices.append((match.start(),match.end()))
-                break
-            continue
-
-        # shouldn't get here
-        raise MacroHandleError("ERROR in insideIfndef: %s " % match.group() +
-                               "macro not handled properly.")
-
-    # bundle them all up and ship them out
-    for lSlice in lSlices:
-        outSlices.append(lSlice)
-    outSkip = lSkip
-
-    return outSlices,outSkip
-
-
-def insideCWBlock(mindex): 
-    """
-This takes a matching cleanWord key and finds the appropriate slices to remove 
-any contents (#ifdef, #ifndef, #else blocks or nested blocks) associated with 
-this block.  The current match contains one of our cleanWords, so we assume 
-it is either an #ifdef or #ifndef.
-"""
-    mkey = sortedMatchKeys[mindex]
-
-    # output
-    outSlices = []
-    outSkip = 0
-
-    # locals
-    lSlices = []
-    lSkip = 0
-
-    match = allMatches[mkey]; pattern = match.re.pattern
-
-    start = match.start()
-    if fileContents[start-1] == "\n" and fileContents[start-2] == "\n": 
-        start -= 1
-
-    # we need some special handling if we are inside an else block of an #ifdef
-    inElse = False
-
-    if "#ifndef" in pattern:
-        # slice this line
-        outSlices.append((start,match.end()))
-
-        # find the interveining slices between the corresponding #endif
-        lSlices,lSkip = insideIfndef(mindex)
-
-        for lSlice in lSlices:
-            outSlices.append(lSlice)
-        outSkip += lSkip
-
-    else: # this is an #ifdef line (or a #else inside an #ifndef block)
-        # find the interveining slices between the corresponding #endif
-        openIfs = 1
-
-        # loop to find the next action macro
-        for key in sortedMatchKeys[mindex+1:]:
-            match = allMatches[key]; pattern = match.re.pattern
-            lSkip += 1
-
-            # nested #if block; keep track of nest level
-            if "#if" in pattern: 
-                openIfs += 1
-                continue
-
-            # #else statement
-            elif "#else" in pattern:
-                # check to see if this is the original match's #else or some
-                # nested #else that we don't care about
-                if openIfs is 1: # original match's #else
-                    outSlices.append((start,match.end()))
-                    inElse = True
-                    continue
-
-            # a possibly nested #endif; check count
-            elif "#endif" in pattern:
-                openIfs-=1
-
-                # is this the end of the block?
-                if openIfs is 0:
-                    if inElse:
-                        outSlices.append((match.start(),match.end()))
-                        inElse = False
-                    else:
-                        outSlices.append((start,match.end()))
-                    break
-                continue
-
-            # shouldn't get here
-            raise MacroHandleError("ERROR in insideCWBlock: %s " % match.group()
-                                   + " macro not handled properly")
-
-        outSkip += lSkip
-
-    return outSlices,outSkip
-
-
 def cleanupSlices(sList):
     """
 the input slices are the parts of the fileContents that we want to get
@@ -231,6 +68,197 @@ rid of, so we swap them to bits that we want to keep on output.
     keep.append(slice(start,-1))
     return keep
 
+
+def parseOptions(argList):
+    # for python version 2.7.X
+    try:
+        import argparse 
+
+        parser = argparse.ArgumentParser(description=
+                                         "Remove specified C Preprocessor " +
+                                         "macros and associated code from a " +
+                                         "source file.")
+        parser.add_argument('-c','--cleanword_file',default=None,
+                            help="file containing the cleanWords; you must "+
+                            "specify at least one cleanWord on the command "+
+                            "line or in the cleanWord file")
+        parser.add_argument('fileToClean',
+                            help="file to be cleaned")
+        parser.add_argument('--cw', nargs='*', default=None,
+                            help="cleanup words specified on the command " +
+                            "line; you must specify at least one cleanWord "+
+                            "on the command line or in the cleanWord file")
+        parser.add_argument('-o','--output', default=None,
+                            help="optionally specify the output file; " +
+                            "default behaviour is stdout")
+        args = parser.parse_args(argList)
+
+        return args, args.fileToClean, parser
+
+    except ImportError:
+    # for older python versions
+        import optparse
+
+        usage = "Usage: %prog [options] fileToClean"
+        
+        parser = optparse.OptionParser(usage=usage)
+        parser.add_option('-c','--cleanword_file',default=None,
+                          dest="cleanword_file",
+                          help="file containing the cleanWords; you must "+
+                          "specify at least one cleanWord on the command "+
+                          "line or in the cleanWord file")
+        parser.add_option('--cw', nargs='*', default=None,
+                          dest="cw",
+                          help="cleanup words specified on the command " +
+                          "line; you must specify at least one cleanWord "+
+                          "on the command line or in the cleanWord file")
+        parser.add_option('-o','--output', default=None,
+                          dest="output",
+                          help="optionally specify the output file; " +
+                          "default behaviour is stdout")
+        (options,args) = parser.parse_args(argList)
+        
+        return options, args[0], parser
+
+
+def insideFalseBlock(mindex):
+    # this is a block that we want to keep, but clean the edges
+    
+    mkey = sortedMatchKeys[mindex]; match = allMatches[mkey]
+
+    # output
+    outSlices = []
+    outSkip = 0
+    
+    # locals
+    lSlices = []
+    lSkip = 0
+
+    # slice this line
+    outSlices.append((match.start(),match.end()))
+
+    openBlocks = 1; skip = 0
+
+    for key in sortedMatchKeys[mindex+1:]:
+        match = allMatches[key]; pattern = match.re.pattern
+
+        lSkip += 1
+
+        if skip > 0:
+            skip -= 1
+            continue
+        
+
+        # clean the ends if needed
+        if "#endif" in pattern:
+            openBlocks -= 1
+            
+            if openBlocks is 0:
+              outSlices.append((match.start(),match.end()))
+              break
+            continue
+        # if this is a CW, then we swap to a trueblock
+        elif any([cw in match.group() for cw in cleanWords]):
+            lSlices,skip = insideTrueBlock(mindex+lSkip)
+            for lSlice in lSlices:
+                outSlices.append(lSlice)
+            continue
+        # just count open blocks
+        elif "#if" in pattern:
+            openBlocks += 1
+            continue
+
+        # this is equivalent to a trueblock
+        elif "#else" in pattern:
+            lSlices,skip = insideTrueBlock(mindex+lSkip)
+            for lSlice in lSlices:
+                outSlices.append(lSlice)
+            continue
+
+        # shouldn't get here
+        raise MacroHandleError("ERROR in insideFalseBlock: %s "
+                               + match.group() + 
+                               " macro not handled properly.")
+
+    outSkip = lSkip
+
+    return outSlices,outSkip
+
+def insideTrueBlock(mindex):
+    # this is a "true" block; one that we want to eliminate
+
+    mkey = sortedMatchKeys[mindex]; match = allMatches[mkey]
+
+    # output
+    outSlices = []
+    outSkip = 0
+
+    # locals
+    lSlices = []
+    lSkip = 0
+
+    start = match.start()
+    if fileContents[start-1] == "\n" and fileContents[start-2] == "\n": 
+        start -= 1
+
+    # start parsing subsequent matches
+    openBlocks = 1
+    for key in sortedMatchKeys[mindex+1:]:
+        match = allMatches[key]; pattern = match.re.pattern
+        lSkip += 1
+
+        # just count the open blocks
+        if "#if" in pattern:
+            openBlocks += 1
+            continue
+
+        # we've hit a false block; this will grab the endif, so we should break
+        elif "#else" in pattern:
+            outSlices.append((start,match.start()))
+            lSlices,skip = insideFalseBlock(mindex+lSkip)
+            for slice in lSlices:
+                outSlices.append(slice)
+            lSkip += skip
+            break
+
+        # an endif; check to make sure it is the last
+        elif "#endif" in pattern:
+            openBlocks -= 1
+            if openBlocks is 0:
+                outSlices.append((start,match.end()))
+                break
+            continue
+
+        # shouldn't get here
+        raise MacroHandleError("ERROR in insideTrueBlock: %s " % match.group()
+                               + " macro not handled properly.")
+
+    outSkip = lSkip
+    return outSlices,outSkip
+
+        
+def insideCWBlock(mindex):
+    # a CW has been found in this match; see if it is a true or false block
+
+    mkey = sortedMatchKeys[mindex]; match = allMatches[mkey]
+    pattern = match.re.pattern 
+
+    # output
+    outSlices = []
+    outSkip = 0
+
+    if "#if" in pattern:
+        # true block
+        outSlices,outSkip = insideTrueBlock(mindex)
+    elif "#ifndef" in pattern:
+        # false block
+        outSlices,outSkip = insideFalseBlock(mindex)
+    else:
+        # shouldn't get here
+        raise MacroHandleError("ERROR in insideCWBlock: %s " % match.group()
+                               + "macro not handled properly.")
+
+    return outSlices, outSkip
 
 ######################################################################
 # Main routine
@@ -337,57 +365,6 @@ distributing it to the masses.
     else:
         print outData
 
-
-def parseOptions(argList):
-    # for python version 2.7.X
-    try:
-        import argparse 
-
-        parser = argparse.ArgumentParser(description=
-                                         "Remove specified C Preprocessor " +
-                                         "macros and associated code from a " +
-                                         "source file.")
-        parser.add_argument('-c','--cleanword_file',default=None,
-                            help="file containing the cleanWords; you must "+
-                            "specify at least one cleanWord on the command "+
-                            "line or in the cleanWord file")
-        parser.add_argument('fileToClean',
-                            help="file to be cleaned")
-        parser.add_argument('--cw', nargs='*', default=None,
-                            help="cleanup words specified on the command " +
-                            "line; you must specify at least one cleanWord "+
-                            "on the command line or in the cleanWord file")
-        parser.add_argument('-o','--output', default=None,
-                            help="optionally specify the output file; " +
-                            "default behaviour is stdout")
-        args = parser.parse_args(argList)
-
-        return args, args.fileToClean, parser
-
-    except ImportError:
-    # for older python versions
-        import optparse
-
-        usage = "Usage: %prog [options] fileToClean"
-        
-        parser = optparse.OptionParser(usage=usage)
-        parser.add_option('-c','--cleanword_file',default=None,
-                          dest="cleanword_file",
-                          help="file containing the cleanWords; you must "+
-                          "specify at least one cleanWord on the command "+
-                          "line or in the cleanWord file")
-        parser.add_option('--cw', nargs='*', default=None,
-                          dest="cw",
-                          help="cleanup words specified on the command " +
-                          "line; you must specify at least one cleanWord "+
-                          "on the command line or in the cleanWord file")
-        parser.add_option('-o','--output', default=None,
-                          dest="output",
-                          help="optionally specify the output file; " +
-                          "default behaviour is stdout")
-        (options,args) = parser.parse_args(argList)
-        
-        return options, args[0], parser
 
 
 if  __name__ == "__main__":
