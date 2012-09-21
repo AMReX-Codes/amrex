@@ -247,12 +247,13 @@ def insideCWBlock(mindex):
     outSlices = []
     outSkip = 0
 
-    if "#if" in pattern:
-        # true block
-        outSlices,outSkip = insideTrueBlock(mindex)
-    elif "#ifndef" in pattern:
+    if "#ifndef" in pattern:
         # false block
         outSlices,outSkip = insideFalseBlock(mindex)
+
+    elif "#if" in pattern:
+        # true block
+        outSlices,outSkip = insideTrueBlock(mindex)
     else:
         # shouldn't get here
         raise MacroHandleError("ERROR in insideCWBlock: %s " % match.group()
