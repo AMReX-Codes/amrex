@@ -3,7 +3,6 @@
 import re
 import sys
 import itertools
-import argparse
 
 # these are the macros we search for
 ifRE = re.compile(r"#if.*\n", re.IGNORECASE)
@@ -33,7 +32,10 @@ class CWError(Exception):
         msg = "\n"*2+"-"*30
         msg += "\n\n%s" %  self.msg
         msg += "\n"*2+"-"*30+"\n"*2
-        msg += self.parser.format_help()
+        if sys.version_info[1] < 7: # less than version 2.7, using optparse
+            msg += self.parser.format_help()
+        else: # using argparse
+            msg += self.parser.print_help()
         return msg
 
 class MacroHandleError(Exception):
@@ -335,25 +337,61 @@ distributing it to the masses.
         print outData
 
 
+def parseOptions(argList):
+    # for python version 2.7.X
+    try:
+        import argparse 
+
+        parser = argparse.ArgumentParser(description=
+                                         "Remove specified C Preprocessor " +
+                                         "macros and associated code from a " +
+                                         "source file.")
+        parser.add_argument('-c','--cleanword_file',default=None,
+                            help="file containing the cleanWords; you must "+
+                            "specify at least one cleanWord on the command "+
+                            "line or in the cleanWord file")
+        parser.add_argument('fileToClean',
+                            help="file to be cleaned")
+        parser.add_argument('--cw', nargs='*', default=None,
+                            help="cleanup words specified on the command " +
+                            "line; you must specify at least one cleanWord "+
+                            "on the command line or in the cleanWord file")
+        parser.add_argument('-o','--output', default=None,
+                            help="optionally specify the output file; " +
+                            "default behaviour is stdout")
+        args = parser.parse_args(argList)
+
+        return args, args.fileToClean, parser
+
+    except ImportError:
+    # for older python versions
+        import optparse
+
+        usage = "Usage: %prog [options] fileToClean"
+        
+        parser = optparse.OptionParser(usage=usage)
+        parser.add_option('-c','--cleanword_file',default=None,
+                          dest="cleanword_file",
+                          help="file containing the cleanWords; you must "+
+                          "specify at least one cleanWord on the command "+
+                          "line or in the cleanWord file")
+        parser.add_option('--cw', nargs='*', default=None,
+                          dest="cw",
+                          help="cleanup words specified on the command " +
+                          "line; you must specify at least one cleanWord "+
+                          "on the command line or in the cleanWord file")
+        parser.add_option('-o','--output', default=None,
+                          dest="output",
+                          help="optionally specify the output file; " +
+                          "default behaviour is stdout")
+        (options,args) = parser.parse_args(argList)
+        
+        return options, args[0], parser
+
+
 if  __name__ == "__main__":
     # parse the command line arguments
-    parser = argparse.ArgumentParser(description=
-                                     "Remove specified C Preprocessor macros "+
-                                     "and associated code from a source file.")
-    parser.add_argument('-c','--cleanword_file',default=None,
-                        help="file containing the cleanWords; you must "+
-                        "specify at least one cleanWord on the command line"+
-                        "or in the cleanWord file")
-    parser.add_argument('fileToClean',
-                        help="file to be cleaned")
-    parser.add_argument('--cw', nargs='*', default=None,
-                        help="cleanup words specified on the command line;"+
-                        "you must specify at least one cleanWord on the "+
-                        "command line or in the cleanWord file")
-    parser.add_argument('-o','--output', default=None,
-                        help="optionally specify the output file; " +
-                        "default behaviour is stdout")
-    args = parser.parse_args(sys.argv[1:])
+    args, fileToClean, parser = parseOptions(sys.argv[1:])
 
     if not args.cleanword_file and not args.cw:
         print "You must specify either a cleanWord file (via -c) or"
@@ -362,7 +400,6 @@ if  __name__ == "__main__":
 
     cleanWordFile = args.cleanword_file
     cmdLineCW = args.cw
-    fileToClean = args.fileToClean
     output = args.output
 
     # let's do this
