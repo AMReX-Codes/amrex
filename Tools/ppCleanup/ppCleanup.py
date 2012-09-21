@@ -326,6 +326,7 @@ distributing it to the masses.
 
     # dump it
     if outputFile:
+        outData += fileContents[-1]
         try:
             fh = open(outputFile,'w')
             fh.write(outData)
