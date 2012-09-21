@@ -5,8 +5,6 @@ This python script is used to clean C Preprocessor macros and their
 associated code from a source code file.  We'll refer to those macros
 we wish to clean up as "cleanWords."
 
-NOTE: you need python 2.7.X to run this code.
-
 Example code removal:
 ---------------------
 
