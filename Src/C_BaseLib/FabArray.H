@@ -11,7 +11,6 @@
 #include <vector>
 
 #include <BLassert.H>
-#include <PArray.H>
 #include <Array.H>
 
 #include <Box.H>
@@ -1230,8 +1229,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
     BL_ASSERT(boxArray()[0].ixType() == src.boxArray()[0].ixType());
-
-    const IndexType ityp = src.boxArray()[0].ixType();
 
     if ((src.boxArray()[0].cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap))
