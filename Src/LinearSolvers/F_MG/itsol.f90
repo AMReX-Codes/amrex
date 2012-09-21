@@ -307,7 +307,9 @@ contains
 
     use bl_prof_module
 
-    use nodal_stencil_module, only: stencil_apply_1d_nodal, stencil_apply_2d_nodal,  stencil_apply_3d_nodal
+    use nodal_stencil_module, only: stencil_apply_1d_nodal, &
+                                    stencil_apply_2d_nodal, &
+                                    stencil_apply_3d_nodal
 
     type(multifab), intent(in)    :: aa
     type(multifab), intent(inout) :: rr
