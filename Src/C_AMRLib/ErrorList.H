@@ -146,8 +146,8 @@ public:
     //
     // The extern "C" functions to do the error tagging.
     //
-    virtual const ErrorRec::ErrorFunc&  errFunc () const;
-    virtual const ErrorRec::ErrorFunc2& errFunc2() const;
+    const ErrorRec::ErrorFunc&  errFunc () const;
+    const ErrorRec::ErrorFunc2& errFunc2() const;
 
 private:
     //

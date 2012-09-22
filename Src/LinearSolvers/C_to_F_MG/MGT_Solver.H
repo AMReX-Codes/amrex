@@ -6,6 +6,7 @@
 #include <Geometry.H>
 #include <BCRec.H>
 #include <BndryData.H>
+#include <PArray.H>
 
 #include <mg_cpp_f.h>
 
