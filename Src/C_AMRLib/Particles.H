@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <numeric>
+#include <algorithm>
 
 #include <ParmParse.H>
 
@@ -226,6 +227,8 @@ public:
 
     Real sumParticleMass (const MultiFab& mf, int level) const;
     void sumParticleMomentum (const MultiFab& mf, int lev, Real* mom) const;
+
+    void CoarsenAndPrint ();
 
     void Increment (MultiFab& mf, int level);
 
@@ -1090,6 +1093,40 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
         if (ParallelDescriptor::IOProcessor())
             std::cout << "InitFromBinaryFile() time: " << runtime << '\n';
     }
+}
+
+template <int N>
+void
+ParticleContainer<N>::CoarsenAndPrint ()
+{
+    // Only consider particles at level 0
+    PMap& pmap = m_particles[0];
+
+    int npart = 0;
+    for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+    {
+        PBox& pbox = pmap_it->second;
+
+        // Sort the particles by lexicographic ordering of the cell (i,j,k) containing each particle
+        // std::sort(pbox.begin(),pbox.end(),ParticleBase::Compare());
+
+        for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+        {
+            if (it->m_id > 0)
+            {
+                // Only keep particles in even cells
+                if ( (it->m_cell[0])%2 == 0 && (it->m_cell[1])%2 == 0 && (it->m_cell[2])%2 == 0)
+                {
+                    npart += 1;
+                    std::cout << it->m_pos[0]  << " " << it->m_pos[1] << " "  << it->m_pos[2]  << " " 
+                              << it->m_data[0] << " " << it->m_data[1] << " " << it->m_data[2] << " " 
+                              << it->m_data[3] << std::endl;
+                }
+            }
+        }
+    }
+    std::cout << "nparticles written " << npart << std::endl;
+    exit(0);
 }
 
 template <int N>
