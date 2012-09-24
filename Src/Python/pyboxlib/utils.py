@@ -1,14 +1,18 @@
 """Various PyBoxLib utilities."""
 
-import os
+from __future__ import with_statement
 
+import os
+import re
+
+import numpy as np
+
+from numpy import isnan
 from pyboxlib.plotfile import compare
 
-# def has_plotfiles(dirs):
-#     for d in dirs:
-#         if d.find('plt') > -1:
-#             return True
-#     return False
+
+###############################################################################
+# helpers
 
 def fstr(x):
     """Convert x to a string, appending 'd0' to floating point
@@ -24,6 +28,17 @@ def fstr(x):
 
     return s
 
+
+def _key(k):
+    if len(k) == 1:
+        kk = k[0]
+    else:
+        kk = k
+    return kk
+
+
+###############################################################################
+# probin
 
 class Probin(object):
 
@@ -71,61 +86,56 @@ class Probin(object):
             self.params[param] = value
         
 
+###############################################################################
+# auto compare
 
-def auto_errors(name, params, reference):
+def auto_compare(name, params, reference):
 
     # find last plotfile of reference
-    for root, dirs, files in os.walk(os.path.join(name, reference)):
+    for root, dirs, files in os.walk(reference):
         if 'probin.nml' in files:
             last_plotfile = sorted(dirs)[-1]
             reference = os.path.join(root, last_plotfile)
 
-    # find runs and compute errors
-    errors = {}
+    # find runs and compute errors etc
+    comps = []
 
     for root, dirs, files in os.walk(name):
         if 'probin.nml' in files:
             probin = Probin(os.path.join(root, 'probin.nml'))
             probin.parse()
 
+            with open(os.path.join(root, 'out'), 'r') as f:
+                out = f.read()
+
+            m = re.search('run time =\s*(\S*)', out, flags=re.I)
+            if m:
+                runtime = float(m.group(1))
+            else:
+                runtime = 0.0
+
             last_plotfile = sorted(dirs)[-1]
             errs, _ = compare(reference, os.path.join(root, last_plotfile))
 
-            values = tuple([ probin.params[p] for p in params ])
-            errors[values] = (max([ errs[x][0] for x in errs ]), max([ errs[x][1] for x in errs ]))
+            comp = { 'abs': max([ errs[x][0] for x in errs ]), 
+                     'rel': max([ errs[x][1] for x in errs ]),
+                     'run': runtime }
 
-    return errors
+            for p in params:
+                comp[p[0]] = probin.params[p[0]]
+                comp[p[1]] = probin.params[p[0]]
 
+            comps.append(comp)
 
-def plot_convergence(errors, params, order=None):
+    return comps
 
-    import collections
-    import matplotlib.pylab as plt
+def to_xy(series):
 
-    x = collections.defaultdict(list)
-    y = collections.defaultdict(list)
+    series = [ s for s in series if not isnan(s[0]) and not isnan(s[1]) ]
 
-    for key in sorted(errors):
-        k = key[:-1]
-        x[k].append(key[-1])
-        y[k].append(errors[key][1]) # relative error
+    x = np.asarray([ s[0] for s in series ])
+    y = np.asarray([ s[1] for s in series ])
 
-    for k in sorted(y):
-        label = [ params[i] + ' ' + str(k[i]) for i in range(len(k)) ]
-        label = ', '.join(label)
-
-        plt.loglog(x[k], y[k], label=label, marker='o')
-
-        if order:
-            e0 = y[k][0]
-            xx = [ x[k][0], x[k][-1] ]
-            if len(k) == 1:
-                kk = k[0]
-            else:
-                kk = k
-            yy = [ e0, e0*(x[k][-1]/x[k][0])**order[kk] ]
-            plt.loglog(xx, yy, ':k', label=None)
-
-    plt.xlabel(params[-1])
-    plt.ylabel('Maximum relative error')
-    plt.legend(loc='best')
+    idx = np.argsort(x)
+    
+    return x[idx], y[idx]
