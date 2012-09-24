@@ -5900,10 +5900,14 @@ ParticleContainer<N>::WriteCoarsenedAsciiFile (const std::string& filename)
                                         << it->m_pos[1] << ' ',
                                         << it->m_pos[2] << ' ');
 
-                            for (int i = 0; i < N; i++)
+                            // Multiply mass by 8 since we are only taking 1/8 of the total particles
+                            //   and want to keep the mass in the domain the same.
+                            File << (8.0 * it->m_data[0]) << ' ';
+
+                            // Now write out the velocity of the particle chosen; no weighting here
+                            for (int i = 1; i < N; i++)
                             {
                                 char ws = (i == N-1) ? '\n' : ' ';
-
                                 File << it->m_data[i] << ws;
                             }
                         }
