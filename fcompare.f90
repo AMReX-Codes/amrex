@@ -46,6 +46,7 @@ program fcompare
   integer :: itest
 
   real(kind=dp_t) :: global_error
+  real(kind=dp_t) :: pa, pb, pd
 
 
   !---------------------------------------------------------------------------
@@ -141,7 +142,6 @@ program fcompare
   allocate(aerror(pf_a%nvars))
   allocate(rerror(pf_a%nvars))
 
-  
   ! in case the variables are not in the same order, figure out the
   ! mapping between pf_a and pf_b variables
   allocate(ivar_b(pf_a%nvars))
@@ -211,7 +211,6 @@ program fcompare
         call bl_error("ERROR: grid dx does not match")
      endif
 
-
      ! make sure the number of boxes agree
      nboxes_a = nboxes(pf_a, i)
      nboxes_b = nboxes(pf_b, i)
@@ -221,7 +220,6 @@ program fcompare
      endif
 
      do j = 1, nboxes_a
-
 
         ! make sure that the grids match
         lo_a = lwb(get_box(pf_a, i, j))
@@ -235,8 +233,15 @@ program fcompare
              (pf_a%dim == 3 .AND. (lo_a(3) /= lo_b(3) .OR. hi_a(3) /= hi_b(3))) ) then
            call bl_error("ERROR: grids do not match")
         endif
-        
 
+        ! Do this so we can use a single loop 1d, 2d and 3d below
+        if (pf_a%dim == 1) then
+            lo_a(2:3)  = 1
+            hi_a(2:3)  = 1
+        else if (pf_a%dim == 1) then
+            lo_a(3)  = 1
+            hi_a(3)  = 1
+        end if
 
         ! loop over the variables.  Take plotfile_a to be the one defining
         ! the list of variables, and bind them one-by-one.  Don't assume that
@@ -253,85 +258,37 @@ program fcompare
            p_a => dataptr(pf_a, i, j)
            p_b => dataptr(pf_b, i, j)
 
-           select case (pf_a%dim)
-
-           case (1)
-
-              do ii = lo_a(1), hi_a(1)
-                 if (norm == 0) then
-                    aerror(n_a) = max(aerror(n_a), &
-                                      abs(p_a(ii,1,1,1) - p_b(ii,1,1,1)))
-                    
-                    rerror(n_a) = max(rerror(n_a), &
-                                      abs(p_a(ii,1,1,1) - p_b(ii,1,1,1)) / &
-                                      abs(p_a(ii,1,1,1)))
-                 else
-                    aerror(n_a) = aerror(n_a) + &
-                         (abs(p_a(ii,1,1,1) - p_b(ii,1,1,1)))**norm
-
-                    rerror(n_a) = rerror(n_a) + &
-                         (abs(p_a(ii,1,1,1) - p_b(ii,1,1,1)) / &
-                          abs(p_a(ii,1,1,1)))**norm
-                 endif
-              enddo
-
-           case (2)
-
+           do kk = lo_a(3), hi_a(3)
               do jj = lo_a(2), hi_a(2)
                  do ii = lo_a(1), hi_a(1)
 
-                    if (norm == 0) then
-                       aerror(n_a) = max(aerror(n_a), &
-                                         abs(p_a(ii,jj,1,1) - p_b(ii,jj,1,1)))
+                    pa = abs(p_a(ii,jj,kk,1))
+                    pb = abs(p_b(ii,jj,kk,1))
+                    pd = abs(p_a(ii,jj,kk,1) - p_b(ii,jj,kk,1))
                     
-                       rerror(n_a) = max(rerror(n_a), &
-                                         abs(p_a(ii,jj,1,1) - &
-                                             p_b(ii,jj,1,1)) / &
-                                         abs(p_a(ii,jj,1,1)))
+                    if (norm == 0) then
+                       aerror(n_a) = max(aerror(n_a),pd)
+                       if (pa .ne. 0.d0) then 
+                          rerror(n_a) = max(rerror(n_a), pd/pa)
+                       else if (pb .ne. 0.d0) then 
+                          rerror(n_a) = max(rerror(n_a), pd/pb)
+                       else 
+                          ! The relative error is zero so do nothing
+                       end if
                     else
-                       aerror(n_a) = aerror(n_a) + &
-                            (abs(p_a(ii,jj,1,1) - p_b(ii,jj,1,1)))**norm
-
-                       rerror(n_a) = rerror(n_a) + &
-                            (abs(p_a(ii,jj,1,1) - p_b(ii,jj,1,1)) / &
-                             abs(p_a(ii,jj,1,1)))**norm
+                       aerror(n_a) = aerror(n_a) + pd**norm
+                       if (pa .ne. 0.d0) then 
+                           rerror(n_a) = rerror(n_a) + (pd/pa)**norm
+                       else if (pb .ne. 0.d0) then 
+                           rerror(n_a) = rerror(n_a) + (pd/pb)**norm
+                       else 
+                          ! The relative error is zero so do nothing
+                       end if
                     endif
 
                  enddo
               enddo
-
-           case (3)
-
-              do kk = lo_a(3), hi_a(3)
-                 do jj = lo_a(2), hi_a(2)
-                    do ii = lo_a(1), hi_a(1)
-
-                       if (norm == 0) then
-                          aerror(n_a) = max(aerror(n_a), &
-                                            abs(p_a(ii,jj,kk,1) - &
-                                                p_b(ii,jj,kk,1)))
-                    
-                          rerror(n_a) = max(rerror(n_a), &
-                                            abs(p_a(ii,jj,kk,1) - &
-                                                p_b(ii,jj,kk,1)) / &
-                                            abs(p_a(ii,jj,kk,1)))
-                       else
-                          aerror(n_a) = aerror(n_a) + &
-                               (abs(p_a(ii,jj,kk,1) - &
-                                    p_b(ii,jj,kk,1)))**norm
-
-                          rerror(n_a) = rerror(n_a) + &
-                               (abs(p_a(ii,jj,kk,1) - &
-                                    p_b(ii,jj,kk,1)) / &
-                                abs(p_a(ii,jj,kk,1)))**norm
-                       endif
-
-                    enddo
-                 enddo
-              enddo
-
-           end select
-
+           enddo
 
            call fab_unbind(pf_a, i, j)
            call fab_unbind(pf_b, i, j)
@@ -340,7 +297,7 @@ program fcompare
 
      enddo  ! boxes loop
 
-     ! normalize
+     ! Normalize
      if (norm > 0) then
 
         do n_a = 1, pf_a%nvars
