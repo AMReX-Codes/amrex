@@ -119,19 +119,21 @@ contains
 
              if (.not. properly_nested) then
 
-                ! change the layout at levels 2 through nl so the new grid 
+                do n = 2,nl
+                   ! Delete old multifabs so that we can rebuild them.
+                   call destroy(phi(n))
+                end do
+
+                ! Change the layout at levels 2 through nl so the new grid 
                 ! structure is properly nested
                 call enforce_proper_nesting(mba,la_array,max_grid_size)
 
-                ! loop over all the lower levels which we might have changed 
+                ! Loop over all the lower levels which we might have changed 
                 ! when we enforced proper nesting.
                 do n = 2,nl
    
                    ! This makes sure the boundary conditions are properly defined everywhere
                    call bc_tower_level_build(the_bc_tower,n,la_array(n))
-   
-                   ! Delete old multifabs so that we can rebuild them.
-                   call destroy(phi(n))
    
                    ! Rebuild the lower level data again if it changed.
                    call multifab_build(phi(n),la_array(n),1,1)
