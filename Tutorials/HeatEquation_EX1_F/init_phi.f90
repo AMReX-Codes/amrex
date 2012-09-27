@@ -58,7 +58,6 @@ contains
     integer          :: i,j
     double precision :: x,y,r2
 
-    !$omp parallel do private(i,j,x,y,r2)
     do j=lo(2),hi(2)
          y = prob_lo(2) + (dble(j)+0.5d0) * dx
          do i=lo(1),hi(1)
@@ -69,7 +68,6 @@ contains
 
          end do
       end do
-      !$omp end parallel do
 
     end subroutine init_phi_2d
 
