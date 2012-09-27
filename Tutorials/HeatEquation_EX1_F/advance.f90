@@ -96,22 +96,18 @@ contains
     integer i,j
 
     ! x-fluxes
-    !$omp parallel do private(i,j)
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)+1
           fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / dx
        end do
     end do
-    !$omp end parallel do
 
     ! y-fluxes
-    !$omp parallel do private(i,j)
     do j=lo(2),hi(2)+1
        do i=lo(1),hi(1)
           fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / dx
        end do
     end do
-    !$omp end parallel do
 
   end subroutine compute_flux_2d
 
@@ -221,16 +217,12 @@ contains
     ! local variables
     integer i,j
 
-    !$omp parallel do private(i,j)
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)
-
           phi(i,j) = phi(i,j) + dt * &
                ( fluxx(i+1,j)-fluxx(i,j) + fluxy(i,j+1)-fluxy(i,j) ) / dx
-
        end do
     end do
-    !$omp end parallel do
 
   end subroutine update_phi_2d
 
@@ -250,12 +242,10 @@ contains
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
-
              phi(i,j,k) = phi(i,j,k) + dt * &
                   ( fluxx(i+1,j,k)-fluxx(i,j,k) &
                    +fluxy(i,j+1,k)-fluxy(i,j,k) &
                    +fluxz(i,j,k+1)-fluxz(i,j,k) ) / dx
-
           end do
        end do
     end do
