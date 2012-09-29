@@ -35,6 +35,10 @@ program fcompare
   integer, allocatable :: ivar_b(:)
 
   real(kind=dp_t), allocatable :: aerror(:), rerror(:)
+
+  logical, allocatable :: has_nan_a(:), has_nan_b(:)
+  logical :: any_nans
+
   integer :: norm
 
   integer :: narg, farg
@@ -42,6 +46,8 @@ program fcompare
 
   integer :: i, j
   integer :: ii, jj, kk
+
+  integer ir_a, ir_b
 
   integer :: itest
 
@@ -142,6 +148,11 @@ program fcompare
   allocate(aerror(pf_a%nvars))
   allocate(rerror(pf_a%nvars))
 
+  allocate(has_nan_a(pf_a%nvars))
+  allocate(has_nan_b(pf_a%nvars))
+
+  any_nans = .false.
+
   ! in case the variables are not in the same order, figure out the
   ! mapping between pf_a and pf_b variables
   allocate(ivar_b(pf_a%nvars))
@@ -201,6 +212,9 @@ program fcompare
      aerror(:) = ZERO
      rerror(:) = ZERO
 
+     has_nan_a(:) = .false.
+     has_nan_b(:) = .false.
+
      ! make sure the dx's agree
      dx_a = plotfile_get_dx(pf_a, i)
      dx_b = plotfile_get_dx(pf_b, i)  
@@ -258,6 +272,25 @@ program fcompare
            p_a => dataptr(pf_a, i, j)
            p_b => dataptr(pf_b, i, j)
 
+           ! check for NaNs -- comparisons don't work when they are present
+           call fab_contains_nan(p_a, &
+                                 (hi_a(3)-lo_a(3)+1)* &
+                                 (hi_a(2)-lo_a(2)+1)* &
+                                 (hi_a(1)-lo_a(1)+1),  ir_a)
+
+           if (ir_a == 1) has_nan_a(n_a) = .true.
+
+
+           call fab_contains_nan(p_b, &
+                                 (hi_b(3)-lo_b(3)+1)* &
+                                 (hi_b(2)-lo_b(2)+1)* &
+                                 (hi_b(1)-lo_b(1)+1),  ir_b)
+
+           if (ir_b == 1) has_nan_b(n_a) = .true.
+
+           if (has_nan_a(n_a) .or. has_nan_b(n_a)) cycle
+
+
            do kk = lo_a(3), hi_a(3)
               do jj = lo_a(2), hi_a(2)
                  do ii = lo_a(1), hi_a(1)
@@ -265,7 +298,7 @@ program fcompare
                     pa = abs(p_a(ii,jj,kk,1))
                     pb = abs(p_b(ii,jj,kk,1))
                     pd = abs(p_a(ii,jj,kk,1) - p_b(ii,jj,kk,1))
-                    
+
                     if (norm == 0) then
                        aerror(n_a) = max(aerror(n_a),pd)
                        if (pa .ne. 0.d0) then 
@@ -323,6 +356,8 @@ program fcompare
      do n_a = 1, pf_a%nvars
         if (ivar_b(n_a) == -1) then
            write (*,1002) pf_a%names(n_a), "< variable not present in both files > "
+        else if (has_nan_a(n_a) .or. has_nan_b(n_a)) then
+           write (*,1002) pf_a%names(n_a), "< NaN present > "
         else
            write (*,1001) pf_a%names(n_a), aerror(n_a), rerror(n_a)
         endif
@@ -334,9 +369,11 @@ program fcompare
         global_error = max(global_error, maxval(aerror(:)))
      endif
 
+     any_nans = any(has_nan_a .or. has_nan_b) .or. any_nans
+
   enddo  ! level loop
 
-  if (global_error == ZERO) then
+  if (global_error == ZERO .and. .not. any_nans) then
      print *, "PLOTFILES AGREE"
   endif
 
