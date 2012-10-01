@@ -155,6 +155,18 @@ module multifab_module
      module procedure zmultifab_print
   end interface
 
+  interface contains_nan
+     module procedure multifab_contains_nan_allc
+     module procedure multifab_contains_nan_c
+     module procedure multifab_contains_nan_bx_c
+  end interface contains_nan
+
+  interface contains_inf
+     module procedure multifab_contains_inf_allc
+     module procedure multifab_contains_inf_c
+     module procedure multifab_contains_inf_bx_c
+  end interface contains_inf
+
   interface setval
      module procedure multifab_setval
      module procedure multifab_setval_bx
@@ -1232,6 +1244,64 @@ contains
     complex(dp_t), pointer :: r(:,:,:,:)
     r => dataptr(mf%fbs(i), bx)
   end function zmultifab_dataptr_bx
+
+  function multifab_contains_nan_c(mf,c,nc) result(r)
+    logical                    :: r
+    type(multifab), intent(in) :: mf
+    integer,        intent(in) :: c, nc
+    integer i
+    r = .false.
+    do i = i, nfabs(mf)
+       r = r .or. contains_nan_c(mf%fbs(i),c,nc)
+    enddo
+  end function multifab_contains_nan_c
+
+  function multifab_contains_nan_allc(mf) result(r)
+    logical                    :: r
+    type(multifab), intent(in) :: mf
+    r = multifab_contains_nan_c(mf,1,ncomp(mf))
+  end function multifab_contains_nan_allc
+
+  function multifab_contains_nan_bx_c(mf,bx,c,nc) result(r)
+    logical                    :: r
+    type(multifab), intent(in) :: mf
+    type(box),      intent(in) :: bx
+    integer,        intent(in) :: c, nc
+    integer i
+    r = .false.
+    do i = i, nfabs(mf)
+       r = r .or. contains_nan_bx_c(mf%fbs(i),bx,c,nc)
+    enddo
+  end function multifab_contains_nan_bx_c
+
+  function multifab_contains_inf_c(mf,c,nc) result(r)
+    logical                    :: r
+    type(multifab), intent(in) :: mf
+    integer,        intent(in) :: c, nc
+    integer i
+    r = .false.
+    do i = i, nfabs(mf)
+       r = r .or. contains_inf_c(mf%fbs(i),c,nc)
+    enddo
+  end function multifab_contains_inf_c
+
+  function multifab_contains_inf_allc(mf) result(r)
+    logical                    :: r
+    type(multifab), intent(in) :: mf
+    r = multifab_contains_inf_c(mf,1,ncomp(mf))
+  end function multifab_contains_inf_allc
+
+  function multifab_contains_inf_bx_c(mf,bx,c,nc) result(r)
+    logical                    :: r
+    type(multifab), intent(in) :: mf
+    type(box),      intent(in) :: bx
+    integer,        intent(in) :: c, nc
+    integer i
+    r = .false.
+    do i = i, nfabs(mf)
+       r = r .or. contains_inf_bx_c(mf%fbs(i),bx,c,nc)
+    enddo
+  end function multifab_contains_inf_bx_c
 
   subroutine multifab_setval(mf, val, all)
     type(multifab), intent(inout) :: mf
