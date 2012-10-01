@@ -1251,7 +1251,7 @@ contains
     integer,        intent(in) :: c, nc
     integer i
     r = .false.
-    do i = i, nfabs(mf)
+    do i = 1, nfabs(mf)
        r = r .or. contains_nan_c(mf%fbs(i),c,nc)
     enddo
   end function multifab_contains_nan_c
@@ -1269,7 +1269,7 @@ contains
     integer,        intent(in) :: c, nc
     integer i
     r = .false.
-    do i = i, nfabs(mf)
+    do i = 1, nfabs(mf)
        r = r .or. contains_nan_bx_c(mf%fbs(i),bx,c,nc)
     enddo
   end function multifab_contains_nan_bx_c
@@ -1280,7 +1280,7 @@ contains
     integer,        intent(in) :: c, nc
     integer i
     r = .false.
-    do i = i, nfabs(mf)
+    do i = 1, nfabs(mf)
        r = r .or. contains_inf_c(mf%fbs(i),c,nc)
     enddo
   end function multifab_contains_inf_c
@@ -1298,7 +1298,7 @@ contains
     integer,        intent(in) :: c, nc
     integer i
     r = .false.
-    do i = i, nfabs(mf)
+    do i = 1, nfabs(mf)
        r = r .or. contains_inf_bx_c(mf%fbs(i),bx,c,nc)
     enddo
   end function multifab_contains_inf_bx_c
