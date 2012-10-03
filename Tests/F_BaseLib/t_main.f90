@@ -291,7 +291,7 @@ contains
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     type(box) :: pbx, bx
     print *, "MF: ", str
-    do n = 1, mf%nboxes; if ( remote(mf, n) ) cycle
+    do n = 1, nfabs(mf)
        fp => dataptr(mf, n)
        bx = get_box(mf, n)
        pbx = get_pbox(mf, n)
@@ -351,7 +351,7 @@ subroutine t_mf_fabio
   bxasc = layout_boxassoc(la, 1, nodal = nodal, cross = .false.)
   call multifab_build(mf, la, nc = 1, ng=1)
   call setval(mf, -1.0_dp_t, ALL=.True.)
-!   do n = 1, mf%nboxes; if ( remote(mf, n) ) cycle
+!   do n = 1, nfabs(mf)
 !      fp => dataptr(mf, n, get_ibox(mf, n))
 !      nx = size(fp,1)
 !      ny = size(fp,2)
@@ -435,7 +435,7 @@ subroutine t_nodal_mf_fabio_1
   call multifab_build(mfc, la, nc = 1, ng=1)
   call setval(mf, -1.0_dp_t, ALL=.True.)
   call setval(mfc, -1.0_dp_t, ALL=.True.)
-  do n = 1, mf%nboxes; if ( remote(mf, n) ) cycle
+  do n = 1, nfabs(mf)
      fp => dataptr(mf, n, get_ibox(mf, n))
      nx = size(fp,1)
      ny = size(fp,2)
