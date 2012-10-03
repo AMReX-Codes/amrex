@@ -113,6 +113,7 @@ class suiteObj:
         self.MAKE = "gmake"
         self.numMakeJobs = 1
 
+        self.reportActiveTestsOnly = 0
         self.goUpLink = 0
         self.lenTestName = 0
         
@@ -248,6 +249,9 @@ def LoadParams(file):
 
         elif (opt == "numMakeJobs"):
             mysuite.numMakeJobs = value
+
+        elif (opt == "reportActiveTestsOnly"):
+            mysuite.reportActiveTestsOnly = value
 
         elif (opt == "goUpLink"):
             mysuite.goUpLink = value
@@ -870,6 +874,8 @@ def testSuite(argv):
                            
             MPIhost = < host for MPI job -- depends on MPI implementation >
 
+            reportActiveTestsOnly = <If 1, inactive tests will not be include in the web page.>
+
             goUpLink = <If 1, add "Go UP" link at top of the web page.>
 
             sendEmailWhenFail = < If 1, send email when any tests fail>
@@ -1187,6 +1193,7 @@ def testSuite(argv):
     bold("loading " + testFile)
 
     suite, testList = LoadParams(testFile)
+    activeTestList = [t.name for t in testList]
 
     if (len(testList) == 0):
         fail("No valid tests defined")
@@ -2258,7 +2265,7 @@ def testSuite(argv):
     print "\n"
     bold("creating suite report...")
     tableHeight = min(max(suite.lenTestName, 4), 16)
-    reportAllRuns(suite, suite.webTopDir, tableHeight=tableHeight)
+    reportAllRuns(suite, activeTestList, suite.webTopDir, tableHeight=tableHeight)
 
     def emailDevelopers():
         msg = email.message_from_string(suite.emailBody)
@@ -2888,7 +2895,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 #==============================================================================
 # reportAllRuns
 #==============================================================================
-def reportAllRuns(suite, webTopDir, tableHeight=16):
+def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
     os.chdir(webTopDir)
 
@@ -2930,7 +2937,8 @@ def reportAllRuns(suite, webTopDir, tableHeight=16):
                 testName = file[0:index]
 
                 if (allTests.count(testName) == 0):
-                    allTests.append(testName)
+                    if (not suite.reportActiveTestsOnly) or (testName in activeTestList):
+                        allTests.append(testName)
 
 
     allTests.sort()
