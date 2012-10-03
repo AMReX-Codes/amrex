@@ -592,7 +592,7 @@ MultiFab::maxIndex (int comp,
 Real
 MultiFab::norm0 (int comp, const BoxArray& ba) const
 {
-    Real nm0 = std::numeric_limits<Real>::min();
+    Real nm0 = -std::numeric_limits<Real>::max();
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -614,7 +614,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba) const
 Real
 MultiFab::norm0 (int comp) const
 {
-    Real nm0 = std::numeric_limits<Real>::min();
+    Real nm0 = -std::numeric_limits<Real>::max();
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
