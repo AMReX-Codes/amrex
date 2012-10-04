@@ -23,7 +23,7 @@ def release(argv):
     if code.lower() == 'castro':
         code = 'Castro'
         private_src = 'gamera:/usr/local/gitroot/Castro'
-        public_src = 'https://ccse.lbl.gov/pub/Downloads/Castro.git'
+        public_src = 'gamera:/usr/local/releases/Castro'
     else:
         sys.exit(1)
 
@@ -96,7 +96,7 @@ def release(argv):
     doGitTag(my_private_git, next_tag)
 
     print "\nYou now need to make an important choice!  There are three things need to be done."
-    print "   (1) Push the new public release to the web using 'git push' in", my_public_git+"."
+    print "   (1) Push the new public release using 'git push' in", my_public_git+"."
     print "   (2) Push the new tag using 'git push --tags' in", my_public_git+"."
     print "   (2) Push the new tag using 'git push --tags' in", my_private_git+"."
     while True:
