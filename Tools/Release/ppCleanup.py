@@ -6,55 +6,7 @@ import sys
 import getopt
 import re
 
-def ppCleanup(argv):
-    usage = """
-    ppCleanup -c CLEANWORD_FILE -o outputfile inputfile
-    """
-
-    if len(argv) == 1:
-        print usage
-        sys.exit(2)
-
-    try:
-        opts, args = getopt.getopt(argv[1:], "c:o:", [])
-    
-    except getopt.GetoptError:
-        print "invalid calling sequence"
-        print usage
-        sys.exit(2)
-
-    #defauls
-    cwfile = ""
-    oufile = ""
-    infile = ""
-
-    for o,a in opts:
-        if o == "-c":
-            cwfile = a
-        if o == "-o":
-            oufile = a
-
-    try:
-        infile = args[0]
-    except IndexError:
-        print "ERROR: an input file to be cleaned up was not specified"
-        print usage
-        sys.exit(2)
-
-    if cwfile == "":
-        print "ERROR: must provide -c CLEANWORD_FILE"
-        print usage
-        sys.exit(2)
-
-    if oufile == "":
-        print "ERROR: must provide -o outputfile"
-        print usage
-        sys.exit(2)
-
-    if infile == "":
-        print "ERROR: must provide an input file"
-        print usage
-        sys.exit(2)
+def ppCleanup(cwfile, infile, oufile):
 
     try:
         f = open(cwfile)
@@ -197,4 +149,54 @@ def ppCleanup(argv):
 
 
 if __name__== "__main__":
-    ppCleanup(sys.argv)
+
+    usage = """
+    ppCleanup -c CLEANWORD_FILE -o outputfile inputfile
+    """
+
+    if len(argv) == 1:
+        print usage
+        sys.exit(2)
+
+    try:
+        opts, args = getopt.getopt(argv[1:], "c:o:", [])
+    
+    except getopt.GetoptError:
+        print "invalid calling sequence"
+        print usage
+        sys.exit(2)
+
+    #defauls
+    cwfile = ""
+    oufile = ""
+    infile = ""
+
+    for o,a in opts:
+        if o == "-c":
+            cwfile = a
+        if o == "-o":
+            oufile = a
+
+    try:
+        infile = args[0]
+    except IndexError:
+        print "ERROR: an input file to be cleaned up was not specified"
+        print usage
+        sys.exit(2)
+
+    if cwfile == "":
+        print "ERROR: must provide -c CLEANWORD_FILE"
+        print usage
+        sys.exit(2)
+
+    if oufile == "":
+        print "ERROR: must provide -o outputfile"
+        print usage
+        sys.exit(2)
+
+    if infile == "":
+        print "ERROR: must provide an input file"
+        print usage
+        sys.exit(2)
+
+    ppCleanup(cwfile, infile, oufile)
