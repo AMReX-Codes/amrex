@@ -35,6 +35,10 @@ program fcompare
   integer, allocatable :: ivar_b(:)
 
   real(kind=dp_t), allocatable :: aerror(:), rerror(:)
+
+  logical, allocatable :: has_nan_a(:), has_nan_b(:)
+  logical :: any_nans
+
   integer :: norm
 
   integer :: narg, farg
@@ -43,9 +47,15 @@ program fcompare
   integer :: i, j
   integer :: ii, jj, kk
 
+  integer ir_a, ir_b
+
   integer :: itest
 
   real(kind=dp_t) :: global_error
+  real(kind=dp_t) :: pa, pb, pd
+
+  integer :: dm
+  type(box) :: bx_a, bx_b
 
 
   !---------------------------------------------------------------------------
@@ -105,6 +115,7 @@ program fcompare
   unit_b = unit_new()
   call build(pf_b, plotfile_b, unit_b)
 
+  dm = pf_a%dim
   
   ! check if they are the same dimensionality
   if (pf_a%dim /= pf_b%dim) then
@@ -119,11 +130,15 @@ program fcompare
 
 
   ! check if the finest domains are the same size
-  flo_a = lwb(plotfile_get_pd_box(pf_a, pf_a%flevel))
-  fhi_a = upb(plotfile_get_pd_box(pf_a, pf_a%flevel))
+  bx_a = plotfile_get_pd_box(pf_a, pf_a%flevel)
+  flo_a = 1
+  fhi_a = 1
+  flo_a(1:dm) = lwb(bx_a)
+  fhi_a(1:dm) = upb(bx_a)
 
-  flo_b = lwb(plotfile_get_pd_box(pf_b, pf_b%flevel))
-  fhi_b = upb(plotfile_get_pd_box(pf_b, pf_b%flevel))
+  bx_b = plotfile_get_pd_box(pf_b, pf_b%flevel)
+  flo_b(1:dm) = lwb(bx_b)
+  fhi_b(1:dm) = upb(bx_b)
 
   if ( (flo_a(1) /= flo_b(1) .OR. fhi_a(1) /= fhi_b(1)) .OR. &
       ((flo_a(2) /= flo_b(2) .OR. fhi_a(2) /= fhi_b(2)) .AND. pf_a%dim >= 2) .OR. &
@@ -141,7 +156,11 @@ program fcompare
   allocate(aerror(pf_a%nvars))
   allocate(rerror(pf_a%nvars))
 
-  
+  allocate(has_nan_a(pf_a%nvars))
+  allocate(has_nan_b(pf_a%nvars))
+
+  any_nans = .false.
+
   ! in case the variables are not in the same order, figure out the
   ! mapping between pf_a and pf_b variables
   allocate(ivar_b(pf_a%nvars))
@@ -201,16 +220,20 @@ program fcompare
      aerror(:) = ZERO
      rerror(:) = ZERO
 
+     has_nan_a(:) = .false.
+     has_nan_b(:) = .false.
+
      ! make sure the dx's agree
-     dx_a = plotfile_get_dx(pf_a, i)
-     dx_b = plotfile_get_dx(pf_b, i)  
+     dx_a = 0.0_dp_t
+     dx_b = 0.0_dp_t
+     dx_a(1:dm) = plotfile_get_dx(pf_a, i)
+     dx_b(1:dm) = plotfile_get_dx(pf_b, i)  
 
      if ((dx_a(1) /= dx_b(1)) .OR. &
          (pf_a%dim >= 2 .AND. dx_a(2) /= dx_b(2)) .OR. &
          (pf_a%dim == 3 .AND. dx_a(3) /= dx_b(3))) then
         call bl_error("ERROR: grid dx does not match")
      endif
-
 
      ! make sure the number of boxes agree
      nboxes_a = nboxes(pf_a, i)
@@ -222,21 +245,24 @@ program fcompare
 
      do j = 1, nboxes_a
 
-
         ! make sure that the grids match
-        lo_a = lwb(get_box(pf_a, i, j))
-        hi_a = upb(get_box(pf_a, i, j))
+        bx_a = get_box(pf_a, i, j)
+        lo_a = 1
+        hi_a = 1
+        lo_a(1:dm) = lwb(bx_a)
+        hi_a(1:dm) = upb(bx_a)
 
-        lo_b = lwb(get_box(pf_b, i, j))
-        hi_b = upb(get_box(pf_b, i, j))
+        bx_b = get_box(pf_b, i, j)
+        lo_b = 1
+        hi_b = 1
+        lo_b(1:dm) = lwb(bx_b)
+        hi_b(1:dm) = upb(bx_b)
 
         if ( (lo_a(1) /= lo_b(1) .OR. hi_a(1) /= hi_b(1)) .OR. &
              (pf_a%dim >= 2 .AND. (lo_a(2) /= lo_b(2) .OR. hi_a(2) /= hi_b(2))) .OR. &
              (pf_a%dim == 3 .AND. (lo_a(3) /= lo_b(3) .OR. hi_a(3) /= hi_b(3))) ) then
            call bl_error("ERROR: grids do not match")
         endif
-        
-
 
         ! loop over the variables.  Take plotfile_a to be the one defining
         ! the list of variables, and bind them one-by-one.  Don't assume that
@@ -253,85 +279,56 @@ program fcompare
            p_a => dataptr(pf_a, i, j)
            p_b => dataptr(pf_b, i, j)
 
-           select case (pf_a%dim)
+           ! check for NaNs -- comparisons don't work when they are present
+           call fab_contains_nan(p_a, &
+                                 (hi_a(3)-lo_a(3)+1)* &
+                                 (hi_a(2)-lo_a(2)+1)* &
+                                 (hi_a(1)-lo_a(1)+1),  ir_a)
 
-           case (1)
+           if (ir_a == 1) has_nan_a(n_a) = .true.
 
-              do ii = lo_a(1), hi_a(1)
-                 if (norm == 0) then
-                    aerror(n_a) = max(aerror(n_a), &
-                                      abs(p_a(ii,1,1,1) - p_b(ii,1,1,1)))
-                    
-                    rerror(n_a) = max(rerror(n_a), &
-                                      abs(p_a(ii,1,1,1) - p_b(ii,1,1,1)) / &
-                                      abs(p_a(ii,1,1,1)))
-                 else
-                    aerror(n_a) = aerror(n_a) + &
-                         (abs(p_a(ii,1,1,1) - p_b(ii,1,1,1)))**norm
 
-                    rerror(n_a) = rerror(n_a) + &
-                         (abs(p_a(ii,1,1,1) - p_b(ii,1,1,1)) / &
-                          abs(p_a(ii,1,1,1)))**norm
-                 endif
-              enddo
+           call fab_contains_nan(p_b, &
+                                 (hi_b(3)-lo_b(3)+1)* &
+                                 (hi_b(2)-lo_b(2)+1)* &
+                                 (hi_b(1)-lo_b(1)+1),  ir_b)
 
-           case (2)
+           if (ir_b == 1) has_nan_b(n_a) = .true.
 
+           if (has_nan_a(n_a) .or. has_nan_b(n_a)) cycle
+
+
+           do kk = lo_a(3), hi_a(3)
               do jj = lo_a(2), hi_a(2)
                  do ii = lo_a(1), hi_a(1)
 
-                    if (norm == 0) then
-                       aerror(n_a) = max(aerror(n_a), &
-                                         abs(p_a(ii,jj,1,1) - p_b(ii,jj,1,1)))
-                    
-                       rerror(n_a) = max(rerror(n_a), &
-                                         abs(p_a(ii,jj,1,1) - &
-                                             p_b(ii,jj,1,1)) / &
-                                         abs(p_a(ii,jj,1,1)))
-                    else
-                       aerror(n_a) = aerror(n_a) + &
-                            (abs(p_a(ii,jj,1,1) - p_b(ii,jj,1,1)))**norm
+                    pa = abs(p_a(ii,jj,kk,1))
+                    pb = abs(p_b(ii,jj,kk,1))
+                    pd = abs(p_a(ii,jj,kk,1) - p_b(ii,jj,kk,1))
 
-                       rerror(n_a) = rerror(n_a) + &
-                            (abs(p_a(ii,jj,1,1) - p_b(ii,jj,1,1)) / &
-                             abs(p_a(ii,jj,1,1)))**norm
+                    if (norm == 0) then
+                       aerror(n_a) = max(aerror(n_a),pd)
+                       if (pa .ne. 0.d0) then 
+                          rerror(n_a) = max(rerror(n_a), pd/pa)
+                       else if (pb .ne. 0.d0) then 
+                          rerror(n_a) = max(rerror(n_a), pd/pb)
+                       else 
+                          ! The relative error is zero so do nothing
+                       end if
+                    else
+                       aerror(n_a) = aerror(n_a) + pd**norm
+                       if (pa .ne. 0.d0) then 
+                           rerror(n_a) = rerror(n_a) + (pd/pa)**norm
+                       else if (pb .ne. 0.d0) then 
+                           rerror(n_a) = rerror(n_a) + (pd/pb)**norm
+                       else 
+                          ! The relative error is zero so do nothing
+                       end if
                     endif
 
                  enddo
               enddo
-
-           case (3)
-
-              do kk = lo_a(3), hi_a(3)
-                 do jj = lo_a(2), hi_a(2)
-                    do ii = lo_a(1), hi_a(1)
-
-                       if (norm == 0) then
-                          aerror(n_a) = max(aerror(n_a), &
-                                            abs(p_a(ii,jj,kk,1) - &
-                                                p_b(ii,jj,kk,1)))
-                    
-                          rerror(n_a) = max(rerror(n_a), &
-                                            abs(p_a(ii,jj,kk,1) - &
-                                                p_b(ii,jj,kk,1)) / &
-                                            abs(p_a(ii,jj,kk,1)))
-                       else
-                          aerror(n_a) = aerror(n_a) + &
-                               (abs(p_a(ii,jj,kk,1) - &
-                                    p_b(ii,jj,kk,1)))**norm
-
-                          rerror(n_a) = rerror(n_a) + &
-                               (abs(p_a(ii,jj,kk,1) - &
-                                    p_b(ii,jj,kk,1)) / &
-                                abs(p_a(ii,jj,kk,1)))**norm
-                       endif
-
-                    enddo
-                 enddo
-              enddo
-
-           end select
-
+           enddo
 
            call fab_unbind(pf_a, i, j)
            call fab_unbind(pf_b, i, j)
@@ -340,7 +337,7 @@ program fcompare
 
      enddo  ! boxes loop
 
-     ! normalize
+     ! Normalize
      if (norm > 0) then
 
         do n_a = 1, pf_a%nvars
@@ -366,6 +363,8 @@ program fcompare
      do n_a = 1, pf_a%nvars
         if (ivar_b(n_a) == -1) then
            write (*,1002) pf_a%names(n_a), "< variable not present in both files > "
+        else if (has_nan_a(n_a) .or. has_nan_b(n_a)) then
+           write (*,1002) pf_a%names(n_a), "< NaN present > "
         else
            write (*,1001) pf_a%names(n_a), aerror(n_a), rerror(n_a)
         endif
@@ -377,9 +376,11 @@ program fcompare
         global_error = max(global_error, maxval(aerror(:)))
      endif
 
+     any_nans = any(has_nan_a .or. has_nan_b) .or. any_nans
+
   enddo  ! level loop
 
-  if (global_error == ZERO) then
+  if (global_error == ZERO .and. .not. any_nans) then
      print *, "PLOTFILES AGREE"
   endif
 
