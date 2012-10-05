@@ -112,8 +112,16 @@ def do_plot(plotfile, component, component2, outFile, log,
             data2 = numpy.transpose(data2)
 
         if log:
-            data = numpy.log10(data)
-            if (not component2 == ""): data2 = numpy.log10(data2)
+            if (numpy.min(data) < 0):
+                data = numpy.log10(numpy.abs(data))
+            else:
+                data = numpy.log10(data)
+
+            if (not component2 == ""): 
+                if (numpy.min(data2) < 0.0):
+                    data2 = numpy.log10(numpy.abs(data2))
+                else:
+                    data2 = numpy.log10(data2)
                 
             if (not minval == None): minval = math.log10(minval)
             if (not maxval == None): maxval = math.log10(maxval)
@@ -258,7 +266,10 @@ def do_plot(plotfile, component, component2, outFile, log,
         data_xy = numpy.transpose(data_xy)
 
         if log:
-            data_xy = numpy.log10(data_xy)
+            if (numpy.min(data_xy) < 0):
+                data_xy = numpy.log10(numpy.abs(data_xy))
+            else:
+                data_xy = numpy.log10(data_xy)
 
 
         # x-z
@@ -272,7 +283,10 @@ def do_plot(plotfile, component, component2, outFile, log,
         data_xz = numpy.transpose(data_xz)
 
         if log:
-            data_xz = numpy.log10(data_xz)
+            if (numpy.min(data_xz) < 0):
+                data_xz = numpy.log10(numpy.abs(data_xz))
+            else:
+                data_xz = numpy.log10(data_xz)
                 
 
         # y-z
@@ -286,7 +300,10 @@ def do_plot(plotfile, component, component2, outFile, log,
         data_yz = numpy.transpose(data_yz)
 
         if log:
-            data_yz = numpy.log10(data_yz)
+            if (numpy.min(data_yz) < 0):
+                data_yz = numpy.log10(numpy.abs(data_yz))
+            else:
+                data_yz = numpy.log10(data_yz)
                 
 
 
@@ -491,6 +508,8 @@ def usage():
        -M value     set the maximum data range for the plot to value
 
        --log        plot the logarithm (base-10) of the data
+                    (note: if the data < 0 anywhere, then the abs
+                     is taken first)
 
        --eps        make an EPS plot instead of a PNG
 
