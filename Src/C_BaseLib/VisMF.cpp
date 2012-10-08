@@ -15,10 +15,13 @@
 #include <ccse-mpi.H>
 #include <Utility.H>
 #include <VisMF.H>
+#include <ParmParse.H>
 
 static const char* TheMultiFabHdrFileSuffix = "_H";
 
 static const char* TheFabOnDiskPrefix = "FabOnDisk:";
+
+int VisMF::verbose = 1;
 
 //
 // Set these in Initialize().
@@ -43,6 +46,9 @@ VisMF::Initialize ()
     VisMF::SetMFFileInStreams(1);
 
     BoxLib::ExecOnFinalize(VisMF::Finalize);
+
+    ParmParse pp("vismf");
+    pp.query("v",verbose);
 
     initialized = true;
 }
@@ -896,7 +902,7 @@ VisMF::Read (MultiFab&          mf,
 {
   VisMF::Initialize();
 
-  if (ParallelDescriptor::IOProcessor())
+  if (verbose && ParallelDescriptor::IOProcessor())
   {
       std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
   }
