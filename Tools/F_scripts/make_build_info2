@@ -101,7 +101,7 @@ while [ $# -gt 0 ] ; do
   elif [ "$INFOTYPE" = "GIT" ] ; then
       ngit=$((ngit+1))
       if [ -d "$INFOPATH" ] ; then
-	  GITDIR[$ngit] = "$INFOPATH"
+	  GITDIR[$ngit]="$INFOPATH"
 	  GIT[$ngit]=`cd "$INFOPATH"; git rev-parse HEAD | cut -c 1-$MAX_STRING_LENGTH`
       fi
   fi
