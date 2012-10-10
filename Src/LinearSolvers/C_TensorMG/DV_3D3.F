@@ -1887,7 +1887,7 @@ c ::: Null
 !$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
 !$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
 !$omp&private(operu,operv,operw)
-            do i=istart,hi(1)-1
+            do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
                dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
