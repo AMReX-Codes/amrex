@@ -2639,7 +2639,13 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
     hf.write(newHead)
 
-    hf.write("<P><b>build directory:</b> %s\n" % (test.buildDir) )
+    hf.write("<P><b>build directory:</b> %s" % (test.buildDir) )
+    if (test.useExtraBuildDir):
+        hf.write(" in %s\n" % (suite.extraBuildDir))
+    else:
+        hf.write("\n")
+
+
     hf.write("<P>&nbsp;\n")
 
     if (not test.compileTest):
@@ -2661,7 +2667,6 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
 
         hf.write("<p><b>Execution Time</b> (seconds) = %f\n" % (test.wallTime))
-        hf.write("<P>&nbsp;\n")
 
 
         # is this a restart test?
@@ -2674,6 +2679,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         # write out the information about the test
         hf.write("<P><b>input file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
                  (test.name, test.inputFile, test.inputFile) )
+
 
         if (suite.sourceTree == "C_Src"):
             hf.write("<P><b>probin file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
@@ -2698,7 +2704,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     else:
         hf.write("<P><H3 CLASS=\"failed\">Compilation Failed</H3></P>\n")
 
-    hf.write("<P>compliation command:<BR>\n&nbsp; %s\n" % (compileCommand) )
+    hf.write("<P>Compliation command:<br>\n&nbsp; %s\n" % (compileCommand) )
     hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
 
     hf.write("<P>&nbsp;\n")
@@ -2712,7 +2718,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         else:
             hf.write("<P><H3 CLASS=\"failed\">Comparison Failed</H3></P>\n")
 
-        hf.write("<P>Execution command:\n %s\n" % (runCommand) )
+        hf.write("<P>Execution command:<br>\n&nbsp; %s\n" % (runCommand) )
         hf.write("<P><A HREF=\"%s.run.out\">execution output</A>\n" % (test.name) )
 
 
