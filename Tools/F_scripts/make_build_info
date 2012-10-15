@@ -11,7 +11,7 @@
 # build_info.f90: 
 #       $(BOXLIB_HOME)/Tools/F_scripts/make_build_info \
 #            "$(Fmdirs)" "$(COMP)" "$(FCOMP_VERSION)" "$(COMPILE.f90)" "$(COMPILE.f)" \
-#            "$(COMPILE.c)" "$(LINK.f90)" "$(BOXLIB_HOME)"
+#            "$(COMPILE.c)" "$(LINK.f90)" "$(BOXLIB_HOME)" "$(SOURCE_HOME)" "$(EXTRA_HOME)" 
 #
 # where:
 #
@@ -32,6 +32,10 @@
 #  LINK.f90 is a string giving the link line
 #
 #  BOXLIB_HOME is a string giving the path to the BoxLib directory
+#
+#  SOURCE_HOME is a string giving the path to the source tree we are building in
+#
+#  EXTRA_HOME is a string giving the path to another git repo we are using
 
 
 # the basic build strings will be MAX_STRING_LENGTH long
@@ -79,6 +83,14 @@ LINK2=`echo $7 | cut -c $s2-$f2`
 BOXLIB_DIR=`echo $8 | cut -c 1-$MAX_STRING_LENGTH`
 
 
+BOXLIB_GIT_HASH=`cd $8; git rev-parse HEAD | cut -c 1-$MAX_STRING_LENGTH`
+SOURCE_GIT_HASH=`cd $9; git rev-parse HEAD | cut -c 1-$MAX_STRING_LENGTH`
+
+if [ "${10}" ]; then
+  EXTRA_GIT_HASH=`cd "${10}"; git rev-parse HEAD | cut -c 1-$MAX_STRING_LENGTH`
+else
+  EXTRA_GIT_HASH=""
+fi
 
 cat > build_info.f90 << EOF
 module build_info_module
@@ -118,6 +130,16 @@ module build_info_module
   character (len=$DBL_STRING_LENGTH), save :: link_line = &
 "$LINK1" //&
 "$LINK2"
+
+  character (len=$MAX_STRING_LENGTH), save :: boxlib_git_hash = &
+"$BOXLIB_GIT_HASH"
+
+  character (len=$MAX_STRING_LENGTH), save :: source_git_hash = &
+"$SOURCE_GIT_HASH"
+
+  character (len=$MAX_STRING_LENGTH), save :: extra_git_hash = &
+"$EXTRA_GIT_HASH"
+
 
 EOF
 

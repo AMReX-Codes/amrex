@@ -93,7 +93,7 @@ public:
     //
     // Return FabSet on given face.
     //
-    const FabSet& bndryValues (Orientation face) const;
+    const FabSet& bndryValues (Orientation face) const { return bndry[face]; }
     //
     // Some useful typedefs
     //
@@ -119,21 +119,19 @@ public:
     //
     // return number of components for which this object is intended
     //
-    int nComp () const;
+    int nComp () const { return m_ncomp; }
     //
     // return domain used to define masks
     //
-    const Box& getDomain () const;
+    const Box& getDomain () const { return geom.Domain(); }
     //
     // return geometry used to define masks
     //
-    const Geometry& getGeom () const;
+    const Geometry& getGeom () const { return geom; }
     //
     // set values of boundary Fab for given orientation on nth grid
     //
-    void setValue (Orientation face,
-                   int         n,
-                   Real        val);
+    void setValue (Orientation face, int n, Real val) { bndry[face][n].setVal(val); }
     //
     // set mask values for given orientation on nth grid
     //
@@ -156,11 +154,11 @@ public:
     //
     // implement public access to const BndryRegister::operator[]
     //
-    const FabSet& operator[] (Orientation face) const;
+    const FabSet& operator[] (Orientation face) const { return BndryRegister::bndry[face]; }
     //
     // implement public access to BndryRegister::operator[]
     //
-    FabSet& operator[] (Orientation face);
+    FabSet& operator[] (Orientation face) { return BndryRegister::bndry[face]; }
     //
     // write the boundary data object to an ostream
     //
@@ -198,8 +196,8 @@ protected:
     // Domain used for mask definitions.
     //
     Geometry geom;
-
-    int m_ncomp;
+    int      m_ncomp;
+    bool     m_defined;
 
 private:
     //
@@ -209,57 +207,6 @@ private:
 
     static int NTangHalfWidth;
 };
-
-inline
-const FabSet&
-BndryData::bndryValues (Orientation _face) const
-{
-    return bndry[_face];
-}
-
-inline
-int
-BndryData::nComp () const
-{
-    return m_ncomp;
-}
-
-inline
-const Box&
-BndryData::getDomain () const
-{
-    return geom.Domain();
-}
-
-inline
-const Geometry&
-BndryData::getGeom () const
-{
-    return geom;
-}
-
-inline
-void
-BndryData::setValue (Orientation _face,
-                     int         _n,
-                     Real        _val)
-{
-    bndry[_face][_n].setVal(_val);
-}
-
-inline
-const FabSet&
-BndryData::operator[] (Orientation _face) const
-{
-    return BndryRegister::bndry[_face];
-}
-
-inline
-FabSet&
-BndryData::operator[] (Orientation _face)
-{
-    return BndryRegister::bndry[_face];
-}
 
 #endif /*_BNDRYDATA_H_*/
 

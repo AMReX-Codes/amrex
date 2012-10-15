@@ -20,7 +20,7 @@ set(FPP_source_files)
 set(F77_source_files)
 set(F90_source_files)
 
-set(CXX_header_files MGT_Solver.H)
+set(CXX_header_files MGT_Solver.H stencil_types.H)
 set(FPP_header_files)
 set(F77_header_files)
 set(F90_header_files)

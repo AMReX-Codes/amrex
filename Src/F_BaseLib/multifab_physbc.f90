@@ -26,8 +26,7 @@ contains
     ng = nghost(s)
     dm = get_dim(s)
     
-    do i=1,nboxes(s)
-       if ( multifab_remote(s,i) ) cycle
+    do i=1,nfabs(s)
        sp => dataptr(s,i)
        lo = lwb(get_box(s,i))
        hi = upb(get_box(s,i))

@@ -166,42 +166,44 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
 	stop
       endif
 c ::: convert phase flag into modx and mody and modz
-      if(    phaseflag.eq.0 ) then
+
+      select case (phaseflag)
+      case (0)
          modx = 0
          mody = 0
          modz = 0
-      elseif(phaseflag.eq.1) then
+      case (1)
          modx = 1
          mody = 0
          modz = 0
-      elseif(phaseflag.eq.2) then
+      case (2)
          modx = 0
          mody = 1
          modz = 0
-      elseif(phaseflag.eq.3) then
+      case (3)
          modx = 1
          mody = 1
          modz = 0
-      elseif(phaseflag.eq.4) then
+      case (4)
          modx = 0
          mody = 0
          modz = 1
-      elseif(phaseflag.eq.5) then
+      case (5)
          modx = 1
          mody = 0
          modz = 1
-      elseif(phaseflag.eq.6) then
+      case (6)
          modx = 0
          mody = 1
          modz = 1
-      elseif(phaseflag.eq.7) then
+      case (7)
          modx = 1
          mody = 1
          modz = 1
-      else
+      case default
          write(6,*)'FORT_GSRB: bad phaseflag', phaseflag
          stop
-      endif
+      end select
 
 
 c ::: cases:
@@ -1885,7 +1887,7 @@ c ::: Null
 !$omp&private(dwdys,dwdyn,dudye,dudyw,dvdxn,dvdxs,dwdxb,dwdxt,dwdyb)
 !$omp&private(dwdyt,dudzw,dudze,dvdzs,dvdzn,diagu,diagv,diagw)
 !$omp&private(operu,operv,operw)
-            do i=istart,hi(1)-1
+            do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
                dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
                dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx

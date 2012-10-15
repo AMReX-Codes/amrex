@@ -455,7 +455,9 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
         for(i = 0; i <= finestLevel; ++i) {
           isPltIn >> vfEps[i];
           if(verbose) {
-            cout << "vfEps[" << i << "] = " << vfEps[i] << endl;
+            if(ParallelDescriptor::IOProcessor()) {
+              cout << "vfEps[" << i << "] = " << vfEps[i] << endl;
+	    }
           }
         }
       }
@@ -797,7 +799,9 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filetype) {
   int i;
   if(verbose) {
-    cout << "AmrPlot::opening file = " << filename << endl;
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "AmrPlot::opening file = " << filename << endl;
+    }
   }
 
   fileName = filename;
@@ -877,8 +881,9 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     char fabname[N];  // arbitrarily
     plotVars.resize(nComp);
     for(i = 0; i < nComp; ++i) {
-      if (snprintf(fabname, N, "%s%d", "Fab_", i) >= N)
+      if(snprintf(fabname, N, "%s%d", "Fab_", i) >= N) {
         BoxLib::Abort("AmrData::ReadNonPlotfileData: fabname buffer too small");
+      }
       plotVars[i] = fabname;
     }
     probDomain[0] = newfab->box();
@@ -905,13 +910,14 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     fabBoxArray.set(0, probDomain[0]);
 
     int nGrow(0);
-    const int N = 64;
+    const int N(64);
     char fabname[N];  // arbitrarily
     plotVars.resize(nComp);
 
     for(int iComp(0); iComp < nComp; ++iComp) {
-      if (snprintf(fabname, N, "%s%d", "MultiFab_", iComp) >= N)
+      if(snprintf(fabname, N, "%s%d", "MultiFab_", iComp) >= N) {
         BoxLib::Abort("AmrData::ReadNonPlotfileData: fabname buffer too small");
+      }
       plotVars[iComp] = fabname;
 
       for(int iDim(0); iDim < BL_SPACEDIM; ++iDim) {
@@ -1071,11 +1077,9 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
 
    BL_ASSERT(finestFillLevel >= 0 && finestFillLevel <= finestLevel);
    BoxArray destBoxes(destMultiFab.boxArray());
-   for(int iIndex = 0; iIndex < destBoxes.size(); ++iIndex) {
-      if (!probDomain[finestFillLevel].contains(destBoxes[iIndex]))
-      {
-         if(ParallelDescriptor::IOProcessor())  
-         {
+   for(int iIndex(0); iIndex < destBoxes.size(); ++iIndex) {
+      if( ! probDomain[finestFillLevel].contains(destBoxes[iIndex])) {
+         if(ParallelDescriptor::IOProcessor())  {
             cerr << "Error in AmrData::FillVar  -- probDomain does not contain destBoxes" << std::endl;
             cerr << "   Domain is  " << probDomain[finestFillLevel] << std::endl;
             cerr << "   ith box is " << destBoxes[iIndex]           << std::endl;
@@ -1686,18 +1690,19 @@ bool AmrData::DefineFab(int level, int componentIndex, int fabIndex) {
 // ---------------------------------------------------------------
 void AmrData::FlushGrids(int componentIndex) {
 
-  BL_ASSERT(componentIndex<nComp);
+  BL_ASSERT(componentIndex < nComp);
   for(int lev(0); lev <= finestLevel; ++lev) {
-    if (dataGrids.size()>lev
-        && dataGrids[lev].size()>componentIndex
-        && dataGrids[lev][componentIndex]
-        && dataGrids[lev][componentIndex]->ok()) {
+    if(dataGrids.size() > lev
+       && dataGrids[lev].size() > componentIndex
+       && dataGrids[lev][componentIndex]
+       && dataGrids[lev][componentIndex]->ok())
+    {
       BoxArray ba = dataGrids[lev][componentIndex]->boxArray();
       int nGrow = dataGrids[lev][componentIndex]->nGrow();
       delete dataGrids[lev][componentIndex];
       dataGrids[lev][componentIndex] = new MultiFab(ba, 1, nGrow, Fab_noallocate);
       for(MFIter mfi(*dataGrids[lev][componentIndex]); mfi.isValid(); ++mfi) {
-          dataGridsDefined[lev][componentIndex][mfi.index()] = false;
+         dataGridsDefined[lev][componentIndex][mfi.index()] = false;
       }
     }
   }
@@ -1749,30 +1754,6 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
     int cCountMixedSkipped(0), cCountMixedFort(0);
     int allCount(0), outsideCount(0);
     for(MFIter gpli(*dataGrids[level][compIndex]); gpli.isValid(); ++gpli) {
-    /*
-      if(onBox.intersects(gpli.validbox())) {
-        int vfIndex(StateNumber("vfrac"));
-        DefineFab(level, compIndex, gpli.index());
-        DefineFab(level, vfIndex, gpli.index());
-        Real *ddat = (*dataGrids[level][compIndex])[gpli].dataPtr();
-        Real *vdat = (*dataGrids[level][vfIndex])[gpli].dataPtr();
-        const int *dlo = (*dataGrids[level][compIndex])[gpli].loVect();
-        const int *dhi = (*dataGrids[level][compIndex])[gpli].hiVect();
-
-        overlap = onBox;
-        overlap &= gpli.validbox();
-        Real vfMaxVal = (*dataGrids[level][vfIndex])[gpli].max(overlap, 0);
-        Real vfMinVal = (*dataGrids[level][vfIndex])[gpli].min(overlap, 0);
-        if(vfMaxVal >= vfEps[level]) {
-          valid = true;
-
-          FORT_CARTGRIDMINMAX(ddat, ARLIM(dlo), ARLIM(dhi), vdat, vfEps[level],
-                            minVal, maxVal);
-          dataMin = min(dataMin, minVal);
-          dataMax = max(dataMax, maxVal);
-        }
-      }
-    */
       ++allCount;
       int gdx(gpli.index());
       int whichVisMF(compIndexToVisMFMap[compIndex]);
@@ -1934,11 +1915,15 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
 
 // ---------------------------------------------------------------
 int AmrData::StateNumber(const string &statename) const {
-  for(int ivar = 0; ivar < plotVars.size(); ++ivar) {
+  for(int ivar(0); ivar < plotVars.size(); ++ivar) {
     if(statename == plotVars[ivar]) {
       return ivar;
     }
   }
+  if(ParallelDescriptor::IOProcessor()) {
+    cerr << "Error:  bad state name:  " << statename << std::endl;
+  }
+  BoxLib::Abort("bad state name in AmrData::StateNumber()");
   return(-1);
 }
 

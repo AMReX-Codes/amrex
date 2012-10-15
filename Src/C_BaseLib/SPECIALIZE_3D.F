@@ -54,7 +54,82 @@ c
       end do
 
       end
+c
+c     This function copies from a 3D array to a 1D one.
+c
+      subroutine FORT_FASTCOPYTOMEM (lo,hi,data,DIMS(data),ncomp,dst)
 
+      implicit none
+
+      integer ncomp
+      integer lo(3), hi(3)
+      integer DIMDEC(data)
+      REAL_T  data(DIMV(data),ncomp), dst(*)
+c
+c     Local variables.
+c
+      integer i,j,k,l,cnt
+      integer imin,jmin,kmin,imax,jmax,kmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
+
+      cnt = 1
+
+      do l = 1, ncomp
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  dst(cnt) = data(i,j,k,l)
+                  cnt = cnt + 1
+               end do
+            end do
+         end do
+      end do
+
+      end
+c
+c     This function copies from a 1D array into a 3D array.
+c
+      subroutine FORT_FASTCOPYFROMMEM (lo,hi,data,DIMS(data),ncomp,src)
+
+      implicit none
+
+      integer ncomp
+      integer lo(3), hi(3)
+      integer DIMDEC(data)
+      REAL_T  data(DIMV(data),ncomp), src(*)
+c
+c     Local variables.
+c
+      integer i,j,k,l,cnt
+      integer imin,jmin,kmin,imax,jmax,kmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
+
+      cnt = 1
+
+      do l = 1, ncomp
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  data(i,j,k,l) = src(cnt)
+                  cnt = cnt + 1
+               end do
+            end do
+         end do
+      end do
+
+      end
 c
 c     This function sets a section of an array to a value.
 c
@@ -117,9 +192,8 @@ c
 
       nrm = 0.0d0
 
-!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
-!$omp do reduction(max : nrm)
+!$omp parallel do private(i,j,k) reduction(max : nrm)
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -127,9 +201,8 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end parallel do
       end do
-!$omp end parallel
 
       end
 c
@@ -158,9 +231,8 @@ c
 
       nrm = 0.0d0
 
-!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
-!$omp do reduction(+ : nrm)
+!$omp parallel do private(i,j,k) reduction(+ : nrm)
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -168,9 +240,8 @@ c
                end do
             end do
          end do
-!$omp end do
+!$omp end parallel do
       end do
-!$omp end parallel
 
       end
 c

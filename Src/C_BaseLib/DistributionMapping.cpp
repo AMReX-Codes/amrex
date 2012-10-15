@@ -90,7 +90,7 @@ DistributionMapping::SFC_Threshold ()
 bool
 DistributionMapping::operator== (const DistributionMapping& rhs) const
 {
-    return m_ref->m_pmap == rhs.m_ref->m_pmap;
+    return m_ref == rhs.m_ref || m_ref->m_pmap == rhs.m_ref->m_pmap;
 }
 
 bool
@@ -159,6 +159,8 @@ void
 DistributionMapping::Finalize ()
 {
     initialized = false;
+
+    DistributionMapping::FlushCache();
 
     DistributionMapping::m_BuildMap = 0;
 
@@ -649,13 +651,14 @@ top:
 
 void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
-                                   int                      nprocs)
+                                   int                      nprocs,
+                                   double&                  efficiency)
 {
     const Real strttime = ParallelDescriptor::second();
 
     std::vector< std::vector<int> > vec;
 
-    double efficiency = 0;
+    efficiency = 0;
 
     knapsack(wgts,nprocs,vec,efficiency);
 
@@ -718,7 +721,8 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
 void
 DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
-                                           int                      nprocs)
+                                           int                      nprocs,
+                                           double*                  efficiency)
 {
     BL_ASSERT(wgts.size() > 0);
 
@@ -730,10 +734,20 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
     if (wgts.size() <= nprocs || nprocs < 2)
     {
         RoundRobinProcessorMap(wgts.size(),nprocs);
+
+        if (efficiency) *efficiency = 1;
     }
     else
     {
-        KnapSackDoIt(wgts, nprocs);
+        if (efficiency)
+        {
+            KnapSackDoIt(wgts, nprocs, *efficiency);
+        }
+        else
+        {
+            double eff;
+            KnapSackDoIt(wgts, nprocs, eff);
+        }
     }
 }
 
@@ -755,7 +769,8 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         for (unsigned int i = 0, N = boxes.size(); i < N; i++)
             wgts[i] = boxes[i].numPts();
 
-        KnapSackDoIt(wgts, nprocs);
+        double effi;
+        KnapSackDoIt(wgts, nprocs, effi);
     }
 }
 
@@ -997,8 +1012,8 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 
         wgts.reserve(boxes.size());
 
-        for (int i = 0, N = boxes.size(); i < N; i++)
-            wgts.push_back(boxes[i].volume());
+        for (BoxArray::const_iterator it = boxes.begin(), End = boxes.end(); it != End; ++it)
+            wgts.push_back(it->volume());
 
         SFCProcessorMapDoIt(boxes,wgts,nprocs);
     }
@@ -1034,15 +1049,15 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
 void
 DistributionMapping::CacheStats (std::ostream& os)
 {
-    if (verbose && ParallelDescriptor::IOProcessor() && m_Cache.size())
+    if (ParallelDescriptor::IOProcessor() && m_Cache.size())
     {
         os << "DistributionMapping::m_Cache.size() = "
            << m_Cache.size()
            << " [ (refs,size): ";
 
-        std::map< int,LnClassPtr<Ref> >::const_iterator it;
-
-        for (it = m_Cache.begin(); it != m_Cache.end(); ++it)
+        for (std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
+             it != m_Cache.end();
+             ++it)
         {
             os << '(' << it->second.linkCount() << ',' << it->second->m_pmap.size()-1 << ") ";
         }

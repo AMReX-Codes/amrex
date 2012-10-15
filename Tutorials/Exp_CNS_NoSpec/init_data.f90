@@ -23,8 +23,7 @@ contains
 
     ng = data%ng
 
-    do i=1,nboxes(data)
-       if ( multifab_remote(data,i) ) cycle
+    do i=1,nfabs(data)
 
        dp => dataptr(data,i)
        lo = lwb(get_box(data,i))

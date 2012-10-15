@@ -162,22 +162,6 @@ Box::enclosedCells ()
 }
 
 const Box
-Box::operator+ (const IntVect& v) const
-{
-    Box result = *this;
-    result += v;
-    return result;
-}
-
-const Box
-Box::operator- (const IntVect& v) const
-{
-    Box result = *this;
-    result -= v;
-    return result;
-}
-
-const Box
 BoxLib::grow (const Box& b,
               int        i)
 {
@@ -249,6 +233,19 @@ Box::numPts () const
     return result;
 }
 
+bool
+Box::numPtsOK () const
+{
+    long ignore;
+    return numPtsOK(ignore);
+}
+
+bool
+Box::isEmpty () const
+{
+    return numPts() == 0;
+}
+
 double
 Box::d_numPts () const
 {
@@ -296,6 +293,13 @@ Box::volume () const
     if (!volumeOK(result))
         BoxLib::Error("Arithmetic overflow in Box::volume()");
     return result;
+}
+
+bool
+Box::volumeOK () const
+{
+    long ignore;
+    return volumeOK(ignore);
 }
 
 Box&
@@ -806,14 +810,19 @@ Box::sameSize (const Box& b) const
                   && length(2)==b.length(2));
 }
 
-bool
-Box::operator== (const Box& b) const
+int
+Box::operator[] (Orientation face) const
 {
-    return smallend == b.smallend && bigend == b.bigend && b.btype == btype;
+    const int dir = face.coordDir();
+    return face.isLow() ? smallend[dir] : bigend[dir];
 }
 
-bool
-Box::operator!= (const Box& b) const
+Box&
+Box::setRange (int dir,
+               int sm_index,
+               int n_cells)
 {
-    return !operator==(b);
+    smallend.setVal(dir,sm_index);
+    bigend.setVal(dir,sm_index+n_cells-1);
+    return *this;
 }

@@ -55,7 +55,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 {
     BL_ASSERT(!m_initialized);
 
-    const bool verbose   = true;
+    const bool verbose   = false;
     const int  NProcs    = ParallelDescriptor::NProcs();
     const Real strt_time = ParallelDescriptor::second();
 

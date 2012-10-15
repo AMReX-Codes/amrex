@@ -93,6 +93,13 @@ public:
     LinOp (const BndryData& mgb,
            const Real*      _h);
     //
+    // Allocate a LinOp for this box array, boundary data and spacing array info.
+    //
+    // LinOp assumes ownership of the pointer.
+    //
+    LinOp (BndryData*  mgb,
+           const Real* _h);
+    //
     // The destructor.
     //
     virtual ~LinOp ();
@@ -142,11 +149,12 @@ public:
     // Compute flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC) = 0;
+			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC,
+			   int sComp=0, int dComp=0, int nComp=1) = 0;
     //
     // Return the boundary data object.
     //
-    const BndryData& bndryData () const;
+    const BndryData& bndryData () const { return *bgb; }
     //
     // Set the boundary data object.
     //
@@ -154,19 +162,22 @@ public:
     //
     // Return the box array.
     //
-    const BoxArray& boxArray (int level = 0) const;
+    const BoxArray& boxArray (int level = 0) const
+    {
+        BL_ASSERT(level < numLevels()); return gbox[level];
+    }
     //
     // Return the number of grids.
     //
-    int numGrids () const;
+    int numGrids () const { return gbox[0].size(); }
     //
     // Return the number of levels.
     //
-    int numLevels () const;
+    int numLevels () const { return h.size(); }
     //
     // Return the order of the boundary condition interpolant.
     //
-    int maxOrder () const;
+    int maxOrder () const { return maxorder; }
     //
     // Set the order of the boundary condition interpolant.
     //
@@ -203,7 +214,7 @@ protected:
     //
     // Remove internal data necessary for a level and all higher.
     //
-    virtual void clearToLevel (int level) {}
+    virtual void clearToLevel (int level);
     //
     // Virtual to apply the level operator to the internal nodes of
     // "in", return result in "out"
@@ -271,7 +282,7 @@ protected:
     //
     // boundary data class
     //
-    BndryData bgb;
+    BndryData* bgb;
     //
     // Array (on level) of geometry objects.  Needed for determining
     // whether stuff intersects on periodic domains
@@ -311,49 +322,5 @@ private:
     LinOp (const LinOp& rhs);
     void operator = (const LinOp& rhs);
 };
-
-inline
-const BndryData&
-LinOp::bndryData () const
-{
-    return bgb;
-}
-
-inline
-void
-LinOp::bndryData (const BndryData& bd)
-{
-    BL_ASSERT(gbox[0] == bd.boxes());
-    bgb = bd;
-}
-
-inline
-int
-LinOp::numLevels () const
-{
-    return h.size();
-}
-
-inline
-const BoxArray&
-LinOp::boxArray (int level) const
-{
-    BL_ASSERT(level < numLevels());
-    return gbox[level];
-}
-
-inline
-int
-LinOp::numGrids () const
-{
-    return gbox[0].size();
-}
-
-inline
-int
-LinOp::maxOrder () const
-{
-    return maxorder;
-}
 
 #endif /*_LINOP_H_*/

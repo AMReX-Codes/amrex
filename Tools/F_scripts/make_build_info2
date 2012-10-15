@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+
+# Adpapted from make_build_info and make_build_info_cpp
+
+# This script writes an F90 module containing strings with the build
+# date, directory, machine, the list of modules that were compiled
+# into the executable, and compilation lines.  This information can
+# then be written to the plotfiles (in MAESTRO this is done in
+# write_job_info.f90).
+#
+# To call it from the makefile, you would do something like:
+#
+# build_info.f90: 
+#       $(BOXLIB_HOME)/Tools/F_scripts/make_build_info \
+#            "$(Fmdirs)" "$(COMP)" "$(FCOMP_VERSION)" "$(COMPILE.f90)" "$(COMPILE.f)" \
+#            "$(COMPILE.c)" "$(LINK.f90)" \
+#            "AUX=$(AUXNAME1)" "AUX=$(AUXNAME2)" \ 
+#            "GIT=$(BOXLIB_HOME)" "GIT=$(SOURCE_HOME)" "GIT=$(EXTRA_HOME)" 
+#
+# where:
+#
+#  Fmdirs is a string containing the list of directories used to
+#  assemble the code
+#
+#  COMP is the Fortran compiler name (as expected by BoxLib)
+#
+#  FCOMP_VERSION is the Fortran compiler version number, as returned by the
+#     compiler itself (usually via -v)
+#
+#  COMPILE.f90 is a string giving the Fortran 90 compile line
+#
+#  COMPILE.f is a string giving the Fortran 77 compile line
+#
+#  COMPILE.c is a string giving the C compile line
+#
+#  LINK.f90 is a string giving the link line
+#
+#  BOXLIB_HOME is a string giving the path to the BoxLib directory
+#
+#  SOURCE_HOME is a string giving the path to the source tree we are building in
+#
+#  EXTRA_HOME is a string giving the path to another git repo we are using
+
+
+# the basic build strings will be MAX_STRING_LENGTH long
+MAX_STRING_LENGTH=128
+
+# long strings will carry over to a second line.  Set the length of a
+# single line
+DBL_STRING_LINE_LENGTH=125
+
+# also set the starting and ending character positions for the second
+# line
+s2=`expr $DBL_STRING_LINE_LENGTH + 1`
+f2=`expr $DBL_STRING_LINE_LENGTH + $DBL_STRING_LINE_LENGTH`
+
+# finally set the total length of a long string
+DBL_STRING_LENGTH=$f2
+
+
+rm -f build_info.f90
+
+
+BUILD_DATE=`date | cut -c 1-$MAX_STRING_LENGTH`
+BUILD_DIR=`pwd | cut -c 1-$MAX_STRING_LENGTH`
+BUILD_MACHINE=`uname -a | cut -c 1-$MAX_STRING_LENGTH`
+
+MODULES=$1
+shift
+
+FCOMP=`echo $1 | cut -c 1-$MAX_STRING_LENGTH`
+shift
+
+FCOMP_VERSION=`echo $1 | cut -c 1-$MAX_STRING_LENGTH`
+shift
+
+F90COMPILE1=`echo $1 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+F90COMPILE2=`echo $1 | cut -c $s2-$f2`
+shift
+
+FCOMPILE1=`echo $1 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+FCOMPILE2=`echo $1 | cut -c $s2-$f2`
+shift
+
+CCOMPILE1=`echo $1 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+CCOMPILE2=`echo $1 | cut -c $s2-$f2`
+shift
+
+LINK1=`echo $1 | cut -c 1-$DBL_STRING_LINE_LENGTH`
+LINK2=`echo $1 | cut -c $s2-$f2`
+shift
+
+naux=0
+ngit=0
+while [ $# -gt 0 ] ; do
+  INFOTYPE=`echo $1 | cut -c 1-3`
+  INFOPATH=`echo $1 | cut -c 5-$MAX_STRING_LENGTH`
+  if [ "$INFOTYPE" = "AUX" ] ; then
+      naux=$((naux+1))
+      AUX[$naux]="$INFOPATH"
+  elif [ "$INFOTYPE" = "GIT" ] ; then
+      ngit=$((ngit+1))
+      if [ -d "$INFOPATH" ] ; then
+	  GITDIR[$ngit]="$INFOPATH"
+	  GIT[$ngit]=`cd "$INFOPATH"; git rev-parse HEAD | cut -c 1-$MAX_STRING_LENGTH`
+      fi
+  fi
+
+  shift
+done
+
+
+cat > build_info.f90 << EOF
+module build_info_module
+
+  implicit none
+
+  character (len=$MAX_STRING_LENGTH), save :: build_date = &
+"$BUILD_DATE"
+
+  character (len=$MAX_STRING_LENGTH), save :: build_dir = &
+"$BUILD_DIR"
+
+  character (len=$MAX_STRING_LENGTH), save :: build_machine = &
+"$BUILD_MACHINE"
+
+  character (len=$MAX_STRING_LENGTH), save :: boxlib_dir = &
+"${GITDIR[1]}"
+
+  character (len=$MAX_STRING_LENGTH), save :: FCOMP = &
+"$FCOMP"
+
+  character (len=$MAX_STRING_LENGTH), save :: FCOMP_version = &
+"$FCOMP_VERSION"
+
+  character (len=$DBL_STRING_LENGTH), save :: f90_compile_line = &
+"$F90COMPILE1" //&
+"$F90COMPILE2"
+
+  character (len=$DBL_STRING_LENGTH), save :: f_compile_line = &
+"$FCOMPILE1" //&
+"$FCOMPILE2"
+
+  character (len=$DBL_STRING_LENGTH), save :: C_compile_line = &
+"$CCOMPILE1" //&
+"$CCOMPILE2"
+
+  character (len=$DBL_STRING_LENGTH), save :: link_line = &
+"$LINK1" //&
+"$LINK2"
+
+  character (len=$MAX_STRING_LENGTH), save :: aux_info_1 = &
+"${AUX[1]}"
+
+  character (len=$MAX_STRING_LENGTH), save :: aux_info_2 = &
+"${AUX[2]}"
+
+  character (len=$MAX_STRING_LENGTH), save :: boxlib_git_hash = &
+"${GIT[1]}"
+
+  character (len=$MAX_STRING_LENGTH), save :: source_git_hash = &
+"${GIT[2]}"
+
+  character (len=$MAX_STRING_LENGTH), save :: extra_git_hash = &
+"${GIT[3]}"
+
+EOF
+
+
+# deal with the modules
+N=0
+for module in $MODULES
+do
+  N=$(($N+1))
+done
+
+echo "  "integer, parameter :: NUM_MODULES=$N >> build_info.f90
+echo "  "character \(len=$MAX_STRING_LENGTH\), save :: modules\(NUM_MODULES\) = \(/ \& >> build_info.f90
+
+M=0
+for module in $MODULES
+do
+  M=$(($M+1))
+  smodule=`echo $module | cut -c 1-$MAX_STRING_LENGTH`
+  if [ $M -lt $N ]; then
+    printf "\"%-120s\",&\n" "$smodule" >> build_info.f90
+  else
+    printf "\"%-120s\" &\n" "$smodule" >> build_info.f90
+  fi     
+done
+echo "  "/\) >> build_info.f90
+
+
+cat >> build_info.f90 <<EOF 
+
+end module build_info_module
+EOF
+

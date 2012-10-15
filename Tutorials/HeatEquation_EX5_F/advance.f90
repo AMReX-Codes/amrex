@@ -56,7 +56,7 @@ contains
 
     real(dp_t) :: dx_vector(mla%nlevel,mla%dim)
 
-    integer :: ns,smoother,nu1,nu2,nub,gamma,cycle_type
+    integer :: stencil_type,ns,smoother,nu1,nu2,nub,gamma,cycle_type
     integer :: bottom_solver,bottom_max_iter,max_iter,max_nlevel
     integer :: max_bottom_nlevel,min_width,verbose,cg_verbose
     real(dp_t) :: omega,bottom_solver_eps,rel_solver_eps,abs_solver_eps
@@ -116,7 +116,7 @@ contains
        ! initialize these to the default values in the mgt object
        smoother          = mgt(nlevs)%smoother           ! smoother type
        nu1               = mgt(nlevs)%nu1                ! # of smooths at each level on the way down
-       nu2               = mgt(nlevs)%nu2                ! # of smooths at each level on the way down
+       nu2               = mgt(nlevs)%nu2                ! # of smooths at each level on the way up
        nub               = mgt(nlevs)%nub                ! # of smooths before and after bottom solver
        gamma             = mgt(nlevs)%gamma              ! allows control over 'shape' of V or W cycle
        cycle_type        = mgt(nlevs)%cycle_type         ! choose between V-cycle, W-cycle, etc.
@@ -148,9 +148,12 @@ contains
              max_nlevel = 1
           end if
 
+          stencil_type = CC_CROSS_STENCIL
+
           ! build the mg_tower object at level n
           call mg_tower_build(mgt(n), mla%la(n), pd, &
                               the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
+                              stencil_type, &
                               dh = dx_vector(n,:), &
                               ns = ns, &
                               smoother = smoother, &
@@ -298,8 +301,7 @@ contains
     ng_f = flux(1,1)%ng
 
     do n=1,nlevs
-       do i=1,nboxes(phi(n))
-          if ( multifab_remote(phi(n),i) ) cycle
+       do i=1,nfabs(phi(n))
           pp  => dataptr(phi(n),i)
           fxp => dataptr(flux(n,1),i)
           fyp => dataptr(flux(n,2),i)
@@ -344,24 +346,20 @@ contains
     integer i,j
 
     ! x-fluxes
-    !$omp parallel do private(i,j)
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)+1
           fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / dx
        end do
     end do
-    !$omp end parallel do
 
     ! lo-x boundary conditions
     if (adv_bc(1,1) .eq. EXT_DIR) then
        i=lo(1)
-       !$omp parallel do private(j)
        do j=lo(2),hi(2)
           ! divide by 0.5*dx since the ghost cell value represents
           ! the value at the wall, not the ghost cell-center
           fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
        end do
-       !$omp end parallel do
     else if (adv_bc(1,1) .eq. FOEXTRAP) then
        ! dphi/dn = 0
        fluxx(lo(1),lo(2):hi(2)) = 0.d0
@@ -370,37 +368,31 @@ contains
     ! hi-x boundary conditions
     if (adv_bc(1,2) .eq. EXT_DIR) then
        i=hi(1)+1
-       !$omp parallel do private(j)
        do j=lo(2),hi(2)
           ! divide by 0.5*dx since the ghost cell value represents
           ! the value at the wall, not the ghost cell-center
           fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
        end do
-       !$omp end parallel do
     else if (adv_bc(1,2) .eq. FOEXTRAP) then
        ! dphi/dn = 0
        fluxx(hi(1)+1,lo(2):hi(2)) = 0.d0
     end if
 
     ! y-fluxes
-    !$omp parallel do private(i,j)
     do j=lo(2),hi(2)+1
        do i=lo(1),hi(1)
           fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / dx
        end do
     end do
-    !$omp end parallel do
 
     ! lo-y boundary conditions
     if (adv_bc(2,1) .eq. EXT_DIR) then
        j=lo(2)
-       !$omp parallel do private(i)
        do i=lo(1),hi(1)
           ! divide by 0.5*dx since the ghost cell value represents
           ! the value at the wall, not the ghost cell-center
           fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / (0.5d0*dx)
        end do
-       !$omp end parallel do
     else if (adv_bc(2,1) .eq. FOEXTRAP) then
        ! dphi/dn = 0
        fluxy(lo(1):hi(1),lo(2)) = 0.d0
@@ -409,13 +401,11 @@ contains
     ! hi-y boundary conditions
     if (adv_bc(2,2) .eq. EXT_DIR) then
        j=hi(2)+1
-       !$omp parallel do private(i)
        do i=lo(1),hi(1)
           ! divide by 0.5*dx since the ghost cell value represents
           ! the value at the wall, not the ghost cell-center
           fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / (0.5d0*dx)
        end do
-       !$omp end parallel do
     else if (adv_bc(2,2) .eq. FOEXTRAP) then
        ! dphi/dn = 0
        fluxy(lo(1):hi(1),hi(2)+1) = 0.d0
@@ -600,8 +590,7 @@ contains
 
     do n=1,nlevs
 
-       do i=1,nboxes(phi(n))
-          if ( multifab_remote(phi(n),i) ) cycle
+       do i=1,nfabs(phi(n))
           pp  => dataptr(phi(n),i)
           fxp => dataptr(flux(n,1),i)
           fyp => dataptr(flux(n,2),i)
@@ -662,16 +651,12 @@ contains
     ! local variables
     integer i,j
 
-    !$omp parallel do private(i,j)
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)
-
           phi(i,j) = phi(i,j) + dt * &
                ( fluxx(i+1,j)-fluxx(i,j) + fluxy(i,j+1)-fluxy(i,j) ) / dx
-
        end do
     end do
-    !$omp end parallel do
 
   end subroutine update_phi_2d
 
@@ -691,12 +676,10 @@ contains
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
-
              phi(i,j,k) = phi(i,j,k) + dt * &
                   ( fluxx(i+1,j,k)-fluxx(i,j,k) &
                    +fluxy(i,j+1,k)-fluxy(i,j,k) &
                    +fluxz(i,j,k+1)-fluxz(i,j,k) ) / dx
-
           end do
        end do
     end do

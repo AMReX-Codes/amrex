@@ -713,7 +713,8 @@ c
                            alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
                         endif
 
-#ifndef NDEBUG
+!#ifndef NDEBUG
+#if 0
                         if (alpha(ic,jc,kc,n) .lt. 0.d0) then
                            print *,'OOPS - ALPHA SHOULD BE POSITIVE IN CCINTERP '
                            print *,'ALPHA = ',alpha(ic,jc,kc,n)

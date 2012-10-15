@@ -22,7 +22,6 @@ int   MGT_Solver::def_usecg;
 int   MGT_Solver::def_cg_solver;
 int   MGT_Solver::def_bottom_solver;
 Real  MGT_Solver::def_bottom_solver_eps;
-int   MGT_Solver::stencil_type;
 
 typedef void (*mgt_get)(const int* lev, const int* n, double* uu, 
 			const int* plo, const int* phi, 
@@ -144,7 +143,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 		       const std::vector<BoxArray>& grids,
 		       const std::vector<DistributionMapping>& dmap,
 		       bool nodal,
-		       int _stencil_type,
+		       int stencil_type,
 		       bool _have_rhcc,
                        int nc,
                        int ncomp)
@@ -154,35 +153,16 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
     m_nodal(nodal),
     have_rhcc(_have_rhcc)
 {
-    stencil_type =_stencil_type;
     BL_ASSERT(geom.size()==m_nlevel);
     BL_ASSERT(dmap.size()==m_nlevel);
-    Build(geom,bc,dmap,nc,ncomp);
+    Build(geom,bc,stencil_type,dmap,nc,ncomp);
 }
 
-MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom, 
-                       int* bc, 
-		       const std::vector<BoxArray>& grids,
-		       const std::vector<DistributionMapping>& dmap,
-		       bool nodal,
-		       int nc, 
-		       int ncomp,
-		       bool _have_rhcc)
-    :
-    m_nlevel(grids.size()),
-    m_grids(grids),
-    m_nodal(nodal),
-    have_rhcc(_have_rhcc)
-{
-    stencil_type = -1;
-    BL_ASSERT(geom.size()==m_nlevel);
-    BL_ASSERT(dmap.size()==m_nlevel);
-    Build(geom,bc,dmap,nc,ncomp);
-}
 
 void
 MGT_Solver::Build(const std::vector<Geometry>& geom, 
                   int* bc, 
+                  int stencil_type,
                   const std::vector<DistributionMapping>& dmap,
                   int nc,
                   int ncomp)
@@ -194,16 +174,15 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
   BL_ASSERT(m_grids.size()==m_nlevel);
   BL_ASSERT(   dmap.size()==m_nlevel);
   int dm = BL_SPACEDIM;
-  int i_nodal = (m_nodal)?1:0;
 
   if (m_nodal) {
-    mgt_nodal_alloc(&dm, &m_nlevel, &i_nodal, &stencil_type);
+    mgt_nodal_alloc(&dm, &m_nlevel, &stencil_type);
     mgt_set_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
                            &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
                            &def_verbose,&def_cg_verbose,&def_max_nlevel,
                            &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   } else {
-    mgt_alloc(&dm, &m_nlevel, &i_nodal);
+    mgt_cc_alloc(&dm, &m_nlevel, &stencil_type);
     mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,&def_gamma,&def_omega,
                      &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
                      &def_max_L0_growth,
@@ -311,9 +290,6 @@ MGT_Solver::initialize(bool nodal)
     def_bottom_solver_eps = 0.0001;
     def_nu_f = 2;
 
-    /* SET TO AGREE WITH MULTIGRID DEFAULT */
-    stencil_type = 1;  /* 1: ST_CROSS */
-
     ParmParse pp("mg");
 
     pp.query("maxiter", def_maxiter);
@@ -328,7 +304,6 @@ MGT_Solver::initialize(bool nodal)
     pp.query("rtol_b", def_bottom_solver_eps);
     pp.query("numLevelsMAX", def_max_nlevel);
     pp.query("smoother", def_smoother);
-    pp.query("stencil_type", stencil_type);
     pp.query("max_L0_growth", def_max_L0_growth);
 
 /*

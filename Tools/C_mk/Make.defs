@@ -282,6 +282,8 @@ ifeq ($(findstring gcc, $(COMP)), gcc)
     ifeq ($(USE_OMP),TRUE)
       CXXOPTF += -fopenmp
       CXXDEBF += -fopenmp
+      COPTF += -fopenmp
+      CDEBF += -fopenmp
     endif
 endif
 
@@ -305,6 +307,8 @@ ifeq ($(findstring g++, $(COMP)), g++)
     ifeq ($(USE_OMP),TRUE)
       CXXOPTF += -fopenmp
       CXXDEBF += -fopenmp
+      COPTF += -fopenmp
+      CDEBF += -fopenmp
     endif
 endif
 
@@ -343,10 +347,8 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
 
     FOPTF += -ffixed-line-length-132 -g -O3
     fOPTF += -ffixed-line-length-132 -g -O3
-#    FDEBF += -g -O0 -ffixed-line-length-132 -fbounds-check -Wall
-#    fDEBF += -g -O0 -ffixed-line-length-132 -fbounds-check -Wall
-    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
-    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation
+    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -797,6 +799,13 @@ else
     MAESTROSuffix :=
 endif
 
+ifeq ($(USE_LMC_SDC),TRUE)
+    SDCSuffix := .SDC
+    DEFINES += -DLMC_SDC
+else
+    SDCSuffix :=
+endif
+
 ThreadsSuffix :=
 
 ifeq ($(PRECISION),FLOAT)
@@ -851,6 +860,7 @@ endif
 
 includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
+f_includes	= $(addprefix -I , $(INCLUDE_LOCATIONS))
 fmoddir         = $(objEXETempDir)
 
 CPPFLAGS	+= $(DEFINES) $(includes)
@@ -859,7 +869,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MAESTROSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MAESTROSuffix)$(SDCSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib,					\

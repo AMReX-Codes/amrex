@@ -1,0 +1,90 @@
+ppCleanup
+=========
+
+This python script is used to clean C Preprocessor macros and their
+associated code from a source code file.  We'll refer to those macros
+we wish to clean up as "cleanWords."
+
+Example code removal:
+---------------------
+
+The basic bit of code you want to remove would be something like the
+following, where the "X" is a line you should get rid of
+
+#ifdef cleanWord      X
+---code---            X
+#endif                X
+
+But there are more advanced/complex cases such as 
+
+#ifdef cleanWord      X
+---code---            X
+#else                 X
+---code---
+#endif                X
+
+#ifndef cleanWord     X
+---code---
+#else                 X
+---code---            X
+#endif                X
+
+Or any such cases nested within others.  ppCleanup handles nesting by
+recursively calling helper routines to handle specific cases.
+
+Usage:
+------
+
+pCleanup.py [-h] [-c CLEANWORD_FILE] [--cw [CW [CW ...]]] [-o OUTPUT]
+                    fileToClean
+
+positional arguments:
+  fileToClean           file to be cleaned
+
+optional arguments:
+  -h, --help            show help message and exit
+  -c CLEANWORD_FILE, --cleanword_file CLEANWORD_FILE
+                        file containing the cleanWords; you must specify at
+                        least one cleanWord on the command lineor in the
+                        cleanWord file
+  --cw [CW [CW ...]]    cleanup words specified on the command line;you must
+                        specify at least one cleanWord on the command line or
+                        in the cleanWord file
+  -o OUTPUT, --output OUTPUT
+                        optionally specify the output file; default behaviour
+                        is stdout
+
+
+You can specify cleanWords via the command line (-cw) or in a
+cleanWord file (-c).  You must specify at least one cleanWord either
+from the command line or a cleanWord file.  A sample cleanWord file is
+in ./cleanWords.txt
+
+$ cat cleanWords.txt 
+RADIATION
+NEUTRINO
+PARTICLES
+SGS
+LEVELSET
+
+Example usage script:
+---------------------
+
+As a test, I converted all the Castro source code with the following script:
+
+$ cat convert.sh
+#!/bin/bash
+
+ppCleanup=~/projects/ppCleanup/ppCleanup.py
+cleanFile=~/projects/ppCleanup/cleanwords.txt
+
+outDir=Castro_Strip
+
+for file in `find Castro -name \* -print`; do
+    oFile=$outDir/${file##Castro/}
+    if [ -f $file ]; then
+        python $ppCleanup -c $cleanFile $file -o $oFile
+    else
+        mkdir -p $oFile
+    fi
+done

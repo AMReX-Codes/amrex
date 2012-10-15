@@ -51,8 +51,7 @@ contains
 
     dm = get_dim(crse)
 
-    do i = 1, nboxes(fine)
-       if ( remote(fine, i) ) cycle
+    do i = 1, nfabs(fine)
        loc = lwb(get_pbox(cfine,i))
        lof = lwb(get_pbox(fine, i))
        lo  = lwb(get_ibox(fine, i))
@@ -106,8 +105,7 @@ contains
 
     dm = get_dim(crse)
 
-    do i = 1, nboxes(fine)
-       if ( remote(fine, i) ) cycle
+    do i = 1, nfabs(fine)
        loc = lwb(get_pbox(cfine,i))
        lof = lwb(get_pbox(fine, i))
        lo  = lwb(get_ibox(fine, i))
@@ -359,8 +357,7 @@ contains
 
     pmask = get_pmask(get_layout(fine))
 
-    do i = 1, nboxes(fine)
-       if ( remote(fine,i) ) cycle
+    do i = 1, nfabs(fine)
 
        loc          = lwb(get_pbox(crse, i))
        hic          = upb(get_pbox(crse, i))

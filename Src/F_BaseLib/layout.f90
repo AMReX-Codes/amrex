@@ -11,7 +11,6 @@ module layout_module
   integer, private, parameter :: LA_CRSN = 2
   integer, private, parameter :: LA_PCHD = 3
   integer, private, parameter :: LA_PPRT = 4
-  integer, private, parameter :: LA_DERV = 5
 
   integer, parameter :: LA_KNAPSACK   = 101
   integer, parameter :: LA_ROUNDROBIN = 102
@@ -157,19 +156,20 @@ module layout_module
 
   !! Defines the box distribution and box connectivity of a boxarray.
   type layout_rep
-     integer                         :: dim    = 0            ! spatial dimension 1, 2, or 3
+     integer                         :: dim    = 0            ! Spatial dimension: 1, 2, or 3.
      integer                         :: id     = 0
-     integer                         :: nboxes = 0
-     type(box)                       :: pd                    ! Problem Domain 
-     logical, pointer                :: pmask(:)    => Null() ! periodic mask
-     integer, pointer, dimension(:)  :: prc         => Null()
+     integer                         :: nboxes = 0            ! Total count of boxes.
+     integer                         :: nlocal = 0            ! Number of boxes we own.
+     type(box)                       :: pd                    ! Problem Domain.
+     logical, pointer                :: pmask(:)    => Null() ! Periodic mask.
+     integer, pointer                :: prc(:)      => Null() ! Which processor owns each box.
+     integer, pointer                :: idx(:)      => Null() ! Global indices of boxes we own.
      type(boxarray)                  :: bxa
      type(boxassoc), pointer         :: bxasc       => Null()
      type(fgassoc), pointer          :: fgasc       => Null()
      type(syncassoc), pointer        :: snasc       => Null()
      type(coarsened_layout), pointer :: crse_la     => Null()
      type(pn_layout), pointer        :: pn_children => Null()
-     type(derived_layout), pointer   :: dlay => Null()
      ! Box Hashing
      integer                         :: crsn                = -1
      integer                         :: plo(MAX_SPACEDIM)   = 0
@@ -196,12 +196,6 @@ module layout_module
      type(layout)             :: la
      type(pn_layout), pointer :: next => Null()
   end type pn_layout
-
-  type derived_layout
-     integer                       :: dim = 0
-     type(layout)                  :: la
-     type(derived_layout), pointer :: next => Null()
-  end type derived_layout
 
   integer, private :: g_layout_next_id = 0
 
@@ -230,12 +224,24 @@ module layout_module
      module procedure layout_local
   end interface
 
+  interface remote
+     module procedure layout_remote
+  end interface
+
   interface nboxes
      module procedure layout_nboxes
   end interface
 
-  interface remote
-     module procedure layout_remote
+  interface nlocal
+     module procedure layout_nlocal
+  end interface
+
+  interface local_index
+     module procedure layout_local_index
+  end interface
+
+  interface global_index
+     module procedure layout_global_index
   end interface
 
   interface get_box
@@ -413,6 +419,71 @@ contains
     r = la%lap%nboxes
   end function layout_nboxes
 
+  pure function layout_nlocal(la) result(r)
+    integer :: r
+    type(layout), intent(in) :: la
+    r = la%lap%nlocal
+  end function layout_nlocal
+  !
+  ! Given a global index "i" into the boxarray on which
+  ! the layout is built, returns the corresponding local
+  ! index "r" at which that index is stored in la&lap%idx(:).
+  ! It's an error if the layout does not "own" index "r"
+  ! or if the index "i" is not in the range of boxes for the
+  ! layout. nboxes is the number of boxes in the associated layout.
+  !
+  function layout_local_index(la,i) result(r)
+
+    use bl_error_module
+
+    integer,      intent(in) :: i
+    type(layout), intent(in) :: la
+    integer                  :: r
+
+    call bl_assert(i >= 1 .and. i <= la%lap%nboxes, "layout_local_index: invalid global index")
+
+    if (parallel_nprocs() == 1) then
+       call bl_assert(la%lap%idx(i) == i, "layout_local_index: how did this happen?")
+       r = i
+    else
+       r = bsearch(la%lap%idx,i)
+       call bl_assert(r >= 1, "layout_local_index: no corresponding local index")
+    endif
+
+  contains
+      !
+      ! Returns -1 if "val" is not found in array "arr".
+      !
+      ! "arr" is assumed to be sorted from smallest to largest.
+      !
+      pure function bsearch (arr,val) result (r)
+        integer, intent(in) :: arr(:), val
+        integer             :: r, lo, hi, mid
+        r  = -1
+        lo = lbound(arr,1)
+        hi = ubound(arr,1)
+        do while (lo <= hi)
+           mid = (lo + hi) / 2
+           if (arr(mid) == val) then
+              r = mid
+              exit
+           else if (arr(mid) > val) then
+              hi = mid - 1
+           else
+              lo = mid + 1
+           end if
+        end do
+      end function bsearch
+
+  end function layout_local_index
+
+  pure function layout_global_index(la,i) result(r)
+    integer,      intent(in) :: i
+    type(layout), intent(in) :: la
+    integer                  :: r
+    r = la%lap%idx(i)
+  end function layout_global_index
+
   pure function layout_get_pd(la) result(r)
     type(box) :: r
     type(layout), intent(in) :: la
@@ -439,7 +510,7 @@ contains
     logical, intent(in) :: pmask(:)
     integer, intent(in), optional :: mapping
     integer, intent(in), optional :: explicit_mapping(:)
-    integer :: lmapping
+    integer :: lmapping, i, j
 
     lmapping = def_mapping; if ( present(mapping) ) lmapping = mapping
     if ( present(explicit_mapping) ) then
@@ -450,7 +521,9 @@ contains
        end if
        lmapping = LA_EXPLICIT
     end if
+
     call boxarray_build_copy(lap%bxa, ba)
+
     lap%dim    = get_dim(lap%bxa)
     lap%nboxes = nboxes(lap%bxa)
     lap%id     = layout_next_id()
@@ -459,6 +532,7 @@ contains
     lap%pmask = pmask
 
     allocate(lap%prc(lap%nboxes))
+
     select case (lmapping)
     case (LA_EXPLICIT)
        if ( .not. present(explicit_mapping) ) then
@@ -478,6 +552,20 @@ contains
        call bl_error("layout_rep_build(): unknown mapping:", lmapping)
     end select
 
+    lap%nlocal = 0
+    do i = 1, lap%nboxes
+       if (parallel_myproc() == lap%prc(i)) lap%nlocal = lap%nlocal + 1
+    end do
+
+    allocate(lap%idx(lap%nlocal))
+
+    j = 1
+    do i = 1, lap%nboxes
+       if (parallel_myproc() == lap%prc(i)) then
+          lap%idx(j) = i
+          j = j + 1
+       end if
+    end do
   end subroutine layout_rep_build
 
   subroutine layout_flush_copyassoc_cache ()
@@ -503,7 +591,6 @@ contains
     integer, intent(in) :: la_type
     type(coarsened_layout), pointer :: clp, oclp
     type(pn_layout), pointer :: pnp, opnp
-    type(derived_layout), pointer :: dla, odla
     type(boxassoc),  pointer :: bxa, obxa
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
@@ -511,11 +598,10 @@ contains
     integer :: i, j, k
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
+       deallocate(lap%idx)
     end if
-    if ( la_type /= LA_DERV ) then
-       call destroy(lap%bxa)
-    end if
-    if ( la_type == LA_BASE .or. la_type == LA_PCHD ) then
+    call destroy(lap%bxa)
+    if ( (la_type == LA_BASE) .or. (la_type == LA_PCHD) ) then
        deallocate(lap%pmask)
     end if
     clp => lap%crse_la
@@ -533,13 +619,6 @@ contains
        call layout_rep_destroy(pnp%la%lap, LA_PCHD)
        deallocate(pnp)
        pnp  => opnp
-    end do
-    dla => lap%dlay
-    do while ( associated(dla) )
-       odla => dla%next
-       call layout_rep_destroy(dla%la%lap, LA_DERV)
-       deallocate(dla)
-       dla  => odla
     end do
     !
     ! Get rid of boxassocs.
@@ -683,67 +762,6 @@ contains
     lapn = pla%la
   end subroutine layout_build_pn
 
-  subroutine layout_build_derived(lad, la, prc, root)
-    use bl_error_module
-    type(layout), intent(out) :: lad
-    type(layout), intent(inout) :: la
-    integer, intent(in), optional :: prc(:)
-    integer, intent(in), optional :: root
-    integer :: l_root
-    type(derived_layout), pointer :: dla
-    integer :: l_prc(la%lap%nboxes)
-
-    l_root = -1
-    if ( present(prc) ) then
-       if ( present(root) ) &
-            call bl_error("layout_build_derived(): not both root and prc")
-       if ( size(prc) /= la%lap%nboxes ) &
-            call bl_error("layout_build_derived(): incommensurate prc")
-    else if ( present(root) ) then
-       l_root = root
-    else if ( .not. present(prc) ) then
-       l_root = parallel_IOProcessorNode()
-    end if
-    if ( l_root == -1 ) then
-       !! handle prc case
-       l_prc = prc
-    else
-       !! handle root case
-       l_prc = l_root
-    end if
-
-    dla => la%lap%dlay
-    do while ( associated(dla) )
-       if ( all(dla%la%lap%prc == l_prc) ) then
-          lad = dla%la
-          return
-       end if
-       dla => dla%next
-    end do
-
-    ! not found
-    allocate(dla)
-    dla%dim = la%lap%dim
-
-    dla%la%la_type = LA_DERV
-    allocate(dla%la%lap)
-    dla%la%lap%dim = la%lap%dim
-    dla%la%lap%nboxes = la%lap%nboxes
-    dla%la%lap%id  = layout_next_id()
-    dla%la%lap%pd = la%lap%pd
-    dla%la%lap%pmask => la%lap%pmask
-
-    allocate(dla%la%lap%prc(size(l_prc)))
-    dla%la%lap%prc = l_prc
-    dla%la%lap%bxa = la%lap%bxa
-
-    ! install the new derived into the layout
-    dla%next => la%lap%dlay
-    la%lap%dlay => dla
-    lad = dla%la
-
-  end subroutine layout_build_derived
-
   subroutine layout_build_coarse(lac, la, cr)
     use bl_error_module
     type(layout), intent(out)   :: lac
@@ -776,10 +794,12 @@ contains
     cla%la%lap%dim = la%lap%dim
     cla%la%lap%id  = layout_next_id()
     cla%la%lap%nboxes = la%lap%nboxes
+    cla%la%lap%nlocal = la%lap%nlocal
     cla%la%lap%pd = coarsen(la%lap%pd, cla%crse)
     cla%la%lap%pmask => la%lap%pmask
 
     cla%la%lap%prc => la%lap%prc
+    cla%la%lap%idx => la%lap%idx
 
     call boxarray_build_copy(cla%la%lap%bxa, la%lap%bxa)
 

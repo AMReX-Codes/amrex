@@ -67,4 +67,8 @@ contains
     character(len=*), intent(in), optional :: note
   end subroutine bl_prof_glean
 
+  subroutine print_stack()
+    ! does nothing -- this is needed by the backtrace version
+  end subroutine print_stack
+
 end module bl_prof_module

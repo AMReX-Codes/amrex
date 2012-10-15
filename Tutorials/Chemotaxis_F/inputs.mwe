@@ -1,0 +1,22 @@
+&options
+
+	method = "sdc"
+	plot_int = 10
+	nsteps = 300
+
+/
+
+&parameters
+
+	dt = 0.0125d0
+
+/
+
+&sdc
+	
+	nnodes = 5
+	qtype = "Gauss-Lobatto"
+	iters = 20
+	tol_residual = 1.0d-10
+
+/

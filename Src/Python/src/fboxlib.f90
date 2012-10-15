@@ -88,32 +88,38 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! layout routines
 
-  subroutine pybl_create_layout_from_boxarray(ba_cptr,cptr) &
+  subroutine pybl_create_layout_from_boxarray(ba_cptr,dim,pmask,cptr) &
        bind(c, name='pybl_create_layout_from_boxarray')
     implicit none
-    type(c_ptr), intent(in), value :: ba_cptr
-    type(c_ptr), intent(out) :: cptr
+    type(c_ptr),    intent(in),  value :: ba_cptr
+    type(c_ptr),    intent(out)        :: cptr
+    integer(c_int), intent(in),  value :: dim
+    integer(c_int), intent(in)         :: pmask(dim)
 
     type(boxarray), pointer :: ba
-    type(layout), pointer :: la
+    type(layout), pointer   :: la
+    logical                 :: lpmask(dim)
 
     call pybl_boxarray_get(ba_cptr, ba)
     call pybl_layout_new(cptr, la)
 
-    call build(la, ba, boxarray_bbox(ba))
+    lpmask = pmask == 1
+    call build(la, ba, boxarray_bbox(ba), pmask=lpmask)
   end subroutine pybl_create_layout_from_boxarray
 
-  subroutine pybl_create_layout_from_boxes(boxes,nboxes,dim,cptr) &
+  subroutine pybl_create_layout_from_boxes(boxes,nboxes,dim,pmask,cptr) &
        bind(c, name='pybl_create_layout_from_boxes')
     implicit none
-    integer(c_int), intent(in), value :: dim, nboxes
-    integer(c_int), intent(in) :: boxes(nboxes,2,dim)
-    type(c_ptr), intent(out) :: cptr
+    integer(c_int), intent(in),  value :: dim, nboxes
+    integer(c_int), intent(in)         :: boxes(nboxes,2,dim), pmask(dim)
+    type(c_ptr),    intent(out)        :: cptr
 
-    integer :: i
-    type(box) :: bs(nboxes)
+    integer        :: i
+    type(box)      :: bs(nboxes)
     type(boxarray) :: ba
+    logical        :: lpmask(dim)
     type(layout), pointer :: la
+
 
     do i=1,nboxes
        bs(i) = make_box(boxes(i,1,:), boxes(i,2,:))
@@ -122,7 +128,9 @@ contains
     call pybl_layout_new(cptr,la)
 
     call build(ba, bs)
-    call build(la, ba, boxarray_bbox(ba))
+
+    lpmask = pmask == 1
+    call build(la, ba, boxarray_bbox(ba), pmask=lpmask)
   end subroutine pybl_create_layout_from_boxes
 
   subroutine pybl_create_ml_layout_from_layouts(lacptrs,nlevels,cptr) &
@@ -214,7 +222,7 @@ contains
 
     call pybl_multifab_get(cptr,mfab)
     dim = mfab%dim
-    nboxes = mfab%nboxes
+    nboxes = nfabs(mfab)
     nc = mfab%nc
     ng = mfab%ng
   end subroutine pybl_get_multifab_info
@@ -307,7 +315,7 @@ contains
 
     call pybl_multifab_get(cptr, mfab)
 
-    call fill_boundary(mfab, 1, ncomp(mfab))
+    call fill_boundary(mfab)
   end subroutine pybl_multifab_fill_boundary
 
   subroutine pybl_multifab_write(cptr, dirname, dlen, header, hlen) &
@@ -366,6 +374,122 @@ contains
     call copy(dmfab, 1, smfab, 1, ncomp(smfab))
   end subroutine pybl_multifab_copy
 
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! plotfile
+
+  subroutine pybl_create_plotfile(dname, dlen, cptr) &
+       bind(c, name='pybl_create_plotfile')
+    use bl_io_module
+    use plotfile_module
+
+    type(c_ptr),    intent(in), value :: dname
+    integer(c_int), intent(in), value :: dlen
+    type(c_ptr),    intent(out)       :: cptr
+
+    character(len=dlen), pointer :: root
+
+    type(plotfile), pointer :: pf
+    integer :: un
+
+    call c_f_pointer(dname, root)
+
+    call pybl_plotfile_new(cptr, pf)
+
+    un = unit_new()
+    call build(pf, root, un)
+  end subroutine pybl_create_plotfile
+
+  subroutine pybl_get_plotfile_info(cptr, dim, nvars, flevel) &
+       bind(c, name='pybl_get_plotfile_info')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(out)       :: dim, nvars, flevel
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+
+    dim    = pf%dim
+    nvars  = pf%nvars
+    flevel = pf%flevel
+  end subroutine pybl_get_plotfile_info
+
+  subroutine pybl_get_plotfile_grid_info(cptr, level, nboxes) &
+       bind(c, name='pybl_get_plotfile_grid_info')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(in), value :: level
+    integer(c_int), intent(out)       :: nboxes
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+
+    nboxes = plotfile_nboxes_n(pf, level)
+  end subroutine pybl_get_plotfile_grid_info
+
+  subroutine pybl_get_plotfile_name(cptr, nvar, nlen, nameptr) &
+       bind(c, name='pybl_get_plotfile_name')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(in), value :: nvar, nlen
+    type(c_ptr),    intent(in), value :: nameptr
+
+    character(len=nlen), pointer :: name
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+    call c_f_pointer(nameptr, name)
+
+    name = pf%names(nvar)
+  end subroutine pybl_get_plotfile_name
+
+  subroutine pybl_plotfile_bind(cptr, i, j, c) &
+       bind(c, name='pybl_plotfile_bind')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(in), value :: i, j, c
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+    call fab_bind_comp_vec(pf, i, j, (/ c /) )
+  end subroutine pybl_plotfile_bind
+
+  subroutine pybl_plotfile_unbind(cptr, i, j) &
+       bind(c, name='pybl_plotfile_unbind')
+    use plotfile_module
+    type(c_ptr),    intent(in), value :: cptr
+    integer(c_int), intent(in), value :: i, j
+
+    type(plotfile), pointer :: pf
+
+    call pybl_plotfile_get(cptr, pf)
+    call fab_unbind(pf, i, j)
+  end subroutine pybl_plotfile_unbind
+
+  subroutine pybl_get_plotfile_fab_info(cptr, level, nbox, dim, nc, &
+       pbx_lo, pbx_hi) &
+       bind(c, name='pybl_get_plotfile_fab_info')
+    use plotfile_module
+    implicit none
+    type(c_ptr), intent(in), value :: cptr
+    integer(c_int), intent(in), value :: level, nbox
+    integer(c_int), intent(out) :: dim, nc
+    integer(c_int), intent(out), dimension(3) :: pbx_lo, pbx_hi
+
+    type(plotfile), pointer :: pf
+    type(box) :: bx
+    call pybl_plotfile_get(cptr, pf)
+    dim = pf%dim
+    nc  = pf%nvars
+
+    bx = get_box(pf, level, nbox)
+    pbx_lo = bx%lo
+    pbx_hi = bx%hi
+  end subroutine pybl_get_plotfile_fab_info
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! regrid

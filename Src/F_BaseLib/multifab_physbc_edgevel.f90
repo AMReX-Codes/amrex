@@ -34,8 +34,7 @@ contains
     dm = get_dim(uedge(1))
     ng_ut = nghost(uedge(1))
 
-    do i=1,nboxes(uedge(1))
-       if ( multifab_remote(uedge(1),i) ) cycle
+    do i=1,nfabs(uedge(1))
        utp => dataptr(uedge(1),i)
        lo =  lwb(get_box(uedge(1),i))
        hi =  upb(get_box(uedge(1),i))

@@ -47,7 +47,7 @@ module mg_tower_module
      ! This must be true in order to enforce solvability
      logical :: coeffs_sum_to_zero = .false.
 
-     integer :: nboxes =  0
+!     integer :: nboxes =  0
      integer :: nlevels =  0
 
      ! use hypre instead of mg_tower's multigrid for the solve itself
@@ -67,7 +67,15 @@ module mg_tower_module
 
      type(box), pointer :: pd(:) => Null()
      real(kind=dp_t), pointer :: dh(:,:) => Null()
+
      logical :: uniform_dh = .true.
+
+     ! We now have pre-determined types of stencils with associated values of lcross
+     integer :: stencil_type
+
+     ! If lcross is true and passed into multifab_fill_boundary, then 
+     !    multifab_fill_boundary knows not to fill any corner cells.
+     logical :: lcross
 
      type(multifab), pointer :: cc(:) => Null()
      type(multifab), pointer :: ff(:) => Null()
@@ -75,7 +83,7 @@ module mg_tower_module
      type(multifab), pointer :: uu(:) => Null()
      type(multifab), pointer :: ss(:) => Null()
      type(imultifab), pointer :: mm(:) => Null()
-     type(stencil), pointer :: st(:) => Null()
+     type(stencil) , pointer :: st(:) => Null()
 
      integer, pointer :: face_type(:,:,:)  => Null()
      logical, pointer :: skewed(:,:)       => Null()
@@ -96,7 +104,7 @@ module mg_tower_module
      integer ::    verbose = 0
      integer :: cg_verbose = 0
 
-      type(mg_tower), pointer :: bottom_mgt => Null()
+     type(mg_tower), pointer :: bottom_mgt => Null()
 
   end type mg_tower
 
