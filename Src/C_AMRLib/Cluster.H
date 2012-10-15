@@ -45,15 +45,15 @@ public:
     //
     // Return minimal box containing all tagged points.
     //
-    const Box& box () const;
+    const Box& box () const { return m_bx; }
     //
     // Does cluster contain any points?
     //
-    bool ok () const;
+    bool ok () const { return m_ar != 0 && m_len > 0; }
     //
     // Returns number of tagged points in cluster.
     //
-    long numTag () const;
+    long numTag () const { return m_len; }
     //
     // Return number of tagged points in intersection of cluster and Box b.
     //
@@ -81,7 +81,7 @@ public:
     //
     // Compute ratio of tagged to total number of points in cluster.
     //
-    Real eff () const;
+    Real eff () const { BL_ASSERT(ok()); return numTag()/m_bx.d_numPts(); }
 
 private:
     //
@@ -126,11 +126,11 @@ public:
     //
     // Return number of clusters in list.
     //
-    int length () const;
+    int length () const { return lst.size(); }
     //
     // Add cluster to end of list.
     //
-    void append (Cluster* c);
+    void append (Cluster* c) { lst.push_back(c); }
     //
     // Return array of boxes corresponding to clusters.
     //
@@ -168,48 +168,5 @@ private:
     //    
     std::list<Cluster*> lst;
 };
-
-inline
-const Box&
-Cluster::box () const
-{
-    return m_bx;
-}
-
-inline
-bool
-Cluster::ok () const
-{
-    return m_ar != 0 && m_len > 0;
-}
-
-inline
-long
-Cluster::numTag () const
-{
-    return m_len;
-}
-
-inline
-Real
-Cluster::eff () const
-{
-    BL_ASSERT(ok());
-    return numTag()/m_bx.d_numPts();
-}
-
-inline
-int
-ClusterList::length () const
-{
-    return lst.size();
-}
-
-inline
-void
-ClusterList::append (Cluster* c)
-{
-    lst.push_back(c);
-}
 
 #endif /*_Cluster_H_*/

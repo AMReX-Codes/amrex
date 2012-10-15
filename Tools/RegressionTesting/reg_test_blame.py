@@ -4,15 +4,8 @@ import os
 import shutil
 import sys
 import getopt
-import datetime
-import time
 import string
-import tarfile
 import subprocess
-import smtplib
-import email
-import getpass
-import socket
 import testnew as reg_test
 
 class testObj2:

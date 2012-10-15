@@ -47,7 +47,7 @@ contains
     type(layout) :: la, lac
     integer :: i, n, dm, ng_fill
     integer :: mglev, mglev_crse, iter
-    logical :: fine_converged,need_grad_phi,lcross
+    logical :: fine_converged,need_grad_phi
 
     real(dp_t) :: Anorm, bnorm, abs_eps, ni_res
     real(dp_t) :: tres, tres0, max_norm
@@ -120,9 +120,6 @@ contains
     end do
     bnorm = ml_norm_inf(rh,fine_mask)
 
-    lcross = ((ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 5) .or. &
-         (ncomp(mgt(nlevs)%ss(mgt(nlevs)%nlevels)) == 7))
-
     Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
     do n = 1, nlevs-1
        Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels),fine_mask(n)),Anorm)
@@ -164,7 +161,7 @@ contains
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
-            mgt(n)%mm(mglev))
+                      mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
     end do
 
     do n = nlevs,2,-1
@@ -350,11 +347,13 @@ contains
 
                 ! Compute COARSE Res = Rh - Lap(Soln)
                 call mg_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
-                     rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse))
+                               rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse), &
+                               mgt(n-1)%stencil_type, mgt(n-1)%lcross)
 
                 ! Compute FINE Res = Res - Lap(uu)
                 call mg_defect(mgt(n)%ss(mglev),temp_res(n), &
-                     res(n),uu(n),mgt(n)%mm(mglev))
+                               res(n),uu(n),mgt(n)%mm(mglev), &
+                               mgt(n)%stencil_type, mgt(n)%lcross)
                 call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
 
                 if (do_diagnostics == 1 ) then
@@ -385,14 +384,14 @@ contains
 
                 if (do_diagnostics == 1 ) then
                    call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
-                        mgt(n)%mm(mglev))
+                        mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
                    tres = norm_inf(temp_res(n))
                    if ( parallel_ioprocessor()) then
                       print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, tres
                    end if
                 else
                    ! Seem to need this in periodic case to get right answer...
-                   call multifab_fill_boundary(uu(n), cross = lcross)
+                   call multifab_fill_boundary(uu(n), cross = mgt(n)%lcross)
                 end if
 
              end if
@@ -431,7 +430,7 @@ contains
 
              ! Compute Res = Res - Lap(uu)
              call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
-                  mgt(n)%mm(mglev))
+                            mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
              call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
 
              if (do_diagnostics == 1 ) then
@@ -452,7 +451,7 @@ contains
 
              if (do_diagnostics == 1 ) then
                 call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
-                     mgt(n)%mm(mglev))
+                               mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
                 call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
                 tres = norm_inf(res(n))
                 if ( parallel_ioprocessor() ) then
@@ -483,7 +482,7 @@ contains
           end do
 
           do n = 1,nlevs
-             call multifab_fill_boundary(soln(n), cross = lcross)
+             call multifab_fill_boundary(soln(n), cross = mgt(n)%lcross)
           end do
 
           ! Interpolate soln to supply boundary conditions 
@@ -506,7 +505,8 @@ contains
           !    Compute the residual on just the finest level
           n = nlevs
           mglev = mgt(n)%nlevels
-          call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev))
+          call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n), &
+                         mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
 
           if ( ml_fine_converged(res, soln, max_norm, Anorm, rel_eps, abs_eps) ) then
 
@@ -516,7 +516,7 @@ contains
              do n = 1,nlevs-1
                 mglev = mgt(n)%nlevels
                 call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n), &
-                     mgt(n)%mm(mglev))
+                               mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
              end do
 
              !      Compute the coarse-fine residual 
@@ -640,7 +640,7 @@ contains
 
        !   Fill the ghost cells at each level from grids at that level
        do n = 1,nlevs
-          call multifab_fill_boundary(full_soln(n), cross = lcross)
+          call multifab_fill_boundary(full_soln(n), cross = mgt(n)%lcross)
        enddo
 
        !   Interpolate boundary conditions of soln in order to get correct grad(phi) at

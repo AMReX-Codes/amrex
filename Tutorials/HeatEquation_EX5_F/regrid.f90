@@ -69,13 +69,17 @@ contains
     ! copy the level 1 boxarray
     call copy(mba%bas(1),mla_old%mba%bas(1))
 
-    ! copy the problem domain at all levels
-    do n=1,max_levs
-       mba%pd(n) = mla_old%mba%pd(n)
+    ! set the problem domain at all levels
+    mba%pd(1) = mla_old%mba%pd(1)
+    do n=2,max_levs
+       mba%pd(n) = refine(mba%pd(n-1),mba%rr((n-1),:))
     end do
-    
+
     ! build the level 1 layout.
     call layout_build_ba(la_array(1),mba%bas(1),mba%pd(1),mla_old%pmask)
+
+    ! This makes sure the boundary conditions are properly defined everywhere
+    call bc_tower_level_build(the_bc_tower,1,la_array(1))
 
     ! build level 1 multifab
     call multifab_build(phi(1),la_array(1),1,1)
@@ -115,19 +119,21 @@ contains
 
              if (.not. properly_nested) then
 
-                ! change the layout at levels 2 through nl so the new grid 
+                do n = 2,nl
+                   ! Delete old multifabs so that we can rebuild them.
+                   call destroy(phi(n))
+                end do
+
+                ! Change the layout at levels 2 through nl so the new grid 
                 ! structure is properly nested
                 call enforce_proper_nesting(mba,la_array,max_grid_size)
 
-                ! loop over all the lower levels which we might have changed 
+                ! Loop over all the lower levels which we might have changed 
                 ! when we enforced proper nesting.
                 do n = 2,nl
    
                    ! This makes sure the boundary conditions are properly defined everywhere
                    call bc_tower_level_build(the_bc_tower,n,la_array(n))
-   
-                   ! Delete old multifabs so that we can rebuild them.
-                   call destroy(phi(n))
    
                    ! Rebuild the lower level data again if it changed.
                    call multifab_build(phi(n),la_array(n),1,1)

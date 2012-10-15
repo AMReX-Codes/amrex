@@ -160,6 +160,7 @@ sub find_uses {
 	# allow more than one 'use on a line'
 	while ( $line =~ /(^|;)\s*use\s+(\w+)/ig ) {
 	    my $use = $2;
+	    next if (lc($use) eq "iso_c_binding");
 	    $self->{'uses'}{$use} = 1;
 	    print "#\t\tuses = $use\n" if $debug;
 	}
@@ -223,7 +224,7 @@ sub print {
 	    print "#\t\ttesting path = $path\n" if $debug;
 	    if ( -f "$path" ) {
 		print "#\t\t\t$path works\n" if $debug;
-		print "$target: \"$path\"\n";
+		print "$target: $path\n";
 		last;
 	    }
 	}

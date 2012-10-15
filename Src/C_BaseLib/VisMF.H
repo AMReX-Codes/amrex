@@ -174,6 +174,8 @@ public:
     static void SetMFFileInStreams (int nstreams);
 
     static int GetNOutFiles ();
+    static int GetVerbose ();
+    static void SetVerbose (int verbose);
 
     static void Initialize ();
     static void Finalize ();
@@ -222,6 +224,8 @@ private:
     //
     static int nOutFiles;
     static int nMFFileInStreams;
+
+    static int verbose;
 };
 //
 // Write a FabOnDisk to an ostream in ASCII.

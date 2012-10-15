@@ -289,8 +289,8 @@ contains
 
        loop: do i = 1, br%dim
           do f = 0, 1
-             do j = 1, nboxes(br%bmf(i,f))
-                if ( .not. contains(domain, get_box(br%bmf(i,f),j)) ) then
+             do j = 1, nboxes(br%bmf(i,f)%la)
+                if ( .not. contains(domain, get_box(br%bmf(i,f)%la,j)) ) then
                    have_periodic_boxes = .true.
                    exit loop
                 end if
@@ -306,8 +306,8 @@ contains
        ! direction.  In order to fill those boxes we do the usual trick of copy()ing
        ! from a multifab whose valid region has been extended to cover the ghost region.
        !
-       do i = 1, nboxes(mf)
-          call push_back(bl, get_pbox(mf,i))
+       do i = 1, nboxes(mf%la)
+          call push_back(bl, grow(box_nodalize(get_box(mf%la,i),mf%nodal),nghost(mf)))
        end do
        !
        ! Need to fill the ghost cells of the crse array before copying from them.
@@ -320,8 +320,7 @@ contains
        call destroy(ba)
        call build(tmf, la, nc = ncomp(mf), ng = 0)
 
-       do i = 1, nboxes(mf)
-          if ( remote(mf,i) ) cycle
+       do i = 1, nfabs(mf)
           src => dataptr(mf,  i)
           dst => dataptr(tmf, i)
           dst =  src
@@ -333,8 +332,8 @@ contains
           end do
        end do
 
-       call destroy(la)
        call destroy(tmf)
+       call destroy(la)
     else
        do i = 1, br%dim
           do f = 0, 1

@@ -35,11 +35,11 @@ public:
     //
     // The UseCount is unique if the reference count == 1.
     //
-    bool unique () const;
+    bool unique () const { return *cnt == 1; }
     //
     // Returns the reference count.
     //
-    int linkCount () const;
+    int linkCount () const { return *cnt; }
 
 private:
     //
@@ -52,19 +52,5 @@ private:
     //
     void decrement ();
 };
-
-inline
-bool
-UseCount::unique () const
-{
-    return *cnt == 1;
-}
-
-inline
-int
-UseCount::linkCount () const
-{
-    return *cnt;
-}
 
 #endif /*BL_USECOUNT_H*/

@@ -23,7 +23,7 @@
       _ifc  := ifort
       _comp := Intel8
     else
-      $(errorr "$(_ifc_version) of IFC is not supported")
+      $(error "$(_ifc_version) of IFC is not supported")
     endif
     endif
     endif

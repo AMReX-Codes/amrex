@@ -15,12 +15,8 @@ class multifab(base.BLObject):
 
     super(multifab, self).__init__(*args, **kwargs)
 
-    self.dim = c_int(0)
-    self.nboxes = c_int(0)
-    self.nc = c_int(0)
-    self.ng = c_int(0)
-    self.interleaved = c_int(0)
-
+    self.c_int_attrs = [ 'dim', 'nboxes', 'nc', 'ng' ]
+    self.init_c_int_attrs()
 
 
   def create(self, layout, components=1, ghost_cells=0):
@@ -37,20 +33,15 @@ class multifab(base.BLObject):
 
   def get_info(self):
 
-    self.dim = c_int(0)
-    self.nboxes = c_int(0)
-    self.nc = c_int(0)
-    self.ng = c_int(0)
-
     mftype = self.__class__.__name__
 
     if self.associated:
       get_info = getattr(bl, 'pybl_get_' + mftype + '_info')
       get_info(self.cptr,
-               byref(self.dim),
-               byref(self.nboxes),
-               byref(self.nc),
-               byref(self.ng))
+               byref(self._dim),
+               byref(self._nboxes),
+               byref(self._nc),
+               byref(self._ng))
 
 
   def create_from_bbox(self, mf, components=1, ghost_cells=0):
@@ -58,13 +49,10 @@ class multifab(base.BLObject):
 
     mftype = self.__class__.__name__
 
-    create   = getattr(bl, 'create_' + mftype + '_from_bbox')
-    get_info = getattr(bl, 'get_' + mftype + '_info')
+    create    = getattr(bl, 'pybl_create_' + mftype + '_from_bbox')
+    self.cptr = create(mf.cptr, components, ghost_cells, byref(self.cptr))
 
-    self.cptr = create(mf.cptr, components, ghost_cells)
-
-    if self.associated:
-      self.dim, self.nboxes, self.nc, self.ng = get_info(self.cptr)
+    self.get_info()
 
 
   def copy(self, dest):
@@ -102,17 +90,6 @@ class lmultifab(multifab):
 
   pass
 
-  # def create(self, layout):
-  #   """Create a logical (boolean) multifab from a layout."""
-
-  #   self.cptr = pybl.create_lmultifab_from_layout(layout.cptr)
-
-  #   if self.cptr:
-  #     self.dim, self.nboxes = pybl.get_lmultifab_info(self.cptr)
-
-  # # # XXX: add a more fancy get/set
-  # # def array(self, box):
-  # #   return lmultifab_array(self.cptr, box)
 
 
 

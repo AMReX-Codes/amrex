@@ -62,10 +62,17 @@ LinOp::Finalize ()
     initialized = false;
 }
 
+void
+LinOp::bndryData (const BndryData& bd)
+{
+    BL_ASSERT(gbox[0] == bd.boxes());
+    *bgb = bd;
+}
+
 LinOp::LinOp (const BndryData& _bgb,
               const Real       _h)
     :
-    bgb(_bgb)
+    bgb(new BndryData(_bgb))
 {
     Real __h[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -78,6 +85,14 @@ LinOp::LinOp (const BndryData& _bgb,
 LinOp::LinOp (const BndryData& _bgb,
               const Real*      _h)
     :
+    bgb(new BndryData(_bgb))
+{
+    initConstruct(_h);
+}
+
+LinOp::LinOp (BndryData*  _bgb,
+              const Real* _h)
+    :
     bgb(_bgb)
 {
     initConstruct(_h);
@@ -85,6 +100,8 @@ LinOp::LinOp (const BndryData& _bgb,
 
 LinOp::~LinOp ()
 {
+    delete bgb;
+
     for (int i = 0, N = maskvals.size(); i < N; ++i)
     {
         for (std::map<int,MaskTuple>::iterator it = maskvals[i].begin(),
@@ -113,6 +130,9 @@ LinOp::~LinOp ()
 }
 
 void
+LinOp::clearToLevel (int level) {}
+
+void
 LinOp::initConstruct (const Real* _h)
 {
     Initialize();
@@ -132,9 +152,9 @@ LinOp::initConstruct (const Real* _h)
     verbose = def_verbose;
     gbox.resize(1);
     const int level = 0;
-    gbox[level] = bgb.boxes();
+    gbox[level] = bgb->boxes();
     geomarray.resize(1);
-    geomarray[level] = bgb.getGeom();
+    geomarray[level] = bgb->getGeom();
     h.resize(1);
     maxorder = def_maxorder;
 
@@ -152,14 +172,14 @@ LinOp::initConstruct (const Real* _h)
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
     //
-    for (FabSetIter bndryfsi(bgb[Orientation(0,Orientation::low)]);
+    for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)
     {
         const int        i   = bndryfsi.index();
         MaskTuple&       ma  =  maskvals[level][i];
         MaskTuple&       lma = lmaskvals[level][i];
-        const MaskTuple& bdm = bgb.bndryMasks(i);
+        const MaskTuple& bdm = bgb->bndryMasks(i);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
@@ -214,7 +234,9 @@ LinOp::applyBC (MultiFab&      inout,
     //
     BL_ASSERT(num_comp == 1);
 
-    inout.FillBoundary(src_comp,num_comp,local);
+    const bool cross = true;
+
+    inout.FillBoundary(src_comp,num_comp,local,cross);
 
     prepareForLevel(level);
     //
@@ -239,8 +261,8 @@ LinOp::applyBC (MultiFab&      inout,
 
         const MaskTuple&                 ma  =  maskvals[level][gn];
         const MaskTuple&                 lma = lmaskvals[level][gn];
-        const BndryData::RealTuple&      bdl = bgb.bndryLocs(gn);
-        const Array< Array<BoundCond> >& bdc = bgb.bndryConds(gn);
+        const BndryData::RealTuple&      bdl = bgb->bndryLocs(gn);
+        const Array< Array<BoundCond> >& bdc = bgb->bndryConds(gn);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
@@ -248,23 +270,28 @@ LinOp::applyBC (MultiFab&      inout,
 
             FabSet&       f   = (*undrrelxr[level])[o];
             int           cdr = o;
-            const FabSet& fs  = bgb.bndryValues(o);
+            const FabSet& fs  = bgb->bndryValues(o);
             const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
             Real          bcl = bdl[o];
             int           bct = bdc[o][comp];
 
+            const Box&       vbx   = inout.box(gn);
+            FArrayBox&       iofab = inout[gn];
+            FArrayBox&       ffab  = f[gn];
+            const FArrayBox& fsfab = fs[gn];
+
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-                         inout[gn].dataPtr(src_comp),
-                         ARLIM(inout[gn].loVect()), ARLIM(inout[gn].hiVect()),
+                         iofab.dataPtr(src_comp),
+                         ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
                          &cdr, &bct, &bcl,
-                         fs[gn].dataPtr(), 
-                         ARLIM(fs[gn].loVect()), ARLIM(fs[gn].hiVect()),
+                         fsfab.dataPtr(), 
+                         ARLIM(fsfab.loVect()), ARLIM(fsfab.hiVect()),
                          m.dataPtr(),
                          ARLIM(m.loVect()), ARLIM(m.hiVect()),
-                         f[gn].dataPtr(),
-                         ARLIM(f[gn].loVect()), ARLIM(f[gn].hiVect()),
-                         inout.box(gn).loVect(),
-                         inout.box(gn).hiVect(), &num_comp, h[level]);
+                         ffab.dataPtr(),
+                         ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
+                         vbx.loVect(),
+                         vbx.hiVect(), &num_comp, h[level]);
         }
     }
 }
@@ -281,20 +308,27 @@ LinOp::residual (MultiFab&       residL,
 
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
-        int nc = residL.nComp();
+        const int nc = residL.nComp();
         //
         // Only single-component solves supported (verified) by this class.
         //
         BL_ASSERT(nc == 1);
-        BL_ASSERT(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
+
+        const Box& vbx = solnLmfi.validbox();
+
+        BL_ASSERT(gbox[level][solnLmfi.index()] == vbx);
+
+        FArrayBox& residfab = residL[solnLmfi];
+        const FArrayBox& rhsfab = rhsL[solnLmfi];
+
         FORT_RESIDL(
-            residL[solnLmfi].dataPtr(), 
-            ARLIM(residL[solnLmfi].loVect()), ARLIM(residL[solnLmfi].hiVect()),
-            rhsL[solnLmfi].dataPtr(), 
-            ARLIM(rhsL[solnLmfi].loVect()), ARLIM(rhsL[solnLmfi].hiVect()),
-            residL[solnLmfi].dataPtr(), 
-            ARLIM(residL[solnLmfi].loVect()), ARLIM(residL[solnLmfi].hiVect()),
-            solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(), &nc);
+            residfab.dataPtr(), 
+            ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
+            rhsfab.dataPtr(), 
+            ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
+            residfab.dataPtr(), 
+            ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
+            vbx.loVect(), vbx.hiVect(), &nc);
     }
 }
 
@@ -378,7 +412,7 @@ LinOp::prepareForLevel (int level)
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
     //
-    for (FabSetIter bndryfsi(bgb[Orientation(0,Orientation::low)]);
+    for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)
     {
@@ -493,9 +527,12 @@ LinOp::makeCoefficients (MultiFab&       cs,
     case -1:
         for ( ; csmfi.isValid(); ++csmfi)
         {
-            FORT_AVERAGECC(cs[csmfi].dataPtr(), ARLIM(cs[csmfi].loVect()),
-                           ARLIM(cs[csmfi].hiVect()),fn[csmfi].dataPtr(),
-                           ARLIM(fn[csmfi].loVect()),ARLIM(fn[csmfi].hiVect()),
+            FArrayBox&       csfab = cs[csmfi];
+            const FArrayBox& fnfab = fn[csmfi];
+
+            FORT_AVERAGECC(csfab.dataPtr(), ARLIM(csfab.loVect()),
+                           ARLIM(csfab.hiVect()),fnfab.dataPtr(),
+                           ARLIM(fnfab.loVect()),ARLIM(fnfab.hiVect()),
                            grids[csmfi.index()].loVect(),
                            grids[csmfi.index()].hiVect(), &nc);
         }
@@ -507,12 +544,15 @@ LinOp::makeCoefficients (MultiFab&       cs,
         {
             for ( ; csmfi.isValid(); ++csmfi)
             {
-                FORT_HARMONIC_AVERAGEEC(cs[csmfi].dataPtr(),
-                                        ARLIM(cs[csmfi].loVect()),
-                                        ARLIM(cs[csmfi].hiVect()),
-                                        fn[csmfi].dataPtr(),
-                                        ARLIM(fn[csmfi].loVect()),
-                                        ARLIM(fn[csmfi].hiVect()),
+                FArrayBox&       csfab = cs[csmfi];
+                const FArrayBox& fnfab = fn[csmfi];
+
+                FORT_HARMONIC_AVERAGEEC(csfab.dataPtr(),
+                                        ARLIM(csfab.loVect()),
+                                        ARLIM(csfab.hiVect()),
+                                        fnfab.dataPtr(),
+                                        ARLIM(fnfab.loVect()),
+                                        ARLIM(fnfab.hiVect()),
                                         grids[csmfi.index()].loVect(),
                                         grids[csmfi.index()].hiVect(),
                                         &nc,&cdir);
@@ -522,9 +562,12 @@ LinOp::makeCoefficients (MultiFab&       cs,
         {
             for ( ; csmfi.isValid(); ++csmfi)
             {
-                FORT_AVERAGEEC(cs[csmfi].dataPtr(),ARLIM(cs[csmfi].loVect()),
-                               ARLIM(cs[csmfi].hiVect()),fn[csmfi].dataPtr(), 
-                               ARLIM(fn[csmfi].loVect()),ARLIM(fn[csmfi].hiVect()),
+                FArrayBox&       csfab = cs[csmfi];
+                const FArrayBox& fnfab = fn[csmfi];
+
+                FORT_AVERAGEEC(csfab.dataPtr(),ARLIM(csfab.loVect()),
+                               ARLIM(csfab.hiVect()),fnfab.dataPtr(), 
+                               ARLIM(fnfab.loVect()),ARLIM(fnfab.hiVect()),
                                grids[csmfi.index()].loVect(),
                                grids[csmfi.index()].hiVect(),&nc, &cdir);
             }

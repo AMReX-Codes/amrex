@@ -129,11 +129,14 @@ contains
 
       nc = size(a,dim=1)-1
 
+      ! Protect against divide by zero -- necessary for embedded boundary problems.
       do i = lo(1),hi(1)
-         denom = 1.d0 / a(0,i)
-         r(i     ) = r(i     ) * denom
-         a(1:nc,i) = a(1:nc,i) * denom
-         a(0,i   ) = 1.d0
+         if (abs(a(0,i)) .gt. 0.d0) then
+            denom = 1.d0 / a(0,i)
+            r(i     ) = r(i     ) * denom
+            a(1:nc,i) = a(1:nc,i) * denom
+            a(0,i   ) = 1.d0
+         end if
       end do
 
     end subroutine diag_init_cc_1d
@@ -149,12 +152,15 @@ contains
 
       nc = size(a,dim=1)-1
 
+      ! Protect against divide by zero -- necessary for embedded boundary problems.
       do j = lo(2),hi(2)
          do i = lo(1),hi(1)
-            denom = 1.d0 / a(0,i,j)
-            r(i,j     ) = r(i,j     ) * denom
-            a(1:nc,i,j) = a(1:nc,i,j) * denom
-            a(0,i,j   ) = 1.d0
+            if (abs(a(0,i,j)) .gt. 0.d0) then
+               denom = 1.d0 / a(0,i,j)
+               r(i,j     ) = r(i,j     ) * denom
+               a(1:nc,i,j) = a(1:nc,i,j) * denom
+               a(0,i,j   ) = 1.d0
+            end if
          end do
       end do
 
@@ -172,13 +178,16 @@ contains
       nc = size(a,dim=1)-1
 
       !$OMP PARALLEL DO PRIVATE(j,i,k,denom)
+      ! Protect against divide by zero -- necessary for embedded boundary problems.
       do k = lo(3),hi(3)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
-               denom = 1.d0 / a(0,i,j,k)
-               r(i,j,k     ) = r(i,j,k     ) * denom
-               a(1:nc,i,j,k) = a(1:nc,i,j,k) * denom
-               a(0,i,j,k   ) = 1.d0
+               if (abs(a(0,i,j,k)) .gt. 0.d0) then
+                  denom = 1.d0 / a(0,i,j,k)
+                  r(i,j,k     ) = r(i,j,k     ) * denom
+                  a(1:nc,i,j,k) = a(1:nc,i,j,k) * denom
+                  a(0,i,j,k   ) = 1.d0
+               end if
             end do
          end do
       end do
@@ -293,31 +302,35 @@ contains
     call destroy(bpt)
   end function itsol_converged
 
-  ! computes rr = aa * uu
-  subroutine itsol_stencil_apply(aa, rr, uu, mm, uniform_dh)
+  ! Computes rr = aa * uu
+  subroutine itsol_stencil_apply(aa, rr, uu, mm, stencil_type, lcross, uniform_dh)
+
     use bl_prof_module
 
-    use nodal_stencil_module, only: stencil_apply_1d_nodal, stencil_apply_2d_nodal,  stencil_apply_3d_nodal
+    use nodal_stencil_module, only: stencil_apply_1d_nodal, &
+                                    stencil_apply_2d_nodal, &
+                                    stencil_apply_3d_nodal
 
     type(multifab), intent(in)    :: aa
     type(multifab), intent(inout) :: rr
     type(multifab), intent(inout) :: uu
     type(imultifab), intent(in)   :: mm
+    integer, intent(in)           :: stencil_type
+    logical, intent(in)           :: lcross
     logical, intent(in),optional  :: uniform_dh
+
     logical                       :: luniform_dh
 
     real(kind=dp_t), pointer :: rp(:,:,:,:), up(:,:,:,:), ap(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
 
     integer :: i, n, lo(get_dim(rr)), hi(get_dim(rr)), dm
-    logical :: nodal_flag, lcross
+    logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_stencil_apply")
 
     luniform_dh = .false. ; if ( present(uniform_dh) ) luniform_dh = uniform_dh
-
-    lcross = ( (ncomp(aa) == 5) .or. (ncomp(aa) == 7) )
 
     call multifab_fill_boundary(uu, cross = lcross)
 
@@ -325,8 +338,7 @@ contains
 
     nodal_flag = nodal_q(uu)
 
-    do i = 1, nboxes(rr)
-       if ( remote(rr, i) ) cycle
+    do i = 1, nfabs(rr)
        rp => dataptr(rr, i)
        up => dataptr(uu, i)
        ap => dataptr(aa, i)
@@ -338,26 +350,26 @@ contains
           case (1)
              if ( .not. nodal_flag) then
                 call stencil_apply_1d(ap(:,:,1,1), rp(:,1,1,n), nghost(rr), up(:,1,1,n), nghost(uu),  &
-                                      mp(:,1,1,1), lo, hi)
+                                      mp(:,1,1,1), lo, hi, stencil_type)
              else
                 call stencil_apply_1d_nodal(ap(:,:,1,1), rp(:,1,1,n), up(:,1,1,n),  &
-                     mp(:,1,1,1), nghost(uu))
+                     mp(:,1,1,1), nghost(uu), stencil_type)
              end if
           case (2)
              if ( .not. nodal_flag) then
                 call stencil_apply_2d(ap(:,:,:,1), rp(:,:,1,n), nghost(rr), up(:,:,1,n), nghost(uu),  &
-                     mp(:,:,1,1), lo, hi)
+                     mp(:,:,1,1), lo, hi, stencil_type)
              else
                 call stencil_apply_2d_nodal(ap(:,:,:,1), rp(:,:,1,n), up(:,:,1,n),  &
-                     mp(:,:,1,1), nghost(uu))
+                     mp(:,:,1,1), nghost(uu), stencil_type)
              end if
           case (3)
              if ( .not. nodal_flag) then
                 call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), nghost(rr), up(:,:,:,n), nghost(uu),  &
-                     mp(:,:,:,1))
+                                      mp(:,:,:,1), stencil_type)
              else
                 call stencil_apply_3d_nodal(ap(:,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
-                     mp(:,:,:,1), nghost(uu), luniform_dh)
+                     mp(:,:,:,1), nghost(uu), stencil_type, luniform_dh)
              end if
           end select
        end do
@@ -368,20 +380,22 @@ contains
   end subroutine itsol_stencil_apply
 
   ! computes rr = aa * uu - rh
-  subroutine itsol_defect(ss, rr, rh, uu, mm, uniform_dh)
+  subroutine itsol_defect(ss, rr, rh, uu, mm, stencil_type, lcross, uniform_dh)
     use bl_prof_module
     type(multifab), intent(inout) :: uu, rr
     type(multifab), intent(in)    :: rh, ss
     type(imultifab), intent(in)   :: mm
+    integer, intent(in)           :: stencil_type
+    logical, intent(in)           :: lcross
     logical, intent(in), optional :: uniform_dh
     type(bl_prof_timer), save     :: bpt
     call build(bpt, "its_defect")
-    call itsol_stencil_apply(ss, rr, uu, mm, uniform_dh)
+    call itsol_stencil_apply(ss, rr, uu, mm, stencil_type, lcross, uniform_dh)
     call saxpy(rr, rh, -1.0_dp_t, rr)
     call destroy(bpt)
   end subroutine itsol_defect
 
-  subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, &
+  subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
        stat, singular_in, uniform_dh, nodal_mask)
     use bl_prof_module
     integer, intent(in) :: max_iter
@@ -389,11 +403,15 @@ contains
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: rh
     type(multifab), intent(in) :: aa
+    integer        , intent(in) :: stencil_type
+    logical        , intent(in) :: lcross
+    real(kind=dp_t), intent(in) :: eps
+
     integer, intent(out), optional :: stat
     logical, intent(in), optional :: singular_in
     logical, intent(in), optional :: uniform_dh
     type(multifab), intent(in), optional :: nodal_mask
-    real(kind=dp_t) :: eps
+
     type(layout) :: la
     integer, intent(in) :: verbose
     type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
@@ -449,8 +467,7 @@ contains
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
 
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
-    do i = 1, aa%nboxes
-       if ( remote(aa,i) ) cycle
+    do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
@@ -486,7 +503,7 @@ contains
 
     cnt = 0
     ! compute rr = aa * uu - rh
-    call itsol_defect(aa_local, rr, rh_local, uu, mm, uniform_dh); cnt = cnt + 1
+    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh); cnt = cnt + 1
 
     call copy(rt, rr)
     if (present(nodal_mask)) then
@@ -560,7 +577,8 @@ contains
           call saxpy(pp, rr, beta, pp)
        end if
        call itsol_precon(aa_local, ph, pp, mm, 0)
-       call itsol_stencil_apply(aa_local, vv, ph, mm, uniform_dh); cnt = cnt + 1
+       call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
+       cnt = cnt + 1
        if (present(nodal_mask)) then
           den = dot(rt, vv, nodal_mask)
        else
@@ -584,7 +602,8 @@ contains
        end if
        if ( itsol_converged(ss, uu, bnorm, eps) ) exit
        call itsol_precon(aa_local, sh, ss, mm,0)
-       call itsol_stencil_apply(aa_local, tt, sh, mm, uniform_dh); cnt = cnt + 1
+       call itsol_stencil_apply(aa_local, tt, sh, mm, stencil_type, lcross, uniform_dh) 
+       cnt = cnt + 1
 
        if (present(nodal_mask)) then
           den = dot(tt, tt, nodal_mask)
@@ -687,10 +706,13 @@ contains
 
   end subroutine itsol_BiCGStab_solve
 
-  subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, &
+  subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
                             stat, singular_in, uniform_dh, nodal_mask)
     use bl_prof_module
-    integer, intent(in   )           :: max_iter, verbose
+    integer    , intent(in   ) :: max_iter, verbose, stencil_type
+    logical    , intent(in   ) :: lcross
+    real(dp_t) , intent(in   ) :: eps
+
     integer, intent(  out), optional :: stat
     logical, intent(in   ), optional :: singular_in
     logical, intent(in   ), optional :: uniform_dh
@@ -701,7 +723,6 @@ contains
     type( multifab), intent(in)    :: rh
     type(imultifab), intent(in)    :: mm
 
-    real(dp_t), intent(in) :: eps
     type(multifab) :: rr, zz, pp, qq
     type(multifab) :: aa_local, rh_local
     real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, rnorm, den, tres0, small
@@ -748,8 +769,7 @@ contains
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
 
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
-    do i = 1, aa%nboxes
-       if ( remote(aa,i) ) cycle
+    do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
@@ -759,7 +779,7 @@ contains
 
     cnt = 0
     ! compute rr = aa * uu - rh_local
-    call itsol_defect(aa_local, rr, rh_local, uu, mm, uniform_dh)  
+    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh)  
     cnt = cnt + 1
 
     if (singular .and. nodal_solve) then
@@ -834,7 +854,8 @@ contains
           beta = rho/rho_1
           call saxpy(pp, zz, beta, pp)
        end if
-       call itsol_stencil_apply(aa_local, qq, pp, mm, uniform_dh); cnt = cnt + 1
+       call itsol_stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh) 
+       cnt = cnt + 1
        if (present(nodal_mask)) then
           den = dot(pp, qq, nodal_mask)
        else
@@ -947,8 +968,7 @@ contains
     case (0)
        call copy(uu, rh)
     case (1)
-       do i = 1, nboxes(rh)
-          if ( remote(uu, i) ) cycle
+       do i = 1, nfabs(rh)
           rp => dataptr(rh, i)
           up => dataptr(uu, i)
           ap => dataptr(aa, i)
@@ -1006,8 +1026,7 @@ contains
 
     dm = get_dim(rh)
 
-    do i = 1, nboxes(rh)
-       if ( remote(rh, i) ) cycle
+    do i = 1, nfabs(rh)
        rp => dataptr(rh, i)
        ap => dataptr(aa, i)
        mp => dataptr(mm, i)

@@ -158,6 +158,10 @@ ifeq ($(ARCH),OSF1)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/osf1.mak
 endif
 
+ifeq ($(strip $(F90)),)
+   $(error "COMP=$(COMP) is not supported")   
+endif
+
 ifdef MPI
   include $(BOXLIB_HOME)/Tools/F_mk/GMakeMPI.mak
 endif

@@ -116,25 +116,25 @@ public:
     //
     // Returns the number of components.
     //
-    int nComp () const;
+    int nComp () const { return nvar; }
     //
     // Returns the domain (box) where the array is defined.
     //
-    const Box& box () const;
+    const Box& box () const { return domain; }
     //
     // Returns a pointer to an array of SPACEDIM integers
     // giving the length of the domain in each direction.
     //
-    const int* length () const;
+    const int* length () const { return dlen.getVect(); }
     //
     // Returns the lower corner of the domain.
     // See class Box for analogue.
     //
-    const IntVect& smallEnd () const;
+    const IntVect& smallEnd () const { return domain.smallEnd(); }
     //
     //  Returns the upper corner of the domain.  See class Box for analogue.
     //
-    const IntVect& bigEnd () const;
+    const IntVect& bigEnd () const { return domain.bigEnd(); }
     //
     // Returns the lower corner of the domain.  Instead of
     // returning them in the form of INTVECTs, as in smallEnd and
@@ -142,7 +142,7 @@ public:
     // constant integers.  This is useful when interfacing to
     // Fortran subroutines.
     //
-    const int* loVect () const;
+    const int* loVect () const { return domain.loVect(); }
     //
     // Returns the upper corner of the domain.  Instead of
     // returning them in the form of INTVECTs, as in smallEnd and
@@ -150,17 +150,20 @@ public:
     // constant integers.  This is useful when interfacing to
     // Fortran subroutines.
     //
-    const int* hiVect () const;
+    const int* hiVect () const { return domain.hiVect(); }
     //
     // Returns true if the domain of fab is totally contained within
     // the domain of this BaseFab.
     //
-    bool contains (const BaseFab<T>& fab) const;
+    bool contains (const BaseFab<T>& fab) const
+    {
+        return box().contains(fab.box()) && nvar <= fab.nvar;
+    }
     //
     // Returns true if bx is totally contained
     // within the domain of this BaseFab.
     //
-    bool contains (const Box& bx) const;
+    bool contains (const Box& bx) const { return box().contains(bx); }
     //
     // Returns a pointer to an object of type T that is the
     // value of the Nth component associated with the cell at the
@@ -170,23 +173,22 @@ public:
     // order, with the component index coming last.   In other words,
     // dataPtr returns a pointer to all the Nth components.
     //
-    T* dataPtr (int N = 0);
+    T* dataPtr (int n = 0) { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
     //
     // Same as above except works on const FABs.
     //
-    const T* dataPtr (int N = 0) const;
+    const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
     //
     // Returns true if the data for the FAB has been allocated.
     //
-    bool isAllocated () const;
+    bool isAllocated () const { return dptr != 0; }
     //
     // Returns a reference to the Nth component value
     // defined at position p in the domain.  This operator may be
     // inefficient if the C++ compiler is unable to optimize the
     // C++ code.
     //
-    T& operator() (const IntVect& p,
-                   int            N);
+    T& operator() (const IntVect& p, int N);
     //
     // Same as above, except returns component 0.
     //
@@ -194,8 +196,7 @@ public:
     //
     // Same as above except works on const FABs.
     //
-     const T& operator() (const IntVect& p,
-                          int            N) const;
+     const T& operator() (const IntVect& p, int N) const;
     //
     // Same as above, except returns component 0.
     //
@@ -301,6 +302,24 @@ public:
     // performCopy() of this class.
     //
     BaseFab<T>& copy (const BaseFab<T>& src);
+    //
+    // A specialized version of copy() that copies from a FAB to a raw memory
+    // destination.  Basically a memcpy() that works with a FAB as source.
+    // It is the user's responsibility to ensure that dest has enough space
+    // to hold the copy.
+    //
+    void copyToMem (const Box& srcbox,
+                    int        srccomp,
+                    int        numcomp,
+                    T*         dst) const;
+    //
+    // A specialized version of copy() that copies from raw memory to a FAB.
+    // Basically a memcpy() that works with a FAB as destination.
+    //
+    void copyFromMem (const Box& dstbox,
+                      int        dstcomp,
+                      int        numcomp,
+                      const T*   src);
     //
     // Perform shifts upon the domain of the BaseFab. They are
     // completely analogous to the corresponding Box functions.
@@ -831,102 +850,6 @@ private:
 
 template <class T>
 inline
-int
-BaseFab<T>::nComp () const
-{
-    return nvar;
-}
-
-template <class T>
-inline
-const Box&
-BaseFab<T>::box () const
-{
-    return domain;
-}
-
-template <class T>
-inline
-const int*
-BaseFab<T>::length () const
-{
-    return dlen.getVect();
-}
-
-template <class T>
-inline
-const IntVect&
-BaseFab<T>::smallEnd () const
-{
-    return domain.smallEnd();
-}
-
-template <class T>
-inline
-const IntVect&
-BaseFab<T>::bigEnd () const
-{
-    return domain.bigEnd();
-}
-
-template <class T>
-inline
-const int*
-BaseFab<T>::loVect () const
-{
-    return domain.loVect();
-}
-
-template <class T>
-inline
-const int*
-BaseFab<T>::hiVect () const
-{
-    return domain.hiVect();
-}
-
-template <class T>
-bool
-BaseFab<T>::contains (const BaseFab<T>& fab) const
-{
-    return box().contains(fab.box()) && nvar <= fab.nvar;
-}
-
-template <class T>
-bool
-BaseFab<T>::contains (const Box& bx) const
-{
-    return box().contains(bx);
-}
-
-template <class T>
-inline
-T*
-BaseFab<T>::dataPtr (int n)
-{
-    BL_ASSERT(!(dptr == 0));
-    return &dptr[n*numpts];
-}
-
-template <class T>
-inline
-const T*
-BaseFab<T>::dataPtr (int n) const
-{
-    BL_ASSERT(!(dptr == 0));
-    return &dptr[n*numpts];
-}
-
-template <class T>
-inline
-bool
-BaseFab<T>::isAllocated () const
-{
-    return dptr != 0;
-}
-
-template <class T>
-inline
 T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n)
@@ -1418,6 +1341,152 @@ BaseFab<T>::performSetVal (T          val,
     }
 }
 
+template <class T>
+void
+BaseFab<T>::copyToMem (const Box& srcbox,
+                       int        srccomp,
+                       int        numcomp,
+                       T*         dst) const
+{
+    BL_ASSERT(box().contains(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
+
+    if (srcbox.ok()) 
+    { 
+        const int* _x_plo         = loVect(); 
+        const int* _x_plen        = length(); 
+        IntVect    _subbox_length = srcbox.size();
+        const int* _subbox_len    = _subbox_length.getVect(); 
+        const int* _bx_lo         = (srcbox).loVect(); 
+        T*         _th_p          = dst;
+        const T*   _x_p           = dataPtr(srccomp); 
+
+#if (BL_SPACEDIM == 1)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            const T* _x_pp = _x_p + ((_bx_lo[0]-_x_plo[0])+_n*_x_plen[0]);
+
+            for (int _i = 0; _i < _subbox_len[0]; ++_i)
+            { 
+                *_th_p++ = *_x_pp++;
+            }
+        }
+
+#elif (BL_SPACEDIM == 2)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            for (int _j = 0; _j < _subbox_len[1]; ++_j)
+            { 
+                const int jxR   = _j + _bx_lo[1]; 
+                const T*  _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
+                                          + _x_plen[0]*((jxR - _x_plo[1]) 
+                                                        + _n * _x_plen[1])); 
+                for (int _i = 0; _i < _subbox_len[0]; ++_i)
+                {  
+                    *_th_p++ = *_x_pp++;
+                }
+            }
+        }
+
+#elif (BL_SPACEDIM == 3)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            for (int _k = 0; _k < _subbox_len[2]; ++_k)
+            { 
+                const int kxR = _k + _bx_lo[2];
+                for(int _j = 0; _j < _subbox_len[1]; ++_j)
+                { 
+                    const int jxR   = _j + _bx_lo[1]; 
+                    const T*  _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
+                                              + _x_plen[0]*((jxR - _x_plo[1]) 
+                                                           + _x_plen[1]*( 
+                                                               (kxR - _x_plo[2])
+                                                            + _n * _x_plen[2])));
+                    for (int _i = 0; _i < _subbox_len[0]; ++_i)
+                    {
+                        *_th_p++ = *_x_pp++;
+                    }
+                }
+            }
+        }
+#endif
+    }
+}
+
+template <class T>
+void
+BaseFab<T>::copyFromMem (const Box& dstbox,
+                         int        dstcomp,
+                         int        numcomp,
+                         const T*   src)
+{
+    BL_ASSERT(box().contains(dstbox));
+    BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
+
+    if (dstbox.ok()) 
+    { 
+        const int* _x_plo         = loVect(); 
+        const int* _x_plen        = length(); 
+        IntVect    _subbox_length = dstbox.size();
+        const int* _subbox_len    = _subbox_length.getVect(); 
+        const int* _bx_lo         = (dstbox).loVect(); 
+        const T*   _th_p          = src;
+        T*         _x_p           = dataPtr(dstcomp); 
+
+#if (BL_SPACEDIM == 1)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            T* _x_pp = _x_p + ((_bx_lo[0]-_x_plo[0])+_n*_x_plen[0]);
+
+            for (int _i = 0; _i < _subbox_len[0]; ++_i)
+            { 
+                *_x_pp++ = *_th_p++;
+            }
+        }
+
+#elif (BL_SPACEDIM == 2)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            for (int _j = 0; _j < _subbox_len[1]; ++_j)
+            { 
+                const int jxR   = _j + _bx_lo[1]; 
+                T*        _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) + _x_plen[0]*((jxR - _x_plo[1]) + _n * _x_plen[1])); 
+                for (int _i = 0; _i < _subbox_len[0]; ++_i)
+                {  
+                    *_x_pp++ = *_th_p++;
+                }
+            }
+        }
+
+#elif (BL_SPACEDIM == 3)
+
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            for (int _k = 0; _k < _subbox_len[2]; ++_k)
+            { 
+                const int kxR = _k + _bx_lo[2];
+                for(int _j = 0; _j < _subbox_len[1]; ++_j)
+                { 
+                    const int jxR   = _j + _bx_lo[1]; 
+                    T*        _x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
+                                              + _x_plen[0]*((jxR - _x_plo[1]) 
+                                                            + _x_plen[1]*( (kxR - _x_plo[2]) + _n * _x_plen[2])));
+                    for (int _i = 0; _i < _subbox_len[0]; ++_i)
+                    {
+                        *_x_pp++ = *_th_p++;
+                    }
+                }
+            }
+        }
+#endif
+    }
+}
+
 #if !(defined(BL_NO_FORT) || defined(WIN32))
 //
 // Forward declaration of template specializatons for Real.
@@ -1437,6 +1506,18 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                             const Box&           destbox,
                             int                  destcomp,
                             int                  numcomp);
+template <>
+void
+BaseFab<Real>::copyToMem (const Box& srcbox,
+                          int        srccomp,
+                          int        numcomp,
+                          Real*      dst) const;
+template <>
+void
+BaseFab<Real>::copyFromMem (const Box&  dstbox,
+                            int         dstcomp,
+                            int         numcomp,
+                            const Real* src);
 template <>
 void
 BaseFab<Real>::performSetVal (Real       val,

@@ -37,33 +37,31 @@ public:
     //
     // Explicitly set lo bndry value.
     //
-    void setLo (int dir,
-                int bc_val);
+    void setLo (int dir, int bc_val) { bc[dir] = bc_val; }
     //
     // Explicitly set hi bndry value.
     //
-    void setHi (int dir,
-                int bc_val);
+    void setHi (int dir, int bc_val) { bc[BL_SPACEDIM+dir] = bc_val; }
     //
     // Return bndry values (used in calls to FORTRAN).
     //
-    const int* vect () const;
+    const int* vect () const { return bc; }
     //
     // Return low-end boundary data.
     //
-    const int* lo () const;
+    const int* lo () const { return bc; }
     //
     // Return high-end boundary data.
     //
-    const int* hi () const;
+    const int* hi () const { return bc+BL_SPACEDIM; }
     //
     // Return low-end boundary data in direction <dir>.
     //
-    int lo (int dir) const;
+    int lo (int dir) const { return bc[dir]; }
     //
     // Return high-end boundary data in direction <dir>.
     //
-    int hi (int dir) const;
+    int hi (int dir) const { return bc[BL_SPACEDIM+dir]; }
     //
     // ASCII write to ostream.
     //
@@ -75,57 +73,6 @@ private:
     //
     int bc[2*BL_SPACEDIM];
 };
-
-inline
-void
-BCRec::setLo (int dir,
-              int bc_val)
-{
-    bc[dir] = bc_val;
-}
-
-inline
-void
-BCRec::setHi (int dir,
-              int bc_val)
-{
-    bc[BL_SPACEDIM+dir] = bc_val;
-}
-
-inline
-const int*
-BCRec::vect () const
-{
-    return bc;
-} 
-
-inline
-const int*
-BCRec::lo () const
-{
-    return bc;
-}
-
-inline
-const int*
-BCRec::hi () const
-{
-    return bc+BL_SPACEDIM;
-}
-
-inline
-int
-BCRec::lo (int dir) const
-{
-    return bc[dir];
-}
-
-inline
-int
-BCRec::hi (int dir) const
-{
-    return bc[BL_SPACEDIM+dir];
-}
 
 namespace BoxLib
 {

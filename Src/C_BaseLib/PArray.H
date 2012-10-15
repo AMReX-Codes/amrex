@@ -63,42 +63,41 @@ public:
     //
     // Returns true if the i'th element is not the null pointer.
     //
-    bool defined (int i) const;
+    bool defined (int i) const { return vp[i] != 0; }
     //
     // Returns a constant reference to the object pointed to by the
     // i'th element in this PArray<T>.  Performs bounds checking
     // when the library is compiled in debug mode.
     //
-    const T& operator[] (int i) const;
+    const T& operator[] (int i) const { BL_ASSERT(vp[i] != 0); return *((T*)(vp[i])); }
     //
     // Returns a reference to the object pointed to by the
     // i'th element in this PArray<T>.  Performs bounds checking
     // when the library is compiled in debug mode.
     //
-    T& operator[] (int i);
+    T& operator[] (int i) { BL_ASSERT(vp[i] != 0); return *((T*)(vp[i])); }
     //
     // Returns a constant reference to the object pointed to by the
     // i'th element in the PArray.  It is an error if the i'th element
     // is the null pointer.
     //
-    const T& get (int i) const;
+    const T& get (int i) const { BL_ASSERT(vp[i] != 0); return *((T*)(vp[i])); }
     //
     // Returns a reference to the object pointed to by the i'th
     // element in the PArray.  It is an error if the i'th element
     // is the null pointer.
     //
-    T& get (int i);
+    T& get (int i)  { BL_ASSERT(vp[i] != 0); return *((T*)(vp[i])); }
     //
     // Defines the i'th element of this PArray<T> to the pointer
     // value elem.  It is an error if the i'th element previously
     // had a value.
     //
-    void set (int i,
-              T*  elem);
+    void set (int i, T*  elem) { BL_ASSERT(vp[i] == 0); vp[i] = elem; }
     //
     // Returns the number of elements.
     //
-    int size () const;
+    int size () const { return vp.size(); }
     //
     // This function sets each pointer in this PArray<T> to null.
     // If the memory management policy was set to Manage
@@ -172,68 +171,6 @@ PArray<T>::PArray (PArrayPolicy _managed)
     :
     managed(_managed)
 {}
-
-template <class T>
-inline
-bool
-PArray<T>::defined (int i) const
-{
-    return vp[i] != 0;
-}
-
-template <class T>
-inline
-const T&
-PArray<T>::operator[] (int i) const
-{
-    BL_ASSERT(vp[i] != 0);
-    return *((T*)(vp[i]));
-}
-
-template <class T>
-inline
-T&
-PArray<T>::operator[] (int i)
-{
-    BL_ASSERT(vp[i] != 0);
-    return *((T*)(vp[i]));
-}
-
-template <class T>
-inline
-const T&
-PArray<T>::get (int i) const
-{
-    BL_ASSERT(vp[i] != 0);
-    return *((T*)(vp[i]));
-}
-
-template <class T>
-inline
-T&
-PArray<T>::get (int i)
-{
-    BL_ASSERT(vp[i] != 0);
-    return *((T*)(vp[i]));
-}
-
-template <class T>
-inline
-void
-PArray<T>::set (int i,
-                T*  elem)
-{
-    BL_ASSERT(vp[i] == 0);
-    vp[i] = elem;
-}
-
-template <class T>
-inline
-int
-PArray<T>::size () const
-{
-    return vp.size();
-}
 
 template <class T>
 T*

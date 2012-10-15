@@ -10,6 +10,7 @@
 #include <TagBox.H>
 #include <Array.H>
 #include <CoordSys.H>
+#include <ParmParse.H>
 #include <BoxDomain.H>
 #include <Cluster.H>
 #include <LevelBld.H>
@@ -360,12 +361,12 @@ Amr::Amr ()
     //
     // Setup plot and checkpoint controls.
     //
-    initPltAndChk(& pp);
+    initPltAndChk();
     
     //
     // Setup subcycling controls.
     //
-    initSubcycle(& pp);
+    initSubcycle();
 
     //
     // Read in max_grid_size.  Use defaults if not explicitly defined.
@@ -573,12 +574,6 @@ Amr::deleteDerivePlotVar (const std::string& name)
 
 Amr::~Amr ()
 {
-    if (level_steps[0] > last_checkpoint)
-        checkPoint();
-
-    if (level_steps[0] > last_plotfile)
-        writePlotFile(plot_file_root,level_steps[0]);
-
     levelbld->variableCleanUp();
 
     Amr::Finalize();
@@ -684,8 +679,7 @@ Amr::okToContinue ()
 }
 
 void
-Amr::writePlotFile (const std::string& root,
-                    int                num)
+Amr::writePlotFile ()
 {
     if (!Plot_Files_Output()) return;
 
@@ -699,7 +693,7 @@ Amr::writePlotFile (const std::string& root,
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    const std::string pltfile = BoxLib::Concatenate(root,num,file_name_digits);
+    const std::string pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
         std::cout << "PLOTFILE: file = " << pltfile << '\n';
@@ -747,6 +741,8 @@ Amr::writePlotFile (const std::string& root,
         if (!HeaderFile.good())
             BoxLib::Error("Amr::writePlotFile() failed");
     }
+
+    last_plotfile = level_steps[0];
 
     if (verbose > 0)
     {
@@ -842,7 +838,7 @@ Amr::init (Real strt_time,
         initialInit(strt_time,stop_time);
         checkPoint();
         if (plot_int > 0 || plot_per > 0)
-            writePlotFile(plot_file_root,level_steps[0]);
+            writePlotFile();
     }
 #ifdef HAS_XGRAPH
     if (first_plotfile)
@@ -925,7 +921,7 @@ Amr::readProbinFile (int& init)
     }
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
-       std::cout << "Successfully read probin ... " << '\n';
+        std::cout << "Successfully read probin file: \"" << probin_file << "\"\n";
 }
 
 void
@@ -942,7 +938,9 @@ Amr::initialInit (Real strt_time,
     //
     int init = true;
 
-    readProbinFile(init);
+    if (!probin_file.empty()) {
+        readProbinFile(init);
+    }
 
 #ifdef BL_SYNC_RANTABLES
     int iGet(0), iSet(1);
@@ -1344,7 +1342,7 @@ Amr::checkPoint ()
         if (!HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
 
-        old_prec = HeaderFile.precision(15);
+        old_prec = HeaderFile.precision(17);
 
         HeaderFile << CheckPointVersion << '\n'
                    << BL_SPACEDIM       << '\n'
@@ -1380,6 +1378,8 @@ Amr::checkPoint ()
         if (!HeaderFile.good())
             BoxLib::Error("Amr::checkpoint() failed");
     }
+
+    last_checkpoint = level_steps[0];
 
 #ifdef USE_SLABSTAT
     //
@@ -1417,7 +1417,7 @@ Amr::RegridOnly (Real time)
        regrid(i,time);
 
     if (plotfile_on_restart)
-	writePlotFile(plot_file_root,level_steps[0]);
+	writePlotFile();
 
     if (checkpoint_on_restart)
        checkPoint();
@@ -1543,7 +1543,7 @@ Amr::timeStep (int  level,
     if (plotfile_on_restart && !(restart_file.empty()) )
     {
 	plotfile_on_restart = 0;
-	writePlotFile(plot_file_root,level_steps[0]);
+	writePlotFile();
     }
     //
     // Advance grids at this level.
@@ -1729,7 +1729,6 @@ Amr::coarseTimeStep (Real stop_time)
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
 	|| to_checkpoint)
     {
-        last_checkpoint = level_steps[0];
         checkPoint();
     }
 
@@ -1754,8 +1753,7 @@ Amr::coarseTimeStep (Real stop_time)
     if ((plot_int > 0 && level_steps[0] % plot_int == 0) || plot_test == 1
 	|| to_checkpoint)
     {
-        last_plotfile = level_steps[0];
-        writePlotFile(plot_file_root,level_steps[0]);
+        writePlotFile();
     }
 
     if (to_stop)
@@ -1872,12 +1870,11 @@ Amr::regrid (int  lbase,
 
     if (lbase == 0)
     {
-        FabArrayBase::CPC::FlushCache();
         MultiFab::FlushSICache();
         Geometry::FlushPIRMCache();
+        FabArrayBase::CPC::FlushCache();
         DistributionMapping::FlushCache();
     }
-
     //
     // Define the new grids from level start up to new_finest.
     //
@@ -2533,11 +2530,12 @@ Amr::bldFineLevels (Real strt_time)
 }
 
 void
-Amr::initSubcycle (ParmParse * pp)
+Amr::initSubcycle ()
 {
+    ParmParse pp("amr");
     int i;
     sub_cycle = true;
-    if (pp->contains("nosub"))
+    if (pp.contains("nosub"))
     {
         if (ParallelDescriptor::IOProcessor())
         {
@@ -2545,7 +2543,7 @@ Amr::initSubcycle (ParmParse * pp)
             std::cout << "... please use subcycling_mode to control subcycling.\n";
         }
         int nosub;
-        pp->query("nosub",nosub);
+        pp.query("nosub",nosub);
         if (nosub > 0)
             sub_cycle = false;
         else
@@ -2555,7 +2553,7 @@ Amr::initSubcycle (ParmParse * pp)
     else 
     {
         subcycling_mode = "Auto";
-        pp->query("subcycling_mode",subcycling_mode);
+        pp.query("subcycling_mode",subcycling_mode);
     }
     
     if (subcycling_mode == "None")
@@ -2568,7 +2566,7 @@ Amr::initSubcycle (ParmParse * pp)
     }
     else if (subcycling_mode == "Manual")
     {
-        int cnt = pp->countval("subcycling_iterations");
+        int cnt = pp.countval("subcycling_iterations");
 
         if (cnt == 1)
         {
@@ -2577,7 +2575,7 @@ Amr::initSubcycle (ParmParse * pp)
             //
             int cycles = 0;
 
-            pp->get("subcycling_iterations",cycles);
+            pp.get("subcycling_iterations",cycles);
 
             n_cycle[0] = 1; // coarse level is always 1 cycle
             for (i = 1; i <= max_level; i++)
@@ -2590,7 +2588,7 @@ Amr::initSubcycle (ParmParse * pp)
             //
             // Otherwise we expect a vector of max_grid_size values.
             //
-            pp->getarr("subcycling_iterations",n_cycle,0,max_level+1);
+            pp.getarr("subcycling_iterations",n_cycle,0,max_level+1);
             if (n_cycle[0] != 1)
             {
                 BoxLib::Error("First entry of subcycling_iterations must be 1");
@@ -2634,13 +2632,15 @@ Amr::initSubcycle (ParmParse * pp)
 }
 
 void
-Amr::initPltAndChk(ParmParse * pp)
+Amr::initPltAndChk ()
 {
-    pp->query("checkpoint_files_output", checkpoint_files_output);
-    pp->query("plot_files_output", plot_files_output);
+    ParmParse pp("amr");
 
-    pp->query("plot_nfiles", plot_nfiles);
-    pp->query("checkpoint_nfiles", checkpoint_nfiles);
+    pp.query("checkpoint_files_output", checkpoint_files_output);
+    pp.query("plot_files_output", plot_files_output);
+
+    pp.query("plot_nfiles", plot_nfiles);
+    pp.query("checkpoint_nfiles", checkpoint_nfiles);
     //
     // -1 ==> use ParallelDescriptor::NProcs().
     //
@@ -2648,13 +2648,13 @@ Amr::initPltAndChk(ParmParse * pp)
     if (checkpoint_nfiles == -1) checkpoint_nfiles = ParallelDescriptor::NProcs();
     
     check_file_root = "chk";
-    pp->query("check_file",check_file_root);
+    pp.query("check_file",check_file_root);
 
     check_int = -1;
-    int got_check_int = pp->query("check_int",check_int);
+    int got_check_int = pp.query("check_int",check_int);
 
     check_per = -1.0;
-    int got_check_per = pp->query("check_per",check_per);
+    int got_check_per = pp.query("check_per",check_per);
 
     if (got_check_int == 1 && got_check_per == 1)
     {
@@ -2662,13 +2662,13 @@ Amr::initPltAndChk(ParmParse * pp)
     }
 
     plot_file_root = "plt";
-    pp->query("plot_file",plot_file_root);
+    pp.query("plot_file",plot_file_root);
 
     plot_int = -1;
-    int got_plot_int = pp->query("plot_int",plot_int);
+    int got_plot_int = pp.query("plot_int",plot_int);
 
     plot_per = -1.0;
-    int got_plot_per = pp->query("plot_per",plot_per);
+    int got_plot_per = pp.query("plot_per",plot_per);
 
     if (got_plot_int == 1 && got_plot_per == 1)
     {

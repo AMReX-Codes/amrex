@@ -12,22 +12,18 @@ subroutine compute_flux(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx)
   integer i,j
 
   ! x-fluxes
-  !$omp parallel do private(i,j)
   do j=lo(2),hi(2)
      do i=lo(1),hi(1)+1
         fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / dx
      end do
   end do
-  !$omp end parallel do
 
   ! y-fluxes
-  !$omp parallel do private(i,j)
   do j=lo(2),hi(2)+1
      do i=lo(1),hi(1)
         fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / dx
      end do
   end do
-  !$omp end parallel do
 
 end subroutine compute_flux
 
@@ -43,7 +39,6 @@ subroutine update_phi(phiold, phinew, ng_p, fluxx, fluxy, ng_f, lo, hi, dx, dt)
   ! local variables
   integer i,j
 
-  !$omp parallel do private(i,j)
   do j=lo(2),hi(2)
      do i=lo(1),hi(1)
 
@@ -52,6 +47,5 @@ subroutine update_phi(phiold, phinew, ng_p, fluxx, fluxy, ng_f, lo, hi, dx, dt)
 
      end do
   end do
-  !$omp end parallel do
 
 end subroutine update_phi
