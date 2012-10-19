@@ -1,0 +1,66 @@
+! This module stores the runtime parameters.  The probin_init() routine is
+! used to initialize the runtime parameters
+
+module extern_probin_module
+
+  use bl_types
+  use bl_space
+
+  implicit none
+
+  private
+
+  @@declarationsA@@
+
+end module extern_probin_module
+
+subroutine runtime_init(name,namlen)
+
+  use extern_probin_module
+
+  implicit none
+
+  integer :: namlen
+  integer :: name(namlen)
+
+  integer :: un, i, status
+
+  integer, parameter :: maxlen = 256
+  character (len=maxlen) :: probin
+
+
+  @@namelist@@
+
+  @@defaults@@
+
+
+  ! create the filename
+  if (namlen > maxlen) then
+     print *, 'probin file name too long'
+     stop
+  endif
+
+  do i = 1, namlen
+     probin(i:i) = char(name(i))
+  end do
+
+
+  ! read in the namelist
+  un = 9
+  open (unit=un, file=probin(1:namlen), form='formatted', status='old')
+  read (unit=un, nml=extern, iostat=status)
+
+  if (status < 0) then
+     ! the namelist does not exist, so we just go with the defaults
+     continue
+
+  else if (status > 0) then
+     ! some problem in the namelist
+     print *, 'ERROR: problem in the extern namelist'
+     stop
+  endif
+
+  close (unit=un)
+    
+end subroutine runtime_init
+

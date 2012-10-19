@@ -1,0 +1,82 @@
+BOXLIB_HOME ?= ../../../..
+Darcy_DIR  ?= $(BOXLIB_HOME)/Tutorials/AMR_PETSc_C
+PETSC_INSTALL_DIR = $(PETSC_DIR)
+
+# This MUST be true, because the way PETSc fakes MPI conflicts with the way BoxLib does
+USE_MPI = TRUE
+
+
+TOP := $(Darcy_DIR)
+
+EBASE     = Darcy
+
+EXTERN_CORE :=
+
+include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+
+all: $(executable) 
+	$(SILENT) $(RM) buildInfo.cpp
+	@echo SUCCESS
+
+Bdirs 	:= Source
+Pdirs 	:= C_BaseLib C_AMRLib C_BoundaryLib C_TowerLib
+
+Bpack	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
+Blocs	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir))
+
+Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
+Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+
+include $(Bpack)
+
+INCLUDE_LOCATIONS += $(Blocs)
+VPATH_LOCATIONS   += $(Blocs)
+DEFINES           += -DBL_NOLINEVALUES
+
+# misc required fBoxLib stuff
+VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/F_BaseLib
+f90EXE_sources += bl_types.f90 bl_space.f90
+
+include $(PETSC_INSTALL_DIR)/conf/variables
+INCLUDE_LOCATIONS += $(PETSC_INSTALL_DIR)/include
+LIBRARY_LOCATIONS += $(PETSC_INSTALL_DIR)/lib
+LIBRARIES += $(PETSC_LIB)
+
+# runtime parameter support for extern/ routines
+f90EXE_sources += extern.f90
+
+EXTERN_TEMPLATE := $(TOP)/Source/extern_probin.template
+
+EXTERN_PARAMETERS := $(shell $(BOXLIB_HOME)/Tools/F_scripts/findparams.py $(EXTERN_CORE))
+
+extern.f90: $(EXTERN_PARAMETERS) $(EXTERN_TEMPLATE)
+	$(BOXLIB_HOME)/Tools/F_scripts/write_probin.py \
+           -t $(EXTERN_TEMPLATE) -o extern.f90 -n extern \
+           --pa "$(EXTERN_PARAMETERS)" 
+
+# job_info support
+CEXE_sources += buildInfo.cpp
+CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
+INCLUDE_LOCATIONS +=  $(BOXLIB_HOME)/Tools/C_scripts
+
+buildInfo.cpp: $(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp
+	$(BOXLIB_HOME)/Tools/C_scripts/make_build_info_cpp "$(BOXLIB_HOME)" \
+            "$(COMP)" "$(FCOMP)" \
+            "GIT=$(TOP)" "GIT=$(BOXLIB_HOME)" "GIT=$(ASTRODEV_DIR)" 
+
+
+vpath %.c   . $(VPATH_LOCATIONS)
+vpath %.cpp . $(VPATH_LOCATIONS)
+vpath %.h   . $(VPATH_LOCATIONS)
+vpath %.H   . $(VPATH_LOCATIONS)
+vpath %.F   . $(VPATH_LOCATIONS)
+vpath %.f90 . $(VPATH_LOCATIONS)
+vpath %.f   . $(VPATH_LOCATIONS)
+vpath %.fi  . $(VPATH_LOCATIONS)
+
+
+include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+
+clean::
+	$(SILENT) $(RM) extern.f90
+	$(SILENT) $(RM) buildInfo.cpp
