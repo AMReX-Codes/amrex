@@ -1,0 +1,9 @@
+TOWERLIB_BASE=EXE
+ifeq ($(LBASE),tower)
+    TOWERLIB_BASE=LIB
+endif
+
+C$(TOWERLIB_BASE)_sources += MFTower.cpp Layout.cpp
+C$(TOWERLIB_BASE)_headers += MFTower.H Layout.H
+F$(TOWERLIB_BASE)_headers += MFTower_F.H
+F$(TOWERLIB_BASE)_sources += MFTower_$(DIM)D.F

@@ -1,0 +1,90 @@
+#-vec_view
+
+#-mat_view_draw
+#-mat_view
+-mat_ascii_output_large
+#-mat_view
+#-mat_view_ordering_draw
+#-mat_coloring_view
+#-mat_fd_type wp
+#-mat_mffd_compute_normu
+
+# KSP Types
+# cg cgne nash stcg gltr richardson chebychev gmres tcqmr bcgs ibcgs bcgsl cgs tfqmr cr lsqr 
+# preonly qcg bicg fgmres minres symmlq lgmres lcd broyden gcr ngmres specest dgmres 
+#
+#-ksp_view
+#-ksp_monitor 
+#-ksp_type fgmres
+#-ksp_type gmres
+#-ksp_type dgmres  
+#-sub_ksp_type bcgs
+#-ksp_error_if_not_converged
+#-ksp_diagonal_scale_fix
+-ksp_type preonly
+#-ksp_max_it 4000
+#-ksp_monitor_true_residual
+#-ksp_monitor
+#-ksp_norm_type PRECONDITIONED 
+
+#-ksp_rtol 1.e-16
+#-ksp_atol 1.e-16
+-ksp_rtol 1.e-6
+-ksp_atol 1.e-6
+-ksp_divtol 1000
+#-ksp_diagonal_scale
+#-ksp_monitor_true_residual
+
+# PC Types
+# none jacobi pbjacobi bjacobi sor lu shell mg eisenstat ilu icc cholesky asm gasm ksp 
+# composite redundant nn mat fieldsplit galerkin exotic hmpi asa cp lsc redistribute svd tfs
+#
+-pc_type lu
+#-pc_type ilu
+#-sub_pc_type ilu
+#-pc_type pbjacobi
+#-sub_pc_type lu
+-pc_view
+#-pc_factor_mat_ordering_type qmd
+#-pc_factor_mat_ordering_type 1wd
+#-pc_factor_mat_ordering_type qmd
+#-pc_factor_mat_ordering_type rowlength
+#-pc_factor_mat_ordering_type natural
+#-pc_factor_mat_ordering_type rcm
+-pc_factor_nonzeros_along_diagonal
+#-pc_factor_mat_solver_package superlu_dist
+-pc_factor_mat_solver_package superlu
+#-mat_superlu_dist_statprint true
+#-mat_superlu_dist_iterrefine true
+#-mat_superlu_dist_replacetinypivot true
+-mat_superlu_dist_replacetinypivot false
+#-mat_superlu_conditionnumber true
+-mat_superlu_dist_equil true
+-mat_superlu_equil true
+#-pc_factor_reuse_fill
+#-help 
+-pc_monitor
+
+
+#-snes_view
+-snes_monitor
+#-snes_type tr
+#-snes_ls basic
+-snes_ls cubic
+#-snes_ls_monitor
+-snes_max_it 100000
+-snes_atol 1.e-10
+-snes_rtol 1.e-10
+-snes_stol 1.e-20
+-snes_converged_reason
+#-snes_error_if_not_converged
+#-snes_mf_operator
+#-snes_type test 
+#-snes_test_display
+
+#-draw_pause 5
+#-help
+#-on_error_attach_debugger
+#-info diags.txt
+
+-snes_lag_jacobian 500000
