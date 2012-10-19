@@ -646,36 +646,25 @@ Darcy::setTimeLevel (Real time,
 void
 Darcy::initData ()
 {
-#if 0
-  //
-  // Loop over grids, call FORTRAN function to init with data.
-  //
-  int ns          = NUM_STATE;
-  const Real* dx  = geom.CellSize();
-  MultiFab& S_new = get_new_data(State_Type);
-  Real cur_time   = state[State_Type].curTime();
-
-  if (verbose && ParallelDescriptor::IOProcessor())
-    std::cout << "Initializing the data at level " << level << std::endl;
-
-  for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-  {
-    RealBox    gridloc = RealBox(grids[mfi.index()],geom.CellSize(),geom.ProbLo());
-    const Box& box     = mfi.validbox();
-    const int* lo      = box.loVect();
-    const int* hi      = box.hiVect();
-
-    BL_FORT_PROC_CALL(INITDATA,initdata)
-      (level, cur_time, lo, hi, ns,
-       BL_TO_FORTRAN(S_new[mfi]), 
-       dx, gridloc.lo(), gridloc.hi());
+  if (layout==0) {
+    BL_ASSERT(snes==0);
+    build_layout();
+    build_snes();
   }
-#else
-  get_new_data(State_Type).setVal(-.125,Pressure,1);
-#endif
 
-  if (verbose && ParallelDescriptor::IOProcessor())
-    std::cout << "Done initializing the level " << level << " data " << std::endl;
+  MultiFab& S_new = get_new_data(State_Type);
+  S_new.setVal(-.125,Pressure,1);
+
+  const Layout::MultiIntFab& nodeIds = layout->NodeIds()[level];
+
+  for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
+    const FArrayBox& p = S_new[mfi];
+    FArrayBox& rs = S_new[mfi];
+    const Box& box = mfi.validbox();
+    const Layout::IntFab& ids = nodeIds[mfi];
+    snes->ReducedSaturationGivenPressure(p,Pressure,rs,RhoSat,box,ids);
+    rs.mult(snes->density,RhoSat,1);
+  }
 }
 
 void
@@ -1064,8 +1053,6 @@ Darcy::multilevel_advance(Real  t,
 
   bool solve_successful = ret > 0;
   dt_suggest = (solve_successful ? 2 : 0.5) * dt;
-
-  if (!solve_successful) BoxLib::Abort();
 
   return solve_successful;
 }
