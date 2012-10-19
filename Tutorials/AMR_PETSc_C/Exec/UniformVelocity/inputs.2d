@@ -1,11 +1,10 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
-max_step = 1
-stop_time = 100.0
+max_step = 100
+stop_time = 1.e12
 darcy.dt_cutoff = 1
-darcy.dt_max = 25
+darcy.dt_max = 1.e20
 darcy.initial_dt = .5
-
-#act.fixed_dt = 0.1
+petsc_options_file=petsc_options_file
 
 # PROBLEM SIZE & GEOMETRY
 geometry.is_periodic =  1 0
@@ -20,9 +19,6 @@ amr.n_cell           = 32   32
 # 1 = p-specified        4 = SlipWall - huh?
 # 2 = flux-specified     5 = NoSlipWall - huh?
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-darcy.lo_bc       =  0   1
-darcy.hi_bc       =  0   2
-
 darcy.lo_bc       =  1   1
 darcy.hi_bc       =  1   2
 
@@ -46,11 +42,11 @@ amr.max_grid_size   = 256
 
 # CHECKPOINT FILES
 amr.check_file      = chk     # root name of checkpoint file
-amr.check_int       = 100       # number of timesteps between checkpoints
+amr.check_int       = 1       # number of timesteps between checkpoints
 
 # PLOTFILES
 amr.plot_file       = plt
-amr.plot_int        = 100
+amr.plot_int        = 1
 amr.derive_plot_vars=NONE
 
 # PROBIN FILENAME

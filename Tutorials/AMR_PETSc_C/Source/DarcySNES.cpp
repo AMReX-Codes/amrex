@@ -17,7 +17,7 @@ static Real kappaz_m2_DEF = 2.87e-13;
 static Real sigma_DEF = .000302; 
 static Real Sr_DEF = 0.354;   
 static Real m_DEF = 0.291;   
-static Real se_threshold = .9;
+static Real se_threshold = 1;
 
 static Real porosity_DEF = 0.3;
 static Real density_kg_m3_DEF = 998.2;
@@ -638,7 +638,7 @@ Real Kr_given_Seff_Mualem(Real se, Real m, Real mInv)
 Real Se_given_P_vanGenuchten(Real pressure, Real n, Real m, Real sigma)
 {
   Real pcap = - pressure;
-  return (pcap > 0  ? std::pow(1 + std::pow(pressure*sigma,n),-m) : 1);
+  return (pcap > 0  ? std::pow(1 + std::pow(pcap*sigma,n),-m) : 1);
 }
 
 void
