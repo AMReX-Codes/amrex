@@ -287,10 +287,19 @@ DarcySNES::SetTheDarcySNES(DarcySNES* ptr)
     static_ds_ptr = ptr;
 }
 
-int
-DarcySNES::Solve(Real delta_t)
+int 
+DarcySNES::Solve(PArray<MultiFab>& RhoSat_new,
+		 PArray<MultiFab>& RhoSat_old,
+		 int               rhosatComp,
+		 PArray<MultiFab>& P_new,
+		 int               pComp,
+		 Real              delta_t)
 {
   Vlevel1("**** DarcySNES::Solve **** (begin)",verbose);
+
+  // Set up data structures for state variables
+  ResetRhoSat(RhoSat_new,RhoSat_old,rhosatComp,P_new,pComp);
+
   MFTower& RhsMFT = *Rhs;
   MFTower& SolnMFT = *Pnew;
   dt = delta_t;
