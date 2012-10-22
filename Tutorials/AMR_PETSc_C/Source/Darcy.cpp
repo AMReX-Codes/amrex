@@ -1037,23 +1037,21 @@ Darcy::multilevel_advance(Real  t,
 {
   BL_ASSERT(level==0);
 
+  // Set state data in PArrays to pass into solver
   int nLevs = parent->finestLevel() + 1;
   PArray<MultiFab> S_pa_new(nLevs,PArrayNoManage);
   PArray<MultiFab> S_pa_old(nLevs,PArrayNoManage);
-
   for (int lev=0; lev<nLevs; ++lev) {
     S_pa_new.set(lev,&(getLevel(lev).get_new_data(State_Type)));
     S_pa_old.set(lev,&(getLevel(lev).get_old_data(State_Type)));
     MultiFab::Copy(S_pa_new[lev],S_pa_old[lev],0,0,2,0);
   }
 
-  snes->ResetRhoSat(S_pa_new,S_pa_old,RhoSat,S_pa_new,Pressure);
-
-  int ret = snes->Solve(dt);
-
+  int ret = snes->Solve(S_pa_new,S_pa_old,RhoSat,S_pa_new,Pressure,dt);
   bool solve_successful = ret > 0;
-  dt_suggest = (solve_successful ? 2 : 0.5) * dt;
 
+  // Crude time step control
+  dt_suggest = (solve_successful ? 2 : 0.5) * dt;
   return solve_successful;
 }
 

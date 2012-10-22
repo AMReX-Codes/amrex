@@ -19,12 +19,6 @@ public:
   static void SetVerbose(int v);
   static int GetVerbose();
 
-  void ResetRhoSat(PArray<MultiFab>& S_new,
-		   PArray<MultiFab>& S_old,
-		   int               rsComp,
-		   PArray<MultiFab>& P_new,
-		   int               pComp);
-
   void ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
                         int              fComp,
                         MFTower&         pressure,
@@ -69,7 +63,12 @@ public:
                MFTower& rhoSat,
                int      rsComp);
   
-  int Solve(Real dt);
+  int Solve(PArray<MultiFab>& RhoSat_new,
+	    PArray<MultiFab>& RhoSat_old,
+	    int               rhosatComp,
+	    PArray<MultiFab>& P_new,
+	    int               pComp,
+	    Real              dt);
     
   void BuildOpSkel(Mat& J);
 
@@ -116,6 +115,12 @@ public:
 protected:
   static void CleanupStatics();
   void Initialize();
+  void ResetRhoSat(PArray<MultiFab>& S_new,
+		   PArray<MultiFab>& S_old,
+		   int               rsComp,
+		   PArray<MultiFab>& P_new,
+		   int               pComp);
+
   static int verbose;
 };
 
