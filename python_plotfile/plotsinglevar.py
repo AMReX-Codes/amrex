@@ -113,8 +113,16 @@ def do_plot(plotfile, component, component2, outFile, log,
 
         # log?
         if log:
-            data = numpy.log10(data)
-            if (not component2 == ""): data2 = numpy.log10(data2)
+            if (numpy.min(data) < 0):
+                data = numpy.log10(numpy.abs(data))
+            else:
+                data = numpy.log10(data)
+
+            if (not component2 == ""): 
+                if (numpy.min(data2) < 0.0):
+                    data2 = numpy.log10(numpy.abs(data2))
+                else:
+                    data2 = numpy.log10(data2)
                 
             if (not minval == None): minval = math.log10(minval)
             if (not maxval == None): maxval = math.log10(maxval)
@@ -248,6 +256,82 @@ def do_plot(plotfile, component, component2, outFile, log,
         fig = pylab.figure()
 
 
+        # read in the slices
+        # x-y
+        data_xy = numpy.zeros( (nx, ny), dtype=numpy.float64)
+
+        indir = 3
+        (data_xy, err) = \
+            fsnapshot.fplotfile_get_data_3d(plotfile, component, indir, 
+                                            origin, data_xy)
+        if (not err == 0):
+            sys.exit(2)
+
+        data_xy = numpy.transpose(data_xy)
+
+        if log:
+            if (numpy.min(data_xy) < 0):
+                data_xy = numpy.log10(numpy.abs(data_xy))
+            else:
+                data_xy = numpy.log10(data_xy)
+
+
+        # x-z
+        data_xz = numpy.zeros( (nx, nz), dtype=numpy.float64)
+        (data_xz, err) = \
+            fsnapshot.fplotfile_get_data_3d(plotfile, component, 2, 
+                                            origin, data_xz)
+        if (not err == 0):
+            sys.exit(2)
+
+        data_xz = numpy.transpose(data_xz)
+
+        if log:
+            if (numpy.min(data_xz) < 0):
+                data_xz = numpy.log10(numpy.abs(data_xz))
+            else:
+                data_xz = numpy.log10(data_xz)
+                
+
+        # y-z
+        data_yz = numpy.zeros( (ny, nz), dtype=numpy.float64)
+        (data_yz, err) = \
+            fsnapshot.fplotfile_get_data_3d(plotfile, component, 1, 
+                                            origin, data_yz)
+        if (not err == 0):
+            sys.exit(2)
+
+        data_yz = numpy.transpose(data_yz)
+
+        if log:
+            if (numpy.min(data_yz) < 0):
+                data_yz = numpy.log10(numpy.abs(data_yz))
+            else:
+                data_yz = numpy.log10(data_yz)
+                
+
+
+                
+        if (not minval == None): 
+            if (log):
+                minval = math.log10(minval)
+        else:
+            minval = numpy.min(data_xy)
+            minval = min(minval,numpy.min(data_xz))
+            minval = min(minval,numpy.min(data_yz))
+
+
+        if (not maxval == None): 
+            if (log):
+                maxval = math.log10(maxval)
+        else:
+            maxval = numpy.max(data_xy)
+            maxval = max(maxval,numpy.max(data_xz))
+            maxval = max(maxval,numpy.max(data_yz))
+            
+
+
+
         # x-y
         extent = [xmin, xmax, ymin, ymax]
 
@@ -266,30 +350,12 @@ def do_plot(plotfile, component, component2, outFile, log,
             iy = int((ymax_pass - ymin)/dy)
 
 
-        # read in the main component
-        data = numpy.zeros( (nx, ny), dtype=numpy.float64)
-
-
-        indir = 3
-        (data, err) = \
-            fsnapshot.fplotfile_get_data_3d(plotfile, component, indir, origin, data)
-        if (not err == 0):
-            sys.exit(2)
-
-        data = numpy.transpose(data)
-
-        if log:
-            data = numpy.log10(data)
-                
-            if (not minval == None): minval = math.log10(minval)
-            if (not maxval == None): maxval = math.log10(maxval)
-
 
         ax = pylab.subplot(1,3,1)
         pylab.subplots_adjust(wspace=0.4)
         #fig.add_axes(pos1)
 
-        im=pylab.imshow(data[0:iy,0:ix],origin='lower', extent=extent, 
+        im=pylab.imshow(data_xy[0:iy,0:ix],origin='lower', extent=extent, 
                         vmin=minval, vmax=maxval, axes=pos1)
 
         pylab.xlabel("x")
@@ -336,26 +402,11 @@ def do_plot(plotfile, component, component2, outFile, log,
             iz = int((zmax_pass - zmin)/dz)
 
 
-        # read in the main component
-        data = numpy.zeros( (nx, nz), dtype=numpy.float64)
-        (data, err) = \
-            fsnapshot.fplotfile_get_data_3d(plotfile, component, 2, origin, data)
-        if (not err == 0):
-            sys.exit(2)
-
-        data = numpy.transpose(data)
-
-        if log:
-            data = numpy.log10(data)
-                
-            if (not minval == None): minval = math.log10(minval)
-            if (not maxval == None): maxval = math.log10(maxval)
-
 
         ax = pylab.subplot(1,3,2)
         #fig.add_axes(pos2)
 
-        im=pylab.imshow(data[0:iz,0:ix],origin='lower', extent=extent, 
+        im=pylab.imshow(data_xz[0:iz,0:ix],origin='lower', extent=extent, 
                         vmin=minval, vmax=maxval, axes=pos2)
 
         pylab.xlabel("x")
@@ -393,26 +444,11 @@ def do_plot(plotfile, component, component2, outFile, log,
             iz = int((zmax_pass - zmin)/dz)
 
 
-        # read in the main component
-        data = numpy.zeros( (ny, nz), dtype=numpy.float64)
-        (data, err) = \
-            fsnapshot.fplotfile_get_data_3d(plotfile, component, 1, origin, data)
-        if (not err == 0):
-            sys.exit(2)
-
-        data = numpy.transpose(data)
-
-        if log:
-            data = numpy.log10(data)
-                
-            if (not minval == None): minval = math.log10(minval)
-            if (not maxval == None): maxval = math.log10(maxval)
-
 
         ax = pylab.subplot(1,3,3)
         #fig.add_axes(pos3)
 
-        im=pylab.imshow(data[0:iz,0:iy],origin='lower', extent=extent, 
+        im=pylab.imshow(data_yz[0:iz,0:iy],origin='lower', extent=extent, 
                         vmin=minval, vmax=maxval, axes=pos3)
 
         pylab.xlabel("y")
@@ -476,6 +512,8 @@ def usage():
        -M value     set the maximum data range for the plot to value
 
        --log        plot the logarithm (base-10) of the data
+                    (note: if the data < 0 anywhere, then the abs
+                     is taken first)
 
        --eps        make an EPS plot instead of a PNG
 

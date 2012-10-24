@@ -54,6 +54,9 @@ program fcompare
   real(kind=dp_t) :: global_error
   real(kind=dp_t) :: pa, pb, pd
 
+  integer :: dm
+  type(box) :: bx_a, bx_b
+
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
@@ -112,6 +115,7 @@ program fcompare
   unit_b = unit_new()
   call build(pf_b, plotfile_b, unit_b)
 
+  dm = pf_a%dim
   
   ! check if they are the same dimensionality
   if (pf_a%dim /= pf_b%dim) then
@@ -126,11 +130,15 @@ program fcompare
 
 
   ! check if the finest domains are the same size
-  flo_a = lwb(plotfile_get_pd_box(pf_a, pf_a%flevel))
-  fhi_a = upb(plotfile_get_pd_box(pf_a, pf_a%flevel))
+  bx_a = plotfile_get_pd_box(pf_a, pf_a%flevel)
+  flo_a = 1
+  fhi_a = 1
+  flo_a(1:dm) = lwb(bx_a)
+  fhi_a(1:dm) = upb(bx_a)
 
-  flo_b = lwb(plotfile_get_pd_box(pf_b, pf_b%flevel))
-  fhi_b = upb(plotfile_get_pd_box(pf_b, pf_b%flevel))
+  bx_b = plotfile_get_pd_box(pf_b, pf_b%flevel)
+  flo_b(1:dm) = lwb(bx_b)
+  fhi_b(1:dm) = upb(bx_b)
 
   if ( (flo_a(1) /= flo_b(1) .OR. fhi_a(1) /= fhi_b(1)) .OR. &
       ((flo_a(2) /= flo_b(2) .OR. fhi_a(2) /= fhi_b(2)) .AND. pf_a%dim >= 2) .OR. &
@@ -216,8 +224,10 @@ program fcompare
      has_nan_b(:) = .false.
 
      ! make sure the dx's agree
-     dx_a = plotfile_get_dx(pf_a, i)
-     dx_b = plotfile_get_dx(pf_b, i)  
+     dx_a = 0.0_dp_t
+     dx_b = 0.0_dp_t
+     dx_a(1:dm) = plotfile_get_dx(pf_a, i)
+     dx_b(1:dm) = plotfile_get_dx(pf_b, i)  
 
      if ((dx_a(1) /= dx_b(1)) .OR. &
          (pf_a%dim >= 2 .AND. dx_a(2) /= dx_b(2)) .OR. &
@@ -236,26 +246,23 @@ program fcompare
      do j = 1, nboxes_a
 
         ! make sure that the grids match
-        lo_a = lwb(get_box(pf_a, i, j))
-        hi_a = upb(get_box(pf_a, i, j))
+        bx_a = get_box(pf_a, i, j)
+        lo_a = 1
+        hi_a = 1
+        lo_a(1:dm) = lwb(bx_a)
+        hi_a(1:dm) = upb(bx_a)
 
-        lo_b = lwb(get_box(pf_b, i, j))
-        hi_b = upb(get_box(pf_b, i, j))
+        bx_b = get_box(pf_b, i, j)
+        lo_b = 1
+        hi_b = 1
+        lo_b(1:dm) = lwb(bx_b)
+        hi_b(1:dm) = upb(bx_b)
 
         if ( (lo_a(1) /= lo_b(1) .OR. hi_a(1) /= hi_b(1)) .OR. &
              (pf_a%dim >= 2 .AND. (lo_a(2) /= lo_b(2) .OR. hi_a(2) /= hi_b(2))) .OR. &
              (pf_a%dim == 3 .AND. (lo_a(3) /= lo_b(3) .OR. hi_a(3) /= hi_b(3))) ) then
            call bl_error("ERROR: grids do not match")
         endif
-
-        ! Do this so we can use a single loop 1d, 2d and 3d below
-        if (pf_a%dim == 1) then
-            lo_a(2:3)  = 1
-            hi_a(2:3)  = 1
-        else if (pf_a%dim == 1) then
-            lo_a(3)  = 1
-            hi_a(3)  = 1
-        end if
 
         ! loop over the variables.  Take plotfile_a to be the one defining
         ! the list of variables, and bind them one-by-one.  Don't assume that
