@@ -49,7 +49,7 @@ module build_info_module
 "@@EXTRA_HASH@@"
 
   logical, parameter :: different_build_tree = @@BUILD_TREE_LOGICAL@@
-  character (len=128), save :: build_hash = &
+  character (len=128), save :: build_git_hash = &
 "@@BUILD_HASH@@"
 
 
