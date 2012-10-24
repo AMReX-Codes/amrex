@@ -21,7 +21,7 @@ import mpl_toolkits.axes_grid1
 # do_plot
 #==============================================================================
 def do_plot(plotfile, component, component2, outFile, log, 
-            minval, maxval, eps, dpi, origin, annotation, 
+            minval, maxval, minval2, maxval2, eps, dpi, origin, annotation, 
             xmax_pass, ymax_pass, zmax_pass):
 
 
@@ -111,12 +111,16 @@ def do_plot(plotfile, component, component2, outFile, log,
 
             data2 = numpy.transpose(data2)
 
+        # log?
         if log:
             data = numpy.log10(data)
             if (not component2 == ""): data2 = numpy.log10(data2)
                 
             if (not minval == None): minval = math.log10(minval)
             if (not maxval == None): maxval = math.log10(maxval)
+
+            if (not minval2 == None): minval2 = math.log10(minval2)
+            if (not maxval2 == None): maxval2 = math.log10(maxval2)
 
 
         #----------------------------------------------------------------------
@@ -189,7 +193,7 @@ def do_plot(plotfile, component, component2, outFile, log,
             divider = mpl_toolkits.axes_grid1.make_axes_locatable(ax)
 
             im = pylab.imshow(data2[0:iy,0:ix], origin='lower', extent=extent, 
-                              vmin=minval, vmax=maxval)
+                              vmin=minval2, vmax=maxval2)
 
             pylab.title(component2)
             pylab.xlabel("x")
@@ -502,6 +506,8 @@ if __name__== "__main__":
     eps = 0
     minvar = None
     maxvar = None
+    minvar2 = None
+    maxvar2 = None
     dpi = 100
     origin = 0
     annotation = ""
@@ -509,7 +515,7 @@ if __name__== "__main__":
     ymax = None
     zmax = None
 
-    try: opts, next = getopt.getopt(sys.argv[1:], "o:m:M:X:Y:Z:", 
+    try: opts, next = getopt.getopt(sys.argv[1:], "o:m:M:n:N:X:Y:Z:", 
                                     ["log","eps","dpi=","origin","annotate="])
     except getopt.GetoptError:
         print "invalid calling sequence"
@@ -532,6 +538,18 @@ if __name__== "__main__":
             try: maxvar = float(a)
             except ValueError:
                 print "invalid value for -M"
+                sys.exit(2)
+
+        if o == "-n":
+            try: minvar2 = float(a)
+            except ValueError:
+                print "invalid value for -n"
+                sys.exit(2)
+
+        if o == "-N":
+            try: maxvar2 = float(a)
+            except ValueError:
+                print "invalid value for -N"
                 sys.exit(2)
 
         if o == "-X":
@@ -589,5 +607,5 @@ if __name__== "__main__":
         component2 = ""
 
     do_plot(plotfile, component, component2, outFile, 
-            log, minvar, maxvar, eps, dpi, origin, annotation,
+            log, minvar, maxvar, minvar2, maxvar2, eps, dpi, origin, annotation,
             xmax, ymax, zmax)
