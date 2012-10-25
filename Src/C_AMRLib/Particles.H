@@ -241,6 +241,8 @@ public:
     void AssignDensityDoit (PArray<MultiFab>& mf, PBox& data, int ncomp, int lev_min = 0) const;
 
     void MultiplyParticleMass (int lev, Real mult);
+
+    void GetParticleLocationsAndMass (Array<Real>& part_data);
  
     Real estTimestep (const MultiFab& grav_vector, Real a, int level, Real cfl) const;
 
@@ -260,9 +262,16 @@ public:
     //
     // Returns # of particles at specified the level.
     //
-    // I "only_valid" is true it only counts valid particles.
+    // If "only_valid" is true it only counts valid particles.
     //
     long NumberOfParticlesAtLevel (int level, bool only_valid = true) const;
+
+    //
+    // Returns # of particles at all levels
+    //
+    // If "only_valid" is true it only counts valid particles.
+    //
+    long TotalNumberOfParticles (bool only_valid = true) const;
 
     void MoveRandom ();
 
@@ -365,6 +374,16 @@ protected:
     Amr*        m_amr;
     Array<PMap> m_particles;
 };
+
+template <int N>
+long
+ParticleContainer<N>::TotalNumberOfParticles (bool only_valid) const
+{
+    long nparticles = 0;
+    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+        nparticles += NumberOfParticlesAtLevel(lev);
+    return nparticles;
+}
 
 template <int N>
 long
@@ -1766,9 +1785,10 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
             BL_ASSERT(p.m_grid == grid);
 
-            const Real mag_vel_over_dx[BL_SPACEDIM] = { D_DECL(abs(p.m_data[1])/adx[0],
-                                                               abs(p.m_data[2])/adx[1],
-                                                               abs(p.m_data[3])/adx[2]) };
+            const Real mag_vel_over_dx[BL_SPACEDIM] = { D_DECL(std::abs(p.m_data[1])/adx[0],
+                                                               std::abs(p.m_data[2])/adx[1],
+                                                               std::abs(p.m_data[3])/adx[2]) };
+
             Real max_mag_vel_over_dx = mag_vel_over_dx[0];
 
 #if (BL_SPACEDIM > 1)
@@ -3001,6 +3021,49 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
 
 template <int N>
 void
+ParticleContainer<N>::GetParticleLocationsAndMass(Array<Real>& part_data)
+{
+   int cnt = 0;
+
+   long npart = TotalNumberOfParticles(true);
+
+   // Mass + locations
+   part_data.resize((BL_SPACEDIM+1)*npart);
+
+   for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+   {
+       PMap& pmap = m_particles[lev];
+
+       for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+       {
+           PBox&     pbx = pmap_it->second;
+           const int n    = pbx.size();
+    
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+           for (int i = 0; i < n; i++)
+           {
+              ParticleType& p = pbx[i];
+              if (p.m_id > 0)
+              {
+                  // Load positions
+                  for (int d=0; d < BL_SPACEDIM; d++)
+                     part_data[cnt+d] = p.m_pos[d];
+
+                  // Load mass
+                  part_data[cnt+BL_SPACEDIM] = p.m_data[0];
+
+                  // Update counter
+                  cnt += (BL_SPACEDIM+1);
+              }
+           }
+       }
+    }
+}
+
+template <int N>
+void
 ParticleContainer<N>::MultiplyParticleMass (int lev, Real mult)
 {
    BL_ASSERT(lev == 0);
@@ -3215,6 +3278,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             D_TERM(p.m_data[1] *= a_old;,
                    p.m_data[2] *= a_old;,
                    p.m_data[3] *= a_old;);
+
             //
             // Add adot/a and gravitational updates.
             //
@@ -3228,6 +3292,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             //
             // Now update x^new = x^old + dt grav^half / a^half
             //
+
             D_TERM(p.m_pos[0] += dt_a_half_inv * p.m_data[1];,
                    p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
