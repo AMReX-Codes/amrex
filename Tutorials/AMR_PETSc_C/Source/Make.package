@@ -1,6 +1,6 @@
 f90EXE_sources += interpolate.f90 Darcy_${DIM}D.f90
-CEXE_sources += Darcy.cpp main.cpp DarcySNES.cpp 
-CEXE_headers += Darcy.H DarcySNES.H 
+CEXE_sources += Darcy.cpp main.cpp DarcySNES.cpp MLBoundary.cpp
+CEXE_headers += Darcy.H DarcySNES.H MLBoundary.H
 FEXE_headers += Darcy_F.H DarcySNES_F.H
 FEXE_sources += DarcySNES_${DIM}D.F
 

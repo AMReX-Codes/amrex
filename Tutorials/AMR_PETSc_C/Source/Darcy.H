@@ -277,6 +277,7 @@ protected:
   static int NUM_COMPS_PER_PHASE;
 
   static Layout* layout;
+  static MLBoundary* mlb;
   static DarcySNES* snes;
   static int verbose_SNES;
 };    
