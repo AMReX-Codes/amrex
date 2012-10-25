@@ -264,14 +264,14 @@ public:
     //
     // If "only_valid" is true it only counts valid particles.
     //
-    long NumberOfParticlesAtLevel (int level, bool only_valid = true) const;
+    long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
 
     //
     // Returns # of particles at all levels
     //
     // If "only_valid" is true it only counts valid particles.
     //
-    long TotalNumberOfParticles (bool only_valid = true) const;
+    long TotalNumberOfParticles (bool only_valid=true, bool only_local=false) const;
 
     void MoveRandom ();
 
@@ -377,18 +377,19 @@ protected:
 
 template <int N>
 long
-ParticleContainer<N>::TotalNumberOfParticles (bool only_valid) const
+ParticleContainer<N>::TotalNumberOfParticles (bool only_valid, bool local_only) const
 {
     long nparticles = 0;
     for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
-        nparticles += NumberOfParticlesAtLevel(lev);
+        nparticles += NumberOfParticlesAtLevel(lev,only_valid,local_only);
     return nparticles;
 }
 
 template <int N>
 long
 ParticleContainer<N>::NumberOfParticlesAtLevel (int  lev,
-                                                bool only_valid) const
+                                                bool only_valid,
+                                                bool local_only) const
 {
     long nparticles = 0;
 
@@ -419,7 +420,8 @@ ParticleContainer<N>::NumberOfParticlesAtLevel (int  lev,
         }
     }
 
-    ParallelDescriptor::ReduceLongSum(nparticles);
+    if (!local_only)
+        ParallelDescriptor::ReduceLongSum(nparticles);
 
     return nparticles;
 }
@@ -3023,12 +3025,35 @@ template <int N>
 void
 ParticleContainer<N>::GetParticleLocationsAndMass(Array<Real>& part_data)
 {
-   int cnt = 0;
+   Array<long> cnts(ParallelDescriptor::NProcs());
 
-   long npart = TotalNumberOfParticles(true);
+   // This returns the number of particles on this processor
+   long lcnt = TotalNumberOfParticles(true,true);
+
+   // This accumulates the "lcnt" values into "cnts"
+   MPI_Gather(&lcnt,1,              
+              ParallelDescriptor::Mpi_typemap<long>::type(),
+              cnts.dataPtr(),
+              1,
+              ParallelDescriptor::Mpi_typemap<long>::type(),
+              ParallelDescriptor::IOProcessorNumber(),
+              ParallelDescriptor::Communicator());
+
+   ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
+
+   // This gives us the starting point into the part_data array
+   int cnt = 0;
+   for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+       cnt += cnts[iproc];
+
+   // Each particle takes up (BL_SPACEDIM+1) Reals
+   cnt*= (BL_SPACEDIM+1);
+
+   // This is the total number of particles on *all* processors
+   long npart = TotalNumberOfParticles(true,false);
 
    // Mass + locations
-   part_data.resize((BL_SPACEDIM+1)*npart);
+   part_data.resize((BL_SPACEDIM+1)*npart,0);
 
    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
    {
@@ -3060,6 +3085,8 @@ ParticleContainer<N>::GetParticleLocationsAndMass(Array<Real>& part_data)
            }
        }
     }
+
+   ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
 }
 
 template <int N>
