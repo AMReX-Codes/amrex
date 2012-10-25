@@ -232,7 +232,7 @@ for line in sourceString.splitlines():
         elif (keyword == "F90_COMP_LINE"):
             # this can span 2 lines
             if (len(f90_compile_line) > DBL_STRING_LINE_LENGTH):
-                str = f90_compile_line[:DBL_STRING_LINE_LENGTH] + "// &\n" + \
+                str = f90_compile_line[:DBL_STRING_LINE_LENGTH] + "\"// &\n\"" + \
                       f90_compile_line[DBL_STRING_LINE_LENGTH:2*DBL_STRING_LINE_LENGTH]
             else:
                 str = f90_compile_line
@@ -244,7 +244,7 @@ for line in sourceString.splitlines():
         elif (keyword == "F_COMP_LINE"):
             # this can span 2 lines
             if (len(f_compile_line) > DBL_STRING_LINE_LENGTH):
-                str = f_compile_line[:DBL_STRING_LINE_LENGTH] + "// &\n" + \
+                str = f_compile_line[:DBL_STRING_LINE_LENGTH] + "\"// &\n\"" + \
                       f_compile_line[DBL_STRING_LINE_LENGTH:2*DBL_STRING_LINE_LENGTH]
             else:
                 str = f_compile_line
@@ -256,7 +256,7 @@ for line in sourceString.splitlines():
         elif (keyword == "C_COMP_LINE"):
             # this can span 2 lines
             if (len(C_compile_line) > DBL_STRING_LINE_LENGTH):
-                str = C_compile_line[:DBL_STRING_LINE_LENGTH] + "// &\n" + \
+                str = C_compile_line[:DBL_STRING_LINE_LENGTH] + "\"// &\n\"" + \
                       C_compile_line[DBL_STRING_LINE_LENGTH:2*DBL_STRING_LINE_LENGTH]
             else:
                 str = C_compile_line
@@ -269,7 +269,7 @@ for line in sourceString.splitlines():
         elif (keyword == "LINK_LINE"):
             # this can span 2 lines
             if (len(link_line) > DBL_STRING_LINE_LENGTH):
-                str = link_line[:DBL_STRING_LINE_LENGTH] + "// &\n" + \
+                str = link_line[:DBL_STRING_LINE_LENGTH] + "\"// &\n\"" + \
                       link_line[DBL_STRING_LINE_LENGTH:2*DBL_STRING_LINE_LENGTH]
             else:
                 str = link_line
