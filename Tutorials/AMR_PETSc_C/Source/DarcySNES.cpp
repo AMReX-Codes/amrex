@@ -26,8 +26,6 @@ static Real gravity_mag_DEF = 9.8;
 static int  gravity_dir_DEF = BL_SPACEDIM - 1;
 static int  pressure_comp_bc = 0; // Component for pressure values in internal boundary value fab
 static int  flux_comp_bc = 0; // Component for flux values in internal boundary value fab
-static Real pressure_boundary_value = 0;
-static Real velocity_boundary_value = 1.e-10;
 static Real Pa_per_atm = 1.01325e5;
 static int  verbose_DEF = 0;
 
@@ -36,6 +34,19 @@ static int verbose_SNES = 0;
 static bool initialized = false;
 
 int DarcySNES::verbose = verbose_DEF;
+
+#if 0
+#include <fstream>
+static int cnt = 2;
+cnt--; cout << cnt << endl;
+if (cnt==0) {
+  //VisMF::Write(DarcyFlux[1][0],"p");
+  std::ofstream os; os.open("p_D_0000");
+  mft[0][0].writeOn(os);
+  os.close();
+  BoxLib::Abort();
+}
+#endif
 
 void
 DarcySNES::CleanupStatics ()
@@ -101,8 +112,8 @@ PetscErrorCode DarcyMatFDColoringApply(Mat J,MatFDColoring coloring,Vec x1,MatSt
 PetscErrorCode DarcyRes_DpDt(SNES snes,Vec x,Vec f,void *dummy);
 
 DarcySNES::DarcySNES(Layout&      _layout,
-                     const BCRec& _pressure_bc)
-  : layout(_layout), pressure_bc(_pressure_bc)
+                     MLBoundary&  _mlb)
+  : layout(_layout), mlb(_mlb)
 {
   Vlevel1("**** DarcySNES constructor **** (begin)",verbose);
 
@@ -150,71 +161,6 @@ DarcySNES::DarcySNES(Layout&      _layout,
     DarcyFlux.set(d, new MFTower(layout,MFTower::EC[d],nComp,nGrowFlux,nLevs));
   }
 
-  for (int d=0; d<BL_SPACEDIM; ++d) {
-    if (pressure_bc.lo(d) == EXT_DIR) {
-      dirichlet_faces.push_back(Orientation(d,Orientation::low));
-    }
-    else if (pressure_bc.lo(d) == FOEXTRAP) {
-      neumann_faces.push_back(Orientation(d,Orientation::low));
-    }
-
-    if (pressure_bc.hi(d) == EXT_DIR) {
-      dirichlet_faces.push_back(Orientation(d,Orientation::high));
-    }
-    else if (pressure_bc.hi(d) == FOEXTRAP) {
-      neumann_faces.push_back(Orientation(d,Orientation::high));
-    }
-  }
-
-  bc_pressure_values.resize(nLevs);
-
-  std::vector< std::pair<int,Box> > isects;
-  for (int i=0; i<dirichlet_faces.size(); ++i) {
-    const Orientation& dface = dirichlet_faces[i];
-    for (int lev=0; lev<nLevs; ++lev) {
-      Box gbox = BoxLib::adjCell(layout.GeomArray()[lev].Domain(), dface, nGrow);
-      BoxArray gba = BoxArray(layout.GridArray()[lev]).grow(nGrow);
-      isects = gba.intersections(gbox);
-      if (isects.size()>0) {
-        const DistributionMapping& dm = layout.DistributionMap(lev);
-        for (int j=0; j<isects.size(); ++j) {
-          int idx = isects[j].first;
-          const Box& bbox = isects[j].second;
-          if (dm[idx] == ParallelDescriptor::MyProc()) {
-            FArrayBox* fptr = new FArrayBox(bbox,nComp);
-            fptr->setVal(pressure_boundary_value,bbox,0,nComp);
-            bc_pressure_values[lev][idx].push_back(fptr);
-          }
-        }
-      }
-    }
-  }
-
-  bc_flux_values.resize(BL_SPACEDIM,Array<std::map<int, Array<FArrayBox*> > >(nLevs));
-  for (int i=0; i<neumann_faces.size(); ++i) {
-    const Orientation& nface = neumann_faces[i];
-    int dir = nface.coordDir();
-    int sgn = (nface.isLow() ? +1 : -1);
-    for (int lev=0; lev<nLevs; ++lev) {
-      Box ebox = BoxLib::bdryNode(layout.GeomArray()[lev].Domain(),nface,nGrow);
-      BoxArray eba = BoxArray(layout.GridArray()[lev]).surroundingNodes(dir);
-      isects = eba.intersections(ebox);
-      if (isects.size()>0) {
-        const DistributionMapping& dm = layout.DistributionMap(lev);
-        for (int j=0; j<isects.size(); ++j) {
-          int idx = isects[j].first;
-          const Box& bbox = isects[j].second;
-          if (dm[idx] == ParallelDescriptor::MyProc()) {
-            FArrayBox* fptr = new FArrayBox(bbox,nComp);
-            fptr->setVal(sgn * velocity_boundary_value * density,bbox,0,nComp);
-            bc_flux_values[dir][lev][idx].push_back(fptr);
-          }
-        }
-      }
-    }
-  }
-
-
   PetscErrorCode ierr;       
   int n = layout.NumberOfLocalNodeIds();
   int N = layout.NumberOfGlobalNodeIds();
@@ -223,7 +169,7 @@ DarcySNES::DarcySNES(Layout&      _layout,
   ierr = VecDuplicate(RhsV,&SolnV); CHKPETSC(ierr);
 
   int pressure_maxorder = 3;
-  mftfp->BuildStencil(pressure_bc, pressure_maxorder);
+  mftfp->BuildStencil(mlb.BC(), pressure_maxorder);
 
   // Estmated number of nonzero local columns of J
   int d_nz = 1 + (pressure_maxorder-1)*(2*BL_SPACEDIM); 
@@ -598,46 +544,6 @@ DarcySNES::FillPatch(MFTower& mft,
   Vlevel3("**** DarcySNES::FillPatch **** (end)",verbose);
 }
 
-void 
-DarcySNES::SetInflowFlux(PArray<MFTower>& flux,
-                         int              fComp)
-{
-  Vlevel2("**** DarcySNES::setInflowFlux **** (begin)",verbose);
-  for (int d=0; d<BL_SPACEDIM; ++d) {
-    for (int lev=0; lev<nLevs; ++lev) {
-      MultiFab& fmf = flux[d][lev];
-      for (std::map<int, Array<FArrayBox*> >::const_iterator it=bc_flux_values[d][lev].begin(), 
-             End=bc_flux_values[d][lev].end(); it!=End; ++it) {
-        FArrayBox& ffab = fmf[it->first];
-        const Array<FArrayBox*>& fluxes = it->second;
-        for (int j=0; j<fluxes.size(); ++j) {
-          ffab.copy(*fluxes[j],flux_comp_bc,fComp+flux[d].BaseComp());
-        }
-      }
-    }
-  }
-  Vlevel2("**** DarcySNES::setInflowFlux **** (end)",verbose);
-}
-
-void
-DarcySNES::SetDirichletValues(MFTower& pressure,
-			      int      pComp)
-{
-  Vlevel3("**** DarcySNES::setDirichletValues **** (begin)",verbose);
-  for (int lev=0; lev<nLevs; ++lev) {
-    MultiFab& pmf = pressure[lev];
-    for (std::map<int, Array<FArrayBox*> >::const_iterator it=bc_pressure_values[lev].begin(), 
-           End=bc_pressure_values[lev].end(); it!=End; ++it) {
-      FArrayBox& pfab = pmf[it->first];
-      const Array<FArrayBox*>& vals = it->second;
-      for (int j=0; j<vals.size(); ++j) {
-        pfab.copy(*vals[j],pressure_comp_bc,pComp+pressure.BaseComp());
-      }
-    }
-  }
-  Vlevel3("**** DarcySNES::setDirichletValues **** (end)",verbose);
-}
-
 Real Kr_given_Seff_Mualem(Real se, Real m, Real mInv) 
 {
   Real tmp = (1 - std::pow(1 - std::pow(se,mInv), m));
@@ -763,6 +669,7 @@ DarcySNES::RhoSatGivenReducedSaturation(const FArrayBox&      reduced_saturation
   Vlevel4("**** DarcySNES::RhoSatGivenReducedSaturation **** (end)",verbose);
 }
 
+#include <fstream>
 void
 DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
                             int              fComp,
@@ -774,7 +681,7 @@ DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
   Vlevel3("**** DarcySNES::ComputeDarcyFlux **** (begin)",verbose);
   int nGrowOp = 1;
   BL_ASSERT(pressure.NGrow() >= nGrowOp);
-  SetDirichletValues(pressure,pComp);
+  mlb.SetDirichletValues(pressure,pComp);
 
   // Note: For computing se(p), rhosat(se,rho) and Kr(s), we make use of a "mask"
   //       to allow us to easily avoid computing with invalid data,
@@ -801,11 +708,19 @@ DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
     }
   }
 
-  // Convert grow cells of pressure into extrapolated values so that from here on out,
-  // the values are only used to compute gradients at faces.
+  // Convert grow cells of pressure into extrapolated values
   bool do_piecewise_constant = false;
   int nComp = 1;
   FillPatch(pressure,pComp,nComp,do_piecewise_constant);
+
+  // Make sure fine-fine cells have correct periodically-mapped values
+  for (int lev=0; lev<nLevs; ++lev) {
+    MultiFab& smf = rhoSat[lev];
+    const Geometry& geom = layout.GeomArray()[lev];
+    smf.FillBoundary(rsComp+rhoSat.BaseComp(),nComp);
+    geom.FillPeriodicBoundary(smf,rsComp+rhoSat.BaseComp(),nComp);
+  }
+
 
   FArrayBox kr_tmp;
   Array<FArrayBox*> flux(BL_SPACEDIM);
@@ -848,7 +763,7 @@ DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
   }
 
   // Overwrite fluxes at boundary with boundary conditions
-  SetInflowFlux(darcy_flux,fComp);
+  mlb.SetInflowFlux(darcy_flux,fComp);
 
   // Average down fluxes
   if (nLevs>1) {
@@ -876,6 +791,7 @@ DarcySNES::DivRhoU(MFTower& DivRhoU,
   int mult = 1;
   int nComp = 1;
   MFTower::ECtoCCdiv(DivRhoU,DarcyFlux,mult,fComp,druComp,nComp,nLevs);
+
   Vlevel3("**** DarcySNES::DivRhoU **** (end)",verbose);
 }
 

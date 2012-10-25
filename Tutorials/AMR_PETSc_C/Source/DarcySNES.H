@@ -4,6 +4,7 @@
 #include <MFTower.H>
 #include <BCRec.H>
 #include <Layout.H>
+#include <MLBoundary.H>
 
 #include <petsc.h>
 
@@ -11,8 +12,8 @@ class DarcySNES
 {
 public:
 
-  DarcySNES(Layout& _layout,
-            const BCRec& pressure_bc);
+  DarcySNES(Layout&     _layout,
+            MLBoundary& _mlb);
 
   ~DarcySNES();
 
@@ -26,9 +27,6 @@ public:
                         MFTower&         reduced_saturation,
                         int              rsComp);
   
-  void SetDirichletValues(MFTower& pressure,
-			  int      pComp);
-
   void ReducedSaturationGivenPressure(const FArrayBox&      pressure,
 				      int                   pComp,
 				      FArrayBox&            reduced_saturation,
@@ -77,14 +75,12 @@ public:
 		 int      nComp,
 		 bool     do_piecewise_constant=false);
   
-  void SetInflowFlux(PArray<MFTower>& flux,
-                     int              fComp);
-  
   void SetTheDarcySNES(DarcySNES* ptr);
 
-  MFTFillPatch* mftfp;
   Layout& layout;
+  MLBoundary& mlb;
   int nLevs;
+  MFTFillPatch* mftfp;
 
   SNES           snes;
   ISColoring     iscoloring;
@@ -106,7 +102,6 @@ public:
   Real kappax,kappaz,sigma,Sr,m;
   Real dt;
 
-  BCRec pressure_bc;
   Array<std::map<int, Array<FArrayBox*> > > bc_pressure_values; // val[lev][gidx][section_i]
   Array< Array<std::map<int, Array<FArrayBox*> > > > bc_flux_values; // flux[d][lev][gidx][section_i]
   Array<Orientation> dirichlet_faces;

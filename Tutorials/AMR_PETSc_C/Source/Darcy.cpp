@@ -36,6 +36,7 @@ void
 Darcy::CleanupStatics ()
 {
   delete snes;
+  delete mlb;
   delete layout;
   initialized = false;
   //PetscFinalize();
@@ -61,6 +62,7 @@ Real         Darcy::dt_max;
 
 Layout*      Darcy::layout;
 DarcySNES*   Darcy::snes;
+MLBoundary*  Darcy::mlb;
 int          Darcy::verbose_SNES;
 
 void
@@ -83,6 +85,7 @@ Darcy::InitializeStaticVariables ()
   dt_max = -1;
 
   layout   = 0;
+  mlb      = 0;
   snes     = 0;
   verbose_SNES = 0;
 
@@ -647,6 +650,7 @@ void
 Darcy::initData ()
 {
   if (layout==0) {
+    BL_ASSERT(mlb==0);
     BL_ASSERT(snes==0);
     build_layout();
     build_snes();
@@ -916,9 +920,13 @@ Darcy::build_layout ()
 void
 Darcy::build_snes ()
 {
-  BL_ASSERT(snes == 0);
+  const BCRec& pressure_bc = get_desc_lst()[State_Type].getBC(Pressure);
+  BL_ASSERT(mlb == 0);
+  mlb = new MLBoundary(*layout,pressure_bc);
+
   DarcySNES::SetVerbose(verbose_SNES);
-  snes = new DarcySNES(*layout,get_desc_lst()[State_Type].getBC(Pressure));
+  BL_ASSERT(snes == 0);
+  snes = new DarcySNES(*layout,*mlb);
 }
 
 void
@@ -927,6 +935,7 @@ Darcy::post_regrid (int lbase,
 {
   // FIXME: Should optimize this to a no-op if the grids have not changed
   delete snes; snes = 0;
+  delete mlb; mlb = 0;
   delete layout; layout = 0;
   build_layout();
   build_snes();
