@@ -1,5 +1,5 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
-max_step = 100
+max_step = 1000
 stop_time = 1.e12
 darcy.dt_cutoff = 1
 darcy.dt_max = 1.e20
@@ -7,8 +7,8 @@ darcy.initial_dt = .5
 petsc_options_file=petsc_options_file
 
 # PROBLEM SIZE & GEOMETRY
-geometry.is_periodic =  1 0
 geometry.is_periodic =  0 0
+geometry.is_periodic =  1 0
 geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     =  0    0 
 geometry.prob_hi     =  1    1 
@@ -21,6 +21,9 @@ amr.n_cell           = 32   32
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
 darcy.lo_bc       =  1   1
 darcy.hi_bc       =  1   2
+
+darcy.lo_bc       =  0   1
+darcy.hi_bc       =  0   2
 
 # TIME STEP CONTROL
 darcy.dt_cutoff      = 5.e-20  # level 0 timestep below which we halt

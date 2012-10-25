@@ -21,16 +21,16 @@
 #-sub_ksp_type bcgs
 #-ksp_error_if_not_converged
 #-ksp_diagonal_scale_fix
--ksp_type preonly
+#-ksp_type preonly
 #-ksp_max_it 4000
 #-ksp_monitor_true_residual
 #-ksp_monitor
 #-ksp_norm_type PRECONDITIONED 
 
-#-ksp_rtol 1.e-16
-#-ksp_atol 1.e-16
--ksp_rtol 1.e-6
--ksp_atol 1.e-6
+-ksp_rtol 1.e-16
+-ksp_atol 1.e-16
+#-ksp_rtol 1.e-6
+#-ksp_atol 1.e-6
 -ksp_divtol 1000
 #-ksp_diagonal_scale
 #-ksp_monitor_true_residual
@@ -67,7 +67,7 @@
 
 
 #-snes_view
--snes_monitor
+#-snes_monitor
 #-snes_type tr
 #-snes_ls basic
 -snes_ls cubic
