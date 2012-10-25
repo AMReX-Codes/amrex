@@ -538,10 +538,13 @@ Layout::Build(const Array<BoxArray>&  aba,
           nodeIds[lev][mfi].copy(ng[mfi]); // put it all back
         }
       }
-      else {
-        nodeIds[lev].FillBoundary(0,1);
-        BoxLib::FillPeriodicBoundary<IntFab>(geomArray[lev],nodeIds[lev],0,1);
-      }
+    }
+  }
+  else {
+    for (int lev=0; lev<nLevs; ++lev)
+    {
+      nodeIds[lev].FillBoundary(0,1);
+      BoxLib::FillPeriodicBoundary<IntFab>(geomArray[lev],nodeIds[lev],0,1);
     }
   }
   initialized = true;
