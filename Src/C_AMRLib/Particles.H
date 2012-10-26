@@ -3025,6 +3025,11 @@ template <int N>
 void
 ParticleContainer<N>::GetParticleLocationsAndMass(Array<Real>& part_data)
 {
+   // This gives us the starting point into the part_data array
+   // If only one processor (or no MPI), then that's all we need
+   int cnt = 0;
+
+#if BL_USE_MPI
    Array<long> cnts(ParallelDescriptor::NProcs());
 
    // This returns the number of particles on this processor
@@ -3041,13 +3046,12 @@ ParticleContainer<N>::GetParticleLocationsAndMass(Array<Real>& part_data)
 
    ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
 
-   // This gives us the starting point into the part_data array
-   int cnt = 0;
    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
        cnt += cnts[iproc];
 
    // Each particle takes up (BL_SPACEDIM+1) Reals
    cnt*= (BL_SPACEDIM+1);
+#endif
 
    // This is the total number of particles on *all* processors
    long npart = TotalNumberOfParticles(true,false);
