@@ -3068,9 +3068,6 @@ ParticleContainer<N>::GetParticleLocationsAndMass(Array<Real>& part_data)
            PBox&     pbx = pmap_it->second;
            const int n    = pbx.size();
     
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
            for (int i = 0; i < n; i++)
            {
               ParticleType& p = pbx[i];
