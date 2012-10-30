@@ -32,6 +32,15 @@ public:
   void SetInflowFlux(PArray<MFTower>& flux,
                      int              fComp);
   
+  void SetInflowFlux(MultiFab& fmf,
+                     int       fComp,
+                     int       lev,
+                     int       d);
+
+  void SetDirichletValues(MultiFab& pmf,
+                          int       pComp,
+                          int       lev); 
+
   Array<std::map<int, Array<FArrayBox*> > > bc_pressure_values; // val[lev][gidx][section_i]
   Array< Array<std::map<int, Array<FArrayBox*> > > > bc_flux_values; // flux[d][lev][gidx][section_i]
   Array<Orientation> dirichlet_faces;

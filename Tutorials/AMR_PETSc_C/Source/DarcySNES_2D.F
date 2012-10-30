@@ -74,30 +74,25 @@ c     X-edges
                   kr_upwind = kr(i,j)
                endif
                fluxx(i,j) = F * kr_upwind * lamx * rho
-            else
-               fluxx(i,j) = -1.d10
             endif
          enddo
       enddo
 
 c     Y-edges
-      dyInv = 1.d0 / dx(1)
+      dyInv = 1.d0 / dx(2)
       lamy = kappaz / mu
       do j=lo(2),hi(2)+1
          do i=lo(1),hi(1)
             if (idx(i,j-1).ge.0  .and.  idx(i,j).ge.0) then
-               F = - ( (p(i,j)-p(i,j-1))*dxInv + rho*g(2) )
+               F = - ( (p(i,j)-p(i,j-1))*dyInv + rho*g(2) )
                if (F.gt.0.d0) then
                   kr_upwind = kr(i,j-1)
                else
                   kr_upwind = kr(i,j)
                endif
                fluxy(i,j) = F * kr_upwind * lamy * rho
-            else
-               fluxy(i,j) = -1.d10
             endif
          enddo
       enddo
-
       end
 

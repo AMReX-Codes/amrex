@@ -260,6 +260,7 @@ protected:
   MultiFab             area[BL_SPACEDIM];
   MultiFab             dLogArea[1];
   Array< Array<Real> > radius;
+  bool                 post_restart_flag; // true during first timestep after restart
   //
   // Static data members.
   //

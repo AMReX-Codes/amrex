@@ -18,14 +18,14 @@ static Real sigma_DEF = .000302;
 static Real Sr_DEF = 0.354;   
 static Real m_DEF = 0.291;   
 static Real se_threshold = 1;
+static int  pressure_maxorder = 3;
+static bool abort_on_nl_fail = false;
 
 static Real porosity_DEF = 0.3;
 static Real density_kg_m3_DEF = 998.2;
 static Real mu_sPa_DEF = .001002;
 static Real gravity_mag_DEF = 9.8;
 static int  gravity_dir_DEF = BL_SPACEDIM - 1;
-static int  pressure_comp_bc = 0; // Component for pressure values in internal boundary value fab
-static int  flux_comp_bc = 0; // Component for flux values in internal boundary value fab
 static Real Pa_per_atm = 1.01325e5;
 static int  verbose_DEF = 0;
 
@@ -34,19 +34,6 @@ static int verbose_SNES = 0;
 static bool initialized = false;
 
 int DarcySNES::verbose = verbose_DEF;
-
-#if 0
-#include <fstream>
-static int cnt = 2;
-cnt--; cout << cnt << endl;
-if (cnt==0) {
-  //VisMF::Write(DarcyFlux[1][0],"p");
-  std::ofstream os; os.open("p_D_0000");
-  mft[0][0].writeOn(os);
-  os.close();
-  BoxLib::Abort();
-}
-#endif
 
 void
 DarcySNES::CleanupStatics ()
@@ -168,7 +155,6 @@ DarcySNES::DarcySNES(Layout&      _layout,
   ierr = VecCreateMPI(comm,n,N,&RhsV); CHKPETSC(ierr);
   ierr = VecDuplicate(RhsV,&SolnV); CHKPETSC(ierr);
 
-  int pressure_maxorder = 3;
   mftfp->BuildStencil(mlb.BC(), pressure_maxorder);
 
   // Estmated number of nonzero local columns of J
@@ -267,6 +253,9 @@ DarcySNES::Solve(PArray<MultiFab>& RhoSat_new,
 
   if (reason <= 0) {
     Vlevel1("**** DarcySNES::Solve **** (end)",verbose);
+    if (abort_on_nl_fail) {
+      BoxLib::Abort();
+    }
     return reason;
   }
 
@@ -547,13 +536,15 @@ DarcySNES::FillPatch(MFTower& mft,
 Real Kr_given_Seff_Mualem(Real se, Real m, Real mInv) 
 {
   Real tmp = (1 - std::pow(1 - std::pow(se,mInv), m));
-  return std::sqrt(se)*tmp*tmp;
+  Real Kr = std::sqrt(se)*tmp*tmp;
+  return Kr;
 }
 
 Real Se_given_P_vanGenuchten(Real pressure, Real n, Real m, Real sigma)
 {
   Real pcap = - pressure;
-  return (pcap > 0  ? std::pow(1 + std::pow(pcap*sigma,n),-m) : 1);
+  Real se = (pcap > 0  ? std::pow(1 + std::pow(pcap*sigma,n),-m) : 1);
+  return se;
 }
 
 void
@@ -669,7 +660,6 @@ DarcySNES::RhoSatGivenReducedSaturation(const FArrayBox&      reduced_saturation
   Vlevel4("**** DarcySNES::RhoSatGivenReducedSaturation **** (end)",verbose);
 }
 
-#include <fstream>
 void
 DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
                             int              fComp,
@@ -682,6 +672,11 @@ DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
   int nGrowOp = 1;
   BL_ASSERT(pressure.NGrow() >= nGrowOp);
   mlb.SetDirichletValues(pressure,pComp);
+
+  // Convert grow cells of pressure into extrapolated values
+  bool do_piecewise_constant = false;
+  int nComp = 1;
+  FillPatch(pressure,pComp,nComp,do_piecewise_constant);
 
   // Note: For computing se(p), rhosat(se,rho) and Kr(s), we make use of a "mask"
   //       to allow us to easily avoid computing with invalid data,
@@ -704,21 +699,22 @@ DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
       ifab.setVal(0);
       const Box obox = gbox & layout.GeomArray()[lev].Domain();
       layout.SetNodeIds(ifab,lev,mfi.index(),obox);
-      ReducedSaturationGivenPressure(pfab,pComp+pressure.BaseComp(),sfab,rsComp+rhoSat.BaseComp(),gbox,ifab); // For the moment rhoSat holds se
+      const Box ovlp = sfab.box() & gbox;
+      ReducedSaturationGivenPressure(pfab,pComp+pressure.BaseComp(),sfab,rsComp+rhoSat.BaseComp(),ovlp,ifab); // For the moment rhoSat holds se
     }
   }
 
-  // Convert grow cells of pressure into extrapolated values
-  bool do_piecewise_constant = false;
-  int nComp = 1;
-  FillPatch(pressure,pComp,nComp,do_piecewise_constant);
-
   // Make sure fine-fine cells have correct periodically-mapped values
   for (int lev=0; lev<nLevs; ++lev) {
-    MultiFab& smf = rhoSat[lev];
     const Geometry& geom = layout.GeomArray()[lev];
+
+    MultiFab& smf = rhoSat[lev];
     smf.FillBoundary(rsComp+rhoSat.BaseComp(),nComp);
     geom.FillPeriodicBoundary(smf,rsComp+rhoSat.BaseComp(),nComp);
+
+    MultiFab& pmf = pressure[lev];
+    pmf.FillBoundary(pComp+pressure.BaseComp(),nComp);
+    geom.FillPeriodicBoundary(pmf,pComp+pressure.BaseComp(),nComp);
   }
 
 
@@ -826,6 +822,16 @@ DarcySNES::DpDtResidual(MFTower& residual,
   Vlevel2("**** DarcySNES::DpDtResidual **** (end)",verbose);
 }
 
+Real TotalVolume()
+{
+  const RealBox& rb = Geometry::ProbDomain();
+  Real vol = 1;
+  for (int d=0; d<BL_SPACEDIM; ++d) {
+    vol *= rb.length(d);
+  }
+  return vol;
+}
+
 PetscErrorCode 
 DarcyRes_DpDt(SNES snes,Vec x,Vec f,void *dummy)
 {
@@ -844,6 +850,18 @@ DarcyRes_DpDt(SNES snes,Vec x,Vec f,void *dummy)
   
   int resComp = 0;
   ds->DpDtResidual(fMFT,resComp,xMFT,ds->pressure_comp,dt);
+
+#if 0
+    // Scale residual by cell volume/sqrt(total volume)
+  Real sqrt_total_volume_inv = std::sqrt(1/TotalVolume());
+  int nComp = 1;
+  int nLevs = ds->nLevs;
+  for (int lev=0; lev<nLevs; ++lev)
+  {
+    MultiFab::Multiply(fMFT[lev],layout.Volume(lev),0,0,nComp,0);
+    fMFT[lev].mult(sqrt_total_volume_inv,0,1);
+  }
+#endif
   
   ierr = layout.MFTowerToVec(f,fMFT,ds->pressure_comp); CHKPETSC(ierr);
   

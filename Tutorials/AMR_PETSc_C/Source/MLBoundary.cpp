@@ -86,11 +86,6 @@ MLBoundary::MLBoundary(Layout&      layout,
   }
 }
 
-static Orientation XLO=Orientation(0,Orientation::low);
-static Orientation XHI=Orientation(0,Orientation::high);
-static Orientation YLO=Orientation(1,Orientation::low);
-static Orientation YHI=Orientation(1,Orientation::high);
-
 void 
 MLBoundary::DefineDirichletValues(FArrayBox&         bcfab, 
                                   const Orientation& face, 
@@ -116,15 +111,23 @@ MLBoundary::SetInflowFlux(PArray<MFTower>& flux,
 {
   for (int d=0; d<BL_SPACEDIM; ++d) {
     for (int lev=0; lev<nLevs; ++lev) {
-      MultiFab& fmf = flux[d][lev];
-      for (std::map<int, Array<FArrayBox*> >::const_iterator it=bc_flux_values[d][lev].begin(), 
-             End=bc_flux_values[d][lev].end(); it!=End; ++it) {
-        FArrayBox& ffab = fmf[it->first];
-        const Array<FArrayBox*>& fluxes = it->second;
-        for (int j=0; j<fluxes.size(); ++j) {
-          ffab.copy(*fluxes[j],flux_comp_bc,fComp+flux[d].BaseComp());
-        }
-      }
+      SetInflowFlux(flux[d][lev],fComp+flux[d].BaseComp(),lev,d);
+    }
+  }
+}
+
+void 
+MLBoundary::SetInflowFlux(MultiFab& fmf,
+			  int       fComp,
+                          int       lev,
+                          int       d)
+{
+  for (std::map<int, Array<FArrayBox*> >::const_iterator it=bc_flux_values[d][lev].begin(), 
+         End=bc_flux_values[d][lev].end(); it!=End; ++it) {
+    FArrayBox& ffab = fmf[it->first];
+    const Array<FArrayBox*>& fluxes = it->second;
+    for (int j=0; j<fluxes.size(); ++j) {
+      ffab.copy(*fluxes[j],flux_comp_bc,fComp);
     }
   }
 }
@@ -134,14 +137,21 @@ MLBoundary::SetDirichletValues(MFTower& pressure,
 			       int      pComp)
 {
   for (int lev=0; lev<nLevs; ++lev) {
-    MultiFab& pmf = pressure[lev];
-    for (std::map<int, Array<FArrayBox*> >::const_iterator it=bc_pressure_values[lev].begin(), 
-           End=bc_pressure_values[lev].end(); it!=End; ++it) {
-      FArrayBox& pfab = pmf[it->first];
-      const Array<FArrayBox*>& vals = it->second;
-      for (int j=0; j<vals.size(); ++j) {
-        pfab.copy(*vals[j],pressure_comp_bc,pComp+pressure.BaseComp());
-      }
+    SetDirichletValues(pressure[lev],pComp+pressure.BaseComp(),lev);
+  }
+}
+
+void
+MLBoundary::SetDirichletValues(MultiFab& pmf,
+			       int       pComp,
+                               int       lev)
+{
+  for (std::map<int, Array<FArrayBox*> >::const_iterator it=bc_pressure_values[lev].begin(), 
+         End=bc_pressure_values[lev].end(); it!=End; ++it) {
+    FArrayBox& pfab = pmf[it->first];
+    const Array<FArrayBox*>& vals = it->second;
+    for (int j=0; j<vals.size(); ++j) {
+      pfab.copy(*vals[j],pressure_comp_bc,pComp);
     }
   }
 }
