@@ -188,6 +188,21 @@ Darcy::variableSetUp ()
                    BL_FORT_PROC_CALL(DERSTATE,derstate),the_same_box);
     derive_lst.addComponent("StateErr",desc_lst,State_Type,RhoSat,2);
 
+    // These must correspond to those in PorousMedia::derive
+    IndexType deriveType(IndexType::TheCellType());
+    int nCompDerive = 1;
+    std::string amr_prefix = "amr";
+    ParmParse pp(amr_prefix);
+    int num_derive_plot_vars = pp.countval("derive_plot_vars");
+    if (num_derive_plot_vars) {
+      Array<std::string> derive_plot_vars(num_derive_plot_vars);
+      pp.getarr("derive_plot_vars",derive_plot_vars);
+
+      for (int i=0; i<num_derive_plot_vars; ++i) {
+        derive_lst.add(derive_plot_vars[i], deriveType, nCompDerive);
+      }
+    }
+
     //
     // DEFINE ERROR ESTIMATION QUANTITIES
     //
@@ -328,6 +343,8 @@ Darcy::PostStaticInitialize ()
 
     initialized = true;
   }
+
+  post_restart_flag = false;
 }
 
 Darcy::Darcy ()
@@ -357,7 +374,14 @@ Darcy::restart (Amr&     papa,
                 istream& is,
                 bool     bReadSpecial)
 {
+  post_restart_flag = true;
+
   AmrLevel::restart(papa,is,bReadSpecial);
+
+  if (level == parent->finestLevel()) {
+    build_layout();
+    build_snes();
+  }
 
   buildMetrics();
 }
@@ -649,15 +673,31 @@ Darcy::setTimeLevel (Real time,
 void
 Darcy::initData ()
 {
-  if (layout==0) {
-    BL_ASSERT(mlb==0);
-    BL_ASSERT(snes==0);
+  if (layout==0 || layout->NumLevels()!=parent->finestLevel()+1) {
+    delete snes; snes = 0;
+    delete mlb; mlb = 0;
+    delete layout; layout = 0;
+
     build_layout();
     build_snes();
   }
 
   MultiFab& S_new = get_new_data(State_Type);
-  S_new.setVal(-.125,Pressure,1);
+  S_new.setVal(0,Pressure,1);
+
+  for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
+    const Array<Real> dsGrav = snes->gravity;
+    const Real rho = snes->density;
+    for (int d=0; d<BL_SPACEDIM; ++d) {
+      const Real* dx = geom.CellSize();
+      const Real* plo = geom.ProbLo();
+      const Box vbox = mfi.validbox();
+      FArrayBox& p = S_new[mfi];
+      for (IntVect iv=vbox.smallEnd(); iv<=vbox.bigEnd(); vbox.next(iv)) {
+        p(iv,Pressure) = - (plo[d] + dx[d]*(iv[d]+0.5)) * dsGrav[d] * rho;
+      }
+    }
+  }
 
   const Layout::MultiIntFab& nodeIds = layout->NodeIds()[level];
 
@@ -667,7 +707,7 @@ Darcy::initData ()
     const Box& box = mfi.validbox();
     const Layout::IntFab& ids = nodeIds[mfi];
     snes->ReducedSaturationGivenPressure(p,Pressure,rs,RhoSat,box,ids);
-    rs.mult(snes->density,RhoSat,1);
+    snes->RhoSatGivenReducedSaturation(rs,RhoSat,rs,RhoSat,box,ids);
   }
 }
 
@@ -738,8 +778,17 @@ Darcy::estTimeStep (Real dt_old)
   if (fixed_dt > 0.0)
     return fixed_dt;
 
-  // This is just a dummy value to start with 
-  Real estdt  = (dt_suggest_for_next<=0 ?  initial_dt : dt_suggest_for_next);
+  Real estdt = dt_old;
+
+  if (post_restart_flag) {
+
+    estdt = parent->dtMin(level);
+
+  } else if (dt_suggest_for_next > 0) {
+
+    estdt = dt_suggest_for_next;
+
+  }
 
   if (verbose && ParallelDescriptor::IOProcessor())
     cout << "Darcy::estTimeStep at level " << level << ":  estdt = " << estdt << '\n';
@@ -891,7 +940,9 @@ Darcy::computeInitialDt (int                   finest_level,
 void
 Darcy::post_timestep (int iteration)
 {
+  post_restart_flag = false;
 }
+
 void
 Darcy::post_restart ()
 {
@@ -911,6 +962,7 @@ Darcy::build_layout ()
   PArray<Geometry> ag(nLevs);
   const Array<IntVect>& ar = parent->refRatio();
   for (int lev=0; lev<nLevs; ++lev) {
+    BL_ASSERT(parent->getAmrLevels().defined(lev));
     aba[lev] = parent->boxArray(lev);
     ag.set(lev, new Geometry(parent->Geom(lev)));
   }
@@ -933,12 +985,6 @@ void
 Darcy::post_regrid (int lbase,
                     int new_finest)
 {
-  // FIXME: Should optimize this to a no-op if the grids have not changed
-  delete snes; snes = 0;
-  delete mlb; mlb = 0;
-  delete layout; layout = 0;
-  build_layout();
-  build_snes();
 }
 
 void
@@ -1024,19 +1070,94 @@ Darcy::errorEst (TagBoxArray& tags,
 
 MultiFab*
 Darcy::derive (const std::string& name,
-               Real           time,
-               int            ngrow)
+               Real               time,
+               int                ngrow)
 {
-  return AmrLevel::derive(name,time,ngrow);
+    BL_ASSERT(ngrow >= 0);
+
+    MultiFab* mf = 0;
+    const DeriveRec* rec = derive_lst.get(name);
+    if (rec)
+    {
+        BoxArray dstBA(grids);
+        mf = new MultiFab(dstBA, rec->numDerive(), ngrow);
+        int dcomp = 0;
+        derive(name,time,*mf,dcomp);
+    }
+    else
+    {
+        //
+        // If we got here, cannot derive given name.
+        //
+        std::string msg("Darcy::derive(): unknown variable: ");
+        msg += name;
+        BoxLib::Error(msg.c_str());
+    }
+    return mf;
 }
 
 void
 Darcy::derive (const std::string& name,
-               Real           time,
-               MultiFab&      mf,
-               int            dcomp)
+               Real               time,
+               MultiFab&          mf,
+               int                dcomp)
 {
-  AmrLevel::derive(name,time,mf,dcomp);
+  bool not_found_yet = false;
+  
+  const DeriveRec* rec = derive_lst.get(name);
+
+  if (name=="Seff") {
+        
+    BL_ASSERT(dcomp < mf.nComp());
+    BL_ASSERT(rec);
+    
+    BoxArray dstBA(mf.boxArray());
+    BL_ASSERT(rec->deriveType() == dstBA[0].ixType());
+
+    const Layout::MultiIntFab& nodeIds = layout->NodeIds()[level];
+
+    MultiFab& S_new = get_new_data(State_Type);
+    for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
+      const FArrayBox& p = S_new[mfi];
+      FArrayBox& rs = mf[mfi];
+      const Box& box = mfi.validbox();
+      const Layout::IntFab& ids = nodeIds[mfi];
+      snes->ReducedSaturationGivenPressure(p,Pressure,rs,dcomp,box,ids);
+
+    }
+  }
+  else if (name=="Cell_ID") {
+    
+    BL_ASSERT(dcomp < mf.nComp());
+    BL_ASSERT(layout!=0);
+    const int ngrow = mf.nGrow();
+    
+    BoxArray dstBA(mf.boxArray());
+    BL_ASSERT(rec->deriveType() == dstBA[0].ixType());
+    
+    mf.setVal(-1,dcomp,1,ngrow);
+    Layout::IntFab ifab;
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+      Box gbox = mf[mfi].box();
+      ifab.resize(gbox,1);
+      layout->SetNodeIds(ifab,level,mfi.index(),gbox);
+      const int* idat = ifab.dataPtr();
+      Real* rdat = mf[mfi].dataPtr();
+      int numpts = gbox.numPts();
+      for (int i=0; i<numpts; ++i) {
+        rdat[i] = Real(idat[i]);
+      }
+    }
+  } else {
+    
+    not_found_yet = true;
+  }
+  
+  if (not_found_yet)
+  {
+    AmrLevel::derive(name,time,mf,dcomp);
+  }
 }
 
 bool
@@ -1053,14 +1174,14 @@ Darcy::multilevel_advance(Real  t,
   for (int lev=0; lev<nLevs; ++lev) {
     S_pa_new.set(lev,&(getLevel(lev).get_new_data(State_Type)));
     S_pa_old.set(lev,&(getLevel(lev).get_old_data(State_Type)));
-    MultiFab::Copy(S_pa_new[lev],S_pa_old[lev],0,0,2,0);
+    MultiFab::Copy(S_pa_new[lev],S_pa_old[lev],Pressure,Pressure,1,0);
   }
 
   int ret = snes->Solve(S_pa_new,S_pa_old,RhoSat,S_pa_new,Pressure,dt);
   bool solve_successful = ret > 0;
 
   // Crude time step control
-  dt_suggest = (solve_successful ? 2 : 0.5) * dt;
+  dt_suggest = (solve_successful ? 1.5 : 0.7) * dt;
   return solve_successful;
 }
 
@@ -1070,20 +1191,25 @@ Darcy::advance (Real t,
                 int  iteration,
                 int  ncycle)
 {
-  dt_suggest_for_next = dt;
   bool driver_ok = true;
   Real dt_taken = -1;
 
   if (level == 0) 
   {
+    dt_suggest_for_next = dt;
     int max_dt_iters = 20;
 
     Real dt_try = dt;
     Real dt_this_attempt = dt_try;
+    Real subcycle_t = t;
     int dt_iter = 0;
     bool step_ok = false;
     
-    bool continue_dt_iteration = !step_ok  &&  (dt_this_attempt >= dt_cutoff) && (dt_iter < max_dt_iters);
+    bool continue_dt_iteration =
+      (dt_this_attempt >= dt_cutoff) 
+      && (dt_iter < max_dt_iters) 
+      && (dt_taken<0 || subcycle_t < t+dt_taken);
+
     while (continue_dt_iteration)
     {
       for (int lev=0; lev<=parent->finestLevel(); ++lev) {
@@ -1092,31 +1218,68 @@ Darcy::advance (Real t,
           getLevel(lev).state[i].swapTimeLevels(dt_this_attempt);
           getLevel(lev).state[i].setTimeLevel(t,dt_this_attempt,dt_this_attempt);
         }
+
+        // Synchronize data at old time
+        MultiFab& S_old = get_old_data(State_Type);
+
+        const Layout::MultiIntFab& nodeIds = layout->NodeIds()[level];
+        for (MFIter mfi(S_old); mfi.isValid(); ++mfi) {
+          const FArrayBox& p = S_old[mfi];
+          FArrayBox& rs = S_old[mfi];
+          const Box& box = mfi.validbox();
+          const Layout::IntFab& ids = nodeIds[mfi];
+          snes->ReducedSaturationGivenPressure(p,Pressure,rs,RhoSat,box,ids);
+          snes->RhoSatGivenReducedSaturation(rs,RhoSat,rs,RhoSat,box,ids);
+        }
       }
       
       if (verbose > 0 && ParallelDescriptor::IOProcessor())
       {
         std::cout << "ADVANCE grids at time = " 
-                  << t
+                  << subcycle_t
                   << ", attempting with dt = "
                   << dt_this_attempt
                   << std::endl;
       }
 
-      step_ok = multilevel_advance(t,dt_this_attempt,dt_suggest_for_next);
+      step_ok = multilevel_advance(subcycle_t,dt_this_attempt,dt_suggest_for_next);
       ParallelDescriptor::ReduceBoolAnd(step_ok);
       ParallelDescriptor::ReduceRealMin(dt_suggest_for_next);
       
       if (step_ok) {
         dt_taken = dt_this_attempt;
+        subcycle_t = subcycle_t + dt_taken;
       }
-      else {
-        dt_this_attempt = dt_suggest_for_next;
+      
+      // Little hack to prevent subcycled step from falling just short of target
+      Real subtime_remain = t + dt - subcycle_t;
+      if (std::abs(subtime_remain) < 1.e-6*dt) {
+        subtime_remain = 0;
+      }
+      if (subtime_remain > dt_suggest_for_next && subtime_remain < 2*dt_suggest_for_next) {
+        dt_suggest_for_next = subtime_remain / 2;
+      }
+
+      dt_this_attempt = dt_suggest_for_next;
+      
+      if (!step_ok) {
+        for (int lev=0; lev<=parent->finestLevel(); ++lev) {
+          for (int i = 0; i < desc_lst.size(); i++){
+            getLevel(lev).state[i].swapTimeLevels(dt_this_attempt);
+            getLevel(lev).state[i].setTimeLevel(subcycle_t,dt_this_attempt,dt_this_attempt);
+          }
+        }
       }
       
       dt_iter++;
       
-      continue_dt_iteration = !step_ok  &&  (dt_this_attempt >= dt_cutoff) && (dt_iter < max_dt_iters);
+      continue_dt_iteration = 
+        subtime_remain > 0
+        && (dt_this_attempt >= dt_cutoff) 
+        && (dt_iter < max_dt_iters) 
+        && (dt_taken<0 || subcycle_t < t+dt);
+
+
       ParallelDescriptor::ReduceBoolAnd(continue_dt_iteration);
     }
     
@@ -1130,7 +1293,7 @@ Darcy::advance (Real t,
                 << std::endl;
     }
   }
-
+  
   return dt_suggest_for_next;
 }
 

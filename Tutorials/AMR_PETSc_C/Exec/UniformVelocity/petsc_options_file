@@ -25,7 +25,7 @@
 #-ksp_max_it 4000
 #-ksp_monitor_true_residual
 #-ksp_monitor
-#-ksp_norm_type PRECONDITIONED 
+-ksp_norm_type PRECONDITIONED 
 
 -ksp_rtol 1.e-16
 -ksp_atol 1.e-16
@@ -60,31 +60,34 @@
 -mat_superlu_dist_replacetinypivot false
 #-mat_superlu_conditionnumber true
 -mat_superlu_dist_equil true
--mat_superlu_equil true
-#-pc_factor_reuse_fill
+#-mat_superlu_equil true
+-pc_factor_reuse_fill
 #-help 
 -pc_monitor
 
 
 #-snes_view
-#-snes_monitor
+-snes_monitor
 #-snes_type tr
 #-snes_ls basic
+#-snes_ls quadratic
 -snes_ls cubic
 #-snes_ls_monitor
--snes_max_it 100000
--snes_atol 1.e-10
--snes_rtol 1.e-10
--snes_stol 1.e-20
+-snes_max_it 100
+-snes_atol 1.e-8
+-snes_rtol 1.e-8
+-snes_stol 1.e-14
 -snes_converged_reason
 #-snes_error_if_not_converged
 #-snes_mf_operator
 #-snes_type test 
 #-snes_test_display
 
-#-draw_pause 5
+-draw_pause 5
 #-help
 #-on_error_attach_debugger
 #-info diags.txt
 
--snes_lag_jacobian 500000
+#-snes_lag_jacobian 500000
+-mat_fd_coloring_err 1e-10
+

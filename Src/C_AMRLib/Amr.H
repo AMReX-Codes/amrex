@@ -97,6 +97,10 @@ public:
     //
     Real dtLevel (int level) const { return dt_level[level]; }
     //
+    // Max time step (typically based on physics) at specified level
+    //
+    Real dtMin (int level) const { return dt_min[level]; }
+    //
     // Array of time steps at all levels.
     //
     const Array<Real>& dtLevel () const { return dt_level; }
