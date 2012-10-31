@@ -693,14 +693,18 @@ Darcy::initData ()
   for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
     const Array<Real> dsGrav = snes->gravity;
     const Real rho = snes->density;
-    for (int d=0; d<BL_SPACEDIM; ++d) {
-      const Real* dx = geom.CellSize();
-      const Real* plo = geom.ProbLo();
-      const Box vbox = mfi.validbox();
-      FArrayBox& p = S_new[mfi];
-      for (IntVect iv=vbox.smallEnd(); iv<=vbox.bigEnd(); vbox.next(iv)) {
-        p(iv,Pressure) = - (plo[d] + dx[d]*(iv[d]+0.5)) * dsGrav[d] * rho;
+    const Real* dx = geom.CellSize();
+    const Real* plo = geom.ProbLo();
+    const Box vbox = mfi.validbox();
+    FArrayBox& p = S_new[mfi];
+    for (IntVect iv=vbox.smallEnd(); iv<=vbox.bigEnd(); vbox.next(iv)) {
+      Real mag = 0;
+      for (int d=0; d<BL_SPACEDIM; ++d) {
+        Real x = plo[d] + dx[d]*(iv[d]+0.5);
+        Real vd = x * dsGrav[d] * rho;
+        mag += vd * vd;
       }
+      p(iv,Pressure) = - std::sqrt(mag);
     }
   }
 
@@ -795,7 +799,7 @@ Darcy::estTimeStep (Real dt_old)
 
   }
 
-  if (verbose && ParallelDescriptor::IOProcessor())
+  if (verbose > 1 && ParallelDescriptor::IOProcessor())
     cout << "Darcy::estTimeStep at level " << level << ":  estdt = " << estdt << '\n';
 
   return estdt;
@@ -1186,7 +1190,8 @@ Darcy::multilevel_advance(Real  t,
   bool solve_successful = ret > 0;
 
   // Crude time step control
-  dt_suggest = (solve_successful ? 1.5 : 0.7) * dt;
+  //dt_suggest = (solve_successful ? 1.5 : 0.7) * dt;
+  dt_suggest = (solve_successful ? 2 : 0.7) * dt;
   return solve_successful;
 }
 

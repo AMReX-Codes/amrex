@@ -93,7 +93,7 @@ public:
   MFTower *Rhs;
   PArray<MFTower> DarcyFlux;
 
-  Vec RhsV, SolnV, SolnTypV, SolnTypInvV;
+  Vec RhsV, SolnV, Wrk1V, Wrk2V;
   Mat Jac;
 
   // Shell structures, pointing to memory owned by someone else

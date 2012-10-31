@@ -577,7 +577,7 @@ MFTFillPatch::BuildStencil(const BCRec& bc,
 
           if (povlp.ok() && bc_flag!=INT_DIR) {
 
-            Array<Real>* interpCoef;
+            Array<Real>* interpCoef = 0;
             if (bc_flag==EXT_DIR) {
               interpCoef = &iCoefsZero;
             }
