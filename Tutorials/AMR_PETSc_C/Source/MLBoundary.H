@@ -14,6 +14,8 @@ public:
   MLBoundary(Layout&      layout,
 	     const BCRec& bc);
 
+  ~MLBoundary();
+
   const BCRec& BC() const {return bc;}
 
   virtual void DefineDirichletValues(FArrayBox&         bcfab, 
@@ -41,8 +43,8 @@ public:
                           int       pComp,
                           int       lev); 
 
-  Array<std::map<int, Array<FArrayBox*> > > bc_pressure_values; // val[lev][gidx][section_i]
-  Array< Array<std::map<int, Array<FArrayBox*> > > > bc_flux_values; // flux[d][lev][gidx][section_i]
+  Array<std::map<int, FArrayBox* > > bc_pressure_values; // val[lev][gidx] is a Fab of values
+  Array< Array<std::map<int, FArrayBox* > > > bc_flux_values; // flux[d][lev][gidx] is a Fab of fluxes
   Array<Orientation> dirichlet_faces;
   Array<Orientation> neumann_faces;
 

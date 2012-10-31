@@ -166,7 +166,7 @@ Stencil::operator*=(Real val)
 }
 
 Layout::Layout(const Array<BoxArray>&  aba,
-               const PArray<Geometry>& ag,
+               PArray<Geometry>& ag,
                const Array<IntVect>&   ar)
   : nGrow(1), initialized(false)
 {
@@ -185,6 +185,13 @@ Layout::Clear()
   crseNodes.clear();
   nodeIds.clear();
   crseIds.clear();
+  geomArray.clear();
+  gridArray.clear();
+  volume.clear();
+  for (int d=0; d<area.size(); ++d) {
+    area[d].clear();
+  }
+  area.clear();
   initialized = false;
 }
 
@@ -215,8 +222,6 @@ Layout::BuildMetrics ()
   //
   // Build volume and face area arrays.
   //
-  volume.clear();
-
   volume.resize(nLevs,PArrayManage);
   area.resize(BL_SPACEDIM);
   for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -253,21 +258,23 @@ Layout::Area(int lev, int dir) const
 
 void 
 Layout::Build(const Array<BoxArray>&  aba,
-              const PArray<Geometry>& ag,
+              PArray<Geometry>& ag,
               const Array<IntVect>&   ar)
 {
   nLevs = aba.size();
   BL_ASSERT(ag.size()>=nLevs);
   BL_ASSERT(ar.size()>=nLevs-1);
 
+  Clear();
+
   gridArray.resize(nLevs);
-  geomArray.resize(nLevs);
+  geomArray.resize(nLevs,PArrayManage);
   if (nLevs>1) {
     refRatio.resize(nLevs-1);
   }
   for (int i=0; i<nLevs; ++i) {
     gridArray[i] =  aba[i];
-    geomArray.set(i,new Geometry(ag[i]));
+    geomArray.set(i,ag.remove(i));
     if (i<nLevs-1) {
       refRatio[i] = ar[i];
     }
@@ -277,7 +284,6 @@ Layout::Build(const Array<BoxArray>&  aba,
 
   NodeFab fnodeFab;
 
-  Clear();
   nodes.resize(nLevs,PArrayManage);
   nodeIds.resize(nLevs,PArrayManage);
   bndryCells.resize(nLevs);

@@ -10,6 +10,28 @@ static int nComp = 1;
 static Real bcval_DEF = 0;
 static Real influx_DEF = 1.e-7;
 
+MLBoundary::~MLBoundary() 
+{
+  for (int lev=0; lev<bc_pressure_values.size(); ++lev) {
+    for (std::map<int, FArrayBox*>::iterator it=bc_pressure_values[lev].begin(), 
+           End=bc_pressure_values[lev].end(); it!=End; ++it) {
+      delete it->second;
+    }
+  }
+
+  for (int d=0; d<bc_flux_values.size(); ++d) {
+    for (int lev=0; lev<bc_flux_values[d].size(); ++lev) {
+      for (std::map<int, FArrayBox*>::iterator it=bc_flux_values[d][lev].begin(), 
+             End=bc_flux_values[d][lev].end(); it!=End; ++it) {
+        delete it->second;
+      }
+    }
+  }
+
+  dirichlet_faces.clear();
+  neumann_faces.clear();
+}
+
 MLBoundary::MLBoundary(Layout&      layout,
 		       const BCRec& _bc)
   : bc(_bc)
@@ -52,16 +74,16 @@ MLBoundary::MLBoundary(Layout&      layout,
           const Box& bbox = isects[j].second;
           if (dm[idx] == ParallelDescriptor::MyProc()) {
             FArrayBox* fptr = new FArrayBox(bbox,nComp);
-            bc_pressure_values[lev][idx].push_back(fptr);
-            int bsize = bc_pressure_values[lev][idx].size();
-            DefineDirichletValues(*bc_pressure_values[lev][idx][bsize-1],dface,0,nComp);
+            BL_ASSERT(bc_pressure_values[lev].count(idx)==0);
+            bc_pressure_values[lev][idx] = fptr;
+            DefineDirichletValues(*bc_pressure_values[lev][idx],dface,0,nComp);
           }
         }
       }
     }
   }
 
-  bc_flux_values.resize(BL_SPACEDIM,Array<std::map<int, Array<FArrayBox*> > >(nLevs));
+  bc_flux_values.resize(BL_SPACEDIM,Array<std::map<int,FArrayBox*> >(nLevs));
   for (int i=0; i<neumann_faces.size(); ++i) {
     const Orientation& nface = neumann_faces[i];
     int dir = nface.coordDir();
@@ -76,9 +98,8 @@ MLBoundary::MLBoundary(Layout&      layout,
           const Box& bbox = isects[j].second;
           if (dm[idx] == ParallelDescriptor::MyProc()) {
             FArrayBox* fptr = new FArrayBox(bbox,nComp);
-            bc_flux_values[dir][lev][idx].push_back(fptr);
-            int bsize = bc_flux_values[dir][lev][idx].size();
-            DefineNeumannValues(*(bc_flux_values[dir][lev][idx][bsize-1]),nface,0,nComp);
+            bc_flux_values[dir][lev][idx] = fptr;
+            DefineNeumannValues(*(bc_flux_values[dir][lev][idx]),nface,0,nComp);
           }
         }
       }
@@ -122,13 +143,12 @@ MLBoundary::SetInflowFlux(MultiFab& fmf,
                           int       lev,
                           int       d)
 {
-  for (std::map<int, Array<FArrayBox*> >::const_iterator it=bc_flux_values[d][lev].begin(), 
+  for (std::map<int, FArrayBox*>::const_iterator it=bc_flux_values[d][lev].begin(), 
          End=bc_flux_values[d][lev].end(); it!=End; ++it) {
+    BL_ASSERT(fmf.DistributionMap()[it->first]==ParallelDescriptor::MyProc());
     FArrayBox& ffab = fmf[it->first];
-    const Array<FArrayBox*>& fluxes = it->second;
-    for (int j=0; j<fluxes.size(); ++j) {
-      ffab.copy(*fluxes[j],flux_comp_bc,fComp);
-    }
+    FArrayBox* flux = it->second;
+    ffab.copy(*flux,flux_comp_bc,fComp);
   }
 }
 
@@ -146,12 +166,11 @@ MLBoundary::SetDirichletValues(MultiFab& pmf,
 			       int       pComp,
                                int       lev)
 {
-  for (std::map<int, Array<FArrayBox*> >::const_iterator it=bc_pressure_values[lev].begin(), 
+  for (std::map<int, FArrayBox*>::const_iterator it=bc_pressure_values[lev].begin(), 
          End=bc_pressure_values[lev].end(); it!=End; ++it) {
+    BL_ASSERT(pmf.DistributionMap()[it->first]==ParallelDescriptor::MyProc());
     FArrayBox& pfab = pmf[it->first];
-    const Array<FArrayBox*>& vals = it->second;
-    for (int j=0; j<vals.size(); ++j) {
-      pfab.copy(*vals[j],pressure_comp_bc,pComp);
-    }
+    FArrayBox* vals = it->second;
+    pfab.copy(*vals,pressure_comp_bc,pComp);
   }
 }
