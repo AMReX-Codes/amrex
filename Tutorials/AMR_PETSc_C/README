@@ -1,0 +1,372 @@
+
+
+               AMR PETSc (based on the C++ BoxLib)
+                        Marc Day, CCSE
+                        MSDay@lbl.gov
+
+
+Introduction:
+
+This folder contains a "tutorial" for one approach to building an
+interface between the BoxLib and PETSc libraries.  The astute reader
+will have picked up serious hedging in that opening line.  Let me
+pick it apart a little:
+
+(1) "tutorial" - In fact, this folder contains a complete (albeit
+simple) PDE application: Richards equation for flow through porous
+media, integrated with a space-centered, backward Euler temporal
+integrator on an adaptive mesh.  Richards equation for water pressure,
+p, can be written as:
+
+                d S(p) / dt + Div(Q(p)) = 0
+
+Here, S = rho.s.phi, rho is the mass density of water, s(p) is water
+saturation, and phi is porosity of the medium.  Q is the Darcy flux,
+
+     Q = rho . v = - (rho.k.kr(s_eff)/mu) ( Grad(p) + rho.g )
+
+The Darcy velocity, v is a function of the the permeability of the
+medium, k, the dynamic viscosity of the water, mu, the relative
+permeability (between air and water), kr, the pressure gradient and
+the acceleration of gravity, g.  Here, 0 < s < 1 in general, and s(p)
+is given by a heuristic "water retention model".  Similarly, 0 <
+kr(s_eff) < 1, where s_eff(Sr) is the "effective saturation" of the
+medium, and Sr is the residual (or irreducible) saturation of water in
+the medium.  The model for kr is also heuristic, and like the model
+for s(p) involves nasty exponentials that are not typically very well
+behaved numerically.
+
+What really makes this a nasty problem though is that folks typically
+want solutions for Richards equation over very long times, with
+respect to the diffusion times scales that arise from the model.
+Thus, we use fully-implicit methods for time integration, and here's
+where things break from the typical BoxLib application (to be
+discussed shortly).  This sample application shows one way to build a
+fully-implicit solver based on fully-coupled Newton iterations.
+
+(2) BoxLib and PETSc are two very different libraries, each with their
+own unique focus.  BoxLib grew up supporting block-structured adaptive
+mesh refinement (AMR) integrations of conservation-law PDEs, and in
+particular, supporting time-explicit or semi-implicit multi-step
+algorithms for various fluid-flow type problems.  PETSc is a more
+general framework for building numerical algorithms.  However, both
+also serve as a "framework" for building PDE solvers on very large
+parallel computing hardware, so there is substantial overlap of
+underlying infrastructure-like operations.
+
+In the present context, the real strength of PETSc is the access to a
+large variety of linear and nonlinear solvers that are put together in
+a "data-neutral" way.  In particular, the linear systems that arise in
+the Newton iterations for Richards equation tend to be horribly
+conditioned, non-symmetric and non-diagonally dominant, so that
+Krylov-based iterations and multigrid (the two types of solvers
+provided with BoxLib) tend to fail miserably unless the linear systems
+are preconditioned really, really well.  Also, simple Newton
+iterations fail to solve the Richards evolution equation very
+efficiently.  PETSc provides a nice framework where we can explore a
+number of strategies for doing these things.
+
+(3) "one approach..."  A fundamental requirement for any parallel
+software library for PDEs is to provide a paradigm for managing and
+communicating distributed data.  BoxLib is based fundamentally on
+logically structured data containers, and a rich infrastructure is
+presented for communicating all the neighbor information one needs for
+numerical PDE implementations based on overlapping grow cells and a
+hierarchical global index space.  PETSc supports a more generalized
+approach, based loosely viewing the mesh as a single global connected
+graph.
+
+What I've done in this example is program in such a way that BoxLib is
+used to manage the data layout across processors.  PETSc does provide
+an rudimentary interface to a similar paradigm, but at least at the
+present time, appears to be limited to a "flat" data structure (ie, no
+block-structured AMR).  In the future, folks will no doubt move where
+this boundary is between the two libraries, either to look at
+efficiency questions, or to access other benefits that come with
+current versions of PETSc (such as the overlap of communication and
+computation).
+
+This "tutorial" embodies a ton of design decisions about how one might
+put together an applications of this type.  I made it available in
+this format because it demonstrates new and different ways to work
+within the BoxLib framework.  I hope that you find interesting
+concepts, or even interesting code, to lift/steal and use as you see
+fit on your own projects.  And if you're inclined to dramatically
+improve this application in some cool way, please let me know, and
+I'll be happy to incorporate your work if you're ok with it.
+
+
+
+Build/running:
+
+(0) Build PETSc:
+    Get petsc-3.2-p7.tar.gz, from
+    http://ftp.mcs.anl.gov/pub/petsc/release-snapshots.  Note that is
+    is not the latest version, even as of this writing.  However, the
+    interfaces to many of the PETSc data structures changed somewhat
+    after this, so future versions of this code will need to account
+    for these changes before we can support later versions of PETSc.
+    Once downloaded, type the following
+
+    export PETSC_DIR=/path/to/petsc/build/dir
+    export PETSC_INSTALL_DIR=/path/to/permanent/petsc/install/dir
+    cd $PETSC_BUILD_DIR/..
+    tar xzf petsc-3.2-p7.tar.gz
+    cd petsc-3.2
+    ./configure --prefix=${PETSC_INSTALL_DIR} --with-cc=${MPI_DIR}/bin/mpicc --with-fc=${MPI_DIR}/bin/mpif90 --download-superlu_dist --download-parmetis --download-superlu   [where $MPI_DIR is the folder containing bin/mpicc, e.g]
+    make
+    make install
+    export PETSC_DIR=${PETSC_INSTALL_DIR}
+    make test
+
+    At this point, petsc is (hopefully) built and installed on your
+    system in the folder ${PETSC_DIR}, and the variable PETSC_DIR is
+    defined in your environment to point to where petsc was installed.
+    Now do the following to build the AMR code:
+
+(1) cd /path/to/BoxLib/Tutorials/AMR_PETSc_C/Exec/UniformVelocity
+
+(2) Edit "GNUmakefile" to choose  DIM=2, select your compilers
+     and whether to optimize or include debug in the executable.
+
+     If the variable "BOXLIB_HOME" is set in your environment such
+     that "ls $BOXLIB_HOME" gives you something like
+
+     "CMakeLists.txt Docs  license.txt Src Tests Tools Tutorials"
+
+     you should be all set.  Otherwise, set the variable explicitly at
+     the top of the GNUmakefile.
+
+     NOTE: At the current time, you must build with USE_MPI=TRUE,
+           Thus that flag is set in the mk include file, "Make.PETSc".
+           The reason for this is that PETSc's scheme to manage 
+           options conflicts with BoxLib's in the case that 
+           USE_MPI=FALSE.
+
+(3) Type "make".  This (hopefully) will result in an executable
+    named something like the following in your current folder:
+
+           Darcy2d.Linux.gcc.gfortran.DEBUG.MPI.ex
+
+(4) Run the code:
+
+         ./Darcy2d.Linux.gcc.gfortran.DEBUG.MPI.ex inputs.2d
+
+    On my Linux desktop on one processor, this takes about 20 seconds
+    to complete.  A pile of pltfiles and check point files are created
+    and quite a bit of text is dumped to the screen as the integrator
+    moves from the initial data to the stop time.  The plotfiles are
+    viewable with amrvis or VisIt, as discussed in the other BoxLib
+    tutorials.
+
+    What you'll see:
+    The problem is a 10m by 10m 2D domain filled with soil.  The
+    properties of soil and water are embodied in the settings for
+    porosity, kr(s_eff), s(p), density, viscosity, etc., which appear
+    directly in the source file "DarcySNES.cpp" in ../../Source.  In
+    the default case, the pressure field is initialized to produce a
+    hydrostatic profile with the water table at the base of the
+    domain.  At t=0, a steady flux of water enters the domain from the
+    top (so-called "infiltration" - or rain), and the pressure
+    profile adjusts in time until a steady solution is found....
+    well, actually, the run is simply stopped after an arbitrarily
+    large time has been evolved.  This run uses a multilevel grid
+    structure -- for this case, a simple fixed grid is used rather
+    than being adapted to the evolving solution.
+
+    During the run, the solver begins its time-stepping with 
+    relatively small timesteps.  After each successful step, the
+    step size is increased by a constant factor.  If the nonlinear
+    solver fails to find a solution for the time step, the time
+    step is retried with a smaller dt.
+
+
+
+
+Things to explore:
+
+Grids: 
+
+The fixed grids are specified using the text file,
+"grid_file_2d_2lev.dat", as specified in the inputs.2d
+file. Alternative mesh configurations can be specified in the
+following format:
+
+N
+M01
+((a010,b010)(c010,d010)(0,0))
+((a011,b011)(c011,d011)(0,0))
+...
+M12
+((a120,b120)(c120,d120)(0,0))
+((a121,b121)(c121,d121)(0,0))
+..
+
+
+Where N is the finest AMR level (starting from 0), M01 is the number
+of boxes at the first refined level, specified in level 0 coordinates.
+Each box is given as a triplet of integers: the lower-left corner at
+(a010,b010), upper-right corner at (c010,d010), and (0,0) [ which
+tells BoxLib that the box specified is cell-centered].  The refinement
+ratio between levels is as specified in the inputs file.  For example,
+when the refinement ratio in the inputs file between levels 0 and 1 
+is 2, then the following grid file:
+
+1
+4
+((10,10)(15,15)(0,0))
+((16,10)(21,15)(0,0))
+((10,16)(15,21)(0,0))
+((16,16)(21,21)(0,0))
+
+instructs the code to generate a 2-level hierarchy, where 
+the base grid is as specified in the inputs file and level-1 consists 
+of 4 boxes:
+
+((20,20) (31,31) (0,0))
+((32,20) (43,31) (0,0))
+((20,32) (31,43) (0,0))
+((32,32) (43,43) (0,0))
+
+
+By modifying this example, you can change the fraction of grids at the
+finest level, change the number of levels, and change the number and
+sizes of boxes at each level.  Since parallel work in BoxLib is
+distributed by box, the number of boxes at a level will determine the
+maximum number of cores that will be able to work in parallel on your
+run.  You can run the code in parallel, under MPICH for example, as:
+
+   mpiexec -np 4 ./Darcy2d.Linux.gcc.gfortran.DEBUG.MPI.ex inputs.2d
+
+Note that there are some restrictions in box sizes and positions
+(e.g., in order to satisfy "proper nesting", "blocking- factor" or
+"max_grid_size" settings, also configurable in the inputs file).
+Hopefully, the code will puke on bad inputs and give a hint for how to
+adjust to correct the problem.
+
+
+
+PETSc's nonlinear solver, SNES:
+
+A nice feature of PETSc is that if written correctly, application
+codes can be controlled to a large degree via run-time inputs.  In this
+marraige of BoxLib and PETSc, I allowed for command-line PETSc options
+to be passed through the file whose name is set as "petsc_options_file"
+in "inputs.2d".
+
+Seasoned PETSc users will recognize many of the options that I've
+included in the example that is provided.  Note that anything in the
+text file on a line after the hash mark "#" is a comment, and the
+option "-help" will dump to the screen all options registered as
+available for any objects built during that run.  In the example file,
+there are controls to select and adjust the nonlinear solver method
+("snes"), the linear solver ("ksp"), the preconditioner ("pc"), as
+well as runtime diagnostics and statistics.  These settings will have
+a significant impact on the efficiency of the solver, including
+whether or not a solution will even be found.
+
+
+
+Darcy parameters, etc:
+
+The default setup defines only a simple (single) material with constant
+properties (deifned in DarcySNES.cpp).  The difficulty of the nonlinear
+solves is strongly dependent on the parameters used to define the 
+material and fluid.  More elaborate models should be rather simple to 
+implement as extensions to this code.  Consult the code in that file 
+for how the parameters are used, and how to extend the application to
+more general cases.
+
+
+
+
+Interesting aspects of the implementation (at least in my opinion).
+
+(1) This app makes use of a data structure called an "MFTower".  An
+MFTower is basically an array of MultiFabs, used to represent the
+state across all active AMR levels in the simulation.  The interesting
+part though is that they can be built on MultiFabs that have already
+been allocated, such as those allocated/managed by the Amr/AmrLevel
+classes through the StateData class.  In this way, one can freely
+switch between level-based operations and hierarchy based ones without
+creating/allocating duplicate memory.
+
+(2) A MFTower is built based upon a "Layout" object.  A Layout
+contains a decription of the mesh hierarchy and problem domain,
+including whether the problem is periodic in the various directions.
+Whenever a new mesh hierachy is constructed, a Layout is initialized
+and used underneath all MFTowers that refer to it.  Upon a regrid, a
+Layout must be regenerated, and all MFTowers that depended on the
+original one become no longer valid.  Importantly, since the Layout
+enforces the spatial relationship between refinement levels, it has
+the information necessary to build/store a mapping from multi-level
+index space to a 1D integer array -- ie, builds a unique node
+numbering system.  The node numbering scheme is based on the concept
+that covered coarse cells are not "valid" nodes in the solution.  The
+node numbering scheme is used to assemble a globally distributed
+sparse matrix used by PETSc during the Newton iterations.
+
+(3) Communication of grow cell information.  The PDE operators used in
+this application require a non-zero stencil width.  The structured
+grid approach of BoxLib is ideally suited for stenmcil-type operations
+on logically rectangular grid blocks.  On the edges of these blocks,
+where neighbor data is actually stored on remote processors, the
+"grow" region around each box provides an ideally shaped container in
+which we can store a copy of the remote data.  BoxLib has a number of
+utilities, functions and in fact an entire programming paradigm to
+support operations on and synchronization of grow cell data.
+
+We should note here that PETSc also provides a comparable approach to
+managing auxiliary space for "off-processor" data for this purpose.
+While this sample application was written using BoxLib to manage all
+stencil-based operations and communication, there are certainly other
+viable approaches.  For example, one could rewrite the algorithms to
+use PETSc's paradigm for sychronizing grow cells; doing so would
+expose an existing interface to overlap communication and computation;
+such an interface does not yet exist in BoxLib, and merits some 
+exploration.
+
+(4) Finally, the temporal integration used in this example does not
+make use of "subcycling", and is also not subject to strict limits in
+the size of the numerical time step due to linear stability issues.
+Rather, the timestep here is used to aid in relaxation of the initial
+conditions to a steady state, and there is no particular interest in
+the intermediate transient solutions.  As the nonlinear problems for
+each time step become easier to solve, the algorithm automatically
+increases the time step size in order to speed the evolution to steady
+state.  While the simple dt control strategy used here can be improved
+significantly, the more important point is that the software framework
+that supports level-based temporal subcycling can easily be manipulated
+to implement multi-level global nonlinear solves.
+
+
+
+
+Final comment:
+
+I hope that this application helps to demonstrate the utility of
+BoxLib for constructing a variety of PDE solver types, and I hope that
+it helps to illustrate how to couple the BoxLib data structures and
+programming paradigms together with other software infrastructures in
+order to take advantage of the many benefits of algorithm and code
+reuse.
+
+While this code is intended to simply demonstrate the use of BoxLib, 
+I'd love to know about any errors you might find in the code.  Please
+contact me at MSDay@lbl.gov with suggestions, comments or questions
+about the approach I taken to implement this example.
+
+
+Good luck!
+
+-Marc, 10/30/12
+
+--
+
+Marc Day, Staff Scientist
+Center for Computational Sciences and Engineering, Berkeley Lab
+Mailstop 50A-1148                           Tel: (510) 486-5076
+One Cyclotron Road                          Fax: (510) 486-6900
+Berkeley, CA  94720                        Email: MSDay@lbl.gov
+
+
