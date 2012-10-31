@@ -32,21 +32,24 @@ public:
 				      FArrayBox&            reduced_saturation,
 				      int                   satComp,
 				      const Box&            box,
-				      const Layout::IntFab& mask);
+				      const Layout::IntFab& mask,
+                                      Real                  maskedVal = 0);
 
   void KrGivenReducedSaturation(const FArrayBox& reduced_saturation,
 				int              satComp,
 				FArrayBox&       Kr,
 				int              kComp,
 				const Box&       box,
-				const Layout::IntFab& mask);
+				const Layout::IntFab& mask,
+                                Real                  maskedVal = 0);
 
   void RhoSatGivenReducedSaturation(const FArrayBox&      reduced_saturation,
                                     int                   redComp,
                                     FArrayBox&            RhoSat,
                                     int                   rsComp,
                                     const Box&            box,
-                                    const Layout::IntFab& mask);
+                                    const Layout::IntFab& mask,
+                                    Real                  maskedVal = 0);
 
   void DpDtResidual(MFTower& residual,
 		    int      resComp,

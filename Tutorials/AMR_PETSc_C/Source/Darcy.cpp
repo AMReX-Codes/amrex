@@ -35,11 +35,8 @@ static bool initialized = false;
 void 
 Darcy::CleanupStatics ()
 {
-  delete snes;
-  delete mlb;
-  delete layout;
   initialized = false;
-  //PetscFinalize();
+  PetscFinalize();
 }
 
 bool         Darcy::dump_old;
@@ -367,6 +364,14 @@ Darcy::Darcy (Amr&            papa,
 
 Darcy::~Darcy () 
 {
+  if (level==0) {
+    BL_ASSERT(snes!=0);
+    BL_ASSERT(mlb!=0);
+    BL_ASSERT(layout!=0);
+    delete snes; snes=0;
+    delete mlb; mlb=0;
+    delete layout; layout=0;
+  }
 }
 
 void
@@ -959,14 +964,14 @@ Darcy::build_layout ()
   BL_ASSERT(layout == 0);
   int nLevs = parent->finestLevel() + 1;
   Array<BoxArray> aba(nLevs);
-  PArray<Geometry> ag(nLevs);
+  PArray<Geometry> ag(nLevs,PArrayManage);
   const Array<IntVect>& ar = parent->refRatio();
   for (int lev=0; lev<nLevs; ++lev) {
     BL_ASSERT(parent->getAmrLevels().defined(lev));
     aba[lev] = parent->boxArray(lev);
     ag.set(lev, new Geometry(parent->Geom(lev)));
   }
-  layout = new Layout(aba,ag,ar);
+  layout = new Layout(aba,ag,ar); // Nulls the Geom ptr
 }
 
 void

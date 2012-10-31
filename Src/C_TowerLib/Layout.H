@@ -69,7 +69,7 @@ struct Layout
   typedef FabArray<IntFab> MultiIntFab; 
 
   Layout(const Array<BoxArray>& aba,
-         const PArray<Geometry>& ag,
+         PArray<Geometry>& ag,
          const Array<IntVect>&   ar);
 
   ~Layout();
@@ -104,7 +104,7 @@ struct Layout
 
 protected:
   void Build(const Array<BoxArray>& aba,
-             const PArray<Geometry>& ag,
+             PArray<Geometry>& ag,
              const Array<IntVect>&  ar);
   void BuildMetrics();
 

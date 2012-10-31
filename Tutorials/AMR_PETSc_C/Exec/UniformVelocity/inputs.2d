@@ -37,7 +37,7 @@ amr.v              = 1         # verbosity in Amr.cpp
 #amr.grid_log         = grdlog # name of grid logging file
 
 # REFINEMENT / REGRIDDING
-amr.max_level       = 1       # maximum level number allowed
+amr.max_level       = 2       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.regrid_int      = 2       # how often to regrid
 amr.regrid_int      = 20000000       # how often to regrid
@@ -58,6 +58,7 @@ amr.probin_file = probin.2d
 
 # Regrid file
 amr.regrid_file = grid_file_2d_2lev.dat
+amr.regrid_file = grid_file_2d_3lev.dat
 amr.subcycling_mode = None
 
 mlb.influx = 3e-7

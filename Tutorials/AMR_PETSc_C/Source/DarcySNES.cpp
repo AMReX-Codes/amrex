@@ -553,7 +553,8 @@ DarcySNES::ReducedSaturationGivenPressure(const FArrayBox&      pressure,
 					  FArrayBox&            reduced_saturation,
 					  int                   satComp,
 					  const Box&            box,
-					  const Layout::IntFab& mask)
+					  const Layout::IntFab& mask,
+                                          Real                  maskedVal)
 {
   Vlevel4("**** DarcySNES::ReducedSaturationGivenPressure **** (begin)",verbose);
   FArrayBox tp(box,1); tp.copy(pressure,pComp,0,1);
@@ -565,9 +566,7 @@ DarcySNES::ReducedSaturationGivenPressure(const FArrayBox&      pressure,
   int nPts = box.numPts();
   Real n = 1/(1-m);
   for (int i=0; i<nPts; ++i) {
-    if (mdat[i]>=0) {
-      satdat[i] = Se_given_P_vanGenuchten(pdat[i],n,m,sigma);
-    }
+    satdat[i] = ( mdat[i]>=0  ?  Se_given_P_vanGenuchten(pdat[i],n,m,sigma)  : maskedVal);
   }
   reduced_saturation.copy(ts,0,satComp,1);
   Vlevel4("**** DarcySNES::ReducedSaturationGivenPressure **** (end)",verbose);
@@ -579,7 +578,8 @@ DarcySNES::KrGivenReducedSaturation(const FArrayBox& reduced_saturation,
                                     FArrayBox&       Kr,
                                     int              kComp,
                                     const Box&       box,
-                                    const Layout::IntFab& mask)
+                                    const Layout::IntFab& mask,
+                                    Real                  maskedVal)
 {
   Vlevel4("**** DarcySNES::KrGivenReducedSaturation **** (begin)",verbose);
   FArrayBox ts(box,1); ts.copy(reduced_saturation,satComp,0,1);
@@ -618,6 +618,9 @@ DarcySNES::KrGivenReducedSaturation(const FArrayBox& reduced_saturation,
           + Dse*Dse * (Dse-Dse_tot) * (DKrDse_sThresh-2*DKrDse_tot)/(Dse_tot*Dse_tot);
       }
     }
+    else {
+      kdat[i] = maskedVal;
+    }
   }
   Kr.copy(tk,0,kComp,1);
   Vlevel4("**** DarcySNES::KrGivenReducedSaturation **** (end)",verbose);
@@ -629,7 +632,8 @@ DarcySNES::RhoSatGivenReducedSaturation(const FArrayBox&      reduced_saturation
                                         FArrayBox&            RhoSat,
                                         int                   rsComp,
                                         const Box&            box,
-                                        const Layout::IntFab& mask)
+                                        const Layout::IntFab& mask,
+                                        Real                  maskedVal)
 {
   Vlevel4("**** DarcySNES::RhoSatGivenReducedSaturation **** (begin)",verbose);
   FArrayBox tred(box,1); tred.copy(reduced_saturation,redComp,0,1);
@@ -654,6 +658,9 @@ DarcySNES::RhoSatGivenReducedSaturation(const FArrayBox&      reduced_saturation
       else {
         rsdat[i] = density * ( Sr +  se * oneMinusSr );
       }
+    }
+    else {
+      rsdat[i] = maskedVal;
     }
   }
   RhoSat.copy(trs,0,rsComp,1);
