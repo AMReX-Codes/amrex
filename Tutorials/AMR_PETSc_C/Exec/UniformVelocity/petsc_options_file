@@ -82,8 +82,8 @@
 #-snes_mf_operator
 #-snes_type test 
 #-snes_test_display
--snes_ls_alpha -.5
--snes_ls_minlambda 1.e-6
+-snes_ls_alpha -.25
+-snes_ls_minlambda 1.e-2
 #-snes_ratiomonitor
 
 -draw_pause 5
@@ -92,5 +92,5 @@
 #-info diags.txt
 
 #-snes_lag_jacobian 500000
--mat_fd_coloring_err 1e-14
+-mat_fd_coloring_err 1e-10
 

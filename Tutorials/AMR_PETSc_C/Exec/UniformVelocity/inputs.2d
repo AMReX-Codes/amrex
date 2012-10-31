@@ -1,9 +1,9 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
-max_step = 5000
-stop_time = 1.e12
+max_step = 1000
+stop_time = 1.e10
 darcy.dt_cutoff = 1
 darcy.dt_max = 1.e20
-darcy.initial_dt = 1.e2
+darcy.initial_dt = 1.e6
 petsc_options_file=petsc_options_file
 
 # PROBLEM SIZE & GEOMETRY

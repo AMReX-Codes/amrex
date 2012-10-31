@@ -17,9 +17,11 @@ static Real kappaz_m2_DEF = 2.87e-13;
 static Real sigma_DEF = .000302; 
 static Real Sr_DEF = 0.354;   
 static Real m_DEF = 0.291;   
-static Real se_threshold = 1;
+static Real se_threshold = 0.9;
+
 static int  pressure_maxorder = 3;
 static bool abort_on_nl_fail = false;
+static bool centered_diff_J = true;
 
 static Real porosity_DEF = 0.3;
 static Real density_kg_m3_DEF = 998.2;
@@ -154,6 +156,10 @@ DarcySNES::DarcySNES(Layout&      _layout,
   MPI_Comm comm = ParallelDescriptor::Communicator();
   ierr = VecCreateMPI(comm,n,N,&RhsV); CHKPETSC(ierr);
   ierr = VecDuplicate(RhsV,&SolnV); CHKPETSC(ierr);
+  if (centered_diff_J) {
+    ierr = VecDuplicate(RhsV,&Wrk1V); CHKPETSC(ierr);
+    ierr = VecDuplicate(RhsV,&Wrk2V); CHKPETSC(ierr);
+  }
 
   mftfp->BuildStencil(mlb.BC(), pressure_maxorder);
 
@@ -202,6 +208,10 @@ DarcySNES::~DarcySNES()
   ierr = SNESDestroy(&snes); CHKPETSC(ierr);
   ierr = MatDestroy(&Jac); CHKPETSC(ierr);
   
+  if (centered_diff_J) {
+    ierr = VecDestroy(&Wrk1V); CHKPETSC(ierr);
+    ierr = VecDestroy(&Wrk2V); CHKPETSC(ierr);
+  }
   ierr = VecDestroy(&SolnV); CHKPETSC(ierr);
   ierr = VecDestroy(&RhsV); CHKPETSC(ierr);
 
@@ -242,7 +252,7 @@ DarcySNES::Solve(PArray<MultiFab>& RhoSat_new,
   ierr = layout.MFTowerToVec(SolnV,SolnMFT,0); CHKPETSC(ierr);
 
   DarcySNES::SetTheDarcySNES(this);
-  ierr = SNESSolve(snes,PETSC_NULL,SolnV);
+  ierr = SNESSolve(snes,PETSC_NULL,SolnV); CHKPETSC(ierr);
   DarcySNES::SetTheDarcySNES(0);
 
   int iters;
@@ -535,8 +545,18 @@ DarcySNES::FillPatch(MFTower& mft,
 
 Real Kr_given_Seff_Mualem(Real se, Real m, Real mInv) 
 {
-  Real tmp = (1 - std::pow(1 - std::pow(se,mInv), m));
-  Real Kr = std::sqrt(se)*tmp*tmp;
+  Real Kr;
+  if (se<=0) {
+    Kr = 0;
+  }
+  else if (se>=1) {
+    Kr = 1;
+  }
+  else {
+    Real tmp = (1 - std::pow(1 - std::pow(se,mInv), m));
+    Kr = std::sqrt(se)*tmp*tmp;
+    Kr = std::min(1., std::max(0., Kr) );
+  }
   return Kr;
 }
 
@@ -788,6 +808,7 @@ DarcySNES::DivRhoU(MFTower& DivRhoU,
 {
   Vlevel3("**** DarcySNES::DivRhoU **** (begin)",verbose);
   int fComp = 0;
+
   ComputeDarcyFlux(DarcyFlux,fComp,pressure,pComp,rhoSat,rsComp);
 
   // Get the divergence of the Darcy Flux
@@ -858,7 +879,7 @@ DarcyRes_DpDt(SNES snes,Vec x,Vec f,void *dummy)
   int resComp = 0;
   ds->DpDtResidual(fMFT,resComp,xMFT,ds->pressure_comp,dt);
 
-#if 0
+#if 1
     // Scale residual by cell volume/sqrt(total volume)
   Real sqrt_total_volume_inv = std::sqrt(1/TotalVolume());
   int nComp = 1;
@@ -890,7 +911,7 @@ DarcyMatFDColoringApply(Mat J,MatFDColoring coloring,Vec x1,MatStructure *flag,v
   PetscErrorCode (*f)(void*,Vec,Vec,void*) = (PetscErrorCode (*)(void*,Vec,Vec,void *))coloring->f;
   PetscErrorCode ierr;
   PetscInt       k,start,end,l,row,col,srow,m1,m2;
-  PetscScalar    *y,*w3_array;
+  PetscScalar    *y,*w3_array,*w4_array,*w5_array;
   PetscReal      epsilon = coloring->error_rel;
   Vec            w1=coloring->w1,w2=coloring->w2,w3;
   void           *fctx = coloring->fctx;
@@ -972,27 +993,70 @@ DarcyMatFDColoringApply(Mat J,MatFDColoring coloring,Vec x1,MatStructure *flag,v
   /*
     Loop over each color, the perturbation is a simple constant, epsilon
   */
+  Vec w4, w5;
+  if (centered_diff_J) {
+    w4 = ds->Wrk1V;
+    w5 = ds->Wrk2V;
+  }
+
   for (k=0; k<coloring->ncolors; k++) { 
     coloring->currentcolor = k;
     
     ierr = VecCopy(x1_tmp,w3);CHKPETSC(ierr);
+    if (centered_diff_J) {
+      ierr = VecCopy(x1_tmp,w4);CHKPETSC(ierr);
+      ierr = VecCopy(x1_tmp,w5);CHKPETSC(ierr);
+    }
+
     ierr = VecGetArray(w3,&w3_array);CHKPETSC(ierr);
-    if (ctype == IS_COLORING_GLOBAL) w3_array = w3_array - start;          
+    if (centered_diff_J) {
+      ierr = VecGetArray(w4,&w4_array);CHKPETSC(ierr);
+      ierr = VecGetArray(w5,&w5_array);CHKPETSC(ierr);
+    }
+
+    if (ctype == IS_COLORING_GLOBAL) {
+      w3_array = w3_array - start;
+      if (centered_diff_J) {
+        w4_array = w4_array - start;
+        w5_array = w5_array - start;
+      }
+    }
+
     for (l=0; l<coloring->ncolumns[k]; l++) {
       col = coloring->columns[k][l];    /* local column of the matrix we are probing for */
-      w3_array[col] += epsilon;
+      w3_array[col] += epsilon;   // w3 = x1 + dx
+      if (centered_diff_J) {
+        w4_array[col] -= epsilon; // w4 = x1 - dx
+      } 
     } 
-    if (ctype == IS_COLORING_GLOBAL) w3_array = w3_array + start;
+
+    if (ctype == IS_COLORING_GLOBAL) {
+      w3_array = w3_array + start;
+      if (centered_diff_J) {
+        w4_array = w4_array + start;
+        w5_array = w5_array + start;
+      }
+    }
     ierr = VecRestoreArray(w3,&w3_array);CHKPETSC(ierr);
-    
-    // w2 = F(w3) - F(x1) = F(x1 + dx) - F(x1)
+    if (centered_diff_J) {
+      ierr = VecRestoreArray(w4,&w4_array);CHKPETSC(ierr);
+      ierr = VecRestoreArray(w5,&w5_array);CHKPETSC(ierr);
+    }
+
     ierr = PetscLogEventBegin(MAT_FDColoringFunction,0,0,0,0);CHKPETSC(ierr);
-    ierr = (*f)(sctx,w3,w2,fctx);CHKPETSC(ierr);        
+    ierr = (*f)(sctx,w3,w2,fctx);CHKPETSC(ierr);                       // w2 = F(w3) = F(x1 + dx)
+    if (centered_diff_J) {ierr = (*f)(sctx,w4,w5,fctx);CHKPETSC(ierr);}  // w5 = F(w4) = F(x1 - dx)
     ierr = PetscLogEventEnd(MAT_FDColoringFunction,0,0,0,0);CHKPETSC(ierr);
-    ierr = VecAXPY(w2,-1.0,w1);CHKPETSC(ierr); 
+
+    PetscReal epsilon_inv = 1/epsilon;
+    if (centered_diff_J) {
+      epsilon_inv *= 0.5;
+      ierr = VecAXPY(w2,-1.0,w5);CHKPETSC(ierr); // w2 = F(x1 + dx) - F(x1 - dx)
+    } else {
+      ierr = VecAXPY(w2,-1.0,w1);CHKPETSC(ierr); // w2 = F(x1 + dx) - F(x1)
+    }
     
     // Insert (w2_j / dx) into J_ij
-    PetscReal epsilon_inv = 1/epsilon;
     ierr = VecGetArray(w2,&y);CHKPETSC(ierr);          
     for (l=0; l<coloring->nrows[k]; l++) {
       row    = coloring->rows[k][l];             /* local row index */
@@ -1010,12 +1074,6 @@ DarcyMatFDColoringApply(Mat J,MatFDColoring coloring,Vec x1,MatStructure *flag,v
   ierr  = MatAssemblyBegin(J,MAT_FINAL_ASSEMBLY);CHKPETSC(ierr);
   ierr  = MatAssemblyEnd(J,MAT_FINAL_ASSEMBLY);CHKPETSC(ierr);
   ierr = PetscLogEventEnd(MAT_FDColoringApply,coloring,J,x1,0);CHKPETSC(ierr);
-
-  flg  = PETSC_FALSE;
-  ierr = PetscOptionsGetBool(PETSC_NULL,"-mat_null_space_test",&flg,PETSC_NULL);CHKPETSC(ierr);
-  if (flg) {
-    ierr = MatNullSpaceTest(J->nullsp,J,PETSC_NULL);CHKPETSC(ierr);
-  }
 
   Vlevel3("**** DarcyMatFDColoringApply **** (end)",verbose_SNES);
   PetscFunctionReturn(0);
