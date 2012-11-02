@@ -1999,10 +1999,11 @@ contains
     end if
   end subroutine reshape_z_1_4
 
-  subroutine mf_fb_fancy_double(mf, c, nc, ng, lcross)
+  subroutine mf_fb_fancy_double(mf, c, nc, ng, lcross, dim)
     type(multifab), intent(inout) :: mf
     integer,        intent(in)    :: c, nc, ng
     logical,        intent(in)    :: lcross
+    integer, intent(in), optional :: dim
 
     real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer,    allocatable :: rst(:)
@@ -2211,10 +2212,10 @@ contains
 
   end subroutine mf_fb_fancy_z
 
-  subroutine multifab_fill_boundary_c(mf, c, nc, ng, cross)
+  subroutine multifab_fill_boundary_c(mf, c, nc, ng, cross, dim)
     type(multifab), intent(inout) :: mf
     integer, intent(in)           :: c, nc
-    integer, intent(in), optional :: ng
+    integer, intent(in), optional :: ng, dim
     logical, intent(in), optional :: cross
     integer :: lng
     logical :: lcross
@@ -2232,15 +2233,15 @@ contains
     ! if ( lng < 1          ) return
 
     call build(bpt, "mf_fill_boundary_c")
-    call mf_fb_fancy_double(mf, c, nc, lng, lcross)
+    call mf_fb_fancy_double(mf, c, nc, lng, lcross, dim)
     call destroy(bpt)
   end subroutine multifab_fill_boundary_c
 
-  subroutine multifab_fill_boundary(mf, ng, cross)
+  subroutine multifab_fill_boundary(mf, ng, cross, dim)
     type(multifab), intent(inout) :: mf
-    integer, intent(in), optional :: ng
+    integer, intent(in), optional :: ng, dim
     logical, intent(in), optional :: cross
-    call multifab_fill_boundary_c(mf, 1, mf%nc, ng, cross)
+    call multifab_fill_boundary_c(mf, 1, mf%nc, ng, cross, dim)
   end subroutine multifab_fill_boundary
 
   subroutine imultifab_fill_boundary_c(mf, c, nc, ng, cross)
