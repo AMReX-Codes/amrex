@@ -202,11 +202,11 @@ for line in sourceString.splitlines():
         keyword = line[index+len("@@"):index2]
 
         if (keyword == "BUILD_DATE"):
-            newline = string.replace(line, "@@BUILD_DATE@@", build_date)
+            newline = string.replace(line, "@@BUILD_DATE@@", build_date[:MAX_STRING_LENGTH])
             fout.write(newline)
 
         elif (keyword == "BUILD_DIR"):
-            newline = string.replace(line, "@@BUILD_DIR@@", build_dir)
+            newline = string.replace(line, "@@BUILD_DIR@@", build_dir[:MAX_STRING_LENGTH])
             fout.write(newline)
 
         elif (keyword == "BUILD_MACHINE"):
@@ -216,7 +216,7 @@ for line in sourceString.splitlines():
 
         elif (keyword == "BOXLIB_DIR"):
             newline = string.replace(line, "@@BOXLIB_DIR@@", 
-                                     boxlib_home)
+                                     boxlib_home[:MAX_STRING_LENGTH])
             fout.write(newline)
 
         elif (keyword == "FCOMP"):
@@ -226,7 +226,7 @@ for line in sourceString.splitlines():
 
         elif (keyword == "FCOMP_VERSION"):
             newline = string.replace(line, "@@FCOMP_VERSION@@", 
-                                     FCOMP_version)
+                                     FCOMP_version[:MAX_STRING_LENGTH])
             fout.write(newline)            
 
         elif (keyword == "F90_COMP_LINE"):
