@@ -1399,7 +1399,7 @@ contains
     ldsm = .false.; if ( present(do_sum_boundary) ) ldsm = do_sum_boundary
 
     bxasc%idim = 0; if ( present(idim) ) bxasc%idim = idim
-    if (bxasc%idim < 0 .or. bxasc%idim > 3) then
+    if (bxasc%idim < 0 .or. bxasc%idim > bxasc%dim) then
        call bl_error("BOXASSOC_BUILD:", bxasc%idim)
     end if
     
