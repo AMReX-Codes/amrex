@@ -68,6 +68,7 @@ module layout_module
      integer                 :: dim      = 0       ! spatial dimension 1, 2, or 3
      integer                 :: nboxes   = 0       ! number of boxes
      integer                 :: grwth    = 0       ! growth factor
+     integer                 :: idim     = 0       ! if 1, 2, or 3, grow only in that direction
      logical, pointer        :: nodal(:) => Null() ! nodal flag
      logical                 :: cross    = .false. ! cross/full stencil?
      type(local_conn)        :: l_con
@@ -981,13 +982,17 @@ contains
     end if
   end subroutine layout_print
 
-  pure function boxassoc_check(bxa, ng, nodal, cross) result(r)
+  pure function boxassoc_check(bxa, ng, nodal, cross, idim) result(r)
     type(boxassoc), intent(in) :: bxa
     integer,        intent(in) :: ng
     logical,        intent(in) :: nodal(:)
     logical,        intent(in) :: cross
+    integer, intent(in), optional :: idim
     logical                    :: r
     r = (bxa%grwth == ng) .and. all(bxa%nodal .eqv. nodal) .and. (bxa%cross .eqv. cross)
+    if (present(idim)) then
+       r = r .and. (bxa%idim == idim)
+    end if
   end function boxassoc_check
 
   pure function fgassoc_check(fgxa, ng) result(r)
@@ -1006,18 +1011,19 @@ contains
     r = (snxa%grwth == ng) .and. all(snxa%nodal .eqv. nodal) .and. (snxa%lall .eqv. lall)
   end function syncassoc_check
 
-  function layout_boxassoc(la, ng, nodal, cross) result(r)
+  function layout_boxassoc(la, ng, nodal, cross, idim) result(r)
     type(boxassoc)               :: r
     type(layout) , intent(inout) :: la
     integer, intent(in)          :: ng
     logical, intent(in)          :: nodal(:)
     logical, intent(in)          :: cross
+    integer, intent(in),optional :: idim
 
     type(boxassoc), pointer :: bp
 
     bp => la%lap%bxasc
     do while ( associated(bp) )
-       if ( boxassoc_check(bp, ng, nodal, cross) ) then
+       if ( boxassoc_check(bp, ng, nodal, cross, idim) ) then
           r = bp
           return
        end if
@@ -1027,7 +1033,7 @@ contains
     ! Have to build one.
     !
     allocate (bp)
-    call boxassoc_build(bp, la%lap, ng, nodal, cross)
+    call boxassoc_build(bp, la%lap, ng, nodal, cross, idim=idim)
     bp%next      => la%lap%bxasc
     la%lap%bxasc => bp
     r = bp
@@ -1102,13 +1108,14 @@ contains
     r = snasc%dim /= 0
   end function syncassoc_built_q
 
-  subroutine boxarray_bndry_periodic(bxai, dmn, b, nodal, pmask, ng, shfts, cross)
+  subroutine boxarray_bndry_periodic(bxai, dmn, b, nodal, pmask, ng, shfts, cross, idim)
     type(boxarray), intent(out) :: bxai
     type(box),      intent(in)  :: dmn, b
     logical,        intent(in)  :: nodal(:), pmask(:)
     integer,        intent(in)  :: ng
     integer,        intent(out) :: shfts(:,:)
     logical,        intent(in)  :: cross
+    integer,        intent(in)  :: idim
 
     integer               :: i, cnt
     type(box)             :: bxs(3**get_dim(b)), gbx
@@ -1121,6 +1128,7 @@ contains
     if ( cross ) then
        gbx = box_nodalize(b,nodal)
        do i = 1, gbx%dim
+          if (idim .ne. 0 .and. idim .ne. i) cycle
           !
           ! lo face
           !
@@ -1189,7 +1197,7 @@ contains
     ! Consider all copies I <- J.
     !
     do i = 1, nboxes(bxa)
-       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, .false.)
+       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, .false., bxasc%idim)
        do ii = 1, nboxes(bxai)
           if ( anynodal ) then
              bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
@@ -1284,7 +1292,7 @@ contains
     ! Consider all copies I <- J.
     !
     do i = 1, nboxes(bxa)
-       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, cross)
+       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, cross, bxasc%idim)
        do ii = 1, nboxes(bxai)
           if ( anynodal ) then
              bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
@@ -1352,7 +1360,7 @@ contains
     end do
   end subroutine boxassoc_build_innards
 
-  subroutine boxassoc_build(bxasc, lap, ng, nodal, cross, do_sum_boundary)
+  subroutine boxassoc_build(bxasc, lap, ng, nodal, cross, do_sum_boundary, idim)
     use bl_prof_module
     use bl_error_module
 
@@ -1362,6 +1370,7 @@ contains
     type(boxassoc),   intent(inout)        :: bxasc
     logical,          intent(in)           :: cross
     logical,          intent(in), optional :: do_sum_boundary
+    integer,          intent(in), optional :: idim
 
     integer                         :: pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
     type(boxarray)                  :: bxa, batmp
@@ -1389,6 +1398,15 @@ contains
 
     ldsm = .false.; if ( present(do_sum_boundary) ) ldsm = do_sum_boundary
 
+    bxasc%idim = 0; if ( present(idim) ) bxasc%idim = idim
+    if (bxasc%idim < 0 .or. bxasc%idim > 3) then
+       call bl_error("BOXASSOC_BUILD:", bxasc%idim)
+    end if
+    
+    if (bxasc%idim .ne. 0) then
+       bxasc%cross = .true.   ! idim > 0 is a special case of cross
+    end if
+
     allocate(bxasc%nodal(bxasc%dim))
     allocate(parr(0:np-1,2))
     allocate(pvol(0:np-1,2))
@@ -1412,10 +1430,13 @@ contains
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
 
     if ( ldsm ) then
+       if (bxasc%idim .ne. 0) then
+          call bl_error("BOXASSOC_BUILD: sumassoc_build_innards not supported for nonzero idim")
+       end if
        call sumassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, &
             lcnt_r, cnt_s, cnt_r, pvol, parr)
     else
-       call boxassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, cross, &
+       call boxassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, bxasc%cross, &
             lcnt_r, cnt_s, cnt_r, pvol, parr)
     end if
 

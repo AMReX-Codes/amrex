@@ -1999,11 +1999,11 @@ contains
     end if
   end subroutine reshape_z_1_4
 
-  subroutine mf_fb_fancy_double(mf, c, nc, ng, lcross, dim)
+  subroutine mf_fb_fancy_double(mf, c, nc, ng, lcross, idim)
     type(multifab), intent(inout) :: mf
     integer,        intent(in)    :: c, nc, ng
     logical,        intent(in)    :: lcross
-    integer, intent(in), optional :: dim
+    integer, intent(in), optional :: idim
 
     real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer,    allocatable :: rst(:)
@@ -2012,7 +2012,7 @@ contains
     type(boxassoc)          :: bxasc
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
 
-    bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
+    bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
     do i = 1, bxasc%l_con%ncpy
        ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
@@ -2212,10 +2212,10 @@ contains
 
   end subroutine mf_fb_fancy_z
 
-  subroutine multifab_fill_boundary_c(mf, c, nc, ng, cross, dim)
+  subroutine multifab_fill_boundary_c(mf, c, nc, ng, cross, idim)
     type(multifab), intent(inout) :: mf
     integer, intent(in)           :: c, nc
-    integer, intent(in), optional :: ng, dim
+    integer, intent(in), optional :: ng, idim
     logical, intent(in), optional :: cross
     integer :: lng
     logical :: lcross
@@ -2233,15 +2233,15 @@ contains
     ! if ( lng < 1          ) return
 
     call build(bpt, "mf_fill_boundary_c")
-    call mf_fb_fancy_double(mf, c, nc, lng, lcross, dim)
+    call mf_fb_fancy_double(mf, c, nc, lng, lcross, idim)
     call destroy(bpt)
   end subroutine multifab_fill_boundary_c
 
-  subroutine multifab_fill_boundary(mf, ng, cross, dim)
+  subroutine multifab_fill_boundary(mf, ng, cross, idim)
     type(multifab), intent(inout) :: mf
-    integer, intent(in), optional :: ng, dim
+    integer, intent(in), optional :: ng, idim
     logical, intent(in), optional :: cross
-    call multifab_fill_boundary_c(mf, 1, mf%nc, ng, cross, dim)
+    call multifab_fill_boundary_c(mf, 1, mf%nc, ng, cross, idim)
   end subroutine multifab_fill_boundary
 
   subroutine imultifab_fill_boundary_c(mf, c, nc, ng, cross)
