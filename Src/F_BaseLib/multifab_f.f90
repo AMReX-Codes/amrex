@@ -48,6 +48,13 @@ module multifab_module
      type(lfab), pointer :: fbs(:)   => Null()
   end type lmultifab
 
+  type mf_fb_data
+     integer, pointer :: send_request(:) => Null()
+     integer, pointer :: recv_request(:) => Null()
+     real(dp_t), pointer :: send_buffer(:) => Null()
+     real(dp_t), pointer :: recv_buffer(:) => Null()
+  end type mf_fb_data
+
   interface cell_centered_q
      module procedure multifab_cell_centered_q
      module procedure imultifab_cell_centered_q
@@ -409,9 +416,6 @@ module multifab_module
   private :: mf_fb_fancy_double, mf_fb_fancy_integer, mf_fb_fancy_logical, mf_fb_fancy_z
   private :: mf_copy_fancy_double, mf_copy_fancy_integer, mf_copy_fancy_logical, mf_copy_fancy_z
   private :: mf_fb_fancy_double_nowait
-
-  integer, save, allocatable, private :: send_request(:), recv_request(:)
-  real(dp_t), save, allocatable, private :: send_buffer(:), recv_buffer(:)
 
 contains
 
@@ -2058,8 +2062,9 @@ contains
 
   end subroutine mf_fb_fancy_double
 
-  subroutine mf_fb_fancy_double_nowait(mf, c, nc, ng, lcross, idim)
+  subroutine mf_fb_fancy_double_nowait(mf, fb_data, c, nc, ng, lcross, idim)
     type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
     integer,        intent(in)    :: c, nc, ng
     logical,        intent(in)    :: lcross
     integer, intent(in), optional :: idim
@@ -2083,31 +2088,32 @@ contains
 
     if (np == 1) return
 
-    allocate(send_buffer(nc*bxasc%r_con%svol))
-    allocate(recv_buffer(nc*bxasc%r_con%rvol))
+    allocate(fb_data%send_buffer(nc*bxasc%r_con%svol))
+    allocate(fb_data%recv_buffer(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
-       call reshape_d_4_1(send_buffer, 1 + nc*bxasc%r_con%snd(i)%pv, p)
+       call reshape_d_4_1(fb_data%send_buffer, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
-    allocate(send_request(bxasc%r_con%nsp))
-    allocate(recv_request(bxasc%r_con%nrp))
+    allocate(fb_data%send_request(bxasc%r_con%nsp))
+    allocate(fb_data%recv_request(bxasc%r_con%nrp))
 
     do i = 1, bxasc%r_con%nsp
-       send_request(i) = parallel_isend_dv(send_buffer(1+nc*bxasc%r_con%str(i)%pv), &
+       fb_data%send_request(i) = parallel_isend_dv(fb_data%send_buffer(1+nc*bxasc%r_con%str(i)%pv), &
             nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
     end do
 
     do i = 1, bxasc%r_con%nrp
-       recv_request(i) = parallel_irecv_dv(recv_buffer(1+nc*bxasc%r_con%rtr(i)%pv:), &
+       fb_data%recv_request(i) = parallel_irecv_dv(fb_data%recv_buffer(1+nc*bxasc%r_con%rtr(i)%pv:), &
             nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
     end do
 
   end subroutine mf_fb_fancy_double_nowait
 
-  subroutine mf_fb_fancy_double_barrier(mf, c, nc, ng, lcross, idim)
+  subroutine mf_fb_fancy_double_barrier(mf, fb_data, c, nc, ng, lcross, idim)
     type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
     integer,        intent(in)    :: c, nc, ng
     logical,        intent(in)    :: lcross
     integer, intent(in), optional :: idim
@@ -2120,18 +2126,19 @@ contains
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
-    call parallel_wait(send_request)
-    call parallel_wait(recv_request)
+    call parallel_wait(fb_data%recv_request)
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
-       call reshape_d_1_4(p, recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
+       call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
 
-    deallocate(send_request, recv_request)
-    deallocate(send_buffer, recv_buffer)
+    call parallel_wait(fb_data%send_request)
+
+    deallocate(fb_data%send_request, fb_data%recv_request)
+    deallocate(fb_data%send_buffer, fb_data%recv_buffer)
 
   end subroutine mf_fb_fancy_double_barrier
 
@@ -2327,8 +2334,9 @@ contains
     call multifab_fill_boundary_c(mf, 1, mf%nc, ng, cross, idim)
   end subroutine multifab_fill_boundary
 
-  subroutine multifab_fill_boundary_nowait_c(mf, c, nc, ng, cross, idim)
+  subroutine multifab_fill_boundary_nowait_c(mf, fb_data, c, nc, ng, cross, idim)
     type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
     integer, intent(in)           :: c, nc
     integer, intent(in), optional :: ng, idim
     logical, intent(in), optional :: cross
@@ -2350,19 +2358,21 @@ contains
     ! if ( lng < 1          ) return
 
     call build(bpt, "mf_fill_boundary_nowait_c")
-    call mf_fb_fancy_double_nowait(mf, c, nc, lng, lcross, idim)
+    call mf_fb_fancy_double_nowait(mf, fb_data, c, nc, lng, lcross, idim)
     call destroy(bpt)
   end subroutine multifab_fill_boundary_nowait_c
 
-  subroutine multifab_fill_boundary_nowait(mf, ng, cross, idim)
+  subroutine multifab_fill_boundary_nowait(mf, fb_data, ng, cross, idim)
     type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
     integer, intent(in), optional :: ng, idim
     logical, intent(in), optional :: cross
-    call multifab_fill_boundary_nowait_c(mf, 1, mf%nc, ng, cross, idim)
+    call multifab_fill_boundary_nowait_c(mf, fb_data, 1, mf%nc, ng, cross, idim)
   end subroutine multifab_fill_boundary_nowait
 
-  subroutine multifab_fill_boundary_barrier_c(mf, c, nc, ng, cross, idim)
+  subroutine multifab_fill_boundary_barrier_c(mf, fb_data, c, nc, ng, cross, idim)
     type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
     integer, intent(in)           :: c, nc
     integer, intent(in), optional :: ng, idim
     logical, intent(in), optional :: cross
@@ -2384,15 +2394,16 @@ contains
     ! if ( lng < 1          ) return
 
     call build(bpt, "mf_fill_boundary_barrier_c")
-    call mf_fb_fancy_double_barrier(mf, c, nc, lng, lcross, idim)
+    call mf_fb_fancy_double_barrier(mf, fb_data, c, nc, lng, lcross, idim)
     call destroy(bpt)
   end subroutine multifab_fill_boundary_barrier_c
 
-  subroutine multifab_fill_boundary_barrier(mf, ng, cross, idim)
+  subroutine multifab_fill_boundary_barrier(mf, fb_data, ng, cross, idim)
     type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
     integer, intent(in), optional :: ng, idim
     logical, intent(in), optional :: cross
-    call multifab_fill_boundary_barrier_c(mf, 1, mf%nc, ng, cross, idim)
+    call multifab_fill_boundary_barrier_c(mf, fb_data, 1, mf%nc, ng, cross, idim)
   end subroutine multifab_fill_boundary_barrier
 
   subroutine imultifab_fill_boundary_c(mf, c, nc, ng, cross)
