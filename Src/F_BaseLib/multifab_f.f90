@@ -2100,7 +2100,7 @@ contains
     allocate(fb_data%recv_request(bxasc%r_con%nrp))
 
     do i = 1, bxasc%r_con%nsp
-       fb_data%send_request(i) = parallel_isend_dv(fb_data%send_buffer(1+nc*bxasc%r_con%str(i)%pv), &
+       fb_data%send_request(i) = parallel_isend_dv(fb_data%send_buffer(1+nc*bxasc%r_con%str(i)%pv:), &
             nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
     end do
 
