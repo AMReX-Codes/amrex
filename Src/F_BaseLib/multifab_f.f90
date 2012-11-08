@@ -2073,6 +2073,7 @@ contains
     integer,    parameter   :: tag = 1102
     integer                 :: i, ii, jj, np
     type(boxassoc)          :: bxasc
+    logical :: send_flag, recv_flag
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
@@ -2108,6 +2109,9 @@ contains
        fb_data%recv_request(i) = parallel_irecv_dv(fb_data%recv_buffer(1+nc*bxasc%r_con%rtr(i)%pv:), &
             nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
     end do
+
+    send_flag = parallel_test(fb_data%send_request)
+    recv_flag = parallel_test(fb_data%recv_request)
 
   end subroutine mf_fb_fancy_double_nowait
 
