@@ -1,3 +1,4 @@
+
 !
 ! The data structures in this code aren't particularly sophisticated.
 ! It can handle some tens or hundreds of thousands of particles OK.
@@ -777,21 +778,21 @@ contains
 
           p => particles%d(p_id)
           
-          ump => dataptr(umac(p%lev,1),p%grd)
+          ump => dataptr(umac(p%lev,1),local_index(umac(p%lev,1),p%grd))
 
           select case (dm)
           case (1)
              umac_lo(1) = ump(p%cell(1)  ,1,1,1)
              umac_hi(1) = ump(p%cell(1)+1,1,1,1)
           case (2)
-             vmp => dataptr(umac(p%lev,2),p%grd)
+             vmp => dataptr(umac(p%lev,2),local_index(umac(p%lev,2),p%grd))
              umac_lo(1) = ump(p%cell(1)  ,p%cell(2),1,1)
              umac_hi(1) = ump(p%cell(1)+1,p%cell(2),1,1)
              umac_lo(2) = vmp(p%cell(1),p%cell(2)  ,1,1)
              umac_hi(2) = vmp(p%cell(1),p%cell(2)+1,1,1)
           case (3)
-             vmp => dataptr(umac(p%lev,2),p%grd)
-             wmp => dataptr(umac(p%lev,3),p%grd)
+             vmp => dataptr(umac(p%lev,2),local_index(umac(p%lev,2),p%grd))
+             wmp => dataptr(umac(p%lev,3),local_index(umac(p%lev,3),p%grd))
              umac_lo(1) = ump(p%cell(1)  ,p%cell(2),p%cell(3),1)
              umac_hi(1) = ump(p%cell(1)+1,p%cell(2),p%cell(3),1)
              umac_lo(2) = vmp(p%cell(1),p%cell(2)  ,p%cell(3),1)
@@ -1640,7 +1641,7 @@ contains
                 ! Populate values
                 !
                 do j = 1, size(idx)
-                   r => dataptr(mf(p%lev),p%grd)
+                   r => dataptr(mf(p%lev),local_index(mf(p%lev),p%grd))
 
                    select case (dm)
                    case (1)
@@ -1653,7 +1654,7 @@ contains
                 end do
 
                 if (print_vels) then
-                   v => dataptr(vel_mf(p%lev),p%grd)
+                   v => dataptr(vel_mf(p%lev),local_index(vel_mf(p%lev),p%grd))
                    select case (dm)
                    case (1)
                       vels(1:dm) = v(p%cell(1),1,1,1:dm)
@@ -1736,7 +1737,7 @@ contains
 
        p => particles%d(i)
 
-       ptr => dataptr(plotdata(p%lev),p%grd)
+       ptr => dataptr(plotdata(p%lev),local_index(plotdata(p%lev),p%grd))
 
        select case (dm)
        case (1)
