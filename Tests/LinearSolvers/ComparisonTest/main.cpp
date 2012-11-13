@@ -135,23 +135,15 @@ int main(int argc, char* argv[])
       break;
     case All:
 #ifdef USEHYPRE
-      nsoln = 2;
-      iF90 = 0;
-      iHyp = 1;
+      nsoln = 3;
+      iCpp = 0;
+      iF90 = 1;
+      iHyp = 2;
 #else
-      nsoln = 1;
-      iF90 = 0;
+      nsoln = 2;
+      iCpp = 0;
+      iF90 = 1;
 #endif
-// #ifdef USEHYPRE
-//       nsoln = 3;
-//       iCpp = 0;
-//       iF90 = 1;
-//       iHyp = 2;
-// #else
-//       nsoln = 2;
-//       iCpp = 0;
-//       iF90 = 1;
-// #endif
       break;
     }
 
@@ -179,19 +171,19 @@ int main(int argc, char* argv[])
 
   int ibnd = static_cast<int>(bc_type);
 
-  // if (solver_type == BoxLib_C || solver_type == All) {
-  //   for (int ilev=0; ilev < nlevel; ilev++) {
-  //     soln1[ilev].setVal(0.0);
-  //   }    
+  if (solver_type == BoxLib_C || solver_type == All) {
+    for (int ilev=0; ilev < nlevel; ilev++) {
+      soln1[ilev].setVal(0.0);
+    }    
 
-  //   //    solve_with_Cpp(soln1, a, b, alph, beta, rhs, geom, grids, nlevel, ibnd);
+    //    solve_with_Cpp(soln1, a, b, alph, beta, rhs, geom, grids, nlevel, ibnd);
 
-  //   if (nsoln > 1) { // soln1 doesn't point to the same multifabs as soln
-  //     for (int ilev=0; ilev < nlevel; ilev++) {
-  // 	MultiFab::Copy(soln[ilev], soln1[ilev], 0, iCpp, 1, 1);
-  //     }        
-  //   }
-  // }
+    if (nsoln > 1) { // soln1 doesn't point to the same multifabs as soln
+      for (int ilev=0; ilev < nlevel; ilev++) {
+	MultiFab::Copy(soln[ilev], soln1[ilev], 0, iCpp, 1, 1);
+      }        
+    }
+  }
 
   if (solver_type == BoxLib_F || solver_type == All) {
     for (int ilev=0; ilev < nlevel; ilev++) {

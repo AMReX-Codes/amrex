@@ -1,5 +1,3 @@
-#BYFL_OPTS ?= 
-
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code
 # If you set BOXLIB_HOME as an environment variable, this line will be ignored
 BOXLIB_HOME ?= $(HOME)/Development/BoxLib/
