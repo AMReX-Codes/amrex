@@ -327,19 +327,11 @@ endif
 ifeq ($(WHICHLINUX), HOPPER)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
-#     ifdef BYFL_OPTS
-#       CXX := CC -target=linux $(BYFL_OPTS)
-#       CC  := cc -target=linux $(BYFL_OPTS)
-#       FC  := ftn -target=linux $(BYFL_OPTS)
-#       F90 := ftn -target=linux $(BYFL_OPTS)
-#       fC  := ftn -target=linux $(BYFL_OPTS)    
-#     else
-      CXX := CC -target=linux
-      CC  := cc -target=linux
-      FC  := ftn -target=linux
-      F90 := ftn -target=linux
-      fC  := ftn -target=linux
-#    endif    
+    CXX := CC -target=linux
+    CC  := cc -target=linux
+    FC  := ftn -target=linux
+    F90 := ftn -target=linux
+    fC  := ftn -target=linux
   endif
   ifeq ($(USE_IPM),TRUE)
     ifeq ($(COMP),PGI)

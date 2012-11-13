@@ -185,13 +185,6 @@ ifeq ($(findstring hopper, $(HOST)), hopper)
         FC  := ftn -target=linux
         F90 := ftn -target=linux
     endif
-
-#     ifdef BYFL_OPTS
-#           F90FLAGS += $(BYFL_OPTS)
-#           FFLAGS   += $(BYFL_OPTS)
-#           CFLAGS   += $(BYFL_OPTS)
-#     endif 
-
 endif
 ifeq ($(findstring jaguar, $(HOST)), jaguar)
     #

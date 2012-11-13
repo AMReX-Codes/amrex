@@ -11,9 +11,9 @@
     endif
 
     ifdef NDEBUG
-      FFLAGS   += -fast -Minline -Mfpmisalign -fastsse -Mipa=fast
-      F90FLAGS += -fast -Minline -Mfpmisalign -fastsse -Mipa=fast
-      CFLAGS   += -fast -Minline -Mfpmisalign -fastsse -Mipa=fast
+      FFLAGS   += -fast -Minline
+      F90FLAGS += -fast -Minline
+      CFLAGS   += -fast -Minline
     else
       FFLAGS   += -g
       F90FLAGS += -g
