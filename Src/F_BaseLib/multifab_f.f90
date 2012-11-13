@@ -2124,7 +2124,11 @@ contains
     integer :: i, sh(MAX_SPACEDIM+1)
     type(boxassoc) :: bxasc
 
-    if (parallel_nprocs() == 1) return
+    if (parallel_nprocs() == 1) then
+       fb_data%sent = .true. 
+       fb_data%rcvd = .true.
+       return
+    end if
 
     if (fb_data%sent .and. fb_data%rcvd) return
 
