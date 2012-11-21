@@ -100,3 +100,7 @@ ifneq ($(BL_NO_FORT),TRUE)
   F$(BOXLIB_BASE)_sources += SPECIALIZE_$(DIM)D.F
   F$(BOXLIB_BASE)_headers += SPECIALIZE_F.H
 endif
+
+ifeq ($(PROFILE),TRUE)
+  C$(BOXLIB_BASE)_sources += Profiler.cpp
+endif

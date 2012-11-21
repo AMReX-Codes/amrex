@@ -1,0 +1,38 @@
+to use the profiler, set PROFILE=TRUE in your GNUmakefile.
+a summary of timings will be written to cout and optionally
+a file named bl_prof.txt will be written with timings for
+each processor.
+
+to instrument regular functions, add BL_PROFILE("class::fname()") to
+the top of your function. there can only be one of these per function.
+
+void YourClass::YourFunction() {
+  BL_PROFILE("YourClass::YourFunction()");  // this name can be any unique string
+
+  // function code
+}
+
+
+for other timers within an instrumented function, add:
+
+      BL_PROFILE_VAR("Flaten::FORT_FLATENX()", FLATENX);  // add this before
+        FORT_FLATENX(arg1, arg2);
+      BL_PROFILE_VAR_STOP(FLATENX);   // add this after, using the same name
+
+
+for main, add these:
+
+int main(...) {
+
+  BoxLib::Initialize(argc,argv);
+
+  BL_PROFILE_VAR("main()", pmain);  // add this
+
+  // code for main
+
+  BL_PROFILE_VAR_STOP(pmain);  // add this
+  BL_PROFILE_SET_RUN_TIME(Your_timers_time_for_the_run);  // optional
+  BL_PROFILE_FINALIZE();       // add this
+
+  BoxLib::Finalize();
+}
