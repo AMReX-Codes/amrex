@@ -1672,6 +1672,7 @@ Amr::coarseTimeStep (Real stop_time)
                       << min_fab_bytes << " ... " << max_fab_bytes << "]\n";
     }
 
+    BL_PROFILE_ADD_STEP(level_steps[0]);
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
         std::cout << "\nSTEP = "
