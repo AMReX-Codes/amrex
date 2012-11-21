@@ -2527,7 +2527,7 @@ contains
     integer, intent(in), optional :: ng, idim
     logical, intent(in), optional :: cross
     call multifab_fill_boundary_waitrecv_c(mf, fb_data, 1, mf%nc, ng, cross, idim)
-  end subroutine multifab_fill_boundary_finish
+  end subroutine multifab_fill_boundary_waitrecv
 
   subroutine multifab_fill_boundary_test_c(mf, fb_data, c, nc, ng, cross, idim)
     type(multifab), intent(inout) :: mf
