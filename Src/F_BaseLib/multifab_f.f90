@@ -2158,6 +2158,43 @@ contains
 
   end subroutine mf_fb_fancy_double_finish
 
+  subroutine mf_fb_fancy_double_waitrecv(mf, fb_data, c, nc, ng, lcross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer,        intent(in)    :: c, nc, ng
+    logical,        intent(in)    :: lcross
+    integer, intent(in), optional :: idim
+
+    real(dp_t), pointer :: p(:,:,:,:)
+    integer :: i, sh(MAX_SPACEDIM+1)
+    type(boxassoc) :: bxasc
+
+    if (parallel_nprocs() == 1) then
+       fb_data%rcvd = .true.
+       return
+    end if
+
+    if (fb_data%rcvd) return
+
+    if (.not. fb_data%rcvd) then
+       bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
+
+       call parallel_wait(fb_data%recv_request)
+
+       do i = 1, bxasc%r_con%nrcv
+          sh = bxasc%r_con%rcv(i)%sh
+          sh(4) = nc
+          p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+          call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
+       end do
+
+       fb_data%rcvd = .true.
+       deallocate(fb_data%recv_request)
+       deallocate(fb_data%recv_buffer)
+    end if
+
+  end subroutine mf_fb_fancy_double_waitrecv
+
   subroutine mf_fb_fancy_double_test(mf, fb_data, c, nc, ng, lcross, idim)
     type(multifab), intent(inout) :: mf
     type(mf_fb_data), intent(inout) :: fb_data
@@ -2450,17 +2487,31 @@ contains
     if ( present(idim) ) then
        if (idim > 0) lcross = .true. 
     end if
-   
-    ! If the boxarray is contained in the domain, then this made sense because nothing will
-    !  be done if ng = 0.  However, sometimes fillpatch calls this with a boxarray that is 
-    !  not contained in the domain, and we need to use fill_boundary to fill regions of the 
-    !  boxarray that are "valid" (i.e. not ghost cells) but that are outside the domain.
-    ! if ( lng < 1          ) return
-
     call build(bpt, "mf_fill_boundary_finish_c")
     call mf_fb_fancy_double_finish(mf, fb_data, c, nc, lng, lcross, idim)
     call destroy(bpt)
   end subroutine multifab_fill_boundary_finish_c
+
+  subroutine multifab_fill_boundary_waitrecv_c(mf, fb_data, c, nc, ng, cross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer, intent(in)           :: c, nc
+    integer, intent(in), optional :: ng, idim
+    logical, intent(in), optional :: cross
+    integer :: lng
+    logical :: lcross
+    type(bl_prof_timer), save :: bpt
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
+    if ( lng > mf%ng      ) call bl_error("MULTIFAB_FILL_BOUNDARY_WAITRECV_C: ng too large", lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_WAITRECV_C: nc too large', nc)
+    if ( present(idim) ) then
+       if (idim > 0) lcross = .true. 
+    end if
+    call build(bpt, "mf_fill_boundary_waitrecv_c")
+    call mf_fb_fancy_double_waitrecv(mf, fb_data, c, nc, lng, lcross, idim)
+    call destroy(bpt)
+  end subroutine multifab_fill_boundary_waitrecv_c
 
   subroutine multifab_fill_boundary_finish(mf, fb_data, ng, cross, idim)
     type(multifab), intent(inout) :: mf
@@ -2468,6 +2519,14 @@ contains
     integer, intent(in), optional :: ng, idim
     logical, intent(in), optional :: cross
     call multifab_fill_boundary_finish_c(mf, fb_data, 1, mf%nc, ng, cross, idim)
+  end subroutine multifab_fill_boundary_finish
+
+  subroutine multifab_fill_boundary_waitrecv(mf, fb_data, ng, cross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer, intent(in), optional :: ng, idim
+    logical, intent(in), optional :: cross
+    call multifab_fill_boundary_waitrecv_c(mf, fb_data, 1, mf%nc, ng, cross, idim)
   end subroutine multifab_fill_boundary_finish
 
   subroutine multifab_fill_boundary_test_c(mf, fb_data, c, nc, ng, cross, idim)
