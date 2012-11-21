@@ -245,6 +245,10 @@ public:
     void GetParticleLocationsAndMass (Array<Real>& part_data);
 
     void GetParticleVelocities (Array<Real>& part_data);
+
+    void SetParticleLocationsAndMass (Array<Real>& part_data);
+
+    void SetParticleVelocities (Array<Real>& part_data);
  
     Real estTimestep (const MultiFab& grav_vector, Real a, int level, Real cfl) const;
 
@@ -3149,13 +3153,147 @@ ParticleContainer<N>::GetParticleVelocities(Array<Real>& part_data)
                      part_data[cnt+d] = p.m_data[d+1];
 
                   // Update counter
-                  cnt += (BL_SPACEDIM+1);
+                  cnt += BL_SPACEDIM;
               }
            }
        }
     }
 
    ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
+}
+
+template <int N>
+void
+ParticleContainer<N>::SetParticleLocationsAndMass(Array<Real>& part_data)
+{
+   // This gives us the starting point into the part_data array
+   // If only one processor (or no MPI), then that's all we need
+   int cnt = 0;
+
+#if BL_USE_MPI
+   Array<long> cnts(ParallelDescriptor::NProcs());
+
+   // This returns the number of particles on this processor
+   long lcnt = TotalNumberOfParticles(true,true);
+
+   // This accumulates the "lcnt" values into "cnts"
+   MPI_Gather(&lcnt,1,              
+              ParallelDescriptor::Mpi_typemap<long>::type(),
+              cnts.dataPtr(),
+              1,
+              ParallelDescriptor::Mpi_typemap<long>::type(),
+              ParallelDescriptor::IOProcessorNumber(),
+              ParallelDescriptor::Communicator());
+
+   ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
+
+   for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+       cnt += cnts[iproc];
+
+   // Each particle takes up (BL_SPACEDIM+1) Reals
+   cnt*= (BL_SPACEDIM+1);
+#endif
+
+   // This is the total number of particles on *all* processors
+   long npart = TotalNumberOfParticles(true,false);
+
+   // Mass + locations
+   if (part_data.size() != npart*(BL_SPACEDIM+1))
+       BoxLib::Abort("Sending in wrong size part_data to SetParticleLocationsAndMass");
+
+   for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+   {
+       PMap& pmap = m_particles[lev];
+
+       for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+       {
+           PBox&     pbx = pmap_it->second;
+           const int n    = pbx.size();
+    
+           for (int i = 0; i < n; i++)
+           {
+              ParticleType& p = pbx[i];
+              if (p.m_id > 0)
+              {
+                  // Load positions
+                  for (int d=0; d < BL_SPACEDIM; d++)
+                     p.m_pos[d] = part_data[cnt+d];
+
+                  // Check mass
+                  if (p.m_data[0] != part_data[cnt+BL_SPACEDIM])
+                      BoxLib::Abort("Masses dont match in SetParticleLocationsAndMass");
+
+                  // Update counter
+                  cnt += (BL_SPACEDIM+1);
+              }
+           }
+       }
+    }
+}
+
+template <int N>
+void
+ParticleContainer<N>::SetParticleVelocities(Array<Real>& part_data)
+{
+   // This gives us the starting point into the part_data array
+   // If only one processor (or no MPI), then that's all we need
+   int cnt = 0;
+
+#if BL_USE_MPI
+   Array<long> cnts(ParallelDescriptor::NProcs());
+
+   // This returns the number of particles on this processor
+   long lcnt = TotalNumberOfParticles(true,true);
+
+   // This accumulates the "lcnt" values into "cnts"
+   MPI_Gather(&lcnt,1,              
+              ParallelDescriptor::Mpi_typemap<long>::type(),
+              cnts.dataPtr(),
+              1,
+              ParallelDescriptor::Mpi_typemap<long>::type(),
+              ParallelDescriptor::IOProcessorNumber(),
+              ParallelDescriptor::Communicator());
+
+   ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
+
+   for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+       cnt += cnts[iproc];
+
+   // Each particle takes up (BL_SPACEDIM) Reals
+   cnt*= (BL_SPACEDIM);
+#endif
+
+   // This is the total number of particles on *all* processors
+   long npart = TotalNumberOfParticles(true,false);
+
+   // Velocities
+   if (part_data.size() != npart*(BL_SPACEDIM))
+       BoxLib::Abort("Sending in wrong size part_data to SetParticleVelocities");
+
+   for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+   {
+       PMap& pmap = m_particles[lev];
+
+       for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+       {
+           PBox&     pbx = pmap_it->second;
+           const int n    = pbx.size();
+    
+           for (int i = 0; i < n; i++)
+           {
+              ParticleType& p = pbx[i];
+              if (p.m_id > 0)
+              {
+                  // Load velocities
+                  for (int d=0; d < BL_SPACEDIM; d++)
+                     p.m_data[d+1] = part_data[cnt+d];
+
+                  // Update counter
+                  cnt += BL_SPACEDIM;
+              }
+           }
+       }
+    }
 }
 
 template <int N>
@@ -3381,6 +3519,16 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             D_TERM(p.m_data[1] += half_dt * grav[0];,
                    p.m_data[2] += half_dt * grav[1];,
                    p.m_data[3] += half_dt * grav[2];);
+
+            if (p.m_id == 1) 
+            {
+                std::cout << "MKD:GRAVX " << p.m_pos[0] << " " << half_dt*grav[0] << "  " << p.m_data[1] << std::endl;
+                std::cout << "MKD:GRAVY " << p.m_pos[1] << " " << half_dt*grav[1] << "  " << p.m_data[2] << std::endl;
+                std::cout << "MKD:GRAVZ " << p.m_pos[2] << " " << half_dt*grav[2] << "  " << p.m_data[3] << std::endl;
+
+                std::cout << "MKD:ANGLE " << std::atan2(p.m_pos[2]-8.0,p.m_pos[0]-8.0) << " " <<
+                                             std::atan2(grav[2],grav[0]) << std::endl;
+            }
 
             D_TERM(p.m_data[1] *= a_half_inv;,
                    p.m_data[2] *= a_half_inv;,
