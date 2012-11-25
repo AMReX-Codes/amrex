@@ -3520,16 +3520,6 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
                    p.m_data[2] += half_dt * grav[1];,
                    p.m_data[3] += half_dt * grav[2];);
 
-            if (p.m_id == 1) 
-            {
-                std::cout << "MKD:GRAVX " << p.m_pos[0] << " " << half_dt*grav[0] << "  " << p.m_data[1] << std::endl;
-                std::cout << "MKD:GRAVY " << p.m_pos[1] << " " << half_dt*grav[1] << "  " << p.m_data[2] << std::endl;
-                std::cout << "MKD:GRAVZ " << p.m_pos[2] << " " << half_dt*grav[2] << "  " << p.m_data[3] << std::endl;
-
-                std::cout << "MKD:ANGLE " << std::atan2(p.m_pos[2]-8.0,p.m_pos[0]-8.0) << " " <<
-                                             std::atan2(grav[2],grav[0]) << std::endl;
-            }
-
             D_TERM(p.m_data[1] *= a_half_inv;,
                    p.m_data[2] *= a_half_inv;,
                    p.m_data[3] *= a_half_inv;);
