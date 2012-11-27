@@ -617,7 +617,7 @@ contains
     integer, intent(out), optional :: status(MPI_STATUS_SIZE)
     integer :: ierr, lstatus(MPI_STATUS_SIZE)
     external MPI_Test
-    call MPI_Test(r, req, lstatus, ierr)
+    call MPI_Test(req, r, lstatus, ierr)
     if ( present(status) ) status = lstatus
   end function parallel_test_one
 
