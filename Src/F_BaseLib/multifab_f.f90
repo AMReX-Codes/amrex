@@ -2088,7 +2088,11 @@ contains
 
     np = parallel_nprocs()
 
-    if (np == 1) return
+    if (np == 1) then
+       fb_data%sent = .true. 
+       fb_data%rcvd = .true.
+       return
+    end if
 
     allocate(fb_data%send_buffer(nc*bxasc%r_con%svol))
     allocate(fb_data%recv_buffer(nc*bxasc%r_con%rvol))
@@ -2100,6 +2104,13 @@ contains
 
     allocate(fb_data%send_request(bxasc%r_con%nsp))
     allocate(fb_data%recv_request(bxasc%r_con%nrp))
+
+    if (bxasc%r_con%nsp .le. 0) then
+       fb_data%sent = .true. ! nothing to send
+    end if
+    if (bxasc%r_con%nrp .le. 0) then
+       fb_data%rcvd = .true. ! nothing to receive
+    end if
 
     do i = 1, bxasc%r_con%nsp
        fb_data%send_request(i) = parallel_isend_dv(fb_data%send_buffer(1+nc*bxasc%r_con%str(i)%pv:), &
@@ -2123,12 +2134,6 @@ contains
     real(dp_t), pointer :: p(:,:,:,:)
     integer :: i, sh(MAX_SPACEDIM+1)
     type(boxassoc) :: bxasc
-
-    if (parallel_nprocs() == 1) then
-       fb_data%sent = .true. 
-       fb_data%rcvd = .true.
-       return
-    end if
 
     if (fb_data%sent .and. fb_data%rcvd) return
 
@@ -2169,11 +2174,6 @@ contains
     integer :: i, sh(MAX_SPACEDIM+1)
     type(boxassoc) :: bxasc
 
-    if (parallel_nprocs() == 1) then
-       fb_data%rcvd = .true.
-       return
-    end if
-
     if (fb_data%rcvd) return
 
     if (.not. fb_data%rcvd) then
@@ -2205,12 +2205,6 @@ contains
     real(dp_t), pointer :: p(:,:,:,:)
     integer :: i, sh(MAX_SPACEDIM+1)
     type(boxassoc) :: bxasc
-
-    if (parallel_nprocs() == 1) then
-       fb_data%sent = .true.
-       fb_data%rcvd = .true.
-       return
-    end if
 
     if (fb_data%sent .and. fb_data%rcvd) return
 
