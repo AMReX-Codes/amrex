@@ -223,9 +223,10 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   ios << std::endl;
   ios << std::endl;
   if( ! bwriteavg) {
-    ios << std::setfill('*') << std::setw(maxlen + 20) << " ";
+    ios << std::setfill('*')
+        << std::setw(maxlen + 2 + 3 * (colWidth + 2) - (colWidth+12)) << "";
     ios << std::setfill(' ');
-    ios << "Processor:  " << std::setw(6) << myProc << std::endl;
+    ios << "  Processor:  " << std::setw(colWidth) << myProc << std::endl;
   }
 
   WriteHeader(ios, colWidth, maxlen, bwriteavg);
@@ -238,11 +239,13 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
   }
   ios << std::endl;
-  ios << "Total Timers     = " << totalTimers << std::endl;
+  ios << "Total Timers     = " << std::setw(colWidth) << totalTimers
+      << " seconds." << std::endl;
   if(calcRunTime > 0.0) {
     percent = 100.0 * totalTimers / calcRunTime;
-    ios << "Calc Run Time    = " << calcRunTime << std::endl;
-    ios << "Percent Coverage = " << percent << " %" << std::endl;
+    ios << "Calc Run Time    = " << std::setw(colWidth) << calcRunTime
+        << " seconds." << std::endl;
+    ios << "Percent Coverage = " << std::setw(colWidth) << percent << " %" << std::endl;
   }
 
   ios << std::endl;
@@ -265,11 +268,11 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
   }
   if(bwriteavg) {
-    ios << std::setfill('=') << std::setw(maxlen + 57) << " " << std::endl;
-    ios << std::setfill('=') << std::setw(maxlen + 57) << " " << std::endl;
+    ios << std::setfill('=') << std::setw(maxlen+4 + 5 * (colWidth+2)) << ""
+        << std::endl;
   } else {
-    ios << std::setfill('=') << std::setw(maxlen + 39) << " " << std::endl;
-    ios << std::setfill('=') << std::setw(maxlen + 39) << " " << std::endl;
+    ios << std::setfill('=') << std::setw(maxlen+4 + 3 * (colWidth+2)) << ""
+        << std::endl;
   }
   ios << std::setfill(' ');
   ios << std::endl;
@@ -279,23 +282,24 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 void Profiler::WriteHeader(std::ostream &ios, const int colWidth,
                            const Real maxlen, const bool bwriteavg)
 {
-  ios << "Total times ";
   if(bwriteavg) {
-    ios << std::setfill('-') << std::setw(maxlen + 45) << " " << std::endl;
-    ios << std::setfill(' ');
-    ios << std::setw(maxlen + 2) << "Function Name" << "  "
-        << std::setw(8) << "NCalls" << "  "
-        << std::setw(colWidth) << "Min"
-        << std::setw(colWidth) << "Avg"
-        << std::setw(colWidth) << "Max"
-        << std::setw(colWidth + 2) << "Percent %"
+    ios << std::setfill('-') << std::setw(maxlen+4 + 5 * (colWidth+2))
+        << std::left << "Total times " << std::endl;
+    ios << std::right << std::setfill(' ');
+    ios << std::setw(maxlen + 2) << "Function Name"
+        << std::setw(colWidth + 2) << "NCalls"
+        << std::setw(colWidth + 2) << "Min"
+        << std::setw(colWidth + 2) << "Avg"
+        << std::setw(colWidth + 2) << "Max"
+        << std::setw(colWidth + 4) << "Percent %"
         << std::endl;
   } else {
-    ios << std::setfill('-') << std::setw(maxlen + 27) << " " << std::endl;
-    ios << std::setfill(' ');
-    ios << std::setw(maxlen + 2) << "Function Name" << "  "
-        << std::setw(8) << "NCalls" << "  "
-        << std::setw(colWidth) << "Time"
+    ios << std::setfill('-') << std::setw(maxlen+4 + 3 * (colWidth+2))
+        << std::left << "Total times " << std::endl;
+    ios << std::right << std::setfill(' ');
+    ios << std::setw(maxlen + 2) << "Function Name"
+        << std::setw(colWidth + 2) << "NCalls"
+        << std::setw(colWidth + 2) << "Time"
         << std::setw(colWidth + 4) << "Percent %"
         << std::endl;
   }
@@ -306,19 +310,25 @@ void Profiler::WriteRow(std::ostream &ios, const std::string &fname,
 			const int colWidth, const Real maxlen,
 			const bool bwriteavg)
 {
+    int numPrec(4), pctPrec(2);
     if(bwriteavg) {
+      ios << std::right;
       ios << std::setw(maxlen + 2) << fname << "  "
-          << std::setw(8) << pstats.nCalls << "  "
-          << std::setprecision(6) << std::fixed << std::setw(colWidth)
-	  << pstats.minTime << "  " << pstats.avgTime << "  " << pstats.maxTime
-          << std::setprecision(4) << std::fixed << std::setw(colWidth)
+          << std::setw(colWidth) << pstats.nCalls << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+	  << pstats.minTime << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+	  << pstats.avgTime << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+	  << pstats.maxTime << "  "
+          << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
 	  << percent << " %" << std::endl;
     } else {
       ios << std::setw(maxlen + 2) << fname << "  "
-          << std::setw(8) << pstats.nCalls << "  "
-          << std::setprecision(6) << std::fixed << std::setw(colWidth)
+          << std::setw(colWidth) << pstats.nCalls << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.totalTime << "  "
-          << std::setprecision(4) << std::fixed << std::setw(colWidth)
+          << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
 	  << percent << " %" << std::endl;
     }
 }
