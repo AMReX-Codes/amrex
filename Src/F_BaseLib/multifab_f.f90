@@ -48,6 +48,16 @@ module multifab_module
      type(lfab), pointer :: fbs(:)   => Null()
   end type lmultifab
 
+  type mf_fb_data
+     integer :: tag = 100
+     logical :: sent = .false.
+     logical :: rcvd = .false.
+     integer, pointer :: send_request(:) => Null()
+     integer, pointer :: recv_request(:) => Null()
+     real(dp_t), pointer :: send_buffer(:) => Null()
+     real(dp_t), pointer :: recv_buffer(:) => Null()
+  end type mf_fb_data
+
   interface cell_centered_q
      module procedure multifab_cell_centered_q
      module procedure imultifab_cell_centered_q
@@ -408,6 +418,7 @@ module multifab_module
 
   private :: mf_fb_fancy_double, mf_fb_fancy_integer, mf_fb_fancy_logical, mf_fb_fancy_z
   private :: mf_copy_fancy_double, mf_copy_fancy_integer, mf_copy_fancy_logical, mf_copy_fancy_z
+  private :: mf_fb_fancy_double_nowait
 
 contains
 
@@ -2054,6 +2065,178 @@ contains
 
   end subroutine mf_fb_fancy_double
 
+  subroutine mf_fb_fancy_double_nowait(mf, fb_data, c, nc, ng, lcross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer,        intent(in)    :: c, nc, ng
+    logical,        intent(in)    :: lcross
+    integer, intent(in), optional :: idim
+
+    real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
+    integer                 :: i, ii, jj, np
+    type(boxassoc)          :: bxasc
+
+    bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
+
+    do i = 1, bxasc%l_con%ncpy
+       ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
+       jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
+       p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
+       p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
+       call cpy_d(p1,p2)
+    end do
+
+    np = parallel_nprocs()
+
+    if (np == 1) then
+       fb_data%sent = .true. 
+       fb_data%rcvd = .true.
+       return
+    end if
+
+    allocate(fb_data%send_buffer(nc*bxasc%r_con%svol))
+    allocate(fb_data%recv_buffer(nc*bxasc%r_con%rvol))
+
+    do i = 1, bxasc%r_con%nsnd
+       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
+       call reshape_d_4_1(fb_data%send_buffer, 1 + nc*bxasc%r_con%snd(i)%pv, p)
+    end do
+
+    allocate(fb_data%send_request(bxasc%r_con%nsp))
+    allocate(fb_data%recv_request(bxasc%r_con%nrp))
+
+    if (bxasc%r_con%nsp .le. 0) then
+       fb_data%sent = .true. ! nothing to send
+    end if
+    if (bxasc%r_con%nrp .le. 0) then
+       fb_data%rcvd = .true. ! nothing to receive
+    end if
+
+    do i = 1, bxasc%r_con%nsp
+       fb_data%send_request(i) = parallel_isend_dv(fb_data%send_buffer(1+nc*bxasc%r_con%str(i)%pv:), &
+            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, fb_data%tag)
+    end do
+
+    do i = 1, bxasc%r_con%nrp
+       fb_data%recv_request(i) = parallel_irecv_dv(fb_data%recv_buffer(1+nc*bxasc%r_con%rtr(i)%pv:), &
+            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, fb_data%tag)
+    end do
+
+  end subroutine mf_fb_fancy_double_nowait
+
+  subroutine mf_fb_fancy_double_finish(mf, fb_data, c, nc, ng, lcross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer,        intent(in)    :: c, nc, ng
+    logical,        intent(in)    :: lcross
+    integer, intent(in), optional :: idim
+
+    real(dp_t), pointer :: p(:,:,:,:)
+    integer :: i, sh(MAX_SPACEDIM+1)
+    type(boxassoc) :: bxasc
+
+    if (fb_data%sent .and. fb_data%rcvd) return
+
+    if (.not. fb_data%sent) then
+       call parallel_wait(fb_data%send_request)
+       fb_data%sent = .true.
+       deallocate(fb_data%send_request)
+       deallocate(fb_data%send_buffer)
+    end if
+
+    if (.not. fb_data%rcvd) then
+       bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
+
+       call parallel_wait(fb_data%recv_request)
+
+       do i = 1, bxasc%r_con%nrcv
+          sh = bxasc%r_con%rcv(i)%sh
+          sh(4) = nc
+          p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+          call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
+       end do
+
+       fb_data%rcvd = .true.
+       deallocate(fb_data%recv_request)
+       deallocate(fb_data%recv_buffer)
+    end if
+
+  end subroutine mf_fb_fancy_double_finish
+
+  subroutine mf_fb_fancy_double_waitrecv(mf, fb_data, c, nc, ng, lcross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer,        intent(in)    :: c, nc, ng
+    logical,        intent(in)    :: lcross
+    integer, intent(in), optional :: idim
+
+    real(dp_t), pointer :: p(:,:,:,:)
+    integer :: i, sh(MAX_SPACEDIM+1)
+    type(boxassoc) :: bxasc
+
+    if (fb_data%rcvd) return
+
+    if (.not. fb_data%rcvd) then
+       bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
+
+       call parallel_wait(fb_data%recv_request)
+
+       do i = 1, bxasc%r_con%nrcv
+          sh = bxasc%r_con%rcv(i)%sh
+          sh(4) = nc
+          p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+          call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
+       end do
+
+       fb_data%rcvd = .true.
+       deallocate(fb_data%recv_request)
+       deallocate(fb_data%recv_buffer)
+    end if
+
+  end subroutine mf_fb_fancy_double_waitrecv
+
+  subroutine mf_fb_fancy_double_test(mf, fb_data, c, nc, ng, lcross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer,        intent(in)    :: c, nc, ng
+    logical,        intent(in)    :: lcross
+    integer, intent(in), optional :: idim
+
+    real(dp_t), pointer :: p(:,:,:,:)
+    integer :: i, sh(MAX_SPACEDIM+1)
+    type(boxassoc) :: bxasc
+
+    if (fb_data%sent .and. fb_data%rcvd) return
+
+    if (.not. fb_data%sent) then
+       fb_data%sent = parallel_test(fb_data%send_request)
+    end if
+
+    if (fb_data%sent .and. associated(fb_data%send_buffer)) then
+       deallocate(fb_data%send_request)
+       deallocate(fb_data%send_buffer)
+    end if
+
+    if (.not. fb_data%rcvd) then
+       fb_data%rcvd = parallel_test(fb_data%recv_request)
+    end if
+
+    if (fb_data%rcvd .and. associated(fb_data%recv_buffer)) then
+       bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
+
+       do i = 1, bxasc%r_con%nrcv
+          sh = bxasc%r_con%rcv(i)%sh
+          sh(4) = nc
+          p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+          call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
+       end do
+
+       deallocate(fb_data%recv_request)
+       deallocate(fb_data%recv_buffer)
+    end if
+
+  end subroutine mf_fb_fancy_double_test
+
   subroutine mf_fb_fancy_integer(mf, c, nc, ng, lcross)
     type(imultifab), intent(inout) :: mf
     integer,         intent(in)    :: c, nc, ng
@@ -2245,6 +2428,136 @@ contains
     logical, intent(in), optional :: cross
     call multifab_fill_boundary_c(mf, 1, mf%nc, ng, cross, idim)
   end subroutine multifab_fill_boundary
+
+  subroutine multifab_fill_boundary_nowait_c(mf, fb_data, c, nc, ng, cross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer, intent(in)           :: c, nc
+    integer, intent(in), optional :: ng, idim
+    logical, intent(in), optional :: cross
+    integer :: lng
+    logical :: lcross
+    type(bl_prof_timer), save :: bpt
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
+    if ( lng > mf%ng      ) call bl_error("MULTIFAB_FILL_BOUNDARY_NOWAIT_C: ng too large", lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_NOWAIT_C: nc too large', nc)
+    if ( present(idim) ) then
+       if (idim > 0) lcross = .true. 
+    end if
+   
+    ! If the boxarray is contained in the domain, then this made sense because nothing will
+    !  be done if ng = 0.  However, sometimes fillpatch calls this with a boxarray that is 
+    !  not contained in the domain, and we need to use fill_boundary to fill regions of the 
+    !  boxarray that are "valid" (i.e. not ghost cells) but that are outside the domain.
+    ! if ( lng < 1          ) return
+
+    call build(bpt, "mf_fill_boundary_nowait_c")
+    call mf_fb_fancy_double_nowait(mf, fb_data, c, nc, lng, lcross, idim)
+    call destroy(bpt)
+  end subroutine multifab_fill_boundary_nowait_c
+
+  subroutine multifab_fill_boundary_nowait(mf, fb_data, ng, cross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer, intent(in), optional :: ng, idim
+    logical, intent(in), optional :: cross
+    call multifab_fill_boundary_nowait_c(mf, fb_data, 1, mf%nc, ng, cross, idim)
+  end subroutine multifab_fill_boundary_nowait
+
+  subroutine multifab_fill_boundary_finish_c(mf, fb_data, c, nc, ng, cross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer, intent(in)           :: c, nc
+    integer, intent(in), optional :: ng, idim
+    logical, intent(in), optional :: cross
+    integer :: lng
+    logical :: lcross
+    type(bl_prof_timer), save :: bpt
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
+    if ( lng > mf%ng      ) call bl_error("MULTIFAB_FILL_BOUNDARY_FINISH_C: ng too large", lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_FINISH_C: nc too large', nc)
+    if ( present(idim) ) then
+       if (idim > 0) lcross = .true. 
+    end if
+    call build(bpt, "mf_fill_boundary_finish_c")
+    call mf_fb_fancy_double_finish(mf, fb_data, c, nc, lng, lcross, idim)
+    call destroy(bpt)
+  end subroutine multifab_fill_boundary_finish_c
+
+  subroutine multifab_fill_boundary_waitrecv_c(mf, fb_data, c, nc, ng, cross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer, intent(in)           :: c, nc
+    integer, intent(in), optional :: ng, idim
+    logical, intent(in), optional :: cross
+    integer :: lng
+    logical :: lcross
+    type(bl_prof_timer), save :: bpt
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
+    if ( lng > mf%ng      ) call bl_error("MULTIFAB_FILL_BOUNDARY_WAITRECV_C: ng too large", lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_WAITRECV_C: nc too large', nc)
+    if ( present(idim) ) then
+       if (idim > 0) lcross = .true. 
+    end if
+    call build(bpt, "mf_fill_boundary_waitrecv_c")
+    call mf_fb_fancy_double_waitrecv(mf, fb_data, c, nc, lng, lcross, idim)
+    call destroy(bpt)
+  end subroutine multifab_fill_boundary_waitrecv_c
+
+  subroutine multifab_fill_boundary_finish(mf, fb_data, ng, cross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer, intent(in), optional :: ng, idim
+    logical, intent(in), optional :: cross
+    call multifab_fill_boundary_finish_c(mf, fb_data, 1, mf%nc, ng, cross, idim)
+  end subroutine multifab_fill_boundary_finish
+
+  subroutine multifab_fill_boundary_waitrecv(mf, fb_data, ng, cross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer, intent(in), optional :: ng, idim
+    logical, intent(in), optional :: cross
+    call multifab_fill_boundary_waitrecv_c(mf, fb_data, 1, mf%nc, ng, cross, idim)
+  end subroutine multifab_fill_boundary_waitrecv
+
+  subroutine multifab_fill_boundary_test_c(mf, fb_data, c, nc, ng, cross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer, intent(in)           :: c, nc
+    integer, intent(in), optional :: ng, idim
+    logical, intent(in), optional :: cross
+    integer :: lng
+    logical :: lcross
+    type(bl_prof_timer), save :: bpt
+    lcross  = .false.; if ( present(cross)  ) lcross  = cross
+    lng     = mf%ng;   if ( present(ng)     ) lng     = ng
+    if ( lng > mf%ng      ) call bl_error("MULTIFAB_FILL_BOUNDARY_TEST_C: ng too large", lng)
+    if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_TEST_C: nc too large', nc)
+    if ( present(idim) ) then
+       if (idim > 0) lcross = .true. 
+    end if
+   
+    ! If the boxarray is contained in the domain, then this made sense because nothing will
+    !  be done if ng = 0.  However, sometimes fillpatch calls this with a boxarray that is 
+    !  not contained in the domain, and we need to use fill_boundary to fill regions of the 
+    !  boxarray that are "valid" (i.e. not ghost cells) but that are outside the domain.
+    ! if ( lng < 1          ) return
+
+    call build(bpt, "mf_fill_boundary_test_c")
+    call mf_fb_fancy_double_test(mf, fb_data, c, nc, lng, lcross, idim)
+    call destroy(bpt)
+  end subroutine multifab_fill_boundary_test_c
+
+  subroutine multifab_fill_boundary_test(mf, fb_data, ng, cross, idim)
+    type(multifab), intent(inout) :: mf
+    type(mf_fb_data), intent(inout) :: fb_data
+    integer, intent(in), optional :: ng, idim
+    logical, intent(in), optional :: cross
+    call multifab_fill_boundary_test_c(mf, fb_data, 1, mf%nc, ng, cross, idim)
+  end subroutine multifab_fill_boundary_test
 
   subroutine imultifab_fill_boundary_c(mf, c, nc, ng, cross)
     type(imultifab), intent(inout) :: mf

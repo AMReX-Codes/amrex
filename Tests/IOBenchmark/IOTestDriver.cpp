@@ -21,7 +21,8 @@ using std::cerr;
 using std::endl;
 
 
-void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes);
+void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
+                     bool raninit, bool mb2);
 void TestReadMF();
 
 
@@ -37,6 +38,8 @@ static void PrintUsage(const char *progName) {
     cout << "   [nboxes = nboxes]" << '\n';
     cout << "   [nsleep = nsleep]" << '\n';
     cout << "   [ntimes = ntimes]" << '\n';
+    cout << "   [raninit = tf]" << '\n';
+    cout << "   [mb2    = tf]" << '\n';
     cout << '\n';
     cout << "Running with default values." << '\n';
     cout << '\n';
@@ -59,39 +62,38 @@ int main(int argc, char *argv[]) {
   int myproc(ParallelDescriptor::MyProc());
   int nprocs(ParallelDescriptor::NProcs());
   int nsleep(0), nfiles(std::min(nprocs, 128));  // limit default to max of 128
-  int maxgrid(32), ncomps(1), nboxes(nprocs), ntimes(1);
+  int maxgrid(32), ncomps(4), nboxes(nprocs), ntimes(1);
+  bool raninit(false), mb2(false);
 
   pp.query("nfiles", nfiles);
   nfiles = std::max(1, std::min(nfiles, nprocs));
+
+  pp.query("maxgrid", maxgrid);
+  maxgrid = std::max(4, std::min(maxgrid, 256));
+
+  pp.query("ncomps", ncomps);
+  ncomps = std::max(1, std::min(ncomps, 256));
+
+  pp.query("nboxes", nboxes);
+  nboxes = std::max(1, nboxes);
+
+  pp.query("ntimes", ntimes);
+  ntimes = std::max(1, ntimes);
+
+  pp.query("raninit", raninit);
+  pp.query("mb2", mb2);
+
   if(ParallelDescriptor::IOProcessor()) {
     cout << endl;
     cout << "**************************************************" << endl;
     cout << "nprocs = " << nprocs << endl;
     cout << "nfiles = " << nfiles << endl;
-  }
-
-  pp.query("maxgrid", maxgrid);
-  maxgrid = std::max(4, std::min(maxgrid, 256));
-  if(ParallelDescriptor::IOProcessor()) {
     cout << "maxgrid = " << maxgrid << endl;
-  }
-
-  pp.query("ncomps", ncomps);
-  ncomps = std::max(1, std::min(ncomps, 256));
-  if(ParallelDescriptor::IOProcessor()) {
     cout << "ncomps = " << ncomps << endl;
-  }
-
-  pp.query("nboxes", nboxes);
-  nboxes = std::max(1, nboxes);
-  if(ParallelDescriptor::IOProcessor()) {
     cout << "nboxes = " << nboxes << endl;
-  }
-
-  pp.query("ntimes", ntimes);
-  ntimes = std::max(1, ntimes);
-  if(ParallelDescriptor::IOProcessor()) {
     cout << "ntimes = " << ntimes << endl;
+    cout << "raninit = " << raninit << endl;
+    cout << "mb2 = " << mb2 << endl;
   }
 
   pp.query("nsleep", nsleep);
@@ -111,7 +113,7 @@ int main(int argc, char *argv[]) {
       cout << "Testing NFiles Write" << endl;
     }
 
-    TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes);
+    TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2);
 
     if(ParallelDescriptor::IOProcessor()) {
       cout << "==================================================" << endl;

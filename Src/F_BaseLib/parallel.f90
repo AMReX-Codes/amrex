@@ -25,6 +25,7 @@ module parallel
   integer, private :: m_nprocs = -1
   integer, private :: m_myproc = -1
   integer, private :: m_comm   = -1
+  integer, private :: m_thread_support_level = MPI_THREAD_SINGLE
 
   interface parallel_reduce
      module procedure parallel_reduce_d
@@ -204,13 +205,19 @@ contains
     call MPI_Initialized(r, ierr)
   end function parallel_initialized
 
-  subroutine parallel_initialize(comm)
-    integer, intent(in), optional :: comm
+  subroutine parallel_initialize(comm, thread_support_level)
+    integer, intent(in), optional :: comm, thread_support_level
     integer ierr
     logical flag
     external MPI_Init, MPI_Comm_Dup, MPI_Comm_Size, MPI_Comm_Rank
     call MPI_Initialized(flag, ierr)
-    if ( .not. flag ) call MPI_Init(ierr)
+    if ( .not. flag ) then
+       if (present(thread_support_level)) then
+          call MPI_Init_thread(thread_support_level, m_thread_support_level, ierr)
+       else
+          call MPI_Init(ierr)
+       end if
+    end if
     if ( present(comm) ) then
        call MPI_Comm_Dup(comm, m_comm, ierr)
     else
@@ -268,6 +275,10 @@ contains
     integer :: r
     r = io_processor_node
   end function parallel_IOProcessorNode
+  pure function parallel_thread_support_level() result(r)
+    integer :: r
+    r = m_thread_support_level
+  end function parallel_thread_support_level
   function parallel_wtime() result(r)
     real(kind=dp_t) :: r
     r = MPI_Wtime()
@@ -606,7 +617,7 @@ contains
     integer, intent(out), optional :: status(MPI_STATUS_SIZE)
     integer :: ierr, lstatus(MPI_STATUS_SIZE)
     external MPI_Test
-    call MPI_Test(r, req, lstatus, ierr)
+    call MPI_Test(req, r, lstatus, ierr)
     if ( present(status) ) status = lstatus
   end function parallel_test_one
 
