@@ -107,7 +107,7 @@ DistributionMapping::Initialize ()
     // Set defaults here!!!
     //
     verbose          = false;
-    sfc_threshold    = 4;
+    sfc_threshold    = 0;
     max_efficiency   = 0.9;
     do_full_knapsack = false;
 
@@ -998,11 +998,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
         m_ref->m_pmap.resize(boxes.size()+1);
     }
 
-    if (boxes.size() <= nprocs || nprocs < 2)
-    {
-        RoundRobinProcessorMap(boxes,nprocs);
-    }
-    else if (boxes.size() < sfc_threshold*nprocs)
+    if (boxes.size() < sfc_threshold*nprocs)
     {
         KnapSackProcessorMap(boxes,nprocs);
     }
@@ -1013,7 +1009,9 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
         wgts.reserve(boxes.size());
 
         for (BoxArray::const_iterator it = boxes.begin(), End = boxes.end(); it != End; ++it)
+        {
             wgts.push_back(it->volume());
+        }
 
         SFCProcessorMapDoIt(boxes,wgts,nprocs);
     }
@@ -1032,11 +1030,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
         m_ref->m_pmap.resize(wgts.size()+1);
     }
 
-    if (boxes.size() <= nprocs || nprocs < 2)
-    {
-        RoundRobinProcessorMap(boxes,nprocs);
-    }
-    else if (boxes.size() < sfc_threshold*nprocs)
+    if (boxes.size() < sfc_threshold*nprocs)
     {
         KnapSackProcessorMap(wgts,nprocs);
     }

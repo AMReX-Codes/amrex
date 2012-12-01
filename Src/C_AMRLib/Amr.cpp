@@ -683,6 +683,8 @@ Amr::writePlotFile ()
 {
     if (!Plot_Files_Output()) return;
 
+    BL_PROFILE("Amr::writePlotFile()");
+
     VisMF::SetNOutFiles(plot_nfiles);
 
     if (first_plotfile) 
@@ -751,10 +753,12 @@ Amr::writePlotFile ()
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
+#ifndef BL_PROFILING
         if (ParallelDescriptor::IOProcessor())
         {
             std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds" << '\n';
         }
+#endif
     }
     ParallelDescriptor::Barrier();
 }
@@ -852,6 +856,7 @@ Amr::init (Real strt_time,
 void
 Amr::readProbinFile (int& init)
 {
+    BL_PROFILE("Amr::readProbinFile()");
     //
     // Populate integer array with name of probin file.
     //
@@ -1032,6 +1037,7 @@ Amr::initialInit (Real strt_time,
 void
 Amr::restart (const std::string& filename)
 {
+    BL_PROFILE("Amr::restart()");
     Real dRestartTime0 = ParallelDescriptor::second();
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
@@ -1294,6 +1300,8 @@ Amr::checkPoint ()
 {
     if (!checkpoint_files_output) return;
 
+    BL_PROFILE("Amr::checkPoint()");
+
     VisMF::SetNOutFiles(checkpoint_nfiles);
     //
     // In checkpoint files always write out FABs in NATIVE format.
@@ -1431,6 +1439,7 @@ Amr::timeStep (int  level,
                int  niter,
                Real stop_time)
 {
+    BL_PROFILE("Amr::timeStep()");
     //
     // Allow regridding of level 0 calculation on restart.
     //
@@ -1605,6 +1614,7 @@ Amr::timeStep (int  level,
 void
 Amr::coarseTimeStep (Real stop_time)
 {
+    BL_PROFILE("Amr::coarseTimeStep()");
     const Real run_strt = ParallelDescriptor::second() ;
     //
     // Compute new dt.
@@ -1662,6 +1672,7 @@ Amr::coarseTimeStep (Real stop_time)
                       << min_fab_bytes << " ... " << max_fab_bytes << "]\n";
     }
 
+    BL_PROFILE_ADD_STEP(level_steps[0]);
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
         std::cout << "\nSTEP = "
@@ -1815,6 +1826,8 @@ Amr::regrid (int  lbase,
              Real time,
              bool initial)
 {
+    BL_PROFILE("Amr::regrid()");
+
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
         std::cout << "REGRID: at level lbase = " << lbase << std::endl;
 
@@ -2095,6 +2108,7 @@ Amr::grid_places (int              lbase,
                   int&             new_finest,
                   Array<BoxArray>& new_grids)
 {
+    BL_PROFILE("Amr::grid_places()");
     int i, max_crse = std::min(finest_level,max_level-1);
 
     const Real strttime = ParallelDescriptor::second();

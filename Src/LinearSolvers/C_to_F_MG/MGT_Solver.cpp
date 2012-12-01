@@ -340,7 +340,7 @@ MGT_Solver::initialize(bool nodal)
         }
     } else
     {
-        def_bottom_solver = 3;
+        def_bottom_solver = 1;
     }
 
     pp.query("bottom_solver", def_bottom_solver);

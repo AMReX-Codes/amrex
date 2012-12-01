@@ -11,6 +11,8 @@ module parallel
 
   ! Some selected values based on MPICH/1.2.5 unix implementation
 
+  integer, parameter :: MPI_COMM_WORLD = 0
+
   integer, parameter :: MPI_UNDEFINED   = -32766
   integer, parameter :: MPI_STATUS_SIZE = 4
   integer, parameter :: MPI_SOURCE      = 2
@@ -33,10 +35,16 @@ module parallel
   integer, parameter :: MPI_ANY_SOURCE = -2
   integer, parameter :: MPI_ANY_TAG    = -1
 
+  integer, parameter :: MPI_THREAD_SINGLE     = 0
+  integer, parameter :: MPI_THREAD_FUNNELED   = 1
+  integer, parameter :: MPI_THREAD_SERIALIZED = 2
+  integer, parameter :: MPI_THREAD_MULTIPLE   = 3
+
   integer, parameter, private :: io_processor_node = 0
   integer, private :: m_nprocs = 1
   integer, private :: m_myproc = 0
   integer, private :: m_comm   = -1
+  integer, private :: m_thread_support_level = 0
 
   ! interface communicator
   !    module procedure parallel_communicator
@@ -219,8 +227,8 @@ contains
     r = g_init
   end function parallel_initialized
 
-  subroutine parallel_initialize(comm)
-    integer, intent(in), optional :: comm
+  subroutine parallel_initialize(comm, thread_support_level)
+    integer, intent(in), optional :: comm, thread_support_level
     g_init = .True.
   end subroutine parallel_initialize
 
@@ -264,6 +272,10 @@ contains
     integer :: r
     r = io_processor_node
   end function parallel_IOProcessorNode
+  pure function parallel_thread_support_level() result(r)
+    integer :: r
+    r = m_thread_support_level
+  end function parallel_thread_support_level
   function parallel_wtime() result(r)
     real(kind=dp_t) :: r
     interface
