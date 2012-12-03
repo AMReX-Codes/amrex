@@ -299,6 +299,19 @@ namespace BoxLib
     private:
 	std::string istr;
     };
+
+    class StreamRetry
+    {
+      public:
+        StreamRetry(std::ostream &os, const std::string &suffix,
+	            const int maxtries);
+	bool TryOutput();
+      private:
+        int tries, maxTries;
+	std::ostream &sros;
+	std::ostream::pos_type spos;
+	std::string suffix;
+    };
 }
 
 //

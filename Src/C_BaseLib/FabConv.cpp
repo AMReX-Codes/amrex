@@ -9,6 +9,7 @@
 #include <FArrayBox.H>
 #include <FPC.H>
 #include <REAL.H>
+#include <Utility.H>
 
 bool RealDescriptor::bAlwaysFixDenormals (false);
 
@@ -809,14 +810,16 @@ std::ostream&
 operator<< (std::ostream&         os,
             const RealDescriptor& id)
 {
+  BoxLib::StreamRetry sr(os, "opRD", 4);
+
+  while(sr.TryOutput()) {
     os << "(";
     putarray(os, id.formatarray());
     os << ',';
     putarray(os, id.orderarray());
     os << ")";
-    if (os.fail())
-        BoxLib::Error("operator<<(ostream&,RealDescriptor&) failed");
-    return os;
+  }
+  return os;
 }
 
 std::istream&
@@ -964,6 +967,13 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
                                          const Real*           in,
                                          const RealDescriptor& od)
 {
+  long nitemsSave(nitems);
+  const Real *inSave(in);
+  BoxLib::StreamRetry sr(os, "RD_cFNF", 4);
+
+  while(sr.TryOutput()) {
+    nitems = nitemsSave;
+    in = inSave;
     const int SHOULDWRITE = 8192;
 
     char* bufr = new char[SHOULDWRITE * od.numBytes()];
@@ -983,9 +993,7 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
         in     += put;
     }
 
-    if (os.fail())
-        BoxLib::Error("convert(ostream&,long,Real*,RealDescriptor&): failed");
-
     delete [] bufr;
+  }
 }
 

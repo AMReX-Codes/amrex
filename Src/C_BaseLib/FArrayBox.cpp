@@ -17,6 +17,7 @@
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <Looping.H>
+#include <Utility.H>
 
 static const char sys_name[] = "IEEE";
 //
@@ -125,9 +126,10 @@ FABio::write_header (std::ostream&    os,
                      int              nvar) const
 {
     BL_ASSERT(nvar <= f.nComp());
-    os << f.box() << ' ' << nvar << '\n';
-    if (os.fail())
-        BoxLib::Error("FABio::write_header() failed");
+    BoxLib::StreamRetry sr(os, "FABio_write_header", 4);
+    while(sr.TryOutput()) {
+      os << f.box() << ' ' << nvar << '\n';
+    }
 }
 
 FABio::Format FArrayBox::format;
