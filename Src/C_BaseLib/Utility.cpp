@@ -18,9 +18,7 @@
 #include <BLassert.H>
 #include <Profiler.H>
 
-#ifdef BL_BGL
 #include <ParallelDescriptor.H>
-#endif
 
 #ifdef WIN32
 #include <direct.h>
@@ -1100,3 +1098,45 @@ BoxLib::expect::the_string() const
 {
     return istr;
 }
+
+
+//
+// StreamRetry
+//
+
+BoxLib::StreamRetry::StreamRetry(std::ostream &os, const std::string &suffix,
+                                 const int maxtries)
+    : tries(0), maxTries(maxtries), sros(os), spos(os.tellp()), suffix(suffix)
+{
+}
+
+bool BoxLib::StreamRetry::TryOutput()
+{
+  if(tries++ == 0) {
+    return true;
+  } else {
+    if(sros.fail()) {
+      int myProc(ParallelDescriptor::MyProc());
+      if(tries < maxTries) {
+        std::cout << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
+                  << tries << " :: ";
+        std::cout << "gbfe:  " << sros.good() << sros.bad() << sros.fail() << sros.eof()
+                  << std::endl;
+        sros.clear();  // clear the bad bits
+        sros.seekp(spos, std::ios::beg);  // reset stream position
+        return true;
+      } else {
+        std::cout << "PROC: " << myProc << " :: STREAMFAILED_" << suffix
+                  << " :: File may be corrupt.  :: ";
+        std::cout << "gbfe:  " << sros.good() << sros.bad() << sros.fail() << sros.eof()
+                  << std::endl;
+        sros.clear();  // clear the bad bits
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+}
+
+
