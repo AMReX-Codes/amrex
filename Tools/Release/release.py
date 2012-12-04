@@ -98,7 +98,7 @@ def release(argv):
     print "\nYou now need to make an important choice!  There are three things need to be done."
     print "   (1) Push the new public release using 'git push' in", my_public_git+"."
     print "   (2) Push the new tag using 'git push --tags' in", my_public_git+"."
-    print "   (2) Push the new tag using 'git push --tags' in", my_private_git+"."
+    print "   (3) Push the new tag using 'git push --tags' in", my_private_git+"."
     while True:
         uin = raw_input("\nDo you want these to be done by the script? (y or n) ")
         if uin == 'y':
