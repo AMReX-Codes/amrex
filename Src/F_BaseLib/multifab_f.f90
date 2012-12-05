@@ -2112,14 +2112,14 @@ contains
        fb_data%rcvd = .true. ! nothing to receive
     end if
 
-    do i = 1, bxasc%r_con%nsp
-       fb_data%send_request(i) = parallel_isend_dv(fb_data%send_buffer(1+nc*bxasc%r_con%str(i)%pv:), &
-            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, fb_data%tag)
-    end do
-
     do i = 1, bxasc%r_con%nrp
        fb_data%recv_request(i) = parallel_irecv_dv(fb_data%recv_buffer(1+nc*bxasc%r_con%rtr(i)%pv:), &
             nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, fb_data%tag)
+    end do
+
+    do i = 1, bxasc%r_con%nsp
+       fb_data%send_request(i) = parallel_isend_dv(fb_data%send_buffer(1+nc*bxasc%r_con%str(i)%pv:), &
+            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, fb_data%tag)
     end do
 
   end subroutine mf_fb_fancy_double_nowait
