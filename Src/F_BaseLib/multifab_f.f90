@@ -2076,6 +2076,15 @@ contains
     integer                 :: i, ii, jj, np
     type(boxassoc)          :: bxasc
 
+    ! make sure fb_data is clean
+    fb_data%sent = .false.
+    fb_data%rcvd = .false.
+    ! This shouln't happen, unless you forget to call multifab_fill_boundary_finish.
+    if (associated(fb_data%send_request)) deallocate(fb_data%send_request)
+    if (associated(fb_data%recv_request)) deallocate(fb_data%recv_request)
+    if (associated(fb_data%send_buffer )) deallocate(fb_data%send_buffer)
+    if (associated(fb_data%recv_buffer )) deallocate(fb_data%recv_buffer)
+
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
     do i = 1, bxasc%l_con%ncpy
@@ -2107,9 +2116,13 @@ contains
 
     if (bxasc%r_con%nsp .le. 0) then
        fb_data%sent = .true. ! nothing to send
+       deallocate(fb_data%send_request)
+       deallocate(fb_data%send_buffer)
     end if
     if (bxasc%r_con%nrp .le. 0) then
        fb_data%rcvd = .true. ! nothing to receive
+       deallocate(fb_data%recv_request)
+       deallocate(fb_data%recv_buffer)
     end if
 
     do i = 1, bxasc%r_con%nrp
