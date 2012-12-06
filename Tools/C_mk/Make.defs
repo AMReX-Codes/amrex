@@ -687,8 +687,8 @@ ifeq ($(FCOMP),Intel)
    ifneq ($(IFC_MAJOR_VERSION), 9)
      ifneq ($(IFC_MAJOR_VERSION), 10)
      ifneq ($(IFC_MAJOR_VERSION), 11)
-       FDEBF += -CB -warn all -warn nounused
-       fDEBF += -CB -warn all -warn nounused 
+       FDEBF += -CB #-warn all -warn nounused
+       fDEBF += -CB #-warn all -warn nounused 
      endif
      endif
    else
