@@ -233,7 +233,11 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
       it != mProfStats.end(); ++it)
   {
-    percent = 100.0 * (it->second.totalTime / pTimeTotal);
+    if(bwriteavg) {
+      percent = 100.0 * (it->second.avgTime / pTimeTotal);
+    } else {
+      percent = 100.0 * (it->second.totalTime / pTimeTotal);
+    }
     std::string fname(it->first);
     ProfStats pstats = it->second;
     WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
