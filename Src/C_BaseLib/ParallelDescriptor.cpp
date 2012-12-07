@@ -974,8 +974,6 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
                               Array<int>&         indx,
                               Array<MPI_Status>&  status)
 {
-    BL_PROFILE("ParallelDescriptor::Waitsome");
-
 #ifdef JEFF_TEST
     std::vector<MPI_Request> rq;
     for (int i = 0; i < reqs.size(); i++)
