@@ -4,6 +4,7 @@
 
 #include <FabSet.H>
 #include <ParallelDescriptor.H>
+#include <Profiler.H>
 #include <VisMF.H>
 
 FabSetCopyDescriptor::FabSetCopyDescriptor ()
@@ -287,6 +288,8 @@ FabSet::linComb (Real            a,
                  int             ncomp,
                  int             ngrow)
 {
+    BL_PROFILE("FabSet::linComb()");
+
     BL_ASSERT(ngrow <= mfa.nGrow());
     BL_ASSERT(ngrow <= mfb.nGrow());
 

@@ -1,10 +1,12 @@
 
 #include <cstdio>
-#include <Utility.H>
-#include <ParallelDescriptor.H>
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+
+#include <Utility.H>
+#include <Profiler.H>
+#include <ParallelDescriptor.H>
 
 namespace ParallelDescriptor
 {
@@ -219,6 +221,8 @@ ParallelDescriptor::ErrorString (int errorcode)
 void
 ParallelDescriptor::Message::wait ()
 {
+    BL_PROFILE("ParallelDescriptor::Message::wait()");
+
     BL_MPI_REQUIRE( MPI_Wait(&m_req, &m_stat) );
 }
 
@@ -272,7 +276,6 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_MPI_REQUIRE( MPI_Comm_size(Communicator(), &m_nProcs) );
 
     BL_MPI_REQUIRE( MPI_Comm_rank(Communicator(), &m_MyId) );
-
     //
     // Wait till all other processes are properly started.
     //
@@ -297,12 +300,16 @@ ParallelDescriptor::second ()
 void
 ParallelDescriptor::Barrier ()
 {
+    BL_PROFILE("ParallelDescriptor::Barrier()");
+
     BL_MPI_REQUIRE( MPI_Barrier(ParallelDescriptor::Communicator()) );
 }
 
 void
 ParallelDescriptor::Barrier (MPI_Comm comm)
 {
+    BL_PROFILE("ParallelDescriptor::Barrier(comm)");
+
     BL_MPI_REQUIRE( MPI_Barrier(comm) );
 }
 
@@ -329,6 +336,8 @@ void
 ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                            MPI_Op op)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
+
     Real recv;
 
     BL_MPI_REQUIRE( MPI_Allreduce(&r,
@@ -345,6 +354,8 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
+
     BL_ASSERT(cnt > 0);
 
     Array<Real> recv(cnt);
@@ -364,6 +375,8 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
+
     Real recv;
 
     BL_MPI_REQUIRE( MPI_Reduce(&r,
@@ -384,6 +397,8 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                         int    cnt,
                                         int    cpu)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
+
     BL_ASSERT(cnt > 0);
 
     Array<Real> recv(cnt);
@@ -480,6 +495,8 @@ void
 ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                            MPI_Op op)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
+
     long recv;
 
     BL_MPI_REQUIRE( MPI_Allreduce(&r,
@@ -496,6 +513,8 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
+
     BL_ASSERT(cnt > 0);
 
     Array<long> recv(cnt);
@@ -515,6 +534,8 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
+
     long recv;
 
     BL_MPI_REQUIRE( MPI_Reduce(&r,
@@ -535,6 +556,8 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                         int    cnt,
                                         int    cpu)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
+
     BL_ASSERT(cnt > 0);
 
     Array<long> recv(cnt);
@@ -654,6 +677,8 @@ void
 ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                           MPI_Op op)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
+
     int recv;
 
     BL_MPI_REQUIRE( MPI_Allreduce(&r,
@@ -670,6 +695,8 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           MPI_Op op,
                                           int    cnt)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
+
     BL_ASSERT(cnt > 0);
 
     Array<int> recv(cnt);
@@ -689,6 +716,8 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                        MPI_Op op,
                                        int    cpu)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
+
     int recv;
 
     BL_MPI_REQUIRE( MPI_Reduce(&r,
@@ -709,6 +738,8 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                        int    cnt,
                                        int    cpu)
 {
+    BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
+
     BL_ASSERT(cnt > 0);
 
     Array<int> recv(cnt);
@@ -848,6 +879,8 @@ ParallelDescriptor::Gather (Real* sendbuf,
                             Real* recvbuf,
                             int   root)
 {
+    BL_PROFILE("ParallelDescriptor::Gather()");
+
     BL_ASSERT(root >= 0);
     BL_ASSERT(nsend > 0);
     BL_ASSERT(!(sendbuf == 0));
@@ -941,6 +974,8 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
                               Array<int>&         indx,
                               Array<MPI_Status>&  status)
 {
+    BL_PROFILE("ParallelDescriptor::Waitsome");
+
 #ifdef JEFF_TEST
     std::vector<MPI_Request> rq;
     for (int i = 0; i < reqs.size(); i++)
