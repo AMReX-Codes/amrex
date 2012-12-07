@@ -30,7 +30,6 @@ namespace
     bool   verbose;
     int    sfc_threshold;
     double max_efficiency;
-    bool   do_full_knapsack;
 }
 
 DistributionMapping::Strategy DistributionMapping::m_Strategy;
@@ -110,7 +109,6 @@ DistributionMapping::Initialize ()
     verbose          = false;
     sfc_threshold    = 0;
     max_efficiency   = 0.9;
-    do_full_knapsack = false;
 
     ParmParse pp("DistributionMapping");
 
@@ -118,7 +116,6 @@ DistributionMapping::Initialize ()
     pp.query("verbose",          verbose);
     pp.query("efficiency",       max_efficiency);
     pp.query("sfc_threshold",    sfc_threshold);
-    pp.query("do_full_knapsack", do_full_knapsack);
 
     std::string theStrategy;
 
@@ -505,7 +502,8 @@ void
 knapsack (const std::vector<long>&         wgts,
           int                              nprocs,
           std::vector< std::vector<int> >& result,
-          double&                          efficiency)
+          double&                          efficiency,
+          bool                             do_full_knapsack)
 {
     //
     // Sort balls by size largest first.
@@ -655,15 +653,16 @@ top:
 void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
                                    int                      nprocs,
-                                   double&                  efficiency)
+                                   double&                  efficiency,
+                                   bool                     do_full_knapsack)
 {
-    const Real strttime = ParallelDescriptor::second();
+    BL_PROFILE("DistributionMapping::KnapSackDoIt()");
 
     std::vector< std::vector<int> > vec;
 
     efficiency = 0;
 
-    knapsack(wgts,nprocs,vec,efficiency);
+    knapsack(wgts,nprocs,vec,efficiency,do_full_knapsack);
 
     BL_ASSERT(vec.size() == nprocs);
 
@@ -713,19 +712,15 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        const Real stoptime = ParallelDescriptor::second() - strttime;
-
-        std::cout << "KNAPSACK efficiency: "
-                  << efficiency
-                  << ", time: "
-                  << stoptime << '\n';
+        std::cout << "KNAPSACK efficiency: " << efficiency << '\n';
     }
 }
 
 void
 DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
                                            int                      nprocs,
-                                           double*                  efficiency)
+                                           double*                  efficiency,
+                                           bool                     do_full_knapsack)
 {
     BL_ASSERT(wgts.size() > 0);
 
@@ -742,15 +737,9 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
     }
     else
     {
-        if (efficiency)
-        {
-            KnapSackDoIt(wgts, nprocs, *efficiency);
-        }
-        else
-        {
-            double eff;
-            KnapSackDoIt(wgts, nprocs, eff);
-        }
+        double eff = 0;
+        KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack);
+        if (efficiency) *efficiency = eff;
     }
 }
 
@@ -772,8 +761,9 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         for (unsigned int i = 0, N = boxes.size(); i < N; i++)
             wgts[i] = boxes[i].numPts();
 
-        double effi;
-        KnapSackDoIt(wgts, nprocs, effi);
+        double effi = 0;
+        bool do_full_knapsack = true;
+        KnapSackDoIt(wgts, nprocs, effi, do_full_knapsack);
     }
 }
 
@@ -885,7 +875,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
                                           int                      nprocs)
 {
-    const Real strttime = ParallelDescriptor::second();
+    BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
 
     std::vector<SFCToken> tokens;
 
@@ -972,8 +962,6 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        const Real stoptime = ParallelDescriptor::second() - strttime;
-
         Real sum_wgt = 0, max_wgt = 0;
         for (int i = 0, N = wgts_per_cpu.size(); i < N; i++)
         {
@@ -983,10 +971,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
             sum_wgt += W;
         }
 
-        std::cout << "SFC efficiency: "
-                  << (sum_wgt/(nprocs*max_wgt))
-                  << ", time: "
-                  << stoptime << '\n';
+        std::cout << "SFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
     }
 }
 
