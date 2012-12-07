@@ -8,6 +8,7 @@
 #include <ParmParse.H>
 #include <MultiFab.H>
 #include <FArrayBox.H>
+#include <Profiler.H>
 //
 // The definition of some static data members.
 //
@@ -181,6 +182,8 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 {
     if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
+    BL_PROFILE("Geometry::FillPeriodicBoundary()");
+
     Box TheDomain = Domain();
     for (int n = 0; n < BL_SPACEDIM; n++)
         if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
@@ -260,6 +263,8 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
                             int             dcomp,
                             int             ncomp)
 {
+    BL_PROFILE("SumPeriodicBoundaryInnards()");
+
 #ifndef NDEBUG
     //
     // Don't let folks ask for more grow cells than they have valid region.

@@ -1044,6 +1044,8 @@ MultiFab::SumBoundary (int scomp,
                        int ncomp)
 {
     if ( n_grow <= 0 ) return;
+
+    BL_PROFILE("MultiFab::SumBoundary()");
     //
     // We're going to attempt to reuse the information in the FillBoundary
     // cache.  The intersection info should be that same.  It's what we do

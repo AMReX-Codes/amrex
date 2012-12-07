@@ -6,6 +6,7 @@
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
+#include <Profiler.H>
 
 #include <iostream>
 #include <cstdlib>
@@ -194,6 +195,8 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
     result.resize(nprocs);
 
 #ifdef BL_USE_MPI
+    BL_PROFILE("DistributionMapping::LeastUsedCPUs()");
+
     Array<long> bytes(nprocs);
 
     MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,

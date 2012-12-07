@@ -7,6 +7,7 @@
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 #include <ParmParse.H>
+#include <Profiler.H>
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
@@ -389,6 +390,8 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                                      int           ncomp,
                                      Interpolater* mapper)
 {
+    BL_PROFILE("FillPatchIteratorHelper::Initialize()");
+
     BL_ASSERT(mapper);
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
@@ -821,6 +824,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                                int        dcomp,
                                int        idx)
 {
+    BL_PROFILE("FillPatchIteratorHelper::fill()");
+
     BL_ASSERT(fab.box() == m_ba[idx]);
     BL_ASSERT(fab.nComp() >= dcomp + m_ncomp);
 

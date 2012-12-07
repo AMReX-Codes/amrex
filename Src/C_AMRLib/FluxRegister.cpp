@@ -5,6 +5,7 @@
 #include <Geometry.H>
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
+#include <Profiler.H>
 #include <ccse-mpi.H>
 
 #include <deque>
@@ -255,6 +256,8 @@ FluxRegister::Reflux (MultiFab&       S,
                       const Geometry& geom,
 		      const Real*     multf)
 {
+    BL_PROFILE("FluxRegister::Reflux()");
+
     BoxArray ba = grids; ba.grow(1);
 
     FabSetId                          fsid[2*BL_SPACEDIM];
