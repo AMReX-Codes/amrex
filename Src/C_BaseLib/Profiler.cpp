@@ -216,7 +216,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     }
   }
   Real pTimeTotal(totalTimers);
-  if(calcRunTime > 0.0) {
+  if(calcRunTime > 0.0 && bwriteavg == false) {
     pTimeTotal = calcRunTime;
   }
 
@@ -229,6 +229,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     ios << "  Processor:  " << std::setw(colWidth) << myProc << std::endl;
   }
 
+  // -------- write timers sorted by name
   WriteHeader(ios, colWidth, maxlen, bwriteavg);
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
       it != mProfStats.end(); ++it)
@@ -239,7 +240,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
       percent = 100.0 * (it->second.totalTime / pTimeTotal);
     }
     std::string fname(it->first);
-    ProfStats pstats = it->second;
+    const ProfStats &pstats = it->second;
     WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
   }
   ios << std::endl;
@@ -252,14 +253,20 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     ios << "Percent Coverage = " << std::setw(colWidth) << percent << " %" << std::endl;
   }
 
+  // -------- write timers sorted by percent
   ios << std::endl;
   ios << std::endl;
   WriteHeader(ios, colWidth, maxlen, bwriteavg);
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
       it != mProfStats.end(); ++it)
   {
-    double dsec = it->second.totalTime;
-    std::string sfir = it->first;
+    double dsec;
+    if(bwriteavg) {
+      dsec = it->second.avgTime;
+    } else {
+      dsec = it->second.totalTime;
+    }
+    std::string sfir(it->first);
     mTimersTotalsSorted.insert(std::make_pair(dsec, sfir));
   }
 
@@ -268,7 +275,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   {
     percent = 100.0 * (it->first / pTimeTotal);
     std::string fname(it->second);
-    ProfStats pstats(mProfStats[fname]);
+    const ProfStats &pstats = mProfStats[fname];
     WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
   }
   if(bwriteavg) {
