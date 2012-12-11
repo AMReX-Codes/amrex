@@ -1461,3 +1461,9 @@ AmrLevel::estimateWork ()
 {
     return 1.0*countCells();
 }
+
+bool
+AmrLevel::writePlotNow ()
+{
+    return false;
+}
