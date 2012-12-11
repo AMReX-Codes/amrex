@@ -367,6 +367,11 @@ protected:
                    int  ncycle,
                    Real stop_time);
 
+    //
+    // Whether to write a plotfile now
+    //
+    bool writePlotNow ();
+
     void printGridInfo (std::ostream& os,
                         int           min_lev,
                         int           max_lev);
