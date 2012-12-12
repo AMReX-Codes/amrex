@@ -841,7 +841,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
     {
         std::cout << "Reading with " << NReaders << " readers\n";
-        std::cout << "Redistributing after every " << NPartPerRedist << " particles\n";
+        std::cout << "Redistributing after every " << NPartPerRedist << " particles for each reader\n";
     }
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
