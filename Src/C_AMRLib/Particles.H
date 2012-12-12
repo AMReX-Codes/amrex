@@ -829,17 +829,19 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     const Real strttime = ParallelDescriptor::second();
     //
     // Number of processes that read from the file.
+    // We limit this to a rather small number since there's a limit
+    // to the number of independent I/O channels on most filesystems.
     //
     const int NReaders = ParticleBase::MaxReaders();
     //
     // How many particles each NReaders reads before redistributing.
     //
-    const long NRedist = 1000000;
+    const long NPartPerRedist = 100000;
 
     if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-       std::cout << "Reading with " << NReaders  << " readers " << std::endl;
-       std::cout << "Redist  with " << NRedist   << " cores   " << std::endl;
+        std::cout << "Reading with " << NReaders << " readers\n";
+        std::cout << "Redistributing after every " << NPartPerRedist << " particles\n";
     }
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
@@ -928,11 +930,20 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                                             geom.ProbHi(1) - geom.ProbLo(1),
                                             geom.ProbHi(2) - geom.ProbLo(2))};
 
-    long how_many_redists = NP / (NRedist*NReaders);
+    long how_many_redists = NP / (NPartPerRedist*NReaders);
 
-    if (NP % (NRedist*NReaders)) how_many_redists++;
+    if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
 
     long how_many_read = 0;
+    //
+    // tmp_particles should mirror how m_particles is built.
+    // At the end of this routine it'll be the new m_particles.
+    //
+    Array<PMap> tmp_particles;
+
+    tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
+
+    tmp_particles.resize(m_amr->finestLevel()+1);
 
     for (int j = 0; j < how_many_redists; j++)
     {
@@ -940,11 +951,11 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
         {
             ParticleType p;
 
-            BL_ASSERT(MyCnt >= how_many_read);
+            BL_ASSERT(MyCnt > how_many_read);
 
-            const long nread = std::min((MyCnt-how_many_read), NRedist);
+            const long NR = std::min((MyCnt-how_many_read), NPartPerRedist);
 
-            for (long i = 0; i < nread; i++)
+            for (long i = 0; i < NR; i++)
             {
                 //
                 // We don't read in m_id or m_cpu.  We'll set those later
@@ -1013,7 +1024,36 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
             std::cout << "InitFromBinaryFile(): calling Redistribute()\n";
 
         Redistribute(true);
+        //
+        // Move particles in m_particles into tmp_particles so that
+        // we don't keep trying to redistribute particles that have
+        // already been redistributed correctly.
+        //
+        for (int lev = 0; lev < m_particles.size(); lev++)
+        {
+            PMap& pmap = m_particles[lev];
+
+            for (typename PMap::iterator pmap_it = pmap.begin(),
+                     End = pmap.end();
+                 pmap_it != End;
+                 ++pmap_it)
+            {
+                int   grid = pmap_it->first;
+                PBox& pbox = pmap_it->second;
+
+                while (!pbox.empty())
+                {
+                    tmp_particles[lev][grid].push_back(pbox.front());
+
+                    pbox.pop_front();
+                }
+            }
+
+            PMap().swap(pmap);
+        }
     }
+
+    tmp_particles.swap(m_particles);
     //
     // Add up all the particles read in on each processor to get the total number of particles.
     //
@@ -4614,9 +4654,13 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; )
         {
             if (pmap_it->second.empty())
+            {
                 pmap.erase(pmap_it++);
+            }
             else
+            {
                 ++pmap_it;
+            }
         }
     }
 
@@ -4686,7 +4730,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         //
         // There's no parallel work to do.
         //
-//        BL_ASSERT(OK());
         BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
         return;
     }
