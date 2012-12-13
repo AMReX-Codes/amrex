@@ -90,6 +90,8 @@ struct ParticleBase
     static void GetGravity (const FArrayBox& gfab, const Amr* amr, const ParticleBase& p, Real* grav);
 
     static int MaxReaders ();
+
+    static long MaxParticlesPerRead ();
     //
     // Returns the next particle ID for this processor.
     // Particle IDs start at 1 and are never reused.
@@ -828,7 +830,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     const int  MyProc   = ParallelDescriptor::MyProc();
     const Real strttime = ParallelDescriptor::second();
     //
-    // Number of processes that read from the file.
+    // The number of MPI processes that read from the file.
     // We limit this to a rather small number since there's a limit
     // to the number of independent I/O channels on most filesystems.
     //
@@ -836,31 +838,39 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     //
     // How many particles each NReaders reads before redistributing.
     //
-    const long NPartPerRedist = 100000;
+    const long NPartPerRedist = ParticleBase::MaxParticlesPerRead();
 
     if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
     {
         std::cout << "Reading with " << NReaders << " readers\n";
         std::cout << "Redistributing after every " << NPartPerRedist << " particles for each reader\n";
     }
+    //
+    // tmp_particles should mirror how m_particles is built.
+    // At the end of this routine it'll be the new m_particles.
+    //
+    Array<PMap> tmp_particles;
 
-    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
+    tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
+      m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
-    m_particles.resize(m_amr->finestLevel()+1);
+    tmp_particles.resize(m_amr->finestLevel()+1);
+      m_particles.resize(m_amr->finestLevel()+1);
     //
     // Only the first NReaders MPI processes read particles.
     // All the processors need to participate in Redistribute() though.
     //
+    int  NX = 0;
+    long NP = 0;
+
     std::ifstream ifs;
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    long NP = 0;
-    int  DM = 0;
-    int  NX = 0;
-
     if (MyProc < NReaders)
     {
+        int DM = 0;
+
         ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
         ifs.open(file.c_str(), std::ios::in|std::ios::binary);
@@ -914,7 +924,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     //
     ParallelDescriptor::ReduceLongMax(NP);
     //
-    // How many particles each Reader gets to read.
+    // How many particles each reader gets to read.
     //
     long MyCnt = NP / NReaders;
 
@@ -930,20 +940,9 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                                             geom.ProbHi(1) - geom.ProbLo(1),
                                             geom.ProbHi(2) - geom.ProbLo(2))};
 
-    long how_many_redists = NP / (NPartPerRedist*NReaders);
+    long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
     if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
-
-    long how_many_read = 0;
-    //
-    // tmp_particles should mirror how m_particles is built.
-    // At the end of this routine it'll be the new m_particles.
-    //
-    Array<PMap> tmp_particles;
-
-    tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
-
-    tmp_particles.resize(m_amr->finestLevel()+1);
 
     for (int j = 0; j < how_many_redists; j++)
     {
@@ -1015,13 +1014,10 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                 p.m_cpu = MyProc;
 
                 m_particles[p.m_lev][p.m_grid].push_back(p);
-
-                how_many_read++;
             }
-        }
 
-        if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
-            std::cout << "InitFromBinaryFile(): calling Redistribute()\n";
+            how_many_read += NR;
+        }
 
         Redistribute(true);
         //
@@ -1049,10 +1045,12 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
             PMap().swap(pmap);
         }
     }
-
+    //
+    // Make tmp_particles the new m_particles.
+    //
     tmp_particles.swap(m_particles);
     //
-    // Add up all the particles read in on each processor to get the total number of particles.
+    // Add up all the particles read in to get the total number of particles.
     //
     if (m_verbose > 0)
     {
@@ -3939,18 +3937,6 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
     {
         //This may not be "OK" since we're forcing levels.
         BL_ASSERT(notowned.empty());
-
-        //if (m_verbose > 1) No Verbosity yet
-        //{
-            //Real stoptime = ParallelDescriptor::second() - strttime;
-
-            //ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-            //ByteSpread();
-
-            //if (ParallelDescriptor::IOProcessor())
-                //std::cout << "ParticleContainer<N>::Redistribute()   scalar time: " << stoptime << '\n';
-        //}
 
         return;
     }
