@@ -440,6 +440,36 @@ ParticleBase::MaxReaders ()
     return Max_Readers;
 }
 
+long
+ParticleBase::MaxParticlesPerRead ()
+{
+    //
+    // This is the maximum particles that "each" reader will attempt to read
+    // before doing a Redistribute(). 
+    //
+    const long Max_Particles_Per_Read_def = 100000;
+
+    static long Max_Particles_Per_Read;
+
+    static bool first = true;
+
+    if (first)
+    {
+        first = false;
+
+        ParmParse pp("particles");
+
+        Max_Particles_Per_Read = Max_Particles_Per_Read_def;
+
+        pp.query("nparts_per_read", Max_Particles_Per_Read);
+
+        if (Max_Particles_Per_Read <= 0)
+            BoxLib::Abort("particles.nparts_per_read must be positive");
+    }
+
+    return Max_Particles_Per_Read;
+}
+
 const std::string&
 ParticleBase::DataPrefix ()
 {
