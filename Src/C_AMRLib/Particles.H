@@ -520,8 +520,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     if (Nrep != 0)
         lNrep = *Nrep;
 
-    long howmany      = 0;
-    long howmany_read = 0;
+    long how_many      = 0;
+    long how_many_read = 0;
     //
     // NReaders will read particles into a PBox.
     // Later they'll each put their chunk into m_particles and call Redistribute().
@@ -632,8 +632,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
             nparticles.push_back(p);
 
-            howmany++;
-            howmany_read++;
+            how_many++;
+            how_many_read++;
 
             Real domain_size[BL_SPACEDIM];
             for (int d=0; d<BL_SPACEDIM; ++d)
@@ -685,7 +685,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
    
                             nparticles.push_back(p_rep);
    
-                            howmany++;
+                            how_many++;
                         }
                     }
                 }
@@ -762,7 +762,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     {
         const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
 
-        long num_particles = howmany; 
+        long num_particles = how_many; 
 
         ParallelDescriptor::ReduceLongSum(num_particles, IOProcNumber);
 
@@ -773,7 +773,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         }
         else
         {
-            long num_particles_read = howmany_read; 
+            long num_particles_read = how_many_read; 
 
             ParallelDescriptor::ReduceLongSum(num_particles_read, IOProcNumber);
 
@@ -819,86 +819,54 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
 template <int N>
 void
-ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata)
+ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
+                                          int                extradata)
 {
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= N);
 
     const int  MyProc   = ParallelDescriptor::MyProc();
-    const int  NProcs   = ParallelDescriptor::NProcs();
     const Real strttime = ParallelDescriptor::second();
     //
     // Number of processes that read from the file.
+    // We limit this to a rather small number since there's a limit
+    // to the number of independent I/O channels on most filesystems.
     //
-    int NReaders = ParticleBase::MaxReaders();
+    const int NReaders = ParticleBase::MaxReaders();
     //
-    // Number of chunks we break the redistribution loop into
-    // This default is just for the case of NProcs = NReaders = 1.
+    // How many particles each NReaders reads before redistributing.
     //
-    int NRedist = 1;
-
-    if (NProcs <= 1024)
-    {
-       if (NReaders > 1)
-          NRedist = 2;
-    }
-    else if (NProcs <= 4096)
-    {
-       NReaders = std::max(NReaders,128);
-       NRedist  = 8;
-    }
-    else if (NProcs <= 8192)
-    {
-       NReaders = std::max(NReaders,384);
-       NRedist  = 32;
-    }
-    else if (NProcs <= 16384)
-    {
-       NReaders = std::max(NReaders,512);
-       NRedist  = 48;
-    }
-    else if (NProcs <= 32768)
-    {
-       NReaders = std::max(NReaders,512);
-       NRedist  = 128;
-    }
+    const long NPartPerRedist = 100000;
 
     if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-       std::cout << "Reading with " << NReaders  << " readers " << std::endl;
-       std::cout << "Redist  with " << NRedist   << " cores   " << std::endl;
+        std::cout << "Reading with " << NReaders << " readers\n";
+        std::cout << "Redistributing after every " << NPartPerRedist << " particles for each reader\n";
     }
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
 
     m_particles.resize(m_amr->finestLevel()+1);
+    //
+    // Only the first NReaders MPI processes read particles.
+    // All the processors need to participate in Redistribute() though.
+    //
+    std::ifstream ifs;
 
-    long howmany_read = 0;
-    //
-    // NReaders will read particles into a PBox.
-    // Later they'll each put their chunk into m_particles and call Redistribute().
-    //
-    PBox nparticles;
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    long NP = 0;
+    int  DM = 0;
+    int  NX = 0;
 
     if (MyProc < NReaders)
     {
-        //
-        // Only the first NReaders MPI processes read particles.
-        //
-        std::ifstream ifs;
-
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
- 
         ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
         ifs.open(file.c_str(), std::ios::in|std::ios::binary);
 
         if (!ifs.good())
             BoxLib::FileOpenFailed(file);
-
-        long NP = 0;
-        int  DM = 0;
-        int  NX = 0;
 
         ifs.read((char*)&NP, sizeof(NP));
         ifs.read((char*)&DM, sizeof(DM));
@@ -923,14 +891,10 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
         //
         if (extradata > NX)
             BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): extradata > NX");
-
-        ParticleType p;
-
-        const long Chunk = NP / NReaders;
         //
         // Skip to our place in the file.
         //
-        const std::streamoff NSKIP = MyProc * Chunk * (DM+NX) * sizeof(double);
+        const std::streamoff NSKIP = MyProc * (NP/NReaders) * (DM+NX) * sizeof(double);
 
         if (NSKIP > 0)
         {
@@ -944,159 +908,155 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file, int extradata
             msg += ") failed @ 1";
             BoxLib::Error(msg.c_str());
         }
+    }
+    //
+    // Everyone needs to know NP -- the number of particles in the file.
+    //
+    ParallelDescriptor::ReduceLongMax(NP);
+    //
+    // How many particles each Reader gets to read.
+    //
+    long MyCnt = NP / NReaders;
 
-        long MyCnt = Chunk;
+    if (MyProc == (NReaders - 1))
+        //
+        // We'll take the remainder.
+        //
+        MyCnt += NP % NReaders;
 
-        if (MyProc == (NReaders - 1))
-            //
-            // We'll take the remainder.
-            //
-            MyCnt += NP % NReaders;
+    const Geometry& geom = m_amr->Geom(0);
 
-        const Geometry& geom = m_amr->Geom(0);
+    const Real dmlen[BL_SPACEDIM] = {D_DECL(geom.ProbHi(0) - geom.ProbLo(0),
+                                            geom.ProbHi(1) - geom.ProbLo(1),
+                                            geom.ProbHi(2) - geom.ProbLo(2))};
 
-        const Real dmlen[BL_SPACEDIM] = {D_DECL(geom.ProbHi(0) - geom.ProbLo(0),
-                                                geom.ProbHi(1) - geom.ProbLo(1),
-                                                geom.ProbHi(2) - geom.ProbLo(2))};
-        for (long i = 0; i < MyCnt; i++)
+    long how_many_redists = NP / (NPartPerRedist*NReaders);
+
+    if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
+
+    long how_many_read = 0;
+    //
+    // tmp_particles should mirror how m_particles is built.
+    // At the end of this routine it'll be the new m_particles.
+    //
+    Array<PMap> tmp_particles;
+
+    tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
+
+    tmp_particles.resize(m_amr->finestLevel()+1);
+
+    for (int j = 0; j < how_many_redists; j++)
+    {
+        if (MyProc < NReaders)
         {
-            //
-            // We don't read in m_id or m_cpu.  We'll set those later
-            // in a manner to guarantee the global uniqueness of the pair.
-            //
-            ifs.read((char*)&p.m_pos[0], BL_SPACEDIM*sizeof(double));
-            //
-            // If particle is right on a domain boundary then move it just inside the boundary.
-            //
-            for (int d = 0; d < BL_SPACEDIM; d++)
-            {
-                if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-12 * dmlen[d];
-                if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-12 * dmlen[d];
-            }
-            //
-            // Read in any "extradata".
-            //
-            if (extradata > 0)
-            {
-                ifs.read((char*)&p.m_data[0], extradata*sizeof(double));
-            }
-            //
-            // Read any remaining data for this particle.
-            //
-            if ((NX-extradata) > 0)
-            {
-                double ignore[N*sizeof(double)];
-                ifs.read((char*)&ignore[0], (NX-extradata)*sizeof(double));
-            }
+            ParticleType p;
 
-            if (!ifs.good())
-            {
-                std::string msg("ParticleContainer::InitFromBinaryFile(");
-                msg += file;
-                msg += ") failed @ 2";
-                BoxLib::Error(msg.c_str());
-            }
+            BL_ASSERT(MyCnt > how_many_read);
 
-            if (!ParticleBase::Where(p,m_amr))
+            const long NR = std::min((MyCnt-how_many_read), NPartPerRedist);
+
+            for (long i = 0; i < NR; i++)
             {
-                ParticleBase::PeriodicShift(p,m_amr);
+                //
+                // We don't read in m_id or m_cpu.  We'll set those later
+                // in a manner to guarantee the global uniqueness of the pair.
+                //
+                ifs.read((char*)&p.m_pos[0], BL_SPACEDIM*sizeof(double));
+                //
+                // If particle is right on a domain boundary then move it just inside the boundary.
+                //
+                for (int d = 0; d < BL_SPACEDIM; d++)
+                {
+                    if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-12 * dmlen[d];
+                    if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-12 * dmlen[d];
+                }
+                //
+                // Read in any "extradata".
+                //
+                if (extradata > 0)
+                {
+                    ifs.read((char*)&p.m_data[0], extradata*sizeof(double));
+                }
+                //
+                // Read any remaining data for this particle.
+                //
+                if ((NX-extradata) > 0)
+                {
+                    double ignore[N*sizeof(double)];
+                    ifs.read((char*)&ignore[0], (NX-extradata)*sizeof(double));
+                }
+
+                if (!ifs.good())
+                {
+                    std::string msg("ParticleContainer::InitFromBinaryFile(");
+                    msg += file;
+                    msg += ") failed @ 2";
+                    BoxLib::Error(msg.c_str());
+                }
 
                 if (!ParticleBase::Where(p,m_amr))
                 {
-                    std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << '\n';
+                    ParticleBase::PeriodicShift(p,m_amr);
 
-                    for (int d = 0; d < BL_SPACEDIM; d++)
+                    if (!ParticleBase::Where(p,m_amr))
                     {
-                        std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                        std::cout << "BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << '\n';
+
+                        for (int d = 0; d < BL_SPACEDIM; d++)
+                        {
+                            std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                        }
+
+                        BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): invalid particle");
                     }
-
-                    BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): invalid particle");
-                }
-            }
-
-            p.m_id  = ParticleBase::NextID();
-            p.m_cpu = MyProc;
-
-            nparticles.push_back(p);
-
-            howmany_read++;
-        }
-    }
-    //
-    // We've read in all the particles.
-    // Now Redistribute() each chunk separately to minimize memory bloat.
-    //
-    const int NRedistChunk = NReaders / NRedist;
-
-    for (int nr = 0; nr < NRedist; nr++)
-    {
-        if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "Redistributing from processor "
-                      << nr*NRedistChunk
-                      << " to " 
-                      << (nr+1)*NRedistChunk-1 << '\n';
-        }
-        for (int which = nr*NRedistChunk; which < (nr+1)*NRedistChunk; which++)
-        {
-            if (which == MyProc)
-            {
-                while (!nparticles.empty())
-                {
-                    ParticleType& p = nparticles.front();
-    
-                    m_particles[p.m_lev][p.m_grid].push_back(p);
-    
-                    nparticles.pop_front();
                 }
 
-                PBox().swap(nparticles);
-            }
-        }
-        //
-        // Let Redistribute() sort'm out.
-        //
-        Redistribute(true);
-    }
-    //
-    // Take care of any leftover chunk
-    //
-    if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
-    {
-        if (NRedist*NRedistChunk < NReaders)
-        {
-            std::cout << "Redistributing from processor "
-                      << NRedist*NRedistChunk
-                      << " to " 
-                      << NReaders << '\n';
-        }
-    }
-    for (int which = NRedist*NRedistChunk; which < NReaders; which++)
-    {
-        if (which == MyProc)
-        {
-            while (!nparticles.empty())
-            {
-                ParticleType& p = nparticles.front();
+                p.m_id  = ParticleBase::NextID();
+                p.m_cpu = MyProc;
 
                 m_particles[p.m_lev][p.m_grid].push_back(p);
 
-                nparticles.pop_front();
+                how_many_read++;
+            }
+        }
+
+        if (m_verbose > 0 && ParallelDescriptor::IOProcessor())
+            std::cout << "InitFromBinaryFile(): calling Redistribute()\n";
+
+        Redistribute(true);
+        //
+        // Move particles in m_particles into tmp_particles so that
+        // we don't keep trying to redistribute particles that have
+        // already been redistributed correctly.
+        //
+        for (int lev = 0; lev < m_particles.size(); lev++)
+        {
+            PMap& pmap     = m_particles[lev];
+            PMap& tmp_pmap = tmp_particles[lev];
+
+            for (typename PMap::iterator pmap_it = pmap.begin(), End = pmap.end();
+                 pmap_it != End;
+                 ++pmap_it)
+            {
+                PBox& pbox     = pmap_it->second;
+                PBox& tmp_pbox = tmp_pmap[pmap_it->first];
+
+                tmp_pbox.insert(tmp_pbox.end(), pbox.begin(), pbox.end());
+
+                PBox().swap(pbox);
             }
 
-            PBox().swap(nparticles);
+            PMap().swap(pmap);
         }
-        //
-        // Let Redistribute() sort'm out.
-        //
-        Redistribute(true);
     }
+
+    tmp_particles.swap(m_particles);
     //
     // Add up all the particles read in on each processor to get the total number of particles.
     //
     if (m_verbose > 0)
     {
-        long num_particles_read = howmany_read; 
+        long num_particles_read = how_many_read; 
 
         ParallelDescriptor::ReduceLongSum(num_particles_read, ParallelDescriptor::IOProcessorNumber());
 
@@ -4691,9 +4651,13 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; )
         {
             if (pmap_it->second.empty())
+            {
                 pmap.erase(pmap_it++);
+            }
             else
+            {
                 ++pmap_it;
+            }
         }
     }
 
@@ -4763,7 +4727,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         //
         // There's no parallel work to do.
         //
-//        BL_ASSERT(OK());
         BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
         return;
     }
