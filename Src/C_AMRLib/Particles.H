@@ -1031,22 +1031,19 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
         //
         for (int lev = 0; lev < m_particles.size(); lev++)
         {
-            PMap& pmap = m_particles[lev];
+            PMap& pmap     = m_particles[lev];
+            PMap& tmp_pmap = tmp_particles[lev];
 
-            for (typename PMap::iterator pmap_it = pmap.begin(),
-                     End = pmap.end();
+            for (typename PMap::iterator pmap_it = pmap.begin(), End = pmap.end();
                  pmap_it != End;
                  ++pmap_it)
             {
-                int   grid = pmap_it->first;
-                PBox& pbox = pmap_it->second;
+                PBox& pbox     = pmap_it->second;
+                PBox& tmp_pbox = tmp_pmap[pmap_it->first];
 
-                while (!pbox.empty())
-                {
-                    tmp_particles[lev][grid].push_back(pbox.front());
+                tmp_pbox.insert(tmp_pbox.end(), pbox.begin(), pbox.end());
 
-                    pbox.pop_front();
-                }
+                PBox().swap(pbox);
             }
 
             PMap().swap(pmap);
