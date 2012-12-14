@@ -228,6 +228,7 @@ Amr::Amr ()
 
     pp.query("file_name_digits", file_name_digits);
 
+    pp.query("initial_grid_file",initial_grids_file);
     pp.query("regrid_file",grids_file);
     if (pp.contains("run_log"))
     {
@@ -2148,7 +2149,51 @@ Amr::grid_places (int              lbase,
         new_grids[0] = lev0;
     }
 
-    if (!grids_file.empty())
+    if ( time == 0. && !initial_grids_file.empty() )
+    {
+#define STRIP while( is.get() != '\n' )
+
+        std::ifstream is(initial_grids_file.c_str(),std::ios::in);
+
+        if (!is.good())
+            BoxLib::FileOpenFailed(initial_grids_file);
+
+        new_finest = std::min(max_level,(finest_level+1));
+        int in_finest;
+        is >> in_finest;
+        STRIP;
+        new_finest = std::min(new_finest,in_finest);
+        int ngrid;
+        for (int lev = 1; lev <= new_finest; lev++)
+        {
+            BoxList bl;
+            is >> ngrid;
+            STRIP;
+            for (i = 0; i < ngrid; i++)
+            {
+                Box bx;
+                is >> bx;
+                STRIP;
+                if (lev > lbase)
+                {
+                    bx.refine(ref_ratio[lev-1]);
+                    bl.push_back(bx);
+                }
+            }
+            // When reading in initial grids, we enforce max_grid_size after the grids are read,
+            //      rather than requiring them to be set that way.  This enables us to use grids
+            //      from external routines that might not have generated grids satisfying the
+            //      max_grid_size criterion.
+            bl.maxSize(max_grid_size[lev]);
+
+            if (lev > lbase)
+                new_grids[lev].define(bl);
+        }
+        is.close();
+        return;
+#undef STRIP
+    }
+    else if ( !grids_file.empty() )
     {
 #define STRIP while( is.get() != '\n' )
 
@@ -2191,6 +2236,7 @@ Amr::grid_places (int              lbase,
         return;
 #undef STRIP
     }
+
     //
     // Construct problem domain at each level.
     //
@@ -2529,8 +2575,9 @@ Amr::bldFineLevels (Real strt_time)
     while (finest_level < max_level);
     //
     // Iterate grids to ensure fine grids encompass all interesting gunk.
+    //     but only iterate if we did not provide a grids file.
     //
-    if (grids_file.empty())  // only iterare if we did not provide a grids file
+    if ( grids_file.empty() || (strt_time == 0.0 && !initial_grids_file.empty()) )  
       {
 	bool grids_the_same;
 
