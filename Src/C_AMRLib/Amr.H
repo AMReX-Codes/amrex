@@ -394,6 +394,7 @@ protected:
     // The data ...
     //
     std::string      grids_file;   // Grids file that will bypass regridding.
+    std::string      initial_grids_file;   // Grids file that will bypass regridding only at initialization.
     int              max_level;    // Maximum allowed level.
     int              finest_level; // Current finest level.
     Array<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
