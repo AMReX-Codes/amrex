@@ -341,6 +341,12 @@ public:
     // 
     TimeLevel which_time (int  state_indx,
                           Real time) const;
+
+    //
+    // Does the AmrLevel want Amr to write a plotfile now?
+    //
+    virtual bool writePlotNow ();
+
 protected:
     //
     // The constructors -- for derived classes.

@@ -325,7 +325,40 @@ def write_probin(probinTemplate, paramAFiles, paramBFiles,
                                    (indent, params[n].var))
                         
                     n += 1
+
+            elif (keyword == "printing"):
+
+                fout.write("100 format (1x, a32, 1x, \"=\", 1x, a)\n")
+                fout.write("101 format (1x, a32, 1x, \"=\", 1x, i10)\n")
+                fout.write("102 format (1x, a32, 1x, \"=\", 1x, g20.10)\n")
+                fout.write("103 format (1x, a32, 1x, \"=\", 1x, l)\n")
                                    
+                n = 0
+                while (n < len(params)):
+
+                    type = params[n].type
+
+                    if (type == "real"):
+                        fout.write("%swrite (unit,102) \"%s\", %s\n" % 
+                                   (indent, params[n].var, params[n].var) )
+
+                    elif (type == "character"):
+                        fout.write("%swrite (unit,100) \"%s\", trim(%s)\n" % 
+                                   (indent, params[n].var, params[n].var) )
+
+                    elif (type == "integer"):
+                        fout.write("%swrite (unit,101) \"%s\", %s\n" % 
+                                   (indent, params[n].var, params[n].var))
+
+                    elif (type == "logical"):
+                        fout.write("%swrite (unit,103) \"%s\", %s\n" % 
+                                   (indent, params[n].var, params[n].var))
+
+                    else:
+                        print("write_probin.py: invalid datatype for variable "+params[n].var)
+
+                    n += 1
+
 
 
             #else:
