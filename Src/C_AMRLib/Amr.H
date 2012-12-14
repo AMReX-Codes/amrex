@@ -73,7 +73,7 @@ public:
     //
     // How are we subcycling?
     //
-    std::string subcyclingMode() const { return subcycling_mode; }
+    const std::string& subcyclingMode() const { return subcycling_mode; }
     //
     // Maximum allowable level.
     //
@@ -307,12 +307,12 @@ public:
     //
     // Write the plot file to be used for visualization.
     //
-    void writePlotFile ();
+    virtual void writePlotFile ();
     int stepOfLastPlotFile () const {return last_plotfile;}
     //
     // Write current state into a chk* file.
     //
-    void checkPoint ();
+    virtual void checkPoint ();
     int stepOfLastCheckPoint () const {return last_checkpoint;}
 
 protected:
@@ -366,6 +366,11 @@ protected:
                    int  iter,
                    int  ncycle,
                    Real stop_time);
+
+    //
+    // Whether to write a plotfile now
+    //
+    bool writePlotNow ();
 
     void printGridInfo (std::ostream& os,
                         int           min_lev,

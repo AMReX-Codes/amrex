@@ -1750,6 +1750,29 @@ Amr::coarseTimeStep (Real stop_time)
         checkPoint();
     }
 
+
+    if (writePlotNow() || to_checkpoint)
+    {
+        writePlotFile();
+    }
+
+    if (to_stop)
+    {
+        ParallelDescriptor::Barrier();
+        if (to_checkpoint)
+        {
+            BoxLib::Abort("Stopped by user w/ checkpoint");
+        }
+        else
+        {
+            BoxLib::Abort("Stopped by user w/o checkpoint");
+        }
+    }
+}
+
+bool
+Amr::writePlotNow()
+{
     int plot_test = 0;
     if (plot_per > 0.0)
     {
@@ -1768,25 +1791,10 @@ Amr::coarseTimeStep (Real stop_time)
 	}
     }
 
-    if ((plot_int > 0 && level_steps[0] % plot_int == 0) || plot_test == 1
-	|| to_checkpoint)
-    {
-        writePlotFile();
-    }
-
-    if (to_stop)
-    {
-        ParallelDescriptor::Barrier();
-        if (to_checkpoint)
-        {
-            BoxLib::Abort("Stopped by user w/ checkpoint");
-        }
-        else
-        {
-            BoxLib::Abort("Stopped by user w/o checkpoint");
-        }
-    }
-}
+    return ( (plot_int > 0 && level_steps[0] % plot_int == 0) || 
+              plot_test == 1 ||
+              amr_level[0].writePlotNow());
+} 
 
 void
 Amr::defBaseLevel (Real strt_time)
