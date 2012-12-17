@@ -11,18 +11,31 @@ module multifab_physbc_module
 
 contains
 
-  subroutine multifab_physbc(s,start_scomp,start_bccomp,ncomp,the_bc_level)
+  subroutine multifab_physbc(s,start_scomp,start_bccomp,ncomp,the_bc_level, &
+                             time_in,dx_in,prob_lo_in,prob_hi_in)
 
-    integer        , intent(in   ) :: start_scomp,start_bccomp,ncomp
-    type(multifab) , intent(inout) :: s
-    type(bc_level) , intent(in   ) :: the_bc_level
+    integer        , intent(in   )           :: start_scomp,start_bccomp,ncomp
+    type(multifab) , intent(inout)           :: s
+    type(bc_level) , intent(in   )           :: the_bc_level
+    real(kind=dp_t), intent(in   ), optional :: time_in,dx_in(:),prob_lo_in(:),prob_hi_in(:)
 
     ! Local
-    integer                  :: lo(get_dim(s)), hi(get_dim(s))
-    integer                  :: i,ng,dm
-    integer                  :: scomp,bccomp
+    integer                  :: lo(get_dim(s)),hi(get_dim(s))
+    integer                  :: i,ng,dm,scomp,bccomp
+    real(kind=dp_t)          :: time,dx(get_dim(s))
+    real(kind=dp_t)          :: prob_lo(get_dim(s)),prob_hi(get_dim(s))
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     
+    ! set optional arguments
+    time    = 0.d0
+    dx      = 0.d0
+    prob_lo = 0.d0
+    prob_hi = 0.d0
+    if (present(time_in))       time = time_in
+    if (present(dx_in))           dx = dx_in
+    if (present(prob_lo_in)) prob_lo = prob_lo_in
+    if (present(prob_hi_in)) prob_hi = prob_hi_in
+
     ng = nghost(s)
     dm = get_dim(s)
     
@@ -35,20 +48,22 @@ contains
           do scomp=start_scomp,start_scomp+ncomp-1
              bccomp = start_bccomp + scomp - start_scomp
              call physbc_2d(sp(:,:,1,scomp), lo, hi, ng, &
-                            the_bc_level%adv_bc_level_array(i,:,:,bccomp))
+                            the_bc_level%adv_bc_level_array(i,:,:,bccomp), &
+                            time, dx, prob_lo, prob_hi)
           end do
        case (3)
           do scomp=start_scomp,start_scomp+ncomp-1
              bccomp = start_bccomp + scomp - start_scomp
              call physbc_3d(sp(:,:,:,scomp), lo, hi, ng, &
-                            the_bc_level%adv_bc_level_array(i,:,:,bccomp))
+                            the_bc_level%adv_bc_level_array(i,:,:,bccomp), &
+                            time, dx, prob_lo, prob_hi)
           end do
        end select
     end do
  
   end subroutine multifab_physbc
 
-  subroutine physbc_2d(s,lo,hi,ng,bc)
+  subroutine physbc_2d(s,lo,hi,ng,bc,time,dx,prob_lo,prob_hi)
 
     use bl_constants_module
     use bc_module
@@ -56,6 +71,7 @@ contains
     integer        , intent(in   ) :: lo(:),hi(:),ng
     real(kind=dp_t), intent(inout) :: s(lo(1)-ng:,lo(2)-ng:)
     integer        , intent(in   ) :: bc(:,:)
+    real(kind=dp_t), intent(in   ) :: time,dx(:),prob_lo(:),prob_hi(:)
 
     ! Local variables
     integer :: i,j
@@ -217,7 +233,7 @@ contains
 
   end subroutine physbc_2d
 
-  subroutine physbc_3d(s,lo,hi,ng,bc)
+  subroutine physbc_3d(s,lo,hi,ng,bc,time,dx,prob_lo,prob_hi)
 
     use bl_constants_module
     use bc_module
@@ -225,6 +241,7 @@ contains
     integer        , intent(in   ) :: lo(:),hi(:),ng
     real(kind=dp_t), intent(inout) :: s(lo(1)-ng:, lo(2)-ng:, lo(3)-ng:)
     integer        , intent(in   ) :: bc(:,:)
+    real(kind=dp_t), intent(in   ) :: time,dx(:),prob_lo(:),prob_hi(:)
 
     ! Local variables
     integer :: i,j,k
