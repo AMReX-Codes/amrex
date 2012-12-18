@@ -321,6 +321,17 @@ protected:
     //
     static void ProjPeriodic (BoxList&        bd,
                               const Geometry& geom);
+
+    //
+    // Array of BoxArrays read in to initially define grid hierarchy
+    //
+    static Array<BoxArray> initial_ba;
+
+    //
+    // Array of BoxArrays read in to externally define grid hierarchy at each regrid
+    //
+    static Array<BoxArray> regrid_ba;
+
     //
     // Initialize grid hierarchy.
     //
@@ -393,7 +404,7 @@ protected:
     //
     // The data ...
     //
-    std::string      grids_file;   // Grids file that will bypass regridding.
+    std::string       regrid_grids_file;   // Grids file that will bypass regridding.
     std::string      initial_grids_file;   // Grids file that will bypass regridding only at initialization.
     int              max_level;    // Maximum allowed level.
     int              finest_level; // Current finest level.
