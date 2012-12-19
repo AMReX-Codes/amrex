@@ -24,6 +24,8 @@ def do_plot(plotfile, component, component2, outFile, log,
             minval, maxval, minval2, maxval2, eps, dpi, origin, annotation, 
             xmax_pass, ymax_pass, zmax_pass):
 
+    pylab.rc("font", size=9)
+
 
     #--------------------------------------------------------------------------
     # construct the output file name
@@ -91,6 +93,11 @@ def do_plot(plotfile, component, component2, outFile, log,
         if (not ymax_pass == None):
             iy = int((ymax_pass - ymin)/dy)
 
+
+        sparseX = 0
+        if (ny >= 3*nx):
+            sparseX = 1
+
         # read in the main component
         data = numpy.zeros( (nx, ny), dtype=numpy.float64)
 
@@ -155,6 +162,10 @@ def do_plot(plotfile, component, component2, outFile, log,
         ax.xaxis.set_major_formatter(pylab.ScalarFormatter(useMathText=True))
         ax.yaxis.set_major_formatter(pylab.ScalarFormatter(useMathText=True))
 
+        if (sparseX):
+            ax.xaxis.set_major_locator(pylab.MaxNLocator(3))
+
+
         # make space for a colorbar -- getting it the same size as the
         # vertical extent of the plot is surprisingly tricky.  See
         # http://matplotlib.sourceforge.net/mpl_toolkits/axes_grid/users/overview.html#colorbar-whose-height-or-width-in-sync-with-the-master-axes
@@ -210,6 +221,9 @@ def do_plot(plotfile, component, component2, outFile, log,
             # axis labels in scientific notation with LaTeX
             ax.xaxis.set_major_formatter(pylab.ScalarFormatter(useMathText=True))
             ax.yaxis.set_major_formatter(pylab.ScalarFormatter(useMathText=True))
+
+            if (sparseX):
+                ax.xaxis.set_major_locator(pylab.MaxNLocator(3))
 
             # make space for a colorbar -- getting it the same size as
             # the vertical extent of the plot is surprisingly tricky.
@@ -482,6 +496,10 @@ def do_plot(plotfile, component, component2, outFile, log,
     #--------------------------------------------------------------------------
     # save the figure
     #--------------------------------------------------------------------------
+    try: pylab.tight_layout()  # requires matplotlib > 1.1
+    except:
+        pass
+
     if (not eps):
         pylab.savefig(outFile, bbox_inches='tight', dpi=dpi, pad_inches=0.33)
     else:
