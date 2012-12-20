@@ -37,6 +37,8 @@
 std::list<std::string> Amr::state_plot_vars;
 std::list<std::string> Amr::derive_plot_vars;
 bool                   Amr::first_plotfile;
+Array<BoxArray>        Amr::initial_ba;
+Array<BoxArray>        Amr::regrid_ba;
 
 namespace
 {
@@ -95,6 +97,8 @@ Amr::Finalize ()
 {
     Amr::state_plot_vars.clear();
     Amr::derive_plot_vars.clear();
+    Amr::regrid_ba.clear();
+    Amr::initial_ba.clear();
 
     initialized = false;
 }
@@ -228,7 +232,9 @@ Amr::Amr ()
 
     pp.query("file_name_digits", file_name_digits);
 
-    pp.query("regrid_file",grids_file);
+    pp.query("initial_grid_file",initial_grids_file);
+    pp.query("regrid_file"      , regrid_grids_file);
+
     if (pp.contains("run_log"))
     {
         std::string log_file_name;
@@ -475,6 +481,75 @@ Amr::Amr ()
         offset[i]        = Geometry::ProbLo(i) + delta*lo[i];
     }
     CoordSys::SetOffset(offset);
+
+    if (max_level > 0 && !initial_grids_file.empty())
+    {
+#define STRIP while( is.get() != '\n' )
+        std::ifstream is(initial_grids_file.c_str(),std::ios::in);
+
+        if (!is.good())
+            BoxLib::FileOpenFailed(initial_grids_file);
+
+        int in_finest,ngrid;
+
+        is >> in_finest;
+        STRIP;
+        initial_ba.resize(in_finest);
+        for (int lev = 1; lev <= in_finest; lev++)
+        {
+            BoxList bl;
+            is >> ngrid;
+            STRIP;
+            for (i = 0; i < ngrid; i++)
+            {
+                Box bx;
+                is >> bx;
+                STRIP;
+                bx.refine(ref_ratio[lev-1]);
+                bl.push_back(bx);
+            }
+            initial_ba[lev-1].define(bl);
+        }
+        is.close();
+#undef STRIP
+    }
+
+    if (max_level > 0 && !regrid_grids_file.empty())
+    {
+#define STRIP while( is.get() != '\n' )
+        std::ifstream is(regrid_grids_file.c_str(),std::ios::in);
+
+        if (!is.good())
+            BoxLib::FileOpenFailed(regrid_grids_file);
+
+        int in_finest,ngrid;
+
+        is >> in_finest;
+        STRIP;
+        regrid_ba.resize(in_finest);
+        for (int lev = 1; lev <= in_finest; lev++)
+        {
+            BoxList bl;
+            is >> ngrid;
+            STRIP;
+            for (i = 0; i < ngrid; i++)
+            {
+                Box bx;
+                is >> bx;
+                STRIP;
+                 bx.refine(ref_ratio[lev-1]);
+                 if (bx.longside() > max_grid_size[lev])
+                 {
+                     std::cout << "Grid " << bx << " too large" << '\n';
+                     BoxLib::Error();
+                 }
+                 bl.push_back(bx);
+            }
+            regrid_ba[lev-1].define(bl);
+        }
+        is.close();
+#undef STRIP
+    }
 }
 
 bool
@@ -1750,6 +1825,29 @@ Amr::coarseTimeStep (Real stop_time)
         checkPoint();
     }
 
+
+    if (writePlotNow() || to_checkpoint)
+    {
+        writePlotFile();
+    }
+
+    if (to_stop)
+    {
+        ParallelDescriptor::Barrier();
+        if (to_checkpoint)
+        {
+            BoxLib::Abort("Stopped by user w/ checkpoint");
+        }
+        else
+        {
+            BoxLib::Abort("Stopped by user w/o checkpoint");
+        }
+    }
+}
+
+bool
+Amr::writePlotNow()
+{
     int plot_test = 0;
     if (plot_per > 0.0)
     {
@@ -1768,25 +1866,10 @@ Amr::coarseTimeStep (Real stop_time)
 	}
     }
 
-    if ((plot_int > 0 && level_steps[0] % plot_int == 0) || plot_test == 1
-	|| to_checkpoint)
-    {
-        writePlotFile();
-    }
-
-    if (to_stop)
-    {
-        ParallelDescriptor::Barrier();
-        if (to_checkpoint)
-        {
-            BoxLib::Abort("Stopped by user w/ checkpoint");
-        }
-        else
-        {
-            BoxLib::Abort("Stopped by user w/o checkpoint");
-        }
-    }
-}
+    return ( (plot_int > 0 && level_steps[0] % plot_int == 0) || 
+              plot_test == 1 ||
+              amr_level[0].writePlotNow());
+} 
 
 void
 Amr::defBaseLevel (Real strt_time)
@@ -2140,49 +2223,47 @@ Amr::grid_places (int              lbase,
         new_grids[0] = lev0;
     }
 
-    if (!grids_file.empty())
+    if ( time == 0. && !initial_grids_file.empty() )
     {
-#define STRIP while( is.get() != '\n' )
-
-        std::ifstream is(grids_file.c_str(),std::ios::in);
-
-        if (!is.good())
-            BoxLib::FileOpenFailed(grids_file);
-
         new_finest = std::min(max_level,(finest_level+1));
-        int in_finest;
-        is >> in_finest;
-        STRIP;
-        new_finest = std::min(new_finest,in_finest);
-        int ngrid;
+        new_finest = std::min(new_finest,initial_ba.size());
+
         for (int lev = 1; lev <= new_finest; lev++)
         {
             BoxList bl;
-            is >> ngrid;
-            STRIP;
+            int ngrid = initial_ba[lev-1].size();
             for (i = 0; i < ngrid; i++)
             {
-                Box bx;
-                is >> bx;
-                STRIP;
+                Box bx(initial_ba[lev-1][i]);
                 if (lev > lbase)
-                {
-                    bx.refine(ref_ratio[lev-1]);
-                    if (bx.longside() > max_grid_size[lev])
-                    {
-                        std::cout << "Grid " << bx << " too large" << '\n';
-                        BoxLib::Error();
-                    }
                     bl.push_back(bx);
-                }
             }
             if (lev > lbase)
                 new_grids[lev].define(bl);
         }
-        is.close();
         return;
-#undef STRIP
     }
+
+    else if ( !regrid_grids_file.empty() )
+    {
+        new_finest = std::min(max_level,(finest_level+1));
+        new_finest = std::min(new_finest,regrid_ba.size());
+        for (int lev = 1; lev <= new_finest; lev++)
+        {
+            BoxList bl;
+            int ngrid = regrid_ba[lev-1].size();
+            for (i = 0; i < ngrid; i++)
+            {
+                Box bx(regrid_ba[lev-1][i]);
+                if (lev > lbase)
+                    bl.push_back(bx);
+            }
+            if (lev > lbase)
+                new_grids[lev].define(bl);
+        }
+        return;
+    }
+
     //
     // Construct problem domain at each level.
     //
@@ -2521,8 +2602,9 @@ Amr::bldFineLevels (Real strt_time)
     while (finest_level < max_level);
     //
     // Iterate grids to ensure fine grids encompass all interesting gunk.
+    //     but only iterate if we did not provide a grids file.
     //
-    if (grids_file.empty())  // only iterare if we did not provide a grids file
+    if ( regrid_grids_file.empty() || (strt_time == 0.0 && !initial_grids_file.empty()) )  
       {
 	bool grids_the_same;
 

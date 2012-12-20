@@ -202,7 +202,7 @@ contains
     call build(cfine, la, nc = nc, ng = 0)
  
     ! Set all of cfine to 1d200 so that we can make sure it gets completely filled below.
-    call setval(cfine, 1.d200)
+    call setval(cfine, 1.e200_dp_t)
     !
     ! Fill cfine from crse.
     ! Got to do it in stages as parallel copy only goes from valid -> valid.

@@ -357,9 +357,9 @@ contains
         integer         :: k, cnt, sz
         real(kind=dp_t) :: totalvol, volpercpu, vol, maxvol
 
-        maxvol = -Huge(1_dp_t)
+        maxvol = -Huge(1.0_dp_t)
 
-        volpercpu = 0_dp_t
+        volpercpu = 0.0_dp_t
         do i = 1, size(ibxs)
            volpercpu = volpercpu + ibxs(i)
         end do
@@ -367,12 +367,12 @@ contains
 
         k        = 1
         sz       = size(ibxs)
-        totalvol = 0_dp_t
+        totalvol = 0.0_dp_t
 
         do i = 1, np
 
            cnt = 0
-           vol = 0_dp_t
+           vol = 0.0_dp_t
 
            do while ( (k <= sz) .and. ((i == np) .or. (vol < volpercpu)) )
               whichcpu(k) = i
