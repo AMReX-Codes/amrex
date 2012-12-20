@@ -79,6 +79,10 @@ ifeq ($(COMP),g95)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/g95.mak
 endif
 
+ifeq ($(findstring rose, $(COMP)), rose)
+  include $(BOXLIB_HOME)/Tools/F_mk/comps/rose.mak
+endif
+
 ifeq ($(findstring gfortran, $(COMP)), gfortran)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/gfortran.mak
 endif
