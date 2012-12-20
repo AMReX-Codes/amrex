@@ -73,7 +73,7 @@ public:
     //
     // How are we subcycling?
     //
-    std::string subcyclingMode() const { return subcycling_mode; }
+    const std::string& subcyclingMode() const { return subcycling_mode; }
     //
     // Maximum allowable level.
     //
@@ -307,12 +307,12 @@ public:
     //
     // Write the plot file to be used for visualization.
     //
-    void writePlotFile ();
+    virtual void writePlotFile ();
     int stepOfLastPlotFile () const {return last_plotfile;}
     //
     // Write current state into a chk* file.
     //
-    void checkPoint ();
+    virtual void checkPoint ();
     int stepOfLastCheckPoint () const {return last_checkpoint;}
 
 protected:
@@ -321,6 +321,17 @@ protected:
     //
     static void ProjPeriodic (BoxList&        bd,
                               const Geometry& geom);
+
+    //
+    // Array of BoxArrays read in to initially define grid hierarchy
+    //
+    static Array<BoxArray> initial_ba;
+
+    //
+    // Array of BoxArrays read in to externally define grid hierarchy at each regrid
+    //
+    static Array<BoxArray> regrid_ba;
+
     //
     // Initialize grid hierarchy.
     //
@@ -367,6 +378,11 @@ protected:
                    int  ncycle,
                    Real stop_time);
 
+    //
+    // Whether to write a plotfile now
+    //
+    bool writePlotNow ();
+
     void printGridInfo (std::ostream& os,
                         int           min_lev,
                         int           max_lev);
@@ -388,7 +404,8 @@ protected:
     //
     // The data ...
     //
-    std::string      grids_file;   // Grids file that will bypass regridding.
+    std::string       regrid_grids_file;   // Grids file that will bypass regridding.
+    std::string      initial_grids_file;   // Grids file that will bypass regridding only at initialization.
     int              max_level;    // Maximum allowed level.
     int              finest_level; // Current finest level.
     Array<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
