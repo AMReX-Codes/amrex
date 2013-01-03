@@ -14,8 +14,7 @@ module mac_applyop_module
 
 contains
 
-  subroutine mac_applyop(mla,res,phi,alpha,beta,dx, &
-                         the_bc_tower,bc_comp,stencil_order,ref_ratio)
+  subroutine mac_applyop(mla,res,phi,alpha,beta,dx,the_bc_tower,bc_comp,stencil_order)
 
     use mg_module             , only: mg_tower, mg_tower_build, mg_tower_destroy
     use cc_stencil_fill_module, only: stencil_fill_cc
@@ -29,7 +28,6 @@ contains
     type(bc_tower) , intent(in   ) :: the_bc_tower
     integer        , intent(in   ) :: bc_comp
     integer        , intent(in   ) :: stencil_order
-    integer        , intent(in   ) :: ref_ratio(:,:)
 
     type(layout  ) :: la
     type(box     ) :: pd
@@ -82,8 +80,8 @@ contains
        end do
 
        if (n > 1) then
-          xa = HALF*ref_ratio(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
-          xb = HALF*ref_ratio(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
+          xa = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
+          xb = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
        else
           xa = ZERO
           xb = ZERO
@@ -104,7 +102,7 @@ contains
 
     end do
 
-    call ml_cc_applyop(mla, mgt, res, phi, ref_ratio)
+    call ml_cc_applyop(mla, mgt, res, phi, mla%mba%rr)
 
     do n = 1, nlevs
        call mg_tower_destroy(mgt(n))
