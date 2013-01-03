@@ -363,7 +363,6 @@ contains
 
     if (dir .eq. 1) then
 
-       !$OMP PARALLEL PRIVATE(i,j,k,jj,kk)
        do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)
@@ -376,11 +375,9 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL
 
     else if (dir .eq. 2) then
 
-       !$OMP PARALLEL PRIVATE(i,j,k,ii,kk)
        do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)
@@ -393,11 +390,9 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL
 
     else
 
-       !$OMP PARALLEL PRIVATE(i,j,k,ii,jj)
        do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)
@@ -410,7 +405,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL
 
     end if    
 
