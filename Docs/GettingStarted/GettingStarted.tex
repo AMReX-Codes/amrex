@@ -227,6 +227,18 @@ representing different fluid variables.  For 2D problems, {\tt nz=1}.\\
 In \BoxLib, we don't usually deal with 
 \Fab s alone, but rather through \MultiFab s, described next.
 
+\subsection{Floating point data}
+
+Floating point data in C++ is declared as {\tt Real} which is {\tt
+typedef} to either {\tt float} or {\tt double} depending on how {\tt
+PRECISION} is set in the {\tt GNUmakefile}.  This is defined in {\tt
+REAL.H}.
+
+In Fortran90, the {\tt bl\_types} module defines a type {\tt dp\_t} that
+is double precision.  Floating point types should be declared using
+{\tt real (kind=dp\_t)}.
+
+
 \section{The \MultiFab}
 \MultiFab s are so important that we will give them their own section.
 A \MultiFab\ is a collection of all the \Fab s at the same level of
