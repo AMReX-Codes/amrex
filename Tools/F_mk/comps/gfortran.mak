@@ -13,8 +13,8 @@
     CC  := gcc
   endif
 
-  F90FLAGS += -J$(mdir) -I $(mdir)
-  FFLAGS   += -J$(mdir) -I $(mdir)
+  F90FLAGS += -J$(mdir) -I$(mdir)
+  FFLAGS   += -J$(mdir) -I$(mdir)
   CFLAGS   += -Wall
 
   ifdef NDEBUG
@@ -37,4 +37,11 @@
     F90FLAGS += -pg
     FFLAGS   += -pg
     CFLAGS   += -pg
+  endif
+
+  ifdef ROSE
+    ROSEVERBOSE ?= 0
+    ROSE_F90FLAGS := -ffree-line-length-none -rose:verbose $(ROSEVERBOSE)
+    ROSE_FFLAGS   := -ffree-line-length-none -rose:verbose $(ROSEVERBOSE)
+    ROSE_CFLAGS   := -rose:verbose $(ROSEVERBOSE)
   endif
