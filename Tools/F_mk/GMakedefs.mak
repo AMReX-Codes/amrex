@@ -35,8 +35,11 @@ endif
 ifdef SDC
   sdc_suffix 	:= .SDC
 endif
+ifdef ROSE
+  rose_suffix   := .rose
+endif
 
-suf=$(ARCH).$(COMP)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(hpc_suffix)$(sdc_suffix)
+suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(hpc_suffix)$(sdc_suffix)
 
 sources     =
 fsources    =
@@ -77,10 +80,6 @@ hdir = t/html
 
 ifeq ($(COMP),g95)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/g95.mak
-endif
-
-ifeq ($(findstring rose, $(COMP)), rose)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/rose.mak
 endif
 
 ifeq ($(findstring gfortran, $(COMP)), gfortran)
@@ -166,16 +165,22 @@ ifeq ($(strip $(F90)),)
    $(error "COMP=$(COMP) is not supported")   
 endif
 
+ifdef ROSE
+ifeq ($(strip $(ROSECOMP)),)
+   $(error "ROSECOMP is not defined")   
+endif
+endif
+
 ifdef MPI
   include $(BOXLIB_HOME)/Tools/F_mk/GMakeMPI.mak
 endif
 
 ifdef mpi_include_dir
-  fpp_flags += -I $(mpi_include_dir)
+  fpp_flags += -I$(mpi_include_dir)
 endif
 
 ifdef mpi_lib_dir
-  fld_flags += -L $(mpi_lib_dir)
+  fld_flags += -L$(mpi_lib_dir)
 endif
 
 f_includes = $(addprefix -I , $(FINCLUDE_LOCATIONS))
@@ -186,7 +191,7 @@ MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
 MKDEP   :=  $(BOXLIB_HOME)/Tools/F_scripts/mkdep.pl
 F90DOC  :=  $(BOXLIB_HOME)/Tools/F_scripts/f90doc/f90doc
 
-FPPFLAGS += $(fpp_flags) $(f_includes)
+FPPFLAGS += $(fpp_flags) $(addprefix -I, $(FINCLUDE_LOCATIONS))
 LDFLAGS  += $(fld_flags)
 libraries += $(hypre_libraries) $(mpi_libraries) $(xtr_libraries)
 
@@ -210,8 +215,14 @@ html_sources = $(addprefix $(hdir)/,     \
 
 pnames = $(addsuffix .$(suf).exe, $(basename $(programs)))
 
-COMPILE.f   = $(FC)  $(FFLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
-COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
+ifndef ROSE
+   COMPILE.f   = $(FC)  $(FFLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
+   COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
+else
+   COMPILE.c   = $(ROSECOMP) $(CFLAGS)   $(ROSE_CFLAGS)   $(CPPFLAGS) -c
+   COMPILE.f   = $(ROSECOMP) $(FFLAGS)   $(ROSE_FFLAGS)   $(FPPFLAGS) -c
+   COMPILE.f90 = $(ROSECOMP) $(F90FLAGS) $(ROSE_F90FLAGS) $(FPPFLAGS) -c
+endif
 
 LINK.f      = $(FC)  $(FFLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 LINK.f90    = $(F90) $(F90FLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)

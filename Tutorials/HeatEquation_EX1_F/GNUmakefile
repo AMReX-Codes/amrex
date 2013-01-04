@@ -9,6 +9,10 @@ PROF      :=
 COMP      := gfortran
 MKVERBOSE := t
 
+ROSE := 
+ROSECOMP := identityTranslator
+ROSEVERBOSE := 1
+
 include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 
 include ./GPackage.mak
