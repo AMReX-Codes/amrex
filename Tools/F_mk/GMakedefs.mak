@@ -183,8 +183,8 @@ ifdef mpi_lib_dir
   fld_flags += -L$(mpi_lib_dir)
 endif
 
-f_includes = $(addprefix -I, $(FINCLUDE_LOCATIONS))
-c_includes = $(addprefix -I, $(INCLUDE_LOCATIONS))
+f_includes = $(addprefix -I , $(FINCLUDE_LOCATIONS))
+c_includes = $(addprefix -I , $(INCLUDE_LOCATIONS))
 
 TCSORT  :=  $(BOXLIB_HOME)/Tools/F_scripts/tcsort.pl
 MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
