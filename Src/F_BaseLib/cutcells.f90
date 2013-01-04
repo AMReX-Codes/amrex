@@ -212,56 +212,56 @@ contains
     print*,''
   end subroutine cutcell_print
 
-  subroutine cutcell_container_build(d,sz)
-    type(cutcell_container), intent(inout) :: d
+  subroutine cutcell_container_build(ccc,sz)
+    type(cutcell_container), intent(inout) :: ccc
     integer,                 intent(in   ) :: sz
-    if ( .not. associated(d%d) ) then
-       d%size = sz
-       allocate(d%d(d%size))
+    if ( .not. associated(ccc%d) ) then
+       ccc%size = sz
+       allocate(ccc%d(ccc%size))
     end if
   end subroutine cutcell_container_build
 
-  subroutine cutcell_container_destroy(d)
-    type(cutcell_container), intent(inout) :: d
-    if ( associated(d%d) ) then
-       deallocate(d%d)
-       d%size  = 0
-       d%d     => Null()
+  subroutine cutcell_container_destroy(ccc)
+    type(cutcell_container), intent(inout) :: ccc
+    if ( associated(ccc%d) ) then
+       deallocate(ccc%d)
+       ccc%size  = 0
+       ccc%d     => Null()
     end if
   end subroutine cutcell_container_destroy
 
-  pure function cutcell_container_empty(d) result(r)
+  pure function cutcell_container_empty(ccc) result(r)
     logical :: r
-    type(cutcell_container), intent(in) :: d
-    r = (d%size == 0)
+    type(cutcell_container), intent(in) :: ccc
+    r = (ccc%size == 0)
   end function cutcell_container_empty
 
-  pure function cutcell_container_size(d) result(r)
+  pure function cutcell_container_size(ccc) result(r)
     integer :: r
-    type(cutcell_container), intent(in) :: d
-    r = d%size
+    type(cutcell_container), intent(in) :: ccc
+    r = ccc%size
   end function cutcell_container_size
 
-  subroutine cutcell_container_print(d, str)
-    type(cutcell_container), intent(in)           :: d
+  subroutine cutcell_container_print(ccc, str)
+    type(cutcell_container), intent(in)           :: ccc
     character (len=*),        intent(in), optional :: str
 
     integer :: i
 
     if ( present(str) ) print*, str
-    if ( empty(d) ) then
+    if ( empty(ccc) ) then
        print*, '"Empty"'
     else
-       do i = 1, d%size
-          call print(d%d(i))
+       do i = 1, ccc%size
+          call print(ccc%d(i))
        end do
     end if
   end subroutine cutcell_container_print
 
-  function cutcell_container_dataptr(d) result(r)
+  function cutcell_container_dataptr(ccc) result(r)
     type(cutcell), pointer :: r(:)
-    type(cutcell_container), intent(in) :: d
-    r => d%d
+    type(cutcell_container), intent(in) :: ccc
+    r => ccc%d
   end function cutcell_container_dataptr
 
 end module cutcell_module
