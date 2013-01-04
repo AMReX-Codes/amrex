@@ -318,17 +318,15 @@ contains
              end if
 
              ! Relax ...
-             if (iter < mgt(nlevs)%max_iter) then
-                if (n > 1) then
-                   call mini_cycle(mgt(n), mglev, &
-                        mgt(n)%ss(mglev), uu(n), res(n), &
-                        mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
-                else 
-                   call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
-                        mgt(n)%ss(mglev), uu(n), res(n), &
-                        mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                        mgt(n)%gamma)
-                end if
+             if (n > 1) then
+                call mini_cycle(mgt(n), mglev, &
+                     mgt(n)%ss(mglev), uu(n), res(n), &
+                     mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
+             else 
+                call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
+                     mgt(n)%ss(mglev), uu(n), res(n), &
+                     mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                     mgt(n)%gamma)
              end if
 
              ! Add: Soln += uu
@@ -596,7 +594,7 @@ contains
              end if
           end if
        else
-          if (.not.  present(status)) then
+          if (.not. present(status) .and. mgt(nlevs)%abort_on_max_iter) then
              call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
           endif
        end if

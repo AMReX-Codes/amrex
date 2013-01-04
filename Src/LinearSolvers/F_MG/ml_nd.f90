@@ -425,7 +425,9 @@ contains
           end if
         end if
      else
-       call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
+        if (mgt(nlevs)%abort_on_max_iter) then
+           call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
+        end if
      end if
 
     ! Add: full_soln += soln
