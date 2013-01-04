@@ -191,7 +191,7 @@ MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
 MKDEP   :=  $(BOXLIB_HOME)/Tools/F_scripts/mkdep.pl
 F90DOC  :=  $(BOXLIB_HOME)/Tools/F_scripts/f90doc/f90doc
 
-FPPFLAGS += $(fpp_flags) $(f_includes)
+FPPFLAGS += $(fpp_flags) $(addprefix -I, $(FINCLUDE_LOCATIONS))
 LDFLAGS  += $(fld_flags)
 libraries += $(hypre_libraries) $(mpi_libraries) $(xtr_libraries)
 
