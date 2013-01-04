@@ -21,7 +21,7 @@ contains
                             ns, &
                             nc, ng, &
                             max_nlevel, max_bottom_nlevel, min_width, &
-                            max_iter, eps, abs_eps, &
+                            max_iter, abort_on_max_iter, eps, abs_eps, &
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
                             max_L0_growth, &
                             verbose, cg_verbose, nodal, use_hypre, is_singular)
@@ -51,6 +51,7 @@ contains
     integer, intent(in), optional :: max_bottom_nlevel
     integer, intent(in), optional :: min_width
     integer, intent(in), optional :: max_iter
+    logical, intent(in), optional :: abort_on_max_iter
     integer, intent(in), optional :: bottom_solver
     integer, intent(in), optional :: bottom_max_iter
     integer, intent(in), optional :: verbose
@@ -87,6 +88,7 @@ contains
     if ( present(max_nlevel)        ) mgt%max_nlevel        = max_nlevel
     if ( present(max_bottom_nlevel) ) mgt%max_bottom_nlevel = max_bottom_nlevel
     if ( present(max_iter)          ) mgt%max_iter          = max_iter
+    if ( present(max_iter)          ) mgt%abort_on_max_iter = abort_on_max_iter
     if ( present(eps)               ) mgt%eps               = eps
     if ( present(abs_eps)           ) mgt%abs_eps           = abs_eps
     if ( present(smoother)          ) mgt%smoother          = smoother
@@ -376,6 +378,7 @@ contains
                                bottom_max_iter = bottom_max_iter, &
                                bottom_solver_eps = bottom_solver_eps, &
                                max_iter = max_iter, &
+                               abort_on_max_iter = abort_on_max_iter, &
                                max_nlevel = max_nlevel, &
                                min_width = min_width, &
                                eps = eps, &
@@ -1358,7 +1361,9 @@ contains
        if ( present(stat) ) then
           stat = 1
        else
-          call bl_error("MG_TOWER_SOLVE: failed to converge in max_iter iterations")
+          if (mgt%abort_on_max_iter) then
+             call bl_error("MG_TOWER_SOLVE: failed to converge in max_iter iterations")
+          end if
        end if
     end if
 
