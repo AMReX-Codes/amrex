@@ -88,7 +88,7 @@ contains
     if ( present(max_nlevel)        ) mgt%max_nlevel        = max_nlevel
     if ( present(max_bottom_nlevel) ) mgt%max_bottom_nlevel = max_bottom_nlevel
     if ( present(max_iter)          ) mgt%max_iter          = max_iter
-    if ( present(max_iter)          ) mgt%abort_on_max_iter = abort_on_max_iter
+    if ( present(abort_on_max_iter) ) mgt%abort_on_max_iter = abort_on_max_iter
     if ( present(eps)               ) mgt%eps               = eps
     if ( present(abs_eps)           ) mgt%abs_eps           = abs_eps
     if ( present(smoother)          ) mgt%smoother          = smoother
