@@ -183,15 +183,15 @@ ifdef mpi_lib_dir
   fld_flags += -L$(mpi_lib_dir)
 endif
 
-f_includes = $(addprefix -I, $(FINCLUDE_LOCATIONS))
-c_includes = $(addprefix -I, $(INCLUDE_LOCATIONS))
+f_includes = $(addprefix -I , $(FINCLUDE_LOCATIONS))
+c_includes = $(addprefix -I , $(INCLUDE_LOCATIONS))
 
 TCSORT  :=  $(BOXLIB_HOME)/Tools/F_scripts/tcsort.pl
 MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
 MKDEP   :=  $(BOXLIB_HOME)/Tools/F_scripts/mkdep.pl
 F90DOC  :=  $(BOXLIB_HOME)/Tools/F_scripts/f90doc/f90doc
 
-FPPFLAGS += $(fpp_flags) $(f_includes)
+FPPFLAGS += $(fpp_flags) $(addprefix -I, $(FINCLUDE_LOCATIONS))
 LDFLAGS  += $(fld_flags)
 libraries += $(hypre_libraries) $(mpi_libraries) $(xtr_libraries)
 
@@ -219,9 +219,9 @@ ifndef ROSE
    COMPILE.f   = $(FC)  $(FFLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
    COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 else
-   COMPILE.c   = $(ROSECOMP) $(CFLAGS)   $(ROSE_CFLAGS)   $(CPPFLAGS) -c
-   COMPILE.f   = $(ROSECOMP) $(FFLAGS)   $(ROSE_FFLAGS)   $(FPPFLAGS) -c
-   COMPILE.f90 = $(ROSECOMP) $(F90FLAGS) $(ROSE_F90FLAGS) $(FPPFLAGS) -c
+   COMPILE.c   = $(ROSECOMP) $(CFLAGS)   $(ROSEFLAGS) $(CPPFLAGS) -c
+   COMPILE.f   = $(ROSECOMP) $(FFLAGS)   $(ROSEFLAGS) $(FPPFLAGS) -c
+   COMPILE.f90 = $(ROSECOMP) $(F90FLAGS) $(ROSEFLAGS) $(FPPFLAGS) -c
 endif
 
 LINK.f      = $(FC)  $(FFLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
