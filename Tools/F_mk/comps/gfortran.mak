@@ -40,8 +40,13 @@
   endif
 
   ifdef ROSE
+    F90FLAGS += -ffree-line-length-none
+    FFLAGS   += -ffree-line-length-none -ffixed-line-length-none
+
     ROSEVERBOSE ?= 0
-    ROSE_F90FLAGS := -ffree-line-length-none -rose:verbose $(ROSEVERBOSE)
-    ROSE_FFLAGS   := -ffree-line-length-none -rose:verbose $(ROSEVERBOSE)
-    ROSE_CFLAGS   := -rose:verbose $(ROSEVERBOSE)
+    ROSEFLAGS := -rose:verbose $(ROSEVERBOSE)
+
+    ifdef OMP
+      ROSEFLAGS += -rose:openmp
+    endif
   endif
