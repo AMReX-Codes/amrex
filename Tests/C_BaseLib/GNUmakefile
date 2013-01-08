@@ -1,14 +1,14 @@
 #
 # Set these to the appropriate value.
 #
-DIM          = 2
 DIM          = 3
+DIM          = 2
 
 COMP         = g++
 FCOMP        = gfortran
 
-DEBUG        = TRUE
 DEBUG        = FALSE
+DEBUG        = TRUE
 
 USE_MPI      = TRUE
 USE_MPI      = FALSE
@@ -28,9 +28,10 @@ include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 #_progs  := tCArena
 #_progs  := tBA
 #_progs  := tDM
+_progs  := tFillFab
 #_progs  := tMF
 #_progs  := tFB
-_progs  := tMFcopy
+#_progs  := tMFcopy
 
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 
