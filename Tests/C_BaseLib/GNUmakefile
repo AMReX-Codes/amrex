@@ -28,8 +28,8 @@ include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 #_progs  := tCArena
 #_progs  := tBA
 #_progs  := tDM
-_progs  := tFillFab
-#_progs  := tMF
+#_progs  := tFillFab
+_progs  := tMF
 #_progs  := tFB
 #_progs  := tMFcopy
 
