@@ -777,6 +777,12 @@ Amr::writePlotFile ()
 
     if (record_run_info && ParallelDescriptor::IOProcessor())
         runlog << "PLOTFILE: file = " << pltfile << '\n';
+
+  BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
+                             stream_max_tries);
+
+  while(sretry.TryFileOutput()) {
+
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
@@ -834,6 +840,9 @@ Amr::writePlotFile ()
 #endif
     }
     ParallelDescriptor::Barrier();
+
+  }  // end while
+
 }
 
 void
@@ -1396,6 +1405,13 @@ Amr::checkPoint ()
 
     if (record_run_info && ParallelDescriptor::IOProcessor())
         runlog << "CHECKPOINT: file = " << ckfile << '\n';
+
+
+  BoxLib::StreamRetry sretry(ckfile, abort_on_stream_retry_failure,
+                             stream_max_tries);
+
+  while(sretry.TryFileOutput()) {
+
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
@@ -1482,13 +1498,17 @@ Amr::checkPoint ()
         Real dCheckPointTime = ParallelDescriptor::second() - dCheckPointTime0;
 
 #ifndef BL_PROFILING
-        ParallelDescriptor::ReduceRealMax(dCheckPointTime,ParallelDescriptor::IOProcessorNumber());
+        ParallelDescriptor::ReduceRealMax(dCheckPointTime,
+	                            ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
 #endif
     }
     ParallelDescriptor::Barrier();
+
+  }  // end while
+
 }
 
 void
@@ -2776,6 +2796,14 @@ Amr::initPltAndChk ()
     {
         BoxLib::Error("Must only specify amr.plot_int OR amr.plot_per");
     }
+
+    stream_max_tries = 4;
+    pp.query("stream_max_tries",stream_max_tries);
+    stream_max_tries = std::max(stream_max_tries, 1);
+
+    abort_on_stream_retry_failure = false;
+    pp.query("abort_on_stream_retry_failure",abort_on_stream_retry_failure);
+
 }
 
 

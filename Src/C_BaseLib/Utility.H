@@ -305,12 +305,23 @@ namespace BoxLib
       public:
         StreamRetry(std::ostream &os, const std::string &suffix,
 	            const int maxtries);
+        StreamRetry(const std::string &filename,
+	            const bool abortonretryfailure,
+	            const int maxtries);
 	bool TryOutput();
+	bool TryFileOutput();
+        static int NStreamErrors()       { return nStreamErrors; }
+        static void ClearStreamErrors()  { nStreamErrors = 0;    }
+
       private:
         int tries, maxTries;
+	bool abortOnRetryFailure;
+	std::string fileName;
 	std::ostream &sros;
 	std::ostream::pos_type spos;
 	std::string suffix;
+
+	static int nStreamErrors;
     };
 }
 
