@@ -1104,32 +1104,48 @@ BoxLib::expect::the_string() const
 // StreamRetry
 //
 
+int BoxLib::StreamRetry::nStreamErrors = 0;
+
 BoxLib::StreamRetry::StreamRetry(std::ostream &os, const std::string &suffix,
                                  const int maxtries)
     : tries(0), maxTries(maxtries), sros(os), spos(os.tellp()), suffix(suffix)
 {
 }
 
+BoxLib::StreamRetry::StreamRetry(const std::string &filename,
+				 const bool abortonretryfailure,
+                                 const int maxtries)
+    : tries(0), maxTries(maxtries),
+      abortOnRetryFailure(abortonretryfailure),
+      fileName(filename),
+      sros(std::cerr)    // unused here, just to make the compiler happy
+{
+  nStreamErrors = 0;
+}
+
 bool BoxLib::StreamRetry::TryOutput()
 {
-  if(tries++ == 0) {
+  if(tries == 0) {
+    ++tries;
     return true;
   } else {
     if(sros.fail()) {
+      ++nStreamErrors;
       int myProc(ParallelDescriptor::MyProc());
       if(tries < maxTries) {
         std::cout << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
                   << tries << " :: ";
-        std::cout << "gbfe:  " << sros.good() << sros.bad() << sros.fail() << sros.eof()
-                  << std::endl;
+        std::cout << "gbfe:  " << sros.good() << sros.bad() << sros.fail()
+                  << sros.eof() << std::endl;
         sros.clear();  // clear the bad bits
         sros.seekp(spos, std::ios::beg);  // reset stream position
+        ++tries;
         return true;
       } else {
-        std::cout << "PROC: " << myProc << " :: STREAMFAILED_" << suffix
-                  << " :: File may be corrupt.  :: ";
-        std::cout << "gbfe:  " << sros.good() << sros.bad() << sros.fail() << sros.eof()
-                  << std::endl;
+        std::cout << "PROC: " << myProc << " :: STREAMFAILED_" << suffix << " # "
+                  << tries << " :: File may be corrupt.  :: ";
+        std::cout << "gbfe:  " << sros.good() << sros.bad() << sros.fail()
+                  << sros.eof() << std::endl;
         sros.clear();  // clear the bad bits
         return false;
       }
@@ -1138,5 +1154,48 @@ bool BoxLib::StreamRetry::TryOutput()
     }
   }
 }
+
+
+bool BoxLib::StreamRetry::TryFileOutput()
+{
+    bool bTryOutput(false);
+
+    if(tries == 0) {
+      bTryOutput = true;
+    } else {
+
+      int nWriteErrors(nStreamErrors);
+      ParallelDescriptor::ReduceIntSum(nWriteErrors);
+
+      if(nWriteErrors == 0) {  // wrote a good file
+        bTryOutput = false;
+      } else {                 // rename the bad file
+        if(ParallelDescriptor::IOProcessor()) {
+          const std::string badFileName = BoxLib::Concatenate(fileName + ".bad",
+                                                              tries - 1, 2);
+          std::cout << nWriteErrors << " STREAMERRORS : Renaming file from "
+                    << fileName << "  to  " << badFileName << std::endl;
+          std::rename(fileName.c_str(), badFileName.c_str());
+        }
+        ParallelDescriptor::Barrier();  // wait for file rename
+
+        // check for maxtries and abort pref
+        if(tries < maxTries) {
+          bTryOutput = true;
+        } else {
+          if(abortOnRetryFailure) {
+            BoxLib::Abort("STREAMERROR : StreamRetry::maxTries exceeded.");
+          }
+          bTryOutput = false;
+        }
+      }
+    }
+
+    ++tries;
+    nStreamErrors = 0;
+    return bTryOutput;
+}
+
+
 
 
