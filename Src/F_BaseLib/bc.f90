@@ -22,9 +22,11 @@ module bc_module
 
   integer, parameter, public :: REFLECT_ODD  =  20
   integer, parameter, public :: REFLECT_EVEN =  21
-  integer, parameter, public :: FOEXTRAP     =  22
+  integer, parameter, public :: HOM_DIR      =  22
   integer, parameter, public :: EXT_DIR      =  23
-  integer, parameter, public :: HOEXTRAP     =  24
+  integer, parameter, public :: FOEXTRAP     =  24
+  integer, parameter, public :: HOEXTRAP     =  25
+
 
 contains
 
