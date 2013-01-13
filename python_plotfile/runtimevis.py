@@ -42,15 +42,125 @@ def doPlot(ax, name, data):
     ax.cax.colorbar(im)
 
 
+def setupAxes(aspectRatio, nvar):
+
+    if (aspectRatio == "h"):
+
+        # for <= 3 variables, do a single column
+        # for 4 <= # var <= 6, do two columns
+
+        if (nvar <= 3):
+            grid = ImageGrid(F, 111, # similar to subplot(111)
+                             nrows_ncols = (nvar, 1),
+                             direction="row",
+                             axes_pad = 0.5 ,
+                             add_all=True,
+                             label_mode = "L",
+                             share_all = True,
+                             cbar_location="top",
+                             cbar_mode="each",
+                             cbar_size="5%",
+                             cbar_pad="15%")
+            
+        elif (nvar == 4):
+            grid = ImageGrid(F, 111, # similar to subplot(111)
+                             nrows_ncols = (2, 2),
+                             direction="row",
+                             axes_pad = 0.5 ,
+                             add_all=True,
+                             label_mode = "L",
+                             share_all = True,
+                             cbar_location="top",
+                             cbar_mode="each",
+                             cbar_size="5%",
+                             cbar_pad="15%")
+
+        else:
+            grid = ImageGrid(F, 111, # similar to subplot(111)
+                             nrows_ncols = (3, 2),
+                             direction="row",
+                             axes_pad = 0.5 ,
+                             add_all=True,
+                             label_mode = "L",
+                             share_all = True,
+                             cbar_location="top",
+                             cbar_mode="each",
+                             cbar_size="5%",
+                             cbar_pad="20%")
+
+    elif (aspectRatio == "v"):
+        
+        # always do 1 row
+        grid = ImageGrid(F, 111, # similar to subplot(111)
+                         nrows_ncols = (1, nvar),
+                         direction="row",
+                         axes_pad = 0.2 ,
+                         add_all=True,
+                         label_mode = "L",
+                         share_all = True,
+                         cbar_location="top",
+                         cbar_mode="each",
+                         cbar_size="3%",
+                         cbar_pad="8%")
+
+    else:
+        
+        # for <= 3 variables, do a single row
+        # for 4 <= # var <= 6, do 2 rows. 
+        if (nvar <= 3):
+            grid = ImageGrid(F, 111, # similar to subplot(111)
+                             nrows_ncols = (1, nvar),
+                             direction="row",
+                             axes_pad = 0.2 ,
+                             add_all=True,
+                             label_mode = "L",
+                             share_all = True,
+                             cbar_location="top",
+                             cbar_mode="each",
+                             cbar_size="5%",
+                             cbar_pad="15%")
+
+        elif (nvar == 4):
+            grid = ImageGrid(F, 111, # similar to subplot(111)
+                             nrows_ncols = (2, 2),
+                             direction="row",
+                             axes_pad = 0.5 ,
+                             add_all=True,
+                             label_mode = "L",
+                             share_all = True,
+                             cbar_location="top",
+                             cbar_mode="each",
+                             cbar_size="5%",
+                             cbar_pad="15%")
+        else:
+            grid = ImageGrid(F, 111, # similar to subplot(111)
+                             nrows_ncols = (2, 3),
+                             direction="row",
+                             axes_pad = 0.5 ,
+                             add_all=True,
+                             label_mode = "L",
+                             share_all = True,
+                             cbar_location="top",
+                             cbar_mode="each",
+                             cbar_size="5%",
+                             cbar_pad="15%")
+
+
+
+        return grid
+
+
+
+# main
 
 # get the grid info
-nx = 20
+nx = 10
 ny = 10
 
 
 # get the data
 
-nvar = 5
+nvar = 3
 
 # find the aspect ratio:
 #
@@ -73,106 +183,7 @@ F.clf()
 
 
 # setup the axes
-if (aspectRatio == "h"):
-
-    # for <= 3 variables, do a single column
-    # for 4 <= # var <= 6, do two columns
-
-    if (nvar <= 3):
-        grid = ImageGrid(F, 111, # similar to subplot(111)
-                         nrows_ncols = (nvar, 1),
-                         direction="row",
-                         axes_pad = 0.5 ,
-                         add_all=True,
-                         label_mode = "L",
-                         share_all = True,
-                         cbar_location="top",
-                         cbar_mode="each",
-                         cbar_size="5%",
-                         cbar_pad="15%")
-
-    elif (nvar == 4):
-        grid = ImageGrid(F, 111, # similar to subplot(111)
-                         nrows_ncols = (2, 2),
-                         direction="row",
-                         axes_pad = 0.5 ,
-                         add_all=True,
-                         label_mode = "L",
-                         share_all = True,
-                         cbar_location="top",
-                         cbar_mode="each",
-                         cbar_size="5%",
-                         cbar_pad="15%")
-
-    else:
-        grid = ImageGrid(F, 111, # similar to subplot(111)
-                         nrows_ncols = (3, 2),
-                         direction="row",
-                         axes_pad = 0.2 ,
-                         add_all=True,
-                         label_mode = "L",
-                         share_all = True,
-                         cbar_location="top",
-                         cbar_mode="each",
-                         cbar_size="3%",
-                         cbar_pad="5%")
-
-elif (aspectRatio == "v"):
-
-    # always do 1 row
-    grid = ImageGrid(F, 111, # similar to subplot(111)
-                         nrows_ncols = (1, nvar),
-                         direction="row",
-                         axes_pad = 0.2 ,
-                         add_all=True,
-                         label_mode = "L",
-                         share_all = True,
-                         cbar_location="top",
-                         cbar_mode="each",
-                         cbar_size="3%",
-                         cbar_pad="8%")
-
-else:
-
-    # for <= 3 variables, do a single row
-    # for 4 <= # var <= 6, do 2 rows. 
-    if (nvar <= 3):
-        grid = ImageGrid(F, 111, # similar to subplot(111)
-                         nrows_ncols = (1, nvar),
-                         direction="row",
-                         axes_pad = 0.2 ,
-                         add_all=True,
-                         label_mode = "L",
-                         share_all = True,
-                         cbar_location="top",
-                         cbar_mode="each",
-                         cbar_size="3%",
-                         cbar_pad="5%")
-
-    elif (nvar == 4):
-        grid = ImageGrid(F, 111, # similar to subplot(111)
-                         nrows_ncols = (2, 2),
-                         direction="row",
-                         axes_pad = 0.2 ,
-                         add_all=True,
-                         label_mode = "L",
-                         share_all = True,
-                         cbar_location="top",
-                         cbar_mode="each",
-                         cbar_size="3%",
-                         cbar_pad="5%")
-    else:
-        grid = ImageGrid(F, 111, # similar to subplot(111)
-                         nrows_ncols = (2, 3),
-                         direction="row",
-                         axes_pad = 0.2 ,
-                         add_all=True,
-                         label_mode = "L",
-                         share_all = True,
-                         cbar_location="top",
-                         cbar_mode="each",
-                         cbar_size="3%",
-                         cbar_pad="5%")
+grid = setupAxes(aspectRatio, nvar)
 
 
 # plot the data
