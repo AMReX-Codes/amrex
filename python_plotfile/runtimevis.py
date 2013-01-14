@@ -1,9 +1,14 @@
+#!/usr/bin/env python
+
 import numpy
 import pylab
 import matplotlib
 import os
 import sys
 import getopt
+import ConfigParser
+import fsnapshot
+
 import math
 import string
 from mpl_toolkits.axes_grid1 import ImageGrid
@@ -34,15 +39,92 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 # as this is 720p HD resolution (good for youtube).
 
 
-def doPlot(ax, name, data):
-    im = ax.imshow(data, origin="lower")
-    ax.set_title(name)
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.cax.colorbar(im)
+#-----------------------------------------------------------------------------
+class variable:
+
+    def __init__(self, name="", minval=None, maxval=None, log=0):
+        self.name = name
+        self.min = minval
+        self.max = maxval
+        self.log = log
+        self.data = None
 
 
-def setupAxes(aspectRatio, nvar):
+    def __str__(self):
+        if self.min == None:
+            minStr = "None"
+        else:
+            minStr = `self.min`
+
+        if self.max == None:
+            maxStr = "None"
+        else:
+            maxStr = `self.max`
+
+        str = "%s: range = [%s, %s], log = %d" % (self.name, minStr, maxStr, self.log)
+        return str
+
+
+class grid:
+
+    def __init__ (self, xmin=0.0, ymin=0.0, xmax=1.0, ymax=1.0, 
+                  dx=0.1, dy=0.1):
+        self.xmin = xmin
+        self.xmax = xmax
+        self.ymin = ymin
+        self.ymax = ymax
+
+        self.dx = dx
+        self.dy = dy
+
+
+#-----------------------------------------------------------------------------
+def parseInfile(inFile):
+
+    vars = []
+
+    parser=ConfigParser.SafeConfigParser()
+    parser.read(inFile)
+
+    if (parser.sections() == []):
+        sys.exit("ERROR: no variables defined")
+
+    for section in parser.sections():
+        vars.append(variable(section))
+        
+        for option in parser.options(section):
+
+            if option == "min":
+                try: value=parser.getfloat(section,option)
+                except ValueError:
+                    sys.exit("invalid min for %s" % (section))
+
+                vars[len(vars)-1].min = value
+
+            elif option == "max":
+                try: value=parser.getfloat(section,option)
+                except ValueError:
+                    sys.exit("invalid max for %s" % (section))
+
+                vars[len(vars)-1].max = value
+
+            elif option == "log":
+                try: value=parser.getint(section,option)
+                except ValueError:
+                    sys.exit("invalid log for %s" % (section))
+
+                vars[len(vars)-1].log = value
+
+            else:
+                sys.exit("invalid option for %s" % (section))
+
+
+        #print vars[len(vars)-1]   # debugging
+    return vars
+
+    
+#-----------------------------------------------------------------------------
+def setupAxes(F, aspectRatio, nvar):
 
     if (aspectRatio == "h"):
 
@@ -50,159 +132,239 @@ def setupAxes(aspectRatio, nvar):
         # for 4 <= # var <= 6, do two columns
 
         if (nvar <= 3):
-            grid = ImageGrid(F, 111, # similar to subplot(111)
-                             nrows_ncols = (nvar, 1),
-                             direction="row",
-                             axes_pad = 0.5 ,
-                             add_all=True,
-                             label_mode = "L",
-                             share_all = True,
-                             cbar_location="top",
-                             cbar_mode="each",
-                             cbar_size="5%",
-                             cbar_pad="15%")
+            axGrid = ImageGrid(F, 111, # similar to subplot(111)
+                               nrows_ncols = (nvar, 1),
+                               direction="row",
+                               axes_pad = 0.5 ,
+                               add_all=True,
+                               label_mode = "L",
+                               share_all = True,
+                               cbar_location="top",
+                               cbar_mode="each",
+                               cbar_size="5%",
+                               cbar_pad="15%")
             
         elif (nvar == 4):
-            grid = ImageGrid(F, 111, # similar to subplot(111)
-                             nrows_ncols = (2, 2),
-                             direction="row",
-                             axes_pad = 0.5 ,
-                             add_all=True,
-                             label_mode = "L",
-                             share_all = True,
-                             cbar_location="top",
-                             cbar_mode="each",
-                             cbar_size="5%",
-                             cbar_pad="15%")
+            axGrid = ImageGrid(F, 111, # similar to subplot(111)
+                               nrows_ncols = (2, 2),
+                               direction="row",
+                               axes_pad = 0.5 ,
+                               add_all=True,
+                               label_mode = "L",
+                               share_all = True,
+                               cbar_location="top",
+                               cbar_mode="each",
+                               cbar_size="5%",
+                               cbar_pad="15%")
 
         else:
-            grid = ImageGrid(F, 111, # similar to subplot(111)
-                             nrows_ncols = (3, 2),
-                             direction="row",
-                             axes_pad = 0.5 ,
-                             add_all=True,
-                             label_mode = "L",
-                             share_all = True,
-                             cbar_location="top",
-                             cbar_mode="each",
-                             cbar_size="5%",
-                             cbar_pad="20%")
+            axGrid = ImageGrid(F, 111, # similar to subplot(111)
+                               nrows_ncols = (3, 2),
+                               direction="row",
+                               axes_pad = 0.5 ,
+                               add_all=True,
+                               label_mode = "L",
+                               share_all = True,
+                               cbar_location="top",
+                               cbar_mode="each",
+                               cbar_size="5%",
+                               cbar_pad="20%")
 
     elif (aspectRatio == "v"):
         
         # always do 1 row
-        grid = ImageGrid(F, 111, # similar to subplot(111)
-                         nrows_ncols = (1, nvar),
-                         direction="row",
-                         axes_pad = 0.2 ,
-                         add_all=True,
-                         label_mode = "L",
-                         share_all = True,
-                         cbar_location="top",
-                         cbar_mode="each",
-                         cbar_size="3%",
-                         cbar_pad="8%")
-
+        axGrid = ImageGrid(F, 111, # similar to subplot(111)
+                           nrows_ncols = (1, nvar),
+                           direction="row",
+                           axes_pad = 0.2 ,
+                           add_all=True,
+                           label_mode = "L",
+                           share_all = True,
+                           cbar_location="top",
+                           cbar_mode="each",
+                           cbar_size="3%",
+                           cbar_pad="8%")
+        
     else:
         
         # for <= 3 variables, do a single row
         # for 4 <= # var <= 6, do 2 rows. 
         if (nvar <= 3):
-            grid = ImageGrid(F, 111, # similar to subplot(111)
-                             nrows_ncols = (1, nvar),
-                             direction="row",
-                             axes_pad = 0.2 ,
-                             add_all=True,
-                             label_mode = "L",
-                             share_all = True,
-                             cbar_location="top",
-                             cbar_mode="each",
-                             cbar_size="5%",
-                             cbar_pad="15%")
-
+            axGrid = ImageGrid(F, 111, # similar to subplot(111)
+                               nrows_ncols = (1, nvar),
+                               direction="row",
+                               axes_pad = 0.2 ,
+                               add_all=True,
+                               label_mode = "L",
+                               share_all = True,
+                               cbar_location="top",
+                               cbar_mode="each",
+                               cbar_size="5%",
+                               cbar_pad="15%")
+            
         elif (nvar == 4):
-            grid = ImageGrid(F, 111, # similar to subplot(111)
-                             nrows_ncols = (2, 2),
-                             direction="row",
-                             axes_pad = 0.5 ,
-                             add_all=True,
-                             label_mode = "L",
-                             share_all = True,
-                             cbar_location="top",
-                             cbar_mode="each",
-                             cbar_size="5%",
-                             cbar_pad="15%")
+            axGrid = ImageGrid(F, 111, # similar to subplot(111)
+                               nrows_ncols = (2, 2),
+                               direction="row",
+                               axes_pad = 0.5 ,
+                               add_all=True,
+                               label_mode = "L",
+                               share_all = True,
+                               cbar_location="top",
+                               cbar_mode="each",
+                               cbar_size="5%",
+                               cbar_pad="15%")
         else:
-            grid = ImageGrid(F, 111, # similar to subplot(111)
-                             nrows_ncols = (2, 3),
-                             direction="row",
-                             axes_pad = 0.5 ,
-                             add_all=True,
-                             label_mode = "L",
-                             share_all = True,
-                             cbar_location="top",
-                             cbar_mode="each",
-                             cbar_size="5%",
-                             cbar_pad="15%")
+            axGrid = ImageGrid(F, 111, # similar to subplot(111)
+                               nrows_ncols = (2, 3),
+                               direction="row",
+                               axes_pad = 0.5 ,
+                               add_all=True,
+                               label_mode = "L",
+                               share_all = True,
+                               cbar_location="top",
+                               cbar_mode="each",
+                               cbar_size="5%",
+                               cbar_pad="15%")
 
 
 
-        return grid
+        return axGrid
+
+
+#-----------------------------------------------------------------------------
+def doPlot(ax, grd, var):
+    extent = [grd.xmin, grd.xmax, grd.ymin, grd.ymax]
+
+    if var.log:
+        pData = numpy.log10(var.data)
+        if (not var.min == None): 
+            pmin = math.log10(var.min)
+        else:
+            pmin = None
+        if (not var.max == None):
+            pmax = math.log10(var.max)
+        else:
+            pmax = None
+    else:
+        pData = var.data
+        pmin = var.min
+        pmax = var.max
+
+    im = ax.imshow(pData, origin="lower", interpolation="nearest",
+                   vmin=pmin, vmax=pmax, extent=extent)
+
+    ax.set_title(var.name)
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.cax.colorbar(im)
+
+
+#-----------------------------------------------------------------------------
+def main(inFile, plotFile):
+
+    print inFile 
+    print plotFile
+
+    # get a list of variable objects that contains the information
+    # about what to plot
+    vars = parseInfile(inFile)
+
+    nvar = len(vars)
+
+
+    # get and store the grid info
+    (nx, ny, nz) = fsnapshot.fplotfile_get_size(plotFile)
+    if (not nz == -1):
+        sys.exit("ERROR: cannot read a 3-d dataset")
+
+
+    (xmin, xmax, ymin, ymax, zmin, zmax) = \
+        fsnapshot.fplotfile_get_limits(plotFile)
+
+    dx = (xmax - xmin)/nx
+    x = xmin + numpy.arange( (nx), dtype=numpy.float64 )*dx
+
+    dy = (ymax - ymin)/ny
+    y = ymin + numpy.arange( (ny), dtype=numpy.float64 )*dy
+
+    gridInfo = grid(xmin=xmin, xmax=xmax, 
+                    ymin=ymin, ymax=ymax, 
+                    dx=dx, dy=dy)
+
+
+    # get the data
+    for v in vars:
+        data = numpy.zeros( (nx, ny), dtype=numpy.float64 )
+        (data, err) = fsnapshot.fplotfile_get_data_2d(plotFile, v.name, data)
+        if (not err == 0):
+            sys.exit("ERROR: unable to read %s" % (v.name) )
+
+        v.data = numpy.transpose(data)
+
+
+    # find the aspect ratio:
+    #
+    # aspectRatio = "h" means horizontal
+    #               "v" means vertical
+    #               "s" means square (to some degree...)
+
+    if (nx >= 2*ny):
+        aspectRatio = "h"
+    elif (ny >= 2*nx):
+        aspectRatio = "v"
+    else:
+        aspectRatio = "s"
 
 
 
-# main
-
-# get the grid info
-nx = 10
-ny = 10
+    # setup the figure
+    F = pylab.figure(1, (12.8, 7.2)) 
+    F.clf()
 
 
-# get the data
-
-nvar = 3
-
-# find the aspect ratio:
-#
-# aspectRatio = "h" means horizontal
-#               "v" means vertical
-#               "s" means square (to some degree...)
-
-if (nx >= 2*ny):
-    aspectRatio = "h"
-elif (ny >= 2*nx):
-    aspectRatio = "v"
-else:
-    aspectRatio = "s"
+    # setup the axes
+    axGrid = setupAxes(F, aspectRatio, nvar)
 
 
-
-# setup the figure
-F = pylab.figure(1, (12.8, 7.2)) 
-F.clf()
-
-
-# setup the axes
-grid = setupAxes(aspectRatio, nvar)
+    # plot the data
+    n = 0
+    while (n < nvar):
+        doPlot(axGrid[n], gridInfo, vars[n])
+        n += 1
 
 
-# plot the data
-dummy = numpy.arange(nx*ny)
-dummy.shape = ny, nx
-
-n = 0
-while (n < nvar):
-    doPlot(grid[n], "var %s" % (n), dummy)
-    n += 1
-
-# 5 variables is a tricky case
-if (nvar == 5 and (aspectRatio == "h" or aspectRatio == "s")):
-    # turn off the last axes
-    grid[5].axis('off')
-    grid[5].cax.axis('off')
+    # 5 variables is a tricky case
+    if (nvar == 5 and (aspectRatio == "h" or aspectRatio == "s")):
+        # turn off the last axes
+        axGrid[5].axis('off')
+        axGrid[5].cax.axis('off')
 
 
-pylab.savefig("test.png")
+    pylab.savefig("test.png")
+
+
+
+if __name__ == "__main__":
+
+    # parse the commandline options
+    inFile = "vis.in"
+
+    try: opts, next = getopt.getopt(sys.argv[1:], "i:")
+    except getopt.GetoptError:
+        sys.exit("ERROR: invalid calling sequence")
+
+    for o, a in opts:
+        if o == "-i":
+            inFile = a
+
+
+    try: plotFile = next[0]
+    except IndexError:
+        sys.exit("ERROR: plotfile not specified")
+
+    main(inFile, plotFile)
+
 
 
 
