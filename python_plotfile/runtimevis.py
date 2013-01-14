@@ -134,42 +134,33 @@ def setupAxes(F, aspectRatio, nvar):
 
         if (nvar <= 3):
             axGrid = ImageGrid(F, 111, # similar to subplot(111)
-                               nrows_ncols = (nvar, 1),
-                               direction="row",
+                               nrows_ncols = (nvar, 1), direction="row",
                                axes_pad = 0.5 ,
                                add_all=True,
                                label_mode = "L",
                                share_all = True,
-                               cbar_location="top",
-                               cbar_mode="each",
-                               cbar_size="5%",
-                               cbar_pad="15%")
+                               cbar_location="top", cbar_mode="each",
+                               cbar_size="5%", cbar_pad="15%")
             
         elif (nvar == 4):
             axGrid = ImageGrid(F, 111, # similar to subplot(111)
-                               nrows_ncols = (2, 2),
-                               direction="row",
+                               nrows_ncols = (2, 2), direction="row",
                                axes_pad = 0.5 ,
                                add_all=True,
                                label_mode = "L",
                                share_all = True,
-                               cbar_location="top",
-                               cbar_mode="each",
-                               cbar_size="5%",
-                               cbar_pad="15%")
+                               cbar_location="top", cbar_mode="each",
+                               cbar_size="5%", cbar_pad="15%")
 
         else:
             axGrid = ImageGrid(F, 111, # similar to subplot(111)
-                               nrows_ncols = (3, 2),
-                               direction="row",
+                               nrows_ncols = (3, 2), direction="row",
                                axes_pad = 0.5 ,
                                add_all=True,
                                label_mode = "L",
                                share_all = True,
-                               cbar_location="top",
-                               cbar_mode="each",
-                               cbar_size="5%",
-                               cbar_pad="20%")
+                               cbar_location="top", cbar_mode="each",
+                               cbar_size="5%", cbar_pad="20%")
 
     elif (aspectRatio == "v"):
 
@@ -178,31 +169,24 @@ def setupAxes(F, aspectRatio, nvar):
         if (nvar <= 4):
 
             axGrid = ImageGrid(F, 111, # similar to subplot(111)
-                               nrows_ncols = (1, nvar),
-                               direction="row",
+                               nrows_ncols = (1, nvar), direction="row",
                                axes_pad = 0.2 ,
                                add_all=True,
                                label_mode = "L",
                                share_all = True,
-                               cbar_location="top",
-                               cbar_mode="each",
-                               cbar_size="3%",
-                               cbar_pad="8%")
+                               cbar_location="top", cbar_mode="each",
+                               cbar_size="3%", cbar_pad="8%")
 
         else:
 
             axGrid = ImageGrid(F, 111, # similar to subplot(111)
-                               nrows_ncols = (1, nvar),
-                               direction="row",
+                               nrows_ncols = (1, nvar), direction="row",
                                axes_pad = 0.2 ,
                                add_all=True,
                                label_mode = "L",
                                share_all = True,
-                               cbar_location="top",
-                               cbar_mode="each",
-                               cbar_size="5%",
-                               cbar_pad="15%")
-
+                               cbar_location="top", cbar_mode="each",
+                               cbar_size="5%", cbar_pad="15%")
 
     else:
         
@@ -210,41 +194,32 @@ def setupAxes(F, aspectRatio, nvar):
         # for 4 <= # var <= 6, do 2 rows. 
         if (nvar <= 3):
             axGrid = ImageGrid(F, 111, # similar to subplot(111)
-                               nrows_ncols = (1, nvar),
-                               direction="row",
+                               nrows_ncols = (1, nvar), direction="row",
                                axes_pad = 0.2 ,
                                add_all=True,
                                label_mode = "L",
                                share_all = True,
-                               cbar_location="top",
-                               cbar_mode="each",
-                               cbar_size="5%",
-                               cbar_pad="10%")
+                               cbar_location="top", cbar_mode="each",
+                               cbar_size="5%", cbar_pad="10%")
             
         elif (nvar == 4):
             axGrid = ImageGrid(F, 111, # similar to subplot(111)
-                               nrows_ncols = (2, 2),
-                               direction="row",
+                               nrows_ncols = (2, 2), direction="row",
                                axes_pad = 0.5 ,
                                add_all=True,
                                label_mode = "L",
                                share_all = True,
-                               cbar_location="top",
-                               cbar_mode="each",
-                               cbar_size="5%",
-                               cbar_pad="15%")
+                               cbar_location="top", cbar_mode="each",
+                               cbar_size="5%", cbar_pad="15%")
         else:
             axGrid = ImageGrid(F, 111, # similar to subplot(111)
-                               nrows_ncols = (2, 3),
-                               direction="row",
+                               nrows_ncols = (2, 3), direction="row",
                                axes_pad = 0.5 ,
                                add_all=True,
                                label_mode = "L",
                                share_all = True,
-                               cbar_location="top",
-                               cbar_mode="each",
-                               cbar_size="5%",
-                               cbar_pad="15%")
+                               cbar_location="top", cbar_mode="each",
+                               cbar_size="5%", cbar_pad="15%")
 
 
 
@@ -317,6 +292,9 @@ def main(inFile, plotFile):
                     dx=dx, dy=dy)
 
 
+    time = fsnapshot.fplotfile_get_time(plotFile)
+
+
     # get the data
     for v in vars:
         data = numpy.zeros( (nx, ny), dtype=numpy.float64 )
@@ -367,7 +345,13 @@ def main(inFile, plotFile):
         axGrid[5].cax.axis('off')
 
 
-    pylab.savefig("test.png")
+    # write the time   
+    print "writing time"
+    F.text(0.1, 0.1, "t = %g s" % (time), transform = F.transFigure, color="k")
+
+
+
+    pylab.savefig("%s.png" % (plotFile) )
 
 
 
@@ -390,7 +374,4 @@ if __name__ == "__main__":
         sys.exit("ERROR: plotfile not specified")
 
     main(inFile, plotFile)
-
-
-
 
