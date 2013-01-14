@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
+import matplotlib
+matplotlib.use('Agg')   # this is important for batch mode on machines w/o a display
 import numpy
 import pylab
-import matplotlib
 import os
 import sys
 import getopt
@@ -171,20 +172,38 @@ def setupAxes(F, aspectRatio, nvar):
                                cbar_pad="20%")
 
     elif (aspectRatio == "v"):
-        
-        # always do 1 row
-        axGrid = ImageGrid(F, 111, # similar to subplot(111)
-                           nrows_ncols = (1, nvar),
-                           direction="row",
-                           axes_pad = 0.2 ,
-                           add_all=True,
-                           label_mode = "L",
-                           share_all = True,
-                           cbar_location="top",
-                           cbar_mode="each",
-                           cbar_size="3%",
-                           cbar_pad="8%")
-        
+
+        # always do 1 row -- just much with the spacings here
+
+        if (nvar <= 4):
+
+            axGrid = ImageGrid(F, 111, # similar to subplot(111)
+                               nrows_ncols = (1, nvar),
+                               direction="row",
+                               axes_pad = 0.2 ,
+                               add_all=True,
+                               label_mode = "L",
+                               share_all = True,
+                               cbar_location="top",
+                               cbar_mode="each",
+                               cbar_size="3%",
+                               cbar_pad="8%")
+
+        else:
+
+            axGrid = ImageGrid(F, 111, # similar to subplot(111)
+                               nrows_ncols = (1, nvar),
+                               direction="row",
+                               axes_pad = 0.2 ,
+                               add_all=True,
+                               label_mode = "L",
+                               share_all = True,
+                               cbar_location="top",
+                               cbar_mode="each",
+                               cbar_size="5%",
+                               cbar_pad="15%")
+
+
     else:
         
         # for <= 3 variables, do a single row
@@ -200,7 +219,7 @@ def setupAxes(F, aspectRatio, nvar):
                                cbar_location="top",
                                cbar_mode="each",
                                cbar_size="5%",
-                               cbar_pad="15%")
+                               cbar_pad="10%")
             
         elif (nvar == 4):
             axGrid = ImageGrid(F, 111, # similar to subplot(111)
@@ -229,7 +248,7 @@ def setupAxes(F, aspectRatio, nvar):
 
 
 
-        return axGrid
+    return axGrid
 
 
 #-----------------------------------------------------------------------------
@@ -251,20 +270,25 @@ def doPlot(ax, grd, var):
         pmin = var.min
         pmax = var.max
 
+    formatter = matplotlib.ticker.ScalarFormatter(useMathText=True)
+    formatter.set_powerlimits((-3,3))
+
     im = ax.imshow(pData, origin="lower", interpolation="nearest",
                    vmin=pmin, vmax=pmax, extent=extent)
 
     ax.set_title(var.name)
+
     ax.set_xlabel("x")
     ax.set_ylabel("y")
-    ax.cax.colorbar(im)
+
+    ax.xaxis.set_major_formatter(pylab.ScalarFormatter(useMathText=True))
+    ax.yaxis.set_major_formatter(pylab.ScalarFormatter(useMathText=True))
+
+    ax.cax.colorbar(im, format=formatter)
 
 
 #-----------------------------------------------------------------------------
 def main(inFile, plotFile):
-
-    print inFile 
-    print plotFile
 
     # get a list of variable objects that contains the information
     # about what to plot
@@ -311,7 +335,7 @@ def main(inFile, plotFile):
 
     if (nx >= 2*ny):
         aspectRatio = "h"
-    elif (ny >= 2*nx):
+    elif (ny >= 1.5*nx):
         aspectRatio = "v"
     else:
         aspectRatio = "s"
@@ -321,6 +345,8 @@ def main(inFile, plotFile):
     # setup the figure
     F = pylab.figure(1, (12.8, 7.2)) 
     F.clf()
+
+    pylab.rc("font", size=9)
 
 
     # setup the axes
