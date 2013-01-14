@@ -41,6 +41,10 @@ ifeq ($(COMP),g++)
   endif
 endif
 
+ifeq ($(_progs),tFillFab)
+  fEXE_sources += fillfab.f
+endif
+
 VPATH = $(BOXLIB_HOME)/Src/C_BaseLib
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 
