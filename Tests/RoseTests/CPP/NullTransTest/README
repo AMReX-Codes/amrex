@@ -1,0 +1,23 @@
+This test uses the identityTranslator from RoseInstall/bin
+to try to translate the BoxLib source.  RoseInstall/bin
+must be in your path and BOXLIB_HOME must be either
+set in your environment or at the top of the GNUmakefile.
+
+
+About half of the source code does not translate correctly
+using rose-0.9.5a-19322.
+
+The code will compile with these set in the GNUmakefile:
+
+COMP      = g++
+FCOMP     = gfortran
+
+
+To use Rose, set to:
+
+COMP      = rose
+FCOMP     = rose
+ROSECOMP  = identityTranslator
+ROSEFCOMP = identityTranslator
+
+
