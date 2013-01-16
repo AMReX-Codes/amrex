@@ -104,6 +104,10 @@ class suiteObj:
         self.extSrcDir = ""
         self.extSrcCompString = ""
 
+        self.boxLibGitBranch = "master"
+        self.sourceGitBranch = "master"
+        self.extSrcGitBranch = "master"
+
         self.useExtraBuild = 0     # set automatically -- not by users
         self.extraBuildDir = ""
         self.extraBuildDirCompString = ""
@@ -239,6 +243,15 @@ def LoadParams(file):
 
         elif (opt == "extSrcCompString"):
             mysuite.extSrcCompString = value
+
+        elif (opt == "boxLibGitBranch"):
+            mysuite.boxLibGitBranch = value
+
+        elif (opt == "sourceGitBranch"):
+            mysuite.sourceGitBranch = value
+
+        elif (opt == "extSrcGitBranch"):
+            mysuite.extSrcGitBranch = value
 
         elif (opt == "extraBuildDir"):
             mysuite.extraBuildDir = checkTestDir(value)
@@ -710,7 +723,7 @@ def checkTestDir(dirName):
 #==============================================================================
 # doGITUpdate
 #==============================================================================
-def doGITUpdate(topDir, root, outDir, githash):
+def doGITUpdate(topDir, root, outDir, gitbranch, githash):
    """ do a git update of the repository in topDir.  root is the name
        of the directory (used for labeling).  outDir is the full path
        to the directory where we will store the git output.  If githash
@@ -729,8 +742,9 @@ def doGITUpdate(topDir, root, outDir, githash):
    p0.stdout.close()
 
 
-   if currentBranch == "HEAD":  # detached state without a branch
-       subprocess.call(["git", "checkout", "master"])
+   print "\n"
+   bold("git checkout %s in %s" % (gitbranch, topDir))
+   subprocess.call(["git", "checkout", gitbranch])
    
 
    if githash == "":
@@ -1419,32 +1433,36 @@ def testSuite(argv):
     if updateSource or sourceGitHash:
 
         # main suite
-        sourceGitBranch = doGITUpdate(suite.sourceDir, 
-                                      suite.srcName, fullWebDir,
-                                      sourceGitHash)
+        sourceGitBranch_Orig = doGITUpdate(suite.sourceDir, 
+                                           suite.srcName, fullWebDir,
+                                           suite.sourceGitBranch,
+                                           sourceGitHash)
     
     if updateExtSrc or extSrcGitHash:
 
         # extra source
         if (suite.useExtSrc):
-            extSrcGitBranch = doGITUpdate(suite.extSrcDir, 
-                                          suite.extSrcName, fullWebDir,
-                                          extSrcGitHash)
+            extSrcGitBranch_Orig = doGITUpdate(suite.extSrcDir, 
+                                               suite.extSrcName, fullWebDir,
+                                               suite.extSrcGitBranch,
+                                               extSrcGitHash)
 
     if updateExtraBuild:
 
         # extra build directory
         if (suite.useExtraBuild):
-            extSrcGitBranch = doGITUpdate(suite.extraBuildDir, 
-                                          suite.extraBuildName, fullWebDir,
-                                          "")
+            extSrcGitBranch_Orig = doGITUpdate(suite.extraBuildDir, 
+                                               suite.extraBuildName, fullWebDir,
+                                               "master"
+                                               "")
 
     if updateBoxLib or boxLibGitHash:
 
         # BoxLib
-        boxLibGitBranch = doGITUpdate(suite.boxLibDir, 
-                                      "BoxLib", fullWebDir,
-                                      boxLibGitHash)
+        boxLibGitBranch_Orig = doGITUpdate(suite.boxLibDir, 
+                                           "BoxLib", fullWebDir,
+                                           suite.boxLibGitBranch,
+                                           boxLibGitHash)
 
     #--------------------------------------------------------------------------
     # Save git HEADs
@@ -2349,14 +2367,14 @@ def testSuite(argv):
        if (os.path.isfile(currentFile)):
           os.chmod(currentFile, 0644)
           
-    if boxLibGitHash:
-        doGITback(suite.boxLibDir, "BoxLib", boxLibGitBranch)
+    if updateBoxLib or boxLibGitHash:
+        doGITback(suite.boxLibDir, "BoxLib", boxLibGitBranch_Orig)
 
-    if sourceGitHash:
-        doGITback(suite.sourceDir, suite.srcName, sourceGitBranch)
+    if updateSource or sourceGitHash:
+        doGITback(suite.sourceDir, suite.srcName, sourceGitBranch_Orig)
 
-    if extSrcGitHash:
-        doGITback(suite.extSrcDir, suite.extSrcName, extSrcGitBranch)
+    if updateExtSrc or extSrcGitHash:
+        doGITback(suite.extSrcDir, suite.extSrcName, extSrcGitBranch_Orig)
             
     #--------------------------------------------------------------------------
     # For temporary run, return now without creating suote report.
