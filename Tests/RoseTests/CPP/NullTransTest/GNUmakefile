@@ -31,8 +31,8 @@ include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
 include $(BOXLIB_HOME)/Src/C_AMRLib/Make.package
 
 
-fFLAGS += -ffixed-line-length-none -rose:-bk1 -rose:-fs0
-FFLAGS += -ffixed-line-length-none -rose:-bk1 -rose:-fs0
+fFLAGS += -ffixed-line-length-none
+FFLAGS += -ffixed-line-length-none
 ROSECXXFLAGS +=
 
 DEFINES += -DBL_PARALLEL_IO
