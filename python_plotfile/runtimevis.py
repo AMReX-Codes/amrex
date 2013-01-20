@@ -347,8 +347,12 @@ def main(inFile, plotFile):
 
     # write the time   
     print "writing time"
-    F.text(0.1, 0.1, "t = %g s" % (time), transform = F.transFigure, color="k")
+    F.text(0.1, 0.01, "t = %g s" % (time), transform = F.transFigure, color="k")
 
+    # automatically make things look better
+    try: F.tight_layout(pad=2.0)  # requires matplotlib >= 1.1
+    except:
+        pass
 
 
     pylab.savefig("%s.png" % (plotFile) )
@@ -369,9 +373,10 @@ if __name__ == "__main__":
             inFile = a
 
 
-    try: plotFile = next[0]
+    try: plotFile = os.path.normpath(next[0])
     except IndexError:
         sys.exit("ERROR: plotfile not specified")
+
 
     main(inFile, plotFile)
 
