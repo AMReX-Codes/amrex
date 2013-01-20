@@ -496,7 +496,7 @@ def do_plot(plotfile, component, component2, outFile, log,
     #--------------------------------------------------------------------------
     # save the figure
     #--------------------------------------------------------------------------
-    try: pylab.tight_layout()  # requires matplotlib > 1.1
+    try: pylab.tight_layout()  # requires matplotlib >= 1.1
     except:
         pass
 
