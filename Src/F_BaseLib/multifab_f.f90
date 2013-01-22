@@ -2087,6 +2087,7 @@ contains
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
+    !$omp parallel do private (i,ii,jj,p1,p2)
     do i = 1, bxasc%l_con%ncpy
        ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
        jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
@@ -2094,6 +2095,7 @@ contains
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_d(p1,p2)
     end do
+    !$omp end parallel do
 
     np = parallel_nprocs()
 
