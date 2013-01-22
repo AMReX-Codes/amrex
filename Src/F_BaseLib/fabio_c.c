@@ -815,25 +815,41 @@ FABIO_UNLINK_IF_EMPTY_STR(const int* ifilename)
 void
 FAB_CONTAINS_NAN (double dptr[], const int* countp, int* result)
 {
-    *result = 0;
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
-    int i;
-    const double* dp = dptr;
-    for (i = 0; i < *countp && *result == 0; i++)
-        if (isnan(*dp++))
-            *result = 1;
+    int i, r;
+    int rr=0;
+#pragma omp parallel private(r) reduction(+:rr)
+    {
+      r = 0;
+#pragma omp for private(i)
+      for (i = 0; i < *countp; i++) {
+	if (isnan(dptr[i])) {
+	  r = 1;
+	}
+      }
+      rr += r;
+    }
+    *result = (rr>0) ? 1 : 0;
 #endif
 }
 
 void
 FAB_CONTAINS_INF (double dptr[], const int* countp, int* result)
 {
-    *result = 0;
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
-    int i;
-    const double* dp = dptr;
-    for (i = 0; i < *countp && *result == 0; i++)
-        if (isinf(*dp++))
-            *result = 1;
+    int i, r;
+    int rr=0;
+#pragma omp parallel private(r) reduction(+:rr)
+    {
+      r = 0;
+#pragma omp for private(i)
+      for (i = 0; i < *countp; i++) {
+        if (isinf(dptr[i])) {
+	  r = 1;
+	}
+      }
+      rr += r;
+    }
+    *result = (rr>0) ? 1 : 0;
 #endif
 }
