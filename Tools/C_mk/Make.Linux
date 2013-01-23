@@ -40,7 +40,7 @@ ifeq ($(COMP),PGI)
   CXXDEBF += -g -O0
 
   ifeq ($(BL_FAST),TRUE)
-    ifeq ($(findstring jaguar, $(HOST)), jaguar)
+    ifeq ($(findstring titan, $(HOST)), titan)
       CXXOPTF += -O
     else
       COPTF += -fast
