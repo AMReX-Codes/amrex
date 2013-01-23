@@ -8,14 +8,29 @@ endif
 CXXOPTF += -DMPICH_IGNORE_CXX_SEEK
 CXXDEBF += -DMPICH_IGNORE_CXX_SEEK
 
-ifeq ($(findstring jaguar, $(HOST)), jaguar)
+ifeq ($(findstring titan, $(HOST)), titan)
     #
-    # jaguar
+    # titan
     #
     ifeq ($(USE_MPI),TRUE)
         CXX := CC -target=linux
         FC  := ftn -target=linux
         F90 := ftn -target=linux
+
+	ifeq ($(FCOMP), Cray)
+	  version_info := $(shell crayftn -V)
+	  ifeq ($(findstring 8.1.2, $(version_info), 8.1.2)
+            F90FLAGS += -hnopgas_runtime
+	    FFLAGS += -hnopgas_runtime
+	  endif
+	endif
+	ifeq ($(COMP), Cray)
+	  version_info := $(shell craycc -V)
+	  ifeq ($(findstring 8.1.2, $(version_info), 8.1.2)
+	    CFLAGS += -hnopgas_runtime
+	    CXXFLAGS += -hnopgas_runtime
+	  endif
+	endif
     endif
 endif
 
@@ -77,7 +92,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(WHICHLINUX), LENS)
-      MPI_HOME:=/sw/analysis-x64/ompi/1.4.3/centos5.5_pgi10.9
+      ifeq ($(COMP), g++)
+  	MPI_HOME:=/sw/analysis-x64/ompi/1.4.2/centos5.5_gnu4.4.4
+      else
+        MPI_HOME:=/sw/analysis-x64/ompi/1.4.3/centos5.5_pgi10.9
+      endif
       BL_MPI_LIBS += -lmpi
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
