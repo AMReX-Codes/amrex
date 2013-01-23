@@ -2108,10 +2108,12 @@ contains
     allocate(fb_data%send_buffer(nc*bxasc%r_con%svol))
     allocate(fb_data%recv_buffer(nc*bxasc%r_con%rvol))
 
+    !$omp parallel do private(i,p)
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(fb_data%send_buffer, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
+    !$omp end parallel do
 
     allocate(fb_data%send_request(bxasc%r_con%nsp))
     allocate(fb_data%recv_request(bxasc%r_con%nrp))
@@ -2170,12 +2172,14 @@ contains
 
        call parallel_wait(fb_data%recv_request)
 
+       !$omp parallel do private(i,sh,p)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
           p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
           call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
        end do
+       !$omp end parallel do
 
        fb_data%rcvd = .true.
        deallocate(fb_data%recv_request)
@@ -2202,12 +2206,14 @@ contains
 
        call parallel_wait(fb_data%recv_request)
 
+       !$omp parallel do private(i,sh,p)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
           p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
           call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
        end do
+       !$omp end parallel do
 
        fb_data%rcvd = .true.
        deallocate(fb_data%recv_request)
@@ -2245,12 +2251,14 @@ contains
     if (fb_data%rcvd .and. associated(fb_data%recv_buffer)) then
        bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
+       !$omp parallel do private(i,sh,p)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
           p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
           call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
        end do
+       !$omp end parallel do
 
        deallocate(fb_data%recv_request)
        deallocate(fb_data%recv_buffer)
