@@ -18,15 +18,15 @@ ifeq ($(findstring titan, $(HOST)), titan)
         F90 := ftn -target=linux
 
 	ifeq ($(FCOMP), Cray)
-	  version_info := $(shell crayftn -V)
-	  ifeq ($(findstring 8.1.2, $(version_info), 8.1.2)
+	  version_info := $(shell crayftn -V 2>&1 1>/dev/null | awk '{print $5}')
+	  ifeq ($(findstring 8.1.2, $(version_info)), 8.1.2)
             F90FLAGS += -hnopgas_runtime
 	    FFLAGS += -hnopgas_runtime
 	  endif
 	endif
 	ifeq ($(COMP), Cray)
-	  version_info := $(shell craycc -V)
-	  ifeq ($(findstring 8.1.2, $(version_info), 8.1.2)
+	  version_info := $(shell craycc -V 2>&1 1>/dev/null | awk '{print $5}')
+	  ifeq ($(findstring 8.1.2, $(version_info)), 8.1.2)
 	    CFLAGS += -hnopgas_runtime
 	    CXXFLAGS += -hnopgas_runtime
 	  endif
