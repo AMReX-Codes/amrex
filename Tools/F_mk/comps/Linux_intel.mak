@@ -3,31 +3,20 @@
     _icc := icc 
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
-    ifeq ($(findstring Version 12, $(_ifc_version)), Version 12)
-        _ifc  := ifort
+    ifeq ($(findstring Version 13, $(_ifc_version)), Version 13)
+        _comp := Intel13
+    else ifeq ($(findstring Version 12, $(_ifc_version)), Version 12)
         _comp := Intel12
-    else
-    ifeq ($(findstring Version 11, $(_ifc_version)), Version 11)
-        _ifc  := ifort
+    else ifeq ($(findstring Version 11, $(_ifc_version)), Version 11)
         _comp := Intel11
-    else
-    ifeq ($(findstring Version 10, $(_ifc_version)), Version 10)
-        _ifc  := ifort
+    else ifeq ($(findstring Version 10, $(_ifc_version)), Version 10)
         _comp := Intel10
-    else
-    ifeq ($(findstring Version 9, $(_ifc_version)), Version 9)
-        _ifc  := ifort
+    else ifeq ($(findstring Version 9, $(_ifc_version)), Version 9)
         _comp := Intel9
-    else
-    ifeq ($(findstring Version 8, $(_ifc_version)), Version 8)
-      _ifc  := ifort
+    else ifeq ($(findstring Version 8, $(_ifc_version)), Version 8)
       _comp := Intel8
     else
       $(error "$(_ifc_version) of IFC is not supported")
-    endif
-    endif
-    endif
-    endif
     endif
 #   _ifc += -auto
     F90 := $(_ifc)
@@ -46,7 +35,7 @@
       F90FLAGS += -openmp -openmp-report2
       CFLAGS   += -openmp -openmp-report2
     endif
-    ifeq ($(_comp),Intel12)
+    ifeq ($(_comp),Intel13)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
         FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
