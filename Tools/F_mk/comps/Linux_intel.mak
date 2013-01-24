@@ -57,6 +57,28 @@
 #      F90FLAGS += -stand f95
 #     FFLAGS += -stand f95
     endif
+    ifeq ($(_comp),Intel12)
+      ifndef NDEBUG
+        F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
+        FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
+        #CFLAGS   += -g -Wcheck
+      else
+        ifdef INTEL_X86
+	  F90FLAGS += -fast
+	  FFLAGS += -fast
+	  CFLAGS += -fast
+	else
+          F90FLAGS += -O3 -ip -mp1# -fltconsistency 
+          FFLAGS += -O3 -ip -mp1# -fltconsistency
+          CFLAGS += -O3 -ip -mp1
+	endif
+      endif
+      ifdef GPROF
+        F90FLAGS += -pg
+      endif
+#      F90FLAGS += -stand f95
+#     FFLAGS += -stand f95
+    endif
     ifeq ($(_comp),Intel11)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0 -check all -warn all -u
