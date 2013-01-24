@@ -114,7 +114,7 @@ public:
 			int            src_comp = 0,
                         int            dst_comp = 0,
                         int            num_comp = 1,
-                        int            bndry_comp = 1);
+                        int            bndry_comp = 0);
     //
     // Fills level boundary cells using BC_mode flag, int. BC data if reqd.
     //
