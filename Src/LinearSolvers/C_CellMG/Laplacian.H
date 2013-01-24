@@ -50,7 +50,8 @@ public:
     // Compute flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-			   MultiFab& in, const BC_Mode& bc_mode);
+			   MultiFab& in, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
+			   int sComp=0, int dComp=0, int nComp=1, int bndComp=0);
     
     virtual Real norm (int nm = 0, int level = 0, const bool local = false);
 
@@ -60,6 +61,12 @@ protected:
     //
     virtual void Fapply (MultiFab&       out,
                          const MultiFab& in,
+                         int             level);
+    virtual void Fapply (MultiFab&       out,
+			 int             dst_comp,
+                         const MultiFab& in,
+			 int             src_comp,
+			 int             num_comp,
                          int             level);
     //
     // apply GSRB smoother to improve residual to L(solnL)=rhsL
