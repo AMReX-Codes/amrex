@@ -198,10 +198,18 @@ LinOp::apply (MultiFab&      out,
               MultiFab&      in,
               int            level,
               LinOp::BC_Mode bc_mode,
-              bool           local)
+              bool           local,
+	      int            src_comp,
+	      int            dst_comp,
+	      int            num_comp,
+	      int            bndry_comp)
 {
-    applyBC(in,0,1,level,bc_mode,local);
-    Fapply(out,in,level);
+    //
+    // Only single-component solves supported (verified) by this class.
+    //
+    BL_ASSERT(num_comp == 1);
+    applyBC(in,src_comp,num_comp,level,bc_mode,local,bndry_comp);
+    Fapply(out,dst_comp,in,src_comp,num_comp,level);
 }
 
 void
@@ -210,7 +218,8 @@ LinOp::applyBC (MultiFab&      inout,
                 int            num_comp,
                 int            level,
                 LinOp::BC_Mode bc_mode,
-                bool           local)
+                bool           local,
+		int            bndry_comp)
 {
     //
     // The inout MultiFab needs at least LinOp_grow ghost cells for applyBC.
@@ -246,8 +255,6 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Fill boundary cells.
     //
-    const int comp = 0;
-
     const int N = inout.IndexMap().size();
 
 #ifdef _OPENMP
@@ -273,7 +280,7 @@ LinOp::applyBC (MultiFab&      inout,
             const FabSet& fs  = bgb->bndryValues(o);
             const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
             Real          bcl = bdl[o];
-            int           bct = bdc[o][comp];
+            int           bct = bdc[o][bndry_comp];
 
             const Box&       vbx   = inout.box(gn);
             FArrayBox&       iofab = inout[gn];
@@ -284,7 +291,7 @@ LinOp::applyBC (MultiFab&      inout,
                          iofab.dataPtr(src_comp),
                          ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
                          &cdr, &bct, &bcl,
-                         fsfab.dataPtr(), 
+                         fsfab.dataPtr(bndry_comp), 
                          ARLIM(fsfab.loVect()), ARLIM(fsfab.hiVect()),
                          m.dataPtr(),
                          ARLIM(m.loVect()), ARLIM(m.hiVect()),
