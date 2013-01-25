@@ -8,7 +8,6 @@
 #include "BC_TYPES.H"
 #include "PROB_F.H"
 #include "ArrayLim.H"
-#include "integrator.fh"
 
 #define SDIM 3
 
