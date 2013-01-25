@@ -173,7 +173,8 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
     //
     // Set bndry types and bclocs.
     //
-    setBndryConds(bc, ratio);
+    for (int n = bnd_start; n < bnd_start+num_comp; ++n)
+	setBndryConds(bc, ratio, n);
     //
     // First interpolate from coarse to fine on bndry.
     //

@@ -228,6 +228,7 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // No coarsened boundary values, cannot apply inhomog at lev>0.
     //
+    BL_ASSERT(level < numLevels());
     BL_ASSERT(!(level > 0 && bc_mode == Inhomogeneous_BC));
 
     int flagden = 1; // Fill in undrrelxr.
@@ -242,6 +243,7 @@ LinOp::applyBC (MultiFab&      inout,
     // Only single-component solves supported (verified) by this class.
     //
     BL_ASSERT(num_comp == 1);
+    BL_ASSERT(bndry_comp+num_comp <= bgb->nComp());
 
     const bool cross = true;
 
@@ -251,6 +253,7 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Do periodic fixup.
     //
+    BL_ASSERT(level<geomarray.size());
     geomarray[level].FillPeriodicBoundary(inout,src_comp,num_comp,false,local);
     //
     // Fill boundary cells.
@@ -266,6 +269,10 @@ LinOp::applyBC (MultiFab&      inout,
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
+        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
+        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
+        BL_ASSERT(level<undrrelxr.size());
+
         const MaskTuple&                 ma  =  maskvals[level][gn];
         const MaskTuple&                 lma = lmaskvals[level][gn];
         const BndryData::RealTuple&      bdl = bgb->bndryLocs(gn);
@@ -280,10 +287,14 @@ LinOp::applyBC (MultiFab&      inout,
             const FabSet& fs  = bgb->bndryValues(o);
             const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
             Real          bcl = bdl[o];
+            BL_ASSERT(bdc[o].size()>bndry_comp);
             int           bct = bdc[o][bndry_comp];
 
             const Box&       vbx   = inout.box(gn);
             FArrayBox&       iofab = inout[gn];
+            BL_ASSERT(f.size()>gn);
+            BL_ASSERT(fs.size()>gn);
+
             FArrayBox&       ffab  = f[gn];
             const FArrayBox& fsfab = fs[gn];
 
