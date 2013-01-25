@@ -204,6 +204,7 @@ Amr::Amr ()
     record_grid_info       = false;
     file_name_digits       = 5;
     record_run_info_terse  = false;
+    bUserStopRequest       = false;
 
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
@@ -750,6 +751,9 @@ Amr::okToContinue ()
     int ok = true;
     for (int i = 0; ok && (i <= finest_level); i++)
         ok = ok && amr_level[i].okToContinue();
+    if(bUserStopRequest) {
+      ok = false;
+    }
     return ok;
 }
 
@@ -1839,6 +1843,10 @@ Amr::coarseTimeStep (Real stop_time)
     ParallelDescriptor::Bcast(&to_checkpoint, 1, ParallelDescriptor::IOProcessorNumber());
     ParallelDescriptor::Bcast(&to_stop,       1, ParallelDescriptor::IOProcessorNumber());
 
+    if(to_stop == 1 && to_checkpoint == 0) {  // prevent main from writing files
+      last_checkpoint = level_steps[0];
+      last_plotfile   = level_steps[0];
+    }
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
 	|| to_checkpoint)
     {
@@ -1851,17 +1859,20 @@ Amr::coarseTimeStep (Real stop_time)
         writePlotFile();
     }
 
+    bUserStopRequest = to_stop;
     if (to_stop)
     {
         ParallelDescriptor::Barrier();
-        if (to_checkpoint)
-        {
-            BoxLib::Abort("Stopped by user w/ checkpoint");
-        }
-        else
-        {
-            BoxLib::Abort("Stopped by user w/o checkpoint");
-        }
+        if(ParallelDescriptor::IOProcessor()) {
+          if (to_checkpoint)
+          {
+            std::cerr << "Stopped by user w/ checkpoint" << std::endl;
+          }
+          else
+          {
+            std::cerr << "Stopped by user w/o checkpoint" << std::endl;
+          }
+	}
     }
 }
 
