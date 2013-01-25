@@ -452,6 +452,8 @@ protected:
     LevelBld*        levelbld;
     bool             abort_on_stream_retry_failure;
     int              stream_max_tries;
+
+    bool             bUserStopRequest;
     //
     // The static data ...
     //
