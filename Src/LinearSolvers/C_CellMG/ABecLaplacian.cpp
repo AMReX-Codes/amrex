@@ -54,7 +54,8 @@ ABecLaplacian::norm (int nm, int level, const bool local)
            const MultiFab& bY  = bCoefficients(1,level);,
            const MultiFab& bZ  = bCoefficients(2,level););
 
-    const int nc = a.nComp();
+    //const int nc = a.nComp(); // FIXME: This LinOp only really support single-component
+    const int nc = 1;
     Real res = 0.0;
     for (MFIter amfi(a); amfi.isValid(); ++amfi)
     {
@@ -274,6 +275,7 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 			 int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
     const int level = 0;
+    BL_ASSERT(num_comp==1);
 
     if (do_ApplyBC)
       applyBC(in,src_comp,num_comp,level,bc_mode,bnd_comp);
@@ -353,7 +355,8 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
-    const int nc = solnL.nComp();
+    //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
+    const int nc = 1;
 
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
@@ -455,7 +458,8 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
-    const int nc = solnL.nComp();
+    //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
+    const int nc = 1;
 
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
@@ -567,8 +571,6 @@ ABecLaplacian::Fapply (MultiFab&       y,
            const MultiFab& bY  = bCoefficients(1,level);,
            const MultiFab& bZ  = bCoefficients(2,level););
 
-    const int nc = y.nComp();
-
     for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
     {
         const Box&       vbx  = ymfi.validbox();
@@ -591,7 +593,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
                    ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
                    byfab.dataPtr(), 
                    ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &nc,
+                   vbx.loVect(), vbx.hiVect(), &num_comp,
                    h[level]);
 #endif
 #if (BL_SPACEDIM ==3)
@@ -607,7 +609,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
                    ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
                    bzfab.dataPtr(), 
                    ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &nc,
+                   vbx.loVect(), vbx.hiVect(), &num_comp,
                    h[level]);
 #endif
     }
