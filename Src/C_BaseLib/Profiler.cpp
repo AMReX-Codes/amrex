@@ -3,6 +3,7 @@
 #include <Profiler.H>
 #include <REAL.H>
 #include <Utility.H>
+#include <ParallelDescriptor.H>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
