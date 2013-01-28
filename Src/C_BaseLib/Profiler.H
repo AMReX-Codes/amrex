@@ -5,13 +5,13 @@
 #ifdef BL_PROFILING
 
 #include <REAL.H>
-#include <ParallelDescriptor.H>
 
 #include <iostream>
 #include <string>
 #include <stack>
 #include <map>
 #include <utility>
+#include <typeinfo>
 
 class Profiler 
 {
@@ -63,6 +63,11 @@ class Profiler
 
 
 #define BL_PROFILE(fname) Profiler bl_profiler__((fname));
+#define BL_PROFILE_T(fname, T) {                                    \
+		     std::string pname(fname);                      \
+		     pname += typeid(T).name();                     \
+                     Profiler bl_profiler__((pname));               \
+}
 #define BL_PROFILE_VAR(fname, vname) Profiler bl_profiler__##vname((fname));
 #define BL_PROFILE_VAR_START(vname) bl_profiler__##vname.start();
 #define BL_PROFILE_VAR_STOP(vname) bl_profiler__##vname.stop();
@@ -92,6 +97,7 @@ class Profiler
 };
 
 #define BL_PROFILE(a)
+#define BL_PROFILE_T(a, T)
 #define BL_PROFILE_TIMER(var, a)
 #define BL_PROFILE_START(var)
 #define BL_PROFILE_STOP(var)
