@@ -1930,6 +1930,16 @@ Amr::defBaseLevel (Real strt_time)
     // Now refine these boxes back to level 0.
     //
     lev0.refine(2);
+
+    //
+    // If (refine_grid_layout == 1) and (Nprocs < ngrids) then break up the 
+    //    grids into smaller chunks
+    //
+    Array<BoxArray> new_grids(1);
+    new_grids[0] = lev0;
+    impose_refine_grid_layout(0,0,new_grids);
+    lev0 = new_grids[0];
+
     //
     // Now build level 0 grids.
     //
@@ -2554,37 +2564,9 @@ Amr::grid_places (int              lbase,
         delete [] pts;
     }
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    if (NProcs > 1 && refine_grid_layout)
-    {
-        //
-        // Chop up grids if fewer grids at level than CPUs.
-        // The idea here is to make more grids on a given level
-        // to spread the work around.
-        //
-        for (int cnt = 1; cnt <= 4; cnt *= 2)
-        {
-            for (int i = lbase; i <= new_finest; i++)
-            {
-                const int ChunkSize = max_grid_size[i]/cnt;
-
-                IntVect chunk(D_DECL(ChunkSize,ChunkSize,ChunkSize));
-                //
-                // We go from Z -> Y -> X to promote cache-efficiency.
-                //
-                for (int j = BL_SPACEDIM-1; j >= 0 ; j--)
-                {
-                    chunk[j] /= 2;
-
-                    if ( (new_grids[i].size() < NProcs) && (chunk[j]%blocking_factor[i] == 0) )
-                    {
-                        new_grids[i].maxSize(chunk);
-                    }
-                }
-            }
-        }
-    }
+    // If Nprocs < Ngrids and refine_grid_layout == 1 then break up the grids
+    //    into smaller chunks for better load balancing
+    impose_refine_grid_layout(lbase,new_finest,new_grids);
 
     if (verbose > 0)
     {
@@ -2871,3 +2853,37 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     return best_dt;
 }
 
+void 
+Amr::impose_refine_grid_layout (int lbase, int new_finest, Array<BoxArray>& new_grids)
+{
+    const int NProcs = ParallelDescriptor::NProcs();
+    if (NProcs > 1 && refine_grid_layout)
+    {
+        //
+        // Chop up grids if fewer grids at level than CPUs.
+        // The idea here is to make more grids on a given level
+        // to spread the work around.
+        //
+        for (int cnt = 1; cnt <= 4; cnt *= 2)
+        {
+            for (int i = lbase; i <= new_finest; i++)
+            {
+                const int ChunkSize = max_grid_size[i]/cnt;
+
+                IntVect chunk(D_DECL(ChunkSize,ChunkSize,ChunkSize));
+                //
+                // We go from Z -> Y -> X to promote cache-efficiency.
+                //
+                for (int j = BL_SPACEDIM-1; j >= 0 ; j--)
+                {
+                    chunk[j] /= 2;
+
+                    if ( (new_grids[i].size() < NProcs) && (chunk[j]%blocking_factor[i] == 0) )
+                    {
+                        new_grids[i].maxSize(chunk);
+                    }
+                }
+            }
+        }
+    }
+}
