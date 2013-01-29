@@ -74,6 +74,7 @@ contains
     type(     box)      :: coarse_pd,bxs
     type(boxarray)      :: new_coarse_ba
     integer             :: bottom_box_size
+    integer             :: success
     real(kind=dp_t)     :: coarse_dx(pd%dim)
     real(dp_t), pointer :: p(:,:,:,:)
 
@@ -342,51 +343,64 @@ contains
  
            ! compute the initial size of each of the boxes for the fancy
            ! bottom solver.  Each box will have bottom_box_size**dm cells
-           call get_bottom_box_size(bottom_box_size,new_coarse_ba,min_width, &
+           success = 0
+           call get_bottom_box_size(success,bottom_box_size,new_coarse_ba,min_width, &
                                     mgt%max_bottom_nlevel)
  
-           call boxarray_maxsize(new_coarse_ba,bottom_box_size)
-           call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
-                                pmask=old_coarse_la%lap%pmask)
-    
-           call boxarray_destroy(new_coarse_ba)
- 
-           if (parallel_IOProcessor() .and. verbose > 1) then
-              print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
-              print *,'   ... Bounding box is'
-              call print(bounding_box)
-              print *,'   ... Original boxes ',nboxes(old_coarse_la)
-              print *,'   ... New      boxes ',nboxes(new_coarse_la)
-              print *,'# cells on each side  ',bottom_box_size
+           if (success .eq. 1) then
+               call boxarray_maxsize(new_coarse_ba,bottom_box_size)
+               call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
+                                    pmask=old_coarse_la%lap%pmask)
+        
+               call boxarray_destroy(new_coarse_ba)
+     
+               if (parallel_IOProcessor() .and. verbose > 1) then
+                  print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
+                  print *,'   ... Bounding box is'
+                  call print(bounding_box)
+                  print *,'   ... Original boxes ',nboxes(old_coarse_la)
+                  print *,'   ... New      boxes ',nboxes(new_coarse_la)
+                  print *,'# cells on each side  ',bottom_box_size
+               end if
+
+               coarse_dx(:) = mgt%dh(:,1)
+
+               call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
+                                   domain_bc, mgt%stencil_type, &
+                                   dh = coarse_dx, &
+                                   ns = ns, &
+                                   nc = mgt%nc, &
+                                   ng = mgt%ng, &
+                                   smoother = smoother, &
+                                   nu1 = nu1, &
+                                   nu2 = nu2, &
+                                   gamma = gamma, &
+                                   cycle_type = cycle_type, &
+                                   omega = omega, &
+                                   bottom_solver = 1, &
+                                   bottom_max_iter = bottom_max_iter, &
+                                   bottom_solver_eps = bottom_solver_eps, &
+                                   max_iter = max_iter, &
+                                   abort_on_max_iter = abort_on_max_iter, &
+                                   max_nlevel = max_nlevel, &
+                                   min_width = min_width, &
+                                   eps = eps, &
+                                   abs_eps = abs_eps, &
+                                   max_L0_growth = max_L0_growth, &
+                                   verbose = verbose, &
+                                   cg_verbose = cg_verbose, &
+                                   nodal = nodal)
+
+           else 
+
+               mgt%bottom_solver = 1
+
+               if (parallel_IOProcessor() .and. verbose > 1) then
+                   print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
+                   print *,'F90mg: Using bottom_solver = 1 instead'
+               end if
+
            end if
-
-           coarse_dx(:) = mgt%dh(:,1)
-
-           call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
-                               domain_bc, mgt%stencil_type, &
-                               dh = coarse_dx, &
-                               ns = ns, &
-                               nc = mgt%nc, &
-                               ng = mgt%ng, &
-                               smoother = smoother, &
-                               nu1 = nu1, &
-                               nu2 = nu2, &
-                               gamma = gamma, &
-                               cycle_type = cycle_type, &
-                               omega = omega, &
-                               bottom_solver = 1, &
-                               bottom_max_iter = bottom_max_iter, &
-                               bottom_solver_eps = bottom_solver_eps, &
-                               max_iter = max_iter, &
-                               abort_on_max_iter = abort_on_max_iter, &
-                               max_nlevel = max_nlevel, &
-                               min_width = min_width, &
-                               eps = eps, &
-                               abs_eps = abs_eps, &
-                               max_L0_growth = max_L0_growth, &
-                               verbose = verbose, &
-                               cg_verbose = cg_verbose, &
-                               nodal = nodal)
        end if
     end if
 
@@ -565,8 +579,9 @@ contains
 
   end function max_mg_levels
 
-  subroutine get_bottom_box_size(bottom_box_size,ba,min_size,max_bottom_nlevel)
+  subroutine get_bottom_box_size(success,bottom_box_size,ba,min_size,max_bottom_nlevel)
 
+    integer       , intent(inout) :: success
     integer       , intent(  out) :: bottom_box_size
     type(boxarray), intent(in   ) :: ba
     integer       , intent(in   ) :: min_size
@@ -580,6 +595,8 @@ contains
     if ( nboxes(ba) .ne. 1) then
        call bl_error("mg.f90:get_bottom_box_size: nboxes(ba) .ne. 1")
     end if
+
+    success = 1
 
     bottom_levs = 1
     rr = 2
@@ -632,9 +649,8 @@ contains
 
     bottom_box_size = rr
 
-    if ( bottom_levs .eq. 1) then
-       call bl_error("DONT USE MG_BOTTOM_SOLVER == 4: BOTTOM GRID NOT PROPERLY DIVISIBLE")
-    end if
+    if ( bottom_levs .eq. 1) &
+       success = 0
 
   end subroutine get_bottom_box_size
 
