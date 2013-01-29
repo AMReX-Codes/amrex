@@ -1932,7 +1932,7 @@ Amr::defBaseLevel (Real strt_time)
     lev0.refine(2);
 
     //
-    // If (refine_grid_layout == 1) and (Nprocs < ngrids) then break up the 
+    // If (refine_grid_layout == 1) and (Nprocs > ngrids) then break up the 
     //    grids into smaller chunks
     //
     Array<BoxArray> new_grids(1);
@@ -2564,7 +2564,7 @@ Amr::grid_places (int              lbase,
         delete [] pts;
     }
 
-    // If Nprocs < Ngrids and refine_grid_layout == 1 then break up the grids
+    // If Nprocs > Ngrids and refine_grid_layout == 1 then break up the grids
     //    into smaller chunks for better load balancing
     impose_refine_grid_layout(lbase,new_finest,new_grids);
 
