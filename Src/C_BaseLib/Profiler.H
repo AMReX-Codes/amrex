@@ -10,6 +10,7 @@
 #include <string>
 #include <stack>
 #include <map>
+#include <vector>
 #include <utility>
 #include <typeinfo>
 
@@ -23,6 +24,30 @@ class Profiler
       Real totalTime, minTime, maxTime, avgTime;
     };
 
+    enum CommFuncType {
+      InvalidCFT,
+      AsendTsii, AsendTsiiM, AsendvTii,
+      SendTsii, SendvTii,
+      ArecvTsiiM, ArecvTii, ArecvvTii,
+      RecvTsii, RecvvTii,
+      ReduceT,
+      BCastTsi,
+      GatherTsT1Si, GatherTi,
+      ScatterTsT1si,
+      Barrier
+    };
+                 
+    struct CommStats {
+      CommStats() : cfType(InvalidCFT), src(-1), dest(-1), size(-1),
+                    timeStamp(-1.0) { }
+      CommStats(CommFuncType cft, int src, int dest, int size, Real ts)
+                  : cfType(cft), src(src), dest(dest), size(size),
+                    timeStamp(ts) { }
+      CommFuncType cfType;
+      int src, dest, size;
+      Real timeStamp;
+    };
+
     explicit Profiler(const std::string &funcname);
 
     ~Profiler();
@@ -30,6 +55,8 @@ class Profiler
     static void Initialize();
     static void Finalize();
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
+
+    static void AddCommStat(CommFuncType cft, int dest, int size);
 
     void start();
     void stop();
@@ -51,6 +78,7 @@ class Profiler
     static std::map<int, Real> mStepMap;  // [step, time]
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
     static std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
+    static std::vector<CommStats> vCommStats;
 
     static void WriteHeader(std::ostream &os, const int colWidth,
                             const Real maxlen, const bool bwriteavg);
@@ -76,6 +104,10 @@ class Profiler
 #define BL_PROFILE_ADD_STEP(snum)  Profiler::AddStep(snum);
 #define BL_PROFILE_SET_RUN_TIME(rtime)  Profiler::SetRunTime(rtime);
 #define BL_PROFILE_FINALIZE()  Profiler::Finalize();
+
+#define BL_COMM_PROFILE_T(cft, T, n, destpid) {                                \
+                          Profiler::AddCommStat(cft, destpid, n * sizeof(T));  \
+}
 
 #else
 
@@ -111,6 +143,7 @@ class Profiler
 #define BL_PROFILE_SET_RUN_TIME(rtime)
 #define BL_PROFILE_FINALIZE()
 
+#define BL_COMM_PROFILE_T(cft, T, n, destpid)
 
 #endif
 
