@@ -483,6 +483,7 @@ ParallelDescriptor::Send (const T* buf,
                           int      tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Send(Tsii)", T);
+    BL_COMM_PROFILE_T(Profiler::SendTsii, T, n, dst_pid);
 
     BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(buf),
                              n,

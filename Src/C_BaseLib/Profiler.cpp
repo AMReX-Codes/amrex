@@ -20,6 +20,7 @@ std::stack<Real> Profiler::nestedTimeStack;
 std::map<int, Real> Profiler::mStepMap;
 std::map<std::string, Profiler::ProfStats> Profiler::mProfStats;
 std::map<Real, std::string, std::greater<Real> > Profiler::mTimersTotalsSorted;
+std::vector<Profiler::CommStats> Profiler::vCommStats;
 
 
 Profiler::Profiler(const std::string &funcname)
@@ -288,6 +289,18 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   }
   ios << std::setfill(' ');
   ios << std::endl;
+
+
+
+  ios << "%%%%%%%%%%%%%%%%%%%%%" << std::endl;
+  ios << "vCommStats.size() = " << vCommStats.size() << std::endl;
+  ios << "sizeof(vCommStats[0]) = " << sizeof(vCommStats[0]) << std::endl;
+  for(int i(0); i < vCommStats.size(); ++i) {
+    CommStats &cs = vCommStats[i];
+    ios << cs.timeStamp << "  " << cs.cfType << "  " << cs.dest << "  "
+        << cs.size << std::endl;
+  }
+
 }
 
 
@@ -343,6 +356,13 @@ void Profiler::WriteRow(std::ostream &ios, const std::string &fname,
           << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
 	  << percent << " %" << std::endl;
     }
+}
+
+
+void Profiler::AddCommStat(CommFuncType cft, int dest, int size) {
+  CommStats cs(cft, ParallelDescriptor::MyProc(), dest, size,
+              ParallelDescriptor::second());
+  vCommStats.push_back(cs);
 }
 
 
