@@ -2267,7 +2267,7 @@ Amr::grid_places (int              lbase,
        //    into smaller chunks for better load balancing
        // We need to impose this here in the event that we return with fixed_grids
        //    and never have a chance to impose it later
-       impose_refine_grid_layout(lbase,new_finest,new_grids);
+       impose_refine_grid_layout(lbase,lbase,new_grids);
     }
 
     if ( time == 0. && !initial_grids_file.empty() )
