@@ -828,6 +828,8 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     BL_ASSERT(extradata <= N);
 
     const int  MyProc   = ParallelDescriptor::MyProc();
+    const int  NProcs   = ParallelDescriptor::NProcs();
+    const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = ParallelDescriptor::second();
     //
     // The number of MPI processes that read from the file.
@@ -857,7 +859,6 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     tmp_particles.resize(m_amr->finestLevel()+1);
       m_particles.resize(m_amr->finestLevel()+1);
     //
-    // Only the first NReaders MPI processes read particles.
     // All the processors need to participate in Redistribute() though.
     //
     int  NX = 0;
@@ -866,8 +867,63 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     std::ifstream ifs;
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    //
+    // The "set" of MPI processor numbers of the readers.
+    //
+    std::set<int> readers;
+    //
+    // The same set but in ascending order.
+    //
+    Array<int> rprocs(NReaders);
+    //
+    // The I/O Proc builds a set of integers in the range  [0,NProcs-1].
+    //
+    // It then broadcast'm to all MPI procs.
+    //
+    // We want these to be as evenly distributed over the full set of [0,NProcs)
+    // MPI processors as possible, so that when reading we minimize the number of readers
+    // per Node, and hence can use more of the available Node memory for reading.
+    //
+    if (ParallelDescriptor::IOProcessor())
+    {
+        do
+        {
+            int n = int(BoxLib::Random() * (NProcs-1));
 
-    if (MyProc < NReaders)
+            BL_ASSERT(n >= 0);
+            BL_ASSERT(n < NProcs);
+
+            readers.insert(n);
+        }
+        while (readers.size() < NReaders);
+
+        BL_ASSERT(readers.size() == rprocs.size());
+
+        int i = 0;
+
+        for (std::set<int>::const_iterator it = readers.begin(), End = readers.end();
+             it != End;
+             ++it, ++i)
+        {
+            rprocs[i] = *it;
+        }
+    }
+
+    ParallelDescriptor::Bcast(rprocs.dataPtr(), rprocs.size(), IOProc);
+
+    if (readers.empty())
+    {
+        //
+        // Set readers for non I/O procs.
+        //
+        readers.insert(rprocs.begin(), rprocs.end());
+
+        BL_ASSERT(readers.size() == rprocs.size());
+
+        BL_ASSERT(rprocs.size() == NReaders);
+    }
+
+    if (readers.find(MyProc) != readers.end())
     {
         int DM = 0;
 
@@ -904,7 +960,14 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
         //
         // Skip to our place in the file.
         //
-        const std::streamoff NSKIP = MyProc * (NP/NReaders) * (DM+NX) * sizeof(double);
+        int id = 0;
+        for ( ; id < NReaders; id++)
+            if (rprocs[id] == MyProc)
+                break;
+
+        BL_ASSERT(id >= 0 && id < NReaders);
+
+        const std::streamoff NSKIP = id * (NP/NReaders) * (DM+NX) * sizeof(double);
 
         if (NSKIP > 0)
         {
@@ -928,9 +991,9 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     //
     long MyCnt = NP / NReaders;
 
-    if (MyProc == (NReaders - 1))
+    if (MyProc == rprocs[0])
         //
-        // We'll take the remainder.
+        // Give any remainder to the first reader.
         //
         MyCnt += NP % NReaders;
 
@@ -946,7 +1009,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
     for (int j = 0; j < how_many_redists; j++)
     {
-        if (MyProc < NReaders)
+        if (readers.find(MyProc) != readers.end())
         {
             ParticleType p;
 
