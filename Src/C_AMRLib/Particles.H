@@ -195,8 +195,33 @@ struct Particle
     Real m_data[N];
 };
 
+//
+// A concrete base class for ParticleContainer.
+//
+// This will allow us to then maintain, say, a vector of pointers to
+// ParticleContainerBases that are actually pointers to instantiations of
+// of different ParticleContainers.  For every function in ParticleContainer
+// that you'd like to call using a pointer to a ParticleContainerBase you'll
+// need to add a pure virtual function of that exact signature to 
+// ParticleContainerBase.  Make sure that the signatures of virtual functions
+// are exact including defaults arguments!
+//
+
+struct ParticleContainerBase
+{
+    virtual ~ParticleContainerBase ();
+
+    virtual void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const = 0;
+
+    virtual void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
+
+    virtual Real sumParticleMass (const MultiFab& mf, int level) const = 0;
+};
+
 template <int N>
 class ParticleContainer
+    :
+    public ParticleContainerBase
 {
 public:
     //
