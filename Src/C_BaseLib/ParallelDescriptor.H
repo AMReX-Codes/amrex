@@ -203,8 +203,8 @@ namespace ParallelDescriptor
         return m_comm;
     }
 
-    void Barrier ();
-    void Barrier (MPI_Comm comm);
+    void Barrier (std::string message = "");
+    void Barrier (MPI_Comm comm, std::string message = "");
 
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
 
@@ -423,6 +423,7 @@ ParallelDescriptor::Asend (const T* buf,
                            int      tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Asend(Tsii)", T);
+    BL_COMM_PROFILE_T(Profiler::AsendTsii, T, n, dst_pid);
 
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf),
@@ -444,6 +445,7 @@ ParallelDescriptor::Asend (const T* buf,
                            MPI_Comm comm)
 {
     BL_PROFILE_T("ParallelDescriptor::Asend(TsiiM)", T);
+    BL_COMM_PROFILE_T(Profiler::AsendTsiiM, T, n, dst_pid);
 
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf),
@@ -463,6 +465,7 @@ ParallelDescriptor::Asend (const std::vector<T>& buf,
                            int                   tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Asend(vTii)", T);
+    BL_COMM_PROFILE_T(Profiler::AsendvTii, T, buf.size(), dst_pid);
 
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(&buf[0]),
@@ -501,6 +504,7 @@ ParallelDescriptor::Send (const std::vector<T>& buf,
                           int                   tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Send(vTii)", T);
+    BL_COMM_PROFILE_T(Profiler::SendvTii, T, buf.size(), dst_pid);
 
     BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(&buf[0]),
                              buf.size(),
@@ -633,6 +637,7 @@ ParallelDescriptor::Bcast (T*     t,
                            int    root)
 {
     BL_PROFILE_T("ParallelDescriptor::Bcast(Tsi)", T);
+    BL_COMM_PROFILE_T(Profiler::BCastTsi, T, n, root);
 
     BL_MPI_REQUIRE( MPI_Bcast(t,
                               n,
@@ -650,6 +655,7 @@ ParallelDescriptor::Gather (const T* t,
                             int      root)
 {
     BL_PROFILE_T("ParallelDescriptor::Gather(TsT1si)", T);
+    BL_COMM_PROFILE_T(Profiler::GatherTsT1Si, T, n, root);
 
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(t),
                                n,
@@ -666,6 +672,7 @@ std::vector<T>
 ParallelDescriptor::Gather (const T& t, int root)
 {
     BL_PROFILE_T("ParallelDescriptor::Gather(Ti)", T);
+    BL_COMM_PROFILE_T(Profiler::GatherTi, T, 1, root);
 
     std::vector<T> resl;
     if ( root == MyProc() ) resl.resize(NProcs());
@@ -689,6 +696,7 @@ ParallelDescriptor::Scatter (T*        t,
                              int       root)
 {
     BL_PROFILE_T("ParallelDescriptor::Scatter(TsT1si)", T);
+    BL_COMM_PROFILE_T(Profiler::ScatterTsT1si, T, n, root);
 
     BL_MPI_REQUIRE( MPI_Scatter(const_cast<T1*>(t1),
                                 n1,

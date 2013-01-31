@@ -14,6 +14,7 @@
 #include <utility>
 #include <typeinfo>
 
+
 class Profiler 
 {
   public:
@@ -25,14 +26,21 @@ class Profiler
     };
 
     enum CommFuncType {
-      InvalidCFT,
-      AsendTsii, AsendTsiiM, AsendvTii,
-      SendTsii, SendvTii,
-      ArecvTsiiM, ArecvTii, ArecvvTii,
-      RecvTsii, RecvvTii,
+      InvalidCFT = 0,
+      AsendTsii,
+      AsendTsiiM,
+      AsendvTii,
+      SendTsii,
+      SendvTii,
+      ArecvTsiiM,
+      ArecvTii,
+      ArecvvTii,
+      RecvTsii,
+      RecvvTii,
       ReduceT,
       BCastTsi,
-      GatherTsT1Si, GatherTi,
+      GatherTsT1Si,
+      GatherTi,
       ScatterTsT1si,
       Barrier
     };
@@ -43,6 +51,12 @@ class Profiler
       CommStats(CommFuncType cft, int src, int dest, int size, Real ts)
                   : cfType(cft), src(src), dest(dest), size(size),
                     timeStamp(ts) { }
+      static std::string CFTToString(CommFuncType cft);
+      static CommFuncType StringToCFT(const std::string &s);
+
+      static std::map<std::string, int> cftNames;
+      static int iBarrierNumber;
+      static std::vector<std::string> vBarrierNames;
       CommFuncType cfType;
       int src, dest, size;
       Real timeStamp;
@@ -57,6 +71,7 @@ class Profiler
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
 
     static void AddCommStat(CommFuncType cft, int dest, int size);
+    static void AddBarrier(CommFuncType cft, std::string message);
 
     void start();
     void stop();
@@ -108,6 +123,7 @@ class Profiler
 #define BL_COMM_PROFILE_T(cft, T, n, destpid) {                                \
                           Profiler::AddCommStat(cft, destpid, n * sizeof(T));  \
 }
+#define BL_COMM_PROFILE_BARRIER(cft, message) { Profiler::AddBarrier(cft, message); }
 
 #else
 
@@ -144,6 +160,7 @@ class Profiler
 #define BL_PROFILE_FINALIZE()
 
 #define BL_COMM_PROFILE_T(cft, T, n, destpid)
+#define BL_COMM_PROFILE_BARRIER(cft, message)
 
 #endif
 

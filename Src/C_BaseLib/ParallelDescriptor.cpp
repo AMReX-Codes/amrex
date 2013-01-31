@@ -298,17 +298,19 @@ ParallelDescriptor::second ()
 }
 
 void
-ParallelDescriptor::Barrier ()
+ParallelDescriptor::Barrier (std::string message)
 {
     BL_PROFILE("ParallelDescriptor::Barrier()");
+    BL_COMM_PROFILE_BARRIER(Profiler::Barrier, message);
 
     BL_MPI_REQUIRE( MPI_Barrier(ParallelDescriptor::Communicator()) );
 }
 
 void
-ParallelDescriptor::Barrier (MPI_Comm comm)
+ParallelDescriptor::Barrier (MPI_Comm comm, std::string message)
 {
     BL_PROFILE("ParallelDescriptor::Barrier(comm)");
+    BL_COMM_PROFILE_BARRIER(Profiler::Barrier, message);
 
     BL_MPI_REQUIRE( MPI_Barrier(comm) );
 }
