@@ -112,17 +112,6 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpich
 #      BL_MPI_LIBS += -lmpi -lmpi_f77
     endif
-    ifeq ($(WHICHLINUX), ATLAS)
-      ifeq ($(FCOMP), Intel)
-	MPI_HOME=/usr/local/tools/mvapich-intel
-      endif
-      ifeq ($(FCOMP), PGI)
-	MPI_HOME=/usr/local/tools/mvapich-pgi
-      endif
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include/
-      BL_MPI_LIBS += -lmpichfarg
-    endif
     ifeq ($(WHICHLINUX), HYPERION)
       ifeq ($(FCOMP), Intel)
 	MPI_HOME=/usr/local/tools/mvapich-intel
@@ -134,27 +123,10 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include/
       BL_MPI_LIBS += -lmpichfarg
     endif
-# mas: duplicate atlas stuff for yana
-    ifeq ($(WHICHLINUX), YANA)
-      ifeq ($(FCOMP), Intel)
-        MPI_HOME=/usr/local/tools/mvapich-intel
-      endif
-      ifeq ($(FCOMP), PGI)
-        MPI_HOME=/usr/local/tools/mvapich-pgi
-      endif
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include/
-      BL_MPI_LIBS += -lmpichfarg
-    endif
     ifeq ($(WHICHLINUX), HOMER)
       MPI_HOME=/usr/local/mpich2/
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
       INCLUDE_LOCATIONS += $(MPI_HOME)/include/
-    endif
-    ifeq ($(WHICHLINUX), SN)
-      MPI_HOME=/usr/lib64/mpich2
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
-      INCLUDE_LOCATIONS += /usr/include/mpich2-x86_64/
     endif
     ifeq ($(WHICHLINUX), PCCLUSTER)
       MPI_HOME=/usr/local/pkg/mpich
