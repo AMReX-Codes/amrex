@@ -3,25 +3,8 @@
 # Makefile that includes this file.
 #
 
-#
-# To destinguish between YMP or C90 ...
-#
-# Don't make the distinction for now, just use CRAY
-#
 UNAMEM := $(shell uname -m)
 UNAMEN := $(shell uname -n)
-
-ifeq ($(findstring CRAY, $(UNAMEM)), CRAY)
-ifeq ($(findstring Y-MP, $(UNAMEM)), Y-MP)
-    MACHINE := CRAY
-endif
-ifeq ($(findstring C90, $(UNAMEM)), C90)
-    MACHINE := CRAY
-endif
-ifeq ($(findstring J90, $(UNAMEM)), J90)
-    MACHINE := CRAY
-endif
-endif
 UNAMES := $(shell uname -s)
 
 ifeq ($(findstring CYGWIN_NT, $(UNAMES)), CYGWIN_NT)
@@ -817,11 +800,7 @@ endif
 ThreadsSuffix :=
 
 ifeq ($(PRECISION),FLOAT)
-ifeq ($(MACHINE),CRAY)
-    PrecisionSuffix :=
-else
     PrecisionSuffix := .$(PRECISION)
-endif
 else
     PrecisionSuffix :=
 endif
@@ -862,9 +841,7 @@ DEFINES		+= 	-DBL_SPACEDIM=$(DIM)				\
 ifeq ($(PRECISION),FLOAT)
 DEFINES += -DBL_USE_FLOAT
 endif
-ifeq ($(ARCH),CRAY)
-DEFINES += -DBL_ARCH_CRAY
-endif
+
 
 includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
