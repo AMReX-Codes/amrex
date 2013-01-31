@@ -81,17 +81,8 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring homer, $(UNAMEN)), homer)
     WHICHLINUX := HOMER
   endif
-  ifeq ($(findstring sn.astro, $(UNAMEN)), sn.astro)
-    WHICHLINUX := SN
-  endif
-  ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-    WHICHLINUX := ATLAS
-  endif
   ifeq ($(findstring hyperion, $(UNAMEN)), hyperion)
     WHICHLINUX := HYPERION
-  endif
-  ifeq ($(findstring yana, $(UNAMEN)), yana)
-    WHICHLINUX := YANA
   endif
   ifeq ($(findstring della, $(UNAMEN)), della)
     WHICHLINUX := DELLA
