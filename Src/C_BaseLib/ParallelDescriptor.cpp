@@ -1316,7 +1316,8 @@ template <> MPI_Datatype Mpi_typemap<Box>::type()
 
 void
 ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
-                                      Array<char>&       charBuf)
+                                      Array<char>&       charBuf,
+				      const bool         bExitOnError)
 {
     enum { IO_Buffer_Size = 40960 * 32 };
 
@@ -1336,16 +1337,26 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
     {
         iss.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         iss.open(filename.c_str(), std::ios::in);
-        if (!iss.good())
+        if ( ! iss.good())
         {
+	  if(bExitOnError) {
             BoxLib::FileOpenFailed(filename);
-        }
-        iss.seekg(0, std::ios::end);
-        fileLength = iss.tellg();
-        iss.seekg(0, std::ios::beg);
+	  } else {
+            fileLength = -1;
+	  }
+        } else {
+          iss.seekg(0, std::ios::end);
+          fileLength = iss.tellg();
+          iss.seekg(0, std::ios::beg);
+	}
     }
     ParallelDescriptor::Bcast(&fileLength, 1,
                               ParallelDescriptor::IOProcessorNumber());
+
+    if(fileLength == -1) {
+      return;
+    }
+
     fileLengthPadded = fileLength + 1;
     fileLengthPadded += fileLengthPadded % 8;
     charBuf.resize(fileLengthPadded);

@@ -400,7 +400,8 @@ namespace ParallelDescriptor
 
     void MPI_Error(const char* file, int line, const char* msg, int rc);
 
-    void ReadAndBcastFile(const std::string &filename, Array<char> &charBuf);
+    void ReadAndBcastFile(const std::string &filename, Array<char> &charBuf,
+                          const bool bExitOnError = true);
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);
 }
 

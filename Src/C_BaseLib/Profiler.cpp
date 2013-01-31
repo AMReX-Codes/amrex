@@ -4,9 +4,11 @@
 #include <REAL.H>
 #include <Utility.H>
 #include <ParallelDescriptor.H>
+#include <Array.H>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <cstring>
 
@@ -21,7 +23,8 @@ std::map<int, Real> Profiler::mStepMap;
 std::map<std::string, Profiler::ProfStats> Profiler::mProfStats;
 std::map<Real, std::string, std::greater<Real> > Profiler::mTimersTotalsSorted;
 std::vector<Profiler::CommStats> Profiler::vCommStats;
-std::map<std::string, int> Profiler::CommStats::cftNames;
+std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
+std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::iBarrierNumber = 0;
 std::vector<std::string> Profiler::CommStats::vBarrierNames;
 
@@ -38,6 +41,53 @@ Profiler::Profiler(const std::string &funcname)
 Profiler::~Profiler() {
   if(bRunning) {
     stop();
+  }
+}
+
+
+void Profiler::Initialize() {
+    CommStats::cftNames["InvalidCFT"]     = InvalidCFT;
+    CommStats::cftNames["AsendTsii"]      = AsendTsii;
+    CommStats::cftNames["AsendTsiiM"]     = AsendTsiiM;
+    CommStats::cftNames["AsendvTii"]      = AsendvTii;
+    CommStats::cftNames["SendTsii"]       = SendTsii;
+    CommStats::cftNames["SendvTii"]       = SendvTii;
+    CommStats::cftNames["ArecvTsiiM"]     = ArecvTsiiM;
+    CommStats::cftNames["ArecvTii"]       = ArecvTii;
+    CommStats::cftNames["ArecvvTii"]      = ArecvvTii;
+    CommStats::cftNames["RecvTsii"]       = RecvTsii;
+    CommStats::cftNames["RecvvTii"]       = RecvvTii;
+    CommStats::cftNames["ReduceT"]        = ReduceT; 
+    CommStats::cftNames["BCastTsi"]       = BCastTsi; 
+    CommStats::cftNames["GatherTsT1Si"]   = GatherTsT1Si; 
+    CommStats::cftNames["GatherTi"]       = GatherTi; 
+    CommStats::cftNames["ScatterTsT1si"]  = ScatterTsT1si; 
+    CommStats::cftNames["Barrier"]        = Barrier;
+
+  // check for exclude file
+  std::string exFile("CommFuncExclude.txt");
+  std::vector<CommFuncType> vEx;
+
+
+  Array<char> fileCharPtr;
+  bool bExitOnError(false);  // in case the file does not exist
+  ParallelDescriptor::ReadAndBcastFile(exFile, fileCharPtr, bExitOnError);
+
+  if(fileCharPtr.size() > 0) {
+    std::string fileCharPtrString(fileCharPtr.dataPtr());
+    std::istringstream cfex(fileCharPtrString, std::istringstream::in);
+
+    while( ! cfex.eof()) {
+        std::string cft;
+        cfex >> cft;
+        if( ! cfex.eof()) {
+	  vEx.push_back(CommStats::StringToCFT(cft));
+	}
+    }
+    for(int i(0); i < vEx.size(); ++i) {
+      CommStats::cftExclude.insert(vEx[i]);
+    }
+
   }
 }
 
@@ -98,6 +148,11 @@ void Profiler::Finalize() {
   const int nProcs(ParallelDescriptor::NProcs());
   const int myProc(ParallelDescriptor::MyProc());
   const int iopNum(ParallelDescriptor::IOProcessorNumber());
+
+  // filter out profiler communications.
+  CommStats::cftExclude.insert(BCastTsi);
+  CommStats::cftExclude.insert(GatherTsT1Si);
+
   int maxlen(0);
   Array<Real> gtimes(1);
   Array<long> ncalls(1);
@@ -198,9 +253,9 @@ void Profiler::Finalize() {
 
 
 void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
-  const int nProcs(ParallelDescriptor::NProcs());
+  //const int nProcs(ParallelDescriptor::NProcs());
   const int myProc(ParallelDescriptor::MyProc());
-  const int iopNum(ParallelDescriptor::IOProcessorNumber());
+  //const int iopNum(ParallelDescriptor::IOProcessorNumber());
   const int colWidth(10);
 
   mTimersTotalsSorted.clear();
@@ -369,9 +424,12 @@ void Profiler::WriteRow(std::ostream &ios, const std::string &fname,
 
 
 void Profiler::AddCommStat(CommFuncType cft, int dest, int size) {
-  CommStats cs(cft, ParallelDescriptor::MyProc(), dest, size,
-              ParallelDescriptor::second());
-  vCommStats.push_back(cs);
+  std::set<CommFuncType>::iterator cfti = CommStats::cftExclude.find(cft);
+  if(cfti == CommStats::cftExclude.end()) {
+    CommStats cs(cft, ParallelDescriptor::MyProc(), dest, size,
+                ParallelDescriptor::second());
+    vCommStats.push_back(cs);
+  }
 }
 
 
@@ -410,33 +468,7 @@ std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 
 
 Profiler::CommFuncType Profiler::CommStats::StringToCFT(const std::string &s) {
-/*
-  switch(s) {
-    case "InvalidCFT":     return InvalidCFT;
-    case InvalidCFT:     return "InvalidCFT";
-    case AsendTsii:      return "AsendTsii";
-    case AsendTsiiM:     return "AsendTsiiM";
-    case AsendvTii:      return "AsendvTii";
-    case SendTsii:       return "SendTsii";
-    case SendvTii:       return "SendvTii";
-    case ArecvTsiiM:     return "ArecvTsiiM";
-    case ArecvTii:       return "ArecvTii";
-    case ArecvvTii:      return "ArecvvTii";
-    case RecvTsii:       return "RecvTsii";
-    case RecvvTii:       return "RecvvTii";
-    case ReduceT:        return "ReduceT"; 
-    case BCastTsi:       return "BCastTsi"; 
-    case GatherTsT1Si:   return "GatherTsT1Si"; 
-    case GatherTi:       return "GatherTi"; 
-    case ScatterTsT1si:  return "ScatterTsT1si"; 
-    case Barrier:        return "Barrier";
-  }
-if(std::find(vector.begin(), vector.end(), item)!=vector.end()){
-      // Find the item
-}
-*/
-  //return cftNames[s];
-  return InvalidCFT;
+  return CommStats::cftNames[s];
 }
 
 
