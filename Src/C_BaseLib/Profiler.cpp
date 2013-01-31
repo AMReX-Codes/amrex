@@ -21,6 +21,9 @@ std::map<int, Real> Profiler::mStepMap;
 std::map<std::string, Profiler::ProfStats> Profiler::mProfStats;
 std::map<Real, std::string, std::greater<Real> > Profiler::mTimersTotalsSorted;
 std::vector<Profiler::CommStats> Profiler::vCommStats;
+std::map<std::string, int> Profiler::CommStats::cftNames;
+int Profiler::CommStats::iBarrierNumber = 0;
+std::vector<std::string> Profiler::CommStats::vBarrierNames;
 
 
 Profiler::Profiler(const std::string &funcname)
@@ -185,7 +188,7 @@ void Profiler::Finalize() {
         ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
       }
     }
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("Profiler::Finalize");
   }
   if(ParallelDescriptor::IOProcessor()) {
     std::cout << "Profiler::Finalize():  time:  "   // time the timer
@@ -297,8 +300,14 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   ios << "sizeof(vCommStats[0]) = " << sizeof(vCommStats[0]) << std::endl;
   for(int i(0); i < vCommStats.size(); ++i) {
     CommStats &cs = vCommStats[i];
-    ios << cs.timeStamp << "  " << cs.cfType << "  " << cs.dest << "  "
-        << cs.size << std::endl;
+    if(cs.cfType == Barrier) {
+      ios << cs.timeStamp << "  " << CommStats::CFTToString(cs.cfType)
+          << "  iBarrierNumber = " << cs.size
+	  << " vBarrierName = " << CommStats::vBarrierNames[cs.size] << std::endl;
+    } else {
+      ios << cs.timeStamp << "  " << CommStats::CFTToString(cs.cfType)
+          << "  " << cs.dest << "  " << cs.size << std::endl;
+    }
   }
 
 }
@@ -364,6 +373,72 @@ void Profiler::AddCommStat(CommFuncType cft, int dest, int size) {
               ParallelDescriptor::second());
   vCommStats.push_back(cs);
 }
+
+
+void Profiler::AddBarrier(CommFuncType cft, std::string message) {
+  CommStats cs(cft, ParallelDescriptor::MyProc(), 0, Profiler::CommStats::iBarrierNumber,
+              ParallelDescriptor::second());
+  vCommStats.push_back(cs);
+  CommStats::vBarrierNames.resize(CommStats::iBarrierNumber + 1);
+  CommStats::vBarrierNames[CommStats::iBarrierNumber] = message;
+  ++CommStats::iBarrierNumber;
+}
+
+
+std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
+  switch(cft) {
+    case InvalidCFT:     return "InvalidCFT";
+    case AsendTsii:      return "AsendTsii";
+    case AsendTsiiM:     return "AsendTsiiM";
+    case AsendvTii:      return "AsendvTii";
+    case SendTsii:       return "SendTsii";
+    case SendvTii:       return "SendvTii";
+    case ArecvTsiiM:     return "ArecvTsiiM";
+    case ArecvTii:       return "ArecvTii";
+    case ArecvvTii:      return "ArecvvTii";
+    case RecvTsii:       return "RecvTsii";
+    case RecvvTii:       return "RecvvTii";
+    case ReduceT:        return "ReduceT"; 
+    case BCastTsi:       return "BCastTsi"; 
+    case GatherTsT1Si:   return "GatherTsT1Si"; 
+    case GatherTi:       return "GatherTi"; 
+    case ScatterTsT1si:  return "ScatterTsT1si"; 
+    case Barrier:        return "Barrier";
+  }
+  return "*** Error: Bad CommFuncType.";
+}
+
+
+Profiler::CommFuncType Profiler::CommStats::StringToCFT(const std::string &s) {
+/*
+  switch(s) {
+    case "InvalidCFT":     return InvalidCFT;
+    case InvalidCFT:     return "InvalidCFT";
+    case AsendTsii:      return "AsendTsii";
+    case AsendTsiiM:     return "AsendTsiiM";
+    case AsendvTii:      return "AsendvTii";
+    case SendTsii:       return "SendTsii";
+    case SendvTii:       return "SendvTii";
+    case ArecvTsiiM:     return "ArecvTsiiM";
+    case ArecvTii:       return "ArecvTii";
+    case ArecvvTii:      return "ArecvvTii";
+    case RecvTsii:       return "RecvTsii";
+    case RecvvTii:       return "RecvvTii";
+    case ReduceT:        return "ReduceT"; 
+    case BCastTsi:       return "BCastTsi"; 
+    case GatherTsT1Si:   return "GatherTsT1Si"; 
+    case GatherTi:       return "GatherTi"; 
+    case ScatterTsT1si:  return "ScatterTsT1si"; 
+    case Barrier:        return "Barrier";
+  }
+if(std::find(vector.begin(), vector.end(), item)!=vector.end()){
+      // Find the item
+}
+*/
+  //return cftNames[s];
+  return InvalidCFT;
+}
+
 
 
 #else
