@@ -862,6 +862,8 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     // to the number of independent I/O channels on most filesystems.
     //
     const int NReaders = ParticleBase::MaxReaders();
+
+    BL_ASSERT(NReaders <= NProcs);
     //
     // How many particles each NReaders reads before redistributing.
     //
@@ -893,48 +895,62 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     //
-    // The "set" of MPI processor numbers of the readers.
+    // The "set" of MPI processor numbers of the readers.  We want
+    // to be able to easily check whether or not we're a reader.
     //
     std::set<int> readers;
     //
     // The same set but in ascending order.
     //
     Array<int> rprocs(NReaders);
-    //
-    // The I/O Proc builds a set of integers in the range  [0,NProcs-1].
-    //
-    // It then broadcast'm to all MPI procs.
-    //
-    // We want these to be as evenly distributed over the full set of [0,NProcs)
-    // MPI processors as possible, so that when reading we minimize the number of readers
-    // per Node, and hence can use more of the available Node memory for reading.
-    //
-    if (ParallelDescriptor::IOProcessor())
+
+    if (NReaders == NProcs)
     {
-        do
-        {
-            int n = int(BoxLib::Random() * (NProcs-1));
-
-            BL_ASSERT(n >= 0);
-            BL_ASSERT(n < NProcs);
-
-            readers.insert(n);
-        }
-        while (readers.size() < NReaders);
-
-        BL_ASSERT(readers.size() == rprocs.size());
-
-        int i = 0;
-
-        for (std::set<int>::const_iterator it = readers.begin(), End = readers.end();
-             it != End;
-             ++it, ++i)
-        {
-            rprocs[i] = *it;
-        }
+        //
+        // Just set'm.
+        //
+        for (int i = 0; i < NProcs; i++)
+            rprocs[i] = i;
     }
+    else
+    {
+        //
+        // The I/O Proc builds a set of NReader integers in the range: [0,NProcs-1].
+        //
+        // It then broadcast'm to all MPI procs.
+        //
+        // We want these to be as evenly distributed over the full set of
+        // [0,NProcs-1] MPI processors as possible, so that when reading we
+        // minimize the number of readers per Node, and hence can use more
+        // of the available Node memory for reading.
+        //
+        if (ParallelDescriptor::IOProcessor())
+        {
+            do
+            {
+                int n = int(BoxLib::Random() * (NProcs-1));
 
-    ParallelDescriptor::Bcast(rprocs.dataPtr(), rprocs.size(), IOProc);
+                BL_ASSERT(n >= 0);
+                BL_ASSERT(n < NProcs);
+
+                readers.insert(n);
+            }
+            while (readers.size() < NReaders);
+
+            BL_ASSERT(readers.size() == rprocs.size());
+
+            int i = 0;
+
+            for (std::set<int>::const_iterator it = readers.begin(), End = readers.end();
+                 it != End;
+                 ++it, ++i)
+            {
+                rprocs[i] = *it;
+            }
+        }
+
+        ParallelDescriptor::Bcast(rprocs.dataPtr(), rprocs.size(), IOProc);
+    }
 
     if (readers.empty())
     {
