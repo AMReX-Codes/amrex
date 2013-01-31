@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <stack>
+#include <set>
 #include <map>
 #include <vector>
 #include <utility>
@@ -54,7 +55,8 @@ class Profiler
       static std::string CFTToString(CommFuncType cft);
       static CommFuncType StringToCFT(const std::string &s);
 
-      static std::map<std::string, int> cftNames;
+      static std::map<std::string, CommFuncType> cftNames;
+      static std::set<CommFuncType> cftExclude;
       static int iBarrierNumber;
       static std::vector<std::string> vBarrierNames;
       CommFuncType cfType;
@@ -105,6 +107,7 @@ class Profiler
 
 
 
+#define BL_PROFILE_INITIALIZE()  Profiler::Initialize();
 #define BL_PROFILE(fname) Profiler bl_profiler__((fname));
 #define BL_PROFILE_T(fname, T) {                                    \
 		     std::string pname(fname);                      \
@@ -144,6 +147,7 @@ class Profiler
     static void AddStep(const int snum) { }
 };
 
+#define BL_PROFILE_INITIALIZE()
 #define BL_PROFILE(a)
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_TIMER(var, a)
