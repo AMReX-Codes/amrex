@@ -267,24 +267,6 @@ ifeq ($(WHICHLINUX), KRAKEN)
   endif
 endif
 
-ifeq ($(WHICHLINUX), FRANKLIN)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    CXX := CC -target=linux
-    CC  := cc -target=linux
-    FC  := ftn -target=linux
-    F90 := ftn -target=linux
-    fC  := ftn -target=linux
-  endif
-  ifdef USE_IPM
-    ifeq ($(COMP),PGI)
-      LIBRARIES += $(IPM)
-    elif ($(COMP),PathScale)
-      LIBRARIES += $(IPM_GNU)
-    endif
-  endif
-endif
-
 ifeq ($(WHICHLINUX), GRACE)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)

@@ -21,32 +21,9 @@ endif
 ifeq ($(findstring J90, $(UNAMEM)), J90)
     MACHINE := CRAY
 endif
-ifeq ($(findstring T3E, $(UNAMEM)), T3E)
-    MACHINE := T3E
-ifeq ($(findstring mcurie, $(UNAMEN)), mcurie)
-    WHICHT3E := NERSC
-endif
-ifeq ($(findstring seymour, $(UNAMEN)), seymour)
-    WHICHT3E := NAVO
-endif
-ifeq ($(findstring yukon, $(UNAMEN)), yukon)
-    WHICHT3E := ARSC
-endif
-endif
-endif
-ifeq ($(findstring crayx1, $(UNAMEM)), crayx1)
-    MACHINE := CRAYX1
 endif
 UNAMES := $(shell uname -s)
-ifeq ($(findstring SUPER-UX, $(UNAMES)), SUPER-UX)
-    # We use this name so we can define a CPP macro, BL_SUPERUX
-    MACHINE := SUPERUX
-endif
-ifeq ($(findstring asama, $(UNAMEN)), asama)
-#   front end is a Linux box with cross-compilers
-    MACHINE := SUPERUX
-    WHICHSX6 := ASAMA
-endif
+
 ifeq ($(findstring CYGWIN_NT, $(UNAMES)), CYGWIN_NT)
     MACHINE := CYGWIN_NT
 endif
@@ -75,18 +52,7 @@ ifeq ($(MACHINE), SunOS)
         MACHINE := Solaris
     endif
 endif
-#
-# Set special flag for escher.nersc.gov
-#
-ifeq ($(MACHINE), IRIX64)
-  WHICHIRIX64 := GENERICSGI
-  ifeq ($(findstring escher, $(UNAMEN)), escher)
-    WHICHIRIX64 := ESCHER
-  endif
-  ifeq ($(findstring mahler, $(UNAMEN)), mahler)
-    WHICHIRIX64 := MAHLER
-  endif
-endif
+
 #
 # Set special flag for the Linux cluster (n2001.lbl.gov)
 #
@@ -158,9 +124,6 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring orion, $(UNAMEN)), orion)
     WHICHLINUX := ORION
-  endif
-  ifeq ($(findstring nid, $(UNAMEN)), nid)
-    WHICHLINUX := FRANKLIN
   endif
   ifeq ($(findstring grace, $(UNAMEN)), grace)
     WHICHLINUX := GRACE

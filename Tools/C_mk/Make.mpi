@@ -46,22 +46,11 @@ ifeq ($(findstring .scs, $(UNAMEN)), .scs)
   F90FLAGS += -module $(fmoddir)
 endif
 
-ifeq ($(MACHINE), OSF1)
-  MPI_HOME:=/usr/opt/mpi
-  BL_MPI_LIBS += -lmpi -lpmpi
-  LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-  INCLUDE_LOCATIONS += $(MPI_HOME)/include
-endif
-
 ifeq ($(MACHINE), AIX)
   MPI_HOME:=/usr/lpp/ppe.poe
   BL_MPI_LIBS += -lmpi
   LIBRARY_LOCATIONS += $(MPI_HOME)/lib
   INCLUDE_LOCATIONS += $(MPI_HOME)/include
-endif
-
-ifeq ($(MACHINE), IRIX64)
-  BL_MPI_LIBS += -lmpi
 endif
 
 ifeq ($(MACHINE), Linux)
