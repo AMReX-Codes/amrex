@@ -1,9 +1,11 @@
-to use the profiler, set PROFILE=TRUE in your GNUmakefile.
-a summary of timings will be written to cout and optionally
+
+--------------------------------------------- Function timings.
+To use the profiler, set PROFILE=TRUE in your GNUmakefile.
+A summary of timings will be written to cout and optionally
 a file named bl_prof.txt will be written with timings for
 each processor.
 
-to instrument regular functions, add BL_PROFILE("class::fname()") to
+To instrument regular functions, add BL_PROFILE("class::fname()") to
 the top of your function. there can only be one of these per function.
 
 void YourClass::YourFunction() {
@@ -13,14 +15,14 @@ void YourClass::YourFunction() {
 }
 
 
-for other timers within an instrumented function, add:
+For other timers within an already instrumented function, add:
 
       BL_PROFILE_VAR("Flaten::FORT_FLATENX()", FLATENX);  // add this before
         FORT_FLATENX(arg1, arg2);
       BL_PROFILE_VAR_STOP(FLATENX);   // add this after, using the same name
 
 
-for main, add these:
+For main, add these:
 
 int main(...) {
 
@@ -32,7 +34,23 @@ int main(...) {
 
   BL_PROFILE_VAR_STOP(pmain);  // add this
   BL_PROFILE_SET_RUN_TIME(Your_timers_time_for_the_run);  // optional
-  BL_PROFILE_FINALIZE();       // add this
 
   BoxLib::Finalize();
 }
+
+
+
+--------------------------------------------- Communications timings.
+Timings for communication functions such as ParallelDescriptor::Send(...)
+are shown in the function timing section.  BoxLib also
+collects additional communication information ....
+
+input:
+
+output:
+
+usage:
+
+overhead:
+
+
