@@ -223,6 +223,15 @@ struct ParticleContainerBase
                                bool full_where           = false,
                                int  lev_min              = 0, 
                                int  nGrow                = 0) = 0;
+
+    virtual void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep, 
+                                Real a_old = 1.0, Real a_half = 1.0) = 0;
+    virtual void moveKick      (const MultiFab& grav_vector, int level, Real timestep, 
+                                Real a_new = 1.0, Real a_half = 1.0) = 0;
+    virtual void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, 
+                                Real a_old = 1.0, Real a_half = 1.0) = 0;
+    virtual void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, 
+                                Real a_new = 1.0, Real a_half = 1.0) = 0;
 };
 
 template <int N>
