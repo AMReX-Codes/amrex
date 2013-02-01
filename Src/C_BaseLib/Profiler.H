@@ -71,6 +71,7 @@ class Profiler
     static void Initialize();
     static void Finalize();
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
+    static void WriteCommStats();
 
     static void AddCommStat(CommFuncType cft, int dest, int size);
     static void AddBarrier(CommFuncType cft, std::string message);
@@ -88,9 +89,11 @@ class Profiler
     std::string fname;
     bool bRunning;
     static bool bWriteAll, bWriteFabs, bWriteBLT;
+    static bool bInitialized;
     static int currentStep;
     static Real pctTimeLimit;
     static Real calcRunTime;
+    static Real startTime;
     static std::stack<Real> nestedTimeStack;
     static std::map<int, Real> mStepMap;  // [step, time]
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
@@ -140,6 +143,7 @@ class Profiler
     static void Initialize() { }
     static void Finalize() { }
     static void WriteStats(std::ostream &os) { }
+    static void WriteCommStats() { }
     void start() { }
     void stop() { }
     static void InitParams(const Real ptl, const bool writeall,

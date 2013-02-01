@@ -261,11 +261,15 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     }
 
     std::cout << std::setprecision(10);
+
+    BL_PROFILE_INITIALIZE();
 }
 
 void
 BoxLib::Finalize (bool finalize_parallel)
 {
+    BL_PROFILE_FINALIZE();
+
     while (!The_Finalize_Function_Stack.empty())
     {
         //
