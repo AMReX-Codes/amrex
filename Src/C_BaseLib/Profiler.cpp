@@ -150,11 +150,6 @@ void Profiler::Finalize() {
     return;
   }
   // --------------------------------------- gather global stats
-  //
-  // need to check that the set of profiled functions is the same
-  // on all processors
-  //
-
   Real finalizeStart = ParallelDescriptor::second();  // time the timer
   const int nProcs(ParallelDescriptor::NProcs());
   const int myProc(ParallelDescriptor::MyProc());
@@ -172,6 +167,48 @@ void Profiler::Finalize() {
     ncalls.resize(nProcs);
   }
 			      
+
+  // -------- make sure the set of profiled functions is the same on all processors
+  int pfStringsSize(0);
+  std::ostringstream pfStrings;
+  if(ParallelDescriptor::IOProcessor()) {
+    for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
+        it != mProfStats.end(); ++it)
+    {
+      pfStrings << it->first << '\n';
+    }
+    pfStrings << std::ends;
+    pfStringsSize = pfStrings.str().size();
+  }
+  ParallelDescriptor::Bcast(&pfStringsSize, 1);
+  std::cout << myProc << ":))))))) pfStrings.size() = " << pfStringsSize << std::endl;
+
+  char *pfChar = new char[pfStringsSize];
+  if(ParallelDescriptor::IOProcessor()) {
+    std::strcpy(pfChar, pfStrings.str().c_str());
+  }
+  ParallelDescriptor::Bcast(pfChar, pfStringsSize);
+
+  if( ! ParallelDescriptor::IOProcessor()) {
+    std::istringstream pfIn(pfChar);
+    std::string pfName;
+    while( ! pfIn.eof()) {
+      pfIn >> pfName;
+      if( ! pfIn.eof()) {
+        std::map<std::string, ProfStats>::const_iterator it = mProfStats.find(pfName);
+        if(it == mProfStats.end()) {
+	  ProfStats ps;
+          mProfStats.insert(std::pair<std::string, ProfStats>(pfName, ps));
+	  std::cout << myProc << ":  #### ProfName not found, inserting:  "
+	            << pfName << std::endl;
+        }
+      }
+    }
+  }
+  delete [] pfChar;
+
+
+  // ---------------------------------- now collect global data onto the ioproc
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
       it != mProfStats.end(); ++it)
   {
