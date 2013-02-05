@@ -166,7 +166,7 @@ void Profiler::Finalize() {
     gtimes.resize(nProcs);
     ncalls.resize(nProcs);
   }
-			      
+
 
   // -------- make sure the set of profiled functions is the same on all processors
   int pfStringsSize(0);
@@ -181,7 +181,6 @@ void Profiler::Finalize() {
     pfStringsSize = pfStrings.str().size();
   }
   ParallelDescriptor::Bcast(&pfStringsSize, 1);
-  std::cout << myProc << ":))))))) pfStrings.size() = " << pfStringsSize << std::endl;
 
   char *pfChar = new char[pfStringsSize];
   if(ParallelDescriptor::IOProcessor()) {
@@ -205,12 +204,32 @@ void Profiler::Finalize() {
       }
     }
   }
+
+  // ------- we really need to send names that are not on the ioproc
+  // ------- to the ioproc but for now we will punt
+  // ------- make a copy in case there are names not on the ioproc
+  std::map<std::string, ProfStats> mProfStatsCopy;
+  std::istringstream pfIn(pfChar);
+  std::string pfName;
+  while( ! pfIn.eof()) {
+    pfIn >> pfName;
+    if( ! pfIn.eof()) {
+      std::map<std::string, ProfStats>::const_iterator it = mProfStats.find(pfName);
+      if(it != mProfStats.end()) {
+        mProfStatsCopy.insert(std::pair<std::string, ProfStats>(it->first, it->second));
+      } else {
+	std::cout << myProc << ":  #### ProfName not on ioproc:  "
+	          << it->first << std::endl;
+      }
+    }
+  }
+
   delete [] pfChar;
 
 
   // ---------------------------------- now collect global data onto the ioproc
-  for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
-      it != mProfStats.end(); ++it)
+  for(std::map<std::string, ProfStats>::const_iterator it = mProfStatsCopy.begin();
+      it != mProfStatsCopy.end(); ++it)
   {
     std::string profName(it->first);
     int pnLen(profName.size());
@@ -220,7 +239,7 @@ void Profiler::Finalize() {
     cpn[profName.size()] = '\0';
 
     ParallelDescriptor::Bcast(cpn, profName.size() + 1);
-    ProfStats &pstats = mProfStats[profName];
+    ProfStats &pstats = mProfStatsCopy[profName];
     if(nProcs == 1) {
       gtimes[0] = pstats.totalTime;
       ncalls[0] = pstats.nCalls;
@@ -236,6 +255,7 @@ void Profiler::Finalize() {
         tmin = std::min(tmin, gtimes[i]);
         tmax = std::max(tmax, gtimes[i]);
       }
+      ProfStats &pstats = mProfStats[profName];  // not the copy on ioproc
       tavg = tsum / static_cast<Real> (gtimes.size());
       pstats.minTime = tmin;
       pstats.maxTime = tmax;
