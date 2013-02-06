@@ -218,13 +218,25 @@ void Profiler::Finalize() {
       if(it != mProfStats.end()) {
         mProfStatsCopy.insert(std::pair<std::string, ProfStats>(it->first, it->second));
       } else {
-	std::cout << myProc << ":  #### ProfName not on ioproc:  "
+	std::cout << myProc << ":  #### Unknown ProfName:  "
 	          << it->first << std::endl;
       }
     }
   }
 
   delete [] pfChar;
+
+  // ------- now check for names not on the ioproc
+  for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
+      it != mProfStats.end(); ++it)
+  {
+    std::map<std::string, ProfStats>::const_iterator itcopy =
+                                         mProfStatsCopy.find(it->first);
+    if(itcopy == mProfStatsCopy.end()) {
+      std::cout << myProc << ":  #### ProfName not on ioproc:  "
+	          << it->first << std::endl;
+    }
+  }
 
 
   // ---------------------------------- now collect global data onto the ioproc
