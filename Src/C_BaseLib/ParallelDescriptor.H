@@ -524,6 +524,7 @@ ParallelDescriptor::Arecv (T*       buf,
                            int      tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Arecv(Tsii)", T);
+    BL_COMM_PROFILE_TTAG(Profiler::ArecvTsii, T, n, src_pid, tag);
 
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Irecv(buf,
@@ -545,6 +546,7 @@ ParallelDescriptor::Arecv (T*       buf,
                            MPI_Comm comm)
 {
     BL_PROFILE_T("ParallelDescriptor::Arecv(TsiiM)", T);
+    BL_COMM_PROFILE_TTAG(Profiler::ArecvTsiiM, T, n, src_pid, tag);
 
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Irecv(buf,
@@ -564,6 +566,7 @@ ParallelDescriptor::Arecv (std::vector<T>& buf,
                            int             tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Arecv(vTii)", T);
+    BL_COMM_PROFILE_TTAG(Profiler::ArecvvTii, T, buf.size(), src_pid, tag);
 
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Irecv(&buf[0],
@@ -584,6 +587,7 @@ ParallelDescriptor::Recv (T*     buf,
                           int    tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Recv(Tsii)", T);
+    BL_COMM_PROFILE_TTAG(Profiler::RecvTsii, T, n, src_pid, tag);
 
     MPI_Status stat;
     BL_MPI_REQUIRE( MPI_Recv(buf,
@@ -603,6 +607,7 @@ ParallelDescriptor::Recv (std::vector<T>& buf,
                           int             tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Recv(vTii)", T);
+    BL_COMM_PROFILE_TTAG(Profiler::RecvvTii, T, buf.size(), src_pid, tag);
 
     MPI_Status stat;
     BL_MPI_REQUIRE( MPI_Recv(&buf[0],
@@ -620,6 +625,7 @@ T
 ParallelDescriptor::Reduce (const T& t)
 {
     BL_PROFILE_T("ParallelDescriptor::Reduce(T)", T);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceT, sizeof(T));
 
     T recv;
     BL_MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t),

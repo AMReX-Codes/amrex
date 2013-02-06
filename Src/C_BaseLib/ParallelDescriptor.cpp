@@ -339,6 +339,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                            MPI_Op op)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, sizeof(Real));
 
     Real recv;
 
@@ -357,6 +358,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            int    cnt)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, cnt * sizeof(Real));
 
     BL_ASSERT(cnt > 0);
 
@@ -377,7 +379,8 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
-    BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
+    BL_PROFILE("ParallelDescriptor::util::DoReduceReal()");
+    BL_COMM_PROFILE_REDUCE(Profiler::ReduceR, sizeof(Real), cpu);
 
     Real recv;
 
@@ -399,7 +402,8 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                         int    cnt,
                                         int    cpu)
 {
-    BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
+    BL_PROFILE("ParallelDescriptor::util::DoReduceReal()");
+    BL_COMM_PROFILE_REDUCE(Profiler::ReduceR, cnt * sizeof(Real), cpu);
 
     BL_ASSERT(cnt > 0);
 
@@ -498,6 +502,7 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                            MPI_Op op)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, sizeof(long));
 
     long recv;
 
@@ -516,6 +521,7 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            int    cnt)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, cnt * sizeof(long));
 
     BL_ASSERT(cnt > 0);
 
@@ -536,7 +542,8 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
-    BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
+    BL_PROFILE("ParallelDescriptor::util::DoReduceLong()");
+    BL_COMM_PROFILE_REDUCE(Profiler::ReduceL, sizeof(long), cpu);
 
     long recv;
 
@@ -558,7 +565,8 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                         int    cnt,
                                         int    cpu)
 {
-    BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
+    BL_PROFILE("ParallelDescriptor::util::DoReduceLong()");
+    BL_COMM_PROFILE_REDUCE(Profiler::ReduceL, cnt * sizeof(long), cpu);
 
     BL_ASSERT(cnt > 0);
 
@@ -680,6 +688,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                           MPI_Op op)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, sizeof(int));
 
     int recv;
 
@@ -698,6 +707,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           int    cnt)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, cnt * sizeof(int));
 
     BL_ASSERT(cnt > 0);
 
@@ -718,7 +728,8 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                        MPI_Op op,
                                        int    cpu)
 {
-    BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
+    BL_PROFILE("ParallelDescriptor::util::DoReduceInt()");
+    BL_COMM_PROFILE_REDUCE(Profiler::ReduceI, sizeof(int), cpu);
 
     int recv;
 
@@ -740,7 +751,8 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                        int    cnt,
                                        int    cpu)
 {
-    BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
+    BL_PROFILE("ParallelDescriptor::util::DoReduceInt()");
+    BL_COMM_PROFILE_REDUCE(Profiler::ReduceI, cnt * sizeof(int), cpu);
 
     BL_ASSERT(cnt > 0);
 

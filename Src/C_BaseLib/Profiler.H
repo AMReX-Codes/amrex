@@ -28,17 +28,25 @@ class Profiler
 
     enum CommFuncType {
       InvalidCFT = 0,
+      AllReduceT,
+      AllReduceR,
+      AllReduceL,
+      AllReduceI,
       AsendTsii,
       AsendTsiiM,
       AsendvTii,
       SendTsii,
       SendvTii,
+      ArecvTsii,
       ArecvTsiiM,
       ArecvTii,
       ArecvvTii,
       RecvTsii,
       RecvvTii,
       ReduceT,
+      ReduceR,
+      ReduceL,
+      ReduceI,
       BCastTsi,
       GatherTsT1Si,
       GatherTi,
@@ -47,20 +55,23 @@ class Profiler
     };
                  
     struct CommStats {
-      CommStats() : cfType(InvalidCFT), src(-1), dest(-1), size(-1),
+      CommStats() : cfType(InvalidCFT), mypid(-1), commpid(-1), size(-1), tag(-1),
                     timeStamp(-1.0) { }
-      CommStats(CommFuncType cft, int src, int dest, int size, Real ts)
-                  : cfType(cft), src(src), dest(dest), size(size),
+      CommStats(CommFuncType cft, int mypid, int commpid, int size, Real ts)
+                  : cfType(cft), mypid(mypid), commpid(commpid), size(size),
+                    timeStamp(ts) { }
+      CommStats(CommFuncType cft, int mypid, int commpid, int size, int tag, Real ts)
+                  : cfType(cft), mypid(mypid), commpid(commpid), size(size), tag(tag),
                     timeStamp(ts) { }
       static std::string CFTToString(CommFuncType cft);
       static CommFuncType StringToCFT(const std::string &s);
 
       static std::map<std::string, CommFuncType> cftNames;
       static std::set<CommFuncType> cftExclude;
-      static int iBarrierNumber;
-      static std::vector<std::string> vBarrierNames;
+      static int barrierNumber;
+      static std::vector<std::string> barrierNames;
       CommFuncType cfType;
-      int src, dest, size;
+      int mypid, commpid, size, tag;
       Real timeStamp;
     };
 
@@ -73,8 +84,10 @@ class Profiler
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
     static void WriteCommStats();
 
-    static void AddCommStat(CommFuncType cft, int dest, int size);
+    static void AddCommStat(CommFuncType cft, int pid, int size);
+    static void AddCommStat(CommFuncType cft, int pid, int size, int tag);
     static void AddBarrier(CommFuncType cft, std::string message);
+    static void AddAllReduce(CommFuncType cft, int size);
 
     void start();
     void stop();
@@ -126,10 +139,16 @@ class Profiler
 #define BL_PROFILE_SET_RUN_TIME(rtime)  Profiler::SetRunTime(rtime);
 #define BL_PROFILE_FINALIZE()  Profiler::Finalize();
 
-#define BL_COMM_PROFILE_T(cft, T, n, destpid) {                                \
-                          Profiler::AddCommStat(cft, destpid, n * sizeof(T));  \
+#define BL_COMM_PROFILE_T(cft, T, n, pid) {                                \
+                          Profiler::AddCommStat(cft, pid, n * sizeof(T));  \
+}
+#define BL_COMM_PROFILE_TTAG(cft, T, n, pid, tag) {                             \
+                          Profiler::AddCommStat(cft, pid, n * sizeof(T), tag);  \
 }
 #define BL_COMM_PROFILE_BARRIER(cft, message) { Profiler::AddBarrier(cft, message); }
+#define BL_COMM_PROFILE_ALLREDUCE(cft, size) { Profiler::AddAllReduce(cft, size); }
+#define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
+                          Profiler::AddCommStat(cft, pid, size); }
 
 #else
 
@@ -167,8 +186,11 @@ class Profiler
 #define BL_PROFILE_SET_RUN_TIME(rtime)
 #define BL_PROFILE_FINALIZE()
 
-#define BL_COMM_PROFILE_T(cft, T, n, destpid)
+#define BL_COMM_PROFILE_T(cft, T, n, pid)
+#define BL_COMM_PROFILE_TTAG(cft, T, n, pid, tag)
 #define BL_COMM_PROFILE_BARRIER(cft, message)
+#define BL_COMM_PROFILE_ALLREDUCE(cft, size)
+#define BL_COMM_PROFILE_REDUCE(cft, size, pid)
 
 #endif
 

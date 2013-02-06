@@ -27,8 +27,8 @@ std::map<Real, std::string, std::greater<Real> > Profiler::mTimersTotalsSorted;
 std::vector<Profiler::CommStats> Profiler::vCommStats;
 std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
 std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
-int Profiler::CommStats::iBarrierNumber = 0;
-std::vector<std::string> Profiler::CommStats::vBarrierNames;
+int Profiler::CommStats::barrierNumber = 0;
+std::vector<std::string> Profiler::CommStats::barrierNames;
 
 
 Profiler::Profiler(const std::string &funcname)
@@ -52,17 +52,25 @@ void Profiler::Initialize() {
     return;
   }
   CommStats::cftNames["InvalidCFT"]     = InvalidCFT;
+  CommStats::cftNames["AllReduceT"]     = AllReduceT; 
+  CommStats::cftNames["AllReduceR"]     = AllReduceR; 
+  CommStats::cftNames["AllReduceL"]     = AllReduceL; 
+  CommStats::cftNames["AllReduceI"]     = AllReduceI; 
   CommStats::cftNames["AsendTsii"]      = AsendTsii;
   CommStats::cftNames["AsendTsiiM"]     = AsendTsiiM;
   CommStats::cftNames["AsendvTii"]      = AsendvTii;
   CommStats::cftNames["SendTsii"]       = SendTsii;
   CommStats::cftNames["SendvTii"]       = SendvTii;
+  CommStats::cftNames["ArecvTsii"]      = ArecvTsii;
   CommStats::cftNames["ArecvTsiiM"]     = ArecvTsiiM;
   CommStats::cftNames["ArecvTii"]       = ArecvTii;
   CommStats::cftNames["ArecvvTii"]      = ArecvvTii;
   CommStats::cftNames["RecvTsii"]       = RecvTsii;
   CommStats::cftNames["RecvvTii"]       = RecvvTii;
   CommStats::cftNames["ReduceT"]        = ReduceT; 
+  CommStats::cftNames["ReduceR"]        = ReduceR; 
+  CommStats::cftNames["ReduceL"]        = ReduceL; 
+  CommStats::cftNames["ReduceI"]        = ReduceI; 
   CommStats::cftNames["BCastTsi"]       = BCastTsi; 
   CommStats::cftNames["GatherTsT1Si"]   = GatherTsT1Si; 
   CommStats::cftNames["GatherTi"]       = GatherTi; 
@@ -234,7 +242,7 @@ void Profiler::Finalize() {
                                          mProfStatsCopy.find(it->first);
     if(itcopy == mProfStatsCopy.end()) {
       std::cout << myProc << ":  #### ProfName not on ioproc:  "
-	          << it->first << std::endl;
+                << it->first << std::endl;
     }
   }
 
@@ -485,11 +493,11 @@ void Profiler::WriteCommStats() {
           CommStats &cs = vCommStats[i];
           if(cs.cfType == Barrier) {
             csFile << cs.timeStamp << "  " << CommStats::CFTToString(cs.cfType)
-                << "  iBarrierNumber = " << cs.size
-	        << " vBarrierName = " << CommStats::vBarrierNames[cs.size] << std::endl;
+                << "  barrierNumber = " << cs.size
+	        << " barrierName = " << CommStats::barrierNames[cs.size] << std::endl;
           } else {
             csFile << cs.timeStamp << "  " << CommStats::CFTToString(cs.cfType)
-                << "  " << cs.dest << "  " << cs.size << std::endl;
+                << "  " << cs.commpid << "  " << cs.size << std::endl;
           }
         }
         // ----------------------------- end write to file here
@@ -572,40 +580,64 @@ void Profiler::WriteRow(std::ostream &ios, const std::string &fname,
 }
 
 
-void Profiler::AddCommStat(CommFuncType cft, int dest, int size) {
+void Profiler::AddCommStat(CommFuncType cft, int pid, int size) {
   std::set<CommFuncType>::iterator cfti = CommStats::cftExclude.find(cft);
   if(cfti == CommStats::cftExclude.end()) {
-    CommStats cs(cft, ParallelDescriptor::MyProc(), dest, size,
-                ParallelDescriptor::second());
+    CommStats cs(cft, ParallelDescriptor::MyProc(), pid, size,
+                 ParallelDescriptor::second());
+    vCommStats.push_back(cs);
+  }
+}
+
+
+void Profiler::AddCommStat(CommFuncType cft, int pid, int size, int tag) {
+  std::set<CommFuncType>::iterator cfti = CommStats::cftExclude.find(cft);
+  if(cfti == CommStats::cftExclude.end()) {
+    CommStats cs(cft, ParallelDescriptor::MyProc(), pid, size, tag,
+                 ParallelDescriptor::second());
     vCommStats.push_back(cs);
   }
 }
 
 
 void Profiler::AddBarrier(CommFuncType cft, std::string message) {
-  CommStats cs(cft, ParallelDescriptor::MyProc(), 0, Profiler::CommStats::iBarrierNumber,
+  CommStats cs(cft, ParallelDescriptor::MyProc(), 0, Profiler::CommStats::barrierNumber,
               ParallelDescriptor::second());
   vCommStats.push_back(cs);
-  CommStats::vBarrierNames.resize(CommStats::iBarrierNumber + 1);
-  CommStats::vBarrierNames[CommStats::iBarrierNumber] = message;
-  ++CommStats::iBarrierNumber;
+  CommStats::barrierNames.resize(CommStats::barrierNumber + 1);
+  CommStats::barrierNames[CommStats::barrierNumber] = message;
+  ++CommStats::barrierNumber;
+}
+
+
+void Profiler::AddAllReduce(CommFuncType cft, int size) {
+  CommStats cs(cft, 0, 0, size, ParallelDescriptor::second());
+  vCommStats.push_back(cs);
 }
 
 
 std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
   switch(cft) {
     case InvalidCFT:     return "InvalidCFT";
+    case AllReduceT:     return "AllReduceT"; 
+    case AllReduceR:     return "AllReduceR"; 
+    case AllReduceL:     return "AllReduceL"; 
+    case AllReduceI:     return "AllReduceI"; 
     case AsendTsii:      return "AsendTsii";
     case AsendTsiiM:     return "AsendTsiiM";
     case AsendvTii:      return "AsendvTii";
     case SendTsii:       return "SendTsii";
     case SendvTii:       return "SendvTii";
+    case ArecvTsii:      return "ArecvTsii";
     case ArecvTsiiM:     return "ArecvTsiiM";
     case ArecvTii:       return "ArecvTii";
     case ArecvvTii:      return "ArecvvTii";
     case RecvTsii:       return "RecvTsii";
     case RecvvTii:       return "RecvvTii";
     case ReduceT:        return "ReduceT"; 
+    case ReduceR:        return "ReduceR"; 
+    case ReduceL:        return "ReduceL"; 
+    case ReduceI:        return "ReduceI"; 
     case BCastTsi:       return "BCastTsi"; 
     case GatherTsT1Si:   return "GatherTsT1Si"; 
     case GatherTi:       return "GatherTi"; 
