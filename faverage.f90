@@ -387,9 +387,14 @@ program faverage
                     if (any(imask(ii*r1:(ii+1)*r1-1, &
                                   jj*r1:(jj+1)*r1-1, &
                                   1))) then
-                       ! apply the proper weighting
-                       weight = r1**2
-                       if (do_favre) weight = p(ii,jj,kk,irho_comp_pass)*r1**2
+                       ! apply the proper weighting such that data from coarse
+                       ! and fine cells are given the same weight.  We have to
+                       ! count data from coarse cells r1**(dim-1) times.  In
+                       ! doing this we are treating coarse cells as if they are
+                       ! broken up into the cells at the finest resolution all
+                       ! containing the same value as the original coarse cell.
+                       weight = r1**(dim-1)
+                       if (do_favre) weight = p(ii,jj,kk,irho_comp_pass)*weight
 
                        do index = index_lo, index_hi
                           avg(index,:) = avg(index,:) + p(ii,jj,kk,:) * weight
@@ -407,9 +412,14 @@ program faverage
                                   jj*r1:(jj+1)*r1-1, &
                                   kk*r1:(kk+1)*r1-1))) then
                     
-                       ! apply the proper weighting
-                       weight = r1**3
-                       if (do_favre) weight = p(ii,jj,kk,irho_comp_pass)*r1**3
+                       ! apply the proper weighting such that data from coarse
+                       ! and fine cells are given the same weight.  We have to
+                       ! count data from coarse cells r1**(dim-1) times.  In
+                       ! doing this we are treating coarse cells as if they are
+                       ! broken up into the cells at the finest resolution all
+                       ! containing the same value as the original coarse cell.
+                       weight = r1**(dim-1)
+                       if (do_favre) weight = p(ii,jj,kk,irho_comp_pass)*weight
 
                        do index = index_lo, index_hi
                           avg(index,:) = avg(index,:) + p(ii,jj,kk,:) * weight
