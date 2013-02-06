@@ -56,6 +56,32 @@ endif
 ifeq ($(MACHINE), Linux)
   ifdef WHICHLINUX
 
+    ifeq ($(WHICHLINUX), BLUE_WATERS)
+      CC := cc
+      CXX := CC
+      FC := ftn
+      F90 := ftn
+      fC := ftn
+
+      ifeq ($(COMP), Cray)
+        CXXOPTF += -hnopgas_runtime
+	CXXDEBF += -hnopgas_runtime
+        ifneq ($(USE_OMP),TRUE)
+	  CXXOPTF += -hnoomp
+	  CXXDEBF += -hnoomp
+	endif
+      endif
+
+      ifeq ($(FCOMP), Cray)
+        F90FLAGS += -hnopgas_runtime
+	FFLAGS += -hnopgas_runtime
+        ifneq ($(USE_OMP),TRUE)
+	  F90FLAGS += -hnoomp
+	  FFLAGS += -hnoomp
+	endif
+      endif
+    endif
+
     ifeq ($(WHICHLINUX), INTREPID)
 
       ifeq ($(USE_OMP),TRUE)
