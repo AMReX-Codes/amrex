@@ -58,7 +58,7 @@ class Profiler
       CommStats() : cfType(InvalidCFT), mypid(-1), commpid(-1), size(-1), tag(-1),
                     timeStamp(-1.0) { }
       CommStats(CommFuncType cft, int mypid, int commpid, int size, Real ts)
-                  : cfType(cft), mypid(mypid), commpid(commpid), size(size),
+                  : cfType(cft), mypid(mypid), commpid(commpid), size(size), tag(-1),
                     timeStamp(ts) { }
       CommStats(CommFuncType cft, int mypid, int commpid, int size, int tag, Real ts)
                   : cfType(cft), mypid(mypid), commpid(commpid), size(size), tag(tag),

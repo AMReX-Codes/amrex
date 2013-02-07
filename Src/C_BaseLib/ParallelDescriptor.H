@@ -424,7 +424,7 @@ ParallelDescriptor::Asend (const T* buf,
                            int      tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Asend(Tsii)", T);
-    BL_COMM_PROFILE_T(Profiler::AsendTsii, T, n, dst_pid);
+    BL_COMM_PROFILE_TTAG(Profiler::AsendTsii, T, n, dst_pid, tag);
 
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf),
@@ -446,7 +446,7 @@ ParallelDescriptor::Asend (const T* buf,
                            MPI_Comm comm)
 {
     BL_PROFILE_T("ParallelDescriptor::Asend(TsiiM)", T);
-    BL_COMM_PROFILE_T(Profiler::AsendTsiiM, T, n, dst_pid);
+    BL_COMM_PROFILE_TTAG(Profiler::AsendTsiiM, T, n, dst_pid, tag);
 
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf),
@@ -466,7 +466,7 @@ ParallelDescriptor::Asend (const std::vector<T>& buf,
                            int                   tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Asend(vTii)", T);
-    BL_COMM_PROFILE_T(Profiler::AsendvTii, T, buf.size(), dst_pid);
+    BL_COMM_PROFILE_TTAG(Profiler::AsendvTii, T, buf.size(), dst_pid, tag);
 
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(&buf[0]),
@@ -487,7 +487,7 @@ ParallelDescriptor::Send (const T* buf,
                           int      tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Send(Tsii)", T);
-    BL_COMM_PROFILE_T(Profiler::SendTsii, T, n, dst_pid);
+    BL_COMM_PROFILE_TTAG(Profiler::SendTsii, T, n, dst_pid, tag);
 
     BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(buf),
                              n,
@@ -505,7 +505,7 @@ ParallelDescriptor::Send (const std::vector<T>& buf,
                           int                   tag)
 {
     BL_PROFILE_T("ParallelDescriptor::Send(vTii)", T);
-    BL_COMM_PROFILE_T(Profiler::SendvTii, T, buf.size(), dst_pid);
+    BL_COMM_PROFILE_TTAG(Profiler::SendvTii, T, buf.size(), dst_pid, tag);
 
     BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(&buf[0]),
                              buf.size(),

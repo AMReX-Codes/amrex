@@ -30,6 +30,8 @@ std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
 std::vector<std::string> Profiler::CommStats::barrierNames;
 
+int nProfFiles(32);
+
 
 Profiler::Profiler(const std::string &funcname)
     : bltstart(0.0), bltelapsed(0.0)
@@ -313,7 +315,7 @@ void Profiler::Finalize() {
 
     const int   MyProc    = ParallelDescriptor::MyProc();
     const int   NProcs    = ParallelDescriptor::NProcs();
-    const int   nOutFiles = std::max(1, std::min(NProcs, 16));
+    const int   nOutFiles = std::max(1, std::min(NProcs, nProfFiles));
     const int   NSets     = (NProcs + (nOutFiles - 1)) / nOutFiles;
     const int   MySet     = MyProc/nOutFiles;
     std::string cFileName(cdir + '/' + cdir);
@@ -489,7 +491,7 @@ void Profiler::WriteCommStats() {
 
   const int   MyProc    = ParallelDescriptor::MyProc();
   const int   NProcs    = ParallelDescriptor::NProcs();
-  const int   nOutFiles = std::max(1, std::min(NProcs, 16));
+  const int   nOutFiles = std::max(1, std::min(NProcs, nProfFiles));
   const int   NSets     = (NProcs + (nOutFiles - 1)) / nOutFiles;
   const int   MySet     = MyProc/nOutFiles;
   std::string cFileName(cdir + '/' + cdir);
@@ -513,18 +515,23 @@ void Profiler::WriteCommStats() {
         }
 
         // ----------------------------- write to file here
-        csFile << "%%%%%%%%%%%%%%%%%%%%%" << std::endl;
+        csFile << "COMMPROF data from processor:  " << MyProc << std::endl;
         csFile << "vCommStats.size() = " << vCommStats.size() << std::endl;
-        csFile << "sizeof(vCommStats[0]) = " << sizeof(vCommStats[0]) << std::endl;
+        csFile << "sizeof(CommStats) = " << sizeof(CommStats) << std::endl;
         for(int i(0); i < vCommStats.size(); ++i) {
           CommStats &cs = vCommStats[i];
           if(cs.cfType == Barrier) {
-            csFile << cs.timeStamp << "  " << CommStats::CFTToString(cs.cfType)
-                << "  barrierNumber = " << cs.size
-	        << " barrierName = " << CommStats::barrierNames[cs.size] << std::endl;
+            csFile << std::setprecision(15) << cs.timeStamp << "  "
+	           << CommStats::CFTToString(cs.cfType)
+                   << "  barrierNumber = " << cs.size
+	           << "  barrierName = " << CommStats::barrierNames[cs.size]
+		   << std::endl;
           } else {
-            csFile << cs.timeStamp << "  " << CommStats::CFTToString(cs.cfType)
-                << "  " << cs.commpid << "  " << cs.size << std::endl;
+            csFile << std::setprecision(15) << cs.timeStamp << "  "
+	           << CommStats::CFTToString(cs.cfType) << "  "
+		   << cs.mypid << "  " << cs.commpid << "  "
+		   << cs.size  << "  " << cs.tag
+		   << std::endl;
           }
         }
         // ----------------------------- end write to file here
