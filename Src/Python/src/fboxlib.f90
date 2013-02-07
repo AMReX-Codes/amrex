@@ -402,7 +402,7 @@ contains
 
   subroutine pybl_get_plotfile_info(cptr, dim, nvars, flevel) &
        bind(c, name='pybl_get_plotfile_info')
-    use plotfile_module
+    use plotfile_module, only: plotfile
     type(c_ptr),    intent(in), value :: cptr
     integer(c_int), intent(out)       :: dim, nvars, flevel
 
@@ -417,7 +417,7 @@ contains
 
   subroutine pybl_get_plotfile_grid_info(cptr, level, nboxes) &
        bind(c, name='pybl_get_plotfile_grid_info')
-    use plotfile_module
+    use plotfile_module, only: plotfile
     type(c_ptr),    intent(in), value :: cptr
     integer(c_int), intent(in), value :: level
     integer(c_int), intent(out)       :: nboxes
