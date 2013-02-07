@@ -301,37 +301,66 @@ void Profiler::Finalize() {
 
   // --------------------------------------- print all procs stats to a file
   if(bWriteAll) {
-    std::string outfile("bl_prof.txt");
-    
-                       // need to do nfiles here
+    // --------------------- start nfiles block
+    std::string cdir("bl_prof");
+    if(ParallelDescriptor::IOProcessor()) {
+      if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
+        BoxLib::CreateDirectoryFailed(cdir);
+      }
+    }
+    // Force other processors to wait till directory is built.
+    ParallelDescriptor::Barrier();
 
-    for(int iproc(0); iproc < nProcs; ++iproc) {  // serialize
-      if(myProc == iproc) {
-        std::ofstream outfilestr;
-        if(iproc == 0) {
-          outfilestr.open(outfile.c_str(), std::ios::out|std::ios::trunc);
-        } else {
-          outfilestr.open(outfile.c_str(), std::ios::out|std::ios::app);
-          outfilestr.seekp(0, std::ios::end);
-        }
-        if( ! outfilestr.good()) {
-          BoxLib::FileOpenFailed(outfile);
-        }
-        WriteStats(outfilestr);
+    const int   MyProc    = ParallelDescriptor::MyProc();
+    const int   NProcs    = ParallelDescriptor::NProcs();
+    const int   nOutFiles = std::max(1, std::min(NProcs, 16));
+    const int   NSets     = (NProcs + (nOutFiles - 1)) / nOutFiles;
+    const int   MySet     = MyProc/nOutFiles;
+    std::string cFileName(cdir + '/' + cdir);
+    std::string FullName  = BoxLib::Concatenate(cFileName, MyProc % nOutFiles, 4);
 
-        outfilestr.flush();
-        outfilestr.close();
+    for(int iSet = 0; iSet < NSets; ++iSet) {
+      if(MySet == iSet) {
+        {  // scope
+          std::ofstream csFile;
 
-        int iBuff(0), wakeUpPID(myProc + 1), tag(0);
-        if(wakeUpPID < nProcs) {
+          if(iSet == 0) {   // First set.
+            csFile.open(FullName.c_str(),
+                        std::ios::out|std::ios::trunc|std::ios::binary);
+          } else {
+            csFile.open(FullName.c_str(),
+                        std::ios::out|std::ios::app|std::ios::binary);
+            csFile.seekp(0, std::ios::end);   // set to eof
+          }
+          if( ! csFile.good()) {
+            BoxLib::FileOpenFailed(FullName);
+          }
+
+          // ----------------------------- write to file here
+          WriteStats(csFile);
+          // ----------------------------- end write to file here
+
+          csFile.flush();
+          csFile.close();
+        }  // end scope
+
+        int iBuff     = 0;
+        int wakeUpPID = (MyProc + nOutFiles);
+        int tag       = (MyProc % nOutFiles);
+        if(wakeUpPID < NProcs) {
           ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
         }
       }
-      if(myProc == (iproc + 1)) {  // next proc waits
-        int iBuff(0), waitForPID(myProc - 1), tag(0);
+      if(MySet == (iSet + 1)) {   // Next set waits.
+        int iBuff;
+        int waitForPID = (MyProc - nOutFiles);
+        int tag        = (MyProc % nOutFiles);
         ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
       }
     }
+    // --------------------- end nfiles block
+
+
     ParallelDescriptor::Barrier("Profiler::Finalize");
   }
   if(ParallelDescriptor::IOProcessor()) {
@@ -448,6 +477,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 
 void Profiler::WriteCommStats() {
 
+  // --------------------- start nfiles block
   std::string cdir("bl_comm_prof");
   if(ParallelDescriptor::IOProcessor()) {
     if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
@@ -468,10 +498,7 @@ void Profiler::WriteCommStats() {
   for(int iSet = 0; iSet < NSets; ++iSet) {
     if(MySet == iSet) {
       {  // scope
-        //VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-
         std::ofstream csFile;
-        //csFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
         if(iSet == 0) {   // First set.
           csFile.open(FullName.c_str(),
@@ -520,6 +547,7 @@ void Profiler::WriteCommStats() {
       ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
     }
   }
+  // --------------------- end nfiles block
 
 }
 
