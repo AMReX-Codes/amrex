@@ -431,8 +431,9 @@ program faverage
                              kk*r1:(kk+1)*r1-1) = .false.
                     endif
 
+                 else 
+                    call bl_error("faverage does not support 1d!")
                  endif
-
               enddo
            enddo
         enddo
@@ -497,7 +498,7 @@ program faverage
                                  jj*r1:(jj+1)*r1-1, &
                                  1))) then
 
-                       weight = r1**2
+                       weight = r1**(dim-1)
                     
                        do index = index_lo, index_hi
                           rms(index,:) = rms(index,:) + &
@@ -517,7 +518,7 @@ program faverage
                     if(any(imask(ii*r1:(ii+1)*r1-1, &
                                  jj*r1:(jj+1)*r1-1, &
                                  kk*r1:(kk+1)*r1-1))) then
-                       weight = r1**3
+                       weight = r1**(dim-1)
 
                        do index = index_lo, index_hi
                           rms(index,:) = rms(index,:) + &
@@ -532,6 +533,8 @@ program faverage
 
                     endif
 
+                 else 
+                    call bl_error("faverage does not support 1d!")
                  endif
 
               enddo
