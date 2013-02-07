@@ -1640,18 +1640,22 @@ contains
      real(dp_t), intent(inout) :: out(:,:,:,:)
      real(dp_t), intent(in   ) ::  in(:,:,:,:)
      integer                   :: i, j, k, n
+     integer :: s(4)
      !
      ! out = out + in 
      !
-     do n = 1, size(out,4)
-        do k = 1, size(out,3)
-           do j = 1, size(out,2)
-              do i = 1, size(out,1)
+     s = shape(out)
+     !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
+     do n = 1, s(4)
+        do k = 1, s(3)
+           do j = 1, s(2)
+              do i = 1, s(1)
                  out(i,j,k,n) = out(i,j,k,n) + in(i,j,k,n)
               end do
            end do
         end do
      end do
+     !$OMP END PARALLEL DO
    end subroutine sum_d
 
   subroutine cpy_d(out, in, filter)
