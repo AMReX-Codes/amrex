@@ -55,13 +55,13 @@ class Profiler
     };
                  
     struct CommStats {
-      CommStats() : cfType(InvalidCFT), mypid(-1), commpid(-1), size(-1), tag(-1),
+      CommStats() : cfType(InvalidCFT), commpid(-1), size(-1), tag(-1),
                     timeStamp(-1.0) { }
-      CommStats(CommFuncType cft, int mypid, int commpid, int size, Real ts)
-                  : cfType(cft), mypid(mypid), commpid(commpid), size(size), tag(-1),
+      CommStats(CommFuncType cft, int commpid, int size, Real ts)
+                  : cfType(cft), commpid(commpid), size(size), tag(-1),
                     timeStamp(ts) { }
-      CommStats(CommFuncType cft, int mypid, int commpid, int size, int tag, Real ts)
-                  : cfType(cft), mypid(mypid), commpid(commpid), size(size), tag(tag),
+      CommStats(CommFuncType cft, int commpid, int size, int tag, Real ts)
+                  : cfType(cft), commpid(commpid), size(size), tag(tag),
                     timeStamp(ts) { }
       static std::string CFTToString(CommFuncType cft);
       static CommFuncType StringToCFT(const std::string &s);
@@ -69,9 +69,9 @@ class Profiler
       static std::map<std::string, CommFuncType> cftNames;
       static std::set<CommFuncType> cftExclude;
       static int barrierNumber;
-      static std::vector<std::string> barrierNames;
+      static std::vector<std::pair<std::string,int> > barrierNames;  // [name,index]
       CommFuncType cfType;
-      int mypid, commpid, size, tag;
+      int commpid, size, tag;
       Real timeStamp;
     };
 

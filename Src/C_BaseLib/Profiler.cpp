@@ -28,7 +28,7 @@ std::vector<Profiler::CommStats> Profiler::vCommStats;
 std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
 std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
-std::vector<std::string> Profiler::CommStats::barrierNames;
+std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
 
 int nProfFiles(32);
 
@@ -313,13 +313,13 @@ void Profiler::Finalize() {
     // Force other processors to wait till directory is built.
     ParallelDescriptor::Barrier();
 
-    const int   MyProc    = ParallelDescriptor::MyProc();
-    const int   NProcs    = ParallelDescriptor::NProcs();
-    const int   nOutFiles = std::max(1, std::min(NProcs, nProfFiles));
-    const int   NSets     = (NProcs + (nOutFiles - 1)) / nOutFiles;
-    const int   MySet     = MyProc/nOutFiles;
-    std::string cFileName(cdir + '/' + cdir);
-    std::string FullName  = BoxLib::Concatenate(cFileName, MyProc % nOutFiles, 4);
+    const int   myProc    = ParallelDescriptor::MyProc();
+    const int   nProcs    = ParallelDescriptor::NProcs();
+    const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
+    const int   NSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
+    const int   MySet     = myProc/nOutFiles;
+    std::string cFileName(cdir + '/' + cdir + "_D_");
+    std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
 
     for(int iSet = 0; iSet < NSets; ++iSet) {
       if(MySet == iSet) {
@@ -347,16 +347,16 @@ void Profiler::Finalize() {
         }  // end scope
 
         int iBuff     = 0;
-        int wakeUpPID = (MyProc + nOutFiles);
-        int tag       = (MyProc % nOutFiles);
-        if(wakeUpPID < NProcs) {
+        int wakeUpPID = (myProc + nOutFiles);
+        int tag       = (myProc % nOutFiles);
+        if(wakeUpPID < nProcs) {
           ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
         }
       }
       if(MySet == (iSet + 1)) {   // Next set waits.
         int iBuff;
-        int waitForPID = (MyProc - nOutFiles);
-        int tag        = (MyProc % nOutFiles);
+        int waitForPID = (myProc - nOutFiles);
+        int tag        = (myProc % nOutFiles);
         ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
       }
     }
@@ -489,13 +489,15 @@ void Profiler::WriteCommStats() {
   // Force other processors to wait till directory is built.
   ParallelDescriptor::Barrier();
 
-  const int   MyProc    = ParallelDescriptor::MyProc();
-  const int   NProcs    = ParallelDescriptor::NProcs();
-  const int   nOutFiles = std::max(1, std::min(NProcs, nProfFiles));
-  const int   NSets     = (NProcs + (nOutFiles - 1)) / nOutFiles;
-  const int   MySet     = MyProc/nOutFiles;
-  std::string cFileName(cdir + '/' + cdir);
-  std::string FullName  = BoxLib::Concatenate(cFileName, MyProc % nOutFiles, 4);
+  std::ostringstream csHeader;
+
+  const int   myProc    = ParallelDescriptor::MyProc();
+  const int   nProcs    = ParallelDescriptor::NProcs();
+  const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
+  const int   NSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
+  const int   MySet     = myProc/nOutFiles;
+  std::string cFileName(cdir + '/' + cdir + "_D_");
+  std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
 
   for(int iSet = 0; iSet < NSets; ++iSet) {
     if(MySet == iSet) {
@@ -515,25 +517,19 @@ void Profiler::WriteCommStats() {
         }
 
         // ----------------------------- write to file here
-        csFile << "COMMPROF data from processor:  " << MyProc << std::endl;
-        csFile << "vCommStats.size() = " << vCommStats.size() << std::endl;
-        csFile << "sizeof(CommStats) = " << sizeof(CommStats) << std::endl;
-        for(int i(0); i < vCommStats.size(); ++i) {
-          CommStats &cs = vCommStats[i];
-          if(cs.cfType == Barrier) {
-            csFile << std::setprecision(15) << cs.timeStamp << "  "
-	           << CommStats::CFTToString(cs.cfType)
-                   << "  barrierNumber = " << cs.size
-	           << "  barrierName = " << CommStats::barrierNames[cs.size]
-		   << std::endl;
-          } else {
-            csFile << std::setprecision(15) << cs.timeStamp << "  "
-	           << CommStats::CFTToString(cs.cfType) << "  "
-		   << cs.mypid << "  " << cs.commpid << "  "
-		   << cs.size  << "  " << cs.tag
-		   << std::endl;
-          }
+        csHeader << "COMMPROF data from processor:  " << myProc << std::endl;
+        csHeader << "vCommStats.size() = " << vCommStats.size() << std::endl;
+        csHeader << "seekpos = " << csFile.tellp() << std::endl;
+        for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
+          int index(CommStats::barrierNames[ib].second);
+          CommStats &cs = vCommStats[index];
+          csHeader << "barrierNumber = " << cs.size
+                   << "  name = " << CommStats::barrierNames[ib].first
+                   << "  index = " << index
+                   << std::endl;
         }
+
+	csFile.write((char *) &vCommStats[0], vCommStats.size() * sizeof(CommStats));
         // ----------------------------- end write to file here
 
         csFile.flush();
@@ -541,21 +537,76 @@ void Profiler::WriteCommStats() {
       }  // end scope
 
       int iBuff     = 0;
-      int wakeUpPID = (MyProc + nOutFiles);
-      int tag       = (MyProc % nOutFiles);
-      if(wakeUpPID < NProcs) {
+      int wakeUpPID = (myProc + nOutFiles);
+      int tag       = (myProc % nOutFiles);
+      if(wakeUpPID < nProcs) {
         ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
       }
     }
     if(MySet == (iSet + 1)) {   // Next set waits.
       int iBuff;
-      int waitForPID = (MyProc - nOutFiles);
-      int tag        = (MyProc % nOutFiles);
+      int waitForPID = (myProc - nOutFiles);
+      int tag        = (myProc % nOutFiles);
       ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
     }
   }
   // --------------------- end nfiles block
 
+  // --------------------- gather all header data to the ioproc
+  int ioProcNum(ParallelDescriptor::IOProcessorNumber());
+  int headerSize(csHeader.str().size());
+
+  Array<int> vHeaderSizes(nProcs, 0);
+  ParallelDescriptor::Gather(&headerSize, 1, vHeaderSizes.dataPtr(), 1, ioProcNum);
+
+  Array<int> offset(nProcs, 0);
+  int totalHeaderSize(0), pad(0);
+
+  if(ParallelDescriptor::IOProcessor()) {
+    for(int i(1); i < offset.size(); ++i) {
+      offset[i] = offset[i-1] + vHeaderSizes[i-1];
+    }
+    for(int i(0); i < offset.size(); ++i) {
+      totalHeaderSize += vHeaderSizes[i];
+    }
+    pad = 8 - (totalHeaderSize % 8);
+    totalHeaderSize += pad;
+  }
+
+  Array<char> recvdata(totalHeaderSize, '\0');
+  if(recvdata.empty()) {
+    recvdata.resize(1);
+  }
+
+  Array<char> senddata(csHeader.str().size(), '\0');
+  if(senddata.empty()) {
+    senddata.resize(1);
+  }
+
+  std::strcpy(senddata.dataPtr(), csHeader.str().c_str());
+
+  BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
+			      senddata.size(),
+                              ParallelDescriptor::Mpi_typemap<char>::type(),
+			      recvdata.dataPtr(),
+                              vHeaderSizes.dataPtr(),
+                              offset.dataPtr(),
+                              ParallelDescriptor::Mpi_typemap<char>::type(),
+                              ioProcNum,
+                              ParallelDescriptor::Communicator()) );
+
+
+  // --------------------- ioproc writes the header
+  if(ParallelDescriptor::IOProcessor()) {
+    std::ofstream csHeaderFile;
+    std::string cHeaderName(cdir + '/' + cdir + "_H");
+    csHeaderFile.open(cHeaderName.c_str(), std::ios::out | std::ios::trunc);
+
+    csHeaderFile << "sizeof(CommStats) = " << sizeof(CommStats) << std::endl;
+    csHeaderFile << recvdata.dataPtr();
+    csHeaderFile.flush();
+    csHeaderFile.close();
+  }
 }
 
 
@@ -628,19 +679,18 @@ void Profiler::AddCommStat(CommFuncType cft, int pid, int size) {
 void Profiler::AddCommStat(CommFuncType cft, int pid, int size, int tag) {
   std::set<CommFuncType>::iterator cfti = CommStats::cftExclude.find(cft);
   if(cfti == CommStats::cftExclude.end()) {
-    CommStats cs(cft, ParallelDescriptor::MyProc(), pid, size, tag,
-                 ParallelDescriptor::second());
+    CommStats cs(cft, pid, size, tag, ParallelDescriptor::second());
     vCommStats.push_back(cs);
   }
 }
 
 
 void Profiler::AddBarrier(CommFuncType cft, std::string message) {
-  CommStats cs(cft, ParallelDescriptor::MyProc(), 0, Profiler::CommStats::barrierNumber,
-              ParallelDescriptor::second());
+  CommStats cs(cft, 0, Profiler::CommStats::barrierNumber, ParallelDescriptor::second());
   vCommStats.push_back(cs);
   CommStats::barrierNames.resize(CommStats::barrierNumber + 1);
-  CommStats::barrierNames[CommStats::barrierNumber] = message;
+  CommStats::barrierNames[CommStats::barrierNumber].first = message;
+  CommStats::barrierNames[CommStats::barrierNumber].second = vCommStats.size() - 1;
   ++CommStats::barrierNumber;
 }
 
