@@ -1772,18 +1772,22 @@ contains
     real(dp_t),intent(in)    :: src(:,:,:,:)
     real(dp_t),intent(inout) :: dst(:)
     integer,intent(in)       :: ic
-    integer                  :: i,j,k,n,c
-    c = ic
-    do n = 1, size(src,4)
-       do k = 1, size(src,3)
-          do j = 1, size(src,2)
-             do i = 1, size(src,1) 
+    integer                  :: i,j,k,n,c,s(4),s12,s123
+    s = shape(src)
+    s12 = s(1)*s(2)
+    s123 = s12*s(3)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,n,c) COLLAPSE(2)
+    do n = 1, s(4)
+       do k = 1, s(3)
+          do j = 1, s(2)
+             do i = 1, s(1) 
+                c = ic + (i-1) + (j-1)*s(1) + (k-1)*s12 + (n-1)*s123
                 dst(c) = src(i,j,k,n)
-                c = c + 1
              end do
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
   end subroutine reshape_d_4_1
 
   subroutine reshape_d_1_4(dst,src,ic,sh,filter)
@@ -1791,7 +1795,7 @@ contains
     real(dp_t),intent(inout) :: dst(:,:,:,:)
     integer,intent(in)       :: ic
     integer,intent(in)       :: sh(:)
-    integer                  :: i,j,k,n,c
+    integer                  :: i,j,k,n,c,s(4),s12,s123
     real(dp_t), allocatable  :: ptmp(:,:,:,:)
     interface
        subroutine filter(out, in)
@@ -1802,32 +1806,38 @@ contains
     end interface
     optional filter
     if ( size(sh) /= 4 ) call bl_error("reshape_d_1_4: how did this happen?")
-    c = ic
+    s = shape(dst)
+    s12 = s(1)*s(2)
+    s123 = s12*s(3)
     if ( present(filter) ) then
        allocate(ptmp(sh(1),sh(2),sh(3),sh(4)))
-       do n = 1, size(dst,4)
-          do k = 1, size(dst,3)
-             do j = 1, size(dst,2)
-                do i = 1, size(dst,1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,c) COLLAPSE(2)
+       do n = 1, s(4)
+          do k = 1, s(3)
+             do j = 1, s(2)
+                do i = 1, s(1)
+                   c = ic + (i-1) + (j-1)*s(1) + (k-1)*s12 + (n-1)*s123
                    ptmp(i,j,k,n) = src(c)
-                   c = c + 1
                 end do
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
        call filter(dst, ptmp)
        deallocate(ptmp)
     else
-       do n = 1, size(dst,4)
-          do k = 1, size(dst,3)
-             do j = 1, size(dst,2)
-                do i = 1, size(dst,1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,c) COLLAPSE(2)
+       do n = 1, s(4)
+          do k = 1, s(3)
+             do j = 1, s(2)
+                do i = 1, s(1)
+                   c = ic + (i-1) + (j-1)*s(1) + (k-1)*s12 + (n-1)*s123
                    dst(i,j,k,n) = src(c)
-                   c = c + 1
                 end do
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end if
   end subroutine reshape_d_1_4
 
@@ -2114,12 +2124,10 @@ contains
     allocate(fb_data%send_buffer(nc*bxasc%r_con%svol))
     allocate(fb_data%recv_buffer(nc*bxasc%r_con%rvol))
 
-    !$omp parallel do private(i,p)
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(fb_data%send_buffer, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
-    !$omp end parallel do
 
     allocate(fb_data%send_request(bxasc%r_con%nsp))
     allocate(fb_data%recv_request(bxasc%r_con%nrp))
@@ -2178,14 +2186,12 @@ contains
 
        call parallel_wait(fb_data%recv_request)
 
-       !$omp parallel do private(i,sh,p)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
           p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
           call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
        end do
-       !$omp end parallel do
 
        fb_data%rcvd = .true.
        deallocate(fb_data%recv_request)
@@ -2212,14 +2218,12 @@ contains
 
        call parallel_wait(fb_data%recv_request)
 
-       !$omp parallel do private(i,sh,p)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
           p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
           call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
        end do
-       !$omp end parallel do
 
        fb_data%rcvd = .true.
        deallocate(fb_data%recv_request)
