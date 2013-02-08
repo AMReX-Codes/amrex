@@ -207,7 +207,22 @@ ifeq ($(findstring kraken, $(UNAMEN)), kraken)
         F90 := ftn -target=linux
     endif
 endif
+ifeq ($(findstring h2o, $(UNAMEN)), h2o)
+    #
+    # Blue Waters
+    #
+    ifdef MPI
+        CXX := CC
+	FC  := ftn
+	F90 := ftn
+    endif
 
+    ifeq ($(COMP),Cray)
+      FFLAGS += -hnopgas_runtime
+      F90FLAGS += -hnopgas_runtime
+      CFLAGS += -hnopgas_runtime
+    endif
+endif
 
 
 ifeq ($(HOST),cfe3)
