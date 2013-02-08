@@ -129,6 +129,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring donev, $(HOSTNAMEF)), donev)
     WHICHLINUX := DONEV
   endif
+  ifeq ($(findstring h2o, $(UNAMEN)), h2o)
+    WHICHLINUX := BLUE_WATERS
+  endif
 endif
 #
 # Some Lawrencium crap ...
