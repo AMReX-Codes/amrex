@@ -43,6 +43,7 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
+!$omp parallel do private(i,j,k,l) collapse(2)
       do l = 1, ncomp
          do k = kmin,kmax
             do j = jmin,jmax
@@ -52,6 +53,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 c
@@ -155,6 +157,7 @@ c
       jmax = hi(2)
       kmax = hi(3)
 
+!$omp parallel do private(i,j,k,l) collapse(2)
       do l = 1, ncomp
          do k = kmin,kmax
             do j = jmin,jmax
@@ -164,6 +167,7 @@ c
             end do
          end do
       end do
+!$omp end parallel do
 
       end
 c
@@ -192,8 +196,8 @@ c
 
       nrm = 0.0d0
 
+!$omp parallel do private(i,j,k,l) collapse(2) reduction(max : nrm)
       do l = 1, ncomp
-!$omp parallel do private(i,j,k) reduction(max : nrm)
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -201,8 +205,8 @@ c
                end do
             end do
          end do
-!$omp end parallel do
       end do
+!$omp end parallel do
 
       end
 c
@@ -231,8 +235,8 @@ c
 
       nrm = 0.0d0
 
+!$omp parallel do private(i,j,k,l) collapse(2) reduction(+ : nrm)
       do l = 1, ncomp
-!$omp parallel do private(i,j,k) reduction(+ : nrm)
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -240,8 +244,8 @@ c
                end do
             end do
          end do
-!$omp end parallel do
       end do
+!$omp end parallel do
 
       end
 c
@@ -279,9 +283,8 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
-!$omp parallel private(i,j,k,l)
+!$omp parallel do private(i,j,k,l) collapse(2)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -289,9 +292,8 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
+!$omp end parallel do
 
       end
 c
@@ -329,9 +331,8 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
-!$omp parallel private(i,j,k,l)
+!$omp parallel do private(i,j,k,l) collapse(2)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -339,9 +340,8 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
+!$omp end parallel do
 
       end
 c
@@ -379,9 +379,8 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
-!$omp parallel private(i,j,k,l)
+!$omp parallel do private(i,j,k,l) collapse(2)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -389,9 +388,8 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
+!$omp end parallel do
 
       end
 c
@@ -429,9 +427,8 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
-!$omp parallel private(i,j,k,l)
+!$omp parallel do private(i,j,k,l) collapse(2)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -439,9 +436,8 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
+!$omp end parallel do
 
       end
 c
@@ -480,9 +476,8 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
-!$omp parallel private(i,j,k,l)
+!$omp parallel do private(i,j,k,l) collapse(2)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -492,9 +487,8 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
+!$omp end parallel do
 
       end
 
@@ -519,9 +513,8 @@ c
       jmax = hi(2)
       kmax = hi(3)
 
-!$omp parallel private(i,j,k,l)
+!$omp parallel do private(i,j,k,l) collapse(2)
       do l = 1, ncomp
-!$omp do 
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -529,8 +522,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
+!$omp end parallel do
 
       end
