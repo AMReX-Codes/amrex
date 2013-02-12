@@ -4936,7 +4936,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
             {
                 if (owner[i] == Who)
                 {
-                    ParticleType& p = notowned[i];
+                    const ParticleType& p = notowned[i];
 
                     BL_ASSERT(p.m_id > 0);
 
@@ -4965,11 +4965,11 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
             for (int k = 0; k < completed; k++)
             {
-                const int  Who     = who_R[index[k]];
-                const int  Cnt     = RcvCnts[Who];
-                const int  Idx     = rOffset[Who] * iChunkSize;
-                const int* rcvp    = &recvdata[Idx];
-                PBox&      pbox    = nparticles[Who];
+                const int  Who  = who_R[index[k]];
+                const int  Cnt  = RcvCnts[Who];
+                const int  Idx  = rOffset[Who] * iChunkSize;
+                const int* rcvp = &recvdata[Idx];
+                PBox&      pbox = nparticles[Who];
 
                 BL_ASSERT(pbox.size() == Cnt);
 
@@ -4994,7 +4994,117 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
             }
         }
     }
+    //
+    // Next send/recv the Real parts of the particles.
+    //
+    {
+        const int SeqNum     = ParallelDescriptor::SeqNum();
+        const int rChunkSize = BL_SPACEDIM+N;
+        //
+        // Allocate data for rcvs as one big chunk.
+        //
+        Array<Real> recvdata(total_recv_count * rChunkSize);
+        //
+        // Post receives.
+        //
+        int idx = 0;
+        for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end();
+             it != End;
+             ++it, ++idx)
+        {
+            const int Who = it->first;
+            const int Cnt = it->second * rChunkSize;
+            const int Idx = rOffset[Who] * rChunkSize;
 
+            BL_ASSERT(Cnt > 0);
+            BL_ASSERT(Who >= 0 && Who < NProcs);
+            BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+
+            recvreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
+        }
+        BL_ASSERT(recvreqs.size() == RcvCnts.size());
+        //
+        // Send the Real data.
+        //
+        for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end();
+             it != End;
+             ++it)
+        {
+            const int Who = it->first;
+            const int Cnt = it->second * rChunkSize;
+
+            BL_ASSERT(Cnt > 0);
+            BL_ASSERT(Who >= 0 && Who < NProcs);
+            BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+            
+            Array<Real> senddata(Cnt);
+
+            for (int i = 0, ioff = 0; i < owner.size(); i++)
+            {
+                if (owner[i] == Who)
+                {
+                    const ParticleType& p = notowned[i];
+
+                    BL_ASSERT(p.m_id > 0);
+
+                    D_TERM(senddata[ioff+0] = p.m_pos[0];,
+                           senddata[ioff+1] = p.m_pos[1];,
+                           senddata[ioff+2] = p.m_pos[2];);
+
+                    ioff += BL_SPACEDIM;
+
+                    for (int j = 0; j < N; j++)
+                        senddata[ioff+j] = p.m_data[j];
+
+                    ioff += N;
+                }
+            }
+
+            ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNum);
+        }
+        //
+        // Now receive and unpack the Real data.
+        //
+        for (int NWaits = recvreqs.size(), completed; NWaits > 0; NWaits -= completed)
+        {
+            ParallelDescriptor::Waitsome(recvreqs, completed, index, stats);
+
+            for (int k = 0; k < completed; k++)
+            {
+                const int   Who  = who_R[index[k]];
+                const int   Cnt  = RcvCnts[Who];
+                const int   Idx  = rOffset[Who] * rChunkSize;
+                const Real* rcvp = &recvdata[Idx];
+                PBox&       pbox = nparticles[Who];
+
+                BL_ASSERT(pbox.size() == Cnt);
+
+                while (!pbox.empty())
+                {
+                    ParticleType& p = pbox.front();
+
+                    BL_ASSERT(rcvp != 0);
+
+                    D_TERM(p.m_pos[0] = rcvp[0];,
+                           p.m_pos[1] = rcvp[1];,
+                           p.m_pos[2] = rcvp[2];);
+
+                    rcvp += BL_SPACEDIM;
+
+                    for (int j = 0; j < N; j++)
+                        p.m_data[j] = rcvp[j];
+
+                    rcvp += N;
+
+                    m_particles[p.m_lev][p.m_grid].push_back(p);
+
+                    pbox.pop_front();
+
+                    rcvp += rChunkSize;
+                }
+            }
+        }
+    }
 
 #else
 
