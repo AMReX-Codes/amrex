@@ -369,6 +369,14 @@ protected:
                       Real             time,
                       int&             new_finest,
                       Array<BoxArray>& new_grids);
+
+    //
+    // If ngrids < nprocs, break up the grids to better load balance
+    //
+    void impose_refine_grid_layout (int              lbase,
+                                    int              new_finest,
+                                    Array<BoxArray>& new_grids);
+
     //
     // Do a single timestep on level L.
     //
