@@ -4646,11 +4646,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     //
     // The valid particles that we don't own.
     //
-    PBox notowned;
-    //
-    // And who rightly owns those particles.
-    //
-    std::deque<int> owner;
+    PMap notowned;
 
     for (int lev = lev_min; lev < m_particles.size(); lev++)
     {
@@ -4724,8 +4720,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                     }
                     else
                     {
-                        owner.push_back(who);
-                        notowned.push_back(p);
+                        notowned[who].push_back(p);
                         //
                         // Invalidate the particle so we can reclaim its space.
                         //
@@ -4813,12 +4808,10 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
     long maxsendcount = 0;
 
-    BL_ASSERT(notowned.size() == owner.size());
-
-    for (std::deque<int>::const_iterator it = owner.begin(), End = owner.end(); it != End; ++it)
+    for (typename PMap::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
     {
-        Snds[*it]++;
-        maxsendcount++;
+        Snds[it->first] = it->second.size();
+        maxsendcount   += it->second.size();
     }
 
     ParallelDescriptor::ReduceLongMax(maxsendcount);
@@ -4917,29 +4910,29 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
             BL_ASSERT(Cnt > 0);
             BL_ASSERT(Who >= 0 && Who < NProcs);
             BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-            
+
             Array<int> senddata(Cnt);
 
-            for (int i = 0, ioff = 0; i < owner.size(); i++)
+            const PBox& pbox = notowned[Who];
+
+            int ioff = 0;
+            for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
             {
-                if (owner[i] == Who)
-                {
-                    const ParticleType& p = notowned[i];
+                const ParticleType& p = *it;
 
-                    BL_ASSERT(p.m_id > 0);
+                BL_ASSERT(p.m_id > 0);
 
-                    senddata[ioff+0] = p.m_id;
-                    senddata[ioff+1] = p.m_cpu;
+                senddata[ioff+0] = p.m_id;
+                senddata[ioff+1] = p.m_cpu;
 
-                    senddata[ioff+2] = p.m_lev;
-                    senddata[ioff+3] = p.m_grid;
+                senddata[ioff+2] = p.m_lev;
+                senddata[ioff+3] = p.m_grid;
 
-                    D_TERM(senddata[ioff+4] = p.m_cell[0];,
-                           senddata[ioff+5] = p.m_cell[1];,
-                           senddata[ioff+6] = p.m_cell[2];);
+                D_TERM(senddata[ioff+4] = p.m_cell[0];,
+                       senddata[ioff+5] = p.m_cell[1];,
+                       senddata[ioff+6] = p.m_cell[2];);
 
-                    ioff += iChunkSize;
-                }
+                ioff += iChunkSize;
             }
 
             ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNum);
@@ -5021,34 +5014,31 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
             
             Array<Real> senddata(Cnt);
 
-            for (int i = 0, ioff = 0; i < owner.size(); i++)
+            PBox& pbox = notowned[Who];
+
+            int ioff = 0;
+            for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
             {
-                if (owner[i] == Who)
-                {
-                    const ParticleType& p = notowned[i];
+                const ParticleType& p = *it;
 
-                    BL_ASSERT(p.m_id > 0);
+                BL_ASSERT(p.m_id > 0);
 
-                    D_TERM(senddata[ioff+0] = p.m_pos[0];,
-                           senddata[ioff+1] = p.m_pos[1];,
-                           senddata[ioff+2] = p.m_pos[2];);
+                D_TERM(senddata[ioff+0] = p.m_pos[0];,
+                       senddata[ioff+1] = p.m_pos[1];,
+                       senddata[ioff+2] = p.m_pos[2];);
 
-                    ioff += BL_SPACEDIM;
+                ioff += BL_SPACEDIM;
 
-                    for (int j = 0; j < N; j++)
-                        senddata[ioff+j] = p.m_data[j];
+                for (int j = 0; j < N; j++)
+                    senddata[ioff+j] = p.m_data[j];
 
-                    ioff += N;
-                }
+                ioff += N;
             }
+
+            PBox().swap(pbox);
 
             ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNum);
         }
-        //
-        // Don't need these anymore.
-        //
-        std::deque<int>().swap(owner);
-        PBox().swap(notowned);
         //
         // Now receive and unpack the Real data.
         //
