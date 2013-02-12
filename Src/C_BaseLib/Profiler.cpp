@@ -30,7 +30,7 @@ std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
 
-int nProfFiles(32);
+int nProfFiles(3);
 
 
 Profiler::Profiler(const std::string &funcname)
@@ -496,8 +496,9 @@ void Profiler::WriteCommStats() {
   const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
   const int   NSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
   const int   MySet     = myProc/nOutFiles;
-  std::string cFileName(cdir + '/' + cdir + "_D_");
-  std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
+  std::string cShortFileName(cdir + "_D_");
+  cShortFileName = BoxLib::Concatenate(cShortFileName, myProc % nOutFiles, 4);
+  std::string FullName  = cdir + '/' + cShortFileName;
 
   for(int iSet = 0; iSet < NSets; ++iSet) {
     if(MySet == iSet) {
@@ -519,12 +520,13 @@ void Profiler::WriteCommStats() {
         // ----------------------------- write to file here
         csHeader << "COMMPROF data from processor:  " << myProc << std::endl;
         csHeader << "vCommStats.size() = " << vCommStats.size() << std::endl;
-        csHeader << "seekpos = " << csFile.tellp() << std::endl;
+        csHeader << "datafile = " << cShortFileName
+	         << "  seekpos = " << csFile.tellp() << std::endl;
         for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
           int index(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[index];
           csHeader << "barrierNumber = " << cs.size
-                   << "  name = " << CommStats::barrierNames[ib].first
+                   << "  name = " << '"' << CommStats::barrierNames[ib].first << '"'
                    << "  index = " << index
                    << std::endl;
         }
@@ -602,6 +604,7 @@ void Profiler::WriteCommStats() {
     std::string cHeaderName(cdir + '/' + cdir + "_H");
     csHeaderFile.open(cHeaderName.c_str(), std::ios::out | std::ios::trunc);
 
+    csHeaderFile << "NProcs = " << nProcs << std::endl;
     csHeaderFile << "sizeof(CommStats) = " << sizeof(CommStats) << std::endl;
     csHeaderFile << recvdata.dataPtr();
     csHeaderFile.flush();
