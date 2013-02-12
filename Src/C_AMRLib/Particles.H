@@ -4815,9 +4815,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
     BL_ASSERT(notowned.size() == owner.size());
 
-    for (std::deque<int>::const_iterator it = owner.begin(), End = owner.end();
-         it != End;
-         ++it)
+    for (std::deque<int>::const_iterator it = owner.begin(), End = owner.end(); it != End; ++it)
     {
         Snds[*it]++;
         maxsendcount++;
@@ -4844,7 +4842,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                                  ParallelDescriptor::Communicator()) );
     BL_ASSERT(Rcvs[MyProc] == 0);
 
-#if 1
     typedef std::map<int,int> IntIntMap;
 
     IntIntMap SndCnts, RcvCnts, rOffset;
@@ -4874,13 +4871,10 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     //
     PMap nparticles;
 
-    for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end();
-         it != End;
-         ++it)
+    for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it)
     {
         nparticles[it->first].resize(it->second);
     }
-
     Array<int>         who_R(RcvCnts.size());
     Array<int>         index(RcvCnts.size());
     Array<MPI_Status>  stats(RcvCnts.size());
@@ -4899,9 +4893,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         // Post receives.
         //
         int idx = 0;
-        for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end();
-             it != End;
-             ++it, ++idx)
+        for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it, ++idx)
         {
             const int Who = it->first;
             const int Cnt = it->second * iChunkSize;
@@ -4917,9 +4909,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         //
         // Send the integer data.
         //
-        for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end();
-             it != End;
-             ++it)
+        for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
         {
             const int Who = it->first;
             const int Cnt = it->second * iChunkSize;
@@ -4964,16 +4954,15 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
             for (int k = 0; k < completed; k++)
             {
                 const int  Who  = who_R[index[k]];
-                const int  Cnt  = RcvCnts[Who];
                 const int  Idx  = rOffset[Who] * iChunkSize;
                 const int* rcvp = &recvdata[Idx];
                 PBox&      pbox = nparticles[Who];
 
-                BL_ASSERT(pbox.size() == Cnt);
+                BL_ASSERT(pbox.size() == RcvCnts[Who]);
 
-                for (int i = 0; i < Cnt; i++)
+                for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
                 {
-                    ParticleType& p = pbox[i];
+                    ParticleType& p = *it;
 
                     BL_ASSERT(rcvp != 0);
 
@@ -5006,9 +4995,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         // Post receives.
         //
         int idx = 0;
-        for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end();
-             it != End;
-             ++it, ++idx)
+        for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it, ++idx)
         {
             const int Who = it->first;
             const int Cnt = it->second * rChunkSize;
@@ -5020,13 +5007,10 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
             recvreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
         }
-        BL_ASSERT(recvreqs.size() == RcvCnts.size());
         //
         // Send the Real data.
         //
-        for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end();
-             it != End;
-             ++it)
+        for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
         {
             const int Who = it->first;
             const int Cnt = it->second * rChunkSize;
@@ -5061,6 +5045,11 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
             ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNum);
         }
         //
+        // Don't need these anymore.
+        //
+        std::deque<int>().swap(owner);
+        PBox().swap(notowned);
+        //
         // Now receive and unpack the Real data.
         //
         for (int NWaits = recvreqs.size(), completed; NWaits > 0; NWaits -= completed)
@@ -5076,9 +5065,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
                 BL_ASSERT(pbox.size() == RcvCnts[Who]);
 
-                while (!pbox.empty())
+                for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
                 {
-                    ParticleType& p = pbox.front();
+                    ParticleType& p = *it;
 
                     BL_ASSERT(rcvp != 0);
 
@@ -5094,209 +5083,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                     rcvp += N;
 
                     m_particles[p.m_lev][p.m_grid].push_back(p);
-
-                    pbox.pop_front();
                 }
+
+                PBox().swap(pbox);
             }
         }
     }
-
-#else
-
-    int NumRcvs = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumRcvs += Rcvs[i];
-
-    int NumSnds = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumSnds += Snds[i];
-
-    BL_ASSERT(notowned.size() == NumSnds);
-
-    PBox nparticles;
-
-    Array<int>   offset(NProcs);
-    Array<int>  sdispls(NProcs);
-    Array<int>  rdispls(NProcs);
-    Array<int> sendcnts(NProcs);
-    Array<int> recvcnts(NProcs);
-
-    {
-        //
-        // The "int" data.
-        //
-        const int iChunkSize = 4 + BL_SPACEDIM;
-
-        Array<int> recvdata (NumRcvs*iChunkSize);
-        Array<int> senddata (NumSnds*iChunkSize);
-
-        offset[0] = sdispls[0] = rdispls[0] = 0;
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            recvcnts[i] = Rcvs[i] * iChunkSize;
-            sendcnts[i] = Snds[i] * iChunkSize;
-
-            if (i > 0)
-            {
-                offset [i] = offset [i-1] + sendcnts[i-1];
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
-            }
-        }
-
-        int i = 0;
-
-        for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end();
-             it != End;
-             ++it)
-        {
-            int& ioff = offset[owner[i]];
-
-            BL_ASSERT(it->m_id > 0);
-
-            senddata[ioff+0] = it->m_id;
-            senddata[ioff+1] = it->m_cpu;
-
-            senddata[ioff+2] = it->m_lev;
-            senddata[ioff+3] = it->m_grid;
-
-            D_TERM(senddata[ioff+4] = it->m_cell[0];,
-                   senddata[ioff+5] = it->m_cell[1];,
-                   senddata[ioff+6] = it->m_cell[2];);
-
-            ioff += iChunkSize;
-
-            i++;
-        }
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      NumRcvs == 0 ? 0 : recvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      ParallelDescriptor::Communicator()) );
-        Array<int>().swap(senddata);
-        //
-        // Unpack data into the new particles.
-        //
-        ParticleType p;
-
-        int* rcvp = NumRcvs == 0 ? 0 : recvdata.dataPtr();
-
-        for (int i = 0; i < NumRcvs; i++)
-        {
-            BL_ASSERT(rcvp != 0);
-
-            p.m_id   = rcvp[0];
-            p.m_cpu  = rcvp[1];
-
-            p.m_lev  = rcvp[2];
-            p.m_grid = rcvp[3];
-
-            D_TERM(p.m_cell[0] = rcvp[4];,
-                   p.m_cell[1] = rcvp[5];,
-                   p.m_cell[2] = rcvp[6];);
-
-            nparticles.push_back(p);
-
-            rcvp += iChunkSize;
-        }
-    }
-
-    BL_ASSERT(nparticles.size() == NumRcvs);
-
-    {
-        //
-        // The "Real" data (m_pos & m_data).
-        //
-        const int rChunkSize = BL_SPACEDIM+N;
-
-        Array<Real> recvdata (NumRcvs*rChunkSize);
-        Array<Real> senddata (NumSnds*rChunkSize);
-
-        offset[0] = sdispls[0] = rdispls[0] = 0;
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            recvcnts[i] = Rcvs[i] * rChunkSize;
-            sendcnts[i] = Snds[i] * rChunkSize;
-
-            if (i > 0)
-            {
-                offset [i] = offset [i-1] + sendcnts[i-1];
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
-            }
-        }
-
-        int i = 0;
-
-        for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end();
-             it != End;
-             ++it)
-        {
-            int& ioff = offset[owner[i]];
-
-            D_TERM(senddata[ioff+0] = it->m_pos[0];,
-                   senddata[ioff+1] = it->m_pos[1];,
-                   senddata[ioff+2] = it->m_pos[2];);
-
-            ioff += BL_SPACEDIM;
-
-            for (int j = 0; j < N; j++)
-                senddata[ioff+j] = it->m_data[j];
-
-            ioff += N;
-
-            i++;
-        }
-
-        PBox().swap(notowned);
-
-        std::deque<int>().swap(owner);
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                      NumRcvs == 0 ? 0 : recvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                      ParallelDescriptor::Communicator()) );
-        Array<Real>().swap(senddata);
-        //
-        // Unpack data into the new particles.
-        //
-        Real* rcvp = NumRcvs == 0 ? 0 : recvdata.dataPtr();
-
-        while (!nparticles.empty())
-        {
-            BL_ASSERT(rcvp != 0);
-
-            ParticleType& p = nparticles.front();
-
-            D_TERM(p.m_pos[0] = rcvp[0];,
-                   p.m_pos[1] = rcvp[1];,
-                   p.m_pos[2] = rcvp[2];);
-
-            rcvp += BL_SPACEDIM;
-
-            for (int j = 0; j < N; j++)
-                p.m_data[j] = rcvp[j];
-
-            rcvp += N;
-
-            m_particles[p.m_lev][p.m_grid].push_back(p);
-
-            nparticles.pop_front();
-        }
-    }
-#endif
 
     BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
 
@@ -5311,7 +5103,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         if (ParallelDescriptor::IOProcessor())
             std::cout << "ParticleContainer<N>::Redistribute() parallel time: " << stoptime << '\n';
     }
-#endif
+
+#endif /*BL_USE_MPI*/
 }
 
 template <int N>
