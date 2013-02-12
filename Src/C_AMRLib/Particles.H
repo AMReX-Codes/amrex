@@ -4866,7 +4866,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         }
     }
     //
-    // We'll store the particles we're to receive in a PMap indexed by proc #.
+    // Don't need these anymore.
+    //
+    Array<int>().swap(Snds);
+    Array<int>().swap(Rcvs);
+    //
+    // We'll store the particles we're to receive in a PMap indexed by proc # of receiver.
     //
     PMap nparticles;
 
@@ -4876,25 +4881,28 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     {
         nparticles[it->first].resize(it->second);
     }
+
+    Array<int>         who_R(RcvCnts.size());
+    Array<int>         index(RcvCnts.size());
+    Array<MPI_Status>  stats(RcvCnts.size());
+    Array<MPI_Request> recvreqs(RcvCnts.size());
     //
     // First send/recv the integer parts of the particles.
     //
     {
-        const int SeqNum = ParallelDescriptor::SeqNum();
-
+        const int SeqNum     = ParallelDescriptor::SeqNum();
         const int iChunkSize = 4 + BL_SPACEDIM;
         //
         // Allocate data for rcvs as one big chunk.
         //
         Array<int> recvdata(total_recv_count * iChunkSize);
-
-        Array<MPI_Request> recv_reqs;
         //
         // Post receives.
         //
+        int idx = 0;
         for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end();
              it != End;
-             ++it)
+             ++it, ++idx)
         {
             const int Who = it->first;
             const int Cnt = it->second * iChunkSize;
@@ -4904,8 +4912,10 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
             BL_ASSERT(Who >= 0 && Who < NProcs);
             BL_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-            recv_reqs.push_back(ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req());
+            who_R[idx]    = Who;
+            recvreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
         }
+        BL_ASSERT(recvreqs.size() == RcvCnts.size());
         //
         // Send the integer data.
         //
@@ -4949,10 +4959,40 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         //
         // Now receive and unpack the integer data.
         //
-        Array<int>        index(RcvCnts.size());
-        Array<MPI_Status> stats(RcvCnts.size());
+        for (int NWaits = recvreqs.size(), completed; NWaits > 0; NWaits -= completed)
+        {
+            ParallelDescriptor::Waitsome(recvreqs, completed, index, stats);
 
+            for (int k = 0; k < completed; k++)
+            {
+                const int  Who     = who_R[index[k]];
+                const int  Cnt     = RcvCnts[Who];
+                const int  Idx     = rOffset[Who] * iChunkSize;
+                const int* rcvp    = &recvdata[Idx];
+                PBox&      pbox    = nparticles[Who];
 
+                BL_ASSERT(pbox.size() == Cnt);
+
+                for (int i = 0; i < Cnt; i++)
+                {
+                    ParticleType& p = pbox[i];
+
+                    BL_ASSERT(rcvp != 0);
+
+                    p.m_id   = rcvp[0];
+                    p.m_cpu  = rcvp[1];
+
+                    p.m_lev  = rcvp[2];
+                    p.m_grid = rcvp[3];
+
+                    D_TERM(p.m_cell[0] = rcvp[4];,
+                           p.m_cell[1] = rcvp[5];,
+                           p.m_cell[2] = rcvp[6];);
+
+                    rcvp += iChunkSize;
+                }
+            }
+        }
     }
 
 
