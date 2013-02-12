@@ -4809,8 +4809,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     //
     // We may now have particles that are rightfully owned by another CPU.
     //
-    Array<int> Snds(NProcs,0);
-    Array<int> Rcvs(NProcs,0);
+    Array<int> Snds(NProcs,0), Rcvs(NProcs,0);
 
     long maxsendcount = 0;
 
@@ -4832,6 +4831,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         // There's no parallel work to do.
         //
         BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
+
         return;
     }
 
@@ -4845,7 +4845,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     BL_ASSERT(Rcvs[MyProc] == 0);
 
 #if 1
-
     typedef std::map<int,int> IntIntMap;
 
     IntIntMap SndCnts, RcvCnts, rOffset;
@@ -4854,7 +4853,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
     for (int i = 0; i < NProcs; i++)
         if (Snds[i] > 0)
-            SndCnts[i]        = Snds[i];
+            SndCnts[i] = Snds[i];
 
     for (int i = 0; i < NProcs; i++)
     {
@@ -4915,7 +4914,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
             who_R[idx]    = Who;
             recvreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
         }
-        BL_ASSERT(recvreqs.size() == RcvCnts.size());
         //
         // Send the integer data.
         //
@@ -5072,12 +5070,11 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
             for (int k = 0; k < completed; k++)
             {
                 const int   Who  = who_R[index[k]];
-                const int   Cnt  = RcvCnts[Who];
                 const int   Idx  = rOffset[Who] * rChunkSize;
                 const Real* rcvp = &recvdata[Idx];
                 PBox&       pbox = nparticles[Who];
 
-                BL_ASSERT(pbox.size() == Cnt);
+                BL_ASSERT(pbox.size() == RcvCnts[Who]);
 
                 while (!pbox.empty())
                 {
@@ -5099,8 +5096,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                     m_particles[p.m_lev][p.m_grid].push_back(p);
 
                     pbox.pop_front();
-
-                    rcvp += rChunkSize;
                 }
             }
         }
