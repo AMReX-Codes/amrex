@@ -3014,6 +3014,9 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>& mf,
     //
     // Send the data.
     //
+    Array<int>  isenddata;
+    Array<Real> rsenddata;
+
     for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
     {
         const int Who  = it->first;
@@ -3026,8 +3029,8 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>& mf,
         BL_ASSERT(iCnt < std::numeric_limits<int>::max());
         BL_ASSERT(rCnt < std::numeric_limits<int>::max());
 
-        Array<int>  isenddata(iCnt);
-        Array<Real> rsenddata(rCnt);
+        isenddata.resize(iCnt);
+        rsenddata.resize(rCnt);
 
         PBox& pbox = data[Who];
 
@@ -4666,6 +4669,8 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
         //
         // Send the integer data.
         //
+        Array<int> senddata;
+
         for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
         {
             const int Who = it->first;
@@ -4675,7 +4680,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
             BL_ASSERT(Who >= 0 && Who < NProcs);
             BL_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-            Array<int> senddata(Cnt);
+            senddata.resize(Cnt);
 
             const PBox& pbox = not_ours[Who];
 
@@ -4767,6 +4772,8 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
         //
         // Send the Real data.
         //
+        Array<Real> senddata;
+
         for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
         {
             const int Who = it->first;
@@ -4776,7 +4783,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
             BL_ASSERT(Who >= 0 && Who < NProcs);
             BL_ASSERT(Cnt < std::numeric_limits<int>::max());
             
-            Array<Real> senddata(Cnt);
+            senddata.resize(Cnt);
 
             PBox& pbox = not_ours[Who];
 
