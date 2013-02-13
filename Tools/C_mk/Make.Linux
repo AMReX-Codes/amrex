@@ -267,24 +267,6 @@ ifeq ($(WHICHLINUX), KRAKEN)
   endif
 endif
 
-ifeq ($(WHICHLINUX), FRANKLIN)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    CXX := CC -target=linux
-    CC  := cc -target=linux
-    FC  := ftn -target=linux
-    F90 := ftn -target=linux
-    fC  := ftn -target=linux
-  endif
-  ifdef USE_IPM
-    ifeq ($(COMP),PGI)
-      LIBRARIES += $(IPM)
-    elif ($(COMP),PathScale)
-      LIBRARIES += $(IPM_GNU)
-    endif
-  endif
-endif
-
 ifeq ($(WHICHLINUX), GRACE)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
@@ -365,62 +347,6 @@ ifeq ($(WHICHLINUX), JVN)
   endif
 endif
 
-ifeq ($(WHICHLINUX), ATLAS)
-  ifeq ($(COMP),Intel)
-    CXX = icpc
-#    CXXOPTF = -O3 -ip -mp
-    CXXOPTF = -O3 -ip -fp-model fast=2
-    CXXDEBF = -g
-    ifeq ($(USE_MPI),TRUE)
-# MAS: 4.17.2008
-# works for chaos3, but doesn't seem to work for chaos4, so hard
-# code everything contained in this mpiicpc script -- to see what's
-# contained in mpiicpc script, type "mpiicpc -show"
-#      CXX = mpiicpc
-      CXX = icpc -Wl,-rpath,/usr/local/tools/mvapich-intel/lib/shared \
-	    -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 \
-            -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 \
-	    -DMALLOC_RET_VOID=1 -I/usr/local/tools/mvapich-intel/include \
-	    -L/usr/local/tools/mvapich-intel/lib/shared -L/usr/lib64 \
-	    -L/usr/local/tools/mvapich-intel/lib
-    endif
-  endif
-endif
-# mas: duplicate atlas stuff for yana
-ifeq ($(WHICHLINUX), YANA)
-  ifeq ($(COMP),Intel)
-    CXX = icpc
-    CXXOPTF = -O3 -ip -mp
-    CXXDEBF = -g
-    ifeq ($(USE_MPI),TRUE)
-# MAS: 4.17.2008
-# works for chaos3, but doesn't seem to work for chaos4, so hard
-# code everything contained in this mpiicpc script -- to see what's
-# contained in mpiicpc script, type "mpiicpc -show"
-#      CXX = mpiicpc
-      CXX = icpc -Wl,-rpath,/usr/local/tools/mvapich-intel/lib/shared \
-            -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 \
-            -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 \
-            -DMALLOC_RET_VOID=1 -I/usr/local/tools/mvapich-intel/include \
-            -L/usr/local/tools/mvapich-intel/lib/shared -L/usr/lib64 \
-            -L/usr/local/tools/mvapich-intel/lib
-    endif
-  endif
-  ifeq ($(FCOMP),Intel)
-    FOPTF = -O3 -ip -mp
-    fOPTF = -O3 -ip -mp
-  endif
-  ifeq ($(COMP),PGI)
-    CXX = pgCC
-    CXXOPTF = -fast
-    CXXDEBF = -g -O0
-    FC = pgif90
-    fC = pgif90
-    ifeq ($(USE_MPI),TRUE)
-      CXX = mpipgCC
-    endif
-  endif
-endif
 
 ifeq ($(WHICHLINUX), HYPERION)
   ifeq ($(COMP),Intel)

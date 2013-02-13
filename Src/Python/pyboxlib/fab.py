@@ -98,9 +98,19 @@ class fab(BLObject):
     return range(self.bx[0][dim-1], self.bx[1][dim-1]+1)
 
 
+  def pbxrange(self, dim):
+    """Return an iterator to cycle over the global indicies for the
+    given dimension.
+
+    Essentially this returns ``range(lo(dim), hi(dim)+1)``.
+    """
+
+    return range(self.pbx[0][dim-1], self.pbx[1][dim-1]+1)
+
+
   def __getitem__(self, key):
     lbound = list(self.pbx[0])
-    if self.nc > 1:
+    if len(self.array.shape) > self.dim:
       lbound.append(0)
 
     key = adjust_indexes(lbound, key)
@@ -110,7 +120,7 @@ class fab(BLObject):
 
   def __setitem__(self, key, value):
     lbound = list(self.pbx[0])
-    if self.nc > 1:
+    if len(self.array.shape) > self.dim:
       lbound.append(0)
 
     key = adjust_indexes(lbound, key)

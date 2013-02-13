@@ -3,50 +3,10 @@
 # Makefile that includes this file.
 #
 
-#
-# To destinguish between YMP or C90 ...
-#
-# Don't make the distinction for now, just use CRAY
-#
 UNAMEM := $(shell uname -m)
 UNAMEN := $(shell uname -n)
-
-ifeq ($(findstring CRAY, $(UNAMEM)), CRAY)
-ifeq ($(findstring Y-MP, $(UNAMEM)), Y-MP)
-    MACHINE := CRAY
-endif
-ifeq ($(findstring C90, $(UNAMEM)), C90)
-    MACHINE := CRAY
-endif
-ifeq ($(findstring J90, $(UNAMEM)), J90)
-    MACHINE := CRAY
-endif
-ifeq ($(findstring T3E, $(UNAMEM)), T3E)
-    MACHINE := T3E
-ifeq ($(findstring mcurie, $(UNAMEN)), mcurie)
-    WHICHT3E := NERSC
-endif
-ifeq ($(findstring seymour, $(UNAMEN)), seymour)
-    WHICHT3E := NAVO
-endif
-ifeq ($(findstring yukon, $(UNAMEN)), yukon)
-    WHICHT3E := ARSC
-endif
-endif
-endif
-ifeq ($(findstring crayx1, $(UNAMEM)), crayx1)
-    MACHINE := CRAYX1
-endif
 UNAMES := $(shell uname -s)
-ifeq ($(findstring SUPER-UX, $(UNAMES)), SUPER-UX)
-    # We use this name so we can define a CPP macro, BL_SUPERUX
-    MACHINE := SUPERUX
-endif
-ifeq ($(findstring asama, $(UNAMEN)), asama)
-#   front end is a Linux box with cross-compilers
-    MACHINE := SUPERUX
-    WHICHSX6 := ASAMA
-endif
+
 ifeq ($(findstring CYGWIN_NT, $(UNAMES)), CYGWIN_NT)
     MACHINE := CYGWIN_NT
 endif
@@ -75,18 +35,7 @@ ifeq ($(MACHINE), SunOS)
         MACHINE := Solaris
     endif
 endif
-#
-# Set special flag for escher.nersc.gov
-#
-ifeq ($(MACHINE), IRIX64)
-  WHICHIRIX64 := GENERICSGI
-  ifeq ($(findstring escher, $(UNAMEN)), escher)
-    WHICHIRIX64 := ESCHER
-  endif
-  ifeq ($(findstring mahler, $(UNAMEN)), mahler)
-    WHICHIRIX64 := MAHLER
-  endif
-endif
+
 #
 # Set special flag for the Linux cluster (n2001.lbl.gov)
 #
@@ -132,17 +81,8 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring homer, $(UNAMEN)), homer)
     WHICHLINUX := HOMER
   endif
-  ifeq ($(findstring sn.astro, $(UNAMEN)), sn.astro)
-    WHICHLINUX := SN
-  endif
-  ifeq ($(findstring atlas, $(UNAMEN)), atlas)
-    WHICHLINUX := ATLAS
-  endif
   ifeq ($(findstring hyperion, $(UNAMEN)), hyperion)
     WHICHLINUX := HYPERION
-  endif
-  ifeq ($(findstring yana, $(UNAMEN)), yana)
-    WHICHLINUX := YANA
   endif
   ifeq ($(findstring della, $(UNAMEN)), della)
     WHICHLINUX := DELLA
@@ -158,9 +98,6 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring orion, $(UNAMEN)), orion)
     WHICHLINUX := ORION
-  endif
-  ifeq ($(findstring nid, $(UNAMEN)), nid)
-    WHICHLINUX := FRANKLIN
   endif
   ifeq ($(findstring grace, $(UNAMEN)), grace)
     WHICHLINUX := GRACE
@@ -191,6 +128,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring donev, $(HOSTNAMEF)), donev)
     WHICHLINUX := DONEV
+  endif
+  ifeq ($(findstring h2o, $(UNAMEN)), h2o)
+    WHICHLINUX := BLUE_WATERS
   endif
 endif
 #
@@ -262,42 +202,26 @@ FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 #
 # Generic setup for using gcc/g++ ...
 #
+USE_GCC =
 ifeq ($(findstring gcc, $(COMP)), gcc)
+    USE_GCC = true
+endif
+
+ifeq ($(findstring g++, $(COMP)), g++)
+    USE_GCC = true
+endif
+
+ifdef USE_GCC
     CXXPRFF    := -p
     CXXOPTF    += -g -O3 
     CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++
-    CC	       := $(COMP)
-    __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
-    __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
-    __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-    CXXFLAGS =  -ftemplate-depth-64 -Wno-deprecated
-    DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
-    DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
-    DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
-    ifeq ($(__gcc_major_version),2)
-       GNU_STD_INCL = $(BOXLIB_HOME)/BoxLib/std
-    endif
-    ifeq ($(USE_OMP),TRUE)
-      CXXOPTF += -fopenmp
-      CXXDEBF += -fopenmp
-      COPTF += -fopenmp
-      CDEBF += -fopenmp
-    endif
-endif
-
-ifeq ($(findstring g++, $(COMP)), g++)
-    CXXPRFF    := -p
-    CXXOPTF    += -g -O3 
-    CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
-    FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       := $(COMP)
     CC	       := gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-    CXXFLAGS = -ftemplate-depth-64 -Wno-deprecated
+    CXXFLAGS =  -ftemplate-depth-64 -Wno-deprecated
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
@@ -854,11 +778,7 @@ endif
 ThreadsSuffix :=
 
 ifeq ($(PRECISION),FLOAT)
-ifeq ($(MACHINE),CRAY)
-    PrecisionSuffix :=
-else
     PrecisionSuffix := .$(PRECISION)
-endif
 else
     PrecisionSuffix :=
 endif
@@ -899,9 +819,7 @@ DEFINES		+= 	-DBL_SPACEDIM=$(DIM)				\
 ifeq ($(PRECISION),FLOAT)
 DEFINES += -DBL_USE_FLOAT
 endif
-ifeq ($(ARCH),CRAY)
-DEFINES += -DBL_ARCH_CRAY
-endif
+
 
 includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
