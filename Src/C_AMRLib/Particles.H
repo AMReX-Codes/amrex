@@ -2897,9 +2897,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
 // real particle level, while mf may start at a fine level (e.g. lvls 1 and 2).
 // Consequently, we must subtract lev_min from m_lev to get the mf lev.
 //
-// The data we receive from ParticleBases.
-//
-// We only use: m_lev, m_grid, m_cell & m_data[0..ncomp-1].
+// We only use: m_lev, m_grid, m_cell & m_data[0..ncomp-1] from the particles.
 //
 //
 
@@ -2986,124 +2984,84 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>& mf,
     Array<int>  irecvdata (NumRcvs*iChunkSize);
     Array<Real> rrecvdata (NumRcvs*rChunkSize);
 
-    Array<int>         owner(RcvCnts.size());
-    Array<int>         index(RcvCnts.size());
-    Array<MPI_Status>  stats(RcvCnts.size());
-    Array<MPI_Request> reqsI(RcvCnts.size());
-    Array<MPI_Request> reqsR(RcvCnts.size());
+    Array<int>         index(2*RcvCnts.size());
+    Array<MPI_Status>  stats(2*RcvCnts.size());
+    Array<MPI_Request> rreqs(2*RcvCnts.size());
 
     const int SeqNumI = ParallelDescriptor::SeqNum();
     const int SeqNumR = ParallelDescriptor::SeqNum();
     //
-    // Post Integer receives.
+    // Post the receives.
     //
     int idx = 0;
     for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it, ++idx)
     {
-        const int Who = it->first;
-        const int Cnt = it->second   * iChunkSize;
-        const int Idx = rOffset[Who] * iChunkSize;
+        const int Who  = it->first;
+        const int iCnt = it->second   * iChunkSize;
+        const int rCnt = it->second   * rChunkSize;
+        const int iIdx = rOffset[Who] * iChunkSize;
+        const int rIdx = rOffset[Who] * rChunkSize;
 
-        BL_ASSERT(Cnt > 0);
         BL_ASSERT(Who >= 0 && Who < NProcs);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        BL_ASSERT(iCnt > 0);
+        BL_ASSERT(rCnt > 0);
+        BL_ASSERT(iCnt < std::numeric_limits<int>::max());
+        BL_ASSERT(rCnt < std::numeric_limits<int>::max());
 
-        owner[idx] = Who;
-        reqsI[idx] = ParallelDescriptor::Arecv(&irecvdata[Idx],Cnt,Who,SeqNumI).req();
+        rreqs[2*idx+0] = ParallelDescriptor::Arecv(&irecvdata[iIdx],iCnt,Who,SeqNumI).req();
+        rreqs[2*idx+1] = ParallelDescriptor::Arecv(&rrecvdata[rIdx],rCnt,Who,SeqNumR).req();
     }
     //
-    // Post Real receives.
-    //
-    idx = 0;
-    for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it, ++idx)
-    {
-        const int Who = it->first;
-        const int Cnt = it->second   * rChunkSize;
-        const int Idx = rOffset[Who] * rChunkSize;
-
-        BL_ASSERT(Cnt > 0);
-        BL_ASSERT(Who >= 0 && Who < NProcs);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-
-        reqsR[idx] = ParallelDescriptor::Arecv(&rrecvdata[Idx],Cnt,Who,SeqNumR).req();
-    }
-    //
-    // Send the integer data.
+    // Send the data.
     //
     for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
     {
-        const int Who = it->first;
-        const int Cnt = it->second * iChunkSize;
+        const int Who  = it->first;
+        const int iCnt = it->second * iChunkSize;
+        const int rCnt = it->second * rChunkSize;
 
-        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(iCnt > 0);
+        BL_ASSERT(rCnt > 0);
         BL_ASSERT(Who >= 0 && Who < NProcs);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        BL_ASSERT(iCnt < std::numeric_limits<int>::max());
+        BL_ASSERT(rCnt < std::numeric_limits<int>::max());
 
-        Array<int> senddata(Cnt);
-
-        const PBox& pbox = data[Who];
-
-        int ioff = 0;
-        for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
-        {
-            const ParticleType& p = *it;
-
-            senddata[ioff+0] = p.m_lev  - lev_min;
-            senddata[ioff+1] = p.m_grid;
-
-            D_TERM(senddata[ioff+2] = p.m_cell[0];,
-                   senddata[ioff+3] = p.m_cell[1];,
-                   senddata[ioff+4] = p.m_cell[2];);
-
-            ioff += iChunkSize;
-        }
-
-        ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNumI);
-    }
-    //
-    // Send the Real data.
-    //
-    for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
-    {
-        const int Who = it->first;
-        const int Cnt = it->second * rChunkSize;
-
-        BL_ASSERT(Cnt > 0);
-        BL_ASSERT(Who >= 0 && Who < NProcs);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-            
-        Array<Real> senddata(Cnt);
+        Array<int>  isenddata(iCnt);
+        Array<Real> rsenddata(rCnt);
 
         PBox& pbox = data[Who];
 
-        int ioff = 0;
+        int ioff = 0, roff = 0;
         for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
         {
             const ParticleType& p = *it;
 
-            for (int n = 0; n < ncomp; n++)
-                senddata[ioff+n] = p.m_data[n];
+            isenddata[ioff+0] = p.m_lev  - lev_min;
+            isenddata[ioff+1] = p.m_grid;
 
-            ioff += ncomp;
+            D_TERM(isenddata[ioff+2] = p.m_cell[0];,
+                   isenddata[ioff+3] = p.m_cell[1];,
+                   isenddata[ioff+4] = p.m_cell[2];);
+
+            ioff += iChunkSize;
+
+            for (int n = 0; n < ncomp; n++)
+                rsenddata[roff+n] = p.m_data[n];
+
+            roff += ncomp;
         }
 
         PBox().swap(pbox);
 
-        ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNumR);
+        ParallelDescriptor::Send(isenddata.dataPtr(),iCnt,Who,SeqNumI);
+        ParallelDescriptor::Send(rsenddata.dataPtr(),rCnt,Who,SeqNumR);
     }
     //
-    // Now receive the integer data.
+    // Receive the data.
     //
-    for (int NWaits = reqsI.size(), completed; NWaits > 0; NWaits -= completed)
+    for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed)
     {
-        ParallelDescriptor::Waitsome(reqsI, completed, index, stats);
-    }
-    //
-    // Now receive the Real data.
-    //
-    for (int NWaits = reqsR.size(), completed; NWaits > 0; NWaits -= completed)
-    {
-        ParallelDescriptor::Waitsome(reqsR, completed, index, stats);
+        ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
     }
     //
     // Now update "mf".
@@ -3131,153 +3089,6 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>& mf,
     }
 
 #endif /*BL_USE_MPI*/
-
-
-#if 0
-    int NumRcvs = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumRcvs += Rcvs[i];
-
-    int NumSnds = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumSnds += Snds[i];
-
-    BL_ASSERT(data.size() == NumSnds);
-    //
-    // The data we receive from ParticleBases.
-    //
-    // We only use: m_lev, m_grid, m_cell & m_data[0..ncomp-1].
-    //
-    const int iChunkSize = 2 + BL_SPACEDIM;
-    const int rChunkSize = ncomp;
-
-    Array<int>  irecvdata (NumRcvs*iChunkSize);
-    Array<Real> rrecvdata (NumRcvs*rChunkSize);
-
-    Array<int>   offset(NProcs);
-    Array<int>  sdispls(NProcs);
-    Array<int>  rdispls(NProcs);
-    Array<int> sendcnts(NProcs);
-    Array<int> recvcnts(NProcs);
-
-    {
-        //
-        // First send/recv "int" data.
-        //
-        Array<int> senddata (NumSnds*iChunkSize);
-
-        offset[0] = sdispls[0] = rdispls[0] = 0;
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            recvcnts[i] = Rcvs[i] * iChunkSize;
-            sendcnts[i] = Snds[i] * iChunkSize;
-
-            if (i > 0)
-            {
-                offset [i] = offset [i-1] + sendcnts[i-1];
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
-            }
-        }
-
-        for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
-        {
-            const int who  = mf[it->m_lev - lev_min].DistributionMap()[it->m_grid];
-            const int ioff = offset[who];
-
-            senddata[ioff+0] = it->m_lev  - lev_min;
-            senddata[ioff+1] = it->m_grid;
-
-            D_TERM(senddata[ioff+2] = it->m_cell[0];,
-                   senddata[ioff+3] = it->m_cell[1];,
-                   senddata[ioff+4] = it->m_cell[2];);
-
-            offset[who] += iChunkSize;
-        }
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      NumRcvs == 0 ? 0 : irecvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      ParallelDescriptor::Communicator()) );
-    }
-
-    {
-        //
-        // Now send/recv the Real data.
-        //
-        Array<Real> senddata (NumSnds*rChunkSize);
-
-        offset[0] = sdispls[0] = rdispls[0] = 0;
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            recvcnts[i] = Rcvs[i] * rChunkSize;
-            sendcnts[i] = Snds[i] * rChunkSize;
-
-            if (i > 0)
-            {
-                offset [i] = offset [i-1] + sendcnts[i-1];
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
-            }
-        }
-
-        for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
-        {
-            const int who  = mf[it->m_lev - lev_min].DistributionMap()[it->m_grid];
-            const int ioff = offset[who];
-
-            for (int n = 0; n < ncomp; n++)
-                senddata[ioff+n] = it->m_data[n];
-
-            offset[who] += rChunkSize;
-        }
-        //
-        // We can free up memory held by "data" -- don't need it anymore.
-        //
-        PBox().swap(data);
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                      NumRcvs == 0 ? 0 : rrecvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                      ParallelDescriptor::Communicator()) );
-    }
-    //
-    // Now update "mf".
-    //
-    if (NumRcvs > 0)
-    {
-        const int*  idata = irecvdata.dataPtr();
-        const Real* rdata = rrecvdata.dataPtr();
-
-        for (int i = 0; i < NumRcvs; i++)
-        {
-            const int     lev  = idata[0];
-            const int     grd  = idata[1];
-            const IntVect cell = IntVect(D_DECL(idata[2],idata[3],idata[4]));
-
-            BL_ASSERT(mf[lev].DistributionMap()[grd] == MyProc);
-            BL_ASSERT(mf[lev][grd].box().contains(cell));
-
-            for (int n = 0; n < ncomp; n++)
-                mf[lev][grd](cell,n) += rdata[n];
-
-            idata += iChunkSize;
-            rdata += rChunkSize;
-        }
-    }
-#endif
 }
 
 template <int N>
