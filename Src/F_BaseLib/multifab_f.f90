@@ -4086,7 +4086,7 @@ contains
     real(dp_t), pointer           :: bp(:,:,:,:)
     real(dp_t), pointer           :: cp(:,:,:,:)
 
-    integer :: ii, i, j, k, n, lo(4), hi(4)
+    integer :: ii, i, j, k, n, kk, nn, lo(4), hi(4)
 
     do ii = 1, nlocal(a%la)
 
@@ -4099,9 +4099,12 @@ contains
        lo = lbound(ap)
        hi = ubound(ap)
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-       do n         =lo(4),hi(4)
-          do k      =lo(3),hi(3)
+       ! The weird kk and nn stuff is to accommodate the buggy Cray compiler
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,kk,nn) COLLAPSE(2)
+       do nn        =1,hi(4)-lo(4)+1
+          do kk     =1,hi(3)-lo(3)+1
+             k = kk + lo(3) - 1
+             n = nn + lo(4) - 1
              do j   =lo(2),hi(2)
                 do i=lo(1),hi(1)
                    ap(i,j,k,n) = bp(i,j,k,n) + c1 * cp(i,j,k,n)
@@ -4375,7 +4378,7 @@ contains
     logical, pointer, optional :: lp(:,:,:,:)
     real(dp_t)                 :: r,r1
 
-    integer :: i, j, k, n, lo(4), hi(4)
+    integer :: i, j, k, n, kk, nn, lo(4), hi(4)
 
     ! maxval(abs(mp))
 
@@ -4397,9 +4400,12 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n) REDUCTION(MAX : r1) COLLAPSE(2)
-       do n         =lo(4),hi(4)
-          do k      =lo(3),hi(3)
+       ! The weird kk and nn stuff is to accommodate the buggy Cray compiler
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,kk,nn) REDUCTION(MAX : r1) COLLAPSE(2)
+       do nn        =1,hi(4)-lo(4)+1
+          do kk     =1,hi(3)-lo(3)+1
+             k = kk + lo(3) - 1
+             n = nn + lo(4) - 1
              do j   =lo(2),hi(2)
                 do i=lo(1),hi(1)
                    r1 = max(r1,abs(ap(i,j,k,n)))
