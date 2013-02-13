@@ -299,6 +299,8 @@ public:
                        bool full_where           = false,
                        int  lev_min              = 0, 
                        int  nGrow                = 0);
+
+    void RedistributeMPI (PMap& notowned);
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
@@ -314,7 +316,6 @@ public:
     // If "only_valid" is true it only counts valid particles.
     //
     long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
-
     //
     // Returns # of particles at all levels
     //
@@ -4777,29 +4778,37 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         m_particles.resize(theEffectiveFinestLevel+1);
     }
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    if (NProcs == 1)
+    if (ParallelDescriptor::NProcs() == 1)
     {
-        BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
         BL_ASSERT(notowned.empty());
-
-        if (m_verbose > 1)
-        {
-            Real stoptime = ParallelDescriptor::second() - strttime;
-
-            ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-            ByteSpread();
-
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "ParticleContainer<N>::Redistribute()   scalar time: " << stoptime << '\n';
-        }
-
-        return;
+    }
+    else
+    {
+        RedistributeMPI(notowned);
     }
 
+    BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
+
+    if (m_verbose > 1)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+
+        ByteSpread();
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "ParticleContainer<N>::Redistribute() time: " << stoptime << '\n';
+    }
+}
+
+template <int N>
+void
+ParticleContainer<N>::RedistributeMPI (PMap& notowned)
+{
 #if BL_USE_MPI
+    const int MyProc = ParallelDescriptor::MyProc();
+    const int NProcs = ParallelDescriptor::NProcs();
     //
     // We may now have particles that are rightfully owned by another CPU.
     //
@@ -4816,13 +4825,10 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     ParallelDescriptor::ReduceIntMax(total_send_count);
 
     if (total_send_count == 0)
-    {
         //
         // There's no parallel work to do.
         //
-        BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
         return;
-    }
 
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
@@ -5075,21 +5081,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
             }
         }
     }
-
-    BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
-
-    if (m_verbose > 1)
-    {
-        Real stoptime = ParallelDescriptor::second() - strttime;
-
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
-        ByteSpread();
-
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "ParticleContainer<N>::Redistribute() parallel time: " << stoptime << '\n';
-    }
-
 #endif /*BL_USE_MPI*/
 }
 
