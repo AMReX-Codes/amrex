@@ -518,16 +518,16 @@ void Profiler::WriteCommStats() {
         }
 
         // ----------------------------- write to file here
-        csHeader << "COMMPROF data from processor:  " << myProc << std::endl;
-        csHeader << "vCommStats.size() = " << vCommStats.size() << std::endl;
-        csHeader << "datafile = " << cShortFileName
-	         << "  seekpos = " << csFile.tellp() << std::endl;
+        csHeader << "CommProfProc  " << myProc
+                 << "  nCommStats  " << vCommStats.size()
+                 << "  datafile  " << cShortFileName
+	         << "  seekpos  " << csFile.tellp() << std::endl;
         for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
           int index(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[index];
-          csHeader << "barrierNumber = " << cs.size
-                   << "  name = " << '"' << CommStats::barrierNames[ib].first << '"'
-                   << "  index = " << index
+          csHeader << "barrierNumber  " << cs.size
+                   << "  name  " << '"' << CommStats::barrierNames[ib].first << '"'
+                   << "  index  " << index
                    << std::endl;
         }
 
@@ -604,8 +604,8 @@ void Profiler::WriteCommStats() {
     std::string cHeaderName(cdir + '/' + cdir + "_H");
     csHeaderFile.open(cHeaderName.c_str(), std::ios::out | std::ios::trunc);
 
-    csHeaderFile << "NProcs = " << nProcs << std::endl;
-    csHeaderFile << "sizeof(CommStats) = " << sizeof(CommStats) << std::endl;
+    csHeaderFile << "NProcs  " << nProcs << std::endl;
+    csHeaderFile << "CommStatsSize  " << sizeof(CommStats) << std::endl;
     csHeaderFile << recvdata.dataPtr();
     csHeaderFile.flush();
     csHeaderFile.close();
