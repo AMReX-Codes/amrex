@@ -195,8 +195,49 @@ struct Particle
     Real m_data[N];
 };
 
+//
+// A concrete base class for ParticleContainer.
+//
+// This will allow us to then maintain, say, a vector of pointers to
+// ParticleContainerBases that are actually pointers to instantiations of
+// of different ParticleContainers.  For every function in ParticleContainer
+// that you'd like to call using a pointer to a ParticleContainerBase you'll
+// need to add a pure virtual function of that exact signature to 
+// ParticleContainerBase.  Make sure that the signatures of virtual functions
+// are exact including defaults arguments!
+//
+
+struct ParticleContainerBase
+{
+    virtual ~ParticleContainerBase ();
+
+    virtual void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const = 0;
+
+    virtual void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
+
+    virtual Real sumParticleMass (int level) const = 0;
+
+    virtual void RemoveParticlesAtLevel (int level) = 0;
+
+    virtual void Redistribute (bool where_already_called = false,
+                               bool full_where           = false,
+                               int  lev_min              = 0, 
+                               int  nGrow                = 0) = 0;
+
+    virtual void moveKickDrift (const MultiFab& grav_vector, int level, Real timestep, 
+                                Real a_old = 1.0, Real a_half = 1.0) = 0;
+    virtual void moveKick      (const MultiFab& grav_vector, int level, Real timestep, 
+                                Real a_new = 1.0, Real a_half = 1.0) = 0;
+    virtual void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, 
+                                Real a_old = 1.0, Real a_half = 1.0) = 0;
+    virtual void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, 
+                                Real a_new = 1.0, Real a_half = 1.0) = 0;
+};
+
 template <int N>
 class ParticleContainer
+    :
+    public ParticleContainerBase
 {
 public:
     //
@@ -227,8 +268,8 @@ public:
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, const Real particleMass, const Real shift[]);
     void InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const Real particleMass);
 
-    Real sumParticleMass (const MultiFab& mf, int level) const;
-    void sumParticleMomentum (const MultiFab& mf, int lev, Real* mom) const;
+    Real sumParticleMass (int level) const;
+    void sumParticleMomentum (int lev, Real* mom) const;
 
     void Increment (MultiFab& mf, int level);
 
@@ -828,6 +869,8 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     BL_ASSERT(extradata <= N);
 
     const int  MyProc   = ParallelDescriptor::MyProc();
+    const int  NProcs   = ParallelDescriptor::NProcs();
+    const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Real strttime = ParallelDescriptor::second();
     //
     // The number of MPI processes that read from the file.
@@ -835,6 +878,8 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     // to the number of independent I/O channels on most filesystems.
     //
     const int NReaders = ParticleBase::MaxReaders();
+
+    BL_ASSERT(NReaders <= NProcs);
     //
     // How many particles each NReaders reads before redistributing.
     //
@@ -857,7 +902,6 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     tmp_particles.resize(m_amr->finestLevel()+1);
       m_particles.resize(m_amr->finestLevel()+1);
     //
-    // Only the first NReaders MPI processes read particles.
     // All the processors need to participate in Redistribute() though.
     //
     int  NX = 0;
@@ -866,8 +910,77 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     std::ifstream ifs;
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    //
+    // The "set" of MPI processor numbers of the readers.  We want
+    // to be able to easily check whether or not we're a reader.
+    //
+    std::set<int> readers;
+    //
+    // The same set but in ascending order.
+    //
+    Array<int> rprocs(NReaders);
 
-    if (MyProc < NReaders)
+    if (NReaders == NProcs)
+    {
+        //
+        // Just set'm.
+        //
+        for (int i = 0; i < NProcs; i++)
+            rprocs[i] = i;
+    }
+    else
+    {
+        //
+        // The I/O Proc builds a set of NReader integers in the range: [0,NProcs-1].
+        //
+        // It then broadcast'm to all MPI procs.
+        //
+        // We want these to be as evenly distributed over the full set of
+        // [0,NProcs-1] MPI processors as possible, so that when reading we
+        // minimize the number of readers per Node, and hence can use more
+        // of the available Node memory for reading.
+        //
+        if (ParallelDescriptor::IOProcessor())
+        {
+            do
+            {
+                int n = int(BoxLib::Random() * (NProcs-1));
+
+                BL_ASSERT(n >= 0);
+                BL_ASSERT(n < NProcs);
+
+                readers.insert(n);
+            }
+            while (readers.size() < NReaders);
+
+            BL_ASSERT(readers.size() == rprocs.size());
+
+            int i = 0;
+
+            for (std::set<int>::const_iterator it = readers.begin(), End = readers.end();
+                 it != End;
+                 ++it, ++i)
+            {
+                rprocs[i] = *it;
+            }
+        }
+
+        ParallelDescriptor::Bcast(rprocs.dataPtr(), rprocs.size(), IOProc);
+    }
+
+    if (readers.empty())
+    {
+        //
+        // Set readers for non I/O procs.
+        //
+        readers.insert(rprocs.begin(), rprocs.end());
+
+        BL_ASSERT(readers.size() == rprocs.size());
+
+        BL_ASSERT(rprocs.size() == NReaders);
+    }
+
+    if (readers.find(MyProc) != readers.end())
     {
         int DM = 0;
 
@@ -904,7 +1017,14 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
         //
         // Skip to our place in the file.
         //
-        const std::streamoff NSKIP = MyProc * (NP/NReaders) * (DM+NX) * sizeof(double);
+        int id = 0;
+        for ( ; id < NReaders; id++)
+            if (rprocs[id] == MyProc)
+                break;
+
+        BL_ASSERT(id >= 0 && id < NReaders);
+
+        const std::streamoff NSKIP = id * (NP/NReaders) * (DM+NX) * sizeof(double);
 
         if (NSKIP > 0)
         {
@@ -928,9 +1048,9 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
     //
     long MyCnt = NP / NReaders;
 
-    if (MyProc == (NReaders - 1))
+    if (MyProc == rprocs[0])
         //
-        // We'll take the remainder.
+        // Give any remainder to the first reader.
         //
         MyCnt += NP % NReaders;
 
@@ -946,7 +1066,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
     for (int j = 0; j < how_many_redists; j++)
     {
-        if (MyProc < NReaders)
+        if (readers.find(MyProc) != readers.end())
         {
             ParticleType p;
 
@@ -1816,8 +1936,7 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
 
 template <int N>
 Real
-ParticleContainer<N>::sumParticleMass (const MultiFab& mf,
-                                       int             lev) const
+ParticleContainer<N>::sumParticleMass (int lev) const
 {
     BL_ASSERT(N >= 1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -1851,9 +1970,8 @@ ParticleContainer<N>::sumParticleMass (const MultiFab& mf,
 
 template <int N>
 void
-ParticleContainer<N>::sumParticleMomentum (const MultiFab& mf,
-                                           int             lev,
-                                           Real*           mom) const
+ParticleContainer<N>::sumParticleMomentum (int   lev,
+                                           Real* mom) const
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
