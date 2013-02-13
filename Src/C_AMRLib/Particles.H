@@ -300,7 +300,7 @@ public:
                        int  lev_min              = 0, 
                        int  nGrow                = 0);
 
-    void RedistributeMPI (PMap& notowned);
+    void RedistributeMPI (PMap& not_ours);
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
@@ -3991,10 +3991,12 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
     if (m_particles.size() < level+1)
     {
         if (ParallelDescriptor::IOProcessor())
+        {
             std::cout << "ParticleContainer<N>::AddParticlesAtLevel resizing m_particles from "
                       << m_particles.size()
                       << " to "
                       << level+1 << '\n';
+        }
         m_particles.resize(level + 1);
     }
 
@@ -4002,17 +4004,15 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
     //
     // The valid particles that we don't own.
     //
-    PBox notowned;
-    //
-    // And who rightly owns those particles.
-    //
-    std::deque<int> owner;
+    PMap not_ours;
     //
     // This code is mostly stolen from Redistribute.
     //
     while (!virts.empty())
     {
-        // copy the last element, then remove it.
+        //
+        // Copy the first element, then remove it.
+        //
         ParticleType p = virts.front();
         virts.pop_front();
 
@@ -4020,279 +4020,51 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
         {
             if (!where_already_called)
             {
-                //Put the particle in this level
+                //
+                // Put the particle in this level.
+                //
                 p.m_lev = level;
-                if (!ParticleBase::SingleLevelWhere(p, m_amr, level)) //Virtuals shouldn't be in Ghost cells
+
+                if (!ParticleBase::SingleLevelWhere(p, m_amr, level))
+                    //
+                    // Virtuals shouldn't be in Ghost cells.
+                    //
                     BoxLib::Abort("ParticleContainer<N>::AddParticlesAtLevel(): Can't add outside of domain\n");
-            } else {
+            }
+            else
+            {
                 BL_ASSERT(p.m_lev == level);
             }
+
             const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
+
             if (who == MyProc)
             {
                 m_particles[p.m_lev][p.m_grid].push_back(p);
                 //
                 // Invalidate the particle so we can reclaim its space.
-                // may be unneeded
+                //
                 p.m_id = -p.m_id;
             }
             else
             {
-                owner.push_back(who);
-                notowned.push_back(p);
+                not_ours[who].push_back(p);
                 //
                 // Invalidate the particle so we can reclaim its space.
-                // may be unneeded
+                //
                 p.m_id = -p.m_id;
             }
         }
     }
-    //
-    // Really copied from Redistribute, be careful
-    //
-    const int NProcs = ParallelDescriptor::NProcs();
 
-    if (NProcs == 1)
+    if (ParallelDescriptor::NProcs() == 1)
     {
-        //This may not be "OK" since we're forcing levels.
-        BL_ASSERT(notowned.empty());
-
-        return;
+        BL_ASSERT(not_ours.empty());
     }
-
-#if BL_USE_MPI
-    //
-    // We may now have particles that are rightfully owned by another CPU.
-    //
-    Array<int> Snds(NProcs,0);
-    Array<int> Rcvs(NProcs,0);
-
-    BL_ASSERT(notowned.size() == owner.size());
-
-    for (std::deque<int>::const_iterator it = owner.begin(), End = owner.end();
-         it != End;
-         ++it)
+    else
     {
-        Snds[*it]++;
+        RedistributeMPI(not_ours);
     }
-
-    long maxsendcount = 0;
-    for (int i = 0; i < NProcs; i++)
-        maxsendcount += Snds[i];
-    ParallelDescriptor::ReduceLongMax(maxsendcount);
-
-    if (maxsendcount == 0)
-    {
-        //
-        // There's no parallel work to do.
-        // (the state may not be "OK")
-        //
-        return;
-    }
-
-    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<int>::type(),
-                                 Rcvs.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<int>::type(),
-                                 ParallelDescriptor::Communicator()) );
-    BL_ASSERT(Rcvs[MyProc] == 0);
-
-    int NumRcvs = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumRcvs += Rcvs[i];
-
-    int NumSnds = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumSnds += Snds[i];
-
-    BL_ASSERT(notowned.size() == NumSnds);
-
-    PBox nparticles;
-
-    Array<int>   offset(NProcs);
-    Array<int>  sdispls(NProcs);
-    Array<int>  rdispls(NProcs);
-    Array<int> sendcnts(NProcs);
-    Array<int> recvcnts(NProcs);
-
-    {
-        //
-        // The "int" data.
-        //
-        const int iChunkSize = 4 + BL_SPACEDIM;
-
-        Array<int> recvdata (NumRcvs*iChunkSize);
-        Array<int> senddata (NumSnds*iChunkSize);
-
-        offset[0] = sdispls[0] = rdispls[0] = 0;
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            recvcnts[i] = Rcvs[i] * iChunkSize;
-            sendcnts[i] = Snds[i] * iChunkSize;
-
-            if (i > 0)
-            {
-                offset [i] = offset [i-1] + sendcnts[i-1];
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
-            }
-        }
-
-        int i = 0;
-
-        for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end();
-             it != End;
-             ++it)
-        {
-            int& ioff = offset[owner[i]];
-
-            BL_ASSERT(it->m_id > 0);
-
-            senddata[ioff+0] = it->m_id;
-            senddata[ioff+1] = it->m_cpu;
-
-            senddata[ioff+2] = it->m_lev;
-            senddata[ioff+3] = it->m_grid;
-
-            D_TERM(senddata[ioff+4] = it->m_cell[0];,
-                   senddata[ioff+5] = it->m_cell[1];,
-                   senddata[ioff+6] = it->m_cell[2];);
-
-            ioff += iChunkSize;
-
-            i++;
-        }
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      NumRcvs == 0 ? 0 : recvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      ParallelDescriptor::Communicator()) );
-        Array<int>().swap(senddata);
-        //
-        // Unpack data into the new particles.
-        //
-        ParticleType p;
-
-        int* rcvp = NumRcvs == 0 ? 0 : recvdata.dataPtr();
-
-        for (int i = 0; i < NumRcvs; i++)
-        {
-            BL_ASSERT(rcvp != 0);
-
-            p.m_id   = rcvp[0];
-            p.m_cpu  = rcvp[1];
-
-            p.m_lev  = rcvp[2];
-            p.m_grid = rcvp[3];
-
-            D_TERM(p.m_cell[0] = rcvp[4];,
-                   p.m_cell[1] = rcvp[5];,
-                   p.m_cell[2] = rcvp[6];);
-
-            nparticles.push_back(p);
-
-            rcvp += iChunkSize;
-        }
-    }
-
-    BL_ASSERT(nparticles.size() == NumRcvs);
-
-    {
-        //
-        // The "Real" data (m_pos & m_data).
-        //
-        const int rChunkSize = BL_SPACEDIM+N;
-
-        Array<Real> recvdata (NumRcvs*rChunkSize);
-        Array<Real> senddata (NumSnds*rChunkSize);
-
-        offset[0] = sdispls[0] = rdispls[0] = 0;
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            recvcnts[i] = Rcvs[i] * rChunkSize;
-            sendcnts[i] = Snds[i] * rChunkSize;
-
-            if (i > 0)
-            {
-                offset [i] = offset [i-1] + sendcnts[i-1];
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
-            }
-        }
-
-        int i = 0;
-
-        for (typename PBox::const_iterator it = notowned.begin(), End = notowned.end();
-             it != End;
-             ++it)
-        {
-            int& ioff = offset[owner[i]];
-
-            D_TERM(senddata[ioff+0] = it->m_pos[0];,
-                   senddata[ioff+1] = it->m_pos[1];,
-                   senddata[ioff+2] = it->m_pos[2];);
-
-            ioff += BL_SPACEDIM;
-
-            for (int j = 0; j < N; j++)
-                senddata[ioff+j] = it->m_data[j];
-
-            ioff += N;
-
-            i++;
-        }
-
-        PBox().swap(notowned);
-
-        std::deque<int>().swap(owner);
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                      NumRcvs == 0 ? 0 : recvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                      ParallelDescriptor::Communicator()) );
-        Array<Real>().swap(senddata);
-        //
-        // Unpack data into the new particles.
-        //
-        Real* rcvp = NumRcvs == 0 ? 0 : recvdata.dataPtr();
-
-        while (!nparticles.empty())
-        {
-            BL_ASSERT(rcvp != 0);
-
-            ParticleType& p = nparticles.front();
-
-            D_TERM(p.m_pos[0] = rcvp[0];,
-                   p.m_pos[1] = rcvp[1];,
-                   p.m_pos[2] = rcvp[2];);
-
-            rcvp += BL_SPACEDIM;
-
-            for (int j = 0; j < N; j++)
-                p.m_data[j] = rcvp[j];
-
-            rcvp += N;
-
-            m_particles[p.m_lev][p.m_grid].push_back(p);
-
-            nparticles.pop_front();
-        }
-    }
-#endif
 }
 
 template <int N>
@@ -4638,16 +4410,18 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     if (m_particles.size() < theEffectiveFinestLevel+1)
     {
         if (ParallelDescriptor::IOProcessor())
+        {
             std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
                       << m_particles.size()
                       << " to "
                       << theEffectiveFinestLevel+1 << '\n';
+        }
         m_particles.resize(theEffectiveFinestLevel+1);
     }
     //
     // The valid particles that we don't own.
     //
-    PMap notowned;
+    PMap not_ours;
 
     for (int lev = lev_min; lev < m_particles.size(); lev++)
     {
@@ -4721,7 +4495,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                     }
                     else
                     {
-                        notowned[who].push_back(p);
+                        not_ours[who].push_back(p);
                         //
                         // Invalidate the particle so we can reclaim its space.
                         //
@@ -4767,11 +4541,12 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         // Looks like we lost an AmrLevel on a regrid.
         //
         if (ParallelDescriptor::IOProcessor())
+        {
             std::cout << "ParticleContainer<N>::Redistribute() resizing m_particles from "
                       << m_particles.size()
                       << " to "
                       << theEffectiveFinestLevel+1 << '\n';
-
+        }
         BL_ASSERT(m_particles.size() >= 2);
         BL_ASSERT(m_particles[m_particles.size()-1].empty());
 
@@ -4780,11 +4555,11 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
     if (ParallelDescriptor::NProcs() == 1)
     {
-        BL_ASSERT(notowned.empty());
+        BL_ASSERT(not_ours.empty());
     }
     else
     {
-        RedistributeMPI(notowned);
+        RedistributeMPI(not_ours);
     }
 
     BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
@@ -4804,7 +4579,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
 template <int N>
 void
-ParticleContainer<N>::RedistributeMPI (PMap& notowned)
+ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
 {
 #if BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
@@ -4816,7 +4591,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& notowned)
 
     int total_send_count = 0, total_recv_count = 0;
 
-    for (typename PMap::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
+    for (typename PMap::const_iterator it = not_ours.begin(), End = not_ours.end(); it != End; ++it)
     {
         Snds[it->first]   = it->second.size();
         total_send_count += it->second.size();
@@ -4870,7 +4645,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& notowned)
     {
         nparticles[it->first].resize(it->second);
     }
-    Array<int>         who_R(RcvCnts.size());
+    Array<int>         owner(RcvCnts.size());
     Array<int>         index(RcvCnts.size());
     Array<MPI_Status>  stats(RcvCnts.size());
     Array<MPI_Request> rreqs(RcvCnts.size());
@@ -4898,7 +4673,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& notowned)
             BL_ASSERT(Who >= 0 && Who < NProcs);
             BL_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-            who_R[idx] = Who;
+            owner[idx] = Who;
             rreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
         }
         //
@@ -4915,7 +4690,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& notowned)
 
             Array<int> senddata(Cnt);
 
-            const PBox& pbox = notowned[Who];
+            const PBox& pbox = not_ours[Who];
 
             int ioff = 0;
             for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
@@ -4948,7 +4723,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& notowned)
 
             for (int k = 0; k < completed; k++)
             {
-                const int  Who  = who_R[index[k]];
+                const int  Who  = owner[index[k]];
                 const int  Idx  = rOffset[Who] * iChunkSize;
                 const int* rcvp = &recvdata[Idx];
                 PBox&      pbox = nparticles[Who];
@@ -5016,7 +4791,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& notowned)
             
             Array<Real> senddata(Cnt);
 
-            PBox& pbox = notowned[Who];
+            PBox& pbox = not_ours[Who];
 
             int ioff = 0;
             for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
@@ -5050,7 +4825,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& notowned)
 
             for (int k = 0; k < completed; k++)
             {
-                const int   Who  = who_R[index[k]];
+                const int   Who  = owner[index[k]];
                 const int   Idx  = rOffset[Who] * rChunkSize;
                 const Real* rcvp = &recvdata[Idx];
                 PBox&       pbox = nparticles[Who];
