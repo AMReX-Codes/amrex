@@ -4772,7 +4772,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                       << theEffectiveFinestLevel+1 << '\n';
 
         BL_ASSERT(m_particles.size() >= 2);
-
         BL_ASSERT(m_particles[m_particles.size()-1].empty());
 
         m_particles.resize(theEffectiveFinestLevel+1);
@@ -4806,23 +4805,22 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     //
     Array<int> Snds(NProcs,0), Rcvs(NProcs,0);
 
-    long maxsendcount = 0;
+    int total_send_count = 0, total_recv_count = 0;
 
     for (typename PMap::const_iterator it = notowned.begin(), End = notowned.end(); it != End; ++it)
     {
-        Snds[it->first] = it->second.size();
-        maxsendcount   += it->second.size();
+        Snds[it->first]   = it->second.size();
+        total_send_count += it->second.size();
     }
 
-    ParallelDescriptor::ReduceLongMax(maxsendcount);
+    ParallelDescriptor::ReduceIntMax(total_send_count);
 
-    if (maxsendcount == 0)
+    if (total_send_count == 0)
     {
         //
         // There's no parallel work to do.
         //
         BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
-
         return;
     }
 
@@ -4838,8 +4836,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     typedef std::map<int,int> IntIntMap;
 
     IntIntMap SndCnts, RcvCnts, rOffset;
-
-    int total_recv_count = 0;
 
     for (int i = 0; i < NProcs; i++)
         if (Snds[i] > 0)
@@ -4871,7 +4867,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     Array<int>         who_R(RcvCnts.size());
     Array<int>         index(RcvCnts.size());
     Array<MPI_Status>  stats(RcvCnts.size());
-    Array<MPI_Request> recvreqs(RcvCnts.size());
+    Array<MPI_Request> rreqs(RcvCnts.size());
     //
     // First send/recv the integer parts of the particles.
     //
@@ -4889,15 +4885,15 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it, ++idx)
         {
             const int Who = it->first;
-            const int Cnt = it->second * iChunkSize;
+            const int Cnt = it->second   * iChunkSize;
             const int Idx = rOffset[Who] * iChunkSize;
 
             BL_ASSERT(Cnt > 0);
             BL_ASSERT(Who >= 0 && Who < NProcs);
             BL_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-            who_R[idx]    = Who;
-            recvreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
+            who_R[idx] = Who;
+            rreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
         }
         //
         // Send the integer data.
@@ -4940,9 +4936,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         //
         // Now receive and unpack the integer data.
         //
-        for (int NWaits = recvreqs.size(), completed; NWaits > 0; NWaits -= completed)
+        for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed)
         {
-            ParallelDescriptor::Waitsome(recvreqs, completed, index, stats);
+            ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
 
             for (int k = 0; k < completed; k++)
             {
@@ -4991,14 +4987,14 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it, ++idx)
         {
             const int Who = it->first;
-            const int Cnt = it->second * rChunkSize;
+            const int Cnt = it->second   * rChunkSize;
             const int Idx = rOffset[Who] * rChunkSize;
 
             BL_ASSERT(Cnt > 0);
             BL_ASSERT(Who >= 0 && Who < NProcs);
             BL_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-            recvreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
+            rreqs[idx] = ParallelDescriptor::Arecv(&recvdata[Idx],Cnt,Who,SeqNum).req();
         }
         //
         // Send the Real data.
@@ -5042,9 +5038,9 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         //
         // Now receive and unpack the Real data.
         //
-        for (int NWaits = recvreqs.size(), completed; NWaits > 0; NWaits -= completed)
+        for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed)
         {
-            ParallelDescriptor::Waitsome(recvreqs, completed, index, stats);
+            ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
 
             for (int k = 0; k < completed; k++)
             {
