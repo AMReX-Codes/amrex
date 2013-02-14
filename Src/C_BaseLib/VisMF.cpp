@@ -757,7 +757,7 @@ VisMF::Write (const MultiFab&    mf,
     }
 
 #ifdef BL_USE_MPI
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("VisMF::Write");
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -900,6 +900,8 @@ void
 VisMF::Read (MultiFab&          mf,
              const std::string& mf_name)
 {
+  BL_PROFILE("VisMF::Read()");
+
   VisMF::Initialize();
 
   if (verbose && ParallelDescriptor::IOProcessor())
@@ -1131,7 +1133,7 @@ VisMF::Read (MultiFab&          mf,
       }
   }
 #endif
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("VisMF::Read");
 
     if (ParallelDescriptor::IOProcessor() && false)
     {

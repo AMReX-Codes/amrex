@@ -53,6 +53,11 @@ void Profiler::Initialize() {
   if(bInitialized) {
     return;
   }
+
+  startTime = ParallelDescriptor::second();
+
+  CommStats::cftExclude.insert(AllCFTypes);  // temporarily
+
   CommStats::cftNames["InvalidCFT"]     = InvalidCFT;
   CommStats::cftNames["AllReduceT"]     = AllReduceT; 
   CommStats::cftNames["AllReduceR"]     = AllReduceR; 
@@ -78,15 +83,18 @@ void Profiler::Initialize() {
   CommStats::cftNames["GatherTi"]       = GatherTi; 
   CommStats::cftNames["ScatterTsT1si"]  = ScatterTsT1si; 
   CommStats::cftNames["Barrier"]        = Barrier;
+  CommStats::cftNames["AllCFTypes"]     = AllCFTypes;
+  CommStats::cftNames["NoCFTypes"]      = NoCFTypes;
 
   // check for exclude file
   std::string exFile("CommFuncExclude.txt");
   std::vector<CommFuncType> vEx;
 
-
   Array<char> fileCharPtr;
   bool bExitOnError(false);  // in case the file does not exist
   ParallelDescriptor::ReadAndBcastFile(exFile, fileCharPtr, bExitOnError);
+
+  CommStats::cftExclude.erase(AllCFTypes);
 
   if(fileCharPtr.size() > 0) {
     std::string fileCharPtrString(fileCharPtr.dataPtr());
@@ -104,7 +112,6 @@ void Profiler::Initialize() {
     }
 
   }
-  startTime = ParallelDescriptor::second();
   bInitialized = true;
 }
 
@@ -166,8 +173,7 @@ void Profiler::Finalize() {
   const int iopNum(ParallelDescriptor::IOProcessorNumber());
 
   // filter out profiler communications.
-  CommStats::cftExclude.insert(BCastTsi);
-  CommStats::cftExclude.insert(GatherTsT1Si);
+  CommStats::cftExclude.insert(AllCFTypes);
 
   int maxlen(0);
   Array<Real> gtimes(1);
@@ -233,7 +239,6 @@ void Profiler::Finalize() {
       }
     }
   }
-
   delete [] pfChar;
 
   // ------- now check for names not on the ioproc
@@ -479,7 +484,6 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 
 void Profiler::WriteCommStats() {
 
-  // --------------------- start nfiles block
   std::string cdir("bl_comm_prof");
   if(ParallelDescriptor::IOProcessor()) {
     if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
@@ -491,6 +495,15 @@ void Profiler::WriteCommStats() {
 
   std::ostringstream csHeader;
 
+  bool bUseRelativeTimeStamp(true);
+  if(bUseRelativeTimeStamp) {
+    for(int ics(0); ics < Profiler::vCommStats.size(); ++ics) {
+      CommStats &cs = Profiler::vCommStats[ics];
+      cs.timeStamp -= startTime;
+    }
+  }
+
+  // --------------------- start nfiles block
   const int   myProc    = ParallelDescriptor::MyProc();
   const int   nProcs    = ParallelDescriptor::NProcs();
   const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
@@ -525,7 +538,7 @@ void Profiler::WriteCommStats() {
         for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
           int index(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[index];
-          csHeader << "barrierNumber  " << cs.size
+          csHeader << "barrierNumber  " << cs.size  // size is used for barrier number
                    << "  name  " << '"' << CommStats::barrierNames[ib].first << '"'
                    << "  index  " << index
                    << std::endl;
@@ -533,6 +546,20 @@ void Profiler::WriteCommStats() {
 
 	csFile.write((char *) &vCommStats[0], vCommStats.size() * sizeof(CommStats));
         // ----------------------------- end write to file here
+	//==================
+	/*
+	std::cout << "====================" << std::endl;
+	std::cout << myProc << ":  FullName = " << FullName << std::endl;
+	int nouts(std::min(16, (int) vCommStats.size()));
+	for(int i(0); i < nouts; ++i) {
+          CommStats &cs = vCommStats[i];
+	  std::cout << Profiler::CommStats::CFTToString(cs.cfType) << "  "
+	            << cs.commpid << "  " << cs.size << "  " << cs.tag << "  "
+		    << cs.timeStamp << std::endl;
+	}
+	std::cout << "====================" << std::endl;
+	*/
+	//==================
 
         csFile.flush();
         csFile.close();
@@ -562,7 +589,7 @@ void Profiler::WriteCommStats() {
   ParallelDescriptor::Gather(&headerSize, 1, vHeaderSizes.dataPtr(), 1, ioProcNum);
 
   Array<int> offset(nProcs, 0);
-  int totalHeaderSize(0), pad(0);
+  int totalHeaderSize(0);   // pad(0);
 
   if(ParallelDescriptor::IOProcessor()) {
     for(int i(1); i < offset.size(); ++i) {
@@ -571,24 +598,26 @@ void Profiler::WriteCommStats() {
     for(int i(0); i < offset.size(); ++i) {
       totalHeaderSize += vHeaderSizes[i];
     }
-    pad = 8 - (totalHeaderSize % 8);
-    totalHeaderSize += pad;
+    //pad = 8 - (totalHeaderSize % 8);
+    //pad = 0;
+    //totalHeaderSize += pad;
   }
 
-  Array<char> recvdata(totalHeaderSize, '\0');
+  Array<char> recvdata(totalHeaderSize + 1, '\0');
   if(recvdata.empty()) {
     recvdata.resize(1);
   }
 
-  Array<char> senddata(csHeader.str().size(), '\0');
+  Array<char> senddata(csHeader.str().size() + 1, '\0');
   if(senddata.empty()) {
     senddata.resize(1);
   }
 
+  BL_ASSERT((senddata.size() - 1) == csHeader.str().size());
   std::strcpy(senddata.dataPtr(), csHeader.str().c_str());
 
   BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
-			      senddata.size(),
+			      csHeader.str().size(),
                               ParallelDescriptor::Mpi_typemap<char>::type(),
 			      recvdata.dataPtr(),
                               vHeaderSizes.dataPtr(),
@@ -669,26 +698,57 @@ void Profiler::WriteRow(std::ostream &ios, const std::string &fname,
 }
 
 
-void Profiler::AddCommStat(CommFuncType cft, int pid, int size) {
-  std::set<CommFuncType>::iterator cfti = CommStats::cftExclude.find(cft);
-  if(cfti == CommStats::cftExclude.end()) {
-    CommStats cs(cft, ParallelDescriptor::MyProc(), pid, size,
-                 ParallelDescriptor::second());
-    vCommStats.push_back(cs);
+bool Profiler::OnExcludeList(CommFuncType cft) {
+  // 
+  // the idea for NoCFTypes is to allow local filtering/unfiltering
+  // while preserving the users exclude list
+  // possibly use a filter stack instead
+  // might need caching if performance is a problem
+  // what to do if both all and none are on the list?
+  // 
+  if(CommStats::cftExclude.empty()) {  // nothing on the exclude list
+    return false;
   }
+  std::set<CommFuncType>::iterator cfti;
+  cfti = CommStats::cftExclude.find(NoCFTypes);
+  if(cfti != CommStats::cftExclude.end()) {  // found, exclude nothing
+    return false;
+  }
+  cfti = CommStats::cftExclude.find(cft);
+  if(cfti != CommStats::cftExclude.end()) {  // found, exclude this cft
+    return true;
+  }
+  cfti = CommStats::cftExclude.find(AllCFTypes);
+  if(cfti != CommStats::cftExclude.end()) {  // found, exclude all types
+    return true;
+  }
+  return false;
+}
+
+
+void Profiler::AddCommStat(CommFuncType cft, int pid, int size) {
+  if(OnExcludeList(cft)) {
+    return;
+  }
+  CommStats cs(cft, ParallelDescriptor::MyProc(), pid, size,
+               ParallelDescriptor::second());
+  vCommStats.push_back(cs);
 }
 
 
 void Profiler::AddCommStat(CommFuncType cft, int pid, int size, int tag) {
-  std::set<CommFuncType>::iterator cfti = CommStats::cftExclude.find(cft);
-  if(cfti == CommStats::cftExclude.end()) {
-    CommStats cs(cft, pid, size, tag, ParallelDescriptor::second());
-    vCommStats.push_back(cs);
+  if(OnExcludeList(cft)) {
+    return;
   }
+  CommStats cs(cft, pid, size, tag, ParallelDescriptor::second());
+  vCommStats.push_back(cs);
 }
 
 
 void Profiler::AddBarrier(CommFuncType cft, std::string message) {
+  if(OnExcludeList(cft)) {
+    return;
+  }
   CommStats cs(cft, 0, Profiler::CommStats::barrierNumber, ParallelDescriptor::second());
   vCommStats.push_back(cs);
   CommStats::barrierNames.resize(CommStats::barrierNumber + 1);
@@ -699,40 +759,11 @@ void Profiler::AddBarrier(CommFuncType cft, std::string message) {
 
 
 void Profiler::AddAllReduce(CommFuncType cft, int size) {
+  if(OnExcludeList(cft)) {
+    return;
+  }
   CommStats cs(cft, 0, 0, size, ParallelDescriptor::second());
   vCommStats.push_back(cs);
-}
-
-
-std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
-  switch(cft) {
-    case InvalidCFT:     return "InvalidCFT";
-    case AllReduceT:     return "AllReduceT"; 
-    case AllReduceR:     return "AllReduceR"; 
-    case AllReduceL:     return "AllReduceL"; 
-    case AllReduceI:     return "AllReduceI"; 
-    case AsendTsii:      return "AsendTsii";
-    case AsendTsiiM:     return "AsendTsiiM";
-    case AsendvTii:      return "AsendvTii";
-    case SendTsii:       return "SendTsii";
-    case SendvTii:       return "SendvTii";
-    case ArecvTsii:      return "ArecvTsii";
-    case ArecvTsiiM:     return "ArecvTsiiM";
-    case ArecvTii:       return "ArecvTii";
-    case ArecvvTii:      return "ArecvvTii";
-    case RecvTsii:       return "RecvTsii";
-    case RecvvTii:       return "RecvvTii";
-    case ReduceT:        return "ReduceT"; 
-    case ReduceR:        return "ReduceR"; 
-    case ReduceL:        return "ReduceL"; 
-    case ReduceI:        return "ReduceI"; 
-    case BCastTsi:       return "BCastTsi"; 
-    case GatherTsT1Si:   return "GatherTsT1Si"; 
-    case GatherTi:       return "GatherTi"; 
-    case ScatterTsT1si:  return "ScatterTsT1si"; 
-    case Barrier:        return "Barrier";
-  }
-  return "*** Error: Bad CommFuncType.";
 }
 
 

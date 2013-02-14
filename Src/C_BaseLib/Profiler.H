@@ -51,7 +51,9 @@ class Profiler
       GatherTsT1Si,
       GatherTi,
       ScatterTsT1si,
-      Barrier
+      Barrier,
+      AllCFTypes,
+      NoCFTypes
     };
                  
     struct CommStats {
@@ -119,7 +121,44 @@ class Profiler
                          const ProfStats &pstats, const Real percent,
 			 const int colWidth, const Real maxlen,
 			 const bool bwriteavg);
+
+    static bool OnExcludeList(CommFuncType cft);
 };
+
+
+
+inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
+  switch(cft) {
+    case InvalidCFT:     return "InvalidCFT";
+    case AllReduceT:     return "AllReduceT";
+    case AllReduceR:     return "AllReduceR";
+    case AllReduceL:     return "AllReduceL";
+    case AllReduceI:     return "AllReduceI";
+    case AsendTsii:      return "AsendTsii";
+    case AsendTsiiM:     return "AsendTsiiM";
+    case AsendvTii:      return "AsendvTii";
+    case SendTsii:       return "SendTsii";
+    case SendvTii:       return "SendvTii";
+    case ArecvTsii:      return "ArecvTsii";
+    case ArecvTsiiM:     return "ArecvTsiiM";
+    case ArecvTii:       return "ArecvTii";
+    case ArecvvTii:      return "ArecvvTii";
+    case RecvTsii:       return "RecvTsii";
+    case RecvvTii:       return "RecvvTii";
+    case ReduceT:        return "ReduceT";
+    case ReduceR:        return "ReduceR";
+    case ReduceL:        return "ReduceL";
+    case ReduceI:        return "ReduceI";
+    case BCastTsi:       return "BCastTsi";
+    case GatherTsT1Si:   return "GatherTsT1Si";
+    case GatherTi:       return "GatherTi";
+    case ScatterTsT1si:  return "ScatterTsT1si";
+    case Barrier:        return "Barrier";
+    case AllCFTypes:     return "AllCFTypes";
+    case NoCFTypes:      return "NoCFTypes";
+  }
+  return "*** Error: Bad CommFuncType.";
+}
 
 
 
