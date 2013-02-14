@@ -8,6 +8,22 @@ endif
 CXXOPTF += -DMPICH_IGNORE_CXX_SEEK
 CXXDEBF += -DMPICH_IGNORE_CXX_SEEK
 
+### Cray compiler versions in the 8.1 series greater than 8.1.1 seem to
+### have a PGAS bug --- this should fix it, but won't be needed with >= 8.2
+ifeq ($(COMP), Cray)
+  version_info = $(shell craycc -V 2>&1 | awk '{print $$5}')
+  minor_version = $(shell echo $(version_info) | cut -d'.' -f3)
+
+  ifeq ($(findstring 8.1., $(version_info)), 8.1.)
+    ifneq ($(minor_version),1)
+      CFLAGS += -hnopgas_runtime
+      CXXFLAGS += -hnopgas_runtime
+      FFLAGS += -hnopgas_runtime
+      F90FLAGS += -hnopgas_runtime
+    endif
+  endif
+endif
+
 ifeq ($(findstring titan, $(HOST)), titan)
     #
     # titan
@@ -16,21 +32,6 @@ ifeq ($(findstring titan, $(HOST)), titan)
         CXX := CC -target=linux
         FC  := ftn -target=linux
         F90 := ftn -target=linux
-
-	ifeq ($(FCOMP), Cray)
-	  version_info := $(shell crayftn -V 2>&1 1>/dev/null | awk '{print $5}')
-	  ifeq ($(findstring 8.1.2, $(version_info)), 8.1.2)
-            F90FLAGS += -hnopgas_runtime
-	    FFLAGS += -hnopgas_runtime
-	  endif
-	endif
-	ifeq ($(COMP), Cray)
-	  version_info := $(shell craycc -V 2>&1 1>/dev/null | awk '{print $5}')
-	  ifeq ($(findstring 8.1.2, $(version_info)), 8.1.2)
-	    CFLAGS += -hnopgas_runtime
-	    CXXFLAGS += -hnopgas_runtime
-	  endif
-	endif
     endif
 endif
 
@@ -64,8 +65,6 @@ ifeq ($(MACHINE), Linux)
       fC := ftn
 
       ifeq ($(COMP), Cray)
-        CXXOPTF += -hnopgas_runtime
-	CXXDEBF += -hnopgas_runtime
         ifneq ($(USE_OMP),TRUE)
 	  CXXOPTF += -hnoomp
 	  CXXDEBF += -hnoomp
@@ -73,8 +72,6 @@ ifeq ($(MACHINE), Linux)
       endif
 
       ifeq ($(FCOMP), Cray)
-        F90FLAGS += -hnopgas_runtime
-	FFLAGS += -hnopgas_runtime
         ifneq ($(USE_OMP),TRUE)
 	  F90FLAGS += -hnoomp
 	  FFLAGS += -hnoomp
