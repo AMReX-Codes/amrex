@@ -210,7 +210,7 @@ AmrLevel::checkPoint (const std::string& dir,
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("AmrLevel::checkPoint::dir");
 
     if (ParallelDescriptor::IOProcessor())
     {
