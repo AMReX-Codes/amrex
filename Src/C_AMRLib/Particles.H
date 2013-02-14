@@ -4583,8 +4583,8 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
 
     for (typename PMap::const_iterator it = not_ours.begin(), End = not_ours.end(); it != End; ++it)
     {
-        Snds[it->first]   = it->second.size();
-        NumSnds += it->second.size();
+        NumSnds        += it->second.size();
+        Snds[it->first] = it->second.size();
     }
 
     ParallelDescriptor::ReduceIntMax(NumSnds);
