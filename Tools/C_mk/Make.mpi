@@ -16,10 +16,8 @@ ifeq ($(COMP), Cray)
 
   ifeq ($(findstring 8.1., $(version_info)), 8.1.)
     ifneq ($(minor_version),1)
-      CFLAGS += -hnopgas_runtime
       CXXFLAGS += -hnopgas_runtime
-      FFLAGS += -hnopgas_runtime
-      F90FLAGS += -hnopgas_runtime
+      LIBRARIES += -lpgas-dmapp
     endif
   endif
 endif
@@ -29,9 +27,11 @@ ifeq ($(findstring titan, $(HOST)), titan)
     # titan
     #
     ifeq ($(USE_MPI),TRUE)
-        CXX := CC -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
+       CC := cc
+       CXX := CC
+       FC := ftn
+       F90 := ftn
+       fC := ftn
     endif
 endif
 
