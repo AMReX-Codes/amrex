@@ -755,11 +755,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             {
                 while (!nparticles.empty())
                 {
-                    ParticleType& p = nparticles.front();
+                    ParticleType& p = nparticles.back();
     
                     m_particles[p.m_lev][p.m_grid].push_back(p);
     
-                    nparticles.pop_front();
+                    nparticles.pop_back();
                 }
 
                 PBox().swap(nparticles);
@@ -785,11 +785,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         {
             while (!nparticles.empty())
             {
-                ParticleType& p = nparticles.front();
+                ParticleType& p = nparticles.back();
 
                 m_particles[p.m_lev][p.m_grid].push_back(p);
 
-                nparticles.pop_front();
+                nparticles.pop_back();
             }
 
             PBox().swap(nparticles);
@@ -4000,11 +4000,7 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
     //
     while (!virts.empty())
     {
-        //
-        // Copy the first element, then remove it.
-        //
-        ParticleType p = virts.front();
-        virts.pop_front();
+        ParticleType& p = virts.back();
 
         if (p.m_id > 0)
         {
@@ -4031,20 +4027,14 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
             if (who == MyProc)
             {
                 m_particles[p.m_lev][p.m_grid].push_back(p);
-                //
-                // Invalidate the particle so we can reclaim its space.
-                //
-                p.m_id = -p.m_id;
             }
             else
             {
                 not_ours[who].push_back(p);
-                //
-                // Invalidate the particle so we can reclaim its space.
-                //
-                p.m_id = -p.m_id;
             }
         }
+
+        virts.pop_back();
     }
 
     if (ParallelDescriptor::NProcs() == 1)
