@@ -4409,13 +4409,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
         for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
         {
-            int   grid = pmap_it->first;
-            PBox& pbox = pmap_it->second;
-            //
-            // Remove any invalid particles from front of container.
-            //
-            while (!pbox.empty() && pbox.front().m_id <= 0)
-                pbox.pop_front();
+            const int grid = pmap_it->first;
+            PBox&     pbox = pmap_it->second;
 
             for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; )
             {
@@ -4442,7 +4437,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                                         // The particle has left the domain; invalidate it.
                                         // This typically only happens on a coarse timestep.
                                         //
-                                        p.m_id = -1;
+                                        p.m_id = -p.m_id;
                                     }
                                 }
                             }
@@ -4453,33 +4448,37 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                             }
                         }
                     }
-                    //
-                    // The owner of the particle is the CPU owning the finest grid
-                    // in state data that contains the particle.
-                    //
-                    const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
 
-                    if (who == MyProc)
+                    if (p.m_id > 0)
                     {
-                        if (p.m_lev != lev || p.m_grid != grid)
+                        //
+                        // The owner of the particle is the CPU owning the finest grid
+                        // in state data that contains the particle.
+                        //
+                        const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
+
+                        if (who == MyProc)
                         {
-                            //
-                            // We own it but must shift it to another place.
-                            //
-                            m_particles[p.m_lev][p.m_grid].push_back(p);
+                            if (p.m_lev != lev || p.m_grid != grid)
+                            {
+                                //
+                                // We own it but must shift it to another place.
+                                //
+                                m_particles[p.m_lev][p.m_grid].push_back(p);
+                                //
+                                // Invalidate the particle so we can reclaim its space.
+                                //
+                                p.m_id = -p.m_id;
+                            }
+                        }
+                        else
+                        {
+                            not_ours[who].push_back(p);
                             //
                             // Invalidate the particle so we can reclaim its space.
                             //
                             p.m_id = -p.m_id;
                         }
-                    }
-                    else
-                    {
-                        not_ours[who].push_back(p);
-                        //
-                        // Invalidate the particle so we can reclaim its space.
-                        //
-                        p.m_id = -p.m_id;
                     }
                 }
 
@@ -4487,6 +4486,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                 {
                     if (it != pbox.begin())
                     {
+
                         BL_ASSERT(pbox.front().m_id > 0);
                         std::swap(pbox.front(),p);
                     }
