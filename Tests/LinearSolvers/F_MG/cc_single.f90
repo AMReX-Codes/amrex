@@ -537,7 +537,7 @@ subroutine t_cc_multigrid()
      print *, 'dh = ', dh
   end if
 
-  call mg_tower_build(mgt, la, pd, domain_bc, &
+  call mg_tower_build(mgt, la, pd, domain_bc, mgt%stencil_type, &
        dh = dh, &
        ns = ns, &
        smoother = smoother, &
@@ -612,7 +612,7 @@ subroutine t_cc_multigrid()
      call timer_stop(tm(1))
      call destroy(bpt_setup)
      call timer_start(tm(2))
-     call itsol_BiCGStab_solve(ss, uu, rh, mm, eps, max_iter, verbose, stat)
+     call itsol_BiCGStab_solve(ss, uu, rh, mm, eps, max_iter, verbose, mgt%stencil_type, mgt%lcross, stat)
      call timer_stop(tm(2))
      if ( stat /= 0 ) then
         call bl_warn("itsol_BiCGStab_solve: failed : ", stat)
@@ -628,7 +628,7 @@ subroutine t_cc_multigrid()
                           mm, xa, xb, pxa, pxb, stencil_order, domain_bc)
      call timer_stop(tm(1))
      call timer_start(tm(2))
-     call itsol_CG_solve(ss, uu, rh, mm, eps, max_iter, verbose, stat)
+     call itsol_CG_solve(ss, uu, rh, mm, eps, max_iter, verbose, mgt%stencil_type, mgt%lcross, stat)
      call timer_stop(tm(2))
      call destroy(bpt_setup)
      if ( stat /= 0 ) then
@@ -725,7 +725,7 @@ contains
     type(multifab), intent(inout) :: mf
     integer i
     type(box) bx
-    do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+    do i = 1, nfabs(mf)
        bx = get_box(mf,i)
        bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
        bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
@@ -742,7 +742,7 @@ contains
     type(multifab), intent(inout) :: mf
     integer :: i
     real(kind=dp_t), pointer :: mp(:,:,:,:)
-    do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+    do i = 1, nfabs(mf)
        mp => dataptr(mf, i)
        call mt_random_number(mp)
     end do
@@ -755,7 +755,7 @@ contains
     real(kind=dp_t), pointer :: mp(:,:,:,:)
 
     ng = mf%ng
-    do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+    do i = 1, nfabs(mf)
        mp => dataptr(mf, i)
        bx = get_ibox(mf, i)
        select case ( mf%dim ) 

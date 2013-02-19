@@ -189,7 +189,7 @@ subroutine t_nodal_multigrid()
   defect_dirname = ''
 
   stencil_order = 3
-  stencil_type = ST_CROSS
+  stencil_type = ND_CROSS_STENCIL
   
   narg = command_argument_count()
 
@@ -521,7 +521,7 @@ subroutine t_nodal_multigrid()
      print *, 'dh = ', dh
   end if
 
-  call mg_tower_build(mgt, la, pd, domain_bc, &
+  call mg_tower_build(mgt, la, pd, domain_bc, mgt%stencil_type,&
        dh = dh, &
        ns = ns, &
        smoother = smoother, &
@@ -592,7 +592,7 @@ subroutine t_nodal_multigrid()
      call timer_stop(tm(1))
 
      call timer_start(tm(2))
-     call itsol_BiCGStab_solve(mgt%ss(mgt%nlevels), uu, rh, mm, eps, max_iter, verbose, uniform_dh = mgt%uniform_dh)
+     call itsol_BiCGStab_solve(mgt%ss(mgt%nlevels), uu, rh, mm, eps, max_iter, verbose, mgt%stencil_type, mgt%lcross, uniform_dh = mgt%uniform_dh)
      call timer_stop(tm(2))
   case (2)
      la = mgt%dd(Mgt%nlevels)%la
@@ -605,7 +605,7 @@ subroutine t_nodal_multigrid()
      call timer_stop(tm(1))
 
      call timer_start(tm(2))
-     call itsol_CG_solve(mgt%ss(mgt%nlevels), uu, rh, mm, eps, max_iter, verbose, uniform_dh = mgt%uniform_dh)
+     call itsol_CG_solve(mgt%ss(mgt%nlevels), uu, rh, mm, eps, max_iter, verbose, mgt%stencil_type, mgt%lcross, uniform_dh = mgt%uniform_dh)
      call timer_stop(tm(2))
   end select
 
@@ -699,7 +699,7 @@ contains
     type(multifab), intent(inout) :: mf
     integer i
     type(box) bx
-    do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+    do i = 1, nfabs(mf)
        bx = get_ibox(mf,i)
        bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
        bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
@@ -716,7 +716,7 @@ contains
     type(multifab), intent(inout) :: mf
     integer :: i
     real(kind=dp_t), pointer :: mp(:,:,:,:)
-    do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+    do i = 1, nfabs(mf)
        mp => dataptr(mf, i)
        call mt_random_number(mp)
     end do
@@ -729,7 +729,7 @@ contains
     real(kind=dp_t), pointer :: mp(:,:,:,:)
 
     ng = mf%ng
-    do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+    do i = 1, nfabs(mf)
        mp => dataptr(mf, i)
        bx = get_ibox(mf, i)
        select case ( mf%dim ) 

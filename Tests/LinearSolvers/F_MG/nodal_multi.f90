@@ -20,6 +20,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
   use ml_norm_module
   use coarsen_coeffs_module
   use nodal_stencil_fill_module
+  use stencil_types_module
 
   implicit none
 
@@ -73,7 +74,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
   !       we don't actually create or use the multifabs
   allocate(one_sided_ss(2:nlevs))
 
-  if (stencil_type .eq. ST_DENSE) then
+  if (stencil_type .eq. ND_DENSE_STENCIL) then
      if (dm .eq. 3) then
        i = mgt(nlevs)%nlevels
        if ( (mgt(nlevs)%dh(1,i) .eq. mgt(nlevs)%dh(2,i)) .and. &
@@ -131,7 +132,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
      do i = 1,layout_nboxes(la)
         call multifab_setval_bx(coeffs(mgt(n)%nlevels), 1.0_dp_t, get_box(la,i), all=.true.)
 !       BEGIN HACK FOR 3-D MULTILEVEL PROBLEMS
-        if (stencil_type .eq. ST_DENSE) then
+        if (stencil_type .eq. ND_DENSE_STENCIL) then
          if (dm .eq. 3) then 
           if (nlevs .eq. 2) then 
             call multifab_setval_bx(coeffs(mgt(n)%nlevels), 0.5_dp_t, get_box(la,i), all=.true.)
@@ -148,7 +149,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
 
      call stencil_fill_nodal_all_mglevels(mgt(n), coeffs, stencil_type)
 
-     if (stencil_type .eq. ST_CROSS .and. n .gt. 1) then
+     if (stencil_type .eq. ND_CROSS_STENCIL .and. n .gt. 1) then
         i = mgt(n)%nlevels
         call stencil_fill_one_sided(one_sided_ss(n), coeffs(i), mgt(n)%dh(:,i), &
                                     mgt(n)%mm(i), mgt(n)%face_type)
@@ -221,7 +222,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
      call multifab_destroy(full_soln(n))
      call lmultifab_destroy(fine_mask(n))
   end do
-  if (stencil_type == ST_CROSS) then
+  if (stencil_type == ND_CROSS_STENCIL) then
     do n = 2,nlevs
       call multifab_destroy(one_sided_ss(n))
     end do
@@ -233,7 +234,7 @@ contains
     type(multifab), intent(inout) :: mf
     integer i
     type(box) bx
-    do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+    do i = 1, nfabs(mf)
 
 !      Single point of non-zero RHS
        bx = get_ibox(mf,i)
@@ -271,9 +272,7 @@ contains
     rhs_box%lo(1:rhs_box%dim) = 8
     rhs_box%hi(1:rhs_box%dim) = 8
 
-    do i = 1, mf%nboxes
-
-       if ( remote(mf,i) ) cycle
+    do i = 1, nfabs(mf)
        bx = get_ibox(mf,i)
        rhs_intersect_box = box_intersection(bx,rhs_box)
        if (.not. empty(rhs_intersect_box)) then
