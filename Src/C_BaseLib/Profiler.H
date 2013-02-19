@@ -114,6 +114,7 @@ class Profiler
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
     static std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
     static std::vector<CommStats> vCommStats;
+    static bool bFirstCommWriteH, bFirstCommWriteD;
 
     static void WriteHeader(std::ostream &os, const int colWidth,
                             const Real maxlen, const bool bwriteavg);
