@@ -348,7 +348,7 @@ ifeq ($(FCOMP),g95)
     FDEBF += -fopenmp
     fDEBF += -fopenmp
 
-     CXXOPTF += 
+     CXXOPTF += -openmp
      CXXDEBF += -openmp
      ifeq ($(ICC_MAJOR_VERSION),11)
         CXXOPTF += -openmp-report2
@@ -470,6 +470,8 @@ ifeq ($(COMP),Intel)
    ifeq ($(USE_OMP),TRUE)
      CXXOPTF += -openmp
      CXXDEBF += -openmp
+     COPTF += -openmp
+     CDEBF += -openmp
      ifeq ($(ICC_MAJOR_VERSION),11)
         CXXOPTF += -openmp-report2
         CXXDEBF += -openmp-report2
