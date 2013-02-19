@@ -114,6 +114,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring hopper, $(UNAMEN)), hopper)
     WHICHLINUX := HOPPER
   endif
+  ifeq ($(findstring edison, $(UNAMEN)), edison)
+    WHICHLINUX := EDISON
+  endif
   ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
     WHICHLINUX := GIMANTIS
   endif
