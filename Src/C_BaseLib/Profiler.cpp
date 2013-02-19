@@ -29,6 +29,8 @@ std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
 std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
+bool Profiler::bFirstCommWriteH = true;  // header
+bool Profiler::bFirstCommWriteD = true;  // data
 
 int nProfFiles(3);
 
@@ -484,6 +486,11 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 
 void Profiler::WriteCommStats() {
 
+  bool bBarrierExcluded(OnExcludeList(Barrier));
+  if( ! bBarrierExcluded) {
+    CommStats::cftExclude.insert(Barrier);  // temporarily
+  }
+
   std::string cdir("bl_comm_prof");
   if(ParallelDescriptor::IOProcessor()) {
     if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
@@ -518,7 +525,8 @@ void Profiler::WriteCommStats() {
       {  // scope
         std::ofstream csFile;
 
-        if(iSet == 0) {   // First set.
+        if(iSet == 0 && bFirstCommWriteD) {   // First set.
+	  bFirstCommWriteD = false;
           csFile.open(FullName.c_str(),
                       std::ios::out|std::ios::trunc|std::ios::binary);
         } else {
@@ -631,13 +639,25 @@ void Profiler::WriteCommStats() {
   if(ParallelDescriptor::IOProcessor()) {
     std::ofstream csHeaderFile;
     std::string cHeaderName(cdir + '/' + cdir + "_H");
-    csHeaderFile.open(cHeaderName.c_str(), std::ios::out | std::ios::trunc);
+    if(bFirstCommWriteH) {
+      csHeaderFile.open(cHeaderName.c_str(), std::ios::out | std::ios::trunc);
+      bFirstCommWriteH = false;
+    } else {
+      csHeaderFile.open(cHeaderName.c_str(), std::ios::out | std::ios::app);
+    }
 
     csHeaderFile << "NProcs  " << nProcs << std::endl;
     csHeaderFile << "CommStatsSize  " << sizeof(CommStats) << std::endl;
     csHeaderFile << recvdata.dataPtr();
     csHeaderFile.flush();
     csHeaderFile.close();
+  }
+
+  // --------------------- flush the data
+  vCommStats.clear();
+  CommStats::barrierNames.clear();
+  if( ! bBarrierExcluded) {
+    CommStats::cftExclude.erase(Barrier);
   }
 }
 
@@ -751,10 +771,17 @@ void Profiler::AddBarrier(CommFuncType cft, std::string message) {
   }
   CommStats cs(cft, 0, Profiler::CommStats::barrierNumber, ParallelDescriptor::second());
   vCommStats.push_back(cs);
-  CommStats::barrierNames.resize(CommStats::barrierNumber + 1);
-  CommStats::barrierNames[CommStats::barrierNumber].first = message;
-  CommStats::barrierNames[CommStats::barrierNumber].second = vCommStats.size() - 1;
+  //CommStats::barrierNames.resize(CommStats::barrierNumber + 1);
+  //CommStats::barrierNames[CommStats::barrierNumber].first = message;
+  //CommStats::barrierNames[CommStats::barrierNumber].second = vCommStats.size() - 1;
+  CommStats::barrierNames.push_back(std::make_pair(message, vCommStats.size() - 1));
   ++CommStats::barrierNumber;
+  std::cout << ParallelDescriptor::MyProc() << "::::: about to WriteCommStats()" << std::endl;
+  int csFlushSize(100);
+  if(vCommStats.size() > csFlushSize) {
+    WriteCommStats();
+  }
+  std::cout << ParallelDescriptor::MyProc() << "::::: after WriteCommStats()" << std::endl;
 }
 
 
