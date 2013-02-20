@@ -604,7 +604,7 @@ contains
 
           !$OMP PARALLEL DO PRIVATE(j,k,lo_j_not,hi_j_not,lo_k_not,hi_k_not) &
           !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
-          !$OMP PRIVATE(jfine,kfine) IF((hi(3)-lo(3)).ge.3)
+          !$OMP PRIVATE(jfine,kfine)
           do k = lo(3),hi(3)
              kfine = ir(3)*k
              do j = lo(2),hi(2)
@@ -704,7 +704,7 @@ contains
 
           !$OMP PARALLEL DO PRIVATE(i,k,lo_i_not,hi_i_not,lo_k_not,hi_k_not) &
           !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
-          !$OMP PRIVATE(ifine,kfine) IF((hi(3)-lo(3)).ge.3)
+          !$OMP PRIVATE(ifine,kfine)
           do k = lo(3),hi(3)
              kfine = ir(3)*k
              do i = lo(1),hi(1)
@@ -802,7 +802,7 @@ contains
 
           !$OMP PARALLEL DO PRIVATE(i,j,lo_i_not,hi_i_not,lo_j_not,hi_j_not) &
           !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
-          !$OMP PRIVATE(ifine,jfine) IF((hi(2)-lo(2)).ge.3)
+          !$OMP PRIVATE(ifine,jfine)
           do j = lo(2),hi(2)
              jfine = ir(2)*j
              do i = lo(1),hi(1)
@@ -899,7 +899,7 @@ contains
 
           !$OMP PARALLEL DO PRIVATE(j,k,lo_j_not,hi_j_not,lo_k_not,hi_k_not) &
           !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
-          !$OMP PRIVATE(jfine,kfine) IF((hi(3)-lo(3)).ge.3)
+          !$OMP PRIVATE(jfine,kfine)
           do k = lo(3),hi(3)
              kfine = ir(3)*k
              do j = lo(2),hi(2)
@@ -1001,7 +1001,7 @@ contains
 
           !$OMP PARALLEL DO PRIVATE(i,k,lo_i_not,hi_i_not,lo_k_not,hi_k_not) &
           !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
-          !$OMP PRIVATE(ifine,kfine) IF((hi(3)-lo(3)).ge.3)
+          !$OMP PRIVATE(ifine,kfine)
           do k = lo(3),hi(3)
              kfine = ir(3)*k
              do i = lo(1),hi(1)
@@ -1100,7 +1100,7 @@ contains
 
           !$OMP PARALLEL DO PRIVATE(i,j,lo_i_not,hi_i_not,lo_j_not,hi_j_not) &
           !$OMP PRIVATE(cell_mm,cell_pm,cell_mp,cell_pp,crse_flux) &
-          !$OMP PRIVATE(ifine,jfine) IF((hi(2)-lo(2)).ge.3)
+          !$OMP PRIVATE(ifine,jfine)
           do j = lo(2),hi(2)
              jfine = ir(2)*j
              do i = lo(1),hi(1)
