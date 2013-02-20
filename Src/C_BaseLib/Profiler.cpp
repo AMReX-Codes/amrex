@@ -29,6 +29,7 @@ std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
 std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
+std::vector<std::pair<std::string,int> > Profiler::CommStats::nameTags;
 bool Profiler::bFirstCommWriteH = true;  // header
 bool Profiler::bFirstCommWriteD = true;  // data
 
@@ -85,6 +86,7 @@ void Profiler::Initialize() {
   CommStats::cftNames["GatherTi"]       = GatherTi; 
   CommStats::cftNames["ScatterTsT1si"]  = ScatterTsT1si; 
   CommStats::cftNames["Barrier"]        = Barrier;
+  CommStats::cftNames["NameTag"]        = NameTag;
   CommStats::cftNames["AllCFTypes"]     = AllCFTypes;
   CommStats::cftNames["NoCFTypes"]      = NoCFTypes;
 
@@ -551,6 +553,14 @@ void Profiler::WriteCommStats() {
                    << "  index  " << index
                    << std::endl;
         }
+        for(int ib(0); ib < CommStats::nameTags.size(); ++ib) {
+          int index(CommStats::nameTags[ib].second);
+          CommStats &cs = vCommStats[index];
+          csHeader << "nameTag  "
+                   << "  name  " << '"' << CommStats::nameTags[ib].first << '"'
+                   << "  index  " << index
+                   << std::endl;
+        }
 
 	csFile.write((char *) &vCommStats[0], vCommStats.size() * sizeof(CommStats));
         // ----------------------------- end write to file here
@@ -656,6 +666,7 @@ void Profiler::WriteCommStats() {
   // --------------------- flush the data
   vCommStats.clear();
   CommStats::barrierNames.clear();
+  CommStats::nameTags.clear();
   if( ! bBarrierExcluded) {
     CommStats::cftExclude.erase(Barrier);
   }
@@ -771,17 +782,24 @@ void Profiler::AddBarrier(CommFuncType cft, std::string message) {
   }
   CommStats cs(cft, 0, Profiler::CommStats::barrierNumber, ParallelDescriptor::second());
   vCommStats.push_back(cs);
-  //CommStats::barrierNames.resize(CommStats::barrierNumber + 1);
-  //CommStats::barrierNames[CommStats::barrierNumber].first = message;
-  //CommStats::barrierNames[CommStats::barrierNumber].second = vCommStats.size() - 1;
   CommStats::barrierNames.push_back(std::make_pair(message, vCommStats.size() - 1));
   ++CommStats::barrierNumber;
-  std::cout << ParallelDescriptor::MyProc() << "::::: about to WriteCommStats()" << std::endl;
-  int csFlushSize(100);
+  int csFlushSize(10);
+std::cout << ParallelDescriptor::MyProc() << "::::: vCommStats.size() = " << vCommStats.size() << std::endl;
   if(vCommStats.size() > csFlushSize) {
+std::cout << ParallelDescriptor::MyProc() << "*********** writing commstats." << std::endl;
     WriteCommStats();
   }
-  std::cout << ParallelDescriptor::MyProc() << "::::: after WriteCommStats()" << std::endl;
+}
+
+
+void Profiler::AddNameTag(CommFuncType cft, std::string name) {
+  if(OnExcludeList(cft)) {
+    return;
+  }
+  CommStats cs(cft, 0, 0, ParallelDescriptor::second());
+  vCommStats.push_back(cs);
+  CommStats::nameTags.push_back(std::make_pair(name, vCommStats.size() - 1));
 }
 
 
@@ -797,6 +815,21 @@ void Profiler::AddAllReduce(CommFuncType cft, int size) {
 Profiler::CommFuncType Profiler::CommStats::StringToCFT(const std::string &s) {
   return CommStats::cftNames[s];
 }
+
+
+void Profiler::CommStats::Filter(CommFuncType cft) {
+  if( ! OnExcludeList(cft)) {
+    CommStats::cftExclude.insert(cft);
+  }
+}
+
+
+void Profiler::CommStats::UnFilter(CommFuncType cft) {
+  if(OnExcludeList(cft)) {
+    CommStats::cftExclude.erase(cft);
+  }
+}
+
 
 
 

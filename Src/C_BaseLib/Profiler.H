@@ -52,6 +52,7 @@ class Profiler
       GatherTi,
       ScatterTsT1si,
       Barrier,
+      NameTag,
       AllCFTypes,
       NoCFTypes
     };
@@ -67,11 +68,14 @@ class Profiler
                     timeStamp(ts) { }
       static std::string CFTToString(CommFuncType cft);
       static CommFuncType StringToCFT(const std::string &s);
+      static void Filter(CommFuncType cft);
+      static void UnFilter(CommFuncType cft);
 
       static std::map<std::string, CommFuncType> cftNames;
       static std::set<CommFuncType> cftExclude;
       static int barrierNumber;
       static std::vector<std::pair<std::string,int> > barrierNames;  // [name,index]
+      static std::vector<std::pair<std::string,int> > nameTags;  // [name,index]
       CommFuncType cfType;
       int commpid, size, tag;
       Real timeStamp;
@@ -89,6 +93,7 @@ class Profiler
     static void AddCommStat(CommFuncType cft, int pid, int size);
     static void AddCommStat(CommFuncType cft, int pid, int size, int tag);
     static void AddBarrier(CommFuncType cft, std::string message);
+    static void AddNameTag(CommFuncType cft, std::string name);
     static void AddAllReduce(CommFuncType cft, int size);
 
     void start();
@@ -155,6 +160,7 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
     case GatherTi:       return "GatherTi";
     case ScatterTsT1si:  return "ScatterTsT1si";
     case Barrier:        return "Barrier";
+    case NameTag:        return "NameTag";
     case AllCFTypes:     return "AllCFTypes";
     case NoCFTypes:      return "NoCFTypes";
   }
@@ -189,6 +195,9 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size) { Profiler::AddAllReduce(cft, size); }
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
                           Profiler::AddCommStat(cft, pid, size); }
+#define BL_COMM_PROFILE_NAMETAG(cft, message) { Profiler::AddNameTag(cft, message); }
+#define BL_COMM_PROFILE_FILTER(cft) { Profiler::CommStats::Filter(cft); }
+#define BL_COMM_PROFILE_UNFILTER(cft) { Profiler::CommStats::UnFilter(cft); }
 
 #else
 
@@ -231,6 +240,9 @@ class Profiler
 #define BL_COMM_PROFILE_BARRIER(cft, message)
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size)
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid)
+#define BL_COMM_PROFILE_NAMETAG(cft, message)
+#define BL_COMM_PROFILE_FILTER(cft)
+#define BL_COMM_PROFILE_UNFILTER(cft)
 
 #endif
 
