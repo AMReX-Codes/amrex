@@ -281,7 +281,7 @@ public:
 
     void AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min = 0) const;
 
-    void AssignDensityDoit (PArray<MultiFab>& mf, PBox& data, int ncomp, int lev_min = 0) const;
+    void AssignDensityDoit (PArray<MultiFab>& mf, PMap& data, int ncomp, int lev_min = 0) const;
 
     void MultiplyParticleMass (int lev, Real mult);
 
@@ -755,11 +755,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             {
                 while (!nparticles.empty())
                 {
-                    ParticleType& p = nparticles.front();
+                    ParticleType& p = nparticles.back();
     
                     m_particles[p.m_lev][p.m_grid].push_back(p);
     
-                    nparticles.pop_front();
+                    nparticles.pop_back();
                 }
 
                 PBox().swap(nparticles);
@@ -785,11 +785,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
         {
             while (!nparticles.empty())
             {
-                ParticleType& p = nparticles.front();
+                ParticleType& p = nparticles.back();
 
                 m_particles[p.m_lev][p.m_grid].push_back(p);
 
-                nparticles.pop_front();
+                nparticles.pop_back();
             }
 
             PBox().swap(nparticles);
@@ -2208,7 +2208,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
     //
     // This is the "data" needed by other MPI procs.
     //
-    PBox data;
+    PMap data;
 
     const Real stime = ParallelDescriptor::second();
     //
@@ -2495,7 +2495,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                 if (isects.size() == 0)
                                     continue;
                                 const int grid = isects[0].first; 
-                                if (mf[lev_index+1].DistributionMap()[grid] == ParallelDescriptor::MyProc())
+                                const int who  = mf[lev_index+1].DistributionMap()[grid];
+
+                                if (who == ParallelDescriptor::MyProc())
                                 {
                                     //
                                     // Sum up mass in first component.
@@ -2522,7 +2524,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     for (int n = 1; n < ncomp; n++)
                                         pb.m_data[n] = p.m_data[n] * p.m_data[0] * ffracs[j];
 
-                                    data.push_back(pb);
+                                    data[who].push_back(pb);
                                 }
                             }
                         }
@@ -2557,8 +2559,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                 mf[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects);
                                 if (isects.size() == 0)
                                     continue;
-                                const int grid = isects[0].first; 
-                                if (mf[lev_index-1].DistributionMap()[grid] == ParallelDescriptor::MyProc())
+                                const int grid = isects[0].first;
+                                const int who  = mf[lev_index-1].DistributionMap()[grid];
+                                if (who == ParallelDescriptor::MyProc())
                                 {
                                     //
                                     // Sum up mass in first component.
@@ -2585,7 +2588,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     for (int n = 1; n < ncomp; n++)
                                         pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[j];
 
-                                    data.push_back(pb);
+                                    data[who].push_back(pb);
                                 }
                             }
                         }
@@ -2646,7 +2649,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                 // region is always going to be updated if we have a
                                 // particle in a cell bordering a Fine->Crse boundary.
                                 //
-                                if (mf[lev_index-1].DistributionMap()[cgrid[i]] == ParallelDescriptor::MyProc())
+                                const int who = mf[lev_index-1].DistributionMap()[cgrid[i]];
+
+                                if (who == ParallelDescriptor::MyProc())
                                 {
                                     if (!mf[lev_index-1][cgrid[i]].box().contains(ccells[i])) continue;
                                     //
@@ -2674,7 +2679,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                     for (int n = 1; n < ncomp; n++)
                                         pb.m_data[n] = p.m_data[n] * p.m_data[0] * cfracs[i];
 
-                                    data.push_back(pb);
+                                    data[who].push_back(pb);
                                 }
 
                                 sum_crse += cfracs[i];
@@ -2791,7 +2796,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
 
                                 for (int j = 0; j < fcells.size(); j++)
                                 {
-                                    if (mf[lev_index+1].DistributionMap()[fgrid[j]] == ParallelDescriptor::MyProc())
+                                    const int who = mf[lev_index+1].DistributionMap()[fgrid[j]];
+
+                                    if (who == ParallelDescriptor::MyProc())
                                     {
                                         //
                                         // Sum up mass in first component.
@@ -2818,7 +2825,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                         for (int n = 1; n < ncomp; n++)
                                             pb.m_data[n] = p.m_data[n] * p.m_data[0] * fracs[i] * ffracs[j];
 
-                                        data.push_back(pb);
+                                        data[who].push_back(pb);
                                     }
 
                                     sum += fracs[i] * ffracs[j];
@@ -2837,7 +2844,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
     // This "may" touch ghost cells so we want to do it before
     // the SumBoundary() and SumPeriodicBoundary() stuff.
     //
-    AssignDensityDoit(mf,data,ncomp, lev_min);
+    AssignDensityDoit(mf,data,ncomp,lev_min);
 
     for (int lev = lev_min; lev <= finest_level; lev++)
     {
@@ -2890,13 +2897,16 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
 // real particle level, while mf may start at a fine level (e.g. lvls 1 and 2).
 // Consequently, we must subtract lev_min from m_lev to get the mf lev.
 //
+// We only use: m_lev, m_grid, m_cell & m_data[0..ncomp-1] from the particles.
+//
+//
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
-                                         ParticleContainer<N>::PBox& data,
-                                         int                         ncomp,
-                                         int                         lev_min) const
+ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>& mf,
+                                         PMap&             data,
+                                         int               ncomp,
+                                         int               lev_min) const
 {
     BL_ASSERT(N >= ncomp);
 
@@ -2914,40 +2924,23 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
     //
     const int MyProc = ParallelDescriptor::MyProc();
 
-    Array<int> Snds(NProcs,0);
-    Array<int> Rcvs(NProcs,0);
+    Array<int> Snds(NProcs,0), Rcvs(NProcs,0);
 
-    for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
+    int NumSnds = 0, NumRcvs = 0;
+
+    for (typename PMap::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
     {
-        const int lev = it->m_lev - lev_min;
-        const int grd = it->m_grid;
-
-        BL_ASSERT(lev >= 0 && lev < mf.size());
-        BL_ASSERT(grd >= 0 && grd < mf[lev].size());
-
-        const int who = mf[lev].DistributionMap()[grd];
-
-        BL_ASSERT(who != MyProc);
-        BL_ASSERT(mf[lev].fabbox(grd).contains(it->m_cell));
-
-        Snds[who]++;
+        NumSnds        += it->second.size();
+        Snds[it->first] = it->second.size();
     }
 
-    BL_ASSERT(Snds[MyProc] == 0);
+    ParallelDescriptor::ReduceIntMax(NumSnds);
 
-    long maxsendcount = 0;
-    for (int i = 0; i < NProcs; i++)
-        maxsendcount += Snds[i];
-    ParallelDescriptor::ReduceLongMax(maxsendcount);
-
-    if (maxsendcount == 0)
-    {
+    if (NumSnds == 0)
         //
         // There's no parallel work to do.
         //
-        BL_ASSERT(data.empty());
         return;
-    }
 
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
@@ -2958,19 +2951,32 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
                                  ParallelDescriptor::Communicator()) );
     BL_ASSERT(Rcvs[MyProc] == 0);
 
-    int NumRcvs = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumRcvs += Rcvs[i];
+    typedef std::map<int,int> IntIntMap;
 
-    int NumSnds = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumSnds += Snds[i];
+    IntIntMap SndCnts, RcvCnts, rOffset;
 
-    BL_ASSERT(data.size() == NumSnds);
+    for (int i = 0; i < NProcs; i++)
+        if (Snds[i] > 0)
+            SndCnts[i] = Snds[i];
+
+    for (int i = 0; i < NProcs; i++)
+    {
+        if (Rcvs[i] > 0)
+        {
+            RcvCnts[i] = Rcvs[i];
+            rOffset[i] = NumRcvs;
+            NumRcvs   += Rcvs[i];
+        }
+    }
     //
-    // The data we receive from ParticleBases.
+    // Don't need these anymore.
     //
-    // We only use: m_lev, m_grid, m_cell & m_data[0..ncomp-1].
+    Array<int>().swap(Snds);
+    Array<int>().swap(Rcvs);
+    //
+    // The data we want to receive.
+    //
+    // We only use: m_lev, m_grid, m_cell & m_data[0..ncomp-1] from the particles.
     //
     const int iChunkSize = 2 + BL_SPACEDIM;
     const int rChunkSize = ncomp;
@@ -2978,104 +2984,87 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
     Array<int>  irecvdata (NumRcvs*iChunkSize);
     Array<Real> rrecvdata (NumRcvs*rChunkSize);
 
-    Array<int>   offset(NProcs);
-    Array<int>  sdispls(NProcs);
-    Array<int>  rdispls(NProcs);
-    Array<int> sendcnts(NProcs);
-    Array<int> recvcnts(NProcs);
+    Array<int>         index(2*RcvCnts.size());
+    Array<MPI_Status>  stats(2*RcvCnts.size());
+    Array<MPI_Request> rreqs(2*RcvCnts.size());
 
+    const int SeqNumI = ParallelDescriptor::SeqNum();
+    const int SeqNumR = ParallelDescriptor::SeqNum();
+    //
+    // Post the receives.
+    //
+    int idx = 0;
+    for (IntIntMap::const_iterator it = RcvCnts.begin(), End = RcvCnts.end(); it != End; ++it, ++idx)
     {
-        //
-        // First send/recv "int" data.
-        //
-        Array<int> senddata (NumSnds*iChunkSize);
+        const int Who  = it->first;
+        const int iCnt = it->second   * iChunkSize;
+        const int rCnt = it->second   * rChunkSize;
+        const int iIdx = rOffset[Who] * iChunkSize;
+        const int rIdx = rOffset[Who] * rChunkSize;
 
-        offset[0] = sdispls[0] = rdispls[0] = 0;
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        BL_ASSERT(iCnt > 0);
+        BL_ASSERT(rCnt > 0);
+        BL_ASSERT(iCnt < std::numeric_limits<int>::max());
+        BL_ASSERT(rCnt < std::numeric_limits<int>::max());
 
-        for (int i = 0; i < NProcs; i++)
-        {
-            recvcnts[i] = Rcvs[i] * iChunkSize;
-            sendcnts[i] = Snds[i] * iChunkSize;
-
-            if (i > 0)
-            {
-                offset [i] = offset [i-1] + sendcnts[i-1];
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
-            }
-        }
-
-        for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
-        {
-            const int who  = mf[it->m_lev - lev_min].DistributionMap()[it->m_grid];
-            const int ioff = offset[who];
-
-            senddata[ioff+0] = it->m_lev  - lev_min;
-            senddata[ioff+1] = it->m_grid;
-
-            D_TERM(senddata[ioff+2] = it->m_cell[0];,
-                   senddata[ioff+3] = it->m_cell[1];,
-                   senddata[ioff+4] = it->m_cell[2];);
-
-            offset[who] += iChunkSize;
-        }
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      NumRcvs == 0 ? 0 : irecvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      ParallelDescriptor::Communicator()) );
+        rreqs[2*idx+0] = ParallelDescriptor::Arecv(&irecvdata[iIdx],iCnt,Who,SeqNumI).req();
+        rreqs[2*idx+1] = ParallelDescriptor::Arecv(&rrecvdata[rIdx],rCnt,Who,SeqNumR).req();
     }
+    //
+    // Send the data.
+    //
+    Array<int>  isenddata;
+    Array<Real> rsenddata;
 
+    for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
     {
-        //
-        // Now send/recv the Real data.
-        //
-        Array<Real> senddata (NumSnds*rChunkSize);
+        const int Who  = it->first;
+        const int iCnt = it->second * iChunkSize;
+        const int rCnt = it->second * rChunkSize;
 
-        offset[0] = sdispls[0] = rdispls[0] = 0;
+        BL_ASSERT(iCnt > 0);
+        BL_ASSERT(rCnt > 0);
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        BL_ASSERT(iCnt < std::numeric_limits<int>::max());
+        BL_ASSERT(rCnt < std::numeric_limits<int>::max());
 
-        for (int i = 0; i < NProcs; i++)
+        isenddata.resize(iCnt);
+        rsenddata.resize(rCnt);
+
+        PBox& pbox = data[Who];
+
+        int ioff = 0, roff = 0;
+        for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
         {
-            recvcnts[i] = Rcvs[i] * rChunkSize;
-            sendcnts[i] = Snds[i] * rChunkSize;
+            const ParticleType& p = *it;
 
-            if (i > 0)
-            {
-                offset [i] = offset [i-1] + sendcnts[i-1];
-                rdispls[i] = rdispls[i-1] + recvcnts[i-1];
-                sdispls[i] = sdispls[i-1] + sendcnts[i-1];
-            }
-        }
+            isenddata[ioff+0] = p.m_lev  - lev_min;
+            isenddata[ioff+1] = p.m_grid;
 
-        for (typename PBox::const_iterator it = data.begin(), End = data.end(); it != End; ++it)
-        {
-            const int who  = mf[it->m_lev - lev_min].DistributionMap()[it->m_grid];
-            const int ioff = offset[who];
+            D_TERM(isenddata[ioff+2] = p.m_cell[0];,
+                   isenddata[ioff+3] = p.m_cell[1];,
+                   isenddata[ioff+4] = p.m_cell[2];);
+
+            ioff += iChunkSize;
 
             for (int n = 0; n < ncomp; n++)
-                senddata[ioff+n] = it->m_data[n];
+                rsenddata[roff+n] = p.m_data[n];
 
-            offset[who] += rChunkSize;
+            roff += ncomp;
         }
-        //
-        // We can free up memory held by "data" -- don't need it anymore.
-        //
-        PBox().swap(data);
 
-        BL_MPI_REQUIRE( MPI_Alltoallv(NumSnds == 0 ? 0 : senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                      NumRcvs == 0 ? 0 : rrecvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                      ParallelDescriptor::Communicator()) );
+        PBox().swap(pbox);
+
+        ParallelDescriptor::Send(isenddata.dataPtr(),iCnt,Who,SeqNumI);
+        ParallelDescriptor::Send(rsenddata.dataPtr(),rCnt,Who,SeqNumR);
+    }
+    //
+    // Receive the data.
+    //
+    for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed)
+    {
+        ParallelDescriptor::Waitsome(rreqs, completed, index, stats);
     }
     //
     // Now update "mf".
@@ -3101,7 +3090,8 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>&           mf,
             rdata += rChunkSize;
         }
     }
-#endif
+
+#endif /*BL_USE_MPI*/
 }
 
 template <int N>
@@ -4010,11 +4000,7 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
     //
     while (!virts.empty())
     {
-        //
-        // Copy the first element, then remove it.
-        //
-        ParticleType p = virts.front();
-        virts.pop_front();
+        ParticleType& p = virts.back();
 
         if (p.m_id > 0)
         {
@@ -4041,20 +4027,14 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
             if (who == MyProc)
             {
                 m_particles[p.m_lev][p.m_grid].push_back(p);
-                //
-                // Invalidate the particle so we can reclaim its space.
-                //
-                p.m_id = -p.m_id;
             }
             else
             {
                 not_ours[who].push_back(p);
-                //
-                // Invalidate the particle so we can reclaim its space.
-                //
-                p.m_id = -p.m_id;
             }
         }
+
+        virts.pop_back();
     }
 
     if (ParallelDescriptor::NProcs() == 1)
@@ -4429,13 +4409,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
         for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
         {
-            int   grid = pmap_it->first;
-            PBox& pbox = pmap_it->second;
-            //
-            // Remove any invalid particles from front of container.
-            //
-            while (!pbox.empty() && pbox.front().m_id <= 0)
-                pbox.pop_front();
+            const int grid = pmap_it->first;
+            PBox&     pbox = pmap_it->second;
 
             for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; )
             {
@@ -4462,7 +4437,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                                         // The particle has left the domain; invalidate it.
                                         // This typically only happens on a coarse timestep.
                                         //
-                                        p.m_id = -1;
+                                        p.m_id = -p.m_id;
                                     }
                                 }
                             }
@@ -4473,33 +4448,37 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                             }
                         }
                     }
-                    //
-                    // The owner of the particle is the CPU owning the finest grid
-                    // in state data that contains the particle.
-                    //
-                    const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
 
-                    if (who == MyProc)
+                    if (p.m_id > 0)
                     {
-                        if (p.m_lev != lev || p.m_grid != grid)
+                        //
+                        // The owner of the particle is the CPU owning the finest grid
+                        // in state data that contains the particle.
+                        //
+                        const int who = m_amr->getLevel(p.m_lev).get_new_data(0).DistributionMap()[p.m_grid];
+
+                        if (who == MyProc)
                         {
-                            //
-                            // We own it but must shift it to another place.
-                            //
-                            m_particles[p.m_lev][p.m_grid].push_back(p);
+                            if (p.m_lev != lev || p.m_grid != grid)
+                            {
+                                //
+                                // We own it but must shift it to another place.
+                                //
+                                m_particles[p.m_lev][p.m_grid].push_back(p);
+                                //
+                                // Invalidate the particle so we can reclaim its space.
+                                //
+                                p.m_id = -p.m_id;
+                            }
+                        }
+                        else
+                        {
+                            not_ours[who].push_back(p);
                             //
                             // Invalidate the particle so we can reclaim its space.
                             //
                             p.m_id = -p.m_id;
                         }
-                    }
-                    else
-                    {
-                        not_ours[who].push_back(p);
-                        //
-                        // Invalidate the particle so we can reclaim its space.
-                        //
-                        p.m_id = -p.m_id;
                     }
                 }
 
@@ -4507,6 +4486,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                 {
                     if (it != pbox.begin())
                     {
+
                         BL_ASSERT(pbox.front().m_id > 0);
                         std::swap(pbox.front(),p);
                     }
@@ -4589,17 +4569,17 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
     //
     Array<int> Snds(NProcs,0), Rcvs(NProcs,0);
 
-    int total_send_count = 0, total_recv_count = 0;
+    int NumSnds = 0, NumRcvs = 0;
 
     for (typename PMap::const_iterator it = not_ours.begin(), End = not_ours.end(); it != End; ++it)
     {
-        Snds[it->first]   = it->second.size();
-        total_send_count += it->second.size();
+        NumSnds        += it->second.size();
+        Snds[it->first] = it->second.size();
     }
 
-    ParallelDescriptor::ReduceIntMax(total_send_count);
+    ParallelDescriptor::ReduceIntMax(NumSnds);
 
-    if (total_send_count == 0)
+    if (NumSnds == 0)
         //
         // There's no parallel work to do.
         //
@@ -4626,9 +4606,9 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
     {
         if (Rcvs[i] > 0)
         {
-            RcvCnts[i]        = Rcvs[i];
-            rOffset[i]        = total_recv_count;
-            total_recv_count += Rcvs[i];
+            RcvCnts[i] = Rcvs[i];
+            rOffset[i] = NumRcvs;
+            NumRcvs   += Rcvs[i];
         }
     }
     //
@@ -4658,7 +4638,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
         //
         // Allocate data for rcvs as one big chunk.
         //
-        Array<int> recvdata(total_recv_count * iChunkSize);
+        Array<int> recvdata(NumRcvs * iChunkSize);
         //
         // Post receives.
         //
@@ -4679,6 +4659,8 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
         //
         // Send the integer data.
         //
+        Array<int> senddata;
+
         for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
         {
             const int Who = it->first;
@@ -4688,7 +4670,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
             BL_ASSERT(Who >= 0 && Who < NProcs);
             BL_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-            Array<int> senddata(Cnt);
+            senddata.resize(Cnt);
 
             const PBox& pbox = not_ours[Who];
 
@@ -4760,7 +4742,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
         //
         // Allocate data for rcvs as one big chunk.
         //
-        Array<Real> recvdata(total_recv_count * rChunkSize);
+        Array<Real> recvdata(NumRcvs * rChunkSize);
         //
         // Post receives.
         //
@@ -4780,6 +4762,8 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
         //
         // Send the Real data.
         //
+        Array<Real> senddata;
+
         for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
         {
             const int Who = it->first;
@@ -4789,7 +4773,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
             BL_ASSERT(Who >= 0 && Who < NProcs);
             BL_ASSERT(Cnt < std::numeric_limits<int>::max());
             
-            Array<Real> senddata(Cnt);
+            senddata.resize(Cnt);
 
             PBox& pbox = not_ours[Who];
 
