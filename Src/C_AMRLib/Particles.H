@@ -28,8 +28,10 @@
 
 namespace
 {
-    std::string aggregation_type = "";
-    int aggregation_buffer = 1;
+    std::string aggregation_type   = "";
+    int         aggregation_buffer = 1;
+    const int   GhostParticleID    = 2000000000;
+    const int   VirtualParticleID  = 1000000000;
 }
 
 struct ParticleBase
@@ -3605,7 +3607,7 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             {
                 // Assert that the particle being removed is a ghost particle;
                 // the ghost particle is no longer in relevant ghost cells for this grid.
-                BL_ASSERT(p.m_id == 2000000000);
+                BL_ASSERT(p.m_id == GhostParticleID);
                 p.m_id = -1;
             }
         }
@@ -3995,9 +3997,7 @@ ParticleContainer<N>::AddParticlesAtLevel (int   level,
     // The valid particles that we don't own.
     //
     PMap not_ours;
-    //
-    // This code is mostly stolen from Redistribute.
-    //
+
     while (!virts.empty())
     {
         ParticleType& p = virts.back();
@@ -4055,7 +4055,10 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
     BL_ASSERT(level > 0);
     BL_ASSERT(virts.empty());
 
-    if (level >= m_particles.size()) //this level could exist and simply have no particles
+    if (level >= m_particles.size())
+        //
+        // This level could exist and simply have no particles.
+        //
         return;
     //
     // Read these from the parm file if we haven't done so yet.
@@ -4073,7 +4076,7 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
     //
     BoxArray buffer = BoxLib::complementIn(m_amr->Geom(level).Domain(), m_amr->boxArray(level));
 
-    buffer = buffer.grow(aggregation_buffer);
+    buffer.grow(aggregation_buffer);
 
     const PMap& pmap = m_particles[level];
 
@@ -4095,56 +4098,68 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
         {
             if (buffer.contains(it->m_cell))
             {
-                // It's in the no-aggregation buffer
-                // Create a copy
-                ParticleType p = *it;
-                // Set its id to 1 billion so it's clear this is a virt.
-                p.m_id = 1000000000;
-                virts.push_back(p);
+                //
+                // It's in the no-aggregation buffer.
+                //
+                virts.push_back(*it);
+                //
+                // Set its id to indicate that it's a virt.
+                //
+                virts.back().m_id = VirtualParticleID;
             }
             else
             {
                 if (aggregation_type == "None")
                 {
-                    // No aggregation, simply clone the particle
-                    // Create a copy
-                    ParticleType p = *it;
-                    // Set its id to 1 billion so it's clear this is a virt.
-                    p.m_id = 1000000000;
-                    virts.push_back(p);
+                    //
+                    // No aggregation.  Simply clone the particle.
+                    //
+                    virts.push_back(*it);
+                    //
+                    // Set its id to indicate that it's a virt.
+                    //
+                    virts.back().m_id = VirtualParticleID;
                 }
                 else if (aggregation_type == "Cell")
                 {
                     //
-                    // Note that Cell aggregation assumes that p.m_data[0] is mass
-                    // and that all other components should be combined in a mass-weighted
+                    // Note that Cell aggregation assumes that p.m_data[0] is mass and
+                    // that all other components should be combined in a mass-weighted
                     // average.
                     //
                     agg_map_it = agg_map.find(it->m_cell);
 
                     if (agg_map_it == agg_map.end())
                     {
-                        //Add the particle
+                        //
+                        // Add the particle.
+                        //
                         ParticleType p = *it;
-                        // Set its id to 1 billion so it's clear this is a virt.
-                        p.m_id = 1000000000;
+                        //
+                        // Set its id to indicate that it's a virt.
+                        //
+                        p.m_id = VirtualParticleID;
                         agg_map[p.m_cell] = p;
                     }
                     else
                     {
                         BL_ASSERT(agg_map_it != agg_map.end());
-                        ParticleType  pnew = *it;
-                        ParticleType& pold = agg_map_it->second;
-                        Real old_mass = pold.m_data[0];
-                        Real new_mass = pnew.m_data[0];
-                        Real total_mass = old_mass + new_mass;
-                        // Set the position to the center of mass
+                        const ParticleType&  pnew       = *it;
+                        ParticleType&        pold       = agg_map_it->second;
+                        const Real           old_mass   = pold.m_data[0];
+                        const Real           new_mass   = pnew.m_data[0];
+                        const Real           total_mass = old_mass + new_mass;
+                        //
+                        // Set the position to the center of mass.
+                        //
                         for (int i = 0; i < BL_SPACEDIM; i++)
                         {
                             pold.m_pos[i] = (old_mass*pold.m_pos[i] + new_mass*pnew.m_pos[i])/total_mass;
                         }
-                        BL_ASSERT(ParticleBase::Index(pold,level,m_amr)==it->m_cell);
-                        // Set the metadata (presumably velocity) to the mass-weighted average
+                        BL_ASSERT(ParticleBase::Index(pold,level,m_amr) == it->m_cell);
+                        //
+                        // Set the metadata (presumably velocity) to the mass-weighted average.
+                        //
                         for (int i = 1; i < N; i++)
                         {
                             pold.m_data[i] = (old_mass*pold.m_data[i] + new_mass*pnew.m_data[i])/total_mass;
@@ -4160,12 +4175,13 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                 {
                     BoxLib::Abort("Unknown Particle Aggregation mode");
                 }
-                
             }
         }
         if (aggregation_type == "Cell")
         {
-            //Add the aggregated particles to the virtuals
+            //
+            // Add the aggregated particles to the virtuals.
+            //
             for (typename std::map<IntVect,ParticleType>::iterator agg_it = agg_map.begin(), aggEnd = agg_map.end(); agg_it != aggEnd; ++agg_it)
             {
                 virts.push_back((*agg_it).second);
@@ -4183,7 +4199,10 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
     BL_ASSERT(ghosts.empty());
     BL_ASSERT(level < m_amr->finestLevel());
 
-    if (level >= m_particles.size()) //this level could exist and simply have no particles
+    if (level >= m_particles.size())
+        //
+        // This level could exist and simply have no particles.
+        //
         return;
     //
     // Copy and grow the box array for the finer level.
@@ -4224,9 +4243,9 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
                 //
                 ParticleType p = *it;
                 //
-                // Set its id to 2 billion so it's clear that this is a ghost.
+                // Set its id to indicate that it's a ghost.
                 //
-                p.m_id = 2000000000;
+                p.m_id = GhostParticleID;
                 //
                 // Set its position.
                 //
