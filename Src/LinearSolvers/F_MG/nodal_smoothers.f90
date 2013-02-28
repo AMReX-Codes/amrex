@@ -278,7 +278,7 @@ contains
          !
          allocate(wrk(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
 
-         !$OMP PARALLEL DO PRIVATE(i,j,k,dd,jface,kface,doit) IF((hi(3)-lo(3)).ge.3)
+         !$OMP PARALLEL DO PRIVATE(i,j,k,dd,jface,kface,doit)
          do k = lo(3),hi(3)
             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
@@ -321,7 +321,7 @@ contains
          !
          ! Use this for Gauss-Seidel iteration.
          !
-         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit) IF((hi(3)-lo(3)).ge.3)
+         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit)
          do k = lo(3),hi(3)
             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
@@ -407,7 +407,7 @@ contains
           !
          allocate(wrk(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
 
-         !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface,doit,dd) IF((hi(3)-lo(3)).ge.3)
+         !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface,doit,dd)
           do k = lo(3),hi(3)
              kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 

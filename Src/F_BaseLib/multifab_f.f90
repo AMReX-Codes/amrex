@@ -1640,29 +1640,24 @@ contains
      real(dp_t), intent(inout) :: out(:,:,:,:)
      real(dp_t), intent(in   ) ::  in(:,:,:,:)
      integer                   :: i, j, k, n
-     integer :: s(4)
      !
      ! out = out + in 
      !
-     s = shape(out)
-     !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-     do n = 1, s(4)
-        do k = 1, s(3)
-           do j = 1, s(2)
-              do i = 1, s(1)
+     do n = 1, size(out,4)
+        do k = 1, size(out,3)
+           do j = 1, size(out,2)
+              do i = 1, size(out,1)
                  out(i,j,k,n) = out(i,j,k,n) + in(i,j,k,n)
               end do
            end do
         end do
      end do
-     !$OMP END PARALLEL DO
    end subroutine sum_d
 
   subroutine cpy_d(out, in, filter)
      real(dp_t), intent(inout) :: out(:,:,:,:)
      real(dp_t), intent(in   ) ::  in(:,:,:,:)
      integer                   :: i, j, k, n
-     integer :: s(4)
     interface
        subroutine filter(out, in)
          use bl_types
@@ -1674,18 +1669,15 @@ contains
     if ( present(filter) ) then
        call filter(out,in)
     else
-       s = shape(out)
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-       do n = 1, s(4)
-          do k = 1, s(3)
-             do j = 1, s(2)
-                do i = 1, s(1)
+       do n = 1, size(out,4)
+          do k = 1, size(out,3)
+             do j = 1, size(out,2)
+                do i = 1, size(out,1)
                    out(i,j,k,n) = in(i,j,k,n)
                 end do
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     end if
   end subroutine cpy_d
 
@@ -1772,22 +1764,18 @@ contains
     real(dp_t),intent(in)    :: src(:,:,:,:)
     real(dp_t),intent(inout) :: dst(:)
     integer,intent(in)       :: ic
-    integer                  :: i,j,k,n,c,s(4),s12,s123
-    s = shape(src)
-    s12 = s(1)*s(2)
-    s123 = s12*s(3)
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n,c) COLLAPSE(2)
-    do n = 1, s(4)
-       do k = 1, s(3)
-          do j = 1, s(2)
-             do i = 1, s(1) 
-                c = ic + (i-1) + (j-1)*s(1) + (k-1)*s12 + (n-1)*s123
+    integer                  :: i,j,k,n,c
+    c = ic
+    do n = 1, size(src,4)
+       do k = 1, size(src,3)
+          do j = 1, size(src,2)
+             do i = 1, size(src,1) 
                 dst(c) = src(i,j,k,n)
+                c = c + 1
              end do
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
   end subroutine reshape_d_4_1
 
   subroutine reshape_d_1_4(dst,src,ic,sh,filter)
@@ -1795,7 +1783,7 @@ contains
     real(dp_t),intent(inout) :: dst(:,:,:,:)
     integer,intent(in)       :: ic
     integer,intent(in)       :: sh(:)
-    integer                  :: i,j,k,n,c,s(4),s12,s123
+    integer                  :: i,j,k,n,c
     real(dp_t), allocatable  :: ptmp(:,:,:,:)
     interface
        subroutine filter(out, in)
@@ -1806,38 +1794,32 @@ contains
     end interface
     optional filter
     if ( size(sh) /= 4 ) call bl_error("reshape_d_1_4: how did this happen?")
-    s = shape(dst)
-    s12 = s(1)*s(2)
-    s123 = s12*s(3)
+    c = ic
     if ( present(filter) ) then
        allocate(ptmp(sh(1),sh(2),sh(3),sh(4)))
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,c) COLLAPSE(2)
-       do n = 1, s(4)
-          do k = 1, s(3)
-             do j = 1, s(2)
-                do i = 1, s(1)
-                   c = ic + (i-1) + (j-1)*s(1) + (k-1)*s12 + (n-1)*s123
+       do n = 1, size(dst,4)
+          do k = 1, size(dst,3)
+             do j = 1, size(dst,2)
+                do i = 1, size(dst,1)
                    ptmp(i,j,k,n) = src(c)
+                   c = c + 1
                 end do
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
        call filter(dst, ptmp)
        deallocate(ptmp)
     else
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,c) COLLAPSE(2)
-       do n = 1, s(4)
-          do k = 1, s(3)
-             do j = 1, s(2)
-                do i = 1, s(1)
-                   c = ic + (i-1) + (j-1)*s(1) + (k-1)*s12 + (n-1)*s123
+       do n = 1, size(dst,4)
+          do k = 1, size(dst,3)
+             do j = 1, size(dst,2)
+                do i = 1, size(dst,1)
                    dst(i,j,k,n) = src(c)
+                   c = c + 1
                 end do
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     end if
   end subroutine reshape_d_1_4
 
@@ -2105,6 +2087,7 @@ contains
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
+    !$omp parallel do private (i,ii,jj,p1,p2)
     do i = 1, bxasc%l_con%ncpy
        ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
        jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
@@ -2112,6 +2095,7 @@ contains
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_d(p1,p2)
     end do
+    !$omp end parallel do
 
     np = parallel_nprocs()
 
@@ -2124,10 +2108,12 @@ contains
     allocate(fb_data%send_buffer(nc*bxasc%r_con%svol))
     allocate(fb_data%recv_buffer(nc*bxasc%r_con%rvol))
 
+    !$omp parallel do private(i,p)
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(fb_data%send_buffer, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
+    !$omp end parallel do
 
     allocate(fb_data%send_request(bxasc%r_con%nsp))
     allocate(fb_data%recv_request(bxasc%r_con%nrp))
@@ -2186,12 +2172,14 @@ contains
 
        call parallel_wait(fb_data%recv_request)
 
+       !$omp parallel do private(i,sh,p)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
           p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
           call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
        end do
+       !$omp end parallel do
 
        fb_data%rcvd = .true.
        deallocate(fb_data%recv_request)
@@ -2218,12 +2206,14 @@ contains
 
        call parallel_wait(fb_data%recv_request)
 
+       !$omp parallel do private(i,sh,p)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
           p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
           call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
        end do
+       !$omp end parallel do
 
        fb_data%rcvd = .true.
        deallocate(fb_data%recv_request)
@@ -4086,7 +4076,7 @@ contains
     real(dp_t), pointer           :: bp(:,:,:,:)
     real(dp_t), pointer           :: cp(:,:,:,:)
 
-    integer :: ii, i, j, k, n, kk, nn, lo(4), hi(4)
+    integer :: ii, i, j, k, n
 
     do ii = 1, nlocal(a%la)
 
@@ -4096,23 +4086,19 @@ contains
        
        ! ap = bp + c1*cp
 
-       lo = lbound(ap)
-       hi = ubound(ap)
-
-       ! The weird kk and nn stuff is to accommodate the buggy Cray compiler
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,kk,nn) COLLAPSE(2)
-       do nn        =1,hi(4)-lo(4)+1
-          do kk     =1,hi(3)-lo(3)+1
-             k = kk + lo(3) - 1
-             n = nn + lo(4) - 1
-             do j   =lo(2),hi(2)
-                do i=lo(1),hi(1)
+       !$OMP PARALLEL PRIVATE(i,j,k,n)
+       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+          !$OMP DO
+          do k = lbound(ap,dim=3), ubound(ap,dim=3)
+             do j = lbound(ap,dim=2), ubound(ap,dim=2)
+                do i = lbound(ap,dim=1), ubound(ap,dim=1)
                    ap(i,j,k,n) = bp(i,j,k,n) + c1 * cp(i,j,k,n)
                 end do
              end do
           end do
+          !$OMP END DO NOWAIT
        end do
-       !$OMP END PARALLEL DO
+       !$OMP END PARALLEL
 
     end do
   end subroutine multifab_saxpy_4
@@ -4121,24 +4107,23 @@ contains
     real(dp_t),     intent(in   ) :: b1
     real(dp_t), pointer           :: ap(:,:,:,:)
     real(dp_t), pointer           :: bp(:,:,:,:)
-    integer :: i, j, k, n, lo(4), hi(4)
+    integer :: i, j, k, n
 
     ! ap = ap + b1*bp
 
-    lo = lbound(ap)
-    hi = ubound(ap)
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) + b1 * bp(i,j,k,n)
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
   end subroutine multifab_saxpy_3_doit
 
@@ -4383,43 +4368,39 @@ contains
     logical, pointer, optional :: lp(:,:,:,:)
     real(dp_t)                 :: r,r1
 
-    integer :: i, j, k, n, kk, nn, lo(4), hi(4)
+    integer :: i, j, k, n
 
     ! maxval(abs(mp))
 
     r1 = 0.0_dp_t
 
-    lo = lbound(ap)
-    hi = ubound(ap)
-
+    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1)
     if ( present(lp) ) then
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n) REDUCTION(MAX : r1) COLLAPSE(2)
-       do n         =lo(4),hi(4)
-          do k      =lo(3),hi(3)
-             do j   =lo(2),hi(2)
-                do i=lo(1),hi(1)
+       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+          !$OMP DO
+          do k = lbound(ap,dim=3), ubound(ap,dim=3)
+             do j = lbound(ap,dim=2), ubound(ap,dim=2)
+                do i = lbound(ap,dim=1), ubound(ap,dim=1)
                    if (lp(i,j,k,n)) r1 = max(r1,abs(ap(i,j,k,n)))
                 end do
              end do
           end do
+          !$OMP END DO NOWAIT
        end do
-       !$OMP END PARALLEL DO
     else
-       ! The weird kk and nn stuff is to accommodate the buggy Cray compiler
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,kk,nn) REDUCTION(MAX : r1) COLLAPSE(2)
-       do nn        =1,hi(4)-lo(4)+1
-          do kk     =1,hi(3)-lo(3)+1
-             k = kk + lo(3) - 1
-             n = nn + lo(4) - 1
-             do j   =lo(2),hi(2)
-                do i=lo(1),hi(1)
+       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+          !$OMP DO
+          do k = lbound(ap,dim=3), ubound(ap,dim=3)
+             do j = lbound(ap,dim=2), ubound(ap,dim=2)
+                do i = lbound(ap,dim=1), ubound(ap,dim=1)
                    r1 = max(r1,abs(ap(i,j,k,n)))
                 end do
              end do
           end do
+          !$OMP END DO NOWAIT
        end do
-       !$OMP END PARALLEL DO
     end if
+    !$OMP END PARALLEL
 
     r = r1
 
@@ -4565,24 +4546,23 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n, lo(4), hi(4)
+    integer :: i, j, k, n
 
     ! ap = ap/bp
 
-    lo = lbound(ap)
-    hi = ubound(ap)
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) / bp(i,j,k,n)
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
   end subroutine multifab_div_div_c_doit
 
@@ -4591,24 +4571,23 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n, lo(4), hi(4)
+    integer :: i, j, k, n
 
     ! ap = ap/b
 
-    lo = lbound(ap)
-    hi = ubound(ap)
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) / b
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
   end subroutine multifab_div_div_s_doit
 
@@ -4742,24 +4721,23 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n, lo(4), hi(4)
+    integer :: i, j, k, n
 
     ! ap = ap*bp
 
-    lo = lbound(ap)
-    hi = ubound(ap)
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) * bp(i,j,k,n)
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
   end subroutine multifab_mult_mult_c_doit
 
@@ -4768,24 +4746,23 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n, lo(4), hi(4)
+    integer :: i, j, k, n
 
     ! ap = ap*b
 
-    lo = lbound(ap)
-    hi = ubound(ap)
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) * b
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
   end subroutine multifab_mult_mult_s_doit
 
@@ -4898,24 +4875,23 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n, lo(4), hi(4)
+    integer :: i, j, k, n
 
     ! ap = ap - bp
 
-    lo = lbound(ap)
-    hi = ubound(ap)
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) - bp(i,j,k,n)
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
   end subroutine multifab_sub_sub_c_doit
 
@@ -4924,24 +4900,23 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n, lo(4), hi(4)
+    integer :: i, j, k, n
 
     ! ap = ap - b
 
-    lo = lbound(ap)
-    hi = ubound(ap)
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) - b
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
   end subroutine multifab_sub_sub_s_doit
 
@@ -5032,24 +5007,23 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n, lo(4), hi(4)
+    integer :: i, j, k, n
 
     ! ap = ap + bp
 
-    lo = lbound(ap)
-    hi = ubound(ap)
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) + bp(i,j,k,n)
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
   end subroutine multifab_plus_plus_c_doit
 
@@ -5058,24 +5032,23 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n, lo(4), hi(4)
+    integer :: i, j, k, n
 
     ! ap = ap + b
 
-    lo = lbound(ap)
-    hi = ubound(ap)
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP DO
+       do k = lbound(ap,dim=3), ubound(ap,dim=3)
+          do j = lbound(ap,dim=2), ubound(ap,dim=2)
+             do i = lbound(ap,dim=1), ubound(ap,dim=1)
                 ap(i,j,k,n) = ap(i,j,k,n) + b
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
   end subroutine multifab_plus_plus_s_doit
 

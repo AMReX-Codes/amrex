@@ -356,7 +356,7 @@ contains
              do m = 0, ir(1)-1
                 fac = (ir(1)-m) * fac1
                 if (m == 0) fac = HALF * fac
-                !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine,jface,kface,doit) IF((hi(3)-lo(3)).ge.3)
+                !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine,jface,kface,doit)
                 do k = lo(3),hi(3)
                    kfine = k*ir(3)
 
@@ -412,7 +412,7 @@ contains
                 if (m == 0) fac = HALF * fac
                 !$OMP PARALLEL DO PRIVATE(i,j,k,ifine,jfine,kfine) &
                 !$OMP PRIVATE(add_lo_x,add_lo_y,add_lo_z,add_hi_x,add_hi_y,add_hi_z) &
-                !$OMP PRIVATE(ileft,irght,jbot,jtop,kdwn,kup,jface,kface,doit)  IF((hi(3)-lo(3)).ge.3)
+                !$OMP PRIVATE(ileft,irght,jbot,jtop,kdwn,kup,jface,kface,doit)
                 do k = lo(3),hi(3)
                    kfine = k*ir(3)
 
