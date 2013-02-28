@@ -66,6 +66,7 @@ class Profiler
       CommStats(CommFuncType cft, int commpid, int size, int tag, Real ts)
                   : cfType(cft), commpid(commpid), size(size), tag(tag),
                     timeStamp(ts) { }
+
       static std::string CFTToString(CommFuncType cft);
       static CommFuncType StringToCFT(const std::string &s);
       static void Filter(CommFuncType cft);
@@ -76,10 +77,12 @@ class Profiler
       static int barrierNumber;
       static std::vector<std::pair<std::string,int> > barrierNames;  // [name,index]
       static std::vector<std::pair<std::string,int> > nameTags;  // [name,index]
+
       CommFuncType cfType;
       int commpid, size, tag;
       Real timeStamp;
     };
+
 
     explicit Profiler(const std::string &funcname);
 
@@ -90,11 +93,11 @@ class Profiler
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
     static void WriteCommStats();
 
-    static void AddCommStat(CommFuncType cft, int pid, int size);
-    static void AddCommStat(CommFuncType cft, int pid, int size, int tag);
-    static void AddBarrier(CommFuncType cft, std::string message);
-    static void AddNameTag(CommFuncType cft, std::string name);
-    static void AddAllReduce(CommFuncType cft, int size);
+    static void AddCommStat(const CommFuncType cft, const int pid, const int size);
+    static void AddCommStat(const CommFuncType cft, const int pid, const int size, const int tag);
+    static void AddBarrier(const std::string &message, const bool bc);
+    static void AddNameTag(const std::string &name);
+    static void AddAllReduce(const CommFuncType cft, const int size);
 
     void start();
     void stop();
@@ -108,9 +111,11 @@ class Profiler
     Real bltstart, bltelapsed;
     std::string fname;
     bool bRunning;
+
     static bool bWriteAll, bWriteFabs, bWriteBLT;
+    static bool bFirstCommWriteH, bFirstCommWriteD;
     static bool bInitialized;
-    static int currentStep;
+    static int currentStep, csFlushSize, nProfFiles;
     static Real pctTimeLimit;
     static Real calcRunTime;
     static Real startTime;
@@ -119,7 +124,6 @@ class Profiler
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
     static std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
     static std::vector<CommStats> vCommStats;
-    static bool bFirstCommWriteH, bFirstCommWriteD;
 
     static void WriteHeader(std::ostream &os, const int colWidth,
                             const Real maxlen, const bool bwriteavg);
@@ -191,11 +195,11 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_TTAG(cft, T, n, pid, tag) {                             \
                           Profiler::AddCommStat(cft, pid, n * sizeof(T), tag);  \
 }
-#define BL_COMM_PROFILE_BARRIER(cft, message) { Profiler::AddBarrier(cft, message); }
+#define BL_COMM_PROFILE_BARRIER(message, beforecall) { Profiler::AddBarrier(message, beforecall); }
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size) { Profiler::AddAllReduce(cft, size); }
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
                           Profiler::AddCommStat(cft, pid, size); }
-#define BL_COMM_PROFILE_NAMETAG(cft, message) { Profiler::AddNameTag(cft, message); }
+#define BL_COMM_PROFILE_NAMETAG(message) { Profiler::AddNameTag(message); }
 #define BL_COMM_PROFILE_FILTER(cft) { Profiler::CommStats::Filter(cft); }
 #define BL_COMM_PROFILE_UNFILTER(cft) { Profiler::CommStats::UnFilter(cft); }
 
@@ -237,10 +241,10 @@ class Profiler
 
 #define BL_COMM_PROFILE_T(cft, T, n, pid)
 #define BL_COMM_PROFILE_TTAG(cft, T, n, pid, tag)
-#define BL_COMM_PROFILE_BARRIER(cft, message)
+#define BL_COMM_PROFILE_BARRIER(message, beforecall)
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size)
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid)
-#define BL_COMM_PROFILE_NAMETAG(cft, message)
+#define BL_COMM_PROFILE_NAMETAG(message)
 #define BL_COMM_PROFILE_FILTER(cft)
 #define BL_COMM_PROFILE_UNFILTER(cft)
 
