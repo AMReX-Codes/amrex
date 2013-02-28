@@ -114,6 +114,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring hopper, $(UNAMEN)), hopper)
     WHICHLINUX := HOPPER
   endif
+  ifeq ($(findstring edison, $(UNAMEN)), edison)
+    WHICHLINUX := EDISON
+  endif
   ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
     WHICHLINUX := GIMANTIS
   endif
@@ -345,7 +348,7 @@ ifeq ($(FCOMP),g95)
     FDEBF += -fopenmp
     fDEBF += -fopenmp
 
-     CXXOPTF += 
+     CXXOPTF += -openmp
      CXXDEBF += -openmp
      ifeq ($(ICC_MAJOR_VERSION),11)
         CXXOPTF += -openmp-report2
@@ -368,8 +371,11 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
-   CXXOPTF += -g -O2
+   CXXOPTF += -g -O2 -ip -fp-model precise
    CXXDEBF += -g -O0
+
+   COPTF += $(CXXOPTF)
+   CDEBF += $(CXXDEBF)
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
@@ -406,7 +412,6 @@ ifeq ($(COMP),Intel)
        _icpc := icpc
        CXXOPTF += -wd1572
        CXXDEBF += -wd1572
-#      LIBRARY_LOCATIONS += /opt/intel_cc_80/lib
    else
    ifeq ($(findstring Version 9.0, $(__icc_version)), Version 9.0)
        ICC_VERSION := 9.0
@@ -467,20 +472,12 @@ ifeq ($(COMP),Intel)
    ifeq ($(USE_OMP),TRUE)
      CXXOPTF += -openmp
      CXXDEBF += -openmp
+     COPTF += -openmp
+     CDEBF += -openmp
      ifeq ($(ICC_MAJOR_VERSION),11)
         CXXOPTF += -openmp-report2
         CXXDEBF += -openmp-report2
      endif
-   endif
-
-   ifeq ($(ICC_MAJOR_VERSION),12)
-     CXXOPTF += -ip
-   else
-      ifeq ($(ICC_MAJOR_VERSION),11)
-        CXXOPTF += -ip
-      else
-        CXXOPTF += -ip
-      endif
    endif
 
    ifeq ($(ICC_MAJOR_VERSION),9)
@@ -630,28 +627,15 @@ ifeq ($(FCOMP),Intel)
      endif
    endif
 
-   FDEBF += -g -u -fpconstant #-C
-   fDEBF += -g -u -fpconstant #-C
+   FDEBF += -g -u #-C
+   fDEBF += -g -u #-C
    ifneq ($(IFC_MAJOR_VERSION), 10)
      FOPTF += -g
      fOPTF += -g
    endif
 
-   FOPTF += -O2 -fpconstant -ip
-   fOPTF += -O2 -fpconstant -ip
-
-   ifeq ($(IFC_MAJOR_VERSION),12)
-     FOPTF += -mp1
-     fOPTF += -mp1
-   else
-      ifeq ($(IFC_MAJOR_VERSION), 11)
-         FOPTF += -mp1 -fltconsistency
-         fOPTF += -mp1 -fltconsistency
-      else
-         FOPTF +=
-         fOPTF +=
-      endif
-   endif
+   FOPTF += -O2 -ip -fp-model precise
+   fOPTF += -O2 -ip -fp-model precise
 
    ifneq ($(IFC_MAJOR_VERSION), 9)
      ifneq ($(IFC_MAJOR_VERSION), 10)
