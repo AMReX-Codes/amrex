@@ -270,7 +270,7 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     BL_MPI_REQUIRE( MPI_Initialized(&sflag) );
 
-    if (!sflag)
+    if ( ! sflag)
 	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
     
     BL_MPI_REQUIRE( MPI_Comm_size(Communicator(), &m_nProcs) );
@@ -301,18 +301,22 @@ void
 ParallelDescriptor::Barrier (std::string message)
 {
     BL_PROFILE("ParallelDescriptor::Barrier()");
-    BL_COMM_PROFILE_BARRIER(Profiler::Barrier, message);
+    BL_COMM_PROFILE_BARRIER(message, true);
 
     BL_MPI_REQUIRE( MPI_Barrier(ParallelDescriptor::Communicator()) );
+
+    BL_COMM_PROFILE_BARRIER(message, false);
 }
 
 void
 ParallelDescriptor::Barrier (MPI_Comm comm, std::string message)
 {
     BL_PROFILE("ParallelDescriptor::Barrier(comm)");
-    BL_COMM_PROFILE_BARRIER(Profiler::Barrier, message);
+    BL_COMM_PROFILE_BARRIER(message, true);
 
     BL_MPI_REQUIRE( MPI_Barrier(comm) );
+
+    BL_COMM_PROFILE_BARRIER(message, false);
 }
 
 void
@@ -1073,8 +1077,8 @@ void ParallelDescriptor::Abort (int)
 
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
-void ParallelDescriptor::Barrier () {}
-void ParallelDescriptor::Barrier (MPI_Comm) {}
+void ParallelDescriptor::Barrier (std::string message) {}
+void ParallelDescriptor::Barrier (MPI_Comm, std::string message) {}
 
 void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
 void ParallelDescriptor::IProbe (int, int, int&, MPI_Status&) {}

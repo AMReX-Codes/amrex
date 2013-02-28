@@ -12,14 +12,22 @@
 #include <string>
 #include <cstring>
 
+
 bool Profiler::bWriteAll = true;
 bool Profiler::bWriteFabs = true;
 bool Profiler::bWriteBLT = false;
+bool Profiler::bFirstCommWriteH = true;  // header
+bool Profiler::bFirstCommWriteD = true;  // data
 bool Profiler::bInitialized = false;
+
 int Profiler::currentStep = 0;
+int Profiler::csFlushSize = 1000000;
+int Profiler::nProfFiles  = 3;
+
 Real Profiler::pctTimeLimit = 5.0;
-Real Profiler::calcRunTime = 0.0;
-Real Profiler::startTime = 0.0;
+Real Profiler::calcRunTime  = 0.0;
+Real Profiler::startTime    = 0.0;
+
 std::stack<Real> Profiler::nestedTimeStack;
 std::map<int, Real> Profiler::mStepMap;
 std::map<std::string, Profiler::ProfStats> Profiler::mProfStats;
@@ -30,10 +38,7 @@ std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::nameTags;
-bool Profiler::bFirstCommWriteH = true;  // header
-bool Profiler::bFirstCommWriteD = true;  // data
 
-int nProfFiles(3);
 
 
 Profiler::Profiler(const std::string &funcname)
@@ -757,7 +762,7 @@ bool Profiler::OnExcludeList(CommFuncType cft) {
 }
 
 
-void Profiler::AddCommStat(CommFuncType cft, int pid, int size) {
+void Profiler::AddCommStat(const CommFuncType cft, const int pid, const int size) {
   if(OnExcludeList(cft)) {
     return;
   }
@@ -767,7 +772,9 @@ void Profiler::AddCommStat(CommFuncType cft, int pid, int size) {
 }
 
 
-void Profiler::AddCommStat(CommFuncType cft, int pid, int size, int tag) {
+void Profiler::AddCommStat(const CommFuncType cft, const int pid,
+                           const int size, const int tag)
+{
   if(OnExcludeList(cft)) {
     return;
   }
@@ -776,7 +783,8 @@ void Profiler::AddCommStat(CommFuncType cft, int pid, int size, int tag) {
 }
 
 
-void Profiler::AddBarrier(CommFuncType cft, std::string message) {
+void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
+  const CommFuncType cft(Profiler::Barrier);
   if(OnExcludeList(cft)) {
     return;
   }
@@ -784,7 +792,6 @@ void Profiler::AddBarrier(CommFuncType cft, std::string message) {
   vCommStats.push_back(cs);
   CommStats::barrierNames.push_back(std::make_pair(message, vCommStats.size() - 1));
   ++CommStats::barrierNumber;
-  int csFlushSize(10);
 std::cout << ParallelDescriptor::MyProc() << "::::: vCommStats.size() = " << vCommStats.size() << std::endl;
   if(vCommStats.size() > csFlushSize) {
 std::cout << ParallelDescriptor::MyProc() << "*********** writing commstats." << std::endl;
@@ -793,7 +800,8 @@ std::cout << ParallelDescriptor::MyProc() << "*********** writing commstats." <<
 }
 
 
-void Profiler::AddNameTag(CommFuncType cft, std::string name) {
+void Profiler::AddNameTag(const std::string &name) {
+  const CommFuncType cft(Profiler::NameTag);
   if(OnExcludeList(cft)) {
     return;
   }
