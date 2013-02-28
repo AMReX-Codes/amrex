@@ -22,7 +22,7 @@ bool Profiler::bInitialized = false;
 
 int Profiler::currentStep = 0;
 int Profiler::csFlushSize = 1000000;
-int Profiler::nProfFiles  = 3;
+int Profiler::nProfFiles  = 32;
 
 Real Profiler::pctTimeLimit = 5.0;
 Real Profiler::calcRunTime  = 0.0;
@@ -788,10 +788,17 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
   if(OnExcludeList(cft)) {
     return;
   }
-  CommStats cs(cft, 0, Profiler::CommStats::barrierNumber, ParallelDescriptor::second());
-  vCommStats.push_back(cs);
-  CommStats::barrierNames.push_back(std::make_pair(message, vCommStats.size() - 1));
-  ++CommStats::barrierNumber;
+  if(beforecall) {
+    CommStats cs(cft, 0, Profiler::CommStats::barrierNumber,
+                 ParallelDescriptor::second());
+    vCommStats.push_back(cs);
+    CommStats::barrierNames.push_back(std::make_pair(message, vCommStats.size() - 1));
+    ++CommStats::barrierNumber;
+  } else {
+    CommStats cs(cft, 1, Profiler::CommStats::barrierNumber - 1,
+                 ParallelDescriptor::second());
+    vCommStats.push_back(cs);
+  }
 std::cout << ParallelDescriptor::MyProc() << "::::: vCommStats.size() = " << vCommStats.size() << std::endl;
   if(vCommStats.size() > csFlushSize) {
 std::cout << ParallelDescriptor::MyProc() << "*********** writing commstats." << std::endl;
