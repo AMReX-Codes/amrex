@@ -546,34 +546,26 @@ contains
     rr = rrr
     dm = get_dim(ba)
     call copy(ba1,ba)
-    do
+
+    outer: do
        call boxarray_coarsen(ba1,rrr)
        vol = boxarray_volume(ba1)
        do i = 1, nboxes(ba)
           bx = get_box(ba,i)
           bx1 = coarsen(bx, rr)
-          if ( any(extent(bx1) < lmn) ) then
-             call destroy(ba1)
-             return
-          end if
-          if ( bx /= refine(bx1, rr)  ) then
-             call destroy(ba1)
-             return
-          end if
-
-          ! We introduce the volume test to limit the case where we have a 
-          !  single grid getting too small -- don't want to limit each grid in
-          !  the case where there are many grids, so we need a test over the
-          !  whole boxarray volume, not just the size of each grid.
-          if ( vol <= 2**dm ) then
-             call destroy(ba1)
-             return
-          end if
-
+          if ( any(extent(bx1) < lmn) ) exit outer
+          if ( bx /= refine(bx1, rr)  ) exit outer
+          !
+          ! We introduce the volume test to limit the case where we have a
+          ! single grid getting too small -- don't want to limit each grid in
+          ! the case where there are many grids, so we need a test over the
+          ! whole boxarray volume, not just the size of each grid.
+          !
+          if ( vol <= 2**dm .and. lmn < 2 ) exit outer
        end do
        rr = rr*rrr
        r  = r + 1
-    end do
+    end do outer
 
     call destroy(ba1)
 
