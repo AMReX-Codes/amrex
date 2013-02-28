@@ -4151,8 +4151,11 @@ contains
     logical, intent(in), optional :: all
     integer :: ii
     logical :: lall
+    type(bl_prof_timer), save :: bpt
 
     lall = .false.; if ( present(all) ) lall = all
+
+    call build(bpt, 'mf_saxpy_3')
 
     do ii = 1, nlocal(a%la)
        if ( lall ) then
@@ -4164,6 +4167,8 @@ contains
        end if
        call multifab_saxpy_3_doit(ap,b1,bp)
     end do
+
+    call destroy(bpt)
 
   end subroutine multifab_saxpy_3
 
