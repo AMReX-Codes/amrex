@@ -75,8 +75,10 @@ class Profiler
       static std::map<std::string, CommFuncType> cftNames;
       static std::set<CommFuncType> cftExclude;
       static int barrierNumber;
+      static int reductionNumber;
       static std::vector<std::pair<std::string,int> > barrierNames;  // [name,index]
-      static std::vector<std::pair<std::string,int> > nameTags;  // [name,index]
+      static std::vector<std::pair<std::string,int> > nameTags;      // [name,index]
+      static std::vector<int> reductions;      // [index]
 
       CommFuncType cfType;
       int commpid, size, tag;
@@ -97,7 +99,7 @@ class Profiler
     static void AddCommStat(const CommFuncType cft, const int pid, const int size, const int tag);
     static void AddBarrier(const std::string &message, const bool bc);
     static void AddNameTag(const std::string &name);
-    static void AddAllReduce(const CommFuncType cft, const int size);
+    static void AddAllReduce(const CommFuncType cft, const int size, const bool bc);
 
     void start();
     void stop();
@@ -195,8 +197,8 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_TTAG(cft, T, n, pid, tag) {                             \
                           Profiler::AddCommStat(cft, pid, n * sizeof(T), tag);  \
 }
-#define BL_COMM_PROFILE_BARRIER(message, beforecall) { Profiler::AddBarrier(message, beforecall); }
-#define BL_COMM_PROFILE_ALLREDUCE(cft, size) { Profiler::AddAllReduce(cft, size); }
+#define BL_COMM_PROFILE_BARRIER(message, bc) { Profiler::AddBarrier(message, bc); }
+#define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc) { Profiler::AddAllReduce(cft, size, bc); }
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
                           Profiler::AddCommStat(cft, pid, size); }
 #define BL_COMM_PROFILE_NAMETAG(message) { Profiler::AddNameTag(message); }
@@ -241,8 +243,8 @@ class Profiler
 
 #define BL_COMM_PROFILE_T(cft, T, n, pid)
 #define BL_COMM_PROFILE_TTAG(cft, T, n, pid, tag)
-#define BL_COMM_PROFILE_BARRIER(message, beforecall)
-#define BL_COMM_PROFILE_ALLREDUCE(cft, size)
+#define BL_COMM_PROFILE_BARRIER(message, bc)
+#define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc)
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid)
 #define BL_COMM_PROFILE_NAMETAG(message)
 #define BL_COMM_PROFILE_FILTER(cft)

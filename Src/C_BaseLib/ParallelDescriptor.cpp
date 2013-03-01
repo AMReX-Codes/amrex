@@ -343,7 +343,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                            MPI_Op op)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, sizeof(Real));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, sizeof(Real), true);
 
     Real recv;
 
@@ -353,6 +353,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                   Mpi_typemap<Real>::type(),
                                   op,
                                   Communicator()) );
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, sizeof(Real), false);
     r = recv;
 }
 
@@ -362,7 +363,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            int    cnt)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, cnt * sizeof(Real));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, cnt * sizeof(Real), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -374,6 +375,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                   Mpi_typemap<Real>::type(),
                                   op,
                                   Communicator()) );
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, cnt * sizeof(Real), false);
     for (int i = 0; i < cnt; i++)
         r[i] = recv[i];
 }
@@ -506,7 +508,7 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                            MPI_Op op)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, sizeof(long));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, sizeof(long), true);
 
     long recv;
 
@@ -516,6 +518,7 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                   MPI_LONG,
                                   op,
                                   Communicator()) );
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, sizeof(long), false);
     r = recv;
 }
 
@@ -525,7 +528,7 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            int    cnt)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, cnt * sizeof(long));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, cnt * sizeof(long), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -537,6 +540,7 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                   MPI_LONG,
                                   op,
                                   Communicator()) );
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, cnt * sizeof(long), false);
     for (int i = 0; i < cnt; i++)
         r[i] = recv[i];
 }
@@ -692,7 +696,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                           MPI_Op op)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, sizeof(int));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, sizeof(int), true);
 
     int recv;
 
@@ -702,6 +706,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                   MPI_INT,
                                   op,
                                   Communicator()));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, sizeof(int), false);
     r = recv;
 }
 
@@ -711,7 +716,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           int    cnt)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, cnt * sizeof(int));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, cnt * sizeof(int), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -723,6 +728,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                   MPI_INT,
                                   op,
                                   Communicator()));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, cnt * sizeof(int), false);
     for (int i = 0; i < cnt; i++)
         r[i] = recv[i];
 }
