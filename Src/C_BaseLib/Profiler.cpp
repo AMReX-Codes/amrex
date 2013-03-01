@@ -36,8 +36,10 @@ std::vector<Profiler::CommStats> Profiler::vCommStats;
 std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
 std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
+int Profiler::CommStats::reductionNumber = 0;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::nameTags;
+std::vector<int> Profiler::CommStats::reductions;
 
 
 
@@ -554,17 +556,21 @@ void Profiler::WriteCommStats() {
           int index(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[index];
           csHeader << "barrierNumber  " << cs.size  // size is used for barrier number
-                   << "  name  " << '"' << CommStats::barrierNames[ib].first << '"'
-                   << "  index  " << index
-                   << std::endl;
+                   << "  " << '"' << CommStats::barrierNames[ib].first << '"'
+                   << "  index  " << index << std::endl;
         }
         for(int ib(0); ib < CommStats::nameTags.size(); ++ib) {
           int index(CommStats::nameTags[ib].second);
           CommStats &cs = vCommStats[index];
           csHeader << "nameTag  "
-                   << "  name  " << '"' << CommStats::nameTags[ib].first << '"'
-                   << "  index  " << index
-                   << std::endl;
+                   << '"' << CommStats::nameTags[ib].first << '"'
+                   << "  index  " << index << std::endl;
+        }
+        for(int ib(0); ib < CommStats::reductions.size(); ++ib) {
+          int index(CommStats::reductions[ib]);
+          CommStats &cs = vCommStats[index];
+          csHeader << "reduction  " << cs.size  // size is used for reduction number
+	           << "  index  " << index << std::endl;
         }
 
 	csFile.write((char *) &vCommStats[0], vCommStats.size() * sizeof(CommStats));
@@ -789,20 +795,41 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
     return;
   }
   if(beforecall) {
-    CommStats cs(cft, 0, Profiler::CommStats::barrierNumber,
+    CommStats cs(cft, 0, CommStats::barrierNumber,
                  ParallelDescriptor::second());
     vCommStats.push_back(cs);
     CommStats::barrierNames.push_back(std::make_pair(message, vCommStats.size() - 1));
     ++CommStats::barrierNumber;
   } else {
-    CommStats cs(cft, 1, Profiler::CommStats::barrierNumber - 1,
+    CommStats cs(cft, 1, CommStats::barrierNumber - 1,
                  ParallelDescriptor::second());
     vCommStats.push_back(cs);
   }
-std::cout << ParallelDescriptor::MyProc() << "::::: vCommStats.size() = " << vCommStats.size() << std::endl;
   if(vCommStats.size() > csFlushSize) {
-std::cout << ParallelDescriptor::MyProc() << "*********** writing commstats." << std::endl;
+    std::cout << ParallelDescriptor::MyProc()
+              << ":  ******* flushing commstats:  vCommStats.size() = "
+              << vCommStats.size() << std::endl;
     WriteCommStats();
+  }
+}
+
+
+void Profiler::AddAllReduce(const CommFuncType cft, const int size,
+                            const bool beforecall)
+{
+  if(OnExcludeList(cft)) {
+    return;
+  }
+  if(beforecall) {
+    CommStats cs(cft, 0, CommStats::reductionNumber, size,
+                 ParallelDescriptor::second());
+    vCommStats.push_back(cs);
+    CommStats::reductions.push_back(vCommStats.size() - 1);
+    ++CommStats::reductionNumber;
+  } else {
+    CommStats cs(cft, 1, CommStats::reductionNumber - 1, size,
+                 ParallelDescriptor::second());
+    vCommStats.push_back(cs);
   }
 }
 
@@ -815,15 +842,6 @@ void Profiler::AddNameTag(const std::string &name) {
   CommStats cs(cft, 0, 0, ParallelDescriptor::second());
   vCommStats.push_back(cs);
   CommStats::nameTags.push_back(std::make_pair(name, vCommStats.size() - 1));
-}
-
-
-void Profiler::AddAllReduce(CommFuncType cft, int size) {
-  if(OnExcludeList(cft)) {
-    return;
-  }
-  CommStats cs(cft, 0, 0, size, ParallelDescriptor::second());
-  vCommStats.push_back(cs);
 }
 
 

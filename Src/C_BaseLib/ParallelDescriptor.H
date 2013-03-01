@@ -625,7 +625,7 @@ T
 ParallelDescriptor::Reduce (const T& t)
 {
     BL_PROFILE_T("ParallelDescriptor::Reduce(T)", T);
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceT, sizeof(T));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceT, sizeof(T), true);
 
     T recv;
     BL_MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t),
@@ -634,6 +634,7 @@ ParallelDescriptor::Reduce (const T& t)
                                   Mpi_typemap<T>::type(),
                                   Op::op(),
                                   Communicator()) );
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceT, sizeof(T), false);
     return recv;
 }
 
