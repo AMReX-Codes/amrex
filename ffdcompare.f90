@@ -17,7 +17,7 @@ program ffdcompare
 
   implicit none
 
-  character (len=256) :: plotfile_a, plotfile_b
+  character (len=256) :: plotfile_a, plotfile_b, errplotfile
   integer :: narg, farg
   character (len=256) :: fname
 
@@ -27,14 +27,18 @@ program ffdcompare
 
   type(box) :: pb_a, pb_b
   type(boxarray) :: ba_b, ba_c
-  integer :: rr
+  integer :: rr(3)
 
   integer :: i,j,k,m,n, lo(3), hi(3), ncells, pblo(3)
   double precision, pointer, dimension(:,:,:,:) :: bp, cp
 
   type(plotfile) :: pf_a
-  character (len=256), pointer :: vnames(:) => Null()
+  character (len=20), pointer :: vnames(:) => Null()
   character (len=30) :: afoo
+
+  double precision :: prob_lo(3), prob_hi(3), time, dx(3)
+  type(multifab) :: err(1)
+  integer :: rr0(0)
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
@@ -44,6 +48,7 @@ program ffdcompare
   ! defaults
   plotfile_a = ""
   plotfile_b = ""
+  errplotfile = ""
 
   farg = 1
   do while (farg <= narg)
@@ -58,6 +63,10 @@ program ffdcompare
      case ('--infile2')
         farg = farg + 1
         call get_command_argument(farg, value = plotfile_b)
+
+     case ('-e', '--errfile')
+        farg = farg + 1
+        call get_command_argument(farg, value = errplotfile)
 
      case default
         exit
@@ -80,10 +89,16 @@ program ffdcompare
 
   ! get variable names
   call build(pf_a, plotfile_a, unit_new())
+
   allocate(vnames(pf_a%nvars))
   do m=1,pf_a%nvars
      vnames(m) = trim(pf_a%names(m))
   end do
+
+  prob_lo = pf_a%plo
+  prob_hi = pf_a%phi
+  time = pf_a%tm
+
   call destroy(pf_a)
 
   ! read plotfiles
@@ -102,8 +117,11 @@ program ffdcompare
 
   pblo = pb_a%lo
 
-  rr = (pb_b%hi(1) - pb_b%lo(1) + 1) / (pb_a%hi(1) - pb_a%lo(1) + 1)
-  
+  rr = (pb_b%hi - pb_b%lo + 1) / (pb_a%hi - pb_a%lo + 1)
+  if (any(rr .lt. 1)) then
+     call bl_error("ERROR: infile1 must have coarser grid than infile2")
+  end if
+
   ba_b = layout_boxarray(la_b)
   call boxarray_build_copy(ba_c, ba_b)
   call boxarray_coarsen(ba_c, rr)
@@ -124,9 +142,9 @@ program ffdcompare
         do k = lo(3),hi(3)
            do j = lo(2),hi(2)
               do i = lo(1),hi(1)
-                 cp(i,j,k,m) = bp((i-pblo(1))*rr+pblo(1), &
-                      &           (j-pblo(2))*rr+pblo(2), &
-                      &           (k-pblo(3))*rr+pblo(3), m)
+                 cp(i,j,k,m) = bp((i-pblo(1))*rr(1)+pblo(1), &
+                      &           (j-pblo(2))*rr(2)+pblo(2), &
+                      &           (k-pblo(3))*rr(3)+pblo(3), m)
                 end do
              end do
           end do
@@ -159,6 +177,14 @@ program ffdcompare
           multifab_norm_l1_c(mf_d, m)/dble(ncells), &
           multifab_norm_l2_c(mf_d, m)/sqrt(dble(ncells)) 
   end do
+
+  if (len_trim(errplotfile) .ne. 0) then
+     err(1) = mf_d
+     dx = (prob_hi - prob_lo) / box_extent(boxarray_bbox(layout_boxarray(la_a)))
+
+     call fabio_ml_multifab_write_d(err, rr0, errplotfile, vnames, &
+          la_a%lap%pd, prob_lo, prob_hi, time, dx)
+  end if
 
   call destroy(mf_d)
   call destroy(pltdata_a(1))
