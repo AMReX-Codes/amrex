@@ -50,19 +50,17 @@ class Profiler
       BCastTsi,
       GatherTsT1Si,
       GatherTi,
+      GatherRiRi,
       ScatterTsT1si,
       Barrier,
       NameTag,
       AllCFTypes,
       NoCFTypes
     };
-                 
+
     struct CommStats {
-      CommStats() : cfType(InvalidCFT), commpid(-1), size(-1), tag(-1),
-                    timeStamp(-1.0) { }
-      CommStats(CommFuncType cft, int commpid, int size, Real ts)
-                  : cfType(cft), commpid(commpid), size(size), tag(-1),
-                    timeStamp(ts) { }
+      CommStats() : cfType(InvalidCFT), commpid(-2), size(-2), tag(-2),
+                    timeStamp(-2.0) { }
       CommStats(CommFuncType cft, int commpid, int size, int tag, Real ts)
                   : cfType(cft), commpid(commpid), size(size), tag(tag),
                     timeStamp(ts) { }
@@ -95,8 +93,8 @@ class Profiler
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
     static void WriteCommStats();
 
-    static void AddCommStat(const CommFuncType cft, const int pid, const int size);
-    static void AddCommStat(const CommFuncType cft, const int pid, const int size, const int tag);
+    static void AddCommStat(const CommFuncType cft, const int pid,
+                            const int size, const int tag);
     static void AddBarrier(const std::string &message, const bool bc);
     static void AddNameTag(const std::string &name);
     static void AddAllReduce(const CommFuncType cft, const int size, const bool bc);
@@ -108,6 +106,9 @@ class Profiler
                            const bool writefabs, const bool writeblt);
     static void AddStep(const int snum);
     static void SetRunTime(const Real rtime) { calcRunTime = rtime; }
+
+    static const int NoTag()     { return -1; }
+    static const int AfterCall() { return -1; }
 
   private:
     Real bltstart, bltelapsed;
@@ -164,6 +165,7 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
     case BCastTsi:       return "BCastTsi";
     case GatherTsT1Si:   return "GatherTsT1Si";
     case GatherTi:       return "GatherTi";
+    case GatherRiRi:     return "GatherRiRi";
     case ScatterTsT1si:  return "ScatterTsT1si";
     case Barrier:        return "Barrier";
     case NameTag:        return "NameTag";
@@ -191,16 +193,13 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_SET_RUN_TIME(rtime)  Profiler::SetRunTime(rtime);
 #define BL_PROFILE_FINALIZE()  Profiler::Finalize();
 
-#define BL_COMM_PROFILE_T(cft, T, n, pid) {                                \
-                          Profiler::AddCommStat(cft, pid, n * sizeof(T));  \
-}
-#define BL_COMM_PROFILE_TTAG(cft, T, n, pid, tag) {                             \
-                          Profiler::AddCommStat(cft, pid, n * sizeof(T), tag);  \
+#define BL_COMM_PROFILE(cft, size, pid, tag) {                       \
+                        Profiler::AddCommStat(cft, pid, size, tag);  \
 }
 #define BL_COMM_PROFILE_BARRIER(message, bc) { Profiler::AddBarrier(message, bc); }
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc) { Profiler::AddAllReduce(cft, size, bc); }
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
-                          Profiler::AddCommStat(cft, pid, size); }
+                          Profiler::AddCommStat(cft, pid, size, Profiler::NoTag()); }
 #define BL_COMM_PROFILE_NAMETAG(message) { Profiler::AddNameTag(message); }
 #define BL_COMM_PROFILE_FILTER(cft) { Profiler::CommStats::Filter(cft); }
 #define BL_COMM_PROFILE_UNFILTER(cft) { Profiler::CommStats::UnFilter(cft); }
@@ -241,8 +240,7 @@ class Profiler
 #define BL_PROFILE_SET_RUN_TIME(rtime)
 #define BL_PROFILE_FINALIZE()
 
-#define BL_COMM_PROFILE_T(cft, T, n, pid)
-#define BL_COMM_PROFILE_TTAG(cft, T, n, pid, tag)
+#define BL_COMM_PROFILE(cft, size, pid, tag)
 #define BL_COMM_PROFILE_BARRIER(message, bc)
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc)
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid)

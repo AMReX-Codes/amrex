@@ -386,7 +386,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceReal()");
-    BL_COMM_PROFILE_REDUCE(Profiler::ReduceR, sizeof(Real), cpu);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceR, sizeof(Real), true);
 
     Real recv;
 
@@ -397,6 +397,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                op,
                                cpu,
                                Communicator()) );
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceR, sizeof(Real), false);
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = recv;
@@ -409,7 +410,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                         int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceReal()");
-    BL_COMM_PROFILE_REDUCE(Profiler::ReduceR, cnt * sizeof(Real), cpu);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceR, cnt * sizeof(Real), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -422,6 +423,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                op,
                                cpu,
                                Communicator()) );
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceR, cnt * sizeof(Real), false);
 
     if (ParallelDescriptor::MyProc() == cpu)
     {
@@ -551,7 +553,7 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                         int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceLong()");
-    BL_COMM_PROFILE_REDUCE(Profiler::ReduceL, sizeof(long), cpu);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceL, sizeof(long), true);
 
     long recv;
 
@@ -562,6 +564,7 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                op,
                                cpu,
                                Communicator()));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceL, sizeof(long), false);
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = recv;
@@ -574,7 +577,7 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                         int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceLong()");
-    BL_COMM_PROFILE_REDUCE(Profiler::ReduceL, cnt * sizeof(long), cpu);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceL, cnt * sizeof(long), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -587,6 +590,7 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                op,
                                cpu,
                                Communicator()));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceL, cnt * sizeof(long), false);
 
     if (ParallelDescriptor::MyProc() == cpu)
     {
@@ -739,7 +743,7 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                        int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceInt()");
-    BL_COMM_PROFILE_REDUCE(Profiler::ReduceI, sizeof(int), cpu);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceI, sizeof(int), true);
 
     int recv;
 
@@ -750,6 +754,7 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                op,
                                cpu,
                                Communicator()));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceI, sizeof(int), false);
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = recv;
@@ -762,7 +767,7 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                        int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceInt()");
-    BL_COMM_PROFILE_REDUCE(Profiler::ReduceI, cnt * sizeof(int), cpu);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceI, cnt * sizeof(int), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -775,6 +780,7 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                op,
                                cpu,
                                Communicator()));
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceI, cnt * sizeof(int), false);
 
     if (ParallelDescriptor::MyProc() == cpu)
     {
@@ -904,6 +910,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
                             int   root)
 {
     BL_PROFILE("ParallelDescriptor::Gather()");
+    BL_COMM_PROFILE(Profiler::GatherRiRi, nsend * sizeof(Real), root, Profiler::NoTag());
 
     BL_ASSERT(root >= 0);
     BL_ASSERT(nsend > 0);
@@ -920,6 +927,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
                                typ,
                                root,
                                Communicator()));
+    BL_COMM_PROFILE(Profiler::GatherRiRi, Profiler::AfterCall(), root, Profiler::NoTag());
 }
 
 template <>
@@ -998,6 +1006,7 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
                               Array<int>&         indx,
                               Array<MPI_Status>&  status)
 {
+    BL_PROFILE("ParallelDescriptor::Waitsome()");
 #ifdef JEFF_TEST
     std::vector<MPI_Request> rq;
     for (int i = 0; i < reqs.size(); i++)
