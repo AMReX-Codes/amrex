@@ -91,6 +91,7 @@ void Profiler::Initialize() {
   CommStats::cftNames["BCastTsi"]       = BCastTsi; 
   CommStats::cftNames["GatherTsT1Si"]   = GatherTsT1Si; 
   CommStats::cftNames["GatherTi"]       = GatherTi; 
+  CommStats::cftNames["GatherRiRi"]     = GatherRiRi; 
   CommStats::cftNames["ScatterTsT1si"]  = ScatterTsT1si; 
   CommStats::cftNames["Barrier"]        = Barrier;
   CommStats::cftNames["NameTag"]        = NameTag;
@@ -225,8 +226,8 @@ void Profiler::Finalize() {
         if(it == mProfStats.end()) {
 	  ProfStats ps;
           mProfStats.insert(std::pair<std::string, ProfStats>(pfName, ps));
-	  std::cout << myProc << ":  #### ProfName not found, inserting:  "
-	            << pfName << std::endl;
+	  //std::cout << myProc << ":  #### ProfName not found, inserting:  "
+	            //<< pfName << std::endl;
         }
       }
     }
@@ -258,10 +259,10 @@ void Profiler::Finalize() {
   {
     std::map<std::string, ProfStats>::const_iterator itcopy =
                                          mProfStatsCopy.find(it->first);
-    if(itcopy == mProfStatsCopy.end()) {
-      std::cout << myProc << ":  #### ProfName not on ioproc:  "
-                << it->first << std::endl;
-    }
+    //if(itcopy == mProfStatsCopy.end()) {
+      //std::cout << myProc << ":  #### ProfName not on ioproc:  "
+                //<< it->first << std::endl;
+    //}
   }
 
 
@@ -555,7 +556,7 @@ void Profiler::WriteCommStats() {
         for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
           int index(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[index];
-          csHeader << "barrierNumber  " << cs.size  // size is used for barrier number
+          csHeader << "barrierNumber  " << cs.tag  // tag is used for barrier number
                    << "  " << '"' << CommStats::barrierNames[ib].first << '"'
                    << "  index  " << index << std::endl;
         }
@@ -569,7 +570,7 @@ void Profiler::WriteCommStats() {
         for(int ib(0); ib < CommStats::reductions.size(); ++ib) {
           int index(CommStats::reductions[ib]);
           CommStats &cs = vCommStats[index];
-          csHeader << "reduction  " << cs.size  // size is used for reduction number
+          csHeader << "reduction  " << cs.tag  // tag is used for reduction number
 	           << "  index  " << index << std::endl;
         }
 
@@ -768,16 +769,6 @@ bool Profiler::OnExcludeList(CommFuncType cft) {
 }
 
 
-void Profiler::AddCommStat(const CommFuncType cft, const int pid, const int size) {
-  if(OnExcludeList(cft)) {
-    return;
-  }
-  CommStats cs(cft, ParallelDescriptor::MyProc(), pid, size,
-               ParallelDescriptor::second());
-  vCommStats.push_back(cs);
-}
-
-
 void Profiler::AddCommStat(const CommFuncType cft, const int pid,
                            const int size, const int tag)
 {
@@ -795,14 +786,14 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
     return;
   }
   if(beforecall) {
-    CommStats cs(cft, 0, CommStats::barrierNumber,
-                 ParallelDescriptor::second());
+    int tag(CommStats::barrierNumber);
+    CommStats cs(cft, 0, 0, tag, ParallelDescriptor::second());
     vCommStats.push_back(cs);
     CommStats::barrierNames.push_back(std::make_pair(message, vCommStats.size() - 1));
     ++CommStats::barrierNumber;
   } else {
-    CommStats cs(cft, 1, CommStats::barrierNumber - 1,
-                 ParallelDescriptor::second());
+    int tag(CommStats::barrierNumber - 1);  // it was incremented before the call
+    CommStats cs(cft, -1, AfterCall(), tag, ParallelDescriptor::second());
     vCommStats.push_back(cs);
   }
   if(vCommStats.size() > csFlushSize) {
@@ -821,14 +812,14 @@ void Profiler::AddAllReduce(const CommFuncType cft, const int size,
     return;
   }
   if(beforecall) {
-    CommStats cs(cft, 0, CommStats::reductionNumber, size,
-                 ParallelDescriptor::second());
+    int tag(CommStats::reductionNumber);
+    CommStats cs(cft, 0, size, tag, ParallelDescriptor::second());
     vCommStats.push_back(cs);
     CommStats::reductions.push_back(vCommStats.size() - 1);
     ++CommStats::reductionNumber;
   } else {
-    CommStats cs(cft, 1, CommStats::reductionNumber - 1, size,
-                 ParallelDescriptor::second());
+    int tag(CommStats::reductionNumber - 1);
+    CommStats cs(cft, -1, AfterCall(), tag, ParallelDescriptor::second());
     vCommStats.push_back(cs);
   }
 }
@@ -839,7 +830,8 @@ void Profiler::AddNameTag(const std::string &name) {
   if(OnExcludeList(cft)) {
     return;
   }
-  CommStats cs(cft, 0, 0, ParallelDescriptor::second());
+  int tag(-1);
+  CommStats cs(cft, 0, 0, tag, ParallelDescriptor::second());
   vCommStats.push_back(cs);
   CommStats::nameTags.push_back(std::make_pair(name, vCommStats.size() - 1));
 }
@@ -862,7 +854,6 @@ void Profiler::CommStats::UnFilter(CommFuncType cft) {
     CommStats::cftExclude.erase(cft);
   }
 }
-
 
 
 
