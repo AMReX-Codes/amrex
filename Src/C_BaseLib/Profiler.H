@@ -59,10 +59,10 @@ class Profiler
     };
 
     struct CommStats {
-      CommStats() : cfType(InvalidCFT), commpid(-2), size(-2), tag(-2),
+      CommStats() : cfType(InvalidCFT), size(-2), commpid(-2), tag(-2),
                     timeStamp(-2.0) { }
-      CommStats(CommFuncType cft, int commpid, int size, int tag, Real ts)
-                  : cfType(cft), commpid(commpid), size(size), tag(tag),
+      CommStats(CommFuncType cft, int size, int commpid, int tag, Real ts)
+                  : cfType(cft), size(size), commpid(commpid), tag(tag),
                     timeStamp(ts) { }
 
       static std::string CFTToString(CommFuncType cft);
@@ -79,7 +79,7 @@ class Profiler
       static std::vector<int> reductions;      // [index]
 
       CommFuncType cfType;
-      int commpid, size, tag;
+      int size, commpid, tag;
       Real timeStamp;
     };
 
@@ -93,8 +93,8 @@ class Profiler
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
     static void WriteCommStats();
 
-    static void AddCommStat(const CommFuncType cft, const int pid,
-                            const int size, const int tag);
+    static void AddCommStat(const CommFuncType cft, const int size,
+                            const int pid, const int tag);
     static void AddBarrier(const std::string &message, const bool bc);
     static void AddNameTag(const std::string &name);
     static void AddAllReduce(const CommFuncType cft, const int size, const bool bc);
@@ -194,12 +194,12 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_FINALIZE()  Profiler::Finalize();
 
 #define BL_COMM_PROFILE(cft, size, pid, tag) {                       \
-                        Profiler::AddCommStat(cft, pid, size, tag);  \
+                        Profiler::AddCommStat(cft, size, pid, tag);  \
 }
 #define BL_COMM_PROFILE_BARRIER(message, bc) { Profiler::AddBarrier(message, bc); }
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc) { Profiler::AddAllReduce(cft, size, bc); }
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
-                          Profiler::AddCommStat(cft, pid, size, Profiler::NoTag()); }
+                          Profiler::AddCommStat(cft, size, pid, Profiler::NoTag()); }
 #define BL_COMM_PROFILE_NAMETAG(message) { Profiler::AddNameTag(message); }
 #define BL_COMM_PROFILE_FILTER(cft) { Profiler::CommStats::Filter(cft); }
 #define BL_COMM_PROFILE_UNFILTER(cft) { Profiler::CommStats::UnFilter(cft); }
