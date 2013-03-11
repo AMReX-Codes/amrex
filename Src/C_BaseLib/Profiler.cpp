@@ -769,13 +769,13 @@ bool Profiler::OnExcludeList(CommFuncType cft) {
 }
 
 
-void Profiler::AddCommStat(const CommFuncType cft, const int pid,
-                           const int size, const int tag)
+void Profiler::AddCommStat(const CommFuncType cft, const int size,
+                           const int pid, const int tag)
 {
   if(OnExcludeList(cft)) {
     return;
   }
-  CommStats cs(cft, pid, size, tag, ParallelDescriptor::second());
+  CommStats cs(cft, size, pid, tag, ParallelDescriptor::second());
   vCommStats.push_back(cs);
 }
 
@@ -793,7 +793,7 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
     ++CommStats::barrierNumber;
   } else {
     int tag(CommStats::barrierNumber - 1);  // it was incremented before the call
-    CommStats cs(cft, -1, AfterCall(), tag, ParallelDescriptor::second());
+    CommStats cs(cft, AfterCall(), -1, tag, ParallelDescriptor::second());
     vCommStats.push_back(cs);
   }
   if(vCommStats.size() > csFlushSize) {
@@ -813,13 +813,13 @@ void Profiler::AddAllReduce(const CommFuncType cft, const int size,
   }
   if(beforecall) {
     int tag(CommStats::reductionNumber);
-    CommStats cs(cft, 0, size, tag, ParallelDescriptor::second());
+    CommStats cs(cft, size, 0, tag, ParallelDescriptor::second());
     vCommStats.push_back(cs);
     CommStats::reductions.push_back(vCommStats.size() - 1);
     ++CommStats::reductionNumber;
   } else {
     int tag(CommStats::reductionNumber - 1);
-    CommStats cs(cft, -1, AfterCall(), tag, ParallelDescriptor::second());
+    CommStats cs(cft, AfterCall(), -1, tag, ParallelDescriptor::second());
     vCommStats.push_back(cs);
   }
 }
