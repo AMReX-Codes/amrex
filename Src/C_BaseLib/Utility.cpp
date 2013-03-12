@@ -1177,7 +1177,7 @@ bool BoxLib::StreamRetry::TryFileOutput()
                     << fileName << "  to  " << badFileName << std::endl;
           std::rename(fileName.c_str(), badFileName.c_str());
         }
-        ParallelDescriptor::Barrier();  // wait for file rename
+        ParallelDescriptor::Barrier("StreamRetry::TryFileOutput");  // wait for file rename
 
         // check for maxtries and abort pref
         if(tries < maxTries) {

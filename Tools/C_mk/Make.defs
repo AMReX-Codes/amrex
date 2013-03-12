@@ -160,6 +160,10 @@ ifndef PROFILE
   PROFILE = FALSE
 endif
 
+ifndef COMM_PROFILE
+  COMM_PROFILE = FALSE
+endif
+
 ifndef DIM
   DIM = 2
 endif
@@ -725,10 +729,16 @@ endif
 
 ifeq ($(PROFILE),TRUE)
     CPPFLAGS    += -DBL_PROFILING
-    ProfSuffix	:= .PROF
+    ifeq ($(COMM_PROFILE),TRUE)
+        CPPFLAGS    += -DBL_COMM_PROFILING
+        ProfSuffix	:= .COMM_PROF
+    else
+        ProfSuffix	:= .PROF
+    endif
 else
     ProfSuffix	:=
 endif
+
 
 ifeq ($(USE_MPI),TRUE)
     MPISuffix	:= .MPI

@@ -298,7 +298,7 @@ ParallelDescriptor::second ()
 }
 
 void
-ParallelDescriptor::Barrier (std::string message)
+ParallelDescriptor::Barrier (const std::string &message)
 {
     BL_PROFILE("ParallelDescriptor::Barrier()");
     BL_COMM_PROFILE_BARRIER(message, true);
@@ -309,7 +309,7 @@ ParallelDescriptor::Barrier (std::string message)
 }
 
 void
-ParallelDescriptor::Barrier (MPI_Comm comm, std::string message)
+ParallelDescriptor::Barrier (MPI_Comm comm, const std::string &message)
 {
     BL_PROFILE("ParallelDescriptor::Barrier(comm)");
     BL_COMM_PROFILE_BARRIER(message, true);

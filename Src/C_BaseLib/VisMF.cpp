@@ -910,7 +910,7 @@ VisMF::Read (MultiFab&          mf,
   }
 
 #ifdef BL_VISMF_MSGCHECK
-  ParallelDescriptor::Barrier();
+  ParallelDescriptor::Barrier("VisMF::Read::MSGCHECK_0");
   {
       MPI_Status mwstatus;
       int mwflag(0);
@@ -929,7 +929,7 @@ VisMF::Read (MultiFab&          mf,
         //BoxLib::Abort("EXTRA MESSAGES BEFORE");
       }
   }
-  ParallelDescriptor::Barrier();
+  ParallelDescriptor::Barrier("VisMF::Read::MSGCHECK_1");
 #endif
 
     VisMF::Header hdr;
@@ -1113,7 +1113,7 @@ VisMF::Read (MultiFab&          mf,
 
 
 #ifdef BL_VISMF_MSGCHECK
-  ParallelDescriptor::Barrier();
+  ParallelDescriptor::Barrier("VisMF::Read::MSGCHECK_2");
   {
       MPI_Status mwstatus;
       int mwflag(0);

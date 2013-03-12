@@ -1,7 +1,6 @@
 #ifndef _BL_PROFILER_H_
 #define _BL_PROFILER_H_
 
-
 #ifdef BL_PROFILING
 
 #include <REAL.H>
@@ -27,35 +26,35 @@ class Profiler
     };
 
     enum CommFuncType {
-      InvalidCFT = 0,
-      AllReduceT,
-      AllReduceR,
-      AllReduceL,
-      AllReduceI,
-      AsendTsii,
-      AsendTsiiM,
-      AsendvTii,
-      SendTsii,
-      SendvTii,
-      ArecvTsii,
-      ArecvTsiiM,
-      ArecvTii,
-      ArecvvTii,
-      RecvTsii,
-      RecvvTii,
-      ReduceT,
-      ReduceR,
-      ReduceL,
-      ReduceI,
-      BCastTsi,
-      GatherTsT1Si,
-      GatherTi,
-      GatherRiRi,
-      ScatterTsT1si,
-      Barrier,
-      NameTag,
-      AllCFTypes,
-      NoCFTypes
+      InvalidCFT = 0,  //  0
+      AllReduceT,      //  1
+      AllReduceR,      //  2
+      AllReduceL,      //  3
+      AllReduceI,      //  4
+      AsendTsii,       //  5
+      AsendTsiiM,      //  6
+      AsendvTii,       //  7
+      SendTsii,        //  8
+      SendvTii,        //  9
+      ArecvTsii,       // 10
+      ArecvTsiiM,      // 11
+      ArecvTii,        // 12
+      ArecvvTii,       // 13
+      RecvTsii,        // 14
+      RecvvTii,        // 15
+      ReduceT,         // 16
+      ReduceR,         // 17
+      ReduceL,         // 18
+      ReduceI,         // 19
+      BCastTsi,        // 20
+      GatherTsT1Si,    // 21
+      GatherTi,        // 22
+      GatherRiRi,      // 23
+      ScatterTsT1si,   // 24
+      Barrier,         // 25
+      NameTag,         // 26
+      AllCFTypes,      // 27
+      NoCFTypes        // 28
     };
 
     struct CommStats {
@@ -193,6 +192,9 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_SET_RUN_TIME(rtime)  Profiler::SetRunTime(rtime);
 #define BL_PROFILE_FINALIZE()  Profiler::Finalize();
 
+
+#ifdef BL_COMM_PROFILING
+
 #define BL_COMM_PROFILE(cft, size, pid, tag) {                       \
                         Profiler::AddCommStat(cft, size, pid, tag);  \
 }
@@ -204,6 +206,19 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_FILTER(cft) { Profiler::CommStats::Filter(cft); }
 #define BL_COMM_PROFILE_UNFILTER(cft) { Profiler::CommStats::UnFilter(cft); }
 
+#else
+
+#define BL_COMM_PROFILE(cft, size, pid, tag)
+#define BL_COMM_PROFILE_BARRIER(message, bc)
+#define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc)
+#define BL_COMM_PROFILE_REDUCE(cft, size, pid)
+#define BL_COMM_PROFILE_NAMETAG(message)
+#define BL_COMM_PROFILE_FILTER(cft)
+#define BL_COMM_PROFILE_UNFILTER(cft)
+#endif
+
+
+// --------------------------------------------
 #else
 
 #include <string>
