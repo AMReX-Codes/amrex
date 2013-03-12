@@ -21,7 +21,7 @@ bool Profiler::bFirstCommWriteD = true;  // data
 bool Profiler::bInitialized = false;
 
 int Profiler::currentStep = 0;
-int Profiler::csFlushSize = 1000000;
+int Profiler::csFlushSize = 100000;
 int Profiler::nProfFiles  = 32;
 
 Real Profiler::pctTimeLimit = 5.0;
@@ -328,7 +328,7 @@ void Profiler::Finalize() {
       }
     }
     // Force other processors to wait till directory is built.
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("Profiler::Finalize::waitfordir");
 
     const int   myProc    = ParallelDescriptor::MyProc();
     const int   nProcs    = ParallelDescriptor::NProcs();
@@ -389,7 +389,9 @@ void Profiler::Finalize() {
 
 
   // --------------------------------------- print communication stats
+#ifdef BL_COMM_PROFILING
   WriteCommStats();
+#endif
 
   bInitialized = false;
 }
@@ -508,7 +510,7 @@ void Profiler::WriteCommStats() {
     }
   }
   // Force other processors to wait till directory is built.
-  ParallelDescriptor::Barrier();
+  ParallelDescriptor::Barrier("Profiler::WriteCommStats::waitfordir");
 
   std::ostringstream csHeader;
 
@@ -562,7 +564,7 @@ void Profiler::WriteCommStats() {
         }
         for(int ib(0); ib < CommStats::nameTags.size(); ++ib) {
           int index(CommStats::nameTags[ib].second);
-          CommStats &cs = vCommStats[index];
+          //CommStats &cs = vCommStats[index];
           csHeader << "nameTag  "
                    << '"' << CommStats::nameTags[ib].first << '"'
                    << "  index  " << index << std::endl;
@@ -573,6 +575,12 @@ void Profiler::WriteCommStats() {
           csHeader << "reduction  " << cs.tag  // tag is used for reduction number
 	           << "  index  " << index << std::endl;
         }
+	if(vCommStats.size() > 0) {
+	  csHeader << "timeMinMax  " << vCommStats[0].timeStamp << "  "
+	           << vCommStats[vCommStats.size()-1].timeStamp << std::endl;
+	} else {
+	  csHeader << "timeMinMax  0.0  0.0" << std::endl;
+	}
 
 	csFile.write((char *) &vCommStats[0], vCommStats.size() * sizeof(CommStats));
         // ----------------------------- end write to file here
@@ -628,9 +636,6 @@ void Profiler::WriteCommStats() {
     for(int i(0); i < offset.size(); ++i) {
       totalHeaderSize += vHeaderSizes[i];
     }
-    //pad = 8 - (totalHeaderSize % 8);
-    //pad = 0;
-    //totalHeaderSize += pad;
   }
 
   Array<char> recvdata(totalHeaderSize + 1, '\0');
@@ -679,6 +684,7 @@ void Profiler::WriteCommStats() {
   vCommStats.clear();
   CommStats::barrierNames.clear();
   CommStats::nameTags.clear();
+  CommStats::reductions.clear();
   if( ! bBarrierExcluded) {
     CommStats::cftExclude.erase(Barrier);
   }
@@ -796,7 +802,7 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
     CommStats cs(cft, AfterCall(), -1, tag, ParallelDescriptor::second());
     vCommStats.push_back(cs);
   }
-  if(vCommStats.size() > csFlushSize) {
+  if(vCommStats.size() > csFlushSize && beforecall == false) {  // only flush behind
     std::cout << ParallelDescriptor::MyProc()
               << ":  ******* flushing commstats:  vCommStats.size() = "
               << vCommStats.size() << std::endl;
