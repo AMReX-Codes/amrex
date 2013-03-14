@@ -216,7 +216,9 @@ endif
 
 ifdef USE_GCC
     CXXPRFF    := -p
+    COPTF      += -g -O3
     CXXOPTF    += -g -O3 
+    CDEBF      += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++
