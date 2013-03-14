@@ -216,9 +216,7 @@ endif
 
 ifdef USE_GCC
     CXXPRFF    := -p
-    COPTF      += -g -O3
     CXXOPTF    += -g -O3 
-    CDEBF      += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++
@@ -239,6 +237,11 @@ ifdef USE_GCC
       COPTF += -fopenmp
       CDEBF += -fopenmp
     endif
+    #
+    # Force C to have same flags as C++.
+    #
+    COPTF += $(CXXOPTF)
+    CDEBF += $(CXXDEBF)
 endif
 
 ifeq ($(findstring rose, $(COMP)), rose)
@@ -264,6 +267,11 @@ ifeq ($(findstring rose, $(COMP)), rose)
       COPTF += -fopenmp
       CDEBF += -fopenmp
     endif
+    #
+    # Force C to have same flags as C++.
+    #
+    COPTF += $(CXXOPTF)
+    CDEBF += $(CXXDEBF)
 endif
 
 ifeq ($(findstring rose, $(FCOMP)), rose)
