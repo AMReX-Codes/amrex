@@ -22,14 +22,8 @@
     F90 := $(_ifc)
     FC  := $(_ifc)
     CC  := $(_icc)
-    FFLAGS   =
-    F90FLAGS =
-    CFLAGS   =
-    FFLAGS   += -module $(mdir)
-    F90FLAGS += -module $(mdir)
-    F90FLAGS += -mp1 -fltconsistency
-    FFLAGS   += -I $(mdir)
-    F90FLAGS += -I $(mdir)
+    FFLAGS   += -module $(mdir) -I $(mdir)
+    F90FLAGS += -module $(mdir) -I $(mdir)
     ifdef OMP
       FFLAGS   += -openmp -openmp-report2
       F90FLAGS += -openmp -openmp-report2
@@ -46,9 +40,9 @@
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip -mp1# -fltconsistency 
-          FFLAGS += -O3 -ip -mp1# -fltconsistency
-          CFLAGS += -O3 -ip -mp1
+          F90FLAGS += -O2 -ip -fp-model source -xHost
+          FFLAGS   += -O2 -ip -fp-model source -xHost
+          CFLAGS   += -O2 -ip -fp-model source -xHost
 	endif
       endif
       ifdef GPROF
@@ -68,9 +62,9 @@
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O3 -ip -mp1# -fltconsistency 
-          FFLAGS += -O3 -ip -mp1# -fltconsistency
-          CFLAGS += -O3 -ip -mp1
+          F90FLAGS += -O2 -ip -fp-model source -xHost
+          FFLAGS   += -O2 -ip -fp-model source -xHost
+          CFLAGS   += -O2 -ip -fp-model source -xHost
 	endif
       endif
       ifdef GPROF
