@@ -50,3 +50,7 @@
       ROSEFLAGS += -rose:openmp
     endif
   endif
+
+  ifdef STDC99
+     CFLAGS += -std=c99
+  endif
