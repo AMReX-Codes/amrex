@@ -197,3 +197,7 @@
       # F90FLAGS += -stand f95
       # FFLAGS += -stand f95
     endif
+
+  ifdef STDC99
+     CFLAGS += -std=c99
+  endif
