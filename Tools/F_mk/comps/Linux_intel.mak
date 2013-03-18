@@ -24,6 +24,7 @@
     CC  := $(_icc)
     FFLAGS   += -module $(mdir) -I $(mdir)
     F90FLAGS += -module $(mdir) -I $(mdir)
+    CFLAGS   += -std=c99
     ifdef OMP
       FFLAGS   += -openmp -openmp-report2
       F90FLAGS += -openmp -openmp-report2
@@ -191,7 +192,3 @@
       # F90FLAGS += -stand f95
       # FFLAGS += -stand f95
     endif
-
-  ifdef STDC99
-     CFLAGS += -std=c99
-  endif
