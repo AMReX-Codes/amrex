@@ -240,8 +240,8 @@ ifdef USE_GCC
     #
     # Force C to have same flags as C++.
     #
-    COPTF += $(CXXOPTF)
-    CDEBF += $(CXXDEBF)
+    COPTF += $(CXXOPTF) -std=c99 -ftree-vectorize
+    CDEBF += $(CXXDEBF) -std=c99
 endif
 
 ifeq ($(findstring rose, $(COMP)), rose)
@@ -384,8 +384,8 @@ ifeq ($(COMP),Intel)
    CXXOPTF += -g -O2 -ip -fp-model source -xHost
    CXXDEBF += -g -O0
 
-   COPTF += $(CXXOPTF)
-   CDEBF += $(CXXDEBF)
+   COPTF += $(CXXOPTF) -std=c99
+   CDEBF += $(CXXDEBF) -std=c99
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
