@@ -205,6 +205,7 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_NAMETAG(message) { Profiler::AddNameTag(message); }
 #define BL_COMM_PROFILE_FILTER(cft) { Profiler::CommStats::Filter(cft); }
 #define BL_COMM_PROFILE_UNFILTER(cft) { Profiler::CommStats::UnFilter(cft); }
+#define BL_COMM_PROFILE_FLUSH() { Profiler::WriteCommStats(); }
 
 #else
 
@@ -215,6 +216,7 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_NAMETAG(message)
 #define BL_COMM_PROFILE_FILTER(cft)
 #define BL_COMM_PROFILE_UNFILTER(cft)
+#define BL_COMM_PROFILE_FLUSH()
 #endif
 
 
@@ -262,6 +264,7 @@ class Profiler
 #define BL_COMM_PROFILE_NAMETAG(message)
 #define BL_COMM_PROFILE_FILTER(cft)
 #define BL_COMM_PROFILE_UNFILTER(cft)
+#define BL_COMM_PROFILE_FLUSH()
 
 #endif
 
