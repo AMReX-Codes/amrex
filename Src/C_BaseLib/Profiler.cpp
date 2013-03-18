@@ -498,9 +498,9 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 
 void Profiler::WriteCommStats() {
 
-  bool bBarrierExcluded(OnExcludeList(Barrier));
-  if( ! bBarrierExcluded) {
-    CommStats::cftExclude.insert(Barrier);  // temporarily
+  bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
+  if( ! bAllCFTypesExcluded) {
+    CommStats::cftExclude.insert(AllCFTypes);  // temporarily
   }
 
   std::string cdir("bl_comm_prof");
@@ -685,8 +685,8 @@ void Profiler::WriteCommStats() {
   CommStats::barrierNames.clear();
   CommStats::nameTags.clear();
   CommStats::reductions.clear();
-  if( ! bBarrierExcluded) {
-    CommStats::cftExclude.erase(Barrier);
+  if( ! bAllCFTypesExcluded) {
+    CommStats::cftExclude.erase(AllCFTypes);
   }
 }
 
@@ -801,12 +801,6 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
     int tag(CommStats::barrierNumber - 1);  // it was incremented before the call
     CommStats cs(cft, AfterCall(), -1, tag, ParallelDescriptor::second());
     vCommStats.push_back(cs);
-  }
-  if(vCommStats.size() > csFlushSize && beforecall == false) {  // only flush behind
-    std::cout << ParallelDescriptor::MyProc()
-              << ":  ******* flushing commstats:  vCommStats.size() = "
-              << vCommStats.size() << std::endl;
-    WriteCommStats();
   }
 }
 
