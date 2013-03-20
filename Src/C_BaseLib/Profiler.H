@@ -90,7 +90,7 @@ class Profiler
     static void Initialize();
     static void Finalize();
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
-    static void WriteCommStats();
+    static void WriteCommStats(const bool bFlushing = false);
 
     static void AddCommStat(const CommFuncType cft, const int size,
                             const int pid, const int tag);
@@ -205,7 +205,7 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_NAMETAG(message) { Profiler::AddNameTag(message); }
 #define BL_COMM_PROFILE_FILTER(cft) { Profiler::CommStats::Filter(cft); }
 #define BL_COMM_PROFILE_UNFILTER(cft) { Profiler::CommStats::UnFilter(cft); }
-#define BL_COMM_PROFILE_FLUSH() { Profiler::WriteCommStats(); }
+#define BL_COMM_PROFILE_FLUSH() { Profiler::WriteCommStats(true); }
 
 #else
 

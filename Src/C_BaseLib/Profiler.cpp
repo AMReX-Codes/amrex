@@ -21,8 +21,8 @@ bool Profiler::bFirstCommWriteD = true;  // data
 bool Profiler::bInitialized = false;
 
 int Profiler::currentStep = 0;
-int Profiler::csFlushSize = 100000;
-int Profiler::nProfFiles  = 32;
+int Profiler::csFlushSize = 2000000;
+int Profiler::nProfFiles  = 64;
 
 Real Profiler::pctTimeLimit = 5.0;
 Real Profiler::calcRunTime  = 0.0;
@@ -65,6 +65,11 @@ void Profiler::Initialize() {
   }
 
   startTime = ParallelDescriptor::second();
+
+#ifdef BL_COMM_PROFILING
+  vCommStats.reserve(csFlushSize);
+  // can probably bypass the rest of this function
+#endif
 
   CommStats::cftExclude.insert(AllCFTypes);  // temporarily
 
@@ -496,11 +501,30 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 }
 
 
-void Profiler::WriteCommStats() {
+void Profiler::WriteCommStats(const bool bFlushing) {
 
   bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
   if( ! bAllCFTypesExcluded) {
     CommStats::cftExclude.insert(AllCFTypes);  // temporarily
+  }
+
+  if(bFlushing) {
+    int nCS(vCommStats.size());
+    ParallelDescriptor::ReduceIntMax(nCS);
+    if(nCS < csFlushSize) {
+      if( ! bAllCFTypesExcluded) {
+        CommStats::cftExclude.erase(AllCFTypes);
+      }
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "Bypassing flush, nCS < csFlushSize:  " << nCS
+	          << "  " << csFlushSize << std::endl;
+      }
+      return;
+    } else {
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "Flushing commstats:  nCSmax = " << nCS << std::endl;
+      }
+    }
   }
 
   std::string cdir("bl_comm_prof");
@@ -564,7 +588,6 @@ void Profiler::WriteCommStats() {
         }
         for(int ib(0); ib < CommStats::nameTags.size(); ++ib) {
           int index(CommStats::nameTags[ib].second);
-          //CommStats &cs = vCommStats[index];
           csHeader << "nameTag  "
                    << '"' << CommStats::nameTags[ib].first << '"'
                    << "  index  " << index << std::endl;
@@ -781,8 +804,7 @@ void Profiler::AddCommStat(const CommFuncType cft, const int size,
   if(OnExcludeList(cft)) {
     return;
   }
-  CommStats cs(cft, size, pid, tag, ParallelDescriptor::second());
-  vCommStats.push_back(cs);
+  vCommStats.push_back(CommStats(cft, size, pid, tag, ParallelDescriptor::second()));
 }
 
 
@@ -793,14 +815,12 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
   }
   if(beforecall) {
     int tag(CommStats::barrierNumber);
-    CommStats cs(cft, 0, 0, tag, ParallelDescriptor::second());
-    vCommStats.push_back(cs);
+    vCommStats.push_back(CommStats(cft, 0, 0, tag, ParallelDescriptor::second()));
     CommStats::barrierNames.push_back(std::make_pair(message, vCommStats.size() - 1));
     ++CommStats::barrierNumber;
   } else {
     int tag(CommStats::barrierNumber - 1);  // it was incremented before the call
-    CommStats cs(cft, AfterCall(), -1, tag, ParallelDescriptor::second());
-    vCommStats.push_back(cs);
+    vCommStats.push_back(CommStats(cft, AfterCall(), -1, tag, ParallelDescriptor::second()));
   }
 }
 
@@ -813,14 +833,12 @@ void Profiler::AddAllReduce(const CommFuncType cft, const int size,
   }
   if(beforecall) {
     int tag(CommStats::reductionNumber);
-    CommStats cs(cft, size, 0, tag, ParallelDescriptor::second());
-    vCommStats.push_back(cs);
+    vCommStats.push_back(CommStats(cft, size, 0, tag, ParallelDescriptor::second()));
     CommStats::reductions.push_back(vCommStats.size() - 1);
     ++CommStats::reductionNumber;
   } else {
     int tag(CommStats::reductionNumber - 1);
-    CommStats cs(cft, AfterCall(), -1, tag, ParallelDescriptor::second());
-    vCommStats.push_back(cs);
+    vCommStats.push_back(CommStats(cft, AfterCall(), -1, tag, ParallelDescriptor::second()));
   }
 }
 
@@ -831,8 +849,7 @@ void Profiler::AddNameTag(const std::string &name) {
     return;
   }
   int tag(-1);
-  CommStats cs(cft, 0, 0, tag, ParallelDescriptor::second());
-  vCommStats.push_back(cs);
+  vCommStats.push_back(CommStats(cft, 0, 0, tag, ParallelDescriptor::second()));
   CommStats::nameTags.push_back(std::make_pair(name, vCommStats.size() - 1));
 }
 
