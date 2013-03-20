@@ -240,7 +240,7 @@ ifdef USE_GCC
     #
     # Force C to have same flags as C++.
     #
-    COPTF += $(CXXOPTF) -std=c99 -ftree-vectorize
+    COPTF += $(CXXOPTF) -std=c99
     CDEBF += $(CXXDEBF) -std=c99
 endif
 
