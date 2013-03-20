@@ -1781,12 +1781,7 @@ Amr::coarseTimeStep (Real stop_time)
     BL_PROFILE_ADD_STEP(level_steps[0]);
  #ifdef BL_COMM_PROFILING
     BL_COMM_PROFILE_NAMETAG("STEP");
-    if(level_steps[0] > 0 && level_steps[0] % 10 == 0) {
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "flushing commstats." << std::endl;
-      }
-      BL_COMM_PROFILE_FLUSH();
-    }
+    BL_COMM_PROFILE_FLUSH();
  #endif
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
