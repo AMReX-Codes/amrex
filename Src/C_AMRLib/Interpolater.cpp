@@ -81,6 +81,7 @@ NodeBilinear::interp (const FArrayBox&  crse,
                       int               actual_comp,
                       int               actual_state)
 {
+    BL_PROFILE("NodeBilinear::interp()");
     //
     // Set up to call FORTRAN.
     //
@@ -152,6 +153,7 @@ CellBilinear::interp (const FArrayBox&  crse,
                       int               actual_comp,
                       int               actual_state)
 {
+    BL_PROFILE("CellBilinear::interp()");
 #if (BL_SPACEDIM == 3)
     BoxLib::Error("interp: not implemented");
 #endif
@@ -247,6 +249,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                                 int              actual_comp,
                                 int              actual_state)
 {
+    BL_PROFILE("CellConservativeLinear::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
 
@@ -402,6 +405,7 @@ CellQuadratic::interp (const FArrayBox& crse,
                        int              actual_comp,
                        int              actual_state)
 {
+    BL_PROFILE("CellQuadratic::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
@@ -519,6 +523,7 @@ PCInterp::interp (const FArrayBox& crse,
                   int               actual_comp,
                   int               actual_state)
 {
+    BL_PROFILE("PCInterp::interp()");
     //
     // Set up to call FORTRAN.
     //
@@ -593,6 +598,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
                                    int              actual_comp,
                                    int              actual_state)
 {
+    BL_PROFILE("CellConservativeProtected::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
@@ -723,6 +729,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                                     const Geometry&  fine_geom,
                                     Array<BCRec>& bcr)
 {
+    BL_PROFILE("CellConservativeProtected::protect()");
     BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
 
