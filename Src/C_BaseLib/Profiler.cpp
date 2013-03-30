@@ -15,7 +15,6 @@
 
 bool Profiler::bWriteAll = true;
 bool Profiler::bWriteFabs = true;
-bool Profiler::bWriteBLT = false;
 bool Profiler::bFirstCommWriteH = true;  // header
 bool Profiler::bFirstCommWriteD = true;  // data
 bool Profiler::bInitialized = false;
@@ -39,6 +38,7 @@ int Profiler::CommStats::barrierNumber = 0;
 int Profiler::CommStats::reductionNumber = 0;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::nameTags;
+std::vector<std::string> Profiler::CommStats::nameTagNames;
 std::vector<int> Profiler::CommStats::reductions;
 
 
@@ -99,6 +99,7 @@ void Profiler::Initialize() {
   CommStats::cftNames["GatherRiRi"]     = GatherRiRi; 
   CommStats::cftNames["ScatterTsT1si"]  = ScatterTsT1si; 
   CommStats::cftNames["Barrier"]        = Barrier;
+  CommStats::cftNames["Waitsome"]       = Waitsome;
   CommStats::cftNames["NameTag"]        = NameTag;
   CommStats::cftNames["AllCFTypes"]     = AllCFTypes;
   CommStats::cftNames["NoCFTypes"]      = NoCFTypes;
@@ -135,9 +136,6 @@ void Profiler::Initialize() {
 
 void Profiler::start() {
   ++mProfStats[fname].nCalls;
-  if(ParallelDescriptor::IOProcessor() && bWriteBLT) {
-    std::cout << "BLTStart " << fname << std::endl;
-  }
   bRunning = true;
   bltstart = ParallelDescriptor::second();
   nestedTimeStack.push(0.0);
@@ -147,9 +145,6 @@ void Profiler::start() {
 void Profiler::stop() {
   bltelapsed += ParallelDescriptor::second() - bltstart;
   bRunning = false;
-  if(ParallelDescriptor::IOProcessor() && bWriteBLT) {
-    std::cout << "BLTEnd " << fname << " time = " << bltelapsed << std::endl;
-  }
   Real thisFuncTime(bltelapsed);
   if( ! nestedTimeStack.empty()) {
     thisFuncTime -= nestedTimeStack.top();
@@ -162,13 +157,10 @@ void Profiler::stop() {
 }
 
 
-void Profiler::InitParams(const Real ptl, const bool writeall, const bool writefabs,
-                          const bool writeblt)
-{
+void Profiler::InitParams(const Real ptl, const bool writeall, const bool writefabs) {
   pctTimeLimit = ptl;
   bWriteAll = writeall;
   bWriteFabs = writefabs;
-  bWriteBLT = writeblt;
 }
 
 
@@ -430,13 +422,12 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     pTimeTotal = calcRunTime;
   }
 
-  ios << std::endl;
-  ios << std::endl;
+  ios << '\n' << '\n';
   if( ! bwriteavg) {
     ios << std::setfill('*')
         << std::setw(maxlen + 2 + 3 * (colWidth + 2) - (colWidth+12)) << "";
     ios << std::setfill(' ');
-    ios << "  Processor:  " << std::setw(colWidth) << myProc << std::endl;
+    ios << "  Processor:  " << std::setw(colWidth) << myProc << '\n';
   }
 
   // -------- write timers sorted by name
@@ -453,19 +444,18 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     const ProfStats &pstats = it->second;
     WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
   }
-  ios << std::endl;
+  ios << '\n';
   ios << "Total Timers     = " << std::setw(colWidth) << totalTimers
-      << " seconds." << std::endl;
+      << " seconds." << '\n';
   if(calcRunTime > 0.0) {
     percent = 100.0 * totalTimers / calcRunTime;
     ios << "Calc Run Time    = " << std::setw(colWidth) << calcRunTime
-        << " seconds." << std::endl;
-    ios << "Percent Coverage = " << std::setw(colWidth) << percent << " %" << std::endl;
+        << " seconds." << '\n';
+    ios << "Percent Coverage = " << std::setw(colWidth) << percent << " %" << '\n';
   }
 
   // -------- write timers sorted by percent
-  ios << std::endl;
-  ios << std::endl;
+  ios << '\n' << '\n';
   WriteHeader(ios, colWidth, maxlen, bwriteavg);
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
       it != mProfStats.end(); ++it)
@@ -490,14 +480,13 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   }
   if(bwriteavg) {
     ios << std::setfill('=') << std::setw(maxlen+4 + 5 * (colWidth+2)) << ""
-        << std::endl;
+        << '\n';
   } else {
     ios << std::setfill('=') << std::setw(maxlen+4 + 3 * (colWidth+2)) << ""
-        << std::endl;
+        << '\n';
   }
   ios << std::setfill(' ');
   ios << std::endl;
-
 }
 
 
@@ -578,32 +567,33 @@ void Profiler::WriteCommStats(const bool bFlushing) {
         csHeader << "CommProfProc  " << myProc
                  << "  nCommStats  " << vCommStats.size()
                  << "  datafile  " << cShortFileName
-	         << "  seekpos  " << csFile.tellp() << std::endl;
+	         << "  seekpos  " << csFile.tellp() << '\n';
         for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
           int index(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[index];
           csHeader << "barrierNumber  " << cs.tag  // tag is used for barrier number
                    << "  " << '"' << CommStats::barrierNames[ib].first << '"'
-                   << "  index  " << index << std::endl;
+                   << "  index  " << index << '\n';
         }
         for(int ib(0); ib < CommStats::nameTags.size(); ++ib) {
           int index(CommStats::nameTags[ib].second);
           csHeader << "nameTag  "
                    << '"' << CommStats::nameTags[ib].first << '"'
-                   << "  index  " << index << std::endl;
+                   << "  index  " << index << '\n';
         }
         for(int ib(0); ib < CommStats::reductions.size(); ++ib) {
           int index(CommStats::reductions[ib]);
           CommStats &cs = vCommStats[index];
           csHeader << "reduction  " << cs.tag  // tag is used for reduction number
-	           << "  index  " << index << std::endl;
+	           << "  index  " << index << '\n';
         }
 	if(vCommStats.size() > 0) {
 	  csHeader << "timeMinMax  " << vCommStats[0].timeStamp << "  "
-	           << vCommStats[vCommStats.size()-1].timeStamp << std::endl;
+	           << vCommStats[vCommStats.size()-1].timeStamp << '\n';
 	} else {
-	  csHeader << "timeMinMax  0.0  0.0" << std::endl;
+	  csHeader << "timeMinMax  0.0  0.0" << '\n';
 	}
+	csHeader.flush();
 
 	csFile.write((char *) &vCommStats[0], vCommStats.size() * sizeof(CommStats));
         // ----------------------------- end write to file here
@@ -696,9 +686,13 @@ void Profiler::WriteCommStats(const bool bFlushing) {
       csHeaderFile.open(cHeaderName.c_str(), std::ios::out | std::ios::app);
     }
 
-    csHeaderFile << "NProcs  " << nProcs << std::endl;
-    csHeaderFile << "CommStatsSize  " << sizeof(CommStats) << std::endl;
+    csHeaderFile << "NProcs  " << nProcs << '\n';
+    csHeaderFile << "CommStatsSize  " << sizeof(CommStats) << '\n';
     csHeaderFile << recvdata.dataPtr();
+    for(int i(0); i < CommStats::nameTagNames.size(); ++i) {
+      csHeaderFile << "nameTagNames  " << '"' << CommStats::nameTagNames[i]
+                   << '"' << '\n';
+    }
     csHeaderFile.flush();
     csHeaderFile.close();
   }
@@ -720,7 +714,7 @@ void Profiler::WriteHeader(std::ostream &ios, const int colWidth,
 {
   if(bwriteavg) {
     ios << std::setfill('-') << std::setw(maxlen+4 + 5 * (colWidth+2))
-        << std::left << "Total times " << std::endl;
+        << std::left << "Total times " << '\n';
     ios << std::right << std::setfill(' ');
     ios << std::setw(maxlen + 2) << "Function Name"
         << std::setw(colWidth + 2) << "NCalls"
@@ -728,16 +722,16 @@ void Profiler::WriteHeader(std::ostream &ios, const int colWidth,
         << std::setw(colWidth + 2) << "Avg"
         << std::setw(colWidth + 2) << "Max"
         << std::setw(colWidth + 4) << "Percent %"
-        << std::endl;
+        << '\n';
   } else {
     ios << std::setfill('-') << std::setw(maxlen+4 + 3 * (colWidth+2))
-        << std::left << "Total times " << std::endl;
+        << std::left << "Total times " << '\n';
     ios << std::right << std::setfill(' ');
     ios << std::setw(maxlen + 2) << "Function Name"
         << std::setw(colWidth + 2) << "NCalls"
         << std::setw(colWidth + 2) << "Time"
         << std::setw(colWidth + 4) << "Percent %"
-        << std::endl;
+        << '\n';
   }
 }
 
@@ -758,14 +752,14 @@ void Profiler::WriteRow(std::ostream &ios, const std::string &fname,
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.maxTime << "  "
           << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
-	  << percent << " %" << std::endl;
+	  << percent << " %" << '\n';
     } else {
       ios << std::setw(maxlen + 2) << fname << "  "
           << std::setw(colWidth) << pstats.nCalls << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.totalTime << "  "
           << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
-	  << percent << " %" << std::endl;
+	  << percent << " %" << '\n';
     }
 }
 
@@ -820,7 +814,8 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
     ++CommStats::barrierNumber;
   } else {
     int tag(CommStats::barrierNumber - 1);  // it was incremented before the call
-    vCommStats.push_back(CommStats(cft, AfterCall(), -1, tag, ParallelDescriptor::second()));
+    vCommStats.push_back(CommStats(cft, AfterCall(), -1, tag,
+                                   ParallelDescriptor::second()));
   }
 }
 
@@ -838,8 +833,40 @@ void Profiler::AddAllReduce(const CommFuncType cft, const int size,
     ++CommStats::reductionNumber;
   } else {
     int tag(CommStats::reductionNumber - 1);
-    vCommStats.push_back(CommStats(cft, AfterCall(), -1, tag, ParallelDescriptor::second()));
+    vCommStats.push_back(CommStats(cft, AfterCall(), -1, tag,
+                                   ParallelDescriptor::second()));
   }
+}
+
+
+void Profiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &reqs,
+                           const int completed, const Array<int> &indx,
+			   const Array<MPI_Status> &status, const bool beforecall)
+{
+  if(OnExcludeList(cft)) {
+    return;
+  }
+  if(beforecall) {
+    vCommStats.push_back(CommStats(cft, reqs.size(), -7, NoTag(),
+                         ParallelDescriptor::second()));
+  } else {
+    for(int i(0); i < completed; ++i) {
+      MPI_Status stat(status[i]);
+      vCommStats.push_back(CommStats(cft, completed, stat.MPI_SOURCE, stat.MPI_TAG,
+                           ParallelDescriptor::second()));
+    }
+  }
+}
+
+
+int Profiler::NameTagNameIndex(const std::string &name) {
+  for(int i(0); i < CommStats::nameTagNames.size(); ++i) {
+    if(CommStats::nameTagNames[i] == name) {
+      return i;
+    }
+  }
+  CommStats::nameTagNames.push_back(name);
+  return CommStats::nameTagNames.size() - 1;
 }
 
 
@@ -848,8 +875,10 @@ void Profiler::AddNameTag(const std::string &name) {
   if(OnExcludeList(cft)) {
     return;
   }
-  int tag(-1);
-  vCommStats.push_back(CommStats(cft, 0, 0, tag, ParallelDescriptor::second()));
+  int tag(NameTagNameIndex(name));
+  int index(CommStats::nameTags.size());
+  vCommStats.push_back(CommStats(cft, index,  vCommStats.size(), tag,
+                       ParallelDescriptor::second()));
   CommStats::nameTags.push_back(std::make_pair(name, vCommStats.size() - 1));
 }
 
