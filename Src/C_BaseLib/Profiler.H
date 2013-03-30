@@ -4,6 +4,7 @@
 #ifdef BL_PROFILING
 
 #include <REAL.H>
+#include <Array.H>
 
 #include <iostream>
 #include <string>
@@ -52,9 +53,10 @@ class Profiler
       GatherRiRi,      // 23
       ScatterTsT1si,   // 24
       Barrier,         // 25
-      NameTag,         // 26
-      AllCFTypes,      // 27
-      NoCFTypes        // 28
+      Waitsome,        // 26
+      NameTag,         // 27
+      AllCFTypes,      // 28
+      NoCFTypes        // 29
     };
 
     struct CommStats {
@@ -75,7 +77,8 @@ class Profiler
       static int reductionNumber;
       static std::vector<std::pair<std::string,int> > barrierNames;  // [name,index]
       static std::vector<std::pair<std::string,int> > nameTags;      // [name,index]
-      static std::vector<int> reductions;      // [index]
+      static std::vector<std::string> nameTagNames;                  // [name]
+      static std::vector<int> reductions;                            // [index]
 
       CommFuncType cfType;
       int size, commpid, tag;
@@ -94,6 +97,9 @@ class Profiler
 
     static void AddCommStat(const CommFuncType cft, const int size,
                             const int pid, const int tag);
+    static void AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &reqs,
+                            const int completed, const Array<int> &indx,
+			    const Array<MPI_Status> &status, const bool bc);
     static void AddBarrier(const std::string &message, const bool bc);
     static void AddNameTag(const std::string &name);
     static void AddAllReduce(const CommFuncType cft, const int size, const bool bc);
@@ -102,19 +108,19 @@ class Profiler
     void stop();
 
     static void InitParams(const Real ptl, const bool writeall,
-                           const bool writefabs, const bool writeblt);
+                           const bool writefabs);
     static void AddStep(const int snum);
     static void SetRunTime(const Real rtime) { calcRunTime = rtime; }
 
-    static const int NoTag()     { return -1; }
-    static const int AfterCall() { return -1; }
+    static const int NoTag()     { return -3; }
+    static const int AfterCall() { return -5; }
 
   private:
     Real bltstart, bltelapsed;
     std::string fname;
     bool bRunning;
 
-    static bool bWriteAll, bWriteFabs, bWriteBLT;
+    static bool bWriteAll, bWriteFabs;
     static bool bFirstCommWriteH, bFirstCommWriteD;
     static bool bInitialized;
     static int currentStep, csFlushSize, nProfFiles;
@@ -135,6 +141,7 @@ class Profiler
 			 const bool bwriteavg);
 
     static bool OnExcludeList(CommFuncType cft);
+    static int  NameTagNameIndex(const std::string &name);
 };
 
 
@@ -167,6 +174,7 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
     case GatherRiRi:     return "GatherRiRi";
     case ScatterTsT1si:  return "ScatterTsT1si";
     case Barrier:        return "Barrier";
+    case Waitsome:       return "Waitsome";
     case NameTag:        return "NameTag";
     case AllCFTypes:     return "AllCFTypes";
     case NoCFTypes:      return "NoCFTypes";
@@ -186,8 +194,8 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_VAR(fname, vname) Profiler bl_profiler__##vname((fname));
 #define BL_PROFILE_VAR_START(vname) bl_profiler__##vname.start();
 #define BL_PROFILE_VAR_STOP(vname) bl_profiler__##vname.stop();
-#define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs,wblt)  \
-                                  Profiler::InitParams(ptl,wall, wfabs,wblt);
+#define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)  \
+                                  Profiler::InitParams(ptl,wall, wfabs);
 #define BL_PROFILE_ADD_STEP(snum)  Profiler::AddStep(snum);
 #define BL_PROFILE_SET_RUN_TIME(rtime)  Profiler::SetRunTime(rtime);
 #define BL_PROFILE_FINALIZE()  Profiler::Finalize();
@@ -202,6 +210,9 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc) { Profiler::AddAllReduce(cft, size, bc); }
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
                           Profiler::AddCommStat(cft, size, pid, Profiler::NoTag()); }
+#define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, indx, status, bc) {                \
+                          Profiler::AddWaitsome(cft, reqs, completed, indx, status, bc);  \
+}
 #define BL_COMM_PROFILE_NAMETAG(message) { Profiler::AddNameTag(message); }
 #define BL_COMM_PROFILE_FILTER(cft) { Profiler::CommStats::Filter(cft); }
 #define BL_COMM_PROFILE_UNFILTER(cft) { Profiler::CommStats::UnFilter(cft); }
@@ -213,6 +224,7 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_BARRIER(message, bc)
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc)
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid)
+#define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, indx, status, bc)
 #define BL_COMM_PROFILE_NAMETAG(message)
 #define BL_COMM_PROFILE_FILTER(cft)
 #define BL_COMM_PROFILE_UNFILTER(cft)
@@ -237,7 +249,7 @@ class Profiler
     void start() { }
     void stop() { }
     static void InitParams(const Real ptl, const bool writeall,
-                           const bool writefabs, const bool writeblt) { }
+                           const bool writefabs) { }
     static void AddStep(const int snum) { }
 };
 
@@ -252,7 +264,7 @@ class Profiler
 #define BL_PROFILE_VAR(fname, vname)
 #define BL_PROFILE_VAR_START(vname)
 #define BL_PROFILE_VAR_STOP(vname)
-#define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs,wblt)
+#define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
 #define BL_PROFILE_FINALIZE()
@@ -261,6 +273,7 @@ class Profiler
 #define BL_COMM_PROFILE_BARRIER(message, bc)
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc)
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid)
+#define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, indx, status, bc)
 #define BL_COMM_PROFILE_NAMETAG(message)
 #define BL_COMM_PROFILE_FILTER(cft)
 #define BL_COMM_PROFILE_UNFILTER(cft)

@@ -540,6 +540,7 @@ ParallelDescriptor::Arecv (T*       buf,
                               Communicator(),
                               &req) );
     BL_COMM_PROFILE(Profiler::ArecvTsii, Profiler::AfterCall(), src_pid, tag);
+
     return Message(req, Mpi_typemap<T>::type());
 }
 
@@ -605,7 +606,7 @@ ParallelDescriptor::Recv (T*     buf,
                              tag,
                              Communicator(),
                              &stat) );
-    BL_COMM_PROFILE(Profiler::RecvTsii, Profiler::AfterCall(), src_pid, tag);
+    BL_COMM_PROFILE(Profiler::RecvTsii, Profiler::AfterCall(), stat.MPI_SOURCE, stat.MPI_TAG);
     return Message(stat, Mpi_typemap<T>::type());
 }
 
@@ -626,7 +627,7 @@ ParallelDescriptor::Recv (std::vector<T>& buf,
                              tag,
                              Communicator(),
                              &stat) );
-    BL_COMM_PROFILE(Profiler::RecvvTii, Profiler::AfterCall(), src_pid, tag);
+    BL_COMM_PROFILE(Profiler::RecvvTii, Profiler::AfterCall(), stat.MPI_SOURCE, stat.MPI_TAG);
     return Message(stat, Mpi_typemap<T>::type());
 }
 

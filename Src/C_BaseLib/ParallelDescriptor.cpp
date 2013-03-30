@@ -322,12 +322,14 @@ ParallelDescriptor::Barrier (MPI_Comm comm, const std::string &message)
 void
 ParallelDescriptor::Test (MPI_Request& request, int& flag, MPI_Status& status)
 {
+    BL_PROFILE("ParallelDescriptor::Test()");
     BL_MPI_REQUIRE( MPI_Test(&request,&flag,&status) );
 }
 
 void
 ParallelDescriptor::IProbe (int src_pid, int tag, int& flag, MPI_Status& status)
 {
+    BL_PROFILE("ParallelDescriptor::Iprobe()");
     BL_MPI_REQUIRE( MPI_Iprobe(src_pid, tag, ParallelDescriptor::Communicator(),
                                &flag, &status) );
 }
@@ -335,6 +337,7 @@ ParallelDescriptor::IProbe (int src_pid, int tag, int& flag, MPI_Status& status)
 void
 ParallelDescriptor::Comm_dup (MPI_Comm comm, MPI_Comm& newcomm)
 {
+    BL_PROFILE("ParallelDescriptor::Comm_dup()");
     BL_MPI_REQUIRE( MPI_Comm_dup(comm, &newcomm) );
 }
 
@@ -1026,11 +1029,13 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
 	c++;
     }
 #else
+    BL_COMM_PROFILE_WAITSOME(Profiler::Waitsome, reqs, completed, indx, status, true);
     BL_MPI_REQUIRE( MPI_Waitsome(reqs.size(),
                                  reqs.dataPtr(),
                                  &completed,
                                  indx.dataPtr(),
                                  status.dataPtr()));
+    BL_COMM_PROFILE_WAITSOME(Profiler::Waitsome, reqs, completed, indx, status, false);
 #endif
 }
 
