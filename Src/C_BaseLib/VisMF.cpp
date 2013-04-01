@@ -26,8 +26,8 @@ int VisMF::verbose = 1;
 //
 // Set these in Initialize().
 //
-int VisMF::nOutFiles;
-int VisMF::nMFFileInStreams;
+int VisMF::nOutFiles(64);
+int VisMF::nMFFileInStreams(1);
 
 namespace
 {
@@ -41,9 +41,9 @@ VisMF::Initialize ()
     //
     // Use the same defaults as in Amr.cpp.
     //
-    VisMF::SetNOutFiles(64);
+    VisMF::SetNOutFiles(nOutFiles);
 
-    VisMF::SetMFFileInStreams(1);
+    VisMF::SetMFFileInStreams(nMFFileInStreams);
 
     BoxLib::ExecOnFinalize(VisMF::Finalize);
 
