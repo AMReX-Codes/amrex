@@ -231,10 +231,10 @@ dotxy (const MultiFab& r,
 
 int
 CGSolver::solve_bicgstab (MultiFab&       sol,
-		       const MultiFab& rhs,
-		       Real            eps_rel,
-		       Real            eps_abs,
-		       LinOp::BC_Mode  bc_mode)
+                          const MultiFab& rhs,
+                          Real            eps_rel,
+                          Real            eps_abs,
+                          LinOp::BC_Mode  bc_mode)
 {
     const int nghost = 1;
     const int ncomp  = 1;
@@ -255,9 +255,9 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
     if (verbose && false)
     {
-        std::cout << "eps_rel = "       << eps_rel         << std::endl;
-        std::cout << "eps_abs = "       << eps_abs         << std::endl;
-        std::cout << "lp.norm = "       << Lp.norm(0, lev) << std::endl;
+        std::cout << "eps_rel = "      << eps_rel         << std::endl;
+        std::cout << "eps_abs = "      << eps_abs         << std::endl;
+        std::cout << "lp.norm = "      << Lp.norm(0, lev) << std::endl;
         std::cout << "sol.norm_inf = " << norm_inf(sol)   << std::endl;
         std::cout << "rhs.norm_inf = " << norm_inf(rhs)   << std::endl;
     }
@@ -297,7 +297,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
     for (; nit <= maxiter; ++nit)
     {
-        Real rho = dotxy(rh,r);
+        const Real rho = dotxy(rh,r);
         if ( rho == 0 ) 
 	{
             ret = 1;
@@ -309,9 +309,9 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         }
         else
         {
-            Real beta = (rho/rho_1)*(alpha/omega);
+            const Real beta = (rho/rho_1)*(alpha/omega);
             sxay(p, p, -omega, v);
-            sxay(p, r, beta, p);
+            sxay(p, r,   beta, p);
         }
         if ( use_mg_precond )
         {
@@ -338,8 +338,9 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
             ret = 2;
             break;
 	}
-        sxay(sol, sol, alpha, ph);
-        sxay(s, r, -alpha, v);
+        sxay(sol, sol,  alpha, ph);
+        sxay(s,     r, -alpha,  v);
+
         rnorm = norm_inf(s);
 
         if (ParallelDescriptor::IOProcessor())
@@ -378,17 +379,27 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
             sh.copy(s);
         }
         Lp.apply(t, sh, lev, temp_bc_mode);
-        if ( Real tTt = dotxy(t,t) )
+        //
+        // This is a little funky.  I want to elide one of the reductions
+        // in the following two dotxy()s.  We do that by calculating the "local"
+        // values and then reducing the two local values at the same time.
+        //
+        Real vals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
+
+        ParallelDescriptor::ReduceRealSum(&vals[0],2);
+
+        if ( vals[0] )
 	{
-            omega = dotxy(t,s)/tTt;
+            omega = vals[1]/vals[0];
 	}
         else
 	{
             ret = 3;
             break;
 	}
-        sxay(sol, sol, omega, sh);
-        sxay(r, s, -omega, t);
+        sxay(sol, sol,  omega, sh);
+        sxay(r,     s, -omega,  t);
+
         rnorm = norm_inf(r);
 
         if (ParallelDescriptor::IOProcessor())
@@ -434,19 +445,14 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     }
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
     if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rh_norm ) && rnorm > eps_abs )
-    {
-        if ( ParallelDescriptor::IOProcessor() )
-            BoxLib::Warning("CGSolver_bicgstab:: failed to converge!");
-        ret = 8;
-    }
 #else
     if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
+#endif
     {
         if ( ParallelDescriptor::IOProcessor() )
             BoxLib::Warning("CGSolver_bicgstab:: failed to converge!");
         ret = 8;
     }
-#endif
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rh_norm) )
     {

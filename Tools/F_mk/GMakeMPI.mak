@@ -186,6 +186,17 @@ ifeq ($(findstring hopper, $(HOST)), hopper)
         F90 := ftn -target=linux
     endif
 endif
+ifeq ($(findstring edison, $(HOST)), edison)
+    #
+    # edison.nersc.gov
+    #
+    ifdef MPI
+        CXX := CC -target=linux
+        CC  := cc -target=linux
+        FC  := ftn -target=linux
+        F90 := ftn -target=linux
+    endif
+endif
 ifeq ($(findstring jaguar, $(HOST)), jaguar)
     #
     # jaguar
@@ -207,7 +218,22 @@ ifeq ($(findstring kraken, $(UNAMEN)), kraken)
         F90 := ftn -target=linux
     endif
 endif
+ifeq ($(findstring h2o, $(UNAMEN)), h2o)
+    #
+    # Blue Waters
+    #
+    ifdef MPI
+        CXX := CC
+	FC  := ftn
+	F90 := ftn
+    endif
 
+    ifeq ($(COMP),Cray)
+      FFLAGS += -hnopgas_runtime
+      F90FLAGS += -hnopgas_runtime
+      CFLAGS += -hnopgas_runtime
+    endif
+endif
 
 
 ifeq ($(HOST),cfe3)

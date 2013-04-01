@@ -15,12 +15,12 @@
 
   F90FLAGS += -J$(mdir) -I$(mdir)
   FFLAGS   += -J$(mdir) -I$(mdir)
-  CFLAGS   += -Wall
+  CFLAGS   += -std=c99 -Wall
 
   ifdef NDEBUG
-    F90FLAGS += -O2 -fno-range-check
-    FFLAGS   += -O2 -fno-range-check
-    CFLAGS   += -O2
+    F90FLAGS += -O2 -ftree-vectorize -fno-range-check
+    FFLAGS   += -O2 -ftree-vectorize -fno-range-check
+    CFLAGS   += -O2 -ftree-vectorize
   else
     F90FLAGS += -g -fno-range-check -O1 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
     FFLAGS   += -g -fno-range-check -O1 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
