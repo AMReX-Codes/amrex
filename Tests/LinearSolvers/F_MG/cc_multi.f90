@@ -170,7 +170,7 @@ contains
     type(multifab), intent(inout) :: mf
     integer i
     type(box) bx
-    do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+    do i = 1, nfabs(mf)
 
        bx = get_box(mf,i)
        bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
@@ -211,9 +211,7 @@ contains
     rhs_box%lo(1:rhs_box%dim) = 7
     rhs_box%hi(1:rhs_box%dim) = 8
 
-    do i = 1, mf%nboxes
-
-       if ( remote(mf,i) ) cycle
+    do i = 1, nfabs(mf)
        bx = get_ibox(mf,i)
        rhs_intersect_box = box_intersection(bx,rhs_box)
        if (.not. empty(rhs_intersect_box)) then

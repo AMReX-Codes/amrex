@@ -852,7 +852,9 @@ void Profiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &req
   } else {
     for(int i(0); i < completed; ++i) {
       MPI_Status stat(status[i]);
-      vCommStats.push_back(CommStats(cft, completed, stat.MPI_SOURCE, stat.MPI_TAG,
+      int c;
+      BL_MPI_REQUIRE( MPI_Get_count(&stat, MPI_UNSIGNED_CHAR, &c) );
+      vCommStats.push_back(CommStats(cft, c, stat.MPI_SOURCE, stat.MPI_TAG,
                            ParallelDescriptor::second()));
     }
   }

@@ -818,10 +818,14 @@ FAB_CONTAINS_NAN (double dptr[], const int* countp, int* result)
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
     int i, r;
     int rr=0;
+#ifdef _OPENMP
 #pragma omp parallel private(r) reduction(+:rr)
+#endif
     {
       r = 0;
+#ifdef _OPENMP
 #pragma omp for private(i)
+#endif
       for (i = 0; i < *countp; i++) {
 	if (isnan(dptr[i])) {
 	  r = 1;
@@ -839,10 +843,14 @@ FAB_CONTAINS_INF (double dptr[], const int* countp, int* result)
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
     int i, r;
     int rr=0;
+#ifdef _OPENMP
 #pragma omp parallel private(r) reduction(+:rr)
+#endif
     {
       r = 0;
+#ifdef _OPENMP
 #pragma omp for private(i)
+#endif
       for (i = 0; i < *countp; i++) {
         if (isinf(dptr[i])) {
 	  r = 1;
