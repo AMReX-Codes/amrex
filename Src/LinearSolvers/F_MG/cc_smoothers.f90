@@ -354,7 +354,7 @@ contains
           end do
        end do
 
-       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd) IF((hi(3)-lo(3)).ge.3)
+       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
@@ -395,7 +395,7 @@ contains
        !
        ! USE THIS FOR GAUSS-SEIDEL
        !
-       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd) IF((hi(3)-lo(3)).ge.3)
+       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
@@ -979,7 +979,7 @@ contains
 
     allocate(wrk(nx,ny,nz))
 
-    !$OMP PARALLEL DO PRIVATE(j,i,k,dd) IF(nz.ge.4)
+    !$OMP PARALLEL DO PRIVATE(j,i,k,dd)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1016,7 +1016,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
+    !$OMP PARALLEL DO PRIVATE(j,i,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1051,7 +1051,7 @@ contains
 
     allocate(wrk(nx,ny,nz))
 
-    !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
+    !$OMP PARALLEL DO PRIVATE(j,i,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1091,7 +1091,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
+    !$OMP PARALLEL DO PRIVATE(j,i,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx

@@ -1183,21 +1183,8 @@ contains
     use bl_error_module
     type(fab), intent(inout) :: fb
     real(kind=dp_t), intent(in) :: val
-    integer :: lo(4), hi(4), i, j, k, n
     if ( .not. associated(fb%p) ) call bl_error("FAB_SETVAL: not associated")
-    lo = lbound(fb%p)
-    hi = ubound(fb%p)
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
-                fb%p(i,j,k,n) = val
-             end do
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
+    fb%p = val
   end subroutine fab_setval
   subroutine zfab_setval(fb, val)
     use bl_error_module
@@ -1227,22 +1214,9 @@ contains
     type(box), intent(in) :: bx
     real(kind=dp_t), intent(in) :: val
     real(kind=dp_t), pointer :: p(:,:,:,:)
-    integer :: lo(4), hi(4), i, j, k, n
     p => fab_dataptr_bx(fb, bx)
     if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
-    lo = lbound(p)
-    hi = ubound(p)
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
-                p(i,j,k,n) = val
-             end do
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
+    p = val
   end subroutine fab_setval_bx
   subroutine zfab_setval_bx(fb, val, bx)
     use bl_error_module
@@ -1282,22 +1256,9 @@ contains
     integer, intent(in), optional :: nc
     real(kind=dp_t), intent(in) :: val
     real(kind=dp_t), pointer :: p(:,:,:,:)
-    integer :: lo(4), hi(4), i, j, k, n
     p => fab_dataptr_c(fb, c, nc)
     if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
-    lo = lbound(p)
-    hi = ubound(p)
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
-                p(i,j,k,n) = val
-             end do
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
+    p = val
   end subroutine fab_setval_c
   subroutine zfab_setval_c(fb, val, c, nc)
     use bl_error_module
@@ -1341,22 +1302,9 @@ contains
     integer, intent(in), optional :: nc
     real(kind=dp_t), intent(in) :: val
     real(kind=dp_t), pointer :: p(:,:,:,:)
-    integer :: lo(4), hi(4), i, j, k, n
     p => fab_dataptr_bx_c(fb, bx, c, nc)
     if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
-    lo = lbound(p)
-    hi = ubound(p)
-    !$OMP PARALLEL DO PRIVATE(i,j,k,n) COLLAPSE(2)
-    do n         =lo(4),hi(4)
-       do k      =lo(3),hi(3)
-          do j   =lo(2),hi(2)
-             do i=lo(1),hi(1)
-                p(i,j,k,n) = val
-             end do
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
+    p = val
   end subroutine fab_setval_bx_c
   subroutine zfab_setval_bx_c(fb, val, bx, c, nc)
     use bl_error_module
