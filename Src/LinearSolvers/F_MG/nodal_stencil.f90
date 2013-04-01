@@ -450,7 +450,7 @@ contains
 
     call set_faces_edges_corners_3d(nx, ny, nz, sg, mm)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -530,7 +530,7 @@ contains
 
     call set_faces_edges_corners_3d(nx, ny, nz, sg_int, mm)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -602,7 +602,7 @@ contains
     fz = ONE / (36.0_dp_t)
     f0 = FOUR * (fx + fy + fz)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -805,7 +805,7 @@ contains
 
     if (stencil_type .eq. ND_CROSS_STENCIL) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface) IF(nz.ge.4)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -840,7 +840,7 @@ contains
 
     else if (stencil_type .eq. ND_DENSE_STENCIL) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface) IF(nz.ge.4)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 

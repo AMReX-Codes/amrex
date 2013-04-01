@@ -365,6 +365,16 @@ VisMF::clear (int fabIndex,
 long
 VisMF::FileOffset (std::ostream& os)
 {
+    //
+    // Set to the end of the file before doing the tellp().
+    // This shouldn't be needed except for a bug we've found
+    // on edison.  As long as it doesn't hurt anything we'll
+    // go with it for now.  The reason it should be OK is that
+    // all our open()s for writing in this file are in append
+    // mode.  So tellp() should always be at the file end.
+    //
+    os.seekp(0, std::ios::end);
+
     return os.tellp();
 }
 

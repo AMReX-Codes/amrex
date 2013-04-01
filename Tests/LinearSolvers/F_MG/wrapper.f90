@@ -11,6 +11,7 @@ subroutine wrapper()
   use box_util_module
   use mt19937_module
   use bl_timer_module
+  use stencil_types_module
 
   implicit none
 
@@ -567,9 +568,9 @@ subroutine wrapper()
   end if
 
   if ( dense_in ) then
-     stencil_type = ST_DENSE
+     stencil_type = HO_DENSE_STENCIL
   else
-     stencil_type = ST_CROSS
+     stencil_type = CC_CROSS_STENCIL
   end if
 
   pmask = pd_pmask(1:dm)
@@ -667,9 +668,9 @@ subroutine wrapper()
      end if
 
      if (all(nodal)) then
-       if (stencil_type == ST_CROSS) then
+       if (stencil_type == ND_CROSS_STENCIL) then
          smoother = MG_SMOOTHER_GS_RB
-       else if (stencil_type == ST_DENSE) then
+       else if (stencil_type == ND_DENSE_STENCIL) then
          smoother = MG_SMOOTHER_GS_LEX
        else 
          print *,'DONT KNOW THIS STENCIL TYPE ',stencil_type
@@ -677,7 +678,7 @@ subroutine wrapper()
        end if
      end if
 
-     call mg_tower_build(mgt(n), mla%la(n), mba%pd(n), domain_bc, &
+     call mg_tower_build(mgt(n), mla%la(n), mba%pd(n), domain_bc, mgt(n)%stencil_type,&
           dh = dh(n,:), &
           ns = ns, &
           smoother = smoother, &
