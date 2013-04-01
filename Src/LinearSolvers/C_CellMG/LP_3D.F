@@ -208,8 +208,7 @@ c
             end do
          end do
 !$omp end do nowait
-      end do
-      do n = 1, nc
+
 !$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)+1
@@ -219,8 +218,7 @@ c
             end do
          end do
 !$omp end do nowait
-      end do
-      do n = 1, nc
+
 !$omp do
          do k = lo(3), hi(3)+1
             do j = lo(2), hi(2)
@@ -230,6 +228,7 @@ c
             end do
          end do
 !$omp end do nowait
+
       end do
 !$omp end parallel
 
