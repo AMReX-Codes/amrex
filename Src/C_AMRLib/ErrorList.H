@@ -130,7 +130,7 @@ public:
               int                        ng,
               ErrorType                  etyp,
               const ErrorRec::ErrorFunc& f);
-    ~ErrorRec();
+    virtual ~ErrorRec();
     //
     // The name of the quantity to derive.
     //
