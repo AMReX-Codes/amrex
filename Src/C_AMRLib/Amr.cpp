@@ -89,6 +89,8 @@ Amr::Initialize ()
 
     BoxLib::ExecOnFinalize(Amr::Finalize);
 
+    VisMF::Initialize();
+
     initialized = true;
 }
 
