@@ -1022,7 +1022,7 @@ contains
     real(kind=dp_t), intent(in) :: b(*)
     real(kind=dp_t), intent(inout) :: a(*)
     integer, intent(in), optional :: comm
-    integer ierr, l_comm
+    integer l_comm
     integer, intent(in) :: n
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     a(1:n) = b(1:n)
@@ -1033,7 +1033,7 @@ contains
     real(kind=dp_t), intent(inout) :: a(*)
     integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
     integer, intent(in), optional :: comm
-    integer ierr, l_comm
+    integer l_comm
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     a(ad(1):ad(1)+ac(1)-1) = b(bd(1):bd(1)+bc(1)-1)
   end subroutine parallel_alltoall_dv
@@ -1042,7 +1042,7 @@ contains
     integer, intent(in) :: b(*)
     integer, intent(inout) :: a(*)
     integer, intent(in), optional :: comm
-    integer ierr, l_comm
+    integer l_comm
     integer, intent(in) :: n
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     a(1:n) = b(1:n)
@@ -1053,7 +1053,7 @@ contains
     integer, intent(inout) :: a(*)
     integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
     integer, intent(in), optional :: comm
-    integer ierr, l_comm
+    integer l_comm
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     a(ad(1):ad(1)+ac(1)-1) = b(bd(1):bd(1)+bc(1)-1)
   end subroutine parallel_alltoall_iv
@@ -1062,7 +1062,7 @@ contains
     logical, intent(in) :: b(*)
     logical, intent(inout) :: a(*)
     integer, intent(in), optional :: comm
-    integer ierr, l_comm
+    integer l_comm
     integer, intent(in) :: n
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     a(1:n) = b(1:n)
@@ -1073,7 +1073,7 @@ contains
     logical, intent(inout) :: a(*)
     integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
     integer, intent(in), optional :: comm
-    integer ierr, l_comm
+    integer l_comm
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     a(ad(1):ad(1)+ac(1)-1) = b(bd(1):bd(1)+bc(1)-1)
   end subroutine parallel_alltoall_lv
@@ -1261,7 +1261,7 @@ contains
     integer, intent(in) :: rcvc(*), rcvd(*)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
-    integer ierr, l_root, l_comm
+    integer l_root, l_comm
     l_root = io_processor_node
     if ( present(root) ) l_root = root
     l_comm = m_comm
@@ -1275,7 +1275,7 @@ contains
     integer, intent(in) :: rcvc(*), rcvd(*)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
-    integer ierr, l_root, l_comm
+    integer l_root, l_comm
     l_root = io_processor_node
     if ( present(root) ) l_root = root
     l_comm = m_comm
@@ -1289,7 +1289,7 @@ contains
     integer, intent(in) :: rcvc(*), rcvd(*)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
-    integer ierr, l_root, l_comm
+    integer l_root, l_comm
     l_root = io_processor_node
     if ( present(root) ) l_root = root
     l_comm = m_comm
@@ -1303,7 +1303,7 @@ contains
     integer, intent(in) :: rcvc(*), rcvd(*)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
-    integer ierr, l_root, l_comm
+    integer l_root, l_comm
     l_root = io_processor_node
     if ( present(root) ) l_root = root
     l_comm = m_comm
@@ -1317,7 +1317,7 @@ contains
     integer, intent(in) :: rcvc(*), rcvd(*)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
-    integer ierr, l_root, l_comm
+    integer l_root, l_comm
     l_root = io_processor_node
     if ( present(root) ) l_root = root
     l_comm = m_comm
@@ -1331,7 +1331,7 @@ contains
     integer, intent(in) :: rcvc(*), rcvd(*)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
-    integer ierr, l_root, l_comm
+    integer l_root, l_comm
     l_root = io_processor_node
     if ( present(root) ) l_root = root
     l_comm = m_comm
