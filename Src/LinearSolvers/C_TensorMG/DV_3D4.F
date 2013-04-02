@@ -129,8 +129,6 @@ c
       integer n
       logical is_dirichlet
       logical is_neumann
-      logical is_odd
-      REAL_T xb
       REAL_T innder,outder,innloc
       REAL_T edgloc,outloc
       REAL_T lambda
