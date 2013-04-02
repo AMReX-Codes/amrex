@@ -415,3 +415,9 @@ ifeq ($(HOST),lookfar)
   endif
 endif
 
+ifeq ($(HOSTNAME),hyades.ucsc.edu)
+  F90 := mpiifort
+  FC := mpiifort
+  fC := mpiifort
+endif
+

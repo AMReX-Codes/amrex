@@ -342,15 +342,13 @@ ifeq ($(WHICHLINUX), EDISON)
   endif
 endif
 
-ifeq ($(HOSTNAME), pleiades.ucsc.edu)
-  DEFINES += -DBL_PLEIADES
-  ifeq ($(COMP),Intel)
-    CXX = icc
-    ifeq ($(USE_MPI),TRUE)
-      CXX = mpiCC
-    else
-      LIBRARIES+=-lstdc++
-    endif
+ifeq ($(HOSTNAME), hyades.ucsc.edu)
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpiicc
+    CC  := mpiicc
+    F90 := mpiifort
+    FC := mpiifort
+    fC := mpiifort
   endif
 endif 
 
