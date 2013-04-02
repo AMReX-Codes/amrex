@@ -209,7 +209,9 @@ USE_GCC =
 ifeq ($(findstring gcc, $(COMP)), gcc)
     USE_GCC = true
 endif
-
+ifeq ($(findstring gnu, $(COMP)), gnu)
+    USE_GCC = true
+endif
 ifeq ($(findstring g++, $(COMP)), g++)
     USE_GCC = true
 endif
