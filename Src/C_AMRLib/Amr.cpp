@@ -1782,7 +1782,9 @@ Amr::coarseTimeStep (Real stop_time)
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
  #ifdef BL_COMM_PROFILING
-    BL_COMM_PROFILE_NAMETAG("STEP");
+    std::stringstream stepName;
+    stepName << "STEP " << level_steps[0];
+    BL_COMM_PROFILE_NAMETAG(stepName.str());
     BL_COMM_PROFILE_FLUSH();
  #endif
 

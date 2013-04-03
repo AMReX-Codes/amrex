@@ -324,19 +324,19 @@ void Profiler::Finalize() {
         BoxLib::CreateDirectoryFailed(cdir);
       }
     }
-    // Force other processors to wait till directory is built.
+    // Force other processors to wait until directory is built.
     ParallelDescriptor::Barrier("Profiler::Finalize::waitfordir");
 
     const int   myProc    = ParallelDescriptor::MyProc();
     const int   nProcs    = ParallelDescriptor::NProcs();
     const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
-    const int   NSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
-    const int   MySet     = myProc/nOutFiles;
+    const int   nSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
+    const int   mySet     = myProc/nOutFiles;
     std::string cFileName(cdir + '/' + cdir + "_D_");
     std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
 
-    for(int iSet = 0; iSet < NSets; ++iSet) {
-      if(MySet == iSet) {
+    for(int iSet = 0; iSet < nSets; ++iSet) {
+      if(mySet == iSet) {
         {  // scope
           std::ofstream csFile;
 
@@ -367,7 +367,7 @@ void Profiler::Finalize() {
           ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
         }
       }
-      if(MySet == (iSet + 1)) {   // Next set waits.
+      if(mySet == (iSet + 1)) {   // Next set waits.
         int iBuff;
         int waitForPID = (myProc - nOutFiles);
         int tag        = (myProc % nOutFiles);
@@ -522,10 +522,8 @@ void Profiler::WriteCommStats(const bool bFlushing) {
       BoxLib::CreateDirectoryFailed(cdir);
     }
   }
-  // Force other processors to wait till directory is built.
+  // Force other processors to wait until directory is built.
   ParallelDescriptor::Barrier("Profiler::WriteCommStats::waitfordir");
-
-  std::ostringstream csHeader;
 
   bool bUseRelativeTimeStamp(true);
   if(bUseRelativeTimeStamp) {
@@ -535,85 +533,97 @@ void Profiler::WriteCommStats(const bool bFlushing) {
     }
   }
 
+  //std::ostringstream csHeader;
+
   // --------------------- start nfiles block
   const int   myProc    = ParallelDescriptor::MyProc();
   const int   nProcs    = ParallelDescriptor::NProcs();
   const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
-  const int   NSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
-  const int   MySet     = myProc/nOutFiles;
-  std::string cShortFileName(cdir + "_D_");
-  cShortFileName = BoxLib::Concatenate(cShortFileName, myProc % nOutFiles, 4);
-  std::string FullName  = cdir + '/' + cShortFileName;
+  const int   nSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
+  const int   mySet     = myProc/nOutFiles;
 
-  for(int iSet = 0; iSet < NSets; ++iSet) {
-    if(MySet == iSet) {
+  std::string shortDFileName(cdir + "_D_");
+  shortDFileName = BoxLib::Concatenate(shortDFileName, myProc % nOutFiles, 4);
+  std::string longDFileName  = cdir + '/' + shortDFileName;
+
+  std::string shortHeaderFileName(cdir + "_H_");
+  shortHeaderFileName = BoxLib::Concatenate(shortHeaderFileName, myProc % nOutFiles, 4);
+  std::string longHeaderFileName  = cdir + '/' + shortHeaderFileName;
+
+  for(int iSet = 0; iSet < nSets; ++iSet) {
+    if(mySet == iSet) {
       {  // scope
-        std::ofstream csFile;
+        std::ofstream csDFile, csHeaderFile;
+
+        if(iSet == 0 && bFirstCommWriteH) {   // First set.
+	  bFirstCommWriteH = false;
+          csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
+        } else {
+          csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::app);
+          csHeaderFile.seekp(0, std::ios::end);   // set to eof
+        }
+        if( ! csHeaderFile.good()) {
+          BoxLib::FileOpenFailed(longHeaderFileName);
+        }
 
         if(iSet == 0 && bFirstCommWriteD) {   // First set.
 	  bFirstCommWriteD = false;
-          csFile.open(FullName.c_str(),
-                      std::ios::out|std::ios::trunc|std::ios::binary);
+          csDFile.open(longDFileName.c_str(),
+                      std::ios::out | std::ios::trunc | std::ios::binary);
         } else {
-          csFile.open(FullName.c_str(),
-                      std::ios::out|std::ios::app|std::ios::binary);
-          csFile.seekp(0, std::ios::end);   // set to eof
+          csDFile.open(longDFileName.c_str(),
+                      std::ios::out | std::ios::app | std::ios::binary);
+          csDFile.seekp(0, std::ios::end);   // set to eof
         }
-        if( ! csFile.good()) {
-          BoxLib::FileOpenFailed(FullName);
+        if( ! csDFile.good()) {
+          BoxLib::FileOpenFailed(longDFileName);
         }
 
         // ----------------------------- write to file here
-        csHeader << "CommProfProc  " << myProc
-                 << "  nCommStats  " << vCommStats.size()
-                 << "  datafile  " << cShortFileName
-	         << "  seekpos  " << csFile.tellp() << '\n';
+        csHeaderFile << "NProcs  " << nProcs << '\n';
+        csHeaderFile << "CommStatsSize  " << sizeof(CommStats) << '\n';
+        csHeaderFile << "CommProfProc  " << myProc
+                     << "  nCommStats  " << vCommStats.size()
+                     << "  datafile  " << shortDFileName
+	             << "  seekpos  " << csDFile.tellp() << '\n';
         for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
           int index(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[index];
-          csHeader << "barrierNumber  " << cs.tag  // tag is used for barrier number
-                   << "  " << '"' << CommStats::barrierNames[ib].first << '"'
-                   << "  index  " << index << '\n';
+          csHeaderFile << "bNum  " << cs.tag  // tag is used for barrier number
+                       << "  " << '"' << CommStats::barrierNames[ib].first << '"'
+                       << "  " << index << '\n';
         }
         for(int ib(0); ib < CommStats::nameTags.size(); ++ib) {
           int index(CommStats::nameTags[ib].second);
-          csHeader << "nameTag  "
-                   << '"' << CommStats::nameTags[ib].first << '"'
-                   << "  index  " << index << '\n';
+          csHeaderFile << "nTag  "
+                       << '"' << CommStats::nameTags[ib].first << '"'
+                       << "  " << index << '\n';
         }
         for(int ib(0); ib < CommStats::reductions.size(); ++ib) {
           int index(CommStats::reductions[ib]);
           CommStats &cs = vCommStats[index];
-          csHeader << "reduction  " << cs.tag  // tag is used for reduction number
-	           << "  index  " << index << '\n';
+          csHeaderFile << "red  " << cs.tag  // tag is used for reduction number
+	               << "  " << index << '\n';
         }
 	if(vCommStats.size() > 0) {
-	  csHeader << "timeMinMax  " << vCommStats[0].timeStamp << "  "
-	           << vCommStats[vCommStats.size()-1].timeStamp << '\n';
+	  csHeaderFile << std::setprecision(16)
+	               << "timeMinMax  " << vCommStats[0].timeStamp << "  "
+	               << vCommStats[vCommStats.size()-1].timeStamp << '\n';
 	} else {
-	  csHeader << "timeMinMax  0.0  0.0" << '\n';
+	  csHeaderFile << "timeMinMax  0.0  0.0" << '\n';
 	}
-	csHeader.flush();
+        for(int i(0); i < CommStats::nameTagNames.size(); ++i) {
+          csHeaderFile << "nameTagNames  " << '"' << CommStats::nameTagNames[i]
+                       << '"' << '\n';
+        }
+	csHeaderFile.flush();
+        csHeaderFile.close();
 
-	csFile.write((char *) &vCommStats[0], vCommStats.size() * sizeof(CommStats));
+	csDFile.write((char *) &vCommStats[0], vCommStats.size() * sizeof(CommStats));
+
+        csDFile.flush();
+        csDFile.close();
         // ----------------------------- end write to file here
-	//==================
-	/*
-	std::cout << "====================" << std::endl;
-	std::cout << myProc << ":  FullName = " << FullName << std::endl;
-	int nouts(std::min(16, (int) vCommStats.size()));
-	for(int i(0); i < nouts; ++i) {
-          CommStats &cs = vCommStats[i];
-	  std::cout << Profiler::CommStats::CFTToString(cs.cfType) << "  "
-	            << cs.commpid << "  " << cs.size << "  " << cs.tag << "  "
-		    << cs.timeStamp << std::endl;
-	}
-	std::cout << "====================" << std::endl;
-	*/
-	//==================
-
-        csFile.flush();
-        csFile.close();
       }  // end scope
 
       int iBuff     = 0;
@@ -623,7 +633,7 @@ void Profiler::WriteCommStats(const bool bFlushing) {
         ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
       }
     }
-    if(MySet == (iSet + 1)) {   // Next set waits.
+    if(mySet == (iSet + 1)) {   // Next set waits.
       int iBuff;
       int waitForPID = (myProc - nOutFiles);
       int tag        = (myProc % nOutFiles);
@@ -632,70 +642,6 @@ void Profiler::WriteCommStats(const bool bFlushing) {
   }
   // --------------------- end nfiles block
 
-  // --------------------- gather all header data to the ioproc
-  int ioProcNum(ParallelDescriptor::IOProcessorNumber());
-  int headerSize(csHeader.str().size());
-
-  Array<int> vHeaderSizes(nProcs, 0);
-  ParallelDescriptor::Gather(&headerSize, 1, vHeaderSizes.dataPtr(), 1, ioProcNum);
-
-  Array<int> offset(nProcs, 0);
-  int totalHeaderSize(0);   // pad(0);
-
-  if(ParallelDescriptor::IOProcessor()) {
-    for(int i(1); i < offset.size(); ++i) {
-      offset[i] = offset[i-1] + vHeaderSizes[i-1];
-    }
-    for(int i(0); i < offset.size(); ++i) {
-      totalHeaderSize += vHeaderSizes[i];
-    }
-  }
-
-  Array<char> recvdata(totalHeaderSize + 1, '\0');
-  if(recvdata.empty()) {
-    recvdata.resize(1);
-  }
-
-  Array<char> senddata(csHeader.str().size() + 1, '\0');
-  if(senddata.empty()) {
-    senddata.resize(1);
-  }
-
-  BL_ASSERT((senddata.size() - 1) == csHeader.str().size());
-  std::strcpy(senddata.dataPtr(), csHeader.str().c_str());
-
-  BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
-			      csHeader.str().size(),
-                              ParallelDescriptor::Mpi_typemap<char>::type(),
-			      recvdata.dataPtr(),
-                              vHeaderSizes.dataPtr(),
-                              offset.dataPtr(),
-                              ParallelDescriptor::Mpi_typemap<char>::type(),
-                              ioProcNum,
-                              ParallelDescriptor::Communicator()) );
-
-
-  // --------------------- ioproc writes the header
-  if(ParallelDescriptor::IOProcessor()) {
-    std::ofstream csHeaderFile;
-    std::string cHeaderName(cdir + '/' + cdir + "_H");
-    if(bFirstCommWriteH) {
-      csHeaderFile.open(cHeaderName.c_str(), std::ios::out | std::ios::trunc);
-      bFirstCommWriteH = false;
-    } else {
-      csHeaderFile.open(cHeaderName.c_str(), std::ios::out | std::ios::app);
-    }
-
-    csHeaderFile << "NProcs  " << nProcs << '\n';
-    csHeaderFile << "CommStatsSize  " << sizeof(CommStats) << '\n';
-    csHeaderFile << recvdata.dataPtr();
-    for(int i(0); i < CommStats::nameTagNames.size(); ++i) {
-      csHeaderFile << "nameTagNames  " << '"' << CommStats::nameTagNames[i]
-                   << '"' << '\n';
-    }
-    csHeaderFile.flush();
-    csHeaderFile.close();
-  }
 
   // --------------------- flush the data
   vCommStats.clear();
