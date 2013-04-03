@@ -267,10 +267,16 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     rh.copy(r);
     sol.setVal(0.0);
     const LinOp::BC_Mode temp_bc_mode=LinOp::Homogeneous_BC;
+    //
+    // Calculate the local values of these norms & reduce their values together.
+    //
+    Real vals[2] = { norm_inf(r, true), Lp.norm(0, lev, true) };
 
-    Real       rnorm    = norm_inf(r);
+    ParallelDescriptor::ReduceRealMax(&vals[0],2);
+
+    Real       rnorm    = vals[0];
+    const Real Lp_norm  = vals[1];
     const Real rnorm0   = rnorm;
-    const Real Lp_norm  = Lp.norm(0, lev);
     const Real rh_norm  = rnorm0;
     Real       sol_norm = 0.0;
   
