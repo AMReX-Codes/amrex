@@ -29,18 +29,22 @@ module cc_stencil_module
 
 contains
 
-  function stencil_norm(ss, mask) result(r)
+  function stencil_norm(ss, mask, local) result(r)
     use bl_prof_module
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
+    logical, intent(in), optional :: local
     integer :: i,j,k,n,b
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
+    logical :: llocal
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "st_norm")
+
+    llocal = .false.; if ( present(local) ) llocal = local
 
     r1 = -Huge(r1)
 
@@ -83,7 +87,10 @@ contains
        end do
     end if
 
-    call parallel_reduce(r,r1,MPI_MAX)
+    r = r1
+
+    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_MAX)
+
     call destroy(bpt)
   end function stencil_norm
 

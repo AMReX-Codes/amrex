@@ -4451,11 +4451,9 @@ contains
        end do
     end if
 
-    if ( llocal ) then
-       r = r1
-    else
-       call parallel_reduce(r, r1, MPI_MAX)
-    endif
+    r = r1
+
+    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_MAX)
 
   end function multifab_norm_inf_c
 
