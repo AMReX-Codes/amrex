@@ -468,13 +468,16 @@ contains
     if (singular) then
       call setval(ss,ONE)
       if ( present(nodal_mask) ) then
-            rho = dot(rh_local, ss, nodal_mask)
-         volume = dot(      ss, ss, nodal_mask)
+         tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
+         tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
       else
-            rho = dot(rh_local, ss)
-         volume = dot(       ss,ss)
+         tnorms(1) = dot(rh_local, ss, local = .true.)
+         tnorms(2) = dot(      ss, ss, local = .true.)
       end if
-      rho = rho / volume
+      call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
+      rho    = rtnorms(1)
+      volume = rtnorms(2)
+      rho    = rho / volume
       if ( parallel_IOProcessor() .and. verbose > 0) then
          print *,'...singular adjustment to rhs: ',rho
       endif
@@ -520,25 +523,25 @@ contains
        end if
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
     end if 
-    i = 0
+
     if ( itsol_converged(rr, uu, bnorm, eps) ) then
-      if ( verbose > 0 ) then
-         if ( tres0 < eps*bnorm ) then
-            if ( parallel_IOProcessor() ) then
-               write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-                    tres0,eps*bnorm
-            end if
-        else
-           norm_rr = norm_inf(rr)
-           if ( norm_rr < epsilon(Anorm)*Anorm ) then
-              if ( parallel_IOProcessor() ) then
-                 write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                      tres0,small*Anorm
-              end if
-           end if
-        end if
-     end if
-     go to 100
+       if ( verbose > 0 ) then
+          if ( tres0 < eps*bnorm ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+                     tres0,eps*bnorm
+             end if
+          else
+             norm_rr = norm_inf(rr)
+             if ( norm_rr < epsilon(Anorm)*Anorm ) then
+                if ( parallel_IOProcessor() ) then
+                   write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+                        tres0,small*Anorm
+                end if
+             end if
+          end if
+       end if
+       go to 100
     end if
 
     rho_1 = ZERO
