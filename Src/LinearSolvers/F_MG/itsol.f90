@@ -403,7 +403,7 @@ contains
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: rh
     type(multifab), intent(in) :: aa
-    integer        , intent(in) :: stencil_type
+    integer        , intent(in) :: stencil_type, verbose
     logical        , intent(in) :: lcross
     real(kind=dp_t), intent(in) :: eps
 
@@ -413,20 +413,14 @@ contains
     type(multifab), intent(in), optional :: nodal_mask
 
     type(layout) :: la
-    integer, intent(in) :: verbose
-    type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
+    type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh, rh_local, aa_local
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
     real(dp_t) :: rho_hg, rho_orig, volume, tres0, small, norm_rr, norm_uu
-    integer :: i
-    integer :: cnt, ng_for_res
-    logical :: nodal_solve
-    logical :: singular, nodal(get_dim(rh))
+    real(dp_t) :: tnorms(3),rtnorms(3)
+    integer :: i, cnt, ng_for_res
+    logical :: nodal_solve, singular, nodal(get_dim(rh)), diag_inited
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
     type(bl_prof_timer), save :: bpt
-
-    type(multifab) :: rh_local, aa_local
-
-    logical :: diag_inited
 
     call build(bpt, "its_BiCGStab_solve")
 
@@ -512,11 +506,20 @@ contains
        rho = dot(rt, rr)
     end if
     rho_orig = rho
+    !
+    ! Elide some reductions by calculating local norms & then reducing all together.
+    !
+    tnorms(1) = norm_inf(rr, local=.true.)
+    tnorms(2) = norm_inf(rh_local, local=.true.)
+    tnorms(3) = stencil_norm(aa_local, local=.true.)
 
-    tres0 = norm_inf(rr)
-    Anorm = stencil_norm(aa_local)
+    call parallel_reduce(rtnorms, tnorms, MPI_MAX)
+
+    tres0 = rtnorms(1)
+    bnorm = rtnorms(2)
+    Anorm = rtnorms(3)
+
     small = epsilon(Anorm)
-    bnorm = norm_inf(rh_local)
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
        if (diag_inited) then
