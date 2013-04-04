@@ -4406,9 +4406,9 @@ contains
 
   end function multifab_norm_inf_doit
 
-  function multifab_norm_inf_c(mf, comp, nc, mask, all) result(r)
+  function multifab_norm_inf_c(mf, comp, nc, mask, all, local) result(r)
     real(dp_t) :: r
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, local
     integer, intent(in) :: comp
     integer, intent(in), optional :: nc
     type(lmultifab), intent(in), optional :: mask
@@ -4417,9 +4417,10 @@ contains
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i, n
     real(dp_t) :: r1
-    logical :: lall
+    logical :: lall, llocal
 
-    lall = .false.; if ( present(all) ) lall = all
+    lall   = .false.; if ( present(all)   ) lall   = all
+    llocal = .false.; if ( present(local) ) llocal = local
 
     r1 = 0.0_dp_t
 
@@ -4450,15 +4451,20 @@ contains
        end do
     end if
 
-    call parallel_reduce(r, r1, MPI_MAX)
+    if ( llocal ) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_MAX)
+    endif
+
   end function multifab_norm_inf_c
 
-  function multifab_norm_inf(mf, mask, all) result(r)
+  function multifab_norm_inf(mf, mask, all, local) result(r)
     real(dp_t)                            :: r
-    logical, intent(in), optional         :: all
+    logical, intent(in), optional         :: all, local
     type(lmultifab), intent(in), optional :: mask
     type(multifab), intent(in)            :: mf
-    r = multifab_norm_inf_c(mf, 1, mf%nc, mask, all)
+    r = multifab_norm_inf_c(mf, 1, mf%nc, mask, all, local)
   end function multifab_norm_inf
 
   function imultifab_norm_inf_c(mf, comp, nc, all) result(r)
