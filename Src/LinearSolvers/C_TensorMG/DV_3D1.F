@@ -107,7 +107,7 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       REAL_T tranderb(DIMV(tranderb),3,3)
 
       integer i,j,k
-      REAL_T hx,hy,hz,ihx,ihy,ihz
+      REAL_T hx,hy,hz,ihx,ihy,ihz,ihxyz
       REAL_T dudxe,dudxw
       REAL_T dvdyn,dvdys
       REAL_T dudye,dudyw
@@ -135,6 +135,8 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       ihx = 1.0d0/hx
       ihy = 1.0d0/hy
       ihz = 1.0d0/hz
+
+      ihxyz = 1.0d0/(hx*hy*hz)
 
 c ::: cases:
 c     ::: 0) interior.  All usual derivative expressions
@@ -210,17 +212,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
          enddo
@@ -318,17 +320,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
          enddo
@@ -426,17 +428,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
          enddo
@@ -533,17 +535,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
          enddo
       enddo
@@ -640,17 +642,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
          enddo
       enddo
@@ -747,17 +749,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
       enddo
@@ -855,17 +857,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
       enddo
@@ -972,17 +974,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
 !$omp end parallel do
@@ -1087,17 +1089,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
 !$omp end parallel do
@@ -1202,17 +1204,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
          enddo
 !$omp end parallel do
@@ -1316,17 +1318,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
          enddo
 !$omp end parallel do
@@ -1431,17 +1433,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
 !$omp end parallel do
@@ -1546,17 +1548,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
             enddo
 !$omp end parallel do
@@ -1661,17 +1663,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
          enddo
 !$omp end parallel do
@@ -1776,17 +1778,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
          enddo
 !$omp end parallel do
@@ -1891,17 +1893,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
       enddo
 !$omp end parallel do
@@ -2006,17 +2008,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
       enddo
 !$omp end parallel do
@@ -2121,17 +2123,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
       enddo
 !$omp end parallel do
@@ -2236,17 +2238,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
       enddo
 !$omp end parallel do
@@ -2345,17 +2347,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 
 
@@ -2452,17 +2454,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 
 
@@ -2560,17 +2562,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 
 
@@ -2668,17 +2670,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 
 
@@ -2776,17 +2778,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 
 
@@ -2884,17 +2886,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 
 
@@ -2992,17 +2994,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 
 
@@ -3100,17 +3102,17 @@ c     :::  evaluate expression
                out(i,j,k,1) = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
                out(i,j,k,2) = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
                out(i,j,k,3) = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 
 
