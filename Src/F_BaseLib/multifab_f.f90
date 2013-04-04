@@ -3932,11 +3932,12 @@ contains
     call parallel_reduce(r,r1,MPI_SUM)
   end function multifab_dot_c
 
-  function multifab_dot(mf, mf1, nodal_mask) result(r)
+  function multifab_dot(mf, mf1, nodal_mask, local) result(r)
     real(dp_t) :: r
     type(multifab), intent(in) :: mf
     type(multifab), intent(in) :: mf1
     type(multifab), intent(in), optional :: nodal_mask
+    logical, intent(in), optional :: local
 
     type(multifab)      :: mask
     real(dp_t), pointer :: mp(:,:,:,:)
@@ -3944,6 +3945,9 @@ contains
     real(dp_t), pointer :: ma(:,:,:,:)
     real(dp_t)          :: r1
     integer             :: i
+    logical             :: lall, llocal
+
+    llocal = .false.; if ( present(local) ) llocal = local
 
     r1 = 0.0_dp_t
     if ( cell_centered_q(mf) ) then
@@ -3974,7 +3978,10 @@ contains
     else
        call bl_error("MULTIFAB_DOT fails when not nodal or cell centered, can be fixed")
     end if
-    call parallel_reduce(r,r1,MPI_SUM)
+
+    r = r1
+    
+    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_SUM)
 
   end function multifab_dot
 
