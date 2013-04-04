@@ -426,11 +426,9 @@ contains
 
     if ( present(stat) ) stat = 0
 
-    singular = .false.
-    if ( present(singular_in) ) singular = singular_in
-
-    ng_for_res = 0; if ( nodal_q(rh) ) ng_for_res = 1
-    nodal_solve = .False.; if ( ng_for_res /= 0 ) nodal_solve = .TRUE.
+    singular    = .false.; if ( present(singular_in) ) singular    = singular_in
+    ng_for_res  = 0;       if ( nodal_q(rh)          ) ng_for_res  = 1
+    nodal_solve = .False.; if ( ng_for_res /= 0      ) nodal_solve = .TRUE.
 
     nodal = nodal_flags(rh)
 
@@ -455,7 +453,6 @@ contains
 
     ! Use these for local preconditioning
     call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
-
     call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
@@ -470,7 +467,7 @@ contains
     ! Make sure to do singular adjustment *before* diagonalization
     if (singular) then
       call setval(ss,ONE)
-      if (present(nodal_mask)) then
+      if ( present(nodal_mask) ) then
             rho = dot(rh_local, ss, nodal_mask)
          volume = dot(      ss, ss, nodal_mask)
       else
@@ -478,19 +475,15 @@ contains
          volume = dot(       ss,ss)
       end if
       rho = rho / volume
-      if ( parallel_IOProcessor() .and. verbose > 0) &
-        print *,'...singular adjustment to rhs: ',rho
-
+      if ( parallel_IOProcessor() .and. verbose > 0) then
+         print *,'...singular adjustment to rhs: ',rho
+      endif
       call saxpy(rh_local,-rho,ss)
       call setval(ss,ZERO,all=.true.)
     end if
 
-    if (.true.) then
-       call diag_initialize(aa_local,rh_local,mm)
-       diag_inited = .true.
-    else
-       diag_inited = .false.
-    end if
+    call diag_initialize(aa_local,rh_local,mm)
+    diag_inited = .true.
 
     call copy(ph, uu, ng = nghost(ph))
     call copy(sh, uu, ng = nghost(sh))
@@ -551,7 +544,7 @@ contains
     rho_1 = ZERO
 
     do i = 1, max_iter
-       if (present(nodal_mask)) then
+       if ( present(nodal_mask) ) then
           rho = dot(rt, rr, nodal_mask)
        else 
           rho = dot(rt, rr)
@@ -582,7 +575,7 @@ contains
        call itsol_precon(aa_local, ph, pp, mm, 0)
        call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
        cnt = cnt + 1
-       if (present(nodal_mask)) then
+       if ( present(nodal_mask) ) then
           den = dot(rt, vv, nodal_mask)
        else
           den = dot(rt, vv)
@@ -607,12 +600,23 @@ contains
        call itsol_precon(aa_local, sh, ss, mm,0)
        call itsol_stencil_apply(aa_local, tt, sh, mm, stencil_type, lcross, uniform_dh) 
        cnt = cnt + 1
-
-       if (present(nodal_mask)) then
-          den = dot(tt, tt, nodal_mask)
+       !
+       ! Elide a reduction here by calculating the two dot-products
+       ! locally and then reducing them both in a single call.
+       !
+       if ( present(nodal_mask) ) then
+          tnorms(1) = dot(tt, tt, nodal_mask, local = .true.)
+          tnorms(2) = dot(tt, ss, nodal_mask, local = .true.)
        else
-          den = dot(tt, tt)
+          tnorms(1) = dot(tt, tt, local = .true.)
+          tnorms(2) = dot(tt, ss, local = .true.)
        end if
+
+       call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
+
+       den   = rtnorms(1)
+       omega = rtnorms(2)
+
        if ( den == ZERO ) then
           if ( present(stat) ) then
              call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
@@ -621,11 +625,7 @@ contains
           endif
           call bl_error("BiCGStab: failure 3")
        end if
-       if (present(nodal_mask)) then
-          omega = dot(tt,ss,nodal_mask)/den
-       else
-          omega = dot(tt,ss)/den
-       end if
+       omega = omega/den
        call saxpy(uu, omega, sh)
        call saxpy(rr, ss, -omega, tt)
        rnorm = norm_inf(rr)
@@ -636,7 +636,7 @@ contains
        if ( .false. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
           call itsol_precon(aa_local, sh, rr, mm, 0)
-          if (present(nodal_mask)) then
+          if ( present(nodal_mask) ) then
              rho_hg = dot(rr, sh, nodal_mask)
           else
              rho_hg = dot(rr, sh)
@@ -676,12 +676,12 @@ contains
        end if
     end if
 
-     if (rnorm > bnorm) then
-        call setval(uu,ZERO,all=.true.)
-        if ( present(stat) ) stat = 1
-        if ( verbose > 0 .and.  parallel_IOProcessor() ) &
-           print *,'   BiCGStab: solution reset to zero'
-     end if
+    if (rnorm > bnorm) then
+       call setval(uu,ZERO,all=.true.)
+       if ( present(stat) ) stat = 1
+       if ( verbose > 0 .and.  parallel_IOProcessor() ) &
+            print *,'   BiCGStab: solution reset to zero'
+    end if
 
     if ( i > max_iter ) then
        if ( present(stat) ) then
@@ -691,11 +691,10 @@ contains
        end if
     end if
 
-    call destroy(rh_local)
-    call destroy(aa_local)
-
 100 continue
 
+    call destroy(rh_local)
+    call destroy(aa_local)
     call destroy(rr)
     call destroy(rt)
     call destroy(pp)
