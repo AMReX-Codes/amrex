@@ -793,7 +793,7 @@ void Profiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &req
     return;
   }
   if(beforecall) {
-    vCommStats.push_back(CommStats(cft, reqs.size(), -7, NoTag(),
+    vCommStats.push_back(CommStats(cft, reqs.size(), BeforeCall(), NoTag(),
                          ParallelDescriptor::second()));
   } else {
     for(int i(0); i < completed; ++i) {
