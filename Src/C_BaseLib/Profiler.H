@@ -112,8 +112,9 @@ class Profiler
     static void AddStep(const int snum);
     static void SetRunTime(const Real rtime) { calcRunTime = rtime; }
 
-    static const int NoTag()     { return -3; }
-    static const int AfterCall() { return -5; }
+    static const int NoTag()      { return -3; }
+    static const int BeforeCall() { return -5; }
+    static const int AfterCall()  { return -7; }
 
   private:
     Real bltstart, bltelapsed;
