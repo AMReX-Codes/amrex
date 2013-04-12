@@ -52,7 +52,7 @@ contains
       nz = size(a,dim=4)
       ny = size(a,dim=3)
       nx = size(a,dim=2)
-      !$OMP PARALLEL DO PRIVATE(j,i,k)
+      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.7)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
@@ -105,7 +105,7 @@ contains
       nz = size(a,dim=4)
       ny = size(a,dim=3)
       nx = size(a,dim=2)
-      !$OMP PARALLEL DO PRIVATE(j,i,k)
+      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.7)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
@@ -177,7 +177,7 @@ contains
 
       nc = size(a,dim=1)-1
 
-      !$OMP PARALLEL DO PRIVATE(j,i,k,denom)
+      !$OMP PARALLEL DO PRIVATE(j,i,k,denom) IF((hi(3)-lo(3)).ge.7)
       ! Protect against divide by zero -- necessary for embedded boundary problems.
       do k = lo(3),hi(3)
          do j = lo(2),hi(2)
@@ -255,7 +255,7 @@ contains
 
       nc = size(a,dim=1)-1
 
-      !$OMP PARALLEL DO PRIVATE(j,i,k,denom)
+      !$OMP PARALLEL DO PRIVATE(j,i,k,denom) IF((hi(3)-lo(3)).ge.6)
       do k = lo(3),hi(3)+1
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1

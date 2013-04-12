@@ -4083,22 +4083,25 @@ contains
     real(dp_t), pointer           :: bp(:,:,:,:)
     real(dp_t), pointer           :: cp(:,:,:,:)
 
-    integer :: ii, i, j, k, n
+    integer :: ii, i, j, k, n, lo(4), hi(4)
 
     do ii = 1, nlocal(a%la)
 
        ap => dataptr(a, ii, get_ibox(a,ii))
        bp => dataptr(b, ii, get_ibox(b,ii))
        cp => dataptr(c, ii, get_ibox(c,ii))
+
+       lo = lbound(ap)
+       hi = ubound(ap)
        
        ! ap = bp + c1*cp
 
-       !$OMP PARALLEL PRIVATE(i,j,k,n)
-       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+       do n = lo(4), hi(4)
           !$OMP DO
-          do k = lbound(ap,dim=3), ubound(ap,dim=3)
-             do j = lbound(ap,dim=2), ubound(ap,dim=2)
-                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
                    ap(i,j,k,n) = bp(i,j,k,n) + c1 * cp(i,j,k,n)
                 end do
              end do
@@ -4114,16 +4117,19 @@ contains
     real(dp_t),     intent(in   ) :: b1
     real(dp_t), pointer           :: ap(:,:,:,:)
     real(dp_t), pointer           :: bp(:,:,:,:)
-    integer :: i, j, k, n
+    integer                       :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap + b1*bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) + b1 * bp(i,j,k,n)
              end do
           end do
@@ -4328,7 +4334,6 @@ contains
     real(dp_t) :: r1
     logical :: lall
     integer :: lnc
-
     lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
@@ -4375,19 +4380,22 @@ contains
     logical, pointer, optional :: lp(:,:,:,:)
     real(dp_t)                 :: r,r1
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! maxval(abs(mp))
 
     r1 = 0.0_dp_t
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1) IF((hi(3)-lo(3)).ge.7)
     if ( present(lp) ) then
-       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       do n = lo(4), hi(4)
           !$OMP DO
-          do k = lbound(ap,dim=3), ubound(ap,dim=3)
-             do j = lbound(ap,dim=2), ubound(ap,dim=2)
-                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
                    if (lp(i,j,k,n)) r1 = max(r1,abs(ap(i,j,k,n)))
                 end do
              end do
@@ -4395,11 +4403,11 @@ contains
           !$OMP END DO NOWAIT
        end do
     else
-       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       do n = lo(4), hi(4)
           !$OMP DO
-          do k = lbound(ap,dim=3), ubound(ap,dim=3)
-             do j = lbound(ap,dim=2), ubound(ap,dim=2)
-                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
                    r1 = max(r1,abs(ap(i,j,k,n)))
                 end do
              end do
@@ -4557,16 +4565,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap/bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) / bp(i,j,k,n)
              end do
           end do
@@ -4582,16 +4593,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap/b
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) / b
              end do
           end do
@@ -4732,16 +4746,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap*bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) * bp(i,j,k,n)
              end do
           end do
@@ -4757,16 +4774,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap*b
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) * b
              end do
           end do
@@ -4886,16 +4906,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap - bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) - bp(i,j,k,n)
              end do
           end do
@@ -4911,16 +4934,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap - b
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) - b
              end do
           end do
@@ -5018,16 +5044,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap + bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) + bp(i,j,k,n)
              end do
           end do
@@ -5043,16 +5072,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap + b
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) + b
              end do
           end do
