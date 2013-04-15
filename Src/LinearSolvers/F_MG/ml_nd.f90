@@ -1525,6 +1525,7 @@ contains
       !     Lo-x face
       !
       i = 1
+      !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
       do j = jstart,jend
          dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
@@ -1535,10 +1536,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Hi-x face
       !
       i = nx+1
+      !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
       do j = jstart,jend
          dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
@@ -1549,10 +1552,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Lo-y face
       !
       j = 1
+      !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
       do i = istart,iend
          dd(i,j,k) =      ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
@@ -1563,10 +1568,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Hi-y face
       !
       j = ny+1
+      !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
       do i = istart,iend
          dd(i,j,k) =      ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
@@ -1577,10 +1584,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Lo-z face
       !
       k = 1
+      !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
       do i = istart,iend
          dd(i,j,k) =      ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
@@ -1591,10 +1600,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Hi-z face
       !
       k = nz+1
+      !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
       do i = istart,iend
          dd(i,j,k) =      ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) &
@@ -1605,6 +1616,7 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Interior
       !
