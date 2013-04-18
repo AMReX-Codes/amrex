@@ -346,7 +346,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                            MPI_Op op)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, sizeof(Real), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, Profiler::BeforeCall(), true);
 
     Real recv;
 
@@ -366,7 +366,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            int    cnt)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceReal()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, cnt * sizeof(Real), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceR, Profiler::BeforeCall(), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -389,7 +389,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceReal()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceR, sizeof(Real), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceR, Profiler::BeforeCall(), true);
 
     Real recv;
 
@@ -413,7 +413,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                         int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceReal()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceR, cnt * sizeof(Real), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceR, Profiler::BeforeCall(), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -513,7 +513,7 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                            MPI_Op op)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, sizeof(long), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, Profiler::BeforeCall(), true);
 
     long recv;
 
@@ -533,7 +533,7 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            int    cnt)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceLong()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, cnt * sizeof(long), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, Profiler::BeforeCall(), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -556,7 +556,7 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                         int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceLong()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceL, sizeof(long), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceL, Profiler::BeforeCall(), true);
 
     long recv;
 
@@ -580,7 +580,7 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                         int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceLong()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceL, cnt * sizeof(long), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceL, Profiler::BeforeCall(), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -703,7 +703,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                           MPI_Op op)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, sizeof(int), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, Profiler::BeforeCall(), true);
 
     int recv;
 
@@ -723,7 +723,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           int    cnt)
 {
     BL_PROFILE("ParallelDescriptor::util::DoAllReduceInt()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, cnt * sizeof(int), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceI, Profiler::BeforeCall(), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -746,7 +746,7 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                        int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceInt()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceI, sizeof(int), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceI, Profiler::BeforeCall(), true);
 
     int recv;
 
@@ -770,7 +770,7 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                        int    cpu)
 {
     BL_PROFILE("ParallelDescriptor::util::DoReduceInt()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceI, cnt * sizeof(int), true);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::ReduceI, Profiler::BeforeCall(), true);
 
     BL_ASSERT(cnt > 0);
 
@@ -913,7 +913,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
                             int   root)
 {
     BL_PROFILE("ParallelDescriptor::Gather()");
-    BL_COMM_PROFILE(Profiler::GatherRiRi, nsend * sizeof(Real), root, Profiler::NoTag());
+    BL_COMM_PROFILE(Profiler::GatherRiRi, Profiler::BeforeCall(), root, Profiler::NoTag());
 
     BL_ASSERT(root >= 0);
     BL_ASSERT(nsend > 0);
@@ -930,7 +930,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
                                typ,
                                root,
                                Communicator()));
-    BL_COMM_PROFILE(Profiler::GatherRiRi, Profiler::AfterCall(), root, Profiler::NoTag());
+    BL_COMM_PROFILE(Profiler::GatherRiRi, nsend * sizeof(Real), root, Profiler::NoTag());
 }
 
 template <>
@@ -1097,8 +1097,8 @@ void ParallelDescriptor::Abort (int)
 
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
-void ParallelDescriptor::Barrier (std::string message) {}
-void ParallelDescriptor::Barrier (MPI_Comm, std::string message) {}
+void ParallelDescriptor::Barrier (const std::string &message) {}
+void ParallelDescriptor::Barrier (MPI_Comm, const std::string &message) {}
 
 void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
 void ParallelDescriptor::IProbe (int, int, int&, MPI_Status&) {}
