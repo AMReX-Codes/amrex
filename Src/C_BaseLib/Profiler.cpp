@@ -755,12 +755,13 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
   }
   if(beforecall) {
     int tag(CommStats::barrierNumber);
-    vCommStats.push_back(CommStats(cft, 0, 0, tag, ParallelDescriptor::second()));
+    vCommStats.push_back(CommStats(cft, 0, BeforeCall(), tag,
+                                   ParallelDescriptor::second()));
     CommStats::barrierNames.push_back(std::make_pair(message, vCommStats.size() - 1));
     ++CommStats::barrierNumber;
   } else {
     int tag(CommStats::barrierNumber - 1);  // it was incremented before the call
-    vCommStats.push_back(CommStats(cft, AfterCall(), -1, tag,
+    vCommStats.push_back(CommStats(cft, AfterCall(), AfterCall(), tag,
                                    ParallelDescriptor::second()));
   }
 }
@@ -774,12 +775,13 @@ void Profiler::AddAllReduce(const CommFuncType cft, const int size,
   }
   if(beforecall) {
     int tag(CommStats::reductionNumber);
-    vCommStats.push_back(CommStats(cft, size, 0, tag, ParallelDescriptor::second()));
+    vCommStats.push_back(CommStats(cft, size, BeforeCall(), tag,
+                                   ParallelDescriptor::second()));
     CommStats::reductions.push_back(vCommStats.size() - 1);
     ++CommStats::reductionNumber;
   } else {
     int tag(CommStats::reductionNumber - 1);
-    vCommStats.push_back(CommStats(cft, AfterCall(), -1, tag,
+    vCommStats.push_back(CommStats(cft, size, AfterCall(), tag,
                                    ParallelDescriptor::second()));
   }
 }
@@ -793,7 +795,7 @@ void Profiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &req
     return;
   }
   if(beforecall) {
-    vCommStats.push_back(CommStats(cft, reqs.size(), BeforeCall(), NoTag(),
+    vCommStats.push_back(CommStats(cft, BeforeCall(), BeforeCall(), NoTag(),
                          ParallelDescriptor::second()));
   } else {
     for(int i(0); i < completed; ++i) {
