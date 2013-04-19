@@ -255,6 +255,15 @@ contains
     call MPI_Abort(m_comm, -1, ierr)
   end subroutine parallel_abort
 
+  subroutine parallel_set_comm(comm)
+    integer, intent(in) :: comm
+    integer :: ierr
+    m_comm = comm
+    call MPI_Comm_Size(m_comm, m_nprocs, ierr)
+    call MPI_Comm_Rank(m_comm, m_myproc, ierr)
+    call parallel_barrier()
+  end subroutine parallel_set_comm
+
   pure function parallel_communicator() result(r)
     integer :: r
     r = m_comm

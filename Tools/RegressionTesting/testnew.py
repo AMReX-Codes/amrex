@@ -741,11 +741,16 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
    currentBranch = stdout0.rstrip('\n')
    p0.stdout.close()
 
-
-   print "\n"
-   bold("git checkout %s in %s" % (gitbranch, topDir))
-   subprocess.call(["git", "checkout", gitbranch])
-   
+   if currentBranch != gitbranch:
+       print "\n"
+       bold("git checkout %s in %s" % (gitbranch, topDir))
+       prog = ["git", "checkout", gitbranch]
+       p = subprocess.Popen(prog, stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+       stdout, stderr = p.communicate()
+       p.stdout.close()
+       p.stdin.close()
 
    if githash == "":
 

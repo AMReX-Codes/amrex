@@ -252,6 +252,10 @@ contains
     call sys_abort()
   end subroutine parallel_abort
 
+  subroutine parallel_set_comm(comm)
+    integer, intent(in) :: comm
+  end subroutine parallel_set_comm
+
   pure function parallel_communicator() result(r)
     integer :: r
     r = m_comm
