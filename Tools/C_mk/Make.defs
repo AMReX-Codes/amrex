@@ -111,6 +111,12 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring freedom, $(UNAMEN)), freedom)
     WHICHLINUX := FREEDOM
   endif
+  ifeq ($(findstring hera, $(UNAMEN)), hera)
+    WHICHLINUX := HERA
+  endif
+  ifeq ($(findstring cab, $(UNAMEN)), cab)
+    WHICHLINUX := CAB
+  endif
   ifeq ($(findstring garnet, $(UNAMEN)), garnet)
     WHICHLINUX := GARNET
   endif
