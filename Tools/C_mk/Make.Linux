@@ -342,6 +342,28 @@ ifeq ($(WHICHLINUX), GARNET)
   endif
 endif
 
+ifeq ($(WHICHLINUX), HERA)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpiCC
+    CC  := gcc
+    FC  := gfortran
+    F90 := gfortran
+    fC  := gfortran
+  endif
+endif
+
+ifeq ($(WHICHLINUX), CAB)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpiCC
+    CC  := gcc
+    FC  := gfortran
+    F90 := gfortran
+    fC  := gfortran
+  endif
+endif
+
 ifeq ($(WHICHLINUX), EDISON)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
