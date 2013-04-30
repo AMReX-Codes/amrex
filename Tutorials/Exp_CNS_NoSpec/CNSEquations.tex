@@ -1,0 +1,75 @@
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[margin=0.8in]{geometry}
+
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fixmath}
+\usepackage{hyperref}
+
+\renewcommand{\vec}[1]{\mbox{\boldmath$#1$}}
+\newcommand{\tensor}[1]{\mbox{\boldmath{\ensuremath{#1}}}}
+
+\begin{document}
+
+\title{Compressible Navier Stokes Equations With Constant Viscosity
+  And Thermal Conductivity. } 
+\maketitle
+
+The compressible Navier-Stokes equations solved by {\tt CNS} are
+\begin{align}
+\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho
+    \vec{u})= { } & 0, \\
+\frac{\partial \rho \vec{u}}{\partial t} + \nabla \cdot (\rho
+    \vec{u}\vec{u}) + \nabla p= { } & \nabla \cdot
+  \tensor{\tau}, \\
+\frac{\partial \rho E}{\partial t} + \nabla \cdot [(\rho E + p)
+  \vec{u}] = { } & \nabla \cdot (\lambda \nabla T) + \nabla \cdot
+  (\tensor{\tau} \cdot \vec{u}),
+\end{align}
+where $\rho$ is the density, $\vec{u}$ is the velocity, $p$ is the
+pressure, $E$ is the specific energy density (kinetic energy plus
+internal energy), $\tensor{\tau}$ is the viscous stress tensor,
+$\lambda$ is the thermal conductivity, and $T$ is the temperature.
+The viscous stress tensor is given by
+\begin{equation}
+  \tau_{ij} = \eta \left(\frac{\partial u_i}{\partial x_j} +
+    \frac{\partial u_j}{\partial x_i} - \frac{2}{3}
+    \delta_{ij} \nabla \cdot \vec{u} \right), 
+\end{equation}
+where $\eta$ is the shear viscosity.  In {\tt CNS}, we assume that
+$\lambda$ and $\eta$ are constants.
+
+The {\tt CNS} algorithm is based on finite-difference methods.  For
+first derivatives with respect to spatial coordinates, the following
+standard 8th-order stencil is employed,
+\begin{equation}
+  \frac{du}{dx} \bigg{|}_{i} \approx \frac{\alpha (u_{i+1}-u_{i-1}) + \beta
+  (u_{i+2}-u_{i-2}) + \gamma (u_{i+3}-u_{i-3}) +  \delta
+  (u_{i+4}-u_{i-4})}{\Delta x},
+\end{equation}
+where $\alpha$, $\beta$, $\gamma$, $\delta$ are constants denoted in
+the code by {\tt ALP}, {\tt BET}, {\tt GAM}, and {\tt DEL},
+respectively.  For double derivatives, the following 8th-order stencil
+is employed,
+\begin{equation}
+  \frac{d^2u}{dx^2} \bigg{|}_{i} \approx \frac{c_0 u_i + c_1 (u_{i+1}+u_{i-1}) + c_2
+  (u_{i+2}+u_{i-2}) + c_3 (u_{i+3}+u_{i-3}) + c_4
+  (u_{i+4}+u_{i-4})}{(\Delta x)^2},
+\end{equation}
+where $c_0$, $c_1$, $c_2$, $c_3$, and $c_4$ are constans denoted in
+the code by {\tt CENTER}, {\tt OFF1}, {\tt OFF2}, {\tt OFF3}, and {\tt
+  OFF4}, respectively.
+
+In {\tt CNS}, the {\tt U} variable is a vector with five components:
+$\rho$, $\rho u$, $\rho v$, $\rho w$, and $\rho E$. Here, $u$, $v$,
+and $w$ are the velocity in $x$, $y$, and $z$-direction.  The {\tt Q}
+variable is a vector with 6 components: $\rho$, $u$, $v$, $w$, $p$,
+and $T$.  Given {\tt U}, the {\tt ctoprim} subroutine computes {\tt
+  Q}.  The {\tt hypterm} subroutine updates {\tt U} according to the
+left-hand side of Euqations~(1)--(3), whereas the {\tt diffterm}
+subroutine treats the right-hand side.  A 3rd-order Runge-Kutta scheme
+is used for advancing in time.
+
+\end{document}
