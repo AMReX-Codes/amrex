@@ -75,7 +75,7 @@ struct ParticleBase
     // Updates a particle's location (Where), tries to periodic shift any particles
     // that have left the domain. May need work (see inline comments)
     //
-    static void Reset (ParticleBase& prt, const Amr* amr, bool update);
+    static void Reset (ParticleBase& prt, const Amr* amr, bool update, bool verbose=true);
 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
 
