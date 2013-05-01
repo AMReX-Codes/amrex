@@ -192,40 +192,58 @@ sxay (MultiFab&       ss,
     }
 }
 
+//
+// Do a one-component dot product of r & z using supplied components.
+//
+static
+Real
+dotxy (const MultiFab& r,
+       int             rcomp,
+       const MultiFab& z,
+       int             zcomp,
+       bool            local)
+{
+    BL_ASSERT(r.nComp() > rcomp);
+    BL_ASSERT(z.nComp() > zcomp);
+    BL_ASSERT(r.boxArray() == z.boxArray());
+
+    const int ncomp = 1;
+
+    Real dot = 0.0;
+
+    for (MFIter mfi(r); mfi.isValid(); ++mfi)
+    {
+        const Box&       rbx  = mfi.validbox();
+        const FArrayBox& rfab = r[mfi];
+        const FArrayBox& zfab = z[mfi];
+
+        Real tdot;
+
+        FORT_CGXDOTY(&tdot,
+                     zfab.dataPtr(zcomp),
+                     ARLIM(zfab.loVect()),ARLIM(zfab.hiVect()),
+                     rfab.dataPtr(rcomp),
+                     ARLIM(rfab.loVect()),ARLIM(rfab.hiVect()),
+                     rbx.loVect(),rbx.hiVect(),
+                     &ncomp);
+        dot += tdot;
+    }
+
+    if (!local)
+        ParallelDescriptor::ReduceRealSum(dot);
+
+    return dot;
+}
+
 static
 Real
 dotxy (const MultiFab& r,
        const MultiFab& z,
        bool            local = false)
 {
-    const int ncomp = z.nComp();
-
-    Real rho = 0.0;
-
-    for (MFIter mfi(r); mfi.isValid(); ++mfi)
-    {
-        const int k = mfi.index();
-        Real trho;
-
-        const Box&       rbx  = r.box(k);
-        const FArrayBox& rfab = r[k];
-        const FArrayBox& zfab = z[k];
-
-        FORT_CGXDOTY(&trho,
-                     zfab.dataPtr(),
-                     ARLIM(zfab.loVect()),ARLIM(zfab.hiVect()),
-                     rfab.dataPtr(),
-                     ARLIM(rfab.loVect()),ARLIM(rfab.hiVect()),
-                     rbx.loVect(),rbx.hiVect(),
-                     &ncomp);
-        rho += trho;
-    }
-
-    if (!local)
-        ParallelDescriptor::ReduceRealSum(rho);
-
-    return rho;
+    return dotxy(r,0,z,0,local);
 }
+
 //
 // The "S" in the Communication-avoiding BiCGStab algorithm.
 //
@@ -328,89 +346,121 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 {
     BoxLib::Abort("CGSolver::solve_cabicgstab: not fully implemented");
 
-  double  temp1[4*SSS+1];
-  double  temp2[4*SSS+1];
-  double     Tp[4*SSS+1][4*SSS+1];
-  double    Tpp[4*SSS+1][4*SSS+1];
-  double     aj[4*SSS+1];
-  double     cj[4*SSS+1];
-  double     ej[4*SSS+1];
-  double   Tpaj[4*SSS+1];
-  double   Tpcj[4*SSS+1];
-  double  Tppaj[4*SSS+1];
-  double      G[4*SSS+1][4*SSS+1];   // extracted from first 4*SSS+1 columns of Gg[][].  indexed as [row][col]
-  double      g[4*SSS+1];            // extracted from last [4*SSS+1] column of Gg[][].
-  double   Gg[(4*SSS+1)*(4*SSS+2)];  // buffer to hold the Gram-like matrix produced by matmul().  indexed as [row*(4*SSS+2) + col]
+    BL_ASSERT(sol.nComp() == 1);
+    BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
+    BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
 
-  int      PRrt[4*SSS+2];            // grid_id's of the concatenation of the 2S+1 matrix powers of P, 2S matrix powers of R, and rt
-  int *P = PRrt+ 0;                  // grid_id's of the 2S+1 Matrix Powers of P.  P[i] is the grid_id of A^i(p)
-  int *R = PRrt+2*SSS+1;             // grid_id's of the 2S   Matrix Powers of R.  R[i] is the grid_id of A^i(r)
+    double  temp1[4*SSS+1];
+    double  temp2[4*SSS+1];
+    double     Tp[4*SSS+1][4*SSS+1];
+    double    Tpp[4*SSS+1][4*SSS+1];
+    double     aj[4*SSS+1];
+    double     cj[4*SSS+1];
+    double     ej[4*SSS+1];
+    double   Tpaj[4*SSS+1];
+    double   Tpcj[4*SSS+1];
+    double  Tppaj[4*SSS+1];
+    double      G[4*SSS+1][4*SSS+1];   // extracted from first 4*SSS+1 columns of Gg[][].  indexed as [row][col]
+    double      g[4*SSS+1];            // extracted from last [4*SSS+1] column of Gg[][].
+    double   Gg[(4*SSS+1)*(4*SSS+2)];  // buffer to hold the Gram-like matrix produced by matmul().  indexed as [row*(4*SSS+2) + col]
 
-  const int mMax = maxiter / SSS;
+//    int      PRrt[4*SSS+2];            // grid_id's of the concatenation of the 2S+1 matrix powers of P, 2S matrix powers of R, and rt
+//    int *P = PRrt+ 0;                  // grid_id's of the 2S+1 Matrix Powers of P.  P[i] is the grid_id of A^i(p)
+//    int *R = PRrt+2*SSS+1;             // grid_id's of the 2S   Matrix Powers of R.  R[i] is the grid_id of A^i(r)
 
-  bool BiCGStabFailed    = false;
-  bool BiCGStabConverged = 0;
+    const int mMax = maxiter / SSS;
+
+    bool BiCGStabFailed    = false;
+    bool BiCGStabConverged = false;
 
 //  double g_dot_Tpaj,alpha,omega_numerator,omega_denominator,omega,delta,delta_next,beta;
 //  double L2_norm_of_rt,L2_norm_of_residual,cj_dot_Gcj;
 
-  __zero(   aj,4*SSS+1);
-  __zero(   cj,4*SSS+1);
-  __zero(   ej,4*SSS+1);
-  __zero( Tpaj,4*SSS+1);
-  __zero( Tpcj,4*SSS+1);
-  __zero(Tppaj,4*SSS+1);
-  __zero(temp1,4*SSS+1);
-  __zero(temp2,4*SSS+1);
-  //
-  // Initialize Tp[][] and Tpp[][] ...
-  //
-  // This is the monomial basis stuff.
-  //
-  for (int i = 0; i < 4*SSS+1; i++)
-      for (int j = 0; j < 4*SSS+1; j++)
-          Tp[i][j] = 0;
-  for (int i = 0; i < 2*SSS; i++)
-      Tp[i+1][i] = 1;
-  for (int i = 2*SSS+1; i < 4*SSS; i++)
-      Tp[i+1][i] = 1;
+    __zero(   aj,4*SSS+1);
+    __zero(   cj,4*SSS+1);
+    __zero(   ej,4*SSS+1);
+    __zero( Tpaj,4*SSS+1);
+    __zero( Tpcj,4*SSS+1);
+    __zero(Tppaj,4*SSS+1);
+    __zero(temp1,4*SSS+1);
+    __zero(temp2,4*SSS+1);
+    //
+    // Initialize Tp[][] and Tpp[][] ...
+    //
+    // This is the monomial basis stuff.
+    //
+    for (int i = 0; i < 4*SSS+1; i++)
+        for (int j = 0; j < 4*SSS+1; j++)
+            Tp[i][j] = 0;
+    for (int i = 0; i < 2*SSS; i++)
+        Tp[i+1][i] = 1;
+    for (int i = 2*SSS+1; i < 4*SSS; i++)
+        Tp[i+1][i] = 1;
 
-  for (int i = 0; i < 4*SSS+1; i++)
-      for (int j = 0; j < 4*SSS+1; j++)
-          Tpp[i][j] = 0;
-  for (int i = 0; i < 2*SSS-1; i++)
-      Tpp[i+2][i] = 1;
-  for (int i = 2*SSS+1; i < 4*SSS-1; i++)
-      Tpp[i+2][i] = 1;
+    for (int i = 0; i < 4*SSS+1; i++)
+        for (int j = 0; j < 4*SSS+1; j++)
+            Tpp[i][j] = 0;
+    for (int i = 0; i < 2*SSS-1; i++)
+        Tpp[i+2][i] = 1;
+    for (int i = 2*SSS+1; i < 4*SSS-1; i++)
+        Tpp[i+2][i] = 1;
 
-  if (verbose > 0 && ParallelDescriptor::IOProcessor())
-  {
-      std::printf("T' = \n");
-      for(int i=0;i<4*SSS+1;i++){std::printf("| ");
-          for(int j=0;j<4*SSS+1;j++){std::printf("%2.1f ",Tp[i][j]);}std::printf("|\n");}
-      std::printf("\n");
-      std::printf("T'' = \n");
-      for(int i=0;i<4*SSS+1;i++){std::printf("| ");
-          for(int j=0;j<4*SSS+1;j++){std::printf("%2.1f ",Tpp[i][j]);}std::printf("|\n");}
-      std::printf("\n");
-  }
+    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+        std::printf("T' = \n");
+        for (int i = 0;i < 4*SSS+1; i++)
+        {
+            std::printf("| ");
+            for (int j = 0;j < 4*SSS+1; j++)
+                std::printf("%2.1f ",Tp[i][j]);
+            std::printf("|\n");
+        }
+        std::printf("\nT'' = \n");
+        for (int i = 0;i < 4*SSS+1; i++)
+        {
+            std::printf("| ");
+            for (int j = 0; j < 4*SSS+1; j++)
+                std::printf("%2.1f ",Tpp[i][j]);
+            std::printf("|\n");
+        }
+        std::printf("\n");
+    }
 
+    const int ncomp  = 1;
+    const int nghost = 1;
+
+    MultiFab  p(sol.boxArray(), ncomp, nghost);
+    MultiFab  r(sol.boxArray(), ncomp, nghost);
+    MultiFab rt(sol.boxArray(), ncomp, nghost);
+
+    Lp.residual(r, rhs, sol, lev, bc_mode);
+
+    rt.copy(r); p.copy(r);
+
+    const double norm_of_rt = norm_inf(r);
+
+    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+        std::printf("norm=%0.20f\n",norm_of_rt);
+    }
+
+    if (norm_of_rt == 0.0)
+        //
+        // Entered BiCGStab with exact solution.
+        //
+        BiCGStabConverged = true;
+
+    double delta = dotxy(r,rt);
+
+    if (delta == 0)
+        //
+        // Entered BiCGStab with exact solution (square of L2 norm of r).
+        //
+        BiCGStabConverged=true;
+
+    double L2_norm_of_rt = sqrt(delta);
+ 
 #if 0
-
-  exchange_boundary(domain,level,e_id,1,0,0);                                                    // exchange_boundary(e_id)
-  residual(domain,level,__rt,e_id,R_id,a,b,hLevel);                                              // rt[] = R_id[] - A(e_id)
-  scale_grid(domain,level,__r,1.0,__rt);                                                         // r[] = rt[]
-  scale_grid(domain,level,__p,1.0,__rt);                                                         // p[] = rt[]
-  double norm_of_rt = norm(domain,level,__rt);                                                   // the norm of the initial residual...
-  #ifdef __VERBOSE
-  if(domain->rank==0)std::printf("m=%8d, norm=%0.20f\n",m,norm_of_rt);
-  #endif
-  if(norm_of_rt == 0.0){BiCGStabConverged=true;}                                                    // entered BiCGStab with exact solution
-  delta = dot(domain,level,__r,__rt);                                                            // delta = dot(r,rt)
-  if(delta==0.0){BiCGStabConverged=true;}                                                           // entered BiCGStab with exact solution (square of L2 norm of __r)
-  L2_norm_of_rt = sqrt(delta);
-
-
 
   for(i=0;i<4*SSS+1;i++){PRrt[                 i] = __PRrt+i;}                        // columns of PRrt map to the consecutive spare grids allocated for the bottom solver starting at __PRrt
                                     PRrt[4*SSS+1] = __rt;                             // last column or PRrt (r tilde) maps to rt
@@ -471,16 +521,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
       if(g_dot_Tpaj == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("g_dot_Tpaj == 0.0\n");}break;} // ??? breakdown
                                                              alpha = delta / g_dot_Tpaj;         // delta / (g,T'aj)
 
-      #if 0                                                                                      // seems to have accuracy problems in finite precision...
-      __gemv(temp1,-alpha,  G, Tpaj,   0.0,temp1,4*SSS+1,4*SSS+1);         //  temp1[] =      - alpha*GT'aj
-      __gemv(temp1,   1.0,  G,   cj,   1.0,temp1,4*SSS+1,4*SSS+1);         //  temp1[] =  Gcj - alpha*GT'aj
-      __gemv(temp2,   1.0, Tp,   cj,-alpha,Tppaj,4*SSS+1,4*SSS+1);         //  temp2[] = T'cj - alpha*T''aj  // FIX, just to __axpy
-             omega_numerator = __dot(temp2,temp1,4*SSS+1);                            //  (temp2,temp1) = ( T'cj-alpha*T''aj , Gcj-alpha*GT'aj )
-      __gemv(temp1,-alpha,  G,Tppaj,   0.0,temp1,4*SSS+1,4*SSS+1);         //  temp1[] =       − alpha*GT′′aj
-      __gemv(temp1,   1.0,  G, Tpcj,   1.0,temp1,4*SSS+1,4*SSS+1);         //  temp1[] = GT′cj − alpha*GT′′aj
-      __axpy(temp2,   1.0,     Tpcj,-alpha,Tppaj,4*SSS+1);                            //  temp2[] =  T′cj − alpha*T′′aj
-           omega_denominator = __dot(temp2,temp1,4*SSS+1);                            //  (temp2,temp1) = ( T′cj−alpha*T′′aj , GT′cj−alpha*GT′′aj )
-      #else                                                                                      // better to change the order of operations Gx-Gy -> G(x-y) ...
       __axpy(temp1,   1.0,     Tpcj,-alpha,Tppaj,4*SSS+1);                            //  temp1[] =  (T'cj - alpha*T''aj)
       __gemv(temp2,   1.0,  G,temp1,   0.0,temp2,4*SSS+1,4*SSS+1);         //  temp2[] = G(T'cj - alpha*T''aj)
       __axpy(temp1,   1.0,       cj,-alpha, Tpaj,4*SSS+1);                            //  temp1[] =     cj - alpha*T'aj
@@ -488,7 +528,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
       __axpy(temp1,   1.0,     Tpcj,-alpha,Tppaj,4*SSS+1);                            //  temp1[] =  (T'cj - alpha*T''aj)
       __gemv(temp2,   1.0,  G,temp1,   0.0,temp2,4*SSS+1,4*SSS+1);         //  temp2[] = G(T'cj - alpha*T''aj)
            omega_denominator = __dot(temp1,temp2,4*SSS+1);                            //  (temp1,temp2) = ( (T'cj - alpha*T''aj) , G(T'cj - alpha*T''aj) )
-      #endif                                                                                     // 
 
       __axpy(   ej,1.0,ej,       alpha,   aj,4*SSS+1);                                // ej[] = ej[] + alpha*aj[]
       if(omega_denominator == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega_denominator == 0.0\n");}break;} // ??? breakdown
@@ -498,7 +537,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
       __axpy(   cj,1.0,cj,      -omega, Tpcj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[]
       __axpy(   cj,1.0,cj,      -alpha, Tpaj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[] - alpha*T'aj[]
       __axpy(   cj,1.0,cj, omega*alpha,Tppaj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[] - alpha*T'aj[] + omega*alpha*T''aj[]
-
 
       // do a early check of the residual to determine if convergence...
       __gemv(temp1,   1.0,  G,   cj,   0.0,temp1,4*SSS+1,4*SSS+1);         // temp1[] = Gcj
@@ -515,7 +553,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
       if(L2_norm_of_residual < eps_rel*L2_norm_of_rt){BiCGStabConverged=true;break;} // terminate the inner n-loop
       // convergence chech done.
 
-
       if(omega             == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega == 0.0\n");}break;} // ??? breakdown (omega==0)
       if(omega_numerator   == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega_numerator   == 0.0\n");}break;} // ??? breakdown (omega==0)
                      delta_next = __dot(g,cj,4*SSS+1);                                // (g,cj)
@@ -531,7 +568,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         std::printf("\n");
       }
       #endif
-
 
     }                                                                                            // inner n (j) loop
 
