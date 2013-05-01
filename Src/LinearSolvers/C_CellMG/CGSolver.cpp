@@ -331,23 +331,24 @@ BuildGramMatrix (double* Gg, const MultiFab& PR, const MultiFab& rt)
     BL_ASSERT(rt.nComp() == 1);
     BL_ASSERT(PR.nComp() == 4*SSS+1);
 
-    const int NComp = PR.nComp();
-
+    const int Nrows = PR.nComp();
+    const int Ncols = Nrows + 1;
     //
-    // Gg is dimensioned NComp*(NComp+1)
+    // Gg is dimensioned (Ncols*Nrows).
     //
-
-    for (int mm = 0; mm < NComp; mm++)
+    // TODO - take advantage of the symmetry in Gg.
+    //
+    for (int mm = 0; mm < Nrows; mm++)
     {
-        for (int nn = 0; nn < NComp; nn++)
+        for (int nn = 0; nn < Nrows; nn++)
         {
-            Gg[mm*NComp + nn] = dotxy(PR, mm, PR, nn, true);
+            Gg[mm*Ncols + nn] = dotxy(PR, mm, PR, nn, true);
         }
 
-        Gg[mm*NComp + NComp] = dotxy(PR, mm, rt, 0, true);
+        Gg[mm*Ncols + Nrows] = dotxy(PR, mm, rt, 0, true);
     }
 
-    ParallelDescriptor::ReduceRealSum(Gg, NComp*(NComp+1));
+    ParallelDescriptor::ReduceRealSum(Gg, Nrows*Ncols);
 }
 
 //
@@ -560,35 +561,53 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         }
 
 #if 0
+        for (int n = 0; n < SSS; n++)
+        {
+            if (delta == 0)
+            {
+                BiCGStabFailed = true;
 
-        for(int n=0;n<SSS;n++){
-            domain->CABiCGStab_j_iterations++;                                                         // record number of inner-loop (j) iterations for comparison
-            if(delta == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("delta == 0.0\n");}break;} // ??? breakdown (delta==0)
+                if (domain->rank==0)
+                {
+                    std::printf("delta == 0\n");
+                }
+                break;
+            }
+
             __gemv( Tpaj,   1.0, Tp,   aj,   0.0, Tpaj,4*SSS+1,4*SSS+1);         //                         T'aj
             __gemv( Tpcj,   1.0, Tp,   cj,   0.0, Tpcj,4*SSS+1,4*SSS+1);         //                         T'cj
             __gemv(Tppaj,   1.0,Tpp,   aj,   0.0,Tppaj,4*SSS+1,4*SSS+1);         //                        T''aj
+
             g_dot_Tpaj = __dot(g,Tpaj,4*SSS+1);                            // (g,T'aj)
+
             if(g_dot_Tpaj == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("g_dot_Tpaj == 0.0\n");}break;} // ??? breakdown
+
             alpha = delta / g_dot_Tpaj;         // delta / (g,T'aj)
 
             __axpy(temp1,   1.0,     Tpcj,-alpha,Tppaj,4*SSS+1);                            //  temp1[] =  (T'cj - alpha*T''aj)
             __gemv(temp2,   1.0,  G,temp1,   0.0,temp2,4*SSS+1,4*SSS+1);         //  temp2[] = G(T'cj - alpha*T''aj)
             __axpy(temp1,   1.0,       cj,-alpha, Tpaj,4*SSS+1);                            //  temp1[] =     cj - alpha*T'aj
+
             omega_numerator = __dot(temp1,temp2,4*SSS+1);                            //  (temp1,temp2) = ( (cj - alpha*T'aj) , G(T'cj - alpha*T''aj) )
+
             __axpy(temp1,   1.0,     Tpcj,-alpha,Tppaj,4*SSS+1);                            //  temp1[] =  (T'cj - alpha*T''aj)
             __gemv(temp2,   1.0,  G,temp1,   0.0,temp2,4*SSS+1,4*SSS+1);         //  temp2[] = G(T'cj - alpha*T''aj)
+
             omega_denominator = __dot(temp1,temp2,4*SSS+1);                            //  (temp1,temp2) = ( (T'cj - alpha*T''aj) , G(T'cj - alpha*T''aj) )
 
             __axpy(   ej,1.0,ej,       alpha,   aj,4*SSS+1);                                // ej[] = ej[] + alpha*aj[]
+
             if(omega_denominator == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega_denominator == 0.0\n");}break;} // ??? breakdown
+
             omega = omega_numerator / omega_denominator;                                               // 
             __axpy(   ej,1.0,ej,       omega,   cj,4*SSS+1);                                // ej[] = ej[] + alpha*aj[] + omega*cj[]
             __axpy(   ej,1.0,ej,-omega*alpha, Tpaj,4*SSS+1);                                // ej[] = ej[] + alpha*aj[] + omega*cj[] - omega*alpha*T'aj[]
             __axpy(   cj,1.0,cj,      -omega, Tpcj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[]
             __axpy(   cj,1.0,cj,      -alpha, Tpaj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[] - alpha*T'aj[]
             __axpy(   cj,1.0,cj, omega*alpha,Tppaj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[] - alpha*T'aj[] + omega*alpha*T''aj[]
-
-            // do a early check of the residual to determine if convergence...
+            //
+            // Do a early check of the residual to determine if convergence ...
+            //
             __gemv(temp1,   1.0,  G,   cj,   0.0,temp1,4*SSS+1,4*SSS+1);         // temp1[] = Gcj
             cj_dot_Gcj = __dot(cj,temp1,4*SSS+1);         // sqrt( (cj,Gcj) ) == L2 norm of the intermediate residual in exact arithmetic
             L2_norm_of_residual = 0.0;if(cj_dot_Gcj>0)L2_norm_of_residual=sqrt(cj_dot_Gcj);            // However, finite precision can lead to the norm^2 being < 0 (Jim Demmel)
@@ -602,7 +621,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             if(domain->rank==0)std::printf("m=%8d, norm=%0.20f (cj_dot_Gcj=%0.20e)\n",m+n,L2_norm_of_residual,cj_dot_Gcj);
 #endif
             if(L2_norm_of_residual < eps_rel*L2_norm_of_rt){BiCGStabConverged=true;break;} // terminate the inner n-loop
-            // convergence chech done.
 
             if(omega             == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega == 0.0\n");}break;} // ??? breakdown (omega==0)
             if(omega_numerator   == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega_numerator   == 0.0\n");}break;} // ??? breakdown (omega==0)
