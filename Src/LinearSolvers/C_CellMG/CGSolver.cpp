@@ -639,10 +639,14 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         std::cout << "rhs.norm_inf = " << norm_inf(rhs)   << std::endl;
     }
 
-    sorig.copy(sol);
+    MultiFab::Copy(sorig,sol,0,0,1,0);
+
     Lp.residual(r, rhs, sorig, lev, bc_mode);
-    rh.copy(r);
+
+    MultiFab::Copy(rh,r,0,0,1,0);
+
     sol.setVal(0.0);
+
     const LinOp::BC_Mode temp_bc_mode=LinOp::Homogeneous_BC;
     //
     // Calculate the local values of these norms & reduce their values together.
@@ -688,7 +692,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 	}
         if ( nit == 1 )
         {
-            p.copy(r);
+            MultiFab::Copy(p,r,0,0,1,0);
         }
         else
         {
@@ -708,7 +712,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         }
         else 
         {
-            ph.copy(p);
+            MultiFab::Copy(ph,p,0,0,1,0);
         }
         Lp.apply(v, ph, lev, temp_bc_mode);
 
@@ -759,7 +763,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         }
         else
         {
-            sh.copy(s);
+            MultiFab::Copy(sh,s,0,0,1,0);
         }
         Lp.apply(t, sh, lev, temp_bc_mode);
         //
@@ -875,7 +879,7 @@ CGSolver::solve_cg (MultiFab&       sol,
     MultiFab r2(sol.boxArray(), ncomp, nghost);
     MultiFab z2(sol.boxArray(), ncomp, nghost);
 
-    sorig.copy(sol);
+    MultiFab::Copy(sorig,sol,0,0,1,0);
 
     Lp.residual(r, rhs, sorig, lev, bc_mode);
 
@@ -923,14 +927,14 @@ CGSolver::solve_cg (MultiFab&       sol,
         }
         else
         {
-            z.copy(r);
+            MultiFab::Copy(z,r,0,0,1,0);
         }
 
         Real rho = dotxy(z,r);
 
         if (nit == 1)
         {
-            p.copy(z);
+            MultiFab::Copy(p,z,0,0,1,0);
         }
         else
         {
