@@ -53,8 +53,9 @@ CGSolver::Initialize ()
     {
         switch (ii)
         {
-        case 0: def_cg_solver = CG;       break;
-        case 1: def_cg_solver = BiCGStab; break;
+        case 0: def_cg_solver = CG;         break;
+        case 1: def_cg_solver = BiCGStab;   break;
+        case 2: def_cg_solver = CABiCGStab; break;
         default:
             BoxLib::Error("CGSolver::Initialize(): bad cg_solver");
         }
@@ -93,7 +94,6 @@ CGSolver::CGSolver (LinOp& _Lp,
     Initialize();
     maxiter = def_maxiter;
     verbose = def_verbose;
-    cg_solver = def_cg_solver;
     set_mg_precond();
 }
 
@@ -144,18 +144,20 @@ CGSolver::solve (MultiFab&       sol,
                  const MultiFab& rhs,
                  Real            eps_rel,
                  Real            eps_abs,
-                 LinOp::BC_Mode  bc_mode,
-		 Solver          solver)
+                 LinOp::BC_Mode  bc_mode)
 {
     int ret = -1;
 
-    switch (solver)
+    switch (def_cg_solver)
     {
     case 0:
         ret = solve_cg(sol, rhs, eps_rel, eps_abs, bc_mode);
         break;
     case 1:
         ret = solve_bicgstab(sol, rhs, eps_rel, eps_abs, bc_mode);
+        break;
+    case 2:
+        ret = solve_cabicgstab(sol, rhs, eps_rel, eps_abs, bc_mode);
         break;
     default:
         BoxLib::Error("CGSolver::solve(): unknown solver");
@@ -227,6 +229,20 @@ dotxy (const MultiFab& r,
         ParallelDescriptor::ReduceRealSum(rho);
 
     return rho;
+}
+
+int
+CGSolver::solve_cabicgstab (MultiFab&       sol,
+                            const MultiFab& rhs,
+                            Real            eps_rel,
+                            Real            eps_abs,
+                            LinOp::BC_Mode  bc_mode)
+{
+    BoxLib::Abort("CGSolver::solve_cabicgstab: not fully implemented");
+
+
+
+    return 0;
 }
 
 int
