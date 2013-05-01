@@ -300,9 +300,7 @@ __axpy (double* z,
 inline
 static
 double
-__dot (double* x,
-       double* y,
-       int     n)
+__dot (double* x, double* y, int n)
 {
     double sum = 0.0;
     for (int nn=0;nn<n;nn++)
@@ -318,13 +316,38 @@ __dot (double* x,
 inline
 static
 void
-__zero (double* z,
-        int     n)
+__zero (double* z, int n)
 {
     for (int nn=0;nn<n;nn++)
     {
         z[nn] = 0.0;
     }
+}
+
+static
+void
+BuildGramMatrix (double* Gg, const MultiFab& PR, const MultiFab& rt)
+{
+    BL_ASSERT(rt.nComp() == 1);
+    BL_ASSERT(PR.nComp() == 4*SSS+1);
+
+    const int NComp = PR.nComp();
+
+    //
+    // Gg is dimensioned NComp*(NComp+1)
+    //
+
+    for (int mm = 0; mm < NComp; mm++)
+    {
+        for (int nn = 0; nn < NComp; nn++)
+        {
+            Gg[mm*NComp + nn] = dotxy(PR, mm, PR, nn, true);
+        }
+
+        Gg[mm*NComp + NComp] = dotxy(PR, mm, rt, 0, true);
+    }
+
+    ParallelDescriptor::ReduceRealSum(Gg, NComp*(NComp+1));
 }
 
 //
@@ -485,41 +508,58 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             Lp.apply(PR, PR, lev, temp_bc_mode, false, 2*SSS+n, 2*SSS+n+1, 1);
         }
 
-#if 0
-
-        // form G[][] and g[]
-        matmul_grids(domain,level,Gg,PRrt,PRrt,4*SSS+1,4*SSS+2);               // Compute Gg[][] = [P,R]^T * [P,R,rt] (Matmul with grids but only one MPI_AllReduce)
-        for(i=0,k=0;i<4*SSS+1;i++){                                                       // extract G[][] and g[] from Gg[]
-            for(j=0    ;j<4*SSS+1;j++){G[i][j] = Gg[k++];}                                    // first 4*SSS+1 elements in each row go to G[][].
-            g[i]    = Gg[k++];                                     // last element in row goes to g[].
+        BuildGramMatrix(Gg, PR, rt);
+        //
+        // Form G[][] and g[] from Gg.
+        //
+        for (int i = 0, k = 0; i < 4*SSS+1; i++)
+        {
+            for (int j = 0; j < 4*SSS+1; j++)
+            {
+                //
+                // First 4*SSS+1 elements in each row go to G[][].
+                //
+                G[i][j] = Gg[k++];
+            }
+            //
+            // Last element in row goes to g[].
+            //
+            g[i] = Gg[k++];
         }
 
-#ifdef __VERBOSE // print G[][] and g[]
-        if(domain->rank==0)
+        if (verbose > 0 && ParallelDescriptor::IOProcessor())
         {
             std::printf("G[][] = \n");
-            for(i=0;i<4*SSS+1;i++){//std::printf("| ");
-                for(j=0;j<4*SSS+1;j++){std::printf("%21.15e ",G[i][j]);}
-                std::printf(";\n");}
-            std::printf("\n");
-            std::printf("g[] = \n");
-            for(i=0;i<4*SSS+1;i++){std::printf(" %21.15e \n",g[i]);}
+            for(int i = 0; i < 4*SSS+1; i++)
+            {
+                for(int j = 0; j < 4*SSS+1; j++)
+                    std::printf("%21.15e ",G[i][j]);
+                std::printf(";\n");
+            }
+            std::printf("\ng[] = \n");
+            for(int i = 0; i < 4*SSS+1; i++)
+                std::printf(" %21.15e \n",g[i]);
             std::printf("\n");
         } 
-#endif
 
-        for(i=0;i<4*SSS+1;i++)aj[i]=0.0;aj[                 0]=1.0;                       // initialized based on (3.26)
-        for(i=0;i<4*SSS+1;i++)cj[i]=0.0;cj[2*SSS+1]=1.0;                       // initialized based on (3.26)
-        for(i=0;i<4*SSS+1;i++)ej[i]=0.0;                                                  // initialized based on (3.26)
+        for (int i = 0; i < 4*SSS+1; i++)
+            aj[i] = 0;
+        aj[0] = 1;
+        for (int i = 0; i < 4*SSS+1; i++)
+            cj[i]=0;
+        cj[2*SSS+1] = 1;
+        for (int i = 0; i < 4*SSS+1; i++)
+            ej[i] = 0;
 
-#ifdef __VERBOSE // print aj[], cj[], and ej[]
-        if(domain->rank==0)
+        if (verbose > 0 && ParallelDescriptor::IOProcessor())
         {
             std::printf("aj[] =           cj[] =           ej[] =           \n");
-            for(i=0;i<4*SSS+1;i++){std::printf(" %21.15e ,   %21.15e ,   %21.15e ;   \n",aj[i],cj[i],ej[i]);}
+            for (int i = 0; i < 4*SSS+1; i++)
+                std::printf(" %21.15e ,   %21.15e ,   %21.15e ;   \n",aj[i],cj[i],ej[i]);
             std::printf("\n");
         }
-#endif
+
+#if 0
 
         for(int n=0;n<SSS;n++){
             domain->CABiCGStab_j_iterations++;                                                         // record number of inner-loop (j) iterations for comparison
