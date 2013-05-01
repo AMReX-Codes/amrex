@@ -146,24 +146,19 @@ CGSolver::solve (MultiFab&       sol,
                  Real            eps_abs,
                  LinOp::BC_Mode  bc_mode)
 {
-    int ret = -1;
-
     switch (def_cg_solver)
     {
     case 0:
-        ret = solve_cg(sol, rhs, eps_rel, eps_abs, bc_mode);
-        break;
+        return solve_cg(sol, rhs, eps_rel, eps_abs, bc_mode);
     case 1:
-        ret = solve_bicgstab(sol, rhs, eps_rel, eps_abs, bc_mode);
-        break;
+        return solve_bicgstab(sol, rhs, eps_rel, eps_abs, bc_mode);
     case 2:
-        ret = solve_cabicgstab(sol, rhs, eps_rel, eps_abs, bc_mode);
-        break;
+        return solve_cabicgstab(sol, rhs, eps_rel, eps_abs, bc_mode);
     default:
         BoxLib::Error("CGSolver::solve(): unknown solver");
     }
 
-    return ret;
+    return -1;
 }
 
 static

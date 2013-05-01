@@ -137,12 +137,6 @@ public:
 
 protected:
 
-    int solve_00 (MultiFab&       solnL,
-                  const MultiFab& rhsL,
-                  Real            eps_rel,
-                  Real            eps_abs,
-                  LinOp::BC_Mode  bc_mode);
-
     int solve_cg (MultiFab&       solnL,
 		  const MultiFab& rhsL,
 		  Real            eps_rel,
