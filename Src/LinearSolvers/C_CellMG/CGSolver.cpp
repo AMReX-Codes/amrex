@@ -364,18 +364,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     double      g[4*SSS+1];            // extracted from last [4*SSS+1] column of Gg[][].
     double   Gg[(4*SSS+1)*(4*SSS+2)];  // buffer to hold the Gram-like matrix produced by matmul().  indexed as [row*(4*SSS+2) + col]
 
-//    int      PRrt[4*SSS+2];            // grid_id's of the concatenation of the 2S+1 matrix powers of P, 2S matrix powers of R, and rt
-//    int *P = PRrt+ 0;                  // grid_id's of the 2S+1 Matrix Powers of P.  P[i] is the grid_id of A^i(p)
-//    int *R = PRrt+2*SSS+1;             // grid_id's of the 2S   Matrix Powers of R.  R[i] is the grid_id of A^i(r)
-
-    const int mMax = maxiter / SSS;
-
-    bool BiCGStabFailed    = false;
-    bool BiCGStabConverged = false;
-
-//  double g_dot_Tpaj,alpha,omega_numerator,omega_denominator,omega,delta,delta_next,beta;
-//  double L2_norm_of_rt,L2_norm_of_residual,cj_dot_Gcj;
-
     __zero(   aj,4*SSS+1);
     __zero(   cj,4*SSS+1);
     __zero(   ej,4*SSS+1);
@@ -435,14 +423,19 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     Lp.residual(r, rhs, sol, lev, bc_mode);
 
-    rt.copy(r); p.copy(r);
+    MultiFab::Copy(rt,r,0,0,1,0);
+    MultiFab::Copy( p,r,0,0,1,0);
 
     const double norm_of_rt = norm_inf(r);
+
+    const LinOp::BC_Mode temp_bc_mode = LinOp::Homogeneous_BC;
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
         std::printf("norm=%0.20f\n",norm_of_rt);
     }
+
+    bool BiCGStabConverged = false;
 
     if (norm_of_rt == 0.0)
         //
@@ -456,142 +449,159 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         //
         // Entered BiCGStab with exact solution (square of L2 norm of r).
         //
-        BiCGStabConverged=true;
+        BiCGStabConverged = true;
 
-    double L2_norm_of_rt = sqrt(delta);
- 
+    const double L2_norm_of_rt = sqrt(delta);
+    //
+    // Contains the matrix powers of p[] and r[].
+    //
+    // First 2*SSS+1 components are powers of p[].
+    // Next  2*SSS   components are powers of r[].
+    //
+    MultiFab PR(sol.boxArray(), 4*SSS+1, nghost);
+
+    const int mMax = maxiter / SSS;
+
+    bool BiCGStabFailed = false;
+
+    for (int m = 0; m < mMax && !BiCGStabFailed && !BiCGStabConverged; m += SSS)
+    {
+        //
+        // Compute 2s+1 matrix powers on p[] (monomial basis).
+        //
+        MultiFab::Copy(PR,p,0,0,1,0);
+
+        for (int n = 1; n < 2*SSS+1; n++)
+        {
+            Lp.apply(PR, PR, lev, temp_bc_mode, false, n-1, n, 1);
+        }
+        //
+        // Compute 2s matrix powers on r[] (monomial basis).
+        //
+         MultiFab::Copy(PR,r,0,2*SSS+1,1,0);
+
+        for (int n = 1; n < 2*SSS; n++)
+        {
+            Lp.apply(PR, PR, lev, temp_bc_mode, false, 2*SSS+n, 2*SSS+n+1, 1);
+        }
+
 #if 0
 
-  for(i=0;i<4*SSS+1;i++){PRrt[                 i] = __PRrt+i;}                        // columns of PRrt map to the consecutive spare grids allocated for the bottom solver starting at __PRrt
-                                    PRrt[4*SSS+1] = __rt;                             // last column or PRrt (r tilde) maps to rt
+        // form G[][] and g[]
+        matmul_grids(domain,level,Gg,PRrt,PRrt,4*SSS+1,4*SSS+2);               // Compute Gg[][] = [P,R]^T * [P,R,rt] (Matmul with grids but only one MPI_AllReduce)
+        for(i=0,k=0;i<4*SSS+1;i++){                                                       // extract G[][] and g[] from Gg[]
+            for(j=0    ;j<4*SSS+1;j++){G[i][j] = Gg[k++];}                                    // first 4*SSS+1 elements in each row go to G[][].
+            g[i]    = Gg[k++];                                     // last element in row goes to g[].
+        }
 
-
-  while( (m<mMax) && (!BiCGStabFailed) && (!BiCGStabConverged) ){                                // while(not done){
-    // Compute 2s+1 matrix powers on p[] (monomial basis)
-    scale_grid(domain,level,P[0],1.0,__p);                                                       // P[0] = A^0p = __p
-    for(n=1;n<2*SSS+1;n++){                                                           // naive way of calculating the monomial basis.  FIX - s-steps, better basis?
-      exchange_boundary(domain,level,P[n-1],1,0,0);                                              // exchange_boundary(A^(n-1)p)
-      apply_op(domain,level,P[n],P[n-1],a,b,hLevel);                                             // P[n] = A(P[n-1]) = A^(n)p
-    }
-    // Compute 2s matrix powers on r[] (monomial basis)
-    scale_grid(domain,level,R[0],1.0,__r);                                                       // R[0] = A^0r = __r
-    for(n=1;n<2*SSS;n++){                                                             // naive way of calculating the monomial basis.  FIX - s-steps, better basis?
-      exchange_boundary(domain,level,R[n-1],1,0,0);                                              // exchange_boundary(A^(n-1)r)
-      apply_op(domain,level,R[n],R[n-1],a,b,hLevel);                                             // R[n] = A(R[n-1]) = A^(n)r
-    }
-    // form G[][] and g[]
-    matmul_grids(domain,level,Gg,PRrt,PRrt,4*SSS+1,4*SSS+2);               // Compute Gg[][] = [P,R]^T * [P,R,rt] (Matmul with grids but only one MPI_AllReduce)
-    for(i=0,k=0;i<4*SSS+1;i++){                                                       // extract G[][] and g[] from Gg[]
-    for(j=0    ;j<4*SSS+1;j++){G[i][j] = Gg[k++];}                                    // first 4*SSS+1 elements in each row go to G[][].
-                                          g[i]    = Gg[k++];                                     // last element in row goes to g[].
-    }
-
-    #ifdef __VERBOSE // print G[][] and g[]
-    if(domain->rank==0){
-      std::printf("G[][] = \n");
-      for(i=0;i<4*SSS+1;i++){//std::printf("| ");
-      for(j=0;j<4*SSS+1;j++){std::printf("%21.15e ",G[i][j]);}
-                                        std::printf(";\n");}
-      std::printf("\n");
-      std::printf("g[] = \n");
-      for(i=0;i<4*SSS+1;i++){std::printf(" %21.15e \n",g[i]);}
-      std::printf("\n");
-    } 
-    #endif
-
-    for(i=0;i<4*SSS+1;i++)aj[i]=0.0;aj[                 0]=1.0;                       // initialized based on (3.26)
-    for(i=0;i<4*SSS+1;i++)cj[i]=0.0;cj[2*SSS+1]=1.0;                       // initialized based on (3.26)
-    for(i=0;i<4*SSS+1;i++)ej[i]=0.0;                                                  // initialized based on (3.26)
-
-    #ifdef __VERBOSE // print aj[], cj[], and ej[]
-    if(domain->rank==0){
-      std::printf("aj[] =           cj[] =           ej[] =           \n");
-      for(i=0;i<4*SSS+1;i++){std::printf(" %21.15e ,   %21.15e ,   %21.15e ;   \n",aj[i],cj[i],ej[i]);}
-      std::printf("\n");
-    }
-    #endif
-
-    for(n=0;n<SSS;n++){                                                               // for(n=0;n<SSS;n++){
-      domain->CABiCGStab_j_iterations++;                                                         // record number of inner-loop (j) iterations for comparison
-      if(delta == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("delta == 0.0\n");}break;} // ??? breakdown (delta==0)
-      __gemv( Tpaj,   1.0, Tp,   aj,   0.0, Tpaj,4*SSS+1,4*SSS+1);         //                         T'aj
-      __gemv( Tpcj,   1.0, Tp,   cj,   0.0, Tpcj,4*SSS+1,4*SSS+1);         //                         T'cj
-      __gemv(Tppaj,   1.0,Tpp,   aj,   0.0,Tppaj,4*SSS+1,4*SSS+1);         //                        T''aj
-                       g_dot_Tpaj = __dot(g,Tpaj,4*SSS+1);                            // (g,T'aj)
-      if(g_dot_Tpaj == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("g_dot_Tpaj == 0.0\n");}break;} // ??? breakdown
-                                                             alpha = delta / g_dot_Tpaj;         // delta / (g,T'aj)
-
-      __axpy(temp1,   1.0,     Tpcj,-alpha,Tppaj,4*SSS+1);                            //  temp1[] =  (T'cj - alpha*T''aj)
-      __gemv(temp2,   1.0,  G,temp1,   0.0,temp2,4*SSS+1,4*SSS+1);         //  temp2[] = G(T'cj - alpha*T''aj)
-      __axpy(temp1,   1.0,       cj,-alpha, Tpaj,4*SSS+1);                            //  temp1[] =     cj - alpha*T'aj
-             omega_numerator = __dot(temp1,temp2,4*SSS+1);                            //  (temp1,temp2) = ( (cj - alpha*T'aj) , G(T'cj - alpha*T''aj) )
-      __axpy(temp1,   1.0,     Tpcj,-alpha,Tppaj,4*SSS+1);                            //  temp1[] =  (T'cj - alpha*T''aj)
-      __gemv(temp2,   1.0,  G,temp1,   0.0,temp2,4*SSS+1,4*SSS+1);         //  temp2[] = G(T'cj - alpha*T''aj)
-           omega_denominator = __dot(temp1,temp2,4*SSS+1);                            //  (temp1,temp2) = ( (T'cj - alpha*T''aj) , G(T'cj - alpha*T''aj) )
-
-      __axpy(   ej,1.0,ej,       alpha,   aj,4*SSS+1);                                // ej[] = ej[] + alpha*aj[]
-      if(omega_denominator == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega_denominator == 0.0\n");}break;} // ??? breakdown
-      omega = omega_numerator / omega_denominator;                                               // 
-      __axpy(   ej,1.0,ej,       omega,   cj,4*SSS+1);                                // ej[] = ej[] + alpha*aj[] + omega*cj[]
-      __axpy(   ej,1.0,ej,-omega*alpha, Tpaj,4*SSS+1);                                // ej[] = ej[] + alpha*aj[] + omega*cj[] - omega*alpha*T'aj[]
-      __axpy(   cj,1.0,cj,      -omega, Tpcj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[]
-      __axpy(   cj,1.0,cj,      -alpha, Tpaj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[] - alpha*T'aj[]
-      __axpy(   cj,1.0,cj, omega*alpha,Tppaj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[] - alpha*T'aj[] + omega*alpha*T''aj[]
-
-      // do a early check of the residual to determine if convergence...
-      __gemv(temp1,   1.0,  G,   cj,   0.0,temp1,4*SSS+1,4*SSS+1);         // temp1[] = Gcj
-                                        cj_dot_Gcj = __dot(cj,temp1,4*SSS+1);         // sqrt( (cj,Gcj) ) == L2 norm of the intermediate residual in exact arithmetic
-      L2_norm_of_residual = 0.0;if(cj_dot_Gcj>0)L2_norm_of_residual=sqrt(cj_dot_Gcj);            // However, finite precision can lead to the norm^2 being < 0 (Jim Demmel)
-      #ifdef __VERBOSE // print cj[], and Gcj[]
-      if(domain->rank==0){
-        std::printf("cj[] =           Gcj[] =\n");
-        for(i=0;i<4*SSS+1;i++){std::printf("| %21.15e |   | %21.15e |\n",cj[i],temp1[i]);}
-        std::printf("\n");
-      }
-      if(domain->rank==0)std::printf("m=%8d, norm=%0.20f (cj_dot_Gcj=%0.20e)\n",m+n,L2_norm_of_residual,cj_dot_Gcj);
-      #endif
-      if(L2_norm_of_residual < eps_rel*L2_norm_of_rt){BiCGStabConverged=true;break;} // terminate the inner n-loop
-      // convergence chech done.
-
-      if(omega             == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega == 0.0\n");}break;} // ??? breakdown (omega==0)
-      if(omega_numerator   == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega_numerator   == 0.0\n");}break;} // ??? breakdown (omega==0)
-                     delta_next = __dot(g,cj,4*SSS+1);                                // (g,cj)
-      beta = (delta_next/delta)*(alpha/omega);                                                   // (delta_next/delta)*(alpha/omega)
-      __axpy(   aj,1.0,cj,        beta,   aj,4*SSS+1);                                // aj[] = cj[] + beta*aj[]
-      __axpy(   aj,1.0,aj, -omega*beta, Tpaj,4*SSS+1);                                // aj[] = cj[] + beta*aj[] - omega*beta*T'aj
-      delta = delta_next;                                                                        // delta = delta_next
-
-      #ifdef __VERBOSE // print aj[], cj[], and ej[]
-      if(domain->rank==0){
-        std::printf("aj[] =           cj[] =           ej[] =           \n");
-        for(i=0;i<4*SSS+1;i++){std::printf("| %21.15e |   | %21.15e |   | %21.15e |   \n",aj[i],cj[i],ej[i]);}
-        std::printf("\n");
-      }
-      #endif
-
-    }                                                                                            // inner n (j) loop
-
-    // update iterates...
-    for(i=0;i<4*SSS+1;i++){add_grids(domain,level,e_id,1.0,e_id,ej[i],PRrt[i]);}      // e_id[] = [P,R]ej + e_id[]
-                                      add_grids(domain,level, __p,0.0, __p,aj[0],PRrt[0]);       //    p[] = [P,R]aj
-    for(i=1;i<4*SSS+1;i++){add_grids(domain,level, __p,1.0, __p,aj[i],PRrt[i]);}      //          ...
-                                      add_grids(domain,level, __r,0.0, __r,cj[0],PRrt[0]);       //    r[] = [P,R]cj
-    for(i=1;i<4*SSS+1;i++){add_grids(domain,level, __r,1.0, __r,cj[i],PRrt[i]);}      //          ...
-                              m+=SSS;                                                 //   m+=SSS;
-    domain->BiCGStab_iterations+=SSS;                                                 //   BiCGStab_iterations is a multiple of s
-
-    // Superfluous if you are calculating (cj,Gcj) and expensive as it adds another AllReduce- - - - - - - - - - - - - - - - - -
-    //exchange_boundary(domain,level,e_id,1,0,0);                                                  // calculate the norm of the true residual...
-    //residual(domain,level,__temp,e_id,R_id,a,b,hLevel);                                          // true residual
-    //double norm_of_residual = norm(domain,level,__temp);                                         // norm of true residual
-    //#ifdef __VERBOSE
-    //if(domain->rank==0)std::printf("m=%8d, norm=%0.20f\n",m,norm_of_residual);
-    //#endif
-    //if(norm_of_residual < eps_rel*norm_of_rt){BiCGStabConverged=true;break;}      // convergence ?
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  }                                                                                              // } // outer m loop
-
+#ifdef __VERBOSE // print G[][] and g[]
+        if(domain->rank==0)
+        {
+            std::printf("G[][] = \n");
+            for(i=0;i<4*SSS+1;i++){//std::printf("| ");
+                for(j=0;j<4*SSS+1;j++){std::printf("%21.15e ",G[i][j]);}
+                std::printf(";\n");}
+            std::printf("\n");
+            std::printf("g[] = \n");
+            for(i=0;i<4*SSS+1;i++){std::printf(" %21.15e \n",g[i]);}
+            std::printf("\n");
+        } 
 #endif
+
+        for(i=0;i<4*SSS+1;i++)aj[i]=0.0;aj[                 0]=1.0;                       // initialized based on (3.26)
+        for(i=0;i<4*SSS+1;i++)cj[i]=0.0;cj[2*SSS+1]=1.0;                       // initialized based on (3.26)
+        for(i=0;i<4*SSS+1;i++)ej[i]=0.0;                                                  // initialized based on (3.26)
+
+#ifdef __VERBOSE // print aj[], cj[], and ej[]
+        if(domain->rank==0)
+        {
+            std::printf("aj[] =           cj[] =           ej[] =           \n");
+            for(i=0;i<4*SSS+1;i++){std::printf(" %21.15e ,   %21.15e ,   %21.15e ;   \n",aj[i],cj[i],ej[i]);}
+            std::printf("\n");
+        }
+#endif
+
+        for(int n=0;n<SSS;n++){
+            domain->CABiCGStab_j_iterations++;                                                         // record number of inner-loop (j) iterations for comparison
+            if(delta == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("delta == 0.0\n");}break;} // ??? breakdown (delta==0)
+            __gemv( Tpaj,   1.0, Tp,   aj,   0.0, Tpaj,4*SSS+1,4*SSS+1);         //                         T'aj
+            __gemv( Tpcj,   1.0, Tp,   cj,   0.0, Tpcj,4*SSS+1,4*SSS+1);         //                         T'cj
+            __gemv(Tppaj,   1.0,Tpp,   aj,   0.0,Tppaj,4*SSS+1,4*SSS+1);         //                        T''aj
+            g_dot_Tpaj = __dot(g,Tpaj,4*SSS+1);                            // (g,T'aj)
+            if(g_dot_Tpaj == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("g_dot_Tpaj == 0.0\n");}break;} // ??? breakdown
+            alpha = delta / g_dot_Tpaj;         // delta / (g,T'aj)
+
+            __axpy(temp1,   1.0,     Tpcj,-alpha,Tppaj,4*SSS+1);                            //  temp1[] =  (T'cj - alpha*T''aj)
+            __gemv(temp2,   1.0,  G,temp1,   0.0,temp2,4*SSS+1,4*SSS+1);         //  temp2[] = G(T'cj - alpha*T''aj)
+            __axpy(temp1,   1.0,       cj,-alpha, Tpaj,4*SSS+1);                            //  temp1[] =     cj - alpha*T'aj
+            omega_numerator = __dot(temp1,temp2,4*SSS+1);                            //  (temp1,temp2) = ( (cj - alpha*T'aj) , G(T'cj - alpha*T''aj) )
+            __axpy(temp1,   1.0,     Tpcj,-alpha,Tppaj,4*SSS+1);                            //  temp1[] =  (T'cj - alpha*T''aj)
+            __gemv(temp2,   1.0,  G,temp1,   0.0,temp2,4*SSS+1,4*SSS+1);         //  temp2[] = G(T'cj - alpha*T''aj)
+            omega_denominator = __dot(temp1,temp2,4*SSS+1);                            //  (temp1,temp2) = ( (T'cj - alpha*T''aj) , G(T'cj - alpha*T''aj) )
+
+            __axpy(   ej,1.0,ej,       alpha,   aj,4*SSS+1);                                // ej[] = ej[] + alpha*aj[]
+            if(omega_denominator == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega_denominator == 0.0\n");}break;} // ??? breakdown
+            omega = omega_numerator / omega_denominator;                                               // 
+            __axpy(   ej,1.0,ej,       omega,   cj,4*SSS+1);                                // ej[] = ej[] + alpha*aj[] + omega*cj[]
+            __axpy(   ej,1.0,ej,-omega*alpha, Tpaj,4*SSS+1);                                // ej[] = ej[] + alpha*aj[] + omega*cj[] - omega*alpha*T'aj[]
+            __axpy(   cj,1.0,cj,      -omega, Tpcj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[]
+            __axpy(   cj,1.0,cj,      -alpha, Tpaj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[] - alpha*T'aj[]
+            __axpy(   cj,1.0,cj, omega*alpha,Tppaj,4*SSS+1);                                // cj[] = cj[] - omega*T'cj[] - alpha*T'aj[] + omega*alpha*T''aj[]
+
+            // do a early check of the residual to determine if convergence...
+            __gemv(temp1,   1.0,  G,   cj,   0.0,temp1,4*SSS+1,4*SSS+1);         // temp1[] = Gcj
+            cj_dot_Gcj = __dot(cj,temp1,4*SSS+1);         // sqrt( (cj,Gcj) ) == L2 norm of the intermediate residual in exact arithmetic
+            L2_norm_of_residual = 0.0;if(cj_dot_Gcj>0)L2_norm_of_residual=sqrt(cj_dot_Gcj);            // However, finite precision can lead to the norm^2 being < 0 (Jim Demmel)
+
+#ifdef __VERBOSE // print cj[], and Gcj[]
+            if(domain->rank==0){
+                std::printf("cj[] =           Gcj[] =\n");
+                for(i=0;i<4*SSS+1;i++){std::printf("| %21.15e |   | %21.15e |\n",cj[i],temp1[i]);}
+                std::printf("\n");
+            }
+            if(domain->rank==0)std::printf("m=%8d, norm=%0.20f (cj_dot_Gcj=%0.20e)\n",m+n,L2_norm_of_residual,cj_dot_Gcj);
+#endif
+            if(L2_norm_of_residual < eps_rel*L2_norm_of_rt){BiCGStabConverged=true;break;} // terminate the inner n-loop
+            // convergence chech done.
+
+            if(omega             == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega == 0.0\n");}break;} // ??? breakdown (omega==0)
+            if(omega_numerator   == 0.0){BiCGStabFailed=true;if(domain->rank==0){std::printf("omega_numerator   == 0.0\n");}break;} // ??? breakdown (omega==0)
+            delta_next = __dot(g,cj,4*SSS+1);                                // (g,cj)
+            beta = (delta_next/delta)*(alpha/omega);                                                   // (delta_next/delta)*(alpha/omega)
+            __axpy(   aj,1.0,cj,        beta,   aj,4*SSS+1);                                // aj[] = cj[] + beta*aj[]
+            __axpy(   aj,1.0,aj, -omega*beta, Tpaj,4*SSS+1);                                // aj[] = cj[] + beta*aj[] - omega*beta*T'aj
+            delta = delta_next;                                                                        // delta = delta_next
+
+#ifdef __VERBOSE // print aj[], cj[], and ej[]
+            if(domain->rank==0){
+                std::printf("aj[] =           cj[] =           ej[] =           \n");
+                for(i=0;i<4*SSS+1;i++){std::printf("| %21.15e |   | %21.15e |   | %21.15e |   \n",aj[i],cj[i],ej[i]);}
+                std::printf("\n");
+            }
+#endif
+        }                                                                                            // inner n (j) loop
+
+        // update iterates...
+        for(i=0;i<4*SSS+1;i++){add_grids(domain,level,e_id,1.0,e_id,ej[i],PRrt[i]);}      // e_id[] = [P,R]ej + e_id[]
+        add_grids(domain,level, __p,0.0, __p,aj[0],PRrt[0]);       //    p[] = [P,R]aj
+        for(i=1;i<4*SSS+1;i++){add_grids(domain,level, __p,1.0, __p,aj[i],PRrt[i]);}      //          ...
+        add_grids(domain,level, __r,0.0, __r,cj[0],PRrt[0]);       //    r[] = [P,R]cj
+        for(i=1;i<4*SSS+1;i++){add_grids(domain,level, __r,1.0, __r,cj[i],PRrt[i]);}      //          ...
+        ;                                                 //   m+=SSS;
+        domain->BiCGStab_iterations+=SSS;                                                 //   BiCGStab_iterations is a multiple of s
+
+        // Superfluous if you are calculating (cj,Gcj) and expensive as it adds another AllReduce- - - - - - - - - - - - - - - - - -
+        //exchange_boundary(domain,level,e_id,1,0,0);                                                  // calculate the norm of the true residual...
+        //residual(domain,level,__temp,e_id,R_id,a,b,hLevel);                                          // true residual
+        //double norm_of_residual = norm(domain,level,__temp);                                         // norm of true residual
+        //#ifdef __VERBOSE
+        //if(domain->rank==0)std::printf("m=%8d, norm=%0.20f\n",m,norm_of_residual);
+        //#endif
+        //if(norm_of_residual < eps_rel*norm_of_rt){BiCGStabConverged=true;break;}      // convergence ?
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#endif /* 0 */
+    }
 
     return 0;
 }
