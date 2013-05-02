@@ -377,8 +377,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                             Real            eps_abs,
                             LinOp::BC_Mode  bc_mode)
 {
-    BoxLib::Abort("CGSolver::solve_cabicgstab: not fully implemented");
-
     BL_ASSERT(sol.nComp() == 1);
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
     BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
@@ -426,7 +424,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     for (int i = 2*SSS+1; i < 4*SSS-1; i++)
         Tpp[i+2][i] = 1;
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if (verbose > 1 && ParallelDescriptor::IOProcessor())
     {
         std::printf("T' = \n");
         for (int i = 0;i < 4*SSS+1; i++)
@@ -457,32 +455,24 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     MultiFab::Copy(rt,r,0,0,1,0);
     MultiFab::Copy( p,r,0,0,1,0);
 
-    const double norm_of_rt = norm_inf(r);
-
-    const LinOp::BC_Mode temp_bc_mode = LinOp::Homogeneous_BC;
+    const double         norm_of_rt        = norm_inf(r);
+    const int            mMax              = maxiter/SSS + ((maxiter%SSS > 0) ? 1 : 0);
+    bool                 BiCGStabFailed    = false;
+    bool                 BiCGStabConverged = false;
+    double               delta             = dotxy(r,rt);
+    const double         L2_norm_of_rt     = sqrt(delta);
+    const LinOp::BC_Mode temp_bc_mode      = LinOp::Homogeneous_BC;
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
         std::printf("norm=%0.20f\n",norm_of_rt);
     }
 
-    bool BiCGStabConverged = false;
-
-    if (norm_of_rt == 0.0)
+    if (norm_of_rt == 0 || delta == 0)
         //
         // Entered BiCGStab with exact solution.
         //
         BiCGStabConverged = true;
-
-    double delta = dotxy(r,rt);
-
-    if (delta == 0)
-        //
-        // Entered BiCGStab with exact solution (square of L2 norm of r).
-        //
-        BiCGStabConverged = true;
-
-    const double L2_norm_of_rt = sqrt(delta);
     //
     // Contains the matrix powers of p[] and r[].
     //
@@ -491,9 +481,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     //
     MultiFab PR(sol.boxArray(), 4*SSS+1, nghost);
 
-    const int mMax = maxiter / SSS;
-
-    bool BiCGStabFailed = false;
+    int iterations = 0;
 
     for (int m = 0; m < mMax && !BiCGStabFailed && !BiCGStabConverged; m += SSS)
     {
@@ -533,7 +521,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             g[i] = Gg[k++];
         }
 
-        if (verbose > 0 && ParallelDescriptor::IOProcessor())
+        if (verbose > 1 && ParallelDescriptor::IOProcessor())
         {
             std::printf("G[][] = \n");
             for(int i = 0; i < 4*SSS+1; i++)
@@ -552,7 +540,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         cj[2*SSS+1] = 1;
         for (int i = 0; i < 4*SSS+1; i++) ej[i] = 0;
 
-        if (verbose > 0 && ParallelDescriptor::IOProcessor())
+        if (verbose > 1 && ParallelDescriptor::IOProcessor())
         {
             std::printf("aj[] =           cj[] =           ej[] =           \n");
             for (int i = 0; i < 4*SSS+1; i++) std::printf(" %21.15e ,   %21.15e ,   %21.15e ;   \n",aj[i],cj[i],ej[i]);
@@ -624,7 +612,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             if (cj_dot_Gcj > 0)
                 L2_norm_of_residual = sqrt(cj_dot_Gcj);
 
-            if (verbose > 0 && ParallelDescriptor::IOProcessor())
+            if (verbose > 1 && ParallelDescriptor::IOProcessor())
             {
                 std::printf("cj[] =           Gcj[] =\n");
                 for (int i = 0; i < 4*SSS+1; i++) std::printf("| %21.15e |   | %21.15e |\n",cj[i],temp1[i]);
@@ -643,7 +631,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                 if (ParallelDescriptor::IOProcessor())
                 {
                     if (omega           == 0) std::printf("omega == 0\n");
-                    if (omega_numerator == 0) std::printf("omega_numerator   == 0.0\n");
+                    if (omega_numerator == 0) std::printf("omega_numerator   == 0\n");
                 }
                 break;
             }
@@ -656,7 +644,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             delta = delta_next;
 
-            if (verbose > 0 && ParallelDescriptor::IOProcessor())
+            if (verbose > 1 && ParallelDescriptor::IOProcessor())
             {
                 std::printf("aj[] =           cj[] =           ej[] =           \n");
                 for (int i = 0; i < 4*SSS+1; i++) std::printf("| %21.15e |   | %21.15e |   | %21.15e |   \n",aj[i],cj[i],ej[i]);
@@ -678,6 +666,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         r.mult(cj[0],0,1);
         for (int i = 1; i < 4*SSS+1; i++)
             sxay(r,r,cj[i],PR,i);
+
+        iterations += SSS;
 
 #if 0
         // Superfluous if you are calculating (cj,Gcj) and expensive as it adds another AllReduce- - - - - - - - - - - - - - - - - -
