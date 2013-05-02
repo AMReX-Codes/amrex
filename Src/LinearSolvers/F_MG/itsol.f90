@@ -52,7 +52,7 @@ contains
       nz = size(a,dim=4)
       ny = size(a,dim=3)
       nx = size(a,dim=2)
-      !$OMP PARALLEL DO PRIVATE(j,i,k)
+      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.7)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
@@ -105,7 +105,7 @@ contains
       nz = size(a,dim=4)
       ny = size(a,dim=3)
       nx = size(a,dim=2)
-      !$OMP PARALLEL DO PRIVATE(j,i,k)
+      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.7)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
@@ -177,7 +177,7 @@ contains
 
       nc = size(a,dim=1)-1
 
-      !$OMP PARALLEL DO PRIVATE(j,i,k,denom)
+      !$OMP PARALLEL DO PRIVATE(j,i,k,denom) IF((hi(3)-lo(3)).ge.7)
       ! Protect against divide by zero -- necessary for embedded boundary problems.
       do k = lo(3),hi(3)
          do j = lo(2),hi(2)
@@ -255,7 +255,7 @@ contains
 
       nc = size(a,dim=1)-1
 
-      !$OMP PARALLEL DO PRIVATE(j,i,k,denom)
+      !$OMP PARALLEL DO PRIVATE(j,i,k,denom) IF((hi(3)-lo(3)).ge.6)
       do k = lo(3),hi(3)+1
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
@@ -403,7 +403,7 @@ contains
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: rh
     type(multifab), intent(in) :: aa
-    integer        , intent(in) :: stencil_type
+    integer        , intent(in) :: stencil_type, verbose
     logical        , intent(in) :: lcross
     real(kind=dp_t), intent(in) :: eps
 
@@ -413,30 +413,22 @@ contains
     type(multifab), intent(in), optional :: nodal_mask
 
     type(layout) :: la
-    integer, intent(in) :: verbose
-    type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh
+    type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh, rh_local, aa_local
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
     real(dp_t) :: rho_hg, rho_orig, volume, tres0, small, norm_rr, norm_uu
-    integer :: i
-    integer :: cnt, ng_for_res
-    logical :: nodal_solve
-    logical :: singular, nodal(get_dim(rh))
+    real(dp_t) :: tnorms(3),rtnorms(3)
+    integer :: i, cnt, ng_for_res
+    logical :: nodal_solve, singular, nodal(get_dim(rh)), diag_inited
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
     type(bl_prof_timer), save :: bpt
-
-    type(multifab) :: rh_local, aa_local
-
-    logical :: diag_inited
 
     call build(bpt, "its_BiCGStab_solve")
 
     if ( present(stat) ) stat = 0
 
-    singular = .false.
-    if ( present(singular_in) ) singular = singular_in
-
-    ng_for_res = 0; if ( nodal_q(rh) ) ng_for_res = 1
-    nodal_solve = .False.; if ( ng_for_res /= 0 ) nodal_solve = .TRUE.
+    singular    = .false.; if ( present(singular_in) ) singular    = singular_in
+    ng_for_res  = 0;       if ( nodal_q(rh)          ) ng_for_res  = 1
+    nodal_solve = .False.; if ( ng_for_res /= 0      ) nodal_solve = .TRUE.
 
     nodal = nodal_flags(rh)
 
@@ -461,7 +453,6 @@ contains
 
     ! Use these for local preconditioning
     call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
-
     call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
@@ -476,27 +467,26 @@ contains
     ! Make sure to do singular adjustment *before* diagonalization
     if (singular) then
       call setval(ss,ONE)
-      if (present(nodal_mask)) then
-            rho = dot(rh_local, ss, nodal_mask)
-         volume = dot(      ss, ss, nodal_mask)
+      if ( present(nodal_mask) ) then
+         tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
+         tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
       else
-            rho = dot(rh_local, ss)
-         volume = dot(       ss,ss)
+         tnorms(1) = dot(rh_local, ss, local = .true.)
+         tnorms(2) = dot(      ss, ss, local = .true.)
       end if
-      rho = rho / volume
-      if ( parallel_IOProcessor() .and. verbose > 0) &
-        print *,'...singular adjustment to rhs: ',rho
-
+      call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
+      rho    = rtnorms(1)
+      volume = rtnorms(2)
+      rho    = rho / volume
+      if ( parallel_IOProcessor() .and. verbose > 0) then
+         print *,'...singular adjustment to rhs: ',rho
+      endif
       call saxpy(rh_local,-rho,ss)
       call setval(ss,ZERO,all=.true.)
     end if
 
-    if (.true.) then
-       call diag_initialize(aa_local,rh_local,mm)
-       diag_inited = .true.
-    else
-       diag_inited = .false.
-    end if
+    call diag_initialize(aa_local,rh_local,mm)
+    diag_inited = .true.
 
     call copy(ph, uu, ng = nghost(ph))
     call copy(sh, uu, ng = nghost(sh))
@@ -512,11 +502,20 @@ contains
        rho = dot(rt, rr)
     end if
     rho_orig = rho
+    !
+    ! Elide some reductions by calculating local norms & then reducing all together.
+    !
+    tnorms(1) = norm_inf(rr, local=.true.)
+    tnorms(2) = norm_inf(rh_local, local=.true.)
+    tnorms(3) = stencil_norm(aa_local, local=.true.)
 
-    tres0 = norm_inf(rr)
-    Anorm = stencil_norm(aa_local)
+    call parallel_reduce(rtnorms, tnorms, MPI_MAX)
+
+    tres0 = rtnorms(1)
+    bnorm = rtnorms(2)
+    Anorm = rtnorms(3)
+
     small = epsilon(Anorm)
-    bnorm = norm_inf(rh_local)
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
        if (diag_inited) then
@@ -524,31 +523,31 @@ contains
        end if
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
     end if 
-    i = 0
+
     if ( itsol_converged(rr, uu, bnorm, eps) ) then
-      if ( verbose > 0 ) then
-         if ( tres0 < eps*bnorm ) then
-            if ( parallel_IOProcessor() ) then
-               write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-                    tres0,eps*bnorm
-            end if
-        else
-           norm_rr = norm_inf(rr)
-           if ( norm_rr < epsilon(Anorm)*Anorm ) then
-              if ( parallel_IOProcessor() ) then
-                 write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                      tres0,small*Anorm
-              end if
-           end if
-        end if
-     end if
-     go to 100
+       if ( verbose > 0 ) then
+          if ( tres0 < eps*bnorm ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+                     tres0,eps*bnorm
+             end if
+          else
+             norm_rr = norm_inf(rr)
+             if ( norm_rr < epsilon(Anorm)*Anorm ) then
+                if ( parallel_IOProcessor() ) then
+                   write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+                        tres0,small*Anorm
+                end if
+             end if
+          end if
+       end if
+       go to 100
     end if
 
     rho_1 = ZERO
 
     do i = 1, max_iter
-       if (present(nodal_mask)) then
+       if ( present(nodal_mask) ) then
           rho = dot(rt, rr, nodal_mask)
        else 
           rho = dot(rt, rr)
@@ -579,7 +578,7 @@ contains
        call itsol_precon(aa_local, ph, pp, mm, 0)
        call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
        cnt = cnt + 1
-       if (present(nodal_mask)) then
+       if ( present(nodal_mask) ) then
           den = dot(rt, vv, nodal_mask)
        else
           den = dot(rt, vv)
@@ -604,12 +603,23 @@ contains
        call itsol_precon(aa_local, sh, ss, mm,0)
        call itsol_stencil_apply(aa_local, tt, sh, mm, stencil_type, lcross, uniform_dh) 
        cnt = cnt + 1
-
-       if (present(nodal_mask)) then
-          den = dot(tt, tt, nodal_mask)
+       !
+       ! Elide a reduction here by calculating the two dot-products
+       ! locally and then reducing them both in a single call.
+       !
+       if ( present(nodal_mask) ) then
+          tnorms(1) = dot(tt, tt, nodal_mask, local = .true.)
+          tnorms(2) = dot(tt, ss, nodal_mask, local = .true.)
        else
-          den = dot(tt, tt)
+          tnorms(1) = dot(tt, tt, local = .true.)
+          tnorms(2) = dot(tt, ss, local = .true.)
        end if
+
+       call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
+
+       den   = rtnorms(1)
+       omega = rtnorms(2)
+
        if ( den == ZERO ) then
           if ( present(stat) ) then
              call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
@@ -618,11 +628,7 @@ contains
           endif
           call bl_error("BiCGStab: failure 3")
        end if
-       if (present(nodal_mask)) then
-          omega = dot(tt,ss,nodal_mask)/den
-       else
-          omega = dot(tt,ss)/den
-       end if
+       omega = omega/den
        call saxpy(uu, omega, sh)
        call saxpy(rr, ss, -omega, tt)
        rnorm = norm_inf(rr)
@@ -633,7 +639,7 @@ contains
        if ( .false. .and. nodal_solve ) then
           ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
           call itsol_precon(aa_local, sh, rr, mm, 0)
-          if (present(nodal_mask)) then
+          if ( present(nodal_mask) ) then
              rho_hg = dot(rr, sh, nodal_mask)
           else
              rho_hg = dot(rr, sh)
@@ -673,12 +679,12 @@ contains
        end if
     end if
 
-     if (rnorm > bnorm) then
-        call setval(uu,ZERO,all=.true.)
-        if ( present(stat) ) stat = 1
-        if ( verbose > 0 .and.  parallel_IOProcessor() ) &
-           print *,'   BiCGStab: solution reset to zero'
-     end if
+    if (rnorm > bnorm) then
+       call setval(uu,ZERO,all=.true.)
+       if ( present(stat) ) stat = 1
+       if ( verbose > 0 .and.  parallel_IOProcessor() ) &
+            print *,'   BiCGStab: solution reset to zero'
+    end if
 
     if ( i > max_iter ) then
        if ( present(stat) ) then
@@ -688,11 +694,10 @@ contains
        end if
     end if
 
-    call destroy(rh_local)
-    call destroy(aa_local)
-
 100 continue
 
+    call destroy(rh_local)
+    call destroy(aa_local)
     call destroy(rr)
     call destroy(rt)
     call destroy(pp)

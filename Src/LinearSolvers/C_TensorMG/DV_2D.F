@@ -88,8 +88,6 @@ c :::    to check the masks.
       REAL_T tranders(DIMV(tranders),2)
 
       integer i,j
-      REAL_T tauxxw,tauxxe,tauyyn,tauyys
-      REAL_T tauxye,tauxyw,tauxyn,tauxys
       REAL_T hx,hy
       REAL_T dudxe,dudxw
       REAL_T dvdyn,dvdys
@@ -570,8 +568,6 @@ c ... numbered i and a right flux numbered i+1
       REAL_T tranders(DIMV(tranders),2)
 
       integer i,j
-      REAL_T tauxxw,tauxxe,tauyyn,tauyys
-      REAL_T tauxye,tauxyw,tauxyn,tauxys
       REAL_T hx,hy
       REAL_T dudxe,dudxw
       REAL_T dvdyn,dvdys
@@ -1020,8 +1016,6 @@ c
       integer n
       logical is_dirichlet
       logical is_neumann
-      logical is_odd
-      REAL_T xb
 c
       integer lenx
       integer leny
@@ -1841,8 +1835,6 @@ c
 
       integer i,j,modx,mody
       integer istart,jstart
-      REAL_T tauxxw,tauxxe,tauyyn,tauyys
-      REAL_T tauxye,tauxyw,tauxyn,tauxys
       REAL_T hx,hy
       REAL_T dudxe,dudxw
       REAL_T dvdyn,dvdys

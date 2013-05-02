@@ -288,13 +288,6 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
-    ifeq ($(HOSTNAME), pleiades.ucsc.edu)
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib64
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DOMPI_SKIP_MPICXX
-      BL_MPI_LIBS += -lmpi_f77 -lmpi
-    endif
-
     ifeq ($(HOST),angilas)
       mpihome=/usr/local
       LIBRARY_LOCATIONS += $(mpihome)/lib
