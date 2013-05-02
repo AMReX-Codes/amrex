@@ -397,9 +397,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     double   Tpaj[4*SSS+1];
     double   Tpcj[4*SSS+1];
     double  Tppaj[4*SSS+1];
-    double      G[4*SSS+1][4*SSS+1];   // Extracted from first 4*SSS+1 columns of Gg[][].  indexed as [row][col]
-    double      g[4*SSS+1];            // Extracted from last [4*SSS+1] column of Gg[][].
-    double   Gg[(4*SSS+1)*(4*SSS+2)];  // Buffer to hold the Gram-like matrix produced by matmul().  indexed as [row*(4*SSS+2) + col]
+    double      G[4*SSS+1][4*SSS+1];    // Extracted from first 4*SSS+1 columns of Gg[][].  indexed as [row][col]
+    double      g[4*SSS+1];             // Extracted from last [4*SSS+1] column of Gg[][].
+    double     Gg[(4*SSS+1)*(4*SSS+2)]; // Buffer to hold the Gram-like matrix produced by matmul().  indexed as [row*(4*SSS+2) + col]
 
     __zero(   aj, 4*SSS+1);
     __zero(   cj, 4*SSS+1);
@@ -415,23 +415,16 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     // This is the monomial basis stuff.
     //
     for (int i = 0; i < 4*SSS+1; i++)
-        for (int j = 0; j < 4*SSS+1; j++)
-            Tp[i][j] = 0;
-    for (int i = 0; i < 2*SSS; i++)
-        Tp[i+1][i] = 1;
-    for (int i = 2*SSS+1; i < 4*SSS; i++)
-        Tp[i+1][i] = 1;
+        for (int j = 0; j < 4*SSS+1; j++) Tp[i][j]   = 0;
+    for (int i = 0;       i < 2*SSS; i++) Tp[i+1][i] = 1;
+    for (int i = 2*SSS+1; i < 4*SSS; i++) Tp[i+1][i] = 1;
 
     for (int i = 0; i < 4*SSS+1; i++)
-        for (int j = 0; j < 4*SSS+1; j++)
-            Tpp[i][j] = 0;
-    for (int i = 0; i < 2*SSS-1; i++)
-        Tpp[i+2][i] = 1;
-    for (int i = 2*SSS+1; i < 4*SSS-1; i++)
-        Tpp[i+2][i] = 1;
+        for (int j = 0; j < 4*SSS+1; j++)   Tpp[i][j]   = 0;
+    for (int i = 0;       i < 2*SSS-1; i++) Tpp[i+2][i] = 1;
+    for (int i = 2*SSS+1; i < 4*SSS-1; i++) Tpp[i+2][i] = 1;
 
-    const int ncomp  = 1;
-    const int nghost = 1;
+    const int ncomp  = 1, nghost = 1;
 
     MultiFab  p(sol.boxArray(), ncomp, nghost);
     MultiFab  r(sol.boxArray(), ncomp, nghost);
@@ -675,7 +668,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
                           Real            eps_abs,
                           LinOp::BC_Mode  bc_mode)
 {
-    BL_PROFILE("CGSolver::solve_cabicgstab()");
+    BL_PROFILE("CGSolver::solve_bicgstab()");
 
     const int nghost = 1;
     const int ncomp  = 1;
