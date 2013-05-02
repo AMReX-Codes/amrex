@@ -740,6 +740,31 @@ BoxLib::Random ()
     return the_generator.d_value();
 }
 
+double
+BoxLib::Random1 ()
+{
+    return the_generator.d1_value();
+}
+
+double
+BoxLib::Random2 ()
+{
+    return the_generator.d2_value();
+}
+
+unsigned long
+BoxLib::Random_int(unsigned long n)
+{
+  const unsigned long umax = 4294967295UL; // 2^32-1
+  BL_ASSERT( n > 0 && n <= umax ); 
+  unsigned long scale = umax/n;
+  unsigned long r;
+  do {
+    r = the_generator.u_value() / scale;
+  } while (r >= n);
+  return r;
+}
+
 void
 BoxLib::SaveRandomState (Array<unsigned long>& state)
 {

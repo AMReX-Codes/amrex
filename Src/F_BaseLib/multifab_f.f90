@@ -3932,11 +3932,12 @@ contains
     call parallel_reduce(r,r1,MPI_SUM)
   end function multifab_dot_c
 
-  function multifab_dot(mf, mf1, nodal_mask) result(r)
+  function multifab_dot(mf, mf1, nodal_mask, local) result(r)
     real(dp_t) :: r
     type(multifab), intent(in) :: mf
     type(multifab), intent(in) :: mf1
     type(multifab), intent(in), optional :: nodal_mask
+    logical, intent(in), optional :: local
 
     type(multifab)      :: mask
     real(dp_t), pointer :: mp(:,:,:,:)
@@ -3944,6 +3945,9 @@ contains
     real(dp_t), pointer :: ma(:,:,:,:)
     real(dp_t)          :: r1
     integer             :: i
+    logical             :: lall, llocal
+
+    llocal = .false.; if ( present(local) ) llocal = local
 
     r1 = 0.0_dp_t
     if ( cell_centered_q(mf) ) then
@@ -3974,7 +3978,10 @@ contains
     else
        call bl_error("MULTIFAB_DOT fails when not nodal or cell centered, can be fixed")
     end if
-    call parallel_reduce(r,r1,MPI_SUM)
+
+    r = r1
+    
+    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_SUM)
 
   end function multifab_dot
 
@@ -4076,22 +4083,25 @@ contains
     real(dp_t), pointer           :: bp(:,:,:,:)
     real(dp_t), pointer           :: cp(:,:,:,:)
 
-    integer :: ii, i, j, k, n
+    integer :: ii, i, j, k, n, lo(4), hi(4)
 
     do ii = 1, nlocal(a%la)
 
        ap => dataptr(a, ii, get_ibox(a,ii))
        bp => dataptr(b, ii, get_ibox(b,ii))
        cp => dataptr(c, ii, get_ibox(c,ii))
+
+       lo = lbound(ap)
+       hi = ubound(ap)
        
        ! ap = bp + c1*cp
 
-       !$OMP PARALLEL PRIVATE(i,j,k,n)
-       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+       do n = lo(4), hi(4)
           !$OMP DO
-          do k = lbound(ap,dim=3), ubound(ap,dim=3)
-             do j = lbound(ap,dim=2), ubound(ap,dim=2)
-                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
                    ap(i,j,k,n) = bp(i,j,k,n) + c1 * cp(i,j,k,n)
                 end do
              end do
@@ -4107,16 +4117,19 @@ contains
     real(dp_t),     intent(in   ) :: b1
     real(dp_t), pointer           :: ap(:,:,:,:)
     real(dp_t), pointer           :: bp(:,:,:,:)
-    integer :: i, j, k, n
+    integer                       :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap + b1*bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) + b1 * bp(i,j,k,n)
              end do
           end do
@@ -4321,7 +4334,6 @@ contains
     real(dp_t) :: r1
     logical :: lall
     integer :: lnc
-
     lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
@@ -4368,19 +4380,22 @@ contains
     logical, pointer, optional :: lp(:,:,:,:)
     real(dp_t)                 :: r,r1
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! maxval(abs(mp))
 
     r1 = 0.0_dp_t
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1) IF((hi(3)-lo(3)).ge.7)
     if ( present(lp) ) then
-       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       do n = lo(4), hi(4)
           !$OMP DO
-          do k = lbound(ap,dim=3), ubound(ap,dim=3)
-             do j = lbound(ap,dim=2), ubound(ap,dim=2)
-                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
                    if (lp(i,j,k,n)) r1 = max(r1,abs(ap(i,j,k,n)))
                 end do
              end do
@@ -4388,11 +4403,11 @@ contains
           !$OMP END DO NOWAIT
        end do
     else
-       do n = lbound(ap,dim=4), ubound(ap,dim=4)
+       do n = lo(4), hi(4)
           !$OMP DO
-          do k = lbound(ap,dim=3), ubound(ap,dim=3)
-             do j = lbound(ap,dim=2), ubound(ap,dim=2)
-                do i = lbound(ap,dim=1), ubound(ap,dim=1)
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
                    r1 = max(r1,abs(ap(i,j,k,n)))
                 end do
              end do
@@ -4406,9 +4421,9 @@ contains
 
   end function multifab_norm_inf_doit
 
-  function multifab_norm_inf_c(mf, comp, nc, mask, all) result(r)
+  function multifab_norm_inf_c(mf, comp, nc, mask, all, local) result(r)
     real(dp_t) :: r
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, local
     integer, intent(in) :: comp
     integer, intent(in), optional :: nc
     type(lmultifab), intent(in), optional :: mask
@@ -4417,9 +4432,10 @@ contains
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i, n
     real(dp_t) :: r1
-    logical :: lall
+    logical :: lall, llocal
 
-    lall = .false.; if ( present(all) ) lall = all
+    lall   = .false.; if ( present(all)   ) lall   = all
+    llocal = .false.; if ( present(local) ) llocal = local
 
     r1 = 0.0_dp_t
 
@@ -4450,15 +4466,18 @@ contains
        end do
     end if
 
-    call parallel_reduce(r, r1, MPI_MAX)
+    r = r1
+
+    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_MAX)
+
   end function multifab_norm_inf_c
 
-  function multifab_norm_inf(mf, mask, all) result(r)
+  function multifab_norm_inf(mf, mask, all, local) result(r)
     real(dp_t)                            :: r
-    logical, intent(in), optional         :: all
+    logical, intent(in), optional         :: all, local
     type(lmultifab), intent(in), optional :: mask
     type(multifab), intent(in)            :: mf
-    r = multifab_norm_inf_c(mf, 1, mf%nc, mask, all)
+    r = multifab_norm_inf_c(mf, 1, mf%nc, mask, all, local)
   end function multifab_norm_inf
 
   function imultifab_norm_inf_c(mf, comp, nc, all) result(r)
@@ -4546,16 +4565,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap/bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) / bp(i,j,k,n)
              end do
           end do
@@ -4571,16 +4593,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap/b
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) / b
              end do
           end do
@@ -4721,16 +4746,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap*bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) * bp(i,j,k,n)
              end do
           end do
@@ -4746,16 +4774,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap*b
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) * b
              end do
           end do
@@ -4875,16 +4906,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap - bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) - bp(i,j,k,n)
              end do
           end do
@@ -4900,16 +4934,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap - b
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) - b
              end do
           end do
@@ -5007,16 +5044,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap + bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) + bp(i,j,k,n)
              end do
           end do
@@ -5032,16 +5072,19 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: b
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! ap = ap + b
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 ap(i,j,k,n) = ap(i,j,k,n) + b
              end do
           end do

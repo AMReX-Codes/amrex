@@ -128,9 +128,7 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       REAL_T tranderb(DIMV(tranderb),3,3)
 
       integer i,j,k
-      REAL_T tauxxw,tauxxe,tauyyn,tauyys
-      REAL_T tauxye,tauxyw,tauxyn,tauxys
-      REAL_T hx,hy,hz,invhx,invhy,invhz
+      REAL_T hx,hy,hz,invhx,invhy,invhz,ihxsq,ihysq,ihzsq,ihxyz
       REAL_T dudxe,dudxw
       REAL_T dvdyn,dvdys
       REAL_T dudye,dudyw
@@ -150,7 +148,6 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       integer istart,jstart,kstart
       REAL_T diagu,diagv,diagw
       REAL_T operu,operv,operw
-      
 
       logical False, True
       parameter( False=.false.)
@@ -164,6 +161,11 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       invhy = 1.0d0/hy
       invhz = 1.0d0/hz
 
+      ihxsq = 1.0d0/hx**2
+      ihysq = 1.0d0/hy**2
+      ihzsq = 1.0d0/hz**2
+
+      ihxyz = 1.0d0/(hx*hy*hz)
 
       if( ncomp .ne. 3 ) then
 	write(6,*)'FORT_GSRB: bad ncomp',ncomp
@@ -288,35 +290,35 @@ c     ::: get expressions for tangential derivatives
      &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: in interior, diagonal elements need no corrections
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -417,40 +419,40 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -552,40 +554,40 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -686,40 +688,40 @@ c     ::: get expressions for tangential derivatives
      &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -821,40 +823,40 @@ c     ::: get expressions for tangential derivatives
      &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -956,40 +958,40 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1093,40 +1095,40 @@ c     ::: get expressions for tangential derivatives
      &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1241,44 +1243,44 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,1)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,1)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
       endif
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1387,45 +1389,45 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1535,45 +1537,45 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1683,45 +1685,45 @@ c     ::: get expressions for tangential derivatives
       endif
         
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1831,45 +1833,45 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
         
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1979,45 +1981,45 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2127,45 +2129,45 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2275,45 +2277,45 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2423,45 +2425,45 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2571,45 +2573,45 @@ c     ::: get expressions for tangential derivatives
      &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2719,45 +2721,45 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
         
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2867,45 +2869,45 @@ c     ::: get expressions for tangential derivatives
      &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fw(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fw(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fw(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fw(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fw(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3009,50 +3011,50 @@ c     ::: get expressions for tangential derivatives
 
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3154,50 +3156,50 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3300,50 +3302,50 @@ c     ::: get expressions for tangential derivatives
 
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3444,50 +3446,50 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3590,50 +3592,50 @@ c     ::: get expressions for tangential derivatives
 
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3735,50 +3737,50 @@ c     ::: get expressions for tangential derivatives
         dvdzn=trandern(i,1+j,k,2,3)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3881,50 +3883,50 @@ c     ::: get expressions for tangential derivatives
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -4027,50 +4029,50 @@ c     ::: get expressions for tangential derivatives
 
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)

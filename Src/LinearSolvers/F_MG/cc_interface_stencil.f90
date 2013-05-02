@@ -368,7 +368,6 @@ contains
     real(kind=dp_t), intent(in) :: efactor
 
     integer :: i, j, k
-    real (kind = dp_t) :: crse_flux
 
     !   Hi i side
     if ( dim == 1 ) then
@@ -376,8 +375,7 @@ contains
           i = lo(1)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
-                crse_flux = ss(2,i,j,k)*(cc(i,j,k)-cc(i-1,j,k))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
+                res(i,j,k) = res(i,j,k) - efactor*(ss(2,i,j,k)*(cc(i,j,k)-cc(i-1,j,k)))
              end do
           end do
           !   Lo i side
@@ -385,8 +383,7 @@ contains
           i = lo(1)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
-                crse_flux = ss(1,i,j,k)*(cc(i,j,k)-cc(i+1,j,k))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
+                res(i,j,k) = res(i,j,k) - efactor*(ss(1,i,j,k)*(cc(i,j,k)-cc(i+1,j,k)))
              end do
           end do
        end if
@@ -396,8 +393,7 @@ contains
           j = lo(2)
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
-                crse_flux = ss(4,i,j,k)*(cc(i,j,k)-cc(i,j-1,k))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
+                res(i,j,k) = res(i,j,k) - efactor*(ss(4,i,j,k)*(cc(i,j,k)-cc(i,j-1,k)))
              end do
           end do
           !   Lo j side
@@ -405,8 +401,7 @@ contains
           j = lo(2)
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
-                crse_flux = ss(3,i,j,k)*(cc(i,j,k)-cc(i,j+1,k))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
+                res(i,j,k) = res(i,j,k) - efactor*(ss(3,i,j,k)*(cc(i,j,k)-cc(i,j+1,k)))
              end do
           end do
        end if
@@ -416,8 +411,7 @@ contains
           k = lo(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                crse_flux = ss(6,i,j,k)*(cc(i,j,k)-cc(i,j,k-1))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
+                res(i,j,k) = res(i,j,k) - efactor*(ss(6,i,j,k)*(cc(i,j,k)-cc(i,j,k-1)))
              end do
           end do
           !   Lo k side
@@ -425,8 +419,7 @@ contains
           k = lo(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                crse_flux = ss(5,i,j,k)*(cc(i,j,k)-cc(i,j,k+1))
-                res(i,j,k) = res(i,j,k) - efactor*crse_flux
+                res(i,j,k) = res(i,j,k) - efactor*(ss(5,i,j,k)*(cc(i,j,k)-cc(i,j,k+1)))
              end do
           end do
        end if

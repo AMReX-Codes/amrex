@@ -274,11 +274,9 @@ MultiGrid::residualCorrectionForm (MultiFab&       resL,
     // Using the linearity of the operator, Lp, we can solve this system
     // instead by solving for the correction required to the initial guess.
     //
-
     initialsolution->copy(inisol);
     solnL.copy(inisol);
     Lp.residual(resL, rhsL, solnL, level, bc_mode);
-    solnL.setVal(0.0);
 }
 
 void
@@ -342,7 +340,6 @@ MultiGrid::solve_ (MultiFab&      _sol,
   //
   Real       norm_cor    = 0.0;
   int        nit         = 1;
-
   const Real new_error_0 = norm_rhs;
   const Real norm_Lp     = Lp.norm(0, level);
 

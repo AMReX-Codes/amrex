@@ -113,9 +113,7 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       REAL_T tranderb(DIMV(tranderb),3,3)
 
       integer i,j,k
-      REAL_T tauxxw,tauxxe,tauyyn,tauyys
-      REAL_T tauxye,tauxyw,tauxyn,tauxys
-      REAL_T hx,hy,hz
+      REAL_T hx,hy,hz,ihx,ihy,ihz
       REAL_T dudxe,dudxw
       REAL_T dvdyn,dvdys
       REAL_T dudye,dudyw
@@ -140,6 +138,10 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       hy = h(2)
       hz = h(3)
 
+      ihx = 1.0d0/hx
+      ihy = 1.0d0/hy
+      ihz = 1.0d0/hz
+
 c ::: cases:
 c     ::: 0) interior.  All usual derivative expressions
 c     ::: 1-6) face but not on edge.  
@@ -155,37 +157,37 @@ c ::: Null
          do j=lo(2)+1,hi(2)
             do i=lo(1)+1,hi(1)
 c     :::  get expressions for normal derivatives
-              dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+              dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-              dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+              dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-              dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+              dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-              dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+              dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-              dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+              dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-              dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+              dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-              dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+              dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-              dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+              dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-              dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+              dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
 
 c     :::  evaluate expression
               xflux(i,j,k,1)=-(2*dudxw*muX(i,j,k))
@@ -217,46 +219,46 @@ c ::: wst
          do j=lo(2)+1,hi(2)
             do i=lo(1)+1,hi(1)
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*ihz
 
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
         dwdxt=trandert(i,j,1+k,3,1)
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*ihz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*ihz))*.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
       endif
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*ihz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*ihz))*.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
       endif
 c     :::  evaluate expression
               xflux(i,j,k,1)=-(2*dudxw*muX(i,j,k))
@@ -287,46 +289,46 @@ c ::: wsb
             do i=lo(1)+1,hi(1)
 c     :::  get expressions for normal derivatives
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
         dwdxb=tranderb(i,j,-1+k,3,1)
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*ihz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*ihz))*.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
       endif
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*ihz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*ihz))*.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
       endif
 
 c     :::  evaluate expression
@@ -357,47 +359,47 @@ c ::: wsb
       do k=lo(3)+1,hi(3)
          do j=lo(2)+1,hi(2)
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dudyw=tranderw(-1+i,j,k,1,2)
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*ihx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*ihx))*.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
       endif
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*ihx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*ihx))*.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       endif
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
         dudzw=tranderw(-1+i,j,k,1,3)
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
 
 c     :::  evaluate expression
               xflux(i,j,k,1)=-(2*dudxw*muX(i,j,k))
@@ -427,47 +429,47 @@ c ::: esb
       do k=lo(3)+1,hi(3)
          do j=lo(2)+1,hi(2)
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dudye=trandere(1+i,j,k,1,2)
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*ihx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*ihx))*.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
       endif
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*ihx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*ihx))*.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       endif
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
         dudze=trandere(1+i,j,k,1,3)
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
 
 c     :::  evaluate expression
               xflux(i+1,j,k,1)=-(2*dudxe*muX(1+i,j,k))
@@ -497,46 +499,46 @@ c ::: wnb
       do k=lo(3)+1,hi(3)
             do i=lo(1)+1,hi(1)
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*ihy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*ihy))*.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
       endif
         dvdxn=trandern(i,1+j,k,2,1)
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*ihy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*ihy))*.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
       endif
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
         dvdzn=trandern(i,1+j,k,2,3)
 
 c     :::  evaluate expression
@@ -566,46 +568,46 @@ c ::: wsb
       do k=lo(3)+1,hi(3)
             do i=lo(1)+1,hi(1)
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*ihy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*ihy))*.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
       endif
         dvdxs=tranders(i,-1+j,k,2,1)
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*ihy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*ihy))*.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
       endif
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
         dvdzs=tranders(i,-1+j,k,2,3)
 
 c     :::  evaluate expression
@@ -635,43 +637,43 @@ c ::: tnw
 !$omp&private(dwdxw,dwdyn,dudyw,dvdxn,dwdxt,dwdyt,dudzw,dvdzn)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*ihy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*ihz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*ihz
 
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*ihy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*ihy))*.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
       endif
         dvdxn=trandern(i,1+j,k,2,1)
         dwdxt=trandert(i,j,1+k,3,1)
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*ihz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*ihz))*.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
@@ -700,43 +702,43 @@ c ::: tsw
 !$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxt,dwdyt,dudzw,dvdzs)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*ihz
 
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*ihy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*ihy))*.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
       endif
         dvdxs=tranders(i,-1+j,k,2,1)
         dwdxt=trandert(i,j,1+k,3,1)
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*ihz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*ihz))*.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
       endif
         dvdzs=tranders(i,-1+j,k,2,3)
         
@@ -765,44 +767,44 @@ c ::: tsw
 !$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxt,dwdyt,dudzw,dvdzs)
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*ihz
 
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dudyw=tranderw(-1+i,j,k,1,2)
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*ihx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*ihx))*.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
         dwdyt=trandert(i,j,1+k,3,2)
         dudzw=tranderw(-1+i,j,k,1,3)
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*ihz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*ihz))*.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
       endif
 
 c     :::  evaluate expression
@@ -831,44 +833,44 @@ c ::: tes
 !$omp&private(dwdxe,dwdys,dudye,dvdxs,dwdxt,dwdyt,dudze,dvdzs)
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*ihx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*ihz
 
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*ihz
 
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dudye=trandere(1+i,j,k,1,2)
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*ihx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*ihx))*.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
         dwdyt=trandert(i,j,1+k,3,2)
         dudze=trandere(1+i,j,k,1,3)
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*ihz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*ihz))*.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
       endif
 
 c     :::  evaluate expression
@@ -897,43 +899,43 @@ c ::: bnw
 !$omp&private(dwdxw,dwdyn,dudyw,dvdxn,dwdxb,dwdyb,dudzw,dvdzn)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*ihy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*ihy))*.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
       endif
         dvdxn=trandern(i,1+j,k,2,1)
         dwdxb=tranderb(i,j,-1+k,3,1)
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*ihz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*ihz))*.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
@@ -962,43 +964,43 @@ c ::: bsw
 !$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxb,dwdyb,dudzw,dvdzs)
             do i=lo(1)+1,hi(1)-1
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*ihy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*ihy))*.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
       endif
         dvdxs=tranders(i,-1+j,k,2,1)
         dwdxb=tranderb(i,j,-1+k,3,1)
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*ihz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*ihz))*.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
       endif
         dvdzs=tranders(i,-1+j,k,2,3)
 
@@ -1027,44 +1029,44 @@ c ::: bws
 !$omp&private(dwdxw,dwdys,dudyw,dvdxs,dwdxb,dwdyb,dudzw,dvdzs)
       do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dudyw=tranderw(-1+i,j,k,1,2)
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*ihx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*ihx))*.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
       endif
         dwdxb=tranderb(i,j,-1+k,3,1)
         dwdyb=tranderb(i,j,-1+k,3,2)
         dudzw=tranderw(-1+i,j,k,1,3)
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*ihz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*ihz))*.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
       endif
 
 c     :::  evaluate expression
@@ -1092,32 +1094,32 @@ c ::: bse
 !$omp&private(dwdxe,dwdys,dvdxs,dwdxb,dudye,dwdyb,dudze,dvdzs)
          do j=lo(2)+1,hi(2)-1
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*ihx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*ihx))*.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
       endif
         dwdxb=tranderb(i,j,-1+k,3,1)
         dudye=trandere(1+i,j,k,1,2)
@@ -1125,11 +1127,11 @@ c     ::: get expressions for tangential derivatives
         dudze=trandere(1+i,j,k,1,3)
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*ihz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*ihz))*.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
       endif
         
 c     :::  evaluate expression
@@ -1157,42 +1159,42 @@ c ::: neb
 !$omp&private(dwdxe,dwdyn,dvdxn,dwdxb,dudye,dwdyb,dudze,dvdzn)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*ihx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*ihy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*ihx
 
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*ihx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*ihx))*.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       endif
         dudye=trandere(1+i,j,k,1,2)
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*ihy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*ihy))*.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
       endif
         dudze=trandere(1+i,j,k,1,3)
         dvdzn=trandern(i,1+j,k,2,3)
@@ -1221,42 +1223,42 @@ c ::: esb
 !$omp&private(dwdxe,dwdys,dvdxs,dwdxb,dudye,dwdyb,dudze,dvdzs)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxs=tranders(i,-1+j,k,2,1)
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*ihx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*ihx))*.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       endif
         dudye=trandere(1+i,j,k,1,2)
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*ihy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*ihy))*.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
       endif
         dudze=trandere(1+i,j,k,1,3)
         dvdzs=tranders(i,-1+j,k,2,3)
@@ -1286,42 +1288,42 @@ c ::: nwb
 !$omp&private(dwdxw,dwdyn,dvdxn,dwdxb,dudyw,dwdyb,dudzw,dvdzn)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*ihx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*ihx))*.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       endif
         dudyw=tranderw(-1+i,j,k,1,2)
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*ihy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*ihy))*.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
       endif
         dudzw=tranderw(-1+i,j,k,1,3)
         dvdzn=trandern(i,1+j,k,2,3)
@@ -1351,42 +1353,42 @@ c ::: swb
 !$omp&private(dwdxw,dwdys,dvdxs,dwdxb,dudyw,dwdyb,dudzw,dvdzs)
       do k=lo(3)+1,hi(3)-1
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxs=tranders(i,-1+j,k,2,1)
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*ihx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*ihx))*.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       endif
         dudyw=tranderw(-1+i,j,k,1,2)
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*ihy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*ihy))*.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
       endif
         dudzw=tranderw(-1+i,j,k,1,3)
         dvdzs=tranders(i,-1+j,k,2,3)
@@ -1414,86 +1416,86 @@ c ::: tbnsew
       j=hi(2)
       i=hi(1)
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*ihx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*ihy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*ihz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*ihy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*ihx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*ihz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*ihx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*ihx))*.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
       endif
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*ihx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*ihx))*.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
         dudye=trandere(1+i,j,k,1,2)
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*ihy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*ihy))*.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
       endif
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*ihy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*ihy))*.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
       endif
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*ihz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*ihz))*.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
       endif
         dudze=trandere(1+i,j,k,1,3)
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*ihz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*ihz))*.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
@@ -1531,67 +1533,67 @@ c ::: tbnsw
            j=hi(2)
            k=hi(3)
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*ihy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*ihz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*ihy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*ihz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*ihx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*ihx))*.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
       endif
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*ihx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*ihx))*.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
         dudyw=tranderw(-1+i,j,k,1,2)
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*ihy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*ihy))*.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
       endif
         dwdyt=trandert(i,j,1+k,3,2)
         dudzw=tranderw(-1+i,j,k,1,3)
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*ihz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*ihz))*.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
@@ -1624,66 +1626,66 @@ c ::: tbsew
            j=lo(2)
            k=hi(3)
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*ihx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*ihz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*ihx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*ihz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxs=tranders(i,-1+j,k,2,1)
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*ihx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*ihx))*.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
         dudye=trandere(1+i,j,k,1,2)
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*ihy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*ihy))*.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
       endif
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*ihy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*ihy))*.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
       endif
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*ihz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*ihz))*.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
       endif
         dudze=trandere(1+i,j,k,1,3)
         dvdzs=tranders(i,-1+j,k,2,3)
@@ -1717,46 +1719,46 @@ c ::: tbsw
            j=lo(2)
            k=hi(3)
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*ihz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*ihz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxs=tranders(i,-1+j,k,2,1)
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*ihx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*ihx))*.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*ihx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
         dudyw=tranderw(-1+i,j,k,1,2)
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*ihy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*ihy))*.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*ihy)
       endif
         dwdyt=trandert(i,j,1+k,3,2)
         dudzw=tranderw(-1+i,j,k,1,3)
@@ -1786,67 +1788,67 @@ c ::: bnsew
            j=hi(2)
            k=lo(3)
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*ihx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*ihy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*ihy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*ihx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*ihx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*ihx))*.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
       endif
         dwdxb=tranderb(i,j,-1+k,3,1)
         dudye=trandere(1+i,j,k,1,2)
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*ihy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*ihy))*.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
       endif
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*ihz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*ihz))*.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
       endif
         dudze=trandere(1+i,j,k,1,3)
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*ihz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*ihz))*.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
@@ -1878,36 +1880,36 @@ c ::: bnsw
            j=hi(2)
            k=lo(3)
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*ihy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*ihy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*ihx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*ihx))*.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*ihx)
       endif
         dwdxb=tranderb(i,j,-1+k,3,1)
         dudyw=tranderw(-1+i,j,k,1,2)
@@ -1915,11 +1917,11 @@ c     ::: get expressions for tangential derivatives
         dudzw=tranderw(-1+i,j,k,1,3)
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*ihz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*ihz))*.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*ihz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
@@ -1948,26 +1950,26 @@ c ::: bsew
            j=lo(2)
            k=lo(3)
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*ihx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*ihx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxs=tranders(i,-1+j,k,2,1)
@@ -1975,20 +1977,20 @@ c     ::: get expressions for tangential derivatives
         dudye=trandere(1+i,j,k,1,2)
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*ihy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*ihy))*.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*ihy)
       endif
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*ihz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*ihz))*.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*ihz)
       endif
         dudze=trandere(1+i,j,k,1,3)
         dvdzs=tranders(i,-1+j,k,2,3)
@@ -2016,23 +2018,23 @@ c ::: Null
            j=lo(2)
            k=lo(3)
 c     :::  get expressions for normal derivatives
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*ihx
 
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*ihy
 
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*ihz
 
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*ihy
 
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*ihx
 
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*ihz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*ihz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*ihx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*ihy
 
 c     ::: get expressions for tangential derivatives
         dvdxs=tranders(i,-1+j,k,2,1)

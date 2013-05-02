@@ -180,7 +180,10 @@ namespace BoxLib
       same one used by BoxLib::Random()) to get a value in [0,1] and then
       sets "rn" to that value.
     */
-    double Random ();
+    double Random (); // [0,1]
+    double Random1 (); // [0,1)
+    double Random2 (); // (0,1)
+    unsigned long Random_int(unsigned long n); // [0,n-1], where n<=2^32-1
     /* Set the seed of the random number generator.
 
       There is also an entry point for Fortran callable as:
