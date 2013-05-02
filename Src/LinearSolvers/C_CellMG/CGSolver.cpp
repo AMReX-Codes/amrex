@@ -345,13 +345,18 @@ BuildGramMatrix (double* Gg, const MultiFab& PR, const MultiFab& rt)
     //
     // Gg is dimensioned (Ncols*Nrows).
     //
-    // TODO - take advantage of the symmetry in Gg.
+    // We take advantage of the symmetry in Gg.
     //
     for (int mm = 0; mm < Nrows; mm++)
     {
-        for (int nn = 0; nn < Nrows; nn++)
+        for (int nn = mm; nn < Nrows; nn++)
         {
             Gg[mm*Ncols + nn] = dotxy(PR, mm, PR, nn, true);
+        }
+
+        for (int nn = 0; nn < mm; nn++)
+        {
+            Gg[mm*Ncols + nn] = Gg[nn*Ncols + mm];
         }
 
         Gg[mm*Ncols + Nrows] = dotxy(PR, mm, rt, 0, true);
@@ -377,6 +382,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                             Real            eps_abs,
                             LinOp::BC_Mode  bc_mode)
 {
+    BL_PROFILE("CGSolver::solve_cabicgstab()");
+
     BL_ASSERT(sol.nComp() == 1);
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
     BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
@@ -693,10 +700,12 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
                           Real            eps_abs,
                           LinOp::BC_Mode  bc_mode)
 {
+    BL_PROFILE("CGSolver::solve_cabicgstab()");
+
     const int nghost = 1;
     const int ncomp  = 1;
 
-    BL_ASSERT(sol.nComp() == 1);
+    BL_ASSERT(sol.nComp() == ncomp);
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
     BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
 
@@ -727,7 +736,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
     sol.setVal(0.0);
 
-    const LinOp::BC_Mode temp_bc_mode=LinOp::Homogeneous_BC;
+    const LinOp::BC_Mode temp_bc_mode = LinOp::Homogeneous_BC;
     //
     // Calculate the local values of these norms & reduce their values together.
     //
