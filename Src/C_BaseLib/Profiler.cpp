@@ -791,6 +791,7 @@ void Profiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &req
                            const int completed, const Array<int> &indx,
 			   const Array<MPI_Status> &status, const bool beforecall)
 {
+#ifdef BL_USE_MPI
   if(OnExcludeList(cft)) {
     return;
   }
@@ -806,6 +807,7 @@ void Profiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &req
                            ParallelDescriptor::second()));
     }
   }
+#endif
 }
 
 
