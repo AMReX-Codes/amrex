@@ -167,29 +167,42 @@ void
 sxay (MultiFab&       ss,
       const MultiFab& xx,
       Real            a,
-      const MultiFab& yy)
+      const MultiFab& yy,
+      int             yycomp)
 {
-    const int ncomp = ss.nComp();
+    BL_ASSERT(yy.nComp() > yycomp);
+
+    const int ncomp  = 1;
+    const int sscomp = 0;
+    const int xxcomp = 0;
 
     for (MFIter mfi(ss); mfi.isValid(); ++mfi)
     {
-        const int k = mfi.index();
+        const Box&       ssbx  = mfi.validbox();
+        FArrayBox&       ssfab = ss[mfi];
+        const FArrayBox& xxfab = xx[mfi];
+        const FArrayBox& yyfab = yy[mfi];
 
-        const Box&       ssbx  = ss.box(k);
-        FArrayBox&       ssfab = ss[k];
-        const FArrayBox& xxfab = xx[k];
-        const FArrayBox& yyfab = yy[k];
-
-        FORT_CGSXAY(ssfab.dataPtr(),
+        FORT_CGSXAY(ssfab.dataPtr(sscomp),
                     ARLIM(ssfab.loVect()), ARLIM(ssfab.hiVect()),
-                    xxfab.dataPtr(),
+                    xxfab.dataPtr(xxcomp),
                     ARLIM(xxfab.loVect()), ARLIM(xxfab.hiVect()),
                     &a,
-                    yyfab.dataPtr(),
+                    yyfab.dataPtr(yycomp),
                     ARLIM(yyfab.loVect()), ARLIM(yyfab.hiVect()),
                     ssbx.loVect(), ssbx.hiVect(),
                     &ncomp);
     }
+}
+
+inline
+void
+sxay (MultiFab&       ss,
+      const MultiFab& xx,
+      Real            a,
+      const MultiFab& yy)
+{
+    sxay(ss,xx,a,yy,0);
 }
 
 //
@@ -235,7 +248,7 @@ dotxy (const MultiFab& r,
     return dot;
 }
 
-static
+inline
 Real
 dotxy (const MultiFab& r,
        const MultiFab& z,
@@ -253,7 +266,6 @@ const int SSS = 4;
 // z[m] = alpha*A[m][n]*x[n]+beta*y[m]   [row][col]
 //
 inline
-static
 void
 __gemv (double* z,
         double  alpha,
@@ -279,7 +291,6 @@ __gemv (double* z,
 // z[n] = alpha*x[n]+beta*y[n]
 //
 inline
-static
 void
 __axpy (double* z,
         double  alpha,
@@ -288,7 +299,7 @@ __axpy (double* z,
         double* y,
         int     n)
 {
-    for (int nn=0;nn<n;nn++)
+    for (int nn = 0; nn < n; nn++)
     {
         z[nn] = alpha*x[nn] + beta*y[nn];
     }
@@ -298,12 +309,11 @@ __axpy (double* z,
 // x[n].y[n]
 //
 inline
-static
 double
 __dot (double* x, double* y, int n)
 {
     double sum = 0.0;
-    for (int nn=0;nn<n;nn++)
+    for (int nn = 0; nn < n; nn++)
     {
         sum += x[nn]*y[nn];
     }
@@ -314,11 +324,10 @@ __dot (double* x, double* y, int n)
 // z[n] = 0.0
 //
 inline
-static
 void
 __zero (double* z, int n)
 {
-    for (int nn=0;nn<n;nn++)
+    for (int nn = 0; nn < n;nn++)
     {
         z[nn] = 0.0;
     }
@@ -654,17 +663,23 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                 std::printf("\n");
             }
         }
-
-#if 0
         //
         // Update iterates.
         //
-        for (i=0;i<4*SSS+1;i++){add_grids(domain,level,e_id,1.0,e_id,ej[i],PRrt[i]);}      // e_id[] = [P,R]ej + e_id[]
-        add_grids(domain,level, __p,0.0, __p,aj[0],PRrt[0]);       //    p[] = [P,R]aj
-        for (i=1;i<4*SSS+1;i++){add_grids(domain,level, __p,1.0, __p,aj[i],PRrt[i]);}      //          ...
-        add_grids(domain,level, __r,0.0, __r,cj[0],PRrt[0]);       //    r[] = [P,R]cj
-        for (i=1;i<4*SSS+1;i++){add_grids(domain,level, __r,1.0, __r,cj[i],PRrt[i]);}      //          ...
+        for (int i = 0; i < 4*SSS+1; i++)
+            sxay(sol,sol,ej[i],PR,i);
 
+        MultiFab::Copy(p,PR,0,0,1,0);
+        p.mult(aj[0],0,1);
+        for (int i = 1; i < 4*SSS+1; i++)
+            sxay(p,p,aj[i],PR,i);
+
+        MultiFab::Copy(r,PR,0,0,1,0);
+        r.mult(cj[0],0,1);
+        for (int i = 1; i < 4*SSS+1; i++)
+            sxay(r,r,cj[i],PR,i);
+
+#if 0
         // Superfluous if you are calculating (cj,Gcj) and expensive as it adds another AllReduce- - - - - - - - - - - - - - - - - -
         //exchange_boundary(domain,level,e_id,1,0,0);                                                  // calculate the norm of the true residual...
         //residual(domain,level,__temp,e_id,R_id,a,b,hLevel);                                          // true residual
