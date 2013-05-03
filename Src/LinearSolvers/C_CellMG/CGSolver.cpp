@@ -577,8 +577,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             // Do an early check of the residual to determine convergence.
             //
             __gemv(temp1, 1.0, G, cj, 0.0, temp1, 4*SSS+1, 4*SSS+1);
-
-#if 1
             //
             // sqrt( (cj,Gcj) ) == L2 norm of the intermediate residual in exact arithmetic.
             //
@@ -597,7 +595,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                 }
 
             }
-#endif
+
             const double delta_next = __dot(g, cj, 4*SSS+1);
             const double beta       = (delta_next/delta)*(alpha/omega);
 
@@ -626,13 +624,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                 sxay(r,r,cj[i],PR,i);
 
             niters += SSS;
-        }
-
-        if (!BiCGStabConverged)
-        {
-            const double rnorm = norm_inf(r);
-
-            if (rnorm < eps_rel*rnorm0) BiCGStabConverged = true;
         }
     }
 
