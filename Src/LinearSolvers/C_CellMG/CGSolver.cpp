@@ -437,6 +437,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     //
     MultiFab PR(sol.boxArray(), 4*SSS+1, nghost);
 
+    MultiFab tmp(sol.boxArray(), 4, nghost);
+
     Lp.residual(r, rhs, sol, lev, bc_mode);
 
     MultiFab::Copy(rt,r,0,0,1,0);
@@ -473,23 +475,29 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     for (int m = 0; m < maxiter && !BiCGStabFailed && !BiCGStabConverged; m += SSS)
     {
         //
-        // Compute 2s+1 matrix powers on p[] (monomial basis).
+        // Compute the matrix powers on p[] & r[] (monomial basis).
+        // The 2*SSS+1 powers of p[] followed by the 2*SSS powers of r[].
         //
         MultiFab::Copy(PR,p,0,0,1,0);
-
-        for (int n = 1; n < 2*SSS+1; n++)
-        {
-            Lp.apply(PR, PR, lev, temp_bc_mode, false, n-1, n, 1);
-        }
+        MultiFab::Copy(PR,r,0,2*SSS+1,1,0);
         //
-        // Compute 2s matrix powers on r[] (monomial basis).
+        // We use "tmp" to minimize the number of Lp.apply()s.
+        // We do this by doing p & r together in a single call.
         //
-         MultiFab::Copy(PR,r,0,2*SSS+1,1,0);
+        MultiFab::Copy(tmp,p,0,0,1,0);
+        MultiFab::Copy(tmp,r,0,1,1,0);
 
         for (int n = 1; n < 2*SSS; n++)
         {
-            Lp.apply(PR, PR, lev, temp_bc_mode, false, 2*SSS+n, 2*SSS+n+1, 1);
+            Lp.apply(tmp, tmp, lev, temp_bc_mode, false, 0, 2, 2);
+
+            MultiFab::Copy(tmp,tmp,2,0,2,0);
+
+            MultiFab::Copy(PR,tmp,0,        n,1,0);
+            MultiFab::Copy(PR,tmp,1,2*SSS+n+1,1,0);
         }
+
+        Lp.apply(PR, PR, lev, temp_bc_mode, false, 2*SSS-1, 2*SSS, 1);
 
         BuildGramMatrix(Gg, PR, rt);
         //
