@@ -513,14 +513,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
         for (int n = 0; n < SSS; n++)
         {
-            if (delta == 0)
-            {
-                BiCGStabFailed = true;
-                if (ParallelDescriptor::IOProcessor()) std::cout << "*** delta == 0, n = " << n << '\n';
-                ret = 1;
-                break;
-            }
-
             __gemv( Tpaj, 1.0,  Tp, aj, 0.0,  Tpaj, 4*SSS+1, 4*SSS+1);
             __gemv( Tpcj, 1.0,  Tp, cj, 0.0,  Tpcj, 4*SSS+1, 4*SSS+1);
             __gemv(Tppaj, 1.0, Tpp, aj, 0.0, Tppaj, 4*SSS+1, 4*SSS+1);
@@ -531,7 +523,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             {
                 BiCGStabFailed = true;
                 if (ParallelDescriptor::IOProcessor()) std::cout << "*** g_dot_Tpaj == 0, n = " << n << '\n';
-                ret = 2;
+                ret = 1;
                 break;
             }
 
@@ -554,7 +546,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             {
                 BiCGStabFailed = true;
                 if (ParallelDescriptor::IOProcessor()) std::cout << "*** omega_denominator == 0, n = " << n << '\n';
-                ret = 3;
+                ret = 2;
                 break;
             }
 
@@ -564,7 +556,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             {
                 BiCGStabFailed = true;
                 if (ParallelDescriptor::IOProcessor()) if (omega == 0) std::cout << "*** omega == 0, n = " << n << '\n';
-                ret = 4;
+                ret = 3;
                 break;
             }
 
@@ -599,20 +591,37 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             const double delta_next = __dot(g, cj, 4*SSS+1);
             const double beta       = (delta_next/delta)*(alpha/omega);
 
+            if (delta_next == 0)
+            {
+                const double cj_dot_cj = __dot(cj,cj,4*SSS+1);
+
+                if (cj_dot_cj == 0)
+                {
+                    BiCGStabConverged = true;
+                }
+                else
+                {
+                    BiCGStabFailed = true;
+                    if (ParallelDescriptor::IOProcessor()) std::cout << "*** delta_next == 0, n = " << n << '\n';
+                    ret = 4;
+                }
+                break;
+            }
+
             __axpy(aj, 1.0, cj,        beta,   aj, 4*SSS+1);
             __axpy(aj, 1.0, aj, -omega*beta, Tpaj, 4*SSS+1);
 
             delta = delta_next;
         }
+        //
+        // Update iterates. Always update the solution.
+        // No need to update p or r if we "failed".
+        //
+        for (int i = 0; i < 4*SSS+1; i++)
+            sxay(sol,sol,ej[i],PR,i);
 
         if (!BiCGStabFailed)
         {
-            //
-            // Update iterates.
-            //
-            for (int i = 0; i < 4*SSS+1; i++)
-                sxay(sol,sol,ej[i],PR,i);
-
             MultiFab::Copy(p,PR,0,0,1,0);
             p.mult(aj[0],0,1);
             for (int i = 1; i < 4*SSS+1; i++)
@@ -622,9 +631,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             r.mult(cj[0],0,1);
             for (int i = 1; i < 4*SSS+1; i++)
                 sxay(r,r,cj[i],PR,i);
-
-            niters += SSS;
         }
+
+        niters += SSS;
     }
 
     if (verbose > 0)
