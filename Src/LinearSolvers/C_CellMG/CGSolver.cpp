@@ -443,7 +443,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     MultiFab::Copy( p,r,0,0,1,0);
 
     const double         rnorm0        = norm_inf(r);
-    const int            mMax          = maxiter/SSS + ((maxiter%SSS > 0) ? 1 : 0);
     double               delta         = dotxy(r,rt);
     const double         L2_norm_of_rt = sqrt(delta);
     const LinOp::BC_Mode temp_bc_mode  = LinOp::Homogeneous_BC;
@@ -470,7 +469,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     bool BiCGStabFailed = false, BiCGStabConverged = false;
 
-    for (int m = 0; m < mMax && !BiCGStabFailed && !BiCGStabConverged; m += SSS)
+    for (int m = 0; m < maxiter && !BiCGStabFailed && !BiCGStabConverged; m += SSS)
     {
         //
         // Compute 2s+1 matrix powers on p[] (monomial basis).
@@ -517,7 +516,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             if (delta == 0)
             {
                 BiCGStabFailed = true;
-                if (ParallelDescriptor::IOProcessor()) std::cout << "delta == 0\n";
+                if (ParallelDescriptor::IOProcessor()) std::cout << "*** delta == 0, n = " << n << '\n';
                 ret = 1;
                 break;
             }
@@ -531,7 +530,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             if (g_dot_Tpaj == 0)
             {
                 BiCGStabFailed = true;
-                if (ParallelDescriptor::IOProcessor()) std::cout << "g_dot_Tpaj == 0\n";
+                if (ParallelDescriptor::IOProcessor()) std::cout << "*** g_dot_Tpaj == 0, n = " << n << '\n';
                 ret = 2;
                 break;
             }
@@ -544,8 +543,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             const double omega_numerator = __dot(temp1, temp2, 4*SSS+1); //  (temp1,temp2) = ( (cj - alpha*T'aj) , G(T'cj - alpha*T''aj) )
 
-            __axpy(temp1, 1.0,     Tpcj,-alpha,Tppaj, 4*SSS+1);          //  temp1[] =  (T'cj - alpha*T''aj)
-            __gemv(temp2, 1.0,  G,temp1,   0.0,temp2, 4*SSS+1,4*SSS+1);  //  temp2[] = G(T'cj - alpha*T''aj)
+            __axpy(temp1, 1.0,     Tpcj,-alpha, Tppaj, 4*SSS+1);         //  temp1[] =  (T'cj - alpha*T''aj)
+            __gemv(temp2, 1.0,  G,temp1,   0.0, temp2, 4*SSS+1,4*SSS+1); //  temp2[] = G(T'cj - alpha*T''aj)
 
             const double omega_denominator = __dot(temp1,temp2,4*SSS+1); //  (temp1,temp2) = ( (T'cj - alpha*T''aj) , G(T'cj - alpha*T''aj) )
 
@@ -554,21 +553,17 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             if (omega_denominator == 0)
             {
                 BiCGStabFailed = true;
-                if (ParallelDescriptor::IOProcessor()) std::cout << "omega_denominator == 0\n";
+                if (ParallelDescriptor::IOProcessor()) std::cout << "*** omega_denominator == 0, n = " << n << '\n';
                 ret = 3;
                 break;
             }
 
             const double omega = omega_numerator / omega_denominator;
 
-            if (omega == 0 || omega_numerator == 0)
+            if (omega == 0)
             {
                 BiCGStabFailed = true;
-                if (ParallelDescriptor::IOProcessor())
-                {
-                    if (omega           == 0) std::cout << "omega == 0\n";
-                    if (omega_numerator == 0) std::cout << "omega_numerator == 0\n";
-                }
+                if (ParallelDescriptor::IOProcessor()) if (omega == 0) std::cout << "*** omega == 0, n = " << n << '\n';
                 ret = 4;
                 break;
             }
@@ -582,6 +577,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             // Do an early check of the residual to determine convergence.
             //
             __gemv(temp1, 1.0, G, cj, 0.0, temp1, 4*SSS+1, 4*SSS+1);
+
+#if 1
             //
             // sqrt( (cj,Gcj) ) == L2 norm of the intermediate residual in exact arithmetic.
             //
@@ -589,16 +586,18 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             //
             const double cj_dot_Gcj = __dot(cj, temp1, 4*SSS+1);
 
-            double L2_norm_of_residual = 0;
             if (cj_dot_Gcj > 0)
-                L2_norm_of_residual = sqrt(cj_dot_Gcj);
-
-            if (L2_norm_of_residual < eps_rel*L2_norm_of_rt)
             {
-                BiCGStabConverged = true;
-                break;
-            }
+                const double L2_norm_of_residual = sqrt(cj_dot_Gcj);
 
+                if (L2_norm_of_residual < eps_rel*L2_norm_of_rt)
+                {
+                    BiCGStabConverged = true;
+                    break;
+                }
+
+            }
+#endif
             const double delta_next = __dot(g, cj, 4*SSS+1);
             const double beta       = (delta_next/delta)*(alpha/omega);
 
@@ -629,15 +628,12 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             niters += SSS;
         }
 
-#if 0
-        // Superfluous if you are calculating (cj,Gcj) and expensive as it adds another AllReduce- - - - - - - - - - - - - - - - - -
-        //exchange_boundary(domain,level,e_id,1,0,0);                                                  // calculate the norm of the true residual...
-        //residual(domain,level,__temp,e_id,R_id,a,b,hLevel);                                          // true residual
-        //double norm_of_residual = norm(domain,level,__temp);                                         // norm of true residual
-        //if(norm_of_residual < eps_rel*rnorm0){BiCGStabConverged=true;break;}      // convergence ?
-        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if (!BiCGStabConverged)
+        {
+            const double rnorm = norm_inf(r);
 
-#endif
+            if (rnorm < eps_rel*rnorm0) BiCGStabConverged = true;
+        }
     }
 
     if (verbose > 0)
@@ -646,8 +642,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            if ( (eps_rel > 0 && rnorm < eps_rel*rnorm0) ||
-                 (eps_abs > 0 && rnorm < eps_abs) )
+//            if ( (eps_rel > 0 && rnorm < eps_rel*rnorm0) ||
+//                 (eps_abs > 0 && rnorm < eps_abs) )
             {
                 Spacer(std::cout, lev);
                 std::cout << "CGSolver_CABiCGStab: Final: Iteration "
