@@ -698,7 +698,9 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
     const LinOp::BC_Mode temp_bc_mode = LinOp::Homogeneous_BC;
 
-#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
+    Real rnorm = norm_inf(r);
+#else
     //
     // Calculate the local values of these norms & reduce their values together.
     //
@@ -709,8 +711,6 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     Real       rnorm    = vals[0];
     const Real Lp_norm  = vals[1];
     Real       sol_norm = 0;
-#else
-    Real       rnorm    = norm_inf(r);
 #endif
     const Real rnorm0   = rnorm;
 
@@ -794,13 +794,12 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
             }
         }
 
-#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
+        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
+#else
         sol_norm = norm_inf(sol);
         if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0 ) || rnorm < eps_abs ) break;
-#else
-        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 #endif
-
         if ( use_mg_precond )
         {
             sh.setVal(0);
@@ -852,11 +851,11 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
             }
         }
 
-#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
+        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
+#else
         sol_norm = norm_inf(sol);
         if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0 ) || rnorm < eps_abs ) break;
-#else
-        if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 #endif
         if ( omega == 0 )
 	{
@@ -879,10 +878,10 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         }
     }
 
-#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-    if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0 ) && rnorm > eps_abs )
-#else
+#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
     if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
+#else
+    if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0 ) && rnorm > eps_abs )
 #endif
     {
         if ( ParallelDescriptor::IOProcessor() )
@@ -1029,12 +1028,11 @@ CGSolver::solve_cg (MultiFab&       sol,
             }
         }
 
-#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-        if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0) || rnorm < eps_abs ) break;
-#else
+#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
+#else
+        if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0) || rnorm < eps_abs ) break;
 #endif
-      
         if ( rnorm > def_unstable_criterion*minrnorm )
 	{
             ret = 2; break;
@@ -1060,21 +1058,17 @@ CGSolver::solve_cg (MultiFab&       sol,
                       << rnorm/(rnorm0) << '\n';
 	}
     }
-#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-    if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0) && rnorm > eps_abs )
-    {
-        if ( ParallelDescriptor::IOProcessor() )
-            BoxLib::Warning("CGSolver_cg:: failed to converge!");
-        ret = 8;
-    }
-#else
+
+#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
     if ( ret == 0 &&  rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
+#else
+    if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rnorm0) && rnorm > eps_abs )
+#endif
     {
         if ( ParallelDescriptor::IOProcessor() )
-            BoxLib::Warning("CGSolver_cg:: failed to converge!");
+            BoxLib::Warning("CGSolver_cg: failed to converge!");
         ret = 8;
     }
-#endif
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {

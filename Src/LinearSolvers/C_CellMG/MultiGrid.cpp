@@ -45,10 +45,10 @@ MultiGrid::Initialize ()
     MultiGrid::def_nu_f                  = 8;
     MultiGrid::def_nu_b                  = 0;
     MultiGrid::def_usecg                 = 1;
-#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-    MultiGrid::def_rtol_b                = 0.0001;
-#else
+#ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
     MultiGrid::def_rtol_b                = 0.01;
+#else
+    MultiGrid::def_rtol_b                = 0.0001;
 #endif
     MultiGrid::def_atol_b                = -1.0;
     MultiGrid::def_verbose               = 0;
@@ -80,11 +80,13 @@ MultiGrid::Initialize ()
 
     pp.query("use_Anorm_for_convergence", use_Anorm_for_convergence);
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-    if (ParallelDescriptor::IOProcessor() && def_verbose > 2) {
-      if (use_Anorm_for_convergence == 0) {
-	std::cout << "It might be a good idea to define CG_USE_OLD_CONVERGENCE_CRITERIA."
-		  << std::endl;
-      }
+    if (ParallelDescriptor::IOProcessor() && def_verbose > 2)
+    {
+        if (use_Anorm_for_convergence == 0)
+        {
+            std::cout << "It might be a good idea to define CG_USE_OLD_CONVERGENCE_CRITERIA."
+                      << std::endl;
+        }
     }
 #endif
 
