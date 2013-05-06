@@ -13,6 +13,10 @@
 
 namespace
 {
+    //
+    // The "S" in the Communication-avoiding BiCGStab algorithm.
+    //
+    int  SSS         = -1;
     bool initialized = false;
 }
 //
@@ -24,6 +28,10 @@ CGSolver::Solver CGSolver::def_cg_solver;
 bool             CGSolver::use_jbb_precond;
 bool             CGSolver::use_jacobi_precond;
 double           CGSolver::def_unstable_criterion;
+//
+// The largest value allowed for SSS.
+//
+static const int SSS_MAX = 4;
 
 void
 CGSolver::Initialize ()
@@ -39,6 +47,8 @@ CGSolver::Initialize ()
     CGSolver::use_jacobi_precond     = 0;
     CGSolver::def_unstable_criterion = 10;
 
+    SSS = SSS_MAX;
+
     ParmParse pp("cg");
 
     pp.query("v",                  def_verbose);
@@ -47,6 +57,12 @@ CGSolver::Initialize ()
     pp.query("use_jbb_precond",    use_jbb_precond);
     pp.query("use_jacobi_precond", use_jacobi_precond);
     pp.query("unstable_criterion", def_unstable_criterion);
+
+    if (pp.query("SSS", SSS))
+    {
+        if (SSS < 1      ) BoxLib::Abort("SSS must be > 1");
+        if (SSS > SSS_MAX) BoxLib::Abort("SSS must be < SSS_MAX");
+    }
 
     int ii;
     if (pp.query("cg_solver", ii))
@@ -69,6 +85,7 @@ CGSolver::Initialize ()
 	std::cout << "   def_cg_solver          = " << def_cg_solver          << '\n';
 	std::cout << "   use_jbb_precond        = " << use_jbb_precond        << '\n';
 	std::cout << "   use_jacobi_precond     = " << use_jacobi_precond     << '\n';
+	std::cout << "   SSS                    = " << SSS                    << '\n';
     }
 
     BoxLib::ExecOnFinalize(CGSolver::Finalize);
@@ -257,23 +274,18 @@ dotxy (const MultiFab& r,
 }
 
 //
-// The "S" in the Communication-avoiding BiCGStab algorithm.
-//
-const int SSS = 4;
-
-//
 // z[m] = alpha*A[m][n]*x[n]+beta*y[m]   [row][col]
 //
 inline
 void
-__gemv (Real* z,
-        Real  alpha,
-        Real  A[((4*SSS)+1)][((4*SSS)+1)],
-        Real* x,
-        Real  beta,
-        Real* y,
-        int   rows,
-        int   cols)
+gemv (Real* z,
+      Real  alpha,
+      Real  A[((4*SSS_MAX)+1)][((4*SSS_MAX)+1)],
+      Real* x,
+      Real  beta,
+      Real* y,
+      int   rows,
+      int   cols)
 {
     for (int r = 0;r < rows; r++)
     {
@@ -291,7 +303,7 @@ __gemv (Real* z,
 //
 inline
 void
-__axpy (Real* z,
+axpy (Real* z,
         Real  alpha,
         Real* x,
         Real  beta,
@@ -309,7 +321,7 @@ __axpy (Real* z,
 //
 inline
 Real
-__dot (Real* x, Real* y, int n)
+dot (Real* x, Real* y, int n)
 {
     Real sum = 0;
     for (int nn = 0; nn < n; nn++)
@@ -324,7 +336,7 @@ __dot (Real* x, Real* y, int n)
 //
 inline
 void
-__zero (Real* z, int n)
+zero (Real* z, int n)
 {
     for (int nn = 0; nn < n;nn++)
     {
@@ -387,28 +399,28 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
     BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
 
-    Real  temp1[4*SSS+1];
-    Real  temp2[4*SSS+1];
-    Real     Tp[4*SSS+1][4*SSS+1];
-    Real    Tpp[4*SSS+1][4*SSS+1];
-    Real     aj[4*SSS+1];
-    Real     cj[4*SSS+1];
-    Real     ej[4*SSS+1];
-    Real   Tpaj[4*SSS+1];
-    Real   Tpcj[4*SSS+1];
-    Real  Tppaj[4*SSS+1];
-    Real      G[4*SSS+1][4*SSS+1];    // Extracted from first 4*SSS+1 columns of Gg[][].  indexed as [row][col]
-    Real      g[4*SSS+1];             // Extracted from last [4*SSS+1] column of Gg[][].
-    Real     Gg[(4*SSS+1)*(4*SSS+2)]; // Buffer to hold the Gram-like matrix produced by matmul().  indexed as [row*(4*SSS+2) + col]
+    Real  temp1[4*SSS_MAX+1];
+    Real  temp2[4*SSS_MAX+1];
+    Real     Tp[4*SSS_MAX+1][4*SSS_MAX+1];
+    Real    Tpp[4*SSS_MAX+1][4*SSS_MAX+1];
+    Real     aj[4*SSS_MAX+1];
+    Real     cj[4*SSS_MAX+1];
+    Real     ej[4*SSS_MAX+1];
+    Real   Tpaj[4*SSS_MAX+1];
+    Real   Tpcj[4*SSS_MAX+1];
+    Real  Tppaj[4*SSS_MAX+1];
+    Real      G[4*SSS_MAX+1][4*SSS_MAX+1];    // Extracted from first 4*SSS+1 columns of Gg[][].  indexed as [row][col]
+    Real      g[4*SSS_MAX+1];             // Extracted from last [4*SSS+1] column of Gg[][].
+    Real     Gg[(4*SSS_MAX+1)*(4*SSS_MAX+2)]; // Buffer to hold the Gram-like matrix produced by matmul().  indexed as [row*(4*SSS+2) + col]
 
-    __zero(   aj, 4*SSS+1);
-    __zero(   cj, 4*SSS+1);
-    __zero(   ej, 4*SSS+1);
-    __zero( Tpaj, 4*SSS+1);
-    __zero( Tpcj, 4*SSS+1);
-    __zero(Tppaj, 4*SSS+1);
-    __zero(temp1, 4*SSS+1);
-    __zero(temp2, 4*SSS+1);
+    zero(   aj, 4*SSS+1);
+    zero(   cj, 4*SSS+1);
+    zero(   ej, 4*SSS+1);
+    zero( Tpaj, 4*SSS+1);
+    zero( Tpcj, 4*SSS+1);
+    zero(Tppaj, 4*SSS+1);
+    zero(temp1, 4*SSS+1);
+    zero(temp2, 4*SSS+1);
     //
     // Initialize Tp[][] and Tpp[][] ...
     //
@@ -516,19 +528,19 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             g[i] = Gg[k++];
         }
 
-        __zero(aj, 4*SSS+1); aj[0]       = 1;
-        __zero(cj, 4*SSS+1); cj[2*SSS+1] = 1;
-        __zero(ej, 4*SSS+1);
+        zero(aj, 4*SSS+1); aj[0]       = 1;
+        zero(cj, 4*SSS+1); cj[2*SSS+1] = 1;
+        zero(ej, 4*SSS+1);
 
         int nit = 0;
 
         for ( ; nit < SSS; nit++)
         {
-            __gemv( Tpaj, 1.0,  Tp, aj, 0.0,  Tpaj, 4*SSS+1, 4*SSS+1);
-            __gemv( Tpcj, 1.0,  Tp, cj, 0.0,  Tpcj, 4*SSS+1, 4*SSS+1);
-            __gemv(Tppaj, 1.0, Tpp, aj, 0.0, Tppaj, 4*SSS+1, 4*SSS+1);
+            gemv( Tpaj, 1.0,  Tp, aj, 0.0,  Tpaj, 4*SSS+1, 4*SSS+1);
+            gemv( Tpcj, 1.0,  Tp, cj, 0.0,  Tpcj, 4*SSS+1, 4*SSS+1);
+            gemv(Tppaj, 1.0, Tpp, aj, 0.0, Tppaj, 4*SSS+1, 4*SSS+1);
 
-            const Real g_dot_Tpaj = __dot(g, Tpaj, 4*SSS+1);
+            const Real g_dot_Tpaj = dot(g, Tpaj, 4*SSS+1);
 
             if ( g_dot_Tpaj == 0 )
             {
@@ -539,18 +551,18 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             const Real alpha = delta / g_dot_Tpaj;
 
-            __axpy(temp1, 1.0,     Tpcj,-alpha, Tppaj, 4*SSS+1);         //  temp1[] =  (T'cj - alpha*T''aj)
-            __gemv(temp2, 1.0,  G,temp1,   0.0, temp2, 4*SSS+1,4*SSS+1); //  temp2[] = G(T'cj - alpha*T''aj)
-            __axpy(temp1, 1.0,       cj,-alpha,  Tpaj, 4*SSS+1);         //  temp1[] =     cj - alpha*T'aj
+            axpy(temp1, 1.0,    Tpcj, -alpha, Tppaj, 4*SSS+1);         //  temp1[] =  (T'cj - alpha*T''aj)
+            gemv(temp2, 1.0, G,temp1,   0.0,  temp2, 4*SSS+1,4*SSS+1); //  temp2[] = G(T'cj - alpha*T''aj)
+            axpy(temp1, 1.0,      cj, -alpha,  Tpaj, 4*SSS+1);         //  temp1[] =     cj - alpha*T'aj
 
-            const Real omega_numerator = __dot(temp1, temp2, 4*SSS+1); //  (temp1,temp2) = ( (cj - alpha*T'aj) , G(T'cj - alpha*T''aj) )
+            const Real omega_numerator = dot(temp1, temp2, 4*SSS+1);   //  (temp1,temp2) = ( (cj - alpha*T'aj) , G(T'cj - alpha*T''aj) )
 
-            __axpy(temp1, 1.0,     Tpcj,-alpha, Tppaj, 4*SSS+1);         //  temp1[] =  (T'cj - alpha*T''aj)
-            __gemv(temp2, 1.0,  G,temp1,   0.0, temp2, 4*SSS+1,4*SSS+1); //  temp2[] = G(T'cj - alpha*T''aj)
+            axpy(temp1, 1.0,    Tpcj,-alpha, Tppaj, 4*SSS+1);          //  temp1[] =  (T'cj - alpha*T''aj)
+            gemv(temp2, 1.0, G,temp1,   0.0, temp2, 4*SSS+1,4*SSS+1);  //  temp2[] = G(T'cj - alpha*T''aj)
 
-            const Real omega_denominator = __dot(temp1,temp2,4*SSS+1); //  (temp1,temp2) = ( (T'cj - alpha*T''aj) , G(T'cj - alpha*T''aj) )
+            const Real omega_denominator = dot(temp1,temp2,4*SSS+1);   //  (temp1,temp2) = ( (T'cj - alpha*T''aj) , G(T'cj - alpha*T''aj) )
 
-            __axpy(ej, 1.0, ej, alpha, aj, 4*SSS+1);
+            axpy(ej, 1.0, ej, alpha, aj, 4*SSS+1);
 
             if ( omega_denominator == 0 )
             {
@@ -568,21 +580,21 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                 BiCGStabFailed = true; ret = 3; break;
             }
 
-            __axpy(ej, 1.0, ej,       omega,    cj, 4*SSS+1);
-            __axpy(ej, 1.0, ej,-omega*alpha,  Tpaj, 4*SSS+1);
-            __axpy(cj, 1.0, cj,      -omega,  Tpcj, 4*SSS+1);
-            __axpy(cj, 1.0, cj,      -alpha,  Tpaj, 4*SSS+1);
-            __axpy(cj, 1.0, cj, omega*alpha, Tppaj, 4*SSS+1);
+            axpy(ej, 1.0, ej,       omega,    cj, 4*SSS+1);
+            axpy(ej, 1.0, ej,-omega*alpha,  Tpaj, 4*SSS+1);
+            axpy(cj, 1.0, cj,      -omega,  Tpcj, 4*SSS+1);
+            axpy(cj, 1.0, cj,      -alpha,  Tpaj, 4*SSS+1);
+            axpy(cj, 1.0, cj, omega*alpha, Tppaj, 4*SSS+1);
             //
             // Do an early check of the residual to determine convergence.
             //
-            __gemv(temp1, 1.0, G, cj, 0.0, temp1, 4*SSS+1, 4*SSS+1);
+            gemv(temp1, 1.0, G, cj, 0.0, temp1, 4*SSS+1, 4*SSS+1);
             //
             // sqrt( (cj,Gcj) ) == L2 norm of the intermediate residual in exact arithmetic.
             // However, finite precision can lead to the norm^2 being < 0 (Jim Demmel).
             // If cj_dot_Gcj < 0 we flush to zero and consider ourselves converged.
             //
-            const Real cj_dot_Gcj          = __dot(cj, temp1, 4*SSS+1);
+            const Real cj_dot_Gcj          = dot(cj, temp1, 4*SSS+1);
             const Real L2_norm_of_residual = (cj_dot_Gcj > 0 ? sqrt(cj_dot_Gcj) : 0);
 
             if ( L2_norm_of_residual < eps_rel*L2_norm_of_rt )
@@ -590,12 +602,12 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                 BiCGStabConverged = true; break;
             }
 
-            const Real delta_next = __dot(g, cj, 4*SSS+1);
+            const Real delta_next = dot(g, cj, 4*SSS+1);
             const Real beta       = (delta_next/delta)*(alpha/omega);
 
             if ( delta_next == 0 )
             {
-                if ( __dot(cj,cj,4*SSS+1) == 0 )
+                if ( dot(cj,cj,4*SSS+1) == 0 )
                 {
                     BiCGStabConverged = true;
                 }
@@ -608,8 +620,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                 break;
             }
 
-            __axpy(aj, 1.0, cj,        beta,   aj, 4*SSS+1);
-            __axpy(aj, 1.0, aj, -omega*beta, Tpaj, 4*SSS+1);
+            axpy(aj, 1.0, cj,        beta,   aj, 4*SSS+1);
+            axpy(aj, 1.0, aj, -omega*beta, Tpaj, 4*SSS+1);
 
             delta = delta_next;
         }
