@@ -10,13 +10,18 @@
 #include <CG_F.H>
 #include <CGSolver.H>
 #include <MultiGrid.H>
+//
+// The largest value allowed for SSS - the "S" in the Communicaton-avoiding BiCGStab.
+//
+static const int SSS_MAX = 4;
 
 namespace
 {
     //
-    // The "S" in the Communication-avoiding BiCGStab algorithm.
+    // The "S" in the Communicaton-avoiding BiCGStab algorithm.
+    // Must be in the range [1,SSS_MAX].
     //
-    int  SSS         = -1;
+    int  SSS         = SSS_MAX;
     bool initialized = false;
 }
 //
@@ -28,10 +33,6 @@ CGSolver::Solver CGSolver::def_cg_solver;
 bool             CGSolver::use_jbb_precond;
 bool             CGSolver::use_jacobi_precond;
 double           CGSolver::def_unstable_criterion;
-//
-// The largest value allowed for SSS.
-//
-static const int SSS_MAX = 4;
 
 void
 CGSolver::Initialize ()
@@ -61,7 +62,7 @@ CGSolver::Initialize ()
     if (pp.query("SSS", SSS))
     {
         if (SSS < 1      ) BoxLib::Abort("SSS must be > 1");
-        if (SSS > SSS_MAX) BoxLib::Abort("SSS must be < SSS_MAX");
+        if (SSS > SSS_MAX) BoxLib::Abort("SSS must be <= SSS_MAX");
     }
 
     int ii;
