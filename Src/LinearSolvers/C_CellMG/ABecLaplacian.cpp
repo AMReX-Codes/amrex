@@ -559,9 +559,6 @@ ABecLaplacian::Fapply (MultiFab&       y,
 		       int             num_comp,
                        int             level)
 {
-    // Only single-component supported at this time, 
-    // also, all data (a,b,alpha,beta) assumed single-component
-    BL_ASSERT(num_comp==1);
     BL_ASSERT(y.nComp()>=dst_comp+num_comp);
     BL_ASSERT(x.nComp()>=src_comp+num_comp);
 

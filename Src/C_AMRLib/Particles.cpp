@@ -773,7 +773,8 @@ ParticleBase::PeriodicShift (ParticleBase& p,
 void
 ParticleBase::Reset (ParticleBase& p,
                      const Amr*    amr,
-                     bool          update)
+                     bool          update,
+		     bool          verbose)
 {
     BL_ASSERT(amr != 0);
 
@@ -794,7 +795,8 @@ ParticleBase::Reset (ParticleBase& p,
 #pragma omp critical(reset_lock)
 #endif
             {
-                std::cout << "Invalidating out-of-domain particle: " << p << '\n';
+	      if (verbose) 
+		std::cout << "Invalidating out-of-domain particle: " << p << '\n';
             }
 
             BL_ASSERT(p.m_id > 0);

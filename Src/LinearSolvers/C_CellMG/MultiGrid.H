@@ -195,10 +195,6 @@ public:
     //
     int get_nu_b () const { return nu_b; }
 
-    CGSolver::Solver getCGSolver () const { return cg_solver; }
-
-    void setCGSolver (CGSolver::Solver solver_) { cg_solver = solver_; }
-
     void set_maxiter_b (int n) { maxiter_b = n; }
     //
     // get the maximum permitted relative tolerance
@@ -309,10 +305,6 @@ private:
     // default flag controlling the behaviour when the cg solver returns indicating unstable
     //
     static int def_smooth_on_cg_unstable;
-
-    static CGSolver::Solver def_cg_solver;
-
-    CGSolver::Solver cg_solver;
     //
     // verbosity
     //
