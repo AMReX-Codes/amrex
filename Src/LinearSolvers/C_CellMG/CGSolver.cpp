@@ -490,8 +490,10 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     int niters = 0, ret = 0;
 
-    bool BiCGStabFailed = false, BiCGStabConverged = false;
+    Real L2_norm_of_resid = 0;
 
+    bool BiCGStabFailed = false, BiCGStabConverged = false;
+    
     for (int m = 0; m < maxiter && !BiCGStabFailed && !BiCGStabConverged; m += SSS)
     {
         //
@@ -580,16 +582,21 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             //
             axpy(ej, 1.0, ej, alpha, aj, 4*SSS+1);
             //
+            // ej has been updated so consider that we've done an iteration since
+            // even if we break out of the loop we'll be able to update both sol.
+            //
+            niters++;
+            //
             // Calculate the norm of Saad's vector 's' to check intra s-step convergence.
             //
             axpy(temp1, 1.0,       cj,-alpha,  Tpaj, 4*SSS+1);
             gemv(temp2, 1.0, G, temp1,   0.0, temp2, 4*SSS+1, 4*SSS+1);
 
-            Real L2_norm_of_s = dot(temp1,temp2,4*SSS+1);
+            L2_norm_of_resid = dot(temp1,temp2,4*SSS+1);
 
-            L2_norm_of_s = (L2_norm_of_s < 0 ? 0 : sqrt(L2_norm_of_s));
+            L2_norm_of_resid = (L2_norm_of_resid < 0 ? 0 : sqrt(L2_norm_of_resid));
 
-            if ( L2_norm_of_s < eps_rel*L2_norm_of_rt ) { BiCGStabConverged = true; break; }
+            if ( L2_norm_of_resid < eps_rel*L2_norm_of_rt ) { BiCGStabConverged = true; break; }
 
             if ( omega_denominator == 0 )
             {
@@ -617,11 +624,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             axpy(cj, 1.0, cj,      -alpha,  Tpaj, 4*SSS+1);
             axpy(cj, 1.0, cj, omega*alpha, Tppaj, 4*SSS+1);
             //
-            // cj & ej have been updated so consider that we've done an iteration since
-            // even if we break out of the loop we'll be able to update both r & sol.
-            //
-            niters++;
-            //
             // Do an early check of the residual to determine convergence.
             //
             gemv(temp1, 1.0, G, cj, 0.0, temp1, 4*SSS+1, 4*SSS+1);
@@ -630,10 +632,10 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             // However, finite precision can lead to the norm^2 being < 0 (Jim Demmel).
             // If cj_dot_Gcj < 0 we flush to zero and consider ourselves converged.
             //
-            const Real cj_dot_Gcj          = dot(cj, temp1, 4*SSS+1);
-            const Real L2_norm_of_residual = (cj_dot_Gcj > 0 ? sqrt(cj_dot_Gcj) : 0);
+            const Real cj_dot_Gcj = dot(cj, temp1, 4*SSS+1);
+            L2_norm_of_resid      = (cj_dot_Gcj > 0 ? sqrt(cj_dot_Gcj) : 0);
 
-            if ( L2_norm_of_residual < eps_rel*L2_norm_of_rt ) { BiCGStabConverged = true; break; }
+            if ( L2_norm_of_resid < eps_rel*L2_norm_of_rt ) { BiCGStabConverged = true; break; }
 
             const Real delta_next = dot(g, cj, 4*SSS+1);
 
@@ -679,27 +681,21 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             sxay(r,r,cj[i],PR,i);
     }
 
-    Real rnorm = -1;
-
     if ( verbose > 0 )
     {
-        rnorm = norm_inf(r);
-
         if ( ParallelDescriptor::IOProcessor() )
         {
             Spacer(std::cout, lev);
             std::cout << "CGSolver_CABiCGStab: Final: Iteration "
                       << std::setw(4) << niters
                       << " rel. err. "
-                      << rnorm/rnorm0 << '\n';
+                      << L2_norm_of_resid << '\n';
         }
     }
 
     if ( niters == maxiter && ret == 0 && !BiCGStabConverged)
     {
-        if ( rnorm < 0) rnorm = norm_inf(r);
-
-        if ( rnorm > rnorm0 )
+        if ( L2_norm_of_resid > L2_norm_of_rt )
         {
             if ( ParallelDescriptor::IOProcessor() )
                 BoxLib::Warning("CGSolver_CABiCGStab: failed to converge!");
