@@ -735,6 +735,9 @@ ifeq ($(GPROF),TRUE)
    CFLAGS   += -pg
 endif
 
+ifeq ($(COMM_PROFILE),TRUE)
+  PROFILE = TRUE
+endif
 ifeq ($(PROFILE),TRUE)
     CPPFLAGS    += -DBL_PROFILING
     ifeq ($(COMM_PROFILE),TRUE)
