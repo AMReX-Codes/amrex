@@ -633,7 +633,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             // If cj_dot_Gcj < 0 we flush to zero and consider ourselves converged.
             //
             const Real cj_dot_Gcj = dot(cj, temp1, 4*SSS+1);
-            L2_norm_of_resid      = (cj_dot_Gcj > 0 ? sqrt(cj_dot_Gcj) : 0);
+
+            L2_norm_of_resid = (cj_dot_Gcj > 0 ? sqrt(cj_dot_Gcj) : 0);
 
             if ( L2_norm_of_resid < eps_rel*L2_norm_of_rt ) { BiCGStabConverged = true; break; }
 
@@ -699,10 +700,16 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         {
             if ( ParallelDescriptor::IOProcessor() )
                 BoxLib::Warning("CGSolver_CABiCGStab: failed to converge!");
+            //
+            // Return code 8 tells the MultiGrid driver to zero out the solution!
+            //
             ret = 8;
         }
         else
         {
+            //
+            // Return codes 1-7 tells the MultiGrid driver to smooth the solution!
+            //
             ret = 7;
         }
     }
