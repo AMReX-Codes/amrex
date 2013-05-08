@@ -18,11 +18,8 @@ static const int SSS_MAX = 4;
 
 namespace
 {
-    //
-    // The "S" in the Communicaton-avoiding BiCGStab algorithm.
-    // Must be in the range [1,SSS_MAX].
-    //
-    int  SSS         = SSS_MAX;
+    int  SSS;
+    bool variable_SSS;
     bool initialized = false;
 }
 //
@@ -42,6 +39,8 @@ CGSolver::Initialize ()
     //
     // Set defaults here!!!
     //
+    SSS                              = SSS_MAX;
+    variable_SSS                     = true;
     CGSolver::def_maxiter            = 40;
     CGSolver::def_verbose            = 0;
     CGSolver::def_cg_solver          = BiCGStab;
@@ -49,22 +48,19 @@ CGSolver::Initialize ()
     CGSolver::use_jacobi_precond     = 0;
     CGSolver::def_unstable_criterion = 10;
 
-    SSS = SSS_MAX;
-
     ParmParse pp("cg");
 
     pp.query("v",                  def_verbose);
+    pp.query("SSS",                SSS);
     pp.query("maxiter",            def_maxiter);
     pp.query("verbose",            def_verbose);
+    pp.query("variable_SSS",       variable_SSS);
     pp.query("use_jbb_precond",    use_jbb_precond);
     pp.query("use_jacobi_precond", use_jacobi_precond);
     pp.query("unstable_criterion", def_unstable_criterion);
 
-    if (pp.query("SSS", SSS))
-    {
-        if (SSS < 1      ) BoxLib::Abort("SSS must be > 1");
-        if (SSS > SSS_MAX) BoxLib::Abort("SSS must be <= SSS_MAX");
-    }
+    if (SSS < 1      ) BoxLib::Abort("SSS must be >= 1");
+    if (SSS > SSS_MAX) BoxLib::Abort("SSS must be <= SSS_MAX");
 
     int ii;
     if (pp.query("cg_solver", ii))
@@ -289,10 +285,10 @@ gemv (Real* z,
       int   rows,
       int   cols)
 {
-    for (int r = 0;r < rows; r++)
+    for (int r = 0; r < rows; r++)
     {
         Real sum = 0;
-        for (int c = 0;c < cols; c++)
+        for (int c = 0; c < cols; c++)
         {
             sum += A[r][c]*x[c];
         }
@@ -348,13 +344,54 @@ zero (Real* z, int n)
 
 static
 void
-BuildGramMatrix (Real* Gg, const MultiFab& PR, const MultiFab& rt)
+SetMonomialBasis (Real  Tp[((4*SSS_MAX)+1)][((4*SSS_MAX)+1)],
+                  Real Tpp[((4*SSS_MAX)+1)][((4*SSS_MAX)+1)],
+                  int   sss)
+{
+    for (int i = 0; i < 4*sss+1; i++)
+    {
+        for (int j = 0; j < 4*sss+1; j++)
+        {
+            Tp[i][j] = 0;
+        }
+    }
+    for (int i = 0; i < 2*sss; i++)
+    {
+        Tp[i+1][i] = 1;
+    }
+    for (int i = 2*sss+1; i < 4*sss; i++)
+    {
+        Tp[i+1][i] = 1;
+    }
+
+    for (int i = 0; i < 4*sss+1; i++)
+    {
+        for (int j = 0; j < 4*sss+1; j++)
+        {
+            Tpp[i][j] = 0;
+        }
+    }
+    for (int i = 0; i < 2*sss-1; i++)
+    {
+        Tpp[i+2][i] = 1;
+    }
+    for (int i = 2*sss+1; i < 4*sss-1; i++)
+    {
+        Tpp[i+2][i] = 1;
+    }
+}
+
+static
+void
+BuildGramMatrix (Real*           Gg,
+                 const MultiFab& PR,
+                 const MultiFab& rt,
+                 int             sss)
 {
     BL_ASSERT(rt.nComp() == 1);
-    BL_ASSERT(PR.nComp() == 4*SSS+1);
+    BL_ASSERT(PR.nComp() >= 4*sss+1);
 
-    const int Nrows = PR.nComp();
-    const int Ncols = Nrows + 1;
+    const int Nrows = 4*sss+1, Ncols = Nrows + 1;
     //
     // Gg is dimensioned (Ncols*Nrows).
     //
@@ -413,34 +450,27 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     Real   Tpcj[4*SSS_MAX+1];
     Real  Tppaj[4*SSS_MAX+1];
     Real      G[4*SSS_MAX+1][4*SSS_MAX+1];    // Extracted from first 4*SSS+1 columns of Gg[][].  indexed as [row][col]
-    Real      g[4*SSS_MAX+1];             // Extracted from last [4*SSS+1] column of Gg[][].
+    Real      g[4*SSS_MAX+1];                 // Extracted from last [4*SSS+1] column of Gg[][].
     Real     Gg[(4*SSS_MAX+1)*(4*SSS_MAX+2)]; // Buffer to hold the Gram-like matrix produced by matmul().  indexed as [row*(4*SSS+2) + col]
-
-    zero(   aj, 4*SSS+1);
-    zero(   cj, 4*SSS+1);
-    zero(   ej, 4*SSS+1);
-    zero( Tpaj, 4*SSS+1);
-    zero( Tpcj, 4*SSS+1);
-    zero(Tppaj, 4*SSS+1);
-    zero(temp1, 4*SSS+1);
-    zero(temp2, 4*SSS+1);
-    zero(temp3, 4*SSS+1);
     //
-    // Initialize Tp[][] and Tpp[][] ...
+    // If variable_SSS we "telescope" SSS.
+    // We start with 1 and increase it up to SSS_MAX on the outer iterations.
     //
-    // This is the monomial basis stuff.
-    //
-    for (int i = 0; i < 4*SSS+1; i++)
-        for (int j = 0; j < 4*SSS+1; j++) Tp[i][j]   = 0;
-    for (int i = 0;       i < 2*SSS; i++) Tp[i+1][i] = 1;
-    for (int i = 2*SSS+1; i < 4*SSS; i++) Tp[i+1][i] = 1;
+    if (variable_SSS) SSS = 1;
 
-    for (int i = 0; i < 4*SSS+1; i++)
-        for (int j = 0; j < 4*SSS+1; j++)   Tpp[i][j]   = 0;
-    for (int i = 0;       i < 2*SSS-1; i++) Tpp[i+2][i] = 1;
-    for (int i = 2*SSS+1; i < 4*SSS-1; i++) Tpp[i+2][i] = 1;
+    zero(   aj, 4*SSS_MAX+1);
+    zero(   cj, 4*SSS_MAX+1);
+    zero(   ej, 4*SSS_MAX+1);
+    zero( Tpaj, 4*SSS_MAX+1);
+    zero( Tpcj, 4*SSS_MAX+1);
+    zero(Tppaj, 4*SSS_MAX+1);
+    zero(temp1, 4*SSS_MAX+1);
+    zero(temp2, 4*SSS_MAX+1);
+    zero(temp3, 4*SSS_MAX+1);
 
-    const int ncomp  = 1, nghost = 1;
+    SetMonomialBasis(Tp,Tpp,SSS);
+
+    const int ncomp = 1, nghost = 1;
 
     MultiFab  p(sol.boxArray(), ncomp, nghost);
     MultiFab  r(sol.boxArray(), ncomp, nghost);
@@ -451,7 +481,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     // First 2*SSS+1 components are powers of p[].
     // Next  2*SSS   components are powers of r[].
     //
-    MultiFab PR(sol.boxArray(), 4*SSS+1, nghost);
+    MultiFab PR(sol.boxArray(), 4*SSS_MAX+1, nghost);
 
     MultiFab tmp(sol.boxArray(), 4, nghost);
 
@@ -459,10 +489,6 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     MultiFab::Copy(rt,r,0,0,1,0);
     MultiFab::Copy( p,r,0,0,1,0);
-
-    //
-    // TODO - also calculate L2_norm_of_s to check for early exit ???
-    //
 
     const Real           rnorm0        = norm_inf(r);
     Real                 delta         = dotxy(r,rt);
@@ -493,8 +519,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     Real L2_norm_of_resid = 0;
 
     bool BiCGStabFailed = false, BiCGStabConverged = false;
-    
-    for (int m = 0; m < maxiter && !BiCGStabFailed && !BiCGStabConverged; m += SSS)
+
+    for (int m = 0; m < maxiter && !BiCGStabFailed && !BiCGStabConverged; )
     {
         //
         // Compute the matrix powers on p[] & r[] (monomial basis).
@@ -521,7 +547,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
         Lp.apply(PR, PR, lev, temp_bc_mode, false, 2*SSS-1, 2*SSS, 1);
 
-        BuildGramMatrix(Gg, PR, rt);
+        BuildGramMatrix(Gg, PR, rt, SSS);
         //
         // Form G[][] and g[] from Gg.
         //
@@ -680,6 +706,13 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         r.mult(cj[0],0,1);
         for (int i = 1; i < 4*SSS+1; i++)
             sxay(r,r,cj[i],PR,i);
+
+        if (!BiCGStabFailed && !BiCGStabConverged)
+        {
+            m += SSS;
+
+            if (variable_SSS && SSS < SSS_MAX) { SSS++; SetMonomialBasis(Tp,Tpp,SSS); }
+        }
     }
 
     if ( verbose > 0 )
