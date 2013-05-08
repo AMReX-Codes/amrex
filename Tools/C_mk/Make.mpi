@@ -423,7 +423,7 @@ ifeq ($(MACHINE), Linux)
                       ifneq ($(HOST), manda)     # This is Ann Almgren's machine
                       ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
                         ifneq ($(WHICHLINUX), LENS)
-                          BL_MPI_LIBS += -lmpich
+                          #BL_MPI_LIBS += -lmpich
                         endif  
                       endif  
                       endif  
