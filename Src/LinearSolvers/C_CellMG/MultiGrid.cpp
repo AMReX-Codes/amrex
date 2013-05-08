@@ -53,9 +53,9 @@ MultiGrid::Initialize ()
     MultiGrid::def_atol_b                = -1.0;
     MultiGrid::def_verbose               = 0;
     MultiGrid::def_maxiter               = 40;
-    MultiGrid::def_maxiter_b             = 80;
+    MultiGrid::def_maxiter_b             = 120;
     MultiGrid::def_numLevelsMAX          = 1024;
-    MultiGrid::def_smooth_on_cg_unstable = 0;
+    MultiGrid::def_smooth_on_cg_unstable = 1;
 
     // This has traditionally been part of the stopping criteria, but for testing against
     //  other solvers it is convenient to be able to turn it off
@@ -272,6 +272,7 @@ MultiGrid::solve (MultiFab&       _sol,
                   Real            _eps_abs,
                   LinOp::BC_Mode  bc_mode)
 {
+    const Real stime = ParallelDescriptor::second();
     //
     // Prepare memory for new level, and solve the general boundary
     // value problem to within relative error _eps_rel.  Customized
@@ -284,6 +285,13 @@ MultiGrid::solve (MultiFab&       _sol,
     {
         BoxLib::Error("MultiGrid:: failed to converge!");
     }
+    const Real rtime = (ParallelDescriptor::second()-stime);
+
+    if ( verbose > 1 && ParallelDescriptor::IOProcessor() )
+    {
+        std::cout << "MultiGrid solve time on I/O proc: " << rtime << '\n';
+    }
+
 }
 
 int
@@ -586,7 +594,18 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
         bool use_mg_precond = false;
 	CGSolver cg(Lp, use_mg_precond, level);
 	cg.setMaxIter(maxiter_b);
+
+        const Real strt_time = ParallelDescriptor::second();
+
 	int ret = cg.solve(solL, rhsL, rtol_b, atol_b, bc_mode);
+
+        const Real run_time = (ParallelDescriptor::second() - strt_time);
+
+        if (ParallelDescriptor::IOProcessor() && verbose > 1)
+        {
+            std::cout << "MultiGrid CG solve time on I/O proc: " << run_time << '\n';
+        }
+
 	if (ret != 0)
         {
             if (smooth_on_cg_unstable)
