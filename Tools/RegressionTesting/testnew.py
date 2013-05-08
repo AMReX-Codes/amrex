@@ -300,6 +300,9 @@ def LoadParams(file):
         elif (opt == "emailBody"):
             mysuite.emailBody = value
 
+        elif (opt == "globalAddToExecString"):
+            mysuite.globalAddToExecString = value
+
         else:
             warning("WARNING: suite parameter %s not valid" % (opt))
 
@@ -465,9 +468,6 @@ def LoadParams(file):
 
             elif (opt == "addToCompileString"):
                 mytest.addToCompileString = value
-
-            elif (opt == "globalAddToExecString"):
-                mytest.globalAddToExecString = value
 
             else:
                 warning("   WARNING: unrecognized parameter %s for test %s" % (opt, sec))
