@@ -14,7 +14,7 @@
 //
 // The largest value allowed for SSS - the "S" in the Communicaton-avoiding BiCGStab.
 //
-static const int SSS_MAX = 4;
+static const int SSS_MAX = 6;
 
 namespace
 {
