@@ -89,6 +89,8 @@ Amr::Initialize ()
 
     BoxLib::ExecOnFinalize(Amr::Finalize);
 
+    VisMF::Initialize();
+
     initialized = true;
 }
 
@@ -665,7 +667,7 @@ Amr::setRecordGridInfo (const std::string& filename)
         if (!gridlog.good())
             BoxLib::FileOpenFailed(filename);
     }
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("Amr::setRecordGridInfo");
 }
 
 void
@@ -678,7 +680,7 @@ Amr::setRecordRunInfo (const std::string& filename)
         if (!runlog.good())
             BoxLib::FileOpenFailed(filename);
     }
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("Amr::setRecordRunInfo");
 }
 
 void
@@ -691,7 +693,7 @@ Amr::setRecordRunInfoTerse (const std::string& filename)
         if (!runlog_terse.good())
             BoxLib::FileOpenFailed(filename);
     }
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("Amr::setRecordRunInfoTerse");
 }
 
 void
@@ -704,7 +706,7 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
         if (!datalog[i].good())
             BoxLib::FileOpenFailed(filename);
     }
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("Amr::setRecordDataInfo");
 }
 
 void
@@ -796,7 +798,7 @@ Amr::writePlotFile ()
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("Amr::writePlotFile::dir");
 
     std::string HeaderFileName = pltfile + "/Header";
 
@@ -843,7 +845,7 @@ Amr::writePlotFile ()
             std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds" << '\n';
 #endif
     }
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("Amr::writePlotFile::end");
 
   }  // end while
 
@@ -1425,7 +1427,7 @@ Amr::checkPoint ()
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("Amr::checkPoint::dir");
 
     std::string HeaderFileName = ckfile + "/Header";
 
@@ -1509,7 +1511,7 @@ Amr::checkPoint ()
             std::cout << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
 #endif
     }
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
   }  // end while
 
@@ -1779,6 +1781,13 @@ Amr::coarseTimeStep (Real stop_time)
     }
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
+ #ifdef BL_COMM_PROFILING
+    std::stringstream stepName;
+    stepName << "STEP " << level_steps[0];
+    BL_COMM_PROFILE_NAMETAG(stepName.str());
+    BL_COMM_PROFILE_FLUSH();
+ #endif
+
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
         std::cout << "\nSTEP = "
@@ -1862,7 +1871,7 @@ Amr::coarseTimeStep (Real stop_time)
     bUserStopRequest = to_stop;
     if (to_stop)
     {
-        ParallelDescriptor::Barrier();
+        ParallelDescriptor::Barrier("Amr::coarseTimeStep::to_stop");
         if(ParallelDescriptor::IOProcessor()) {
           if (to_checkpoint)
           {

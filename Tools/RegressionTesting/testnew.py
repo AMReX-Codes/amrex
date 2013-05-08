@@ -76,6 +76,7 @@ class testObj:
         self.diffOpts = ""
 
         self.addToCompileString = ""
+        self.globalAddToExecString = ""
 
         self.reClean = 0    # set automatically, not by users
 
@@ -298,6 +299,9 @@ def LoadParams(file):
 
         elif (opt == "emailBody"):
             mysuite.emailBody = value
+
+        elif (opt == "globalAddToExecString"):
+            mysuite.globalAddToExecString = value
 
         else:
             warning("WARNING: suite parameter %s not valid" % (opt))
@@ -1458,7 +1462,7 @@ def testSuite(argv):
         if (suite.useExtraBuild):
             extSrcGitBranch_Orig = doGITUpdate(suite.extraBuildDir, 
                                                suite.extraBuildName, fullWebDir,
-                                               "master"
+                                               "master",
                                                "")
 
     if updateBoxLib or boxLibGitHash:
@@ -1933,11 +1937,11 @@ def testSuite(argv):
 
                 # keep around the checkpoint files only for the restart runs
                 if (test.restartTest):
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.name)
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
                 else:
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.name)
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
 
                 testRunCommand = testRunCommand.replace("@command@", command)
 
@@ -1953,11 +1957,11 @@ def testSuite(argv):
 
                 # keep around the checkpoint files only for the restart runs
 	       if (test.restartTest):
-                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
-                       (executable, test.inputFile, test.name, test.name, test.name)
+                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
+                       (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
                else:
-                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
-                       (executable, test.inputFile, test.name, test.name, test.name)
+                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
+                       (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
 
 	       testRunCommand = testRunCommand.replace("@command@", command)
 
@@ -1968,11 +1972,11 @@ def testSuite(argv):
 
                 # keep around the checkpoint files only for the restart runs
                 if (test.restartTest):
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
                 else:
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
 
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
@@ -1982,11 +1986,11 @@ def testSuite(argv):
 
                 # keep around the checkpoint files only for the restart runs
                 if (test.restartTest):
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.name)
+                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
                 else:
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.name)
+                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
 
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
@@ -2067,8 +2071,8 @@ def testSuite(argv):
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
                     testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
 
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
 
                     testRunCommand = testRunCommand.replace("@command@", command)
                     
@@ -2082,8 +2086,8 @@ def testSuite(argv):
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
                     testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
                     
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
 
                     testRunCommand = testRunCommand.replace("@command@", command)
                     
@@ -2092,8 +2096,8 @@ def testSuite(argv):
 
                 elif (test.useOMP):
 
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
 
                     print "    " + testRunCommand
                     systemCall(testRunCommand)
@@ -2101,8 +2105,8 @@ def testSuite(argv):
 
                 else:
 
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
 
                     print "    " + testRunCommand
                     systemCall(testRunCommand)

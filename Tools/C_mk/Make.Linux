@@ -345,7 +345,7 @@ endif
 ifeq ($(WHICHLINUX), HERA)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
-    CXX := mpiCC
+    CXX := mpig++
     CC  := gcc
     FC  := gfortran
     F90 := gfortran
