@@ -436,7 +436,7 @@ contains
 
     singular    = .false.; if ( present(singular_in) ) singular    = singular_in
     ng_for_res  = 0;       if ( nodal_q(rh)          ) ng_for_res  = 1
-    nodal_solve = .False.; if ( ng_for_res /= 0      ) nodal_solve = .TRUE.
+    nodal_solve = .false.; if ( ng_for_res /= 0      ) nodal_solve = .true.
 
     nodal = nodal_flags(rh)
 
@@ -475,18 +475,13 @@ contains
     ! Make sure to do singular adjustment *before* diagonalization
     if (singular) then
       call setval(ss,ONE)
-      if ( present(nodal_mask) ) then
-         tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
-         tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
-      else
-         tnorms(1) = dot(rh_local, ss, local = .true.)
-         tnorms(2) = dot(      ss, ss, local = .true.)
-      end if
+      tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
+      tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
       call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
       rho    = rtnorms(1)
       volume = rtnorms(2)
       rho    = rho / volume
-      if ( parallel_IOProcessor() .and. verbose > 0) then
+      if ( parallel_IOProcessor() .and. verbose > 0 ) then
          print *,'...singular adjustment to rhs: ',rho
       endif
       call saxpy(rh_local,-rho,ss)
@@ -504,11 +499,7 @@ contains
     call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh); cnt = cnt + 1
 
     call copy(rt, rr)
-    if (present(nodal_mask)) then
-       rho = dot(rt, rr, nodal_mask)
-    else 
-       rho = dot(rt, rr)
-    end if
+    rho      = dot(rt, rr, nodal_mask)
     rho_orig = rho
     !
     ! Elide some reductions by calculating local norms & then reducing all together.
@@ -555,11 +546,7 @@ contains
     rho_1 = ZERO
 
     do i = 1, max_iter
-       if ( present(nodal_mask) ) then
-          rho = dot(rt, rr, nodal_mask)
-       else 
-          rho = dot(rt, rr)
-       end if
+       rho = dot(rt, rr, nodal_mask)
        if ( i == 1 ) then
           call copy(pp, rr)
        else
@@ -586,11 +573,7 @@ contains
        call itsol_precon(aa_local, ph, pp, mm, 0)
        call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
        cnt = cnt + 1
-       if ( present(nodal_mask) ) then
-          den = dot(rt, vv, nodal_mask)
-       else
-          den = dot(rt, vv)
-       end if 
+       den = dot(rt, vv, nodal_mask)
        if ( den == ZERO ) then
           if ( present(stat) ) then
              call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
@@ -615,13 +598,8 @@ contains
        ! Elide a reduction here by calculating the two dot-products
        ! locally and then reducing them both in a single call.
        !
-       if ( present(nodal_mask) ) then
-          tnorms(1) = dot(tt, tt, nodal_mask, local = .true.)
-          tnorms(2) = dot(tt, ss, nodal_mask, local = .true.)
-       else
-          tnorms(1) = dot(tt, tt, local = .true.)
-          tnorms(2) = dot(tt, ss, local = .true.)
-       end if
+       tnorms(1) = dot(tt, tt, nodal_mask, local = .true.)
+       tnorms(2) = dot(tt, ss, nodal_mask, local = .true.)
 
        call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
 
@@ -737,18 +715,16 @@ contains
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
     real(dp_t) :: tnorms(3), rtnorms(3)
 
-    real(dp_t) :: rho_hg, rho_orig, volume, rho_hg_orig, norm_uu
+    real(dp_t) :: rho_orig, volume, rho_hg_orig, norm_uu
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_CG_Solve")
 
     if ( present(stat) ) stat = 0
 
-    singular = .false.
-    if ( present(singular_in) ) singular = singular_in
-
-    ng_for_res = 0; if ( nodal_q(rh) ) ng_for_res = 1
-    nodal_solve = .FALSE.; if ( ng_for_res /= 0 ) nodal_solve = .TRUE.
+    singular    = .false.; if ( present(singular_in) ) singular = singular_in
+    ng_for_res  = 0;       if ( nodal_q(rh)          ) ng_for_res = 1
+    nodal_solve = .false.; if ( ng_for_res /= 0      ) nodal_solve = .true.
 
     nodal = nodal_flags(rh)
 
@@ -786,15 +762,10 @@ contains
     call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh)  
     cnt = cnt + 1
 
-    if (singular .and. nodal_solve) then
+    if ( singular .and. nodal_solve ) then
       call setval(zz,ONE)
-      if (present(nodal_mask)) then
-            rho = dot(rr, zz, nodal_mask)
-         volume = dot(zz,zz)
-      else
-            rho = dot(rr, zz)
-         volume = dot(zz,zz)
-      end if
+      rho = dot(rr, zz, nodal_mask)
+      volume = dot(zz,zz)
       rho = rho / volume
       call saxpy(rr,-rho,zz)
       call setval(zz,ZERO,all=.true.)
@@ -838,22 +809,12 @@ contains
     do i = 1, max_iter
 
        call itsol_precon(aa_local, zz, rr, mm, 0)
-       if (present(nodal_mask)) then
-          rho = dot(rr, zz, nodal_mask)
-       else
-          rho = dot(rr, zz)
-       end if
+       rho = dot(rr, zz, nodal_mask)
        if ( i == 1 ) then
           call copy(pp, zz)
           rho_orig = rho
-
           call itsol_precon(aa_local, zz, rr, mm)
-          if (present(nodal_mask)) then
-             rho_hg_orig = dot(rr, zz, nodal_mask)
-          else
-             rho_hg_orig = dot(rr, zz)
-          end if
-
+          rho_hg_orig = dot(rr, zz, nodal_mask)
        else
           if ( rho_1 == ZERO ) then
              if ( present(stat) ) then
@@ -868,11 +829,7 @@ contains
        end if
        call itsol_stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh) 
        cnt = cnt + 1
-       if (present(nodal_mask)) then
-          den = dot(pp, qq, nodal_mask)
-       else
-          den = dot(pp, qq)
-       end if
+       den = dot(pp, qq, nodal_mask)
        if ( den == ZERO ) then
           if ( present(stat) ) then
              call bl_warn("CG_solve: breakdown in solver, going with what I have")
@@ -889,20 +846,9 @@ contains
           write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i, &
                              rnorm /  (bnorm)
        end if
-       if ( .true. .and. nodal_solve ) then
-          ! HACK, THIS IS USED TO MATCH THE HGPROJ STOPPING CRITERION
-          call itsol_precon(aa_local, zz, rr, mm)
-          if (present(nodal_mask)) then
-             rho_hg = dot(rr, zz, nodal_mask)
-          else
-             rho_hg = dot(rr, zz)
-          end if
-          if ( (abs(rho_hg) < abs(rho_hg_orig)*eps) ) then
-            exit
-          end if
-       else
-          if ( itsol_converged(rr, uu, bnorm, eps) ) exit
-       end if
+
+       if ( itsol_converged(rr, uu, bnorm, eps) ) exit
+
        rho_1 = rho
 
     end do
