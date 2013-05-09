@@ -1242,6 +1242,11 @@ void ParallelDescriptor::ReduceRealMax (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealMin (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealSum (Real*,int,int) {}
 
+void ParallelDescriptor::ReduceLongLongSum (long long&) {}
+void ParallelDescriptor::ReduceLongLongSum (long long&,int) {}
+void ParallelDescriptor::ReduceLongLongSum (long long*,int) {}
+void ParallelDescriptor::ReduceLongLongSum (long long*,int,int) {}
+
 void ParallelDescriptor::ReduceLongAnd (long&) {}
 void ParallelDescriptor::ReduceLongSum (long&) {}
 void ParallelDescriptor::ReduceLongMax (long&) {}
