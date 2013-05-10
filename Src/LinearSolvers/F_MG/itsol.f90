@@ -421,7 +421,7 @@ contains
     type(multifab), intent(in), optional :: nodal_mask
 
     type(layout) :: la
-    type(multifab) :: rr, rt, pp, ph, vv, tt, ss, sh, rh_local, aa_local
+    type(multifab) :: rr, rt, pp, ph, vv, tt, ss, rh_local, aa_local
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
     real(dp_t) :: rho_orig, volume, tres0, small, norm_rr, norm_uu
     real(dp_t) :: tnorms(3),rtnorms(3)
@@ -441,14 +441,19 @@ contains
     nodal = nodal_flags(rh)
 
     la = get_layout(aa)
+
     call multifab_build(rr, la, 1, ng_for_res, nodal)
     call multifab_build(rt, la, 1, ng_for_res, nodal)
     call multifab_build(pp, la, 1, ng_for_res, nodal)
     call multifab_build(ph, la, 1, nghost(uu), nodal)
     call multifab_build(vv, la, 1, ng_for_res, nodal)
     call multifab_build(tt, la, 1, ng_for_res, nodal)
-    call multifab_build(sh, la, 1, nghost(uu), nodal)
     call multifab_build(ss, la, 1, ng_for_res, nodal)
+    !
+    ! Use these for local preconditioning.
+    !
+    call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
+    call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
 
     if ( nodal_solve ) then
        call setval(rr, ZERO, all=.true.)
@@ -459,21 +464,19 @@ contains
        call setval(ss, ZERO, all=.true.)
     end if
 
-    ! Use these for local preconditioning
-    call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
-    call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
-
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
-
+    !
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    !
     do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
     end do
-
-    ! Make sure to do singular adjustment *before* diagonalization
-    if (singular) then
+    !
+    ! Make sure to do singular adjustment *before* diagonalization.
+    !
+    if ( singular ) then
       call setval(ss,ONE)
       tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
       tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
@@ -488,14 +491,14 @@ contains
       call setval(ss,ZERO,all=.true.)
     end if
 
-    call diag_initialize(aa_local,rh_local,mm)
-    diag_inited = .true.
+    call diag_initialize(aa_local,rh_local,mm); diag_inited = .true.
 
     call copy(ph, uu, ng = nghost(ph))
-    call copy(sh, uu, ng = nghost(sh))
 
     cnt = 0
-    ! compute rr = aa * uu - rh
+    !
+    ! Compute rr = aa * uu - rh.
+    !
     call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh); cnt = cnt + 1
 
     call copy(rt, rr)
@@ -513,11 +516,10 @@ contains
     tres0 = rtnorms(1)
     bnorm = rtnorms(2)
     Anorm = rtnorms(3)
-
     small = epsilon(Anorm)
 
-    if ( parallel_IOProcessor() .and. verbose > 0) then
-       if (diag_inited) then
+    if ( parallel_IOProcessor() .and. verbose > 0 ) then
+       if ( diag_inited ) then
           write(*,*) "   BiCGStab: A and rhs have been rescaled. So do the error."
        end if
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
@@ -591,8 +593,8 @@ contains
                rnorm  /  (bnorm)
        end if
        if ( itsol_converged(ss, uu, bnorm, eps) ) exit
-       call itsol_precon(aa_local, sh, ss, mm,0)
-       call itsol_stencil_apply(aa_local, tt, sh, mm, stencil_type, lcross, uniform_dh) 
+       call itsol_precon(aa_local, ph, ss, mm,0)
+       call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh) 
        cnt = cnt + 1
        !
        ! Elide a reduction here by calculating the two dot-products
@@ -615,10 +617,10 @@ contains
           call bl_error("BiCGStab: failure 3")
        end if
        omega = omega/den
-       call saxpy(uu, omega, sh)
+       call saxpy(uu, omega, ph)
        call saxpy(rr, ss, -omega, tt)
        rnorm = norm_inf(rr)
-       if ( parallel_IOProcessor() .and. verbose > 1) then
+       if ( parallel_IOProcessor() .and. verbose > 1 ) then
           write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, &
                rnorm /  (bnorm)
        end if
@@ -655,7 +657,7 @@ contains
        end if
     end if
 
-    if (rnorm > bnorm) then
+    if ( rnorm > bnorm ) then
        call setval(uu,ZERO,all=.true.)
        if ( present(stat) ) stat = 1
        if ( verbose > 0 .and.  parallel_IOProcessor() ) &
@@ -680,7 +682,6 @@ contains
     call destroy(ph)
     call destroy(vv)
     call destroy(tt)
-    call destroy(sh)
     call destroy(ss)
 
     call destroy(bpt)
