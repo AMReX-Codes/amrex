@@ -231,7 +231,8 @@ protected:
     // Return scalar estimate of error
     //
     Real errorEstimate (int            level,
-                        LinOp::BC_Mode bc_mode);
+                        LinOp::BC_Mode bc_mode,
+                        bool           local = false);
     //
     // Transfer MultiFab from fine to coarse level
     //

@@ -118,14 +118,15 @@ MultiGrid::Finalize ()
 
 static
 Real
-norm_inf (const MultiFab& res)
+norm_inf (const MultiFab& res, bool local = false)
 {
     Real restot = 0.0;
     for (MFIter mfi(res); mfi.isValid(); ++mfi) 
     {
         restot = std::max(restot, res[mfi].norm(mfi.validbox(), 0));
     }
-    ParallelDescriptor::ReduceRealMax(restot);
+    if ( !local )
+        ParallelDescriptor::ReduceRealMax(restot);
     return restot;
 }
 
@@ -213,10 +214,11 @@ MultiGrid::~MultiGrid ()
 
 Real
 MultiGrid::errorEstimate (int            level,
-                          LinOp::BC_Mode bc_mode)
+                          LinOp::BC_Mode bc_mode,
+                          bool           local)
 {
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
-    return norm_inf(*res[level]);
+    return norm_inf(*res[level], local);
 }
 
 void
@@ -293,10 +295,17 @@ MultiGrid::solve_ (MultiFab&      _sol,
   // Relax system maxiter times, stop if relative error <= _eps_rel or
   // if absolute err <= _abs_eps
   //
-  const Real strt_time   = ParallelDescriptor::second();
-  const Real norm_rhs    = norm_inf(*rhs[level]);
+  const Real strt_time = ParallelDescriptor::second();
+  //
+  // Elide a reduction by doing these together.
+  //
+  Real tmp[2] = { norm_inf(*rhs[level],true), errorEstimate(level,bc_mode,true) };
+
+  ParallelDescriptor::ReduceRealMax(tmp,2);
+
+  const Real norm_rhs  = tmp[0];
+  const Real error0    = tmp[1];
   int        returnVal = 0;
-  const Real error0    = errorEstimate(level, bc_mode);
   Real       error     = error0;
 
   if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
@@ -334,11 +343,13 @@ MultiGrid::solve_ (MultiFab&      _sol,
            ++nit)
      {
          relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode, cg_time);
-         //
-         // TODO - do these norms together!
-         //
-         norm_cor = norm_inf(*cor[level]);
-         error    = errorEstimate(level, bc_mode);
+
+         Real tmp[2] = { norm_inf(*cor[level],true), errorEstimate(level,bc_mode,true) };
+
+         ParallelDescriptor::ReduceRealMax(tmp,2);
+
+         norm_cor = tmp[0];
+         error    = tmp[1];
 	
          if ( ParallelDescriptor::IOProcessor() && verbose > 1 )
          {
@@ -393,10 +404,10 @@ MultiGrid::solve_ (MultiFab&      _sol,
       {
           Real tmp[2] = { run_time, cg_time };
 
-          ParallelDescriptor::ReduceRealMax(tmp,2);
+          ParallelDescriptor::ReduceRealMax(tmp,2,ParallelDescriptor::IOProcessorNumber());
 
           if ( ParallelDescriptor::IOProcessor() )
-              std::cout << ", time: " << run_time << ", CG time: " << cg_time << '\n';
+              std::cout << ", Solve time: " << tmp[0] << ", CG time: " << tmp[1] << '\n';
       }
 
       if ( ParallelDescriptor::IOProcessor() ) std::cout << '\n';
