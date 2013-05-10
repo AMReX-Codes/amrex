@@ -1364,7 +1364,7 @@ contains
                       mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
        if ( mgt%verbose > 0 ) then
           t1 = norm_inf(mgt%dd(mgt%nlevels),local=.true.)
-          call parallel_reduce(t2,t1,MPI_MAX,parallel_IOProcessorNode())
+          call parallel_reduce(t2,t1,MPI_MAX,proc=parallel_IOProcessorNode())
           if ( parallel_IOProcessor() ) then
              write(unit=*, fmt='(i3,": Ninf(defect) = ",g15.8)') it, t2
           end if
