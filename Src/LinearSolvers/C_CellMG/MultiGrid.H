@@ -250,7 +250,8 @@ protected:
                 int            level,
                 Real           eps_rel,
                 Real           eps_abs,
-                LinOp::BC_Mode bc_mode);
+                LinOp::BC_Mode bc_mode,
+                Real&          cg_time);
     //
     // Perform relaxation at bottom of V-cycle
     //
@@ -260,7 +261,8 @@ protected:
                          Real           eps_rel,
                          Real           eps_abs,
                          LinOp::BC_Mode bc_mode,
-                         int            local_usecg);
+                         int            local_usecg,
+                         Real&          cg_time);
 private:
     //
     // default flag, whether to use CG at bottom of MG cycle
