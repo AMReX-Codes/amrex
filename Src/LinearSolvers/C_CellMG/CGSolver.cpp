@@ -724,26 +724,36 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         for (int i = 1; i < 4*SSS+1; i++)
             sxay(r,r,cj[i],PR,i);
 
-        if (!BiCGStabFailed && !BiCGStabConverged)
+        if ( !BiCGStabFailed && !BiCGStabConverged )
         {
             m += SSS;
 
-            if (variable_SSS && SSS < SSS_MAX) { SSS++; SetMonomialBasis(Tp,Tpp,SSS); }
+            if ( variable_SSS && SSS < SSS_MAX ) { SSS++; SetMonomialBasis(Tp,Tpp,SSS); }
         }
     }
 
-    if ( verbose > 0 && ParallelDescriptor::IOProcessor() )
+    if ( verbose > 0 )
     {
-        Spacer(std::cout, lev);
-        std::cout << "CGSolver_CABiCGStab: Final: Iteration "
-                  << std::setw(4) << niters
-                  << " rel. err. "
-                  << L2_norm_of_resid << '\n';
+        if ( ParallelDescriptor::IOProcessor() )
+        {
+            Spacer(std::cout, lev);
+            std::cout << "CGSolver_CABiCGStab: Final: Iteration "
+                      << std::setw(4) << niters
+                      << " rel. err. "
+                      << L2_norm_of_resid << '\n';
+        }
 
         if ( verbose > 1 )
         {
-            Spacer(std::cout, lev);
-            std::cout << "CGSolver_CABiCGStab apply time: " << atime << ", gram time: " << gtime << " on I/O proc\n";
+            Real tmp[2] = { atime, gtime };
+
+            ParallelDescriptor::ReduceRealMax(tmp,2,ParallelDescriptor::IOProcessorNumber());
+
+            if ( ParallelDescriptor::IOProcessor() )
+            {
+                Spacer(std::cout, lev);
+                std::cout << "CGSolver_CABiCGStab apply time: " << tmp[0] << ", gram time: " << tmp[1] << '\n';
+            }
         }
     }
 
@@ -813,7 +823,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     //
     Real vals[2] = { norm_inf(r, true), Lp.norm(0, lev, true) };
 
-    ParallelDescriptor::ReduceRealMax(&vals[0],2);
+    ParallelDescriptor::ReduceRealMax(vals,2);
 
     Real       rnorm    = vals[0];
     const Real Lp_norm  = vals[1];
@@ -924,7 +934,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         //
         Real vals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
 
-        ParallelDescriptor::ReduceRealSum(&vals[0],2);
+        ParallelDescriptor::ReduceRealSum(vals,2);
 
         if ( vals[0] )
 	{
