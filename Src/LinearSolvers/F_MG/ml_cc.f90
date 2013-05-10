@@ -680,16 +680,11 @@ contains
     call destroy(bpt)
 
     if (solved) then
-       if ( present(final_resnorm) ) &
-            final_resnorm = ni_res
-       
-       r2 = parallel_wtime() - r1
-       
+       if ( present(final_resnorm) ) final_resnorm = ni_res
+       r2 = (parallel_wtime() - r1)
        call parallel_reduce(r1, r2, MPI_MAX, proc = parallel_IOProcessorNode())
-       
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             print*, 'Solve Time = ', r1
-       
     endif
 
   contains
@@ -711,6 +706,7 @@ contains
 
       ni_res = t2(1)
       ni_sol = t2(2)
+      !
       !     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
       !          ni_res <= abs_eps .or. &
       !          ni_res <= epsilon(Anorm)*Anorm
@@ -739,6 +735,7 @@ contains
 
       ni_res = t2(1)
       ni_sol = t2(2)
+      !
       !     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
       !          ni_res <= abs_eps .or. &
       !          ni_res <= epsilon(Anorm)*Anorm
@@ -747,9 +744,9 @@ contains
            ni_res <= abs_eps 
 
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
-         if (ni_res <= rel_eps*bnorm) then
+         if ( ni_res <= rel_eps*bnorm ) then
             print *,'Converged res < rel_eps*bnorm '
-         else if (ni_res <= abs_eps) then
+         else if ( ni_res <= abs_eps ) then
             print *,'Converged res < abs_eps '
             !        else if (ni_res <= rel_eps*Anorm*ni_sol) then
             !           print *,'Converged res < rel_eps*Anorm*sol'
@@ -760,9 +757,5 @@ contains
     end function ml_converged
 
   end subroutine ml_cc
-
-  !
-  ! ******************************************************************************************
-  !
 
 end module ml_cc_module

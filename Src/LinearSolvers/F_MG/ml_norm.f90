@@ -15,9 +15,9 @@ contains
     real(dp_t)                    :: r, r1
     integer                       :: n,nlevs
     nlevs = size(mf)
-    r = norm_inf(mf(nlevs))
+    r = norm_inf(mf(nlevs),local=local)
     do n = nlevs-1, 1, -1
-       r1 = norm_inf(mf(n), mask(n), local)
+       r1 = norm_inf(mf(n), mask(n), local=local)
        r = max(r1, r)
     end do
   end function ml_norm_inf
