@@ -14,7 +14,7 @@
 //
 // The largest value allowed for SSS - the "S" in the Communicaton-avoiding BiCGStab.
 //
-static const int SSS_MAX = 6;
+static const int SSS_MAX = 4;
 
 namespace
 {
@@ -149,13 +149,28 @@ norm_inf (const MultiFab& res, bool local = false)
 {
     Real restot = 0;
 
+#if 1
     for (MFIter mfi(res); mfi.isValid(); ++mfi) 
     {
         restot = std::max(restot, res[mfi].norm(mfi.validbox(), 0));
     }
-
     if ( !local )
         ParallelDescriptor::ReduceRealMax(restot);
+#else
+    //
+    // This is here so I can "test" BiCGStab -vs- CABiCGStab in a "different" way.
+    // The CA algorithm uses the L2 norm exclusively.  In our BiCGStab algorithm
+    // when using the "OLD" convergence criterion, if I use the L2 norm here the
+    // two BiCG algorithms more closely match each other.
+    //
+    for (MFIter mfi(res); mfi.isValid(); ++mfi) 
+    {
+        restot += res[mfi].norm(mfi.validbox(), 2);
+    }
+    if ( !local )
+        ParallelDescriptor::ReduceRealSum(restot);
+    restot = sqrt(restot);
+#endif
 
     return restot;
 }
@@ -635,11 +650,16 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             axpy(temp1, 1.0,       cj,-alpha,  Tpaj, 4*SSS+1);
             gemv(temp2, 1.0, G, temp1,   0.0, temp2, 4*SSS+1, 4*SSS+1);
 
-            L2_norm_of_resid = dot(temp1,temp2,4*SSS+1);
+            const Real L2_norm_of_s = dot(temp1,temp2,4*SSS+1);
 
-            L2_norm_of_resid = (L2_norm_of_resid < 0 ? 0 : sqrt(L2_norm_of_resid));
+            L2_norm_of_resid = (L2_norm_of_s < 0 ? 0 : sqrt(L2_norm_of_s));
 
-            if ( L2_norm_of_resid < eps_rel*L2_norm_of_rt ) { BiCGStabConverged = true; break; }
+            if ( L2_norm_of_resid < eps_rel*L2_norm_of_rt )
+            {
+                if ( verbose > 1 && L2_norm_of_resid == 0 && ParallelDescriptor::IOProcessor() )
+                    std::cout << "CGSolver_CABiCGStab: L2 norm of s: " << L2_norm_of_s << '\n';
+                BiCGStabConverged = true; break;
+            }
 
             if ( omega_denominator == 0 )
             {
@@ -675,11 +695,16 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             // However, finite precision can lead to the norm^2 being < 0 (Jim Demmel).
             // If cj_dot_Gcj < 0 we flush to zero and consider ourselves converged.
             //
-            const Real cj_dot_Gcj = dot(cj, temp1, 4*SSS+1);
+            const Real L2_norm_of_r = dot(cj, temp1, 4*SSS+1);
 
-            L2_norm_of_resid = (cj_dot_Gcj > 0 ? sqrt(cj_dot_Gcj) : 0);
+            L2_norm_of_resid = (L2_norm_of_r > 0 ? sqrt(L2_norm_of_r) : 0);
 
-            if ( L2_norm_of_resid < eps_rel*L2_norm_of_rt ) { BiCGStabConverged = true; break; }
+            if ( L2_norm_of_resid < eps_rel*L2_norm_of_rt )
+            {
+                if ( verbose > 1 && L2_norm_of_resid == 0 && ParallelDescriptor::IOProcessor() )
+                    std::cout << "CGSolver_CABiCGStab: L2_norm_of_r: " << L2_norm_of_r << '\n';
+                BiCGStabConverged = true; break;
+            }
 
             const Real delta_next = dot(g, cj, 4*SSS+1);
 
