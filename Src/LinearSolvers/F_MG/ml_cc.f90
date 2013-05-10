@@ -52,7 +52,7 @@ contains
     real(dp_t) :: tres, ttres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
-    real(dp_t) :: r1,r2
+    real(dp_t) :: r1,r2,t1(2),t2(2)
     logical :: solved
 
     type(bl_prof_timer), save :: bpt
@@ -115,15 +115,27 @@ contains
        call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
             mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     end do
-    bnorm = ml_norm_inf(rh,fine_mask)
+    !
+    ! Let's elide some reductions by doing there reductions together.
+    !
+    bnorm = ml_norm_inf(rh,fine_mask,local=.true.)
 
-    Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
+    Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels),local=.true.)
     do n = 1, nlevs-1
-       Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels),fine_mask(n)),Anorm)
+       Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels),fine_mask(n),local=.true.),Anorm)
     end do
 
-    !   First we must restrict the final solution onto coarser levels, because those coarse
-    !   cells may be used to construct slopes in the interpolation of the boundary conditions
+    t1(1) = bnorm
+    t1(2) = Anorm
+
+    call parallel_reduce(t2, t1, MPI_MAX)
+
+    bnorm = t2(1)
+    Anorm = t2(2)
+    !
+    ! First we must restrict the final solution onto coarser levels, because those coarse
+    ! cells may be used to construct slopes in the interpolation of the boundary conditions.
+    !
     do n = nlevs,2,-1
        mglev      = mgt(n  )%nlevels
        mglev_crse = mgt(n-1)%nlevels
@@ -172,11 +184,19 @@ contains
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
             mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
-
+    !
     ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
     ! Only test on lowest mg level of lowest AMR level -- this should be cheapest
-    coeff_sum = max_of_stencil_sum(mgt(1)%ss(1)) 
-    coeff_max = stencil_norm(mgt(1)%ss(1)) 
+    !
+    ! Elide one of these reductions.
+    !
+    t1(1) = max_of_stencil_sum(mgt(1)%ss(1),local=.true.) 
+    t1(2) = stencil_norm(mgt(1)%ss(1),local=.true.) 
+
+    call parallel_reduce(t2, t1, MPI_MAX)
+
+    coeff_sum = t2(1)
+    coeff_max = t2(2)
 
     if ( coeff_sum .lt. (1.d-12 * coeff_max) ) then
        mgt(1)%coeffs_sum_to_zero = .true.
@@ -595,7 +615,6 @@ contains
        end if
 
     endif
-
 
     if (solved) then
        do n = 1,nlevs
