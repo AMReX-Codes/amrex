@@ -1277,7 +1277,7 @@ contains
     logical, intent(in), optional :: defect_history
     integer :: gamma
     integer :: it, cyc
-    real(dp_t) :: ynorm, Anorm, nrm(3)
+    real(dp_t) :: ynorm, Anorm, nrm(3), tnrm(3), t1, t2
     integer :: n_qq, i_qq
     logical :: ldef
     type(bl_prof_timer), save :: bpt
@@ -1305,8 +1305,16 @@ contains
        n_qq = size(qq)
     end if
     cyc   = mgt%cycle_type
-    Anorm = stencil_norm(mgt%ss(mgt%nlevels))
-    ynorm = norm_inf(rh)
+    !
+    ! Let's elide a reduction here.
+    !
+    nrm(1) = stencil_norm(mgt%ss(mgt%nlevels),local=.true.)
+    nrm(2) = norm_inf(rh,local=.true.)
+
+    call parallel_reduce(tnrm(1:2),nrm(1:2),MPI_MAX)
+
+    Anorm = tnrm(1)
+    ynorm = tnrm(2)
 
     ! compute mgt%dd(mgt%nlevels) = mgt%ss(mgt%nlevels) * uu - rh
     call mg_defect(mgt%ss(mgt%nlevels), &
@@ -1322,9 +1330,18 @@ contains
     end if
 
     if ( mgt%verbose > 0 ) then
-       nrm(3) = norm_inf(mgt%dd(mgt%nlevels))
-       nrm(1) = norm_inf(uu)
-       nrm(2) = norm_inf(rh)
+       !
+       ! Let's elide a couple reductions here.
+       !
+       nrm(3) = norm_inf(mgt%dd(mgt%nlevels),local=.true.)
+       nrm(1) = norm_inf(uu,local=.true.)
+       nrm(2) = norm_inf(rh,local=.true.)
+
+       call parallel_reduce(tnrm,nrm,MPI_MAX)
+
+       nrm(3) = tnrm(3)
+       nrm(1) = tnrm(1)
+       nrm(2) = tnrm(2)
        if ( parallel_IOProcessor() ) then
           write(unit=*, &
                fmt='(i3,": Unorm= ",g15.8,", Rnorm= ",g15.8,", Ninf(defect) = ",g15.8, ", Anorm=",g15.8)') &
@@ -1346,9 +1363,10 @@ contains
                       mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), &
                       mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
        if ( mgt%verbose > 0 ) then
-          nrm(1) = norm_inf(mgt%dd(mgt%nlevels))
+          t1 = norm_inf(mgt%dd(mgt%nlevels),local=.true.)
+          call parallel_reduce(t2,t1,MPI_MAX,parallel_IOProcessorNode())
           if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='(i3,": Ninf(defect) = ",g15.8)') it, nrm(1)
+             write(unit=*, fmt='(i3,": Ninf(defect) = ",g15.8)') it, t2
           end if
        end if
        if ( i_qq < n_qq ) then
