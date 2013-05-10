@@ -94,16 +94,20 @@ contains
     call destroy(bpt)
   end function stencil_norm
 
-  function max_of_stencil_sum(ss, mask) result(r)
+  function max_of_stencil_sum(ss, mask, local) result(r)
     use bl_prof_module
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
+    logical, intent(in), optional :: local
     integer :: i,j,k,n,b
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
+    logical :: llocal
     type(bl_prof_timer), save :: bpt
+
+    llocal = .false.; if ( present(local) ) llocal = local
 
     ! NOTE: this is exactly the same as the stencil_norm function except that we sum the
     !       components of the stencil, not the absolute value of each component
@@ -145,7 +149,10 @@ contains
        end do
     end if
 
-    call parallel_reduce(r,r1,MPI_MAX)
+    r = r1
+
+    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_MAX)
+
     call destroy(bpt)
   end function max_of_stencil_sum
 
