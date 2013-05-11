@@ -35,7 +35,7 @@ contains
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
     logical, intent(in), optional :: local
-    integer :: i,j,k,n,b
+    integer :: i,j,k,n,b,lo(4),hi(4)
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
@@ -46,6 +46,9 @@ contains
 
     llocal = .false.; if ( present(local) ) llocal = local
 
+    lo = lbound(sp)
+    hi = ubound(sp)
+
     r1 = -Huge(r1)
 
     if ( present(mask) ) then
@@ -53,12 +56,12 @@ contains
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
-          do k = lbound(sp,dim=4), ubound(sp,dim=4)
-             do j = lbound(sp,dim=3), ubound(sp,dim=3)
-                do i = lbound(sp,dim=2), ubound(sp,dim=2)
+          do k = lo(4), hi(4)
+             do j = lo(3), hi(3)
+                do i = lo(2), hi(2)
                    if ( lp(i,j,k,1) ) then
                       sum_comps = ZERO
-                      do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                      do n = lo(1), hi(1)
                          sum_comps = sum_comps + abs(sp(n,i,j,k))
                       end do
                       r1 = max(r1,sum_comps)
@@ -72,11 +75,11 @@ contains
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
-          do k = lbound(sp,dim=4), ubound(sp,dim=4)
-             do j = lbound(sp,dim=3), ubound(sp,dim=3)
-                do i = lbound(sp,dim=2), ubound(sp,dim=2)
+          do k = lo(4), hi(4)
+             do j = lo(3), hi(3)
+                do i = lo(2), hi(2)
                    sum_comps = ZERO
-                   do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                   do n = lo(1), hi(1)
                       sum_comps = sum_comps + abs(sp(n,i,j,k))
                    end do
                    r1 = max(r1,sum_comps)
@@ -100,7 +103,7 @@ contains
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
     logical, intent(in), optional :: local
-    integer :: i,j,k,n,b
+    integer :: i,j,k,n,b,lo(4),hi(4)
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
@@ -118,12 +121,13 @@ contains
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
-          do k = lbound(sp,dim=4), ubound(sp,dim=4)
-             do j = lbound(sp,dim=3), ubound(sp,dim=3)
-                do i = lbound(sp,dim=2), ubound(sp,dim=2)
+          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
+          do k = lo(4), hi(4)
+             do j = lo(3), hi(3)
+                do i = lo(2), hi(2)
                    if ( lp(i,j,k,1) ) then
                       sum_comps = ZERO
-                      do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                      do n = lo(1), hi(1)
                          sum_comps = sum_comps + sp(n,i,j,k)
                       end do
                       r1 = max(r1,sum_comps)
@@ -131,21 +135,24 @@ contains
                 end do
              end do
           end do
+          !$OMP END PARALLEL DO
        end do
     else
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
-          do k = lbound(sp,dim=4), ubound(sp,dim=4)
-             do j = lbound(sp,dim=3), ubound(sp,dim=3)
-                do i = lbound(sp,dim=2), ubound(sp,dim=2)
+          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
+          do k = lo(4), hi(4)
+             do j = lo(3), hi(3)
+                do i = lo(2), hi(2)
                    sum_comps = ZERO
-                   do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                   do n = lo(1), hi(1)
                       sum_comps = sum_comps + sp(n,i,j,k)
                    end do
                    r1 = max(r1,sum_comps)
                 end do
              end do
           end do
+          !$OMP END PARALLEL DO
        end do
     end if
 
