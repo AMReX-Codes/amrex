@@ -288,7 +288,7 @@ contains
     type(box), intent(in) :: bx
     integer,   intent(in) :: c, nc
 
-    integer                      :: sz, rc, i, j, k, n, idx
+    integer                      :: sz, rc, i, j, k, n, idx, lo(4), hi(4)
     real(kind=dp_t), allocatable :: d(:)
     real(kind=dp_t), pointer     :: pp(:,:,:,:)
 
@@ -309,11 +309,14 @@ contains
 
     pp => dataptr(fb,bx,c,nc)
 
+    lo = lbound(pp)
+    hi = ubound(pp)
+
     idx = 1
-    do n = lbound(pp,dim=4), ubound(pp,dim=4)
-       do k = lbound(pp,dim=3), ubound(pp,dim=3)
-          do j = lbound(pp,dim=2), ubound(pp,dim=2)
-             do i = lbound(pp,dim=1), ubound(pp,dim=1)
+    do n = lo(4), hi(4)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 d(idx) = pp(i,j,k,n)
                 idx = idx + 1
              end do
@@ -376,7 +379,7 @@ contains
     type(box), intent(in) :: bx
     integer,   intent(in) :: c, nc
 
-    integer                      :: sz, rc, i, j, k, n, idx
+    integer                      :: sz, rc, i, j, k, n, idx, lo(4), hi(4)
     real(kind=dp_t), allocatable :: d(:)
     real(kind=dp_t), pointer     :: pp(:,:,:,:)
 
@@ -397,11 +400,14 @@ contains
 
     pp => dataptr(fb,bx,c,nc)
 
+    lo = lbound(pp)
+    hi = ubound(pp)
+
     idx = 1
-    do n = lbound(pp,dim=4), ubound(pp,dim=4)
-       do k = lbound(pp,dim=3), ubound(pp,dim=3)
-          do j = lbound(pp,dim=2), ubound(pp,dim=2)
-             do i = lbound(pp,dim=1), ubound(pp,dim=1)
+    do n = lo(4), hi(4)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 d(idx) = pp(i,j,k,n)
                 idx = idx + 1
              end do
