@@ -149,28 +149,13 @@ norm_inf (const MultiFab& res, bool local = false)
 {
     Real restot = 0;
 
-#if 1
     for (MFIter mfi(res); mfi.isValid(); ++mfi) 
     {
         restot = std::max(restot, res[mfi].norm(mfi.validbox(), 0));
     }
+
     if ( !local )
         ParallelDescriptor::ReduceRealMax(restot);
-#else
-    //
-    // This is here so I can "test" BiCGStab -vs- CABiCGStab in a "different" way.
-    // The CA algorithm uses the L2 norm exclusively.  In our BiCGStab algorithm
-    // when using the "OLD" convergence criterion, if I use the L2 norm here the
-    // two BiCG algorithms more closely match each other.
-    //
-    for (MFIter mfi(res); mfi.isValid(); ++mfi) 
-    {
-        restot += res[mfi].norm(mfi.validbox(), 2);
-    }
-    if ( !local )
-        ParallelDescriptor::ReduceRealSum(restot);
-    restot = sqrt(restot);
-#endif
 
     return restot;
 }
@@ -416,8 +401,9 @@ BuildGramMatrix (Real*           Gg,
     //
     // Gg is dimensioned (Ncols*Nrows).
     //
-    // We take advantage of the symmetry in Gg.
-    //
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,1)
+#endif
     for (int mm = 0; mm < Nrows; mm++)
     {
         for (int nn = mm; nn < Nrows; nn++)
@@ -425,12 +411,17 @@ BuildGramMatrix (Real*           Gg,
             Gg[mm*Ncols + nn] = dotxy(PR, mm, PR, nn, true);
         }
 
+        Gg[mm*Ncols + Nrows] = dotxy(PR, mm, rt, 0, true);
+    }
+    //
+    // Fill in strict lower triangle using symmetry.
+    //
+    for (int mm = 0; mm < Nrows; mm++)
+    {
         for (int nn = 0; nn < mm; nn++)
         {
             Gg[mm*Ncols + nn] = Gg[nn*Ncols + mm];
         }
-
-        Gg[mm*Ncols + Nrows] = dotxy(PR, mm, rt, 0, true);
     }
 
     ParallelDescriptor::ReduceRealSum(Gg, Nrows*Ncols);
