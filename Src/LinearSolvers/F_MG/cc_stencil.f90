@@ -46,15 +46,14 @@ contains
 
     llocal = .false.; if ( present(local) ) llocal = local
 
-    lo = lbound(sp)
-    hi = ubound(sp)
-
     r1 = -Huge(r1)
 
     if ( present(mask) ) then
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lo(4), hi(4)
              do j = lo(3), hi(3)
@@ -74,6 +73,8 @@ contains
     else
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lo(4), hi(4)
              do j = lo(3), hi(3)
@@ -112,6 +113,8 @@ contains
 
     llocal = .false.; if ( present(local) ) llocal = local
 
+
+
     ! NOTE: this is exactly the same as the stencil_norm function except that we sum the
     !       components of the stencil, not the absolute value of each component
 
@@ -121,6 +124,8 @@ contains
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lo(4), hi(4)
              do j = lo(3), hi(3)
@@ -140,6 +145,8 @@ contains
     else
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
           !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lo(4), hi(4)
              do j = lo(3), hi(3)
