@@ -283,9 +283,12 @@ namespace BoxLib
 	void reload ();
     private:
 	enum { N = 624 };
-	unsigned long init_seed;
-	unsigned long mt[N];	// the array for the state vector
-	int mti;		// mti==N+1 means mt[N] is not initialized
+        static unsigned long init_seed;
+        static unsigned long mt[N];	// the array for the state vector
+        static int mti;		// mti==N+1 means mt[N] is not initialized
+#ifdef _OPENMP
+#pragma omp threadprivate(init_seed,mt,mti)
+#endif
     };
 
     class expect;
