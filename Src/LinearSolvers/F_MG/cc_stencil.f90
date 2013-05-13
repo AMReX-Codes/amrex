@@ -35,7 +35,7 @@ contains
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
     logical, intent(in), optional :: local
-    integer :: i,j,k,n,b,lo(4),hi(4)
+    integer :: i,j,k,n,b,lo(4),hi(4),cnt
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
@@ -48,13 +48,15 @@ contains
 
     r1 = -Huge(r1)
 
+    cnt = nfabs(ss)
+
     if ( present(mask) ) then
-       do b = 1, nfabs(ss)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1) if (cnt>1)
+       do b = 1, cnt
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
           lo =  lbound(sp)
           hi =  ubound(sp)
-          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lo(4), hi(4)
              do j = lo(3), hi(3)
                 do i = lo(2), hi(2)
@@ -68,14 +70,14 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end do
+       !OMP END PARALLEL DO
     else
-       do b = 1, nfabs(ss)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1) if (cnt>1)
+       do b = 1, cnt
           sp => dataptr(ss, b)
           lo =  lbound(sp)
           hi =  ubound(sp)
-          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lo(4), hi(4)
              do j = lo(3), hi(3)
                 do i = lo(2), hi(2)
@@ -87,8 +89,8 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end do
+       !OMP END PARALLEL DO
     end if
 
     r = r1
@@ -104,7 +106,7 @@ contains
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
     logical, intent(in), optional :: local
-    integer :: i,j,k,n,b,lo(4),hi(4)
+    integer :: i,j,k,n,b,lo(4),hi(4),cnt
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
@@ -112,21 +114,23 @@ contains
     type(bl_prof_timer), save :: bpt
 
     llocal = .false.; if ( present(local) ) llocal = local
-
-
-
+    !
     ! NOTE: this is exactly the same as the stencil_norm function except that we sum the
-    !       components of the stencil, not the absolute value of each component
-
+    ! components of the stencil, not the absolute value of each component.
+    !
     call build(bpt, "st_sum")
+
     r1 = -Huge(r1)
+
+    cnt = nfabs(ss)
+
     if ( present(mask) ) then
-       do b = 1, nfabs(ss)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1) if (cnt>1)
+       do b = 1, cnt
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
           lo =  lbound(sp)
           hi =  ubound(sp)
-          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lo(4), hi(4)
              do j = lo(3), hi(3)
                 do i = lo(2), hi(2)
@@ -140,14 +144,14 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end do
+       !OMP END PARALLEL DO
     else
-       do b = 1, nfabs(ss)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1) if (cnt>1)
+       do b = 1, cnt
           sp => dataptr(ss, b)
           lo =  lbound(sp)
           hi =  ubound(sp)
-          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
           do k = lo(4), hi(4)
              do j = lo(3), hi(3)
                 do i = lo(2), hi(2)
@@ -159,8 +163,8 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end do
+       !$OMP END PARALLEL DO
     end if
 
     r = r1
