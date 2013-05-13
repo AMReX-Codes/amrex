@@ -20,6 +20,10 @@
 
 #include <ParallelDescriptor.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #ifdef WIN32
 #include <direct.h>
 #define mkdir(a,b) _mkdir((a))
@@ -507,7 +511,7 @@ BoxLib::Time::get_time()
     return Time(BoxLib::wsecond());
 }
 
-
+
 //
 // BoxLib Interface to Mersenne Twistor
 //
@@ -538,6 +542,10 @@ BoxLib::Time::get_time()
 /* Pseudo-Random Number Generator",                                */
 /* ACM Transactions on Modeling and Computer Simulation,           */
 /* Vol. 8, No. 1, January 1998, pp 3--30.                          */
+
+unsigned long BoxLib::mt19937::init_seed;
+unsigned long BoxLib::mt19937::mt[BoxLib::mt19937::N];
+int           BoxLib::mt19937::mti;
 
 //
 // initializing with a NONZERO seed.
@@ -641,11 +649,19 @@ BoxLib::mt19937::igenrand()
 }
 
 BoxLib::mt19937::mt19937(unsigned long seed)
-    :
-    init_seed(seed),
-    mti(N)
 {
-    sgenrand(seed);
+#ifdef _OPENMP
+#pragma omp parallel
+  {
+    init_seed = seed + omp_get_thread_num();
+#else
+    init_seed = seed;
+#endif
+    mti = N;
+    sgenrand(init_seed);
+#ifdef _OPENMP
+  }
+#endif
 }
 
 BoxLib::mt19937::mt19937 (unsigned long seed_array[], int len)
