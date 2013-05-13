@@ -651,9 +651,10 @@ BoxLib::mt19937::igenrand()
 BoxLib::mt19937::mt19937(unsigned long seed)
 {
 #ifdef _OPENMP
+  int numprocs = ParallelDescriptor::NProcs();
 #pragma omp parallel
   {
-    init_seed = seed + omp_get_thread_num();
+    init_seed = seed + omp_get_thread_num() * numprocs;
 #else
     init_seed = seed;
 #endif
