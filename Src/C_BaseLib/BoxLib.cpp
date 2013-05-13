@@ -224,14 +224,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     //
     // Initialize random seed after we're running in parallel.
     //
-#ifdef _OPENMP
-    int numthreads = omp_get_max_threads();
-#else
-    int numthreads = 1;
-#endif
-    {
-      BoxLib::InitRandom(ParallelDescriptor::MyProc()*numthreads + 1);
-    }
+    BoxLib::InitRandom(ParallelDescriptor::MyProc()+1);
 
 #ifdef BL_USE_MPI
     if (ParallelDescriptor::IOProcessor())
