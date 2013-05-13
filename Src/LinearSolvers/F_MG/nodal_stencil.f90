@@ -309,7 +309,6 @@ contains
       end do
     end do
 
-
     ss = ss * (THIRD / (dh(1))**2)
 
   end subroutine s_dense_2d_nodal
@@ -428,7 +427,7 @@ contains
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer :: i, j, k, nx, ny, nz
+    integer :: i, j, k, l, nx, ny, nz
 
     nx = size(ss,dim=2)
     ny = size(ss,dim=3)
@@ -484,7 +483,17 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    ss = ss * (FOURTH / (dh(1))**2)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,l)
+    do k = 1, nz
+       do j = 1, ny
+          do i = 1, nx
+             do l = 0, size(ss,dim=1)-1
+                ss(l,i,j,k) = ss(l,i,j,k) * (FOURTH / (dh(1))**2)
+             end do
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
 
   end subroutine s_cross_3d_nodal
 
@@ -495,7 +504,7 @@ contains
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer :: i, j, k, nx, ny, nz
+    integer :: i, j, k, l, nx, ny, nz
     real (kind = dp_t), allocatable :: sg_int(:,:,:)
 
     nx = size(ss,dim=2)
@@ -564,7 +573,17 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    ss = ss * (FOURTH / (dh(1))**2)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,l)
+    do k = 1, nz
+       do j = 1, ny
+          do i = 1, nx
+             do l = 0, size(ss,dim=1)-1
+                ss(l,i,j,k) = ss(l,i,j,k) * (FOURTH / (dh(1))**2)
+             end do
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
 
     deallocate(sg_int)
 
@@ -576,7 +595,7 @@ contains
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer            :: i, j, k, nx, ny, nz
+    integer            :: i, j, k, l, nx, ny, nz
     real (kind = dp_t) :: fx,fy,fz,f0
 
     nx = size(ss,dim=2)
@@ -673,7 +692,17 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    ss = ss * (ONE / ((dh(1))**2))
+    !$OMP PARALLEL DO PRIVATE(i,j,k,l)
+    do k = 1, nz
+       do j = 1, ny
+          do i = 1, nx
+             do l = 0, size(ss,dim=1)-1
+                ss(l,i,j,k) = ss(l,i,j,k) * (ONE / ((dh(1))**2))
+             end do
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
 
   end subroutine s_dense_3d_nodal
 
