@@ -51,10 +51,7 @@ contains
     integer :: mglev, mglev_crse, iter
     logical :: fine_converged
 
-    real(dp_t) :: Anorm, bnorm
-    real(dp_t) :: fac
-    real(dp_t) :: tres,tres0
-    real(dp_t) :: abs_eps
+    real(dp_t) :: Anorm, bnorm, fac, tres, ttres, tres0, abs_eps, t1(3), t2(3)
 
     logical nodal(get_dim(rh(1)))
 
@@ -111,12 +108,14 @@ contains
        call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, nodal = nodal, other = .false.)
 
     end do
+    !
+    ! Let's elide some reductions by doing these reductions together.
+    !
+    bnorm = ml_norm_inf(rh,fine_mask,local=.true.)
 
-    bnorm = ml_norm_inf(rh,fine_mask)
-
-    Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
+    Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels),local=.true.)
     do n = 1, nlevs-1
-       Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels), fine_mask(n)), Anorm)
+       Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels),fine_mask(n),local=.true.), Anorm)
     end do
 
     do n = nlevs,1,-1
@@ -129,7 +128,16 @@ contains
        call multifab_copy(rh(n),res(n),ng=nghost(rh(n)))
     end do
 
-    tres0 = ml_norm_inf(rh,fine_mask)
+    t1(1) = bnorm
+    t1(2) = Anorm
+    t1(3) = ml_norm_inf(rh,fine_mask,local=.true.)
+
+    call parallel_reduce(t2, t1, MPI_MAX)
+
+    bnorm = t2(1)
+    Anorm = t2(2)
+    tres0 = t2(3)
+
     if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
        write(unit=*, &
              fmt='("F90mg: Initial rhs                  = ",g15.8)') bnorm
@@ -381,26 +389,22 @@ contains
 
           if ( mgt(nlevs)%verbose > 1 ) then
              do n = 1,nlevs
-                tres = norm_inf(res(n))
+                ttres = norm_inf(res(n),local=.true.)
+                call parallel_reduce(tres, ttres, MPI_MAX, proc = parallel_IOProcessorNode())
                 if ( parallel_IOProcessor() ) then
-!                  write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') iter,n,tres
                    write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
                         iter,n,tres/tres0
                 end if
              end do
-!            tres = ml_norm_inf(res,fine_mask)
-!            if ( parallel_IOProcessor() ) then
-!               write(unit=*, fmt='(i3,": All Levels: ML_Ninf(defect) = ",g15.8)') iter, tres
-!            end if
           end if
 
        else
 
           fine_converged = .false.
           if ( mgt(nlevs)%verbose > 1 ) then
-             tres = norm_inf(res(nlevs))
+             ttres = norm_inf(res(nlevs),local=.true.)
+             call parallel_reduce(tres, ttres, MPI_MAX, proc = parallel_IOProcessorNode())
              if ( parallel_IOProcessor() ) then
-!               write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
                 write(unit=*, fmt='("F90mg: Iteration   ",i3," Fine  resid/resid0 = ",g15.8)') iter,tres/tres0
              end if
           end if
@@ -412,9 +416,9 @@ contains
      iter = iter-1
      if (iter < mgt(nlevs)%max_iter) then
         if ( mgt(nlevs)%verbose > 0 ) then
-          tres = ml_norm_inf(res,fine_mask)
+          ttres = ml_norm_inf(res,fine_mask,local=.true.)
+          call parallel_reduce(tres, ttres, MPI_MAX, proc = parallel_IOProcessorNode())
           if ( parallel_IOProcessor() ) then
-
              if (tres0 .gt. 0.0_dp_t) then
                write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,tres/tres0
                write(unit=*, fmt='("")')
@@ -536,11 +540,20 @@ contains
       logical :: r
       type(multifab), intent(in) :: res(:), sol(:)
       real(dp_t), intent(in) :: Anorm, rel_eps, abs_eps, bnorm
-      real(dp_t) :: ni_res, ni_sol
+      real(dp_t) :: ni_res, ni_sol, t1(2), t2(2)
       integer    :: nlevs
       nlevs = size(res)
-      ni_res = norm_inf(res(nlevs))
-      ni_sol = norm_inf(sol(nlevs))
+      !
+      ! Reduce these two norms together.
+      !
+      t1(1) = norm_inf(res(nlevs),local=.true.)
+      t1(2) = norm_inf(sol(nlevs),local=.true.)
+
+      call parallel_reduce(t2, t1, MPI_MAX)
+
+      ni_res = t2(1)
+      ni_sol = t2(2)
+
 !     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
 !          ni_res <= abs_eps .or. &
 !          ni_res <= epsilon(Anorm)*Anorm
@@ -561,9 +574,18 @@ contains
       type(multifab), intent(in) :: res(:), sol(:)
       type(lmultifab), intent(in) :: mask(:)
       real(dp_t), intent(in) :: Anorm, rel_eps, abs_eps, bnorm
-      real(dp_t) :: ni_res, ni_sol
-      ni_res = ml_norm_inf(res, mask)
-      ni_sol = ml_norm_inf(sol, mask)
+      real(dp_t) :: ni_res, ni_sol, t1(2), t2(2)
+      !
+      ! Reduce these two norms together.
+      !
+      t1(1) = ml_norm_inf(res, mask, local=.true.)
+      t1(2) = ml_norm_inf(sol, mask, local=.true.)
+
+      call parallel_reduce(t2, t1, MPI_MAX)
+
+      ni_res = t2(1)
+      ni_sol = t2(2)
+
 !     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
 !          ni_res <= abs_eps .or. &
 !          ni_res <= epsilon(Anorm)*Anorm

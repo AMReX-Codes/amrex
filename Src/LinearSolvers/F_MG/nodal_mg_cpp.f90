@@ -355,11 +355,13 @@ subroutine mgt_divu(lo_inflow, hi_inflow)
        lo_inflow, hi_inflow)
 
   if (mgts%verbose > 0) then
-     rhmax = norm_inf(mgts%rh(mgts%nlevel))
+     rhmax = norm_inf(mgts%rh(mgts%nlevel),local=.true.)
      do n = mgts%nlevel-1, 1, -1
-       r = norm_inf(mgts%rh(n), mgts%fine_mask(n))
-       rhmax = max(r, rhmax) 
-     end do 
+       r = norm_inf(mgts%rh(n),mgts%fine_mask(n),local=.true.)
+       rhmax = max(r,rhmax) 
+     end do
+     call parallel_reduce(r, rhmax, MPI_MAX, proc = parallel_IOProcessorNode())
+     rhmax = r
      if (parallel_IOProcessor()) then
         print *,'F90: Source norm is ',rhmax
      endif
@@ -928,11 +930,13 @@ subroutine mgt_add_divucc()
   call divucc(mgts%nlevel,mgts%mgt,mgts%rhcc,mgts%rh,mgts%rr,mgts%nodal)
 
   if (mgts%verbose > 0) then
-     rhmax = norm_inf(mgts%rh(mgts%nlevel))
+     rhmax = norm_inf(mgts%rh(mgts%nlevel),local=.true.)
      do n = mgts%nlevel-1, 1, -1
-       r = norm_inf(mgts%rh(n), mgts%fine_mask(n))
-       rhmax = max(r, rhmax) 
+       r = norm_inf(mgts%rh(n),mgts%fine_mask(n),local=.true.)
+       rhmax = max(r,rhmax) 
      end do 
+     call parallel_reduce(r, rhmax, MPI_MAX, proc = parallel_IOProcessorNode())
+     rhmax = r
      if (parallel_IOProcessor()) then
         print *,'F90: Source norm after adding rhs is ',rhmax
      endif
