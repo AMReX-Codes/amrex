@@ -52,7 +52,7 @@ contains
     real(dp_t) :: tres, ttres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
-    real(dp_t) :: r1,r2,t1(2),t2(2)
+    real(dp_t) :: r1,r2,t1(3),t2(3)
     logical :: solved
 
     type(bl_prof_timer), save :: bpt
@@ -128,7 +128,7 @@ contains
     t1(1) = bnorm
     t1(2) = Anorm
 
-    call parallel_reduce(t2, t1, MPI_MAX)
+    call parallel_reduce(t2(1:2), t1(1:2), MPI_MAX)
 
     bnorm = t2(1)
     Anorm = t2(2)
@@ -188,15 +188,17 @@ contains
     ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
     ! Only test on lowest mg level of lowest AMR level -- this should be cheapest
     !
-    ! Elide one of these reductions.
+    ! Elide some reduction.
     !
     t1(1) = max_of_stencil_sum(mgt(1)%ss(1),local=.true.) 
     t1(2) = stencil_norm(mgt(1)%ss(1),local=.true.) 
+    t1(3) = ml_norm_inf(rh,fine_mask,local=.true.)
 
     call parallel_reduce(t2, t1, MPI_MAX)
 
     coeff_sum = t2(1)
     coeff_max = t2(2)
+    tres0     = t2(3)
 
     if ( coeff_sum .lt. (1.d-12 * coeff_max) ) then
        mgt(1)%coeffs_sum_to_zero = .true.
@@ -237,7 +239,6 @@ contains
 
     end if
 
-    tres0 = ml_norm_inf(rh,fine_mask)
     if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
        write(unit=*, &
             fmt='("F90mg: Initial rhs                  = ",g15.8)') bnorm
