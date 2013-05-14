@@ -725,6 +725,12 @@ BoxLib::mt19937::save (Array<unsigned long>& state) const
     state[N+1] = mti;
 }
 
+int
+BoxLib::mt19937::RNGstatesize () const
+{
+    return N+2;
+}
+
 void
 BoxLib::mt19937::restore (const Array<unsigned long>& state)
 {
@@ -786,6 +792,12 @@ void
 BoxLib::SaveRandomState (Array<unsigned long>& state)
 {
     the_generator.save(state);
+}
+
+int
+BoxLib::sizeofRandomState ()
+{
+    return the_generator.RNGstatesize();
 }
 
 void
