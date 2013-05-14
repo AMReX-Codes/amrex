@@ -204,6 +204,8 @@ namespace BoxLib
     //
     void SaveRandomState (Array<unsigned long>& state);
 
+    int sizeofRandomState ();
+
     void RestoreRandomState (const Array<unsigned long>& state);
     //
     // Helper class for Times, used in Threads, Profiling, and Timers.
@@ -275,6 +277,7 @@ namespace BoxLib
 	unsigned long u_value (); // [0,2^32-1] random numbers
 
         void save (Array<unsigned long>& state) const;
+        int  RNGstatesize() const;
         void restore (const Array<unsigned long>& state);
     private:
 	void sgenrand (unsigned long seed);
