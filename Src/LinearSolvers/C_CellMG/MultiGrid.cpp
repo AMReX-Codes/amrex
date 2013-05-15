@@ -406,7 +406,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
           ParallelDescriptor::ReduceRealMax(tmp,2,ParallelDescriptor::IOProcessorNumber());
 
           if ( ParallelDescriptor::IOProcessor() )
-              std::cout << ", Solve time: " << tmp[0] << ", CG time: " << tmp[1] << '\n';
+              std::cout << ", Solve time: " << tmp[0] << ", CG time: " << tmp[1];
       }
 
       if ( ParallelDescriptor::IOProcessor() ) std::cout << '\n';
