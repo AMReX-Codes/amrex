@@ -132,15 +132,12 @@ MCMultiGrid::errorEstimate (int       level,
     //
     // Get inf-norm of residual.
     //
-    int p = 0;
+    const int p = 0;
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
     Real restot = 0.0;
-    Real resk   = 0.0;
     for (MFIter resmfi(*res[level]); resmfi.isValid(); ++resmfi)
     {
-        resk = (*res[level])[resmfi].norm(resmfi.validbox(),p,0,numcomps);
-
-        restot = std::max(restot, resk);
+        restot = std::max(restot, (*res[level])[resmfi].norm(resmfi.validbox(),p,0,numcomps));
     }
     ParallelDescriptor::ReduceRealMax(restot);
     return restot;
@@ -272,10 +269,10 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 	}
     }
 
-    Real run_time = (ParallelDescriptor::second() - strt_time);
-
     if ( verbose )
     {
+        Real run_time = (ParallelDescriptor::second() - strt_time);
+
         if ( verbose > 1 )
         {
             ParallelDescriptor::ReduceRealMax(run_time,ParallelDescriptor::IOProcessorNumber());
