@@ -220,6 +220,8 @@ MCMultiGrid::solve_ (MultiFab& _sol,
     // Relax system maxiter times, stop if relative error <= _eps_rel or
     // if absolute err <= _abs_eps
     //
+    const Real strt_time = ParallelDescriptor::second();
+
     int  returnVal = 0;  // should use bool for return value from this function
     Real error0    = errorEstimate(level, bc_mode);
     Real error     = error0;
@@ -265,9 +267,24 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 		std::cout << "MCMultiGrid: Iteration "
                           << nit
                           << " error/error0 "
-                          << error/error0 << '\n';
+                          << error/error0;
 	    }
 	}
+    }
+
+    Real run_time = (ParallelDescriptor::second() - strt_time);
+
+    if ( verbose )
+    {
+        if ( verbose > 1 )
+        {
+            ParallelDescriptor::ReduceRealMax(run_time,ParallelDescriptor::IOProcessorNumber());
+
+            if ( ParallelDescriptor::IOProcessor() )
+                std::cout << ", Solve time: " << run_time;
+        }
+
+        if ( ParallelDescriptor::IOProcessor() ) std::cout << '\n';
     }
     
     if (nit == numiter || error <= eps_rel*error0 || error <= eps_abs)
