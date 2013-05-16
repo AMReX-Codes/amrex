@@ -143,13 +143,19 @@ contains
       real(kind=dp_t), intent(in   ) :: dx(:)
       integer        , intent(in   ) :: face_type(:,:)
 
-      integer :: i,j,k,nx,ny,nz
+      integer         :: i,j,k,nx,ny,nz
+      real(kind=dp_t) :: ivdx, ivdy, ivdz
+      
 
       nx = size(rh,dim=1) - 3
       ny = size(rh,dim=2) - 3
       nz = size(rh,dim=3) - 3
 
       rh = ZERO
+
+      ivdx = 1.0d0 / dx(1)
+      ivdy = 1.0d0 / dx(2)
+      ivdz = 1.0d0 / dx(3)
 
       !$OMP PARALLEL DO PRIVATE(i,j,k)
       do k = 0,nz
@@ -159,15 +165,15 @@ contains
            rh(i,j,k) = (u(i  ,j,k  ,1) + u(i  ,j-1,k  ,1) &
                        +u(i  ,j,k-1,1) + u(i  ,j-1,k-1,1) &
                        -u(i-1,j,k  ,1) - u(i-1,j-1,k  ,1) &
-                       -u(i-1,j,k-1,1) - u(i-1,j-1,k-1,1)) / dx(1) + &
+                       -u(i-1,j,k-1,1) - u(i-1,j-1,k-1,1)) * ivdx + &
                        (u(i,j  ,k  ,2) + u(i-1,j  ,k  ,2) &
                        +u(i,j  ,k-1,2) + u(i-1,j  ,k-1,2) &
                        -u(i,j-1,k  ,2) - u(i-1,j-1,k  ,2) &
-                       -u(i,j-1,k-1,2) - u(i-1,j-1,k-1,2)) / dx(2) + &
+                       -u(i,j-1,k-1,2) - u(i-1,j-1,k-1,2)) * ivdy + &
                        (u(i,j  ,k  ,3) + u(i-1,j  ,k  ,3) &
                        +u(i,j-1,k  ,3) + u(i-1,j-1,k  ,3) &
                        -u(i,j  ,k-1,3) - u(i-1,j  ,k-1,3) &
-                       -u(i,j-1,k-1,3) - u(i-1,j-1,k-1,3)) / dx(3)
+                       -u(i,j-1,k-1,3) - u(i-1,j-1,k-1,3)) * ivdz
            rh(i,j,k) = FOURTH * rh(i,j,k)
          end if
       end do
@@ -362,7 +368,8 @@ contains
       integer        , intent(in   ) :: face_type(:,:)
       integer        , intent(in   ) :: lo_inflow(:), hi_inflow(:)
 
-      integer :: i,j,k,nx,ny,nz
+      integer         :: i,j,k,nx,ny,nz
+      real(kind=dp_t) :: ivdx, ivdy, ivdz
 
       nx = size(rh,dim=1) - 3
       ny = size(rh,dim=2) - 3
@@ -404,6 +411,10 @@ contains
          u(0:nx-1,0:ny-1,nz,3) = ZERO
       end if
 
+      ivdx = 1.0d0 / dx(1)
+      ivdy = 1.0d0 / dx(2)
+      ivdz = 1.0d0 / dx(3)
+
       !$OMP PARALLEL DO PRIVATE(i,j,k)
       do k = 0,nz
       do j = 0,ny
@@ -411,15 +422,15 @@ contains
          rh(i,j,k) = (u(i  ,j,k  ,1) + u(i  ,j-1,k  ,1) &
                      +u(i  ,j,k-1,1) + u(i  ,j-1,k-1,1) &
                      -u(i-1,j,k  ,1) - u(i-1,j-1,k  ,1) &
-                     -u(i-1,j,k-1,1) - u(i-1,j-1,k-1,1)) / dx(1) + &
+                     -u(i-1,j,k-1,1) - u(i-1,j-1,k-1,1)) * ivdx + &
                      (u(i,j  ,k  ,2) + u(i-1,j  ,k  ,2) &
                      +u(i,j  ,k-1,2) + u(i-1,j  ,k-1,2) &
                      -u(i,j-1,k  ,2) - u(i-1,j-1,k  ,2) &
-                     -u(i,j-1,k-1,2) - u(i-1,j-1,k-1,2)) / dx(2) + &
+                     -u(i,j-1,k-1,2) - u(i-1,j-1,k-1,2)) * ivdy + &
                      (u(i,j  ,k  ,3) + u(i-1,j  ,k  ,3) &
                      +u(i,j-1,k  ,3) + u(i-1,j-1,k  ,3) &
                      -u(i,j  ,k-1,3) - u(i-1,j  ,k-1,3) &
-                     -u(i,j-1,k-1,3) - u(i-1,j-1,k-1,3)) / dx(3)
+                     -u(i,j-1,k-1,3) - u(i-1,j-1,k-1,3)) * ivdz
          rh(i,j,k) = FOURTH*rh(i,j,k)
       end do
       end do

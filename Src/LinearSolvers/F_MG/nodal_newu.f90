@@ -107,11 +107,15 @@ contains
 
       ! Local variables
       integer         :: nx,ny,nz,i,j,k
-      real(kind=dp_t) :: gpx,gpy,gpz
+      real(kind=dp_t) :: gpx,gpy,gpz,ivdx,ivdy,ivdz
 
       nx = size(phi,dim=1)-3
       ny = size(phi,dim=2)-3
       nz = size(phi,dim=3)-3
+
+      ivdx = 1.0d0 / dx(1)
+      ivdy = 1.0d0 / dx(2)
+      ivdz = 1.0d0 / dx(3)
 
       !$OMP PARALLEL DO PRIVATE(i,j,k,gpx,gpy,gpz)
       do k = 0,nz-1
@@ -121,17 +125,17 @@ contains
                     (phi(i+1,j,k  ) + phi(i+1,j+1,k  ) &
                     +phi(i+1,j,k+1) + phi(i+1,j+1,k+1) & 
                     -phi(i  ,j,k  ) - phi(i  ,j+1,k  ) &
-                    -phi(i  ,j,k+1) - phi(i  ,j+1,k+1) ) /dx(1)
+                    -phi(i  ,j,k+1) - phi(i  ,j+1,k+1) ) * ivdx
                gpy = FOURTH* &
                     (phi(i,j+1,k  ) + phi(i+1,j+1,k  ) &
                     +phi(i,j+1,k+1) + phi(i+1,j+1,k+1) & 
                     -phi(i,j  ,k  ) - phi(i+1,j  ,k  ) &
-                    -phi(i,j  ,k+1) - phi(i+1,j  ,k+1) ) /dx(2)
+                    -phi(i,j  ,k+1) - phi(i+1,j  ,k+1) ) * ivdy
                gpz = FOURTH* &
                     (phi(i,j  ,k+1) + phi(i+1,j  ,k+1) &
                     +phi(i,j+1,k+1) + phi(i+1,j+1,k+1) & 
                     -phi(i,j  ,k  ) - phi(i+1,j  ,k  ) &
-                    -phi(i,j+1,k  ) - phi(i+1,j+1,k  ) ) /dx(3)
+                    -phi(i,j+1,k  ) - phi(i+1,j+1,k  ) ) * ivdz
 
                unew(i,j,k,1) = unew(i,j,k,1) - gpx * coeff(i,j,k)
                unew(i,j,k,2) = unew(i,j,k,2) - gpy * coeff(i,j,k)
