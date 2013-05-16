@@ -676,6 +676,12 @@ BoxLib::mt19937::rewind()
     sgenrand(init_seed);
 }
 
+void
+BoxLib::mt19937::reset(unsigned long seed)
+{
+    sgenrand(seed);
+}
+
 //
 // [0,1] random numbers
 //
@@ -755,6 +761,11 @@ void
 BoxLib::InitRandom (unsigned long seed)
 {
     the_generator = mt19937(seed);
+}
+
+void BoxLib::ResetRandomSeed(unsigned long seed)
+{
+    the_generator.reset(seed);
 }
 
 double
