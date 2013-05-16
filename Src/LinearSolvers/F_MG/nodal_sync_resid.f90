@@ -73,11 +73,16 @@ contains
     real(kind=dp_t), intent(in   ) :: dx(:)
     integer        , intent(in   ) :: face_type(:,:)
     
-    integer :: i, j, k, nx, ny, nz
+    integer         :: i, j, k, nx, ny, nz
+    real(kind=dp_t) :: ivdx,ivdy,ivdz
 
     nx = size(msk,dim=1) - 2
     ny = size(msk,dim=2) - 2
     nz = size(msk,dim=3) - 2
+
+    ivdx = 1.0d0 / dx(1)
+    ivdy = 1.0d0 / dx(2)
+    ivdz = 1.0d0 / dx(3)
 
     !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0, nz
@@ -91,7 +96,7 @@ contains
                -  vel(i-1,j  ,k  ,1) * msk(i-1,j  ,k  ) &
                -  vel(i-1,j-1,k  ,1) * msk(i-1,j-1,k  ) &
                -  vel(i-1,j  ,k-1,1) * msk(i-1,j  ,k-1) &
-               -  vel(i-1,j-1,k-1,1) * msk(i-1,j-1,k-1)) / dx(1) &
+               -  vel(i-1,j-1,k-1,1) * msk(i-1,j-1,k-1)) * ivdx &
                + (vel(i  ,j  ,k  ,2) * msk(i  ,j  ,k  ) &
                +  vel(i-1,j  ,k  ,2) * msk(i-1,j  ,k  ) &
                +  vel(i  ,j  ,k-1,2) * msk(i  ,j  ,k-1) &
@@ -99,7 +104,7 @@ contains
                -  vel(i  ,j-1,k  ,2) * msk(i  ,j-1,k  ) &
                -  vel(i-1,j-1,k  ,2) * msk(i-1,j-1,k  ) &
                -  vel(i  ,j-1,k-1,2) * msk(i  ,j-1,k-1) & 
-               -  vel(i-1,j-1,k-1,2) * msk(i-1,j-1,k-1)) / dx(2) &
+               -  vel(i-1,j-1,k-1,2) * msk(i-1,j-1,k-1)) * ivdy &
                + (vel(i  ,j  ,k  ,3) * msk(i  ,j  ,k  ) &
                +  vel(i-1,j  ,k  ,3) * msk(i-1,j  ,k  ) &
                +  vel(i  ,j-1,k  ,3) * msk(i  ,j-1,k  ) & 
@@ -107,7 +112,7 @@ contains
                -  vel(i  ,j  ,k-1,3) * msk(i  ,j  ,k-1) & 
                -  vel(i-1,j  ,k-1,3) * msk(i-1,j  ,k-1) &
                -  vel(i  ,j-1,k-1,3) * msk(i  ,j-1,k-1) &
-               -  vel(i-1,j-1,k-1,3) * msk(i-1,j-1,k-1)) / dx(3) )
+               -  vel(i-1,j-1,k-1,3) * msk(i-1,j-1,k-1)) * ivdz )
        end do
     end do
     end do
@@ -181,7 +186,8 @@ contains
     real(kind=dp_t), intent(in   ) :: msk(-1:,-1:,-1:)
     real(kind=dp_t), intent(in   ) :: sgnr
     
-    integer :: i, j, k, nx, ny, nz
+    integer         :: i, j, k, nx, ny, nz
+    real(kind=dp_t) :: result
 
     nx = size(msk,dim=1) - 2
     ny = size(msk,dim=2) - 2
@@ -189,16 +195,17 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0, nz
-    do j = 0, ny
-       do i = 0, nx
-          if ( any(msk(i-1:i,j-1:j,k-1:k) .eq. ONE) .and. &
-               any(msk(i-1:i,j-1:j,k-1:k) .eq. ZERO) ) then
-             res(i,j,k) = sgnr*res(i,j,k) + dvo(i,j,k)
-          else
-             res(i,j,k) = ZERO
-          end if
+       do j = 0, ny
+          do i = 0, nx
+             result = ZERO
+             if ( any(msk(i-1:i,j-1:j,k-1:k) .eq. ONE) ) then
+                if ( any(msk(i-1:i,j-1:j,k-1:k) .eq. ZERO) ) then
+                   result = sgnr*res(i,j,k) + dvo(i,j,k)
+                endif
+             endif
+             res(i,j,k) = result
+          end do
        end do
-    end do
     end do
     !$OMP END PARALLEL DO
 
@@ -210,7 +217,7 @@ contains
     type(multifab) , intent(in   ) :: mask
     integer        , intent(in   ) :: face_type(:,:,:)
     
-    integer :: i, dm
+    integer                  :: i, dm
     real(kind=dp_t), pointer :: msk(:,:,:,:) 
     real(kind=dp_t), pointer :: dvo(:,:,:,:) 
     real(kind=dp_t), pointer :: rc(:,:,:,:) 
