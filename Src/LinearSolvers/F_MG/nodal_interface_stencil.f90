@@ -1548,9 +1548,10 @@ contains
     integer :: i,j,k,l,ic,jc,kc,m,n
     integer :: isign,ioff,joff,koff
     integer :: ileft,irght,jbot,jtop,kdwn,kup
-    real (kind = dp_t) :: fac, fac0, fac1, fac2
-    real (kind = dp_t) :: corner_fac
+    real (kind = dp_t) :: fac, fac0, fac1, fac2, corner_fac
     logical ll1,ll2,ll3,lh1,lh2,lh3
+
+    real (kind = dp_t), parameter :: VAL = (0.25_dp_t / 3.0_dp_t)
 
     nx = size(mm,dim=1)-1
     ny = size(mm,dim=2)-1
@@ -1635,7 +1636,7 @@ contains
       k  = 0
       if ( .not. bc_neumann(mm(i,j,k),2,-1) ) then
           if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
-               dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+               dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
        end if
 
       jc = hid(2)
@@ -1644,7 +1645,7 @@ contains
       k  = 0
       if ( .not. bc_neumann(mm(i,j,k),2,+1) ) then
          if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       jc = lod(2)
@@ -1653,7 +1654,7 @@ contains
       k  = nz
       if ( .not. bc_neumann(mm(i,j,k),2,-1) ) then
          if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       jc = hid(2)
@@ -1662,7 +1663,7 @@ contains
       k  = nz
       if ( .not. bc_neumann(mm(i,j,k),2,+1) ) then
          if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       j = 0
@@ -1743,11 +1744,11 @@ contains
                 end if
 
                 if ( ( ll2 .or. lh2 ) .and. ( ll3 .or. lh3 ) ) then
-                   corner_fac = 1.0_dp_t / 3.0_dp_t
+                   corner_fac = THIRD
                 else if ( ( ll2 .or. lh2 ) .and. .not. ( ll3 .or. lh3 ) ) then
-                   corner_fac = 1.0_dp_t  / 2.0_dp_t
+                   corner_fac = HALF
                 else if ( .not. ( ll2 .or. lh2 ) .and. ( ll3 .or. lh3 ) ) then
-                   corner_fac = 1.0_dp_t / 2.0_dp_t
+                   corner_fac = HALF
                 else
                    corner_fac = 1.0_dp_t
                 end if
@@ -1860,7 +1861,7 @@ contains
       k  = 0
       if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
          if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       ic = hid(1)
@@ -1869,7 +1870,7 @@ contains
       k  = 0
       if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
          if ( .not. bc_neumann(mm(i,j,k),3,-1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       ic = lod(1)
@@ -1878,7 +1879,7 @@ contains
       k  = nz
       if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
          if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       ic = hid(1)
@@ -1887,7 +1888,7 @@ contains
       k  = nz
       if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
          if ( .not. bc_neumann(mm(i,j,k),3,+1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       i = 0
@@ -1968,12 +1969,12 @@ contains
                 end if
 
                 if ( (  ll1 .or. lh1 ) .and. (  ll3 .or. lh3 ) ) then
-                   corner_fac = 1.0_dp_t / 3.0_dp_t
+                   corner_fac = THIRD
                 else if ( ( ll1 .or. lh1 ) .and. .not. ( ll3 .or. lh3 ) ) then
-                   corner_fac = 1.0_dp_t  / 2.0_dp_t
+                   corner_fac = HALF
                 else if ( .not. &
                           ( ll1 .or. lh1 ) .and. ( ll3 .or. lh3 ) ) then
-                   corner_fac = 1.0_dp_t / 2.0_dp_t
+                   corner_fac = HALF
                 else
                    corner_fac = 1.0_dp_t
                 end if
@@ -2085,7 +2086,7 @@ contains
       j  = 0
       if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
          if ( .not. bc_neumann(mm(i,j,k),2,-1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       ic = hid(1)
@@ -2094,7 +2095,7 @@ contains
       j  = 0
       if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
          if ( .not. bc_neumann(mm(i,j,k),2,-1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       ic = lod(1)
@@ -2103,7 +2104,7 @@ contains
       j  = ny
       if ( .not. bc_neumann(mm(i,j,k),1,-1) ) then
          if ( .not. bc_neumann(mm(i,j,k),2,+1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       ic = hid(1)
@@ -2112,7 +2113,7 @@ contains
       j  = ny
       if ( .not. bc_neumann(mm(i,j,k),1,+1) ) then
          if ( .not. bc_neumann(mm(i,j,k),2,+1) ) &
-              dd(ic,jc,kc) = dd(ic,jc,kc) + 0.25_dp_t * res(i,j,k) / 3.0_dp_t
+              dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
       end if
 
       i = 0
@@ -2193,12 +2194,12 @@ contains
                 end if
 
                 if ( ( ll1 .or. lh1 ) .and. ( ll2 .or. lh2 ) ) then
-                   corner_fac = 1.0_dp_t / 3.0_dp_t
+                   corner_fac = THIRD
                 else if ( ( ll1 .or. lh1 ) .and. .not. ( ll2 .or. lh2 ) ) then
-                   corner_fac = 1.0_dp_t  / 2.0_dp_t
+                   corner_fac = HALF
                 else if ( .not. &
                           ( ll1 .or. lh1 ) .and. ( ll2 .or. lh2 ) ) then
-                   corner_fac = 1.0_dp_t / 2.0_dp_t
+                   corner_fac = HALF
                 else
                    corner_fac = 1.0_dp_t
                 end if
