@@ -567,8 +567,12 @@ subroutine wrapper()
      nodal = .false.
   end if
 
-  if ( dense_in ) then
-     stencil_type = HO_DENSE_STENCIL
+  if ( nodal_in ) then
+     if ( dense_in ) then
+        stencil_type = ND_DENSE_STENCIL
+     else
+        stencil_type = ND_CROSS_STENCIL
+     end if
   else
      stencil_type = CC_CROSS_STENCIL
   end if
@@ -624,9 +628,9 @@ subroutine wrapper()
   end if
 
   call ml_layout_build(mla, mba, pmask = pmask)
-  if ( parallel_ioprocessor() ) then
-     call print(mla, "LAYOUT TOWER")
-  end if
+! if ( parallel_ioprocessor() ) then
+!    call print(mla, "LAYOUT TOWER")
+! end if
 
   do n = nlevs, 1, -1
 
@@ -678,7 +682,7 @@ subroutine wrapper()
        end if
      end if
 
-     call mg_tower_build(mgt(n), mla%la(n), mba%pd(n), domain_bc, mgt(n)%stencil_type,&
+     call mg_tower_build(mgt(n), mla%la(n), mba%pd(n), domain_bc, stencil_type,&
           dh = dh(n,:), &
           ns = ns, &
           smoother = smoother, &

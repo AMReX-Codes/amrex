@@ -197,6 +197,8 @@ namespace BoxLib
       call blinitrand(seed)
     */
     void InitRandom (unsigned long seed);
+
+    void ResetRandomSeed(unsigned long seed);
     //
     // Save and restore random state.
     //
@@ -268,6 +270,7 @@ namespace BoxLib
 	explicit mt19937 (seed_type seed = 4357UL);
 	mt19937 (seed_type array[], int array_len);
 	void rewind();
+	void reset(unsigned long seed);
 
 	double d_value  (); // [0,1] random numbers
 	double d1_value (); // [0,1) random numbers
