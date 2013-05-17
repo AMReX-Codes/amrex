@@ -1891,13 +1891,17 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         for (IntIntMap::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
             RcvsArray[it->first] = it->second;
 
-        BL_MPI_REQUIRE( MPI_Alltoall(RcvsArray.dataPtr(),
-                                     1,
-                                     ParallelDescriptor::Mpi_typemap<int>::type(),
-                                     SndsArray.dataPtr(),
-                                     1,
-                                     ParallelDescriptor::Mpi_typemap<int>::type(),
-                                     ParallelDescriptor::Communicator()) );
+        {
+            BL_PROFILE("CollectData_Alltoall()");
+
+            BL_MPI_REQUIRE( MPI_Alltoall(RcvsArray.dataPtr(),
+                                         1,
+                                         ParallelDescriptor::Mpi_typemap<int>::type(),
+                                         SndsArray.dataPtr(),
+                                         1,
+                                         ParallelDescriptor::Mpi_typemap<int>::type(),
+                                         ParallelDescriptor::Communicator()) );
+        }
         BL_ASSERT(SndsArray[MyProc] == 0);
 
         for (int i = 0; i < NProcs; i++)
@@ -1957,15 +1961,19 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         for (int i = 1; i < NProcs; i++) sdispls[i] *= ParallelDescriptor::CommData::DIM;
         for (int i = 1; i < NProcs; i++) rdispls[i] *= ParallelDescriptor::CommData::DIM;
 
-        BL_MPI_REQUIRE( MPI_Alltoallv(cd_that_i_need.dataPtr(),
-                                      scnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      cd_others_need.dataPtr(),
-                                      rcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      ParallelDescriptor::Communicator()) );
+        {
+            BL_PROFILE("CollectData_Alltoallv()");
+
+            BL_MPI_REQUIRE( MPI_Alltoallv(cd_that_i_need.dataPtr(),
+                                          scnts.dataPtr(),
+                                          sdispls.dataPtr(),
+                                          ParallelDescriptor::Mpi_typemap<int>::type(),
+                                          cd_others_need.dataPtr(),
+                                          rcnts.dataPtr(),
+                                          rdispls.dataPtr(),
+                                          ParallelDescriptor::Mpi_typemap<int>::type(),
+                                          ParallelDescriptor::Communicator()) );
+        }
         cd_that_i_need.clear();
     }
 
