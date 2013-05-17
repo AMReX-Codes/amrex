@@ -1584,6 +1584,7 @@ contains
       !
       ! First average along the coarse-fine face.
       !
+      !$OMP PARALLEL DO PRIVATE(n,jc,kc,fac2,j,k,l,fac)
       do kc = lod(3),hid(3)
          do jc = lod(2),hid(2)
             do n = 0,ratio(2)-1
@@ -1597,14 +1598,10 @@ contains
                      if (l == 0) fac = HALF * fac
 
                      k = (kc-lod(3))*ratio(3) + l
-                     if (k < nz) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (k < nz) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
 
                      k = (kc-lod(3))*ratio(3) - l
-                     if (k >  0) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (k >  0) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
                   end do
                end if
 
@@ -1615,20 +1612,17 @@ contains
                      if (l == 0) fac = HALF * fac
 
                      k = (kc-lod(3))*ratio(3) + l
-                     if (k < nz) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (k < nz) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
 
                      k = (kc-lod(3))*ratio(3) - l
-                     if (k >  0) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (k >  0) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
                   end do
                end if
 
             end do
          end do
       end do
+      !$OMP END PARALLEL DO
 
       jc = lod(2)
       kc = lod(3)
@@ -1712,36 +1706,17 @@ contains
                 jbot = j-n
                 kup  = k+l
                 kdwn = k-l
-                if (j==0) then
-                   if (bc_neumann(mm(i,j,k),2,-1)) jbot = jtop
-                end if
-                if (j==ny) then
-                   if (bc_neumann(mm(i,j,k),2,+1)) jtop = jbot
-                end if
-                if (k==0) then
-                   if (bc_neumann(mm(i,j,k),3,-1)) kdwn = kup
-                end if
-                if (k==nz) then
-                   if (bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
-                end if
+                if (j==0  .and. bc_neumann(mm(i,j,k),2,-1)) jbot = jtop
+                if (j==ny .and. bc_neumann(mm(i,j,k),2,+1)) jtop = jbot
+                if (k==0  .and. bc_neumann(mm(i,j,k),3,-1)) kdwn = kup
+                if (k==nz .and. bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
 
-                ll2 = .false.
-                lh2 = .false.
-                ll3 = .false.
-                lh3 = .false.
+                ll2 = .false.; lh2 = .false.; ll3 = .false.; lh3 = .false.
 
-                if (jc==lod(2)) then
-                   if (.not. bc_neumann(mm(i,j,k),2,-1)) ll2 = .true.
-                end if
-                if (jc==hid(2)) then
-                   if (.not. bc_neumann(mm(i,j,k),2,+1)) lh2 = .true.
-                end if
-                if (kc==lod(3)) then
-                   if (.not. bc_neumann(mm(i,j,k),3,-1)) ll3 = .true.
-                end if
-                if (kc==hid(3)) then
-                   if (.not. bc_neumann(mm(i,j,k),3,+1)) lh3 = .true.
-                end if
+                if (jc==lod(2) .and. (.not. bc_neumann(mm(i,j,k),2,-1))) ll2 = .true.
+                if (jc==hid(2) .and. (.not. bc_neumann(mm(i,j,k),2,+1))) lh2 = .true.
+                if (kc==lod(3) .and. (.not. bc_neumann(mm(i,j,k),3,-1))) ll3 = .true.
+                if (kc==hid(3) .and. (.not. bc_neumann(mm(i,j,k),3,+1))) lh3 = .true.
 
                 if ( ( ll2 .or. lh2 ) .and. ( ll3 .or. lh3 ) ) then
                    corner_fac = THIRD
@@ -1761,24 +1736,16 @@ contains
                 lh1 = (k+l < nz); if (.not. lh1) lh1 = bc_neumann(mm(i,j,k),3,+1)
 
                 if ( ll2 .and. lh2 ) then
-                   if ( ll3 .and. lh3 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(ioff,jbot,kdwn) 
-                   if ( ll1 .and. lh1 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(ioff,jbot,kup) 
+                   if ( ll3 .and. lh3 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(ioff,jbot,kdwn) 
+                   if ( ll1 .and. lh1 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(ioff,jbot,kup) 
                 end if
 
                 ll2 = (j+n >  0); if (.not. ll2) ll2 = bc_neumann(mm(i,j,k),2,-1)
                 lh2 = (j+n < ny); if (.not. lh2) lh2 = bc_neumann(mm(i,j,k),2,+1)
 
                 if ( ll2 .and. lh2 ) then
-                   if ( ll3 .and. lh3 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(ioff,jtop,kdwn) 
-                   if ( ll1 .and. lh1 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(ioff,jtop,kup) 
+                   if ( ll3 .and. lh3 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(ioff,jtop,kdwn) 
+                   if ( ll1 .and. lh1 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(ioff,jtop,kup) 
                 end if
 
               end do
@@ -1810,6 +1777,7 @@ contains
       !
       ! First average along the coarse-fine face.
       !
+      !$OMP PARALLEL DO PRIVATE(kc,ic,n,fac2,i,k,l,fac)
       do kc = lod(3),hid(3)
          do ic = lod(1),hid(1)
             do n = 0,ratio(1)-1
@@ -1823,14 +1791,10 @@ contains
                      if (l == 0) fac = HALF * fac
 
                      k = (kc-lod(3))*ratio(3) + l
-                     if (k < nz) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (k < nz) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
 
                      k = (kc-lod(3))*ratio(3) - l
-                     if (k >  0) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (k >  0) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
                   end do
                end if
 
@@ -1841,19 +1805,17 @@ contains
                      if (l == 0) fac = HALF * fac
 
                      k = (kc-lod(3))*ratio(3) + l
-                     if (k < nz) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (k < nz) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
 
                      k = (kc-lod(3))*ratio(3) - l
-                     if (k >  0) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (k >  0) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
                   end do
                end if
+
             end do
          end do
       end do
+      !$OMP END PARALLEL DO
 
       ic = lod(1)
       kc = lod(3)
@@ -1937,36 +1899,17 @@ contains
                 ileft = i-n
                 kup  = k+l
                 kdwn = k-l
-                if (i==0) then
-                   if (bc_neumann(mm(i,j,k),1,-1)) ileft = irght
-                end if
-                if (i==nx) then
-                   if (bc_neumann(mm(i,j,k),1,+1)) irght = ileft
-                end if
-                if (k==0) then
-                   if (bc_neumann(mm(i,j,k),3,-1)) kdwn = kup
-                end if
-                if (k==nz) then
-                   if (bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
-                end if
+                if (i==0  .and. bc_neumann(mm(i,j,k),1,-1)) ileft = irght
+                if (i==nx .and. bc_neumann(mm(i,j,k),1,+1)) irght = ileft
+                if (k==0  .and. bc_neumann(mm(i,j,k),3,-1)) kdwn = kup
+                if (k==nz .and. bc_neumann(mm(i,j,k),3,+1)) kup  = kdwn
 
-                ll1 = .false.
-                lh1 = .false.
-                ll3 = .false.
-                lh3 = .false.
+                ll1 = .false.; lh1 = .false.; ll3 = .false.; lh3 = .false.
 
-                if (ic==lod(1)) then
-                   if (.not. bc_neumann(mm(i,j,k),1,-1)) ll1 = .true.
-                end if
-                if (ic==hid(1)) then
-                   if (.not. bc_neumann(mm(i,j,k),1,+1)) lh1 = .true.
-                end if
-                if (kc==lod(3)) then
-                   if (.not. bc_neumann(mm(i,j,k),3,-1)) ll3 = .true.
-                end if
-                if (kc==hid(3)) then
-                   if (.not. bc_neumann(mm(i,j,k),3,+1)) lh3 = .true.
-                end if
+                if (ic==lod(1) .and. (.not. bc_neumann(mm(i,j,k),1,-1))) ll1 = .true.
+                if (ic==hid(1) .and. (.not. bc_neumann(mm(i,j,k),1,+1))) lh1 = .true.
+                if (kc==lod(3) .and. (.not. bc_neumann(mm(i,j,k),3,-1))) ll3 = .true.
+                if (kc==hid(3) .and. (.not. bc_neumann(mm(i,j,k),3,+1))) lh3 = .true.
 
                 if ( (  ll1 .or. lh1 ) .and. (  ll3 .or. lh3 ) ) then
                    corner_fac = THIRD
@@ -1987,25 +1930,18 @@ contains
                 lh3 = (k+l < nz); if (.not. lh3) lh3 = bc_neumann(mm(i,j,k),3,+1)
 
                 if ( ll1 .and. lh1 ) then
-                   if ( ll2 .and. lh2 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(ileft,joff,kdwn) 
-                   if ( ll3 .and. lh3 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(ileft,joff,kup) 
+                   if ( ll2 .and. lh2 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(ileft,joff,kdwn) 
+                   if ( ll3 .and. lh3 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(ileft,joff,kup) 
                 end if
 
                 ll1 = (i+n >  0); if (.not. ll1) ll1 = bc_neumann(mm(i,j,k),1,-1)
                 lh1 = (i+n < nx); if (.not. lh1) lh1 = bc_neumann(mm(i,j,k),1,+1)
 
                 if ( ll1 .and. lh1 ) then
-                   if ( ll2 .and. lh2 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(irght,joff,kdwn) 
-                   if ( ll3 .and. lh3 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(irght,joff,kup) 
+                   if ( ll2 .and. lh2 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(irght,joff,kdwn) 
+                   if ( ll3 .and. lh3 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(irght,joff,kup) 
                 end if
+
               end do
             end do
           end do
@@ -2035,6 +1971,7 @@ contains
       !
       ! First average along the coarse-fine face.
       !
+      !$OMP PARALLEL DO PRIVATE(jc,ic,n,fac2,i,j,l,fac)
       do jc = lod(2),hid(2)
          do ic = lod(1),hid(1)
             do n = 0,ratio(1)-1
@@ -2048,14 +1985,10 @@ contains
                      if (l == 0) fac = HALF * fac
 
                      j = (jc-lod(2))*ratio(2) + l
-                     if (j < ny) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (j < ny) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
 
                      j = (jc-lod(2))*ratio(2) - l
-                     if (j >  0) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (j >  0) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
                   end do
                end if
 
@@ -2066,19 +1999,17 @@ contains
                      if (l == 0) fac = HALF * fac
 
                      j = (jc-lod(2))*ratio(2) + l
-                     if (j < ny) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (j < ny) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
 
                      j = (jc-lod(2))*ratio(2) - l
-                     if (j >  0) then
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
-                     end if
+                     if (j >  0) dd(ic,jc,kc) = dd(ic,jc,kc) + fac * res(i,j,k)
                   end do
                end if
+
             end do
          end do
       end do
+      !$OMP END PARALLEL DO
 
       ic = lod(1)
       jc = lod(2)
@@ -2162,36 +2093,17 @@ contains
                 ileft = i-n
                 jtop  = j+l
                 jbot  = j-l
-                if (i==0) then
-                   if (bc_neumann(mm(i,j,k),1,-1)) ileft = irght
-                end if
-                if (i==nx) then
-                   if (bc_neumann(mm(i,j,k),1,+1)) irght = ileft
-                end if
-                if (j==0) then
-                   if (bc_neumann(mm(i,j,k),2,-1)) jbot  = jtop
-                end if
-                if (j==ny) then
-                   if (bc_neumann(mm(i,j,k),2,+1)) jtop  = jbot
-                end if
+                if (i==0  .and. bc_neumann(mm(i,j,k),1,-1)) ileft = irght
+                if (i==nx .and. bc_neumann(mm(i,j,k),1,+1)) irght = ileft
+                if (j==0  .and. bc_neumann(mm(i,j,k),2,-1)) jbot  = jtop
+                if (j==ny .and. bc_neumann(mm(i,j,k),2,+1)) jtop  = jbot
 
-                ll1 = .false.
-                lh1 = .false.
-                ll2 = .false.
-                lh2 = .false.
+                ll1 = .false.; lh1 = .false.; ll2 = .false.; lh2 = .false.
 
-                if (ic==lod(1)) then
-                   if (.not. bc_neumann(mm(i,j,k),1,-1)) ll1 = .true.
-                end if
-                if (ic==hid(1)) then
-                   if (.not. bc_neumann(mm(i,j,k),1,+1)) lh1 = .true.
-                end if
-                if (jc==lod(2)) then
-                   if (.not. bc_neumann(mm(i,j,k),2,-1)) ll2 = .true.
-                end if
-                if (jc==hid(2)) then
-                   if (.not. bc_neumann(mm(i,j,k),2,+1)) lh2 = .true.
-                end if
+                if (ic==lod(1) .and. (.not. bc_neumann(mm(i,j,k),1,-1))) ll1 = .true.
+                if (ic==hid(1) .and. (.not. bc_neumann(mm(i,j,k),1,+1))) lh1 = .true.
+                if (jc==lod(2) .and. (.not. bc_neumann(mm(i,j,k),2,-1))) ll2 = .true.
+                if (jc==hid(2) .and. (.not. bc_neumann(mm(i,j,k),2,+1))) lh2 = .true.
 
                 if ( ( ll1 .or. lh1 ) .and. ( ll2 .or. lh2 ) ) then
                    corner_fac = THIRD
@@ -2212,24 +2124,16 @@ contains
                 lh3 = (j+l < ny); if (.not. lh3) lh3 = bc_neumann(mm(i,j,k),2,+1)
 
                 if ( ll1 .and. lh1 ) then
-                   if ( ll2 .and. lh2 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(ileft,jbot,koff) 
-                   if ( ll3 .and. lh3 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(ileft,jtop,koff) 
+                   if ( ll2 .and. lh2 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(ileft,jbot,koff) 
+                   if ( ll3 .and. lh3 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(ileft,jtop,koff) 
                 end if
 
                 ll1 = (i+n >  0); if (.not. ll1) ll1 = bc_neumann(mm(i,j,k),1,-1) 
                 lh1 = (i+n < nx); if (.not. lh1) lh1 = bc_neumann(mm(i,j,k),1,+1)
 
                 if ( ll1 .and. lh1 ) then
-                   if ( ll2 .and. lh2 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(irght,jbot,koff) 
-                   if ( ll3 .and. lh3 ) &
-                        dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * &
-                        fac*res(irght,jtop,koff) 
+                   if ( ll2 .and. lh2 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(irght,jbot,koff) 
+                   if ( ll3 .and. lh3 ) dd(ic,jc,kc) = dd(ic,jc,kc) + corner_fac * fac*res(irght,jtop,koff) 
                 end if
 
               end do
