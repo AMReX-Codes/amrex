@@ -68,7 +68,8 @@ contains
     !
     ! Faces
     !
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL PRIVATE(i,j,k)
+    !$OMP DO
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           i = lo(1)
@@ -77,9 +78,9 @@ contains
           if (bc_neumann(mm(i,j,k),1,+1)) uu(i+1,j,k) = uu(i-1,j,k)
        end do
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END DO NOWAIT
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP DO
     do k = lo(3),hi(3)
        do i = lo(1),hi(1)
           j = lo(2)
@@ -88,9 +89,9 @@ contains
           if (bc_neumann(mm(i,j,k),2,+1)) uu(i,j+1,k) = uu(i,j-1,k)
        end do
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END DO NOWAIT
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP DO
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)
           k = lo(3)
@@ -99,7 +100,8 @@ contains
           if (bc_neumann(mm(i,j,k),3,+1)) uu(i,j,k+1) = uu(i,j,k-1)
        end do
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END DO
+    !$OMP END PARALLEL
     !
     ! Edges
     !
