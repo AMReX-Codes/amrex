@@ -126,6 +126,7 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer            :: i, j, nx, ny
+    real (kind = dp_t) :: fac
 
     nx = size(ss,dim=2)
     ny = size(ss,dim=3)
@@ -159,17 +160,17 @@ contains
        sg(nx,ny) = sg(nx,ny-1)
     end if
 
+    fac = (HALF / (dh(1))**2)
+
     do j = 1,ny
       do i = 1,nx
-          ss(1,i,j) = sg(i  ,j-1) + sg(i  ,j  )
-          ss(2,i,j) = sg(i-1,j-1) + sg(i-1,j  )
-          ss(3,i,j) = sg(i-1,j  ) + sg(i  ,j  )
-          ss(4,i,j) = sg(i-1,j-1) + sg(i  ,j-1)
+          ss(1,i,j) = fac*(sg(i  ,j-1) + sg(i  ,j  ))
+          ss(2,i,j) = fac*(sg(i-1,j-1) + sg(i-1,j  ))
+          ss(3,i,j) = fac*(sg(i-1,j  ) + sg(i  ,j  ))
+          ss(4,i,j) = fac*(sg(i-1,j-1) + sg(i  ,j-1))
           ss(0,i,j) = -(ss(1,i,j) + ss(2,i,j) + ss(3,i,j) + ss(4,i,j))
       end do
     end do
-
-    ss = ss * (HALF / (dh(1))**2)
 
   end subroutine s_cross_2d_nodal
 
@@ -183,6 +184,7 @@ contains
     real (kind = dp_t), allocatable :: sg_int(:,:)
 
     integer            :: i, j, nx, ny
+    real (kind = dp_t) :: fac
 
     nx = size(ss,dim=2)
     ny = size(ss,dim=3)
@@ -225,17 +227,17 @@ contains
        sg_int(nx,ny) = sg_int(nx,ny-1)
     end if
 
+    fac = (HALF / (dh(1))**2)
+
     do j = 1,ny
       do i = 1,nx
-          ss(1,i,j) = sg_int(i  ,j-1) + sg_int(i  ,j  )
-          ss(2,i,j) = sg_int(i-1,j-1) + sg_int(i-1,j  )
-          ss(3,i,j) = sg_int(i-1,j  ) + sg_int(i  ,j  )
-          ss(4,i,j) = sg_int(i-1,j-1) + sg_int(i  ,j-1)
+          ss(1,i,j) = fac*(sg_int(i  ,j-1) + sg_int(i  ,j  ))
+          ss(2,i,j) = fac*(sg_int(i-1,j-1) + sg_int(i-1,j  ))
+          ss(3,i,j) = fac*(sg_int(i-1,j  ) + sg_int(i  ,j  ))
+          ss(4,i,j) = fac*(sg_int(i-1,j-1) + sg_int(i  ,j-1))
           ss(0,i,j) = -(ss(1,i,j) + ss(2,i,j) + ss(3,i,j) + ss(4,i,j))
       end do
     end do
-
-    ss = ss * (HALF / (dh(1))**2)
 
     deallocate(sg_int)
 
@@ -251,6 +253,7 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer            :: i, j
+    real (kind = dp_t) :: fac
 
     ! Set sg on edges at a Neumann boundary.
     do i = lo(1),hi(1)
@@ -288,28 +291,27 @@ contains
        sg(hi(1)+1,hi(2)+1,:) = sg(hi(1)+1,hi(2),:)
     end if
 
+    fac = (THIRD / (dh(1))**2)
+
     do j = lo(2),hi(2)+1
       do i = lo(1),hi(1)+1
 
           ! Faces
-          ss(2,i,j) = HALF * (sg(i  ,j-1,1) + sg(i-1,j-1,1))
-          ss(4,i,j) = HALF * (sg(i-1,j  ,1) + sg(i-1,j-1,1))
-          ss(5,i,j) = HALF * (sg(i  ,j  ,1) + sg(i  ,j-1,1))
-          ss(7,i,j) = HALF * (sg(i  ,j  ,1) + sg(i-1,j  ,1))
+          ss(2,i,j) = fac*(HALF * (sg(i  ,j-1,1) + sg(i-1,j-1,1)))
+          ss(4,i,j) = fac*(HALF * (sg(i-1,j  ,1) + sg(i-1,j-1,1)))
+          ss(5,i,j) = fac*(HALF * (sg(i  ,j  ,1) + sg(i  ,j-1,1)))
+          ss(7,i,j) = fac*(HALF * (sg(i  ,j  ,1) + sg(i-1,j  ,1)))
 
           ! Corners
-          ss(1,i,j) = sg(i-1,j-1,1)
-          ss(3,i,j) = sg(i  ,j-1,1)
-          ss(6,i,j) = sg(i-1,j  ,1)
-          ss(8,i,j) = sg(i,  j  ,1)
+          ss(1,i,j) = fac*sg(i-1,j-1,1)
+          ss(3,i,j) = fac*sg(i  ,j-1,1)
+          ss(6,i,j) = fac*sg(i-1,j  ,1)
+          ss(8,i,j) = fac*sg(i,  j  ,1)
  
           ss(0,i,j) = -(ss(1,i,j) + ss(2,i,j) + ss(3,i,j) + ss(4,i,j) &
-                      + ss(5,i,j) + ss(6,i,j) + ss(7,i,j) + ss(8,i,j) ) 
-
+                      + ss(5,i,j) + ss(6,i,j) + ss(7,i,j) + ss(8,i,j) )
       end do
     end do
-
-    ss = ss * (THIRD / (dh(1))**2)
 
   end subroutine s_dense_2d_nodal
 
@@ -322,26 +324,34 @@ contains
     !
     ! Set sg on faces at a Neumann boundary.
     !
+    !$OMP PARALLEL PRIVATE(i,j,k)
+    !$OMP DO
     do j = 1,ny-1
        do i = 1,nx-1
           if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
           if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
        end do
     end do
+    !$OMP END DO
 
+    !$OMP DO
     do k = 1,nz-1
        do i = 1,nx-1
           if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
           if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
        end do
     end do
+    !$OMP END DO
 
+    !$OMP DO
     do k = 1,nz-1
        do j = 1,ny-1
           if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
           if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
        end do
     end do
+    !$OMP END DO
+    !$OMP END PARALLEL
     !
     ! Set sg on edges at a Neumann boundary.
     !
@@ -427,7 +437,8 @@ contains
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer :: i, j, k, l, nx, ny, nz
+    integer            :: i, j, k, l, nx, ny, nz
+    real (kind = dp_t) :: fac
 
     nx = size(ss,dim=2)
     ny = size(ss,dim=3)
@@ -449,6 +460,8 @@ contains
 
     call set_faces_edges_corners_3d(nx, ny, nz, sg, mm)
 
+    fac = (FOURTH / (dh(1))**2)
+
     !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
        do j = 1, ny
@@ -456,40 +469,28 @@ contains
              !
              ! Faces in x-direction
              !
-             ss(2,i,j,k) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                  +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-             ss(1,i,j,k) = (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
-                  +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+             ss(2,i,j,k) = fac*((sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                  +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )))
+             ss(1,i,j,k) = fac*((sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
+                  +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )))
              !
              ! Faces in y-direction
              !
-             ss(4,i,j,k) = (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                  +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-             ss(3,i,j,k) = (sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
-                  +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+             ss(4,i,j,k) = fac*((sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                  +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  )))
+             ss(3,i,j,k) = fac*((sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
+                  +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )))
              !
              ! Faces in z-direction
              !
-             ss(6,i,j,k) = (sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
-                  +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-             ss(5,i,j,k) = (sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                  +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
+             ss(6,i,j,k) = fac*((sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                  +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1)))
+             ss(5,i,j,k) = fac*((sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                  +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )))
 
              ss(0,i,j,k) = -( ss(1,i,j,k) + ss(2,i,j,k) &
                   +ss(3,i,j,k) + ss(4,i,j,k) &
                   +ss(5,i,j,k) + ss(6,i,j,k) )
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,l)
-    do k = 1, nz
-       do j = 1, ny
-          do i = 1, nx
-             do l = 0, size(ss,dim=1)-1
-                ss(l,i,j,k) = ss(l,i,j,k) * (FOURTH / (dh(1))**2)
-             end do
           end do
        end do
     end do
@@ -505,6 +506,7 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer :: i, j, k, l, nx, ny, nz
+    real (kind = dp_t) :: fac
     real (kind = dp_t), allocatable :: sg_int(:,:,:)
 
     nx = size(ss,dim=2)
@@ -539,6 +541,8 @@ contains
 
     call set_faces_edges_corners_3d(nx, ny, nz, sg_int, mm)
 
+    fac = (FOURTH / (dh(1))**2)
+
     !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
        do j = 1, ny
@@ -546,40 +550,28 @@ contains
              !
              ! Faces in x-direction
              !
-             ss(2,i,j,k) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
-                  +sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ))
-             ss(1,i,j,k) = (sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ) &
-                  +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
+             ss(2,i,j,k) = fac*((sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+                  +sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  )))
+             ss(1,i,j,k) = fac*((sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ) &
+                  +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  )))
              !
              ! Faces in y-direction
              !
-             ss(4,i,j,k) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
-                  +sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ))
-             ss(3,i,j,k) = (sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ) &
-                  +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  ))
+             ss(4,i,j,k) = fac*((sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+                  +sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  )))
+             ss(3,i,j,k) = fac*((sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ) &
+                  +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  )))
              !
              ! Faces in z-direction
              !
-             ss(6,i,j,k) = (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
-                  +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1))
-             ss(5,i,j,k) = (sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
-                  +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  ))
+             ss(6,i,j,k) = fac*((sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
+                  +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1)))
+             ss(5,i,j,k) = fac*((sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
+                  +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  )))
 
              ss(0,i,j,k) = -( ss(1,i,j,k) + ss(2,i,j,k) &
                   +ss(3,i,j,k) + ss(4,i,j,k) &
                   +ss(5,i,j,k) + ss(6,i,j,k) )
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,l)
-    do k = 1, nz
-       do j = 1, ny
-          do i = 1, nx
-             do l = 0, size(ss,dim=1)-1
-                ss(l,i,j,k) = ss(l,i,j,k) * (FOURTH / (dh(1))**2)
-             end do
           end do
        end do
     end do
@@ -596,7 +588,9 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer            :: i, j, k, l, nx, ny, nz
-    real (kind = dp_t) :: fx,fy,fz,f0
+    real (kind = dp_t) :: fx,fy,fz,f0,fac,fxyz,f2y2zx,f2x2zy,f2x2yz
+
+    real (kind = dp_t), parameter :: thirtysixth = ONE / (36.0_dp_t)
 
     nx = size(ss,dim=2)
     ny = size(ss,dim=3)
@@ -616,10 +610,15 @@ contains
     !
     call set_faces_edges_corners_3d(nx, ny, nz, sg, mm)
 
-    fx = ONE / (36.0_dp_t)
-    fy = ONE / (36.0_dp_t)
-    fz = ONE / (36.0_dp_t)
-    f0 = FOUR * (fx + fy + fz)
+    fx     = thirtysixth
+    fy     = thirtysixth
+    fz     = thirtysixth
+    f0     = FOUR * (fx + fy + fz)
+    fac    = (ONE / ((dh(1))**2))
+    fxyz   = (fx+fy+fz)
+    f2y2zx = (TWO*fy+TWO*fz-fx)
+    f2x2zy = (TWO*fx+TWO*fz-fy)
+    f2x2yz = (TWO*fx+TWO*fy-fz)
 
     !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
@@ -628,77 +627,65 @@ contains
              !
              ! Corners
              !
-             ss( 1,i,j,k) = (fx+fy+fz)* sg(i-1,j-1,k-1)
-             ss( 3,i,j,k) = (fx+fy+fz)* sg(i  ,j-1,k-1)
-             ss( 6,i,j,k) = (fx+fy+fz)* sg(i-1,j  ,k-1)
-             ss( 8,i,j,k) = (fx+fy+fz)* sg(i  ,j  ,k-1)
-             ss(13,i,j,k) = (fx+fy+fz)* sg(i-1,j-1,k  )
-             ss(15,i,j,k) = (fx+fy+fz)* sg(i  ,j-1,k  )
-             ss(18,i,j,k) = (fx+fy+fz)* sg(i-1,j  ,k  )
-             ss(20,i,j,k) = (fx+fy+fz)* sg(i  ,j  ,k  )
+             ss( 1,i,j,k) = fac*fxyz*sg(i-1,j-1,k-1)
+             ss( 3,i,j,k) = fac*fxyz*sg(i  ,j-1,k-1)
+             ss( 6,i,j,k) = fac*fxyz*sg(i-1,j  ,k-1)
+             ss( 8,i,j,k) = fac*fxyz*sg(i  ,j  ,k-1)
+             ss(13,i,j,k) = fac*fxyz*sg(i-1,j-1,k  )
+             ss(15,i,j,k) = fac*fxyz*sg(i  ,j-1,k  )
+             ss(18,i,j,k) = fac*fxyz*sg(i-1,j  ,k  )
+             ss(20,i,j,k) = fac*fxyz*sg(i  ,j  ,k  )
              !
              ! Edges in x-direction
              !
-             ss( 2,i,j,k) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k-1) + sg(i-1,j-1,k-1))
-             ss( 7,i,j,k) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k-1) + sg(i-1,j  ,k-1))
-             ss(14,i,j,k) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j-1,k  ) + sg(i-1,j-1,k  ))
-             ss(19,i,j,k) = (TWO*fy+TWO*fz-fx)*(sg(i  ,j  ,k  ) + sg(i-1,j  ,k  ))
+             ss( 2,i,j,k) = fac*(f2y2zx*(sg(i  ,j-1,k-1) + sg(i-1,j-1,k-1)))
+             ss( 7,i,j,k) = fac*(f2y2zx*(sg(i  ,j  ,k-1) + sg(i-1,j  ,k-1)))
+             ss(14,i,j,k) = fac*(f2y2zx*(sg(i  ,j-1,k  ) + sg(i-1,j-1,k  )))
+             ss(19,i,j,k) = fac*(f2y2zx*(sg(i  ,j  ,k  ) + sg(i-1,j  ,k  )))
              !
              ! Edges in y-direction
              !
-             ss( 4,i,j,k) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1))
-             ss( 5,i,j,k) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-             ss(16,i,j,k) = (TWO*fx+TWO*fz-fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ))
-             ss(17,i,j,k) = (TWO*fx+TWO*fz-fy)*(sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
+             ss( 4,i,j,k) = fac*(f2x2zy*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1)))
+             ss( 5,i,j,k) = fac*(f2x2zy*(sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1)))
+             ss(16,i,j,k) = fac*(f2x2zy*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  )))
+             ss(17,i,j,k) = fac*(f2x2zy*(sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )))
              !
              ! Edges in z-direction
              !
-             ss( 9,i,j,k) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ))
-             ss(10,i,j,k) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-             ss(11,i,j,k) = (TWO*fx+TWO*fy-fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-             ss(12,i,j,k) = (TWO*fx+TWO*fy-fz)*(sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+             ss( 9,i,j,k) = fac*(f2x2yz*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  )))
+             ss(10,i,j,k) = fac*(f2x2yz*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  )))
+             ss(11,i,j,k) = fac*(f2x2yz*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )))
+             ss(12,i,j,k) = fac*(f2x2yz*(sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )))
 
              if (size(ss,dim=1) .eq. 27) then
                 !
                 ! Faces in x-direction (only non-zero for non-uniform dx)
                 !
-                ss(21,i,j,k) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                     +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ))
-                ss(22,i,j,k) = (FOUR*fx-TWO*fy-TWO*fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
-                     +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+                ss(21,i,j,k) = fac*((FOUR*fx-TWO*fy-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                     +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )))
+                ss(22,i,j,k) = fac*((FOUR*fx-TWO*fy-TWO*fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
+                     +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )))
                 !
                 ! Faces in y-direction (only non-zero for non-uniform dx)
                 !
-                ss(23,i,j,k) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                     +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ))
-                ss(24,i,j,k) = (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
-                     +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  ))
+                ss(23,i,j,k) = fac*((FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                     +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  )))
+                ss(24,i,j,k) = fac*((FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
+                     +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )))
                 !
                 ! Faces in z-direction (only non-zero for non-uniform dx)
                 !
-                ss(25,i,j,k) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
-                     +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1))
-                ss(26,i,j,k) = (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                     +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  ))
+                ss(25,i,j,k) = fac*((FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                     +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1)))
+                ss(26,i,j,k) = fac*((FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                     +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )))
              end if
 
-             ss(0,i,j,k) = -(sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
+             ss(0,i,j,k) = fac*(-(sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
                   +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
                   +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
-                  +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * f0
+                  +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * f0)
 
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k,l)
-    do k = 1, nz
-       do j = 1, ny
-          do i = 1, nx
-             do l = 0, size(ss,dim=1)-1
-                ss(l,i,j,k) = ss(l,i,j,k) * (ONE / ((dh(1))**2))
-             end do
           end do
        end do
     end do
