@@ -164,9 +164,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
                               mla)
      endif
 
-     do i = mgt(n)%nlevels, 1, -1
-        call multifab_destroy(coeffs(i))
-     end do
+     call multifab_destroy(coeffs(mgt(n)%nlevels))
      deallocate(coeffs)
 
   end do
@@ -241,7 +239,7 @@ contains
        bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
        bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
        call setval(mf%fbs(i), ONE, bx)
-       print *,'SETTING RHS TO  1 IN BOX ',i,' : ', bx%lo(1:bx%dim)
+!      print *,'SETTING RHS TO  1 IN BOX ',i,' : ', bx%lo(1:bx%dim)
 
 !      Single point of non-zero RHS: use this to make system solvable
        bx = get_ibox(mf,i)
@@ -249,7 +247,7 @@ contains
        bx%lo(2:bx%dim) = (bx%hi(2:bx%dim) + bx%lo(2:bx%dim))/2
        bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
        call setval(mf%fbs(i), -ONE, bx)
-       print *,'SETTING RHS TO -1 IN BOX ',i,' : ', bx%lo(1:bx%dim)
+!      print *,'SETTING RHS TO -1 IN BOX ',i,' : ', bx%lo(1:bx%dim)
 
 !      1-d strip of non-zero RHS in vertical
 !      bx%lo(1) = (bx%hi(1) + bx%lo(1))/2
