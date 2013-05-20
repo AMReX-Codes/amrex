@@ -74,7 +74,6 @@ subroutine wrapper()
   logical, allocatable :: pmask(:)
   logical :: nodal_in, dense_in
 
-  logical              :: dense
   integer :: i,n,nlevs,ns,dm
 
   type(box) :: pd
@@ -88,8 +87,8 @@ subroutine wrapper()
   integer :: min_width
   integer :: max_nlevel, max_nlevel_in
   integer :: max_lev_of_mba
-  integer :: verbose
-  integer :: nu1, nu2, nub, nuf, gamma, cycle, solver, smoother
+  integer :: verbose, cg_verbose
+  integer :: nu1, nu2, nub, nuf, gamma, solver, smoother
   real(dp_t) :: omega
   integer :: ng, nc
   character(len=128) :: test_set
@@ -138,14 +137,14 @@ subroutine wrapper()
   namelist /probin/ random_rr
 
   namelist /probin/ eps, max_iter
-  namelist /probin/ nu1, nu2, nub, nuf, gamma, omega, cycle
+  namelist /probin/ nu1, nu2, nub, nuf, gamma, omega
   namelist /probin/ bottom_solver, bottom_solver_eps, bottom_max_iter
   namelist /probin/ solver, smoother
   namelist /probin/ min_width, max_nlevel
   namelist /probin/ stencil_order
   namelist /probin/ max_lev_of_mba
 
-  namelist /probin/ verbose
+  namelist /probin/ verbose, cg_verbose
   namelist /probin/ do_diagnostics
 
   !! Defaults:
@@ -199,7 +198,6 @@ subroutine wrapper()
   nub               = mgt_default%nub
   nuf               = mgt_default%nuf
   gamma             = mgt_default%gamma
-!  cycle             = mgt_default%cycle
   omega             = mgt_default%omega
   bottom_solver     = mgt_default%bottom_solver
   bottom_max_iter   = mgt_default%bottom_max_iter
@@ -209,6 +207,7 @@ subroutine wrapper()
   min_width         = mgt_default%min_width
   eps               = mgt_default%eps
   verbose           = mgt_default%verbose
+  cg_verbose        = mgt_default%cg_verbose
 
   do_diagnostics    = 0
 
@@ -272,6 +271,11 @@ subroutine wrapper()
            call get_command_argument(farg, value = fname)
            read(fname, *) verbose
 
+        case ('--cg_verbose')
+           farg = farg + 1
+           call get_command_argument(farg, value = fname)
+           read(fname, *) cg_verbose
+
         case ('--dim')
            farg = farg + 1
            call get_command_argument(farg, value = fname)
@@ -305,10 +309,6 @@ subroutine wrapper()
            farg = farg + 1
            call get_command_argument(farg, value = fname)
            read(fname, *) nuf
-!        case ('--cycle')
-!           farg = farg + 1
-!           call get_command_argument(farg, value = fname)
-!           read(fname, *) cycle
         case ('--omega')
            farg = farg + 1
            call get_command_argument(farg, value = fname)
@@ -691,7 +691,6 @@ subroutine wrapper()
           nub = nub, &
           nuf = nuf, &
           gamma = gamma, &
-!          cycle = cycle, &
           omega = omega, &
           bottom_solver = bottom_solver_in, &
           bottom_max_iter = bottom_max_iter_in, &
@@ -701,6 +700,7 @@ subroutine wrapper()
           min_width = min_width, &
           eps = eps, &
           verbose = verbose, &
+          cg_verbose = cg_verbose, &
           nodal = nodal)
 
   end do

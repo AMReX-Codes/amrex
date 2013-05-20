@@ -403,11 +403,15 @@ contains
            end if
        end if
     end if
-
+    !
     ! We do this *after* the test on bottom_solver == 4 in case we redefine bottom_solver
     !    to be 1 or 2 in that test.
-    if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. mgt%bottom_solver == 2) ) &
+    !
+    if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. &
+                           mgt%bottom_solver == 2 .or. &
+                           mgt%bottom_solver == 3) ) then
        call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
+    end if
 
   end subroutine mg_tower_build
 
@@ -715,7 +719,7 @@ contains
   subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
 
     use bl_prof_module
-    use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
+    use itsol_module, only: itsol_bicgstab_solve, itsol_cabicgstab_solve, itsol_cg_solve
 
     type( mg_tower), intent(inout) :: mgt
     type( multifab), intent(inout) :: uu
@@ -789,6 +793,28 @@ contains
                               mgt%stencil_type, mgt%lcross, &
                               stat = stat, singular_in = singular_test, &
                               uniform_dh = mgt%uniform_dh)
+       end if
+       do i = 1, mgt%nub
+          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+       end do
+    case (3)
+       if (nodal_q(rh)) then
+          call itsol_cabicgstab_solve(ss, uu, rh, mm, &
+                                      mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                      mgt%cg_verbose, &
+                                      mgt%stencil_type, mgt%lcross, &
+                                      stat = stat, &
+                                      singular_in = mgt%bottom_singular, &
+                                      uniform_dh = mgt%uniform_dh,&
+                                      nodal_mask = mgt%nodal_mask)
+       else
+          call itsol_cabicgstab_solve(ss, uu, rh, mm, &
+                                      mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                      mgt%cg_verbose,  &
+                                      mgt%stencil_type, mgt%lcross, &
+                                      stat = stat, &
+                                      singular_in = singular_test, &
+                                      uniform_dh = mgt%uniform_dh)
        end if
        do i = 1, mgt%nub
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
