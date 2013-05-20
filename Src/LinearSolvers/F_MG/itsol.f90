@@ -690,6 +690,75 @@ contains
 
   end subroutine itsol_BiCGStab_solve
 
+  subroutine dgemv(alpha,a,x,beta,y,m,n)
+
+    integer,          intent(in   ) :: m,n
+    double precision, intent(in   ) :: a(m,n),x(n),alpha,beta
+    double precision, intent(inout) :: y(m)
+    !
+    !  dgemv  performs 
+    !
+    !     y := alpha*A*x + beta*y
+    !
+    !  where alpha and beta are scalars, x and y are vectors and A is an
+    !  m by n matrix.
+    !
+    !  Further Details
+    !  ===============
+    !
+    !  Level 2 Blas routine.
+    !  The vector and matrix arguments are not referenced when N = 0, or M = 0
+    !
+    !  -- Written on 22-October-1986.
+    !     Jack Dongarra, Argonne National Lab.
+    !     Jeremy Du Croz, Nag Central Office.
+    !     Sven Hammarling, Nag Central Office.
+    !     Richard Hanson, Sandia National Labs.
+    !
+    !  =====================================================================
+    !
+    double precision, parameter :: one = 1.0d0, zero = 0.0d0
+
+    double precision temp
+    integer i,j,jx
+    !
+    ! Quick return if possible.
+    !
+    if ((m.eq.0) .or. (n.eq.0) .or. ((alpha.eq.zero).and.(beta.eq.one))) return
+    !
+    ! Start the operations. In this version the elements of A are
+    ! accessed sequentially with one pass through A.
+    !
+    ! First form  y := beta*y.
+    !
+    if (beta.ne.one) then
+       if (beta.eq.zero) then
+          do i = 1,m
+             y(i) = zero
+          end do
+       else
+          do i = 1,m
+             y(i) = beta*y(i)
+          end do
+       end if
+    end if
+    if (alpha.eq.zero) return
+    !
+    ! Now form  y := alpha*a*x + y.
+    !
+    jx = 1
+    do j = 1,n
+       if (x(jx).ne.zero) then
+          temp = alpha*x(jx)
+          do i = 1,m
+             y(i) = y(i) + temp*a(i,j)
+          end do
+       end if
+       jx = jx + 1
+    end do
+
+  end subroutine dgemv
+
   subroutine itsol_CABiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
        stat, singular_in, uniform_dh, nodal_mask)
     use bl_prof_module
@@ -708,7 +777,7 @@ contains
     type(multifab), intent(in ), optional :: nodal_mask
 
     type(layout)    :: la
-    type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local,    ph, vv, tt
+    type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local,    ph
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
     real(dp_t)      :: rnorm0, small, norm_rr, norm_uu, delta, L2_norm_of_rt
     real(dp_t)      :: tnorms(3),rtnorms(3), L2_norm_of_resid, atime, gtime, time1, time2
@@ -733,8 +802,8 @@ contains
     real(dp_t)   Tpaj(4*SSS_MAX+1)
     real(dp_t)   Tpcj(4*SSS_MAX+1)
     real(dp_t)  Tppaj(4*SSS_MAX+1)
-    real(dp_t)     cG(4*SSS_MAX+1,4*SSS_MAX+1)     ! G in C++ code
-    real(dp_t)     lG(4*SSS_MAX+1)                 ! g in C++ code
+    real(dp_t)     cG(4*SSS_MAX+1, 4*SSS_MAX+1)     ! G in C++ code
+    real(dp_t)     lG(4*SSS_MAX+1)                  ! g in C++ code
     real(dp_t)     Gg((4*SSS_MAX+1)*(4*SSS_MAX+2))
 
     call build(bpt, "its_CABiCGStab_solve")
@@ -838,7 +907,7 @@ contains
 
     small         = epsilon(Anorm)
     delta         = dot(rt, rr, nodal_mask)
-    L2_norm_of_rt = sqrt(delta)
+    L2_norm_of_rt = dsqrt(delta)
 
     if ( parallel_IOProcessor() .and. verbose > 0 ) then
        write(*,*) "   CABiCGStab: A and rhs have been rescaled. So has the error."
@@ -874,13 +943,15 @@ contains
 
     do i = 1, max_iter
 
-       call itsol_precon(aa_local, ph, pp, mm, 0)
-       call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
+
+!       call itsol_precon(aa_local, ph, pp, mm, 0)
+!       call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
 
        cnt = cnt + 1
 
 
 !       if ( itsol_converged(rr, uu, bnorm, eps) ) exit
+
 
     end do
 
@@ -939,29 +1010,40 @@ contains
 
   contains
 
-    subroutine SetMonomialBasis(sss)
+    subroutine SetMonomialBasis (sss)
 
       integer, intent(in) :: sss
 
       Tp = 0.0d0
 
-      do i = 0,2*sss-1
-         Tp(i+1,i) = 1.0d0
+      do i = 1,2*sss
+         Tp(i,i-1) = 1.0d0
       end do
-      do i = 2*sss+1, 4*sss-1
+      do i = 2*sss+2, 4*sss
          Tp(i+1,i) = 1.0d0
       end do
 
       Tpp = 0.0d0
 
-      do i = 0,2*sss-2
+      do i = 1,2*sss-1
          Tpp(i+2,i) = 1.0d0
       end do
-      do i = 2*sss+1, 4*sss-2
+      do i = 2*sss+2, 4*sss-1
          Tpp(i+2,i) = 1.0d0
       end do
 
     end subroutine SetMonomialBasis
+    !
+    ! z[n] = alpha*x[n]+beta*y[n]
+    !
+    subroutine axpy (z, alpha, x, beta, y, n)
+      real(dp_t), intent(inout) :: z(n)
+      real(dp_t), intent(in   ) :: x(n), y(n), alpha, beta
+      integer,    intent(in   ) :: n
+      do i = 1, n
+        z(i) = alpha*x(i) + beta*y(i)
+      end do
+    end subroutine axpy
 
   end subroutine itsol_CABiCGStab_solve
 
