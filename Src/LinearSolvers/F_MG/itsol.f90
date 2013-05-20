@@ -711,9 +711,10 @@ contains
     type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local,    ph, vv, tt
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
     real(dp_t)      :: rnorm0, small, norm_rr, norm_uu, delta, L2_norm_of_rt
-    real(dp_t)      :: tnorms(3),rtnorms(3), L2_norm_of_resid
-    integer         :: i, cnt, ng_for_res
+    real(dp_t)      :: tnorms(3),rtnorms(3), L2_norm_of_resid, atime, gtime, time1, time2
+    integer         :: i, m, cnt, ng_for_res
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
+    logical         :: BiCGStabFailed, BiCGStabConverged
 
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
 
@@ -759,7 +760,7 @@ contains
     temp2 = 0.0d0
     temp3 = 0.0d0
 
-    ! SetMonomialBasis(Tp,Tpp,SSS_MAX);
+    call SetMonomialBasis(SSS_MAX)
 
     call multifab_build(rr, la, 1, ng_for_res, nodal)
     call multifab_build(rt, la, 1, ng_for_res, nodal)
@@ -834,8 +835,8 @@ contains
     rnorm0 = rtnorms(1)
     bnorm  = rtnorms(2)
     Anorm  = rtnorms(3)
-    small  = epsilon(Anorm)
 
+    small         = epsilon(Anorm)
     delta         = dot(rt, rr, nodal_mask)
     L2_norm_of_rt = sqrt(delta)
 
@@ -864,6 +865,12 @@ contains
        end if
        go to 100
     end if
+
+    L2_norm_of_resid = 0
+
+    BiCGStabFailed = .false. ; BiCGStabConverged = .false.
+
+    atime = 0.0d0; gtime = 0.0d0
 
     do i = 1, max_iter
 
@@ -929,6 +936,32 @@ contains
     call destroy(ph)
 
     call destroy(bpt)
+
+  contains
+
+    subroutine SetMonomialBasis(sss)
+
+      integer, intent(in) :: sss
+
+      Tp = 0.0d0
+
+      do i = 0,2*sss-1
+         Tp(i+1,i) = 1.0d0
+      end do
+      do i = 2*sss+1, 4*sss-1
+         Tp(i+1,i) = 1.0d0
+      end do
+
+      Tpp = 0.0d0
+
+      do i = 0,2*sss-2
+         Tpp(i+2,i) = 1.0d0
+      end do
+      do i = 2*sss+1, 4*sss-2
+         Tpp(i+2,i) = 1.0d0
+      end do
+
+    end subroutine SetMonomialBasis
 
   end subroutine itsol_CABiCGStab_solve
 
