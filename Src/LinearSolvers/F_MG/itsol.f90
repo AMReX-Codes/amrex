@@ -10,6 +10,7 @@ module itsol_module
   integer, private, parameter :: def_bicg_max_iter = 1000
   integer, private, parameter :: def_cg_max_iter   = 1000
 
+  private :: dgemv
   private :: itsol_defect, itsol_precon
   private :: jacobi_precon_1d, jacobi_precon_2d, jacobi_precon_3d
   private :: nodal_precon_1d, nodal_precon_2d, nodal_precon_3d
@@ -692,9 +693,9 @@ contains
 
   subroutine dgemv(alpha,a,x,beta,y,m,n)
 
-    integer,          intent(in   ) :: m,n
-    double precision, intent(in   ) :: a(m,n),x(n),alpha,beta
-    double precision, intent(inout) :: y(m)
+    integer,    intent(in   ) :: m,n
+    real(dp_t), intent(in   ) :: a(m,n),x(n),alpha,beta
+    real(dp_t), intent(inout) :: y(m)
     !
     !  dgemv  performs 
     !
@@ -717,10 +718,8 @@ contains
     !
     !  =====================================================================
     !
-    double precision, parameter :: one = 1.0d0, zero = 0.0d0
-
-    double precision temp
-    integer i,j,jx
+    integer    :: i,j,jx
+    real(dp_t) :: temp
     !
     ! Quick return if possible.
     !
@@ -819,15 +818,15 @@ contains
     la    = get_layout(aa)
     nodal = nodal_flags(rh)
 
-    aj    = 0.0d0
-    cj    = 0.0d0
-    ej    = 0.0d0
-    Tpaj  = 0.0d0
-    Tpcj  = 0.0d0
-    Tppaj = 0.0d0
-    temp1 = 0.0d0
-    temp2 = 0.0d0
-    temp3 = 0.0d0
+    aj    = zero
+    cj    = zero
+    ej    = zero
+    Tpaj  = zero
+    Tpcj  = zero
+    Tppaj = zero
+    temp1 = zero
+    temp2 = zero
+    temp3 = zero
 
     call SetMonomialBasis(SSS_MAX)
 
@@ -914,7 +913,7 @@ contains
        write(unit=*, fmt='("    CABiCGStab: Initial error (error0) =        ",g15.8)') rnorm0
     end if 
 
-    if ( itsol_converged(rr, uu, bnorm, eps, rrnorm=norm_rr) .or. delta .eq. 0.0d0 ) then
+    if ( itsol_converged(rr, uu, bnorm, eps, rrnorm=norm_rr) .or. delta .eq. zero ) then
        if ( verbose > 0 ) then
           if ( rnorm0 < eps*bnorm ) then
              if ( parallel_IOProcessor() ) then
@@ -926,7 +925,7 @@ contains
                 write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
                      rnorm0,small*Anorm
              end if
-          else if ( delta .eq. 0.0d0 ) then
+          else if ( delta .eq. zero ) then
              if ( parallel_IOProcessor() ) then
                 write(unit=*, fmt='("    CABiCGStab: Zero iterations: delta == 0")')
              end if
@@ -939,7 +938,7 @@ contains
 
     BiCGStabFailed = .false. ; BiCGStabConverged = .false.
 
-    atime = 0.0d0; gtime = 0.0d0
+    atime = zero; gtime = zero
 
     do i = 1, max_iter
 
@@ -1014,22 +1013,22 @@ contains
 
       integer, intent(in) :: sss
 
-      Tp = 0.0d0
+      Tp = zero
 
       do i = 1,2*sss
-         Tp(i,i-1) = 1.0d0
+         Tp(i,i-1) = one
       end do
       do i = 2*sss+2, 4*sss
-         Tp(i+1,i) = 1.0d0
+         Tp(i+1,i) = one
       end do
 
-      Tpp = 0.0d0
+      Tpp = zero
 
       do i = 1,2*sss-1
-         Tpp(i+2,i) = 1.0d0
+         Tpp(i+2,i) = one
       end do
       do i = 2*sss+2, 4*sss-1
-         Tpp(i+2,i) = 1.0d0
+         Tpp(i+2,i) = one
       end do
 
     end subroutine SetMonomialBasis
