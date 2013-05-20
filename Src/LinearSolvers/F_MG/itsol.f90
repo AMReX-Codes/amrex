@@ -272,12 +272,13 @@ contains
 
     end subroutine diag_init_nd_3d
 
-  function itsol_converged(rr, uu, bnorm, eps, abs_eps) result(r)
+  function itsol_converged(rr, uu, bnorm, eps, abs_eps, rrnorm) result(r)
     use bl_prof_module
 
-    type(multifab), intent(in)           :: rr, uu
-    real(dp_t),     intent(in)           :: bnorm, eps
-    real(dp_t),     intent(in), optional :: abs_eps
+    type(multifab), intent(in )           :: rr, uu
+    real(dp_t),     intent(in )           :: bnorm, eps
+    real(dp_t),     intent(in ), optional :: abs_eps
+    real(dp_t),     intent(out), optional :: rrnorm
 
     real(dp_t) :: norm_rr, norm_uu, tnorms(2), rtnorms(2)
     logical    :: r
@@ -295,6 +296,8 @@ contains
 
     norm_rr = rtnorms(1)
     norm_uu = rtnorms(2)
+
+    if ( present(rrnorm) ) rrnorm = norm_rr
 
     if (present(abs_eps)) then
 !     r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
@@ -525,7 +528,7 @@ contains
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
     end if 
 
-    if ( itsol_converged(rr, uu, bnorm, eps) ) then
+    if ( itsol_converged(rr, uu, bnorm, eps, rrnorm=norm_rr) ) then
        if ( verbose > 0 ) then
           if ( tres0 < eps*bnorm ) then
              if ( parallel_IOProcessor() ) then
@@ -533,7 +536,6 @@ contains
                      tres0,eps*bnorm
              end if
           else
-             norm_rr = norm_inf(rr)
              if ( norm_rr < epsilon(Anorm)*Anorm ) then
                 if ( parallel_IOProcessor() ) then
                    write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
@@ -705,15 +707,34 @@ contains
     logical,        intent(in ), optional :: uniform_dh
     type(multifab), intent(in ), optional :: nodal_mask
 
-    type(layout) :: la
-    type(multifab) :: rr, rt, pp, ph, vv, tt, ss, rh_local, aa_local
+    type(layout)    :: la
+    type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local,    ph, vv, tt
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
-    real(dp_t) :: rho_orig, volume, tres0, small, norm_rr, norm_uu
-    real(dp_t) :: tnorms(3),rtnorms(3)
-    integer :: i, cnt, ng_for_res
-    logical :: nodal_solve, singular, nodal(get_dim(rh)), diag_inited
+    real(dp_t)      :: rnorm0, small, norm_rr, norm_uu, delta, L2_norm_of_rt
+    real(dp_t)      :: tnorms(3),rtnorms(3)
+    integer         :: i, cnt, ng_for_res
+    logical         :: nodal_solve, singular, nodal(get_dim(rh))
+
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
+
     type(bl_prof_timer), save :: bpt
+
+    integer, parameter :: SSS_MAX = 4
+
+    real(dp_t)  temp1(4*SSS_MAX+1)
+    real(dp_t)  temp2(4*SSS_MAX+1)
+    real(dp_t)  temp3(4*SSS_MAX+1)
+    real(dp_t)     Tp(4*SSS_MAX+1, 4*SSS_MAX+1)
+    real(dp_t)    Tpp(4*SSS_MAX+1, 4*SSS_MAX+1)
+    real(dp_t)     aj(4*SSS_MAX+1)
+    real(dp_t)     cj(4*SSS_MAX+1)
+    real(dp_t)     ej(4*SSS_MAX+1)
+    real(dp_t)   Tpaj(4*SSS_MAX+1)
+    real(dp_t)   Tpcj(4*SSS_MAX+1)
+    real(dp_t)  Tppaj(4*SSS_MAX+1)
+    real(dp_t)     cG(4*SSS_MAX+1,4*SSS_MAX+1)     ! G in C++ code
+    real(dp_t)     lG(4*SSS_MAX+1)                 ! g in C++ code
+    real(dp_t)     Gg((4*SSS_MAX+1)*(4*SSS_MAX+2))
 
     call build(bpt, "its_CABiCGStab_solve")
 
@@ -725,17 +746,31 @@ contains
     ng_for_res  = 0;       if ( nodal_q(rh)          ) ng_for_res  = 1
     nodal_solve = .false.; if ( ng_for_res /= 0      ) nodal_solve = .true.
 
+    la    = get_layout(aa)
     nodal = nodal_flags(rh)
 
-    la = get_layout(aa)
+    aj    = 0.0d0
+    cj    = 0.0d0
+    ej    = 0.0d0
+    Tpaj  = 0.0d0
+    Tpcj  = 0.0d0
+    Tppaj = 0.0d0
+    temp1 = 0.0d0
+    temp2 = 0.0d0
+    temp3 = 0.0d0
+
+    ! SetMonomialBasis(Tp,Tpp,SSS_MAX);
 
     call multifab_build(rr, la, 1, ng_for_res, nodal)
     call multifab_build(rt, la, 1, ng_for_res, nodal)
     call multifab_build(pp, la, 1, ng_for_res, nodal)
-    call multifab_build(ph, la, 1, nghost(uu), nodal)
-    call multifab_build(vv, la, 1, ng_for_res, nodal)
-    call multifab_build(tt, la, 1, ng_for_res, nodal)
-    call multifab_build(ss, la, 1, ng_for_res, nodal)
+    !
+    ! Contains the matrix powers of pp[] and rr[].
+    !
+    ! First 2*SSS+1 components are powers of pp[].
+    ! Next  2*SSS   components are powers of rr[].
+    !
+    call multifab_build(pr, la, 4*SSS_MAX+1, ng_for_res, nodal)
     !
     ! Use these for local preconditioning.
     !
@@ -743,12 +778,10 @@ contains
     call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
 
     if ( nodal_solve ) then
-       call setval(rr, ZERO, all=.true.)
-       call setval(rt, ZERO, all=.true.)
-       call setval(pp, ZERO, all=.true.)
-       call setval(vv, ZERO, all=.true.)
-       call setval(tt, ZERO, all=.true.)
-       call setval(ss, ZERO, all=.true.)
+       call setval(rr, ZERO, all = .true.)
+       call setval(rt, ZERO, all = .true.)
+       call setval(pp, ZERO, all = .true.)
+       call setval(pr, ZERO, all = .true.)
     end if
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
@@ -764,23 +797,20 @@ contains
     ! Make sure to do singular adjustment *before* diagonalization.
     !
     if ( singular ) then
-      call setval(ss,ONE)
-      tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
-      tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
-      call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
-      rho    = rtnorms(1)
-      volume = rtnorms(2)
-      rho    = rho / volume
-      if ( parallel_IOProcessor() .and. verbose > 0 ) then
-         print *,'...singular adjustment to rhs: ',rho
-      endif
-      call saxpy(rh_local,-rho,ss)
-      call setval(ss,ZERO,all=.true.)
+       call multifab_build(ss, la, 1, ng_for_res, nodal)
+       call setval(ss,ONE)
+       tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
+       tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
+       call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
+       rho = rtnorms(1) / rtnorms(2)
+       if ( parallel_IOProcessor() .and. verbose > 0 ) then
+          print *,'...singular adjustment to rhs: ', rho
+       endif
+       call saxpy(rh_local,-rho,ss)
+       call destroy(ss)
     end if
 
-    call diag_initialize(aa_local,rh_local,mm); diag_inited = .true.
-
-    call copy(ph, uu, ng = nghost(ph))
+    call diag_initialize(aa_local,rh_local,mm)
 
     cnt = 0
     !
@@ -788,43 +818,41 @@ contains
     !
     call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh); cnt = cnt + 1
 
-    call copy(rt, rr)
-    rho      = dot(rt, rr, nodal_mask)
-    rho_orig = rho
+    call copy(rt, rr); call copy(pp, rr)
     !
     ! Elide some reductions by calculating local norms & then reducing all together.
     !
-    tnorms(1) = norm_inf(rr,           local=.true.)
-    tnorms(2) = norm_inf(rh_local,     local=.true.)
-    tnorms(3) = stencil_norm(aa_local, local=.true.)
+    tnorms(1) = norm_inf(rr,           local = .true.)
+    tnorms(2) = norm_inf(rh_local,     local = .true.)
+    tnorms(3) = stencil_norm(aa_local, local = .true.)
 
     call parallel_reduce(rtnorms, tnorms, MPI_MAX)
 
-    tres0 = rtnorms(1)
-    bnorm = rtnorms(2)
-    Anorm = rtnorms(3)
-    small = epsilon(Anorm)
+    rnorm0 = rtnorms(1)
+    bnorm  = rtnorms(2)
+    Anorm  = rtnorms(3)
+    small  = epsilon(Anorm)
+
+    delta         = dot(rt, rr, nodal_mask)
+    L2_norm_of_rt = sqrt(delta)
 
     if ( parallel_IOProcessor() .and. verbose > 0 ) then
-       if ( diag_inited ) then
-          write(*,*) "   CABiCGStab: A and rhs have been rescaled. So do the error."
-       end if
-       write(unit=*, fmt='("    CABiCGStab: Initial error (error0) =        ",g15.8)') tres0
+       write(*,*) "   CABiCGStab: A and rhs have been rescaled. So has the error."
+       write(unit=*, fmt='("    CABiCGStab: Initial error (error0) =        ",g15.8)') rnorm0
     end if 
 
-    if ( itsol_converged(rr, uu, bnorm, eps) ) then
+    if ( itsol_converged(rr, uu, bnorm, eps, rrnorm=norm_rr) ) then
        if ( verbose > 0 ) then
-          if ( tres0 < eps*bnorm ) then
+          if ( rnorm0 < eps*bnorm ) then
              if ( parallel_IOProcessor() ) then
                 write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-                     tres0,eps*bnorm
+                     rnorm0,eps*bnorm
              end if
           else
-             norm_rr = norm_inf(rr)
              if ( norm_rr < epsilon(Anorm)*Anorm ) then
                 if ( parallel_IOProcessor() ) then
                    write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                        tres0,small*Anorm
+                        rnorm0,small*Anorm
                 end if
              end if
           end if
@@ -966,10 +994,7 @@ contains
     call destroy(rr)
     call destroy(rt)
     call destroy(pp)
-    call destroy(ph)
-    call destroy(vv)
-    call destroy(tt)
-    call destroy(ss)
+    call destroy(pr)
 
     call destroy(bpt)
 
