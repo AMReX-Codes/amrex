@@ -688,6 +688,293 @@ contains
 
   end subroutine itsol_BiCGStab_solve
 
+  subroutine itsol_CABiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
+       stat, singular_in, uniform_dh, nodal_mask)
+    use bl_prof_module
+    integer,         intent(in   ) :: max_iter
+    type(imultifab), intent(in   ) :: mm
+    type(multifab),  intent(inout) :: uu
+    type(multifab),  intent(in   ) :: rh
+    type(multifab),  intent(in   ) :: aa
+    integer        , intent(in   ) :: stencil_type, verbose
+    logical        , intent(in   ) :: lcross
+    real(kind=dp_t), intent(in   ) :: eps
+
+    integer,        intent(out), optional :: stat
+    logical,        intent(in ), optional :: singular_in
+    logical,        intent(in ), optional :: uniform_dh
+    type(multifab), intent(in ), optional :: nodal_mask
+
+    type(layout) :: la
+    type(multifab) :: rr, rt, pp, ph, vv, tt, ss, rh_local, aa_local
+    real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
+    real(dp_t) :: rho_orig, volume, tres0, small, norm_rr, norm_uu
+    real(dp_t) :: tnorms(3),rtnorms(3)
+    integer :: i, cnt, ng_for_res
+    logical :: nodal_solve, singular, nodal(get_dim(rh)), diag_inited
+    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "its_CABiCGStab_solve")
+
+    stop 'itsol_CABiCGStab_solve() not fully implemented'
+
+    if ( present(stat) ) stat = 0
+
+    singular    = .false.; if ( present(singular_in) ) singular    = singular_in
+    ng_for_res  = 0;       if ( nodal_q(rh)          ) ng_for_res  = 1
+    nodal_solve = .false.; if ( ng_for_res /= 0      ) nodal_solve = .true.
+
+    nodal = nodal_flags(rh)
+
+    la = get_layout(aa)
+
+    call multifab_build(rr, la, 1, ng_for_res, nodal)
+    call multifab_build(rt, la, 1, ng_for_res, nodal)
+    call multifab_build(pp, la, 1, ng_for_res, nodal)
+    call multifab_build(ph, la, 1, nghost(uu), nodal)
+    call multifab_build(vv, la, 1, ng_for_res, nodal)
+    call multifab_build(tt, la, 1, ng_for_res, nodal)
+    call multifab_build(ss, la, 1, ng_for_res, nodal)
+    !
+    ! Use these for local preconditioning.
+    !
+    call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
+    call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
+
+    if ( nodal_solve ) then
+       call setval(rr, ZERO, all=.true.)
+       call setval(rt, ZERO, all=.true.)
+       call setval(pp, ZERO, all=.true.)
+       call setval(vv, ZERO, all=.true.)
+       call setval(tt, ZERO, all=.true.)
+       call setval(ss, ZERO, all=.true.)
+    end if
+
+    call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
+    !
+    ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    !
+    do i = 1, nfabs(aa)
+       pdst => dataptr(aa_local, i)
+       psrc => dataptr(aa      , i)
+       call cpy_d(pdst, psrc)
+    end do
+    !
+    ! Make sure to do singular adjustment *before* diagonalization.
+    !
+    if ( singular ) then
+      call setval(ss,ONE)
+      tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
+      tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
+      call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
+      rho    = rtnorms(1)
+      volume = rtnorms(2)
+      rho    = rho / volume
+      if ( parallel_IOProcessor() .and. verbose > 0 ) then
+         print *,'...singular adjustment to rhs: ',rho
+      endif
+      call saxpy(rh_local,-rho,ss)
+      call setval(ss,ZERO,all=.true.)
+    end if
+
+    call diag_initialize(aa_local,rh_local,mm); diag_inited = .true.
+
+    call copy(ph, uu, ng = nghost(ph))
+
+    cnt = 0
+    !
+    ! Compute rr = aa * uu - rh.
+    !
+    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh); cnt = cnt + 1
+
+    call copy(rt, rr)
+    rho      = dot(rt, rr, nodal_mask)
+    rho_orig = rho
+    !
+    ! Elide some reductions by calculating local norms & then reducing all together.
+    !
+    tnorms(1) = norm_inf(rr,           local=.true.)
+    tnorms(2) = norm_inf(rh_local,     local=.true.)
+    tnorms(3) = stencil_norm(aa_local, local=.true.)
+
+    call parallel_reduce(rtnorms, tnorms, MPI_MAX)
+
+    tres0 = rtnorms(1)
+    bnorm = rtnorms(2)
+    Anorm = rtnorms(3)
+    small = epsilon(Anorm)
+
+    if ( parallel_IOProcessor() .and. verbose > 0 ) then
+       if ( diag_inited ) then
+          write(*,*) "   CABiCGStab: A and rhs have been rescaled. So do the error."
+       end if
+       write(unit=*, fmt='("    CABiCGStab: Initial error (error0) =        ",g15.8)') tres0
+    end if 
+
+    if ( itsol_converged(rr, uu, bnorm, eps) ) then
+       if ( verbose > 0 ) then
+          if ( tres0 < eps*bnorm ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+                     tres0,eps*bnorm
+             end if
+          else
+             norm_rr = norm_inf(rr)
+             if ( norm_rr < epsilon(Anorm)*Anorm ) then
+                if ( parallel_IOProcessor() ) then
+                   write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+                        tres0,small*Anorm
+                end if
+             end if
+          end if
+       end if
+       go to 100
+    end if
+
+    rho_1 = ZERO
+
+    do i = 1, max_iter
+       rho = dot(rt, rr, nodal_mask)
+       if ( i == 1 ) then
+          call copy(pp, rr)
+       else
+          if ( rho_1 == ZERO ) then
+             if ( present(stat) ) then
+                call bl_warn("CABiCGStab_SOLVE: failure 1")
+                stat = 2
+                goto 100
+             end if
+             call bl_error("CABiCGStab: failure 1")
+          end if
+          if ( omega == ZERO ) then
+             if ( present(stat) ) then
+                call bl_warn("CABiCGStab_SOLVE: failure 2")
+                stat = 3
+                goto 100
+             end if
+             call bl_error("CABiCGStab: failure 2")
+          end if
+          beta = (rho/rho_1)*(alpha/omega)
+          call saxpy(pp, -omega, vv)
+          call saxpy(pp, rr, beta, pp)
+       end if
+       call itsol_precon(aa_local, ph, pp, mm, 0)
+       call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
+       cnt = cnt + 1
+       den = dot(rt, vv, nodal_mask)
+       if ( den == ZERO ) then
+          if ( present(stat) ) then
+             call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
+             stat = 30
+             goto 100
+          endif
+          call bl_error("CABiCGStab: failure 3")
+       end if
+       alpha = rho/den
+       call saxpy(uu, alpha, ph)
+       call saxpy(ss, rr, -alpha, vv)
+       rnorm = norm_inf(ss)
+       if ( parallel_IOProcessor() .and. verbose > 1 ) then
+          write(unit=*, fmt='("    CABiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, &
+               rnorm  /  (bnorm)
+       end if
+       if ( itsol_converged(ss, uu, bnorm, eps) ) exit
+       call itsol_precon(aa_local, ph, ss, mm,0)
+       call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh) 
+       cnt = cnt + 1
+       !
+       ! Elide a reduction here by calculating the two dot-products
+       ! locally and then reducing them both in a single call.
+       !
+       tnorms(1) = dot(tt, tt, nodal_mask, local = .true.)
+       tnorms(2) = dot(tt, ss, nodal_mask, local = .true.)
+
+       call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
+
+       den   = rtnorms(1)
+       omega = rtnorms(2)
+
+       if ( den == ZERO ) then
+          if ( present(stat) ) then
+             call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
+             stat = 31
+             goto 100
+          endif
+          call bl_error("CABiCGStab: failure 3")
+       end if
+       omega = omega/den
+       call saxpy(uu, omega, ph)
+       call saxpy(rr, ss, -omega, tt)
+       rnorm = norm_inf(rr)
+       if ( parallel_IOProcessor() .and. verbose > 1 ) then
+          write(unit=*, fmt='("    CABiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, &
+               rnorm /  (bnorm)
+       end if
+
+       if ( itsol_converged(rr, uu, bnorm, eps) ) exit
+
+       rho_1 = rho
+
+    end do
+
+    if ( verbose > 0 ) then
+       if ( parallel_IOProcessor() ) then
+          write(unit=*, fmt='("    CABiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, &
+               rnorm/ (bnorm)
+       end if
+       if ( rnorm < eps*bnorm ) then
+          if ( parallel_IOProcessor() ) then
+             write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+                  rnorm,eps*bnorm
+          end if
+       else
+          norm_uu = norm_inf(uu)
+          if ( rnorm < eps*Anorm*norm_uu ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
+                     rnorm,eps*Anorm*norm_uu
+             end if
+          else if ( rnorm < epsilon(Anorm)*Anorm ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+                     rnorm,small*Anorm
+             end if
+          end if
+       end if
+    end if
+
+    if ( rnorm > bnorm ) then
+       call setval(uu,ZERO,all=.true.)
+       if ( present(stat) ) stat = 1
+       if ( verbose > 0 .and.  parallel_IOProcessor() ) &
+            print *,'   CABiCGStab: solution reset to zero'
+    end if
+
+    if ( i > max_iter ) then
+       if ( present(stat) ) then
+          stat = 1
+       else
+          call bl_error("CABiCGSolve: failed to converge");
+       end if
+    end if
+
+100 continue
+
+    call destroy(rh_local)
+    call destroy(aa_local)
+    call destroy(rr)
+    call destroy(rt)
+    call destroy(pp)
+    call destroy(ph)
+    call destroy(vv)
+    call destroy(tt)
+    call destroy(ss)
+
+    call destroy(bpt)
+
+  end subroutine itsol_CABiCGStab_solve
+
   subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
                             stat, singular_in, uniform_dh, nodal_mask)
     use bl_prof_module
