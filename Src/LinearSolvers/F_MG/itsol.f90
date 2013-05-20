@@ -711,7 +711,7 @@ contains
     type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local,    ph, vv, tt
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
     real(dp_t)      :: rnorm0, small, norm_rr, norm_uu, delta, L2_norm_of_rt
-    real(dp_t)      :: tnorms(3),rtnorms(3)
+    real(dp_t)      :: tnorms(3),rtnorms(3), L2_norm_of_resid
     integer         :: i, cnt, ng_for_res
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
 
@@ -764,6 +764,7 @@ contains
     call multifab_build(rr, la, 1, ng_for_res, nodal)
     call multifab_build(rt, la, 1, ng_for_res, nodal)
     call multifab_build(pp, la, 1, ng_for_res, nodal)
+    call multifab_build(ph, la, 1, nghost(uu), nodal)
     !
     ! Contains the matrix powers of pp[] and rr[].
     !
@@ -812,6 +813,8 @@ contains
 
     call diag_initialize(aa_local,rh_local,mm)
 
+    call copy(ph, uu, ng = nghost(ph))
+
     cnt = 0
     !
     ! Compute rr = aa * uu - rh.
@@ -841,108 +844,36 @@ contains
        write(unit=*, fmt='("    CABiCGStab: Initial error (error0) =        ",g15.8)') rnorm0
     end if 
 
-    if ( itsol_converged(rr, uu, bnorm, eps, rrnorm=norm_rr) ) then
+    if ( itsol_converged(rr, uu, bnorm, eps, rrnorm=norm_rr) .or. delta .eq. 0.0d0 ) then
        if ( verbose > 0 ) then
           if ( rnorm0 < eps*bnorm ) then
              if ( parallel_IOProcessor() ) then
                 write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
                      rnorm0,eps*bnorm
              end if
-          else
-             if ( norm_rr < epsilon(Anorm)*Anorm ) then
-                if ( parallel_IOProcessor() ) then
-                   write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                        rnorm0,small*Anorm
-                end if
+          else if ( norm_rr < epsilon(Anorm)*Anorm ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
+                     rnorm0,small*Anorm
+             end if
+          else if ( delta .eq. 0.0d0 ) then
+             if ( parallel_IOProcessor() ) then
+                write(unit=*, fmt='("    CABiCGStab: Zero iterations: delta == 0")')
              end if
           end if
        end if
        go to 100
     end if
 
-    rho_1 = ZERO
-
     do i = 1, max_iter
-       rho = dot(rt, rr, nodal_mask)
-       if ( i == 1 ) then
-          call copy(pp, rr)
-       else
-          if ( rho_1 == ZERO ) then
-             if ( present(stat) ) then
-                call bl_warn("CABiCGStab_SOLVE: failure 1")
-                stat = 2
-                goto 100
-             end if
-             call bl_error("CABiCGStab: failure 1")
-          end if
-          if ( omega == ZERO ) then
-             if ( present(stat) ) then
-                call bl_warn("CABiCGStab_SOLVE: failure 2")
-                stat = 3
-                goto 100
-             end if
-             call bl_error("CABiCGStab: failure 2")
-          end if
-          beta = (rho/rho_1)*(alpha/omega)
-          call saxpy(pp, -omega, vv)
-          call saxpy(pp, rr, beta, pp)
-       end if
+
        call itsol_precon(aa_local, ph, pp, mm, 0)
        call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
+
        cnt = cnt + 1
-       den = dot(rt, vv, nodal_mask)
-       if ( den == ZERO ) then
-          if ( present(stat) ) then
-             call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
-             stat = 30
-             goto 100
-          endif
-          call bl_error("CABiCGStab: failure 3")
-       end if
-       alpha = rho/den
-       call saxpy(uu, alpha, ph)
-       call saxpy(ss, rr, -alpha, vv)
-       rnorm = norm_inf(ss)
-       if ( parallel_IOProcessor() .and. verbose > 1 ) then
-          write(unit=*, fmt='("    CABiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, &
-               rnorm  /  (bnorm)
-       end if
-       if ( itsol_converged(ss, uu, bnorm, eps) ) exit
-       call itsol_precon(aa_local, ph, ss, mm,0)
-       call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh) 
-       cnt = cnt + 1
-       !
-       ! Elide a reduction here by calculating the two dot-products
-       ! locally and then reducing them both in a single call.
-       !
-       tnorms(1) = dot(tt, tt, nodal_mask, local = .true.)
-       tnorms(2) = dot(tt, ss, nodal_mask, local = .true.)
 
-       call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
 
-       den   = rtnorms(1)
-       omega = rtnorms(2)
-
-       if ( den == ZERO ) then
-          if ( present(stat) ) then
-             call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
-             stat = 31
-             goto 100
-          endif
-          call bl_error("CABiCGStab: failure 3")
-       end if
-       omega = omega/den
-       call saxpy(uu, omega, ph)
-       call saxpy(rr, ss, -omega, tt)
-       rnorm = norm_inf(rr)
-       if ( parallel_IOProcessor() .and. verbose > 1 ) then
-          write(unit=*, fmt='("    CABiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, &
-               rnorm /  (bnorm)
-       end if
-
-       if ( itsol_converged(rr, uu, bnorm, eps) ) exit
-
-       rho_1 = rho
+!       if ( itsol_converged(rr, uu, bnorm, eps) ) exit
 
     end do
 
@@ -995,6 +926,7 @@ contains
     call destroy(rt)
     call destroy(pp)
     call destroy(pr)
+    call destroy(ph)
 
     call destroy(bpt)
 
