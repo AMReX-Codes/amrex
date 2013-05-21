@@ -262,7 +262,7 @@ contains
     ! Set flag "optimistically", 0 indicates no problems (1: smoother failed, <0: too many mlmg iterations)
     if ( present(status) ) status = 0
 
-    if ( ml_converged(res, full_soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+    if ( ml_converged(res, full_soln, fine_mask, bnorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
 
        solved = .true.
 
@@ -282,7 +282,7 @@ contains
        do iter = 1, mgt(nlevs)%max_iter
 
           if ( fine_converged ) then
-             if ( ml_converged(res, full_soln, fine_mask, max_norm, Anorm, rel_eps, &
+             if ( ml_converged(res, full_soln, fine_mask, max_norm, rel_eps, &
                   abs_eps, ni_res, mgt(nlevs)%verbose) ) then
 
                 solved = .true.
@@ -520,7 +520,7 @@ contains
           call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
                          mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
 
-          if ( ml_fine_converged(res, full_soln, max_norm, Anorm, rel_eps, abs_eps) ) then
+          if ( ml_fine_converged(res, full_soln, max_norm, rel_eps, abs_eps) ) then
 
              fine_converged = .true.
 
@@ -690,42 +690,38 @@ contains
 
   contains
 
-    function ml_fine_converged(res, sol, bnorm, Anorm, rel_eps, abs_eps) result(r)
-      logical :: r
+    function ml_fine_converged(res, sol, bnorm, rel_eps, abs_eps) result(r)
+      logical                    :: r
       type(multifab), intent(in) :: res(:), sol(:)
-      real(dp_t), intent(in) :: Anorm, rel_eps, abs_eps, bnorm
-      real(dp_t) :: ni_res, ni_sol, t1(2), t2(2)
-      integer    :: nlevs
+      real(dp_t),     intent(in) :: rel_eps, abs_eps, bnorm
+      real(dp_t)                 :: ni_res, ni_sol, t1(2), t2(2)
+      integer                    :: nlevs
       nlevs = size(res)
       !
       ! Reduce these two norms together.
       !
-      t1(1) = norm_inf(res(nlevs),local=.true.)
-      t1(2) = norm_inf(sol(nlevs),local=.true.)
+      t1(1) = norm_inf(res(nlevs),local = .true.)
+      t1(2) = norm_inf(sol(nlevs),local = .true.)
 
       call parallel_reduce(t2, t1, MPI_MAX)
 
       ni_res = t2(1)
       ni_sol = t2(2)
-      !
-      !     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-      !          ni_res <= abs_eps .or. &
-      !          ni_res <= epsilon(Anorm)*Anorm
-      r =  ni_res <= rel_eps*(bnorm) .or. &
-           ni_res <= abs_eps
+
+      r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps)
     end function ml_fine_converged
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, rel_eps, abs_eps, ni_res, verbose) result(r)
+    function ml_converged(res, sol, mask, bnorm, rel_eps, abs_eps, ni_res, verbose) result(r)
 
       use ml_norm_module, only : ml_norm_inf
 
-      logical :: r
-      integer :: verbose
-      type(multifab), intent(in) :: res(:), sol(:)
-      type(lmultifab), intent(in) :: mask(:)
-      real(dp_t), intent(in   ) :: Anorm, rel_eps, abs_eps, bnorm
-      real(dp_t), intent(  out) :: ni_res
-      real(dp_t) :: ni_sol, t1(2), t2(2)
+      logical                      :: r
+      integer                      :: verbose
+      type(multifab),  intent(in ) :: res(:), sol(:)
+      type(lmultifab), intent(in ) :: mask(:)
+      real(dp_t),      intent(in ) :: rel_eps, abs_eps, bnorm
+      real(dp_t),      intent(out) :: ni_res
+      real(dp_t)                   :: ni_sol, t1(2), t2(2)
       !
       ! Reduce these two norms together.
       !
@@ -736,23 +732,14 @@ contains
 
       ni_res = t2(1)
       ni_sol = t2(2)
-      !
-      !     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-      !          ni_res <= abs_eps .or. &
-      !          ni_res <= epsilon(Anorm)*Anorm
 
-      r =  ni_res <= rel_eps*(bnorm) .or. &
-           ni_res <= abs_eps 
+      r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps )
 
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
          if ( ni_res <= rel_eps*bnorm ) then
             print *,'Converged res < rel_eps*bnorm '
          else if ( ni_res <= abs_eps ) then
             print *,'Converged res < abs_eps '
-            !        else if (ni_res <= rel_eps*Anorm*ni_sol) then
-            !           print *,'Converged res < rel_eps*Anorm*sol'
-            !        else if (ni_res <= epsilon(Anorm)*Anorm) then 
-            !           print *,'Converged res < epsilon(Anorm)*Anorm'
          end if
       end if
     end function ml_converged
