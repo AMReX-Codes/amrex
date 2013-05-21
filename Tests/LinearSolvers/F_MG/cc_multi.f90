@@ -32,8 +32,8 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
 
   type(box      )                :: pd
 
-  type(multifab) :: cell_coeffs
-  type(multifab) :: edge_coeffs(mla%dim)
+  type(multifab), allocatable :: cell_coeffs(:)
+  type(multifab), allocatable :: edge_coeffs(:,:)
 
   type( multifab), allocatable   :: full_soln(:)
   type( multifab), allocatable   ::        rh(:)
@@ -81,12 +81,15 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
 
      la = mla%la(n)
 
-     call multifab_build(cell_coeffs, la, nc=1, ng=0)
-     call setval(cell_coeffs,0.d0,all=.true.)
+     allocate(cell_coeffs(mgt(n)%nlevels))
+     allocate(edge_coeffs(mgt(n)%nlevels,dm))
+
+     call multifab_build(cell_coeffs(mgt(n)%nlevels),la,nc=1,ng=1)
+     call setval(cell_coeffs(mgt(n)%nlevels),0.d0,all=.true.)
 
      do d = 1,dm
-        call multifab_build_edge(edge_coeffs(d), la, nc=1, ng=0, dir=d)
-        call setval(edge_coeffs(d),mac_beta,all=.true.)
+        call multifab_build_edge(edge_coeffs(mgt(n)%nlevels,d), la, nc=1, ng=0, dir=d)
+        call setval(edge_coeffs(mgt(n)%nlevels,d),mac_beta,all=.true.)
      end do
 
      pxa = ZERO
@@ -101,16 +104,16 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
 
      pd = mla%mba%pd(n)
 
-     call stencil_fill_cc(mgt(n)%ss(mgt(n)%nlevels), cell_coeffs, edge_coeffs, mgt(n)%dh(:,mgt(n)%nlevels), &
-                          mgt(n)%mm(mgt(n)%nlevels), xa, xb, pxa, pxb, stencil_order, &
-                          domain_bc)
+     call stencil_fill_cc_all_mglevels(mgt(n), cell_coeffs, edge_coeffs, xa, xb, pxa, pxb, &
+                                       stencil_order, domain_bc)
 
-     call destroy(cell_coeffs)
+     call destroy(cell_coeffs(mgt(n)%nlevels))
+     deallocate(cell_coeffs)
 
-    do d = 1,dm
-       call destroy(edge_coeffs(d))
-    end do
-
+     do d = 1, dm
+        call destroy(edge_coeffs(mgt(n)%nlevels,d))
+     end do
+     deallocate(edge_coeffs)
   end do
 
   if ( fabio ) then
@@ -139,14 +142,14 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
      print *, 'SOLUTION L2 NORM ', snrm(1)
   end if
 
-  if ( parallel_IOProcessor() ) print *, 'MEMORY STATS'
-  call print(multifab_mem_stats(),  " multifab before")
-  call print(imultifab_mem_stats(), "imultifab before")
-  call print(fab_mem_stats(),       "      fab before")
-  call print(ifab_mem_stats(),      "     ifab before")
-  call print(boxarray_mem_stats(),  " boxarray before")
-  call print(boxassoc_mem_stats(),  " boxassoc before")
-  call print(layout_mem_stats(),    "   layout before")
+! if ( parallel_IOProcessor() ) print *, 'MEMORY STATS'
+! call print(multifab_mem_stats(),  " multifab before")
+! call print(imultifab_mem_stats(), "imultifab before")
+! call print(fab_mem_stats(),       "      fab before")
+! call print(ifab_mem_stats(),      "     ifab before")
+! call print(boxarray_mem_stats(),  " boxarray before")
+! call print(boxassoc_mem_stats(),  " boxassoc before")
+! call print(layout_mem_stats(),    "   layout before")
 
   do n = 1,nlevs
      call multifab_destroy(rh(n))
