@@ -1144,8 +1144,9 @@ contains
     call destroy(rr)
     call destroy(rt)
     call destroy(pp)
-    call destroy(pr)
+    call destroy(tt)
     call destroy(ph)
+    call destroy(pr)
 
     call destroy(bpt)
 
@@ -1158,7 +1159,7 @@ contains
       Tp = zero
 
       do i = 1,2*sss
-         Tp(i,i-1) = one
+         Tp(i+1,i) = one
       end do
       do i = 2*sss+2, 4*sss
          Tp(i+1,i) = one
