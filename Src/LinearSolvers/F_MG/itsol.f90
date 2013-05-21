@@ -771,7 +771,7 @@ contains
     real(kind=dp_t) :: alpha, beta, omega, rho, bnorm
     real(dp_t)      :: rnorm0, delta, delta_next, L2_norm_of_rt
     real(dp_t)      :: tnorms(2),rtnorms(2), L2_norm_of_resid, L2_norm_of_r
-    integer         :: i, m, cnt, niters, ng_for_res, nit, ret
+    integer         :: i, m, niters, ng_for_res, nit, ret
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
     logical         :: BiCGStabFailed, BiCGStabConverged
 
@@ -877,12 +877,10 @@ contains
     call diag_initialize(aa_local,rh_local,mm)
 
     call copy(ph, uu, ng = nghost(ph))
-
-    cnt = 0
     !
     ! Compute rr = aa * uu - rh.
     !
-    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh); cnt = cnt + 1
+    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh)
 
     call copy(rt,rr); call copy(pp,rr)
     !
@@ -1116,9 +1114,10 @@ contains
 
     if ( parallel_IOProcessor() .and. verbose > 0 ) then
        write(unit=*, fmt='("    CABiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') niters, L2_norm_of_resid
-       !if ( rnorm < eps*bnorm ) then
-       !   write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm,eps*bnorm
-       !end if
+       if ( BiCGStabConverged ) then
+          write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
+               L2_norm_of_resid,eps*L2_norm_of_rt
+       end if
     end if
 
     if ( L2_norm_of_resid > L2_norm_of_rt ) then
