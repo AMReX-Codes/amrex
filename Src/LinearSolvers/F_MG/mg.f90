@@ -953,14 +953,13 @@ contains
 
   end subroutine mg_tower_restriction
 
-  subroutine mg_tower_prolongation(mgt, lev, uu, uu1)
+  subroutine mg_tower_prolongation(mgt, uu, uu1)
 
     use bl_prof_module
     use mg_prolongation_module
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu, uu1
-    integer, intent(in) :: lev
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     type(box) :: nbox, nbox1
@@ -1141,7 +1140,7 @@ contains
        end do
 
        ! uu  += cc, done, by convention, using the prolongation routine.
-       call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1))
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
@@ -1260,7 +1259,7 @@ contains
 !      call mg_tower_bottom_solve(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
 !                                 mgt%dd(lev-1), mgt%mm(lev-1))
 
-       call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1))
 
        if (do_diag) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
