@@ -284,22 +284,14 @@ contains
     real(dp_t),     intent(in ), optional :: abs_eps
     real(dp_t),     intent(out), optional :: rrnorm
 
-    real(dp_t) :: norm_rr, norm_uu, tnorms(2), rtnorms(2)
+    real(dp_t) :: norm_rr
     logical    :: r
 
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_converged")
-    !
-    ! Elide a reduction by doing both reductions together.
-    !
-    tnorms(1) = norm_inf(rr, local=.true.)
-    tnorms(2) = norm_inf(uu, local=.true.)
 
-    call parallel_reduce(rtnorms, tnorms, MPI_MAX)
-
-    norm_rr = rtnorms(1)
-    norm_uu = rtnorms(2)
+    norm_rr = norm_inf(rr)
 
     if ( present(rrnorm) ) rrnorm = norm_rr
 
@@ -428,9 +420,8 @@ contains
 
     type(layout)    :: la
     type(multifab)  :: rr, rt, pp, ph, vv, tt, ss, rh_local, aa_local
-    real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
-    real(dp_t)      :: tres0, small, norm_uu
-    real(dp_t)      :: tnorms(3),rtnorms(3)
+    real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, bnorm, rnorm, den
+    real(dp_t)      :: tres0, tnorms(2),rtnorms(2)
     integer         :: i, cnt, ng_for_res
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
 
@@ -488,7 +479,7 @@ contains
       call setval(ss,ONE)
       tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
       tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
-      call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
+      call parallel_reduce(rtnorms, tnorms, MPI_SUM)
       rho = rtnorms(1) / rtnorms(2)
       if ( parallel_IOProcessor() .and. verbose > 0 ) then
          print *,'...singular adjustment to rhs: ', rho
@@ -513,16 +504,13 @@ contains
     !
     ! Elide some reductions by calculating local norms & then reducing all together.
     !
-    tnorms(1) = norm_inf(rr,           local = .true.)
-    tnorms(2) = norm_inf(rh_local,     local = .true.)
-    tnorms(3) = stencil_norm(aa_local, local = .true.)
+    tnorms(1) = norm_inf(rr,       local = .true.)
+    tnorms(2) = norm_inf(rh_local, local = .true.)
 
     call parallel_reduce(rtnorms, tnorms, MPI_MAX)
 
     tres0 = rtnorms(1)
     bnorm = rtnorms(2)
-    Anorm = rtnorms(3)
-    small = epsilon(Anorm)
 
     if ( parallel_IOProcessor() .and. verbose > 0 ) then
        write(*,*) "   BiCGStab: A and rhs have been rescaled. So has the error."
@@ -533,8 +521,6 @@ contains
        if ( parallel_IOProcessor() .and. verbose > 0 ) then
           if ( tres0 < eps*bnorm ) then
              write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') tres0,eps*bnorm
-          else if ( tres0 < small*Anorm ) then
-             write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') tres0,small*Anorm
           end if
        end if
        go to 100
@@ -576,11 +562,13 @@ contains
        alpha = rho/den
        call saxpy(uu, alpha, ph)
        call saxpy(ss, rr, -alpha, vv)
-       rnorm = norm_inf(ss)
-       if ( parallel_IOProcessor() .and. verbose > 1 ) then
-          write(unit=*, fmt='("    BiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, rnorm/bnorm
+       if ( verbose > 1 ) then
+          rnorm = norm_inf(ss)
+          if ( parallel_IOProcessor() ) then
+             write(unit=*, fmt='("    BiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, rnorm/bnorm
+          end if
        end if
-       if ( itsol_converged(ss, uu, bnorm, eps) ) exit
+       if ( itsol_converged(ss, uu, bnorm, eps, rrnorm = rnorm) ) exit
        call copy(ph,ss)
        call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh) 
        cnt = cnt + 1
@@ -591,7 +579,7 @@ contains
        tnorms(1) = dot(tt, tt, nodal_mask, local = .true.)
        tnorms(2) = dot(tt, ss, nodal_mask, local = .true.)
 
-       call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
+       call parallel_reduce(rtnorms, tnorms, MPI_SUM)
 
        den   = rtnorms(1)
        omega = rtnorms(2)
@@ -605,13 +593,13 @@ contains
        omega = omega/den
        call saxpy(uu, omega, ph)
        call saxpy(rr, ss, -omega, tt)
-       rnorm = norm_inf(rr)
-       if ( parallel_IOProcessor() .and. verbose > 1 ) then
-          write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, rnorm/bnorm
+       if ( verbose > 1 ) then
+          rnorm = norm_inf(rr)
+          if ( parallel_IOProcessor() ) then
+             write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, rnorm/bnorm
+          end if
        end if
-
-       if ( itsol_converged(rr, uu, bnorm, eps) ) exit
-
+       if ( itsol_converged(rr, uu, bnorm, eps, rrnorm = rnorm) ) exit
        rho_1 = rho
     end do
 
@@ -738,9 +726,9 @@ contains
 
     type(layout)    :: la
     type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local,    ph
-    real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
-    real(dp_t)      :: rnorm0, small, norm_uu, delta, L2_norm_of_rt
-    real(dp_t)      :: tnorms(3),rtnorms(3), L2_norm_of_resid
+    real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, bnorm, rnorm, den
+    real(dp_t)      :: rnorm0, delta, L2_norm_of_rt
+    real(dp_t)      :: tnorms(2),rtnorms(2), L2_norm_of_resid
     integer         :: i, m, cnt, niters, ng_for_res
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
     logical         :: BiCGStabFailed, BiCGStabConverged
@@ -852,21 +840,18 @@ contains
     !
     call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh); cnt = cnt + 1
 
-    call copy(rt, rr); call copy(pp, rr)
+    call copy(rt,rr); call copy(pp,rr)
     !
     ! Elide some reductions by calculating local norms & then reducing all together.
     !
-    tnorms(1) = norm_inf(rr,           local = .true.)
-    tnorms(2) = norm_inf(rh_local,     local = .true.)
-    tnorms(3) = stencil_norm(aa_local, local = .true.)
+    tnorms(1) = norm_inf(rr,       local = .true.)
+    tnorms(2) = norm_inf(rh_local, local = .true.)
 
     call parallel_reduce(rtnorms, tnorms, MPI_MAX)
 
     rnorm0 = rtnorms(1)
     bnorm  = rtnorms(2)
-    Anorm  = rtnorms(3)
 
-    small         = epsilon(Anorm)
     delta         = dot(rt, rr, nodal_mask)
     L2_norm_of_rt = dsqrt(delta)
 
@@ -879,8 +864,6 @@ contains
        if ( parallel_IOProcessor() .and. verbose > 0 ) then
           if ( rnorm0 < eps*bnorm ) then
              write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm0,eps*bnorm
-          else if ( rnorm0 < small*Anorm ) then
-             write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') rnorm0,small*Anorm
           else if ( delta .eq. zero ) then
              write(unit=*, fmt='("    CABiCGStab: Zero iterations: delta == 0")')
           end if
@@ -1016,16 +999,15 @@ contains
 
     type(multifab) :: rr, zz, pp, qq
     type(multifab) :: aa_local, rh_local
-    real(kind = dp_t) :: rho_1, alpha, beta, Anorm, bnorm, rho, rnorm, den, tres0, small
+    real(kind = dp_t) :: rho_1, alpha, beta, bnorm, rho, rnorm, den, tres0
     type(layout) :: la
     integer :: i, ng_for_res
     logical :: nodal_solve, nodal(get_dim(rh))
     logical :: singular 
     integer :: cnt
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
-    real(dp_t) :: tnorms(3), rtnorms(3)
+    real(dp_t) :: tnorms(2), rtnorms(2)
 
-    real(dp_t) :: norm_uu
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_CG_Solve")
@@ -1081,17 +1063,13 @@ contains
     !
     ! Elide some reductions by calculating local norms & then reducing all together.
     !
-    tnorms(1) = norm_inf(rr,           local=.true.)
-    tnorms(2) = norm_inf(rh_local,     local=.true.)
-    tnorms(3) = stencil_norm(aa_local, local=.true.)
+    tnorms(1) = norm_inf(rr,       local=.true.)
+    tnorms(2) = norm_inf(rh_local, local=.true.)
 
     call parallel_reduce(rtnorms, tnorms, MPI_MAX)
 
     tres0 = rtnorms(1)
     bnorm = rtnorms(2)
-    Anorm = rtnorms(3)
-
-    small = epsilon(Anorm)
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
        write(unit=*, fmt='("          CG: Initial error (error0) =        ",g15.8)') tres0
@@ -1102,8 +1080,6 @@ contains
        if (parallel_IOProcessor() .and. verbose > 0) then
           if (tres0 < eps*bnorm) then
              write(unit=*, fmt='("          CG: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') tres0,eps*bnorm
-          else if (tres0 < small*Anorm) then
-             write(unit=*, fmt='("          CG: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') tres0,small*Anorm
           end if
        end if
        go to 100
@@ -1112,7 +1088,6 @@ contains
     rho_1 = ZERO
 
     do i = 1, max_iter
-
        call copy(zz,rr)
        rho = dot(rr, zz, nodal_mask)
        if ( i == 1 ) then
@@ -1140,39 +1115,20 @@ contains
        alpha = rho/den
        call saxpy(uu,   alpha, pp)
        call saxpy(rr, - alpha, qq)
-       rnorm = norm_inf(rr)
-       if ( parallel_IOProcessor() .and. verbose > 1 ) then
-          write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i, &
-                             rnorm /  (bnorm)
+       if ( verbose > 1 ) then
+          rnorm = norm_inf(rr)
+          if ( parallel_IOProcessor() ) then
+             write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i,rnorm/bnorm
+          end if
        end if
-
-       if ( itsol_converged(rr, uu, bnorm, eps) ) exit
-
+       if ( itsol_converged(rr, uu, bnorm, eps, rrnorm = rnorm) ) exit
        rho_1 = rho
-
     end do
 
-    if ( verbose > 0 ) then
-       if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='("          CG: Final: Iteration  ", i3, " rel. err. ",g15.8)') i, rnorm/bnorm
-       end if
+    if ( parallel_IOProcessor() .and. verbose > 0 ) then
+       write(unit=*, fmt='("          CG: Final: Iteration  ", i3, " rel. err. ",g15.8)') i, rnorm/bnorm
        if ( rnorm < eps*bnorm ) then
-          if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-                  rnorm,eps*bnorm
-          end if
-       else
-          norm_uu = norm_inf(uu)
-          if ( rnorm < eps*Anorm*norm_uu ) then
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
-                     rnorm,eps*Anorm*norm_uu
-             end if
-          else if ( rnorm < small*Anorm ) then
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') rnorm,small*Anorm
-             end if
-          end if
+          write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm,eps*bnorm
        end if
     end if
 
