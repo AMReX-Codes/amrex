@@ -206,14 +206,14 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
      print *, 'SOLUTION L2 NORM ', snrm(1)
   end if
 
-  if ( parallel_IOProcessor() ) print *, 'MEMORY STATS'
-  call print(multifab_mem_stats(),  " multifab before")
-  call print(imultifab_mem_stats(), "imultifab before")
-  call print(fab_mem_stats(),       "      fab before")
-  call print(ifab_mem_stats(),      "     ifab before")
-  call print(boxarray_mem_stats(),  " boxarray before")
-  call print(boxassoc_mem_stats(),  " boxassoc before")
-  call print(layout_mem_stats(),    "   layout before")
+! if ( parallel_IOProcessor() ) print *, 'MEMORY STATS'
+! call print(multifab_mem_stats(),  " multifab before")
+! call print(imultifab_mem_stats(), "imultifab before")
+! call print(fab_mem_stats(),       "      fab before")
+! call print(ifab_mem_stats(),      "     ifab before")
+! call print(boxarray_mem_stats(),  " boxarray before")
+! call print(boxassoc_mem_stats(),  " boxassoc before")
+! call print(layout_mem_stats(),    "   layout before")
 
   do n = 1,nlevs
      call multifab_destroy(rh(n))
