@@ -769,11 +769,13 @@ contains
     type(layout)    :: la
     type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local, ph, tt
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, bnorm, rnorm, den
-    real(dp_t)      :: rnorm0, delta, L2_norm_of_rt
-    real(dp_t)      :: tnorms(2),rtnorms(2), L2_norm_of_resid
-    integer         :: i, m, cnt, niters, ng_for_res
+    real(dp_t)      :: rnorm0, delta, delta_next, L2_norm_of_rt
+    real(dp_t)      :: tnorms(2),rtnorms(2), L2_norm_of_resid, L2_norm_of_r
+    integer         :: i, m, cnt, niters, ng_for_res, nit, ret
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
     logical         :: BiCGStabFailed, BiCGStabConverged
+
+    real(dp_t)      :: g_dot_Tpaj, omega_numerator, omega_denominator, L2_norm_of_s
 
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
 
@@ -794,7 +796,7 @@ contains
     real(dp_t)  Tppaj(4*SSS+1)
     real(dp_t)     G(4*SSS+1, 4*SSS+1)
     real(dp_t)     gg(4*SSS+1)            !  g in C++ code
-    real(dp_t)     Gram(4*SSS+1, 4*SSS+2) ! Gg in C++ code
+    real(dp_t)     Gram(4*SSS+1, 4*SSS+2)
 
     call build(bpt, "its_CABiCGStab_solve")
 
@@ -945,6 +947,153 @@ contains
        end do
 
        call BuildGramMatrix(Gram, PR, rt, SSS, nodal_mask);
+       !
+       ! Form G[][] and g[] from Gram[][].
+       !
+       G(1:4*SSS+1,1:4*SSS+1) = Gram(1:4*SSS+1,1:4*SSS+1)
+       !
+       ! Last column goes to g[].
+       !
+       gg = Gram(:,4*SSS+2)
+
+       aj = 0; aj(1)       = 1
+       cj = 0; cj(2*SSS+2) = 1
+       ej = 0
+
+       do nit = 1, SSS
+          call dgemv(one,  Tp, aj, zero,  Tpaj, 4*SSS+1, 4*SSS+1)
+          call dgemv(one,  Tp, cj, zero,  Tpcj, 4*SSS+1, 4*SSS+1)
+          call dgemv(one, Tpp, aj, zero, Tppaj, 4*SSS+1, 4*SSS+1)
+
+          g_dot_Tpaj = dot_product(gg,Tpaj)
+
+          if ( g_dot_Tpaj == zero ) then
+             if ( parallel_IOProcessor() .and. verbose > 0 ) &
+                  print*, "CGSolver_CABiCGStab: g_dot_Tpaj == 0, nit = ", nit
+             BiCGStabFailed = .true.; ret = 1; exit
+          end if
+
+          alpha = delta / g_dot_Tpaj
+
+          !if ( isinf(alpha) )
+          !{
+          !if ( verbose > 1 && ParallelDescriptor::IOProcessor() )
+          !std::cout << "CGSolver_CABiCGStab: alpha == inf, nit = " << nit << '\n';
+          !BiCGStabFailed = true; ret = 2; break;
+          !}
+
+          temp1 = Tpcj - alpha * Tppaj
+          call dgemv(one, G, temp1, zero, temp2, 4*SSS+1, 4*SSS+1)
+          temp3 = cj - alpha * Tpaj
+
+          omega_numerator   = dot_product(temp3, temp2)
+          omega_denominator = dot_product(temp1, temp2)
+          !
+          ! NOTE: omega_numerator/omega_denominator can be 0/x or 0/0, but should never be x/0.
+          !
+          ! If omega_numerator==0, and ||s||==0, then convergence, x=x+alpha*aj.
+          ! If omega_numerator==0, and ||s||!=0, then stabilization breakdown.
+          !
+          ! Partial update of ej must happen before the check on omega to ensure forward progress !!!
+          !
+          ej = ej + alpha * aj
+          !
+          ! ej has been updated so consider that we've done an iteration since
+          ! even if we break out of the loop we'll be able to update both sol.
+          !
+          niters = niters + 1
+          !
+          ! Calculate the norm of Saad's vector 's' to check intra s-step convergence.
+          !
+          temp1 = cj - alpha * Tpaj
+
+          call dgemv(one, G, temp1, zero, temp2, 4*SSS+1, 4*SSS+1)
+
+          L2_norm_of_s = dot_product(temp1,temp2)
+
+          L2_norm_of_resid = zero; if ( L2_norm_of_s > 0 ) L2_norm_of_resid = dsqrt(L2_norm_of_s)
+
+          if ( L2_norm_of_resid < eps*L2_norm_of_rt ) then
+             if ( verbose > 1 .and. (L2_norm_of_resid .eq. zero) .and. parallel_IOProcessor() ) &
+                  print*, "CGSolver_CABiCGStab: L2 norm of s: ", L2_norm_of_s
+             BiCGStabConverged = .true.; exit
+          end if
+
+          if ( omega_denominator .eq. zero ) then
+             if ( verbose > 1 .and. parallel_IOProcessor() ) &
+                print*, "CGSolver_CABiCGStab: omega_denominator == 0, nit = ", nit
+             BiCGStabFailed = .true.; ret = 3; exit
+          end if
+
+          omega = omega_numerator / omega_denominator
+
+          if ( verbose > 1 .and. parallel_IOProcessor() ) then
+             if ( omega .eq. zero   ) print*, "CGSolver_CABiCGStab: omega == 0, nit = ", nit
+             !if ( isinf(omega) ) print*, "CGSolver_CABiCGStab: omega == inf, nit = ", nit
+          end if
+
+          if ( omega .eq. zero ) then
+             BiCGStabFailed = .true.; ret = 4; exit
+          end if
+          !if ( isinf(omega) ) { BiCGStabFailed = true; ret = 4; break; }
+          !
+          ! Complete the update of ej & cj now that omega is known to be ok.
+          !
+          ej = ej +  omega          * cj
+          ej = ej - (omega * alpha) * Tpaj
+          cj = cj -  omega          * Tpcj
+          cj = cj -          alpha  * Tpaj
+          cj = cj + (omega * alpha) * Tppaj
+          !
+          ! Do an early check of the residual to determine convergence.
+          !
+          call dgemv(one, G, cj, zero, temp1, 4*SSS+1, 4*SSS+1)
+          !
+          ! sqrt( (cj,Gcj) ) == L2 norm of the intermediate residual in exact arithmetic.
+          ! However, finite precision can lead to the norm^2 being < 0 (Jim Demmel).
+          ! If cj_dot_Gcj < 0 we flush to zero and consider ourselves converged.
+          !
+          L2_norm_of_r = dot_product(cj,temp1)
+
+          L2_norm_of_resid = zero; if ( L2_norm_of_r > 0 ) L2_norm_of_resid = dsqrt(L2_norm_of_r)
+
+          if ( L2_norm_of_resid < eps*L2_norm_of_rt ) then
+             if ( verbose > 1 .and. (L2_norm_of_resid .eq. zero) .and. parallel_IOProcessor() ) &
+                  print*, "CGSolver_CABiCGStab: L2_norm_of_r: ", L2_norm_of_r
+             BiCGStabConverged = .true.; exit
+          end if
+
+          delta_next = dot_product(gg,cj)
+
+          if ( verbose > 1 .and. parallel_IOProcessor() ) then
+             if ( delta_next .eq. zero ) print*, "CGSolver_CABiCGStab: delta == 0, nit = ", nit
+             !if ( isinf(delta_next) ) print*, "CGSolver_CABiCGStab: delta == inf, nit = ", nit
+          end if
+
+          if ( delta_next .eq. zero ) then
+             BiCGStabFailed = .true.; ret = 5; exit ! Lanczos breakdown...
+          end if
+          !if ( isinf(delta_next) ) { BiCGStabFailed = true; ret = 5; break; } ! delta = inf?
+
+          beta = (delta_next/delta)*(alpha/omega)
+
+          if ( verbose > 1 .and. parallel_IOProcessor() ) then
+             if ( beta .eq. zero ) print*, "CGSolver_CABiCGStab: beta == 0, nit = ", nit
+             !if ( isinf(beta) ) print*, "CGSolver_CABiCGStab: beta == inf, nit = ", nit
+          end if
+
+          !if ( isinf(beta) ) { BiCGStabFailed = true; ret = 6; break; } ! beta = inf?
+          if ( beta .eq. zero ) then
+             BiCGStabFailed = .true.; ret = 6; exit ! beta = 0?  can't make further progress(?)
+          end if
+
+          aj = cj +          beta  * aj
+          aj = aj - (omega * beta) * Tpaj
+
+          delta = delta_next
+       end do
+
+
 
        cnt = cnt + 1
 
