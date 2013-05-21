@@ -276,10 +276,10 @@ contains
 
     end subroutine diag_init_nd_3d
 
-  function itsol_converged(rr, uu, bnorm, eps, abs_eps, rrnorm) result(r)
+  function itsol_converged(rr, bnorm, eps, abs_eps, rrnorm) result(r)
     use bl_prof_module
 
-    type(multifab), intent(in )           :: rr, uu
+    type(multifab), intent(in )           :: rr
     real(dp_t),     intent(in )           :: bnorm, eps
     real(dp_t),     intent(in ), optional :: abs_eps
     real(dp_t),     intent(out), optional :: rrnorm
@@ -517,7 +517,7 @@ contains
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
     end if 
 
-    if ( itsol_converged(rr, uu, bnorm, eps) ) then
+    if ( itsol_converged(rr, bnorm, eps) ) then
        if ( parallel_IOProcessor() .and. verbose > 0 ) then
           if ( tres0 < eps*bnorm ) then
              write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') tres0,eps*bnorm
@@ -568,7 +568,7 @@ contains
              write(unit=*, fmt='("    BiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, rnorm/bnorm
           end if
        end if
-       if ( itsol_converged(ss, uu, bnorm, eps, rrnorm = rnorm) ) exit
+       if ( itsol_converged(ss, bnorm, eps, rrnorm = rnorm) ) exit
        call copy(ph,ss)
        call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh) 
        cnt = cnt + 1
@@ -599,7 +599,7 @@ contains
              write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, rnorm/bnorm
           end if
        end if
-       if ( itsol_converged(rr, uu, bnorm, eps, rrnorm = rnorm) ) exit
+       if ( itsol_converged(rr, bnorm, eps, rrnorm = rnorm) ) exit
        rho_1 = rho
     end do
 
@@ -902,7 +902,7 @@ contains
        write(unit=*, fmt='("    CABiCGStab: Initial error (error0) =        ",g15.8)') rnorm0
     end if 
 
-    if ( itsol_converged(rr, uu, bnorm, eps) .or. (delta.eq.zero) ) then
+    if ( itsol_converged(rr, bnorm, eps) .or. (delta.eq.zero) ) then
        if ( parallel_IOProcessor() .and. verbose > 0 ) then
           if ( rnorm0 < eps*bnorm ) then
              write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm0,eps*bnorm
@@ -1273,7 +1273,7 @@ contains
     end if
 
     i = 0
-    if ( itsol_converged(rr, uu, bnorm, eps) ) then
+    if ( itsol_converged(rr, bnorm, eps) ) then
        if (parallel_IOProcessor() .and. verbose > 0) then
           if (tres0 < eps*bnorm) then
              write(unit=*, fmt='("          CG: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') tres0,eps*bnorm
@@ -1318,7 +1318,7 @@ contains
              write(unit=*, fmt='("          CG: Iteration        ",i4," rel. err. ",g15.8)') i,rnorm/bnorm
           end if
        end if
-       if ( itsol_converged(rr, uu, bnorm, eps, rrnorm = rnorm) ) exit
+       if ( itsol_converged(rr, bnorm, eps, rrnorm = rnorm) ) exit
        rho_1 = rho
     end do
 
