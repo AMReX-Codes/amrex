@@ -152,7 +152,7 @@ contains
 
     fine_converged = .false.
 
-    if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, &
+    if ( ml_converged(res, fine_mask, bnorm, &
                       rel_eps, abs_eps, mgt(nlevs)%verbose) ) then
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
@@ -162,7 +162,7 @@ contains
      do iter = 1, mgt(nlevs)%max_iter
 
        if ( (iter .eq. 1) .or. fine_converged ) then
-          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, mgt(nlevs)%verbose) ) exit
+          if ( ml_converged(res, fine_mask, bnorm, rel_eps, abs_eps, mgt(nlevs)%verbose) ) exit
        end if
 
        ! Set: uu = 0
@@ -348,7 +348,7 @@ contains
         call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
                        mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
 
-        if ( ml_fine_converged(res, soln, bnorm, Anorm, rel_eps, abs_eps) ) then
+        if ( ml_fine_converged(res, bnorm, rel_eps, abs_eps) ) then
 
           fine_converged = .true.
 
@@ -536,61 +536,27 @@ contains
 
     end subroutine crse_fine_residual_nodal
 
-    function ml_fine_converged(res, sol, bnorm, Anorm, rel_eps, abs_eps) result(r)
+    function ml_fine_converged(res, bnorm, rel_eps, abs_eps) result(r)
       logical :: r
-      type(multifab), intent(in) :: res(:), sol(:)
-      real(dp_t), intent(in) :: Anorm, rel_eps, abs_eps, bnorm
-      real(dp_t) :: ni_res, ni_sol, t1(2), t2(2)
+      type(multifab), intent(in) :: res(:)
+      real(dp_t), intent(in) :: rel_eps, abs_eps, bnorm
+      real(dp_t) :: ni_res
       integer    :: nlevs
       nlevs = size(res)
-      !
-      ! Reduce these two norms together.
-      !
-      t1(1) = norm_inf(res(nlevs),local=.true.)
-      t1(2) = norm_inf(sol(nlevs),local=.true.)
-
-      call parallel_reduce(t2, t1, MPI_MAX)
-
-      ni_res = t2(1)
-      ni_sol = t2(2)
-
-!     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-!          ni_res <= abs_eps .or. &
-!          ni_res <= epsilon(Anorm)*Anorm
-      r =  ni_res <= rel_eps*(bnorm) .or. &
-           ni_res <= abs_eps 
-!     if (ni_res <= rel_eps*(           bnorm) ) print *,'CONVERGED: res < rel_eps*bnorm'
-!     if (ni_res <= rel_eps*(Anorm*ni_sol    ) ) print *,'CONVERGED: res < eps*Anorm*ni_sol'
-!     if (ni_res <= abs_eps                    ) print *,'CONVERGED: res < abs_eps'
-!     if (ni_res <= epsilon(Anorm)*Anorm       ) print *,'CONVERGED: res < epsilon(Anorm)*Anorm'
+      ni_res = norm_inf(res(nlevs))
+      r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps )
     end function ml_fine_converged
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, rel_eps, abs_eps, verbose) result(r)
-
+    function ml_converged(res, mask, bnorm, rel_eps, abs_eps, verbose) result(r)
       use ml_norm_module, only : ml_norm_inf
-
       logical :: r
       integer :: verbose
-      type(multifab), intent(in) :: res(:), sol(:)
+      type(multifab), intent(in) :: res(:)
       type(lmultifab), intent(in) :: mask(:)
-      real(dp_t), intent(in) :: Anorm, rel_eps, abs_eps, bnorm
-      real(dp_t) :: ni_res, ni_sol, t1(2), t2(2)
-      !
-      ! Reduce these two norms together.
-      !
-      t1(1) = ml_norm_inf(res, mask, local=.true.)
-      t1(2) = ml_norm_inf(sol, mask, local=.true.)
-
-      call parallel_reduce(t2, t1, MPI_MAX)
-
-      ni_res = t2(1)
-      ni_sol = t2(2)
-
-!     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-!          ni_res <= abs_eps .or. &
-!          ni_res <= epsilon(Anorm)*Anorm
-      r =  ni_res <= rel_eps*(bnorm) .or. &
-           ni_res <= abs_eps 
+      real(dp_t), intent(in) :: rel_eps, abs_eps, bnorm
+      real(dp_t) :: ni_res
+      ni_res = ml_norm_inf(res, mask)
+      r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps )
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
          if (ni_res <= rel_eps*bnorm) then
             print *,'Converged res < rel_eps*bnorm '
