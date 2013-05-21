@@ -403,11 +403,15 @@ contains
            end if
        end if
     end if
-
+    !
     ! We do this *after* the test on bottom_solver == 4 in case we redefine bottom_solver
     !    to be 1 or 2 in that test.
-    if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. mgt%bottom_solver == 2) ) &
+    !
+    if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. &
+                           mgt%bottom_solver == 2 .or. &
+                           mgt%bottom_solver == 3) ) then
        call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
+    end if
 
   end subroutine mg_tower_build
 
@@ -715,7 +719,7 @@ contains
   subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
 
     use bl_prof_module
-    use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
+    use itsol_module, only: itsol_bicgstab_solve, itsol_cabicgstab_solve, itsol_cg_solve
 
     type( mg_tower), intent(inout) :: mgt
     type( multifab), intent(inout) :: uu
@@ -789,6 +793,28 @@ contains
                               mgt%stencil_type, mgt%lcross, &
                               stat = stat, singular_in = singular_test, &
                               uniform_dh = mgt%uniform_dh)
+       end if
+       do i = 1, mgt%nub
+          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+       end do
+    case (3)
+       if (nodal_q(rh)) then
+          call itsol_cabicgstab_solve(ss, uu, rh, mm, &
+                                      mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                      mgt%cg_verbose, &
+                                      mgt%stencil_type, mgt%lcross, &
+                                      stat = stat, &
+                                      singular_in = mgt%bottom_singular, &
+                                      uniform_dh = mgt%uniform_dh,&
+                                      nodal_mask = mgt%nodal_mask)
+       else
+          call itsol_cabicgstab_solve(ss, uu, rh, mm, &
+                                      mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                      mgt%cg_verbose,  &
+                                      mgt%stencil_type, mgt%lcross, &
+                                      stat = stat, &
+                                      singular_in = singular_test, &
+                                      uniform_dh = mgt%uniform_dh)
        end if
        do i = 1, mgt%nub
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
@@ -927,14 +953,13 @@ contains
 
   end subroutine mg_tower_restriction
 
-  subroutine mg_tower_prolongation(mgt, lev, uu, uu1)
+  subroutine mg_tower_prolongation(mgt, uu, uu1)
 
     use bl_prof_module
     use mg_prolongation_module
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu, uu1
-    integer, intent(in) :: lev
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     type(box) :: nbox, nbox1
@@ -986,16 +1011,13 @@ contains
 
   end subroutine mg_tower_prolongation
 
-  function mg_tower_converged(mgt, dd, uu, Ynorm) result(r)
-
+  function mg_tower_converged(mgt, dd, Ynorm) result(r)
     use itsol_module
-
-    logical :: r
+    logical                       :: r
     type(mg_tower), intent(inout) :: mgt
-    real(dp_t), intent(in) :: Ynorm
-    type(multifab), intent(in) :: dd
-    type(multifab), intent(in) :: uu
-    r = itsol_converged(dd, uu, Ynorm, mgt%eps, mgt%abs_eps)
+    real(dp_t),     intent(in   ) :: Ynorm
+    type(multifab), intent(in   ) :: dd
+    r = itsol_converged(dd, Ynorm, mgt%eps, mgt%abs_eps)
   end function mg_tower_converged
 
   recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
@@ -1118,7 +1140,7 @@ contains
        end do
 
        ! uu  += cc, done, by convention, using the prolongation routine.
-       call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1))
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
@@ -1237,7 +1259,7 @@ contains
 !      call mg_tower_bottom_solve(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
 !                                 mgt%dd(lev-1), mgt%mm(lev-1))
 
-       call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1))
 
        if (do_diag) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
@@ -1348,7 +1370,7 @@ contains
                0, nrm, Anorm
        end if
     end if
-    if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), uu, Ynorm) ) then
+    if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), Ynorm) ) then
        if ( present(stat) ) stat = 0
        if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
           write(unit=*, fmt='("F90mg: MG finished at on input")') 
@@ -1377,7 +1399,7 @@ contains
           write(unit = defbase,fmt='("def",I3.3)') it
           call fabio_write(mgt%dd(mgt%nlevels), defect_dirname, defbase)
        end if
-       if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), uu, Ynorm) ) exit
+       if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), Ynorm) ) exit
     end do
     if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
        write(unit=*, fmt='("F90mg: MG finished at ", i3, " iterations")') it

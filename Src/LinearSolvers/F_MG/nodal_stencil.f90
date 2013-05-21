@@ -437,7 +437,7 @@ contains
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer            :: i, j, k, l, nx, ny, nz
+    integer            :: i, j, k, nx, ny, nz
     real (kind = dp_t) :: fac
 
     nx = size(ss,dim=2)
@@ -505,7 +505,7 @@ contains
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer :: i, j, k, l, nx, ny, nz
+    integer :: i, j, k, nx, ny, nz
     real (kind = dp_t) :: fac
     real (kind = dp_t), allocatable :: sg_int(:,:,:)
 
@@ -587,7 +587,7 @@ contains
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer            :: i, j, k, l, nx, ny, nz
+    integer            :: i, j, k, nx, ny, nz
     real (kind = dp_t) :: fx,fy,fz,f0,fac,fxyz,f2y2zx,f2x2zy,f2x2yz
 
     real (kind = dp_t), parameter :: thirtysixth = ONE / (36.0_dp_t)
