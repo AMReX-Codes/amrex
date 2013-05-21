@@ -3905,7 +3905,7 @@ contains
     type(multifab), intent(in) :: mf1
     integer       , intent(in) :: comp
     type(multifab), intent(in), optional :: nodal_mask
-    r = multifab_dot_cc(mf, 1, mf1, 1, nodal_mask = nodal_mask, local = .false.);
+    r = multifab_dot_cc(mf, comp, mf1, comp, nodal_mask = nodal_mask, local = .false.);
   end function multifab_dot_c
 
   function multifab_dot(mf, mf1, nodal_mask, local) result(r)
