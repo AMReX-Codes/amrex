@@ -768,7 +768,7 @@ contains
 
     type(layout)    :: la
     type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local, ph, tt
-    real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, bnorm, rnorm, den
+    real(kind=dp_t) :: alpha, beta, omega, rho, bnorm
     real(dp_t)      :: rnorm0, delta, delta_next, L2_norm_of_rt
     real(dp_t)      :: tnorms(2),rtnorms(2), L2_norm_of_resid, L2_norm_of_r
     integer         :: i, m, cnt, niters, ng_for_res, nit, ret
@@ -799,8 +799,6 @@ contains
     real(dp_t)     Gram(4*SSS+1, 4*SSS+2)
 
     call build(bpt, "its_CABiCGStab_solve")
-
-    stop 'itsol_CABiCGStab_solve() not fully implemented'
 
     if ( present(stat) ) stat = 0
 
@@ -923,7 +921,7 @@ contains
 
     niters = 0; m = 1
 
-    do while (m < max_iter .and. (.not. BiCGStabFailed) .and. (.not. BiCGStabConverged))
+    do while (m <= max_iter .and. (.not. BiCGStabFailed) .and. (.not. BiCGStabConverged))
        !
        ! Compute the matrix powers on pp[] & rr[] (monomial basis).
        ! The 2*SSS+1 powers of pp[] followed by the 2*SSS powers of rr[].
@@ -1092,28 +1090,38 @@ contains
 
           delta = delta_next
        end do
+       !
+       ! Update iterates.
+       !
+       do i = 1,4*SSS+1
+          call saxpy(uu,1,ej(i),PR,i,1)
+       end do
 
+       call copy(pp,1,PR,1,1)
+       call mult_mult(pp,aj(1))
 
+       do i = 2,4*SSS+1
+          call saxpy(pp,1,aj(i),PR,i,1)
+       end do
 
-       cnt = cnt + 1
+       call copy(rr,1,PR,1,1)
+       call mult_mult(rr,cj(1))
 
+       do i = 2,4*SSS+1
+          call saxpy(rr,1,cj(i),PR,i,1)
+       end do
 
-!       if ( itsol_converged(rr, uu, bnorm, eps) ) exit
-
-       if ( (.not. BiCGStabFailed) .and. (.not. BiCGStabConverged) ) then
-          m = m + SSS;
-       end if
-
+       if ( (.not. BiCGStabFailed) .and. (.not. BiCGStabConverged) ) m = m + SSS
     end do
 
     if ( parallel_IOProcessor() .and. verbose > 0 ) then
-       write(unit=*, fmt='("    CABiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, rnorm/bnorm
-       if ( rnorm < eps*bnorm ) then
-          write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm,eps*bnorm
-       end if
+       write(unit=*, fmt='("    CABiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') niters, L2_norm_of_resid
+       !if ( rnorm < eps*bnorm ) then
+       !   write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm,eps*bnorm
+       !end if
     end if
 
-    if ( rnorm > bnorm ) then
+    if ( L2_norm_of_resid > L2_norm_of_rt ) then
        call setval(uu,ZERO,all=.true.)
        if ( present(stat) ) stat = 1
        if ( parallel_IOProcessor() .and. verbose > 0 ) then
@@ -1121,7 +1129,7 @@ contains
        end if
     end if
 
-    if ( i > max_iter ) then
+    if ( m > max_iter ) then
        if ( present(stat) ) then
           stat = 1
        else
@@ -1302,8 +1310,8 @@ contains
           call bl_error("CG_solve: failure 1")
        end if
        alpha = rho/den
-       call saxpy(uu,   alpha, pp)
-       call saxpy(rr, - alpha, qq)
+       call saxpy(uu,  alpha, pp)
+       call saxpy(rr, -alpha, qq)
        if ( verbose > 1 ) then
           rnorm = norm_inf(rr)
           if ( parallel_IOProcessor() ) then
