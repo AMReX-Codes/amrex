@@ -3821,22 +3821,27 @@ contains
 
   end subroutine mf_build_nodal_dot_mask
 
-  function multifab_dot_cc(mf, comp, mf1, comp1, mask) result(r)
-    real(dp_t) :: r
-    type(multifab) , intent(in) :: mf
-    type(multifab) , intent(in) :: mf1
-    integer        , intent(in) :: comp, comp1
-    type(lmultifab), optional, intent(in) :: mask
+  function multifab_dot_cc(mf, comp, mf1, comp1, mask, nodal_mask, local) result(r)
+    real(dp_t)                 :: r
+    type(multifab), intent(in) :: mf
+    type(multifab), intent(in) :: mf1
+    integer,        intent(in) :: comp, comp1
 
-    type(multifab) :: tmask
-    real(dp_t), pointer :: mp(:,:,:,:)
-    real(dp_t), pointer :: mp1(:,:,:,:)
-    real(dp_t), pointer :: ma(:,:,:,:)
-    logical, pointer :: lmp(:,:,:,:)
-    real(dp_t) :: r1
-    integer :: n, i, j, k
+    type(lmultifab), intent(in), optional :: mask
+    type(multifab),  intent(in), optional :: nodal_mask
+    logical,         intent(in), optional :: local
+
+    type(multifab)      :: tmask
+    real(dp_t), pointer :: mp(:,:,:,:), mp1(:,:,:,:), ma(:,:,:,:)
+    logical,    pointer :: lmp(:,:,:,:)
+    real(dp_t)          :: r1
+    integer             :: n
+    logical             :: llocal
+
+    llocal = .false.; if ( present(local) ) llocal = local
 
     r1 = 0.0_dp_t
+
     if ( present(mask) ) then
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
        if ( cell_centered_q(mf) ) then
@@ -3863,73 +3868,44 @@ contains
           do n = 1, nlocal(mf%la)
              mp  => dataptr(mf , n, get_box(mf ,n), comp)
              mp1 => dataptr(mf1, n, get_box(mf1,n), comp1)
-             do k = 1, ubound(mp,3)
-                do j = 1, ubound(mp,2)
-                   do i = 1, ubound(mp,1)
-                      r1 = r1 + mp(i,j,k,1)*mp1(i,j,k,1)
-                   end do
-                end do
-             end do
+             r1 = r1 + sum(mp*mp1)
           end do
        else if ( nodal_q(mf) ) then
-          call build_nodal_dot_mask(tmask, mf)
-          do n = 1, nlocal(mf%la) 
-             mp  => dataptr(mf,    n, get_ibox(mf,    n), comp)
-             mp1 => dataptr(mf1,   n, get_ibox(mf1,   n), comp1)
-             ma  => dataptr(tmask, n, get_ibox(tmask, n))
-             r1 = r1 + sum(ma*mp*mp1)
-          end do
-          call destroy(tmask)
+          if ( present(nodal_mask) ) then
+             do n = 1, nlocal(mf%la) 
+                mp  => dataptr(mf,         n, get_ibox(mf,    n), comp)
+                mp1 => dataptr(mf1,        n, get_ibox(mf1,   n), comp1)
+                ma  => dataptr(nodal_mask, n, get_ibox(nodal_mask, n))
+                r1 = r1 + sum(ma*mp*mp1)
+             end do
+          else
+             call build_nodal_dot_mask(tmask, mf)
+             do n = 1, nlocal(mf%la) 
+                mp  => dataptr(mf,    n, get_ibox(mf,    n), comp)
+                mp1 => dataptr(mf1,   n, get_ibox(mf1,   n), comp1)
+                ma  => dataptr(tmask, n, get_ibox(tmask, n))
+                r1 = r1 + sum(ma*mp*mp1)
+             end do
+             call destroy(tmask)
+          end if
        else
           call bl_error("MULTIFAB_DOT_CC, fails when not nodal or cell-centered, can be fixed")
        end if
     end if
-    call parallel_reduce(r,r1,MPI_SUM)
+
+    r = r1
+
+    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_SUM)
+
   end function multifab_dot_cc
 
   function multifab_dot_c(mf, mf1, comp, nodal_mask) result(r)
-    real(dp_t) :: r
+    real(dp_t)                 :: r
     type(multifab), intent(in) :: mf
     type(multifab), intent(in) :: mf1
     integer       , intent(in) :: comp
     type(multifab), intent(in), optional :: nodal_mask
-
-    type(multifab) :: mask
-    real(dp_t), pointer :: mp(:,:,:,:)
-    real(dp_t), pointer :: mp1(:,:,:,:)
-    real(dp_t), pointer :: ma(:,:,:,:)
-    real(dp_t) :: r1
-    integer :: i
-
-    r1 = 0.0_dp_t
-    if ( cell_centered_q(mf) ) then
-       do i = 1, nlocal(mf%la)
-          mp  => dataptr(mf,  i, get_box(mf,  i), comp)
-          mp1 => dataptr(mf1, i, get_box(mf1, i), comp)
-          r1 = r1 + sum(mp*mp1)
-       end do
-    else if (nodal_q(mf) ) then
-       if ( present(nodal_mask) ) then
-          do i = 1, nlocal(mf%la)
-             mp  => dataptr(mf,         i, get_ibox(mf,         i), comp)
-             mp1 => dataptr(mf1,        i, get_ibox(mf1,        i), comp)
-             ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
-             r1 = r1 + sum(ma*mp*mp1)
-          end do
-       else
-          call build_nodal_dot_mask(mask, mf)
-          do i = 1, nlocal(mf%la)
-             mp  => dataptr(mf,   i, get_ibox(mf  , i), comp)
-             mp1 => dataptr(mf1,  i, get_ibox(mf1 , i), comp)
-             ma  => dataptr(mask, i, get_ibox(mask, i))
-             r1 = r1 + sum(ma*mp*mp1)
-          end do
-          call destroy(mask)
-       end if
-    else
-       call bl_error("MULTIFAB_DOT_C fails when not nodal or cell centered, can be fixed")
-    end if
-    call parallel_reduce(r,r1,MPI_SUM)
+    r = multifab_dot_cc(mf, 1, mf1, 1, nodal_mask = nodal_mask, local = .false.);
   end function multifab_dot_c
 
   function multifab_dot(mf, mf1, nodal_mask, local) result(r)
@@ -3938,51 +3914,7 @@ contains
     type(multifab), intent(in) :: mf1
     type(multifab), intent(in), optional :: nodal_mask
     logical, intent(in), optional :: local
-
-    type(multifab)      :: mask
-    real(dp_t), pointer :: mp(:,:,:,:)
-    real(dp_t), pointer :: mp1(:,:,:,:)
-    real(dp_t), pointer :: ma(:,:,:,:)
-    real(dp_t)          :: r1
-    integer             :: i
-    logical             :: lall, llocal
-
-    llocal = .false.; if ( present(local) ) llocal = local
-
-    r1 = 0.0_dp_t
-    if ( cell_centered_q(mf) ) then
-
-       do i = 1, nlocal(mf%la)
-          mp  => dataptr(mf,  i, get_box(mf, i))
-          mp1 => dataptr(mf1, i, get_box(mf1,i))
-          r1 = r1 + sum(mp*mp1)
-       end do
-    else if ( nodal_q(mf) ) then
-       if ( present(nodal_mask) ) then
-          do i = 1, nlocal(mf%la)
-             mp  => dataptr(mf,         i, get_ibox(mf,         i))
-             mp1 => dataptr(mf1,        i, get_ibox(mf1,        i))
-             ma  => dataptr(nodal_mask, i, get_ibox(nodal_mask, i))
-             r1 = r1 + sum(ma*mp*mp1)
-          end do
-       else
-          call build_nodal_dot_mask(mask, mf)
-          do i = 1, nlocal(mf%la)
-             mp  => dataptr(mf,   i, get_ibox(mf,   i))
-             mp1 => dataptr(mf1,  i, get_ibox(mf1,  i))
-             ma  => dataptr(mask, i, get_ibox(mask, i))
-             r1 = r1 + sum(ma*mp*mp1)
-          end do
-          call destroy(mask)
-       end if
-    else
-       call bl_error("MULTIFAB_DOT fails when not nodal or cell centered, can be fixed")
-    end if
-
-    r = r1
-    
-    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_SUM)
-
+    r = multifab_dot_cc(mf, 1, mf1, 1, nodal_mask = nodal_mask, local = local);
   end function multifab_dot
 
   subroutine multifab_rescale_2(mf, c, min, max, xmin, xmax, clip)
