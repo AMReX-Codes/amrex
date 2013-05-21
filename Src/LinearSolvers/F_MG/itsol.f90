@@ -725,7 +725,7 @@ contains
     type(multifab), intent(in ), optional :: nodal_mask
 
     type(layout)    :: la
-    type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local,    ph
+    type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local, ph, tt
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, bnorm, rnorm, den
     real(dp_t)      :: rnorm0, delta, L2_norm_of_rt
     real(dp_t)      :: tnorms(2),rtnorms(2), L2_norm_of_resid
@@ -782,6 +782,7 @@ contains
     call multifab_build(rr, la, 1, ng_for_res, nodal)
     call multifab_build(rt, la, 1, ng_for_res, nodal)
     call multifab_build(pp, la, 1, ng_for_res, nodal)
+    call multifab_build(tt, la, 1, ng_for_res, nodal)
     call multifab_build(ph, la, 1, nghost(uu), nodal)
     !
     ! Contains the matrix powers of pp[] and rr[].
@@ -802,6 +803,7 @@ contains
        call setval(pp, ZERO, all = .true.)
        call setval(ph, ZERO, all = .true.)
        call setval(pr, ZERO, all = .true.)
+       call setval(tt, ZERO, all = .true.)
     end if
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
@@ -879,32 +881,28 @@ contains
 
     do while (m < max_iter .and. (.not. BiCGStabFailed) .and. (.not. BiCGStabConverged))
        !
-       ! Compute the matrix powers on p[] & r[] (monomial basis).
-       ! The 2*SSS+1 powers of p[] followed by the 2*SSS powers of r[].
+       ! Compute the matrix powers on pp[] & rr[] (monomial basis).
+       ! The 2*SSS+1 powers of pp[] followed by the 2*SSS powers of rr[].
        !
-       call copy(PR,1,      pp,1,1,0);
-       call copy(PR,2*SSS+1,rr,1,1,0);
-       !
-       ! We use "tmp" to minimize the number of Lp.apply()s.
-       ! We do this by doing p & r together in a single call.
-       !
-       ! MultiFab::Copy(tmp,p,0,0,1,0);
-       ! MultiFab::Copy(tmp,r,0,1,1,0);
+       call copy(PR,1,pp,1,1,0)
+       call copy(ph,pp)
 
-       !  for (int n = 1; n < 2*SSS; n++)
-       !  {
-       !      Lp.apply(tmp, tmp, lev, temp_bc_mode, false, 0, 2, 2);
+       do i = 2, 2*SSS+1
+          call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh)
+          call copy(PR,i,tt,1,1,0)
+          call copy(ph,1,tt,1,1,0)
+       end do
 
-       !      MultiFab::Copy(tmp,tmp,2,0,2,0);
+       call copy(PR,2*SSS+2,rr,1,1,0)
+       call copy(ph,rr)
 
-       !      MultiFab::Copy(PR,tmp,0,        n,1,0);
-       !      MultiFab::Copy(PR,tmp,1,2*SSS+n+1,1,0);
-       !  }
+       do i = 2*SSS+3,4*SSS+1
+          call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh)
+          call copy(PR,i,tt,1,1,0)
+          call copy(ph,1,tt,1,1,0)
+       end do
 
-       !  Lp.apply(PR, PR, lev, temp_bc_mode, false, 2*SSS-1, 2*SSS, 1);
 
-!       call copy(ph,pp)
-!       call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
 
        cnt = cnt + 1
 
