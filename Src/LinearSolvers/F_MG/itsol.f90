@@ -707,6 +707,48 @@ contains
 
   end subroutine dgemv
 
+  subroutine BuildGramMatrix (Gram,PR,rt,sss,nodal_mask)
+
+    integer,         intent(in   ) :: sss
+    real(dp_t),      intent(inout) :: Gram(4*sss+1, 4*sss+2)
+    type(multifab),  intent(in   ) :: PR
+    type(multifab),  intent(in   ) :: rt
+
+    type(multifab),  intent(in ), optional :: nodal_mask
+
+    integer    :: Nrows, Ncols, mm, nn, cnt
+    real(dp_t) :: tmp((4*sss+1)*(4*sss+2))
+
+    Nrows = 4*sss+1
+    Ncols = 4*sss+2
+
+    do mm = 1, Nrows
+       do nn = mm, Nrows
+          Gram(mm,nn) = dot(PR, mm, PR, nn, nodal_mask, local = .true.)
+       end do
+       Gram(mm,Ncols) = dot(PR, mm, rt,  1, nodal_mask, local = .true.)
+    end do
+    !
+    ! Fill in strict lower triangle using symmetry.
+    !
+    do mm = 1, Nrows
+       do nn = 1, mm-1
+          Gram(mm,nn) = Gram(nn,mm)
+       end do
+    end do
+
+    call parallel_reduce(tmp, reshape(Gram,shape(tmp)), MPI_SUM)
+
+    cnt = 1
+    do nn = 1, Ncols
+       do mm = 1, Nrows
+          Gram(mm,nn) = tmp(cnt)
+          cnt = cnt + 1
+       end do
+    end do
+
+  end subroutine BuildGramMatrix
+
   subroutine itsol_CABiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
        stat, singular_in, uniform_dh, nodal_mask)
     use bl_prof_module
@@ -751,8 +793,8 @@ contains
     real(dp_t)   Tpcj(4*SSS+1)
     real(dp_t)  Tppaj(4*SSS+1)
     real(dp_t)     G(4*SSS+1, 4*SSS+1)
-    real(dp_t)     gg(4*SSS+1)                  !  g in C++ code
-    real(dp_t)     gram((4*SSS+1)*(4*SSS+2))    ! Gg in C++ code
+    real(dp_t)     gg(4*SSS+1)            !  g in C++ code
+    real(dp_t)     Gram(4*SSS+1, 4*SSS+2) ! Gg in C++ code
 
     call build(bpt, "its_CABiCGStab_solve")
 
@@ -902,7 +944,7 @@ contains
           call copy(ph,1,tt,1,1,0)
        end do
 
-
+       call BuildGramMatrix(Gram, PR, rt, SSS, nodal_mask);
 
        cnt = cnt + 1
 
