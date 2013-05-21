@@ -129,14 +129,15 @@ contains
       real(kind=dp_t) :: denom
 
       nc = size(a,dim=1)-1
-
+      !
       ! Protect against divide by zero -- necessary for embedded boundary problems.
+      !
       do i = lo(1),hi(1)
-         if (abs(a(0,i)) .gt. 0.d0) then
-            denom = 1.d0 / a(0,i)
+         if (abs(a(0,i)) .gt. zero) then
+            denom = one / a(0,i)
             r(i     ) = r(i     ) * denom
             a(1:nc,i) = a(1:nc,i) * denom
-            a(0,i   ) = 1.d0
+            a(0,i   ) = one
          end if
       end do
 
@@ -152,15 +153,16 @@ contains
       real(kind=dp_t) :: denom
 
       nc = size(a,dim=1)-1
-
+      !
       ! Protect against divide by zero -- necessary for embedded boundary problems.
+      !
       do j = lo(2),hi(2)
          do i = lo(1),hi(1)
-            if (abs(a(0,i,j)) .gt. 0.d0) then
-               denom = 1.d0 / a(0,i,j)
+            if (abs(a(0,i,j)) .gt. zero) then
+               denom = one / a(0,i,j)
                r(i,j     ) = r(i,j     ) * denom
                a(1:nc,i,j) = a(1:nc,i,j) * denom
-               a(0,i,j   ) = 1.d0
+               a(0,i,j   ) = one
             end if
          end do
       end do
@@ -177,17 +179,18 @@ contains
       real(kind=dp_t) :: denom
 
       nc = size(a,dim=1)-1
-
-      !$OMP PARALLEL DO PRIVATE(j,i,k,denom) IF((hi(3)-lo(3)).ge.7)
+      !
       ! Protect against divide by zero -- necessary for embedded boundary problems.
+      !
+      !$OMP PARALLEL DO PRIVATE(j,i,k,denom) IF((hi(3)-lo(3)).ge.7)
       do k = lo(3),hi(3)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
-               if (abs(a(0,i,j,k)) .gt. 0.d0) then
-                  denom = 1.d0 / a(0,i,j,k)
+               if (abs(a(0,i,j,k)) .gt. zero) then
+                  denom = one / a(0,i,j,k)
                   r(i,j,k     ) = r(i,j,k     ) * denom
                   a(1:nc,i,j,k) = a(1:nc,i,j,k) * denom
-                  a(0,i,j,k   ) = 1.d0
+                  a(0,i,j,k   ) = one
                end if
             end do
          end do
@@ -210,10 +213,10 @@ contains
 
       do i = lo(1),hi(1)+1
          if (.not. bc_dirichlet(mm(i),1,0)) then
-            denom = 1.d0 / a(0,i)
+            denom = one / a(0,i)
             r(i     ) = r(i     ) * denom
             a(1:nc,i) = a(1:nc,i) * denom
-            a(0,i   ) = 1.d0
+            a(0,i   ) = one
          end if
       end do
 
@@ -234,10 +237,10 @@ contains
       do j = lo(2),hi(2)+1
          do i = lo(1),hi(1)+1
             if (.not. bc_dirichlet(mm(i,j),1,0)) then
-               denom = 1.d0 / a(0,i,j)
+               denom = one / a(0,i,j)
                r(i,j     ) = r(i,j     ) * denom
                a(1:nc,i,j) = a(1:nc,i,j) * denom
-               a(0,i,j   ) = 1.d0
+               a(0,i,j   ) = one
             end if
          end do
       end do
@@ -261,10 +264,10 @@ contains
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
                if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-                  denom = 1.d0 / a(0,i,j,k)
+                  denom = one / a(0,i,j,k)
                   r(i,j,k     ) = r(i,j,k     ) * denom
                   a(1:nc,i,j,k) = a(1:nc,i,j,k) * denom
-                  a(0,i,j,k   ) = 1.d0
+                  a(0,i,j,k   ) = one
                end if
             end do
          end do
@@ -300,21 +303,17 @@ contains
 
     if ( present(rrnorm) ) rrnorm = norm_rr
 
-    if (present(abs_eps)) then
-!     r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
-!         (norm_rr <= epsilon(Anorm)*Anorm) .or. &
-!         (norm_rr <= abs_eps)
-      r = (norm_rr <= eps*(bnorm)) .or. &
-          (norm_rr <= abs_eps)
+    if ( present(abs_eps) ) then
+      r = (norm_rr <= eps*bnorm) .or. (norm_rr <= abs_eps)
     else
-!     r = (norm_rr <= eps*(Anorm*norm_uu + bnorm)) .or. &
-!         (norm_rr <= epsilon(Anorm)*Anorm)
-      r = (norm_rr <= eps*(bnorm)) 
+      r = (norm_rr <= eps*bnorm) 
     endif
+
     call destroy(bpt)
   end function itsol_converged
-
+  !
   ! Computes rr = aa * uu
+  !
   subroutine itsol_stencil_apply(aa, rr, uu, mm, stencil_type, lcross, uniform_dh)
 
     use bl_prof_module
@@ -390,8 +389,9 @@ contains
     call destroy(bpt)
 
   end subroutine itsol_stencil_apply
-
+  !
   ! computes rr = aa * uu - rh
+  !
   subroutine itsol_defect(ss, rr, rh, uu, mm, stencil_type, lcross, uniform_dh)
     use bl_prof_module
     type(multifab), intent(inout) :: uu, rr
@@ -409,29 +409,33 @@ contains
 
   subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
        stat, singular_in, uniform_dh, nodal_mask)
+
     use bl_prof_module
-    integer, intent(in) :: max_iter
-    type(imultifab), intent(in) :: mm
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in) :: rh
-    type(multifab), intent(in) :: aa
-    integer        , intent(in) :: stencil_type, verbose
-    logical        , intent(in) :: lcross
-    real(kind=dp_t), intent(in) :: eps
 
-    integer, intent(out), optional :: stat
-    logical, intent(in), optional :: singular_in
-    logical, intent(in), optional :: uniform_dh
-    type(multifab), intent(in), optional :: nodal_mask
+    integer,         intent(in   ) :: max_iter
+    type(imultifab), intent(in   ) :: mm
+    type(multifab),  intent(inout) :: uu
+    type(multifab),  intent(in   ) :: rh
+    type(multifab),  intent(in   ) :: aa
+    integer,         intent(in   ) :: stencil_type, verbose
+    logical,         intent(in   ) :: lcross
+    real(kind=dp_t), intent(in   ) :: eps
 
-    type(layout) :: la
-    type(multifab) :: rr, rt, pp, ph, vv, tt, ss, rh_local, aa_local
+    integer,         intent(out), optional :: stat
+    logical,         intent(in ), optional :: singular_in
+    logical,         intent(in ), optional :: uniform_dh
+    type(multifab),  intent(in ), optional :: nodal_mask
+
+    type(layout)    :: la
+    type(multifab)  :: rr, rt, pp, ph, vv, tt, ss, rh_local, aa_local
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
-    real(dp_t) :: rho_orig, volume, tres0, small, norm_rr, norm_uu
-    real(dp_t) :: tnorms(3),rtnorms(3)
-    integer :: i, cnt, ng_for_res
-    logical :: nodal_solve, singular, nodal(get_dim(rh)), diag_inited
+    real(dp_t)      :: tres0, small, norm_uu
+    real(dp_t)      :: tnorms(3),rtnorms(3)
+    integer         :: i, cnt, ng_for_res
+    logical         :: nodal_solve, singular, nodal(get_dim(rh))
+
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_BiCGStab_solve")
@@ -485,17 +489,15 @@ contains
       tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
       tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
       call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
-      rho    = rtnorms(1)
-      volume = rtnorms(2)
-      rho    = rho / volume
+      rho = rtnorms(1) / rtnorms(2)
       if ( parallel_IOProcessor() .and. verbose > 0 ) then
-         print *,'...singular adjustment to rhs: ',rho
+         print *,'...singular adjustment to rhs: ', rho
       endif
       call saxpy(rh_local,-rho,ss)
       call setval(ss,ZERO,all=.true.)
     end if
 
-    call diag_initialize(aa_local,rh_local,mm); diag_inited = .true.
+    call diag_initialize(aa_local,rh_local,mm)
 
     call copy(ph, uu, ng = nghost(ph))
 
@@ -506,14 +508,14 @@ contains
     call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh); cnt = cnt + 1
 
     call copy(rt, rr)
-    rho      = dot(rt, rr, nodal_mask)
-    rho_orig = rho
+
+    rho = dot(rt, rr, nodal_mask)
     !
     ! Elide some reductions by calculating local norms & then reducing all together.
     !
-    tnorms(1) = norm_inf(rr,           local=.true.)
-    tnorms(2) = norm_inf(rh_local,     local=.true.)
-    tnorms(3) = stencil_norm(aa_local, local=.true.)
+    tnorms(1) = norm_inf(rr,           local = .true.)
+    tnorms(2) = norm_inf(rh_local,     local = .true.)
+    tnorms(3) = stencil_norm(aa_local, local = .true.)
 
     call parallel_reduce(rtnorms, tnorms, MPI_MAX)
 
@@ -523,26 +525,16 @@ contains
     small = epsilon(Anorm)
 
     if ( parallel_IOProcessor() .and. verbose > 0 ) then
-       if ( diag_inited ) then
-          write(*,*) "   BiCGStab: A and rhs have been rescaled. So do the error."
-       end if
+       write(*,*) "   BiCGStab: A and rhs have been rescaled. So has the error."
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
     end if 
 
-    if ( itsol_converged(rr, uu, bnorm, eps, rrnorm=norm_rr) ) then
-       if ( verbose > 0 ) then
+    if ( itsol_converged(rr, uu, bnorm, eps) ) then
+       if ( parallel_IOProcessor() .and. verbose > 0 ) then
           if ( tres0 < eps*bnorm ) then
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-                     tres0,eps*bnorm
-             end if
-          else
-             if ( norm_rr < epsilon(Anorm)*Anorm ) then
-                if ( parallel_IOProcessor() ) then
-                   write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                        tres0,small*Anorm
-                end if
-             end if
+             write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') tres0,eps*bnorm
+          else if ( tres0 < small*Anorm ) then
+             write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') tres0,small*Anorm
           end if
        end if
        go to 100
@@ -557,17 +549,13 @@ contains
        else
           if ( rho_1 == ZERO ) then
              if ( present(stat) ) then
-                call bl_warn("BiCGStab_SOLVE: failure 1")
-                stat = 2
-                goto 100
+                call bl_warn("BiCGStab_SOLVE: failure 1"); stat = 2; goto 100
              end if
              call bl_error("BiCGStab: failure 1")
           end if
           if ( omega == ZERO ) then
              if ( present(stat) ) then
-                call bl_warn("BiCGStab_SOLVE: failure 2")
-                stat = 3
-                goto 100
+                call bl_warn("BiCGStab_SOLVE: failure 2"); stat = 3; goto 100
              end if
              call bl_error("BiCGStab: failure 2")
           end if
@@ -575,15 +563,13 @@ contains
           call saxpy(pp, -omega, vv)
           call saxpy(pp, rr, beta, pp)
        end if
-       call itsol_precon(aa_local, ph, pp, mm, 0)
+       call copy(ph,pp)
        call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
        cnt = cnt + 1
        den = dot(rt, vv, nodal_mask)
        if ( den == ZERO ) then
           if ( present(stat) ) then
-             call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
-             stat = 30
-             goto 100
+             call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have"); stat = 30; goto 100
           endif
           call bl_error("BiCGStab: failure 3")
        end if
@@ -592,11 +578,10 @@ contains
        call saxpy(ss, rr, -alpha, vv)
        rnorm = norm_inf(ss)
        if ( parallel_IOProcessor() .and. verbose > 1 ) then
-          write(unit=*, fmt='("    BiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, &
-               rnorm  /  (bnorm)
+          write(unit=*, fmt='("    BiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, rnorm/bnorm
        end if
        if ( itsol_converged(ss, uu, bnorm, eps) ) exit
-       call itsol_precon(aa_local, ph, ss, mm,0)
+       call copy(ph,ss)
        call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh) 
        cnt = cnt + 1
        !
@@ -613,9 +598,7 @@ contains
 
        if ( den == ZERO ) then
           if ( present(stat) ) then
-             call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have")
-             stat = 31
-             goto 100
+             call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have"); stat = 31; goto 100
           endif
           call bl_error("BiCGStab: failure 3")
        end if
@@ -624,47 +607,25 @@ contains
        call saxpy(rr, ss, -omega, tt)
        rnorm = norm_inf(rr)
        if ( parallel_IOProcessor() .and. verbose > 1 ) then
-          write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, &
-               rnorm /  (bnorm)
+          write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, rnorm/bnorm
        end if
 
        if ( itsol_converged(rr, uu, bnorm, eps) ) exit
 
        rho_1 = rho
-
     end do
 
-    if ( verbose > 0 ) then
-       if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='("    BiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, &
-               rnorm/ (bnorm)
-       end if
+    if ( parallel_IOProcessor() .and. verbose > 0 ) then
+       write(unit=*, fmt='("    BiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, rnorm/bnorm
        if ( rnorm < eps*bnorm ) then
-          if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-                  rnorm,eps*bnorm
-          end if
-       else
-          norm_uu = norm_inf(uu)
-          if ( rnorm < eps*Anorm*norm_uu ) then
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
-                     rnorm,eps*Anorm*norm_uu
-             end if
-          else if ( rnorm < epsilon(Anorm)*Anorm ) then
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                     rnorm,small*Anorm
-             end if
-          end if
+          write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm,eps*bnorm
        end if
     end if
 
     if ( rnorm > bnorm ) then
        call setval(uu,ZERO,all=.true.)
        if ( present(stat) ) stat = 1
-       if ( verbose > 0 .and.  parallel_IOProcessor() ) &
-            print *,'   BiCGStab: solution reset to zero'
+       if ( verbose > 0 .and.  parallel_IOProcessor() ) print *,'   BiCGStab: solution reset to zero'
     end if
 
     if ( i > max_iter ) then
@@ -778,9 +739,9 @@ contains
     type(layout)    :: la
     type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local,    ph
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, Anorm, bnorm, rnorm, den
-    real(dp_t)      :: rnorm0, small, norm_rr, norm_uu, delta, L2_norm_of_rt
-    real(dp_t)      :: tnorms(3),rtnorms(3), L2_norm_of_resid, atime, gtime, time1, time2
-    integer         :: i, m, cnt, ng_for_res
+    real(dp_t)      :: rnorm0, small, norm_uu, delta, L2_norm_of_rt
+    real(dp_t)      :: tnorms(3),rtnorms(3), L2_norm_of_resid
+    integer         :: i, m, cnt, niters, ng_for_res
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
     logical         :: BiCGStabFailed, BiCGStabConverged
 
@@ -788,22 +749,22 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
-    integer, parameter :: SSS_MAX = 4
+    integer, parameter :: SSS = 4
 
-    real(dp_t)  temp1(4*SSS_MAX+1)
-    real(dp_t)  temp2(4*SSS_MAX+1)
-    real(dp_t)  temp3(4*SSS_MAX+1)
-    real(dp_t)     Tp(4*SSS_MAX+1, 4*SSS_MAX+1)
-    real(dp_t)    Tpp(4*SSS_MAX+1, 4*SSS_MAX+1)
-    real(dp_t)     aj(4*SSS_MAX+1)
-    real(dp_t)     cj(4*SSS_MAX+1)
-    real(dp_t)     ej(4*SSS_MAX+1)
-    real(dp_t)   Tpaj(4*SSS_MAX+1)
-    real(dp_t)   Tpcj(4*SSS_MAX+1)
-    real(dp_t)  Tppaj(4*SSS_MAX+1)
-    real(dp_t)     cG(4*SSS_MAX+1, 4*SSS_MAX+1)     ! G in C++ code
-    real(dp_t)     lG(4*SSS_MAX+1)                  ! g in C++ code
-    real(dp_t)     Gg((4*SSS_MAX+1)*(4*SSS_MAX+2))
+    real(dp_t)  temp1(4*SSS+1)
+    real(dp_t)  temp2(4*SSS+1)
+    real(dp_t)  temp3(4*SSS+1)
+    real(dp_t)     Tp(4*SSS+1, 4*SSS+1)
+    real(dp_t)    Tpp(4*SSS+1, 4*SSS+1)
+    real(dp_t)     aj(4*SSS+1)
+    real(dp_t)     cj(4*SSS+1)
+    real(dp_t)     ej(4*SSS+1)
+    real(dp_t)   Tpaj(4*SSS+1)
+    real(dp_t)   Tpcj(4*SSS+1)
+    real(dp_t)  Tppaj(4*SSS+1)
+    real(dp_t)     G(4*SSS+1, 4*SSS+1)
+    real(dp_t)     gg(4*SSS+1)                  !  g in C++ code
+    real(dp_t)     gram((4*SSS+1)*(4*SSS+2))    ! Gg in C++ code
 
     call build(bpt, "its_CABiCGStab_solve")
 
@@ -828,7 +789,7 @@ contains
     temp2 = zero
     temp3 = zero
 
-    call SetMonomialBasis(SSS_MAX)
+    call SetMonomialBasis(SSS)
 
     call multifab_build(rr, la, 1, ng_for_res, nodal)
     call multifab_build(rt, la, 1, ng_for_res, nodal)
@@ -840,7 +801,7 @@ contains
     ! First 2*SSS+1 components are powers of pp[].
     ! Next  2*SSS   components are powers of rr[].
     !
-    call multifab_build(pr, la, 4*SSS_MAX+1, ng_for_res, nodal)
+    call multifab_build(pr, la, 4*SSS+1, nghost(uu), nodal)
     !
     ! Use these for local preconditioning.
     !
@@ -851,6 +812,7 @@ contains
        call setval(rr, ZERO, all = .true.)
        call setval(rt, ZERO, all = .true.)
        call setval(pp, ZERO, all = .true.)
+       call setval(ph, ZERO, all = .true.)
        call setval(pr, ZERO, all = .true.)
     end if
 
@@ -913,22 +875,14 @@ contains
        write(unit=*, fmt='("    CABiCGStab: Initial error (error0) =        ",g15.8)') rnorm0
     end if 
 
-    if ( itsol_converged(rr, uu, bnorm, eps, rrnorm=norm_rr) .or. delta .eq. zero ) then
-       if ( verbose > 0 ) then
+    if ( itsol_converged(rr, uu, bnorm, eps) .or. (delta.eq.zero) ) then
+       if ( parallel_IOProcessor() .and. verbose > 0 ) then
           if ( rnorm0 < eps*bnorm ) then
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-                     rnorm0,eps*bnorm
-             end if
-          else if ( norm_rr < epsilon(Anorm)*Anorm ) then
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                     rnorm0,small*Anorm
-             end if
+             write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm0,eps*bnorm
+          else if ( rnorm0 < small*Anorm ) then
+             write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') rnorm0,small*Anorm
           else if ( delta .eq. zero ) then
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("    CABiCGStab: Zero iterations: delta == 0")')
-             end if
+             write(unit=*, fmt='("    CABiCGStab: Zero iterations: delta == 0")')
           end if
        end if
        go to 100
@@ -938,12 +892,35 @@ contains
 
     BiCGStabFailed = .false. ; BiCGStabConverged = .false.
 
-    atime = zero; gtime = zero
+    niters = 0; m = 1
 
-    do i = 1, max_iter
+    do while (m < max_iter .and. (.not. BiCGStabFailed) .and. (.not. BiCGStabConverged))
+       !
+       ! Compute the matrix powers on p[] & r[] (monomial basis).
+       ! The 2*SSS+1 powers of p[] followed by the 2*SSS powers of r[].
+       !
+       call copy(PR,1,      pp,1,1,0);
+       call copy(PR,2*SSS+1,rr,1,1,0);
+       !
+       ! We use "tmp" to minimize the number of Lp.apply()s.
+       ! We do this by doing p & r together in a single call.
+       !
+       ! MultiFab::Copy(tmp,p,0,0,1,0);
+       ! MultiFab::Copy(tmp,r,0,1,1,0);
 
+       !  for (int n = 1; n < 2*SSS; n++)
+       !  {
+       !      Lp.apply(tmp, tmp, lev, temp_bc_mode, false, 0, 2, 2);
 
-!       call itsol_precon(aa_local, ph, pp, mm, 0)
+       !      MultiFab::Copy(tmp,tmp,2,0,2,0);
+
+       !      MultiFab::Copy(PR,tmp,0,        n,1,0);
+       !      MultiFab::Copy(PR,tmp,1,2*SSS+n+1,1,0);
+       !  }
+
+       !  Lp.apply(PR, PR, lev, temp_bc_mode, false, 2*SSS-1, 2*SSS, 1);
+
+!       call copy(ph,pp)
 !       call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh)
 
        cnt = cnt + 1
@@ -951,40 +928,25 @@ contains
 
 !       if ( itsol_converged(rr, uu, bnorm, eps) ) exit
 
+       if ( (.not. BiCGStabFailed) .and. (.not. BiCGStabConverged) ) then
+          m = m + SSS;
+       end if
 
     end do
 
-    if ( verbose > 0 ) then
-       if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='("    CABiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, &
-               rnorm/ (bnorm)
-       end if
+    if ( parallel_IOProcessor() .and. verbose > 0 ) then
+       write(unit=*, fmt='("    CABiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, rnorm/bnorm
        if ( rnorm < eps*bnorm ) then
-          if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-                  rnorm,eps*bnorm
-          end if
-       else
-          norm_uu = norm_inf(uu)
-          if ( rnorm < eps*Anorm*norm_uu ) then
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
-                     rnorm,eps*Anorm*norm_uu
-             end if
-          else if ( rnorm < epsilon(Anorm)*Anorm ) then
-             if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                     rnorm,small*Anorm
-             end if
-          end if
+          write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm,eps*bnorm
        end if
     end if
 
     if ( rnorm > bnorm ) then
        call setval(uu,ZERO,all=.true.)
        if ( present(stat) ) stat = 1
-       if ( verbose > 0 .and.  parallel_IOProcessor() ) &
-            print *,'   CABiCGStab: solution reset to zero'
+       if ( parallel_IOProcessor() .and. verbose > 0 ) then
+          print *,'   CABiCGStab: solution reset to zero'
+       end if
     end if
 
     if ( i > max_iter ) then
@@ -1032,17 +994,6 @@ contains
       end do
 
     end subroutine SetMonomialBasis
-    !
-    ! z[n] = alpha*x[n]+beta*y[n]
-    !
-    subroutine axpy (z, alpha, x, beta, y, n)
-      real(dp_t), intent(inout) :: z(n)
-      real(dp_t), intent(in   ) :: x(n), y(n), alpha, beta
-      integer,    intent(in   ) :: n
-      do i = 1, n
-        z(i) = alpha*x(i) + beta*y(i)
-      end do
-    end subroutine axpy
 
   end subroutine itsol_CABiCGStab_solve
 
@@ -1074,7 +1025,7 @@ contains
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
     real(dp_t) :: tnorms(3), rtnorms(3)
 
-    real(dp_t) :: rho_orig, volume, rho_hg_orig, norm_uu
+    real(dp_t) :: norm_uu
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "its_CG_Solve")
@@ -1123,9 +1074,7 @@ contains
 
     if ( singular .and. nodal_solve ) then
       call setval(zz,ONE)
-      rho = dot(rr, zz, nodal_mask)
-      volume = dot(zz,zz)
-      rho = rho / volume
+      rho = dot(rr, zz, nodal_mask) / dot(zz,zz)
       call saxpy(rr,-rho,zz)
       call setval(zz,ZERO,all=.true.)
     end if
@@ -1150,36 +1099,29 @@ contains
 
     i = 0
     if ( itsol_converged(rr, uu, bnorm, eps) ) then
-      if (parallel_IOProcessor() .and. verbose > 0) then
-        if (tres0 < eps*bnorm) then
-          write(unit=*, fmt='("          CG: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
-                tres0,eps*bnorm
-        else if (tres0 < epsilon(Anorm)*Anorm) then
-          write(unit=*, fmt='("          CG: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                tres0,small*Anorm
-        end if
-      end if
-      go to 100
+       if (parallel_IOProcessor() .and. verbose > 0) then
+          if (tres0 < eps*bnorm) then
+             write(unit=*, fmt='("          CG: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') tres0,eps*bnorm
+          else if (tres0 < small*Anorm) then
+             write(unit=*, fmt='("          CG: Zero iterations: rnorm ",g15.8," < small*Anorm ",g15.8)') tres0,small*Anorm
+          end if
+       end if
+       go to 100
     end if
 
-    rho_1       = ZERO
-    rho_hg_orig = ZERO
+    rho_1 = ZERO
 
     do i = 1, max_iter
 
-       call itsol_precon(aa_local, zz, rr, mm, 0)
+       call copy(zz,rr)
        rho = dot(rr, zz, nodal_mask)
        if ( i == 1 ) then
           call copy(pp, zz)
-          rho_orig = rho
           call itsol_precon(aa_local, zz, rr, mm)
-          rho_hg_orig = dot(rr, zz, nodal_mask)
        else
           if ( rho_1 == ZERO ) then
              if ( present(stat) ) then
-                call bl_warn("CG_solve: failure 1")
-                stat = 1
-                goto 100
+                call bl_warn("CG_solve: failure 1"); stat = 1; goto 100
              end if
              call bl_error("CG_solve: failure 1")
           end if
@@ -1191,9 +1133,7 @@ contains
        den = dot(pp, qq, nodal_mask)
        if ( den == ZERO ) then
           if ( present(stat) ) then
-             call bl_warn("CG_solve: breakdown in solver, going with what I have")
-             stat = 30
-             goto 100
+             call bl_warn("CG_solve: breakdown in solver, going with what I have"); stat = 30; goto 100
           end if
           call bl_error("CG_solve: failure 1")
        end if
@@ -1214,8 +1154,7 @@ contains
 
     if ( verbose > 0 ) then
        if ( parallel_IOProcessor() ) then
-          write(unit=*, fmt='("          CG: Final: Iteration  ", i3, " rel. err. ",g15.8)') i, &
-               rnorm/ (bnorm)
+          write(unit=*, fmt='("          CG: Final: Iteration  ", i3, " rel. err. ",g15.8)') i, rnorm/bnorm
        end if
        if ( rnorm < eps*bnorm ) then
           if ( parallel_IOProcessor() ) then
@@ -1229,16 +1168,13 @@ contains
                 write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < eps*Anorm*sol_norm ",g15.8)') &
                      rnorm,eps*Anorm*norm_uu
              end if
-          else if ( rnorm < epsilon(Anorm)*Anorm ) then
+          else if ( rnorm < small*Anorm ) then
              if ( parallel_IOProcessor() ) then
-                write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') &
-                     rnorm,small*Anorm
+                write(unit=*, fmt='("          CG: Converged: rnorm ",g15.8," < small*Anorm ",g15.8)') rnorm,small*Anorm
              end if
           end if
        end if
     end if
-
-!    if (rnorm > bnorm) call setval(uu,ZERO,all=.true.)
 
     if ( i > max_iter ) then
        if ( present(stat) ) then
