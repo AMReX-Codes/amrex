@@ -724,9 +724,9 @@ contains
 
     do mm = 1, Nrows
        do nn = mm, Nrows
-          Gram(mm,nn) = dot(PR, mm, PR, nn, nodal_mask, local = .true.)
+          Gram(mm,nn) = dot(PR, mm, PR, nn, nodal_mask = nodal_mask, local = .true.)
        end do
-       Gram(mm,Ncols) = dot(PR, mm, rt,  1, nodal_mask, local = .true.)
+       Gram(mm,Ncols) = dot(PR, mm, rt,  1, nodal_mask = nodal_mask, local = .true.)
     end do
     !
     ! Fill in strict lower triangle using symmetry.
