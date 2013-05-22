@@ -324,34 +324,26 @@ contains
     !
     ! Set sg on faces at a Neumann boundary.
     !
-    !$OMP PARALLEL PRIVATE(i,j,k)
-    !$OMP DO
     do j = 1,ny-1
        do i = 1,nx-1
           if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
           if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
        end do
     end do
-    !$OMP END DO
 
-    !$OMP DO
     do k = 1,nz-1
        do i = 1,nx-1
           if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
           if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
        end do
     end do
-    !$OMP END DO
 
-    !$OMP DO
     do k = 1,nz-1
        do j = 1,ny-1
           if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
           if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
        end do
     end do
-    !$OMP END DO
-    !$OMP END PARALLEL
     !
     ! Set sg on edges at a Neumann boundary.
     !
@@ -462,7 +454,7 @@ contains
 
     fac = (FOURTH / (dh(1))**2)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -543,7 +535,7 @@ contains
 
     fac = (FOURTH / (dh(1))**2)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -620,7 +612,7 @@ contains
     f2x2zy = (TWO*fx+TWO*fz-fy)
     f2x2yz = (TWO*fx+TWO*fy-fz)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -809,7 +801,7 @@ contains
 
     integer i,j,k,lo(3),nx,ny,nz
 
-    logical zeroit,jface,kface
+    logical doit,jface,kface
 
     lo = 1
 
@@ -821,7 +813,7 @@ contains
 
     if (stencil_type .eq. ND_CROSS_STENCIL) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,doit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -830,15 +822,13 @@ contains
 
              do i = 1,nx
 
-                zeroit = .false.
+                doit = .true.
 
                 if ( jface .or. kface .or. (i.eq.1) .or. (i.eq.nx) ) then
-                   if (bc_dirichlet(mm(i,j,k),1,0)) zeroit = .true.
+                   if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
                 end if
 
-                if (zeroit) then
-                   dd(i,j,k) = ZERO
-                else
+                if (doit) then
                    dd(i,j,k) = &
                         ss(0,i,j,k) * uu(i,j,k)       + &
                         ss(1,i,j,k) * uu(i+1,j  ,k  ) + &
@@ -847,6 +837,8 @@ contains
                         ss(4,i,j,k) * uu(i  ,j-1,k  ) + &
                         ss(5,i,j,k) * uu(i  ,j  ,k+1) + &
                         ss(6,i,j,k) * uu(i  ,j  ,k-1)
+                else
+                   dd(i,j,k) = ZERO
                 end if
 
              end do
@@ -856,7 +848,7 @@ contains
 
     else if (stencil_type .eq. ND_DENSE_STENCIL) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,zeroit,jface,kface)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,doit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -865,15 +857,13 @@ contains
 
              do i = 1,nx
 
-                zeroit = .false.
+                doit = .true.
 
                 if ( jface .or. kface .or. (i.eq.1) .or. (i.eq.nx) ) then
-                   if (bc_dirichlet(mm(i,j,k),1,0)) zeroit = .true.
+                   if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
                 end if
 
-                if (zeroit) then
-                   dd(i,j,k) = ZERO
-                else
+                if (doit) then
                    dd(i,j,k) = ss(0,i,j,k)*uu(i,j,k) &
                         + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
                         + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
@@ -895,6 +885,8 @@ contains
                            + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
                            + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
                    end if
+                else
+                   dd(i,j,k) = ZERO
                 end if
 
              end do
