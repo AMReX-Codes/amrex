@@ -10,7 +10,7 @@ module itsol_module
   integer, private, parameter :: def_bicg_max_iter = 1000
   integer, private, parameter :: def_cg_max_iter   = 1000
 
-  private :: dgemv
+  private :: dgemv, BuildGramMatrix, is_inf
   private :: itsol_defect, itsol_precon
   private :: jacobi_precon_1d, jacobi_precon_2d, jacobi_precon_3d
   private :: nodal_precon_1d, nodal_precon_2d, nodal_precon_3d
@@ -748,6 +748,33 @@ contains
     end do
 
   end subroutine BuildGramMatrix
+  !
+  ! To tell whether or not a value is a IEEE inf.
+  !
+  ! In time this should be rewritten to use the IEEE_ARITHMETIC module.
+  !
+  function is_inf (val) result(r)
+
+    real(dp_t), intent(in) :: val
+    logical                :: r
+
+    integer :: rc
+
+    interface
+       subroutine val_is_inf(v, res)
+         use bl_types
+         real(dp_t), intent(in)  :: v
+         integer,    intent(out) :: res
+       end subroutine val_is_inf
+    end interface
+
+    r = .false.
+
+    call val_is_inf(val,rc)
+
+    if (rc == 1) r = .true.
+    
+  end function is_inf
 
   subroutine itsol_CABiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
        stat, singular_in, uniform_dh, nodal_mask)
@@ -971,12 +998,11 @@ contains
 
           alpha = delta / g_dot_Tpaj
 
-          !if ( isinf(alpha) )
-          !{
-          !if ( verbose > 1 && ParallelDescriptor::IOProcessor() )
-          !std::cout << "CGSolver_CABiCGStab: alpha == inf, nit = " << nit << '\n';
-          !BiCGStabFailed = true; ret = 2; break;
-          !}
+          if ( is_inf(alpha) ) then
+             if ( verbose > 1 .and. parallel_IOProcessor() ) &
+                  print*, "CGSolver_CABiCGStab: alpha == inf, nit = ", nit
+             BiCGStabFailed = .true.; ret = 2; exit
+          end if
 
           temp1 = Tpcj - alpha * Tppaj
           call dgemv(one, G, temp1, zero, temp2, 4*SSS+1, 4*SSS+1)
@@ -995,7 +1021,7 @@ contains
           ej = ej + alpha * aj
           !
           ! ej has been updated so consider that we've done an iteration since
-          ! even if we break out of the loop we'll be able to update both sol.
+          ! even if we break out of the loop we'll be able to update "uu".
           !
           niters = niters + 1
           !
@@ -1024,14 +1050,16 @@ contains
           omega = omega_numerator / omega_denominator
 
           if ( verbose > 1 .and. parallel_IOProcessor() ) then
-             if ( omega .eq. zero   ) print*, "CGSolver_CABiCGStab: omega == 0, nit = ", nit
-             !if ( isinf(omega) ) print*, "CGSolver_CABiCGStab: omega == inf, nit = ", nit
+             if ( omega .eq. zero ) print*, "CGSolver_CABiCGStab: omega == 0, nit = ", nit
+             if ( is_inf(omega)   ) print*, "CGSolver_CABiCGStab: omega == inf, nit = ", nit
           end if
 
           if ( omega .eq. zero ) then
              BiCGStabFailed = .true.; ret = 4; exit
           end if
-          !if ( isinf(omega) ) { BiCGStabFailed = true; ret = 4; break; }
+          if ( is_inf(omega) ) then
+             BiCGStabFailed = .true.; ret = 4; exit
+          end if
           !
           ! Complete the update of ej & cj now that omega is known to be ok.
           !
@@ -1063,24 +1091,26 @@ contains
 
           if ( verbose > 1 .and. parallel_IOProcessor() ) then
              if ( delta_next .eq. zero ) print*, "CGSolver_CABiCGStab: delta == 0, nit = ", nit
-             !if ( isinf(delta_next) ) print*, "CGSolver_CABiCGStab: delta == inf, nit = ", nit
+             if ( is_inf(delta_next)   ) print*, "CGSolver_CABiCGStab: delta == inf, nit = ", nit
           end if
-
           if ( delta_next .eq. zero ) then
              BiCGStabFailed = .true.; ret = 5; exit ! Lanczos breakdown...
           end if
-          !if ( isinf(delta_next) ) { BiCGStabFailed = true; ret = 5; break; } ! delta = inf?
+          if ( is_inf(delta_next) ) then
+             BiCGStabFailed = .true.; ret = 5; exit ! delta = inf?
+          end if
 
           beta = (delta_next/delta)*(alpha/omega)
 
           if ( verbose > 1 .and. parallel_IOProcessor() ) then
              if ( beta .eq. zero ) print*, "CGSolver_CABiCGStab: beta == 0, nit = ", nit
-             !if ( isinf(beta) ) print*, "CGSolver_CABiCGStab: beta == inf, nit = ", nit
+             if ( is_inf(beta)   ) print*, "CGSolver_CABiCGStab: beta == inf, nit = ", nit
           end if
-
-          !if ( isinf(beta) ) { BiCGStabFailed = true; ret = 6; break; } ! beta = inf?
           if ( beta .eq. zero ) then
              BiCGStabFailed = .true.; ret = 6; exit ! beta = 0?  can't make further progress(?)
+          end if
+          if ( is_inf(beta) ) then
+             BiCGStabFailed = .true.; ret = 6; exit ! beta = inf?
           end if
 
           aj = cj +          beta  * aj
