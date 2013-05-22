@@ -433,9 +433,9 @@ contains
 
     if ( present(stat) ) stat = 0
 
-    singular    = .false.; if ( present(singular_in) ) singular    = singular_in
-    ng_for_res  = 0;       if ( nodal_q(rh)          ) ng_for_res  = 1
-    nodal_solve = .false.; if ( ng_for_res /= 0      ) nodal_solve = .true.
+    singular    = .false. ; if ( present(singular_in) ) singular    = singular_in
+    ng_for_res  = 0       ; if ( nodal_q(rh)          ) ng_for_res  = 1
+    nodal_solve = .false. ; if ( ng_for_res /= 0      ) nodal_solve = .true.
 
     nodal = nodal_flags(rh)
 
@@ -753,9 +753,9 @@ contains
 
     if ( present(stat) ) stat = 0
 
-    singular    = .false.; if ( present(singular_in) ) singular    = singular_in
-    ng_for_res  = 0;       if ( nodal_q(rh)          ) ng_for_res  = 1
-    nodal_solve = .false.; if ( ng_for_res /= 0      ) nodal_solve = .true.
+    singular    = .false. ; if ( present(singular_in) ) singular    = singular_in
+    ng_for_res  = 0       ; if ( nodal_q(rh)          ) ng_for_res  = 1
+    nodal_solve = .false. ; if ( ng_for_res /= 0      ) nodal_solve = .true.
 
     la    = get_layout(aa)
     nodal = nodal_flags(rh)
@@ -791,12 +791,7 @@ contains
     call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
 
     if ( nodal_solve ) then
-       call setval(rr, ZERO, all = .true.)
-       call setval(rt, ZERO, all = .true.)
-       call setval(pp, ZERO, all = .true.)
        call setval(ph, ZERO, all = .true.)
-       call setval(pr, ZERO, all = .true.)
-       call setval(tt, ZERO, all = .true.)
     end if
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
@@ -952,7 +947,7 @@ contains
           if ( L2_norm_of_resid < eps*L2_norm_of_rt ) then
              if ( verbose > 1 .and. (L2_norm_of_resid .eq. zero) .and. parallel_IOProcessor() ) &
                   print*, "CGSolver_CABiCGStab: L2 norm of s: ", L2_norm_of_s
-             BiCGStabConverged = .true.; exit
+             BiCGStabConverged = .true. ; exit
           end if
 
           if ( omega_denominator .eq. zero ) then
@@ -998,7 +993,7 @@ contains
           if ( L2_norm_of_resid < eps*L2_norm_of_rt ) then
              if ( verbose > 1 .and. (L2_norm_of_resid .eq. zero) .and. parallel_IOProcessor() ) &
                   print*, "CGSolver_CABiCGStab: L2_norm_of_r: ", L2_norm_of_r
-             BiCGStabConverged = .true.; exit
+             BiCGStabConverged = .true. ; exit
           end if
 
           delta_next = dot_product(gg,cj)
@@ -1197,9 +1192,9 @@ contains
 
     if ( present(stat) ) stat = 0
 
-    singular    = .false.; if ( present(singular_in) ) singular = singular_in
-    ng_for_res  = 0;       if ( nodal_q(rh)          ) ng_for_res = 1
-    nodal_solve = .false.; if ( ng_for_res /= 0      ) nodal_solve = .true.
+    singular    = .false. ; if ( present(singular_in) ) singular = singular_in
+    ng_for_res  = 0       ; if ( nodal_q(rh)          ) ng_for_res = 1
+    nodal_solve = .false. ; if ( ng_for_res /= 0      ) nodal_solve = .true.
 
     nodal = nodal_flags(rh)
 
