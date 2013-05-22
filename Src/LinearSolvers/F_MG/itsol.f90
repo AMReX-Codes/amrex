@@ -482,7 +482,7 @@ contains
       call parallel_reduce(rtnorms, tnorms, MPI_SUM)
       rho = rtnorms(1) / rtnorms(2)
       if ( parallel_IOProcessor() .and. verbose > 0 ) then
-         print *,'...singular adjustment to rhs: ', rho
+         print *,'   ...singular adjustment to rhs: ', rho
       endif
       call saxpy(rh_local,-rho,ss)
       call setval(ss,ZERO,all=.true.)
@@ -723,7 +723,7 @@ contains
     type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local, ph, tt
     real(kind=dp_t) :: alpha, beta, omega, rho, bnorm
     real(dp_t)      :: rnorm0, delta, delta_next, L2_norm_of_rt
-    real(dp_t)      :: tnorms(2),rtnorms(2), L2_norm_of_resid, L2_norm_of_r
+    real(dp_t)      :: nrms(2),rnrms(2), L2_norm_of_resid, L2_norm_of_r
     integer         :: i, m, niters, ng_for_res, nit
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
     logical         :: BiCGStabFailed, BiCGStabConverged
@@ -814,38 +814,36 @@ contains
     if ( singular ) then
        call multifab_build(ss, la, 1, ng_for_res, nodal)
        call setval(ss,ONE)
-       tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
-       tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
-       call parallel_reduce(rtnorms, tnorms, MPI_SUM)
-       rho = rtnorms(1) / rtnorms(2)
+       nrms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
+       nrms(2) = dot(      ss, ss, nodal_mask, local = .true.)
+       call parallel_reduce(rnrms, nrms, MPI_SUM)
+       rho = rnrms(1) / rnrms(2)
        if ( parallel_IOProcessor() .and. verbose > 0 ) then
-          print *,'...singular adjustment to rhs: ', rho
+          print *,'   ...singular adjustment to rhs: ', rho
        endif
        call saxpy(rh_local,-rho,ss)
        call destroy(ss)
     end if
 
     call diag_initialize(aa_local,rh_local,mm)
-
-    call copy(ph, uu, ng = nghost(ph))
     !
-    ! Compute rr = aa * uu - rh.
+    ! Compute rt = aa * uu - rh.
     !
-    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh)
+    call itsol_defect(aa_local, rt, rh_local, uu, mm, stencil_type, lcross, uniform_dh)
 
-    call copy(rt,rr); call copy(pp,rr)
+    call copy(rr,rt); call copy(pp,rt)
     !
     ! Elide some reductions by calculating local norms & then reducing all together.
     !
-    tnorms(1) = norm_inf(rr,       local = .true.)
-    tnorms(2) = norm_inf(rh_local, local = .true.)
+    nrms(1) = norm_inf(rt,       local = .true.)
+    nrms(2) = norm_inf(rh_local, local = .true.)
 
-    call parallel_reduce(rtnorms, tnorms, MPI_MAX)
+    call parallel_reduce(rnrms, nrms, MPI_MAX)
 
-    rnorm0 = rtnorms(1)
-    bnorm  = rtnorms(2)
+    rnorm0 = rnrms(1)
+    bnorm  = rnrms(2)
 
-    delta         = dot(rt, rr, nodal_mask)
+    delta         = dot(rt,rt,nodal_mask)
     L2_norm_of_rt = sqrt(delta)
 
     if ( parallel_IOProcessor() .and. verbose > 0 ) then
@@ -1191,7 +1189,7 @@ contains
     logical :: singular 
     integer :: cnt
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
-    real(dp_t) :: tnorms(2), rtnorms(2)
+    real(dp_t) :: nrms(2), rnrms(2)
 
     type(bl_prof_timer), save :: bpt
 
@@ -1248,13 +1246,13 @@ contains
     !
     ! Elide some reductions by calculating local norms & then reducing all together.
     !
-    tnorms(1) = norm_inf(rr,       local=.true.)
-    tnorms(2) = norm_inf(rh_local, local=.true.)
+    nrms(1) = norm_inf(rr,       local=.true.)
+    nrms(2) = norm_inf(rh_local, local=.true.)
 
-    call parallel_reduce(rtnorms, tnorms, MPI_MAX)
+    call parallel_reduce(rnrms, nrms, MPI_MAX)
 
-    tres0 = rtnorms(1)
-    bnorm = rtnorms(2)
+    tres0 = rnrms(1)
+    bnorm = rnrms(2)
 
     if ( parallel_IOProcessor() .and. verbose > 0) then
        write(unit=*, fmt='("          CG: Initial error (error0) =        ",g15.8)') tres0
