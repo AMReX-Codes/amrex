@@ -639,7 +639,9 @@ contains
     call destroy(bpt)
 
   end subroutine itsol_BiCGStab_solve
-
+  !
+  ! This is a slightly simplified version of the BLAS 2 routine.
+  !
   subroutine dgemv(alpha,a,x,beta,y,m,n)
 
     integer,    intent(in   ) :: m,n
@@ -650,13 +652,8 @@ contains
     !
     !     y := alpha*A*x + beta*y
     !
-    !  where alpha and beta are scalars, x and y are vectors and A is an
-    !  m by n matrix.
+    !  where alpha and beta are scalars, x and y are vectors and A is an  m x n matrix.
     !
-    !  Further Details
-    !  ===============
-    !
-    !  Level 2 Blas routine.
     !  The vector and matrix arguments are not referenced when N = 0, or M = 0
     !
     !  -- Written on 22-October-1986.
@@ -665,22 +662,20 @@ contains
     !     Sven Hammarling, Nag Central Office.
     !     Richard Hanson, Sandia National Labs.
     !
-    !  =====================================================================
-    !
     integer    :: i,j,jx
     real(dp_t) :: temp
     !
     ! Quick return if possible.
     !
-    if ((m.eq.0) .or. (n.eq.0) .or. ((alpha.eq.zero).and.(beta.eq.one))) return
+    if ( (m.eq.0) .or. (n.eq.0) .or. ((alpha.eq.zero).and.(beta.eq.one)) ) return
     !
     ! Start the operations. In this version the elements of A are
     ! accessed sequentially with one pass through A.
     !
-    ! First form  y := beta*y.
+    ! First form y := beta*y.
     !
-    if (beta.ne.one) then
-       if (beta.eq.zero) then
+    if ( beta.ne.one ) then
+       if ( beta.eq.zero ) then
           do i = 1,m
              y(i) = zero
           end do
@@ -690,13 +685,13 @@ contains
           end do
        end if
     end if
-    if (alpha.eq.zero) return
+    if ( alpha.eq.zero ) return
     !
-    ! Now form  y := alpha*a*x + y.
+    ! Now form y := alpha*a*x + y.
     !
     jx = 1
     do j = 1,n
-       if (x(jx).ne.zero) then
+       if ( x(jx).ne.zero ) then
           temp = alpha*x(jx)
           do i = 1,m
              y(i) = y(i) + temp*a(i,j)
@@ -729,7 +724,7 @@ contains
     real(kind=dp_t) :: alpha, beta, omega, rho, bnorm
     real(dp_t)      :: rnorm0, delta, delta_next, L2_norm_of_rt
     real(dp_t)      :: tnorms(2),rtnorms(2), L2_norm_of_resid, L2_norm_of_r
-    integer         :: i, m, niters, ng_for_res, nit, ret
+    integer         :: i, m, niters, ng_for_res, nit
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
     logical         :: BiCGStabFailed, BiCGStabConverged
     real(dp_t)      :: g_dot_Tpaj, omega_numerator, omega_denominator, L2_norm_of_s
@@ -821,7 +816,7 @@ contains
        call setval(ss,ONE)
        tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
        tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
-       call parallel_reduce(rtnorms(1:2), tnorms(1:2), MPI_SUM)
+       call parallel_reduce(rtnorms, tnorms, MPI_SUM)
        rho = rtnorms(1) / rtnorms(2)
        if ( parallel_IOProcessor() .and. verbose > 0 ) then
           print *,'...singular adjustment to rhs: ', rho
@@ -851,7 +846,7 @@ contains
     bnorm  = rtnorms(2)
 
     delta         = dot(rt, rr, nodal_mask)
-    L2_norm_of_rt = dsqrt(delta)
+    L2_norm_of_rt = sqrt(delta)
 
     if ( parallel_IOProcessor() .and. verbose > 0 ) then
        write(*,*) "   CABiCGStab: A and rhs have been rescaled. So has the error."
@@ -914,7 +909,7 @@ contains
           if ( g_dot_Tpaj == zero ) then
              if ( parallel_IOProcessor() .and. verbose > 0 ) &
                   print*, "CGSolver_CABiCGStab: g_dot_Tpaj == 0, nit = ", nit
-             BiCGStabFailed = .true.; ret = 1; exit
+             BiCGStabFailed = .true. ; exit
           end if
 
           alpha = delta / g_dot_Tpaj
@@ -922,7 +917,7 @@ contains
           if ( is_an_inf(alpha) ) then
              if ( verbose > 1 .and. parallel_IOProcessor() ) &
                   print*, "CGSolver_CABiCGStab: alpha == inf, nit = ", nit
-             BiCGStabFailed = .true.; ret = 2; exit
+             BiCGStabFailed = .true. ; exit
           end if
 
           temp1 = Tpcj - alpha * Tppaj
@@ -954,7 +949,7 @@ contains
 
           L2_norm_of_s = dot_product(temp1,temp2)
 
-          L2_norm_of_resid = zero; if ( L2_norm_of_s > 0 ) L2_norm_of_resid = dsqrt(L2_norm_of_s)
+          L2_norm_of_resid = zero; if ( L2_norm_of_s > 0 ) L2_norm_of_resid = sqrt(L2_norm_of_s)
 
           if ( L2_norm_of_resid < eps*L2_norm_of_rt ) then
              if ( verbose > 1 .and. (L2_norm_of_resid .eq. zero) .and. parallel_IOProcessor() ) &
@@ -965,7 +960,7 @@ contains
           if ( omega_denominator .eq. zero ) then
              if ( verbose > 1 .and. parallel_IOProcessor() ) &
                 print*, "CGSolver_CABiCGStab: omega_denominator == 0, nit = ", nit
-             BiCGStabFailed = .true.; ret = 3; exit
+             BiCGStabFailed = .true. ; exit
           end if
 
           omega = omega_numerator / omega_denominator
@@ -976,10 +971,10 @@ contains
           end if
 
           if ( omega .eq. zero ) then
-             BiCGStabFailed = .true.; ret = 4; exit
+             BiCGStabFailed = .true. ; exit
           end if
           if ( is_an_inf(omega) ) then
-             BiCGStabFailed = .true.; ret = 4; exit
+             BiCGStabFailed = .true. ; exit
           end if
           !
           ! Complete the update of ej & cj now that omega is known to be ok.
@@ -1000,7 +995,7 @@ contains
           !
           L2_norm_of_r = dot_product(cj,temp1)
 
-          L2_norm_of_resid = zero; if ( L2_norm_of_r > 0 ) L2_norm_of_resid = dsqrt(L2_norm_of_r)
+          L2_norm_of_resid = zero; if ( L2_norm_of_r > 0 ) L2_norm_of_resid = sqrt(L2_norm_of_r)
 
           if ( L2_norm_of_resid < eps*L2_norm_of_rt ) then
              if ( verbose > 1 .and. (L2_norm_of_resid .eq. zero) .and. parallel_IOProcessor() ) &
@@ -1015,10 +1010,10 @@ contains
              if ( is_an_inf(delta_next) ) print*, "CGSolver_CABiCGStab: delta == inf, nit = ", nit
           end if
           if ( delta_next .eq. zero ) then
-             BiCGStabFailed = .true.; ret = 5; exit
+             BiCGStabFailed = .true. ; exit
           end if
           if ( is_an_inf(delta_next) ) then
-             BiCGStabFailed = .true.; ret = 5; exit
+             BiCGStabFailed = .true. ; exit
           end if
 
           beta = (delta_next/delta)*(alpha/omega)
@@ -1028,10 +1023,10 @@ contains
              if ( is_an_inf(beta) ) print*, "CGSolver_CABiCGStab: beta == inf, nit = ", nit
           end if
           if ( beta .eq. zero ) then
-             BiCGStabFailed = .true.; ret = 6; exit
+             BiCGStabFailed = .true. ; exit
           end if
           if ( is_an_inf(beta) ) then
-             BiCGStabFailed = .true.; ret = 6; exit
+             BiCGStabFailed = .true. ; exit
           end if
 
           aj = cj +          beta  * aj
@@ -1079,7 +1074,7 @@ contains
        end if
     end if
 
-    if ( m > max_iter ) then
+    if ( m > max_iter .or. BiCGStabFailed ) then
        if ( present(stat) ) then
           stat = 1
        else
