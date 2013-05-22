@@ -10,7 +10,7 @@ module itsol_module
   integer, private, parameter :: def_bicg_max_iter = 1000
   integer, private, parameter :: def_cg_max_iter   = 1000
 
-  private :: dgemv, BuildGramMatrix, is_inf
+  private :: dgemv, is_inf
   private :: itsol_defect, itsol_precon
   private :: jacobi_precon_1d, jacobi_precon_2d, jacobi_precon_3d
   private :: nodal_precon_1d, nodal_precon_2d, nodal_precon_3d
@@ -706,48 +706,6 @@ contains
     end do
 
   end subroutine dgemv
-
-  subroutine BuildGramMatrix (Gram,PR,rt,sss,nodal_mask)
-
-    integer,         intent(in   ) :: sss
-    real(dp_t),      intent(inout) :: Gram(4*sss+1, 4*sss+2)
-    type(multifab),  intent(in   ) :: PR
-    type(multifab),  intent(in   ) :: rt
-
-    type(multifab),  intent(in ), optional :: nodal_mask
-
-    integer    :: Nrows, Ncols, mm, nn, cnt
-    real(dp_t) :: tmp((4*sss+1)*(4*sss+2))
-
-    Nrows = 4*sss+1
-    Ncols = 4*sss+2
-
-    do mm = 1, Nrows
-       do nn = mm, Nrows
-          Gram(mm,nn) = dot(PR, mm, PR, nn, nodal_mask = nodal_mask, local = .true.)
-       end do
-       Gram(mm,Ncols) = dot(PR, mm, rt,  1, nodal_mask = nodal_mask, local = .true.)
-    end do
-    !
-    ! Fill in strict lower triangle using symmetry.
-    !
-    do mm = 1, Nrows
-       do nn = 1, mm-1
-          Gram(mm,nn) = Gram(nn,mm)
-       end do
-    end do
-
-    call parallel_reduce(tmp, reshape(Gram,shape(tmp)), MPI_SUM)
-
-    cnt = 1
-    do nn = 1, Ncols
-       do mm = 1, Nrows
-          Gram(mm,nn) = tmp(cnt)
-          cnt = cnt + 1
-       end do
-    end do
-
-  end subroutine BuildGramMatrix
   !
   ! To tell whether or not a value is a IEEE inf.
   !
@@ -801,7 +759,6 @@ contains
     integer         :: i, m, niters, ng_for_res, nit, ret
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
     logical         :: BiCGStabFailed, BiCGStabConverged
-
     real(dp_t)      :: g_dot_Tpaj, omega_numerator, omega_denominator, L2_norm_of_s
 
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
@@ -821,9 +778,8 @@ contains
     real(dp_t)   Tpaj(4*SSS+1)
     real(dp_t)   Tpcj(4*SSS+1)
     real(dp_t)  Tppaj(4*SSS+1)
-    real(dp_t)     G(4*SSS+1, 4*SSS+1)
-    real(dp_t)     gg(4*SSS+1)            !  g in C++ code
-    real(dp_t)     Gram(4*SSS+1, 4*SSS+2)
+    real(dp_t)      G(4*SSS+1, 4*SSS+1)
+    real(dp_t)     gg(4*SSS+1)
 
     call build(bpt, "its_CABiCGStab_solve")
 
@@ -846,7 +802,7 @@ contains
     temp2 = zero
     temp3 = zero
 
-    call SetMonomialBasis(SSS)
+    call SetMonomialBasis()
 
     call multifab_build(rr, la, 1, ng_for_res, nodal)
     call multifab_build(rt, la, 1, ng_for_res, nodal)
@@ -969,15 +925,7 @@ contains
           call copy(ph,1,tt,1,1,0)
        end do
 
-       call BuildGramMatrix(Gram, PR, rt, SSS, nodal_mask);
-       !
-       ! Form G[][] and g[] from Gram[][].
-       !
-       G(1:4*SSS+1,1:4*SSS+1) = Gram(1:4*SSS+1,1:4*SSS+1)
-       !
-       ! Last column goes to g[].
-       !
-       gg = Gram(:,4*SSS+2)
+       call BuildGramMatrix()
 
        aj = 0; aj(1)       = 1
        cj = 0; cj(2*SSS+2) = 1
@@ -1181,29 +1129,71 @@ contains
 
   contains
 
-    subroutine SetMonomialBasis (sss)
-
-      integer, intent(in) :: sss
+    subroutine SetMonomialBasis ()
 
       Tp = zero
 
-      do i = 1,2*sss
+      do i = 1,2*SSS
          Tp(i+1,i) = one
       end do
-      do i = 2*sss+2, 4*sss
+      do i = 2*SSS+2, 4*SSS
          Tp(i+1,i) = one
       end do
 
       Tpp = zero
 
-      do i = 1,2*sss-1
+      do i = 1,2*SSS-1
          Tpp(i+2,i) = one
       end do
-      do i = 2*sss+2, 4*sss-1
+      do i = 2*SSS+2, 4*SSS-1
          Tpp(i+2,i) = one
       end do
 
     end subroutine SetMonomialBasis
+
+    subroutine BuildGramMatrix ()
+
+      integer, parameter :: Nrows = 4*SSS+1, Ncols = 4*SSS+2
+
+      integer    :: mm, nn, cnt
+      real(dp_t) :: Gram(Nrows, Ncols), tmp(Nrows*Ncols)
+
+      do mm = 1, Nrows
+         do nn = mm, Nrows
+            Gram(mm,nn) = dot(PR, mm, PR, nn, nodal_mask = nodal_mask, local = .true.)
+         end do
+         Gram(mm,Ncols) = dot(PR, mm, rt,  1, nodal_mask = nodal_mask, local = .true.)
+      end do
+      !
+      ! Fill in strict lower triangle using symmetry.
+      !
+      do mm = 1, Nrows
+         do nn = 1, mm-1
+            Gram(mm,nn) = Gram(nn,mm)
+         end do
+      end do
+      !
+      ! Reduce everything at once into "tmp"
+      !
+      call parallel_reduce(tmp, reshape(Gram,shape(tmp)), MPI_SUM)
+
+      cnt = 1
+      do nn = 1, Ncols
+         do mm = 1, Nrows
+            Gram(mm,nn) = tmp(cnt)
+            cnt = cnt + 1
+         end do
+      end do
+      !
+      ! Form G[][] and g[] from Gram[][].
+      !
+      G(1:Nrows,1:Nrows) = Gram(1:Nrows,1:Nrows)
+      !
+      ! Last column goes to g[].
+      !
+      gg = Gram(:,Ncols)
+
+    end subroutine BuildGramMatrix
 
   end subroutine itsol_CABiCGStab_solve
 
