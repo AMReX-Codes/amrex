@@ -335,7 +335,9 @@ contains
 
     luniform_dh = .false. ; if ( present(uniform_dh) ) luniform_dh = uniform_dh
 
-    call multifab_fill_boundary(uu, cross = lcross)
+    call bl_assert(ncomp(uu).ge.ncomp(rr), 'uu must have at least as many components as rr')
+
+    call fill_boundary(uu, 1, ncomp(rr), cross = lcross)
 
     dm = get_dim(rr)
 
@@ -775,8 +777,8 @@ contains
     call multifab_build(rr, la, 1, ng_for_res, nodal)
     call multifab_build(rt, la, 1, ng_for_res, nodal)
     call multifab_build(pp, la, 1, ng_for_res, nodal)
-    call multifab_build(tt, la, 1, ng_for_res, nodal)
-    call multifab_build(ph, la, 1, nghost(uu), nodal)
+    call multifab_build(tt, la, 2, ng_for_res, nodal)
+    call multifab_build(ph, la, 2, nghost(uu), nodal)
     !
     ! Contains the matrix powers of pp[] and rr[].
     !
@@ -869,22 +871,29 @@ contains
        ! The 2*SSS+1 powers of pp[] followed by the 2*SSS powers of rr[].
        !
        call copy(PR,1,pp,1,1,0)
-       call copy(ph,pp)
-
-       do i = 2, 2*SSS+1
-          call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh)
-          call copy(PR,i,tt,1,1,0)
-          call copy(ph,1,tt,1,1,0)
-       end do
+       call copy(ph,1,pp,1,1,0)
 
        call copy(PR,2*SSS+2,rr,1,1,0)
-       call copy(ph,rr)
+       call copy(ph,2,      rr,1,1,0)
 
-       do i = 2*SSS+3,4*SSS+1
+       do i = 2, 2*SSS
+          !
+          ! apply the stencil to pp & rr at the same time to cut down on comm time.
+          !
           call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh)
+
           call copy(PR,i,tt,1,1,0)
           call copy(ph,1,tt,1,1,0)
+
+          call copy(PR,2*SSS+1+i,tt,2,1,0)
+          call copy(ph,2,        tt,2,1,0)
        end do
+       !
+       ! And the final power of pp[].
+       !
+       call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh)
+
+       call copy(PR,2*SSS+1,tt,1,1,0)
 
        call BuildGramMatrix()
 
