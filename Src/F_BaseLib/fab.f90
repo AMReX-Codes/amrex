@@ -239,6 +239,60 @@ module fab_module
 
 contains
   !
+  ! To tell whether or not a value is a IEEE inf.
+  !
+  ! In time this should be rewritten to use the IEEE_ARITHMETIC module.
+  !
+  function is_an_inf (val) result(r)
+
+    real(dp_t), intent(in) :: val
+    logical                :: r
+
+    integer :: rc
+
+    interface
+       subroutine val_is_inf(v, res)
+         use bl_types
+         real(dp_t), intent(in)  :: v
+         integer,    intent(out) :: res
+       end subroutine val_is_inf
+    end interface
+
+    r = .false.
+
+    call val_is_inf(val,rc)
+
+    if (rc == 1) r = .true.
+    
+  end function is_an_inf
+  !
+  ! To tell whether or not a value is a IEEE NaN.
+  !
+  ! In time this should be rewritten to use the IEEE_ARITHMETIC module.
+  !
+  function is_a_nan (val) result(r)
+
+    real(dp_t), intent(in) :: val
+    logical                :: r
+
+    integer :: rc
+
+    interface
+       subroutine val_is_nan(v, res)
+         use bl_types
+         real(dp_t), intent(in)  :: v
+         integer,    intent(out) :: res
+       end subroutine val_is_nan
+    end interface
+
+    r = .false.
+
+    call val_is_nan(val,rc)
+
+    if (rc == 1) r = .true.
+    
+  end function is_a_nan
+  !
   ! Does a real(dp_t) fab contain a NaN?
   !
   function contains_nan_c(fb,c,nc) result(r)
