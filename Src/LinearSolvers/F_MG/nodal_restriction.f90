@@ -210,11 +210,11 @@ contains
                do i = lo(1),hi(1)
                   ifine = i*ir(1)
                   if (.not. bc_dirichlet(mm_fine(ifine,jfine),1,0)) then
-                    cc(i,j) = cc(i,j) &
-                       + fac*ff(ifine-m,jfine-n) &
-                       + fac*ff(ifine+m,jfine-n) &
-                       + fac*ff(ifine-m,jfine+n) &
-                       + fac*ff(ifine+m,jfine+n)
+                    cc(i,j) = cc(i,j) + fac * &
+                         ( ff(ifine-m,jfine-n) + &
+                           ff(ifine+m,jfine-n) + &
+                           ff(ifine-m,jfine+n) + &
+                           ff(ifine+m,jfine+n) )
                   end if
                end do
             end do
@@ -377,15 +377,15 @@ contains
                          end if
 
                          if (doit) then
-                            cc(i,j,k) = cc(i,j,k) &
-                                 + fac*ff(ifine-m,jfine-n,kfine-l) &
-                                 + fac*ff(ifine+m,jfine-n,kfine-l) &
-                                 + fac*ff(ifine-m,jfine+n,kfine-l) &
-                                 + fac*ff(ifine+m,jfine+n,kfine-l) &
-                                 + fac*ff(ifine-m,jfine-n,kfine+l) &
-                                 + fac*ff(ifine+m,jfine-n,kfine+l) &
-                                 + fac*ff(ifine-m,jfine+n,kfine+l) &
-                                 + fac*ff(ifine+m,jfine+n,kfine+l)
+                            cc(i,j,k) = cc(i,j,k) + fac * &
+                                 ( ff(ifine-m,jfine-n,kfine-l) + &
+                                   ff(ifine+m,jfine-n,kfine-l) + &
+                                   ff(ifine-m,jfine+n,kfine-l) + &
+                                   ff(ifine+m,jfine+n,kfine-l) + &
+                                   ff(ifine-m,jfine-n,kfine+l) + &
+                                   ff(ifine+m,jfine-n,kfine+l) + &
+                                   ff(ifine-m,jfine+n,kfine+l) + &
+                                   ff(ifine+m,jfine+n,kfine+l) )
                          end if
                       end do
                    end do
