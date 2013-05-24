@@ -35,7 +35,7 @@ contains
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
     logical, intent(in), optional :: local
-    integer :: i,j,k,n,b,lo(4),hi(4),cnt
+    integer :: i,j,k,n,b,lo(4),hi(4)
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
@@ -48,11 +48,9 @@ contains
 
     r1 = -Huge(r1)
 
-    cnt = nfabs(ss)
-
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1) if (cnt>1)
-       do b = 1, cnt
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1)
+       do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
           lo =  lbound(sp)
@@ -73,8 +71,8 @@ contains
        end do
        !OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1) if (cnt>1)
-       do b = 1, cnt
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1)
+       do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lo =  lbound(sp)
           hi =  ubound(sp)
@@ -106,7 +104,7 @@ contains
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
     logical, intent(in), optional :: local
-    integer :: i,j,k,n,b,lo(4),hi(4),cnt
+    integer :: i,j,k,n,b,lo(4),hi(4)
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
@@ -122,11 +120,9 @@ contains
 
     r1 = -Huge(r1)
 
-    cnt = nfabs(ss)
-
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1) if (cnt>1)
-       do b = 1, cnt
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1)
+       do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
           lo =  lbound(sp)
@@ -147,8 +143,8 @@ contains
        end do
        !OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1) if (cnt>1)
-       do b = 1, cnt
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max : r1)
+       do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lo =  lbound(sp)
           hi =  ubound(sp)
