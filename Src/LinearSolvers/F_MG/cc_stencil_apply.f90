@@ -623,7 +623,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
     ! This is the 2nd order cross stencil.
     else 
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
+       !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
