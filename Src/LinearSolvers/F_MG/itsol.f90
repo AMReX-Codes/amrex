@@ -53,7 +53,6 @@ contains
       nz = size(a,dim=4)
       ny = size(a,dim=3)
       nx = size(a,dim=2)
-      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.7)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
@@ -61,7 +60,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
     end subroutine jacobi_precon_3d
 
     subroutine nodal_precon_1d(a, u, r, mm, ng)
@@ -106,7 +104,6 @@ contains
       nz = size(a,dim=4)
       ny = size(a,dim=3)
       nx = size(a,dim=2)
-      !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.7)
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
@@ -116,7 +113,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
     end subroutine nodal_precon_3d
 
     subroutine diag_init_cc_1d(a, ng_a, r, ng_r, lo, hi)
@@ -182,7 +178,6 @@ contains
       !
       ! Protect against divide by zero -- necessary for embedded boundary problems.
       !
-      !$OMP PARALLEL DO PRIVATE(j,i,k,denom) IF((hi(3)-lo(3)).ge.7)
       do k = lo(3),hi(3)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
@@ -195,7 +190,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
     end subroutine diag_init_cc_3d
 
@@ -259,7 +253,6 @@ contains
 
       nc = size(a,dim=1)-1
 
-      !$OMP PARALLEL DO PRIVATE(j,i,k,denom) IF((hi(3)-lo(3)).ge.6)
       do k = lo(3),hi(3)+1
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
@@ -272,7 +265,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
     end subroutine diag_init_nd_3d
 
@@ -1134,14 +1126,12 @@ contains
       integer    :: mm, nn, cnt
       real(dp_t) :: Gram(Nrows, Ncols), tmp(Nrows*Ncols)
 
-      !$OMP PARALLEL DO PRIVATE(mm,nn) schedule(static,1)
       do mm = 1, Nrows
          do nn = mm, Nrows
             Gram(mm,nn) = dot(PR, mm, PR, nn, nodal_mask = nodal_mask, local = .true.)
          end do
          Gram(mm,Ncols) = dot(PR, mm, rt,  1, nodal_mask = nodal_mask, local = .true.)
       end do
-      !$OMP END PARALLEL DO
       !
       ! Fill in strict lower triangle using symmetry.
       !
