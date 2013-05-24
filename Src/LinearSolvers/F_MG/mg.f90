@@ -201,12 +201,15 @@ contains
        call setval(mgt%cc(i), zero, all = .TRUE.)
        call setval(mgt%ff(i), zero, all = .TRUE.)
        call setval(mgt%dd(i), zero, all = .TRUE.)
-
+       !
        ! Set the stencil to zero; gotta do it by hand as multifab routines won't work.
+       !
+       !$OMP PARALLEL DO PRIVATE(j,p)
        do j = 1, nfabs(mgt%ss(i))
           p => dataptr(mgt%ss(i), j)
           p = zero
        end do
+       !$OMP END PARALLEL DO
 
        call imultifab_build(mgt%mm(i), la1, 1, 0, nodal)
        if ( i /= n ) &
@@ -902,6 +905,7 @@ contains
        mg_restriction_mode = 1
     end if
 
+    !$OMP PARALLEL DO PRIVATE(i,n,cp,fp,mp_fine,mp_crse,loc,lof,lom_fine,lom_crse,lo,hi)
     do i = 1, nfabs(crse)
 
        cp       => dataptr(crse, i)
@@ -948,6 +952,7 @@ contains
           end select
        end do
     end do
+    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 
@@ -974,6 +979,7 @@ contains
     nodal_flag = nodal_q(uu)
 
     if ( .not.nodal_flag ) then
+       !$OMP PARALLEL DO PRIVATE(i,n,fp,cp)
        do i = 1, nfabs(uu)
           fp => dataptr(uu,  i, get_box(uu,i))
           cp => dataptr(uu1, i, get_box(uu1,i))
@@ -988,7 +994,9 @@ contains
              end select
           end do
        end do
+       !$OMP END PARALLEL DO
     else
+       !$OMP PARALLEL DO PRIVATE(i,n,nbox,nbox1,fp,cp)
        do i = 1, nfabs(uu)
           nbox  = box_grow_n_f(get_box(uu,i),1,1)
           nbox1 = box_grow_n_f(get_box(uu1,i),1,1)
@@ -997,14 +1005,15 @@ contains
           do n = 1, mgt%nc
              select case ( mgt%dim)
              case (1)
-                call nodal_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir)
+                call nodal_prolongation_1d(fp(:,1,1,n), cp(:,1,1,n), ir)
              case (2)
-                call nodal_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir)
+                call nodal_prolongation_2d(fp(:,:,1,n), cp(:,:,1,n), ir)
              case (3)
-                call nodal_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir)
+                call nodal_prolongation_3d(fp(:,:,:,n), cp(:,:,:,n), ir)
              end select
           end do
        end do
+       !$OMP END PARALLEL DO
     endif
 
     call destroy(bpt)
