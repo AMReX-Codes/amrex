@@ -2703,7 +2703,9 @@ contains
     integer :: cnt
     type(box_intersector), pointer :: tbi(:)  => Null()
 
+    !$OMP CRITICAL(hashbin)
     if (.not. associated(la%lap%bins)) call init_box_hash_bin(la)
+    !$OMP END CRITICAL(hashbin)
 
     allocate(bi(ChunkSize))
 
