@@ -343,6 +343,7 @@ contains
 
     nodal_flag = nodal_q(uu)
 
+    !$OMP PARALLEL DO PRIVATE(i,rp,up,ap,mp,lo,hi)
     do i = 1, nfabs(rr)
        rp => dataptr(rr, i)
        up => dataptr(uu, i)
@@ -379,6 +380,7 @@ contains
           end select
        end do
     end do
+    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 
@@ -469,11 +471,13 @@ contains
     !
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
     !
+    !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
     do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
     end do
+    !$OMP END PARALLEL DO
     !
     ! Make sure to do singular adjustment *before* diagonalization.
     !
@@ -800,11 +804,13 @@ contains
     !
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
     !
+    !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
     do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
     end do
+    !$OMP END PARALLEL DO
     !
     ! Make sure to do singular adjustment *before* diagonalization.
     !
@@ -1228,13 +1234,16 @@ contains
     call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
-
+    !
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    !
+    !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
     do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
     end do
+    !$OMP END PARALLEL DO
 
     call diag_initialize(aa_local,rh_local,mm)
 
@@ -1366,6 +1375,7 @@ contains
     case (0)
        call copy(uu, rh)
     case (1)
+       !$OMP PARALLEL DO PRIVATE(i,n,rp,up,ap,mp)
        do i = 1, nfabs(rh)
           rp => dataptr(rh, i)
           up => dataptr(uu, i)
@@ -1397,6 +1407,7 @@ contains
              end select
           end do
        end do
+       !$OMP END PARALLEL DO
     end select
 
     call destroy(bpt)
@@ -1424,6 +1435,7 @@ contains
 
     dm = get_dim(rh)
 
+    !$OMP PARALLEL DO PRIVATE(i,rp,ap,mp,lo,hi)
     do i = 1, nfabs(rh)
        rp => dataptr(rh, i)
        ap => dataptr(aa, i)
@@ -1451,6 +1463,7 @@ contains
              end if
        end select
     end do
+    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 
