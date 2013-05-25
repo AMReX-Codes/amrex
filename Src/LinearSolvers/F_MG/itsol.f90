@@ -821,6 +821,12 @@ contains
     end if
 
     call diag_initialize(aa_local,rh_local,mm)
+
+    call copy(ph, 1, uu, 1, 1, ng = nghost(ph))
+    call copy(ph, 2, uu, 1, 1, ng = nghost(ph))
+
+    !if (contains_nan(ph)) then; print*, '*** Got NaNs @ 1'; stop; endif
+
     !
     ! Compute rt = aa * uu - rh.
     !
@@ -864,6 +870,9 @@ contains
     niters = 0; m = 1
 
     do while (m <= max_iter .and. (.not. BiCGStabFailed) .and. (.not. BiCGStabConverged))
+
+       !if (contains_nan(ph)) then; print*, '*** Got NaNs @ 2'; stop; endif
+
        !
        ! Compute the matrix powers on pp[] & rr[] (monomial basis).
        ! The 2*SSS+1 powers of pp[] followed by the 2*SSS powers of rr[].
@@ -880,6 +889,8 @@ contains
           !
           call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh)
 
+          !if (contains_nan(ph)) then; print*, '*** Got NaNs @ 3'; stop; endif
+
           call copy(PR,i,tt,1,1,0)
           call copy(ph,1,tt,1,1,0)
 
@@ -892,6 +903,8 @@ contains
        call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh)
 
        call copy(PR,2*SSS+1,tt,1,1,0)
+
+       !if (contains_nan(ph)) then; print*, '*** Got NaNs @ 4'; stop; endif
 
        call BuildGramMatrix()
 
