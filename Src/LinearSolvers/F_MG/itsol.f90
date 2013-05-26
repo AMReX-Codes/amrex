@@ -660,7 +660,7 @@ contains
     !     Sven Hammarling, Nag Central Office.
     !     Richard Hanson, Sandia National Labs.
     !
-    integer    :: i,j,jx
+    integer    :: i,j
     real(dp_t) :: temp
     !
     ! Quick return if possible.
@@ -687,15 +687,13 @@ contains
     !
     ! Now form y := alpha*a*x + y.
     !
-    jx = 1
     do j = 1,n
-       if ( x(jx).ne.zero ) then
-          temp = alpha*x(jx)
+       if ( x(j).ne.zero ) then
+          temp = alpha*x(j)
           do i = 1,m
              y(i) = y(i) + temp*a(i,j)
           end do
        end if
-       jx = jx + 1
     end do
 
   end subroutine dgemv
@@ -788,11 +786,14 @@ contains
     call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
     call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
 
-    if ( nodal_solve ) then
-       call setval(ph, ZERO, all = .true.)
-    end if
+!    if ( nodal_solve ) then
+!       call setval(ph, ZERO, all = .true.)
+!    end if
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
+
+    call copy(ph, 1, uu, 1, 1, ng = nghost(ph))
+    call copy(ph, 2, uu, 1, 1, ng = nghost(ph))
     !
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
     !
@@ -821,9 +822,6 @@ contains
     end if
 
     call diag_initialize(aa_local,rh_local,mm)
-
-    call copy(ph, 1, uu, 1, 1, ng = nghost(ph))
-    call copy(ph, 2, uu, 1, 1, ng = nghost(ph))
 
     !if (contains_nan(ph)) then; print*, '*** Got NaNs @ 1'; stop; endif
 
@@ -1139,12 +1137,14 @@ contains
       integer    :: mm, nn, cnt
       real(dp_t) :: Gram(Nrows, Ncols), tmp(Nrows*Ncols)
 
+      !$OMP PARALLEL DO PRIVATE(mm,nn) SCHEDULE(static,1)
       do mm = 1, Nrows
          do nn = mm, Nrows
             Gram(mm,nn) = dot(PR, mm, PR, nn, nodal_mask = nodal_mask, local = .true.)
          end do
          Gram(mm,Ncols) = dot(PR, mm, rt,  1, nodal_mask = nodal_mask, local = .true.)
       end do
+      !$OMP END PARALLEL DO
       !
       ! Fill in strict lower triangle using symmetry.
       !
