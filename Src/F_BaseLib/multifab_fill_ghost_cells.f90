@@ -106,6 +106,7 @@ contains
 
     call copy(tmpfine, 1, ghost, 1, nc)  ! parallel copy
 
+    !$OMP PARALLEL DO PRIVATE(i,ba,j,bx,dst,src)
     do i = 1, nfabs(fine)
        call boxarray_box_diff(ba, get_ibox(tmpfine,i), get_ibox(fine,i))
        do j = 1, nboxes(ba)
@@ -116,6 +117,7 @@ contains
        end do
        call destroy(ba)
     end do
+    !$OMP END PARALLEL DO
     !
     ! Finish up.
     !
