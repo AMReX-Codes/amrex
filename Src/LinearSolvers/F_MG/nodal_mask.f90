@@ -50,6 +50,7 @@ module nodal_mask_module
   call setval(  mask,.true.)
   call setval(cfmask,.true.)
 
+  !$OMP PARALLEL DO PRIVATE(j,cbox,lo,hi,lof,mkp,fmp)
   do j = 1,nfabs(cfmask)
      cbox = get_ibox(cfmask,j)
      lo   = lwb(cbox)
@@ -66,11 +67,13 @@ module nodal_mask_module
         call set_crsefine_nodal_mask_3d(mkp(:,:,:,1),fmp(:,:,:,1),lof,lo,hi,ir)
      end select
   end do
+  !$OMP END PARALLEL DO
 
   call copy(mask, 1, cfmask, 1, ncomp(mask))
 
   call lmultifab_destroy(cfmask)
 
+  !$OMP PARALLEL DO PRIVATE(j,cbox,lo,hi,mkp,cmp)
   do j = 1,nfabs(mask)
      cbox =  get_ibox(mask,j)
      lo   =  lwb(cbox)
@@ -86,6 +89,7 @@ module nodal_mask_module
         call set_crse_nodal_mask_3d(mkp(:,:,:,1),cmp(:,:,:,1),lo,hi)
      end select
   end do
+  !$OMP END PARALLEL DO
 
   end subroutine create_nodal_mask
 
@@ -129,7 +133,6 @@ module nodal_mask_module
 
        integer :: i,j,k
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -138,7 +141,6 @@ module nodal_mask_module
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
   end subroutine set_crsefine_nodal_mask_3d
 
@@ -183,7 +185,6 @@ module nodal_mask_module
        integer :: i,j,k
        logical :: jface,kface
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface)
        do k = lo(3),hi(3)
           kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
           do j = lo(2),hi(2)
@@ -195,7 +196,6 @@ module nodal_mask_module
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
      end subroutine set_crse_nodal_mask_3d
 

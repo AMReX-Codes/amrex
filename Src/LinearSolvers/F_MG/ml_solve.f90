@@ -109,6 +109,7 @@ contains
 
      call multifab_fill_boundary(uu, cross = lcross)
 
+     !$OMP PARALLEL DO PRIVATE(i,n,fp,up,sp,mp)
      do i = 1, nfabs(flux)
         fp => dataptr(flux, i)
         up => dataptr(uu, i)
@@ -128,6 +129,7 @@ contains
            end select
         end do
      end do
+     !$OMP END PARALLEL DO
 
      call destroy(bpt)
 

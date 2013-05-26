@@ -1168,6 +1168,7 @@ contains
     pmask = get_pmask(get_layout(res))
     dm    = get_dim(flux)
 
+    !$OMP PARALLEL DO PRIVATE(i,n,fbox,lof,fp,rp,mp)
     do i = 1, nfabs(flux)
        fbox   = get_ibox(flux,i)
        lof = lwb(fbox)
@@ -1188,6 +1189,7 @@ contains
           end if
        end do
     end do
+    !$OMP END PARALLEL DO
     call destroy(bpt)
   end subroutine ml_fine_contrib
 
@@ -1529,7 +1531,6 @@ contains
       !
       ! First average along the coarse-fine face.
       !
-      !$OMP PARALLEL DO PRIVATE(n,jc,kc,fac2,j,k,l,fac)
       do kc = lod(3),hid(3)
          do jc = lod(2),hid(2)
             do n = 0,ratio(2)-1
@@ -1567,7 +1568,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
       jc = lod(2)
       kc = lod(3)
@@ -1640,7 +1640,6 @@ contains
             fac = (ratio(1)-m) * fac1
             if (m == 0) fac = HALF * fac
 
-            !$OMP PARALLEL DO PRIVATE(kc,jc,k,j,jtop,jbot,kup,kdwn,ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)
             do kc = lod(3),hid(3)
               k = (kc-lod(3))*ratio(3)
               do jc = lod(2),hid(2)
@@ -1693,7 +1692,6 @@ contains
 
               end do
             end do
-            !$OMP END PARALLEL DO
 
           end do
         end do
@@ -1722,7 +1720,6 @@ contains
       !
       ! First average along the coarse-fine face.
       !
-      !$OMP PARALLEL DO PRIVATE(kc,ic,n,fac2,i,k,l,fac)
       do kc = lod(3),hid(3)
          do ic = lod(1),hid(1)
             do n = 0,ratio(1)-1
@@ -1760,7 +1757,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
       ic = lod(1)
       kc = lod(3)
@@ -1833,7 +1829,6 @@ contains
             fac = (ratio(2)-m) * fac1
             if (m == 0) fac = HALF * fac
 
-            !$OMP PARALLEL DO PRIVATE(kc,k,ic,i,irght,ileft,kup,kdwn,ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)
             do kc = lod(3),hid(3)
               k = (kc-lod(3))*ratio(3)
               do ic = lod(1),hid(1)
@@ -1887,7 +1882,6 @@ contains
 
               end do
             end do
-            !$OMP END PARALLEL DO
 
           end do
         end do
@@ -1916,7 +1910,6 @@ contains
       !
       ! First average along the coarse-fine face.
       !
-      !$OMP PARALLEL DO PRIVATE(jc,ic,n,fac2,i,j,l,fac)
       do jc = lod(2),hid(2)
          do ic = lod(1),hid(1)
             do n = 0,ratio(1)-1
@@ -1954,7 +1947,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
       ic = lod(1)
       jc = lod(2)
@@ -2027,7 +2019,6 @@ contains
             fac = (ratio(3)-m) * fac1
             if (m == 0) fac = HALF * fac
 
-            !$OMP PARALLEL DO PRIVATE(jc,j,ic,i,irght,ileft,jtop,jbot,ll1,lh1,ll2,lh2,ll3,lh3,corner_fac)
             do jc = lod(2),hid(2)
               j = (jc-lod(2))*ratio(2)
               do ic = lod(1),hid(1)
@@ -2081,7 +2072,6 @@ contains
 
               end do
             end do
-            !$OMP END PARALLEL DO
 
           end do
         end do

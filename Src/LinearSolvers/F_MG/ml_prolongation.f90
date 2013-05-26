@@ -51,6 +51,7 @@ contains
 
     dm = get_dim(crse)
 
+    !$OMP PARALLEL DO PRIVATE(i,loc,lof,lo,hi,n,fp,cp)
     do i = 1, nfabs(fine)
        loc = lwb(get_pbox(cfine,i))
        lof = lwb(get_pbox(fine, i))
@@ -69,6 +70,7 @@ contains
           end select
        end do
     end do
+    !$OMP END PARALLEL DO
 
     call destroy(cfine)
     call destroy(bpt)
@@ -105,6 +107,7 @@ contains
 
     dm = get_dim(crse)
 
+    !$OMP PARALLEL DO PRIVATE(i,loc,lof,lo,hi,n,fp,cp)
     do i = 1, nfabs(fine)
        loc = lwb(get_pbox(cfine,i))
        lof = lwb(get_pbox(fine, i))
@@ -123,6 +126,7 @@ contains
           end select
        end do
     end do
+    !$OMP END PARALLEL DO
 
     call destroy(cfine)
     call destroy(bpt)
@@ -171,7 +175,6 @@ contains
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,ic,jc,kc)
     do k = lo(3),hi(3)
        kc = k / ir(3)
        do j = lo(2),hi(2)
@@ -182,7 +185,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine ml_prolongation_3d_cc
 
@@ -282,7 +284,6 @@ contains
     end do
 
     ! Interpolate at fine nodes between coarse nodes in the i-direction only
-    !$OMP PARALLEL DO PRIVATE(i,j,k,l,fac_rght,fac_left)
     do k = lo(3),hi(3),ir(3)
        do j = lo(2),hi(2),ir(2)
           do l = 1, ir(1)-1
@@ -294,10 +295,8 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
     ! Interpolate in the j-direction.
-    !$OMP PARALLEL DO PRIVATE(i,j,k,m,fac_rght,fac_left)
     do k = lo(3),hi(3),ir(3)
        do m = 1, ir(2)-1
           fac_rght = real(m,dp_t) / real(ir(2),dp_t)
@@ -309,13 +308,11 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
     ! Interpolate in the k-direction.
     do n = 1, ir(3)-1
        fac_rght = real(n,dp_t) / real(ir(3),dp_t)
        fac_left = ONE - fac_rght
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do j = lo(2),hi(2)
           do k = lo(3),hi(3)-1,ir(3)
              do i = lo(1),hi(1)
@@ -323,7 +320,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     end do
 
   end subroutine ml_prolongation_3d_nodal
@@ -357,6 +353,7 @@ contains
 
     pmask = get_pmask(get_layout(fine))
 
+    !$OMP PARALLEL DO PRIVATE(i,n,loc,hic,cbox_refined,fbox,lof,fbox_grown,isect,lo,hi,fp,cp)
     do i = 1, nfabs(fine)
 
        loc          = lwb(get_pbox(crse, i))
@@ -410,6 +407,7 @@ contains
           end select
        end do
     end do
+    !$OMP END PARALLEL DO
 
 !   We have moved this call to the routine which calls ml_interp_bcs.
 !   call multifab_fill_boundary(fine)
@@ -622,7 +620,6 @@ contains
       i  = lo(1)
       ic = loc(1)
 
-      !$OMP PARALLEL DO PRIVATE(j,k,m,n,jc,kc,yder,y2der,zder,z2der,yzder)
       do kc = lo(3)/ir(3), hi(3)/ir(3)
          do jc = lo(2)/ir(2), hi(2)/ir(2)
             if (jc > loc(2) .and. jc < hic(2)) then
@@ -665,13 +662,11 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
     else if (side == 2 .or. side == -2) then
 
       j  = lo(2)
       jc = loc(2)
-      !$OMP PARALLEL DO PRIVATE(i,k,m,n,ic,kc,xder,x2der,zder,z2der,xzder)
       do kc = lo(3)/ir(3), hi(3)/ir(3)
          do ic = lo(1)/ir(1), hi(1)/ir(1)
             if (ic > loc(1) .and. ic < hic(1)) then
@@ -714,13 +709,11 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
     else if (side == 3 .or. side == -3) then
 
       k  = lo(3)
       kc = loc(3)
-      !$OMP PARALLEL DO PRIVATE(i,j,m,n,ic,jc,yder,y2der,xder,x2der,xyder)
       do jc = lo(2)/ir(2), hi(2)/ir(2)
          do ic = lo(1)/ir(1), hi(1)/ir(1)
             if (jc > loc(2) .and. jc < hic(2)) then
@@ -763,7 +756,6 @@ contains
             end do
          end do
       end do
-      !$OMP END PARALLEL DO
 
     end if
 

@@ -66,6 +66,7 @@ contains
     !
     call copy(ba, get_boxarray(flux))
 
+    !$OMP PARALLEL DO PRIVATE(i,fbox)
     do i = 1, nboxes(flux%la)
        fbox = box_nodalize(get_box(flux%la,i),flux%nodal)
        if ( pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
@@ -77,6 +78,7 @@ contains
           call set_box(ba, i, fbox)
        end if
     end do
+    !$OMP END PARALLEL DO
 
     call build(la, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
 
@@ -170,6 +172,7 @@ contains
     call build(tflux, la, nc = ncomp(flux), ng = 0)
     call copy(tflux, 1, flux, cf)  ! parallel copy
 
+    !$OMP PARALLEL DO PRIVATE(i,j,cbox,fbox,lor,rp,lo,hi,fp)
     do i = 1, nfabs(tflux)
        j    = at(indxmap,global_index(tflux,i))
        cbox = box_nodalize(get_box(crse%la,j),crse%nodal)
@@ -199,8 +202,8 @@ contains
        case (3)
           call ml_interface_3d_fine(rp(:,:,:,1), lor, fp(:,:,:,1), lo, lo, hi, efactor)
        end select
-
     end do
+    !$OMP END PARALLEL DO
 
     call destroy(shftmap)
     call destroy(indxmap)
@@ -208,6 +211,58 @@ contains
     call destroy(tflux)
     call destroy(la)
     call destroy(bpt)
+
+    contains
+
+      subroutine ml_interface_1d_fine(res, lor, fine_flux, lof, lo, efactor)
+        integer, intent(in) :: lor(:)
+        integer, intent(in) :: lof(:) 
+        integer, intent(in) :: lo(:)
+        real (kind = dp_t), intent(inout) :: res(lor(1):)
+        real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
+        real (kind = dp_t), intent(in   ) :: efactor
+
+        integer :: i 
+
+        i = lo(1)
+        res(i) = res(i) + efactor*fine_flux(i)
+      end subroutine ml_interface_1d_fine
+
+      subroutine ml_interface_2d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
+        integer, intent(in) :: lor(:)
+        integer, intent(in) :: lof(:)
+        integer, intent(in) :: lo(:), hi(:)
+        real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):)
+        real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
+        real (kind = dp_t), intent(in   ) :: efactor
+
+        integer :: i, j
+
+        do j = lo(2),hi(2)
+           do i = lo(1),hi(1)
+              res(i,j) = res(i,j) + efactor*fine_flux(i,j)
+           end do
+        end do
+      end subroutine ml_interface_2d_fine
+
+      subroutine ml_interface_3d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
+        integer, intent(in) :: lor(:)
+        integer, intent(in) :: lof(:)
+        integer, intent(in) :: lo(:), hi(:)
+        real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):,lor(3):)
+        real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
+        real( kind = dp_t), intent(in   ) :: efactor
+
+        integer :: i, j, k
+
+        do k = lo(3),hi(3)
+           do j = lo(2),hi(2)
+              do i = lo(1),hi(1)
+                 res(i,j,k) = res(i,j,k) + efactor*fine_flux(i,j,k)
+              end do
+           end do
+        end do
+      end subroutine ml_interface_3d_fine
 
   end subroutine ml_interface_c
 
@@ -240,22 +295,6 @@ contains
     end if
 
   end subroutine ml_interface_1d_crse
-
-  subroutine ml_interface_1d_fine(res, lor, fine_flux, lof, lo, efactor)
-
-    integer, intent(in) :: lor(:)
-    integer, intent(in) :: lof(:) 
-    integer, intent(in) :: lo(:)
-    real (kind = dp_t), intent(inout) :: res(lor(1):)
-    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
-    real (kind = dp_t), intent(in   ) :: efactor
-
-    integer :: i 
-
-    i = lo(1)
-    res(i) = res(i) + efactor*fine_flux(i)
-
-  end subroutine ml_interface_1d_fine
 
   subroutine ml_interface_2d_crse(res, lor, cc, loc, &
                                   ss , los, lo, hi, face, dim, efactor)
@@ -336,25 +375,6 @@ contains
     end if
   end subroutine ml_interface_2d_crse
 
-  subroutine ml_interface_2d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
-
-    integer, intent(in) :: lor(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):)
-    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
-    real (kind = dp_t), intent(in   ) :: efactor
-
-    integer :: i, j
-    
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          res(i,j) = res(i,j) + efactor*fine_flux(i,j)
-       end do
-    end do
-
-  end subroutine ml_interface_2d_fine
-
   subroutine ml_interface_3d_crse(res, lor, cc, loc, &
        ss , los, lo, hi, face, dim, efactor)
     integer, intent(in) :: lor(:)
@@ -426,28 +446,5 @@ contains
     end if
 
   end subroutine ml_interface_3d_crse
-
-  subroutine ml_interface_3d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
-
-    integer, intent(in) :: lor(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):,lor(3):)
-    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
-    real( kind = dp_t), intent(in   ) :: efactor
-
-    integer :: i, j, k
-
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             res(i,j,k) = res(i,j,k) + efactor*fine_flux(i,j,k)
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-  end subroutine ml_interface_3d_fine
 
 end module cc_interface_stencil_module

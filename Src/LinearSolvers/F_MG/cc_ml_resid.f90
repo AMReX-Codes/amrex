@@ -202,6 +202,7 @@ contains
 
     dm = get_dim(ss)
 
+    !$OMP PARALLEL DO PRIVATE(i,fp,up,sp,mp,n)
     do i = 1, nfabs(flux)
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
@@ -221,6 +222,7 @@ contains
           end select
        end do
     end do
+    !$OMP END PARALLEL DO
     call destroy(bpt)
   end subroutine ml_fill_fluxes
 !
@@ -254,6 +256,7 @@ contains
 
     call multifab_fill_boundary(uu, cross = lcross)
 
+    !$OMP PARALLEL DO PRIVATE(i,fp,up,sp,mp)
     do i = 1, nfabs(flux)
        fp => dataptr(flux, i, cf)
        up => dataptr(uu, i, cu)
@@ -271,6 +274,7 @@ contains
                mp(:,:,:,1), ng, ratio, face, dim)
        end select
     end do
+    !$OMP END PARALLEL DO
     call destroy(bpt)
   end subroutine ml_fill_fluxes_c
 !
@@ -299,6 +303,7 @@ contains
 
     ng = nghost(uu)
 
+    !$OMP PARALLEL DO PRIVATE(i,fp,up,sp,mp,n)
     do i = 1, nfabs(flux)
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
@@ -323,6 +328,7 @@ contains
           end select
        end do
     end do
+    !$OMP END PARALLEL DO
     call destroy(bpt)
   end subroutine ml_fill_n_fluxes
 
