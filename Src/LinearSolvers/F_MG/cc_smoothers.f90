@@ -272,11 +272,11 @@ contains
     logical    :: lskwd
     real(dp_t) :: dd
     !
-    ! These are small so we'll put'm on the stack instead of the heap.
+    ! These are small(ish) so we'll put'm on the stack instead of the heap.
     !
-    real(dp_t) lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2)
-    real(dp_t) tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2)
-    real(dp_t) fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
+    real(dp_t) :: lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2)
+    real(dp_t) :: tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2)
+    real(dp_t) :: fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
 
     integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
 
@@ -289,7 +289,7 @@ contains
     if ( all(lo == hi) ) then
        k = lo(3); j = lo(2); i = lo(1)
        if ( mod(i + j + k, 2) == n ) then
-          if (abs(ss(0,i,j,k)) .gt. 0.0_dp_t) then
+          if ( abs(ss(0,i,j,k)) .gt. 0.0_dp_t ) then
              dd = ss(0,i,j,k)*uu(i,j,k)   + &
                   ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k) + &
                   ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k) + &
@@ -354,7 +354,6 @@ contains
           end do
        end do
 
-       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
@@ -387,13 +386,11 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
     else
        !
        ! USE THIS FOR GAUSS-SEIDEL
        !
-       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
@@ -408,7 +405,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
     end if
 
@@ -978,7 +974,6 @@ contains
 
     allocate(wrk(nx,ny,nz))
 
-    !$OMP PARALLEL DO PRIVATE(j,i,k,dd) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1013,9 +1008,7 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1023,7 +1016,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 
@@ -1050,7 +1042,6 @@ contains
 
     allocate(wrk(nx,ny,nz))
 
-    !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1088,9 +1079,7 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
-    !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -1098,7 +1087,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 

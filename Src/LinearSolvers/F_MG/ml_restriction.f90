@@ -36,6 +36,7 @@ contains
 
     dm = get_dim(cfine)
 
+    !$OMP PARALLEL DO PRIVATE(i,n,lof,lo,hi,fp,cp)
     do i = 1, nfabs(fine)
        lof = lwb(get_pbox(fine, i))
        lo  = lwb(get_ibox(cfine,i))
@@ -53,6 +54,7 @@ contains
           end select
        end do
     end do
+    !$OMP END PARALLEL DO
 
     call copy(crse, cc, cfine, 1, lnc)
 
@@ -105,6 +107,7 @@ contains
 
     call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
 
+    !$OMP PARALLEL DO PRIVATE(i,n,lo,hi,loc,lof,fp,cp)
     do i = 1, nfabs(fine)
        lo  = lwb(get_ibox(cfine,i))
        hi  = upb(get_ibox(cfine,i))
@@ -123,6 +126,7 @@ contains
           end select
        enddo
     end do
+    !$OMP END PARALLEL DO
 
     call copy(crse, cc, cfine, 1, lnc)
 
@@ -163,7 +167,8 @@ contains
 
           call layout_build_coarse(lacfine_lo, la_lo, ir)
           call multifab_build(cfine, lacfine_lo, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
-   
+
+          !$OMP PARALLEL DO PRIVATE(i,n,lo,hi,loc,lof,fp,cp)
           do i = 1, nfabs(fine_lo)
              lo  = lwb(get_ibox(cfine,i))
              hi  = upb(get_ibox(cfine,i))
@@ -183,6 +188,7 @@ contains
                 end select
              enddo
           end do
+          !$OMP END PARALLEL DO
    
           call copy(crse, cc, cfine, 1, lnc)
 
@@ -216,6 +222,7 @@ contains
           call layout_build_coarse(lacfine_hi, la_hi, ir)
           call multifab_build(cfine, lacfine_hi, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
 
+          !$OMP PARALLEL DO PRIVATE(i,n,lo,hi,loc,lof,fp,cp)
           do i = 1, nfabs(fine_hi)
              lo  = lwb(get_ibox(cfine,i))
              hi  = upb(get_ibox(cfine,i))
@@ -235,6 +242,7 @@ contains
                 end select
              enddo
           end do
+          !$OMP END PARALLEL DO
 
           call copy(crse, cc, cfine, 1, lnc)
 
@@ -326,6 +334,8 @@ contains
     dm = get_dim(fine)
 
     if ( .not. linject ) then
+
+       !$OMP PARALLEL DO PRIVATE(i,n,lo,hi,loc,lom_fine,cp,mp_fine)
        do i = 1, nfabs(fine)
           lo       = lwb(get_ibox(cfine,   i))
           hi       = upb(get_ibox(cfine,   i))
@@ -344,14 +354,19 @@ contains
              end select
           end do
        end do
+       !$OMP END PARALLEL DO
+
        call copy(crse, cfine)
        call setval(cfine, 0.0_dp_t)
     end if
 
     if ( .not. lzero_only ) then
+
        rmode = 0
        call imultifab_build(mm_cfine, lacfine, nc = ncomp(mm_crse), ng = 0, nodal = nodal_flags(mm_crse))
        call copy(mm_cfine, mm_crse)
+
+       !$OMP PARALLEL DO PRIVATE(i,n,lo,hi,lof,loc,lom_crse,lom_fine,cp,fp,mp_crse,mp_fine)
        do i = 1, nfabs(fine)
           lo       = lwb(get_ibox(cfine,   i))
           hi       = upb(get_ibox(cfine,   i))
@@ -380,6 +395,7 @@ contains
              end select
           end do
        end do
+       !$OMP END PARALLEL DO
 
        call destroy(mm_cfine)
 
