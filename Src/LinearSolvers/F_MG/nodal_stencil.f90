@@ -432,6 +432,8 @@ contains
     integer            :: i, j, k, nx, ny, nz
     real (kind = dp_t) :: fac
 
+
+
     nx = size(ss,dim=2)
     ny = size(ss,dim=3)
     nz = size(ss,dim=4)
@@ -454,7 +456,6 @@ contains
 
     fac = (FOURTH / (dh(1))**2)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -486,7 +487,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine s_cross_3d_nodal
 
@@ -535,7 +535,6 @@ contains
 
     fac = (FOURTH / (dh(1))**2)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -567,7 +566,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
     deallocate(sg_int)
 
@@ -612,7 +610,6 @@ contains
     f2x2zy = (TWO*fx+TWO*fz-fy)
     f2x2yz = (TWO*fx+TWO*fy-fz)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -681,7 +678,6 @@ contains
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine s_dense_3d_nodal
 
@@ -813,7 +809,6 @@ contains
 
     if (stencil_type .eq. ND_CROSS_STENCIL) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,doit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -844,11 +839,9 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
     else if (stencil_type .eq. ND_DENSE_STENCIL) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,doit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -892,7 +885,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     else
        call bl_error("stencil_apply_3d_nodal: dont know this stencil_type")
     end if
