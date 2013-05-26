@@ -626,12 +626,10 @@ contains
     cmin = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
          cslope_lo(3):cslope_hi(3),:)
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n,ioff,joff,koff)
     do n = 1, size(crse,4) 
        !
        ! Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
        !
-       !$OMP DO
        do k = cslope_lo(3),cslope_hi(3)
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
@@ -646,15 +644,12 @@ contains
              end do
           end do
        end do
-       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL
     !
     ! Computed unlimited and limited slopes
     !
     do n = 1, size(crse,4) 
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = cslope_lo(3),cslope_hi(3)
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
@@ -664,7 +659,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
        if ( bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP ) then
           i = cslope_lo(1)
@@ -716,7 +710,6 @@ contains
           end do
        end if
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = cslope_lo(3),cslope_hi(3)
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
@@ -726,7 +719,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
        if ( bc(2,1,n)  ==  EXT_DIR .or. bc(2,1,n) == HOEXTRAP ) then
           j = cslope_lo(2)
@@ -778,7 +770,6 @@ contains
           end do
        end if
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = cslope_lo(3),cslope_hi(3)
           do j = cslope_lo(2),cslope_hi(2)
              do i = cslope_lo(1),cslope_hi(1)
@@ -788,7 +779,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
        if ( bc(3,1,n)  == EXT_DIR .or. bc(3,1,n) == HOEXTRAP ) then
           k = cslope_lo(3)
@@ -880,9 +870,7 @@ contains
           !
           ! Limit slopes so as to not introduce new maxs or mins.
           !
-          !$OMP PARALLEL PRIVATE(i,j,k,n,ic,jc,kc,orig_corr_fact,corr_fact)
           do n = 1,size(crse,4)
-             !$OMP DO
              do k = fine_lo(3), fine_lo(3)+size(fine, 3) - 1
                 kc = IX_PROJ(k,lratio(3))
                 do j = fine_lo(2), fine_lo(2)+size(fine, 2) - 1
@@ -909,16 +897,12 @@ contains
                    end do
                 end do
              end do
-          !$OMP END DO NOWAIT
           end do
-          !$OMP END PARALLEL
        end if
        !
        ! Do the interpolation with limited slopes.
        !
-       !$OMP PARALLEL PRIVATE(i,j,k,n,ic,jc,kc)
        do n = 1, size(crse,4)
-          !$OMP DO
           do k = fine_lo(3), fine_lo(3)+size(fine, 3) - 1
              kc = IX_PROJ(k,lratio(3))
              do j = fine_lo(2), fine_lo(2)+size(fine, 2) - 1
@@ -935,17 +919,13 @@ contains
                 end do
              end do
           end do
-          !$OMP END DO NOWAIT
        end do
-       !$OMP END PARALLEL
 
     else
        !
        ! Do the interpolation using unlimited slopes.
        !
-       !$OMP PARALLEL PRIVATE(i,j,k,n,ic,jc,kc)
        do n = 1, size(crse,4)
-          !$OMP DO
           do k = fine_lo(3), fine_lo(3)+size(fine,3) - 1
              kc = IX_PROJ(k,lratio(3))
              do j = fine_lo(2), fine_lo(2)+size(fine, 2) - 1
@@ -959,9 +939,7 @@ contains
                 end do
              end do
           end do
-          !$OMP END DO NOWAIT
        end do
-       !$OMP END PARALLEL
 
     end if
 
