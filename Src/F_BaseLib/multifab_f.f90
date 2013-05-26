@@ -4720,7 +4720,9 @@ contains
 
     ! ap = ap*bp
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
     do n = lo(4), hi(4)
+       !$OMP DO
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -4728,7 +4730,10 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
+
   end subroutine multifab_mult_mult_c_doit
 
   subroutine multifab_mult_mult_s_doit(ap, b)
@@ -4741,7 +4746,9 @@ contains
 
     ! ap = ap*b
 
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
     do n = lo(4), hi(4)
+       !$OMP DO
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -4749,7 +4756,10 @@ contains
              end do
           end do
        end do
+       !$OMP END DO NOWAIT
     end do
+    !$OMP END PARALLEL
+
   end subroutine multifab_mult_mult_s_doit
 
   subroutine multifab_mult_mult(a, b, ng)
@@ -4761,7 +4771,6 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult")
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
@@ -4772,7 +4781,6 @@ contains
        end if
        call multifab_mult_mult_c_doit(ap, bp)
     end do
-    !$OMP END PARALLEL DO
   end subroutine multifab_mult_mult
   subroutine multifab_mult_mult_s(a, b, ng)
     type(multifab), intent(inout) :: a
@@ -4782,7 +4790,6 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s")
-    !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
@@ -4791,7 +4798,6 @@ contains
        end if
        call multifab_mult_mult_s_doit(ap, b)
     end do
-    !$OMP END PARALLEL DO
   end subroutine multifab_mult_mult_s
 
   subroutine multifab_mult_mult_c(a, targ, b, src, nc, ng)
@@ -4805,7 +4811,6 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_c")
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng), targ, nc)
@@ -4816,7 +4821,6 @@ contains
        end if
        call multifab_mult_mult_c_doit(ap, bp)
     end do
-    !$OMP END PARALLEL DO
   end subroutine multifab_mult_mult_c
 
   subroutine multifab_mult_mult_s_c(a, targ, b, nc, ng)
@@ -4829,7 +4833,6 @@ contains
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s_c")
-    !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng), targ, nc)
@@ -4838,7 +4841,6 @@ contains
        end if
        call multifab_mult_mult_s_doit(ap, b)
     end do
-    !$OMP END PARALLEL DO
   end subroutine multifab_mult_mult_s_c
 
   subroutine multifab_mult_s_c(a, ia, b, ib, val, nc, ng)
