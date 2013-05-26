@@ -1036,6 +1036,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
     call multifab_fill_boundary(uu)
 
     do dim = 1, get_dim(uu)
+       !$OMP PARALLEL DO PRIVATE(i,ngf,fp,up,sp,mp)
        do i = 1, nfabs(flux(dim))
           ngf = nghost(flux(dim))
           fp => dataptr(flux(dim), i)
@@ -1054,6 +1055,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
                   mp(:,:,:,1), ngu, ngf, dim)
           end select
        end do
+       !$OMP END PARALLEL DO
     end do
 
     call destroy(bpt)
@@ -1517,7 +1519,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
 
     if ( dim ==  1 ) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 0,nz-1
           do j = 0,ny-1
              do i = 1,nx-2
@@ -1525,23 +1526,19 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
        !
        ! Must make sure we use stencil from interior fine cell, not fine cell
        ! next to c/f boundary. Because we use ss(2,i,j) which looks "down", we
        ! only modify at the high side
        !
-       !$OMP PARALLEL DO PRIVATE(j,k)
        do k = 0,nz-1
           do j = 0,ny-1
              flux(nx-1,j,k) = ss(1,nx-2,j,k) * (uu(nx-1,j,k)-uu(nx-2,j,k)) 
           end do
        end do
-       !$OMP END PARALLEL DO
 
        !   Lo i face
        i = 0
-       !$OMP PARALLEL DO PRIVATE(j,k)
        do k = 0,nz-1
              do j = 0,ny-1
                 if (bc_dirichlet(mm(i,j,k),1,-1)) then
@@ -1559,11 +1556,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
        !   Hi i face
        i = nx-1
-       !$OMP PARALLEL DO PRIVATE(j,k)
        do k = 0,nz-1
              do j = 0,ny-1
                 if (bc_dirichlet(mm(i,j,k),1,+1)) then
@@ -1580,11 +1575,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
     else if ( dim == 2 ) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 0,nz-1
           do j = 1,ny-2
              do i = 0,nx-1
@@ -1592,23 +1585,19 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
        !
        ! Must make sure we use stencil from interior fine cell, not fine cell
        ! next to c/f boundary. Because we use ss(2,i,j) which looks "down", we
        ! only modify at the high side
        !
-       !$OMP PARALLEL DO PRIVATE(i,k)
        do k = 0,nz-1
           do i = 0,nx-1
              flux(i,ny-1,k) = ss(3,i,ny-2,k) * (uu(i,ny-1,k)-uu(i,ny-2,k))
           end do
        end do
-       !$OMP END PARALLEL DO
 
        !   Lo j face
        j = 0
-       !$OMP PARALLEL DO PRIVATE(i,k)
        do k = 0,nz-1
              do i = 0,nx-1
                 if (bc_dirichlet(mm(i,j,k),2,-1)) then
@@ -1626,11 +1615,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
        !   Hi j face
        j = ny-1
-       !$OMP PARALLEL DO PRIVATE(i,k)
        do k = 0,nz-1
              do i = 0,nx-1
                 if (bc_dirichlet(mm(i,j,k),2,+1)) then
@@ -1647,11 +1634,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
     else if ( dim == 3 ) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 1,nz-2
           do j = 0,ny-1
              do i = 0,nx-1
@@ -1659,23 +1644,19 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
        !
        ! Must make sure we use stencil from interior fine cell, not fine cell
        ! next to c/f boundary. Because we use ss(2,i,j) which looks "down", we
        ! only modify at the high side
        !
-       !$OMP PARALLEL DO PRIVATE(i,j)
        do j = 0,ny-1
           do i = 0,nx-1
              flux(i,j,nz-1) = ss(5,i,j,nz-2) * (uu(i,j,nz-1)-uu(i,j,nz-2))
           end do
        end do
-       !$OMP END PARALLEL DO
 
        !   Lo k face
        k = 0
-       !$OMP PARALLEL DO PRIVATE(i,j)
        do j = 0,ny-1
              do i = 0,nx-1
                 if (bc_dirichlet(mm(i,j,k),3,-1)) then
@@ -1693,11 +1674,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
        !   Hi k face
        k = nz-1
-       !$OMP PARALLEL DO PRIVATE(i,j)
        do j = 0,ny-1
              do i = 0,nx-1
                 if (bc_dirichlet(mm(i,j,k),3,+1)) then
@@ -1714,7 +1693,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
                 end if
              end do
        end do
-       !$OMP END PARALLEL DO
 
     end if
 
