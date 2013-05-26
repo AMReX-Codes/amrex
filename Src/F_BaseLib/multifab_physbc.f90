@@ -39,7 +39,7 @@ contains
     ng = nghost(s)
     dm = get_dim(s)
 
-    !$OMP PARALLEL DO PRIVATE(i,sp,lo,hi,scomp,bcomp)
+    !$OMP PARALLEL DO PRIVATE(i,sp,lo,hi,scomp,bccomp)
     do i=1,nfabs(s)
        sp => dataptr(s,i)
        lo = lwb(get_box(s,i))
