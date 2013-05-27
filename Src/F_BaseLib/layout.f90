@@ -2788,5 +2788,26 @@ contains
     bi => tbi
 
   end function layout_get_box_intersector
+  !
+  ! What's in "bx" excluding what's in get_boxarray(la)
+  !
+  subroutine layout_boxarray_diff(ba, bx, la)
+    type(boxarray), intent(out  )   :: ba
+    type(layout),   intent(inout)   :: la
+    type(box),      intent(in   )   :: bx
+    type(list_box)                  :: bl1, bl
+    integer                         :: i
+    type(box_intersector), pointer  :: bi(:) => Null()
+    call build(bl1)
+    bi => layout_get_box_intersector(la, bx)
+    do i = 1, size(bi)
+       call push_back(bl1, bi(i)%bx)
+    end do
+    deallocate(bi)
+    bl = boxlist_boxlist_diff(bx, bl1)
+    call boxarray_build_l(ba, bl)
+    call destroy(bl)
+    call destroy(bl1)
+  end subroutine layout_boxarray_diff
 
   end module layout_module
