@@ -2683,6 +2683,7 @@ contains
        deallocate(bins(ext(1),ext(2),ext(3))%iv)
        bins(ext(1),ext(2),ext(3))%iv => ipv
     end do
+
     call destroy(bpt)
   end subroutine init_box_hash_bin
 
@@ -2699,11 +2700,9 @@ contains
     type(boxarray) :: ba
     integer, parameter :: ChunkSize = 50
     integer :: cnt
-    type(box_intersector), pointer :: tbi(:)  => Null()
+    type(box_intersector), pointer :: tbi(:)
 
-    !$OMP CRITICAL(hashbin)
     if (.not. associated(la%lap%bins)) call init_box_hash_bin(la)
-    !$OMP END CRITICAL(hashbin)
 
     allocate(bi(ChunkSize))
 
@@ -2795,7 +2794,8 @@ contains
     type(box),      intent(in   )   :: bx
     type(list_box)                  :: bl1, bl
     integer                         :: i
-    type(box_intersector), pointer  :: bi(:) => Null()
+    type(box_intersector), pointer  :: bi(:)
+    !$OMP CRITICAL(boxarraydiff)
     call build(bl1)
     bi => layout_get_box_intersector(la, bx)
     do i = 1, size(bi)
@@ -2806,6 +2806,7 @@ contains
     call boxarray_build_l(ba, bl)
     call destroy(bl)
     call destroy(bl1)
+    !$OMP END CRITICAL(boxarraydiff)
   end subroutine layout_boxarray_diff
 
   end module layout_module
