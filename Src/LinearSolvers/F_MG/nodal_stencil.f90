@@ -28,14 +28,14 @@ module nodal_stencil_module
 
 contains
 
-  subroutine stencil_set_bc_nodal(sdim, bx, nbx, idx, mask, face_type, pd_periodic, bxa_periodic)
+  subroutine stencil_set_bc_nodal(sdim, bx, nbx, idx, mask, face_type, pd_periodic, la_periodic)
     integer,         intent(in   ) :: sdim
     type(box),       intent(in   ) :: bx, nbx
     type(imultifab), intent(inout) :: mask
     integer,         intent(in   ) :: idx
     integer,         intent(in   ) :: face_type(:,:,:)
     type(box),       intent(in   ) :: pd_periodic
-    type(boxarray),  intent(in   ) :: bxa_periodic
+    type(layout),    intent(inout) :: la_periodic
 
     integer, pointer :: mp(:,:,:,:)
     type(box)        :: bx1
@@ -79,7 +79,9 @@ contains
              if (dm > 2) bx1 = shift(bx1,kb,3)
              bx1 = intersection(bx1, pd_periodic)
              if ( empty(bx1) ) cycle
-             call boxarray_boxarray_diff(ba, bx1, bxa_periodic)
+             !$OMP CRITICAL(boxarraydiff)
+             call layout_boxarray_diff(ba, bx1, la_periodic)
+             !$OMP END CRITICAL(boxarraydiff)
              do ii = 1, nboxes(ba)
                 bx1 = intersection(box_nodalize(get_box(ba,ii),nodal), nbx)
                 if ( empty(bx1) ) cycle

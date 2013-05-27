@@ -229,6 +229,7 @@ contains
 
     type(box)        :: bx1, src, pd
     type(boxarray)   :: ba, sba
+    type(layout)     :: la
     integer          :: i, j, ii, jj, k, ldom
     integer, pointer :: mp(:,:,:,:)
     integer          :: lcf_face(size(bc_face, 1), size(bc_face, 2))
@@ -244,8 +245,9 @@ contains
 
     mp = BC_INT
 
-    pd    = get_pd(get_layout(st))
-    pmask = get_pmask(get_layout(st))
+    la    = get_layout(st)
+    pd    = get_pd(la)
+    pmask = get_pmask(la)
 
     do i = 1, get_dim(st)
        if ( bc_face(i,1) == BC_PER .and. ( bc_face(i,1) /= bc_face(i,2) )) then
@@ -258,7 +260,9 @@ contains
              !
              ! We're not touching a physical boundary -- set any/all C-F bndrys.
              !
-             call boxarray_boxarray_diff(ba, bx1, get_boxarray(st))
+             !$OMP CRITICAL(boxarraydiff)
+             call layout_boxarray_diff(ba, bx1, la)
+             !$OMP END CRITICAL(boxarraydiff)
              do ii = 1, nboxes(ba)
                 bx1 = shift(get_box(ba,ii), -j, i)
                 mp => dataptr(mask, idx, bx1)
