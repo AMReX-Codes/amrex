@@ -79,9 +79,7 @@ contains
              if (dm > 2) bx1 = shift(bx1,kb,3)
              bx1 = intersection(bx1, pd_periodic)
              if ( empty(bx1) ) cycle
-             !$OMP CRITICAL(boxarraydiff)
              call layout_boxarray_diff(ba, bx1, la_periodic)
-             !$OMP END CRITICAL(boxarraydiff)
              do ii = 1, nboxes(ba)
                 bx1 = intersection(box_nodalize(get_box(ba,ii),nodal), nbx)
                 if ( empty(bx1) ) cycle

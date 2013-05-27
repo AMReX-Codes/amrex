@@ -260,9 +260,7 @@ contains
              !
              ! We're not touching a physical boundary -- set any/all C-F bndrys.
              !
-             !$OMP CRITICAL(boxarraydiff)
              call layout_boxarray_diff(ba, bx1, la)
-             !$OMP END CRITICAL(boxarraydiff)
              do ii = 1, nboxes(ba)
                 bx1 = shift(get_box(ba,ii), -j, i)
                 mp => dataptr(mask, idx, bx1)
