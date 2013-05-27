@@ -335,7 +335,7 @@ contains
 
     nodal_flag = nodal_q(uu)
 
-    !$OMP PARALLEL DO PRIVATE(i,rp,up,ap,mp,lo,hi)
+    !$OMP PARALLEL DO PRIVATE(i,n,rp,up,ap,mp,lo,hi)
     do i = 1, nfabs(rr)
        rp => dataptr(rr, i)
        up => dataptr(uu, i)
@@ -785,10 +785,6 @@ contains
     !
     call multifab_build(rh_local, la, ncomp(rh), nghost(rh), nodal)
     call multifab_build(aa_local, la, ncomp(aa), nghost(aa), nodal_flags(aa), stencil = .true.)
-
-!    if ( nodal_solve ) then
-!       call setval(ph, ZERO, all = .true.)
-!    end if
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
 
