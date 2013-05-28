@@ -2795,9 +2795,10 @@ contains
     type(list_box)                  :: bl1, bl
     integer                         :: i
     type(box_intersector), pointer  :: bi(:)
-    !$OMP CRITICAL(boxarraydiff)
     call build(bl1)
+    !$OMP CRITICAL(boxarraydiff)
     bi => layout_get_box_intersector(la, bx)
+    !$OMP END CRITICAL(boxarraydiff)
     do i = 1, size(bi)
        call push_back(bl1, bi(i)%bx)
     end do
@@ -2806,7 +2807,6 @@ contains
     call boxarray_build_l(ba, bl)
     call destroy(bl)
     call destroy(bl1)
-    !$OMP END CRITICAL(boxarraydiff)
   end subroutine layout_boxarray_diff
 
   end module layout_module
