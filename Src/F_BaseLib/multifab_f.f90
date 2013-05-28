@@ -405,7 +405,7 @@ module multifab_module
   private :: reshape_l_4_1, reshape_l_1_4
   private :: reshape_z_4_1, reshape_z_1_4
 
-  private :: multifab_norm_inf_doit
+  private :: multifab_norm_inf_doit, multifab_saxpy_3_doit
   private :: multifab_div_div_c_doit, multifab_div_div_s_doit
   private :: multifab_mult_mult_c_doit, multifab_mult_mult_s_doit
   private :: multifab_sub_sub_c_doit, multifab_sub_sub_s_doit
@@ -420,6 +420,22 @@ module multifab_module
   private :: mf_fb_fancy_double_nowait
 
 contains
+
+  function only_small_boxes(mf) result(r)
+    type(multifab), intent(in) :: mf
+    logical             :: r
+    integer             :: i
+    real(dp_t), pointer :: ap(:,:,:,:)
+    integer, parameter  :: LEN = 32
+    r = .true.
+    do i = 1, nlocal(mf%la)
+       ap => dataptr(mf,i)
+       if ( (ubound(ap,dim=3) - lbound(ap,dim=3)) .ge. LEN ) then
+          r = .false.
+          exit
+       end if
+    end do
+  end function only_small_boxes
 
   pure function multifab_nodal_flags(mf) result(r)
     type(multifab), intent(in) :: mf
@@ -4022,12 +4038,14 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
     do i = 1, nlocal(a%la)
        ap => dataptr(a, i, get_ibox(a, i))
        bp => dataptr(b, i, get_ibox(b, i))
        cp => dataptr(c, i, get_ibox(c, i))
        ap = b1*bp + c1*cp
     end do
+    !$OMP END PARALLEL DO
   end subroutine multifab_saxpy_5
 
   subroutine multifab_saxpy_4(a, b, c1, c)
@@ -4040,6 +4058,7 @@ contains
 
     integer :: ii, i, j, k, n, lo(4), hi(4)
 
+    !$OMP PARALLEL DO PRIVATE(ii,ap,bp,cp,lo,hi,i,j,k,n)
     do ii = 1, nlocal(a%la)
        ap => dataptr(a, ii, get_ibox(a,ii))
        bp => dataptr(b, ii, get_ibox(b,ii))
@@ -4060,22 +4079,53 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
   end subroutine multifab_saxpy_4
 
+  subroutine multifab_saxpy_3_doit(ap, b1, bp)
+
+    real(dp_t),     intent(in   ) :: b1
+    real(dp_t), pointer           :: ap(:,:,:,:)
+    real(dp_t), pointer           :: bp(:,:,:,:)
+    integer                       :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
+
+    ! ap = ap + b1*bp
+
+    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    do n = lo(4), hi(4)
+       !$OMP DO
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                ap(i,j,k,n) = ap(i,j,k,n) + b1 * bp(i,j,k,n)
+             end do
+          end do
+       end do
+       !$OMP END DO NOWAIT
+    end do
+    !$OMP END PARALLEL
+
+  end subroutine multifab_saxpy_3_doit
+
   subroutine multifab_saxpy_3(a, b1, b, all)
+    use omp_module
+
     real(dp_t),     intent(in   ) :: b1
     type(multifab), intent(inout) :: a
     type(multifab), intent(in   ) :: b
     real(dp_t), pointer           :: ap(:,:,:,:)
     real(dp_t), pointer           :: bp(:,:,:,:)
     logical, intent(in), optional :: all
-    integer :: ii,i,j,k,n,lo(4),hi(4)
+    integer :: ii
     logical :: lall
 
     lall = .false.; if ( present(all) ) lall = all
 
+    !$OMP PARALLEL DO PRIVATE(ii,ap,bp) IF(only_small_boxes(a))
     do ii = 1, nlocal(a%la)
-
        if ( lall ) then
           ap => dataptr(a,ii)
           bp => dataptr(b,ii)
@@ -4083,22 +4133,9 @@ contains
           ap => dataptr(a, ii, get_ibox(a,ii))
           bp => dataptr(b, ii, get_ibox(b,ii))
        end if
-
-       lo = lbound(ap)
-       hi = ubound(ap)
-
-       ! ap = ap + b1*bp
-
-       do n = lo(4), hi(4)
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   ap(i,j,k,n) = ap(i,j,k,n) + b1 * bp(i,j,k,n)
-                end do
-             end do
-          end do
-       end do
+       call multifab_saxpy_3_doit(ap,b1,bp)
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine multifab_saxpy_3
 
@@ -4110,11 +4147,12 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
     logical, intent(in), optional :: all
-    integer :: ii,i,j,k,n,lo(4),hi(4)
+    integer :: ii
     logical :: lall
 
     lall = .false.; if ( present(all) ) lall = all
 
+    !$OMP PARALLEL DO PRIVATE(ii,ap,bp) IF(only_small_boxes(a))
     do ii = 1, nlocal(a%la)
        if ( lall ) then
           ap => dataptr(a,ii,ia)
@@ -4123,23 +4161,9 @@ contains
           ap => dataptr(a, ii, get_ibox(a,ii), ia)
           bp => dataptr(b, ii, get_ibox(b,ii))
        end if
-
-       lo = lbound(ap)
-       hi = ubound(ap)
-
-       ! ap = ap + b1*bp
-
-       do n = lo(4), hi(4)
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   ap(i,j,k,n) = ap(i,j,k,n) + b1 * bp(i,j,k,n)
-                end do
-             end do
-          end do
-       end do
-
+       call multifab_saxpy_3_doit(ap,b1,bp)
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine multifab_saxpy_3_c
 
@@ -4152,11 +4176,12 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
     logical, intent(in), optional :: all
-    integer :: ii,i,j,k,n,lo(4),hi(4)
+    integer :: ii
     logical :: lall
 
     lall = .false.; if ( present(all) ) lall = all
 
+    !$OMP PARALLEL DO PRIVATE(ii,ap,bp) IF(only_small_boxes(a))
     do ii = 1, nlocal(a%la)
        if ( lall ) then
           ap => dataptr(a, ii, ia, nc)
@@ -4165,23 +4190,9 @@ contains
           ap => dataptr(a, ii, get_ibox(a,ii), ia, nc)
           bp => dataptr(b, ii, get_ibox(b,ii), ib, nc)
        end if
-
-       lo = lbound(ap)
-       hi = ubound(ap)
-
-       ! ap = ap + b1*bp
-
-       do n = lo(4), hi(4)
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   ap(i,j,k,n) = ap(i,j,k,n) + b1 * bp(i,j,k,n)
-                end do
-             end do
-          end do
-       end do
-
+       call multifab_saxpy_3_doit(ap,b1,bp)
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine multifab_saxpy_3_cc
 
