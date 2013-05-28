@@ -40,6 +40,7 @@ contains
        end if
        print*, "MPI initialized with ", omp_get_max_threads(), " threads";
     endif
+    if (omp_get_max_threads() > 1) call omp_set_nested(.false.)
   end subroutine boxlib_initialize
 
   !! Finalizes _BoxLib_ applications. This should be the final
