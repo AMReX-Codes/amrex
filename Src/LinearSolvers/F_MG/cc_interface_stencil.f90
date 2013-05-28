@@ -86,6 +86,7 @@ contains
 
     dm = get_dim(res)
 
+    !$OMP PARALLEL DO PRIVATE(j,k,cbox,loc,lor,los,sp,rp,cp,bi,lo,hi)
     do j = 1, nfabs(crse)
        cbox =  get_ibox(crse,j)
        loc  =  lwb(get_pbox(crse,j))
@@ -97,9 +98,8 @@ contains
        bi   => layout_get_box_intersector(la, cbox)
 
        do k = 1, size(bi)
-          isect = bi(k)%bx
-          lo    = lwb(isect)
-          hi    = upb(isect)
+          lo = lwb(bi(k)%bx)
+          hi = upb(bi(k)%bx)
 
           select case (dm)
           case (1)
@@ -113,6 +113,7 @@ contains
 
       deallocate(bi)
     end do
+    !$OMP END PARALLEL DO
     !
     ! Build a multifab based on the intersections of flux with crse in such a way that each 
     ! intersecting box is owned by the same CPU as that owning the appropriate box in crse.
