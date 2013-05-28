@@ -398,8 +398,12 @@ BuildGramMatrix (Real*           Gg,
     BL_ASSERT(PR.nComp() >= 4*sss+1);
 
     const int Nrows = 4*sss+1, Ncols = Nrows + 1;
+    
+    Real tmp[((4*SSS_MAX+1)*((4*SSS_MAX+1)+1))/2-1];
     //
     // Gg is dimensioned (Ncols*Nrows).
+    //
+    // First fill the upper triangle..
     //
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static,1)
@@ -414,7 +418,37 @@ BuildGramMatrix (Real*           Gg,
         Gg[mm*Ncols + Nrows] = dotxy(PR, mm, rt, 0, true);
     }
     //
-    // Fill in strict lower triangle using symmetry.
+    // Next put the upper triangle into "tmp" for reduction.
+    //
+    int cnt = 0;
+
+    for (int mm = 0; mm < Nrows; mm++)
+    {
+        for (int nn = mm; nn < Nrows; nn++)
+        {
+            tmp[cnt++] = Gg[mm*Ncols + nn];
+        }
+
+        tmp[cnt++] = Gg[mm*Ncols + Nrows];
+    }
+
+    ParallelDescriptor::ReduceRealSum(tmp, cnt);
+    //
+    // Now refill upper triangle with "tmp".
+    //
+    cnt = 0;
+
+    for (int mm = 0; mm < Nrows; mm++)
+    {
+        for (int nn = mm; nn < Nrows; nn++)
+        {
+            Gg[mm*Ncols + nn] = tmp[cnt++];
+        }
+
+        Gg[mm*Ncols + Nrows] = tmp[cnt++];
+    }
+    //
+    // Then fill in strict lower triangle using symmetry.
     //
     for (int mm = 0; mm < Nrows; mm++)
     {
@@ -423,8 +457,6 @@ BuildGramMatrix (Real*           Gg,
             Gg[mm*Ncols + nn] = Gg[nn*Ncols + mm];
         }
     }
-
-    ParallelDescriptor::ReduceRealSum(Gg, Nrows*Ncols);
 }
 
 //
