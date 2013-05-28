@@ -3875,7 +3875,9 @@ contains
     integer             :: n
     logical             :: llocal
 
-    if ( present(mask) .and. ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
+    if ( present(mask) ) then
+       if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
+    end if
 
     llocal = .false.; if ( present(local) ) llocal = local
 
