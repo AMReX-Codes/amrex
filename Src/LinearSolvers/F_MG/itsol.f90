@@ -1131,7 +1131,8 @@ contains
       integer, parameter :: Nrows = 4*SSS+1, Ncols = 4*SSS+2
 
       integer    :: mm, nn, cnt
-      real(dp_t) :: Gram(Nrows, Ncols), tmp(Nrows*Ncols)
+      real(dp_t) :: Gram(Nrows,Ncols)
+      real(dp_t) :: tmp((Ncols*(Ncols+1))/2-1), rtmp((Ncols*(Ncols+1))/2-1)
 
       !$OMP PARALLEL DO PRIVATE(mm,nn) SCHEDULE(static,1)
       do mm = 1, Nrows
@@ -1142,23 +1143,39 @@ contains
       end do
       !$OMP END PARALLEL DO
       !
-      ! Fill in strict lower triangle using symmetry.
+      ! Put upper triangle into "tmp".
+      !
+      cnt = 1
+      do mm = 1, Nrows
+         do nn = mm, Nrows
+            tmp(cnt) = Gram(mm,nn)
+            cnt = cnt + 1
+         end do
+         tmp(cnt) = Gram(mm,Ncols)
+         cnt = cnt + 1
+      end do
+      !
+      ! Reduce upper triangle into "rtmp"
+      !
+      call parallel_reduce(rtmp, tmp, MPI_SUM)
+      !
+      ! Fill in upper triangle with "rtmp".
+      !
+      cnt = 1
+      do mm = 1, Nrows
+         do nn = mm, Nrows
+            Gram(mm,nn) = rtmp(cnt)
+            cnt = cnt + 1
+         end do
+         Gram(mm,Ncols) = rtmp(cnt)
+         cnt = cnt + 1
+      end do
+      !
+      ! Then fill in strict lower triangle using symmetry.
       !
       do mm = 1, Nrows
          do nn = 1, mm-1
             Gram(mm,nn) = Gram(nn,mm)
-         end do
-      end do
-      !
-      ! Reduce everything at once into "tmp"
-      !
-      call parallel_reduce(tmp, reshape(Gram,shape(tmp)), MPI_SUM)
-
-      cnt = 1
-      do nn = 1, Ncols
-         do mm = 1, Nrows
-            Gram(mm,nn) = tmp(cnt)
-            cnt = cnt + 1
          end do
       end do
       !
