@@ -603,33 +603,6 @@ contains
     call destroy(bl)
   end subroutine boxarray_box_diff
 
-  ! a retro name
-  subroutine boxarray_complementIn(ba, bx, ba1)
-    type(boxarray), intent(out) :: ba
-    type(boxarray), intent(in) :: ba1
-    type(box),intent(in) :: bx
-    call boxarray_boxarray_diff(ba, bx, ba1)
-  end subroutine boxarray_complementIn
-
-  subroutine boxarray_boxarray_diff(ba, bx, ba1)
-    type(boxarray), intent(out) :: ba
-    type(boxarray), intent(in) :: ba1
-    type(box), intent(in) :: bx
-    type(list_box) :: bl1, bl
-    type(box) :: bx1
-    integer :: i
-    call build(bl1)
-    do i = 1, nboxes(ba1)
-       bx1 = intersection(bx, get_box(ba1,i))
-       if ( empty(bx1) ) cycle
-       call push_back(bl1, bx1)
-    end do
-    bl = boxlist_boxlist_diff(bx, bl1)
-    call boxarray_build_l(ba, bl)
-    call destroy(bl)
-    call destroy(bl1)
-  end subroutine boxarray_boxarray_diff
-
   subroutine boxarray_diff(bao, ba)
     type(boxarray), intent(inout) :: bao
     type(boxarray), intent(in) :: ba
