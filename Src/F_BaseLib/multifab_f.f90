@@ -2040,7 +2040,7 @@ contains
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2)
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2) if (.not. any(mf%nodal))
     do i = 1, bxasc%l_con%ncpy
        ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
        jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
@@ -2075,7 +2075,7 @@ contains
     end do
     call parallel_wait(rst)
 
-    !$OMP PARALLEL DO PRIVATE(i,sh,p)
+    !$OMP PARALLEL DO PRIVATE(i,sh,p) if (.not. any(mf%nodal))
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
