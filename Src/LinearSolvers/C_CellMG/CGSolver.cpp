@@ -398,8 +398,8 @@ BuildGramMatrix (Real*           Gg,
     BL_ASSERT(PR.nComp() >= 4*sss+1);
 
     const int Nrows = 4*sss+1, Ncols = Nrows + 1;
-    
-    Real tmp[((4*SSS_MAX+1)*((4*SSS_MAX+1)+1))/2-1];
+
+    Real tmp[ ((4*SSS_MAX+2)*(4*SSS_MAX+3)) / 2 - 1 ];
     //
     // Gg is dimensioned (Ncols*Nrows).
     //
