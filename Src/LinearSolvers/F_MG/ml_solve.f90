@@ -355,6 +355,7 @@ contains
 
      integer :: i,j,k,fi,fj,fk
 
+     !$OMP PARALLEL DO PRIVATE(i,j,k,fi,fj,fk)
      do k = lo(3),hi(3)
         fk = k*ir(3)
         do j = lo(2),hi(2)
@@ -366,6 +367,7 @@ contains
            end do
         end do
      end do
+     !$OMP END PARALLEL DO
 
    end subroutine create_nodal_mask_3d
 
