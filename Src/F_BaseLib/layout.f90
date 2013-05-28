@@ -2702,7 +2702,9 @@ contains
     integer :: cnt
     type(box_intersector), pointer :: tbi(:)
 
+    !$OMP CRITICAL(initboxhashbin)
     if (.not. associated(la%lap%bins)) call init_box_hash_bin(la)
+    !$OMP END CRITICAL(initboxhashbin)
 
     allocate(bi(ChunkSize))
 
@@ -2796,9 +2798,7 @@ contains
     integer                         :: i
     type(box_intersector), pointer  :: bi(:)
     call build(bl1)
-    !$OMP CRITICAL(boxarraydiff)
     bi => layout_get_box_intersector(la, bx)
-    !$OMP END CRITICAL(boxarraydiff)
     do i = 1, size(bi)
        call push_back(bl1, bi(i)%bx)
     end do
