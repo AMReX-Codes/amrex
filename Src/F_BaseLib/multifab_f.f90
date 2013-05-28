@@ -2860,7 +2860,6 @@ contains
 
     snasc = layout_syncassoc(mf%la, mf%ng, mf%nodal, lall)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,pdst,psrc)
     do i = 1, snasc%l_con%ncpy
        ii   =  local_index(mf,snasc%l_con%cpy(i)%nd)
        jj   =  local_index(mf,snasc%l_con%cpy(i)%ns)
@@ -2868,7 +2867,6 @@ contains
        psrc => dataptr(mf%fbs(jj), snasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_d(pdst, psrc, filter)
     end do
-    !$OMP END PARALLEL DO
 
     np = parallel_nprocs()
 
@@ -2877,12 +2875,10 @@ contains
     allocate(g_snd_d(nc*snasc%r_con%svol))
     allocate(g_rcv_d(nc*snasc%r_con%rvol))
 
-    !$OMP PARALLEL DO PRIVATE(i,p)
     do i = 1, snasc%r_con%nsnd
        p => dataptr(mf, local_index(mf,snasc%r_con%snd(i)%ns), snasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*snasc%r_con%snd(i)%pv, p)
     end do
-    !$OMP END PARALLEL DO
 
     allocate(rst(snasc%r_con%nrp))
     do i = 1, snasc%r_con%nrp
@@ -2895,14 +2891,12 @@ contains
     end do
     call parallel_wait(rst)
 
-    !$OMP PARALLEL DO PRIVATE(i,sh,p)
     do i = 1, snasc%r_con%nrcv
        sh = snasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mf, local_index(mf,snasc%r_con%rcv(i)%nd), snasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*snasc%r_con%rcv(i)%pv, sh, filter)
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine mf_internal_sync_fancy
   !!
@@ -2975,7 +2969,6 @@ contains
 
     snasc = layout_syncassoc(mf%la, mf%ng, mf%nodal, lall)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,pdst,psrc)
     do i = 1, snasc%l_con%ncpy
        ii   =  local_index(mf,snasc%l_con%cpy(i)%nd)
        jj   =  local_index(mf,snasc%l_con%cpy(i)%ns)
@@ -2983,7 +2976,6 @@ contains
        psrc => dataptr(mf%fbs(jj), snasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_l(pdst, psrc, filter)
     end do
-    !$OMP END PARALLEL DO
 
     np = parallel_nprocs()
 
@@ -2992,12 +2984,10 @@ contains
     allocate(g_snd_l(nc*snasc%r_con%svol))
     allocate(g_rcv_l(nc*snasc%r_con%rvol))
 
-    !$OMP PARALLEL DO PRIVATE(i,p)
     do i = 1, snasc%r_con%nsnd
        p => dataptr(mf, local_index(mf,snasc%r_con%snd(i)%ns), snasc%r_con%snd(i)%sbx, c, nc)
        call reshape_l_4_1(g_snd_l, 1 + nc*snasc%r_con%snd(i)%pv, p)
     end do
-    !$OMP END PARALLEL DO
 
     allocate(rst(snasc%r_con%nrp))
     do i = 1, snasc%r_con%nrp
@@ -3010,14 +3000,12 @@ contains
     end do
     call parallel_wait(rst)
 
-    !$OMP PARALLEL DO PRIVATE(i,sh,p)
     do i = 1, snasc%r_con%nrcv
        sh = snasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mf, local_index(mf,snasc%r_con%rcv(i)%nd), snasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_l_1_4(p, g_rcv_l, 1 + nc*snasc%r_con%rcv(i)%pv, sh, filter)
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine lmf_internal_sync_fancy
   !!
