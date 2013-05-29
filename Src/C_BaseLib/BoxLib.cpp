@@ -224,7 +224,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     //
     // Initialize random seed after we're running in parallel.
     //
-    BoxLib::InitRandom(ParallelDescriptor::MyProc()+1);
+    BoxLib::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
 
 #ifdef BL_USE_MPI
     if (ParallelDescriptor::IOProcessor())
