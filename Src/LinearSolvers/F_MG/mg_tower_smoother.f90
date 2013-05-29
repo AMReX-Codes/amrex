@@ -332,7 +332,7 @@ contains
           !
           call fill_boundary(uu, cross = mgt%lcross)
 
-          if ( (mgt%dim == 3) .and. (nfabs(ff) .lt. omp_get_max_threads()) ) then
+          if ( (mgt%dim == 3) .and. (omp_get_max_threads()>1) .and. (nfabs(ff) .lt. omp_get_max_threads()) ) then
              !
              ! We'll use the eight-color algorithm which is threaded.
              !
