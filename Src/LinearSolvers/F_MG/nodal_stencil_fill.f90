@@ -243,7 +243,6 @@ contains
 
     ng_sg = nghost(sg)
 
-    !$OMP PARALLEL DO PRIVATE(i,sp,cp,mp,bx,nbx,lo,hi)
     do i = 1, nfabs(ss)
 
        sp  => dataptr(ss,   i)
@@ -283,7 +282,6 @@ contains
           end if
        end select
     end do
-    !$OMP END PARALLEL DO
 
     call destroy(bxa_periodic)
     call destroy(la)
@@ -306,7 +304,6 @@ contains
 
     dm = get_dim(ss)
 
-    !$OMP PARALLEL DO PRIVATE(i,sp,cp,mp)
     do i = 1, nfabs(ss)
 
        sp  => dataptr(ss,   i)
@@ -323,7 +320,6 @@ contains
           call s_simple_3d_one_sided(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), dh)
        end select
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine stencil_fill_one_sided
 
