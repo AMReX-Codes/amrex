@@ -224,7 +224,7 @@ contains
 
   end subroutine nodal_smoother_2d
 
-  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, pmask, stencil_type, red_black)
+  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, pmask, stencil_type, red_black, eightcolor)
 
     use bl_prof_module
     use impose_neumann_bcs_module
@@ -241,14 +241,19 @@ contains
     integer            ,intent(in   ) :: stencil_type
     integer,            intent(in   ) :: red_black
 
+    logical, intent(in), optional :: eightcolor
+
     integer            :: i, j, k, ipar, hi(size(lo)), half_x, half_y
-    logical            :: x_is_odd, y_is_odd, jface, kface, doit
+    integer            :: modx, mody, modz, istart, jstart, kstart
+    logical            :: x_is_odd, y_is_odd, jface, kface, doit, leightcolor
     real (kind = dp_t) :: dd
     real (kind = dp_t), allocatable :: wrk(:,:,:)
 
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "nodal_smoother_3d")
+
+    leightcolor = .false. ; if ( present(eightcolor) ) leightcolor = eightcolor
 
     hi(1) = lo(1) + size(mm,dim=1)-1
     hi(2) = lo(2) + size(mm,dim=2)-1
@@ -278,7 +283,7 @@ contains
          !
          allocate(wrk(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
 
-         !$OMP PARALLEL DO PRIVATE(i,j,k,dd,jface,kface,doit) IF((hi(3)-lo(3)).ge.3)
+         !$OMP PARALLEL DO PRIVATE(i,j,k,dd,jface,kface,doit)
          do k = lo(3),hi(3)
             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
@@ -298,6 +303,7 @@ contains
                           + ss(2,i,j,k) * uu(i-1,j  ,k  ) + ss(1,i,j,k) * uu(i+1,j  ,k  ) &
                           + ss(4,i,j,k) * uu(i  ,j-1,k  ) + ss(3,i,j,k) * uu(i  ,j+1,k  ) &
                           + ss(6,i,j,k) * uu(i  ,j  ,k-1) + ss(5,i,j,k) * uu(i  ,j  ,k+1)
+
                      wrk(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
                   else
                      wrk(i,j,k) = uu(i,j,k)
@@ -321,7 +327,7 @@ contains
          !
          ! Use this for Gauss-Seidel iteration.
          !
-         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit) IF((hi(3)-lo(3)).ge.3)
+         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit)
          do k = lo(3),hi(3)
             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
@@ -354,51 +360,120 @@ contains
       end if
 
     else if (stencil_type .eq. ND_DENSE_STENCIL) then
-       !
-       ! Do Gauss-Seidel.
-       !
-       do k = lo(3),hi(3)
-          kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
-          do j = lo(2),hi(2)
-             jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
+       if ( leightcolor ) then
+          !
+          ! We're doing an 8-color Gauss-Seidel.
+          !
+          select case (red_black)
+          case (0); modx = 0; mody = 0; modz = 0
+          case (1); modx = 1; mody = 0; modz = 0
+          case (2); modx = 0; mody = 1; modz = 0
+          case (3); modx = 1; mody = 1; modz = 0
+          case (4); modx = 0; mody = 0; modz = 1
+          case (5); modx = 1; mody = 0; modz = 1
+          case (6); modx = 0; mody = 1; modz = 1
+          case (7); modx = 1; mody = 1; modz = 1
+          case default
+             write(6,*)'nodal_smoother_3d: bad phaseflag', red_black
+             stop
+          end select
 
-             do i = lo(1),hi(1)
+          istart = lo(1); if( mod(istart,2) .ne. modx ) istart = istart+1
+          jstart = lo(2); if( mod(jstart,2) .ne. mody ) jstart = jstart+1
+          kstart = lo(3); if( mod(kstart,2) .ne. modz ) kstart = kstart+1
 
-                doit = .true.
+          !$OMP PARALLEL DO PRIVATE(i,j,k,dd,jface,kface,doit)
+          do k = kstart,hi(3),2
+             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
-                if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
-                   if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
-                end if
+             do j = jstart,hi(2),2
+                jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
-                if (doit) then
-                   dd = ss(0,i,j,k)*uu(i,j,k) &
-                        + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
-                        + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
-                        + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
-                        + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
-                        + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
-                        + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
-                        + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
-                        + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
-                        + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
-                        + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1) 
+                do i = istart,hi(1),2
 
-                   if ( (size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh) ) then
-                      !
-                      ! Add faces (only non-zero for non-uniform dx)
-                      !
-                      dd = dd + &
-                           ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
-                           + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
-                           + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
+                   doit = .true.
+
+                   if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                      if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
                    end if
 
-                   uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
-                end if
+                   if (doit) then
+                      dd = ss(0,i,j,k)*uu(i,j,k) &
+                           + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
+                           + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
+                           + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
+                           + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
+                           + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
+                           + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
+                           + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
+                           + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
+                           + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
+                           + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1) 
+
+                      if ( (size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh) ) then
+                         !
+                         ! Add faces (only non-zero for non-uniform dx)
+                         !
+                         dd = dd + &
+                              ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
+                              + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
+                              + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
+                      end if
+
+                      uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+                   end if
+                end do
              end do
           end do
-       end do
+          !$OMP END PARALLEL DO
+       else
+          !
+          ! No-color Gauss-Seidel.
+          !
+          do k = lo(3),hi(3)
+             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
+
+             do j = lo(2),hi(2)
+                jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
+
+                do i = lo(1),hi(1)
+
+                   doit = .true.
+
+                   if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                      if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
+                   end if
+
+                   if (doit) then
+                      dd = ss(0,i,j,k)*uu(i,j,k) &
+                           + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
+                           + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
+                           + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
+                           + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
+                           + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
+                           + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
+                           + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
+                           + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
+                           + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
+                           + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1) 
+
+                      if ( (size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh) ) then
+                         !
+                         ! Add faces (only non-zero for non-uniform dx)
+                         !
+                         dd = dd + &
+                              ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
+                              + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
+                              + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
+                      end if
+
+                      uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+                   end if
+                end do
+             end do
+          end do
+       endif
 
     else
       call bl_error('BAD STENCIL_TYPE IN NODAL_SMOOTHER ',stencil_type)

@@ -11,6 +11,7 @@ contains
 
   subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
 
+    use omp_module
     use bl_prof_module
     use cc_smoothers_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, &
          jac_smoother_3d, gs_lex_smoother_2d, gs_lex_smoother_3d, &
@@ -42,8 +43,9 @@ contains
     end if
 
     pmask = get_pmask(get_layout(uu))
-
-    ! Make sure to define this here so we don't assume a certain number of ghost cells for uu
+    !
+    ! Make sure to define this here so we don't assume a certain number of ghost cells for uu.
+    !
     ng = nghost(uu)
 
     call build(bpt, "mgt_smoother")
@@ -62,9 +64,10 @@ contains
 
        if ( (mgt%dim .eq. 1) .and. (nboxes(uu%la) .eq. 1) ) then
 
-          call multifab_fill_boundary(uu, cross = mgt%lcross)
-
-          ! We do these line solves as a preconditioner
+          call fill_boundary(uu, cross = mgt%lcross)
+          !
+          ! We do these line solves as a preconditioner.
+          !
           do i = 1, nfabs(ff)
              up => dataptr(uu, i)
              fp => dataptr(ff, i)
@@ -73,22 +76,22 @@ contains
              lo =  lwb(get_box(ss, i))
              do n = 1, mgt%nc
                 call gs_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                                      mp(:,1,1,1), lo, ng)
+                     mp(:,1,1,1), lo, ng)
              end do
           end do
 
-          call multifab_fill_boundary(uu, cross = mgt%lcross)
+          call fill_boundary(uu, cross = mgt%lcross)
 
           local_eps = 0.001 
           npts = multifab_volume(ff)
           call itsol_bicgstab_solve(ss, uu, ff, mm, &
-                                    local_eps, npts, mgt%cg_verbose, &
-                                    mgt%stencil_type, mgt%lcross, &
-                                    stat = stat, &
-                                    singular_in = singular_test, &
-                                    uniform_dh = mgt%uniform_dh)
+               local_eps, npts, mgt%cg_verbose, &
+               mgt%stencil_type, mgt%lcross, &
+               stat = stat, &
+               singular_in = singular_test, &
+               uniform_dh = mgt%uniform_dh)
 
-          call multifab_fill_boundary(uu, cross = mgt%lcross)
+          call fill_boundary(uu, cross = mgt%lcross)
 
           if ( stat /= 0 ) then
              if ( parallel_IOProcessor() ) call bl_error("BREAKDOWN in 1d CG solve")
@@ -102,7 +105,7 @@ contains
 
              do nn = 0, 1
 
-                call multifab_fill_boundary(uu, cross = mgt%lcross)
+                call fill_boundary(uu, cross = mgt%lcross)
 
                 do i = 1, nfabs(ff)
                    up => dataptr(uu, i)
@@ -114,16 +117,16 @@ contains
                       select case ( mgt%dim)
                       case (1)
                          call gs_rb_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), &
-                                                fp(:,1,1,n), mp(:,1,1,1), lo, ng, nn, &
-                                                mgt%skewed(lev,i))
+                              fp(:,1,1,n), mp(:,1,1,1), lo, ng, nn, &
+                              mgt%skewed(lev,i))
                       case (2)
                          call gs_rb_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                                fp(:,:,1,n), mp(:,:,1,1), lo, ng, nn, &
-                                                mgt%skewed(lev,i))
+                              fp(:,:,1,n), mp(:,:,1,1), lo, ng, nn, &
+                              mgt%skewed(lev,i))
                       case (3)
                          call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                                fp(:,:,:,n), mp(:,:,:,1), lo, ng, nn, &
-                                                mgt%skewed(lev,i))
+                              fp(:,:,:,n), mp(:,:,:,1), lo, ng, nn, &
+                              mgt%skewed(lev,i))
                       end select
                    end do
                 end do
@@ -132,7 +135,8 @@ contains
 
           case ( MG_SMOOTHER_EFF_RB )
 
-             call multifab_fill_boundary(uu, cross = mgt%lcross)
+             call fill_boundary(uu, cross = mgt%lcross)
+
              do i = 1, nfabs(ff)
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
@@ -143,25 +147,25 @@ contains
                    select case ( mgt%dim)
                    case (1)
                       call gs_rb_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), &
-                                             fp(:,1,1,n), mp(:,1,1,1), lo, ng, 0, &
-                                             mgt%skewed(lev,i))
+                           fp(:,1,1,n), mp(:,1,1,1), lo, ng, 0, &
+                           mgt%skewed(lev,i))
                       call gs_rb_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), &
-                                             fp(:,1,1,n), mp(:,1,1,1), lo, ng, 1, &
-                                             mgt%skewed(lev,i))
+                           fp(:,1,1,n), mp(:,1,1,1), lo, ng, 1, &
+                           mgt%skewed(lev,i))
                    case (2)
                       call gs_rb_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                             fp(:,:,1,n), mp(:,:,1,1), lo, ng, 0, &
-                                             mgt%skewed(lev,i))
+                           fp(:,:,1,n), mp(:,:,1,1), lo, ng, 0, &
+                           mgt%skewed(lev,i))
                       call gs_rb_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                             fp(:,:,1,n), mp(:,:,1,1), lo, ng, 1, &
-                                             mgt%skewed(lev,i))
+                           fp(:,:,1,n), mp(:,:,1,1), lo, ng, 1, &
+                           mgt%skewed(lev,i))
                    case (3)
                       call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                             fp(:,:,:,n), mp(:,:,:,1), lo, ng, 0, &
-                                             mgt%skewed(lev,i))
+                           fp(:,:,:,n), mp(:,:,:,1), lo, ng, 0, &
+                           mgt%skewed(lev,i))
                       call gs_rb_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                             fp(:,:,:,n), mp(:,:,:,1), lo, ng, 1, &
-                                             mgt%skewed(lev,i))
+                           fp(:,:,:,n), mp(:,:,:,1), lo, ng, 1, &
+                           mgt%skewed(lev,i))
                    end select
                 end do
              end do
@@ -169,7 +173,8 @@ contains
           case ( MG_SMOOTHER_MINION_CROSS )
 
              do nn = 0, 1
-                call multifab_fill_boundary(uu, cross = mgt%lcross)
+
+                call fill_boundary(uu, cross = mgt%lcross)
 
                 do i = 1, nfabs(ff)
                    up => dataptr(uu, i)
@@ -181,10 +186,10 @@ contains
                       select case ( mgt%dim)
                       case (2)
                          call fourth_order_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,1), &
-                                                       fp(:,:,1,1), lo, ng, mgt%stencil_type, nn)
+                              fp(:,:,1,1), lo, ng, mgt%stencil_type, nn)
                       case (3)
                          call fourth_order_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                                       fp(:,:,:,1), lo, ng, mgt%stencil_type, nn)
+                              fp(:,:,:,1), lo, ng, mgt%stencil_type, nn)
                       end select
                    end do
                 end do
@@ -193,7 +198,9 @@ contains
           case ( MG_SMOOTHER_MINION_FULL )
 
              do nn = 0, 1
-                call multifab_fill_boundary(uu, cross = mgt%lcross)
+
+                call fill_boundary(uu, cross = mgt%lcross)
+
                 do i = 1, nfabs(ff)
                    up => dataptr(uu, i)
                    fp => dataptr(ff, i)
@@ -201,20 +208,22 @@ contains
                    mp => dataptr(mm, i)
                    lo =  lwb(get_box(ss, i))
                    do n = 1, mgt%nc
-                   select case ( mgt%dim)
+                      select case ( mgt%dim)
                       case (2)
                          call fourth_order_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,1), &
-                                                       fp(:,:,1,1), lo, ng, mgt%stencil_type, n)
+                              fp(:,:,1,1), lo, ng, mgt%stencil_type, n)
                       case (3)
                          call fourth_order_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                                                       fp(:,:,:,1), lo, ng, mgt%stencil_type, nn)
+                              fp(:,:,:,1), lo, ng, mgt%stencil_type, nn)
                       end select
                    end do
                 end do
              end do
 
           case ( MG_SMOOTHER_JACOBI )
-             call multifab_fill_boundary(uu, cross = mgt%lcross)
+
+             call fill_boundary(uu, cross = mgt%lcross)
+
              do i = 1, nfabs(ff)
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
@@ -225,15 +234,17 @@ contains
                    select case ( mgt%dim)
                    case (2)
                       call jac_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), fp(:,:,1,n), &
-                                           mp(:,:,1,1), ng)
+                           mp(:,:,1,1), ng)
                    case (3)
                       call jac_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                                           mp(:,:,:,1), ng)
+                           mp(:,:,:,1), ng)
                    end select
                 end do
              end do
           case ( MG_SMOOTHER_GS_LEX )
-             call multifab_fill_boundary(uu, cross = mgt%lcross)
+
+             call fill_boundary(uu, cross = mgt%lcross)
+
              do i = 1, nfabs(ff)
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
@@ -244,10 +255,10 @@ contains
                    select case ( mgt%dim)
                    case (2)
                       call gs_lex_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                              fp(:,:,1,n), ng)
+                           fp(:,:,1,n), ng)
                    case (3)
                       call gs_lex_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                              fp(:,:,:,n), ng)
+                           fp(:,:,:,n), ng)
                    end select
                 end do
              end do
@@ -258,12 +269,15 @@ contains
        end if ! if (mgt%dim > 1)
 
     else 
-
+       !
+       ! Nodal stencils.
+       !
        if (mgt%lcross) then
 
-        if ( get_dim(ff) == 1 ) then
+          if ( get_dim(ff) == 1 ) then
 
-             call multifab_fill_boundary(uu, cross = mgt%lcross)
+             call fill_boundary(uu, cross = mgt%lcross)
+
              do i = 1, nfabs(ff)
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
@@ -274,16 +288,54 @@ contains
                    select case ( mgt%dim)
                    case (1)
                       call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                                               mp(:,1,1,1), lo, ng)
+                           mp(:,1,1,1), lo, ng)
                    end select
                 end do
              end do
 
-        else
+          else
+             !
+             ! k is the red-black parameter.
+             !
+             do k = 0, 1
 
-          ! k is the red-black parameter
-          do k = 0, 1
-             call multifab_fill_boundary(uu, cross = mgt%lcross)
+                call fill_boundary(uu, cross = mgt%lcross)
+
+                do i = 1, nfabs(ff)
+                   up => dataptr(uu, i)
+                   fp => dataptr(ff, i)
+                   sp => dataptr(ss, i)
+                   mp => dataptr(mm, i)
+                   lo =  lwb(get_box(ss, i))
+                   do n = 1, mgt%nc
+                      select case ( mgt%dim)
+                      case (1)
+                         if ( k.eq.0 ) &
+                              call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
+                              fp(:,1,1,n), mp(:,1,1,1), lo, ng)
+                      case (2)
+                         call nodal_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
+                              fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
+                              pmask, mgt%stencil_type, k)
+                      case (3)
+                         call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
+                              fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
+                              mgt%uniform_dh, pmask, mgt%stencil_type, k)
+                      end select
+                   end do
+                end do
+             end do
+          end if
+       else
+          !
+          ! Nodal dense stencils.
+          !
+          call fill_boundary(uu, cross = mgt%lcross)
+
+          if ( (mgt%dim == 3) .and. (nfabs(ff) .lt. omp_get_max_threads()) ) then
+             !
+             ! We'll use the eight-color algorithm which is threaded.
+             !
              do i = 1, nfabs(ff)
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
@@ -291,54 +343,47 @@ contains
                 mp => dataptr(mm, i)
                 lo =  lwb(get_box(ss, i))
                 do n = 1, mgt%nc
-                   select case ( mgt%dim)
+                   !
+                   ! We'll do an 8-color GS but with only one fill_boundary().
+                   !
+                   do k = 0, 7
+                      call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
+                           fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
+                           mgt%uniform_dh, pmask, mgt%stencil_type, k, eightcolor = .true.)
+                   end do
+                end do
+             end do
+          else
+             !
+             ! Thread over FABS instead.
+             !
+             k = 0
+             !$OMP PARALLEL DO PRIVATE(i,n,up,fp,sp,mp,lo)
+             do i = 1, nfabs(ff)
+                up => dataptr(uu, i)
+                fp => dataptr(ff, i)
+                sp => dataptr(ss, i)
+                mp => dataptr(mm, i)
+                lo =  lwb(get_box(ss, i))
+                do n = 1, mgt%nc
+                   select case (mgt%dim)
                    case (1)
-!                     call nodal_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), &
-!                                            fp(:,1,1,n), mp(:,1,1,1), lo, ng, k)
-                      if (k.eq.0) &
                       call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
-                                               fp(:,1,1,n), mp(:,1,1,1), lo, ng)
+                           fp(:,1,1,n), mp(:,1,1,1), lo, ng)
                    case (2)
                       call nodal_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                             fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
-                                             pmask, mgt%stencil_type, k)
+                           fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
+                           pmask, mgt%stencil_type, k)
                    case (3)
                       call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                             fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
-                                             mgt%uniform_dh, pmask, mgt%stencil_type, k)
+                           fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
+                           mgt%uniform_dh, pmask, mgt%stencil_type, k)
                    end select
                 end do
              end do
-          end do
-        end if
-       else
-          call multifab_fill_boundary(uu, cross = mgt%lcross)
-          ! This value of k isn't used
-          k = 0
-          do i = 1, nfabs(ff)
-             up => dataptr(uu, i)
-             fp => dataptr(ff, i)
-             sp => dataptr(ss, i)
-             mp => dataptr(mm, i)
-             lo =  lwb(get_box(ss, i))
-             do n = 1, mgt%nc
-                select case ( mgt%dim)
-                case (1)
-!                  call nodal_smoother_1d(mgt%omega, sp(:,:,1,1), up(:,1,1,n), &
-!                                         fp(:,1,1,n), mp(:,1,1,1), lo, ng, k)
-                   call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
-                                            fp(:,1,1,n), mp(:,1,1,1), lo, ng)
-                case (2)
-                   call nodal_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                                          fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
-                                          pmask, mgt%stencil_type, k)
-                case (3)
-                   call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                                          fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
-                                          mgt%uniform_dh, pmask, mgt%stencil_type, k)
-                end select
-             end do
-          end do
+             !$OMP END PARALLEL DO
+          endif
+
        end if
 
        call multifab_internal_sync(uu)
@@ -383,7 +428,9 @@ contains
     end if
 
     do iter = 1, mgt%nu1
-       call multifab_fill_boundary(uu, cross = mgt%lcross)
+
+       call fill_boundary(uu, cross = mgt%lcross)
+
        do i = 1, nfabs(ff)
           up => dataptr(uu, i)
           fp => dataptr(ff, i)
