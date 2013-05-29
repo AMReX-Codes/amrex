@@ -197,6 +197,7 @@ namespace BoxLib
       call blinitrand(seed)
     */
     void InitRandom (unsigned long seed);
+    void InitRandom (unsigned long seed, int numprocs);
 
     void ResetRandomSeed(unsigned long seed);
     //
@@ -268,6 +269,7 @@ namespace BoxLib
 	typedef unsigned long seed_type;
 
 	explicit mt19937 (seed_type seed = 4357UL);
+        mt19937 (seed_type seed, int numprocs);
 	mt19937 (seed_type array[], int array_len);
 	void rewind();
 	void reset(unsigned long seed);

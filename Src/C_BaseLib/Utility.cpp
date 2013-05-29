@@ -650,8 +650,14 @@ BoxLib::mt19937::igenrand()
 
 BoxLib::mt19937::mt19937(unsigned long seed)
 {
+    init_seed = seed;
+    mti = N;
+    sgenrand(seed);
+}
+
+BoxLib::mt19937::mt19937(unsigned long seed, int numprocs)
+{
 #ifdef _OPENMP
-  int numprocs = ParallelDescriptor::NProcs();
 #pragma omp parallel
   {
     init_seed = seed + omp_get_thread_num() * numprocs;
@@ -761,6 +767,12 @@ void
 BoxLib::InitRandom (unsigned long seed)
 {
     the_generator = mt19937(seed);
+}
+
+void
+BoxLib::InitRandom (unsigned long seed, int numprocs)
+{
+    the_generator = mt19937(seed, numprocs);
 }
 
 void BoxLib::ResetRandomSeed(unsigned long seed)
