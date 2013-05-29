@@ -199,7 +199,6 @@ contains
 
     dm = get_dim(ss)
 
-    !$OMP PARALLEL DO PRIVATE(i,bx,lxa,lxb,id,sp,ccp,xcp,mp,ng_c,ng_b,ns,ycp,zcp,ncomp_coeffs)
     do i = 1, nfabs(ss)
        bx = get_box(ss,i)
        call stencil_set_bc(ss, i, mask, bc_face)
@@ -310,7 +309,6 @@ contains
        end if
 
     end do
-    !$OMP END PARALLEL DO
     
     call destroy(bpt)
 
@@ -393,7 +391,6 @@ contains
 
     dm = get_dim(ss)
 
-    !$OMP PARALLEL DO PRIVATE(i,bx,lxa,lxb,id,sp,mp)
     do i = 1, nfabs(ss)
        bx = get_box(ss,i)
        call stencil_set_bc(ss, i, mask, bc_face)
@@ -425,8 +422,8 @@ contains
                                 dh,mp(:,:,:,1), &
                                 bx%lo, bx%hi, lxa, lxb, order)
        end select
+
     end do
-    !$OMP END PARALLEL DO
     
     call destroy(bpt)
 
