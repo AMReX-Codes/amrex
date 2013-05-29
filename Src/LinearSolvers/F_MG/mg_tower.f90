@@ -14,6 +14,7 @@ module mg_tower_module
   integer, parameter :: MG_SMOOTHER_MINION_CROSS = 5
   integer, parameter :: MG_SMOOTHER_MINION_FULL = 6
   integer, parameter :: MG_SMOOTHER_EFF_RB = 7
+  integer, parameter :: MG_SMOOTHER_GS_LEX_DENSE = 8
 
   integer, parameter :: MG_FCycle = 1
   integer, parameter :: MG_WCycle = 2

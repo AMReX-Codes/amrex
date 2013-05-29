@@ -602,11 +602,13 @@ contains
     real (kind = dp_t), intent(in)    :: ss(0:,:)
     logical, intent(in), optional :: skwd
     real (kind = dp_t) :: dd
-    integer :: i
+    integer :: i, nx
     logical :: lskwd
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    do i = 1, size(ff,dim=1)
+    nx = size(ff,dim=1)
+
+    do i = 1, nx
        dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
        uu(i) = uu(i) + (omega/ss(0,i))*(ff(i) - dd)
     end do
@@ -621,7 +623,7 @@ contains
     real (kind = dp_t), intent(inout) :: uu(1-ng:, 1-ng:)
     real (kind = dp_t), intent(in) :: ss(0:, :, :)
     logical, intent(in), optional :: skwd
-    integer :: j, i
+    integer :: j, i, nx, ny
     real (kind = dp_t) :: dd
     logical :: lskwd
 
@@ -631,8 +633,11 @@ contains
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    do j = 1, size(ff,dim=2)
-       do i = 1, size(ff, dim=1)
+    nx = size(ff,dim=1)
+    ny = size(ff,dim=2)
+
+    do j = 1, ny
+       do i = 1, nx
           dd = &
                + ss(0,i,j)*uu(i  ,j  ) &
                + ss(1,i,j)*uu(i+1,j  ) &
@@ -654,7 +659,7 @@ contains
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
     logical, intent(in), optional :: skwd
-    integer :: i, j, k
+    integer :: i, j, k, nx, ny, nz
     real (kind = dp_t) :: dd
     logical :: lskwd
 
@@ -664,9 +669,13 @@ contains
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    do k = 1, size(ff,dim=3)
-       do j = 1, size(ff,dim=2)
-          do i = 1, size(ff,dim=1)
+    nx = size(ff,dim=1)
+    ny = size(ff,dim=2)
+    nz = size(ff,dim=3)
+
+    do k = 1, nz
+       do j = 1, ny
+          do i = 1, nx
              dd = &
                   + ss(0,i,j,k)*uu(  i,j  ,k  ) &
                   + ss(1,i,j,k)*uu(i+1,j  ,k  ) &
@@ -692,11 +701,13 @@ contains
     real (kind = dp_t), intent(in)    :: ss(0:,:)
     logical, intent(in), optional :: skwd
     real (kind = dp_t) :: dd
-    integer :: i
+    integer :: i, nx
     logical :: lskwd
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    do i = 1, size(ff,dim=1)
+    nx = size(ff,dim=1)
+
+    do i = 1, nx
        dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
        uu(i) = uu(i) + (omega/ss(0,i))*(ff(i) - dd)
     end do
@@ -711,7 +722,7 @@ contains
     real (kind = dp_t), intent(inout) :: uu(1-ng:, 1-ng:)
     real (kind = dp_t), intent(in) :: ss(0:, :, :)
     logical, intent(in), optional :: skwd
-    integer :: j, i
+    integer :: j, i, nx, ny
     real (kind = dp_t) :: dd
     logical :: lskwd
 
@@ -721,8 +732,11 @@ contains
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    do j = 1, size(ff,dim=2)
-       do i = 1, size(ff, dim=1)
+    nx = size(ff,dim=1)
+    ny = size(ff,dim=2)
+
+    do j = 1, ny
+       do i = 1, nx
           dd = &
                + ss(1,i,j)*uu(i-1,j-1) &
                + ss(2,i,j)*uu(i  ,j-1) &
@@ -751,7 +765,7 @@ contains
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
     logical, intent(in), optional :: skwd
-    integer :: i, j, k
+    integer :: i, j, k, nx, ny, nz
     real (kind = dp_t) :: dd
     logical :: lskwd
 
@@ -761,9 +775,13 @@ contains
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    do k = 1, size(ff,dim=3)
-       do j = 1, size(ff,dim=2)
-          do i = 1, size(ff,dim=1)
+    nx = size(ff,dim=1)
+    ny = size(ff,dim=2)
+    nz = size(ff,dim=3)
+
+    do k = 1, nz
+       do j = 1, ny
+          do i = 1, nx
              dd = &
                   + ss( 0,i,j,k)*uu(i  ,j  ,k  ) &
                   + ss( 1,i,j,k)*uu(i-1,j-1,k-1) &
