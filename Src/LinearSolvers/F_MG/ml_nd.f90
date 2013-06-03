@@ -52,6 +52,7 @@ contains
     logical :: fine_converged
 
     real(dp_t) :: Anorm, bnorm, fac, tres, ttres, tres0, abs_eps, t1(3), t2(3)
+    real(dp_t) :: stime, bottom_solve_time
 
     logical nodal(get_dim(rh(1)))
 
@@ -59,11 +60,11 @@ contains
 
     call build(bpt, "ml_nd")
 
-    dm = get_dim(rh(1))
-
-    nodal = .True.
-
-    nlevs = mla%nlevel
+    dm                = get_dim(rh(1))
+    stime             = parallel_wtime()
+    nodal             = .True.
+    nlevs             = mla%nlevel
+    bottom_solve_time = zero
 
     if ( present(abs_eps_in) ) then
        abs_eps = abs_eps_in
@@ -74,7 +75,6 @@ contains
     allocate(soln(nlevs), uu(nlevs), uu_hold(2:nlevs-1), res(nlevs))
     allocate(temp_res(nlevs))
     allocate(brs_flx(2:nlevs))
-
     allocate(zero_rh(2:nlevs))
 
     do n = 2,nlevs-1
@@ -194,7 +194,7 @@ contains
           else 
              call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
                   uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                  mgt(n)%gamma)
+                  mgt(n)%gamma, bottom_solve_time = bottom_solve_time)
           end if
 
           ! Add: soln += uu
@@ -416,17 +416,26 @@ contains
      iter = iter-1
      if (iter < mgt(nlevs)%max_iter) then
         if ( mgt(nlevs)%verbose > 0 ) then
-          ttres = ml_norm_inf(res,fine_mask,local=.true.)
-          call parallel_reduce(tres, ttres, MPI_MAX, proc = parallel_IOProcessorNode())
-          if ( parallel_IOProcessor() ) then
-             if (tres0 .gt. 0.0_dp_t) then
-               write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,tres/tres0
-               write(unit=*, fmt='("")')
-             else
-               write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,0.0_dp_t
-               write(unit=*, fmt='("")')
-             end if
-          end if
+           !
+           ! Consolidate these reductions.
+           !
+           t1(1) = ml_norm_inf(res,fine_mask,local=.true.) 
+           t1(2) = (parallel_wtime() - stime)
+           t1(3) = bottom_solve_time
+
+           call parallel_reduce(t2, t1, MPI_MAX, proc = parallel_IOProcessorNode())
+
+           if ( parallel_IOProcessor() ) then
+              if ( tres0 .gt. 0.0_dp_t) then
+                 write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,t2(1)/tres0
+                 write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
+                 write(unit=*, fmt='("")')
+              else
+                 write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,0.0_dp_t
+                 write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
+                 write(unit=*, fmt='("")')
+              end if
+           end if
         end if
      else
         if (mgt(nlevs)%abort_on_max_iter) then

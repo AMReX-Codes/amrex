@@ -52,15 +52,17 @@ contains
     real(dp_t) :: tres, ttres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
-    real(dp_t) :: r1,r2,t1(3),t2(3)
+    real(dp_t) :: r1,r2,t1(3),t2(3),stime,bottom_solve_time
     logical :: solved
 
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_cc")
 
-    dm = get_dim(rh(1))
-    nlevs = mla%nlevel
+    dm                = get_dim(rh(1))
+    nlevs             = mla%nlevel
+    stime             = parallel_wtime()
+    bottom_solve_time = zero
 
     if ( present(abs_eps_in) ) then
        abs_eps = abs_eps_in 
@@ -334,7 +336,7 @@ contains
                 call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
                      mgt(n)%ss(mglev), uu(n), res(n), &
                      mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                     mgt(n)%gamma)
+                     mgt(n)%gamma, bottom_solve_time = bottom_solve_time)
              end if
 
              ! Add: Soln += uu
@@ -582,17 +584,26 @@ contains
        endif
 
        ! ****************************************************************************
-       if (solved) then
+       if ( solved ) then
           if ( mgt(nlevs)%verbose > 0 ) then
-             ttres = ml_norm_inf(res,fine_mask,local=.true.)
-             call parallel_reduce(tres, ttres, MPI_MAX, proc = parallel_IOProcessorNode())
+             !
+             ! Consolidate these reductions.
+             !
+             t1(1) = ml_norm_inf(res,fine_mask,local=.true.) 
+             t1(2) = (parallel_wtime() - stime)
+             t1(3) = bottom_solve_time
+
+             call parallel_reduce(t2, t1, MPI_MAX, proc = parallel_IOProcessorNode())
+
              if ( parallel_IOProcessor() ) then
-                if (tres0 .gt. 0.0_dp_t) then
-                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,tres/tres0
-                   write(unit=*, fmt='("")') 
+                if ( tres0 .gt. 0.0_dp_t) then
+                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,t2(1)/tres0
+                   write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
+                   write(unit=*, fmt='("")')
                 else
                    write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,0.0_dp_t
-                   write(unit=*, fmt='("")') 
+                   write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
+                   write(unit=*, fmt='("")')
                 end if
              end if
           end if
