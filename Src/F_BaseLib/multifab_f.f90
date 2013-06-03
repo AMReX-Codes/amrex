@@ -4360,8 +4360,6 @@ contains
     lo = lbound(ap)
     hi = ubound(ap)
 
-    ! maxval(abs(mp))
-
     r1 = 0.0_dp_t
 
     !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1) IF((hi(3)-lo(3)).ge.7)
@@ -4547,7 +4545,7 @@ contains
 
     ! ap = ap/bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
     do n = lo(4), hi(4)
        !$OMP DO
        do k = lo(3), hi(3)
@@ -4575,7 +4573,7 @@ contains
 
     ! ap = ap/b
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
     do n = lo(4), hi(4)
        !$OMP DO
        do k = lo(3), hi(3)
@@ -4602,7 +4600,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_div_div")
 
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp) IF(only_small_boxes(a))
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng) )
@@ -4616,7 +4613,6 @@ contains
        end if
        call multifab_div_div_c_doit(ap, bp)
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine multifab_div_div
 
@@ -4633,7 +4629,6 @@ contains
        call bl_error("MULTIFAB_DIV_DIV_S: divide by zero")
     end if
 
-    !$OMP PARALLEL DO PRIVATE(i,ap) IF(only_small_boxes(a))
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),lng))
@@ -4642,7 +4637,6 @@ contains
        end if
        call multifab_div_div_s_doit(ap, b)
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine multifab_div_div_s
 
@@ -4659,7 +4653,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_c")
 
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp) IF(only_small_boxes(a))
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), targ, nc)
@@ -4673,7 +4666,6 @@ contains
        end if
        call multifab_div_div_c_doit(ap, bp)
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine multifab_div_div_c
 
@@ -4692,7 +4684,6 @@ contains
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
 
-    !$OMP PARALLEL DO PRIVATE(i,ap) IF(only_small_boxes(a))
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a,i),lng), targ, nc)
@@ -4701,7 +4692,6 @@ contains
        end if
        call multifab_div_div_s_doit(ap, b)
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine multifab_div_div_s_c
 
@@ -4912,7 +4902,7 @@ contains
 
     ! ap = ap - bp
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
     do n = lo(4), hi(4)
        !$OMP DO
        do k = lo(3), hi(3)
@@ -4940,7 +4930,7 @@ contains
 
     ! ap = ap - b
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) IF((hi(3)-lo(3)).ge.7)
     do n = lo(4), hi(4)
        !$OMP DO
        do k = lo(3), hi(3)
@@ -4966,7 +4956,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub")
 
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp) IF(only_small_boxes(a))
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng))
@@ -4977,7 +4966,6 @@ contains
        end if
        call multifab_sub_sub_c_doit(ap, bp)
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine multifab_sub_sub
 
@@ -4990,7 +4978,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s")
 
-    !$OMP PARALLEL DO PRIVATE(i,ap) IF(only_small_boxes(a))
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng))
@@ -4999,7 +4986,6 @@ contains
        end if
        call multifab_sub_sub_s_doit(ap, b)
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine multifab_sub_sub_s
 
@@ -5015,7 +5001,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub_c")
 
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp) IF(only_small_boxes(a))
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng), targ, nc)
@@ -5026,7 +5011,6 @@ contains
        end if
        call multifab_sub_sub_c_doit(ap, bp)
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine multifab_sub_sub_c
 
@@ -5041,7 +5025,6 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s_c")
 
-    !$OMP PARALLEL DO PRIVATE(i,ap) IF(only_small_boxes(a))
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i),ng), targ, nc)
@@ -5050,7 +5033,6 @@ contains
        end if
        call multifab_sub_sub_s_doit(ap, b)
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine multifab_sub_sub_s_c
 
