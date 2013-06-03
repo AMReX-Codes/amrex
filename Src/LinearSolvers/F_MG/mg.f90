@@ -1030,7 +1030,7 @@ contains
   end function mg_tower_converged
 
   recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
-                                      bottom_level)
+                                      bottom_level, bottom_solve_time)
 
     use bl_prof_module
 
@@ -1044,9 +1044,10 @@ contains
     integer, intent(inout) :: gamma
     integer, intent(in) :: cyc
     integer, intent(in), optional :: bottom_level
+    real(dp_t), intent(inout), optional :: bottom_solve_time
     integer :: i
     logical :: do_diag
-    real(dp_t) :: nrm
+    real(dp_t) :: nrm, stime
     integer :: lbl
     logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
@@ -1105,7 +1106,10 @@ contains
           end if
 
        else
+          stime = parallel_wtime()
           call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+          if ( present(bottom_solve_time) ) &
+               bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
        end if
 
        if ( cyc == MG_FCycle ) gamma = 1
@@ -1145,7 +1149,7 @@ contains
 
        do i = gamma, 1, -1
           call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
-                              mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level)
+                              mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
        end do
 
        ! uu  += cc, done, by convention, using the prolongation routine.
