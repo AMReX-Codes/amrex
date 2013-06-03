@@ -49,7 +49,7 @@ contains
     logical :: fine_converged,need_grad_phi
 
     real(dp_t) :: bnorm, abs_eps, ni_res
-    real(dp_t) :: tres, ttres, tres0, max_norm
+    real(dp_t) :: tres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
     real(dp_t) :: r1,r2,t1(3),t2(3),stime,bottom_solve_time
