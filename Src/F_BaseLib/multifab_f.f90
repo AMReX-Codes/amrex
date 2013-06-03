@@ -409,7 +409,7 @@ module multifab_module
   private :: multifab_div_div_c_doit, multifab_div_div_s_doit
   private :: multifab_mult_mult_c_doit, multifab_mult_mult_s_doit
   private :: multifab_sub_sub_c_doit, multifab_sub_sub_s_doit
-  private :: multifab_plus_plus_c_doit, multifab_plus_plus_s_doit
+  private :: multifab_plus_plus_c_doit, multifab_plus_plus_s_doit, multifab_norm_l2_doit
 
   public  :: cpy_d, cpy_i, cpy_l, cpy_z
   public  :: reshape_d_4_1, reshape_d_1_4, reshape_i_4_1, reshape_i_1_4
@@ -4352,6 +4352,50 @@ contains
     r = multifab_sum_c(mf, 1, mf%nc, mask, all)
   end function multifab_sum
 
+  function multifab_norm_l2_doit(ap, lp) result(r)
+
+    real(dp_t), pointer        :: ap(:,:,:,:)
+    logical, pointer, optional :: lp(:,:,:,:)
+    real(dp_t)                 :: r,r1
+    integer                    :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
+
+    r1 = 0.0_dp_t
+
+    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(+:r1) IF((hi(3)-lo(3)).ge.7)
+    if ( present(lp) ) then
+       do n = lo(4), hi(4)
+          !$OMP DO
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   if (lp(i,j,k,n)) r1 = r1 + ap(i,j,k,n)*ap(i,j,k,n)
+                end do
+             end do
+          end do
+          !$OMP END DO NOWAIT
+       end do
+    else
+       do n = lo(4), hi(4)
+          !$OMP DO
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   r1 = r1 + ap(i,j,k,n)*ap(i,j,k,n)
+                end do
+             end do
+          end do
+          !$OMP END DO NOWAIT
+       end do
+    end if
+    !$OMP END PARALLEL
+
+    r = r1
+
+  end function multifab_norm_l2_doit
+
   function multifab_norm_l2_c(mf, comp, nc, mask, all) result(r)
     real(dp_t) :: r
     integer, intent(in) :: comp
@@ -4370,7 +4414,6 @@ contains
     r1 = 0.0_dp_t
 
     if ( present(mask) ) then
-       !$OMP PARALLEL DO PRIVATE(i,n,lp,mp) REDUCTION(+:r1)
        do i = 1, nlocal(mf%la)
           if ( lall ) then
              lp => dataptr(mask, i, get_pbox(mask, i))
@@ -4383,21 +4426,18 @@ contains
              else
                 mp => dataptr(mf, i, get_ibox(mf, i), n)
              end if
-             r1 = r1 + sum(mp**2, mask=lp)
+             r1 = r1 + multifab_norm_l2_doit(mp,lp)
           end do
        end do
-       !$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
        do i = 1, nlocal(mf%la)
           if ( lall ) then
              mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
           else
              mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
           end if
-          r1 = r1 + sum(mp**2)
+          r1 = r1 + multifab_norm_l2_doit(mp)
        end do
-       !$OMP END PARALLEL DO
     end if
     call parallel_reduce(r, r1, MPI_SUM)
     r = sqrt(r)
