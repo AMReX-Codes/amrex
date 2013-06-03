@@ -1652,14 +1652,18 @@ contains
   subroutine logical_or(out, in)
      logical, intent(inout) :: out(:,:,:,:)
      logical, intent(in   ) ::  in(:,:,:,:)
-     integer                :: i, j, k, n
+     integer                :: i, j, k, n, nx, ny, nz, nc
      !
      ! out = out + in 
      !
-     do n = 1, size(out,4)
-        do k = 1, size(out,3)
-           do j = 1, size(out,2)
-              do i = 1, size(out,1)
+     nx = size(out,1)
+     ny = size(out,2)
+     nz = size(out,3)
+     nc = size(out,4)
+     do n = 1, nc
+        do k = 1, nz
+           do j = 1, ny
+              do i = 1, nx
                  out(i,j,k,n) = out(i,j,k,n) .or. in(i,j,k,n)
               end do
            end do
@@ -1671,14 +1675,18 @@ contains
      use bl_types
      real(dp_t), intent(inout) :: out(:,:,:,:)
      real(dp_t), intent(in   ) ::  in(:,:,:,:)
-     integer                   :: i, j, k, n
+     integer                   :: i, j, k, n, nx, ny, nz, nc
      !
      ! out = out + in 
      !
-     do n = 1, size(out,4)
-        do k = 1, size(out,3)
-           do j = 1, size(out,2)
-              do i = 1, size(out,1)
+     nx = size(out,1)
+     ny = size(out,2)
+     nz = size(out,3)
+     nc = size(out,4)
+     do n = 1, nc
+        do k = 1, nz
+           do j = 1, ny
+              do i = 1, nx
                  out(i,j,k,n) = out(i,j,k,n) + in(i,j,k,n)
               end do
            end do
@@ -1689,7 +1697,7 @@ contains
   subroutine cpy_d(out, in, filter)
      real(dp_t), intent(inout) :: out(:,:,:,:)
      real(dp_t), intent(in   ) ::  in(:,:,:,:)
-     integer                   :: i, j, k, n
+     integer                   :: i, j, k, n, nx, ny, nz, nc
     interface
        subroutine filter(out, in)
          use bl_types
@@ -1701,10 +1709,14 @@ contains
     if ( present(filter) ) then
        call filter(out,in)
     else
-       do n = 1, size(out,4)
-          do k = 1, size(out,3)
-             do j = 1, size(out,2)
-                do i = 1, size(out,1)
+       nx = size(out,1)
+       ny = size(out,2)
+       nz = size(out,3)
+       nc = size(out,4)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    out(i,j,k,n) = in(i,j,k,n)
                 end do
              end do
@@ -1716,7 +1728,7 @@ contains
   subroutine cpy_i(out, in, filter)
      integer, intent(inout) :: out(:,:,:,:)
      integer, intent(in   ) ::  in(:,:,:,:)
-     integer                :: i, j, k, n
+     integer                :: i, j, k, n, nx, ny, nz, nc
     interface
        subroutine filter(out, in)
          integer, intent(inout) :: out(:,:,:,:)
@@ -1727,10 +1739,14 @@ contains
     if ( present(filter) ) then
        call filter(out,in)
     else
-       do n = 1, size(out,4)
-          do k = 1, size(out,3)
-             do j = 1, size(out,2)
-                do i = 1, size(out,1)
+       nx = size(out,1)
+       ny = size(out,2)
+       nz = size(out,3)
+       nc = size(out,4)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    out(i,j,k,n) = in(i,j,k,n)
                 end do
              end do
@@ -1742,7 +1758,7 @@ contains
   subroutine cpy_l(out, in, filter)
      logical, intent(inout) :: out(:,:,:,:)
      logical, intent(in   ) ::  in(:,:,:,:)
-     integer                :: i, j, k, n
+     integer                :: i, j, k, n, nx, ny, nz, nc
     interface
        subroutine filter(out, in)
          logical, intent(inout) :: out(:,:,:,:)
@@ -1753,10 +1769,14 @@ contains
     if ( present(filter) ) then
        call filter(out,in)
     else
-       do n = 1, size(out,4)
-          do k = 1, size(out,3)
-             do j = 1, size(out,2)
-                do i = 1, size(out,1)
+       nx = size(out,1)
+       ny = size(out,2)
+       nz = size(out,3)
+       nc = size(out,4)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    out(i,j,k,n) = in(i,j,k,n)
                 end do
              end do
@@ -1768,7 +1788,7 @@ contains
   subroutine cpy_z(out, in, filter)
      complex(dp_t), intent(inout) :: out(:,:,:,:)
      complex(dp_t), intent(in   ) ::  in(:,:,:,:)
-     integer                   :: i, j, k, n
+     integer                   :: i, j, k, n, nx, ny, nz, nc
     interface
        subroutine filter(out, in)
          use bl_types
@@ -1780,10 +1800,14 @@ contains
     if ( present(filter) ) then
        call filter(out,in)
     else
-       do n = 1, size(out,4)
-          do k = 1, size(out,3)
-             do j = 1, size(out,2)
-                do i = 1, size(out,1)
+       nx = size(out,1)
+       ny = size(out,2)
+       nz = size(out,3)
+       nc = size(out,4)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    out(i,j,k,n) = in(i,j,k,n)
                 end do
              end do
@@ -1796,12 +1820,16 @@ contains
     real(dp_t),intent(in)    :: src(:,:,:,:)
     real(dp_t),intent(inout) :: dst(:)
     integer,intent(in)       :: ic
-    integer                  :: i,j,k,n,c
-    c = ic
-    do n = 1, size(src,4)
-       do k = 1, size(src,3)
-          do j = 1, size(src,2)
-             do i = 1, size(src,1) 
+    integer                  :: i,j,k,n,c,nx,ny,nz,nc
+    nx = size(src,1)
+    ny = size(src,2)
+    nz = size(src,3)
+    nc = size(src,4)
+    c  = ic
+    do n = 1, nc
+       do k = 1, nz
+          do j = 1, ny
+             do i = 1, nx
                 dst(c) = src(i,j,k,n)
                 c = c + 1
              end do
@@ -1815,7 +1843,7 @@ contains
     real(dp_t),intent(inout) :: dst(:,:,:,:)
     integer,intent(in)       :: ic
     integer,intent(in)       :: sh(:)
-    integer                  :: i,j,k,n,c
+    integer                  :: i,j,k,n,c,nx,ny,nz,nc
     real(dp_t), allocatable  :: ptmp(:,:,:,:)
     interface
        subroutine filter(out, in)
@@ -1826,13 +1854,17 @@ contains
     end interface
     optional filter
     if ( size(sh) /= 4 ) call bl_error("reshape_d_1_4: how did this happen?")
-    c = ic
+    c  = ic
+    nx = size(dst,1)
+    ny = size(dst,2)
+    nz = size(dst,3)
+    nc = size(dst,4)
     if ( present(filter) ) then
        allocate(ptmp(sh(1),sh(2),sh(3),sh(4)))
-       do n = 1, size(dst,4)
-          do k = 1, size(dst,3)
-             do j = 1, size(dst,2)
-                do i = 1, size(dst,1)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    ptmp(i,j,k,n) = src(c)
                    c = c + 1
                 end do
@@ -1842,10 +1874,10 @@ contains
        call filter(dst, ptmp)
        deallocate(ptmp)
     else
-       do n = 1, size(dst,4)
-          do k = 1, size(dst,3)
-             do j = 1, size(dst,2)
-                do i = 1, size(dst,1)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    dst(i,j,k,n) = src(c)
                    c = c + 1
                 end do
@@ -1859,12 +1891,16 @@ contains
     integer,intent(in)    :: src(:,:,:,:)
     integer,intent(inout) :: dst(:)
     integer,intent(in)    :: ic
-    integer               :: i,j,k,n,c
-    c = ic
-    do n = 1, size(src,4)
-       do k = 1, size(src,3)
-          do j = 1, size(src,2)
-             do i = 1, size(src,1)
+    integer               :: i,j,k,n,c,nx,ny,nz,nc
+    nx = size(src,1)
+    ny = size(src,2)
+    nz = size(src,3)
+    nc = size(src,4)
+    c  = ic
+    do n = 1, nc
+       do k = 1, nz
+          do j = 1, ny
+             do i = 1, nx
                 dst(c) = src(i,j,k,n)
                 c = c + 1
              end do
@@ -1878,7 +1914,7 @@ contains
     integer,intent(inout) :: dst(:,:,:,:)
     integer,intent(in)    :: ic
     integer,intent(in)    :: sh(:)
-    integer               :: i,j,k,n,c
+    integer               :: i,j,k,n,c,nx,ny,nz,nc
     integer, allocatable  :: ptmp(:,:,:,:)
     interface
        subroutine filter(out, in)
@@ -1888,13 +1924,17 @@ contains
     end interface
     optional filter
     if ( size(sh) /= 4 ) call bl_error("reshape_i_1_4: how did this happen?")
-    c = ic
+    nx = size(dst,1)
+    ny = size(dst,2)
+    nz = size(dst,3)
+    nc = size(dst,4)
+    c  = ic
     if ( present(filter) ) then
        allocate(ptmp(sh(1),sh(2),sh(3),sh(4)))
-       do n = 1, size(dst,4)
-          do k = 1, size(dst,3)
-             do j = 1, size(dst,2)
-                do i = 1, size(dst,1)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    ptmp(i,j,k,n) = src(c)
                    c = c + 1
                 end do
@@ -1904,10 +1944,10 @@ contains
        call filter(dst, ptmp)
        deallocate(ptmp)
     else
-       do n = 1, size(dst,4)
-          do k = 1, size(dst,3)
-             do j = 1, size(dst,2)
-                do i = 1, size(dst,1)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    dst(i,j,k,n) = src(c)
                    c = c + 1
                 end do
@@ -1921,12 +1961,16 @@ contains
     logical,intent(in)    :: src(:,:,:,:)
     logical,intent(inout) :: dst(:)
     integer,intent(in)    :: ic
-    integer               :: i,j,k,n,c
-    c = ic
-    do n = 1, size(src,4)
-       do k = 1, size(src,3)
-          do j = 1, size(src,2)
-             do i = 1, size(src,1)
+    integer               :: i,j,k,n,c,nx,ny,nz,nc
+    nx = size(src,1)
+    ny = size(src,2)
+    nz = size(src,3)
+    nc = size(src,4)
+    c  = ic
+    do n = 1, nc
+       do k = 1, nz
+          do j = 1, ny
+             do i = 1, nx
                 dst(c) = src(i,j,k,n)
                 c = c + 1
              end do
@@ -1940,7 +1984,7 @@ contains
     logical,intent(inout) :: dst(:,:,:,:)
     integer,intent(in)    :: ic
     integer,intent(in)    :: sh(:)
-    integer               :: i,j,k,n,c
+    integer               :: i,j,k,n,c,nx,ny,nz,nc
     logical, allocatable  :: ptmp(:,:,:,:)
     interface
        subroutine filter(out, in)
@@ -1950,13 +1994,17 @@ contains
     end interface
     optional filter
     if ( size(sh) /= 4 ) call bl_error("reshape_l_1_4: how did this happen?")
-    c = ic
+    nx = size(dst,1)
+    ny = size(dst,2)
+    nz = size(dst,3)
+    nc = size(dst,4)
+    c  = ic
     if ( present(filter) ) then
        allocate(ptmp(sh(1),sh(2),sh(3),sh(4)))
-       do n = 1, size(dst,4)
-          do k = 1, size(dst,3)
-             do j = 1, size(dst,2)
-                do i = 1, size(dst,1)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    ptmp(i,j,k,n) = src(c)
                    c = c + 1
                 end do
@@ -1966,10 +2014,10 @@ contains
        call filter(dst, ptmp)
        deallocate(ptmp)
     else
-       do n = 1, size(dst,4)
-          do k = 1, size(dst,3)
-             do j = 1, size(dst,2)
-                do i = 1, size(dst,1)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    dst(i,j,k,n) = src(c)
                    c = c + 1
                 end do
@@ -1983,12 +2031,16 @@ contains
     complex(dp_t),intent(in)    :: src(:,:,:,:)
     complex(dp_t),intent(inout) :: dst(:)
     integer,intent(in)          :: ic
-    integer                     :: i,j,k,n,c
-    c = ic
-    do n = 1, size(src,4)
-       do k = 1, size(src,3)
-          do j = 1, size(src,2)
-             do i = 1, size(src,1)
+    integer                     :: i,j,k,n,c,nx,ny,nz,nc
+    nx = size(src,1)
+    ny = size(src,2)
+    nz = size(src,3)
+    nc = size(src,4)
+    c  = ic
+    do n = 1, nc
+       do k = 1, nz
+          do j = 1, ny
+             do i = 1, nx
                 dst(c) = src(i,j,k,n);
                 c = c + 1
              end do
@@ -2002,7 +2054,7 @@ contains
     complex(dp_t),intent(inout) :: dst(:,:,:,:)
     integer,intent(in)          :: ic
     integer,intent(in)          :: sh(:)
-    integer                     :: i,j,k,n,c
+    integer                     :: i,j,k,n,c,nx,ny,nz,nc
     complex(dp_t), allocatable  :: ptmp(:,:,:,:)
     interface
        subroutine filter(out, in)
@@ -2013,13 +2065,17 @@ contains
     end interface
     optional filter
     if ( size(sh) /= 4 ) call bl_error("reshape_z_1_4: how did this happen?")
-    c = ic
+    nx = size(dst,1)
+    ny = size(dst,2)
+    nz = size(dst,3)
+    nc = size(dst,4)
+    c  = ic
     if ( present(filter) ) then
        allocate(ptmp(sh(1),sh(2),sh(3),sh(4)))
-       do n = 1, size(dst,4)
-          do k = 1, size(dst,3)
-             do j = 1, size(dst,2)
-                do i = 1, size(dst,1)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    ptmp(i,j,k,n) = src(c)
                    c = c + 1
                 end do
@@ -2029,10 +2085,10 @@ contains
        call filter(dst, ptmp)
        deallocate(ptmp)
     else
-       do n = 1, size(dst,4)
-          do k = 1, size(dst,3)
-             do j = 1, size(dst,2)
-                do i = 1, size(dst,1)
+       do n = 1, nc
+          do k = 1, nz
+             do j = 1, ny
+                do i = 1, nx
                    dst(i,j,k,n) = src(c)
                    c = c + 1
                 end do
@@ -3902,6 +3958,7 @@ contains
 
     if ( cell_centered_q(mf) ) then
 
+       !$OMP PARALLEL DO PRIVATE(n,mp,mp1,lmp) REDUCTION(+:r1)
        do n = 1, nlocal(mf%la)
           mp  => dataptr(mf,  n, get_ibox(mf,  n), comp)
           mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
@@ -3912,11 +3969,13 @@ contains
              r1 = r1 + sum(mp*mp1)
           endif
        end do
+       !$OMP END PARALLEL DO
 
     else if ( nodal_q(mf) ) then
 
        if ( .not. present(nodal_mask) ) call build_nodal_dot_mask(tmask, mf)
 
+       !$OMP PARALLEL DO PRIVATE(n,mp,mp1,ma) REDUCTION(+:r1)
        do n = 1, nlocal(mf%la) 
           mp  => dataptr(mf,  n, get_ibox(mf,  n), comp)
           mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
@@ -4309,6 +4368,7 @@ contains
     lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
+
     if ( present(mask) ) then
        !$OMP PARALLEL DO PRIVATE(i,n,lp,mp) REDUCTION(+:r1)
        do i = 1, nlocal(mf%la)
