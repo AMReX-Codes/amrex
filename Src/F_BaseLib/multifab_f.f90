@@ -422,22 +422,6 @@ module multifab_module
 
 contains
 
-  function only_small_boxes(mf) result(r)
-    type(multifab), intent(in) :: mf
-    logical             :: r
-    integer             :: i
-    real(dp_t), pointer :: ap(:,:,:,:)
-    integer, parameter  :: LEN = 32
-    r = .true.
-    do i = 1, nlocal(mf%la)
-       ap => dataptr(mf,i)
-       if ( (ubound(ap,dim=3) - lbound(ap,dim=3)) .ge. LEN ) then
-          r = .false.
-          exit
-       end if
-    end do
-  end function only_small_boxes
-
   pure function multifab_nodal_flags(mf) result(r)
     type(multifab), intent(in) :: mf
     logical :: r(mf%dim)
@@ -4138,7 +4122,7 @@ contains
                 end do
              end do
           end do
-          !$OMP END DO
+          !$OMP END DO NOWAIT
        end do
        !$OMP END PARALLEL
 
@@ -4564,7 +4548,6 @@ contains
     integer :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
-
     r1 = 0
     do i = 1, nlocal(mf%la)
        if ( lall ) then
