@@ -813,7 +813,6 @@ contains
 
     if (stencil_type .eq. ND_CROSS_STENCIL) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,doit,jface,kface) IF(nz.ge.4)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -844,11 +843,9 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
     else if (stencil_type .eq. ND_DENSE_STENCIL) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,doit,jface,kface)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -892,7 +889,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     else
        call bl_error("stencil_apply_3d_nodal: dont know this stencil_type")
     end if
