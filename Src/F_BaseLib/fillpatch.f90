@@ -420,7 +420,7 @@ contains
              bx  =  grow(get_ibox(fine,i), ng)
              dst => dataptr(fine,    i, bx, icomp_fine, nc)
              src => dataptr(tmpfine, i, bx, 1         , nc)
-             dst =  src
+             call cpy_d(dst,src)
           end do
           !$OMP END PARALLEL DO
        else

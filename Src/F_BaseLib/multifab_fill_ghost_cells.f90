@@ -113,7 +113,7 @@ contains
           bx  =  get_box(ba,j)
           dst => dataptr(fine,    i, bx, icomp, nc)
           src => dataptr(tmpfine, i, bx, 1    , nc)
-          dst =  src
+          call cpy_d(dst,src)
        end do
        call destroy(ba)
     end do

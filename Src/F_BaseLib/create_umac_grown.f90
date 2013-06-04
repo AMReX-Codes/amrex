@@ -94,7 +94,7 @@ contains
 
     ! Grab the cached boxarray of all ghost cells not covered by valid region.
     fine_la = get_layout(fine(1))
-    fgasc = layout_fgassoc(fine_la, 1)
+    fgasc   = layout_fgassoc(fine_la, 1)
 
     call boxarray_build_copy(f_ba,fgasc%ba)
     call boxarray_build_copy(c_ba,fgasc%ba)
@@ -131,7 +131,7 @@ contains
        do j=1,nfabs(tcrse)
           fp => dataptr(tcrse,  j)
           cp => dataptr(crse(i),j, get_ibox(tcrse,j))
-          fp =  cp
+          call cpy_d(fp,cp)
        end do
        !$OMP END PARALLEL DO
 
@@ -204,7 +204,7 @@ contains
           do k = 1, nboxes(tba)
              fp => dataptr(fine(i), j, get_box(tba,k))
              cp => dataptr(tfine,   j, get_box(tba,k))
-             fp = cp
+             call cpy_d(fp,cp)
           end do
           call destroy(tba)
        end do

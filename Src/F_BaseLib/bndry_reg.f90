@@ -334,7 +334,7 @@ contains
        do i = 1, nfabs(mf)
           src => dataptr(mf,  i)
           dst => dataptr(tmf, i)
-          dst =  src
+          call cpy_d(dst,src)
        end do
 
        do i = 1, br%dim
