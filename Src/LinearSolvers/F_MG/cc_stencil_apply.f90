@@ -546,7 +546,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
     ! This is the Minion 4th order cross stencil.
     if (size(ss,dim=1) .eq. 13) then
  
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -560,12 +559,10 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
     ! This is the 4th order cross stencil for variable coefficients.
     else if (size(ss,dim=1) .eq. 61) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k)
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -618,12 +615,10 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
     ! This is the 2nd order cross stencil.
     else 
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k) IF(nz.ge.4)
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -638,7 +633,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
     end if
 
@@ -918,7 +912,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
     ny = size(ss,dim=3)
     nz = size(ss,dim=4)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -955,7 +948,6 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, stencil_type, 
           end do
        end do
     end do
-    !$OMP END PARALLEL DO
 
   end subroutine stencil_dense_apply_3d
 
