@@ -207,6 +207,8 @@ public:
     // Promote DistributionMap() back to public.
     //
     MultiFab::DistributionMap;
+
+    MultiFab::IndexMap;
     //
     // Promote size() back to public.
     //
