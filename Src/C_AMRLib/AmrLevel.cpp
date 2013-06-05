@@ -172,11 +172,18 @@ AmrLevel::isStateVariable (const std::string& name,
 long
 AmrLevel::countCells () const
 {
+    const int N = grids.size();
+
     long cnt = 0;
-    for (int i = 0, N = grids.size(); i < N; i++)
+
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:cnt)
+#endif
+    for (int i = 0; i < N; i++)
     {
         cnt += grids[i].numPts();
     }
+
     return cnt;
 }
 
@@ -430,22 +437,20 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
         typedef std::map<int,Array<Array<Array<FillBoxId> > > >::value_type IntAAAFBIDMapValType;
 
-        if (m_leveldata.DistributionMap()[i] == MyProc)
-        {
-            //
-            // Insert with a hint since the indices are ordered lowest to highest.
-            //
-            IntAAAFBIDMapValType v1(i,Array<Array<Array<FillBoxId> > >());
+        if (m_leveldata.DistributionMap()[i] != MyProc) continue;
+        //
+        // Insert with a hint since the indices are ordered lowest to highest.
+        //
+        IntAAAFBIDMapValType v1(i,Array<Array<Array<FillBoxId> > >());
 
-            m_fbid.insert(m_fbid.end(),v1)->second.resize(m_amrlevel.level+1);
+        m_fbid.insert(m_fbid.end(),v1)->second.resize(m_amrlevel.level+1);
 
-            IntAABoxMapValType v2(i,Array<Array<Box> >());
+        IntAABoxMapValType v2(i,Array<Array<Box> >());
 
-            m_fbox.insert(m_fbox.end(),v2)->second.resize(m_amrlevel.level+1);
-            m_cbox.insert(m_cbox.end(),v2)->second.resize(m_amrlevel.level+1);
+        m_fbox.insert(m_fbox.end(),v2)->second.resize(m_amrlevel.level+1);
+        m_cbox.insert(m_cbox.end(),v2)->second.resize(m_amrlevel.level+1);
 
-            m_ba.insert(m_ba.end(),std::map<int,Box>::value_type(i,BoxLib::grow(m_leveldata.boxArray()[i],m_growsize)));
-        }
+        m_ba.insert(m_ba.end(),std::map<int,Box>::value_type(i,BoxLib::grow(m_leveldata.boxArray()[i],m_growsize)));
     }
 
     BoxList        tempUnfillable(boxType);
@@ -829,10 +834,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     BL_ASSERT(fab.box() == m_ba[idx]);
     BL_ASSERT(fab.nComp() >= dcomp + m_ncomp);
 
-    Array<IntVect>             pshifts(27);
-    Array<BCRec>               bcr(m_ncomp);
-    Array< PArray<FArrayBox> > cfab(m_amrlevel.level+1);
-
+    Array<BCRec>                        bcr(m_ncomp);
+    Array< PArray<FArrayBox> >          cfab(m_amrlevel.level+1);
     Array< Array<Box> >&                TheCrseBoxes = m_cbox[idx];
     Array< Array<Box> >&                TheFineBoxes = m_fbox[idx];
     Array< Array< Array<FillBoxId> > >& TheFBIDs     = m_fbid[idx];
@@ -848,16 +851,18 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         const Array<Box>&                CrseBoxes = TheCrseBoxes[l];
         PArray<FArrayBox>&               CrseFabs  = cfab[l];
         const Array< Array<FillBoxId> >& FBIDs     = TheFBIDs[l];
+        const int                        NC        = CrseBoxes.size();
 
-        CrseFabs.resize(CrseBoxes.size(),PArrayManage);
+        CrseFabs.resize(NC,PArrayManage);
 
-        for (int i = 0, N = CrseFabs.size(); i < N; i++)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < NC; i++)
         {
-            const Box& cbox = CrseBoxes[i];
+            BL_ASSERT(CrseBoxes[i].ok());
 
-            BL_ASSERT(cbox.ok());
-
-            CrseFabs.set(i, new FArrayBox(cbox,m_ncomp));
+            CrseFabs.set(i, new FArrayBox(CrseBoxes[i],m_ncomp));
             //
             // Set to special value we'll later check
             // to ensure we've filled the FABs at the coarse level.
@@ -879,8 +884,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     // Now work from the bottom up interpolating to next higher level.
     //
-    FArrayBox finefab, crsefab;
-
     for (int l = 0; l < m_amrlevel.level; l++)
     {
         PArray<FArrayBox>& CrseFabs   = cfab[l];
@@ -893,35 +896,41 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Fill CrseFabs with periodic data in preparation for interp().
             //
-            for (int i = 0, N = CrseFabs.size(); i < N; i++)
+            const int NC = CrseFabs.size();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+            for (int i = 0; i < NC; i++)
             {
                 FArrayBox& dstfab = CrseFabs[i];
 
-                if (!ThePDomain.contains(dstfab.box()))
+                if (ThePDomain.contains(dstfab.box())) continue;
+
+                Array<IntVect> pshifts(27);
+
+                TheLevel.geom.periodicShift(ThePDomain,dstfab.box(),pshifts);
+
+                for (Array<IntVect>::const_iterator pit = pshifts.begin(),
+                         End = pshifts.end();
+                     pit != End;
+                     ++pit)
                 {
-                    TheLevel.geom.periodicShift(ThePDomain,dstfab.box(),pshifts);
+                    const IntVect& iv = *pit;
 
-                    for (Array<IntVect>::const_iterator pit = pshifts.begin(),
-                             End = pshifts.end();
-                         pit != End;
-                         ++pit)
+                    Box fullsrcbox = dstfab.box() + iv;
+                    fullsrcbox    &= ThePDomain;
+
+                    for (int j = 0, K = CrseFabs.size(); j < K; j++)
                     {
-                        const IntVect& iv = *pit;
+                        const FArrayBox& srcfab = CrseFabs[j];
+                        const Box        srcbox = fullsrcbox & srcfab.box();
 
-                        Box fullsrcbox = dstfab.box() + iv;
-                        fullsrcbox    &= ThePDomain;
-
-                        for (int j = 0, K = CrseFabs.size(); j < K; j++)
+                        if (srcbox.ok())
                         {
-                            FArrayBox& srcfab = CrseFabs[j];
-                            const Box  srcbox = fullsrcbox & srcfab.box();
+                            const Box dstbox = srcbox - iv;
 
-                            if (srcbox.ok())
-                            {
-                                const Box dstbox = srcbox - iv;
-
-                                dstfab.copy(srcfab,srcbox,0,dstbox,0,m_ncomp);
-                            }
+                            dstfab.copy(srcfab,srcbox,0,dstbox,0,m_ncomp);
                         }
                     }
                 }
@@ -931,7 +940,12 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         // Set non-periodic BCs in coarse data -- what we interpolate with.
         // This MUST come after the periodic fill mumbo-jumbo.
         //
-        for (int i = 0, N = CrseFabs.size(); i < N; i++)
+        const int NC = CrseFabs.size();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < NC; i++)
         {
             if (!ThePDomain.contains(CrseFabs[i].box()))
             {
@@ -950,7 +964,12 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         if (m_FixUpCorners)
         {
-            for (int i = 0, N = CrseFabs.size(); i < N; i++)
+            const int NC = CrseFabs.size();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+            for (int i = 0; i < NC; i++)
             {
                 FixUpPhysCorners(CrseFabs[i],TheLevel,m_index,m_time,m_scomp,0,m_ncomp);
             }
@@ -967,14 +986,15 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         PArray<FArrayBox>&  FinerCrseFabs = cfab[l+1];
         const Array<BCRec>& theBCs        = AmrLevel::desc_lst[m_index].getBCs();
 
-        for (Array<Box>::const_iterator fit = FineBoxes.begin(),
-                 End = FineBoxes.end();
-             fit != End;
-             ++fit)
-        {
-            finefab.resize(*fit,m_ncomp);
+        const int NF = FineBoxes.size();
 
-            crsefab.resize(m_map->CoarseBox(finefab.box(),fine_ratio),m_ncomp);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int ifine = 0; ifine < NF; ++ifine)
+        {
+            FArrayBox finefab(FineBoxes[ifine],m_ncomp);
+            FArrayBox crsefab(m_map->CoarseBox(finefab.box(),fine_ratio),m_ncomp);
             //
             // Fill crsefab from m_cbox via copy on intersect.
             //
@@ -1012,14 +1032,17 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Copy intersect finefab into next level m_cboxes.
             //
-            for (int j = 0, K = FinerCrseFabs.size(); j < K; j++)
-                FinerCrseFabs[j].copy(finefab);
+#ifdef _OPENMP
+#pragma omp critical(fillpatch)
+#endif
+            {
+                for (int j = 0, K = FinerCrseFabs.size(); j < K; j++)
+                    FinerCrseFabs[j].copy(finefab);
+            }
         }
 
         CrseFabs.clear();
     }
-
-    finefab.clear(); crsefab.clear();
     //
     // Now for the finest level stuff.
     //
@@ -1041,6 +1064,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
     if (FineGeom.isAnyPeriodic() && !FineDomain.contains(fab.box()))
     {
+        Array<IntVect> pshifts(27);
+
         FineGeom.periodicShift(FineDomain,fab.box(),pshifts);
 
         for (int i = 0, N = FinestCrseFabs.size(); i < N; i++)
@@ -1133,21 +1158,27 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         }
 
         MultiFab crseMF(crseBA,NComp,0,Fab_noallocate);
-        
-        for (FillPatchIterator fpi(clev,crseMF,0,time,index,SComp,NComp);
-             fpi.isValid();
-             ++fpi)
+
+        FillPatchIterator fpi(clev,crseMF,0,time,index,SComp,NComp);
+
+        const int N = fpi.m_fabs.IndexMap().size();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; i++)
         {
-            const Box& dbox = mf_BA[fpi.index()];
+            const int  idx = fpi.m_fabs.IndexMap()[i];
+            const Box& dbx = mf_BA[idx];
 
-            BoxLib::setBC(dbox,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
+            BoxLib::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
-            mapper->interp(fpi(),
+            mapper->interp(fpi.m_fabs[idx],
                            0,
-                           mf[fpi],
+                           mf[idx],
                            DComp,
                            NComp,
-                           dbox,
+                           dbx,
                            crse_ratio,
                            clev.geom,
                            geom,
