@@ -133,15 +133,17 @@ FluxRegister::SumReg (int comp) const
 {
     Real sum = 0.0;
 
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:sum)
+#endif
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        const FabSet& lofabs = bndry[Orientation(dir,Orientation::low)];
+        const FabSet& lofabs = bndry[Orientation(dir,Orientation::low) ];
         const FabSet& hifabs = bndry[Orientation(dir,Orientation::high)];
 
         for (FabSetIter fsi(lofabs); fsi.isValid(); ++fsi)
         {
-            sum += lofabs[fsi].sum(comp);
-            sum -= hifabs[fsi].sum(comp);
+            sum += (lofabs[fsi].sum(comp) - hifabs[fsi].sum(comp));
         }
     }
 
@@ -367,20 +369,22 @@ FluxRegister::Reflux (MultiFab&       S,
 
     fscd.CollectData();
 
-    FArrayBox reg;
+    const int N = Recs.size();
 
-    for (std::deque<Rec>::const_iterator it = Recs.begin(), End = Recs.end();
-         it != End;
-         ++it)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
     {
-        const Rec&       rf   = *it;
+        const Rec&       rf   = Recs[i];
         const FillBoxId& fbid = rf.m_fbid;
 
         BL_ASSERT(bndry[rf.m_face].box(rf.m_sIndex) == fbid.box());
         BL_ASSERT(S.DistributionMap()[rf.m_dIndex] == ParallelDescriptor::MyProc());
         BL_ASSERT(volume.DistributionMap()[rf.m_dIndex] == ParallelDescriptor::MyProc());
 
-        reg.resize(fbid.box(), num_comp);
+        FArrayBox reg(fbid.box(), num_comp);
+
         fscd.FillFab(fsid[rf.m_face], fbid, reg);
 
         RefluxIt(rf,scale,multf,grids,S,volume,bndry,reg,0,dest_comp,num_comp);
@@ -823,9 +827,11 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 {
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
+
 #ifndef NDEBUG
     Box cbox = BoxLib::coarsen(flux.box(),ratio);
 #endif
+
     const Box&  flxbox = flux.box();
     const int*  flo    = flxbox.loVect();
     const int*  fhi    = flxbox.hiVect();
@@ -864,9 +870,11 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 {
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
+
 #ifndef NDEBUG
     Box cbox = BoxLib::coarsen(flux.box(),ratio);
 #endif
+
     const Real* area_dat = area.dataPtr();
     const int*  alo      = area.loVect();
     const int*  ahi      = area.hiVect();
