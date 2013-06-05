@@ -81,9 +81,14 @@ BndryRegister::defineDoit (Orientation _face,
     //
     // Build the BoxArray on which to define the FabSet on this face.
     //
-    fsBA.resize(grids.size());
+    const int N = grids.size();
 
-    for (int idx = 0, N = grids.size(); idx < N; ++idx)
+    fsBA.resize(N);
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int idx = 0; idx < N; ++idx)
     {
         Box b;
         //
