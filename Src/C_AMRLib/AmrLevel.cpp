@@ -890,14 +890,13 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         AmrLevel&          TheLevel   = amrLevels[l];
         StateData&         TheState   = TheLevel.state[m_index];
         const Box&         ThePDomain = TheState.getDomain();
+        const int          NC         = CrseFabs.size();
 
         if (TheLevel.geom.isAnyPeriodic())
         {
             //
             // Fill CrseFabs with periodic data in preparation for interp().
             //
-            const int NC = CrseFabs.size();
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -921,7 +920,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                     Box fullsrcbox = dstfab.box() + iv;
                     fullsrcbox    &= ThePDomain;
 
-                    for (int j = 0, K = CrseFabs.size(); j < K; j++)
+                    for (int j = 0; j < NC; j++)
                     {
                         const FArrayBox& srcfab = CrseFabs[j];
                         const Box        srcbox = fullsrcbox & srcfab.box();
@@ -940,8 +939,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         // Set non-periodic BCs in coarse data -- what we interpolate with.
         // This MUST come after the periodic fill mumbo-jumbo.
         //
-        const int NC = CrseFabs.size();
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -964,8 +961,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         if (m_FixUpCorners)
         {
-            const int NC = CrseFabs.size();
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -985,8 +980,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         const Box&          fDomain       = fState.getDomain();
         PArray<FArrayBox>&  FinerCrseFabs = cfab[l+1];
         const Array<BCRec>& theBCs        = AmrLevel::desc_lst[m_index].getBCs();
-
-        const int NF = FineBoxes.size();
+        const int           NF            = FineBoxes.size();
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -998,7 +992,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Fill crsefab from m_cbox via copy on intersect.
             //
-            for (int j = 0, M = CrseFabs.size(); j < M; j++)
+            for (int j = 0; j < NC; j++)
                 crsefab.copy(CrseFabs[j]);
             //
             // Get boundary conditions for the fine patch.
