@@ -397,6 +397,8 @@ class FillPatchIterator
 {
   public:
 
+    friend class AmrLevel;
+
     FillPatchIterator (AmrLevel& amrlevel,
                        MultiFab& leveldata);
 
