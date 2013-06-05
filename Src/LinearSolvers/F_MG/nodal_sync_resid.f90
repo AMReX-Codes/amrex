@@ -193,7 +193,7 @@ contains
     ny = size(msk,dim=2) - 2
     nz = size(msk,dim=3) - 2
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,result)
     do k = 0, nz
        do j = 0, ny
           do i = 0, nx
