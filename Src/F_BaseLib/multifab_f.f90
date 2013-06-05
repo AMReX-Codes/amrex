@@ -3970,6 +3970,7 @@ contains
           endif
           r1 = r1 + sum(ma*mp*mp1)
        end do
+       !$OMP END PARALLEL DO
 
        if ( .not. present(nodal_mask) ) call destroy(tmask)
     else
