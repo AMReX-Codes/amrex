@@ -242,7 +242,13 @@ ifdef USE_GCC
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-    CXXFLAGS =  -ftemplate-depth-64 -Wno-deprecated
+    CXXFLAGS = -Wno-deprecated
+    ifeq ($(USE_IN_SITU), TRUE)
+        # Necessary to compile in situ analysis
+        CXXFLAGS += -ftemplate-depth-256
+    else
+        CXXFLAGS += -ftemplate-depth-64
+    endif
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
