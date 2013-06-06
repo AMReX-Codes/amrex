@@ -3942,7 +3942,7 @@ contains
 
     if ( cell_centered_q(mf) ) then
 
-       !$OMP PARALLEL DO PRIVATE(n,mp,mp1,lmp) REDUCTION(+:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,mp,mp1,lmp,lo,hi) REDUCTION(+:r1)
        do n = 1, nlocal(mf%la)
           mp  => dataptr(mf,  n, get_ibox(mf,  n), comp)
           mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
@@ -3983,7 +3983,7 @@ contains
 
        if ( .not. present(nodal_mask) ) call build_nodal_dot_mask(tmask, mf)
 
-       !$OMP PARALLEL DO PRIVATE(n,mp,mp1,ma) REDUCTION(+:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,mp,mp1,ma,lo,hi) REDUCTION(+:r1)
        do n = 1, nlocal(mf%la) 
           mp  => dataptr(mf,  n, get_ibox(mf,  n), comp)
           mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
