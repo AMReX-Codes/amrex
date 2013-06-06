@@ -1067,17 +1067,23 @@ BaseFab<T>::define ()
     // Now call T::T() on the raw memory so we have valid Ts.
     //
     T* ptr = dptr;
-
-    // Note this must be long not int for very large (e.g.,1024^3) boxes
+    //
+    // Note this must be long not int for very large (e.g.,1024^3) boxes.
+    //
     for (long i = 0; i < truesize; i++, ptr++)
     {
         new (ptr) T;
     }
-    BoxLib::total_bytes_allocated_in_fabs += truesize*sizeof(T);
-
-    if (BoxLib::total_bytes_allocated_in_fabs > BoxLib::total_bytes_allocated_in_fabs_hwm)
+#ifdef _OPENMP
+#pragma omp critical
+#endif
     {
-        BoxLib::total_bytes_allocated_in_fabs_hwm = BoxLib::total_bytes_allocated_in_fabs;
+        BoxLib::total_bytes_allocated_in_fabs += truesize*sizeof(T);
+
+        if (BoxLib::total_bytes_allocated_in_fabs > BoxLib::total_bytes_allocated_in_fabs_hwm)
+        {
+            BoxLib::total_bytes_allocated_in_fabs_hwm = BoxLib::total_bytes_allocated_in_fabs;
+        }
     }
 }
 
