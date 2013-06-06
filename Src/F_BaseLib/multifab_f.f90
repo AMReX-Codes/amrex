@@ -3928,7 +3928,7 @@ contains
     type(multifab)      :: tmask
     real(dp_t), pointer :: mp(:,:,:,:), mp1(:,:,:,:), ma(:,:,:,:)
     logical,    pointer :: lmp(:,:,:,:)
-    real(dp_t)          :: r1
+    real(dp_t)          :: r1,r2
     integer             :: i,j,k,l,n,lo(4),hi(4)
     logical             :: llocal
 
@@ -3942,48 +3942,40 @@ contains
 
     if ( cell_centered_q(mf) ) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,mp,mp1,lmp,lo,hi) REDUCTION(+:r1)
        do n = 1, nlocal(mf%la)
-          mp  => dataptr(mf,  n, get_ibox(mf,  n), comp)
-          mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
+          mp  => dataptr(mf,  n, get_ibox(mf, n), comp)
+          mp1 => dataptr(mf1, n, get_ibox(mf1,n), comp1)
 
-          lo = lbound(mp)
-          hi = ubound(mp)
+          lo = lbound(mp); hi = ubound(mp)
+
+          r2 = 0.0_dp_t
 
           if ( present(mask) )then
              lmp => dataptr(mask, n, get_ibox(mask, n), 1)
-
-             ! r1 = r1 + sum(mp*mp1, mask = lmp)
-
              do k = lo(3), hi(3)
                 do j = lo(2), hi(2)
                    do i = lo(1), hi(1)
-                      if ( lmp(i,j,k,1) ) r1 = r1 + mp(i,j,k,1)*mp1(i,j,k,1)
+                      if ( lmp(i,j,k,1) ) r2 = r2 + mp(i,j,k,1)*mp1(i,j,k,1)
                    end do
                 end do
              end do
-
           else
-
-             ! r1 = r1 + sum(mp*mp1)
-
              do k = lo(3), hi(3)
                 do j = lo(2), hi(2)
                    do i = lo(1), hi(1)
-                      r1 = r1 + mp(i,j,k,1)*mp1(i,j,k,1)
+                      r2 = r2 + mp(i,j,k,1)*mp1(i,j,k,1)
                    end do
                 end do
              end do
-
           endif
+
+          r1 = r1 + r2
        end do
-       !$OMP END PARALLEL DO
 
     else if ( nodal_q(mf) ) then
 
        if ( .not. present(nodal_mask) ) call build_nodal_dot_mask(tmask, mf)
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,mp,mp1,ma,lo,hi) REDUCTION(+:r1)
        do n = 1, nlocal(mf%la) 
           mp  => dataptr(mf,  n, get_ibox(mf,  n), comp)
           mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
@@ -3993,21 +3985,20 @@ contains
              ma => dataptr(tmask,      n, get_ibox(tmask,      n))
           endif
 
-          ! r1 = r1 + sum(ma*mp*mp1)
+          lo = lbound(mp); hi = ubound(mp)
 
-          lo = lbound(mp)
-          hi = ubound(mp)
+          r2 = 0.0_dp_t
 
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
-                   r1 = r1 + ma(i,j,k,1)*mp(i,j,k,1)*mp1(i,j,k,1)
+                   r2 = r2 + ma(i,j,k,1)*mp(i,j,k,1)*mp1(i,j,k,1)
                 end do
              end do
           end do
 
+          r1 = r1 + r2
        end do
-       !$OMP END PARALLEL DO
 
        if ( .not. present(nodal_mask) ) call destroy(tmask)
     else
