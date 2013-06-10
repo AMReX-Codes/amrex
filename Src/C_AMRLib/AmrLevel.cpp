@@ -834,7 +834,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     BL_ASSERT(fab.box() == m_ba[idx]);
     BL_ASSERT(fab.nComp() >= dcomp + m_ncomp);
 
-    Array<BCRec>                        bcr(m_ncomp);
     Array< PArray<FArrayBox> >          cfab(m_amrlevel.level+1);
     Array< Array<Box> >&                TheCrseBoxes = m_cbox[idx];
     Array< Array<Box> >&                TheFineBoxes = m_fbox[idx];
@@ -987,8 +986,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 #endif
         for (int ifine = 0; ifine < NF; ++ifine)
         {
-            FArrayBox finefab(FineBoxes[ifine],m_ncomp);
-            FArrayBox crsefab(m_map->CoarseBox(finefab.box(),fine_ratio),m_ncomp);
+            Array<BCRec> bcr(m_ncomp);
+            FArrayBox    finefab(FineBoxes[ifine],m_ncomp);
+            FArrayBox    crsefab(m_map->CoarseBox(finefab.box(),fine_ratio),m_ncomp);
             //
             // Fill crsefab from m_cbox via copy on intersect.
             //
@@ -1126,7 +1126,6 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     BL_ASSERT(ncomp <= (mf.nComp()-dcomp));
     BL_ASSERT(0 <= index && index < desc_lst.size());
 
-    Array<BCRec>            bcr(ncomp);
     int                     DComp   = dcomp;
     const StateDescriptor&  desc    = desc_lst[index];
     const Box&              pdomain = state[index].getDomain();
@@ -1165,6 +1164,8 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         {
             const int  idx = fpi.m_fabs.IndexMap()[i];
             const Box& dbx = mf_BA[idx];
+
+            Array<BCRec> bcr(ncomp);
 
             BoxLib::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
