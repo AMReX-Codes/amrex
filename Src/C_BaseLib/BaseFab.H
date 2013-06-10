@@ -1536,6 +1536,12 @@ BaseFab<Real>::norm (const Box& subbox,
                      int        p,
                      int        comp,
                      int        ncomp) const;
+
+template <>
+Real
+BaseFab<Real>::sum (const Box& subbox,
+                    int        comp,
+                    int        ncomp) const;
 template <>
 BaseFab<Real>&
 BaseFab<Real>::plus (const BaseFab<Real>& src,

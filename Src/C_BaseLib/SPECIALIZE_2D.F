@@ -218,6 +218,39 @@ c
 
       end
 c
+c     Calculate sum() over section of an array.
+c
+      subroutine FORT_FASTSUM (src,DIMS(src),lo,hi,ncomp,sm)
+
+      implicit none
+
+      integer ncomp
+      integer lo(3), hi(3)
+      integer DIMDEC(src)
+      REAL_T  src(DIMV(src),ncomp), sm
+c
+c     Local variables.
+c
+      integer i,j,k
+      integer imin,jmin,imax,jmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
+
+      sm = 0.0d0
+
+      do k = 1, ncomp
+         do j = jmin,jmax
+            do i = imin,imax
+               sm = sm + src(i,j,k)
+            end do
+         end do
+      end do
+
+      end
+c
 c     This function adds floating point numbers from one array to another.
 c
       subroutine FORT_FASTPLUS (dest,
