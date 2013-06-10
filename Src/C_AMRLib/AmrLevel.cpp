@@ -1118,6 +1118,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
                            int       scomp,
                            int       ncomp)
 {
+    BL_PROFILE("AmrLevel::FillCoarsePatch()");
     //
     // Must fill this region on crse level and interpolate.
     //

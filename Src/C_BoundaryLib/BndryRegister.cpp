@@ -74,6 +74,8 @@ BndryRegister::defineDoit (Orientation _face,
                            int         _extent_rad,
                            BoxArray&   fsBA)
 {
+    BL_PROFILE("BndryRegister::defineDoit()");
+
     BL_ASSERT(grids.size() > 0);
 
     const int coord_dir = _face.coordDir();
