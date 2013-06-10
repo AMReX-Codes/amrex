@@ -270,6 +270,8 @@ StateData::FillBoundary (FArrayBox&     dest,
     const int* plo = domain.loVect();
     const int* phi = domain.hiVect();
 
+    Array<int> bcrs;
+
     Real xlo[BL_SPACEDIM];
     BCRec bcr;
     const Real* problo = prob_domain.lo();
@@ -286,7 +288,7 @@ StateData::FillBoundary (FArrayBox&     dest,
 
         if (desc->master(sc))
         {
-            int groupsize = desc->groupsize(sc);
+            const int groupsize = desc->groupsize(sc);
 
             BL_ASSERT(groupsize != 0);
 
@@ -295,8 +297,9 @@ StateData::FillBoundary (FArrayBox&     dest,
                 //
                 // Can do the whole group at once.
                 //
-                int* bcrs = new int[2*BL_SPACEDIM*groupsize];
-                int* bci  = bcrs;
+                bcrs.resize(2*BL_SPACEDIM*groupsize);
+
+                int* bci  = bcrs.dataPtr();
 
                 for (int j = 0; j < groupsize; j++)
                 {
@@ -312,9 +315,7 @@ StateData::FillBoundary (FArrayBox&     dest,
                 //
                 // Use the "group" boundary fill routine.
                 //
-                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs,true);
-
-                delete [] bcrs;
+                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs.dataPtr(),true);
 
                 i += groupsize;
             }
