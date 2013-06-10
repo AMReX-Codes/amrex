@@ -268,6 +268,35 @@ BaseFab<Real>::norm (const Box& bx,
 }
 
 template<>
+Real
+BaseFab<Real>::sum (const Box& bx,
+                    int        comp,
+                    int        ncomp) const
+{
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+
+    const int* _box_lo = bx.loVect();            
+    const int* _box_hi = bx.hiVect();            
+    const int* _datalo = loVect();                           
+    const int* _datahi = hiVect();
+
+    const Real* _data = dataPtr(comp);
+
+    Real sm = 0;
+
+    FORT_FASTSUM(_data,
+                 ARLIM(_datalo),
+                 ARLIM(_datahi),
+                 _box_lo,
+                 _box_hi,
+                 &ncomp,
+                 &sm);
+
+    return sm;
+}
+
+template<>
 BaseFab<Real>&
 BaseFab<Real>::plus (const BaseFab<Real>& src,
                      const Box&           srcbox,
