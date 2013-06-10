@@ -790,6 +790,19 @@ public:
                            int               comp,
                            int               numcomp = 1);
     //
+    // Version of linInterp() in which b, b1, & b2 are the same.
+    //
+    BaseFab<T>& linInterp (const BaseFab<T>& f1,
+                           int               comp1,
+                           const BaseFab<T>& f2,
+                           int               comp2,
+                           Real              t1,
+                           Real              t2,
+                           Real              t,
+                           const Box&        b,
+                           int               comp,
+                           int               numcomp = 1);
+    //
     // Linear combination.  Result is alpha*f1 + beta*f2.
     // Data is taken from b1 region of f1, b2 region of f2
     // and stored in b region of this FAB.
@@ -2508,17 +2521,17 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src,
 template <class T>
 BaseFab<T>&
 BaseFab<T>::linInterp (const BaseFab<T>& f1,
-                       const Box&         b1,
-                       int                comp1,
+                       const Box&        b1,
+                       int               comp1,
                        const BaseFab<T>& f2,
-                       const Box&         b2,
-                       int                comp2,
-                       Real               t1,
-                       Real               t2,
-                       Real               t,
-                       const Box&         b,
-                       int                comp,
-                       int                numcomp)
+                       const Box&        b2,
+                       int               comp2,
+                       Real              t1,
+                       Real              t2,
+                       Real              t,
+                       const Box&        b,
+                       int               comp,
+                       int               numcomp)
 {
     Real alpha = (t2-t)/(t2-t1);
     Real beta = (t-t1)/(t2-t1);
@@ -2527,6 +2540,22 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
         thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
     } EndForTX
     return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::linInterp (const BaseFab<T>& f1,
+                       int               comp1,
+                       const BaseFab<T>& f2,
+                       int               comp2,
+                       Real              t1,
+                       Real              t2,
+                       Real              t,
+                       const Box&        b,
+                       int               comp,
+                       int               numcomp)
+{
+    return linInterp(f1, b, comp1, f2, b, comp2, t1, t2, t, b, comp, numcomp);
 }
 
 //

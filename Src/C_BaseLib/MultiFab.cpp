@@ -969,10 +969,8 @@ BoxLib::linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
         fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest1);
         fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
         dest.linInterp(dest1,
-                       dest1.box(),
                        src_comp,
                        dest2,
-                       dest2.box(),
                        src_comp,
                        t1,
                        t2,
