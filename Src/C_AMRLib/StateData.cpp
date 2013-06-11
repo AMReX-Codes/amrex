@@ -12,6 +12,7 @@ const Real INVALID_TIME = -1.0e200;
 
 const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
+const int MFMIDDATA = 2;
 
 StateData::StateData () 
 {
@@ -177,6 +178,25 @@ StateData::allocOldData ()
     if (old_data == 0)
     {
         old_data = new MultiFab(grids,desc->nComp(),desc->nExtra());
+    }
+}
+
+void
+StateData::allocMidData (int nmid)
+{
+    if (mid_data.size() == 0) 
+    {
+        mid_data.resize(nmid,PArrayManage);
+    }
+
+    BL_ASSERT(mid_data.size() == nmid);
+  
+    for (int i=0; i<nmid; i++)
+    {
+        if (!mid_data.defined(i))
+	{
+            mid_data.set(i, new MultiFab(grids,desc->nComp(),desc->nExtra()));
+	}
     }
 }
 
