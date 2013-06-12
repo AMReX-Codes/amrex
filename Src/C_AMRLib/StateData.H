@@ -106,26 +106,26 @@ public:
     void RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
                        Array<MultiFabId>&      mfid);
 
-    void linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
-                          Array<MultiFabId>&      mfid,
-                          BoxList*                returnedUnfillableBoxes,
-                          Array<FillBoxId>&       returnedFillBoxIds,
-                          const Box&              subbox,
-                          Real                    time,
-                          int                     src_comp,
-                          int                     dest_comp,
-                          int                     num_comp,
-                          bool                    extrap = false);
+    void InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
+		       Array<MultiFabId>&      mfid,
+		       BoxList*                returnedUnfillableBoxes,
+		       Array<FillBoxId>&       returnedFillBoxIds,
+		       const Box&              subbox,
+		       Real                    time,
+		       int                     src_comp,
+		       int                     dest_comp,
+		       int                     num_comp,
+		       bool                    extrap = false);
 
-    void linInterpFillFab (MultiFabCopyDescriptor&  fabCopyDesc,
-                           const Array<MultiFabId>& mfid,
-                           const Array<FillBoxId>&  fillBoxIds,
-                           FArrayBox&               dest,
-                           Real                     time,
-                           int                      src_comp,
-                           int                      dest_comp,
-                           int                      num_comp,
-                           bool                     extrap = false);
+    void InterpFillFab (MultiFabCopyDescriptor&  fabCopyDesc,
+			const Array<MultiFabId>& mfid,
+			const Array<FillBoxId>&  fillBoxIds,
+			FArrayBox&               dest,
+			Real                     time,
+			int                      src_comp,
+			int                      dest_comp,
+			int                      num_comp,
+			bool                     extrap = false);
 
     //
     // Set physical bndry values
