@@ -207,6 +207,7 @@ Amr::Amr ()
     file_name_digits       = 5;
     record_run_info_terse  = false;
     bUserStopRequest       = false;
+    n_nodes                = 0;
 
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
@@ -915,6 +916,19 @@ Amr::checkInput ()
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
        std::cout << "Successfully read inputs file ... " << '\n';
+}
+
+void
+Amr::set_t_nodes(Array<Real> tnodes)
+{
+    BL_ASSERT(tnodes.size() >= 0);
+
+    n_nodes = tnodes.size();
+    t_nodes.resize(n_nodes);
+    for (int i=0; i<n_nodes; i++) 
+    {
+        t_nodes.set(i, tnodes[i]);
+    }
 }
 
 void
