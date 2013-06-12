@@ -12,6 +12,7 @@ const Real INVALID_TIME = -1.0e200;
 
 const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
+const int MFMIDDATA = 2;
 
 StateData::StateData () 
 {
@@ -32,12 +33,23 @@ StateData::StateData (const Box&             p_domain,
     define(p_domain, grds, *d, cur_time, dt);
 }
 
+StateData::StateData (const Box&             p_domain,
+                      const BoxArray&        grds,
+                      const StateDescriptor* d,
+                      Real                   cur_time,
+                      Real                   dt,
+		      const Array<Real>&     t_nodes)
+{
+  define(p_domain, grds, *d, cur_time, dt, t_nodes);
+}
+
 void
 StateData::define (const Box&             p_domain,
                    const BoxArray&        grds,
                    const StateDescriptor& d,
                    Real                   time,
-                   Real                   dt)
+                   Real                   dt,
+		   const Array<Real>&     t_nodes)
 {
     domain = p_domain;
     desc = &d;
@@ -177,6 +189,25 @@ StateData::allocOldData ()
     if (old_data == 0)
     {
         old_data = new MultiFab(grids,desc->nComp(),desc->nExtra());
+    }
+}
+
+void
+StateData::allocMidData (int nmid)
+{
+    if (mid_data.size() == 0) 
+    {
+        mid_data.resize(nmid,PArrayManage);
+    }
+
+    BL_ASSERT(mid_data.size() == nmid);
+  
+    for (int i=0; i<nmid; i++)
+    {
+        if (!mid_data.defined(i))
+	{
+            mid_data.set(i, new MultiFab(grids,desc->nComp(),desc->nExtra()));
+	}
     }
 }
 

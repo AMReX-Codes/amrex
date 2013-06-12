@@ -63,7 +63,7 @@ public:
     //
     // Returns true if the i'th element is not the null pointer.
     //
-    bool defined (int i) const { return vp[i] != 0; }
+    bool defined (int i) const { return i < vp.size() && vp[i] != 0; }
     //
     // Returns a constant reference to the object pointed to by the
     // i'th element in this PArray<T>.  Performs bounds checking
