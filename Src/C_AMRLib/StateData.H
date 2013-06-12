@@ -75,7 +75,7 @@ public:
     //
     // Allocates space for mid timestep data.
     //
-    void allocMidData (int nmid);
+    void allocMidData ();
     //
     // Deletes the space used by the mid timestep data.
     //
@@ -265,7 +265,15 @@ private:
     //
     TimeInterval old_time;
     //
-    // Time variable assoc with middle data.
+    // Number of middle nodes
+    //
+    int n_mid_nodes;
+    //
+    // middle node times normilized to (0,1)
+    //
+    Array<Real> t_mid_nodes;
+    //
+    // "Physical" Time variable assoc with middle nodes
     //
     Array<TimeInterval> mid_time;
     //
@@ -277,7 +285,7 @@ private:
     //
     MultiFab* old_data;
     //
-    // Array of pointers to data at intermediate times
+    // Array of pointers to data at middle times
     //
     PArray<MultiFab> mid_data;
 };
