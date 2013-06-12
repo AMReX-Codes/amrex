@@ -204,12 +204,10 @@ contains
        !
        ! Set the stencil to zero; gotta do it by hand as multifab routines won't work.
        !
-       !$OMP PARALLEL DO PRIVATE(j,p)
        do j = 1, nfabs(mgt%ss(i))
           p => dataptr(mgt%ss(i), j)
           p = zero
        end do
-       !$OMP END PARALLEL DO
 
        call imultifab_build(mgt%mm(i), la1, 1, 0, nodal)
        if ( i /= n ) &

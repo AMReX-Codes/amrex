@@ -463,13 +463,11 @@ contains
     !
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
     !
-    !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
     do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
     end do
-    !$OMP END PARALLEL DO
     !
     ! Make sure to do singular adjustment *before* diagonalization.
     !
@@ -793,13 +791,11 @@ contains
     !
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
     !
-    !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
     do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
     end do
-    !$OMP END PARALLEL DO
     !
     ! Make sure to do singular adjustment *before* diagonalization.
     !
@@ -1253,13 +1249,11 @@ contains
     !
     ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
     !
-    !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
     do i = 1, nfabs(aa)
        pdst => dataptr(aa_local, i)
        psrc => dataptr(aa      , i)
        call cpy_d(pdst, psrc)
     end do
-    !$OMP END PARALLEL DO
 
     call diag_initialize(aa_local,rh_local,mm)
 
