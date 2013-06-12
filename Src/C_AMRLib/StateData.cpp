@@ -33,12 +33,23 @@ StateData::StateData (const Box&             p_domain,
     define(p_domain, grds, *d, cur_time, dt);
 }
 
+StateData::StateData (const Box&             p_domain,
+                      const BoxArray&        grds,
+                      const StateDescriptor* d,
+                      Real                   cur_time,
+                      Real                   dt,
+		      const Array<Real>&     t_nodes)
+{
+  define(p_domain, grds, *d, cur_time, dt, t_nodes);
+}
+
 void
 StateData::define (const Box&             p_domain,
                    const BoxArray&        grds,
                    const StateDescriptor& d,
                    Real                   time,
-                   Real                   dt)
+                   Real                   dt,
+		   const Array<Real>&     t_nodes)
 {
     domain = p_domain;
     desc = &d;

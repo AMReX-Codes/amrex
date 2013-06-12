@@ -41,7 +41,7 @@ public:
     //
     // set up t_nodes (for SDC) after construction. Must be called before init if doing SDC.
     //
-    void set_t_nodes (Array<Real> tnodes);
+    void set_t_nodes (const Array<Real>& tnodes);
     //
     // Init data after construction. Must be called before timestepping.
     //
@@ -108,6 +108,10 @@ public:
     // Array of time steps at all levels.
     //
     const Array<Real>& dtLevel () const { return dt_level; }
+    //
+    // Array of inner node yimes
+    //
+    const Array<Real>& tNodes () const { return t_nodes; }
     //
     // Geometry object.
     //

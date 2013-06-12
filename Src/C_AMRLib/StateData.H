@@ -21,7 +21,10 @@ namespace BoxLib
 // Current and previous level-time data.
 //
 // StateData holds state data on a level for the current and previous time step.
+// It may also hold additional node data for SDC or RK.
 //
+
+const Array<Real> NullArrayReal;
 
 class StateData
 {
@@ -39,6 +42,15 @@ public:
                Real                   cur_time,
                Real                   dt);
     //
+    // Constructor that properly initializes data members including node data.
+    //
+    StateData (const Box&             p_domain,
+               const BoxArray&        grds,
+               const StateDescriptor* d,
+               Real                   cur_time,
+               Real                   dt,
+	       const Array<Real>&     t_nodes);
+    //
     // The destructor.
     //
     ~StateData ();
@@ -49,7 +61,8 @@ public:
                  const BoxArray&        grds,
                  const StateDescriptor& d, 
                  Real                   cur_time,
-                 Real                   dt);
+                 Real                   dt,
+		 const Array<Real>&     t_nodes = NullArrayReal);
 
     //
     // Allocates space for old timestep data.
