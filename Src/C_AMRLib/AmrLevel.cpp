@@ -80,13 +80,16 @@ AmrLevel::AmrLevel (Amr&            papa,
 
     state.resize(desc_lst.size());
 
+    const Array<Real>& t_nodes = parent->tNodes();
+
     for (int i = 0; i < state.size(); i++)
     {
         state[i].define(geom.Domain(),
                         grids,
                         desc_lst[i],
                         time,
-                        parent->dtLevel(lev));
+                        parent->dtLevel(lev),
+			t_nodes);
     }
 
     finishConstructor();
