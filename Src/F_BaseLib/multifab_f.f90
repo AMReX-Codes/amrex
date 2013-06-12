@@ -3929,7 +3929,7 @@ contains
     real(dp_t), pointer :: mp(:,:,:,:), mp1(:,:,:,:), ma(:,:,:,:)
     logical,    pointer :: lmp(:,:,:,:)
     real(dp_t)          :: r1,r2
-    integer             :: i,j,k,l,n,lo(4),hi(4)
+    integer             :: i,j,k,n,lo(4),hi(4)
     logical             :: llocal
 
     if ( present(mask) ) then

@@ -502,11 +502,11 @@ contains
       if (mgt(n)%lcross) then
         call grid_res(one_sided_ss,temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type, &
-             mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+             mgt(n)%lcross, mgt(n)%uniform_dh)
       else
         call grid_res(mgt(n)%ss(mglev_fine),temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type, &
-             mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+             mgt(n)%lcross, mgt(n)%uniform_dh)
       end if
 
       !    Zero out the flux registers which will hold the fine contributions
@@ -577,13 +577,12 @@ contains
 
   end subroutine ml_nd
 
-  subroutine grid_res(ss, dd, ff, uu, mm, face_type, stencil_type, lcross, uniform_dh)
+  subroutine grid_res(ss, dd, ff, uu, mm, face_type, lcross, uniform_dh)
 
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
     integer, intent(in) :: face_type(:,:,:)
-    integer, intent(in) :: stencil_type
     logical, intent(in) :: lcross
     logical, intent(in) :: uniform_dh
 

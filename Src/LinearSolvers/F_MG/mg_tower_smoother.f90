@@ -191,7 +191,7 @@ contains
                               fp(:,:,1,1), lo, ng, mgt%stencil_type, nn)
                       case (3)
                          call fourth_order_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                              fp(:,:,:,1), lo, ng, mgt%stencil_type, nn)
+                              fp(:,:,:,1), lo, ng, mgt%stencil_type)
                       end select
                    end do
                 end do
@@ -213,7 +213,7 @@ contains
                            fp(:,:,1,1), lo, ng, mgt%stencil_type, 0)
                    case (3)
                       call fourth_order_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,1), &
-                           fp(:,:,:,1), lo, ng, mgt%stencil_type, 0)
+                           fp(:,:,:,1), lo, ng, mgt%stencil_type)
                    end select
                 end do
              end do

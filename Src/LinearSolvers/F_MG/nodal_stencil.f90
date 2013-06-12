@@ -669,14 +669,14 @@ contains
 
   end subroutine s_dense_3d_nodal
 
-  subroutine stencil_apply_1d_nodal(ss, dd, uu, mm, ng, stencil_type)
+  subroutine stencil_apply_1d_nodal(ss, dd, uu, mm, ng)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in   ) :: ss(0:,:)
     real (kind = dp_t), intent(inout) :: dd(0:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
     integer           , intent(in   ) :: mm(:)
-    integer           , intent(in   ) :: stencil_type
-    integer i,lo(1)
+
+    integer :: i,lo(1)
  
     dd = ZERO
 
