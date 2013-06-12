@@ -39,6 +39,10 @@ public:
     //
     virtual ~Amr ();
     //
+    // set up t_nodes (for SDC) after construction. Must be called before init if doing SDC.
+    //
+    void set_t_nodes (Array<Real> tnodes);
+    //
     // Init data after construction. Must be called before timestepping.
     //
     virtual void init (Real strt_time, Real stop_time);
@@ -416,12 +420,14 @@ protected:
     std::string      initial_grids_file;   // Grids file that will bypass regridding only at initialization.
     int              max_level;    // Maximum allowed level.
     int              finest_level; // Current finest level.
+    int              n_nodes;      // number of inner (SDC) nodes in one time step
     Array<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
     PArray<AmrLevel> amr_level;    // Array of levels
     Array<Geometry>  geom;         // Index extent of domain at all levels.
     Real             cumtime;      // Physical time variable.
     Real             start_time;   // Physical time this simulation started.
     Array<Real>      dt_level;     // Timestep at this level.
+    Array<Real>      t_nodes;      // Time of (SDC) inner nodes in the range of (0,1)
     Array<int>       level_steps;  // Number of time steps at this level.
     Array<int>       level_count;
     Array<int>       n_cycle;
