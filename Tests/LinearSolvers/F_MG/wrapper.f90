@@ -533,6 +533,7 @@ subroutine wrapper()
         call build(ba, pd)
         call boxarray_maxsize(ba, ba_maxsize)
         call build(mba, ba, pd)
+        call destroy(ba)
      end if
   end if
 
