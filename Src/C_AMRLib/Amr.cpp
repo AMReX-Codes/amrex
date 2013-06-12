@@ -919,7 +919,7 @@ Amr::checkInput ()
 }
 
 void
-Amr::set_t_nodes(Array<Real> tnodes)
+Amr::set_t_nodes(const Array<Real>& tnodes)
 {
     BL_ASSERT(tnodes.size() >= 0);
 
