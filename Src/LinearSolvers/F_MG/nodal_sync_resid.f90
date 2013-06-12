@@ -650,12 +650,12 @@ subroutine mgt_compute_sync_resid_fine()
 
      call grid_res(ss1, &
           mgts%sync_res(1), rh0, mgts%uu(1), mgts%mgt(1)%mm(mglev), &
-          mgts%mgt(1)%face_type, mgts%mgt(1)%stencil_type, &
+          mgts%mgt(1)%face_type, &
           mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
   else
      call grid_res(mgts%mgt(1)%ss(mglev), &
           mgts%sync_res(1), rh0, mgts%uu(1), mgts%mgt(1)%mm(mglev), &
-          mgts%mgt(1)%face_type, mgts%mgt(1)%stencil_type, &
+          mgts%mgt(1)%face_type, &
           mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
   endif
 
