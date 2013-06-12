@@ -777,7 +777,7 @@ contains
     ! First 2*SSS+1 components are powers of pp[].
     ! Next  2*SSS   components are powers of rr[].
     !
-    call multifab_build(pr, la, 4*SSS+1, nghost(uu), nodal)
+    call multifab_build(PR, la, 4*SSS+1, 0, nodal)
     !
     ! Use these for local preconditioning.
     !
