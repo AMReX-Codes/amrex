@@ -348,15 +348,15 @@ contains
           case (1)
              if ( .not. nodal_flag) then
                 call stencil_apply_1d(ap(:,:,1,1), rp(:,1,1,n), nghost(rr), up(:,1,1,n), nghost(uu),  &
-                                      mp(:,1,1,1), lo, hi, stencil_type)
+                                      mp(:,1,1,1), lo, hi)
              else
                 call stencil_apply_1d_nodal(ap(:,:,1,1), rp(:,1,1,n), up(:,1,1,n),  &
-                     mp(:,1,1,1), nghost(uu), stencil_type)
+                     mp(:,1,1,1), nghost(uu))
              end if
           case (2)
              if ( .not. nodal_flag) then
                 call stencil_apply_2d(ap(:,:,:,1), rp(:,:,1,n), nghost(rr), up(:,:,1,n), nghost(uu),  &
-                     mp(:,:,1,1), lo, hi, stencil_type)
+                     mp(:,:,1,1), lo, hi)
              else
                 call stencil_apply_2d_nodal(ap(:,:,:,1), rp(:,:,1,n), up(:,:,1,n),  &
                      mp(:,:,1,1), nghost(uu), stencil_type)
@@ -364,7 +364,7 @@ contains
           case (3)
              if ( .not. nodal_flag) then
                 call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), nghost(rr), up(:,:,:,n), nghost(uu),  &
-                                      mp(:,:,:,1), stencil_type)
+                                      mp(:,:,:,1))
              else
                 call stencil_apply_3d_nodal(ap(:,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
                      mp(:,:,:,1), nghost(uu), stencil_type, luniform_dh)

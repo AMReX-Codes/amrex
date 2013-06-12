@@ -484,9 +484,9 @@ contains
 
   end subroutine fourth_order_smoother_2d
 
-  subroutine fourth_order_smoother_3d(omega, ss, uu, ff, lo, ng, stencil_type, n)
+  subroutine fourth_order_smoother_3d(omega, ss, uu, ff, lo, ng, stencil_type)
     use bl_prof_module
-    integer           , intent(in   ) :: ng, n
+    integer           , intent(in   ) :: ng
     integer           , intent(in   ) :: lo(:)
     real (kind = dp_t), intent(in   ) :: omega
     real (kind = dp_t), intent(in   ) :: ff(lo(1):, lo(2):, lo(3):)

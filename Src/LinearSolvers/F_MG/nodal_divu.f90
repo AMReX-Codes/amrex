@@ -523,8 +523,7 @@ contains
              case (1)
                 call ml_interface_1d_divu(rp(:,1,1,1), lor, &
                      fp(:,1,1,1), lof, &
-                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, ir, side, dx, &
-                     lo_inflow, hi_inflow)
+                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, ir, side, dx)
              case (2)
                 call ml_interface_2d_divu(rp(:,:,1,1), lor, &
                      fp(:,:,1,1), lof, lof, hif, &
@@ -569,8 +568,7 @@ contains
              case (1)
                 call ml_interface_1d_divu(rp(:,1,1,1), lor, &
                      fp(:,1,1,1), lo, &
-                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, ir, side, dx, &
-                     lo_inflow, hi_inflow)
+                     up(:,1,1,1), lou, mp(:,1,1,1), lom, lo, ir, side, dx)
              case (2)
                 call ml_interface_2d_divu(rp(:,:,1,1), lor, &
                      fp(:,:,1,1), lo, lof, hif, &
@@ -592,7 +590,7 @@ contains
    end subroutine ml_crse_divu_contrib
 
     subroutine ml_interface_1d_divu(rh, lor, fine_flux, lof, uc, loc, &
-                                    mm, lom, lo, ir, side, dx, lo_inflow, hi_inflow)
+                                    mm, lom, lo, ir, side, dx)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: lom(:)
@@ -605,7 +603,6 @@ contains
     integer           , intent(in   ) :: ir(:)
     integer           , intent(in   ) :: side
     real(kind=dp_t)   , intent(in   ) :: dx(:)
-    integer, intent(in) :: lo_inflow(:), hi_inflow(:)
 
     integer :: i
     real (kind = dp_t) :: crse_flux,fac
@@ -1603,7 +1600,7 @@ contains
        
        call bndry_reg_rr_build(brs_flx,la_fine,la_crse, ref_ratio(n-1,:), &
             pdc, nodal = nodal, other = .false.)
-       call crse_fine_divucc(n,nlevs,rh(n-1),rhcc,brs_flx,ref_ratio(n-1,:),mgt)
+       call crse_fine_divucc(n,rh(n-1),rhcc,brs_flx,ref_ratio(n-1,:),mgt)
        call bndry_reg_destroy(brs_flx)
     end do
     
@@ -1705,9 +1702,9 @@ contains
     
   end subroutine divucc_3d
   
-  subroutine crse_fine_divucc(n_fine,nlevs,rh_crse,rhcc,brs_flx,ref_ratio,mgt)
+  subroutine crse_fine_divucc(n_fine,rh_crse,rhcc,brs_flx,ref_ratio,mgt)
 
-    integer        , intent(in   ) :: n_fine,nlevs
+    integer        , intent(in   ) :: n_fine
     type(multifab) , intent(inout) :: rh_crse
     type(multifab) , intent(in   ) :: rhcc(:)
     type(bndry_reg), intent(inout) :: brs_flx

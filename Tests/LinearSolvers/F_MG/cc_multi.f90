@@ -1,4 +1,4 @@
-subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics, eps, stencil_order, fabio)
+subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, stencil_order, fabio)
   use BoxLib
   use cc_stencil_module
   use cc_stencil_fill_module
@@ -23,7 +23,6 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
 
   type(ml_layout), intent(inout) :: mla
   integer        , intent(in   ) :: domain_bc(:,:)
-  integer        , intent(in   ) :: bottom_solver 
   integer        , intent(in   ) :: do_diagnostics 
   real(dp_t)     , intent(in   ) :: eps
   type(mg_tower) , intent(inout) :: mgt(:)
@@ -42,7 +41,7 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
   real(dp_t)     , allocatable   :: xa(:), xb(:), pxa(:), pxb(:)
 
   integer        , allocatable   :: ref_ratio(:,:)
-  integer                        :: i, d, n, dm, nlevs
+  integer                        :: d, n, dm, nlevs
 
   real(dp_t)                     :: snrm(2)
 

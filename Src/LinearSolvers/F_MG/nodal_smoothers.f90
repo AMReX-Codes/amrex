@@ -242,7 +242,6 @@ contains
     integer,            intent(in   ) :: red_black
 
     integer            :: i, j, k, ipar, hi(size(lo)), half_x, half_y
-    integer            :: modx, mody, modz, istart, jstart, kstart
     logical            :: x_is_odd, y_is_odd, jface, kface, doit
     real (kind = dp_t) :: dd
     real (kind = dp_t), allocatable :: wrk(:,:,:)
