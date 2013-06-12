@@ -105,12 +105,11 @@ contains
     integer           , intent(in   ) :: mm(:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer i,nx
-    real (kind = dp_t) f1
+    integer            :: i,nx
+    real (kind = dp_t) :: f1
 
     f1 = ONE/dh(1)**2
 
-    ! x derivatives
     nx = size(ss,dim=2)
 
     if (bc_neumann(mm( 1),1,-1)) sg( 0) = sg(   1)
@@ -119,7 +118,7 @@ contains
     do i = 1,nx
        ss(1,i) = sg(i  )*f1
        ss(2,i) = sg(i-1)*f1
-       ss(0,i) = -(sg(i)+sg(i-1))*f1
+       ss(0,i) = -(sg(i)+sg(i-1))
     end do
 
   end subroutine s_simple_1d_nodal
