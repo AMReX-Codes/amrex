@@ -175,6 +175,14 @@ public:
     //
     virtual void removeOldData ();
     //
+    // Alloc space for mid time data.
+    //
+    virtual void allocMidData ();
+    //
+    // Delete mid-time data.
+    //
+    virtual void removeMidData ();
+    //
     // Init data on this level from another AmrLevel (during regrid).
     // This is a pure virtual function and hence MUST be
     // implemented by derived classes.
@@ -276,6 +284,14 @@ public:
     //
     const MultiFab& get_old_data (int state_indx) const { return state[state_indx].oldData(); }
     //
+    // State data at mid time.
+    //
+    MultiFab& get_mid_data (int state_indx, int mid_indx) { return state[state_indx].midData(mid_indx); }
+    //
+    // State data at mid time.
+    //
+    const MultiFab& get_mid_data (int state_indx, int mid_indx) const { return state[state_indx].midData(mid_indx); }
+    //
     // State data at new time.
     //
     MultiFab& get_new_data (int state_indx) { return state[state_indx].newData(); }
@@ -301,10 +317,10 @@ public:
     //
     // Boundary condition access function.
     //
-     Array<int> getBCArray (int State_Type,
-                            int gridno,
-                            int scomp,
-                            int ncomp);
+    Array<int> getBCArray (int State_Type,
+			   int gridno,
+			   int scomp,
+			   int ncomp);
     //
     // Get state data at specified index and time.
     //
@@ -485,7 +501,7 @@ private:
     AmrLevel&                  m_amrlevel;
     MultiFab&                  m_leveldata;
     MultiFabCopyDescriptor     m_mfcd;
-    Array< Array<MultiFabId> > m_mfid;     // [level][oldnew]
+    Array< Array<MultiFabId> > m_mfid;     // [level][oldmidnew]
     Interpolater*              m_map;
     std::map<int,Box>          m_ba;
     Real                       m_time;
@@ -498,7 +514,7 @@ private:
 
     std::map< int,Array< Array<Box> > >                m_fbox; // [grid][level][validregion]
     std::map< int,Array< Array<Box> > >                m_cbox; // [grid][level][fillablesubbox]
-    std::map< int,Array< Array< Array<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldnew]
+    std::map< int,Array< Array< Array<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldmidnew]
 };
 
 #endif /*_AmrLevel_H_*/

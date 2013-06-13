@@ -135,14 +135,23 @@ void Profiler::Initialize() {
 
 
 void Profiler::start() {
+#ifdef _OPENMP
+#pragma omp master
+#endif
+{
   ++mProfStats[fname].nCalls;
   bRunning = true;
   bltstart = ParallelDescriptor::second();
   nestedTimeStack.push(0.0);
 }
+}
 
   
 void Profiler::stop() {
+#ifdef _OPENMP
+#pragma omp master
+#endif
+{
   bltelapsed += ParallelDescriptor::second() - bltstart;
   bRunning = false;
   Real thisFuncTime(bltelapsed);
@@ -154,6 +163,7 @@ void Profiler::stop() {
     nestedTimeStack.top() += bltelapsed;
   }
   mProfStats[fname].totalTime += thisFuncTime;
+}
 }
 
 
