@@ -272,6 +272,24 @@ AmrLevel::removeOldData ()
 }
 
 void
+AmrLevel::allocMidData ()
+{
+    for (int i = 0; i < desc_lst.size(); i++)
+    {
+        state[i].allocMidData();
+    }
+}
+
+void
+AmrLevel::removeMidData ()
+{
+    for (int i = 0; i < desc_lst.size(); i++)
+    {
+        state[i].removeMidData();
+    }
+}
+
+void
 AmrLevel::reset ()
 {
     for (int i = 0; i < desc_lst.size(); i++)
@@ -287,6 +305,7 @@ AmrLevel::get_data (int  state_indx,
     const Real old_time = state[state_indx].prevTime();
     const Real new_time = state[state_indx].curTime();
     const Real eps = 0.001*(new_time - old_time);
+    const int  n_mid_data = state[state_indx].sizeMidData();
 
     if (time > old_time-eps && time < old_time+eps)
     {
@@ -296,12 +315,21 @@ AmrLevel::get_data (int  state_indx,
     {
         return get_new_data(state_indx);
     }
-    else
+    else if (n_mid_data > 0)
     {
-        BoxLib::Error("get_data: invalid time");
-        static MultiFab bogus;
-        return bogus;
+	for (int i=0; i < n_mid_data; i++)
+	{
+	    const Real mid_time = state[state_indx].midTime(i);
+	    if (time > mid_time-eps && time < mid_time+eps)
+	    {
+		return get_mid_data(state_indx, i);
+	    }
+	}
     }
+
+    BoxLib::Error("get_data: invalid time");
+    static MultiFab bogus;
+    return bogus;
 }
 
 void
@@ -623,16 +651,16 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
                 BL_ASSERT(CrseBoxes[i].intersects(thePDomain));
 
-                theState.linInterpAddBox(m_mfcd,
-                                         m_mfid[l],
-                                         &tempUnfillable,
-                                         FBIDs[i],
-                                         CrseBoxes[i],
-                                         m_time,
-                                         m_scomp,
-                                         0,
-                                         m_ncomp,
-                                         extrap);
+                theState.InterpAddBox(m_mfcd,
+				      m_mfid[l],
+				      &tempUnfillable,
+				      FBIDs[i],
+				      CrseBoxes[i],
+				      m_time,
+				      m_scomp,
+				      0,
+				      m_ncomp,
+				      extrap);
 
                 unfillableThisLevel.catenate(tempUnfillable);
             }
@@ -872,15 +900,15 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 #ifndef NDEBUG
             CrseFabs[i].setVal(3.e200);
 #endif
-            TheState.linInterpFillFab(m_mfcd,
-                                      m_mfid[l],
-                                      FBIDs[i],
-                                      CrseFabs[i],
-                                      m_time,
-                                      0,
-                                      0,
-                                      m_ncomp,
-                                      extrap);
+            TheState.InterpFillFab(m_mfcd,
+				   m_mfid[l],
+				   FBIDs[i],
+				   CrseFabs[i],
+				   m_time,
+				   0,
+				   0,
+				   m_ncomp,
+				   extrap);
         }
     }
     //

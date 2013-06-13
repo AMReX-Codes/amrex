@@ -187,11 +187,11 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 
 #define BL_PROFILE_INITIALIZE()  Profiler::Initialize();
 #define BL_PROFILE(fname) Profiler bl_profiler__((fname));
-#define BL_PROFILE_T(fname, T) {                                    \
+#define BL_PROFILE_T(fname, T)                                      \
 		     std::string pname(fname);                      \
 		     pname += typeid(T).name();                     \
-                     Profiler bl_profiler__((pname));               \
-}
+                     Profiler bl_profiler__((pname));                
+ 
 #define BL_PROFILE_VAR(fname, vname) Profiler bl_profiler__##vname((fname));
 #define BL_PROFILE_VAR_START(vname) bl_profiler__##vname.start();
 #define BL_PROFILE_VAR_STOP(vname) bl_profiler__##vname.stop();
