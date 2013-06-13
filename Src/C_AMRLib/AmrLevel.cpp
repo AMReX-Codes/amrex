@@ -272,6 +272,24 @@ AmrLevel::removeOldData ()
 }
 
 void
+AmrLevel::allocMidData ()
+{
+    for (int i = 0; i < desc_lst.size(); i++)
+    {
+        state[i].allocMidData();
+    }
+}
+
+void
+AmrLevel::removeMidData ()
+{
+    for (int i = 0; i < desc_lst.size(); i++)
+    {
+        state[i].removeMidData();
+    }
+}
+
+void
 AmrLevel::reset ()
 {
     for (int i = 0; i < desc_lst.size(); i++)
@@ -287,6 +305,7 @@ AmrLevel::get_data (int  state_indx,
     const Real old_time = state[state_indx].prevTime();
     const Real new_time = state[state_indx].curTime();
     const Real eps = 0.001*(new_time - old_time);
+    const int  n_mid_data = state[state_indx].sizeMidData();
 
     if (time > old_time-eps && time < old_time+eps)
     {
@@ -296,12 +315,21 @@ AmrLevel::get_data (int  state_indx,
     {
         return get_new_data(state_indx);
     }
-    else
+    else if (n_mid_data > 0)
     {
-        BoxLib::Error("get_data: invalid time");
-        static MultiFab bogus;
-        return bogus;
+	for (int i=0; i < n_mid_data; i++)
+	{
+	    const Real mid_time = state[state_indx].midTime(i);
+	    if (time > mid_time-eps && time < mid_time+eps)
+	    {
+		return get_mid_data(state_indx, i);
+	    }
+	}
     }
+
+    BoxLib::Error("get_data: invalid time");
+    static MultiFab bogus;
+    return bogus;
 }
 
 void
