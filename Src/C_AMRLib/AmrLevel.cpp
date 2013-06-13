@@ -623,16 +623,16 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
                 BL_ASSERT(CrseBoxes[i].intersects(thePDomain));
 
-                theState.linInterpAddBox(m_mfcd,
-                                         m_mfid[l],
-                                         &tempUnfillable,
-                                         FBIDs[i],
-                                         CrseBoxes[i],
-                                         m_time,
-                                         m_scomp,
-                                         0,
-                                         m_ncomp,
-                                         extrap);
+                theState.InterpAddBox(m_mfcd,
+				      m_mfid[l],
+				      &tempUnfillable,
+				      FBIDs[i],
+				      CrseBoxes[i],
+				      m_time,
+				      m_scomp,
+				      0,
+				      m_ncomp,
+				      extrap);
 
                 unfillableThisLevel.catenate(tempUnfillable);
             }
@@ -872,15 +872,15 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 #ifndef NDEBUG
             CrseFabs[i].setVal(3.e200);
 #endif
-            TheState.linInterpFillFab(m_mfcd,
-                                      m_mfid[l],
-                                      FBIDs[i],
-                                      CrseFabs[i],
-                                      m_time,
-                                      0,
-                                      0,
-                                      m_ncomp,
-                                      extrap);
+            TheState.InterpFillFab(m_mfcd,
+				   m_mfid[l],
+				   FBIDs[i],
+				   CrseFabs[i],
+				   m_time,
+				   0,
+				   0,
+				   m_ncomp,
+				   extrap);
         }
     }
     //
