@@ -12,7 +12,7 @@ const Real INVALID_TIME = -1.0e200;
 
 const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
-const int MFMIDDATA = 1;
+const int MFMIDDATA = 2;
 
 StateData::StateData () 
 {
