@@ -376,17 +376,17 @@ contains
   !
   ! computes rr = aa * uu - rh
   !
-  subroutine itsol_defect(ss, rr, rh, uu, mm, stencil_type, lcross, uniform_dh)
+  subroutine itsol_defect(ss, rr, rh, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver)
     use bl_prof_module
     type(multifab), intent(inout) :: uu, rr
     type(multifab), intent(in)    :: rh, ss
     type(imultifab), intent(in)   :: mm
     integer, intent(in)           :: stencil_type
     logical, intent(in)           :: lcross
-    logical, intent(in), optional :: uniform_dh
+    logical, intent(in), optional :: uniform_dh, bottom_solver
     type(bl_prof_timer), save     :: bpt
     call build(bpt, "its_defect")
-    call itsol_stencil_apply(ss, rr, uu, mm, stencil_type, lcross, uniform_dh)
+    call itsol_stencil_apply(ss, rr, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver)
     call saxpy(rr, rh, -1.0_dp_t, rr)
     call destroy(bpt)
   end subroutine itsol_defect
@@ -488,7 +488,7 @@ contains
     !
     ! Compute rr = aa * uu - rh.
     !
-    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh); cnt = cnt + 1
+    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.); cnt = cnt + 1
 
     call copy(rt, rr)
 
@@ -816,7 +816,7 @@ contains
     !
     ! Compute rt = aa * uu - rh.
     !
-    call itsol_defect(aa_local, rt, rh_local, uu, mm, stencil_type, lcross, uniform_dh)
+    call itsol_defect(aa_local, rt, rh_local, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
 
     call copy(rr,rt); call copy(pp,rt)
     !
@@ -1255,7 +1255,7 @@ contains
 
     cnt = 0
     ! compute rr = aa * uu - rh_local
-    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh)  
+    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
     cnt = cnt + 1
 
     if ( singular .and. nodal_solve ) then
