@@ -520,28 +520,33 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
 
   end subroutine stencil_flux_n_2d
 
-  subroutine stencil_apply_3d(ss, dd, ng_d, uu, ng_u, mm, skwd)
+  subroutine stencil_apply_3d(ss, dd, ng_d, uu, ng_u, mm, skwd, bottom_solver)
 
     integer           , intent(in ) :: ng_d,ng_u
     real (kind = dp_t), intent(in ) :: ss(0:,:,:,:)
     real (kind = dp_t), intent(out) :: dd(1-ng_d:,1-ng_d:,1-ng_d:)
     real (kind = dp_t), intent(in ) :: uu(1-ng_u:,1-ng_u:,1-ng_u:)
     integer           , intent(in ) :: mm(:,:,:)
-    logical           , intent(in ), optional :: skwd
+    logical           , intent(in ), optional :: skwd, bottom_solver
 
-    integer nx,ny,nz,i,j,k
+    integer            :: nx,ny,nz,i,j,k
     integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
-    logical :: lskwd
+    logical            :: lskwd, lbottom_solver
 
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
+    lskwd          = .true.;   if ( present(skwd)          ) lskwd          = skwd
+    lbottom_solver = .false. ; if ( present(bottom_solver) ) lbottom_solver = bottom_solver
 
     nx = size(ss,dim=2)
     ny = size(ss,dim=3)
     nz = size(ss,dim=4)
 
+    !$OMP PARALLEL PRIVATE(i,j,k)
+    !
     ! This is the Minion 4th order cross stencil.
-    if (size(ss,dim=1) .eq. 13) then
+    !
+    if ( size(ss,dim=1) .eq. 13 ) then
  
+       !$OMP DO
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -555,10 +560,13 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
              end do
           end do
        end do
+       !$OMP END DO
 
-    ! This is the 4th order cross stencil for variable coefficients.
-    else if (size(ss,dim=1) .eq. 61) then
-
+    else if ( size(ss,dim=1) .eq. 61 ) then
+       !
+       ! This is the 4th order cross stencil for variable coefficients.
+       !
+       !$OMP DO
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -611,10 +619,13 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
              end do
           end do
        end do
+       !$OMP END DO
 
-    ! This is the 2nd order cross stencil.
-    else 
-
+    else
+       !
+       ! This is the 2nd order cross stencil.
+       !
+       !$OMP DO
        do k = 1,nz
           do j = 1,ny
              do i = 1,nx
@@ -629,6 +640,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
              end do
           end do
        end do
+       !$OMP END DO
 
     end if
 
@@ -637,6 +649,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
        ! Corrections for skewed stencils
        !
        if (nx > 1) then
+          !$OMP DO
           do k = 1, nz
              do j = 1, ny
                 i = 1
@@ -650,9 +663,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
+          !$OMP END DO
        end if
 
        if (ny > 1) then
+          !$OMP DO
           do k = 1,nz
              do i = 1,nx
                 j = 1
@@ -666,9 +681,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
+          !$OMP END DO
        end if
 
        if (nz > 1) then
+          !$OMP DO
           do j = 1,ny
              do i = 1,nx
                 k = 1
@@ -682,8 +699,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                 end if
              end do
           end do
+          !$OMP END DO
        end if
     end if
+    !$OMP END PARALLEL
+
   end subroutine stencil_apply_3d
 
   subroutine stencil_flux_3d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
