@@ -547,25 +547,26 @@ BaseFab<Real>::polyInterp (const Array< BaseFab<Real>* > &sf,
 
 	if (nsf == 3) 
 	{
+	    BoxLib::Error("BaseFab<Real>::polyInterp: nsf = 3 TODO");
 	    FORT_QUADINTERP(p,
-			    ARLIM(lo),
-			    ARLIM(hi),
-			    D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
-			    D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
-			    p1,
-			    ARLIM(lo1),
-			    ARLIM(hi1),
-			    p2,
-			    ARLIM(lo2),
-			    ARLIM(hi2),
-			    p3,
-			    ARLIM(lo3),
-			    ARLIM(hi3),
-			    &numcomp,
-		            &t,
-		            &st[0],
-		            &st[1],
-		            &st[2]);
+	    		    ARLIM(lo),
+	    		    ARLIM(hi),
+	    		    D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
+	    		    D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
+	    		    p1,
+	    		    ARLIM(lo1),
+	    		    ARLIM(hi1),
+	    		    p2,
+	    		    ARLIM(lo2),
+	    		    ARLIM(hi2),
+	    		    p3,
+	    		    ARLIM(lo3),
+	    		    ARLIM(hi3),
+	    		    &numcomp,
+	    	            &t,
+	    	            &st[0],
+	    	            &st[1],
+	    	            &st[2]);
 			    
 	}
 	else
