@@ -200,6 +200,7 @@ Amr::Amr ()
     plot_int               = -1;
     n_proper               = 1;
     max_level              = -1;
+    multi_level_sdc        = 0;
     last_plotfile          = 0;
     last_checkpoint        = 0;
     record_run_info        = false;
@@ -207,7 +208,6 @@ Amr::Amr ()
     file_name_digits       = 5;
     record_run_info_terse  = false;
     bUserStopRequest       = false;
-    n_nodes                = 0;
 
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
@@ -282,6 +282,10 @@ Amr::Amr ()
     // Read max_level and alloc memory for container objects.
     //
     pp.get("max_level", max_level);
+    //
+    // Do multi-level SDC?
+    //
+    pp.query("multi_level_sdc", multi_level_sdc);
     int nlev     = max_level+1;
     geom.resize(nlev);
     dt_level.resize(nlev);
@@ -293,6 +297,14 @@ Amr::Amr ()
     max_grid_size.resize(nlev);
     n_error_buf.resize(nlev);
     amr_level.resize(nlev);
+    if (multi_level_sdc)
+    {
+	t_nodes.resize(nlev);
+    }
+    else
+    {
+	t_nodes.resize(1);
+    }
     //
     // Set bogus values.
     //
@@ -919,15 +931,54 @@ Amr::checkInput ()
 }
 
 void
-Amr::set_t_nodes(const Array<Real>& tnodes)
+Amr::set_t_nodes(const Array<Real>& tn)
 {
-    BL_ASSERT(tnodes.size() >= 0);
+    BL_ASSERT(tn.size() >= 0);
 
-    n_nodes = tnodes.size();
-    t_nodes.resize(n_nodes);
+    int n_nodes = tn.size();
+
+    t_nodes[0].resize(n_nodes);
     for (int i=0; i<n_nodes; i++) 
     {
-        t_nodes.set(i, tnodes[i]);
+	t_nodes[0][i] = tn[i];
+    }
+
+    if (multi_level_sdc)
+    {
+	int trat = n_nodes+1;    // t ratio
+	int nn_c = n_nodes;      // number of nodes on coarser level
+	for (int lev=1; lev <= max_level; lev++)
+	{
+	    int n = (nn_c+1)*trat-1; // number of nodes on current level
+
+	    t_nodes[lev].resize(n);
+
+	    for (int i=0; i<n; i++)
+	    {
+		int ii = i%trat;
+		int ic = i/trat;
+		if (ii == 2)
+		{
+		    t_nodes[lev][i] = t_nodes[lev-1][ic];
+		}
+		else if (ic == 0)
+		{
+		    t_nodes[lev][i] = tn[ii] * t_nodes[lev-1][ic];
+		}
+		else if (ic == nn_c)
+		{
+		    t_nodes[lev][i] = t_nodes[lev-1][ic-1]
+			+ tn[ii] * (1.0 - t_nodes[lev-1][ic-1]); 
+		}
+		else
+		{
+		    t_nodes[lev][i] = t_nodes[lev-1][ic-1]
+			+ tn[ii] * (t_nodes[lev-1][ic] - t_nodes[lev-1][ic-1]); 
+		}
+	    }
+
+	    nn_c = n;   // current level is a coarse level for next iteration
+	}
     }
 }
 
@@ -2024,7 +2075,10 @@ Amr::regrid (int  lbase,
     // Reclaim old-time grid space for all remain levels > lbase.
     //
     for (int lev = start; lev <= finest_level; lev++)
+    {
         amr_level[lev].removeOldData();
+        amr_level[lev].removeMidData();
+    }
     //
     // Reclaim all remaining storage for levels > new_finest.
     //
