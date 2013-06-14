@@ -69,7 +69,7 @@ contains
              end do
           end do
        end do
-       !OMP END PARALLEL DO
+       !$OMP END PARALLEL DO
     else
        !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
@@ -88,7 +88,7 @@ contains
              end do
           end do
        end do
-       !OMP END PARALLEL DO
+       !$OMP END PARALLEL DO
     end if
 
     r = r1
@@ -141,7 +141,7 @@ contains
              end do
           end do
        end do
-       !OMP END PARALLEL DO
+       !$OMP END PARALLEL DO
     else
        !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
@@ -1291,7 +1291,7 @@ contains
           end do
        end do
     end do
-    !OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -1472,7 +1472,7 @@ contains
           end do
        end do
     end do
-    !OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
@@ -2240,6 +2240,7 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
   end subroutine s_minion_cross_fill_3d
 
