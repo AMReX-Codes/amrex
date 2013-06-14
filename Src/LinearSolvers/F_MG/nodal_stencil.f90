@@ -774,18 +774,17 @@ contains
 
   end subroutine stencil_apply_2d_nodal
 
-  subroutine stencil_apply_3d_nodal(ss, dd, uu, mm, ng, stencil_type, uniform_dh)
+  subroutine stencil_apply_3d_nodal(ss, dd, uu, mm, ng, stencil_type, uniform_dh, bottom_solver)
     integer           , intent(in   ) :: ng
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), intent(inout) :: dd(0:,0:,0:)
     real (kind = dp_t), intent(in   ) :: ss(0:,:,:,:)
     integer           , intent(in   ) :: mm(:,:,:)
     integer           , intent(in   ) :: stencil_type
-    logical           , intent(in   ) :: uniform_dh
+    logical           , intent(in   ) :: uniform_dh, bottom_solver
 
-    integer i,j,k,lo(3),nx,ny,nz
-
-    logical doit,jface,kface
+    integer :: i,j,k,lo(3),nx,ny,nz
+    logical :: jface,kface
 
     lo = 1
 
@@ -797,6 +796,7 @@ contains
 
     if (stencil_type .eq. ND_CROSS_STENCIL) then
 
+       !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface) IF(.not.bottom_solver)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -805,13 +805,9 @@ contains
 
              do i = 1,nx
 
-                doit = .true.
-
-                if ( jface .or. kface .or. (i.eq.1) .or. (i.eq.nx) ) then
-                   if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
-                end if
-
-                if (doit) then
+                if ( (jface .or. kface .or. (i.eq.1) .or. (i.eq.nx)) .and. bc_dirichlet(mm(i,j,k),1,0) ) then
+                   dd(i,j,k) = ZERO
+                else
                    dd(i,j,k) = &
                         ss(0,i,j,k) * uu(i,j,k)       + &
                         ss(1,i,j,k) * uu(i+1,j  ,k  ) + &
@@ -820,16 +816,16 @@ contains
                         ss(4,i,j,k) * uu(i  ,j-1,k  ) + &
                         ss(5,i,j,k) * uu(i  ,j  ,k+1) + &
                         ss(6,i,j,k) * uu(i  ,j  ,k-1)
-                else
-                   dd(i,j,k) = ZERO
                 end if
 
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
 
     else if (stencil_type .eq. ND_DENSE_STENCIL) then
 
+       !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface) IF(.not.bottom_solver)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -838,13 +834,9 @@ contains
 
              do i = 1,nx
 
-                doit = .true.
-
-                if ( jface .or. kface .or. (i.eq.1) .or. (i.eq.nx) ) then
-                   if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
-                end if
-
-                if (doit) then
+                if ( (jface .or. kface .or. (i.eq.1) .or. (i.eq.nx)) .and. bc_dirichlet(mm(i,j,k),1,0) ) then
+                   dd(i,j,k) = ZERO
+                else
                    dd(i,j,k) = ss(0,i,j,k)*uu(i,j,k) &
                         + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
                         + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
@@ -866,13 +858,12 @@ contains
                            + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
                            + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
                    end if
-                else
-                   dd(i,j,k) = ZERO
                 end if
 
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     else
        call bl_error("stencil_apply_3d_nodal: dont know this stencil_type")
     end if
