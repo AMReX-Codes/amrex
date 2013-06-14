@@ -566,7 +566,7 @@ contains
     integer            :: i, j, k, nx, ny, nz
     real (kind = dp_t) :: fx,fy,fz,f0,fac,fxyz,f2y2zx,f2x2zy,f2x2yz
 
-    real (kind = dp_t), parameter :: thirtysixth = ONE / (36.0_dp_t)
+    real (kind = dp_t), parameter :: ONETHIRTYSIXTH = ONE / (36.0_dp_t)
 
     nx = size(ss,dim=2)
     ny = size(ss,dim=3)
@@ -586,9 +586,9 @@ contains
     !
     call set_faces_edges_corners_3d(nx, ny, nz, sg, mm)
 
-    fx     = thirtysixth
-    fy     = thirtysixth
-    fz     = thirtysixth
+    fx     = ONETHIRTYSIXTH
+    fy     = ONETHIRTYSIXTH
+    fz     = ONETHIRTYSIXTH
     f0     = FOUR * (fx + fy + fz)
     fac    = (ONE / ((dh(1))**2))
     fxyz   = (fx+fy+fz)
