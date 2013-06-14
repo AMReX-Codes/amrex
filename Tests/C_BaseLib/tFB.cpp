@@ -10,9 +10,12 @@ main (int argc, char** argv)
 {
     BoxLib::Initialize(argc, argv);
 
+//    Box bx(IntVect(0,0,0),IntVect(511,511,255));
+//    Box bx(IntVect(0,0,0),IntVect(1023,1023,255));
 //    Box bx(IntVect(0,0,0),IntVect(1023,1023,1023));
+    Box bx(IntVect(0,0,0),IntVect(2047,2047,1023));
 //    Box bx(IntVect(0,0,0),IntVect(127,127,127));
-    Box bx(IntVect(0,0,0),IntVect(255,255,255));
+//    Box bx(IntVect(0,0,0),IntVect(255,255,255));
 
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Domain: " << bx << '\n';
@@ -21,10 +24,12 @@ main (int argc, char** argv)
 
     ba.maxSize(64);
 
-    const int N = 100;  // This should be divisible by 4 !!!
+    const int N = 1000;  // This should be divisible by 4 !!!
 
     if (ParallelDescriptor::IOProcessor())
         std::cout << "# boxes in BoxArray: " << ba.size() << '\n';
+
+    ParallelDescriptor::Barrier();
 
     {
         //
@@ -32,6 +37,7 @@ main (int argc, char** argv)
         //
         MultiFab mf(ba,1,1); mf.setVal(1.23);
 
+        ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
         for (int i = 0; i < N; i++)
             mf.FillBoundary(false,true);
@@ -39,7 +45,7 @@ main (int argc, char** argv)
 
         ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "cross x 1: " << end << std::endl;
+            std::cout << N << " cross x 1: " << end << std::endl;
     }
 
     {
@@ -48,6 +54,7 @@ main (int argc, char** argv)
         //
         MultiFab mf(ba,1,1); mf.setVal(1.23);
 
+        ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
         for (int i = 0; i < N; i++)
             mf.FillBoundary(false,false);
@@ -55,7 +62,7 @@ main (int argc, char** argv)
 
         ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "dense x 1: " << end << std::endl;
+            std::cout << N << " dense x 1: " << end << std::endl;
     }
 
     {
@@ -64,6 +71,7 @@ main (int argc, char** argv)
         //
         MultiFab mf(ba,1,2); mf.setVal(1.23);
 
+        ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
         for (int i = 0; i < N/2; i++)
             mf.FillBoundary(false,false);
@@ -71,7 +79,7 @@ main (int argc, char** argv)
 
         ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "dense x 2: " << end << std::endl;
+            std::cout << (N/2) << " dense x 2: " << end << std::endl;
     }
 
     {
@@ -80,6 +88,7 @@ main (int argc, char** argv)
         //
         MultiFab mf(ba,1,4); mf.setVal(1.23);
 
+        ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
         for (int i = 0; i < N/4; i++)
             mf.FillBoundary(false,false);
@@ -87,7 +96,7 @@ main (int argc, char** argv)
 
         ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "dense x 4: " << end << std::endl;
+            std::cout << (N/4) << " dense x 4: " << end << std::endl;
     }
 
     BoxLib::Finalize();
