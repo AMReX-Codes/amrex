@@ -109,9 +109,14 @@ public:
     //
     const Array<Real>& dtLevel () const { return dt_level; }
     //
-    // Array of inner node yimes
+    // Array of inner node times on specified level 
     //
-    const Array<Real>& tNodes () const { return t_nodes; }
+    const Array<Real>& tNodes (int level) const {
+	return (multi_level_sdc) ? t_nodes[level] : t_nodes[0]; }
+    //
+    // Multi-level SDC?
+    //
+    bool isMultiLevSDC () const { return multi_level_sdc; }
     //
     // Geometry object.
     //
@@ -420,18 +425,18 @@ protected:
     //
     // The data ...
     //
-    std::string       regrid_grids_file;   // Grids file that will bypass regridding.
-    std::string      initial_grids_file;   // Grids file that will bypass regridding only at initialization.
+    std::string      regrid_grids_file;   // Grids file that will bypass regridding.
+    std::string      initial_grids_file;  // Grids file that will bypass regridding only at initialization.
     int              max_level;    // Maximum allowed level.
     int              finest_level; // Current finest level.
-    int              n_nodes;      // number of inner (SDC) nodes in one time step
+    int              multi_level_sdc; // multi-level SDC?
     Array<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
     PArray<AmrLevel> amr_level;    // Array of levels
     Array<Geometry>  geom;         // Index extent of domain at all levels.
     Real             cumtime;      // Physical time variable.
     Real             start_time;   // Physical time this simulation started.
     Array<Real>      dt_level;     // Timestep at this level.
-    Array<Real>      t_nodes;      // Time of (SDC) inner nodes in the range of (0,1)
+    Array<Array<Real> > t_nodes;   // Time of (SDC) inner nodes in the range of (0,1)
     Array<int>       level_steps;  // Number of time steps at this level.
     Array<int>       level_count;
     Array<int>       n_cycle;
@@ -447,7 +452,7 @@ protected:
     int              last_checkpoint; // Step number of previous checkpoint.
     int              check_int;       // How often checkpoint (# time steps).
     Real             check_per;       // How often checkpoint (units of time).
-    std::string          check_file_root; // Root name of checkpoint file.
+    std::string      check_file_root; // Root name of checkpoint file.
     int              last_plotfile;   // Step number of previous plotfile.
     int              plot_int;        // How often plotfile (# of time steps)
     Real             plot_per;        // How often plotfile (in units of time)

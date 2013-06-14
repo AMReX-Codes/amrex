@@ -80,7 +80,7 @@ AmrLevel::AmrLevel (Amr&            papa,
 
     state.resize(desc_lst.size());
 
-    const Array<Real>& t_nodes = parent->tNodes();
+    const Array<Real>& t_nodes = parent->tNodes(level);
 
     for (int i = 0; i < state.size(); i++)
     {
