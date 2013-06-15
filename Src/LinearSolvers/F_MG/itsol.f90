@@ -361,7 +361,7 @@ contains
           case (3)
              if ( .not. nodal_flag) then
                 call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), nghost(rr), up(:,:,:,n), nghost(uu),  &
-                                      mp(:,:,:,1), bottom_solver)
+                                      mp(:,:,:,1), bottom_solver=lbottom_solver)
              else
                 call stencil_apply_3d_nodal(ap(:,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
                      mp(:,:,:,1), nghost(uu), stencil_type, luniform_dh, lbottom_solver)
