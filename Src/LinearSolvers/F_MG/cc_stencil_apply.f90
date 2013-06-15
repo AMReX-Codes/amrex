@@ -540,12 +540,12 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
     ny = size(ss,dim=3)
     nz = size(ss,dim=4)
 
-    !$OMP PARALLEL PRIVATE(i,j,k)
-    !
-    ! This is the Minion 4th order cross stencil.
-    !
+    !$OMP PARALLEL PRIVATE(i,j,k) IF(.not.lbottom_solver)
+
     if ( size(ss,dim=1) .eq. 13 ) then
- 
+       !
+       ! This is the Minion 4th order cross stencil.
+       ! 
        !$OMP DO
        do k = 1,nz
           do j = 1,ny
@@ -702,6 +702,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           !$OMP END DO
        end if
     end if
+
     !$OMP END PARALLEL
 
   end subroutine stencil_apply_3d
