@@ -11,6 +11,7 @@
 #include <CG_F.H>
 #include <CGSolver.H>
 #include <MultiGrid.H>
+#include <VisMF.H>
 //
 // The largest value allowed for SSS - the "S" in the Communicaton-avoiding BiCGStab.
 //
@@ -468,6 +469,11 @@ BuildGramMatrix (Real*           Gg,
 // SWWilliams@lbl.gov
 // Lawrence Berkeley National Lab
 //
+// NOTE: If you wish to compare CABiCGStab -vs- BiCGStab make sure to compile
+// this code with CG_USE_OLD_CONVERGENCE_CRITERIA defined.  The BiCGStab code
+// has two different convergence criteria it can use; the CABiCGStab code is
+// hard-coded to use only one convergence criterion.
+//
 
 int
 CGSolver::solve_cabicgstab (MultiFab&       sol,
@@ -515,21 +521,23 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     SetMonomialBasis(Tp,Tpp,SSS);
 
     const int ncomp = 1, nghost = 1;
-
-    MultiFab  p(sol.boxArray(), ncomp, nghost);
-    MultiFab  r(sol.boxArray(), ncomp, nghost);
-    MultiFab rt(sol.boxArray(), ncomp, nghost);
     //
     // Contains the matrix powers of p[] and r[].
     //
     // First 2*SSS+1 components are powers of p[].
     // Next  2*SSS   components are powers of r[].
     //
-    MultiFab PR(sol.boxArray(), 4*SSS_MAX+1, nghost);
+    MultiFab PR(sol.boxArray(), 4*SSS_MAX+1, 0);
 
+    MultiFab  p(sol.boxArray(), ncomp, 0);
+    MultiFab  r(sol.boxArray(), ncomp, 0);
+    MultiFab rt(sol.boxArray(), ncomp, 0);
+    
     MultiFab tmp(sol.boxArray(), 4, nghost);
 
     Lp.residual(r, rhs, sol, lev, bc_mode);
+
+    if ((verbose > 1) && r.contains_nan()) std::cout << "*** r contains NANs\n";
 
     MultiFab::Copy(rt,r,0,0,1,0);
     MultiFab::Copy( p,r,0,0,1,0);
@@ -560,11 +568,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     int niters = 0, ret = 0;
 
-    Real L2_norm_of_resid = 0;
+    Real L2_norm_of_resid = 0, atime = 0, gtime = 0;
 
     bool BiCGStabFailed = false, BiCGStabConverged = false;
-
-    Real atime = 0, gtime = 0;
 
     for (int m = 0; m < maxiter && !BiCGStabFailed && !BiCGStabConverged; )
     {
@@ -575,6 +581,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         //
         MultiFab::Copy(PR,p,0,0,1,0);
         MultiFab::Copy(PR,r,0,2*SSS+1,1,0);
+
+        if ((verbose > 1) && PR.contains_nan(0,      1)) std::cout << "*** PR contains NANs @ p\n";
+        if ((verbose > 1) && PR.contains_nan(2*SSS+1,1)) std::cout << "*** PR contains NANs @ r\n";
         //
         // We use "tmp" to minimize the number of Lp.apply()s.
         // We do this by doing p & r together in a single call.
@@ -590,9 +599,17 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             MultiFab::Copy(PR,tmp,0,        n,1,0);
             MultiFab::Copy(PR,tmp,1,2*SSS+n+1,1,0);
+
+            if ((verbose > 1) && PR.contains_nan(n,        1)) std::cout << "*** PR contains NANs @ p: " << n         << '\n';
+            if ((verbose > 1) && PR.contains_nan(2*SSS+n+1,1)) std::cout << "*** PR contains NANs @ r: " << 2*SSS+n+1 << '\n';
         }
 
-        Lp.apply(PR, PR, lev, temp_bc_mode, false, 2*SSS-1, 2*SSS, 1);
+        MultiFab::Copy(tmp,PR,2*SSS-1,0,1,0);
+        Lp.apply(tmp, tmp, lev, temp_bc_mode, false, 0, 1, 1);
+        MultiFab::Copy(PR,tmp,1,2*SSS,1,0);
+
+        if ((verbose > 1) && PR.contains_nan(2*SSS-1,1)) std::cout << "*** PR contains NANs @ 2*SSS-1\n";
+        if ((verbose > 1) && PR.contains_nan(2*SSS,  1)) std::cout << "*** PR contains NANs @ 2*SSS\n";
 
         Real time2 = ParallelDescriptor::second();
 
