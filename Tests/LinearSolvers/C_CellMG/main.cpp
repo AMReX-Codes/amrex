@@ -343,7 +343,8 @@ main (int argc, char* argv[])
       }
       if ( cg )
       {
-	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG);
+	  CGSolver cg(lp,use_mg_pre);
+//          cg.setCGSolver(CGSolver::CG);
 	  cg.setMaxIter(maxiter);
 	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
 	  std::cout << "CG Result = " << res << std::endl;
@@ -364,7 +365,8 @@ main (int argc, char* argv[])
       }
       if ( bicg )
       {
-	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::BiCGStab);
+	  CGSolver cg(lp,use_mg_pre);
+//          cg.setCGSolver(CGSolver::BiCGStab);
 	  cg.setMaxIter(maxiter);
 	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
 	  std::cout << "BiCGStab Result = " << res << std::endl;
@@ -510,7 +512,8 @@ main (int argc, char* argv[])
           }
 	  if ( bicg )
           {
-	      CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::BiCGStab);
+	      CGSolver cg(lp,use_mg_pre);
+              //cg.setCGSolver(CGSolver::BiCGStab);
 	      cg.setMaxIter(maxiter);
 	      cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      if ( new_bc )
