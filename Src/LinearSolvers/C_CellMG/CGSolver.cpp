@@ -279,15 +279,13 @@ dotxy (const MultiFab& r,
 }
 
 //
-// z[m] = alpha*A[m][n]*x[n]+beta*y[m]   [row][col]
+// z[m] = A[m][n]*x[n]   [row][col]
 //
 inline
 void
 gemv (Real* z,
-      Real  alpha,
       Real  A[((4*SSS_MAX)+1)][((4*SSS_MAX)+1)],
       Real* x,
-      Real  beta,
       Real* y,
       int   rows,
       int   cols)
@@ -299,25 +297,24 @@ gemv (Real* z,
         {
             sum += A[r][c]*x[c];
         }
-        z[r] = alpha*sum + beta*y[r];
+        z[r] = sum;
     }
 }
 
 //
-// z[n] = alpha*x[n]+beta*y[n]
+// z[n] = x[n]+beta*y[n]
 //
 inline
 void
 axpy (Real* z,
-        Real  alpha,
-        Real* x,
-        Real  beta,
-        Real* y,
-        int   n)
+      Real* x,
+      Real  beta,
+      Real* y,
+      int   n)
 {
     for (int nn = 0; nn < n; nn++)
     {
-        z[nn] = alpha*x[nn] + beta*y[nn];
+        z[nn] = x[nn] + beta*y[nn];
     }
 }
 
@@ -642,9 +639,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
         for (int nit = 0; nit < SSS; nit++)
         {
-            gemv( Tpaj, 1.0,  Tp, aj, 0.0,  Tpaj, 4*SSS+1, 4*SSS+1);
-            gemv( Tpcj, 1.0,  Tp, cj, 0.0,  Tpcj, 4*SSS+1, 4*SSS+1);
-            gemv(Tppaj, 1.0, Tpp, aj, 0.0, Tppaj, 4*SSS+1, 4*SSS+1);
+            gemv( Tpaj,  Tp, aj,  Tpaj, 4*SSS+1, 4*SSS+1);
+            gemv( Tpcj,  Tp, cj,  Tpcj, 4*SSS+1, 4*SSS+1);
+            gemv(Tppaj, Tpp, aj, Tppaj, 4*SSS+1, 4*SSS+1);
 
             const Real g_dot_Tpaj = dot(g, Tpaj, 4*SSS+1);
 
@@ -664,9 +661,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                 BiCGStabFailed = true; ret = 2; break;
             }
 
-            axpy(temp1, 1.0,     Tpcj, -alpha, Tppaj, 4*SSS+1);
-            gemv(temp2, 1.0, G, temp1,    0.0, temp2, 4*SSS+1, 4*SSS+1);
-            axpy(temp3, 1.0,       cj, -alpha,  Tpaj, 4*SSS+1);
+            axpy(temp1, Tpcj, -alpha, Tppaj, 4*SSS+1);
+            gemv(temp2, G, temp1, temp2, 4*SSS+1, 4*SSS+1);
+            axpy(temp3, cj, -alpha,  Tpaj, 4*SSS+1);
 
             const Real omega_numerator   = dot(temp3, temp2, 4*SSS+1);
             const Real omega_denominator = dot(temp1, temp2, 4*SSS+1);
@@ -678,7 +675,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             //
             // Partial update of ej must happen before the check on omega to ensure forward progress !!!
             //
-            axpy(ej, 1.0, ej, alpha, aj, 4*SSS+1);
+            axpy(ej, ej, alpha, aj, 4*SSS+1);
             //
             // ej has been updated so consider that we've done an iteration since
             // even if we break out of the loop we'll be able to update both sol.
@@ -687,8 +684,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             //
             // Calculate the norm of Saad's vector 's' to check intra s-step convergence.
             //
-            axpy(temp1, 1.0,       cj,-alpha,  Tpaj, 4*SSS+1);
-            gemv(temp2, 1.0, G, temp1,   0.0, temp2, 4*SSS+1, 4*SSS+1);
+            axpy(temp1, cj,-alpha,  Tpaj, 4*SSS+1);
+            gemv(temp2, G, temp1, temp2, 4*SSS+1, 4*SSS+1);
 
             const Real L2_norm_of_s = dot(temp1,temp2,4*SSS+1);
 
@@ -721,15 +718,15 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             //
             // Complete the update of ej & cj now that omega is known to be ok.
             //
-            axpy(ej, 1.0, ej,       omega,    cj, 4*SSS+1);
-            axpy(ej, 1.0, ej,-omega*alpha,  Tpaj, 4*SSS+1);
-            axpy(cj, 1.0, cj,      -omega,  Tpcj, 4*SSS+1);
-            axpy(cj, 1.0, cj,      -alpha,  Tpaj, 4*SSS+1);
-            axpy(cj, 1.0, cj, omega*alpha, Tppaj, 4*SSS+1);
+            axpy(ej, ej,       omega,    cj, 4*SSS+1);
+            axpy(ej, ej,-omega*alpha,  Tpaj, 4*SSS+1);
+            axpy(cj, cj,      -omega,  Tpcj, 4*SSS+1);
+            axpy(cj, cj,      -alpha,  Tpaj, 4*SSS+1);
+            axpy(cj, cj, omega*alpha, Tppaj, 4*SSS+1);
             //
             // Do an early check of the residual to determine convergence.
             //
-            gemv(temp1, 1.0, G, cj, 0.0, temp1, 4*SSS+1, 4*SSS+1);
+            gemv(temp1, G, cj, temp1, 4*SSS+1, 4*SSS+1);
             //
             // sqrt( (cj,Gcj) ) == L2 norm of the intermediate residual in exact arithmetic.
             // However, finite precision can lead to the norm^2 being < 0 (Jim Demmel).
@@ -768,8 +765,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             if ( isinf(beta) ) { BiCGStabFailed = true; ret = 6; break; } // beta = inf?
             if ( beta == 0   ) { BiCGStabFailed = true; ret = 6; break; } // beta = 0?  can't make further progress(?)
 
-            axpy(aj, 1.0, cj,        beta,   aj, 4*SSS+1);
-            axpy(aj, 1.0, aj, -omega*beta, Tpaj, 4*SSS+1);
+            axpy(aj, cj,        beta,   aj, 4*SSS+1);
+            axpy(aj, aj, -omega*beta, Tpaj, 4*SSS+1);
 
             delta = delta_next;
         }
