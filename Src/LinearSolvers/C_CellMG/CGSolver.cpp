@@ -860,21 +860,21 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
     BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
 
-    MultiFab sorig(sol.boxArray(), ncomp, nghost);
-    MultiFab s(sol.boxArray(), ncomp, nghost);
-    MultiFab sh(sol.boxArray(), ncomp, nghost);
-    MultiFab r(sol.boxArray(), ncomp, nghost);
-    MultiFab rh(sol.boxArray(), ncomp, nghost);
-    MultiFab p(sol.boxArray(), ncomp, nghost);
     MultiFab ph(sol.boxArray(), ncomp, nghost);
-    MultiFab v(sol.boxArray(), ncomp, nghost);
-    MultiFab t(sol.boxArray(), ncomp, nghost);
+    MultiFab sh(sol.boxArray(), ncomp, nghost);
+
+    MultiFab sorig(sol.boxArray(), ncomp, 0);
+    MultiFab p    (sol.boxArray(), ncomp, 0);
+    MultiFab r    (sol.boxArray(), ncomp, 0);
+    MultiFab s    (sol.boxArray(), ncomp, 0);
+    MultiFab rh   (sol.boxArray(), ncomp, 0);
+    MultiFab v    (sol.boxArray(), ncomp, 0);
+    MultiFab t    (sol.boxArray(), ncomp, 0);
+
+    Lp.residual(r, rhs, sol, lev, bc_mode);
 
     MultiFab::Copy(sorig,sol,0,0,1,0);
-
-    Lp.residual(r, rhs, sorig, lev, bc_mode);
-
-    MultiFab::Copy(rh,r,0,0,1,0);
+    MultiFab::Copy(rh,   r,  0,0,1,0);
 
     sol.setVal(0);
 
