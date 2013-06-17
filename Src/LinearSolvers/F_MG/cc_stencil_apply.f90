@@ -740,6 +740,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
     if ( dim ==  1 ) then
        if (face == -1) then
 
+          !
+          !   Lo i face
+          !
           i = 1
           flux(1,:,:) = ZERO
           do k = 1,nz
@@ -763,6 +766,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           !   Hi i face
        else if (face ==  1) then
 
+          !
+          !   Hi i face
+          !
           i = nx
           flux(1,:,:) = ZERO
           do k = 1,nz
@@ -787,6 +793,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
        !   Lo j face
     else if ( dim == 2 ) then
        if (face == -1) then
+          !
+          !   Lo j face
+          !
           j = 1
           flux(:,1,:) = ZERO
           do k = 1,nz
@@ -807,8 +816,10 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           end do
           flux(:,1,:) = flux(:,1,:) * fac
 
-          !   Hi j face
        else if (face ==  1) then
+          !
+          !   Hi j face
+          !
           j = ny
           flux(:,1,:) = ZERO
           do k = 1,nz
@@ -830,11 +841,13 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           end do
           flux(:,1,:) = flux(:,1,:) * fac
 
-          !   Lo k face
        end if
     else if ( dim == 3 ) then
        if (face == -1) then
 
+          !
+          !   Lo k face
+          !
           k = 1
           flux(:,:,1) = ZERO
           do j = 1,ny
@@ -855,9 +868,11 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
           end do
           flux(:,:,1) = flux(:,:,1) * fac
 
-          !   Hi k face
        else if (face ==  1) then
 
+          !
+          !   Hi k face
+          !
           k = nz
           flux(:,:,1) = ZERO
           do j = 1,ny
@@ -1089,8 +1104,9 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
       flux(i) = ss(2,i) * (uu(i)-uu(i-1)) 
     end do
 
-    ! Must make sure we use stencil from interior fine cell, not fine cell next to c/f boundary
-    ! Because we use ss(2,i,j) which looks "down", we only modify at the high side
+    ! Must make sure we use stencil from interior fine cell, not fine cell
+    ! next to c/f boundary.  Because we use ss(2,i,j) which looks "down", we
+    ! only modify at the high side
     flux(nx-1) = ss(1,nx-2) * (uu(nx-1)-uu(nx-2)) 
 
     ! Lo i face
