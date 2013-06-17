@@ -196,13 +196,18 @@ sxay (MultiFab&       ss,
     const int ncomp  = 1;
     const int sscomp = 0;
     const int xxcomp = 0;
+    const int N      = ss.IndexMap().size();
 
-    for (MFIter mfi(ss); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int n = 0; n < N; n++)
     {
-        const Box&       ssbx  = mfi.validbox();
-        FArrayBox&       ssfab = ss[mfi];
-        const FArrayBox& xxfab = xx[mfi];
-        const FArrayBox& yyfab = yy[mfi];
+        const int        k     = ss.IndexMap()[n];
+        const Box&       ssbx  = ss.box(k);
+        FArrayBox&       ssfab = ss[k];
+        const FArrayBox& xxfab = xx[k];
+        const FArrayBox& yyfab = yy[k];
 
         FORT_CGSXAY(ssfab.dataPtr(sscomp),
                     ARLIM(ssfab.loVect()), ARLIM(ssfab.hiVect()),
@@ -469,7 +474,10 @@ BuildGramMatrix (Real*           Gg,
 // NOTE: If you wish to compare CABiCGStab -vs- BiCGStab make sure to compile
 // this code with CG_USE_OLD_CONVERGENCE_CRITERIA defined.  The BiCGStab code
 // has two different convergence criteria it can use; the CABiCGStab code is
-// hard-coded to use only one convergence criterion.
+// hard-coded to use only one convergence criterion.  They won't compare identically,
+// even in that case, since the CA algorithm uses L2 norms while the non-CA
+// algorithm uses the inf norm.  But they're usually pretty close in iteration
+// counts.
 //
 
 int
@@ -662,8 +670,10 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             }
 
             axpy(temp1, Tpcj, -alpha, Tppaj, 4*SSS+1);
+
             gemv(temp2, G, temp1, temp2, 4*SSS+1, 4*SSS+1);
-            axpy(temp3, cj, -alpha,  Tpaj, 4*SSS+1);
+
+            axpy(temp3,   cj, -alpha,  Tpaj, 4*SSS+1);
 
             const Real omega_numerator   = dot(temp3, temp2, 4*SSS+1);
             const Real omega_denominator = dot(temp1, temp2, 4*SSS+1);
@@ -685,6 +695,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             // Calculate the norm of Saad's vector 's' to check intra s-step convergence.
             //
             axpy(temp1, cj,-alpha,  Tpaj, 4*SSS+1);
+
             gemv(temp2, G, temp1, temp2, 4*SSS+1, 4*SSS+1);
 
             const Real L2_norm_of_s = dot(temp1,temp2,4*SSS+1);
