@@ -192,19 +192,17 @@ Laplacian::Fapply (MultiFab&       y,
 		   int             num_comp,
                    int             level)
 {
-    const int nc = y.nComp();
-
     for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
     {
         const Box&       vbx  = ymfi.validbox();
         FArrayBox&       yfab = y[ymfi];
         const FArrayBox& xfab = x[ymfi];
 
-        FORT_ADOTX(yfab.dataPtr(), 
+        FORT_ADOTX(yfab.dataPtr(dst_comp), 
                    ARLIM(yfab.loVect()), ARLIM(yfab.hiVect()),
-                   xfab.dataPtr(), 
+                   xfab.dataPtr(src_comp), 
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &nc,
+                   vbx.loVect(), vbx.hiVect(), &num_comp,
                    h[level]);
     }
 }

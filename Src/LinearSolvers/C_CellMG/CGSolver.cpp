@@ -11,6 +11,7 @@
 #include <CG_F.H>
 #include <CGSolver.H>
 #include <MultiGrid.H>
+#include <VisMF.H>
 //
 // The largest value allowed for SSS - the "S" in the Communicaton-avoiding BiCGStab.
 //
@@ -195,13 +196,18 @@ sxay (MultiFab&       ss,
     const int ncomp  = 1;
     const int sscomp = 0;
     const int xxcomp = 0;
+    const int N      = ss.IndexMap().size();
 
-    for (MFIter mfi(ss); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int n = 0; n < N; n++)
     {
-        const Box&       ssbx  = mfi.validbox();
-        FArrayBox&       ssfab = ss[mfi];
-        const FArrayBox& xxfab = xx[mfi];
-        const FArrayBox& yyfab = yy[mfi];
+        const int        k     = ss.IndexMap()[n];
+        const Box&       ssbx  = ss.box(k);
+        FArrayBox&       ssfab = ss[k];
+        const FArrayBox& xxfab = xx[k];
+        const FArrayBox& yyfab = yy[k];
 
         FORT_CGSXAY(ssfab.dataPtr(sscomp),
                     ARLIM(ssfab.loVect()), ARLIM(ssfab.hiVect()),
@@ -278,15 +284,13 @@ dotxy (const MultiFab& r,
 }
 
 //
-// z[m] = alpha*A[m][n]*x[n]+beta*y[m]   [row][col]
+// z[m] = A[m][n]*x[n]   [row][col]
 //
 inline
 void
 gemv (Real* z,
-      Real  alpha,
       Real  A[((4*SSS_MAX)+1)][((4*SSS_MAX)+1)],
       Real* x,
-      Real  beta,
       Real* y,
       int   rows,
       int   cols)
@@ -298,25 +302,24 @@ gemv (Real* z,
         {
             sum += A[r][c]*x[c];
         }
-        z[r] = alpha*sum + beta*y[r];
+        z[r] = sum;
     }
 }
 
 //
-// z[n] = alpha*x[n]+beta*y[n]
+// z[n] = x[n]+beta*y[n]
 //
 inline
 void
 axpy (Real* z,
-        Real  alpha,
-        Real* x,
-        Real  beta,
-        Real* y,
-        int   n)
+      Real* x,
+      Real  beta,
+      Real* y,
+      int   n)
 {
     for (int nn = 0; nn < n; nn++)
     {
-        z[nn] = alpha*x[nn] + beta*y[nn];
+        z[nn] = x[nn] + beta*y[nn];
     }
 }
 
@@ -468,6 +471,14 @@ BuildGramMatrix (Real*           Gg,
 // SWWilliams@lbl.gov
 // Lawrence Berkeley National Lab
 //
+// NOTE: If you wish to compare CABiCGStab -vs- BiCGStab make sure to compile
+// this code with CG_USE_OLD_CONVERGENCE_CRITERIA defined.  The BiCGStab code
+// has two different convergence criteria it can use; the CABiCGStab code is
+// hard-coded to use only one convergence criterion.  They won't compare identically,
+// even in that case, since the CA algorithm uses L2 norms while the non-CA
+// algorithm uses the inf norm.  But they're usually pretty close in iteration
+// counts.
+//
 
 int
 CGSolver::solve_cabicgstab (MultiFab&       sol,
@@ -515,21 +526,23 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     SetMonomialBasis(Tp,Tpp,SSS);
 
     const int ncomp = 1, nghost = 1;
-
-    MultiFab  p(sol.boxArray(), ncomp, nghost);
-    MultiFab  r(sol.boxArray(), ncomp, nghost);
-    MultiFab rt(sol.boxArray(), ncomp, nghost);
     //
     // Contains the matrix powers of p[] and r[].
     //
     // First 2*SSS+1 components are powers of p[].
     // Next  2*SSS   components are powers of r[].
     //
-    MultiFab PR(sol.boxArray(), 4*SSS_MAX+1, nghost);
+    MultiFab PR(sol.boxArray(), 4*SSS_MAX+1, 0);
 
+    MultiFab  p(sol.boxArray(), ncomp, 0);
+    MultiFab  r(sol.boxArray(), ncomp, 0);
+    MultiFab rt(sol.boxArray(), ncomp, 0);
+    
     MultiFab tmp(sol.boxArray(), 4, nghost);
 
     Lp.residual(r, rhs, sol, lev, bc_mode);
+
+    if ((verbose > 1) && r.contains_nan()) std::cout << "*** r contains NANs\n";
 
     MultiFab::Copy(rt,r,0,0,1,0);
     MultiFab::Copy( p,r,0,0,1,0);
@@ -560,11 +573,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     int niters = 0, ret = 0;
 
-    Real L2_norm_of_resid = 0;
+    Real L2_norm_of_resid = 0, atime = 0, gtime = 0;
 
     bool BiCGStabFailed = false, BiCGStabConverged = false;
-
-    Real atime = 0, gtime = 0;
 
     for (int m = 0; m < maxiter && !BiCGStabFailed && !BiCGStabConverged; )
     {
@@ -575,6 +586,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         //
         MultiFab::Copy(PR,p,0,0,1,0);
         MultiFab::Copy(PR,r,0,2*SSS+1,1,0);
+
+        if ((verbose > 1) && PR.contains_nan(0,      1)) std::cout << "*** PR contains NANs @ p\n";
+        if ((verbose > 1) && PR.contains_nan(2*SSS+1,1)) std::cout << "*** PR contains NANs @ r\n";
         //
         // We use "tmp" to minimize the number of Lp.apply()s.
         // We do this by doing p & r together in a single call.
@@ -590,9 +604,17 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
             MultiFab::Copy(PR,tmp,0,        n,1,0);
             MultiFab::Copy(PR,tmp,1,2*SSS+n+1,1,0);
+
+            if ((verbose > 1) && PR.contains_nan(n,        1)) std::cout << "*** PR contains NANs @ p: " << n         << '\n';
+            if ((verbose > 1) && PR.contains_nan(2*SSS+n+1,1)) std::cout << "*** PR contains NANs @ r: " << 2*SSS+n+1 << '\n';
         }
 
-        Lp.apply(PR, PR, lev, temp_bc_mode, false, 2*SSS-1, 2*SSS, 1);
+        MultiFab::Copy(tmp,PR,2*SSS-1,0,1,0);
+        Lp.apply(tmp, tmp, lev, temp_bc_mode, false, 0, 1, 1);
+        MultiFab::Copy(PR,tmp,1,2*SSS,1,0);
+
+        if ((verbose > 1) && PR.contains_nan(2*SSS-1,1)) std::cout << "*** PR contains NANs @ 2*SSS-1\n";
+        if ((verbose > 1) && PR.contains_nan(2*SSS,  1)) std::cout << "*** PR contains NANs @ 2*SSS\n";
 
         Real time2 = ParallelDescriptor::second();
 
@@ -625,9 +647,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
         for (int nit = 0; nit < SSS; nit++)
         {
-            gemv( Tpaj, 1.0,  Tp, aj, 0.0,  Tpaj, 4*SSS+1, 4*SSS+1);
-            gemv( Tpcj, 1.0,  Tp, cj, 0.0,  Tpcj, 4*SSS+1, 4*SSS+1);
-            gemv(Tppaj, 1.0, Tpp, aj, 0.0, Tppaj, 4*SSS+1, 4*SSS+1);
+            gemv( Tpaj,  Tp, aj,  Tpaj, 4*SSS+1, 4*SSS+1);
+            gemv( Tpcj,  Tp, cj,  Tpcj, 4*SSS+1, 4*SSS+1);
+            gemv(Tppaj, Tpp, aj, Tppaj, 4*SSS+1, 4*SSS+1);
 
             const Real g_dot_Tpaj = dot(g, Tpaj, 4*SSS+1);
 
@@ -647,9 +669,11 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
                 BiCGStabFailed = true; ret = 2; break;
             }
 
-            axpy(temp1, 1.0,     Tpcj, -alpha, Tppaj, 4*SSS+1);
-            gemv(temp2, 1.0, G, temp1,    0.0, temp2, 4*SSS+1, 4*SSS+1);
-            axpy(temp3, 1.0,       cj, -alpha,  Tpaj, 4*SSS+1);
+            axpy(temp1, Tpcj, -alpha, Tppaj, 4*SSS+1);
+
+            gemv(temp2, G, temp1, temp2, 4*SSS+1, 4*SSS+1);
+
+            axpy(temp3,   cj, -alpha,  Tpaj, 4*SSS+1);
 
             const Real omega_numerator   = dot(temp3, temp2, 4*SSS+1);
             const Real omega_denominator = dot(temp1, temp2, 4*SSS+1);
@@ -661,7 +685,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             //
             // Partial update of ej must happen before the check on omega to ensure forward progress !!!
             //
-            axpy(ej, 1.0, ej, alpha, aj, 4*SSS+1);
+            axpy(ej, ej, alpha, aj, 4*SSS+1);
             //
             // ej has been updated so consider that we've done an iteration since
             // even if we break out of the loop we'll be able to update both sol.
@@ -670,8 +694,9 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             //
             // Calculate the norm of Saad's vector 's' to check intra s-step convergence.
             //
-            axpy(temp1, 1.0,       cj,-alpha,  Tpaj, 4*SSS+1);
-            gemv(temp2, 1.0, G, temp1,   0.0, temp2, 4*SSS+1, 4*SSS+1);
+            axpy(temp1, cj,-alpha,  Tpaj, 4*SSS+1);
+
+            gemv(temp2, G, temp1, temp2, 4*SSS+1, 4*SSS+1);
 
             const Real L2_norm_of_s = dot(temp1,temp2,4*SSS+1);
 
@@ -704,15 +729,15 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             //
             // Complete the update of ej & cj now that omega is known to be ok.
             //
-            axpy(ej, 1.0, ej,       omega,    cj, 4*SSS+1);
-            axpy(ej, 1.0, ej,-omega*alpha,  Tpaj, 4*SSS+1);
-            axpy(cj, 1.0, cj,      -omega,  Tpcj, 4*SSS+1);
-            axpy(cj, 1.0, cj,      -alpha,  Tpaj, 4*SSS+1);
-            axpy(cj, 1.0, cj, omega*alpha, Tppaj, 4*SSS+1);
+            axpy(ej, ej,       omega,    cj, 4*SSS+1);
+            axpy(ej, ej,-omega*alpha,  Tpaj, 4*SSS+1);
+            axpy(cj, cj,      -omega,  Tpcj, 4*SSS+1);
+            axpy(cj, cj,      -alpha,  Tpaj, 4*SSS+1);
+            axpy(cj, cj, omega*alpha, Tppaj, 4*SSS+1);
             //
             // Do an early check of the residual to determine convergence.
             //
-            gemv(temp1, 1.0, G, cj, 0.0, temp1, 4*SSS+1, 4*SSS+1);
+            gemv(temp1, G, cj, temp1, 4*SSS+1, 4*SSS+1);
             //
             // sqrt( (cj,Gcj) ) == L2 norm of the intermediate residual in exact arithmetic.
             // However, finite precision can lead to the norm^2 being < 0 (Jim Demmel).
@@ -751,8 +776,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
             if ( isinf(beta) ) { BiCGStabFailed = true; ret = 6; break; } // beta = inf?
             if ( beta == 0   ) { BiCGStabFailed = true; ret = 6; break; } // beta = 0?  can't make further progress(?)
 
-            axpy(aj, 1.0, cj,        beta,   aj, 4*SSS+1);
-            axpy(aj, 1.0, aj, -omega*beta, Tpaj, 4*SSS+1);
+            axpy(aj, cj,        beta,   aj, 4*SSS+1);
+            axpy(aj, aj, -omega*beta, Tpaj, 4*SSS+1);
 
             delta = delta_next;
         }
@@ -843,21 +868,21 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
     BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
 
-    MultiFab sorig(sol.boxArray(), ncomp, nghost);
-    MultiFab s(sol.boxArray(), ncomp, nghost);
-    MultiFab sh(sol.boxArray(), ncomp, nghost);
-    MultiFab r(sol.boxArray(), ncomp, nghost);
-    MultiFab rh(sol.boxArray(), ncomp, nghost);
-    MultiFab p(sol.boxArray(), ncomp, nghost);
     MultiFab ph(sol.boxArray(), ncomp, nghost);
-    MultiFab v(sol.boxArray(), ncomp, nghost);
-    MultiFab t(sol.boxArray(), ncomp, nghost);
+    MultiFab sh(sol.boxArray(), ncomp, nghost);
+
+    MultiFab sorig(sol.boxArray(), ncomp, 0);
+    MultiFab p    (sol.boxArray(), ncomp, 0);
+    MultiFab r    (sol.boxArray(), ncomp, 0);
+    MultiFab s    (sol.boxArray(), ncomp, 0);
+    MultiFab rh   (sol.boxArray(), ncomp, 0);
+    MultiFab v    (sol.boxArray(), ncomp, 0);
+    MultiFab t    (sol.boxArray(), ncomp, 0);
+
+    Lp.residual(r, rhs, sol, lev, bc_mode);
 
     MultiFab::Copy(sorig,sol,0,0,1,0);
-
-    Lp.residual(r, rhs, sorig, lev, bc_mode);
-
-    MultiFab::Copy(rh,r,0,0,1,0);
+    MultiFab::Copy(rh,   r,  0,0,1,0);
 
     sol.setVal(0);
 
