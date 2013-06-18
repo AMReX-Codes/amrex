@@ -1,9 +1,11 @@
 program main
 
+  ! These modules are all in BoxLib/Src/F_BaseLib
   use boxlib
   use multifab_module
   use bl_IO_module
-  use layout_module
+
+  ! These modules are all in this directory
   use init_data_module
   use write_plotfile_module
   use advance_module
