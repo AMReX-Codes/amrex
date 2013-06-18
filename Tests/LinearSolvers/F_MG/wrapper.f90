@@ -3,15 +3,11 @@ subroutine wrapper()
   use BoxLib
   use f2kcli
   use bl_IO_module
-  use box_util_module
-  use ml_boxarray_module
   use ml_layout_module
-  use cc_stencil_module
   use mg_module
   use box_util_module
   use mt19937_module
   use bl_timer_module
-  use stencil_types_module
 
   implicit none
 

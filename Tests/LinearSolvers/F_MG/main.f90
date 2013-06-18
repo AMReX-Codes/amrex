@@ -1,7 +1,6 @@
 program main
   use BoxLib
   use bl_prof_module
-  use multifab_module
   use layout_module
 
   implicit none
