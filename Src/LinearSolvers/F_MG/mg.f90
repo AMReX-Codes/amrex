@@ -392,8 +392,8 @@ contains
                                    gamma = gamma, &
                                    cycle_type = cycle_type, &
                                    omega = omega, &
-!                                   bottom_solver = 1, &
-                                   bottom_solver = 3, &
+                                   bottom_solver = 1, &
+!                                   bottom_solver = 3, &
                                    bottom_max_iter = bottom_max_iter, &
                                    bottom_solver_eps = bottom_solver_eps, &
                                    max_iter = max_iter, &
@@ -727,7 +727,6 @@ contains
 
   subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
 
-    use mpi
     use bl_prof_module
     use itsol_module, only: itsol_bicgstab_solve, itsol_cabicgstab_solve, itsol_cg_solve
 
@@ -763,7 +762,7 @@ contains
     if ( associated(mgt%bottom_comm) ) then
        communicator = mgt%bottom_comm
     else
-       communicator = MPI_COMM_WORLD
+       communicator = parallel_communicator()
     end if
 
     stat = 0
