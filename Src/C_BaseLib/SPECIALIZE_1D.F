@@ -303,6 +303,47 @@ c
 
       end
 c
+c     This function adds scaled floating point numbers from one array to another.
+c
+      subroutine FORT_FASTSAXPY (dest,
+     &                           DIMS(dest),
+     &                           imin, imax,
+     &                           a, src,
+     &                           DIMS(src),
+     &                           imn,
+     &                           ncomp)
+
+      implicit none
+c
+c     Bounds to fill in dest
+c
+      integer imin, imax
+      integer DIMDEC(dest)
+c
+c     Bounds to fill from src
+c
+      integer imn
+      integer DIMDEC(src)
+      integer ncomp
+      
+      REAL_T  dest(DIMV(dest),ncomp)
+      REAL_T  a
+      REAL_T  src(DIMV(src),ncomp)
+c
+c     Local variables
+c
+      integer i,k,ioff
+
+      ioff=imn-imin
+
+      do k = 1, ncomp
+            do i = imin, imax
+               dest(i,k) = dest(i,k) + a * src(i+ioff,k)
+            end do
+      end do
+
+      end
+c
 c     This function subtracts floating point numbers from one array to another.
 c
       subroutine FORT_FASTMINUS (dest,
