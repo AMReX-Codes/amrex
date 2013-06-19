@@ -263,6 +263,72 @@ contains
     call MPI_Comm_Rank(m_comm, m_myproc, ierr)
     call parallel_barrier()
   end subroutine parallel_set_comm
+  !
+  ! Create a new communicator from the set of unique proc IDs in procs.
+  ! The proc IDs in procs do not need to be unique.  They just need to
+  ! constitute a subset of the proc IDs in MPI_COM_WORLD.  One possible
+  ! way to call this would be with the processor map from a layout.
+  !
+  ! Note that this will return MPI_COMM_NULL to those MPI procs
+  ! that are not in the new communicator.
+  !
+  function parallel_create_communicator(procs) result(comm)
+    use sort_i_module
+    use bl_error_module
+    use vector_i_module
+
+    integer              :: comm
+    integer, intent(in)  :: procs(:)
+
+    integer              :: i, nprocs, world_group, this_group, ierr
+    integer, allocatable :: ranks(:)
+    type(vector_i)       :: v
+    !
+    ! Make sure all possible procs are in the current MPI_COMM_WORLD.
+    !
+    nprocs = parallel_nprocs()
+
+    do i = 1, size(procs)
+       call bl_assert(procs(i) .ge. 0,      'procs must be > 0')
+       call bl_assert(procs(i) .lt. nprocs, 'procs must be < nprocs')
+    end do
+
+    allocate(ranks(size(procs)))
+
+    ranks = procs
+    !
+    ! Sort & remove duplicates from "rank".
+    !
+    call sort(ranks)
+    call build(v)
+    call push_back(v,ranks(1))
+    do i = 2, size(ranks)
+       if ( ranks(i) .ne. back(v) ) call push_back(v,ranks(i))
+    end do
+    !
+    ! Build a duplicate of the MPI_COMM_WORLD group.
+    !
+    call MPI_Comm_group(MPI_COMM_WORLD, world_group, ierr)
+
+    call MPI_group_incl(world_group, size(v), dataptr(v), this_group, ierr)
+
+    call destroy(v)
+
+    deallocate(ranks)
+    !
+    ! This sets comm to MPI_COMM_NULL on those ranks not in this_group.
+    !
+    call MPI_Comm_create(MPI_COMM_WORLD, this_group, comm, ierr)
+
+    call MPI_Group_free(this_group,  ierr)
+    call MPI_Group_free(world_group, ierr)
+
+  end function parallel_create_communicator
+  
+  subroutine parallel_free_communicator(comm)
+    integer :: comm, ierr
+    if ( comm .ne. MPI_COMM_NULL ) call MPI_Comm_free(comm, ierr)
+  end subroutine parallel_free_communicator
 
   pure function parallel_communicator() result(r)
     integer :: r
