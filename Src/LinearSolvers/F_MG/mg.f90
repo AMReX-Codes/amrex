@@ -28,10 +28,6 @@ contains
                             max_L0_growth, &
                             verbose, cg_verbose, nodal, use_hypre, is_singular, &
                             the_bottom_comm)
-
-    use mpi
-    use sort_i_module
-    use vector_i_module
     use bl_IO_module
     use bl_prof_module
 
@@ -86,9 +82,7 @@ contains
     real(kind=dp_t)     :: coarse_dx(pd%dim)
     real(dp_t), pointer :: p(:,:,:,:)
 
-    integer :: reducers_comm, world_group, reducers_group, ierr, nreducers, nrank
-    integer, allocatable :: ranks(:)
-    type(vector_i) :: v
+    integer :: communicator, ierr, nreducers, nrank
 
     call build(bpt, "mgt_build")
 
@@ -373,50 +367,7 @@ contains
                !
                ! Build a communicator on new_coarse_la%lap%prc.
                !
-               ! First build a duplicate of MPI_COMM_WORLD group.
-               !
-               call MPI_Comm_group(MPI_COMM_WORLD, world_group, ierr)
-               !
-               ! Include only those ranks the bottom solver will use.
-               ! That would be those that are in the processor list.
-               !
-               allocate(ranks(size(new_coarse_la%lap%prc)))
-
-               ranks = new_coarse_la%lap%prc
-               !
-               ! Sort & remove duplicates from "rank".
-               !
-               call sort(ranks)
-               call build(v)
-               call push_back(v,ranks(1))
-               do i = 2, size(ranks)
-                  if ( ranks(i) .ne. back(v) ) call push_back(v,ranks(i))
-               end do
-
-               if ( parallel_IOProcessor() .and. verbose > 1 ) &
-                  print*, '*** v.size(): ', size(v), ' dataptr: ', dataptr(v)
-
-               call MPI_group_incl(world_group, size(v), dataptr(v), reducers_group, ierr)
-
-               call destroy(v)
-
-               deallocate(ranks)
-               !
-               ! This sets reducers_comm to MPI_COMM_NULL on those ranks not in the group.
-               !
-               call MPI_Comm_create(MPI_COMM_WORLD, reducers_group, reducers_comm, ierr)
-
-               call MPI_Group_free(reducers_group, ierr)
-               call MPI_Group_free(world_group, ierr)
-
-               if ( reducers_comm .ne. MPI_COMM_NULL ) then
-                  call MPI_Comm_size(reducers_comm, nreducers, ierr)
-                  call MPI_Comm_rank(reducers_comm, nrank, ierr)
-                  if ( nrank .eq. 0 ) then
-                     print*, '*** nreducers: ', nreducers
-                     call print(get_boxarray(new_coarse_la), 'new_coarse_ba')
-                  end if
-               end if
+               communicator = parallel_create_communicator(new_coarse_la%lap%prc)
 
                if (parallel_IOProcessor() .and. verbose > 1) then
                   print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
@@ -455,8 +406,7 @@ contains
                                    verbose = verbose, &
                                    cg_verbose = cg_verbose, &
                                    nodal = nodal, &
-                                   the_bottom_comm = reducers_comm)
-
+                                   the_bottom_comm = communicator)
            else 
 
                mgt%bottom_solver = 1
@@ -558,13 +508,12 @@ contains
 
   recursive subroutine mg_tower_destroy(mgt,destroy_la)
 
-    use mpi
     type(mg_tower), intent(inout) :: mgt
     logical, intent(in), optional :: destroy_la
 
     logical      :: ldestroy_la
     type(layout) :: la
-    integer      :: i, ierr
+    integer      :: i
 
     ldestroy_la = .false.; if (present(destroy_la)) ldestroy_la = destroy_la
 
@@ -593,7 +542,7 @@ contains
     if (ldestroy_la) call layout_destroy(la)
 
     if ( associated(mgt%bottom_comm) ) then
-       if ( mgt%bottom_comm .ne. MPI_COMM_NULL ) call MPI_Comm_free(mgt%bottom_comm, ierr)
+       call parallel_free_communicator(mgt%bottom_comm)
        deallocate(mgt%bottom_comm)
     end if
 
