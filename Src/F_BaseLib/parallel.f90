@@ -264,11 +264,17 @@ contains
     call parallel_barrier()
   end subroutine parallel_set_comm
   !
+  ! Returns the null communicator.
+  !
+  function parallel_null_communicator() result(comm)
+    integer :: comm
+    comm = MPI_COMM_NULL
+  end function parallel_null_communicator
+  !
   ! Create a new communicator from the set of unique proc IDs in procs.
   ! The proc IDs in procs do not need to be unique.  They just need to
   ! constitute a subset of the proc IDs in MPI_COM_WORLD.  One possible
   ! way to call this would be with the processor map from a layout.
-  !
   ! Note that this will return MPI_COMM_NULL to those MPI procs
   ! that are not in the new communicator.
   !
@@ -342,9 +348,20 @@ contains
     integer r
     r = m_myproc
   end function parallel_myproc
-  pure function parallel_IOProcessor() result(r)
+  function parallel_IOProcessor(comm) result(r)
     logical :: r
-    r = m_myproc == io_processor_node
+    integer, intent(in), optional :: comm
+    integer :: rank, ierr
+    if ( present(comm) ) then
+       if ( comm .eq. MPI_COMM_NULL ) then
+          r = .false.
+       else
+          call MPI_Comm_rank(comm, rank, ierr)
+          r = (rank == io_processor_node)
+       end if
+    else
+       r = (m_myproc == io_processor_node)
+    end if
   end function parallel_IOProcessor
   pure function parallel_IOProcessorNode() result(r)
     integer :: r
