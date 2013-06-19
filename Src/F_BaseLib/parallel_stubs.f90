@@ -268,14 +268,37 @@ contains
     integer r
     r = m_myproc
   end function parallel_myproc
-  pure function parallel_IOProcessor() result(r)
+  pure function parallel_IOProcessor(comm) result(r)
     logical :: r
-    r = parallel_myproc() == io_processor_node
+    integer, intent(in), optional :: comm
+    r = (parallel_myproc() == io_processor_node)
   end function parallel_IOProcessor
   pure function parallel_IOProcessorNode() result(r)
     integer :: r
     r = io_processor_node
   end function parallel_IOProcessorNode
+
+  pure function parallel_null_communicator() result(r)
+    integer :: r
+    !
+    ! Just gotta return something that isn't m_comm.
+    !
+    r = (m_comm - 1)
+  end function parallel_null_communicator
+
+  function parallel_create_communicator(procs) result(comm)
+    integer              :: comm
+    integer, intent(in)  :: procs(:)
+    !
+    ! We're running in serial.  Just return m_comm
+    !
+    comm = m_comm
+  end function parallel_create_communicator
+
+  subroutine parallel_free_communicator(comm)
+    integer, intent(in) :: comm
+  end subroutine parallel_free_communicator
+
   pure function parallel_thread_support_level() result(r)
     integer :: r
     r = m_thread_support_level
