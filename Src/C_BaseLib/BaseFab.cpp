@@ -376,7 +376,7 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
 
 template <>
 BaseFab<Real>&
-BaseFab<Real>::saxpy (const Real a, const BaseFab<Real>& src,
+BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
                       const Box&        srcbox,
                       const Box&        destbox,
                       int               srccomp,

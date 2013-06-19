@@ -569,18 +569,18 @@ public:
                       int               destcomp,
                       int               numcomp=1);
     //
-    // FAB SAXPY (y[i] <- y[i] + a * x[i]).
+    // FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
     //
-    BaseFab<T>& saxpy (const T a, const BaseFab<T>& x,
+    BaseFab<T>& saxpy (T a, const BaseFab<T>& x,
                        const Box&        srcbox,
                        const Box&        destbox,
                        int               srccomp,
                        int               destcomp,
                        int               numcomp=1);
     //
-    // FAB SAXPY (y[i] <- y[i] + a * x[i]).  All components.
+    // FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
     //
-    BaseFab<T>& saxpy (const T a, const BaseFab<T>& x);
+    BaseFab<T>& saxpy (T a, const BaseFab<T>& x);
     //
     // Scalar subtraction (a[i] <- a[i] - r).
     // Note: use plus(-r) for more general operations.
@@ -1597,7 +1597,7 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
                      int                  numcomp);
 template <>
 BaseFab<Real>&
-BaseFab<Real>::saxpy (const Real a, const BaseFab<Real>& x,
+BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& x,
                       const Box&        srcbox,
                       const Box&        destbox,
                       int               srccomp,
@@ -2035,15 +2035,17 @@ BaseFab<T>::plus (const BaseFab<T>& x)
 
 template <class T>
 BaseFab<T>&
-BaseFab<T>::saxpy (const T a, const BaseFab<T>& x)
+BaseFab<T>::saxpy (T a, const BaseFab<T>& x)
 {
-    return saxpy(a,x,domain,0,nvar);
+    Box ovlp(domain);
+    ovlp &= x.domain;
+    return ovlp.ok() ? saxpy(a,x,ovlp,ovlp,0,0,nvar) : *this;
 }
 
 
 template <class T>
 BaseFab<T>&
-BaseFab<T>::saxpy (const T a, const BaseFab<T>& x,
+BaseFab<T>::saxpy (T a, const BaseFab<T>& x,
                    const Box&        srcbox,
                    const Box&        destbox,
                    int               srccomp,
