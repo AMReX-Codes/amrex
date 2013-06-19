@@ -409,7 +409,7 @@ ifeq ($(MACHINE), Linux)
       MPI_HOME=/usr/local/mpich
     endif
 
-    ifneq ($(HOSTNAME), pleiades.ucsc.edu)
+    ifneq ($(HOSTNAME), hyades.ucsc.edu)
     ifneq ($(WHICHLINUX), INTREPID)
       ifneq ($(WHICHLINUX), JACQUARD)
         ifneq ($(WHICHLINUX), COLUMBIA)
