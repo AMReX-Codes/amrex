@@ -391,7 +391,6 @@ contains
   subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
        stat, singular_in, uniform_dh, nodal_mask, comm_in)
 
-    use mpi
     use bl_prof_module
 
     integer,         intent(in   ) :: max_iter
@@ -413,7 +412,7 @@ contains
     type(multifab)  :: rr, rt, pp, ph, vv, tt, ss, rh_local, aa_local
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, bnorm, rnorm, den
     real(dp_t)      :: tres0, tnorms(2),rtnorms(2)
-    integer         :: i, cnt, ng_for_res, comm, rank, ierr
+    integer         :: i, cnt, ng_for_res, comm
     logical         :: nodal_solve, singular, nodal(get_dim(rh)), ioproc
 
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
@@ -422,22 +421,19 @@ contains
 
     if ( present(stat) ) stat = 0
 
-    singular    = .false.        ; if ( present(singular_in) ) singular    = singular_in
-    ng_for_res  = 0              ; if ( nodal_q(rh)          ) ng_for_res  = 1
-    nodal_solve = .false.        ; if ( ng_for_res /= 0      ) nodal_solve = .true.
-    comm        = MPI_COMM_WORLD ; if ( present(comm_in)     ) comm        = comm_in
+    singular    = .false. ; if ( present(singular_in) ) singular    = singular_in
+    ng_for_res  = 0       ; if ( nodal_q(rh)          ) ng_for_res  = 1
+    nodal_solve = .false. ; if ( ng_for_res /= 0      ) nodal_solve = .true.
 
-    if ( comm == MPI_COMM_NULL ) return
+    comm = parallel_communicator() ; if ( present(comm_in) ) comm = comm_in
+
+    if ( comm == parallel_null_communicator() ) return
 
     call build(bpt, "its_BiCGStab_solve")
 
-    call MPI_Comm_rank(comm, rank, ierr)
-
-    ioproc = .false. ; if ( rank .eq. 0 ) ioproc = .true.
-
-    nodal = nodal_flags(rh)
-
-    la = get_layout(aa)
+    la     = get_layout(aa)
+    nodal  = nodal_flags(rh)
+    ioproc = parallel_IOProcessor(comm = comm)
 
     call multifab_build(rr, la, 1, ng_for_res, nodal)
     call multifab_build(rt, la, 1, ng_for_res, nodal)
@@ -700,7 +696,6 @@ contains
 
   subroutine itsol_CABiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
        stat, singular_in, uniform_dh, nodal_mask, comm_in)
-    use mpi
     use bl_prof_module
     integer,         intent(in   ) :: max_iter
     type(imultifab), intent(in   ) :: mm
@@ -722,7 +717,7 @@ contains
     real(kind=dp_t) :: alpha, beta, omega, rho, bnorm
     real(dp_t)      :: rnorm0, delta, delta_next, L2_norm_of_rt
     real(dp_t)      :: nrms(2),rnrms(2), L2_norm_of_resid, L2_norm_of_r
-    integer         :: i, m, niters, ng_for_res, nit, comm, rank, ierr
+    integer         :: i, m, niters, ng_for_res, nit, comm
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
     logical         :: BiCGStabFailed, BiCGStabConverged, ioproc
     real(dp_t)      :: g_dot_Tpaj, omega_numerator, omega_denominator, L2_norm_of_s
@@ -749,21 +744,19 @@ contains
 
     if ( present(stat) ) stat = 0
 
-    singular    = .false.        ; if ( present(singular_in) ) singular    = singular_in
-    ng_for_res  = 0              ; if ( nodal_q(rh)          ) ng_for_res  = 1
-    nodal_solve = .false.        ; if ( ng_for_res /= 0      ) nodal_solve = .true.
-    comm        = MPI_COMM_WORLD ; if ( present(comm_in)     ) comm        = comm_in
+    singular    = .false. ; if ( present(singular_in) ) singular    = singular_in
+    ng_for_res  = 0       ; if ( nodal_q(rh)          ) ng_for_res  = 1
+    nodal_solve = .false. ; if ( ng_for_res /= 0      ) nodal_solve = .true.
 
-    if ( comm == MPI_COMM_NULL ) return
+    comm = parallel_communicator() ; if ( present(comm_in) ) comm = comm_in
+
+    if ( comm == parallel_null_communicator() ) return
 
     call build(bpt, "its_CABiCGStab_solve")
 
-    call MPI_Comm_rank(comm, rank, ierr)
-
-    ioproc = .false. ; if ( rank .eq. 0 ) ioproc = .true.
-
-    la    = get_layout(aa)
-    nodal = nodal_flags(rh)
+    la     = get_layout(aa)
+    nodal  = nodal_flags(rh)
+    ioproc = parallel_IOProcessor(comm = comm)
 
     aj    = zero
     cj    = zero
