@@ -384,11 +384,28 @@ endif
 
 ifeq ($(HOSTNAME), hyades.ucsc.edu)
   ifeq ($(USE_MPI),TRUE)
-    CXX := mpiicc
-    CC  := mpiicc
-    F90 := mpiifort
-    FC := mpiifort
-    fC := mpiifort
+    ifeq ($(COMP), Intel)
+      CXX := mpiicc
+      CC  := mpiicc
+      F90 := mpiifort
+      FC := mpiifort
+      fC := mpiifort
+      
+      ifeq ($(USE_OMP),TRUE)
+        CXXOPTF += -mt_mpi
+	CXXDEBF += -mt_mpi
+	LDFLAGS += -mt_mpi
+	F90FLAGS += -mt_mpi
+	FFLAGS += -mt_mpi
+	fFLAGS += -mt_mpi
+      endif
+    else
+      CXX := mpicxx
+      CC  := mpicc
+      F90 := mpifc
+      FC := mpifc
+      fC := mpifc
+    endif
   endif
 endif 
 
