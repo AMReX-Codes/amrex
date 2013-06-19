@@ -1,9 +1,8 @@
 BOXLIB_HOME := ../../..
 
 NDEBUG := t
-MPI    := t
+MPI    := 
 OMP    :=
-MPI    :=  
 PROF   :=
 
 USE_MG_CPP :=  
