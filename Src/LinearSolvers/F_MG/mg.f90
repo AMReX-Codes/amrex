@@ -77,12 +77,9 @@ contains
     type(  layout)      :: old_coarse_la, new_coarse_la
     type(     box)      :: coarse_pd,bxs
     type(boxarray)      :: new_coarse_ba
-    integer             :: bottom_box_size
-    integer             :: success
+    integer             :: bottom_box_size, success, communicator
     real(kind=dp_t)     :: coarse_dx(pd%dim)
     real(dp_t), pointer :: p(:,:,:,:)
-
-    integer :: communicator, ierr, nreducers, nrank
 
     call build(bpt, "mgt_build")
 
