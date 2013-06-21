@@ -390,7 +390,6 @@ contains
                                    cycle_type = cycle_type, &
                                    omega = omega, &
                                    bottom_solver = 1, &
-!                                   bottom_solver = 3, &
                                    bottom_max_iter = bottom_max_iter, &
                                    bottom_solver_eps = bottom_solver_eps, &
                                    max_iter = max_iter, &
@@ -612,6 +611,8 @@ contains
        bx1 = coarsen(bx, rr)
 
        if ( any(extent(bx1) < min_size) ) exit
+
+       if ( bottom_levs > 1 .and. any(extent(bx1) < 8) ) exit
 
        if ( any(mod(extent(bx1),2) .eq. 1) ) then
 
