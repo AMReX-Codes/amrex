@@ -280,23 +280,25 @@ contains
   !
   function parallel_create_communicator(procs) result(comm)
     use sort_i_module
-    use bl_error_module
     use vector_i_module
 
     integer              :: comm
     integer, intent(in)  :: procs(:)
 
-    integer              :: i, nprocs, world_group, this_group, ierr
+    integer              :: i, world_group, this_group, ierr
     integer, allocatable :: ranks(:)
     type(vector_i)       :: v
     !
     ! Make sure all possible procs are in the current MPI_COMM_WORLD.
     !
-    nprocs = parallel_nprocs()
-
     do i = 1, size(procs)
-       call bl_assert(procs(i) .ge. 0,      'procs must be > 0')
-       call bl_assert(procs(i) .lt. nprocs, 'procs must be < nprocs')
+       if ( (procs(i) .lt. 0) .or. (procs(i) .ge. parallel_nprocs()) ) then
+          if ( parallel_IOProcessor() ) then
+             print*, 'procs must be in range: [0,nprocs)'
+             call flush()
+          end if
+          call parallel_abort()
+       end if
     end do
 
     allocate(ranks(size(procs)))
