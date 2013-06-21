@@ -104,7 +104,6 @@ ADR::variableSetUp ()
     BL_ASSERT(desc_lst.size() == 0);
 
     // Initialize the network
-    std::cout << "CALLING FROM VAR SET UP " << std::endl;
     adr_network_init();
 
     // Get options, set phys_bc
@@ -119,7 +118,7 @@ ADR::variableSetUp ()
 #if (BL_SPACEDIM == 3)
     Zvel = cnt++;
 #endif
-    NumAdv = 0;
+    NumAdv = 1;
     if (NumAdv > 0)
     {
         FirstAdv = cnt++;
@@ -253,6 +252,15 @@ ADR::variableSetUp ()
                           FirstSpec+i,
                           name[FirstSpec+i],
                           bcs[FirstSpec+i],
+                          BndryFunc(BL_FORT_PROC_CALL(SPECFILL,specfill)));
+    }
+
+    for (int i=0; i<NumAdv; ++i)
+    {
+    desc_lst.setComponent(State_Type,
+                          FirstAdv+i,
+                          name[FirstAdv+i],
+                          bcs[FirstAdv+i],
                           BndryFunc(BL_FORT_PROC_CALL(SPECFILL,specfill)));
     }
 
