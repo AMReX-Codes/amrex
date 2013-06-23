@@ -393,11 +393,11 @@ protected:
     //
     // Do a single timestep on level L.
     //
-    void timeStep (int  level,
-                   Real dt,
-                   int  iter,
-                   int  ncycle,
-                   Real stop_time);
+    virtual void timeStep (int  level,
+                           Real time,
+                           int  iteration,
+                           int  niter,
+                           Real stop_time);
 
     //
     // Whether to write a plotfile now

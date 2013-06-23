@@ -569,6 +569,19 @@ public:
                       int               destcomp,
                       int               numcomp=1);
     //
+    // FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
+    //
+    BaseFab<T>& saxpy (T a, const BaseFab<T>& x,
+                       const Box&        srcbox,
+                       const Box&        destbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp=1);
+    //
+    // FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
+    //
+    BaseFab<T>& saxpy (T a, const BaseFab<T>& x);
+    //
     // Scalar subtraction (a[i] <- a[i] - r).
     // Note: use plus(-r) for more general operations.
     //
@@ -1584,6 +1597,15 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
                      int                  numcomp);
 template <>
 BaseFab<Real>&
+BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& x,
+                      const Box&        srcbox,
+                      const Box&        destbox,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp);
+
+template <>
+BaseFab<Real>&
 BaseFab<Real>::minus (const BaseFab<Real>& src,
                       const Box&           srcbox,
                       const Box&           destbox,
@@ -2009,6 +2031,29 @@ BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& x)
 {
     return operator+=(x);
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::saxpy (T a, const BaseFab<T>& x)
+{
+    Box ovlp(domain);
+    ovlp &= x.domain;
+    return ovlp.ok() ? saxpy(a,x,ovlp,ovlp,0,0,nvar) : *this;
+}
+
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::saxpy (T a, const BaseFab<T>& x,
+                   const Box&        srcbox,
+                   const Box&        destbox,
+                   int               srccomp,
+                   int               destcomp,
+                   int               numcomp)
+{
+    BoxLib::Error("BaseFab<T>::saxpy:: non-Real version not implemented");
+    return *this;
 }
 
 template <class T>
