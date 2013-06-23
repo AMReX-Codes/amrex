@@ -309,6 +309,7 @@ contains
     !
     call sort(ranks)
     call build(v)
+    call reserve(v,parallel_nprocs())
     call push_back(v,ranks(1))
     do i = 2, size(ranks)
        if ( ranks(i) .ne. back(v) ) call push_back(v,ranks(i))
