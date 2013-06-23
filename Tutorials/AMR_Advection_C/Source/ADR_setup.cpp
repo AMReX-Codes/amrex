@@ -319,4 +319,8 @@ ADR::variableSetUp ()
     // DEFINE ERROR ESTIMATION QUANTITIES
     //
     ErrorSetUp();
+
+    for (int i = 0; i < NumSpec; i++) {
+      delete[] spec_names[i];
+    }
 }
