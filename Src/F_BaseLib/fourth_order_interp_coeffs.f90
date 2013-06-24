@@ -1,6 +1,8 @@
 module fourth_order_interp_coef_module
 
-  real(kind=8), parameter :: P2(15,21) = &
+  use bl_types
+
+  real(kind=dp_t), parameter :: P2(15,21) = &
        reshape((/ &
        0.00345005720185d0, &
        0.0166666666667d0, &
@@ -319,7 +321,7 @@ module fourth_order_interp_coef_module
        0.00014097736729d0 /), (/15, 21/))
 
 
-  real(kind=8), parameter :: A2(0:3,15) = &
+  real(kind=dp_t), parameter :: A2(0:3,15) = &
        reshape((/ &
        0.25d0, &
        0.25d0, &
