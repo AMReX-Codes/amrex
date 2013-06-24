@@ -118,7 +118,7 @@ contains
     do i = 1,nx
        ss(1,i) = sg(i  )*f1
        ss(2,i) = sg(i-1)*f1
-       ss(0,i) = -(sg(i)+sg(i-1))
+       ss(0,i) = -(sg(i)+sg(i-1))*f1
     end do
 
   end subroutine s_simple_1d_nodal
