@@ -12,6 +12,8 @@ module mg_module
      module procedure mg_tower_destroy
   end interface
 
+  private :: get_bottom_box_size
+
 contains
 
   recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, stencil_type_in, &
@@ -24,10 +26,11 @@ contains
                             max_iter, abort_on_max_iter, eps, abs_eps, &
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
                             max_L0_growth, &
-                            verbose, cg_verbose, nodal, use_hypre, is_singular)
-
+                            verbose, cg_verbose, nodal, use_hypre, is_singular, &
+                            the_bottom_comm)
     use bl_IO_module
     use bl_prof_module
+
     type(mg_tower), intent(inout) :: mgt
     type(layout), intent(in   ) :: la
     type(box), intent(in) :: pd
@@ -58,6 +61,7 @@ contains
     integer, intent(in), optional :: cg_verbose
     integer, intent(in), optional :: use_hypre
     logical, intent(in), optional :: is_singular
+    integer, intent(in), optional :: the_bottom_comm
 
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
@@ -73,8 +77,7 @@ contains
     type(  layout)      :: old_coarse_la, new_coarse_la
     type(     box)      :: coarse_pd,bxs
     type(boxarray)      :: new_coarse_ba
-    integer             :: bottom_box_size
-    integer             :: success
+    integer             :: bottom_box_size, success, communicator
     real(kind=dp_t)     :: coarse_dx(pd%dim)
     real(dp_t), pointer :: p(:,:,:,:)
 
@@ -107,8 +110,12 @@ contains
     if ( present(verbose)           ) mgt%verbose           = verbose
     if ( present(cg_verbose)        ) mgt%cg_verbose        = cg_verbose
     if ( present(use_hypre)         ) mgt%use_hypre         = use_hypre 
-
     if ( present(max_L0_growth)     ) mgt%max_L0_growth     = max_L0_growth 
+
+    if ( present(the_bottom_comm) ) then
+       allocate(mgt%bottom_comm)
+       mgt%bottom_comm = the_bottom_comm
+    end if
 
     nodal_flag = .false.
     if ( present(nodal) ) then
@@ -261,7 +268,7 @@ contains
     ! Do we cover the entire domain?
     ! Note that the volume is number of cells so it increments in units of 1, not dx*dy
     ! Need these to be real, not int, so we can handle large numbers.
-    ba = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
+    ba      = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
     dvol    = boxarray_dvolume(ba)
     dvol_pd = box_dvolume(pd)
 
@@ -345,16 +352,20 @@ contains
            ! compute the initial size of each of the boxes for the fancy
            ! bottom solver.  Each box will have bottom_box_size**dm cells
            success = 0
-           call get_bottom_box_size(success,bottom_box_size,new_coarse_ba,min_width, &
-                                    mgt%max_bottom_nlevel)
+           call get_bottom_box_size(success,bottom_box_size,get_box(new_coarse_ba,1), &
+                                    min_width, mgt%max_bottom_nlevel)
  
            if (success .eq. 1) then
+
                call boxarray_maxsize(new_coarse_ba,bottom_box_size)
                call layout_build_ba(new_coarse_la,new_coarse_ba,coarse_pd, &
                                     pmask=old_coarse_la%lap%pmask)
-        
                call boxarray_destroy(new_coarse_ba)
-     
+               !
+               ! Build a communicator on new_coarse_la%lap%prc.
+               !
+               communicator = parallel_create_communicator(new_coarse_la%lap%prc)
+
                if (parallel_IOProcessor() .and. verbose > 1) then
                   print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
                   print *,'   ... Bounding box is'
@@ -390,8 +401,8 @@ contains
                                    max_L0_growth = max_L0_growth, &
                                    verbose = verbose, &
                                    cg_verbose = cg_verbose, &
-                                   nodal = nodal)
-
+                                   nodal = nodal, &
+                                   the_bottom_comm = communicator)
            else 
 
                mgt%bottom_solver = 1
@@ -496,11 +507,9 @@ contains
     type(mg_tower), intent(inout) :: mgt
     logical, intent(in), optional :: destroy_la
 
-    logical :: ldestroy_la
-
+    logical      :: ldestroy_la
     type(layout) :: la
-
-    integer :: i
+    integer      :: i
 
     ldestroy_la = .false.; if (present(destroy_la)) ldestroy_la = destroy_la
 
@@ -527,6 +536,11 @@ contains
     if ( built_q(mgt%nodal_mask)    ) call destroy(mgt%nodal_mask)
 
     if (ldestroy_la) call layout_destroy(la)
+
+    if ( associated(mgt%bottom_comm) ) then
+       call parallel_free_communicator(mgt%bottom_comm)
+       deallocate(mgt%bottom_comm)
+    end if
 
     if ( associated(mgt%bottom_mgt) ) then
        call mg_tower_destroy(mgt%bottom_mgt, .true.)
@@ -576,50 +590,38 @@ contains
 
   end function max_mg_levels
 
-  subroutine get_bottom_box_size(success,bottom_box_size,ba,min_size,max_bottom_nlevel)
+  subroutine get_bottom_box_size(success,bottom_box_size,bxs,min_size,max_bottom_nlevel)
 
-    integer       , intent(inout) :: success
-    integer       , intent(  out) :: bottom_box_size
-    type(boxarray), intent(in   ) :: ba
-    integer       , intent(in   ) :: min_size
-    integer       , intent(in   ) :: max_bottom_nlevel
+    integer  , intent(inout) :: success
+    integer  , intent(  out) :: bottom_box_size
+    type(box), intent(in   ) :: bxs
+    integer  , intent(in   ) :: min_size
+    integer  , intent(in   ) :: max_bottom_nlevel
 
-    ! local
-    type(box)          :: bx, bx1
-    integer            :: rr
-    integer            :: bottom_levs
+    type(box) :: bx, bx1
+    integer   :: rr
+    integer   :: bottom_levs
 
-    if ( nboxes(ba) .ne. 1) then
-       call bl_error("mg.f90:get_bottom_box_size: nboxes(ba) .ne. 1")
-    end if
-
-    success = 1
-
+    rr          = 2
+    success     = 1
     bottom_levs = 1
-    rr = 2
 
     do
-       bx = get_box(ba,1)
+       bx  = bxs
        bx1 = coarsen(bx, rr)
 
-       if ( any(extent(bx1) < min_size) ) then
-          exit
-       end if
+       if ( any(extent(bx1) < min_size) ) exit
 
-       if ( bottom_levs > 1 ) then
-          if ( any(extent(bx1) < 8) ) then
-             exit
-          end if
-       end if
+       if ( bottom_levs > 1 .and. any(extent(bx1) < 8) ) exit
 
-       if (any(mod(extent(bx1),2) .eq. 1)) then
+       if ( any(mod(extent(bx1),2) .eq. 1) ) then
 
-          if (all(mod(extent(bx1),3) .eq. 0)) then
+          if ( all(mod(extent(bx1),3) .eq. 0) ) then
              ! test 3
              bottom_levs  = bottom_levs + 1
              rr = rr*3
              exit
-          else if (all(mod(extent(bx1),5) .eq. 0)) then
+          else if ( all(mod(extent(bx1),5) .eq. 0) ) then
              ! test 5
              bottom_levs  = bottom_levs + 1
              rr = rr*5
@@ -631,23 +633,27 @@ contains
        end if
 
        if ( bx /= refine(bx1, rr)  ) then
-          ! this means bx has an odd number of cells on one or more side
+          !
+          ! This means bx has an odd number of cells on one or more side
           ! we can only get here if rr=2, i.e., the first pass through this do loop
-          ! we exit the do loop with bottom_levs=1 and will abort
+          ! we exit the do loop with bottom_levs=1 and will abort.
+          !
           exit
        end if
 
        rr = rr*2
-       bottom_levs  = bottom_levs + 1
 
+       bottom_levs = bottom_levs + 1
+       !
+       ! Max size of grids will be 2**max(bottom_levs,max_bottom_nlevel)
+       !
        if (bottom_levs .eq. max_bottom_nlevel) exit
 
     end do
 
     bottom_box_size = rr
 
-    if ( bottom_levs .eq. 1) &
-       success = 0
+    if ( bottom_levs .eq. 1) success = 0
 
   end subroutine get_bottom_box_size
 
@@ -730,16 +736,14 @@ contains
     integer, intent(in) :: lev
 
     ! Local variables
-    integer             :: stat
-    logical             :: singular_test
-    integer             :: i
+    integer             :: i,stat,communicator
+    logical             :: singular_test,do_diag
     real(dp_t)          :: nrm
     type(bl_prof_timer), save :: bpt
-    logical             :: do_diag
-
-    do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
     call build(bpt, "mgt_bottom_solve")
+
+    do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
     if (.not.nodal_q(rh)) then
        singular_test =  mgt%bottom_singular .and. mgt%coeffs_sum_to_zero
@@ -751,6 +755,12 @@ contains
        nrm = norm_inf(mgt%cc(lev))
        if ( parallel_IOProcessor() ) &
           print *,' BOT: Norm before bottom         ',nrm
+    end if
+
+    if ( associated(mgt%bottom_comm) ) then
+       communicator = mgt%bottom_comm
+    else
+       communicator = parallel_communicator()
     end if
 
     stat = 0
@@ -768,7 +778,8 @@ contains
                                     stat = stat, &
                                     singular_in = mgt%bottom_singular, &
                                     uniform_dh = mgt%uniform_dh,&
-                                    nodal_mask = mgt%nodal_mask)
+                                    nodal_mask = mgt%nodal_mask, &
+                                    comm_in = communicator)
        else
           call itsol_bicgstab_solve(ss, uu, rh, mm, &
                                     mgt%bottom_solver_eps, mgt%bottom_max_iter, &
@@ -776,7 +787,8 @@ contains
                                     mgt%stencil_type, mgt%lcross, &
                                     stat = stat, &
                                     singular_in = singular_test, &
-                                    uniform_dh = mgt%uniform_dh)
+                                    uniform_dh = mgt%uniform_dh, &
+                                    comm_in = communicator)
        end if
        do i = 1, mgt%nub
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
@@ -807,7 +819,8 @@ contains
                                       stat = stat, &
                                       singular_in = mgt%bottom_singular, &
                                       uniform_dh = mgt%uniform_dh,&
-                                      nodal_mask = mgt%nodal_mask)
+                                      nodal_mask = mgt%nodal_mask, &
+                                      comm_in = communicator)
        else
           call itsol_cabicgstab_solve(ss, uu, rh, mm, &
                                       mgt%bottom_solver_eps, mgt%bottom_max_iter, &
@@ -815,7 +828,8 @@ contains
                                       mgt%stencil_type, mgt%lcross, &
                                       stat = stat, &
                                       singular_in = singular_test, &
-                                      uniform_dh = mgt%uniform_dh)
+                                      uniform_dh = mgt%uniform_dh, &
+                                      comm_in = communicator)
        end if
        do i = 1, mgt%nub
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)

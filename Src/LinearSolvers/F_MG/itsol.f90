@@ -268,22 +268,23 @@ contains
 
     end subroutine diag_init_nd_3d
 
-  function itsol_converged(rr, bnorm, eps, abs_eps, rrnorm) result(r)
+  function itsol_converged(rr, bnorm, eps, abs_eps, rrnorm, comm) result(r)
     use bl_prof_module
 
     type(multifab), intent(in )           :: rr
     real(dp_t),     intent(in )           :: bnorm, eps
     real(dp_t),     intent(in ), optional :: abs_eps
     real(dp_t),     intent(out), optional :: rrnorm
+    integer,        intent(in ), optional :: comm
 
     real(dp_t) :: norm_rr
     logical    :: r
 
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "its_converged")
-
-    norm_rr = norm_inf(rr)
+    if ( present(comm) ) then
+       norm_rr = norm_inf(rr,comm=comm)
+    else
+       norm_rr = norm_inf(rr)
+    end if
 
     if ( present(rrnorm) ) rrnorm = norm_rr
 
@@ -293,7 +294,6 @@ contains
       r = (norm_rr <= eps*bnorm) 
     endif
 
-    call destroy(bpt)
   end function itsol_converged
   !
   ! Computes rr = aa * uu
@@ -384,15 +384,12 @@ contains
     integer, intent(in)           :: stencil_type
     logical, intent(in)           :: lcross
     logical, intent(in), optional :: uniform_dh, bottom_solver
-    type(bl_prof_timer), save     :: bpt
-    call build(bpt, "its_defect")
     call itsol_stencil_apply(ss, rr, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver)
     call saxpy(rr, rh, -1.0_dp_t, rr)
-    call destroy(bpt)
   end subroutine itsol_defect
 
   subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
-       stat, singular_in, uniform_dh, nodal_mask)
+       stat, singular_in, uniform_dh, nodal_mask, comm_in)
 
     use bl_prof_module
 
@@ -409,19 +406,18 @@ contains
     logical,         intent(in ), optional :: singular_in
     logical,         intent(in ), optional :: uniform_dh
     type(multifab),  intent(in ), optional :: nodal_mask
+    integer,         intent(in ), optional :: comm_in
 
     type(layout)    :: la
     type(multifab)  :: rr, rt, pp, ph, vv, tt, ss, rh_local, aa_local
     real(kind=dp_t) :: rho_1, alpha, beta, omega, rho, bnorm, rnorm, den
     real(dp_t)      :: tres0, tnorms(2),rtnorms(2)
-    integer         :: i, cnt, ng_for_res
-    logical         :: nodal_solve, singular, nodal(get_dim(rh))
+    integer         :: i, cnt, ng_for_res, comm
+    logical         :: nodal_solve, singular, nodal(get_dim(rh)), ioproc
 
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
 
     type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "its_BiCGStab_solve")
 
     if ( present(stat) ) stat = 0
 
@@ -429,9 +425,15 @@ contains
     ng_for_res  = 0       ; if ( nodal_q(rh)          ) ng_for_res  = 1
     nodal_solve = .false. ; if ( ng_for_res /= 0      ) nodal_solve = .true.
 
-    nodal = nodal_flags(rh)
+    comm = parallel_communicator() ; if ( present(comm_in) ) comm = comm_in
 
-    la = get_layout(aa)
+    if ( comm == parallel_null_communicator() ) return
+
+    call build(bpt, "its_BiCGStab_solve")
+
+    la     = get_layout(aa)
+    nodal  = nodal_flags(rh)
+    ioproc = parallel_IOProcessor(comm = comm)
 
     call multifab_build(rr, la, 1, ng_for_res, nodal)
     call multifab_build(rt, la, 1, ng_for_res, nodal)
@@ -471,9 +473,9 @@ contains
       call setval(ss,ONE)
       tnorms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
       tnorms(2) = dot(      ss, ss, nodal_mask, local = .true.)
-      call parallel_reduce(rtnorms, tnorms, MPI_SUM)
+      call parallel_reduce(rtnorms, tnorms, MPI_SUM, comm = comm)
       rho = rtnorms(1) / rtnorms(2)
-      if ( parallel_IOProcessor() .and. verbose > 0 ) then
+      if ( ioproc .and. verbose > 0 ) then
          print *,'   ...singular adjustment to rhs: ', rho
       endif
       call saxpy(rh_local,-rho,ss)
@@ -492,25 +494,25 @@ contains
 
     call copy(rt, rr)
 
-    rho = dot(rt, rr, nodal_mask)
+    rho = dot(rt, rr, nodal_mask, comm = comm)
     !
     ! Elide some reductions by calculating local norms & then reducing all together.
     !
     tnorms(1) = norm_inf(rr,       local = .true.)
     tnorms(2) = norm_inf(rh_local, local = .true.)
 
-    call parallel_reduce(rtnorms, tnorms, MPI_MAX)
+    call parallel_reduce(rtnorms, tnorms, MPI_MAX, comm = comm)
 
     tres0 = rtnorms(1)
     bnorm = rtnorms(2)
 
-    if ( parallel_IOProcessor() .and. verbose > 0 ) then
+    if ( ioproc .and. verbose > 0 ) then
        write(*,*) "   BiCGStab: A and rhs have been rescaled. So has the error."
        write(unit=*, fmt='("    BiCGStab: Initial error (error0) =        ",g15.8)') tres0
     end if 
 
-    if ( itsol_converged(rr, bnorm, eps) ) then
-       if ( parallel_IOProcessor() .and. verbose > 0 ) then
+    if ( itsol_converged(rr, bnorm, eps, comm = comm) ) then
+       if ( ioproc .and. verbose > 0 ) then
           if ( tres0 < eps*bnorm ) then
              write(unit=*, fmt='("    BiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') tres0,eps*bnorm
           end if
@@ -521,7 +523,7 @@ contains
     rho_1 = ZERO
 
     do i = 1, max_iter
-       rho = dot(rt, rr, nodal_mask)
+       rho = dot(rt, rr, nodal_mask, comm = comm)
        if ( i == 1 ) then
           call copy(pp, rr)
        else
@@ -544,7 +546,7 @@ contains
        call copy(ph,pp)
        call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
        cnt = cnt + 1
-       den = dot(rt, vv, nodal_mask)
+       den = dot(rt, vv, nodal_mask, comm = comm)
        if ( den == ZERO ) then
           if ( present(stat) ) then
              call bl_warn("BICGSTAB_solve: breakdown in bicg, going with what I have"); stat = 30; goto 100
@@ -555,12 +557,12 @@ contains
        call saxpy(uu, alpha, ph)
        call saxpy(ss, rr, -alpha, vv)
        if ( verbose > 1 ) then
-          rnorm = norm_inf(ss)
-          if ( parallel_IOProcessor() ) then
+          rnorm = norm_inf(ss, comm = comm)
+          if ( ioproc ) then
              write(unit=*, fmt='("    BiCGStab: Half Iter        ",i4," rel. err. ",g15.8)') cnt/2, rnorm/bnorm
           end if
        end if
-       if ( itsol_converged(ss, bnorm, eps, rrnorm = rnorm) ) exit
+       if ( itsol_converged(ss, bnorm, eps, rrnorm = rnorm, comm = comm) ) exit
        call copy(ph,ss)
        call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.) 
        cnt = cnt + 1
@@ -571,7 +573,7 @@ contains
        tnorms(1) = dot(tt, tt, nodal_mask, local = .true.)
        tnorms(2) = dot(tt, ss, nodal_mask, local = .true.)
 
-       call parallel_reduce(rtnorms, tnorms, MPI_SUM)
+       call parallel_reduce(rtnorms, tnorms, MPI_SUM, comm = comm)
 
        den   = rtnorms(1)
        omega = rtnorms(2)
@@ -586,16 +588,16 @@ contains
        call saxpy(uu, omega, ph)
        call saxpy(rr, ss, -omega, tt)
        if ( verbose > 1 ) then
-          rnorm = norm_inf(rr)
-          if ( parallel_IOProcessor() ) then
+          rnorm = norm_inf(rr, comm = comm)
+          if ( ioproc ) then
              write(unit=*, fmt='("    BiCGStab: Iteration        ",i4," rel. err. ",g15.8)') cnt/2, rnorm/bnorm
           end if
        end if
-       if ( itsol_converged(rr, bnorm, eps, rrnorm = rnorm) ) exit
+       if ( itsol_converged(rr, bnorm, eps, rrnorm = rnorm, comm = comm) ) exit
        rho_1 = rho
     end do
 
-    if ( parallel_IOProcessor() .and. verbose > 0 ) then
+    if ( ioproc .and. verbose > 0 ) then
        write(unit=*, fmt='("    BiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') cnt/2, rnorm/bnorm
        if ( rnorm < eps*bnorm ) then
           write(unit=*, fmt='("    BiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm,eps*bnorm
@@ -605,7 +607,7 @@ contains
     if ( rnorm > bnorm ) then
        call setval(uu,ZERO,all=.true.)
        if ( present(stat) ) stat = 1
-       if ( verbose > 0 .and.  parallel_IOProcessor() ) print *,'   BiCGStab: solution reset to zero'
+       if ( verbose > 0 .and. ioproc ) print *,'   BiCGStab: solution reset to zero'
     end if
 
     if ( i > max_iter ) then
@@ -693,7 +695,7 @@ contains
   end subroutine dgemv
 
   subroutine itsol_CABiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
-       stat, singular_in, uniform_dh, nodal_mask)
+       stat, singular_in, uniform_dh, nodal_mask, comm_in)
     use bl_prof_module
     integer,         intent(in   ) :: max_iter
     type(imultifab), intent(in   ) :: mm
@@ -704,19 +706,20 @@ contains
     logical        , intent(in   ) :: lcross
     real(kind=dp_t), intent(in   ) :: eps
 
-    integer,        intent(out), optional :: stat
-    logical,        intent(in ), optional :: singular_in
-    logical,        intent(in ), optional :: uniform_dh
-    type(multifab), intent(in ), optional :: nodal_mask
+    integer,         intent(out), optional :: stat
+    logical,         intent(in ), optional :: singular_in
+    logical,         intent(in ), optional :: uniform_dh
+    type(multifab),  intent(in ), optional :: nodal_mask
+    integer,         intent(in ), optional :: comm_in
 
     type(layout)    :: la
     type(multifab)  :: rr, rt, pp, pr, ss, rh_local, aa_local, ph, tt
     real(kind=dp_t) :: alpha, beta, omega, rho, bnorm
     real(dp_t)      :: rnorm0, delta, delta_next, L2_norm_of_rt
     real(dp_t)      :: nrms(2),rnrms(2), L2_norm_of_resid, L2_norm_of_r
-    integer         :: i, m, niters, ng_for_res, nit
+    integer         :: i, m, niters, ng_for_res, nit, comm
     logical         :: nodal_solve, singular, nodal(get_dim(rh))
-    logical         :: BiCGStabFailed, BiCGStabConverged
+    logical         :: BiCGStabFailed, BiCGStabConverged, ioproc
     real(dp_t)      :: g_dot_Tpaj, omega_numerator, omega_denominator, L2_norm_of_s
 
     real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
@@ -739,16 +742,21 @@ contains
     real(dp_t)      G(4*SSS+1, 4*SSS+1)
     real(dp_t)     gg(4*SSS+1)
 
-    call build(bpt, "its_CABiCGStab_solve")
-
     if ( present(stat) ) stat = 0
 
     singular    = .false. ; if ( present(singular_in) ) singular    = singular_in
     ng_for_res  = 0       ; if ( nodal_q(rh)          ) ng_for_res  = 1
     nodal_solve = .false. ; if ( ng_for_res /= 0      ) nodal_solve = .true.
 
-    la    = get_layout(aa)
-    nodal = nodal_flags(rh)
+    comm = parallel_communicator() ; if ( present(comm_in) ) comm = comm_in
+
+    if ( comm == parallel_null_communicator() ) return
+
+    call build(bpt, "its_CABiCGStab_solve")
+
+    la     = get_layout(aa)
+    nodal  = nodal_flags(rh)
+    ioproc = parallel_IOProcessor(comm = comm)
 
     aj    = zero
     cj    = zero
@@ -800,9 +808,9 @@ contains
        call setval(ss,ONE)
        nrms(1) = dot(rh_local, ss, nodal_mask, local = .true.)
        nrms(2) = dot(      ss, ss, nodal_mask, local = .true.)
-       call parallel_reduce(rnrms, nrms, MPI_SUM)
+       call parallel_reduce(rnrms, nrms, MPI_SUM, comm = comm)
        rho = rnrms(1) / rnrms(2)
-       if ( parallel_IOProcessor() .and. verbose > 0 ) then
+       if ( ioproc .and. verbose > 0 ) then
           print *,'   ...singular adjustment to rhs: ', rho
        endif
        call saxpy(rh_local,-rho,ss)
@@ -825,21 +833,21 @@ contains
     nrms(1) = norm_inf(rt,       local = .true.)
     nrms(2) = norm_inf(rh_local, local = .true.)
 
-    call parallel_reduce(rnrms, nrms, MPI_MAX)
+    call parallel_reduce(rnrms, nrms, MPI_MAX, comm = comm)
 
     rnorm0 = rnrms(1)
     bnorm  = rnrms(2)
 
-    delta         = dot(rt,rt,nodal_mask)
+    delta         = dot(rt,rt,nodal_mask, comm = comm)
     L2_norm_of_rt = sqrt(delta)
 
-    if ( parallel_IOProcessor() .and. verbose > 0 ) then
+    if ( ioproc .and. verbose > 0 ) then
        write(*,*) "   CABiCGStab: A and rhs have been rescaled. So has the error."
        write(unit=*, fmt='("    CABiCGStab: Initial error (error0) =        ",g15.8)') rnorm0
     end if 
 
-    if ( itsol_converged(rr, bnorm, eps) .or. (delta.eq.zero) ) then
-       if ( parallel_IOProcessor() .and. verbose > 0 ) then
+    if ( itsol_converged(rr, bnorm, eps, comm = comm) .or. (delta.eq.zero) ) then
+       if ( ioproc .and. verbose > 0 ) then
           if ( rnorm0 < eps*bnorm ) then
              write(unit=*, fmt='("    CABiCGStab: Zero iterations: rnorm ",g15.8," < eps*bnorm ",g15.8)') rnorm0,eps*bnorm
           else if ( delta .eq. zero ) then
@@ -906,7 +914,7 @@ contains
           g_dot_Tpaj = dot_product(gg,Tpaj)
 
           if ( g_dot_Tpaj == zero ) then
-             if ( parallel_IOProcessor() .and. verbose > 0 ) &
+             if ( ioproc .and. verbose > 0 ) &
                   print*, "CGSolver_CABiCGStab: g_dot_Tpaj == 0, nit = ", nit
              BiCGStabFailed = .true. ; exit
           end if
@@ -914,7 +922,7 @@ contains
           alpha = delta / g_dot_Tpaj
 
           if ( is_an_inf(alpha) ) then
-             if ( verbose > 1 .and. parallel_IOProcessor() ) &
+             if ( verbose > 1 .and. ioproc ) &
                   print*, "CGSolver_CABiCGStab: alpha == inf, nit = ", nit
              BiCGStabFailed = .true. ; exit
           end if
@@ -951,20 +959,20 @@ contains
           L2_norm_of_resid = zero; if ( L2_norm_of_s > 0 ) L2_norm_of_resid = sqrt(L2_norm_of_s)
 
           if ( L2_norm_of_resid < eps*L2_norm_of_rt ) then
-             if ( verbose > 1 .and. (L2_norm_of_resid .eq. zero) .and. parallel_IOProcessor() ) &
+             if ( verbose > 1 .and. (L2_norm_of_resid .eq. zero) .and. ioproc ) &
                   print*, "CGSolver_CABiCGStab: L2 norm of s: ", L2_norm_of_s
              BiCGStabConverged = .true. ; exit
           end if
 
           if ( omega_denominator .eq. zero ) then
-             if ( verbose > 1 .and. parallel_IOProcessor() ) &
+             if ( verbose > 1 .and. ioproc ) &
                 print*, "CGSolver_CABiCGStab: omega_denominator == 0, nit = ", nit
              BiCGStabFailed = .true. ; exit
           end if
 
           omega = omega_numerator / omega_denominator
 
-          if ( verbose > 1 .and. parallel_IOProcessor() ) then
+          if ( verbose > 1 .and. ioproc ) then
              if ( omega .eq. zero  ) print*, "CGSolver_CABiCGStab: omega == 0, nit = ", nit
              if ( is_an_inf(omega) ) print*, "CGSolver_CABiCGStab: omega == inf, nit = ", nit
           end if
@@ -997,14 +1005,14 @@ contains
           L2_norm_of_resid = zero; if ( L2_norm_of_r > 0 ) L2_norm_of_resid = sqrt(L2_norm_of_r)
 
           if ( L2_norm_of_resid < eps*L2_norm_of_rt ) then
-             if ( verbose > 1 .and. (L2_norm_of_resid .eq. zero) .and. parallel_IOProcessor() ) &
+             if ( verbose > 1 .and. (L2_norm_of_resid .eq. zero) .and. ioproc ) &
                   print*, "CGSolver_CABiCGStab: L2_norm_of_r: ", L2_norm_of_r
              BiCGStabConverged = .true. ; exit
           end if
 
           delta_next = dot_product(gg,cj)
 
-          if ( verbose > 1 .and. parallel_IOProcessor() ) then
+          if ( verbose > 1 .and. ioproc ) then
              if ( delta_next .eq. zero  ) print*, "CGSolver_CABiCGStab: delta == 0, nit = ", nit
              if ( is_an_inf(delta_next) ) print*, "CGSolver_CABiCGStab: delta == inf, nit = ", nit
           end if
@@ -1017,7 +1025,7 @@ contains
 
           beta = (delta_next/delta)*(alpha/omega)
 
-          if ( verbose > 1 .and. parallel_IOProcessor() ) then
+          if ( verbose > 1 .and. ioproc ) then
              if ( beta .eq. zero  ) print*, "CGSolver_CABiCGStab: beta == 0, nit = ", nit
              if ( is_an_inf(beta) ) print*, "CGSolver_CABiCGStab: beta == inf, nit = ", nit
           end if
@@ -1057,7 +1065,7 @@ contains
        if ( (.not. BiCGStabFailed) .and. (.not. BiCGStabConverged) ) m = m + SSS
     end do
 
-    if ( parallel_IOProcessor() .and. verbose > 0 ) then
+    if ( ioproc .and. verbose > 0 ) then
        write(unit=*, fmt='("    CABiCGStab: Final: Iteration  ", i3, " rel. err. ",g15.8)') niters, L2_norm_of_resid
        if ( BiCGStabConverged ) then
           write(unit=*, fmt='("    CABiCGStab: Converged: rnorm ",g15.8," < eps*bnorm ",g15.8)') &
@@ -1068,7 +1076,7 @@ contains
     if ( L2_norm_of_resid > L2_norm_of_rt ) then
        call setval(uu,ZERO,all=.true.)
        if ( present(stat) ) stat = 1
-       if ( parallel_IOProcessor() .and. verbose > 0 ) then
+       if ( ioproc .and. verbose > 0 ) then
           print *,'   CABiCGStab: solution reset to zero'
        end if
     end if
@@ -1149,7 +1157,7 @@ contains
       !
       ! Reduce upper triangle into "rtmp"
       !
-      call parallel_reduce(rtmp, tmp, MPI_SUM)
+      call parallel_reduce(rtmp, tmp, MPI_SUM, comm = comm)
       !
       ! Fill in upper triangle with "rtmp".
       !
