@@ -3915,7 +3915,7 @@ contains
 
   end subroutine mf_build_nodal_dot_mask
 
-  function multifab_dot_cc(mf, comp, mf1, comp1, mask, nodal_mask, local) result(r)
+  function multifab_dot_cc(mf, comp, mf1, comp1, mask, nodal_mask, local, comm) result(r)
     real(dp_t)                 :: r
     type(multifab), intent(in) :: mf
     type(multifab), intent(in) :: mf1
@@ -3924,6 +3924,7 @@ contains
     type(lmultifab), intent(in), optional :: mask
     type(multifab),  intent(in), optional :: nodal_mask
     logical,         intent(in), optional :: local
+    integer,         intent(in), optional :: comm
 
     type(multifab)      :: tmask
     real(dp_t), pointer :: mp(:,:,:,:), mp1(:,:,:,:), ma(:,:,:,:)
@@ -4007,26 +4008,42 @@ contains
 
     r = r1
 
-    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_SUM)
+    if ( .not. llocal ) then
+       if ( present(comm) ) then
+          call parallel_reduce(r, r1, MPI_SUM, comm = comm)
+       else
+          call parallel_reduce(r, r1, MPI_SUM)
+       end if
+    end if
 
   end function multifab_dot_cc
 
-  function multifab_dot_c(mf, mf1, comp, nodal_mask) result(r)
+  function multifab_dot_c(mf, mf1, comp, nodal_mask, comm) result(r)
     real(dp_t)                 :: r
     type(multifab), intent(in) :: mf
     type(multifab), intent(in) :: mf1
     integer       , intent(in) :: comp
     type(multifab), intent(in), optional :: nodal_mask
-    r = multifab_dot_cc(mf, comp, mf1, comp, nodal_mask = nodal_mask, local = .false.);
+    integer       , intent(in), optional :: comm
+    if ( present(comm) ) then
+       r = multifab_dot_cc(mf, comp, mf1, comp, nodal_mask = nodal_mask, local = .false., comm = comm);
+    else
+       r = multifab_dot_cc(mf, comp, mf1, comp, nodal_mask = nodal_mask, local = .false.);
+    end if
   end function multifab_dot_c
 
-  function multifab_dot(mf, mf1, nodal_mask, local) result(r)
+  function multifab_dot(mf, mf1, nodal_mask, local, comm) result(r)
     real(dp_t) :: r
     type(multifab), intent(in) :: mf
     type(multifab), intent(in) :: mf1
     type(multifab), intent(in), optional :: nodal_mask
     logical, intent(in), optional :: local
-    r = multifab_dot_cc(mf, 1, mf1, 1, nodal_mask = nodal_mask, local = local);
+    integer, intent(in), optional :: comm
+    if ( present(comm) ) then
+       r = multifab_dot_cc(mf, 1, mf1, 1, nodal_mask = nodal_mask, local = local, comm = comm);
+    else
+       r = multifab_dot_cc(mf, 1, mf1, 1, nodal_mask = nodal_mask, local = local);
+    end if
   end function multifab_dot
 
   subroutine multifab_rescale_2(mf, c, min, max, xmin, xmax, clip)
@@ -4507,18 +4524,20 @@ contains
 
   end function multifab_norm_inf_doit
 
-  function multifab_norm_inf_c(mf, comp, nc, mask, all, local) result(r)
+  function multifab_norm_inf_c(mf, comp, nc, mask, all, local, comm) result(r)
     real(dp_t) :: r
     logical, intent(in), optional :: all, local
     integer, intent(in) :: comp
     integer, intent(in), optional :: nc
     type(lmultifab), intent(in), optional :: mask
     type(multifab), intent(in) :: mf
-    logical, pointer :: lp(:,:,:,:)
+    integer, intent(in), optional :: comm
+
+    logical,    pointer :: lp(:,:,:,:)
     real(dp_t), pointer :: mp(:,:,:,:)
-    integer :: i, n
-    real(dp_t) :: r1
-    logical :: lall, llocal
+    integer             :: i, n
+    real(dp_t)          :: r1
+    logical             :: lall, llocal
 
     lall   = .false.; if ( present(all)   ) lall   = all
     llocal = .false.; if ( present(local) ) llocal = local
@@ -4554,16 +4573,23 @@ contains
 
     r = r1
 
-    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_MAX)
+    if ( .not. llocal ) then
+       if ( present(comm) ) then
+          call parallel_reduce(r, r1, MPI_MAX, comm = comm)
+       else
+          call parallel_reduce(r, r1, MPI_MAX)
+       end if
+    end if
 
   end function multifab_norm_inf_c
 
-  function multifab_norm_inf(mf, mask, all, local) result(r)
+  function multifab_norm_inf(mf, mask, all, local, comm) result(r)
     real(dp_t)                            :: r
-    logical, intent(in), optional         :: all, local
-    type(lmultifab), intent(in), optional :: mask
     type(multifab), intent(in)            :: mf
-    r = multifab_norm_inf_c(mf, 1, mf%nc, mask, all, local)
+    type(lmultifab), intent(in), optional :: mask
+    logical, intent(in), optional         :: all, local
+    integer, intent(in), optional         :: comm
+    r = multifab_norm_inf_c(mf, 1, mf%nc, mask, all, local, comm)
   end function multifab_norm_inf
 
   function imultifab_norm_inf_c(mf, comp, nc, all) result(r)

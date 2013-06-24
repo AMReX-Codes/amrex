@@ -56,7 +56,7 @@ module mg_tower_module
 
      ! let MG pick the maximum number of levels
      integer :: max_nlevel = 1024
-     integer :: max_bottom_nlevel = 10
+     integer :: max_bottom_nlevel = 4
      integer :: min_width  = 2
 
      ! good for many problems
@@ -99,7 +99,8 @@ module mg_tower_module
      integer ::    verbose = 0
      integer :: cg_verbose = 0
 
-     type(mg_tower), pointer :: bottom_mgt => Null()
+     type(mg_tower), pointer :: bottom_mgt  => Null()
+     integer,        pointer :: bottom_comm => Null()
 
   end type mg_tower
 
