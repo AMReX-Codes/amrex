@@ -999,10 +999,9 @@ contains
 
     integer :: n, i, j, ic, jc, k
 
-    allocate(c(cg_lo(1):cg_hi(1),&
-               cg_lo(2):cg_hi(2),&
-               size(fine,3),&
-               15))
+    allocate(c(15,cg_lo(1):cg_hi(1),&
+                  cg_lo(2):cg_hi(2),&
+                  size(fine,3)))
 
     ! Prevent underflow for small crse values.
     where ( abs(crse) <= 1.0e-20_dp_t ) crse = ZERO
@@ -1039,12 +1038,11 @@ contains
              b( 20) = crse(ic+2, jc+1, n)
              b( 21) = 1000.0D0*crse(ic+0, jc+0, n)
 
-             c(ic,jc,n,:) = matmul(P2, b)
+             c(:,ic,jc,n) = matmul(P2, b)
 
           end do
        end do
     end do
-
 
     do n = 1, size(fine,3)
        do j = fine_lo(2), fine_lo(2)+size(fine,2)-1
@@ -1055,7 +1053,7 @@ contains
              k  = 2*(i-ic*lratio(1)) + (j-jc*lratio(2))
              !k = 2
 
-             fine(i,j,n) = dot_product(c(ic,jc,n,:), A2(k,:))*4
+             fine(i,j,n) = dot_product(c(:,ic,jc,n), A2(k,:))*4
 
              print *, ic, jc, crse(ic,jc,n), i, j, k, fine(i,j,n)
 
