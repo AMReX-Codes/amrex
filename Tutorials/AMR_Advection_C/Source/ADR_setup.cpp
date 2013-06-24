@@ -170,7 +170,7 @@ ADR::variableSetUp ()
 
     store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
-                           StateDescriptor::Point,1,NUM_STATE,
+                           StateDescriptor::Point,0,NUM_STATE,
                            interp,state_data_extrap,store_in_checkpoint);
 
     Array<BCRec>       bcs(NUM_STATE);
