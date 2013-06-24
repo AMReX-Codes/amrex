@@ -295,7 +295,7 @@ contains
        if ( (procs(i) .lt. 0) .or. (procs(i) .ge. parallel_nprocs()) ) then
           if ( parallel_IOProcessor() ) then
              print*, 'procs must be in range: [0,nprocs)'
-             call flush()
+             call flush(6)
           end if
           call parallel_abort()
        end if
