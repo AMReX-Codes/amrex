@@ -1347,11 +1347,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         if (FabArrayBase::do_async_sends)
         {
+	    BL_COMM_PROFILE_NAMETAG("ASEND::FabArray::copy()");
             send_data.push_back(data);
             send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
         }
         else
         {
+	    BL_COMM_PROFILE_NAMETAG("SEND::FabArray::copy()");
             ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
             BoxLib::The_Arena()->free(data);
         }
@@ -2035,11 +2037,13 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
         if (FabArrayBase::do_async_sends)
         {
+	    BL_COMM_PROFILE_NAMETAG("ASEND::FabArray::CollectData()");
             send_data.push_back(data);
             send_reqs.push_back(ParallelDescriptor::Asend(data,N,Who,SeqNum).req());
         }
         else
         {
+	    BL_COMM_PROFILE_NAMETAG("SEND::FabArray::CollectData()");
             ParallelDescriptor::Send(data,N,Who,SeqNum);
             BoxLib::The_Arena()->free(data);
         }
@@ -2305,11 +2309,13 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
         if (FabArrayBase::do_async_sends)
         {
+	    BL_COMM_PROFILE_NAMETAG("ASEND::FabArray::FillBoundary()");
             send_data.push_back(data);
             send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
         }
         else
         {
+	    BL_COMM_PROFILE_NAMETAG("SEND::FabArray::FillBoundary()");
             ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
             BoxLib::The_Arena()->free(data);
         }
