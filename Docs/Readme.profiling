@@ -5,6 +5,8 @@ A summary of timings will be written to cout and optionally
 a directory named bl_prof will be created with timings for
 each processor in nfiles files.
 
+You must at least instrument main.
+
 To instrument regular functions, add BL_PROFILE("class::fname()") to
 the top of your function. there can only be one of these per function.
 
@@ -17,9 +19,9 @@ void YourClass::YourFunction() {
 
 For other timers within an already instrumented function, add:
 
-      BL_PROFILE_VAR("Flaten::FORT_FLATENX()", FLATENX);  // add this before
+      BL_PROFILE_VAR("Flaten::FORT_FLATENX()", anyname);  // add this before
         FORT_FLATENX(arg1, arg2);
-      BL_PROFILE_VAR_STOP(FLATENX);   // add this after, using the same name
+      BL_PROFILE_VAR_STOP(anyname);   // add this after, using the same name
 
 
 For main, add these:
@@ -50,18 +52,26 @@ communication timings, amount of data moved, barrier and
 reduction wait times, etc.  To use this part of the profiler,
 set PROFILE=TRUE and COMM_PROFILE=TRUE in your GNUmakefile.
 A database of communication information will be written to
-a directory named bl_comm_prof.  the files here must be
+a directory named bl_comm_prof.  The files here must be
 postprocessed in a manner similar to plotfiles to extract
-useful information.  this is done with the CommProfParser
+useful information.  This is done with the CommProfParser
 (AmrPostprocessing/C_Src/CommProfParser).
 
-some features of the communication profiler:
+Some features of the communication profiler:
   local filtering.
   nfiles for data and headers.
   demand driven i/o support.
   named tags.
   named barriers.
   flushing.
+
+instrumentation:
+
+BL_COMM_PROFILE_NAMETAG("LevelAdvance::FillPatchIterator START");
+BL_COMM_PROFILE_NAMETAG("LevelAdvance::FillPatchIterator END");
+
+barriers can be named:  ParallelDescriptor::Barrier("CreateDirs");
+
 
 input:
 

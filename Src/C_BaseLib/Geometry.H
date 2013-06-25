@@ -405,10 +405,12 @@ namespace BoxLib
             if (FabArrayBase::do_async_sends)
             {
                 send_data.push_back(data);
+	        BL_COMM_PROFILE_NAMETAG("ASEND::FillPeriodicBoundary()");
                 send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
             }
             else
             {
+	        BL_COMM_PROFILE_NAMETAG("SEND::FillPeriodicBoundary()");
                 ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
                 BoxLib::The_Arena()->free(data);
             }
