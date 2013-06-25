@@ -1089,6 +1089,7 @@ void
 Amr::initialInit (Real strt_time,
                   Real stop_time)
 {
+    BL_COMM_PROFILE_NAMETAG("Amr::initialInit TOP");
     checkInput();
     //
     // Generate internal values from user-supplied values.
@@ -1188,6 +1189,7 @@ Amr::initialInit (Real strt_time,
     station.init(amr_level, finestLevel());
     station.findGrid(amr_level,geom);
 #endif
+    BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");
 }
 
 void
@@ -1608,6 +1610,7 @@ Amr::timeStep (int  level,
                Real stop_time)
 {
     BL_PROFILE("Amr::timeStep()");
+    BL_COMM_PROFILE_NAMETAG("Amr::timeStep TOP");
     //
     // Allow regridding of level 0 calculation on restart.
     //
@@ -1767,11 +1770,13 @@ Amr::timeStep (int  level,
         {
             const int ncycle = n_cycle[lev_fine];
 
+            BL_COMM_PROFILE_NAMETAG("Amr::timeStep timeStep subcycle");
             for (int i = 1; i <= ncycle; i++)
                 timeStep(lev_fine,time+(i-1)*dt_level[lev_fine],i,ncycle,stop_time);
         }
         else
         {
+            BL_COMM_PROFILE_NAMETAG("Amr::timeStep timeStep nosubcycle");
             timeStep(lev_fine,time,1,1,stop_time);
         }
     }
