@@ -351,6 +351,7 @@ FabSet::linComb (Real            a,
         }
     }
 
+    BL_COMM_PROFILE_NAMETAG("CD::FabSet::linComb()");
     mfcd.CollectData();
 
     FArrayBox a_fab, b_fab;
