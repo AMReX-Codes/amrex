@@ -994,25 +994,22 @@ contains
     real(kind=dp_t), intent(  out) :: fine(fine_lo(1):,fine_lo(2):,:)
     real(kind=dp_t), intent(inout) :: crse(crse_lo(1):,crse_lo(2):,:)
 
-    real(kind=dp_t) :: b(21)
+    real(kind=dp_t) :: b(21), A2T(size(A2,2),0:size(A2,1)-1)
     real(kind=dp_t), allocatable :: c(:,:,:,:)
 
     integer :: n, i, j, ic, jc, k
 
-    allocate(c(15,cg_lo(1):cg_hi(1),&
-                  cg_lo(2):cg_hi(2),&
-                  size(fine,3)))
-
+    allocate( c(15, cg_lo(1):cg_hi(1), cg_lo(2):cg_hi(2), size(fine,3)) )
+    !
     ! Prevent underflow for small crse values.
+    !
     where ( abs(crse) <= 1.0e-20_dp_t ) crse = ZERO
-
     !
     ! Do interpolation.  For this method of interpolation, it is more
     ! efficient to loop over the coarse cells than the fine cells
     ! since the b and c vectors depend on the coarse cell, not on the
     ! fine cell.
     !
-
     do n = 1, size(fine,3)
        do jc = cg_lo(2), cg_hi(2)
           do ic = cg_lo(1), cg_hi(1)
@@ -1043,6 +1040,10 @@ contains
           end do
        end do
     end do
+    !
+    ! Use A2T instead of A2 for more efficient memory access.
+    !
+    A2T = Transpose(A2)
 
     do n = 1, size(fine,3)
        do j = fine_lo(2), fine_lo(2)+size(fine,2)-1
@@ -1051,12 +1052,10 @@ contains
              ic = IX_PROJ(i,lratio(1))
 
              k  = 2*(i-ic*lratio(1)) + (j-jc*lratio(2))
-             !k = 2
 
-             fine(i,j,n) = dot_product(c(:,ic,jc,n), A2(k,:))*4
+             fine(i,j,n) = dot_product(c(:,ic,jc,n), A2T(:,k))*4
 
-             print *, ic, jc, crse(ic,jc,n), i, j, k, fine(i,j,n)
-
+             !print *, ic, jc, crse(ic,jc,n), i, j, k, fine(i,j,n)
 
           end do
        end do
