@@ -994,16 +994,17 @@ contains
     real(kind=dp_t), intent(  out) :: fine(fine_lo(1):,fine_lo(2):,:)
     real(kind=dp_t), intent(inout) :: crse(crse_lo(1):,crse_lo(2):,:)
 
-    real(kind=dp_t) :: b(21), A2T(size(A2,2),0:size(A2,1)-1)
-    real(kind=dp_t), allocatable :: c(:,:,:,:)
+    real(kind=dp_t) :: b(21), A2T(size(A2,2),0:size(A2,1)-1), c(15)
 
     integer :: n, i, j, ic, jc, k
-
-    allocate( c(15, cg_lo(1):cg_hi(1), cg_lo(2):cg_hi(2), size(fine,3)) )
     !
     ! Prevent underflow for small crse values.
     !
     where ( abs(crse) <= 1.0e-20_dp_t ) crse = ZERO
+    !
+    ! Use A2T instead of A2 for more efficient memory access.
+    !
+    A2T = Transpose(A2)
     !
     ! Do interpolation.  For this method of interpolation, it is more
     ! efficient to loop over the coarse cells than the fine cells
@@ -1035,27 +1036,17 @@ contains
              b( 20) = crse(ic+2, jc+1, n)
              b( 21) = 1000.0D0*crse(ic+0, jc+0, n)
 
-             c(:,ic,jc,n) = matmul(P2, b)
+             c = matmul(P2, b)
 
-          end do
-       end do
-    end do
-    !
-    ! Use A2T instead of A2 for more efficient memory access.
-    !
-    A2T = Transpose(A2)
+             do j = jc*lratio(2),(jc+1)*lratio(2)-1
+                do i = ic*lratio(1),(ic+1)*lratio(1)-1
 
-    do n = 1, size(fine,3)
-       do j = fine_lo(2), fine_lo(2)+size(fine,2)-1
-          jc = IX_PROJ(j,lratio(2))
-          do i = fine_lo(1), fine_lo(1)+size(fine,1)-1
-             ic = IX_PROJ(i,lratio(1))
+                   k = 2*(i-ic*lratio(1)) + (j-jc*lratio(2))
 
-             k  = 2*(i-ic*lratio(1)) + (j-jc*lratio(2))
-
-             fine(i,j,n) = dot_product(c(:,ic,jc,n), A2T(:,k))*4
-
-             !print *, ic, jc, crse(ic,jc,n), i, j, k, fine(i,j,n)
+                   fine(i,j,n) = dot_product(c, A2T(:,k))*4
+                   
+                end do
+             end do
 
           end do
        end do
@@ -1066,8 +1057,6 @@ contains
 
     ! print *, 'FINE'
     ! print *, fine
-
-    deallocate(c)
 
   end subroutine fourth_order_interp_2d
 
