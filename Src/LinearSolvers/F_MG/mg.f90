@@ -27,7 +27,7 @@ contains
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
                             max_L0_growth, &
                             verbose, cg_verbose, nodal, use_hypre, is_singular, &
-                            the_bottom_comm)
+                            the_bottom_comm, fancy_bottom_type_in)
     use bl_IO_module
     use bl_prof_module
 
@@ -62,6 +62,7 @@ contains
     integer, intent(in), optional :: use_hypre
     logical, intent(in), optional :: is_singular
     integer, intent(in), optional :: the_bottom_comm
+    integer, intent(in), optional :: fancy_bottom_type_in
 
     integer :: lo_grid,hi_grid,lo_dom,hi_dom
     integer :: ng_for_res
@@ -72,6 +73,7 @@ contains
     logical         :: nodal_flag
     real(kind=dp_t) :: dvol, dvol_pd
     type(bl_prof_timer), save :: bpt
+    integer :: fancy_bottom_type
 
     ! These are added to help build the bottom_mgt
     type(  layout)      :: old_coarse_la, new_coarse_la
@@ -377,6 +379,13 @@ contains
 
                coarse_dx(:) = mgt%dh(:,1)
 
+               if (present(fancy_bottom_type_in)) then
+                  fancy_bottom_type = fancy_bottom_type_in
+               else
+                  fancy_bottom_type = 1
+               end if
+                  
+
                call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
                                    domain_bc, mgt%stencil_type, &
                                    dh = coarse_dx, &
@@ -386,10 +395,11 @@ contains
                                    smoother = smoother, &
                                    nu1 = nu1, &
                                    nu2 = nu2, &
+                                   nuf = nuf, &
                                    gamma = gamma, &
                                    cycle_type = cycle_type, &
                                    omega = omega, &
-                                   bottom_solver = 1, &
+                                   bottom_solver = fancy_bottom_type, &
                                    bottom_max_iter = bottom_max_iter, &
                                    bottom_solver_eps = bottom_solver_eps, &
                                    max_iter = max_iter, &
