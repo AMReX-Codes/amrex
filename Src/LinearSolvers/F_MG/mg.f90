@@ -330,8 +330,7 @@ contains
        bounding_box = bbox(get_boxarray(old_coarse_la));
 
        ! Does the boxarray fill the entire bounding box? If not then don't use this bottom solver
-       if (.not. contains(get_boxarray(old_coarse_la),bounding_box) &
-            .or.  (nboxes(old_coarse_la) .le. 8) ) then
+       if (.not. contains(get_boxarray(old_coarse_la),bounding_box) ) then
 
           mgt%bottom_solver = 1
 
@@ -356,7 +355,7 @@ contains
            success = 0
            call get_bottom_box_size(success,bottom_box_size,get_box(new_coarse_ba,1), &
                                     min_width, mgt%max_bottom_nlevel)
- 
+
            if (success .eq. 1) then
 
                call boxarray_maxsize(new_coarse_ba,bottom_box_size)
@@ -621,8 +620,6 @@ contains
        bx1 = coarsen(bx, rr)
 
        if ( any(extent(bx1) < min_size) ) exit
-
-       if ( bottom_levs > 1 .and. any(extent(bx1) < 8) ) exit
 
        if ( any(mod(extent(bx1),2) .eq. 1) ) then
 
