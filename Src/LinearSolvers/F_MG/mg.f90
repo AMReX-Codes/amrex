@@ -1107,6 +1107,8 @@ contains
 
     else if ( lev == lbl ) then
 
+       stime = parallel_wtime()
+
        if (associated(mgt%bottom_mgt)) then
           if (do_diag) then
              ! compute mgt%cc(lev) = ss * uu - rh
@@ -1127,11 +1129,13 @@ contains
           end if
 
        else
-          stime = parallel_wtime()
+
           call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
-          if ( present(bottom_solve_time) ) &
-               bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
+
        end if
+
+       if ( present(bottom_solve_time) ) &
+            bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
 
        if ( cyc == MG_FCycle ) gamma = 1
 
