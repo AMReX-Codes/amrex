@@ -114,7 +114,7 @@ contains
 
   end subroutine nodal_smoother_1d
 
-  subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng, pmask, stencil_type, red_black)
+  subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng, pmask, stencil_type, color)
 
     use bl_prof_module
     use impose_neumann_bcs_module
@@ -128,9 +128,9 @@ contains
     real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
     integer            ,intent(in) :: stencil_type
-    integer            ,intent(in) :: red_black
+    integer            ,intent(in) :: color
 
-    integer :: j, i, ipar, half_x
+    integer :: j, i, ipar, half_x, modx, mody
     integer :: hi(size(lo))
     logical :: x_is_odd
     real (kind = dp_t) :: dd
@@ -142,16 +142,31 @@ contains
     call build(bpt, "nodal_smoother_2d")
 
     hi = ubound(uu)-ng
-    dd = ZERO
 
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
 
     if (stencil_type .eq. ND_DENSE_STENCIL) then
+       !
+       ! Red-Black-White-Orange GS
+       !
+       ! |W|O|W|O| ...
+       ! |R|B|R|B| ...
+       ! |W|O|W|O| ...
+       ! |R|B|R|B| ...
+       !
+       select case (color)
+       case (0); modx = 0; mody = 0 ! Red
+       case (1); modx = 0; mody = 1 ! Black
+       case (2); modx = 1; mody = 0 ! White
+       case (3); modx = 1; mody = 1 ! Orange
+       case default
+          call bl_error('nodal_smoother_2d: bad color', color)
+       end select
 
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
+       do j = lo(2)+mody,hi(2),2
+          do i = lo(1)+modx,hi(1),2
              if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                dd = ss(0,i,j)*uu(i,j) &
+                dd =   ss(0,i,j) * uu(i,j)     &
                      + ss(1,i,j) * uu(i-1,j-1) &
                      + ss(2,i,j) * uu(i  ,j-1) &
                      + ss(3,i,j) * uu(i+1,j-1) &
@@ -199,9 +214,11 @@ contains
 
       else
          !
-         ! Use this for Gauss-Seidel iteration.
+         ! Use this for Red-Black Gauss-Seidel iteration.
          !
-         ipar = 1-red_black
+         call bl_assert((color.eq.0).or.(color.eq.1), 'nodal_smoother_2d: colors must be red or black')
+
+         ipar = 1-color
          do j = lo(2),hi(2)
             ipar = 1 - ipar
             do i = lo(1)+ipar,hi(1),2
@@ -322,7 +339,7 @@ contains
          !
          ! Use this for Gauss-Seidel iteration.
          !
-         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit)
+         !$OMP PARALLEL DO PRIVATE(i,j,k,ipar,dd,jface,kface,doit)
          do k = lo(3),hi(3)
             kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
