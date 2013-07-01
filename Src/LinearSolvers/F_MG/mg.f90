@@ -330,7 +330,9 @@ contains
        bounding_box = bbox(get_boxarray(old_coarse_la));
 
        ! Does the boxarray fill the entire bounding box? If not then don't use this bottom solver
-       if (.not. contains(get_boxarray(old_coarse_la),bounding_box) ) then
+       ! also make sure there are at least 2**dm boxes or else you can't use the fancy bottom solver
+       if (.not. contains(get_boxarray(old_coarse_la),bounding_box) &
+            .or.  (nboxes(old_coarse_la) .lt. 2**mgt%dim) ) then
 
           mgt%bottom_solver = 1
 
