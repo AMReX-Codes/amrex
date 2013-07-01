@@ -591,7 +591,7 @@ contains
           ! the case where there are many grids, so we need a test over the
           ! whole boxarray volume, not just the size of each grid.
           !
-          if ( vol <= 2**dm .and. lmn < 2 ) exit outer
+          if ( vol <= 2**dm ) exit outer
        end do
        rr = rr*rrr
        r  = r + 1
