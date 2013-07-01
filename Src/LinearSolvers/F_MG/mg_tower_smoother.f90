@@ -346,55 +346,34 @@ contains
           !
           ! Nodal dense stencils.
           !
-          if ( get_dim(ff) == 2 ) then
-             !
-             ! Do a four-color GS.
-             !
-             do k = 0,3
-                call fill_boundary(uu, cross = mgt%lcross)
-                do i = 1, nfabs(ff)
-                   up => dataptr(uu, i)
-                   fp => dataptr(ff, i)
-                   sp => dataptr(ss, i)
-                   mp => dataptr(mm, i)
-                   lo =  lwb(get_box(ss, i))
-                   do n = 1, mgt%nc
-                      call nodal_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
-                           fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
-                           pmask, mgt%stencil_type, k)
-                   end do
-                end do
+          call fill_boundary(uu, cross = mgt%lcross)
+          !
+          ! Thread over FABS.
+          !
+          !$OMP PARALLEL DO PRIVATE(i,n,up,fp,sp,mp,lo)
+          do i = 1, nfabs(ff)
+             up => dataptr(uu, i)
+             fp => dataptr(ff, i)
+             sp => dataptr(ss, i)
+             mp => dataptr(mm, i)
+             lo =  lwb(get_box(ss, i))
+             do n = 1, mgt%nc
+                select case (mgt%dim)
+                case (1)
+                   call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
+                        fp(:,1,1,n), mp(:,1,1,1), lo, ng)
+                case (2)
+                   call nodal_smoother_2d(mgt%omega, sp(:,:,:,1), up(:,:,1,n), &
+                        fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
+                        pmask, mgt%stencil_type, 0)
+                case (3)
+                   call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
+                        fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
+                        mgt%uniform_dh, pmask, mgt%stencil_type, 0)
+                end select
              end do
-          else
-             call fill_boundary(uu, cross = mgt%lcross)
-             !
-             ! Thread over FABS.
-             !
-             !$OMP PARALLEL DO PRIVATE(i,n,up,fp,sp,mp,lo)
-             do i = 1, nfabs(ff)
-                up => dataptr(uu, i)
-                fp => dataptr(ff, i)
-                sp => dataptr(ss, i)
-                mp => dataptr(mm, i)
-                lo =  lwb(get_box(ss, i))
-                do n = 1, mgt%nc
-                   select case (mgt%dim)
-                   case (1)
-                      call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
-                           fp(:,1,1,n), mp(:,1,1,1), lo, ng)
-                   case (2)
-                      call bl_error("mg_tower_smoother: how did this happen?")
-                   case (3)
-                      call nodal_smoother_3d(mgt%omega, sp(:,:,:,:), up(:,:,:,n), &
-                           fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
-                           mgt%uniform_dh, pmask, mgt%stencil_type, 0)
-                   end select
-                end do
-             end do
-             !$OMP END PARALLEL DO
-
-          endif
-
+          end do
+          !$OMP END PARALLEL DO
        endif
 
        call multifab_internal_sync(uu)
