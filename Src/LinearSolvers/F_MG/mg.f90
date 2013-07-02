@@ -184,7 +184,7 @@ contains
     end if
     ng_for_res = 0; if ( nodal_flag ) ng_for_res = 1
 
-    n = max_mg_levels(get_boxarray(la), mgt%min_width)
+    n = max_mg_levels(get_boxarray(la), nodal_flag, mgt%min_width)
     mgt%nlevels = min(n,mgt%max_nlevel) 
 
     n = mgt%nlevels
@@ -560,11 +560,13 @@ contains
 
   end subroutine mg_tower_destroy
 
-  function max_mg_levels(ba, min_size) result(r)
+  function max_mg_levels(ba, nodal_flag, min_size) result(r)
 
     type(boxarray), intent(in)           :: ba
+    logical       , intent(in)           :: nodal_flag
     integer       , intent(in), optional :: min_size
     integer                              :: r
+
     integer, parameter :: rrr = 2
     type(box)          :: bx, bx1
     type(boxarray)     :: ba1
@@ -591,7 +593,13 @@ contains
           ! the case where there are many grids, so we need a test over the
           ! whole boxarray volume, not just the size of each grid.
           !
-          if ( vol <= 2**dm ) exit outer
+          if (nodal_flag) then
+             ! solve will break if we reduce to a single point for nodal depending on bcs.
+             if ( vol <= 2**dm ) exit outer  
+          else
+             if ( vol < 2**dm ) exit outer
+          end if
+          
        end do
        rr = rr*rrr
        r  = r + 1
