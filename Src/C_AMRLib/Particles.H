@@ -390,6 +390,8 @@ public:
 
     void Restart (const std::string& dir, const std::string& file);
 
+    void WritePlotFile (const std::string& dir, const std::string& name) const;
+
     void Timestamp (const std::string& file, const MultiFab& mf, int lev, Real time, const std::vector<int>& idx, const int vcomp = 0);
 
     void WriteAsciiFile          (const std::string& file);
@@ -401,14 +403,15 @@ public:
 
 protected:
     //
-    // Helper function for Checkpoint().
+    // Helper function for Checkpoint() and WritePlotFile().
     //
     void WriteParticles (int            level,
                          std::ofstream& ofs,
                          int            fnum,
                          Array<int>&    which,
                          Array<int>&    count,
-                         Array<long>&   where) const;
+                         Array<long>&   where,
+                         bool           is_checkpoint) const;
     //
     // Helper functions for Restart().
     //
@@ -5209,7 +5212,278 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
                     // Do it grid block by grid block remembering the seek offset
                     // for the start of writing of each block of data.
                     //
-                    WriteParticles(lev, ParticleFile, FileNumber, which, count, where);
+                    bool is_checkpoint = true;
+                    WriteParticles(lev, ParticleFile, FileNumber, which, count, where, true);
+
+                    ParticleFile.flush();
+
+                    ParticleFile.close();
+
+                    if (!ParticleFile.good())
+                        BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing ParticleFile");
+
+                    int iBuff = 0, wakeUpPID = (MyProc + nOutFiles), tag = (MyProc % nOutFiles);
+
+                    if (wakeUpPID < NProcs)
+                    {
+                        ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+                    }
+                }
+
+                if (mySet == (iSet + 1))
+                {
+                    //
+                    // Next set waits.
+                    //
+                    int iBuff, waitForPID = (MyProc - nOutFiles), tag = (MyProc % nOutFiles);
+
+                    ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+                }
+            }
+
+            ParallelDescriptor::ReduceIntSum (which.dataPtr(), which.size(), IOProc);
+            ParallelDescriptor::ReduceIntSum (count.dataPtr(), count.size(), IOProc);
+            ParallelDescriptor::ReduceLongSum(where.dataPtr(), where.size(), IOProc);
+        }
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            for (int j = 0; j < state.size(); j++)
+            {
+                //
+                // We now write the which file, the particle count, and the
+                // file offset into which the data for each grid was written,
+                // to the header file.
+                //
+                HdrFile << which[j] << ' ' << count[j] << ' ' << where[j] << '\n';
+            }
+
+            if (gotsome)
+            {
+                //
+                // Unlink any zero-length data files.
+                //
+                Array<long> cnt(nOutFiles,0);
+
+                for (int i = 0; i < count.size(); i++)
+                    cnt[which[i]] += count[i];
+
+                for (int i = 0; i < cnt.size(); i++)
+                {
+                    if (cnt[i] == 0)
+                    {
+                        std::string FullFileName = LevelDir;
+
+                        FullFileName += '/';
+                        FullFileName += ParticleBase::DataPrefix();
+                        FullFileName += BoxLib::Concatenate("", i, 4);
+
+                        BoxLib::UnlinkFile(FullFileName.c_str());
+                    }
+                }
+            }
+        }
+    }
+
+    if (m_verbose > 1)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            HdrFile.flush();
+
+            HdrFile.close();
+
+            if (!HdrFile.good())
+                BoxLib::Abort("ParticleContainer<N>::Checkpoint(): problem writing HdrFile");
+
+            std::cout << "ParticleContainer<N>::Checkpoint() time: " << stoptime << '\n';
+        }
+    }
+}
+
+template <int N>
+void
+ParticleContainer<N>::WritePlotFile (const std::string& dir,
+                                     const std::string& name) const
+{
+    BL_ASSERT(OK());
+
+    const int  MyProc   = ParallelDescriptor::MyProc();
+    const int  NProcs   = ParallelDescriptor::NProcs();
+    const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Real strttime = ParallelDescriptor::second();
+    //
+    // We store the particles in a subdirectory of "dir".
+    //
+    std::string pdir = dir;
+
+    if (!pdir.empty() && pdir[pdir.size()-1] != '/')
+        pdir += '/';
+
+    pdir += name;
+    //
+    // Only the I/O processor makes the directory if it doesn't already exist.
+    //
+    if (ParallelDescriptor::IOProcessor())
+        if (!BoxLib::UtilCreateDirectory(pdir, 0755))
+            BoxLib::CreateDirectoryFailed(pdir);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Barrier();
+    //
+    // The header contains the info we need to read back in the particles.
+    //
+    // Only the I/O processor writes to the header file.
+    //
+    std::ofstream HdrFile;
+
+    long long nparticles = 0;
+
+    for (int lev = 0; lev < m_particles.size(); lev++)
+    {
+        const PMap& pmap = m_particles[lev];
+
+        for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end(); pmap_it != End; ++pmap_it)
+        {
+            const PBox& pbox = pmap_it->second;
+
+            for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end(); it != pboxEnd; ++it)
+            {
+                if (it->m_id > 0)
+                    //
+                    // Only count (and write) valid particles.
+                    //
+                    nparticles++;
+            }
+        }
+    }
+
+    ParallelDescriptor::ReduceLongLongSum(nparticles,IOProc);
+
+    int maxnextid = ParticleBase::NextID();
+
+    ParticleBase::NextID(maxnextid);
+
+    ParallelDescriptor::ReduceIntMax(maxnextid,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::string HdrFileName = pdir;
+
+        if (!HdrFileName.empty() && HdrFileName[HdrFileName.size()-1] != '/')
+            HdrFileName += '/';
+
+        HdrFileName += "Header";
+
+        HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
+
+        if (!HdrFile.good())
+            BoxLib::FileOpenFailed(HdrFileName);
+
+        //
+        // The total number of particles.
+        //
+        HdrFile << nparticles << '\n';
+        //
+        // The value of nextid that we need to restore on restart.
+        //
+        HdrFile << maxnextid << '\n';
+    }
+    //
+    // We want to write the data out in parallel.
+    //
+    // We'll allow up to nOutFiles active writers at a time.
+    //
+    const int nOutFiles = std::min(64,NProcs);
+
+    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+    {
+        const bool gotsome = (NumberOfParticlesAtLevel(lev) > 0);
+        //
+        // We store the particles at each level in their own subdirectory.
+        //
+        std::string LevelDir = pdir;
+
+        if (gotsome)
+        {
+            if (!LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/')
+                LevelDir += '/';
+
+            LevelDir = BoxLib::Concatenate(LevelDir + "Level_", lev, 1);
+
+            if (ParallelDescriptor::IOProcessor())
+                if (!BoxLib::UtilCreateDirectory(LevelDir, 0755))
+                    BoxLib::CreateDirectoryFailed(LevelDir);
+            //
+            // Force other processors to wait till directory is built.
+            //
+            ParallelDescriptor::Barrier();
+        }
+
+        const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
+        //
+        // We eventually want to write out the file name and the offset
+        // into that file into which each grid of particles is written.
+        //
+        Array<int>  which(state.size(),0);
+        Array<int > count(state.size(),0);
+        Array<long> where(state.size(),0);
+
+        if (gotsome)
+        {
+            const int   FileNumber   = MyProc % nOutFiles;
+            std::string FullFileName = LevelDir;
+
+            FullFileName += '/';
+            FullFileName += ParticleBase::DataPrefix();
+            FullFileName += BoxLib::Concatenate("", FileNumber, 4);
+
+            std::ofstream ParticleFile;
+
+            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+            ParticleFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+            const int nSets = ((NProcs + (nOutFiles - 1)) / nOutFiles);
+            const int mySet = (MyProc / nOutFiles);
+
+            for (int iSet = 0; iSet < nSets; ++iSet)
+            {
+                if (mySet == iSet)
+                {
+                    //
+                    // Write all the data at this level to the file.
+                    //
+                    if (iSet == 0)
+                        //
+                        // First set.
+                        //
+                        ParticleFile.open(FullFileName.c_str(),
+                                          std::ios::out|std::ios::trunc|std::ios::binary);
+                    else
+                    {
+                        ParticleFile.open(FullFileName.c_str(),
+                                          std::ios::out|std::ios::app|std::ios::binary);
+                        //
+                        // Set to the end of the file.
+                        //
+                        ParticleFile.seekp(0, std::ios::end);
+                    }
+
+                    if (!ParticleFile.good())
+                        BoxLib::FileOpenFailed(FullFileName);
+                    //
+                    // Write out all the valid particles we own at the specified level.
+                    // Do it grid block by grid block remembering the seek offset
+                    // for the start of writing of each block of data.
+                    //
+                    bool is_checkpoint = false;
+                    WriteParticles(lev, ParticleFile, FileNumber, which, count, where, is_checkpoint);
 
                     ParticleFile.flush();
 
@@ -5308,7 +5582,8 @@ ParticleContainer<N>::WriteParticles (int            lev,
                                       int            fnum,
                                       Array<int>&    which,
                                       Array<int>&    count,
-                                      Array<long>&   where) const
+                                      Array<long>&   where,
+                                      bool           is_checkpoint) const
 {
     const PMap&     pmap  = m_particles[lev];
     const MultiFab& state = m_amr->getLevel(lev).get_new_data(0);
@@ -5342,8 +5617,8 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
         const PBox& pbox = pmap_it->second;
 
+        if (is_checkpoint)
         {
-            //
             // First write out the integer data in binary.
             // We do not need to write out the m_lev and m_grid
             // info since it's implicit in how the particles
@@ -5372,7 +5647,6 @@ ParticleContainer<N>::WriteParticles (int            lev,
                     iptr += iChunkSize;
                 }
             }
-
             ofs.write((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
         }
 
