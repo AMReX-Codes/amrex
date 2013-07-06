@@ -45,7 +45,7 @@ contains
     type(box) :: pd, pdc
     type(layout) :: la, lac
     integer :: i, n, dm, ng_fill
-    integer :: mglev, mglev_crse, iter
+    integer :: mglev, mglev_crse, iter, iter_solved
     logical :: fine_converged,need_grad_phi
 
     real(dp_t) :: bnorm, abs_eps, ni_res
@@ -270,10 +270,14 @@ contains
 
        do iter = 1, mgt(nlevs)%max_iter
 
+          iter_solved = iter 
+
           if ( fine_converged ) then
              if ( ml_converged(res, fine_mask, max_norm, rel_eps, &
                   abs_eps, ni_res, mgt(nlevs)%verbose) ) then
 
+                ! Subtract one from "iter" here because we have already converged
+                iter_solved = iter-1
                 solved = .true.
                 exit
 
@@ -597,11 +601,11 @@ contains
 
              if ( parallel_IOProcessor() ) then
                 if ( tres0 .gt. 0.0_dp_t) then
-                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,t2(1)/tres0
+                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter_solved,t2(1)/tres0
                    write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
                    write(unit=*, fmt='("")')
                 else
-                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,0.0_dp_t
+                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter_solved,0.0_dp_t
                    write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
                    write(unit=*, fmt='("")')
                 end if
