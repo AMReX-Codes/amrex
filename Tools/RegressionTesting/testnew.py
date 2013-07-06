@@ -1352,7 +1352,8 @@ def testSuite(argv):
             testList = newTestList
         
     elif (not tests == ""):
-        testsFind = string.split(tests)
+        testsFind = list(set(string.split(tests)))
+
         newTestList = []
         for test in testsFind:
             found = 0
