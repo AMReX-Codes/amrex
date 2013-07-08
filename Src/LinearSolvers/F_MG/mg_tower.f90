@@ -102,6 +102,8 @@ module mg_tower_module
      type(mg_tower), pointer :: bottom_mgt  => Null()
      integer,        pointer :: bottom_comm => Null()
 
+     logical, allocatable :: visited(:)
+
   end type mg_tower
 
 end module mg_tower_module
