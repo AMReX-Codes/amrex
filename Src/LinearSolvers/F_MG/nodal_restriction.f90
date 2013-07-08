@@ -181,6 +181,7 @@ contains
     hif(2) = lof(2)+size(ff,dim=2)-1
     
     ng = lom_fine(1) - lof(1)
+
     call impose_neumann_bcs_2d(ff,mm_fine,lom_fine,ng)
 
     if ( inject ) then
@@ -193,38 +194,34 @@ contains
 
     else if ( mg_restriction_mode == 1 ) then
 
-       ng = lom_fine(1) - lof(1)
-       call impose_neumann_bcs_2d(ff,mm_fine,lom_fine,ng)
-
        fac0 = 1.0_dp_t / (ir(1)*ir(2))
-       do n = 0, ir(2)-1
-         fac1 = (ir(2)-n) * fac0
-         if (n == 0) fac1 = HALF * fac1
-         do m = 0, ir(1)-1
-            fac = (ir(1)-m) * fac1
-            if (m == 0) fac = HALF * fac
-            do j = lo(2),hi(2)
-               jfine = j*ir(2)
-               do i = lo(1),hi(1)
-                  ifine = i*ir(1)
-                  if (.not. bc_dirichlet(mm_fine(ifine,jfine),1,0)) then
-                    cc(i,j) = cc(i,j) + fac * &
-                         ( ff(ifine-m,jfine-n) + &
-                           ff(ifine+m,jfine-n) + &
-                           ff(ifine-m,jfine+n) + &
+
+       do j = lo(2),hi(2)
+          jfine = j*ir(2)
+          do i = lo(1),hi(1)
+             ifine = i*ir(1)
+             if (.not. bc_dirichlet(mm_fine(ifine,jfine),1,0)) then
+                do n = 0, ir(2)-1
+                   fac1 = (ir(2)-n) * fac0
+                   if (n == 0) fac1 = HALF * fac1
+                   do m = 0, ir(1)-1
+                      fac = (ir(1)-m) * fac1
+                      if (m == 0) fac = HALF * fac
+                      cc(i,j) = cc(i,j) + fac * ( &
+                           ff(ifine-m,jfine-n) +  &
+                           ff(ifine+m,jfine-n) +  &
+                           ff(ifine-m,jfine+n) +  &
                            ff(ifine+m,jfine+n) )
-                  end if
-               end do
-            end do
+                   end do
+                end do
+             end if
          end do
        end do
 
     else
 
-       ng = lom_fine(1) - lof(1)
-       call impose_neumann_bcs_2d(ff,mm_fine,lom_fine,ng)
-
        fac0 = 1.0_dp_t / (ir(1)*ir(2))
+
        do n = 0, ir(2)-1
          fac1 = (ir(2)-n) * fac0
          if (n == 0) fac1 = HALF * fac1
@@ -329,6 +326,10 @@ contains
     hif(2) = lof(2)+size(ff,dim=2)-1
     hif(3) = lof(3)+size(ff,dim=3)-1
 
+    ng = lom_fine(1) - lof(1)
+
+    call impose_neumann_bcs_3d(ff,mm_fine,lom_fine,ng)
+
     if ( inject ) then
 
        do k = lo(3),hi(3)
@@ -341,60 +342,57 @@ contains
 
     else if ( mg_restriction_mode == 1 ) then
 
-       ng = lom_fine(1) - lof(1)
-       call impose_neumann_bcs_3d(ff,mm_fine,lom_fine,ng)
-
        fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
-       do l = 0, ir(3)-1
-          fac2 = (ir(3)-l) * fac0
-          if (l == 0) fac2 = HALF * fac2
-          do n = 0, ir(2)-1
-             fac1 = (ir(2)-n) * fac2
-             if (n == 0) fac1 = HALF * fac1
-             do m = 0, ir(1)-1
-                fac = (ir(1)-m) * fac1
-                if (m == 0) fac = HALF * fac
-                do k = lo(3),hi(3)
-                   kfine = k*ir(3)
 
-                   kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
+       do k = lo(3),hi(3)
+          kfine = k*ir(3)
+          kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
-                   do j = lo(2),hi(2)
-                      jfine = j*ir(2)
+          do j = lo(2),hi(2)
+             jfine = j*ir(2)
+             jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
-                      jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
+             do i = lo(1),hi(1)
+                ifine = i*ir(1)
 
-                      do i = lo(1),hi(1)
-                         ifine = i*ir(1)
+                doit = .true.
 
-                         doit = .true.
+                if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                   if (bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) doit = .false.
+                end if
 
-                         if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
-                            if (bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0)) doit = .false.
-                         end if
+                if (doit) then
 
-                         if (doit) then
-                            cc(i,j,k) = cc(i,j,k) + fac * &
-                                 ( ff(ifine-m,jfine-n,kfine-l) + &
-                                   ff(ifine+m,jfine-n,kfine-l) + &
-                                   ff(ifine-m,jfine+n,kfine-l) + &
-                                   ff(ifine+m,jfine+n,kfine-l) + &
-                                   ff(ifine-m,jfine-n,kfine+l) + &
-                                   ff(ifine+m,jfine-n,kfine+l) + &
-                                   ff(ifine-m,jfine+n,kfine+l) + &
-                                   ff(ifine+m,jfine+n,kfine+l) )
-                         end if
+                   do l = 0, ir(3)-1
+                      fac2 = (ir(3)-l) * fac0
+                      if (l == 0) fac2 = HALF * fac2
+                      do n = 0, ir(2)-1
+                         fac1 = (ir(2)-n) * fac2
+                         if (n == 0) fac1 = HALF * fac1
+                         do m = 0, ir(1)-1
+                            fac = (ir(1)-m) * fac1
+                            if (m == 0) fac = HALF * fac
+
+                            cc(i,j,k) = cc(i,j,k) + fac * (    &
+                                 ff(ifine-m,jfine-n,kfine-l) + &
+                                 ff(ifine+m,jfine-n,kfine-l) + &
+                                 ff(ifine-m,jfine+n,kfine-l) + &
+                                 ff(ifine+m,jfine+n,kfine-l) + &
+                                 ff(ifine-m,jfine-n,kfine+l) + &
+                                 ff(ifine+m,jfine-n,kfine+l) + &
+                                 ff(ifine-m,jfine+n,kfine+l) + &
+                                 ff(ifine+m,jfine+n,kfine+l) )
+
+                         end do
                       end do
                    end do
-                end do
+
+                end if
              end do
           end do
        end do
 
     else
-
-       ng = lom_fine(1) - lof(1)
-       call impose_neumann_bcs_3d(ff,mm_fine,lom_fine,ng)
 
        fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
        do l = 0, ir(3)-1
