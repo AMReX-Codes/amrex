@@ -303,7 +303,7 @@ contains
 
     ! if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
 
-    if ( mgt%cycle_type == MG_WCycle ) mgt%gamma = 2
+    if ( mgt%cycle_type == MG_WCycle .or. mgt%cycle_type == MG_FCycle) mgt%gamma = 2
 
     ! if only the bottom solver is 'solving' make sure that its eps is
     ! in effect
@@ -398,7 +398,7 @@ contains
                                    nu2 = nu2, &
                                    nuf = nuf, &
                                    gamma = gamma, &
-                                   cycle_type = cycle_type, &
+                                   cycle_type = MG_VCycle, &
                                    omega = omega, &
                                    bottom_solver = fancy_bottom_type, &
                                    bottom_max_iter = bottom_max_iter, &
@@ -435,6 +435,11 @@ contains
                            mgt%bottom_solver == 3) ) then
        call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
     end if
+
+    ! Allocate and initialize the mgt%visited parameter which will keep track
+    !   of whether this is the first time this level has been visited.  
+    allocate(mgt%visited(1:mgt%nlevels))
+    mgt%visited = .false.
 
   end subroutine mg_tower_build
 
@@ -673,17 +678,6 @@ contains
     if ( bottom_levs .eq. 1) success = 0
 
   end subroutine get_bottom_box_size
-
-  subroutine mg_tower_v_cycle(mgt, uu, rh)
-
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in)    :: rh
-
-    call mg_tower_cycle(mgt, MG_VCYCLE, mgt%nlevels, mgt%ss(mgt%nlevels), &
-                        uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, mgt%gamma)
-
-  end subroutine mg_tower_v_cycle
 
   subroutine do_bottom_mgt(mgt, uu, rh)
 
@@ -1064,7 +1058,7 @@ contains
     use bl_prof_module
 
     type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(in) :: rh
+    type(multifab), intent(inout) :: rh
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: ss
     type(imultifab), intent(in) :: mm
@@ -1150,23 +1144,40 @@ contains
     else 
 
        if (do_diag) then
-          nrm = norm_inf(rh)
-          if ( parallel_IOProcessor() ) &
-             print *,'  DN: Norm before smooth         ',nrm
+          if (cyc == MG_FCycle) then
+              call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
+              nrm = norm_inf(mgt%cc(lev))
+           else
+              nrm = norm_inf(rh)
+           end if
        end if
 
-       do i = 1, nu1
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
-       end do
+       ! Relax in every case except the beginning of the F-cycle.
+       if ( (cyc /= MG_FCycle) .or. mgt%visited(lev) ) then
+           if ( do_diag .and. parallel_IOProcessor() ) &
+              print *,'  DN: Norm before smooth         ',nrm
 
-       ! compute mgt%cc(lev) = ss * uu - rh
+           do i = 1, nu1
+              call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+           end do
+       else
+           if ( do_diag .and. parallel_IOProcessor() ) &
+              print *,'  DN: Norm with no smoothing     ',nrm
+       end if
+
+       ! Compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
-       if (do_diag) then
-          nrm = norm_inf(mgt%cc(lev))
-          if ( parallel_IOProcessor() ) &
-              print *,'  DN: Norm after  smooth         ',nrm
+       if ( (cyc /= MG_FCycle) .or. mgt%visited(lev) ) then
+           if (do_diag) then
+              nrm = norm_inf(mgt%cc(lev))
+              if ( parallel_IOProcessor() ) &
+                  print *,'  DN: Norm after  smooth         ',nrm
+           end if
        end if
+
+       ! Always want this to be true once we've been here.
+       mgt%visited(lev) = .true.
 
        call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
@@ -1212,8 +1223,11 @@ contains
              print *,'  UP: Norm after  smooth         ',nrm
        end if
 
-       ! if at top of tower and doing an FCycle reset gamma
-       if ( lev == mgt%nlevels .AND. cyc == MG_FCycle ) gamma = 2
+       ! If at top of tower and doing an FCycle reset gamma and mgt%visited.
+       if ( lev == mgt%nlevels .AND. cyc == MG_FCycle ) then
+          gamma = 2
+          mgt%visited(1:mgt%nlevels) = .false.
+       end if
     end if
 
     call timer_stop(mgt%tm(lev))
@@ -1330,141 +1344,5 @@ contains
     call timer_stop(mgt%tm(lev))
 
   end subroutine mini_cycle
-
-  subroutine mg_tower_solve(mgt, uu, rh, qq, num_iter, defect_history, defect_dirname, stat)
-
-    use fabio_module
-    use bl_prof_module
-
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: uu, rh
-    integer, intent(out), optional :: stat
-    real(dp_t), intent(out), optional :: qq(0:)
-    integer, intent(out), optional :: num_iter
-    character(len=*), intent(in), optional :: defect_dirname
-    logical, intent(in), optional :: defect_history
-    integer :: gamma
-    integer :: it, cyc
-    real(dp_t) :: ynorm, Anorm, nrm(3), tnrm(3), t1, t2
-    integer :: n_qq, i_qq
-    logical :: ldef
-    type(bl_prof_timer), save :: bpt
-    character(len=128) :: defbase
-
-    call build(bpt, "mg_tower_solve")
-
-    ldef = .false.; if ( present(defect_history) ) ldef = defect_history
-    if ( ldef ) then
-       if ( .not. present(defect_dirname) ) then
-          call bl_error("MG_TOWER_SOLVE: defect_history but no defect_dirname")
-       end if
-    end if
-
-    if ( present(stat) ) stat = 0
-    if ( mgt%cycle_type == MG_FCycle ) then
-       gamma = 2
-    else
-       gamma = mgt%gamma
-    end if
-
-    n_qq = 0
-    i_qq = 0
-    if ( present(qq) ) then
-       n_qq = size(qq)
-    end if
-    cyc   = mgt%cycle_type
-    !
-    ! Let's elide a reduction here.
-    !
-    nrm(1) = stencil_norm(mgt%ss(mgt%nlevels),local=.true.)
-    nrm(2) = norm_inf(rh,local=.true.)
-
-    call parallel_reduce(tnrm(1:2),nrm(1:2),MPI_MAX)
-
-    Anorm = tnrm(1)
-    ynorm = tnrm(2)
-
-    ! compute mgt%dd(mgt%nlevels) = mgt%ss(mgt%nlevels) * uu - rh
-    call mg_defect(mgt%ss(mgt%nlevels), &
-                   mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), &
-                   mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
-    if ( i_qq < n_qq ) then
-       qq(i_qq) = norm_l2(mgt%dd(mgt%nlevels))
-       i_qq = i_qq + 1
-    end if
-    if ( ldef ) then
-       write(unit = defbase, fmt='("def",I3.3)') 0
-       call fabio_write(mgt%dd(mgt%nlevels), defect_dirname, defbase)
-    end if
-
-    if ( mgt%verbose > 0 ) then
-       !
-       ! Let's elide a couple reductions here.
-       !
-       nrm(3) = norm_inf(mgt%dd(mgt%nlevels),local=.true.)
-       nrm(1) = norm_inf(uu,local=.true.)
-       nrm(2) = norm_inf(rh,local=.true.)
-
-       call parallel_reduce(tnrm,nrm,MPI_MAX)
-
-       nrm(3) = tnrm(3)
-       nrm(1) = tnrm(1)
-       nrm(2) = tnrm(2)
-       if ( parallel_IOProcessor() ) then
-          write(unit=*, &
-               fmt='(i3,": Unorm= ",g15.8,", Rnorm= ",g15.8,", Ninf(defect) = ",g15.8, ", Anorm=",g15.8)') &
-               0, nrm, Anorm
-       end if
-    end if
-    if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), Ynorm) ) then
-       if ( present(stat) ) stat = 0
-       if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
-          write(unit=*, fmt='("F90mg: MG finished at on input")') 
-       end  if
-       return
-    end if
-    do it = 1, mgt%max_iter
-       call mg_tower_cycle(mgt, cyc, mgt%nlevels, mgt%ss(mgt%nlevels), &
-                           uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, gamma)
-       ! compute mgt%cc(lev) = ss * uu - rh
-       call mg_defect(mgt%ss(mgt%nlevels), &
-                      mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), &
-                      mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
-       if ( mgt%verbose > 0 ) then
-          t1 = norm_inf(mgt%dd(mgt%nlevels),local=.true.)
-          call parallel_reduce(t2,t1,MPI_MAX,proc=parallel_IOProcessorNode())
-          if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='(i3,": Ninf(defect) = ",g15.8)') it, t2
-          end if
-       end if
-       if ( i_qq < n_qq ) then
-          qq(i_qq) = norm_l2(mgt%dd(mgt%nlevels))
-          i_qq = i_qq + 1
-       end if
-       if ( ldef ) then
-          write(unit = defbase,fmt='("def",I3.3)') it
-          call fabio_write(mgt%dd(mgt%nlevels), defect_dirname, defbase)
-       end if
-       if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), Ynorm) ) exit
-    end do
-    if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
-       write(unit=*, fmt='("F90mg: MG finished at ", i3, " iterations")') it
-    end  if
-
-    if ( it > mgt%max_iter ) then
-       if ( present(stat) ) then
-          stat = 1
-       else
-          if (mgt%abort_on_max_iter) then
-             call bl_error("MG_TOWER_SOLVE: failed to converge in max_iter iterations")
-          end if
-       end if
-    end if
-
-    if ( present(num_iter) ) num_iter = it
-
-    call destroy(bpt)
-
-  end subroutine mg_tower_solve
 
 end module mg_module
