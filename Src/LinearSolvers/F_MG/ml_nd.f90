@@ -194,7 +194,7 @@ contains
           else 
              call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
                   uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                  mgt(n)%gamma, bottom_solve_time = bottom_solve_time)
+                  bottom_solve_time = bottom_solve_time)
           end if
 
           ! Add: soln += uu

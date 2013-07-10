@@ -336,11 +336,11 @@ contains
                 call mini_cycle(mgt(n), mglev, &
                      mgt(n)%ss(mglev), uu(n), res(n), &
                      mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
-             else 
+             else
                 call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
                      mgt(n)%ss(mglev), uu(n), res(n), &
                      mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                     mgt(n)%gamma, bottom_solve_time = bottom_solve_time)
+                     bottom_solve_time = bottom_solve_time)
              end if
 
              ! Add: Soln += uu
@@ -545,6 +545,7 @@ contains
                    if ( parallel_ioprocessor() ) then
                       write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
                            iter,n,tres/tres0
+                      print *, 'tres=', tres
                    end if
                 end do
              end if

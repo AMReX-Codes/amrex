@@ -17,7 +17,7 @@ module mg_module
 contains
 
   recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, stencil_type_in, &
-                            nu1, nu2, nuf, nub, gamma, cycle_type, &
+                            nu1, nu2, nuf, nub, cycle_type, &
                             smoother, omega, &
                             dh, &
                             ns, &
@@ -40,7 +40,7 @@ contains
     integer, intent(in), optional :: ns
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
-    integer, intent(in), optional :: nu1, nu2, nuf, nub, gamma, cycle_type
+    integer, intent(in), optional :: nu1, nu2, nuf, nub, cycle_type
     integer, intent(in), optional :: smoother
     logical, intent(in), optional :: nodal(:)
     real(dp_t), intent(in), optional :: omega
@@ -102,7 +102,6 @@ contains
     if ( present(nu2)               ) mgt%nu2               = nu2
     if ( present(nuf)               ) mgt%nuf               = nuf
     if ( present(nub)               ) mgt%nub               = nub
-    if ( present(gamma)             ) mgt%gamma             = gamma
     if ( present(omega)             ) mgt%omega             = omega
     if ( present(cycle_type)        ) mgt%cycle_type        = cycle_type
     if ( present(bottom_solver)     ) mgt%bottom_solver     = bottom_solver
@@ -303,8 +302,6 @@ contains
 
     ! if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
 
-    if ( mgt%cycle_type == MG_WCycle .or. mgt%cycle_type == MG_FCycle) mgt%gamma = 2
-
     ! if only the bottom solver is 'solving' make sure that its eps is
     ! in effect
     if ( mgt%nlevels == 1 ) then
@@ -397,7 +394,6 @@ contains
                                    nu1 = nu1, &
                                    nu2 = nu2, &
                                    nuf = nuf, &
-                                   gamma = gamma, &
                                    cycle_type = MG_VCycle, &
                                    omega = omega, &
                                    bottom_solver = fancy_bottom_type, &
@@ -435,11 +431,6 @@ contains
                            mgt%bottom_solver == 3) ) then
        call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
     end if
-
-    ! Allocate and initialize the mgt%visited parameter which will keep track
-    !   of whether this is the first time this level has been visited.  
-    allocate(mgt%visited(1:mgt%nlevels))
-    mgt%visited = .false.
 
   end subroutine mg_tower_build
 
@@ -479,8 +470,6 @@ contains
     !   write(unit=un, fmt=*) 'abs_eps           = ', mgt%abs_eps
     !   call unit_skip(un, skip)
     !   write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
-    !   call unit_skip(un, skip)
-    !   write(unit=un, fmt=*) 'gamma             = ', mgt%gamma
     !   call unit_skip(un, skip)
     !   write(unit=un, fmt=*) 'omega             = ', mgt%omega
     !   call unit_skip(un, skip)
@@ -721,8 +710,7 @@ contains
 
     call mg_tower_cycle(mgt%bottom_mgt, mgt%bottom_mgt%cycle_type, mglev, &
                         mgt%bottom_mgt%ss(mglev), bottom_uu, bottom_rh, &
-                        mgt%bottom_mgt%mm(mglev), mgt%bottom_mgt%nu1, mgt%bottom_mgt%nu2, &
-                        mgt%bottom_mgt%gamma)
+                        mgt%bottom_mgt%mm(mglev), mgt%bottom_mgt%nu1, mgt%bottom_mgt%nu2)
 
     call multifab_copy_c(uu,1,bottom_uu,1,1,ng=0)
     call multifab_fill_boundary(uu)
@@ -775,6 +763,7 @@ contains
     end if
 
     stat = 0
+    !print *,'BOTTOM SOLVER ',mgt%bottom_solver, mgt%nuf
     select case ( mgt%bottom_solver )
     case (0)
        do i = 1, mgt%nuf
@@ -1052,7 +1041,129 @@ contains
     r = itsol_converged(dd, Ynorm, mgt%eps, mgt%abs_eps)
   end function mg_tower_converged
 
-  recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
+  subroutine mg_tower_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,bottom_level,bottom_solve_time)
+
+    type(mg_tower), intent(inout) :: mgt
+    type(multifab), intent(inout) :: rh
+    type(multifab), intent(inout) :: uu
+    type(multifab), intent(in) :: ss
+    type(imultifab), intent(in) :: mm
+    integer, intent(in) :: lev
+    integer, intent(in) :: nu1, nu2
+    integer, intent(in) :: cyc
+    integer, intent(in), optional :: bottom_level
+    real(dp_t), intent(inout), optional :: bottom_solve_time
+
+    select case(mgt%cycle_type)
+        case(MG_VCycle)
+            call mg_tower_v_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,1,bottom_level,bottom_solve_time)
+        case(MG_WCycle)
+            call mg_tower_v_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,2,bottom_level,bottom_solve_time)
+        case(MG_FCycle)
+            call mg_tower_fmg_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,bottom_level,bottom_solve_time)
+    end select
+
+  end subroutine mg_tower_cycle
+
+  recursive subroutine mg_tower_fmg_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2,&
+                                 bottom_level, bottom_solve_time)
+
+    use bl_prof_module
+
+    type(mg_tower), intent(inout) :: mgt
+    type(multifab), intent(inout) :: rh
+    type(multifab), intent(inout) :: uu
+    type(multifab), intent(in) :: ss
+    type(imultifab), intent(in) :: mm
+    integer, intent(in) :: lev
+    integer, intent(in) :: nu1, nu2
+    integer, intent(in) :: cyc
+    integer, intent(in), optional :: bottom_level
+    real(dp_t), intent(inout), optional :: bottom_solve_time
+    integer :: i
+    logical :: do_diag
+    real(dp_t) :: nrm, stime
+    integer :: lbl
+    logical :: nodal_flag
+    type(bl_prof_timer), save :: bpt
+
+    lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
+
+    do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
+    
+   ! print *, 'level=', lev, 'lbl=',lbl
+
+    call setval(uu,ZERO,all=.true.)
+
+   ! Compute and print residual
+   call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
+   nrm = norm_inf(mgt%cc(lev))
+   !write(*,fmt='("norm=",es22.16)') nrm
+
+    if (lev == lbl) then
+
+       stime = parallel_wtime()
+
+       if (associated(mgt%bottom_mgt)) then
+          if (do_diag) then
+             ! compute mgt%cc(lev) = ss * uu - rh
+             call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
+             nrm = norm_inf(mgt%cc(lev))
+             if ( parallel_IOProcessor() ) &
+                print *,'  DN: Norm before bottom         ',nrm
+          end if
+
+          call do_bottom_mgt(mgt, uu, rh)
+
+          if (do_diag) then
+             ! compute mgt%cc(lev) = ss * uu - rh
+             call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
+             nrm = norm_inf(mgt%cc(lev))
+             if ( parallel_IOProcessor() ) &
+                print *,'  UP: Norm after  bottom         ',nrm
+          end if
+
+       else
+
+          call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+
+       end if
+
+       if ( present(bottom_solve_time) ) &
+            bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
+
+    else
+
+       call mg_tower_restriction(mgt, mgt%dd(lev-1), rh, mgt%mm(lev),mgt%mm(lev-1))
+  
+       call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
+                      mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
+
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1))
+
+       ! Compute and print residual
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
+       nrm = norm_inf(mgt%cc(lev))
+       !print *, 'before v-cycle at lev=',lev,'; norm=',nrm
+
+       if (lev == mgt%nlevels) then
+            call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), uu, &
+                              rh, mgt%mm(lev), nu1, nu2, 1, bottom_level, bottom_solve_time)
+       else
+            call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), mgt%uu(lev), &
+                              rh, mgt%mm(lev), nu1, nu2, 1, bottom_level, bottom_solve_time)
+       end if
+
+       ! Compute and print residual
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
+       nrm = norm_inf(mgt%cc(lev))
+       !print *, 'after v-cycle lev=',lev,'; norm=',nrm
+
+    end if
+   
+  end subroutine mg_tower_fmg_cycle
+
+  recursive subroutine mg_tower_v_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
                                       bottom_level, bottom_solve_time)
 
     use bl_prof_module
@@ -1064,7 +1175,7 @@ contains
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: lev
     integer, intent(in) :: nu1, nu2
-    integer, intent(inout) :: gamma
+    integer, intent(in) :: gamma
     integer, intent(in) :: cyc
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
@@ -1139,8 +1250,6 @@ contains
        if ( present(bottom_solve_time) ) &
             bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
 
-       if ( cyc == MG_FCycle ) gamma = 1
-
     else 
 
        if (do_diag) then
@@ -1152,32 +1261,21 @@ contains
            end if
        end if
 
-       ! Relax in every case except the beginning of the F-cycle.
-       if ( (cyc /= MG_FCycle) .or. mgt%visited(lev) ) then
-           if ( do_diag .and. parallel_IOProcessor() ) &
-              print *,'  DN: Norm before smooth         ',nrm
+       if ( do_diag .and. parallel_IOProcessor() ) &
+          print *,'  DN: Norm before smooth         ',nrm
 
-           do i = 1, nu1
-              call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
-           end do
-       else
-           if ( do_diag .and. parallel_IOProcessor() ) &
-              print *,'  DN: Norm with no smoothing     ',nrm
-       end if
+       do i = 1, nu1
+          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+       end do
 
        ! Compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
-       if ( (cyc /= MG_FCycle) .or. mgt%visited(lev) ) then
-           if (do_diag) then
-              nrm = norm_inf(mgt%cc(lev))
-              if ( parallel_IOProcessor() ) &
-                  print *,'  DN: Norm after  smooth         ',nrm
-           end if
+       if (do_diag) then
+          nrm = norm_inf(mgt%cc(lev))
+          if ( parallel_IOProcessor() ) &
+              print *,'  DN: Norm after  smooth         ',nrm
        end if
-
-       ! Always want this to be true once we've been here.
-       mgt%visited(lev) = .true.
 
        call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
@@ -1192,7 +1290,7 @@ contains
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
        do i = gamma, 1, -1
-          call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
+          call mg_tower_v_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
        end do
 
@@ -1223,11 +1321,6 @@ contains
              print *,'  UP: Norm after  smooth         ',nrm
        end if
 
-       ! If at top of tower and doing an FCycle reset gamma and mgt%visited.
-       if ( lev == mgt%nlevels .AND. cyc == MG_FCycle ) then
-          gamma = 2
-          mgt%visited(1:mgt%nlevels) = .false.
-       end if
     end if
 
     call timer_stop(mgt%tm(lev))
@@ -1236,7 +1329,7 @@ contains
 
 1000 format('AT LEVEL ',i2)
 
-  end subroutine mg_tower_cycle
+  end subroutine mg_tower_v_cycle
 
   subroutine mini_cycle(mgt, lev, ss, uu, rh, mm, nu1, nu2)
 

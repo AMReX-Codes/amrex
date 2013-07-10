@@ -35,7 +35,6 @@ module mg_tower_module
      integer :: nu2 = 2
      integer :: nuf = 8
      integer :: nub = 10
-     integer :: gamma = 1
      integer :: cycle_type = MG_Vcycle
      real(kind=dp_t) :: omega = 1.0_dp_t
 
@@ -101,8 +100,6 @@ module mg_tower_module
 
      type(mg_tower), pointer :: bottom_mgt  => Null()
      integer,        pointer :: bottom_comm => Null()
-
-     logical, allocatable :: visited(:)
 
   end type mg_tower
 
