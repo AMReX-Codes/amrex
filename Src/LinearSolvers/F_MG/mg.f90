@@ -570,10 +570,18 @@ contains
     real(kind=dp_t)    :: vol
     integer            :: i, rr, lmn, dm
 
-    lmn = 1; if ( present(min_size) ) lmn = min_size
-    r = 1
-    rr = rrr
     dm = get_dim(ba)
+
+    ! lmn is the smallest we allow any side of a box to become
+    lmn = 1; if ( present(min_size) ) lmn = min_size
+
+    ! r keep track of the total number of mg levels
+    r = 1
+
+    ! rr keeps track of ref ratio between first and last mg levels we are currently testing
+    rr = rrr
+
+    ! create a temporary copy of the boxarray
     call copy(ba1,ba)
 
     outer: do
@@ -582,16 +590,18 @@ contains
        do i = 1, nboxes(ba)
           bx = get_box(ba,i)
           bx1 = coarsen(bx, rr)
+
+          ! check to see if any side has become less than lmn
           if ( any(extent(bx1) < lmn) ) exit outer
+
+          ! check to see if bx is evenly divisible by rr
           if ( bx /= refine(bx1, rr)  ) exit outer
-          !
-          ! We introduce the volume test to limit the case where we have a
-          ! single grid getting too small -- don't want to limit each grid in
-          ! the case where there are many grids, so we need a test over the
-          ! whole boxarray volume, not just the size of each grid.
-          !
+
+          ! check to make sure the entire problem over all grids is not too small
+          ! we prefer slightly larger 'bottom solves' for nodal problems since certain
+          ! bc types do not have degrees of freedom on the domain boundary and you
+          ! can end up with a 1 point bottom solve, even if the grid is 2**dm
           if (nodal_flag) then
-             ! solve will break if we reduce to a single point for nodal depending on bcs.
              if ( vol <= 2**dm ) exit outer  
           else
              if ( vol < 2**dm ) exit outer
