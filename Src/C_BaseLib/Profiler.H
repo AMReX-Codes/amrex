@@ -7,6 +7,7 @@
 #include <Array.H>
 
 #include <iostream>
+#include <ostream>
 #include <string>
 #include <stack>
 #include <set>
@@ -128,6 +129,7 @@ class Profiler
     static Real pctTimeLimit;
     static Real calcRunTime;
     static Real startTime;
+    static Real timerTime;
     static std::stack<Real> nestedTimeStack;
     static std::map<int, Real> mStepMap;  // [step, time]
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
@@ -144,6 +146,13 @@ class Profiler
     static bool OnExcludeList(CommFuncType cft);
     static int  NameTagNameIndex(const std::string &name);
 };
+
+
+inline std::ostream &operator<< (std::ostream &os, const Profiler::CommStats &cs) {
+  os << Profiler::CommStats::CFTToString(cs.cfType) << "   " << cs.size
+     << "  " << cs.commpid << "  " << cs.tag << "  " << cs.timeStamp;
+  return os;
+}
 
 
 

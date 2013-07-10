@@ -23,6 +23,8 @@ namespace ParallelDescriptor
     //
     MPI_Comm m_comm;
 
+    int m_MaxTag = -1;
+
     const int ioProcessor = 0;
 
     namespace util
@@ -280,6 +282,15 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_MPI_REQUIRE( MPI_Comm_size(Communicator(), &m_nProcs) );
 
     BL_MPI_REQUIRE( MPI_Comm_rank(Communicator(), &m_MyId) );
+
+    int flag(0), *attrVal;
+    BL_MPI_REQUIRE( MPI_Attr_get(mpi_comm, MPI_TAG_UB, &attrVal, &flag) );
+    if(flag) {
+      m_MaxTag = *attrVal;
+      m_MaxTag -= 4;  // so we dont wrap if maxint
+    } else {
+      m_MaxTag = 9000;
+    }
     //
     // Wait till all other processes are properly started.
     //
@@ -1170,6 +1181,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     m_nProcs    = 1;
     m_MyId      = 0;
     m_comm      = 0;
+    m_MaxTag    = 9000;
 }
 
 void
@@ -1312,16 +1324,16 @@ int
 ParallelDescriptor::SeqNum ()
 {
     const int BEG = 1000;
-    const int END = 9000;
 
     static int seqno = BEG;
 
     int result = seqno++;
 
-    if (seqno > END) seqno = BEG;
+    if (seqno > m_MaxTag) seqno = BEG;
 
     return result;
 }
+
 
 #include <BLFort.H>
 
