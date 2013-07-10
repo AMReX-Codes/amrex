@@ -160,7 +160,10 @@ contains
        end if
     end if
 
-    if ( .not. nodal_flag ) then
+    if ( nodal_flag ) then
+       if (mgt%dim .eq. 1) &
+          mgt%omega = 1.33_dp_t
+    else
        if ( .not. present(omega) ) then
           select case ( mgt%dim )
           case (1)
