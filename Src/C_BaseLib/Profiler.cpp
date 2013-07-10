@@ -26,6 +26,7 @@ int Profiler::nProfFiles  = 64;
 Real Profiler::pctTimeLimit = 5.0;
 Real Profiler::calcRunTime  = 0.0;
 Real Profiler::startTime    = 0.0;
+Real Profiler::timerTime    = 0.0;
 
 std::stack<Real> Profiler::nestedTimeStack;
 std::map<int, Real> Profiler::mStepMap;
@@ -63,6 +64,15 @@ void Profiler::Initialize() {
   if(bInitialized) {
     return;
   }
+
+  Real t0, t1;
+  int nTimerTimes(1000);
+  for(int i(0); i < nTimerTimes; ++i) {  // ---- time the timer
+    t0 = ParallelDescriptor::second();
+    t1 = ParallelDescriptor::second();
+    timerTime += t1 - t0;
+  }
+  timerTime /= static_cast<Real> (nTimerTimes);
 
   startTime = ParallelDescriptor::second();
 
@@ -619,6 +629,8 @@ void Profiler::WriteCommStats(const bool bFlushing) {
 	  csHeaderFile << std::setprecision(16)
 	               << "timeMinMax  " << vCommStats[0].timeStamp << "  "
 	               << vCommStats[vCommStats.size()-1].timeStamp << '\n';
+	  csHeaderFile << std::setprecision(16)
+	               << "timerTime  " << timerTime << '\n';
 	} else {
 	  csHeaderFile << "timeMinMax  0.0  0.0" << '\n';
 	}
@@ -862,7 +874,6 @@ void Profiler::CommStats::UnFilter(CommFuncType cft) {
     CommStats::cftExclude.erase(cft);
   }
 }
-
 
 
 #else
