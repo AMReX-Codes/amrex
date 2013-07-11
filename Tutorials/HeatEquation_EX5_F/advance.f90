@@ -56,7 +56,7 @@ contains
 
     real(dp_t) :: dx_vector(mla%nlevel,mla%dim)
 
-    integer :: stencil_type,ns,smoother,nu1,nu2,nub,gamma,cycle_type
+    integer :: stencil_type,ns,smoother,nu1,nu2,nub,cycle_type
     integer :: bottom_solver,bottom_max_iter,max_iter,max_nlevel
     integer :: max_bottom_nlevel,min_width,verbose,cg_verbose
     real(dp_t) :: omega,bottom_solver_eps,rel_solver_eps,abs_solver_eps
@@ -118,7 +118,6 @@ contains
        nu1               = mgt(nlevs)%nu1                ! # of smooths at each level on the way down
        nu2               = mgt(nlevs)%nu2                ! # of smooths at each level on the way up
        nub               = mgt(nlevs)%nub                ! # of smooths before and after bottom solver
-       gamma             = mgt(nlevs)%gamma              ! allows control over 'shape' of V or W cycle
        cycle_type        = mgt(nlevs)%cycle_type         ! choose between V-cycle, W-cycle, etc.
        omega             = mgt(nlevs)%omega              ! some smoothers use omega parameter
        bottom_solver     = mgt(nlevs)%bottom_solver      ! bottom solver type
@@ -160,7 +159,6 @@ contains
                               nu1 = nu1, &
                               nu2 = nu2, &
                               nub = nub, &
-                              gamma = gamma, &
                               cycle_type = cycle_type, &
                               omega = omega, &
                               bottom_solver = bottom_solver, &

@@ -82,7 +82,7 @@ subroutine wrapper()
   integer :: max_nlevel, max_nlevel_in
   integer :: max_lev_of_mba
   integer :: verbose, cg_verbose
-  integer :: nu1, nu2, nub, nuf, gamma, solver, smoother
+  integer :: nu1, nu2, nub, nuf, solver, smoother
   real(dp_t) :: omega
   integer :: ng, nc
   character(len=128) :: test_set
@@ -131,7 +131,7 @@ subroutine wrapper()
   namelist /probin/ random_rr
 
   namelist /probin/ eps, max_iter
-  namelist /probin/ nu1, nu2, nub, nuf, gamma, omega
+  namelist /probin/ nu1, nu2, nub, nuf, omega
   namelist /probin/ bottom_solver, bottom_solver_eps, bottom_max_iter
   namelist /probin/ solver, smoother
   namelist /probin/ min_width, max_nlevel
@@ -191,7 +191,6 @@ subroutine wrapper()
   nu2               = mgt_default%nu2
   nub               = mgt_default%nub
   nuf               = mgt_default%nuf
-  gamma             = mgt_default%gamma
   omega             = mgt_default%omega
   bottom_solver     = mgt_default%bottom_solver
   bottom_max_iter   = mgt_default%bottom_max_iter
@@ -279,10 +278,6 @@ subroutine wrapper()
            farg = farg + 1
            call get_command_argument(farg, value = fname)
            read(fname, *) solver
-        case ('--gamma')
-           farg = farg + 1
-           call get_command_argument(farg, value = fname)
-           read(fname,*) gamma
         case ('--smoother')
            farg = farg + 1
            call get_command_argument(farg, value = fname)
@@ -685,7 +680,6 @@ subroutine wrapper()
           nu2 = nu2, &
           nub = nub, &
           nuf = nuf, &
-          gamma = gamma, &
           omega = omega, &
           bottom_solver = bottom_solver_in, &
           bottom_max_iter = bottom_max_iter_in, &
