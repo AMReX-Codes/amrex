@@ -86,7 +86,7 @@ subroutine wrapper()
   real(dp_t) :: omega
   integer :: ng, nc
   character(len=128) :: test_set
-  integer :: test, test_lev
+  integer :: test, test_lev, cycle_type
   logical :: test_set_mglib
   logical :: test_set_hgproj
   logical :: test_random_boxes
@@ -107,6 +107,8 @@ subroutine wrapper()
 
   logical :: fabio
 
+
+  namelist /probin/ cycle_type
   namelist /probin/ test
   namelist /probin/ nodal_in
   namelist /probin/ dense_in
@@ -149,6 +151,7 @@ subroutine wrapper()
   max_lev_of_mba = Huge(max_lev_of_mba)
 
   test           = 0
+  cycle_type     = 3 ! Default to V-cycle 
   nodal_in       = .false.
   dense_in       = .false.
 
@@ -258,6 +261,11 @@ subroutine wrapper()
            farg = farg + 1
            call get_command_argument(farg, value = fname)
            read(fname,*) test
+
+        case ('--cycle_type')
+           farg = farg + 1
+           call get_command_argument(farg, value = fname)
+           read(fname,*) cycle_type
 
         case ('--verbose')
            farg = farg + 1
@@ -680,6 +688,7 @@ subroutine wrapper()
           nu2 = nu2, &
           nub = nub, &
           nuf = nuf, &
+          cycle_type = cycle_type, &
           omega = omega, &
           bottom_solver = bottom_solver_in, &
           bottom_max_iter = bottom_max_iter_in, &
