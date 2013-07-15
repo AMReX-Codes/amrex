@@ -179,7 +179,6 @@ contains
                 mgt%omega = 6.0_dp_t/7.0_dp_t
              case ( MG_SMOOTHER_GS_RB )
                 mgt%omega = 1.15_dp_t
-!               mgt%omega = 1.00_dp_t
              end select
           end select
        end if
@@ -250,36 +249,41 @@ contains
        mgt%dh(:,i) = mgt%dh(:,i+1)*2.0_dp_t
     end do
 
-    allocate(mgt%face_type(nfabs(mgt%cc(n)),mgt%dim,2))
-
     if ( .not. nodal_flag ) then
        allocate(mgt%skewed(mgt%nlevels,nfabs(mgt%cc(n))))
        allocate(mgt%skewed_not_set(mgt%nlevels))
        mgt%skewed_not_set = .true.
     end if
 
-    !   Set the face_type array to be BC_DIR or BC_NEU depending on domain_bc
-    mgt%face_type = BC_INT
-    do id = 1,mgt%dim
-       lo_dom = lwb(pd,id)
-       hi_dom = upb(pd,id)
-       do i = 1,nfabs(mgt%ss(mgt%nlevels))
-          lo_grid =  lwb(get_box(mgt%ss(mgt%nlevels), i),id)
-          if (lo_grid == lo_dom) mgt%face_type(i,id,1) = domain_bc(id,1)
+    if ( nodal_flag ) then
+       !
+       ! Set the face_type array to be BC_DIR or BC_NEU depending on domain_bc
+       !
+       allocate(mgt%face_type(nfabs(mgt%cc(n)),mgt%dim,2))
+       mgt%face_type = BC_INT
+       do id = 1,mgt%dim
+          lo_dom = lwb(pd,id)
+          hi_dom = upb(pd,id)
+          do i = 1,nfabs(mgt%ss(mgt%nlevels))
+             lo_grid =  lwb(get_box(mgt%ss(mgt%nlevels), i),id)
+             if (lo_grid == lo_dom) mgt%face_type(i,id,1) = domain_bc(id,1)
 
-          hi_grid = upb(get_box(mgt%ss(mgt%nlevels), i),id)
-          if (hi_grid == hi_dom) mgt%face_type(i,id,2) = domain_bc(id,2)
+             hi_grid = upb(get_box(mgt%ss(mgt%nlevels), i),id)
+             if (hi_grid == hi_dom) mgt%face_type(i,id,2) = domain_bc(id,2)
+          end do
        end do
-    end do
-
+    end if
+    !
     ! Do we cover the entire domain?
     ! Note that the volume is number of cells so it increments in units of 1, not dx*dy
     ! Need these to be real, not int, so we can handle large numbers.
+    !
     ba      = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
     dvol    = boxarray_dvolume(ba)
     dvol_pd = box_dvolume(pd)
-
+    !
     ! Set both of these to false as default -- both must be true in order to subtract off sum(res)
+    !
     mgt%bottom_singular    = .false.
     mgt%coeffs_sum_to_zero = .false.
 
@@ -522,7 +526,7 @@ contains
     type(layout) :: la
     integer      :: i
 
-    ldestroy_la = .false.; if (present(destroy_la)) ldestroy_la = destroy_la
+    ldestroy_la = .false.; if ( present(destroy_la) ) ldestroy_la = destroy_la
 
     la = get_layout(mgt%cc(mgt%nlevels))
 
@@ -540,14 +544,15 @@ contains
     deallocate(mgt%cc, mgt%ff, mgt%dd, mgt%uu, mgt%mm, mgt%ss)
     deallocate(mgt%dh, mgt%pd)
     deallocate(mgt%tm)
-    deallocate(mgt%face_type)
+
+    if ( associated(mgt%face_type) ) deallocate(mgt%face_type)
 
     if ( associated(mgt%skewed) ) then
        deallocate(mgt%skewed)
        deallocate(mgt%skewed_not_set)
     end if
 
-    if ( built_q(mgt%nodal_mask)    ) call destroy(mgt%nodal_mask)
+    if ( built_q(mgt%nodal_mask) ) call destroy(mgt%nodal_mask)
 
     if ( ldestroy_la ) call layout_destroy(la)
 
