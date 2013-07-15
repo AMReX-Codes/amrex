@@ -1080,11 +1080,14 @@ contains
     integer, intent(in) :: cyc
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
-    integer :: i
     logical :: do_diag
     real(dp_t) :: nrm, stime
     integer :: lbl
     type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mgt_f_cycle")
+
+    call timer_start(mgt%tm(lev))
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
@@ -1159,6 +1162,10 @@ contains
        !print *, 'after v-cycle lev=',lev,'; norm=',nrm
 
     end if
+
+    call timer_stop(mgt%tm(lev))
+
+    call destroy(bpt)
    
   end subroutine mg_tower_fmg_cycle
 
@@ -1185,7 +1192,7 @@ contains
     logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mgt_cycle")
+    call build(bpt, "mgt_v_cycle")
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
