@@ -51,14 +51,16 @@ contains
 
     call build(bpt, "mgt_smoother")
 
-    if (mgt%skewed_not_set(lev)) then
-       !$OMP PARALLEL DO PRIVATE(i,mp)
-       do i = 1, nfabs(mm)
-          mp => dataptr(mm, i)
-          mgt%skewed(lev,i) = skewed_q(mp)
-       end do
-       !$OMP END PARALLEL DO
-       mgt%skewed_not_set(lev) = .false.
+    if ( .not. nodal_q(ff) ) then
+       if ( mgt%skewed_not_set(lev) ) then
+          !$OMP PARALLEL DO PRIVATE(i,mp)
+          do i = 1, nfabs(mm)
+             mp => dataptr(mm, i)
+             mgt%skewed(lev,i) = skewed_q(mp)
+          end do
+          !$OMP END PARALLEL DO
+          mgt%skewed_not_set(lev) = .false.
+       end if
     end if
 
     if ( cell_centered_q(uu) ) then
@@ -405,7 +407,7 @@ contains
 
     ng = nghost(uu)
 
-    if (mgt%skewed_not_set(lev)) then 
+    if ( mgt%skewed_not_set(lev) ) then 
        do i = 1, nfabs(mm)
           mp => dataptr(mm, i)
           mgt%skewed(lev,i) = skewed_q(mp)
