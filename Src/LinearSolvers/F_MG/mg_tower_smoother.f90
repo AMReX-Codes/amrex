@@ -13,11 +13,10 @@ contains
 
     use omp_module
     use bl_prof_module
-    use cc_smoothers_module, only: gs_line_solve_1d, gs_rb_smoother_1d, jac_smoother_2d, &
-         jac_smoother_3d, gs_lex_smoother_2d, gs_lex_smoother_3d, &
+    use cc_smoothers_module, only: gs_line_solve_1d, gs_rb_smoother_1d, &
+         jac_smoother_2d, jac_smoother_3d, &
          gs_rb_smoother_2d,  gs_rb_smoother_3d, &
-         fourth_order_smoother_2d, fourth_order_smoother_3d, gs_lex_dense_smoother_2d, &
-         gs_lex_dense_smoother_3d
+         fourth_order_smoother_2d, fourth_order_smoother_3d
     use nodal_smoothers_module, only: nodal_smoother_1d, &
          nodal_smoother_2d, nodal_smoother_3d, nodal_line_solve_1d
     use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
@@ -241,47 +240,6 @@ contains
                 end do
              end do
 
-          case ( MG_SMOOTHER_GS_LEX )
-
-             call fill_boundary(uu, cross = mgt%lcross)
-             do i = 1, nfabs(ff)
-                up => dataptr(uu, i)
-                fp => dataptr(ff, i)
-                sp => dataptr(ss, i)
-                mp => dataptr(mm, i)
-                lo =  lwb(get_box(ss, i))
-                do n = 1, mgt%nc
-                   select case ( mgt%dim)
-                   case (2)
-                      call gs_lex_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
-                           fp(:,:,1,n), ng)
-                   case (3)
-                      call gs_lex_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
-                           fp(:,:,:,n), ng)
-                   end select
-                end do
-             end do
-
-          case ( MG_SMOOTHER_GS_LEX_DENSE )
-
-             call fill_boundary(uu, cross = mgt%lcross)
-             do i = 1, nfabs(ff)
-                up => dataptr(uu, i)
-                fp => dataptr(ff, i)
-                sp => dataptr(ss, i)
-                mp => dataptr(mm, i)
-                lo =  lwb(get_box(ss, i))
-                do n = 1, mgt%nc
-                   select case ( mgt%dim)
-                   case (2)
-                      call gs_lex_dense_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
-                           fp(:,:,1,n), ng)
-                   case (3)
-                      call gs_lex_dense_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
-                           fp(:,:,:,n), ng)
-                   end select
-                end do
-             end do
           case default
              call bl_error("MG_TOWER_SMOOTHER: no such smoother")
           end select
