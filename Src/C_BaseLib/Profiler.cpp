@@ -43,7 +43,6 @@ std::vector<std::string> Profiler::CommStats::nameTagNames;
 std::vector<int> Profiler::CommStats::reductions;
 
 
-
 Profiler::Profiler(const std::string &funcname)
     : bltstart(0.0), bltelapsed(0.0)
     , fname(funcname)
@@ -610,23 +609,23 @@ void Profiler::WriteCommStats(const bool bFlushing) {
           int seekindex(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[seekindex];
           csHeaderFile << "bNum  " << cs.tag  // tag is used for barrier number
-                       << "  " << '"' << CommStats::barrierNames[ib].first << '"'
-                       << "  " << seekindex << '\n';
+                       << ' ' << '"' << CommStats::barrierNames[ib].first << '"'
+                       << ' ' << seekindex << '\n';
         }
         for(int ib(0); ib < CommStats::nameTags.size(); ++ib) {
           int seekindex(CommStats::nameTags[ib].second);
-          csHeaderFile << "nTag  " << CommStats::nameTags[ib].first
+          csHeaderFile << "nTag  " << CommStats::nameTags[ib].first << ' '
                        << seekindex << '\n';
         }
         for(int ib(0); ib < CommStats::reductions.size(); ++ib) {
           int seekindex(CommStats::reductions[ib]);
           CommStats &cs = vCommStats[seekindex];
           csHeaderFile << "red  " << cs.tag  // tag is used for reduction number
-	               << "  " << seekindex << '\n';
+	               << ' ' << seekindex << '\n';
         }
 	if(vCommStats.size() > 0) {
 	  csHeaderFile << std::setprecision(16)
-	               << "timeMinMax  " << vCommStats[0].timeStamp << "  "
+	               << "timeMinMax  " << vCommStats[0].timeStamp << ' '
 	               << vCommStats[vCommStats.size()-1].timeStamp << '\n';
 	  csHeaderFile << std::setprecision(16)
 	               << "timerTime  " << timerTime << '\n';
@@ -832,7 +831,7 @@ void Profiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &req
 }
 
 
-int Profiler::NameTagNameIndex(const std::string &name) {
+int Profiler::NameTagNameIndex(const std::string &name) {  // prob need to opt this
   for(int i(0); i < CommStats::nameTagNames.size(); ++i) {
     if(CommStats::nameTagNames[i] == name) {
       return i;
