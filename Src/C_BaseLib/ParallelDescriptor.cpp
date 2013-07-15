@@ -288,6 +288,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     if(flag) {
       m_MaxTag = *attrVal;
       m_MaxTag -= 4;  // so we dont wrap if maxint
+      m_MaxTag = std::max(m_MaxTag, 9000);
     } else {
       m_MaxTag = 9000;
     }

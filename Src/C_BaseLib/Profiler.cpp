@@ -38,7 +38,7 @@ std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
 int Profiler::CommStats::reductionNumber = 0;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
-std::vector<std::pair<std::string,int> > Profiler::CommStats::nameTags;
+std::vector<std::pair<int,int> > Profiler::CommStats::nameTags;
 std::vector<std::string> Profiler::CommStats::nameTagNames;
 std::vector<int> Profiler::CommStats::reductions;
 
@@ -607,23 +607,22 @@ void Profiler::WriteCommStats(const bool bFlushing) {
                      << "  datafile  " << shortDFileName
 	             << "  seekpos  " << csDFile.tellp() << '\n';
         for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
-          int index(CommStats::barrierNames[ib].second);
-          CommStats &cs = vCommStats[index];
+          int seekindex(CommStats::barrierNames[ib].second);
+          CommStats &cs = vCommStats[seekindex];
           csHeaderFile << "bNum  " << cs.tag  // tag is used for barrier number
                        << "  " << '"' << CommStats::barrierNames[ib].first << '"'
-                       << "  " << index << '\n';
+                       << "  " << seekindex << '\n';
         }
         for(int ib(0); ib < CommStats::nameTags.size(); ++ib) {
-          int index(CommStats::nameTags[ib].second);
-          csHeaderFile << "nTag  "
-                       << '"' << CommStats::nameTags[ib].first << '"'
-                       << "  " << index << '\n';
+          int seekindex(CommStats::nameTags[ib].second);
+          csHeaderFile << "nTag  " << CommStats::nameTags[ib].first
+                       << seekindex << '\n';
         }
         for(int ib(0); ib < CommStats::reductions.size(); ++ib) {
-          int index(CommStats::reductions[ib]);
-          CommStats &cs = vCommStats[index];
+          int seekindex(CommStats::reductions[ib]);
+          CommStats &cs = vCommStats[seekindex];
           csHeaderFile << "red  " << cs.tag  // tag is used for reduction number
-	               << "  " << index << '\n';
+	               << "  " << seekindex << '\n';
         }
 	if(vCommStats.size() > 0) {
 	  csHeaderFile << std::setprecision(16)
@@ -853,7 +852,7 @@ void Profiler::AddNameTag(const std::string &name) {
   int index(CommStats::nameTags.size());
   vCommStats.push_back(CommStats(cft, index,  vCommStats.size(), tag,
                        ParallelDescriptor::second()));
-  CommStats::nameTags.push_back(std::make_pair(name, vCommStats.size() - 1));
+  CommStats::nameTags.push_back(std::make_pair(tag, vCommStats.size() - 1));
 }
 
 

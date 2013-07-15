@@ -76,8 +76,8 @@ class Profiler
       static std::set<CommFuncType> cftExclude;
       static int barrierNumber;
       static int reductionNumber;
-      static std::vector<std::pair<std::string,int> > barrierNames;  // [name,index]
-      static std::vector<std::pair<std::string,int> > nameTags;      // [name,index]
+      static std::vector<std::pair<std::string,int> > barrierNames;  // [name, seek]
+      static std::vector<std::pair<int,int> > nameTags;              // [nameindex, seek]
       static std::vector<std::string> nameTagNames;                  // [name]
       static std::vector<int> reductions;                            // [index]
 
