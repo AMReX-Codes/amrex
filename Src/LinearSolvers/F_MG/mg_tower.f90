@@ -3,18 +3,15 @@ module mg_tower_module
   use multifab_module
   use cc_stencil_module
   use nodal_stencil_module
-! use sparse_solve_module
   use bl_timer_module
 
   implicit none
 
   integer, parameter :: MG_SMOOTHER_GS_RB  = 1
   integer, parameter :: MG_SMOOTHER_JACOBI = 2
-  integer, parameter :: MG_SMOOTHER_GS_LEX = 3
   integer, parameter :: MG_SMOOTHER_MINION_CROSS = 5
   integer, parameter :: MG_SMOOTHER_MINION_FULL = 6
   integer, parameter :: MG_SMOOTHER_EFF_RB = 7
-  integer, parameter :: MG_SMOOTHER_GS_LEX_DENSE = 8
 
   integer, parameter :: MG_FCycle = 1
   integer, parameter :: MG_WCycle = 2
