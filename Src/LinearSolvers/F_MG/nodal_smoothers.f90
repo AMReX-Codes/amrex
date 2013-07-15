@@ -91,10 +91,10 @@ contains
 
   end subroutine nodal_line_solve_1d
 
-  subroutine nodal_smoother_1d(omega, ss, uu, ff, mm, lo, ng, red_black)
+  subroutine nodal_smoother_1d(ss, uu, ff, mm, lo, ng, red_black)
     integer, intent(in) :: lo(:)
     integer, intent(in) :: ng, red_black
-    real (kind = dp_t), intent(in)    :: omega
+
     real (kind = dp_t), intent(in)    :: ff(lo(1)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
     real (kind = dp_t), intent(in)    :: ss(0:,lo(1):)
@@ -102,19 +102,21 @@ contains
     real (kind = dp_t) :: dd
     integer :: i, hi(size(lo))
 
+    real (kind = dp_t), parameter :: omega = 1.33_dp_t
+
     hi = ubound(uu)-ng
 
     ! Red/black
     do i = lo(1)+red_black,hi(1),2
        if (.not. bc_dirichlet(mm(i),1,0)) then
           dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
-          uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
+          uu(i) = uu(i) + (omega/ss(0,i)) * (ff(i) - dd)
        end if
     end do
 
   end subroutine nodal_smoother_1d
 
-  subroutine nodal_smoother_2d(omega, ss, uu, ff, mm, lo, ng, pmask, stencil_type, red_black)
+  subroutine nodal_smoother_2d(ss, uu, ff, mm, lo, ng, pmask, stencil_type, red_black)
 
     use bl_prof_module
     use impose_neumann_bcs_module
@@ -122,7 +124,6 @@ contains
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     logical, intent(in) :: pmask(:)
-    real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1)-1:, lo(2)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
     real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
@@ -160,7 +161,7 @@ contains
                      + ss(6,i,j) * uu(i-1,j+1) &
                      + ss(7,i,j) * uu(i  ,j+1) &
                      + ss(8,i,j) * uu(i+1,j+1)
-                uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
+                uu(i,j) = uu(i,j) + (one/ss(0,i,j)) * (ff(i,j) - dd)
              end if
           end do
        end do
@@ -185,14 +186,13 @@ contains
                   dd =   ss(0,i,j) * uu(i  ,j ) &
                        + ss(2,i,j) * uu(i-1,j  ) + ss(1,i,j) * uu(i+1,j  ) &
                        + ss(4,i,j) * uu(i  ,j-1) + ss(3,i,j) * uu(i  ,j+1) 
-                  wrk(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
+                  wrk(i,j) = uu(i,j) + (one/ss(0,i,j)) * (ff(i,j) - dd) 
                end if
             end do
          end do
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
-               if (.not. bc_dirichlet(mm(i,j),1,0)) &
-                    uu(i,j) = wrk(i,j)
+               if (.not. bc_dirichlet(mm(i,j),1,0)) uu(i,j) = wrk(i,j)
             end do
          end do
          deallocate(wrk)
@@ -209,7 +209,7 @@ contains
                   dd =   ss(0,i,j) * uu(i  ,j ) &
                        + ss(2,i,j) * uu(i-1,j  ) + ss(1,i,j) * uu(i+1,j  ) &
                        + ss(4,i,j) * uu(i  ,j-1) + ss(3,i,j) * uu(i  ,j+1) 
-                  uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
+                  uu(i,j) = uu(i,j) + (one/ss(0,i,j)) * (ff(i,j) - dd) 
                end if
             end do
          end do
@@ -224,7 +224,7 @@ contains
 
   end subroutine nodal_smoother_2d
 
-  subroutine nodal_smoother_3d(omega, ss, uu, ff, mm, lo, ng, uniform_dh, pmask, stencil_type, red_black)
+  subroutine nodal_smoother_3d(ss, uu, ff, mm, lo, ng, uniform_dh, pmask, stencil_type, red_black)
 
     use bl_prof_module
     use impose_neumann_bcs_module
@@ -232,7 +232,6 @@ contains
     integer,            intent(in   ) :: ng
     integer,            intent(in   ) :: lo(:)
     logical,            intent(in   ) :: pmask(:)
-    real (kind = dp_t), intent(in   ) :: omega
     real (kind = dp_t), intent(in   ) :: ff(lo(1)-1:,lo(2)-1:,lo(3)-1:)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
     real (kind = dp_t), intent(in   ) :: ss(0:,lo(1):,lo(2):,lo(3):)
@@ -293,13 +292,13 @@ contains
                      if (bc_dirichlet(mm(i,j,k),1,0)) doit = .false.
                   end if
 
-                  if (doit) then
+                  if ( doit ) then
                      dd =   ss(0,i,j,k) * uu(i  ,j  ,k  ) &
                           + ss(2,i,j,k) * uu(i-1,j  ,k  ) + ss(1,i,j,k) * uu(i+1,j  ,k  ) &
                           + ss(4,i,j,k) * uu(i  ,j-1,k  ) + ss(3,i,j,k) * uu(i  ,j+1,k  ) &
                           + ss(6,i,j,k) * uu(i  ,j  ,k-1) + ss(5,i,j,k) * uu(i  ,j  ,k+1)
 
-                     wrk(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+                     wrk(i,j,k) = uu(i,j,k) + (one/ss(0,i,j,k)) * (ff(i,j,k) - dd) 
                   else
                      wrk(i,j,k) = uu(i,j,k)
                   end if
@@ -345,7 +344,7 @@ contains
                           + ss(4,i,j,k) * uu(i  ,j-1,k  ) + ss(3,i,j,k) * uu(i  ,j+1,k  ) &
                           + ss(6,i,j,k) * uu(i  ,j  ,k-1) + ss(5,i,j,k) * uu(i  ,j  ,k+1)
 
-                     uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+                     uu(i,j,k) = uu(i,j,k) + (one/ss(0,i,j,k)) * (ff(i,j,k) - dd) 
                   end if
                end do
             end do
@@ -395,7 +394,7 @@ contains
                            + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
                    end if
 
-                   uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+                   uu(i,j,k) = uu(i,j,k) + (one/ss(0,i,j,k)) * (ff(i,j,k) - dd) 
                 end if
              end do
           end do
