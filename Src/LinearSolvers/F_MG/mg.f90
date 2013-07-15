@@ -251,9 +251,12 @@ contains
     end do
 
     allocate(mgt%face_type(nfabs(mgt%cc(n)),mgt%dim,2))
-    allocate(mgt%skewed(mgt%nlevels,nfabs(mgt%cc(n))))
-    allocate(mgt%skewed_not_set(mgt%nlevels))
-    mgt%skewed_not_set = .true.
+
+    if ( .not. nodal_flag ) then
+       allocate(mgt%skewed(mgt%nlevels,nfabs(mgt%cc(n))))
+       allocate(mgt%skewed_not_set(mgt%nlevels))
+       mgt%skewed_not_set = .true.
+    end if
 
     !   Set the face_type array to be BC_DIR or BC_NEU depending on domain_bc
     mgt%face_type = BC_INT
@@ -538,12 +541,15 @@ contains
     deallocate(mgt%dh, mgt%pd)
     deallocate(mgt%tm)
     deallocate(mgt%face_type)
-    deallocate(mgt%skewed)
-    deallocate(mgt%skewed_not_set)
+
+    if ( associated(mgt%skewed) ) then
+       deallocate(mgt%skewed)
+       deallocate(mgt%skewed_not_set)
+    end if
 
     if ( built_q(mgt%nodal_mask)    ) call destroy(mgt%nodal_mask)
 
-    if (ldestroy_la) call layout_destroy(la)
+    if ( ldestroy_la ) call layout_destroy(la)
 
     if ( associated(mgt%bottom_comm) ) then
        call parallel_free_communicator(mgt%bottom_comm)
