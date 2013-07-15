@@ -1084,7 +1084,6 @@ contains
     logical :: do_diag
     real(dp_t) :: nrm, stime
     integer :: lbl
-    logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
