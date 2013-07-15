@@ -36,7 +36,6 @@ module mg_tower_module
      integer :: nuf = 8
      integer :: nub = 10
      integer :: cycle_type = MG_Vcycle
-     real(kind=dp_t) :: omega = 1.0_dp_t
 
      ! bottom solver defaults good for bicg
      integer :: bottom_solver = 1

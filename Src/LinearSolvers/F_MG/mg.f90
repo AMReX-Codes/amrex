@@ -18,7 +18,7 @@ contains
 
   recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, stencil_type_in, &
                             nu1, nu2, nuf, nub, cycle_type, &
-                            smoother, omega, &
+                            smoother, &
                             dh, &
                             ns, &
                             nc, ng, &
@@ -43,7 +43,6 @@ contains
     integer, intent(in), optional :: nu1, nu2, nuf, nub, cycle_type
     integer, intent(in), optional :: smoother
     logical, intent(in), optional :: nodal(:)
-    real(dp_t), intent(in), optional :: omega
     real(kind=dp_t), intent(in), optional :: dh(:)
     real(kind=dp_t), intent(in), optional :: eps
     real(kind=dp_t), intent(in), optional :: abs_eps
@@ -102,7 +101,6 @@ contains
     if ( present(nu2)               ) mgt%nu2               = nu2
     if ( present(nuf)               ) mgt%nuf               = nuf
     if ( present(nub)               ) mgt%nub               = nub
-    if ( present(omega)             ) mgt%omega             = omega
     if ( present(cycle_type)        ) mgt%cycle_type        = cycle_type
     if ( present(bottom_solver)     ) mgt%bottom_solver     = bottom_solver
     if ( present(bottom_solver_eps) ) mgt%bottom_solver_eps = bottom_solver_eps
@@ -160,32 +158,10 @@ contains
        end if
     end if
 
-    if ( nodal_flag ) then
-       if (mgt%dim .eq. 1) &
-          mgt%omega = 1.33_dp_t
-    else
-       if ( .not. present(omega) ) then
-          select case ( mgt%dim )
-          case (1)
-             mgt%omega = 0.6_dp_t
-          case (2)
-             select case (mgt%smoother)
-             case ( MG_SMOOTHER_JACOBI )
-                mgt%omega = 4.0_dp_t/5.0_dp_t
-             end select
-          case (3)
-             select case (mgt%smoother)
-             case ( MG_SMOOTHER_JACOBI )
-                mgt%omega = 6.0_dp_t/7.0_dp_t
-             case ( MG_SMOOTHER_GS_RB )
-                mgt%omega = 1.15_dp_t
-             end select
-          end select
-       end if
-    end if
     ng_for_res = 0; if ( nodal_flag ) ng_for_res = 1
 
     n = max_mg_levels(get_boxarray(la), nodal_flag, mgt%min_width)
+
     mgt%nlevels = min(n,mgt%max_nlevel) 
 
     n = mgt%nlevels
@@ -193,6 +169,7 @@ contains
     allocate(mgt%cc(n), mgt%ff(n), mgt%dd(n), mgt%uu(n-1), mgt%ss(n), mgt%mm(n))
     allocate(mgt%pd(n),mgt%dh(mgt%dim,n))
     allocate(mgt%tm(n))
+
     if ( n == 1 ) then
        mgt%tm(n)%name = "SINGLE LEVEL"
     else
@@ -405,7 +382,6 @@ contains
                                    nu2 = nu2, &
                                    nuf = nuf, &
                                    cycle_type = MG_VCycle, &
-                                   omega = omega, &
                                    bottom_solver = fancy_bottom_type, &
                                    bottom_max_iter = bottom_max_iter, &
                                    bottom_solver_eps = bottom_solver_eps, &
@@ -480,8 +456,6 @@ contains
     !   write(unit=un, fmt=*) 'abs_eps           = ', mgt%abs_eps
     !   call unit_skip(un, skip)
     !   write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
-    !   call unit_skip(un, skip)
-    !   write(unit=un, fmt=*) 'omega             = ', mgt%omega
     !   call unit_skip(un, skip)
     !   write(unit=un, fmt=*) 'cycle_type        = ', mgt%cycle_type
     !   call unit_skip(un, skip)
