@@ -1074,6 +1074,8 @@ contains
             call mg_tower_v_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,2,bottom_level,bottom_solve_time)
         case(MG_FCycle)
             call mg_tower_fmg_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,bottom_level,bottom_solve_time)
+         case default
+            call bl_error('mg_tower_cycle: unknown cycle_type: ', mgt%cycle_type)
     end select
 
   end subroutine mg_tower_cycle
