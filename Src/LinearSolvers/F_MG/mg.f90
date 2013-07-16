@@ -208,7 +208,7 @@ contains
     mgt%uniform_dh = .true.
     if ( present(dh) ) then
        mgt%dh(:,mgt%nlevels) = dh(:)
-       select case (mgt%dim)
+       select case ( mgt%dim )
        case (2)
           mgt%uniform_dh = (dh(1) == dh(2))
        case (3)
@@ -218,9 +218,8 @@ contains
        mgt%dh(:,mgt%nlevels) = 1.0_dp_t
     end if
 
-    if ((.not. mgt%uniform_dh) .and. nodal_flag) then
+    if ( (.not. mgt%uniform_dh) .and. nodal_flag ) &
        call bl_error("nodal solver does not support nonuniform dh")
-    end if
 
     do i = mgt%nlevels-1, 1, -1
        mgt%dh(:,i) = mgt%dh(:,i+1)*2.0_dp_t
@@ -931,7 +930,7 @@ contains
        hi       = upb(get_ibox(crse,i))
 
        do n = 1, mgt%nc
-          select case ( mgt%dim)
+          select case ( mgt%dim )
           case (1)
              if ( .not. nodal_flag ) then
                 call cc_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
@@ -979,22 +978,19 @@ contains
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     type(box) :: nbox, nbox1
     integer :: i, n, ir(mgt%dim)
-    logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_prolongation")
 
     ir = 2
 
-    nodal_flag = nodal_q(uu)
-
-    if ( .not.nodal_flag ) then
+    if ( .not. nodal_q(uu) ) then
        !$OMP PARALLEL DO PRIVATE(i,n,fp,cp)
        do i = 1, nfabs(uu)
           fp => dataptr(uu,  i, get_box(uu,i))
           cp => dataptr(uu1, i, get_box(uu1,i))
           do n = 1, mgt%nc
-             select case ( mgt%dim)
+             select case ( mgt%dim )
              case (1)
                 call pc_c_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir)
              case (2)
@@ -1013,7 +1009,7 @@ contains
           fp => dataptr(uu,  i, nbox )
           cp => dataptr(uu1, i, nbox1)
           do n = 1, mgt%nc
-             select case ( mgt%dim)
+             select case ( mgt%dim )
              case (1)
                 call nodal_prolongation_1d(fp(:,1,1,n), cp(:,1,1,n), ir)
              case (2)
@@ -1052,7 +1048,7 @@ contains
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
 
-    select case(mgt%cycle_type)
+    select case ( mgt%cycle_type )
         case(MG_VCycle)
             call mg_tower_v_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,1,bottom_level,bottom_solve_time)
         case(MG_WCycle)
@@ -1086,8 +1082,6 @@ contains
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_f_cycle")
-
-    call timer_start(mgt%tm(lev))
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
@@ -1133,10 +1127,18 @@ contains
 
        if ( present(bottom_solve_time) ) &
             bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
-
     else
 
        call mg_tower_restriction(mgt, mgt%dd(lev-1), rh, mgt%mm(lev),mgt%mm(lev-1))
+
+       ! HACK 
+       if ( nodal_q(mgt%dd(lev-1)) ) then
+          if ( get_dim(rh) .eq. 3 ) then
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
+          else if ( get_dim(rh) .eq. 2 ) then
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
+          end if
+       end if
   
        call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                       mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
@@ -1163,8 +1165,6 @@ contains
 
     end if
 
-    call timer_stop(mgt%tm(lev))
-
     call destroy(bpt)
    
   end subroutine mg_tower_fmg_cycle
@@ -1189,7 +1189,6 @@ contains
     logical :: do_diag
     real(dp_t) :: nrm, stime
     integer :: lbl
-    logical :: nodal_flag
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_v_cycle")
@@ -1197,8 +1196,6 @@ contains
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
-
-    nodal_flag = nodal_q(ss)
 
     call timer_start(mgt%tm(lev))
 
@@ -1286,7 +1283,7 @@ contains
        call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
        ! HACK 
-       if (nodal_flag) then 
+       if ( nodal_q(mgt%dd(lev-1)) ) then
           if ( get_dim(rh) .eq. 3 ) then
              call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
           else if ( get_dim(rh) .eq. 2 ) then
