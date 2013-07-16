@@ -663,17 +663,6 @@ subroutine wrapper()
         print *, 'DOMAIN BC ', domain_bc
      end if
 
-     if (all(nodal)) then
-       if (stencil_type == ND_CROSS_STENCIL) then
-         smoother = MG_SMOOTHER_GS_RB
-       else if (stencil_type == ND_DENSE_STENCIL) then
-         smoother = MG_SMOOTHER_GS_LEX
-       else 
-         print *,'DONT KNOW THIS STENCIL TYPE ',stencil_type
-         stop
-       end if
-     end if
-
      call mg_tower_build(mgt(n), mla%la(n), mba%pd(n), domain_bc, stencil_type,&
           dh = dh(n,:), &
           ns = ns, &
