@@ -59,7 +59,7 @@ contains
     integer :: stencil_type,ns,smoother,nu1,nu2,nub,cycle_type
     integer :: bottom_solver,bottom_max_iter,max_iter,max_nlevel
     integer :: max_bottom_nlevel,min_width,verbose,cg_verbose
-    real(dp_t) :: omega,bottom_solver_eps,rel_solver_eps,abs_solver_eps
+    real(dp_t) :: bottom_solver_eps,rel_solver_eps,abs_solver_eps
 
     dm = mla%dim
     nlevs = mla%nlevel
@@ -119,7 +119,6 @@ contains
        nu2               = mgt(nlevs)%nu2                ! # of smooths at each level on the way up
        nub               = mgt(nlevs)%nub                ! # of smooths before and after bottom solver
        cycle_type        = mgt(nlevs)%cycle_type         ! choose between V-cycle, W-cycle, etc.
-       omega             = mgt(nlevs)%omega              ! some smoothers use omega parameter
        bottom_solver     = mgt(nlevs)%bottom_solver      ! bottom solver type
        bottom_max_iter   = mgt(nlevs)%bottom_max_iter    ! max iterations of bottom solver
        bottom_solver_eps = mgt(nlevs)%bottom_solver_eps  ! tolerance of bottom solver
@@ -160,7 +159,6 @@ contains
                               nu2 = nu2, &
                               nub = nub, &
                               cycle_type = cycle_type, &
-                              omega = omega, &
                               bottom_solver = bottom_solver, &
                               bottom_max_iter = bottom_max_iter, &
                               bottom_solver_eps = bottom_solver_eps, &
