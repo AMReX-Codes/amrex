@@ -35,6 +35,7 @@ module bl_constants_module
 
   real(kind = dp_t), parameter :: TWO3RD  = TWO/THREE
   real(kind = dp_t), parameter :: FOUR3RD = FOUR/THREE
+  real(kind = dp_t), parameter :: FIVE3RD = FIVE/THREE
 
   !! Pi
   real(kind = dp_t), parameter :: M_PI    = &
