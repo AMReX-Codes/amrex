@@ -9,29 +9,35 @@ subroutine wrapper()
   use mt19937_module
   use bl_timer_module
 
+  use    cc_rhs_module
+  use nodal_rhs_module
+
   implicit none
 
   interface
-     subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, &
+     subroutine t_cc_ml_multigrid(mla, mgt, rh, domain_bc, &
           do_diagnostics, eps, stencil_order, fabio)
        use mg_module    
        use ml_boxarray_module    
        use ml_layout_module    
        type(ml_layout  ), intent(inout) :: mla
        type(mg_tower) , intent(inout) :: mgt(:)
+       type(multifab) , intent(inout) :: rh(:)
        integer        , intent(in   ) :: domain_bc(:,:)
        integer        , intent(in   ) :: do_diagnostics
        real(dp_t)     , intent(in   ) :: eps
        integer        , intent(in   ) :: stencil_order
        logical        , intent(in   ) :: fabio
      end subroutine t_cc_ml_multigrid
-     subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
+
+     subroutine t_nodal_ml_multigrid(mla, mgt, rh, domain_bc, &
           do_diagnostics, eps, test, fabio, stencil_type)
        use mg_module    
        use ml_boxarray_module    
        use ml_layout_module    
        type(ml_layout  ), intent(inout) :: mla
        type(mg_tower) , intent(inout) :: mgt(:)
+       type(multifab) , intent(inout) :: rh(:)
        integer        , intent(in   ) :: domain_bc(:,:)
        integer        , intent(in   ) :: do_diagnostics
        real(dp_t)     , intent(in   ) :: eps
@@ -106,6 +112,7 @@ subroutine wrapper()
 
   logical :: fabio
 
+  type(multifab), allocatable :: rh(:)
 
   namelist /probin/ cycle_type
   namelist /probin/ test
@@ -685,12 +692,26 @@ subroutine wrapper()
 
   end do
 
+  ! Allocate space for the RHS for the solve.
+  allocate(rh(nlevs))
+  do n = nlevs, 1, -1
+     call multifab_build( rh(n), mla%la(n), 1, 0, nodal)
+  end do
+
   call wall_second(wcb)
   if ( nodal_in ) then
-     call t_nodal_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, test, fabio, stencil_type)
+     call nodal_rhs(mla, rh)
+     call t_nodal_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, test, fabio, stencil_type)
   else
-     call t_cc_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, stencil_order, fabio)
+     call cc_rhs(mla, rh)
+     call t_cc_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, stencil_order, fabio)
   end if
+
+  do n = nlevs, 1, -1
+     call multifab_destroy(rh(n))
+  end do
+  deallocate(rh)
+
   call wall_second(wce)
 
   wce = wce - wcb
