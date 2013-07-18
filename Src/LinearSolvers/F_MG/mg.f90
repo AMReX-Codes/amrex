@@ -967,13 +967,15 @@ contains
 
   end subroutine mg_tower_restriction
 
-  subroutine mg_tower_prolongation(mgt, uu, uu1)
+  subroutine mg_tower_prolongation(mgt, uu, uu1, prolongation_type)
 
     use bl_prof_module
     use mg_prolongation_module
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu, uu1
+    integer       , intent(in   ) :: prolongation_type 
+
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     type(box) :: nbox, nbox1
@@ -985,22 +987,45 @@ contains
     ir = 2
 
     if ( .not. nodal_q(uu) ) then
+
+       if (prolongation_type .ne. 0) &
+           call multifab_fill_boundary(uu1)
+
        !$OMP PARALLEL DO PRIVATE(i,n,fp,cp)
        do i = 1, nfabs(uu)
-          fp => dataptr(uu,  i, get_box(uu,i))
-          cp => dataptr(uu1, i, get_box(uu1,i))
-          do n = 1, mgt%nc
-             select case ( mgt%dim )
-             case (1)
-                call pc_c_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir)
-             case (2)
-                call pc_c_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir)
-             case (3)
-                call pc_c_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir)
-             end select
-          end do
+
+          if (prolongation_type .eq. 0) then
+             fp => dataptr(uu,  i, get_box(uu ,i)) 
+             cp => dataptr(uu1, i, get_box(uu1,i))
+             do n = 1, mgt%nc
+                select case ( mgt%dim)
+                case (1)
+                   call pc_c_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir)
+                case (2)
+                   call pc_c_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir)
+                case (3)
+                   call pc_c_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir)
+                end select
+             end do
+
+          else
+
+             fp => dataptr(uu,  i, get_ibox(uu ,i)) 
+             cp => dataptr(uu1, i, get_pbox(uu1,i))
+             do n = 1, mgt%nc
+                select case ( mgt%dim)
+                case (1)
+                   call lin_c_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir, nghost(uu1))
+                case (2)
+                   call lin_c_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir, nghost(uu1))
+                case (3)
+                   call lin_c_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir, nghost(uu1))
+                end select
+             end do
+          end if
        end do
        !$OMP END PARALLEL DO
+
     else
        !$OMP PARALLEL DO PRIVATE(i,n,nbox,nbox1,fp,cp)
        do i = 1, nfabs(uu)
@@ -1078,7 +1103,7 @@ contains
     real(dp_t), intent(inout), optional :: bottom_solve_time
     logical :: do_diag
     real(dp_t) :: nrm, stime
-    integer :: lbl
+    integer :: lbl, prolongation_type
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_f_cycle")
@@ -1090,6 +1115,9 @@ contains
    ! print *, 'level=', lev, 'lbl=',lbl
 
     call setval(uu,ZERO,all=.true.)
+
+    ! Piecewise constant: 0,  Piecewise linear: 1
+    prolongation_type = 0
 
    ! Compute and print residual
    call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
@@ -1143,7 +1171,7 @@ contains
        call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                       mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
 
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1))
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type)
 
        ! Compute and print residual
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
@@ -1185,7 +1213,7 @@ contains
     integer, intent(in) :: cyc
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
-    integer :: i
+    integer :: i, prolongation_type
     logical :: do_diag
     real(dp_t) :: nrm, stime
     integer :: lbl
@@ -1194,6 +1222,9 @@ contains
     call build(bpt, "mgt_v_cycle")
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
+
+    ! Piecewise constant: 0,  Piecewise linear: 1
+    prolongation_type = 0
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
@@ -1298,7 +1329,7 @@ contains
        end do
 
        ! uu  += cc, done, by convention, using the prolongation routine.
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1))
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type)
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
@@ -1345,13 +1376,16 @@ contains
     integer, intent(in) :: nu1, nu2
 
     ! Local variables
-    integer             :: i
+    integer             :: i, prolongation_type
     logical             :: do_diag
     real(dp_t)          :: nrm
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
     call timer_start(mgt%tm(lev))
+
+    ! Piecewise constant: 0,  Piecewise linear: 1
+    prolongation_type = 0
 
     ! Always relax first at the level we come in at
     if (do_diag) then
@@ -1415,7 +1449,7 @@ contains
 !      call mg_tower_bottom_solve(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
 !                                 mgt%dd(lev-1), mgt%mm(lev-1))
 
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1))
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type)
 
        if (do_diag) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
