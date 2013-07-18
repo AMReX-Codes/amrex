@@ -33,6 +33,8 @@ contains
        call mf_init_3(rh(nlevs),pd)
     else if (rhs_type .eq. 4) then
        call mf_init_sins(rh(nlevs),pd)
+    else if (rhs_type .eq. 5) then
+       call mf_init_exact(rh(nlevs),pd)
     end if
 
   end subroutine cc_rhs
@@ -73,7 +75,6 @@ contains
        bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
        bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
        call setval(mf%fbs(i), 1.0_dp_t, bx)
-!       print *,'SETTING RHS TO 1.d0 ON ',bx%lo(1:bx%dim)
 
 !      Single point of non-zero RHS: use this to make system solvable
        bx = get_box(mf,i)
@@ -81,7 +82,6 @@ contains
        bx%lo(2:bx%dim) = (bx%hi(2:bx%dim) + bx%lo(2:bx%dim))/2
        bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
        call setval(mf%fbs(i), -1.0_dp_t, bx)
-!       print *,'SETTING RHS TO -1.d0 ON ',bx%lo(1:bx%dim)
 
 !      1-d Strip: Variation in x-direction
 !      bx%lo(1) = (bx%hi(1) + bx%lo(1))/2
@@ -207,5 +207,112 @@ contains
       end do
 
   end subroutine init_sin_3d
+
+  subroutine mf_init_exact(mf,pd)
+
+    type(multifab)  , intent(inout) :: mf
+    type(box     )  , intent(in   ) :: pd
+
+    type(multifab)           :: phi
+    type(box)                :: bx
+    real(kind=dp_t)          :: dx
+    real(kind=dp_t), pointer :: rp(:,:,:,:)
+    real(kind=dp_t), pointer :: pp(:,:,:,:)
+
+    integer   :: i,dm,nx,ny
+
+    nx = pd%hi(1) - pd%lo(1) + 1
+    ny = pd%hi(2) - pd%lo(2) + 1
+
+    call multifab_build(phi,mf%la,1,1)
+
+    if (nx .ne. ny) then
+       print *,'Not sure what to do with nx .neq. ny in mf_init_exact'
+       stop
+    end if
+
+    dx = 1.d0 / dble(nx)
+ 
+    dm = mf%dim
+
+    print *,'Setting rhs to Lap(phi) where phi = (x^4 - x^2) * (y^4 - y^2) * (z^4 - z^2)'
+    do i = 1, nfabs(mf)
+       bx = get_ibox(mf, i)
+       rp => dataptr(mf,i)
+       pp => dataptr(phi,i)
+       if (dm.eq.2) then
+          call init_exact_2d(rp(:,:,1,1),pp(:,:,1,1),bx,dx)
+       else if (dm.eq.3) then 
+          call init_exact_3d(rp(:,:,:,1),pp(:,:,:,1),bx,dx)
+       end if
+    end do
+
+  end subroutine mf_init_exact
+
+  subroutine init_exact_2d(rhs,phi,bx,dx)
+
+      type(box)       , intent(in   ) :: bx
+      double precision, intent(inout) :: rhs(bx%lo(1)  :,bx%lo(2)  :)
+      double precision, intent(inout) :: phi(bx%lo(1)-1:,bx%lo(2)-1:)
+      double precision, intent(in   ) :: dx
+
+      integer :: i,j
+      double precision :: tpi, epi, spi
+      double precision :: x, y
+
+      tpi = 8.d0 * datan(1.d0)
+
+      do j = bx%lo(2)-1,bx%hi(2)+1
+      do i = bx%lo(1)-1,bx%hi(1)+1
+         x = (dble(i)+0.5d0) * dx
+         y = (dble(j)+0.5d0) * dx
+         phi(i,j) = (x**4 - x**2) * (y**4 - y**2)
+      end do
+      end do
+
+      do j = bx%lo(2),bx%hi(2)
+      do i = bx%lo(1),bx%hi(1)
+         rhs(i,j) = (phi(i+1,j) + phi(i-1,j) + phi(i,j+1) + phi(i,j-1) - 4.d0 * phi(i,j)) / (dx*dx)
+      end do
+      end do
+
+  end subroutine init_exact_2d
+
+  subroutine init_exact_3d(rhs,phi,bx,dx)
+
+      type(box)       , intent(in   ) :: bx
+      double precision, intent(inout) :: rhs(bx%lo(1)  :,bx%lo(2)  :,bx%lo(3)  :)
+      double precision, intent(inout) :: phi(bx%lo(1)-1:,bx%lo(2)-1:,bx%lo(3)-1:)
+      double precision, intent(in   ) :: dx
+
+      integer :: i,j,k
+      double precision :: tpi, epi, spi
+      double precision :: x, y, z
+
+      tpi = 8.d0 * datan(1.d0)
+      epi =  4.d0 * tpi
+      spi = 16.d0 * tpi
+
+      do k = bx%lo(3)-1,bx%hi(3)+1
+      do j = bx%lo(2)-1,bx%hi(2)+1
+      do i = bx%lo(1)-1,bx%hi(1)+1
+         x = (dble(i)+0.5d0) * dx
+         y = (dble(j)+0.5d0) * dx
+         z = (dble(k)+0.5d0) * dx
+         phi(i,j,k) = (x**4 - x**2) * (y**4 - y**2) * (z**4 - z**2)
+      end do
+      end do
+      end do
+
+      do k = bx%lo(3),bx%hi(3)
+      do j = bx%lo(2),bx%hi(2)
+      do i = bx%lo(1),bx%hi(1)
+         rhs(i,j,k) = (phi(i+1,j,k) + phi(i-1,j,k) + phi(i,j+1,k) + phi(i,j-1,k) &
+                      +phi(i,j,k+1) + phi(i,j,k-1) - 6.d0 * phi(i,j,k)) / (dx*dx)
+      end do
+      end do
+      end do
+
+  end subroutine init_exact_3d
 
 end module cc_rhs_module
