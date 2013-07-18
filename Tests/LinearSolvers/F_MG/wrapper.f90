@@ -91,7 +91,7 @@ subroutine wrapper()
   integer :: nu1, nu2, nub, nuf, solver, smoother
   integer :: ng, nc
   character(len=128) :: test_set
-  integer :: test, test_lev, cycle_type
+  integer :: test, test_lev, cycle_type, rhs_type
   logical :: test_set_mglib
   logical :: test_set_hgproj
   logical :: test_random_boxes
@@ -115,6 +115,7 @@ subroutine wrapper()
   type(multifab), allocatable :: rh(:)
 
   namelist /probin/ cycle_type
+  namelist /probin/ rhs_type
   namelist /probin/ test
   namelist /probin/ nodal_in
   namelist /probin/ dense_in
@@ -158,6 +159,7 @@ subroutine wrapper()
 
   test           = 0
   cycle_type     = 3 ! Default to V-cycle 
+  rhs_type       = 4 ! Default to sum of sin's
   nodal_in       = .false.
   dense_in       = .false.
 
@@ -271,6 +273,11 @@ subroutine wrapper()
            farg = farg + 1
            call get_command_argument(farg, value = fname)
            read(fname,*) cycle_type
+
+        case ('--rhs_type')
+           farg = farg + 1
+           call get_command_argument(farg, value = fname)
+           read(fname,*) rhs_type
 
         case ('--verbose')
            farg = farg + 1
@@ -540,7 +547,7 @@ subroutine wrapper()
   do i = 1, mba%nlevel
      call boxarray_simplify(mba%bas(i))
      call boxarray_maxsize(mba%bas(i), ba_maxsize)
-     if ( parallel_IOProcessor() ) print*, 'nboxes in mba at i =', i, ' : ', nboxes(mba%bas(i))
+!    if ( parallel_IOProcessor() ) print*, 'nboxes in mba at i =', i, ' : ', nboxes(mba%bas(i))
   end do
 
   ! For sanity make sure the mba is clean'
@@ -665,10 +672,10 @@ subroutine wrapper()
         dh(n,:) = dh(n+1,:) * mba%rr(n,:)
      end if
 
-     if ( parallel_IOProcessor() ) then
-        print *, 'LEV n: ',n,' , dh = ', dh(n,:)
-        print *, 'DOMAIN BC ', domain_bc
-     end if
+!    if ( parallel_IOProcessor() ) then
+!       print *, 'LEV n: ',n,' , dh = ', dh(n,:)
+!       print *, 'DOMAIN BC ', domain_bc
+!    end if
 
      call mg_tower_build(mgt(n), mla%la(n), mba%pd(n), domain_bc, stencil_type,&
           dh = dh(n,:), &
@@ -703,7 +710,7 @@ subroutine wrapper()
      call nodal_rhs(mla, rh)
      call t_nodal_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, test, fabio, stencil_type)
   else
-     call cc_rhs(mla, rh)
+     call cc_rhs(mla, pd, rh, rhs_type)
      call t_cc_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, stencil_order, fabio)
   end if
 

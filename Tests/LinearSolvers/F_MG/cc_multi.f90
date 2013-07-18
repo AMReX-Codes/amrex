@@ -122,9 +122,9 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, stenc
   end if
 
   snrm(2) = ml_norm_inf(rh,mla%mask)
-  if ( parallel_IOProcessor() ) then
-     print *, 'RHS MAX NORM ', snrm(2)
-  end if
+! if ( parallel_IOProcessor() ) then
+!    print *, 'RHS MAX NORM ', snrm(2)
+! end if
 
 ! ****************************************************************************
 
@@ -136,12 +136,12 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, stenc
      call fabio_ml_write(full_soln, ref_ratio(:,1), "soln_cc")
   end if
 
-  snrm(1) = ml_norm_l2(full_soln,ref_ratio,mla%mask)
-  snrm(2) = ml_norm_inf(full_soln,mla%mask)
-  if ( parallel_IOProcessor() ) then
-     print *, 'SOLUTION MAX NORM ', snrm(2)
-     print *, 'SOLUTION L2 NORM ', snrm(1)
-  end if
+! snrm(1) = ml_norm_l2(full_soln,ref_ratio,mla%mask)
+! snrm(2) = ml_norm_inf(full_soln,mla%mask)
+! if ( parallel_IOProcessor() ) then
+!    print *, 'SOLUTION MAX NORM ', snrm(2)
+!    print *, 'SOLUTION L2 NORM ', snrm(1)
+! end if
 
 ! if ( parallel_IOProcessor() ) print *, 'MEMORY STATS'
 ! call print(multifab_mem_stats(),  " multifab before")
