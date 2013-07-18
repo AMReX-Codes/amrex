@@ -1,4 +1,6 @@
-subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, stencil_order, fabio)
+
+subroutine t_cc_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, stencil_order, fabio)
+
   use BoxLib
   use cc_stencil_module
   use cc_stencil_fill_module
@@ -19,13 +21,17 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, stencil_o
 
   use bndry_reg_module
 
+  use cc_rhs_module
+
   implicit none
 
   type(ml_layout), intent(inout) :: mla
+  type(mg_tower) , intent(inout) :: mgt(:)
+  type( multifab), intent(inout) :: rh(:)
+
   integer        , intent(in   ) :: domain_bc(:,:)
   integer        , intent(in   ) :: do_diagnostics 
   real(dp_t)     , intent(in   ) :: eps
-  type(mg_tower) , intent(inout) :: mgt(:)
   integer        , intent(in   ) :: stencil_order
   logical        , intent(in   ) :: fabio
 
@@ -35,7 +41,6 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, stencil_o
   type(multifab), allocatable :: edge_coeffs(:,:)
 
   type( multifab), allocatable   :: full_soln(:)
-  type( multifab), allocatable   ::        rh(:)
 
   type(layout)                   :: la
   real(dp_t)     , allocatable   :: xa(:), xb(:), pxa(:), pxb(:)
@@ -51,7 +56,7 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, stencil_o
 
   nlevs = mla%nlevel
 
-  allocate(full_soln(nlevs),rh(nlevs))
+  allocate(full_soln(nlevs))
   allocate(xa(dm), xb(dm), pxa(dm), pxb(dm))
 
   allocate(ref_ratio(nlevs-1,dm))
@@ -67,9 +72,6 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, stencil_o
      call multifab_build(full_soln(n), mla%la(n), 1, 1)
      call setval(full_soln(n), val = ZERO, all=.true.)
 
-     call multifab_build( rh(n), mla%la(n), 1, 0)
-     call setval(rh(n), val = ZERO, all=.true.)
-     if (n == nlevs) call mf_init_2(rh(n))
   end do
 
   !! Fill coefficient arrays
@@ -151,79 +153,7 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, stencil_o
 ! call print(layout_mem_stats(),    "   layout before")
 
   do n = 1,nlevs
-     call multifab_destroy(rh(n))
      call multifab_destroy(full_soln(n))
   end do
-
-contains
-
-  subroutine mf_init(mf)
-
-    type(multifab), intent(inout) :: mf
-    type(box) bx
-    bx = pd
-    bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
-    bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
-    call setval(mf, ONE, bx)
-
-  end subroutine mf_init
-
-  subroutine mf_init_2(mf)
-    type(multifab), intent(inout) :: mf
-    integer i
-    type(box) bx
-    do i = 1, nfabs(mf)
-
-       bx = get_box(mf,i)
-       bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
-       bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
-       call setval(mf%fbs(i), 1.0_dp_t, bx)
-!       print *,'SETTING RHS TO ONE ON ',bx%lo(1:bx%dim)
-
-!      Single point of non-zero RHS: use this to make system solvable
-       bx = get_box(mf,i)
-       bx%lo(1       ) = (bx%hi(1       ) + bx%lo(1       ))/2 + 1
-       bx%lo(2:bx%dim) = (bx%hi(2:bx%dim) + bx%lo(2:bx%dim))/2
-       bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
-       call setval(mf%fbs(i), -1.0_dp_t, bx)
-!       print *,'SETTING RHS TO -ONE ON ',bx%lo(1:bx%dim)
-
-!      1-d Strip: Variation in x-direction
-!      bx%lo(1) = (bx%hi(1) + bx%lo(1))/2
-!      bx%hi(1) = bx%lo(1)+1
-
-!      1-d Strip: Variation in y-direction
-!      bx%lo(2) = (bx%hi(2) + bx%lo(2))/2
-!      bx%hi(2) = bx%lo(2)+1
-
-!      1-d Strip: Variation in z-direction
-!      bx%lo(3) = (bx%hi(3) + bx%lo(3))/2
-!      bx%hi(3) = bx%lo(3)+1
-
-    end do
-  end subroutine mf_init_2
-
-  subroutine mf_init_1(mf)
-    type(multifab), intent(inout) :: mf
-    integer i
-    type(box) bx
-    type(box) rhs_box, rhs_intersect_box
-
-    rhs_box%dim = mf%dim
-    rhs_box%lo(1:rhs_box%dim) = 7
-    rhs_box%hi(1:rhs_box%dim) = 8
-
-    do i = 1, nfabs(mf)
-       bx = get_ibox(mf,i)
-       rhs_intersect_box = box_intersection(bx,rhs_box)
-       if (.not. empty(rhs_intersect_box)) then
-         bx%lo(1:bx%dim) = lwb(rhs_intersect_box)
-         bx%hi(1:bx%dim) = upb(rhs_intersect_box)
-!         print *,'SETTING RHS IN BOX ',i,' : ', bx%lo(1:bx%dim),bx%hi(1:bx%dim)
-         call setval(mf%fbs(i), ONE, bx)
-       end if
-    end do
-
-  end subroutine mf_init_1
 
 end subroutine t_cc_ml_multigrid
