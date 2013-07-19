@@ -88,59 +88,69 @@ contains
   end subroutine pc_c_prolongation_3d
 
   subroutine lin_c_prolongation_1d(ff, cc, ir, ng)
+    use bl_error_module
     real (dp_t), intent(inout) :: ff(0:)
     real (dp_t), intent(in)    :: cc(-ng:)
     integer,     intent(in)    :: ir(:), ng
-    integer                    :: nx, i, l
+    integer                    :: nx, i
+
+    call bl_assert(ir(1)==2, 'lin_c_prolongation_1d: ir==2')
 
     nx = size(cc,dim=1)-2*ng
 
-    do i = 0, nx - 1
-       do l = 0, ir(1)-1
-          ff(ir(1)*i+l) = ff(ir(1)*i+l) + cc(i)
-       end do
+    do i = 0, nx-1
+       ff(2*i  ) = ff(2*i  ) + 0.25d0*( 3*cc(i) + cc(i-1) )
+       ff(2*i+1) = ff(2*i+1) + 0.25d0*( 3*cc(i) + cc(i+1) )
     end do
 
   end subroutine lin_c_prolongation_1d
 
   subroutine lin_c_prolongation_2d(ff, cc, ir, ng)
+    use bl_error_module
     real (dp_t), intent(inout) :: ff(  0:,  0:)
     real (dp_t), intent(in)    :: cc(-ng:,-ng:)
     integer,     intent(in)    :: ir(:), ng
-    integer                    :: nx, ny, i, j, l, m
+    integer                    :: nx, ny, i, j
+    real (dp_t), parameter     :: one6th  = 1.d0/6.d0
+    real (dp_t), parameter     :: one16th = 1.d0/16.d0
 
     nx = size(cc,dim=1)-2*ng
     ny = size(cc,dim=2)-2*ng
 
+    call bl_assert(ir(1)==2 .and. ir(2)==2, 'lin_c_prolongation_2d: ir==2')
+
     do j = 0, ny-1
        do i = 0, nx-1
 
-          ! Type 1
           if (.true.) then
-             ff(ir(1)*i+1, ir(2)*j+1) = ff(ir(1)*i+1, ir(2)*j+1) + .25d0 * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
-             ff(ir(1)*i,   ir(2)*j+1) = ff(ir(1)*i,   ir(2)*j+1) + .25d0 * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
-             ff(ir(1)*i+1, ir(2)*j  ) = ff(ir(1)*i+1, ir(2)*j  ) + .25d0 * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
-             ff(ir(1)*i,   ir(2)*j  ) = ff(ir(1)*i,   ir(2)*j  ) + .25d0 * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j-1) )
+             !
+             ! Type 1 - {2,1,1} weighted average of our neighbors.
+             !
+             ff(2*i+1, 2*j+1) = ff(2*i+1, 2*j+1) + .25d0 * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
+             ff(2*i,   2*j+1) = ff(2*i,   2*j+1) + .25d0 * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
+             ff(2*i+1, 2*j  ) = ff(2*i+1, 2*j  ) + .25d0 * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
+             ff(2*i,   2*j  ) = ff(2*i,   2*j  ) + .25d0 * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j-1) )
 
-          ! Type 2
           else if (.false.) then
-             ff(ir(1)*i+1, ir(2)*j+1) = ff(ir(1)*i+1, ir(2)*j+1) + (1.0d0/6.0d0) * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
-             ff(ir(1)*i,   ir(2)*j+1) = ff(ir(1)*i,   ir(2)*j+1) + (1.0d0/6.0d0) * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
-             ff(ir(1)*i+1, ir(2)*j  ) = ff(ir(1)*i+1, ir(2)*j  ) + (1.0d0/6.0d0) * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
-             ff(ir(1)*i,   ir(2)*j  ) = ff(ir(1)*i,   ir(2)*j  ) + (1.0d0/6.0d0) * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j-1) )
+             !
+             ! Type 2 - {4,1,1} weighted average of our neighbors.
+             !
+             ff(2*i+1, 2*j+1) = ff(2*i+1, 2*j+1) + one6th * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
+             ff(2*i,   2*j+1) = ff(2*i,   2*j+1) + one6th * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
+             ff(2*i+1, 2*j  ) = ff(2*i+1, 2*j  ) + one6th * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
+             ff(2*i,   2*j  ) = ff(2*i,   2*j  ) + one6th * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j-1) )
 
-          ! Type 3
           else if (.false.) then
-             ff(ir(1)*i+1, ir(2)*j+1) = ff(ir(1)*i+1, ir(2)*j+1) + (1.0d0/16.0d0) * &
+             !
+             ! Type 3 - bilinear.
+             !
+             ff(2*i+1, 2*j+1) = ff(2*i+1, 2*j+1) + one16th * &
                   ( 9*cc(i,j) + 3*cc(i+1,j) + 3*cc(i,j+1) + cc(i+1,j+1) )
-
-             ff(ir(1)*i,   ir(2)*j+1) = ff(ir(1)*i,   ir(2)*j+1) + (1.0d0/16.0d0) * &
+             ff(2*i,   2*j+1) = ff(2*i,   2*j+1) + one16th * &
                   ( 9*cc(i,j) + 3*cc(i-1,j) + 3*cc(i,j+1) + cc(i-1,j+1) )
-
-             ff(ir(1)*i+1, ir(2)*j  ) = ff(ir(1)*i+1, ir(2)*j  ) + (1.0d0/16.0d0) * &
+             ff(2*i+1, 2*j  ) = ff(2*i+1, 2*j  ) + one16th * &
                   ( 9*cc(i,j) + 3*cc(i,j-1) + 3*cc(i+1,j) + cc(i+1,j-1) )
-
-             ff(ir(1)*i,   ir(2)*j  ) = ff(ir(1)*i,   ir(2)*j  ) + (1.0d0/16.0d0) * &
+             ff(2*i,   2*j  ) = ff(2*i,   2*j  ) + one16th * &
                   ( 9*cc(i,j) + 3*cc(i-1,j) + 3*cc(i,j-1) + cc(i-1,j-1) )
           end if
   
@@ -150,61 +160,64 @@ contains
   end subroutine lin_c_prolongation_2d
 
   subroutine lin_c_prolongation_3d(ff, cc, ir, ng)
+    use bl_error_module
     real (dp_t), intent(inout) :: ff(  0:,  0:,  0:)
     real (dp_t), intent(in)    :: cc(-ng:,-ng:,-ng:)
     integer,     intent(in)    :: ir(:), ng
-    integer                    :: nx, ny, nz, i, j, k, l, m, n
+    integer                    :: nx, ny, nz, i, j, k
 
     real (dp_t), parameter     ::   one64ths = 1.d0/64.d0
     real (dp_t), parameter     :: three64ths = 3.d0/64.d0
     real (dp_t), parameter     ::     sixth  = 1.d0/6.d0
 
+    call bl_assert(ir(1)==2 .and. ir(2)==2 .and. ir(3)==2, 'lin_c_prolongation_3d: ir==2')
+
     nx = size(cc,dim=1)-2*ng
     ny = size(cc,dim=2)-2*ng
     nz = size(cc,dim=3)-2*ng
 
-    do k = 0, nz - 1
-       do j = 0, ny - 1
-          do i = 0, nx - 1
+    do k = 0, nz-1
+       do j = 0, ny-1
+          do i = 0, nx-1
 
              ! Type 1
              if (.false.) then
 
-                ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k+1) = ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k+1) + &
+                ff(2*i+1, 2*j+1, ir(3)*k+1) = ff(2*i+1, 2*j+1, ir(3)*k+1) + &
                      sixth * ( 3*cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
-                ff(ir(1)*i,   ir(2)*j+1, ir(3)*k+1) = ff(ir(1)*i,   ir(2)*j+1, ir(3)*k+1) + &
+                ff(2*i,   2*j+1, ir(3)*k+1) = ff(2*i,   2*j+1, ir(3)*k+1) + &
                      sixth * ( 3*cc(i,j,k) + cc(i-1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
-                ff(ir(1)*i+1, ir(2)*j,   ir(3)*k+1) = ff(ir(1)*i+1, ir(2)*j,   ir(3)*k+1) + &
+                ff(2*i+1, 2*j,   ir(3)*k+1) = ff(2*i+1, 2*j,   ir(3)*k+1) + &
                      sixth * ( 3*cc(i,j,k) + cc(i+1,j,k) + cc(i,j-1,k) + cc(i,j,k+1) )
-                ff(ir(1)*i,   ir(2)*j,   ir(3)*k+1) = ff(ir(1)*i,   ir(2)*j,   ir(3)*k+1) + &
+                ff(2*i,   2*j,   ir(3)*k+1) = ff(2*i,   2*j,   ir(3)*k+1) + &
                      sixth * ( 3*cc(i,j,k) + cc(i-1,j,k) + cc(i,j-1,k) + cc(i,j,k+1) )
-                ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k  ) = ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k  ) + &
+                ff(2*i+1, 2*j+1, ir(3)*k  ) = ff(2*i+1, 2*j+1, ir(3)*k  ) + &
                      sixth * ( 3*cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k-1) )
-                ff(ir(1)*i,   ir(2)*j+1, ir(3)*k  ) = ff(ir(1)*i,   ir(2)*j+1, ir(3)*k  ) + &
+                ff(2*i,   2*j+1, ir(3)*k  ) = ff(2*i,   2*j+1, ir(3)*k  ) + &
                      sixth * ( 3*cc(i,j,k) + cc(i-1,j,k) + cc(i,j+1,k) + cc(i,j,k-1) )
-                ff(ir(1)*i+1, ir(2)*j,   ir(3)*k  ) = ff(ir(1)*i+1, ir(2)*j,   ir(3)*k  ) + &
+                ff(2*i+1, 2*j,   ir(3)*k  ) = ff(2*i+1, 2*j,   ir(3)*k  ) + &
                      sixth * ( 3*cc(i,j,k) + cc(i+1,j,k) + cc(i,j-1,k) + cc(i,j,k-1) )
-                ff(ir(1)*i,   ir(2)*j,   ir(3)*k  ) = ff(ir(1)*i,   ir(2)*j,   ir(3)*k  ) + &
+                ff(2*i,   2*j,   ir(3)*k  ) = ff(2*i,   2*j,   ir(3)*k  ) + &
                      sixth * ( 3*cc(i,j,k) + cc(i-1,j,k) + cc(i,j-1,k) + cc(i,j,k-1) )
 
              ! Type 2
               else if (.true.) then
 
-                 ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k+1) = ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k+1) + &
+                 ff(2*i+1, 2*j+1, ir(3)*k+1) = ff(2*i+1, 2*j+1, ir(3)*k+1) + &
                       .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
-                 ff(ir(1)*i,   ir(2)*j+1, ir(3)*k+1) = ff(ir(1)*i,   ir(2)*j+1, ir(3)*k+1) + &
+                 ff(2*i,   2*j+1, ir(3)*k+1) = ff(2*i,   2*j+1, ir(3)*k+1) + &
                       .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
-                 ff(ir(1)*i+1, ir(2)*j,   ir(3)*k+1) = ff(ir(1)*i+1, ir(2)*j,   ir(3)*k+1) + &
+                 ff(2*i+1, 2*j,   ir(3)*k+1) = ff(2*i+1, 2*j,   ir(3)*k+1) + &
                       .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j-1,k) + cc(i,j,k+1) )
-                 ff(ir(1)*i,   ir(2)*j,   ir(3)*k+1) = ff(ir(1)*i,   ir(2)*j,   ir(3)*k+1) + &
+                 ff(2*i,   2*j,   ir(3)*k+1) = ff(2*i,   2*j,   ir(3)*k+1) + &
                       .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j-1,k) + cc(i,j,k+1) )
-                 ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k  ) = ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k  ) + &
+                 ff(2*i+1, 2*j+1, ir(3)*k  ) = ff(2*i+1, 2*j+1, ir(3)*k  ) + &
                       .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k-1) )
-                 ff(ir(1)*i,   ir(2)*j+1, ir(3)*k  ) = ff(ir(1)*i,   ir(2)*j+1, ir(3)*k  ) + &
+                 ff(2*i,   2*j+1, ir(3)*k  ) = ff(2*i,   2*j+1, ir(3)*k  ) + &
                       .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j+1,k) + cc(i,j,k-1) )
-                 ff(ir(1)*i+1, ir(2)*j,   ir(3)*k  ) = ff(ir(1)*i+1, ir(2)*j,   ir(3)*k  ) + &
+                 ff(2*i+1, 2*j,   ir(3)*k  ) = ff(2*i+1, 2*j,   ir(3)*k  ) + &
                       .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j-1,k) + cc(i,j,k-1) )
-                 ff(ir(1)*i,   ir(2)*j,   ir(3)*k  ) = ff(ir(1)*i,   ir(2)*j,   ir(3)*k  ) + &
+                 ff(2*i,   2*j,   ir(3)*k  ) = ff(2*i,   2*j,   ir(3)*k  ) + &
                       .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j-1,k) + cc(i,j,k-1) )
 
              ! Type 3
@@ -212,39 +225,37 @@ contains
                  !
                  ! Trilinear interpolation.
                  !
-
-                 ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k+1) = ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k+1) + &
+                 ff(2*i+1, 2*j+1, ir(3)*k+1) = ff(2*i+1, 2*j+1, ir(3)*k+1) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i+1,j,k  ) + 3*cc(i,j+1,k  ) + cc(i+1,j+1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k+1) + 3*cc(i+1,j,k+1) + 3*cc(i,j+1,k+1) + cc(i+1,j+1,k+1) )
 
-                 ff(ir(1)*i,   ir(2)*j+1, ir(3)*k+1) = ff(ir(1)*i,   ir(2)*j+1, ir(3)*k+1) + &
+                 ff(2*i,   2*j+1, ir(3)*k+1) = ff(2*i,   2*j+1, ir(3)*k+1) + &
                        three64ths * ( 9*cc(i,j,k  ) + 3*cc(i-1,j,k  ) + 3*cc(i,j+1,k  ) + cc(i-1,j+1,k  ) ) + &
                          one64ths * ( 9*cc(i,j,k+1) + 3*cc(i-1,j,k+1) + 3*cc(i,j+1,k+1) + cc(i-1,j+1,k+1) )
 
-                 ff(ir(1)*i+1, ir(2)*j,   ir(3)*k+1) = ff(ir(1)*i+1, ir(2)*j,   ir(3)*k+1) + &
+                 ff(2*i+1, 2*j,   ir(3)*k+1) = ff(2*i+1, 2*j,   ir(3)*k+1) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i+1,j,k  ) + 3*cc(i,j-1,k  ) + cc(i+1,j-1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k+1) + 3*cc(i+1,j,k+1) + 3*cc(i,j-1,k+1) + cc(i+1,j-1,k+1) )
 
-                 ff(ir(1)*i,   ir(2)*j,   ir(3)*k+1) = ff(ir(1)*i,   ir(2)*j,   ir(3)*k+1) + &
+                 ff(2*i,   2*j,   ir(3)*k+1) = ff(2*i,   2*j,   ir(3)*k+1) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i-1,j,k  ) + 3*cc(i,j-1,k  ) + cc(i-1,j-1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k+1) + 3*cc(i-1,j,k+1) + 3*cc(i,j-1,k+1) + cc(i-1,j-1,k+1) )
 
-                 ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k) = ff(ir(1)*i+1, ir(2)*j+1, ir(3)*k) + &
+                 ff(2*i+1, 2*j+1, ir(3)*k) = ff(2*i+1, 2*j+1, ir(3)*k) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i+1,j,k  ) + 3*cc(i,j+1,k  ) + cc(i+1,j+1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k-1) + 3*cc(i+1,j,k-1) + 3*cc(i,j+1,k-1) + cc(i+1,j+1,k-1) )
 
-                 ff(ir(1)*i,   ir(2)*j+1, ir(3)*k) = ff(ir(1)*i,   ir(2)*j+1, ir(3)*k) + &
+                 ff(2*i,   2*j+1, ir(3)*k) = ff(2*i,   2*j+1, ir(3)*k) + &
                        three64ths * ( 9*cc(i,j,k  ) + 3*cc(i-1,j,k  ) + 3*cc(i,j+1,k  ) + cc(i-1,j+1,k  ) ) + &
                          one64ths * ( 9*cc(i,j,k-1) + 3*cc(i-1,j,k-1) + 3*cc(i,j+1,k-1) + cc(i-1,j+1,k-1) )
 
-                 ff(ir(1)*i+1, ir(2)*j,   ir(3)*k) = ff(ir(1)*i+1, ir(2)*j,   ir(3)*k) + &
+                 ff(2*i+1, 2*j,   ir(3)*k) = ff(2*i+1, 2*j,   ir(3)*k) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i+1,j,k  ) + 3*cc(i,j-1,k  ) + cc(i+1,j-1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k-1) + 3*cc(i+1,j,k-1) + 3*cc(i,j-1,k-1) + cc(i+1,j-1,k-1) )
 
-                 ff(ir(1)*i,   ir(2)*j,   ir(3)*k) = ff(ir(1)*i,   ir(2)*j,   ir(3)*k) + &
+                 ff(2*i,   2*j,   ir(3)*k) = ff(2*i,   2*j,   ir(3)*k) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i-1,j,k  ) + 3*cc(i,j-1,k  ) + cc(i-1,j-1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k-1) + 3*cc(i-1,j,k-1) + 3*cc(i,j-1,k-1) + cc(i-1,j-1,k-1) )
-
               endif
 
           end do
