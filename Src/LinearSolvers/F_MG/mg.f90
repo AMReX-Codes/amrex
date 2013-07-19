@@ -675,7 +675,7 @@ contains
 
     call build(bpt, "do_bottom_mgt")
 
-    if (mgt%bottom_solver .ne. 4) &
+    if ( mgt%bottom_solver .ne. 4 ) &
        call bl_error("MG_TOWER_BOTTOM_SOLVE: must have bottom_solver == 4")
 
     mglev = mgt%bottom_mgt%nlevels
@@ -684,7 +684,7 @@ contains
 
     call multifab_build(bottom_uu,la,1,nghost(uu),nodal_flags(uu))
 
-    call setval(bottom_uu,0.d0,all=.true.)
+    call setval(bottom_uu,ZERO,all=.true.)
 
     if (nodal_q(rh)) then
        call multifab_build(bottom_rh,la,1,1,nodal_flags(rh))
@@ -700,7 +700,6 @@ contains
                         mgt%bottom_mgt%mm(mglev), mgt%bottom_mgt%nu1, mgt%bottom_mgt%nu2)
 
     call multifab_copy_c(uu,1,bottom_uu,1,1,ng=0)
-    call multifab_fill_boundary(uu)
 
     call destroy(bottom_uu)
     call destroy(bottom_rh)
@@ -901,7 +900,7 @@ contains
 
     if ( nodal_flag ) then
        call multifab_fill_boundary(fine)
-       call setval(crse, 0.0_dp_t, all=.true.)
+       call setval(crse, ZERO, all=.true.)
        mg_restriction_mode = 1
     end if
 
