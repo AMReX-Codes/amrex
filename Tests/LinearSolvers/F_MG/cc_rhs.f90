@@ -1,8 +1,8 @@
-module cc_rhs_module
-
+module cc_rhs_module 
     use BoxLib
     use ml_layout_module
     use multifab_module
+    use mt19937_module
 
     implicit none
 
@@ -35,6 +35,8 @@ contains
        call mf_init_sins(rh(nlevs),pd)
     else if (rhs_type .eq. 5) then
        call mf_init_exact(rh(nlevs),pd)
+    else if (rhs_type .eq. 6) then
+       call mf_init_rand(rh(nlevs),pd)
     end if
 
   end subroutine cc_rhs
@@ -314,5 +316,82 @@ contains
       end do
 
   end subroutine init_exact_3d
+
+  subroutine mf_init_rand(mf,pd)
+
+    type(multifab)  , intent(inout) :: mf
+    type(box     )  , intent(in   ) :: pd
+
+    type(box)                :: bx
+    real(kind=dp_t)          :: dx
+    real(kind=dp_t), pointer :: rp(:,:,:,:)
+
+    integer   :: i,dm,nx,ny
+
+    nx = pd%hi(1) - pd%lo(1) + 1
+    ny = pd%hi(2) - pd%lo(2) + 1
+
+    dx = 1.d0 / dble(nx)
+ 
+    dm = mf%dim
+
+    print *,'Setting rhs to random numbers on the interval [-0.5,0.5], dm = ', dm
+    do i = 1, nfabs(mf)
+       bx = get_ibox(mf, i)
+       rp => dataptr(mf,i,bx)
+       if (dm.eq.2) then
+          call init_rand_2d(rp(:,:,1,1),bx,dx)
+       else if (dm.eq.3) then 
+          call init_rand_3d(rp(:,:,:,1),bx,dx)
+       end if
+    end do
+
+  end subroutine mf_init_rand
+
+  subroutine init_rand_2d(rhs,bx,dx)
+
+      type(box)       , intent(in   ) :: bx
+      double precision, intent(inout) :: rhs(bx%lo(1):,bx%lo(2):)
+      double precision, intent(in   ) :: dx
+
+      integer :: i,j
+      double precision :: rhsAvg
+
+      call init_genrand(1) 
+
+      do j = bx%lo(2),bx%hi(2)
+      do i = bx%lo(1),bx%hi(1)
+         rhs(i,j) = genrand_real3() 
+      end do
+      end do
+
+      rhsAvg = sum(rhs)/((bx%hi(1)-bx%lo(1)+1)*(bx%hi(2)-bx%lo(2)+1))
+      rhs = rhs - rhsAvg
+
+  end subroutine init_rand_2d
+
+  subroutine init_rand_3d(rhs,bx,dx)
+
+      type(box)       , intent(in   ) :: bx
+      double precision, intent(inout) :: rhs(bx%lo(1):,bx%lo(2):,bx%lo(3):)
+      double precision, intent(in   ) :: dx
+
+      integer :: i,j,k
+      double precision :: rhsAvg
+
+      call init_genrand(1)
+
+      do k = bx%lo(3),bx%hi(3)
+      do j = bx%lo(2),bx%hi(2)
+      do i = bx%lo(1),bx%hi(1)
+         rhs(i,j,k) = genrand_real3()
+      end do
+      end do
+      end do
+
+      rhsAvg = sum(rhs)/((bx%hi(1)-bx%lo(1)+1)*(bx%hi(2)-bx%lo(2)+1)*(bx%hi(3)-bx%lo(3)+1))
+      rhs = rhs - rhsAvg
+
+  end subroutine init_rand_3d
 
 end module cc_rhs_module
