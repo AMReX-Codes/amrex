@@ -4,7 +4,6 @@ module mg_module
   use cc_stencil_module
   use mg_tower_module
   use mg_smoother_module
-  use bl_timer_module
 
   implicit none
 
@@ -168,14 +167,6 @@ contains
 
     allocate(mgt%cc(n), mgt%ff(n), mgt%dd(n), mgt%uu(n-1), mgt%ss(n), mgt%mm(n))
     allocate(mgt%pd(n),mgt%dh(mgt%dim,n))
-    allocate(mgt%tm(n))
-
-    if ( n == 1 ) then
-       mgt%tm(n)%name = "SINGLE LEVEL"
-    else
-       mgt%tm(n)%name = "FINEST LEVEL"
-       mgt%tm(1)%name = "COARSEST LEVEL"
-    end if
 
     la1 = la
 
@@ -319,7 +310,7 @@ contains
 
           mgt%bottom_solver = 1
 
-          if (parallel_IOProcessor() .and. verbose > 1) then
+          if ( parallel_IOProcessor() .and. verbose > 1 ) then
               print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
               print *,'F90mg: Using bottom_solver = 1 instead'
           end if
@@ -352,7 +343,7 @@ contains
                !
                communicator = parallel_create_communicator(new_coarse_la%lap%prc)
 
-               if (parallel_IOProcessor() .and. verbose > 1) then
+               if ( parallel_IOProcessor() .and. verbose > 1 ) then
                   print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
                   print *,'   ... Bounding box is'
                   call print(bounding_box)
@@ -399,7 +390,7 @@ contains
 
                mgt%bottom_solver = 1
 
-               if (parallel_IOProcessor() .and. verbose > 1) then
+               if ( parallel_IOProcessor() .and. verbose > 1 ) then
                    print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
                    print *,'F90mg: Using bottom_solver = 1 instead'
                end if
@@ -516,7 +507,6 @@ contains
 
     deallocate(mgt%cc, mgt%ff, mgt%dd, mgt%uu, mgt%mm, mgt%ss)
     deallocate(mgt%dh, mgt%pd)
-    deallocate(mgt%tm)
 
     if ( associated(mgt%face_type) ) deallocate(mgt%face_type)
 
@@ -731,7 +721,6 @@ contains
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: lev
 
-    ! Local variables
     integer             :: i,stat,communicator
     logical             :: singular_test,do_diag
     real(dp_t)          :: nrm
@@ -745,8 +734,7 @@ contains
        singular_test =  mgt%bottom_singular .and. mgt%coeffs_sum_to_zero
     end if
 
-    if (do_diag) then
-       ! compute mgt%cc(lev) = ss * uu - rh
+    if ( do_diag ) then
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
        nrm = norm_inf(mgt%cc(lev))
        if ( parallel_IOProcessor() ) &
@@ -835,6 +823,7 @@ contains
     case default
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
+
     if ( stat /= 0 ) then
        if ( parallel_IOProcessor() .and. mgt%verbose > 0 ) then
           call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
@@ -844,8 +833,7 @@ contains
        end do
     end if
 
-    if (do_diag) then
-       ! compute mgt%cc(lev) = ss * uu - rh
+    if ( do_diag ) then
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
        nrm = norm_inf(mgt%cc(lev))
        if ( parallel_IOProcessor() ) &
@@ -1111,26 +1099,17 @@ contains
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
-    
-   ! print *, 'level=', lev, 'lbl=',lbl
 
     call setval(uu,ZERO,all=.true.)
 
     ! Piecewise constant: 0,  Piecewise linear: 1
     prolongation_type = 0
 
-   ! Compute and print residual
-   call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
-   nrm = norm_inf(mgt%cc(lev))
-   !write(*,fmt='("norm=",es22.16)') nrm
-
-    if (lev == lbl) then
-
+    if ( lev == lbl ) then
        stime = parallel_wtime()
 
-       if (associated(mgt%bottom_mgt)) then
-          if (do_diag) then
-             ! compute mgt%cc(lev) = ss * uu - rh
+       if ( associated(mgt%bottom_mgt) ) then
+          if ( do_diag ) then
              call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
              nrm = norm_inf(mgt%cc(lev))
              if ( parallel_IOProcessor() ) &
@@ -1139,24 +1118,19 @@ contains
 
           call do_bottom_mgt(mgt, uu, rh)
 
-          if (do_diag) then
-             ! compute mgt%cc(lev) = ss * uu - rh
+          if ( do_diag ) then
              call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
              nrm = norm_inf(mgt%cc(lev))
              if ( parallel_IOProcessor() ) &
                 print *,'  UP: Norm after  bottom         ',nrm
           end if
-
        else
-
           call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
-
        end if
 
        if ( present(bottom_solve_time) ) &
             bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
     else
-
        call mg_tower_restriction(mgt, mgt%dd(lev-1), rh, mgt%mm(lev),mgt%mm(lev-1))
 
        ! HACK 
@@ -1173,11 +1147,6 @@ contains
 
        call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type)
 
-       ! Compute and print residual
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
-       nrm = norm_inf(mgt%cc(lev))
-       !print *, 'before v-cycle at lev=',lev,'; norm=',nrm
-
        if (lev == mgt%nlevels) then
             call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), uu, &
                               rh, mgt%mm(lev), nu1, nu2, 1, bottom_level, bottom_solve_time)
@@ -1185,12 +1154,6 @@ contains
             call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), mgt%uu(lev), &
                               rh, mgt%mm(lev), nu1, nu2, 1, bottom_level, bottom_solve_time)
        end if
-
-       ! Compute and print residual
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
-       nrm = norm_inf(mgt%cc(lev))
-       !print *, 'after v-cycle lev=',lev,'; norm=',nrm
-
     end if
 
     call destroy(bpt)
@@ -1228,14 +1191,11 @@ contains
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
-    call timer_start(mgt%tm(lev))
-
     if ( parallel_IOProcessor() .and. do_diag) &
-       write(6,1000) lev
+         write(6,1000) lev
 
     if ( get_dim(rh) == 1 ) then
-
-       if (do_diag) then
+       if ( do_diag ) then
           nrm = norm_inf(rh)
           if ( parallel_IOProcessor() ) &
              print *,'  DN: Norm before smooth         ',nrm
@@ -1243,22 +1203,18 @@ contains
 
        call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
 
-       ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
-       if (do_diag) then
+       if ( do_diag ) then
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
               print *,'  DN: Norm after  smooth          ',nrm
        end if
-
     else if ( lev == lbl ) then
-
        stime = parallel_wtime()
 
-       if (associated(mgt%bottom_mgt)) then
-          if (do_diag) then
-             ! compute mgt%cc(lev) = ss * uu - rh
+       if ( associated(mgt%bottom_mgt) ) then
+          if ( do_diag ) then
              call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
              nrm = norm_inf(mgt%cc(lev))
              if ( parallel_IOProcessor() ) &
@@ -1267,8 +1223,7 @@ contains
 
           call do_bottom_mgt(mgt, uu, rh)
 
-          if (do_diag) then
-             ! compute mgt%cc(lev) = ss * uu - rh
+          if ( do_diag ) then
              call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
              nrm = norm_inf(mgt%cc(lev))
              if ( parallel_IOProcessor() ) &
@@ -1276,17 +1231,13 @@ contains
           end if
 
        else
-
           call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
-
        end if
 
        if ( present(bottom_solve_time) ) &
             bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
-
     else 
-
-       if (do_diag) then
+       if ( do_diag ) then
           if (cyc == MG_FCycle) then
               call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
               nrm = norm_inf(mgt%cc(lev))
@@ -1302,10 +1253,9 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
 
-       ! Compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
-       if (do_diag) then
+       if ( do_diag ) then
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
               print *,'  DN: Norm after  smooth         ',nrm
@@ -1321,6 +1271,7 @@ contains
              call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
           end if
        end if
+
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
        do i = gamma, 1, -1
@@ -1328,14 +1279,12 @@ contains
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
        end do
 
-       ! uu  += cc, done, by convention, using the prolongation routine.
        call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type)
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
 
-       if (do_diag) then
-          ! compute mgt%cc(lev) = ss * uu - rh
+       if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
@@ -1347,8 +1296,7 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
 
-       if (do_diag) then
-          ! compute mgt%cc(lev) = ss * uu - rh
+       if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
@@ -1356,8 +1304,6 @@ contains
        end if
 
     end if
-
-    call timer_stop(mgt%tm(lev))
 
     call destroy(bpt)
 
@@ -1375,20 +1321,17 @@ contains
     integer, intent(in) :: lev
     integer, intent(in) :: nu1, nu2
 
-    ! Local variables
     integer             :: i, prolongation_type
     logical             :: do_diag
     real(dp_t)          :: nrm
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
-    call timer_start(mgt%tm(lev))
-
     ! Piecewise constant: 0,  Piecewise linear: 1
     prolongation_type = 0
 
     ! Always relax first at the level we come in at
-    if (do_diag) then
+    if ( do_diag ) then
        nrm = norm_inf(rh)
        if ( parallel_IOProcessor() ) &
           print *,'MINI_FINE: Norm before smooth         ',nrm
@@ -1398,10 +1341,9 @@ contains
        call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
     end do
 
-    ! compute mgt%cc(lev) = ss * uu - rh
     call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
-    if (do_diag) then
+    if ( do_diag ) then
        nrm = norm_inf(mgt%cc(lev))
        if ( parallel_IOProcessor() ) &
            print *,'MINI_FINE: Norm after  smooth         ',nrm
@@ -1411,7 +1353,6 @@ contains
     !   relax at the next lower level, then interpolate the correction and relax again
     if ( lev > 1 ) then
 
-       ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
        call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
@@ -1428,7 +1369,7 @@ contains
 
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
-       if (do_diag) then
+       if ( do_diag ) then
           nrm = norm_inf(mgt%dd(lev-1))
           if ( parallel_IOProcessor() ) &
              print *,'MINI_CRSE: Norm before smooth         ',nrm
@@ -1438,7 +1379,7 @@ contains
           call mg_tower_smoother(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), mgt%dd(lev-1), mgt%mm(lev-1))
        end do
 
-       if (do_diag) then
+       if ( do_diag ) then
           call mg_defect(mgt%ss(lev-1), mgt%cc(lev-1), mgt%dd(lev-1), mgt%uu(lev-1), mgt%mm(lev-1), &
                          mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev-1))
@@ -1446,12 +1387,9 @@ contains
              print *,'MINI_CRSE: Norm  after smooth         ',nrm
        end if
 
-!      call mg_tower_bottom_solve(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
-!                                 mgt%dd(lev-1), mgt%mm(lev-1))
-
        call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type)
 
-       if (do_diag) then
+       if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
@@ -1462,7 +1400,7 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
 
-       if (do_diag) then
+       if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
@@ -1470,8 +1408,6 @@ contains
        end if
 
     end if
-
-    call timer_stop(mgt%tm(lev))
 
   end subroutine mini_cycle
 
