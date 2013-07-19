@@ -3,7 +3,6 @@ module mg_tower_module
   use multifab_module
   use cc_stencil_module
   use nodal_stencil_module
-  use bl_timer_module
 
   implicit none
 
@@ -85,8 +84,6 @@ module mg_tower_module
      integer, pointer :: face_type(:,:,:)  => Null()
      logical, pointer :: skewed(:,:)       => Null()
      logical, pointer :: skewed_not_set(:) => Null()
-
-     type(timer), pointer :: tm(:) => Null()
 
      ! Only relevant if bottom_solver == 1, 2 or 3 AND nodal
      type(multifab) :: nodal_mask
