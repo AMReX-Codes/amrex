@@ -141,18 +141,10 @@ contains
     end if
 
     i = lo(1)
-    if ( bc_dirichlet(mm_crse(i),1,0) ) then
-      cc(i) = ZERO
-    else if ( bc_neumann(mm_crse(i),1,-1) ) then
-      cc(i) = TWO*cc(i)
-    end if
+    if ( bc_dirichlet(mm_crse(i),1,0) ) cc(i) = ZERO
 
     i = hi(1)
-    if ( bc_dirichlet(mm_crse(i),1,0) ) then
-      cc(i) = ZERO
-    else if ( bc_neumann(mm_crse(i),1,+1) ) then
-      cc(i) = TWO*cc(i)
-    end if
+    if ( bc_dirichlet(mm_crse(i),1,0) ) cc(i) = ZERO
 
   end subroutine nodal_restriction_1d
 
