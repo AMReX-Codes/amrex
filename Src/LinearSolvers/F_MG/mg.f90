@@ -709,7 +709,7 @@ contains
 
   end subroutine do_bottom_mgt
 
-  subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+  subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm, eps_in)
 
     use bl_prof_module
     use itsol_module, only: itsol_bicgstab_solve, itsol_cabicgstab_solve, itsol_cg_solve
@@ -720,17 +720,20 @@ contains
     type( multifab), intent(in) :: ss
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: lev
+    real(dp_t), intent(in), optional :: eps_in
 
     integer             :: i,stat,communicator
     logical             :: singular_test,do_diag
-    real(dp_t)          :: nrm
+    real(dp_t)          :: nrm, eps
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_bottom_solve")
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
-    if (.not.nodal_q(rh)) then
+    eps = mgt%bottom_solver_eps ; if ( present(eps_in) ) eps = eps_in
+
+    if ( .not.nodal_q(rh) ) then
        singular_test =  mgt%bottom_singular .and. mgt%coeffs_sum_to_zero
     end if
 
@@ -748,16 +751,16 @@ contains
     end if
 
     stat = 0
-    !print *,'BOTTOM SOLVER ',mgt%bottom_solver, mgt%nuf
+
     select case ( mgt%bottom_solver )
     case (0)
        do i = 1, mgt%nuf
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (1)
-       if (nodal_q(rh)) then
+       if ( nodal_q(rh) ) then
           call itsol_bicgstab_solve(ss, uu, rh, mm, &
-                                    mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                    eps, mgt%bottom_max_iter, &
                                     mgt%cg_verbose, &
                                     mgt%stencil_type, mgt%lcross, &
                                     stat = stat, &
@@ -767,7 +770,7 @@ contains
                                     comm_in = communicator)
        else
           call itsol_bicgstab_solve(ss, uu, rh, mm, &
-                                    mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                    eps, mgt%bottom_max_iter, &
                                     mgt%cg_verbose,  &
                                     mgt%stencil_type, mgt%lcross, &
                                     stat = stat, &
@@ -779,15 +782,15 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (2)
-       if (nodal_q(rh)) then
+       if ( nodal_q(rh) ) then
           call itsol_cg_solve(ss, uu, rh, mm, &
-                              mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
+                              eps, mgt%bottom_max_iter, mgt%cg_verbose, &
                               mgt%stencil_type, mgt%lcross, &
                               stat = stat, singular_in = mgt%bottom_singular, &
                               uniform_dh = mgt%uniform_dh, nodal_mask=mgt%nodal_mask)
        else
           call itsol_cg_solve(ss, uu, rh, mm, &
-                              mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
+                              eps, mgt%bottom_max_iter, mgt%cg_verbose, &
                               mgt%stencil_type, mgt%lcross, &
                               stat = stat, singular_in = singular_test, &
                               uniform_dh = mgt%uniform_dh)
@@ -796,9 +799,9 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (3)
-       if (nodal_q(rh)) then
+       if ( nodal_q(rh) ) then
           call itsol_cabicgstab_solve(ss, uu, rh, mm, &
-                                      mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                      eps, mgt%bottom_max_iter, &
                                       mgt%cg_verbose, &
                                       mgt%stencil_type, mgt%lcross, &
                                       stat = stat, &
@@ -808,7 +811,7 @@ contains
                                       comm_in = communicator)
        else
           call itsol_cabicgstab_solve(ss, uu, rh, mm, &
-                                      mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                      eps, mgt%bottom_max_iter, &
                                       mgt%cg_verbose,  &
                                       mgt%stencil_type, mgt%lcross, &
                                       stat = stat, &
