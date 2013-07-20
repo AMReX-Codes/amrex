@@ -87,60 +87,92 @@ contains
 
   end subroutine pc_c_prolongation_3d
 
-  subroutine lin_c_prolongation_1d(ff, cc, ir, ng)
+  subroutine lin_c_prolongation_1d(ff, cc, ir)
     use bl_error_module
     real (dp_t), intent(inout) :: ff(0:)
-    real (dp_t), intent(in)    :: cc(-ng:)
-    integer,     intent(in)    :: ir(:), ng
+    real (dp_t), intent(in)    :: cc(0:)
+    integer,     intent(in)    :: ir(:)
     integer                    :: nx, i
 
     call bl_assert(ir(1)==2, 'lin_c_prolongation_1d: ir==2')
 
-    nx = size(cc,dim=1)-2*ng
+    nx = size(cc,dim=1)
 
-    do i = 0, nx-1
+    i = 0
+    ff(2*i  ) = ff(2*i  ) + cc(i)
+    ff(2*i+1) = ff(2*i+1) + cc(i)
+
+    i = nx-1
+    ff(2*i  ) = ff(2*i  ) + cc(i)
+    ff(2*i+1) = ff(2*i+1) + cc(i)
+
+    do i = 1, nx-2
        ff(2*i  ) = ff(2*i  ) + 0.25d0*( 3*cc(i) + cc(i-1) )
        ff(2*i+1) = ff(2*i+1) + 0.25d0*( 3*cc(i) + cc(i+1) )
     end do
 
   end subroutine lin_c_prolongation_1d
 
-  subroutine lin_c_prolongation_2d(ff, cc, ir, ng)
+  subroutine lin_c_prolongation_2d(ff, cc, ir, ptype)
     use bl_error_module
-    real (dp_t), intent(inout) :: ff(  0:,  0:)
-    real (dp_t), intent(in)    :: cc(-ng:,-ng:)
-    integer,     intent(in)    :: ir(:), ng
+    real (dp_t), intent(inout) :: ff(0:,0:)
+    real (dp_t), intent(in)    :: cc(0:,0:)
+    integer,     intent(in)    :: ir(:), ptype
     integer                    :: nx, ny, i, j
-    real (dp_t), parameter     :: one6th  = 1.d0/6.d0
-    real (dp_t), parameter     :: one16th = 1.d0/16.d0
+    logical                    :: interior_i, interior_j
+    real (dp_t), parameter     :: one6th  = 1.0d0/6.0d0
+    real (dp_t), parameter     :: one16th = 1.0d0/16.0d0
 
-    nx = size(cc,dim=1)-2*ng
-    ny = size(cc,dim=2)-2*ng
+    nx = size(cc,dim=1)
+    ny = size(cc,dim=2)
 
     call bl_assert(ir(1)==2 .and. ir(2)==2, 'lin_c_prolongation_2d: ir==2')
-
+    !
+    ! First do all face points using piecewise-constant interpolation.
+    !
     do j = 0, ny-1
-       do i = 0, nx-1
+       interior_j = ( (j > 0) .and. (j < (ny-1)) )
 
-          if (.true.) then
-             !
-             ! Type 1 - {2,1,1} weighted average of our neighbors.
-             !
+       do i = 0, nx-1
+          interior_i = ( (i > 0) .and. (i < (nx-1)) )
+
+          if ( interior_i .and. interior_j ) cycle
+
+          ff(2*i,   2*j  ) = ff(2*i,   2*j  ) + cc(i,j)
+          ff(2*i+1, 2*j  ) = ff(2*i+1, 2*j  ) + cc(i,j)
+          ff(2*i,   2*j+1) = ff(2*i,   2*j+1) + cc(i,j)
+          ff(2*i+1, 2*j+1) = ff(2*i+1, 2*j+1) + cc(i,j)
+       end do
+    end do
+
+    select case ( ptype )
+    case ( 1 )
+       !
+       ! Type 1 - {2,1,1} weighted average of our neighbors.
+       !
+       do j = 1, ny-2
+          do i = 1, nx-2
              ff(2*i+1, 2*j+1) = ff(2*i+1, 2*j+1) + .25d0 * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
              ff(2*i,   2*j+1) = ff(2*i,   2*j+1) + .25d0 * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
              ff(2*i+1, 2*j  ) = ff(2*i+1, 2*j  ) + .25d0 * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
              ff(2*i,   2*j  ) = ff(2*i,   2*j  ) + .25d0 * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j-1) )
-
-          else if (.false.) then
-             !
-             ! Type 2 - {4,1,1} weighted average of our neighbors.
-             !
+          end do
+       end do
+    case ( 2 )
+       !
+       ! Type 2 - {4,1,1} weighted average of our neighbors.
+       !
+       do j = 1, ny-2
+          do i = 1, nx-2
              ff(2*i+1, 2*j+1) = ff(2*i+1, 2*j+1) + one6th * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
              ff(2*i,   2*j+1) = ff(2*i,   2*j+1) + one6th * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
              ff(2*i+1, 2*j  ) = ff(2*i+1, 2*j  ) + one6th * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
              ff(2*i,   2*j  ) = ff(2*i,   2*j  ) + one6th * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j-1) )
-
-          else if (.false.) then
+          end do
+       end do
+    case ( 3 )
+       do j = 1, ny-2
+          do i = 1, nx-2
              !
              ! Type 3 - bilinear.
              !
@@ -152,37 +184,90 @@ contains
                   ( 9*cc(i,j) + 3*cc(i,j-1) + 3*cc(i+1,j) + cc(i+1,j-1) )
              ff(2*i,   2*j  ) = ff(2*i,   2*j  ) + one16th * &
                   ( 9*cc(i,j) + 3*cc(i-1,j) + 3*cc(i,j-1) + cc(i-1,j-1) )
-          end if
-  
-     end do
-  end do
+          end do
+       end do
+    case default
+       call bl_error("lin_c_prolongation_2d: unknown ptype", ptype)
+    end select
 
   end subroutine lin_c_prolongation_2d
 
-  subroutine lin_c_prolongation_3d(ff, cc, ir, ng)
+  subroutine lin_c_prolongation_3d(ff, cc, ir, ptype)
     use bl_error_module
-    real (dp_t), intent(inout) :: ff(  0:,  0:,  0:)
-    real (dp_t), intent(in)    :: cc(-ng:,-ng:,-ng:)
-    integer,     intent(in)    :: ir(:), ng
+    real (dp_t), intent(inout) :: ff(0:,0:,0:)
+    real (dp_t), intent(in)    :: cc(0:,0:,0:)
+    integer,     intent(in)    :: ir(:), ptype
     integer                    :: nx, ny, nz, i, j, k
-
-    real (dp_t), parameter     ::   one64ths = 1.d0/64.d0
-    real (dp_t), parameter     :: three64ths = 3.d0/64.d0
-    real (dp_t), parameter     ::     sixth  = 1.d0/6.d0
+    logical                    :: interior_i, interior_j, interior_k
+    real (dp_t), parameter     ::   one64ths = 1.0d0/64.0d0
+    real (dp_t), parameter     :: three64ths = 3.0d0/64.0d0
+    real (dp_t), parameter     ::     sixth  = 1.0d0/6.0d0
 
     call bl_assert(ir(1)==2 .and. ir(2)==2 .and. ir(3)==2, 'lin_c_prolongation_3d: ir==2')
 
-    nx = size(cc,dim=1)-2*ng
-    ny = size(cc,dim=2)-2*ng
-    nz = size(cc,dim=3)-2*ng
-
+    nx = size(cc,dim=1)
+    ny = size(cc,dim=2)
+    nz = size(cc,dim=3)
+    !
+    ! First do all face points using piecewise-constant interpolation.
+    !
     do k = 0, nz-1
+       interior_k = ( (k > 0) .and. (k < (nz-1)) )
+
        do j = 0, ny-1
+          interior_j = ( (j > 0) .and. (j < (ny-1)) )
+
           do i = 0, nx-1
+             interior_i = ( (i > 0) .and. (i < (nx-1)) )
 
-             ! Type 1
-             if (.false.) then
+             if ( interior_i .and. interior_j .and. interior_k ) cycle
 
+             ff(2*i+1, 2*j+1, 2*k+1) = ff(2*i+1, 2*j+1, 2*k+1) + cc(i,j,k)
+             ff(2*i,   2*j+1, 2*k+1) = ff(2*i,   2*j+1, 2*k+1) + cc(i,j,k)
+             ff(2*i+1, 2*j,   2*k+1) = ff(2*i+1, 2*j,   2*k+1) + cc(i,j,k)
+             ff(2*i,   2*j,   2*k+1) = ff(2*i,   2*j,   2*k+1) + cc(i,j,k)
+             ff(2*i+1, 2*j+1, 2*k  ) = ff(2*i+1, 2*j+1, 2*k  ) + cc(i,j,k)
+             ff(2*i,   2*j+1, 2*k  ) = ff(2*i,   2*j+1, 2*k  ) + cc(i,j,k)
+             ff(2*i+1, 2*j,   2*k  ) = ff(2*i+1, 2*j,   2*k  ) + cc(i,j,k)
+             ff(2*i,   2*j,   2*k  ) = ff(2*i,   2*j,   2*k  ) + cc(i,j,k)
+          end do
+       end do
+    end do
+
+    select case ( ptype )
+    case ( 1 )
+       !
+       ! Type 1 - {1,1,1,1} weighted average of our neighbors.
+       !
+       do k = 1, nz-2
+          do j = 1, ny-2
+             do i = 1, nx-2
+                ff(2*i+1, 2*j+1, 2*k+1) = ff(2*i+1, 2*j+1, 2*k+1) + &
+                     .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
+                ff(2*i,   2*j+1, 2*k+1) = ff(2*i,   2*j+1, 2*k+1) + &
+                     .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
+                ff(2*i+1, 2*j,   2*k+1) = ff(2*i+1, 2*j,   2*k+1) + &
+                     .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j-1,k) + cc(i,j,k+1) )
+                ff(2*i,   2*j,   2*k+1) = ff(2*i,   2*j,   2*k+1) + &
+                     .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j-1,k) + cc(i,j,k+1) )
+                ff(2*i+1, 2*j+1, 2*k  ) = ff(2*i+1, 2*j+1, 2*k  ) + &
+                     .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k-1) )
+                ff(2*i,   2*j+1, 2*k  ) = ff(2*i,   2*j+1, 2*k  ) + &
+                     .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j+1,k) + cc(i,j,k-1) )
+                ff(2*i+1, 2*j,   2*k  ) = ff(2*i+1, 2*j,   2*k  ) + &
+                     .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j-1,k) + cc(i,j,k-1) )
+                ff(2*i,   2*j,   2*k  ) = ff(2*i,   2*j,   2*k  ) + &
+                     .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j-1,k) + cc(i,j,k-1) )
+             end do
+          end do
+       end do
+    case ( 2 )
+       !
+       ! Type 2 - {3,1,1,1} weighted average of our neighbors.
+       !
+       do k = 1, nz-2
+          do j = 1, ny-2
+             do i = 1, nx-2
                 ff(2*i+1, 2*j+1, 2*k+1) = ff(2*i+1, 2*j+1, 2*k+1) + &
                      sixth * ( 3*cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
                 ff(2*i,   2*j+1, 2*k+1) = ff(2*i,   2*j+1, 2*k+1) + &
@@ -199,68 +284,47 @@ contains
                      sixth * ( 3*cc(i,j,k) + cc(i+1,j,k) + cc(i,j-1,k) + cc(i,j,k-1) )
                 ff(2*i,   2*j,   2*k  ) = ff(2*i,   2*j,   2*k  ) + &
                      sixth * ( 3*cc(i,j,k) + cc(i-1,j,k) + cc(i,j-1,k) + cc(i,j,k-1) )
-
-             ! Type 2
-              else if (.true.) then
-
-                 ff(2*i+1, 2*j+1, 2*k+1) = ff(2*i+1, 2*j+1, 2*k+1) + &
-                      .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
-                 ff(2*i,   2*j+1, 2*k+1) = ff(2*i,   2*j+1, 2*k+1) + &
-                      .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
-                 ff(2*i+1, 2*j,   2*k+1) = ff(2*i+1, 2*j,   2*k+1) + &
-                      .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j-1,k) + cc(i,j,k+1) )
-                 ff(2*i,   2*j,   2*k+1) = ff(2*i,   2*j,   2*k+1) + &
-                      .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j-1,k) + cc(i,j,k+1) )
-                 ff(2*i+1, 2*j+1, 2*k  ) = ff(2*i+1, 2*j+1, 2*k  ) + &
-                      .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k-1) )
-                 ff(2*i,   2*j+1, 2*k  ) = ff(2*i,   2*j+1, 2*k  ) + &
-                      .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j+1,k) + cc(i,j,k-1) )
-                 ff(2*i+1, 2*j,   2*k  ) = ff(2*i+1, 2*j,   2*k  ) + &
-                      .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j-1,k) + cc(i,j,k-1) )
-                 ff(2*i,   2*j,   2*k  ) = ff(2*i,   2*j,   2*k  ) + &
-                      .25d0 * ( cc(i,j,k) + cc(i-1,j,k) + cc(i,j-1,k) + cc(i,j,k-1) )
-
-             ! Type 3
-              else if (.false.) then
-                 !
-                 ! Trilinear interpolation.
-                 !
+             end do
+          end do
+       end do
+    case ( 3 )
+       !
+       ! Type 3 - trilinear.
+       !
+       do k = 1, nz-2
+          do j = 1, ny-2
+             do i = 1, nx-2
                  ff(2*i+1, 2*j+1, 2*k+1) = ff(2*i+1, 2*j+1, 2*k+1) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i+1,j,k  ) + 3*cc(i,j+1,k  ) + cc(i+1,j+1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k+1) + 3*cc(i+1,j,k+1) + 3*cc(i,j+1,k+1) + cc(i+1,j+1,k+1) )
-
                  ff(2*i,   2*j+1, 2*k+1) = ff(2*i,   2*j+1, 2*k+1) + &
                        three64ths * ( 9*cc(i,j,k  ) + 3*cc(i-1,j,k  ) + 3*cc(i,j+1,k  ) + cc(i-1,j+1,k  ) ) + &
                          one64ths * ( 9*cc(i,j,k+1) + 3*cc(i-1,j,k+1) + 3*cc(i,j+1,k+1) + cc(i-1,j+1,k+1) )
-
                  ff(2*i+1, 2*j,   2*k+1) = ff(2*i+1, 2*j,   2*k+1) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i+1,j,k  ) + 3*cc(i,j-1,k  ) + cc(i+1,j-1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k+1) + 3*cc(i+1,j,k+1) + 3*cc(i,j-1,k+1) + cc(i+1,j-1,k+1) )
-
                  ff(2*i,   2*j,   2*k+1) = ff(2*i,   2*j,   2*k+1) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i-1,j,k  ) + 3*cc(i,j-1,k  ) + cc(i-1,j-1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k+1) + 3*cc(i-1,j,k+1) + 3*cc(i,j-1,k+1) + cc(i-1,j-1,k+1) )
-
                  ff(2*i+1, 2*j+1, 2*k) = ff(2*i+1, 2*j+1, 2*k) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i+1,j,k  ) + 3*cc(i,j+1,k  ) + cc(i+1,j+1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k-1) + 3*cc(i+1,j,k-1) + 3*cc(i,j+1,k-1) + cc(i+1,j+1,k-1) )
-
                  ff(2*i,   2*j+1, 2*k) = ff(2*i,   2*j+1, 2*k) + &
                        three64ths * ( 9*cc(i,j,k  ) + 3*cc(i-1,j,k  ) + 3*cc(i,j+1,k  ) + cc(i-1,j+1,k  ) ) + &
                          one64ths * ( 9*cc(i,j,k-1) + 3*cc(i-1,j,k-1) + 3*cc(i,j+1,k-1) + cc(i-1,j+1,k-1) )
-
                  ff(2*i+1, 2*j,   2*k) = ff(2*i+1, 2*j,   2*k) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i+1,j,k  ) + 3*cc(i,j-1,k  ) + cc(i+1,j-1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k-1) + 3*cc(i+1,j,k-1) + 3*cc(i,j-1,k-1) + cc(i+1,j-1,k-1) )
-
                  ff(2*i,   2*j,   2*k) = ff(2*i,   2*j,   2*k) + &
                       three64ths * ( 9*cc(i,j,k  ) + 3*cc(i-1,j,k  ) + 3*cc(i,j-1,k  ) + cc(i-1,j-1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k-1) + 3*cc(i-1,j,k-1) + 3*cc(i,j-1,k-1) + cc(i-1,j-1,k-1) )
-              endif
-
+             end do
           end do
        end do
-    end do
+    case default
+       call bl_error("lin_c_prolongation_3d: unknown ptype", ptype)
+    end select
+
   end subroutine lin_c_prolongation_3d
 
   subroutine nodal_prolongation_1d(ff, cc, ir)
