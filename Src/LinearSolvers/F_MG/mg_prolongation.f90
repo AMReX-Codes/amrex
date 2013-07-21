@@ -44,20 +44,42 @@ contains
     real (dp_t), intent(inout) :: ff(0:,0:)
     real (dp_t), intent(in)    :: cc(0:,0:)
     integer,     intent(in)    :: ir(:)
-    integer                    :: nx, ny, i, j, l, m
+
+    integer :: nx, ny, i, j, l, m, twoi, twoj, twoip1, twojp1
 
     nx = size(cc,dim=1)
     ny = size(cc,dim=2)
 
-    do m = 0, ir(2)-1
-       do l = 0, ir(1)-1
-          do j = 0, ny - 1
-             do i = 0, nx - 1
-                ff(ir(1)*i+l, ir(2)*j+m) = ff(ir(1)*i+l, ir(2)*j+m) + cc(i,j)
+    if ( ir(1) == 2 .and. ir(2) == 2 ) then
+
+       do j = 0, ny - 1
+             twoj   = 2*j
+             twojp1 = 2*j+1
+
+          do i = 0, nx-1
+             twoi   = 2*i
+             twoip1 = 2*i+1
+
+             ff(twoi,   twoj  ) = ff(twoi,   twoj  ) + cc(i,j)
+             ff(twoip1, twoj  ) = ff(twoip1, twoj  ) + cc(i,j)
+             ff(twoi,   twojp1) = ff(twoi,   twojp1) + cc(i,j)
+             ff(twoip1, twojp1) = ff(twoip1, twojp1) + cc(i,j)
+          end do
+       end do
+
+    else
+
+       do m = 0, ir(2)-1
+          do l = 0, ir(1)-1
+             do j = 0, ny - 1
+                do i = 0, nx - 1
+                   ff(ir(1)*i+l, ir(2)*j+m) = ff(ir(1)*i+l, ir(2)*j+m) + cc(i,j)
+                end do
              end do
           end do
        end do
-    end do
+
+    end if
 
   end subroutine pc_c_prolongation_2d
 
@@ -65,25 +87,56 @@ contains
     real (dp_t), intent(inout) :: ff(0:,0:,0:)
     real (dp_t), intent(in)    :: cc(0:,0:,0:)
     integer,     intent(in)    :: ir(:)
-    integer                    :: nx, ny, nz, i, j, k, l, m, n
+
+    integer :: nx, ny, nz, i, j, k, l, m, n, twoi, twoj, twoip1, twojp1, twok, twokp1
 
     nx = size(cc,dim=1)
     ny = size(cc,dim=2)
     nz = size(cc,dim=3)
 
-    do k = 0, nz - 1
-       do n = 0, ir(3)-1
-          do j = 0, ny - 1
-             do m = 0, ir(2)-1
-                do i = 0, nx - 1
-                   do l = 0, ir(1)-1
-                      ff(ir(1)*i+l, ir(2)*j+m, ir(3)*k+n) = ff(ir(1)*i+l, ir(2)*j+m, ir(3)*k+n) + cc(i,j,k)
+    if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
+
+       do k = 0, nz-1
+          twok   = 2*k
+          twokp1 = 2*k+1
+
+          do j = 0, ny-1
+             twoj   = 2*j
+             twojp1 = 2*j+1
+
+             do i = 0, nx-1
+                twoi   = 2*i
+                twoip1 = 2*i+1
+
+                ff(twoi,   twoj,   twok  ) = ff(twoi,   twoj,   twok  ) + cc(i,j,k)
+                ff(twoip1, twoj,   twok  ) = ff(twoip1, twoj,   twok  ) + cc(i,j,k)
+                ff(twoi,   twojp1, twok  ) = ff(twoi,   twojp1, twok  ) + cc(i,j,k)
+                ff(twoip1, twojp1, twok  ) = ff(twoip1, twojp1, twok  ) + cc(i,j,k)
+                ff(twoi,   twoj,   twokp1) = ff(twoi,   twoj,   twokp1) + cc(i,j,k)
+                ff(twoip1, twoj,   twokp1) = ff(twoip1, twoj,   twokp1) + cc(i,j,k)
+                ff(twoi,   twojp1, twokp1) = ff(twoi,   twojp1, twokp1) + cc(i,j,k)
+                ff(twoip1, twojp1, twokp1) = ff(twoip1, twojp1, twokp1) + cc(i,j,k)
+             end do
+          end do
+       end do
+
+    else
+
+       do k = 0, nz - 1
+          do n = 0, ir(3)-1
+             do j = 0, ny - 1
+                do m = 0, ir(2)-1
+                   do i = 0, nx - 1
+                      do l = 0, ir(1)-1
+                         ff(ir(1)*i+l, ir(2)*j+m, ir(3)*k+n) = ff(ir(1)*i+l, ir(2)*j+m, ir(3)*k+n) + cc(i,j,k)
+                      end do
                    end do
                 end do
              end do
           end do
        end do
-    end do
+
+    end if
 
   end subroutine pc_c_prolongation_3d
 
