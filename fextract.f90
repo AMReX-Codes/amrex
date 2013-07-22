@@ -138,10 +138,10 @@ program fextract3d
   lo(:) = ZERO
   hi(:) = ZERO
 
-  lo = lwb(plotfile_get_pd_box(pf, 1))
-  hi = upb(plotfile_get_pd_box(pf, 1))
+  lo(1:pf%dim) = lwb(plotfile_get_pd_box(pf, 1))
+  hi(1:pf%dim) = upb(plotfile_get_pd_box(pf, 1))
 
-  dx = plotfile_get_dx(pf, 1)
+  dx(1:pf%dim) = plotfile_get_dx(pf, 1)
 
   dim = pf%dim
 
@@ -162,8 +162,8 @@ program fextract3d
 
 
   ! get the index bounds for the finest level
-  flo = lwb(plotfile_get_pd_box(pf, pf%flevel))
-  fhi = upb(plotfile_get_pd_box(pf, pf%flevel))
+  flo(1:pf%dim) = lwb(plotfile_get_pd_box(pf, pf%flevel))
+  fhi(1:pf%dim) = upb(plotfile_get_pd_box(pf, pf%flevel))
 
   ! compute the index of the center of the domain on the coarse grid.
   ! These are used to set the position of the slice in the transverse
@@ -228,8 +228,8 @@ program fextract3d
         ! read in the data 1 patch at a time
         call fab_bind(pf, i, j)
 
-        lo = lwb(get_box(pf, i, j))
-        hi = upb(get_box(pf, i, j))
+        lo(1:pf%dim) = lwb(get_box(pf, i, j))
+        hi(1:pf%dim) = upb(get_box(pf, i, j))
 
         select case (idir)
 
