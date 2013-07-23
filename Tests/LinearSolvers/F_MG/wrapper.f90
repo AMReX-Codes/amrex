@@ -15,14 +15,15 @@ subroutine wrapper()
   implicit none
 
   interface
-     subroutine t_cc_ml_multigrid(mla, mgt, rh, domain_bc, &
-          do_diagnostics, eps, stencil_order, fabio)
+     subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
+                                  do_diagnostics, eps, stencil_order, fabio)
        use mg_module    
        use ml_boxarray_module    
        use ml_layout_module    
        type(ml_layout  ), intent(inout) :: mla
        type(mg_tower) , intent(inout) :: mgt(:)
        type(multifab) , intent(inout) :: rh(:)
+       integer        , intent(in   ) :: coeffs_type
        integer        , intent(in   ) :: domain_bc(:,:)
        integer        , intent(in   ) :: do_diagnostics
        real(dp_t)     , intent(in   ) :: eps
@@ -91,7 +92,7 @@ subroutine wrapper()
   integer :: nu1, nu2, nub, nuf, solver, smoother
   integer :: ng, nc
   character(len=128) :: test_set
-  integer :: test, test_lev, cycle_type, rhs_type
+  integer :: test, test_lev, cycle_type, rhs_type, coeffs_type
   logical :: test_set_mglib
   logical :: test_set_hgproj
   logical :: test_random_boxes
@@ -116,6 +117,7 @@ subroutine wrapper()
 
   namelist /probin/ cycle_type
   namelist /probin/ rhs_type
+  namelist /probin/ coeffs_type
   namelist /probin/ test
   namelist /probin/ nodal_in
   namelist /probin/ dense_in
@@ -160,6 +162,7 @@ subroutine wrapper()
   test           = 0
   cycle_type     = 3 ! Default to V-cycle 
   rhs_type       = 4 ! Default to sum of sin's
+  coeffs_type    = 0 ! Default to constant coefficients = 1
   nodal_in       = .false.
   dense_in       = .false.
 
@@ -278,6 +281,11 @@ subroutine wrapper()
            farg = farg + 1
            call get_command_argument(farg, value = fname)
            read(fname,*) rhs_type
+
+        case ('--coeffs_type')
+           farg = farg + 1
+           call get_command_argument(farg, value = fname)
+           read(fname,*) coeffs_type
 
         case ('--verbose')
            farg = farg + 1
@@ -711,7 +719,7 @@ subroutine wrapper()
      call t_nodal_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, test, fabio, stencil_type)
   else
      call cc_rhs(mla, pd, rh, rhs_type)
-     call t_cc_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, stencil_order, fabio)
+     call t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, eps, stencil_order, fabio)
   end if
 
   do n = nlevs, 1, -1

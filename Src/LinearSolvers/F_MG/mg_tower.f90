@@ -30,7 +30,7 @@ module mg_tower_module
      integer :: nu1 = 2
      integer :: nu2 = 2
      integer :: nuf = 8
-     integer :: nub = 10
+     integer :: nub = 0
      integer :: cycle_type = MG_Vcycle
 
      ! bottom solver defaults good for bicg
