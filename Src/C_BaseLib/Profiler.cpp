@@ -37,10 +37,14 @@ std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
 std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
 int Profiler::CommStats::reductionNumber = 0;
+int Profiler::CommStats::tagWrapNumber = 0;
+int Profiler::CommStats::tagMin = 0;
+int Profiler::CommStats::tagMax = 0;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
 std::vector<std::pair<int,int> > Profiler::CommStats::nameTags;
 std::vector<std::string> Profiler::CommStats::nameTagNames;
 std::vector<int> Profiler::CommStats::reductions;
+std::vector<int> Profiler::CommStats::tagWraps;
 
 
 Profiler::Profiler(const std::string &funcname)
@@ -112,6 +116,9 @@ void Profiler::Initialize() {
   CommStats::cftNames["NameTag"]        = NameTag;
   CommStats::cftNames["AllCFTypes"]     = AllCFTypes;
   CommStats::cftNames["NoCFTypes"]      = NoCFTypes;
+  CommStats::cftNames["IOStart"]        = IOStart;
+  CommStats::cftNames["IOEnd"]          = IOEnd;
+  CommStats::cftNames["TagWrap"]        = TagWrap;
 
   // check for exclude file
   std::string exFile("CommFuncExclude.txt");
@@ -636,6 +643,11 @@ void Profiler::WriteCommStats(const bool bFlushing) {
           csHeaderFile << "nameTagNames  " << '"' << CommStats::nameTagNames[i]
                        << '"' << '\n';
         }
+        csHeaderFile << "tagRange  " << CommStats::tagMin << ' '
+	             << CommStats::tagMax << '\n';
+        for(int i(0); i < CommStats::tagWraps.size(); ++i) {
+          csHeaderFile << "tagWraps  " << CommStats::tagWraps[i] << '\n';
+        }
 	csHeaderFile.flush();
         csHeaderFile.close();
 
@@ -784,6 +796,26 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
     vCommStats.push_back(CommStats(cft, AfterCall(), AfterCall(), tag,
                                    ParallelDescriptor::second()));
   }
+}
+
+
+void Profiler::TagRange(const int mintag, const int maxtag) {
+  CommStats::tagMin = mintag;
+  CommStats::tagMax = maxtag;
+}
+
+
+void Profiler::AddTagWrap() {
+  const CommFuncType cft(Profiler::TagWrap);
+  if(OnExcludeList(cft)) {
+    return;
+  }
+  ++CommStats::tagWrapNumber;
+  int tag(CommStats::tagWrapNumber);
+  int index(CommStats::nameTags.size());
+  CommStats::tagWraps.push_back(index);
+  vCommStats.push_back(CommStats(cft, index,  vCommStats.size(), tag,
+                       ParallelDescriptor::second()));
 }
 
 

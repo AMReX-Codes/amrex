@@ -23,7 +23,7 @@ namespace ParallelDescriptor
     //
     MPI_Comm m_comm;
 
-    int m_MaxTag = -1;
+    int m_MinTag = 1000, m_MaxTag = -1;
 
     const int ioProcessor = 0;
 
@@ -292,6 +292,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     } else {
       m_MaxTag = 9000;
     }
+    BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
     //
     // Wait till all other processes are properly started.
     //
@@ -1324,13 +1325,14 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
 int
 ParallelDescriptor::SeqNum ()
 {
-    const int BEG = 1000;
-
-    static int seqno = BEG;
+    static int seqno = m_MinTag;
 
     int result = seqno++;
 
-    if (seqno > m_MaxTag) seqno = BEG;
+    if (seqno > m_MaxTag) {
+      seqno = m_MinTag;
+      BL_COMM_PROFILE_TAGWRAP();
+    }
 
     return result;
 }
