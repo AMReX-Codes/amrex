@@ -57,7 +57,10 @@ class Profiler
       Waitsome,        // 26
       NameTag,         // 27
       AllCFTypes,      // 28
-      NoCFTypes        // 29
+      NoCFTypes,       // 29
+      IOStart,         // 30
+      IOEnd,           // 31
+      TagWrap          // 32
     };
 
     struct CommStats {
@@ -76,10 +79,14 @@ class Profiler
       static std::set<CommFuncType> cftExclude;
       static int barrierNumber;
       static int reductionNumber;
+      static int tagWrapNumber;
+      static int tagMin;
+      static int tagMax;
       static std::vector<std::pair<std::string,int> > barrierNames;  // [name, seek]
       static std::vector<std::pair<int,int> > nameTags;              // [nameindex, seek]
       static std::vector<std::string> nameTagNames;                  // [name]
       static std::vector<int> reductions;                            // [index]
+      static std::vector<int> tagWraps;                            // [index]
 
       CommFuncType cfType;
       int size, commpid, tag;
@@ -104,6 +111,8 @@ class Profiler
     static void AddBarrier(const std::string &message, const bool bc);
     static void AddNameTag(const std::string &name);
     static void AddAllReduce(const CommFuncType cft, const int size, const bool bc);
+    static void TagRange(const int tagmin, const int tagmax);
+    static void AddTagWrap();
 
     void start();
     void stop();
@@ -188,6 +197,9 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
     case NameTag:        return "NameTag";
     case AllCFTypes:     return "AllCFTypes";
     case NoCFTypes:      return "NoCFTypes";
+    case IOStart:        return "IOStart";
+    case IOEnd:          return "IOEnd";
+    case TagWrap:        return "TagWrap";
   }
   return "*** Error: Bad CommFuncType.";
 }
@@ -227,6 +239,9 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_FILTER(cft) { Profiler::CommStats::Filter(cft); }
 #define BL_COMM_PROFILE_UNFILTER(cft) { Profiler::CommStats::UnFilter(cft); }
 #define BL_COMM_PROFILE_FLUSH() { Profiler::WriteCommStats(true); }
+#define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax) {  \
+                             Profiler::TagRange(tagmin, tagmax); }
+#define BL_COMM_PROFILE_TAGWRAP() { Profiler::AddTagWrap(); }
 
 #else
 
@@ -239,6 +254,8 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_FILTER(cft)
 #define BL_COMM_PROFILE_UNFILTER(cft)
 #define BL_COMM_PROFILE_FLUSH()
+#define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax)
+#define BL_COMM_PROFILE_TAGWRAP()
 #endif
 
 
@@ -288,6 +305,8 @@ class Profiler
 #define BL_COMM_PROFILE_FILTER(cft)
 #define BL_COMM_PROFILE_UNFILTER(cft)
 #define BL_COMM_PROFILE_FLUSH()
+#define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax)
+#define BL_COMM_PROFILE_TAGWRAP()
 
 #endif
 
