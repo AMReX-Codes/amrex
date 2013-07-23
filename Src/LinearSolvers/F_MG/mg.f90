@@ -1162,10 +1162,9 @@ contains
           end do
        end if
 
+!       call print(mgt%uu(lev-1), 'mgt%uu(lev-1)'); stop
+
        call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1), prolongation_type, restriction_type)
-
-       call print(uu,'uu'); stop
-
 
        if (lev == mgt%nlevels) then
             call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), uu, &
