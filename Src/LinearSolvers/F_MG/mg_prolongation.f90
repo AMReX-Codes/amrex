@@ -22,6 +22,8 @@ module mg_prolongation_module
      module procedure nodal_prolongation_3d
   end interface
 
+  private :: cubicInterpolate, bicubicInterpolate, tricubicInterpolate
+
 contains
 
   subroutine pc_c_prolongation_1d(ff, cc, ir)
@@ -380,79 +382,178 @@ contains
 
   end subroutine lin_c_prolongation_3d
 
-  subroutine nodal_prolongation_1d(ff, cc, ir)
-    real (dp_t), intent(inout) :: ff(0:)
-    real (dp_t), intent(in)    :: cc(0:)
-    integer,     intent(in)    :: ir(:)
-    integer                    :: nx, i, l
-    real (dp_t)                :: fac_left, fac_rght, cc_avg
+  pure function cubicInterpolate (p, x) result (r)
+    real (dp_t), intent(in) :: p(0:3), x
+    real (dp_t) r
+    r=p(1)+0.5*x*(p(2)-p(0)+x*(2*p(0)-5*p(1)+4*p(2)-p(3)+x*(3*(p(1)-p(2))+p(3)-p(0))))
+  end function cubicInterpolate
 
-    nx = size(cc,dim=1)-1
+  function bicubicInterpolate (p, x, y) result (r)
+    real (dp_t), intent(in) :: p(0:15), x, y
+    real (dp_t) r, arr(0:3)
+    !
+    ! First interpolate in y.
+    !
+    arr(0) = cubicInterpolate(p( 0:3), x) ! row 0
+    arr(1) = cubicInterpolate(p( 4:7), x) ! row 1
+    arr(2) = cubicInterpolate(p( 8:11),x) ! row 2
+    arr(3) = cubicInterpolate(p(12:15),x) ! row 3
+    !
+    ! Then using those four points interpolate in y.
+    !
+    r = cubicInterpolate(arr, y)
+  end function bicubicInterpolate
+
+  function tricubicInterpolate (p, x, y, z) result (r)
+    real (dp_t), intent(in) :: p(0:63), x, y, z
+    real (dp_t) r, arr(0:3)
+    arr(0) = bicubicInterpolate(p( 0:15), x, y)
+    arr(1) = bicubicInterpolate(p(16:31), x, y)
+    arr(2) = bicubicInterpolate(p(32:47), x, y)
+    arr(3) = bicubicInterpolate(p(48:63), x, y)
+    r = cubicInterpolate(arr, z)
+  end function tricubicInterpolate
+
+  subroutine nodal_prolongation_1d(ff, cc, ir, ng)
+    real (dp_t), intent(inout) :: ff(0:)
+    real (dp_t), intent(in)    :: cc(-ng:)
+    integer,     intent(in)    :: ir(:), ng
+    integer                    :: nx, i, l
+    real (dp_t)                :: fac_left, fac_rght, cc_avg, coeffs(0:15)
+
+    nx = size(cc,dim=1)-2*ng-1
 
     do i = 0, nx
        ff(ir(1)*i) = ff(ir(1)*i) + cc(i)
     end do
 
-    do l = 1, ir(1)-1
-       fac_left = real(l,kind=dp_t) / real(ir(1),kind=dp_t)
-       fac_rght = 1.0_dp_t - fac_left
-       do i = 0, nx - 1
-          cc_avg = fac_left*cc(i) + fac_rght*cc(i+1)
-          ff(ir(1)*i+l) = ff(ir(1)*i+l) + cc_avg
+    if ( ir(1) == 2 ) then
+       !
+       ! Use bicubic interpolation on remaining points.
+       !
+       do i = 0, nx-1
+
+          coeffs(0) = cc(i-1)
+          coeffs(1) = cc(i+0)
+          coeffs(2) = cc(i+1)
+          coeffs(3) = cc(i+2)
+
+          ff(ir(1)*i+1) = ff(ir(1)*i+1) + cubicInterpolate(coeffs, 0.5d0)
        end do
-    end do
-
-  end subroutine nodal_prolongation_1d
-
-  subroutine nodal_prolongation_2d(ff, cc, ir)
-    real (dp_t), intent(inout) :: ff(0:,0:)
-    real (dp_t), intent(inout) :: cc(0:,0:)
-    integer,     intent(in)    :: ir(:)
-    integer                    :: nx, ny, i, j, l, m
-    real (dp_t)                :: fac_left, fac_rght
-    real (dp_t)                :: temp(0:size(ff,dim=1)-1,0:size(ff,dim=2)-1)
-
-    nx = size(cc,dim=1)-1
-    ny = size(cc,dim=2)-1
-    !
-    ! Interpolate at fine nodes on top of coarse nodes.
-    !
-    do j = 0,ny
-       do i = 0,nx
-          temp(ir(1)*i, ir(2)*j) = cc(i,j)
-       end do
-    end do
-    !
-    ! Interpolate at fine nodes between coarse nodes in the i-direction only.
-    !
-    do j = 0,ny
+    else
        do l = 1, ir(1)-1
           fac_left = real(l,kind=dp_t) / real(ir(1),kind=dp_t)
           fac_rght = 1.0_dp_t - fac_left
-          do i = 0,nx-1
-             temp(ir(1)*i+l, ir(2)*j) = fac_left*cc(i,j) + fac_rght*cc(i+1,j)
+          do i = 0, nx - 1
+             cc_avg = fac_left*cc(i) + fac_rght*cc(i+1)
+             ff(ir(1)*i+l) = ff(ir(1)*i+l) + cc_avg
           end do
        end do
-    end do
-    !
-    ! Interpolate in the j-direction using previously interpolated "temp".
-    !
-    do m = 1, ir(2)-1
-       fac_left = real(m,kind=dp_t) / real(ir(2),kind=dp_t)
-       fac_rght = 1.0_dp_t - fac_left
-       do j = 0,ny-1
-          do i = 0,ir(1)*nx
-             temp(i, ir(2)*j+m) = fac_left*temp(i,ir(2)*(j  )) + &
-                                  fac_rght*temp(i,ir(2)*(j+1))
-          end do
-       end do
-    end do
+    end if
 
-    do j = 0,ir(2)*ny
-       do i = 0,ir(1)*nx
-          ff(i,j) = ff(i,j) + temp(i,j)
+  end subroutine nodal_prolongation_1d
+
+  subroutine nodal_prolongation_2d(ff, cc, ir, ng, rtype)
+    real (dp_t), intent(inout) :: ff(0:,0:)
+    real (dp_t), intent(inout) :: cc(-ng:,-ng:)
+    integer,     intent(in)    :: ir(:), ng, rtype
+    integer                    :: nx, ny, i, j, l, m
+    real (dp_t)                :: fac_left, fac_rght, coeffs(0:15)
+    real (dp_t)                :: temp(0:size(ff,dim=1)-1,0:size(ff,dim=2)-1)
+
+    nx = size(cc,dim=1)-2*ng-1
+    ny = size(cc,dim=2)-2*ng-1
+
+    if ( rtype == 1 .and. ir(1) == 2 .and. ir(2) == 2 ) then
+       !
+       ! Use bicubic interpolation.
+       !
+       do j = 0, ny
+          do i = 0, nx
+             !
+             ! Direct injection for fine points overlaying coarse ones.
+             !
+             ff(2*i, 2*j) = ff(2*i, 2*j) + cc(i,j)
+
+             if ( i < nx ) then
+
+                if ( j == ny ) then
+                   coeffs( 0 :  3) = (/ (cc(m,j-2), m=i-1,i+2) /)
+                   coeffs( 4 :  7) = (/ (cc(m,j-1), m=i-1,i+2) /)
+                   coeffs( 8 : 11) = (/ (cc(m,j+0), m=i-1,i+2) /)
+                   coeffs(12 : 15) = (/ (cc(m,j+1), m=i-1,i+2) /)
+                else
+                   coeffs( 0 :  3) = (/ (cc(m,j-1), m=i-1,i+2) /)
+                   coeffs( 4 :  7) = (/ (cc(m,j+0), m=i-1,i+2) /)
+                   coeffs( 8 : 11) = (/ (cc(m,j+1), m=i-1,i+2) /)
+                   coeffs(12 : 15) = (/ (cc(m,j+2), m=i-1,i+2) /)
+                end if
+
+                ff(2*i+1, 2*j) = ff(2*i+1, 2*j) + bicubicInterpolate(coeffs, 0.5d0, 0.0d0) 
+
+                if ( j < ny ) then
+
+                   ff(2*i+1, 2*j+1) = ff(2*i+1, 2*j+1) + bicubicInterpolate(coeffs, 0.5d0, 0.5d0) 
+                end if
+             end if
+
+             if ( j < ny ) then
+
+                if ( i == nx ) then
+                   coeffs( 0 :  3) = (/ (cc(m,j-1), m=i-2,i+1) /)
+                   coeffs( 4 :  7) = (/ (cc(m,j+0), m=i-2,i+1) /)
+                   coeffs( 8 : 11) = (/ (cc(m,j+1), m=i-2,i+1) /)
+                   coeffs(12 : 15) = (/ (cc(m,j+2), m=i-2,i+1) /)
+                end if
+
+                ff(2*i, 2*j+1) = ff(2*i, 2*j+1) + bicubicInterpolate(coeffs, 0.0d0, 0.5d0) 
+             end if
+
+          end do
        end do
-    end do
+
+    else
+       !
+       ! Interpolate at fine nodes on top of coarse nodes.
+       !
+       do j = 0,ny
+          do i = 0,nx
+             temp(ir(1)*i, ir(2)*j) = cc(i,j)
+          end do
+       end do
+       !
+       ! Interpolate at fine nodes between coarse nodes in the i-direction only.
+       !
+       do j = 0,ny
+          do l = 1, ir(1)-1
+             fac_left = real(l,kind=dp_t) / real(ir(1),kind=dp_t)
+             fac_rght = 1.0_dp_t - fac_left
+             do i = 0,nx-1
+                temp(ir(1)*i+l, ir(2)*j) = fac_left*cc(i,j) + fac_rght*cc(i+1,j)
+             end do
+          end do
+       end do
+       !
+       ! Interpolate in the j-direction using previously interpolated "temp".
+       !
+       do m = 1, ir(2)-1
+          fac_left = real(m,kind=dp_t) / real(ir(2),kind=dp_t)
+          fac_rght = 1.0_dp_t - fac_left
+          do j = 0,ny-1
+             do i = 0,ir(1)*nx
+                temp(i, ir(2)*j+m) = fac_left*temp(i,ir(2)*(j  )) + &
+                     fac_rght*temp(i,ir(2)*(j+1))
+             end do
+          end do
+       end do
+
+       do j = 0,ir(2)*ny
+          do i = 0,ir(1)*nx
+             ff(i,j) = ff(i,j) + temp(i,j)
+          end do
+       end do
+
+    end if
 
   end subroutine nodal_prolongation_2d
 
@@ -460,7 +561,7 @@ contains
     real (dp_t), intent(inout) :: ff(0:,0:,0:)
     real (dp_t), intent(in)    :: cc(0:,0:,0:)
     integer,     intent(in)    :: ir(:)
-    integer                    ::  nx, ny, nz, i, j, k, l, m, n
+    integer                    :: nx, ny, nz, i, j, k, l, m, n
     real (dp_t)                :: fac_left, fac_rght
     real (dp_t), allocatable   :: temp(:,:,:)
 
