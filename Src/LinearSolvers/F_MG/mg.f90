@@ -254,27 +254,20 @@ contains
     mgt%bottom_singular    = .false.
     mgt%coeffs_sum_to_zero = .false.
 
-    if (present(is_singular)) then
-
+    if ( present(is_singular) ) then
        mgt%bottom_singular = is_singular
-
     else
-
        ! If we cover the entire domain, then just test on the domain_bc values
-       if (abs(dvol-dvol_pd).lt.1.d-2) then
-   
+       if ( abs(dvol-dvol_pd).lt.1.d-2 ) then
           mgt%bottom_singular = .true.
           do id = 1,mgt%dim
-             if (domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR) mgt%bottom_singular = .false.
+             if ( domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR ) &
+                  mgt%bottom_singular = .false.
           end do
-   
-       ! If we don't cover the entire domain, then this wont be singular
        else
-   
+          ! If we don't cover the entire domain, then this wont be singular
           mgt%bottom_singular = .false.
-   
        end if
-
     end if
 
     ! if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
@@ -724,6 +717,7 @@ contains
     integer             :: i,stat,communicator
     logical             :: singular_test,do_diag
     real(dp_t)          :: nrm, eps
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_bottom_solve")
@@ -957,18 +951,17 @@ contains
 
   end subroutine mg_tower_restriction
 
-  subroutine mg_tower_prolongation(mgt, uu, uu1, ptype)
+  subroutine mg_tower_prolongation(mgt, uu, uu1, ptype, rtype)
 
     use bl_prof_module
     use mg_prolongation_module
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu, uu1
-    integer       , intent(in   ) :: ptype 
+    integer       , intent(in   ) :: ptype, rtype
 
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
-    type(box) :: nbox, nbox1
     integer :: i, n, ir(mgt%dim)
     type(bl_prof_timer), save :: bpt
 
@@ -982,7 +975,7 @@ contains
           fp => dataptr(uu,  i, get_box(uu ,i)) 
           cp => dataptr(uu1, i, get_box(uu1,i))
 
-          if ( ptype .eq. 0 ) then
+          if ( ptype == 0 ) then
              do n = 1, mgt%nc
                 select case ( mgt%dim )
                 case (1)
@@ -1008,18 +1001,20 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,n,nbox,nbox1,fp,cp)
+
+       if ( rtype == 1 ) &
+            call multifab_fill_boundary(uu1)
+
+       !$OMP PARALLEL DO PRIVATE(i,n,fp,cp)
        do i = 1, nfabs(uu)
-          nbox  = box_grow_n_f(get_box(uu,i),1,1)
-          nbox1 = box_grow_n_f(get_box(uu1,i),1,1)
-          fp => dataptr(uu,  i, nbox )
-          cp => dataptr(uu1, i, nbox1)
+          fp => dataptr(uu,  i, get_ibox(uu, i))
+          cp => dataptr(uu1, i, get_pbox(uu1,i))
           do n = 1, mgt%nc
              select case ( mgt%dim )
              case (1)
-                call nodal_prolongation_1d(fp(:,1,1,n), cp(:,1,1,n), ir)
+                call nodal_prolongation_1d(fp(:,1,1,n), cp(:,1,1,n), ir, nghost(uu1))
              case (2)
-                call nodal_prolongation_2d(fp(:,:,1,n), cp(:,:,1,n), ir)
+                call nodal_prolongation_2d(fp(:,:,1,n), cp(:,:,1,n), ir, nghost(uu1), rtype)
              case (3)
                 call nodal_prolongation_3d(fp(:,:,:,n), cp(:,:,:,n), ir)
              end select
@@ -1070,7 +1065,9 @@ contains
   recursive subroutine mg_tower_fmg_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2,&
                                  bottom_level, bottom_solve_time)
 
+    use fabio_module
     use bl_prof_module
+    use impose_neumann_bcs_module
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: rh
@@ -1082,9 +1079,15 @@ contains
     integer, intent(in) :: cyc
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
-    logical :: do_diag
+
+    logical    :: do_diag
     real(dp_t) :: nrm, stime
-    integer :: lbl, prolongation_type
+    real(kind=dp_t), pointer :: up(:,:,:,:)
+    integer        , pointer :: mp(:,:,:,:)
+    integer :: lo(mgt%dim), lom(mgt%dim)
+    integer :: i, lbl, prolongation_type, restriction_type, ng
+    character(len=3) :: number
+    character(len=20) :: filename
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_f_cycle")
@@ -1097,6 +1100,8 @@ contains
 
     ! Piecewise constant: 0,  Piecewise linear: 1, 2, or 3.
     prolongation_type = 0
+    ! 1=bicubic for 2D nodal, 0=linear otherwise
+    restriction_type = 1
 
     if ( lev == lbl ) then
        stime = parallel_wtime()
@@ -1129,16 +1134,38 @@ contains
        ! HACK 
        if ( nodal_q(mgt%dd(lev-1)) ) then
           if ( get_dim(rh) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0)
           else if ( get_dim(rh) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0)
           end if
        end if
   
        call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                       mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
 
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type)
+       ! write(number,fmt='(i3.3)') lev
+       ! if ( restriction_type == 1 ) then
+       !    filename = 'uu_before_p' // number
+       ! else
+       !    filename = 'uu_linear_' // number
+       ! end if
+       ! call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
+
+       if ( nodal_q(uu) .and. restriction_type == 1 ) then
+          do i = 1, nfabs(mgt%uu(lev-1))
+             up  => dataptr(mgt%uu(lev-1), i)
+             mp  => dataptr(mgt%mm(lev-1), i)
+             lom = lwb(get_ibox(mgt%mm(lev-1),i))
+             lo  = lwb(get_pbox(mgt%uu(lev-1),i))
+             ng  = lom(1) - lo(1)
+             call impose_neumann_bcs_2d(up(:,:,1,1),mp(:,:,1,1),lom,ng)
+          end do
+       end if
+
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1), prolongation_type, restriction_type)
+
+       call print(uu,'uu'); stop
+
 
        if (lev == mgt%nlevels) then
             call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), uu, &
@@ -1169,7 +1196,7 @@ contains
     integer, intent(in) :: cyc
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
-    integer :: i, prolongation_type
+    integer :: i, prolongation_type, restriction_type
     logical :: do_diag
     real(dp_t) :: nrm, stime
     integer :: lbl
@@ -1181,6 +1208,7 @@ contains
 
     ! Piecewise constant: 0,  Piecewise linear: 1, 2, or 3.
     prolongation_type = 0
+    restriction_type = 0
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
@@ -1259,9 +1287,9 @@ contains
        ! HACK 
        if ( nodal_q(mgt%dd(lev-1)) ) then
           if ( get_dim(rh) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0)
           else if ( get_dim(rh) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0)
           end if
        end if
 
@@ -1272,7 +1300,7 @@ contains
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
        end do
 
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type)
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type, restriction_type)
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
@@ -1314,7 +1342,7 @@ contains
     integer, intent(in) :: lev
     integer, intent(in) :: nu1, nu2
 
-    integer             :: i, prolongation_type
+    integer             :: i, prolongation_type, restriction_type
     logical             :: do_diag
     real(dp_t)          :: nrm
 
@@ -1322,6 +1350,7 @@ contains
 
     ! Piecewise constant: 0,  Piecewise linear: 1, 2, or 3.
     prolongation_type = 0
+    restriction_type  = 0
 
     ! Always relax first at the level we come in at
     if ( do_diag ) then
@@ -1354,9 +1383,9 @@ contains
        ! HACK 
        if ( nodal_q(mgt%dd(lev-1)) ) then
           if ( get_dim(ss) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0)
           else if ( get_dim(ss) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0)
           end if
        end if
 
@@ -1380,7 +1409,7 @@ contains
              print *,'MINI_CRSE: Norm  after smooth         ',nrm
        end if
 
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type)
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type, restriction_type)
 
        if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
