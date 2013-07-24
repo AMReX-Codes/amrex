@@ -1086,7 +1086,7 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: lo(mgt%dim), lom(mgt%dim)
-    integer :: i, lbl, prolongation_type, restriction_type, ng
+    integer :: i, lbl, cc_ptype, nd_ptype, ng
 !    character(len=3) :: number
 !    character(len=20) :: filename
     type(bl_prof_timer), save :: bpt
@@ -1098,11 +1098,20 @@ contains
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
     call setval(uu,ZERO,all=.true.)
-
-    ! Piecewise constant: 0,  Piecewise linear: 1, 2, or 3.
-    prolongation_type = 0
-    ! 1=bicubic for 2D nodal, 0=linear otherwise
-    restriction_type = 0
+    !
+    ! Prolongation types for Cell-centered:
+    !
+    !   Piecewise constant: 0
+    !   Piecewise linear:   1, 2, or 3
+    !
+    cc_ptype = 0
+    !
+    ! Prolongation types for Nodal:
+    ! 
+    !   Piecewise linear: 0
+    !   2D bicubic:       1
+    !
+    nd_ptype = 0
 
     if ( lev == lbl ) then
        stime = parallel_wtime()
@@ -1144,15 +1153,15 @@ contains
        call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                       mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
 
-        ! write(number,fmt='(i3.3)') lev
-        ! if ( restriction_type == 1 ) then
-        !    filename = 'uu_before_p' // number
-        ! else
-        !    filename = 'uu_linear_' // number
-        ! end if
-        ! call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
+       ! write(number,fmt='(i3.3)') lev
+       ! if ( nd_ptype == 1 ) then
+       !    filename = 'uu_before_p' // number
+       ! else
+       !    filename = 'uu_linear_' // number
+       ! end if
+       ! call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
 
-       if ( nodal_q(uu) .and. restriction_type == 1 ) then
+       if ( nodal_q(uu) .and. nd_ptype == 1 ) then
           do i = 1, nfabs(mgt%uu(lev-1))
              up  => dataptr(mgt%uu(lev-1), i)
              mp  => dataptr(mgt%mm(lev-1), i)
@@ -1163,9 +1172,7 @@ contains
           end do
        end if
 
-!       call print(mgt%uu(lev-1), 'mgt%uu(lev-1)'); stop
-
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1), prolongation_type, restriction_type)
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1), cc_ptype, nd_ptype)
 
        if (lev == mgt%nlevels) then
             call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), uu, &
@@ -1196,7 +1203,7 @@ contains
     integer, intent(in) :: cyc
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
-    integer :: i, prolongation_type, restriction_type
+    integer :: i, cc_ptype, nd_ptype
     logical :: do_diag
     real(dp_t) :: nrm, stime
     integer :: lbl
@@ -1206,12 +1213,21 @@ contains
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
-    ! Piecewise constant: 0,  Piecewise linear: 1, 2, or 3.
-    prolongation_type = 0
-    ! 1=bicubic for 2D nodal, 0=linear otherwise
-    restriction_type = 0
-
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
+    !
+    ! Prolongation types for Cell-centered:
+    !
+    !   Piecewise constant: 0
+    !   Piecewise linear:   1, 2, or 3
+    !
+    cc_ptype = 0
+    !
+    ! Prolongation types for Nodal:
+    ! 
+    !   Piecewise linear: 0
+    !   2D bicubic:       1
+    !
+    nd_ptype = 0
 
     if ( parallel_IOProcessor() .and. do_diag) &
          write(6,1000) lev
@@ -1301,7 +1317,7 @@ contains
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
        end do
 
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type, restriction_type)
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1), cc_ptype, nd_ptype)
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
@@ -1343,16 +1359,25 @@ contains
     integer, intent(in) :: lev
     integer, intent(in) :: nu1, nu2
 
-    integer             :: i, prolongation_type, restriction_type
+    integer             :: i, cc_ptype, nd_ptype
     logical             :: do_diag
     real(dp_t)          :: nrm
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
-
-    ! Piecewise constant: 0,  Piecewise linear: 1, 2, or 3.
-    prolongation_type = 0
-    ! 1=bicubic for 2D nodal, 0=linear otherwise
-    restriction_type  = 0
+    !
+    ! Prolongation types for Cell-centered:
+    !
+    !   Piecewise constant: 0
+    !   Piecewise linear:   1, 2, or 3
+    !
+    cc_ptype = 0
+    !
+    ! Prolongation types for Nodal:
+    ! 
+    !   Piecewise linear: 0
+    !   2D bicubic:       1
+    !
+    nd_ptype = 0
 
     ! Always relax first at the level we come in at
     if ( do_diag ) then
@@ -1411,7 +1436,7 @@ contains
              print *,'MINI_CRSE: Norm  after smooth         ',nrm
        end if
 
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1),prolongation_type, restriction_type)
+       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1), cc_ptype, nd_ptype)
 
        if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
