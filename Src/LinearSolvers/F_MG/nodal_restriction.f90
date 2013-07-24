@@ -170,12 +170,12 @@ contains
     real(dp_t) :: fac,fac0,fac1
     logical    :: add_lo_x, add_lo_y, add_hi_x, add_hi_y
 
+    real(dp_t), parameter :: one16th = 1.0d0 / 16.0d0
+
     hif(1) = lof(1)+size(ff,dim=1)-1
     hif(2) = lof(2)+size(ff,dim=2)-1
     
     ng = lom_fine(1) - lof(1)
-
-    call impose_neumann_bcs_2d(ff,mm_fine,lom_fine,ng)
 
     if ( inject ) then
 
@@ -186,32 +186,34 @@ contains
        end do
 
     else if ( mg_restriction_mode == 1 ) then
+       !
+       ! As far as I can tell this is only called by MultiGrid.
+       !
+       call bl_assert(ir(1)==2 .and. ir(2)==2, 'nodal_restriction_2d: ir==2')
 
-       fac0 = 1.0_dp_t / (ir(1)*ir(2))
+       call impose_neumann_bcs_2d(ff,mm_fine,lom_fine,ng)
 
        do j = lo(2),hi(2)
           jfine = j*ir(2)
           do i = lo(1),hi(1)
              ifine = i*ir(1)
-             if (.not. bc_dirichlet(mm_fine(ifine,jfine),1,0)) then
-                do n = 0, ir(2)-1
-                   fac1 = (ir(2)-n) * fac0
-                   if (n == 0) fac1 = HALF * fac1
-                   do m = 0, ir(1)-1
-                      fac = (ir(1)-m) * fac1
-                      if (m == 0) fac = HALF * fac
-                      cc(i,j) = cc(i,j) + fac * ( &
-                           ff(ifine-m,jfine-n) +  &
-                           ff(ifine+m,jfine-n) +  &
-                           ff(ifine-m,jfine+n) +  &
-                           ff(ifine+m,jfine+n) )
-                   end do
-                end do
+             if ( .not. bc_dirichlet(mm_fine(ifine,jfine),1,0) ) then
+                !
+                ! The "classic" full-weighting.
+                !
+                cc(i,j) = one16th * ( &
+                     ff(ifine-1,jfine-1) + ff(ifine-1,jfine+1) + ff(ifine+1,jfine-1) + ff(ifine+1,jfine+1) + &
+                     2*( ff(ifine,jfine-1) + ff(ifine,jfine+1) + ff(ifine-1,jfine) + ff(ifine+1,jfine) ) + &
+                     4*ff(ifine,jfine) )
              end if
-         end do
+          end do
        end do
 
     else
+       !
+       ! As far as I can tell this is only called by multi-level solves.
+       !
+       call impose_neumann_bcs_2d(ff,mm_fine,lom_fine,ng)
 
        fac0 = 1.0_dp_t / (ir(1)*ir(2))
 
@@ -323,7 +325,7 @@ contains
 
     ng = lom_fine(1) - lof(1)
 
-    call impose_neumann_bcs_3d(ff,mm_fine,lom_fine,ng)
+
 
     if ( inject ) then
 
@@ -336,6 +338,12 @@ contains
        end do
 
     else if ( mg_restriction_mode == 1 ) then
+       !
+       ! As far as I can tell this is only called by MultiGrid.
+       !
+       call bl_assert(ir(1)==2 .and. ir(2)==2 .and. ir(3)==2, 'nodal_restriction_3d: ir==2')
+
+       call impose_neumann_bcs_3d(ff,mm_fine,lom_fine,ng)
 
        fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
 
@@ -385,6 +393,10 @@ contains
        end do
 
     else
+       !
+       ! As far as I can tell this is only called by multi-level solves.
+       !
+       call impose_neumann_bcs_3d(ff,mm_fine,lom_fine,ng)
 
        fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
 
