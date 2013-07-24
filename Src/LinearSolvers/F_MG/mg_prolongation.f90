@@ -414,12 +414,12 @@ contains
     r = cubicInterpolate(arr, z)
   end function tricubicInterpolate
 
-  subroutine nodal_prolongation_1d(ff, cc, ir, ng)
+  subroutine nodal_prolongation_1d(ff, cc, ir, ng, ptype)
     real (dp_t), intent(inout) :: ff(0:)
     real (dp_t), intent(in)    :: cc(-ng:)
-    integer,     intent(in)    :: ir(:), ng
+    integer,     intent(in)    :: ir(:), ng, ptype
     integer                    :: nx, i, l
-    real (dp_t)                :: fac_left, fac_rght, cc_avg, coeffs(0:15)
+    real (dp_t)                :: fac_left, fac_rght, cc_avg, coeffs(0:3)
 
     nx = size(cc,dim=1)-2*ng-1
 
@@ -427,9 +427,9 @@ contains
        ff(ir(1)*i) = ff(ir(1)*i) + cc(i)
     end do
 
-    if ( ir(1) == 2 ) then
+    if ( ptype == 1 .and. ir(1) == 2 ) then
        !
-       ! Use cubic interpolation on remaining points.
+       ! Use cubic interpolation on interior points.
        !
        do i = 0, nx-1
 
@@ -468,12 +468,57 @@ contains
     nx = size(cc,dim=1)-2*ng-1
     ny = size(cc,dim=2)-2*ng-1
 
-    if ( ptype == 1 .and. ir(1) == 2 .and. ir(2) == 2 ) then
+    if ( ptype == 0 ) then
+       !
+       ! Linear interp.
+       !
+       ! Direct injection for fine points overlaying coarse ones.
+       !
+       do j = 0,ny
+          do i = 0,nx
+             temp(ir(1)*i, ir(2)*j) = cc(i,j)
+          end do
+       end do
+       !
+       ! Interpolate at fine nodes between coarse nodes in the i-direction only.
+       !
+       do j = 0,ny
+          do l = 1, ir(1)-1
+             fac_left = real(l,kind=dp_t) / real(ir(1),kind=dp_t)
+             fac_rght = 1.0_dp_t - fac_left
+             do i = 0,nx-1
+                temp(ir(1)*i+l, ir(2)*j) = fac_left*cc(i,j) + fac_rght*cc(i+1,j)
+             end do
+          end do
+       end do
+       !
+       ! Interpolate in the j-direction using previously interpolated "temp".
+       !
+       do m = 1, ir(2)-1
+          fac_left = real(m,kind=dp_t) / real(ir(2),kind=dp_t)
+          fac_rght = 1.0_dp_t - fac_left
+          do j = 0,ny-1
+             do i = 0,ir(1)*nx
+                temp(i, ir(2)*j+m) = fac_left*temp(i,ir(2)*(j  )) + &
+                     fac_rght*temp(i,ir(2)*(j+1))
+             end do
+          end do
+       end do
 
-       call bl_assert(ng >= 1, 'nodal_prolongation_2d')
+       do j = 0,ir(2)*ny
+          do i = 0,ir(1)*nx
+             ff(i,j) = ff(i,j) + temp(i,j)
+          end do
+       end do
+
+    else
        !
        ! Use bicubic interpolation.
        !
+       call bl_assert( ptype == 1 ,              'nodal_prolongation_2d: ptype == 1')
+       call bl_assert( ir(1)==2 .and. ir(2)== 2, 'nodal_prolongation_2d: ir==2')
+       call bl_assert( ng >= 1,                  'nodal_prolongation_2d: ng >= 1')
+
        do j = 0, ny
           do i = 0, nx
              !
@@ -518,47 +563,6 @@ contains
           end do
        end do
 
-    else
-       !
-       ! Interpolate at fine nodes on top of coarse nodes.
-       !
-       do j = 0,ny
-          do i = 0,nx
-             temp(ir(1)*i, ir(2)*j) = cc(i,j)
-          end do
-       end do
-       !
-       ! Interpolate at fine nodes between coarse nodes in the i-direction only.
-       !
-       do j = 0,ny
-          do l = 1, ir(1)-1
-             fac_left = real(l,kind=dp_t) / real(ir(1),kind=dp_t)
-             fac_rght = 1.0_dp_t - fac_left
-             do i = 0,nx-1
-                temp(ir(1)*i+l, ir(2)*j) = fac_left*cc(i,j) + fac_rght*cc(i+1,j)
-             end do
-          end do
-       end do
-       !
-       ! Interpolate in the j-direction using previously interpolated "temp".
-       !
-       do m = 1, ir(2)-1
-          fac_left = real(m,kind=dp_t) / real(ir(2),kind=dp_t)
-          fac_rght = 1.0_dp_t - fac_left
-          do j = 0,ny-1
-             do i = 0,ir(1)*nx
-                temp(i, ir(2)*j+m) = fac_left*temp(i,ir(2)*(j  )) + &
-                     fac_rght*temp(i,ir(2)*(j+1))
-             end do
-          end do
-       end do
-
-       do j = 0,ir(2)*ny
-          do i = 0,ir(1)*nx
-             ff(i,j) = ff(i,j) + temp(i,j)
-          end do
-       end do
-
     end if
 
   end subroutine nodal_prolongation_2d
@@ -577,7 +581,7 @@ contains
     ny = size(cc,dim=2)-1
     nz = size(cc,dim=3)-1
     !
-    ! Interpolate at fine nodes on top of coarse nodes.
+    ! Direct injection for fine points overlaying coarse ones.
     !
     do k = 0,nz
        do j = 0,ny
