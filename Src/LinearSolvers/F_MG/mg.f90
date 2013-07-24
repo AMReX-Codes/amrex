@@ -950,32 +950,36 @@ contains
     call destroy(bpt)
 
   end subroutine mg_tower_restriction
-
-  subroutine mg_tower_prolongation(mgt, uu, uu1, ptype, rtype)
+  !
+  ! Prolongate from mgt%uu(lev) -> uu.
+  !
+  subroutine mg_tower_prolongation(mgt, uu, lev, cc_ptype, nd_ptype)
 
     use bl_prof_module
     use mg_prolongation_module
 
     type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: uu, uu1
-    integer       , intent(in   ) :: ptype, rtype
+    type(multifab), intent(inout) :: uu
+    integer       , intent(in   ) :: lev, cc_ptype, nd_ptype
 
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: cp(:,:,:,:)
-    integer :: i, n, ir(mgt%dim)
+    real(kind=dp_t), pointer  :: fp(:,:,:,:), cp(:,:,:,:), up(:,:,:,:)
+    integer        , pointer  :: mp(:,:,:,:)
+    integer                   :: i, j, n, ng, ir(mgt%dim)
+    integer                   :: lo(mgt%dim), hi(mgt%dim), lom(mgt%dim)
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_prolongation")
 
     ir = 2
+    ng = nghost(mgt%uu(lev))
 
     if ( .not. nodal_q(uu) ) then
        !$OMP PARALLEL DO PRIVATE(i,n,fp,cp)
        do i = 1, nfabs(uu)
-          fp => dataptr(uu,  i, get_box(uu ,i)) 
-          cp => dataptr(uu1, i, get_box(uu1,i))
+          fp => dataptr(uu,          i, get_box(uu         ,i)) 
+          cp => dataptr(mgt%uu(lev), i, get_box(mgt%uu(lev),i))
 
-          if ( ptype == 0 ) then
+          if ( cc_ptype == 0 ) then
              do n = 1, mgt%nc
                 select case ( mgt%dim )
                 case (1)
@@ -992,9 +996,9 @@ contains
                 case (1)
                    call lin_c_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir)
                 case (2)
-                   call lin_c_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir, ptype)
+                   call lin_c_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir, cc_ptype)
                 case (3)
-                   call lin_c_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir, ptype)
+                   call lin_c_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir, cc_ptype)
                 end select
              end do
           end if
@@ -1002,26 +1006,62 @@ contains
        !$OMP END PARALLEL DO
     else
 
-       if ( rtype == 1 ) then
-          call multifab_fill_boundary(uu1)
-       end if
+      if ( nd_ptype == 1 ) then
+         call multifab_fill_boundary(mgt%uu(lev))
+
+         do i = 1, nfabs(mgt%uu(lev))
+            up  => dataptr(mgt%uu(lev), i)
+            mp  => dataptr(mgt%mm(lev), i)
+            lom =  lwb(get_ibox(mgt%mm(lev),i))
+            lo  =  lwb(get_pbox(mgt%uu(lev),i))
+            ng  =  lom(1) - lo(1)
+            call impose_neumann_bcs_2d(up(:,:,1,1),mp(:,:,1,1),lom,ng)
+         end do
+      end if
 
        !$OMP PARALLEL DO PRIVATE(i,n,fp,cp)
        do i = 1, nfabs(uu)
-          fp => dataptr(uu,  i, get_ibox(uu, i))
-          cp => dataptr(uu1, i, get_pbox(uu1,i))
+          fp => dataptr(uu,          i, get_ibox(uu         ,i))
+          cp => dataptr(mgt%uu(lev), i, get_pbox(mgt%uu(lev),i))
           do n = 1, mgt%nc
              select case ( mgt%dim )
              case (1)
-                call nodal_prolongation_1d(fp(:,1,1,n), cp(:,1,1,n), ir, nghost(uu1))
+                call nodal_prolongation_1d(fp(:,1,1,n), cp(:,1,1,n), ir, ng, nd_ptype)
              case (2)
-                call nodal_prolongation_2d(fp(:,:,1,n), cp(:,:,1,n), ir, nghost(uu1), rtype)
+                call nodal_prolongation_2d(fp(:,:,1,n), cp(:,:,1,n), ir, ng, nd_ptype)
              case (3)
                 call nodal_prolongation_3d(fp(:,:,:,n), cp(:,:,:,n), ir)
              end select
           end do
        end do
        !$OMP END PARALLEL DO
+
+       if ( nd_ptype == 1 .and. mgt%dim == 2 ) then
+          !
+          ! The bicubic interpolator doesn't preserve dirichlet BCs.
+          !
+          do n = 1, nfabs(uu)
+             up  => dataptr(uu           ,n)
+             mp  => dataptr(mgt%mm(lev+1),n)
+             lo  =  lwb(get_ibox(uu,n))
+             hi  =  upb(get_ibox(uu,n))
+
+             do j = lo(2),hi(2)
+                if ( bc_dirichlet(mp(lo(1),j,1,1),1,0) ) up(lo(1),j,1,1) = ZERO
+                if ( bc_dirichlet(mp(hi(1),j,1,1),1,0) ) up(hi(1),j,1,1) = ZERO
+             end do
+
+             do i = lo(1),hi(1)
+                if ( bc_dirichlet(mp(i,lo(2),1,1),1,0) ) up(i,lo(2),1,1) = ZERO
+                if ( bc_dirichlet(mp(i,hi(2),1,1),1,0) ) up(i,hi(2),1,1) = ZERO
+             end do
+          end do
+          !
+          ! Nor does it preserve the value of shared nodes (ones at grid boundaries).
+          !
+          call multifab_internal_sync(uu)
+       end if
+
     endif
 
     call destroy(bpt)
@@ -1070,25 +1110,22 @@ contains
     use bl_prof_module
     use impose_neumann_bcs_module
 
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: rh
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in) :: ss
-    type(imultifab), intent(in) :: mm
-    integer, intent(in) :: lev
-    integer, intent(in) :: nu1, nu2
-    integer, intent(in) :: cyc
-    integer, intent(in), optional :: bottom_level
-    real(dp_t), intent(inout), optional :: bottom_solve_time
+    type(mg_tower),  intent(inout) :: mgt
+    type(multifab),  intent(inout) :: rh
+    type(multifab),  intent(inout) :: uu
+    type(multifab),  intent(in   ) :: ss
+    type(imultifab), intent(in   ) :: mm
+    integer,         intent(in   ) :: lev
+    integer,         intent(in   ) :: nu1, nu2
+    integer,         intent(in   ) :: cyc
+    integer,         intent(in   ), optional :: bottom_level
+    real(dp_t),      intent(inout), optional :: bottom_solve_time
 
-    logical    :: do_diag
-    real(dp_t) :: nrm, stime
-    real(kind=dp_t), pointer :: up(:,:,:,:)
-    integer        , pointer :: mp(:,:,:,:)
-    integer :: lo(mgt%dim), lom(mgt%dim)
-    integer :: i, lbl, cc_ptype, nd_ptype, ng
-!    character(len=3) :: number
-!    character(len=20) :: filename
+    logical                   :: do_diag
+    real(dp_t)                :: nrm, stime
+    integer                   :: lbl, cc_ptype, nd_ptype
+    character(len=3)          :: number
+    character(len=20)         :: filename
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_f_cycle")
@@ -1153,26 +1190,21 @@ contains
        call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                       mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
 
-       ! write(number,fmt='(i3.3)') lev
-       ! if ( nd_ptype == 1 ) then
-       !    filename = 'uu_before_p' // number
-       ! else
-       !    filename = 'uu_linear_' // number
-       ! end if
-       ! call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
-
-       if ( nodal_q(uu) .and. nd_ptype == 1 ) then
-          do i = 1, nfabs(mgt%uu(lev-1))
-             up  => dataptr(mgt%uu(lev-1), i)
-             mp  => dataptr(mgt%mm(lev-1), i)
-             lom = lwb(get_ibox(mgt%mm(lev-1),i))
-             lo  = lwb(get_pbox(mgt%uu(lev-1),i))
-             ng  = lom(1) - lo(1)
-             call impose_neumann_bcs_2d(up(:,:,1,1),mp(:,:,1,1),lom,ng)
-          end do
+       if ( .false. ) then
+          !
+          ! Some debugging code I want to keep around for a while.
+          ! I don't want to have to recreate this all the time :-)
+          !
+          write(number,fmt='(i3.3)') lev
+          if ( nd_ptype == 1 ) then
+             filename = 'uu_before_p' // number
+          else
+             filename = 'uu_linear_' // number
+          end if
+          call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
        end if
-
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1), cc_ptype, nd_ptype)
+          
+       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nd_ptype)
 
        if (lev == mgt%nlevels) then
             call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), uu, &
@@ -1317,7 +1349,7 @@ contains
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
        end do
 
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1), cc_ptype, nd_ptype)
+       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nd_ptype)
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
@@ -1436,7 +1468,7 @@ contains
              print *,'MINI_CRSE: Norm  after smooth         ',nrm
        end if
 
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1), cc_ptype, nd_ptype)
+       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nd_ptype)
 
        if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
