@@ -1087,8 +1087,8 @@ contains
     integer        , pointer :: mp(:,:,:,:)
     integer :: lo(mgt%dim), lom(mgt%dim)
     integer :: i, lbl, prolongation_type, restriction_type, ng
-    character(len=3) :: number
-    character(len=20) :: filename
+!    character(len=3) :: number
+!    character(len=20) :: filename
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_f_cycle")
@@ -1102,7 +1102,7 @@ contains
     ! Piecewise constant: 0,  Piecewise linear: 1, 2, or 3.
     prolongation_type = 0
     ! 1=bicubic for 2D nodal, 0=linear otherwise
-    restriction_type = 1
+    restriction_type = 0
 
     if ( lev == lbl ) then
        stime = parallel_wtime()
@@ -1135,22 +1135,22 @@ contains
        ! HACK 
        if ( nodal_q(mgt%dd(lev-1)) ) then
           if ( get_dim(rh) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
           else if ( get_dim(rh) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
           end if
        end if
   
        call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                       mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
 
-       ! write(number,fmt='(i3.3)') lev
-       ! if ( restriction_type == 1 ) then
-       !    filename = 'uu_before_p' // number
-       ! else
-       !    filename = 'uu_linear_' // number
-       ! end if
-       ! call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
+        ! write(number,fmt='(i3.3)') lev
+        ! if ( restriction_type == 1 ) then
+        !    filename = 'uu_before_p' // number
+        ! else
+        !    filename = 'uu_linear_' // number
+        ! end if
+        ! call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
 
        if ( nodal_q(uu) .and. restriction_type == 1 ) then
           do i = 1, nfabs(mgt%uu(lev-1))
@@ -1208,6 +1208,7 @@ contains
 
     ! Piecewise constant: 0,  Piecewise linear: 1, 2, or 3.
     prolongation_type = 0
+    ! 1=bicubic for 2D nodal, 0=linear otherwise
     restriction_type = 0
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
@@ -1287,9 +1288,9 @@ contains
        ! HACK 
        if ( nodal_q(mgt%dd(lev-1)) ) then
           if ( get_dim(rh) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
           else if ( get_dim(rh) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
           end if
        end if
 
@@ -1350,6 +1351,7 @@ contains
 
     ! Piecewise constant: 0,  Piecewise linear: 1, 2, or 3.
     prolongation_type = 0
+    ! 1=bicubic for 2D nodal, 0=linear otherwise
     restriction_type  = 0
 
     ! Always relax first at the level we come in at
@@ -1383,9 +1385,9 @@ contains
        ! HACK 
        if ( nodal_q(mgt%dd(lev-1)) ) then
           if ( get_dim(ss) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
           else if ( get_dim(ss) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0,nghost(mgt%dd(lev-1)))
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
           end if
        end if
 
