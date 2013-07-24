@@ -456,7 +456,8 @@ contains
 
   end subroutine nodal_prolongation_1d
 
-  recursive subroutine nodal_prolongation_2d(ff, cc, ir, ng, ptype)
+  subroutine nodal_prolongation_2d(ff, cc, ir, ng, ptype)
+    use bl_error_module
     real (dp_t), intent(inout) :: ff(0:,0:)
     real (dp_t), intent(inout) :: cc(-ng:,-ng:)
     integer,     intent(in)    :: ir(:), ng, ptype
@@ -468,6 +469,8 @@ contains
     ny = size(cc,dim=2)-2*ng-1
 
     if ( ptype == 1 .and. ir(1) == 2 .and. ir(2) == 2 ) then
+
+       call bl_assert(ng >= 1, 'nodal_prolongation_2d')
        !
        ! Use bicubic interpolation.
        !
