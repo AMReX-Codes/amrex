@@ -199,12 +199,13 @@ contains
              ifine = i*ir(1)
              if ( .not. bc_dirichlet(mm_fine(ifine,jfine),1,0) ) then
                 !
-                ! The "classic" full-weighting.
+                ! The "classic" full-weighting for 2D.
                 !
                 cc(i,j) = one16th * ( &
-                     ff(ifine-1,jfine-1) + ff(ifine-1,jfine+1) + ff(ifine+1,jfine-1) + ff(ifine+1,jfine+1) + &
-                     2*( ff(ifine,jfine-1) + ff(ifine,jfine+1) + ff(ifine-1,jfine) + ff(ifine+1,jfine) ) + &
-                     4*ff(ifine,jfine) )
+                     4*ff(ifine,jfine) + &
+                     2*( ff(ifine-1,jfine  ) + ff(ifine+1,jfine  ) + ff(ifine,  jfine-1) + ff(ifine,  jfine+1) ) + &
+                       ( ff(ifine-1,jfine-1) + ff(ifine+1,jfine-1) + ff(ifine-1,jfine+1) + ff(ifine+1,jfine+1) ) )
+
              end if
           end do
        end do
@@ -312,20 +313,20 @@ contains
     integer,    intent(in   ) :: mg_restriction_mode
 
     integer    :: i, j, k, l, m, n, ng
-    integer    :: ifine, jfine, kfine
+    integer    :: fi, fj, fk
     integer    :: ileft, irght, jbot, jtop, kdwn, kup
     integer    :: hif(3)
     real(dp_t) :: fac, fac0, fac1, fac2
     logical    :: add_lo_x, add_lo_y, add_lo_z, add_hi_x, add_hi_y, add_hi_z
     logical    :: doit, jface, kface
 
+    real(dp_t), parameter :: one64th = 1.0d0 / 64.0d0
+
     hif(1) = lof(1)+size(ff,dim=1)-1
     hif(2) = lof(2)+size(ff,dim=2)-1
     hif(3) = lof(3)+size(ff,dim=3)-1
 
     ng = lom_fine(1) - lof(1)
-
-
 
     if ( inject ) then
 
@@ -345,48 +346,38 @@ contains
 
        call impose_neumann_bcs_3d(ff,mm_fine,lom_fine,ng)
 
-       fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
-
        do k = lo(3),hi(3)
-          kfine = k*ir(3)
+          fk    = k*ir(3)
           kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
           do j = lo(2),hi(2)
-             jfine = j*ir(2)
+             fj    = j*ir(2)
              jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
              do i = lo(1),hi(1)
-                ifine = i*ir(1)
-                doit  = .true.
+                fi   = i*ir(1)
+                doit = .true.
 
                 if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
-                   if ( bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0) ) doit = .false.
+                   if ( bc_dirichlet(mm_fine(fi,fj,fk),1,0) ) doit = .false.
                 end if
 
-                if (doit) then
-                   do l = 0, ir(3)-1
-                      fac2 = (ir(3)-l) * fac0
-                      if (l == 0) fac2 = HALF * fac2
-                      do n = 0, ir(2)-1
-                         fac1 = (ir(2)-n) * fac2
-                         if (n == 0) fac1 = HALF * fac1
-                         do m = 0, ir(1)-1
-                            fac = (ir(1)-m) * fac1
-                            if (m == 0) fac = HALF * fac
+                if ( doit ) then
+                   !
+                   ! Full weighting restrictor in 3D.
+                   !
+                   cc(i,j,k) = one64th * ( &
+                        ( 8*ff(fi,fj,fk  ) + &
+                          4*( ff(fi-1,fj,  fk  ) + ff(fi+1,fj,  fk  ) + ff(fi,  fj-1,fk  ) + ff(fi,  fj+1,fk  ) ) + &
+                          2*( ff(fi-1,fj-1,fk  ) + ff(fi+1,fj-1,fk  ) + ff(fi-1,fj+1,fk  ) + ff(fi+1,fj+1,fk  ) ) ) + &
 
-                            cc(i,j,k) = cc(i,j,k) + fac * (    &
-                                 ff(ifine-m,jfine-n,kfine-l) + &
-                                 ff(ifine+m,jfine-n,kfine-l) + &
-                                 ff(ifine-m,jfine+n,kfine-l) + &
-                                 ff(ifine+m,jfine+n,kfine-l) + &
-                                 ff(ifine-m,jfine-n,kfine+l) + &
-                                 ff(ifine+m,jfine-n,kfine+l) + &
-                                 ff(ifine-m,jfine+n,kfine+l) + &
-                                 ff(ifine+m,jfine+n,kfine+l) )
+                        ( 4*ff(fi,fj,fk-1) + &
+                          2*( ff(fi-1,fj,  fk-1) + ff(fi+1,fj,  fk-1) + ff(fi,  fj-1,fk-1) + ff(fi,  fj+1,fk-1) ) + &
+                            ( ff(fi-1,fj-1,fk-1) + ff(fi+1,fj-1,fk-1) + ff(fi-1,fj+1,fk-1) + ff(fi+1,fj+1,fk-1) ) ) + &
 
-                         end do
-                      end do
-                   end do
+                        ( 4*ff(fi,fj,fk+1) + &
+                          2*( ff(fi-1,fj,  fk+1) + ff(fi+1,fj,  fk+1) + ff(fi,  fj-1,fk+1) + ff(fi,  fj+1,fk+1) ) + &
+                            ( ff(fi-1,fj-1,fk+1) + ff(fi+1,fj-1,fk+1) + ff(fi-1,fj+1,fk+1) + ff(fi+1,fj+1,fk+1) ) ) )
                 end if
              end do
           end do
@@ -401,22 +392,22 @@ contains
        fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
 
        do k = lo(3),hi(3)
-          kfine = k*ir(3)
+          fk    = k*ir(3)
           kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
           do j = lo(2),hi(2)
-             jfine = j*ir(2)
+             fj    = j*ir(2)
              jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
              do i = lo(1),hi(1)
-                ifine = i*ir(1)
-                doit  = .true.
+                fi   = i*ir(1)
+                doit = .true.
 
                 if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
-                   if ( bc_dirichlet(mm_fine(ifine,jfine,kfine),1,0) ) doit = .false.
+                   if ( bc_dirichlet(mm_fine(fi,fj,fk),1,0) ) doit = .false.
                 end if
 
-                if (doit) then
+                if ( doit ) then
 
                    do l = 0, ir(3)-1
                       fac2 = (ir(3)-l) * fac0
@@ -435,49 +426,49 @@ contains
                             add_hi_y = .true.
                             add_hi_z = .true.
 
-                            ileft = ifine-m
-                            irght = ifine+m
-                            jbot  = jfine-n
-                            jtop  = jfine+n
-                            kdwn  = kfine-l
-                            kup   = kfine+l
+                            ileft = fi-m
+                            irght = fi+m
+                            jbot  = fj-n
+                            jtop  = fj+n
+                            kdwn  = fk-l
+                            kup   = fk+l
 
-                            if ( ifine == lof(1)+1 ) then
-                               if ( bc_neumann(mm_fine(ifine,jfine,kfine),1,-1) ) then
+                            if ( fi == lof(1)+1 ) then
+                               if ( bc_neumann(mm_fine(fi,fj,fk),1,-1) ) then
                                   ileft = irght
                                else
                                   add_lo_x = .false. 
                                end if
-                            else if ( ifine == hif(1)-1 ) then
-                               if ( bc_neumann(mm_fine(ifine,jfine,kfine),1,+1) ) then
+                            else if ( fi == hif(1)-1 ) then
+                               if ( bc_neumann(mm_fine(fi,fj,fk),1,+1) ) then
                                   irght = ileft
                                else
                                   add_hi_x = .false.
                                end if
                             end if
 
-                            if ( jfine == lof(2)+1 ) then
-                               if ( bc_neumann(mm_fine(ifine,jfine,kfine),2,-1) ) then
+                            if ( fj == lof(2)+1 ) then
+                               if ( bc_neumann(mm_fine(fi,fj,fk),2,-1) ) then
                                   jbot = jtop
                                else
                                   add_lo_y = .false.
                                end if
-                            else if ( jfine == hif(2)-1 ) then
-                               if ( bc_neumann(mm_fine(ifine,jfine,kfine),2,+1) ) then
+                            else if ( fj == hif(2)-1 ) then
+                               if ( bc_neumann(mm_fine(fi,fj,fk),2,+1) ) then
                                   jtop = jbot
                                else
                                   add_hi_y = .false.
                                end if
                             end if
 
-                            if ( kfine == lof(3)+1 ) then
-                               if ( bc_neumann(mm_fine(ifine,jfine,kfine),3,-1) ) then
+                            if ( fk == lof(3)+1 ) then
+                               if ( bc_neumann(mm_fine(fi,fj,fk),3,-1) ) then
                                   kdwn = kup
                                else
                                   add_lo_z = .false.
                                end if
-                            else if ( kfine == hif(3)-1 ) then
-                               if ( bc_neumann(mm_fine(ifine,jfine,kfine),3,+1) ) then
+                            else if ( fk == hif(3)-1 ) then
+                               if ( bc_neumann(mm_fine(fi,fj,fk),3,+1) ) then
                                   kup = kdwn
                                else
                                   add_hi_z = .false.
