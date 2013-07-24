@@ -456,10 +456,10 @@ contains
 
   end subroutine nodal_prolongation_1d
 
-  recursive subroutine nodal_prolongation_2d(ff, cc, ir, ng, rtype)
+  recursive subroutine nodal_prolongation_2d(ff, cc, ir, ng, ptype)
     real (dp_t), intent(inout) :: ff(0:,0:)
     real (dp_t), intent(inout) :: cc(-ng:,-ng:)
-    integer,     intent(in)    :: ir(:), ng, rtype
+    integer,     intent(in)    :: ir(:), ng, ptype
     integer                    :: nx, ny, i, j, l, m
     real (dp_t)                :: fac_left, fac_rght, coeffs(0:15)
     real (dp_t)                :: temp(0:size(ff,dim=1)-1,0:size(ff,dim=2)-1)
@@ -467,11 +467,7 @@ contains
     nx = size(cc,dim=1)-2*ng-1
     ny = size(cc,dim=2)-2*ng-1
 
-    if ( rtype == 1 .and. ir(1) == 2 .and. ir(2) == 2 ) then
-       !
-       ! Don't bother when the FABs are small.
-       !
-       if (nx <= 4 .or. ny <= 4) call nodal_prolongation_2d(ff,cc,ir,ng,rtype=0)
+    if ( ptype == 1 .and. ir(1) == 2 .and. ir(2) == 2 ) then
        !
        ! Use bicubic interpolation.
        !
