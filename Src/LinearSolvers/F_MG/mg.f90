@@ -1002,8 +1002,9 @@ contains
        !$OMP END PARALLEL DO
     else
 
-       if ( rtype == 1 ) &
-            call multifab_fill_boundary(uu1)
+       if ( rtype == 1 ) then
+          call multifab_fill_boundary(uu1)
+       end if
 
        !$OMP PARALLEL DO PRIVATE(i,n,fp,cp)
        do i = 1, nfabs(uu)
@@ -1134,9 +1135,9 @@ contains
        ! HACK 
        if ( nodal_q(mgt%dd(lev-1)) ) then
           if ( get_dim(rh) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0)
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0,nghost(mgt%dd(lev-1)))
           else if ( get_dim(rh) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0)
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0,nghost(mgt%dd(lev-1)))
           end if
        end if
   
@@ -1286,9 +1287,9 @@ contains
        ! HACK 
        if ( nodal_q(mgt%dd(lev-1)) ) then
           if ( get_dim(rh) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0)
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0,nghost(mgt%dd(lev-1)))
           else if ( get_dim(rh) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0)
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0,nghost(mgt%dd(lev-1)))
           end if
        end if
 
@@ -1382,9 +1383,9 @@ contains
        ! HACK 
        if ( nodal_q(mgt%dd(lev-1)) ) then
           if ( get_dim(ss) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0)
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,0,nghost(mgt%dd(lev-1)))
           else if ( get_dim(ss) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0)
+             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,0,nghost(mgt%dd(lev-1)))
           end if
        end if
 
