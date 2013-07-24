@@ -1177,15 +1177,6 @@ contains
             bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
     else
        call mg_tower_restriction(mgt, mgt%dd(lev-1), rh, mgt%mm(lev),mgt%mm(lev-1))
-
-       ! HACK 
-       if ( nodal_q(mgt%dd(lev-1)) ) then
-          if ( get_dim(rh) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
-          else if ( get_dim(rh) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
-          end if
-       end if
   
        call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                       mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
@@ -1333,14 +1324,6 @@ contains
 
        call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
-       ! HACK 
-       if ( nodal_q(mgt%dd(lev-1)) ) then
-          if ( get_dim(rh) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
-          else if ( get_dim(rh) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
-          end if
-       end if
 
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
@@ -1438,15 +1421,6 @@ contains
 
        call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
-
-       ! HACK 
-       if ( nodal_q(mgt%dd(lev-1)) ) then
-          if ( get_dim(ss) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
-          else if ( get_dim(ss) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
-          end if
-       end if
 
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
