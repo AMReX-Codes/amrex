@@ -429,7 +429,7 @@ contains
 
     if ( ir(1) == 2 ) then
        !
-       ! Use bicubic interpolation on remaining points.
+       ! Use cubic interpolation on remaining points.
        !
        do i = 0, nx-1
 
@@ -441,6 +441,9 @@ contains
           ff(ir(1)*i+1) = ff(ir(1)*i+1) + cubicInterpolate(coeffs, 0.5d0)
        end do
     else
+       !
+       ! Otherwise use linear.
+       !
        do l = 1, ir(1)-1
           fac_left = real(l,kind=dp_t) / real(ir(1),kind=dp_t)
           fac_rght = 1.0_dp_t - fac_left
