@@ -567,19 +567,19 @@ contains
 
   end subroutine nodal_prolongation_2d
 
-  subroutine nodal_prolongation_3d(ff, cc, ir)
+  subroutine nodal_prolongation_3d(ff, cc, ir, ng)
     real (dp_t), intent(inout) :: ff(0:,0:,0:)
-    real (dp_t), intent(in)    :: cc(0:,0:,0:)
-    integer,     intent(in)    :: ir(:)
+    real (dp_t), intent(in)    :: cc(-ng:,-ng:,-ng:)
+    integer,     intent(in)    :: ir(:), ng
     integer                    :: nx, ny, nz, i, j, k, l, m, n
     real (dp_t)                :: fac_left, fac_rght
     real (dp_t), allocatable   :: temp(:,:,:)
 
     allocate(temp(0:size(ff,dim=1)-1,0:size(ff,dim=2)-1,0:size(ff,dim=3)-1))
 
-    nx = size(cc,dim=1)-1
-    ny = size(cc,dim=2)-1
-    nz = size(cc,dim=3)-1
+    nx = size(cc,dim=1)-2*ng-1
+    ny = size(cc,dim=2)-2*ng-1
+    nz = size(cc,dim=3)-2*ng-1
     !
     ! Direct injection for fine points overlaying coarse ones.
     !

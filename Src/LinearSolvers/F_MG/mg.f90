@@ -1030,7 +1030,7 @@ contains
              case (2)
                 call nodal_prolongation_2d(fp(:,:,1,n), cp(:,:,1,n), ir, ng, nd_ptype)
              case (3)
-                call nodal_prolongation_3d(fp(:,:,:,n), cp(:,:,:,n), ir)
+                call nodal_prolongation_3d(fp(:,:,:,n), cp(:,:,:,n), ir, ng)
              end select
           end do
        end do
