@@ -962,10 +962,10 @@ contains
     type(multifab), intent(inout) :: uu
     integer       , intent(in   ) :: lev, cc_ptype, nd_ptype
 
-    real(kind=dp_t), pointer  :: fp(:,:,:,:), cp(:,:,:,:), up(:,:,:,:)
-    integer        , pointer  :: mp(:,:,:,:)
-    integer                   :: i, j, n, ng, ir(mgt%dim)
-    integer                   :: lo(mgt%dim), hi(mgt%dim), lom(mgt%dim)
+    real(kind=dp_t), pointer  :: fp(:,:,:,:), cp(:,:,:,:)
+    integer                   :: i, n, ng, ir(mgt%dim)
+    integer                   :: lo(mgt%dim), hi(mgt%dim)
+    integer                   :: loc(mgt%dim), lof(mgt%dim)
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_prolongation")
@@ -1006,61 +1006,52 @@ contains
        !$OMP END PARALLEL DO
     else
 
-      if ( nd_ptype == 1 ) then
-         call multifab_fill_boundary(mgt%uu(lev))
-
-         do i = 1, nfabs(mgt%uu(lev))
-            up  => dataptr(mgt%uu(lev), i)
-            mp  => dataptr(mgt%mm(lev), i)
-            lom =  lwb(get_ibox(mgt%mm(lev),i))
-            lo  =  lwb(get_pbox(mgt%uu(lev),i))
-            ng  =  lom(1) - lo(1)
-            call impose_neumann_bcs_2d(up(:,:,1,1),mp(:,:,1,1),lom,ng)
-         end do
-      end if
-
        !$OMP PARALLEL DO PRIVATE(i,n,fp,cp)
        do i = 1, nfabs(uu)
-          fp => dataptr(uu,          i, get_ibox(uu         ,i))
-          cp => dataptr(mgt%uu(lev), i, get_pbox(mgt%uu(lev),i))
+          loc = lwb(get_pbox(mgt%uu(lev),i))
+          lof = lwb(get_pbox(uu, i))
+          lo  = lwb(get_ibox(uu, i))
+          hi  = upb(get_ibox(uu, i))
           do n = 1, mgt%nc
+             fp => dataptr(uu,          i, n, 1)
+             cp => dataptr(mgt%uu(lev), i, n, 1)
              select case ( mgt%dim )
              case (1)
-                call nodal_prolongation_1d(fp(:,1,1,n), cp(:,1,1,n), ir, ng, nd_ptype)
+                call nodal_prolongation_1d(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir, nd_ptype)
              case (2)
-                call nodal_prolongation_2d(fp(:,:,1,n), cp(:,:,1,n), ir, ng, nd_ptype)
+                call nodal_prolongation_2d(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir, nd_ptype)
              case (3)
-                call nodal_prolongation_3d(fp(:,:,:,n), cp(:,:,:,n), ir, ng)
+                call nodal_prolongation_3d(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
              end select
           end do
        end do
        !$OMP END PARALLEL DO
 
-       if ( nd_ptype == 1 .and. mgt%dim == 2 ) then
-          !
-          ! The bicubic interpolator doesn't preserve dirichlet BCs.
-          !
-          do n = 1, nfabs(uu)
-             up  => dataptr(uu           ,n)
-             mp  => dataptr(mgt%mm(lev+1),n)
-             lo  =  lwb(get_ibox(uu,n))
-             hi  =  upb(get_ibox(uu,n))
+       ! if ( nd_ptype == 1 .and. mgt%dim == 2 ) then
+       !    !
+       !    ! The bicubic interpolator doesn't preserve dirichlet BCs.
+       !    !
+       !    do n = 1, nfabs(uu)
+       !       up  => dataptr(uu           ,n)
+       !       mp  => dataptr(mgt%mm(lev+1),n)
+       !       lo  =  lwb(get_ibox(uu,n))
+       !       hi  =  upb(get_ibox(uu,n))
 
-             do j = lo(2),hi(2)
-                if ( bc_dirichlet(mp(lo(1),j,1,1),1,0) ) up(lo(1),j,1,1) = ZERO
-                if ( bc_dirichlet(mp(hi(1),j,1,1),1,0) ) up(hi(1),j,1,1) = ZERO
-             end do
+       !       do j = lo(2),hi(2)
+       !          if ( bc_dirichlet(mp(lo(1),j,1,1),1,0) ) up(lo(1),j,1,1) = ZERO
+       !          if ( bc_dirichlet(mp(hi(1),j,1,1),1,0) ) up(hi(1),j,1,1) = ZERO
+       !       end do
 
-             do i = lo(1),hi(1)
-                if ( bc_dirichlet(mp(i,lo(2),1,1),1,0) ) up(i,lo(2),1,1) = ZERO
-                if ( bc_dirichlet(mp(i,hi(2),1,1),1,0) ) up(i,hi(2),1,1) = ZERO
-             end do
-          end do
-          !
-          ! Nor does it preserve the value of shared nodes (ones at grid boundaries).
-          !
-          call multifab_internal_sync(uu)
-       end if
+       !       do i = lo(1),hi(1)
+       !          if ( bc_dirichlet(mp(i,lo(2),1,1),1,0) ) up(i,lo(2),1,1) = ZERO
+       !          if ( bc_dirichlet(mp(i,hi(2),1,1),1,0) ) up(i,hi(2),1,1) = ZERO
+       !       end do
+       !    end do
+       !    !
+       !    ! Nor does it preserve the value of shared nodes (ones at grid boundaries).
+       !    !
+       !    call multifab_internal_sync(uu)
+       ! end if
 
     endif
 
