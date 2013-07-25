@@ -597,72 +597,124 @@ contains
 
     real (dp_t), allocatable :: temp(:,:,:)
 
-    allocate(temp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)))
-    !
-    ! Interpolate at coarse node locations only.
-    !
-    do k = lo(3),hi(3),ir(3)
-       kc = k / ir(3) 
-       do j = lo(2),hi(2),ir(2)
-          jc = j / ir(2) 
-          do i = lo(1),hi(1),ir(1)
-             ic = i / ir(1) 
-             temp(i,j,k) = cc(ic,jc,kc)
+    if ( ir(1)==2 .and. ir(2)==2 .and. ir(3)==2 ) then
+
+       do k = lo(3),hi(3),ir(3)
+          kc = k / ir(3) 
+          do j = lo(2),hi(2),ir(2)
+             jc = j / ir(2) 
+             do i = lo(1),hi(1),ir(1)
+                ic = i / ir(1) 
+
+                ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
+
+                if ( i < hi(1) ) then
+                   ff(i+1,j,k) = ff(i+1,j,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) )
+
+                   if ( j < hi(2) ) then
+                      ff(i+1,j+1,k) = ff(i+1,j+1,k) + &
+                           0.25d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) )
+                   end if
+                end if
+
+                if ( j < hi(2) ) then
+                   ff(i,j+1,k) = ff(i,j+1,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) )
+                end if
+
+                if ( k < hi(3) ) then
+                   ff(i,j,k+1) = ff(i,j,k+1) + 0.5d0*( cc(ic,jc,kc)+cc(ic,jc,kc+1) )
+
+                   if ( i < hi(1) ) then
+                      ff(i+1,j,k+1) = ff(i+1,j,k+1) + &
+                           0.25d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) )
+
+                      if ( j < hi(2) ) then
+                         ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + &
+                              0.125d0*( ( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) ) +  &
+                              ( cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) + cc(ic,jc+1,kc+1) + cc(ic+1,jc+1,kc+1) ) )
+                      end if
+                   end if
+
+                   if ( j < hi(2) ) then
+                      ff(i,j+1,k+1) = ff(i,j+1,k+1) + &
+                           0.25d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) + cc(ic,jc,kc+1) + cc(ic,jc+1,kc+1) )
+                   end if
+                end if
+
+             end do
           end do
        end do
-    end do
-    !
-    ! Interpolate at fine nodes between coarse nodes in the i-direction only.
-    !
-    do k = lo(3),hi(3),ir(3)
-       do j = lo(2),hi(2),ir(2)
-          do l = 1, ir(1)-1
-             fac_rght = real(l,dp_t) / real(ir(1),dp_t)
+
+    else
+
+       allocate(temp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)))
+       !
+       ! Interpolate at coarse node locations only.
+       !
+       do k = lo(3),hi(3),ir(3)
+          kc = k / ir(3) 
+          do j = lo(2),hi(2),ir(2)
+             jc = j / ir(2) 
+             do i = lo(1),hi(1),ir(1)
+                ic = i / ir(1) 
+                temp(i,j,k) = cc(ic,jc,kc)
+             end do
+          end do
+       end do
+       !
+       ! Interpolate at fine nodes between coarse nodes in the i-direction only.
+       !
+       do k = lo(3),hi(3),ir(3)
+          do j = lo(2),hi(2),ir(2)
+             do l = 1, ir(1)-1
+                fac_rght = real(l,dp_t) / real(ir(1),dp_t)
+                fac_left = ONE - fac_rght
+                do i = lo(1),hi(1)-1,ir(1)
+                   temp(i+l,j,k) = fac_left*temp(i,j,k) + fac_rght*temp(i+ir(1),j,k)
+                end do
+             end do
+          end do
+       end do
+       !
+       ! Interpolate in the j-direction.
+       !
+       do k = lo(3),hi(3),ir(3)
+          do m = 1, ir(2)-1
+             fac_rght = real(m,dp_t) / real(ir(2),dp_t)
              fac_left = ONE - fac_rght
-             do i = lo(1),hi(1)-1,ir(1)
-                temp(i+l,j,k) = fac_left*temp(i,j,k) + fac_rght*temp(i+ir(1),j,k)
+             do j = lo(2),hi(2)-1,ir(2)
+                do i = lo(1),hi(1)
+                   temp(i,j+m,k) = fac_left*temp(i,j,k)+fac_rght*temp(i,j+ir(2),k)
+                end do
              end do
           end do
        end do
-    end do
-    !
-    ! Interpolate in the j-direction.
-    !
-    do k = lo(3),hi(3),ir(3)
-       do m = 1, ir(2)-1
-          fac_rght = real(m,dp_t) / real(ir(2),dp_t)
+       !
+       ! Interpolate in the k-direction.
+       !
+       do n = 1, ir(3)-1
+          fac_rght = real(n,dp_t) / real(ir(3),dp_t)
           fac_left = ONE - fac_rght
-          do j = lo(2),hi(2)-1,ir(2)
-             do i = lo(1),hi(1)
-                temp(i,j+m,k) = fac_left*temp(i,j,k)+fac_rght*temp(i,j+ir(2),k)
+          do j = lo(2),hi(2)
+             do k = lo(3),hi(3)-1,ir(3)
+                do i = lo(1),hi(1)
+                   temp(i,j,k+n) = fac_left*temp(i,j,k)+fac_rght*temp(i,j,k+ir(3))
+                end do
              end do
           end do
        end do
-    end do
-    !
-    ! Interpolate in the k-direction.
-    !
-    do n = 1, ir(3)-1
-       fac_rght = real(n,dp_t) / real(ir(3),dp_t)
-       fac_left = ONE - fac_rght
-       do j = lo(2),hi(2)
-          do k = lo(3),hi(3)-1,ir(3)
+       !
+       ! Finally do the prolongation.
+       !
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                temp(i,j,k+n) = fac_left*temp(i,j,k)+fac_rght*temp(i,j,k+ir(3))
+                ff(i,j,k) = ff(i,j,k) + temp(i,j,k)
              end do
           end do
        end do
-    end do
-    !
-    ! Finally do the prolongation.
-    !
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             ff(i,j,k) = ff(i,j,k) + temp(i,j,k)
-          end do
-       end do
-    end do
+
+    endif
 
   end subroutine nodal_prolongation_3d
 
