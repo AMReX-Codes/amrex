@@ -484,61 +484,98 @@ contains
 
     integer     :: i, j, ic, jc, l, m, ng
     real (dp_t) :: fac_left, fac_rght, coeffs(0:15)
-    real (dp_t) :: temp(lo(1):hi(1), lo(2):hi(2))
+    real (dp_t) :: temp(lo(1):hi(1),lo(2):hi(2))
 
     real(dp_t), parameter :: ONE = 1.0_dp_t
 
     ng = min((lo(1)/ir(1))-loc(1),(lo(2)/ir(2))-loc(2))
 
-    if ( ng > 0 .and. ptype == 1 .and. ir(1)==2 .and. ir(2)==2 ) then
+    if ( ir(1)==2 .and. ir(2)==2 ) then
 
-       do j = lo(2),hi(2),ir(2)
-          jc = j / ir(2) 
-          do i = lo(1),hi(1),ir(1)
-             ic = i / ir(1) 
-             !
-             ! Direct injection for fine points overlaying coarse ones.
-             !
-             ff(i,j) = ff(i,j) + cc(ic,jc)
+       if ( ptype == 1 .and. ng > 0 ) then
+          !
+          ! Bicubic was requested and we have one ghost cell.
+          !
+          do j = lo(2),hi(2),ir(2)
+             jc = j / ir(2) 
+             do i = lo(1),hi(1),ir(1)
+                ic = i / ir(1) 
+                !
+                ! Direct injection for fine points overlaying coarse ones.
+                !
+                ff(i,j) = ff(i,j) + cc(ic,jc)
 
-             if ( i < hi(1) ) then
+                if ( i < hi(1) ) then
 
-                if ( j == hi(2) ) then
-                   coeffs( 0 :  3) = (/ (cc(m,jc-2), m=ic-1,ic+2) /)
-                   coeffs( 4 :  7) = (/ (cc(m,jc-1), m=ic-1,ic+2) /)
-                   coeffs( 8 : 11) = (/ (cc(m,jc+0), m=ic-1,ic+2) /)
-                   coeffs(12 : 15) = (/ (cc(m,jc+1), m=ic-1,ic+2) /)
-                else
-                   coeffs( 0 :  3) = (/ (cc(m,jc-1), m=ic-1,ic+2) /)
-                   coeffs( 4 :  7) = (/ (cc(m,jc+0), m=ic-1,ic+2) /)
-                   coeffs( 8 : 11) = (/ (cc(m,jc+1), m=ic-1,ic+2) /)
-                   coeffs(12 : 15) = (/ (cc(m,jc+2), m=ic-1,ic+2) /)
+                   if ( j == hi(2) ) then
+                      coeffs( 0 :  3) = (/ (cc(m,jc-2), m=ic-1,ic+2) /)
+                      coeffs( 4 :  7) = (/ (cc(m,jc-1), m=ic-1,ic+2) /)
+                      coeffs( 8 : 11) = (/ (cc(m,jc+0), m=ic-1,ic+2) /)
+                      coeffs(12 : 15) = (/ (cc(m,jc+1), m=ic-1,ic+2) /)
+                   else
+                      coeffs( 0 :  3) = (/ (cc(m,jc-1), m=ic-1,ic+2) /)
+                      coeffs( 4 :  7) = (/ (cc(m,jc+0), m=ic-1,ic+2) /)
+                      coeffs( 8 : 11) = (/ (cc(m,jc+1), m=ic-1,ic+2) /)
+                      coeffs(12 : 15) = (/ (cc(m,jc+2), m=ic-1,ic+2) /)
+                   end if
+
+                   ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, 0.5d0, 0.0d0) 
+
+                   if ( j < hi(2) ) then
+
+                      ff(i+1,j+1) = ff(i+1,j+1) + bicubicInterpolate(coeffs, 0.5d0, 0.5d0) 
+                   end if
                 end if
-
-                ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, 0.5d0, 0.0d0) 
 
                 if ( j < hi(2) ) then
 
-                   ff(i+1,j+1) = ff(i+1,j+1) + bicubicInterpolate(coeffs, 0.5d0, 0.5d0) 
-                end if
-             end if
+                   if ( i == hi(1) ) then
+                      coeffs( 0 :  3) = (/ (cc(m,jc-1), m=ic-2,ic+1) /)
+                      coeffs( 4 :  7) = (/ (cc(m,jc+0), m=ic-2,ic+1) /)
+                      coeffs( 8 : 11) = (/ (cc(m,jc+1), m=ic-2,ic+1) /)
+                      coeffs(12 : 15) = (/ (cc(m,jc+2), m=ic-2,ic+1) /)
+                   end if
 
-             if ( j < hi(2) ) then
-
-                if ( i == hi(1) ) then
-                   coeffs( 0 :  3) = (/ (cc(m,jc-1), m=ic-2,ic+1) /)
-                   coeffs( 4 :  7) = (/ (cc(m,jc+0), m=ic-2,ic+1) /)
-                   coeffs( 8 : 11) = (/ (cc(m,jc+1), m=ic-2,ic+1) /)
-                   coeffs(12 : 15) = (/ (cc(m,jc+2), m=ic-2,ic+1) /)
+                   ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, 0.0d0, 0.5d0)
                 end if
 
-                ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, 0.0d0, 0.5d0)
-             end if
-
+             end do
           end do
-       end do
+
+       else
+          !
+          ! Do fast unrolled linear interp.
+          !
+          do j = lo(2),hi(2),ir(2)
+             jc = j / ir(2) 
+             do i = lo(1),hi(1),ir(1)
+                ic = i / ir(1) 
+                !
+                ! Direct injection for fine points overlaying coarse ones.
+                !
+                ff(i,j) = ff(i,j) + cc(ic,jc)
+
+                if ( i < hi(1) ) then
+
+                   ff(i+1,j) = ff(i+1,j) + 0.5d0*( cc(ic,jc)+cc(ic+1,jc) )
+
+                   if ( j < hi(2) ) then
+
+                      ff(i+1,j+1) = ff(i+1,j+1) + 0.25d0*( cc(ic,jc)+cc(ic+1,jc)+cc(ic,jc+1)+cc(ic+1,jc+1) )
+                   end if
+                end if
+
+                if ( j < hi(2) ) then
+
+                   ff(i,j+1) = ff(i,j+1) + 0.5d0*( cc(ic,jc)+cc(ic,jc+1) )
+                end if
+             end do
+          end do
+       end if
 
     else
+       !
+       ! General ir/=2 case.
        !
        ! Direct injection for fine points overlaying coarse ones.
        !
