@@ -962,13 +962,17 @@ contains
     type(multifab), intent(inout) :: uu
     integer       , intent(in   ) :: lev, cc_ptype, nd_ptype
 
-    real(kind=dp_t), pointer  :: fp(:,:,:,:), cp(:,:,:,:)
-    integer                   :: i, n, ng, ir(mgt%dim)
-    integer                   :: lo(mgt%dim), hi(mgt%dim)
+    real(kind=dp_t), pointer  :: fp(:,:,:,:), cp(:,:,:,:), up(:,:,:,:)
+    integer,         pointer  :: mp(:,:,:,:)
+    integer                   :: i, j, n, ng, ir(mgt%dim)
+    integer                   :: lo(mgt%dim), hi(mgt%dim), lom(mgt%dim)
     integer                   :: loc(mgt%dim), lof(mgt%dim)
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_prolongation")
+
+    call bl_assert( mgt%nc == ncomp(uu)         , 'mg_tower_prolongation: ncomp')
+    call bl_assert( mgt%nc == ncomp(mgt%uu(lev)), 'mg_tower_prolongation: ncomp')
 
     ir = 2
     ng = nghost(mgt%uu(lev))
@@ -1006,6 +1010,21 @@ contains
        !$OMP END PARALLEL DO
     else
 
+      if ( nd_ptype == 1 ) then
+         call multifab_fill_boundary(mgt%uu(lev))
+
+         do i = 1, nfabs(mgt%uu(lev))
+            up  => dataptr(mgt%uu(lev), i)
+            mp  => dataptr(mgt%mm(lev), i)
+            lom =  lwb(get_ibox(mgt%mm(lev),i))
+            lo  =  lwb(get_pbox(mgt%uu(lev),i))
+            ng  =  lom(1) - lo(1)
+            do n = 1, mgt%nc
+               call impose_neumann_bcs_2d(up(:,:,1,n),mp(:,:,1,1),lom,ng)
+            end do
+         end do
+      end if
+
        !$OMP PARALLEL DO PRIVATE(i,n,fp,cp)
        do i = 1, nfabs(uu)
           loc = lwb(get_pbox(mgt%uu(lev),i))
@@ -1027,31 +1046,31 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-       ! if ( nd_ptype == 1 .and. mgt%dim == 2 ) then
-       !    !
-       !    ! The bicubic interpolator doesn't preserve dirichlet BCs.
-       !    !
-       !    do n = 1, nfabs(uu)
-       !       up  => dataptr(uu           ,n)
-       !       mp  => dataptr(mgt%mm(lev+1),n)
-       !       lo  =  lwb(get_ibox(uu,n))
-       !       hi  =  upb(get_ibox(uu,n))
+       if ( nd_ptype == 1 .and. mgt%dim == 2 ) then
+          !
+          ! The bicubic interpolator doesn't preserve dirichlet BCs.
+          !
+          do i = 1, nfabs(uu)
+             up  => dataptr(uu           ,i)
+             mp  => dataptr(mgt%mm(lev+1),i)
+             lo  =  lwb(get_ibox(uu,i))
+             hi  =  upb(get_ibox(uu,i))
 
-       !       do j = lo(2),hi(2)
-       !          if ( bc_dirichlet(mp(lo(1),j,1,1),1,0) ) up(lo(1),j,1,1) = ZERO
-       !          if ( bc_dirichlet(mp(hi(1),j,1,1),1,0) ) up(hi(1),j,1,1) = ZERO
-       !       end do
+             do j = lo(2),hi(2)
+                if ( bc_dirichlet(mp(lo(1),j,1,1),1,0) ) up(lo(1),j,1:mgt%nc,1) = ZERO
+                if ( bc_dirichlet(mp(hi(1),j,1,1),1,0) ) up(hi(1),j,1:mgt%nc,1) = ZERO
+             end do
 
-       !       do i = lo(1),hi(1)
-       !          if ( bc_dirichlet(mp(i,lo(2),1,1),1,0) ) up(i,lo(2),1,1) = ZERO
-       !          if ( bc_dirichlet(mp(i,hi(2),1,1),1,0) ) up(i,hi(2),1,1) = ZERO
-       !       end do
-       !    end do
-       !    !
-       !    ! Nor does it preserve the value of shared nodes (ones at grid boundaries).
-       !    !
-       !    call multifab_internal_sync(uu)
-       ! end if
+             do j = lo(1),hi(1)
+                if ( bc_dirichlet(mp(j,lo(2),1,1),1,0) ) up(j,lo(2),1:mgt%nc,1) = ZERO
+                if ( bc_dirichlet(mp(j,hi(2),1,1),1,0) ) up(j,hi(2),1:mgt%nc,1) = ZERO
+             end do
+          end do
+          !
+          ! Nor does it preserve the value of shared nodes (ones at grid boundaries).
+          !
+          call multifab_internal_sync(uu)
+       end if
 
     endif
 

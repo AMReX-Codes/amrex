@@ -392,12 +392,12 @@ contains
     real (dp_t), intent(in) :: p(0:15), x, y
     real (dp_t) r, arr(0:3)
     !
-    ! First interpolate in y.
+    ! First interpolate in x.
     !
-    arr(0) = cubicInterpolate(p( 0:3), x) ! row 0
-    arr(1) = cubicInterpolate(p( 4:7), x) ! row 1
-    arr(2) = cubicInterpolate(p( 8:11),x) ! row 2
-    arr(3) = cubicInterpolate(p(12:15),x) ! row 3
+    arr(0) = cubicInterpolate(p( 0:3 ), x) ! row 0
+    arr(1) = cubicInterpolate(p( 4:7 ), x) ! row 1
+    arr(2) = cubicInterpolate(p( 8:11), x) ! row 2
+    arr(3) = cubicInterpolate(p(12:15), x) ! row 3
     !
     ! Then using those four points interpolate in y.
     !
@@ -482,15 +482,15 @@ contains
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     integer,     intent(in   ) :: ir(:), ptype
 
-    integer     :: i, j, ic, jc, l, m
+    integer     :: i, j, ic, jc, l, m, ng
     real (dp_t) :: fac_left, fac_rght, coeffs(0:15)
     real (dp_t) :: temp(lo(1):hi(1), lo(2):hi(2))
 
     real(dp_t), parameter :: ONE = 1.0_dp_t
 
-    if ( ptype == 1 .and. ir(1)==2 .and. ir(2)==2 ) then
+    ng = min((lo(1)/ir(1))-loc(1),(lo(2)/ir(2))-loc(2))
 
-       call bl_error('nodal_prolongation_2d: ptype==1 not working')
+    if ( ng > 0 .and. ptype == 1 .and. ir(1)==2 .and. ir(2)==2 ) then
 
        do j = lo(2),hi(2),ir(2)
           jc = j / ir(2) 
@@ -499,7 +499,7 @@ contains
              !
              ! Direct injection for fine points overlaying coarse ones.
              !
-             ff(i, j) = ff(i, j) + cc(ic,jc)
+             ff(i,j) = ff(i,j) + cc(ic,jc)
 
              if ( i < hi(1) ) then
 
@@ -515,11 +515,11 @@ contains
                    coeffs(12 : 15) = (/ (cc(m,jc+2), m=ic-1,ic+2) /)
                 end if
 
-                ff(i+1, j) = ff(i+1, j) + bicubicInterpolate(coeffs, 0.5d0, 0.0d0) 
+                ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, 0.5d0, 0.0d0) 
 
                 if ( j < hi(2) ) then
 
-                   ff(i+1, j+1) = ff(i+1, j+1) + bicubicInterpolate(coeffs, 0.5d0, 0.5d0) 
+                   ff(i+1,j+1) = ff(i+1,j+1) + bicubicInterpolate(coeffs, 0.5d0, 0.5d0) 
                 end if
              end if
 
@@ -532,7 +532,7 @@ contains
                    coeffs(12 : 15) = (/ (cc(m,jc+2), m=ic-2,ic+1) /)
                 end if
 
-                ff(i, j+1) = ff(i, j+1) + bicubicInterpolate(coeffs, 0.0d0, 0.5d0) 
+                ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, 0.0d0, 0.5d0)
              end if
 
           end do
