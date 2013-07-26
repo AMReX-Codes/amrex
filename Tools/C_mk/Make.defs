@@ -405,7 +405,11 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
-   CXXOPTF += -g -O2 -ip -fp-model source -xHost
+   ifeq ($(WHICHLINUX), GIMANTIS)
+     CXXOPTF += -g -O2 -ip
+   else
+     CXXOPTF += -g -O2 -ip -fp-model source -xHost
+   endif
    CXXDEBF += -g -O0
 
    COPTF += $(CXXOPTF) -std=c99
@@ -668,8 +672,13 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -g
    endif
 
-   FOPTF += -O2 -ip -fp-model source -xHost
-   fOPTF += -O2 -ip -fp-model source -xHost
+   ifeq ($(WHICHLINUX), GIMANTIS)
+     FOPTF += -O2 -ip
+     fOPTF += -O2 -ip
+   else
+     FOPTF += -O2 -ip -fp-model source -xHost
+     fOPTF += -O2 -ip -fp-model source -xHost
+   endif
 
    ifneq ($(IFC_MAJOR_VERSION), 9)
      ifneq ($(IFC_MAJOR_VERSION), 10)
