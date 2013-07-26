@@ -23,6 +23,8 @@ contains
 
   subroutine ml_cc_prolongation(fine, crse, ir)
     use bl_prof_module
+    use mg_prolongation_module
+
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     integer,        intent(in   ) :: ir(:)
@@ -62,11 +64,11 @@ contains
           cp => dataptr(cfine, i, n, 1)
           select case (dm)
           case (1)
-             call ml_prolongation_1d_cc(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
+             call pc_c_prolongation(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
           case (2)
-             call ml_prolongation_2d_cc(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
+             call pc_c_prolongation(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
           case (3)
-             call ml_prolongation_3d_cc(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
+             call pc_c_prolongation(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
           end select
        end do
     end do
@@ -78,8 +80,10 @@ contains
   end subroutine ml_cc_prolongation
 
   subroutine ml_nodal_prolongation(fine, crse, ir)
+
     use bl_prof_module
     use mg_prolongation_module
+
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     integer,        intent(in   ) :: ir(:)
@@ -90,6 +94,7 @@ contains
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(layout)        :: lacfine,laf
     type(multifab)      :: cfine
+
     type(bl_prof_timer), save :: bpt
 
     if ( ncomp(crse) .ne. ncomp(fine) ) then
@@ -135,61 +140,6 @@ contains
     call destroy(bpt)
 
   end subroutine ml_nodal_prolongation
-
-  subroutine ml_prolongation_1d_cc(ff, lof, cc, loc, lo, hi, ir)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (dp_t), intent(inout) :: ff(lof(1):)
-    real (dp_t), intent(in   ) :: cc(loc(1):)
-    integer, intent(in) :: ir(:)
-    integer :: i, ic
-
-    do i = lo(1),hi(1)
-       ic = i / ir(1) 
-       ff(i) = ff(i) + cc(ic)
-    end do
-  end subroutine ml_prolongation_1d_cc
-
-  subroutine ml_prolongation_2d_cc(ff, lof, cc, loc, lo, hi, ir)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
-    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
-    integer, intent(in) :: ir(:)
-    integer :: i, j, ic, jc
-
-    do j = lo(2),hi(2)
-       jc = j / ir(2)
-       do i = lo(1),hi(1)
-          ic = i / ir(1) 
-          ff(i,j) = ff(i,j) + cc(ic,jc)
-       end do
-    end do
-  end subroutine ml_prolongation_2d_cc
-
-  subroutine ml_prolongation_3d_cc(ff, lof, cc, loc, lo, hi, ir)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
-    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
-    integer, intent(in) :: ir(:)
-    integer :: i, j, k, ic, jc, kc
-
-    do k = lo(3),hi(3)
-       kc = k / ir(3)
-       do j = lo(2),hi(2)
-          jc = j / ir(2)
-          do i = lo(1),hi(1)
-             ic = i / ir(1)
-             ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
-          end do
-       end do
-    end do
-
-  end subroutine ml_prolongation_3d_cc
 
   subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, ng_fill, side, nc)
     use bl_prof_module
