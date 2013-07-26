@@ -964,7 +964,7 @@ contains
 
     real(kind=dp_t), pointer  :: fp(:,:,:,:), cp(:,:,:,:), up(:,:,:,:)
     integer,         pointer  :: mp(:,:,:,:)
-    integer                   :: i, j, n, ng, ir(mgt%dim)
+    integer                   :: i, j, k, n, ng, ir(mgt%dim)
     integer                   :: lo(mgt%dim), hi(mgt%dim), lom(mgt%dim)
     integer                   :: loc(mgt%dim), lof(mgt%dim)
     type(bl_prof_timer), save :: bpt
@@ -1052,28 +1052,55 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-       if ( nd_ptype == 1 .and. mgt%dim == 2 ) then
+       if ( nd_ptype == 1 .and. mgt%dim > 1 ) then
           !
-          ! The bicubic interpolator doesn't preserve dirichlet BCs.
+          ! The [bi,tri]cubic interpolators don't preserve dirichlet BCs.
           !
-          do i = 1, nfabs(uu)
-             up  => dataptr(uu           ,i)
-             mp  => dataptr(mgt%mm(lev+1),i)
-             lo  =  lwb(get_ibox(uu,i))
-             hi  =  upb(get_ibox(uu,i))
+          do n = 1, nfabs(uu)
+             up  => dataptr(uu           ,n)
+             mp  => dataptr(mgt%mm(lev+1),n)
+             lo  =  lwb(get_ibox(uu, n))
+             hi  =  upb(get_ibox(uu, n))
 
-             do j = lo(2),hi(2)
-                if ( bc_dirichlet(mp(lo(1),j,1,1),1,0) ) up(lo(1),j,1:mgt%nc,1) = ZERO
-                if ( bc_dirichlet(mp(hi(1),j,1,1),1,0) ) up(hi(1),j,1:mgt%nc,1) = ZERO
-             end do
+             if ( mgt%dim == 2 ) then
 
-             do j = lo(1),hi(1)
-                if ( bc_dirichlet(mp(j,lo(2),1,1),1,0) ) up(j,lo(2),1:mgt%nc,1) = ZERO
-                if ( bc_dirichlet(mp(j,hi(2),1,1),1,0) ) up(j,hi(2),1:mgt%nc,1) = ZERO
-             end do
+                do j = lo(2),hi(2)
+                   if ( bc_dirichlet(mp(lo(1),j,1,1),1,0) ) up(lo(1),j,1,1:mgt%nc) = ZERO
+                   if ( bc_dirichlet(mp(hi(1),j,1,1),1,0) ) up(hi(1),j,1,1:mgt%nc) = ZERO
+                end do
+
+                do i = lo(1),hi(1)
+                   if ( bc_dirichlet(mp(i,lo(2),1,1),1,0) ) up(i,lo(2),1,1:mgt%nc) = ZERO
+                   if ( bc_dirichlet(mp(i,hi(2),1,1),1,0) ) up(i,hi(2),1,1:mgt%nc) = ZERO
+                end do
+
+             else
+
+                do k = lo(3),hi(3)
+                   do j = lo(2),hi(2)
+                      if ( bc_dirichlet(mp(lo(1),j,k,1),1,0) ) up(lo(1),j,k,1:mgt%nc) = ZERO
+                      if ( bc_dirichlet(mp(hi(1),j,k,1),1,0) ) up(hi(1),j,k,1:mgt%nc) = ZERO
+                   end do
+                end do
+
+                do k = lo(3),hi(3)
+                   do i = lo(1),hi(1)
+                      if ( bc_dirichlet(mp(i,lo(2),k,1),1,0) ) up(i,lo(2),k,1:mgt%nc) = ZERO
+                      if ( bc_dirichlet(mp(i,hi(2),k,1),1,0) ) up(i,hi(2),k,1:mgt%nc) = ZERO
+                   end do
+                end do
+
+                do j = lo(2),hi(2)
+                   do i = lo(1),hi(1)
+                      if ( bc_dirichlet(mp(i,j,lo(3),1),1,0) ) up(i,j,lo(3),1:mgt%nc) = ZERO
+                      if ( bc_dirichlet(mp(i,j,hi(3),1),1,0) ) up(i,j,hi(3),1:mgt%nc) = ZERO
+                   end do
+                end do
+
+             end if
           end do
           !
-          ! Nor does it preserve the value of shared nodes (ones at grid boundaries).
+          ! Nor do they preserve the value of shared nodes (ones at grid boundaries).
           !
           call multifab_internal_sync(uu)
        end if
@@ -1162,7 +1189,8 @@ contains
     ! Prolongation types for Nodal:
     ! 
     !   Piecewise linear: 0
-    !   2D bicubic:       1
+    !   2D  bicubic:      1
+    !   3D tricubic:      1
     !
     nd_ptype = 0
 

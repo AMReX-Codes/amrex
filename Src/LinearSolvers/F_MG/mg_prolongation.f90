@@ -568,7 +568,7 @@ contains
     real (dp_t) :: fac_left, fac_rght, coeffs(0:15)
     real (dp_t) :: temp(lo(1):hi(1),lo(2):hi(2))
 
-    real(dp_t), parameter :: ONE = 1.0_dp_t
+    real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
 
@@ -603,15 +603,15 @@ contains
                 end if
 
                 if ( i < hi(1) ) then
-                   ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, 0.5d0, 0.0d0) 
+                   ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, HALF, ZERO) 
 
                    if ( j < hi(2) ) then
-                      ff(i+1,j+1) = ff(i+1,j+1) + bicubicInterpolate(coeffs, 0.5d0, 0.5d0) 
+                      ff(i+1,j+1) = ff(i+1,j+1) + bicubicInterpolate(coeffs, HALF, HALF) 
                    end if
                 end if
 
                 if ( j < hi(2) ) then
-                   ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, 0.0d0, 0.5d0)
+                   ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, ZERO, HALF)
                 end if
 
              end do
@@ -631,18 +631,15 @@ contains
                 ff(i,j) = ff(i,j) + cc(ic,jc)
 
                 if ( i < hi(1) ) then
-
-                   ff(i+1,j) = ff(i+1,j) + 0.5d0*( cc(ic,jc)+cc(ic+1,jc) )
+                   ff(i+1,j) = ff(i+1,j) + HALF*( cc(ic,jc)+cc(ic+1,jc) )
 
                    if ( j < hi(2) ) then
-
                       ff(i+1,j+1) = ff(i+1,j+1) + 0.25d0*( cc(ic,jc)+cc(ic+1,jc)+cc(ic,jc+1)+cc(ic+1,jc+1) )
                    end if
                 end if
 
                 if ( j < hi(2) ) then
-
-                   ff(i,j+1) = ff(i,j+1) + 0.5d0*( cc(ic,jc)+cc(ic,jc+1) )
+                   ff(i,j+1) = ff(i,j+1) + HALF*( cc(ic,jc)+cc(ic,jc+1) )
                 end if
              end do
           end do
@@ -703,9 +700,10 @@ contains
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
     integer,     intent(in   ) :: ir(:), ptype
 
-    integer               :: i, j, k, ic, jc, kc, l, m, n, ng, clo(3), chi(3)
-    real (dp_t)           :: fac_left, fac_rght, coeffs(0:63)
-    real(dp_t), parameter :: ONE = 1.0_dp_t
+    integer     :: i, j, k, ic, jc, kc, l, m, n, ng, clo(3), chi(3), istart, jstart, kstart
+    real (dp_t) :: fac_left, fac_rght, coeffs(0:63)
+
+    real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
     real (dp_t), allocatable :: temp(:,:,:)
 
@@ -718,51 +716,78 @@ contains
 
        if ( ptype == 1 .and. ng > 0 ) then
 
-          stop '!!! tricubic not finished yet !!!'
+          print*, '*** Hit tricubic code!!!'
           !
-          ! Bicubic was requested and we have one ghost cell.
+          ! Tricubic was requested and we have one ghost cell.
           !
           do kc = clo(3),chi(3)
-             k = 2*kc
+             k      = 2*kc
+             kstart = kc-1
+             if ( k == hi(3) ) kstart = kc-2
+
              do jc = clo(2),chi(2)
-                j = 2*jc
+                j      = 2*jc
+                jstart = jc-1
+                if ( j == hi(2) ) jstart = jc-2
+
                 do ic = clo(1),chi(1)
-                   i = 2*ic
+                   i      = 2*ic
+                   istart = ic-1
+                   if ( i == hi(1) ) istart = ic-2
                    !
                    ! Direct injection for fine points overlaying coarse ones.
                    !
                    ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
 
+                   if ( i < hi(1) .or. j < hi(2) .or. k < hi(3) ) then
+
+                      coeffs( 0 :  3) = (/ (cc(m,jstart+0,kstart+0), m=istart,istart+3) /)
+                      coeffs( 4 :  7) = (/ (cc(m,jstart+1,kstart+0), m=istart,istart+3) /)
+                      coeffs( 8 : 11) = (/ (cc(m,jstart+2,kstart+0), m=istart,istart+3) /)
+                      coeffs(12 : 15) = (/ (cc(m,jstart+3,kstart+0), m=istart,istart+3) /)
+
+                      coeffs(16 : 19) = (/ (cc(m,jstart+0,kstart+1), m=istart,istart+3) /)
+                      coeffs(20 : 23) = (/ (cc(m,jstart+1,kstart+1), m=istart,istart+3) /)
+                      coeffs(24 : 27) = (/ (cc(m,jstart+2,kstart+1), m=istart,istart+3) /)
+                      coeffs(28 : 31) = (/ (cc(m,jstart+3,kstart+1), m=istart,istart+3) /)
+
+                      coeffs(32 : 35) = (/ (cc(m,jstart+0,kstart+2), m=istart,istart+3) /)
+                      coeffs(36 : 39) = (/ (cc(m,jstart+1,kstart+2), m=istart,istart+3) /)
+                      coeffs(40 : 43) = (/ (cc(m,jstart+2,kstart+2), m=istart,istart+3) /)
+                      coeffs(44 : 47) = (/ (cc(m,jstart+3,kstart+2), m=istart,istart+3) /)
+
+                      coeffs(48 : 51) = (/ (cc(m,jstart+0,kstart+3), m=istart,istart+3) /)
+                      coeffs(52 : 55) = (/ (cc(m,jstart+1,kstart+3), m=istart,istart+3) /)
+                      coeffs(56 : 59) = (/ (cc(m,jstart+2,kstart+3), m=istart,istart+3) /)
+                      coeffs(60 : 63) = (/ (cc(m,jstart+3,kstart+3), m=istart,istart+3) /)
+
+                   end if
+
                    if ( i < hi(1) ) then
-                      ff(i+1,j,k) = ff(i+1,j,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) )
+                      ff(i+1,j,k) = ff(i+1,j,k) + tricubicInterpolate(coeffs,HALF,ZERO,ZERO)
 
                       if ( j < hi(2) ) then
-                         ff(i+1,j+1,k) = ff(i+1,j+1,k) + &
-                              0.25d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) )
+                         ff(i+1,j+1,k) = ff(i+1,j+1,k) + tricubicInterpolate(coeffs,HALF,HALF,ZERO)
                       end if
                    end if
 
                    if ( j < hi(2) ) then
-                      ff(i,j+1,k) = ff(i,j+1,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) )
+                      ff(i,j+1,k) = ff(i,j+1,k) + tricubicInterpolate(coeffs,ZERO,HALF,ZERO)
                    end if
 
                    if ( k < hi(3) ) then
-                      ff(i,j,k+1) = ff(i,j,k+1) + 0.5d0*( cc(ic,jc,kc)+cc(ic,jc,kc+1) )
+                      ff(i,j,k+1) = ff(i,j,k+1) + tricubicInterpolate(coeffs,ZERO,ZERO,HALF)
 
                       if ( i < hi(1) ) then
-                         ff(i+1,j,k+1) = ff(i+1,j,k+1) + &
-                              0.25d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) )
+                         ff(i+1,j,k+1) = ff(i+1,j,k+1) + tricubicInterpolate(coeffs,HALF,ZERO,HALF)
 
                          if ( j < hi(2) ) then
-                            ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + &
-                                 0.125d0*( ( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) ) +  &
-                                 ( cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) + cc(ic,jc+1,kc+1) + cc(ic+1,jc+1,kc+1) ) )
+                            ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + tricubicInterpolate(coeffs,HALF,HALF,HALF)
                          end if
                       end if
 
                       if ( j < hi(2) ) then
-                         ff(i,j+1,k+1) = ff(i,j+1,k+1) + &
-                              0.25d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) + cc(ic,jc,kc+1) + cc(ic,jc+1,kc+1) )
+                         ff(i,j+1,k+1) = ff(i,j+1,k+1) + tricubicInterpolate(coeffs,ZERO,HALF,HALF)
                       end if
                    end if
 
@@ -786,7 +811,7 @@ contains
                    ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
 
                    if ( i < hi(1) ) then
-                      ff(i+1,j,k) = ff(i+1,j,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) )
+                      ff(i+1,j,k) = ff(i+1,j,k) + HALF*( cc(ic,jc,kc) + cc(ic+1,jc,kc) )
 
                       if ( j < hi(2) ) then
                          ff(i+1,j+1,k) = ff(i+1,j+1,k) + &
@@ -795,11 +820,11 @@ contains
                    end if
 
                    if ( j < hi(2) ) then
-                      ff(i,j+1,k) = ff(i,j+1,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) )
+                      ff(i,j+1,k) = ff(i,j+1,k) + HALF*( cc(ic,jc,kc) + cc(ic,jc+1,kc) )
                    end if
 
                    if ( k < hi(3) ) then
-                      ff(i,j,k+1) = ff(i,j,k+1) + 0.5d0*( cc(ic,jc,kc)+cc(ic,jc,kc+1) )
+                      ff(i,j,k+1) = ff(i,j,k+1) + HALF*( cc(ic,jc,kc)+cc(ic,jc,kc+1) )
 
                       if ( i < hi(1) ) then
                          ff(i+1,j,k+1) = ff(i+1,j,k+1) + &
