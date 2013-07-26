@@ -31,9 +31,9 @@ contains
 
     integer             :: lo (get_dim(fine)), hi (get_dim(fine))
     integer             :: loc(get_dim(fine)), lof(get_dim(fine))
-    integer             :: i, n, dm
+    integer             :: i, n, dm, cc_ptype
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
-    type(layout)        :: lacfine,laf
+    type(layout)        :: lacfine, laf
     type(multifab)      :: cfine
     type(bl_prof_timer), save :: bpt
 
@@ -42,6 +42,13 @@ contains
     end if
 
     call build(bpt, "ml_prolongation")
+    !
+    ! Prolongation types for Cell-centered:
+    !
+    !   Piecewise constant: 0
+    !   Piecewise linear:   1, 2, or 3
+    !
+    cc_ptype = 0
 
     laf = get_layout(fine)
 
@@ -55,22 +62,35 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,loc,lof,lo,hi,n,fp,cp)
     do i = 1, nfabs(fine)
-       loc = lwb(get_pbox(cfine,i))
-       lof = lwb(get_pbox(fine, i))
-       lo  = lwb(get_ibox(fine, i))
-       hi  = upb(get_ibox(fine, i))
-       do n = 1, ncomp(crse)
-          fp => dataptr(fine,  i, n, 1)
-          cp => dataptr(cfine, i, n, 1)
-          select case (dm)
-          case (1)
-             call pc_c_prolongation(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
-          case (2)
-             call pc_c_prolongation(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
-          case (3)
-             call pc_c_prolongation(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
-          end select
-       end do
+       loc =  lwb(get_pbox(cfine,i))
+       lof =  lwb(get_pbox(fine, i))
+       lo  =  lwb(get_ibox(fine, i))
+       hi  =  upb(get_ibox(fine, i))
+       fp  => dataptr(fine, i)
+       cp  => dataptr(cfine,i)
+       if ( cc_ptype == 0 ) then
+          do n = 1, ncomp(crse)
+             select case ( dm )
+             case (1)
+                call pc_c_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
+             case (2)
+                call pc_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
+             case (3)
+                call pc_c_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
+             end select
+          end do
+       else
+          do n = 1, ncomp(crse)
+             select case ( dm )
+             case (1)
+                call lin_c_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
+             case (2)
+                call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
+             case (3)
+                call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
+             end select
+          end do
+       end if
     end do
     !$OMP END PARALLEL DO
 
