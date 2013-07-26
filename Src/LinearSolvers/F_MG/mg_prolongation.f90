@@ -706,14 +706,14 @@ contains
 
   end subroutine nodal_prolongation_2d
 
-  subroutine nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+  subroutine nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir, ptype)
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
-    integer,     intent(in   ) :: ir(:)
+    integer,     intent(in   ) :: ir(:), ptype
 
-    integer               :: i, j, k, ic, jc, kc, l, m, n, clo(3), chi(3)
+    integer               :: i, j, k, ic, jc, kc, l, m, n, ng, clo(3), chi(3)
     real (dp_t)           :: fac_left, fac_rght
     real(dp_t), parameter :: ONE = 1.0_dp_t
 
@@ -726,53 +726,115 @@ contains
        clo = lo / 2
        chi = hi / 2
 
-       do kc = clo(3),chi(3)
-          k = 2*kc
-          do jc = clo(2),chi(2)
-             j = 2*jc
-             do ic = clo(1),chi(1)
-                i = 2*ic
-                !
-                ! Direct injection for fine points overlaying coarse ones.
-                !
-                ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
+       ng = min((clo(1)-loc(1)), (clo(2)-loc(2)), (clo(3)-loc(3)))
 
-                if ( i < hi(1) ) then
-                   ff(i+1,j,k) = ff(i+1,j,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) )
+       if ( ptype == 1 .and. ng > 0 ) then
 
-                   if ( j < hi(2) ) then
-                      ff(i+1,j+1,k) = ff(i+1,j+1,k) + &
-                           0.25d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) )
-                   end if
-                end if
-
-                if ( j < hi(2) ) then
-                   ff(i,j+1,k) = ff(i,j+1,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) )
-                end if
-
-                if ( k < hi(3) ) then
-                   ff(i,j,k+1) = ff(i,j,k+1) + 0.5d0*( cc(ic,jc,kc)+cc(ic,jc,kc+1) )
+          stop '!!! tricubic not finished yet !!!'
+          !
+          ! Bicubic was requested and we have one ghost cell.
+          !
+          do kc = clo(3),chi(3)
+             k = 2*kc
+             do jc = clo(2),chi(2)
+                j = 2*jc
+                do ic = clo(1),chi(1)
+                   i = 2*ic
+                   !
+                   ! Direct injection for fine points overlaying coarse ones.
+                   !
+                   ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
 
                    if ( i < hi(1) ) then
-                      ff(i+1,j,k+1) = ff(i+1,j,k+1) + &
-                           0.25d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) )
+                      ff(i+1,j,k) = ff(i+1,j,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) )
 
                       if ( j < hi(2) ) then
-                         ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + &
-                              0.125d0*( ( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) ) +  &
-                              ( cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) + cc(ic,jc+1,kc+1) + cc(ic+1,jc+1,kc+1) ) )
+                         ff(i+1,j+1,k) = ff(i+1,j+1,k) + &
+                              0.25d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) )
                       end if
                    end if
 
                    if ( j < hi(2) ) then
-                      ff(i,j+1,k+1) = ff(i,j+1,k+1) + &
-                           0.25d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) + cc(ic,jc,kc+1) + cc(ic,jc+1,kc+1) )
+                      ff(i,j+1,k) = ff(i,j+1,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) )
                    end if
-                end if
 
+                   if ( k < hi(3) ) then
+                      ff(i,j,k+1) = ff(i,j,k+1) + 0.5d0*( cc(ic,jc,kc)+cc(ic,jc,kc+1) )
+
+                      if ( i < hi(1) ) then
+                         ff(i+1,j,k+1) = ff(i+1,j,k+1) + &
+                              0.25d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) )
+
+                         if ( j < hi(2) ) then
+                            ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + &
+                                 0.125d0*( ( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) ) +  &
+                                 ( cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) + cc(ic,jc+1,kc+1) + cc(ic+1,jc+1,kc+1) ) )
+                         end if
+                      end if
+
+                      if ( j < hi(2) ) then
+                         ff(i,j+1,k+1) = ff(i,j+1,k+1) + &
+                              0.25d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) + cc(ic,jc,kc+1) + cc(ic,jc+1,kc+1) )
+                      end if
+                   end if
+
+                end do
              end do
           end do
-       end do
+
+       else
+          !
+          ! Do fast unrolled linear interp.
+          !
+          do kc = clo(3),chi(3)
+             k = 2*kc
+             do jc = clo(2),chi(2)
+                j = 2*jc
+                do ic = clo(1),chi(1)
+                   i = 2*ic
+                   !
+                   ! Direct injection for fine points overlaying coarse ones.
+                   !
+                   ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
+
+                   if ( i < hi(1) ) then
+                      ff(i+1,j,k) = ff(i+1,j,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) )
+
+                      if ( j < hi(2) ) then
+                         ff(i+1,j+1,k) = ff(i+1,j+1,k) + &
+                              0.25d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) )
+                      end if
+                   end if
+
+                   if ( j < hi(2) ) then
+                      ff(i,j+1,k) = ff(i,j+1,k) + 0.5d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) )
+                   end if
+
+                   if ( k < hi(3) ) then
+                      ff(i,j,k+1) = ff(i,j,k+1) + 0.5d0*( cc(ic,jc,kc)+cc(ic,jc,kc+1) )
+
+                      if ( i < hi(1) ) then
+                         ff(i+1,j,k+1) = ff(i+1,j,k+1) + &
+                              0.25d0*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) )
+
+                         if ( j < hi(2) ) then
+                            ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + &
+                                 0.125d0*( ( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) ) +  &
+                                 ( cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) + cc(ic,jc+1,kc+1) + cc(ic+1,jc+1,kc+1) ) )
+                         end if
+                      end if
+
+                      if ( j < hi(2) ) then
+                         ff(i,j+1,k+1) = ff(i,j+1,k+1) + &
+                              0.25d0*( cc(ic,jc,kc) + cc(ic,jc+1,kc) + cc(ic,jc,kc+1) + cc(ic,jc+1,kc+1) )
+                      end if
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
 
     else
        !

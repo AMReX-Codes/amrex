@@ -1046,7 +1046,7 @@ contains
              case (2)
                 call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, nd_ptype)
              case (3)
-                call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
+                call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, nd_ptype)
              end select
           end do
        end do
