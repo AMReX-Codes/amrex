@@ -49,15 +49,42 @@ contains
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     integer,     intent(in   ) :: ir(:)
 
-    integer :: i, j, ic, jc
+    integer :: i, j, ic, jc, twoi, twoj, twoip1, twojp1, clo(2), chi(2)
 
-    do j = lo(2),hi(2)
-       jc = j / ir(2)
-       do i = lo(1),hi(1)
-          ic = i / ir(1) 
-          ff(i,j) = ff(i,j) + cc(ic,jc)
+    if ( ir(1) == 2 .and. ir(2) == 2 ) then
+       !
+       ! Specialized unrolled 2D version.
+       !
+       clo = lo / 2
+       chi = hi / 2
+
+       do j = clo(2),chi(2)
+             twoj   = 2*j
+             twojp1 = twoj+1
+          do i = clo(1),chi(1)
+             twoi   = 2*i
+             twoip1 = twoi+1
+
+             ff(twoi,   twoj  ) = ff(twoi,   twoj  ) + cc(i,j)
+             ff(twoip1, twoj  ) = ff(twoip1, twoj  ) + cc(i,j)
+             ff(twoi,   twojp1) = ff(twoi,   twojp1) + cc(i,j)
+             ff(twoip1, twojp1) = ff(twoip1, twojp1) + cc(i,j)
+          end do
        end do
-    end do
+
+    else
+       !
+       ! Generic ir/=2 case.
+       !
+       do j = lo(2),hi(2)
+          jc = j / ir(2)
+          do i = lo(1),hi(1)
+             ic = i / ir(1) 
+             ff(i,j) = ff(i,j) + cc(ic,jc)
+          end do
+       end do
+
+    end if
 
   end subroutine pc_c_prolongation_2d
 
@@ -69,17 +96,53 @@ contains
     integer,     intent(in   ) :: ir(:)
 
     integer :: i, j, k, ic, jc, kc
+    integer :: clo(3), chi(3), twoi, twoj, twok, twoip1, twojp1, twokp1
 
-    do k = lo(3),hi(3)
-       kc = k / ir(3)
-       do j = lo(2),hi(2)
-          jc = j / ir(2)
-          do i = lo(1),hi(1)
-             ic = i / ir(1)
-             ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
+    if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
+       !
+       ! Specialized unrolled 3D version.
+       !
+       clo = lo / 2
+       chi = hi / 2
+
+       do k = clo(3),chi(3)
+          twok   = 2*k
+          twokp1 = twok+1
+          do j = clo(2),chi(2)
+             twoj   = 2*j
+             twojp1 = twoj+1
+             do i = clo(1),chi(1)
+                twoi   = 2*i
+                twoip1 = twoi+1
+
+                ff(twoip1, twojp1, twokp1) = ff(twoip1, twojp1, twokp1) + cc(i,j,k)
+                ff(twoi,   twojp1, twokp1) = ff(twoi,   twojp1, twokp1) + cc(i,j,k)
+                ff(twoip1, twoj,   twokp1) = ff(twoip1, twoj,   twokp1) + cc(i,j,k)
+                ff(twoi,   twoj,   twokp1) = ff(twoi,   twoj,   twokp1) + cc(i,j,k)
+                ff(twoip1, twojp1, twok  ) = ff(twoip1, twojp1, twok  ) + cc(i,j,k)
+                ff(twoi,   twojp1, twok  ) = ff(twoi,   twojp1, twok  ) + cc(i,j,k)
+                ff(twoip1, twoj,   twok  ) = ff(twoip1, twoj,   twok  ) + cc(i,j,k)
+                ff(twoi,   twoj,   twok  ) = ff(twoi,   twoj,   twok  ) + cc(i,j,k)
+             end do
           end do
        end do
-    end do
+
+    else
+       !
+       ! General ir/=2 case.
+       !
+       do k = lo(3),hi(3)
+          kc = k / ir(3)
+          do j = lo(2),hi(2)
+             jc = j / ir(2)
+             do i = lo(1),hi(1)
+                ic = i / ir(1)
+                ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
+             end do
+          end do
+       end do
+
+    end if
 
   end subroutine pc_c_prolongation_3d
 
