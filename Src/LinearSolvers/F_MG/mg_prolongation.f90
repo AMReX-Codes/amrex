@@ -564,24 +564,27 @@ contains
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     integer,     intent(in   ) :: ir(:), ptype
 
-    integer     :: i, j, ic, jc, l, m, ng
+    integer     :: i, j, ic, jc, l, m, ng, clo(2), chi(2)
     real (dp_t) :: fac_left, fac_rght, coeffs(0:15)
     real (dp_t) :: temp(lo(1):hi(1),lo(2):hi(2))
 
     real(dp_t), parameter :: ONE = 1.0_dp_t
 
-    ng = min((lo(1)/ir(1))-loc(1),(lo(2)/ir(2))-loc(2))
-
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
+
+       clo = lo / 2
+       chi = hi / 2
+
+       ng = min((clo(1)-loc(1)),(clo(2)-loc(2)))
 
        if ( ptype == 1 .and. ng > 0 ) then
           !
           ! Bicubic was requested and we have one ghost cell.
           !
-          do j = lo(2),hi(2),ir(2)
-             jc = j / ir(2) 
-             do i = lo(1),hi(1),ir(1)
-                ic = i / ir(1) 
+          do jc = clo(2),chi(2)
+             j = 2*jc
+             do ic = clo(1),chi(1)
+                i = 2*ic
                 !
                 ! Direct injection for fine points overlaying coarse ones.
                 !
@@ -628,10 +631,10 @@ contains
           !
           ! Do fast unrolled linear interp.
           !
-          do j = lo(2),hi(2),ir(2)
-             jc = j / ir(2) 
-             do i = lo(1),hi(1),ir(1)
-                ic = i / ir(1) 
+          do jc = clo(2),chi(2)
+             j = 2*jc
+             do ic = clo(1),chi(1)
+                i = 2*ic
                 !
                 ! Direct injection for fine points overlaying coarse ones.
                 !
@@ -710,7 +713,7 @@ contains
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
     integer,     intent(in   ) :: ir(:)
 
-    integer               :: i, j, k, ic, jc, kc, l, m, n
+    integer               :: i, j, k, ic, jc, kc, l, m, n, clo(3), chi(3)
     real (dp_t)           :: fac_left, fac_rght
     real(dp_t), parameter :: ONE = 1.0_dp_t
 
@@ -720,12 +723,15 @@ contains
        !
        ! Do fast unrolled linear interp.
        !
-       do k = lo(3),hi(3),ir(3)
-          kc = k / ir(3) 
-          do j = lo(2),hi(2),ir(2)
-             jc = j / ir(2) 
-             do i = lo(1),hi(1),ir(1)
-                ic = i / ir(1) 
+       clo = lo / 2
+       chi = hi / 2
+
+       do kc = clo(3),chi(3)
+          k = 2*kc
+          do jc = clo(2),chi(2)
+             j = 2*jc
+             do ic = clo(1),chi(1)
+                i = 2*ic
                 !
                 ! Direct injection for fine points overlaying coarse ones.
                 !
