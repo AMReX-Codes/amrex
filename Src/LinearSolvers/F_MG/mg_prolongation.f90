@@ -565,7 +565,7 @@ contains
     integer,     intent(in   ) :: ir(:), ptype
 
     integer     :: i, j, ic, jc, l, m, ng, clo(2), chi(2), istart, jstart
-    real (dp_t) :: fac_left, fac_rght, coeffs(0:15)
+    real (dp_t) :: fac_left, fac_rght, coeffs(0:15), ipnt, jpnt
     real (dp_t) :: temp(lo(1):hi(1),lo(2):hi(2))
 
     real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
@@ -583,13 +583,23 @@ contains
           !
           do jc = clo(2),chi(2)
              j      = 2*jc
+             jpnt   = ZERO
              jstart = jc-1
-             if ( j == hi(2) ) jstart = jc-2
+
+             if ( j == hi(2) ) then
+                jpnt   = ONE
+                jstart = jc-2
+             end if
 
              do ic = clo(1),chi(1)
                 i      = 2*ic
+                ipnt   = ZERO
                 istart = ic-1
-                if ( i == hi(1) ) istart = ic-2
+
+                if ( i == hi(1) ) then
+                   ipnt   = ONE
+                   istart = ic-2
+                end if
                 !
                 ! Direct injection for fine points overlaying coarse ones.
                 !
@@ -603,26 +613,16 @@ contains
                 end if
 
                 if ( i < hi(1) ) then
-
-                   if ( j == hi(2) ) then
-                      ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, HALF, ONE)
-                   else
-                      ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, HALF, ZERO)
-                   end if
+                   ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, HALF, jpnt)
 
                    if ( j < hi(2) ) then
-                      ff(i+1,j+1) = ff(i+1,j+1) + bicubicInterpolate(coeffs, HALF, HALF) 
+                      ff(i+1,j+1) = ff(i+1,j+1) + bicubicInterpolate(coeffs, HALF, HALF)
                    end if
 
                 end if
 
                 if ( j < hi(2) ) then
-
-                   if ( i == hi(1) ) then
-                      ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, ONE, HALF)
-                   else
-                      ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, ZERO, HALF)
-                   end if
+                   ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, ipnt, HALF)
 
                 end if
 
@@ -712,8 +712,9 @@ contains
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
     integer,     intent(in   ) :: ir(:), ptype
 
-    integer     :: i, j, k, ic, jc, kc, l, m, n, ng, clo(3), chi(3), istart, jstart, kstart
-    real (dp_t) :: fac_left, fac_rght, coeffs(0:63)
+    integer     :: i, j, k, ic, jc, kc, l, m, n, ng
+    integer     :: clo(3), chi(3), istart, jstart, kstart
+    real (dp_t) :: fac_left, fac_rght, coeffs(0:63), ipnt, jpnt, kpnt
 
     real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
@@ -727,25 +728,38 @@ contains
        ng = min((clo(1)-loc(1)), (clo(2)-loc(2)), (clo(3)-loc(3)))
 
        if ( ptype == 1 .and. ng > 0 ) then
-
-          print*, '*** Hit tricubic code!!!'
           !
           ! Tricubic was requested and we have one ghost cell.
           !
           do kc = clo(3),chi(3)
              k      = 2*kc
+             kpnt   = ZERO
              kstart = kc-1
-             if ( k == hi(3) ) kstart = kc-2
+
+             if ( k == hi(3) ) then
+                kpnt   = ONE
+                kstart = kc-2
+             end if
 
              do jc = clo(2),chi(2)
                 j      = 2*jc
+                jpnt   = ZERO
                 jstart = jc-1
-                if ( j == hi(2) ) jstart = jc-2
+
+                if ( j == hi(2) ) then
+                   jpnt   = ONE
+                   jstart = jc-2
+                end if
 
                 do ic = clo(1),chi(1)
                    i      = 2*ic
+                   ipnt   = ZERO
                    istart = ic-1
-                   if ( i == hi(1) ) istart = ic-2
+
+                   if ( i == hi(1) ) then
+                      ipnt   = ONE
+                      istart = ic-2
+                   end if
                    !
                    ! Direct injection for fine points overlaying coarse ones.
                    !
@@ -776,22 +790,22 @@ contains
                    end if
 
                    if ( i < hi(1) ) then
-                      ff(i+1,j,k) = ff(i+1,j,k) + tricubicInterpolate(coeffs,HALF,ZERO,ZERO)
+                      ff(i+1,j,k) = ff(i+1,j,k) + tricubicInterpolate(coeffs,HALF,jpnt,kpnt)
 
                       if ( j < hi(2) ) then
-                         ff(i+1,j+1,k) = ff(i+1,j+1,k) + tricubicInterpolate(coeffs,HALF,HALF,ZERO)
+                         ff(i+1,j+1,k) = ff(i+1,j+1,k) + tricubicInterpolate(coeffs,HALF,HALF,kpnt)
                       end if
                    end if
 
                    if ( j < hi(2) ) then
-                      ff(i,j+1,k) = ff(i,j+1,k) + tricubicInterpolate(coeffs,ZERO,HALF,ZERO)
+                      ff(i,j+1,k) = ff(i,j+1,k) + tricubicInterpolate(coeffs,ipnt,HALF,kpnt)
                    end if
 
                    if ( k < hi(3) ) then
-                      ff(i,j,k+1) = ff(i,j,k+1) + tricubicInterpolate(coeffs,ZERO,ZERO,HALF)
+                      ff(i,j,k+1) = ff(i,j,k+1) + tricubicInterpolate(coeffs,ipnt,jpnt,HALF)
 
                       if ( i < hi(1) ) then
-                         ff(i+1,j,k+1) = ff(i+1,j,k+1) + tricubicInterpolate(coeffs,HALF,ZERO,HALF)
+                         ff(i+1,j,k+1) = ff(i+1,j,k+1) + tricubicInterpolate(coeffs,HALF,jpnt,HALF)
 
                          if ( j < hi(2) ) then
                             ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + tricubicInterpolate(coeffs,HALF,HALF,HALF)
@@ -799,7 +813,7 @@ contains
                       end if
 
                       if ( j < hi(2) ) then
-                         ff(i,j+1,k+1) = ff(i,j+1,k+1) + tricubicInterpolate(coeffs,ZERO,HALF,HALF)
+                         ff(i,j+1,k+1) = ff(i,j+1,k+1) + tricubicInterpolate(coeffs,ipnt,HALF,HALF)
                       end if
                    end if
 
