@@ -603,15 +603,27 @@ contains
                 end if
 
                 if ( i < hi(1) ) then
-                   ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, HALF, ZERO) 
+
+                   if ( j == hi(2) ) then
+                      ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, HALF, ONE)
+                   else
+                      ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, HALF, ZERO)
+                   end if
 
                    if ( j < hi(2) ) then
                       ff(i+1,j+1) = ff(i+1,j+1) + bicubicInterpolate(coeffs, HALF, HALF) 
                    end if
+
                 end if
 
                 if ( j < hi(2) ) then
-                   ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, ZERO, HALF)
+
+                   if ( i == hi(1) ) then
+                      ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, ONE, HALF)
+                   else
+                      ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, ZERO, HALF)
+                   end if
+
                 end if
 
              end do
