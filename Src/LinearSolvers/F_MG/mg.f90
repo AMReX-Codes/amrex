@@ -1015,7 +1015,7 @@ contains
 
     else
 
-      if ( nd_ptype == 1 ) then
+      if ( nd_ptype == 1  .and. mgt%dim > 1 ) then
 
          call multifab_fill_boundary(mgt%uu(lev))
 
@@ -1026,7 +1026,12 @@ contains
             lo  =  lwb(get_pbox(mgt%uu(lev),i))
             ng  =  lom(1) - lo(1)
             do n = 1, mgt%nc
-               call impose_neumann_bcs_2d(up(:,:,1,n),mp(:,:,1,1),lom,ng)
+             select case ( mgt%dim )
+             case (2)
+                call impose_neumann_bcs_2d(up(:,:,1,n),mp(:,:,1,1),lom,ng)
+             case (3)
+                call impose_neumann_bcs_3d(up(:,:,:,n),mp(:,:,:,1),lom,ng)
+             end select
             end do
          end do
       end if
@@ -1062,8 +1067,8 @@ contains
              lo  =  lwb(get_ibox(uu, n))
              hi  =  upb(get_ibox(uu, n))
 
-             if ( mgt%dim == 2 ) then
-
+             select case ( mgt%dim )
+             case (2)
                 do j = lo(2),hi(2)
                    if ( bc_dirichlet(mp(lo(1),j,1,1),1,0) ) up(lo(1),j,1,1:mgt%nc) = ZERO
                    if ( bc_dirichlet(mp(hi(1),j,1,1),1,0) ) up(hi(1),j,1,1:mgt%nc) = ZERO
@@ -1073,9 +1078,7 @@ contains
                    if ( bc_dirichlet(mp(i,lo(2),1,1),1,0) ) up(i,lo(2),1,1:mgt%nc) = ZERO
                    if ( bc_dirichlet(mp(i,hi(2),1,1),1,0) ) up(i,hi(2),1,1:mgt%nc) = ZERO
                 end do
-
-             else
-
+             case (3)
                 do k = lo(3),hi(3)
                    do j = lo(2),hi(2)
                       if ( bc_dirichlet(mp(lo(1),j,k,1),1,0) ) up(lo(1),j,k,1:mgt%nc) = ZERO
@@ -1096,8 +1099,8 @@ contains
                       if ( bc_dirichlet(mp(i,j,hi(3),1),1,0) ) up(i,j,hi(3),1:mgt%nc) = ZERO
                    end do
                 end do
+             end select
 
-             end if
           end do
           !
           ! Nor do they preserve the value of shared nodes (ones at grid boundaries).
