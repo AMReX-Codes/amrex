@@ -3,6 +3,7 @@ module ml_nd_module
   use bl_constants_module
   use bl_prof_module
   use mg_module
+  use fabio_module
   use ml_layout_module
   use bndry_reg_module
 
@@ -53,6 +54,9 @@ contains
 
     real(dp_t) :: Anorm, bnorm, fac, tres, ttres, tres0, abs_eps, t1(3), t2(3)
     real(dp_t) :: stime, bottom_solve_time
+
+    character(len=3)          :: number
+    character(len=20)         :: filename
 
     logical nodal(get_dim(rh(1)))
 
@@ -402,6 +406,17 @@ contains
 
           fine_converged = .false.
           if ( mgt(nlevs)%verbose > 1 ) then
+
+             if ( .false. ) then
+                !
+                ! Some debugging code I want to keep around for a while.
+                ! I don't want to have to recreate this all the time :-)
+                !
+                write(number,fmt='(i3.3)') iter
+                filename = 'res_fine_iter=' // number
+                call fabio_write(res(nlevs), 'debug', trim(filename))
+             end if
+
              ttres = norm_inf(res(nlevs),local=.true.)
              call parallel_reduce(tres, ttres, MPI_MAX, proc = parallel_IOProcessorNode())
              if ( parallel_IOProcessor() ) then
