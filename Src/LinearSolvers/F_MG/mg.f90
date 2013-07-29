@@ -440,8 +440,8 @@ contains
     !   call unit_skip(un, skip)
     !   write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
     !   call unit_skip(un, skip)
-    !   write(unit=un, fmt=*) 'cycle_type        = ', mgt%cycle_type
-    !   call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'cycle_type        = ', mgt%cycle_type
+    call unit_skip(un, skip)
     write(unit=un, fmt=*) 'bottom_solver     = ', mgt%bottom_solver
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'bottom_solver_eps = ', mgt%bottom_solver_eps
