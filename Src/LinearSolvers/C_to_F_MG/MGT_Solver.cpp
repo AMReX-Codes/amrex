@@ -302,7 +302,7 @@ MGT_Solver::initialize(bool nodal)
     pp.query("rtol_b", def_bottom_solver_eps);
     pp.query("numLevelsMAX", def_max_nlevel);
     pp.query("smoother", def_smoother);
-    pp.query("max_L0_growth", def_max_L0_growth);
+    pp.query("cycle_type", def_cycle); // 1 -> F, 2 -> W, 3 -> V
 
 /*
     pp.query("nu_0", def_nu_0);
