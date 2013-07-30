@@ -986,7 +986,7 @@ contains
     integer,     intent(in   ) :: ir(:)
 
     integer     :: i, j, k, ic, jc, kc, m, ng
-    integer     :: clo(3), chi(3), istart, jstart, kstart
+    integer     :: clo(3), chi(3), istart, jstart, kstart , ilo(3), ihi(3)
     real (dp_t) :: coeffs(0:63), ipnt, jpnt, kpnt
 
     real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
@@ -1094,10 +1094,17 @@ contains
 
        else
           !
-          ! TODO - do linear interp & then tricubic on interior.
+          ! First do linear interp
           !
           call nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+          !
+          ! If the fine region is big enough do tricubic on interior.
+          !
+          ilo = lo+2
+          ihi = hi-2
 
+          if ( all( (ihi-ilo) > 0) ) &
+             call nodal_cubic_prolongation_3d(ff, lof, cc, loc, ilo, ihi, ir)
        end if
 
     else
