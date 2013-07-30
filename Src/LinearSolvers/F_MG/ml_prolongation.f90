@@ -110,7 +110,8 @@ contains
 
     integer             :: lo (get_dim(fine)), hi (get_dim(fine))
     integer             :: loc(get_dim(fine)), lof(get_dim(fine))
-    integer             :: i, n, dm, nd_ptype
+    integer             :: i, n, dm
+    logical             :: nodal_cubic
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(layout)        :: lacfine,laf
     type(multifab)      :: cfine
@@ -122,8 +123,10 @@ contains
     end if
 
     call build(bpt, "ml_prolongation")
-
-    nd_ptype = 0 ! usual linear one
+    !
+    ! Do you want to use [bi,tri]cubic nodal prolongation?
+    !
+    nodal_cubic = .false.
 
     laf = get_layout(fine)
 
@@ -146,11 +149,11 @@ contains
           cp => dataptr(cfine, i, n, 1)
           select case (dm)
           case (1)
-             call nodal_prolongation_1d(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir, nd_ptype)
+             call nodal_prolongation_1d(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir, nodal_cubic)
           case (2)
-             call nodal_prolongation_2d(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir, nd_ptype)
+             call nodal_prolongation_2d(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir, nodal_cubic)
           case (3)
-             call nodal_prolongation_3d(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir, nd_ptype)
+             call nodal_prolongation_3d(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir, nodal_cubic)
           end select
        end do
     end do

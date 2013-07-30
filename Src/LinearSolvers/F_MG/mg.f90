@@ -953,20 +953,22 @@ contains
   !
   ! Prolongate from mgt%uu(lev) -> uu.
   !
-  subroutine mg_tower_prolongation(mgt, uu, lev, cc_ptype, nd_ptype)
+  subroutine mg_tower_prolongation(mgt, uu, lev, cc_ptype, nodal_cubic)
 
     use bl_prof_module
     use mg_prolongation_module
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
-    integer       , intent(in   ) :: lev, cc_ptype, nd_ptype
+    integer       , intent(in   ) :: lev, cc_ptype
+    logical       , intent(in   ) :: nodal_cubic
 
     real(kind=dp_t), pointer  :: fp(:,:,:,:), cp(:,:,:,:), up(:,:,:,:)
     integer,         pointer  :: mp(:,:,:,:)
     integer                   :: i, j, k, n, ng, ir(mgt%dim)
     integer                   :: lo(mgt%dim), hi(mgt%dim), lom(mgt%dim)
     integer                   :: loc(mgt%dim), lof(mgt%dim)
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_prolongation")
@@ -1015,7 +1017,7 @@ contains
 
     else
 
-      if ( nd_ptype == 1  .and. mgt%dim > 1 ) then
+      if ( nodal_cubic  .and. mgt%dim > 1 ) then
 
          call multifab_fill_boundary(mgt%uu(lev))
 
@@ -1047,17 +1049,17 @@ contains
           do n = 1, mgt%nc
              select case ( mgt%dim )
              case (1)
-                call nodal_prolongation_1d(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, nd_ptype)
+                call nodal_prolongation_1d(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, cubic = nodal_cubic)
              case (2)
-                call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, nd_ptype)
+                call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cubic = nodal_cubic)
              case (3)
-                call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, nd_ptype)
+                call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, cubic = nodal_cubic)
              end select
           end do
        end do
        !$OMP END PARALLEL DO
 
-       if ( nd_ptype == 1 .and. mgt%dim > 1 ) then
+       if ( nodal_cubic .and. mgt%dim > 1 ) then
           !
           ! The [bi,tri]cubic interpolators don't preserve dirichlet BCs.
           !
@@ -1169,9 +1171,11 @@ contains
 
     logical                   :: do_diag
     real(dp_t)                :: nrm, stime
-    integer                   :: lbl, cc_ptype, nd_ptype
+    integer                   :: lbl, cc_ptype
+    logical                   :: nodal_cubic
     character(len=3)          :: number
     character(len=20)         :: filename
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_f_cycle")
@@ -1189,13 +1193,9 @@ contains
     !
     cc_ptype = 0
     !
-    ! Prolongation types for Nodal:
-    ! 
-    !   Piecewise linear: 0
-    !   2D  bicubic:      1
-    !   3D tricubic:      1
+    ! Do you want to use [bi,tri]cubic nodal prolongation?
     !
-    nd_ptype = 0
+    nodal_cubic = .false.
 
     if ( lev == lbl ) then
        stime = parallel_wtime()
@@ -1234,7 +1234,7 @@ contains
           ! I don't want to have to recreate this all the time :-)
           !
           write(number,fmt='(i3.3)') lev
-          if ( nd_ptype == 1 ) then
+          if ( nodal_cubic ) then
              filename = 'uu_before_p' // number
           else
              filename = 'uu_linear_' // number
@@ -1242,7 +1242,7 @@ contains
           call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
        end if
           
-       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nd_ptype)
+       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nodal_cubic)
 
        if (lev == mgt%nlevels) then
             call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), uu, &
@@ -1273,8 +1273,8 @@ contains
     integer, intent(in) :: cyc
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
-    integer :: i, cc_ptype, nd_ptype
-    logical :: do_diag
+    integer :: i, cc_ptype
+    logical :: do_diag, nodal_cubic
     real(dp_t) :: nrm, stime
     integer :: lbl
     type(bl_prof_timer), save :: bpt
@@ -1292,12 +1292,9 @@ contains
     !
     cc_ptype = 0
     !
-    ! Prolongation types for Nodal:
-    ! 
-    !   Piecewise linear: 0
-    !   2D bicubic:       1
+    ! Do you want to use cubic nodal interpolation?
     !
-    nd_ptype = 0
+    nodal_cubic = .false.
 
     if ( parallel_IOProcessor() .and. do_diag) &
          write(6,1000) lev
@@ -1379,7 +1376,7 @@ contains
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
        end do
 
-       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nd_ptype)
+       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nodal_cubic)
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
@@ -1421,8 +1418,8 @@ contains
     integer, intent(in) :: lev
     integer, intent(in) :: nu1, nu2
 
-    integer             :: i, cc_ptype, nd_ptype
-    logical             :: do_diag
+    integer             :: i, cc_ptype
+    logical             :: do_diag, nodal_cubic
     real(dp_t)          :: nrm
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
@@ -1434,12 +1431,9 @@ contains
     !
     cc_ptype = 0
     !
-    ! Prolongation types for Nodal:
-    ! 
-    !   Piecewise linear: 0
-    !   2D bicubic:       1
+    ! Do you want to use cubic nodal interpolation?
     !
-    nd_ptype = 0
+    nodal_cubic = .false.
 
     ! Always relax first at the level we come in at
     if ( do_diag ) then
@@ -1489,7 +1483,7 @@ contains
              print *,'MINI_CRSE: Norm  after smooth         ',nrm
        end if
 
-       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nd_ptype)
+       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nodal_cubic)
 
        if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)

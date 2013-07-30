@@ -22,6 +22,12 @@ module mg_prolongation_module
      module procedure nodal_prolongation_3d
   end interface
 
+  interface nodal_cubic_prolongation
+     module procedure nodal_cubic_prolongation_1d
+     module procedure nodal_cubic_prolongation_2d
+     module procedure nodal_cubic_prolongation_3d
+  end interface
+
   private :: cubicInterpolate, bicubicInterpolate, tricubicInterpolate
 
 contains
@@ -213,11 +219,15 @@ contains
           twoj   = 2*j
           twojp1 = twoj+1
           interior_j = ( j > clo(2) .and. j < chi(2) )
+
           do i = clo(1),chi(1)
              interior_i = ( i > clo(1) .and. i < chi(1) )
+
              if ( interior_i .and. interior_j ) cycle
+
              twoi   = 2*i
              twoip1 = twoi+1
+
              ff(twoi,   twoj  ) = ff(twoi,   twoj  ) + cc(i,j)
              ff(twoip1, twoj  ) = ff(twoip1, twoj  ) + cc(i,j)
              ff(twoi,   twojp1) = ff(twoi,   twojp1) + cc(i,j)
@@ -235,9 +245,11 @@ contains
           do j = clo(2)+1, chi(2)-1
              twoj   = 2*j
              twojp1 = twoj+1
+
              do i = clo(1)+1, chi(1)-1
                 twoi   = 2*i
                 twoip1 = twoi+1
+
                 ff(twoip1, twojp1) = ff(twoip1, twojp1) + .25d0 * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
                 ff(twoi,   twojp1) = ff(twoi,   twojp1) + .25d0 * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
                 ff(twoip1, twoj  ) = ff(twoip1, twoj  ) + .25d0 * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
@@ -251,9 +263,11 @@ contains
           do j = clo(2)+1, chi(2)-1
              twoj   = 2*j
              twojp1 = twoj+1
+
              do i = clo(1)+1, chi(1)-1
                 twoi   = 2*i
                 twoip1 = twoi+1
+
                 ff(twoip1, twojp1) = ff(twoip1, twojp1) + one6th * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
                 ff(twoi,   twojp1) = ff(twoi,   twojp1) + one6th * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
                 ff(twoip1, twoj  ) = ff(twoip1, twoj  ) + one6th * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
@@ -267,9 +281,11 @@ contains
           do j = clo(2)+1, chi(2)-1
              twoj   = 2*j
              twojp1 = twoj+1
+
              do i = clo(1)+1, chi(1)-1
                 twoi   = 2*i
                 twoip1 = twoi+1
+
                 ff(twoip1, twojp1) = ff(twoip1, twojp1) + one16th * &
                      ( 9*cc(i,j) + 3*cc(i+1,j) + 3*cc(i,j+1) + cc(i+1,j+1) )
                 ff(twoi,   twojp1) = ff(twoi,   twojp1) + one16th * &
@@ -321,15 +337,20 @@ contains
           twok   = 2*k
           twokp1 = twok+1
           interior_k = ( k > clo(3) .and. k < chi(3) )
+
           do j = clo(2),chi(2)
              twoj   = 2*j
              twojp1 = twoj+1
              interior_j = ( j > clo(2) .and. j < chi(2) )
+
              do i = clo(1),chi(1)
                 interior_i = ( i > clo(1) .and. i < chi(1) )
+
                 if ( interior_i .and. interior_j .and. interior_k ) cycle
+
                 twoi   = 2*i
                 twoip1 = twoi+1
+
                 ff(twoip1, twojp1, twokp1) = ff(twoip1, twojp1, twokp1) + cc(i,j,k)
                 ff(twoi,   twojp1, twokp1) = ff(twoi,   twojp1, twokp1) + cc(i,j,k)
                 ff(twoip1, twoj,   twokp1) = ff(twoip1, twoj,   twokp1) + cc(i,j,k)
@@ -352,12 +373,15 @@ contains
           do k = clo(3)+1,chi(3)-1
              twok   = 2*k
              twokp1 = twok+1
+
              do j = clo(2)+1,chi(2)-1
                 twoj   = 2*j
                 twojp1 = twoj+1
+
                 do i = clo(1)+1,chi(1)-1
                    twoi   = 2*i
                    twoip1 = twoi+1
+
                    ff(twoip1, twojp1, twokp1) = ff(twoip1, twojp1, twokp1) + &
                         .25d0 * ( cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
                    ff(twoi,   twojp1, twokp1) = ff(twoi,   twojp1, twokp1) + &
@@ -384,12 +408,15 @@ contains
           do k = clo(3)+1,chi(3)-1
              twok   = 2*k
              twokp1 = twok+1
+
              do j = clo(2)+1,chi(2)-1
                 twoj   = 2*j
                 twojp1 = twoj+1
+
                 do i = clo(1)+1,chi(1)-1
                    twoi   = 2*i
                    twoip1 = twoi+1
+
                    ff(twoip1, twojp1, twokp1) = ff(twoip1, twojp1, twokp1) + &
                         sixth * ( 3*cc(i,j,k) + cc(i+1,j,k) + cc(i,j+1,k) + cc(i,j,k+1) )
                    ff(twoi,   twojp1, twokp1) = ff(twoi,   twojp1, twokp1) + &
@@ -416,12 +443,15 @@ contains
           do k = clo(3)+1,chi(3)-1
              twok   = 2*k
              twokp1 = twok+1
+
              do j = clo(2)+1,chi(2)-1
                 twoj   = 2*j
                 twojp1 = twoj+1
+
                 do i = clo(1)+1,chi(1)-1
                    twoi   = 2*i
                    twoip1 = twoi+1
+
                    ff(twoip1, twojp1, twokp1) = ff(twoip1, twojp1, twokp1) + &
                         three64ths * ( 9*cc(i,j,k  ) + 3*cc(i+1,j,k  ) + 3*cc(i,j+1,k  ) + cc(i+1,j+1,k  ) ) + &
                         one64ths * ( 9*cc(i,j,k+1) + 3*cc(i+1,j,k+1) + 3*cc(i,j+1,k+1) + cc(i+1,j+1,k+1) )
@@ -496,16 +526,20 @@ contains
     r = cubicInterpolate(arr, z)
   end function tricubicInterpolate
 
-  subroutine nodal_prolongation_1d(ff, lof, cc, loc, lo, hi, ir, ptype)
+  subroutine nodal_prolongation_1d(ff, lof, cc, loc, lo, hi, ir, cubic)
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):)
     real (dp_t), intent(in   ) :: cc(loc(1):)
-    integer,     intent(in   ) :: ir(:), ptype
+    integer,     intent(in   ) :: ir(:)
+    logical,     intent(in   ), optional :: cubic
 
     integer               :: i, ic, l
-    real (dp_t)           :: fac_left, fac_rght, coeffs(0:3)
+    real (dp_t)           :: fac_left, fac_rght
     real(dp_t), parameter :: ONE = 1.0_dp_t
+    logical               :: lcubic
+
+    lcubic = .false. ; if ( present(cubic) ) lcubic = cubic
     !
     ! Direct injection for fine points overlaying coarse ones.
     !
@@ -514,32 +548,9 @@ contains
        ff(i) = ff(i) + cc(ic)
     end do
 
-    if ( ptype == 1 .and. ir(1) == 2 ) then
-       !
-       ! Use linear interpolation at points one off from boundaries.
-       !
-       i  = lo(1)
-       ic = i / ir(1)
-       ff(i+1) = 0.5d0 * (cc(ic) + cc(ic+1))
+    if ( ir(1) == 2 .and. lcubic ) then
 
-       i  = hi(1) -1
-       ic = i / ir(1)
-       ff(i+1) = 0.5d0 * (cc(ic) + cc(ic+1))
-       !
-       ! Use cubic interpolation only on interior points away from boundary.
-       ! This way we don't need to assume we have any grow cells.
-       !
-       do i = lo(1)+1, hi(1)-2, ir(1)
-
-          ic = i / ir(1)
-
-          coeffs(0) = cc(ic-1)
-          coeffs(1) = cc(ic+0)
-          coeffs(2) = cc(ic+1)
-          coeffs(3) = cc(ic+2)
-
-          ff(i+1) = ff(i+1) + cubicInterpolate(coeffs, 0.5d0)
-       end do
+       call nodal_cubic_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
 
     else
 
@@ -556,83 +567,91 @@ contains
 
   end subroutine nodal_prolongation_1d
 
-  subroutine nodal_prolongation_2d(ff, lof, cc, loc, lo, hi, ir, ptype)
+  subroutine nodal_cubic_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
     use bl_error_module
+    integer,     intent(in   ) :: loc(:), lof(:)
+    integer,     intent(in   ) :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: ff(lof(1):)
+    real (dp_t), intent(in   ) :: cc(loc(1):)
+    integer,     intent(in   ) :: ir(:)
+
+    integer     :: i, ic
+    real (dp_t) :: coeffs(0:3)
+    !
+    ! Direct injection for fine points overlaying coarse ones.
+    !
+    do i = lo(1),hi(1),ir(1)
+       ic = i / ir(1) 
+       ff(i) = ff(i) + cc(ic)
+    end do
+
+    if ( ir(1) == 2 ) then
+       !
+       ! Use linear interpolation at points one off from boundaries.
+       !
+       i  = lo(1)
+       ic = i / 2
+       ff(i+1) = 0.5d0 * (cc(ic) + cc(ic+1))
+
+       i  = hi(1) -1
+       ic = i / 2
+       ff(i+1) = 0.5d0 * (cc(ic) + cc(ic+1))
+       !
+       ! Use cubic interpolation only on interior points away from boundary.
+       ! This way we don't need to assume we have any grow cells.
+       !
+       do i = lo(1)+1, hi(1)-2, 2
+
+          ic = i / 2
+
+          coeffs(0) = cc(ic-1)
+          coeffs(1) = cc(ic+0)
+          coeffs(2) = cc(ic+1)
+          coeffs(3) = cc(ic+2)
+
+          ff(i+1) = ff(i+1) + cubicInterpolate(coeffs, 0.5d0)
+       end do
+
+    else
+
+       call bl_warn('nodal_cubic_prolongation_1d: doing linear interp since ir /= 2')
+
+       call nodal_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
+
+    end if
+
+  end subroutine nodal_cubic_prolongation_1d
+
+  subroutine nodal_prolongation_2d(ff, lof, cc, loc, lo, hi, ir, cubic)
     integer,     intent(in   ) :: loc(:),lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
-    integer,     intent(in   ) :: ir(:), ptype
+    integer,     intent(in   ) :: ir(:)
+    logical,     intent(in   ), optional :: cubic
 
-    integer     :: i, j, ic, jc, l, m, ng, clo(2), chi(2), istart, jstart
-    real (dp_t) :: fac_left, fac_rght, coeffs(0:15), ipnt, jpnt
+    integer     :: i, j, ic, jc, l, m, clo(2), chi(2)
+    real (dp_t) :: fac_left, fac_rght
     real (dp_t) :: temp(lo(1):hi(1),lo(2):hi(2))
+    logical     :: lcubic
 
-    real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
+    real(dp_t), parameter :: HALF = 0.5_dp_t, ONE = 1.0_dp_t
+
+    lcubic = .false. ; if ( present(cubic) ) lcubic = cubic
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
 
-       clo = lo / 2
-       chi = hi / 2
+       if ( lcubic ) then
 
-       ng = min((clo(1)-loc(1)),(clo(2)-loc(2)))
-
-       if ( ptype == 1 .and. ng > 0 ) then
-          !
-          ! Bicubic was requested and we have one ghost cell.
-          !
-          do jc = clo(2),chi(2)
-             j      = 2*jc
-             jpnt   = ZERO
-             jstart = jc-1
-
-             if ( j == hi(2) ) then
-                jpnt   = ONE
-                jstart = jc-2
-             end if
-
-             do ic = clo(1),chi(1)
-                i      = 2*ic
-                ipnt   = ZERO
-                istart = ic-1
-
-                if ( i == hi(1) ) then
-                   ipnt   = ONE
-                   istart = ic-2
-                end if
-                !
-                ! Direct injection for fine points overlaying coarse ones.
-                !
-                ff(i,j) = ff(i,j) + cc(ic,jc)
-
-                if ( i < hi(1) .or. j < hi(2) ) then
-                   coeffs( 0 :  3) = (/ (cc(m,jstart+0), m=istart,istart+3) /)
-                   coeffs( 4 :  7) = (/ (cc(m,jstart+1), m=istart,istart+3) /)
-                   coeffs( 8 : 11) = (/ (cc(m,jstart+2), m=istart,istart+3) /)
-                   coeffs(12 : 15) = (/ (cc(m,jstart+3), m=istart,istart+3) /)
-                end if
-
-                if ( i < hi(1) ) then
-                   ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, HALF, jpnt)
-
-                   if ( j < hi(2) ) then
-                      ff(i+1,j+1) = ff(i+1,j+1) + bicubicInterpolate(coeffs, HALF, HALF)
-                   end if
-
-                end if
-
-                if ( j < hi(2) ) then
-                   ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, ipnt, HALF)
-
-                end if
-
-             end do
-          end do
+          call nodal_cubic_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
 
        else
           !
           ! Do fast unrolled linear interp.
           !
+          clo = lo / 2
+          chi = hi / 2
+
           do jc = clo(2),chi(2)
              j = 2*jc
              do ic = clo(1),chi(1)
@@ -705,126 +724,127 @@ contains
 
   end subroutine nodal_prolongation_2d
 
-  subroutine nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir, ptype)
-    integer,     intent(in   ) :: loc(:), lof(:)
+  recursive subroutine nodal_cubic_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+    use bl_error_module
+    integer,     intent(in   ) :: loc(:),lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
-    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
-    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
-    integer,     intent(in   ) :: ir(:), ptype
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
+    integer,     intent(in   ) :: ir(:)
 
-    integer     :: i, j, k, ic, jc, kc, l, m, n, ng
-    integer     :: clo(3), chi(3), istart, jstart, kstart
-    real (dp_t) :: fac_left, fac_rght, coeffs(0:63), ipnt, jpnt, kpnt
+    integer     :: i, j, ic, jc, m, ng, clo(2), chi(2), istart, jstart
+    real (dp_t) :: coeffs(0:15), ipnt, jpnt
 
     real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
-    real (dp_t), allocatable :: temp(:,:,:)
-
-    if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
+    if ( ir(1) == 2 .and. ir(2) == 2 ) then
 
        clo = lo / 2
        chi = hi / 2
 
-       ng = min((clo(1)-loc(1)), (clo(2)-loc(2)), (clo(3)-loc(3)))
+       ng = min((clo(1)-loc(1)),(clo(2)-loc(2)))
 
-       if ( ptype == 1 .and. ng > 0 ) then
+       if ( ng > 0 ) then
           !
-          ! Tricubic was requested and we have one ghost cell.
+          ! Bicubic was requested and we have one ghost cell.
           !
-          do kc = clo(3),chi(3)
-             k      = 2*kc
-             kpnt   = ZERO
-             kstart = kc-1
+          do jc = clo(2),chi(2)
+             j      = 2*jc
+             jpnt   = ZERO
+             jstart = jc-1
 
-             if ( k == hi(3) ) then
-                kpnt   = ONE
-                kstart = kc-2
+             if ( j == hi(2) ) then
+                jpnt   = ONE
+                jstart = jc-2
              end if
 
-             do jc = clo(2),chi(2)
-                j      = 2*jc
-                jpnt   = ZERO
-                jstart = jc-1
+             do ic = clo(1),chi(1)
+                i      = 2*ic
+                ipnt   = ZERO
+                istart = ic-1
 
-                if ( j == hi(2) ) then
-                   jpnt   = ONE
-                   jstart = jc-2
+                if ( i == hi(1) ) then
+                   ipnt   = ONE
+                   istart = ic-2
+                end if
+                !
+                ! Direct injection for fine points overlaying coarse ones.
+                !
+                ff(i,j) = ff(i,j) + cc(ic,jc)
+
+                if ( i < hi(1) .or. j < hi(2) ) then
+                   coeffs( 0 :  3) = (/ (cc(m,jstart+0), m=istart,istart+3) /)
+                   coeffs( 4 :  7) = (/ (cc(m,jstart+1), m=istart,istart+3) /)
+                   coeffs( 8 : 11) = (/ (cc(m,jstart+2), m=istart,istart+3) /)
+                   coeffs(12 : 15) = (/ (cc(m,jstart+3), m=istart,istart+3) /)
                 end if
 
-                do ic = clo(1),chi(1)
-                   i      = 2*ic
-                   ipnt   = ZERO
-                   istart = ic-1
-
-                   if ( i == hi(1) ) then
-                      ipnt   = ONE
-                      istart = ic-2
-                   end if
-                   !
-                   ! Direct injection for fine points overlaying coarse ones.
-                   !
-                   ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
-
-                   if ( i < hi(1) .or. j < hi(2) .or. k < hi(3) ) then
-
-                      coeffs( 0 :  3) = (/ (cc(m,jstart+0,kstart+0), m=istart,istart+3) /)
-                      coeffs( 4 :  7) = (/ (cc(m,jstart+1,kstart+0), m=istart,istart+3) /)
-                      coeffs( 8 : 11) = (/ (cc(m,jstart+2,kstart+0), m=istart,istart+3) /)
-                      coeffs(12 : 15) = (/ (cc(m,jstart+3,kstart+0), m=istart,istart+3) /)
-
-                      coeffs(16 : 19) = (/ (cc(m,jstart+0,kstart+1), m=istart,istart+3) /)
-                      coeffs(20 : 23) = (/ (cc(m,jstart+1,kstart+1), m=istart,istart+3) /)
-                      coeffs(24 : 27) = (/ (cc(m,jstart+2,kstart+1), m=istart,istart+3) /)
-                      coeffs(28 : 31) = (/ (cc(m,jstart+3,kstart+1), m=istart,istart+3) /)
-
-                      coeffs(32 : 35) = (/ (cc(m,jstart+0,kstart+2), m=istart,istart+3) /)
-                      coeffs(36 : 39) = (/ (cc(m,jstart+1,kstart+2), m=istart,istart+3) /)
-                      coeffs(40 : 43) = (/ (cc(m,jstart+2,kstart+2), m=istart,istart+3) /)
-                      coeffs(44 : 47) = (/ (cc(m,jstart+3,kstart+2), m=istart,istart+3) /)
-
-                      coeffs(48 : 51) = (/ (cc(m,jstart+0,kstart+3), m=istart,istart+3) /)
-                      coeffs(52 : 55) = (/ (cc(m,jstart+1,kstart+3), m=istart,istart+3) /)
-                      coeffs(56 : 59) = (/ (cc(m,jstart+2,kstart+3), m=istart,istart+3) /)
-                      coeffs(60 : 63) = (/ (cc(m,jstart+3,kstart+3), m=istart,istart+3) /)
-
-                   end if
-
-                   if ( i < hi(1) ) then
-                      ff(i+1,j,k) = ff(i+1,j,k) + tricubicInterpolate(coeffs,HALF,jpnt,kpnt)
-
-                      if ( j < hi(2) ) then
-                         ff(i+1,j+1,k) = ff(i+1,j+1,k) + tricubicInterpolate(coeffs,HALF,HALF,kpnt)
-                      end if
-                   end if
+                if ( i < hi(1) ) then
+                   ff(i+1,j) = ff(i+1,j) + bicubicInterpolate(coeffs, HALF, jpnt)
 
                    if ( j < hi(2) ) then
-                      ff(i,j+1,k) = ff(i,j+1,k) + tricubicInterpolate(coeffs,ipnt,HALF,kpnt)
+                      ff(i+1,j+1) = ff(i+1,j+1) + bicubicInterpolate(coeffs, HALF, HALF)
                    end if
 
-                   if ( k < hi(3) ) then
-                      ff(i,j,k+1) = ff(i,j,k+1) + tricubicInterpolate(coeffs,ipnt,jpnt,HALF)
+                end if
 
-                      if ( i < hi(1) ) then
-                         ff(i+1,j,k+1) = ff(i+1,j,k+1) + tricubicInterpolate(coeffs,HALF,jpnt,HALF)
+                if ( j < hi(2) ) then
+                   ff(i,j+1) = ff(i,j+1) + bicubicInterpolate(coeffs, ipnt, HALF)
+                end if
 
-                         if ( j < hi(2) ) then
-                            ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + tricubicInterpolate(coeffs,HALF,HALF,HALF)
-                         end if
-                      end if
-
-                      if ( j < hi(2) ) then
-                         ff(i,j+1,k+1) = ff(i,j+1,k+1) + tricubicInterpolate(coeffs,ipnt,HALF,HALF)
-                      end if
-                   end if
-
-                end do
              end do
           end do
 
        else
           !
+          ! TODO - do linear interp & then bicubic on interior.
+          !
+          call nodal_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+
+       end if
+
+    else
+
+       call bl_warn('nodal_cubic_prolongation_2d: doing linear interp since ir /= 2')
+
+       call nodal_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+
+    end if
+
+  end subroutine nodal_cubic_prolongation_2d
+
+  subroutine nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir, cubic)
+    integer,     intent(in   ) :: loc(:), lof(:)
+    integer,     intent(in   ) :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
+    integer,     intent(in   ) :: ir(:)
+    logical,     intent(in   ), optional :: cubic
+
+    integer     :: i, j, k, ic, jc, kc, l, m, n
+    integer     :: clo(3), chi(3)
+    real (dp_t) :: fac_left, fac_rght
+    logical     :: lcubic
+
+    real(dp_t), parameter :: HALF = 0.5_dp_t, ONE = 1.0_dp_t
+
+    real (dp_t), allocatable :: temp(:,:,:)
+
+    lcubic = .false. ; if ( present(cubic) ) lcubic = cubic
+
+    if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
+
+       if ( lcubic ) then
+
+          call nodal_cubic_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+
+       else
+          !
           ! Do fast unrolled linear interp.
           !
+          clo = lo / 2
+          chi = hi / 2
+
           do kc = clo(3),chi(3)
              k = 2*kc
              do jc = clo(2),chi(2)
@@ -949,5 +969,138 @@ contains
     endif
 
   end subroutine nodal_prolongation_3d
+
+  recursive subroutine nodal_cubic_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+    use bl_error_module
+    integer,     intent(in   ) :: loc(:), lof(:)
+    integer,     intent(in   ) :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
+    integer,     intent(in   ) :: ir(:)
+
+    integer     :: i, j, k, ic, jc, kc, m, ng
+    integer     :: clo(3), chi(3), istart, jstart, kstart
+    real (dp_t) :: coeffs(0:63), ipnt, jpnt, kpnt
+
+    real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
+
+    if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
+
+       clo = lo / 2
+       chi = hi / 2
+
+       ng = min((clo(1)-loc(1)), (clo(2)-loc(2)), (clo(3)-loc(3)))
+
+       if ( ng > 0 ) then
+          !
+          ! Tricubic was requested and we have one ghost cell.
+          !
+          do kc = clo(3),chi(3)
+             k      = 2*kc
+             kpnt   = ZERO
+             kstart = kc-1
+
+             if ( k == hi(3) ) then
+                kpnt   = ONE
+                kstart = kc-2
+             end if
+
+             do jc = clo(2),chi(2)
+                j      = 2*jc
+                jpnt   = ZERO
+                jstart = jc-1
+
+                if ( j == hi(2) ) then
+                   jpnt   = ONE
+                   jstart = jc-2
+                end if
+
+                do ic = clo(1),chi(1)
+                   i      = 2*ic
+                   ipnt   = ZERO
+                   istart = ic-1
+
+                   if ( i == hi(1) ) then
+                      ipnt   = ONE
+                      istart = ic-2
+                   end if
+                   !
+                   ! Direct injection for fine points overlaying coarse ones.
+                   !
+                   ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
+
+                   if ( i < hi(1) .or. j < hi(2) .or. k < hi(3) ) then
+
+                      coeffs( 0 :  3) = (/ (cc(m,jstart+0,kstart+0), m=istart,istart+3) /)
+                      coeffs( 4 :  7) = (/ (cc(m,jstart+1,kstart+0), m=istart,istart+3) /)
+                      coeffs( 8 : 11) = (/ (cc(m,jstart+2,kstart+0), m=istart,istart+3) /)
+                      coeffs(12 : 15) = (/ (cc(m,jstart+3,kstart+0), m=istart,istart+3) /)
+
+                      coeffs(16 : 19) = (/ (cc(m,jstart+0,kstart+1), m=istart,istart+3) /)
+                      coeffs(20 : 23) = (/ (cc(m,jstart+1,kstart+1), m=istart,istart+3) /)
+                      coeffs(24 : 27) = (/ (cc(m,jstart+2,kstart+1), m=istart,istart+3) /)
+                      coeffs(28 : 31) = (/ (cc(m,jstart+3,kstart+1), m=istart,istart+3) /)
+
+                      coeffs(32 : 35) = (/ (cc(m,jstart+0,kstart+2), m=istart,istart+3) /)
+                      coeffs(36 : 39) = (/ (cc(m,jstart+1,kstart+2), m=istart,istart+3) /)
+                      coeffs(40 : 43) = (/ (cc(m,jstart+2,kstart+2), m=istart,istart+3) /)
+                      coeffs(44 : 47) = (/ (cc(m,jstart+3,kstart+2), m=istart,istart+3) /)
+
+                      coeffs(48 : 51) = (/ (cc(m,jstart+0,kstart+3), m=istart,istart+3) /)
+                      coeffs(52 : 55) = (/ (cc(m,jstart+1,kstart+3), m=istart,istart+3) /)
+                      coeffs(56 : 59) = (/ (cc(m,jstart+2,kstart+3), m=istart,istart+3) /)
+                      coeffs(60 : 63) = (/ (cc(m,jstart+3,kstart+3), m=istart,istart+3) /)
+
+                   end if
+
+                   if ( i < hi(1) ) then
+                      ff(i+1,j,k) = ff(i+1,j,k) + tricubicInterpolate(coeffs,HALF,jpnt,kpnt)
+
+                      if ( j < hi(2) ) then
+                         ff(i+1,j+1,k) = ff(i+1,j+1,k) + tricubicInterpolate(coeffs,HALF,HALF,kpnt)
+                      end if
+                   end if
+
+                   if ( j < hi(2) ) then
+                      ff(i,j+1,k) = ff(i,j+1,k) + tricubicInterpolate(coeffs,ipnt,HALF,kpnt)
+                   end if
+
+                   if ( k < hi(3) ) then
+                      ff(i,j,k+1) = ff(i,j,k+1) + tricubicInterpolate(coeffs,ipnt,jpnt,HALF)
+
+                      if ( i < hi(1) ) then
+                         ff(i+1,j,k+1) = ff(i+1,j,k+1) + tricubicInterpolate(coeffs,HALF,jpnt,HALF)
+
+                         if ( j < hi(2) ) then
+                            ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + tricubicInterpolate(coeffs,HALF,HALF,HALF)
+                         end if
+                      end if
+
+                      if ( j < hi(2) ) then
+                         ff(i,j+1,k+1) = ff(i,j+1,k+1) + tricubicInterpolate(coeffs,ipnt,HALF,HALF)
+                      end if
+                   end if
+
+                end do
+             end do
+          end do
+
+       else
+          !
+          ! TODO - do linear interp & then tricubic on interior.
+          !
+          call nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+
+       end if
+
+    else
+
+       call bl_warn('nodal_cubic_prolongation_3d: doing linear interp since ir /= 2')
+
+       call nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+
+    endif
+
+  end subroutine nodal_cubic_prolongation_3d
 
 end module mg_prolongation_module
