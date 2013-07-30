@@ -101,6 +101,7 @@ contains
 
   subroutine ml_nodal_prolongation(fine, crse, ir)
 
+    use fabio_module
     use bl_prof_module
     use mg_prolongation_module
 
@@ -111,22 +112,20 @@ contains
     integer             :: lo (get_dim(fine)), hi (get_dim(fine))
     integer             :: loc(get_dim(fine)), lof(get_dim(fine))
     integer             :: i, n, dm
-    logical             :: nodal_cubic
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(layout)        :: lacfine,laf
     type(multifab)      :: cfine
+    character(len=3)    :: number
+    character(len=20)   :: filename
+
+    integer, save :: cnt = 0
 
     type(bl_prof_timer), save :: bpt
 
-    if ( ncomp(crse) .ne. ncomp(fine) ) then
-       call bl_error('ml_prolongation: crse & fine must have same # of components')
-    end if
+    if ( ncomp(crse) .ne. ncomp(fine) ) &
+         call bl_error('ml_prolongation: crse & fine must have same # of components')
 
     call build(bpt, "ml_prolongation")
-    !
-    ! Do you want to use [bi,tri]cubic nodal prolongation?
-    !
-    nodal_cubic = .false.
 
     laf = get_layout(fine)
 
@@ -149,15 +148,26 @@ contains
           cp => dataptr(cfine, i, n, 1)
           select case (dm)
           case (1)
-             call nodal_prolongation_1d(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir, nodal_cubic)
+             call nodal_prolongation_1d(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
           case (2)
-             call nodal_prolongation_2d(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir, nodal_cubic)
+             call nodal_prolongation_2d(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
           case (3)
-             call nodal_prolongation_3d(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir, nodal_cubic)
+             call nodal_prolongation_3d(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
           end select
        end do
     end do
     !$OMP END PARALLEL DO
+
+    if ( .false. ) then
+       !
+       ! Some debugging code I want to keep around for a while.
+       ! I don't want to have to recreate this all the time :-)
+       !
+       cnt = cnt + 1
+       write(number,fmt='(i3.3)') cnt
+       filename = 'prolong_' // number
+       call fabio_write(fine, 'debug', trim(filename))
+    end if
 
     call destroy(cfine)
     call destroy(bpt)
