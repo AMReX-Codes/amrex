@@ -1,6 +1,7 @@
 module mg_prolongation_module
 
   use bl_types
+  use box_module
 
   implicit none
 
@@ -61,8 +62,8 @@ contains
        !
        ! Specialized unrolled 2D version.
        !
-       clo = lo / 2
-       chi = hi / 2
+       clo = int_coarsen(lo, 2)
+       chi = int_coarsen(hi, 2)
 
        do j = clo(2),chi(2)
              twoj   = 2*j
@@ -108,8 +109,8 @@ contains
        !
        ! Specialized unrolled 3D version.
        !
-       clo = lo / 2
-       chi = hi / 2
+       clo = int_coarsen(lo, 2)
+       chi = int_coarsen(hi, 2)
 
        do k = clo(3),chi(3)
           twok   = 2*k
@@ -166,8 +167,8 @@ contains
 
     if ( ir(1) == 2 ) then
 
-       clo = lo / 2
-       chi = hi / 2
+       clo = int_coarsen(lo, 2)
+       chi = int_coarsen(hi, 2)
 
        ng = (clo(1)-loc(1))
 
@@ -221,8 +222,8 @@ contains
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
 
-       clo = lo / 2
-       chi = hi / 2
+       clo = int_coarsen(lo, 2)
+       chi = int_coarsen(hi, 2)
 
        ng = min(clo(1)-loc(1),clo(2)-loc(2))
 
@@ -350,8 +351,8 @@ contains
        !
        ! First do all face points using piecewise-constant interpolation.
        !
-       clo = lo / 2
-       chi = hi / 2
+       clo = int_coarsen(lo, 2)
+       chi = int_coarsen(hi, 2)
 
        ng = min(clo(1)-loc(1),clo(2)-loc(2),clo(3)-loc(3))
 
@@ -680,8 +681,8 @@ contains
           !
           ! Do fast unrolled linear interp.
           !
-          clo = lo / 2
-          chi = hi / 2
+          clo = int_coarsen(lo, 2)
+          chi = int_coarsen(hi, 2)
 
           do jc = clo(2),chi(2)
              j = 2*jc
@@ -770,8 +771,8 @@ contains
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
 
-       clo = lo / 2
-       chi = hi / 2
+       clo = int_coarsen(lo, 2)
+       chi = int_coarsen(hi, 2)
 
        ng = min((clo(1)-loc(1)),(clo(2)-loc(2)))
 
@@ -881,8 +882,8 @@ contains
           !
           ! Do fast unrolled linear interp.
           !
-          clo = lo / 2
-          chi = hi / 2
+          clo = int_coarsen(lo, 2)
+          chi = int_coarsen(hi, 2)
 
           do kc = clo(3),chi(3)
              k = 2*kc
@@ -1025,8 +1026,8 @@ contains
 
     if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
 
-       clo = lo / 2
-       chi = hi / 2
+       clo = int_coarsen(lo, 2)
+       chi = int_coarsen(hi, 2)
 
        ng = min((clo(1)-loc(1)), (clo(2)-loc(2)), (clo(3)-loc(3)))
 
