@@ -953,21 +953,30 @@ contains
   !
   ! Prolongate from mgt%uu(lev) -> uu.
   !
-  subroutine mg_tower_prolongation(mgt, uu, lev, cc_ptype, nodal_cubic)
-
+  subroutine mg_tower_prolongation(mgt, uu, lev)
     use bl_prof_module
     use mg_prolongation_module
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
-    integer       , intent(in   ) :: lev, cc_ptype
-    logical       , intent(in   ) :: nodal_cubic
+    integer       , intent(in   ) :: lev
 
     real(kind=dp_t), pointer  :: fp(:,:,:,:), cp(:,:,:,:), up(:,:,:,:)
     integer,         pointer  :: mp(:,:,:,:)
     integer                   :: i, j, k, n, ng, ir(mgt%dim)
     integer                   :: lo(mgt%dim), hi(mgt%dim), lom(mgt%dim)
     integer                   :: loc(mgt%dim), lof(mgt%dim)
+    !
+    ! Prolongation types for Cell-centered:
+    !
+    !   Piecewise constant: 0
+    !   Piecewise linear:   1, 2, or 3
+    !
+    integer, parameter :: cc_ptype = 0
+    !
+    ! Do you want to use [bi,tri]cubic nodal prolongation?
+    !
+    logical, parameter :: nodal_cubic = .false.
 
     type(bl_prof_timer), save :: bpt
 
@@ -980,6 +989,8 @@ contains
     ng = nghost(mgt%uu(lev))
 
     if ( .not. nodal_q(uu) ) then
+
+       if ( cc_ptype > 0 ) call multifab_fill_boundary(mgt%uu(lev))
 
        !$OMP PARALLEL DO PRIVATE(i,n,loc,lof,lo,hi,fp,cp)
        do i = 1, nfabs(uu)
@@ -1153,7 +1164,6 @@ contains
 
   recursive subroutine mg_tower_fmg_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2,&
                                  bottom_level, bottom_solve_time)
-
     use fabio_module
     use bl_prof_module
     use impose_neumann_bcs_module
@@ -1171,8 +1181,7 @@ contains
 
     logical                   :: do_diag
     real(dp_t)                :: nrm, stime
-    integer                   :: lbl, cc_ptype
-    logical                   :: nodal_cubic
+    integer                   :: lbl
     character(len=3)          :: number
     character(len=20)         :: filename
 
@@ -1185,17 +1194,7 @@ contains
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
     call setval(uu,ZERO,all=.true.)
-    !
-    ! Prolongation types for Cell-centered:
-    !
-    !   Piecewise constant: 0
-    !   Piecewise linear:   1, 2, or 3
-    !
-    cc_ptype = 0
-    !
-    ! Do you want to use [bi,tri]cubic nodal prolongation?
-    !
-    nodal_cubic = .false.
+
 
     if ( lev == lbl ) then
        stime = parallel_wtime()
@@ -1234,15 +1233,11 @@ contains
           ! I don't want to have to recreate this all the time :-)
           !
           write(number,fmt='(i3.3)') lev
-          if ( nodal_cubic ) then
-             filename = 'uu_before_p' // number
-          else
-             filename = 'uu_linear_' // number
-          end if
+          filename = 'uu_before_p' // number
           call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
        end if
           
-       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nodal_cubic)
+       call mg_tower_prolongation(mgt, uu, lev-1)
 
        if (lev == mgt%nlevels) then
             call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), uu, &
@@ -1258,25 +1253,25 @@ contains
   end subroutine mg_tower_fmg_cycle
 
   recursive subroutine mg_tower_v_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
-                                      bottom_level, bottom_solve_time)
-
+                                        bottom_level, bottom_solve_time)
     use bl_prof_module
 
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: rh
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in) :: ss
-    type(imultifab), intent(in) :: mm
-    integer, intent(in) :: lev
-    integer, intent(in) :: nu1, nu2
-    integer, intent(in) :: gamma
-    integer, intent(in) :: cyc
-    integer, intent(in), optional :: bottom_level
-    real(dp_t), intent(inout), optional :: bottom_solve_time
-    integer :: i, cc_ptype
-    logical :: do_diag, nodal_cubic
+    type(mg_tower),  intent(inout) :: mgt
+    type(multifab),  intent(inout) :: rh
+    type(multifab),  intent(inout) :: uu
+    type(multifab),  intent(in   ) :: ss
+    type(imultifab), intent(in   ) :: mm
+    integer,         intent(in   ) :: lev
+    integer,         intent(in   ) :: nu1, nu2
+    integer,         intent(in   ) :: gamma
+    integer,         intent(in   ) :: cyc
+    integer,         intent(in   ), optional :: bottom_level
+    real(dp_t),      intent(inout), optional :: bottom_solve_time
+
+    integer    :: i,lbl
+    logical    :: do_diag
     real(dp_t) :: nrm, stime
-    integer :: lbl
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_v_cycle")
@@ -1284,17 +1279,6 @@ contains
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
-    !
-    ! Prolongation types for Cell-centered:
-    !
-    !   Piecewise constant: 0
-    !   Piecewise linear:   1, 2, or 3
-    !
-    cc_ptype = 0
-    !
-    ! Do you want to use cubic nodal interpolation?
-    !
-    nodal_cubic = .false.
 
     if ( parallel_IOProcessor() .and. do_diag) &
          write(6,1000) lev
@@ -1376,7 +1360,7 @@ contains
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
        end do
 
-       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nodal_cubic)
+       call mg_tower_prolongation(mgt, uu, lev-1)
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
@@ -1410,30 +1394,19 @@ contains
 
   subroutine mini_cycle(mgt, lev, ss, uu, rh, mm, nu1, nu2)
 
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(in) :: rh
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in) :: ss
-    type(imultifab), intent(in) :: mm
-    integer, intent(in) :: lev
-    integer, intent(in) :: nu1, nu2
+    type(mg_tower),  intent(inout) :: mgt
+    type(multifab),  intent(in   ) :: rh
+    type(multifab),  intent(inout) :: uu
+    type(multifab),  intent(in   ) :: ss
+    type(imultifab), intent(in   ) :: mm
+    integer,         intent(in   ) :: lev
+    integer,         intent(in   ) :: nu1, nu2
 
-    integer             :: i, cc_ptype
-    logical             :: do_diag, nodal_cubic
-    real(dp_t)          :: nrm
+    integer    :: i
+    logical    :: do_diag
+    real(dp_t) :: nrm
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
-    !
-    ! Prolongation types for Cell-centered:
-    !
-    !   Piecewise constant: 0
-    !   Piecewise linear:   1, 2, or 3
-    !
-    cc_ptype = 0
-    !
-    ! Do you want to use cubic nodal interpolation?
-    !
-    nodal_cubic = .false.
 
     ! Always relax first at the level we come in at
     if ( do_diag ) then
@@ -1483,7 +1456,7 @@ contains
              print *,'MINI_CRSE: Norm  after smooth         ',nrm
        end if
 
-       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nodal_cubic)
+       call mg_tower_prolongation(mgt, uu, lev-1)
 
        if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
