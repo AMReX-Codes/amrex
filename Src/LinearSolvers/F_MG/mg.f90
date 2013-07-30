@@ -1008,7 +1008,7 @@ contains
                 case (2)
                    call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
                 case (3)
-                   call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
+                   call lin_c_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, cc_ptype)
                 end select
              end do
           end if
