@@ -732,7 +732,7 @@ contains
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     integer,     intent(in   ) :: ir(:)
 
-    integer     :: i, j, ic, jc, m, ng, clo(2), chi(2), istart, jstart
+    integer     :: i, j, ic, jc, m, ng, clo(2), chi(2), istart, jstart, ilo(2), ihi(2)
     real (dp_t) :: coeffs(0:15), ipnt, jpnt
 
     real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
@@ -797,10 +797,17 @@ contains
 
        else
           !
-          ! TODO - do linear interp & then bicubic on interior.
+          ! First do linear interp
           !
           call nodal_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+          !
+          ! If the fine region is big enough do bicubic on interior.
+          !
+          ilo = lo+2
+          ihi = hi-2
 
+          if ( all( (ihi-ilo) > 0) ) &
+             call nodal_cubic_prolongation_2d(ff, lof, cc, loc, ilo, ihi, ir)
        end if
 
     else
