@@ -31,24 +31,22 @@ contains
 
     integer             :: lo (get_dim(fine)), hi (get_dim(fine))
     integer             :: loc(get_dim(fine)), lof(get_dim(fine))
-    integer             :: i, n, dm, cc_ptype
+    integer             :: i, n, dm
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(layout)        :: lacfine, laf
     type(multifab)      :: cfine
     type(bl_prof_timer), save :: bpt
-
-    if ( ncomp(crse) .ne. ncomp(fine) ) then
-       call bl_error('ml_prolongation: crse & fine must have same # of components')
-    end if
-
-    call build(bpt, "ml_prolongation")
     !
     ! Prolongation types for Cell-centered:
     !
     !   Piecewise constant: 0
     !   Piecewise linear:   1, 2, or 3
     !
-    cc_ptype = 0
+    integer, parameter :: cc_ptype = 0
+
+    if ( ncomp(crse) .ne. ncomp(fine) ) &
+
+    call build(bpt, "ml_prolongation")
 
     laf = get_layout(fine)
 
@@ -87,7 +85,7 @@ contains
              case (2)
                 call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
              case (3)
-                call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
+                call lin_c_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, cc_ptype)
              end select
           end do
        end if
