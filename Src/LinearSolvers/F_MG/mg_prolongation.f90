@@ -37,34 +37,26 @@ module mg_prolongation_module
 
   private :: cubicInterpolate, bicubicInterpolate, tricubicInterpolate
   !
-  ! Do you want to use cell-centered linear interp instead of piecewise constant?
-  !
-  logical, parameter, private :: Use_CC_Linear = .false.
-  !
   ! Do you want to use [bi,tri]cubic nodal prolongation instead of linear?
   !
   logical, parameter, private :: Use_Nodal_Cubic = .false.
 
 contains
 
-  pure function using_cc_lininterp () result(r)
-    logical r
-    r = Use_CC_Linear
-  end function using_cc_lininterp
-
   pure function using_nodal_cubic () result(r)
     logical r
     r = Use_Nodal_Cubic
   end function using_nodal_cubic
 
-  subroutine cc_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
+  subroutine cc_prolongation_1d(ff, lof, cc, loc, lo, hi, ir, lininterp)
     integer,     intent(in   ) :: loc(:),lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):)
     real (dp_t), intent(in   ) :: cc(loc(1):)
     integer,     intent(in   ) :: ir(:)
+    logical,     intent(in   ) :: lininterp
 
-    if ( using_cc_lininterp() ) then
+    if ( lininterp ) then
        call lin_c_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
     else
        call pc_c_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
@@ -72,14 +64,15 @@ contains
 
   end subroutine cc_prolongation_1d
 
-  subroutine cc_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+  subroutine cc_prolongation_2d(ff, lof, cc, loc, lo, hi, ir, lininterp)
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     integer,     intent(in   ) :: ir(:)
+    logical,     intent(in   ) :: lininterp
 
-    if ( using_cc_lininterp() ) then
+    if ( lininterp ) then
        call lin_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
     else
        call pc_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
@@ -87,14 +80,15 @@ contains
 
   end subroutine cc_prolongation_2d
 
-  subroutine cc_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+  subroutine cc_prolongation_3d(ff, lof, cc, loc, lo, hi, ir, lininterp)
     integer,     intent(in   ) :: loc(:),lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
     integer,     intent(in   ) :: ir(:)
+    logical,     intent(in   ) :: lininterp
 
-    if ( using_cc_lininterp() ) then
+    if ( lininterp ) then
        call lin_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
     else
        call pc_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
@@ -291,7 +285,7 @@ contains
     !
     ! We have three choices of "linear" interp.
     !
-    ! Type 2 seems to work best.
+    ! Type 2 seems to work best in 2D.
     !
     integer, parameter :: PTYPE = 2
 
@@ -424,9 +418,9 @@ contains
     !
     ! We have three choices of "linear" interp.
     !
-    ! Type 2 seems to work best.
+    ! Type 3 seems to work best in 3D.
     !
-    integer, parameter :: PTYPE = 2
+    integer, parameter :: PTYPE = 3
 
     if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
        !
