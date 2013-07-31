@@ -42,6 +42,8 @@ module mg_tower_module
      ! This must be true in order to enforce solvability
      logical :: coeffs_sum_to_zero = .false.
 
+     logical :: use_lininterp = .false.
+
 !     integer :: nboxes =  0
      integer :: nlevels =  0
 

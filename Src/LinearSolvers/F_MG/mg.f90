@@ -26,7 +26,7 @@ contains
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
                             max_L0_growth, &
                             verbose, cg_verbose, nodal, use_hypre, is_singular, &
-                            the_bottom_comm, fancy_bottom_type_in)
+                            the_bottom_comm, fancy_bottom_type_in, use_lininterp)
     use bl_IO_module
     use bl_prof_module
 
@@ -61,17 +61,16 @@ contains
     logical, intent(in), optional :: is_singular
     integer, intent(in), optional :: the_bottom_comm
     integer, intent(in), optional :: fancy_bottom_type_in
+    logical, intent(in), optional :: use_lininterp
 
-    integer :: lo_grid,hi_grid,lo_dom,hi_dom
-    integer :: ng_for_res
-    integer :: n, i, id, vol, j
+    integer         :: n, i, id, vol, j, lo_grid, hi_grid, lo_dom, hi_dom, ng_for_res
+    integer         :: fancy_bottom_type
     type(layout)    :: la1, la2
     type(box)       :: bounding_box
     type(boxarray)  :: ba
     logical         :: nodal_flag
     real(kind=dp_t) :: dvol, dvol_pd
     type(bl_prof_timer), save :: bpt
-    integer :: fancy_bottom_type
 
     ! These are added to help build the bottom_mgt
     type(  layout)      :: old_coarse_la, new_coarse_la
@@ -113,6 +112,15 @@ contains
     if ( present(the_bottom_comm) ) then
        allocate(mgt%bottom_comm)
        mgt%bottom_comm = the_bottom_comm
+    end if
+
+    if ( present(use_lininterp) ) then
+       mgt%use_lininterp = use_lininterp
+    else
+       !
+       ! mgt%use_lininterp defaults to false.  We want it to default to true for 3D.
+       !
+       if ( mgt%dim == 3 ) mgt%use_lininterp = .true.
     end if
 
     nodal_flag = .false.
@@ -978,7 +986,7 @@ contains
 
     if ( .not. nodal_q(uu) ) then
 
-       if ( using_cc_lininterp() ) call multifab_fill_boundary(mgt%uu(lev))
+       if ( mgt%use_lininterp ) call multifab_fill_boundary(mgt%uu(lev))
 
        !$OMP PARALLEL DO PRIVATE(i,n,loc,lof,lo,hi,fp,cp)
        do i = 1, nfabs(uu)
@@ -991,11 +999,11 @@ contains
           do n = 1, mgt%nc
              select case ( mgt%dim )
              case (1)
-                call cc_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
+                call cc_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, mgt%use_lininterp)
              case (2)
-                call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
+                call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, mgt%use_lininterp)
              case (3)
-                call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
+                call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, mgt%use_lininterp)
              end select
           end do
        end do
