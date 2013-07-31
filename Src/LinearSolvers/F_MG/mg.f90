@@ -966,18 +966,6 @@ contains
     integer                   :: i, j, k, n, ng, ir(mgt%dim)
     integer                   :: lo(mgt%dim), hi(mgt%dim), lom(mgt%dim)
     integer                   :: loc(mgt%dim), lof(mgt%dim)
-    !
-    ! Prolongation types for Cell-centered:
-    !
-    !   Piecewise constant: 0
-    !   Piecewise linear:   1, 2, or 3
-    !
-    integer, parameter :: cc_ptype = 0
-    !
-    ! Do you want to use [bi,tri]cubic nodal prolongation?
-    !
-    logical, parameter :: nodal_cubic = .false.
-
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_prolongation")
@@ -990,7 +978,7 @@ contains
 
     if ( .not. nodal_q(uu) ) then
 
-       if ( cc_ptype > 0 ) call multifab_fill_boundary(mgt%uu(lev))
+       if ( using_cc_lininterp() ) call multifab_fill_boundary(mgt%uu(lev))
 
        !$OMP PARALLEL DO PRIVATE(i,n,loc,lof,lo,hi,fp,cp)
        do i = 1, nfabs(uu)
@@ -1000,35 +988,22 @@ contains
           hi  =  upb(get_ibox(uu, i))
           fp  => dataptr(uu,         i)
           cp  => dataptr(mgt%uu(lev),i)
-          if ( cc_ptype == 0 ) then
-             do n = 1, mgt%nc
-                select case ( mgt%dim )
-                case (1)
-                   call pc_c_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
-                case (2)
-                   call pc_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
-                case (3)
-                   call pc_c_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
-                end select
-             end do
-          else
-             do n = 1, mgt%nc
-                select case ( mgt%dim )
-                case (1)
-                   call lin_c_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
-                case (2)
-                   call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
-                case (3)
-                   call lin_c_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, cc_ptype)
-                end select
-             end do
-          end if
+          do n = 1, mgt%nc
+             select case ( mgt%dim )
+             case (1)
+                call cc_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
+             case (2)
+                call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
+             case (3)
+                call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
+             end select
+          end do
        end do
        !$OMP END PARALLEL DO
 
     else
 
-      if ( nodal_cubic  .and. mgt%dim > 1 ) then
+      if ( using_nodal_cubic() .and. mgt%dim > 1 ) then
 
          call multifab_fill_boundary(mgt%uu(lev))
 
@@ -1060,17 +1035,17 @@ contains
           do n = 1, mgt%nc
              select case ( mgt%dim )
              case (1)
-                call nodal_prolongation_1d(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, cubic = nodal_cubic)
+                call nodal_prolongation_1d(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
              case (2)
-                call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cubic = nodal_cubic)
+                call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
              case (3)
-                call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, cubic = nodal_cubic)
+                call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
              end select
           end do
        end do
        !$OMP END PARALLEL DO
 
-       if ( nodal_cubic .and. mgt%dim > 1 ) then
+       if ( using_nodal_cubic() .and. mgt%dim > 1 ) then
           !
           ! The [bi,tri]cubic interpolators don't preserve dirichlet BCs.
           !
@@ -1407,8 +1382,9 @@ contains
     real(dp_t) :: nrm
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
-
-    ! Always relax first at the level we come in at
+    !
+    ! Always relax first at the level we come in at.
+    !
     if ( do_diag ) then
        nrm = norm_inf(rh)
        if ( parallel_IOProcessor() ) &
@@ -1426,15 +1402,15 @@ contains
        if ( parallel_IOProcessor() ) &
            print *,'MINI_FINE: Norm after  smooth         ',nrm
     end if
-
+    !
     ! If we are doing a mini V-cycle here, then we must compute the coarse residual, 
-    !   relax at the next lower level, then interpolate the correction and relax again
+    ! relax at the next lower level, then interpolate the correction and relax again.
+    !
     if ( lev > 1 ) then
 
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
-       call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
-                                 mgt%mm(lev),mgt%mm(lev-1))
+       call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), mgt%mm(lev),mgt%mm(lev-1))
 
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 

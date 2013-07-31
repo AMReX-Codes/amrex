@@ -36,13 +36,6 @@ contains
     type(layout)        :: lacfine, laf
     type(multifab)      :: cfine
     type(bl_prof_timer), save :: bpt
-    !
-    ! Prolongation types for Cell-centered:
-    !
-    !   Piecewise constant: 0
-    !   Piecewise linear:   1, 2, or 3
-    !
-    integer, parameter :: cc_ptype = 0
 
     if ( ncomp(crse) .ne. ncomp(fine) ) &
 
@@ -66,29 +59,16 @@ contains
        hi  =  upb(get_ibox(fine, i))
        fp  => dataptr(fine, i)
        cp  => dataptr(cfine,i)
-       if ( cc_ptype == 0 ) then
-          do n = 1, ncomp(crse)
-             select case ( dm )
-             case (1)
-                call pc_c_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
-             case (2)
-                call pc_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
-             case (3)
-                call pc_c_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
-             end select
-          end do
-       else
-          do n = 1, ncomp(crse)
-             select case ( dm )
-             case (1)
-                call lin_c_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
-             case (2)
-                call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
-             case (3)
-                call lin_c_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, cc_ptype)
-             end select
-          end do
-       end if
+       do n = 1, ncomp(crse)
+          select case ( dm )
+          case (1)
+             call cc_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
+          case (2)
+             call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
+          case (3)
+             call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
+          end select
+       end do
     end do
     !$OMP END PARALLEL DO
 
@@ -137,20 +117,20 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,loc,lof,lo,hi,n,fp,cp)
     do i = 1, nfabs(fine)
-       loc = lwb(get_pbox(cfine,i))
-       lof = lwb(get_pbox(fine, i))
-       lo  = lwb(get_ibox(fine, i))
-       hi  = upb(get_ibox(fine, i))
+       loc =  lwb(get_pbox(cfine,i))
+       lof =  lwb(get_pbox(fine, i))
+       lo  =  lwb(get_ibox(fine, i))
+       hi  =  upb(get_ibox(fine, i))
+       fp  => dataptr(fine,  i)
+       cp  => dataptr(cfine, i)
        do n = 1, ncomp(crse)
-          fp => dataptr(fine,  i, n, 1)
-          cp => dataptr(cfine, i, n, 1)
           select case (dm)
           case (1)
-             call nodal_prolongation_1d(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
+             call nodal_prolongation_1d(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
           case (2)
-             call nodal_prolongation_2d(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
+             call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
           case (3)
-             call nodal_prolongation_3d(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
+             call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
           end select
        end do
     end do

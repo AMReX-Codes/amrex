@@ -5,6 +5,12 @@ module mg_prolongation_module
 
   implicit none
 
+  interface cc_prolongation
+     module procedure cc_prolongation_1d
+     module procedure cc_prolongation_2d
+     module procedure cc_prolongation_3d
+  end interface
+
   interface pc_c_prolongation
      module procedure pc_c_prolongation_1d
      module procedure pc_c_prolongation_2d
@@ -30,8 +36,71 @@ module mg_prolongation_module
   end interface
 
   private :: cubicInterpolate, bicubicInterpolate, tricubicInterpolate
+  !
+  ! Do you want to use cell-centered linear interp instead of piecewise constant?
+  !
+  logical, parameter, private :: Use_CC_Linear = .false.
+  !
+  ! Do you want to use [bi,tri]cubic nodal prolongation instead of linear?
+  !
+  logical, parameter, private :: Use_Nodal_Cubic = .false.
 
 contains
+
+  pure function using_cc_lininterp () result(r)
+    logical r
+    r = Use_CC_Linear
+  end function using_cc_lininterp
+
+  pure function using_nodal_cubic () result(r)
+    logical r
+    r = Use_Nodal_Cubic
+  end function using_nodal_cubic
+
+  subroutine cc_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
+    integer,     intent(in   ) :: loc(:),lof(:)
+    integer,     intent(in   ) :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: ff(lof(1):)
+    real (dp_t), intent(in   ) :: cc(loc(1):)
+    integer,     intent(in   ) :: ir(:)
+
+    if ( using_cc_lininterp() ) then
+       call lin_c_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
+    else
+       call pc_c_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
+    end if
+
+  end subroutine cc_prolongation_1d
+
+  subroutine cc_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+    integer,     intent(in   ) :: loc(:), lof(:)
+    integer,     intent(in   ) :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
+    integer,     intent(in   ) :: ir(:)
+
+    if ( using_cc_lininterp() ) then
+       call lin_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+    else
+       call pc_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+    end if
+
+  end subroutine cc_prolongation_2d
+
+  subroutine cc_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+    integer,     intent(in   ) :: loc(:),lof(:)
+    integer,     intent(in   ) :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
+    integer,     intent(in   ) :: ir(:)
+
+    if ( using_cc_lininterp() ) then
+       call lin_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+    else
+       call pc_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+    end if
+
+  end subroutine cc_prolongation_3d
 
   subroutine pc_c_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
     integer,     intent(in   ) :: loc(:),lof(:)
@@ -206,19 +275,25 @@ contains
 
   end subroutine lin_c_prolongation_1d
 
-  subroutine lin_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir, ptype)
+  subroutine lin_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
     use bl_error_module
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
-    integer,     intent(in   ) :: ir(:), ptype
+    integer,     intent(in   ) :: ir(:)
 
     integer :: i, j, ng, clo(2), chi(2), twoi, twoj, twoip1, twojp1
     logical :: interior_i, interior_j
 
     real (dp_t), parameter :: one6th  = 1.0d0 / 6.0d0
     real (dp_t), parameter :: one16th = 1.0d0 /16.0d0
+    !
+    ! We have three choices of "linear" interp.
+    !
+    ! Type 2 seems to work best.
+    !
+    integer, parameter :: PTYPE = 2
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
 
@@ -257,7 +332,7 @@ contains
           chi = chi - 1
        end if
 
-       select case ( ptype )
+       select case ( PTYPE )
        case ( 1 )
           !
           ! Type 1 - {2,1,1} weighted average of our neighbors.
@@ -317,7 +392,7 @@ contains
              end do
           end do
        case default
-          call bl_error("lin_c_prolongation_2d: unknown ptype", ptype)
+          call bl_error("lin_c_prolongation_2d: unknown ptype", PTYPE)
        end select
 
     else
@@ -331,13 +406,13 @@ contains
 
   end subroutine lin_c_prolongation_2d
 
-  subroutine lin_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir, ptype)
+  subroutine lin_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
     use bl_error_module
     integer,     intent(in   ) :: loc(:),lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
-    integer,     intent(in   ) :: ir(:), ptype
+    integer,     intent(in   ) :: ir(:)
 
     integer :: i, j, k, ng, clo(3), chi(3), twoi, twoj, twoip1, twojp1, twok, twokp1
     logical :: interior_i, interior_j, interior_k
@@ -346,6 +421,12 @@ contains
     real (dp_t), parameter :: THREE64THS = 3.0d0 / 64.0d0
     real (dp_t), parameter ::     SIXTH  = 1.0d0 /  6.0d0
     real (dp_t), parameter ::     FOURTH = 0.25_dp_t
+    !
+    ! We have three choices of "linear" interp.
+    !
+    ! Type 2 seems to work best.
+    !
+    integer, parameter :: PTYPE = 2
 
     if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
        !
@@ -396,7 +477,7 @@ contains
           chi = chi - 1
        end if
 
-       select case ( ptype )
+       select case ( PTYPE )
        case ( 1 )
           !
           ! Type 1 - {1,1,1,1} weighted average of our neighbors.
@@ -511,7 +592,7 @@ contains
              end do
           end do
        case default
-          call bl_error("lin_c_prolongation_3d: unknown ptype", ptype)
+          call bl_error("lin_c_prolongation_3d: unknown ptype", PTYPE)
        end select
 
     else
@@ -557,20 +638,16 @@ contains
     r = cubicInterpolate(arr, z)
   end function tricubicInterpolate
 
-  subroutine nodal_prolongation_1d(ff, lof, cc, loc, lo, hi, ir, cubic)
+  subroutine nodal_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):)
     real (dp_t), intent(in   ) :: cc(loc(1):)
     integer,     intent(in   ) :: ir(:)
-    logical,     intent(in   ), optional :: cubic
 
     integer               :: i, ic, l
     real (dp_t)           :: fac_left, fac_rght
     real(dp_t), parameter :: ONE = 1.0_dp_t
-    logical               :: lcubic
-
-    lcubic = .false. ; if ( present(cubic) ) lcubic = cubic
     !
     ! Direct injection for fine points overlaying coarse ones.
     !
@@ -579,7 +656,7 @@ contains
        ff(i) = ff(i) + cc(ic)
     end do
 
-    if ( ir(1) == 2 .and. lcubic ) then
+    if ( ir(1) == 2 .and. Use_Nodal_Cubic ) then
 
        call nodal_cubic_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
 
@@ -654,26 +731,22 @@ contains
 
   end subroutine nodal_cubic_prolongation_1d
 
-  subroutine nodal_prolongation_2d(ff, lof, cc, loc, lo, hi, ir, cubic)
+  subroutine nodal_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
     integer,     intent(in   ) :: loc(:),lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     integer,     intent(in   ) :: ir(:)
-    logical,     intent(in   ), optional :: cubic
 
     integer     :: i, j, ic, jc, l, m, clo(2), chi(2)
     real (dp_t) :: fac_left, fac_rght
     real (dp_t) :: temp(lo(1):hi(1),lo(2):hi(2))
-    logical     :: lcubic
 
     real(dp_t), parameter :: FOURTH = 0.25_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
-    lcubic = .false. ; if ( present(cubic) ) lcubic = cubic
-
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
 
-       if ( lcubic ) then
+       if ( Use_Nodal_Cubic ) then
 
           call nodal_cubic_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
 
@@ -852,29 +925,25 @@ contains
 
   end subroutine nodal_cubic_prolongation_2d
 
-  subroutine nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir, cubic)
+  subroutine nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
     integer,     intent(in   ) :: ir(:)
-    logical,     intent(in   ), optional :: cubic
 
     integer     :: i, j, k, ic, jc, kc, l, m, n
     integer     :: clo(3), chi(3)
     real (dp_t) :: fac_left, fac_rght
-    logical     :: lcubic
 
     real(dp_t), parameter :: EIGHTH = 0.125_dp_t, FOURTH = 0.25_dp_t
     real(dp_t), parameter :: HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
     real (dp_t), allocatable :: temp(:,:,:)
 
-    lcubic = .false. ; if ( present(cubic) ) lcubic = cubic
-
     if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
 
-       if ( lcubic ) then
+       if ( Use_Nodal_Cubic ) then
 
           call nodal_cubic_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
 
