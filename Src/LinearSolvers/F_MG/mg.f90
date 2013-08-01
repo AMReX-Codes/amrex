@@ -11,7 +11,7 @@ module mg_module
      module procedure mg_tower_destroy
   end interface
 
-  private :: get_bottom_box_size
+  private :: get_bottom_box_size, impose_physbc_cc_2d, impose_physbc_cc_3d
 
 contains
 
@@ -959,6 +959,297 @@ contains
     call destroy(bpt)
 
   end subroutine mg_tower_restriction
+
+  subroutine impose_physbc_cc_2d(uu, mgt, lo, hi, dlo, dhi, ng)
+
+    type(mg_tower),  intent(in   ) :: mgt
+    integer,         intent(in   ) :: lo(:), hi(:), dlo(:), dhi(:), ng
+    real(kind=dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,:)
+
+    if ( lo(1) == dlo(1) ) then
+
+       if ( mgt%domain_bc(1,1) == BC_DIR ) then
+
+          uu(lo(1)-1,lo(2):hi(2),1:mgt%nc) = -uu(lo(1),lo(2):hi(2),1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,1) == BC_NEU ) then
+
+          uu(lo(1)-1,lo(2):hi(2),1:mgt%nc) =  uu(lo(1),lo(2):hi(2),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
+          !
+          ! Corners
+          !
+          uu(lo(1)-1,lo(2)-1,1:mgt%nc) = uu(lo(1)-1,lo(2),1:mgt%nc)
+          uu(lo(1)-1,hi(2)+1,1:mgt%nc) = uu(lo(1)-1,hi(2),1:mgt%nc)
+       end if
+
+    end if
+
+    if ( hi(1) == dhi(1) ) then
+
+       if ( mgt%domain_bc(1,2) == BC_DIR ) then
+
+          uu(hi(1)+1,lo(2):hi(2),1:mgt%nc) = -uu(hi(1),lo(2):hi(2),1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,2) == BC_NEU ) then
+
+          uu(hi(1)+1,lo(2):hi(2),1:mgt%nc) =  uu(hi(1),lo(2):hi(2),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
+          !
+          ! Corners
+          !
+          uu(hi(1)+1,lo(2)-1,1:mgt%nc) = uu(hi(1)+1,lo(2),1:mgt%nc)
+          uu(hi(1)+1,hi(2)+1,1:mgt%nc) = uu(hi(1)+1,hi(2),1:mgt%nc)
+       end if
+
+    end if
+
+    if ( lo(2) == dlo(2) ) then
+
+       if ( mgt%domain_bc(2,1) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2)-1,1:mgt%nc) = -uu(lo(1):hi(1),lo(2),1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,1) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2)-1,1:mgt%nc) =  uu(lo(1):hi(1),lo(2),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(2,1) == BC_DIR .or. mgt%domain_bc(2,1) == BC_NEU ) then
+          !
+          ! Corners
+          !
+          uu(lo(1)-1,lo(2)-1,1:mgt%nc) = uu(lo(1),lo(2)-1,1:mgt%nc)
+          uu(hi(1)+1,lo(2)-1,1:mgt%nc) = uu(hi(1),lo(2)-1,1:mgt%nc)
+       end if
+
+    end if
+
+    if ( hi(2) == dhi(2) ) then
+
+       if ( mgt%domain_bc(2,2) == BC_DIR ) then
+
+          uu(lo(1):hi(1),hi(2)+1,1:mgt%nc) = -uu(lo(1):hi(1),hi(2),1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,2) == BC_NEU ) then
+
+          uu(lo(1):hi(1),hi(2)+1,1:mgt%nc) =  uu(lo(1):hi(1),hi(2),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(2,2) == BC_DIR .or. mgt%domain_bc(2,2) == BC_NEU ) then
+          !
+          ! Corners
+          !
+          uu(lo(1)-1,hi(2)+1,1:mgt%nc) = uu(lo(1),hi(2)+1,1:mgt%nc)
+          uu(hi(1)+1,hi(2)+1,1:mgt%nc) = uu(hi(1),hi(2)+1,1:mgt%nc)
+       end if
+
+    end if
+
+  end subroutine impose_physbc_cc_2d
+
+  subroutine impose_physbc_cc_3d(uu, mgt, lo, hi, dlo, dhi, ng)
+
+    type(mg_tower),  intent(in   ) :: mgt
+    integer,         intent(in   ) :: lo(:), hi(:), dlo(:), dhi(:), ng
+    real(kind=dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:,:)
+
+    if ( lo(1) == dlo(1) ) then
+
+       if ( mgt%domain_bc(1,1) == BC_DIR ) then
+
+          uu(lo(1)-1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) = -uu(lo(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,1) == BC_NEU ) then
+
+          uu(lo(1)-1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) =  uu(lo(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
+          !
+          ! Edges
+          !
+          uu(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(lo(1)-1,lo(2),lo(3):hi(3),1:mgt%nc)
+          uu(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(lo(1)-1,hi(2),lo(3):hi(3),1:mgt%nc)
+          uu(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(lo(1)-1,lo(2):hi(2),lo(3),1:mgt%nc)
+          uu(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(lo(1)-1,lo(2):hi(2),hi(3),1:mgt%nc)
+          !
+          ! Corners
+          !
+          uu(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1)-1,lo(2),lo(3),1:mgt%nc)
+          uu(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1)-1,lo(2),hi(3),1:mgt%nc)
+          uu(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1)-1,hi(2),lo(3),1:mgt%nc)
+          uu(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1)-1,hi(2),hi(3),1:mgt%nc)
+       end if
+
+    end if
+
+    if ( hi(1) == dhi(1) ) then
+
+       if ( mgt%domain_bc(1,2) == BC_DIR ) then
+
+          uu(hi(1)+1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) = -uu(hi(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,2) == BC_NEU ) then
+
+          uu(hi(1)+1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) =  uu(hi(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
+          !
+          ! Edges
+          !
+          uu(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(hi(1)+1,lo(2),lo(3):hi(3),1:mgt%nc)
+          uu(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(hi(1)+1,hi(2),lo(3):hi(3),1:mgt%nc)
+          uu(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(hi(1)+1,lo(2):hi(2),lo(3),1:mgt%nc)
+          uu(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(hi(1)+1,lo(2):hi(2),hi(3),1:mgt%nc)
+          !
+          ! Corners
+          !
+          uu(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(hi(1)+1,lo(2),lo(3),1:mgt%nc)
+          uu(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(hi(1)+1,lo(2),hi(3),1:mgt%nc)
+          uu(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(hi(1)+1,hi(2),lo(3),1:mgt%nc)
+          uu(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(hi(1)+1,hi(2),hi(3),1:mgt%nc)
+       end if
+
+    end if
+
+    if ( lo(2) == dlo(2) ) then
+
+       if ( mgt%domain_bc(2,1) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) = -uu(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,1) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(2,1) == BC_DIR .or. mgt%domain_bc(2,1) == BC_NEU ) then
+          !
+          ! Edges
+          !
+          uu(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(lo(1),lo(2)-1,lo(3):hi(3),1:mgt%nc)
+          uu(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc)
+          uu(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),lo(2)-1,lo(3),1:mgt%nc)
+          uu(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),lo(2)-1,hi(3),1:mgt%nc)
+          !
+          ! Corners
+          !
+          uu(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1),lo(2)-1,lo(3),1:mgt%nc)
+          uu(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1),lo(2)-1,hi(3),1:mgt%nc)
+          uu(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(hi(1),lo(2)-1,lo(3),1:mgt%nc)
+          uu(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(hi(1),lo(2)-1,hi(3),1:mgt%nc)
+       end if
+
+    end if
+
+    if ( hi(2) == dhi(2) ) then
+
+       if ( mgt%domain_bc(2,2) == BC_DIR ) then
+
+          uu(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) = -uu(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,2) == BC_NEU ) then
+
+          uu(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(2,2) == BC_DIR .or. mgt%domain_bc(2,2) == BC_NEU ) then
+          !
+          ! Edges
+          !
+          uu(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(lo(1),hi(2)+1,lo(3):hi(3),1:mgt%nc)
+          uu(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc)
+          uu(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),hi(2)+1,lo(3),1:mgt%nc)
+          uu(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),hi(2)+1,hi(3),1:mgt%nc)
+          !
+          ! Corners
+          !
+          uu(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1),hi(2)+1,lo(3),1:mgt%nc)
+          uu(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1),hi(2)+1,hi(3),1:mgt%nc)
+          uu(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(hi(1),hi(2)+1,lo(3),1:mgt%nc)
+          uu(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(hi(1),hi(2)+1,hi(3),1:mgt%nc)
+       end if
+
+    end if
+
+
+    if ( lo(3) == dlo(3) ) then
+
+       if ( mgt%domain_bc(3,1) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = -uu(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+
+       else if ( mgt%domain_bc(3,1) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(3,1) == BC_DIR .or. mgt%domain_bc(3,1) == BC_NEU ) then
+          !
+          ! Edges
+          !
+          uu(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(lo(1),lo(2):hi(2),lo(3)-1,1:mgt%nc)
+          uu(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc)
+          uu(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),lo(2),lo(3)-1,1:mgt%nc)
+          uu(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),hi(2),lo(3)-1,1:mgt%nc)
+          !
+          ! Corners
+          !
+          uu(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1),lo(2),lo(3)-1,1:mgt%nc)
+          uu(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1),hi(2),lo(3)-1,1:mgt%nc)
+          uu(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(hi(1),lo(2),lo(3)-1,1:mgt%nc)
+          uu(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(hi(1),hi(2),lo(3)-1,1:mgt%nc)
+       end if
+
+    end if
+
+    if ( hi(3) == dhi(3) ) then
+
+       if ( mgt%domain_bc(3,2) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = -uu(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+
+       else if ( mgt%domain_bc(3,2) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(3,2) == BC_DIR .or. mgt%domain_bc(3,2) == BC_NEU ) then
+          !
+          ! Edges
+          !
+          uu(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(lo(1),lo(2):hi(2),hi(3)+1,1:mgt%nc)
+          uu(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc)
+          uu(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),lo(2),hi(3)+1,1:mgt%nc)
+          uu(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),hi(2),hi(3)+1,1:mgt%nc)
+          !
+          ! Corners
+          !
+          uu(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1),lo(2),hi(3)+1,1:mgt%nc)
+          uu(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1),hi(2),hi(3)+1,1:mgt%nc)
+          uu(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(hi(1),lo(2),hi(3)+1,1:mgt%nc)
+          uu(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(hi(1),hi(2),hi(3)+1,1:mgt%nc)
+       end if
+
+    end if
+
+  end subroutine impose_physbc_cc_3d
   !
   ! Prolongate from mgt%uu(lev) -> uu.
   !
@@ -990,12 +1281,12 @@ contains
     dhi = upb(dmn)
 
     if ( .not. nodal_q(uu) ) then
-
        if ( mgt%use_lininterp ) then
-
-          if ( nghost(mgt%uu(lev)) > 0 ) then
+          if ( ng > 0 ) then
              !
              ! Set up dirichlet/neumann boundaries so lininterp does right thing.
+             ! If we don't have one ghost cell the interp routines will do a
+             ! piecewise constant interp on the cells touching the grid boundary.
              !
              do n = 1, nfabs(uu)
                 up => dataptr(mgt%uu(lev) ,n)
@@ -1003,292 +1294,14 @@ contains
                 hi =  upb(get_ibox(mgt%uu(lev), n))
                 select case ( mgt%dim )
                 case (2)
-
-                   if ( lo(1) == dlo(1) ) then
-
-                      if ( mgt%domain_bc(1,1) == BC_DIR ) then
-
-                         up(lo(1)-1,lo(2):hi(2),1,1:mgt%nc) = -up(lo(1),lo(2):hi(2),1,1:mgt%nc)
-
-                      else if ( mgt%domain_bc(1,1) == BC_NEU ) then
-
-                         up(lo(1)-1,lo(2):hi(2),1,1:mgt%nc) =  up(lo(1),lo(2):hi(2),1,1:mgt%nc)
-
-                      end if
-
-                      if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
-                         !
-                         ! Corners
-                         !
-                         up(lo(1)-1,lo(2)-1,1,1:mgt%nc) = up(lo(1)-1,lo(2),1,1:mgt%nc)
-                         up(lo(1)-1,hi(2)+1,1,1:mgt%nc) = up(lo(1)-1,hi(2),1,1:mgt%nc)
-                      end if
-
-                   end if
-
-                   if ( hi(1) == dhi(1) ) then
-
-                      if ( mgt%domain_bc(1,2) == BC_DIR ) then
-
-                         up(hi(1)+1,lo(2):hi(2),1,1:mgt%nc) = -up(hi(1),lo(2):hi(2),1,1:mgt%nc)
-
-                      else if ( mgt%domain_bc(1,2) == BC_NEU ) then
-
-                         up(hi(1)+1,lo(2):hi(2),1,1:mgt%nc) =  up(hi(1),lo(2):hi(2),1,1:mgt%nc)
-
-                      end if
-
-                      if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
-                         !
-                         ! Corners
-                         !
-                         up(hi(1)+1,lo(2)-1,1,1:mgt%nc) = up(hi(1)+1,lo(2),1,1:mgt%nc)
-                         up(hi(1)+1,hi(2)+1,1,1:mgt%nc) = up(hi(1)+1,hi(2),1,1:mgt%nc)
-                      end if
-
-                   end if
-
-                   if ( lo(2) == dlo(2) ) then
-
-                      if ( mgt%domain_bc(2,1) == BC_DIR ) then
-
-                         up(lo(1):hi(1),lo(2)-1,1,1:mgt%nc) = -up(lo(1):hi(1),lo(2),1,1:mgt%nc)
-
-                      else if ( mgt%domain_bc(2,1) == BC_NEU ) then
-
-                         up(lo(1):hi(1),lo(2)-1,1,1:mgt%nc) =  up(lo(1):hi(1),lo(2),1,1:mgt%nc)
-
-                      end if
-
-                      if ( mgt%domain_bc(2,1) == BC_DIR .or. mgt%domain_bc(2,1) == BC_NEU ) then
-                         !
-                         ! Corners
-                         !
-                         up(lo(1)-1,lo(2)-1,1,1:mgt%nc) = up(lo(1),lo(2)-1,1,1:mgt%nc)
-                         up(hi(1)+1,lo(2)-1,1,1:mgt%nc) = up(hi(1),lo(2)-1,1,1:mgt%nc)
-                      end if
-
-                   end if
-
-                  if ( hi(2) == dhi(2) ) then
-
-                     if ( mgt%domain_bc(2,2) == BC_DIR ) then
-
-                        up(lo(1):hi(1),hi(2)+1,1,1:mgt%nc) = -up(lo(1):hi(1),hi(2),1,1:mgt%nc)
-
-                     else if ( mgt%domain_bc(2,2) == BC_NEU ) then
-
-                        up(lo(1):hi(1),hi(2)+1,1,1:mgt%nc) =  up(lo(1):hi(1),hi(2),1,1:mgt%nc)
-
-                     end if
-
-                     if ( mgt%domain_bc(2,2) == BC_DIR .or. mgt%domain_bc(2,2) == BC_NEU ) then
-                         !
-                         ! Corners
-                         !
-                        up(lo(1)-1,hi(2)+1,1,1:mgt%nc) = up(lo(1),hi(2)+1,1,1:mgt%nc)
-                        up(hi(1)+1,hi(2)+1,1,1:mgt%nc) = up(hi(1),hi(2)+1,1,1:mgt%nc)
-                     end if
-
-                  end if
-
+                   call impose_physbc_cc_2d(up(:,:,1,:),mgt,lo,hi,dlo,dhi,ng)
                 case (3)
-
-                   if ( lo(1) == dlo(1) ) then
-
-                      if ( mgt%domain_bc(1,1) == BC_DIR ) then
-
-                         up(lo(1)-1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) = -up(lo(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
-
-                      else if ( mgt%domain_bc(1,1) == BC_NEU ) then
-
-                         up(lo(1)-1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) =  up(lo(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
-
-                      end if
-
-                      if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
-                         !
-                         ! Edges
-                         !
-                         up(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = up(lo(1)-1,lo(2),lo(3):hi(3),1:mgt%nc)
-                         up(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = up(lo(1)-1,hi(2),lo(3):hi(3),1:mgt%nc)
-                         up(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = up(lo(1)-1,lo(2):hi(2),lo(3),1:mgt%nc)
-                         up(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = up(lo(1)-1,lo(2):hi(2),hi(3),1:mgt%nc)
-                         !
-                         ! Corners
-                         !
-                         up(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(lo(1)-1,lo(2),lo(3),1:mgt%nc)
-                         up(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(lo(1)-1,lo(2),hi(3),1:mgt%nc)
-                         up(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(lo(1)-1,hi(2),lo(3),1:mgt%nc)
-                         up(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(lo(1)-1,hi(2),hi(3),1:mgt%nc)
-                      end if
-
-                   end if
-
-                   if ( hi(1) == dhi(1) ) then
-
-                      if ( mgt%domain_bc(1,2) == BC_DIR ) then
-
-                         up(hi(1)+1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) = -up(hi(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
-
-                      else if ( mgt%domain_bc(1,2) == BC_NEU ) then
-
-                         up(hi(1)+1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) =  up(hi(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
-
-                      end if
-
-                      if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
-                         !
-                         ! Edges
-                         !
-                         up(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = up(hi(1)+1,lo(2),lo(3):hi(3),1:mgt%nc)
-                         up(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = up(hi(1)+1,hi(2),lo(3):hi(3),1:mgt%nc)
-                         up(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = up(hi(1)+1,lo(2):hi(2),lo(3),1:mgt%nc)
-                         up(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = up(hi(1)+1,lo(2):hi(2),hi(3),1:mgt%nc)
-                         !
-                         ! Corners
-                         !
-                         up(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(hi(1)+1,lo(2),lo(3),1:mgt%nc)
-                         up(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(hi(1)+1,lo(2),hi(3),1:mgt%nc)
-                         up(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(hi(1)+1,hi(2),lo(3),1:mgt%nc)
-                         up(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(hi(1)+1,hi(2),hi(3),1:mgt%nc)
-                      end if
-
-                   end if
-
-                   if ( lo(2) == dlo(2) ) then
-
-                      if ( mgt%domain_bc(2,1) == BC_DIR ) then
-
-                         up(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) = -up(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
-
-                      else if ( mgt%domain_bc(2,1) == BC_NEU ) then
-
-                         up(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) = up(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
-
-                      end if
-
-                      if ( mgt%domain_bc(2,1) == BC_DIR .or. mgt%domain_bc(2,1) == BC_NEU ) then
-                         !
-                         ! Edges
-                         !
-                         up(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = up(lo(1),lo(2)-1,lo(3):hi(3),1:mgt%nc)
-                         up(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = up(hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc)
-                         up(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = up(lo(1):hi(1),lo(2)-1,lo(3),1:mgt%nc)
-                         up(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = up(lo(1):hi(1),lo(2)-1,hi(3),1:mgt%nc)
-                         !
-                         ! Corners
-                         !
-                         up(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(lo(1),lo(2)-1,lo(3),1:mgt%nc)
-                         up(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(lo(1),lo(2)-1,hi(3),1:mgt%nc)
-                         up(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(hi(1),lo(2)-1,lo(3),1:mgt%nc)
-                         up(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(hi(1),lo(2)-1,hi(3),1:mgt%nc)
-                      end if
-
-                   end if
-
-                  if ( hi(2) == dhi(2) ) then
-
-                     if ( mgt%domain_bc(2,2) == BC_DIR ) then
-
-                        up(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) = -up(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
-
-                     else if ( mgt%domain_bc(2,2) == BC_NEU ) then
-
-                        up(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) = up(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
-
-                     end if
-
-                     if ( mgt%domain_bc(2,2) == BC_DIR .or. mgt%domain_bc(2,2) == BC_NEU ) then
-                         !
-                         ! Edges
-                         !
-                         up(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = up(lo(1),hi(2)+1,lo(3):hi(3),1:mgt%nc)
-                         up(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = up(hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc)
-                         up(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = up(lo(1):hi(1),hi(2)+1,lo(3),1:mgt%nc)
-                         up(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = up(lo(1):hi(1),hi(2)+1,hi(3),1:mgt%nc)
-                         !
-                         ! Corners
-                         !
-                         up(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(lo(1),hi(2)+1,lo(3),1:mgt%nc)
-                         up(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(lo(1),hi(2)+1,hi(3),1:mgt%nc)
-                         up(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(hi(1),hi(2)+1,lo(3),1:mgt%nc)
-                         up(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(hi(1),hi(2)+1,hi(3),1:mgt%nc)
-                     end if
-
-                  end if
-
-
-                   if ( lo(3) == dlo(3) ) then
-
-                      if ( mgt%domain_bc(3,1) == BC_DIR ) then
-
-                         up(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = -up(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
-
-                      else if ( mgt%domain_bc(3,1) == BC_NEU ) then
-
-                         up(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = up(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
-
-                      end if
-
-                      if ( mgt%domain_bc(3,1) == BC_DIR .or. mgt%domain_bc(3,1) == BC_NEU ) then
-                         !
-                         ! Edges
-                         !
-                         up(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = up(lo(1),lo(2):hi(2),lo(3)-1,1:mgt%nc)
-                         up(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = up(hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc)
-                         up(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = up(lo(1):hi(1),lo(2),lo(3)-1,1:mgt%nc)
-                         up(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = up(lo(1):hi(1),hi(2),lo(3)-1,1:mgt%nc)
-                         !
-                         ! Corners
-                         !
-                         up(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(lo(1),lo(2),lo(3)-1,1:mgt%nc)
-                         up(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(lo(1),hi(2),lo(3)-1,1:mgt%nc)
-                         up(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(hi(1),lo(2),lo(3)-1,1:mgt%nc)
-                         up(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(hi(1),hi(2),lo(3)-1,1:mgt%nc)
-                      end if
-
-                   end if
-
-                   if ( hi(3) == dhi(3) ) then
-
-                      if ( mgt%domain_bc(3,2) == BC_DIR ) then
-
-                         up(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = -up(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
-
-                      else if ( mgt%domain_bc(3,2) == BC_NEU ) then
-
-                         up(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = up(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
-
-                      end if
-
-                      if ( mgt%domain_bc(3,2) == BC_DIR .or. mgt%domain_bc(3,2) == BC_NEU ) then
-                         !
-                         ! Edges
-                         !
-                         up(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = up(lo(1),lo(2):hi(2),hi(3)+1,1:mgt%nc)
-                         up(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = up(hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc)
-                         up(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = up(lo(1):hi(1),lo(2),hi(3)+1,1:mgt%nc)
-                         up(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = up(lo(1):hi(1),hi(2),hi(3)+1,1:mgt%nc)
-                         !
-                         ! Corners
-                         !
-                         up(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(lo(1),lo(2),hi(3)+1,1:mgt%nc)
-                         up(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(lo(1),hi(2),hi(3)+1,1:mgt%nc)
-                         up(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(hi(1),lo(2),hi(3)+1,1:mgt%nc)
-                         up(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(hi(1),hi(2),hi(3)+1,1:mgt%nc)
-                      end if
-
-                   end if
-
+                   call impose_physbc_cc_3d(up(:,:,:,:),mgt,lo,hi,dlo,dhi,ng)
                 end select
-
              end do
 
              call multifab_fill_boundary(mgt%uu(lev))
-
           end if
-
        end if
 
        !$OMP PARALLEL DO PRIVATE(i,n,loc,lof,lo,hi,fp,cp)
