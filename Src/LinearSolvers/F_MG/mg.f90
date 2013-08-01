@@ -1005,125 +1005,280 @@ contains
                 case (2)
 
                    if ( lo(1) == dlo(1) ) then
+
                       if ( mgt%domain_bc(1,1) == BC_DIR ) then
 
                          up(lo(1)-1,lo(2):hi(2),1,1:mgt%nc) = -up(lo(1),lo(2):hi(2),1,1:mgt%nc)
-
-                         up(lo(1)-1,lo(2)-1,1,1:mgt%nc) = up(lo(1)-1,lo(2),1,1:mgt%nc)
-                         up(lo(1)-1,hi(2)+1,1,1:mgt%nc) = up(lo(1)-1,hi(2),1,1:mgt%nc)
 
                       else if ( mgt%domain_bc(1,1) == BC_NEU ) then
 
                          up(lo(1)-1,lo(2):hi(2),1,1:mgt%nc) =  up(lo(1),lo(2):hi(2),1,1:mgt%nc)
 
+                      end if
+
+                      if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
+                         !
+                         ! Corners
+                         !
                          up(lo(1)-1,lo(2)-1,1,1:mgt%nc) = up(lo(1)-1,lo(2),1,1:mgt%nc)
                          up(lo(1)-1,hi(2)+1,1,1:mgt%nc) = up(lo(1)-1,hi(2),1,1:mgt%nc)
                       end if
+
                    end if
 
                    if ( hi(1) == dhi(1) ) then
+
                       if ( mgt%domain_bc(1,2) == BC_DIR ) then
 
                          up(hi(1)+1,lo(2):hi(2),1,1:mgt%nc) = -up(hi(1),lo(2):hi(2),1,1:mgt%nc)
-
-                         up(hi(1)+1,lo(2)-1,1,1:mgt%nc) = up(hi(1)+1,lo(2),1,1:mgt%nc)
-                         up(hi(1)+1,hi(2)+1,1,1:mgt%nc) = up(hi(1)+1,hi(2),1,1:mgt%nc)
 
                       else if ( mgt%domain_bc(1,2) == BC_NEU ) then
 
                          up(hi(1)+1,lo(2):hi(2),1,1:mgt%nc) =  up(hi(1),lo(2):hi(2),1,1:mgt%nc)
 
+                      end if
+
+                      if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
+                         !
+                         ! Corners
+                         !
                          up(hi(1)+1,lo(2)-1,1,1:mgt%nc) = up(hi(1)+1,lo(2),1,1:mgt%nc)
                          up(hi(1)+1,hi(2)+1,1,1:mgt%nc) = up(hi(1)+1,hi(2),1,1:mgt%nc)
-
                       end if
+
                    end if
 
                    if ( lo(2) == dlo(2) ) then
+
                       if ( mgt%domain_bc(2,1) == BC_DIR ) then
 
                          up(lo(1):hi(1),lo(2)-1,1,1:mgt%nc) = -up(lo(1):hi(1),lo(2),1,1:mgt%nc)
-
-                         up(lo(1)-1,lo(2)-1,1,1:mgt%nc) = up(lo(1),lo(2)-1,1,1:mgt%nc)
-                         up(hi(1)+1,lo(2)-1,1,1:mgt%nc) = up(hi(1),lo(2)-1,1,1:mgt%nc)
 
                       else if ( mgt%domain_bc(2,1) == BC_NEU ) then
 
                          up(lo(1):hi(1),lo(2)-1,1,1:mgt%nc) =  up(lo(1):hi(1),lo(2),1,1:mgt%nc)
 
+                      end if
+
+                      if ( mgt%domain_bc(2,1) == BC_DIR .or. mgt%domain_bc(2,1) == BC_NEU ) then
+                         !
+                         ! Corners
+                         !
                          up(lo(1)-1,lo(2)-1,1,1:mgt%nc) = up(lo(1),lo(2)-1,1,1:mgt%nc)
                          up(hi(1)+1,lo(2)-1,1,1:mgt%nc) = up(hi(1),lo(2)-1,1,1:mgt%nc)
-
                       end if
+
                    end if
 
                   if ( hi(2) == dhi(2) ) then
+
                      if ( mgt%domain_bc(2,2) == BC_DIR ) then
 
                         up(lo(1):hi(1),hi(2)+1,1,1:mgt%nc) = -up(lo(1):hi(1),hi(2),1,1:mgt%nc)
-
-                        up(lo(1)-1,hi(2)+1,1,1:mgt%nc) = up(lo(1),hi(2)+1,1,1:mgt%nc)
-                        up(hi(1)+1,hi(2)+1,1,1:mgt%nc) = up(hi(1),hi(2)+1,1,1:mgt%nc)
 
                      else if ( mgt%domain_bc(2,2) == BC_NEU ) then
 
                         up(lo(1):hi(1),hi(2)+1,1,1:mgt%nc) =  up(lo(1):hi(1),hi(2),1,1:mgt%nc)
 
+                     end if
+
+                     if ( mgt%domain_bc(2,2) == BC_DIR .or. mgt%domain_bc(2,2) == BC_NEU ) then
+                         !
+                         ! Corners
+                         !
                         up(lo(1)-1,hi(2)+1,1,1:mgt%nc) = up(lo(1),hi(2)+1,1,1:mgt%nc)
                         up(hi(1)+1,hi(2)+1,1,1:mgt%nc) = up(hi(1),hi(2)+1,1,1:mgt%nc)
-
                      end if
+
                   end if
 
                 case (3)
 
                    if ( lo(1) == dlo(1) ) then
+
                       if ( mgt%domain_bc(1,1) == BC_DIR ) then
+
                          up(lo(1)-1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) = -up(lo(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+
                       else if ( mgt%domain_bc(1,1) == BC_NEU ) then
+
                          up(lo(1)-1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) =  up(lo(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+
                       end if
+
+                      if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
+                         !
+                         ! Edges
+                         !
+                         up(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = up(lo(1)-1,lo(2),lo(3):hi(3),1:mgt%nc)
+                         up(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = up(lo(1)-1,hi(2),lo(3):hi(3),1:mgt%nc)
+                         up(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = up(lo(1)-1,lo(2):hi(2),lo(3),1:mgt%nc)
+                         up(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = up(lo(1)-1,lo(2):hi(2),hi(3),1:mgt%nc)
+                         !
+                         ! Corners
+                         !
+                         up(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(lo(1)-1,lo(2),lo(3),1:mgt%nc)
+                         up(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(lo(1)-1,lo(2),hi(3),1:mgt%nc)
+                         up(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(lo(1)-1,hi(2),lo(3),1:mgt%nc)
+                         up(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(lo(1)-1,hi(2),hi(3),1:mgt%nc)
+                      end if
+
                    end if
 
                    if ( hi(1) == dhi(1) ) then
+
                       if ( mgt%domain_bc(1,2) == BC_DIR ) then
+
                          up(hi(1)+1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) = -up(hi(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+
                       else if ( mgt%domain_bc(1,2) == BC_NEU ) then
+
                          up(hi(1)+1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) =  up(hi(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+
                       end if
+
+                      if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
+                         !
+                         ! Edges
+                         !
+                         up(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = up(hi(1)+1,lo(2),lo(3):hi(3),1:mgt%nc)
+                         up(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = up(hi(1)+1,hi(2),lo(3):hi(3),1:mgt%nc)
+                         up(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = up(hi(1)+1,lo(2):hi(2),lo(3),1:mgt%nc)
+                         up(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = up(hi(1)+1,lo(2):hi(2),hi(3),1:mgt%nc)
+                         !
+                         ! Corners
+                         !
+                         up(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(hi(1)+1,lo(2),lo(3),1:mgt%nc)
+                         up(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(hi(1)+1,lo(2),hi(3),1:mgt%nc)
+                         up(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(hi(1)+1,hi(2),lo(3),1:mgt%nc)
+                         up(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(hi(1)+1,hi(2),hi(3),1:mgt%nc)
+                      end if
+
                    end if
 
                    if ( lo(2) == dlo(2) ) then
+
                       if ( mgt%domain_bc(2,1) == BC_DIR ) then
+
                          up(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) = -up(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
+
                       else if ( mgt%domain_bc(2,1) == BC_NEU ) then
-                         up(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) =  up(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
+
+                         up(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) = up(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
+
                       end if
+
+                      if ( mgt%domain_bc(2,1) == BC_DIR .or. mgt%domain_bc(2,1) == BC_NEU ) then
+                         !
+                         ! Edges
+                         !
+                         up(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = up(lo(1),lo(2)-1,lo(3):hi(3),1:mgt%nc)
+                         up(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = up(hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc)
+                         up(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = up(lo(1):hi(1),lo(2)-1,lo(3),1:mgt%nc)
+                         up(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = up(lo(1):hi(1),lo(2)-1,hi(3),1:mgt%nc)
+                         !
+                         ! Corners
+                         !
+                         up(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(lo(1),lo(2)-1,lo(3),1:mgt%nc)
+                         up(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(lo(1),lo(2)-1,hi(3),1:mgt%nc)
+                         up(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(hi(1),lo(2)-1,lo(3),1:mgt%nc)
+                         up(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(hi(1),lo(2)-1,hi(3),1:mgt%nc)
+                      end if
+
                    end if
 
                   if ( hi(2) == dhi(2) ) then
+
                      if ( mgt%domain_bc(2,2) == BC_DIR ) then
+
                         up(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) = -up(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
+
                      else if ( mgt%domain_bc(2,2) == BC_NEU ) then
-                        up(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) =  up(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
+
+                        up(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) = up(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
+
                      end if
+
+                     if ( mgt%domain_bc(2,2) == BC_DIR .or. mgt%domain_bc(2,2) == BC_NEU ) then
+                         !
+                         ! Edges
+                         !
+                         up(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = up(lo(1),hi(2)+1,lo(3):hi(3),1:mgt%nc)
+                         up(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = up(hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc)
+                         up(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = up(lo(1):hi(1),hi(2)+1,lo(3),1:mgt%nc)
+                         up(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = up(lo(1):hi(1),hi(2)+1,hi(3),1:mgt%nc)
+                         !
+                         ! Corners
+                         !
+                         up(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(lo(1),hi(2)+1,lo(3),1:mgt%nc)
+                         up(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(lo(1),hi(2)+1,hi(3),1:mgt%nc)
+                         up(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(hi(1),hi(2)+1,lo(3),1:mgt%nc)
+                         up(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(hi(1),hi(2)+1,hi(3),1:mgt%nc)
+                     end if
+
                   end if
 
 
                    if ( lo(3) == dlo(3) ) then
+
                       if ( mgt%domain_bc(3,1) == BC_DIR ) then
+
                          up(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = -up(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+
                       else if ( mgt%domain_bc(3,1) == BC_NEU ) then
-                         up(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) =  up(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+
+                         up(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = up(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+
                       end if
+
+                      if ( mgt%domain_bc(3,1) == BC_DIR .or. mgt%domain_bc(3,1) == BC_NEU ) then
+                         !
+                         ! Edges
+                         !
+                         up(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = up(lo(1),lo(2):hi(2),lo(3)-1,1:mgt%nc)
+                         up(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = up(hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc)
+                         up(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = up(lo(1):hi(1),lo(2),lo(3)-1,1:mgt%nc)
+                         up(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = up(lo(1):hi(1),hi(2),lo(3)-1,1:mgt%nc)
+                         !
+                         ! Corners
+                         !
+                         up(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(lo(1),lo(2),lo(3)-1,1:mgt%nc)
+                         up(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(lo(1),hi(2),lo(3)-1,1:mgt%nc)
+                         up(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = up(hi(1),lo(2),lo(3)-1,1:mgt%nc)
+                         up(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = up(hi(1),hi(2),lo(3)-1,1:mgt%nc)
+                      end if
+
                    end if
 
                    if ( hi(3) == dhi(3) ) then
+
                       if ( mgt%domain_bc(3,2) == BC_DIR ) then
+
                          up(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = -up(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+
                       else if ( mgt%domain_bc(3,2) == BC_NEU ) then
-                         up(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) =  up(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+
+                         up(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = up(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+
                       end if
+
+                      if ( mgt%domain_bc(3,2) == BC_DIR .or. mgt%domain_bc(3,2) == BC_NEU ) then
+                         !
+                         ! Edges
+                         !
+                         up(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = up(lo(1),lo(2):hi(2),hi(3)+1,1:mgt%nc)
+                         up(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = up(hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc)
+                         up(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = up(lo(1):hi(1),lo(2),hi(3)+1,1:mgt%nc)
+                         up(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = up(lo(1):hi(1),hi(2),hi(3)+1,1:mgt%nc)
+                         !
+                         ! Corners
+                         !
+                         up(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(lo(1),lo(2),hi(3)+1,1:mgt%nc)
+                         up(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(lo(1),hi(2),hi(3)+1,1:mgt%nc)
+                         up(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = up(hi(1),lo(2),hi(3)+1,1:mgt%nc)
+                         up(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = up(hi(1),hi(2),hi(3)+1,1:mgt%nc)
+                      end if
+
                    end if
 
                 end select
