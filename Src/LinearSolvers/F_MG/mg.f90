@@ -120,7 +120,8 @@ contains
        !
        ! mgt%use_lininterp defaults to false.  We want it to default to true for 3D.
        !
-       if ( mgt%dim == 3 ) mgt%use_lininterp = .true.
+!       if ( mgt%dim == 3 ) mgt%use_lininterp = .true.
+       mgt%use_lininterp = .true.
     end if
 
     nodal_flag = .false.
@@ -229,6 +230,12 @@ contains
        allocate(mgt%skewed_not_set(mgt%nlevels))
        mgt%skewed_not_set = .true.
     end if
+    !
+    ! Save copy of domain BCs.
+    !
+    allocate(mgt%domain_bc(mgt%dim,1:2))
+
+    mgt%domain_bc = domain_bc(:,1:2)
 
     if ( nodal_flag ) then
        !
@@ -508,6 +515,7 @@ contains
 
     deallocate(mgt%cc, mgt%ff, mgt%dd, mgt%uu, mgt%mm, mgt%ss)
     deallocate(mgt%dh, mgt%pd)
+    deallocate(mgt%domain_bc)
 
     if ( associated(mgt%face_type) ) deallocate(mgt%face_type)
 
@@ -973,7 +981,8 @@ contains
     integer,         pointer  :: mp(:,:,:,:)
     integer                   :: i, j, k, n, ng, ir(mgt%dim)
     integer                   :: lo(mgt%dim), hi(mgt%dim), lom(mgt%dim)
-    integer                   :: loc(mgt%dim), lof(mgt%dim)
+    integer                   :: loc(mgt%dim), lof(mgt%dim), dlo(mgt%dim), dhi(mgt%dim)
+    type(box)                 :: dmn
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_prolongation")
@@ -981,12 +990,121 @@ contains
     call bl_assert( mgt%nc == ncomp(uu)         , 'mg_tower_prolongation: ncomp')
     call bl_assert( mgt%nc == ncomp(mgt%uu(lev)), 'mg_tower_prolongation: ncomp')
 
-    ir = 2
-    ng = nghost(mgt%uu(lev))
+    ir  = 2
+    ng  = nghost(mgt%uu(lev))
+    dmn = get_pd(get_layout(mgt%uu(lev)))
+    dlo = lwb(dmn)
+    dhi = upb(dmn)
 
     if ( .not. nodal_q(uu) ) then
 
-       if ( mgt%use_lininterp ) call multifab_fill_boundary(mgt%uu(lev))
+       if ( mgt%use_lininterp ) then
+
+          if ( nghost(mgt%uu(lev)) > 0 ) then
+
+             call multifab_fill_boundary(mgt%uu(lev))
+             !
+             ! Set up dirichlet/neumann boundaries so lininterp does right thing.
+             !
+             do n = 1, nfabs(uu)
+                up => dataptr(mgt%uu(lev) ,n)
+                lo =  lwb(get_ibox(mgt%uu(lev), n))
+                hi =  upb(get_ibox(mgt%uu(lev), n))
+                select case ( mgt%dim )
+                case (2)
+
+                   if ( lo(1) == dlo(1) ) then
+                      if ( mgt%domain_bc(1,1) == BC_DIR ) then
+                         up(lo(1)-1,lo(2):hi(2),1,1:mgt%nc) = -up(lo(1),lo(2):hi(2),1,1:mgt%nc)
+                      else if ( mgt%domain_bc(1,1) == BC_NEU ) then
+                         up(lo(1)-1,lo(2):hi(2),1,1:mgt%nc) =  up(lo(1),lo(2):hi(2),1,1:mgt%nc)
+                      end if
+                   end if
+
+                   if ( hi(1) == dhi(1) ) then
+                      if ( mgt%domain_bc(1,2) == BC_DIR ) then
+                         up(hi(1)+1,lo(2):hi(2),1,1:mgt%nc) = -up(hi(1),lo(2):hi(2),1,1:mgt%nc)
+                      else if ( mgt%domain_bc(1,2) == BC_NEU ) then
+                         up(hi(1)+1,lo(2):hi(2),1,1:mgt%nc) =  up(hi(1),lo(2):hi(2),1,1:mgt%nc)
+                      end if
+                   end if
+
+                   if ( lo(2) == dlo(2) ) then
+                      if ( mgt%domain_bc(2,1) == BC_DIR ) then
+                         up(lo(1):hi(1),lo(2)-1,1,1:mgt%nc) = -up(lo(1):hi(1),lo(2),1,1:mgt%nc)
+                      else if ( mgt%domain_bc(2,1) == BC_NEU ) then
+                         up(lo(1):hi(1),lo(2)-1,1,1:mgt%nc) =  up(lo(1):hi(1),lo(2),1,1:mgt%nc)
+                      end if
+                   end if
+
+                  if ( hi(2) == dhi(2) ) then
+                     if ( mgt%domain_bc(2,2) == BC_DIR ) then
+                        up(lo(1):hi(1),hi(2)+1,1,1:mgt%nc) = -up(lo(1):hi(1),hi(2),1,1:mgt%nc)
+                     else if ( mgt%domain_bc(2,2) == BC_NEU ) then
+                        up(lo(1):hi(1),hi(2)+1,1,1:mgt%nc) =  up(lo(1):hi(1),hi(2),1,1:mgt%nc)
+                     end if
+                  end if
+
+                case (3)
+
+                   if ( lo(1) == dlo(1) ) then
+                      if ( mgt%domain_bc(1,1) == BC_DIR ) then
+                         up(lo(1)-1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) = -up(lo(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+                      else if ( mgt%domain_bc(1,1) == BC_NEU ) then
+                         up(lo(1)-1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) =  up(lo(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+                      end if
+                   end if
+
+                   if ( hi(1) == dhi(1) ) then
+                      if ( mgt%domain_bc(1,2) == BC_DIR ) then
+                         up(hi(1)+1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) = -up(hi(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+                      else if ( mgt%domain_bc(1,2) == BC_NEU ) then
+                         up(hi(1)+1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) =  up(hi(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+                      end if
+                   end if
+
+                   if ( lo(2) == dlo(2) ) then
+                      if ( mgt%domain_bc(2,1) == BC_DIR ) then
+                         up(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) = -up(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
+                      else if ( mgt%domain_bc(2,1) == BC_NEU ) then
+                         up(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) =  up(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
+                      end if
+                   end if
+
+                  if ( hi(2) == dhi(2) ) then
+                     if ( mgt%domain_bc(2,2) == BC_DIR ) then
+                        up(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) = -up(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
+                     else if ( mgt%domain_bc(2,2) == BC_NEU ) then
+                        up(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) =  up(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
+                     end if
+                  end if
+
+
+                   if ( lo(3) == dlo(3) ) then
+                      if ( mgt%domain_bc(3,1) == BC_DIR ) then
+                         up(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = -up(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+                      else if ( mgt%domain_bc(3,1) == BC_NEU ) then
+                         up(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) =  up(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+                      end if
+                   end if
+
+                   if ( hi(3) == dhi(3) ) then
+                      if ( mgt%domain_bc(3,2) == BC_DIR ) then
+                         up(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = -up(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+                      else if ( mgt%domain_bc(3,2) == BC_NEU ) then
+                         up(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) =  up(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+                      end if
+                   end if
+
+                end select
+
+!                call print(mgt%uu(lev),'uu after dirichlet')
+
+             end do
+
+          end if
+
+       end if
 
        !$OMP PARALLEL DO PRIVATE(i,n,loc,lof,lo,hi,fp,cp)
        do i = 1, nfabs(uu)
@@ -1209,6 +1327,8 @@ contains
   
        call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                       mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
+
+!       call print(mgt%uu(lev-1),'uu before prolongation')
 
        if ( .false. ) then
           !
