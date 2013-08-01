@@ -64,32 +64,32 @@ contains
 
   end subroutine cc_prolongation_1d
 
-  subroutine cc_prolongation_2d(ff, lof, cc, loc, lo, hi, ir, lininterp)
+  subroutine cc_prolongation_2d(ff, lof, cc, loc, lo, hi, ir, lininterp, ptype)
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
-    integer,     intent(in   ) :: ir(:)
+    integer,     intent(in   ) :: ir(:), ptype
     logical,     intent(in   ) :: lininterp
 
     if ( lininterp ) then
-       call lin_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+       call lin_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir, ptype)
     else
        call pc_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
     end if
 
   end subroutine cc_prolongation_2d
 
-  subroutine cc_prolongation_3d(ff, lof, cc, loc, lo, hi, ir, lininterp)
+  subroutine cc_prolongation_3d(ff, lof, cc, loc, lo, hi, ir, lininterp, ptype)
     integer,     intent(in   ) :: loc(:),lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
-    integer,     intent(in   ) :: ir(:)
+    integer,     intent(in   ) :: ir(:), ptype
     logical,     intent(in   ) :: lininterp
 
     if ( lininterp ) then
-       call lin_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+       call lin_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir, ptype)
     else
        call pc_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
     end if
@@ -269,25 +269,19 @@ contains
 
   end subroutine lin_c_prolongation_1d
 
-  subroutine lin_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+  subroutine lin_c_prolongation_2d(ff, lof, cc, loc, lo, hi, ir, ptype)
     use bl_error_module
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
-    integer,     intent(in   ) :: ir(:)
+    integer,     intent(in   ) :: ir(:), ptype
 
     integer :: i, j, ng, clo(2), chi(2), twoi, twoj, twoip1, twojp1
     logical :: interior_i, interior_j
 
     real (dp_t), parameter :: one6th  = 1.0d0 / 6.0d0
     real (dp_t), parameter :: one16th = 1.0d0 /16.0d0
-    !
-    ! We have three choices of "linear" interp.
-    !
-    ! Type 2 seems to work best in 2D.
-    !
-    integer, parameter :: PTYPE = 2
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
 
@@ -326,10 +320,10 @@ contains
           chi = chi - 1
        end if
 
-       select case ( PTYPE )
+       select case ( ptype )
        case ( 1 )
           !
-          ! Type 1 - {2,1,1} weighted average of our neighbors.
+          ! Type 1 - {2,1,1} weighted average of our neighbors.  Doesn't use corner cells.
           !
           do j = clo(2), chi(2)
              twoj   = 2*j
@@ -347,7 +341,7 @@ contains
           end do
        case ( 2 )
           !
-          ! Type 2 - {4,1,1} weighted average of our neighbors.
+          ! Type 2 - {4,1,1} weighted average of our neighbors.  Doesn't use corner cells.
           !
           do j = clo(2), chi(2)
              twoj   = 2*j
@@ -365,7 +359,7 @@ contains
           end do
        case ( 3 )
           !
-          ! Type 3 - bilinear.
+          ! Type 3 - bilinear.  Uses corner cells.
           !
           do j = clo(2), chi(2)
              twoj   = 2*j
@@ -386,7 +380,7 @@ contains
              end do
           end do
        case default
-          call bl_error("lin_c_prolongation_2d: unknown ptype", PTYPE)
+          call bl_error("lin_c_prolongation_2d: unknown ptype", ptype)
        end select
 
     else
@@ -400,13 +394,13 @@ contains
 
   end subroutine lin_c_prolongation_2d
 
-  subroutine lin_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+  subroutine lin_c_prolongation_3d(ff, lof, cc, loc, lo, hi, ir, ptype)
     use bl_error_module
     integer,     intent(in   ) :: loc(:),lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
     real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
-    integer,     intent(in   ) :: ir(:)
+    integer,     intent(in   ) :: ir(:), ptype
 
     integer :: i, j, k, ng, clo(3), chi(3), twoi, twoj, twoip1, twojp1, twok, twokp1
     logical :: interior_i, interior_j, interior_k
@@ -415,12 +409,6 @@ contains
     real (dp_t), parameter :: THREE64THS = 3.0d0 / 64.0d0
     real (dp_t), parameter ::     SIXTH  = 1.0d0 /  6.0d0
     real (dp_t), parameter ::     FOURTH = 0.25_dp_t
-    !
-    ! We have three choices of "linear" interp.
-    !
-    ! Type 3 seems to work best in 3D.
-    !
-    integer, parameter :: PTYPE = 3
 
     if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
        !
@@ -471,10 +459,10 @@ contains
           chi = chi - 1
        end if
 
-       select case ( PTYPE )
+       select case ( ptype )
        case ( 1 )
           !
-          ! Type 1 - {1,1,1,1} weighted average of our neighbors.
+          ! Type 1 - {1,1,1,1} weighted average of our neighbors.  Doesn't use corners.
           !
           do k = clo(3),chi(3)
              twok   = 2*k
@@ -509,7 +497,7 @@ contains
           end do
        case ( 2 )
           !
-          ! Type 2 - {3,1,1,1} weighted average of our neighbors.
+          ! Type 2 - {3,1,1,1} weighted average of our neighbors.  Doesn't use corners.
           !
           do k = clo(3),chi(3)
              twok   = 2*k
@@ -544,7 +532,7 @@ contains
           end do
        case ( 3 )
           !
-          ! Type 3 - trilinear.
+          ! Type 3 - trilinear.  Uses corners.
           !
           do k = clo(3),chi(3)
              twok   = 2*k
@@ -586,7 +574,7 @@ contains
              end do
           end do
        case default
-          call bl_error("lin_c_prolongation_3d: unknown ptype", PTYPE)
+          call bl_error("lin_c_prolongation_3d: unknown ptype", ptype)
        end select
 
     else

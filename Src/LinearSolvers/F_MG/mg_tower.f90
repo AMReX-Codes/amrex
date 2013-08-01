@@ -42,6 +42,7 @@ module mg_tower_module
      ! This must be true in order to enforce solvability
      logical :: coeffs_sum_to_zero = .false.
 
+     integer :: ptype = 3
      logical :: use_lininterp = .false.
 
 !     integer :: nboxes =  0
@@ -86,7 +87,7 @@ module mg_tower_module
      integer, pointer :: face_type(:,:,:)  => Null()
      logical, pointer :: skewed(:,:)       => Null()
      logical, pointer :: skewed_not_set(:) => Null()
-     integer, pointer :: domain_bc(:,:) => Null()
+     integer, pointer :: domain_bc(:,:)    => Null()
 
      ! Only relevant if bottom_solver == 1, 2 or 3 AND nodal
      type(multifab) :: nodal_mask
