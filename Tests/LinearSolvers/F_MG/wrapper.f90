@@ -73,7 +73,7 @@ subroutine wrapper()
 
   logical, allocatable :: nodal(:)
   logical, allocatable :: pmask(:)
-  logical :: nodal_in, dense_in
+  logical :: nodal_in, dense_in, lininterp
 
   integer :: i,n,nlevs,ns,dm
 
@@ -88,7 +88,7 @@ subroutine wrapper()
   integer :: min_width
   integer :: max_nlevel, max_nlevel_in
   integer :: max_lev_of_mba
-  integer :: verbose, cg_verbose
+  integer :: verbose, cg_verbose, ptype
   integer :: nu1, nu2, nub, nuf, solver, smoother
   integer :: ng, nc
   character(len=128) :: test_set
@@ -149,7 +149,7 @@ subroutine wrapper()
   namelist /probin/ stencil_order
   namelist /probin/ max_lev_of_mba
 
-  namelist /probin/ verbose, cg_verbose
+  namelist /probin/ verbose, cg_verbose, ptype
   namelist /probin/ do_diagnostics
 
   !! Defaults:
@@ -165,6 +165,7 @@ subroutine wrapper()
   coeffs_type    = 0 ! Default to constant coefficients = 1
   nodal_in       = .false.
   dense_in       = .false.
+  lininterp      = .true.
 
   ba_maxsize     = 32
   pd_xyz         = 32
@@ -213,6 +214,7 @@ subroutine wrapper()
   min_width         = mgt_default%min_width
   eps               = mgt_default%eps
   verbose           = mgt_default%verbose
+  ptype             = mgt_default%ptype
   cg_verbose        = mgt_default%cg_verbose
 
   do_diagnostics    = 0
@@ -286,6 +288,11 @@ subroutine wrapper()
            farg = farg + 1
            call get_command_argument(farg, value = fname)
            read(fname,*) coeffs_type
+
+        case ('--ptype')
+           farg = farg + 1
+           call get_command_argument(farg, value = fname)
+           read(fname,*) ptype
 
         case ('--verbose')
            farg = farg + 1
@@ -401,6 +408,15 @@ subroutine wrapper()
            nodal_in = .true.
         case ('--cc')
            nodal_in = .false.
+        case ('--lininterp')
+           lininterp = .true.
+
+        case ('--pc')
+           !
+           ! An easy way to turn off lininterp.
+           !
+           lininterp = .false.
+
         case ('--h_finest')
            farg = farg + 1
            call get_command_argument(farg, value = fname)
@@ -703,6 +719,8 @@ subroutine wrapper()
           eps = eps, &
           verbose = verbose, &
           cg_verbose = cg_verbose, &
+          ptype = ptype, &
+          use_lininterp = lininterp, &
           nodal = nodal)
 
   end do
