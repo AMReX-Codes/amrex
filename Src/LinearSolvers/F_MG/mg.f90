@@ -26,7 +26,7 @@ contains
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
                             max_L0_growth, &
                             verbose, cg_verbose, nodal, use_hypre, is_singular, &
-                            the_bottom_comm, fancy_bottom_type_in, use_lininterp)
+                            the_bottom_comm, fancy_bottom_type_in, use_lininterp, ptype)
     use bl_IO_module
     use bl_prof_module
 
@@ -62,6 +62,7 @@ contains
     integer, intent(in), optional :: the_bottom_comm
     integer, intent(in), optional :: fancy_bottom_type_in
     logical, intent(in), optional :: use_lininterp
+    integer, intent(in), optional :: ptype
 
     integer         :: n, i, id, vol, j, lo_grid, hi_grid, lo_dom, hi_dom, ng_for_res
     integer         :: fancy_bottom_type
@@ -108,6 +109,7 @@ contains
     if ( present(cg_verbose)        ) mgt%cg_verbose        = cg_verbose
     if ( present(use_hypre)         ) mgt%use_hypre         = use_hypre 
     if ( present(max_L0_growth)     ) mgt%max_L0_growth     = max_L0_growth 
+    if ( present(ptype)             ) mgt%ptype             = ptype
 
     if ( present(the_bottom_comm) ) then
        allocate(mgt%bottom_comm)
@@ -1119,9 +1121,9 @@ contains
              case (1)
                 call cc_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, mgt%use_lininterp)
              case (2)
-                call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, mgt%use_lininterp)
+                call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, mgt%use_lininterp, mgt%ptype)
              case (3)
-                call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, mgt%use_lininterp)
+                call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, mgt%use_lininterp, mgt%ptype)
              end select
           end do
        end do

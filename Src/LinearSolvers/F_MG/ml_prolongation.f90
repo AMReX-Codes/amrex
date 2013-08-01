@@ -21,13 +21,13 @@ module ml_prolongation_module
 
 contains
 
-  subroutine ml_cc_prolongation(fine, crse, ir, lininterp)
+  subroutine ml_cc_prolongation(fine, crse, ir, lininterp, ptype)
     use bl_prof_module
     use mg_prolongation_module
 
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
-    integer,        intent(in   ) :: ir(:)
+    integer,        intent(in   ) :: ir(:), ptype
     logical,        intent(in   ) :: lininterp
 
     integer             :: lo (get_dim(fine)), hi (get_dim(fine))
@@ -65,9 +65,9 @@ contains
           case (1)
              call cc_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, lininterp)
           case (2)
-             call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, lininterp)
+             call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, lininterp, ptype)
           case (3)
-             call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, lininterp)
+             call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, lininterp, ptype)
           end select
        end do
     end do
