@@ -109,21 +109,12 @@ contains
     if ( present(cg_verbose)        ) mgt%cg_verbose        = cg_verbose
     if ( present(use_hypre)         ) mgt%use_hypre         = use_hypre 
     if ( present(max_L0_growth)     ) mgt%max_L0_growth     = max_L0_growth 
+    if ( present(use_lininterp)     ) mgt%use_lininterp     = use_lininterp
     if ( present(ptype)             ) mgt%ptype             = ptype
 
     if ( present(the_bottom_comm) ) then
        allocate(mgt%bottom_comm)
        mgt%bottom_comm = the_bottom_comm
-    end if
-
-    if ( present(use_lininterp) ) then
-       mgt%use_lininterp = use_lininterp
-    else
-       !
-       ! mgt%use_lininterp defaults to false.  We want it to default to true for 3D.
-       !
-!       if ( mgt%dim == 3 ) mgt%use_lininterp = .true.
-       mgt%use_lininterp = .true.
     end if
 
     nodal_flag = .false.
@@ -1003,8 +994,6 @@ contains
        if ( mgt%use_lininterp ) then
 
           if ( nghost(mgt%uu(lev)) > 0 ) then
-
-             call multifab_fill_boundary(mgt%uu(lev))
              !
              ! Set up dirichlet/neumann boundaries so lininterp does right thing.
              !
@@ -1017,33 +1006,72 @@ contains
 
                    if ( lo(1) == dlo(1) ) then
                       if ( mgt%domain_bc(1,1) == BC_DIR ) then
+
                          up(lo(1)-1,lo(2):hi(2),1,1:mgt%nc) = -up(lo(1),lo(2):hi(2),1,1:mgt%nc)
+
+                         up(lo(1)-1,lo(2)-1,1,1:mgt%nc) = up(lo(1)-1,lo(2),1,1:mgt%nc)
+                         up(lo(1)-1,hi(2)+1,1,1:mgt%nc) = up(lo(1)-1,hi(2),1,1:mgt%nc)
+
                       else if ( mgt%domain_bc(1,1) == BC_NEU ) then
+
                          up(lo(1)-1,lo(2):hi(2),1,1:mgt%nc) =  up(lo(1),lo(2):hi(2),1,1:mgt%nc)
+
+                         up(lo(1)-1,lo(2)-1,1,1:mgt%nc) = up(lo(1)-1,lo(2),1,1:mgt%nc)
+                         up(lo(1)-1,hi(2)+1,1,1:mgt%nc) = up(lo(1)-1,hi(2),1,1:mgt%nc)
                       end if
                    end if
 
                    if ( hi(1) == dhi(1) ) then
                       if ( mgt%domain_bc(1,2) == BC_DIR ) then
+
                          up(hi(1)+1,lo(2):hi(2),1,1:mgt%nc) = -up(hi(1),lo(2):hi(2),1,1:mgt%nc)
+
+                         up(hi(1)+1,lo(2)-1,1,1:mgt%nc) = up(hi(1)+1,lo(2),1,1:mgt%nc)
+                         up(hi(1)+1,hi(2)+1,1,1:mgt%nc) = up(hi(1)+1,hi(2),1,1:mgt%nc)
+
                       else if ( mgt%domain_bc(1,2) == BC_NEU ) then
+
                          up(hi(1)+1,lo(2):hi(2),1,1:mgt%nc) =  up(hi(1),lo(2):hi(2),1,1:mgt%nc)
+
+                         up(hi(1)+1,lo(2)-1,1,1:mgt%nc) = up(hi(1)+1,lo(2),1,1:mgt%nc)
+                         up(hi(1)+1,hi(2)+1,1,1:mgt%nc) = up(hi(1)+1,hi(2),1,1:mgt%nc)
+
                       end if
                    end if
 
                    if ( lo(2) == dlo(2) ) then
                       if ( mgt%domain_bc(2,1) == BC_DIR ) then
+
                          up(lo(1):hi(1),lo(2)-1,1,1:mgt%nc) = -up(lo(1):hi(1),lo(2),1,1:mgt%nc)
+
+                         up(lo(1)-1,lo(2)-1,1,1:mgt%nc) = up(lo(1),lo(2)-1,1,1:mgt%nc)
+                         up(hi(1)+1,lo(2)-1,1,1:mgt%nc) = up(hi(1),lo(2)-1,1,1:mgt%nc)
+
                       else if ( mgt%domain_bc(2,1) == BC_NEU ) then
+
                          up(lo(1):hi(1),lo(2)-1,1,1:mgt%nc) =  up(lo(1):hi(1),lo(2),1,1:mgt%nc)
+
+                         up(lo(1)-1,lo(2)-1,1,1:mgt%nc) = up(lo(1),lo(2)-1,1,1:mgt%nc)
+                         up(hi(1)+1,lo(2)-1,1,1:mgt%nc) = up(hi(1),lo(2)-1,1,1:mgt%nc)
+
                       end if
                    end if
 
                   if ( hi(2) == dhi(2) ) then
                      if ( mgt%domain_bc(2,2) == BC_DIR ) then
+
                         up(lo(1):hi(1),hi(2)+1,1,1:mgt%nc) = -up(lo(1):hi(1),hi(2),1,1:mgt%nc)
+
+                        up(lo(1)-1,hi(2)+1,1,1:mgt%nc) = up(lo(1),hi(2)+1,1,1:mgt%nc)
+                        up(hi(1)+1,hi(2)+1,1,1:mgt%nc) = up(hi(1),hi(2)+1,1,1:mgt%nc)
+
                      else if ( mgt%domain_bc(2,2) == BC_NEU ) then
+
                         up(lo(1):hi(1),hi(2)+1,1,1:mgt%nc) =  up(lo(1):hi(1),hi(2),1,1:mgt%nc)
+
+                        up(lo(1)-1,hi(2)+1,1,1:mgt%nc) = up(lo(1),hi(2)+1,1,1:mgt%nc)
+                        up(hi(1)+1,hi(2)+1,1,1:mgt%nc) = up(hi(1),hi(2)+1,1,1:mgt%nc)
+
                      end if
                   end if
 
@@ -1100,9 +1128,9 @@ contains
 
                 end select
 
-!                call print(mgt%uu(lev),'uu after dirichlet')
-
              end do
+
+             call multifab_fill_boundary(mgt%uu(lev))
 
           end if
 
