@@ -43,7 +43,7 @@ module mg_tower_module
      logical :: coeffs_sum_to_zero = .false.
 
      integer :: ptype = 3
-     logical :: use_lininterp = .false.
+     logical :: use_lininterp = .true.
 
 !     integer :: nboxes =  0
      integer :: nlevels =  0
