@@ -1191,7 +1191,7 @@ contains
 
        else if ( mgt%domain_bc(2,2) == BC_NEU ) then
 
-          uu(lo(1):hi(1),hi(2)+1,:,1:mgt%nc) = uu(lo(1):hi(1),hi(2),:,1:mgt%nc)
+          uu(lo(1):hi(1),hi(2)+1,:,1:mgt%nc) =  uu(lo(1):hi(1),hi(2),:,1:mgt%nc)
 
        end if
 
@@ -1219,7 +1219,7 @@ contains
 
        else if ( mgt%domain_bc(3,1) == BC_NEU ) then
 
-          uu(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+          uu(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) =  uu(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
 
        end if
 
@@ -1233,7 +1233,7 @@ contains
 
        else if ( mgt%domain_bc(3,2) == BC_NEU ) then
 
-          uu(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+          uu(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) =  uu(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
 
        end if
 
@@ -1318,7 +1318,6 @@ contains
     else
 
       if ( using_nodal_cubic() .and. mgt%dim > 1 ) then
-
          call multifab_fill_boundary(mgt%uu(lev))
 
          do i = 1, nfabs(mgt%uu(lev))
