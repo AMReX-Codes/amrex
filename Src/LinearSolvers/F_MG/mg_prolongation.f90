@@ -29,6 +29,12 @@ module mg_prolongation_module
      module procedure nodal_prolongation_3d
   end interface
 
+  interface nodal_linear_prolongation
+     module procedure nodal_linear_prolongation_1d
+     module procedure nodal_linear_prolongation_2d
+     module procedure nodal_linear_prolongation_3d
+  end interface
+
   interface nodal_cubic_prolongation
      module procedure nodal_cubic_prolongation_1d
      module procedure nodal_cubic_prolongation_2d
@@ -39,14 +45,26 @@ module mg_prolongation_module
   !
   ! Do you want to use [bi,tri]cubic nodal prolongation instead of linear?
   !
-  logical, parameter, private :: Use_Nodal_Cubic = .false.
+  logical, private, save :: Use_Nodal_Cubic = .false.
 
 contains
-
+  !
+  ! Is nodal cubic enabled?
+  !
   pure function using_nodal_cubic () result(r)
     logical r
     r = Use_Nodal_Cubic
   end function using_nodal_cubic
+  !
+  ! Enable/Disable cubic stuff returning previous setting.
+  !
+  function set_using_nodal_cubic (val) result(r)
+    logical, intent(in) :: val
+    logical r, old_val
+    old_val = Use_Nodal_Cubic
+    Use_Nodal_Cubic = val
+    r = old_val
+  end function set_using_nodal_cubic
 
   subroutine cc_prolongation_1d(ff, lof, cc, loc, lo, hi, ir, lininterp)
     integer,     intent(in   ) :: loc(:),lof(:)
@@ -627,9 +645,24 @@ contains
     real (dp_t), intent(in   ) :: cc(loc(1):)
     integer,     intent(in   ) :: ir(:)
 
-    integer               :: i, ic, l
-    real (dp_t)           :: fac_left, fac_rght
-    real(dp_t), parameter :: ONE = 1.0_dp_t
+    if ( ir(1) == 2 .and. Use_Nodal_Cubic ) then
+       call nodal_cubic_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
+    else
+       call nodal_linear_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
+    end if
+
+  end subroutine nodal_prolongation_1d
+
+  subroutine nodal_linear_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
+    integer,     intent(in   ) :: loc(:), lof(:)
+    integer,     intent(in   ) :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: ff(lof(1):)
+    real (dp_t), intent(in   ) :: cc(loc(1):)
+    integer,     intent(in   ) :: ir(:)
+
+    integer                :: i, ic, l
+    real (dp_t)            :: fac_left, fac_rght
+    real (dp_t), parameter :: ONE = 1.0_dp_t
     !
     ! Direct injection for fine points overlaying coarse ones.
     !
@@ -638,27 +671,18 @@ contains
        ff(i) = ff(i) + cc(ic)
     end do
 
-    if ( ir(1) == 2 .and. Use_Nodal_Cubic ) then
-
-       call nodal_cubic_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
-
-    else
-
-       do l = 1, ir(1)-1
-          fac_rght = real(l,dp_t) / real(ir(1),dp_t)
-          fac_left = ONE - fac_rght
-          do i = lo(1), hi(1)-1, ir(1)
-             ic = i / ir(1) 
-             ff(i+l) = ff(i+1) + fac_left*cc(ic) + fac_rght*cc(ic+1)
-          end do
+    do l = 1, ir(1)-1
+       fac_rght = real(l,dp_t) / real(ir(1),dp_t)
+       fac_left = ONE - fac_rght
+       do i = lo(1), hi(1)-1, ir(1)
+          ic = i / ir(1) 
+          ff(i+l) = ff(i+1) + fac_left*cc(ic) + fac_rght*cc(ic+1)
        end do
+    end do
 
-    end if
-
-  end subroutine nodal_prolongation_1d
+  end subroutine nodal_linear_prolongation_1d
 
   subroutine nodal_cubic_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
-    use bl_error_module
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):)
@@ -702,18 +726,31 @@ contains
 
           ff(i+1) = ff(i+1) + cubicInterpolate(coeffs, HALF)
        end do
-
     else
-
-       call bl_warn('nodal_cubic_prolongation_1d: doing linear interp since ir /= 2')
-
-       call nodal_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
-
+       !
+       ! Call lininterp in general ir != 2 case.
+       !
+       call nodal_linear_prolongation_1d(ff, lof, cc, loc, lo, hi, ir)
     end if
 
   end subroutine nodal_cubic_prolongation_1d
 
   subroutine nodal_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+    integer,     intent(in   ) :: loc(:),lof(:)
+    integer,     intent(in   ) :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
+    integer,     intent(in   ) :: ir(:)
+
+    if ( ir(1) == 2 .and. ir(2) == 2 .and. Use_Nodal_Cubic ) then
+       call nodal_cubic_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+    else
+       call nodal_linear_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+    end if
+
+  end subroutine nodal_prolongation_2d
+
+  subroutine nodal_linear_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
     integer,     intent(in   ) :: loc(:),lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
@@ -727,41 +764,34 @@ contains
     real(dp_t), parameter :: FOURTH = 0.25_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
+       !
+       ! Do fast unrolled linear interp.
+       !
+       clo = int_coarsen(lo, 2)
+       chi = int_coarsen(hi, 2)
 
-       if ( Use_Nodal_Cubic ) then
+       do jc = clo(2),chi(2)
+          j = 2*jc
+          do ic = clo(1),chi(1)
+             i = 2*ic
+             !
+             ! Direct injection for fine points overlaying coarse ones.
+             !
+             ff(i,j) = ff(i,j) + cc(ic,jc)
 
-          call nodal_cubic_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
-
-       else
-          !
-          ! Do fast unrolled linear interp.
-          !
-          clo = int_coarsen(lo, 2)
-          chi = int_coarsen(hi, 2)
-
-          do jc = clo(2),chi(2)
-             j = 2*jc
-             do ic = clo(1),chi(1)
-                i = 2*ic
-                !
-                ! Direct injection for fine points overlaying coarse ones.
-                !
-                ff(i,j) = ff(i,j) + cc(ic,jc)
-
-                if ( i < hi(1) ) then
-                   ff(i+1,j) = ff(i+1,j) + HALF*( cc(ic,jc)+cc(ic+1,jc) )
-
-                   if ( j < hi(2) ) then
-                      ff(i+1,j+1) = ff(i+1,j+1) + FOURTH*( cc(ic,jc)+cc(ic+1,jc)+cc(ic,jc+1)+cc(ic+1,jc+1) )
-                   end if
-                end if
+             if ( i < hi(1) ) then
+                ff(i+1,j) = ff(i+1,j) + HALF*( cc(ic,jc)+cc(ic+1,jc) )
 
                 if ( j < hi(2) ) then
-                   ff(i,j+1) = ff(i,j+1) + HALF*( cc(ic,jc)+cc(ic,jc+1) )
+                   ff(i+1,j+1) = ff(i+1,j+1) + FOURTH*( cc(ic,jc)+cc(ic+1,jc)+cc(ic,jc+1)+cc(ic+1,jc+1) )
                 end if
-             end do
+             end if
+
+             if ( j < hi(2) ) then
+                ff(i,j+1) = ff(i,j+1) + HALF*( cc(ic,jc)+cc(ic,jc+1) )
+             end if
           end do
-       end if
+       end do
 
     else
        !
@@ -809,10 +839,9 @@ contains
 
     end if
 
-  end subroutine nodal_prolongation_2d
+  end subroutine nodal_linear_prolongation_2d
 
   recursive subroutine nodal_cubic_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
-    use bl_error_module
     integer,     intent(in   ) :: loc(:),lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
@@ -825,7 +854,6 @@ contains
     real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
-
        clo = int_coarsen(lo, 2)
        chi = int_coarsen(hi, 2)
 
@@ -886,28 +914,42 @@ contains
           !
           ! First do linear interp
           !
-          call nodal_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
+          call nodal_linear_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
           !
           ! If the fine region is big enough do bicubic on interior.
           !
           ilo = lo+2
           ihi = hi-2
 
-          if ( all( (ihi-ilo) > 0) ) &
+          if ( all( (ihi-ilo) > 0) ) then
              call nodal_cubic_prolongation_2d(ff, lof, cc, loc, ilo, ihi, ir)
+          end if
        end if
-
     else
-
-       call bl_warn('nodal_cubic_prolongation_2d: doing linear interp since ir /= 2')
-
-       call nodal_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
-
+       !
+       ! Call lininterp in general ir != 2 case.
+       !
+       call nodal_linear_prolongation_2d(ff, lof, cc, loc, lo, hi, ir)
     end if
 
   end subroutine nodal_cubic_prolongation_2d
 
   subroutine nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+    integer,     intent(in   ) :: loc(:), lof(:)
+    integer,     intent(in   ) :: lo(:), hi(:)
+    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
+    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
+    integer,     intent(in   ) :: ir(:)
+
+    if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 .and. Use_Nodal_Cubic ) then
+       call nodal_cubic_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+    else
+       call nodal_linear_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+    endif
+
+  end subroutine nodal_prolongation_3d
+
+  subroutine nodal_linear_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
@@ -924,67 +966,59 @@ contains
     real (dp_t), allocatable :: temp(:,:,:)
 
     if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
+       !
+       ! Do fast unrolled linear interp.
+       !
+       clo = int_coarsen(lo, 2)
+       chi = int_coarsen(hi, 2)
 
-       if ( Use_Nodal_Cubic ) then
+       do kc = clo(3),chi(3)
+          k = 2*kc
+          do jc = clo(2),chi(2)
+             j = 2*jc
+             do ic = clo(1),chi(1)
+                i = 2*ic
+                !
+                ! Direct injection for fine points overlaying coarse ones.
+                !
+                ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
 
-          call nodal_cubic_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+                if ( i < hi(1) ) then
+                   ff(i+1,j,k) = ff(i+1,j,k) + HALF*( cc(ic,jc,kc) + cc(ic+1,jc,kc) )
 
-       else
-          !
-          ! Do fast unrolled linear interp.
-          !
-          clo = int_coarsen(lo, 2)
-          chi = int_coarsen(hi, 2)
+                   if ( j < hi(2) ) then
+                      ff(i+1,j+1,k) = ff(i+1,j+1,k) + &
+                           FOURTH*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) )
+                   end if
+                end if
 
-          do kc = clo(3),chi(3)
-             k = 2*kc
-             do jc = clo(2),chi(2)
-                j = 2*jc
-                do ic = clo(1),chi(1)
-                   i = 2*ic
-                   !
-                   ! Direct injection for fine points overlaying coarse ones.
-                   !
-                   ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
+                if ( j < hi(2) ) then
+                   ff(i,j+1,k) = ff(i,j+1,k) + HALF*( cc(ic,jc,kc) + cc(ic,jc+1,kc) )
+                end if
+
+                if ( k < hi(3) ) then
+                   ff(i,j,k+1) = ff(i,j,k+1) + HALF*( cc(ic,jc,kc)+cc(ic,jc,kc+1) )
 
                    if ( i < hi(1) ) then
-                      ff(i+1,j,k) = ff(i+1,j,k) + HALF*( cc(ic,jc,kc) + cc(ic+1,jc,kc) )
+                      ff(i+1,j,k+1) = ff(i+1,j,k+1) + &
+                           FOURTH*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) )
 
                       if ( j < hi(2) ) then
-                         ff(i+1,j+1,k) = ff(i+1,j+1,k) + &
-                              FOURTH*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) )
+                         ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + &
+                              EIGHTH*( ( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) ) +  &
+                              ( cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) + cc(ic,jc+1,kc+1) + cc(ic+1,jc+1,kc+1) ) )
                       end if
                    end if
 
                    if ( j < hi(2) ) then
-                      ff(i,j+1,k) = ff(i,j+1,k) + HALF*( cc(ic,jc,kc) + cc(ic,jc+1,kc) )
+                      ff(i,j+1,k+1) = ff(i,j+1,k+1) + &
+                           FOURTH*( cc(ic,jc,kc) + cc(ic,jc+1,kc) + cc(ic,jc,kc+1) + cc(ic,jc+1,kc+1) )
                    end if
+                end if
 
-                   if ( k < hi(3) ) then
-                      ff(i,j,k+1) = ff(i,j,k+1) + HALF*( cc(ic,jc,kc)+cc(ic,jc,kc+1) )
-
-                      if ( i < hi(1) ) then
-                         ff(i+1,j,k+1) = ff(i+1,j,k+1) + &
-                              FOURTH*( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) )
-
-                         if ( j < hi(2) ) then
-                            ff(i+1,j+1,k+1) = ff(i+1,j+1,k+1) + &
-                                 EIGHTH*( ( cc(ic,jc,kc) + cc(ic+1,jc,kc) + cc(ic,jc+1,kc) + cc(ic+1,jc+1,kc) ) +  &
-                                 ( cc(ic,jc,kc+1) + cc(ic+1,jc,kc+1) + cc(ic,jc+1,kc+1) + cc(ic+1,jc+1,kc+1) ) )
-                         end if
-                      end if
-
-                      if ( j < hi(2) ) then
-                         ff(i,j+1,k+1) = ff(i,j+1,k+1) + &
-                              FOURTH*( cc(ic,jc,kc) + cc(ic,jc+1,kc) + cc(ic,jc,kc+1) + cc(ic,jc+1,kc+1) )
-                      end if
-                   end if
-
-                end do
              end do
           end do
-
-       end if
+       end do
 
     else
        !
@@ -1059,10 +1093,9 @@ contains
 
     endif
 
-  end subroutine nodal_prolongation_3d
+  end subroutine nodal_linear_prolongation_3d
 
   recursive subroutine nodal_cubic_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
-    use bl_error_module
     integer,     intent(in   ) :: loc(:), lof(:)
     integer,     intent(in   ) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
@@ -1076,7 +1109,6 @@ contains
     real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
     if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
-
        clo = int_coarsen(lo, 2)
        chi = int_coarsen(hi, 2)
 
@@ -1180,23 +1212,22 @@ contains
           !
           ! First do linear interp
           !
-          call nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
+          call nodal_linear_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
           !
           ! If the fine region is big enough do tricubic on interior.
           !
           ilo = lo+2
           ihi = hi-2
 
-          if ( all( (ihi-ilo) > 0) ) &
+          if ( all( (ihi-ilo) > 0) ) then
              call nodal_cubic_prolongation_3d(ff, lof, cc, loc, ilo, ihi, ir)
+          end if
        end if
-
     else
-
-       call bl_warn('nodal_cubic_prolongation_3d: doing linear interp since ir /= 2')
-
-       call nodal_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
-
+       !
+       ! Call lininterp in general ir != 2 case.
+       !
+       call nodal_linear_prolongation_3d(ff, lof, cc, loc, lo, hi, ir)
     endif
 
   end subroutine nodal_cubic_prolongation_3d
