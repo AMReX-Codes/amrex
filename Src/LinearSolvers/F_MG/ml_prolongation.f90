@@ -34,8 +34,9 @@ contains
     integer             :: loc(get_dim(fine)), lof(get_dim(fine))
     integer             :: i, n, dm
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
-    type(layout)        :: lacfine, laf
-    type(multifab)      :: cfine
+    type(boxarray)      :: ba
+    type(layout)        :: lacfine, laf, latmp
+    type(multifab)      :: cfine, cfgrow
     type(bl_prof_timer), save :: bpt
 
     if ( ncomp(crse) .ne. ncomp(fine) ) &
@@ -46,9 +47,46 @@ contains
 
     call layout_build_coarse(lacfine, laf, ir)
 
-    call build(cfine, lacfine, nc = ncomp(crse), ng = 0)
+    if ( .false. ) then
+       !
+       ! I'm checking this in disabled.  I still want to do more testing.
+       ! The point here is to get better meshing together to grids when
+       ! we prolongate by using one grow cell, which "should" always be
+       ! available due to proper nesting of grids.
+       !
+       call copy(ba, get_boxarray(lacfine))
 
-    call copy(cfine, 1, crse, 1, ncomp(crse))
+       call boxarray_grow(ba,1)
+
+       call layout_build_ba(latmp, ba, get_pd(lacfine), explicit_mapping = lacfine%lap%prc)
+
+       call destroy(ba)
+       !
+       ! "crse" should always cover "cfine" (including ghost cells) on
+       ! the valid region due to proper nesting.
+       !
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 1)
+       !
+       ! Use this to fill cfine including ghost cells.
+       !
+       call build(cfgrow, latmp, nc = ncomp(crse), ng = 0)
+
+       call copy(cfgrow, 1, crse, 1, ncomp(crse))
+       !
+       ! Finally copy FAB-wise from cfgrow -> cfine to get good ghost cells.
+       !
+       do i = 1, nfabs(cfgrow)
+          fp => dataptr(cfgrow, i)
+          cp => dataptr(cfine,  i)
+          call cpy_d(cp,fp)
+       end do
+
+       call destroy(cfgrow)
+       call destroy(latmp)
+    else
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 0)
+       call copy(cfine, 1, crse, 1, ncomp(crse))
+    end if
 
     dm = get_dim(crse)
 
@@ -92,10 +130,13 @@ contains
     integer             :: loc(get_dim(fine)), lof(get_dim(fine))
     integer             :: i, n, dm
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
-    type(layout)        :: lacfine,laf
-    type(multifab)      :: cfine
+    type(boxarray)      :: ba
+    type(layout)        :: lacfine, laf, latmp
+    type(multifab)      :: cfine, cfgrow
     character(len=3)    :: number
     character(len=20)   :: filename
+
+!    logical oldval
 
     integer, save :: cnt = 0
 
@@ -110,9 +151,48 @@ contains
 
     call layout_build_coarse(lacfine, laf, ir)
 
-    call build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+!    oldval = set_using_nodal_cubic(.true.)
 
-    call copy(cfine, 1, crse, 1, ncomp(crse))
+    if ( using_nodal_cubic() .and. get_dim(crse) > 1 ) then
+       !
+       ! I'm checking this in disabled.  I still want to do more testing.
+       ! The point here is to get better meshing together to grids when
+       ! we prolongate by using one grow cell, which "should" always be
+       ! available due to proper nesting of grids.
+       !
+       call copy(ba, get_boxarray(lacfine))
+
+       call boxarray_grow(ba,1)
+
+       call layout_build_ba(latmp, ba, get_pd(lacfine), explicit_mapping = lacfine%lap%prc)
+
+       call destroy(ba)
+       !
+       ! "crse" should always cover "cfine" (including ghost cells) on
+       ! the valid region due to proper nesting.
+       !
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 1, nodal = nodal_flags(fine))
+       !
+       ! Use this to fill cfine including ghost cells.
+       !
+       call build(cfgrow, latmp, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+
+       call copy(cfgrow, 1, crse, 1, ncomp(crse))
+       !
+       ! Finally copy FAB-wise from cfgrow -> cfine to get good ghost cells.
+       !
+       do i = 1, nfabs(cfgrow)
+          fp => dataptr(cfgrow, i)
+          cp => dataptr(cfine,  i)
+          call cpy_d(cp,fp)
+       end do
+
+       call destroy(cfgrow)
+       call destroy(latmp)
+    else
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+       call copy(cfine, 1, crse, 1, ncomp(crse))
+    end if
 
     dm = get_dim(crse)
 
@@ -136,6 +216,8 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+
+!    oldval = set_using_nodal_cubic(oldval)
 
     if ( .false. ) then
        !
