@@ -1023,7 +1023,7 @@ contains
 
     end if
     !
-    ! After doing lo & hi X all corner cells have been filled.
+    ! At this point all possible corner cells have been filled.
     !
     if ( lo(2) == dlo(2) ) then
 
@@ -1065,29 +1065,45 @@ contains
 
        if ( mgt%domain_bc(1,1) == BC_DIR ) then
 
-          uu(lo(1)-1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) = -uu(lo(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+          uu(lo(1)-1,:,:,1:mgt%nc) = -uu(lo(1),:,:,1:mgt%nc)
 
        else if ( mgt%domain_bc(1,1) == BC_NEU ) then
 
-          uu(lo(1)-1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) =  uu(lo(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+          uu(lo(1)-1,:,:,1:mgt%nc) =  uu(lo(1),:,:,1:mgt%nc)
 
        end if
 
        if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
           !
-          ! Edges
+          ! Edges.
           !
-          uu(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(lo(1)-1,lo(2),lo(3):hi(3),1:mgt%nc)
-          uu(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(lo(1)-1,hi(2),lo(3):hi(3),1:mgt%nc)
-          uu(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(lo(1)-1,lo(2):hi(2),lo(3),1:mgt%nc)
-          uu(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(lo(1)-1,lo(2):hi(2),hi(3),1:mgt%nc)
+          if ( lo(2) == dlo(2) ) then
+             uu(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(lo(1)-1,lo(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(lo(1)-1,hi(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( lo(3) == dlo(3) ) then
+             uu(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(lo(1)-1,lo(2):hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(lo(1)-1,lo(2):hi(2),hi(3),1:mgt%nc)
+          end if
           !
           ! Corners
           !
-          uu(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1)-1,lo(2),lo(3),1:mgt%nc)
-          uu(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1)-1,lo(2),hi(3),1:mgt%nc)
-          uu(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1)-1,hi(2),lo(3),1:mgt%nc)
-          uu(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1)-1,hi(2),hi(3),1:mgt%nc)
+          if ( lo(2) == dlo(2) .and. lo(3) == dlo(3) ) then
+             uu(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1)-1,lo(2),lo(3),1:mgt%nc)
+          end if
+          if ( lo(2) == dlo(2) .and. hi(3) == dhi(3) ) then
+             uu(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1)-1,lo(2),hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. lo(3) == dlo(3) ) then
+             uu(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1)-1,hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. hi(3) == dhi(3) ) then
+             uu(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1)-1,hi(2),hi(3),1:mgt%nc)
+          end if
        end if
 
     end if
@@ -1096,60 +1112,73 @@ contains
 
        if ( mgt%domain_bc(1,2) == BC_DIR ) then
 
-          uu(hi(1)+1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) = -uu(hi(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+          uu(hi(1)+1,:,:,1:mgt%nc) = -uu(hi(1),:,:,1:mgt%nc)
 
        else if ( mgt%domain_bc(1,2) == BC_NEU ) then
 
-          uu(hi(1)+1,lo(2):hi(2),lo(3):hi(3),1:mgt%nc) =  uu(hi(1),lo(2):hi(2),lo(3):hi(3),1:mgt%nc)
+          uu(hi(1)+1,:,:,1:mgt%nc) =  uu(hi(1),:,:,1:mgt%nc)
 
        end if
 
        if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
           !
-          ! Edges
+          ! Edges.
           !
-          uu(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(hi(1)+1,lo(2),lo(3):hi(3),1:mgt%nc)
-          uu(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(hi(1)+1,hi(2),lo(3):hi(3),1:mgt%nc)
-          uu(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(hi(1)+1,lo(2):hi(2),lo(3),1:mgt%nc)
-          uu(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(hi(1)+1,lo(2):hi(2),hi(3),1:mgt%nc)
+          if ( lo(2) == dlo(2) ) then
+             uu(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(hi(1)+1,lo(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(hi(1)+1,hi(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( lo(3) == dlo(3) ) then
+             uu(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(hi(1)+1,lo(2):hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(hi(1)+1,lo(2):hi(2),hi(3),1:mgt%nc)
+          end if
           !
-          ! Corners
+          ! Corners.
           !
-          uu(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(hi(1)+1,lo(2),lo(3),1:mgt%nc)
-          uu(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(hi(1)+1,lo(2),hi(3),1:mgt%nc)
-          uu(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(hi(1)+1,hi(2),lo(3),1:mgt%nc)
-          uu(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(hi(1)+1,hi(2),hi(3),1:mgt%nc)
+          if ( lo(2) == dlo(2) .and. lo(3) == dlo(3) ) then
+             uu(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(hi(1)+1,lo(2),lo(3),1:mgt%nc)
+          end if
+          if ( lo(2) == dlo(2) .and. hi(3) == dhi(3) ) then
+             uu(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(hi(1)+1,lo(2),hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. lo(3) == dlo(3) ) then
+             uu(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(hi(1)+1,hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. hi(3) == dhi(3) ) then
+             uu(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(hi(1)+1,hi(2),hi(3),1:mgt%nc)
+          end if
        end if
 
     end if
-
+    !
+    ! All possible corners should be done by this point. Only some faces & edges remain.
+    !
     if ( lo(2) == dlo(2) ) then
 
        if ( mgt%domain_bc(2,1) == BC_DIR ) then
 
-          uu(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) = -uu(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
+          uu(lo(1):hi(1),lo(2)-1,:,1:mgt%nc) = -uu(lo(1):hi(1),lo(2),:,1:mgt%nc)
 
        else if ( mgt%domain_bc(2,1) == BC_NEU ) then
 
-          uu(lo(1):hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(lo(1):hi(1),lo(2),lo(3):hi(3),1:mgt%nc)
+          uu(lo(1):hi(1),lo(2)-1,:,1:mgt%nc) =  uu(lo(1):hi(1),lo(2),:,1:mgt%nc)
 
        end if
 
        if ( mgt%domain_bc(2,1) == BC_DIR .or. mgt%domain_bc(2,1) == BC_NEU ) then
           !
-          ! Edges
+          ! Edges - only need to do lo & hi Z.
           !
-          uu(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(lo(1),lo(2)-1,lo(3):hi(3),1:mgt%nc)
-          uu(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(hi(1),lo(2)-1,lo(3):hi(3),1:mgt%nc)
-          uu(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),lo(2)-1,lo(3),1:mgt%nc)
-          uu(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),lo(2)-1,hi(3),1:mgt%nc)
-          !
-          ! Corners
-          !
-          uu(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1),lo(2)-1,lo(3),1:mgt%nc)
-          uu(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1),lo(2)-1,hi(3),1:mgt%nc)
-          uu(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(hi(1),lo(2)-1,lo(3),1:mgt%nc)
-          uu(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(hi(1),lo(2)-1,hi(3),1:mgt%nc)
+          if ( lo(3) == dlo(3) ) then
+             uu(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),lo(2)-1,lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),lo(2)-1,hi(3),1:mgt%nc)
+          end if
        end if
 
     end if
@@ -1158,34 +1187,30 @@ contains
 
        if ( mgt%domain_bc(2,2) == BC_DIR ) then
 
-          uu(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) = -uu(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
+          uu(lo(1):hi(1),hi(2)+1,:,1:mgt%nc) = -uu(lo(1):hi(1),hi(2),:,1:mgt%nc)
 
        else if ( mgt%domain_bc(2,2) == BC_NEU ) then
 
-          uu(lo(1):hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(lo(1):hi(1),hi(2),lo(3):hi(3),1:mgt%nc)
+          uu(lo(1):hi(1),hi(2)+1,:,1:mgt%nc) = uu(lo(1):hi(1),hi(2),:,1:mgt%nc)
 
        end if
 
        if ( mgt%domain_bc(2,2) == BC_DIR .or. mgt%domain_bc(2,2) == BC_NEU ) then
           !
-          ! Edges
+          ! Edges - only need to do lo & hi Z.
           !
-          uu(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(lo(1),hi(2)+1,lo(3):hi(3),1:mgt%nc)
-          uu(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(hi(1),hi(2)+1,lo(3):hi(3),1:mgt%nc)
-          uu(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),hi(2)+1,lo(3),1:mgt%nc)
-          uu(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),hi(2)+1,hi(3),1:mgt%nc)
-          !
-          ! Corners
-          !
-          uu(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1),hi(2)+1,lo(3),1:mgt%nc)
-          uu(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1),hi(2)+1,hi(3),1:mgt%nc)
-          uu(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(hi(1),hi(2)+1,lo(3),1:mgt%nc)
-          uu(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(hi(1),hi(2)+1,hi(3),1:mgt%nc)
+          if ( lo(3) == dlo(3) ) then
+             uu(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),hi(2)+1,lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),hi(2)+1,hi(3),1:mgt%nc)
+          end if
        end if
 
     end if
-
-
+    !
+    ! All that remains to do are any Z faces.
+    !
     if ( lo(3) == dlo(3) ) then
 
        if ( mgt%domain_bc(3,1) == BC_DIR ) then
@@ -1196,23 +1221,6 @@ contains
 
           uu(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
 
-       end if
-
-       if ( mgt%domain_bc(3,1) == BC_DIR .or. mgt%domain_bc(3,1) == BC_NEU ) then
-          !
-          ! Edges
-          !
-          uu(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(lo(1),lo(2):hi(2),lo(3)-1,1:mgt%nc)
-          uu(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc)
-          uu(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),lo(2),lo(3)-1,1:mgt%nc)
-          uu(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),hi(2),lo(3)-1,1:mgt%nc)
-          !
-          ! Corners
-          !
-          uu(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1),lo(2),lo(3)-1,1:mgt%nc)
-          uu(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1),hi(2),lo(3)-1,1:mgt%nc)
-          uu(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(hi(1),lo(2),lo(3)-1,1:mgt%nc)
-          uu(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(hi(1),hi(2),lo(3)-1,1:mgt%nc)
        end if
 
     end if
@@ -1227,23 +1235,6 @@ contains
 
           uu(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
 
-       end if
-
-       if ( mgt%domain_bc(3,2) == BC_DIR .or. mgt%domain_bc(3,2) == BC_NEU ) then
-          !
-          ! Edges
-          !
-          uu(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(lo(1),lo(2):hi(2),hi(3)+1,1:mgt%nc)
-          uu(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc)
-          uu(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),lo(2),hi(3)+1,1:mgt%nc)
-          uu(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),hi(2),hi(3)+1,1:mgt%nc)
-          !
-          ! Corners
-          !
-          uu(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1),lo(2),hi(3)+1,1:mgt%nc)
-          uu(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1),hi(2),hi(3)+1,1:mgt%nc)
-          uu(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(hi(1),lo(2),hi(3)+1,1:mgt%nc)
-          uu(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(hi(1),hi(2),hi(3)+1,1:mgt%nc)
        end if
 
     end if
