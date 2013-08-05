@@ -959,7 +959,12 @@ contains
     call destroy(bpt)
 
   end subroutine mg_tower_restriction
-
+  !
+  ! In the following two "impose" routines we assume that any ghost cells
+  ! covered by valid region have been filled properly by fill_boundary().
+  ! Also, that "all" ghost cells have computable values.  We may copy some
+  ! ghost cells only to overwrite them later with "correct" values.
+  !
   subroutine impose_physbc_cc_2d(uu, mgt, lo, hi, dlo, dhi, ng)
 
     type(mg_tower),  intent(in   ) :: mgt
@@ -970,11 +975,11 @@ contains
 
        if ( mgt%domain_bc(1,1) == BC_DIR ) then
 
-          uu(lo(1)-1,lo(2):hi(2),1:mgt%nc) = -uu(lo(1),lo(2):hi(2),1:mgt%nc)
+          uu(lo(1)-1,:,1:mgt%nc) = -uu(lo(1),:,1:mgt%nc)
 
        else if ( mgt%domain_bc(1,1) == BC_NEU ) then
 
-          uu(lo(1)-1,lo(2):hi(2),1:mgt%nc) =  uu(lo(1),lo(2):hi(2),1:mgt%nc)
+          uu(lo(1)-1,:,1:mgt%nc) =  uu(lo(1),:,1:mgt%nc)
 
        end if
 
@@ -982,8 +987,12 @@ contains
           !
           ! Corners
           !
-          uu(lo(1)-1,lo(2)-1,1:mgt%nc) = uu(lo(1)-1,lo(2),1:mgt%nc)
-          uu(lo(1)-1,hi(2)+1,1:mgt%nc) = uu(lo(1)-1,hi(2),1:mgt%nc)
+          if ( lo(2) == dlo(2) ) then
+             uu(lo(1)-1,lo(2)-1,1:mgt%nc) = uu(lo(1)-1,lo(2),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(lo(1)-1,hi(2)+1,1:mgt%nc) = uu(lo(1)-1,hi(2),1:mgt%nc)
+          end if
        end if
 
     end if
@@ -1004,12 +1013,18 @@ contains
           !
           ! Corners
           !
-          uu(hi(1)+1,lo(2)-1,1:mgt%nc) = uu(hi(1)+1,lo(2),1:mgt%nc)
-          uu(hi(1)+1,hi(2)+1,1:mgt%nc) = uu(hi(1)+1,hi(2),1:mgt%nc)
+          if ( lo(2) == dlo(2) ) then
+             uu(hi(1)+1,lo(2)-1,1:mgt%nc) = uu(hi(1)+1,lo(2),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(hi(1)+1,hi(2)+1,1:mgt%nc) = uu(hi(1)+1,hi(2),1:mgt%nc)
+          end if
        end if
 
     end if
-
+    !
+    ! After doing lo & hi X all corner cells have been filled.
+    !
     if ( lo(2) == dlo(2) ) then
 
        if ( mgt%domain_bc(2,1) == BC_DIR ) then
@@ -1020,14 +1035,6 @@ contains
 
           uu(lo(1):hi(1),lo(2)-1,1:mgt%nc) =  uu(lo(1):hi(1),lo(2),1:mgt%nc)
 
-       end if
-
-       if ( mgt%domain_bc(2,1) == BC_DIR .or. mgt%domain_bc(2,1) == BC_NEU ) then
-          !
-          ! Corners
-          !
-          uu(lo(1)-1,lo(2)-1,1:mgt%nc) = uu(lo(1),lo(2)-1,1:mgt%nc)
-          uu(hi(1)+1,lo(2)-1,1:mgt%nc) = uu(hi(1),lo(2)-1,1:mgt%nc)
        end if
 
     end if
@@ -1042,14 +1049,6 @@ contains
 
           uu(lo(1):hi(1),hi(2)+1,1:mgt%nc) =  uu(lo(1):hi(1),hi(2),1:mgt%nc)
 
-       end if
-
-       if ( mgt%domain_bc(2,2) == BC_DIR .or. mgt%domain_bc(2,2) == BC_NEU ) then
-          !
-          ! Corners
-          !
-          uu(lo(1)-1,hi(2)+1,1:mgt%nc) = uu(lo(1),hi(2)+1,1:mgt%nc)
-          uu(hi(1)+1,hi(2)+1,1:mgt%nc) = uu(hi(1),hi(2)+1,1:mgt%nc)
        end if
 
     end if
@@ -1288,6 +1287,8 @@ contains
              ! If we don't have one ghost cell the interp routines will do a
              ! piecewise constant interp on the cells touching the grid boundary.
              !
+             call multifab_fill_boundary(mgt%uu(lev))
+
              do n = 1, nfabs(uu)
                 up => dataptr(mgt%uu(lev) ,n)
                 lo =  lwb(get_ibox(mgt%uu(lev), n))
@@ -1299,8 +1300,6 @@ contains
                    call impose_physbc_cc_3d(up(:,:,:,:),mgt,lo,hi,dlo,dhi,ng)
                 end select
              end do
-
-             call multifab_fill_boundary(mgt%uu(lev))
           end if
        end if
 
