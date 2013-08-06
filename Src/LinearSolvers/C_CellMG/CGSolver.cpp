@@ -885,16 +885,34 @@ qdotxy (const MultiFab& r,
         tmp.copy(z[mfi], zcomp, 1, 1);
 
         const int n = tmp.box().numPts();
-
+        //
+        // TODO - accumulate all dot into array and sum using quad precision?
+        //
         dot += qdot(tmp.dataPtr(0), tmp.dataPtr(1), n);
     }
 
-    if ( !local )
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    if ( !local && NProcs > 1 )
     {
         //
-        // TODO -- do this using quad sums on I/O Processor.
+        // Do this using quad sums on I/O Processor.
         //
-        ParallelDescriptor::ReduceRealSum(dot);
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        Array<Real> sums(NProcs,0);
+
+        ParallelDescriptor::Gather(&dot, 1, sums.dataPtr(), IOProc);
+
+        if ( ParallelDescriptor::IOProcessor() )
+            //
+            // Reduce'm in quad precision.
+            //
+            BLAS_dsum_x(NProcs, sums.dataPtr(), 1, &dot, blas_prec_extra);
+        //
+        // Now broadcast the result back to the other processors.
+        //
+        ParallelDescriptor::Bcast(&dot, 1, IOProc);
     }
 
     return dot;
