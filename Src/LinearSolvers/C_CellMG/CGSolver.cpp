@@ -923,6 +923,45 @@ qaxpy (Real*       z,
     BLAS_daxpby_x(n, 1.0, x, 1, beta, z, 1, blas_prec_extra);
 }
 
+//
+// Do a one-component dot product of r & z using supplied components.
+//
+
+static
+Real
+qdotxy (const MultiFab& r,
+        const MultiFab& z,
+        bool            local = false)
+{
+    BL_ASSERT(r.boxArray() == z.boxArray());
+
+    Real dot = 0;
+
+    FArrayBox tmp;
+
+    for (MFIter mfi(r); mfi.isValid(); ++mfi)
+    {
+        tmp.resize(mfi.validbox(),2);
+
+        tmp.copy(r[mfi], 0, 0, 1);
+        tmp.copy(z[mfi], 0, 1, 1);
+
+        const int n = tmp.box().numPts();
+
+        dot += qdot(tmp.dataPtr(0), tmp.dataPtr(1), n);
+    }
+
+    if ( !local )
+    {
+        //
+        // TODO -- do this using quad sums on I/O Processor.
+        //
+        ParallelDescriptor::ReduceRealSum(dot);
+    }
+
+    return dot;
+}
+
 int
 CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
                                  const MultiFab& rhs,
@@ -960,7 +999,7 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
     zero(   cj, 4*SSS_MAX+1);
     zero(   ej, 4*SSS_MAX+1);
     zero( Tpaj, 4*SSS_MAX+1);
-    zero( Tpcj, 4*SSS_MAX+1);
+    zero( Tpcj, 4*SSS_MAX+1); 
     zero(Tppaj, 4*SSS_MAX+1);
     zero(temp1, 4*SSS_MAX+1);
     zero(temp2, 4*SSS_MAX+1);
@@ -991,7 +1030,7 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
     MultiFab::Copy( p,r,0,0,1,0);
 
     const Real           rnorm0        = norm_inf(r);
-    Real                 delta         = dotxy(r,rt);
+    Real                 delta         = qdotxy(r,rt);
     const Real           L2_norm_of_rt = sqrt(delta);
     const LinOp::BC_Mode temp_bc_mode  = LinOp::Homogeneous_BC;
 
