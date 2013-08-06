@@ -396,77 +396,11 @@ SetMonomialBasis (Real  Tp[((4*SSS_MAX)+1)][((4*SSS_MAX)+1)],
     }
 }
 
-static
-void
-BuildGramMatrix (Real*           Gg,
-                 const MultiFab& PR,
-                 const MultiFab& rt,
-                 int             sss)
-{
-    BL_ASSERT(rt.nComp() == 1);
-    BL_ASSERT(PR.nComp() >= 4*sss+1);
-
-    const int Nrows = 4*sss+1, Ncols = Nrows + 1;
-
-    Real tmp[ ((4*SSS_MAX+2)*(4*SSS_MAX+3)) / 2 - 1 ];
-    //
-    // Gg is dimensioned (Ncols*Nrows).
-    //
-    // First fill the upper triangle..
-    //
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static,1)
-#endif
-    for (int mm = 0; mm < Nrows; mm++)
-    {
-        for (int nn = mm; nn < Nrows; nn++)
-        {
-            Gg[mm*Ncols + nn] = dotxy(PR, mm, PR, nn, true);
-        }
-
-        Gg[mm*Ncols + Nrows] = dotxy(PR, mm, rt, 0, true);
-    }
-    //
-    // Next put the upper triangle into "tmp" for reduction.
-    //
-    int cnt = 0;
-
-    for (int mm = 0; mm < Nrows; mm++)
-    {
-        for (int nn = mm; nn < Nrows; nn++)
-        {
-            tmp[cnt++] = Gg[mm*Ncols + nn];
-        }
-
-        tmp[cnt++] = Gg[mm*Ncols + Nrows];
-    }
-
-    ParallelDescriptor::ReduceRealSum(tmp, cnt);
-    //
-    // Now refill upper triangle with "tmp".
-    //
-    cnt = 0;
-
-    for (int mm = 0; mm < Nrows; mm++)
-    {
-        for (int nn = mm; nn < Nrows; nn++)
-        {
-            Gg[mm*Ncols + nn] = tmp[cnt++];
-        }
-
-        Gg[mm*Ncols + Nrows] = tmp[cnt++];
-    }
-    //
-    // Then fill in strict lower triangle using symmetry.
-    //
-    for (int mm = 0; mm < Nrows; mm++)
-    {
-        for (int nn = 0; nn < mm; nn++)
-        {
-            Gg[mm*Ncols + nn] = Gg[nn*Ncols + mm];
-        }
-    }
-}
+//
+// Forward declaration of BuildGramMatrix().
+// It's now later in this file so it can use some XBLAS stuff.
+//
+static void BuildGramMatrix (Real* Gg, const MultiFab& PR, const MultiFab& rt, int sss);
 
 //
 // Based on Erin Carson/Jim Demmel/Nick Knight's s-Step BiCGStab Algorithm 3.4.
@@ -930,9 +864,13 @@ qaxpy (Real*       z,
 static
 Real
 qdotxy (const MultiFab& r,
+        int             rcomp,
         const MultiFab& z,
-        bool            local = false)
+        int             zcomp,
+        bool            local)
 {
+    BL_ASSERT(r.nComp() > rcomp);
+    BL_ASSERT(z.nComp() > zcomp);
     BL_ASSERT(r.boxArray() == z.boxArray());
 
     Real dot = 0;
@@ -943,8 +881,8 @@ qdotxy (const MultiFab& r,
     {
         tmp.resize(mfi.validbox(),2);
 
-        tmp.copy(r[mfi], 0, 0, 1);
-        tmp.copy(z[mfi], 0, 1, 1);
+        tmp.copy(r[mfi], rcomp, 0, 1);
+        tmp.copy(z[mfi], zcomp, 1, 1);
 
         const int n = tmp.box().numPts();
 
@@ -960,6 +898,15 @@ qdotxy (const MultiFab& r,
     }
 
     return dot;
+}
+
+inline
+Real
+qdotxy (const MultiFab& r,
+        const MultiFab& z,
+        bool            local = false)
+{
+    return qdotxy(r,0,z,0,local);
 }
 
 int
@@ -1336,6 +1283,86 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
 }
 
 #endif /*XBLAS*/
+
+static
+void
+BuildGramMatrix (Real*           Gg,
+                 const MultiFab& PR,
+                 const MultiFab& rt,
+                 int             sss)
+{
+    BL_ASSERT(rt.nComp() == 1);
+    BL_ASSERT(PR.nComp() >= 4*sss+1);
+
+    const int Nrows = 4*sss+1, Ncols = Nrows + 1;
+
+    Real tmp[ ((4*SSS_MAX+2)*(4*SSS_MAX+3)) / 2 - 1 ];
+    //
+    // Gg is dimensioned (Ncols*Nrows).
+    //
+    // First fill the upper triangle..
+    //
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,1)
+#endif
+    for (int mm = 0; mm < Nrows; mm++)
+    {
+        for (int nn = mm; nn < Nrows; nn++)
+        {
+#ifdef XBLAS
+            Gg[mm*Ncols + nn] = qdotxy(PR, mm, PR, nn, true);
+#else
+            Gg[mm*Ncols + nn] = dotxy(PR, mm, PR, nn, true);
+#endif
+        }
+
+#ifdef XBLAS
+        Gg[mm*Ncols + Nrows] = qdotxy(PR, mm, rt, 0, true);
+#else
+        Gg[mm*Ncols + Nrows] = dotxy(PR, mm, rt, 0, true);
+#endif
+    }
+    //
+    // Next put the upper triangle into "tmp" for reduction.
+    //
+    int cnt = 0;
+
+    for (int mm = 0; mm < Nrows; mm++)
+    {
+        for (int nn = mm; nn < Nrows; nn++)
+        {
+            tmp[cnt++] = Gg[mm*Ncols + nn];
+        }
+
+        tmp[cnt++] = Gg[mm*Ncols + Nrows];
+    }
+
+    ParallelDescriptor::ReduceRealSum(tmp, cnt);
+    //
+    // Now refill upper triangle with "tmp".
+    //
+    cnt = 0;
+
+    for (int mm = 0; mm < Nrows; mm++)
+    {
+        for (int nn = mm; nn < Nrows; nn++)
+        {
+            Gg[mm*Ncols + nn] = tmp[cnt++];
+        }
+
+        Gg[mm*Ncols + Nrows] = tmp[cnt++];
+    }
+    //
+    // Then fill in strict lower triangle using symmetry.
+    //
+    for (int mm = 0; mm < Nrows; mm++)
+    {
+        for (int nn = 0; nn < mm; nn++)
+        {
+            Gg[mm*Ncols + nn] = Gg[nn*Ncols + mm];
+        }
+    }
+}
 
 int
 CGSolver::solve_bicgstab (MultiFab&       sol,
