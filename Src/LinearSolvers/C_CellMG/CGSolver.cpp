@@ -842,22 +842,6 @@ qgemv (Real*       z,
 }
 
 //
-// z[n] = x[n]+beta*y[n]
-//
-inline
-void
-qaxpy (Real*       z,
-       const Real* x,
-       Real        beta,
-       const Real* y,
-       int         n)
-{
-    for (int i = 0; i < n; i++) z[i] = y[i];
-
-    BLAS_daxpby_x(n, 1.0, x, 1, beta, z, 1, blas_prec_extra);
-}
-
-//
 // Do a one-component dot product of r & z using supplied components.
 //
 
@@ -873,42 +857,53 @@ qdotxy (const MultiFab& r,
     BL_ASSERT(z.nComp() > zcomp);
     BL_ASSERT(r.boxArray() == z.boxArray());
 
-    Real dot = 0;
+    const int N = r.IndexMap().size();
+
+    Array<Real> ldots(N);
 
     FArrayBox tmp;
 
-    for (MFIter mfi(r); mfi.isValid(); ++mfi)
+    for (int n = 0; n < N; n++)
     {
-        tmp.resize(mfi.validbox(),2);
+        const int k = r.IndexMap()[n];
 
-        tmp.copy(r[mfi], rcomp, 0, 1);
-        tmp.copy(z[mfi], zcomp, 1, 1);
+        tmp.resize(r.box(k),2);
 
-        const int n = tmp.box().numPts();
-        //
-        // TODO - accumulate all dot into array and sum using quad precision?
-        //
-        dot += qdot(tmp.dataPtr(0), tmp.dataPtr(1), n);
+        tmp.copy(r[k], rcomp, 0, 1);
+        tmp.copy(z[k], zcomp, 1, 1);
+
+        const int NumPts = tmp.box().numPts();
+
+        ldots[n] = qdot(tmp.dataPtr(0), tmp.dataPtr(1), NumPts);
+    }
+
+    Real dot = 0;
+
+    if ( N > 0 )
+    {
+        dot = ldots[0];
+
+        if ( N > 1 )
+            BLAS_dsum_x(N, ldots.dataPtr(), 1, &dot, blas_prec_extra);
     }
 
     const int NProcs = ParallelDescriptor::NProcs();
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
     if ( !local && NProcs > 1 )
     {
         //
-        // Do this using quad sums on I/O Processor.
+        // Sum all "dot"s using quad sums on I/O Processor.
         //
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+        Array<Real> gdots(NProcs,0);
 
-        Array<Real> sums(NProcs,0);
-
-        ParallelDescriptor::Gather(&dot, 1, sums.dataPtr(), IOProc);
+        ParallelDescriptor::Gather(&dot, 1, gdots.dataPtr(), IOProc);
 
         if ( ParallelDescriptor::IOProcessor() )
             //
             // Reduce'm in quad precision.
             //
-            BLAS_dsum_x(NProcs, sums.dataPtr(), 1, &dot, blas_prec_extra);
+            BLAS_dsum_x(NProcs, gdots.dataPtr(), 1, &dot, blas_prec_extra);
         //
         // Now broadcast the result back to the other processors.
         //
@@ -1116,11 +1111,11 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
                 BiCGStabFailed = true; ret = 2; break;
             }
 
-            qaxpy(temp1, Tpcj, -alpha, Tppaj, 4*SSS+1);
+            axpy(temp1, Tpcj, -alpha, Tppaj, 4*SSS+1);
 
             qgemv(temp2, G, temp1, 4*SSS+1, 4*SSS+1);
 
-            qaxpy(temp3,   cj, -alpha,  Tpaj, 4*SSS+1);
+            axpy(temp3,   cj, -alpha,  Tpaj, 4*SSS+1);
 
             const Real omega_numerator   = qdot(temp3, temp2, 4*SSS+1);
             const Real omega_denominator = qdot(temp1, temp2, 4*SSS+1);
@@ -1132,7 +1127,7 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
             //
             // Partial update of ej must happen before the check on omega to ensure forward progress !!!
             //
-            qaxpy(ej, ej, alpha, aj, 4*SSS+1);
+            axpy(ej, ej, alpha, aj, 4*SSS+1);
             //
             // ej has been updated so consider that we've done an iteration since
             // even if we break out of the loop we'll be able to update both sol.
@@ -1141,7 +1136,7 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
             //
             // Calculate the norm of Saad's vector 's' to check intra s-step convergence.
             //
-            qaxpy(temp1, cj,-alpha,  Tpaj, 4*SSS+1);
+            axpy(temp1, cj,-alpha,  Tpaj, 4*SSS+1);
 
             qgemv(temp2, G, temp1, 4*SSS+1, 4*SSS+1);
 
@@ -1176,11 +1171,11 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
             //
             // Complete the update of ej & cj now that omega is known to be ok.
             //
-            qaxpy(ej, ej,       omega,    cj, 4*SSS+1);
-            qaxpy(ej, ej,-omega*alpha,  Tpaj, 4*SSS+1);
-            qaxpy(cj, cj,      -omega,  Tpcj, 4*SSS+1);
-            qaxpy(cj, cj,      -alpha,  Tpaj, 4*SSS+1);
-            qaxpy(cj, cj, omega*alpha, Tppaj, 4*SSS+1);
+            axpy(ej, ej,       omega,    cj, 4*SSS+1);
+            axpy(ej, ej,-omega*alpha,  Tpaj, 4*SSS+1);
+            axpy(cj, cj,      -omega,  Tpcj, 4*SSS+1);
+            axpy(cj, cj,      -alpha,  Tpaj, 4*SSS+1);
+            axpy(cj, cj, omega*alpha, Tppaj, 4*SSS+1);
             //
             // Do an early check of the residual to determine convergence.
             //
@@ -1223,8 +1218,8 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
             if ( isinf(beta) ) { BiCGStabFailed = true; ret = 6; break; } // beta = inf?
             if ( beta == 0   ) { BiCGStabFailed = true; ret = 6; break; } // beta = 0?  can't make further progress(?)
 
-            qaxpy(aj, cj,        beta,   aj, 4*SSS+1);
-            qaxpy(aj, aj, -omega*beta, Tpaj, 4*SSS+1);
+            axpy(aj, cj,        beta,   aj, 4*SSS+1);
+            axpy(aj, aj, -omega*beta, Tpaj, 4*SSS+1);
 
             delta = delta_next;
         }
