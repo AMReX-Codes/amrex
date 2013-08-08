@@ -17,7 +17,10 @@ programs   += main.f90
 
 f90sources += wrapper.f90
 f90sources += cc_multi.f90
+f90sources += cc_edge_coeffs.f90
+f90sources += cc_rhs.f90
 f90sources += nodal_multi.f90
+f90sources += nodal_rhs.f90
 f90sources += mt19937ar.f90
 
 include GPackage.mak

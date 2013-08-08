@@ -545,52 +545,34 @@ contains
     REAL(kind=dp_t) :: voffy(fvcy_lo:fvcy_lo+size(fine,2)-1)
     REAL(kind=dp_t) :: voffz(fvcz_lo:fvcz_lo+size(fine,3)-1)
 
-    integer :: n 
-    integer :: i, ic
-    integer :: j, jc
-    integer :: k, kc
+    integer :: n, i, ic, j, jc, k, kc, ioff, joff, koff
     REAL(kind=dp_t) :: fxcen, cxcen, fycen, cycen, fzcen, czcen
     REAL(kind=dp_t) :: corr_fact,orig_corr_fact
     logical :: xok(3)
     integer :: nxc(3)
-    integer :: ioff, joff, koff
 
     REAL(kind=dp_t), allocatable ::     uc_xslope(:,:,:,:)
     REAL(kind=dp_t), allocatable ::     lc_xslope(:,:,:,:)
-    REAL(kind=dp_t), allocatable :: xslope_factor(:,:,:)
+    REAL(kind=dp_t), allocatable ::  slope_factor(:,:,:)
     REAL(kind=dp_t), allocatable ::     uc_yslope(:,:,:,:)
     REAL(kind=dp_t), allocatable ::     lc_yslope(:,:,:,:)
-    REAL(kind=dp_t), allocatable :: yslope_factor(:,:,:)
     REAL(kind=dp_t), allocatable ::     uc_zslope(:,:,:,:)
     REAL(kind=dp_t), allocatable ::     lc_zslope(:,:,:,:)
-    REAL(kind=dp_t), allocatable :: zslope_factor(:,:,:)
     REAL(kind=dp_t), allocatable ::         alpha(:,:,:,:)
-    REAL(kind=dp_t), allocatable ::          cmax(:,:,:,:)
-    REAL(kind=dp_t), allocatable ::          cmin(:,:,:,:)
+    REAL(kind=dp_t), allocatable ::          cmax(:,:,:)
+    REAL(kind=dp_t), allocatable ::          cmin(:,:,:)
 
     allocate(     uc_xslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
                             cslope_lo(3):cslope_hi(3),size(fine,4)))
     allocate(     lc_xslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
                             cslope_lo(3):cslope_hi(3),size(fine,4)))
-    allocate( xslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                            cslope_lo(3):cslope_hi(3)))
     allocate(     uc_yslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
                             cslope_lo(3):cslope_hi(3),size(fine,4)))
     allocate(     lc_yslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
                             cslope_lo(3):cslope_hi(3),size(fine,4)))
-    allocate( yslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                            cslope_lo(3):cslope_hi(3)))
     allocate(     uc_zslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
                             cslope_lo(3):cslope_hi(3),size(fine,4)))
     allocate(     lc_zslope(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                            cslope_lo(3):cslope_hi(3),size(fine,4)))
-    allocate( zslope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                            cslope_lo(3):cslope_hi(3)))
-    allocate(         alpha(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                            cslope_lo(3):cslope_hi(3),size(fine,4)))
-    allocate(          cmax(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-                            cslope_lo(3):cslope_hi(3),size(fine,4)))
-    allocate(          cmin(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
                             cslope_lo(3):cslope_hi(3),size(fine,4)))
 
     forall(i = 1:3) nxc(i) = size(crse,dim=i) - 2
@@ -618,33 +600,6 @@ contains
     ! Prevent underflow for small crse values.
     !
     where(abs(crse) < 1.0d-20) crse = ZERO
-
-    alpha = ONE
-
-    cmax = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),:)
-    cmin = crse(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
-         cslope_lo(3):cslope_hi(3),:)
-
-    do n = 1, size(crse,4) 
-       !
-       ! Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
-       !
-       do k = cslope_lo(3),cslope_hi(3)
-          do j = cslope_lo(2),cslope_hi(2)
-             do i = cslope_lo(1),cslope_hi(1)
-                do koff = -1,1
-                   do joff = -1,1
-                      do ioff = -1,1
-                         cmax(i,j,k,n) = max(cmax(i,j,k,n),crse(i+ioff,j+joff,k+koff,n))
-                         cmin(i,j,k,n) = min(cmin(i,j,k,n),crse(i+ioff,j+joff,k+koff,n))
-                      end do
-                   end do
-                end do
-             end do
-          end do
-       end do
-    end do
     !
     ! Computed unlimited and limited slopes
     !
@@ -834,43 +789,88 @@ contains
 
     if ( lim_slope ) then
 
+       allocate(alpha(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+            cslope_lo(3):cslope_hi(3),size(fine,4)))
+
+       alpha = ONE
+
        if ( lin_limit ) then
 
           ! compute linear limited slopes
           ! Note that the limited and the unlimited slopes
           ! have the same sign, and it is assumed that they do.
           !
-          ! compute slope factors
-
-          xslope_factor = ONE
-          yslope_factor = ONE
-          zslope_factor = ONE
-
+          allocate( slope_factor(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+               cslope_lo(3):cslope_hi(3)) )
+          !
+          ! x slopes
+          !
+          slope_factor = ONE
           do n = 1, size(crse,4) 
              where( uc_xslope(:,:,:,n) /= 0 )
-                xslope_factor = min(xslope_factor,lc_xslope(:,:,:,n)/uc_xslope(:,:,:,n),ONE)
-             end where
-             where( uc_yslope(:,:,:,n) /= 0 )
-                yslope_factor = min(yslope_factor,lc_yslope(:,:,:,n)/uc_yslope(:,:,:,n),ONE)
-             end where
-             where( uc_zslope(:,:,:,n) /= 0 )
-                zslope_factor = min(zslope_factor,lc_zslope(:,:,:,n)/uc_zslope(:,:,:,n),ONE)
+                slope_factor = min(slope_factor,lc_xslope(:,:,:,n)/uc_xslope(:,:,:,n),ONE)
              end where
           end do
-
-          ! Compute linear limited slopes
-
           do n = 1, size(crse,4) 
-             lc_xslope(:,:,:,n) = xslope_factor*uc_xslope(:,:,:,n)
-             lc_yslope(:,:,:,n) = yslope_factor*uc_yslope(:,:,:,n)
-             lc_zslope(:,:,:,n) = zslope_factor*uc_zslope(:,:,:,n)
+             lc_xslope(:,:,:,n) = slope_factor*uc_xslope(:,:,:,n)
           end do
+          !
+          ! y slopes
+          !
+          slope_factor = ONE
+          do n = 1, size(crse,4) 
+             where( uc_yslope(:,:,:,n) /= 0 )
+                slope_factor = min(slope_factor,lc_yslope(:,:,:,n)/uc_yslope(:,:,:,n),ONE)
+             end where
+          end do
+          do n = 1, size(crse,4) 
+             lc_yslope(:,:,:,n) = slope_factor*uc_yslope(:,:,:,n)
+          end do
+          !
+          ! z slopes
+          !
+          slope_factor = ONE
+          do n = 1, size(crse,4) 
+             where( uc_zslope(:,:,:,n) /= 0 )
+                slope_factor = min(slope_factor,lc_zslope(:,:,:,n)/uc_zslope(:,:,:,n),ONE)
+             end where
+          end do
+          do n = 1, size(crse,4) 
+             lc_zslope(:,:,:,n) = slope_factor*uc_zslope(:,:,:,n)
+          end do
+
+          deallocate(slope_factor)
 
        else
-          !
-          ! Limit slopes so as to not introduce new maxs or mins.
-          !
-          do n = 1,size(crse,4)
+
+          allocate( cmax(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+               cslope_lo(3):cslope_hi(3)) )
+          allocate( cmin(cslope_lo(1):cslope_hi(1),cslope_lo(2):cslope_hi(2), &
+               cslope_lo(3):cslope_hi(3)) )
+
+          do n = 1, size(crse,4) 
+             !
+             ! Define cmax and cmin as neighborhood max/mins.
+             !
+             do k = cslope_lo(3),cslope_hi(3)
+                do j = cslope_lo(2),cslope_hi(2)
+                   do i = cslope_lo(1),cslope_hi(1)
+                      cmax(i,j,k) = crse(i,j,k,n)
+                      cmin(i,j,k) = crse(i,j,k,n)
+                      do koff = -1,1
+                         do joff = -1,1
+                            do ioff = -1,1
+                               cmax(i,j,k) = max(cmax(i,j,k),crse(i+ioff,j+joff,k+koff,n))
+                               cmin(i,j,k) = min(cmin(i,j,k),crse(i+ioff,j+joff,k+koff,n))
+                            end do
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+             !
+             ! Limit slopes so as to not introduce new maxs or mins.
+             !
              do k = fine_lo(3), fine_lo(3)+size(fine, 3) - 1
                 kc = IX_PROJ(k,lratio(3))
                 do j = fine_lo(2), fine_lo(2)+size(fine, 2) - 1
@@ -882,15 +882,15 @@ contains
                            + voffy(j)*lc_yslope(ic,jc,kc,n) &
                            + voffz(k)*lc_zslope(ic,jc,kc,n)
                       fine(i,j,k,n) = crse(ic,jc,kc,n) + orig_corr_fact
-                      if ( fine(i,j,k,n) > cmax(ic,jc,kc,n) ) then
+                      if ( fine(i,j,k,n) > cmax(ic,jc,kc) ) then
                          if ( abs(orig_corr_fact) > 1.d-10*abs(crse(ic,jc,kc,n)) ) then
-                            corr_fact = (cmax(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
+                            corr_fact = (cmax(ic,jc,kc) - crse(ic,jc,kc,n)) / orig_corr_fact
                             alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
                          end if
                       end if
-                      if ( fine(i,j,k,n)  <  cmin(ic,jc,kc,n) ) then
+                      if ( fine(i,j,k,n)  <  cmin(ic,jc,kc) ) then
                          if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,jc,kc,n)) ) then
-                            corr_fact = (cmin(ic,jc,kc,n) - crse(ic,jc,kc,n)) / orig_corr_fact
+                            corr_fact = (cmin(ic,jc,kc) - crse(ic,jc,kc,n)) / orig_corr_fact
                             alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
                          end if
                       end if
@@ -898,6 +898,8 @@ contains
                 end do
              end do
           end do
+
+          deallocate(cmax,cmin)
        end if
        !
        ! Do the interpolation with limited slopes.
@@ -921,6 +923,8 @@ contains
           end do
        end do
 
+       deallocate(alpha)
+
     else
        !
        ! Do the interpolation using unlimited slopes.
@@ -943,10 +947,10 @@ contains
 
     end if
 
-    deallocate(uc_xslope,lc_xslope,xslope_factor)
-    deallocate(uc_yslope,lc_yslope,yslope_factor)
-    deallocate(uc_zslope,lc_zslope,zslope_factor)
-    deallocate(alpha,cmax,cmin)
+    deallocate(uc_xslope,lc_xslope)
+    deallocate(uc_yslope,lc_yslope)
+    deallocate(uc_zslope,lc_zslope)
+
 
   contains
 
@@ -994,25 +998,23 @@ contains
     real(kind=dp_t), intent(  out) :: fine(fine_lo(1):,fine_lo(2):,:)
     real(kind=dp_t), intent(inout) :: crse(crse_lo(1):,crse_lo(2):,:)
 
-    real(kind=dp_t) :: b(21)
-    real(kind=dp_t), allocatable :: c(:,:,:,:)
+    real(kind=dp_t) :: b(21), A2T(size(A2,2),0:size(A2,1)-1), c(15)
 
     integer :: n, i, j, ic, jc, k
-
-    allocate(c(15,cg_lo(1):cg_hi(1),&
-                  cg_lo(2):cg_hi(2),&
-                  size(fine,3)))
-
+    !
     ! Prevent underflow for small crse values.
+    !
     where ( abs(crse) <= 1.0e-20_dp_t ) crse = ZERO
-
+    !
+    ! Use A2T instead of A2 for more efficient memory access.
+    !
+    A2T = Transpose(A2)
     !
     ! Do interpolation.  For this method of interpolation, it is more
     ! efficient to loop over the coarse cells than the fine cells
     ! since the b and c vectors depend on the coarse cell, not on the
     ! fine cell.
     !
-
     do n = 1, size(fine,3)
        do jc = cg_lo(2), cg_hi(2)
           do ic = cg_lo(1), cg_hi(1)
@@ -1038,25 +1040,17 @@ contains
              b( 20) = crse(ic+2, jc+1, n)
              b( 21) = 1000.0D0*crse(ic+0, jc+0, n)
 
-             c(:,ic,jc,n) = matmul(P2, b)
+             c = matmul(P2, b)
 
-          end do
-       end do
-    end do
+             do j = jc*lratio(2),(jc+1)*lratio(2)-1
+                do i = ic*lratio(1),(ic+1)*lratio(1)-1
 
-    do n = 1, size(fine,3)
-       do j = fine_lo(2), fine_lo(2)+size(fine,2)-1
-          jc = IX_PROJ(j,lratio(2))
-          do i = fine_lo(1), fine_lo(1)+size(fine,1)-1
-             ic = IX_PROJ(i,lratio(1))
+                   k = 2*(i-ic*lratio(1)) + (j-jc*lratio(2))
 
-             k  = 2*(i-ic*lratio(1)) + (j-jc*lratio(2))
-             !k = 2
-
-             fine(i,j,n) = dot_product(c(:,ic,jc,n), A2(k,:))*4
-
-             print *, ic, jc, crse(ic,jc,n), i, j, k, fine(i,j,n)
-
+                   fine(i,j,n) = dot_product(c, A2T(:,k))*4
+                   
+                end do
+             end do
 
           end do
        end do
@@ -1067,8 +1061,6 @@ contains
 
     ! print *, 'FINE'
     ! print *, fine
-
-    deallocate(c)
 
   end subroutine fourth_order_interp_2d
 

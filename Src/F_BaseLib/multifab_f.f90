@@ -2094,10 +2094,12 @@ contains
     integer                 :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     type(boxassoc)          :: bxasc
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
+    logical                 :: cc
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2) if (.not. any(mf%nodal))
+    cc = multifab_cell_centered_q(mf)
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2) if (cc)
     do i = 1, bxasc%l_con%ncpy
        ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
        jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
@@ -2132,7 +2134,7 @@ contains
     end do
     call parallel_wait(rst)
 
-    !$OMP PARALLEL DO PRIVATE(i,sh,p) if (.not. any(mf%nodal))
+    !$OMP PARALLEL DO PRIVATE(i,sh,p) if (cc)
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
