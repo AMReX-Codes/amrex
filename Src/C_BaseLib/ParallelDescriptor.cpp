@@ -11,17 +11,32 @@
 namespace ParallelDescriptor
 {
     //
-    // My processor ID.
+    // My processor IDs.
     //
-    int m_MyId = -1;
+    int m_MyId_all         = -1;
+    int m_MyId_comp        = -1;
+    int m_MyId_perfmon     = -1;
+    int m_MyId_all_perfmon = -1;  // id of perfmon proc in all
     //
     // The number of processors.
     //
-    int m_nProcs = -1;
+    int m_nProcs_all     = -1;
+    int m_nProcs_comp    = -1;
+    int m_nProcs_perfmon = -1;
+    int nPerfmonProcs    = -1;
     //
-    // BoxLib's Communicator
+    // BoxLib's Communicators
     //
-    MPI_Comm m_comm;
+    MPI_Comm m_comm_all;      // for all procs, probably MPI_COMM_WORLD
+    MPI_Comm m_comm_comp;     // for the computation procs
+    MPI_Comm m_comm_perfmon;  // for the in-situ performance monitor
+    MPI_Comm m_comm_inter;    // for communicating between comp and perfmon
+    //
+    // BoxLib's Groups
+    //
+    MPI_Group m_group_all;
+    MPI_Group m_group_comp;
+    MPI_Group m_group_perfmon;
 
     int m_MinTag = 1000, m_MaxTag = -1;
 
@@ -270,21 +285,37 @@ ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv,
                                    MPI_Comm mpi_comm)
 {
-    m_comm = mpi_comm;
+    m_comm_all = mpi_comm;
 
-    int sflag;
+    int sflag(0);
 
     BL_MPI_REQUIRE( MPI_Initialized(&sflag) );
 
-    if ( ! sflag)
+    if ( ! sflag) {
 	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
+    }
     
-    BL_MPI_REQUIRE( MPI_Comm_size(Communicator(), &m_nProcs) );
+    BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
+    BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
 
-    BL_MPI_REQUIRE( MPI_Comm_rank(Communicator(), &m_MyId) );
+    if(m_nProcs_all > 2) {
+      nPerfmonProcs = 1;
+    } else {
+      nPerfmonProcs = 0;
+    }
+    m_MyId_all_perfmon = m_nProcs_all - nPerfmonProcs;
+
+    MPI_Comm_group(m_comm_all, &m_group_all);
+
+    MPI_Group_excl(m_group_all, nPerfmonProcs, &m_MyId_all_perfmon, &m_group_comp);
+    MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp);
+
+    MPI_Group_incl(m_group_all, nPerfmonProcs, &m_MyId_all_perfmon, &m_group_perfmon);
+    MPI_Comm_create(m_comm_all, m_group_perfmon, &m_comm_perfmon);
+
 
     int flag(0), *attrVal;
-    BL_MPI_REQUIRE( MPI_Attr_get(mpi_comm, MPI_TAG_UB, &attrVal, &flag) );
+    BL_MPI_REQUIRE( MPI_Attr_get(m_comm_all, MPI_TAG_UB, &attrVal, &flag) );
     if(flag) {
       m_MaxTag = *attrVal;
       m_MaxTag -= 4;  // so we dont wrap if maxint
@@ -293,17 +324,38 @@ ParallelDescriptor::StartParallel (int*    argc,
       m_MaxTag = 9000;
     }
     BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
+
+  sleep(m_MyId_all);
+  std::cout << "world: rank " << m_MyId_all << " in [0," << m_nProcs_all-1 << "]" << std::endl;
+
+  int tag(m_MaxTag + 1);
+  if(m_MyId_all == m_MyId_all_perfmon) {  // ---- in perfmon group
+    MPI_Group_rank(m_group_perfmon, &m_MyId_perfmon);
+    MPI_Group_size(m_group_perfmon, &m_nProcs_perfmon);
+    MPI_Intercomm_create(m_comm_perfmon, 0, m_comm_all, 0, tag, &m_comm_inter);
+    sleep(m_MyId_perfmon);
+    std::cout << "m_comm_perfmon:  rank " << m_MyId_perfmon << " in [0," << m_nProcs_perfmon-1
+         << "]" << std::endl;
+  } else {                        // ---- in computation group
+    MPI_Group_rank(m_group_comp, &m_MyId_comp);
+    MPI_Group_size(m_group_comp, &m_nProcs_comp);
+    MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_MyId_all_perfmon, tag, &m_comm_inter);
+    sleep(m_MyId_comp);
+    std::cout << "m_comm_comp:  rank " << m_MyId_comp << " in [0," << m_nProcs_comp-1 << "]" << std::endl;
+
+  }
+
     //
-    // Wait till all other processes are properly started.
+    // Wait until all other processes are properly started.
     //
-    BL_MPI_REQUIRE( MPI_Barrier(Communicator()) );
+    BL_MPI_REQUIRE( MPI_Barrier(CommunicatorAll()) );
 }
 
 void
 ParallelDescriptor::EndParallel ()
 {
-    BL_ASSERT(m_MyId != -1);
-    BL_ASSERT(m_nProcs != -1);
+    BL_ASSERT(m_MyId_all != -1);
+    BL_ASSERT(m_nProcs_all != -1);
 
     BL_MPI_REQUIRE( MPI_Finalize() );
 }
@@ -1180,9 +1232,20 @@ ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv,
                                    MPI_Comm)
 {
-    m_nProcs    = 1;
-    m_MyId      = 0;
-    m_comm      = 0;
+    m_nProcs_all     = 1;
+    m_nProcs_comp    = 1;
+    m_nProcs_perfmon = 0;
+    nPerfmonProcs    = 0;
+
+    m_MyId_all     = 0;
+    m_MyId_comp    = 0;
+    m_MyId_perfmon = 0;
+
+    m_comm_all     = 0;
+    m_comm_comp    = 0;
+    m_comm_perfmon = 0;
+    m_comm_inter   = 0;
+
     m_MaxTag    = 9000;
 }
 

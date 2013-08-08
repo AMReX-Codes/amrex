@@ -906,6 +906,23 @@ void Profiler::CommStats::UnFilter(CommFuncType cft) {
 }
 
 
+void Profiler::PerfMonProcess() {
+  MPI_Status status;
+  bool finished(false);
+  int recstep(-1), rtag(0);
+  while( ! finished) {
+    std::cout << "**** _in PerfMonProcess:  waiting for rtag = " << rtag << std::endl;
+    MPI_Recv(&recstep, 1, MPI_INT, 0, rtag, ParallelDescriptor::CommunicatorInter(), &status);
+    std::cout << "**** _in PerfMonProcess:  recv step = " << recstep << std::endl;
+    ++rtag;
+    if(recstep < 0) {
+      finished = true;
+    }
+  }
+  std::cout << "**** _in PerfMonProcess:  exiting." << std::endl;
+}
+
+
 #else
 
 #endif
