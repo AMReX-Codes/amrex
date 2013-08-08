@@ -126,6 +126,8 @@ class Profiler
     static const int BeforeCall() { return -5; }
     static const int AfterCall()  { return -7; }
 
+    static void PerfMonProcess();
+
   private:
     Real bltstart, bltelapsed;
     std::string fname;

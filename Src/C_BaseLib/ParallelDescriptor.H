@@ -160,22 +160,70 @@ namespace ParallelDescriptor
     //
     // Returns processor number of calling program.
     //
-    extern int m_MyId;
+    extern int m_MyId_all;
+    extern int m_MyId_comp;
+    extern int m_MyId_perfmon;
+    extern int m_MyId_all_perfmon;  // id of perfmon proc in all
     inline int
-    MyProc ()
+    MyProc ()  // use _comp here, almost always what the user wants
     {
-        BL_ASSERT(m_MyId != -1);
-        return m_MyId;
+        BL_ASSERT(m_MyId_comp != -1);
+        return m_MyId_comp;
+    }
+    inline int
+    MyProcAll ()
+    {
+        BL_ASSERT(m_MyId_all != -1);
+        return m_MyId_all;
+    }
+    inline int
+    MyProcComp ()
+    {
+        BL_ASSERT(m_MyId_comp != -1);
+        return m_MyId_comp;
+    }
+    inline int
+    MyProcPerfMon ()
+    {
+        BL_ASSERT(m_MyId_perfmon != -1);
+        return m_MyId_perfmon;
+    }
+    inline int
+    MyProcAllPerfMon ()
+    {
+        BL_ASSERT(m_MyId_all_perfmon != -1);
+        return m_MyId_all_perfmon;
     }
     //
     // Returns number of CPUs involved in the computation.
     //
-    extern int m_nProcs;
+    extern int m_nProcs_all;
+    extern int m_nProcs_comp;
+    extern int m_nProcs_perfmon;
+    extern int nPerfmonProcs;
     inline int
-    NProcs ()
+    NProcs ()  // use _comp here, almost always what the user wants
     {
-        BL_ASSERT(m_nProcs != -1);
-        return m_nProcs;
+        BL_ASSERT(m_nProcs_comp != -1);
+        return m_nProcs_comp;
+    }
+    inline int
+    NProcsAll ()
+    {
+        BL_ASSERT(m_nProcs_all != -1);
+        return m_nProcs_all;
+    }
+    inline int
+    NProcsComp ()
+    {
+        BL_ASSERT(m_nProcs_comp != -1);
+        return m_nProcs_comp;
+    }
+    inline int
+    NProcsPerfMon ()
+    {
+        BL_ASSERT(m_nProcs_perfmon != -1);
+        return m_nProcs_perfmon;
     }
     //
     // The CPU number of the I/O Processor.
@@ -195,12 +243,34 @@ namespace ParallelDescriptor
          return MyProc() == IOProcessorNumber();
     }
     //
-    // BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
+    // BoxLib's Parallel Communicators
+    //    m_comm_all     is for all procs, probably MPI_COMM_WORLD
+    //    m_comm_comp    is for the nodes doing computations
+    //    m_comm_perfmon is for the in-situ performance monitor
     //
-    extern MPI_Comm m_comm;
-    inline MPI_Comm Communicator ()
+    extern MPI_Comm m_comm_all;
+    extern MPI_Comm m_comm_comp;
+    extern MPI_Comm m_comm_perfmon;
+    extern MPI_Comm m_comm_inter;
+    inline MPI_Comm Communicator ()  // use _comp here, almost always what the user wants
     {
-        return m_comm;
+        return m_comm_comp;
+    }
+    inline MPI_Comm CommunicatorAll ()
+    {
+        return m_comm_all;
+    }
+    inline MPI_Comm CommunicatorComp ()
+    {
+        return m_comm_comp;
+    }
+    inline MPI_Comm CommunicatorPerfMon ()
+    {
+        return m_comm_perfmon;
+    }
+    inline MPI_Comm CommunicatorInter ()
+    {
+        return m_comm_inter;
     }
 
     void Barrier (const std::string &message = "Unnamed");
