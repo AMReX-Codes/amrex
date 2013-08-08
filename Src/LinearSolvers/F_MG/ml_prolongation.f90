@@ -21,23 +21,25 @@ module ml_prolongation_module
 
 contains
 
-  subroutine ml_cc_prolongation(fine, crse, ir)
+  subroutine ml_cc_prolongation(fine, crse, ir, lininterp, ptype)
     use bl_prof_module
+    use mg_prolongation_module
+
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
-    integer,        intent(in   ) :: ir(:)
+    integer,        intent(in   ) :: ir(:), ptype
+    logical,        intent(in   ) :: lininterp
 
     integer             :: lo (get_dim(fine)), hi (get_dim(fine))
     integer             :: loc(get_dim(fine)), lof(get_dim(fine))
     integer             :: i, n, dm
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
-    type(layout)        :: lacfine,laf
-    type(multifab)      :: cfine
+    type(boxarray)      :: ba
+    type(layout)        :: lacfine, laf, latmp
+    type(multifab)      :: cfine, cfgrow
     type(bl_prof_timer), save :: bpt
 
-    if ( ncomp(crse) .ne. ncomp(fine) ) then
-       call bl_error('ml_prolongation: crse & fine must have same # of components')
-    end if
+    if ( ncomp(crse) .ne. ncomp(fine) ) &
 
     call build(bpt, "ml_prolongation")
 
@@ -45,28 +47,65 @@ contains
 
     call layout_build_coarse(lacfine, laf, ir)
 
-    call build(cfine, lacfine, nc = ncomp(crse), ng = 0)
+    if ( .false. ) then
+       !
+       ! I'm checking this in disabled.  I still want to do more testing.
+       ! The point here is to get better meshing together to grids when
+       ! we prolongate by using one grow cell, which "should" always be
+       ! available due to proper nesting of grids.
+       !
+       call copy(ba, get_boxarray(lacfine))
 
-    call copy(cfine, 1, crse, 1, ncomp(crse))
+       call boxarray_grow(ba,1)
+
+       call layout_build_ba(latmp, ba, get_pd(lacfine), explicit_mapping = lacfine%lap%prc)
+
+       call destroy(ba)
+       !
+       ! "crse" should always cover "cfine" (including ghost cells) on
+       ! the valid region due to proper nesting.
+       !
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 1)
+       !
+       ! Use this to fill cfine including ghost cells.
+       !
+       call build(cfgrow, latmp, nc = ncomp(crse), ng = 0)
+
+       call copy(cfgrow, 1, crse, 1, ncomp(crse))
+       !
+       ! Finally copy FAB-wise from cfgrow -> cfine to get good ghost cells.
+       !
+       do i = 1, nfabs(cfgrow)
+          fp => dataptr(cfgrow, i)
+          cp => dataptr(cfine,  i)
+          call cpy_d(cp,fp)
+       end do
+
+       call destroy(cfgrow)
+       call destroy(latmp)
+    else
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 0)
+       call copy(cfine, 1, crse, 1, ncomp(crse))
+    end if
 
     dm = get_dim(crse)
 
     !$OMP PARALLEL DO PRIVATE(i,loc,lof,lo,hi,n,fp,cp)
     do i = 1, nfabs(fine)
-       loc = lwb(get_pbox(cfine,i))
-       lof = lwb(get_pbox(fine, i))
-       lo  = lwb(get_ibox(fine, i))
-       hi  = upb(get_ibox(fine, i))
+       loc =  lwb(get_pbox(cfine,i))
+       lof =  lwb(get_pbox(fine, i))
+       lo  =  lwb(get_ibox(fine, i))
+       hi  =  upb(get_ibox(fine, i))
+       fp  => dataptr(fine, i)
+       cp  => dataptr(cfine,i)
        do n = 1, ncomp(crse)
-          fp => dataptr(fine,  i, n, 1)
-          cp => dataptr(cfine, i, n, 1)
-          select case (dm)
+          select case ( dm )
           case (1)
-             call ml_prolongation_1d_cc(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
+             call cc_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, lininterp)
           case (2)
-             call ml_prolongation_2d_cc(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
+             call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, lininterp, ptype)
           case (3)
-             call ml_prolongation_3d_cc(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
+             call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, lininterp, ptype)
           end select
        end do
     end do
@@ -78,7 +117,11 @@ contains
   end subroutine ml_cc_prolongation
 
   subroutine ml_nodal_prolongation(fine, crse, ir)
+
+    use fabio_module
     use bl_prof_module
+    use mg_prolongation_module
+
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     integer,        intent(in   ) :: ir(:)
@@ -87,13 +130,20 @@ contains
     integer             :: loc(get_dim(fine)), lof(get_dim(fine))
     integer             :: i, n, dm
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
-    type(layout)        :: lacfine,laf
-    type(multifab)      :: cfine
+    type(boxarray)      :: ba
+    type(layout)        :: lacfine, laf, latmp
+    type(multifab)      :: cfine, cfgrow
+    character(len=3)    :: number
+    character(len=20)   :: filename
+
+!    logical oldval
+
+    integer, save :: cnt = 0
+
     type(bl_prof_timer), save :: bpt
 
-    if ( ncomp(crse) .ne. ncomp(fine) ) then
-       call bl_error('ml_prolongation: crse & fine must have same # of components')
-    end if
+    if ( ncomp(crse) .ne. ncomp(fine) ) &
+         call bl_error('ml_prolongation: crse & fine must have same # of components')
 
     call build(bpt, "ml_prolongation")
 
@@ -101,228 +151,89 @@ contains
 
     call layout_build_coarse(lacfine, laf, ir)
 
-    call build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+!    oldval = set_using_nodal_cubic(.true.)
 
-    call copy(cfine, 1, crse, 1, ncomp(crse))
+    if ( using_nodal_cubic() .and. get_dim(crse) > 1 ) then
+       !
+       ! I'm checking this in disabled.  I still want to do more testing.
+       ! The point here is to get better meshing together to grids when
+       ! we prolongate by using one grow cell, which "should" always be
+       ! available due to proper nesting of grids.
+       !
+       call copy(ba, get_boxarray(lacfine))
+
+       call boxarray_grow(ba,1)
+
+       call layout_build_ba(latmp, ba, get_pd(lacfine), explicit_mapping = lacfine%lap%prc)
+
+       call destroy(ba)
+       !
+       ! "crse" should always cover "cfine" (including ghost cells) on
+       ! the valid region due to proper nesting.
+       !
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 1, nodal = nodal_flags(fine))
+       !
+       ! Use this to fill cfine including ghost cells.
+       !
+       call build(cfgrow, latmp, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+
+       call copy(cfgrow, 1, crse, 1, ncomp(crse))
+       !
+       ! Finally copy FAB-wise from cfgrow -> cfine to get good ghost cells.
+       !
+       do i = 1, nfabs(cfgrow)
+          fp => dataptr(cfgrow, i)
+          cp => dataptr(cfine,  i)
+          call cpy_d(cp,fp)
+       end do
+
+       call destroy(cfgrow)
+       call destroy(latmp)
+    else
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+       call copy(cfine, 1, crse, 1, ncomp(crse))
+    end if
 
     dm = get_dim(crse)
 
     !$OMP PARALLEL DO PRIVATE(i,loc,lof,lo,hi,n,fp,cp)
     do i = 1, nfabs(fine)
-       loc = lwb(get_pbox(cfine,i))
-       lof = lwb(get_pbox(fine, i))
-       lo  = lwb(get_ibox(fine, i))
-       hi  = upb(get_ibox(fine, i))
+       loc =  lwb(get_pbox(cfine,i))
+       lof =  lwb(get_pbox(fine, i))
+       lo  =  lwb(get_ibox(fine, i))
+       hi  =  upb(get_ibox(fine, i))
+       fp  => dataptr(fine,  i)
+       cp  => dataptr(cfine, i)
        do n = 1, ncomp(crse)
-          fp => dataptr(fine,  i, n, 1)
-          cp => dataptr(cfine, i, n, 1)
           select case (dm)
           case (1)
-             call ml_prolongation_1d_nodal(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
+             call nodal_prolongation_1d(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
           case (2)
-             call ml_prolongation_2d_nodal(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
+             call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
           case (3)
-             call ml_prolongation_3d_nodal(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
+             call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
           end select
        end do
     end do
     !$OMP END PARALLEL DO
 
+!    oldval = set_using_nodal_cubic(oldval)
+
+    if ( .false. ) then
+       !
+       ! Some debugging code I want to keep around for a while.
+       ! I don't want to have to recreate this all the time :-)
+       !
+       cnt = cnt + 1
+       write(number,fmt='(i3.3)') cnt
+       filename = 'prolong_' // number
+       call fabio_write(fine, 'debug', trim(filename))
+    end if
+
     call destroy(cfine)
     call destroy(bpt)
 
   end subroutine ml_nodal_prolongation
-
-  subroutine ml_prolongation_1d_cc(ff, lof, cc, loc, lo, hi, ir)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (dp_t), intent(inout) :: ff(lof(1):)
-    real (dp_t), intent(in   ) :: cc(loc(1):)
-    integer, intent(in) :: ir(:)
-    integer :: i, ic
-
-    do i = lo(1),hi(1)
-       ic = i / ir(1) 
-       ff(i) = ff(i) + cc(ic)
-    end do
-  end subroutine ml_prolongation_1d_cc
-
-  subroutine ml_prolongation_2d_cc(ff, lof, cc, loc, lo, hi, ir)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
-    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
-    integer, intent(in) :: ir(:)
-    integer :: i, j, ic, jc
-
-    do j = lo(2),hi(2)
-       jc = j / ir(2)
-       do i = lo(1),hi(1)
-          ic = i / ir(1) 
-          ff(i,j) = ff(i,j) + cc(ic,jc)
-       end do
-    end do
-  end subroutine ml_prolongation_2d_cc
-
-  subroutine ml_prolongation_3d_cc(ff, lof, cc, loc, lo, hi, ir)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
-    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
-    integer, intent(in) :: ir(:)
-    integer :: i, j, k, ic, jc, kc
-
-    do k = lo(3),hi(3)
-       kc = k / ir(3)
-       do j = lo(2),hi(2)
-          jc = j / ir(2)
-          do i = lo(1),hi(1)
-             ic = i / ir(1)
-             ff(i,j,k) = ff(i,j,k) + cc(ic,jc,kc)
-          end do
-       end do
-    end do
-
-  end subroutine ml_prolongation_3d_cc
-
-  subroutine ml_prolongation_1d_nodal(ff, lof, cc, loc, lo, hi, ir)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (dp_t), intent(inout) :: ff(lof(1):)
-    real (dp_t), intent(in   ) :: cc(loc(1):)
-    integer, intent(in) :: ir(:)
-    integer :: i, ic, l
-    real (dp_t) :: fac_left, fac_rght
-
-    do i = lo(1),hi(1),ir(1)
-       ic = i / ir(1) 
-       ff(i) = cc(ic)
-    end do
-
-    do l = 1, ir(1)-1
-       fac_rght = real(l,dp_t) / real(ir(1),dp_t)
-       fac_left = ONE - fac_rght
-       do i = lo(1), hi(1)-1, ir(1)
-          ic = i / ir(1) 
-          ff(i+l) = fac_left*cc(ic) + fac_rght*cc(ic+1)
-       end do
-    end do
-  end subroutine ml_prolongation_1d_nodal
-
-  subroutine ml_prolongation_2d_nodal(ff, lof, cc, loc, lo, hi, ir)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
-    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
-    integer, intent(in) :: ir(:)
-    integer :: i, j, ic, jc, l, m
-    real (dp_t) :: fac_left, fac_rght
-    real (dp_t) :: temp(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2))
-
-    do j = lo(2),hi(2),ir(2)
-       jc = j / ir(2) 
-       do i = lo(1),hi(1),ir(1)
-          ic = i / ir(1) 
-          temp(i,j) = cc(ic,jc)
-       end do
-    end do
-
-!   Interpolate at fine nodes between coarse nodes in the i-direction only
-    do j = lo(2),hi(2),ir(2)
-       do l = 1, ir(1)-1
-          fac_rght = real(l,dp_t) / real(ir(1),dp_t)
-          fac_left = ONE - fac_rght
-          do i = lo(1),hi(1)-1,ir(1)
-             temp(i+l,j) = fac_left*temp(i,j) + fac_rght*temp(i+ir(1),j)
-          end do
-       end do
-    end do
-
-!   Interpolate in the j-direction using previously interpolated "temp"
-    do m = 1, ir(2)-1
-       fac_rght = real(m,dp_t) / real(ir(2),dp_t)
-       fac_left = ONE - fac_rght
-       do j = lo(2),hi(2)-1,ir(2)
-          do i = lo(1),hi(1)
-             temp(i,j+m) = fac_left*temp(i,j)+fac_rght*temp(i,j+ir(2))
-          end do
-       end do
-    end do
-
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          ff(i,j) = temp(i,j)
-       end do
-    end do
-  end subroutine ml_prolongation_2d_nodal
-
-  subroutine ml_prolongation_3d_nodal(ff, lof, cc, loc, lo, hi, ir)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: lof(:)
-    integer, intent(in) :: lo(:), hi(:)
-    real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
-    real (dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
-    integer, intent(in) :: ir(:)
-    integer :: i, j, k, ic, jc, kc, l, m, n
-    real (dp_t) :: fac_left, fac_rght
-
-    ! Interpolate at coarse node locations only
-    do k = lo(3),hi(3),ir(3)
-       kc = k / ir(3) 
-       do j = lo(2),hi(2),ir(2)
-          jc = j / ir(2) 
-          do i = lo(1),hi(1),ir(1)
-             ic = i / ir(1) 
-             ff(i,j,k) = cc(ic,jc,kc)
-          end do
-       end do
-    end do
-
-    ! Interpolate at fine nodes between coarse nodes in the i-direction only
-    do k = lo(3),hi(3),ir(3)
-       do j = lo(2),hi(2),ir(2)
-          do l = 1, ir(1)-1
-             fac_rght = real(l,dp_t) / real(ir(1),dp_t)
-             fac_left = ONE - fac_rght
-             do i = lo(1),hi(1)-1,ir(1)
-                ff(i+l,j,k) = fac_left*ff(i,j,k) + fac_rght*ff(i+ir(1),j,k)
-             end do
-          end do
-       end do
-    end do
-
-    ! Interpolate in the j-direction.
-    do k = lo(3),hi(3),ir(3)
-       do m = 1, ir(2)-1
-          fac_rght = real(m,dp_t) / real(ir(2),dp_t)
-          fac_left = ONE - fac_rght
-          do j = lo(2),hi(2)-1,ir(2)
-             do i = lo(1),hi(1)
-                ff(i,j+m,k) = fac_left*ff(i,j,k)+fac_rght*ff(i,j+ir(2),k)
-             end do
-          end do
-       end do
-    end do
-
-    ! Interpolate in the k-direction.
-    do n = 1, ir(3)-1
-       fac_rght = real(n,dp_t) / real(ir(3),dp_t)
-       fac_left = ONE - fac_rght
-       do j = lo(2),hi(2)
-          do k = lo(3),hi(3)-1,ir(3)
-             do i = lo(1),hi(1)
-                ff(i,j,k+n) = fac_left*ff(i,j,k)+fac_rght*ff(i,j,k+ir(3))
-             end do
-          end do
-       end do
-    end do
-
-  end subroutine ml_prolongation_3d_nodal
 
   subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, ng_fill, side, nc)
     use bl_prof_module

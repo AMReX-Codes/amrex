@@ -9,29 +9,36 @@ subroutine wrapper()
   use mt19937_module
   use bl_timer_module
 
+  use    cc_rhs_module
+  use nodal_rhs_module
+
   implicit none
 
   interface
-     subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, &
-          do_diagnostics, eps, stencil_order, fabio)
+     subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
+                                  do_diagnostics, eps, stencil_order, fabio)
        use mg_module    
        use ml_boxarray_module    
        use ml_layout_module    
        type(ml_layout  ), intent(inout) :: mla
        type(mg_tower) , intent(inout) :: mgt(:)
+       type(multifab) , intent(inout) :: rh(:)
+       integer        , intent(in   ) :: coeffs_type
        integer        , intent(in   ) :: domain_bc(:,:)
        integer        , intent(in   ) :: do_diagnostics
        real(dp_t)     , intent(in   ) :: eps
        integer        , intent(in   ) :: stencil_order
        logical        , intent(in   ) :: fabio
      end subroutine t_cc_ml_multigrid
-     subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
+
+     subroutine t_nodal_ml_multigrid(mla, mgt, rh, domain_bc, &
           do_diagnostics, eps, test, fabio, stencil_type)
        use mg_module    
        use ml_boxarray_module    
        use ml_layout_module    
        type(ml_layout  ), intent(inout) :: mla
        type(mg_tower) , intent(inout) :: mgt(:)
+       type(multifab) , intent(inout) :: rh(:)
        integer        , intent(in   ) :: domain_bc(:,:)
        integer        , intent(in   ) :: do_diagnostics
        real(dp_t)     , intent(in   ) :: eps
@@ -66,7 +73,7 @@ subroutine wrapper()
 
   logical, allocatable :: nodal(:)
   logical, allocatable :: pmask(:)
-  logical :: nodal_in, dense_in
+  logical :: nodal_in, dense_in, lininterp
 
   integer :: i,n,nlevs,ns,dm
 
@@ -81,12 +88,11 @@ subroutine wrapper()
   integer :: min_width
   integer :: max_nlevel, max_nlevel_in
   integer :: max_lev_of_mba
-  integer :: verbose, cg_verbose
-  integer :: nu1, nu2, nub, nuf, gamma, solver, smoother
-  real(dp_t) :: omega
+  integer :: verbose, cg_verbose, ptype
+  integer :: nu1, nu2, nub, nuf, solver, smoother
   integer :: ng, nc
   character(len=128) :: test_set
-  integer :: test, test_lev
+  integer :: test, test_lev, cycle_type, rhs_type, coeffs_type
   logical :: test_set_mglib
   logical :: test_set_hgproj
   logical :: test_random_boxes
@@ -107,6 +113,11 @@ subroutine wrapper()
 
   logical :: fabio
 
+  type(multifab), allocatable :: rh(:)
+
+  namelist /probin/ cycle_type
+  namelist /probin/ rhs_type
+  namelist /probin/ coeffs_type
   namelist /probin/ test
   namelist /probin/ nodal_in
   namelist /probin/ dense_in
@@ -131,14 +142,14 @@ subroutine wrapper()
   namelist /probin/ random_rr
 
   namelist /probin/ eps, max_iter
-  namelist /probin/ nu1, nu2, nub, nuf, gamma, omega
+  namelist /probin/ nu1, nu2, nub, nuf
   namelist /probin/ bottom_solver, bottom_solver_eps, bottom_max_iter
   namelist /probin/ solver, smoother
   namelist /probin/ min_width, max_nlevel
   namelist /probin/ stencil_order
   namelist /probin/ max_lev_of_mba
 
-  namelist /probin/ verbose, cg_verbose
+  namelist /probin/ verbose, cg_verbose, ptype
   namelist /probin/ do_diagnostics
 
   !! Defaults:
@@ -149,8 +160,12 @@ subroutine wrapper()
   max_lev_of_mba = Huge(max_lev_of_mba)
 
   test           = 0
+  cycle_type     = 3 ! Default to V-cycle 
+  rhs_type       = 4 ! Default to sum of sin's
+  coeffs_type    = 0 ! Default to constant coefficients = 1
   nodal_in       = .false.
   dense_in       = .false.
+  lininterp      = .true.
 
   ba_maxsize     = 32
   pd_xyz         = 32
@@ -191,8 +206,6 @@ subroutine wrapper()
   nu2               = mgt_default%nu2
   nub               = mgt_default%nub
   nuf               = mgt_default%nuf
-  gamma             = mgt_default%gamma
-  omega             = mgt_default%omega
   bottom_solver     = mgt_default%bottom_solver
   bottom_max_iter   = mgt_default%bottom_max_iter
   bottom_solver_eps = mgt_default%bottom_solver_eps
@@ -201,6 +214,7 @@ subroutine wrapper()
   min_width         = mgt_default%min_width
   eps               = mgt_default%eps
   verbose           = mgt_default%verbose
+  ptype             = mgt_default%ptype
   cg_verbose        = mgt_default%cg_verbose
 
   do_diagnostics    = 0
@@ -260,6 +274,26 @@ subroutine wrapper()
            call get_command_argument(farg, value = fname)
            read(fname,*) test
 
+        case ('--cycle_type')
+           farg = farg + 1
+           call get_command_argument(farg, value = fname)
+           read(fname,*) cycle_type
+
+        case ('--rhs_type')
+           farg = farg + 1
+           call get_command_argument(farg, value = fname)
+           read(fname,*) rhs_type
+
+        case ('--coeffs_type')
+           farg = farg + 1
+           call get_command_argument(farg, value = fname)
+           read(fname,*) coeffs_type
+
+        case ('--ptype')
+           farg = farg + 1
+           call get_command_argument(farg, value = fname)
+           read(fname,*) ptype
+
         case ('--verbose')
            farg = farg + 1
            call get_command_argument(farg, value = fname)
@@ -279,10 +313,6 @@ subroutine wrapper()
            farg = farg + 1
            call get_command_argument(farg, value = fname)
            read(fname, *) solver
-        case ('--gamma')
-           farg = farg + 1
-           call get_command_argument(farg, value = fname)
-           read(fname,*) gamma
         case ('--smoother')
            farg = farg + 1
            call get_command_argument(farg, value = fname)
@@ -303,10 +333,6 @@ subroutine wrapper()
            farg = farg + 1
            call get_command_argument(farg, value = fname)
            read(fname, *) nuf
-        case ('--omega')
-           farg = farg + 1
-           call get_command_argument(farg, value = fname)
-           read(fname, *) omega
 
         case ('--min_width')
            farg = farg + 1
@@ -382,6 +408,15 @@ subroutine wrapper()
            nodal_in = .true.
         case ('--cc')
            nodal_in = .false.
+        case ('--lininterp')
+           lininterp = .true.
+
+        case ('--pc')
+           !
+           ! An easy way to turn off lininterp.
+           !
+           lininterp = .false.
+
         case ('--h_finest')
            farg = farg + 1
            call get_command_argument(farg, value = fname)
@@ -536,7 +571,7 @@ subroutine wrapper()
   do i = 1, mba%nlevel
      call boxarray_simplify(mba%bas(i))
      call boxarray_maxsize(mba%bas(i), ba_maxsize)
-     if ( parallel_IOProcessor() ) print*, 'nboxes in mba at i =', i, ' : ', nboxes(mba%bas(i))
+!    if ( parallel_IOProcessor() ) print*, 'nboxes in mba at i =', i, ' : ', nboxes(mba%bas(i))
   end do
 
   ! For sanity make sure the mba is clean'
@@ -661,21 +696,10 @@ subroutine wrapper()
         dh(n,:) = dh(n+1,:) * mba%rr(n,:)
      end if
 
-     if ( parallel_IOProcessor() ) then
-        print *, 'LEV n: ',n,' , dh = ', dh(n,:)
-        print *, 'DOMAIN BC ', domain_bc
-     end if
-
-     if (all(nodal)) then
-       if (stencil_type == ND_CROSS_STENCIL) then
-         smoother = MG_SMOOTHER_GS_RB
-       else if (stencil_type == ND_DENSE_STENCIL) then
-         smoother = MG_SMOOTHER_GS_LEX
-       else 
-         print *,'DONT KNOW THIS STENCIL TYPE ',stencil_type
-         stop
-       end if
-     end if
+!    if ( parallel_IOProcessor() ) then
+!       print *, 'LEV n: ',n,' , dh = ', dh(n,:)
+!       print *, 'DOMAIN BC ', domain_bc
+!    end if
 
      call mg_tower_build(mgt(n), mla%la(n), mba%pd(n), domain_bc, stencil_type,&
           dh = dh(n,:), &
@@ -685,8 +709,7 @@ subroutine wrapper()
           nu2 = nu2, &
           nub = nub, &
           nuf = nuf, &
-          gamma = gamma, &
-          omega = omega, &
+          cycle_type = cycle_type, &
           bottom_solver = bottom_solver_in, &
           bottom_max_iter = bottom_max_iter_in, &
           bottom_solver_eps = bottom_solver_eps, &
@@ -696,16 +719,32 @@ subroutine wrapper()
           eps = eps, &
           verbose = verbose, &
           cg_verbose = cg_verbose, &
+          ptype = ptype, &
+          use_lininterp = lininterp, &
           nodal = nodal)
 
   end do
 
+  ! Allocate space for the RHS for the solve.
+  allocate(rh(nlevs))
+  do n = nlevs, 1, -1
+     call multifab_build( rh(n), mla%la(n), 1, 0, nodal)
+  end do
+
   call wall_second(wcb)
   if ( nodal_in ) then
-     call t_nodal_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, test, fabio, stencil_type)
+     call nodal_rhs(mla, rh)
+     call t_nodal_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, test, fabio, stencil_type)
   else
-     call t_cc_ml_multigrid(mla, mgt, domain_bc, do_diagnostics, eps, stencil_order, fabio)
+     call cc_rhs(mla, pd, rh, rhs_type)
+     call t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, eps, stencil_order, fabio)
   end if
+
+  do n = nlevs, 1, -1
+     call multifab_destroy(rh(n))
+  end do
+  deallocate(rh)
+
   call wall_second(wce)
 
   wce = wce - wcb
@@ -720,13 +759,5 @@ subroutine wrapper()
 
   call destroy(mba)
   call destroy(mla)
-
-! call print(multifab_mem_stats(),  " multifab at end")
-! call print(imultifab_mem_stats(), "imultifab at end")
-! call print(fab_mem_stats(),       "      fab at end")
-! call print(ifab_mem_stats(),      "     ifab at end")
-! call print(boxarray_mem_stats(),  " boxarray at end")
-! call print(boxassoc_mem_stats(),  " boxassoc at end")
-! call print(layout_mem_stats(),    "   layout at end")
 
 end subroutine wrapper

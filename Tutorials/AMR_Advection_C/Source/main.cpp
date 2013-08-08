@@ -22,6 +22,10 @@
 #include <ParallelDescriptor.H>
 #include <AmrLevel.H>
 
+#ifdef USE_SDCLIB
+#include <MLSDCAmr.H>
+#endif
+
 int
 main (int   argc,
       char* argv[])
@@ -63,11 +67,12 @@ main (int   argc,
       BoxLib::Abort(
        "Exiting because neither max_step nor stop_time is non-negative.");
     }
-    //
-    // Initialize random seed after we're running in parallel.
-    //
 
+#ifdef USE_SDCLIB
+    Amr* amrptr = new MLSDCAmr;
+#else
     Amr* amrptr = new Amr;
+#endif
 
     amrptr->init(strt_time,stop_time);
 

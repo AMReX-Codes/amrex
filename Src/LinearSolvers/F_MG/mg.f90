@@ -4,7 +4,6 @@ module mg_module
   use cc_stencil_module
   use mg_tower_module
   use mg_smoother_module
-  use bl_timer_module
 
   implicit none
 
@@ -12,13 +11,13 @@ module mg_module
      module procedure mg_tower_destroy
   end interface
 
-  private :: get_bottom_box_size
+  private :: get_bottom_box_size, impose_physbc_cc_2d, impose_physbc_cc_3d
 
 contains
 
   recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, stencil_type_in, &
-                            nu1, nu2, nuf, nub, gamma, cycle_type, &
-                            smoother, omega, &
+                            nu1, nu2, nuf, nub, cycle_type, &
+                            smoother, &
                             dh, &
                             ns, &
                             nc, ng, &
@@ -27,7 +26,7 @@ contains
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
                             max_L0_growth, &
                             verbose, cg_verbose, nodal, use_hypre, is_singular, &
-                            the_bottom_comm)
+                            the_bottom_comm, fancy_bottom_type_in, use_lininterp, ptype)
     use bl_IO_module
     use bl_prof_module
 
@@ -40,10 +39,9 @@ contains
     integer, intent(in), optional :: ns
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
-    integer, intent(in), optional :: nu1, nu2, nuf, nub, gamma, cycle_type
+    integer, intent(in), optional :: nu1, nu2, nuf, nub, cycle_type
     integer, intent(in), optional :: smoother
     logical, intent(in), optional :: nodal(:)
-    real(dp_t), intent(in), optional :: omega
     real(kind=dp_t), intent(in), optional :: dh(:)
     real(kind=dp_t), intent(in), optional :: eps
     real(kind=dp_t), intent(in), optional :: abs_eps
@@ -62,10 +60,12 @@ contains
     integer, intent(in), optional :: use_hypre
     logical, intent(in), optional :: is_singular
     integer, intent(in), optional :: the_bottom_comm
+    integer, intent(in), optional :: fancy_bottom_type_in
+    logical, intent(in), optional :: use_lininterp
+    integer, intent(in), optional :: ptype
 
-    integer :: lo_grid,hi_grid,lo_dom,hi_dom
-    integer :: ng_for_res
-    integer :: n, i, id, vol, j
+    integer         :: n, i, id, vol, j, lo_grid, hi_grid, lo_dom, hi_dom, ng_for_res
+    integer         :: fancy_bottom_type
     type(layout)    :: la1, la2
     type(box)       :: bounding_box
     type(boxarray)  :: ba
@@ -100,8 +100,6 @@ contains
     if ( present(nu2)               ) mgt%nu2               = nu2
     if ( present(nuf)               ) mgt%nuf               = nuf
     if ( present(nub)               ) mgt%nub               = nub
-    if ( present(gamma)             ) mgt%gamma             = gamma
-    if ( present(omega)             ) mgt%omega             = omega
     if ( present(cycle_type)        ) mgt%cycle_type        = cycle_type
     if ( present(bottom_solver)     ) mgt%bottom_solver     = bottom_solver
     if ( present(bottom_solver_eps) ) mgt%bottom_solver_eps = bottom_solver_eps
@@ -111,6 +109,8 @@ contains
     if ( present(cg_verbose)        ) mgt%cg_verbose        = cg_verbose
     if ( present(use_hypre)         ) mgt%use_hypre         = use_hypre 
     if ( present(max_L0_growth)     ) mgt%max_L0_growth     = max_L0_growth 
+    if ( present(use_lininterp)     ) mgt%use_lininterp     = use_lininterp
+    if ( present(ptype)             ) mgt%ptype             = ptype
 
     if ( present(the_bottom_comm) ) then
        allocate(mgt%bottom_comm)
@@ -159,43 +159,16 @@ contains
        end if
     end if
 
-    if ( .not. nodal_flag ) then
-       if ( .not. present(omega) ) then
-          select case ( mgt%dim )
-          case (1)
-             mgt%omega = 0.6_dp_t
-          case (2)
-             select case (mgt%smoother)
-             case ( MG_SMOOTHER_JACOBI )
-                mgt%omega = 4.0_dp_t/5.0_dp_t
-             end select
-          case (3)
-             select case (mgt%smoother)
-             case ( MG_SMOOTHER_JACOBI )
-                mgt%omega = 6.0_dp_t/7.0_dp_t
-             case ( MG_SMOOTHER_GS_RB )
-                mgt%omega = 1.15_dp_t
-!               mgt%omega = 1.00_dp_t
-             end select
-          end select
-       end if
-    end if
     ng_for_res = 0; if ( nodal_flag ) ng_for_res = 1
 
-    n = max_mg_levels(get_boxarray(la), mgt%min_width)
+    n = max_mg_levels(get_boxarray(la), nodal_flag, mgt%min_width)
+
     mgt%nlevels = min(n,mgt%max_nlevel) 
 
     n = mgt%nlevels
 
     allocate(mgt%cc(n), mgt%ff(n), mgt%dd(n), mgt%uu(n-1), mgt%ss(n), mgt%mm(n))
     allocate(mgt%pd(n),mgt%dh(mgt%dim,n))
-    allocate(mgt%tm(n))
-    if ( n == 1 ) then
-       mgt%tm(n)%name = "SINGLE LEVEL"
-    else
-       mgt%tm(n)%name = "FINEST LEVEL"
-       mgt%tm(1)%name = "COARSEST LEVEL"
-    end if
 
     la1 = la
 
@@ -228,7 +201,7 @@ contains
     mgt%uniform_dh = .true.
     if ( present(dh) ) then
        mgt%dh(:,mgt%nlevels) = dh(:)
-       select case (mgt%dim)
+       select case ( mgt%dim )
        case (2)
           mgt%uniform_dh = (dh(1) == dh(2))
        case (3)
@@ -238,70 +211,74 @@ contains
        mgt%dh(:,mgt%nlevels) = 1.0_dp_t
     end if
 
-    if ((.not. mgt%uniform_dh) .and. nodal_flag) then
+    if ( (.not. mgt%uniform_dh) .and. nodal_flag ) &
        call bl_error("nodal solver does not support nonuniform dh")
-    end if
 
     do i = mgt%nlevels-1, 1, -1
        mgt%dh(:,i) = mgt%dh(:,i+1)*2.0_dp_t
     end do
 
-    allocate(mgt%face_type(nfabs(mgt%cc(n)),mgt%dim,2))
-    allocate(mgt%skewed(mgt%nlevels,nfabs(mgt%cc(n))))
-    allocate(mgt%skewed_not_set(mgt%nlevels))
-    mgt%skewed_not_set = .true.
+    if ( .not. nodal_flag ) then
+       allocate(mgt%skewed(mgt%nlevels,nfabs(mgt%cc(n))))
+       allocate(mgt%skewed_not_set(mgt%nlevels))
+       mgt%skewed_not_set = .true.
+    end if
+    !
+    ! Save copy of domain BCs.
+    !
+    allocate(mgt%domain_bc(mgt%dim,1:2))
 
-    !   Set the face_type array to be BC_DIR or BC_NEU depending on domain_bc
-    mgt%face_type = BC_INT
-    do id = 1,mgt%dim
-       lo_dom = lwb(pd,id)
-       hi_dom = upb(pd,id)
-       do i = 1,nfabs(mgt%ss(mgt%nlevels))
-          lo_grid =  lwb(get_box(mgt%ss(mgt%nlevels), i),id)
-          if (lo_grid == lo_dom) mgt%face_type(i,id,1) = domain_bc(id,1)
+    mgt%domain_bc = domain_bc(:,1:2)
 
-          hi_grid = upb(get_box(mgt%ss(mgt%nlevels), i),id)
-          if (hi_grid == hi_dom) mgt%face_type(i,id,2) = domain_bc(id,2)
+    if ( nodal_flag ) then
+       !
+       ! Set the face_type array to be BC_DIR or BC_NEU depending on domain_bc
+       !
+       allocate(mgt%face_type(nfabs(mgt%cc(n)),mgt%dim,2))
+       mgt%face_type = BC_INT
+       do id = 1,mgt%dim
+          lo_dom = lwb(pd,id)
+          hi_dom = upb(pd,id)
+          do i = 1,nfabs(mgt%ss(mgt%nlevels))
+             lo_grid =  lwb(get_box(mgt%ss(mgt%nlevels), i),id)
+             if (lo_grid == lo_dom) mgt%face_type(i,id,1) = domain_bc(id,1)
+
+             hi_grid = upb(get_box(mgt%ss(mgt%nlevels), i),id)
+             if (hi_grid == hi_dom) mgt%face_type(i,id,2) = domain_bc(id,2)
+          end do
        end do
-    end do
-
+    end if
+    !
     ! Do we cover the entire domain?
     ! Note that the volume is number of cells so it increments in units of 1, not dx*dy
     ! Need these to be real, not int, so we can handle large numbers.
+    !
     ba      = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
     dvol    = boxarray_dvolume(ba)
     dvol_pd = box_dvolume(pd)
-
+    !
     ! Set both of these to false as default -- both must be true in order to subtract off sum(res)
+    !
     mgt%bottom_singular    = .false.
     mgt%coeffs_sum_to_zero = .false.
 
-    if (present(is_singular)) then
-
+    if ( present(is_singular) ) then
        mgt%bottom_singular = is_singular
-
     else
-
        ! If we cover the entire domain, then just test on the domain_bc values
-       if (abs(dvol-dvol_pd).lt.1.d-2) then
-   
+       if ( abs(dvol-dvol_pd).lt.1.d-2 ) then
           mgt%bottom_singular = .true.
           do id = 1,mgt%dim
-             if (domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR) mgt%bottom_singular = .false.
+             if ( domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR ) &
+                  mgt%bottom_singular = .false.
           end do
-   
-       ! If we don't cover the entire domain, then this wont be singular
        else
-   
+          ! If we don't cover the entire domain, then this wont be singular
           mgt%bottom_singular = .false.
-   
        end if
-
     end if
 
     ! if ( mgt%bottom_solver == 0 .and. .not. present(bottom_max_iter) ) mgt%bottom_max_iter = 20
-
-    if ( mgt%cycle_type == MG_WCycle ) mgt%gamma = 2
 
     ! if only the bottom solver is 'solving' make sure that its eps is
     ! in effect
@@ -328,12 +305,13 @@ contains
        bounding_box = bbox(get_boxarray(old_coarse_la));
 
        ! Does the boxarray fill the entire bounding box? If not then don't use this bottom solver
+       ! also make sure there are at least 2**dm boxes or else you can't use the fancy bottom solver
        if (.not. contains(get_boxarray(old_coarse_la),bounding_box) &
-            .or.  (nboxes(old_coarse_la) .le. 8) ) then
+            .or.  (nboxes(old_coarse_la) .lt. 2**mgt%dim) ) then
 
           mgt%bottom_solver = 1
 
-          if (parallel_IOProcessor() .and. verbose > 1) then
+          if ( parallel_IOProcessor() .and. verbose > 1 ) then
               print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
               print *,'F90mg: Using bottom_solver = 1 instead'
           end if
@@ -354,7 +332,7 @@ contains
            success = 0
            call get_bottom_box_size(success,bottom_box_size,get_box(new_coarse_ba,1), &
                                     min_width, mgt%max_bottom_nlevel)
- 
+
            if (success .eq. 1) then
 
                call boxarray_maxsize(new_coarse_ba,bottom_box_size)
@@ -366,7 +344,7 @@ contains
                !
                communicator = parallel_create_communicator(new_coarse_la%lap%prc)
 
-               if (parallel_IOProcessor() .and. verbose > 1) then
+               if ( parallel_IOProcessor() .and. verbose > 1 ) then
                   print *,'F90mg: Coarse problem domain for bottom_solver = 4: '
                   print *,'   ... Bounding box is'
                   call print(bounding_box)
@@ -377,6 +355,13 @@ contains
 
                coarse_dx(:) = mgt%dh(:,1)
 
+               if (present(fancy_bottom_type_in)) then
+                  fancy_bottom_type = fancy_bottom_type_in
+               else
+                  fancy_bottom_type = 1
+               end if
+                  
+
                call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
                                    domain_bc, mgt%stencil_type, &
                                    dh = coarse_dx, &
@@ -386,10 +371,9 @@ contains
                                    smoother = smoother, &
                                    nu1 = nu1, &
                                    nu2 = nu2, &
-                                   gamma = gamma, &
-                                   cycle_type = cycle_type, &
-                                   omega = omega, &
-                                   bottom_solver = 1, &
+                                   nuf = nuf, &
+                                   cycle_type = MG_VCycle, &
+                                   bottom_solver = fancy_bottom_type, &
                                    bottom_max_iter = bottom_max_iter, &
                                    bottom_solver_eps = bottom_solver_eps, &
                                    max_iter = max_iter, &
@@ -407,7 +391,7 @@ contains
 
                mgt%bottom_solver = 1
 
-               if (parallel_IOProcessor() .and. verbose > 1) then
+               if ( parallel_IOProcessor() .and. verbose > 1 ) then
                    print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
                    print *,'F90mg: Using bottom_solver = 1 instead'
                end if
@@ -464,12 +448,8 @@ contains
     !   call unit_skip(un, skip)
     !   write(unit=un, fmt=*) 'smoother          = ', mgt%smoother
     !   call unit_skip(un, skip)
-    !   write(unit=un, fmt=*) 'gamma             = ', mgt%gamma
-    !   call unit_skip(un, skip)
-    !   write(unit=un, fmt=*) 'omega             = ', mgt%omega
-    !   call unit_skip(un, skip)
-    !   write(unit=un, fmt=*) 'cycle_type        = ', mgt%cycle_type
-    !   call unit_skip(un, skip)
+    write(unit=un, fmt=*) 'cycle_type        = ', mgt%cycle_type
+    call unit_skip(un, skip)
     write(unit=un, fmt=*) 'bottom_solver     = ', mgt%bottom_solver
     call unit_skip(un, skip)
     write(unit=un, fmt=*) 'bottom_solver_eps = ', mgt%bottom_solver_eps
@@ -511,7 +491,7 @@ contains
     type(layout) :: la
     integer      :: i
 
-    ldestroy_la = .false.; if (present(destroy_la)) ldestroy_la = destroy_la
+    ldestroy_la = .false.; if ( present(destroy_la) ) ldestroy_la = destroy_la
 
     la = get_layout(mgt%cc(mgt%nlevels))
 
@@ -528,14 +508,18 @@ contains
 
     deallocate(mgt%cc, mgt%ff, mgt%dd, mgt%uu, mgt%mm, mgt%ss)
     deallocate(mgt%dh, mgt%pd)
-    deallocate(mgt%tm)
-    deallocate(mgt%face_type)
-    deallocate(mgt%skewed)
-    deallocate(mgt%skewed_not_set)
+    deallocate(mgt%domain_bc)
 
-    if ( built_q(mgt%nodal_mask)    ) call destroy(mgt%nodal_mask)
+    if ( associated(mgt%face_type) ) deallocate(mgt%face_type)
 
-    if (ldestroy_la) call layout_destroy(la)
+    if ( associated(mgt%skewed) ) then
+       deallocate(mgt%skewed)
+       deallocate(mgt%skewed_not_set)
+    end if
+
+    if ( built_q(mgt%nodal_mask) ) call destroy(mgt%nodal_mask)
+
+    if ( ldestroy_la ) call layout_destroy(la)
 
     if ( associated(mgt%bottom_comm) ) then
        call parallel_free_communicator(mgt%bottom_comm)
@@ -549,21 +533,31 @@ contains
 
   end subroutine mg_tower_destroy
 
-  function max_mg_levels(ba, min_size) result(r)
+  function max_mg_levels(ba, nodal_flag, min_size) result(r)
 
     type(boxarray), intent(in)           :: ba
+    logical       , intent(in)           :: nodal_flag
     integer       , intent(in), optional :: min_size
     integer                              :: r
+
     integer, parameter :: rrr = 2
     type(box)          :: bx, bx1
     type(boxarray)     :: ba1
     real(kind=dp_t)    :: vol
     integer            :: i, rr, lmn, dm
 
-    lmn = 1; if ( present(min_size) ) lmn = min_size
-    r = 1
-    rr = rrr
     dm = get_dim(ba)
+
+    ! lmn is the smallest we allow any side of a box to become
+    lmn = 1; if ( present(min_size) ) lmn = min_size
+
+    ! r keep track of the total number of mg levels
+    r = 1
+
+    ! rr keeps track of ref ratio between first and last mg levels we are currently testing
+    rr = rrr
+
+    ! create a temporary copy of the boxarray
     call copy(ba1,ba)
 
     outer: do
@@ -572,15 +566,23 @@ contains
        do i = 1, nboxes(ba)
           bx = get_box(ba,i)
           bx1 = coarsen(bx, rr)
+
+          ! check to see if any side has become less than lmn
           if ( any(extent(bx1) < lmn) ) exit outer
+
+          ! check to see if bx is evenly divisible by rr
           if ( bx /= refine(bx1, rr)  ) exit outer
-          !
-          ! We introduce the volume test to limit the case where we have a
-          ! single grid getting too small -- don't want to limit each grid in
-          ! the case where there are many grids, so we need a test over the
-          ! whole boxarray volume, not just the size of each grid.
-          !
-          if ( vol <= 2**dm .and. lmn < 2 ) exit outer
+
+          ! check to make sure the entire problem over all grids is not too small
+          ! we prefer slightly larger 'bottom solves' for nodal problems since certain
+          ! bc types do not have degrees of freedom on the domain boundary and you
+          ! can end up with a 1 point bottom solve, even if the grid is 2**dm
+          if (nodal_flag) then
+             if ( vol <= 2**dm ) exit outer  
+          else
+             if ( vol < 2**dm ) exit outer
+          end if
+          
        end do
        rr = rr*rrr
        r  = r + 1
@@ -611,8 +613,6 @@ contains
        bx1 = coarsen(bx, rr)
 
        if ( any(extent(bx1) < min_size) ) exit
-
-       if ( bottom_levs > 1 .and. any(extent(bx1) < 8) ) exit
 
        if ( any(mod(extent(bx1),2) .eq. 1) ) then
 
@@ -657,17 +657,6 @@ contains
 
   end subroutine get_bottom_box_size
 
-  subroutine mg_tower_v_cycle(mgt, uu, rh)
-
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in)    :: rh
-
-    call mg_tower_cycle(mgt, MG_VCYCLE, mgt%nlevels, mgt%ss(mgt%nlevels), &
-                        uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, mgt%gamma)
-
-  end subroutine mg_tower_v_cycle
-
   subroutine do_bottom_mgt(mgt, uu, rh)
 
     use bl_prof_module
@@ -688,7 +677,7 @@ contains
 
     call build(bpt, "do_bottom_mgt")
 
-    if (mgt%bottom_solver .ne. 4) &
+    if ( mgt%bottom_solver .ne. 4 ) &
        call bl_error("MG_TOWER_BOTTOM_SOLVE: must have bottom_solver == 4")
 
     mglev = mgt%bottom_mgt%nlevels
@@ -697,7 +686,7 @@ contains
 
     call multifab_build(bottom_uu,la,1,nghost(uu),nodal_flags(uu))
 
-    call setval(bottom_uu,0.d0,all=.true.)
+    call setval(bottom_uu,ZERO,all=.true.)
 
     if (nodal_q(rh)) then
        call multifab_build(bottom_rh,la,1,1,nodal_flags(rh))
@@ -710,11 +699,9 @@ contains
 
     call mg_tower_cycle(mgt%bottom_mgt, mgt%bottom_mgt%cycle_type, mglev, &
                         mgt%bottom_mgt%ss(mglev), bottom_uu, bottom_rh, &
-                        mgt%bottom_mgt%mm(mglev), mgt%bottom_mgt%nu1, mgt%bottom_mgt%nu2, &
-                        mgt%bottom_mgt%gamma)
+                        mgt%bottom_mgt%mm(mglev), mgt%bottom_mgt%nu1, mgt%bottom_mgt%nu2)
 
     call multifab_copy_c(uu,1,bottom_uu,1,1,ng=0)
-    call multifab_fill_boundary(uu)
 
     call destroy(bottom_uu)
     call destroy(bottom_rh)
@@ -723,7 +710,7 @@ contains
 
   end subroutine do_bottom_mgt
 
-  subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+  subroutine mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm, eps_in)
 
     use bl_prof_module
     use itsol_module, only: itsol_bicgstab_solve, itsol_cabicgstab_solve, itsol_cg_solve
@@ -734,23 +721,25 @@ contains
     type( multifab), intent(in) :: ss
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: lev
+    real(dp_t), intent(in), optional :: eps_in
 
-    ! Local variables
     integer             :: i,stat,communicator
     logical             :: singular_test,do_diag
-    real(dp_t)          :: nrm
+    real(dp_t)          :: nrm, eps
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_bottom_solve")
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
-    if (.not.nodal_q(rh)) then
+    eps = mgt%bottom_solver_eps ; if ( present(eps_in) ) eps = eps_in
+
+    if ( .not.nodal_q(rh) ) then
        singular_test =  mgt%bottom_singular .and. mgt%coeffs_sum_to_zero
     end if
 
-    if (do_diag) then
-       ! compute mgt%cc(lev) = ss * uu - rh
+    if ( do_diag ) then
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
        nrm = norm_inf(mgt%cc(lev))
        if ( parallel_IOProcessor() ) &
@@ -764,15 +753,16 @@ contains
     end if
 
     stat = 0
+
     select case ( mgt%bottom_solver )
     case (0)
        do i = 1, mgt%nuf
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (1)
-       if (nodal_q(rh)) then
+       if ( nodal_q(rh) ) then
           call itsol_bicgstab_solve(ss, uu, rh, mm, &
-                                    mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                    eps, mgt%bottom_max_iter, &
                                     mgt%cg_verbose, &
                                     mgt%stencil_type, mgt%lcross, &
                                     stat = stat, &
@@ -782,7 +772,7 @@ contains
                                     comm_in = communicator)
        else
           call itsol_bicgstab_solve(ss, uu, rh, mm, &
-                                    mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                    eps, mgt%bottom_max_iter, &
                                     mgt%cg_verbose,  &
                                     mgt%stencil_type, mgt%lcross, &
                                     stat = stat, &
@@ -794,15 +784,15 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (2)
-       if (nodal_q(rh)) then
+       if ( nodal_q(rh) ) then
           call itsol_cg_solve(ss, uu, rh, mm, &
-                              mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
+                              eps, mgt%bottom_max_iter, mgt%cg_verbose, &
                               mgt%stencil_type, mgt%lcross, &
                               stat = stat, singular_in = mgt%bottom_singular, &
                               uniform_dh = mgt%uniform_dh, nodal_mask=mgt%nodal_mask)
        else
           call itsol_cg_solve(ss, uu, rh, mm, &
-                              mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%cg_verbose, &
+                              eps, mgt%bottom_max_iter, mgt%cg_verbose, &
                               mgt%stencil_type, mgt%lcross, &
                               stat = stat, singular_in = singular_test, &
                               uniform_dh = mgt%uniform_dh)
@@ -811,9 +801,9 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (3)
-       if (nodal_q(rh)) then
+       if ( nodal_q(rh) ) then
           call itsol_cabicgstab_solve(ss, uu, rh, mm, &
-                                      mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                      eps, mgt%bottom_max_iter, &
                                       mgt%cg_verbose, &
                                       mgt%stencil_type, mgt%lcross, &
                                       stat = stat, &
@@ -823,7 +813,7 @@ contains
                                       comm_in = communicator)
        else
           call itsol_cabicgstab_solve(ss, uu, rh, mm, &
-                                      mgt%bottom_solver_eps, mgt%bottom_max_iter, &
+                                      eps, mgt%bottom_max_iter, &
                                       mgt%cg_verbose,  &
                                       mgt%stencil_type, mgt%lcross, &
                                       stat = stat, &
@@ -838,6 +828,7 @@ contains
     case default
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
+
     if ( stat /= 0 ) then
        if ( parallel_IOProcessor() .and. mgt%verbose > 0 ) then
           call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
@@ -847,8 +838,7 @@ contains
        end do
     end if
 
-    if (do_diag) then
-       ! compute mgt%cc(lev) = ss * uu - rh
+    if ( do_diag ) then
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
        nrm = norm_inf(mgt%cc(lev))
        if ( parallel_IOProcessor() ) &
@@ -913,7 +903,7 @@ contains
 
     if ( nodal_flag ) then
        call multifab_fill_boundary(fine)
-       call setval(crse, 0.0_dp_t, all=.true.)
+       call setval(crse, ZERO, all=.true.)
        mg_restriction_mode = 1
     end if
 
@@ -933,7 +923,7 @@ contains
        hi       = upb(get_ibox(crse,i))
 
        do n = 1, mgt%nc
-          select case ( mgt%dim)
+          select case ( mgt%dim )
           case (1)
              if ( .not. nodal_flag ) then
                 call cc_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
@@ -969,63 +959,456 @@ contains
     call destroy(bpt)
 
   end subroutine mg_tower_restriction
+  !
+  ! In the following two "impose" routines we assume that any ghost cells
+  ! covered by valid region have been filled properly by fill_boundary().
+  ! Also, that "all" ghost cells have computable values.  We may copy some
+  ! ghost cells only to overwrite them later with "correct" values.
+  !
+  subroutine impose_physbc_cc_2d(uu, mgt, lo, hi, dlo, dhi, ng)
 
-  subroutine mg_tower_prolongation(mgt, uu, uu1)
+    type(mg_tower),  intent(in   ) :: mgt
+    integer,         intent(in   ) :: lo(:), hi(:), dlo(:), dhi(:), ng
+    real(kind=dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,:)
 
+    if ( lo(1) == dlo(1) ) then
+
+       if ( mgt%domain_bc(1,1) == BC_DIR ) then
+
+          uu(lo(1)-1,:,1:mgt%nc) = -uu(lo(1),:,1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,1) == BC_NEU ) then
+
+          uu(lo(1)-1,:,1:mgt%nc) =  uu(lo(1),:,1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
+          !
+          ! Corners
+          !
+          if ( lo(2) == dlo(2) ) then
+             uu(lo(1)-1,lo(2)-1,1:mgt%nc) = uu(lo(1)-1,lo(2),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(lo(1)-1,hi(2)+1,1:mgt%nc) = uu(lo(1)-1,hi(2),1:mgt%nc)
+          end if
+       end if
+
+    end if
+
+    if ( hi(1) == dhi(1) ) then
+
+       if ( mgt%domain_bc(1,2) == BC_DIR ) then
+
+          uu(hi(1)+1,lo(2):hi(2),1:mgt%nc) = -uu(hi(1),lo(2):hi(2),1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,2) == BC_NEU ) then
+
+          uu(hi(1)+1,lo(2):hi(2),1:mgt%nc) =  uu(hi(1),lo(2):hi(2),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
+          !
+          ! Corners
+          !
+          if ( lo(2) == dlo(2) ) then
+             uu(hi(1)+1,lo(2)-1,1:mgt%nc) = uu(hi(1)+1,lo(2),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(hi(1)+1,hi(2)+1,1:mgt%nc) = uu(hi(1)+1,hi(2),1:mgt%nc)
+          end if
+       end if
+
+    end if
+    !
+    ! At this point all possible corner cells have been filled.
+    !
+    if ( lo(2) == dlo(2) ) then
+
+       if ( mgt%domain_bc(2,1) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2)-1,1:mgt%nc) = -uu(lo(1):hi(1),lo(2),1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,1) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2)-1,1:mgt%nc) =  uu(lo(1):hi(1),lo(2),1:mgt%nc)
+
+       end if
+
+    end if
+
+    if ( hi(2) == dhi(2) ) then
+
+       if ( mgt%domain_bc(2,2) == BC_DIR ) then
+
+          uu(lo(1):hi(1),hi(2)+1,1:mgt%nc) = -uu(lo(1):hi(1),hi(2),1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,2) == BC_NEU ) then
+
+          uu(lo(1):hi(1),hi(2)+1,1:mgt%nc) =  uu(lo(1):hi(1),hi(2),1:mgt%nc)
+
+       end if
+
+    end if
+
+  end subroutine impose_physbc_cc_2d
+
+  subroutine impose_physbc_cc_3d(uu, mgt, lo, hi, dlo, dhi, ng)
+
+    type(mg_tower),  intent(in   ) :: mgt
+    integer,         intent(in   ) :: lo(:), hi(:), dlo(:), dhi(:), ng
+    real(kind=dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:,:)
+
+    if ( lo(1) == dlo(1) ) then
+
+       if ( mgt%domain_bc(1,1) == BC_DIR ) then
+
+          uu(lo(1)-1,:,:,1:mgt%nc) = -uu(lo(1),:,:,1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,1) == BC_NEU ) then
+
+          uu(lo(1)-1,:,:,1:mgt%nc) =  uu(lo(1),:,:,1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
+          !
+          ! Edges.
+          !
+          if ( lo(2) == dlo(2) ) then
+             uu(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(lo(1)-1,lo(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(lo(1)-1,hi(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( lo(3) == dlo(3) ) then
+             uu(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(lo(1)-1,lo(2):hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(lo(1)-1,lo(2):hi(2),hi(3),1:mgt%nc)
+          end if
+          !
+          ! Corners
+          !
+          if ( lo(2) == dlo(2) .and. lo(3) == dlo(3) ) then
+             uu(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1)-1,lo(2),lo(3),1:mgt%nc)
+          end if
+          if ( lo(2) == dlo(2) .and. hi(3) == dhi(3) ) then
+             uu(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1)-1,lo(2),hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. lo(3) == dlo(3) ) then
+             uu(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1)-1,hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. hi(3) == dhi(3) ) then
+             uu(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1)-1,hi(2),hi(3),1:mgt%nc)
+          end if
+       end if
+
+    end if
+
+    if ( hi(1) == dhi(1) ) then
+
+       if ( mgt%domain_bc(1,2) == BC_DIR ) then
+
+          uu(hi(1)+1,:,:,1:mgt%nc) = -uu(hi(1),:,:,1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,2) == BC_NEU ) then
+
+          uu(hi(1)+1,:,:,1:mgt%nc) =  uu(hi(1),:,:,1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
+          !
+          ! Edges.
+          !
+          if ( lo(2) == dlo(2) ) then
+             uu(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(hi(1)+1,lo(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(hi(1)+1,hi(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( lo(3) == dlo(3) ) then
+             uu(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(hi(1)+1,lo(2):hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(hi(1)+1,lo(2):hi(2),hi(3),1:mgt%nc)
+          end if
+          !
+          ! Corners.
+          !
+          if ( lo(2) == dlo(2) .and. lo(3) == dlo(3) ) then
+             uu(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(hi(1)+1,lo(2),lo(3),1:mgt%nc)
+          end if
+          if ( lo(2) == dlo(2) .and. hi(3) == dhi(3) ) then
+             uu(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(hi(1)+1,lo(2),hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. lo(3) == dlo(3) ) then
+             uu(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(hi(1)+1,hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. hi(3) == dhi(3) ) then
+             uu(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(hi(1)+1,hi(2),hi(3),1:mgt%nc)
+          end if
+       end if
+
+    end if
+    !
+    ! All possible corners should be done by this point. Only some faces & edges remain.
+    !
+    if ( lo(2) == dlo(2) ) then
+
+       if ( mgt%domain_bc(2,1) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2)-1,:,1:mgt%nc) = -uu(lo(1):hi(1),lo(2),:,1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,1) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2)-1,:,1:mgt%nc) =  uu(lo(1):hi(1),lo(2),:,1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(2,1) == BC_DIR .or. mgt%domain_bc(2,1) == BC_NEU ) then
+          !
+          ! Edges - only need to do lo & hi Z.
+          !
+          if ( lo(3) == dlo(3) ) then
+             uu(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),lo(2)-1,lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),lo(2)-1,hi(3),1:mgt%nc)
+          end if
+       end if
+
+    end if
+
+    if ( hi(2) == dhi(2) ) then
+
+       if ( mgt%domain_bc(2,2) == BC_DIR ) then
+
+          uu(lo(1):hi(1),hi(2)+1,:,1:mgt%nc) = -uu(lo(1):hi(1),hi(2),:,1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,2) == BC_NEU ) then
+
+          uu(lo(1):hi(1),hi(2)+1,:,1:mgt%nc) =  uu(lo(1):hi(1),hi(2),:,1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(2,2) == BC_DIR .or. mgt%domain_bc(2,2) == BC_NEU ) then
+          !
+          ! Edges - only need to do lo & hi Z.
+          !
+          if ( lo(3) == dlo(3) ) then
+             uu(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),hi(2)+1,lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),hi(2)+1,hi(3),1:mgt%nc)
+          end if
+       end if
+
+    end if
+    !
+    ! All that remains to do are any Z faces.
+    !
+    if ( lo(3) == dlo(3) ) then
+
+       if ( mgt%domain_bc(3,1) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = -uu(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+
+       else if ( mgt%domain_bc(3,1) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) =  uu(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+
+       end if
+
+    end if
+
+    if ( hi(3) == dhi(3) ) then
+
+       if ( mgt%domain_bc(3,2) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = -uu(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+
+       else if ( mgt%domain_bc(3,2) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) =  uu(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+
+       end if
+
+    end if
+
+  end subroutine impose_physbc_cc_3d
+  !
+  ! Prolongate from mgt%uu(lev) -> uu.
+  !
+  subroutine mg_tower_prolongation(mgt, uu, lev)
     use bl_prof_module
     use mg_prolongation_module
 
     type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: uu, uu1
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: cp(:,:,:,:)
-    type(box) :: nbox, nbox1
-    integer :: i, n, ir(mgt%dim)
-    logical :: nodal_flag
+    type(multifab), intent(inout) :: uu
+    integer       , intent(in   ) :: lev
+
+    real(kind=dp_t), pointer  :: fp(:,:,:,:), cp(:,:,:,:), up(:,:,:,:)
+    integer,         pointer  :: mp(:,:,:,:)
+    integer                   :: i, j, k, n, ng, ir(mgt%dim)
+    integer                   :: lo(mgt%dim), hi(mgt%dim), lom(mgt%dim)
+    integer                   :: loc(mgt%dim), lof(mgt%dim), dlo(mgt%dim), dhi(mgt%dim)
+    type(box)                 :: dmn
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_prolongation")
 
-    ir = 2
+    call bl_assert( mgt%nc == ncomp(uu)         , 'mg_tower_prolongation: ncomp')
+    call bl_assert( mgt%nc == ncomp(mgt%uu(lev)), 'mg_tower_prolongation: ncomp')
 
-    nodal_flag = nodal_q(uu)
+    ir  = 2
+    ng  = nghost(mgt%uu(lev))
+    dmn = get_pd(get_layout(mgt%uu(lev)))
+    dlo = lwb(dmn)
+    dhi = upb(dmn)
 
-    if ( .not.nodal_flag ) then
-       !$OMP PARALLEL DO PRIVATE(i,n,fp,cp)
+    if ( .not. nodal_q(uu) ) then
+       if ( mgt%use_lininterp ) then
+          if ( ng > 0 ) then
+             !
+             ! Set up dirichlet/neumann boundaries so lininterp does right thing.
+             ! If we don't have one ghost cell the interp routines will do a
+             ! piecewise constant interp on the cells touching the grid boundary.
+             !
+             call multifab_fill_boundary(mgt%uu(lev))
+
+             do n = 1, nfabs(uu)
+                up => dataptr(mgt%uu(lev) ,n)
+                lo =  lwb(get_ibox(mgt%uu(lev), n))
+                hi =  upb(get_ibox(mgt%uu(lev), n))
+                select case ( mgt%dim )
+                case (2)
+                   call impose_physbc_cc_2d(up(:,:,1,:),mgt,lo,hi,dlo,dhi,ng)
+                case (3)
+                   call impose_physbc_cc_3d(up(:,:,:,:),mgt,lo,hi,dlo,dhi,ng)
+                end select
+             end do
+          end if
+       end if
+
+       !$OMP PARALLEL DO PRIVATE(i,n,loc,lof,lo,hi,fp,cp)
        do i = 1, nfabs(uu)
-          fp => dataptr(uu,  i, get_box(uu,i))
-          cp => dataptr(uu1, i, get_box(uu1,i))
+          loc =  lwb(get_pbox(mgt%uu(lev),i))
+          lof =  lwb(get_pbox(uu, i))
+          lo  =  lwb(get_ibox(uu, i))
+          hi  =  upb(get_ibox(uu, i))
+          fp  => dataptr(uu,         i)
+          cp  => dataptr(mgt%uu(lev),i)
           do n = 1, mgt%nc
-             select case ( mgt%dim)
+             select case ( mgt%dim )
              case (1)
-                call pc_c_prolongation(fp(:,1,1,n), cp(:,1,1,n), ir)
+                call cc_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, mgt%use_lininterp)
              case (2)
-                call pc_c_prolongation(fp(:,:,1,n), cp(:,:,1,n), ir)
+                call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, mgt%use_lininterp, mgt%ptype)
              case (3)
-                call pc_c_prolongation(fp(:,:,:,n), cp(:,:,:,n), ir)
+                call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, mgt%use_lininterp, mgt%ptype)
              end select
           end do
        end do
        !$OMP END PARALLEL DO
+
     else
-       !$OMP PARALLEL DO PRIVATE(i,n,nbox,nbox1,fp,cp)
-       do i = 1, nfabs(uu)
-          nbox  = box_grow_n_f(get_box(uu,i),1,1)
-          nbox1 = box_grow_n_f(get_box(uu1,i),1,1)
-          fp => dataptr(uu,  i, nbox )
-          cp => dataptr(uu1, i, nbox1)
-          do n = 1, mgt%nc
-             select case ( mgt%dim)
-             case (1)
-                call nodal_prolongation_1d(fp(:,1,1,n), cp(:,1,1,n), ir)
+
+      if ( using_nodal_cubic() .and. mgt%dim > 1 ) then
+         call multifab_fill_boundary(mgt%uu(lev))
+
+         do i = 1, nfabs(mgt%uu(lev))
+            up  => dataptr(mgt%uu(lev), i)
+            mp  => dataptr(mgt%mm(lev), i)
+            lom =  lwb(get_ibox(mgt%mm(lev),i))
+            lo  =  lwb(get_pbox(mgt%uu(lev),i))
+            ng  =  lom(1) - lo(1)
+            do n = 1, mgt%nc
+             select case ( mgt%dim )
              case (2)
-                call nodal_prolongation_2d(fp(:,:,1,n), cp(:,:,1,n), ir)
+                call impose_neumann_bcs_2d(up(:,:,1,n),mp(:,:,1,1),lom,ng)
              case (3)
-                call nodal_prolongation_3d(fp(:,:,:,n), cp(:,:,:,n), ir)
+                call impose_neumann_bcs_3d(up(:,:,:,n),mp(:,:,:,1),lom,ng)
+             end select
+            end do
+         end do
+      end if
+
+       !$OMP PARALLEL DO PRIVATE(i,n,loc,lof,lo,hi,fp,cp)
+       do i = 1, nfabs(uu)
+          loc =  lwb(get_pbox(mgt%uu(lev),i))
+          lof =  lwb(get_pbox(uu, i))
+          lo  =  lwb(get_ibox(uu, i))
+          hi  =  upb(get_ibox(uu, i))
+          fp  => dataptr(uu,         i)
+          cp  => dataptr(mgt%uu(lev),i)
+          do n = 1, mgt%nc
+             select case ( mgt%dim )
+             case (1)
+                call nodal_prolongation_1d(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
+             case (2)
+                call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
+             case (3)
+                call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
              end select
           end do
        end do
        !$OMP END PARALLEL DO
+
+       if ( using_nodal_cubic() .and. mgt%dim > 1 ) then
+          !
+          ! The [bi,tri]cubic interpolators don't preserve dirichlet BCs.
+          !
+          do n = 1, nfabs(uu)
+             up  => dataptr(uu           ,n)
+             mp  => dataptr(mgt%mm(lev+1),n)
+             lo  =  lwb(get_ibox(uu, n))
+             hi  =  upb(get_ibox(uu, n))
+
+             select case ( mgt%dim )
+             case (2)
+                do j = lo(2),hi(2)
+                   if ( bc_dirichlet(mp(lo(1),j,1,1),1,0) ) up(lo(1),j,1,1:mgt%nc) = ZERO
+                   if ( bc_dirichlet(mp(hi(1),j,1,1),1,0) ) up(hi(1),j,1,1:mgt%nc) = ZERO
+                end do
+
+                do i = lo(1),hi(1)
+                   if ( bc_dirichlet(mp(i,lo(2),1,1),1,0) ) up(i,lo(2),1,1:mgt%nc) = ZERO
+                   if ( bc_dirichlet(mp(i,hi(2),1,1),1,0) ) up(i,hi(2),1,1:mgt%nc) = ZERO
+                end do
+             case (3)
+                do k = lo(3),hi(3)
+                   do j = lo(2),hi(2)
+                      if ( bc_dirichlet(mp(lo(1),j,k,1),1,0) ) up(lo(1),j,k,1:mgt%nc) = ZERO
+                      if ( bc_dirichlet(mp(hi(1),j,k,1),1,0) ) up(hi(1),j,k,1:mgt%nc) = ZERO
+                   end do
+                end do
+
+                do k = lo(3),hi(3)
+                   do i = lo(1),hi(1)
+                      if ( bc_dirichlet(mp(i,lo(2),k,1),1,0) ) up(i,lo(2),k,1:mgt%nc) = ZERO
+                      if ( bc_dirichlet(mp(i,hi(2),k,1),1,0) ) up(i,hi(2),k,1:mgt%nc) = ZERO
+                   end do
+                end do
+
+                do j = lo(2),hi(2)
+                   do i = lo(1),hi(1)
+                      if ( bc_dirichlet(mp(i,j,lo(3),1),1,0) ) up(i,j,lo(3),1:mgt%nc) = ZERO
+                      if ( bc_dirichlet(mp(i,j,hi(3),1),1,0) ) up(i,j,hi(3),1:mgt%nc) = ZERO
+                   end do
+                end do
+             end select
+
+          end do
+          !
+          ! Nor do they preserve the value of shared nodes (ones at grid boundaries).
+          !
+          call multifab_internal_sync(uu)
+       end if
+
     endif
 
     call destroy(bpt)
@@ -1041,66 +1424,71 @@ contains
     r = itsol_converged(dd, Ynorm, mgt%eps, mgt%abs_eps)
   end function mg_tower_converged
 
-  recursive subroutine mg_tower_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
-                                      bottom_level, bottom_solve_time)
-
-    use bl_prof_module
+  subroutine mg_tower_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,bottom_level,bottom_solve_time)
 
     type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(in) :: rh
+    type(multifab), intent(inout) :: rh
     type(multifab), intent(inout) :: uu
     type(multifab), intent(in) :: ss
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: lev
     integer, intent(in) :: nu1, nu2
-    integer, intent(inout) :: gamma
     integer, intent(in) :: cyc
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
-    integer :: i
-    logical :: do_diag
-    real(dp_t) :: nrm, stime
-    integer :: lbl
-    logical :: nodal_flag
+
+    select case ( mgt%cycle_type )
+        case(MG_VCycle)
+            call mg_tower_v_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,1,bottom_level,bottom_solve_time)
+        case(MG_WCycle)
+            call mg_tower_v_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,2,bottom_level,bottom_solve_time)
+        case(MG_FCycle)
+            call mg_tower_fmg_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,bottom_level,bottom_solve_time)
+         case default
+            call bl_error('mg_tower_cycle: unknown cycle_type: ', mgt%cycle_type)
+    end select
+
+  end subroutine mg_tower_cycle
+
+  recursive subroutine mg_tower_fmg_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2,&
+                                 bottom_level, bottom_solve_time)
+    use fabio_module
+    use bl_prof_module
+    use impose_neumann_bcs_module
+
+    type(mg_tower),  intent(inout) :: mgt
+    type(multifab),  intent(inout) :: rh
+    type(multifab),  intent(inout) :: uu
+    type(multifab),  intent(in   ) :: ss
+    type(imultifab), intent(in   ) :: mm
+    integer,         intent(in   ) :: lev
+    integer,         intent(in   ) :: nu1, nu2
+    integer,         intent(in   ) :: cyc
+    integer,         intent(in   ), optional :: bottom_level
+    real(dp_t),      intent(inout), optional :: bottom_solve_time
+
+    logical                   :: do_diag
+    real(dp_t)                :: nrm, stime
+    integer                   :: lbl
+    character(len=3)          :: number
+    character(len=20)         :: filename
+
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mgt_cycle")
+    call build(bpt, "mgt_f_cycle")
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
-    nodal_flag = nodal_q(ss)
+    call setval(uu,ZERO,all=.true.)
 
-    call timer_start(mgt%tm(lev))
 
-    if ( parallel_IOProcessor() .and. do_diag) &
-       write(6,1000) lev
+    if ( lev == lbl ) then
+       stime = parallel_wtime()
 
-    if ( get_dim(rh) == 1 ) then
-
-       if (do_diag) then
-          nrm = norm_inf(rh)
-          if ( parallel_IOProcessor() ) &
-             print *,'  DN: Norm before smooth         ',nrm
-       end if
-
-       call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
-
-       ! compute mgt%cc(lev) = ss * uu - rh
-       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
-
-       if (do_diag) then
-          nrm = norm_inf(mgt%cc(lev))
-          if ( parallel_IOProcessor() ) &
-              print *,'  DN: Norm after  smooth          ',nrm
-       end if
-
-    else if ( lev == lbl ) then
-
-       if (associated(mgt%bottom_mgt)) then
-          if (do_diag) then
-             ! compute mgt%cc(lev) = ss * uu - rh
+       if ( associated(mgt%bottom_mgt) ) then
+          if ( do_diag ) then
              call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
              nrm = norm_inf(mgt%cc(lev))
              if ( parallel_IOProcessor() ) &
@@ -1109,8 +1497,112 @@ contains
 
           call do_bottom_mgt(mgt, uu, rh)
 
-          if (do_diag) then
-             ! compute mgt%cc(lev) = ss * uu - rh
+          if ( do_diag ) then
+             call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
+             nrm = norm_inf(mgt%cc(lev))
+             if ( parallel_IOProcessor() ) &
+                print *,'  UP: Norm after  bottom         ',nrm
+          end if
+       else
+          call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
+       end if
+
+       if ( present(bottom_solve_time) ) &
+            bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
+    else
+       call mg_tower_restriction(mgt, mgt%dd(lev-1), rh, mgt%mm(lev),mgt%mm(lev-1))
+  
+       call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
+                      mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
+
+!       call print(mgt%uu(lev-1),'uu before prolongation')
+
+       if ( .false. ) then
+          !
+          ! Some debugging code I want to keep around for a while.
+          ! I don't want to have to recreate this all the time :-)
+          !
+          write(number,fmt='(i3.3)') lev
+          filename = 'uu_before_p' // number
+          call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
+       end if
+          
+       call mg_tower_prolongation(mgt, uu, lev-1)
+
+       if (lev == mgt%nlevels) then
+            call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), uu, &
+                              rh, mgt%mm(lev), nu1, nu2, 1, bottom_level, bottom_solve_time)
+       else
+            call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), mgt%uu(lev), &
+                              rh, mgt%mm(lev), nu1, nu2, 1, bottom_level, bottom_solve_time)
+       end if
+    end if
+
+    call destroy(bpt)
+   
+  end subroutine mg_tower_fmg_cycle
+
+  recursive subroutine mg_tower_v_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
+                                        bottom_level, bottom_solve_time)
+    use bl_prof_module
+
+    type(mg_tower),  intent(inout) :: mgt
+    type(multifab),  intent(inout) :: rh
+    type(multifab),  intent(inout) :: uu
+    type(multifab),  intent(in   ) :: ss
+    type(imultifab), intent(in   ) :: mm
+    integer,         intent(in   ) :: lev
+    integer,         intent(in   ) :: nu1, nu2
+    integer,         intent(in   ) :: gamma
+    integer,         intent(in   ) :: cyc
+    integer,         intent(in   ), optional :: bottom_level
+    real(dp_t),      intent(inout), optional :: bottom_solve_time
+
+    integer    :: i,lbl
+    logical    :: do_diag
+    real(dp_t) :: nrm, stime
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "mgt_v_cycle")
+
+    lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
+
+    do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
+
+    if ( parallel_IOProcessor() .and. do_diag) &
+         write(6,1000) lev
+
+    if ( get_dim(rh) == 1 ) then
+       if ( do_diag ) then
+          nrm = norm_inf(rh)
+          if ( parallel_IOProcessor() ) &
+             print *,'  DN: Norm before smooth         ',nrm
+       end if
+
+       call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+
+       call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
+
+       if ( do_diag ) then
+          nrm = norm_inf(mgt%cc(lev))
+          if ( parallel_IOProcessor() ) &
+              print *,'  DN: Norm after  smooth          ',nrm
+       end if
+    else if ( lev == lbl ) then
+       stime = parallel_wtime()
+
+       if ( associated(mgt%bottom_mgt) ) then
+          if ( do_diag ) then
+             call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
+             nrm = norm_inf(mgt%cc(lev))
+             if ( parallel_IOProcessor() ) &
+                print *,'  DN: Norm before bottom         ',nrm
+          end if
+
+          call do_bottom_mgt(mgt, uu, rh)
+
+          if ( do_diag ) then
              call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
              nrm = norm_inf(mgt%cc(lev))
              if ( parallel_IOProcessor() ) &
@@ -1118,30 +1610,31 @@ contains
           end if
 
        else
-          stime = parallel_wtime()
           call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
-          if ( present(bottom_solve_time) ) &
-               bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
        end if
 
-       if ( cyc == MG_FCycle ) gamma = 1
-
+       if ( present(bottom_solve_time) ) &
+            bottom_solve_time = bottom_solve_time + (parallel_wtime()-stime)
     else 
-
-       if (do_diag) then
-          nrm = norm_inf(rh)
-          if ( parallel_IOProcessor() ) &
-             print *,'  DN: Norm before smooth         ',nrm
+       if ( do_diag ) then
+          if (cyc == MG_FCycle) then
+              call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
+              nrm = norm_inf(mgt%cc(lev))
+           else
+              nrm = norm_inf(rh)
+           end if
        end if
+
+       if ( do_diag .and. parallel_IOProcessor() ) &
+          print *,'  DN: Norm before smooth         ',nrm
 
        do i = 1, nu1
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
 
-       ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
-       if (do_diag) then
+       if ( do_diag ) then
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
               print *,'  DN: Norm after  smooth         ',nrm
@@ -1149,29 +1642,20 @@ contains
 
        call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
                                  mgt%mm(lev),mgt%mm(lev-1))
-       ! HACK 
-       if (nodal_flag) then 
-          if ( get_dim(rh) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
-          else if ( get_dim(rh) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
-          end if
-       end if
+
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
        do i = gamma, 1, -1
-          call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
+          call mg_tower_v_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
        end do
 
-       ! uu  += cc, done, by convention, using the prolongation routine.
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1))
+       call mg_tower_prolongation(mgt, uu, lev-1)
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
 
-       if (do_diag) then
-          ! compute mgt%cc(lev) = ss * uu - rh
+       if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) then
@@ -1183,47 +1667,40 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
 
-       if (do_diag) then
-          ! compute mgt%cc(lev) = ss * uu - rh
+       if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
              print *,'  UP: Norm after  smooth         ',nrm
        end if
 
-       ! if at top of tower and doing an FCycle reset gamma
-       if ( lev == mgt%nlevels .AND. cyc == MG_FCycle ) gamma = 2
     end if
-
-    call timer_stop(mgt%tm(lev))
 
     call destroy(bpt)
 
 1000 format('AT LEVEL ',i2)
 
-  end subroutine mg_tower_cycle
+  end subroutine mg_tower_v_cycle
 
   subroutine mini_cycle(mgt, lev, ss, uu, rh, mm, nu1, nu2)
 
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(in) :: rh
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in) :: ss
-    type(imultifab), intent(in) :: mm
-    integer, intent(in) :: lev
-    integer, intent(in) :: nu1, nu2
+    type(mg_tower),  intent(inout) :: mgt
+    type(multifab),  intent(in   ) :: rh
+    type(multifab),  intent(inout) :: uu
+    type(multifab),  intent(in   ) :: ss
+    type(imultifab), intent(in   ) :: mm
+    integer,         intent(in   ) :: lev
+    integer,         intent(in   ) :: nu1, nu2
 
-    ! Local variables
-    integer             :: i
-    logical             :: do_diag
-    real(dp_t)          :: nrm
+    integer    :: i
+    logical    :: do_diag
+    real(dp_t) :: nrm
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
-
-    call timer_start(mgt%tm(lev))
-
-    ! Always relax first at the level we come in at
-    if (do_diag) then
+    !
+    ! Always relax first at the level we come in at.
+    !
+    if ( do_diag ) then
        nrm = norm_inf(rh)
        if ( parallel_IOProcessor() ) &
           print *,'MINI_FINE: Norm before smooth         ',nrm
@@ -1233,37 +1710,26 @@ contains
        call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
     end do
 
-    ! compute mgt%cc(lev) = ss * uu - rh
     call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
-    if (do_diag) then
+    if ( do_diag ) then
        nrm = norm_inf(mgt%cc(lev))
        if ( parallel_IOProcessor() ) &
            print *,'MINI_FINE: Norm after  smooth         ',nrm
     end if
-
+    !
     ! If we are doing a mini V-cycle here, then we must compute the coarse residual, 
-    !   relax at the next lower level, then interpolate the correction and relax again
+    ! relax at the next lower level, then interpolate the correction and relax again.
+    !
     if ( lev > 1 ) then
 
-       ! compute mgt%cc(lev) = ss * uu - rh
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
-       call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
-                                 mgt%mm(lev),mgt%mm(lev-1))
-
-       ! HACK 
-       if ( nodal_q(mgt%dd(lev-1)) ) then
-          if ( get_dim(ss) .eq. 3 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.125_dp_t,nghost(mgt%dd(lev-1)))
-          else if ( get_dim(ss) .eq. 2 ) then
-             call multifab_mult_mult_s(mgt%dd(lev-1),0.25_dp_t,nghost(mgt%dd(lev-1)))
-          end if
-       end if
+       call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), mgt%mm(lev),mgt%mm(lev-1))
 
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
-       if (do_diag) then
+       if ( do_diag ) then
           nrm = norm_inf(mgt%dd(lev-1))
           if ( parallel_IOProcessor() ) &
              print *,'MINI_CRSE: Norm before smooth         ',nrm
@@ -1273,7 +1739,7 @@ contains
           call mg_tower_smoother(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), mgt%dd(lev-1), mgt%mm(lev-1))
        end do
 
-       if (do_diag) then
+       if ( do_diag ) then
           call mg_defect(mgt%ss(lev-1), mgt%cc(lev-1), mgt%dd(lev-1), mgt%uu(lev-1), mgt%mm(lev-1), &
                          mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev-1))
@@ -1281,12 +1747,9 @@ contains
              print *,'MINI_CRSE: Norm  after smooth         ',nrm
        end if
 
-!      call mg_tower_bottom_solve(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
-!                                 mgt%dd(lev-1), mgt%mm(lev-1))
+       call mg_tower_prolongation(mgt, uu, lev-1)
 
-       call mg_tower_prolongation(mgt, uu, mgt%uu(lev-1))
-
-       if (do_diag) then
+       if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
@@ -1297,7 +1760,7 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
 
-       if (do_diag) then
+       if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
           nrm = norm_inf(mgt%cc(lev))
           if ( parallel_IOProcessor() ) &
@@ -1306,144 +1769,6 @@ contains
 
     end if
 
-    call timer_stop(mgt%tm(lev))
-
   end subroutine mini_cycle
-
-  subroutine mg_tower_solve(mgt, uu, rh, qq, num_iter, defect_history, defect_dirname, stat)
-
-    use fabio_module
-    use bl_prof_module
-
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: uu, rh
-    integer, intent(out), optional :: stat
-    real(dp_t), intent(out), optional :: qq(0:)
-    integer, intent(out), optional :: num_iter
-    character(len=*), intent(in), optional :: defect_dirname
-    logical, intent(in), optional :: defect_history
-    integer :: gamma
-    integer :: it, cyc
-    real(dp_t) :: ynorm, Anorm, nrm(3), tnrm(3), t1, t2
-    integer :: n_qq, i_qq
-    logical :: ldef
-    type(bl_prof_timer), save :: bpt
-    character(len=128) :: defbase
-
-    call build(bpt, "mg_tower_solve")
-
-    ldef = .false.; if ( present(defect_history) ) ldef = defect_history
-    if ( ldef ) then
-       if ( .not. present(defect_dirname) ) then
-          call bl_error("MG_TOWER_SOLVE: defect_history but no defect_dirname")
-       end if
-    end if
-
-    if ( present(stat) ) stat = 0
-    if ( mgt%cycle_type == MG_FCycle ) then
-       gamma = 2
-    else
-       gamma = mgt%gamma
-    end if
-
-    n_qq = 0
-    i_qq = 0
-    if ( present(qq) ) then
-       n_qq = size(qq)
-    end if
-    cyc   = mgt%cycle_type
-    !
-    ! Let's elide a reduction here.
-    !
-    nrm(1) = stencil_norm(mgt%ss(mgt%nlevels),local=.true.)
-    nrm(2) = norm_inf(rh,local=.true.)
-
-    call parallel_reduce(tnrm(1:2),nrm(1:2),MPI_MAX)
-
-    Anorm = tnrm(1)
-    ynorm = tnrm(2)
-
-    ! compute mgt%dd(mgt%nlevels) = mgt%ss(mgt%nlevels) * uu - rh
-    call mg_defect(mgt%ss(mgt%nlevels), &
-                   mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), &
-                   mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
-    if ( i_qq < n_qq ) then
-       qq(i_qq) = norm_l2(mgt%dd(mgt%nlevels))
-       i_qq = i_qq + 1
-    end if
-    if ( ldef ) then
-       write(unit = defbase, fmt='("def",I3.3)') 0
-       call fabio_write(mgt%dd(mgt%nlevels), defect_dirname, defbase)
-    end if
-
-    if ( mgt%verbose > 0 ) then
-       !
-       ! Let's elide a couple reductions here.
-       !
-       nrm(3) = norm_inf(mgt%dd(mgt%nlevels),local=.true.)
-       nrm(1) = norm_inf(uu,local=.true.)
-       nrm(2) = norm_inf(rh,local=.true.)
-
-       call parallel_reduce(tnrm,nrm,MPI_MAX)
-
-       nrm(3) = tnrm(3)
-       nrm(1) = tnrm(1)
-       nrm(2) = tnrm(2)
-       if ( parallel_IOProcessor() ) then
-          write(unit=*, &
-               fmt='(i3,": Unorm= ",g15.8,", Rnorm= ",g15.8,", Ninf(defect) = ",g15.8, ", Anorm=",g15.8)') &
-               0, nrm, Anorm
-       end if
-    end if
-    if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), Ynorm) ) then
-       if ( present(stat) ) stat = 0
-       if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
-          write(unit=*, fmt='("F90mg: MG finished at on input")') 
-       end  if
-       return
-    end if
-    do it = 1, mgt%max_iter
-       call mg_tower_cycle(mgt, cyc, mgt%nlevels, mgt%ss(mgt%nlevels), &
-                           uu, rh, mgt%mm(mgt%nlevels), mgt%nu1, mgt%nu2, gamma)
-       ! compute mgt%cc(lev) = ss * uu - rh
-       call mg_defect(mgt%ss(mgt%nlevels), &
-                      mgt%dd(mgt%nlevels), rh, uu, mgt%mm(mgt%nlevels), &
-                      mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
-       if ( mgt%verbose > 0 ) then
-          t1 = norm_inf(mgt%dd(mgt%nlevels),local=.true.)
-          call parallel_reduce(t2,t1,MPI_MAX,proc=parallel_IOProcessorNode())
-          if ( parallel_IOProcessor() ) then
-             write(unit=*, fmt='(i3,": Ninf(defect) = ",g15.8)') it, t2
-          end if
-       end if
-       if ( i_qq < n_qq ) then
-          qq(i_qq) = norm_l2(mgt%dd(mgt%nlevels))
-          i_qq = i_qq + 1
-       end if
-       if ( ldef ) then
-          write(unit = defbase,fmt='("def",I3.3)') it
-          call fabio_write(mgt%dd(mgt%nlevels), defect_dirname, defbase)
-       end if
-       if ( mg_tower_converged(mgt, mgt%dd(mgt%nlevels), Ynorm) ) exit
-    end do
-    if ( mgt%verbose > 0 .AND. parallel_IOProcessor() ) then
-       write(unit=*, fmt='("F90mg: MG finished at ", i3, " iterations")') it
-    end  if
-
-    if ( it > mgt%max_iter ) then
-       if ( present(stat) ) then
-          stat = 1
-       else
-          if (mgt%abort_on_max_iter) then
-             call bl_error("MG_TOWER_SOLVE: failed to converge in max_iter iterations")
-          end if
-       end if
-    end if
-
-    if ( present(num_iter) ) num_iter = it
-
-    call destroy(bpt)
-
-  end subroutine mg_tower_solve
 
 end module mg_module
