@@ -23,7 +23,9 @@ contains
 
         if (lvl == 1) then
 
-            call print_cycle_tower(ct,lvl,'Before relaxation: ')
+            if (parallel_IOProcessor()) then
+                call print_cycle_tower(ct,lvl,'Before relaxation: ')
+            end if
 
             if (ct%verbose >= 2) then
                 write(*,'(a,i3,a)') '    FMG-Cycle BOTTOM -- Applying ',ct%fmg_bot,' relaxations.'
@@ -34,7 +36,9 @@ contains
                 call gsrb(ct%uu(lvl),ct%ff(lvl),ct%bb(lvl,:),ct%dx(lvl))
             end do
 
-            call print_cycle_tower(ct,lvl,' After relaxation: ')
+            if (parallel_IOProcessor()) then
+                call print_cycle_tower(ct,lvl,' After relaxation: ')
+            end if
 
         else
 
