@@ -280,6 +280,7 @@ class Profiler
     static void InitParams(const Real ptl, const bool writeall,
                            const bool writefabs) { }
     static void AddStep(const int snum) { }
+    static void PerfMonProcess() { }
 };
 
 #define BL_PROFILE_INITIALIZE()
