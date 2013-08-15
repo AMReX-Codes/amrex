@@ -22,7 +22,6 @@ f90sources += v_cycle.f90
 f90sources += fmg_cycle.f90
 f90sources += solve.f90
 
-include ./GPackage.mak
 VPATH_LOCATIONS += .
 
 include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
