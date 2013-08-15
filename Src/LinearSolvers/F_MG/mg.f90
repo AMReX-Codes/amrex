@@ -11,7 +11,7 @@ module mg_module
      module procedure mg_tower_destroy
   end interface
 
-  private :: get_bottom_box_size
+  private :: get_bottom_box_size, impose_physbc_cc_2d, impose_physbc_cc_3d
 
 contains
 
@@ -26,7 +26,7 @@ contains
                             bottom_solver, bottom_max_iter, bottom_solver_eps, &
                             max_L0_growth, &
                             verbose, cg_verbose, nodal, use_hypre, is_singular, &
-                            the_bottom_comm, fancy_bottom_type_in)
+                            the_bottom_comm, fancy_bottom_type_in, use_lininterp, ptype)
     use bl_IO_module
     use bl_prof_module
 
@@ -61,17 +61,17 @@ contains
     logical, intent(in), optional :: is_singular
     integer, intent(in), optional :: the_bottom_comm
     integer, intent(in), optional :: fancy_bottom_type_in
+    logical, intent(in), optional :: use_lininterp
+    integer, intent(in), optional :: ptype
 
-    integer :: lo_grid,hi_grid,lo_dom,hi_dom
-    integer :: ng_for_res
-    integer :: n, i, id, vol, j
+    integer         :: n, i, id, vol, j, lo_grid, hi_grid, lo_dom, hi_dom, ng_for_res
+    integer         :: fancy_bottom_type
     type(layout)    :: la1, la2
     type(box)       :: bounding_box
     type(boxarray)  :: ba
     logical         :: nodal_flag
     real(kind=dp_t) :: dvol, dvol_pd
     type(bl_prof_timer), save :: bpt
-    integer :: fancy_bottom_type
 
     ! These are added to help build the bottom_mgt
     type(  layout)      :: old_coarse_la, new_coarse_la
@@ -109,6 +109,8 @@ contains
     if ( present(cg_verbose)        ) mgt%cg_verbose        = cg_verbose
     if ( present(use_hypre)         ) mgt%use_hypre         = use_hypre 
     if ( present(max_L0_growth)     ) mgt%max_L0_growth     = max_L0_growth 
+    if ( present(use_lininterp)     ) mgt%use_lininterp     = use_lininterp
+    if ( present(ptype)             ) mgt%ptype             = ptype
 
     if ( present(the_bottom_comm) ) then
        allocate(mgt%bottom_comm)
@@ -221,6 +223,12 @@ contains
        allocate(mgt%skewed_not_set(mgt%nlevels))
        mgt%skewed_not_set = .true.
     end if
+    !
+    ! Save copy of domain BCs.
+    !
+    allocate(mgt%domain_bc(mgt%dim,1:2))
+
+    mgt%domain_bc = domain_bc(:,1:2)
 
     if ( nodal_flag ) then
        !
@@ -500,6 +508,7 @@ contains
 
     deallocate(mgt%cc, mgt%ff, mgt%dd, mgt%uu, mgt%mm, mgt%ss)
     deallocate(mgt%dh, mgt%pd)
+    deallocate(mgt%domain_bc)
 
     if ( associated(mgt%face_type) ) deallocate(mgt%face_type)
 
@@ -951,24 +960,303 @@ contains
 
   end subroutine mg_tower_restriction
   !
+  ! In the following two "impose" routines we assume that any ghost cells
+  ! covered by valid region have been filled properly by fill_boundary().
+  ! Also, that "all" ghost cells have computable values.  We may copy some
+  ! ghost cells only to overwrite them later with "correct" values.
+  !
+  subroutine impose_physbc_cc_2d(uu, mgt, lo, hi, dlo, dhi, ng)
+
+    type(mg_tower),  intent(in   ) :: mgt
+    integer,         intent(in   ) :: lo(:), hi(:), dlo(:), dhi(:), ng
+    real(kind=dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,:)
+
+    if ( lo(1) == dlo(1) ) then
+
+       if ( mgt%domain_bc(1,1) == BC_DIR ) then
+
+          uu(lo(1)-1,:,1:mgt%nc) = -uu(lo(1),:,1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,1) == BC_NEU ) then
+
+          uu(lo(1)-1,:,1:mgt%nc) =  uu(lo(1),:,1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
+          !
+          ! Corners
+          !
+          if ( lo(2) == dlo(2) ) then
+             uu(lo(1)-1,lo(2)-1,1:mgt%nc) = uu(lo(1)-1,lo(2),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(lo(1)-1,hi(2)+1,1:mgt%nc) = uu(lo(1)-1,hi(2),1:mgt%nc)
+          end if
+       end if
+
+    end if
+
+    if ( hi(1) == dhi(1) ) then
+
+       if ( mgt%domain_bc(1,2) == BC_DIR ) then
+
+          uu(hi(1)+1,lo(2):hi(2),1:mgt%nc) = -uu(hi(1),lo(2):hi(2),1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,2) == BC_NEU ) then
+
+          uu(hi(1)+1,lo(2):hi(2),1:mgt%nc) =  uu(hi(1),lo(2):hi(2),1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
+          !
+          ! Corners
+          !
+          if ( lo(2) == dlo(2) ) then
+             uu(hi(1)+1,lo(2)-1,1:mgt%nc) = uu(hi(1)+1,lo(2),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(hi(1)+1,hi(2)+1,1:mgt%nc) = uu(hi(1)+1,hi(2),1:mgt%nc)
+          end if
+       end if
+
+    end if
+    !
+    ! At this point all possible corner cells have been filled.
+    !
+    if ( lo(2) == dlo(2) ) then
+
+       if ( mgt%domain_bc(2,1) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2)-1,1:mgt%nc) = -uu(lo(1):hi(1),lo(2),1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,1) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2)-1,1:mgt%nc) =  uu(lo(1):hi(1),lo(2),1:mgt%nc)
+
+       end if
+
+    end if
+
+    if ( hi(2) == dhi(2) ) then
+
+       if ( mgt%domain_bc(2,2) == BC_DIR ) then
+
+          uu(lo(1):hi(1),hi(2)+1,1:mgt%nc) = -uu(lo(1):hi(1),hi(2),1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,2) == BC_NEU ) then
+
+          uu(lo(1):hi(1),hi(2)+1,1:mgt%nc) =  uu(lo(1):hi(1),hi(2),1:mgt%nc)
+
+       end if
+
+    end if
+
+  end subroutine impose_physbc_cc_2d
+
+  subroutine impose_physbc_cc_3d(uu, mgt, lo, hi, dlo, dhi, ng)
+
+    type(mg_tower),  intent(in   ) :: mgt
+    integer,         intent(in   ) :: lo(:), hi(:), dlo(:), dhi(:), ng
+    real(kind=dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:,:)
+
+    if ( lo(1) == dlo(1) ) then
+
+       if ( mgt%domain_bc(1,1) == BC_DIR ) then
+
+          uu(lo(1)-1,:,:,1:mgt%nc) = -uu(lo(1),:,:,1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,1) == BC_NEU ) then
+
+          uu(lo(1)-1,:,:,1:mgt%nc) =  uu(lo(1),:,:,1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,1) == BC_DIR .or. mgt%domain_bc(1,1) == BC_NEU ) then
+          !
+          ! Edges.
+          !
+          if ( lo(2) == dlo(2) ) then
+             uu(lo(1)-1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(lo(1)-1,lo(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(lo(1)-1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(lo(1)-1,hi(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( lo(3) == dlo(3) ) then
+             uu(lo(1)-1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(lo(1)-1,lo(2):hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(lo(1)-1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(lo(1)-1,lo(2):hi(2),hi(3),1:mgt%nc)
+          end if
+          !
+          ! Corners
+          !
+          if ( lo(2) == dlo(2) .and. lo(3) == dlo(3) ) then
+             uu(lo(1)-1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1)-1,lo(2),lo(3),1:mgt%nc)
+          end if
+          if ( lo(2) == dlo(2) .and. hi(3) == dhi(3) ) then
+             uu(lo(1)-1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1)-1,lo(2),hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. lo(3) == dlo(3) ) then
+             uu(lo(1)-1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1)-1,hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. hi(3) == dhi(3) ) then
+             uu(lo(1)-1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1)-1,hi(2),hi(3),1:mgt%nc)
+          end if
+       end if
+
+    end if
+
+    if ( hi(1) == dhi(1) ) then
+
+       if ( mgt%domain_bc(1,2) == BC_DIR ) then
+
+          uu(hi(1)+1,:,:,1:mgt%nc) = -uu(hi(1),:,:,1:mgt%nc)
+
+       else if ( mgt%domain_bc(1,2) == BC_NEU ) then
+
+          uu(hi(1)+1,:,:,1:mgt%nc) =  uu(hi(1),:,:,1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(1,2) == BC_DIR .or. mgt%domain_bc(1,2) == BC_NEU ) then
+          !
+          ! Edges.
+          !
+          if ( lo(2) == dlo(2) ) then
+             uu(hi(1)+1,lo(2)-1,lo(3):hi(3),1:mgt%nc) = uu(hi(1)+1,lo(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) ) then
+             uu(hi(1)+1,hi(2)+1,lo(3):hi(3),1:mgt%nc) = uu(hi(1)+1,hi(2),lo(3):hi(3),1:mgt%nc)
+          end if
+          if ( lo(3) == dlo(3) ) then
+             uu(hi(1)+1,lo(2):hi(2),lo(3)-1,1:mgt%nc) = uu(hi(1)+1,lo(2):hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(hi(1)+1,lo(2):hi(2),hi(3)+1,1:mgt%nc) = uu(hi(1)+1,lo(2):hi(2),hi(3),1:mgt%nc)
+          end if
+          !
+          ! Corners.
+          !
+          if ( lo(2) == dlo(2) .and. lo(3) == dlo(3) ) then
+             uu(hi(1)+1,lo(2)-1,lo(3)-1,1:mgt%nc) = uu(hi(1)+1,lo(2),lo(3),1:mgt%nc)
+          end if
+          if ( lo(2) == dlo(2) .and. hi(3) == dhi(3) ) then
+             uu(hi(1)+1,lo(2)-1,hi(3)+1,1:mgt%nc) = uu(hi(1)+1,lo(2),hi(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. lo(3) == dlo(3) ) then
+             uu(hi(1)+1,hi(2)+1,lo(3)-1,1:mgt%nc) = uu(hi(1)+1,hi(2),lo(3),1:mgt%nc)
+          end if
+          if ( hi(2) == dhi(2) .and. hi(3) == dhi(3) ) then
+             uu(hi(1)+1,hi(2)+1,hi(3)+1,1:mgt%nc) = uu(hi(1)+1,hi(2),hi(3),1:mgt%nc)
+          end if
+       end if
+
+    end if
+    !
+    ! All possible corners should be done by this point. Only some faces & edges remain.
+    !
+    if ( lo(2) == dlo(2) ) then
+
+       if ( mgt%domain_bc(2,1) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2)-1,:,1:mgt%nc) = -uu(lo(1):hi(1),lo(2),:,1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,1) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2)-1,:,1:mgt%nc) =  uu(lo(1):hi(1),lo(2),:,1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(2,1) == BC_DIR .or. mgt%domain_bc(2,1) == BC_NEU ) then
+          !
+          ! Edges - only need to do lo & hi Z.
+          !
+          if ( lo(3) == dlo(3) ) then
+             uu(lo(1):hi(1),lo(2)-1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),lo(2)-1,lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(lo(1):hi(1),lo(2)-1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),lo(2)-1,hi(3),1:mgt%nc)
+          end if
+       end if
+
+    end if
+
+    if ( hi(2) == dhi(2) ) then
+
+       if ( mgt%domain_bc(2,2) == BC_DIR ) then
+
+          uu(lo(1):hi(1),hi(2)+1,:,1:mgt%nc) = -uu(lo(1):hi(1),hi(2),:,1:mgt%nc)
+
+       else if ( mgt%domain_bc(2,2) == BC_NEU ) then
+
+          uu(lo(1):hi(1),hi(2)+1,:,1:mgt%nc) =  uu(lo(1):hi(1),hi(2),:,1:mgt%nc)
+
+       end if
+
+       if ( mgt%domain_bc(2,2) == BC_DIR .or. mgt%domain_bc(2,2) == BC_NEU ) then
+          !
+          ! Edges - only need to do lo & hi Z.
+          !
+          if ( lo(3) == dlo(3) ) then
+             uu(lo(1):hi(1),hi(2)+1,lo(3)-1,1:mgt%nc) = uu(lo(1):hi(1),hi(2)+1,lo(3),1:mgt%nc)
+          end if
+          if ( hi(3) == dhi(3) ) then
+             uu(lo(1):hi(1),hi(2)+1,hi(3)+1,1:mgt%nc) = uu(lo(1):hi(1),hi(2)+1,hi(3),1:mgt%nc)
+          end if
+       end if
+
+    end if
+    !
+    ! All that remains to do are any Z faces.
+    !
+    if ( lo(3) == dlo(3) ) then
+
+       if ( mgt%domain_bc(3,1) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) = -uu(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+
+       else if ( mgt%domain_bc(3,1) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),lo(3)-1,1:mgt%nc) =  uu(lo(1):hi(1),lo(2):hi(2),lo(3),1:mgt%nc)
+
+       end if
+
+    end if
+
+    if ( hi(3) == dhi(3) ) then
+
+       if ( mgt%domain_bc(3,2) == BC_DIR ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) = -uu(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+
+       else if ( mgt%domain_bc(3,2) == BC_NEU ) then
+
+          uu(lo(1):hi(1),lo(2):hi(2),hi(3)+1,1:mgt%nc) =  uu(lo(1):hi(1),lo(2):hi(2),hi(3),1:mgt%nc)
+
+       end if
+
+    end if
+
+  end subroutine impose_physbc_cc_3d
+  !
   ! Prolongate from mgt%uu(lev) -> uu.
   !
-  subroutine mg_tower_prolongation(mgt, uu, lev, cc_ptype, nodal_cubic)
-
+  subroutine mg_tower_prolongation(mgt, uu, lev)
     use bl_prof_module
     use mg_prolongation_module
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
-    integer       , intent(in   ) :: lev, cc_ptype
-    logical       , intent(in   ) :: nodal_cubic
+    integer       , intent(in   ) :: lev
 
     real(kind=dp_t), pointer  :: fp(:,:,:,:), cp(:,:,:,:), up(:,:,:,:)
     integer,         pointer  :: mp(:,:,:,:)
     integer                   :: i, j, k, n, ng, ir(mgt%dim)
     integer                   :: lo(mgt%dim), hi(mgt%dim), lom(mgt%dim)
-    integer                   :: loc(mgt%dim), lof(mgt%dim)
-
+    integer                   :: loc(mgt%dim), lof(mgt%dim), dlo(mgt%dim), dhi(mgt%dim)
+    type(box)                 :: dmn
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_prolongation")
@@ -976,10 +1264,35 @@ contains
     call bl_assert( mgt%nc == ncomp(uu)         , 'mg_tower_prolongation: ncomp')
     call bl_assert( mgt%nc == ncomp(mgt%uu(lev)), 'mg_tower_prolongation: ncomp')
 
-    ir = 2
-    ng = nghost(mgt%uu(lev))
+    ir  = 2
+    ng  = nghost(mgt%uu(lev))
+    dmn = get_pd(get_layout(mgt%uu(lev)))
+    dlo = lwb(dmn)
+    dhi = upb(dmn)
 
     if ( .not. nodal_q(uu) ) then
+       if ( mgt%use_lininterp ) then
+          if ( ng > 0 ) then
+             !
+             ! Set up dirichlet/neumann boundaries so lininterp does right thing.
+             ! If we don't have one ghost cell the interp routines will do a
+             ! piecewise constant interp on the cells touching the grid boundary.
+             !
+             call multifab_fill_boundary(mgt%uu(lev))
+
+             do n = 1, nfabs(uu)
+                up => dataptr(mgt%uu(lev) ,n)
+                lo =  lwb(get_ibox(mgt%uu(lev), n))
+                hi =  upb(get_ibox(mgt%uu(lev), n))
+                select case ( mgt%dim )
+                case (2)
+                   call impose_physbc_cc_2d(up(:,:,1,:),mgt,lo,hi,dlo,dhi,ng)
+                case (3)
+                   call impose_physbc_cc_3d(up(:,:,:,:),mgt,lo,hi,dlo,dhi,ng)
+                end select
+             end do
+          end if
+       end if
 
        !$OMP PARALLEL DO PRIVATE(i,n,loc,lof,lo,hi,fp,cp)
        do i = 1, nfabs(uu)
@@ -989,36 +1302,22 @@ contains
           hi  =  upb(get_ibox(uu, i))
           fp  => dataptr(uu,         i)
           cp  => dataptr(mgt%uu(lev),i)
-          if ( cc_ptype == 0 ) then
-             do n = 1, mgt%nc
-                select case ( mgt%dim )
-                case (1)
-                   call pc_c_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
-                case (2)
-                   call pc_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
-                case (3)
-                   call pc_c_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
-                end select
-             end do
-          else
-             do n = 1, mgt%nc
-                select case ( mgt%dim )
-                case (1)
-                   call lin_c_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
-                case (2)
-                   call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
-                case (3)
-                   call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
-                end select
-             end do
-          end if
+          do n = 1, mgt%nc
+             select case ( mgt%dim )
+             case (1)
+                call cc_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, mgt%use_lininterp)
+             case (2)
+                call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, mgt%use_lininterp, mgt%ptype)
+             case (3)
+                call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, mgt%use_lininterp, mgt%ptype)
+             end select
+          end do
        end do
        !$OMP END PARALLEL DO
 
     else
 
-      if ( nodal_cubic  .and. mgt%dim > 1 ) then
-
+      if ( using_nodal_cubic() .and. mgt%dim > 1 ) then
          call multifab_fill_boundary(mgt%uu(lev))
 
          do i = 1, nfabs(mgt%uu(lev))
@@ -1049,17 +1348,17 @@ contains
           do n = 1, mgt%nc
              select case ( mgt%dim )
              case (1)
-                call nodal_prolongation_1d(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, cubic = nodal_cubic)
+                call nodal_prolongation_1d(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
              case (2)
-                call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cubic = nodal_cubic)
+                call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
              case (3)
-                call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, cubic = nodal_cubic)
+                call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
              end select
           end do
        end do
        !$OMP END PARALLEL DO
 
-       if ( nodal_cubic .and. mgt%dim > 1 ) then
+       if ( using_nodal_cubic() .and. mgt%dim > 1 ) then
           !
           ! The [bi,tri]cubic interpolators don't preserve dirichlet BCs.
           !
@@ -1153,7 +1452,6 @@ contains
 
   recursive subroutine mg_tower_fmg_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2,&
                                  bottom_level, bottom_solve_time)
-
     use fabio_module
     use bl_prof_module
     use impose_neumann_bcs_module
@@ -1171,8 +1469,7 @@ contains
 
     logical                   :: do_diag
     real(dp_t)                :: nrm, stime
-    integer                   :: lbl, cc_ptype
-    logical                   :: nodal_cubic
+    integer                   :: lbl
     character(len=3)          :: number
     character(len=20)         :: filename
 
@@ -1185,17 +1482,7 @@ contains
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
 
     call setval(uu,ZERO,all=.true.)
-    !
-    ! Prolongation types for Cell-centered:
-    !
-    !   Piecewise constant: 0
-    !   Piecewise linear:   1, 2, or 3
-    !
-    cc_ptype = 0
-    !
-    ! Do you want to use [bi,tri]cubic nodal prolongation?
-    !
-    nodal_cubic = .false.
+
 
     if ( lev == lbl ) then
        stime = parallel_wtime()
@@ -1228,21 +1515,19 @@ contains
        call mg_tower_fmg_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                       mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, bottom_level, bottom_solve_time)
 
+!       call print(mgt%uu(lev-1),'uu before prolongation')
+
        if ( .false. ) then
           !
           ! Some debugging code I want to keep around for a while.
           ! I don't want to have to recreate this all the time :-)
           !
           write(number,fmt='(i3.3)') lev
-          if ( nodal_cubic ) then
-             filename = 'uu_before_p' // number
-          else
-             filename = 'uu_linear_' // number
-          end if
+          filename = 'uu_before_p' // number
           call fabio_write(mgt%uu(lev-1), 'debug', trim(filename))
        end if
           
-       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nodal_cubic)
+       call mg_tower_prolongation(mgt, uu, lev-1)
 
        if (lev == mgt%nlevels) then
             call mg_tower_v_cycle(mgt, MG_VCycle, lev, mgt%ss(lev), uu, &
@@ -1258,25 +1543,25 @@ contains
   end subroutine mg_tower_fmg_cycle
 
   recursive subroutine mg_tower_v_cycle(mgt, cyc, lev, ss, uu, rh, mm, nu1, nu2, gamma, &
-                                      bottom_level, bottom_solve_time)
-
+                                        bottom_level, bottom_solve_time)
     use bl_prof_module
 
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: rh
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in) :: ss
-    type(imultifab), intent(in) :: mm
-    integer, intent(in) :: lev
-    integer, intent(in) :: nu1, nu2
-    integer, intent(in) :: gamma
-    integer, intent(in) :: cyc
-    integer, intent(in), optional :: bottom_level
-    real(dp_t), intent(inout), optional :: bottom_solve_time
-    integer :: i, cc_ptype
-    logical :: do_diag, nodal_cubic
+    type(mg_tower),  intent(inout) :: mgt
+    type(multifab),  intent(inout) :: rh
+    type(multifab),  intent(inout) :: uu
+    type(multifab),  intent(in   ) :: ss
+    type(imultifab), intent(in   ) :: mm
+    integer,         intent(in   ) :: lev
+    integer,         intent(in   ) :: nu1, nu2
+    integer,         intent(in   ) :: gamma
+    integer,         intent(in   ) :: cyc
+    integer,         intent(in   ), optional :: bottom_level
+    real(dp_t),      intent(inout), optional :: bottom_solve_time
+
+    integer    :: i,lbl
+    logical    :: do_diag
     real(dp_t) :: nrm, stime
-    integer :: lbl
+
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_v_cycle")
@@ -1284,17 +1569,6 @@ contains
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
-    !
-    ! Prolongation types for Cell-centered:
-    !
-    !   Piecewise constant: 0
-    !   Piecewise linear:   1, 2, or 3
-    !
-    cc_ptype = 0
-    !
-    ! Do you want to use cubic nodal interpolation?
-    !
-    nodal_cubic = .false.
 
     if ( parallel_IOProcessor() .and. do_diag) &
          write(6,1000) lev
@@ -1376,7 +1650,7 @@ contains
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
        end do
 
-       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nodal_cubic)
+       call mg_tower_prolongation(mgt, uu, lev-1)
 
        if ( parallel_IOProcessor() .and. do_diag) &
           write(6,1000) lev
@@ -1410,32 +1684,22 @@ contains
 
   subroutine mini_cycle(mgt, lev, ss, uu, rh, mm, nu1, nu2)
 
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(in) :: rh
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in) :: ss
-    type(imultifab), intent(in) :: mm
-    integer, intent(in) :: lev
-    integer, intent(in) :: nu1, nu2
+    type(mg_tower),  intent(inout) :: mgt
+    type(multifab),  intent(in   ) :: rh
+    type(multifab),  intent(inout) :: uu
+    type(multifab),  intent(in   ) :: ss
+    type(imultifab), intent(in   ) :: mm
+    integer,         intent(in   ) :: lev
+    integer,         intent(in   ) :: nu1, nu2
 
-    integer             :: i, cc_ptype
-    logical             :: do_diag, nodal_cubic
-    real(dp_t)          :: nrm
+    integer    :: i
+    logical    :: do_diag
+    real(dp_t) :: nrm
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
     !
-    ! Prolongation types for Cell-centered:
+    ! Always relax first at the level we come in at.
     !
-    !   Piecewise constant: 0
-    !   Piecewise linear:   1, 2, or 3
-    !
-    cc_ptype = 0
-    !
-    ! Do you want to use cubic nodal interpolation?
-    !
-    nodal_cubic = .false.
-
-    ! Always relax first at the level we come in at
     if ( do_diag ) then
        nrm = norm_inf(rh)
        if ( parallel_IOProcessor() ) &
@@ -1453,15 +1717,15 @@ contains
        if ( parallel_IOProcessor() ) &
            print *,'MINI_FINE: Norm after  smooth         ',nrm
     end if
-
+    !
     ! If we are doing a mini V-cycle here, then we must compute the coarse residual, 
-    !   relax at the next lower level, then interpolate the correction and relax again
+    ! relax at the next lower level, then interpolate the correction and relax again.
+    !
     if ( lev > 1 ) then
 
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
-       call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), &
-                                 mgt%mm(lev),mgt%mm(lev-1))
+       call mg_tower_restriction(mgt, mgt%dd(lev-1), mgt%cc(lev), mgt%mm(lev),mgt%mm(lev-1))
 
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
@@ -1483,7 +1747,7 @@ contains
              print *,'MINI_CRSE: Norm  after smooth         ',nrm
        end if
 
-       call mg_tower_prolongation(mgt, uu, lev-1, cc_ptype, nodal_cubic)
+       call mg_tower_prolongation(mgt, uu, lev-1)
 
        if ( do_diag ) then
           call mg_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)

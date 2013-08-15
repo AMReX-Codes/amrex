@@ -84,7 +84,7 @@ class CGSolver
 {
 public:
 
-    enum Solver { CG, BiCGStab, CABiCGStab };
+    enum Solver { CG, BiCGStab, CABiCGStab, CABiCGStabQuad };
     //
     // The Constructor.
     //
@@ -154,6 +154,12 @@ protected:
                           Real            eps_rel,
                           Real            eps_abs,
                           LinOp::BC_Mode  bc_mode);
+
+    int solve_cabicgstab_quad (MultiFab&       solnL,
+                               const MultiFab& rhsL,
+                               Real            eps_rel,
+                               Real            eps_abs,
+                               LinOp::BC_Mode  bc_mode);
 
     int jbb_precond (MultiFab&       sol,
                      const MultiFab& rhs,

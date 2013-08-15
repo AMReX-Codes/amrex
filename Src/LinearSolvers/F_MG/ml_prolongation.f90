@@ -21,42 +21,72 @@ module ml_prolongation_module
 
 contains
 
-  subroutine ml_cc_prolongation(fine, crse, ir)
+  subroutine ml_cc_prolongation(fine, crse, ir, lininterp, ptype)
     use bl_prof_module
     use mg_prolongation_module
 
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
-    integer,        intent(in   ) :: ir(:)
+    integer,        intent(in   ) :: ir(:), ptype
+    logical,        intent(in   ) :: lininterp
 
     integer             :: lo (get_dim(fine)), hi (get_dim(fine))
     integer             :: loc(get_dim(fine)), lof(get_dim(fine))
-    integer             :: i, n, dm, cc_ptype
+    integer             :: i, n, dm
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
-    type(layout)        :: lacfine, laf
-    type(multifab)      :: cfine
+    type(boxarray)      :: ba
+    type(layout)        :: lacfine, laf, latmp
+    type(multifab)      :: cfine, cfgrow
     type(bl_prof_timer), save :: bpt
 
-    if ( ncomp(crse) .ne. ncomp(fine) ) then
-       call bl_error('ml_prolongation: crse & fine must have same # of components')
-    end if
+    if ( ncomp(crse) .ne. ncomp(fine) ) &
 
     call build(bpt, "ml_prolongation")
-    !
-    ! Prolongation types for Cell-centered:
-    !
-    !   Piecewise constant: 0
-    !   Piecewise linear:   1, 2, or 3
-    !
-    cc_ptype = 0
 
     laf = get_layout(fine)
 
     call layout_build_coarse(lacfine, laf, ir)
 
-    call build(cfine, lacfine, nc = ncomp(crse), ng = 0)
+    if ( .false. ) then
+       !
+       ! I'm checking this in disabled.  I still want to do more testing.
+       ! The point here is to get better meshing together to grids when
+       ! we prolongate by using one grow cell, which "should" always be
+       ! available due to proper nesting of grids.
+       !
+       call copy(ba, get_boxarray(lacfine))
 
-    call copy(cfine, 1, crse, 1, ncomp(crse))
+       call boxarray_grow(ba,1)
+
+       call layout_build_ba(latmp, ba, get_pd(lacfine), explicit_mapping = lacfine%lap%prc)
+
+       call destroy(ba)
+       !
+       ! "crse" should always cover "cfine" (including ghost cells) on
+       ! the valid region due to proper nesting.
+       !
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 1)
+       !
+       ! Use this to fill cfine including ghost cells.
+       !
+       call build(cfgrow, latmp, nc = ncomp(crse), ng = 0)
+
+       call copy(cfgrow, 1, crse, 1, ncomp(crse))
+       !
+       ! Finally copy FAB-wise from cfgrow -> cfine to get good ghost cells.
+       !
+       do i = 1, nfabs(cfgrow)
+          fp => dataptr(cfgrow, i)
+          cp => dataptr(cfine,  i)
+          call cpy_d(cp,fp)
+       end do
+
+       call destroy(cfgrow)
+       call destroy(latmp)
+    else
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 0)
+       call copy(cfine, 1, crse, 1, ncomp(crse))
+    end if
 
     dm = get_dim(crse)
 
@@ -68,29 +98,16 @@ contains
        hi  =  upb(get_ibox(fine, i))
        fp  => dataptr(fine, i)
        cp  => dataptr(cfine,i)
-       if ( cc_ptype == 0 ) then
-          do n = 1, ncomp(crse)
-             select case ( dm )
-             case (1)
-                call pc_c_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
-             case (2)
-                call pc_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
-             case (3)
-                call pc_c_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
-             end select
-          end do
-       else
-          do n = 1, ncomp(crse)
-             select case ( dm )
-             case (1)
-                call lin_c_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
-             case (2)
-                call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
-             case (3)
-                call lin_c_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, cc_ptype)
-             end select
-          end do
-       end if
+       do n = 1, ncomp(crse)
+          select case ( dm )
+          case (1)
+             call cc_prolongation(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir, lininterp)
+          case (2)
+             call cc_prolongation(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir, lininterp, ptype)
+          case (3)
+             call cc_prolongation(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir, lininterp, ptype)
+          end select
+       end do
     end do
     !$OMP END PARALLEL DO
 
@@ -113,10 +130,13 @@ contains
     integer             :: loc(get_dim(fine)), lof(get_dim(fine))
     integer             :: i, n, dm
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
-    type(layout)        :: lacfine,laf
-    type(multifab)      :: cfine
+    type(boxarray)      :: ba
+    type(layout)        :: lacfine, laf, latmp
+    type(multifab)      :: cfine, cfgrow
     character(len=3)    :: number
     character(len=20)   :: filename
+
+!    logical oldval
 
     integer, save :: cnt = 0
 
@@ -131,32 +151,73 @@ contains
 
     call layout_build_coarse(lacfine, laf, ir)
 
-    call build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+!    oldval = set_using_nodal_cubic(.true.)
 
-    call copy(cfine, 1, crse, 1, ncomp(crse))
+    if ( using_nodal_cubic() .and. get_dim(crse) > 1 ) then
+       !
+       ! I'm checking this in disabled.  I still want to do more testing.
+       ! The point here is to get better meshing together to grids when
+       ! we prolongate by using one grow cell, which "should" always be
+       ! available due to proper nesting of grids.
+       !
+       call copy(ba, get_boxarray(lacfine))
+
+       call boxarray_grow(ba,1)
+
+       call layout_build_ba(latmp, ba, get_pd(lacfine), explicit_mapping = lacfine%lap%prc)
+
+       call destroy(ba)
+       !
+       ! "crse" should always cover "cfine" (including ghost cells) on
+       ! the valid region due to proper nesting.
+       !
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 1, nodal = nodal_flags(fine))
+       !
+       ! Use this to fill cfine including ghost cells.
+       !
+       call build(cfgrow, latmp, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+
+       call copy(cfgrow, 1, crse, 1, ncomp(crse))
+       !
+       ! Finally copy FAB-wise from cfgrow -> cfine to get good ghost cells.
+       !
+       do i = 1, nfabs(cfgrow)
+          fp => dataptr(cfgrow, i)
+          cp => dataptr(cfine,  i)
+          call cpy_d(cp,fp)
+       end do
+
+       call destroy(cfgrow)
+       call destroy(latmp)
+    else
+       call build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+       call copy(cfine, 1, crse, 1, ncomp(crse))
+    end if
 
     dm = get_dim(crse)
 
     !$OMP PARALLEL DO PRIVATE(i,loc,lof,lo,hi,n,fp,cp)
     do i = 1, nfabs(fine)
-       loc = lwb(get_pbox(cfine,i))
-       lof = lwb(get_pbox(fine, i))
-       lo  = lwb(get_ibox(fine, i))
-       hi  = upb(get_ibox(fine, i))
+       loc =  lwb(get_pbox(cfine,i))
+       lof =  lwb(get_pbox(fine, i))
+       lo  =  lwb(get_ibox(fine, i))
+       hi  =  upb(get_ibox(fine, i))
+       fp  => dataptr(fine,  i)
+       cp  => dataptr(cfine, i)
        do n = 1, ncomp(crse)
-          fp => dataptr(fine,  i, n, 1)
-          cp => dataptr(cfine, i, n, 1)
           select case (dm)
           case (1)
-             call nodal_prolongation_1d(fp(:,1,1,1), lof, cp(:,1,1,1), loc, lo, hi, ir)
+             call nodal_prolongation_1d(fp(:,1,1,n), lof, cp(:,1,1,n), loc, lo, hi, ir)
           case (2)
-             call nodal_prolongation_2d(fp(:,:,1,1), lof, cp(:,:,1,1), loc, lo, hi, ir)
+             call nodal_prolongation_2d(fp(:,:,1,n), lof, cp(:,:,1,n), loc, lo, hi, ir)
           case (3)
-             call nodal_prolongation_3d(fp(:,:,:,1), lof, cp(:,:,:,1), loc, lo, hi, ir)
+             call nodal_prolongation_3d(fp(:,:,:,n), lof, cp(:,:,:,n), loc, lo, hi, ir)
           end select
        end do
     end do
     !$OMP END PARALLEL DO
+
+!    oldval = set_using_nodal_cubic(oldval)
 
     if ( .false. ) then
        !

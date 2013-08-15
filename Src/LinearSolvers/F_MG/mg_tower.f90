@@ -42,6 +42,9 @@ module mg_tower_module
      ! This must be true in order to enforce solvability
      logical :: coeffs_sum_to_zero = .false.
 
+     integer :: ptype = 3
+     logical :: use_lininterp = .true.
+
 !     integer :: nboxes =  0
      integer :: nlevels =  0
 
@@ -73,17 +76,18 @@ module mg_tower_module
      !    multifab_fill_boundary knows not to fill any corner cells.
      logical :: lcross
 
-     type(multifab), pointer :: cc(:) => Null()
-     type(multifab), pointer :: ff(:) => Null()
-     type(multifab), pointer :: dd(:) => Null()
-     type(multifab), pointer :: uu(:) => Null()
-     type(multifab), pointer :: ss(:) => Null()
+     type(multifab),  pointer :: cc(:) => Null()
+     type(multifab),  pointer :: ff(:) => Null()
+     type(multifab),  pointer :: dd(:) => Null()
+     type(multifab),  pointer :: uu(:) => Null()
+     type(multifab),  pointer :: ss(:) => Null()
      type(imultifab), pointer :: mm(:) => Null()
-     type(stencil) , pointer :: st(:) => Null()
+     type(stencil) ,  pointer :: st(:) => Null()
 
      integer, pointer :: face_type(:,:,:)  => Null()
      logical, pointer :: skewed(:,:)       => Null()
      logical, pointer :: skewed_not_set(:) => Null()
+     integer, pointer :: domain_bc(:,:)    => Null()
 
      ! Only relevant if bottom_solver == 1, 2 or 3 AND nodal
      type(multifab) :: nodal_mask
