@@ -584,12 +584,18 @@ void Profiler::WriteCommStats(const bool bFlushing) {
         if(iSet == 0 && bFirstCommWriteH) {   // First set.
 	  bFirstCommWriteH = false;
           csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
+          if( ! csHeaderFile.good()) {
+            BoxLib::FileOpenFailed(longHeaderFileName);
+          }
+	  // just write these once
+          csHeaderFile << "NProcs  " << nProcs << '\n';
+          csHeaderFile << "CommStatsSize  " << sizeof(CommStats) << '\n';
         } else {
           csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::app);
           csHeaderFile.seekp(0, std::ios::end);   // set to eof
-        }
-        if( ! csHeaderFile.good()) {
-          BoxLib::FileOpenFailed(longHeaderFileName);
+          if( ! csHeaderFile.good()) {
+            BoxLib::FileOpenFailed(longHeaderFileName);
+          }
         }
 
         if(iSet == 0 && bFirstCommWriteD) {   // First set.
@@ -606,8 +612,6 @@ void Profiler::WriteCommStats(const bool bFlushing) {
         }
 
         // ----------------------------- write to file here
-        csHeaderFile << "NProcs  " << nProcs << '\n';
-        csHeaderFile << "CommStatsSize  " << sizeof(CommStats) << '\n';
         csHeaderFile << "CommProfProc  " << myProc
                      << "  nCommStats  " << vCommStats.size()
                      << "  datafile  " << shortDFileName

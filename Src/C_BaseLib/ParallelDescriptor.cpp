@@ -307,11 +307,15 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     MPI_Comm_group(m_comm_all, &m_group_all);
 
-    MPI_Group_excl(m_group_all, nPerfmonProcs, &m_MyId_all_perfmon, &m_group_comp);
-    MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp);
+    if(nPerfmonProcs > 0) {
+      MPI_Group_excl(m_group_all, nPerfmonProcs, &m_MyId_all_perfmon, &m_group_comp);
+      MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp);
 
-    MPI_Group_incl(m_group_all, nPerfmonProcs, &m_MyId_all_perfmon, &m_group_perfmon);
-    MPI_Comm_create(m_comm_all, m_group_perfmon, &m_comm_perfmon);
+      MPI_Group_incl(m_group_all, nPerfmonProcs, &m_MyId_all_perfmon, &m_group_perfmon);
+      MPI_Comm_create(m_comm_all, m_group_perfmon, &m_comm_perfmon);
+    } else {
+      m_comm_comp = m_comm_all;
+    }
 
 
     int flag(0), *attrVal;
@@ -330,6 +334,7 @@ ParallelDescriptor::StartParallel (int*    argc,
 
   int tag(m_MaxTag + 1);
   if(m_MyId_all == m_MyId_all_perfmon) {  // ---- in perfmon group
+    std::cout << "_here 0" << std::endl;
     MPI_Group_rank(m_group_perfmon, &m_MyId_perfmon);
     MPI_Group_size(m_group_perfmon, &m_nProcs_perfmon);
     MPI_Intercomm_create(m_comm_perfmon, 0, m_comm_all, 0, tag, &m_comm_inter);
@@ -337,18 +342,26 @@ ParallelDescriptor::StartParallel (int*    argc,
     std::cout << "m_comm_perfmon:  rank " << m_MyId_perfmon << " in [0," << m_nProcs_perfmon-1
          << "]" << std::endl;
   } else {                        // ---- in computation group
-    MPI_Group_rank(m_group_comp, &m_MyId_comp);
-    MPI_Group_size(m_group_comp, &m_nProcs_comp);
-    MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_MyId_all_perfmon, tag, &m_comm_inter);
+    std::cout << "_here 1" << std::endl;
+    if(nPerfmonProcs > 0) {
+      MPI_Group_rank(m_group_comp, &m_MyId_comp);
+      MPI_Group_size(m_group_comp, &m_nProcs_comp);
+      MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_MyId_all_perfmon, tag, &m_comm_inter);
+    } else {
+      m_MyId_comp = m_MyId_all;
+      m_nProcs_comp = m_nProcs_all;
+    }
     sleep(m_MyId_comp);
     std::cout << "m_comm_comp:  rank " << m_MyId_comp << " in [0," << m_nProcs_comp-1 << "]" << std::endl;
 
   }
 
+    std::cout << "_here 2" << std::endl;
     //
     // Wait until all other processes are properly started.
     //
     BL_MPI_REQUIRE( MPI_Barrier(CommunicatorAll()) );
+    std::cout << "_here 3" << std::endl;
 }
 
 void
