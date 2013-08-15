@@ -25,7 +25,8 @@ program main
     integer          :: max_iter
     integer          :: cycle_type
     integer          :: interp_type
-    integer          :: verbose ! verbose > 2 will print arrays, so be careful with large data sets
+    integer          :: verbose        ! verbose > 2 will print arrays, so be careful with large data sets
+    logical          :: memory_verbose ! this controls the printing of the memory stats only and is set below
     integer          :: rhs_type
     integer          :: coeffs_type
     double precision :: eps
@@ -56,6 +57,8 @@ program main
     ! If running in parallel. this will print out the number of MPI processes
     ! and OpenMP threads
     call boxlib_initialize()
+
+    memory_verbose = .false.
 
     ! parallel_wtime() returns the number of wallclock-time seconds since
     ! the program began
@@ -224,19 +227,21 @@ program main
     call layout_flush_copyassoc_cache()
 
     ! Check for memory that should have been deallocated
-    if (parallel_IOProcessor()) then
-        print *, 'MEMORY STATS AT THE END OF PROGRAM'
-        print *, ''
+    if (memory_verbose) then
+        if (parallel_IOProcessor()) then
+            print *, 'MEMORY STATS AT THE END OF PROGRAM'
+            print *, ''
+        end if
+        call print(multifab_mem_stats(),    "    multifab")
+        call print(fab_mem_stats(),         "         fab")
+        call print(boxarray_mem_stats(),    "    boxarray")
+        call print(layout_mem_stats(),      "      layout")
+        call print(boxassoc_mem_stats(),    "    boxassoc")
+        call print(fgassoc_mem_stats(),     "     fgassoc")
+        call print(syncassoc_mem_stats(),   "   syncassoc")
+        call print(copyassoc_mem_stats(),   "   copyassoc")
+        call print(fluxassoc_mem_stats(),   "   fluxassoc")
     end if
-    call print(multifab_mem_stats(),    "    multifab")
-    call print(fab_mem_stats(),         "         fab")
-    call print(boxarray_mem_stats(),    "    boxarray")
-    call print(layout_mem_stats(),      "      layout")
-    call print(boxassoc_mem_stats(),    "    boxassoc")
-    call print(fgassoc_mem_stats(),     "     fgassoc")
-    call print(syncassoc_mem_stats(),   "   syncassoc")
-    call print(copyassoc_mem_stats(),   "   copyassoc")
-    call print(fluxassoc_mem_stats(),   "   fluxassoc")
 
     ! parallel_wtime() returns the number of wallclock-time seconds since the program began
     run_time = parallel_wtime() - start_time
