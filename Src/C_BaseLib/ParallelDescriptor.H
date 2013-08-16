@@ -201,6 +201,12 @@ namespace ParallelDescriptor
     extern int m_nProcs_comp;
     extern int m_nProcs_perfmon;
     extern int nPerfmonProcs;
+    inline void
+    SetNProcsPerfMon (const int npmp)
+    {
+        BL_ASSERT(npmp >= 0);
+        nPerfmonProcs = npmp;
+    }
     inline int
     NProcs ()  // use _comp here, almost always what the user wants
     {

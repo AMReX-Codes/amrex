@@ -20,23 +20,23 @@ namespace ParallelDescriptor
     //
     // The number of processors.
     //
-    int m_nProcs_all     = -1;
-    int m_nProcs_comp    = -1;
-    int m_nProcs_perfmon = -1;
-    int nPerfmonProcs    = -1;
+    int m_nProcs_all     = 0;
+    int m_nProcs_comp    = 0;
+    int m_nProcs_perfmon = 0;
+    int nPerfmonProcs    = 0;
     //
     // BoxLib's Communicators
     //
-    MPI_Comm m_comm_all;      // for all procs, probably MPI_COMM_WORLD
-    MPI_Comm m_comm_comp;     // for the computation procs
-    MPI_Comm m_comm_perfmon;  // for the in-situ performance monitor
-    MPI_Comm m_comm_inter;    // for communicating between comp and perfmon
+    MPI_Comm m_comm_all     = MPI_COMM_NULL;      // for all procs, probably MPI_COMM_WORLD
+    MPI_Comm m_comm_comp    = MPI_COMM_NULL;     // for the computation procs
+    MPI_Comm m_comm_perfmon = MPI_COMM_NULL;  // for the in-situ performance monitor
+    MPI_Comm m_comm_inter   = MPI_COMM_NULL;    // for communicating between comp and perfmon
     //
     // BoxLib's Groups
     //
-    MPI_Group m_group_all;
-    MPI_Group m_group_comp;
-    MPI_Group m_group_perfmon;
+    MPI_Group m_group_all     = MPI_GROUP_NULL;
+    MPI_Group m_group_comp    = MPI_GROUP_NULL;
+    MPI_Group m_group_perfmon = MPI_GROUP_NULL;
 
     int m_MinTag = 1000, m_MaxTag = -1;
 
@@ -298,12 +298,16 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
     BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
 
-    if(m_nProcs_all > 2) {
-      nPerfmonProcs = 1;
-    } else {
-      nPerfmonProcs = 0;
+    std::cout << "**** nPerfmonProcs = " << nPerfmonProcs << std::endl;
+    if(nPerfmonProcs >= m_nProcs_all) {
+      std::cerr << "**** nPerfmonProcs = " << nPerfmonProcs << std::endl;
+      BoxLib::Abort("Error in StartParallel:  bad nPerfmonProcs.");
     }
-    m_MyId_all_perfmon = m_nProcs_all - nPerfmonProcs;
+    if(nPerfmonProcs > 0) {
+      m_MyId_all_perfmon = m_nProcs_all - nPerfmonProcs;
+    } else {
+      m_MyId_all_perfmon = -1;
+    }
 
     MPI_Comm_group(m_comm_all, &m_group_all);
 
@@ -314,10 +318,12 @@ ParallelDescriptor::StartParallel (int*    argc,
       MPI_Group_incl(m_group_all, nPerfmonProcs, &m_MyId_all_perfmon, &m_group_perfmon);
       MPI_Comm_create(m_comm_all, m_group_perfmon, &m_comm_perfmon);
     } else {
-      m_comm_comp = m_comm_all;
+      m_comm_comp  = m_comm_all;
+      m_group_comp = m_group_all;
     }
 
 
+    // ---- find the maximum value for a tag
     int flag(0), *attrVal;
     BL_MPI_REQUIRE( MPI_Attr_get(m_comm_all, MPI_TAG_UB, &attrVal, &flag) );
     if(flag) {
@@ -329,39 +335,40 @@ ParallelDescriptor::StartParallel (int*    argc,
     }
     BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
 
+
   sleep(m_MyId_all);
   std::cout << "world: rank " << m_MyId_all << " in [0," << m_nProcs_all-1 << "]" << std::endl;
 
-  int tag(m_MaxTag + 1);
-  if(m_MyId_all == m_MyId_all_perfmon) {  // ---- in perfmon group
-    std::cout << "_here 0" << std::endl;
-    MPI_Group_rank(m_group_perfmon, &m_MyId_perfmon);
-    MPI_Group_size(m_group_perfmon, &m_nProcs_perfmon);
-    MPI_Intercomm_create(m_comm_perfmon, 0, m_comm_all, 0, tag, &m_comm_inter);
-    sleep(m_MyId_perfmon);
-    std::cout << "m_comm_perfmon:  rank " << m_MyId_perfmon << " in [0," << m_nProcs_perfmon-1
-         << "]" << std::endl;
-  } else {                        // ---- in computation group
-    std::cout << "_here 1" << std::endl;
     if(nPerfmonProcs > 0) {
-      MPI_Group_rank(m_group_comp, &m_MyId_comp);
-      MPI_Group_size(m_group_comp, &m_nProcs_comp);
-      MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_MyId_all_perfmon, tag, &m_comm_inter);
-    } else {
-      m_MyId_comp = m_MyId_all;
-      m_nProcs_comp = m_nProcs_all;
-    }
-    sleep(m_MyId_comp);
-    std::cout << "m_comm_comp:  rank " << m_MyId_comp << " in [0," << m_nProcs_comp-1 << "]" << std::endl;
+      int tag(m_MaxTag + 1);
+      if(m_MyId_all == m_MyId_all_perfmon) {  // ---- in perfmon group
+        MPI_Group_rank(m_group_perfmon, &m_MyId_perfmon);
+        MPI_Group_size(m_group_perfmon, &m_nProcs_perfmon);
+        MPI_Intercomm_create(m_comm_perfmon, 0, m_comm_all, 0, tag, &m_comm_inter);
+        sleep(m_MyId_perfmon);
+        std::cout << "m_comm_perfmon:  rank " << m_MyId_perfmon << " in [0,"
+	          << m_nProcs_perfmon-1 << "]" << std::endl;
+      } else {                        // ---- in computation group
+        MPI_Group_rank(m_group_comp, &m_MyId_comp);
+        MPI_Group_size(m_group_comp, &m_nProcs_comp);
+        MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_MyId_all_perfmon,
+	                     tag, &m_comm_inter);
+	m_nProcs_perfmon = nPerfmonProcs;
+        sleep(m_MyId_comp);
+        std::cout << "m_comm_comp:  rank " << m_MyId_comp << " in [0," << m_nProcs_comp-1 << "]" << std::endl;
 
   }
 
-    std::cout << "_here 2" << std::endl;
+    } else {
+      m_MyId_comp   = m_MyId_all;
+      m_nProcs_comp = m_nProcs_all;
+    }
+
+
     //
     // Wait until all other processes are properly started.
     //
     BL_MPI_REQUIRE( MPI_Barrier(CommunicatorAll()) );
-    std::cout << "_here 3" << std::endl;
 }
 
 void

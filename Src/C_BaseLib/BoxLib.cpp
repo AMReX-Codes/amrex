@@ -219,12 +219,14 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
-    if(ParallelDescriptor::MyProcAll() == ParallelDescriptor::MyProcAllPerfMon()) {
-      std::cout << "Starting PerfMonProc:  myprocall = "
-                << ParallelDescriptor::MyProcAll() << std::endl;
-      Profiler::PerfMonProcess();
-      //BoxLib::Finalize();
-      return;
+    if(ParallelDescriptor::NProcsPerfMon() > 0) {
+      if(ParallelDescriptor::MyProcAll() == ParallelDescriptor::MyProcAllPerfMon()) {
+        std::cout << "Starting PerfMonProc:  myprocall = "
+                  << ParallelDescriptor::MyProcAll() << std::endl;
+        Profiler::PerfMonProcess();
+        BoxLib::Finalize();
+        return;
+      }
     }
 
     BL_PROFILE_INITIALIZE();
