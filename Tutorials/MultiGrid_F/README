@@ -45,3 +45,5 @@ The efficiency of the bottom solver is also dependent on the maximum size of eac
 Because each subdomain cannot coarsen beyond a 2x2, a small subdomain size on a large problem domain
 will mean that the 'coarse' grid resolution might not in fact be very coarse.
 
+
+This tutorial was created by Jonathan Wang, Summer 2013
