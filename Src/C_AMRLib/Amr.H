@@ -34,6 +34,7 @@ public:
     // The constructor.
     //
     Amr ();
+    void InitAmr();
     //
     // The destructor.
     //
@@ -372,9 +373,9 @@ protected:
     //
     // Rebuild grid hierarchy finer than lbase.
     //
-    void regrid (int  lbase,
-                 Real time,
-                 bool initial = false);
+    virtual void regrid (int  lbase,
+                         Real time,
+                         bool initial = false);
     //
     // Define new grid locations (called from regrid) and put into new_grids.
     //
