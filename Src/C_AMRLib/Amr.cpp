@@ -180,6 +180,12 @@ Amr::Amr ()
     datalog(PArrayManage)
 {
     Initialize();
+    InitAmr();
+}
+
+void
+Amr::InitAmr ()
+{
     //
     // Setup Geometry from ParmParse file.
     // May be needed for variableSetup or even getLevelBld.
