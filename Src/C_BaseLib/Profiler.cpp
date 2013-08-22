@@ -40,6 +40,7 @@ int Profiler::CommStats::reductionNumber = 0;
 int Profiler::CommStats::tagWrapNumber = 0;
 int Profiler::CommStats::tagMin = 0;
 int Profiler::CommStats::tagMax = 0;
+int Profiler::CommStats::csVersion = 1;
 std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
 std::vector<std::pair<int,int> > Profiler::CommStats::nameTags;
 std::vector<std::string> Profiler::CommStats::nameTagNames;
@@ -575,6 +576,30 @@ void Profiler::WriteCommStats(const bool bFlushing) {
   std::string shortHeaderFileName(cdir + "_H_");
   shortHeaderFileName = BoxLib::Concatenate(shortHeaderFileName, myProc % nOutFiles, 4);
   std::string longHeaderFileName  = cdir + '/' + shortHeaderFileName;
+  char procName[MPI_MAX_PROCESSOR_NAME + 11];
+  int resultLen(-1);
+  MPI_Get_processor_name(procName, &resultLen);
+  if(resultLen < 1) {
+    strcpy(procName, "NoProcName");
+  }
+  std::cout << myProc << ":::: " << procName << "  len =  " << resultLen << std::endl;
+  double mpiWTick(MPI_Wtick());
+
+  if(ParallelDescriptor::IOProcessor()) {
+    std::string globalHeaderFileName(cdir + '/' + cdir + "_H");
+    std::ofstream csGlobalHeaderFile;
+    csGlobalHeaderFile.open(globalHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
+    if( ! csGlobalHeaderFile.good()) {
+      BoxLib::FileOpenFailed(globalHeaderFileName);
+    }
+    csGlobalHeaderFile << "CommProfVersion  " << CommStats::csVersion << '\n';
+    csGlobalHeaderFile << "NProcs  " << nProcs << '\n';
+    csGlobalHeaderFile << "CommStatsSize  " << sizeof(CommStats) << '\n';
+
+    csGlobalHeaderFile.flush();
+    csGlobalHeaderFile.close();
+  }
+
 
   for(int iSet = 0; iSet < nSets; ++iSet) {
     if(mySet == iSet) {
@@ -584,18 +609,12 @@ void Profiler::WriteCommStats(const bool bFlushing) {
         if(iSet == 0 && bFirstCommWriteH) {   // First set.
 	  bFirstCommWriteH = false;
           csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
-          if( ! csHeaderFile.good()) {
-            BoxLib::FileOpenFailed(longHeaderFileName);
-          }
-	  // just write these once
-          csHeaderFile << "NProcs  " << nProcs << '\n';
-          csHeaderFile << "CommStatsSize  " << sizeof(CommStats) << '\n';
         } else {
           csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::app);
           csHeaderFile.seekp(0, std::ios::end);   // set to eof
-          if( ! csHeaderFile.good()) {
-            BoxLib::FileOpenFailed(longHeaderFileName);
-          }
+        }
+        if( ! csHeaderFile.good()) {
+          BoxLib::FileOpenFailed(longHeaderFileName);
         }
 
         if(iSet == 0 && bFirstCommWriteD) {   // First set.
@@ -615,7 +634,8 @@ void Profiler::WriteCommStats(const bool bFlushing) {
         csHeaderFile << "CommProfProc  " << myProc
                      << "  nCommStats  " << vCommStats.size()
                      << "  datafile  " << shortDFileName
-	             << "  seekpos  " << csDFile.tellp() << '\n';
+	             << "  seekpos  " << csDFile.tellp()
+		     << "  " << procName << '\n';
         for(int ib(0); ib < CommStats::barrierNames.size(); ++ib) {
           int seekindex(CommStats::barrierNames[ib].second);
           CommStats &cs = vCommStats[seekindex];
