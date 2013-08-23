@@ -1010,6 +1010,14 @@ Amr::init (Real strt_time,
         amr_level[0].setPlotVariables();
     }
 #endif
+
+#ifdef BL_COMM_PROFILING
+    Array<Box> probDomain(geom.size());
+    for(int i(0); i < probDomain.size(); ++i) {
+      probDomain[i] = geom[i].Domain();
+    }
+    BL_COMM_PROFILE_INITAMR(finest_level, max_level, ref_ratio, probDomain);
+#endif
 }
 
 void
