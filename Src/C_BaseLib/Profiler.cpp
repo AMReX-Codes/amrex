@@ -22,11 +22,16 @@ bool Profiler::bInitialized = false;
 int Profiler::currentStep = 0;
 int Profiler::csFlushSize = 2000000;
 int Profiler::nProfFiles  = 64;
+int Profiler::finestLevel = -1;
+int Profiler::maxLevel    = -1;
 
 Real Profiler::pctTimeLimit = 5.0;
 Real Profiler::calcRunTime  = 0.0;
 Real Profiler::startTime    = 0.0;
 Real Profiler::timerTime    = 0.0;
+
+Array<IntVect> Profiler::refRatio;
+Array<Box> Profiler::probDomain;
 
 std::stack<Real> Profiler::nestedTimeStack;
 std::map<int, Real> Profiler::mStepMap;
@@ -188,6 +193,22 @@ void Profiler::InitParams(const Real ptl, const bool writeall, const bool writef
   pctTimeLimit = ptl;
   bWriteAll = writeall;
   bWriteFabs = writefabs;
+}
+
+
+void Profiler::InitAMR(const int flev, const int mlev, const Array<IntVect> &rr,
+                        const Array<Box> pd)
+{
+  finestLevel = flev;
+  maxLevel    = mlev;
+  refRatio.resize(rr.size());
+  probDomain.resize(pd.size());
+  for(int i(0); i < rr.size(); ++i) {
+    refRatio[i] = rr[i];
+  }
+  for(int i(0); i < pd.size(); ++i) {
+    probDomain[i] = pd[i];
+  }
 }
 
 
@@ -585,7 +606,7 @@ void Profiler::WriteCommStats(const bool bFlushing) {
   std::cout << myProc << ":::: " << procName << "  len =  " << resultLen << std::endl;
   double mpiWTick(MPI_Wtick());
 
-  if(ParallelDescriptor::IOProcessor()) {
+  if(ParallelDescriptor::IOProcessor() && bFirstCommWriteH) {
     std::string globalHeaderFileName(cdir + '/' + cdir + "_H");
     std::ofstream csGlobalHeaderFile;
     csGlobalHeaderFile.open(globalHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
@@ -595,6 +616,14 @@ void Profiler::WriteCommStats(const bool bFlushing) {
     csGlobalHeaderFile << "CommProfVersion  " << CommStats::csVersion << '\n';
     csGlobalHeaderFile << "NProcs  " << nProcs << '\n';
     csGlobalHeaderFile << "CommStatsSize  " << sizeof(CommStats) << '\n';
+    csGlobalHeaderFile << "FinestLevel  " << finestLevel << '\n';
+    csGlobalHeaderFile << "MaxLevel  " << maxLevel << '\n';
+    for(int i(0); i < refRatio.size(); ++i) {
+      csGlobalHeaderFile << "RefRatio  " << i << "  " << refRatio[i] << '\n';
+    }
+    for(int i(0); i < probDomain.size(); ++i) {
+      csGlobalHeaderFile << "ProbDomain  " << i << "  " << probDomain[i] << '\n';
+    }
 
     csGlobalHeaderFile.flush();
     csGlobalHeaderFile.close();

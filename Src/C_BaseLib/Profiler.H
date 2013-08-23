@@ -5,6 +5,8 @@
 
 #include <REAL.H>
 #include <Array.H>
+#include <IntVect.H>
+#include <Box.H>
 
 #include <iostream>
 #include <ostream>
@@ -114,6 +116,8 @@ class Profiler
     static void AddAllReduce(const CommFuncType cft, const int size, const bool bc);
     static void TagRange(const int tagmin, const int tagmax);
     static void AddTagWrap();
+    static void InitAMR(const int flev, const int mlev, const Array<IntVect> &rr,
+                        const Array<Box> pd);
 
     void start();
     void stop();
@@ -137,11 +141,14 @@ class Profiler
     static bool bWriteAll, bWriteFabs;
     static bool bFirstCommWriteH, bFirstCommWriteD;
     static bool bInitialized;
-    static int currentStep, csFlushSize, nProfFiles;
+    static int  currentStep, csFlushSize, nProfFiles;
+    static int  finestLevel, maxLevel;
     static Real pctTimeLimit;
     static Real calcRunTime;
     static Real startTime;
     static Real timerTime;
+    static Array<IntVect> refRatio;
+    static Array<Box> probDomain;
     static std::stack<Real> nestedTimeStack;
     static std::map<int, Real> mStepMap;  // [step, time]
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
@@ -245,6 +252,9 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax) {  \
                              Profiler::TagRange(tagmin, tagmax); }
 #define BL_COMM_PROFILE_TAGWRAP() { Profiler::AddTagWrap(); }
+#define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd) {                \
+                             Profiler::InitAMR(flev, mlev, rr, pd);  \
+}
 
 #else
 
@@ -259,6 +269,8 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_FLUSH()
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax)
 #define BL_COMM_PROFILE_TAGWRAP()
+#define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd)
+
 #endif
 
 
@@ -311,6 +323,7 @@ class Profiler
 #define BL_COMM_PROFILE_FLUSH()
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax)
 #define BL_COMM_PROFILE_TAGWRAP()
+#define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd)
 
 #endif
 
