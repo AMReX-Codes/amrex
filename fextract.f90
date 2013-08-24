@@ -19,10 +19,9 @@ program fextract3d
   implicit none
 
   type(plotfile) pf
-  integer :: unit
+  integer :: unit, uno, un_ji
   integer :: i, j, ii, jj, kk
   integer :: rr, r1
-  integer :: uno
   integer :: cnt, max_points, nvs
 
   real(kind=dp_t) :: dx(MAX_SPACEDIM)
@@ -40,15 +39,17 @@ program fextract3d
   integer :: iloc, jloc, kloc
   integer :: idir
   integer :: narg, farg
-  character(len=256) :: fname, varname
+  character(len=256) :: fname, varname, line
 
   character(len=1) :: dirstr
   integer :: ivar
 
   real(kind=dp_t) :: xmin, xmax, ymin, ymax, zmin, zmax
 
+  logical :: ji_exist, valid
+  integer :: io
+
   unit = unit_new()
-  uno =  unit_new()
 
   slicefile = ''
   pltfile  = ''
@@ -106,6 +107,9 @@ program fextract3d
      print *, "note the plotfile at the end of the commandline is only required if you do"
      print *, "not use the depreciated '-p' option"
      print *, " "
+     print *, "if a job_info file is present in the plotfile, that information is made"
+     print *, "available at the end of the slice file (commented out), for reference."
+     print *, " "
      stop
   end if
 
@@ -125,11 +129,11 @@ program fextract3d
 
   select case (idir)
   case (1)
-     print *, 'slicing along x-direction and outputting to', trim(slicefile)
+     print *, 'slicing along x-direction and outputting to ', trim(slicefile)
   case (2)
-     print *, 'slicing along y-direction and outputting to', trim(slicefile)
+     print *, 'slicing along y-direction and outputting to ', trim(slicefile)
   case (3)
-     print *, 'slicing along z-direction and outputting to', trim(slicefile)
+     print *, 'slicing along z-direction and outputting to ', trim(slicefile)
   end select
 
 
@@ -386,7 +390,9 @@ program fextract3d
 1001 format(1x, 100(g24.12,1x))
 
   ! slicefile
+  uno =  unit_new()
   open(unit=uno, file=slicefile, status = 'replace')
+
   write(uno,998) dirstr, trim(pltfile)
   write(uno,999) pf%tm
 
@@ -395,6 +401,7 @@ program fextract3d
      ! output all variables
 
      ! write the header
+     un_ji = unit_new()
      write(uno,1000) dirstr, (trim(pf%names(j)),j=1,nvs)
      
      ! Use this to protect against a number being xx.e-100 
@@ -434,11 +441,24 @@ program fextract3d
 
   endif
 
-  close(unit=uno)
+  ! job_info? if so write it out to the slice file end
+  inquire (file=trim(pltfile)//"/job_info", exist=ji_exist)
+  if (ji_exist) then
+     open(unit=un_ji, file=trim(pltfile)//"/job_info", status="old")
+     write (uno, fmt="(a)") " "
+     valid = .true.
+     do while (valid)
+        read  (un_ji, fmt="(a)", iostat=io) line
+        if (io < 0) then
+           valid = .false.
+           exit
+        endif
+        write (uno, fmt="('#', a)") trim(line)
+     enddo
 
-  !do i = 1, pf%flevel
-  !   call fab_unbind_level(pf, i)
-  !end do
+  endif
+
+  close(unit=uno)
 
   call destroy(pf)
 
