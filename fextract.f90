@@ -87,17 +87,24 @@ program fextract3d
      farg = farg + 1
   end do
 
+  if (len_trim(pltfile) == 0 .and. farg <= narg) then
+     call get_command_argument(farg, value = pltfile)
+  endif
+
   if ( len_trim(pltfile) == 0 ) then
      print *, " "
      print *, "Extract at 1D slice through a plotfile in any coordinate direction."
      print *, "Works with 1-, 2-, or 3-d datasets."
      print *, "usage:"
-     print *, "   fextract -p plotfile [-s outfile] [-d dir] [-v variable]"
+     print *, "   fextract [-p plotfile] [-s outfile] [-d dir] [-v variable] plotfile"
      print *, " "
-     print *, "args [-p|--pltfile]   plotfile   : plot file directory (required)"
+     print *, "args [-p|--pltfile]   plotfile   : plot file directory (depreciated, optional)"
      print *, "     [-s|--slicefile] slice file : slice file          (optional)"
      print *, "     [-d|--direction] idir       : slice direction {1 (default), 2, or 3}"
      print *, "     [-v|--variable]  varname    : only output the values of variable varname"
+     print *, " "
+     print *, "note the plotfile at the end of the commandline is only required if you do"
+     print *, "not use the depreciated '-p' option"
      print *, " "
      stop
   end if
@@ -116,10 +123,15 @@ program fextract3d
      
   endif
 
-  print *, 'pltfile   = "', trim(pltfile), '"'
-  print *, 'slicefile = "', trim(slicefile), '"'
-  print *, 'direction =  ', idir
-  if (varname /= '') print *, 'only outputting variable: ', trim(varname)
+  select case (idir)
+  case (1)
+     print *, 'slicing along x-direction and outputting to', trim(slicefile)
+  case (2)
+     print *, 'slicing along y-direction and outputting to', trim(slicefile)
+  case (3)
+     print *, 'slicing along z-direction and outputting to', trim(slicefile)
+  end select
+
 
   call build(pf, pltfile, unit)
 
@@ -129,9 +141,6 @@ program fextract3d
   ivar = -1
   if (varname /= '') ivar = plotfile_var_index(pf, trim(varname))
 
-!  do i = 1, pf%flevel
-!     call fab_bind_level(pf, i)
-!  end do
 
   ! get the index bounds and dx for the coarse level.  Note, lo and hi are
   ! ZERO based indicies
@@ -181,21 +190,19 @@ program fextract3d
 
   if (idir > dim) call bl_error("idir > dim")
 
-  if (idir == 1) then
+  select case (idir)
+  case (1)
      allocate(imask(flo(1):fhi(1)))
      max_points = fhi(1) - flo(1) + 1
 
-  else if (idir == 2 .and. dim >= 2) then
+  case (2)
      allocate(imask(flo(2):fhi(2)))
      max_points = fhi(2) - flo(2) + 1
 
-  else if (idir == 3 .and. dim == 3) then
+  case (3)
      allocate(imask(flo(3):fhi(3)))
      max_points = fhi(3) - flo(3) + 1
-
-  else 
-     call bl_error("invalid direction")
-  endif
+  end select
 
   imask = .true.
 
