@@ -597,14 +597,17 @@ void Profiler::WriteCommStats(const bool bFlushing) {
   std::string shortHeaderFileName(cdir + "_H_");
   shortHeaderFileName = BoxLib::Concatenate(shortHeaderFileName, myProc % nOutFiles, 4);
   std::string longHeaderFileName  = cdir + '/' + shortHeaderFileName;
-  char procName[MPI_MAX_PROCESSOR_NAME + 11];
+
   int resultLen(-1);
+  char procName[MPI_MAX_PROCESSOR_NAME + 11];
+#ifdef BL_USE_MPI
   MPI_Get_processor_name(procName, &resultLen);
+#endif
   if(resultLen < 1) {
     strcpy(procName, "NoProcName");
   }
   std::cout << myProc << ":::: " << procName << "  len =  " << resultLen << std::endl;
-  double mpiWTick(MPI_Wtick());
+  //double mpiWTick(MPI_Wtick());
 
   if(ParallelDescriptor::IOProcessor() && bFirstCommWriteH) {
     std::string globalHeaderFileName(cdir + '/' + cdir + "_H");
@@ -960,6 +963,7 @@ void Profiler::CommStats::UnFilter(CommFuncType cft) {
 
 
 void Profiler::PerfMonProcess() {
+#ifdef BL_USE_MPI
   MPI_Status status;
   bool finished(false);
   int recstep(-1), rtag(0);
@@ -972,6 +976,7 @@ void Profiler::PerfMonProcess() {
       finished = true;
     }
   }
+#endif
   std::cout << "**** _in PerfMonProcess:  exiting." << std::endl;
 }
 
