@@ -48,6 +48,9 @@ typedef int MPI_Request;
 const int MPI_DATATYPE_NULL = 0;
 const int MPI_REQUEST_NULL  = 0;
 const int MPI_COMM_WORLD    = 0;
+const int MPI_COMM_NULL     = 0;
+const int MPI_GROUP_NULL    = 0;
+const int MPI_MAX_PROCESSOR_NAME = 64;
 
 namespace ParallelDescriptor
 {
