@@ -14,6 +14,6 @@ F$(MCMG_BASE)_sources += MCLO_$(DIM)D.F MCINTERPBNDRYDATA_$(DIM)D.F
 ifeq ($(DIM),2)
   F$(MCMG_BASE)_sources += DV_2D.F
 else
-  F$(MCMG_BASE)_sources += DV_3D1.F DV_3D2.F DV_3D3.F DV_3D4.F
+  F$(MCMG_BASE)_sources += DV_3D1.F DV_3D2.F DV_3D3.F
 endif
 
