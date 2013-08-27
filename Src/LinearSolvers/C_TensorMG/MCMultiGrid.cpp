@@ -203,7 +203,7 @@ MCMultiGrid::solve (MultiFab&       _sol,
     prepareForLevel(level);
     residualCorrectionForm(*rhs[level],_rhs,*cor[level],_sol,bc_mode,level);
     if (!solve_(_sol, _eps_rel, _eps_abs, MCHomogeneous_BC, level))
-	BoxLib::Error("MCMultiGrid::solve(): failed to converge!");
+      BoxLib::Error("MCMultiGrid::solve(): failed to converge!");
 }
 
 int
@@ -264,7 +264,7 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 		std::cout << "MCMultiGrid: Iteration "
                           << nit
                           << " error/error0 "
-                          << error/error0;
+                          << error/error0 << '\n';
 	    }
 	}
     }
@@ -278,7 +278,7 @@ MCMultiGrid::solve_ (MultiFab& _sol,
             ParallelDescriptor::ReduceRealMax(run_time,ParallelDescriptor::IOProcessorNumber());
 
             if ( ParallelDescriptor::IOProcessor() )
-                std::cout << ", Solve time: " << run_time;
+                std::cout << "Solve time: " << run_time;
         }
 
         if ( ParallelDescriptor::IOProcessor() ) std::cout << '\n';
@@ -315,7 +315,7 @@ int
 MCMultiGrid::numLevels () const
 {
     int ng = Lp.numGrids();
-    int lv = numLevelsMAX;
+    int lv = numLevelsMAX - 1;
     //
     // The routine `falls through' since coarsening and refining
     // a unit box does not yield the initial box.
@@ -366,30 +366,29 @@ MCMultiGrid::relax (MultiFab& solL,
 		    Real      eps_abs,
 		    MCBC_Mode bc_mode)
 {
-    //
-    // Recursively relax system.  Equivalent to multigrid V-cycle.
-    // At coarsest grid, call coarsestSmooth.
-    //
-    if (level < numlevels - 1 )
-    {
-	for (int i = preSmooth() ; i > 0 ; i--)
-	    Lp.smooth(solL, rhsL, level, bc_mode);
-
-	Lp.residual(*res[level], rhsL, solL, level, bc_mode);
-	prepareForLevel(level+1);
-	average(*rhs[level+1], *res[level]);
-	cor[level+1]->setVal(0.0);
-	for (int i = cntRelax(); i > 0 ; i--)
-	    relax(*cor[level+1],*rhs[level+1],level+1,eps_rel,eps_abs,bc_mode);
-
-	interpolate(solL, *cor[level+1]);
-	for (int i = postSmooth(); i > 0 ; i--)
-	    Lp.smooth(solL, rhsL, level, bc_mode);
+  //
+  // Recursively relax system.  Equivalent to multigrid V-cycle.
+  // At coarsest grid, call coarsestSmooth.
+  //
+  if (level < numlevels - 1 ) {
+    for (int i = preSmooth() ; i > 0 ; i--) {
+      Lp.smooth(solL, rhsL, level, bc_mode);
     }
-    else
-    {
-	coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode);
+    
+    Lp.residual(*res[level], rhsL, solL, level, bc_mode);
+    prepareForLevel(level+1);
+    average(*rhs[level+1], *res[level]);
+    cor[level+1]->setVal(0.0);
+    for (int i = cntRelax(); i > 0 ; i--) {
+      relax(*cor[level+1],*rhs[level+1],level+1,eps_rel,eps_abs,bc_mode);
     }
+    interpolate(solL, *cor[level+1]);
+    for (int i = postSmooth(); i > 0 ; i--) {
+      Lp.smooth(solL, rhsL, level, bc_mode);
+    }
+  } else {
+    coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode);
+  }
 }
 
 void

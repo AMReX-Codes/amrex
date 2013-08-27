@@ -89,12 +89,14 @@ public:
     // allocate a MCLinOp for this box array, boundary and (uniform) spacing info
     //
     MCLinOp (const BndryData& mgb,
-	     const Real       _h);
+	     const Real       _h,
+	     int              _nc = MCLinOp::def_ncomp);
     //
     // allocate MCLinOp for this boxArray, boundary data and spacing array info
     //
     MCLinOp (const BndryData& mgb,
-	     const Real*      _h);
+	     const Real*      _h,
+	     int              _nc = MCLinOp::def_ncomp);
     //
     // destructor
     //
@@ -149,6 +151,10 @@ public:
     //
     int numGrids () const;
     //
+    // return the number of components
+    //
+    int nComp () const {return numcomp;}
+    //
     // return the number of levels
     //
     int numLevels () const;
@@ -183,7 +189,7 @@ public:
     //
     // compute the number of components required in BCRec.
     //
-    static int bcComponentsNeeded();
+    static int bcComponentsNeeded(int nComp = MCLinOp::def_ncomp);
 
 protected:
     //
@@ -280,6 +286,10 @@ protected:
     // default maximum BC interpolant order
     //
     static int def_maxorder;
+    //
+    // default number of components
+    //
+    static int def_ncomp;
 };
 
 inline
