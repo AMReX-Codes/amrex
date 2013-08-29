@@ -18,7 +18,7 @@ set(CXX_source_files DivVis.cpp MCCGSolver.cpp MCInterpBndryData.cpp MCLinOp.cpp
 set(FPP_source_files MCINTERPBNDRYDATA_${BL_SPACEDIM}D.F MCLO_${BL_SPACEDIM}D.F)
 if(${BL_SPACEDIM} EQUAL 2)
   list(APPEND FPP_source_files "DV_2D.F")
-elif(${BL_SPACEDIM} EQUAL 3)
+elseif(${BL_SPACEDIM} EQUAL 3)
   list(APPEND FPP_source_files "DV_3D1.F DV_3D2.F DV_3D3.F")
 endif()
 set(F77_source_files)
