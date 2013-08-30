@@ -770,7 +770,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         }
     }
 
-    if ( niters == maxiter && !BiCGStabFailed && !BiCGStabConverged)
+    if ( niters >= maxiter && !BiCGStabFailed && !BiCGStabConverged)
     {
         if ( L2_norm_of_resid > L2_norm_of_rt )
         {
