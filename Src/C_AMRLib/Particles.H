@@ -295,6 +295,7 @@ public:
 
     void SetParticleVelocities (Array<Real>& part_data);
  
+    Real estTimestep (const MultiFab& grav_vector,         int level, Real cfl) const;
     Real estTimestep (const MultiFab& grav_vector, Real a, int level, Real cfl) const;
 
     void Redistribute (bool where_already_called = false,
@@ -1829,6 +1830,15 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
     ParallelDescriptor::ReduceLongLongSum(num_particles_in_domain);
 
     return num_particles_in_domain;
+}
+
+template <int N>
+Real
+ParticleContainer<N>::estTimestep (const MultiFab& gv,
+                                   int             lev,
+                                   Real            cfl) const
+{
+    return estTimestep(gv,1.0,lev,cfl);
 }
 
 template <int N>
