@@ -119,7 +119,7 @@ program fextract3d
      ! get basename of file
      indslsh = index(pltfile, '/', back = .TRUE.)
 
-     if ( indslsh /= 0 ) then
+     if ( indslsh == len(trim(pltfile)) ) then
         slicefile = trim(pltfile(:indslsh-1)) // ".slice"
      else
         slicefile = trim(pltfile) // ".slice"
