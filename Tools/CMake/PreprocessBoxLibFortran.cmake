@@ -62,11 +62,9 @@ function(preprocess_boxlib_fortran OUTVAR)
     else(MSVC)
       set(of "${CMAKE_CURRENT_BINARY_DIR}/${p}${n}${e}.f")
       set(PREPROCESS_FLAGS)
-      if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+      if(CMAKE_COMPILER_IS_GNUCXX)
         list(APPEND PREPROCESS_FLAGS "-traditional")
-      elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        list(APPEND PREPROCESS_FLAGS "-traditional")
-      endif()
+      endif(CMAKE_COMPILER_IS_GNUCXX)
 
       add_custom_command(
         OUTPUT ${of}
