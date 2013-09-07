@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <iomanip>
-#include <math.h>
+#include <cmath>
+
+using std::isinf;
 
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
