@@ -104,36 +104,36 @@ public:
     //
     // applies level MCLinOp to "in", returns "out", uses BC_mode flag
     //
-    virtual void apply (MultiFab& out,
-                        MultiFab& in,
-                        int       level = 0,
-                        MCBC_Mode bc_mode = MCInhomogeneous_BC);
+    void apply (MultiFab& out,
+		MultiFab& in,
+		int       level = 0,
+		MCBC_Mode bc_mode = MCInhomogeneous_BC);
     //
     // fills level boundary cells using BC_mode flag, int. BC data if reqd
     //
-    virtual void applyBC (MultiFab& inout,
-                          int       level = 0,
-                          MCBC_Mode bc_mode = MCInhomogeneous_BC);
+    void applyBC (MultiFab& inout,
+		  int       level = 0,
+		  MCBC_Mode bc_mode = MCInhomogeneous_BC);
     //
     // compute the level residual = rhsL - L(solnL)
     //
-    virtual void residual (MultiFab&       residL,
-                           const MultiFab& rhsL,
-                           MultiFab&       solnL,
-                           int             level = 0,
-                           MCBC_Mode       bc_mode = MCInhomogeneous_BC);
+    void residual (MultiFab&       residL,
+		   const MultiFab& rhsL,
+		   MultiFab&       solnL,
+		   int             level = 0,
+		   MCBC_Mode       bc_mode = MCInhomogeneous_BC);
     //
     // smooth the level system L(solnL)=rhsL
     //
-    virtual void smooth (MultiFab&       solnL,
-                         const MultiFab& rhsL,
-                         int             level = 0,
-                         MCBC_Mode       bc_mode = MCInhomogeneous_BC);
+    void smooth (MultiFab&       solnL,
+		 const MultiFab& rhsL,
+		 int             level = 0,
+		 MCBC_Mode       bc_mode = MCInhomogeneous_BC);
     //
     // Compute the norm of "in"
     //
-    virtual Real norm (const MultiFab& in,
-                       int             level = 0) const;
+    Real norm (const MultiFab& in,
+	       int             level = 0) const;
     //
     // return the boundary data object
     //
