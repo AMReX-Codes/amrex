@@ -129,9 +129,7 @@ module boxarray_module
   end interface
 
   private :: boxarray_maxsize_l
-  private :: boxlist_build_a
   private :: boxlist_nboxes
-  private :: boxlist_verify_dim
 
   type(mem_stats), private, save :: boxarray_ms
 
@@ -312,15 +310,6 @@ contains
     ba%nboxes = 0
   end subroutine boxarray_destroy
 
-  subroutine boxlist_build_a(bl, ba)
-    type(boxarray), intent(in) :: ba
-    type(list_box), intent(out) :: bl
-    integer :: i
-    do i = 1, ba%nboxes
-       call push_back(bl, ba%bxs(i))
-    end do
-  end subroutine boxlist_build_a
-
   subroutine boxarray_sort(ba)
     use sort_box_module
     type(boxarray), intent(inout) :: ba
@@ -353,32 +342,6 @@ contains
        end if
     end do
   end subroutine boxarray_verify_dim
-
-  subroutine boxlist_verify_dim(bl, stat)
-    use bl_error_module
-    type(list_box), intent(in) :: bl
-    integer, intent(out), optional :: stat
-    type(list_box_node), pointer :: bln
-    type(box) :: bx
-    integer :: dm
-    if ( present(stat) ) stat = 0
-    if ( size(bl) < 1 ) return
-    bln => begin(bl)
-    bx = value(bln)
-    dm = bx%dim
-    do while (associated(bln))
-       bx = value(bln)
-       if ( bx%dim /= dm ) then
-          if ( present(stat) ) then
-             stat = 1
-             return
-          else
-             call bl_error("BOXLIST_VERIFY_DIM:" // &
-                  "some box's dim not equal to the first box's dim: ", dm)
-          end if
-       end if
-    end do
-  end subroutine boxlist_verify_dim
 
   subroutine boxarray_grow_v(ba, rv)
     type(boxarray), intent(inout) :: ba
