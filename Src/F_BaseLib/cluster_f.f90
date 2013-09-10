@@ -85,12 +85,6 @@ contains
     r = beta
   end function cluster_get_beta
 
-  subroutine filter_lor(out, in)
-    logical, intent(inout) :: out(:,:,:,:)
-    logical, intent(in)    ::  in(:,:,:,:)
-    out = out .or. in
-  end subroutine filter_lor
-
   subroutine cls_3d_mf(boxes, tagboxes, buf_wid, overall_eff)
     use bl_error_module
     use bl_prof_module
