@@ -1925,8 +1925,12 @@ Amr::coarseTimeStep (Real stop_time)
             fclose(fp);
         }
     }
-    ParallelDescriptor::Bcast(&to_checkpoint, 1, ParallelDescriptor::IOProcessorNumber());
-    ParallelDescriptor::Bcast(&to_stop,       1, ParallelDescriptor::IOProcessorNumber());
+    int packed_data[2];
+    packed_data[0] = to_stop;
+    packed_data[1] = to_checkpoint;
+    ParallelDescriptor::Bcast(packed_data, 2, ParallelDescriptor::IOProcessorNumber());
+    to_stop = packed_data[0];
+    to_checkpoint = packed_data[1];
 
     if(to_stop == 1 && to_checkpoint == 0) {  // prevent main from writing files
       last_checkpoint = level_steps[0];
