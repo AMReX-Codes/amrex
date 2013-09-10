@@ -1,7 +1,10 @@
 # -*- mode: cmake -*-
-
 # Require cmake 2.8 or higher
 cmake_minimum_required(VERSION 2.8.2)
+
+#set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
+#set(CMAKE_DISABLE_SOURCE_CHANGES ON)
+
 
 if ("${CMAKE_PATCH_VERSION}" GREATER 3)
   set(ADJUST_POLICY "True")
@@ -16,10 +19,11 @@ endif()
 enable_testing()
 
 # Useful variables pointing to directories in the source tree
-set(CCSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+#set(CCSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CCSE_TOOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Tools")
 set(CCSE_PERL_DIR "${CCSE_TOOLS_DIR}/C_scripts")
-set(CCSE_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/install")
+#set(CCSE_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/install")
+set(CCSE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}")
 
 # Set the module search path so find_package and include commands
 # can locate files in <root source tree>/tools/cmake

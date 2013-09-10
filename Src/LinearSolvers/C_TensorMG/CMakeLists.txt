@@ -16,10 +16,10 @@ include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set(CXX_source_files DivVis.cpp MCCGSolver.cpp MCInterpBndryData.cpp MCLinOp.cpp MCMultiGrid.cpp)
 set(FPP_source_files MCINTERPBNDRYDATA_${BL_SPACEDIM}D.F MCLO_${BL_SPACEDIM}D.F)
-if(${BL_SPACEDIM} EQUAL 2)
+if("${BL_SPACEDIM}" EQUAL 2)
   list(APPEND FPP_source_files "DV_2D.F")
-elseif(${BL_SPACEDIM} EQUAL 3)
-  list(APPEND FPP_source_files "DV_3D1.F DV_3D2.F DV_3D3.F")
+elseif("${BL_SPACEDIM}" EQUAL 3)
+  list(APPEND FPP_source_files "DV_3D1.F" "DV_3D2.F" "DV_3D3.F")
 endif()
 set(F77_source_files)
 set(F90_source_files)
@@ -28,8 +28,6 @@ set(CXX_header_files DivVis.H MCCGSolver.H MCInterpBndryData.H MCLinOp.H MCMulti
 set(FPP_header_files DivVis_F.H MCINTERPBNDRYDATA_F.H MCLO_F.H)
 set(F77_header_files)
 set(F90_header_files)
-
-
 
 preprocess_boxlib_fortran(FPP_out_files ${FPP_source_files})
 
