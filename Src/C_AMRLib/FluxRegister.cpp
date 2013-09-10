@@ -207,7 +207,6 @@ RefluxIt (const Rec&       rf,
           const BoxArray&  grids,
           MultiFab&        S,
           const MultiFab&  volume,
-          const FabSet*    bndry,
           const FArrayBox& reg,
           int              scomp,
           int              dcomp,
@@ -233,8 +232,6 @@ RefluxIt (const Rec&       rf,
     const Box        ovlp       = sftbox & fine_face;
     const int*       lo         = ovlp.loVect();
     const int*       hi         = ovlp.hiVect();
-    const int*       rlo        = fine_face.loVect();
-    const int*       rhi        = fine_face.hiVect();
     const int*       shft       = rf.m_shift.getVect();
     const int*       vlo        = fab_volume.loVect();
     const int*       vhi        = fab_volume.hiVect();
@@ -244,7 +241,7 @@ RefluxIt (const Rec&       rf,
 
     FORT_FRREFLUX(s_dat,ARLIM(slo),ARLIM(shi),
                   vol_dat,ARLIM(vlo),ARLIM(vhi),
-                  reg_dat,ARLIM(rlo),ARLIM(rhi),
+                  reg_dat,ARLIM(lo),ARLIM(hi),
                   lo,hi,shft,&ncomp,&mult);
 }
 
@@ -260,12 +257,15 @@ FluxRegister::Reflux (MultiFab&       S,
 {
     BL_PROFILE("FluxRegister::Reflux()");
 
-    BoxArray ba = grids; ba.grow(1);
-
     FabSetId                          fsid[2*BL_SPACEDIM];
     std::deque<Rec>                   Recs;
     FabSetCopyDescriptor              fscd;
     std::vector< std::pair<int,Box> > isects;
+    //
+    // We use this to help "find" FluxRegisters with which we may intersect.
+    // It assumes that FluxRegisters have width "1".
+    //
+    BoxArray ba = grids; ba.grow(1);
 
     for (OrientationIter fi; fi; ++fi)
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
@@ -295,8 +295,16 @@ FluxRegister::Reflux (MultiFab&       S,
 
                 if (ovlp.ok())
                 {
+                    //
+                    // Try to "minimize" the amount of data sent.
+                    // Don't send the "whole" bndry register if not needed.
+                    //
+                    Box sbx = BoxLib::surroundingNodes(ovlp,face%BL_SPACEDIM);
+
+                    sbx &= bndry[face].box(k);
+
                     FillBoxId fbid = fscd.AddBox(fsid[face],
-                                                 bndry[face].box(k),
+                                                 sbx,
                                                  0,
                                                  k,
                                                  src_comp,
@@ -351,8 +359,16 @@ FluxRegister::Reflux (MultiFab&       S,
 
                         if (ovlp.ok())
                         {
+                            //
+                            // Try to "minimize" the amount of data sent.
+                            // Don't send the "whole" bndry register if not needed.
+                            //
+                            Box sbx = BoxLib::surroundingNodes(ovlp,face%BL_SPACEDIM);
+
+                            sbx &= bndry[face].box(k);
+
                             FillBoxId fbid = fscd.AddBox(fsid[face],
-                                                         bndry[face].box(k),
+                                                         sbx,
                                                          0,
                                                          k,
                                                          src_comp,
@@ -368,6 +384,7 @@ FluxRegister::Reflux (MultiFab&       S,
     }
 
     BL_COMM_PROFILE_NAMETAG("CD::FluxRegister::Reflux()");
+
     fscd.CollectData();
 
     const int N = Recs.size();
@@ -380,7 +397,7 @@ FluxRegister::Reflux (MultiFab&       S,
         const Rec&       rf   = Recs[i];
         const FillBoxId& fbid = rf.m_fbid;
 
-        BL_ASSERT(bndry[rf.m_face].box(rf.m_sIndex) == fbid.box());
+        BL_ASSERT(bndry[rf.m_face].box(rf.m_sIndex).contains(fbid.box()));
         BL_ASSERT(S.DistributionMap()[rf.m_dIndex] == ParallelDescriptor::MyProc());
         BL_ASSERT(volume.DistributionMap()[rf.m_dIndex] == ParallelDescriptor::MyProc());
 
@@ -388,7 +405,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
         fscd.FillFab(fsid[rf.m_face], fbid, reg);
 
-        RefluxIt(rf,scale,multf,grids,S,volume,bndry,reg,0,dest_comp,num_comp);
+        RefluxIt(rf,scale,multf,grids,S,volume,reg,0,dest_comp,num_comp);
     }
 }
 
