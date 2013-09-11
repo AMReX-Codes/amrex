@@ -10,7 +10,8 @@ set(FMGDIR LinearSolvers/F_MG)
 set(CAMRDATADIR Extern/amrdata)
 
 # Pick one place to put modules so everyone can see them
-set(CMAKE_FORTRAN_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${FBOXDIR} CACHE PATH "Folder for fortran module files")
+set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod_files CACHE PATH "Folder for fortran module files")
+install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION include)
 
 set(CBOXLIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/${CBOXDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CBNDRYDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CTMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CFMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDATADIR} ${BOXLIB_EXTRA_CXX_INCLUDE_PATH})
 
@@ -29,8 +30,8 @@ add_subdirectory(${FMGDIR})
 
 add_subdirectory(${CFMGDIR})
 
-add_library(cboxlib $<TARGET_OBJECTS:box_c> $<TARGET_OBJECTS:box_cbndry> $<TARGET_OBJECTS:box_camr> $<TARGET_OBJECTS:box_cmg> $<TARGET_OBJECTS:box_ctmg> $<TARGET_OBJECTS:box_cfmg>) 
-add_library(cfboxlib $<TARGET_OBJECTS:box_cfmg>) 
+add_library(cboxlib $<TARGET_OBJECTS:box_c> $<TARGET_OBJECTS:box_cbndry> $<TARGET_OBJECTS:box_camr> $<TARGET_OBJECTS:box_cmg> $<TARGET_OBJECTS:box_ctmg> $<TARGET_OBJECTS:box_cfmg>)
+add_library(cfboxlib $<TARGET_OBJECTS:box_cfmg>)
 add_install_library(cboxlib)
 add_install_library(cfboxlib)
 SET_TARGET_PROPERTIES(cboxlib PROPERTIES LINKER_LANGUAGE C)
