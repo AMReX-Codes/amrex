@@ -5223,7 +5223,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
                     // for the start of writing of each block of data.
                     //
                     bool is_checkpoint = true;
-                    WriteParticles(lev, ParticleFile, FileNumber, which, count, where, true);
+                    WriteParticles(lev, ParticleFile, FileNumber, which, count, where, is_checkpoint);
 
                     ParticleFile.flush();
 

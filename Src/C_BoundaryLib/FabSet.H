@@ -60,20 +60,20 @@ public:
     //
     // Returns number of variables associated with each point.
     //
-    MultiFab::nComp;
+    using MultiFab::nComp;
     //
     // Returns a constant reference to the BoxArray.
     //
-    MultiFab::boxArray;
+    using MultiFab::boxArray;
     //
     // Returns a constant reference to the Kth Box in the BoxArray.
     //
-    MultiFab::box;
-    MultiFab::fabbox;
+    using MultiFab::box;
+    using MultiFab::fabbox;
     //
     // Promote all setVal() member functions back to public.
     //
-    MultiFab::setVal;
+    using MultiFab::setVal;
     //
     // Copy from this FabSet to the destination FAB.
     //
@@ -196,23 +196,23 @@ public:
     //
     // Promote operator[] back to public.
     //
-    MultiFab::operator[];
+    using MultiFab::operator[];
 
-    MultiFab::get;
+    using MultiFab::get;
     //
     // Promote clear() back to public.
     //
-    MultiFab::clear;
+    using MultiFab::clear;
     //
     // Promote DistributionMap() back to public.
     //
-    MultiFab::DistributionMap;
+    using MultiFab::DistributionMap;
 
-    MultiFab::IndexMap;
+    using MultiFab::IndexMap;
     //
     // Promote size() back to public.
     //
-    MultiFab::size;
+    using MultiFab::size;
     //
     // True if there is a FAB at specified index.
     //

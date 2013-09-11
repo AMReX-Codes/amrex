@@ -48,11 +48,11 @@ public:
     //
     // return the array of Boxes
     //
-    BndryRegister::boxes;
+    using BndryRegister::boxes;
     //
     // return the number of Boxes
     //
-    BndryRegister::size;
+    using BndryRegister::size;
     //
     // mask values enumeration
     //
@@ -176,11 +176,11 @@ protected:
     //
     // protect BndryRegister grids.
     //
-    BndryRegister::grids;
+    using BndryRegister::grids;
     //
     // protect BndryRegister FabSets.
     //
-    BndryRegister::bndry;
+    using BndryRegister::bndry;
     //
     // Map of boundary condition type specifiers.
     // The outer Array dimension is over Orientation.
