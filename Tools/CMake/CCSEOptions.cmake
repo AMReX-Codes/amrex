@@ -189,5 +189,5 @@ endif()
 set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${BL_DEFINES}")
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  list(APPEND CMAKE_CXX_FLAGS "-ftemplate-depth-64 -Wno-deprecated")
+  set(APPEND CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-64 -Wno-deprecated")
 endif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")

@@ -31,7 +31,7 @@ add_library(box_fmg ${local_source_files})
 
 # The following line ensures that the mod files associated with the base lib will be build in time
 #  and tell CMake that anything that links to fmg must link to fboxlib.
-target_link_libraries(box_fmg box_f)
+target_link_libraries(box_fmg fboxlib)
 
 add_install_include_file(${local_header_files})
 
