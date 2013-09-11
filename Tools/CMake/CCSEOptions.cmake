@@ -81,6 +81,34 @@ if (BL_DEBUG)
   list(APPEND BL_DEFINES BL_USE_MPI)
 endif()
 
+# Here is a list of BL_ defines floating around in the code that probably should be 
+# explicitly set by the user for the build.  They are left here as TODO, in case some
+# systematic approach is discovered for doing this.  For the moment, the only ones
+# treated are ones that are known to give problems if not set
+#
+
+# BL_USE_ARRAYVIEW
+# BL_USE_SETBUF
+# BL_USE_NEWPLOTPER
+# BL_FIX_GATHERV_ERROR
+# BL_SYNC_RANTABLES
+# BL_COALESCE_FABS
+# BL_NO_FORT
+# BL_SETBUF_SIGNED_CHAR
+# BL_USE_FORT_STAR_PRECISION
+# BL_FIXHEADERDENORMS
+# BL_VISMF_MSGCHECK
+# BL_ALWAYS_FIX_DENORMALS
+# BL_NOLINEVALUES
+# BL_PROF_NOT_REG
+# BL_CWD_SIZE
+# _BL_ANSI_TIME
+
+set(BL_SPACEDIM 3)
+set(BL_PRECISION "DOUBLE")
+set(BL_USE_PARTICLES 1)
+set(ENABLE_PROFILING 0)
+set(ENABLE_BACKTRACE 0)
 
 message(STATUS "   BL_SPACEDIM = ${BL_SPACEDIM} (1,2,3)")
 message(STATUS "   BL_MACHINE = ${BL_MACHINE} (<ARCH>)")
@@ -88,8 +116,26 @@ message(STATUS "   BL_PRECISION = ${BL_PRECISION} (FLOAT, DOUBLE)")
 message(STATUS "   ENABLE_MPI = ${ENABLE_MPI} (0,1)")
 message(STATUS "   ENABLE_OpenMP = ${ENABLE_OpenMP} (0,1)")
 message(STATUS "   BL_DEBUG = ${BL_DEBUG} (0,1)")
+message(STATUS "   BL_USE_PARTICLES = ${BL_USE_PARTICLES} (0,1)")
+message(STATUS "   ENABLE_BACKTRACE = ${ENABLE_BACKTRACE} (0,1)")
+message(STATUS "   ENABLE_PROFILING = ${ENABLE_PROFILING} (0,1)")
 
 set(BL_DEFINES "BL_NOLINEVALUES;BL_PARALLEL_IO;BL_SPACEDIM=${BL_SPACEDIM};BL_FORT_USE_${BL_FORTLINK};BL_${BL_MACHINE};BL_USE_${BL_PRECISION}")
+
+if (BL_USE_PARTICLES)
+  list(APPEND BL_DEFINES BL_USE_PARTICLES)
+endif (BL_USE_PARTICLES)
+
+if (ENABLE_PROFILING)
+  list(APPEND BL_DEFINES BL_PROFILING)
+endif (ENABLE_PROFILING)
+
+if (ENABLE_COMM_PROFILING)
+  list(APPEND BL_DEFINES BL_COMM_PROFILING)
+endif (ENABLE_COMM_PROFILING)
+
+
+
 
 set(BOXLIB_EXTRA_LIBRARIES)
 set(BOXLIB_EXTRA_LIBRARY_PATH)
@@ -109,6 +155,7 @@ if (ENABLE_MPI)
 endif()
 
 if (ENABLE_OpenMP)
+  set(ENABLE_OMP TRUE)
   list(APPEND BL_DEFINES BL_USE_OMP)
   find_package(OpenMP REQUIRED)
   list(APPEND CMAKE_CC_FLAGS "${OpenMP_C_FLAGS}")
@@ -121,7 +168,6 @@ endif()
 
 set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${BL_DEFINES}")
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth-64 -Wno-deprecated")
-endif(CMAKE_COMPILER_IS_GNUCXX)
-
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  list(APPEND CMAKE_CXX_FLAGS "-ftemplate-depth-64 -Wno-deprecated")
+endif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
