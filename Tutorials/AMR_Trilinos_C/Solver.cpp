@@ -81,38 +81,6 @@ void Solver::SetupProblem(const Box& domain, MultiFab& rhs, MultiFab& soln)
 
     A = rcp(new Epetra_CrsMatrix(Copy, *Map, 7));
     ComputeStencil();
-    //EpetraExt::RowMatrixToMatlabFile("Matrix.dat", *A);
-
-    /*
-    // Scale matrix
-    // A = D^(-1/2) A D^(-1/2)
-    // (D*A*D) (D*LHS) = (D*RHS)
-
-    Epetra_Vector *DV = new Epetra_Vector(*Map);
-    A->ExtractDiagonalCopy(*DV);
-    Diag = new Epetra_CrsMatrix(Copy, *Map, 1);
-
-    int nvals = A->NumMyRows();
-    double *entry;
-    DV->ExtractView(&entry);
-    int* MyGlobalElements = Map->MyGlobalElements();
-    for (int i=0; i<nvals; i++){
-        if (entry[i] != 0){
-            double CV = 1.0/sqrt(entry[i]);
-            Diag->InsertGlobalValues(Map->GID(i), 1, &CV, MyGlobalElements + i);
-        }
-    }
-    Diag->FillComplete();
-    Diag->OptimizeStorage();
-
-    EpetraExt::MatrixMatrix::Multiply(*A, false, *Diag, false, *A);
-    EpetraExt::MatrixMatrix::Multiply(*Diag, false, *A, false, *A);
-
-    // scale right hand side accordingly
-    Diag->Multiply(false, *RHS, *RHS);
-
-    delete DV;
-    */
 }
 
 void Solver::extrapolateLHS() 
