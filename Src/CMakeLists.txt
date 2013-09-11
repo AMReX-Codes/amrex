@@ -28,6 +28,14 @@ add_subdirectory(${FBOXDIR})
 add_subdirectory(${FMGDIR})
 
 add_subdirectory(${CFMGDIR})
+
+add_library(cboxlib $<TARGET_OBJECTS:box_c> $<TARGET_OBJECTS:box_cbndry> $<TARGET_OBJECTS:box_camr> $<TARGET_OBJECTS:box_cmg> $<TARGET_OBJECTS:box_ctmg> $<TARGET_OBJECTS:box_cfmg>) 
+add_library(cfboxlib $<TARGET_OBJECTS:box_cfmg>) 
+add_install_library(cboxlib)
+add_install_library(cfboxlib)
+SET_TARGET_PROPERTIES(cboxlib PROPERTIES LINKER_LANGUAGE C)
+SET_TARGET_PROPERTIES(cfboxlib PROPERTIES LINKER_LANGUAGE C)
+
 add_subdirectory(${CAMRDATADIR})
 
 add_subdirectory(Extern/gslib)

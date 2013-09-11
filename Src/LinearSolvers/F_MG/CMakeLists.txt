@@ -34,7 +34,6 @@ add_library(box_fmg ${local_source_files})
 target_link_libraries(box_fmg box_f)
 
 add_install_include_file(${local_header_files})
-add_install_library(box_fmg)
 
 if (BUILD_TESTS AND BL_SPACEDIM EQUAL 3)
 endif()

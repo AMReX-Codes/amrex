@@ -1,6 +1,6 @@
 # -*- mode: cmake -*-
-# Require cmake 2.8 or higher
-cmake_minimum_required(VERSION 2.8.2)
+# Require cmake 2.8.8 or higher
+cmake_minimum_required(VERSION 2.8.8)
 
 #set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 #set(CMAKE_DISABLE_SOURCE_CHANGES ON)
