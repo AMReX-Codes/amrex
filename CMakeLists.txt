@@ -19,10 +19,8 @@ endif()
 enable_testing()
 
 # Useful variables pointing to directories in the source tree
-#set(CCSE_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CCSE_TOOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Tools")
 set(CCSE_PERL_DIR "${CCSE_TOOLS_DIR}/C_scripts")
-#set(CCSE_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/install")
 set(CCSE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}")
 
 # Set the module search path so find_package and include commands
@@ -55,6 +53,8 @@ add_subdirectory(Src)
 create_exports()
 
 ADD_INSTALL_PERLSCRIPT(${CCSE_PERL_DIR}/strip72)
+
+ADD_INSTALL_INCLUDE_FILE(${CCSE_PERL_DIR}/buildInfo.H)
 
 option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
 set(CCSE_CONFIG_LOG "${CCSE_BINARY_DIR}/ccse-config.log"
