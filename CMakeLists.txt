@@ -10,6 +10,44 @@ if (${ADJUST_POLICY})
   cmake_policy(SET CMP0017 NEW)
 endif()
 
+#
+# Usage:
+#
+# Typically cmake is used to support an "out-of-source-tree" build.  To this with default
+# settings (see below):
+#
+#     #> export bdir=`pwd`
+#     #> mkdir <new_build_dir>
+#     #> cd <new_build_dir>
+#     #> cmake $bdir
+#     #> make
+#     [ optionally #> make install ]
+#
+# The install target will place all C++/Fortran header and mod files in an include folder,
+# and the CCSE libraries in a lib folder.
+#
+# Note: If you intend to use install, almost surely you will want to set the absolute path
+#       of the folder where the files will be installed:
+#
+#           CMAKE_INSTALL_PREFIX
+# 
+# Below, we have set some of the switches for reasonable default behavior, these can be 
+# overridden at the cmake command line, ie  "cmake -DVAR=VALUE", or by editing the values
+# directly below.
+#
+
+# Define the project name
+# This command will define
+#     CCSE_SOURCE_DIR
+#     CCSE_BINARY_DIR
+project(CCSE)
+
+set(BL_SPACEDIM 2)
+set(ENABLE_MPI 1)
+set(ENABLE_OpenMP 0)
+set(BL_PRECISION "DOUBLE")
+set(CMAKE_INSTALL_PREFIX "${CCSE_BINARY_DIR}")
+
 # Enable testing, ctest needs this
 # all add_test commands are ignored unless this is called!
 enable_testing()
@@ -33,15 +71,8 @@ set_property(GLOBAL PROPERTY CCSE_LINK_LINE "-L${CMAKE_INSTALL_PREFIX}/lib")
 
 # A property for accumulating CCSE library targets
 set_property(GLOBAL PROPERTY CCSE_LIBRARY_TARGETS)
-set(CCSE_LINK_LINE_FILE "${CMAKE_INSTALL_PREFIX}/lib/link_line")  # A filename to write link-line to.
 include(InstallManager)
 
-
-# Define the project name
-# This command will define
-#     CCSE_SOURCE_DIR
-#     CCSE_BINARY_DIR
-project(CCSE)
 
 # Source files for all binaries and libraries found under src
 add_subdirectory(Src)
