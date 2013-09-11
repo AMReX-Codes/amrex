@@ -104,6 +104,26 @@ endif()
 # BL_CWD_SIZE
 # _BL_ANSI_TIME
 
+# The following variables really should be set explicitly prior to including this file so
+# that the behavior is predictable
+if (NOT DEFINED ENABLE_MPI OR "${ENABLE_MPI}" STREQUAL "")
+  message(FATAL_ERROR "Must set ENABLE_MPI prior to including CCSEOptions.cmake")
+else()
+  if (ENABLE_MPI EQUAL 1 OR ENABLE_MPI EQUAL 0)
+  else()
+    message(FATAL_ERROR "ENABLE_MPI must be set to 0 or 1 prior to including CCSEOptions.cmake")
+  endif (ENABLE_MPI EQUAL 1 OR ENABLE_MPI EQUAL 0)
+endif (NOT DEFINED ENABLE_MPI OR "${ENABLE_MPI}" STREQUAL "")
+
+if (NOT DEFINED ENABLE_OpenMP OR "${ENABLE_OpenMP}" STREQUAL "")
+  message(FATAL_ERROR "Must set ENABLE_OpenMP prior to including CCSEOptions.cmake")
+else()
+  if (ENABLE_OpenMP EQUAL 1 OR ENABLE_OpenMP EQUAL 0)
+  else()
+    message(FATAL_ERROR "ENABLE_OpenMP must be set to 0 or 1 prior to including CCSEOptions.cmake")
+  endif (ENABLE_OpenMP EQUAL 1 OR ENABLE_OpenMP EQUAL 0)
+endif (NOT DEFINED ENABLE_OpenMP OR "${ENABLE_OpenMP}" STREQUAL "")
+
 set(BL_SPACEDIM 3)
 set(BL_PRECISION "DOUBLE")
 set(BL_USE_PARTICLES 1)
