@@ -47,4 +47,5 @@ A sample inputs file (called "inputs") is provided here.
 
 Two plotfiles are written: RHS and SOLN.  You can visualize these using Visit or Amrvis.
 
-This tutorial was based on the interface to Trilinos implemented by Tulin Kaman of PSI.
+This tutorial was based on the interface to Trilinos implemented by Dr. Tulin Kaman 
+of the Paul Scherrer Institut (tulin.kaman@psi.ch) and ETH Zurich (tulin.kaman@inf.ethz.ch)
