@@ -25,6 +25,7 @@ set(CCSE_MODULE_PATH "${CCSE_TOOLS_DIR}/CMake")
 set(CMAKE_MODULE_PATH  ${CCSE_MODULE_PATH})
 
 # Addtional build options
+include(BoxLib_Version)
 include(CCSEOptions)
 
 # A property for accumulating the a global CCSE link line.

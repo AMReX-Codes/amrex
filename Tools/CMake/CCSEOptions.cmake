@@ -30,18 +30,6 @@ if(BUILD_STATIC_EXECUTABLES)
     set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
 endif(BUILD_STATIC_EXECUTABLES)
 
-set(cat_exec "cat")
-if (WIN32)
-    if( NOT UNIX)
-        set(cat_exec "type")
-    endif(NOT UNIX)
-endif(WIN32)
-
-execute_process(COMMAND "${cat_exec}" "${CCSE_ROOT_DIR}/BoxLib_Version.txt"
-                OUTPUT_VARIABLE CCSE_VERSION
-                ERROR_VARIABLE  _stderr
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-
 # Testing
 include(CMakeDependentOption)
 cmake_dependent_option(ENABLE_TESTS "Enable unit testing" ON

@@ -210,7 +210,6 @@ set(out_makefile "${CCSE_BINARY_DIR}/Makefile.export")
 configure_file("${in_makefile}" "${out_makefile}")
 install(FILES "${out_makefile}" DESTINATION lib)
 
-# Write the CCSEConfig.cmake file
 set(in_config   "${CCSE_MODULE_PATH}/CCSEConfig-install.cmake.in")
 set(out_config   "${CCSE_BINARY_DIR}/CCSEConfig.cmake")
 configure_file(${in_config} ${out_config})
