@@ -32,10 +32,13 @@ add_subdirectory(${CFMGDIR})
 
 add_library(cboxlib $<TARGET_OBJECTS:box_c> $<TARGET_OBJECTS:box_cbndry> $<TARGET_OBJECTS:box_camr> $<TARGET_OBJECTS:box_cmg> $<TARGET_OBJECTS:box_ctmg> $<TARGET_OBJECTS:box_cfmg>)
 add_library(cfboxlib $<TARGET_OBJECTS:box_cfmg>)
+add_library(fboxlib $<TARGET_OBJECTS:box_f> $<TARGET_OBJECTS:box_fmg>)
 add_install_library(cboxlib)
 add_install_library(cfboxlib)
+add_install_library(fboxlib)
 SET_TARGET_PROPERTIES(cboxlib PROPERTIES LINKER_LANGUAGE C)
 SET_TARGET_PROPERTIES(cfboxlib PROPERTIES LINKER_LANGUAGE C)
+SET_TARGET_PROPERTIES(fboxlib PROPERTIES LINKER_LANGUAGE C)
 
 add_subdirectory(${CAMRDATADIR})
 

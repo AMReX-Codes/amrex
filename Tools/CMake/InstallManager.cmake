@@ -91,6 +91,24 @@ endforeach()
 endfunction( ADD_INSTALL_PERLSCRIPT )
 
 
+#
+# Usage: ADD_INSTALL_CMAKE_FILES( file1 file2 ... )
+#
+# Arguments:
+#  A list of cmake module files that will be installed in CCSE_INSTALL_PREFIX/cmake
+#
+#
+function ( ADD_INSTALL_CMAKE_FILES )
+
+foreach(_cmake_file ${ARGV})
+  install(
+    FILES ${_cmake_file}
+    DESTINATION cmake
+    )
+endforeach()
+
+endfunction( ADD_INSTALL_CMAKE_FILES )
+
 
 
 #

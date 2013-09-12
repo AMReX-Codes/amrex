@@ -42,11 +42,13 @@ endif()
 #     CCSE_BINARY_DIR
 project(CCSE)
 
-set(BL_SPACEDIM 2)
+set(BL_SPACEDIM 3)
 set(ENABLE_MPI 1)
 set(ENABLE_OpenMP 0)
 set(BL_PRECISION "DOUBLE")
-set(CMAKE_INSTALL_PREFIX "${CCSE_BINARY_DIR}")
+
+# None, Debug, Release, RelWithDebInfo, MinSizeRel
+set(CMAKE_BUILD_TYPE Release)
 
 # Enable testing, ctest needs this
 # all add_test commands are ignored unless this is called!
@@ -81,8 +83,11 @@ add_subdirectory(Src)
 create_exports()
 
 ADD_INSTALL_PERLSCRIPT(${CCSE_PERL_DIR}/strip72)
-
 ADD_INSTALL_INCLUDE_FILE(${CCSE_PERL_DIR}/buildInfo.H)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEOptions.cmake)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/FindCCSE.cmake)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/PreprocessBoxLibFortran.cmake)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in)
 
 option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
 set(CCSE_CONFIG_LOG "${CCSE_BINARY_DIR}/ccse-config.log"
