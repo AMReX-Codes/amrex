@@ -34,6 +34,7 @@ public:
     // The constructor.
     //
     Amr ();
+    Amr (const RealBox* rb, int coord);
     void InitAmr();
     //
     // The destructor.
