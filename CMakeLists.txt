@@ -19,21 +19,21 @@ endif()
 #     #> export bdir=`pwd`
 #     #> mkdir <new_build_dir>
 #     #> cd <new_build_dir>
-#     #> cmake $bdir
+#     #> cmake -DCMAKE_INSTALL_DIR:PATH=<dir> $bdir
 #     #> make
 #     [ optionally #> make install ]
 #
 # The install target will place all C++/Fortran header and mod files in an include folder,
-# and the CCSE libraries in a lib folder.
+# the CCSE libraries in a lib folder, plus some stuff in perl and cmake folders.
 #
-# Note: If you intend to use install, almost surely you will want to set the absolute path
-#       of the folder where the files will be installed:
+# An example cmake input file to build an app that links to the libs built from here:
 #
-#           CMAKE_INSTALL_PREFIX
-# 
+#              BoxLib/Tutorials/MultiGrid_C/CMakeLists.txt
+#
 # Below, we have set some of the switches for reasonable default behavior, these can be 
 # overridden at the cmake command line, ie  "cmake -DVAR=VALUE", or by editing the values
-# directly below.
+# directly below.  NOTE: If the C++ classes are to be used, the BL_SPACEDIM value must
+# agree between the lib and the app (at the moment this is not checked)
 #
 
 # Define the project name

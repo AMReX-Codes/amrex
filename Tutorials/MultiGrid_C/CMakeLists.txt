@@ -1,4 +1,23 @@
 # -*- mode: cmake -*-------------------------------------------
+
+#
+# Usage:
+#
+# Typically cmake is used to support an "out-of-source-tree" build.  To this with default
+# settings (see below):
+#
+#     #> export bdir=`pwd`
+#     #> mkdir <new_build_dir>
+#     #> cd <new_build_dir>
+#     #> cmake $bdir
+#     #> make
+#
+# Below, we have set some of the switches for reasonable default behavior, these can be 
+# overridden at the cmake command line, ie  "cmake -DVAR=VALUE", or by editing the values
+# directly below.  NOTE: If the C++ classes are to be used, the BL_SPACEDIM value must
+# agree between the lib and the app (at the moment this is not checked)
+#
+
 cmake_minimum_required(VERSION 2.8.8)
 enable_language(CXX)
 enable_language(C)
