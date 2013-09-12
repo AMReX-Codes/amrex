@@ -19,21 +19,21 @@ endif()
 #     #> export bdir=`pwd`
 #     #> mkdir <new_build_dir>
 #     #> cd <new_build_dir>
-#     #> cmake $bdir
+#     #> cmake -DCMAKE_INSTALL_DIR:PATH=<dir> $bdir
 #     #> make
 #     [ optionally #> make install ]
 #
 # The install target will place all C++/Fortran header and mod files in an include folder,
-# and the CCSE libraries in a lib folder.
+# the CCSE libraries in a lib folder, plus some stuff in perl and cmake folders.
 #
-# Note: If you intend to use install, almost surely you will want to set the absolute path
-#       of the folder where the files will be installed:
+# An example cmake input file to build an app that links to the libs built from here:
 #
-#           CMAKE_INSTALL_PREFIX
-# 
+#              BoxLib/Tutorials/MultiGrid_C/CMakeLists.txt
+#
 # Below, we have set some of the switches for reasonable default behavior, these can be 
 # overridden at the cmake command line, ie  "cmake -DVAR=VALUE", or by editing the values
-# directly below.
+# directly below.  NOTE: If the C++ classes are to be used, the BL_SPACEDIM value must
+# agree between the lib and the app (at the moment this is not checked)
 #
 
 # Define the project name
@@ -42,11 +42,13 @@ endif()
 #     CCSE_BINARY_DIR
 project(CCSE)
 
-set(BL_SPACEDIM 2)
+set(BL_SPACEDIM 3)
 set(ENABLE_MPI 1)
 set(ENABLE_OpenMP 0)
 set(BL_PRECISION "DOUBLE")
-set(CMAKE_INSTALL_PREFIX "${CCSE_BINARY_DIR}")
+
+# None, Debug, Release, RelWithDebInfo, MinSizeRel
+set(CMAKE_BUILD_TYPE Release)
 
 # Enable testing, ctest needs this
 # all add_test commands are ignored unless this is called!
@@ -81,8 +83,11 @@ add_subdirectory(Src)
 create_exports()
 
 ADD_INSTALL_PERLSCRIPT(${CCSE_PERL_DIR}/strip72)
-
 ADD_INSTALL_INCLUDE_FILE(${CCSE_PERL_DIR}/buildInfo.H)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEOptions.cmake)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/FindCCSE.cmake)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/PreprocessBoxLibFortran.cmake)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in)
 
 option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
 set(CCSE_CONFIG_LOG "${CCSE_BINARY_DIR}/ccse-config.log"
