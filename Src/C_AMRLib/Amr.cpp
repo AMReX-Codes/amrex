@@ -180,17 +180,23 @@ Amr::Amr ()
     datalog(PArrayManage)
 {
     Initialize();
+    Geometry::Setup();
+    InitAmr();
+}
+
+Amr::Amr (const RealBox* rb, int coord)
+    :
+    amr_level(PArrayManage),
+    datalog(PArrayManage)
+{
+    Initialize();
+    Geometry::Setup(rb,coord);
     InitAmr();
 }
 
 void
 Amr::InitAmr ()
 {
-    //
-    // Setup Geometry from ParmParse file.
-    // May be needed for variableSetup or even getLevelBld.
-    //
-    Geometry::Setup();
     //
     // Determine physics class.
     //
