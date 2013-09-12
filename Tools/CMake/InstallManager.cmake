@@ -153,7 +153,7 @@ function(makefile_library_dirs)
 
     cmake_parse_arguments(PARSE_ARGS "" "MAKE_LIB_LIST" "CMAKE_LIB_LIST" ${ARGN})
     #print_variable(PARSE_ARGS_CMAKE_LIB_LIST)
-    #print_variable(PARSE_ARGS_MAKE_LIB_LIST)
+    message(STATUS "PARSE_ARGS_CMAKE_LIB_LIST: ${PARSE_ARGS_CMAKE_LIB_LIST}")
 
     set(tmp_lib_list)
     set(loop_list ${PARSE_ARGS_CMAKE_LIB_LIST})
@@ -190,15 +190,6 @@ set(CCSE_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib")
 
 list(REMOVE_DUPLICATES CCSE_INCLUDE_DIRS)
 list(REMOVE_DUPLICATES CCSE_LIBRARY_DIRS)
-
-# Convert the link line to a space deliminated string
-foreach (arg ${LINK_LINE})
-  set(LINK_LINE_STRING "${LINK_LINE_STRING} ${arg}")
-endforeach()
-
-# Write and install the link-line file
-file(WRITE ${CCSE_LINK_LINE_FILE} ${LINK_LINE_STRING})
-install(FILES ${CCSE_LINK_LINE_FILE} DESTINATION lib)
 
 # Write the export Makefile and add to the include install list
 makefile_include_dirs(CMAKE_INCLUDE_LIST ${CCSE_INCLUDE_DIRS}
