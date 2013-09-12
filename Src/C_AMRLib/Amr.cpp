@@ -180,17 +180,23 @@ Amr::Amr ()
     datalog(PArrayManage)
 {
     Initialize();
+    Geometry::Setup();
+    InitAmr();
+}
+
+Amr::Amr (const RealBox* rb, int coord)
+    :
+    amr_level(PArrayManage),
+    datalog(PArrayManage)
+{
+    Initialize();
+    Geometry::Setup(rb,coord);
     InitAmr();
 }
 
 void
 Amr::InitAmr ()
 {
-    //
-    // Setup Geometry from ParmParse file.
-    // May be needed for variableSetup or even getLevelBld.
-    //
-    Geometry::Setup();
     //
     // Determine physics class.
     //
@@ -988,6 +994,7 @@ Amr::set_t_nodes(const Array<Real>& tn)
     }
 }
 
+
 void
 Amr::init (Real strt_time,
            Real stop_time)
@@ -1010,6 +1017,25 @@ Amr::init (Real strt_time,
         amr_level[0].setPlotVariables();
     }
 #endif
+}
+
+void
+Amr::init (Real              strt_time,
+           Real              stop_time,
+           const BoxArray&   lev0_grids,
+           const Array<int>& pmap)
+{
+    if (!restart_file.empty() && restart_file != "init")
+    {
+        restart(restart_file);
+    }
+    else
+    {
+        initialInit(strt_time,stop_time,&lev0_grids,&pmap);
+        checkPoint();
+        if (plot_int > 0 || plot_per > 0)
+            writePlotFile();
+    }
 }
 
 void
@@ -1092,8 +1118,10 @@ Amr::readProbinFile (int& init)
 }
 
 void
-Amr::initialInit (Real strt_time,
-                  Real stop_time)
+Amr::initialInit (Real              strt_time,
+                  Real              stop_time,
+                  const BoxArray*   lev0_grids,
+                  const Array<int>* pmap)
 {
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit TOP");
     checkInput();
@@ -1127,7 +1155,7 @@ Amr::initialInit (Real strt_time,
     //
     // Define base level grids.
     //
-    defBaseLevel(strt_time);
+    defBaseLevel(strt_time, lev0_grids, pmap);
     //
     // Compute dt and set time levels of all grid data.
     //
@@ -1992,33 +2020,57 @@ Amr::writePlotNow()
 } 
 
 void
-Amr::defBaseLevel (Real strt_time)
+Amr::defBaseLevel (Real              strt_time, 
+                   const BoxArray*   lev0_grids,
+                   const Array<int>* pmap)
 {
     //
     // Check that base domain has even number of zones in all directions.
     //
-    const Box& domain = geom[0].Domain();
-    IntVect d_length  = domain.size();
-    const int* d_len  = d_length.getVect();
+    const Box& domain   = geom[0].Domain();
+    IntVect    d_length = domain.size();
+    const int* d_len    = d_length.getVect();
 
     for (int idir = 0; idir < BL_SPACEDIM; idir++)
         if (d_len[idir]%2 != 0)
             BoxLib::Error("defBaseLevel: must have even number of cells");
-    //
-    // Coarsening before we split the grids ensures that each resulting
-    // grid will have an even number of cells in each direction.
-    //
+
     BoxArray lev0(1);
 
-    lev0.set(0,BoxLib::coarsen(domain,2));
-    //
-    // Now split up into list of grids within max_grid_size[0] limit.
-    //
-    lev0.maxSize(max_grid_size[0]/2);
-    //
-    // Now refine these boxes back to level 0.
-    //
-    lev0.refine(2);
+    if (lev0_grids != 0 && lev0_grids->size() > 0)
+    {
+        BL_ASSERT(pmap != 0);
+
+        BoxArray domain_ba(domain);
+        if (!domain_ba.contains(*lev0_grids))
+            BoxLib::Error("defBaseLevel: domain does not contain lev0_grids!");
+        if (!lev0_grids->contains(domain_ba))
+            BoxLib::Error("defBaseLevel: lev0_grids does not contain domain");
+
+        lev0 = *lev0_grids;
+        //
+        // Make sure that the grids all go on the processor as specified by pmap;
+        //      we store this in cache so all level 0 MultiFabs will use this DistributionMap.
+        //
+        const bool put_in_cache = true;
+        DistributionMapping dmap(*pmap,put_in_cache);
+    }
+    else
+    {
+        //
+        // Coarsening before we split the grids ensures that each resulting
+        // grid will have an even number of cells in each direction.
+        //
+        lev0.set(0,BoxLib::coarsen(domain,2));
+        //
+        // Now split up into list of grids within max_grid_size[0] limit.
+        //
+        lev0.maxSize(max_grid_size[0]/2);
+        //
+        // Now refine these boxes back to level 0.
+        //
+        lev0.refine(2);
+    }
 
     //
     // If (refine_grid_layout == 1) and (Nprocs > ngrids) then break up the 

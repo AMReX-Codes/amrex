@@ -34,6 +34,7 @@ public:
     // The constructor.
     //
     Amr ();
+    Amr (const RealBox* rb, int coord);
     void InitAmr();
     //
     // The destructor.
@@ -47,6 +48,7 @@ public:
     // Init data after construction. Must be called before timestepping.
     //
     virtual void init (Real strt_time, Real stop_time);
+    virtual void init (Real strt_time, Real stop_time, const BoxArray& lev0_grids, const Array<int>& pmap);
     //
     // Set the timestep on each level.
     //
@@ -335,21 +337,18 @@ protected:
     //
     static void ProjPeriodic (BoxList&        bd,
                               const Geometry& geom);
-
     //
     // Array of BoxArrays read in to initially define grid hierarchy
     //
     static Array<BoxArray> initial_ba;
-
     //
     // Array of BoxArrays read in to externally define grid hierarchy at each regrid
     //
     static Array<BoxArray> regrid_ba;
-
     //
     // Initialize grid hierarchy.
     //
-    void initialInit (Real strt_time, Real stop_time);
+    void initialInit (Real strt_time, Real stop_time, const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
     //
     // Read the probin file.
     //
@@ -365,7 +364,7 @@ protected:
     //
     // Define and initialize coarsest level.
     //
-    void defBaseLevel (Real start_time);
+    void defBaseLevel (Real start_time, const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
     //
     // Define and initialize refined levels.
     //
