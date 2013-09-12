@@ -53,6 +53,8 @@ std::vector<std::string> Profiler::CommStats::nameTagNames;
 std::vector<int> Profiler::CommStats::reductions;
 std::vector<int> Profiler::CommStats::tagWraps;
 
+std::string Profiler::procName = "NoProcName";
+int Profiler::procNumber = -1;
 
 
 Profiler::Profiler(const std::string &funcname)
@@ -75,6 +77,24 @@ void Profiler::Initialize() {
   if(bInitialized) {
     return;
   }
+  int resultLen(-1);
+  char cProcName[MPI_MAX_PROCESSOR_NAME + 11];
+#ifdef BL_USE_MPI
+  MPI_Get_processor_name(cProcName, &resultLen);
+#endif
+  if(resultLen < 1) {
+    //strcpy(cProcName, "NoProcName");
+    procName   = "NoProcName";
+    procNumber = ParallelDescriptor::MyProc();
+  } else {
+    procName = cProcName;
+#ifdef HOPPER
+    procNumber = atoi(procName.substr(3, string::npos).c_str());
+#else
+    procNumber = ParallelDescriptor::MyProc();
+#endif
+  }
+  //std::cout << myProc << ":::: " << procName << "  len =  " << resultLen << std::endl;
 
   Real t0, t1;
   int nTimerTimes(1000);
@@ -601,15 +621,6 @@ void Profiler::WriteCommStats(const bool bFlushing) {
   shortHeaderFileName = BoxLib::Concatenate(shortHeaderFileName, myProc % nOutFiles, 4);
   std::string longHeaderFileName  = cdir + '/' + shortHeaderFileName;
 
-  int resultLen(-1);
-  char procName[MPI_MAX_PROCESSOR_NAME + 11];
-#ifdef BL_USE_MPI
-  MPI_Get_processor_name(procName, &resultLen);
-#endif
-  if(resultLen < 1) {
-    strcpy(procName, "NoProcName");
-  }
-  std::cout << myProc << ":::: " << procName << "  len =  " << resultLen << std::endl;
   //double mpiWTick(MPI_Wtick());
 
   if(ParallelDescriptor::IOProcessor() && bFirstCommWriteH) {
