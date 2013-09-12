@@ -336,7 +336,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
 
 
-  sleep(m_MyId_all);
+  //sleep(m_MyId_all);
   std::cout << "world: rank " << m_MyId_all << " in [0," << m_nProcs_all-1 << "]" << std::endl;
 
     if(nPerfmonProcs > 0) {
@@ -345,7 +345,7 @@ ParallelDescriptor::StartParallel (int*    argc,
         MPI_Group_rank(m_group_perfmon, &m_MyId_perfmon);
         MPI_Group_size(m_group_perfmon, &m_nProcs_perfmon);
         MPI_Intercomm_create(m_comm_perfmon, 0, m_comm_all, 0, tag, &m_comm_inter);
-        sleep(m_MyId_perfmon);
+        //sleep(m_MyId_perfmon);
         std::cout << "m_comm_perfmon:  rank " << m_MyId_perfmon << " in [0,"
 	          << m_nProcs_perfmon-1 << "]" << std::endl;
       } else {                        // ---- in computation group
@@ -354,7 +354,7 @@ ParallelDescriptor::StartParallel (int*    argc,
         MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_MyId_all_perfmon,
 	                     tag, &m_comm_inter);
 	m_nProcs_perfmon = nPerfmonProcs;
-        sleep(m_MyId_comp);
+        //sleep(m_MyId_comp);
         std::cout << "m_comm_comp:  rank " << m_MyId_comp << " in [0," << m_nProcs_comp-1 << "]" << std::endl;
 
   }

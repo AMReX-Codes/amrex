@@ -132,6 +132,8 @@ class Profiler
     static const int BeforeCall() { return -5; }
     static const int AfterCall()  { return -7; }
 
+    static const int ProcNumber()  { return procNumber; }
+
     static void PerfMonProcess();
 
   private:
@@ -155,6 +157,8 @@ class Profiler
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
     static std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
     static std::vector<CommStats> vCommStats;
+    static std::string procName;
+    static int procNumber;
 
     static void WriteHeader(std::ostream &os, const int colWidth,
                             const Real maxlen, const bool bwriteavg);
