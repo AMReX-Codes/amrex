@@ -2035,6 +2035,12 @@ Amr::defBaseLevel (Real              strt_time,
     {
         BL_ASSERT(pmap != 0);
 
+        BoxArray domain_ba(domain);
+        if (!domain_ba.contains(*lev0_grids))
+            BoxLib::Error("defBaseLevel: domain does not contain lev0_grids!");
+        if (!lev0_grids->contains(domain_ba))
+            BoxLib::Error("defBaseLevel: lev0_grids does not contain domain");
+
         lev0 = *lev0_grids;
         //
         // Make sure that the grids all go on the processor as specified by pmap;
