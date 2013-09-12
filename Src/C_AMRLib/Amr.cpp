@@ -1013,6 +1013,23 @@ Amr::init (Real strt_time,
 }
 
 void
+Amr::init (Real strt_time, Real stop_time,
+           BoxArray& lev0_grids, const Array<int>& pmap)
+{
+    if (!restart_file.empty() && restart_file != "init")
+    {
+        restart(restart_file);
+    }
+    else
+    {
+        initialInit(strt_time,stop_time,lev0_grids,pmap);
+        checkPoint();
+        if (plot_int > 0 || plot_per > 0)
+            writePlotFile();
+    }
+}
+
+void
 Amr::readProbinFile (int& init)
 {
     BL_PROFILE("Amr::readProbinFile()");
@@ -1128,6 +1145,113 @@ Amr::initialInit (Real strt_time,
     // Define base level grids.
     //
     defBaseLevel(strt_time);
+    //
+    // Compute dt and set time levels of all grid data.
+    //
+    amr_level[0].computeInitialDt(finest_level,
+                                  sub_cycle,
+                                  n_cycle,
+                                  ref_ratio,
+                                  dt_level,
+                                  stop_time);
+    //
+    // The following was added for multifluid.
+    //
+    Real dt0   = dt_level[0];
+    dt_min[0]  = dt_level[0];
+    n_cycle[0] = 1;
+
+    for (int lev = 1; lev <= max_level; lev++)
+    {
+        dt0           /= n_cycle[lev];
+        dt_level[lev]  = dt0;
+        dt_min[lev]    = dt_level[lev];
+    }
+
+    if (max_level > 0)
+        bldFineLevels(strt_time);
+
+    for (int lev = 0; lev <= finest_level; lev++)
+        amr_level[lev].setTimeLevel(strt_time,dt_level[lev],dt_level[lev]);
+
+    for (int lev = 0; lev <= finest_level; lev++)
+        amr_level[lev].post_regrid(0,finest_level);
+    //
+    // Perform any special post_initialization operations.
+    //
+    for (int lev = 0; lev <= finest_level; lev++)
+        amr_level[lev].post_init(stop_time);
+
+    for (int lev = 0; lev <= finest_level; lev++)
+    {
+        level_count[lev] = 0;
+        level_steps[lev] = 0;
+    }
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+       if (verbose > 1)
+       {
+           std::cout << "INITIAL GRIDS \n";
+           printGridInfo(std::cout,0,finest_level);
+       }
+       else if (verbose > 0)
+       { 
+           std::cout << "INITIAL GRIDS \n";
+           printGridSummary(std::cout,0,finest_level);
+       }
+    }
+
+    if (record_grid_info && ParallelDescriptor::IOProcessor())
+    {
+        gridlog << "INITIAL GRIDS \n";
+        printGridInfo(gridlog,0,finest_level);
+    }
+
+#ifdef USE_STATIONDATA
+    station.init(amr_level, finestLevel());
+    station.findGrid(amr_level,geom);
+#endif
+    BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");
+}
+
+void
+Amr::initialInit (Real strt_time, Real stop_time,
+                  BoxArray& lev0_grids, const Array<int>& pmap)
+{
+    BL_COMM_PROFILE_NAMETAG("Amr::initialInit TOP");
+    checkInput();
+    //
+    // Generate internal values from user-supplied values.
+    //
+    finest_level = 0;
+    //
+    // Init problem dependent data.
+    //
+    int init = true;
+
+    if (!probin_file.empty()) {
+        readProbinFile(init);
+    }
+
+#ifdef BL_SYNC_RANTABLES
+    int iGet(0), iSet(1);
+    const int iTableSize(64);
+    Real *RanAmpl = new Real[iTableSize];
+    Real *RanPhase = new Real[iTableSize];
+    FORT_SYNC_RANTABLES(RanPhase, RanAmpl, &iGet);
+    ParallelDescriptor::Bcast(RanPhase, iTableSize);
+    ParallelDescriptor::Bcast(RanAmpl, iTableSize);
+    FORT_SYNC_RANTABLES(RanPhase, RanAmpl, &iSet);
+    delete [] RanAmpl;
+    delete [] RanPhase;
+#endif
+
+    cumtime = strt_time;
+    //
+    // Define base level grids.
+    //
+    defBaseLevel(strt_time, lev0_grids, pmap);
     //
     // Compute dt and set time levels of all grid data.
     //
@@ -2019,6 +2143,69 @@ Amr::defBaseLevel (Real strt_time)
     // Now refine these boxes back to level 0.
     //
     lev0.refine(2);
+
+    //
+    // If (refine_grid_layout == 1) and (Nprocs > ngrids) then break up the 
+    //    grids into smaller chunks
+    //
+    Array<BoxArray> new_grids(1);
+    new_grids[0] = lev0;
+    impose_refine_grid_layout(0,0,new_grids);
+    lev0 = new_grids[0];
+
+    //
+    // Now build level 0 grids.
+    //
+    amr_level.set(0,(*levelbld)(*this,0,geom[0],lev0,strt_time));
+
+    lev0.clear();
+    //
+    // Now init level 0 grids with data.
+    //
+    amr_level[0].initData();
+}
+
+void
+Amr::defBaseLevel (Real strt_time, 
+                   BoxArray& lev0_grids, const Array<int>& pmap)
+{
+    //
+    // Check that base domain has even number of zones in all directions.
+    //
+    const Box& domain = geom[0].Domain();
+    IntVect d_length  = domain.size();
+    const int* d_len  = d_length.getVect();
+
+    for (int idir = 0; idir < BL_SPACEDIM; idir++)
+        if (d_len[idir]%2 != 0)
+            BoxLib::Error("defBaseLevel: must have even number of cells");
+
+    BoxArray lev0(1);
+    if (lev0_grids.size() > 0)
+    {
+        lev0 = lev0_grids;
+
+        // Make sure that the grids all go on the processor as specified by pmap;
+        //      we store this in cache so all level 0 MultiFabs will use this DistributionMap
+        bool put_in_cache = true;
+        DistributionMapping dmap(pmap,put_in_cache);
+    }
+    else
+    {
+        //
+        // Coarsening before we split the grids ensures that each resulting
+        // grid will have an even number of cells in each direction.
+        //
+        lev0.set(0,BoxLib::coarsen(domain,2));
+        //
+        // Now split up into list of grids within max_grid_size[0] limit.
+        //
+        lev0.maxSize(max_grid_size[0]/2);
+        //
+        // Now refine these boxes back to level 0.
+        //
+        lev0.refine(2);
+    }
 
     //
     // If (refine_grid_layout == 1) and (Nprocs > ngrids) then break up the 

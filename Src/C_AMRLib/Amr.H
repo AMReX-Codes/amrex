@@ -47,6 +47,7 @@ public:
     // Init data after construction. Must be called before timestepping.
     //
     virtual void init (Real strt_time, Real stop_time);
+    virtual void init (Real strt_time, Real stop_time, BoxArray& lev0_grids, const Array<int>& pmap);
     //
     // Set the timestep on each level.
     //
@@ -350,6 +351,7 @@ protected:
     // Initialize grid hierarchy.
     //
     void initialInit (Real strt_time, Real stop_time);
+    void initialInit (Real strt_time, Real stop_time, BoxArray& lev0_grids, const Array<int>& pmap);
     //
     // Read the probin file.
     //
@@ -366,6 +368,7 @@ protected:
     // Define and initialize coarsest level.
     //
     void defBaseLevel (Real start_time);
+    void defBaseLevel (Real start_time, BoxArray& lev0_grids, const Array<int>& pmap);
     //
     // Define and initialize refined levels.
     //
