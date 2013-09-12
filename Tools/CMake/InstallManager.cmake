@@ -170,9 +170,6 @@ endfunction(makefile_include_dirs)
 function(makefile_library_dirs)
 
     cmake_parse_arguments(PARSE_ARGS "" "MAKE_LIB_LIST" "CMAKE_LIB_LIST" ${ARGN})
-    #print_variable(PARSE_ARGS_CMAKE_LIB_LIST)
-    message(STATUS "PARSE_ARGS_CMAKE_LIB_LIST: ${PARSE_ARGS_CMAKE_LIB_LIST}")
-
     set(tmp_lib_list)
     set(loop_list ${PARSE_ARGS_CMAKE_LIB_LIST})
     list(REVERSE loop_list)
