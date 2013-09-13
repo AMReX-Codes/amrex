@@ -363,6 +363,13 @@ public:
     //
     virtual bool writePlotNow ();
 
+    //
+    // Add one particle a time to a ParticleContainer owned by this AmrLevel.
+    //
+    virtual void addOneParticle (int id_in, int cpu_in,
+                                 std::vector<double>& xloc, 
+                                 std::vector<double>& attributes) = 0;
+
 protected:
     //
     // The constructors -- for derived classes.
