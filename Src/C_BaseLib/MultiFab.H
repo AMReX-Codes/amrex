@@ -89,6 +89,12 @@ public:
               int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
 
+    MultiFab (const BoxArray&            bs,
+              int                        ncomp,
+              int                        ngrow,
+              const DistributionMapping& dm,
+              FabAlloc                   mem_mode = Fab_allocate);
+
     void operator= (const Real& r);
     //
     // Returns the minimum value contained in component comp of the

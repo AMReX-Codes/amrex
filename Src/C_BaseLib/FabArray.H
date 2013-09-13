@@ -466,6 +466,12 @@ public:
               int             nvar,
               int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
+
+    FabArray (const BoxArray&            bxs,
+              int                        nvar,
+              int                        ngrow,
+              const DistributionMapping& dm,
+              FabAlloc                   mem_mode = Fab_allocate);
     //
     // The destructor -- deletes all FABs in the array.
     //
@@ -1070,6 +1076,16 @@ FabArray<FAB>::FabArray (const BoxArray& bxs,
                          FabAlloc        alloc)
 {
     define(bxs,nvar,ngrow,alloc);
+}
+
+template <class FAB>
+FabArray<FAB>::FabArray (const BoxArray&            bxs,
+                         int                        nvar,
+                         int                        ngrow,
+                         const DistributionMapping& dm,
+                         FabAlloc                   alloc)
+{
+    define(bxs,nvar,ngrow,dm,alloc);
 }
 
 template <class FAB>
