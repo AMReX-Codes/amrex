@@ -181,21 +181,24 @@ Amr::Amr ()
 {
     Initialize();
     Geometry::Setup();
-    InitAmr();
+    int max_level_in = -1;
+    Array<int> n_cell_in(BL_SPACEDIM);
+    for (int i = 0; i < BL_SPACEDIM; i++) n_cell_in[i] = -1;
+    InitAmr(max_level_in,n_cell_in);
 }
 
-Amr::Amr (const RealBox* rb, int coord)
+Amr::Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord)
     :
     amr_level(PArrayManage),
     datalog(PArrayManage)
 {
     Initialize();
     Geometry::Setup(rb,coord);
-    InitAmr();
+    InitAmr(max_level_in,n_cell_in);
 }
 
 void
-Amr::InitAmr ()
+Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
 {
     //
     // Determine physics class.
@@ -212,8 +215,7 @@ Amr::InitAmr ()
     plot_int               = -1;
     n_proper               = 1;
     max_level              = -1;
-    multi_level_sdc        = 0;
-    last_plotfile          = 0;
+    multi_level_sdc        = 0; last_plotfile          = 0;
     last_checkpoint        = 0;
     record_run_info        = false;
     record_grid_info       = false;
@@ -293,7 +295,11 @@ Amr::InitAmr ()
     //
     // Read max_level and alloc memory for container objects.
     //
-    pp.get("max_level", max_level);
+    if (max_level_in == -1) 
+       pp.get("max_level", max_level);
+    else
+       max_level = max_level_in;
+
     //
     // Do multi-level SDC?
     //
@@ -342,11 +348,10 @@ Amr::InitAmr ()
     ref_ratio.resize(max_level);
     for (i = 0; i < max_level; i++)
         ref_ratio[i] = IntVect::TheZeroVector();
+
     //
     // Read other amr specific values.
     //
-
-
     pp.query("n_proper",n_proper);
     pp.query("grid_eff",grid_eff);
     pp.queryarr("n_error_buf",n_error_buf,0,max_level);
@@ -488,8 +493,15 @@ Amr::InitAmr ()
     // Read computational domain and set geometry.
     //
     Array<int> n_cell(BL_SPACEDIM);
-    pp.getarr("n_cell",n_cell,0,BL_SPACEDIM);
-    BL_ASSERT(n_cell.size() == BL_SPACEDIM);
+    if (n_cell_in[0] == -1)
+    {
+       pp.getarr("n_cell",n_cell,0,BL_SPACEDIM);
+    }
+    else
+    {
+       for (i = 0; i < BL_SPACEDIM; i++) n_cell[i] = n_cell_in[i];
+    }
+    
     IntVect lo(IntVect::TheZeroVector()), hi(n_cell);
     hi -= IntVect::TheUnitVector();
     Box index_domain(lo,hi);
@@ -994,7 +1006,6 @@ Amr::set_t_nodes(const Array<Real>& tn)
     }
 }
 
-
 void
 Amr::init (Real strt_time,
            Real stop_time)
@@ -1017,25 +1028,6 @@ Amr::init (Real strt_time,
         amr_level[0].setPlotVariables();
     }
 #endif
-}
-
-void
-Amr::init (Real              strt_time,
-           Real              stop_time,
-           const BoxArray&   lev0_grids,
-           const Array<int>& pmap)
-{
-    if (!restart_file.empty() && restart_file != "init")
-    {
-        restart(restart_file);
-    }
-    else
-    {
-        initialInit(strt_time,stop_time,&lev0_grids,&pmap);
-        checkPoint();
-        if (plot_int > 0 || plot_per > 0)
-            writePlotFile();
-    }
 }
 
 void
@@ -1123,6 +1115,16 @@ Amr::initialInit (Real              strt_time,
                   const BoxArray*   lev0_grids,
                   const Array<int>* pmap)
 {
+    InitializeInit(strt_time, stop_time, lev0_grids, pmap);
+    FinalizeInit  (strt_time, stop_time);
+}
+
+void
+Amr::InitializeInit(Real              strt_time,
+                    Real              stop_time,
+                    const BoxArray*   lev0_grids,
+                    const Array<int>* pmap)
+{
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit TOP");
     checkInput();
     //
@@ -1156,6 +1158,12 @@ Amr::initialInit (Real              strt_time,
     // Define base level grids.
     //
     defBaseLevel(strt_time, lev0_grids, pmap);
+}
+
+void
+Amr::FinalizeInit (Real              strt_time,
+                   Real              stop_time)
+{
     //
     // Compute dt and set time levels of all grid data.
     //
@@ -3036,4 +3044,12 @@ Amr::impose_refine_grid_layout (int lbase, int new_finest, Array<BoxArray>& new_
             }
         }
     }
+}
+
+void 
+Amr::addOneParticle (int id_in, int cpu_in, 
+                     std::vector<double>& xloc, std::vector<double>& attributes)
+
+{
+    amr_level[0].addOneParticle(id_in,cpu_in,xloc,attributes);
 }

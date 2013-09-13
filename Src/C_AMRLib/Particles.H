@@ -75,8 +75,7 @@ struct ParticleBase
     // Updates a particle's location (Where), tries to periodic shift any particles
     // that have left the domain. May need work (see inline comments)
     //
-    static void Reset (ParticleBase& prt, const Amr* amr, bool update, bool verbose=true);
-
+    static void Reset (ParticleBase& prt, const Amr* amr, bool update, bool verbose=true); 
     static void PeriodicShift (ParticleBase& prt, const Amr* amr);
 
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
@@ -259,7 +258,7 @@ public:
 
     ParticleContainer (Amr* amr)
         :
-        m_verbose(1), m_amr(amr) { BL_ASSERT(amr != 0); }
+        m_verbose(1), m_amr(amr), allow_particles_near_boundary(false) { BL_ASSERT(amr != 0); }
 
     void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
 
@@ -267,8 +266,12 @@ public:
 
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, const Real particleMass);
-    void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, const Real particleMass, const Real shift[]);
+    void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, 
+                     const Real particleMass, const Real shift[]);
     void InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const Real particleMass);
+
+    void addOneParticle (int id_in, int cpu_in, 
+                         std::vector<double>& xloc, std::vector<double>& attributes); 
 
     Real sumParticleMass (int level) const;
     void sumParticleMomentum (int lev, Real* mom) const;
@@ -294,6 +297,10 @@ public:
     void SetParticleLocationsAndMass (Array<Real>& part_data);
 
     void SetParticleVelocities (Array<Real>& part_data);
+
+    // Set the flag that allows particles to live near the domain boundary and throw away 
+    //     the part of their contribution in AssignDensity that is outside the domain.
+    void SetAllowParticlesNearBoundary(bool value);
  
     Real estTimestep (const MultiFab& grav_vector,         int level, Real cfl) const;
     Real estTimestep (const MultiFab& grav_vector, Real a, int level, Real cfl) const;
@@ -429,6 +436,8 @@ protected:
     int         m_verbose;
     Amr*        m_amr;
     Array<PMap> m_particles;
+
+    bool allow_particles_near_boundary;
 };
 
 template <int N>
@@ -522,6 +531,45 @@ ParticleContainer<N>::ByteSpread () const
 
 template <int N>
 void
+ParticleContainer<N>::addOneParticle (int id_in, int cpu_in, 
+                                      std::vector<double>& xloc, 
+ 				      std::vector<double>& attributes)
+{
+    if (m_particles.size() == 0)
+    {
+       m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
+       m_particles.resize(m_amr->finestLevel()+1);
+    }
+
+    ParticleType p;
+    p.m_id   = id_in;
+    p.m_cpu  = cpu_in;
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+       p.m_pos[i] = xloc[i];
+
+    for (int i = 0; i < N; i++)
+       p.m_data[i] = attributes[i];
+
+    if (!ParticleBase::Where(p,m_amr))
+    {
+        ParticleBase::PeriodicShift(p,m_amr);
+
+        if (!ParticleBase::Where(p,m_amr))
+        {
+            for (int d = 0; d < BL_SPACEDIM; d++)
+            {
+                std::cout << "BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+            }
+            BoxLib::Abort("ParticleContainer<N>::addOneParticle(): invalid particle");
+        }
+    }
+
+    m_particles[p.m_lev][p.m_grid].push_back(p);
+}
+
+template <int N>
+void
 ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
     BL_ASSERT(!file.empty());
@@ -531,8 +579,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     const int  NProcs   = ParallelDescriptor::NProcs();
     const Real strttime = ParallelDescriptor::second();
     //
-    // Number of processes that read from the file.
-    //
+    // Number of processes that read from the file.  //
     int NReaders = ParticleBase::MaxReaders();
     //
     // Number of chunks we break the redistribution loop into
@@ -562,7 +609,6 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
     }
 
     m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
-
     m_particles.resize(m_amr->finestLevel()+1);
 
     IntVect lNrep(D_DECL(1,1,1));
@@ -655,8 +701,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             if (!ifs.good())
             {
                 std::string msg("ParticleContainer::InitFromAsciiFile(");
-                msg += file;
-                msg += ") failed @ 2";
+                msg += file; msg += ") failed @ 2";
                 BoxLib::Error(msg.c_str());
             }
 
@@ -1848,14 +1893,17 @@ ParticleContainer<N>::estTimestep (const MultiFab& gv,
                                    int             lev,
                                    Real            cfl) const
 {
+    Real            dt               = 1e50;
     BL_ASSERT(N >= BL_SPACEDIM+1);
-    BL_ASSERT(lev >= 0 && lev < m_particles.size());
+    BL_ASSERT(lev >= 0);
+
+    if (m_particles.size() == 0)
+        return dt;
 
     const Real      strttime         = ParallelDescriptor::second();
     const Geometry& geom             = m_amr->Geom(lev);
     const Real*     dx               = geom.CellSize();
     const Real      adx[BL_SPACEDIM] = { D_DECL(a*dx[0],a*dx[1],a*dx[2]) };
-    Real            dt               = 1e50;
     const PMap&     pmap             = m_particles[lev];
     int             tnum             = 1;
 
@@ -2101,7 +2149,7 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf,
             // particle's support leaves the domain. We test this by checking the low
             // and high corners respectively.
             //
-            if (!gm.isAllPeriodic())
+            if (!gm.isAllPeriodic() && !allow_particles_near_boundary)
                 if (!gm.Domain().contains(cells[0]) || !gm.Domain().contains(cells[M-1]))
                     BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
 
@@ -2431,7 +2479,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                 // particle's support leaves the domain. We test this by checking the low
                 // and high corners respectively.
                 //
-                if (!gm.isAllPeriodic())
+                if (!gm.isAllPeriodic() && !allow_particles_near_boundary)
                     if (!gm.Domain().contains(cells[0]) || !gm.Domain().contains(cells[M-1]))
                         BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
                 //
@@ -3309,6 +3357,13 @@ ParticleContainer<N>::GetParticleData(Array<Real>& part_data)
     }
 
    ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
+}
+
+template <int N>
+void
+ParticleContainer<N>::SetAllowParticlesNearBoundary(bool value)
+{
+    allow_particles_near_boundary = value; 
 }
 
 template <int N>
