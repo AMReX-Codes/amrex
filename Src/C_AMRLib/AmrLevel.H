@@ -368,7 +368,7 @@ public:
     //
     virtual void addOneParticle (int id_in, int cpu_in,
                                  std::vector<double>& xloc, 
-                                 std::vector<double>& attributes) = 0;
+                                 std::vector<double>& attributes) {;}
 
 protected:
     //
