@@ -19,21 +19,25 @@ endif()
 #     #> export bdir=`pwd`
 #     #> mkdir <new_build_dir>
 #     #> cd <new_build_dir>
-#     #> cmake -DCMAKE_INSTALL_DIR:PATH=<dir> $bdir
+#     #> cmake -DCMAKE_INSTALL_PREFIX:PATH=<some_install_prefix> $bdir
 #     #> make
-#     [ optionally #> make install ]
+#     #> make install
 #
 # The install target will place all C++/Fortran header and mod files in an include folder,
 # the CCSE libraries in a lib folder, plus some stuff in perl and cmake folders.
 #
-# An example cmake input file to build an app that links to the libs built from here:
+# An example cmake input file to build an app that links to the libs built as above:
 #
 #              BoxLib/Tutorials/MultiGrid_C/CMakeLists.txt
 #
-# Below, we have set some of the switches for reasonable default behavior, these can be 
-# overridden at the cmake command line, ie  "cmake -DVAR=VALUE", or by editing the values
-# directly below.  NOTE: If the C++ classes are to be used, the BL_SPACEDIM value must
-# agree between the lib and the app (at the moment this is not checked)
+# To build this tutorial with cmake, follow instructions similar to the above for building
+# BoxLib:
+#
+#     #> mkdir <new_build_dir>
+#     #> cd <new_build_dir>
+#     #> cmake $bdir/Tutorials/MultiGrid_C
+#     #> make
+#     #> mpiexec -np 4 ./mgc_tutorial inputs.3d
 #
 
 # Define the project name
@@ -42,13 +46,23 @@ endif()
 #     CCSE_BINARY_DIR
 project(CCSE)
 
-set(BL_SPACEDIM 3)
-set(ENABLE_MPI 1)
-set(ENABLE_OpenMP 0)
-set(BL_PRECISION "DOUBLE")
+# Below, we have set some of the switches for reasonable default behavior, these can be 
+# overridden at the cmake command line, ie  "cmake -DVAR=VALUE", or by editing the values
+# directly below.  NOTE: If the C++ classes are to be used, the BL_SPACEDIM value must
+# agree between the lib and the app (at the moment this is not checked)
+#
+set(BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
+set(ENABLE_MPI 1 CACHE INT "Enable build with MPI")
+set(ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
+set(BL_PRECISION "DOUBLE" CACHE INT "Precision of BoxLib build")
+set(BL_USE_PARTICLES 0 CACHE INT "Include Particles classes in BoxLib build")
+set(ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
+set(ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in BoxLib build")
 
 # None, Debug, Release, RelWithDebInfo, MinSizeRel
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Type of CMake build")
+
+set(CMAKE_INSTALL_PREFIX "${CURRENT_CMAKE_BINDARY_DIR}" CACHE STRING "Root dir where BoxLib files installed")
 
 # Enable testing, ctest needs this
 # all add_test commands are ignored unless this is called!
