@@ -27,23 +27,23 @@ enable_language(Fortran)
 set(CCSE_DIR /home/marc/src/CCSE/JUNK)
 set(HYPRE_DIR /home/marc/src/CASC/hyper)
 
-# 1, 2, 3
-set(BL_SPACEDIM 3)
-
-# FLOAT DOUBLE
-set(BL_PRECISION DOUBLE)
-
-# 1 or 0 for both
-set(ENABLE_MPI 1)
-set(ENABLE_OpenMP 0)
+# Set some defaults
+set(BL_SPACEDIM 3 CACHE INT "Dimension of BoxLib build")
+set(ENABLE_MPI 1 CACHE INT "Enable build with MPI")
+set(ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
+set(BL_PRECISION "DOUBLE" CACHE INT "Precision of BoxLib build")
+set(BL_USE_PARTICLES 0 CACHE INT "Include Particles classes in BoxLib build")
+set(ENABLE_PROFILING 0 CACHE INT "Include profiling information in BoxLib build")
+set(ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in BoxLib build")
 
 # None, Debug, Release, RelWithDebInfo, MinSizeRel
-set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Type of CMake build")
+
+set(CMAKE_INSTALL_PREFIX "${CURRENT_CMAKE_BINDARY_DIR}" CACHE STRING "Root dir where BoxLib files installed")
+
 set(EXTRA_DEFS_FOR_CCSE "CG_USE_OLD_CONVERGENCE_CRITERIA")
 
-
 set(CMAKE_MODULE_PATH ${CCSE_DIR}/cmake)
-include(CCSEOptions)
 find_package(CCSE REQUIRED)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
