@@ -2156,6 +2156,12 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf,
             for (int i = 0; i < M; i++)
             {
                 if (!fab.box().contains(cells[i])) continue;
+
+                // If the domain is not periodic and we want to let particles
+                //    live near the boundary but "throw away" the contribution that 
+                //    does not fall into the domain ...
+                if (!gm.isAllPeriodic() && allow_particles_near_boundary 
+                                        && !gm.Domain().contains(cells[i])) continue;
                 //
                 // Sum up mass in first component.
                 //
@@ -2522,6 +2528,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                         //
                         // Sum up momenta in next components.
                         //
+
+                        // If the domain is not periodic and we want to let particles
+                        //    live near the boundary but "throw away" the contribution that 
+                        //    does not fall into the domain ...
+                        if (!gm.isAllPeriodic() && allow_particles_near_boundary 
+                                                && !gm.Domain().contains(cells[i])) continue;
+
                         for (int n = 1; n < ncomp; n++)
                             fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
                     }
@@ -2683,6 +2696,12 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                         //
                         for (int i = 0; i < M; i++)
                         {
+
+                            // If the domain is not periodic and we want to let particles
+                            //    live near the boundary but "throw away" the contribution that 
+                            //    does not fall into the domain ...
+                            if (!gm.isAllPeriodic() && allow_particles_near_boundary 
+                                                    && !gm.Domain().contains(cells[i])) continue;
                             //
                             // Sum up mass in first component.
                             //
@@ -2717,6 +2736,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                                 if (who == ParallelDescriptor::MyProc())
                                 {
                                     if (!mf[lev_index-1][cgrid[i]].box().contains(ccells[i])) continue;
+
+                                    // If the domain is not periodic and we want to let particles
+                                    //    live near the boundary but "throw away" the contribution that 
+                                    //    does not fall into the domain ...
+                                    if (!gm_coarse.isAllPeriodic() && allow_particles_near_boundary 
+                                                                   && !gm_coarse.Domain().contains(ccells[i])) continue;
+
                                     //
                                     // Sum up mass in first component.
                                     //
@@ -2838,6 +2864,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf, int lev_min, int ncom
                         {
                             if (!cwhich[i])
                             {
+                                // If the domain is not periodic and we want to let particles
+                                //    live near the boundary but "throw away" the contribution that 
+                                //    does not fall into the domain ...
+                                if (!gm.isAllPeriodic() && allow_particles_near_boundary 
+                                                        && !gm.Domain().contains(ccells[i])) continue;
                                 //
                                 // Sum up mass in first component.
                                 //
