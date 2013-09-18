@@ -1,5 +1,5 @@
 subroutine orig_pingpong(sync)
-  use mpi
+  use fboxlib_mpi
   implicit none
   integer :: sync
   integer, parameter :: Ntimes=3, Npower=15, Nbase=1024

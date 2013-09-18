@@ -1,8 +1,8 @@
 
-      module mpi
+      module fboxlib_mpi
       implicit none
       include 'mpif.h'
-      end module mpi
+      end module fboxlib_mpi
 
 !! MPI wrappers
 !! These wrappers are used so that a non-MPI version can coexist
@@ -16,7 +16,7 @@ module parallel
   ! 1) The user has not replaced the default error handler which
   !    is MPI_ERRORS_ARE_FATAL
 
-  use bl_types; use mpi
+  use bl_types; use fboxlib_mpi
 
   implicit none
 
