@@ -130,6 +130,7 @@ contains
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
 
+    type(layout)             :: la
     type(box)                :: pd_periodic, bx, nbx, bx1, pd
     type(boxarray)           :: bxa_periodic, bxa_temp
     integer                  :: i, ib, jb, kb, ib_lo, jb_lo, kb_lo, dm
@@ -235,6 +236,10 @@ contains
        call destroy(nbxs)
 
     end if
+    !
+    ! Build layout on bxa_periodic.  We use a layout to make the stencil_set_bc_nodal() more efficient.
+    !
+    call build(la,bxa_periodic,get_pd(get_layout(ss)))
 
     ng_sg = nghost(sg)
 
@@ -247,7 +252,7 @@ contains
        bx  = get_box(ss,i)
        nbx = get_ibox(ss, i)
 
-       call stencil_set_bc_nodal(dm, bx, nbx, i, mask, face_type, pd_periodic, bxa_periodic)
+       call stencil_set_bc_nodal(dm, bx, nbx, i, mask, face_type, pd_periodic, la)
 
        lo = lwb(get_box(sg,i))
        hi = upb(get_box(sg,i))
@@ -279,6 +284,7 @@ contains
     end do
 
     call destroy(bxa_periodic)
+    call destroy(la)
     call destroy(bpt)
 
   end subroutine stencil_fill_nodal

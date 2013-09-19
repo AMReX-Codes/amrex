@@ -2,12 +2,14 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 
+#include <Profiler.H>
 #include <BLassert.H>
 #include <REAL.H>
 #include <Box.H>
 #include <ccse-mpi.H>
 
 #include <string>
+#include <typeinfo>
 
 namespace ParallelDescriptor
 {
@@ -201,8 +203,8 @@ namespace ParallelDescriptor
         return m_comm;
     }
 
-    void Barrier ();
-    void Barrier (MPI_Comm comm);
+    void Barrier (const std::string &message = "Unnamed");
+    void Barrier (MPI_Comm comm, const std::string &message = "Unnamed");
 
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
 
@@ -359,6 +361,18 @@ namespace ParallelDescriptor
     void ReduceLongAnd (long& rvar, int cpu);
 
     void ReduceLongAnd (long* rvar, int cnt, int cpu);
+    // 
+    // long long sum reduction.
+    //
+    void ReduceLongLongSum (long long& rvar);
+
+    void ReduceLongLongSum (long long* rvar, int cnt);
+    //
+    // Long long sum reduction to specified cpu.
+    //
+    void ReduceLongLongSum (long long& rvar, int cpu);
+
+    void ReduceLongLongSum (long long* rvar, int cnt, int cpu);
     //
     // Parallel gather.
     //
@@ -398,7 +412,8 @@ namespace ParallelDescriptor
 
     void MPI_Error(const char* file, int line, const char* msg, int rc);
 
-    void ReadAndBcastFile(const std::string &filename, Array<char> &charBuf);
+    void ReadAndBcastFile(const std::string &filename, Array<char> &charBuf,
+                          const bool bExitOnError = true);
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);
 }
 
@@ -420,6 +435,9 @@ ParallelDescriptor::Asend (const T* buf,
                            int      dst_pid,
                            int      tag)
 {
+    BL_PROFILE_T("ParallelDescriptor::Asend(Tsii)", T);
+    BL_COMM_PROFILE(Profiler::AsendTsii, n * sizeof(T), dst_pid, tag);
+
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf),
                               n,
@@ -428,6 +446,7 @@ ParallelDescriptor::Asend (const T* buf,
                               tag,
                               Communicator(),
                               &req) );
+    BL_COMM_PROFILE(Profiler::AsendTsii, Profiler::AfterCall(), dst_pid, tag);
     return Message(req, Mpi_typemap<T>::type());
 }
 
@@ -439,6 +458,9 @@ ParallelDescriptor::Asend (const T* buf,
                            int      tag,
                            MPI_Comm comm)
 {
+    BL_PROFILE_T("ParallelDescriptor::Asend(TsiiM)", T);
+    BL_COMM_PROFILE(Profiler::AsendTsiiM, n * sizeof(T), dst_pid, tag);
+
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf),
                               n,
@@ -447,6 +469,7 @@ ParallelDescriptor::Asend (const T* buf,
                               tag,
                               comm,
                               &req) );
+    BL_COMM_PROFILE(Profiler::AsendTsiiM, Profiler::AfterCall(), dst_pid, tag);
     return Message(req, Mpi_typemap<T>::type());
 }
 
@@ -456,6 +479,9 @@ ParallelDescriptor::Asend (const std::vector<T>& buf,
                            int                   dst_pid,
                            int                   tag)
 {
+    BL_PROFILE_T("ParallelDescriptor::Asend(vTii)", T);
+    BL_COMM_PROFILE(Profiler::AsendvTii, buf.size() * sizeof(T), dst_pid, tag);
+
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(&buf[0]),
                               buf.size(),
@@ -464,6 +490,7 @@ ParallelDescriptor::Asend (const std::vector<T>& buf,
                               tag,
                               Communicator(),
                               &req) );
+    BL_COMM_PROFILE(Profiler::AsendvTii, Profiler::AfterCall(), dst_pid, tag);
     return Message(req, Mpi_typemap<T>::type());
 }
 
@@ -474,12 +501,16 @@ ParallelDescriptor::Send (const T* buf,
                           int      dst_pid,
                           int      tag)
 {
+    BL_PROFILE_T("ParallelDescriptor::Send(Tsii)", T);
+    BL_COMM_PROFILE(Profiler::SendTsii, n * sizeof(T), dst_pid, tag);
+
     BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(buf),
                              n,
                              Mpi_typemap<T>::type(),
                              dst_pid,
                              tag,
                              Communicator()) );
+    BL_COMM_PROFILE(Profiler::SendTsii, Profiler::AfterCall(), dst_pid, tag);
     return Message();
 }
 
@@ -489,12 +520,16 @@ ParallelDescriptor::Send (const std::vector<T>& buf,
                           int                   dst_pid,
                           int                   tag)
 {
+    BL_PROFILE_T("ParallelDescriptor::Send(vTii)", T);
+    BL_COMM_PROFILE(Profiler::SendvTii, buf.size() * sizeof(T), dst_pid, tag);
+
     BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(&buf[0]),
                              buf.size(),
                              Mpi_typemap<T>::type(),
                              dst_pid,
                              tag,
                              Communicator()) );
+    BL_COMM_PROFILE(Profiler::SendvTii, Profiler::AfterCall(), dst_pid, tag);
     return Message();
 }
 
@@ -505,6 +540,9 @@ ParallelDescriptor::Arecv (T*       buf,
                            int      src_pid,
                            int      tag)
 {
+    BL_PROFILE_T("ParallelDescriptor::Arecv(Tsii)", T);
+    BL_COMM_PROFILE(Profiler::ArecvTsii, n * sizeof(T), src_pid, tag);
+
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Irecv(buf,
                               n,
@@ -513,6 +551,8 @@ ParallelDescriptor::Arecv (T*       buf,
                               tag,
                               Communicator(),
                               &req) );
+    BL_COMM_PROFILE(Profiler::ArecvTsii, Profiler::AfterCall(), src_pid, tag);
+
     return Message(req, Mpi_typemap<T>::type());
 }
 
@@ -524,6 +564,9 @@ ParallelDescriptor::Arecv (T*       buf,
                            int      tag,
                            MPI_Comm comm)
 {
+    BL_PROFILE_T("ParallelDescriptor::Arecv(TsiiM)", T);
+    BL_COMM_PROFILE(Profiler::ArecvTsiiM, n * sizeof(T), src_pid, tag);
+
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Irecv(buf,
                               n,
@@ -532,6 +575,7 @@ ParallelDescriptor::Arecv (T*       buf,
                               tag,
                               comm,
                               &req) );
+    BL_COMM_PROFILE(Profiler::ArecvTsiiM, Profiler::AfterCall(), src_pid, tag);
     return Message(req, Mpi_typemap<T>::type());
 }
 
@@ -541,6 +585,9 @@ ParallelDescriptor::Arecv (std::vector<T>& buf,
                            int             src_pid,
                            int             tag)
 {
+    BL_PROFILE_T("ParallelDescriptor::Arecv(vTii)", T);
+    BL_COMM_PROFILE(Profiler::ArecvvTii, buf.size() * sizeof(T), src_pid, tag);
+
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Irecv(&buf[0],
                               buf.size(),
@@ -549,6 +596,7 @@ ParallelDescriptor::Arecv (std::vector<T>& buf,
                               tag,
                               Communicator(),
                               &req) );
+    BL_COMM_PROFILE(Profiler::ArecvvTii, Profiler::AfterCall(), src_pid, tag);
     return Message(req, Mpi_typemap<T>::type());
 }
 
@@ -559,6 +607,9 @@ ParallelDescriptor::Recv (T*     buf,
                           int    src_pid,
                           int    tag)
 {
+    BL_PROFILE_T("ParallelDescriptor::Recv(Tsii)", T);
+    BL_COMM_PROFILE(Profiler::RecvTsii, Profiler::BeforeCall(), src_pid, tag);
+
     MPI_Status stat;
     BL_MPI_REQUIRE( MPI_Recv(buf,
                              n,
@@ -567,6 +618,7 @@ ParallelDescriptor::Recv (T*     buf,
                              tag,
                              Communicator(),
                              &stat) );
+    BL_COMM_PROFILE(Profiler::RecvTsii, n * sizeof(T), stat.MPI_SOURCE, stat.MPI_TAG);
     return Message(stat, Mpi_typemap<T>::type());
 }
 
@@ -576,6 +628,9 @@ ParallelDescriptor::Recv (std::vector<T>& buf,
                           int             src_pid,
                           int             tag)
 {
+    BL_PROFILE_T("ParallelDescriptor::Recv(vTii)", T);
+    BL_COMM_PROFILE(Profiler::RecvvTii, Profiler::BeforeCall(), src_pid, tag);
+
     MPI_Status stat;
     BL_MPI_REQUIRE( MPI_Recv(&buf[0],
                              buf.size(),
@@ -584,6 +639,7 @@ ParallelDescriptor::Recv (std::vector<T>& buf,
                              tag,
                              Communicator(),
                              &stat) );
+    BL_COMM_PROFILE(Profiler::RecvvTii, buf.size() * sizeof(T), stat.MPI_SOURCE, stat.MPI_TAG);
     return Message(stat, Mpi_typemap<T>::type());
 }
 
@@ -591,6 +647,9 @@ template <class Op, class T>
 T
 ParallelDescriptor::Reduce (const T& t)
 {
+    BL_PROFILE_T("ParallelDescriptor::Reduce(T)", T);
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceT, Profiler::BeforeCall(), true);
+
     T recv;
     BL_MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t),
                                   &recv,
@@ -598,6 +657,7 @@ ParallelDescriptor::Reduce (const T& t)
                                   Mpi_typemap<T>::type(),
                                   Op::op(),
                                   Communicator()) );
+    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceT, sizeof(T), false);
     return recv;
 }
 
@@ -607,11 +667,15 @@ ParallelDescriptor::Bcast (T*     t,
                            size_t n,
                            int    root)
 {
+    BL_PROFILE_T("ParallelDescriptor::Bcast(Tsi)", T);
+    BL_COMM_PROFILE(Profiler::BCastTsi, Profiler::BeforeCall(), root, Profiler::NoTag());
+
     BL_MPI_REQUIRE( MPI_Bcast(t,
                               n,
                               Mpi_typemap<T>::type(),
                               root,
                               Communicator()) );
+    BL_COMM_PROFILE(Profiler::BCastTsi, n * sizeof(T), root, Profiler::NoTag());
 }
 
 template <class T, class T1>
@@ -622,6 +686,9 @@ ParallelDescriptor::Gather (const T* t,
                             size_t   n1,
                             int      root)
 {
+    BL_PROFILE_T("ParallelDescriptor::Gather(TsT1si)", T);
+    BL_COMM_PROFILE(Profiler::GatherTsT1Si, Profiler::BeforeCall(), root, Profiler::NoTag());
+
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(t),
                                n,
                                Mpi_typemap<T>::type(),
@@ -630,12 +697,16 @@ ParallelDescriptor::Gather (const T* t,
                                Mpi_typemap<T1>::type(),
                                root,
                                Communicator()) );
+    BL_COMM_PROFILE(Profiler::GatherTsT1Si,  n * sizeof(T), root, Profiler::NoTag());
 }
 
 template <class T>
 std::vector<T>
 ParallelDescriptor::Gather (const T& t, int root)
 {
+    BL_PROFILE_T("ParallelDescriptor::Gather(Ti)", T);
+    BL_COMM_PROFILE(Profiler::GatherTi, Profiler::BeforeCall(), root, Profiler::NoTag());
+
     std::vector<T> resl;
     if ( root == MyProc() ) resl.resize(NProcs());
     BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t),
@@ -646,6 +717,7 @@ ParallelDescriptor::Gather (const T& t, int root)
                                Mpi_typemap<T>::type(),
                                root,
                                Communicator()) );
+    BL_COMM_PROFILE(Profiler::GatherTi, 1 * sizeof(T), root, Profiler::NoTag());
     return resl;
 }
 
@@ -657,6 +729,9 @@ ParallelDescriptor::Scatter (T*        t,
                              size_t    n1,
                              int       root)
 {
+    BL_PROFILE_T("ParallelDescriptor::Scatter(TsT1si)", T);
+    BL_COMM_PROFILE(Profiler::ScatterTsT1si,  Profiler::BeforeCall(), root, Profiler::NoTag());
+
     BL_MPI_REQUIRE( MPI_Scatter(const_cast<T1*>(t1),
                                 n1,
                                 Mpi_typemap<T1>::type(),
@@ -665,6 +740,7 @@ ParallelDescriptor::Scatter (T*        t,
                                 Mpi_typemap<T>::type(),
                                 root,
                                 Communicator()) );
+    BL_COMM_PROFILE(Profiler::ScatterTsT1si, n * sizeof(T), root, Profiler::NoTag());
 }
 
 #else

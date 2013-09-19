@@ -265,12 +265,14 @@ contains
     call destroy(tmpba)
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 
+    !$OMP PARALLEL DO PRIVATE(i,src,dst)
     do i = 1, nfabs(pcrse)
        src => dataptr(pcrse,   i, icomp_crse, nc)
        dst => dataptr(tmpcrse, i, 1         , nc)
        ! dst = src failed using Intel compiler 9.1.043
        call cpy_d(dst,src)
     end do
+    !$OMP END PARALLEL DO
 
     if (grow_counter .gt. nghost(crse)) call destroy(gcrse)
 
@@ -289,6 +291,8 @@ contains
 
     cdomain = get_pd(get_layout(crse))
 
+    !$OMP PARALLEL DO PRIVATE(i,j,cbx,fine_box,fbx,cslope_lo,cslope_hi,local_bc,lo_c,hi_c,lo_f,hi_f) &
+    !$OMP PRIVATE(fvcx,fvcy,fvcz,cvcx,cvcy,cvcz,src,fp,dst)
     do i = 1, nfabs(cfine)
 
        cbx = get_ibox(cfine,i)
@@ -406,16 +410,19 @@ contains
        if ( dm > 2 ) deallocate(cvcz, fvcz)
 
     end do
+    !$OMP END PARALLEL DO
 
     if ( have_periodic_gcells ) then
        if ( n_extra_valid_regions > 0 ) then
           call fill_boundary(tmpfine, 1, nc, ng)
+          !$OMP PARALLEL DO PRIVATE(i,bx,dst,src)
           do i = 1, nfabs(fine)
              bx  =  grow(get_ibox(fine,i), ng)
              dst => dataptr(fine,    i, bx, icomp_fine, nc)
              src => dataptr(tmpfine, i, bx, 1         , nc)
-             dst =  src
+             call cpy_d(dst,src)
           end do
+          !$OMP END PARALLEL DO
        else
           !
           ! We can fill periodic ghost cells simply by calling fill_boundary().

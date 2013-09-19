@@ -70,10 +70,6 @@ c :::
 
       do n = 1, nvar
 
-!$omp parallel do private(i,j,k,ic,jc,kc,kratio,jratio,iratio,ilo,ihi)
-!$omp&private(jlo,jhi,klo,khi,istrt,istop,jstrt,jstop,kstrt,kstop)
-!$omp&private(dx00,d0x0,d00x,dx10,dx01,d0x1,dx11,ioff,joff,koff)
-!$omp&private(sx,sy,sz,sxy,sxz,syz,sxyz,fx,fy,fz)
          do kc = ARG_L3(cb), ARG_H3(cb)-1
 
             kratio = lratioz-1
@@ -142,7 +138,6 @@ c :::
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
@@ -337,7 +332,6 @@ c
 c         Prevent underflow for small crse values.
 c
       do n = 1, nvar 
-!$omp parallel do private(i,j,k)
           do k = cslopelo(3)-1,cslopehi(3)+1
             do j = cslopelo(2)-1,cslopehi(2)+1
               do i = cslopelo(1)-1, cslopehi(1)+1 
@@ -345,11 +339,9 @@ c
               end do
             end do
           end do
-!$omp end parallel do
 c
 c         Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
 c
-!$omp parallel do private(i,j,k,koff,joff,ioff)
           do k = cslopelo(3),cslopehi(3)
             do j = cslopelo(2),cslopehi(2)
               do i = cslopelo(1), cslopehi(1)
@@ -367,14 +359,12 @@ c
               end do
             end do
           end do
-!$omp end parallel do
       end do
 c
 c     Computed unlimited and limited slopes
 c
       do n = 1, nvar 
 
-!$omp parallel do private(i,j,k,cen,forw,back,slp)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -388,7 +378,6 @@ c
              end do
             end do
           end do
-!$omp end parallel do
 
           if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
             i = cslopelo(1)
@@ -450,7 +439,6 @@ c
             end do
           end if
 
-!$omp parallel do private(i,j,k,cen,forw,back,slp)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -464,7 +452,6 @@ c
                end do
             end do
           end do
-!$omp end parallel do
 
           if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
             j = cslopelo(2)
@@ -526,7 +513,6 @@ c
               end do
           end if
 
-!$omp parallel do private(i,j,k,cen,forw,back,slp)
           do k=cslopelo(3), cslopehi(3)
             do j=cslopelo(2), cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -540,7 +526,6 @@ c
               end do
             end do
           end do
-!$omp end parallel do
 
           if (bclo(3,n) .eq. EXT_DIR .or. bclo(3,n).eq.HOEXTRAP) then
             k = cslopelo(3)
@@ -609,7 +594,6 @@ c
 c        Do the interpolation using unlimited slopes.
 c
           do n = 1, nvar
-!$omp parallel do private(i,j,k,ic,jc,kc)
              do k = fblo(3), fbhi(3)
                kc = IX_PROJ(k,lratioz)
                do j = fblo(2), fbhi(2)
@@ -623,7 +607,6 @@ c
                   end do
                end do
              end do
-!$omp end parallel do
           end do
 
        else
@@ -641,7 +624,6 @@ c
           zslope_factor = one
 
           do n = 1, nvar 
-!$omp parallel do private(i,j,k,denom,factorn)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
@@ -665,13 +647,11 @@ c
                 end do
               end do
             end do
-!$omp end parallel do
           end do
 c
 c         Compute linear limited slopes
 c
           do n = 1, nvar 
-!$omp parallel do private(i,j,k)
             do k=cslopelo(3), cslopehi(3)
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
@@ -681,7 +661,6 @@ c
                 end do
               end do
             end do
-!$omp end parallel do
           end do
 
          else
@@ -689,8 +668,6 @@ c
 c         Limit slopes so as to not introduce new maxs or mins.
 c
             do n = 1,nvar
-!$omp parallel do private(i,j,k,ic,jc,kc,corr_fact)
-!$omp&private(orig_corr_fact,dummy_fine)
                do k = voff_lo(3),voff_hi(3)
                   kc = IX_PROJ(k,lratioz)
                   do j = voff_lo(2),voff_hi(2)
@@ -733,14 +710,12 @@ c
                      end do
                   end do
                end do
-!$omp end parallel do
             end do
          end if
 c
 c       Do the interpolation with limited slopes.
 c
         do n = 1, nvar
-!$omp parallel do private(i,j,k,ic,jc,kc)
           do k = fblo(3), fbhi(3)
             kc = IX_PROJ(k,lratioz)
             do j = fblo(2), fbhi(2)
@@ -754,7 +729,6 @@ c
               end do
             end do
           end do
-!$omp end parallel do
         end do
 
       end if

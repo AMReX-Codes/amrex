@@ -67,7 +67,7 @@ c
          if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
             call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
-!$omp parallel do private(n,koff,kc,k,joff,jc,j) if(numcomp>1)
+
          do n = 1, numcomp
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
@@ -81,7 +81,7 @@ c
                end do
             end do
          end do
-!$omp end parallel do
+
       else if (dir .eq. 1) then
 c        ::::: flux normal to Y direction
          jc = ARG_L2(reg)
@@ -92,7 +92,7 @@ c        ::::: flux normal to Y direction
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
             call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
-!$omp parallel do private(n,koff,kc,k,ioff,ic,i) if(numcomp>1)
+
          do n = 1, numcomp
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
@@ -106,7 +106,7 @@ c        ::::: flux normal to Y direction
                end do
             end do
          end do
-!$omp end parallel do
+
       else
 c
 c        ::::: flux normal to Z direction
@@ -119,7 +119,7 @@ c
          if (k .lt. ARG_L3(flx) .or. k .gt. ARG_H3(flx)) then
             call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
-!$omp parallel do private(n,joff,jc,j,ioff,ic,i) if(numcomp > 1)
+
          do n = 1, numcomp
             do joff = 0, ratioy-1
                do jc = ARG_L2(reg), ARG_H2(reg)
@@ -133,7 +133,7 @@ c
                end do
             end do
          end do
-!$omp end parallel do
+
       end if
       
       end
@@ -192,7 +192,6 @@ c
             call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
 
-!$omp parallel do private(n,koff,kc,k,joff,jc,j) if(numcomp>1)
          do n = 1, numcomp
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
@@ -207,7 +206,7 @@ c
                end do
             end do
          end do
-!$omp end parallel do
+
       else if (dir .eq. 1) then
 c
 c        ::::: flux normal to Y direction
@@ -220,7 +219,7 @@ c
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
             call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
-!$omp parallel do private(n,koff,kc,k,ioff,ic,i) if(numcomp>1)
+
          do n = 1, numcomp
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
@@ -235,7 +234,7 @@ c
                end do
             end do
          end do
-!$omp end parallel do
+
       else
 c
 c        ::::: flux normal to Z direction
@@ -248,7 +247,7 @@ c
          if (k .lt. ARG_L3(flx) .or. k .gt. ARG_H3(flx)) then
             call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
-!$omp parallel do private(n,joff,jc,j,ioff,ic,i) if(numcomp > 1)
+
          do n = 1, numcomp
             do joff = 0, ratioy-1
                do jc = ARG_L2(reg), ARG_H2(reg)
@@ -263,7 +262,7 @@ c
                end do
             end do
          end do
-!$omp end parallel do
+
       end if
       
       end

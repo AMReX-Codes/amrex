@@ -111,6 +111,15 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring freedom, $(UNAMEN)), freedom)
     WHICHLINUX := FREEDOM
   endif
+  ifeq ($(findstring hera, $(UNAMEN)), hera)
+    WHICHLINUX := HERA
+  endif
+  ifeq ($(findstring cab, $(UNAMEN)), cab)
+    WHICHLINUX := CAB
+  endif
+  ifeq ($(findstring garnet, $(UNAMEN)), garnet)
+    WHICHLINUX := GARNET
+  endif
   ifeq ($(findstring hopper, $(UNAMEN)), hopper)
     WHICHLINUX := HOPPER
   endif
@@ -134,6 +143,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring h2o, $(UNAMEN)), h2o)
     WHICHLINUX := BLUE_WATERS
+  endif
+  ifeq ($(findstring hera, $(UNAMEN)), hera)
+    WHICHLINUX := HERA
   endif
 endif
 #
@@ -161,6 +173,10 @@ endif
 
 ifndef PROFILE
   PROFILE = FALSE
+endif
+
+ifndef COMM_PROFILE
+  COMM_PROFILE = FALSE
 endif
 
 ifndef DIM
@@ -209,7 +225,9 @@ USE_GCC =
 ifeq ($(findstring gcc, $(COMP)), gcc)
     USE_GCC = true
 endif
-
+ifeq ($(findstring gnu, $(COMP)), gnu)
+    USE_GCC = true
+endif
 ifeq ($(findstring g++, $(COMP)), g++)
     USE_GCC = true
 endif
@@ -224,7 +242,13 @@ ifdef USE_GCC
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-    CXXFLAGS =  -ftemplate-depth-64 -Wno-deprecated
+    CXXFLAGS = -Wno-deprecated
+    ifeq ($(USE_IN_SITU), TRUE)
+        # Necessary to compile in situ analysis
+        CXXFLAGS += -ftemplate-depth-256
+    else
+        CXXFLAGS += -ftemplate-depth-64
+    endif
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
@@ -329,8 +353,8 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
 
     FOPTF += -ffixed-line-length-132 -g -O3
     fOPTF += -ffixed-line-length-132 -g -O3
-    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
-    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -381,7 +405,11 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
-   CXXOPTF += -g -O2 -ip -fp-model source -xHost
+   ifeq ($(WHICHLINUX), GIMANTIS)
+     CXXOPTF += -g -O2 -ip
+   else
+     CXXOPTF += -g -O2 -ip -fp-model source -xHost
+   endif
    CXXDEBF += -g -O0
 
    COPTF += $(CXXOPTF) -std=c99
@@ -644,8 +672,13 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -g
    endif
 
-   FOPTF += -O2 -ip -fp-model source -xHost
-   fOPTF += -O2 -ip -fp-model source -xHost
+   ifeq ($(WHICHLINUX), GIMANTIS)
+     FOPTF += -O2 -ip
+     fOPTF += -O2 -ip
+   else
+     FOPTF += -O2 -ip -fp-model source -xHost
+     fOPTF += -O2 -ip -fp-model source -xHost
+   endif
 
    ifneq ($(IFC_MAJOR_VERSION), 9)
      ifneq ($(IFC_MAJOR_VERSION), 10)
@@ -717,12 +750,21 @@ ifeq ($(GPROF),TRUE)
    CFLAGS   += -pg
 endif
 
+ifeq ($(COMM_PROFILE),TRUE)
+  PROFILE = TRUE
+endif
 ifeq ($(PROFILE),TRUE)
     CPPFLAGS    += -DBL_PROFILING
-    ProfSuffix	:= .PROF
+    ifeq ($(COMM_PROFILE),TRUE)
+        CPPFLAGS    += -DBL_COMM_PROFILING
+        ProfSuffix	:= .COMM_PROF
+    else
+        ProfSuffix	:= .PROF
+    endif
 else
     ProfSuffix	:=
 endif
+
 
 ifeq ($(USE_MPI),TRUE)
     MPISuffix	:= .MPI

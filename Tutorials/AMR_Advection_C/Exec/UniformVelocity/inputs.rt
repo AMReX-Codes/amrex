@@ -1,5 +1,5 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
-max_step = 100
+max_step = 20
 stop_time = 10.0
 
 #act.fixed_dt = 0.1
@@ -51,8 +51,12 @@ amr.check_int       = 100       # number of timesteps between checkpoints
 
 # PLOTFILES
 amr.plot_file       = plt
-amr.plot_int        = 100
+amr.plot_int        = 20
 amr.derive_plot_vars=NONE
 
 # PROBIN FILENAME
 amr.probin_file = probin.2d
+
+fabarray.verbose = 0
+geometry.verbose = 0
+

@@ -93,33 +93,15 @@ MCCGSolver::norm (const MultiFab& res)
     //
     // Compute max-norm.
     //
-    const int p = 0;
+    const int p = 0, ncomp = res.nComp();
+
     Real restot = 0.0;
-    Real resk   = 0.0;
-    const int ncomp = res.nComp();
+
     for (MFIter mfi(res); mfi.isValid(); ++mfi)
     {
-        resk = res[mfi].norm(mfi.validbox(), p, 0, ncomp);
-        if (p == 0)
-	{
-	    restot = std::max(restot, resk);
-        }
-        else if (p == 2)
-        {
-	    restot += resk*resk;
-        }
-        else
-	    BoxLib::Error("BOGUS P IN NORM");
+        restot = std::max(restot, res[mfi].norm(mfi.validbox(), p, 0, ncomp));
     }
-    if (p == 0)
-    {
-	ParallelDescriptor::ReduceRealMax(restot);
-    }
-    else if (p == 2)
-    {
-	ParallelDescriptor::ReduceRealSum(restot);
-	restot = std::sqrt(restot);
-    }
+    ParallelDescriptor::ReduceRealMax(restot);
     return restot;
 }
 
@@ -148,18 +130,18 @@ MCCGSolver::solve (MultiFab&       sol,
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
     BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
 
-    int nghost = 1;
-    int ncomp  = sol.nComp();
-    MultiFab* s = new MultiFab(sol.boxArray(), ncomp, nghost);
-    MultiFab* r = new MultiFab(sol.boxArray(), ncomp, nghost);
-    MultiFab* z = new MultiFab(sol.boxArray(), ncomp, nghost);
-    MultiFab* w = new MultiFab(sol.boxArray(), ncomp, nghost);
-    MultiFab* p = new MultiFab(sol.boxArray(), ncomp, nghost);
+    int nghost = 1, ncomp  = sol.nComp();
+
+    MultiFab s(sol.boxArray(), ncomp, nghost);
+    MultiFab r(sol.boxArray(), ncomp, nghost);
+    MultiFab z(sol.boxArray(), ncomp, nghost);
+    MultiFab w(sol.boxArray(), ncomp, nghost);
+    MultiFab p(sol.boxArray(), ncomp, nghost);
     //
     // Copy initial guess into a temp multifab guaranteed to have ghost cells.
     //
     int srccomp=0;  int destcomp=0;  nghost=0;
-    s->copy(sol,srccomp,destcomp,ncomp);
+    s.copy(sol,srccomp,destcomp,ncomp);
 
     /* Note:
 	 This routine assumes the MCLinOp is linear, and that when bc_mode =
@@ -182,16 +164,16 @@ MCCGSolver::solve (MultiFab&       sol,
 	 the initial guess.  Thus we get by with only one call to Lp.residual.
 	 Without this assumption, we'd need two.
          */
-    Lp.residual((*r),  rhs, (*s), lev, bc_mode);
+    Lp.residual(r, rhs, s, lev, bc_mode);
     //
     // Set initial guess for correction to 0.
     //
-    sol.setVal(0.0);
+    sol.setVal(0);
     //
     // Set bc_mode=homogeneous.
     //
     MCBC_Mode temp_bc_mode=MCHomogeneous_BC;
-    Real rnorm  = norm(*r);
+    Real rnorm  = norm(r);
     Real rnorm0 = rnorm;
     Real minrnorm = rnorm;
     int ret = 0; // will return this value if all goes well
@@ -224,8 +206,8 @@ MCCGSolver::solve (MultiFab&       sol,
             //
 	    // solve Mz_k-1 = r_k-1  and  rho_k-1 = r_k-1^T z_k-1
             //
-	    z->setVal(0.);
-	    mg_precond->solve( *z, *r, eps_rel, eps_abs, temp_bc_mode );
+	    z.setVal(0);
+	    mg_precond->solve( z, r, eps_rel, eps_abs, temp_bc_mode );
 	}
         else
         {
@@ -233,18 +215,18 @@ MCCGSolver::solve (MultiFab&       sol,
 	    // No preconditioner, z_k-1 = r_k-1  and  rho_k-1 = r_k-1^T r_k-1.
             //
 	    srccomp=0;  destcomp=0;  
-	    z->copy(*r, srccomp, destcomp, ncomp);
+	    z.copy(r, srccomp, destcomp, ncomp);
 	}
 
 	rho = 0;
-	int ncomp = z->nComp();
+	int ncomp = z.nComp();
 
-        for (MFIter rmfi(*r); rmfi.isValid(); ++rmfi)
+        for (MFIter rmfi(r); rmfi.isValid(); ++rmfi)
 	{
             Real trho;
             const Box& vbox = rmfi.validbox();
-            FArrayBox& zfab = (*z)[rmfi];
-            FArrayBox& rfab = (*r)[rmfi];
+            FArrayBox& zfab = z[rmfi];
+            FArrayBox& rfab = r[rmfi];
 	    FORT_CGXDOTY(
 		&trho,
 		zfab.dataPtr(), 
@@ -262,7 +244,7 @@ MCCGSolver::solve (MultiFab&       sol,
 	    // k=1, p_1 = z_0.
             //
 	    srccomp=0;  destcomp=0;  nghost=0;
-	    p->copy(*z, srccomp, destcomp, ncomp);
+	    p.copy(z, srccomp, destcomp, ncomp);
 	}
         else
         {
@@ -270,12 +252,12 @@ MCCGSolver::solve (MultiFab&       sol,
 	    // k>1, beta = rho_k-1/rho_k-2 and  p = z + beta*p
             //
 	    beta = rho/rhoold;
-	    advance( (*p), beta, (*z) );
+	    advance( p, beta, z );
 	}
         //
 	// w = Ap, and compute Transpose(p).w
         //
-	Real pw = axp( (*w), (*p), temp_bc_mode );
+	Real pw = axp( w, p, temp_bc_mode );
 	//
 	// alpha = rho_k-1/p^tw.
         //
@@ -299,8 +281,8 @@ MCCGSolver::solve (MultiFab&       sol,
 	// x += alpha p  and  r -= alpha w
         //
 	rhoold = rho;
-	update( sol, alpha, (*r), (*p), (*w) );
-	rnorm = norm(*r);
+	update( sol, alpha, r, p, w );
+	rnorm = norm(r);
         if (rnorm > def_unstable_criterion*minrnorm)
         {
             ret = 2;
@@ -344,14 +326,8 @@ MCCGSolver::solve (MultiFab&       sol,
     if (ret == 0)
     {
         srccomp=0; nghost=0;
-        sol.plus((*s),srccomp,ncomp,nghost);
+        sol.plus(s,srccomp,ncomp,nghost);
     }
-
-    delete s;
-    delete r;
-    delete w;
-    delete p;
-    delete z;
 }
 
 void

@@ -138,6 +138,7 @@ public:
     //
     static void Read (MultiFab&          mf,
                       const std::string& name);
+    static void Check (const std::string& name);
     //
     // We try to do I/O with buffers of this size.
     //

@@ -18,32 +18,36 @@ class MultiFab;
 
 namespace BoxLib
 {
-    void linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
-                          BoxList*                returnUnfilledBoxes,
-                          Array<FillBoxId>&       returnedFillBoxIds,
-                          const Box&              subbox,
-                          MultiFabId              faid1,
-                          MultiFabId              faid2,
-                          Real                    t1,
-                          Real                    t2,
-                          Real                    t,
-                          int                     src_comp,
-                          int                     dest_comp,
-                          int                     num_comp,
-                          bool                    extrap);
+    void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
+		       BoxList*                returnUnfilledBoxes,
+		       Array<FillBoxId>&       returnedFillBoxIds,
+		       const Box&              subbox,
+		       MultiFabId              faid1,
+		       MultiFabId              faid2,
+		       Real                    t1,
+		       Real                    t2,
+		       Array<MultiFabId>&      faidm,
+		       Array<Real>&            tm,
+		       Real                    t,
+		       int                     src_comp,
+		       int                     dest_comp,
+		       int                     num_comp,
+		       bool                    extrap);
 
-    void linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
-                           const Array<FillBoxId>& fillBoxIds,
-                           MultiFabId              faid1,
-                           MultiFabId              faid2,
-                           FArrayBox&              dest,
-                           Real                    t1,
-                           Real                    t2,
-                           Real                    t,
-                           int                     src_comp,
-                           int                     dest_comp,
-                           int                     num_comp,
-                           bool                    extrap);
+    void InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
+			const Array<FillBoxId>& fillBoxIds,
+			MultiFabId              faid1,
+			MultiFabId              faid2,
+			FArrayBox&              dest,
+			Real                    t1,
+			Real                    t2,
+			Array<MultiFabId>&      faidm,
+			Array<Real>&            tm,
+			Real                    t,
+			int                     src_comp,
+			int                     dest_comp,
+			int                     num_comp,
+			bool                    extrap);
 }
 //
 // A Collection of FArrayBoxes
@@ -84,6 +88,12 @@ public:
               int             ncomp,
               int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
+
+    MultiFab (const BoxArray&            bs,
+              int                        ncomp,
+              int                        ngrow,
+              const DistributionMapping& dm,
+              FabAlloc                   mem_mode = Fab_allocate);
 
     void operator= (const Real& r);
     //

@@ -2,6 +2,7 @@ module probdata_module
 
 !     These determine the refinement criteria
       double precision, save ::   specerr, specgrad
+      double precision, save ::    adverr
       integer         , save ::  max_specerr_lev   ,max_specgrad_lev
 
 !     Diffusion coefficient

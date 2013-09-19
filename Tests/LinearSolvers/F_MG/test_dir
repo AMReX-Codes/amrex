@@ -1,0 +1,4 @@
+main.Linux.gfortran.exe inputs.2d.vcycle.dir | tee out.2d.vcycle.exact
+main.Linux.gfortran.exe inputs.2d.fcycle.dir | tee out.2d.fcycle.exact
+main.Linux.gfortran.exe inputs.3d.vcycle.dir | tee out.3d.vcycle.exact
+main.Linux.gfortran.exe inputs.3d.fcycle.dir | tee out.3d.fcycle.exact

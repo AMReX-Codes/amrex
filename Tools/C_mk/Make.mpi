@@ -273,11 +273,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),gigan)
-      MPI_HOME=/usr/local/mpich2
+      MPI_HOME=/usr/local
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
+      BL_MPI_LIBS += -lpthread -lmpl
     endif
 
     ifeq ($(HOST), kiryu)
@@ -286,13 +286,6 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
       BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOSTNAME), pleiades.ucsc.edu)
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib64
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DOMPI_SKIP_MPICXX
-      BL_MPI_LIBS += -lmpi_f77 -lmpi
     endif
 
     ifeq ($(HOST),angilas)
@@ -324,7 +317,7 @@ ifeq ($(MACHINE), Linux)
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
+      BL_MPI_LIBS += -lpthread -lmpich
     endif
 
     ifeq ($(HOST),hedorah)
@@ -416,7 +409,7 @@ ifeq ($(MACHINE), Linux)
       MPI_HOME=/usr/local/mpich
     endif
 
-    ifneq ($(HOSTNAME), pleiades.ucsc.edu)
+    ifneq ($(HOSTNAME), hyades.ucsc.edu)
     ifneq ($(WHICHLINUX), INTREPID)
       ifneq ($(WHICHLINUX), JACQUARD)
         ifneq ($(WHICHLINUX), COLUMBIA)

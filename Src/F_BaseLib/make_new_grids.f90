@@ -161,6 +161,7 @@ module make_new_grids_module
       type(layout)                   :: la_old_comp
       type(boxarray)                 :: ba_old_comp
       type(lmultifab)                :: tagboxes
+      type(layout)                   :: latmp
          
       integer :: max_grid_size_3
 
@@ -202,7 +203,10 @@ module make_new_grids_module
 
                 ! Merge the new boxarray "ba_new" with the existing box_array 
                 ! mba%bas(nl) so that we get the union of points.
-                call boxarray_complementIn(ba_old_comp,mba%pd(nl),mba%bas(nl))
+                call build(latmp,mba%bas(nl),mba%pd(nl))
+                call layout_boxarray_diff(ba_old_comp,mba%pd(nl),latmp)
+                call destroy(latmp)
+
                 call build(la_old_comp,ba_old_comp,mba%pd(nl),mapping = LA_LOCAL)
                 ! LA_LOCAL ==> bypass processor distribution calculation.
 

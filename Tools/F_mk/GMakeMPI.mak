@@ -271,10 +271,10 @@ ifeq ($(HOST),battra)
 endif
 
 ifeq ($(HOST),gigan)
-  MPIHOME=/usr/local/mpich2
+  MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
+  mpi_libraries += -lmpich -lpthread -lmpl
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
@@ -413,5 +413,11 @@ ifeq ($(HOST),lookfar)
     CFLAGS += -DBL_FORT_USE_DBL_UNDERSCORE
     CFLAGS += -UBL_FORT_USE_UNDERSCORE
   endif
+endif
+
+ifeq ($(HOSTNAME),hyades.ucsc.edu)
+  F90 := mpiifort
+  FC := mpiifort
+  fC := mpiifort
 endif
 

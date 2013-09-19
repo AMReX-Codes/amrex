@@ -129,9 +129,7 @@ module boxarray_module
   end interface
 
   private :: boxarray_maxsize_l
-  private :: boxlist_build_a
   private :: boxlist_nboxes
-  private :: boxlist_verify_dim
 
   type(mem_stats), private, save :: boxarray_ms
 
@@ -312,15 +310,6 @@ contains
     ba%nboxes = 0
   end subroutine boxarray_destroy
 
-  subroutine boxlist_build_a(bl, ba)
-    type(boxarray), intent(in) :: ba
-    type(list_box), intent(out) :: bl
-    integer :: i
-    do i = 1, ba%nboxes
-       call push_back(bl, ba%bxs(i))
-    end do
-  end subroutine boxlist_build_a
-
   subroutine boxarray_sort(ba)
     use sort_box_module
     type(boxarray), intent(inout) :: ba
@@ -354,80 +343,66 @@ contains
     end do
   end subroutine boxarray_verify_dim
 
-  subroutine boxlist_verify_dim(bl, stat)
-    use bl_error_module
-    type(list_box), intent(in) :: bl
-    integer, intent(out), optional :: stat
-    type(list_box_node), pointer :: bln
-    type(box) :: bx
-    integer :: dm
-    if ( present(stat) ) stat = 0
-    if ( size(bl) < 1 ) return
-    bln => begin(bl)
-    bx = value(bln)
-    dm = bx%dim
-    do while (associated(bln))
-       bx = value(bln)
-       if ( bx%dim /= dm ) then
-          if ( present(stat) ) then
-             stat = 1
-             return
-          else
-             call bl_error("BOXLIST_VERIFY_DIM:" // &
-                  "some box's dim not equal to the first box's dim: ", dm)
-          end if
-       end if
-    end do
-  end subroutine boxlist_verify_dim
-
   subroutine boxarray_grow_v(ba, rv)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: rv(:)
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
        ba%bxs(i) = grow(ba%bxs(i), rv)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_grow_v
   subroutine boxarray_grow_v_f(ba, rv, face)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: rv(:), face
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
        ba%bxs(i) = grow(ba%bxs(i), rv, face)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_grow_v_f
   subroutine boxarray_grow_n(ba, n)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: n
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
        ba%bxs(i) = grow(ba%bxs(i), n)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_grow_n
   subroutine boxarray_grow_n_f(ba, n, face)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: n, face
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
        ba%bxs(i) = grow(ba%bxs(i), n, face)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_grow_n_f
   subroutine boxarray_grow_n_d_f(ba, n, dim, face)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: n, face, dim
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
        ba%bxs(i) = grow(ba%bxs(i), n, dim, face)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_grow_n_d_f
 
   subroutine boxarray_nodalize(ba, nodal)
     type(boxarray), intent(inout) :: ba
     logical, intent(in), optional :: nodal(:)
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
        ba%bxs(i) = box_nodalize(ba%bxs(i), nodal)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_nodalize
 
   pure function boxarray_projectable(ba, rr) result(r)
@@ -449,68 +424,84 @@ contains
     integer, intent(in) :: cv(:)
     logical, intent(in) :: mask(:)
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
       ba%bxs(i) = coarsen(ba%bxs(i), cv, mask)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_coarsen_v_m
   subroutine boxarray_coarsen_v(ba, cv)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: cv(:)
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
       ba%bxs(i) = coarsen(ba%bxs(i), cv)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_coarsen_v
   subroutine boxarray_coarsen_i_m(ba, ci, mask)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: ci
     logical, intent(in) :: mask(:)
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
       ba%bxs(i) = coarsen(ba%bxs(i), ci, mask)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_coarsen_i_m
   subroutine boxarray_coarsen_i(ba, ci)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: ci
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
       ba%bxs(i) = coarsen(ba%bxs(i), ci)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_coarsen_i
 
   subroutine boxarray_shift_v(ba, rv)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: rv(:)
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
       ba%bxs(i) = shift(ba%bxs(i), rv)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_shift_v
   subroutine boxarray_shift_i(ba, ri)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: ri
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
       ba%bxs(i) = shift(ba%bxs(i), ri)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_shift_i
     
   subroutine boxarray_refine_v(ba, rv)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: rv(:)
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
       ba%bxs(i) = refine(ba%bxs(i), rv)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_refine_v
   subroutine boxarray_refine_i(ba, ri)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: ri
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
       ba%bxs(i) = refine(ba%bxs(i), ri)
     end do
+    !$OMP END PARALLEL DO
   end subroutine boxarray_refine_i
   !
   ! This is a very naive implementation.
@@ -519,9 +510,11 @@ contains
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bx
     integer :: i
+    !$OMP PARALLEL DO
     do i = 1, ba%nboxes
       ba%bxs(i) = intersection(ba%bxs(i), bx)
     end do
+    !$OMP END PARALLEL DO
     call boxarray_simplify(ba)
   end subroutine boxarray_intersection_bx
 
@@ -569,19 +562,23 @@ contains
     integer(kind=ll_t) :: r
     integer :: i
     r = 0_ll_t
+    !$OMP PARALLEL DO REDUCTION(+:r)
     do i = 1, ba%nboxes
        r = r + box_volume(ba%bxs(i))
     end do
+    !$OMP END PARALLEL DO
   end function boxarray_volume
 
-  pure function boxarray_dvolume(ba) result(r)
+  function boxarray_dvolume(ba) result(r)
     type(boxarray), intent(in) :: ba
     real(dp_t) :: r
     integer :: i
-    r = 0
+    r = 0_dp_t
+    !$OMP PARALLEL DO REDUCTION(+:r)
     do i = 1, ba%nboxes
        r = r + box_dvolume(ba%bxs(i))
     end do
+    !$OMP END PARALLEL DO
   end function boxarray_dvolume
 
   pure function boxarray_bbox(ba) result(r)
@@ -602,33 +599,6 @@ contains
     call boxarray_build_l(ba, bl)
     call destroy(bl)
   end subroutine boxarray_box_diff
-
-  ! a retro name
-  subroutine boxarray_complementIn(ba, bx, ba1)
-    type(boxarray), intent(out) :: ba
-    type(boxarray), intent(in) :: ba1
-    type(box),intent(in) :: bx
-    call boxarray_boxarray_diff(ba, bx, ba1)
-  end subroutine boxarray_complementIn
-
-  subroutine boxarray_boxarray_diff(ba, bx, ba1)
-    type(boxarray), intent(out) :: ba
-    type(boxarray), intent(in) :: ba1
-    type(box), intent(in) :: bx
-    type(list_box) :: bl1, bl
-    type(box) :: bx1
-    integer :: i
-    call build(bl1)
-    do i = 1, nboxes(ba1)
-       bx1 = intersection(bx, get_box(ba1,i))
-       if ( empty(bx1) ) cycle
-       call push_back(bl1, bx1)
-    end do
-    bl = boxlist_boxlist_diff(bx, bl1)
-    call boxarray_build_l(ba, bl)
-    call destroy(bl)
-    call destroy(bl1)
-  end subroutine boxarray_boxarray_diff
 
   subroutine boxarray_diff(bao, ba)
     type(boxarray), intent(inout) :: bao

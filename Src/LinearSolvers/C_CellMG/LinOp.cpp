@@ -204,10 +204,6 @@ LinOp::apply (MultiFab&      out,
 	      int            num_comp,
 	      int            bndry_comp)
 {
-    //
-    // Only single-component solves supported (verified) by this class.
-    //
-    BL_ASSERT(num_comp == 1);
     applyBC(in,src_comp,num_comp,level,bc_mode,local,bndry_comp);
     Fapply(out,dst_comp,in,src_comp,num_comp,level);
 }
@@ -239,11 +235,6 @@ LinOp::applyBC (MultiFab&      inout,
         // No data if homogeneous.
         //
         flagbc = 0;
-    //
-    // Only single-component solves supported (verified) by this class.
-    //
-    BL_ASSERT(num_comp == 1);
-    BL_ASSERT(bndry_comp+num_comp <= bgb->nComp());
 
     const bool cross = true;
 

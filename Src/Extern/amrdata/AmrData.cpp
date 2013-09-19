@@ -1031,12 +1031,21 @@ void AmrData::IntVectFromLocation(const int finestFillLevel,
    BL_ASSERT(location.size() == BL_SPACEDIM);
    BL_ASSERT(finestFillLevel <= finestLevel);
 
-   int ffl(finestFillLevel);
+   int ival;
 
    for(int i(0); i < BL_SPACEDIM; ++i) {
-      int ival = probDomain[ffl].smallEnd()[i] +
-                 ((int) ( (location[i] - probLo[i]) / dxLevel[ffl][i] ) );
+      ival = probDomain[finestFillLevel].smallEnd()[i] +
+                 (static_cast<int> ( (location[i] - probLo[i]) /
+		                     dxLevel[finestFillLevel][i] ) );
       ivFinestFillLev.setVal(i, ival);
+   }
+   Box fflBox(ivFinestFillLev, ivFinestFillLev);
+   ivLevel = FinestContainingLevel(fflBox, finestFillLevel);
+   for(int i(0); i < BL_SPACEDIM; ++i) {
+      ival = probDomain[ivLevel].smallEnd()[i] +
+                 (static_cast<int> ( (location[i] - probLo[i]) /
+		                     dxLevel[ivLevel][i] ) );
+      ivLoc.setVal(i, ival);
    }
 }
 

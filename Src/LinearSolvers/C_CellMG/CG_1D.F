@@ -4,8 +4,8 @@
 #endif
 
 #include <REAL.H>
-#include "CG_F.H"
-#include "ArrayLim.H"
+#include <CG_F.H>
+#include <ArrayLim.H>
 
 c-----------------------------------------------------------------------
 c      

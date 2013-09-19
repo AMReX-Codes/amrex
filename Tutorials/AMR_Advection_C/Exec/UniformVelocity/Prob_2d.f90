@@ -2,6 +2,7 @@
       subroutine PROBINIT (init,name,namlen,problo,probhi)
 
       use probdata_module
+
       implicit none
 
       integer init, namlen
@@ -10,7 +11,7 @@
 
       integer untin,i
 
-      namelist /fortin/ probtype,specerr,specgrad,max_specerr_lev,max_specgrad_lev,&
+      namelist /fortin/ probtype,adverr,specerr,specgrad,max_specerr_lev,max_specgrad_lev,&
                         diff_coeff
 
 !
@@ -63,7 +64,8 @@
                           dx,xlo,xhi)
 
       use probdata_module
-      use meth_params_module , only: NVAR, URHO, UX, UY, UFS
+      use meth_params_module , only: NVAR, URHO, UX, UY, UFS, UFA
+      use network            , only: nspec
       implicit none
 
       integer level, nscal
@@ -72,9 +74,13 @@
       double precision xlo(2), xhi(2), time, dx(2)
       double precision state(state_l1:state_h1,state_l2:state_h2,NVAR)
 
-
       integer          :: i,j
-      double precision :: x,y,r
+      double precision :: x,y,r1,r2
+
+      state(:,:,UFA  ) = 0.d0
+      state(:,:,UFS  ) = 0.d0
+      state(:,:,UFS+1) = 1.d0
+      state(:,:,UFS+2:UFS+nspec-1) = 0.d0
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
@@ -90,16 +96,26 @@
              state(i,j,UFS+1) = 0.d0
              state(i,j,UFS+2) = 0.d0
 
-             ! Define a blob of the second species
-             r = sqrt( (x-0.5d0)**2+(y-0.5d0)**2 )
-             if (r.lt.0.2d0) then
+             ! Define two blobs 
+             r1 = sqrt( (x-0.25d0)**2+(y-0.25d0)**2 )
+             if (r1.lt.0.1d0) then
                 state(i,j,UFS+1) = 1.d0
                 state(i,j,UFS  ) = 0.d0
+                state(i,j,UFA  ) = 1.d0
+             end if
+
+             r2 = sqrt( (x-0.75d0)**2+(y-0.75d0)**2 )
+             if (r2.lt.0.1d0) then
+                state(i,j,UFS+1) = 1.d0
+                state(i,j,UFS  ) = 0.d0
+                state(i,j,UFA  ) = 2.d0
              end if
 
              state(i,j,UFS  ) = state(i,j,URHO)*state(i,j,UFS  ) 
              state(i,j,UFS+1) = state(i,j,URHO)*state(i,j,UFS+1)
-             state(i,j,UFS+2) = state(i,j,URHO)*state(i,j,UFS+2)
+             state(i,j,UFS+2:UFS+nspec-1) = state(i,j,URHO)*state(i,j,UFS+2:UFS+nspec-1)
+
+             state(i,j,UFA  ) = state(i,j,URHO)*state(i,j,UFA  ) 
 
          enddo
       enddo
